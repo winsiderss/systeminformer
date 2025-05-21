@@ -63,7 +63,7 @@ INT WINAPI wWinMain(
     };
     PH_STRINGREF commandLine;
 
-    if (!NT_SUCCESS(PhInitializePhLib(L"PE Viewer", hInstance)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"PE Viewer")))
         return 1;
     if (!PvInitializeExceptionPolicy())
         return 1;

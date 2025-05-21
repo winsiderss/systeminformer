@@ -475,12 +475,12 @@ VOID PhServiceQueryStage1(
 
             if (nativeFilename = PhDosPathNameToNtPathName(&fileName->sr))
             {
-                if (PhInitializeImageVersionInfoCached(
+                if (NT_SUCCESS(PhInitializeImageVersionInfoCached(
                     &versionInfo, // Data->VersionInfo
                     nativeFilename,
                     FALSE,
                     !!PhCsEnableVersionSupport
-                    ))
+                    )))
                 {
                     // Note: This is how msconfig determines default services. (dmex)
                     if (versionInfo.CompanyName && PhStartsWithStringRef2(&versionInfo.CompanyName->sr, L"Microsoft", TRUE))

@@ -85,7 +85,7 @@ extern PH_QUEUED_LOCK PhDbgObjectListLock;
 extern PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook;
 #endif
 
-BOOLEAN PhRefInitialization(
+NTSTATUS PhRefInitialization(
     VOID
     );
 

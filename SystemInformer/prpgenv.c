@@ -242,7 +242,12 @@ VOID PhpRefreshEnvironmentList(
 
         enumerationKey = 0;
 
-        while (PhEnumProcessEnvironmentVariables(systemDefaultEnvironment, (ULONG)variableLength * sizeof(WCHAR), &enumerationKey, &variable))
+        while (NT_SUCCESS(PhEnumProcessEnvironmentVariables(
+            systemDefaultEnvironment,
+            (ULONG)variableLength * sizeof(WCHAR),
+            &enumerationKey,
+            &variable
+            )))
         {
             PH_ENVIRONMENT_ITEM entry;
 
@@ -330,7 +335,12 @@ VOID PhpRefreshEnvironmentList(
             {
                 enumerationKey = 0;
 
-                while (PhEnumProcessEnvironmentVariables(environment, environmentLength, &enumerationKey, &variable))
+                while (NT_SUCCESS(PhEnumProcessEnvironmentVariables(
+                    environment,
+                    environmentLength,
+                    &enumerationKey,
+                    &variable
+                    )))
                 {
                     PH_ENVIRONMENT_ITEM entry;
 
@@ -470,7 +480,11 @@ VOID PhpRefreshWslEnvironmentList(
         return;
     }
 
-    if (!PhWslQueryDistroProcessEnvironment(&ProcessItem->FileName->sr, ProcessItem->LxssProcessId, &environment))
+    if (!NT_SUCCESS(PhWslQueryDistroProcessEnvironment(
+        &ProcessItem->FileName->sr,
+        ProcessItem->LxssProcessId,
+        &environment
+        )))
     {
         PhpSetEnvironmentListStatusMessage(Context, STATUS_PARTIAL_COPY);
         TreeNew_NodesStructured(Context->TreeNewHandle);
@@ -479,7 +493,12 @@ VOID PhpRefreshWslEnvironmentList(
 
     enumerationKey = 0;
 
-    while (PhEnumProcessEnvironmentVariables(PhGetString(environment), (ULONG)environment->Length, &enumerationKey, &variable))
+    while (NT_SUCCESS(PhEnumProcessEnvironmentVariables(
+        PhGetString(environment),
+        (ULONG)environment->Length,
+        &enumerationKey,
+        &variable
+        )))
     {
         PH_ENVIRONMENT_ITEM entry;
 

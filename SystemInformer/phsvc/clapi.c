@@ -24,7 +24,6 @@ NTSTATUS PhSvcConnectToServer(
 {
     NTSTATUS status;
     HANDLE sectionHandle;
-    OBJECT_ATTRIBUTES objectAttributes;
     LARGE_INTEGER sectionSize;
     PORT_VIEW clientView;
     REMOTE_PORT_VIEW serverView;
@@ -39,21 +38,13 @@ NTSTATUS PhSvcConnectToServer(
     if (PortSectionSize == 0)
         PortSectionSize = UInt32x32To64(8, 1024 * 1024); // 8 MB
 
-    InitializeObjectAttributes(
-        &objectAttributes,
-        NULL,
-        OBJ_EXCLUSIVE,
-        NULL,
-        NULL
-        );
+    sectionSize.QuadPart = PortSectionSize;
 
     // Create the port section and connect to the port.
 
-    sectionSize.QuadPart = PortSectionSize;
-    status = NtCreateSection(
+    status = PhCreateSection(
         &sectionHandle,
         SECTION_ALL_ACCESS,
-        &objectAttributes,
         &sectionSize,
         PAGE_READWRITE,
         SEC_COMMIT,
@@ -720,6 +711,7 @@ VOID PhSvcpPackBuffer(
 
     va_start(argptr, NumberOfPointersToRebase);
     PhSvcpPackBuffer_V(BytesBuilder, PointerInBytesBuilder, Length, Alignment, NumberOfPointersToRebase, argptr);
+    va_end(argptr);
 }
 
 SIZE_T PhSvcpBufferLengthStringZ(

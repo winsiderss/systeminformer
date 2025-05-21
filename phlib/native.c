@@ -115,8 +115,7 @@ NTSTATUS PhSetObjectSecurity(
         );
 }
 
-_Success_(return)
-BOOLEAN PhEnumProcessEnvironmentVariables(
+NTSTATUS PhEnumProcessEnvironmentVariables(
     _In_ PVOID Environment,
     _In_ ULONG EnvironmentLength,
     _Inout_ PULONG EnumerationKey,
@@ -143,11 +142,11 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
     while (TRUE)
     {
         if (currentIndex >= length)
-            return FALSE;
+            return STATUS_UNSUCCESSFUL;
         if (*currentChar == L'=' && startIndex != currentIndex)
             break; // equality sign is considered as a delimiter unless it is the first character (diversenok)
         if (*currentChar == UNICODE_NULL)
-            return FALSE; // no more variables
+            return STATUS_UNSUCCESSFUL; // no more variables
 
         currentIndex++;
         currentChar++;
@@ -164,7 +163,7 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
     while (TRUE)
     {
         if (currentIndex >= length)
-            return FALSE;
+            return STATUS_UNSUCCESSFUL;
         if (*currentChar == UNICODE_NULL)
             break;
 
@@ -182,7 +181,7 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
     Variable->Value.Buffer = value;
     Variable->Value.Length = valueLength * sizeof(WCHAR);
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS PhQueryEnvironmentVariableStringRef(
@@ -349,20 +348,15 @@ NTSTATUS PhGetProcessSectionFileName(
     )
 {
     NTSTATUS status;
-    SIZE_T viewSize;
-    PVOID viewBase;
+    PVOID baseAddress;
 
-    viewSize = PAGE_SIZE;
-    viewBase = NULL;
-
-    status = NtMapViewOfSection(
+    status = PhMapViewOfSection(
         SectionHandle,
         ProcessHandle,
-        &viewBase,
-        0,
+        &baseAddress,
         0,
         NULL,
-        &viewSize,
+        PAGE_SIZE,
         ViewUnmap,
         0,
         PAGE_READONLY
@@ -373,11 +367,11 @@ NTSTATUS PhGetProcessSectionFileName(
 
     status = PhGetProcessMappedFileName(
         ProcessHandle,
-        viewBase,
+        baseAddress,
         FileName
         );
 
-    NtUnmapViewOfSection(ProcessHandle, viewBase);
+    PhUnmapViewOfSection(ProcessHandle, baseAddress);
 
     return status;
 }
@@ -7167,8 +7161,7 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
     HANDLE sectionHandle;
     OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING objectName;
-    PVOID viewBase;
-    SIZE_T viewSize;
+    PVOID baseAddress;
     PPH_STRING fileName;
 
     if (!PhStringRefToUnicodeString(Name, &objectName))
@@ -7191,17 +7184,13 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
     if (!NT_SUCCESS(status))
         return TRUE;
 
-    viewSize = PAGE_SIZE;
-    viewBase = NULL;
-
-    status = NtMapViewOfSection(
+    status = PhMapViewOfSection(
         sectionHandle,
         NtCurrentProcess(),
-        &viewBase,
-        0,
+        &baseAddress,
         0,
         NULL,
-        &viewSize,
+        PAGE_SIZE,
         ViewUnmap,
         WindowsVersion < WINDOWS_10_RS2 ? 0 : MEM_MAPPED,
         PAGE_READONLY
@@ -7214,11 +7203,11 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
 
     status = PhGetProcessMappedFileName(
         NtCurrentProcess(),
-        viewBase,
+        baseAddress,
         &fileName
         );
 
-    NtUnmapViewOfSection(NtCurrentProcess(), viewBase);
+    PhUnmapViewOfSection(NtCurrentProcess(), baseAddress);
 
     if (NT_SUCCESS(status))
     {
@@ -7236,23 +7225,16 @@ VOID PhInitializeKnownDlls(
     _In_ PCWSTR ObjectName
     )
 {
-    UNICODE_STRING directoryName;
-    OBJECT_ATTRIBUTES objectAttributes;
+    PH_STRINGREF directoryName;
     HANDLE directoryHandle;
 
-    RtlInitUnicodeString(&directoryName, ObjectName);
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &directoryName,
-        OBJ_CASE_INSENSITIVE,
-        NULL,
-        NULL
-        );
+    PhInitializeStringRef(&directoryName, ObjectName);
 
-    if (NT_SUCCESS(NtOpenDirectoryObject(
+    if (NT_SUCCESS(PhOpenDirectoryObject(
         &directoryHandle,
         DIRECTORY_QUERY,
-        &objectAttributes
+        NULL,
+        &directoryName
         )))
     {
         PhEnumDirectoryObjects(

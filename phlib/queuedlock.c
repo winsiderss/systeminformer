@@ -85,24 +85,37 @@ VOID FASTCALL PhpfWakeQueuedLockEx(
 static HANDLE PhQueuedLockKeyedEventHandle;
 static ULONG PhQueuedLockSpinCount = 2000;
 
-BOOLEAN PhQueuedLockInitialization(
+NTSTATUS PhQueuedLockInitialization(
     VOID
     )
 {
-    if (!NT_SUCCESS(NtCreateKeyedEvent(
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateKeyedEvent(
         &PhQueuedLockKeyedEventHandle,
         KEYEDEVENT_ALL_ACCESS,
-        NULL,
+        &objectAttributes,
         0
-        )))
-        return FALSE;
+        );
+
+    if (NT_SUCCESS(status))
+        return status;
 
     if (PhSystemBasicInformation.NumberOfProcessors > 1)
         PhQueuedLockSpinCount = 4000;
     else
         PhQueuedLockSpinCount = 0;
 
-    return TRUE;
+    return status;
 }
 
 /**

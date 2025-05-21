@@ -108,6 +108,64 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
     _In_opt_ PVOID Parameter
     );
 
+// main
+
+LONG PhMainMessageLoop(
+    VOID
+    );
+
+VOID PhActivatePreviousInstance(
+    VOID
+    );
+
+VOID PhInitializeCommonControls(
+    VOID
+    );
+
+VOID PhInitializeSuperclassControls( // delayhook.c
+    VOID
+    );
+
+BOOLEAN PhInitializeAppSystem(
+    VOID
+    );
+
+VOID PhpInitializeSettings(
+    VOID
+    );
+
+VOID PhpProcessStartupParameters(
+    VOID
+    );
+
+VOID PhpEnablePrivileges(
+    VOID
+    );
+
+VOID PhEnableTerminationPolicy(
+    _In_ BOOLEAN Enabled
+    );
+
+NTSTATUS PhInitializeDirectoryPolicy(
+    VOID
+    );
+
+NTSTATUS PhInitializeExceptionPolicy(
+    VOID
+    );
+
+NTSTATUS PhInitializeMitigationPolicy(
+    VOID
+    );
+
+NTSTATUS PhInitializeComPolicy(
+    VOID
+    );
+
+NTSTATUS PhInitializeTimerPolicy(
+    VOID
+    );
+
 // Event handlers
 
 VOID PhMwpOnDestroy(

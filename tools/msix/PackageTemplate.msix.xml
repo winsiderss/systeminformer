@@ -18,8 +18,8 @@
         <uap10:PackageIntegrity>
            <uap10:Content Enforcement="on" />
         </uap10:PackageIntegrity>
-        <!-- <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
-        <desktop6:RegistryWriteVirtualization>disabled</desktop6:RegistryWriteVirtualization> -->
+        <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
+        <desktop6:RegistryWriteVirtualization>disabled</desktop6:RegistryWriteVirtualization>
     </Properties>
     <Resources>
         <Resource Language="en-US" />

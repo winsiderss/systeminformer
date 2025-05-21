@@ -19,6 +19,8 @@ extern CONST WCHAR *PhSizeUnitNames[7];
 extern ULONG PhMaxSizeUnit;
 extern USHORT PhMaxPrecisionUnit;
 extern FLOAT PhMaxPrecisionLimit;
+extern CONST PH_STRINGREF PhPrefixUnitNamesCounted[7];
+extern CONST PH_STRINGREF PhSiPrefixUnitNamesCounted[7];
 
 typedef struct _PH_INTEGER_PAIR
 {
@@ -357,9 +359,8 @@ PhTaskDialogNavigatePage(
     _In_ PTASKDIALOGCONFIG Config
     )
 {
-#ifdef DEBUG
     assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL));
-#endif
+
     #define WM_TDM_NAVIGATE_PAGE (WM_USER + 101)
 
     SendMessage(WindowHandle, WM_TDM_NAVIGATE_PAGE, 0, (LPARAM)(Config));
@@ -896,22 +897,23 @@ PhIsFileVersionInfo32(
 }
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhGetFileVersionInfo(
-    _In_ PCWSTR FileName
+    _In_ PCWSTR FileName,
+    _Out_ PVOID* VersionInfo
     );
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhGetFileVersionInfoEx(
-    _In_ PCPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName,
+    _Out_ PVOID* VersionInfo
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetFileVersionInfoKey(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
@@ -920,9 +922,8 @@ PhGetFileVersionInfoKey(
     _Out_opt_ PVOID* Buffer
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetFileVersionVarFileInfoValue(
     _In_ PVOID VersionInfo,
@@ -932,7 +933,7 @@ PhGetFileVersionVarFileInfoValue(
     );
 
 FORCEINLINE
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetFileVersionVarFileInfoValueZ(
     _In_ PVOID VersionInfo,
@@ -994,8 +995,7 @@ typedef struct _PH_IMAGE_VERSION_INFO
 } PH_IMAGE_VERSION_INFO, *PPH_IMAGE_VERSION_INFO;
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhInitializeImageVersionInfo(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
@@ -1003,8 +1003,7 @@ PhInitializeImageVersionInfo(
     );
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhInitializeImageVersionInfoEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
@@ -1029,9 +1028,8 @@ PhFormatImageVersionInfo(
     _In_opt_ ULONG LineLimit
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhInitializeImageVersionInfoCached(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
@@ -1074,6 +1072,24 @@ PhExpandEnvironmentStringsZ(
     PhInitializeStringRef(&string, String);
 
     return PhExpandEnvironmentStrings(&string);
+}
+
+FORCEINLINE
+PPH_STRING
+PhConvertNtPathSeperatorToAltSeperator(
+    _In_ PPH_STRING String
+    )
+{
+    if (String)
+    {
+        for (ULONG i = 0; i < String->Length / sizeof(WCHAR); i++)
+        {
+            if (String->Buffer[i] == OBJ_NAME_PATH_SEPARATOR) // RtlNtPathSeperatorString
+                String->Buffer[i] = OBJ_NAME_ALTPATH_SEPARATOR; // RtlAlternateDosPathSeperatorString
+        }
+    }
+
+    return String;
 }
 
 PHLIBAPI
@@ -1177,6 +1193,24 @@ NTAPI
 PhGetApplicationFileNameWin32(
     VOID
     );
+
+FORCEINLINE
+PPH_STRING
+PhGetApplicationFileNameZ(
+    _In_ PCPH_STRINGREF Suffix
+    )
+{
+    PPH_STRING fileName = NULL;
+    PPH_STRING applicationFileName;
+
+    if (applicationFileName = PhGetApplicationFileName())
+    {
+        fileName = PhConcatStringRef2(&applicationFileName->sr, Suffix);
+        PhDereferenceObject(applicationFileName);
+    }
+
+    return fileName;
+}
 
 PHLIBAPI
 PPH_STRING
@@ -1897,11 +1931,18 @@ PhCrc32C(
 
 typedef enum _PH_HASH_ALGORITHM
 {
+    Crc32HashAlgorithm,
+    Crc32CHashAlgorithm,
     Md5HashAlgorithm,
     Sha1HashAlgorithm,
     Crc32HashAlgorithm,
     Sha256HashAlgorithm
 } PH_HASH_ALGORITHM;
+
+#define PH_HASH_CRC32_LENGTH 4
+#define PH_HASH_MD5_LENGTH 16
+#define PH_HASH_SHA1_LENGTH 20
+#define PH_HASH_SHA256_LENGTH 32
 
 typedef struct _PH_HASH_CONTEXT
 {
@@ -1910,7 +1951,7 @@ typedef struct _PH_HASH_CONTEXT
 } PH_HASH_CONTEXT, *PPH_HASH_CONTEXT;
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhInitializeHash(
     _Out_ PPH_HASH_CONTEXT Context,
@@ -1918,23 +1959,44 @@ PhInitializeHash(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhUpdateHash(
-    _Inout_ PPH_HASH_CONTEXT Context,
+    _In_ PPH_HASH_CONTEXT Context,
     _In_reads_bytes_(Length) PVOID Buffer,
     _In_ ULONG Length
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhFinalHash(
-    _Inout_ PPH_HASH_CONTEXT Context,
+    _In_ PPH_HASH_CONTEXT Context,
     _Out_writes_bytes_(HashLength) PVOID Hash,
     _In_ ULONG HashLength,
     _Out_opt_ PULONG ReturnLength
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhFinalHashString(
+    _In_ PPH_HASH_CONTEXT Context,
+    _Out_ PPH_STRING* HashString
+    )
+{
+    NTSTATUS status;
+    UCHAR hash[PH_HASH_SHA256_LENGTH];
+
+    status = PhFinalHash(Context, hash, sizeof(hash), NULL);
+
+    if (NT_SUCCESS(status))
+    {
+        *HashString = PhBufferToHexString(hash, sizeof(hash));
+    }
+
+    return status;
+}
 
 typedef enum _PH_COMMAND_LINE_OPTION_TYPE
 {

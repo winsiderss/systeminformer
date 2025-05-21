@@ -6138,7 +6138,7 @@ BOOLEAN PhUiUnloadModule(
             ProcessId
             )))
         {
-            status = NtUnmapViewOfSection(processHandle, Module->BaseAddress);
+            status = PhUnmapViewOfSection(processHandle, Module->BaseAddress);
             NtClose(processHandle);
         }
 
@@ -6241,7 +6241,7 @@ BOOLEAN PhUiFreeMemory(
         }
         else
         {
-            status = NtUnmapViewOfSection(processHandle, baseAddress);
+            status = PhUnmapViewOfSection(processHandle, baseAddress);
         }
 
         NtClose(processHandle);
@@ -6411,7 +6411,7 @@ BOOLEAN PhUiCloseHandles(
                 }
             }
 
-            if (NT_SUCCESS(PhGetProcessMitigationPolicyInformation(
+            if (NT_SUCCESS(PhGetProcessMitigationPolicy(
                 processHandle,
                 ProcessStrictHandleCheckPolicy,
                 &policyInfo

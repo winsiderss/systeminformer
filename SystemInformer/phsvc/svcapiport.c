@@ -57,6 +57,7 @@ NTSTATUS PhSvcApiPortInitialization(
     PhAddAccessAllowedAce(dacl, ACL_REVISION, PORT_ALL_ACCESS, administratorsSid);
     PhAddAccessAllowedAce(dacl, ACL_REVISION, PORT_CONNECT, (PSID)&PhSeEveryoneSid);
     PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+    assert(RtlValidSecurityDescriptor(securityDescriptor));
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -81,6 +82,9 @@ NTSTATUS PhSvcApiPortInitialization(
     // Start the API threads.
 
     PhSvcApiThreadContextTlsIndex = PhTlsAlloc();
+
+    if (PhSvcApiThreadContextTlsIndex == TLS_OUT_OF_INDEXES)
+        return STATUS_NO_MEMORY;
 
     for (i = 0; i < 2; i++)
     {

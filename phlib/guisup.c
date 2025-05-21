@@ -23,19 +23,30 @@
 #include <wincodec.h>
 #include <uxtheme.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpWindowContextHashtableHashFunction(
     _In_ PVOID Entry
     );
+
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
     _In_ PVOID Entry
+    );
+
+VOID NTAPI PhWindowCallbackHashtableFlsCallback(
+    _In_ PVOID FlsData
     );
 
 typedef struct _PH_WINDOW_PROPERTY_CONTEXT
@@ -59,8 +70,7 @@ static PH_QUEUED_LOCK SharedIconCacheLock = PH_QUEUED_LOCK_INIT;
 
 static PPH_HASHTABLE WindowCallbackHashTable = NULL;
 static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
-static PPH_HASHTABLE WindowContextHashTable = NULL;
-static PH_QUEUED_LOCK WindowContextListLock = PH_QUEUED_LOCK_INIT;
+static ULONG WindowCallbackFlsIndex = FLS_OUT_OF_INDEXES;
 
 static __typeof__(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
 static __typeof__(&OpenThemeData) OpenThemeData_I = NULL;
@@ -93,16 +103,13 @@ VOID PhGuiSupportInitialization(
 {
     PVOID baseAddress;
 
+    //RtlFlsAlloc(PhWindowCallbackHashtableFlsCallback, &WindowCallbackFlsIndex);
+    WindowCallbackFlsIndex = FlsAlloc(PhWindowCallbackHashtableFlsCallback);
+
     WindowCallbackHashTable = PhCreateHashtable(
         sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
         PhpWindowCallbackHashtableEqualFunction,
         PhpWindowCallbackHashtableHashFunction,
-        10
-        );
-    WindowContextHashTable = PhCreateHashtable(
-        sizeof(PH_WINDOW_PROPERTY_CONTEXT),
-        PhpWindowContextHashtableEqualFunction,
-        PhpWindowContextHashtableHashFunction,
         10
         );
 
@@ -2341,6 +2348,7 @@ VOID PhLayoutManagerLayout(
     }
 }
 
+_Use_decl_annotations_
 BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -2354,6 +2362,7 @@ BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
         entry1->PropertyHash == entry2->PropertyHash;
 }
 
+_Use_decl_annotations_
 ULONG NTAPI PhpWindowContextHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -2361,6 +2370,40 @@ ULONG NTAPI PhpWindowContextHashtableHashFunction(
     PPH_WINDOW_PROPERTY_CONTEXT entry = Entry;
 
     return PhHashIntPtr((ULONG_PTR)entry->WindowHandle) ^ entry->PropertyHash; // PhHashInt32
+}
+
+VOID NTAPI PhWindowCallbackHashtableFlsCallback(
+    _In_ PVOID FlsData
+    )
+{
+    PPH_HASHTABLE hashtable = (PPH_HASHTABLE)FlsData;
+
+    PhClearReference(&hashtable);
+}
+
+static PPH_HASHTABLE PhGetWindowContextHashTable(
+    VOID
+    )
+{
+    PPH_HASHTABLE hashtable;
+
+    if (hashtable = FlsGetValue(WindowCallbackFlsIndex))
+        return hashtable;
+
+    hashtable = PhCreateHashtable(
+        sizeof(PH_WINDOW_PROPERTY_CONTEXT),
+        PhpWindowContextHashtableEqualFunction,
+        PhpWindowContextHashtableHashFunction,
+        5
+        );
+
+    if (!FlsSetValue(WindowCallbackFlsIndex, hashtable))
+    {
+        PhShowStatus(NULL, L"Unable to create the window context.", 0, PhGetLastError());
+        RtlFailFast(FAST_FAIL_INVALID_FLS_DATA);
+    }
+
+    return hashtable;
 }
 
 PVOID PhGetWindowContext(
@@ -2374,9 +2417,7 @@ PVOID PhGetWindowContext(
     lookupEntry.WindowHandle = WindowHandle;
     lookupEntry.PropertyHash = PropertyHash;
 
-    PhAcquireQueuedLockShared(&WindowContextListLock);
-    entry = PhFindEntryHashtable(WindowContextHashTable, &lookupEntry);
-    PhReleaseQueuedLockShared(&WindowContextListLock);
+    entry = PhFindEntryHashtable(PhGetWindowContextHashTable(), &lookupEntry);
 
     if (entry)
         return entry->Context;
@@ -2396,9 +2437,7 @@ VOID PhSetWindowContext(
     entry.PropertyHash = PropertyHash;
     entry.Context = Context;
 
-    PhAcquireQueuedLockExclusive(&WindowContextListLock);
-    PhAddEntryHashtable(WindowContextHashTable, &entry);
-    PhReleaseQueuedLockExclusive(&WindowContextListLock);
+    PhAddEntryHashtable(PhGetWindowContextHashTable(), &entry);
 }
 
 VOID PhRemoveWindowContext(
@@ -2411,17 +2450,50 @@ VOID PhRemoveWindowContext(
     lookupEntry.WindowHandle = WindowHandle;
     lookupEntry.PropertyHash = PropertyHash;
 
-    PhAcquireQueuedLockExclusive(&WindowContextListLock);
-    PhRemoveEntryHashtable(WindowContextHashTable, &lookupEntry);
-    PhReleaseQueuedLockExclusive(&WindowContextListLock);
+    PhRemoveEntryHashtable(PhGetWindowContextHashTable(), &lookupEntry);
 }
 
-VOID PhEnumWindows(
-    _In_ PH_ENUM_CALLBACK Callback,
+typedef struct _PH_WINDOW_ENUM_CONTEXT
+{
+    _Function_class_(PH_WINDOW_ENUM_CALLBACK)
+    _In_ PPH_WINDOW_ENUM_CALLBACK Callback;
+    _In_opt_ PVOID Context;
+} PH_WINDOW_ENUM_CONTEXT, *PPH_WINDOW_ENUM_CONTEXT;
+
+static BOOL CALLBACK PhEnumWindowsCallback(
+    _In_ HWND WindowHandle,
+    _In_opt_ LPARAM Context
+    )
+{
+    PPH_WINDOW_ENUM_CONTEXT context = (PPH_WINDOW_ENUM_CONTEXT)Context;
+
+    if (context->Callback(WindowHandle, context->Context))
+        return TRUE;
+
+    return FALSE;
+}
+
+/**
+ * Enumerates all top-level windows on the screen.
+ *
+ * \param Callback The callback function to be called for each child window.
+ * \param Context An optional context parameter to be passed to the callback function.
+ */
+NTSTATUS PhEnumWindows(
+    _In_ PH_WINDOW_ENUM_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
-    EnumWindows((WNDENUMPROC)Callback, (LPARAM)Context);
+    PH_WINDOW_ENUM_CONTEXT context;
+
+    memset(&context, 0, sizeof(PH_WINDOW_ENUM_CONTEXT));
+    context.Callback = Callback;
+    context.Context = Context;
+
+    if (EnumWindows(PhEnumWindowsCallback, (LPARAM)&context))
+        return STATUS_SUCCESS;
+
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 /**
@@ -2432,14 +2504,21 @@ VOID PhEnumWindows(
  * \param Callback The callback function to be called for each child window.
  * \param Context An optional context parameter to be passed to the callback function.
  */
-VOID PhEnumChildWindows(
+NTSTATUS PhEnumChildWindows(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Limit,
-    _In_ PH_CHILD_ENUM_CALLBACK Callback,
+    _In_ PH_WINDOW_ENUM_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
-    EnumChildWindows(WindowHandle, (WNDENUMPROC)Callback, (LPARAM)Context);
+    PH_WINDOW_ENUM_CONTEXT context;
+
+    memset(&context, 0, sizeof(PH_WINDOW_ENUM_CONTEXT));
+    context.Callback = Callback;
+    context.Context = Context;
+
+    if (EnumChildWindows(WindowHandle, PhEnumWindowsCallback, (LPARAM)&context))
+        return STATUS_SUCCESS;
 
     //HWND childWindow = NULL;
     //ULONG i = 0;
@@ -2451,6 +2530,9 @@ VOID PhEnumChildWindows(
     //
     //    i++;
     //}
+   
+    // Note: EnumChildWindows doesn't support GetLastError. (dmex)
+    return STATUS_UNSUCCESSFUL;
 }
 
 typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
@@ -2462,25 +2544,26 @@ typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
     BOOLEAN SkipInvisible;
 } GET_PROCESS_MAIN_WINDOW_CONTEXT, *PGET_PROCESS_MAIN_WINDOW_CONTEXT;
 
-BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
+BOOLEAN CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
     _In_ HWND WindowHandle,
     _In_ PVOID Context
     )
 {
     PGET_PROCESS_MAIN_WINDOW_CONTEXT context = (PGET_PROCESS_MAIN_WINDOW_CONTEXT)Context;
-    ULONG processId;
+    CLIENT_ID clientId;
     WINDOWINFO windowInfo;
 
     if (context->SkipInvisible && !IsWindowVisible(WindowHandle))
         return TRUE;
 
-    GetWindowThreadProcessId(WindowHandle, &processId);
+    if (!NT_SUCCESS(PhGetWindowClientId(WindowHandle, &clientId)))
+        return TRUE;
 
     //if (UlongToHandle(processId) == context->ProcessId && (context->SkipInvisible ?
     //    !((parentWindow = GetParent(WindowHandle)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
     //    PhGetWindowTextEx(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0 : TRUE)) // skip windows with no title
 
-    if (UlongToHandle(processId) == context->ProcessId)
+    if (clientId.UniqueProcess == context->ProcessId)
     {
         if (!context->ImmersiveWindow && context->IsImmersive &&
             GetProp(WindowHandle, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
@@ -2562,6 +2645,14 @@ ULONG PhGetDialogItemValue(
     return (ULONG)controlValue;
 }
 
+/**
+ * Sets the text of a control in a dialog box to the string representation of a specified integer value.
+ *
+ * \param WindowHandle The handle of the parent window.
+ * \param ControlID The control to be changed.
+ * \param Value The integer value used to generate the item text.
+ * \param Signed Indicates whether the Value parameter is signed or unsigned.
+ */
 VOID PhSetDialogItemValue(
     _In_ HWND WindowHandle,
     _In_ LONG ControlID,
@@ -2583,7 +2674,14 @@ VOID PhSetDialogItemValue(
     }
 }
 
-VOID PhSetDialogItemText(
+/**
+ * Sets the title or text of a control in a dialog box.
+ *
+ * \param WindowHandle The handle of the parent window.
+ * \param ControlID The control with a title or text to be set.
+ * \param WindowText The text to be copied to the control.
+ */
+BOOLEAN PhSetDialogItemText(
     _In_ HWND WindowHandle,
     _In_ LONG ControlID,
     _In_ PCWSTR WindowText
@@ -2593,16 +2691,35 @@ VOID PhSetDialogItemText(
 
     if (controlHandle = GetDlgItem(WindowHandle, ControlID))
     {
-        PhSetWindowText(controlHandle, WindowText);
+        if (PhSetWindowText(controlHandle, WindowText))
+            return TRUE;
     }
+
+    return FALSE;
 }
 
-VOID PhSetWindowText(
+/**
+ * Sets the title or text of a control.
+ *
+ * \param WindowHandle The handle of the parent window.
+ * \param WindowText The text to be copied to the control.
+ */
+BOOLEAN PhSetWindowText(
     _In_ HWND WindowHandle,
     _In_ PCWSTR WindowText
     )
 {
-    SendMessage(WindowHandle, WM_SETTEXT, 0, (LPARAM)WindowText); // TODO: DefWindowProc (dmex)
+    if (SendMessage(WindowHandle, WM_SETTEXT, 0, (LPARAM)WindowText) > 0)
+    {
+        return TRUE;
+    }
+
+    //if (DefWindowProc(WindowHandle, WM_SETTEXT, 0, (LPARAM)WindowText) > 0)
+    //{
+    //    return TRUE;
+    //}
+
+    return FALSE;
 }
 
 VOID PhSetGroupBoxText(
@@ -2634,6 +2751,7 @@ VOID PhSetWindowAlwaysOnTop(
         );
 }
 
+_Use_decl_annotations_
 BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -2644,6 +2762,7 @@ BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
         ((PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION)Entry2)->WindowHandle;
 }
 
+_Use_decl_annotations_
 ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
     _In_ PVOID Entry
     )

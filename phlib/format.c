@@ -45,7 +45,26 @@ static CONST PH_STRINGREF PhpSizeUnitNamesCounted[7] =
     PH_STRINGREF_INIT(L"PB"),
     PH_STRINGREF_INIT(L"EB")
 };
-
+CONST PH_STRINGREF PhPrefixUnitNamesCounted[7] =
+{
+    PH_STRINGREF_INIT(L""),
+    PH_STRINGREF_INIT(L"k"),
+    PH_STRINGREF_INIT(L"M"),
+    PH_STRINGREF_INIT(L"B"),
+    PH_STRINGREF_INIT(L"T"),
+    PH_STRINGREF_INIT(L"P"),
+    PH_STRINGREF_INIT(L"E")
+};
+CONST PH_STRINGREF PhSiPrefixUnitNamesCounted[7] =
+{
+    PH_STRINGREF_INIT(L" Bps"),
+    PH_STRINGREF_INIT(L" Kbps"),
+    PH_STRINGREF_INIT(L" Mbps"),
+    PH_STRINGREF_INIT(L" Gbps"),
+    PH_STRINGREF_INIT(L" Tbps"),
+    PH_STRINGREF_INIT(L" Pbps"),
+    PH_STRINGREF_INIT(L" Ebps")
+};
 static PH_INITONCE PhpFormatInitOnce = PH_INITONCE_INIT;
 static WCHAR PhpFormatDecimalSeparator = L'.';
 static WCHAR PhpFormatThousandSeparator = L',';
@@ -56,20 +75,23 @@ VOID PhpFormatSingleToUtf8Locale(
     _In_ ULONG Type,
     _In_ LONG Precision,
     _Out_writes_bytes_(BufferLength) PSTR Buffer,
-    _In_opt_ SIZE_T BufferLength
+    _In_opt_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
     )
 {
-    if (!PhFormatSingleToUtf8(
+    if (!NT_SUCCESS(PhFormatSingleToUtf8(
         Value,
         Type,
         Precision,
         Buffer,
         BufferLength,
-        NULL
-        ))
+        ReturnLength
+        )))
     {
         if (Buffer)
             *Buffer = ANSI_NULL;
+        if (ReturnLength)
+            *ReturnLength = 0;
         return;
     }
 
@@ -102,20 +124,23 @@ VOID PhpFormatDoubleToUtf8Locale(
     _In_ ULONG Type,
     _In_ LONG Precision,
     _Out_writes_bytes_(BufferLength) PSTR Buffer,
-    _In_opt_ SIZE_T BufferLength
+    _In_opt_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
     )
 {
-    if (!PhFormatDoubleToUtf8(
+    if (!NT_SUCCESS(PhFormatDoubleToUtf8(
         Value,
         Type,
         Precision,
         Buffer,
         BufferLength,
-        NULL
-        ))
+        ReturnLength
+        )))
     {
         if (Buffer)
             *Buffer = ANSI_NULL;
+        if (ReturnLength)
+            *ReturnLength = 0;
         return;
     }
 

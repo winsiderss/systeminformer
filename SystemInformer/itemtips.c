@@ -171,10 +171,10 @@ PPH_STRING PhGetProcessTooltipText(
                 {
                     PH_IMAGE_VERSION_INFO versionInfo;
 
-                    if (PhInitializeImageVersionInfo(
+                    if (NT_SUCCESS(PhInitializeImageVersionInfo(
                         &versionInfo,
                         knownCommandLine.RunDllAsApp.FileName->Buffer
-                        ))
+                        )))
                     {
                         tempString = PhFormatImageVersionInfo(
                             knownCommandLine.RunDllAsApp.FileName,
@@ -219,10 +219,10 @@ PPH_STRING PhGetProcessTooltipText(
                         PhAppendCharStringBuilder(&stringBuilder, L'\n');
                     }
 
-                    if (knownCommandLine.ComSurrogate.FileName && PhInitializeImageVersionInfo(
+                    if (knownCommandLine.ComSurrogate.FileName && NT_SUCCESS(PhInitializeImageVersionInfo(
                         &versionInfo,
                         knownCommandLine.ComSurrogate.FileName->Buffer
-                        ))
+                        )))
                     {
                         tempString = PhFormatImageVersionInfo(
                             knownCommandLine.ComSurrogate.FileName,
@@ -505,9 +505,7 @@ VOID PhpFillUmdfDrivers(
 {
     static CONST PH_STRINGREF activeDevices = PH_STRINGREF_INIT(L"ACTIVE_DEVICES");
     static CONST PH_STRINGREF currentControlSetEnum = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Enum\\");
-
     HANDLE processHandle;
-    ULONG flags = 0;
     PVOID environment;
     ULONG environmentLength;
     ULONG enumerationKey;
@@ -529,7 +527,12 @@ VOID PhpFillUmdfDrivers(
     {
         enumerationKey = 0;
 
-        while (PhEnumProcessEnvironmentVariables(environment, environmentLength, &enumerationKey, &variable))
+        while (NT_SUCCESS(PhEnumProcessEnvironmentVariables(
+            environment,
+            environmentLength,
+            &enumerationKey,
+            &variable
+            )))
         {
             PH_STRINGREF part;
             PH_STRINGREF remainingPart;
@@ -577,12 +580,10 @@ VOID PhpFillUmdfDrivers(
                             PhInitializeStringRef(&deviceName, L"Unknown Device");
                         }
 
-                        hardwareId = PhQueryRegistryStringZ(driverKeyHandle, L"HardwareID");
-
                         PhAppendStringBuilder(Drivers, &StandardIndent);
                         PhAppendStringBuilder(Drivers, &deviceName);
 
-                        if (hardwareId)
+                        if (hardwareId = PhQueryRegistryStringZ(driverKeyHandle, L"HardwareID"))
                         {
                             PhTrimToNullTerminatorString(hardwareId);
 
@@ -790,10 +791,10 @@ PPH_STRING PhGetServiceTooltipText(
             PH_IMAGE_VERSION_INFO versionInfo;
             PPH_STRING versionInfoText;
 
-            if (PhInitializeImageVersionInfo(
+            if (NT_SUCCESS(PhInitializeImageVersionInfo(
                 &versionInfo,
                 fileName->Buffer
-                ))
+                )))
             {
                 versionInfoText = PhFormatImageVersionInfo(
                     fileName,

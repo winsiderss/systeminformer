@@ -29,6 +29,16 @@ PhCoSetProxyBlanket(
     );
 
 PHLIBAPI
+HRESULT
+NTAPI
+PhGetWbemClassObjectDependency(
+    _Out_ PVOID* WbemClassObjectDependency,
+    _In_ struct IWbemClassObject* WbemClassObject,
+    _In_ struct IWbemServices* WbemServices,
+    _In_ PCWSTR Name
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetWbemClassObjectString(

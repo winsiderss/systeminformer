@@ -61,8 +61,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhInitializePhLib(
-    _In_ PCWSTR ApplicationName,
-    _In_ PVOID ImageBaseAddress
+    _In_ PCWSTR ApplicationName
     );
 
 PHLIBAPI

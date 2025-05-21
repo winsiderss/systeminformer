@@ -942,12 +942,15 @@ PPH_STRING PvHashBuffer(
 
     __try
     {
-        PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-        PhUpdateHash(&hashContext, Buffer, Length);
-
-        if (PhFinalHash(&hashContext, hash, 16, NULL))
+        if (NT_SUCCESS(PhInitializeHash(&hashContext, Md5HashAlgorithm))) // PhGetIntegerSetting(L"HashAlgorithm")
         {
-            value = PhBufferToHexString(hash, 16);
+            if (NT_SUCCESS(PhUpdateHash(&hashContext, Buffer, Length)))
+            {
+                if (NT_SUCCESS(PhFinalHash(&hashContext, hash, 16, NULL)))
+                {
+                    value = PhBufferToHexString(hash, 16);
+                }
+            }
         }
     }
     __except (EXCEPTION_EXECUTE_HANDLER)

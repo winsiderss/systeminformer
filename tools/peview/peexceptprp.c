@@ -107,12 +107,7 @@ VOID PvEnumerateExceptionEntries(
                 {
                     WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
 
-                    if (PhGetMappedImageSectionName(
-                        directorySection,
-                        sectionName,
-                        RTL_NUMBER_OF(sectionName),
-                        NULL
-                        ))
+                    if (NT_SUCCESS(PhGetMappedImageSectionName(directorySection, sectionName, RTL_NUMBER_OF(sectionName), NULL)))
                     {
                         PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, sectionName);
                     }
@@ -171,12 +166,7 @@ VOID PvEnumerateExceptionEntries(
                 {
                     WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
 
-                    if (PhGetMappedImageSectionName(
-                        directorySection,
-                        sectionName,
-                        RTL_NUMBER_OF(sectionName),
-                        NULL
-                        ))
+                    if (NT_SUCCESS(PhGetMappedImageSectionName(directorySection, sectionName, RTL_NUMBER_OF(sectionName), NULL)))
                     {
                         PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 6, sectionName);
                     }
@@ -279,12 +269,7 @@ VOID PvEnumerateExceptionEntries(
                 {
                     WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
 
-                    if (PhGetMappedImageSectionName(
-                        directorySection,
-                        sectionName,
-                        RTL_NUMBER_OF(sectionName),
-                        NULL
-                        ))
+                    if (NT_SUCCESS(PhGetMappedImageSectionName(directorySection, sectionName, RTL_NUMBER_OF(sectionName), NULL)))
                     {
                         PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, sectionName);
                     }

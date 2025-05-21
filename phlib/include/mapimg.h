@@ -173,7 +173,7 @@ PhMappedImageVaToVa(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetMappedImageSectionName(
     _In_ PIMAGE_SECTION_HEADER Section,
@@ -505,6 +505,7 @@ PhGetMappedImageDelayImports(
     _In_ PPH_MAPPED_IMAGE MappedImage
     );
 
+PHLIBAPI
 USHORT
 NTAPI
 PhCheckSum(
@@ -1167,19 +1168,21 @@ PhGetMappedImageVolatileMetadata(
     );
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhGetMappedImageAuthenticodeHash(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PH_HASH_ALGORITHM Algorithm
+    _In_ PH_HASH_ALGORITHM Algorithm,
+    _Out_ PPH_STRING* AuthenticodeHash
     );
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhGetMappedImageWdacHash(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PH_HASH_ALGORITHM Algorithm
+    _In_ PH_HASH_ALGORITHM Algorithm,
+    _Out_ PPH_STRING* WdacHash
     );
 
 PHLIBAPI

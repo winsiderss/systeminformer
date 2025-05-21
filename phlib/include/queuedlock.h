@@ -64,7 +64,7 @@ typedef struct DECLSPEC_ALIGN(16) _PH_QUEUED_WAIT_BLOCK
 
 static_assert((sizeof(PH_QUEUED_WAIT_BLOCK) % MEMORY_ALLOCATION_ALIGNMENT) == 0, "PH_QUEUED_WAIT_BLOCK alignment invalid");
 
-BOOLEAN PhQueuedLockInitialization(
+NTSTATUS PhQueuedLockInitialization(
     VOID
     );
 

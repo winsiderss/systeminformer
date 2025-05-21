@@ -134,6 +134,48 @@ HRESULT PhCoSetProxyBlanket(
     return status;
 }
 
+HRESULT PhGetWbemClassObjectDependency(
+    _Out_ PVOID* WbemClassObjectDependency,
+    _In_ IWbemClassObject* WbemClassObject,
+    _In_ IWbemServices* WbemServices,
+    _In_ PCWSTR Name
+    )
+{
+    HRESULT status;
+    IWbemClassObject* dependency;
+    VARIANT variant = { 0 };
+
+    status = IWbemClassObject_Get(
+        WbemClassObject,
+        Name,
+        0,
+        &variant,
+        NULL,
+        NULL
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IWbemServices_GetObject(
+            WbemServices,
+            V_BSTR(&variant),
+            WBEM_FLAG_RETURN_WBEM_COMPLETE,
+            NULL,
+            &dependency,
+            NULL
+            );
+
+        if (SUCCEEDED(status))
+        {
+            *WbemClassObjectDependency = dependency;
+        }
+
+        SysFreeString(V_BSTR(&variant));
+    }
+
+    return status;
+}
+
 PPH_STRING PhGetWbemClassObjectString(
     _In_ PVOID WbemClassObject,
     _In_ PCWSTR Name
@@ -536,7 +578,6 @@ CleanupExit:
         IWbemLocator_Release(wbemLocator);
 
     VariantClear(&variantArrayValue);
-    VariantClear(&variantReturnValue);
     PhClearReference(&querySelectString);
 
     if (wbemMethodString)
@@ -766,7 +807,6 @@ CleanupExit:
     if (freeSecurityDescriptor && relativeSecurityDescriptor)
         PhFree(relativeSecurityDescriptor);
 
-    VariantClear(&variantReturnValue);
     VariantClear(&variantArrayValue);
     //if (safeArray) SafeArrayDestroy(safeArray);
 
@@ -892,8 +932,6 @@ CleanupExit:
         IWbemClassObject_Release(wbemClassObject);
     if (wbemLocator)
         IWbemLocator_Release(wbemLocator);
-
-    VariantClear(&variantReturnValue);
 
     if (wbemMethodString)
         SysFreeString(wbemMethodString);

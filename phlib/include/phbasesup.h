@@ -16,7 +16,7 @@
 EXTERN_C_START
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhBaseInitialization(
     VOID
@@ -898,8 +898,7 @@ PhDuplicateStringZ(
     );
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhCopyBytesZ(
     _In_ PCSTR InputBuffer,
@@ -910,8 +909,7 @@ PhCopyBytesZ(
     );
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhCopyStringZ(
     _In_ PCWSTR InputBuffer,
@@ -922,8 +920,7 @@ PhCopyStringZ(
     );
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhCopyStringZFromBytes(
     _In_ PCSTR InputBuffer,
@@ -934,8 +931,7 @@ PhCopyStringZFromBytes(
     );
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhCopyStringZFromMultiByte(
     _In_ PCSTR InputBuffer,
@@ -946,8 +942,7 @@ PhCopyStringZFromMultiByte(
     );
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhCopyStringZFromUtf8(
     _In_ PCSTR InputBuffer,
@@ -955,15 +950,6 @@ PhCopyStringZFromUtf8(
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
     _In_ SIZE_T OutputCount,
     _Out_opt_ PSIZE_T ReturnCount
-    );
-
-PHLIBAPI
-LONG
-NTAPI
-PhCompareStringZNatural(
-    _In_ PCWSTR A,
-    _In_ PCWSTR B,
-    _In_ BOOLEAN IgnoreCase
     );
 
 FORCEINLINE
@@ -1020,20 +1006,6 @@ PhEqualBytesZ(
         return _stricmp(String1, String2) == 0;
     else
         return strcmp(String1, String2) == 0;
-}
-
-FORCEINLINE
-LONG
-PhCompareStringZ(
-    _In_ PCWSTR String1,
-    _In_ PCWSTR String2,
-    _In_ BOOLEAN IgnoreCase
-    )
-{
-    if (IgnoreCase)
-        return _wcsicmp(String1, String2);
-    else
-        return wcscmp(String1, String2);
 }
 
 FORCEINLINE
@@ -1132,14 +1104,38 @@ PhInitializeEmptyStringRef(
 
 FORCEINLINE
 VOID
+PhInitializeEmptyBytesRef(
+    _Out_ PPH_BYTESREF String
+    )
+{
+    String->Length = 0;
+    String->Buffer = NULL;
+}
+
+FORCEINLINE
+VOID
 NTAPI
 PhInitializeBufferStringRef(
     _Out_ PPH_STRINGREF String,
-    _Writable_bytes_(Length) _When_(Length != 0, _Notnull_) PWCHAR Buffer,
+    _Writable_bytes_(Length) _When_(Length != 0, _Notnull_) PWCH Buffer,
     _In_ SIZE_T Length
     )
 {
     memset(String, 0, sizeof(PH_STRINGREF));
+    String->Length = Length;
+    String->Buffer = Buffer;
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhInitializeBufferBytesRef(
+    _Out_ PPH_BYTESREF String,
+    _Writable_bytes_(Length) _When_(Length != 0, _Notnull_) PCH Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    memset(String, 0, sizeof(PH_BYTESREF));
     String->Length = Length;
     String->Buffer = Buffer;
 }
@@ -1151,6 +1147,7 @@ PhStringRefToUnicodeString(
     _Out_ PUNICODE_STRING UnicodeString
     )
 {
+    memset(UnicodeString, 0, sizeof(UNICODE_STRING));
     UnicodeString->Length = (USHORT)String->Length;
     UnicodeString->MaximumLength = (USHORT)String->Length + sizeof(UNICODE_NULL);
     UnicodeString->Buffer = String->Buffer;
@@ -1165,9 +1162,33 @@ PhUnicodeStringToStringRef(
     _Out_ PPH_STRINGREF String
     )
 {
+    memset(String, 0, sizeof(PH_STRINGREF));
     String->Length = UnicodeString->Length;
     String->Buffer = UnicodeString->Buffer;
 }
+
+FORCEINLINE
+LONG
+PhCompareStringZ(
+    _In_ PCWSTR String1,
+    _In_ PCWSTR String2,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    if (IgnoreCase)
+        return _wcsicmp(String1, String2);
+    else
+        return wcscmp(String1, String2);
+}
+
+PHLIBAPI
+LONG
+NTAPI
+PhCompareStringZNatural(
+    _In_ PCWSTR A,
+    _In_ PCWSTR B,
+    _In_ BOOLEAN IgnoreCase
+    );
 
 PHLIBAPI
 LONG
@@ -1489,6 +1510,7 @@ PhReferenceEmptyString(
 
 FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhCreateString2(
     _In_ PCPH_STRINGREF String
     )
@@ -1506,7 +1528,7 @@ PhCreateString2(
  */
 FORCEINLINE
 PPH_STRING
-NTAPI
+NTAPI_INLINE
 PhCreateStringZ(
     _In_z_ PCWSTR String
     )
@@ -1528,7 +1550,7 @@ PhCreateStringZ(
  */
 FORCEINLINE
 PPH_STRING
-NTAPI
+NTAPI_INLINE
 PhCreateStringZ2(
     _In_reads_or_z_(MaximumLength / sizeof(WCHAR)) PCWSTR String,
     _In_ SIZE_T MaximumLength
@@ -1560,7 +1582,7 @@ PhCreateString3(
 
 FORCEINLINE
 PPH_STRING
-NTAPI
+NTAPI_INLINE
 PhTrimStringZ(
     _In_ PCPH_STRINGREF String,
     _In_ ULONG Flags,
@@ -1576,7 +1598,7 @@ PhTrimStringZ(
 
 FORCEINLINE
 WCHAR
-NTAPI
+NTAPI_INLINE
 PhUpcaseUnicodeChar(
     _In_ WCHAR SourceCharacter
     )
@@ -1592,7 +1614,7 @@ PhUpcaseUnicodeChar(
 
 FORCEINLINE
 WCHAR
-NTAPI
+NTAPI_INLINE
 PhDowncaseUnicodeChar(
     _In_ WCHAR SourceCharacter
     )
@@ -1606,6 +1628,7 @@ PhDowncaseUnicodeChar(
 
 FORCEINLINE
 VOID
+NTAPI_INLINE
 PhUpperStringRefInto(
     _Inout_ PPH_STRINGREF Destination,
     _In_ PCPH_STRINGREF Source
@@ -1620,6 +1643,7 @@ PhUpperStringRefInto(
 
 FORCEINLINE
 VOID
+NTAPI_INLINE
 PhUpperStringRef(
     _Inout_ PPH_STRINGREF String
     )
@@ -1629,6 +1653,7 @@ PhUpperStringRef(
 
 FORCEINLINE
 VOID
+NTAPI_INLINE
 PhLowerStringRefInto(
     _Inout_ PPH_STRINGREF Destination,
     _In_ PCPH_STRINGREF Source
@@ -1643,6 +1668,7 @@ PhLowerStringRefInto(
 
 FORCEINLINE
 VOID
+NTAPI_INLINE
 PhLowerStringRef(
     _Inout_ PPH_STRINGREF String
     )
@@ -1651,7 +1677,37 @@ PhLowerStringRef(
 }
 
 FORCEINLINE
+VOID
+NTAPI_INLINE
+PhLowerStringZ(
+    _Inout_ PCWSTR String
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, String);
+    PhLowerStringRefInto(&string, &string);
+}
+
+FORCEINLINE
+VOID
+NTAPI_INLINE
+PhLowerStringMaxZ(
+    _In_reads_or_z_(MaximumLength / sizeof(WCHAR)) PCWSTR String,
+    _In_ SIZE_T MaximumLength
+    )
+{
+    PH_STRINGREF string;
+
+    string.Length = wcsnlen(String, MaximumLength / sizeof(WCHAR)) * sizeof(WCHAR);
+    string.Buffer = (PWSTR)String;
+
+    PhLowerStringRefInto(&string, &string);
+}
+
+FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhCreateStringFromUnicodeString(
     _In_ PCUNICODE_STRING UnicodeString
     )
@@ -2578,8 +2634,7 @@ PhConvertUtf16ToMultiByteEx(
 // In-place: RtlUTF8ToUnicodeN
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhConvertUtf8ToUtf16Size(
     _Out_ PSIZE_T BytesInUtf16String,
@@ -2588,8 +2643,7 @@ PhConvertUtf8ToUtf16Size(
     );
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhConvertUtf8ToUtf16Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf16String, *BytesInUtf16String) PWCH Utf16String,
@@ -2618,8 +2672,7 @@ PhConvertUtf8ToUtf16Ex(
 // In-place: RtlUnicodeToUTF8N
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhConvertUtf16ToUtf8Size(
     _Out_ PSIZE_T BytesInUtf8String,
@@ -2628,8 +2681,7 @@ PhConvertUtf16ToUtf8Size(
     );
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhConvertUtf16ToUtf8Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf8String, *BytesInUtf8String) PCH Utf8String,
@@ -3238,8 +3290,8 @@ PhAddItemPointerList(
     _In_ PVOID Pointer
     );
 
-PHLIBAPI
 _Success_(return)
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhEnumPointerListEx(
@@ -3662,8 +3714,8 @@ PhClearHashtable(
     _Inout_ PPH_HASHTABLE Hashtable
     );
 
-PHLIBAPI
 _Success_(return)
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhEnumHashtable(
@@ -3699,6 +3751,7 @@ typedef struct _PH_HASHTABLE_ENUM_CONTEXT
 
 FORCEINLINE
 VOID
+NTAPI_INLINE
 PhBeginEnumHashtable(
     _In_ PPH_HASHTABLE Hashtable,
     _Out_ PPH_HASHTABLE_ENUM_CONTEXT Context
@@ -3711,6 +3764,7 @@ PhBeginEnumHashtable(
 
 FORCEINLINE
 PVOID
+NTAPI_INLINE
 PhNextEnumHashtable(
     _Inout_ PPH_HASHTABLE_ENUM_CONTEXT Context
     )
@@ -3845,7 +3899,7 @@ PhFindItemSimpleHashtable(
 
 FORCEINLINE
 PVOID
-NTAPI
+NTAPI_INLINE
 PhFindItemSimpleHashtable2(
     _In_ PPH_HASHTABLE SimpleHashtable,
     _In_opt_ PVOID Key
@@ -4086,6 +4140,7 @@ PhBufferToHexString(
     _In_ SIZE_T Length
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhBufferToHexStringEx(
@@ -4337,6 +4392,7 @@ PhSetLastError(
 
 FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhaCreateString(
     _In_ PCWSTR Buffer
     )
@@ -4346,6 +4402,7 @@ PhaCreateString(
 
 FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhaCreateStringEx(
     _In_opt_ PCWSTR Buffer,
     _In_ SIZE_T Length
@@ -4356,6 +4413,7 @@ PhaCreateStringEx(
 
 FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhaDuplicateString(
     _In_ PPH_STRING String
     )
@@ -4365,20 +4423,25 @@ PhaDuplicateString(
 
 FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhaConcatStrings(
     _In_ ULONG Count,
     ...
     )
 {
+    PPH_STRING string;
     va_list argptr;
 
     va_start(argptr, Count);
+    string = PH_AUTO_T(PH_STRING, PhConcatStrings_V(Count, argptr));
+    va_end(argptr);
 
-    return PH_AUTO_T(PH_STRING, PhConcatStrings_V(Count, argptr));
+    return string;
 }
 
 FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhaConcatStrings2(
     _In_ PCWSTR String1,
     _In_ PCWSTR String2
@@ -4389,20 +4452,25 @@ PhaConcatStrings2(
 
 FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhaFormatString(
     _In_ _Printf_format_string_ PCWSTR Format,
     ...
     )
 {
+    PPH_STRING string;
     va_list argptr;
 
     va_start(argptr, Format);
+    string = PH_AUTO_T(PH_STRING, PhFormatString_V(Format, argptr));
+    va_end(argptr);
 
-    return PH_AUTO_T(PH_STRING, PhFormatString_V(Format, argptr));
+    return string;
 }
 
 FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhLowerString(
     _In_ PPH_STRING String
     )
@@ -4412,6 +4480,7 @@ PhLowerString(
 
 FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhaLowerString(
     _In_ PPH_STRING String
     )
@@ -4421,7 +4490,7 @@ PhaLowerString(
 
 FORCEINLINE
 PPH_STRING
-NTAPI
+NTAPI_INLINE
 PhUpperString(
     _In_ PPH_STRING String
     )
@@ -4431,6 +4500,7 @@ PhUpperString(
 
 FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhaUpperString(
     _In_ PPH_STRING String
     )
@@ -4440,6 +4510,7 @@ PhaUpperString(
 
 FORCEINLINE
 PPH_STRING
+NTAPI_INLINE
 PhaSubstring(
     _In_ PPH_STRING String,
     _In_ SIZE_T StartIndex,
@@ -4886,26 +4957,24 @@ PhFormatToBuffer(
     );
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhFormatSingleToUtf8(
     _In_ FLOAT Value,
     _In_ ULONG Type,
-    _In_ ULONG Precision,
+    _In_ LONG Precision,
     _Out_writes_bytes_(BufferLength) PSTR Buffer,
     _In_opt_ SIZE_T BufferLength,
     _Out_opt_ PSIZE_T ReturnLength
     );
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhFormatDoubleToUtf8(
     _In_ DOUBLE Value,
     _In_ ULONG Type,
-    _In_ ULONG Precision,
+    _In_ LONG Precision,
     _Out_writes_bytes_(BufferLength) PSTR Buffer,
     _In_opt_ SIZE_T BufferLength,
     _Out_opt_ PSIZE_T ReturnLength

@@ -816,7 +816,7 @@ VOID PhShellExecuteUserString(
     // here because the string may be a URL. (dmex)
     if (PhFindCharInString(executeString, 0, L':') == SIZE_MAX)
     {
-        static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
         static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
         PPH_LIST stringArgList;
         PPH_STRING fileName = NULL;
@@ -842,16 +842,16 @@ VOID PhShellExecuteUserString(
             // Make sure the string is absolute and escape the filename.
             if (PhDetermineDosPathNameType(&fileName->sr) == RtlPathTypeRelative)
             {
-                PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &applicationDirectory->sr, &fileName->sr));
-                PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &seperator));
+                PhMoveReference(&fileName, PhConcatStringRef3(&separator, &applicationDirectory->sr, &fileName->sr));
+                PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &separator));
             }
             else
             {
-                PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &fileName->sr, &seperator));
+                PhMoveReference(&fileName, PhConcatStringRef3(&separator, &fileName->sr, &separator));
             }
 
             // Escape the parameters.
-            PhMoveReference(&fileArgs, PhConcatStringRef3(&seperator, &fileArgs->sr, &seperator));
+            PhMoveReference(&fileArgs, PhConcatStringRef3(&separator, &fileArgs->sr, &separator));
 
             // Create the escaped execute string.
             PhMoveReference(&executeString, PhConcatStringRef3(&fileName->sr, &space, &fileArgs->sr));
@@ -860,12 +860,12 @@ VOID PhShellExecuteUserString(
         {
             if (PhDetermineDosPathNameType(&executeString->sr) == RtlPathTypeRelative)
             {
-                PhMoveReference(&executeString, PhConcatStringRef3(&seperator, &applicationDirectory->sr, &executeString->sr));
-                PhMoveReference(&executeString, PhConcatStringRef2(&executeString->sr, &seperator));
+                PhMoveReference(&executeString, PhConcatStringRef3(&separator, &applicationDirectory->sr, &executeString->sr));
+                PhMoveReference(&executeString, PhConcatStringRef2(&executeString->sr, &separator));
             }
             else
             {
-                PhMoveReference(&executeString, PhConcatStringRef3(&seperator, &executeString->sr, &seperator));
+                PhMoveReference(&executeString, PhConcatStringRef3(&separator, &executeString->sr, &separator));
             }
         }
 

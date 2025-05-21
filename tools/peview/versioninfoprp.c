@@ -95,12 +95,12 @@ BOOLEAN PvDumpFileVersionInfo(
     PH_FORMAT format[3];
     WCHAR langNameString[65];
 
-    if (!PhGetFileVersionInfoKey(
+    if (!NT_SUCCESS(PhGetFileVersionInfoKey(
         VersionInfo,
         blockInfoName.Length / sizeof(WCHAR),
         blockInfoName.Buffer,
         &blockStringInfo
-        ))
+        )))
     {
         return FALSE;
     }
@@ -112,12 +112,12 @@ BOOLEAN PvDumpFileVersionInfo(
     if (!PhFormatToBuffer(format, 1, langNameString, sizeof(langNameString), &returnLength))
         return FALSE;
 
-    if (!PhGetFileVersionInfoKey(
+    if (!NT_SUCCESS(PhGetFileVersionInfoKey(
         blockStringInfo,
         returnLength / sizeof(WCHAR) - sizeof(ANSI_NULL),
         langNameString,
         &blockLangInfo
-        ))
+        )))
     {
         return FALSE;
     }
@@ -260,14 +260,15 @@ VOID PvEnumVersionInfo(
     _In_ HWND ListViewHandle
     )
 {
+    NTSTATUS status;
     ULONG count = 0;
     VS_FIXEDFILEINFO* rootBlock;
     PVOID versionInfo;
     ULONG langCodePage;
 
-    versionInfo = PhGetFileVersionInfo(PvFileName->Buffer);
+    status = PhGetFileVersionInfo(PvFileName->Buffer, &versionInfo);
 
-    if (!versionInfo)
+    if (!NT_SUCCESS(status))
         return;
 
     if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))

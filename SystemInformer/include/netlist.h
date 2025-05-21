@@ -116,9 +116,11 @@ VOID PhGetSelectedNetworkItems(
     _Out_ PULONG NumberOfNetworkItems
     );
 
+// begin_phapppub
 VOID PhDeselectAllNetworkNodes(
     VOID
     );
+// end_phapppub
 
 VOID PhSelectAndEnsureVisibleNetworkNode(
     _In_ PPH_NETWORK_NODE NetworkNode

@@ -759,7 +759,7 @@ VOID PvAddPendingSymbolNodes(
     ULONG i;
     BOOLEAN needsFullUpdate = FALSE;
 
-    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+    SendMessage(Context->WindowHandle, WM_PV_SEARCH_SETREDRAW, FALSE, 0);
 
     PhAcquireQueuedLockExclusive(&SearchResultsLock);
 
@@ -773,8 +773,8 @@ VOID PvAddPendingSymbolNodes(
     PhReleaseQueuedLockExclusive(&SearchResultsLock);
 
     if (needsFullUpdate)
-        TreeNew_NodesStructured(Context->TreeNewHandle);
-    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
+        SendMessage(Context->WindowHandle, WM_PV_SEARCH_NODESSTRUCTURED, 0, 0);
+    SendMessage(Context->WindowHandle, WM_PV_SEARCH_SETREDRAW, TRUE, 0);
 }
 
 HANDLE PvSymbolGetGlobalTimerQueue(
@@ -1083,6 +1083,16 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             }
         }
         break;
+    case WM_PV_SEARCH_SETREDRAW:
+        {
+            TreeNew_SetRedraw(context->TreeNewHandle, wParam);
+        }
+        break;
+    case WM_PV_SEARCH_NODESSTRUCTURED:
+        {
+            TreeNew_NodesStructured(context->TreeNewHandle);
+        }
+        break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
@@ -1166,7 +1176,7 @@ VOID PvPdbProperties(
                     }
                     else
                     {
-                        NtUnmapViewOfSection(NtCurrentProcess(), viewBase);
+                        PhUnmapViewOfSection(NtCurrentProcess(), viewBase);
                     }
                 }
 

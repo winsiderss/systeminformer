@@ -426,9 +426,8 @@ typedef struct _PH_ENVIRONMENT_VARIABLE
     PH_STRINGREF Value;
 } PH_ENVIRONMENT_VARIABLE, *PPH_ENVIRONMENT_VARIABLE;
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhEnumProcessEnvironmentVariables(
     _In_ PVOID Environment,
@@ -1391,6 +1390,26 @@ PhReleasePebLock(
 }
 
 FORCEINLINE
+NTSTATUS
+NTAPI
+PhAcquireLoaderLock(
+    VOID
+    )
+{
+    return RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhReleaseLoaderLock(
+    VOID
+    )
+{
+    return RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+}
+
+FORCEINLINE
 USHORT
 NTAPI
 PhGetCurrentThreadPrimaryGroup(
@@ -1657,7 +1676,7 @@ PhSetTokenSessionId(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhSetTokenPrivilege(
     _In_ HANDLE TokenHandle,
@@ -1667,7 +1686,7 @@ PhSetTokenPrivilege(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhSetTokenPrivilege2(
     _In_ HANDLE TokenHandle,
@@ -3142,6 +3161,34 @@ PhSetValueKeyZ(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetValueKeyStringZ(
+    _In_ HANDLE KeyHandle,
+    _In_ PCWSTR ValueName,
+    _In_ ULONG ValueType,
+    _In_ PCPH_STRINGREF String
+    )
+{
+    PH_STRINGREF valueName;
+
+    if (String->Length > ULONG_MAX)
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    PhInitializeStringRef(&valueName, ValueName);
+
+    return PhSetValueKey(
+        KeyHandle,
+        &valueName,
+        ValueType,
+        String->Buffer,
+        (ULONG)String->Length + sizeof(UNICODE_NULL)
+        );
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -3538,16 +3585,46 @@ NTSTATUS
 NTAPI
 PhCreateNamedPipe(
     _Out_ PHANDLE PipeHandle,
-    _In_ PCWSTR PipeName
+    _In_ PCPH_STRINGREF PipeName
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhCreateNamedPipeZ(
+    _Out_ PHANDLE PipeHandle,
+    _In_ PCWSTR PipeName
+    )
+{
+    PH_STRINGREF pipeName;
+
+    PhInitializeStringRef(&pipeName, PipeName);
+
+    return PhCreateNamedPipe(PipeHandle, &pipeName);
+}
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhConnectPipe(
     _Out_ PHANDLE PipeHandle,
-    _In_ PCWSTR PipeName
+    _In_ PCPH_STRINGREF PipeName
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhConnectPipeZ(
+    _Out_ PHANDLE PipeHandle,
+    _In_ PCWSTR PipeName
+    )
+{
+    PH_STRINGREF pipeName;
+
+    PhInitializeStringRef(&pipeName, PipeName);
+
+    return PhConnectPipe(PipeHandle, &pipeName);
+}
 
 PHLIBAPI
 NTSTATUS

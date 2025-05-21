@@ -135,7 +135,7 @@ static CONST ULONG PhpPrimeNumbers[] =
 /**
  * Initializes the base support module.
  */
-BOOLEAN PhBaseInitialization(
+NTSTATUS PhBaseInitialization(
     VOID
     )
 {
@@ -159,9 +159,12 @@ BOOLEAN PhBaseInitialization(
 
 #ifdef DEBUG
     PhDbgThreadDbgTlsIndex = PhTlsAlloc();
+
+    if (PhDbgThreadDbgTlsIndex == TLS_OUT_OF_INDEXES)
+        return STATUS_NO_MEMORY;
 #endif
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)
@@ -191,6 +194,8 @@ NTSTATUS PhpBaseThreadStart(
 
     PhTlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
 #endif
+
+    GdiSetBatchLimit(1);
 
     // Initialization code
 
@@ -1399,15 +1404,12 @@ PWSTR PhDuplicateStringZ(
  * \param ReturnCount A variable which receives the number of characters required to contain the
  * input string, including the null terminator. If the function returns TRUE, this variable contains
  * the number of characters written to the output buffer.
- *
  * \return TRUE if the input string was copied to the output string, otherwise FALSE.
- *
  * \remarks The function stops copying when it encounters the first null character in the input
  * string. It will also stop copying when it reaches the character count specified in \a InputCount,
  * if \a InputCount is not -1.
  */
-_Success_(return)
-BOOLEAN PhCopyBytesZ(
+NTSTATUS PhCopyBytesZ(
     _In_ PCSTR InputBuffer,
     _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PSTR OutputBuffer,
@@ -1415,8 +1417,8 @@ BOOLEAN PhCopyBytesZ(
     _Out_opt_ PSIZE_T ReturnCount
     )
 {
+    NTSTATUS status;
     SIZE_T i;
-    BOOLEAN copied;
 
     // Determine the length of the input string.
 
@@ -1438,17 +1440,19 @@ BOOLEAN PhCopyBytesZ(
     {
         memcpy(OutputBuffer, InputBuffer, i);
         OutputBuffer[i] = ANSI_NULL;
-        copied = TRUE;
+        status = STATUS_SUCCESS;
     }
     else
     {
-        copied = FALSE;
+        status = STATUS_BUFFER_TOO_SMALL;
     }
 
     if (ReturnCount)
+    {
         *ReturnCount = i + sizeof(ANSI_NULL);
+    }
 
-    return copied;
+    return status;
 }
 
 /**
@@ -1462,15 +1466,12 @@ BOOLEAN PhCopyBytesZ(
  * \param ReturnCount A variable which receives the number of characters required to contain the
  * input string, including the null terminator. If the function returns TRUE, this variable contains
  * the number of characters written to the output buffer.
- *
  * \return TRUE if the input string was copied to the output string, otherwise FALSE.
- *
  * \remarks The function stops copying when it encounters the first null character in the input
  * string. It will also stop copying when it reaches the character count specified in \a InputCount,
  * if \a InputCount is not -1.
  */
-_Success_(return)
-BOOLEAN PhCopyStringZ(
+NTSTATUS PhCopyStringZ(
     _In_ PCWSTR InputBuffer,
     _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
@@ -1478,8 +1479,8 @@ BOOLEAN PhCopyStringZ(
     _Out_opt_ PSIZE_T ReturnCount
     )
 {
+    NTSTATUS status;
     SIZE_T i;
-    BOOLEAN copied;
 
     // Determine the length of the input string.
 
@@ -1501,17 +1502,19 @@ BOOLEAN PhCopyStringZ(
     {
         memcpy(OutputBuffer, InputBuffer, i * sizeof(WCHAR));
         OutputBuffer[i] = UNICODE_NULL;
-        copied = TRUE;
+        status = STATUS_SUCCESS;
     }
     else
     {
-        copied = FALSE;
+        status = STATUS_BUFFER_TOO_SMALL;
     }
 
     if (ReturnCount)
+    {
         *ReturnCount = i + sizeof(UNICODE_NULL);
+    }
 
-    return copied;
+    return status;
 }
 
 /**
@@ -1525,15 +1528,12 @@ BOOLEAN PhCopyStringZ(
  * \param ReturnCount A variable which receives the number of characters required to contain the
  * input string, including the null terminator. If the function returns TRUE, this variable contains
  * the number of characters written to the output buffer.
- *
  * \return TRUE if the input string was copied to the output string, otherwise FALSE.
- *
  * \remarks The function stops copying when it encounters the first null character in the input
  * string. It will also stop copying when it reaches the character count specified in \a InputCount,
  * if \a InputCount is not -1.
  */
-_Success_(return)
-BOOLEAN PhCopyStringZFromBytes(
+NTSTATUS PhCopyStringZFromBytes(
     _In_ PCSTR InputBuffer,
     _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
@@ -1541,8 +1541,8 @@ BOOLEAN PhCopyStringZFromBytes(
     _Out_opt_ PSIZE_T ReturnCount
     )
 {
+    NTSTATUS status;
     SIZE_T i;
-    BOOLEAN copied;
 
     // Determine the length of the input string.
 
@@ -1564,17 +1564,19 @@ BOOLEAN PhCopyStringZFromBytes(
     {
         PhZeroExtendToUtf16Buffer(InputBuffer, i, OutputBuffer);
         OutputBuffer[i] = UNICODE_NULL;
-        copied = TRUE;
+        status = STATUS_SUCCESS;
     }
     else
     {
-        copied = FALSE;
+        status = STATUS_BUFFER_TOO_SMALL;
     }
 
     if (ReturnCount)
+    {
         *ReturnCount = i + sizeof(ANSI_NULL);
+    }
 
-    return copied;
+    return status;
 }
 
 /**
@@ -1588,15 +1590,12 @@ BOOLEAN PhCopyStringZFromBytes(
  * \param ReturnCount A variable which receives the number of characters required to contain the
  * input string, including the null terminator. If the function returns TRUE, this variable contains
  * the number of characters written to the output buffer.
- *
  * \return TRUE if the input string was copied to the output string, otherwise FALSE.
- *
  * \remarks The function stops copying when it encounters the first null character in the input
  * string. It will also stop copying when it reaches the character count specified in \a InputCount,
  * if \a InputCount is not -1.
  */
-_Success_(return)
-BOOLEAN PhCopyStringZFromMultiByte(
+NTSTATUS PhCopyStringZFromMultiByte(
     _In_ PCSTR InputBuffer,
     _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
@@ -1608,7 +1607,6 @@ BOOLEAN PhCopyStringZFromMultiByte(
     SIZE_T i;
     ULONG inputBytes;
     ULONG unicodeBytes;
-    BOOLEAN copied;
 
     // Determine the length of the input string.
 
@@ -1631,7 +1629,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
         if (ReturnCount)
             *ReturnCount = SIZE_MAX;
 
-        return FALSE;
+        return status;
     }
 
     // Determine the length of the output string.
@@ -1647,7 +1645,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
         if (ReturnCount)
             *ReturnCount = SIZE_MAX;
 
-        return FALSE;
+        return status;
     }
 
     // Convert the string to Unicode if there is enough room.
@@ -1666,26 +1664,22 @@ BOOLEAN PhCopyStringZFromMultiByte(
         {
             // RtlMultiByteToUnicodeN doesn't null terminate the string.
             *(PWCHAR)PTR_ADD_OFFSET(OutputBuffer, unicodeBytes) = UNICODE_NULL;
-            copied = TRUE;
-        }
-        else
-        {
-            copied = FALSE;
         }
     }
     else
     {
-        copied = FALSE;
+        status = STATUS_BUFFER_TOO_SMALL;
     }
 
     if (ReturnCount)
+    {
         *ReturnCount = (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR);
+    }
 
-    return copied;
+    return status;
 }
 
-_Success_(return)
-BOOLEAN PhCopyStringZFromUtf8(
+NTSTATUS PhCopyStringZFromUtf8(
     _In_ PCSTR InputBuffer,
     _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
@@ -1697,7 +1691,6 @@ BOOLEAN PhCopyStringZFromUtf8(
     SIZE_T i;
     ULONG inputBytes;
     ULONG unicodeBytes;
-    BOOLEAN copied;
 
     // Determine the length of the input string.
 
@@ -1720,7 +1713,7 @@ BOOLEAN PhCopyStringZFromUtf8(
         if (ReturnCount)
             *ReturnCount = SIZE_MAX;
 
-        return FALSE;
+        return status;
     }
 
     // Determine the length of the output string.
@@ -1738,7 +1731,7 @@ BOOLEAN PhCopyStringZFromUtf8(
         if (ReturnCount)
             *ReturnCount = SIZE_MAX;
 
-        return FALSE;
+        return status;
     }
 
     // Convert the string to Unicode if there is enough room.
@@ -1757,22 +1750,19 @@ BOOLEAN PhCopyStringZFromUtf8(
         {
             // RtlUTF8ToUnicodeN doesn't null terminate the string.
             *(PWCHAR)PTR_ADD_OFFSET(OutputBuffer, unicodeBytes) = UNICODE_NULL;
-            copied = TRUE;
-        }
-        else
-        {
-            copied = FALSE;
         }
     }
     else
     {
-        copied = FALSE;
+        status = STATUS_BUFFER_TOO_SMALL;
     }
 
     if (ReturnCount)
+    {
         *ReturnCount = (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR);
+    }
 
-    return copied;
+    return status;
 }
 
 FORCEINLINE LONG PhpCompareRightNatural(
@@ -1938,20 +1928,17 @@ FORCEINLINE LONG PhpCompareStringZNatural(
 /**
  * Compares two strings in natural sort order.
  *
- * \param A The first string.
- * \param B The second string.
- * \param IgnoreCase Whether to ignore character cases.
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase TRUE to perform a case-insensitive comparison, otherwise FALSE.
  */
 LONG PhCompareStringZNatural(
-    _In_ PCWSTR A,
-    _In_ PCWSTR B,
+    _In_ PCWSTR String1,
+    _In_ PCWSTR String2,
     _In_ BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-        return PhpCompareStringZNatural(A, B, FALSE);
-    else
-        return PhpCompareStringZNatural(A, B, TRUE);
+    return PhpCompareStringZNatural(String1, String2, IgnoreCase);
 }
 
 /**
@@ -3092,17 +3079,21 @@ PPH_STRING PhReferenceEmptyString(
  * Concatenates multiple strings.
  *
  * \param Count The number of strings to concatenate.
+ * \param ... The list of strings.
  */
 PPH_STRING PhConcatStrings(
     _In_ ULONG Count,
     ...
     )
 {
+    PPH_STRING string;
     va_list argptr;
 
     va_start(argptr, Count);
+    string = PhConcatStrings_V(Count, argptr);
+    va_end(argptr);
 
-    return PhConcatStrings_V(Count, argptr);
+    return string;
 }
 
 /**
@@ -3315,11 +3306,14 @@ PPH_STRING PhFormatString(
     ...
     )
 {
+    PPH_STRING string;
     va_list argptr;
 
     va_start(argptr, Format);
+    string = PhFormatString_V(Format, argptr);
+    va_end(argptr);
 
-    return PhFormatString_V(Format, argptr);
+    return string;
 }
 
 /**
@@ -3338,7 +3332,7 @@ PPH_STRING PhFormatString_V(
 
     length = _vscwprintf(Format, ArgPtr);
 
-    if (length == -1)
+    if (length == INT_ERROR)
         return NULL;
 
     string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
@@ -3399,7 +3393,7 @@ PPH_BYTES PhFormatBytes_V(
 
     length = _vscprintf(Format, ArgPtr);
 
-    if (length == -1)
+    if (length == INT_ERROR)
         return NULL;
 
     string = PhCreateBytesEx(NULL, length * sizeof(CHAR));
@@ -3413,11 +3407,14 @@ PPH_BYTES PhFormatBytes(
     ...
     )
 {
+    PPH_BYTES string;
     va_list argptr;
 
     va_start(argptr, Format);
+    string = PhFormatBytes_V(Format, argptr);
+    va_end(argptr);
 
-    return PhFormatBytes_V(Format, argptr);
+    return string;
 }
 
 BOOLEAN PhWriteUnicodeDecoder(
@@ -3538,7 +3535,7 @@ BOOLEAN PhpDecodeUtf8Error(
     return TRUE;
 }
 
-_Success_(return)
+_Use_decl_annotations_
 BOOLEAN PhDecodeUnicodeDecoder(
     _Inout_ PPH_UNICODE_DECODER Decoder,
     _Out_ PULONG CodePoint
@@ -3736,7 +3733,7 @@ BOOLEAN PhDecodeUnicodeDecoder(
     }
 }
 
-_Success_(return)
+_Use_decl_annotations_
 BOOLEAN PhEncodeUnicode(
     _In_ UCHAR Encoding,
     _In_ ULONG CodePoint,
@@ -4062,32 +4059,35 @@ PPH_BYTES PhConvertUtf16ToMultiByteEx(
     return bytes;
 }
 
-_Success_(return)
-BOOLEAN PhConvertUtf8ToUtf16Size(
+NTSTATUS PhConvertUtf8ToUtf16Size(
     _Out_ PSIZE_T BytesInUtf16String,
     _In_reads_bytes_(BytesInUtf8String) PCCH Utf8String,
     _In_ SIZE_T BytesInUtf8String
     )
 {
-#if (PH_NATIVE_STRING_CONVERSION)
+#if defined(PH_NATIVE_STRING_CONVERSION)
+    NTSTATUS status;
     ULONG bytesInUtf16String = 0;
 
-    if (NT_SUCCESS(RtlUTF8ToUnicodeN(
+    status = RtlUTF8ToUnicodeN(
         NULL,
         0,
         &bytesInUtf16String,
         Utf8String,
         (ULONG)BytesInUtf8String
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
         if (BytesInUtf16String)
+        {
             *BytesInUtf16String = bytesInUtf16String;
-        return TRUE;
+        }
     }
 
-    return FALSE;
+    return status;
 #else
-    BOOLEAN result;
+    NTSTATUS status;
     PH_UNICODE_DECODER decoder;
     PCH in;
     SIZE_T inRemaining;
@@ -4095,7 +4095,7 @@ BOOLEAN PhConvertUtf8ToUtf16Size(
     ULONG codePoint;
     ULONG numberOfCodeUnits;
 
-    result = TRUE;
+    status = STATUS_SUCCESS;
     PhInitializeUnicodeDecoder(&decoder, PH_UNICODE_UTF8);
     in = Utf8String;
     inRemaining = BytesInUtf8String;
@@ -4110,20 +4110,27 @@ BOOLEAN PhConvertUtf8ToUtf16Size(
         while (PhDecodeUnicodeDecoder(&decoder, &codePoint))
         {
             if (PhEncodeUnicode(PH_UNICODE_UTF16, codePoint, NULL, &numberOfCodeUnits))
+            {
                 bytesInUtf16String += numberOfCodeUnits * sizeof(WCHAR);
+            }
             else
-                result = FALSE;
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
         }
+
+        if (!NT_SUCCESS(status))
+            break;
     }
 
     *BytesInUtf16String = bytesInUtf16String;
 
-    return result;
+    return status;
 #endif
 }
 
-_Success_(return)
-BOOLEAN PhConvertUtf8ToUtf16Buffer(
+NTSTATUS PhConvertUtf8ToUtf16Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf16String, *BytesInUtf16String) PWCH Utf16String,
     _In_ SIZE_T MaxBytesInUtf16String,
     _Out_opt_ PSIZE_T BytesInUtf16String,
@@ -4131,25 +4138,29 @@ BOOLEAN PhConvertUtf8ToUtf16Buffer(
     _In_ SIZE_T BytesInUtf8String
     )
 {
-#if (PH_NATIVE_STRING_CONVERSION)
+#if defined(PH_NATIVE_STRING_CONVERSION)
+    NTSTATUS status;
     ULONG bytesInUtf16String = 0;
 
-    if (NT_SUCCESS(RtlUTF8ToUnicodeN(
+    status = RtlUTF8ToUnicodeN(
         Utf16String,
         (ULONG)MaxBytesInUtf16String,
         &bytesInUtf16String,
         Utf8String,
         (ULONG)BytesInUtf8String
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
         if (BytesInUtf16String)
+        {
             *BytesInUtf16String = bytesInUtf16String;
-        return TRUE;
+        }
     }
 
-    return FALSE;
+    return status;
 #else
-    BOOLEAN result;
+    NTSTATUS status;
     PH_UNICODE_DECODER decoder;
     PCH in;
     SIZE_T inRemaining;
@@ -4160,7 +4171,7 @@ BOOLEAN PhConvertUtf8ToUtf16Buffer(
     USHORT codeUnits[2];
     ULONG numberOfCodeUnits;
 
-    result = TRUE;
+    status = STATUS_SUCCESS;
     PhInitializeUnicodeDecoder(&decoder, PH_UNICODE_UTF8);
     in = Utf8String;
     inRemaining = BytesInUtf8String;
@@ -4191,20 +4202,25 @@ BOOLEAN PhConvertUtf8ToUtf16Buffer(
                 }
                 else
                 {
-                    result = FALSE;
+                    status = STATUS_BUFFER_TOO_SMALL;
+                    break;
                 }
             }
             else
             {
-                result = FALSE;
+                status = STATUS_BUFFER_TOO_SMALL;
+                break;
             }
         }
+
+        if (!NT_SUCCESS(status))
+            break;
     }
 
     if (BytesInUtf16String)
         *BytesInUtf16String = bytesInUtf16String;
 
-    return result;
+    return status;
 #endif
 }
 
@@ -4223,27 +4239,29 @@ PPH_STRING PhConvertUtf8ToUtf16Ex(
     _In_ SIZE_T Length
     )
 {
+    NTSTATUS status;
     PPH_STRING string;
     SIZE_T utf16Bytes;
 
-    if (!PhConvertUtf8ToUtf16Size(
+    status = PhConvertUtf8ToUtf16Size(
         &utf16Bytes,
         Buffer,
         Length
-        ))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         return NULL;
-    }
 
     string = PhCreateStringEx(NULL, utf16Bytes);
-
-    if (!PhConvertUtf8ToUtf16Buffer(
+    status = PhConvertUtf8ToUtf16Buffer(
         string->Buffer,
         string->Length,
         NULL,
         Buffer,
         Length
-        ))
+        );
+
+    if (!NT_SUCCESS(status))
     {
         PhDereferenceObject(string);
         return NULL;
@@ -4252,32 +4270,35 @@ PPH_STRING PhConvertUtf8ToUtf16Ex(
     return string;
 }
 
-_Success_(return)
-BOOLEAN PhConvertUtf16ToUtf8Size(
+NTSTATUS PhConvertUtf16ToUtf8Size(
     _Out_ PSIZE_T BytesInUtf8String,
     _In_reads_bytes_(BytesInUtf16String) PCWCH Utf16String,
     _In_ SIZE_T BytesInUtf16String
     )
 {
-#if (PH_NATIVE_STRING_CONVERSION)
+#if defined(PH_NATIVE_STRING_CONVERSION)
+    NTSTATUS status;
     ULONG bytesInUtf8String = 0;
 
-    if (NT_SUCCESS(RtlUnicodeToUTF8N(
+    status = RtlUnicodeToUTF8N(
         NULL,
         0,
         &bytesInUtf8String,
         Utf16String,
         (ULONG)BytesInUtf16String
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
         if (BytesInUtf8String)
+        {
             *BytesInUtf8String = bytesInUtf8String;
-        return TRUE;
+        }
     }
 
-    return FALSE;
+    return status;
 #else
-    BOOLEAN result;
+    NTSTATUS status;
     PH_UNICODE_DECODER decoder;
     PWCH in;
     SIZE_T inRemaining;
@@ -4285,7 +4306,7 @@ BOOLEAN PhConvertUtf16ToUtf8Size(
     ULONG codePoint;
     ULONG numberOfCodeUnits;
 
-    result = TRUE;
+    status = STATUS_SUCCESS;
     PhInitializeUnicodeDecoder(&decoder, PH_UNICODE_UTF16);
     in = Utf16String;
     inRemaining = BytesInUtf16String / sizeof(WCHAR);
@@ -4300,20 +4321,27 @@ BOOLEAN PhConvertUtf16ToUtf8Size(
         while (PhDecodeUnicodeDecoder(&decoder, &codePoint))
         {
             if (PhEncodeUnicode(PH_UNICODE_UTF8, codePoint, NULL, &numberOfCodeUnits))
+            {
                 bytesInUtf8String += numberOfCodeUnits;
+            }
             else
-                result = FALSE;
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
         }
+
+        if (!NT_SUCCESS(status))
+            break;
     }
 
     *BytesInUtf8String = bytesInUtf8String;
 
-    return result;
+    return status;
 #endif
 }
 
-_Success_(return)
-BOOLEAN PhConvertUtf16ToUtf8Buffer(
+NTSTATUS PhConvertUtf16ToUtf8Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf8String, *BytesInUtf8String) PCH Utf8String,
     _In_ SIZE_T MaxBytesInUtf8String,
     _Out_opt_ PSIZE_T BytesInUtf8String,
@@ -4321,25 +4349,29 @@ BOOLEAN PhConvertUtf16ToUtf8Buffer(
     _In_ SIZE_T BytesInUtf16String
     )
 {
-#if (PH_NATIVE_STRING_CONVERSION)
+#if defined(PH_NATIVE_STRING_CONVERSION)
+    NTSTATUS status;
     ULONG bytesInUtf8String = 0;
 
-    if (NT_SUCCESS(RtlUnicodeToUTF8N(
+    status = RtlUnicodeToUTF8N(
         Utf8String,
         (ULONG)MaxBytesInUtf8String,
         &bytesInUtf8String,
         Utf16String,
         (ULONG)BytesInUtf16String
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
         if (BytesInUtf8String)
+        {
             *BytesInUtf8String = bytesInUtf8String;
-        return TRUE;
+        }
     }
 
-    return FALSE;
+    return status;
 #else
-    BOOLEAN result;
+    NTSTATUS status;
     PH_UNICODE_DECODER decoder;
     PWCH in;
     SIZE_T inRemaining;
@@ -4385,20 +4417,27 @@ BOOLEAN PhConvertUtf16ToUtf8Buffer(
                 }
                 else
                 {
-                    result = FALSE;
+                    status = STATUS_BUFFER_TOO_SMALL;
+                    break;
                 }
             }
             else
             {
-                result = FALSE;
+                status = STATUS_BUFFER_TOO_SMALL;
+                break;
             }
         }
+
+        if (!NT_SUCCESS(status))
+            break;
     }
 
     if (BytesInUtf8String)
+    {
         *BytesInUtf8String = bytesInUtf8String;
+    }
 
-    return result;
+    return status;
 #endif
 }
 
@@ -4417,27 +4456,29 @@ PPH_BYTES PhConvertUtf16ToUtf8Ex(
     _In_ SIZE_T Length
     )
 {
+    NTSTATUS status;
     PPH_BYTES bytes;
     SIZE_T utf8Bytes;
 
-    if (!PhConvertUtf16ToUtf8Size(
+    status = PhConvertUtf16ToUtf8Size(
         &utf8Bytes,
         Buffer,
         Length
-        ))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         return NULL;
-    }
 
     bytes = PhCreateBytesEx(NULL, utf8Bytes);
-
-    if (!PhConvertUtf16ToUtf8Buffer(
+    status = PhConvertUtf16ToUtf8Buffer(
         bytes->Buffer,
         bytes->Length,
         NULL,
         Buffer,
         Length
-        ))
+        );
+
+    if (!NT_SUCCESS(status))
     {
         PhDereferenceObject(bytes);
         return NULL;
@@ -4644,6 +4685,7 @@ VOID PhAppendCharStringBuilder2(
  *
  * \param StringBuilder A string builder object.
  * \param Format The format-control string.
+ * \param ... The list of strings.
  */
 VOID PhAppendFormatStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
@@ -4669,7 +4711,7 @@ VOID PhAppendFormatStringBuilder_V(
 
     length = _vscwprintf(Format, ArgPtr);
 
-    if (length == -1 || length == 0)
+    if (length == INT_ERROR || length == 0)
         return;
 
     lengthInBytes = length * sizeof(WCHAR);
@@ -4986,7 +5028,7 @@ VOID PhAppendFormatBytesBuilder_V(
 
     length = _vscprintf(Format, ArgPtr);
 
-    if (length == -1 || length == 0)
+    if (length == INT_ERROR || length == 0)
         return;
 
     lengthInBytes = length * sizeof(CHAR);
@@ -5293,7 +5335,6 @@ VOID PhClearList(
     List->Count = 0;
 }
 
-_Success_(return != -1)
 /**
  * Locates an item in a list.
  *
@@ -5303,14 +5344,13 @@ _Success_(return != -1)
  * \return The index of the item. If the
  * item was not found, -1 is returned.
  */
+_Use_decl_annotations_
 ULONG PhFindItemList(
     _In_ PPH_LIST List,
     _In_ PVOID Item
     )
 {
-    ULONG i;
-
-    for (i = 0; i < List->Count; i++)
+    for (ULONG i = 0; i < List->Count; i++)
     {
         if (List->Items[i] == Item)
             return i;
@@ -5536,7 +5576,7 @@ HANDLE PhAddItemPointerList(
     return PhpPointerListIndexToHandle(index);
 }
 
-_Success_(return)
+_Use_decl_annotations_
 BOOLEAN PhEnumPointerListEx(
     _In_ PPH_POINTER_LIST PointerList,
     _Inout_ PULONG EnumerationKey,
@@ -5905,7 +5945,7 @@ VOID PhClearHashtable(
  * this function). Otherwise, the function may behave unexpectedly. You may reset the
  * \a EnumerationKey variable to 0 if you wish to restart the enumeration.
  */
-_Success_(return)
+_Use_decl_annotations_
 BOOLEAN PhEnumHashtable(
     _In_ PPH_HASHTABLE Hashtable,
     _Out_ PVOID *Entry,
@@ -6159,11 +6199,6 @@ ULONG PhHashStringRefEx(
         {
             if (String->Length == 0)
                 return 0;
-
-            if (IgnoreCase)
-            {
-                NOTHING;
-            }
 
             return PhHashXXH32(String->Buffer, String->Length, 0);
         }
@@ -6674,6 +6709,7 @@ BOOLEAN PhHexStringToBufferEx(
 
     return TRUE;
 }
+
 /**
  * Converts a byte array into a sequence of hexadecimal digits.
  *
@@ -6725,7 +6761,7 @@ PPH_STRING PhBufferToHexStringEx(
     return string;
 }
 
-_Success_(return)
+_Use_decl_annotations_
 BOOLEAN PhBufferToHexStringBuffer(
     _In_reads_bytes_(InputLength) PUCHAR InputBuffer,
     _In_ SIZE_T InputLength,
@@ -6825,7 +6861,7 @@ BOOLEAN PhpStringToInteger64(
  *
  * If there is no recognized prefix, base 10 is used.
  */
-_Success_(return)
+_Use_decl_annotations_
 BOOLEAN PhStringToInteger64(
     _In_ PCPH_STRINGREF String,
     _In_opt_ ULONG Base,
@@ -6909,7 +6945,7 @@ BOOLEAN PhStringToInteger64(
     return valid;
 }
 
-_Success_(return)
+_Use_decl_annotations_
 BOOLEAN PhStringToUInt64(
     _In_ PCPH_STRINGREF String,
     _In_opt_ ULONG Base,

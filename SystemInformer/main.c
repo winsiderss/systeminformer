@@ -18,8 +18,8 @@
 
 #include <extmgri.h>
 #include <mainwnd.h>
+#include <mainwndp.h>
 #include <netprv.h>
-#include <phconsole.h>
 #include <phsettings.h>
 #include <phsvc.h>
 #include <procprv.h>
@@ -30,71 +30,13 @@
 #include <settings.h>
 #include <srvprv.h>
 
-LONG PhMainMessageLoop(
-    VOID
-    );
-
-VOID PhActivatePreviousInstance(
-    VOID
-    );
-
-VOID PhInitializeCommonControls(
-    VOID
-    );
-
-VOID PhInitializeSuperclassControls( // delayhook.c
-    VOID
-    );
-
-BOOLEAN PhInitializeAppSystem(
-    VOID
-    );
-
-VOID PhpInitializeSettings(
-    VOID
-    );
-
-VOID PhpProcessStartupParameters(
-    VOID
-    );
-
-VOID PhpEnablePrivileges(
-    VOID
-    );
-
-VOID PhEnableTerminationPolicy(
-    _In_ BOOLEAN Enabled
-    );
-
-BOOLEAN PhInitializeDirectoryPolicy(
-    VOID
-    );
-
-BOOLEAN PhInitializeExceptionPolicy(
-    VOID
-    );
-
-BOOLEAN PhInitializeMitigationPolicy(
-    VOID
-    );
-
-BOOLEAN PhInitializeComPolicy(
-    VOID
-    );
-
-BOOLEAN PhInitializeTimerPolicy(
-    VOID
-    );
-
 BOOLEAN PhPluginsEnabled = FALSE;
 BOOLEAN PhPortableEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
 PH_STARTUP_PARAMETERS PhStartupParameters = { .UpdateChannel = PhInvalidChannel };
-
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
 PH_PROVIDER_THREAD PhSecondaryProviderThread;
 PH_PROVIDER_THREAD PhTertiaryProviderThread;
-
 static PPH_LIST DialogList = NULL;
 static PPH_LIST FilterList = NULL;
 static PH_AUTO_POOL BaseAutoPool;
@@ -111,13 +53,13 @@ INT WINAPI wWinMain(
     PHP_BASE_THREAD_DBG dbg;
 #endif
 
-    if (!NT_SUCCESS(PhInitializePhLib(L"System Informer", Instance)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"System Informer")))
         return 1;
-    if (!PhInitializeDirectoryPolicy())
+    if (!NT_SUCCESS(PhInitializeDirectoryPolicy()))
         return 1;
-    if (!PhInitializeExceptionPolicy())
+    if (!NT_SUCCESS(PhInitializeExceptionPolicy()))
         return 1;
-    if (!PhInitializeComPolicy())
+    if (!NT_SUCCESS(PhInitializeComPolicy()))
         return 1;
 
     PhpProcessStartupParameters();
@@ -207,7 +149,7 @@ INT WINAPI wWinMain(
     }
 
     // N.B. Must be called after loading plugins since we set Microsoft signed only.
-    if (!PhInitializeMitigationPolicy())
+    if (!NT_SUCCESS(PhInitializeMitigationPolicy()))
         return 1;
 
     if (PhStartupParameters.PhSvc)
@@ -283,6 +225,7 @@ INT WINAPI wWinMain(
     }
 
     PhExitApplication(result);
+    return result;
 }
 
 LONG PhMainMessageLoop(
@@ -374,7 +317,7 @@ VOID PhUnregisterDialog(
 
     indexOfDialog = PhFindItemList(DialogList, (PVOID)DialogWindowHandle);
 
-    if (indexOfDialog != -1)
+    if (indexOfDialog != ULONG_MAX)
         PhRemoveItemList(DialogList, indexOfDialog);
 }
 
@@ -419,7 +362,7 @@ typedef struct _PHP_PREVIOUS_MAIN_WINDOW_CONTEXT
     PPH_STRING WindowName;
 } PHP_PREVIOUS_MAIN_WINDOW_CONTEXT, *PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT;
 
-static BOOL CALLBACK PhPreviousInstanceWindowEnumProc(
+static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
     _In_ HWND WindowHandle,
     _In_ PVOID Context
     )
@@ -588,7 +531,7 @@ VOID PhInitializeCommonControls(
     InitCommonControlsEx(&icex);
 }
 
-BOOLEAN PhInitializeDirectoryPolicy(
+NTSTATUS PhInitializeDirectoryPolicy(
     VOID
     )
 {
@@ -597,26 +540,26 @@ BOOLEAN PhInitializeDirectoryPolicy(
     PH_STRINGREF currentDirectory;
 
     if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
 
     PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath, &currentDirectory);
 
     if (PhEqualStringRef(&applicationDirectory->sr, &currentDirectory, TRUE))
     {
         PhDereferenceObject(applicationDirectory);
-        return TRUE;
+        return STATUS_SUCCESS;
     }
 
     if (!PhStringRefToUnicodeString(&applicationDirectory->sr, &applicationDirectoryUs))
     {
         PhDereferenceObject(applicationDirectory);
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     }
 
     if (!NT_SUCCESS(RtlSetCurrentDirectory_U(&applicationDirectoryUs)))
     {
         PhDereferenceObject(applicationDirectory);
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     }
 
     PhDereferenceObject(applicationDirectory);
@@ -874,7 +817,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
 }
 #pragma endregion
 
-BOOLEAN PhInitializeExceptionPolicy(
+NTSTATUS PhInitializeExceptionPolicy(
     VOID
     )
 {
@@ -891,10 +834,10 @@ BOOLEAN PhInitializeExceptionPolicy(
 #endif
     SetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
-BOOLEAN PhInitializeMitigationPolicy(
+NTSTATUS PhInitializeMitigationPolicy(
     VOID
     )
 {
@@ -924,10 +867,10 @@ BOOLEAN PhInitializeMitigationPolicy(
         //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
     }
 #endif
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
-BOOLEAN PhInitializeComPolicy(
+NTSTATUS PhInitializeComPolicy(
     VOID
     )
 {
@@ -992,6 +935,7 @@ BOOLEAN PhInitializeComPolicy(
     }
 
 #ifdef DEBUG
+    assert(RtlValidSecurityDescriptor(securityDescriptor));
     assert(securityDescriptorAllocationLength < sizeof(securityDescriptorBuffer));
     assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif
@@ -1001,7 +945,7 @@ BOOLEAN PhInitializeComPolicy(
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         NOTHING;
 
-    return TRUE;
+    return STATUS_SUCCESS;
 #endif
 }
 
@@ -1030,7 +974,7 @@ VOID PhEnableTerminationPolicy(
     }
 }
 
-BOOLEAN PhInitializeTimerPolicy(
+NTSTATUS PhInitializeTimerPolicy(
     VOID
     )
 {
@@ -1038,7 +982,7 @@ BOOLEAN PhInitializeTimerPolicy(
 
     SetUserObjectInformation(NtCurrentProcess(), UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &timerSuppression, sizeof(BOOL));
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 BOOLEAN PhInitializeAppSystem(

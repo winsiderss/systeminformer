@@ -281,12 +281,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
         sectionNode->UniqueIdString = PhFormatUInt64(sectionNode->UniqueId, FALSE);
         sectionNode->SectionHeader = &PvMappedImage.Sections[i];
 
-        if (PhGetMappedImageSectionName(
-            &PvMappedImage.Sections[i],
-            sectionName,
-            RTL_NUMBER_OF(sectionName),
-            &sectionNameLength
-            ))
+        if (NT_SUCCESS(PhGetMappedImageSectionName(&PvMappedImage.Sections[i], sectionName, RTL_NUMBER_OF(sectionName), &sectionNameLength)))
         {
             sectionNode->SectionNameString = PhCreateStringEx(sectionName, sectionNameLength * sizeof(WCHAR) - sizeof(UNICODE_NULL));
         }

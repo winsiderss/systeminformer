@@ -793,7 +793,7 @@ PhGetProcessAppMemoryInformation(
 
 FORCEINLINE
 NTSTATUS
-PhGetProcessMitigationPolicyInformation(
+PhGetProcessMitigationPolicy(
     _In_ HANDLE ProcessHandle,
     _In_ PROCESS_MITIGATION_POLICY Policy,
     _Out_ PPROCESS_MITIGATION_POLICY_INFORMATION MitigationPolicy

@@ -879,7 +879,7 @@ static VOID WriteCurrentUserRun(
         )))
     {
         static CONST PH_STRINGREF valueName = PH_STRINGREF_INIT(L"System Informer");
-        static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
 
         if (Present)
         {
@@ -888,7 +888,7 @@ static VOID WriteCurrentUserRun(
 
             if (fileName = PhGetApplicationFileNameWin32())
             {
-                value = PH_AUTO(PhConcatStringRef3(&seperator, &fileName->sr, &seperator));
+                value = PH_AUTO(PhConcatStringRef3(&separator, &fileName->sr, &separator));
 
                 if (StartHidden)
                     value = PH_AUTO(PhConcatStringRefZ(&value->sr, L" -hide"));
@@ -1021,7 +1021,7 @@ VOID PhpSetDefaultTaskManager(
         if (NT_SUCCESS(status))
         {
             static CONST PH_STRINGREF valueName = PH_STRINGREF_INIT(L"Debugger");
-            static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+            static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
 
             if (PhpIsDefaultTaskManager())
             {
@@ -1034,7 +1034,7 @@ VOID PhpSetDefaultTaskManager(
 
                 if (applicationFileName = PhGetApplicationFileNameWin32())
                 {
-                    quotedFileName = PH_AUTO(PhConcatStringRef3(&seperator, &applicationFileName->sr, &seperator));
+                    quotedFileName = PH_AUTO(PhConcatStringRef3(&separator, &applicationFileName->sr, &separator));
 
                     status = PhSetValueKey(
                         taskmgrKeyHandle,
@@ -2071,7 +2071,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                                         if (applicationFileName = PhGetApplicationFileNameWin32())
                                         {
-                                            static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+                                            static const PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
                                             HRESULT status;
                                             PPH_STRING quotedFileName;
 
@@ -2082,9 +2082,9 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                             }
 
                                             quotedFileName = PH_AUTO(PhConcatStringRef3(
-                                                &seperator,
+                                                &separator,
                                                 &applicationFileName->sr,
-                                                &seperator
+                                                &separator
                                                 ));
 
                                             status = PhCreateAdminTask(

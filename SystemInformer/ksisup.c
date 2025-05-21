@@ -159,7 +159,7 @@ PPH_STRING KsiGetKernelVersionString(
 
         if (fileName = KsiGetKernelFileName())
         {
-            if (PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE))
+            if (NT_SUCCESS(PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE)))
             {
                 KsiKernelVersion = versionInfo.FileVersion;
 
@@ -698,7 +698,7 @@ BOOLEAN KsiCommsCallback(
 }
 
 NTSTATUS KsiReadConfiguration(
-    _In_ PCWSTR FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_ PBYTE* Data,
     _Out_ PULONG Length
     )
@@ -710,12 +710,9 @@ NTSTATUS KsiReadConfiguration(
     *Data = NULL;
     *Length = 0;
 
-    status = STATUS_NO_SUCH_FILE;
-
-    fileName = PhGetApplicationDirectoryFileNameZ(FileName, TRUE);
-    if (fileName)
+    if (fileName = PhGetApplicationDirectoryFileName(FileName, TRUE))
     {
-        if (NT_SUCCESS(status = PhCreateFile(
+        status = PhCreateFile(
             &fileHandle,
             &fileName->sr,
             FILE_GENERIC_READ,
@@ -723,14 +720,19 @@ NTSTATUS KsiReadConfiguration(
             FILE_SHARE_READ,
             FILE_OPEN,
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             status = PhGetFileData(fileHandle, Data, Length);
-
             NtClose(fileHandle);
         }
 
         PhDereferenceObject(fileName);
+    }
+    else
+    {
+        status = STATUS_NO_SUCH_FILE;
     }
 
     return status;
@@ -744,8 +746,6 @@ NTSTATUS KsiValidateDynamicConfiguration(
     NTSTATUS status;
     PPH_STRING fileName;
     KSI_SUPPORT_DATA supportData;
-
-    status = STATUS_NO_SUCH_FILE;
 
     if (fileName = KsiGetKernelFileName())
     {
@@ -764,6 +764,10 @@ NTSTATUS KsiValidateDynamicConfiguration(
 
         PhDereferenceObject(fileName);
     }
+    else
+    {
+        status = STATUS_NO_SUCH_FILE;
+    }
 
     return status;
 }
@@ -775,6 +779,7 @@ NTSTATUS KsiGetDynData(
     _Out_ PULONG SignatureLength
     )
 {
+    static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"ksidyn.bin");
     NTSTATUS status;
     PBYTE data = NULL;
     ULONG dataLength;
@@ -788,7 +793,7 @@ NTSTATUS KsiGetDynData(
     *Signature = NULL;
     *SignatureLength = 0;
 
-    status = KsiReadConfiguration(L"ksidyn.bin", &data, &dataLength);
+    status = KsiReadConfiguration(&fileName, &data, &dataLength);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -796,7 +801,7 @@ NTSTATUS KsiGetDynData(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = KsiReadConfiguration(L"ksidyn.sig", &sig, &sigLength);
+    status = KsiReadConfiguration(&fileName, &sig, &sigLength);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 

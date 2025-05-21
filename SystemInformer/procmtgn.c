@@ -47,7 +47,7 @@ NTSTATUS PhpCopyProcessMitigationPolicy(
     return status;
 }
 
-NTSTATUS PhGetProcessMitigationPolicy(
+NTSTATUS PhGetProcessMitigationPolicyAllInformation(
     _In_ HANDLE ProcessHandle,
     _Out_ PPH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION Information
     )

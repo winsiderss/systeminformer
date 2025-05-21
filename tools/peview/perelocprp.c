@@ -85,12 +85,7 @@ VOID PvEnumerateRelocationEntries(
                 {
                     WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
 
-                    if (PhGetMappedImageSectionName(
-                        directorySection,
-                        sectionName,
-                        RTL_NUMBER_OF(sectionName),
-                        NULL
-                        ))
+                    if (NT_SUCCESS(PhGetMappedImageSectionName(directorySection, sectionName, RTL_NUMBER_OF(sectionName), NULL)))
                     {
                         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, sectionName);
                     }

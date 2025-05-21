@@ -32,7 +32,9 @@
 #define PH_THREAD_STACK_NATIVE_MACHINE IMAGE_FILE_MACHINE_I386
 #endif
 
-#define PAC_DECODE_ADDRESS(address) (address & ~(USER_SHARED_DATA->UserPointerAuthMask))
+#if defined(_ARM64_)
+#define PAC_DECODE_ADDRESS(Address) ((Address) & ~(USER_SHARED_DATA->UserPointerAuthMask))
+#endif
 
 typedef struct _PH_SYMBOL_MODULE
 {
@@ -362,27 +364,27 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
             }
         }
         return TRUE;
-    case CBA_READ_MEMORY:
-#ifndef _ARM64_
-        {
-            PIMAGEHLP_CBA_READ_MEMORY callbackData = (PIMAGEHLP_CBA_READ_MEMORY)CallbackData;
-
-            if (symbolProvider->IsRealHandle)
-            {
-                if (NT_SUCCESS(NtReadVirtualMemory(
-                    ProcessHandle,
-                    (PVOID)callbackData->addr,
-                    callbackData->buf,
-                    (SIZE_T)callbackData->bytes,
-                    (PSIZE_T)callbackData->bytesread
-                    )))
-                {
-                    return TRUE;
-                }
-            }
-        }
-#endif
-        return FALSE;
+//    case CBA_READ_MEMORY:
+//#ifndef _ARM64_
+//        {
+//            PIMAGEHLP_CBA_READ_MEMORY callbackData = (PIMAGEHLP_CBA_READ_MEMORY)CallbackData;
+//
+//            if (symbolProvider->IsRealHandle)
+//            {
+//                if (NT_SUCCESS(NtReadVirtualMemory(
+//                    ProcessHandle,
+//                    (PVOID)callbackData->addr,
+//                    callbackData->buf,
+//                    (SIZE_T)callbackData->bytes,
+//                    (PSIZE_T)callbackData->bytesread
+//                    )))
+//                {
+//                    return TRUE;
+//                }
+//            }
+//        }
+//#endif
+//        return FALSE;
     case CBA_DEFERRED_SYMBOL_LOAD_CANCEL:
         {
             if (symbolProvider->Terminating)
@@ -464,7 +466,7 @@ VOID PhpSymbolProviderCompleteInitialization(
             PhDereferenceObject(dbghelpName);
         }
 
-        if (dbghelpHandle && (symsrvName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &symsrvFileName)))
+        if (symsrvName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &symsrvFileName))
         {
             symsrvHandle = PhLoadLibrary(PhGetString(symsrvName));
             PhDereferenceObject(symsrvName);
@@ -494,7 +496,7 @@ VOID PhpSymbolProviderCompleteInitialization(
                 PhDereferenceObject(dbghelpName);
             }
 
-            if (dbghelpHandle && (symsrvName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &applicationDirectory->sr, &symsrvFileName)))
+            if (symsrvName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &applicationDirectory->sr, &symsrvFileName))
             {
                 symsrvHandle = PhLoadLibrary(symsrvName->Buffer);
                 PhDereferenceObject(symsrvName);

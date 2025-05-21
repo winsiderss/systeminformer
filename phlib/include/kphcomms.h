@@ -28,33 +28,45 @@
  *
  * \return TRUE if the message was handled by this callback, FALSE otherwise.
  */
-typedef
-BOOLEAN (NTAPI *PKPH_COMMS_CALLBACK)(
+typedef _Function_class_(KPH_COMMS_CALLBACK)
+BOOLEAN NTAPI KPH_COMMS_CALLBACK(
     _In_ ULONG_PTR ReplyToken,
     _In_ PCKPH_MESSAGE Message
     );
+typedef KPH_COMMS_CALLBACK* PKPH_COMMS_CALLBACK;
 
 _Must_inspect_result_
-NTSTATUS KphCommsStart(
+NTSTATUS
+NTAPI
+KphCommsStart(
     _In_ PCPH_STRINGREF PortName,
     _In_opt_ PKPH_COMMS_CALLBACK Callback
     );
 
-VOID KphCommsStop(
+VOID
+NTAPI
+KphCommsStop(
     VOID
     );
 
-BOOLEAN KphCommsIsConnected(
+BOOLEAN
+NTAPI
+KphCommsIsConnected(
     VOID
     );
 
-NTSTATUS KphCommsReplyMessage(
+_Must_inspect_result_
+NTSTATUS
+NTAPI
+KphCommsReplyMessage(
     _In_ ULONG_PTR ReplyToken,
     _In_ PKPH_MESSAGE Message
     );
 
 _Must_inspect_result_
-NTSTATUS KphCommsSendMessage(
+NTSTATUS
+NTAPI
+KphCommsSendMessage(
     _Inout_ PKPH_MESSAGE Message
     );
 

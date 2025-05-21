@@ -89,7 +89,7 @@ HWND PhCreateServiceListControl(
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
-VOID NTAPI ServiceModifiedHandler(
+VOID NTAPI PhServiceListModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     )
@@ -210,20 +210,11 @@ INT_PTR CALLBACK PhpServicesPageProc(
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent),
-                ServiceModifiedHandler,
-                context,
-                &context->ModifiedEventRegistration
-                );
-
-            // Initialize the list.
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display name");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 220, L"File name");
-
             PhSetExtendedListView(context->ListViewHandle);
 
             for (ULONG i = 0; i < context->NumberOfServices; i++)
@@ -271,6 +262,13 @@ INT_PTR CALLBACK PhpServicesPageProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PAUSE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent),
+                PhServiceListModifiedHandler,
+                context,
+                &context->ModifiedEventRegistration
+                );
         }
         break;
     case WM_DESTROY:

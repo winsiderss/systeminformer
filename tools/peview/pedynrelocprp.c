@@ -196,12 +196,7 @@ VOID PvEnumerateDynamicRelocationEntries(
                 {
                     WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
 
-                    if (PhGetMappedImageSectionName(
-                        section,
-                        sectionName,
-                        RTL_NUMBER_OF(sectionName),
-                        NULL
-                        ))
+                    if (NT_SUCCESS(PhGetMappedImageSectionName(section, sectionName, RTL_NUMBER_OF(sectionName), NULL)))
                     {
                         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, sectionName);
                     }

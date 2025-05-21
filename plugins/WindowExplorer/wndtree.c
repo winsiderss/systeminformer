@@ -12,11 +12,13 @@
 
 #include "wndexp.h"
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN WepWindowNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG WepWindowNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -192,6 +194,7 @@ VOID WeInitializeWindowTreeImageList(
     }
 }
 
+_Use_decl_annotations_
 BOOLEAN WepWindowNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -203,6 +206,7 @@ BOOLEAN WepWindowNodeHashtableEqualFunction(
     return windowNode1->WindowHandle == windowNode2->WindowHandle;
 }
 
+_Use_decl_annotations_
 ULONG WepWindowNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -244,16 +248,17 @@ PWE_WINDOW_NODE WeAddWindowNode(
             CLIENT_ID clientId;
             PPH_PROCESS_ITEM processItem;
 
-            PhGetWindowClientId(WindowHandle, &clientId);
-
-            if (clientId.UniqueProcess && (processItem = PhReferenceProcessItem(clientId.UniqueProcess)))
+            if (NT_SUCCESS(PhGetWindowClientId(WindowHandle, &clientId)))
             {
-                windowNode->ProcessItem = processItem;
-
-                if (PhTestEvent(&processItem->Stage1Event))
+                if (clientId.UniqueProcess && (processItem = PhReferenceProcessItem(clientId.UniqueProcess)))
                 {
-                    windowNode->WindowIconIndex = processItem->SmallIconIndex;
-                    windowNode->ProcessIconValid = TRUE;
+                    windowNode->ProcessItem = processItem;
+
+                    if (PhTestEvent(&processItem->Stage1Event))
+                    {
+                        windowNode->WindowIconIndex = processItem->SmallIconIndex;
+                        windowNode->ProcessIconValid = TRUE;
+                    }
                 }
             }
         }
@@ -334,12 +339,13 @@ VOID WepDestroyWindowNode(
     _In_ const void *_elem2 \
     ) \
 { \
+    PWE_WINDOW_TREE_CONTEXT context = (PWE_WINDOW_TREE_CONTEXT)_context; \
     PWE_WINDOW_NODE node1 = *(PWE_WINDOW_NODE *)_elem1; \
     PWE_WINDOW_NODE node2 = *(PWE_WINDOW_NODE *)_elem2; \
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
-    return PhModifySort(sortResult, ((PWE_WINDOW_TREE_CONTEXT)_context)->TreeNewSortOrder); \
+    return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
 BEGIN_SORT_FUNCTION(Class)
@@ -356,7 +362,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Text)
 {
-    sortResult = PhCompareStringWithNull(node1->WindowText, node2->WindowText, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->WindowText, node2->WindowText, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -371,7 +377,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Module)
 {
-    sortResult = PhCompareStringWithNull(node1->ModuleString, node2->ModuleString, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->ModuleString, node2->ModuleString, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 

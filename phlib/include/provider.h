@@ -103,7 +103,7 @@ VOID
 NTAPI
 PhSetIntervalProviderThread(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread,
-    _In_ ULONG Interval
+    _In_ LONG Interval
     );
 
 PHLIBAPI

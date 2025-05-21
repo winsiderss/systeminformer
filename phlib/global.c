@@ -11,28 +11,26 @@
  */
 
 #include <ph.h>
-#include <phconsole.h>
 #include <phintrnl.h>
-
 #include <trace.h>
 
 VOID PhInitializeRuntimeInformation(
     VOID
     );
 
-VOID PhInitializeSystemInformation(
+NTSTATUS PhInitializeSystemInformation(
     VOID
     );
 
-VOID PhInitializeWindowsInformation(
+NTSTATUS PhInitializeWindowsInformation(
     VOID
     );
 
-BOOLEAN PhHeapInitialization(
+NTSTATUS PhHeapInitialization(
     VOID
     );
 
-BOOLEAN PhInitializeProcessorInformation(
+NTSTATUS PhInitializeProcessorInformation(
     VOID
     );
 
@@ -50,32 +48,30 @@ PHLIB_STATISTICS_BLOCK PhLibStatisticsBlock;
 #endif
 
 NTSTATUS PhInitializePhLib(
-    _In_ PCWSTR ApplicationName,
-    _In_ PVOID ImageBaseAddress
+    _In_ PCWSTR ApplicationName
     )
 {
+    NTSTATUS status;
+
     WPP_INIT_TRACING(ApplicationName);
 
     PhTraceInfo("%ls initializing", ApplicationName);
 
     PhApplicationName = ApplicationName;
-    PhInstanceHandle = ImageBaseAddress;
+    PhInstanceHandle = NtCurrentImageBase();
 
     PhInitializeRuntimeInformation();
     PhInitializeWindowsInformation();
     PhInitializeSystemInformation();
 
-    if (!PhHeapInitialization())
-        return STATUS_UNSUCCESSFUL;
-
-    if (!PhQueuedLockInitialization())
-        return STATUS_UNSUCCESSFUL;
-
-    if (!PhRefInitialization())
-        return STATUS_UNSUCCESSFUL;
-
-    if (!PhBaseInitialization())
-        return STATUS_UNSUCCESSFUL;
+    if (!NT_SUCCESS(status = PhHeapInitialization()))
+        return status;
+    if (!NT_SUCCESS(status = PhQueuedLockInitialization()))
+        return status;
+    if (!NT_SUCCESS(status = PhRefInitialization()))
+        return status;
+    if (!NT_SUCCESS(status = PhBaseInitialization()))
+        return status;
 
     PhInitializeProcessorInformation();
 
@@ -115,10 +111,11 @@ VOID PhInitializeRuntimeInformation(
     //_wsetlocale(LC_ALL, L".UTF8");
 }
 
-VOID PhInitializeSystemInformation(
+NTSTATUS PhInitializeSystemInformation(
     VOID
     )
 {
+    NTSTATUS status;
     SYSTEM_BASIC_INFORMATION basicInfo = { 0 };
 
     PhSystemBasicInformation.PageSize = PAGE_SIZE;
@@ -129,12 +126,14 @@ VOID PhInitializeSystemInformation(
     PhSystemBasicInformation.MaximumUserModeAddress = 0x10000;
     PhSystemBasicInformation.ActiveProcessorsAffinityMask = USHRT_MAX;
 
-    if (NT_SUCCESS(NtQuerySystemInformation(
+    status = NtQuerySystemInformation(
         SystemBasicInformation,
         &basicInfo,
         sizeof(SYSTEM_BASIC_INFORMATION),
         NULL
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
         PhSystemBasicInformation.PageSize = (USHORT)basicInfo.PageSize;
         PhSystemBasicInformation.NumberOfProcessors = (USHORT)basicInfo.NumberOfProcessors;
@@ -144,12 +143,17 @@ VOID PhInitializeSystemInformation(
         PhSystemBasicInformation.MaximumUserModeAddress = basicInfo.MaximumUserModeAddress;
         PhSystemBasicInformation.ActiveProcessorsAffinityMask = basicInfo.ActiveProcessorsAffinityMask;
     }
+
+    PhTraceInfo("InitializeSystemInformation: %!STATUS!", status);
+
+    return status;
 }
 
-VOID PhInitializeWindowsInformation(
+NTSTATUS PhInitializeWindowsInformation(
     VOID
     )
 {
+    NTSTATUS status;
     RTL_OSVERSIONINFOEX versionInfo;
     ULONG majorVersion;
     ULONG minorVersion;
@@ -158,10 +162,10 @@ VOID PhInitializeWindowsInformation(
     memset(&versionInfo, 0, sizeof(RTL_OSVERSIONINFOEX));
     versionInfo.OSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEX);
 
-    if (!NT_SUCCESS(RtlGetVersion(&versionInfo)))
+    if (!NT_SUCCESS(status = RtlGetVersion(&versionInfo)))
     {
         WindowsVersion = WINDOWS_ANCIENT;
-        return;
+        return status;
     }
 
     memcpy(&PhOsVersion, &versionInfo, sizeof(RTL_OSVERSIONINFOEX));
@@ -276,54 +280,67 @@ VOID PhInitializeWindowsInformation(
     {
         WindowsVersion = WINDOWS_NEW;
     }
+
+    return status;
 }
 
-BOOLEAN PhHeapInitialization(
+NTSTATUS PhHeapInitialization(
     VOID
     )
 {
-#if defined(PH_DEBUG_HEAP)
-    PhHeapHandle = RtlProcessHeap();
-#else
+#if !defined(PH_DEBUG_HEAP)
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+
     if (WindowsVersion >= WINDOWS_8)
     {
-        PhHeapHandle = RtlCreateHeap(
+        if (PhHeapHandle = RtlCreateHeap(
             HEAP_GROWABLE | HEAP_CREATE_SEGMENT_HEAP | HEAP_CLASS_1,
             NULL,
             0,
             0,
             NULL,
             NULL
-            );
+            ))
+        {
+            status = STATUS_SUCCESS;
+        }
     }
 
-    if (!PhHeapHandle)
+    if (!NT_SUCCESS(status))
     {
-        PhHeapHandle = RtlCreateHeap(
+        if (PhHeapHandle = RtlCreateHeap(
             HEAP_GROWABLE | HEAP_CLASS_1,
             NULL,
             2 * 1024 * 1024, // 2 MB
             1024 * 1024, // 1 MB
             NULL,
             NULL
-            );
+            ))
+        {
+            status = STATUS_SUCCESS;
+        }
 
-        if (!PhHeapHandle)
-            return FALSE;
-
-        const ULONG defaultHeapCompatibilityMode = HEAP_COMPATIBILITY_MODE_LFH;
-        RtlSetHeapInformation(
-            PhHeapHandle,
-            HeapCompatibilityInformation,
-            &defaultHeapCompatibilityMode,
-            sizeof(ULONG)
-            );
+        if (NT_SUCCESS(status))
+        {
+            const ULONG defaultHeapCompatibilityMode = HEAP_COMPATIBILITY_MODE_LFH;
+            RtlSetHeapInformation(
+                PhHeapHandle,
+                HeapCompatibilityInformation,
+                &defaultHeapCompatibilityMode,
+                sizeof(ULONG)
+                );
+        }
     }
+
+    PhTraceInfo("HeapInitialization: %!STATUS!", status);
+    return status;
+#else
+    PhHeapHandle = RtlProcessHeap();
+    return STATUS_SUCCESS;
 #endif
-    return TRUE;
 }
 
-BOOLEAN PhInitializeProcessorInformation(
+NTSTATUS PhInitializeProcessorInformation(
     VOID
     )
 {
@@ -337,20 +354,24 @@ BOOLEAN PhInitializeProcessorInformation(
         PhSystemProcessorInformation.NumberOfProcessors = PhSystemBasicInformation.NumberOfProcessors;
         PhSystemProcessorInformation.NumberOfProcessorGroups = 1;
         PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = &PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+        return STATUS_SUCCESS;
     }
     else
     {
+        NTSTATUS status;
         PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInformation;
         ULONG processorInformationLength;
         USHORT numberOfProcessorGroups = 0;
         USHORT numberOfProcessors = 0;
         USHORT i;
 
-        if (NT_SUCCESS(PhGetSystemLogicalProcessorInformation(
+        status = PhGetSystemLogicalProcessorInformation(
             RelationGroup,
             &processorInformation,
             &processorInformationLength
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             numberOfProcessorGroups = processorInformation->Group.ActiveGroupCount;
 
@@ -388,12 +409,13 @@ BOOLEAN PhInitializeProcessorInformation(
             PhSystemProcessorInformation.SingleProcessorGroup = TRUE;
             PhSystemProcessorInformation.NumberOfProcessors = PhSystemBasicInformation.NumberOfProcessors;
             PhSystemProcessorInformation.NumberOfProcessorGroups = 1;
-            PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = PhAllocate(sizeof(KAFFINITY));
-            PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[0] = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+            PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = &PhSystemBasicInformation.ActiveProcessorsAffinityMask;
         }
-    }
 
-    return TRUE;
+        PhTraceInfo("InitializeProcessorInformation: %!STATUS!", status);
+
+        return status;
+    }
 }
 
 _Use_decl_annotations_

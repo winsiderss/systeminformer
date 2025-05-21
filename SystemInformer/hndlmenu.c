@@ -269,14 +269,13 @@ VOID PhShowHandleObjectProperties1(
                 else
                     tooBig = TRUE;
 
-                status = NtMapViewOfSection(
+                status = PhMapViewOfSection(
                     handle,
                     NtCurrentProcess(),
                     &viewBase,
                     0,
-                    0,
                     NULL,
-                    &viewSize,
+                    viewSize,
                     ViewUnmap,
                     0,
                     readOnly ? PAGE_READONLY : PAGE_READWRITE
@@ -284,14 +283,13 @@ VOID PhShowHandleObjectProperties1(
 
                 if (status == STATUS_SECTION_PROTECTION && !readOnly)
                 {
-                    status = NtMapViewOfSection(
+                    status = PhMapViewOfSection(
                         handle,
                         NtCurrentProcess(),
                         &viewBase,
                         0,
-                        0,
                         NULL,
-                        &viewSize,
+                        viewSize,
                         ViewUnmap,
                         0,
                         PAGE_READONLY

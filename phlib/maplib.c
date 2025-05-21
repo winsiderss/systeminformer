@@ -236,7 +236,7 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
 
     // Read the size string, terminate it after the last digit and parse it.
 
-    if (!PhCopyStringZFromBytes(Header->Size, 10, integerString, 11, NULL))
+    if (!NT_SUCCESS(PhCopyStringZFromBytes(Header->Size, 10, integerString, 11, NULL)))
         return STATUS_INVALID_PARAMETER;
 
     string.Buffer = integerString;
@@ -262,7 +262,7 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
 
     // Parse the name.
 
-    if (!PhCopyBytesZ(Header->Name, 16, Member->NameBuffer, 20, NULL))
+    if (!NT_SUCCESS(PhCopyBytesZ(Header->Name, 16, Member->NameBuffer, 20, NULL)))
         return STATUS_INVALID_PARAMETER;
 
     Member->Name = Member->NameBuffer;
@@ -321,10 +321,12 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
 
             // Parse the offset and make sure it lies within the longnames member.
 
-            if (!PhCopyStringZFromBytes(slash + 1, -1, integerString, 11, NULL))
+            if (!NT_SUCCESS(PhCopyStringZFromBytes(slash + 1, -1, integerString, 11, NULL)))
                 return STATUS_INVALID_PARAMETER;
+
             PhInitializeStringRefLongHint(&string, integerString);
-            if (!PhStringToInteger64(&string, 10, &offset64))
+
+            if (!PhStringToUInt64(&string, 10, &offset64))
                 return STATUS_INVALID_PARAMETER;
 
             offset = (ULONG)offset64;

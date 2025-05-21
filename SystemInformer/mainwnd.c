@@ -266,7 +266,7 @@ RTL_ATOM PhMwpInitializeWindowClass(
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.lpfnWndProc = PhMainWndProc;
-    wcex.hInstance = PhInstanceHandle;
+    wcex.hInstance = NtCurrentImageBase();
     className = PhaGetStringSetting(L"MainWindowClassName");
     wcex.lpszClassName = PhGetStringOrDefault(className, L"MainWindowClassName");
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
@@ -475,7 +475,7 @@ VOID PhMwpInitializeControls(
         0,
         WindowHandle,
         NULL,
-        PhInstanceHandle,
+        NULL,
         NULL
         );
 
@@ -489,7 +489,7 @@ VOID PhMwpInitializeControls(
         0,
         WindowHandle,
         NULL,
-        PhInstanceHandle,
+        NULL,
         &treelistCreateParams
         );
 
@@ -503,7 +503,7 @@ VOID PhMwpInitializeControls(
         0,
         WindowHandle,
         NULL,
-        PhInstanceHandle,
+        NULL,
         &treelistCreateParams
         );
 
@@ -517,7 +517,7 @@ VOID PhMwpInitializeControls(
         0,
         WindowHandle,
         NULL,
-        PhInstanceHandle,
+        NULL,
         &treelistCreateParams
         );
 
@@ -4738,7 +4738,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_BASE:
         {
-            return (PVOID)PhInstanceHandle;
+            return (PVOID)NtCurrentImageBase();
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_GETWINDOW_PROCEDURE:

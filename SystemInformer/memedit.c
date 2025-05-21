@@ -180,7 +180,7 @@ VOID PhShowMemoryEditorDialog(
 
         // Just in case.
         if ((Flags & PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION) && ProcessId == NtCurrentProcessId())
-            NtUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
+            PhUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
     }
 }
 
@@ -340,7 +340,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             PhClearReference(&context->Title);
 
             if ((context->Flags & PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION) && context->ProcessId == NtCurrentProcessId())
-                NtUnmapViewOfSection(NtCurrentProcess(), context->BaseAddress);
+                PhUnmapViewOfSection(NtCurrentProcess(), context->BaseAddress);
 
             PhFree(context);
         }

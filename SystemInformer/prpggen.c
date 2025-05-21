@@ -188,7 +188,7 @@ VOID PhpUpdateProcessMitigationPolicies(
         ProcessItem->ProcessId
         )))
     {
-        if (NT_SUCCESS(status = PhGetProcessMitigationPolicy(processHandle, &information)))
+        if (NT_SUCCESS(status = PhGetProcessMitigationPolicyAllInformation(processHandle, &information)))
         {
             PH_STRING_BUILDER sb;
             PROCESS_MITIGATION_POLICY policy;

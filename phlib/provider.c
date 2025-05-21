@@ -227,15 +227,38 @@ VOID PhStartProviderThread(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread
     )
 {
+    OBJECT_ATTRIBUTES objectAttributes;
+
     if (ProviderThread->State != ProviderThreadStopped)
         return;
 
-    // Create and set the timer.
-    NtCreateTimer(&ProviderThread->TimerHandle, TIMER_ALL_ACCESS, NULL, SynchronizationTimer);
+    // Create the synchronization timer.
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
+
+    NtCreateTimer(
+        &ProviderThread->TimerHandle,
+        TIMER_ALL_ACCESS,
+        &objectAttributes,
+        SynchronizationTimer
+        );
+    assert(ProviderThread->TimerHandle);
+
+    // Set the run interval for the timer.
+
     PhSetIntervalProviderThread(ProviderThread, ProviderThread->Interval);
 
     // Create and start the thread.
+
     PhCreateThreadEx(&ProviderThread->ThreadHandle, PhpProviderThreadStart, ProviderThread);
+    assert(ProviderThread->ThreadHandle);
+
     ProviderThread->State = ProviderThreadRunning;
 }
 
@@ -258,8 +281,9 @@ VOID PhStopProviderThread(
 
     // Free resources.
     NtClose(ProviderThread->ThreadHandle);
-    NtClose(ProviderThread->TimerHandle);
     ProviderThread->ThreadHandle = NULL;
+
+    NtClose(ProviderThread->TimerHandle);
     ProviderThread->TimerHandle = NULL;
 
     ProviderThread->State = ProviderThreadStopped;
@@ -273,7 +297,7 @@ VOID PhStopProviderThread(
  */
 VOID PhSetIntervalProviderThread(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread,
-    _In_ ULONG Interval
+    _In_ LONG Interval
     )
 {
     ProviderThread->Interval = Interval;

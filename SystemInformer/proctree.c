@@ -1286,6 +1286,7 @@ static VOID PhpUpdateProcessNodeImage(
         //    }
         //}
 
+        SetFlag(ProcessNode->ValidMask, PHPN_IMAGE);
     }
 }
 
@@ -1742,52 +1743,28 @@ static VOID PhpUpdateProcessNodeMitigationPolicies(
 {
     if (!FlagOn(ProcessNode->ValidMask, PHPN_MITIGATIONPOLICIES))
     {
-        NTSTATUS status;
-        PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
-
         PhClearReference(&ProcessNode->MitigationPoliciesText);
 
-        if (ProcessNode->ProcessItem->QueryHandle &&
-            NT_SUCCESS(status = PhGetProcessMitigationPolicy(ProcessNode->ProcessItem->QueryHandle, &information)))
+        if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
-            PH_STRING_BUILDER sb;
-            PROCESS_MITIGATION_POLICY policy;
-            PPH_STRING shortDescription;
+            NTSTATUS status;
+            PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
 
-            PhInitializeStringBuilder(&sb, 100);
+            status = PhGetProcessMitigationPolicyAllInformation(ProcessNode->ProcessItem->QueryHandle, &information);
 
-            for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)
+            if (NT_SUCCESS(status))
             {
-                if (information.Pointers[policy] && PhDescribeProcessMitigationPolicy(
-                    policy,
-                    information.Pointers[policy],
-                    &shortDescription,
-                    NULL
-                    ))
+                PH_STRING_BUILDER sb;
+                PROCESS_MITIGATION_POLICY policy;
+                PPH_STRING shortDescription;
+
+                PhInitializeStringBuilder(&sb, 100);
+
+                for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)
                 {
-                    PhAppendStringBuilder(&sb, &shortDescription->sr);
-                    PhAppendStringBuilder2(&sb, L"; ");
-                    PhDereferenceObject(shortDescription);
-                }
-            }
-
-            // HACK: Show System process CET mitigation (dmex)
-            if (ProcessNode->ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
-            {
-                SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
-
-                if (NT_SUCCESS(PhGetSystemShadowStackInformation(&shadowStackInformation)))
-                {
-                    PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY policyData;
-
-                    memset(&policyData, 0, sizeof(PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY));
-                    policyData.EnableUserShadowStack = shadowStackInformation.KernelCetEnabled;
-                    policyData.EnableUserShadowStackStrictMode = shadowStackInformation.KernelCetEnabled;
-                    policyData.AuditUserShadowStack = shadowStackInformation.KernelCetAuditModeEnabled;
-
-                    if (PhDescribeProcessMitigationPolicy(
-                        ProcessUserShadowStackPolicy,
-                        &policyData,
+                    if (information.Pointers[policy] && PhDescribeProcessMitigationPolicy(
+                        policy,
+                        information.Pointers[policy],
                         &shortDescription,
                         NULL
                         ))
@@ -1797,12 +1774,40 @@ static VOID PhpUpdateProcessNodeMitigationPolicies(
                         PhDereferenceObject(shortDescription);
                     }
                 }
+
+                // HACK: Show System process CET mitigation (dmex)
+                if (ProcessNode->ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
+                {
+                    SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
+
+                    if (NT_SUCCESS(PhGetSystemShadowStackInformation(&shadowStackInformation)))
+                    {
+                        PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY policyData;
+
+                        memset(&policyData, 0, sizeof(PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY));
+                        policyData.EnableUserShadowStack = shadowStackInformation.KernelCetEnabled;
+                        policyData.EnableUserShadowStackStrictMode = shadowStackInformation.KernelCetEnabled;
+                        policyData.AuditUserShadowStack = shadowStackInformation.KernelCetAuditModeEnabled;
+
+                        if (PhDescribeProcessMitigationPolicy(
+                            ProcessUserShadowStackPolicy,
+                            &policyData,
+                            &shortDescription,
+                            NULL
+                            ))
+                        {
+                            PhAppendStringBuilder(&sb, &shortDescription->sr);
+                            PhAppendStringBuilder2(&sb, L"; ");
+                            PhDereferenceObject(shortDescription);
+                        }
+                    }
+                }
+
+                if (sb.String->Length != 0)
+                    PhRemoveEndStringBuilder(&sb, 2);
+
+                ProcessNode->MitigationPoliciesText = PhFinalStringBuilderString(&sb);
             }
-
-            if (sb.String->Length != 0)
-                PhRemoveEndStringBuilder(&sb, 2);
-
-            ProcessNode->MitigationPoliciesText = PhFinalStringBuilderString(&sb);
         }
 
         SetFlag(ProcessNode->ValidMask, PHPN_MITIGATIONPOLICIES);

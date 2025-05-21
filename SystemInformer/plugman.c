@@ -190,7 +190,7 @@ PPH_PLUGIN_TREE_ROOT_NODE AddPluginsNode(
 
     if (fileName = PhGetPluginFileName(Plugin))
     {
-        if (PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE))
+        if (NT_SUCCESS(PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE)))
         {
             pluginNode->Version = PhReferenceObject(versionInfo.FileVersion);
             PhDeleteImageVersionInfo(&versionInfo);
@@ -911,7 +911,7 @@ VOID PhpRefreshPluginDetails(
     PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, SelectedPlugin->Information.Description);
     PhSetDialogItemText(hwndDlg, IDC_URL, SelectedPlugin->Information.Url);
 
-    if (fileName && PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE))
+    if (fileName && NT_SUCCESS(PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE)))
     {
         PhSetDialogItemText(hwndDlg, IDC_VERSION, PhGetStringOrDefault(versionInfo.FileVersion, L"Unknown"));
         PhDeleteImageVersionInfo(&versionInfo);

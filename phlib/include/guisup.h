@@ -1141,7 +1141,9 @@ PhLoadMenu(
     );
 
 PHLIBAPI
-BOOLEAN PhModalPropertySheet(
+BOOLEAN
+NTAPI
+PhModalPropertySheet(
     _Inout_ PROPSHEETHEADER *Header
     );
 
@@ -1342,25 +1344,28 @@ PhRemoveDialogContext(
 #endif
 }
 
-typedef BOOL (CALLBACK* PH_ENUM_CALLBACK)(
+typedef _Function_class_(PH_WINDOW_ENUM_CALLBACK)
+BOOLEAN NTAPI PH_WINDOW_ENUM_CALLBACK(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
     );
+typedef PH_WINDOW_ENUM_CALLBACK* PPH_WINDOW_ENUM_CALLBACK;
 
-VOID PhEnumWindows(
-    _In_ PH_ENUM_CALLBACK Callback,
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumWindows(
+    _In_ PH_WINDOW_ENUM_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
 
-typedef BOOLEAN (CALLBACK *PH_CHILD_ENUM_CALLBACK)(
-    _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
-    );
-
-VOID PhEnumChildWindows(
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumChildWindows(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Limit,
-    _In_ PH_CHILD_ENUM_CALLBACK Callback,
+    _In_ PH_WINDOW_ENUM_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
 
@@ -1398,7 +1403,7 @@ PhSetDialogItemValue(
     );
 
 PHLIBAPI
-VOID
+BOOLEAN
 NTAPI
 PhSetDialogItemText(
     _In_ HWND WindowHandle,
@@ -1407,7 +1412,7 @@ PhSetDialogItemText(
     );
 
 PHLIBAPI
-VOID
+BOOLEAN
 NTAPI
 PhSetWindowText(
     _In_ HWND WindowHandle,
@@ -2530,7 +2535,7 @@ HFONT
 NTAPI
 PhDuplicateFont(
     _In_ HFONT Font
-);
+    );
 
 PHLIBAPI
 HFONT
@@ -2643,6 +2648,13 @@ HWND PhCreateBackgroundWindow(
 
 HICON PhGdiplusConvertHBitmapToHIcon(
     _In_ HBITMAP BitmapHandle
+    );
+
+LRESULT PhTnSendMessage(
+    _In_ HWND WindowHandle,
+    _In_ ULONG WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 EXTERN_C_END

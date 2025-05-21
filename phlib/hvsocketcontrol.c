@@ -111,7 +111,7 @@ NTSTATUS PhHvSocketOpenSystemControl(
         stringRef.Buffer = formatBuffer;
 
         if (!PhStringRefToUnicodeString(&stringRef, &objectName))
-            return STATUS_NO_MEMORY;
+            return STATUS_NAME_TOO_LONG;
 #endif
 
         InitializeObjectAttributes(

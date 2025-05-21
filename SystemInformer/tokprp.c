@@ -1585,12 +1585,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 break;
                             }
 
-                            if (PhSetTokenPrivilege(
+                            if (NT_SUCCESS(PhSetTokenPrivilege(
                                 tokenHandle,
                                 NULL,
                                 &listViewItems[i]->TokenPrivilege->Luid,
                                 newAttributes
-                                ))
+                                )))
                             {
                                 LONG itemIndex;
 

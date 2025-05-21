@@ -252,6 +252,8 @@ PvSearchControlMatchPointerRange(
 
 #define WM_PV_SEARCH_FINISHED (WM_APP + 701)
 #define WM_PV_SEARCH_SHOWMENU (WM_APP + 702)
+#define WM_PV_SEARCH_SETREDRAW (WM_APP + 703)
+#define WM_PV_SEARCH_NODESSTRUCTURED (WM_APP + 704)
 
 extern ULONG SearchResultsAddIndex;
 extern PPH_LIST SearchResults;

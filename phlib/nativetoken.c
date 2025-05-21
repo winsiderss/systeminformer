@@ -23,7 +23,7 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PH_TOKEN_ATTRIBUTES attributes = { NULL };
+    static PH_TOKEN_ATTRIBUTES attributes = { NULL, {0}, 0, NULL };
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -539,7 +539,6 @@ NTSTATUS PhGetTokenSecurityAttribute(
     returnLength = 0;
     bufferLength = 0x200;
     buffer = PhAllocate(bufferLength);
-    memset(buffer, 0, bufferLength);
 
     status = NtQuerySecurityAttributesToken(
         TokenHandle,
@@ -554,7 +553,6 @@ NTSTATUS PhGetTokenSecurityAttribute(
     {
         bufferLength = returnLength;
         buffer = PhAllocate(bufferLength);
-        memset(buffer, 0, bufferLength);
 
         status = NtQuerySecurityAttributesToken(
             TokenHandle,
@@ -987,7 +985,7 @@ BOOLEAN PhPrivilegeCheckAny(
  * specify a name in the \a PrivilegeName parameter.
  * \param Attributes The new attributes of the privilege.
  */
-BOOLEAN PhSetTokenPrivilege(
+NTSTATUS PhSetTokenPrivilege(
     _In_ HANDLE TokenHandle,
     _In_opt_ PCWSTR PrivilegeName,
     _In_opt_ PLUID PrivilegeLuid,
@@ -1010,36 +1008,40 @@ BOOLEAN PhSetTokenPrivilege(
 
         PhInitializeStringRefLongHint(&privilegeName, PrivilegeName);
 
-        if (!NT_SUCCESS(status = PhLookupPrivilegeValue(
+        status = PhLookupPrivilegeValue(
             &privilegeName,
             &privileges.Privileges[0].Luid
-            )))
-        {
-            return FALSE;
-        }
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
     }
     else
     {
-        return FALSE;
+        return STATUS_INVALID_PARAMETER;
     }
 
-    if (!NT_SUCCESS(status = NtAdjustPrivilegesToken(
+    status = NtAdjustPrivilegesToken(
         TokenHandle,
         FALSE,
         &privileges,
         0,
         NULL,
         NULL
-        )))
-        return FALSE;
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (status == STATUS_NOT_ALL_ASSIGNED)
-        return FALSE;
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
 
-    return TRUE;
+    return status;
 }
 
-BOOLEAN PhSetTokenPrivilege2(
+NTSTATUS PhSetTokenPrivilege2(
     _In_ HANDLE TokenHandle,
     _In_ LONG Privilege,
     _In_ ULONG Attributes

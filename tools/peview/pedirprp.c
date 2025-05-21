@@ -243,12 +243,7 @@ VOID PvpPeEnumerateImageDataDirectory(
         ULONG sectionNameLength = 0;
         WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
 
-        if (PhGetMappedImageSectionName(
-            directorySection,
-            sectionName,
-            RTL_NUMBER_OF(sectionName),
-            &sectionNameLength
-            ))
+        if (NT_SUCCESS(PhGetMappedImageSectionName(directorySection, sectionName, RTL_NUMBER_OF(sectionName), &sectionNameLength)))
         {
             directoryNode->SectionNameString = PhCreateStringEx(sectionName, sectionNameLength * sizeof(WCHAR));
         }

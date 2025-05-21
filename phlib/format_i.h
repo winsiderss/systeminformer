@@ -284,6 +284,7 @@ CommonInt64Format:
         DataType value; \
         PSTR temp; \
         ULONG length; \
+        SIZE_T returnLength; \
         \
         if ((Format)->Type & FormatUsePrecision) \
         { \
@@ -299,20 +300,28 @@ CommonInt64Format:
         \
         value = (Format)->u.FormatType; \
         temp = (PSTR)tempBuffer + 1; /* leave one character so we can insert a prefix if needed */ \
+        returnLength = 0; \
         FormatToBufferUtf8( \
             value, \
             (Format)->Type, \
             precision, \
             temp, \
-            sizeof(tempBuffer) - 1 \
+            sizeof(tempBuffer) - 1, \
+            &returnLength \
             ); \
         \
         /* if (((Format)->Type & FormatForceDecimalPoint) && precision == 0) */ \
              /* _forcdecpt_l(tempBufferAnsi, PhpFormatUserLocale); */ \
         if ((Format)->Type & FormatCropZeros) \
+        { \
             PhpCropZeros(temp); \
-        \
-        length = (ULONG)strlen(temp); \
+            \
+            length = (ULONG)strlen(temp); \
+        } \
+        else \
+        { \
+            length = (ULONG)returnLength; \
+        } \
         \
         if (temp[0] == '-') \
         { \

@@ -36,7 +36,7 @@ PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook = NULL;
 /**
  * Initializes the object manager module.
  */
-BOOLEAN PhRefInitialization(
+NTSTATUS PhRefInitialization(
     VOID
     )
 {
@@ -71,9 +71,9 @@ BOOLEAN PhRefInitialization(
     PhpAutoPoolTlsIndex = PhTlsAlloc();
 
     if (PhpAutoPoolTlsIndex == TLS_OUT_OF_INDEXES)
-        return FALSE;
+        return STATUS_NO_MEMORY;
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 /**
