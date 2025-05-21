@@ -262,7 +262,6 @@ LdrGetDllHandleEx(
     _Out_ PVOID *DllHandle
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -271,9 +270,7 @@ LdrGetDllHandleByMapping(
     _In_ PVOID BaseAddress,
     _Out_ PVOID *DllHandle
     );
-#endif
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -283,7 +280,6 @@ LdrGetDllHandleByName(
     _In_opt_ PCUNICODE_STRING FullDllName,
     _Out_ PVOID *DllHandle
     );
-#endif
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
@@ -346,7 +342,6 @@ LdrGetProcedureAddress(
 // rev
 #define LDR_GET_PROCEDURE_ADDRESS_DONT_RECORD_FORWARDER 0x00000001
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
 NTSYSAPI
 NTSTATUS
@@ -358,7 +353,6 @@ LdrGetProcedureAddressEx(
     _Out_ PVOID *ProcedureAddress,
     _In_ ULONG Flags
     );
-#endif
 
 NTSYSAPI
 NTSTATUS
@@ -509,7 +503,6 @@ typedef struct _LDR_VERIFY_IMAGE_INFO
     USHORT ImageCharacteristics;
 } LDR_VERIFY_IMAGE_INFO, *PLDR_VERIFY_IMAGE_INFO;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
 NTSYSAPI
 NTSTATUS
@@ -518,9 +511,7 @@ LdrVerifyImageMatchesChecksumEx(
     _In_ HANDLE ImageFileHandle,
     _Inout_ PLDR_VERIFY_IMAGE_INFO VerifyInfo
     );
-#endif
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
 NTSYSAPI
 NTSTATUS
@@ -530,7 +521,6 @@ LdrQueryModuleServiceTags(
     _Out_writes_(*BufferSize) PULONG ServiceTagBuffer,
     _Inout_ PULONG BufferSize
     );
-#endif
 
 // begin_msdn:"DLL Load Notification"
 
@@ -571,7 +561,6 @@ VOID NTAPI LDR_DLL_NOTIFICATION_FUNCTION(
     );
 typedef LDR_DLL_NOTIFICATION_FUNCTION* PLDR_DLL_NOTIFICATION_FUNCTION;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Registers for notification when a DLL is first loaded. This notification occurs before dynamic linking takes place.
  *
@@ -605,7 +594,6 @@ NTAPI
 LdrUnregisterDllNotification(
     _In_ PVOID Cookie
     );
-#endif
 
 // end_msdn
 
@@ -789,8 +777,6 @@ NTSYSAPI RTL_SCPCFG_NTDLL_EXPORTS RtlpScpCfgNtdllExports;
 // Load as data table
 //
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-
 // private
 NTSYSAPI
 NTSTATUS
@@ -822,8 +808,6 @@ LdrGetFileNameFromLoadAsDataTable(
     _In_ PVOID Module,
     _Out_ PVOID *pFileNamePrt
     );
-
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 NTSYSAPI
 NTSTATUS
@@ -1209,14 +1193,14 @@ NTAPI
 LdrQueryProcessModuleInformation(
     _In_opt_ PRTL_PROCESS_MODULES ModuleInformation,
     _In_opt_ ULONG Size,
-    _Out_ PULONG ReturnedSize
+    _Out_opt_ PULONG ReturnedSize
     );
 
 typedef _Function_class_(LDR_ENUM_CALLBACK)
 VOID NTAPI LDR_ENUM_CALLBACK(
     _In_ PLDR_DATA_TABLE_ENTRY ModuleInformation,
     _In_ PVOID Parameter,
-    _Out_ BOOLEAN* Stop
+    _Out_ PBOOLEAN Stop
     );
 typedef LDR_ENUM_CALLBACK* PLDR_ENUM_CALLBACK;
 
