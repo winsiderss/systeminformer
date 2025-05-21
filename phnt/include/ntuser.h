@@ -124,6 +124,13 @@ NtUserCloseWindowStation(
     _In_ HWINSTA WindowStationHandle
     );
 
+NTSYSCALLAPI
+LOGICAL
+NTAPI
+NtUserDisableProcessWindowsGhosting(
+    VOID
+    );
+
 typedef enum _CONSOLECONTROL
 {
     ConsoleSetVDMCursorBounds = 0, // RECT
@@ -373,6 +380,13 @@ HWND
 NTAPI
 NtUserSetActiveWindow(
     _In_ HWND WindowHandle
+    );
+
+NTSYSCALLAPI
+LPARAM
+NTAPI
+NtUserSetMessageExtraInfo(
+    _In_ LPARAM lParam
     );
 
 NTSYSCALLAPI
@@ -1121,6 +1135,21 @@ NtUserSetWindowPos(
     _In_ ULONG Flags
     );
 
+FORCEINLINE
+BOOL
+NTAPI
+NtUserBringWindowToTop(
+    _In_ HWND WindowHandle
+    )
+{
+    return NtUserSetWindowPos(
+        WindowHandle,
+        NULL,
+        0, 0, 0, 0,
+        3
+        );
+}
+
 NTSYSCALLAPI
 USHORT
 NTAPI
@@ -1270,149 +1299,152 @@ NtUserWindowFromPoint(
     _In_ POINT Point
     );
 
+typedef NTSTATUS FN_DISPATCH(PVOID);
+typedef FN_DISPATCH* PFN_DISPATCH;
+
 // Peb!KernelCallbackTable = user32.dll!apfnDispatch
 typedef struct _KERNEL_CALLBACK_TABLE
 {
-    PVOID __fnCOPYDATA;
-    PVOID __fnCOPYGLOBALDATA;
-    PVOID __fnEMPTY1;
-    PVOID __fnNCDESTROY;
-    PVOID __fnDWORDOPTINLPMSG;
-    PVOID __fnINOUTDRAG;
-    PVOID __fnGETTEXTLENGTHS1;
-    PVOID __fnINCNTOUTSTRING;
-    PVOID __fnINCNTOUTSTRINGNULL;
-    PVOID __fnINLPCOMPAREITEMSTRUCT;
-    PVOID __fnINLPCREATESTRUCT;
-    PVOID __fnINLPDELETEITEMSTRUCT;
-    PVOID __fnINLPDRAWITEMSTRUCT;
-    PVOID __fnPOPTINLPUINT1;
-    PVOID __fnPOPTINLPUINT2;
-    PVOID __fnINLPMDICREATESTRUCT;
-    PVOID __fnINOUTLPMEASUREITEMSTRUCT;
-    PVOID __fnINLPWINDOWPOS;
-    PVOID __fnINOUTLPPOINT51;
-    PVOID __fnINOUTLPSCROLLINFO;
-    PVOID __fnINOUTLPRECT;
-    PVOID __fnINOUTNCCALCSIZE;
-    PVOID __fnINOUTLPPOINT52;
-    PVOID __fnINPAINTCLIPBRD;
-    PVOID __fnINSIZECLIPBRD;
-    PVOID __fnINDESTROYCLIPBRD;
-    PVOID __fnINSTRINGNULL1;
-    PVOID __fnINSTRINGNULL2;
-    PVOID __fnINDEVICECHANGE;
-    PVOID __fnPOWERBROADCAST;
-    PVOID __fnINLPUAHDRAWMENU1;
-    PVOID __fnOPTOUTLPDWORDOPTOUTLPDWORD1;
-    PVOID __fnOPTOUTLPDWORDOPTOUTLPDWORD2;
-    PVOID __fnOUTDWORDINDWORD;
-    PVOID __fnOUTLPRECT;
-    PVOID __fnOUTSTRING;
-    PVOID __fnPOPTINLPUINT3;
-    PVOID __fnPOUTLPINT;
-    PVOID __fnSENTDDEMSG;
-    PVOID __fnINOUTSTYLECHANGE1;
-    PVOID __fnHkINDWORD;
-    PVOID __fnHkINLPCBTACTIVATESTRUCT;
-    PVOID __fnHkINLPCBTCREATESTRUCT;
-    PVOID __fnHkINLPDEBUGHOOKSTRUCT;
-    PVOID __fnHkINLPMOUSEHOOKSTRUCTEX1;
-    PVOID __fnHkINLPKBDLLHOOKSTRUCT;
-    PVOID __fnHkINLPMSLLHOOKSTRUCT;
-    PVOID __fnHkINLPMSG;
-    PVOID __fnHkINLPRECT;
-    PVOID __fnHkOPTINLPEVENTMSG;
-    PVOID __xxxClientCallDelegateThread;
-    PVOID __ClientCallDummyCallback1;
-    PVOID __ClientCallDummyCallback2;
-    PVOID __fnSHELLWINDOWMANAGEMENTCALLOUT;
-    PVOID __fnSHELLWINDOWMANAGEMENTNOTIFY;
-    PVOID __ClientCallDummyCallback3;
-    PVOID __xxxClientCallDitThread;
-    PVOID __xxxClientEnableMMCSS;
-    PVOID __xxxClientUpdateDpi;
-    PVOID __xxxClientExpandStringW;
-    PVOID __ClientCopyDDEIn1;
-    PVOID __ClientCopyDDEIn2;
-    PVOID __ClientCopyDDEOut1;
-    PVOID __ClientCopyDDEOut2;
-    PVOID __ClientCopyImage;
-    PVOID __ClientEventCallback;
-    PVOID __ClientFindMnemChar;
-    PVOID __ClientFreeDDEHandle;
-    PVOID __ClientFreeLibrary;
-    PVOID __ClientGetCharsetInfo;
-    PVOID __ClientGetDDEFlags;
-    PVOID __ClientGetDDEHookData;
-    PVOID __ClientGetListboxString;
-    PVOID __ClientGetMessageMPH;
-    PVOID __ClientLoadImage;
-    PVOID __ClientLoadLibrary;
-    PVOID __ClientLoadMenu;
-    PVOID __ClientLoadLocalT1Fonts;
-    PVOID __ClientPSMTextOut;
-    PVOID __ClientLpkDrawTextEx;
-    PVOID __ClientExtTextOutW;
-    PVOID __ClientGetTextExtentPointW;
-    PVOID __ClientCharToWchar;
-    PVOID __ClientAddFontResourceW;
-    PVOID __ClientThreadSetup;
-    PVOID __ClientDeliverUserApc;
-    PVOID __ClientNoMemoryPopup;
-    PVOID __ClientMonitorEnumProc;
-    PVOID __ClientCallWinEventProc;
-    PVOID __ClientWaitMessageExMPH;
-    PVOID __ClientCallDummyCallback4;
-    PVOID __ClientCallDummyCallback5;
-    PVOID __ClientImmLoadLayout;
-    PVOID __ClientImmProcessKey;
-    PVOID __fnIMECONTROL;
-    PVOID __fnINWPARAMDBCSCHAR;
-    PVOID __fnGETTEXTLENGTHS2;
-    PVOID __ClientCallDummyCallback6;
-    PVOID __ClientLoadStringW;
-    PVOID __ClientLoadOLE;
-    PVOID __ClientRegisterDragDrop;
-    PVOID __ClientRevokeDragDrop;
-    PVOID __fnINOUTMENUGETOBJECT;
-    PVOID __ClientPrinterThunk;
-    PVOID __fnOUTLPCOMBOBOXINFO;
-    PVOID __fnOUTLPSCROLLBARINFO;
-    PVOID __fnINLPUAHDRAWMENU2;
-    PVOID __fnINLPUAHDRAWMENUITEM;
-    PVOID __fnINLPUAHDRAWMENU3;
-    PVOID __fnINOUTLPUAHMEASUREMENUITEM;
-    PVOID __fnINLPUAHDRAWMENU4;
-    PVOID __fnOUTLPTITLEBARINFOEX;
-    PVOID __fnTOUCH;
-    PVOID __fnGESTURE;
-    PVOID __fnPOPTINLPUINT4;
-    PVOID __fnPOPTINLPUINT5;
-    PVOID __xxxClientCallDefaultInputHandler;
-    PVOID __fnEMPTY2;
-    PVOID __ClientRimDevCallback;
-    PVOID __xxxClientCallMinTouchHitTestingCallback;
-    PVOID __ClientCallLocalMouseHooks;
-    PVOID __xxxClientBroadcastThemeChange;
-    PVOID __xxxClientCallDevCallbackSimple;
-    PVOID __xxxClientAllocWindowClassExtraBytes;
-    PVOID __xxxClientFreeWindowClassExtraBytes;
-    PVOID __fnGETWINDOWDATA;
-    PVOID __fnINOUTSTYLECHANGE2;
-    PVOID __fnHkINLPMOUSEHOOKSTRUCTEX2;
-    PVOID __xxxClientCallDefWindowProc;
-    PVOID __fnSHELLSYNCDISPLAYCHANGED;
-    PVOID __fnHkINLPCHARHOOKSTRUCT;
-    PVOID __fnINTERCEPTEDWINDOWACTION;
-    PVOID __xxxTooltipCallback;
-    PVOID __xxxClientInitPSBInfo;
-    PVOID __xxxClientDoScrollMenu;
-    PVOID __xxxClientEndScroll;
-    PVOID __xxxClientDrawSize;
-    PVOID __xxxClientDrawScrollBar;
-    PVOID __xxxClientHitTestScrollBar;
-    PVOID __xxxClientTrackInit;
+    PFN_DISPATCH __fnCOPYDATA;
+    PFN_DISPATCH __fnCOPYGLOBALDATA;
+    PFN_DISPATCH __fnEMPTY1;
+    PFN_DISPATCH __fnNCDESTROY;
+    PFN_DISPATCH __fnDWORDOPTINLPMSG;
+    PFN_DISPATCH __fnINOUTDRAG;
+    PFN_DISPATCH __fnGETTEXTLENGTHS1;
+    PFN_DISPATCH __fnINCNTOUTSTRING;
+    PFN_DISPATCH __fnINCNTOUTSTRINGNULL;
+    PFN_DISPATCH __fnINLPCOMPAREITEMSTRUCT;
+    PFN_DISPATCH __fnINLPCREATESTRUCT;
+    PFN_DISPATCH __fnINLPDELETEITEMSTRUCT;
+    PFN_DISPATCH __fnINLPDRAWITEMSTRUCT;
+    PFN_DISPATCH __fnPOPTINLPUINT1;
+    PFN_DISPATCH __fnPOPTINLPUINT2;
+    PFN_DISPATCH __fnINLPMDICREATESTRUCT;
+    PFN_DISPATCH __fnINOUTLPMEASUREITEMSTRUCT;
+    PFN_DISPATCH __fnINLPWINDOWPOS;
+    PFN_DISPATCH __fnINOUTLPPOINT51;
+    PFN_DISPATCH __fnINOUTLPSCROLLINFO;
+    PFN_DISPATCH __fnINOUTLPRECT;
+    PFN_DISPATCH __fnINOUTNCCALCSIZE;
+    PFN_DISPATCH __fnINOUTLPPOINT52;
+    PFN_DISPATCH __fnINPAINTCLIPBRD;
+    PFN_DISPATCH __fnINSIZECLIPBRD;
+    PFN_DISPATCH __fnINDESTROYCLIPBRD;
+    PFN_DISPATCH __fnINSTRINGNULL1;
+    PFN_DISPATCH __fnINSTRINGNULL2;
+    PFN_DISPATCH __fnINDEVICECHANGE;
+    PFN_DISPATCH __fnPOWERBROADCAST;
+    PFN_DISPATCH __fnINLPUAHDRAWMENU1;
+    PFN_DISPATCH __fnOPTOUTLPDWORDOPTOUTLPDWORD1;
+    PFN_DISPATCH __fnOPTOUTLPDWORDOPTOUTLPDWORD2;
+    PFN_DISPATCH __fnOUTDWORDINDWORD;
+    PFN_DISPATCH __fnOUTLPRECT;
+    PFN_DISPATCH __fnOUTSTRING;
+    PFN_DISPATCH __fnPOPTINLPUINT3;
+    PFN_DISPATCH __fnPOUTLPINT;
+    PFN_DISPATCH __fnSENTDDEMSG;
+    PFN_DISPATCH __fnINOUTSTYLECHANGE1;
+    PFN_DISPATCH __fnHkINDWORD;
+    PFN_DISPATCH __fnHkINLPCBTACTIVATESTRUCT;
+    PFN_DISPATCH __fnHkINLPCBTCREATESTRUCT;
+    PFN_DISPATCH __fnHkINLPDEBUGHOOKSTRUCT;
+    PFN_DISPATCH __fnHkINLPMOUSEHOOKSTRUCTEX1;
+    PFN_DISPATCH __fnHkINLPKBDLLHOOKSTRUCT;
+    PFN_DISPATCH __fnHkINLPMSLLHOOKSTRUCT;
+    PFN_DISPATCH __fnHkINLPMSG;
+    PFN_DISPATCH __fnHkINLPRECT;
+    PFN_DISPATCH __fnHkOPTINLPEVENTMSG;
+    PFN_DISPATCH __xxxClientCallDelegateThread;
+    PFN_DISPATCH __ClientCallDummyCallback1;
+    PFN_DISPATCH __ClientCallDummyCallback2;
+    PFN_DISPATCH __fnSHELLWINDOWMANAGEMENTCALLOUT;
+    PFN_DISPATCH __fnSHELLWINDOWMANAGEMENTNOTIFY;
+    PFN_DISPATCH __ClientCallDummyCallback3;
+    PFN_DISPATCH __xxxClientCallDitThread;
+    PFN_DISPATCH __xxxClientEnableMMCSS;
+    PFN_DISPATCH __xxxClientUpdateDpi;
+    PFN_DISPATCH __xxxClientExpandStringW;
+    PFN_DISPATCH __ClientCopyDDEIn1;
+    PFN_DISPATCH __ClientCopyDDEIn2;
+    PFN_DISPATCH __ClientCopyDDEOut1;
+    PFN_DISPATCH __ClientCopyDDEOut2;
+    PFN_DISPATCH __ClientCopyImage;
+    PFN_DISPATCH __ClientEventCallback;
+    PFN_DISPATCH __ClientFindMnemChar;
+    PFN_DISPATCH __ClientFreeDDEHandle;
+    PFN_DISPATCH __ClientFreeLibrary;
+    PFN_DISPATCH __ClientGetCharsetInfo;
+    PFN_DISPATCH __ClientGetDDEFlags;
+    PFN_DISPATCH __ClientGetDDEHookData;
+    PFN_DISPATCH __ClientGetListboxString;
+    PFN_DISPATCH __ClientGetMessageMPH;
+    PFN_DISPATCH __ClientLoadImage;
+    PFN_DISPATCH __ClientLoadLibrary;
+    PFN_DISPATCH __ClientLoadMenu;
+    PFN_DISPATCH __ClientLoadLocalT1Fonts;
+    PFN_DISPATCH __ClientPSMTextOut;
+    PFN_DISPATCH __ClientLpkDrawTextEx;
+    PFN_DISPATCH __ClientExtTextOutW;
+    PFN_DISPATCH __ClientGetTextExtentPointW;
+    PFN_DISPATCH __ClientCharToWchar;
+    PFN_DISPATCH __ClientAddFontResourceW;
+    PFN_DISPATCH __ClientThreadSetup;
+    PFN_DISPATCH __ClientDeliverUserApc;
+    PFN_DISPATCH __ClientNoMemoryPopup;
+    PFN_DISPATCH __ClientMonitorEnumProc;
+    PFN_DISPATCH __ClientCallWinEventProc;
+    PFN_DISPATCH __ClientWaitMessageExMPH;
+    PFN_DISPATCH __ClientCallDummyCallback4;
+    PFN_DISPATCH __ClientCallDummyCallback5;
+    PFN_DISPATCH __ClientImmLoadLayout;
+    PFN_DISPATCH __ClientImmProcessKey;
+    PFN_DISPATCH __fnIMECONTROL;
+    PFN_DISPATCH __fnINWPARAMDBCSCHAR;
+    PFN_DISPATCH __fnGETTEXTLENGTHS2;
+    PFN_DISPATCH __ClientCallDummyCallback6;
+    PFN_DISPATCH __ClientLoadStringW;
+    PFN_DISPATCH __ClientLoadOLE;
+    PFN_DISPATCH __ClientRegisterDragDrop;
+    PFN_DISPATCH __ClientRevokeDragDrop;
+    PFN_DISPATCH __fnINOUTMENUGETOBJECT;
+    PFN_DISPATCH __ClientPrinterThunk;
+    PFN_DISPATCH __fnOUTLPCOMBOBOXINFO;
+    PFN_DISPATCH __fnOUTLPSCROLLBARINFO;
+    PFN_DISPATCH __fnINLPUAHDRAWMENU2;
+    PFN_DISPATCH __fnINLPUAHDRAWMENUITEM;
+    PFN_DISPATCH __fnINLPUAHDRAWMENU3;
+    PFN_DISPATCH __fnINOUTLPUAHMEASUREMENUITEM;
+    PFN_DISPATCH __fnINLPUAHDRAWMENU4;
+    PFN_DISPATCH __fnOUTLPTITLEBARINFOEX;
+    PFN_DISPATCH __fnTOUCH;
+    PFN_DISPATCH __fnGESTURE;
+    PFN_DISPATCH __fnPOPTINLPUINT4;
+    PFN_DISPATCH __fnPOPTINLPUINT5;
+    PFN_DISPATCH __xxxClientCallDefaultInputHandler;
+    PFN_DISPATCH __fnEMPTY2;
+    PFN_DISPATCH __ClientRimDevCallback;
+    PFN_DISPATCH __xxxClientCallMinTouchHitTestingCallback;
+    PFN_DISPATCH __ClientCallLocalMouseHooks;
+    PFN_DISPATCH __xxxClientBroadcastThemeChange;
+    PFN_DISPATCH __xxxClientCallDevCallbackSimple;
+    PFN_DISPATCH __xxxClientAllocWindowClassExtraBytes;
+    PFN_DISPATCH __xxxClientFreeWindowClassExtraBytes;
+    PFN_DISPATCH __fnGETWINDOWDATA;
+    PFN_DISPATCH __fnINOUTSTYLECHANGE2;
+    PFN_DISPATCH __fnHkINLPMOUSEHOOKSTRUCTEX2;
+    PFN_DISPATCH __xxxClientCallDefWindowProc;
+    PFN_DISPATCH __fnSHELLSYNCDISPLAYCHANGED;
+    PFN_DISPATCH __fnHkINLPCHARHOOKSTRUCT;
+    PFN_DISPATCH __fnINTERCEPTEDWINDOWACTION;
+    PFN_DISPATCH __xxxTooltipCallback;
+    PFN_DISPATCH __xxxClientInitPSBInfo;
+    PFN_DISPATCH __xxxClientDoScrollMenu;
+    PFN_DISPATCH __xxxClientEndScroll;
+    PFN_DISPATCH __xxxClientDrawSize;
+    PFN_DISPATCH __xxxClientDrawScrollBar;
+    PFN_DISPATCH __xxxClientHitTestScrollBar;
+    PFN_DISPATCH __xxxClientTrackInit;
 } KERNEL_CALLBACK_TABLE, *PKERNEL_CALLBACK_TABLE;
 
 #endif
