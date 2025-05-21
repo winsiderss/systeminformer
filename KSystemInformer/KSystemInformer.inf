@@ -5,7 +5,7 @@
 ;
 ; Authors:
 ;
-;     jxy-s   2022
+;     jxy-s   2022-2025
 ;
 
 [Version]
@@ -21,7 +21,7 @@ PnpLockdown  = 1
 DefaultDestDir = 13
 
 [SystemInformer.Service]
-DisplayName    = KSystemInformer 
+DisplayName    = KSystemInformer
 ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
 StartType      = 3               ; SERVICE_DEMAND_START
 ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
