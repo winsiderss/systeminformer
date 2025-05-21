@@ -1095,9 +1095,9 @@ WinStationGetProcessSid(
     _Inout_ PULONG dwSidSize
     );
 
+//
 // Services isolation
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
+//
 
 // rev
 NTSYSAPI
@@ -1114,8 +1114,6 @@ NTAPI
 WinStationRevertFromServicesSession(
     VOID
     );
-
-#endif
 
 // Misc.
 NTSYSAPI
