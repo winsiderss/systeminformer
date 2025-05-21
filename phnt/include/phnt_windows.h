@@ -95,6 +95,7 @@
 #define RTL_ADDRESS_OF(v) (&(v))
 #endif
 
+#if defined(PHNT_MODE_USER)
 #include <windows.h>
 #include <windowsx.h>
 #undef WIN32_NO_STATUS
@@ -107,6 +108,7 @@
 #ifdef COM_NO_WINDOWS_H
 #include <ole2.h>
 #endif
+#endif // PHNT_MODE_USER
 
 typedef DOUBLE *PDOUBLE;
 typedef GUID *PGUID;

@@ -7,8 +7,6 @@
 #ifndef _NTEXAPI_H
 #define _NTEXAPI_H
 
-#include <ntkeapi.h>
-
 typedef struct _TEB* PTEB;
 typedef struct _COUNTED_REASON_CONTEXT* PCOUNTED_REASON_CONTEXT;
 typedef struct _FILE_IO_COMPLETION_INFORMATION* PFILE_IO_COMPLETION_INFORMATION;
