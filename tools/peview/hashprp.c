@@ -606,6 +606,7 @@ NTSTATUS PvGetMappedImageMicrosoftImpHash(
     )
 {
     NTSTATUS status;
+    UCHAR importTableMd5Hash[16];
 
     status = RtlComputeImportTableHash(
         FileHandle,
