@@ -1187,13 +1187,6 @@ PhGetApplicationFileName(
     VOID
     );
 
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhGetApplicationFileNameWin32(
-    VOID
-    );
-
 FORCEINLINE
 PPH_STRING
 PhGetApplicationFileNameZ(
@@ -1211,6 +1204,13 @@ PhGetApplicationFileNameZ(
 
     return fileName;
 }
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetApplicationFileNameWin32(
+    VOID
+    );
 
 PHLIBAPI
 PPH_STRING
@@ -1935,7 +1935,6 @@ typedef enum _PH_HASH_ALGORITHM
     Crc32CHashAlgorithm,
     Md5HashAlgorithm,
     Sha1HashAlgorithm,
-    Crc32HashAlgorithm,
     Sha256HashAlgorithm
 } PH_HASH_ALGORITHM;
 
