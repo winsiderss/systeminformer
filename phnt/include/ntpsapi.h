@@ -2348,7 +2348,8 @@ NtResumeThread(
 /**
  * Retrieves the number of the current processor.
  *
- * @return ULONG The number of the current processor.
+ * \return ULONG The number of the current processor.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/procthread/ntgetcurrentprocessornumber
  */
 NTSYSCALLAPI
 ULONG
@@ -2357,12 +2358,12 @@ NtGetCurrentProcessorNumber(
     VOID
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Retrieves the number of the current processor.
  *
- * @param ProcessorNumber An optional pointer to a PROCESSOR_NUMBER structure that receives the processor number.
- * @return ULONG The number of the current processor.
+ * \param ProcessorNumber An optional pointer to a PROCESSOR_NUMBER structure that receives the processor number.
+ * \return ULONG The number of the current processor.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-kegetcurrentprocessornumberex
  */
 NTSYSCALLAPI
 ULONG
@@ -2370,7 +2371,6 @@ NTAPI
 NtGetCurrentProcessorNumberEx(
     _Out_opt_ PPROCESSOR_NUMBER ProcessorNumber
     );
-#endif // PHNT_VERSION >= PHNT_WINDOWS_7
 
 /**
  * Retrieves the context of the specified thread.
@@ -2401,6 +2401,7 @@ NtSetContextThread(
     _In_ HANDLE ThreadHandle,
     _In_ PCONTEXT ThreadContext
     );
+
 /**
  * Retrieves information about the specified thread.
  *
@@ -2681,7 +2682,6 @@ NtQueueApcThread(
  */
 #define QUEUE_USER_APC_SPECIAL_USER_APC ((HANDLE)0x1)
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Queues an APC (Asynchronous Procedure Call) to a thread.
  *
@@ -2706,7 +2706,6 @@ NtQueueApcThreadEx(
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
     );
-#endif // PHNT_VERSION >= PHNT_WINDOWS_7
 
 /**
  * The APC_CALLBACK_DATA_CONTEXT structure is used to pass information to the APC callback routine.
@@ -3274,7 +3273,6 @@ typedef struct _PS_CREATE_INFO
 
 // end_private
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Creates a new process and primary thread.
  *
@@ -3362,7 +3360,6 @@ NtCreateThreadEx(
     _In_ SIZE_T MaximumStackSize,
     _In_opt_ PPS_ATTRIBUTE_LIST AttributeList
     );
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #endif // PHNT_MODE != PHNT_MODE_KERNEL
 
@@ -3776,7 +3773,6 @@ typedef enum _MEMORY_RESERVE_TYPE
     MemoryReserveTypeMax
 } MEMORY_RESERVE_TYPE;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Allocates a memory reserve object.
  *
@@ -3793,7 +3789,6 @@ NtAllocateReserveObject(
     _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ MEMORY_RESERVE_TYPE Type
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 //
 // Process snapshotting
