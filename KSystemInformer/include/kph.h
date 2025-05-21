@@ -22,7 +22,6 @@
 #pragma warning(pop)
 #include <pooltags.h>
 #define PHNT_MODE PHNT_MODE_KERNEL
-#include <phnt_windows.h>
 #include <phnt.h>
 #include <ntfill.h>
 #include <ntpebteb.h>

@@ -89,12 +89,12 @@ EXTERN_C_START
 #include <ntldr.h>
 #include <ntexapi.h>
 
-#include <ntbcd.h>
 #include <ntmmapi.h>
 #include <ntobapi.h>
 #include <ntpsapi.h>
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
+#include <ntbcd.h>
 #include <ntdbg.h>
 #include <ntimage.h>
 #include <ntioapi.h>
