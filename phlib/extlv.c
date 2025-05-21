@@ -34,8 +34,11 @@ typedef struct _PH_EXTLV_CONTEXT
     PH_SORT_ORDER SortOrder;
     BOOLEAN SortFast;
 
+    _Function_class_(PH_COMPARE_FUNCTION)
     PPH_COMPARE_FUNCTION TriStateCompareFunction;
+    _Function_class_(PH_COMPARE_FUNCTION)
     PPH_COMPARE_FUNCTION CompareFunctions[PH_MAX_COMPARE_FUNCTIONS];
+
     ULONG FallbackColumns[PH_MAX_COMPARE_FUNCTIONS];
     ULONG NumberOfFallbackColumns;
 
@@ -58,19 +61,19 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     _In_ LPARAM lParam
     );
 
-INT PhpExtendedListViewCompareFunc(
+LONG PhpExtendedListViewCompareFunc(
     _In_ LPARAM lParam1,
     _In_ LPARAM lParam2,
     _In_ LPARAM lParamSort
     );
 
-INT PhpExtendedListViewCompareFastFunc(
+LONG PhpExtendedListViewCompareFastFunc(
     _In_ LPARAM lParam1,
     _In_ LPARAM lParam2,
     _In_ LPARAM lParamSort
     );
 
-INT PhpCompareListViewItems(
+LONG PhpCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
     _In_ LONG X,
     _In_ LONG Y,
@@ -80,7 +83,7 @@ INT PhpCompareListViewItems(
     _In_ BOOLEAN EnableDefault
     );
 
-INT PhpDefaultCompareListViewItems(
+LONG PhpDefaultCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
     _In_ LONG X,
     _In_ LONG Y,
@@ -246,7 +249,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 if (context->ItemColorFunction)
                                 {
                                     customDraw->clrTextBk = context->ItemColorFunction(
-                                        (INT)customDraw->nmcd.dwItemSpec,
+                                        (LONG)customDraw->nmcd.dwItemSpec,
                                         (PVOID)customDraw->nmcd.lItemlParam,
                                         context->Context
                                         );
@@ -256,7 +259,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 if (context->ItemFontFunction)
                                 {
                                     newFont = context->ItemFontFunction(
-                                        (INT)customDraw->nmcd.dwItemSpec,
+                                        (LONG)customDraw->nmcd.dwItemSpec,
                                         (PVOID)customDraw->nmcd.lItemlParam,
                                         context->Context
                                         );
@@ -273,7 +276,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
 
                                     if (context->ListViewClass && SUCCEEDED(IListView_GetItemState(
                                         context->ListViewClass,
-                                        (INT)customDraw->nmcd.dwItemSpec,
+                                        (LONG)customDraw->nmcd.dwItemSpec,
                                         0,
                                         LVIS_SELECTED,
                                         &state
@@ -702,7 +705,7 @@ VOID PhSetHeaderSortIcon(
     }
 }
 
-INT PhpExtendedListViewCompareFunc(
+LONG PhpExtendedListViewCompareFunc(
     _In_ LPARAM lParam1,
     _In_ LPARAM lParam2,
     _In_ LPARAM lParamSort
@@ -785,14 +788,14 @@ INT PhpExtendedListViewCompareFunc(
     return 0;
 }
 
-INT PhpExtendedListViewCompareFastFunc(
+LONG PhpExtendedListViewCompareFastFunc(
     _In_ LPARAM lParam1,
     _In_ LPARAM lParam2,
     _In_ LPARAM lParamSort
     )
 {
     PPH_EXTLV_CONTEXT context = (PPH_EXTLV_CONTEXT)lParamSort;
-    INT result;
+    LONG result;
     ULONG i;
     PULONG fallbackColumns;
 
@@ -842,7 +845,7 @@ INT PhpExtendedListViewCompareFastFunc(
     return 0;
 }
 
-FORCEINLINE INT PhpCompareListViewItems(
+FORCEINLINE LONG PhpCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
     _In_ LONG X,
     _In_ LONG Y,
@@ -857,7 +860,7 @@ FORCEINLINE INT PhpCompareListViewItems(
         Context->CompareFunctions[Column]
         )
     {
-        INT result;
+        LONG result;
 
         result = PhModifySort(
             Context->CompareFunctions[Column](XParam, YParam, Context->Context),
@@ -881,7 +884,7 @@ FORCEINLINE INT PhpCompareListViewItems(
     }
 }
 
-INT PhpDefaultCompareListViewItems(
+LONG PhpDefaultCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
     _In_ LONG X,
     _In_ LONG Y,
