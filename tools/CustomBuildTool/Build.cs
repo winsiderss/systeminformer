@@ -158,7 +158,6 @@ namespace CustomBuildTool
                 if (instance != null)
                 {
                     Program.PrintColorMessage("WindowsSDK: ", ConsoleColor.DarkGray, false);
-                    //Program.PrintColorMessage(Utils.GetWindowsSdkVersion(), ConsoleColor.Green);
                     Program.PrintColorMessage($"{Utils.GetWindowsSdkVersion()} ({instance.GetWindowsSdkFullVersion()})", ConsoleColor.Green, true);
                     Program.PrintColorMessage("VisualStudio: ", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage(instance.Name, ConsoleColor.Green);
@@ -317,21 +316,55 @@ namespace CustomBuildTool
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug32\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}", 
+                            $"{BuildWorkingFolder}\\bin\\Debug32\\Resources\\{file.Value}",
+                            Flags);
+                    }
+
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug64\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}", 
+                            $"{BuildWorkingFolder}\\bin\\Debug64\\Resources\\{file.Value}",
+                            Flags);
+                    }
+
                     if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\DebugARM64\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}", 
+                            $"{BuildWorkingFolder}\\bin\\DebugARM64\\Resources\\{file.Value}", 
+                            Flags);
+                    }
                 }
 
                 if (Flags.HasFlag(BuildFlags.BuildRelease))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release32\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
+                            $"{BuildWorkingFolder}\\bin\\Release32\\Resources\\{file.Value}",
+                            Flags);
+                    }
+
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release64\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
+                            $"{BuildWorkingFolder}\\bin\\Release64\\Resources\\{file.Value}",
+                            Flags);
+                    }
+
                     if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\ReleaseARM64\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}", 
+                            $"{BuildWorkingFolder}\\bin\\ReleaseARM64\\Resources\\{file.Value}",
+                            Flags);
+                    }
                 }
             }
 
@@ -359,12 +392,12 @@ namespace CustomBuildTool
             // - Program Files\Windows Kits\10\Debuggers\Redist\X64 Debuggers and Tools-x64_en-us.msi
             // - App Verifier
             //
-            var Build_DebugCore_Files = new string[]
-            {
+            string[] Build_DebugCore_Files =
+            [
                 "dbgcore.dll",
                 "dbghelp.dll",
                 "symsrv.dll"
-            };
+            ];
 
             string windowsSdkPath = Path.GetFullPath(Path.Join([Utils.GetWindowsSdkPath(), "..\\..\\Debuggers\\"]));
 
@@ -597,33 +630,39 @@ namespace CustomBuildTool
                     Win32.CopyIfNewer("bin\\ReleaseARM64\\SystemInformer.lib", "sdk\\lib\\arm64\\SystemInformer.lib", Flags);
             }
 
+            //
             // Build the SDK
+            //
+
             HeaderGen.Execute();
 
+            //
             // Copy the SDK headers
+            //
+
             Win32.CopyIfNewer("SystemInformer\\include\\phappres.h", "sdk\\include\\phappres.h", Flags);
             Win32.CopyIfNewer("SystemInformer\\sdk\\phapppub.h", "sdk\\include\\phapppub.h", Flags);
             Win32.CopyIfNewer("SystemInformer\\sdk\\phdk.h", "sdk\\include\\phdk.h", Flags);
             //Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h", Flags);
 
-            // Copy the resource header and prefix types with PHAPP
+            //
+            // Copy the resource header and prefix types with PHAPP for the SDK
+            //
+
+            Win32.GetFileTime("SystemInformer\\resource.h", out var sourceCreationTime, out var sourceWriteTime);
+            Win32.GetFileTime("sdk\\include\\phappresource.h", out var targetCreationTime, out var targetWriteTime);
+
+            if (sourceCreationTime != targetCreationTime || sourceWriteTime != targetWriteTime)
             {
-                Win32.GetFileTime("SystemInformer\\resource.h", out var sourceCreationTime, out var sourceWriteTime);
-                Win32.GetFileTime("sdk\\include\\phappresource.h", out _, out var destWriteTime);
+                string resourceContent = Utils.ReadAllText("SystemInformer\\resource.h");
+                string targetContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
 
-                if (sourceCreationTime != sourceWriteTime || sourceWriteTime != destWriteTime)
+                if (!resourceContent.Equals(targetContent, StringComparison.OrdinalIgnoreCase))
                 {
-                    string resourceContent = Utils.ReadAllText("SystemInformer\\resource.h");
-
-                    if (!string.IsNullOrWhiteSpace(resourceContent))
-                    {
-                        // Update resource headers with SDK definition
-                        string sdkContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
-
-                        Utils.WriteAllText("sdk\\include\\phappresource.h", sdkContent);
-                        Win32.SetFileTime("sdk\\include\\phappresource.h", sourceCreationTime, sourceWriteTime);
-                    }
+                    Utils.WriteAllText("sdk\\include\\phappresource.h", targetContent);
                 }
+
+                Win32.SetFileTime("sdk\\include\\phappresource.h", sourceCreationTime, sourceWriteTime);
             }
 
             return true;
@@ -646,7 +685,7 @@ namespace CustomBuildTool
                     );
 
                 File.Move(
-                    "tools\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe",
+                    $"{BuildWorkingFolder}\\tools\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe",
                     $"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe"
                     );
 
@@ -1233,48 +1272,28 @@ namespace CustomBuildTool
 
         private static void BuildMsixPackageManifest(BuildFlags Flags)
         {
+            // Create the package manifest.
+
             if (Flags.HasFlag(BuildFlags.Build32bit))
             {
-                // Create the package manifest.
+                string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
 
-                if (File.Exists("tools\\msix\\PackageTemplate.msix.xml"))
-                {
-                    string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
+                msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x86");
+                msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
+                msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
 
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x86");
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
-
-                    Utils.WriteAllText("tools\\msix\\MsixManifest32.xml", msixManifestString);
-                }
+                Utils.WriteAllText("tools\\msix\\MsixManifest32.xml", msixManifestString);
             }
 
             if (Flags.HasFlag(BuildFlags.Build64bit))
             {
-                // Create the package manifest.
+                string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
 
-                if (File.Exists("tools\\msix\\PackageTemplate.msix.xml"))
-                {
-                    string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
+                msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x64");
+                msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
+                msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
 
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x64");
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
-
-                    Utils.WriteAllText("tools\\msix\\MsixManifest64.xml", msixManifestString);
-                }
-            }
-        }
-
-        private static void BuildMsixAppInstaller()
-        {
-            if (File.Exists("tools\\msix\\PackageTemplate.appinstaller"))
-            {
-                string msixAppInstallerString = Utils.ReadAllText("tools\\msix\\PackageTemplate.appinstaller");
-
-                msixAppInstallerString = msixAppInstallerString.Replace("Version=\"3.0.0.0\"", $"Version=\"{Build.BuildLongVersion}\"");
-
-                Utils.WriteAllText("build\\output\\SystemInformer.appinstaller", msixAppInstallerString);
+                Utils.WriteAllText("tools\\msix\\MsixManifest64.xml", msixManifestString);
             }
         }
 
@@ -1291,7 +1310,7 @@ namespace CustomBuildTool
                 packageMap32.AppendLine("\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
                 packageMap32.AppendLine("\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
 
-                var filesToAdd = Directory.GetFiles("bin\\Release32", "*", SearchOption.AllDirectories);
+                var filesToAdd = Directory.EnumerateFiles("bin\\Release32", "*", SearchOption.AllDirectories);
                 foreach (string filePath in filesToAdd)
                 {
                     if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
@@ -1323,7 +1342,7 @@ namespace CustomBuildTool
                 packageMap64.AppendLine("\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
                 packageMap64.AppendLine("\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
 
-                var filesToAdd = Directory.GetFiles("bin\\Release64", "*", SearchOption.AllDirectories);
+                var filesToAdd = Directory.EnumerateFiles("bin\\Release64", "*", SearchOption.AllDirectories);
                 foreach (string filePath in filesToAdd)
                 {
                     // Ignore junk files
@@ -1350,83 +1369,70 @@ namespace CustomBuildTool
         {
             Program.PrintColorMessage("Building package.msixbundle...", ConsoleColor.Cyan);
 
+            Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x32.appx");
+            Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x64.appx");
+            Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package.msixbundle");
+
+            Win32.CreateDirectory(BuildOutputFolder);
+
+            // Create the package manifests.
+
             BuildMsixPackageManifest(Flags);
             BuildMsixPackageMapping(Flags);
 
             // Create the MSIX package.
 
-            if (Flags.HasFlag(BuildFlags.Build32bit))
+            if (Flags.HasFlag(BuildFlags.Build32bit) && File.Exists("tools\\msix\\MsixPackage32.map"))
             {
-                if (File.Exists("tools\\msix\\MsixPackage32.map"))
-                {
-                    Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x32.appx");
-                    Win32.CreateDirectory(BuildOutputFolder);
+                var result = Utils.ExecuteMsixCommand(
+                    $"pack /o /f {BuildWorkingFolder}\\tools\\msix\\MsixPackage32.map /p {BuildOutputFolder}\\systeminformer-build-package-x32.msix"
+                    );
 
-                    var result = Utils.ExecuteMsixCommand(
-                        $"pack /o /f tools\\msix\\MsixPackage32.map /p {BuildOutputFolder}\\systeminformer-build-package-x32.appx"
-                        );
-
-                    Program.PrintColorMessage(result, ConsoleColor.DarkGray);
-                }
+                Program.PrintColorMessage(result, ConsoleColor.DarkGray);
             }
 
-            if (Flags.HasFlag(BuildFlags.Build64bit))
+            if (Flags.HasFlag(BuildFlags.Build64bit) && File.Exists("tools\\msix\\MsixPackage64.map"))
             {
-                if (File.Exists("tools\\msix\\MsixPackage64.map"))
-                {
-                    Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x64.appx");
-                    Win32.CreateDirectory(BuildOutputFolder);
+                var result = Utils.ExecuteMsixCommand(
+                    $"pack /o /f {BuildWorkingFolder}\\tools\\msix\\MsixPackage64.map /p {BuildOutputFolder}\\systeminformer-build-package-x64.msix"
+                    );
 
-                    var result = Utils.ExecuteMsixCommand(
-                        $"pack /o /f tools\\msix\\MsixPackage64.map /p {BuildOutputFolder}\\systeminformer-build-package-x64.msix"
-                        );
-
-                    Program.PrintColorMessage(result, ConsoleColor.DarkGray);
-                }
+                Program.PrintColorMessage(result, ConsoleColor.DarkGray);
             }
 
             // Create the bundle package.
-            if (
-                File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x32.msix") &&
-                File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix")
-                )
+
             {
                 StringBuilder bundleMap = new StringBuilder(0x100);
                 bundleMap.AppendLine("[Files]");
                 bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x32.msix\" \"systeminformer-build-package-x32.msix\"");
                 bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x64.msix\" \"systeminformer-build-package-x64.msix\"");
 
-                Utils.WriteAllText("tools\\msix\\bundle.map", bundleMap.ToString());
-            }
-
-            if (File.Exists("tools\\msix\\bundle.map"))
-            {
-                Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package.msixbundle");
+                Utils.WriteAllText($"{BuildWorkingFolder}\\tools\\msix\\bundle.map", bundleMap.ToString());
 
                 var result = Utils.ExecuteMsixCommand(
-                    $"bundle /f tools\\msix\\bundle.map /p {BuildOutputFolder}\\systeminformer-build-package.msixbundle"
+                    $"bundle /f {BuildWorkingFolder}\\tools\\msix\\bundle.map /p {BuildOutputFolder}\\systeminformer-build-package.msixbundle"
                     );
 
                 Program.PrintColorMessage($"{result}", ConsoleColor.DarkGray);
             }
-            else
+
+            if (File.Exists("tools\\msix\\PackageTemplate.appinstaller"))
             {
-                if (File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix"))
-                {
-                    File.Move(
-                        $"{BuildOutputFolder}\\systeminformer-build-package-x64.msix",
-                        $"{BuildOutputFolder}\\systeminformer-build-package.msix"
-                        );
-                }
+                string msixAppInstallerString = Utils.ReadAllText("tools\\msix\\PackageTemplate.appinstaller");
+
+                msixAppInstallerString = msixAppInstallerString.Replace("Version=\"3.0.0.0\"", $"Version=\"{Build.BuildLongVersion}\"");
+
+                Utils.WriteAllText("build\\output\\SystemInformer.appinstaller", msixAppInstallerString);
             }
 
-            BuildMsixAppInstaller();
+            // Cleanup
 
-            Win32.DeleteFile("tools\\msix\\MsixManifest32.xml");
-            Win32.DeleteFile("tools\\msix\\MsixManifest64.xml");
-            Win32.DeleteFile("tools\\msix\\MsixPackage32.map");
-            Win32.DeleteFile("tools\\msix\\MsixPackage64.map");
-            Win32.DeleteFile("tools\\msix\\bundle.map");
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixManifest32.xml");
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixManifest64.xml");
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixPackage32.map");
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixPackage64.map");
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\bundle.map");
         }
 
         public static void CopySourceLink(bool CreateSourceLink)
@@ -1598,19 +1604,19 @@ namespace CustomBuildTool
             var lines = content.Split("\r\n");
             int total = lines.Length;
 
-            if (ReleaseBuild)
-            {
-                while (ordinals.Count < total)
-                {
-                    var value = Random.Shared.Next(1000, 1000 + total);
-
-                    if (!ordinals.Contains(value))
-                    {
-                        ordinals.Add(value);
-                    }
-                }
-            }
-            else
+            //if (ReleaseBuild)
+            //{
+            //    while (ordinals.Count < total)
+            //    {
+            //        var value = Random.Shared.Next(1000, 1000 + total);
+            //
+            //        if (!ordinals.Contains(value))
+            //        {
+            //            ordinals.Add(value);
+            //        }
+            //    }
+            //}
+            //else
             {
                 while (ordinals.Count < total)
                 {

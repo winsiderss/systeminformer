@@ -106,8 +106,8 @@ namespace CustomBuildTool
                 if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
                     Environment.Exit(1);
 
-                if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
-                    Environment.Exit(1);
+                //if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
+                //    Environment.Exit(1);
                 if (!Build.CopyTextFiles(BuildFlags.Release))
                     Environment.Exit(1);
                 if (!Build.BuildBinZip())
@@ -136,8 +136,8 @@ namespace CustomBuildTool
 
                 if (!Build.ResignFiles())
                     Environment.Exit(1);
-                if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
-                    Environment.Exit(1);
+                //if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
+                //    Environment.Exit(1);
                 if (!Build.CopyTextFiles(BuildFlags.Release))
                     Environment.Exit(1);
                 if (!Build.BuildBinZip())
@@ -177,8 +177,8 @@ namespace CustomBuildTool
                 if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
                     Environment.Exit(1);
 
-                if (!Build.CopyDebugEngineFiles(flags))
-                    Environment.Exit(1);
+                //if (!Build.CopyDebugEngineFiles(flags))
+                //    Environment.Exit(1);
                 if (!Build.CopyWow64Files(flags)) // required after plugin build (dmex)
                     Environment.Exit(1);
                 if (!Build.CopyTextFiles(flags))
@@ -249,8 +249,8 @@ namespace CustomBuildTool
                 if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Debug))
                     Environment.Exit(1);
 
-                if (!Build.CopyDebugEngineFiles(BuildFlags.Debug))
-                    Environment.Exit(1);
+                //if (!Build.CopyDebugEngineFiles(BuildFlags.Debug))
+                //    Environment.Exit(1);
 
                 Build.ShowBuildStats();
             }
@@ -263,8 +263,8 @@ namespace CustomBuildTool
                 if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
                     Environment.Exit(1);
 
-                if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
-                    Environment.Exit(1);
+                //if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
+                //    Environment.Exit(1);
                 if (!Build.CopyWow64Files(BuildFlags.Release))
                     Environment.Exit(1);
                 if (!Build.CopyTextFiles(BuildFlags.Release))
@@ -436,7 +436,7 @@ namespace CustomBuildTool
 
             ExecuteBuildSteps(BuildFlags.Release, Build.CopyDebugEngineFiles, Build.CopyWow64Files, Build.CopyTextFiles);
 
-            if (!!Build.BuildBinZip())
+            if (!Build.BuildBinZip())
                 Environment.Exit(1);
 
             foreach (var (channel, _) in BuildConfig.Build_Channels)
