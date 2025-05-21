@@ -185,15 +185,15 @@ BOOLEAN PhSettingFromString(
         break;
     case IntegerPairSettingType:
         {
-            ULONG64 x;
-            ULONG64 y;
+            LONG64 x;
+            LONG64 y;
             PH_STRINGREF xString;
             PH_STRINGREF yString;
 
             if (!PhSplitStringRefAtChar(StringRef, L',', &xString, &yString))
                 return FALSE;
 
-            if (PhStringToUInt64(&xString, 10, &x) && PhStringToUInt64(&yString, 10, &y))
+            if (PhStringToInteger64(&xString, 10, &x) && PhStringToInteger64(&yString, 10, &y))
             {
                 Setting->u.IntegerPair.X = (LONG)x;
                 Setting->u.IntegerPair.Y = (LONG)y;
@@ -207,9 +207,9 @@ BOOLEAN PhSettingFromString(
         break;
     case ScalableIntegerPairSettingType:
         {
-            ULONG64 scale;
-            ULONG64 x;
-            ULONG64 y;
+            LONG64 scale;
+            LONG64 x;
+            LONG64 y;
             PH_STRINGREF stringRef;
             PH_STRINGREF firstPart;
             PH_STRINGREF secondPart;
@@ -223,7 +223,7 @@ BOOLEAN PhSettingFromString(
 
                 if (!PhSplitStringRefAtChar(&stringRef, L'|', &firstPart, &stringRef))
                     return FALSE;
-                if (!PhStringToUInt64(&firstPart, 10, &scale))
+                if (!PhStringToInteger64(&firstPart, 10, &scale))
                     return FALSE;
             }
             else
@@ -234,7 +234,7 @@ BOOLEAN PhSettingFromString(
             if (!PhSplitStringRefAtChar(&stringRef, L',', &firstPart, &secondPart))
                 return FALSE;
 
-            if (PhStringToUInt64(&firstPart, 10, &x) && PhStringToUInt64(&secondPart, 10, &y))
+            if (PhStringToInteger64(&firstPart, 10, &x) && PhStringToInteger64(&secondPart, 10, &y))
             {
                 scalableIntegerPair = PhAllocateZero(sizeof(PH_SCALABLE_INTEGER_PAIR));
                 scalableIntegerPair->X = (LONG)x;
