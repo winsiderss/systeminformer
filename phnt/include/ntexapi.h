@@ -245,7 +245,6 @@ typedef struct _EFI_DRIVER_ENTRY_LIST
     EFI_DRIVER_ENTRY DriverEntry;
 } EFI_DRIVER_ENTRY_LIST, *PEFI_DRIVER_ENTRY_LIST;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_XP)
 /**
  * The NtAddBootEntry routine adds a new boot entry to the system boot configuration.
  *
@@ -380,9 +379,7 @@ NtTranslateFilePath(
     _Out_writes_bytes_opt_(*OutputFilePathLength) PFILE_PATH OutputFilePath,
     _Inout_opt_ PULONG OutputFilePathLength
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_XP)
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * The NtAddDriverEntry routine adds a new driver entry to the system boot configuration.
  *
@@ -468,7 +465,6 @@ NtSetDriverEntryOrder(
     _In_reads_(Count) PULONG Ids,
     _In_ ULONG Count
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 
 typedef enum _FILTER_BOOT_OPTION_OPERATION
 {
@@ -1097,7 +1093,6 @@ NtSetTimer(
     _Out_opt_ PBOOLEAN PreviousState
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1107,7 +1102,6 @@ NtSetTimerEx(
     _Inout_updates_bytes_opt_(TimerSetInformationLength) PVOID TimerSetInformation,
     _In_ ULONG TimerSetInformationLength
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1150,7 +1144,6 @@ NtSetIRTimer(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1161,7 +1154,6 @@ NtCreateTimer2(
     _In_ ULONG Attributes, // TIMER_TYPE
     _In_ ACCESS_MASK DesiredAccess
     );
-
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 typedef struct _T2_SET_PARAMETERS_V0
@@ -1217,7 +1209,6 @@ NtCreateProfile(
     _In_ KAFFINITY Affinity
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1233,7 +1224,6 @@ NtCreateProfileEx(
     _In_ USHORT GroupCount,
     _In_reads_(GroupCount) PGROUP_AFFINITY GroupAffinity
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1317,14 +1307,12 @@ NtWaitForKeyedEvent(
 // UMS
 //
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUmsThreadYield(
     _In_ PVOID SchedulerParam
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 //
 // WNF
@@ -1573,8 +1561,6 @@ typedef struct _WORKER_FACTORY_BASIC_INFORMATION
 
 // end_private
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1666,8 +1652,6 @@ NtWaitForWorkViaWorkerFactory(
     );
 
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
-
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 //
 // Time
@@ -2058,10 +2042,10 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSpacesBootInformation, // since 20H2
     SystemFwRamdiskInformation, // SYSTEM_FIRMWARE_RAMDISK_INFORMATION
     SystemWheaIpmiHardwareInformation,
-    SystemDifSetRuleClassInformation, // SYSTEM_DIF_VOLATILE_INFORMATION
-    SystemDifClearRuleClassInformation,
-    SystemDifApplyPluginVerificationOnDriver, // SYSTEM_DIF_PLUGIN_DRIVER_INFORMATION
-    SystemDifRemovePluginVerificationOnDriver, // SYSTEM_DIF_PLUGIN_DRIVER_INFORMATION // 220
+    SystemDifSetRuleClassInformation, // s: SYSTEM_DIF_VOLATILE_INFORMATION (requires SeDebugPrivilege)
+    SystemDifClearRuleClassInformation, // s: NULL (requires SeDebugPrivilege)
+    SystemDifApplyPluginVerificationOnDriver, // SYSTEM_DIF_PLUGIN_DRIVER_INFORMATION (requires SeDebugPrivilege)
+    SystemDifRemovePluginVerificationOnDriver, // SYSTEM_DIF_PLUGIN_DRIVER_INFORMATION (requires SeDebugPrivilege) // 220
     SystemShadowStackInformation, // SYSTEM_SHADOW_STACK_INFORMATION
     SystemBuildVersionInformation, // q: in: ULONG (LayerNumber), out: SYSTEM_BUILD_VERSION_INFORMATION // NtQuerySystemInformationEx // 222
     SystemPoolLimitInformation, // SYSTEM_POOL_LIMIT_INFORMATION (requires SeIncreaseQuotaPrivilege) // NtQuerySystemInformationEx
@@ -3326,7 +3310,7 @@ typedef struct _SYSTEM_FIRMWARE_TABLE_INFORMATION
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
-typedef NTSTATUS (__cdecl* PFNFTH)(
+typedef NTSTATUS (STDAPIVCALLTYPE* PFNFTH)(
     _Inout_ PSYSTEM_FIRMWARE_TABLE_INFORMATION SystemFirmwareTableInfo
     );
 
@@ -5664,7 +5648,6 @@ NtQuerySystemInformation(
     _Out_opt_ PULONG ReturnLength
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * The NtQuerySystemInformationEx routine queries information about the system.
  *
@@ -5688,7 +5671,6 @@ NtQuerySystemInformationEx(
     _In_ ULONG SystemInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 /**
  * The NtSetSystemInformation routine sets information about the system.
@@ -6854,8 +6836,6 @@ NtQueryInstallUILanguage(
     _Out_ LANGID *InstallUILanguageId
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-// private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -6863,7 +6843,6 @@ NtFlushInstallUILanguage(
     _In_ LANGID InstallUILanguage,
     _In_ ULONG SetComittedFlag
     );
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6879,23 +6858,18 @@ NtSetDefaultUILanguage(
     _In_ LANGID DefaultUILanguageId
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-// private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtIsUILanguageComitted(
     VOID
     );
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 //
 // NLS
 //
 
 // begin_private
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6919,7 +6893,6 @@ NtGetNlsSectionPtr(
     );
 
 #if (PHNT_VERSION < PHNT_WINDOWS_7)
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -6935,7 +6908,6 @@ NTAPI
 NtReleaseCMFViewOwnership(
     VOID
     );
-
 #endif // PHNT_VERSION < PHNT_WINDOWS_7
 
 NTSYSCALLAPI
@@ -6958,8 +6930,6 @@ NtGetMUIRegistryInfo(
     _Inout_ PULONG DataSize,
     _Out_ PVOID Data
     );
-
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 // end_private
 
@@ -7048,42 +7018,34 @@ NtQueryInformationAtom(
 #define FLG_SHOW_LDR_SNAPS 0x00000002 // uk
 #define FLG_DEBUG_INITIAL_COMMAND 0x00000004 // k
 #define FLG_STOP_ON_HUNG_GUI 0x00000008 // k
-
 #define FLG_HEAP_ENABLE_TAIL_CHECK 0x00000010 // u
 #define FLG_HEAP_ENABLE_FREE_CHECK 0x00000020 // u
 #define FLG_HEAP_VALIDATE_PARAMETERS 0x00000040 // u
 #define FLG_HEAP_VALIDATE_ALL 0x00000080 // u
-
 #define FLG_APPLICATION_VERIFIER 0x00000100 // u
 #define FLG_MONITOR_SILENT_PROCESS_EXIT 0x00000200 // uk
 #define FLG_POOL_ENABLE_TAGGING 0x00000400 // k
 #define FLG_HEAP_ENABLE_TAGGING 0x00000800 // u
-
 #define FLG_USER_STACK_TRACE_DB 0x00001000 // u,32
 #define FLG_KERNEL_STACK_TRACE_DB 0x00002000 // k,32
 #define FLG_MAINTAIN_OBJECT_TYPELIST 0x00004000 // k
 #define FLG_HEAP_ENABLE_TAG_BY_DLL 0x00008000 // u
-
 #define FLG_DISABLE_STACK_EXTENSION 0x00010000 // u
 #define FLG_ENABLE_CSRDEBUG 0x00020000 // k
 #define FLG_ENABLE_KDEBUG_SYMBOL_LOAD 0x00040000 // k
 #define FLG_DISABLE_PAGE_KERNEL_STACKS 0x00080000 // k
-
 #define FLG_ENABLE_SYSTEM_CRIT_BREAKS 0x00100000 // u
 #define FLG_HEAP_DISABLE_COALESCING 0x00200000 // u
 #define FLG_ENABLE_CLOSE_EXCEPTIONS 0x00400000 // k
 #define FLG_ENABLE_EXCEPTION_LOGGING 0x00800000 // k
-
 #define FLG_ENABLE_HANDLE_TYPE_TAGGING 0x01000000 // k
 #define FLG_HEAP_PAGE_ALLOCS 0x02000000 // u
 #define FLG_DEBUG_INITIAL_COMMAND_EX 0x04000000 // k
 #define FLG_DISABLE_DBGPRINT 0x08000000 // k
-
 #define FLG_CRITSEC_EVENT_CREATION 0x10000000 // u
 #define FLG_LDR_TOP_DOWN 0x20000000 // u,64
 #define FLG_ENABLE_HANDLE_EXCEPTIONS 0x40000000 // k
 #define FLG_DISABLE_PROTDLLS 0x80000000 // u
-
 #define FLG_VALID_BITS 0xfffffdff
 
 #define FLG_USERMODE_VALID_BITS (FLG_STOP_ON_EXCEPTION | \
@@ -7126,7 +7088,6 @@ NtQueryInformationAtom(
 // Licensing
 //
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7137,7 +7098,6 @@ NtQueryLicenseValue(
     _In_ ULONG DataSize,
     _Out_ PULONG ResultDataSize
     );
-#endif
 
 //
 // Misc.
@@ -7176,7 +7136,6 @@ NtDisplayString(
 // Boot graphics
 //
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSCALLAPI
 NTSTATUS
@@ -7184,7 +7143,6 @@ NTAPI
 NtDrawText(
     _In_ PCUNICODE_STRING Text
     );
-#endif
 
 //
 // Hot patching
