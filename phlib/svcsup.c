@@ -1166,9 +1166,12 @@ PPH_STRING PhGetServiceConfigFileName(
     _In_ PPH_STRINGREF ServiceName
     )
 {
+    NTSTATUS status;
     PPH_STRING fileName = NULL;
 
-    if (NT_SUCCESS(PhGetServiceDllParameter(ServiceType, ServiceName, &fileName)))
+    status = PhGetServiceDllParameter(ServiceType, ServiceName, &fileName);
+
+    if (!NT_SUCCESS(status))
     {
         if (ServicePathName[0])
         {
@@ -1181,8 +1184,10 @@ PPH_STRING PhGetServiceConfigFileName(
 
                 PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
 
-                if (!fileName)
+                if (!PhIsNullOrEmptyString(fileName))
+                {
                     PhSwapReference(&fileName, commandLine);
+                }
             }
             else
             {
@@ -1208,7 +1213,7 @@ NTSTATUS PhGetServiceConfigFileName2(
 
     status = PhGetServiceDllParameter(ServiceType, ServiceName, &fileName);
 
-    if (NT_SUCCESS(status))
+    if (!NT_SUCCESS(status))
     {
         if (ServicePathName[0])
         {
@@ -1232,9 +1237,17 @@ NTSTATUS PhGetServiceConfigFileName2(
                 PhMoveReference(&fileName, PhGetFileName(commandLine));
             }
 
+            if (!PhIsNullOrEmptyString(fileName))
+            {
+                *ServiceFileName = fileName;
+                status = STATUS_SUCCESS;
+            }
+
             PhDereferenceObject(commandLine);
         }
-
+    }
+    else
+    {
         *ServiceFileName = fileName;
     }
 
