@@ -344,7 +344,6 @@ NtWaitForMultipleObjects(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -355,7 +354,6 @@ NtWaitForMultipleObjects32(
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER Timeout
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 
 /**
  * The NtSetSecurityObject routine sets an object's security state.
@@ -572,8 +570,6 @@ typedef struct _OBJECT_BOUNDARY_DESCRIPTOR
     //OBJECT_BOUNDARY_ENTRY Entries[1];
 } OBJECT_BOUNDARY_DESCRIPTOR, *POBJECT_BOUNDARY_DESCRIPTOR;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-
 /**
  * Creates a private namespace.
  *
@@ -627,8 +623,6 @@ NTAPI
 NtDeletePrivateNamespace(
     _In_ HANDLE NamespaceHandle
     );
-
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
