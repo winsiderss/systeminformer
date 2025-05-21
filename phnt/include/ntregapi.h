@@ -774,7 +774,6 @@ NtOpenKeyTransacted(
     _In_ HANDLE TransactionHandle
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Opens an existing registry key with extended options.
  *
@@ -814,7 +813,6 @@ NtOpenKeyTransactedEx(
     _In_ ULONG OpenOptions,
     _In_ HANDLE TransactionHandle
     );
-#endif
 
 /**
  * Deletes a registry key.
