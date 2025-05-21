@@ -321,7 +321,6 @@ typedef enum _IO_SESSION_STATE
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -330,9 +329,7 @@ NtOpenSession(
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -346,7 +343,6 @@ NtNotifyChangeSession(
     _In_reads_bytes_opt_(PayloadSize) PVOID Payload,
     _In_ ULONG PayloadSize
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
