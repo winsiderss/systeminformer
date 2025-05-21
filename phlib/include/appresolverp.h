@@ -66,58 +66,85 @@ DEFINE_GUID(IID_IResourceContext_I, 0xE3C22B30, 0x8502, 0x4B2F, 0x91, 0x33, 0x55
 // "6E21E72B-B9B0-42AE-A686-983CF784EDCD"
 DEFINE_GUID(IID_IResourceMap_I, 0x6E21E72B, 0xB9B0, 0x42AE, 0xA6, 0x86, 0x98, 0x3C, 0xF7, 0x84, 0xED, 0xCD);
 
-static HRESULT (WINAPI* AppContainerDeriveSidFromMoniker_I)( // DeriveAppContainerSidFromAppContainerName
+NTSYSAPI
+HRESULT
+NTAPI
+AppContainerDeriveSidFromMoniker( // DeriveAppContainerSidFromAppContainerName
     _In_ PCWSTR AppContainerName,
     _Out_ PSID *AppContainerSid
-    ) = NULL;
+    );
 
 // Note: LookupAppContainerDisplayName (userenv.dll, ordinal 211) has the same prototype but returns 'PackageName/ContainerName'.
-static HRESULT (WINAPI* AppContainerLookupMoniker_I)(
+NTSYSAPI
+HRESULT
+NTAPI
+AppContainerLookupMoniker(
     _In_ PSID AppContainerSid,
     _Out_ PWSTR *PackageFamilyName
-    ) = NULL;
+    );
 
-static HRESULT (WINAPI* AppContainerRegisterSid_I)(
+NTSYSAPI
+HRESULT
+NTAPI
+AppContainerRegisterSid(
     _In_ PSID Sid,
     _In_ PCWSTR AppContainerName,
     _In_ PCWSTR DisplayName
-    ) = NULL;
+    );
 
-static HRESULT (WINAPI* AppContainerUnregisterSid_I)(
+NTSYSAPI
+HRESULT
+NTAPI
+AppContainerUnregisterSid(
     _In_ PSID Sid
-    ) = NULL;
+    );
 
-static BOOL (WINAPI* AppContainerFreeMemory_I)(
+NTSYSAPI
+BOOL
+NTAPI
+AppContainerFreeMemory(
     _Frees_ptr_opt_ PVOID Memory
-    ) = NULL;
+    );
 
 // rev
-static NTSTATUS (NTAPI* PsmGetKeyFromProcess_I)(
+NTSYSAPI
+NTSTATUS
+NTAPI
+PsmGetKeyFromProcess(
     _In_ HANDLE ProcessHandle,
     _Out_ PVOID KeyBuffer,
     _Inout_ PULONG KeyLength
-    ) = NULL;
+    );
 
 // rev
-static NTSTATUS (NTAPI* PsmGetKeyFromToken_I)(
+NTSYSAPI
+NTSTATUS
+NTAPI
+PsmGetKeyFromToken(
     _In_ HANDLE TokenHandle,
     _Out_ PVOID KeyBuffer,
     _Inout_ PULONG KeyLength
-    ) = NULL;
+    );
 
 // rev
-static NTSTATUS (NTAPI* PsmGetApplicationNameFromKey_I)(
+NTSYSAPI
+NTSTATUS
+NTAPI
+PsmGetApplicationNameFromKey(
     _In_ PVOID KeyBuffer,
     _Out_ PVOID NameBuffer,
     _Inout_ PULONG NameLength
-    ) = NULL;
+    );
 
 // rev
-static NTSTATUS (NTAPI* PsmGetPackageFullNameFromKey_I)(
+NTSYSAPI
+NTSTATUS
+NTAPI
+PsmGetPackageFullNameFromKey(
     _In_ PVOID KeyBuffer,
     _Out_ PVOID NameBuffer,
     _Inout_ PULONG NameLength
-    ) = NULL;
+    );
 
 // "168EB462-775F-42AE-9111-D714B2306C2E"
 DEFINE_GUID(CLSID_IDesktopAppXActivator_I, 0x168EB462, 0x775F, 0x42AE, 0x91, 0x11, 0xD7, 0x14, 0xB2, 0x30, 0x6C, 0x2E);

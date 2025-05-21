@@ -31,7 +31,7 @@ HRESULT PhAppResolverActivateAppId(
     );
 
 HRESULT PhAppResolverPackageTerminateProcess(
-    _In_ PPH_STRING PackageFullName
+    _In_ PCWSTR PackageFullName
     );
 
 typedef struct _PH_PACKAGE_TASK_ENTRY
@@ -40,12 +40,13 @@ typedef struct _PH_PACKAGE_TASK_ENTRY
     GUID TaskGuid;
 } PH_PACKAGE_TASK_ENTRY, *PPH_PACKAGE_TASK_ENTRY;
 
-PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
-    _In_ PPH_STRING PackageFullName
+HRESULT PhAppResolverEnumeratePackageBackgroundTasks(
+    _In_ PCWSTR PackageFullName,
+    _Inout_ PPH_LIST BackgroundTasks
     );
 
 HRESULT PhAppResolverPackageStopSessionRedirection(
-    _In_ PPH_STRING PackageFullName
+    _In_ PCWSTR PackageFullName
     );
 
 PPH_STRING PhGetAppContainerName(
