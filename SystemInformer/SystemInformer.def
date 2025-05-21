@@ -44,6 +44,7 @@ EXPORTS
     PhDereferenceProcessRecord
     PhDeselectAllProcessNodes
     PhDeselectAllServiceNodes
+    PhDeselectAllNetworkNodes
     PhDestroyWindowIcon
     PhDeviceProviderInitialization
     PhDoPropPageLayout

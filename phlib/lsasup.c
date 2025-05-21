@@ -593,19 +593,24 @@ PPH_STRING PhSidToStringSid(
     )
 {
     PPH_STRING string;
-    UNICODE_STRING us;
+    UNICODE_STRING unicodeString;
 
     string = PhCreateStringEx(NULL, SECURITY_MAX_SID_STRING_CHARACTERS * sizeof(WCHAR));
-    PhStringRefToUnicodeString(&string->sr, &us);
+
+    if (!PhStringRefToUnicodeString(&string->sr, &unicodeString))
+    {
+        PhDereferenceObject(string);
+        return NULL;
+    }
 
     if (NT_SUCCESS(RtlConvertSidToUnicodeString(
-        &us,
+        &unicodeString,
         Sid,
         FALSE
         )))
     {
-        string->Length = us.Length;
-        string->Buffer[us.Length / sizeof(WCHAR)] = UNICODE_NULL;
+        string->Length = unicodeString.Length;
+        string->Buffer[unicodeString.Length / sizeof(WCHAR)] = UNICODE_NULL;
 
         return string;
     }
@@ -1446,7 +1451,8 @@ NTSTATUS PhCreateServiceSidToBuffer(
     UNICODE_STRING serviceName;
     NTSTATUS status;
 
-    PhStringRefToUnicodeString(ServiceName, &serviceName);
+    if (!PhStringRefToUnicodeString(ServiceName, &serviceName))
+        return STATUS_NAME_TOO_LONG;
 
     status = RtlCreateServiceSid(
         &serviceName,

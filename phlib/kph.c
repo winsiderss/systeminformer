@@ -362,11 +362,13 @@ VOID KphSetServiceSecurity(
     PhSetServiceObjectSecurity(ServiceHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
 
 #ifdef DEBUG
+    assert(RtlValidSecurityDescriptor(securityDescriptor));
     assert(sdAllocationLength < sizeof(securityDescriptorBuffer));
     assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif
 }
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 static BOOLEAN NTAPI KsiLoadUnloadServiceCleanupKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,

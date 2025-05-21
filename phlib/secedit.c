@@ -1694,6 +1694,7 @@ NTSTATUS PhGetSeObjectSecurityTokenDefault(
         *SecurityDescriptor = securityRelative;
 
 CleanupExit:
+        assert(RtlValidSecurityDescriptor(securityDescriptor));
         PhFree(securityDescriptor);
         PhFree(defaultDacl);
     }

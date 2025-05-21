@@ -157,10 +157,13 @@ NTSTATUS PhUnloadMappedArchive(
     _Inout_ PPH_MAPPED_ARCHIVE MappedArchive
     )
 {
-    return NtUnmapViewOfSection(
-        NtCurrentProcess(),
-        MappedArchive->ViewBase
-        );
+    if (MappedArchive->ViewBase)
+    {
+        PhUnmapViewOfSection(NtCurrentProcess(), MappedArchive->ViewBase);
+        MappedArchive->ViewBase = NULL;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 VOID PhpMappedArchiveProbe(

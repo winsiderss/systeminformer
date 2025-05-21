@@ -962,7 +962,7 @@ static VOID PhpUpdateProcessNodeWsCounters(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_WSCOUNTERS))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_WSCOUNTERS))
     {
         BOOLEAN success = FALSE;
 
@@ -978,7 +978,7 @@ static VOID PhpUpdateProcessNodeWsCounters(
         if (!success)
             memset(&ProcessNode->WsCounters, 0, sizeof(PH_PROCESS_WS_COUNTERS));
 
-        ProcessNode->ValidMask |= PHPN_WSCOUNTERS;
+        SetFlag(ProcessNode->ValidMask, PHPN_WSCOUNTERS);
     }
 }
 
@@ -1009,7 +1009,7 @@ static VOID PhpUpdateProcessNodeIoPagePriority(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_IOPAGEPRIORITY))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_IOPAGEPRIORITY))
     {
         if (ProcessNode->ProcessItem->QueryHandle)
         {
@@ -1024,7 +1024,7 @@ static VOID PhpUpdateProcessNodeIoPagePriority(
             ProcessNode->PagePriority = ULONG_MAX;
         }
 
-        ProcessNode->ValidMask |= PHPN_IOPAGEPRIORITY;
+        SetFlag(ProcessNode->ValidMask, PHPN_IOPAGEPRIORITY);
     }
 }
 
@@ -1032,7 +1032,7 @@ static VOID PhpUpdateProcessNodeWindow(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_WINDOW))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_WINDOW))
     {
         PhClearReference(&ProcessNode->WindowText);
 
@@ -1058,7 +1058,7 @@ static VOID PhpUpdateProcessNodeWindow(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_WINDOW;
+        SetFlag(ProcessNode->ValidMask, PHPN_WINDOW);
     }
 }
 
@@ -1100,7 +1100,7 @@ static VOID PhpUpdateProcessNodeToken(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_TOKEN))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_TOKEN))
     {
         HANDLE tokenHandle;
 
@@ -1128,7 +1128,7 @@ static VOID PhpUpdateProcessNodeToken(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_TOKEN;
+        SetFlag(ProcessNode->ValidMask, PHPN_TOKEN);
     }
 }
 
@@ -1136,7 +1136,7 @@ static VOID PhpUpdateProcessOsContext(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_OSCONTEXT))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_OSCONTEXT))
     {
         HANDLE processHandle;
 
@@ -1164,7 +1164,7 @@ static VOID PhpUpdateProcessOsContext(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_OSCONTEXT;
+        SetFlag(ProcessNode->ValidMask, PHPN_OSCONTEXT);
     }
 }
 
@@ -1172,7 +1172,7 @@ static VOID PhpUpdateProcessNodeQuotaLimits(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_QUOTALIMITS))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_QUOTALIMITS))
     {
         QUOTA_LIMITS quotaLimits;
 
@@ -1190,7 +1190,7 @@ static VOID PhpUpdateProcessNodeQuotaLimits(
             ProcessNode->MaximumWorkingSetSize = 0;
         }
 
-        ProcessNode->ValidMask |= PHPN_QUOTALIMITS;
+        SetFlag(ProcessNode->ValidMask, PHPN_QUOTALIMITS);
     }
 }
 
@@ -1198,9 +1198,11 @@ static VOID PhpUpdateProcessNodeImage(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_IMAGE))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_IMAGE))
     {
+        ProcessNode->Architecture = IMAGE_FILE_MACHINE_UNKNOWN;
         ProcessNode->ImageMachine = IMAGE_FILE_MACHINE_UNKNOWN;
+        ProcessNode->ImageSubsystem = IMAGE_SUBSYSTEM_UNKNOWN;
 
         if (ProcessNode->ProcessItem->IsSubsystemProcess)
         {
@@ -1240,10 +1242,14 @@ static VOID PhpUpdateProcessNodeImage(
             }
         }
 
-        if (!ProcessNode->ProcessItem->QueryHandle ||
-            !NT_SUCCESS(PhGetProcessArchitecture(ProcessNode->ProcessItem->QueryHandle, &ProcessNode->Architecture)))
+        if (ProcessNode->ProcessItem->QueryHandle)
         {
-            ProcessNode->Architecture = IMAGE_FILE_MACHINE_UNKNOWN;
+            USHORT processArchitecture;
+
+            if (NT_SUCCESS(PhGetProcessArchitecture(ProcessNode->ProcessItem->QueryHandle, &processArchitecture)))
+            {
+                ProcessNode->Architecture = processArchitecture;
+            }
         }
 
         //if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
@@ -1280,7 +1286,6 @@ static VOID PhpUpdateProcessNodeImage(
         //    }
         //}
 
-        ProcessNode->ValidMask |= PHPN_IMAGE;
     }
 }
 
@@ -1288,27 +1293,23 @@ static VOID PhpUpdateProcessNodeAppId(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_APPID))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_APPID))
     {
         ULONG windowFlags;
         PPH_STRING applicationUserModelId;
 
         PhClearReference(&ProcessNode->AppIdText);
 
-        if (ProcessNode->ProcessItem->IsSubsystemProcess)
-        {
-            NOTHING;
-        }
-        else if (HR_SUCCESS(PhAppResolverGetAppIdForProcess(
-            ProcessNode->ProcessId,
-            &applicationUserModelId
-            )))
+        if (
+            PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId) &&
+            HR_SUCCESS(PhAppResolverGetAppIdForProcess(ProcessNode->ProcessId, &applicationUserModelId))
+            )
         {
             ProcessNode->AppIdText = applicationUserModelId;
         }
         else
         {
-            if (ProcessNode->ProcessItem->QueryHandle)
+            if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
             {
                 if (NT_SUCCESS(PhGetProcessWindowTitle(
                     ProcessNode->ProcessItem->QueryHandle,
@@ -1339,7 +1340,7 @@ static VOID PhpUpdateProcessNodeAppId(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_APPID;
+        SetFlag(ProcessNode->ValidMask, PHPN_APPID);
     }
 }
 
@@ -1347,7 +1348,7 @@ static VOID PhpUpdateProcessNodeDpiAwareness(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_DPIAWARENESS))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_DPIAWARENESS))
     {
         if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
@@ -1357,7 +1358,7 @@ static VOID PhpUpdateProcessNodeDpiAwareness(
                 ProcessNode->DpiAwareness = dpiAwareness + 1;
         }
 
-        ProcessNode->ValidMask |= PHPN_DPIAWARENESS;
+        SetFlag(ProcessNode->ValidMask, PHPN_DPIAWARENESS);
     }
 }
 
@@ -1365,7 +1366,7 @@ static VOID PhpUpdateProcessNodeFileAttributes(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_FILEATTRIBUTES))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_FILEATTRIBUTES))
     {
         FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
 
@@ -1383,7 +1384,7 @@ static VOID PhpUpdateProcessNodeFileAttributes(
             ProcessNode->FileEndOfFile.QuadPart = 0;
         }
 
-        ProcessNode->ValidMask |= PHPN_FILEATTRIBUTES;
+        SetFlag(ProcessNode->ValidMask, PHPN_FILEATTRIBUTES);
     }
 }
 
@@ -1391,7 +1392,7 @@ static VOID PhpUpdateProcessNodeDesktopInfo(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_DESKTOPINFO))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_DESKTOPINFO))
     {
         HANDLE processHandle;
 
@@ -1416,7 +1417,7 @@ static VOID PhpUpdateProcessNodeDesktopInfo(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_DESKTOPINFO;
+        SetFlag(ProcessNode->ValidMask, PHPN_DESKTOPINFO);
     }
 }
 
@@ -1424,7 +1425,7 @@ static VOID PhpUpdateProcessBreakOnTermination(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_CRITICAL))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_CRITICAL))
     {
         ProcessNode->BreakOnTerminationEnabled = FALSE;
 
@@ -1441,7 +1442,7 @@ static VOID PhpUpdateProcessBreakOnTermination(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_CRITICAL;
+        SetFlag(ProcessNode->ValidMask, PHPN_CRITICAL);
     }
 }
 
@@ -1449,7 +1450,7 @@ static VOID PhpUpdateProcessNodeErrorMode(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_ERRORMODE))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_ERRORMODE))
     {
         PhClearReference(&ProcessNode->ErrorModeText);
 
@@ -1497,7 +1498,7 @@ static VOID PhpUpdateProcessNodeErrorMode(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_ERRORMODE;
+        SetFlag(ProcessNode->ValidMask, PHPN_ERRORMODE);
     }
 }
 
@@ -1505,7 +1506,7 @@ static VOID PhpUpdateProcessNodeCodePage(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_CODEPAGE))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_CODEPAGE))
     {
         if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId) && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
@@ -1528,7 +1529,7 @@ static VOID PhpUpdateProcessNodeCodePage(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_CODEPAGE;
+        SetFlag(ProcessNode->ValidMask, PHPN_CODEPAGE);
     }
 }
 
@@ -1536,7 +1537,7 @@ static VOID PhpUpdateProcessNodePowerThrottling(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_POWERTHROTTLING))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_POWERTHROTTLING))
     {
         ProcessNode->PowerThrottling = FALSE;
 
@@ -1554,7 +1555,7 @@ static VOID PhpUpdateProcessNodePowerThrottling(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_POWERTHROTTLING;
+        SetFlag(ProcessNode->ValidMask, PHPN_POWERTHROTTLING);
     }
 }
 
@@ -1714,23 +1715,20 @@ static VOID PhpUpdateProcessNodeStartKey(
 {
     if (!FlagOn(ProcessNode->ValidMask, PHPN_STARTKEY))
     {
-        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
+        ProcessNode->ProcessStartKey = 0;
+
+        if (ProcessNode->ProcessItem->QueryHandle)
         {
-            ProcessNode->ProcessStartKey = 0;
+            ULONGLONG processStartKey;
 
-            if (ProcessNode->ProcessItem->QueryHandle)
+            if (NT_SUCCESS(PhGetProcessStartKey(ProcessNode->ProcessItem->QueryHandle, &processStartKey)))
             {
-                ULONGLONG processStartKey;
+                PH_FORMAT format[2];
 
-                if (NT_SUCCESS(PhGetProcessStartKey(ProcessNode->ProcessItem->QueryHandle, &processStartKey)))
-                {
-                    PH_FORMAT format[2];
-
-                    PhInitFormatS(&format[0], L"0x");
-                    PhInitFormatI64X(&format[1], processStartKey);
-                    PhMoveReference(&ProcessNode->ProcessStartKeyText, PhFormat(format, 2, 0));
-                    ProcessNode->ProcessStartKey = processStartKey;
-                }
+                PhInitFormatS(&format[0], L"0x");
+                PhInitFormatI64X(&format[1], processStartKey);
+                PhMoveReference(&ProcessNode->ProcessStartKeyText, PhFormat(format, 2, 0));
+                ProcessNode->ProcessStartKey = processStartKey;
             }
         }
 

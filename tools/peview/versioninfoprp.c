@@ -161,9 +161,9 @@ PPH_STRING PvVersionInfoFlagsToString(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-static wchar_t* PvVersionInfoFileOSHostToString(
+static PCWSTR PvVersionInfoFileOSHostToString(
     _In_ ULONG FileOS
-)
+    )
 {
     switch (HIWORD(FileOS))
     {
@@ -177,9 +177,9 @@ static wchar_t* PvVersionInfoFileOSHostToString(
     }
 }
 
-static wchar_t* PvVersionInfoFileOSGuestToString(
+static PCWSTR PvVersionInfoFileOSGuestToString(
     _In_ ULONG FileOS
-)
+    )
 {
     switch (LOWORD(FileOS))
     {

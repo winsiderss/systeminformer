@@ -681,6 +681,7 @@ PPH_STRING PhGetKsiServiceName(
     return string;
 }
 
+_Function_class_(KPH_COMMS_CALLBACK)
 BOOLEAN KsiCommsCallback(
     _In_ ULONG_PTR ReplyToken,
     _In_ PCKPH_MESSAGE Message

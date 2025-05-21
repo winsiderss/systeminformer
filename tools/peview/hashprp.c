@@ -606,7 +606,6 @@ NTSTATUS PvGetMappedImageMicrosoftImpHash(
     )
 {
     NTSTATUS status;
-    BYTE importTableMd5Hash[16];
 
     status = RtlComputeImportTableHash(
         FileHandle,
@@ -1233,14 +1232,26 @@ NTSTATUS PvPeFileHashThread(
     // Authentihash (Authenticode)
 
     if (!authentihashSha1String)
-        authentihashSha1String = PhGetMappedImageAuthenticodeHash(&PvMappedImage, Sha1HashAlgorithm);
+    {
+        PhGetMappedImageAuthenticodeHash(&PvMappedImage, Sha1HashAlgorithm, &authentihashSha1String);
+    }
+
     if (!authentihashSha256String)
-        authentihashSha256String = PhGetMappedImageAuthenticodeHash(&PvMappedImage, Sha256HashAlgorithm);
+    {
+        PhGetMappedImageAuthenticodeHash(&PvMappedImage, Sha256HashAlgorithm, &authentihashSha256String);
+    }
 
     // Page hash (WDAC)
 
-    wdaghashSha1String = PhGetMappedImageWdacHash(&PvMappedImage, Sha1HashAlgorithm);
-    wdaghashSha256String = PhGetMappedImageWdacHash(&PvMappedImage, Sha256HashAlgorithm);
+    if (!wdaghashSha1String)
+    {
+        PhGetMappedImageWdacHash(&PvMappedImage, Sha1HashAlgorithm, &wdaghashSha1String);
+    }
+
+    if (!wdaghashSha256String)
+    {
+        PhGetMappedImageWdacHash(&PvMappedImage, Sha256HashAlgorithm, &wdaghashSha256String);
+    }
 
     // Page hash (Authenticode)
 

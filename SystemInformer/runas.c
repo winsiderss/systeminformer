@@ -1488,7 +1488,8 @@ NTSTATUS PhRunAsUpdateDesktop(
                 newDaclLength += currentDacl->AclSize - sizeof(ACL);
 
             newDacl = PhAllocate(newDaclLength);
-            PhCreateAcl(newDacl, newDaclLength, ACL_REVISION);
+
+            status = PhCreateAcl(newDacl, newDaclLength, ACL_REVISION);
 
             // Add the existing DACL entries.
             if (currentDaclPresent && currentDacl)
@@ -1501,11 +1502,18 @@ NTSTATUS PhRunAsUpdateDesktop(
             }
 
             // Allow access for the user.
-            RtlAddAccessAllowedAce(newDacl, ACL_REVISION, DESKTOP_ALL_ACCESS, UserSid);
+
+            if (NT_SUCCESS(status))
+            {
+                status = PhAddAccessAllowedAce(newDacl, ACL_REVISION, DESKTOP_ALL_ACCESS, UserSid);
+            }
 
             // Set the security descriptor of the new token.
 
-            status = PhCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+            if (NT_SUCCESS(status))
+            {
+                status = PhCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+            }
 
             if (NT_SUCCESS(status))
             {
@@ -1514,8 +1522,12 @@ NTSTATUS PhRunAsUpdateDesktop(
 
             if (NT_SUCCESS(status))
             {
+                assert(RtlValidSecurityDescriptor(&newSecurityDescriptor));
+
                 status = PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
             }
+
+            PhFree(newDacl);
         }
 
         CloseDesktop(desktopHandle);
@@ -1590,8 +1602,9 @@ NTSTATUS PhRunAsUpdateWindowStation(
             }
 
             // Allow access for the user.
-            RtlAddAccessAllowedAce(newDacl, ACL_REVISION, WINSTA_ACCESSCLIPBOARD | WINSTA_ACCESSGLOBALATOMS, UserSid);
-            RtlAddAccessAllowedAce(newDacl, ACL_REVISION, WINSTA_ALL_ACCESS, LogonSid);
+
+            PhAddAccessAllowedAce(newDacl, ACL_REVISION, WINSTA_ACCESSCLIPBOARD | WINSTA_ACCESSGLOBALATOMS, UserSid);
+            PhAddAccessAllowedAce(newDacl, ACL_REVISION, WINSTA_ALL_ACCESS, LogonSid);
 
             // Set the security descriptor of the new token.
 
@@ -1604,6 +1617,8 @@ NTSTATUS PhRunAsUpdateWindowStation(
 
             if (NT_SUCCESS(status))
             {
+                assert(RtlValidSecurityDescriptor(&newSecurityDescriptor));
+
                 status = PhSetObjectSecurity(wsHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
             }
         }
@@ -1663,13 +1678,13 @@ NTSTATUS PhSetDesktopWinStaAccess(
     securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
-    RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-    RtlCreateAcl(dacl, allocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, (PSID)&PhSeEveryoneSid);
+    PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+    PhCreateAcl(dacl, allocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, (PSID)&PhSeEveryoneSid);
 
     if (WindowsVersion >= WINDOWS_8)
     {
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, allAppPackagesSid);
+        PhAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, allAppPackagesSid);
     }
 
     PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
@@ -1704,6 +1719,7 @@ NTSTATUS PhSetDesktopWinStaAccess(
     }
 
 #ifdef DEBUG
+    assert(RtlValidSecurityDescriptor(securityDescriptor));
     assert(allocationLength < sizeof(securityDescriptorBuffer));
     assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif

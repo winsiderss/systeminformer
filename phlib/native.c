@@ -3907,7 +3907,7 @@ NTSTATUS PhDosLongPathNameToNtPathNameWithStatus(
     NTSTATUS status;
 
     if (
-        WindowsVersion >= WINDOWS_10_RS1 && RtlAreLongPathsEnabled() &&
+        WindowsVersion >= WINDOWS_10_RS1 && PhAreLongPathsEnabled() &&
         RtlDosLongPathNameToNtPathName_U_WithStatus_Import()
         )
     {
@@ -6725,6 +6725,7 @@ NTSTATUS PhDestroyExecutionRequiredRequest(
 
     if (!PowerRequestHandle)
         return STATUS_INVALID_PARAMETER;
+
     memset(&requestPowerAction, 0, sizeof(POWER_REQUEST_ACTION));
     requestPowerAction.PowerRequestHandle = PowerRequestHandle;
     requestPowerAction.RequestType = PowerRequestExecutionRequiredInternal;
@@ -6994,6 +6995,7 @@ typedef struct _PH_EXECUTIONREQUEST_CACHE_ENTRY
     HANDLE ExecutionRequestHandle;
 } PH_EXECUTIONREQUEST_CACHE_ENTRY, *PPH_EXECUTIONREQUEST_CACHE_ENTRY;
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN NTAPI PhExecutionRequestHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -7004,6 +7006,7 @@ static BOOLEAN NTAPI PhExecutionRequestHashtableEqualFunction(
         ((PPH_EXECUTIONREQUEST_CACHE_ENTRY)Entry2)->ProcessId;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG NTAPI PhExecutionRequestHashtableHashFunction(
     _In_ PVOID Entry
     )
