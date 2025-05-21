@@ -110,6 +110,10 @@
 #endif
 #endif // PHNT_MODE_USER
 
+#if defined(PHNT_MODE_KERNEL)
+typedef double DOUBLE;
+#endif // PHNT_MODE_KERNEL
+
 typedef DOUBLE *PDOUBLE;
 typedef GUID *PGUID;
 
