@@ -2319,6 +2319,41 @@ PhSetProcessPowerThrottlingState(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateSection(
+    _Out_ PHANDLE SectionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PLARGE_INTEGER MaximumSize,
+    _In_ ULONG SectionPageProtection,
+    _In_ ULONG AllocationAttributes,
+    _In_opt_ HANDLE FileHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhMapViewOfSection(
+    _In_ HANDLE SectionHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* BaseAddress,
+    _In_ SIZE_T CommitSize,
+    _In_opt_ PLARGE_INTEGER SectionOffset,
+    _In_ SIZE_T ViewSize,
+    _In_ SECTION_INHERIT InheritDisposition,
+    _In_ ULONG AllocationType,
+    _In_ ULONG PageProtection
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhUnmapViewOfSection(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhEnumKernelModules(
     _Out_ PRTL_PROCESS_MODULES *Modules
     );

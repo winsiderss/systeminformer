@@ -24,6 +24,174 @@ BOOLEAN NTAPI PH_ENUM_MODULES_CALLBACK(
 typedef PH_ENUM_MODULES_CALLBACK* PPH_ENUM_MODULES_CALLBACK;
 
 /**
+ * Creates a section object.
+ *
+ * @param SectionHandle Pointer to a variable that receives a handle to the section object.
+ * @param DesiredAccess The access mask that specifies the requested access to the section object.
+ * @param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file, or the maximum the file can be extended or mapped when backed by an ordinary file.
+ * @param SectionPageProtection Specifies the protection to place on each page in the section.
+ * @param AllocationAttributes A bitmask of SEC_XXX flags that determines the allocation attributes of the section.
+ * @param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL, the section is backed by the paging file. Otherwise, the section is backed by the specified file.
+ * @return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhCreateSection(
+    _Out_ PHANDLE SectionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PLARGE_INTEGER MaximumSize,
+    _In_ ULONG SectionPageProtection,
+    _In_ ULONG AllocationAttributes,
+    _In_opt_ HANDLE FileHandle
+    )
+{
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE sectionHandle;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
+
+    //if (WindowsVersion >= WINDOWS_10_RS5)
+    //{
+    //    MEM_ADDRESS_REQUIREMENTS addressRequirement;
+    //    MEM_EXTENDED_PARAMETER extendedParameters[3];
+    //
+    //    addressRequirement.LowestStartingAddress = NULL;
+    //    addressRequirement.HighestEndingAddress = UlongToPtr(MAXLONG); // 0x7fffffff // below 4GB
+    //    addressRequirement.Alignment = PAGE_SIZE;
+    //
+    //    extendedParameters[0].Type = MemExtendedParameterAddressRequirements;
+    //    extendedParameters[0].Pointer = &addressRequirement;
+    //    extendedParameters[1].Type = MemExtendedParameterAttributeFlags;
+    //    extendedParameters[1].ULong64 = MEM_EXTENDED_PARAMETER_EC_CODE;
+    //    extendedParameters[2].Type = MemExtendedParameterImageMachine;
+    //    extendedParameters[2].ULong64 = IMAGE_FILE_MACHINE_ARM64EC;
+    //
+    //    status = NtCreateSectionEx(
+    //        &sectionHandle,
+    //        DesiredAccess,
+    //        &objectAttributes,
+    //        MaximumSize,
+    //        SectionPageProtection,
+    //        AllocationAttributes,
+    //        FileHandle,
+    //        extendedParameters,
+    //        RTL_NUMBER_OF(extendedParameters)
+    //        );
+    //}
+
+    status = NtCreateSection(
+        &sectionHandle,
+        DesiredAccess,
+        &objectAttributes,
+        MaximumSize,
+        SectionPageProtection,
+        AllocationAttributes,
+        FileHandle
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *SectionHandle = sectionHandle;
+    }
+    else
+    {
+        *SectionHandle = NULL;
+    }
+
+    return status;
+}
+
+NTSTATUS PhMapViewOfSection(
+    _In_ HANDLE SectionHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* BaseAddress,
+    _In_ SIZE_T CommitSize,
+    _In_opt_ PLARGE_INTEGER SectionOffset,
+    _In_ SIZE_T ViewSize,
+    _In_ SECTION_INHERIT InheritDisposition,
+    _In_ ULONG AllocationType,
+    _In_ ULONG PageProtection
+    )
+{
+    NTSTATUS status;
+    PVOID baseAddress = *BaseAddress;
+    SIZE_T viewSize = ViewSize;
+
+    //if (WindowsVersion >= WINDOWS_10_RS5)
+    //{
+    //    MEM_ADDRESS_REQUIREMENTS addressRequirement;
+    //    MEM_EXTENDED_PARAMETER extendedParameters[3];
+    //
+    //    addressRequirement.LowestStartingAddress = NULL;
+    //    addressRequirement.HighestEndingAddress = UlongToPtr(MAXLONG); // 0x7fffffff // below 4GB
+    //    addressRequirement.Alignment = PAGE_SIZE;
+    //
+    //    extendedParameters[0].Type = MemExtendedParameterAddressRequirements;
+    //    extendedParameters[0].Pointer = &addressRequirement;
+    //    extendedParameters[1].Type = MemExtendedParameterAttributeFlags;
+    //    extendedParameters[1].ULong64 = MEM_EXTENDED_PARAMETER_EC_CODE;
+    //    extendedParameters[2].Type = MemExtendedParameterImageMachine;
+    //    extendedParameters[2].ULong64 = IMAGE_FILE_MACHINE_ARM64EC;
+    //
+    //    status = NtMapViewOfSectionEx(
+    //        SectionHandle,
+    //        ProcessHandle,
+    //        &baseAddress,
+    //        SectionOffset,
+    //        &viewSize,
+    //        AllocationType,
+    //        PageProtection,
+    //        extendedParameters,
+    //        RTL_NUMBER_OF(extendedParameters)
+    //        );
+    //}
+
+    status = NtMapViewOfSection(
+        SectionHandle,
+        ProcessHandle,
+        &baseAddress,
+        0,
+        CommitSize,
+        SectionOffset,
+        &viewSize,
+        InheritDisposition,
+        AllocationType,
+        PageProtection
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *BaseAddress = baseAddress;
+    }
+    else
+    {
+        *BaseAddress = NULL;
+    }
+
+    return status;
+}
+
+NTSTATUS PhUnmapViewOfSection(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress
+    )
+{
+    NTSTATUS status;
+
+    status = NtUnmapViewOfSection(
+        ProcessHandle,
+        BaseAddress
+        );
+
+    return status;
+}
+
+/**
  * Enumerates the modules loaded by the kernel.
  *
  * \param Modules A variable which receives a pointer to a structure containing information about
@@ -147,7 +315,7 @@ PPH_STRING PhGetKernelFileName(
     if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
         return NULL;
 
-    return PhConvertUtf8ToUtf16((PCSTR)modules->Modules[0].FullPathName);
+    return PhZeroExtendToUtf16((PCSTR)modules->Modules[0].FullPathName);
 }
 
 /**
@@ -204,7 +372,7 @@ NTSTATUS PhGetKernelFileNameEx(
 
     if (FileName)
     {
-        *FileName = PhConvertUtf8ToUtf16((PCSTR)modules->Modules[0].FullPathName);
+        *FileName = PhZeroExtendToUtf16((PCSTR)modules->Modules[0].FullPathName);
     }
 
     if (WindowsVersion >= WINDOWS_10_22H2)
@@ -365,7 +533,7 @@ NTSTATUS PhpEnumProcessModules(
     return status;
 }
 
-BOOLEAN NTAPI PhpEnumProcessModulesCallback(
+static BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY Entry,
     _In_ PVOID AddressOfEntry,
@@ -1205,7 +1373,7 @@ VOID PhpRtlModulesToGenericModules(
     }
 }
 
-VOID PhpRtlModulesExToGenericModules(
+static VOID PhpRtlModulesExToGenericModules(
     _In_ PRTL_PROCESS_MODULE_INFORMATION_EX Modules,
     _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
     _In_ PPH_HASHTABLE BaseAddressHashtable,
@@ -1268,7 +1436,7 @@ VOID PhpRtlModulesExToGenericModules(
     }
 }
 
-BOOLEAN PhpCallbackMappedFileOrImage(
+static BOOLEAN PhpCallbackMappedFileOrImage(
     _In_ PVOID AllocationBase,
     _In_ SIZE_T AllocationSize,
     _In_ ULONG Type,
@@ -1383,7 +1551,7 @@ BOOLEAN PhpCallbackMappedFileOrImage(
 //    }
 //}
 
-VOID PhpEnumGenericMappedFilesAndImages(
+static VOID PhpEnumGenericMappedFilesAndImages(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG Flags,
     _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
@@ -1684,7 +1852,7 @@ typedef struct _PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS
     PVOID Context;
 } PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS, *PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS;
 
-NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
+static NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG_PTR NumberOfEntries,
     _In_ PMEMORY_WORKING_SET_BLOCK WorkingSetBlock,
