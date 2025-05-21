@@ -455,6 +455,26 @@ PhReAllocateZeroSafe(
     return NULL;
 }
 
+FORCEINLINE
+PVOID
+NTAPI
+PhAllocateStack(
+    _In_ SIZE_T Size
+    )
+{
+    return _malloca(Size);
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhFreeStack(
+    _Pre_maybenull_ _Post_invalid_ PVOID Memory
+    )
+{
+    _freea(Memory);
+}
+
 //
 // Singly linked list
 //

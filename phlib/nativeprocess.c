@@ -259,7 +259,8 @@ NTSTATUS PhGetProcessImageFileName(
     ULONG returnLength = 0;
 
     bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
-    fileName = PhAllocate(bufferLength);
+    fileName = PhAllocateStack(bufferLength);
+    if (!fileName) return STATUS_NO_MEMORY;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -271,9 +272,10 @@ NTSTATUS PhGetProcessImageFileName(
 
     if (status == STATUS_INFO_LENGTH_MISMATCH)
     {
-        PhFree(fileName);
+        PhFreeStack(fileName);
         bufferLength = returnLength;
-        fileName = PhAllocate(bufferLength);
+        fileName = PhAllocateStack(bufferLength);
+        if (!fileName) return STATUS_NO_MEMORY;
 
         status = NtQueryInformationProcess(
             ProcessHandle,
@@ -290,12 +292,12 @@ NTSTATUS PhGetProcessImageFileName(
     // Note: Some minimal/pico processes have UNICODE_NULL as their filename. (dmex)
     if (RtlIsNullOrEmptyUnicodeString(fileName))
     {
-        PhFree(fileName);
+        PhFreeStack(fileName);
         return STATUS_UNSUCCESSFUL;
     }
 
     *FileName = PhCreateStringFromUnicodeString(fileName);
-    PhFree(fileName);
+    PhFreeStack(fileName);
 
     return status;
 }
@@ -321,7 +323,8 @@ NTSTATUS PhGetProcessImageFileNameWin32(
     ULONG returnLength = 0;
 
     bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
-    fileName = PhAllocate(bufferLength);
+    fileName = PhAllocateStack(bufferLength);
+    if (!fileName) return STATUS_NO_MEMORY;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -333,9 +336,10 @@ NTSTATUS PhGetProcessImageFileNameWin32(
 
     if (status == STATUS_INFO_LENGTH_MISMATCH)
     {
-        PhFree(fileName);
+        PhFreeStack(fileName);
         bufferLength = returnLength;
-        fileName = PhAllocate(bufferLength);
+        fileName = PhAllocateStack(bufferLength);
+        if (!fileName) return STATUS_NO_MEMORY;
 
         status = NtQueryInformationProcess(
             ProcessHandle,
@@ -353,7 +357,7 @@ NTSTATUS PhGetProcessImageFileNameWin32(
         // Note: Some minimal/pico processes have UNICODE_NULL as their filename. (dmex)
         if (RtlIsNullOrEmptyUnicodeString(fileName))
         {
-            PhFree(fileName);
+            PhFreeStack(fileName);
             return STATUS_UNSUCCESSFUL;
         }
 
@@ -373,7 +377,7 @@ NTSTATUS PhGetProcessImageFileNameWin32(
         *FileName = fileNameWin32;
     }
 
-    PhFree(fileName);
+    PhFreeStack(fileName);
 
     return status;
 }
@@ -402,7 +406,7 @@ NTSTATUS PhGetProcessImageFileNameById(
     // On input, specify the PID and a buffer to hold the string.
     data.ProcessId = ProcessId;
     data.ImageName.Length = 0;
-    data.ImageName.MaximumLength = 0x100;
+    data.ImageName.MaximumLength = 0x200;
 
     do
     {
@@ -475,10 +479,11 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
 {
     NTSTATUS status;
     PVOID buffer;
-    USHORT bufferSize = 0x100;
+    USHORT bufferSize = 0x200;
     SYSTEM_PROCESS_ID_INFORMATION processIdInfo;
 
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateStack(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     processIdInfo.ProcessId = ProcessId;
     processIdInfo.ImageName.Length = 0;
@@ -496,8 +501,9 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
     {
         // Required length is stored in MaximumLength.
 
-        PhFree(buffer);
-        buffer = PhAllocate(processIdInfo.ImageName.MaximumLength);
+        PhFreeStack(buffer);
+        buffer = PhAllocateStack(processIdInfo.ImageName.MaximumLength);
+        if (!buffer) return STATUS_NO_MEMORY;
         processIdInfo.ImageName.Buffer = buffer;
 
         status = NtQuerySystemInformation(
@@ -510,19 +516,19 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
 
     if (!NT_SUCCESS(status))
     {
-        PhFree(buffer);
+        PhFreeStack(buffer);
         return status;
     }
 
     // Note: Some minimal/pico processes have UNICODE_NULL as their filename. (dmex)
     if (RtlIsNullOrEmptyUnicodeString(&processIdInfo.ImageName))
     {
-        PhFree(buffer);
+        PhFreeStack(buffer);
         return STATUS_UNSUCCESSFUL;
     }
 
     *FileName = PhCreateStringFromUnicodeString(&processIdInfo.ImageName);
-    PhFree(buffer);
+    PhFreeStack(buffer);
 
     return status;
 }
@@ -776,7 +782,8 @@ NTSTATUS PhGetProcessCommandLine(
         ULONG returnLength = 0;
 
         bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
-        buffer = PhAllocate(bufferLength);
+        buffer = PhAllocateStack(bufferLength);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = NtQueryInformationProcess(
             ProcessHandle,
@@ -788,9 +795,10 @@ NTSTATUS PhGetProcessCommandLine(
 
         if (status == STATUS_INFO_LENGTH_MISMATCH)
         {
-            PhFree(buffer);
+            PhFreeStack(buffer);
             bufferLength = returnLength;
-            buffer = PhAllocate(bufferLength);
+            buffer = PhAllocateStack(bufferLength);
+            if (!buffer) return STATUS_NO_MEMORY;
 
             status = NtQueryInformationProcess(
                 ProcessHandle,
@@ -806,7 +814,7 @@ NTSTATUS PhGetProcessCommandLine(
             *CommandLine = PhCreateStringFromUnicodeString(buffer);
         }
 
-        PhFree(buffer);
+        PhFreeStack(buffer);
 
         return status;
     }
@@ -1151,8 +1159,9 @@ NTSTATUS PhGetProcessMappedFileName(
     PUNICODE_STRING buffer;
 
     returnLength = 0;
-    bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
+    bufferSize = 0x200;
+    buffer = PhAllocateStack(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = NtQueryVirtualMemory(
         ProcessHandle,
@@ -1165,9 +1174,10 @@ NTSTATUS PhGetProcessMappedFileName(
 
     if (status == STATUS_BUFFER_OVERFLOW && returnLength > 0) // returnLength > 0 required for MemoryMappedFilename on Windows 7 SP1 (dmex)
     {
-        PhFree(buffer);
+        PhFreeStack(buffer);
         bufferSize = returnLength;
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateStack(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = NtQueryVirtualMemory(
             ProcessHandle,
@@ -1181,12 +1191,12 @@ NTSTATUS PhGetProcessMappedFileName(
 
     if (!NT_SUCCESS(status))
     {
-        PhFree(buffer);
+        PhFreeStack(buffer);
         return status;
     }
 
     *FileName = PhCreateStringFromUnicodeString(buffer);
-    PhFree(buffer);
+    PhFreeStack(buffer);
 
     return status;
 }
