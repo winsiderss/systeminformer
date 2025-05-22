@@ -500,7 +500,7 @@ INT WINAPI wWinMain(
 {
     PPH_SETUP_CONTEXT context;
 
-    if (!NT_SUCCESS(PhInitializePhLib(L"System Informer - Setup", Instance)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"System Informer - Setup")))
         return EXIT_FAILURE;
     if (!HR_SUCCESS(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         return EXIT_FAILURE;
