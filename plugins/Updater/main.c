@@ -10,7 +10,6 @@
  */
 
 #include "updater.h"
-
 #include <trace.h>
 
 PPH_PLUGIN PluginInstance;
@@ -142,7 +141,7 @@ VOID NTAPI ShowOptionsCallback(
 
     optionsEntry->CreateSection(
         L"Updater",
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_OPTIONS),
         OptionsDlgProc,
         NULL

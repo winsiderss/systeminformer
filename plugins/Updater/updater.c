@@ -170,7 +170,7 @@ VOID TaskDialogLinkClicked(
     )
 {
     PhDialogBox(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_TEXT),
         Context->DialogHandle,
         TextDlgProc,
@@ -315,7 +315,8 @@ NTSTATUS UpdatePlatformSupportInformation(
     if (!NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)))
         goto CleanupExit;
 
-    PhInitializeHash(&hashContext, Sha256HashAlgorithm);
+    if (!NT_SUCCESS(status = PhInitializeHash(&hashContext, Sha256HashAlgorithm)))
+        goto CleanupExit;
 
     bytesRemaining = (ULONG64)fileSize.QuadPart;
 
@@ -332,7 +333,15 @@ NTSTATUS UpdatePlatformSupportInformation(
         if (!NT_SUCCESS(status))
             break;
 
-        PhUpdateHash(&hashContext, buffer, numberOfBytesRead);
+        status = PhUpdateHash(
+            &hashContext,
+            buffer,
+            numberOfBytesRead
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
         bytesRemaining -= numberOfBytesRead;
     }
 
@@ -342,8 +351,10 @@ NTSTATUS UpdatePlatformSupportInformation(
         *TimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
         *SizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
 
-        PhFinalHash(&hashContext, hash, sizeof(hash), NULL);
-        *HashString = PhBufferToHexString(hash, sizeof(hash));
+        if (NT_SUCCESS(status = PhFinalHash(&hashContext, hash, sizeof(hash), NULL)))
+        {
+            *HashString = PhBufferToHexString(hash, sizeof(hash));
+        }
 
         PhUnloadMappedImage(&mappedImage);
     }
@@ -433,7 +444,7 @@ PPH_STRING UpdateWindowsString(
 
     if (NT_SUCCESS(PhGetKernelFileNameEx(&fileName, &imageBase, &imageSize)))
     {
-        if (versionInfo = PhGetFileVersionInfoEx(&fileName->sr))
+        if (NT_SUCCESS(PhGetFileVersionInfoEx(&fileName->sr, &versionInfo)))
         {
             VS_FIXEDFILEINFO* rootBlock;
 
@@ -1274,7 +1285,7 @@ NTSTATUS ShowUpdateDialogThread(
 
     // Start TaskDialog bootstrap
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-    config.hInstance = PluginInstance->DllBase;
+    config.hInstance = NtCurrentImageBase();
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = TaskDialogBootstrapCallback;
@@ -1379,7 +1390,7 @@ VOID ShowStartupUpdateDialog(
 
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-    config.hInstance = PluginInstance->DllBase;
+    config.hInstance = NtCurrentImageBase();
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = TaskDialogBootstrapCallback;
