@@ -1418,5 +1418,5 @@ CleanupExit:
     if (fileHandle)
         NtClose(fileHandle);
 
-    return result;
+    return status;
 }
