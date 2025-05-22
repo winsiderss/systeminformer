@@ -81,7 +81,7 @@ BOOLEAN PhGraphControlInitialization(
     wcex.lpfnWndProc = PhpGraphWndProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = sizeof(PVOID);
-    wcex.hInstance = PhInstanceHandle;
+    wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     wcex.lpszClassName = PH_GRAPH_CLASSNAME;
 

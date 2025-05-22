@@ -449,11 +449,11 @@ VOID PhLoadPlugins(
 
     if (!PhGetIntegerSetting(L"EnableDefaultSafePlugins"))
     {
-        HANDLE pluginsDirectoryHandle = NULL;
+        HANDLE pluginsDirectoryHandle;
 
         if (PhPluginsLoadNative)
         {
-            PhCreateFile(
+            status = PhCreateFile(
                 &pluginsDirectoryHandle,
                 &pluginsDirectory->sr,
                 FILE_LIST_DIRECTORY | SYNCHRONIZE,
@@ -465,7 +465,7 @@ VOID PhLoadPlugins(
         }
         else
         {
-            PhCreateFileWin32(
+            status = PhCreateFileWin32(
                 &pluginsDirectoryHandle,
                 PhGetString(pluginsDirectory),
                 FILE_LIST_DIRECTORY | SYNCHRONIZE,
@@ -476,7 +476,7 @@ VOID PhLoadPlugins(
                 );
         }
 
-        if (pluginsDirectoryHandle)
+        if (NT_SUCCESS(status))
         {
             static CONST PH_STRINGREF pluginsSearchPattern = PH_STRINGREF_INIT(L"*.dll");
 

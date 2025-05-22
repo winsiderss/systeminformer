@@ -195,8 +195,6 @@ NTSTATUS PhpBaseThreadStart(
     PhTlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
 #endif
 
-    GdiSetBatchLimit(1);
-
     // Initialization code
 
     result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -8284,7 +8282,7 @@ ULONG PhGetLastError(
     )
 {
     if (WindowsVersion < WINDOWS_NEW)
-        return NtCurrentTeb()->LastErrorValue;
+        return NtReadCurrentTebUlong(FIELD_OFFSET(TEB, LastErrorValue)); // NtCurrentTeb()->LastErrorValue
     return GetLastError();
 }
 

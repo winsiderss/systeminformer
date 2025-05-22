@@ -5863,10 +5863,13 @@ PPH_STRING PhQueryRegistryString(
             buffer->Type == REG_MULTI_SZ ||
             buffer->Type == REG_EXPAND_SZ)
         {
-            if (buffer->DataLength >= sizeof(UNICODE_NULL))
-                string = PhCreateStringEx((PWCHAR)buffer->Data, buffer->DataLength - sizeof(UNICODE_NULL));
-            else
-                string = PhReferenceEmptyString();
+            if (!(buffer->DataLength & 1)) // validate the string length
+            {
+                if (buffer->DataLength >= sizeof(UNICODE_NULL))
+                    string = PhCreateStringEx((PWCHAR)buffer->Data, buffer->DataLength - sizeof(UNICODE_NULL));
+                else
+                    string = PhReferenceEmptyString();
+            }
         }
 
         PhFree(buffer);

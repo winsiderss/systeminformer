@@ -114,6 +114,10 @@ LONG PhMainMessageLoop(
     VOID
     );
 
+VOID PhInitializePreviousInstance(
+    VOID
+    );
+
 VOID PhActivatePreviousInstance(
     VOID
     );
@@ -126,11 +130,11 @@ VOID PhInitializeSuperclassControls( // delayhook.c
     VOID
     );
 
-BOOLEAN PhInitializeAppSystem(
+NTSTATUS PhInitializeAppSystem(
     VOID
     );
 
-VOID PhpInitializeSettings(
+VOID PhInitializeAppSettings(
     VOID
     );
 

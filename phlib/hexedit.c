@@ -28,7 +28,7 @@ BOOLEAN PhHexEditInitialization(
     c.lpszClassName = PH_HEXEDIT_CLASSNAME;
     c.style = CS_GLOBALCLASS;
     c.cbWndExtra = sizeof(PVOID);
-    c.hInstance = PhInstanceHandle;
+    c.hInstance = NtCurrentImageBase();
     c.lpfnWndProc = PhpHexEditWndProc;
     c.hCursor = PhLoadCursor(NULL, IDC_ARROW);
 

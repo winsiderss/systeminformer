@@ -1295,20 +1295,20 @@ PPH_STRING SetupCreateFullPath(
     return pathString;
 }
 
-BOOLEAN SetupOverwriteFile(
+NTSTATUS SetupOverwriteFile(
     _In_ PPH_STRING FileName,
     _In_ PVOID Buffer,
     _In_ ULONG BufferLength
     )
 {
-    BOOLEAN result = FALSE;
+    NTSTATUS status;
     HANDLE fileHandle = NULL;
     LARGE_INTEGER allocationSize;
     IO_STATUS_BLOCK isb;
 
     allocationSize.QuadPart = BufferLength;
 
-    if (!NT_SUCCESS(PhCreateFileWin32Ex(
+    status = PhCreateFileWin32Ex(
         &fileHandle,
         PhGetString(FileName),
         FILE_GENERIC_WRITE,
@@ -1318,12 +1318,12 @@ BOOLEAN SetupOverwriteFile(
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL
-        )))
-    {
-        goto CleanupExit;
-    }
+        );
 
-    if (!NT_SUCCESS(NtWriteFile(
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWriteFile(
         fileHandle,
         NULL,
         NULL,
@@ -1333,33 +1333,32 @@ BOOLEAN SetupOverwriteFile(
         BufferLength,
         NULL,
         NULL
-        )))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
     if (isb.Information != BufferLength)
+    {
+        status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
-
-    result = TRUE;
+    }
 
 CleanupExit:
 
     if (fileHandle)
         NtClose(fileHandle);
 
-    return result;
+    return status;
 }
 
-_Success_(return)
-BOOLEAN SetupHashFile(
+NTSTATUS SetupHashFile(
     _In_ PPH_STRING FileName,
     _Out_writes_all_(256 / 8) PBYTE Buffer
     )
 {
-    BOOLEAN result = FALSE;
-    HANDLE fileHandle = NULL;
     NTSTATUS status;
+    HANDLE fileHandle = NULL;
     IO_STATUS_BLOCK iosb;
     PH_HASH_CONTEXT hashContext;
     LARGE_INTEGER fileSize;
@@ -1409,7 +1408,10 @@ BOOLEAN SetupHashFile(
         bytesRemaining -= (ULONG)iosb.Information;
     }
 
-    result = PhFinalHash(&hashContext, Buffer, 256 / 8, NULL);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhFinalHash(&hashContext, Buffer, 256 / 8, NULL);
 
 CleanupExit:
 
