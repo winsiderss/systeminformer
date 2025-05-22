@@ -457,6 +457,23 @@ PPH_STRING PhGetProcessTooltipText(
             PhAppendFormatStringBuilder(&notes, L"    Package name: %s\n", Process->PackageFullName->Buffer);
         }
 
+        if (notes.String->Length != 0)
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"Notes:\n");
+            PhAppendStringBuilder(&stringBuilder, &notes.String->sr);
+        }
+
+        PhDeleteStringBuilder(&notes);
+        PhInitializeStringBuilder(&notes, 40);
+
+        if (Process->IsSystemProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a system process (TCB).\n");
+        if (Process->IsBeingDebugged)
+            PhAppendStringBuilder2(&notes, L"    Process is being debugged.\n");
+        if (Process->IsSuspended)
+            PhAppendStringBuilder2(&notes, L"    Process is suspended.\n");
+        if (Process->IsFrozenProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is in deep freeze (suspended).\n");
         if (Process->IsDotNet)
             PhAppendStringBuilder2(&notes, L"    Process is managed (.NET).\n");
         if (Process->IsElevated)
@@ -478,10 +495,28 @@ PPH_STRING PhGetProcessTooltipText(
             PhAppendStringBuilder2(&notes, L"    Process is in a job.\n");
         if (Process->IsWow64Process)
             PhAppendStringBuilder2(&notes, L"    Process is 32-bit (WOW64).\n");
+        if (Process->IsProtectedProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a protected process (PP/PPL).\n");
+        if (Process->IsSecureProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a secure isolated process (IUM).\n");
+        if (Process->IsSecureProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a secure virtualization process (HVCI).\n");
+        if (Process->IsSubsystemProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a subsystem process.\n");
+        if (Process->IsPackagedProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a packaged process.\n");
+        if (Process->IsBackgroundProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a background process.\n");
+        if (Process->IsCrossSessionProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a cross session process.\n");
+        if (Process->IsReflectedProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a reflected process (Clone/Fork).\n");
+        if (Process->IsPowerThrottling)
+            PhAppendStringBuilder2(&notes, L"    Process is power throttling (efficiency).\n");
 
         if (notes.String->Length != 0)
         {
-            PhAppendStringBuilder2(&stringBuilder, L"Notes:\n");
+            PhAppendStringBuilder2(&stringBuilder, L"Flags:\n");
             PhAppendStringBuilder(&stringBuilder, &notes.String->sr);
         }
 
