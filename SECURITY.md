@@ -7,11 +7,13 @@ This document outlines security procedures and general policies for the System I
 
 ## Reporting a Bug
 
-The System Informer team considers security our top priority and reviews all reports of vulnerabilities or security issues very seriously.
+The System Informer team considers security our top priority and reviews all reports of vulnerabilities 
+or security issues very seriously.
 
 We appreciate responsible disclosure efforts and are committed to acknowledging your contributions.
 
-If you discover a security issue, please send a report by emailing security@systeminformer.com
+If you discover a security issue, please send a report by emailing security@systeminformer.io
+or security@systeminformer.com
 
 The System Informer team will acknowledge your email within 48 hours, and will send a
 more detailed response indicating the next steps in handling
