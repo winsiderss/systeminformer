@@ -526,7 +526,10 @@ NTSTATUS PhpVerifyGetHashFromFileHandle(
     if (CryptCATAdminAcquireContext2)
     {
         if (!CryptCATAdminAcquireContext2(&catAdminHandle, &DriverActionVerify, HashAlgorithm, &strongSigPolicy, 0))
-            return FALSE;
+        {
+            if (!CryptCATAdminAcquireContext(&catAdminHandle, &DriverActionVerify, 0))
+                return PhGetLastWin32ErrorAsNtStatus();
+        }
     }
     else
     {
