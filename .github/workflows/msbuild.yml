@@ -12,20 +12,6 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install Nuget Packages
-      run: nuget restore .\packages.config -PackagesDirectory .\packages\
-    - name: Build Init
-      shell: cmd
-      working-directory: ${{github.workspace}}
-      run: build\build_init.cmd
-    - name: Build Solution
-      shell: cmd
-      working-directory: ${{github.workspace}}
-      run: build\build_debug.cmd
   build-release:
     runs-on: windows-latest
     steps:
@@ -36,7 +22,11 @@ jobs:
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
-    - name: Build Solution
+    - name: Build Solution (debug)
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_debug.cmd
+    - name: Build Solution (release)
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_release.cmd
@@ -50,21 +40,11 @@ jobs:
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_tools.cmd
-    - name: Build Driver
+    - name: Build Driver (prefast)
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_zdriver.cmd prefast
-  build-driver-release:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install Nuget Packages
-      run: nuget restore .\packages.config -PackagesDirectory .\packages\
-    - name: Build Tools
-      shell: cmd
-      working-directory: ${{github.workspace}}
-      run: build\build_tools.cmd
-    - name: Build Driver
+    - name: Build Driver (release)
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_zdriver.cmd release
