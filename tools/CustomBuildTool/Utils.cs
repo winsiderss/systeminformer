@@ -484,6 +484,7 @@ namespace CustomBuildTool
             }
 
             string output = Win32.CreateProcess(currentMisxPath, Command, false);
+            output = output.Replace("\r\n\r\n", "\r\n", StringComparison.OrdinalIgnoreCase);
             output = output.Trim();
             return output;
         }

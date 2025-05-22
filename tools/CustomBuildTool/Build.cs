@@ -1372,7 +1372,6 @@ namespace CustomBuildTool
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x32.appx");
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x64.appx");
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package.msixbundle");
-
             Win32.CreateDirectory(BuildOutputFolder);
 
             // Create the package manifests.
