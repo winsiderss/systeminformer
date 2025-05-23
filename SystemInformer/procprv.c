@@ -279,7 +279,6 @@ PPH_STRING PhpGetProtectionString(
 
     if (IsSecureProcess)
         PhInitFormatS(&format[count++], L"Secure ");
-
     PhInitFormatS(&format[count++], type);
 
     if (signer[0] != UNICODE_NULL)

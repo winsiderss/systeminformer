@@ -106,23 +106,6 @@ namespace CustomBuildTool
                 Build.BuildRedirectOutput = buildredirectoutput.Equals("true", StringComparison.OrdinalIgnoreCase);
             }
 
-            //{
-            //    VisualStudioInstance instance = Utils.GetVisualStudioInstance();
-            //
-            //    if (instance == null)
-            //    {
-            //        Program.PrintColorMessage("Unable to find Visual Studio.", ConsoleColor.Red);
-            //        return false;
-            //    }
-            //
-            //    if (!instance.HasRequiredDependency)
-            //    {
-            //        Program.PrintColorMessage("Visual Studio does not have required the packages: ", ConsoleColor.Red);
-            //        Program.PrintColorMessage(instance.MissingDependencyList, ConsoleColor.Cyan);
-            //        return false;
-            //    }
-            //}
-
             return true;
         }
 
@@ -1365,10 +1348,8 @@ namespace CustomBuildTool
             }
         }
 
-        public static void BuildStorePackage(BuildFlags Flags)
+        public static bool BuildStorePackage(BuildFlags Flags)
         {
-            Program.PrintColorMessage("Building package.msixbundle...", ConsoleColor.Cyan);
-
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x32.appx");
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x64.appx");
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package.msixbundle");
@@ -1383,37 +1364,69 @@ namespace CustomBuildTool
 
             if (Flags.HasFlag(BuildFlags.Build32bit) && File.Exists("tools\\msix\\MsixPackage32.map"))
             {
-                var result = Utils.ExecuteMsixCommand(
+                Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage("Building systeminformer-build-package-x64.msix...", ConsoleColor.Cyan, false);
+
+                string result = Utils.ExecuteMsixCommand(
                     $"pack /o /f {BuildWorkingFolder}\\tools\\msix\\MsixPackage32.map /p {BuildOutputFolder}\\systeminformer-build-package-x32.msix"
                     );
 
-                Program.PrintColorMessage(result, ConsoleColor.DarkGray);
+                if (!result.EndsWith("Package creation succeeded.", StringComparison.OrdinalIgnoreCase))
+                {
+                    Program.PrintColorMessage(result, ConsoleColor.Gray);
+                    return false;
+                }
+
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-package-x32.msix").ToPrettySize(), ConsoleColor.Green);
             }
 
             if (Flags.HasFlag(BuildFlags.Build64bit) && File.Exists("tools\\msix\\MsixPackage64.map"))
             {
-                var result = Utils.ExecuteMsixCommand(
+                Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage("Building systeminformer-build-package-x64.msix...", ConsoleColor.Cyan, false);
+
+                string result = Utils.ExecuteMsixCommand(
                     $"pack /o /f {BuildWorkingFolder}\\tools\\msix\\MsixPackage64.map /p {BuildOutputFolder}\\systeminformer-build-package-x64.msix"
                     );
 
-                Program.PrintColorMessage(result, ConsoleColor.DarkGray);
+                if (!result.EndsWith("Package creation succeeded.", StringComparison.OrdinalIgnoreCase))
+                {
+                    Program.PrintColorMessage(result, ConsoleColor.Gray);
+                    return false;
+                }
+
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix").ToPrettySize(), ConsoleColor.Green);
             }
 
             // Create the bundle package.
 
+            if (
+                File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x32.msix") &&
+                File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix")
+                )
             {
-                StringBuilder bundleMap = new StringBuilder(0x100);
-                bundleMap.AppendLine("[Files]");
-                bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x32.msix\" \"systeminformer-build-package-x32.msix\"");
-                bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x64.msix\" \"systeminformer-build-package-x64.msix\"");
+                Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage("Building systeminformer-build-package.msixbundle...", ConsoleColor.Cyan, false);
 
-                Utils.WriteAllText($"{BuildWorkingFolder}\\tools\\msix\\bundle.map", bundleMap.ToString());
+                {
+                    StringBuilder bundleMap = new StringBuilder(0x100);
+                    bundleMap.AppendLine("[Files]");
+                    bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x32.msix\" \"systeminformer-build-package-x32.msix\"");
+                    bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x64.msix\" \"systeminformer-build-package-x64.msix\"");
+                    Utils.WriteAllText($"{BuildWorkingFolder}\\tools\\msix\\bundle.map", bundleMap.ToString());
+                }
 
-                var result = Utils.ExecuteMsixCommand(
+                string result = Utils.ExecuteMsixCommand(
                     $"bundle /f {BuildWorkingFolder}\\tools\\msix\\bundle.map /p {BuildOutputFolder}\\systeminformer-build-package.msixbundle"
                     );
 
-                Program.PrintColorMessage($"{result}", ConsoleColor.DarkGray);
+                if (!result.EndsWith("Bundle creation succeeded.", StringComparison.OrdinalIgnoreCase))
+                {
+                    Program.PrintColorMessage($"{result}", ConsoleColor.Gray);
+                    return false;
+                }
+
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix").ToPrettySize(), ConsoleColor.Green);
             }
 
             if (File.Exists("tools\\msix\\PackageTemplate.appinstaller"))
@@ -1432,6 +1445,8 @@ namespace CustomBuildTool
             Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixPackage32.map");
             Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixPackage64.map");
             Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\bundle.map");
+
+            return true;
         }
 
         public static void CopySourceLink(bool CreateSourceLink)
