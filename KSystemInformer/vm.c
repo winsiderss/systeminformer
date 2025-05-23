@@ -21,8 +21,7 @@
  * \param[out] SectionInformation Populated with the information. This storage
  * must be located in non-paged system-space memory.
  * \param[in] SectionInformationLength Length of the section information.
- * \param[out] ReturnLength Set to the number of bytes written or the required
- * number of bytes if the input length is insufficient.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  *
  * \return Successful or errant status.
  */
@@ -185,13 +184,12 @@ KPH_PAGED_FILE();
  * \brief Copies process or kernel memory into the current process.
  *
  * \param[in] ProcessHandle A handle to a process. The handle must have
- * PROCESS_VM_READ access. This parameter may be NULL if BaseAddress lies above
- * the user-mode range.
+ * PROCESS_VM_READ access. This parameter may be NULL if BaseAddress is a kernel
+ * address.
  * \param[in] BaseAddress The address from which memory is to be copied.
  * \param[out] Buffer A buffer which receives the copied memory.
  * \param[in] BufferSize The number of bytes to copy.
- * \param[out] NumberOfBytesRead A variable which receives the number of bytes
- * copied to the buffer.
+ * \param[out] NumberOfBytesRead Receives the number of bytes written.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -408,8 +406,7 @@ Exit:
  * \param[in] SectionInformationClass Classification of information to query.
  * \param[out] SectionInformation Populated with the requested information.
  * \param[in] SectionInformationLength Length of the information buffer.
- * \param[out] ReturnLength Set to the number of bytes written or the required
- * number of bytes if the input length is insufficient.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -555,8 +552,7 @@ Exit:
  * \param[in] MemoryInformationClass The memory information to retrieve.
  * \param[out] MemoryInformation Populated with the requested information.
  * \param[in] MemoryInformationLength Length of the information buffer.
- * \param[out] ReturnLength Set to the number of bytes written or the required
- * number of bytes if the input length is insufficient.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.

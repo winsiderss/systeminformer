@@ -408,9 +408,8 @@ BOOLEAN KphpEnumerateProcessHandlesCallbck(
  *
  * \param[in] ProcessHandle A handle to a process.
  * \param[out] Buffer The buffer in which the handle information will be stored.
- * \param[in] BufferLength The number of bytes available in \a Buffer.
- * \param[out] ReturnLength A variable which receives the number of bytes
- * required to be available in \a Buffer.
+ * \param[in] BufferLength The number of bytes available in Buffer.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -562,9 +561,8 @@ Exit:
  *
  * \param[in] Object A pointer to an object.
  * \param[out] Buffer The buffer in which the object name will be stored.
- * \param[in] BufferLength The number of bytes available in \a Buffer.
- * \param[out] ReturnLength A variable which receives the number of bytes
- * required to be available in \a Buffer.
+ * \param[in] BufferLength The number of bytes available in Buffer.
+ * \param[out] ReturnLength Receives the number of bytes written.
  *
  * \return Successful or errant status.
  */
@@ -638,9 +636,8 @@ NTSTATUS KphQueryNameObject(
  *
  * \param[in] FileObject A pointer to a file object.
  * \param[out] Buffer The buffer in which the object name will be stored.
- * \param[in] BufferLength The number of bytes available in \a Buffer.
- * \param[out] ReturnLength A variable which receives the number of bytes
- * required to be available in \a Buffer.
+ * \param[in] BufferLength The number of bytes available in Buffer.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  *
  * \return Successful or errant status.
  */
@@ -820,9 +817,8 @@ NTSTATUS KphpExtractNameFileObject(
  *
  * \param[in] FileObject A pointer to a file object.
  * \param[out] Buffer The buffer in which the object name will be stored.
- * \param[in] BufferLength The number of bytes available in \a Buffer.
- * \param[out] ReturnLength A variable which receives the number of bytes
- * required to be available in \a Buffer.
+ * \param[in] BufferLength The number of bytes available in Buffer.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  *
  * \return Successful or errant status.
  */
@@ -895,15 +891,11 @@ Exit:
  * \brief Queries object information.
  *
  * \param[in] ProcessHandle A handle to a process.
- * \param[in] Handle A handle which is present in the process referenced by
- * \a ProcessHandle.
+ * \param[in] Handle A handle which is present in the process.
  * \param[in] ObjectInformationClass The type of information to retrieve.
- * \param[out] ObjectInformation The buffer in which the information will be
- * stored.
- * \param[in] ObjectInformationLength The number of bytes available in \a
- * ObjectInformation.
- * \param[out] ReturnLength A variable which receives the number of bytes
- * required to be available in \a ObjectInformation.
+ * \param[out] ObjectInformation Information buffer to populate.
+ * \param[in] ObjectInformationLength Length of the information buffer in bytes.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -2041,12 +2033,10 @@ Exit:
  * \brief Sets object information.
  *
  * \param[in] ProcessHandle A handle to a process.
- * \param[in] Handle A handle which is present in the process referenced by
- * \a ProcessHandle.
+ * \param[in] Handle A handle which is present in the process.
  * \param[in] ObjectInformationClass The type of information to set.
  * \param[in] ObjectInformation A buffer which contains the information to set.
- * \param[in] ObjectInformationLength The number of bytes present in \a
- * ObjectInformation.
+ * \param[in] ObjectInformationLength Length of the information buffer in bytes.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.

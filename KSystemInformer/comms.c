@@ -716,8 +716,7 @@ VOID KphpSendRequiredStateFailure(
  * \param[in] InputBufferLength Length of the input buffer.
  * \param[out] OutputBuffer Output buffer from client.
  * \param[in] OutputBufferLength Length of the output buffer.
- * \param[out] ReturnOutputBufferLength Set to the number of bytes written to
- * the output buffer.
+ * \param[out] ReturnOutputBufferLength Receives the number of bytes written.
  *
  * \return Successful or errant status.
  */

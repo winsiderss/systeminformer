@@ -21,10 +21,9 @@ KPH_PAGED_FILE();
  *
  * \param[out] ProcessHandle A variable which receives the process handle.
  * \param[in] DesiredAccess The desired access to the process.
- * \param[in] ClientId The identifier of a process or thread. If \a
- * UniqueThread
- * is present, the process of the identified thread will be opened. If
- * \a UniqueProcess is present, the identified process will be opened.
+ * \param[in] ClientId The identifier of a client. UniqueThread is optional.
+ * If UniqueThread is present, the thread of the referenced process will be
+ * checked against this identifier.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -390,9 +389,7 @@ Exit:
  * Terminates a process.
  *
  * \param[in] ProcessHandle A handle to a process.
- * \param[in] ExitStatus A status value which indicates why the process is
- * being terminated.
- * \param[in] Key An access key.
+ * \param[in] ExitStatus A status value initiating why the process terminated.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -505,8 +502,7 @@ Exit:
  * \param[in] ProcessInformationClass Information class to query.
  * \param[out] ProcessInformation Populated with process information by class.
  * \param[in] ProcessInformationLength Length of the process information buffer.
- * \param[out] ReturnLength Number of bytes written or necessary for the
- * information.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.

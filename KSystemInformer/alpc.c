@@ -347,7 +347,7 @@ Exit:
  * \param[in] NameBuffer Preallocated name buffer to use to get the name.
  * \param[in,out] Buffer The space to write the string.
  * \param[in,out] RemainingLength The remaining space to write the string.
- * \param[in,out] ReturnLength The return length, updated even if the string won't fit.
+ * \param[in,out] ReturnLength Updated by number of bytes written or required.
  * \param[out] String The string to populate.
  *
  * \return Successful or errant status.
@@ -415,8 +415,7 @@ NTSTATUS KphpAlpcCopyPortName(
  * \param[in] Port The port to retrieve the names of.
  * \param[out] Info Populated with the name information.
  * \param[in] InfoLength The length of the information buffer.
- * \param[out] ReturnLength Populated with the length of the written information,
- * or the needed length if it is insufficient.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  *
  * \return Successful or errant status.
  */
@@ -566,8 +565,7 @@ Exit:
  * \param[in] AlpcInformationClass Information class to query.
  * \param[out] AlpcInformation Populated with information by ALPC port.
  * \param[in] AlpcInformationLength Length of the ALPC information buffer.
- * \param[out] ReturnLength Number of bytes written or necessary for the
- * information.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.

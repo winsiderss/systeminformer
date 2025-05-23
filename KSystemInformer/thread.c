@@ -21,9 +21,9 @@ KPH_PAGED_FILE();
  *
  * \param[out] ThreadHandle A variable which receives the thread handle.
  * \param[in] DesiredAccess The desired access to the thread.
- * \param[in] ClientId The identifier of a thread. \a UniqueThread must be
- * present. If \a UniqueProcess is present, the process of the referenced
- * thread will be checked against this identifier.
+ * \param[in] ClientId The identifier of a client. UniqueThread must be present.
+ * If UniqueProcess is present, the process of the referenced thread will be
+ * checked against this identifier.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -651,8 +651,7 @@ Exit:
  * \param[in] ThreadInformationClass Information class to query.
  * \param[out] ThreadInformation Populated with thread information by class.
  * \param[in] ThreadInformationLength Length of the thread information buffer.
- * \param[out] ReturnLength Number of bytes written or necessary for the
- * information.
+ * \param[out] ReturnLength Received the number of bytes written or required.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
