@@ -2395,7 +2395,7 @@ KPH_PROCESS_STATE KphGetProcessState(
  * \param[in] InformationClass The information class to query.
  * \param[out] Information Optional buffer to receive the information.
  * \param[in] InformationLength The size of the information buffer.
- * \param[out] ReturnLength Optionally receives the length of the information.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  *
  * \return Successful or errant status.
  */
@@ -2503,7 +2503,7 @@ Exit:
  * \param[in] InformationClass The information class to query.
  * \param[out] Information Optional buffer to receive the information.
  * \param[in] InformationLength The size of the information buffer.
- * \param[out] ReturnLength Optionally receives the length of the information.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  *
  * \return Successful or errant status.
  */
