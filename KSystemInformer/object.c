@@ -654,169 +654,163 @@ NTSTATUS KphpExtractNameFileObject(
     )
 {
     NTSTATUS status;
-    PCHAR objectName;
-    ULONG usedLength;
-    ULONG subNameLength;
-    PFILE_OBJECT relatedFileObject;
+    ULONG returnLength;
+    PFILE_OBJECT fileObject;
+    PUCHAR pos;
+    USHORT len;
 
     KPH_PAGED_CODE_PASSIVE();
 
+    *ReturnLength = 0;
+
+    if (!Buffer && BufferLength)
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
+
     if (FlagOn(FileObject->Flags, FO_CLEANUP_COMPLETE))
     {
-        *ReturnLength = 0;
+        KphTracePrint(TRACE_LEVEL_VERBOSE, GENERAL, "File object closed");
 
         return STATUS_FILE_CLOSED;
     }
 
-    if (Buffer)
-    {
-        if (BufferLength < sizeof(OBJECT_NAME_INFORMATION))
-        {
-            *ReturnLength = sizeof(OBJECT_NAME_INFORMATION);
-
-            return STATUS_BUFFER_TOO_SMALL;
-        }
-
-        //
-        // We will place the object name directly after the UNICODE_STRING
-        // structure in the buffer.
-        //
-        Buffer->Name.Length = 0;
-        Buffer->Name.MaximumLength = (USHORT)(BufferLength - sizeof(OBJECT_NAME_INFORMATION));
-        Buffer->Name.Buffer = (PWSTR)Add2Ptr(Buffer, sizeof(OBJECT_NAME_INFORMATION));
-
-        //
-        // Retain a local pointer to the object name so we can manipulate the
-        // pointer.
-        //
-        objectName = (PCHAR)Buffer->Name.Buffer;
-        usedLength = sizeof(OBJECT_NAME_INFORMATION);
-    }
-    else
-    {
-        objectName = NULL;
-        usedLength = sizeof(OBJECT_NAME_INFORMATION);
-    }
-
-    //
-    // Check if the file object has an associated device (e.g.
-    // "\Device\NamedPipe", "\Device\Mup"). We can use the user-supplied buffer
-    // for this since if the buffer isn't big enough, we can't proceed anyway
-    // (we are going to use the name).
-    //
     if (FileObject->DeviceObject)
     {
-        ULONG returnLength;
+        returnLength = 0;
 
         status = ObQueryNameString(FileObject->DeviceObject,
                                    Buffer,
                                    BufferLength,
                                    &returnLength);
 
-        usedLength = returnLength;
-
         if (NT_SUCCESS(status))
         {
-            NT_ASSERT(objectName && Buffer);
-            //
-            // The UNICODE_STRING in the buffer is now filled in. We will
-            // append to the object name later, so we need to fix the
-            // object name pointer // by adding the length, in bytes, of
-            // the device name string we just got.
-            //
-            objectName += Buffer->Name.Length;
+            NT_ASSERT(Buffer && BufferLength);
+            NT_ASSERT(returnLength >= sizeof(OBJECT_NAME_INFORMATION));
+            NT_ASSERT(Buffer->Name.Buffer == Add2Ptr(Buffer, sizeof(OBJECT_NAME_INFORMATION)));
+        }
+        else if (status == STATUS_INFO_LENGTH_MISMATCH)
+        {
+            NT_ASSERT(returnLength);
         }
         else
         {
-            if (status == STATUS_INFO_LENGTH_MISMATCH)
-            {
-                status = STATUS_BUFFER_TOO_SMALL;
-            }
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "ObQueryNameString failed: %!STATUS!",
+                          status);
+
+            return status;
         }
     }
     else
     {
-        status = STATUS_SUCCESS;
+        if (Buffer && (BufferLength >= sizeof(OBJECT_NAME_INFORMATION)))
+        {
+            Buffer->Name.Length = 0;
+            Buffer->Name.Buffer = Add2Ptr(Buffer, sizeof(OBJECT_NAME_INFORMATION));
+        }
+
+        returnLength = sizeof(OBJECT_NAME_INFORMATION);
     }
 
     //
-    // Check if the file object has a file name component. If not, we can't do
-    // anything else, so we just return the name we have already.
+    // Walk the file object and related objects. This is walking the name in
+    // reverse order. Place the name at the end of the buffer to be moved into
+    // place afterwards. If along the way we exhaust the buffer we'll continue
+    // to calculate the needed length but not write to the buffer.
     //
-    if (!FileObject->FileName.Buffer)
+
+    fileObject = FileObject;
+    pos = Buffer ? Add2Ptr(Buffer, BufferLength) : NULL;
+    len = 0;
+
+    do
     {
-        if (!objectName || (usedLength > BufferLength))
+        //
+        // N.B. There are some drivers that aren't as tidy with their related
+        // file objects (condrv.sys) and leave a dangling pointer. Admittedly
+        // we're doing a "non-blessed" thing by extracting the name like this.
+        // So we sanity check that the pointer is a valid file object to work
+        // around this, it's not perfect but we get value from this routine
+        // for cases where extracting the full name is otherwise impossible.
+        //
+        if ((ObGetObjectType(fileObject) != *IoFileObjectType) ||
+            FlagOn(fileObject->Flags, FO_CLEANUP_COMPLETE))
         {
-            status = STATUS_BUFFER_TOO_SMALL;
+            break;
         }
 
-        *ReturnLength = usedLength;
+        status = RtlULongAdd(returnLength,
+                             fileObject->FileName.Length,
+                             &returnLength);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "RtlULongAdd failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
+        status = RtlUShortAdd(len, fileObject->FileName.Length, &len);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "RtlUShortAdd failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
+        if (Buffer && (returnLength <= BufferLength))
+        {
+            pos -= fileObject->FileName.Length;
+            RtlCopyMemory(pos,
+                          fileObject->FileName.Buffer,
+                          fileObject->FileName.Length);
+        }
+
+        fileObject = fileObject->RelatedFileObject;
+
+    } while (fileObject);
+
+    *ReturnLength = returnLength;
+
+    if (!Buffer || (returnLength > BufferLength))
+    {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    RtlMoveMemory(Add2Ptr(Buffer->Name.Buffer, Buffer->Name.Length), pos, len);
+
+    status = RtlUShortAdd(Buffer->Name.Length, len, &Buffer->Name.Length);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "RtlUShortAdd failed: %!STATUS!",
+                      status);
 
         return status;
     }
 
-    //
-    // The file object has a name. We need to walk up the file object chain
-    // and append the names of the related file objects in reverse order. This
-    // means we need to calculate the total length first.
-    //
-
-    relatedFileObject = FileObject;
-    subNameLength = 0;
-
-    do
+    if ((BufferLength - returnLength) > sizeof(UNICODE_NULL))
     {
-        if (FlagOn(relatedFileObject->Flags, FO_CLEANUP_COMPLETE))
-        {
-            break;
-        }
-
-        subNameLength += relatedFileObject->FileName.Length;
-
-        relatedFileObject = relatedFileObject->RelatedFileObject;
-
-    } while (relatedFileObject);
-
-    usedLength += subNameLength;
-
-    //
-    // Check if we have enough space to write the whole thing.
-    //
-    if (!objectName || (usedLength > BufferLength))
-    {
-        *ReturnLength = usedLength;
-
-        return STATUS_BUFFER_TOO_SMALL;
+        Buffer->Name.Buffer[Buffer->Name.Length / sizeof(WCHAR)] = UNICODE_NULL;
+        returnLength += sizeof(UNICODE_NULL);
     }
 
-    //
-    // We're ready to begin copying the names.
-    // Add the name length because we're copying in reverse order.
-    //
+    NT_ASSERT(returnLength >= sizeof(OBJECT_NAME_INFORMATION));
 
-    objectName += subNameLength;
+    returnLength -= sizeof(OBJECT_NAME_INFORMATION);
 
-    relatedFileObject = FileObject;
+    NT_ASSERT(returnLength <= USHORT_MAX);
 
-    do
-    {
-        if (FlagOn(relatedFileObject->Flags, FO_CLEANUP_COMPLETE))
-        {
-            break;
-        }
-
-        objectName -= relatedFileObject->FileName.Length;
-        RtlCopyMemory(objectName,
-                      relatedFileObject->FileName.Buffer,
-                      relatedFileObject->FileName.Length);
-
-        relatedFileObject = relatedFileObject->RelatedFileObject;
-
-    } while (relatedFileObject);
-
-    Buffer->Name.Length += (USHORT)subNameLength;
-    Buffer->Name.MaximumLength = (USHORT)(BufferLength - sizeof(OBJECT_NAME_INFORMATION));
-    *ReturnLength = usedLength;
+    Buffer->Name.MaximumLength = (USHORT)returnLength;
 
     return STATUS_SUCCESS;
 }
