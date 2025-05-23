@@ -51,8 +51,7 @@ NTSTATUS KphOpenDriver(
  * \param[in] DriverInformationClass Information class to query.
  * \param[out] DriverInformation Populated with driver information by class.
  * \param[in] DriverInformationLength Length of the driver information buffer.
- * \param[out] ReturnLength Number of bytes written or necessary for the
- * information.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
