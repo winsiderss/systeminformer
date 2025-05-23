@@ -953,6 +953,12 @@ PhGetThreadTeb32(
     return status;
 }
 
+/**
+ * Gets a thread's Win32 start address.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param StartAddress A variable which receives the start address of the thread.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetThreadStartAddress(

@@ -1146,7 +1146,7 @@ NTSTATUS PhEnumProcessModules32Ex(
         );
 }
 
-BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
+static BOOLEAN NTAPI PhSetProcessModuleLoadCount32Callback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
     _In_ PVOID AddressOfEntry,
@@ -1200,7 +1200,7 @@ NTSTATUS PhSetProcessModuleLoadCount32(
 
     status = PhpEnumProcessModules32(
         ProcessHandle,
-        PhpSetProcessModuleLoadCount32Callback,
+        PhSetProcessModuleLoadCount32Callback,
         &context,
         NULL
         );

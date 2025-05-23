@@ -49,7 +49,7 @@ BOOLEAN PhColorBoxInitialization(
     wcex.style = CS_GLOBALCLASS | CS_PARENTDC;
     wcex.lpfnWndProc = PhColorBoxWndProc;
     wcex.cbWndExtra = sizeof(PVOID);
-    wcex.hInstance = PhInstanceHandle;
+    wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     wcex.lpszClassName = PH_COLORBOX_CLASSNAME;
 

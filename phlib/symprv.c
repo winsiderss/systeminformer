@@ -2130,7 +2130,7 @@ NTSTATUS PhWalkThreadStack(
     // Determine if the caller specified the current thread.
     if (ClientId)
     {
-        if (ClientId->UniqueThread == NtCurrentTeb()->ClientId.UniqueThread)
+        if (ClientId->UniqueThread == NtCurrentThreadId())
             isCurrentThread = TRUE;
         if (ClientId->UniqueProcess == SYSTEM_IDLE_PROCESS_ID || ClientId->UniqueProcess == SYSTEM_PROCESS_ID)
             isSystemThread = TRUE;
@@ -2143,7 +2143,7 @@ NTSTATUS PhWalkThreadStack(
         }
         else if (NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         {
-            if (basicInfo.ClientId.UniqueThread == NtCurrentTeb()->ClientId.UniqueThread)
+            if (basicInfo.ClientId.UniqueThread == NtCurrentThreadId())
                 isCurrentThread = TRUE;
             if (basicInfo.ClientId.UniqueProcess == SYSTEM_IDLE_PROCESS_ID || basicInfo.ClientId.UniqueProcess == SYSTEM_PROCESS_ID)
                 isSystemThread = TRUE;

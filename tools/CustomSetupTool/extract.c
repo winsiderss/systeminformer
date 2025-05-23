@@ -12,140 +12,114 @@
 #include "setup.h"
 #include "..\thirdparty\miniz\miniz.h"
 
-BOOLEAN SetupUseExistingKsi(
+NTSTATUS SetupUseExistingKsi(
     _In_ PPH_STRING FileName,
     _In_ PVOID Buffer,
     _In_ ULONG BufferLength
     )
 {
-    BOOLEAN result;
+    NTSTATUS status;
     PPH_STRING oldFile;
     PH_HASH_CONTEXT hashContext;
     BYTE inputHash[256 / 8];
     BYTE oldHash[256/ 8];
 
     oldFile = PhConcatStringRefZ(&FileName->sr, L"-old");
+
     if (!PhDoesFileExistWin32(PhGetString(oldFile)))
     {
-        result = FALSE;
+        status = STATUS_OBJECT_NAME_NOT_FOUND;
         goto CleanupExit;
     }
 
-    PhInitializeHash(&hashContext, Sha256HashAlgorithm);
-    PhUpdateHash(&hashContext, Buffer, BufferLength);
-    if (!PhFinalHash(&hashContext, inputHash, ARRAYSIZE(inputHash), NULL))
-    {
-        result = FALSE;
+    if (!NT_SUCCESS(status = PhInitializeHash(&hashContext, Sha256HashAlgorithm)))
         goto CleanupExit;
-    }
-
-    if (!SetupHashFile(oldFile, oldHash))
-    {
-        result = FALSE;
+    if (!NT_SUCCESS(status = PhUpdateHash(&hashContext, Buffer, BufferLength)))
         goto CleanupExit;
-    }
+    if (!NT_SUCCESS(status = PhFinalHash(&hashContext, inputHash, ARRAYSIZE(inputHash), NULL)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = SetupHashFile(oldFile, oldHash)))
+        goto CleanupExit;
 
     if (!RtlEqualMemory(inputHash, oldHash, ARRAYSIZE(inputHash)))
     {
-        result = FALSE;
+        status = STATUS_FAIL_CHECK;
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(PhMoveFileWin32(PhGetString(oldFile), PhGetString(FileName), TRUE)))
-    {
-        result = FALSE;
+    if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(oldFile), PhGetString(FileName), TRUE)))
         goto CleanupExit;
-    }
-
-    result = TRUE;
 
 CleanupExit:
 
     PhClearReference(&oldFile);
 
-    return result;
+    return status;
 }
 
-BOOLEAN SetupUpdateKsi(
+NTSTATUS SetupUpdateKsi(
     _Inout_ PPH_SETUP_CONTEXT Context,
     _In_ PPH_STRING FileName,
     _In_ PVOID Buffer,
     _In_ ULONG BufferLength
     )
 {
-    BOOLEAN result;
+    NTSTATUS status;
     PH_HASH_CONTEXT hashContext;
     BYTE inputHash[256 / 8];
     BYTE existingHash[256/ 8];
     PPH_STRING oldFile = NULL;
 
-    PhInitializeHash(&hashContext, Sha256HashAlgorithm);
-    PhUpdateHash(&hashContext, Buffer, BufferLength);
-    if (!PhFinalHash(&hashContext, inputHash, ARRAYSIZE(inputHash), NULL))
-    {
-        result = FALSE;
+    if (!NT_SUCCESS(status = PhInitializeHash(&hashContext, Sha256HashAlgorithm)))
         goto CleanupExit;
-    }
-
-    if (!SetupHashFile(FileName, existingHash))
-    {
-        result = FALSE;
+    if (!NT_SUCCESS(status = PhUpdateHash(&hashContext, Buffer, BufferLength)))
         goto CleanupExit;
-    }
+    if (!NT_SUCCESS(status = PhFinalHash(&hashContext, inputHash, ARRAYSIZE(inputHash), NULL)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = SetupHashFile(FileName, existingHash)))
+        goto CleanupExit;
 
     if (RtlEqualMemory(inputHash, existingHash, ARRAYSIZE(inputHash)))
     {
-        result = TRUE;
+        status = STATUS_FAIL_CHECK;
         goto CleanupExit;
     }
 
     Context->NeedsReboot = TRUE;
 
     oldFile = PhConcatStringRefZ(&FileName->sr, L"-old");
-
     PhDeleteFileWin32(PhGetString(oldFile));
-    if (!NT_SUCCESS(PhMoveFileWin32(PhGetString(FileName), PhGetString(oldFile), TRUE)))
-    {
-        result = FALSE;
+
+    if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(FileName), PhGetString(oldFile), TRUE)))
         goto CleanupExit;
-    }
 
-    MoveFileExW(PhGetString(oldFile), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
+    MoveFileEx(PhGetString(oldFile), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
 
-    if (!SetupOverwriteFile(FileName, Buffer, BufferLength))
-    {
-        result = FALSE;
+    if (!NT_SUCCESS(status = SetupOverwriteFile(FileName, Buffer, BufferLength)))
         goto CleanupExit;
-    }
-
-    result = TRUE;
 
 CleanupExit:
 
     PhClearReference(&oldFile);
 
-    return result;
+    return status;
 }
 
 USHORT SetupGetCurrentArchitecture(
     VOID
     )
 {
-    static BOOL (WINAPI* IsWow64Process2_I)(
-        _In_ HANDLE ProcessHandle,
-        _Out_ PUSHORT ProcessMachine,
-        _Out_opt_ PUSHORT NativeMachine
-        ) = NULL;
+    static __typeof__(&IsWow64Process2) IsWow64Process_I = NULL;
     USHORT processMachine;
     USHORT nativeMachine;
     SYSTEM_INFO info;
 
-    if (!IsWow64Process2_I)
+    if (!IsWow64Process_I)
     {
-        IsWow64Process2_I = PhGetModuleProcAddress(L"kernel32.dll", "IsWow64Process2");
+        IsWow64Process_I = PhGetModuleProcAddress(L"kernel32.dll", "IsWow64Process2");
     }
 
-    if (IsWow64Process2_I && IsWow64Process2_I(NtCurrentProcess(), &processMachine, &nativeMachine))
+    if (IsWow64Process_I && IsWow64Process_I(NtCurrentProcess(), &processMachine, &nativeMachine))
     {
         switch (nativeMachine)
         {
@@ -176,7 +150,13 @@ NTSTATUS CALLBACK SetupExtractBuild(
     PPH_STRING extractPath = NULL;
     USHORT nativeArchitecture;
 
-    status = PhLoadResource(NtCurrentImageBase(), MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA, &resourceLength, &resourceBuffer);
+    status = PhLoadResource(
+        NtCurrentImageBase(),
+        MAKEINTRESOURCE(IDR_BIN_DATA),
+        RT_RCDATA,
+        &resourceLength,
+        &resourceBuffer
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -328,18 +308,18 @@ NTSTATUS CALLBACK SetupExtractBuild(
 
                 if (PhEndsWithString2(extractPath, L"\\ksi.dll", FALSE))
                 {
-                    if (SetupUseExistingKsi(extractPath, buffer, zipFileBufferLength))
+                    if (NT_SUCCESS(SetupUseExistingKsi(extractPath, buffer, zipFileBufferLength)))
                         break;
-                    if (SetupOverwriteFile(extractPath, buffer, zipFileBufferLength))
+                    if (NT_SUCCESS(SetupOverwriteFile(extractPath, buffer, zipFileBufferLength)))
                         break;
-                    if (SetupUpdateKsi(Context, extractPath, buffer, zipFileBufferLength))
+                    if (NT_SUCCESS(SetupUpdateKsi(Context, extractPath, buffer, zipFileBufferLength)))
                         break;
 
                     updateKsiAttempt = TRUE;
                 }
                 else
                 {
-                    if (SetupOverwriteFile(extractPath, buffer, zipFileBufferLength))
+                    if (NT_SUCCESS(SetupOverwriteFile(extractPath, buffer, zipFileBufferLength)))
                         break;
                 }
 

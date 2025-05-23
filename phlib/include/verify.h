@@ -98,7 +98,7 @@ PhGetSignerNameFromCertificate(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetSystemComponentFromCertificate(
     _In_ PCERT_CONTEXT Certificate

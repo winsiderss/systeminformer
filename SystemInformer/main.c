@@ -71,43 +71,10 @@ INT WINAPI wWinMain(
     }
 
     PhGuiSupportInitialization();
-    PhpInitializeSettings();
 
-    if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
-        !PhStartupParameters.NewInstance &&
-        !PhStartupParameters.ShowOptions &&
-        !PhStartupParameters.PhSvc &&
-        !PhStartupParameters.KphStartupHigh &&
-        !PhStartupParameters.KphStartupMax)
-    {
-        PhActivatePreviousInstance();
-    }
+    PhInitializeAppSettings();
 
-    if (PhGetIntegerSetting(L"EnableStartAsAdmin") &&
-        !PhStartupParameters.NewInstance &&
-        !PhStartupParameters.ShowOptions &&
-        !PhStartupParameters.PhSvc)
-    {
-        if (PhGetOwnTokenAttributes().Elevated)
-        {
-            if (PhGetIntegerSetting(L"EnableStartAsAdminAlwaysOnTop"))
-            {
-                if (NT_SUCCESS(PhRunAsAdminTaskUIAccess()))
-                {
-                    PhActivatePreviousInstance();
-                    PhExitApplication(STATUS_SUCCESS);
-                }
-            }
-        }
-        else
-        {
-            if (SUCCEEDED(PhRunAsAdminTask(&SI_RUNAS_ADMIN_TASK_NAME)))
-            {
-                PhActivatePreviousInstance();
-                PhExitApplication(STATUS_SUCCESS);
-            }
-        }
-    }
+    PhInitializePreviousInstance();
 
     PhInitializeSuperclassControls();
 
@@ -236,7 +203,7 @@ LONG PhMainMessageLoop(
     MSG message;
     HACCEL acceleratorTable;
 
-    acceleratorTable = LoadAccelerators(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND_ACCEL));
+    acceleratorTable = LoadAccelerators(NtCurrentImageBase(), MAKEINTRESOURCE(IDR_MAINWND_ACCEL));
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
@@ -452,6 +419,47 @@ CleanupExit:
     if (processHandle)
     {
         NtClose(processHandle);
+    }
+}
+
+VOID PhInitializePreviousInstance(
+    VOID
+    )
+{
+    if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
+        !PhStartupParameters.NewInstance &&
+        !PhStartupParameters.ShowOptions &&
+        !PhStartupParameters.PhSvc &&
+        !PhStartupParameters.KphStartupHigh &&
+        !PhStartupParameters.KphStartupMax)
+    {
+        PhActivatePreviousInstance();
+    }
+
+    if (PhGetIntegerSetting(L"EnableStartAsAdmin") &&
+        !PhStartupParameters.NewInstance &&
+        !PhStartupParameters.ShowOptions &&
+        !PhStartupParameters.PhSvc)
+    {
+        if (PhGetOwnTokenAttributes().Elevated)
+        {
+            if (PhGetIntegerSetting(L"EnableStartAsAdminAlwaysOnTop"))
+            {
+                if (NT_SUCCESS(PhRunAsAdminTaskUIAccess()))
+                {
+                    PhActivatePreviousInstance();
+                    PhExitApplication(STATUS_SUCCESS);
+                }
+            }
+        }
+        else
+        {
+            if (SUCCEEDED(PhRunAsAdminTask(&SI_RUNAS_ADMIN_TASK_NAME)))
+            {
+                PhActivatePreviousInstance();
+                PhExitApplication(STATUS_SUCCESS);
+            }
+        }
     }
 }
 
@@ -985,23 +993,23 @@ NTSTATUS PhInitializeTimerPolicy(
     return STATUS_SUCCESS;
 }
 
-BOOLEAN PhInitializeAppSystem(
+NTSTATUS PhInitializeAppSystem(
     VOID
     )
 {
     if (!PhProcessProviderInitialization())
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     if (!PhServiceProviderInitialization())
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     if (!PhNetworkProviderInitialization())
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
 
     PhSetHandleClientIdFunction(PhGetClientIdName);
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
-VOID PhpInitializeSettings(
+VOID PhInitializeAppSettings(
     VOID
     )
 {

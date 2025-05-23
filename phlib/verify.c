@@ -53,10 +53,7 @@ static VOID PhpVerifyInitialization(
     PVOID wintrust;
     PVOID crypt32;
 
-    wintrust = PhLoadLibrary(L"wintrust.dll");
-    crypt32 = PhLoadLibrary(L"crypt32.dll");
-
-    if (wintrust)
+    if (wintrust = PhLoadLibrary(L"wintrust.dll"))
     {
         CryptCATAdminCalcHashFromFileHandle = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle", 0);
         CryptCATAdminCalcHashFromFileHandle2 = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle2", 0);
@@ -71,7 +68,7 @@ static VOID PhpVerifyInitialization(
         WinVerifyTrust_I = PhGetDllBaseProcedureAddress(wintrust, "WinVerifyTrust", 0);
     }
 
-    if (crypt32)
+    if (crypt32 = PhLoadLibrary(L"crypt32.dll"))
     {
         CertNameToStr_I = PhGetDllBaseProcedureAddress(crypt32, "CertNameToStrW", 0);
         CertGetEnhancedKeyUsage_I = PhGetDllBaseProcedureAddress(crypt32, "CertGetEnhancedKeyUsage", 0);
@@ -297,8 +294,7 @@ BOOLEAN PhIsChainedToMicrosoft(
     return status;
 }
 
-_Success_(return)
-BOOLEAN PhpGetSignaturesFromStateData(
+NTSTATUS PhpGetSignaturesFromStateData(
     _In_ HANDLE StateData,
     _Out_ PCERT_CONTEXT **Signatures,
     _Out_ PULONG NumberOfSignatures
@@ -317,7 +313,7 @@ BOOLEAN PhpGetSignaturesFromStateData(
     {
         *Signatures = NULL;
         *NumberOfSignatures = 0;
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     }
 
     i = 0;
@@ -352,8 +348,7 @@ BOOLEAN PhpGetSignaturesFromStateData(
 
     *Signatures = signatures;
     *NumberOfSignatures = numberOfSignatures;
-
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 VOID PhpViewSignerInfo(
@@ -441,8 +436,7 @@ VERIFY_RESULT PhpVerifyFile(
     return PhpStatusToVerifyResult(status);
 }
 
-_Success_(return)
-BOOLEAN PhpCalculateFileHash(
+NTSTATUS PhpCalculateFileHash(
     _In_ HANDLE FileHandle,
     _In_opt_ PCWSTR HashAlgorithm,
     _Out_ PUCHAR *FileHash,
@@ -463,12 +457,12 @@ BOOLEAN PhpCalculateFileHash(
     if (CryptCATAdminAcquireContext2)
     {
         if (!CryptCATAdminAcquireContext2(&catAdminHandle, &DriverActionVerify, HashAlgorithm, &strongSigPolicy, 0))
-            return FALSE;
+            return PhGetLastWin32ErrorAsNtStatus();
     }
     else
     {
         if (!CryptCATAdminAcquireContext(&catAdminHandle, &DriverActionVerify, 0))
-            return FALSE;
+            return PhGetLastWin32ErrorAsNtStatus();
     }
 
     fileHashLength = 32;
@@ -485,7 +479,7 @@ BOOLEAN PhpCalculateFileHash(
             {
                 CryptCATAdminReleaseContext(catAdminHandle, 0);
                 PhFree(fileHash);
-                return FALSE;
+                return PhGetLastWin32ErrorAsNtStatus();
             }
         }
     }
@@ -500,7 +494,7 @@ BOOLEAN PhpCalculateFileHash(
             {
                 CryptCATAdminReleaseContext(catAdminHandle, 0);
                 PhFree(fileHash);
-                return FALSE;
+                return PhGetLastWin32ErrorAsNtStatus();
             }
         }
     }
@@ -508,12 +502,10 @@ BOOLEAN PhpCalculateFileHash(
     *FileHash = fileHash;
     *FileHashLength = fileHashLength;
     *CatAdminHandle = catAdminHandle;
-
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
-_Success_(return)
-BOOLEAN PhpVerifyGetHashFromFileHandle(
+NTSTATUS PhpVerifyGetHashFromFileHandle(
     _In_ HANDLE FileHandle,
     _In_opt_ PCWSTR HashAlgorithm,
     _Out_writes_bytes_(HashTagLength) PWSTR HashTagBuffer,
@@ -534,12 +526,15 @@ BOOLEAN PhpVerifyGetHashFromFileHandle(
     if (CryptCATAdminAcquireContext2)
     {
         if (!CryptCATAdminAcquireContext2(&catAdminHandle, &DriverActionVerify, HashAlgorithm, &strongSigPolicy, 0))
-            return FALSE;
+        {
+            if (!CryptCATAdminAcquireContext(&catAdminHandle, &DriverActionVerify, 0))
+                return PhGetLastWin32ErrorAsNtStatus();
+        }
     }
     else
     {
         if (!CryptCATAdminAcquireContext(&catAdminHandle, &DriverActionVerify, 0))
-            return FALSE;
+            return PhGetLastWin32ErrorAsNtStatus();
     }
 
     if (CryptCATAdminCalcHashFromFileHandle2)
@@ -547,7 +542,7 @@ BOOLEAN PhpVerifyGetHashFromFileHandle(
         if (!CryptCATAdminCalcHashFromFileHandle2(catAdminHandle, FileHandle, FileHashLength, FileHashBuffer, 0))
         {
             CryptCATAdminReleaseContext(catAdminHandle, 0);
-            return FALSE;
+            return PhGetLastWin32ErrorAsNtStatus();
         }
     }
     else
@@ -555,19 +550,18 @@ BOOLEAN PhpVerifyGetHashFromFileHandle(
         if (!CryptCATAdminCalcHashFromFileHandle(FileHandle, FileHashLength, FileHashBuffer, 0))
         {
             CryptCATAdminReleaseContext(catAdminHandle, 0);
-            return FALSE;
+            return PhGetLastWin32ErrorAsNtStatus();
         }
     }
 
     if (!PhBufferToHexStringBuffer(FileHashBuffer, *FileHashLength, TRUE, HashTagBuffer, HashTagLength, NULL))
     {
         CryptCATAdminReleaseContext(catAdminHandle, 0);
-        return FALSE;
+        return PhGetLastWin32ErrorAsNtStatus();
     }
 
     *CatAdminHandle = catAdminHandle;
-
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 VERIFY_RESULT PhpVerifyFileFromCatalog(
@@ -611,7 +605,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
             return VrNoSignature;
     }
 
-    if (!PhpVerifyGetHashFromFileHandle(
+    if (!NT_SUCCESS(PhpVerifyGetHashFromFileHandle(
         FileHandle,
         HashAlgorithm,
         fileHashTag,
@@ -619,8 +613,10 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
         fileHash,
         &fileHashLength,
         &catAdminHandle
-        ))
+        )))
+    {
         return VrBadSignature;
+    }
 
     // Search the system catalogs.
 
@@ -777,11 +773,9 @@ VOID PhFreeVerifySignatures(
     _In_ ULONG NumberOfSignatures
     )
 {
-    ULONG i;
-
     if (Signatures)
     {
-        for (i = 0; i < NumberOfSignatures; i++)
+        for (ULONG i = 0; i < NumberOfSignatures; i++)
             CertFreeCertificateContext_I(Signatures[i]);
 
         PhFree(Signatures);
@@ -901,33 +895,26 @@ PPH_STRING PhGetSignerNameFromCertificate(
     return value;
 }
 
-BOOLEAN PhGetSystemComponentFromCertificate(
+NTSTATUS PhGetSystemComponentFromCertificate(
     _In_ PCERT_CONTEXT Certificate
     )
 {
-    BOOLEAN found;
     UCHAR usageBuffer[256];
     ULONG usageLength = sizeof(usageBuffer);
     PCERT_ENHKEY_USAGE usage = (PCERT_ENHKEY_USAGE)usageBuffer;
 
     if (!CertGetEnhancedKeyUsage_I(Certificate, CERT_FIND_EXT_ONLY_ENHKEY_USAGE_FLAG, usage, &usageLength))
-    {
-        assert(FALSE);
-        return FALSE;
-    }
-
-    found = FALSE;
+        return PhGetLastWin32ErrorAsNtStatus();
 
     for (ULONG i = 0; i < usage->cUsageIdentifier; i++)
     {
         if (PhEqualBytesZ(usage->rgpszUsageIdentifier[i], szOID_NT5_CRYPTO, FALSE)) // Windows System Component Verification (dmex)
         {
-            found = TRUE;
-            break;
+            return STATUS_SUCCESS;
         }
     }
 
-    return found;
+    return STATUS_NOT_FOUND;
 }
 
 PH_STRINGREF PhVerifyResultToStringRef(
@@ -1084,6 +1071,7 @@ BOOLEAN PhVerifyFileIsChainedToMicrosoft(
     return result;
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpVerifyCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -1092,16 +1080,19 @@ BOOLEAN PhpVerifyCacheHashtableEqualFunction(
     PPH_VERIFY_CACHE_ENTRY entry1 = Entry1;
     PPH_VERIFY_CACHE_ENTRY entry2 = Entry2;
 
-    return entry1->SequenceNumber == entry2->SequenceNumber && PhEqualString(entry1->FileName, entry2->FileName, FALSE);
+    return entry1->SequenceNumber == entry2->SequenceNumber &&
+        PhEqualString(entry1->FileName, entry2->FileName, FALSE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpVerifyCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
     PPH_VERIFY_CACHE_ENTRY entry = Entry;
 
-    return PhHashInt64(entry->SequenceNumber) ^ PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_XXH32);
+    return PhHashInt64(entry->SequenceNumber) ^
+        PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_XXH32);
 }
 
 VOID PhFlushVerifyCache(
