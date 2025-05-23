@@ -144,6 +144,10 @@ namespace CustomBuildTool
                         else
                             Program.PrintColorMessage($"Failed: ({result}) {Path}", ConsoleColor.Red);
                     }
+                    else
+                    {
+                        return false;
+                    }
                 }
             }
             catch (Exception ex)

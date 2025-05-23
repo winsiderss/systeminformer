@@ -184,7 +184,9 @@ namespace CustomBuildTool
                 if (!Build.CopyTextFiles(flags))
                     Environment.Exit(1);
 
-                Build.BuildStorePackage(flags);
+                if (!Build.BuildStorePackage(flags))
+                    Environment.Exit(1);
+
                 Build.BuildPdbZip(true);
             }
             else if (ProgramArgs.ContainsKey("-sdk"))
@@ -466,7 +468,9 @@ namespace CustomBuildTool
 
             ExecuteBuildSteps(flags, Build.CopyWow64Files, Build.CopyDebugEngineFiles, Build.CopyTextFiles);
 
-            Build.BuildStorePackage(flags);
+            if (!Build.BuildStorePackage(flags))
+                Environment.Exit(1);
+
             Build.BuildPdbZip(true);
         }
 

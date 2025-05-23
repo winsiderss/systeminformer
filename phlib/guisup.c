@@ -45,7 +45,7 @@ ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
     _In_ PVOID Entry
     );
 
-VOID NTAPI PhWindowCallbackHashtableFlsCallback(
+VOID NTAPI PhWindowFlsCallback(
     _In_ PVOID FlsData
     );
 
@@ -103,9 +103,7 @@ VOID PhGuiSupportInitialization(
 {
     PVOID baseAddress;
 
-    //RtlFlsAlloc(PhWindowCallbackHashtableFlsCallback, &WindowCallbackFlsIndex);
-    WindowCallbackFlsIndex = FlsAlloc(PhWindowCallbackHashtableFlsCallback);
-
+    WindowCallbackFlsIndex = FlsAlloc(PhWindowFlsCallback);
     WindowCallbackHashTable = PhCreateHashtable(
         sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
         PhpWindowCallbackHashtableEqualFunction,
@@ -2372,7 +2370,7 @@ ULONG NTAPI PhpWindowContextHashtableHashFunction(
     return PhHashIntPtr((ULONG_PTR)entry->WindowHandle) ^ entry->PropertyHash; // PhHashInt32
 }
 
-VOID NTAPI PhWindowCallbackHashtableFlsCallback(
+VOID NTAPI PhWindowFlsCallback(
     _In_ PVOID FlsData
     )
 {
@@ -2433,6 +2431,7 @@ VOID PhSetWindowContext(
 {
     PH_WINDOW_PROPERTY_CONTEXT entry;
 
+    memset(&entry, 0, sizeof(PH_WINDOW_PROPERTY_CONTEXT));
     entry.WindowHandle = WindowHandle;
     entry.PropertyHash = PropertyHash;
     entry.Context = Context;

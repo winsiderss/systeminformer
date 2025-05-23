@@ -619,10 +619,10 @@ VOID PhQuerySystemTime(
 
     while (TRUE)
     {
-        SystemTime->HighPart = (ULONG)USER_SHARED_DATA->SystemTime.High1Time;
+        SystemTime->HighPart = USER_SHARED_DATA->SystemTime.High1Time;
         SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
 
-        if (SystemTime->HighPart == (ULONG)USER_SHARED_DATA->SystemTime.High2Time)
+        if (SystemTime->HighPart == USER_SHARED_DATA->SystemTime.High2Time)
             break;
 
         YieldProcessor();
@@ -663,10 +663,10 @@ VOID PhQueryTimeZoneBias(
 
     while (TRUE)
     {
-        TimeZoneBias->HighPart = (ULONG)USER_SHARED_DATA->TimeZoneBias.High1Time;
+        TimeZoneBias->HighPart = USER_SHARED_DATA->TimeZoneBias.High1Time;
         TimeZoneBias->LowPart = USER_SHARED_DATA->TimeZoneBias.LowPart;
 
-        if (TimeZoneBias->HighPart == (ULONG)USER_SHARED_DATA->TimeZoneBias.High2Time)
+        if (TimeZoneBias->HighPart == USER_SHARED_DATA->TimeZoneBias.High2Time)
             break;
 
         YieldProcessor();
