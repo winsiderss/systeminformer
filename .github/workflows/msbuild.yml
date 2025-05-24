@@ -13,7 +13,10 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: ['windows-latest', 'windows-11-arm']
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
     - name: Install Nuget Packages
@@ -27,7 +30,10 @@ jobs:
       working-directory: ${{github.workspace}}
       run: build\build_debug.cmd
   build-release:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: ['windows-latest', 'windows-11-arm']
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
     - name: Install Nuget Packages
@@ -41,7 +47,10 @@ jobs:
       working-directory: ${{github.workspace}}
       run: build\build_release.cmd
   build-driver:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: ['windows-latest', 'windows-11-arm']
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
     - name: Install Nuget Packages
@@ -55,7 +64,10 @@ jobs:
       working-directory: ${{github.workspace}}
       run: build\build_zdriver.cmd prefast
   build-driver-release:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: ['windows-latest', 'windows-11-arm']
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
     - name: Install Nuget Packages
