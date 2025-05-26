@@ -324,6 +324,13 @@ VOID PhShowProcessAffinityDialog(
     _In_opt_ PPH_THREAD_ITEM ThreadItem
     );
 
+// CPU Sets
+
+VOID PhShowCpuSetsDialogProcess(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
 // begin_phapppub
 _Success_(return)
 PHAPPAPI
