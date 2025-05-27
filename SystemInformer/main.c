@@ -329,6 +329,7 @@ typedef struct _PHP_PREVIOUS_MAIN_WINDOW_CONTEXT
 {
     HANDLE ProcessId;
     PPH_STRING WindowName;
+    BOOLEAN FoundWindow;
 } PHP_PREVIOUS_MAIN_WINDOW_CONTEXT, *PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT;
 
 static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
@@ -351,6 +352,12 @@ static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
             if (PhEqualStringZ(className, PhGetString(context->WindowName), FALSE))
             {
                 ULONG_PTR result = 0;
+
+                PhTrace(
+                    "Found previous instance window: %ls (%p)",
+                    className,
+                    WindowHandle
+                    );
 
                 SendMessageTimeout(
                     WindowHandle,
@@ -397,7 +404,6 @@ static VOID PhForegroundPreviousInstance(
     {
         PHP_PREVIOUS_MAIN_WINDOW_CONTEXT context;
 
-        memset(&context, 0, sizeof(PHP_PREVIOUS_MAIN_WINDOW_CONTEXT));
         context.ProcessId = ProcessId;
         context.WindowName = PhGetStringSetting(L"MainWindowClassName");
 
@@ -407,6 +413,9 @@ static VOID PhForegroundPreviousInstance(
                 break;
 
             PhEnumWindows(PhPreviousInstanceWindowEnumProc, &context);
+
+            if (!context.FoundWindow)
+                break;
 
             PhDelayExecution(100);
         } while (++attempts < 50);
