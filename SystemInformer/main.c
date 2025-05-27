@@ -329,7 +329,6 @@ typedef struct _PHP_PREVIOUS_MAIN_WINDOW_CONTEXT
 {
     HANDLE ProcessId;
     PPH_STRING WindowName;
-    BOOLEAN FoundWindow;
 } PHP_PREVIOUS_MAIN_WINDOW_CONTEXT, *PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT;
 
 static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
@@ -404,6 +403,7 @@ static VOID PhForegroundPreviousInstance(
     {
         PHP_PREVIOUS_MAIN_WINDOW_CONTEXT context;
 
+        memset(&context, 0, sizeof(PHP_PREVIOUS_MAIN_WINDOW_CONTEXT));
         context.ProcessId = ProcessId;
         context.WindowName = PhGetStringSetting(L"MainWindowClassName");
 
@@ -413,9 +413,6 @@ static VOID PhForegroundPreviousInstance(
                 break;
 
             PhEnumWindows(PhPreviousInstanceWindowEnumProc, &context);
-
-            if (!context.FoundWindow)
-                break;
 
             PhDelayExecution(100);
         } while (++attempts < 50);
