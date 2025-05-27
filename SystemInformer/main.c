@@ -30,6 +30,8 @@
 #include <settings.h>
 #include <srvprv.h>
 
+#include <trace.h>
+
 BOOLEAN PhPluginsEnabled = FALSE;
 BOOLEAN PhPortableEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
@@ -380,6 +382,9 @@ static VOID PhForegroundPreviousInstance(
     HANDLE processHandle = NULL;
     HANDLE tokenHandle = NULL;
     PH_TOKEN_USER tokenUser;
+    ULONG attempts = 0;
+
+    PhTraceFuncEnter("Foreground previous instance: %lu", HandleToUlong(ProcessId));
 
     if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId)))
         goto CleanupExit;
@@ -391,7 +396,6 @@ static VOID PhForegroundPreviousInstance(
     if (PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
     {
         PHP_PREVIOUS_MAIN_WINDOW_CONTEXT context;
-        ULONG attempts = 50;
 
         memset(&context, 0, sizeof(PHP_PREVIOUS_MAIN_WINDOW_CONTEXT));
         context.ProcessId = ProcessId;
@@ -405,7 +409,7 @@ static VOID PhForegroundPreviousInstance(
             PhEnumWindows(PhPreviousInstanceWindowEnumProc, &context);
 
             PhDelayExecution(100);
-        } while (--attempts != 0);
+        } while (++attempts < 50);
 
         PhClearReference(&context.WindowName);
     }
@@ -420,6 +424,12 @@ CleanupExit:
     {
         NtClose(processHandle);
     }
+
+    PhTraceFuncExit(
+        "Foreground previous instance: %lu (%lu attempts)",
+        HandleToUlong(ProcessId),
+        attempts
+        );
 }
 
 VOID PhInitializePreviousInstance(
@@ -467,12 +477,15 @@ VOID PhActivatePreviousInstance(
     VOID
     )
 {
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     HANDLE fileHandle;
     PPH_STRING applicationFileName;
 
+    PhTraceFuncEnter("Activate previous instance");
+
     if (applicationFileName = PhGetApplicationFileName())
     {
-        if (NT_SUCCESS(PhOpenFile(
+        if (NT_SUCCESS(status = PhOpenFile(
             &fileHandle,
             &applicationFileName->sr,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
@@ -484,7 +497,7 @@ VOID PhActivatePreviousInstance(
         {
             PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
 
-            if (NT_SUCCESS(PhGetProcessIdsUsingFile(
+            if (NT_SUCCESS(status = PhGetProcessIdsUsingFile(
                 fileHandle,
                 &processIds
                 )))
@@ -497,7 +510,7 @@ VOID PhActivatePreviousInstance(
                     if (processId == NtCurrentProcessId())
                         continue;
 
-                    if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(processId, &fileName)))
+                    if (NT_SUCCESS(status = PhGetProcessImageFileNameByProcessId(processId, &fileName)))
                     {
                         if (PhEqualString(applicationFileName, fileName, TRUE))
                         {
@@ -516,6 +529,8 @@ VOID PhActivatePreviousInstance(
 
         PhDereferenceObject(applicationFileName);
     }
+
+    PhTraceFuncExit("Activate previous instance: %!STATUS!", status);
 }
 
 VOID PhInitializeCommonControls(
