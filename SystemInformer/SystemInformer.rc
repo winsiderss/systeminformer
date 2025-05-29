@@ -26,18 +26,18 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\r\n"
     "#include ""include/phappres.h""\0"
 END
 
-3 TEXTINCLUDE
+3 TEXTINCLUDE 
 BEGIN
     "\0"
 END
@@ -609,6 +609,21 @@ BEGIN
     PUSHBUTTON      "Select all",IDC_SELECTALL,7,206,50,14
     PUSHBUTTON      "Deselect all",IDC_DESELECTALL,60,206,50,14
     COMBOBOX        IDC_GROUPCPU,220,4,52,30,CBS_DROPDOWNLIST | CBS_SORT | NOT WS_VISIBLE | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_CPUSETS DIALOGEX 0, 0, 368, 244
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "CPU Sets"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "CPU Sets provide a way to declare CPU affinity in a soft manner that is compatible with OS power management, and to reaffinitize all background threads in the process to a subset of processors to avoid interference from OS threads within the process.",IDC_STATIC,6,6,339,23
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,6,35,357,174
+    PUSHBUTTON      "Cancel",IDCANCEL,261,219,50,14
+    DEFPUSHBUTTON   "OK",IDOK,314,219,50,14
+    PUSHBUTTON      "Select all",IDC_SELECTALL,6,219,50,14
+    PUSHBUTTON      "Unselect all",IDC_DESELECTALL,59,219,50,14
+    CONTROL         "When all are unselected, all CPU Sets may be used",IDC_STATIC,
+                    "Static",SS_SIMPLE | SS_WORDELLIPSIS | WS_GROUP,8,234,154,8
 END
 
 IDD_SYSINFO DIALOGEX 0, 0, 423, 247
@@ -1799,6 +1814,11 @@ BEGIN
         BOTTOMMARGIN, 220
     END
 
+    IDD_CPUSETS, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 4
+    END
+
     IDD_SYSINFO, DIALOG
     BEGIN
     END
@@ -2187,7 +2207,6 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 253
         TOPMARGIN, 7
-        BOTTOMMARGIN, 253
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2234,6 +2253,7 @@ BEGIN
     VK_F11,         IDC_MAXSCREEN,          VIRTKEY, NOINVERT
 END
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
@@ -2242,6 +2262,17 @@ END
 IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
 
 IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_CPUSETS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

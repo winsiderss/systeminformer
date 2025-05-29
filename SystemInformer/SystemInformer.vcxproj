@@ -230,6 +230,7 @@
     <ClCompile Include="chproc.c" />
     <ClCompile Include="colmgr.c" />
     <ClCompile Include="colsetmgr.c" />
+    <ClCompile Include="cpuset.c" />
     <ClCompile Include="dbgcon.c" />
     <ClCompile Include="delayhook.c" />
     <ClCompile Include="delayload.c" />

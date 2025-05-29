@@ -2032,12 +2032,14 @@ PCPH_STRINGREF PhGetHybridProcessorType(
  *
  * This function determines whether a specific logical processor in the system
  * is parked, meaning it is temporarily unavailable for the thread scheduler.
- * It utilizes CPU sets functionality available starting with Windows 10.
+ * It uses CPU Sets functionality available starting with Windows 10.
  *
  * \param[in] ProcessorIndex The index of the logical processor to check.
  *
  * \return TRUE if the specified logical processor is parked, FALSE otherwise or
  * in case of failure.
+ *
+ * \todo Use PhEnumerateSystemCpuSets()
  */
 BOOLEAN PhIsCoreParked(
     _In_ ULONG ProcessorIndex

@@ -909,6 +909,9 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_DEBUG, L"De&bug", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
+    if (WindowsVersion >= WINDOWS_10) {
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_CPU_SETS, L"&CPU Sets", NULL, NULL), ULONG_MAX);
+    }
 
     menuItem = PhCreateEMenuItem(0, ID_PROCESS_PRIORITY, L"&Priority", NULL, NULL);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, NULL), ULONG_MAX);

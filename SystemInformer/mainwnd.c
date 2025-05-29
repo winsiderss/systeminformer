@@ -1664,6 +1664,18 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_PROCESS_CPU_SETS:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhShowCpuSetsDialogProcess(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
     case ID_MISCELLANEOUS_ACTIVITY:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
