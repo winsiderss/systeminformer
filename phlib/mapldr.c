@@ -1084,7 +1084,7 @@ PVOID PhGetDllBaseProcedureAddress(
         ProcedureNumber
         );
 
-    if (exportSuppressionEnabled)
+    if (exportAddress && exportSuppressionEnabled)
     {
         PIMAGE_LOAD_CONFIG_DIRECTORY configDirectory;
 
@@ -1497,13 +1497,13 @@ PVOID PhGetLoaderEntryImageExportFunction(
             {
                 CHAR libraryFunctionName[DOS_MAX_PATH_LENGTH] = "";
 
-                if (!PhConvertUtf16ToUtf8Buffer(
+                if (!NT_SUCCESS(PhConvertUtf16ToUtf8Buffer(
                     libraryFunctionName,
                     sizeof(libraryFunctionName),
                     NULL,
                     dllProcedureRef.Buffer,
                     dllProcedureRef.Length
-                    ))
+                    )))
                 {
                     return NULL;
                 }
@@ -2568,7 +2568,7 @@ NTSTATUS PhLoaderEntryLoadDll(
     }
 
     imageBaseAddress = NULL;
- 
+
     status = PhMapViewOfSection(
         sectionHandle,
         NtCurrentProcess(),
