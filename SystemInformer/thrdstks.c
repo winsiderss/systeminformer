@@ -1024,6 +1024,7 @@ VOID PhpThreadStacksRestructureNodesWithSearch(
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpThreadStacksSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -1798,6 +1799,7 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpThreadStacksDialogThreadStart(
     _In_ PVOID Parameter
     )
