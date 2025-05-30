@@ -875,6 +875,12 @@ VOID PhShowThreadStacksDialog(
     _In_ HWND ParentWindowHandle
     );
 
+// userslist
+
+VOID PhShowUserListDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
 // tokprp
 
 PPH_STRING PhGetGroupAttributesString(

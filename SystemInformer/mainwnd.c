@@ -1186,6 +1186,11 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_TOOLS_USER_LIST:
+        {
+            PhShowUserListDialog(WindowHandle);
+        }
+        break;
     case ID_TOOLS_THREADSTACKS:
         {
             PhShowThreadStacksDialog(WindowHandle);
@@ -3125,6 +3130,9 @@ PPH_EMENU PhpCreateUsersMenu(
     }
 
     PhUiCreateSessionMenu(UsersMenu);
+
+    PhInsertEMenuItem(UsersMenu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(UsersMenu, PhCreateEMenuItem(PhGetOwnTokenAttributes().Elevated ? 0 : PH_EMENU_DISABLED, ID_TOOLS_USER_LIST, L"User list...", NULL, NULL), ULONG_MAX);
 
     return UsersMenu;
 }

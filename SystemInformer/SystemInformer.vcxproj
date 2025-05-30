@@ -327,6 +327,7 @@
     <ClCompile Include="thrdstk.c" />
     <ClCompile Include="thrdstks.c" />
     <ClCompile Include="tokprp.c" />
+    <ClCompile Include="usrlist.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\actions.h" />
