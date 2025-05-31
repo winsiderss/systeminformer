@@ -7843,7 +7843,6 @@ HANDLE PhGetNamespaceHandle(
 
     if (PhBeginInitOnce(&initOnce))
     {
-#ifdef DEBUG
         UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x80];
         PSID administratorsSid = PhSeAdministratorsSid();
         UNICODE_STRING objectName;
@@ -7887,7 +7886,6 @@ HANDLE PhGetNamespaceHandle(
         assert(RtlValidSecurityDescriptor(securityDescriptor));
         assert(sdAllocationLength < sizeof(securityDescriptorBuffer));
         assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
-#endif
         PhEndInitOnce(&initOnce);
     }
 

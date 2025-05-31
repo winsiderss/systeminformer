@@ -61,6 +61,8 @@ INT WINAPI wWinMain(
         return 1;
     if (!NT_SUCCESS(PhInitializeExceptionPolicy()))
         return 1;
+    if (!NT_SUCCESS(PhInitializeNamespacePolicy()))
+        return 1;
     if (!NT_SUCCESS(PhInitializeComPolicy()))
         return 1;
 
@@ -385,6 +387,7 @@ static VOID PhForegroundPreviousInstance(
     _In_ HANDLE ProcessId
     )
 {
+    PHP_PREVIOUS_MAIN_WINDOW_CONTEXT context;
     HANDLE processHandle = NULL;
     HANDLE tokenHandle = NULL;
     PH_TOKEN_USER tokenUser;
@@ -392,35 +395,30 @@ static VOID PhForegroundPreviousInstance(
 
     PhTraceFuncEnter("Foreground previous instance: %lu", HandleToUlong(ProcessId));
 
+    memset(&context, 0, sizeof(PHP_PREVIOUS_MAIN_WINDOW_CONTEXT));
+    context.ProcessId = ProcessId;
+    context.WindowName = PhGetStringSetting(L"MainWindowClassName");
+
+    if (PhIsNullOrEmptyString(context.WindowName))
+        goto CleanupExit;
     if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId)))
         goto CleanupExit;
     if (!NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
         goto CleanupExit;
     if (!NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
         goto CleanupExit;
+    if (!PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
+        goto CleanupExit;
 
-    if (PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
+    // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
+    do
     {
-        PHP_PREVIOUS_MAIN_WINDOW_CONTEXT context;
-
-        memset(&context, 0, sizeof(PHP_PREVIOUS_MAIN_WINDOW_CONTEXT));
-        context.ProcessId = ProcessId;
-        context.WindowName = PhGetStringSetting(L"MainWindowClassName");
-
-        do
-        {
-            if (PhIsNullOrEmptyString(context.WindowName))
-                break;
-
-            PhEnumWindows(PhPreviousInstanceWindowEnumProc, &context);
-
-            PhDelayExecution(100);
-        } while (++attempts < 50);
-
-        PhClearReference(&context.WindowName);
-    }
+        PhEnumWindows(PhPreviousInstanceWindowEnumProc, &context);
+        PhDelayExecution(100);
+    } while (++attempts < 50);
 
 CleanupExit:
+
     if (tokenHandle)
     {
         NtClose(tokenHandle);
@@ -430,6 +428,8 @@ CleanupExit:
     {
         NtClose(processHandle);
     }
+
+    PhClearReference(&context.WindowName);
 
     PhTraceFuncExit(
         "Foreground previous instance: %lu (%lu attempts)",
@@ -479,62 +479,111 @@ VOID PhInitializePreviousInstance(
     }
 }
 
+BOOLEAN NTAPI PhpPreviousInstancesCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PPH_STRINGREF Name,
+    _In_ PPH_STRINGREF TypeName,
+    _In_ PVOID Context
+    )
+{
+    static CONST PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"SiMutant_");
+    HANDLE objectHandle;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    MUTANT_OWNER_INFORMATION objectInfo;
+
+    if (!PhStartsWithStringRef(Name, &objectNameSr, FALSE))
+        return TRUE;
+    if (!PhStringRefToUnicodeString(Name, &objectName))
+        return TRUE;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        RootDirectory,
+        NULL
+        );
+
+    if (!NT_SUCCESS(NtOpenMutant(
+        &objectHandle,
+        MUTANT_QUERY_STATE,
+        &objectAttributes
+        )))
+    {
+        return TRUE;
+    }
+
+    if (NT_SUCCESS(PhGetMutantOwnerInformation(
+        objectHandle,
+        &objectInfo
+        )))
+    {
+        if (objectInfo.ClientId.UniqueProcess != NtCurrentProcessId())
+            PhForegroundPreviousInstance(objectInfo.ClientId.UniqueProcess);
+    }
+
+    return TRUE;
+}
+
 VOID PhActivatePreviousInstance(
     VOID
     )
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
-    HANDLE fileHandle;
-    PPH_STRING applicationFileName;
+    //HANDLE fileHandle;
+    //PPH_STRING applicationFileName;
 
     PhTraceFuncEnter("Activate previous instance");
 
-    if (applicationFileName = PhGetApplicationFileName())
-    {
-        if (NT_SUCCESS(status = PhOpenFile(
-            &fileHandle,
-            &applicationFileName->sr,
-            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-            NULL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-            NULL
-            )))
-        {
-            PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
+    status = PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
 
-            if (NT_SUCCESS(status = PhGetProcessIdsUsingFile(
-                fileHandle,
-                &processIds
-                )))
-            {
-                for (ULONG i = 0; i < processIds->NumberOfProcessIdsInList; i++)
-                {
-                    HANDLE processId = processIds->ProcessIdList[i];
-                    PPH_STRING fileName;
+    //if (applicationFileName = PhGetApplicationFileName())
+    //{
+    //    if (NT_SUCCESS(status = PhOpenFile(
+    //        &fileHandle,
+    //        &applicationFileName->sr,
+    //        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+    //        NULL,
+    //        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+    //        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+    //        NULL
+    //        )))
+    //    {
+    //        PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
 
-                    if (processId == NtCurrentProcessId())
-                        continue;
+    //        if (NT_SUCCESS(status = PhGetProcessIdsUsingFile(
+    //            fileHandle,
+    //            &processIds
+    //            )))
+    //        {
+    //            for (ULONG i = 0; i < processIds->NumberOfProcessIdsInList; i++)
+    //            {
+    //                HANDLE processId = processIds->ProcessIdList[i];
+    //                PPH_STRING fileName;
 
-                    if (NT_SUCCESS(status = PhGetProcessImageFileNameByProcessId(processId, &fileName)))
-                    {
-                        if (PhEqualString(applicationFileName, fileName, TRUE))
-                        {
-                            PhForegroundPreviousInstance(processId);
-                        }
+    //                if (processId == NtCurrentProcessId())
+    //                    continue;
 
-                        PhDereferenceObject(fileName);
-                    }
-                }
+    //                if (NT_SUCCESS(status = PhGetProcessImageFileNameByProcessId(processId, &fileName)))
+    //                {
+    //                    if (PhEqualString(applicationFileName, fileName, TRUE))
+    //                    {
+    //                        PhForegroundPreviousInstance(processId);
+    //                    }
 
-                PhFree(processIds);
-            }
+    //                    PhDereferenceObject(fileName);
+    //                }
+    //            }
 
-            NtClose(fileHandle);
-        }
+    //            PhFree(processIds);
+    //        }
 
-        PhDereferenceObject(applicationFileName);
-    }
+    //        NtClose(fileHandle);
+    //    }
+
+    //    PhDereferenceObject(applicationFileName);
+    //}
 
     PhTraceFuncExit("Activate previous instance: %!STATUS!", status);
 }
@@ -862,6 +911,56 @@ NTSTATUS PhInitializeExceptionPolicy(
     PhSetProcessErrorMode(NtCurrentProcess(), 0);
 #endif
     SetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhInitializeNamespacePolicy(
+    VOID
+    )
+{
+    HANDLE mutantHandle;
+    SIZE_T returnLength;
+    WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING objectNameUs;
+    PH_STRINGREF objectNameSr;
+    PH_FORMAT format[2];
+
+    PhInitFormatS(&format[0], L"SiMutant_");
+    PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
+
+    if (!PhFormatToBuffer(
+        format,
+        RTL_NUMBER_OF(format),
+        formatBuffer,
+        sizeof(formatBuffer),
+        &returnLength
+        ))
+    {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+    objectNameSr.Buffer = formatBuffer;
+
+    if (!PhStringRefToUnicodeString(&objectNameSr, &objectNameUs))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectNameUs,
+        OBJ_CASE_INSENSITIVE,
+        PhGetNamespaceHandle(),
+        NULL
+        );
+
+    NtCreateMutant(
+        &mutantHandle,
+        MUTANT_QUERY_STATE,
+        &objectAttributes,
+        TRUE
+        );
 
     return STATUS_SUCCESS;
 }

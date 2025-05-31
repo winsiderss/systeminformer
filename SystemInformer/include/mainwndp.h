@@ -158,6 +158,10 @@ NTSTATUS PhInitializeExceptionPolicy(
     VOID
     );
 
+NTSTATUS PhInitializeNamespacePolicy(
+    VOID
+    );
+
 NTSTATUS PhInitializeMitigationPolicy(
     VOID
     );
