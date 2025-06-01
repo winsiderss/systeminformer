@@ -61,7 +61,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
     PhpAddIntegerSetting(L"EnableServiceProgressDialog", L"1");
     PhpAddIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger", L"1");
-    PhpAddIntegerSetting(L"EnableStage2", L"0");
+    PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableStreamerMode", L"0");
     PhpAddIntegerSetting(L"EnableStartAsAdmin", L"0");
     PhpAddIntegerSetting(L"EnableStartAsAdminAlwaysOnTop", L"0");
