@@ -349,6 +349,10 @@ NTSTATUS PhGetProcessSectionFileName(
 {
     NTSTATUS status;
     PVOID baseAddress;
+    SIZE_T viewSize;
+
+    baseAddress = NULL;
+    viewSize = PAGE_SIZE;
 
     status = PhMapViewOfSection(
         SectionHandle,
@@ -356,7 +360,7 @@ NTSTATUS PhGetProcessSectionFileName(
         &baseAddress,
         0,
         NULL,
-        PAGE_SIZE,
+        &viewSize,
         ViewUnmap,
         0,
         PAGE_READONLY
@@ -7162,6 +7166,7 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
     OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING objectName;
     PVOID baseAddress;
+    SIZE_T viewSize;
     PPH_STRING fileName;
 
     if (!PhStringRefToUnicodeString(Name, &objectName))
@@ -7184,13 +7189,16 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
     if (!NT_SUCCESS(status))
         return TRUE;
 
+    baseAddress = NULL;
+    viewSize = PAGE_SIZE;
+
     status = PhMapViewOfSection(
         sectionHandle,
         NtCurrentProcess(),
         &baseAddress,
         0,
         NULL,
-        PAGE_SIZE,
+        &viewSize,
         ViewUnmap,
         WindowsVersion < WINDOWS_10_RS2 ? 0 : MEM_MAPPED,
         PAGE_READONLY

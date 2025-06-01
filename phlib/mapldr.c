@@ -209,6 +209,7 @@ NTSTATUS PhLoadLibraryAsResource(
     NTSTATUS status;
     HANDLE sectionHandle;
     PVOID imageBaseAddress;
+    SIZE_T imageBaseSize;
 
     status = PhCreateSection(
         &sectionHandle,
@@ -222,6 +223,9 @@ NTSTATUS PhLoadLibraryAsResource(
     if (!NT_SUCCESS(status))
         return status;
 
+    imageBaseAddress = NULL;
+    imageBaseSize = 0;
+
     NtSuppressDebugMessage(TRUE);
 
     status = PhMapViewOfSection(
@@ -230,7 +234,7 @@ NTSTATUS PhLoadLibraryAsResource(
         &imageBaseAddress,
         0,
         NULL,
-        0,
+        &imageBaseSize,
         ViewUnmap,
         WindowsVersion < WINDOWS_10_RS2 ? 0 : MEM_MAPPED,
         PAGE_READONLY
@@ -2529,6 +2533,7 @@ NTSTATUS PhLoaderEntryLoadDll(
     HANDLE fileHandle;
     HANDLE sectionHandle;
     PVOID imageBaseAddress;
+    SIZE_T imageBaseSize;
 
     status = PhCreateFile(
         &fileHandle,
@@ -2568,6 +2573,7 @@ NTSTATUS PhLoaderEntryLoadDll(
     }
 
     imageBaseAddress = NULL;
+    imageBaseSize = 0;
 
     status = PhMapViewOfSection(
         sectionHandle,
@@ -2575,7 +2581,7 @@ NTSTATUS PhLoaderEntryLoadDll(
         &imageBaseAddress,
         0,
         NULL,
-        0,
+        &imageBaseSize,
         ViewUnmap,
         0,
         PAGE_EXECUTE

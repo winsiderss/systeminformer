@@ -275,7 +275,7 @@ VOID PhShowHandleObjectProperties1(
                     &viewBase,
                     0,
                     NULL,
-                    viewSize,
+                    &viewSize,
                     ViewUnmap,
                     0,
                     readOnly ? PAGE_READONLY : PAGE_READWRITE
@@ -283,13 +283,16 @@ VOID PhShowHandleObjectProperties1(
 
                 if (status == STATUS_SECTION_PROTECTION && !readOnly)
                 {
+                    viewSize = PH_MAX_SECTION_EDIT_SIZE;
+                    viewBase = NULL;
+
                     status = PhMapViewOfSection(
                         handle,
                         NtCurrentProcess(),
                         &viewBase,
                         0,
                         NULL,
-                        viewSize,
+                        &viewSize,
                         ViewUnmap,
                         0,
                         PAGE_READONLY

@@ -260,7 +260,7 @@ NTSTATUS PhLoadMappedImageHeaderPageSize(
         &viewBase,
         0,
         NULL,
-        viewSize,
+        &viewSize,
         ViewUnmap,
         0,
         PAGE_READONLY
@@ -359,7 +359,7 @@ NTSTATUS PhMapViewOfEntireFile(
         &viewBase,
         0,
         NULL,
-        viewSize,
+        &viewSize,
         ViewUnmap,
         0,
         PAGE_READONLY
@@ -446,7 +446,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
         &viewBase,
         0,
         NULL,
-        viewSize,
+        &viewSize,
         ViewUnmap,
         0,
         PAGE_READONLY

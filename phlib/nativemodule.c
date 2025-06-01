@@ -109,10 +109,10 @@ NTSTATUS PhCreateSection(
 NTSTATUS PhMapViewOfSection(
     _In_ HANDLE SectionHandle,
     _In_ HANDLE ProcessHandle,
-    _Out_ PVOID* BaseAddress,
+    _Inout_ _At_(*BaseAddress, _Readable_bytes_(*ViewSize) _Writable_bytes_(*ViewSize) _Post_readable_byte_size_(*ViewSize)) PVOID *BaseAddress,
     _In_ SIZE_T CommitSize,
     _In_opt_ PLARGE_INTEGER SectionOffset,
-    _In_ SIZE_T ViewSize,
+    _Inout_ PSIZE_T ViewSize,
     _In_ SECTION_INHERIT InheritDisposition,
     _In_ ULONG AllocationType,
     _In_ ULONG PageProtection
@@ -120,7 +120,7 @@ NTSTATUS PhMapViewOfSection(
 {
     NTSTATUS status;
     PVOID baseAddress = *BaseAddress;
-    SIZE_T viewSize = ViewSize;
+    SIZE_T viewSize = *ViewSize;
 
     //if (WindowsVersion >= WINDOWS_10_RS5)
     //{
@@ -167,10 +167,12 @@ NTSTATUS PhMapViewOfSection(
     if (NT_SUCCESS(status))
     {
         *BaseAddress = baseAddress;
+        *ViewSize = viewSize;
     }
     else
     {
         *BaseAddress = NULL;
+        *ViewSize = 0;
     }
 
     return status;
@@ -1395,7 +1397,7 @@ static VOID PhpRtlModulesExToGenericModules(
             continue;
 
         PhAddEntryHashtable(BaseAddressHashtable, &baseAddress);
-        
+
         RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
         moduleInfo.Type = PhGetRtlModuleType(baseAddress);
         moduleInfo.BaseAddress = baseAddress;

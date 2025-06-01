@@ -879,7 +879,7 @@ NTSTATUS PhGetSectionFileName(
         &viewBase,
         0,
         NULL,
-        viewSize,
+        &viewSize,
         ViewUnmap,
         WindowsVersion >= WINDOWS_10_RS2 ? MEM_MAPPED : 0,
         PAGE_READONLY

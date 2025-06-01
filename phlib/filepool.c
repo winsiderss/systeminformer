@@ -759,7 +759,7 @@ NTSTATUS PhFppMapRange(
         &baseAddress,
         viewSize,
         &sectionOffset,
-        viewSize,
+        &viewSize,
         ViewUnmap,
         0,
         !Pool->ReadOnly ? PAGE_READWRITE : PAGE_READONLY
