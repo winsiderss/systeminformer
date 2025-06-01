@@ -375,6 +375,8 @@ VOID PhpUserListRefresh(
     NTSTATUS status;
     ULONG logonSessionCount;
     PLUID logonSessionList;
+    PH_FORMAT format[2];
+    PPH_STRING message;
 
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
@@ -400,6 +402,14 @@ VOID PhpUserListRefresh(
 
         LsaFreeReturnBuffer_I(logonSessionList);
     }
+
+    PhInitFormatS(&format[0], L"Number of users: ");
+    PhInitFormatU(&format[1], Context->NodeList->Count);
+    message = PhFormat(format, 2, 10);
+
+    SetWindowText(Context->MessageHandle, message->Buffer);
+
+    PhDereferenceObject(message);
 
     TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
