@@ -779,7 +779,8 @@ NTSTATUS KsiGetDynData(
     _Out_ PULONG SignatureLength
     )
 {
-    static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"ksidyn.bin");
+    static CONST PH_STRINGREF dataFileName = PH_STRINGREF_INIT(L"ksidyn.bin");
+    static CONST PH_STRINGREF sigFileName = PH_STRINGREF_INIT(L"ksidyn.sig");
     NTSTATUS status;
     PBYTE data = NULL;
     ULONG dataLength;
@@ -793,7 +794,7 @@ NTSTATUS KsiGetDynData(
     *Signature = NULL;
     *SignatureLength = 0;
 
-    status = KsiReadConfiguration(&fileName, &data, &dataLength);
+    status = KsiReadConfiguration(&dataFileName, &data, &dataLength);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -801,7 +802,7 @@ NTSTATUS KsiGetDynData(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = KsiReadConfiguration(&fileName, &sig, &sigLength);
+    status = KsiReadConfiguration(&sigFileName, &sig, &sigLength);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
