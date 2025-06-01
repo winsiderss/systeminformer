@@ -2673,7 +2673,7 @@ PPH_STRING PhGetFileVersionInfoString2(
     PVS_VERSION_INFO_STRUCT32 blockLangInfo;
     PVS_VERSION_INFO_STRUCT32 stringNameBlockInfo;
     NTSTATUS status;
-    PWSTR stringNameBlockValue;
+    PVOID stringNameBlockValue;
     PPH_STRING string;
     SIZE_T returnLength;
     PH_FORMAT format[3];
@@ -2716,18 +2716,31 @@ PPH_STRING PhGetFileVersionInfoString2(
     if (!NT_SUCCESS(status))
         return NULL;
 
-    if ((stringNameBlockInfo->ValueLength & 1) || stringNameBlockInfo->ValueLength <= sizeof(UNICODE_NULL)) // validate the string length
-        return NULL;
     if (!(stringNameBlockValue = PhGetFileVersionInfoValue(stringNameBlockInfo)))
         return NULL;
 
-    string = PhCreateString(stringNameBlockValue);
+    if ((LangCodePage & 0xffff) == 65001) // UTF-8
+    {
+        string = PhConvertUtf8ToUtf16Ex(
+            stringNameBlockValue,
+            strnlen(stringNameBlockValue, stringNameBlockInfo->ValueLength)
+            );
+    }
+    else if ((LangCodePage & 0xffff) == 1200) // UTF-16
+    {
+        string = PhCreateStringZ2(
+            stringNameBlockValue,
+            stringNameBlockInfo->ValueLength * 2
+            );
+    }
+    else
+    {
+        // validate the string length
+        if ((stringNameBlockInfo->ValueLength & 1) || (stringNameBlockInfo->ValueLength < sizeof(UNICODE_NULL)))
+            return NULL;
 
-    //string = PhCreateStringEx(
-    //    stringNameBlockValue,
-    //    stringNameBlockInfo->ValueLength * sizeof(WCHAR) - sizeof(UNICODE_NULL)
-    //    );
-    //PhTrimToNullTerminatorString(string); // length may include the null terminator.
+        string = PhCreateStringZ2(stringNameBlockValue, stringNameBlockInfo->ValueLength);
+    }
 
     return string;
 }
@@ -2746,6 +2759,14 @@ PPH_STRING PhGetFileVersionInfoStringEx(
 
     // Use the windows-1252 code page.
     if (string = PhGetFileVersionInfoString2(VersionInfo, (LangCodePage & 0xffff0000) + 1252, KeyName))
+        return string;
+
+    // Use the UTF-16 code page.
+    if (string = PhGetFileVersionInfoString2(VersionInfo, (LangCodePage & 0xffff0000) + 1200, KeyName))
+        return string;
+
+    // Use the UTF-8 code page.
+    if (string = PhGetFileVersionInfoString2(VersionInfo, (LangCodePage & 0xffff0000) + 65001, KeyName))
         return string;
 
     // Use the default language (US English).
