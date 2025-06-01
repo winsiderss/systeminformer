@@ -2716,7 +2716,7 @@ PPH_STRING PhGetFileVersionInfoString2(
     if (!NT_SUCCESS(status))
         return NULL;
 
-    if (!(stringNameBlockInfo->ValueLength & 1) || stringNameBlockInfo->ValueLength <= sizeof(UNICODE_NULL)) // validate the string length
+    if ((stringNameBlockInfo->ValueLength & 1) || stringNameBlockInfo->ValueLength <= sizeof(UNICODE_NULL)) // validate the string length
         return NULL;
     if (!(stringNameBlockValue = PhGetFileVersionInfoValue(stringNameBlockInfo)))
         return NULL;
@@ -6674,7 +6674,7 @@ NTSTATUS PhIsExecutablePacked(
     for (i = 0; i < limitNumberOfSections; i++)
     {
         WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
-    
+
         if (NT_SUCCESS(PhGetMappedImageSectionName(
             &mappedImage.Sections[i],
             sectionName,
@@ -8084,7 +8084,7 @@ NTSTATUS PhFileReadAllTextWin32(
         );
 
     if (NT_SUCCESS(status))
-    {        
+    {
         status = PhGetFileText(
             String,
             fileHandle,
