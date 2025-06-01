@@ -81,7 +81,7 @@ NTSTATUS SetupUpdateKsi(
 
     if (RtlEqualMemory(inputHash, existingHash, ARRAYSIZE(inputHash)))
     {
-        status = STATUS_FAIL_CHECK;
+        status = STATUS_SUCCESS;
         goto CleanupExit;
     }
 
