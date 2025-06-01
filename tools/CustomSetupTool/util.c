@@ -1235,149 +1235,164 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     return TRUE;
 }
 
-//_Function_class_(PH_ENUM_DIRECTORY_FILE)
-//static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
-//    _In_ HANDLE RootDirectory,
-//    _In_ PVOID Information,
-//    _In_ PVOID Context
-//    )
-//{
-//    PFILE_DIRECTORY_INFORMATION information = (PFILE_DIRECTORY_INFORMATION)Information;
-//    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)Context;
-//    NTSTATUS status;
-//    PH_STRINGREF baseName;
-//    HANDLE fileHandle;
-//
-//    baseName.Buffer = information->FileName;
-//    baseName.Length = information->FileNameLength;
-//
-//    if (PhEqualStringRef2(&baseName, L".", TRUE) || PhEqualStringRef2(&baseName, L"..", TRUE))
-//        return TRUE;
-//
-//    status = PhOpenFile(
-//        &fileHandle,
-//        &baseName,
-//        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-//        RootDirectory,
-//        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-//        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-//        NULL
-//        );
-//
-//    if (NT_SUCCESS(status))
-//    {
-//        PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
-//
-//        status = PhGetProcessIdsUsingFile(
-//            fileHandle,
-//            &processIds
-//            );
-//
-//        if (NT_SUCCESS(status))
-//        {
-//            for (ULONG i = 0; i < processIds->NumberOfProcessIdsInList; i++)
-//            {
-//                HANDLE processId = processIds->ProcessIdList[i];
-//                PPH_STRING fileName;
-//
-//                if (processId == NtCurrentProcessId())
-//                    continue;
-//
-//                status = PhGetProcessImageFileNameByProcessId(
-//                    processId,
-//                    &fileName
-//                    );
-//
-//                if (NT_SUCCESS(status))
-//                {
-//                    PPH_STRING baseDirectory;
-//
-//                    PhMoveReference(&fileName, PhGetFileName(fileName));
-//
-//                    if (baseDirectory = PhGetBaseDirectory(fileName))
-//                    {
-//                        if (PhStartsWithString(context->SetupInstallPath, baseDirectory, TRUE))
-//                        {
-//                            HANDLE processHandle;
-//
-//                            if (NT_SUCCESS(PhOpenProcess(
-//                                &processHandle,
-//                                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE,
-//                                processId
-//                                )))
-//                            {
-//                                HWND windowHandle;
-//
-//                                if (windowHandle = PhGetProcessMainWindowEx(
-//                                    processId,
-//                                    processHandle,
-//                                    FALSE
-//                                    ))
-//                                {
-//                                    SendMessageTimeout(windowHandle, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
-//                                }
-//
-//                                status = NtTerminateProcess(processHandle, 1);
-//
-//                                if (status == STATUS_SUCCESS || status == STATUS_PROCESS_IS_TERMINATING)
-//                                {
-//                                    NtTerminateProcess(processHandle, DBG_TERMINATE_PROCESS);
-//                                }
-//
-//                                PhWaitForSingleObject(processHandle, 30 * 1000);
-//                                NtClose(processHandle);
-//                            }
-//                        }
-//
-//                        PhDereferenceObject(baseDirectory);
-//                    }
-//
-//                    PhDereferenceObject(fileName);
-//                }
-//            }
-//
-//            PhFree(processIds);
-//        }
-//
-//        NtClose(fileHandle);
-//    }
-//
-//    return TRUE;
-//}
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
+static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_ PVOID Context
+    )
+{
+    PFILE_DIRECTORY_INFORMATION information = (PFILE_DIRECTORY_INFORMATION)Information;
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)Context;
+    NTSTATUS status;
+    PH_STRINGREF baseName;
+    HANDLE fileHandle;
+
+    baseName.Buffer = information->FileName;
+    baseName.Length = information->FileNameLength;
+
+    if (PhEqualStringRef2(&baseName, L".", TRUE) || PhEqualStringRef2(&baseName, L"..", TRUE))
+        return TRUE;
+
+    status = PhOpenFile(
+        &fileHandle,
+        &baseName,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        RootDirectory,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
+
+        status = PhGetProcessIdsUsingFile(
+            fileHandle,
+            &processIds
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            for (ULONG i = 0; i < processIds->NumberOfProcessIdsInList; i++)
+            {
+                HANDLE processId = processIds->ProcessIdList[i];
+                PPH_STRING fileName;
+
+                if (processId == NtCurrentProcessId())
+                    continue;
+
+                status = PhGetProcessImageFileNameByProcessId(
+                    processId,
+                    &fileName
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    PPH_STRING baseDirectory;
+
+                    PhMoveReference(&fileName, PhGetFileName(fileName));
+
+                    if (baseDirectory = PhGetBaseDirectory(fileName))
+                    {
+                        if (PhStartsWithString(context->SetupInstallPath, baseDirectory, TRUE))
+                        {
+                            HANDLE processHandle;
+
+                            if (NT_SUCCESS(PhOpenProcess(
+                                &processHandle,
+                                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE,
+                                processId
+                                )))
+                            {
+                                HWND windowHandle;
+
+                                if (windowHandle = PhGetProcessMainWindowEx(
+                                    processId,
+                                    processHandle,
+                                    FALSE
+                                    ))
+                                {
+                                    SendMessageTimeout(windowHandle, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
+                                }
+
+                                status = NtTerminateProcess(processHandle, 1);
+
+                                if (status == STATUS_SUCCESS || status == STATUS_PROCESS_IS_TERMINATING)
+                                {
+                                    NtTerminateProcess(processHandle, DBG_TERMINATE_PROCESS);
+                                }
+
+                                PhWaitForSingleObject(processHandle, 30 * 1000);
+                                NtClose(processHandle);
+                            }
+                        }
+
+                        PhDereferenceObject(baseDirectory);
+                    }
+
+                    PhDereferenceObject(fileName);
+                }
+            }
+
+            PhFree(processIds);
+        }
+
+        NtClose(fileHandle);
+    }
+
+    return TRUE;
+}
 
 NTSTATUS SetupShutdownApplication(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    // N.B. let setup try to continue even if this fails
+    NTSTATUS status;
+    HANDLE directoryHandle;
+
+    //
+    // N.B. Since the current Canary build (3.2.25136.1352) doesn't create the
+    // mutants we need to do both methods to shut down the application. (jxy-s)
+    // 1. Enumerate the mutants.
+    // 2. Enumerate directory with PhGetProcessIdsUsingFile.
+    //
+
     PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
+
+    status = PhCreateFileWin32(
+        &directoryHandle,
+        PhGetString(Context->SetupInstallPath),
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        FILE_ATTRIBUTE_DIRECTORY,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhEnumDirectoryFile(
+            directoryHandle,
+            NULL,
+            SetupCheckDirectoryCallback,
+            Context
+            );
+
+        NtClose(directoryHandle);
+    }
+
+    //
+    // N.B. Let the setup try to continue regardless. If we really want to fail
+    // the setup we need to:
+    // 1. If we find a target that needs to be terminate, note it.
+    // 2. If that target fails to stop, return an error code.
+    //
+    // Currently the logic only fails if the mechanics of looking up files and
+    // or mutants fails, not actually failing to shut down processes.
+    //
     return STATUS_SUCCESS;
-//    NTSTATUS status;
-//    HANDLE directoryHandle;
-//
-//    status = PhCreateFileWin32(
-//        &directoryHandle,
-//        PhGetString(Context->SetupInstallPath),
-//        FILE_LIST_DIRECTORY | SYNCHRONIZE,
-//        FILE_ATTRIBUTE_DIRECTORY,
-//        FILE_SHARE_READ,
-//        FILE_OPEN,
-//        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-//        );
-//
-//    if (NT_SUCCESS(status))
-//    {
-//        status = PhEnumDirectoryFile(
-//            directoryHandle,
-//            NULL,
-//            SetupCheckDirectoryCallback,
-//            Context
-//            );
-//
-//        NtClose(directoryHandle);
-//    }
-//
-//    return status;
 }
 
 PPH_STRING SetupCreateFullPath(
