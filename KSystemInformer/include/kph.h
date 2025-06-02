@@ -306,7 +306,6 @@ BOOLEAN KphIsValidMemoryRegion(
             (Region->End <= End));
 }
 
-
 //
 // C30030 - Probably allocating executable memory via specifying a
 // MM_PAGE_PRIORITY type without a bitwise OR with MdlMappingNoExecute
@@ -319,8 +318,7 @@ _At_(Mdl->MappedSystemVa, _Post_writable_byte_size_(Mdl->ByteCount))
 _Check_return_
 _Success_(return != NULL)
 FORCEINLINE
-PVOID
-KphpGetSystemAddressForMdl(
+PVOID KphpGetSystemAddressForMdl(
     _Inout_ PMDL Mdl,
     _In_ MM_PAGE_PRIORITY Priority
     )
@@ -333,6 +331,30 @@ _Pragma("warning(push)")                                                       \
 _Pragma("warning(disable : 30030)")                                            \
 KphpGetSystemAddressForMdl(mdl, priority)                                      \
 _Pragma("warning(pop)")
+
+#pragma deprecated("ObReferenceObjectByHandle")
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+FORCEINLINE
+NTSTATUS KphpObReferenceObjectByHandle(
+    _In_ HANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_TYPE ObjectType,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _Out_ PVOID *Object,
+    _Out_opt_ POBJECT_HANDLE_INFORMATION HandleInformation
+    )
+{
+#pragma warning(disable: 4995)   // suppress deprecation warning
+#pragma prefast(suppress: 28118) // allow at APC_LEVEL
+    return ObReferenceObjectByHandle(Handle,
+                                     DesiredAccess,
+                                     ObjectType,
+                                     AccessMode,
+                                     Object,
+                                     HandleInformation);
+}
+#define ObReferenceObjectByHandle KphpObReferenceObjectByHandle
 
 // main
 
