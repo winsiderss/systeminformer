@@ -819,7 +819,7 @@ NTSTATUS KphEnumerateProcessHandles(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryNameObject(
     _In_ PVOID Object,
@@ -828,7 +828,7 @@ NTSTATUS KphQueryNameObject(
     _Out_ PULONG ReturnLength
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryNameFileObject(
     _In_ PFILE_OBJECT FileObject,

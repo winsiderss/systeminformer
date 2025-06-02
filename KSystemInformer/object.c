@@ -695,7 +695,7 @@ Exit:
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryNameObject(
     _In_ PVOID Object,
@@ -707,7 +707,7 @@ NTSTATUS KphQueryNameObject(
     NTSTATUS status;
     POBJECT_TYPE objectType;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     objectType = ObGetObjectType(Object);
 
@@ -770,7 +770,7 @@ NTSTATUS KphQueryNameObject(
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpExtractNameFileObject(
     _In_ PFILE_OBJECT FileObject,
@@ -785,7 +785,7 @@ NTSTATUS KphpExtractNameFileObject(
     PUCHAR pos;
     USHORT len;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     *ReturnLength = 0;
 
@@ -951,7 +951,7 @@ NTSTATUS KphpExtractNameFileObject(
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryNameFileObject(
     _In_ PFILE_OBJECT FileObject,
@@ -964,7 +964,7 @@ NTSTATUS KphQueryNameFileObject(
     PFLT_FILE_NAME_INFORMATION fileNameInfo;
     FLT_FILE_NAME_OPTIONS nameOptions;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     nameOptions = FLT_FILE_NAME_NORMALIZED;
 
