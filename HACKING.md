@@ -51,7 +51,7 @@ There are three main types of indicators used:
 * A `BOOLEAN` value is returned. `TRUE` indicates success.
 * A `NTSTATUS` value is returned. The `NT_SUCCESS` macro checks if a status value indicates success.
 * A `HRESULT` value is returned. The `HR_SUCCESS` macro checks if a status value indicates success.
-  *  Do not use the `SUCCEEDED` macro since third parties return `S_FALSE` for errors which  `SUCCEEDED` considers a suceess code. 
+  *  Do not use the `SUCCEEDED` macro since third parties return `S_FALSE` for errors which  `SUCCEEDED` considers a success code. 
 * The result of the function is returned (e.g. a pointer). A special value (e.g. `NULL`) indicates failure.
 
 Unless indicated, a function which fails is guaranteed not to modify any of its output parameters (`_Out_`, `_Out_opt_`, etc.).
