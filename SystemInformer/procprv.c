@@ -1225,6 +1225,8 @@ VOID PhpFillProcessItem(
     _In_ PSYSTEM_PROCESS_INFORMATION Process
     )
 {
+    PVOID pebBaseAddress = NULL;
+
     ProcessItem->ParentProcessId = Process->InheritedFromUniqueProcessId;
     ProcessItem->SessionId = Process->SessionId;
     ProcessItem->CreateTime = Process->CreateTime;
@@ -1272,6 +1274,7 @@ VOID PhpFillProcessItem(
             ProcessItem->IsCrossSessionProcess = basicInfo.IsCrossSessionCreate;
             ProcessItem->IsFrozenProcess = basicInfo.IsFrozen;
             ProcessItem->IsBackgroundProcess = basicInfo.IsBackground;
+            pebBaseAddress = basicInfo.PebBaseAddress;
         }
     }
 
@@ -1568,14 +1571,30 @@ VOID PhpFillProcessItem(
         }
     }
 
-    // On Windows 8.1 and above, processes without threads are reflected processes
-    // which will not terminate if we have a handle open. (wj32)
-    if (Process->UserTime.QuadPart + Process->KernelTime.QuadPart == 0 && Process->NumberOfThreads == 0 && ProcessItem->QueryHandle)
+    //
+    // Snapshot processes are created via NtCreateProcessEx by providing null or
+    // empty object attributes and a parent process handle for what process to
+    // snapshot. They are normally used when inspecting or dumping a process
+    // address space.
+    //
+    // These processes do not have an initial thread and can never have a thread
+    // created within them. They will have a PEB from the originating process.
+    // The PEB check ensures we do not incorrectly designate processes that are
+    // actually valid container processes such as "Secure System". (jxy-s)
+    //
+    if (!Process->NumberOfThreads && pebBaseAddress)
     {
-        ProcessItem->IsReflectedProcess = TRUE;
+        ProcessItem->IsSnapshotProcess = TRUE;
 
-        NtClose(ProcessItem->QueryHandle);
-        ProcessItem->QueryHandle = NULL;
+        if (ProcessItem->QueryHandle)
+        {
+            //
+            // Snapshot processes will not terminate if we have a handle open.
+            // Close it here or else process objects will leak. (wj32, jxy-s)
+            //
+            NtClose(ProcessItem->QueryHandle);
+            ProcessItem->QueryHandle = NULL;
+        }
     }
 }
 

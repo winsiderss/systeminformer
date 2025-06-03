@@ -213,7 +213,7 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsPackagedProcess : 1;
             ULONG IsBackgroundProcess : 1;
             ULONG IsCrossSessionProcess : 1;
-            ULONG IsReflectedProcess : 1;
+            ULONG IsSnapshotProcess : 1;
             ULONG IsFrozenProcess : 1;
             ULONG IsUIAccessEnabled : 1;
             ULONG IsControlFlowGuardEnabled : 1;

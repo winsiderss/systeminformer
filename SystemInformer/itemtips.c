@@ -509,8 +509,22 @@ PPH_STRING PhGetProcessTooltipText(
             PhAppendStringBuilder2(&notes, L"    Process is a background process.\n");
         if (Process->IsCrossSessionProcess)
             PhAppendStringBuilder2(&notes, L"    Process is a cross session process.\n");
-        if (Process->IsReflectedProcess)
-            PhAppendStringBuilder2(&notes, L"    Process is a reflected process (Clone/Fork).\n");
+        //
+        // TODO(jxy-s) Find a way to identify reflected processes maybe initial
+        // thread start address (RtlpProcessReflectionStartup)?
+        //
+        //if (Process->IsReflectedProcess)
+        //    PhAppendStringBuilder2(&notes, L"    Process is a reflected process.\n");
+        //
+        // TODO(jxy-s) Find a way to identify cloned processes. This is distinct
+        // from snapshot process since it is created with an initial thread. The
+        // PEB address and some initial TEB content is likely to be the same as
+        // the process it originated from.
+        //
+        //if (Process->IsClonedProcess)
+        //    PhAppendStringBuilder2(&notes, L"    Process is a cloned process.\n");
+        if (Process->IsSnapshotProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a snapshot process.\n");
         if (Process->IsPowerThrottling)
             PhAppendStringBuilder2(&notes, L"    Process is power throttling (efficiency).\n");
 
