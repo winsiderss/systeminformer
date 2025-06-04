@@ -2721,6 +2721,28 @@ typedef NTSTATUS (NTAPI *PPH_ENUM_REPARSE_POINT)(
     _In_opt_ PVOID Context
     );
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhEnumDirectoryFileZ(
+    _In_ HANDLE FileHandle,
+    _In_ PCWSTR SearchPattern,
+    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_STRINGREF searchPattern;
+
+    PhInitializeStringRef(&searchPattern, SearchPattern);
+
+    return PhEnumDirectoryFile(
+        FileHandle,
+        &searchPattern,
+        Callback,
+        Context
+        );
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
