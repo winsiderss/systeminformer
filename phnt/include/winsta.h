@@ -7,18 +7,26 @@
 #ifndef _WINSTA_H
 #define _WINSTA_H
 
+//
+// Sessions
+//
+
 // Specifies the current server.
 #define WINSTATION_CURRENT_SERVER         ((HANDLE)NULL)
 #define WINSTATION_CURRENT_SERVER_HANDLE  ((HANDLE)NULL)
 #define WINSTATION_CURRENT_SERVER_NAME    (NULL)
+#define SERVERNAME_CURRENT ((PWSTR)NULL)
 
 // Specifies the current session (SessionId)
 #define WINSTATION_CURRENT_SESSION ((ULONG)-1)
+#define LOGONID_CURRENT (-1)
 
 // Specifies any-session (SessionId)
 #define WINSTATION_ANY_SESSION ((ULONG)-2)
 
+//
 // Access rights
+//
 
 #define WINSTATION_QUERY 0x00000001 // WinStationQueryInformation
 #define WINSTATION_SET 0x00000002 // WinStationSetInformation
@@ -166,7 +174,9 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationEffectsPolicy, // ULONG
     WinStationType, // ULONG
     WinStationInformationEx, // WINSTATIONINFORMATIONEX // 40
-    WinStationValidationInfo
+    WinStationValidationInfo,
+    WinStationActivityId, // q: GUID
+    MaxWinStationInfoClass
 } WINSTATIONINFOCLASS;
 
 /**
@@ -379,7 +389,11 @@ typedef struct _OEMTDCONFIG
     ULONG Flags;
 } OEMTDCONFIG, *POEMTDCONFIG;
 
-// Retrieves transport protocol driver parameters.
+/**
+ * The PDPARAMS structure represents the transport protocol driver parameters.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/ff0e2998-fb8b-4dff-ab64-8427fad556eb
+ */
 typedef struct _PDPARAMS
 {
     SDCLASS SdClass; // Stack driver class. Indicates which one of the union's structures is valid.
@@ -392,7 +406,11 @@ typedef struct _PDPARAMS
     };
 } PDPARAMS, *PPDPARAMS;
 
-// The WinStation (session) driver configuration.
+/**
+ * The WDCONFIG structure represents the WinStation (session) driver configuration.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/d1bf099b-eb54-4ed9-a723-0b1062dbc128
+ */
 typedef struct _WDCONFIG
 {
     WDNAME WdName; // The descriptive name of the WinStation driver.
@@ -404,7 +422,11 @@ typedef struct _WDCONFIG
     WDPREFIX WdPrefix; // Used as the prefix of the WinStation name generated for the connected sessions with this WinStation driver.
 } WDCONFIG, *PWDCONFIG;
 
-// The protocol driver's software configuration.
+/**
+ * The PDCONFIG2 structure represents the protocol driver's software configuration.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/74204022-eb7c-4454-b3d0-24f642c892a4
+ */
 typedef struct _PDCONFIG2
 {
     PDNAME PdName;
@@ -419,7 +441,11 @@ typedef struct _PDCONFIG2
     ULONG KeepAliveTimeout;
 } PDCONFIG2, *PPDCONFIG2;
 
-// WinStationClient
+/**
+ * The WINSTATIONCLIENT structure defines the client-requested configuration when connecting to a session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/673d8ac0-f557-48cb-98a6-49925160d729
+ */
 typedef struct _WINSTATIONCLIENT
 {
     ULONG fTextOnly : 1;
@@ -674,7 +700,9 @@ typedef struct _WINSTATIONREMOTEADDRESS
     };
 } WINSTATIONREMOTEADDRESS, *PWINSTATIONREMOTEADDRESS;
 
+//
 // WinStationInformationEx
+//
 
 // private
 typedef struct _WINSTATIONINFORMATIONEX_LEVEL1
@@ -824,9 +852,6 @@ typedef struct _TS_COUNTER
 // server handles to indicate the local server. -1 can be specified for session IDs to indicate the
 // current session ID.
 
-#define LOGONID_CURRENT (-1)
-#define SERVERNAME_CURRENT ((PWSTR)NULL)
-
 // rev
 NTSYSAPI
 BOOLEAN
@@ -906,8 +931,6 @@ WinStationUnRegisterConsoleNotification(
     _In_ HWND WindowHandle
     );
 
-// Sessions
-
 // rev
 NTSYSAPI
 BOOLEAN
@@ -918,6 +941,21 @@ WinStationEnumerateW(
     _Out_ PULONG Count
     );
 
+/**
+ * The WinStationQueryInformationW routine retrieves information about a window station.
+ *
+ * @param ServerHandle A handle to an RD Session Host server. Specify a handle opened by the WinStationOpenServerW function, or specify WINSTATION_CURRENT_SERVER to indicate the server on which your application is running.
+ * @param SessionId A Remote Desktop Services session identifier.
+ * To indicate the session in which the calling application is running (or the current session) specify WINSTATION_CURRENT_SESSION.
+ * Only specify WINSTATION_CURRENT_SESSION when obtaining session information on the local server.
+ * If WINSTATION_CURRENT_SESSION is specified when querying session information on a remote server, the returned session information will be inconsistent. Do not use the returned data.
+ * @param WinStationInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be retrieved.
+ * @param WinStationInformation Pointer to a caller-allocated buffer that receives the requested information about the token.
+ * @param WinStationInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
+ * @param ReturnLength Pointer to a caller-allocated variable that receives the actual length, in bytes, of the information returned in the TokenInformation buffer.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationtoken
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -925,9 +963,9 @@ WinStationQueryInformationW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
     _In_ WINSTATIONINFOCLASS WinStationInformationClass,
-    _Out_writes_bytes_(WinStationInformationLength) PVOID pWinStationInformation,
+    _Out_writes_bytes_(WinStationInformationLength) PVOID WinStationInformation,
     _In_ ULONG WinStationInformationLength,
-    _Out_ PULONG pReturnLength
+    _Out_ PULONG ReturnLength
     );
 
 // rev
@@ -938,7 +976,7 @@ WinStationSetInformationW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
     _In_ WINSTATIONINFOCLASS WinStationInformationClass,
-    _In_reads_bytes_(WinStationInformationLength) PVOID pWinStationInformation,
+    _In_reads_bytes_(WinStationInformationLength) PVOID WinStationInformation,
     _In_ ULONG WinStationInformationLength
     );
 
@@ -948,7 +986,7 @@ BOOLEAN
 NTAPI
 WinStationQueryCurrentSessionInformation(
     _In_ WINSTATIONINFOCLASS WinStationInformationClass,
-    _In_reads_bytes_(WinStationInformationLength) PVOID pWinStationInformation,
+    _In_reads_bytes_(WinStationInformationLength) PVOID WinStationInformation,
     _In_ ULONG WinStationInformationLength
     );
 
@@ -958,7 +996,7 @@ NTAPI
 WinStationNameFromLogonIdW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _Out_writes_(WINSTATIONNAME_LENGTH + 1) PWSTR pWinStationName
+    _Out_writes_(WINSTATIONNAME_LENGTH + 1) PWSTR WinStationName
     );
 
 // rev
@@ -967,7 +1005,7 @@ BOOLEAN
 NTAPI
 LogonIdFromWinStationNameW(
     _In_opt_ HANDLE ServerHandle,
-    _In_ PCWSTR pWinStationName,
+    _In_ PCWSTR WinStationName,
     _Out_ PULONG SessionId
     );
 
@@ -995,7 +1033,7 @@ WinStationConnectW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
     _In_ ULONG TargetSessionId,
-    _In_opt_ PCWSTR pPassword,
+    _In_opt_ PCWSTR Password,
     _In_ BOOLEAN bWait
     );
 
@@ -1091,7 +1129,7 @@ WinStationGetProcessSid(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG ProcessId,
     _In_ FILETIME ProcessStartTime,
-    _Out_ PVOID pProcessUserSid,
+    _Out_ PVOID ProcessUserSid,
     _Inout_ PULONG dwSidSize
     );
 
@@ -1268,6 +1306,32 @@ NTAPI
 WinStationGetLoggedOnCount(
     _Out_ PULONG LoggedOnUserCount,
     _Out_ PULONG LoggedOnDeviceCount
+    );
+
+// rev
+/**
+ * Used by an application that is displaying content that can be optimized for displaying in a remote session to identify the region of a window that is the actual content.
+ * In the remote session, this content will be encoded, sent to the client, then decoded and displayed.
+ *
+ * \param[out] RenderHintID The address of a value that identifies the rendering hint affected by this call.
+ * If a new hint is being created, this value must contain zero.
+ * This function will return a unique rendering hint identifier which is used for subsequent calls, such as clearing the hint.
+ * \param[in] WindowHandle The handle of window linked to lifetime of the rendering hint. This window is used in situations where a hint target is removed without the hint being explicitly cleared.
+ * \param[in] RenderHintType Specifies the type of hint represented by this call.
+ * \param[in] HintDataLength The size in bytes, of the HintData buffer.
+ * \param[in] HintData Additional data for the hint. The format of this data is dependent upon the value passed in the renderHintType parameter.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtshintapi/nf-wtshintapi-wtssetrenderhint
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationSetRenderHint(
+    _In_opt_ PULONG64 RenderHintID,
+    _In_ HWND WindowHandle,
+    _In_ ULONG RenderHintType,
+    _In_ ULONG HintDataLength,
+    _In_ PBYTE HintData
     );
 
 #endif
