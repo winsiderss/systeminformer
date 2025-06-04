@@ -1017,16 +1017,16 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     {
         PSYSTEM_EXTENDED_THREAD_INFORMATION thread = (PSYSTEM_EXTENDED_THREAD_INFORMATION)process->Threads + i;
 
-        if (thread->TebBase)
+        if (thread->TebBaseAddress)
         {
             NT_TIB ntTib;
             SIZE_T bytesRead;
 
             // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections.
-            if (memoryItem = PhpSetMemoryRegionType(List, (PVOID)thread->TebBase, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, TebRegion))
+            if (memoryItem = PhpSetMemoryRegionType(List, thread->TebBaseAddress, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, TebRegion))
                 memoryItem->u.Teb.ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
 
-            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, thread->TebBase, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
+            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, thread->TebBaseAddress, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
                 bytesRead == sizeof(NT_TIB))
             {
                 if ((ULONG_PTR)ntTib.StackLimit < (ULONG_PTR)ntTib.StackBase)
