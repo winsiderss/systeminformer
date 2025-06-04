@@ -477,13 +477,17 @@ VOID PhpProcessItemDeleteProcedure(
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->Sid) PhFree(processItem->Sid);
     if (processItem->ProtectionString) PhDereferenceObject(processItem->ProtectionString);
-    if (processItem->AffinityMasks) PhFree(processItem->AffinityMasks);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
 
-    if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
+    if (!PhSystemProcessorInformation.SingleProcessorGroup)
+    {
+        if (processItem->AffinityMasks) PhFree(processItem->AffinityMasks);
+    }
+
     if (processItem->FreezeHandle) NtClose(processItem->FreezeHandle);
+    if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
 
     if (processItem->Record) PhDereferenceProcessRecord(processItem->Record);
     if (processItem->IconEntry) PhDereferenceObject(processItem->IconEntry);
@@ -1227,8 +1231,6 @@ VOID PhpFillProcessItem(
     _In_ PSYSTEM_PROCESS_INFORMATION Process
     )
 {
-    PVOID pebBaseAddress = NULL;
-
     ProcessItem->ParentProcessId = Process->InheritedFromUniqueProcessId;
     ProcessItem->SessionId = Process->SessionId;
     ProcessItem->CreateTime = Process->CreateTime;
@@ -1265,9 +1267,9 @@ VOID PhpFillProcessItem(
     {
         PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
-        if (ProcessItem->QueryHandle &&
-            NT_SUCCESS(PhGetProcessExtendedBasicInformation(ProcessItem->QueryHandle, &basicInfo)))
+        if (ProcessItem->QueryHandle && NT_SUCCESS(PhGetProcessExtendedBasicInformation(ProcessItem->QueryHandle, &basicInfo)))
         {
+            ProcessItem->PebBaseAddress = basicInfo.PebBaseAddress;
             ProcessItem->IsProtectedProcess = basicInfo.IsProtectedProcess;
             ProcessItem->IsSecureProcess = basicInfo.IsSecureProcess;
             ProcessItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
@@ -1276,36 +1278,42 @@ VOID PhpFillProcessItem(
             ProcessItem->IsCrossSessionProcess = basicInfo.IsCrossSessionCreate;
             ProcessItem->IsFrozenProcess = basicInfo.IsFrozen;
             ProcessItem->IsBackgroundProcess = basicInfo.IsBackground;
-            pebBaseAddress = basicInfo.PebBaseAddress;
         }
     }
 
     // Affinity
     {
-        ULONG affinitPopulationCount = 0;
-
-        ProcessItem->AffinityMasks = PhAllocateZero(sizeof(KAFFINITY) * PhSystemProcessorInformation.NumberOfProcessorGroups);
-
-        for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+        if (PhSystemProcessorInformation.SingleProcessorGroup)
+        {
+            ProcessItem->AffinityMasks = &PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[0];
+            ProcessItem->AffinityPopulationCount = PhCountBitsUlongPtr(ProcessItem->AffinityMasks[0]);
+        }
+        else
         {
             GROUP_AFFINITY affinity;
 
-            affinity.Group = i;
+            ProcessItem->AffinityMasks = PhAllocateZero(sizeof(KAFFINITY) * PhSystemProcessorInformation.NumberOfProcessorGroups);
 
-            if (ProcessItem->QueryHandle &&
-                NT_SUCCESS(PhGetProcessGroupAffinity(ProcessItem->QueryHandle, &affinity)))
+            for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
             {
-                ProcessItem->AffinityMasks[i] = affinity.Mask;
-            }
-            else
-            {
-                ProcessItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
-            }
+                RtlZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
+                affinity.Group = i;
 
-            affinitPopulationCount += PhCountBitsUlongPtr(ProcessItem->AffinityMasks[i]);
+                if (
+                    ProcessItem->QueryHandle &&
+                    NT_SUCCESS(PhGetProcessGroupAffinity(ProcessItem->QueryHandle, &affinity))
+                    )
+                {
+                    ProcessItem->AffinityMasks[i] = affinity.Mask;
+                }
+                else
+                {
+                    ProcessItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                }
+
+                ProcessItem->AffinityPopulationCount += PhCountBitsUlongPtr(ProcessItem->AffinityMasks[i]);
+            }
         }
-
-        ProcessItem->AffinityPopulationCount = affinitPopulationCount;
     }
 
     // Process information
@@ -1584,7 +1592,7 @@ VOID PhpFillProcessItem(
     // The PEB check ensures we do not incorrectly designate processes that are
     // actually valid container processes such as "Secure System". (jxy-s)
     //
-    if (!Process->NumberOfThreads && pebBaseAddress)
+    if (Process->NumberOfThreads == 0 && ProcessItem->PebBaseAddress)
     {
         ProcessItem->IsSnapshotProcess = TRUE;
 
