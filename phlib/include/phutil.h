@@ -848,6 +848,17 @@ PhFormatSize(
     PH_AUTO_T(PH_STRING, PhFormatSize((Size), (MaxSizeUnit)))
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhFormatSizeToBuffer(
+    _In_ ULONG64 Size,
+    _In_ ULONG MaxSizeUnit,
+    _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
+    _In_opt_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhFormatGuid(

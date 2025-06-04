@@ -476,11 +476,7 @@ BOOLEAN PhSystemTimeToTzSpecificLocalTime(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI* SystemTimeToTzSpecificLocalTimeEx_I)(
-        _In_opt_ CONST DYNAMIC_TIME_ZONE_INFORMATION * lpTimeZoneInformation,
-        _In_ CONST SYSTEMTIME * lpUniversalTime,
-        _Out_ LPSYSTEMTIME lpLocalTime
-        ) = NULL;
+    static __typeof__(&SystemTimeToTzSpecificLocalTimeEx) SystemTimeToTzSpecificLocalTimeEx_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -2250,6 +2246,34 @@ PPH_STRING PhFormatSize(
 }
 
 /**
+ * Gets a string representing a size.
+ *
+ * \param Size The size value.
+ * \param MaxSizeUnit The largest unit of size to use, -1 to use PhMaxSizeUnit, or -2 for no limit.
+ * \param Buffer A buffer. If NULL, no data is written.
+ * \param BufferLength The number of bytes available in \a Buffer, including space for the null terminator.
+ * \param ReturnLength The number of bytes required to hold the string, including the null terminator.
+ */
+BOOLEAN PhFormatSizeToBuffer(
+    _In_ ULONG64 Size,
+    _In_ ULONG MaxSizeUnit,
+    _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
+    _In_opt_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    )
+{
+    PH_FORMAT format;
+
+    // PhFormat handles this better than the old method.
+
+    format.Type = SizeFormatType | FormatUseRadix;
+    format.Radix = (UCHAR)(MaxSizeUnit != ULONG_MAX ? MaxSizeUnit : PhMaxSizeUnit);
+    format.u.Size = Size;
+
+    return PhFormatToBuffer(&format, 1, Buffer, BufferLength, ReturnLength);
+}
+
+/**
  * Converts a UUID to its string representation.
  *
  * \param Guid A UUID.
@@ -3200,7 +3224,8 @@ NTSTATUS PhGetFullPathName(
     _In_ SIZE_T BufferLength,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
     _Out_opt_ PWSTR* FilePart,
-    _Out_opt_ PULONG BytesRequired)
+    _Out_opt_ PULONG BytesRequired
+    )
 {
     NTSTATUS status;
     ULONG bufferLength;
@@ -3328,7 +3353,7 @@ PPH_STRING PhExpandEnvironmentStrings(
     if (!PhStringRefToUnicodeString(String, &inputString))
         return NULL;
 
-    bufferLength = 0x80;
+    bufferLength = 0x100;
     string = PhCreateStringEx(NULL, bufferLength);
     outputString.MaximumLength = (USHORT)bufferLength;
     outputString.Length = 0;
@@ -3383,7 +3408,6 @@ PPH_STRING PhGetBaseName(
 
     if (!PhSplitStringRefAtLastChar(&FileName->sr, OBJ_NAME_PATH_SEPARATOR, &pathPart, &baseNamePart))
     {
-        //assert(FALSE);
         return PhReferenceObject(FileName);
     }
 
