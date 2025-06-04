@@ -304,7 +304,9 @@ typedef struct _PH_PROCESS_ITEM
     FLOAT ImageCoherency;
 
     ULONG LxssProcessId;
+
     HANDLE FreezeHandle;
+    PPEB PebBaseAddress;
 
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
