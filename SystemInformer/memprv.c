@@ -565,6 +565,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         PVOID processHeapsPtr;
         PVOID *processHeaps;
         PVOID apiSetMap;
+        PVOID processParameters;
         PVOID readOnlySharedMemory;
         PVOID codePageData;
         PVOID gdiSharedHandleTable;
@@ -574,11 +575,13 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         PVOID werRegistrationData;
         PVOID siloSharedData;
         PVOID telemetryCoverageData;
+        PVOID leapSecondData;
 #ifdef _WIN64
         PVOID processPeb32;
         ULONG processHeapsPtr32;
         ULONG *processHeaps32;
         ULONG apiSetMap32;
+        ULONG processParameters32;
         ULONG readOnlySharedMemory32;
         ULONG codePageData32;
         ULONG gdiSharedHandleTable32;
@@ -588,6 +591,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         ULONG werRegistrationData32;
         ULONG siloSharedData32;
         ULONG telemetryCoverageData32;
+        ULONG leapSecondData32;
 #endif
         if (PhGetIntegerSetting(L"EnableHeapMemoryTagging"))
         {
@@ -671,6 +675,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 }
 
                 PhFree(processHeaps);
+            }
+
+            // RTL_USER_PROCESS_PARAMETERS
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, ProcessParameters)),
+                &processParameters,
+                sizeof(PVOID),
+                NULL
+                )) && processParameters)
+            {
+                PhpSetMemoryRegionType(List, processParameters, TRUE, ProcessParametersRegion);
             }
 
             // ApiSet schema map
@@ -798,6 +814,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             {
                 PhpSetMemoryRegionType(List, telemetryCoverageData, TRUE, TelemetryCoverageRegion);
             }
+
+            // Leap second data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb, UFIELD_OFFSET(PEB, LeapSecondData)),
+                &leapSecondData,
+                sizeof(PVOID),
+                NULL
+                )) && leapSecondData)
+            {
+                PhpSetMemoryRegionType(List, leapSecondData, TRUE, LeapSecondDataRegion);
+            }
         }
 #ifdef _WIN64
 
@@ -829,6 +857,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 }
 
                 PhFree(processHeaps32);
+            }
+
+            // RTL_USER_PROCESS_PARAMETERS
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb32, FIELD_OFFSET(PEB32, ProcessParameters)),
+                &processParameters32,
+                sizeof(ULONG),
+                NULL
+                )) && processParameters32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(processParameters32), TRUE, ProcessParametersRegion);
             }
 
             // ApiSet schema map
@@ -955,6 +995,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 )) && telemetryCoverageData32)
             {
                 PhpSetMemoryRegionType(List, UlongToPtr(telemetryCoverageData32), TRUE, TelemetryCoverageRegion);
+            }
+
+            // Leap second data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, LeapSecondData)),
+                &leapSecondData32,
+                sizeof(ULONG),
+                NULL
+                )) && leapSecondData32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(leapSecondData32), TRUE, LeapSecondDataRegion);
             }
         }
 #endif
