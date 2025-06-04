@@ -693,6 +693,7 @@ VOID PhpTokenPageFreeListViewEntries(
 _Success_(return)
 BOOLEAN PhGetTokenSidTypeString(
     _In_ SID_NAME_USE TokenNameUse,
+    _Out_ PCWSTR* TokenNameUseString
     )
 {
     if (PhIndexStringSiKeyValuePairs(
