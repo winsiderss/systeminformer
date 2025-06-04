@@ -1,13 +1,7 @@
 <p align="center">
-    <a href="https://systeminformer.com">
-        <img src="https://github.com/winsiderss/systeminformer/raw/master/SystemInformer/resources/systeminformer-128x128.png"/>
-    </a>
+    <a href="https://systeminformer.io"><img src="https://systeminformer.io/include/systeminformer-128x128.png"/></a>
     <h1 align="center">System Informer</h1>
     <h5 align="center">A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware.</h5>
-    <h6 align="center">Brought to you by Winsider Seminars & Solutions, Inc.</h6>
-</p>
-<p align="center">
-    <a href="https://systeminformer.com">Website</a> - <a href="https://systeminformer.com/downloads">Downloads</a>
 </p>
 <p align="center">
     <a href="https://github.com/winsiderss/systeminformer/actions/workflows/msbuild.yml">
@@ -16,31 +10,19 @@
     <a href="https://github.com/winsiderss/systeminformer/graphs/contributors">
         <img src="https://img.shields.io/github/contributors/winsiderss/systeminformer.svg?style=for-the-badge&color=blue"/>
     </a>
-    <a href="https://opensource.org/licenses/MIT">
+    <a href="https://github.com/winsiderss/systeminformer/graphs/contributors">
+        <img src="https://img.shields.io/github/stars/winsiderss/systeminformer.svg?style=for-the-badge&color=blue"/>
+    </a>
+    <a href="https://github.com/winsiderss/systeminformer/blob/master/LICENSE.txt">
         <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&color=blue"/>
     </a>
 </p>
 <p align="center">
-    <a href="https://systeminformer.com/downloads">
-        <img src="https://img.shields.io/github/downloads/winsiderss/si-builds/total.svg?style=for-the-badge&color=blue"/>
-    </a>
-    <a href="https://somsubhra.github.io/github-release-stats/?username=winsiderss&repository=systeminformer">
-        <img src="https://img.shields.io/github/downloads/winsiderss/systeminformer/total.svg?style=for-the-badge&color=blue&label="/>
-    </a>
-    <a href="https://sourceforge.net/projects/processhacker/files/stats/timeline?period=monthly">
-        <img src="https://img.shields.io/sourceforge/dt/processhacker.svg?style=for-the-badge&color=blue&label="/>
-    </a>
+    <a href="https://discord.com/invite/k2MQd2DzC2"><img src="https://img.shields.io/badge/Discord-grey?style=for-the-badge&logo=discord"/></a>
+    <a href="https://x.com/systeminformer"><img src="https://img.shields.io/badge/Twitter-grey?style=for-the-badge&logo=x"/></a>
+    <a href="https://systeminformer.io"><img src="https://img.shields.io/badge/Website-grey?style=for-the-badge&logo=sourceforge"/></a>
 </p>
-<p align="center">
-    <a href="https://discord.com/invite/k2MQd2DzC2">
-        <img src="https://img.shields.io/badge/Discord-Join-blue?style=for-the-badge&logo=discord"/>
-    </a>
-</p>
-
-## System requirements
-
-Windows 10 or higher, 32-bit or 64-bit.
-
+    
 ## Features
 
 * A detailed overview of system activity with highlighting.
@@ -85,14 +67,3 @@ directory as SystemInformer.exe. You can do this using Windows Explorer:
 2. Right-click in the folder and choose New > Text Document.
 3. Rename the file to SystemInformer.exe.settings.xml (delete the ".txt"
    extension).
-
-## Plugins
-
-Plugins can be configured from Options > Plugins.
-
-If you experience any crashes involving plugins, make sure they
-are up to date.
-
-Disk and Network information provided by the ExtendedTools plugin is
-only available when running System Informer with administrative
-rights.
