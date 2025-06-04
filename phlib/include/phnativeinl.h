@@ -1848,7 +1848,6 @@ PhGetTokenIsAppContainer(
 *
 * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
 * \param AppContainerNumber The app container number for the token.
-*
 * \return Successful or errant status.
 */
 FORCEINLINE
@@ -2103,7 +2102,6 @@ PhGetSystemBootTime(
 * The system uptime in Coordinated Universal Time (UTC) format.
 *
 * \param Uptime A pointer to a LARGE_INTEGER structure to receive the current system uptime.
-*
 * \return Successful or errant status.
 */
 FORCEINLINE
@@ -2138,11 +2136,11 @@ PhGetSystemUptime(
  * If a nonzero value is specified, the function waits until the object is signaled or the interval elapses.
  * If Timeout is zero, the function does not enter a wait state if the object is not signaled; it always returns immediately.
  * If Timeout is INFINITE, the function will return only when the object is signaled.
- *
  * \return Successful or errant status.
  */
 FORCEINLINE
-NTSTATUS PhWaitForSingleObject(
+NTSTATUS
+PhWaitForSingleObject(
     _In_ HANDLE Handle,
     _In_opt_ ULONG Timeout
     )
@@ -2159,6 +2157,25 @@ NTSTATUS PhWaitForSingleObject(
     {
         return NtWaitForSingleObject(Handle, FALSE, NULL);
     }
+}
+
+/**
+* Provides a process-wide memory barrier that ensures that reads and writes from any CPU cannot move across the barrier.
+*
+* The process-wide memory barrier method differs from the "normal" MemoryBarrier method as follows:
+* The process-wide memory barrier ensures that any read or write from any CPU being used in the process can't move across the barrier.
+* The process-wide memory barrier forces other CPUs to synchronize with process memory (for example, to flush write buffers and synchronize read buffers).
+* The process-wide memory barrier is very expensive. It has to force every CPU in the process do to something, at a probable cost of thousands of cycles.
+* The process-wide memory barrier suffers from all the subtleties of lock-free programming.
+* \sa https://learn.microsoft.com/en-us/dotnet/api/system.threading.interlocked.memorybarrierprocesswid
+*/
+FORCEINLINE
+NTSTATUS
+PhMemoryBarrierProcessWide(
+    VOID
+    )
+{
+    return NtFlushProcessWriteBuffers();
 }
 
 #endif
