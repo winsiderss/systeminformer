@@ -1868,6 +1868,12 @@ PhGetTokenAppContainerNumber(
         );
 }
 
+/**
+ * Gets basic information for a event.
+ *
+ * \param EventHandle A handle to a event. The handle must have EVENT_QUERY_STATE access.
+ * \param BasicInformation A variable which receives the information.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetEventBasicInformation(
@@ -1882,6 +1888,46 @@ PhGetEventBasicInformation(
         sizeof(EVENT_BASIC_INFORMATION),
         NULL
         );
+}
+
+FORCEINLINE
+NTSTATUS
+PhOpenMutant(
+    _Out_ PHANDLE MutantHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PCPH_STRINGREF ObjectName
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    if (ObjectName)
+    {
+        if (!PhStringRefToUnicodeString(ObjectName, &objectName))
+            return STATUS_NAME_TOO_LONG;
+    }
+    else
+    {
+        RtlInitEmptyUnicodeString(&objectName, NULL, 0);
+    }
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        RootDirectory,
+        NULL
+        );
+
+    status = NtOpenMutant(
+        MutantHandle,
+        DesiredAccess,
+        &objectAttributes
+        );
+
+    return status;
 }
 
 FORCEINLINE
