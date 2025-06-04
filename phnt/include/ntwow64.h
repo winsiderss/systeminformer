@@ -37,7 +37,9 @@ typedef enum _WOW64_SHARED_INFORMATION
     Wow64SharedPageEntriesCount
 } WOW64_SHARED_INFORMATION;
 
+//
 // 32-bit definitions
+//
 
 #define WOW64_POINTER(Type) ULONG
 
@@ -423,8 +425,6 @@ typedef struct _PEB32
     ULONGLONG ExtendedFeatureDisableMask; // since WIN11
 } PEB32, *PPEB32;
 
-//static_assert(sizeof(PEB32) == 0x460, "sizeof(PEB32) is incorrect"); // REDSTONE3
-//static_assert(sizeof(PEB32) == 0x470, "sizeof(PEB32) is incorrect"); // REDSTONE5
 static_assert(sizeof(PEB32) == 0x488, "sizeof(PEB32) is incorrect"); // WIN11
 
 // Note: Use PhGetProcessPeb32 instead. (dmex)
@@ -445,7 +445,7 @@ typedef struct tagSOleTlsData32
     WOW64_POINTER(PVOID) ThreadBase;
     WOW64_POINTER(PVOID) SmAllocator;
     ULONG ApartmentID;
-    OLETLSFLAGS Flags;
+    ULONG Flags; // OLETLSFLAGS
     LONG TlsMapIndex;
     WOW64_POINTER(PVOID *) TlsSlot;
     ULONG ComInits;
@@ -615,7 +615,9 @@ static_assert(FIELD_OFFSET(TEB32, MuiImpersonation) == 0xfc4, "FIELD_OFFSET(TEB3
 static_assert(FIELD_OFFSET(TEB32, EffectiveContainerId) == 0xff0, "FIELD_OFFSET(TEB32, EffectiveContainerId) is incorrect");
 static_assert(sizeof(TEB32) == 0x1000, "sizeof(TEB32) is incorrect");
 
+//
 // Conversion
+//
 
 FORCEINLINE VOID UStr32ToUStr(
     _Out_ PUNICODE_STRING Destination,

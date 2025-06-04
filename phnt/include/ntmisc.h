@@ -11,7 +11,7 @@
 // Apphelp
 //
 
-typedef enum _AHC_INFO_CLASS 
+typedef enum _AHC_INFO_CLASS
 {
     AhcInfoClassSdbQueryResult          = 0x00000001,
     AhcInfoClassSdbSxsOverrideManifest  = 0x00000002,
@@ -79,7 +79,7 @@ typedef enum _AHC_INFO_CLASS
 // Cache structures and APIs.
 //
 
-typedef enum _AHC_SERVICE_CLASS 
+typedef enum _AHC_SERVICE_CLASS
 {
     ApphelpCacheServiceLookup = 0,
     ApphelpCacheServiceRemove = 1,
@@ -96,7 +96,7 @@ typedef enum _AHC_SERVICE_CLASS
     ApphelpCacheServiceMax
 } AHC_SERVICE_CLASS;
 
-typedef struct _AHC_SERVICE_LOOKUP 
+typedef struct _AHC_SERVICE_LOOKUP
 {
     AHC_INFO_CLASS InfoClass;                   // Information to lookup.
     UINT HintFlags;                             // Hint flags about cache query.
@@ -110,7 +110,7 @@ typedef struct _AHC_SERVICE_LOOKUP
     UINT EnvironmentSize;                       // Size of environment block in bytes.
 } AHC_SERVICE_LOOKUP, *PAHC_SERVICE_LOOKUP;
 
-typedef struct _AHC_SERVICE_REMOVE 
+typedef struct _AHC_SERVICE_REMOVE
 {
     AHC_INFO_CLASS InfoClass;
     UNICODE_STRING PackageAlias;
@@ -118,7 +118,7 @@ typedef struct _AHC_SERVICE_REMOVE
     UNICODE_STRING ExeSignature;
 } AHC_SERVICE_REMOVE, *PAHC_SERVICE_REMOVE;
 
-typedef struct _AHC_SERVICE_UPDATE 
+typedef struct _AHC_SERVICE_UPDATE
 {
     AHC_INFO_CLASS InfoClass;
     UNICODE_STRING PackageAlias;
@@ -128,12 +128,12 @@ typedef struct _AHC_SERVICE_UPDATE
     ULONG DataSize;
 } AHC_SERVICE_UPDATE, *PAHC_SERVICE_UPDATE;
 
-typedef struct _AHC_SERVICE_CLEAR 
+typedef struct _AHC_SERVICE_CLEAR
 {
     AHC_INFO_CLASS InfoClass;
 } AHC_SERVICE_CLEAR, *PAHC_SERVICE_CLEAR;
 
-typedef struct _AHC_SERVICE_LOOKUP_CDB 
+typedef struct _AHC_SERVICE_LOOKUP_CDB
 {
     UNICODE_STRING Name;
 } AHC_SERVICE_LOOKUP_CDB, *PAHC_SERVICE_LOOKUP_CDB;
@@ -193,7 +193,7 @@ typedef struct _AHC_MAIN_STATISTICS
     ULONG SnapCache;                            // Count of snap store calls.
 } AHC_MAIN_STATISTICS, *PAHC_MAIN_STATISTICS;
 
-typedef struct _AHC_STORE_STATISTICS 
+typedef struct _AHC_STORE_STATISTICS
 {
     ULONG LookupHits;                           // Count of lookup hits.
     ULONG LookupMisses;                         // Count of lookup misses.
@@ -202,21 +202,21 @@ typedef struct _AHC_STORE_STATISTICS
     ULONG Updated;                              // Count of updates.
 } AHC_STORE_STATISTICS, *PAHC_STORE_STATISTICS;
 
-typedef struct _AHC_STATISTICS 
+typedef struct _AHC_STATISTICS
 {
     ULONG Size;                                 // Size of the structure.
     AHC_MAIN_STATISTICS Main;                   // Main statistics.
     AHC_STORE_STATISTICS Store;                 // Store statistics.
 } AHC_STATISTICS, *PAHC_STATISTICS;
 
-typedef struct _AHC_SERVICE_DATAQUERY 
+typedef struct _AHC_SERVICE_DATAQUERY
 {
     AHC_STATISTICS Stats;                       // Statistics.
     ULONG DataSize;                             // Size of data.
     PBYTE Data;                                 // Data.
 } AHC_SERVICE_DATAQUERY, *PAHC_SERVICE_DATAQUERY;
 
-typedef struct _AHC_SERVICE_DATACACHE 
+typedef struct _AHC_SERVICE_DATACACHE
 {
     HANDLE FileHandle;                          // User space handle to file.
     USHORT ExeType;                             // Executable bitness.
@@ -230,13 +230,13 @@ typedef struct _AHC_SERVICE_DATACACHE
     PBYTE CustomData;                           // Pointer to the custom data.
 } AHC_SERVICE_DATACACHE, *PAHC_SERVICE_DATACACHE;
 
-typedef struct _AHC_SERVICE_HWID_QUERY 
+typedef struct _AHC_SERVICE_HWID_QUERY
 {
     BOOLEAN QueryResult;                        // Query result
     UNICODE_STRING HwId;                        // Query HwId; can contain wildcards
 } AHC_SERVICE_HWID_QUERY, *PAHC_SERVICE_HWID_QUERY;
 
-typedef struct _AHC_SERVICE_DATA 
+typedef struct _AHC_SERVICE_DATA
 {
     AHC_SERVICE_LOOKUP Lookup;                  // Lookup EXE/Package.
     AHC_SERVICE_UPDATE Update;                  // Updating flags for a given exe/package.
@@ -476,7 +476,7 @@ NtSetInformationCpuPartition(
     _Reserved_ ULONG,
     _Reserved_ ULONG
     );
-    
+
 // rev
 NTSYSCALLAPI
 NTSTATUS
@@ -952,6 +952,199 @@ WINAPI
 CoGetMTAUsageInfo(
     VOID
     );
+#endif
+
+//
+// COM/OLE
+//
+
+// OLETLSFLAGS
+#define OLETLS_LOCALTID 0x01 // This TID is in the current process.
+#define OLETLS_UUIDINITIALIZED 0x02 // This Logical thread is init'd.
+#define OLETLS_INTHREADDETACH 0x04 // This is in thread detach.
+#define OLETLS_CHANNELTHREADINITIALZED 0x08// This channel has been init'd
+#define OLETLS_WOWTHREAD 0x10 // This thread is a 16-bit WOW thread.
+#define OLETLS_THREADUNINITIALIZING 0x20 // This thread is in CoUninitialize.
+#define OLETLS_DISABLE_OLE1DDE 0x40 // This thread can't use a DDE window.
+#define OLETLS_APARTMENTTHREADED 0x80 // This is an STA apartment thread
+#define OLETLS_MULTITHREADED 0x100 // This is an MTA apartment thread
+#define OLETLS_IMPERSONATING 0x200 // This thread is impersonating
+#define OLETLS_DISABLE_EVENTLOGGER 0x400 // Prevent recursion in event logger
+#define OLETLS_INNEUTRALAPT 0x800 // This thread is in the NTA
+#define OLETLS_DISPATCHTHREAD 0x1000 // This is a dispatch thread
+#define OLETLS_HOSTTHREAD 0x2000 // This is a host thread
+#define OLETLS_ALLOWCOINIT 0x4000 // This thread allows inits
+#define OLETLS_PENDINGUNINIT 0x8000 // This thread has pending uninit
+#define OLETLS_FIRSTMTAINIT 0x10000// First thread to attempt an MTA init
+#define OLETLS_FIRSTNTAINIT 0x20000// First thread to attempt an NTA init
+#define OLETLS_APTINITIALIZING 0x40000 // Apartment Object is initializing
+#define OLETLS_UIMSGSINMODALLOOP 0x80000
+#define OLETLS_MARSHALING_ERROR_OBJECT 0x100000 // since WIN8
+#define OLETLS_WINRT_INITIALIZE 0x200000 // This thread called RoInitialize
+#define OLETLS_APPLICATION_STA 0x400000
+#define OLETLS_IN_SHUTDOWN_CALLBACKS 0x800000
+#define OLETLS_POINTER_INPUT_BLOCKED 0x1000000
+#define OLETLS_IN_ACTIVATION_FILTER 0x2000000 // since WINBLUE
+#define OLETLS_ASTATOASTAEXEMPT_QUIRK 0x4000000
+#define OLETLS_ASTATOASTAEXEMPT_PROXY 0x8000000
+#define OLETLS_ASTATOASTAEXEMPT_INDOUBT 0x10000000
+#define OLETLS_DETECTED_USER_INITIALIZED 0x20000000 // since RS3
+#define OLETLS_BRIDGE_STA 0x40000000 // since RS5
+#define OLETLS_NAINITIALIZING 0x80000000UL // since 19H1
+
+// private
+typedef struct tagSOleTlsData
+{
+    PVOID ThreadBase;
+    PVOID SmAllocator;
+    ULONG ApartmentID;
+    ULONG Flags; // OLETLSFLAGS
+    LONG TlsMapIndex;
+    PVOID *TlsSlot;
+    ULONG ComInits;
+    ULONG OleInits;
+    ULONG Calls;
+    PVOID ServerCall; // previously CallInfo (before TH1)
+    PVOID CallObjectCache; // previously FreeAsyncCall (before TH1)
+    PVOID ContextStack; // previously FreeClientCall (before TH1)
+    PVOID ObjServer;
+    ULONG TIDCaller;
+    // ... (other fields are version-dependant)
+} SOleTlsData, *PSOleTlsData;
+
+//
+// AppCompat
+//
+
+typedef struct tagSDBQUERYRESULT
+{
+    ULONG Exes[16];
+    ULONG ExeFlags[16];
+    ULONG Layers[8];
+    ULONG LayerFlags;
+    ULONG AppHelp;
+    ULONG ExeCount;
+    ULONG LayerCount;
+    GUID ID;
+    ULONG ExtraFlags;
+    ULONG CustomSDBMap;
+    GUID DB[16];
+} SDBQUERYRESULT, *PSDBQUERYRESULT;
+
+static_assert(sizeof(SDBQUERYRESULT) == 0x1c8, "SDBQUERYRESULT size mismatch");
+
+typedef struct tagSWITCH_CONTEXT_ATTRIBUTE
+{
+    ULONG_PTR ContextUpdateCounter;
+    BOOL AllowContextUpdate;
+    BOOL EnableTrace;
+    HANDLE EtwHandle;
+} SWITCH_CONTEXT_ATTRIBUTE, *PSWITCH_CONTEXT_ATTRIBUTE;
+
+#ifdef _WIN64
+static_assert(sizeof(SWITCH_CONTEXT_ATTRIBUTE) == 0x18, "SWITCH_CONTEXT_ATTRIBUTE size mismatch");
+#else
+static_assert(sizeof(SWITCH_CONTEXT_ATTRIBUTE) == 0x10, "SWITCH_CONTEXT_ATTRIBUTE size mismatch");
+#endif
+
+typedef struct tagSWITCH_CONTEXT_DATA
+{
+    ULONGLONG OsMaxVersionTested;
+    ULONG TargetPlatform;
+    ULONGLONG ContextMinimum;
+    GUID Platform;
+    GUID MinPlatform;
+    ULONG ContextSource;
+    ULONG ElementCount;
+    GUID Elements[48];
+} SWITCH_CONTEXT_DATA, * PSWITCH_CONTEXT_DATA;
+
+static_assert(sizeof(SWITCH_CONTEXT_DATA) == 0x340, "SWITCH_CONTEXT_DATA size mismatch");
+
+typedef struct tagSWITCH_CONTEXT
+{
+    SWITCH_CONTEXT_ATTRIBUTE Attribute;
+    SWITCH_CONTEXT_DATA Data;
+} SWITCH_CONTEXT, *PSWITCH_CONTEXT;
+
+#ifdef _WIN64
+static_assert(sizeof(SWITCH_CONTEXT) == 0x358, "SWITCH_CONTEXT size mismatch");
+#else
+static_assert(sizeof(SWITCH_CONTEXT) == 0x350, "SWITCH_CONTEXT size mismatch");
+#endif
+
+typedef struct _SDB_CSTRUCT_COBALT_PROCFLAG
+{
+    KAFFINITY AffinityMask;
+    ULONG CPUIDEcxOverride;
+    ULONG CPUIDEdxOverride;
+    USHORT ProcessorGroup;
+    USHORT FastSelfModThreshold;
+    USHORT Reserved1;
+    UCHAR Reserved2;
+    UCHAR BackgroundWork : 5;
+    UCHAR CPUIDBrand : 4;
+    UCHAR Reserved3 : 4;
+    UCHAR RdtscScaling : 3;
+    UCHAR Reserved4 : 2;
+    UCHAR UnalignedAtomicApproach : 2;
+    UCHAR Win11Atomics : 2;
+    UCHAR RunOnSingleCore : 1;
+    UCHAR X64CPUID : 1;
+    UCHAR PatchUnaligned : 1;
+    UCHAR InterpreterOrJitter : 1;
+    UCHAR ForceSegmentHeap : 1;
+    UCHAR Reserved5 : 1;
+    UCHAR Reserved6 : 1;
+    union
+    {
+        ULONGLONG Group1AsUINT64;
+        struct _SDB_CSTRUCT_COBALT_PROCFLAG* Specified;
+    };
+} SDB_CSTRUCT_COBALT_PROCFLAG, *PSDB_CSTRUCT_COBALT_PROCFLAG;
+
+#ifdef _WIN64
+static_assert(sizeof(SDB_CSTRUCT_COBALT_PROCFLAG) == 0x28, "SDB_CSTRUCT_COBALT_PROCFLAG size mismatch");
+#else
+static_assert(sizeof(SDB_CSTRUCT_COBALT_PROCFLAG) == 0x20, "SDB_CSTRUCT_COBALT_PROCFLAG size mismatch");
+#endif
+
+typedef struct _APPCOMPAT_EXE_DATA
+{
+    ULONG_PTR Reserved[65];
+    ULONG Size;
+    ULONG Magic;
+    BOOL LoadShimEngine;
+    USHORT ExeType;
+    SDBQUERYRESULT SdbQueryResult;
+    ULONG_PTR DbgLogChannels[128];
+    SWITCH_CONTEXT SwitchContext;
+    ULONG ParentProcessId;
+    WCHAR ParentImageName[260];
+    WCHAR ParentCompatLayers[256];
+    WCHAR ActiveCompatLayers[256];
+    ULONG ImageFileSize;
+    ULONG ImageCheckSum;
+    BOOL LatestOs;
+    BOOL PackageId;
+    BOOL SwitchBackManifest;
+    BOOL UacManifest;
+    BOOL LegacyInstaller;
+    ULONG RunLevel;
+    ULONG_PTR WinRTFlags;
+    PVOID HookCOM;
+    PVOID ComponentOnDemandEvent;
+    PVOID Quirks;
+    ULONG QuirksSize;
+    SDB_CSTRUCT_COBALT_PROCFLAG CobaltProcFlags;
+    ULONG FullMatchDbSizeCb;
+    ULONG FullMatchDbOffset;
+} APPCOMPAT_EXE_DATA;
+
+#ifdef _WIN64
+static_assert(sizeof(APPCOMPAT_EXE_DATA) == 0x11C0, "APPCOMPAT_EXE_DATA size mismatch");
+#else
+static_assert(sizeof(APPCOMPAT_EXE_DATA) == 0xE98, "APPCOMPAT_EXE_DATA size mismatch");
 #endif
 
 #endif // _NTMISC_H
