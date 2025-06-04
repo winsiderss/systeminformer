@@ -365,7 +365,9 @@ NtQueryInformationPort(
     _Out_opt_ PULONG ReturnLength
     );
 
+//
 // Asynchronous Local Inter-process Communication
+//
 
 // rev
 typedef HANDLE ALPC_HANDLE, *PALPC_HANDLE;
