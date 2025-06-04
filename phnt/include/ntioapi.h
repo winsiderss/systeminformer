@@ -388,6 +388,7 @@ typedef struct _FILE_STANDARD_INFORMATION_EX
 /**
  * The FILE_INTERNAL_INFORMATION structure is used to query for the file system's 8-byte file reference number for a file.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_internal_information
+ * \remark The IndexNumber member is the same as the FileId member of the FILE_ID_BOTH_DIR_INFORMATION and FILE_ID_FULL_DIR_INFORMATION structures.
  */
 typedef struct _FILE_INTERNAL_INFORMATION
 {
@@ -1086,7 +1087,7 @@ typedef struct _FILE_ID_64_EXTD_DIR_INFORMATION
     ULONG FileNameLength;
     ULONG EaSize;
     ULONG ReparsePointTag;
-    LARGE_INTEGER FileId;
+    FILE_INTERNAL_INFORMATION FileId;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_64_EXTD_DIR_INFORMATION, *PFILE_ID_64_EXTD_DIR_INFORMATION;
 
@@ -1111,7 +1112,7 @@ typedef struct _FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
     ULONG FileNameLength;
     ULONG EaSize;
     ULONG ReparsePointTag;
-    LARGE_INTEGER FileId;
+    FILE_INTERNAL_INFORMATION FileId;
     CCHAR ShortNameLength;
     WCHAR ShortName[12];
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
@@ -1138,7 +1139,7 @@ typedef struct _FILE_ID_ALL_EXTD_DIR_INFORMATION
     ULONG FileNameLength;
     ULONG EaSize;
     ULONG ReparsePointTag;
-    LARGE_INTEGER FileId;
+    FILE_INTERNAL_INFORMATION FileId;
     FILE_ID_128 FileId128;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_ALL_EXTD_DIR_INFORMATION, *PFILE_ID_ALL_EXTD_DIR_INFORMATION;
@@ -1164,7 +1165,7 @@ typedef struct _FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
     ULONG FileNameLength;
     ULONG EaSize;
     ULONG ReparsePointTag;
-    LARGE_INTEGER FileId;
+    FILE_INTERNAL_INFORMATION FileId;
     FILE_ID_128 FileId128;
     CCHAR ShortNameLength;
     WCHAR ShortName[12];
@@ -1242,7 +1243,7 @@ typedef struct _FILE_MEMORY_PARTITION_INFORMATION
 #if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
 typedef struct _FILE_STAT_LX_INFORMATION
 {
-    LARGE_INTEGER FileId;
+    FILE_INTERNAL_INFORMATION FileId;
     LARGE_INTEGER CreationTime;
     LARGE_INTEGER LastAccessTime;
     LARGE_INTEGER LastWriteTime;
@@ -1379,7 +1380,7 @@ typedef struct _FILE_ID_FULL_DIR_INFORMATION
     ULONG FileAttributes;
     ULONG FileNameLength;
     ULONG EaSize;
-    LARGE_INTEGER FileId;
+    FILE_INTERNAL_INFORMATION FileId;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_FULL_DIR_INFORMATION, *PFILE_ID_FULL_DIR_INFORMATION;
 
@@ -1430,7 +1431,7 @@ typedef struct _FILE_ID_BOTH_DIR_INFORMATION
     ULONG EaSize;
     CCHAR ShortNameLength;
     WCHAR ShortName[12];
-    LARGE_INTEGER FileId;
+    FILE_INTERNAL_INFORMATION FileId;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_BOTH_DIR_INFORMATION, *PFILE_ID_BOTH_DIR_INFORMATION;
 
@@ -1468,7 +1469,7 @@ typedef struct _FILE_ID_GLOBAL_TX_DIR_INFORMATION
     LARGE_INTEGER AllocationSize;
     ULONG FileAttributes;
     ULONG FileNameLength;
-    LARGE_INTEGER FileId;
+    FILE_INTERNAL_INFORMATION FileId;
     GUID LockingTransactionId;
     ULONG TxInfoFlags;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
@@ -2476,8 +2477,8 @@ typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
         ULONG ReparsePointTag;
         ULONG EaSize;
     };
-    LARGE_INTEGER FileId;
-    LARGE_INTEGER ParentFileId;
+    FILE_INTERNAL_INFORMATION FileId;
+    FILE_INTERNAL_INFORMATION ParentFileId;
     ULONG FileNameLength;
     WCHAR FileName[1];
 } FILE_NOTIFY_EXTENDED_INFORMATION, *PFILE_NOTIFY_EXTENDED_INFORMATION;
@@ -2506,8 +2507,8 @@ typedef struct _FILE_NOTIFY_FULL_INFORMATION
         ULONG ReparsePointTag;
         ULONG EaSize;
     };
-    LARGE_INTEGER FileId;
-    LARGE_INTEGER ParentFileId;
+    FILE_INTERNAL_INFORMATION FileId;
+    FILE_INTERNAL_INFORMATION ParentFileId;
     USHORT FileNameLength;
     BYTE FileNameFlags;
     BYTE Reserved;
