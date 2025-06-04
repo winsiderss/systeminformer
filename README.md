@@ -1,5 +1,5 @@
 <p align="center">
-    <a href="https://systeminformer.io"><img src="https://systeminformer.io/include/systeminformer-128x128.png"/></a>
+    <a href="https://systeminformer.io"><img src="https://systeminformer.io/include/systeminformer-128x128.png" alt="System Informer Logo"/></a>
     <h1 align="center">System Informer</h1>
     <h5 align="center">A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware.</h5>
 </p>
