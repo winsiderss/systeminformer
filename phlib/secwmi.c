@@ -702,7 +702,8 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
 
         if (ntstatus != STATUS_BUFFER_TOO_SMALL)
         {
-            status = HRESULT_FROM_NT(ntstatus);
+            // Note: HR>WIN32>NT required for correct WMI error messages (dmex)
+            status = HRESULT_FROM_WIN32(PhNtStatusToDosError(ntstatus));
             goto CleanupExit;
         }
 
@@ -716,7 +717,8 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
         if (!NT_SUCCESS(ntstatus))
         {
             PhFree(relativeSecurityDescriptor);
-            status = HRESULT_FROM_NT(ntstatus);
+            // Note: HR>WIN32>NT required for correct WMI error messages (dmex)
+            status = HRESULT_FROM_WIN32(PhNtStatusToDosError(ntstatus));
             goto CleanupExit;
         }
 
