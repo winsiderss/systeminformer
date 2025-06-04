@@ -96,6 +96,7 @@ EXTERN_C_START
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #include <ntbcd.h>
 #include <ntdbg.h>
+#include <ntintsafe.h>
 #include <ntimage.h>
 #include <ntioapi.h>
 #include <ntlsa.h>
