@@ -47,6 +47,7 @@ static BOOLEAN IconClickUpDueToDown = FALSE;
 static BOOLEAN IconDisableHover = FALSE;
 static HANDLE PhpTrayIconThreadHandle = NULL;
 static HANDLE PhpTrayIconEventHandle = NULL;
+static PH_EVENT PhpTrayIconThreadEvent = PH_EVENT_INIT;
 #ifdef PH_NF_ENABLE_WORKQUEUE
 static SLIST_HEADER PhpTrayIconWorkQueueListHead;
 #endif
@@ -264,26 +265,25 @@ VOID PhNfCreateIconThreadDelayed(
 
     if (iconCount && PhBeginInitOnce(&initOnce))
     {
-        if (NT_SUCCESS(PhCreateEvent(
-            &PhpTrayIconEventHandle,
-            EVENT_ALL_ACCESS,
-            SynchronizationEvent,
-            !PhGetIntegerSetting(L"IconTrayLazyStartDelay")
-            )))
-        {
-            // Set the event when the only icon is the static icon. (dmex)
-            if (iconCount == 1 && staticIcon)
-            {
-                NtSetEvent(PhpTrayIconEventHandle, NULL);
-            }
+        PhInitializeEvent(&PhpTrayIconThreadEvent);
 
-            // Use a separate thread so we don't block the main GUI or
-            // the provider threads when explorer is not responding. (dmex)
-            if (NT_SUCCESS(PhCreateThreadEx(&PhpTrayIconThreadHandle, PhNfpTrayIconUpdateThread, NULL)))
-            {
-                NtClose(PhpTrayIconThreadHandle);
-                PhpTrayIconThreadHandle = NULL;
-            }
+        if (!PhGetIntegerSetting(L"IconTrayLazyStartDelay"))
+        {
+            PhSetEvent(&PhpTrayIconThreadEvent);
+        }
+
+        // Set the event when the only icon is the static icon. (dmex)
+        if (iconCount == 1 && staticIcon)
+        {
+            PhSetEvent(&PhpTrayIconThreadEvent);
+        }
+
+        // Use a separate thread so we don't block the main GUI or
+        // the provider threads when explorer is not responding. (dmex)
+        if (NT_SUCCESS(PhCreateThreadEx(&PhpTrayIconThreadHandle, PhNfpTrayIconUpdateThread, NULL)))
+        {
+            NtClose(PhpTrayIconThreadHandle);
+            PhpTrayIconThreadHandle = NULL;
         }
 
         PhEndInitOnce(&initOnce);
@@ -406,8 +406,7 @@ VOID PhNfUninitialization(
 #ifdef PH_NF_ENABLE_WORKQUEUE
     //LARGE_INTEGER timeout;
 
-    if (PhpTrayIconEventHandle)
-        NtSetEvent(PhpTrayIconEventHandle, NULL);
+    PhSetEvent(&PhpTrayIconThreadEvent);
 #endif
 
     // Remove all icons to prevent them hanging around after we exit.
@@ -639,8 +638,7 @@ VOID PhNfSetVisibleIcon(
 #ifdef PH_NF_ENABLE_WORKQUEUE
     PhNfCreateIconThreadDelayed();
 
-    if (PhpTrayIconEventHandle)
-        NtSetEvent(PhpTrayIconEventHandle, NULL);
+    PhSetEvent(&PhpTrayIconThreadEvent);
 #endif
 }
 
@@ -1271,14 +1269,16 @@ NTSTATUS PhNfpTrayIconUpdateThread(
         if (PhMainWndExiting)
             break;
 
-        if (!(PhpTrayIconEventHandle && PhNfIconsEnabled()))
+        if (!PhNfIconsEnabled())
         {
             PhDelayExecution(1000);
             continue;
         }
 
-        if (NT_SUCCESS(NtWaitForSingleObject(PhpTrayIconEventHandle, FALSE, NULL)))
+        if (PhWaitForEvent(&PhpTrayIconThreadEvent, NULL))
         {
+            PhResetEvent(&PhpTrayIconThreadEvent);
+
 #ifdef PH_NF_ENABLE_WORKQUEUE
             PhNfTrayIconFlushWorkQueueData();
 #endif
@@ -1320,20 +1320,17 @@ VOID PhNfpProcessesUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    static ULONG processesUpdatedCount = 0;
+    ULONG runCount = PtrToUlong(Parameter);
 
     // Update the icons on a separate thread so we don't block the main window
     // or provider threads when explorer is not responding. (dmex)
 
-    if (processesUpdatedCount != 3)
-    {
-        processesUpdatedCount++;
+    if (runCount < 3)
         return;
-    }
 
-    if (PhpTrayIconEventHandle && PhNfIconsEnabled())
+    if (PhNfIconsEnabled())
     {
-        NtSetEvent(PhpTrayIconEventHandle, NULL);
+        PhSetEvent(&PhpTrayIconThreadEvent);
     }
 }
 
