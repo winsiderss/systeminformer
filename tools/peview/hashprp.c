@@ -1146,6 +1146,7 @@ BOOLEAN PvGetMappedImageImphash(
     return TRUE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PvPeFileHashThread(
     _In_ PPV_PE_HASHWND_CONTEXT Context
     )

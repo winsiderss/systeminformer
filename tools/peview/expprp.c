@@ -206,6 +206,7 @@ PPH_HASHTABLE PvPeCreateSuppressedGuardHashtable(
     return supressedHashTable;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PvpPeExportsEnumerateThread(
     _In_ PPV_EXPORT_CONTEXT Context
     )

@@ -1,4 +1,6 @@
 //{{NO_DEPENDENCIES}}
+// Microsoft Visual C++ generated include file.
+// Used by ExtendedTools.rc
 //
 #define ID_PROCESS_UNLOADEDMODULES      101
 #define IDD_UNLOADEDDLLS                102
@@ -209,12 +211,11 @@
 #define IDC_TPM_SAVE                    50009
 #define IDC_TPM_BYTESPERROW             50010
 
-
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        172
+#define _APS_NEXT_RESOURCE_VALUE        173
 #define _APS_NEXT_COMMAND_VALUE         40010
 #define _APS_NEXT_CONTROL_VALUE         1134
 #define _APS_NEXT_SYMED_VALUE           135

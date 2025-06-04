@@ -1066,6 +1066,7 @@ VOID PhpProcessQueryStage2(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpProcessQueryStage1Worker(
     _In_ PVOID Parameter
     )
@@ -1084,6 +1085,7 @@ NTSTATUS PhpProcessQueryStage1Worker(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpProcessQueryStage2Worker(
     _In_ PVOID Parameter
     )

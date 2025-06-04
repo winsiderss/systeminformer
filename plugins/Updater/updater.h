@@ -123,10 +123,12 @@ VOID TaskDialogLinkClicked(
     _In_ PPH_UPDATER_CONTEXT Context
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateCheckThread(
     _In_ PVOID Parameter
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateDownloadThread(
     _In_ PVOID Parameter
     );

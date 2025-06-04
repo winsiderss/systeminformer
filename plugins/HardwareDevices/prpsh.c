@@ -38,7 +38,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     _In_ LPARAM lParam
     );
 
-INT CALLBACK PvpStandardPropPageProc(
+UINT CALLBACK PvpStandardPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -68,7 +68,7 @@ PPV_PROPCONTEXT HdCreatePropContext(
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE |
         PSH_USECALLBACK;
-    propSheetHeader.hInstance = PluginInstance->DllBase;
+    propSheetHeader.hInstance = NtCurrentImageBase();
     propSheetHeader.hwndParent = NULL;
     propSheetHeader.pszCaption = Caption;
     propSheetHeader.pfnCallback = PvpPropSheetProc;
@@ -454,7 +454,7 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
 
     propPageContext->PropSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propPageContext->PropSheetPage.dwFlags = PSP_USECALLBACK;
-    propPageContext->PropSheetPage.hInstance = PluginInstance->DllBase;
+    propPageContext->PropSheetPage.hInstance = InstanceHandle;
     propPageContext->PropSheetPage.pszTemplate = Template;
     propPageContext->PropSheetPage.pfnDlgProc = DlgProc;
     propPageContext->PropSheetPage.lParam = (LPARAM)propPageContext;
@@ -476,7 +476,7 @@ VOID NTAPI PvpPropPageContextDeleteProcedure(
         PhDereferenceObject(propPageContext->PropContext);
 }
 
-INT CALLBACK PvpStandardPropPageProc(
+UINT CALLBACK PvpStandardPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp

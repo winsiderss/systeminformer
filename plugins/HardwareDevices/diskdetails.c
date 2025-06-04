@@ -220,7 +220,7 @@ VOID DiskDeviceQuerySmart(
                 AddNvmeSmartEntry(Context->ListViewHandle, L"Drive is in read only mode", PhaFormatUInt64(healthInfo.CriticalWarning.ReadOnly, TRUE));
                 AddNvmeSmartEntry(Context->ListViewHandle, L"Volatile memory backup device failed", PhaFormatUInt64(healthInfo.CriticalWarning.VolatileMemoryBackupDeviceFailed, TRUE));
 
-                AddNvmeSmartEntry(Context->ListViewHandle, L"Temperature", PhaFormatString(L"%d\u00b0C", *(WORD*)(healthInfo.Temperature) - 273));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Temperature", PhaFormatString(L"%u\u00b0C", *(PUSHORT)(healthInfo.Temperature) - 273));
 
                 AddNvmeSmartEntry(Context->ListViewHandle, L"Available spare", PhaFormatString(L"%u%%", healthInfo.AvailableSpare));
                 AddNvmeSmartEntry(Context->ListViewHandle, L"Available spare threshold", PhaFormatString(L"%u%%", healthInfo.AvailableSpareThreshold));
@@ -602,6 +602,7 @@ VOID DiskDeviceQueryFileSystem(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI DiskDeviceProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

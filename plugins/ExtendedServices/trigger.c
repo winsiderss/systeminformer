@@ -779,7 +779,7 @@ VOID EsHandleEventServiceTrigger(
             Context->EditingInfo->Action = SERVICE_TRIGGER_ACTION_SERVICE_START;
 
             if (PhDialogBox(
-                PluginInstance->DllBase,
+                NtCurrentImageBase(),
                 MAKEINTRESOURCE(IDD_SRVTRIGGER),
                 Context->WindowHandle,
                 EspServiceTriggerDlgProc,
@@ -827,7 +827,7 @@ VOID EsHandleEventServiceTrigger(
                     Context->EditingInfo = EspCloneTriggerInfo(info);
 
                     if (PhDialogBox(
-                        PluginInstance->DllBase,
+                        NtCurrentImageBase(),
                         MAKEINTRESOURCE(IDD_SRVTRIGGER),
                         Context->WindowHandle,
                         EspServiceTriggerDlgProc,
@@ -898,7 +898,7 @@ VOID EsHandleEventServiceTrigger(
 }
 
 ULONG EspTriggerTypeStringToInteger(
-    _In_ PWSTR String
+    _In_ PCWSTR String
     )
 {
     ULONG i;
@@ -1287,7 +1287,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     context->EditingValue = PhReferenceEmptyString();
 
                     if (PhDialogBox(
-                        PluginInstance->DllBase,
+                        NtCurrentImageBase(),
                         MAKEINTRESOURCE(IDD_VALUE),
                         WindowHandle,
                         ValueDlgProc,
@@ -1337,7 +1337,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                             context->EditingValue = EspConvertNullsToNewLines(data->String);
 
                             if (PhDialogBox(
-                                PluginInstance->DllBase,
+                                NtCurrentImageBase(),
                                 MAKEINTRESOURCE(IDD_VALUE),
                                 WindowHandle,
                                 ValueDlgProc,

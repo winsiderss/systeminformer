@@ -753,10 +753,11 @@ VOID NTAPI WepWindowNotifyEventChangeCallback(
     }
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI WepWindowsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
-)
+    )
 {
     PWE_WINDOW_NODE lastSelectedNode;
     PWINDOWS_CONTEXT context = Context;
@@ -1560,6 +1561,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
     return FALSE;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI WepWindowsPageSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context

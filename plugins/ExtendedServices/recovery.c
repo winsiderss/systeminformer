@@ -25,7 +25,7 @@ typedef struct _SERVICE_RECOVERY_CONTEXT
     BOOLEAN Dirty;
 } SERVICE_RECOVERY_CONTEXT, *PSERVICE_RECOVERY_CONTEXT;
 
-static PH_KEY_VALUE_PAIR ServiceActionPairs[] =
+static CONST PH_KEY_VALUE_PAIR ServiceActionPairs[] =
 {
     SIP(L"Take no action", SC_ACTION_NONE),
     SIP(L"Restart the service", SC_ACTION_RESTART),
@@ -53,7 +53,7 @@ VOID EspAddServiceActionStrings(
 }
 
 SC_ACTION_TYPE EspStringToServiceAction(
-    _In_ PWSTR String
+    _In_ PCWSTR String
     )
 {
     ULONG integer;
@@ -64,13 +64,13 @@ SC_ACTION_TYPE EspStringToServiceAction(
         return 0;
 }
 
-PWSTR EspServiceActionToString(
+PCWSTR EspServiceActionToString(
     _In_ SC_ACTION_TYPE ActionType
     )
 {
-    PWSTR string;
+    PCWSTR string;
 
-    if (PhFindStringSiKeyValuePairs(ServiceActionPairs, sizeof(ServiceActionPairs), ActionType, &string))
+    if (PhIndexStringSiKeyValuePairs(ServiceActionPairs, sizeof(ServiceActionPairs), ActionType, &string))
         return string;
     else
         return NULL;
@@ -95,7 +95,7 @@ VOID ServiceActionToComboBox(
     _In_ SC_ACTION_TYPE ActionType
     )
 {
-    PWSTR string;
+    PCWSTR string;
 
     if (string = EspServiceActionToString(ActionType))
         PhSelectComboBoxString(ComboBoxHandle, string, FALSE);
@@ -356,7 +356,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
             case IDC_RESTARTCOMPUTEROPTIONS:
                 {
                     PhDialogBox(
-                        PluginInstance->DllBase,
+                        NtCurrentImageBase(),
                         MAKEINTRESOURCE(IDD_RESTARTCOMP),
                         WindowHandle,
                         RestartComputerDlgProc,

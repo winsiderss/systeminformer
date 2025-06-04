@@ -421,7 +421,7 @@ BOOLEAN EtGpuCleanupCounters(
 
 _Success_(return)
 BOOLEAN EtPerfCounterParseGpuPerfCounterInstance(
-    _In_ PWSTR InstanceName,
+    _In_ PCWSTR InstanceName,
     _Out_ PULONG ProcessId,
     _Out_ PULONG EngineId,
     _Out_ PULONG AdapterLuid
@@ -480,7 +480,7 @@ BOOLEAN EtPerfCounterParseGpuPerfCounterInstance(
 
 _Success_(return)
 BOOLEAN EtPerfCounterParseGpuProcessMemoryPerfCounterInstance(
-    _In_ PWSTR InstanceName,
+    _In_ PCWSTR InstanceName,
     _Out_ PULONG ProcessId,
     _Out_ PULONG AdapterLuid
     )
@@ -523,7 +523,7 @@ BOOLEAN EtPerfCounterParseGpuProcessMemoryPerfCounterInstance(
 
 _Success_(return)
 BOOLEAN EtPerfCounterParseGpuAdapterDedicatedPerfCounterInstance(
-    _In_ PWSTR InstanceName,
+    _In_ PCWSTR InstanceName,
     _Out_ PULONG EngineLuid
     )
 {
@@ -2694,6 +2694,7 @@ ULONG64 EtLookupTotalGpuAdapterShared(
 //    return STATUS_SUCCESS;
 //}
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtPerfCountersProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

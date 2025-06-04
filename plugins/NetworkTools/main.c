@@ -42,6 +42,7 @@ NETWORKTOOLS_INTERFACE PluginInterface =
     ShowWhoisWindowFromAddress
 };
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -51,6 +52,7 @@ VOID NTAPI LoadCallback(
     NetworkExtensionEnabled = !!PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -172,6 +174,7 @@ static BOOLEAN ParseNetworkAddress(
     return FALSE;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuItemCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -274,6 +277,7 @@ VOID NTAPI MenuItemCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -294,6 +298,7 @@ VOID NTAPI MainMenuInitializingCallback(
     PhInsertEMenuItem(menuInfo->Menu, networkToolsMenu, ULONG_MAX);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI NetworkMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context

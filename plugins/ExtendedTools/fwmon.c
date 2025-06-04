@@ -1830,7 +1830,7 @@ VOID CALLBACK EtFwEventCallback(
             PPH_STRING fileName;
 
             fileName = PhCreateStringEx(
-                (PWSTR)FwEvent->header.appId.data,
+                (PCWSTR)FwEvent->header.appId.data,
                 (SIZE_T)FwEvent->header.appId.size - sizeof(UNICODE_NULL)
                 );
 
@@ -1891,6 +1891,7 @@ VOID CALLBACK EtFwEventCallback(
     FwPushFirewallEvent(&entry);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtFwProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

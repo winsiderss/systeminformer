@@ -377,7 +377,7 @@ NTSTATUS EtDeleteFileObjectId(
     return status;
 }
 
-PWSTR EtReparseTagToString(
+PCWSTR EtReparseTagToString(
     _In_ ULONG Tag)
 {
 #ifndef IO_REPARSE_TAG_LX_SYMLINK
@@ -1518,7 +1518,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
                                                     if (fileNames = EtFindVolumeFilesWithSecurityId(entry->RootDirectory, (ULONG)entry->FileReference))
                                                     {
                                                         PhDialogBox(
-                                                            PluginInstance->DllBase,
+                                                            NtCurrentImageBase(),
                                                             MAKEINTRESOURCE(IDD_REPARSEDIALOG),
                                                             hwndDlg,
                                                             EtFindSecurityIdsDlgProc,
@@ -1577,7 +1577,7 @@ VOID EtShowReparseDialog(
     context->MenuItemIndex = PtrToUlong(Context);
 
     PhDialogBox(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_REPARSEDIALOG),
         NULL,
         EtReparseDlgProc,

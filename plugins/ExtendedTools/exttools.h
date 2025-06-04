@@ -1545,21 +1545,25 @@ VOID ShowFwContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU TreeMouseEvent
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemModifiedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemRemovedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemsUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1574,6 +1578,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwSearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

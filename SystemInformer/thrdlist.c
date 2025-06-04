@@ -62,7 +62,7 @@ PPH_STRING PhGetApartmentTypeString(
     );
 
 PPH_STRING PhGetApartmentFlagsString(
-    _In_ OLETLSFLAGS ApartmentState
+    _In_ ULONG ApartmentState
     );
 
 VOID PhInitializeThreadList(
@@ -2443,11 +2443,10 @@ PPH_STRING PhGetApartmentTypeString(
 }
 
 PPH_STRING PhGetApartmentFlagsString(
-    _In_ OLETLSFLAGS ApartmentState
+    _In_ ULONG ApartmentState
     )
 {
-#define PH_OLE_TLS_FLAG(x, n) { TEXT(#x), x, FALSE, FALSE, n }
-
+#define PH_OLE_TLS_FLAG(x, n) { TEXT(#x), (x), FALSE, FALSE, (n) }
     static const PH_ACCESS_ENTRY oleTlsflags[] =
     {
         PH_OLE_TLS_FLAG(OLETLS_LOCALTID, L"Local TID"),
@@ -2487,7 +2486,11 @@ PPH_STRING PhGetApartmentFlagsString(
     PPH_STRING string;
     PH_FORMAT format[4];
 
-    string = PhGetAccessString(ApartmentState, (PPH_ACCESS_ENTRY)oleTlsflags, RTL_NUMBER_OF(oleTlsflags));
+    string = PhGetAccessString(
+        ApartmentState,
+        (PPH_ACCESS_ENTRY)oleTlsflags,
+        RTL_NUMBER_OF(oleTlsflags)
+        );
 
     PhInitFormatSR(&format[0], string->sr);
     PhInitFormatS(&format[1], L" (0x");
@@ -2495,5 +2498,6 @@ PPH_STRING PhGetApartmentFlagsString(
     PhInitFormatC(&format[3], L')');
 
     PhMoveReference(&string, PhFormat(format, RTL_NUMBER_OF(format), 10));
+
     return string;
 }

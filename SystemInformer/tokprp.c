@@ -174,7 +174,7 @@ static CONST PH_STRINGREF PhpEmptyTokenAttributesText = PH_STRINGREF_INIT(L"Ther
 static CONST PH_STRINGREF PhpEmptyTokenClaimsText = PH_STRINGREF_INIT(L"There are no claims to display.");
 static CONST PH_STRINGREF PhpEmptyTokenCapabilitiesText = PH_STRINGREF_INIT(L"There are no capabilities to display.");
 
-INT CALLBACK PhpTokenPropPageProc(
+UINT CALLBACK PhpTokenPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -253,10 +253,12 @@ INT_PTR CALLBACK PhpTokenAppPolicyPageProc(
 PPH_STRING PhpGetTokenFolderPath(
     _In_ HANDLE TokenHandle
     );
+
 PPH_STRING PhpGetTokenRegistryPath(
     _In_ HANDLE TokenHandle
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpTokenDialogThread(
     _In_ PVOID Context
     )
@@ -332,24 +334,6 @@ VOID PhShowTokenProperties(
     PhCreateTokenDialog(OpenObject, CloseObject, ProcessId, Context, NULL);
 }
 
-INT CALLBACK PhpTokenSheetProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ LPARAM lParam
-)
-{
-    switch (uMsg)
-    {
-    case PSCB_INITIALIZED:
-        {
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
-        }
-        break;
-    }
-
-    return 0;
-}
-
 HPROPSHEETPAGE PhCreateTokenPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_ PPH_CLOSE_OBJECT CloseObject,
@@ -387,7 +371,7 @@ HPROPSHEETPAGE PhCreateTokenPage(
     return propSheetPageHandle;
 }
 
-INT CALLBACK PhpTokenPropPageProc(
+UINT CALLBACK PhpTokenPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -709,7 +693,6 @@ VOID PhpTokenPageFreeListViewEntries(
 _Success_(return)
 BOOLEAN PhGetTokenSidTypeString(
     _In_ SID_NAME_USE TokenNameUse,
-    _Out_ PWSTR* TokenNameUseString
     )
 {
     if (PhIndexStringSiKeyValuePairs(
@@ -725,6 +708,7 @@ BOOLEAN PhGetTokenSidTypeString(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
     _In_ PVOID ThreadParameter
     )
@@ -1105,6 +1089,7 @@ FORCEINLINE PTOKEN_PAGE_CONTEXT PhpTokenPageHeader(
     return PhpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 3);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS NTAPI PhpTokenUserResolveWorker(
     _In_ PVOID ThreadParameter
     )
@@ -4898,6 +4883,7 @@ NTSTATUS PhGetAppModelPolicy(
     return STATUS_PROCEDURE_NOT_FOUND;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhGetAppModelPolicySymbolDownloadThread(
     _In_ PVOID Context
     )

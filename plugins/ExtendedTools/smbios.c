@@ -4377,7 +4377,7 @@ VOID EtShowSMBIOSDialog(
     )
 {
     PhDialogBox(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_SMBIOS),
         NULL,
         EtSMBIOSDlgProc,

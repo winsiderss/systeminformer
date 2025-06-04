@@ -489,6 +489,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PeDumpFileSymbols(
     _In_ PPDB_SYMBOL_CONTEXT Context
     );

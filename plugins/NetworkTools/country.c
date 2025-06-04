@@ -565,6 +565,7 @@ VOID DrawCountryIcon(
         );
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NetworkToolsGeoDbCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -576,6 +577,7 @@ BOOLEAN NetworkToolsGeoDbCacheHashtableEqualFunction(
     return PhEqualIpAddress(&entry1->RemoteAddress, &entry2->RemoteAddress);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NetworkToolsGeoDbCacheHashtableHashFunction(
     _In_ PVOID Entry
     )

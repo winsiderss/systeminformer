@@ -129,6 +129,7 @@ VOID NTAPI EtPoolMonProcessesUpdatedCallback(
     EtUpdatePoolTagTable(Context);
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI EtPoolMonSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -375,7 +376,7 @@ NTSTATUS EtShowPoolMonDialogThread(
     PhInitializeAutoPool(&autoPool);
 
     EtPoolTagDialogHandle = PhCreateDialog(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_POOL),
         NULL,
         EtPoolMonDlgProc,
