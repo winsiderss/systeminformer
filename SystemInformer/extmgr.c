@@ -45,7 +45,7 @@ VOID PhEmInitialization(
  */
 VOID PhEmInitializeAppContext(
     _Out_ PPH_EM_APP_CONTEXT AppContext,
-    _In_ PPH_STRINGREF AppName
+    _In_ PCPH_STRINGREF AppName
     )
 {
     AppContext->AppName = *AppName;
@@ -87,7 +87,6 @@ VOID PhEmSetObjectExtension(
 
         objectExtension->ExtensionSize = ExtensionSize;
         objectExtension->ExtensionOffset = objectTypeState->ExtensionOffset;
-
         objectTypeState->ExtensionOffset += ExtensionSize;
     }
 
@@ -207,7 +206,7 @@ VOID PhEmCallObjectOperation(
  */
 _Success_(return)
 BOOLEAN PhEmParseCompoundId(
-    _In_ PPH_STRINGREF CompoundId,
+    _In_ PCPH_STRINGREF CompoundId,
     _Out_ PPH_STRINGREF AppName,
     _Out_ PULONG SubId
     )
@@ -229,7 +228,7 @@ BOOLEAN PhEmParseCompoundId(
     if (firstPart.Length == 0 || secondPart.Length == 0)
         return FALSE;
 
-    if (!PhStringToInteger64(&secondPart, 10, &integer))
+    if (!PhStringToUInt64(&secondPart, 10, &integer))
         return FALSE;
 
     *AppName = firstPart;
