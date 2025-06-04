@@ -15,7 +15,7 @@
 
 #include <phsvcapi.h>
 
-extern HANDLE PhSvcClServerProcessId;
+extern ULONG PhSvcClServerProcessId;
 
 NTSTATUS PhSvcConnectToServer(
     _In_ PUNICODE_STRING PortName,
