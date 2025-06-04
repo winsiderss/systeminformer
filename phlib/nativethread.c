@@ -916,7 +916,7 @@ NTSTATUS PhGetProcessMTAUsage(
 NTSTATUS PhGetThreadApartmentFlags(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
-    _Out_ POLETLSFLAGS ApartmentFlags,
+    _Out_ PULONG ApartmentFlags,
     _Out_opt_ PULONG ComInits
     )
 {
@@ -988,7 +988,7 @@ NTSTATUS PhGetThreadApartmentFlags(
         ProcessHandle,
         apartmentStateOffset,
         ApartmentFlags,
-        sizeof(OLETLSFLAGS),
+        sizeof(ULONG),
         NULL
         );
 

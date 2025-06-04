@@ -4034,7 +4034,7 @@ NTAPI
 PhGetThreadApartmentFlags(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
-    _Out_ POLETLSFLAGS ApartmentState,
+    _Out_ PULONG ApartmentState,
     _Out_opt_ PULONG ComInits
     );
 
@@ -4054,7 +4054,7 @@ typedef struct _PH_APARTMENT_INFO
     PH_APARTMENT_TYPE Type;
     BOOLEAN InNeutral;
     ULONG ComInits;
-    OLETLSFLAGS Flags;
+    ULONG Flags;
 } PH_APARTMENT_INFO, *PPH_APARTMENT_INFO;
 
 PHLIBAPI
@@ -4216,7 +4216,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhFreezeProcess(
-    _Out_ PHANDLE FreezeHandle,
+    _Out_ PHANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFreezeProcesById(
+    _Out_ PHANDLE ProcessStateChangeHandle,
     _In_ HANDLE ProcessId
     );
 
@@ -4224,7 +4232,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhThawProcess(
-    _In_ HANDLE FreezeHandle,
+    _In_ HANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhThawProcessById(
+    _In_ HANDLE ProcessStateChangeHandle,
     _In_ HANDLE ProcessId
     );
 
@@ -4232,7 +4248,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhFreezeThread(
-    _Out_ PHANDLE FreezeHandle,
+    _Out_ PHANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFreezeThreadById(
+    _Out_ PHANDLE ThreadStateChangeHandle,
     _In_ HANDLE ThreadId
     );
 
@@ -4240,7 +4264,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhThawThread(
-    _In_ HANDLE FreezeHandle,
+    _In_ HANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhThawThreadById(
+    _In_ HANDLE ThreadStateChangeHandle,
     _In_ HANDLE ThreadId
     );
 

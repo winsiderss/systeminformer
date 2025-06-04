@@ -2038,22 +2038,21 @@ HRESULT PhWriteMiniDumpProcess(
  * \param Flags Flags to set in the resulting structure.
  * \param ThreadStackFrame A pointer to the resulting PH_THREAD_STACK_FRAME structure.
  */
-VOID PhpConvertStackFrame(
-    _In_ STACKFRAME_EX *StackFrame,
+VOID PhConvertStackFrame(
+    _In_ CONST STACKFRAME_EX *StackFrame,
     _In_ USHORT Machine,
     _In_ USHORT Flags,
     _Out_ PPH_THREAD_STACK_FRAME ThreadStackFrame
     )
 {
-    ULONG i;
-
+    memset(ThreadStackFrame, 0, sizeof(ThreadStackFrame->Params));
     ThreadStackFrame->PcAddress = (PVOID)StackFrame->AddrPC.Offset;
     ThreadStackFrame->ReturnAddress = (PVOID)StackFrame->AddrReturn.Offset;
     ThreadStackFrame->FrameAddress = (PVOID)StackFrame->AddrFrame.Offset;
     ThreadStackFrame->StackAddress = (PVOID)StackFrame->AddrStack.Offset;
     ThreadStackFrame->BStoreAddress = (PVOID)StackFrame->AddrBStore.Offset;
 
-    for (i = 0; i < 4; i++)
+    for (ULONG i = 0; i < 4; i++)
         ThreadStackFrame->Params[i] = (PVOID)StackFrame->Params[i];
 
     ThreadStackFrame->Machine = Machine;
@@ -2101,6 +2100,7 @@ NTSTATUS PhWalkThreadStack(
     BOOLEAN isCurrentThread = FALSE;
     BOOLEAN isSystemThread = FALSE;
     THREAD_BASIC_INFORMATION basicInfo;
+    HANDLE stateChangeHandle = NULL;
 
     // Open a handle to the process if we weren't given one.
     if (!ProcessHandle)
@@ -2158,7 +2158,9 @@ NTSTATUS PhWalkThreadStack(
         if (NT_SUCCESS(PhGetThreadStartAddress(ThreadHandle, &startAddress)))
         {
             if (startAddress > PhSystemBasicInformation.MaximumUserModeAddress)
+            {
                 isSystemThread = TRUE;
+            }
         }
     }
 
@@ -2167,7 +2169,17 @@ NTSTATUS PhWalkThreadStack(
     if (!isCurrentThread && !isSystemThread)
     {
         if (NT_SUCCESS(NtSuspendThread(ThreadHandle, NULL)))
+        {
             suspended = TRUE;
+        }
+
+        if (WindowsVersion >= WINDOWS_11)
+        {
+            // Note: NtSuspendThread does not always suspend the thread due to race condition issues in the kernel and third party processes.
+            // Windows 11 added state change support and fixed these and other bugs. We need to freeze the thread for an accurate result. (dmex)
+            // https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/controlling-processes-and-threads#freezing-and-suspending-threads
+            PhFreezeThread(&stateChangeHandle, ThreadHandle);
+        }
     }
 
     // Kernel stack walk.
@@ -2301,7 +2313,7 @@ NTSTATUS PhWalkThreadStack(
 #endif
 
             // If we have an invalid instruction pointer, break.
-            if (!stackFrame.AddrPC.Offset || stackFrame.AddrPC.Offset == -1)
+            if (!stackFrame.AddrPC.Offset || stackFrame.AddrPC.Offset == ULONG64_MAX)
             {
 #if defined(_ARM64_)
 CheckFinalARM64VirtualFrame:
@@ -2312,7 +2324,7 @@ CheckFinalARM64VirtualFrame:
                 {
                     // Convert the stack frame and execute the callback.
 
-                    PhpConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, &threadStackFrame);
+                    PhConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, &threadStackFrame);
 
                     if (!Callback(&threadStackFrame, Context))
                         goto ResumeExit;
@@ -2364,7 +2376,7 @@ CheckFinalARM64VirtualFrame:
 
                 // Convert the stack frame and execute the callback.
 
-                PhpConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, &threadStackFrame);
+                PhConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, &threadStackFrame);
 
                 if (!Callback(&threadStackFrame, Context))
                     goto ResumeExit;
@@ -2385,7 +2397,7 @@ CheckFinalARM64VirtualFrame:
 
             // Convert the stack frame and execute the callback.
 
-            PhpConvertStackFrame(&stackFrame, (USHORT)machine, 0, &threadStackFrame);
+            PhConvertStackFrame(&stackFrame, (USHORT)machine, 0, &threadStackFrame);
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
@@ -2441,8 +2453,9 @@ SkipUserStack:
                 NULL,
                 NULL
                 ))
+            {
                 break;
-
+            }
 
             // TODO(jxy-s)
             //
@@ -2451,18 +2464,22 @@ SkipUserStack:
             // for this I removed it in the last chunk of ARM64 fixes since I wasn't happy with it.
 
             // If we have an invalid instruction pointer, break.
-            if (!stackFrame.AddrPC.Offset || stackFrame.AddrPC.Offset == -1)
+            if (!stackFrame.AddrPC.Offset || stackFrame.AddrPC.Offset == ULONG64_MAX)
                 break;
 
             // Convert the stack frame and execute the callback.
 
-            PhpConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_I386, 0, &threadStackFrame);
+            PhConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_I386, 0, &threadStackFrame);
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
 
 #if !defined(_ARM64_)
-            // (x86 only) Allow the user to change Eip, Esp and Ebp.
+            // (x86 only) Allow extensions to fixup the Eip, Esp and Ebp addresses.
+            // Note: Managed environments like .NET manage their own stack frames,
+            // and don't align with native expectations. Extensions like DotNetTools
+            // query the CLR runtime debug interface and provide the correct addresses
+            // as required to show correct thread call stacks and execution context. (dnex)
             context.Eip = PtrToUlong(threadStackFrame.PcAddress);
             stackFrame.AddrPC.Offset = PtrToUlong(threadStackFrame.PcAddress);
             context.Ebp = PtrToUlong(threadStackFrame.FrameAddress);
@@ -2515,15 +2532,17 @@ SkipI386Stack:
                 NULL,
                 NULL
                 ))
+            {
                 break;
+            }
 
             // If we have an invalid instruction pointer, break.
-            if (!stackFrame.AddrPC.Offset || stackFrame.AddrPC.Offset == -1)
+            if (!stackFrame.AddrPC.Offset || stackFrame.AddrPC.Offset == ULONG64_MAX)
                 break;
 
             // Convert the stack frame and execute the callback.
 
-            PhpConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_ARMNT, 0, &threadStackFrame);
+            PhConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_ARMNT, 0, &threadStackFrame);
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
@@ -2537,6 +2556,9 @@ SkipARMStack:
 ResumeExit:
     if (suspended)
         NtResumeThread(ThreadHandle, NULL);
+
+    if (stateChangeHandle)
+        NtClose(stateChangeHandle);
 
     if (processOpened)
         NtClose(ProcessHandle);
