@@ -2702,25 +2702,6 @@ PhEnumDirectoryFile(
     _In_opt_ PVOID Context
     );
 
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhEnumDirectoryFileEx(
-    _In_ HANDLE FileHandle,
-    _In_ FILE_INFORMATION_CLASS FileInformationClass,
-    _In_ BOOLEAN ReturnSingleEntry,
-    _In_opt_ PCPH_STRINGREF SearchPattern,
-    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
-    _In_opt_ PVOID Context
-    );
-
-typedef NTSTATUS (NTAPI *PPH_ENUM_REPARSE_POINT)(
-    _In_ HANDLE RootDirectory,
-    _In_ PVOID Information,
-    _In_ SIZE_T InformationLength,
-    _In_opt_ PVOID Context
-    );
-
 FORCEINLINE
 NTSTATUS
 NTAPI
@@ -2742,6 +2723,53 @@ PhEnumDirectoryFileZ(
         Context
         );
 }
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumDirectoryFileEx(
+    _In_ HANDLE FileHandle,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _In_ BOOLEAN ReturnSingleEntry,
+    _In_opt_ PCPH_STRINGREF SearchPattern,
+    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
+    _In_opt_ PVOID Context
+    );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhEnumDirectoryFileExZ(
+    _In_ HANDLE FileHandle,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _In_ BOOLEAN ReturnSingleEntry,
+    _In_ PCWSTR SearchPattern,
+    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_STRINGREF searchPattern;
+
+    PhInitializeStringRef(&searchPattern, SearchPattern);
+
+    return PhEnumDirectoryFileEx(
+        FileHandle,
+        FileInformationClass,
+        ReturnSingleEntry,
+        &searchPattern,
+        Callback,
+        Context
+        );
+}
+
+typedef _Function_class_(PH_ENUM_REPARSE_POINT)
+NTSTATUS NTAPI PH_ENUM_REPARSE_POINT(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_ SIZE_T InformationLength,
+    _In_opt_ PVOID Context
+    );
+typedef PH_ENUM_REPARSE_POINT* PPH_ENUM_REPARSE_POINT;
 
 PHLIBAPI
 NTSTATUS
