@@ -3258,14 +3258,20 @@ BOOLEAN NTAPI PhRunAsPackageTreeNewCallback(
 
                     if (context->ImageListHandle)
                     {
+                        LONG width;
+                        LONG height;
+
+                        width = PhGetSystemMetrics(SM_CXICON, context->WindowDpi);
+                        height = PhGetSystemMetrics(SM_CYICON, context->WindowDpi);
+
                         PhImageListDrawEx(
                             context->ImageListHandle,
                             (ULONG)(ULONG_PTR)node->IconIndex,
                             customDraw->Dc,
-                            customDraw->CellRect.left + 5,
-                            customDraw->CellRect.top + ((customDraw->CellRect.bottom - customDraw->CellRect.top) - 32) / 2,
-                            32,
-                            32,
+                            customDraw->CellRect.left + 5,//((customDraw->CellRect.right - customDraw->CellRect.left) - width) / 2,
+                            customDraw->CellRect.top + ((customDraw->CellRect.bottom - customDraw->CellRect.top) - height) / 2,
+                            width,
+                            height,
                             CLR_DEFAULT,
                             CLR_NONE,
                             ILD_TRANSPARENT,
@@ -3386,7 +3392,6 @@ VOID PhRunAsPackageInitializeTree(
     Context->TitleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL, Context->WindowDpi);
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
-
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
     TreeNew_SetCallback(Context->TreeNewHandle, PhRunAsPackageTreeNewCallback, Context);
     TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(48, Context->WindowDpi));
@@ -3444,10 +3449,15 @@ static VOID PhRunAsPackageSetImagelist(
     _Inout_ PPH_RUNAS_PACKAGE_CONTEXT Context
     )
 {
-    PhImageListDestroy(Context->ImageListHandle);
+    if (Context->ImageListHandle)
+    {
+        PhImageListDestroy(Context->ImageListHandle);
+        Context->ImageListHandle = NULL;
+    }
+
     Context->ImageListHandle = PhImageListCreate(
-        PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
-        PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi),
+        PhGetSystemMetrics(SM_CXICON, Context->WindowDpi),
+        PhGetSystemMetrics(SM_CYICON, Context->WindowDpi),
         ILC_MASK | ILC_COLOR32,
         20,
         10
