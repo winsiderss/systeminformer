@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <CodePage>65001</CodePage>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
-    <Determinisitc>true</Determinisitc>
+    <Deterministic>true</Deterministic>
     <EmbedAllSources>false</EmbedAllSources>
     <EmbedUntrackedSources>false</EmbedUntrackedSources>
     <EventSourceSupport>false</EventSourceSupport>
@@ -19,15 +19,15 @@
     <Platforms>x64;x86;ARM64</Platforms>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
-    <PublishAot>True</PublishAot>
+    <PublishAot>true</PublishAot>
     <PublishTrimmed>true</PublishTrimmed>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
     <TargetFramework>net9.0-windows</TargetFramework>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
-    <Version>2.0.0.0</Version>
+    <Version>4.0.0.0</Version>
     <Nullable>disable</Nullable>
-    <EnforceCodeStyleInBuild>False</EnforceCodeStyleInBuild>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
     <PackageProjectUrl>https://github.com/winsiderss/systeminformer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/winsiderss/systeminformer</RepositoryUrl>
   </PropertyGroup>
@@ -103,6 +103,7 @@
     <Using Include="System.Net" />
     <Using Include="System.Net.Http.Headers" />
     <Using Include="System.Net.Security" />
+    <Using Include="System.Numerics;" />
     <Using Include="System.Reflection" />
     <Using Include="System.Runtime.CompilerServices" />
     <Using Include="System.Runtime.InteropServices" />
@@ -135,7 +136,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SharpCompress" Version="0.39.0" />
+    <PackageReference Include="SharpCompress" Version="0.40.0" />
   </ItemGroup>
 </Project>
-  
