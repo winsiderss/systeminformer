@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer ("SI").
@@ -19,24 +19,26 @@
 extern "C" {
 #endif
 
-typedef BOOLEAN
-(*PPH_CPU_SETS_ENUMERATION_CALLBACK)(
+typedef BOOLEAN (NTAPI *PPH_CPU_SETS_ENUMERATION_CALLBACK)(
     _In_ PSYSTEM_CPU_SET_INFORMATION Information,
     _In_opt_ PVOID Context
     );
 
 NTSTATUS
+NTAPI
 PhQuerySystemCpuSetInformation(
     _Out_ PVOID *Information
     );
 
 NTSTATUS
+NTAPI
 PhEnumerateSystemCpuSets(
     _In_ PPH_CPU_SETS_ENUMERATION_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
 
 NTSTATUS
+NTAPI
 PhQueryCpuSetsProcess(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG *CpuSetIds,
@@ -44,6 +46,7 @@ PhQueryCpuSetsProcess(
     );
 
 NTSTATUS
+NTAPI
 PhSetCpuSetsProcess(
     _In_ HANDLE ProcessHandle,
     _In_reads_opt_(CpuSetIdCount) const ULONG *CpuSetIds,

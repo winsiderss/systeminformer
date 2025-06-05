@@ -697,6 +697,56 @@ VOID PhGetSelectedIListViewItemParams(
     *Items = static_cast<PVOID*>(PhFinalArrayItems(&array));
 }
 
+/*!
+ * Retrieves the lParam of each checked item in a checkbox-enabled ListView.
+ *
+ * @param ListViewHandle
+ *     A handle to the ListView control (must have checkboxes enabled).
+ *
+ * @param Items
+ *     Receives a pointer to an array of PVOID values, each corresponding
+ *     to the lParam of a checked item.
+ *
+ * @param NumberOfItems
+ *     Receives the number of entries in @p Items.
+ *
+ * @return TRUE if the operation succeeded, FALSE otherwise.
+ */
+_Success_(return != FALSE)
+BOOLEAN PhGetCheckedListViewItemParams(
+    _In_ HWND ListViewHandle,
+    _Out_ PVOID **Items,
+    _Out_ PULONG NumberOfItems
+    )
+{
+    PH_ARRAY array;
+    INT totalItems, i;
+    PVOID param;
+
+    if (!ListViewHandle || !Items || !NumberOfItems)
+    {
+        return FALSE;
+    }
+
+    PhInitializeArray(&array, sizeof(PVOID), 4);
+
+    totalItems = ListView_GetItemCount(ListViewHandle);
+    for (i = 0; i < totalItems; i += 1)
+    {
+        if (ListView_GetCheckState(ListViewHandle, i))
+        {
+            if (PhGetListViewItemParam(ListViewHandle, i, &param))
+            {
+                PhAddItemArray(&array, &param);
+            }
+        }
+    }
+
+    *NumberOfItems = static_cast<ULONG>(PhFinalArrayCount(&array));
+    *Items = static_cast<PVOID *>(PhFinalArrayItems(&array));
+    return TRUE;
+}
+
 BOOLEAN PhGetIListViewClientRect(
     _In_ IListView* ListView,
     _Inout_ PRECT ClientRect

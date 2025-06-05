@@ -962,6 +962,15 @@ PhGetSelectedIListViewItemParams(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhGetCheckedListViewItemParams(
+    _In_ HWND ListViewHandle,
+    _Out_ PVOID **Items,
+    _Out_ PULONG NumberOfItems
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhGetIListViewClientRect(
     _In_ IListView* ListView,
     _Inout_ PRECT ClientRect

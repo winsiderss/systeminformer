@@ -109,7 +109,6 @@ typedef struct PHP_CPU_SETS_DLG_CTX {
     PH_CPU_SET_TYPE CpuSetType;
     PULONG CpuSetIds;
     ULONG CpuSetIdCount;
-    ULONG Index;
 } PHP_CPU_SETS_DLG_CTX, *PPHP_CPU_SETS_DLG_CTX;
 
 //
@@ -444,7 +443,7 @@ PhQueryCpuSetsProcess(
     static USHORT groupCount;
     ULONG requiredCount;
 
-    groupCount = USER_SHARED_DATA->ActiveGroupCount;
+    groupCount = PhSystemProcessorInformation.NumberOfProcessorGroups;
 
     *CpuSetIds = NULL;
     *CpuSetIdCount = 0;
@@ -533,7 +532,7 @@ PhSetCpuSetsProcess(
     static USHORT groupCount;
     PKAFFINITY masks;
 
-    groupCount = USER_SHARED_DATA->ActiveGroupCount;
+    groupCount = PhSystemProcessorInformation.NumberOfProcessorGroups;
 
     masks = PhAllocateZero(groupCount * sizeof(KAFFINITY));
     if (!masks) {
@@ -641,6 +640,10 @@ PhpPopulateCpuSetsListViewCallback(
         return FALSE;
     }
 
+    //
+    // Determine if this CPU Set should be marked as checked
+    // by searching for its ID in the provided ID array.
+    //
     if (context->CpuSetIds && context->CpuSetIdCount > 0) {
 #define BINARY_SEARCH_THRESHOLD 32
         if (context->CpuSetIdCount > BINARY_SEARCH_THRESHOLD) {
@@ -681,11 +684,17 @@ PhpPopulateCpuSetsListViewCallback(
     // contained by the listview control, the new item will be appended to
     // the end of the list and assigned the correct index"
     //
+    // Associate the CPU Set ID to the list item so that it can be retrieved
+    // in the selection handler
+    //
     lvItemIndex = PhAddListViewItem(context->ListViewHandle,
                                     MAXINT,
                                     number,
-                                    UlongToPtr(context->Index++));
+                                    UlongToPtr(Information->CpuSet.Id));
 
+    //
+    // Set the check state if this CPU Set is in the selection list
+    //
     if (isChecked) {
         assert(lvItemIndex >= 0);
         ListView_SetCheckState(context->ListViewHandle, lvItemIndex, TRUE)
@@ -793,7 +802,6 @@ PhpPopulateListViewWithCpuSets(
         //
         // Enumerate all system CPU Sets and check selected
         //
-        DialogContext->Index = 0;
         status = PhEnumerateSystemCpuSets(PhpPopulateCpuSetsListViewCallback,
                                           DialogContext);
     }
@@ -812,7 +820,6 @@ PhpPopulateListViewWithCpuSets(
         //
         status = PhQuerySystemCpuSetInformation(&cpuSetsInfo);
         if (NT_SUCCESS(status) && cpuSetsInfo) {
-            DialogContext->Index = 0;
             FOREACH_CPU_SET_INFO(cpuSetsInfo,
                                  DialogContext,
                                  PhpPopulateCpuSetsListViewCallback);
@@ -833,51 +840,6 @@ PhpPopulateListViewWithCpuSets(
 }
 
 /**
- * Attempts to parse a CPU Set ID from a null-terminated wide string.
- *
- * @param CpuSetIdText
- *     The input string to parse.
- *
- * @param AsUlong
- *     Receives the parsed unsigned long on success.
- *
- * @returns
- *     TRUE if the entire string is a valid non-negative integer;
- *     FALSE otherwise.
- *
- * @remark
- *     We know that every ListView item's text is exactly PhPrintUInt32(...):
- *     pure digits, no sign, no extra spaces. We use a specialized parser that
- *     simply walks the WCHAR* buffer once and stops on the first non-digit.
- */
-static
-BOOL
-PhpTryParseCpuId(
-    _In_ LPCWSTR CpuSetIdText,
-    _Out_ PULONG AsUlong
-)
-{
-    if (!CpuSetIdText ||
-        *CpuSetIdText < L'0' ||
-        *CpuSetIdText > L'9') {
-        return FALSE;
-    }
-
-    ULONG v = 0;
-    WCHAR c;
-    for (; *CpuSetIdText; CpuSetIdText += 1) {
-        c = *CpuSetIdText;
-        if (c < L'0' || c > L'9') {
-            return FALSE;
-        }
-        v = v * 10 + (c - L'0');
-    }
-    *AsUlong = v;
-
-    return TRUE;
-}
-
-/**
  * Retrieves the selected CPU Set IDs from a ListView.
  *
  * @param ListViewHandle
@@ -889,6 +851,8 @@ PhpTryParseCpuId(
  *
  * @param SelectedCount
  *     Pointer to store the count of selected IDs.
+ *
+ * @return STATUS_SUCCESS if no errors, or the specific error status code.
  */
 static
 NTSTATUS
@@ -898,64 +862,42 @@ PhpGetSelectedCpuSetIds(
     _Out_ PULONG SelectedCount
 )
 {
-    INT i;
-    INT itemCount = ListView_GetItemCount(ListViewHandle);
+    PVOID *paramArray;
+    PULONG ids;
     ULONG count;
-    WCHAR buffer[PH_INT32_STR_LEN_1];
-    LVITEMW lv = {0};
-    PULONG shrunk;
+    ULONG i;
 
-    if (itemCount <= 0) {
+    if (!PhGetCheckedListViewItemParams(ListViewHandle,
+                                        &paramArray,
+                                        &count)) {
+        *SelectedIds = NULL;
+        *SelectedCount = 0;
+        return STATUS_NOT_FOUND;
+    }
+
+    //
+    // If no rows were checked, clean up and return empty.
+    //
+    if (count == 0) {
         *SelectedIds = NULL;
         *SelectedCount = 0;
         return STATUS_SUCCESS;
     }
 
-    ULONG *ids = PhAllocate(sizeof(*ids) * itemCount);
+    ids = PhAllocate(sizeof(*ids) * count);
+
     if (!ids) {
+        PhFree(paramArray);
+        *SelectedIds = NULL;
+        *SelectedCount = 0;
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    lv.mask = LVIF_TEXT;
-    lv.iSubItem = 0;
-    lv.pszText = buffer;
-    lv.cchTextMax = ARRAYSIZE(buffer);
-
-    count = 0;
-    for (i = 0; i < itemCount; i += 1) {
-        if (!ListView_GetCheckState(ListViewHandle, i)) {
-            continue;
-        }
-
-        //
-        // Retrieve the item text
-        //
-        lv.iItem = i;
-        if (SendMessageW(ListViewHandle,
-                         LVM_GETITEMTEXTW,
-                         (WPARAM)i,
-                         (LPARAM)&lv) <= 0) {
-            continue;
-        }
-
-        if (PhpTryParseCpuId(buffer, &ids[count])) {
-            count += 1;
-        }
+    for (i = 0; i < count; i += 1) {
+        ids[i] = (ULONG)(ULONG_PTR)paramArray[i];
     }
 
-    if (count == 0) {
-        PhFree(ids);
-        *SelectedIds = NULL;
-        *SelectedCount = 0;
-        return STATUS_SUCCESS;
-    }
-
-    if (count < (ULONG)itemCount) {
-        shrunk = PhReAllocate(ids, sizeof(*ids) * count);
-        if (shrunk) {
-            ids = shrunk;
-        }
-    }
+    PhFree(paramArray);
 
     *SelectedIds = ids;
     *SelectedCount = count;
@@ -1002,7 +944,6 @@ PhpProcessCpuSetsDlgProc(
 
         context->WindowHandle = DlgHandle;
         context->ListViewHandle = GetDlgItem(DlgHandle, IDC_LIST);
-        context->Index = 0;
 
         PhSetApplicationWindowIcon(DlgHandle);
 

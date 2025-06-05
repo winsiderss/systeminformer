@@ -2253,7 +2253,6 @@ BEGIN
     VK_F11,         IDC_MAXSCREEN,          VIRTKEY, NOINVERT
 END
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
@@ -2263,18 +2262,5 @@ IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
 
 IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// AFX_DIALOG_LAYOUT
-//
-
-IDD_CPUSETS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
-
-
