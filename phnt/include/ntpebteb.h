@@ -738,15 +738,7 @@ typedef struct _PEB
     //
     // Packaged process feature state.
     //
-    union
-    {
-        ULONG AppModelFeatureState;
-        struct
-        {
-            ULONG ForegroundBoostProcesses : 1;
-            ULONG AppModelFeatureStateReserved : 31;
-        };
-    };
+    ULONG AppModelFeatureState;
 
     //
     // SpareUlongs
