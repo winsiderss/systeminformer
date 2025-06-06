@@ -2049,7 +2049,7 @@ RtlCompareUnicodeString(
     );
 
 /**
- * The RtlCompareUnicodeString routine compares two Unicode strings.
+ * The RtlCompareUnicodeStrings routine compares two Unicode strings.
  * 
  * \param[in] String1 Pointer to the first string.
  * \param[in] String1Length The length, in bytes, of the first string.
@@ -3781,13 +3781,13 @@ RtlSetProcessIsCritical(
     );
 
 /**
- * The RtlSetThreadIsCritical function sets or clears the critical status of the current process.
+ * The RtlSetThreadIsCritical function sets or clears the critical status of the current thread.
  *
- * \param NewValue TRUE to mark the process as critical, FALSE to clear.
+ * \param NewValue TRUE to mark the thread as critical, FALSE to clear.
  * \param OldValue Optional pointer to receive the previous critical status.
  * \param CheckFlag If TRUE, checks for certain conditions before setting.
  * \return NTSTATUS Successful or errant status.
- * \remarks A critical process will cause a system bugcheck if terminated.
+ * \remarks A critical thread will cause a system bugcheck if terminated.
  */
 NTSYSAPI
 NTSTATUS
