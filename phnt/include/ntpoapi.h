@@ -674,7 +674,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalDeepSleepBlock, // 40
     PowerInternalIsPoFxDevice,
     PowerInternalPowerTransitionExtensionAtBoot,
-    PowerInternalProcessorBrandedFrequency, // in: POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT, out: POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT
+    PowerInternalProcessorBrandedFrequency, // in: POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT, out: POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT
     PowerInternalTimeBrokerExpirationReason,
     PowerInternalNotifyUserShutdownStatus,
     PowerInternalPowerRequestTerminalCoreWindow,
@@ -721,11 +721,11 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalUnregisterShutdownNotification, // since 22H1
     PowerInternalManageTransitionStateRecord,
     PowerInternalGetAcpiTimeAndAlarmCapabilities, // since 22H2
-    PowerInternalSuspendResumeRequest,
+    PowerInternalSuspendResumeRequest, // 90
     PowerInternalEnergyEstimationInfo, // since 23H2
     PowerInternalProvSocIdentifierOperation, // since 24H2
-    PowerInternalGetVmPerfPrioritySupport,
-    PowerInternalGetVmPerfPriorityConfig,
+    PowerInternalGetVmPerfPrioritySupport, // in: POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT, out: POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT
+    PowerInternalGetVmPerfPriorityConfig, // in: POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT, out: POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT
     PowerInternalNotifyWin32kPowerRequestQueued,
     PowerInternalNotifyWin32kPowerRequestCompleted,
     PowerInformationInternalMaximum
@@ -876,6 +876,50 @@ typedef struct _POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
     ULONG BootAppErrorDiagCode; // bcdedit last status
     ULONG BootAppFailureStatus; // bcdedit last status
 } POWER_INTERNAL_BOOTAPP_DIAGNOSTIC, *PPOWER_INTERNAL_BOOTAPP_DIAGNOSTIC;
+
+// rev
+typedef struct _POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Action;
+    ULONG Domain;
+} POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_INPUT, *PPOWER_INTERNAL_SOC_IDENTIFIER_OPERATION_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_OUTPUT
+{
+    BOOLEAN VmThrottleSupportedAndConfigured;
+    ULONG VmThrottlePriorityCount;
+} POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_OUTPUT, *PPOWER_INTERNAL_SOC_IDENTIFIER_OPERATION_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+} POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT, *PPOWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT
+{
+    BOOLEAN VmThrottleSupportedAndConfigured;
+    ULONG VmThrottlePriorityCount;
+} POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT, *PPOWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Action;
+    ULONG Domain;
+} POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT, *PPOWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT
+{
+    BOOLEAN VmThrottleSupportedAndConfigured;
+    ULONG VmThrottlePriorityCount;
+} POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT, *PPOWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT;
+
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 /**
