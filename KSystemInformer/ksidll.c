@@ -224,9 +224,14 @@ NTSTATUS KSIAPI KsiRemoveQueueApc(
 //
 // This is an extension of the work queue functionality in Windows to enable a
 // driver to be unloaded while there are outstanding queued work items on the
-// system with which reference it. This is an alternative to IoQueueWorkItem
-// which requires a device object. In comparison, this extension only relies on
-// a driver object.
+// system with which reference it.
+//
+// N.B. WORK_QUEUE_ITEM and IO_WORKITEM are not equivalent. WORK_QUEUE_ITEM does
+// not provide a mechanism to reference an object associated with the driver
+// that queued the work item. IO_WORKITEM does, but its implementation for work
+// scheduling and accounting differs. They are not interchangeable. Therefore,
+// this implementation adds support for associating a driver object with a
+// WORK_QUEUE_ITEM.
 //
 // N.B. While this library guarantees the driver will not be unmapped, it does
 // not prevent DriverUnload from being invoked. Drivers using this library may
