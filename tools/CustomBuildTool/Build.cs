@@ -1257,16 +1257,16 @@ namespace CustomBuildTool
         {
             // Create the package manifest.
 
-            if (Flags.HasFlag(BuildFlags.Build32bit))
-            {
-                string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
-
-                msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x86");
-                msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
-                msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
-
-                Utils.WriteAllText("tools\\msix\\MsixManifest32.xml", msixManifestString);
-            }
+            //if (Flags.HasFlag(BuildFlags.Build32bit))
+            //{
+            //    string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
+            //
+            //    msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x86");
+            //    msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
+            //    msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
+            //
+            //    Utils.WriteAllText("tools\\msix\\MsixManifest32.xml", msixManifestString);
+            //}
 
             if (Flags.HasFlag(BuildFlags.Build64bit))
             {
@@ -1284,35 +1284,35 @@ namespace CustomBuildTool
         {
             // Create the package mapping file.
 
-            if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
-            {
-                StringBuilder packageMap32 = new StringBuilder(0x100);
-                packageMap32.AppendLine("[Files]");
-                packageMap32.AppendLine("\"tools\\msix\\MsixManifest32.xml\" \"AppxManifest.xml\"");
-                packageMap32.AppendLine("\"tools\\msix\\Square44x44Logo.png\" \"Assets\\Square44x44Logo.png\"");
-                packageMap32.AppendLine("\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
-                packageMap32.AppendLine("\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
-
-                var filesToAdd = Directory.EnumerateFiles("bin\\Release32", "*", SearchOption.AllDirectories);
-                foreach (string filePath in filesToAdd)
-                {
-                    if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
-                        filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
-                        filePath.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
-                        filePath.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
-                        filePath.EndsWith(".lib", StringComparison.OrdinalIgnoreCase) ||
-                        filePath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ||
-                        filePath.EndsWith(".manifest", StringComparison.OrdinalIgnoreCase)
-                        )
-                    {
-                        continue;
-                    }
-
-                    packageMap32.AppendLine($"\"{filePath}\" \"{filePath.AsSpan("bin\\Release32\\".Length)}\"");
-                }
-
-                Utils.WriteAllText("tools\\msix\\MsixPackage32.map", packageMap32.ToString());
-            }
+            //if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
+            //{
+            //    StringBuilder packageMap32 = new StringBuilder(0x100);
+            //    packageMap32.AppendLine("[Files]");
+            //    packageMap32.AppendLine("\"tools\\msix\\MsixManifest32.xml\" \"AppxManifest.xml\"");
+            //    packageMap32.AppendLine("\"tools\\msix\\Square44x44Logo.png\" \"Assets\\Square44x44Logo.png\"");
+            //    packageMap32.AppendLine("\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
+            //    packageMap32.AppendLine("\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
+            //
+            //    var filesToAdd = Directory.EnumerateFiles("bin\\Release32", "*", SearchOption.AllDirectories);
+            //    foreach (string filePath in filesToAdd)
+            //    {
+            //        if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
+            //            filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
+            //            filePath.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
+            //            filePath.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
+            //            filePath.EndsWith(".lib", StringComparison.OrdinalIgnoreCase) ||
+            //            filePath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ||
+            //            filePath.EndsWith(".manifest", StringComparison.OrdinalIgnoreCase)
+            //            )
+            //        {
+            //            continue;
+            //        }
+            //
+            //        packageMap32.AppendLine($"\"{filePath}\" \"{filePath.AsSpan("bin\\Release32\\".Length)}\"");
+            //    }
+            //
+            //    Utils.WriteAllText("tools\\msix\\MsixPackage32.map", packageMap32.ToString());
+            //}
 
             // Create the package mapping file.
 
@@ -1350,10 +1350,17 @@ namespace CustomBuildTool
 
         public static bool BuildStorePackage(BuildFlags Flags)
         {
-            Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x32.appx");
+            // Cleanup package manifests.
+
+            //Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x32.appx");
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x64.appx");
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package.msixbundle");
-            Win32.CreateDirectory(BuildOutputFolder);
+            //Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixManifest32.xml");
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixManifest64.xml");
+            //Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixPackage32.map");
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixPackage64.map");
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\bundle.map");
+            Utils.CreateOutputDirectory();
 
             // Create the package manifests.
 
@@ -1362,23 +1369,23 @@ namespace CustomBuildTool
 
             // Create the MSIX package.
 
-            if (Flags.HasFlag(BuildFlags.Build32bit) && File.Exists("tools\\msix\\MsixPackage32.map"))
-            {
-                Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
-                Program.PrintColorMessage("Building systeminformer-build-package-x64.msix...", ConsoleColor.Cyan, false);
-
-                string result = Utils.ExecuteMsixCommand(
-                    $"pack /o /f {BuildWorkingFolder}\\tools\\msix\\MsixPackage32.map /p {BuildOutputFolder}\\systeminformer-build-package-x32.msix"
-                    );
-
-                if (!result.EndsWith("Package creation succeeded.", StringComparison.OrdinalIgnoreCase))
-                {
-                    Program.PrintColorMessage(result, ConsoleColor.Gray);
-                    return false;
-                }
-
-                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-package-x32.msix").ToPrettySize(), ConsoleColor.Green);
-            }
+            //if (Flags.HasFlag(BuildFlags.Build32bit) && File.Exists("tools\\msix\\MsixPackage32.map"))
+            //{
+            //    Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+            //    Program.PrintColorMessage("Building systeminformer-build-package-x64.msix...", ConsoleColor.Cyan, false);
+            //
+            //    string result = Utils.ExecuteMsixCommand(
+            //        $"pack /o /f {BuildWorkingFolder}\\tools\\msix\\MsixPackage32.map /p {BuildOutputFolder}\\systeminformer-build-package-x32.msix"
+            //        );
+            //
+            //    if (!result.EndsWith("Package creation succeeded.", StringComparison.OrdinalIgnoreCase))
+            //    {
+            //        Program.PrintColorMessage(result, ConsoleColor.Gray);
+            //        return false;
+            //    }
+            //
+            //    Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-package-x32.msix").ToPrettySize(), ConsoleColor.Green);
+            //}
 
             if (Flags.HasFlag(BuildFlags.Build64bit) && File.Exists("tools\\msix\\MsixPackage64.map"))
             {
@@ -1401,7 +1408,7 @@ namespace CustomBuildTool
             // Create the bundle package.
 
             if (
-                File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x32.msix") &&
+                //File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x32.msix") &&
                 File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix")
                 )
             {
@@ -1411,7 +1418,7 @@ namespace CustomBuildTool
                 {
                     StringBuilder bundleMap = new StringBuilder(0x100);
                     bundleMap.AppendLine("[Files]");
-                    bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x32.msix\" \"systeminformer-build-package-x32.msix\"");
+                    //bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x32.msix\" \"systeminformer-build-package-x32.msix\"");
                     bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x64.msix\" \"systeminformer-build-package-x64.msix\"");
                     Utils.WriteAllText($"{BuildWorkingFolder}\\tools\\msix\\bundle.map", bundleMap.ToString());
                 }
@@ -1437,14 +1444,6 @@ namespace CustomBuildTool
 
                 Utils.WriteAllText("build\\output\\SystemInformer.appinstaller", msixAppInstallerString);
             }
-
-            // Cleanup
-
-            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixManifest32.xml");
-            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixManifest64.xml");
-            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixPackage32.map");
-            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixPackage64.map");
-            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\bundle.map");
 
             return true;
         }
