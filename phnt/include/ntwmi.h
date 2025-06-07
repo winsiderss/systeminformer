@@ -2675,7 +2675,7 @@ typedef struct _ETW_OBJECT_HANDLE_EVENT
     ULONG ProcessId;
     ULONG Handle;
     USHORT ObjectType;
-    WCHAR ObjectName[1];
+    WCHAR ObjectName[ANYSIZE_ARRAY];
 } ETW_OBJECT_HANDLE_EVENT, *PETW_OBJECT_HANDLE_EVENT;
 
 typedef struct _ETW_REFDEREF_OBJECT_EVENT
