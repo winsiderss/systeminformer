@@ -2419,9 +2419,6 @@ PPH_STRING PhGetApartmentTypeString(
     case PH_APARTMENT_TYPE_APPLICATION_STA:
         PhInitFormatS(&format[count++], L"ASTA");
         break;
-    case PH_APARTMENT_TYPE_MAIN_APPLICATION_STA:
-        PhInitFormatS(&format[count++], L"Main ASTA");
-        break;
     case PH_APARTMENT_TYPE_MTA:
         PhInitFormatS(&format[count++], L"MTA");
         break;
