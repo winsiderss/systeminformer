@@ -2660,23 +2660,10 @@ PPH_STRING PhGetFileVersionInfoString(
         &length
         );
 
-    if (NT_SUCCESS(status))
-    {
-        PPH_STRING string;
-
-        if (!(length & 1) || length <= sizeof(UNICODE_NULL)) // validate the string length
-            return NULL;
-
-        string = PhCreateStringEx(buffer, length * sizeof(WCHAR));
-        // length may include the null terminator.
-        PhTrimToNullTerminatorString(string);
-
-        return string;
-    }
-    else
-    {
+    if (!NT_SUCCESS(status))
         return NULL;
-    }
+
+    return PhCreateStringZ2(buffer, length * 2);
 }
 
 /**
@@ -2698,7 +2685,6 @@ PPH_STRING PhGetFileVersionInfoString2(
     PVS_VERSION_INFO_STRUCT32 stringNameBlockInfo;
     NTSTATUS status;
     PVOID stringNameBlockValue;
-    PPH_STRING string;
     SIZE_T returnLength;
     PH_FORMAT format[3];
     WCHAR langNameString[65];
@@ -2743,30 +2729,7 @@ PPH_STRING PhGetFileVersionInfoString2(
     if (!(stringNameBlockValue = PhGetFileVersionInfoValue(stringNameBlockInfo)))
         return NULL;
 
-    if ((LangCodePage & 0xffff) == 65001) // UTF-8
-    {
-        string = PhConvertUtf8ToUtf16Ex(
-            stringNameBlockValue,
-            strnlen(stringNameBlockValue, stringNameBlockInfo->ValueLength)
-            );
-    }
-    else if ((LangCodePage & 0xffff) == 1200) // UTF-16
-    {
-        string = PhCreateStringZ2(
-            stringNameBlockValue,
-            stringNameBlockInfo->ValueLength * 2
-            );
-    }
-    else
-    {
-        // validate the string length
-        if ((stringNameBlockInfo->ValueLength & 1) || (stringNameBlockInfo->ValueLength < sizeof(UNICODE_NULL)))
-            return NULL;
-
-        string = PhCreateStringZ2(stringNameBlockValue, stringNameBlockInfo->ValueLength);
-    }
-
-    return string;
+    return PhCreateStringZ2(stringNameBlockValue, stringNameBlockInfo->ValueLength * 2);
 }
 
 PPH_STRING PhGetFileVersionInfoStringEx(
@@ -2790,8 +2753,8 @@ PPH_STRING PhGetFileVersionInfoStringEx(
         return string;
 
     // Use the UTF-8 code page.
-    if (string = PhGetFileVersionInfoString2(VersionInfo, (LangCodePage & 0xffff0000) + 65001, KeyName))
-        return string;
+    //if (string = PhGetFileVersionInfoString2(VersionInfo, (LangCodePage & 0xffff0000) + 65001, KeyName))
+    //    return string;
 
     // Use the default language (US English).
     if (string = PhGetFileVersionInfoString2(VersionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 1252, KeyName))
