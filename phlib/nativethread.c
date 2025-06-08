@@ -1124,8 +1124,8 @@ NTSTATUS PhGetThreadApartment(
     {
         //
         // N.B. The thread lacks an explicit apartment. A single MTA init, however, is
-        // enough to put all apartmentless threads into implicit MTA. To check for the
-        // existence of MTA, we can read the process-wide MTA usage counter. (diversenok)
+        // enough to put all apartmentless threads into implicit MTA. The existence of MTA
+        // can be checked by reading the process-wide MTA usage counter. (diversenok)
         // 
 
         if (!NT_SUCCESS(status = PhGetProcessMTAUsage(ProcessHandle, &info.ComInits, NULL)))
