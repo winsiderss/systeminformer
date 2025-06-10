@@ -2663,7 +2663,7 @@ PPH_STRING PhGetFileVersionInfoString(
     if (!NT_SUCCESS(status))
         return NULL;
 
-    return PhCreateStringZ2(buffer, length * 2);
+    return PhCreateStringZ2(buffer, length * sizeof(WCHAR));
 }
 
 /**
@@ -2729,7 +2729,10 @@ PPH_STRING PhGetFileVersionInfoString2(
     if (!(stringNameBlockValue = PhGetFileVersionInfoValue(stringNameBlockInfo)))
         return NULL;
 
-    return PhCreateStringZ2(stringNameBlockValue, stringNameBlockInfo->ValueLength * 2);
+    return PhCreateStringZ2(
+        stringNameBlockValue,
+        stringNameBlockInfo->ValueLength * sizeof(WCHAR)
+        );
 }
 
 PPH_STRING PhGetFileVersionInfoStringEx(
@@ -2751,10 +2754,6 @@ PPH_STRING PhGetFileVersionInfoStringEx(
     // Use the UTF-16 code page.
     if (string = PhGetFileVersionInfoString2(VersionInfo, (LangCodePage & 0xffff0000) + 1200, KeyName))
         return string;
-
-    // Use the UTF-8 code page.
-    //if (string = PhGetFileVersionInfoString2(VersionInfo, (LangCodePage & 0xffff0000) + 65001, KeyName))
-    //    return string;
 
     // Use the default language (US English).
     if (string = PhGetFileVersionInfoString2(VersionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 1252, KeyName))
