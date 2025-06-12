@@ -2207,6 +2207,7 @@ ULONG_PTR PhFindCharInStringRef(
                 } while (--length16 != 0);
             }
         }
+#if defined (PHLIB_WCSCHR)
         else
         {
             if (buffer)
@@ -2219,6 +2220,7 @@ ULONG_PTR PhFindCharInStringRef(
                 return SIZE_MAX;
             }
         }
+#endif
 
         if (length != 0)
         {
@@ -2308,6 +2310,7 @@ ULONG_PTR PhFindLastCharInStringRef(
                 buffer += 16 / sizeof(WCHAR);
             }
         }
+#if defined (PHLIB_WCSCHR)
         else
         {
             if (buffer)
@@ -2322,6 +2325,7 @@ ULONG_PTR PhFindLastCharInStringRef(
                 return SIZE_MAX;
             }
         }
+#endif
 
         if (length != 0)
         {
