@@ -1,55 +1,55 @@
 # Auto detect text files
-* text=crlf charset=utf-8
+* text=crlf
 
 # Custom for Visual Studio
-*.cs diff=csharp charset=utf-8
-*.sln merge=union charset=utf-8
-*.csproj merge=union charset=utf-8
-*.vbproj merge=union charset=utf-8
-*.fsproj merge=union charset=utf-8
-*.dbproj merge=union charset=utf-8
+*.cs diff=csharp
+*.sln merge=union
+*.csproj merge=union
+*.vbproj merge=union
+*.fsproj merge=union
+*.dbproj merge=union
 
 # Project files
-*.appinstaller eol=crlf charset=utf-8
-*.bat eol=crlf charset=utf-8
-*.c eol=crlf charset=utf-8
-*.cs eol=crlf charset=utf-8
-*.cpp eol=crlf charset=utf-8
-*.config eol=crlf charset=utf-8
-*.cmd eol=crlf charset=utf-8
-*.csproj eol=crlf charset=utf-8
-*.def eol=crlf charset=utf-8
-*.ddf eol=crlf charset=utf-8
-*.editorconfig eol=crlf charset=utf-8
-*.gitattributes eol=crlf charset=utf-8
-*.gitignore eol=crlf charset=utf-8
-*.h eol=crlf charset=utf-8
-*.hpp eol=crlf charset=utf-8
-*.inc eol=crlf charset=utf-8
-*.inf eol=crlf charset=utf-8
-*.map eol=crlf charset=utf-8
-*.manifest eol=crlf charset=utf-8
-*.mc eol=crlf charset=utf-8
-*.md eol=crlf charset=utf-8
-*.natvis eol=crlf charset=utf-8
-*.ps1 eol=crlf charset=utf-8
-*.props eol=crlf charset=utf-8
-*.pubxml eol=crlf charset=utf-8
-*.resx eol=crlf charset=utf-8
-*.rc text eol=crlf charset=utf-8
-*.sln eol=crlf charset=utf-8
-*.txt eol=crlf charset=utf-8
-*.vcxproj eol=crlf charset=utf-8
-*.filters eol=crlf charset=utf-8
-*.xml eol=crlf charset=utf-8
-*.yml eol=crlf charset=utf-8
+*.appinstaller eol=crlf
+*.bat eol=crlf
+*.c eol=crlf
+*.cs eol=crlf
+*.cpp eol=crlf
+*.config eol=crlf
+*.cmd eol=crlf
+*.csproj eol=crlf
+*.def eol=crlf
+*.ddf eol=crlf
+*.editorconfig eol=crlf
+*.gitattributes eol=crlf
+*.gitignore eol=crlf
+*.h eol=crlf
+*.hpp eol=crlf
+*.inc eol=crlf
+*.inf eol=crlf
+*.map eol=crlf
+*.manifest eol=crlf
+*.mc eol=crlf
+*.md eol=crlf
+*.natvis eol=crlf
+*.ps1 eol=crlf
+*.props eol=crlf
+*.pubxml eol=crlf
+*.resx eol=crlf
+*.rc text eol=crlf
+*.sln eol=crlf
+*.txt eol=crlf
+*.vcxproj eol=crlf
+*.filters eol=crlf
+*.xml eol=crlf
+*.yml eol=crlf
 
-**AUTHORS eol=crlf charset=utf-8
-**COPYING eol=crlf charset=utf-8
-**CHANGELOG eol=crlf charset=utf-8
-**LICENSE eol=crlf charset=utf-8
-**LICENCE eol=crlf charset=utf-8
-**README eol=crlf charset=utf-8
+**AUTHORS eol=crlf
+**COPYING eol=crlf
+**CHANGELOG eol=crlf
+**LICENSE eol=crlf
+**LICENCE eol=crlf
+**README eol=crlf
 
 *.bmp binary
 *.dll binary
@@ -62,7 +62,7 @@
 *.sys binary
 
 # svg standard require LF
-*.svg eol=lf charset=utf-8
+*.svg eol=lf
 
 # Standard to msysgit
 *.doc    diff=astextplain
