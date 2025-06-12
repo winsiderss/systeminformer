@@ -143,6 +143,11 @@ NTSTATUS ExtractUpdateToFile(
     return status;
 }
 
+#define SetDialogStatusText(WindowHandle, Text) \
+    SendMessage((WindowHandle), TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)(Text))
+#define SetDialogContentText(WindowHandle, Text) \
+    SendMessage((WindowHandle), TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)(Text))
+
 _Success_(return)
 BOOLEAN GeoLiteDownloadUpdateToFile(
     _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context,
@@ -170,7 +175,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
         PhGetString(httpRequestString)
         ));
 
-    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
+    SetDialogStatusText(Context->DialogHandle, L"Connecting...");
 
     if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
@@ -179,7 +184,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
     if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(httpRequestString), PH_HTTP_FLAG_SECURE)))
         goto CleanupExit;
 
-    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
+    SetDialogStatusText(Context->DialogHandle, L"Sending download request...");
 
     {
         PPH_STRING key = PhGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
@@ -207,7 +212,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
     if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
         goto CleanupExit;
 
-    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
+    SetDialogStatusText(Context->DialogHandle, L"Waiting for response...");
 
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
@@ -220,7 +225,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
 
     httpString = GeoLiteDatabaseNameFormatString(L"Downloading GeoLite2-%s...");
     SendMessage(Context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
-    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhGetString(httpString));
+    SetDialogStatusText(Context->DialogHandle, PhGetString(httpString));
     PhDereferenceObject(httpString);
 
     // Extract the content hash from the request headers.
@@ -395,11 +400,8 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
         PPH_STRING finalHashString;
         UCHAR finalHashBuffer[32];
 
-        if (!PhFinalHash(&hashContext, finalHashBuffer, 16, NULL))
-        {
-            status = STATUS_FAIL_CHECK;
+        if (!NT_SUCCESS(status = PhFinalHash(&hashContext, finalHashBuffer, 16, NULL)))
             goto CleanupExit;
-        }
 
         finalHashString = PhBufferToHexString(finalHashBuffer, 16);
 
