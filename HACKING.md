@@ -1,8 +1,3 @@
-## Building
-System Informer must be built using a Microsoft C compiler. Do not attempt to use any other compiler or be prepared to spend a long time trying to fix things. The only tested IDE is Visual Studio 2015.
-
-The Windows SDK 10 must be installed. To create a XP-compatible driver, KSystemInformer must be built using WDK v7, not the latest WDK.
-
 ## Conventions
 
 ### Names
@@ -12,14 +7,14 @@ The Windows SDK 10 must be installed. To create a XP-compatible driver, KSystemI
 
 All names must have an appropriate prefix (with some exceptions):
 
-* "Ph" or "PH_" (structures) for public names.
-* "Php" or "PHP_" for private names.
-* Some variants such as "Pha".
-* Private prefixes are created by appending "p" to the prefix. E.g. "Ph" -> "Php", "Pha" -> "Phap".
+* `Ph` or `PH_` (structures) for public names.
+* `Php` or `PHP_` for private names.
+* Some variants such as `Pha`.
+* Private prefixes are created by appending `p` to the prefix. E.g. `Ph` -> `Php`, `Pha` -> `Phap`.
 * Functions and global variables without a prefix must be declared "static".
-  * "static" names must not have a public prefix.
-  * Names with a private prefix do not have to be "static".
-* Structures without a prefix must be declared in a ".c" file. Structures declared in a ".c" file may or may not have a prefix.
+  * `static` names must not have a public prefix.
+  * Names with a private prefix do not have to be `static`.
+* Structures without a prefix must be declared in a `.c/.cpp` file. Structures declared in a `.c/.cpp` file do not require a prefix.
 
 ### Types
 Unless used for the Win32 API, the standard types are:
@@ -48,14 +43,15 @@ to test a boolean value.
 
 ### Annotations, qualifiers
 * All functions use SAL annotations, such as `_In_`, `_Inout_`, `_Out_`, etc.
-* Do not use `const`, unless obvious optimizations can be made by the compiler (e.g. inlining).
 * Do not use `volatile` in definitions. Instead, cast to a volatile pointer when necessary.
 
 ### Function success indicators
 There are three main types of indicators used:
 
-* A `NTSTATUS` value is returned. The `NT_SUCCESS` macro checks if a status value indicates success.
 * A `BOOLEAN` value is returned. `TRUE` indicates success.
+* A `NTSTATUS` value is returned. The `NT_SUCCESS` macro checks if a status value indicates success.
+* A `HRESULT` value is returned. The `HR_SUCCESS` macro checks if a status value indicates success.
+  *  Do not use the `SUCCEEDED` macro since third parties return `S_FALSE` for errors which  `SUCCEEDED` considers a success code. 
 * The result of the function is returned (e.g. a pointer). A special value (e.g. `NULL`) indicates failure.
 
 Unless indicated, a function which fails is guaranteed not to modify any of its output parameters (`_Out_`, `_Out_opt_`, etc.).
@@ -66,12 +62,13 @@ For functions which are passed a callback function, it is not guaranteed that a 
 Every thread start routine must have the following signature:
 
 ```
-    NTSTATUS NameOfRoutine(
+    _Function_class_(USER_THREAD_START_ROUTINE)
+    NTSTATUS NTAPI NameOfRoutine(
         _In_ PVOID Parameter
         );
 ```
 
-Thread creation is done through the `PhCreateThread` function.
+Thread creation is done through the `PhCreateThread` and `PhCreateThreadEx` functions.
 
 ### Collections
 The collections available are summarized below:
@@ -96,13 +93,13 @@ Name                  | Use                     | Type
 ### Synchronization
 The queued lock should be used for all synchronization, due to its small size and good performance. Although the queued lock is a reader-writer lock, it can be used as a mutex simply by using the exclusive acquire/release functions.
 
-Events can be used through `PH_EVENT`. This object does not create a kernel event object until needed, and testing its state is very fast.
+- Events can be used through `PH_EVENT`. This object does not create a kernel event object until needed, and testing its state is very fast.
 
-Rundown protection is available through `PH_RUNDOWN_PROTECT`.
+- Rundown protection is available through `PH_RUNDOWN_PROTECT`.
 
-Condition variables are available using the queued lock. Simply declare and initialize a queued lock variable, and use the `PhPulse(All)Condition` and `PhWaitForCondition` functions.
+- Condition variables are available using the queued lock. Simply declare and initialize a queued lock variable, and use the `PhPulse(All)Condition` and `PhWaitForCondition` functions.
 
-Custom locking with low overhead can be built using the wake event, built on the queued lock. Test one or more conditions in a loop and use `PhQueueWakeEvent`/`PhWaitForWakeEvent` to block. When a condition is modified use `PhSetWakeEvent` to wake waiters. If after calling `PhQueueWakeEvent` it is determined that no blocking should occur, use `PhSetWakeEvent`.
+- Custom locking with low overhead can be built using the wake event, built on the queued lock. Test one or more conditions in a loop and use `PhQueueWakeEvent`/`PhWaitForWakeEvent` to block. When a condition is modified use `PhSetWakeEvent` to wake waiters. If after calling `PhQueueWakeEvent` it is determined that no blocking should occur, use `PhSetWakeEvent`.
 
 ### Exceptions (SEH)
 The only method of error handling used in Process Hacker is the return value (`NTSTATUS`, `BOOLEAN`, etc.). Exceptions are used for exceptional situations which cannot easily be recovered from (e.g. a lock acquire function fails to block, or an object has a negative reference count.
