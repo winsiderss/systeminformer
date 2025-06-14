@@ -8030,7 +8030,7 @@ NTSTATUS PhGetFileText(
         }
         else
         {
-            status = STATUS_UNSUCCESSFUL;
+            *String = PhReferenceEmptyString();
         }
 
         PhFree(data);
