@@ -81,6 +81,135 @@ ULONG KphObpGetHandleAttributes(
 #endif
 }
 
+/**
+ * \brief Retrieves information about a file object.
+ *
+ * \param[in] FileObject The file object to retrieve information for.
+ * \param[out] Information Receives the file object information.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpGetFileObjectInformation(
+    _In_ PFILE_OBJECT FileObject,
+    _Out_ PKPH_FILE_OBJECT_INFORMATION Information
+    )
+{
+    PDEVICE_OBJECT attachedDevice;
+    PDEVICE_OBJECT relatedDevice;
+    KIRQL irql;
+    PVPB vpb;
+
+    //
+    // VPB lock will be acquired, code placed in non-paged segment on purpose.
+    //
+    KPH_NPAGED_CODE_PASSIVE();
+
+    attachedDevice = IoGetAttachedDevice(FileObject->DeviceObject);
+    relatedDevice = IoGetRelatedDeviceObject(FileObject);
+
+    RtlZeroMemory(Information, sizeof(KPH_FILE_OBJECT_INFORMATION));
+
+    Information->LockOperation = FileObject->LockOperation;
+    Information->DeletePending = FileObject->DeletePending;
+    Information->ReadAccess = FileObject->ReadAccess;
+    Information->WriteAccess = FileObject->WriteAccess;
+    Information->DeleteAccess = FileObject->DeleteAccess;
+    Information->SharedRead = FileObject->SharedRead;
+    Information->SharedWrite = FileObject->SharedWrite;
+    Information->SharedDelete = FileObject->SharedDelete;
+    Information->CurrentByteOffset = FileObject->CurrentByteOffset;
+    Information->Flags = FileObject->Flags;
+    if (FileObject->SectionObjectPointer)
+    {
+        Information->UserWritableReferences =
+            MmDoesFileHaveUserWritableReferences(FileObject->SectionObjectPointer);
+    }
+    Information->HasActiveTransaction =
+        (IoGetTransactionParameterBlock(FileObject) ? TRUE : FALSE);
+    Information->IsIgnoringSharing = IoIsFileObjectIgnoringSharing(FileObject);
+    Information->Waiters = FileObject->Waiters;
+    Information->Busy = FileObject->Busy;
+
+    Information->Device.Type = FileObject->DeviceObject->DeviceType;
+    Information->Device.Characteristics = FileObject->DeviceObject->Characteristics;
+    Information->Device.Flags = FileObject->DeviceObject->Flags;
+
+    Information->AttachedDevice.Type = attachedDevice->DeviceType;
+    Information->AttachedDevice.Characteristics = attachedDevice->Characteristics;
+    Information->AttachedDevice.Flags = attachedDevice->Flags;
+
+    Information->RelatedDevice.Type = attachedDevice->DeviceType;
+    Information->RelatedDevice.Characteristics = attachedDevice->Characteristics;
+    Information->RelatedDevice.Flags = attachedDevice->Flags;
+
+    C_ASSERT(ARRAYSIZE(Information->Vpb.VolumeLabel) == ARRAYSIZE(vpb->VolumeLabel));
+
+    IoAcquireVpbSpinLock(&irql);
+
+    //
+    // Accessing the VPB is reserved for "certain classes of drivers".
+    //
+#pragma prefast(push)
+#pragma prefast(disable : 28175)
+    vpb = FileObject->Vpb;
+    if (vpb)
+    {
+        Information->Vpb.Type = vpb->Type;
+        Information->Vpb.Size = vpb->Size;
+        Information->Vpb.Flags = vpb->Flags;
+        Information->Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
+        Information->Vpb.SerialNumber = vpb->SerialNumber;
+        Information->Vpb.ReferenceCount = vpb->ReferenceCount;
+        RtlCopyMemory(Information->Vpb.VolumeLabel,
+                      vpb->VolumeLabel,
+                      ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+    }
+
+    vpb = FileObject->DeviceObject->Vpb;
+    if (vpb)
+    {
+        Information->Device.Vpb.Type = vpb->Type;
+        Information->Device.Vpb.Size = vpb->Size;
+        Information->Device.Vpb.Flags = vpb->Flags;
+        Information->Device.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
+        Information->Device.Vpb.SerialNumber = vpb->SerialNumber;
+        Information->Device.Vpb.ReferenceCount = vpb->ReferenceCount;
+        RtlCopyMemory(Information->Device.Vpb.VolumeLabel,
+                      vpb->VolumeLabel,
+                      ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+    }
+
+    vpb = attachedDevice->Vpb;
+    if (vpb)
+    {
+        Information->AttachedDevice.Vpb.Type = vpb->Type;
+        Information->AttachedDevice.Vpb.Size = vpb->Size;
+        Information->AttachedDevice.Vpb.Flags = vpb->Flags;
+        Information->AttachedDevice.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
+        Information->AttachedDevice.Vpb.SerialNumber = vpb->SerialNumber;
+        Information->AttachedDevice.Vpb.ReferenceCount = vpb->ReferenceCount;
+        RtlCopyMemory(Information->AttachedDevice.Vpb.VolumeLabel,
+                      vpb->VolumeLabel,
+                      ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+    }
+
+    vpb = relatedDevice->Vpb;
+    if (vpb)
+    {
+        Information->RelatedDevice.Vpb.Type = vpb->Type;
+        Information->RelatedDevice.Vpb.Size = vpb->Size;
+        Information->RelatedDevice.Vpb.Flags = vpb->Flags;
+        Information->RelatedDevice.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
+        Information->RelatedDevice.Vpb.SerialNumber = vpb->SerialNumber;
+        Information->RelatedDevice.Vpb.ReferenceCount = vpb->ReferenceCount;
+        RtlCopyMemory(Information->RelatedDevice.Vpb.VolumeLabel,
+                      vpb->VolumeLabel,
+                      ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+    }
+#pragma prefast(pop)
+
+    IoReleaseVpbSpinLock(irql);
+}
+
 KPH_PAGED_FILE();
 
 /**
@@ -1339,12 +1468,7 @@ NTSTATUS KphQueryInformationObject(
         }
         case KphObjectFileObjectInformation:
         {
-            PFILE_OBJECT fileObject;
             KPH_FILE_OBJECT_INFORMATION fileInfo;
-            PDEVICE_OBJECT attachedDevice;
-            PDEVICE_OBJECT relatedDevice;
-            PVPB vpb;
-            KIRQL irql;
 
             if (!ObjectInformation ||
                 (ObjectInformationLength < sizeof(KPH_FILE_OBJECT_INFORMATION)))
@@ -1373,112 +1497,7 @@ NTSTATUS KphQueryInformationObject(
                 goto Exit;
             }
 
-            fileObject = (PFILE_OBJECT)object;
-            attachedDevice = IoGetAttachedDevice(fileObject->DeviceObject);
-            relatedDevice = IoGetRelatedDeviceObject(fileObject);
-
-            RtlZeroMemory(&fileInfo, sizeof(KPH_FILE_OBJECT_INFORMATION));
-
-            fileInfo.LockOperation = fileObject->LockOperation;
-            fileInfo.DeletePending = fileObject->DeletePending;
-            fileInfo.ReadAccess = fileObject->ReadAccess;
-            fileInfo.WriteAccess = fileObject->WriteAccess;
-            fileInfo.DeleteAccess = fileObject->DeleteAccess;
-            fileInfo.SharedRead = fileObject->SharedRead;
-            fileInfo.SharedWrite = fileObject->SharedWrite;
-            fileInfo.SharedDelete = fileObject->SharedDelete;
-            fileInfo.CurrentByteOffset = fileObject->CurrentByteOffset;
-            fileInfo.Flags = fileObject->Flags;
-            if (fileObject->SectionObjectPointer)
-            {
-                fileInfo.UserWritableReferences =
-                    MmDoesFileHaveUserWritableReferences(fileObject->SectionObjectPointer);
-            }
-            fileInfo.HasActiveTransaction =
-                (IoGetTransactionParameterBlock(fileObject) ? TRUE : FALSE);
-            fileInfo.IsIgnoringSharing = IoIsFileObjectIgnoringSharing(fileObject);
-            fileInfo.Waiters = fileObject->Waiters;
-            fileInfo.Busy = fileObject->Busy;
-
-            fileInfo.Device.Type = fileObject->DeviceObject->DeviceType;
-            fileInfo.Device.Characteristics = fileObject->DeviceObject->Characteristics;
-            fileInfo.Device.Flags = fileObject->DeviceObject->Flags;
-
-            fileInfo.AttachedDevice.Type = attachedDevice->DeviceType;
-            fileInfo.AttachedDevice.Characteristics = attachedDevice->Characteristics;
-            fileInfo.AttachedDevice.Flags = attachedDevice->Flags;
-
-            fileInfo.RelatedDevice.Type = attachedDevice->DeviceType;
-            fileInfo.RelatedDevice.Characteristics = attachedDevice->Characteristics;
-            fileInfo.RelatedDevice.Flags = attachedDevice->Flags;
-
-            C_ASSERT(ARRAYSIZE(fileInfo.Vpb.VolumeLabel) == ARRAYSIZE(vpb->VolumeLabel));
-
-            IoAcquireVpbSpinLock(&irql);
-
-            //
-            // Accessing the VPB is reserved for "certain classes of drivers".
-            //
-#pragma prefast(push)
-#pragma prefast(disable : 28175)
-            vpb = fileObject->Vpb;
-            if (vpb)
-            {
-                fileInfo.Vpb.Type = vpb->Type;
-                fileInfo.Vpb.Size = vpb->Size;
-                fileInfo.Vpb.Flags = vpb->Flags;
-                fileInfo.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
-                fileInfo.Vpb.SerialNumber = vpb->SerialNumber;
-                fileInfo.Vpb.ReferenceCount = vpb->ReferenceCount;
-                RtlCopyMemory(fileInfo.Vpb.VolumeLabel,
-                              vpb->VolumeLabel,
-                              ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
-            }
-
-            vpb = fileObject->DeviceObject->Vpb;
-            if (vpb)
-            {
-                fileInfo.Device.Vpb.Type = vpb->Type;
-                fileInfo.Device.Vpb.Size = vpb->Size;
-                fileInfo.Device.Vpb.Flags = vpb->Flags;
-                fileInfo.Device.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
-                fileInfo.Device.Vpb.SerialNumber = vpb->SerialNumber;
-                fileInfo.Device.Vpb.ReferenceCount = vpb->ReferenceCount;
-                RtlCopyMemory(fileInfo.Device.Vpb.VolumeLabel,
-                              vpb->VolumeLabel,
-                              ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
-            }
-
-            vpb = attachedDevice->Vpb;
-            if (vpb)
-            {
-                fileInfo.AttachedDevice.Vpb.Type = vpb->Type;
-                fileInfo.AttachedDevice.Vpb.Size = vpb->Size;
-                fileInfo.AttachedDevice.Vpb.Flags = vpb->Flags;
-                fileInfo.AttachedDevice.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
-                fileInfo.AttachedDevice.Vpb.SerialNumber = vpb->SerialNumber;
-                fileInfo.AttachedDevice.Vpb.ReferenceCount = vpb->ReferenceCount;
-                RtlCopyMemory(fileInfo.AttachedDevice.Vpb.VolumeLabel,
-                              vpb->VolumeLabel,
-                              ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
-            }
-
-            vpb = relatedDevice->Vpb;
-            if (vpb)
-            {
-                fileInfo.RelatedDevice.Vpb.Type = vpb->Type;
-                fileInfo.RelatedDevice.Vpb.Size = vpb->Size;
-                fileInfo.RelatedDevice.Vpb.Flags = vpb->Flags;
-                fileInfo.RelatedDevice.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
-                fileInfo.RelatedDevice.Vpb.SerialNumber = vpb->SerialNumber;
-                fileInfo.RelatedDevice.Vpb.ReferenceCount = vpb->ReferenceCount;
-                RtlCopyMemory(fileInfo.RelatedDevice.Vpb.VolumeLabel,
-                              vpb->VolumeLabel,
-                              ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
-            }
-#pragma prefast(pop)
-
-            IoReleaseVpbSpinLock(irql);
+            KphpGetFileObjectInformation(object, &fileInfo);
 
             status = KphCopyToMode(ObjectInformation,
                                    &fileInfo,
