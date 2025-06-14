@@ -1240,7 +1240,6 @@ typedef struct _KPHM_FILE
                 {
                     BOOLEAN MaybeTunneledFileName;
                     BOOLEAN MaybeTunneledDestinationFileName;
-
                 } SetInformation;
 
                 struct
@@ -1257,6 +1256,11 @@ typedef struct _KPHM_FILE
                 {
                     LARGE_INTEGER EndingOffset;
                 } AcquireForModWrite;
+
+                struct
+                {
+                    ULONG Length;
+                } QueryOpen;
             };
         } Pre;
 
