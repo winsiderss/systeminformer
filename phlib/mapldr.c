@@ -1618,13 +1618,13 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
                     {
                         CHAR libraryFunctionName[DOS_MAX_PATH_LENGTH] = "";
 
-                        if (!PhConvertUtf16ToUtf8Buffer(
+                        if (!NT_SUCCESS(PhConvertUtf16ToUtf8Buffer(
                             libraryFunctionName,
                             sizeof(libraryFunctionName),
                             NULL,
                             dllProcedureRef.Buffer,
                             dllProcedureRef.Length
-                            ))
+                            )))
                         {
                             return NULL;
                         }
