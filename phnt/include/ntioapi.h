@@ -334,7 +334,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileIdAllExtdDirectoryInformation, // FILE_ID_ALL_EXTD_DIR_INFORMATION
     FileIdAllExtdBothDirectoryInformation, // FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
     FileStreamReservationInformation, // FILE_STREAM_RESERVATION_INFORMATION // since 24H2
-    FileMupProviderInfo, // MUP_PROVIDER_INFORMATION
+    FileMupProviderInfo, // qs: MUP_PROVIDER_INFORMATION
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -996,8 +996,12 @@ typedef struct _FILE_ID_INFORMATION
         FILE_ID_128 FileId;
         struct
         {
-            LONGLONG FileIdLowPart : 64; // rev
-            LONGLONG FileIdHighPart : 64; // rev
+            union
+            {
+                FILE_INTERNAL_INFORMATION FileInternal; // rev
+                LONGLONG FileIdLowPart; // rev
+            };
+            LONGLONG FileIdHighPart; // rev
         };
     };
 } FILE_ID_INFORMATION, *PFILE_ID_INFORMATION;
@@ -1087,7 +1091,11 @@ typedef struct _FILE_ID_64_EXTD_DIR_INFORMATION
     ULONG FileNameLength;
     ULONG EaSize;
     ULONG ReparsePointTag;
-    FILE_INTERNAL_INFORMATION FileId;
+    union
+    {
+        LARGE_INTEGER FileId;
+        FILE_INTERNAL_INFORMATION FileInternal; // rev
+    };
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_64_EXTD_DIR_INFORMATION, *PFILE_ID_64_EXTD_DIR_INFORMATION;
 
@@ -1112,7 +1120,11 @@ typedef struct _FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
     ULONG FileNameLength;
     ULONG EaSize;
     ULONG ReparsePointTag;
-    FILE_INTERNAL_INFORMATION FileId;
+    union
+    {
+        LARGE_INTEGER FileId;
+        FILE_INTERNAL_INFORMATION FileInternal; // rev
+    };
     CCHAR ShortNameLength;
     WCHAR ShortName[12];
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
@@ -1139,7 +1151,11 @@ typedef struct _FILE_ID_ALL_EXTD_DIR_INFORMATION
     ULONG FileNameLength;
     ULONG EaSize;
     ULONG ReparsePointTag;
-    FILE_INTERNAL_INFORMATION FileId;
+    union
+    {
+        LARGE_INTEGER FileId;
+        FILE_INTERNAL_INFORMATION FileInternal; // rev
+    };
     FILE_ID_128 FileId128;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_ALL_EXTD_DIR_INFORMATION, *PFILE_ID_ALL_EXTD_DIR_INFORMATION;
@@ -1165,7 +1181,11 @@ typedef struct _FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
     ULONG FileNameLength;
     ULONG EaSize;
     ULONG ReparsePointTag;
-    FILE_INTERNAL_INFORMATION FileId;
+    union
+    {
+        LARGE_INTEGER FileId;
+        FILE_INTERNAL_INFORMATION FileInternal; // rev
+    };
     FILE_ID_128 FileId128;
     CCHAR ShortNameLength;
     WCHAR ShortName[12];
@@ -1380,7 +1400,11 @@ typedef struct _FILE_ID_FULL_DIR_INFORMATION
     ULONG FileAttributes;
     ULONG FileNameLength;
     ULONG EaSize;
-    FILE_INTERNAL_INFORMATION FileId;
+    union
+    {
+        LARGE_INTEGER FileId;
+        FILE_INTERNAL_INFORMATION FileInternal; // rev
+    };
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_FULL_DIR_INFORMATION, *PFILE_ID_FULL_DIR_INFORMATION;
 
@@ -1431,7 +1455,11 @@ typedef struct _FILE_ID_BOTH_DIR_INFORMATION
     ULONG EaSize;
     CCHAR ShortNameLength;
     WCHAR ShortName[12];
-    FILE_INTERNAL_INFORMATION FileId;
+    union
+    {
+        LARGE_INTEGER FileId;
+        FILE_INTERNAL_INFORMATION FileInternal; // rev
+    };
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_BOTH_DIR_INFORMATION, *PFILE_ID_BOTH_DIR_INFORMATION;
 
@@ -1469,7 +1497,11 @@ typedef struct _FILE_ID_GLOBAL_TX_DIR_INFORMATION
     LARGE_INTEGER AllocationSize;
     ULONG FileAttributes;
     ULONG FileNameLength;
-    FILE_INTERNAL_INFORMATION FileId;
+    union
+    {
+        LARGE_INTEGER FileId;
+        FILE_INTERNAL_INFORMATION FileInternal; // rev
+    };
     GUID LockingTransactionId;
     ULONG TxInfoFlags;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
