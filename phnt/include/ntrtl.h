@@ -7,24 +7,19 @@
 #ifndef _NTRTL_H
 #define _NTRTL_H
 
+//
+// Pointer arithmetic macros (type safe)
+//
+
 #define RtlOffsetToPointer(Base, Offset) ((PUCHAR)(((PUCHAR)(Base)) + ((ULONG_PTR)(Offset))))
 #define RtlPointerToOffset(Base, Pointer) ((ULONG)(((PUCHAR)(Pointer)) - ((PUCHAR)(Base))))
 
 #define RTL_PTR_ADD(Pointer, Value) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Value)))
 #define RTL_PTR_SUBTRACT(Pointer, Value) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Value)))
 
-#define RTL_NANOSEC_PER_SEC              1000000000ull
-#define RTL_NANOSEC_PER_MILLISEC            1000000ull
-#define RTL_100NANOSEC_PER_SEC             10000000ull
-#define RTL_100NANOSEC_PER_MILLISEC           10000ull
-#define RTL_MILLISEC_PER_SEC                   1000ull
-
-#define RTL_MILLISEC_TO_100NANOSEC(m) ((m) * RTL_100NANOSEC_PER_MILLISEC)
-#define RTL_SEC_TO_100NANOSEC(s) ((s) * RTL_100NANOSEC_PER_SEC)
-#define RTL_SEC_TO_MILLISEC(s) ((s) * RTL_MILLISEC_PER_SEC)
-
-#define RTL_MEG (1024UL * 1024UL)
-#define RTL_IMAGE_MAX_DOS_HEADER (256UL * RTL_MEG)
+//
+// Time unit constants (ordered by magnitude)
+//
 
 #define RTL_NANOSEC_PER_TICK        100
 #define RTL_TICKS_PER_MICROSEC      10
@@ -33,6 +28,60 @@
 #define RTL_TICKS_PER_MIN           (RTL_TICKS_PER_SEC * 60)         // 600,000,000
 #define RTL_TICKS_PER_HOUR          (RTL_TICKS_PER_MIN * 60)         // 36,000,000,000
 #define RTL_TICKS_PER_DAY           (RTL_TICKS_PER_HOUR * 24)        // 864,000,000,000
+#define RTL_TICKS_PER_WEEK          (RTL_TICKS_PER_DAY * 7)          // 6,048,000,000,000
+#define RTL_TICKS_PER_MONTH         (RTL_TICKS_PER_DAY * 30)         // 25,920,000,000,000
+#define RTL_TICKS_PER_YEAR          (RTL_TICKS_PER_DAY * 365)        // 31,536,000,000,000
+#define RTL_TICKS_PER_LEAP_YEAR     (RTL_TICKS_PER_DAY * 366)        // 31,622,400,000,000
+
+#define RTL_NANOSEC_PER_SEC              1000000000ull
+#define RTL_NANOSEC_PER_MILLISEC            1000000ull
+#define RTL_100NANOSEC_PER_SEC             10000000ull
+#define RTL_100NANOSEC_PER_MILLISEC           10000ull
+#define RTL_MILLISEC_PER_SEC                   1000ull
+
+#define RTL_SEC_PER_HOUR                       3600ull // 1 hour  // 3,600 seconds
+#define RTL_SEC_PER_DAY                       86400ull // 1 day   // 86,400 seconds
+#define RTL_SEC_PER_WEEK                     604800ull // 1 week  // 604,800 seconds
+#define RTL_SEC_PER_MONTH                   2592000ull // 1 month // 2,592,000 seconds (30 days)
+#define RTL_SEC_PER_YEAR                   31536000ull // 1 year  // 31,536,000 seconds (365 days)
+
+//
+// Time conversion macros (ordered by unit)
+//
+
+// Nanoseconds
+#define RTL_SEC_TO_NANOSEC(s)          ((s) * RTL_NANOSEC_PER_SEC)
+#define RTL_NANOSEC_TO_SEC(ns)         ((ns) / RTL_NANOSEC_PER_SEC)
+#define RTL_MILLISEC_TO_NANOSEC(m)     ((m) * RTL_NANOSEC_PER_MILLISEC)
+#define RTL_NANOSEC_TO_MILLISEC(ns)    ((ns) / RTL_NANOSEC_PER_MILLISEC)
+#define RTL_NANOSEC_TO_100NANOSEC(ns)  ((ns) / 100)
+#define RTL_100NANOSEC_TO_NANOSEC(ns)  ((ns) * 100)
+
+// 100-Nanoseconds
+#define RTL_SEC_TO_100NANOSEC(s)       ((s) * RTL_100NANOSEC_PER_SEC)
+#define RTL_100NANOSEC_TO_SEC(ns)      ((ns) / RTL_100NANOSEC_PER_SEC)
+#define RTL_MILLISEC_TO_100NANOSEC(m)  ((m) * RTL_100NANOSEC_PER_MILLISEC)
+#define RTL_100NANOSEC_TO_MILLISEC(ns) ((ns) / RTL_100NANOSEC_PER_MILLISEC)
+
+// Milliseconds
+#define RTL_SEC_TO_MILLISEC(s)         ((s) * RTL_MILLISEC_PER_SEC)
+#define RTL_MILLISEC_TO_SEC(m)         ((m) / RTL_MILLISEC_PER_SEC)
+
+/**
+ * The maximum value of the e_lfanew field in the IMAGE_DOS_HEADER structure for validation.
+ */
+#define RTL_IMAGE_MAX_DOS_HEADER (256UL * (1024UL * 1024UL)) // 256 MB
+
+/** 
+ * Meta characters for wildcard processing.
+ * \remarks NtQueryDirectoryFile(Ex), RtlDoesNameContainWildCards and file system drivers (FAT, NTFS, REFS).
+ */
+#define ANSI_DOS_STAR ((CHAR)'<')
+#define ANSI_DOS_STAR_W ((WCHAR)L'<')
+#define ANSI_DOS_QM ((CHAR)'>')
+#define ANSI_DOS_QM_W ((WCHAR)L'>')
+#define ANSI_DOS_DOT ((CHAR)'"')
+#define ANSI_DOS_DOT_W ((WCHAR)L'"')
 
 //
 // Errors
@@ -40,10 +89,10 @@
 
 /**
  * The RtlFailFast routine brings down the caller immediately in the event that critical corruption has been detected. No exception handlers are invoked.
- * The routine may be used in libraries shared with user mode and kernel mode. In user mode, the process is terminated, whereas in kernel mode, a KERNEL_SECURITY_CHECK_FAILURE bug check is raised.
- *
- * @param Code A FAST_FAIL_<description> symbolic constant from winnt.h or wdm.h that indicates the reason for process termination.
- * @return None. There is no return from this routine.
+ * 
+ * \param Code A FAST_FAIL_<description> symbolic constant from winnt.h or wdm.h that indicates the reason for process termination.
+ * \return None. There is no return from this routine.
+ * \remarks The routine is shared with user mode and kernel mode. In user mode, the process is terminated, whereas in kernel mode, a KERNEL_SECURITY_CHECK_FAILURE bug check is raised.
  */
 DECLSPEC_NORETURN
 FORCEINLINE
@@ -2701,6 +2750,16 @@ RtlIsNormalizedString(
     );
 
 // ntifs:FsRtlIsNameInExpression
+/**
+ * The RtlIsNameInExpression routine determines whether a Unicode string matches the specified pattern.
+ *
+ * \param Expression A pointer to the pattern string. This string can contain wildcard characters. If the IgnoreCase parameter is TRUE, the string must contain only uppercase characters.
+ * \param Name Maximum number of bytes to be written to UTF8StringDestination. If this value causes the translated string to be truncated, RtlUnicodeToUTF8N returns an error status.
+ * \param IgnoreCase TRUE for case-insensitive matching, or FALSE for case-sensitive matching.
+ * \param UpcaseTable An optional pointer to an uppercase character table to use for case-insensitive matching. If this parameter is NULL, the default system uppercase character table is used.
+ * \return TRUE if the string matches the pattern. If the string does not match the pattern, this function returns FALSE.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/rtlisnameinexpression
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -2725,12 +2784,21 @@ RtlIsNameInUnUpcasedExpression(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS4
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_19H1)
+/**
+ * The RtlDoesNameContainWildCards routine determines whether a Unicode string contains wildcard characters.
+ *
+ * \param Name A pointer to the string to be checked.
+ * \return TRUE if one or more wildcard characters were found, FALSE otherwise.
+ * \remarks The following are wildcard characters: *, ?, ANSI_DOS_STAR, ANSI_DOS_DOT, and ANSI_DOS_QM.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-_fsrtl_advanced_fcb_header-fsrtldoesnamecontainwildcards
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlDoesNameContainWildCards(
     _In_ PCUNICODE_STRING Expression
     );
+    
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_19H1
 
 NTSYSAPI
@@ -11383,7 +11451,7 @@ typedef enum _RTL_BSD_ITEM_TYPE
     RtlBsdPowerTransition, // q: s: RTL_BSD_DATA_POWER_TRANSITION
     RtlBsdItemBootAttemptCount, // q: s: UCHAR // BootAttemptCount
     RtlBsdItemBootCheckpoint, // q: s: UCHAR // LastBootCheckpoint
-    RtlBsdItemBootId, // q; s: ULONG (USER_SHARED_DATA->BootId)
+    RtlBsdItemBootId, // q; s: ULONG (USER_SHARED_DATA->BootId) // 10
     RtlBsdItemShutdownBootId, // q; s: ULONG
     RtlBsdItemReportedAbnormalShutdownBootId, // q; s: ULONG
     RtlBsdItemErrorInfo, // RTL_BSD_DATA_ERROR_INFO
