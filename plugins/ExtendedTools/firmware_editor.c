@@ -347,7 +347,7 @@ NTSTATUS EtFirmwareEditorDialogThreadStart(
     PhInitializeAutoPool(&autoPool);
 
     windowHandle = PhCreateDialog(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_FIRMWARE_EDITVAR),
         !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->ParentWindowHandle,
         EtFirmwareEditorDlgProc,

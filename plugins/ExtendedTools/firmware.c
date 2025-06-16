@@ -430,7 +430,7 @@ VOID EtShowFirmwareDialog(
     if (PhIsFirmwareSupported())
     {
         PhDialogBox(
-            PluginInstance->DllBase,
+            NtCurrentImageBase(),
             MAKEINTRESOURCE(IDD_FIRMWARE),
             NULL,
             EtFirmwareDlgProc,

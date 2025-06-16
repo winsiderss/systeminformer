@@ -539,7 +539,7 @@ NTSTATUS EtGpuDetailsDialogThreadStart(
     PhInitializeAutoPool(&autoPool);
 
     EtGpuDetailsDialogHandle = PhCreateDialog(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_SYSINFO_GPUDETAILS),
         !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : Parameter,
         EtpGpuDetailsDlgProc,

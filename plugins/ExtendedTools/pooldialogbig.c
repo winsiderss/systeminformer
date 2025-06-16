@@ -237,7 +237,7 @@ VOID EtShowBigPoolDialog(
     )
 {
     PhDialogBox(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_BIGPOOL),
         NULL,
         EtBigPoolMonDlgProc,

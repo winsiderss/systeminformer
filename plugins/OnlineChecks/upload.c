@@ -288,6 +288,12 @@ PPH_BYTES PerformSubRequest(
         goto CleanupExit;
     }
 
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
+    {
+        RaiseUploadError(Context, L"Unable to receive the request.", status);
+        goto CleanupExit;
+    }
+
     if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &result)))
     {
         RaiseUploadError(Context, L"Unable to download the response.", status);

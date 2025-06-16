@@ -260,7 +260,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessChildProcessInformation, // q: PROCESS_CHILD_PROCESS_INFORMATION
     ProcessHighGraphicsPriorityInformation, // qs: BOOLEAN (requires SeTcbPrivilege)
     ProcessSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
-    ProcessEnergyValues, // q: PROCESS_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES
+    ProcessEnergyValues, // q: PROCESS_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES_V1
     ProcessPowerThrottlingState, // qs: POWER_THROTTLING_PROCESS_STATE
     ProcessReserved3Information, // ProcessActivityThrottlePolicy // PROCESS_ACTIVITY_THROTTLE_POLICY
     ProcessWin32kSyscallFilterInformation, // q: WIN32K_SYSCALL_FILTER
@@ -322,7 +322,7 @@ typedef enum _THREADINFOCLASS
     ThreadDescriptorTableEntry, // q: DESCRIPTOR_TABLE_ENTRY (or WOW64_DESCRIPTOR_TABLE_ENTRY)
     ThreadEnableAlignmentFaultFixup, // s: BOOLEAN
     ThreadEventPair, // Obsolete
-    ThreadQuerySetWin32StartAddress, // q: ULONG_PTR
+    ThreadQuerySetWin32StartAddress, // qs: PVOID (requires THREAD_Set_LIMITED_INFORMATION)
     ThreadZeroTlsCell, // s: ULONG // TlsIndex // 10
     ThreadPerformanceCount, // q: LARGE_INTEGER
     ThreadAmILastThread, // q: ULONG
@@ -743,10 +743,13 @@ typedef struct _PROCESS_DEVICEMAP_INFORMATION
     };
 } PROCESS_DEVICEMAP_INFORMATION, *PPROCESS_DEVICEMAP_INFORMATION;
 
+/**
+ * The PROCESS_LUID_DOSDEVICES_ONLY flag limits the device map to only devices from the current process or logon session.
+ */
 #define PROCESS_LUID_DOSDEVICES_ONLY 0x00000001
 
 /**
- * The _PROCESS_DEVICEMAP_INFORMATION_EX structure contains information about a process's device map.
+ * The PROCESS_DEVICEMAP_INFORMATION_EX structure contains information about a process's device map.
  */
 typedef struct _PROCESS_DEVICEMAP_INFORMATION_EX
 {
@@ -1126,6 +1129,10 @@ typedef enum _PROCESS_WORKING_SET_OPERATION
  * Shared pages are those that are shared between multiple processes.
  */
 #define PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES  0x02
+ /**
+  * The PROCESS_WORKING_SET_FLAG_EMPTY_PAGES flag indicates that the operation should target pages in the working set.
+  */
+#define PROCESS_WORKING_SET_FLAG_EMPTY_PAGES         0x04
 /**
  * The PROCESS_WORKING_SET_FLAG_COMPRESS flag indicates that the operation should compress the pages before they are removed from the working set.
  * Compression is typically used in conjunction with other flags to specify that the pages should be compressed as part of the operation.
@@ -2061,7 +2068,7 @@ NtQueryInformationProcess(
     );
 
 // rev
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64QueryInformationProcess64(

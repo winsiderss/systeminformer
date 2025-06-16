@@ -811,7 +811,7 @@ NtReadVirtualMemory(
  * \param NumberOfBytesRead A pointer to a variable that receives the number of bytes transferred into the specified buffer.
  * \return NTSTATUS Successful or errant status.
  */
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64ReadVirtualMemory64(
@@ -879,7 +879,7 @@ NtWriteVirtualMemory(
  * \param NumberOfBytesWritten A pointer to a variable that receives the number of bytes transferred into the specified buffer.
  * \return NTSTATUS Successful or errant status.
  */
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64WriteVirtualMemory64(
@@ -946,7 +946,7 @@ NtQueryVirtualMemory(
  * \param ReturnLength A pointer to a variable that receives the number of bytes returned in the MemoryInformation buffer.
  * \return NTSTATUS Successful or errant status.
  */
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64QueryVirtualMemory64(
@@ -1340,6 +1340,14 @@ NtQuerySection(
     _Out_opt_ PSIZE_T ReturnLength
     );
 
+/**
+ * Determines whether two mapped files are the same.
+ *
+ * \param File1MappedAsAnImage A pointer to the base address of the first file mapped as an image.
+ * \param File2MappedAsFile A pointer to the base address of the second file mapped as a file.
+ * \return NTSTATUS Returns STATUS_SUCCESS if the files are the same; otherwise, an appropriate NTSTATUS error code.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntaremappedfilesthesame
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

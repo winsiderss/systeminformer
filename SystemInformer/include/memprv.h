@@ -44,7 +44,9 @@ typedef enum _PH_MEMORY_REGION_TYPE
     ActivationContextDataRegion,
     WerRegistrationDataRegion,
     SiloSharedDataRegion,
-    TelemetryCoverageRegion
+    TelemetryCoverageRegion,
+    ProcessParametersRegion,
+    LeapSecondDataRegion,
 } PH_MEMORY_REGION_TYPE;
 
 typedef enum _PH_ACTIVATION_CONTEXT_DATA_TYPE

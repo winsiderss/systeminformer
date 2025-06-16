@@ -297,6 +297,14 @@ PhLoaderEntryImageRvaToVa(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhLoaderEntryImageExportSupressionPresent(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhLoaderEntryGrantSuppressedCall(

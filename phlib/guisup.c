@@ -2477,6 +2477,7 @@ static BOOL CALLBACK PhEnumWindowsCallback(
  *
  * \param Callback The callback function to be called for each child window.
  * \param Context An optional context parameter to be passed to the callback function.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhEnumWindows(
     _In_ PH_WINDOW_ENUM_CALLBACK Callback,
@@ -2502,6 +2503,7 @@ NTSTATUS PhEnumWindows(
  * \param Limit The maximum number of child windows to enumerate.
  * \param Callback The callback function to be called for each child window.
  * \param Context An optional context parameter to be passed to the callback function.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhEnumChildWindows(
     _In_opt_ HWND WindowHandle,

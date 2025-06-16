@@ -1985,6 +1985,7 @@ NTSTATUS PhEnumProcessHandles(
 
     bufferSize = 0x8000;
     buffer = PhAllocatePage(bufferSize, NULL);
+    if (!buffer) return STATUS_NO_MEMORY;
     buffer->NumberOfHandles = 0;
 
     status = NtQueryInformationProcess(
@@ -2000,6 +2001,7 @@ NTSTATUS PhEnumProcessHandles(
         PhFreePage(buffer);
         bufferSize = returnLength;
         buffer = PhAllocatePage(bufferSize, NULL);
+        if (!buffer) return STATUS_NO_MEMORY;
         buffer->NumberOfHandles = 0;
 
         status = NtQueryInformationProcess(
@@ -6787,26 +6789,16 @@ NTSTATUS PhGetProcessorNominalFrequency(
 //
 
 NTSTATUS PhFreezeProcess(
-    _Out_ PHANDLE FreezeHandle,
-    _In_ HANDLE ProcessId
+    _Out_ PHANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessHandle
     )
 {
     NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
-    HANDLE processHandle;
-    HANDLE stateHandle;
+    HANDLE processStateChangeHandle;
 
     if (!(NtCreateProcessStateChange_Import() && NtChangeProcessState_Import()))
-        return STATUS_UNSUCCESSFUL;
-
-    status = PhOpenProcess(
-        &processHandle,
-        PROCESS_SET_INFORMATION | PROCESS_SUSPEND_RESUME,
-        ProcessId
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
+        return STATUS_PROCEDURE_NOT_FOUND;
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -6817,22 +6809,19 @@ NTSTATUS PhFreezeProcess(
         );
 
     status = NtCreateProcessStateChange_Import()(
-        &stateHandle,
+        &processStateChangeHandle,
         STATECHANGE_SET_ATTRIBUTES,
         &objectAttributes,
-        processHandle,
+        ProcessHandle,
         0
         );
 
     if (!NT_SUCCESS(status))
-    {
-        NtClose(processHandle);
         return status;
-    }
 
     status = NtChangeProcessState_Import()(
-        stateHandle,
-        processHandle,
+        processStateChangeHandle,
+        ProcessHandle,
         ProcessStateChangeSuspend,
         NULL,
         0,
@@ -6841,24 +6830,20 @@ NTSTATUS PhFreezeProcess(
 
     if (NT_SUCCESS(status))
     {
-        *FreezeHandle = stateHandle;
+        *ProcessStateChangeHandle = processStateChangeHandle;
     }
-
-    NtClose(processHandle);
 
     return status;
 }
 
-NTSTATUS PhThawProcess(
-    _In_ HANDLE FreezeHandle,
+NTSTATUS PhFreezeProcesById(
+    _Out_ PHANDLE ProcessStateChangeHandle,
     _In_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
     HANDLE processHandle;
-
-    if (!(NtCreateProcessStateChange_Import() && NtChangeProcessState_Import()))
-        return STATUS_UNSUCCESSFUL;
+    HANDLE processStateChangeHandle;
 
     status = PhOpenProcess(
         &processHandle,
@@ -6869,13 +6854,65 @@ NTSTATUS PhThawProcess(
     if (!NT_SUCCESS(status))
         return status;
 
+    status = PhFreezeProcess(
+        &processStateChangeHandle,
+        processHandle
+        );
+
+    NtClose(processHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        *ProcessStateChangeHandle = processStateChangeHandle;
+    }
+
+    return status;
+}
+
+NTSTATUS PhThawProcess(
+    _In_ HANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessHandle
+    )
+{
+    NTSTATUS status;
+
+    if (!NtChangeProcessState_Import())
+    {
+        return STATUS_PROCEDURE_NOT_FOUND;
+    }
+
     status = NtChangeProcessState_Import()(
-        FreezeHandle,
-        processHandle,
+        ProcessStateChangeHandle,
+        ProcessHandle,
         ProcessStateChangeResume,
         NULL,
         0,
         0
+        );
+
+    return status;
+}
+
+NTSTATUS PhThawProcessById(
+    _In_ HANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION | PROCESS_SUSPEND_RESUME,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhThawProcess(
+        ProcessStateChangeHandle,
+        processHandle
         );
 
     NtClose(processHandle);
@@ -6884,26 +6921,18 @@ NTSTATUS PhThawProcess(
 }
 
 NTSTATUS PhFreezeThread(
-    _Out_ PHANDLE FreezeHandle,
-    _In_ HANDLE ThreadId
+    _Out_ PHANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadHandle
     )
 {
     NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
-    HANDLE threadHandle;
-    HANDLE stateHandle;
+    HANDLE threadStateChangeHandle;
 
     if (!(NtCreateThreadStateChange_Import() && NtChangeThreadState_Import()))
-        return STATUS_UNSUCCESSFUL;
-
-    status = PhOpenThread(
-        &threadHandle,
-        PROCESS_SET_INFORMATION | PROCESS_SUSPEND_RESUME,
-        ThreadId
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
+    {
+        return STATUS_PROCEDURE_NOT_FOUND;
+    }
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -6914,23 +6943,20 @@ NTSTATUS PhFreezeThread(
         );
 
     status = NtCreateThreadStateChange_Import()(
-        &stateHandle,
+        &threadStateChangeHandle,
         STATECHANGE_SET_ATTRIBUTES,
         &objectAttributes,
-        threadHandle,
+        ThreadHandle,
         0
         );
 
     if (!NT_SUCCESS(status))
-    {
-        NtClose(threadHandle);
         return status;
-    }
 
     status = NtChangeThreadState_Import()(
-        stateHandle,
-        threadHandle,
-        ThreadStateChangeResume,
+        threadStateChangeHandle,
+        ThreadHandle,
+        ThreadStateChangeSuspend,
         NULL,
         0,
         0
@@ -6938,24 +6964,20 @@ NTSTATUS PhFreezeThread(
 
     if (NT_SUCCESS(status))
     {
-        *FreezeHandle = stateHandle;
+        *ThreadStateChangeHandle = threadStateChangeHandle;
     }
-
-    NtClose(threadHandle);
 
     return status;
 }
 
-NTSTATUS PhThawThread(
-    _In_ HANDLE FreezeHandle,
+NTSTATUS PhFreezeThreadById(
+    _Out_ PHANDLE ThreadStateChangeHandle,
     _In_ HANDLE ThreadId
     )
 {
     NTSTATUS status;
     HANDLE threadHandle;
-
-    if (!(NtCreateThreadStateChange_Import() && NtChangeThreadState_Import()))
-        return STATUS_UNSUCCESSFUL;
+    HANDLE threadStateChangeHandle;
 
     status = PhOpenThread(
         &threadHandle,
@@ -6966,13 +6988,65 @@ NTSTATUS PhThawThread(
     if (!NT_SUCCESS(status))
         return status;
 
+    status = PhFreezeThread(
+        &threadStateChangeHandle,
+        threadHandle
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *ThreadStateChangeHandle = threadStateChangeHandle;
+    }
+
+    NtClose(threadHandle);
+
+    return status;
+}
+
+NTSTATUS PhThawThread(
+    _In_ HANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadHandle
+    )
+{
+    NTSTATUS status;
+
+    if (!NtChangeThreadState_Import())
+    {
+        return STATUS_PROCEDURE_NOT_FOUND;
+    }
+
     status = NtChangeThreadState_Import()(
-        FreezeHandle,
-        threadHandle,
+        ThreadStateChangeHandle,
+        ThreadHandle,
         ThreadStateChangeResume,
         NULL,
         0,
         0
+        );
+
+    return status;
+}
+
+NTSTATUS PhThawThreadById(
+    _In_ HANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadId
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle;
+
+    status = PhOpenThread(
+        &threadHandle,
+        THREAD_SET_INFORMATION | THREAD_SUSPEND_RESUME,
+        ThreadId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhThawThread(
+        ThreadStateChangeHandle,
+        threadHandle
         );
 
     NtClose(threadHandle);

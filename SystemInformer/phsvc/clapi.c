@@ -13,9 +13,9 @@
 #include <phapp.h>
 #include <phsvccl.h>
 
-HANDLE PhSvcClPortHandle;
-PVOID PhSvcClPortHeap;
-HANDLE PhSvcClServerProcessId;
+HANDLE PhSvcClPortHandle = NULL;
+PVOID PhSvcClPortHeap = NULL;
+ULONG PhSvcClServerProcessId = ULONG_MAX;
 
 NTSTATUS PhSvcConnectToServer(
     _In_ PUNICODE_STRING PortName,
@@ -88,7 +88,7 @@ NTSTATUS PhSvcConnectToServer(
     if (!NT_SUCCESS(status))
         return status;
 
-    PhSvcClServerProcessId = UlongToHandle(connectInfo.ServerProcessId);
+    PhSvcClServerProcessId = connectInfo.ServerProcessId;
 
     //
     // Create the port heap.
@@ -140,7 +140,7 @@ VOID PhSvcDisconnectFromServer(
         PhSvcClPortHandle = NULL;
     }
 
-    PhSvcClServerProcessId = NULL;
+    PhSvcClServerProcessId = ULONG_MAX;
 }
 
 _Success_(return != NULL)
@@ -1185,7 +1185,7 @@ NTSTATUS PhSvcCallWriteMiniDumpProcess(
     status = PhOpenProcess(
         &serverHandle,
         PROCESS_DUP_HANDLE,
-        PhSvcClServerProcessId
+        UlongToHandle(PhSvcClServerProcessId)
         );
 
     if (!NT_SUCCESS(status))

@@ -19,6 +19,7 @@
  * \param ProcessHandle A variable which receives a handle to the process.
  * \param DesiredAccess The desired access to the process.
  * \param ProcessId The ID of the process.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhOpenProcess(
     _Out_ PHANDLE ProcessHandle,
@@ -137,6 +138,7 @@ NTSTATUS PhOpenProcessPublic(
  *
  * \param ProcessHandle A handle to a process. The handle must have PROCESS_TERMINATE access.
  * \param ExitStatus A status value that indicates why the process is being terminated.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhTerminateProcess(
     _In_ HANDLE ProcessHandle,
@@ -165,6 +167,44 @@ NTSTATUS PhTerminateProcess(
 }
 
 /**
+ * Suspends the specified process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_SUSPEND_RESUME access.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhSuspendProcess(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    NTSTATUS status;
+
+    status = NtSuspendProcess(
+        ProcessHandle
+        );
+
+    return status;
+}
+
+/**
+ * Resumes the specified process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_SUSPEND_RESUME access.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhResumeProcess(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    NTSTATUS status;
+
+    status = NtResumeProcess(
+        ProcessHandle
+        );
+
+    return status;
+}
+
+/**
  * Queries variable-sized information for a process. The function allocates a buffer to contain the
  * information.
  *
@@ -173,6 +213,7 @@ NTSTATUS PhTerminateProcess(
  * \param ProcessInformationClass The information class to retrieve.
  * \param Buffer A variable which receives a pointer to a buffer containing the information. You
  * must free the buffer using PhFree() when you no longer need it.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhpQueryProcessVariableSize(
     _In_ HANDLE ProcessHandle,
@@ -247,6 +288,7 @@ NTSTATUS PhGetProcessModifiedCookie(
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param FileName A variable which receives a pointer to a string containing the file name. You
  * must free the string using PhDereferenceObject() when you no longer need it.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetProcessImageFileName(
     _In_ HANDLE ProcessHandle,
@@ -309,7 +351,7 @@ NTSTATUS PhGetProcessImageFileName(
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param FileName A variable which receives a pointer to a string containing the file name. You
  * must free the string using PhDereferenceObject() when you no longer need it.
- *
+ * \return NTSTATUS Successful or errant status.
  * \remarks This function is only available on Windows Vista and above.
  */
 NTSTATUS PhGetProcessImageFileNameWin32(
@@ -390,6 +432,7 @@ NTSTATUS PhGetProcessImageFileNameWin32(
  * of the file. You must free the string using PhDereferenceObject() when you no longer need it.
  * \param FileName A variable which receives a pointer to a string containing the file name without
  * the path. You must free the string using PhDereferenceObject() when you no longer need it.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetProcessImageFileNameById(
     _In_ HANDLE ProcessId,
@@ -398,55 +441,70 @@ NTSTATUS PhGetProcessImageFileNameById(
     )
 {
     NTSTATUS status;
-    SYSTEM_PROCESS_ID_INFORMATION data;
+    PVOID buffer;
+    USHORT bufferSize;
+    SYSTEM_PROCESS_ID_INFORMATION processIdInfo;
 
     if (!FullFileName && !FileName)
         return STATUS_INVALID_PARAMETER_MIX;
 
-    // On input, specify the PID and a buffer to hold the string.
-    data.ProcessId = ProcessId;
-    data.ImageName.Length = 0;
-    data.ImageName.MaximumLength = 0x200;
+    bufferSize = 0x200;
+    buffer = PhAllocateStack(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
-    do
+    processIdInfo.ProcessId = ProcessId;
+    processIdInfo.ImageName.Length = 0;
+    processIdInfo.ImageName.MaximumLength = bufferSize;
+    processIdInfo.ImageName.Buffer = buffer;
+
+    status = NtQuerySystemInformation(
+        SystemProcessIdInformation,
+        &processIdInfo,
+        sizeof(SYSTEM_PROCESS_ID_INFORMATION),
+        NULL
+        );
+
+    if (status == STATUS_INFO_LENGTH_MISMATCH)
     {
-        data.ImageName.Buffer = PhAllocateSafe(data.ImageName.MaximumLength);
+        // Required length is stored in MaximumLength.
 
-        if (!data.ImageName.Buffer)
-            return STATUS_NO_MEMORY;
+        PhFreeStack(buffer);
+        buffer = PhAllocateStack(processIdInfo.ImageName.MaximumLength);
+        if (!buffer) return STATUS_NO_MEMORY;
+        processIdInfo.ImageName.Buffer = buffer;
 
         status = NtQuerySystemInformation(
             SystemProcessIdInformation,
-            &data,
+            &processIdInfo,
             sizeof(SYSTEM_PROCESS_ID_INFORMATION),
             NULL
             );
-
-        if (!NT_SUCCESS(status))
-            PhFree(data.ImageName.Buffer);
-
-        // Repeat using the correct value the system put into MaximumLength
-    } while (status == STATUS_INFO_LENGTH_MISMATCH);
+    }
 
     if (!NT_SUCCESS(status))
+    {
+        PhFreeStack(buffer);
         return status;
+    }
 
     if (FullFileName)
-        *FullFileName = PhCreateStringFromUnicodeString(&data.ImageName);
+    {
+        *FullFileName = PhCreateStringFromUnicodeString(&processIdInfo.ImageName);
+    }
 
     if (FileName)
     {
         PH_STRINGREF stringRef;
         ULONG_PTR index;
 
-        stringRef.Length = data.ImageName.Length;
-        stringRef.Buffer = data.ImageName.Buffer;
+        stringRef.Length = processIdInfo.ImageName.Length;
+        stringRef.Buffer = processIdInfo.ImageName.Buffer;
 
         // Find where the name starts
         index = PhFindLastCharInStringRef(&stringRef, L'\\', FALSE);
 
         if (index == SIZE_MAX)
-            *FileName = PhCreateStringFromUnicodeString(&data.ImageName);
+            *FileName = PhCreateStringFromUnicodeString(&processIdInfo.ImageName);
         else
         {
             // Reference the tail only
@@ -457,7 +515,7 @@ NTSTATUS PhGetProcessImageFileNameById(
         }
     }
 
-    PhFree(data.ImageName.Buffer);
+    PhFreeStack(buffer);
 
     return status;
 }
@@ -468,7 +526,7 @@ NTSTATUS PhGetProcessImageFileNameById(
  * \param ProcessId The ID of the process.
  * \param FileName A variable which receives a pointer to a string containing the file name. You
  * must free the string using PhDereferenceObject() when you no longer need it.
- *
+ * \return NTSTATUS Successful or errant status.
  * \remarks This function only works on Windows Vista and above. There does not appear to be any
  * access checking performed by the kernel for this.
  */
@@ -479,9 +537,10 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
 {
     NTSTATUS status;
     PVOID buffer;
-    USHORT bufferSize = 0x200;
+    USHORT bufferSize;
     SYSTEM_PROCESS_ID_INFORMATION processIdInfo;
 
+    bufferSize = 0x200;
     buffer = PhAllocateStack(bufferSize);
     if (!buffer) return STATUS_NO_MEMORY;
 
@@ -536,10 +595,9 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
 /**
  * Gets whether a process is being debugged.
  *
- * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
- * access.
- * \param IsBeingDebugged A variable which receives a boolean indicating whether the process is
- * being debugged.
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION access.
+ * \param IsBeingDebugged A variable which receives a boolean indicating whether the process is being debugged.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetProcessIsBeingDebugged(
     _In_ HANDLE ProcessHandle,
@@ -624,7 +682,7 @@ NTSTATUS PhGetProcessDeviceMap(
  * \param Offset The string to retrieve.
  * \param String A variable which receives a pointer to the requested string. You must free the
  * string using PhDereferenceObject() when you no longer need it.
- *
+ * \return NTSTATUS Successful or errant status.
  * \retval STATUS_INVALID_PARAMETER_2 An invalid value was specified in the Offset parameter.
  */
 NTSTATUS PhGetProcessPebString(

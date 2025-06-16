@@ -511,15 +511,21 @@ NtFilterBootOption(
 #define EVENT_ALL_ACCESS (EVENT_QUERY_STATE|EVENT_MODIFY_STATE|STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE)
 #endif
 
+/**
+ * The EVENT_INFORMATION_CLASS specifies the type of information to be retrieved about an event object.
+ */
 typedef enum _EVENT_INFORMATION_CLASS
 {
     EventBasicInformation
 } EVENT_INFORMATION_CLASS;
 
+/**
+ * The EVENT_BASIC_INFORMATION structure contains basic information about an event object.
+ */
 typedef struct _EVENT_BASIC_INFORMATION
 {
-    EVENT_TYPE EventType;
-    LONG EventState;
+    EVENT_TYPE EventType;   // The type of the event object (NotificationEvent or SynchronizationEvent).
+    LONG EventState;        // The current state of the event object. Nonzero if the event is signaled; zero if not signaled.
 } EVENT_BASIC_INFORMATION, *PEVENT_BASIC_INFORMATION;
 
 /**
@@ -1164,7 +1170,6 @@ typedef struct _T2_SET_PARAMETERS_V0
 typedef PVOID PT2_CANCEL_PARAMETERS;
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1182,7 +1187,6 @@ NtCancelTimer2(
     _In_ HANDLE TimerHandle,
     _In_ PT2_CANCEL_PARAMETERS Parameters
     );
-
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 //
@@ -2047,8 +2051,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemShadowStackInformation, // SYSTEM_SHADOW_STACK_INFORMATION
     SystemBuildVersionInformation, // q: in: ULONG (LayerNumber), out: SYSTEM_BUILD_VERSION_INFORMATION // NtQuerySystemInformationEx // 222
     SystemPoolLimitInformation, // SYSTEM_POOL_LIMIT_INFORMATION (requires SeIncreaseQuotaPrivilege) // NtQuerySystemInformationEx
-    SystemCodeIntegrityAddDynamicStore,
-    SystemCodeIntegrityClearDynamicStores,
+    SystemCodeIntegrityAddDynamicStore, // CodeIntegrity-AllowConfigurablePolicy-CustomKernelSigners
+    SystemCodeIntegrityClearDynamicStores, // CodeIntegrity-AllowConfigurablePolicy-CustomKernelSigners
     SystemDifPoolTrackingInformation,
     SystemPoolZeroingInformation, // q: SYSTEM_POOL_ZEROING_INFORMATION
     SystemDpcWatchdogInformation, // q; s: SYSTEM_DPC_WATCHDOG_CONFIGURATION_INFORMATION
@@ -2245,7 +2249,7 @@ typedef struct _SYSTEM_THREAD_INFORMATION
     ULONG WaitTime;                 // The current time spent in ready queue or waiting (depending on the thread state).
     PVOID StartAddress;             // The initial start address of the thread.
     CLIENT_ID ClientId;             // The identifier of the thread and the process owning the thread.
-    KPRIORITY Priority;             // The current dynamic thread priority.
+    KPRIORITY Priority;             // The dynamic priority of the thread.
     KPRIORITY BasePriority;         // The starting priority of the thread.
     ULONG ContextSwitches;          // The total number of context switches performed.
     KTHREAD_STATE ThreadState;      // The current state of the thread.
@@ -2302,23 +2306,23 @@ typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
         SYSTEM_THREAD_INFORMATION ThreadInfo;
         struct
         {
-            ULONGLONG KernelTime;
-            ULONGLONG UserTime;
-            ULONGLONG CreateTime;
-            ULONG WaitTime;
-            PVOID StartAddress;
-            CLIENT_ID ClientId;
-            KPRIORITY Priority;
-            KPRIORITY BasePriority;
-            ULONG ContextSwitches;
-            KTHREAD_STATE ThreadState;
-            KWAIT_REASON WaitReason;
+            ULONGLONG KernelTime;           // Number of 100-nanosecond intervals spent executing kernel code.
+            ULONGLONG UserTime;             // Number of 100-nanosecond intervals spent executing user code.
+            ULONGLONG CreateTime;           // The date and time when the thread was created.
+            ULONG WaitTime;                 // The current time spent in ready queue or waiting (depending on the thread state).
+            PVOID StartAddress;             // The initial start address of the thread.
+            CLIENT_ID ClientId;             // The identifier of the thread and the process owning the thread.
+            KPRIORITY Priority;             // The dynamic priority of the thread.
+            KPRIORITY BasePriority;         // The starting priority of the thread.
+            ULONG ContextSwitches;          // The total number of context switches performed.
+            KTHREAD_STATE ThreadState;      // The current state of the thread.
+            KWAIT_REASON WaitReason;        // The current reason the thread is waiting.
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
-    ULONG_PTR StackBase;
-    ULONG_PTR StackLimit;
-    PVOID Win32StartAddress;
-    PVOID TebBase; // since VISTA
+    PVOID StackBase;                        // The lower boundary of the current thread stack.
+    PVOID StackLimit;                       // The upper boundary of the current thread stack.
+    PVOID Win32StartAddress;                // The thread's Win32 start address.
+    PVOID TebBaseAddress;                   // The base address of the memory region containing the TEB structure. // since VISTA
     ULONG_PTR Reserved2;
     ULONG_PTR Reserved3;
     ULONG_PTR Reserved4;
@@ -4686,6 +4690,13 @@ typedef struct _PROCESS_EXTENDED_ENERGY_VALUES
     PROCESS_ENERGY_VALUES Base;
     PROCESS_ENERGY_VALUES_EXTENSION Extension;
 } PROCESS_EXTENDED_ENERGY_VALUES, *PPROCESS_EXTENDED_ENERGY_VALUES;
+
+typedef struct _PROCESS_EXTENDED_ENERGY_VALUES_V1
+{
+    PROCESS_ENERGY_VALUES Base;
+    PROCESS_ENERGY_VALUES_EXTENSION Extension;
+    ULONG64 NpuWorkUnits;
+} PROCESS_EXTENDED_ENERGY_VALUES_V1, *PPROCESS_EXTENDED_ENERGY_VALUES_V1;
 
 // private
 typedef enum _SYSTEM_PROCESS_CLASSIFICATION

@@ -23,8 +23,10 @@ NTSTATUS CallGetProcessUnloadedDlls(
     ULONG bufferSize;
     PVOID buffer;
 
-    if (!PhPluginQueryPhSvc(&client))
-        return STATUS_FAIL_CHECK;
+    status = PhPluginQueryPhSvc(&client);
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     in.i.ProcessId = HandleToUlong(ProcessId);
     bufferSize = 0x1000;

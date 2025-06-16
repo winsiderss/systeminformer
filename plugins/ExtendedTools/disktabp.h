@@ -104,21 +104,25 @@ VOID EtShowDiskContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenuEvent
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpDiskItemAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpDiskItemModifiedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpDiskItemRemovedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpDiskItemsUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -128,6 +132,7 @@ VOID NTAPI EtpOnDiskItemsUpdated(
     _In_ ULONG RunId
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpSearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

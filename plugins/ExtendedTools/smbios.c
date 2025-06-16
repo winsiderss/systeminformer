@@ -2676,7 +2676,7 @@ VOID EtSMBIOSHardwareSecurity(
     {
         ET_SMBIOS_ENUM(L"Front panel reset", Entry->HardwareSecurity.HardwareSecuritySettings.FrontPanelReset, settings);
         ET_SMBIOS_ENUM(L"Administrator password", Entry->HardwareSecurity.HardwareSecuritySettings.AdministratorPassword, settings);
-        ET_SMBIOS_ENUM(L"Administrator password", Entry->HardwareSecurity.HardwareSecuritySettings.KeyboardPassword, settings);
+        ET_SMBIOS_ENUM(L"Keyboard password", Entry->HardwareSecurity.HardwareSecuritySettings.KeyboardPassword, settings);
         ET_SMBIOS_ENUM(L"Power-on password", Entry->HardwareSecurity.HardwareSecuritySettings.PowerOnPassword, settings);
     }
 }
@@ -4377,7 +4377,7 @@ VOID EtShowSMBIOSDialog(
     )
 {
     PhDialogBox(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_SMBIOS),
         NULL,
         EtSMBIOSDlgProc,

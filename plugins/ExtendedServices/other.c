@@ -258,7 +258,7 @@ PPH_STRING EspGetServiceSidString(
 }
 
 NTSTATUS EspChangeServiceConfig2(
-    _In_ PWSTR ServiceName,
+    _In_ PCWSTR ServiceName,
     _In_opt_ SC_HANDLE ServiceHandle,
     _In_ ULONG InfoLevel,
     _In_ PVOID Info

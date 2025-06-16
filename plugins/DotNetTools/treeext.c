@@ -71,7 +71,7 @@ VOID AddTreeNewColumn(
     _In_ PVOID Context,
     _In_ ULONG SubId,
     _In_ BOOLEAN Visible,
-    _In_ PWSTR Text,
+    _In_ PCWSTR Text,
     _In_ ULONG Width,
     _In_ ULONG Alignment,
     _In_ ULONG TextFlags,

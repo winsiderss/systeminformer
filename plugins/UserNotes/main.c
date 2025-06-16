@@ -316,6 +316,7 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context

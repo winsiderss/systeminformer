@@ -1877,6 +1877,7 @@ VOID ShowFwContextMenu(
     PhFree(fwItems);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -1888,6 +1889,7 @@ VOID NTAPI FwItemAddedHandler(
     PhPushProviderEventQueue(&FwNetworkEventQueue, ProviderAddedEvent, Parameter, FwRunCount);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemModifiedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1896,6 +1898,7 @@ VOID NTAPI FwItemModifiedHandler(
     PhPushProviderEventQueue(&FwNetworkEventQueue, ProviderModifiedEvent, Parameter, FwRunCount);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemRemovedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1904,6 +1907,7 @@ VOID NTAPI FwItemRemovedHandler(
     PhPushProviderEventQueue(&FwNetworkEventQueue, ProviderRemovedEvent, Parameter, FwRunCount);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemsUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1955,6 +1959,7 @@ VOID NTAPI OnFwItemsUpdated(
         TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwSearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

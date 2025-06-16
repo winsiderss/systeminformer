@@ -77,6 +77,7 @@ VOID PhpFlushProcessPropSheetWaitContextData(
     VOID
     );
 
+_Function_class_(WAIT_CALLBACK_ROUTINE)
 VOID NTAPI PhpProcessPropertiesWaitCallback(
     _In_ PVOID Context,
     _In_ BOOLEAN TimerOrWaitFired

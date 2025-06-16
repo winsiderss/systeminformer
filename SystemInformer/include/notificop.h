@@ -72,6 +72,7 @@ BOOLEAN PhNfpModifyNotifyIcon(
     _In_opt_ HICON IconHandle
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhNfpTrayIconUpdateThread(
     _In_opt_ PVOID Context
     );

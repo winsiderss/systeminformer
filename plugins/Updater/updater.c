@@ -605,6 +605,8 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
+        goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonObject, jsonString, FALSE)))
@@ -688,6 +690,7 @@ BOOLEAN QueryUpdateDataWithFailover(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateCheckSilentThread(
     _In_ PVOID Parameter
     )
@@ -738,6 +741,7 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateCheckThread(
     _In_ PVOID Parameter
     )
@@ -810,6 +814,7 @@ PPH_STRING UpdateParseDownloadFileName(
     return localfileName;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateDownloadThread(
     _In_ PVOID Parameter
     )
@@ -865,6 +870,8 @@ NTSTATUS UpdateDownloadThread(
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
 
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &contentLength)))
         goto CleanupExit;
@@ -1268,6 +1275,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     return S_OK;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS ShowUpdateDialogThread(
     _In_ PVOID Parameter
     )

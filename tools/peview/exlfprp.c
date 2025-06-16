@@ -180,6 +180,7 @@ VOID PvExlfProperties(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PvpQueryWslImageThreadStart(
     _In_ PVOID Parameter
     )

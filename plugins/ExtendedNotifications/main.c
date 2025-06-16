@@ -19,16 +19,19 @@
 
 #include <trace.h>
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI NotifyEventCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -326,28 +329,28 @@ VOID NTAPI ShowOptionsCallback(
 
     optionsEntry->CreateSection(
         L"Notifications - Processes",
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_PROCESSES),
         ProcessesDlgProc,
         NULL
         );
     optionsEntry->CreateSection(
         L"Notifications - Services",
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_SERVICES),
         ServicesDlgProc,
         NULL
         );
     optionsEntry->CreateSection(
         L"Notifications - Devices",
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_DEVICES),
         DevicesDlgProc,
         NULL
         );
     optionsEntry->CreateSection(
         L"Notifications - Logging",
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_LOGGING),
         LoggingDlgProc,
         NULL
@@ -389,6 +392,7 @@ BOOLEAN MatchFilterList(
     return FALSE;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI NotifyEventCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

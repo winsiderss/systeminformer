@@ -1090,24 +1090,9 @@ PVOID PhGetDllBaseProcedureAddress(
 
     if (exportAddress && exportSuppressionEnabled)
     {
-        PIMAGE_LOAD_CONFIG_DIRECTORY configDirectory;
-
-        if (NT_SUCCESS(PhGetLoaderEntryImageDirectory(
-            DllBase,
-            imageNtHeader,
-            IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
-            &dataDirectory,
-            &configDirectory,
-            NULL
-            )))
+        if (PhLoaderEntryImageExportSupressionPresent(DllBase, imageNtHeader))
         {
-            if (RTL_CONTAINS_FIELD(configDirectory, configDirectory->Size, GuardFlags))
-            {
-                if (BooleanFlagOn(configDirectory->GuardFlags, IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT))
-                {
-                    PhLoaderEntryGrantSuppressedCall(exportAddress);
-                }
-            }
+            PhLoaderEntryGrantSuppressedCall(exportAddress);
         }
     }
 
@@ -1351,6 +1336,35 @@ NTSTATUS PhLoaderEntryImageRvaToVa(
         ));
 
     return STATUS_SUCCESS;
+}
+
+BOOLEAN PhLoaderEntryImageExportSupressionPresent(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader
+    )
+{
+    PIMAGE_LOAD_CONFIG_DIRECTORY configDirectory;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+
+    if (NT_SUCCESS(PhGetLoaderEntryImageDirectory(
+        BaseAddress,
+        ImageNtHeader,
+        IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
+        &dataDirectory,
+        &configDirectory,
+        NULL
+        )))
+    {
+        if (RTL_CONTAINS_FIELD(configDirectory, configDirectory->Size, GuardFlags))
+        {
+            if (BooleanFlagOn(configDirectory->GuardFlags, IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT))
+            {
+                return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
 }
 
 VOID PhLoaderEntryGrantSuppressedCall(
@@ -1604,13 +1618,13 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
                     {
                         CHAR libraryFunctionName[DOS_MAX_PATH_LENGTH] = "";
 
-                        if (!PhConvertUtf16ToUtf8Buffer(
+                        if (!NT_SUCCESS(PhConvertUtf16ToUtf8Buffer(
                             libraryFunctionName,
                             sizeof(libraryFunctionName),
                             NULL,
                             dllProcedureRef.Buffer,
                             dllProcedureRef.Length
-                            ))
+                            )))
                         {
                             return NULL;
                         }

@@ -791,7 +791,6 @@ NTSTATUS PhInvokeRunAsService(
 // searchbox
 
 // begin_phapppub
-
 typedef _Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PH_SEARCHCONTROL_CALLBACK(
     _In_ ULONG_PTR MatchHandle,
@@ -906,12 +905,6 @@ VOID PhShowTokenProperties(
     _In_ HANDLE ProcessId,
     _In_ PVOID Context,
     _In_opt_ PCWSTR Title
-    );
-
-INT CALLBACK PhpTokenSheetProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ LPARAM lParam
     );
 
 HPROPSHEETPAGE PhCreateTokenPage(

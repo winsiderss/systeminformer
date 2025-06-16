@@ -29,7 +29,9 @@ PPH_STRING CallGetRuntimeNameByAddress(
     PVOID buffer;
     PPH_STRING name = NULL;
 
-    if (!PhPluginQueryPhSvc(&client))
+    status = PhPluginQueryPhSvc(&client);
+
+    if (!NT_SUCCESS(status))
         return NULL;
 
     in.i.ProcessId = HandleToUlong(ProcessId);
@@ -116,6 +118,7 @@ VOID CallPredictAddressesFromClrData(
     _Out_ PVOID *PredictedEsp
     )
 {
+    NTSTATUS status;
     PH_PLUGIN_PHSVC_CLIENT client;
     DN_API_PREDICTADDRESSESFROMCLRDATA in;
     DN_API_PREDICTADDRESSESFROMCLRDATA out;
@@ -124,7 +127,9 @@ VOID CallPredictAddressesFromClrData(
     *PredictedEbp = NULL;
     *PredictedEsp = NULL;
 
-    if (!PhPluginQueryPhSvc(&client))
+    status = PhPluginQueryPhSvc(&client);
+
+    if (!NT_SUCCESS(status))
         return;
 
     in.i.ProcessId = HandleToUlong(ProcessId);
@@ -133,7 +138,16 @@ VOID CallPredictAddressesFromClrData(
     in.i.FrameAddress = PtrToUlong(FrameAddress);
     in.i.StackAddress = PtrToUlong(StackAddress);
 
-    if (NT_SUCCESS(PhPluginCallPhSvc(PluginInstance, DnPredictAddressesFromClrDataApiNumber, &in, sizeof(in), &out, sizeof(out))))
+    status = PhPluginCallPhSvc(
+        PluginInstance,
+        DnPredictAddressesFromClrDataApiNumber,
+        &in,
+        sizeof(in),
+        &out,
+        sizeof(out)
+        );
+
+    if (NT_SUCCESS(status))
     {
         *PredictedEip = UlongToPtr(out.o.PredictedEip);
         *PredictedEbp = UlongToPtr(out.o.PredictedEbp);
@@ -189,7 +203,9 @@ PPH_STRING CallGetClrThreadAppDomain(
     PVOID buffer;
     PPH_STRING name = NULL;
 
-    if (!PhPluginQueryPhSvc(&client))
+    status = PhPluginQueryPhSvc(&client);
+
+    if (!NT_SUCCESS(status))
         return NULL;
 
     in.i.ProcessId = HandleToUlong(ProcessId);
@@ -273,7 +289,9 @@ PPH_STRING CallGetFileNameByAddress(
     PVOID buffer;
     PPH_STRING name = NULL;
 
-    if (!PhPluginQueryPhSvc(&client))
+    status = PhPluginQueryPhSvc(&client);
+
+    if (!NT_SUCCESS(status))
         return NULL;
 
     in.i.ProcessId = HandleToUlong(ProcessId);
@@ -358,7 +376,9 @@ PPH_LIST CallGetClrAppDomainAssemblyList(
     PVOID buffer;
     PPH_LIST appdomainlist = NULL;
 
-    if (!PhPluginQueryPhSvc(&client))
+    status = PhPluginQueryPhSvc(&client);
+
+    if (!NT_SUCCESS(status))
         return NULL;
 
     in.i.ProcessId = HandleToUlong(ProcessId);

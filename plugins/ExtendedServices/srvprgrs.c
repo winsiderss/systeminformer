@@ -140,7 +140,7 @@ VOID EsRestartServiceWithProgress(
     context.DisableTimer = FALSE;
 
     PhDialogBox(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_SRVPROGRESS),
         ParentWindowHandle,
         EspRestartServiceDlgProc,

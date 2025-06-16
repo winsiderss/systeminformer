@@ -922,7 +922,7 @@ NTSTATUS DiskDriveQueryVolumeAttributes(
     return status;
 }
 
-PWSTR SmartAttributeGetText(
+PCWSTR SmartAttributeGetText(
     _In_ SMART_ATTRIBUTE_ID AttributeId
     )
 {

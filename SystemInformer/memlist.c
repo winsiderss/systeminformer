@@ -607,6 +607,10 @@ PPH_STRING PhGetMemoryRegionUseText(
         return PhFormatString(L"Silo shared data");
     case TelemetryCoverageRegion:
         return PhFormatString(L"Telemetry coverage map");
+    case ProcessParametersRegion:
+        return PhFormatString(L"USER_PROCESS_PARAMETERS");
+    case LeapSecondDataRegion:
+        return PhFormatString(L"LEAP_SECOND_DATA");
     default:
         return NULL;
     }

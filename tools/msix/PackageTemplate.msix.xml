@@ -8,6 +8,7 @@
     xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
     xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
     xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
+    xmlns:virtualization="http://schemas.microsoft.com/appx/manifest/virtualization/windows10"
     IgnorableNamespaces="uap rescap uap3 uap5 uap10 desktop desktop6">
     <Identity Name="SystemInformer" Version="SI_MSIX_VERSION" ProcessorArchitecture="SI_MSIX_ARCH" Publisher="SI_MSIX_PUBLISHER" />
     <Properties>
@@ -20,6 +21,11 @@
         </uap10:PackageIntegrity>
         <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
         <desktop6:RegistryWriteVirtualization>disabled</desktop6:RegistryWriteVirtualization>
+        <virtualization:FileSystemWriteVirtualization>
+            <virtualization:ExcludedDirectories>
+                <virtualization:ExcludedDirectory>$(KnownFolder:RoamingAppData)\SystemInformer</virtualization:ExcludedDirectory>
+            </virtualization:ExcludedDirectories>
+        </virtualization:FileSystemWriteVirtualization>
     </Properties>
     <Resources>
         <Resource Language="en-US" />
@@ -28,8 +34,15 @@
         <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
     </Dependencies>
     <Capabilities>
-        <rescap:Capability Name="runFullTrust"/>
         <rescap:Capability Name="allowElevation"/>
+        <rescap:Capability Name="broadFileSystemAccess"/>
+        <rescap:Capability Name="packageManagement"/>
+        <rescap:Capability Name="protectedApp"/>
+        <rescap:Capability Name="runFullTrust"/>
+        <rescap:Capability Name="smbios"/>
+        <rescap:Capability Name="uiAccess"/>
+        <rescap:Capability Name="unvirtualizedResources"/>
+        <rescap:Capability Name="userSystemId"/>
     </Capabilities>
     <Applications>
         <Application 

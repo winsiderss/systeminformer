@@ -476,7 +476,7 @@ BOOLEAN NetworkAdapterQueryInterfaceRow(
     _Out_ PMIB_IF_ROW2 InterfaceRow
     );
 
-PWSTR MediumTypeToString(
+PCWSTR MediumTypeToString(
     _In_ NDIS_PHYSICAL_MEDIUM MediumType
     );
 
@@ -1074,7 +1074,7 @@ typedef struct _SMART_ATTRIBUTES
     BOOLEAN SelfPreserving;
 } SMART_ATTRIBUTES, *PSMART_ATTRIBUTES;
 
-PWSTR SmartAttributeGetText(
+PCWSTR SmartAttributeGetText(
     _In_ SMART_ATTRIBUTE_ID AttributeId
     );
 

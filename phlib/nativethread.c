@@ -916,7 +916,7 @@ NTSTATUS PhGetProcessMTAUsage(
 NTSTATUS PhGetThreadApartmentFlags(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
-    _Out_ POLETLSFLAGS ApartmentFlags,
+    _Out_ PULONG ApartmentFlags,
     _Out_opt_ PULONG ComInits
     )
 {
@@ -988,7 +988,7 @@ NTSTATUS PhGetThreadApartmentFlags(
         ProcessHandle,
         apartmentStateOffset,
         ApartmentFlags,
-        sizeof(OLETLSFLAGS),
+        sizeof(ULONG),
         NULL
         );
 
@@ -1041,10 +1041,9 @@ NTSTATUS PhGetThreadApartment(
     PH_APARTMENT_INFO info = { 0 };
 
     //
-    // N.B. Most information about thread's apartment comes from OLE TLS data in TEB.
-    // Without it, threads can still implicitly belong to the multi-threaded apartment (MTA),
-    // as long as one exists in the process. To check for MTA existence, we read the
-    // process-wide MTA usage counter. (diversenok)
+    // N.B. Most information about the thread's apartment comes from OLE TLS data in TEB.
+    // Without it, threads can still implicitly belong to the multi-threaded apartment (MTA)
+    // as long as one exists in the process. (diversenok)
     //
 
     // Read OLE TLS flags
@@ -1063,59 +1062,71 @@ NTSTATUS PhGetThreadApartment(
 
     if (info.Flags & OLETLS_APARTMENTTHREADED)
     {
-        THREAD_BASIC_INFORMATION basicInfo;
-        BOOLEAN isMainSta = FALSE;
+        //
+        // N.B. Single-threaded apartments (STAs) belong to one of the three sub-types:
+        //  - Main STA: the first (classic) STA created in the process. It has the responsibility of hosting
+        //    all components with no ThreadingModel and ThreadingModel=Single (which are equivalent).
+        //  - Classic STA: a reentrant single-threaded apartment, usually referred to as just STA.
+        //  - Application STA (ASTA): a non-reentrant single-threaded apartment used primarily by WinRT.
+        //
 
-        // N.B. There is no flag for telling main and non-main single-threaded apartments (STAs)
-        // apart. Internally, CoGetApartmentType uses a private global variable that stores the
-        // main thread ID, which we cannot access. Instead, we check if the specified thread owns
-        // the main STA window (a message-only window with a known class and name). (diversenok)
-
-        if (NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        if (info.Flags & OLETLS_APPLICATION_STA)
         {
-            CLIENT_ID clientId;
-            HWND hwnd = NULL;
-
-            do
-            {
-                // Find the next main STA window
-                hwnd = FindWindowExW(
-                    HWND_MESSAGE,
-                    hwnd,
-                    L"OleMainThreadWndClass",
-                    L"OleMainThreadWndName"
-                    );
-
-                // Check if it belongs to the specified thread ID
-            } while (hwnd && NT_SUCCESS(PhGetWindowClientId(hwnd, &clientId)) &&
-                (clientId.UniqueProcess != basicInfo.ClientId.UniqueProcess ||
-                clientId.UniqueThread != basicInfo.ClientId.UniqueThread));
-
-            isMainSta = !!hwnd;
-        }
-
-        if (isMainSta)
-        {
-            if (info.Flags & OLETLS_APPLICATION_STA)
-                info.Type = PH_APARTMENT_TYPE_MAIN_APPLICATION_STA;
-            else
-                info.Type = PH_APARTMENT_TYPE_MAIN_STA;
+            // The non-reentrancy requirement of ASTA means it cannot serve as the main STA
+            info.Type = PH_APARTMENT_TYPE_APPLICATION_STA;
         }
         else
         {
-            if (info.Flags & OLETLS_APPLICATION_STA)
-                info.Type = PH_APARTMENT_TYPE_APPLICATION_STA;
-            else
-                info.Type = PH_APARTMENT_TYPE_STA;
+            THREAD_BASIC_INFORMATION basicInfo;
+            BOOLEAN isMainSta = FALSE;
+
+            //
+            // N.B. There is no flag to distinguish between main and non-main classic STAs.
+            // Internally, CoGetApartmentType compares the caller's thread ID to the thread ID
+            // stored in a private global variable (which we cannot access). Instead, we can
+            // check if the specified thread owns the main STA window - a message-only window
+            // with a known class and name. (diversenok)
+            //
+
+            if (NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+            {
+
+                CLIENT_ID clientId;
+                HWND hwnd = NULL;
+
+                do
+                {
+                    // Find the next main STA window
+                    hwnd = FindWindowExW(
+                        HWND_MESSAGE,
+                        hwnd,
+                        L"OleMainThreadWndClass",
+                        L"OleMainThreadWndName"
+                        );
+
+                    // Check if it belongs to the specified thread ID
+                } while (hwnd && NT_SUCCESS(PhGetWindowClientId(hwnd, &clientId)) &&
+                    (clientId.UniqueProcess != basicInfo.ClientId.UniqueProcess ||
+                    clientId.UniqueThread != basicInfo.ClientId.UniqueThread));
+
+                isMainSta = !!hwnd;
+            }
+
+            info.Type = isMainSta ? PH_APARTMENT_TYPE_MAIN_STA : PH_APARTMENT_TYPE_STA;
         }
     }
     else if (info.Flags & (OLETLS_MULTITHREADED | OLETLS_DISPATCHTHREAD))
     {
+        // CoGetApartmentType treats explicit MTA threads and dispatch threads equally
         info.Type = PH_APARTMENT_TYPE_MTA;
     }
     else
     {
-        // A single MTA init is enough to put all threads without an explicit apartment into implicit MTA
+        //
+        // N.B. The thread lacks an explicit apartment. A single MTA init, however, is
+        // enough to put all apartmentless threads into implicit MTA. The existence of MTA
+        // can be checked by reading the process-wide MTA usage counter. (diversenok)
+        // 
 
         if (!NT_SUCCESS(status = PhGetProcessMTAUsage(ProcessHandle, &info.ComInits, NULL)))
             return status;
@@ -1126,7 +1137,11 @@ NTSTATUS PhGetThreadApartment(
             return NTSTATUS_FROM_WIN32(CO_E_NOTINITIALIZED);
     }
 
-    // NTA overlays other apartment types
+    //
+    // N.B. Threads can temporarily enter the neutral apartment on top of their existing apartment.
+    // Neutral apartment is often abbreviated to NA, NTA, or TNA. (diversenok)
+    //
+
     info.InNeutral = !!(info.Flags & OLETLS_INNEUTRALAPT);
 
     *ApartmentInfo = info;

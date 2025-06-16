@@ -758,6 +758,7 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
     return result;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS VerifyImageThreadStart(
     _In_ PVOID Parameter
     )
@@ -1115,6 +1116,7 @@ typedef struct _PVP_ENTROPY_RESULT
     FLOAT ImageAvgMean;
 } PVP_ENTROPY_RESULT, *PPVP_ENTROPY_RESULT;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PvpEntropyImageThreadStart(
     _In_ PVOID Parameter
     )
@@ -1145,6 +1147,7 @@ VOID PvpSetPeImageEntropy(
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PvpEntropyImageThreadStart, WindowHandle);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PvpEntryPointImageThreadStart(
     _In_ PVOID Parameter
     )

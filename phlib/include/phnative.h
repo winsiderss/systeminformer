@@ -2702,6 +2702,28 @@ PhEnumDirectoryFile(
     _In_opt_ PVOID Context
     );
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhEnumDirectoryFileZ(
+    _In_ HANDLE FileHandle,
+    _In_ PCWSTR SearchPattern,
+    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_STRINGREF searchPattern;
+
+    PhInitializeStringRef(&searchPattern, SearchPattern);
+
+    return PhEnumDirectoryFile(
+        FileHandle,
+        &searchPattern,
+        Callback,
+        Context
+        );
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -2714,12 +2736,40 @@ PhEnumDirectoryFileEx(
     _In_opt_ PVOID Context
     );
 
-typedef NTSTATUS (NTAPI *PPH_ENUM_REPARSE_POINT)(
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhEnumDirectoryFileExZ(
+    _In_ HANDLE FileHandle,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _In_ BOOLEAN ReturnSingleEntry,
+    _In_ PCWSTR SearchPattern,
+    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_STRINGREF searchPattern;
+
+    PhInitializeStringRef(&searchPattern, SearchPattern);
+
+    return PhEnumDirectoryFileEx(
+        FileHandle,
+        FileInformationClass,
+        ReturnSingleEntry,
+        &searchPattern,
+        Callback,
+        Context
+        );
+}
+
+typedef _Function_class_(PH_ENUM_REPARSE_POINT)
+NTSTATUS NTAPI PH_ENUM_REPARSE_POINT(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
     _In_ SIZE_T InformationLength,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_REPARSE_POINT* PPH_ENUM_REPARSE_POINT;
 
 PHLIBAPI
 NTSTATUS
@@ -4034,7 +4084,7 @@ NTAPI
 PhGetThreadApartmentFlags(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
-    _Out_ POLETLSFLAGS ApartmentState,
+    _Out_ PULONG ApartmentState,
     _Out_opt_ PULONG ComInits
     );
 
@@ -4042,7 +4092,6 @@ typedef enum _PH_APARTMENT_TYPE
 {
     PH_APARTMENT_TYPE_INVALID = 0,
     PH_APARTMENT_TYPE_MAIN_STA,
-    PH_APARTMENT_TYPE_MAIN_APPLICATION_STA,
     PH_APARTMENT_TYPE_STA,
     PH_APARTMENT_TYPE_APPLICATION_STA,
     PH_APARTMENT_TYPE_MTA,
@@ -4054,7 +4103,7 @@ typedef struct _PH_APARTMENT_INFO
     PH_APARTMENT_TYPE Type;
     BOOLEAN InNeutral;
     ULONG ComInits;
-    OLETLSFLAGS Flags;
+    ULONG Flags;
 } PH_APARTMENT_INFO, *PPH_APARTMENT_INFO;
 
 PHLIBAPI
@@ -4216,7 +4265,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhFreezeProcess(
-    _Out_ PHANDLE FreezeHandle,
+    _Out_ PHANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFreezeProcesById(
+    _Out_ PHANDLE ProcessStateChangeHandle,
     _In_ HANDLE ProcessId
     );
 
@@ -4224,7 +4281,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhThawProcess(
-    _In_ HANDLE FreezeHandle,
+    _In_ HANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhThawProcessById(
+    _In_ HANDLE ProcessStateChangeHandle,
     _In_ HANDLE ProcessId
     );
 
@@ -4232,7 +4297,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhFreezeThread(
-    _Out_ PHANDLE FreezeHandle,
+    _Out_ PHANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFreezeThreadById(
+    _Out_ PHANDLE ThreadStateChangeHandle,
     _In_ HANDLE ThreadId
     );
 
@@ -4240,7 +4313,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhThawThread(
-    _In_ HANDLE FreezeHandle,
+    _In_ HANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhThawThreadById(
+    _In_ HANDLE ThreadStateChangeHandle,
     _In_ HANDLE ThreadId
     );
 

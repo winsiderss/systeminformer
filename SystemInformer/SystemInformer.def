@@ -206,7 +206,7 @@ EXPORTS
     PhPluginQueryPhSvc
     PhPluginReserveIds
     PhPluginSetObjectExtension
-    PhRegisterPlugin
+    PhRegisterPluginByName
 
 ; phsvc
     PhSvcCallChangeServiceConfig

@@ -32,7 +32,7 @@ typedef struct _PH_CM_SORT_CONTEXT
  */
 _Success_(return)
 BOOLEAN PhEmParseCompoundId(
-    _In_ PPH_STRINGREF CompoundId,
+    _In_ PCPH_STRINGREF CompoundId,
     _Out_ PPH_STRINGREF AppName,
     _Out_ PULONG SubId
     )
@@ -156,7 +156,7 @@ VOID PhCmSetNotifyPlugin(
 
 PPH_CM_COLUMN PhCmFindColumn(
     _In_ PPH_CM_MANAGER Manager,
-    _In_ PPH_STRINGREF PluginName,
+    _In_ PCPH_STRINGREF PluginName,
     _In_ ULONG SubId
     )
 {
@@ -182,8 +182,8 @@ BOOLEAN PhCmLoadSettingsEx(
     _In_ HWND TreeNewHandle,
     _In_opt_ PPH_CM_MANAGER Manager,
     _In_ ULONG Flags,
-    _In_ PPH_STRINGREF Settings,
-    _In_opt_ PPH_STRINGREF SortSettings
+    _In_ PCPH_STRINGREF Settings,
+    _In_opt_ PCPH_STRINGREF SortSettings
     )
 {
     BOOLEAN result = FALSE;
@@ -444,7 +444,7 @@ CleanupExit:
 
 BOOLEAN PhCmLoadSettings(
     _In_ HWND TreeNewHandle,
-    _In_ PPH_STRINGREF Settings
+    _In_ PCPH_STRINGREF Settings
     )
 {
     return PhCmLoadSettingsEx(TreeNewHandle, NULL, 0, Settings, NULL);

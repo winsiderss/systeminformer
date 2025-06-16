@@ -476,11 +476,7 @@ BOOLEAN PhSystemTimeToTzSpecificLocalTime(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI* SystemTimeToTzSpecificLocalTimeEx_I)(
-        _In_opt_ CONST DYNAMIC_TIME_ZONE_INFORMATION * lpTimeZoneInformation,
-        _In_ CONST SYSTEMTIME * lpUniversalTime,
-        _Out_ LPSYSTEMTIME lpLocalTime
-        ) = NULL;
+    static __typeof__(&SystemTimeToTzSpecificLocalTimeEx) SystemTimeToTzSpecificLocalTimeEx_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -2250,6 +2246,34 @@ PPH_STRING PhFormatSize(
 }
 
 /**
+ * Gets a string representing a size.
+ *
+ * \param Size The size value.
+ * \param MaxSizeUnit The largest unit of size to use, -1 to use PhMaxSizeUnit, or -2 for no limit.
+ * \param Buffer A buffer. If NULL, no data is written.
+ * \param BufferLength The number of bytes available in \a Buffer, including space for the null terminator.
+ * \param ReturnLength The number of bytes required to hold the string, including the null terminator.
+ */
+BOOLEAN PhFormatSizeToBuffer(
+    _In_ ULONG64 Size,
+    _In_ ULONG MaxSizeUnit,
+    _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
+    _In_opt_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    )
+{
+    PH_FORMAT format;
+
+    // PhFormat handles this better than the old method.
+
+    format.Type = SizeFormatType | FormatUseRadix;
+    format.Radix = (UCHAR)(MaxSizeUnit != ULONG_MAX ? MaxSizeUnit : PhMaxSizeUnit);
+    format.u.Size = Size;
+
+    return PhFormatToBuffer(&format, 1, Buffer, BufferLength, ReturnLength);
+}
+
+/**
  * Converts a UUID to its string representation.
  *
  * \param Guid A UUID.
@@ -2636,23 +2660,10 @@ PPH_STRING PhGetFileVersionInfoString(
         &length
         );
 
-    if (NT_SUCCESS(status))
-    {
-        PPH_STRING string;
-
-        if (!(length & 1) || length <= sizeof(UNICODE_NULL)) // validate the string length
-            return NULL;
-
-        string = PhCreateStringEx(buffer, length * sizeof(WCHAR));
-        // length may include the null terminator.
-        PhTrimToNullTerminatorString(string);
-
-        return string;
-    }
-    else
-    {
+    if (!NT_SUCCESS(status))
         return NULL;
-    }
+
+    return PhCreateStringZ2(buffer, length * sizeof(WCHAR));
 }
 
 /**
@@ -2674,7 +2685,6 @@ PPH_STRING PhGetFileVersionInfoString2(
     PVS_VERSION_INFO_STRUCT32 stringNameBlockInfo;
     NTSTATUS status;
     PVOID stringNameBlockValue;
-    PPH_STRING string;
     SIZE_T returnLength;
     PH_FORMAT format[3];
     WCHAR langNameString[65];
@@ -2719,30 +2729,10 @@ PPH_STRING PhGetFileVersionInfoString2(
     if (!(stringNameBlockValue = PhGetFileVersionInfoValue(stringNameBlockInfo)))
         return NULL;
 
-    if ((LangCodePage & 0xffff) == 65001) // UTF-8
-    {
-        string = PhConvertUtf8ToUtf16Ex(
-            stringNameBlockValue,
-            strnlen(stringNameBlockValue, stringNameBlockInfo->ValueLength)
-            );
-    }
-    else if ((LangCodePage & 0xffff) == 1200) // UTF-16
-    {
-        string = PhCreateStringZ2(
-            stringNameBlockValue,
-            stringNameBlockInfo->ValueLength * 2
-            );
-    }
-    else
-    {
-        // validate the string length
-        if ((stringNameBlockInfo->ValueLength & 1) || (stringNameBlockInfo->ValueLength < sizeof(UNICODE_NULL)))
-            return NULL;
-
-        string = PhCreateStringZ2(stringNameBlockValue, stringNameBlockInfo->ValueLength);
-    }
-
-    return string;
+    return PhCreateStringZ2(
+        stringNameBlockValue,
+        stringNameBlockInfo->ValueLength * sizeof(WCHAR)
+        );
 }
 
 PPH_STRING PhGetFileVersionInfoStringEx(
@@ -2763,10 +2753,6 @@ PPH_STRING PhGetFileVersionInfoStringEx(
 
     // Use the UTF-16 code page.
     if (string = PhGetFileVersionInfoString2(VersionInfo, (LangCodePage & 0xffff0000) + 1200, KeyName))
-        return string;
-
-    // Use the UTF-8 code page.
-    if (string = PhGetFileVersionInfoString2(VersionInfo, (LangCodePage & 0xffff0000) + 65001, KeyName))
         return string;
 
     // Use the default language (US English).
@@ -3200,7 +3186,8 @@ NTSTATUS PhGetFullPathName(
     _In_ SIZE_T BufferLength,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
     _Out_opt_ PWSTR* FilePart,
-    _Out_opt_ PULONG BytesRequired)
+    _Out_opt_ PULONG BytesRequired
+    )
 {
     NTSTATUS status;
     ULONG bufferLength;
@@ -3328,7 +3315,7 @@ PPH_STRING PhExpandEnvironmentStrings(
     if (!PhStringRefToUnicodeString(String, &inputString))
         return NULL;
 
-    bufferLength = 0x80;
+    bufferLength = 0x100;
     string = PhCreateStringEx(NULL, bufferLength);
     outputString.MaximumLength = (USHORT)bufferLength;
     outputString.Length = 0;
@@ -3383,7 +3370,6 @@ PPH_STRING PhGetBaseName(
 
     if (!PhSplitStringRefAtLastChar(&FileName->sr, OBJ_NAME_PATH_SEPARATOR, &pathPart, &baseNamePart))
     {
-        //assert(FALSE);
         return PhReferenceObject(FileName);
     }
 
@@ -8044,7 +8030,7 @@ NTSTATUS PhGetFileText(
         }
         else
         {
-            status = STATUS_UNSUCCESSFUL;
+            *String = PhReferenceEmptyString();
         }
 
         PhFree(data);

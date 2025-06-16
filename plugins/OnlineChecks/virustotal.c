@@ -160,6 +160,8 @@ PPH_BYTES VirusTotalSendHttpRequest(
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
+        goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &subRequestBuffer)))
         goto CleanupExit;
 
@@ -221,6 +223,8 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
+        goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
@@ -262,6 +266,14 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
 
             PhDereferenceObject(jsonArrayList);
         }
+        else
+        {
+            status = STATUS_DATA_ERROR;
+        }
+    }
+    else
+    {
+        status = STATUS_DATA_ERROR;
     }
 
 CleanupExit:
@@ -354,6 +366,8 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
     if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;

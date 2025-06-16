@@ -13,7 +13,7 @@
 #include "dn.h"
 #include "clr\perfcounterdefs.h"
 
-const PWSTR DotNetCategoryStrings[] =
+CONST PCWSTR DotNetCategoryStrings[] =
 {
     L".NET CLR Exceptions",
     L".NET CLR Interop",
