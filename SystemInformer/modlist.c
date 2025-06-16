@@ -415,7 +415,7 @@ VOID PhpDestroyModuleNode(
     if (ModuleNode->TimeStampText) PhDereferenceObject(ModuleNode->TimeStampText);
     if (ModuleNode->LoadTimeText) PhDereferenceObject(ModuleNode->LoadTimeText);
     if (ModuleNode->FileModifiedTimeText) PhDereferenceObject(ModuleNode->FileModifiedTimeText);
-    if (ModuleNode->FileSizeText) PhDereferenceObject(&ModuleNode->FileSizeText);
+    if (ModuleNode->FileSizeText) PhDereferenceObject(ModuleNode->FileSizeText);
     if (ModuleNode->ImageCoherencyText) PhDereferenceObject(ModuleNode->ImageCoherencyText);
     if (ModuleNode->ServiceText) PhDereferenceObject(ModuleNode->ServiceText);
     if (ModuleNode->EnclaveSizeText) PhDereferenceObject(ModuleNode->EnclaveSizeText);
@@ -917,18 +917,18 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHMOTLC_NAME:
-                getCellText->Text = PhGetStringRef(moduleItem->Name);
+                {
+                    getCellText->Text = PhGetStringRef(moduleItem->Name);
+                }
                 break;
             case PHMOTLC_BASEADDRESS:
-                PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->BaseAddressString);
+                {
+                    PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->BaseAddressString);
+                }
                 break;
             case PHMOTLC_SIZE:
                 {
-                    if (PhIsNullOrEmptyString(node->SizeText))
-                    {
-                        PhMoveReference(&node->SizeText, PhFormatSize(moduleItem->Size, ULONG_MAX));
-                    }
-
+                    PhMoveReference(&node->SizeText, PhFormatSize(moduleItem->Size, ULONG_MAX));
                     getCellText->Text = PhGetStringRef(node->SizeText);
                 }
                 break;
@@ -1013,7 +1013,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             case PHMOTLC_ASLR:
                 {
                     if (FlagOn(moduleItem->ImageDllCharacteristics, IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE))
+                    {
                         PhInitializeStringRef(&getCellText->Text, L"ASLR");
+                    }
                 }
                 break;
             case PHMOTLC_TIMESTAMP:
@@ -1099,6 +1101,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         PhMoveReference(&node->FileModifiedTimeText, PhFormatDateTime(&systemTime));
                         getCellText->Text = node->FileModifiedTimeText->sr;
                     }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
                 }
                 break;
             case PHMOTLC_FILESIZE:
@@ -1106,7 +1112,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     if (moduleItem->FileEndOfFile.QuadPart != 0 && moduleItem->FileEndOfFile.QuadPart != -1)
                     {
                         PhMoveReference(&node->FileSizeText, PhFormatSize(moduleItem->FileEndOfFile.QuadPart, ULONG_MAX));
-                        getCellText->Text = node->FileSizeText->sr;
+                        getCellText->Text = PhGetStringRef(node->FileSizeText);
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                 }
                 break;
@@ -1129,7 +1139,13 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             case PHMOTLC_CET:
                 {
                     if (FlagOn(moduleItem->ImageDllCharacteristicsEx, IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT))
+                    {
                         PhInitializeStringRef(&getCellText->Text, L"CET");
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
                 }
                 break;
             case PHMOTLC_COHERENCY:
