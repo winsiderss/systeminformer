@@ -346,6 +346,7 @@ NTSTATUS
 NTAPI
 PhLoaderEntryLoadDll(
     _In_ PCPH_STRINGREF FileName,
+    _In_opt_ HANDLE RootDirectory,
     _Out_ PVOID* BaseAddress
     );
 
@@ -370,6 +371,7 @@ NTSTATUS
 NTAPI
 PhLoadPluginImage(
     _In_ PCPH_STRINGREF FileName,
+    _In_opt_ HANDLE RootDirectory,
     _Out_opt_ PVOID *BaseAddress
     );
 

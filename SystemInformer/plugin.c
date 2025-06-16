@@ -36,9 +36,11 @@ typedef struct _PHP_PLUGIN_MENU_HOOK
 
 typedef struct _PH_LOADPLUGIN_CONTEXT
 {
+    BOOLEAN LoadNative;
+    BOOLEAN LoadDefault;
+
     PPH_STRING PluginsDirectory;
     PPH_LIST LoadErrors;
-    BOOLEAN LoadNative;
 } PH_LOADPLUGIN_CONTEXT, *PPH_LOADPLUGIN_CONTEXT;
 
 LONG NTAPI PhpPluginsCompareFunction(
@@ -47,8 +49,7 @@ LONG NTAPI PhpPluginsCompareFunction(
     );
 
 NTSTATUS PhLoadPlugin(
-    _In_ PCPH_STRINGREF FileName,
-    _In_ BOOLEAN NativePlugin
+    _In_ PCPH_STRINGREF FileName
     );
 
 VOID PhLoadPluginErrorMessage(
@@ -68,7 +69,6 @@ VOID PhpExecuteCallbackForAllPlugins(
     );
 
 PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
-BOOLEAN PhPluginsLoadNative = FALSE;
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static ULONG NextPluginId = IDPLUGINS + 1;
 static CONST PH_STRINGREF DefaultPluginName[] =
@@ -203,13 +203,13 @@ VOID PhSetPluginDisabled(
     PhDereferenceObject(disabled);
 }
 
-PPH_STRING PhpGetPluginDirectoryPath(
-    VOID
+PPH_STRING PhGetPluginDirectoryPath(
+    _In_ BOOLEAN NativeFileName
     )
 {
     static CONST PH_STRINGREF pluginsDirectory = PH_STRINGREF_INIT(L"plugins\\");
 
-    return PhGetApplicationDirectoryFileName(&pluginsDirectory, PhPluginsLoadNative);
+    return PhGetApplicationDirectoryFileName(&pluginsDirectory, NativeFileName);
 }
 
 //PPH_STRING PhpGetPluginDirectoryPath(
@@ -279,41 +279,43 @@ PPH_STRING PhpGetPluginDirectoryPath(
 _Function_class_(PH_ENUM_DIRECTORY_FILE)
 static BOOLEAN EnumPluginsDirectoryCallback(
     _In_ HANDLE RootDirectory,
-    _In_ PFILE_NAMES_INFORMATION Information,
+    _In_ PVOID Information,
     _In_opt_ PVOID Context
     )
 {
-    static CONST PH_STRINGREF extension = PH_STRINGREF_INIT(L".dll");
+    PFILE_NAMES_INFORMATION fileNamesInfo = (PFILE_NAMES_INFORMATION)Information;
     PPH_LOADPLUGIN_CONTEXT context = (PPH_LOADPLUGIN_CONTEXT)Context;
     NTSTATUS status;
     PPH_STRING fileName;
     PH_STRINGREF baseName;
 
-    baseName.Buffer = Information->FileName;
-    baseName.Length = Information->FileNameLength;
-
-    // Note: The *.dll pattern passed to NtQueryDirectoryFile includes
-    // extensions other than dll (For example: *.dll* or .dllmanifest) (dmex)
-    if (!PhEndsWithStringRef(&baseName, &extension, FALSE))
-        return TRUE;
-
-    for (ULONG i = 0; i < RTL_NUMBER_OF(DefaultPluginName); i++)
-    {
-        if (PhEqualStringRef(&baseName, &DefaultPluginName[i], TRUE))
-            return TRUE;
-    }
+    baseName.Buffer = fileNamesInfo->FileName;
+    baseName.Length = fileNamesInfo->FileNameLength;
 
     if (!PhIsPluginDisabled(&baseName))
     {
-        if (fileName = PhConcatStringRef2(&context->PluginsDirectory->sr, &baseName))
+        if (context->LoadNative)
         {
-            status = PhLoadPlugin(&fileName->sr, context->LoadNative);
-
-            if (!NT_SUCCESS(status))
+            status = PhLoadPluginImage(&baseName, RootDirectory, NULL);
+        }
+        else
+        {
+            if (fileName = PhConcatStringRef2(&context->PluginsDirectory->sr, &baseName))
             {
-                PhLoadPluginErrorMessage(context, fileName, status);
-            }
+                status = PhLoadPlugin(&fileName->sr);
 
+                PhDereferenceObject(fileName);
+            }
+            else
+            {
+                status = STATUS_NO_MEMORY;
+            }
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            fileName = PhCreateString2(&baseName);
+            PhLoadPluginErrorMessage(context, PhCreateString2(&baseName), status);
             PhDereferenceObject(fileName);
         }
     }
@@ -392,6 +394,69 @@ VOID PhpShowPluginErrorMessage(
     PhDeleteStringBuilder(&stringBuilder);
 }
 
+NTSTATUS PhLoadPluginsEnumDirectory(
+    _In_ PPH_STRINGREF PluginsDirectory,
+    _In_ PPH_LOADPLUGIN_CONTEXT Context
+    )
+{
+    static CONST PH_STRINGREF pluginsSearchPattern = PH_STRINGREF_INIT(L"*.dll");
+    NTSTATUS status;
+    HANDLE directoryHandle;
+
+    if (Context->LoadNative)
+    {
+        status = PhCreateFile(
+            &directoryHandle,
+            PluginsDirectory,
+            FILE_LIST_DIRECTORY | SYNCHRONIZE,
+            FILE_ATTRIBUTE_DIRECTORY,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+    }
+    else
+    {
+        status = PhCreateFileWin32(
+            &directoryHandle,
+            PhGetStringRefZ(PluginsDirectory),
+            FILE_LIST_DIRECTORY | SYNCHRONIZE,
+            FILE_ATTRIBUTE_DIRECTORY,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhEnumDirectoryFileEx(
+        directoryHandle,
+        FileNamesInformation,
+        FALSE,
+        &pluginsSearchPattern,
+        EnumPluginsDirectoryCallback,
+        Context
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        status = PhEnumDirectoryFileEx(
+            directoryHandle,
+            FileNamesInformation,
+            TRUE,
+            &pluginsSearchPattern,
+            EnumPluginsDirectoryCallback,
+            Context
+            );
+    }
+
+    NtClose(directoryHandle);
+
+    return status;
+}
+
 /**
  * Loads plugins from the default plugins directory.
  */
@@ -400,94 +465,52 @@ VOID PhLoadPlugins(
     )
 {
     NTSTATUS status;
-    PPH_STRING fileName;
-    PPH_STRING pluginsDirectory;
+    BOOLEAN pluginLoadNative;
+    BOOLEAN pluginLoadDefault;
+    PPH_STRING pluginFileName;
+    PPH_STRING pluginDirectoryPath;
     PH_LOADPLUGIN_CONTEXT pluginLoadContext;
 
-    PhPluginsLoadNative = !!PhGetIntegerSetting(L"EnablePluginsNative");
+    pluginLoadNative = !!PhGetIntegerSetting(L"EnablePluginsNative");
+    pluginLoadDefault = !!PhGetIntegerSetting(L"EnableDefaultSafePlugins");
+    pluginDirectoryPath = PhGetPluginDirectoryPath(pluginLoadNative);
 
-    if (!(pluginsDirectory = PhpGetPluginDirectoryPath()))
+    if (PhIsNullOrEmptyString(pluginDirectoryPath))
         return;
 
-    pluginLoadContext.PluginsDirectory = pluginsDirectory;
-    pluginLoadContext.LoadNative = PhPluginsLoadNative;
-    pluginLoadContext.LoadErrors = NULL;
+    memset(&pluginLoadContext, 0, sizeof(PH_LOADPLUGIN_CONTEXT));
+    pluginLoadContext.LoadNative = pluginLoadNative;
+    pluginLoadContext.LoadDefault = pluginLoadDefault;
+    pluginLoadContext.PluginsDirectory = pluginDirectoryPath;
 
-    for (ULONG i = 0; i < RTL_NUMBER_OF(DefaultPluginName); i++)
+    if (pluginLoadDefault)
     {
-        if (PhIsPluginDisabled(&DefaultPluginName[i]))
-            continue;
+        // Load default plugins
 
-        if (fileName = PhConcatStringRef2(&pluginsDirectory->sr, &DefaultPluginName[i]))
+        for (ULONG i = 0; i < RTL_NUMBER_OF(DefaultPluginName); i++)
         {
-            status = PhLoadPlugin(&fileName->sr, PhPluginsLoadNative);
+            if (PhIsPluginDisabled(&DefaultPluginName[i]))
+                continue;
 
-            if (!NT_SUCCESS(status))
+            if (pluginFileName = PhConcatStringRef2(&pluginDirectoryPath->sr, &DefaultPluginName[i]))
             {
-                PhLoadPluginErrorMessage(&pluginLoadContext, fileName, status);
-            }
+                status = PhLoadPlugin(&pluginFileName->sr);
 
-            PhDereferenceObject(fileName);
+                if (!NT_SUCCESS(status))
+                {
+                    PhLoadPluginErrorMessage(&pluginLoadContext, pluginFileName, status);
+                }
+
+                PhDereferenceObject(pluginFileName);
+            }
         }
     }
-
-    if (!PhGetIntegerSetting(L"EnableDefaultSafePlugins"))
+    else
     {
-        HANDLE pluginsDirectoryHandle;
+        // Load non-default plugins
 
-        if (PhPluginsLoadNative)
-        {
-            status = PhCreateFile(
-                &pluginsDirectoryHandle,
-                &pluginsDirectory->sr,
-                FILE_LIST_DIRECTORY | SYNCHRONIZE,
-                FILE_ATTRIBUTE_DIRECTORY,
-                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                FILE_OPEN,
-                FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                );
-        }
-        else
-        {
-            status = PhCreateFileWin32(
-                &pluginsDirectoryHandle,
-                PhGetString(pluginsDirectory),
-                FILE_LIST_DIRECTORY | SYNCHRONIZE,
-                FILE_ATTRIBUTE_DIRECTORY,
-                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                FILE_OPEN,
-                FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                );
-        }
-
-        if (NT_SUCCESS(status))
-        {
-            static CONST PH_STRINGREF pluginsSearchPattern = PH_STRINGREF_INIT(L"*.dll");
-
-            if (!NT_SUCCESS(PhEnumDirectoryFileEx(
-                pluginsDirectoryHandle,
-                FileNamesInformation,
-                FALSE,
-                &pluginsSearchPattern,
-                EnumPluginsDirectoryCallback,
-                &pluginLoadContext
-                )))
-            {
-                PhEnumDirectoryFileEx(
-                    pluginsDirectoryHandle,
-                    FileNamesInformation,
-                    TRUE,
-                    &pluginsSearchPattern,
-                    EnumPluginsDirectoryCallback,
-                    &pluginLoadContext
-                    );
-            }
-
-            NtClose(pluginsDirectoryHandle);
-        }
+        PhLoadPluginsEnumDirectory(&pluginDirectoryPath->sr, &pluginLoadContext);
     }
-
-    PhDereferenceObject(pluginsDirectory);
 
     // Handle load errors.
     // In certain startup modes we want to ignore all plugin load errors.
@@ -528,6 +551,8 @@ VOID PhLoadPlugins(
 
         PhDereferenceObject(pluginLoadContext.LoadErrors);
     }
+
+    PhDereferenceObject(pluginDirectoryPath);
 }
 
 /**
@@ -546,27 +571,19 @@ VOID PhUnloadPlugins(
 /**
  * Loads a plugin.
  *
- * \param FileName The full file name of the plugin.
- * \param NativePlugin The file type of the plugin.
+ * \param FileName The file name of the plugin.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhLoadPlugin(
-    _In_ PCPH_STRINGREF FileName,
-    _In_ BOOLEAN NativePlugin
+    _In_ PCPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
 
-    if (NativePlugin)
-    {
-        status = PhLoadPluginImage(FileName, NULL);
-    }
+    if (LoadLibraryEx(PhGetStringRefZ(FileName), NULL, 0))
+        status = STATUS_SUCCESS;
     else
-    {
-        if (LoadLibraryEx(PhGetStringRefZ(FileName), NULL, 0))
-            status = STATUS_SUCCESS;
-        else
-            status = PhGetLastWin32ErrorAsNtStatus();
-    }
+        status = PhGetLastWin32ErrorAsNtStatus();
 
     return status;
 }
