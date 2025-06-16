@@ -26,15 +26,15 @@ typedef struct _RTL_BITMAP* PRTL_BITMAP;
 /**
  * The NtDelayExecution routine suspends the current thread until the specified condition is met.
  *
- * @param Alertable The function returns when either the time-out period has elapsed or when the APC function is called.
- * @param DelayInterval The time interval for which execution is to be suspended, in milliseconds.
+ * \param Alertable The function returns when either the time-out period has elapsed or when the APC function is called.
+ * \param DelayInterval The time interval for which execution is to be suspended, in milliseconds.
  * - A value of zero causes the thread to relinquish the remainder of its time slice to any other thread that is ready to run.
  * - If there are no other threads ready to run, the function returns immediately, and the thread continues execution.
  * - A value of INFINITE indicates that the suspension should not time out.
- * @return NTSTATUS Successful or errant status. The return value is STATUS_USER_APC when Alertable is TRUE, and the function returned due to one or more I/O completion callback functions.
- * @remarks Note that a ready thread is not guaranteed to run immediately. Consequently, the thread will not run until some arbitrary time after the sleep interval elapses,
+ * \return NTSTATUS Successful or errant status. The return value is STATUS_USER_APC when Alertable is TRUE, and the function returned due to one or more I/O completion callback functions.
+ * \remarks Note that a ready thread is not guaranteed to run immediately. Consequently, the thread will not run until some arbitrary time after the sleep interval elapses,
  * based upon the system "tick" frequency and the load factor from other processes.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-sleepex
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-sleepex
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -52,11 +52,11 @@ NtDelayExecution(
  * Retrieves the value of the specified firmware environment variable.
  * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
- * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
- * @param VariableValue A pointer to a buffer that receives the value of the specified firmware environment variable.
- * @param ValueLength The size of the \c VariableValue buffer, in bytes.
- * @param ReturnLength If the function succeeds, the return length is the number of bytes stored in the \c VariableValue buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * \param VariableValue A pointer to a buffer that receives the value of the specified firmware environment variable.
+ * \param ValueLength The size of the \c VariableValue buffer, in bytes.
+ * \param ReturnLength If the function succeeds, the return length is the number of bytes stored in the \c VariableValue buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -90,12 +90,12 @@ NtQuerySystemEnvironmentValue(
  * Retrieves the value of the specified firmware environment variable and its attributes.
  * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
- * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
- * @param VendorGuid The GUID that represents the namespace of the firmware environment variable.
- * @param Buffer A pointer to a buffer that receives the value of the specified firmware environment variable.
- * @param BufferLength The size of the \c Buffer, in bytes.
- * @param Attributes Bitmask identifying UEFI variable attributes associated with the variable.
- * @return NTSTATUS Successful or errant status.
+ * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * \param VendorGuid The GUID that represents the namespace of the firmware environment variable.
+ * \param Buffer A pointer to a buffer that receives the value of the specified firmware environment variable.
+ * \param BufferLength The size of the \c Buffer, in bytes.
+ * \param Attributes Bitmask identifying UEFI variable attributes associated with the variable.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -112,10 +112,10 @@ NtQuerySystemEnvironmentValueEx(
  * Sets the value of the specified firmware environment variable.
  * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
- * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
- * @param VariableValue A pointer to the new value for the firmware environment variable.
+ * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * \param VariableValue A pointer to the new value for the firmware environment variable.
  * If this parameter is zero, the firmware environment variable is deleted.
- * @return NTSTATUS Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -129,15 +129,15 @@ NtSetSystemEnvironmentValue(
  * Sets the value of the specified firmware environment variable and the attributes that indicate how this variable is stored and maintained.
  * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
- * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
- * @param VendorGuid The GUID that represents the namespace of the firmware environment variable.
- * @param Buffer A pointer to the new value for the firmware environment variable.
- * @param BufferLength The size of the pValue buffer, in bytes.
+ * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * \param VendorGuid The GUID that represents the namespace of the firmware environment variable.
+ * \param Buffer A pointer to the new value for the firmware environment variable.
+ * \param BufferLength The size of the pValue buffer, in bytes.
  * Unless the VARIABLE_ATTRIBUTE_APPEND_WRITE, VARIABLE_ATTRIBUTE_AUTHENTICATED_WRITE_ACCESS,
  * or VARIABLE_ATTRIBUTE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS variable attribute is set via dwAttributes,
  * setting this value to zero will result in the deletion of this variable.
- * @param Attributes Bitmask to set UEFI variable attributes associated with the variable.
- * @return NTSTATUS Successful or errant status.
+ * \param Attributes Bitmask to set UEFI variable attributes associated with the variable.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -184,7 +184,9 @@ NtEnumerateSystemEnvironmentValuesEx(
     _Inout_ PULONG BufferLength
     );
 
+//
 // EFI
+//
 
 // private
 typedef struct _BOOT_ENTRY
@@ -246,9 +248,9 @@ typedef struct _EFI_DRIVER_ENTRY_LIST
 /**
  * The NtAddBootEntry routine adds a new boot entry to the system boot configuration.
  *
- * @param BootEntry A pointer to a BOOT_ENTRY structure that specifies the boot entry to be added.
- * @param Id A pointer to a variable that receives the identifier of the new boot entry.
- * @return NTSTATUS Successful or errant status.
+ * \param BootEntry A pointer to a BOOT_ENTRY structure that specifies the boot entry to be added.
+ * \param Id A pointer to a variable that receives the identifier of the new boot entry.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -261,8 +263,8 @@ NtAddBootEntry(
 /**
  * The NtDeleteBootEntry routine deletes an existing boot entry from the system boot configuration.
  *
- * @param Id The identifier of the boot entry to be deleted.
- * @return NTSTATUS Successful or errant status.
+ * \param Id The identifier of the boot entry to be deleted.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -274,8 +276,8 @@ NtDeleteBootEntry(
 /**
  * The NtModifyBootEntry routine modifies an existing boot entry in the system boot configuration.
  *
- * @param BootEntry A pointer to a BOOT_ENTRY structure that specifies the new boot entry information.
- * @return NTSTATUS Successful or errant status.
+ * \param BootEntry A pointer to a BOOT_ENTRY structure that specifies the new boot entry information.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -287,9 +289,9 @@ NtModifyBootEntry(
 /**
  * The NtEnumerateBootEntries routine retrieves information about all boot entries in the system boot configuration.
  *
- * @param Buffer A pointer to a buffer that receives the boot entries information.
- * @param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param Buffer A pointer to a buffer that receives the boot entries information.
+ * \param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -302,9 +304,9 @@ NtEnumerateBootEntries(
 /**
  * The NtQueryBootEntryOrder routine retrieves the current boot entry order.
  *
- * @param Ids A pointer to a buffer that receives the identifiers of the boot entries in the current boot order.
- * @param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
- * @return NTSTATUS Successful or errant status.
+ * \param Ids A pointer to a buffer that receives the identifiers of the boot entries in the current boot order.
+ * \param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -317,9 +319,9 @@ NtQueryBootEntryOrder(
 /**
  * The NtSetBootEntryOrder routine sets the boot entry order.
  *
- * @param Ids A pointer to a buffer that specifies the identifiers of the boot entries in the desired boot order.
- * @param Count The number of entries in the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param Ids A pointer to a buffer that specifies the identifiers of the boot entries in the desired boot order.
+ * \param Count The number of entries in the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -332,9 +334,9 @@ NtSetBootEntryOrder(
 /**
  * The NtQueryBootOptions routine retrieves the current boot options.
  *
- * @param BootOptions A pointer to a buffer that receives the boot options.
- * @param BootOptionsLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param BootOptions A pointer to a buffer that receives the boot options.
+ * \param BootOptionsLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -347,9 +349,9 @@ NtQueryBootOptions(
 /**
  * The NtSetBootOptions routine sets the boot options.
  *
- * @param BootOptions A pointer to a BOOT_OPTIONS structure that specifies the new boot options.
- * @param FieldsToChange A bitmask that specifies which fields in the BOOT_OPTIONS structure are to be changed.
- * @return NTSTATUS Successful or errant status.
+ * \param BootOptions A pointer to a BOOT_OPTIONS structure that specifies the new boot options.
+ * \param FieldsToChange A bitmask that specifies which fields in the BOOT_OPTIONS structure are to be changed.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -362,11 +364,11 @@ NtSetBootOptions(
 /**
  * The NtTranslateFilePath routine translates a file path from one format to another.
  *
- * @param InputFilePath A pointer to a FILE_PATH structure that specifies the input file path.
- * @param OutputType The type of the output file path.
- * @param OutputFilePath A pointer to a buffer that receives the translated file path.
- * @param OutputFilePathLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param InputFilePath A pointer to a FILE_PATH structure that specifies the input file path.
+ * \param OutputType The type of the output file path.
+ * \param OutputFilePath A pointer to a buffer that receives the translated file path.
+ * \param OutputFilePathLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -381,9 +383,9 @@ NtTranslateFilePath(
 /**
  * The NtAddDriverEntry routine adds a new driver entry to the system boot configuration.
  *
- * @param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the driver entry to be added.
- * @param Id A pointer to a variable that receives the identifier of the new driver entry.
- * @return NTSTATUS Successful or errant status.
+ * \param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the driver entry to be added.
+ * \param Id A pointer to a variable that receives the identifier of the new driver entry.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -396,8 +398,8 @@ NtAddDriverEntry(
 /**
  * The NtDeleteDriverEntry routine deletes an existing driver entry from the system boot configuration.
  *
- * @param Id The identifier of the driver entry to be deleted.
- * @return NTSTATUS Successful or errant status.
+ * \param Id The identifier of the driver entry to be deleted.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -409,8 +411,8 @@ NtDeleteDriverEntry(
 /**
  * The NtModifyDriverEntry routine modifies an existing driver entry in the system boot configuration.
  *
- * @param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the new driver entry information.
- * @return NTSTATUS Successful or errant status.
+ * \param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the new driver entry information.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -422,9 +424,9 @@ NtModifyDriverEntry(
 /**
  * The NtEnumerateDriverEntries routine retrieves information about all driver entries in the system boot configuration.
  *
- * @param Buffer A pointer to a buffer that receives the driver entries information.
- * @param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param Buffer A pointer to a buffer that receives the driver entries information.
+ * \param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -437,9 +439,9 @@ NtEnumerateDriverEntries(
 /**
  * The NtQueryDriverEntryOrder routine retrieves the current driver entry order.
  *
- * @param Ids A pointer to a buffer that receives the identifiers of the driver entries in the current driver order.
- * @param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
- * @return NTSTATUS Successful or errant status.
+ * \param Ids A pointer to a buffer that receives the identifiers of the driver entries in the current driver order.
+ * \param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -452,9 +454,9 @@ NtQueryDriverEntryOrder(
 /**
  * The NtSetDriverEntryOrder routine sets the driver entry order.
  *
- * @param Ids A pointer to a buffer that specifies the identifiers of the driver entries in the desired driver order.
- * @param Count The number of entries in the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param Ids A pointer to a buffer that specifies the identifiers of the driver entries in the desired driver order.
+ * \param Count The number of entries in the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -476,12 +478,12 @@ typedef enum _FILTER_BOOT_OPTION_OPERATION
 /**
  * The NtFilterBootOption routine filters boot options based on the specified operation, object type, and element type.
  *
- * @param FilterOperation The operation to be performed on the boot option. This can be one of the values from the FILTER_BOOT_OPTION_OPERATION enumeration.
- * @param ObjectType The type of the object to be filtered.
- * @param ElementType The type of the element within the object to be filtered.
- * @param Data A pointer to a buffer that contains the data to be used in the filter operation. This parameter is optional and can be NULL.
- * @param DataSize The size, in bytes, of the data buffer pointed to by the Data parameter.
- * @return NTSTATUS Successful or errant status.
+ * \param FilterOperation The operation to be performed on the boot option. This can be one of the values from the FILTER_BOOT_OPTION_OPERATION enumeration.
+ * \param ObjectType The type of the object to be filtered.
+ * \param ElementType The type of the element within the object to be filtered.
+ * \param Data A pointer to a buffer that contains the data to be used in the filter operation. This parameter is optional and can be NULL.
+ * \param DataSize The size, in bytes, of the data buffer pointed to by the Data parameter.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -532,13 +534,13 @@ typedef struct _EVENT_BASIC_INFORMATION
  * The NtCreateEvent routine creates an event object, sets the initial state of the event to the specified value,
  * and opens a handle to the object with the specified desired access.
  *
- * @param EventHandle A pointer to a variable that receives the event object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the event object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @param EventType The type of the event, which can be SynchronizationEvent or a NotificationEvent.
- * @param InitialState The initial state of the event object.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwcreateevent
+ * \param EventHandle A pointer to a variable that receives the event object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the event object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \param EventType The type of the event, which can be SynchronizationEvent or a NotificationEvent.
+ * \param InitialState The initial state of the event object.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwcreateevent
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -554,10 +556,10 @@ NtCreateEvent(
 /**
  * The NtOpenEvent routine opens a handle to an existing event object.
  *
- * @param EventHandle A pointer to a variable that receives the event object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the event object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS Successful or errant status.
+ * \param EventHandle A pointer to a variable that receives the event object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the event object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -571,9 +573,9 @@ NtOpenEvent(
 /**
  * The NtSetEvent routine sets an event object to the signaled state.
  *
- * @param EventHandle A handle to the event object.
- * @param PreviousState A pointer to a variable that receives the previous state of the event object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventHandle A handle to the event object.
+ * \param PreviousState A pointer to a variable that receives the previous state of the event object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -587,9 +589,9 @@ NtSetEvent(
 /**
  * The NtSetEventEx routine sets an event object to the signaled state and optionally acquires a lock.
  *
- * @param ThreadId A handle to the thread.
- * @param Lock A pointer to an RTL_SRWLOCK structure that specifies the lock to acquire.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadId A handle to the thread.
+ * \param Lock A pointer to an RTL_SRWLOCK structure that specifies the lock to acquire.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -603,8 +605,8 @@ NtSetEventEx(
 /**
  * The NtSetEventBoostPriority routine sets an event object to the signaled state and boosts the priority of threads waiting on the event.
  *
- * @param EventHandle A handle to the event object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventHandle A handle to the event object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -616,8 +618,8 @@ NtSetEventBoostPriority(
 /**
  * The NtClearEvent routine sets an event object to the not-signaled state.
  *
- * @param EventHandle A handle to the event object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventHandle A handle to the event object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -629,10 +631,10 @@ NtClearEvent(
 /**
  * The NtResetEvent routine sets an event object to the not-signaled state and optionally returns the previous state.
  *
- * @param EventHandle A handle to the event object.
- * @param PreviousState A pointer to a variable that receives the previous state of the event object.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent
+ * \param EventHandle A handle to the event object.
+ * \param PreviousState A pointer to a variable that receives the previous state of the event object.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -645,10 +647,10 @@ NtResetEvent(
 /**
  * The NtPulseEvent routine sets an event object to the signaled state and then resets it to the not-signaled state after releasing the appropriate number of waiting threads.
  *
- * @param EventHandle A handle to the event object.
- * @param PreviousState A pointer to a variable that receives the previous state of the event object.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-pulseevent
+ * \param EventHandle A handle to the event object.
+ * \param PreviousState A pointer to a variable that receives the previous state of the event object.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-pulseevent
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -661,12 +663,12 @@ NtPulseEvent(
 /**
  * The NtQueryEvent routine retrieves information about an event object.
  *
- * @param EventHandle A handle to the event object.
- * @param EventInformationClass The type of information to be retrieved.
- * @param EventInformation A pointer to a buffer that receives the requested information.
- * @param EventInformationLength The size of the buffer pointed to by EventInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param EventHandle A handle to the event object.
+ * \param EventInformationClass The type of information to be retrieved.
+ * \param EventInformation A pointer to a buffer that receives the requested information.
+ * \param EventInformationLength The size of the buffer pointed to by EventInformation.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -688,10 +690,11 @@ NtQueryEvent(
 /**
  * The NtCreateEventPair routine creates an event pair object and opens a handle to the object with the specified desired access.
  *
- * @param EventPairHandle A pointer to a variable that receives the event pair object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the event pair object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS Successful or errant status.
+ * \remark Event Pairs are used to communicate with protected subsystems (see Context Switches).
+ * \param EventPairHandle A pointer to a variable that receives the event pair object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the event pair object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -705,10 +708,10 @@ NtCreateEventPair(
 /**
  * The NtOpenEventPair routine opens a handle to an existing event pair object.
  *
- * @param EventPairHandle A pointer to a variable that receives the event pair object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the event pair object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A pointer to a variable that receives the event pair object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the event pair object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -722,8 +725,8 @@ NtOpenEventPair(
 /**
  * The NtSetLowEventPair routine sets the low event in an event pair to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -735,8 +738,8 @@ NtSetLowEventPair(
 /**
  * The NtSetHighEventPair routine sets the high event in an event pair to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -748,8 +751,8 @@ NtSetHighEventPair(
 /**
  * The NtWaitLowEventPair routine waits for the low event in an event pair to be set to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -761,8 +764,8 @@ NtWaitLowEventPair(
 /**
  * The NtWaitHighEventPair routine waits for the high event in an event pair to be set to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -774,8 +777,8 @@ NtWaitHighEventPair(
 /**
  * The NtSetLowWaitHighEventPair routine sets the low event in an event pair to the signaled state and waits for the high event to be set to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -787,8 +790,8 @@ NtSetLowWaitHighEventPair(
 /**
  * The NtSetHighWaitLowEventPair routine sets the high event in an event pair to the signaled state and waits for the low event to be set to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -837,11 +840,11 @@ typedef struct _MUTANT_OWNER_INFORMATION
  * The NtCreateMutant routine creates a mutant object, sets the initial state of the mutant to the specified value,
  * and opens a handle to the object with the specified desired access.
  *
- * @param MutantHandle A pointer to a variable that receives the mutant object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the mutant object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @param InitialOwner If TRUE, the calling thread is the initial owner of the mutant object.
- * @return NTSTATUS Successful or errant status.
+ * \param MutantHandle A pointer to a variable that receives the mutant object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the mutant object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \param InitialOwner If TRUE, the calling thread is the initial owner of the mutant object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -856,10 +859,10 @@ NtCreateMutant(
 /**
  * The NtOpenMutant routine opens a handle to an existing mutant object.
  *
- * @param MutantHandle A pointer to a variable that receives the mutant object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the mutant object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS Successful or errant status.
+ * \param MutantHandle A pointer to a variable that receives the mutant object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the mutant object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -873,9 +876,9 @@ NtOpenMutant(
 /**
  * The NtReleaseMutant routine releases ownership of a mutant object.
  *
- * @param MutantHandle A handle to the mutant object.
- * @param PreviousCount A pointer to a variable that receives the previous count of the mutant object.
- * @return NTSTATUS Successful or errant status.
+ * \param MutantHandle A handle to the mutant object.
+ * \param PreviousCount A pointer to a variable that receives the previous count of the mutant object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -888,12 +891,12 @@ NtReleaseMutant(
 /**
  * The NtQueryMutant routine retrieves information about a mutant object.
  *
- * @param MutantHandle A handle to the mutant object.
- * @param MutantInformationClass The type of information to be retrieved.
- * @param MutantInformation A pointer to a buffer that receives the requested information.
- * @param MutantInformationLength The size of the buffer pointed to by MutantInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param MutantHandle A handle to the mutant object.
+ * \param MutantInformationClass The type of information to be retrieved.
+ * \param MutantInformation A pointer to a buffer that receives the requested information.
+ * \param MutantInformationLength The size of the buffer pointed to by MutantInformation.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -940,12 +943,12 @@ typedef struct _SEMAPHORE_BASIC_INFORMATION
  * The NtCreateSemaphore routine creates a semaphore object, sets the initial count of the semaphore to the specified value,
  * and opens a handle to the object with the specified desired access.
  *
- * @param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the semaphore object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @param InitialCount The initial count of the semaphore object.
- * @param MaximumCount The maximum count of the semaphore object.
- * @return NTSTATUS Successful or errant status.
+ * \param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the semaphore object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \param InitialCount The initial count of the semaphore object.
+ * \param MaximumCount The maximum count of the semaphore object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -961,10 +964,10 @@ NtCreateSemaphore(
 /**
  * The NtOpenSemaphore routine opens a handle to an existing semaphore object.
  *
- * @param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the semaphore object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS Successful or errant status.
+ * \param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the semaphore object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -978,10 +981,10 @@ NtOpenSemaphore(
 /**
  * The NtReleaseSemaphore routine increases the count of the specified semaphore object by a specified amount.
  *
- * @param SemaphoreHandle A handle to the semaphore object.
- * @param ReleaseCount The amount by which the semaphore object's count is to be increased.
- * @param PreviousCount A pointer to a variable that receives the previous count of the semaphore object.
- * @return NTSTATUS Successful or errant status.
+ * \param SemaphoreHandle A handle to the semaphore object.
+ * \param ReleaseCount The amount by which the semaphore object's count is to be increased.
+ * \param PreviousCount A pointer to a variable that receives the previous count of the semaphore object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -995,12 +998,12 @@ NtReleaseSemaphore(
 /**
  * The NtQuerySemaphore routine retrieves information about a semaphore object.
  *
- * @param SemaphoreHandle A handle to the semaphore object.
- * @param SemaphoreInformationClass The type of information to be retrieved.
- * @param SemaphoreInformation A pointer to a buffer that receives the requested information.
- * @param SemaphoreInformationLength The size of the buffer pointed to by SemaphoreInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param SemaphoreHandle A handle to the semaphore object.
+ * \param SemaphoreInformationClass The type of information to be retrieved.
+ * \param SemaphoreInformation A pointer to a buffer that receives the requested information.
+ * \param SemaphoreInformationLength The size of the buffer pointed to by SemaphoreInformation.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1662,9 +1665,9 @@ NtWaitForWorkViaWorkerFactory(
 /**
  * The NtQuerySystemTime routine obtains the current system time.
  *
- * @param SystemTime A pointer to a LARGE_INTEGER structure that receives the system time. This is a 64-bit value representing the number of 100-nanosecond intervals since January 1, 1601 (UTC).
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysystemtime
+ * \param SystemTime A pointer to a LARGE_INTEGER structure that receives the system time. This is a 64-bit value representing the number of 100-nanosecond intervals since January 1, 1601 (UTC).
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysystemtime
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1676,11 +1679,11 @@ NtQuerySystemTime(
 /**
  * The NtSetSystemTime routine sets the current system time and date. The system time is expressed in Coordinated Universal Time (UTC).
  *
- * @param SystemTime A pointer to a LARGE_INTEGER structure that that contains the new system date and time.
- * @param PreviousTime A pointer to a LARGE_INTEGER structure that that contains the previous system time.
- * @return NTSTATUS Successful or errant status.
- * @remarks The calling process must have the SE_SYSTEMTIME_NAME privilege.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-setsystemtime
+ * \param SystemTime A pointer to a LARGE_INTEGER structure that that contains the new system date and time.
+ * \param PreviousTime A pointer to a LARGE_INTEGER structure that that contains the previous system time.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The calling process must have the SE_SYSTEMTIME_NAME privilege.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-setsystemtime
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1693,10 +1696,10 @@ NtSetSystemTime(
 /**
  * The NtQueryTimerResolution routine retrieves the range and current value of the system interrupt timer.
  *
- * @param MaximumTime The maximum timer resolution, in 100-nanosecond units.
- * @param MinimumTime The minimum timer resolution, in 100-nanosecond units.
- * @param CurrentTime The current timer resolution, in 100-nanosecond units.
- * @return NTSTATUS Successful or errant status.
+ * \param MaximumTime The maximum timer resolution, in 100-nanosecond units.
+ * \param MinimumTime The minimum timer resolution, in 100-nanosecond units.
+ * \param CurrentTime The current timer resolution, in 100-nanosecond units.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1710,10 +1713,10 @@ NtQueryTimerResolution(
 /**
  * The NtSetTimerResolution routine sets the system interrupt timer resolution to the specified value.
  *
- * @param DesiredTime The desired timer resolution, in 100-nanosecond units.
- * @param SetResolution If TRUE, the timer resolution is set to the value specified by DesiredTime. If FALSE, the timer resolution is reset to the default value.
- * @param ActualTime The actual timer resolution, in 100-nanosecond units.
- * @return NTSTATUS Successful or errant status.
+ * \param DesiredTime The desired timer resolution, in 100-nanosecond units.
+ * \param SetResolution If TRUE, the timer resolution is set to the value specified by DesiredTime. If FALSE, the timer resolution is reset to the default value.
+ * \param ActualTime The actual timer resolution, in 100-nanosecond units.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1732,11 +1735,11 @@ NtSetTimerResolution(
  * The NtQueryPerformanceCounter routine retrieves the current value of the performance counter,
  * which is a high resolution (<1us) time stamp that can be used for time-interval measurements.
  *
- * @param PerformanceCounter A pointer to a variable that receives the current performance-counter value, in 100-nanosecond units.
- * @param PerformanceFrequency A pointer to a variable that receives the current performance-frequency value, in 100-nanosecond units.
- * @return NTSTATUS Successful or errant status.
- * @remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero. Use RtlQueryPerformanceCounter instead since no system calls are required.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter
+ * \param PerformanceCounter A pointer to a variable that receives the current performance-counter value, in 100-nanosecond units.
+ * \param PerformanceFrequency A pointer to a variable that receives the current performance-frequency value, in 100-nanosecond units.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero. Use RtlQueryPerformanceCounter instead since no system calls are required.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1751,9 +1754,9 @@ NtQueryPerformanceCounter(
 /**
  * The NtQueryAuxiliaryCounterFrequency routine queries the auxiliary counter frequency. (The auxiliary counter is generally the HPET hardware timer).
  *
- * @param AuxiliaryCounterFrequency A pointer to an output buffer that contains the specified auxiliary counter frequency. If the auxiliary counter is not supported, the value in the output buffer will be undefined.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryauxiliarycounterfrequency
+ * \param AuxiliaryCounterFrequency A pointer to an output buffer that contains the specified auxiliary counter frequency. If the auxiliary counter is not supported, the value in the output buffer will be undefined.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryauxiliarycounterfrequency
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1767,12 +1770,12 @@ NtQueryAuxiliaryCounterFrequency(
  * The NtConvertBetweenAuxiliaryCounterAndPerformanceCounter routine converts the specified performance counter value to the corresponding auxiliary counter value;
  * optionally provides the estimated conversion error in nanoseconds due to latencies and maximum possible drift.
  *
- * @param ConvertAuxiliaryToPerformanceCounter  If TRUE, the value will be converted from AUX to QPC. If FALSE, the value will be converted from QPC to AUX.
- * @param PerformanceOrAuxiliaryCounterValue The performance counter value to convert.
- * @param ConvertedValue On success, contains the converted auxiliary counter value. Will be undefined if the function fails.
- * @param ConversionError On success, contains the estimated conversion error, in nanoseconds. Will be undefined if the function fails.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-convertperformancecountertoauxiliarycounter
+ * \param ConvertAuxiliaryToPerformanceCounter  If TRUE, the value will be converted from AUX to QPC. If FALSE, the value will be converted from QPC to AUX.
+ * \param PerformanceOrAuxiliaryCounterValue The performance counter value to convert.
+ * \param ConvertedValue On success, contains the converted auxiliary counter value. Will be undefined if the function fails.
+ * \param ConversionError On success, contains the estimated conversion error, in nanoseconds. Will be undefined if the function fails.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-convertperformancecountertoauxiliarycounter
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3950,9 +3953,9 @@ typedef struct _SMC_CACHE_DELETE_REQUEST
 
 typedef enum _SM_STORE_MANAGER_TYPE
 {
-    SmStoreManagerTypePhysical=0,
-    SmStoreManagerTypeVirtual=1,
-    SmStoreManagerTypeMax=2
+    SmStoreManagerTypePhysical = 0,
+    SmStoreManagerTypeVirtual = 1,
+    SmStoreManagerTypeMax = 2
 } SM_STORE_MANAGER_TYPE;
 
 typedef struct _SMC_STORE_CREATE_REQUEST
@@ -5640,12 +5643,12 @@ typedef struct _SYSTEM_OSL_RAMDISK_INFORMATION
 /**
  * The NtQuerySystemInformation routine queries information about the system.
  *
- * @param SystemInformationClass The type of information to be retrieved.
- * @param SystemInformation A pointer to a buffer that receives the requested information.
- * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
+ * \param SystemInformationClass The type of information to be retrieved.
+ * \param SystemInformation A pointer to a buffer that receives the requested information.
+ * \param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -5660,14 +5663,14 @@ NtQuerySystemInformation(
 /**
  * The NtQuerySystemInformationEx routine queries information about the system.
  *
- * @param SystemInformationClass The type of information to be retrieved.
- * @param InputBuffer Pointer to a caller-allocated input buffer that contains class-specific information.
- * @param InputBufferLength The size of the buffer pointed to by InputBuffer.
- * @param SystemInformation A pointer to a buffer that receives the requested information.
- * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
+ * \param SystemInformationClass The type of information to be retrieved.
+ * \param InputBuffer Pointer to a caller-allocated input buffer that contains class-specific information.
+ * \param InputBufferLength The size of the buffer pointed to by InputBuffer.
+ * \param SystemInformation A pointer to a buffer that receives the requested information.
+ * \param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -5684,10 +5687,10 @@ NtQuerySystemInformationEx(
 /**
  * The NtSetSystemInformation routine sets information about the system.
  *
- * @param SystemInformationClass The type of information to be set.
- * @param SystemInformation A pointer to a buffer that receives the requested information.
- * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
- * @return NTSTATUS Successful or errant status.
+ * \param SystemInformationClass The type of information to be set.
+ * \param SystemInformation A pointer to a buffer that receives the requested information.
+ * \param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -6068,7 +6071,7 @@ typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
 /**
  * The KUSER_SHARED_DATA structure contains information shared with user-mode.
  *
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-kuser_shared_data
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-kuser_shared_data
  */
 typedef struct _KUSER_SHARED_DATA
 {
