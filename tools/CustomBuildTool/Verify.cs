@@ -100,13 +100,11 @@ namespace CustomBuildTool
         {
             try
             {
-                using (var filetream = File.OpenRead(FileName))
-                using (var bufferedStream = new BufferedStream(filetream, 0x1000))
-                using (var sha = SHA256.Create())
+                using (var fileStream = File.OpenRead(FileName))
                 {
-                    byte[] checksum = sha.ComputeHash(bufferedStream);
+                    byte[] fileHash = SHA256.HashData(fileStream);
 
-                    return Convert.ToHexString(checksum);
+                    return Convert.ToHexString(fileHash);
                 }
             }
             catch (Exception e)

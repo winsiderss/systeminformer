@@ -49,6 +49,42 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Splits a string into key-value pairs.
+        /// </summary>
+        public static Dictionary<string, string> ParseArguments(string[] args)
+        {
+            // 2. Track the current key (string) if it starts with "-".
+            // 3. For each string in args:
+            //    a. If it starts with "-", set as current key, add to dict if not present.
+            //    b. Else, if current key is set, append value to its list.
+            //    c. If no current key, ignore or add to a special key (optional).
+            // 4. Return the dictionary.
+
+            var kvp = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var key = string.Empty;
+
+            foreach (string s in args)
+            {
+                if (s.StartsWith("-", StringComparison.OrdinalIgnoreCase))
+                {
+                    key = s;
+
+                    if (!kvp.ContainsKey(key))
+                    {
+                        kvp[key] = string.Empty;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(key))
+                {
+                    kvp[key] += s;
+                }
+                // else: ignore values before any key
+            }
+
+            return kvp;
+        }
+
+        /// <summary>
         /// Splits a string into a dictionary.
         /// </summary>
         public static Dictionary<string, string> ParseInput(string[] args)
@@ -86,9 +122,9 @@ namespace CustomBuildTool
                 return null;
             }
 
-            string output = Win32.CreateProcess(file, Command, false);
-            output = output.Trim();
-            return output;
+            int errorcode = Win32.CreateProcess(file, Command, out var outputString, false);
+
+            return outputString.Trim();
         }
 
         public static bool SetCurrentDirectoryParent(string FileName)
@@ -316,9 +352,9 @@ namespace CustomBuildTool
                 return null;
             }
 
-            string output = Win32.CreateProcess(currentGitPath, $"{currentGitDirectory} {Command}", false);
-            output = output.Trim();
-            return output;
+            int errorcode = Win32.CreateProcess(currentGitPath, $"{currentGitDirectory} {Command}", out var outputString, false);
+
+            return outputString.Trim();
         }
 
         public static List<string> EnumerateDirectory(string FilePath, string[] Extensions, string[] Exclude = null)
@@ -483,10 +519,9 @@ namespace CustomBuildTool
                 return null;
             }
 
-            string output = Win32.CreateProcess(currentMisxPath, Command, false);
-            output = output.Replace("\r\n\r\n", "\r\n", StringComparison.OrdinalIgnoreCase);
-            output = output.Trim();
-            return output;
+            int errorcode = Win32.CreateProcess(currentMisxPath, Command, out var outputString, false);
+
+            return outputString.Replace("\r\n\r\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
         }
 
         public static string GetSignToolPath()

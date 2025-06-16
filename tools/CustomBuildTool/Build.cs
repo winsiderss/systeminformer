@@ -68,12 +68,12 @@ namespace CustomBuildTool
 
         public static bool InitializeBuildArguments()
         {
-            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS") || Win32.HasEnvironmentVariable("TF_BUILD"))
+            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS", false) || Win32.HasEnvironmentVariable("TF_BUILD", false))
             {
                 Build.BuildIntegration = true;
             }
 
-            if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition))
+            if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition, false))
             {
                 if (build_definition.Equals("canary", StringComparison.OrdinalIgnoreCase))
                 {
@@ -82,7 +82,7 @@ namespace CustomBuildTool
                 }
             }
 
-            if (Win32.GetEnvironmentVariableSpan("SYSTEM_DEBUG", out ReadOnlySpan<char> build_debug))
+            if (Win32.GetEnvironmentVariableSpan("SYSTEM_DEBUG", out ReadOnlySpan<char> build_debug, false))
             {
                 if (build_debug.Equals("true", StringComparison.OrdinalIgnoreCase))
                 {
@@ -91,17 +91,17 @@ namespace CustomBuildTool
                 }
             }
 
-            if (Win32.GetEnvironmentVariable("BUILD_SOURCEVERSION", out string buildsource))
+            if (Win32.GetEnvironmentVariable("BUILD_SOURCEVERSION", out string buildsource, false))
             {
                 Build.BuildCommitHash = buildsource;
             }
 
-            if (Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out string buildbranch))
+            if (Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out string buildbranch, false))
             {
                 Build.BuildCommitBranch = buildbranch;
             }
 
-            if (Win32.GetEnvironmentVariable("BUILD_REDIRECTOUTPUT", out string buildredirectoutput))
+            if (Win32.GetEnvironmentVariable("BUILD_REDIRECTOUTPUT", out string buildredirectoutput, false))
             {
                 Build.BuildRedirectOutput = buildredirectoutput.Equals("true", StringComparison.OrdinalIgnoreCase);
             }
@@ -134,21 +134,21 @@ namespace CustomBuildTool
 
             if (ShowBuildInfo)
             {
-                Program.PrintColorMessage("Windows: ", ConsoleColor.DarkGray, false);
+                Program.PrintColorMessage("> Windows: ", ConsoleColor.DarkGray, false);
                 Program.PrintColorMessage(Win32.GetKernelVersion(), ConsoleColor.Green);
 
                 var instance = VisualStudio.GetVisualStudioInstance();
                 if (instance != null)
                 {
-                    Program.PrintColorMessage("WindowsSDK: ", ConsoleColor.DarkGray, false);
+                    Program.PrintColorMessage("> WindowsSDK: ", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage($"{Utils.GetWindowsSdkVersion()} ({instance.GetWindowsSdkFullVersion()})", ConsoleColor.Green, true);
-                    Program.PrintColorMessage("VisualStudio: ", ConsoleColor.DarkGray, false);
+                    Program.PrintColorMessage("> VisualStudio: ", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage(instance.Name, ConsoleColor.Green);
                     //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.Green, true);
                     Build.HaveArm64BuildTools = instance.HasARM64BuildToolsComponents;
                 }
 
-                Program.PrintColorMessage("SystemInformer: ", ConsoleColor.DarkGray, false);
+                Program.PrintColorMessage("> SystemInformer: ", ConsoleColor.DarkGray, false);
                 Program.PrintColorMessage(Build.BuildLongVersion, ConsoleColor.Green, false);
 
                 if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
@@ -475,13 +475,19 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildDynamicData(string OutDir)
+        public static bool BuildDynamicData(string DataDirectory)
         {
             Program.PrintColorMessage("Building dynamic data...", ConsoleColor.Cyan);
 
+            if (string.IsNullOrWhiteSpace(DataDirectory))
+            {
+                Program.PrintColorMessage($"[ERROR] Invalid DataDirectory", ConsoleColor.Red);
+                return false;
+            }
+
             try
             {
-                return DynData.Execute(OutDir, BuildCanary);
+                return DynData.Execute(DataDirectory, BuildCanary);
             }
             catch (Exception ex)
             {
@@ -993,20 +999,11 @@ namespace CustomBuildTool
                 return true;
 
             if (!Win32.GetEnvironmentVariable("BUILD_BUILDID", out string buildBuildId))
-            {
-                Program.PrintColorMessage("BUILD_BUILDID not found.", ConsoleColor.Red);
                 return false;
-            }
             if (!Win32.GetEnvironmentVariable("BUILD_CF_API", out string buildPostCfUrl))
-            {
-                Program.PrintColorMessage("BUILD_CF_API not found.", ConsoleColor.Red);
                 return false;
-            }
             if (!Win32.GetEnvironmentVariable("BUILD_CF_KEY", out string buildPostCfApiKey))
-            {
-                Program.PrintColorMessage("BUILD_CF_KEY not found.", ConsoleColor.Red);
                 return false;
-            }
 
             if (!GetBuildDeployInfo(null, out BuildDeployInfo bin))
                 return false;
@@ -1142,6 +1139,7 @@ namespace CustomBuildTool
                 {
                     if (!file.Uploaded)
                     {
+                        Program.PrintColorMessage($"[GithubReleaseAsset-NotUploaded] {file.Name}", ConsoleColor.Yellow);
                         continue;
                     }
 
@@ -1187,7 +1185,7 @@ namespace CustomBuildTool
                 string.IsNullOrWhiteSpace(CanarySetupLink) ||
                 string.IsNullOrWhiteSpace(ReleaseSetupLink))
             {
-                Program.PrintColorMessage("BuildUpdateServerConfig invalid args.", ConsoleColor.Red);
+                Program.PrintColorMessage("BuildUploadServerConfig invalid args.", ConsoleColor.Red);
                 return false;
             }
 

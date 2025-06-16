@@ -20,7 +20,7 @@ namespace CustomBuildTool
             if (!Build.InitializeBuildEnvironment())
                 return;
 
-            ProgramArgs = Utils.ParseArgs(args);
+            ProgramArgs = Utils.ParseArguments(args);
 
             if (ProgramArgs.ContainsKey("-write-tools-id"))
             {

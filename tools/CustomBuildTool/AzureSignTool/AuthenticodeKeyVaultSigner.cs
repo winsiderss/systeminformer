@@ -163,7 +163,6 @@ namespace CustomBuildTool
             SIGNER_SIGN_FLAGS flags = (SIGNER_SIGN_FLAGS)SignerSignEx3Flags.SPC_DIGEST_SIGN_FLAG;
             SIGNER_TIMESTAMP_FLAGS timeStampFlags = 0;
             SIGNER_CONTEXT* signerContext = null;
-            APPX_SIP_CLIENT_DATA *clientData = null;
 
             if (PageHashing)
                 flags |= (SIGNER_SIGN_FLAGS)SignerSignEx3Flags.SPC_INC_PE_PAGE_HASHES_FLAG;
@@ -183,44 +182,44 @@ namespace CustomBuildTool
             {
                 var timestampString = new PCSTR(timestampAlg);
 
-                var fileInfo = new SIGNER_FILE_INFO();
-                fileInfo.cbSize = (uint)sizeof(SIGNER_FILE_INFO);
-                fileInfo.pwszFileName = new PCWSTR(fileName);
+                var fileInfo = stackalloc SIGNER_FILE_INFO[1];
+                fileInfo->cbSize = (uint)sizeof(SIGNER_FILE_INFO);
+                fileInfo->pwszFileName = new PCWSTR(fileName);
   
-                var subjectInfo = new SIGNER_SUBJECT_INFO();
-                subjectInfo.cbSize = (uint)sizeof(SIGNER_SUBJECT_INFO);
-                subjectInfo.pdwIndex = (uint*)NativeMemory.AllocZeroed((nuint)IntPtr.Size);
-                subjectInfo.dwSubjectChoice = SIGNER_SUBJECT_CHOICE.SIGNER_SUBJECT_FILE;
-                subjectInfo.Anonymous.pSignerFileInfo = &fileInfo;
+                var subjectInfo = stackalloc SIGNER_SUBJECT_INFO[1];
+                subjectInfo->cbSize = (uint)sizeof(SIGNER_SUBJECT_INFO);
+                subjectInfo->pdwIndex = (uint*)NativeMemory.AllocZeroed((nuint)IntPtr.Size);
+                subjectInfo->dwSubjectChoice = SIGNER_SUBJECT_CHOICE.SIGNER_SUBJECT_FILE;
+                subjectInfo->Anonymous.pSignerFileInfo = fileInfo;
 
-                var storeInfo = new SIGNER_CERT_STORE_INFO();
-                storeInfo.cbSize = (uint)sizeof(SIGNER_CERT_STORE_INFO);
-                storeInfo.dwCertPolicy = SIGNER_CERT_POLICY.SIGNER_CERT_POLICY_CHAIN;
-                storeInfo.hCertStore = new HCERTSTORE((void*)this.CertificateStore.Handle);
-                storeInfo.pSigningCert = (CERT_CONTEXT*)this.SigningCertificate.Handle;
+                var storeInfo = stackalloc SIGNER_CERT_STORE_INFO[1];
+                storeInfo->cbSize = (uint)sizeof(SIGNER_CERT_STORE_INFO);
+                storeInfo->dwCertPolicy = SIGNER_CERT_POLICY.SIGNER_CERT_POLICY_CHAIN;
+                storeInfo->hCertStore = new HCERTSTORE((void*)this.CertificateStore.Handle);
+                storeInfo->pSigningCert = (CERT_CONTEXT*)this.SigningCertificate.Handle;
 
-                var signerCert = new SIGNER_CERT();
-                signerCert.cbSize = (uint)sizeof(SIGNER_CERT);
-                signerCert.dwCertChoice = SIGNER_CERT_CHOICE.SIGNER_CERT_STORE;
-                signerCert.Anonymous.pCertStoreInfo = &storeInfo;
+                var signerCert = stackalloc SIGNER_CERT[1];
+                signerCert->cbSize = (uint)sizeof(SIGNER_CERT);
+                signerCert->dwCertChoice = SIGNER_CERT_CHOICE.SIGNER_CERT_STORE;
+                signerCert->Anonymous.pCertStoreInfo = storeInfo;
 
-                var signatureAuthcode = new SIGNER_ATTR_AUTHCODE();
-                signatureAuthcode.cbSize = (uint)sizeof(SIGNER_ATTR_AUTHCODE);
-                signatureAuthcode.pwszName = description;
-                signatureAuthcode.pwszInfo = descriptionUrl;
+                var signatureAuthcode = stackalloc SIGNER_ATTR_AUTHCODE[1];
+                signatureAuthcode->cbSize = (uint)sizeof(SIGNER_ATTR_AUTHCODE);
+                signatureAuthcode->pwszName = description;
+                signatureAuthcode->pwszInfo = descriptionUrl;
 
-                var signatureInfo = new SIGNER_SIGNATURE_INFO();
-                signatureInfo.cbSize = (uint)sizeof(SIGNER_SIGNATURE_INFO);
-                signatureInfo.dwAttrChoice = SIGNER_SIGNATURE_ATTRIBUTE_CHOICE.SIGNER_AUTHCODE_ATTR;
-                signatureInfo.algidHash = HashAlgorithmToAlgId(this.FileDigestAlgorithm);
-                signatureInfo.Anonymous.pAttrAuthcode = &signatureAuthcode;
+                var signatureInfo = stackalloc SIGNER_SIGNATURE_INFO[1];
+                signatureInfo->cbSize = (uint)sizeof(SIGNER_SIGNATURE_INFO);
+                signatureInfo->dwAttrChoice = SIGNER_SIGNATURE_ATTRIBUTE_CHOICE.SIGNER_AUTHCODE_ATTR;
+                signatureInfo->algidHash = HashAlgorithmToAlgId(this.FileDigestAlgorithm);
+                signatureInfo->Anonymous.pAttrAuthcode = signatureAuthcode;
 
                 var signCallbackInfo = new SIGNER_DIGEST_SIGN_INFO();
                 signCallbackInfo.cbSize = (uint)sizeof(SIGNER_DIGEST_SIGN_INFO);
                 signCallbackInfo.dwDigestSignChoice = (uint)SIGNER_DIGEST_CHOICE.DIGEST_SIGN;
                 signCallbackInfo.Anonymous.pfnAuthenticodeDigestSign = this.SigningCallback;
-                //signCallbackInfo.Anonymous.pfnAuthenticodeDigestSignEx = this.SigningCallbackEx;
-                //signCallbackInfo.Anonymous.pfnAuthenticodeDigestSign = (delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT>)Marshal.GetFunctionPointerForDelegate(this.SigningCallback);
+                //signCallbackInfo->Anonymous.pfnAuthenticodeDigestSignEx = this.SigningCallbackEx;
+                //signCallbackInfo->Anonymous.pfnAuthenticodeDigestSign = (delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT>)Marshal.GetFunctionPointerForDelegate(this.SigningCallback);
 
                 //if (this.SigningCallbaackEx != null)
                 //{
@@ -230,61 +229,84 @@ namespace CustomBuildTool
 
                 if (IsAppxFile)
                 {
-                    APPX_SIP_CLIENT_DATA sipclientdata;
-                    SIGNER_SIGN_EX_PARAMS parameters;
-                    SIGNER_DIGEST_SIGN_INFO_UNION digestCallback;
+                    var clientData = stackalloc APPX_SIP_CLIENT_DATA[1];
+                    var parameters = stackalloc SIGNER_SIGN_EX_PARAMS[1];
+                    var digestCallback = stackalloc SIGNER_DIGEST_SIGN_INFO_UNION[1];
 
-                    //digestCallback.V1.cbSize = (uint)sizeof(SIGNER_DIGEST_SIGN_INFO_V1);
-                    //digestCallback.V1.pfnAuthenticodeDigestSign = signCallbackInfo.Anonymous.pfnAuthenticodeDigestSign;
+                    digestCallback->V2.Size = (uint)sizeof(SIGNER_DIGEST_SIGN_INFO_V2);
+                    digestCallback->V2.AuthenticodeDigestSign = signCallbackInfo.Anonymous.pfnAuthenticodeDigestSign;
+                    //digestCallback->V2.AuthenticodeDigestSignEx = signCallbackInfo.Anonymous.pfnAuthenticodeDigestSignEx;
 
-                    digestCallback.V2.Size = (uint)sizeof(SIGNER_DIGEST_SIGN_INFO_V2);
-                    digestCallback.V2.AuthenticodeDigestSign = signCallbackInfo.Anonymous.pfnAuthenticodeDigestSign;
-                    digestCallback.V2.AuthenticodeDigestSignEx = signCallbackInfo.Anonymous.pfnAuthenticodeDigestSignEx;
-
-                    clientData = &sipclientdata;
-                    clientData->SignerParams = &parameters;
+                    clientData->SignerParams = parameters;
                     clientData->SignerParams->Ex3.Flags = (SIGNER_SIGN_FLAGS)(SignerSignEx3Flags.SPC_DIGEST_SIGN_FLAG | SignerSignEx3Flags.SPC_EXC_PE_PAGE_HASHES_FLAG);
                     clientData->SignerParams->Ex3.TimestampFlags = timeStampFlags;
-                    clientData->SignerParams->Ex3.SubjectInfo = &subjectInfo;
-                    clientData->SignerParams->Ex3.SignerCert = &signerCert;
-                    clientData->SignerParams->Ex3.SignatureInfo = &signatureInfo;
+                    clientData->SignerParams->Ex3.SubjectInfo = subjectInfo;
+                    clientData->SignerParams->Ex3.SignerCert = signerCert;
+                    clientData->SignerParams->Ex3.SignatureInfo = signatureInfo;
                     clientData->SignerParams->Ex3.SignerContext = &signerContext;
                     clientData->SignerParams->Ex3.TimestampURL = timestampUrl;
                     clientData->SignerParams->Ex3.TimestampAlgorithmOid = timestampAlg;
-                    clientData->SignerParams->Ex3.SignCallBack = &digestCallback;
+                    clientData->SignerParams->Ex3.SignCallBack = digestCallback;
+
+                    result = PInvoke.SignerSignEx3(
+                        flags,
+                        subjectInfo,
+                        signerCert,
+                        signatureInfo,
+                        null,
+                        timeStampFlags,
+                        timestampString,
+                        timestampUrl,
+                        null,
+                        clientData,
+                        &signerContext,
+                        null,
+                        signCallbackInfo,
+                        null
+                        );
+
+                    if (result == HRESULT.S_OK)
+                    {
+                        if (signerContext != null)
+                        {
+                            PInvoke.SignerFreeSignerContext(signerContext);
+                        }
+
+                        if (clientData->AppxSipState != IntPtr.Zero)
+                        {
+                            Marshal.Release(clientData->AppxSipState);
+                        }
+                    }
                 }
-
-                result = PInvoke.SignerSignEx3(
-                    flags,
-                    &subjectInfo,
-                    &signerCert,
-                    &signatureInfo,
-                    null,
-                    timeStampFlags,
-                    timestampString,
-                    timestampUrl,
-                    null,
-                    clientData,
-                    &signerContext,
-                    null,
-                    signCallbackInfo,
-                    null
-                    );
-
-                if (result == HRESULT.S_OK)
+                else
                 {
-                    if (signerContext != null)
-                    {
-                        PInvoke.SignerFreeSignerContext(signerContext);
-                    }
+                    result = PInvoke.SignerSignEx3(
+                        flags,
+                        subjectInfo,
+                        signerCert,
+                        signatureInfo,
+                        null,
+                        timeStampFlags,
+                        timestampString,
+                        timestampUrl,
+                        null,
+                        null,
+                        &signerContext,
+                        null,
+                        signCallbackInfo,
+                        null
+                        );
 
-                    if (clientData != null && clientData->AppxSipState != IntPtr.Zero)
+                    if (result == HRESULT.S_OK)
                     {
-                        Marshal.Release(clientData->AppxSipState);
+                        if (signerContext != null)
+                        {
+                            PInvoke.SignerFreeSignerContext(signerContext);
+                        }
                     }
                 }
 
-                NativeMemory.Free(subjectInfo.pdwIndex);
+                NativeMemory.Free(subjectInfo->pdwIndex);
 
                 return result;
             }
