@@ -61,7 +61,7 @@ typedef enum _KWAIT_REASON
     WrExecutive,             // Waiting for an executive event.
     WrFreePage,              // Waiting for a free page.
     WrPageIn,                // Waiting for a page to be read in.
-    WrPoolAllocation,        // Waiting for a pool allocation.
+    WrPoolAllocation,        // Waiting for a pool allocation.              // 10
     WrDelayExecution,        // Waiting due to a delay execution.
     WrSuspended,             // Waiting because the thread is suspended.
     WrUserRequest,           // Waiting due to a user request.
@@ -71,7 +71,7 @@ typedef enum _KWAIT_REASON
     WrLpcReply,              // Waiting for an LPC reply.                   // NtRequestWaitReplyPort
     WrVirtualMemory,         // Waiting for virtual memory.
     WrPageOut,               // Waiting for a page to be written out.       // NtFlushVirtualMemory
-    WrRendezvous,            // Waiting for a rendezvous.
+    WrRendezvous,            // Waiting for a rendezvous.                   // 20
     WrKeyedEvent,            // Waiting for a keyed event.                  // NtCreateKeyedEvent
     WrTerminated,            // Waiting for thread termination.
     WrProcessInSwap,         // Waiting for a process to be swapped in.
@@ -81,7 +81,7 @@ typedef enum _KWAIT_REASON
     WrResource,              // Waiting for a resource.
     WrPushLock,              // Waiting for a push lock.
     WrMutex,                 // Waiting for a mutex.
-    WrQuantumEnd,            // Waiting for the end of a quantum.
+    WrQuantumEnd,            // Waiting for the end of a quantum.           // 30
     WrDispatchInt,           // Waiting for a dispatch interrupt.
     WrPreempted,             // Waiting because the thread was preempted.
     WrYieldExecution,        // Waiting to yield execution.
@@ -91,7 +91,7 @@ typedef enum _KWAIT_REASON
     WrAlertByThreadId,       // Waiting for an alert by thread ID.
     WrDeferredPreempt,       // Waiting for a deferred preemption.
     WrPhysicalFault,         // Waiting for a physical fault.
-    WrIoRing,                // Waiting for an I/O ring.
+    WrIoRing,                // Waiting for an I/O ring.                    // 40
     WrMdlCache,              // Waiting for an MDL cache.
     WrRcu,                   // Waiting for read-copy-update (RCU) synchronization.
     MaximumWaitReason
