@@ -53,17 +53,23 @@ BOOLEAN NTAPI PhWslDistributionNamesCallback(
 
             if (lxssBasePathName && PhStartsWithStringRef(context->FileName, &lxssBasePathName->sr, TRUE))
             {
-                context->DistributionName = PhQueryRegistryStringZ(keyHandle, L"DistributionName");
-                context->DistributionPath = lxssBasePathName;
+                PPH_STRING lxssDistributionName;
 
-                if (context->TranslatedPath = PhCreateString2(context->FileName))
+                if (lxssDistributionName = PhQueryRegistryStringZ(keyHandle, L"DistributionName"))
                 {
-                    PhSkipStringRef(&context->TranslatedPath->sr, lxssBasePathName->Length);
-                    PhSkipStringRef(&context->TranslatedPath->sr, sizeof(L"rootfs"));
-                }
+                    context->Found = TRUE;
+                    context->DistributionName = lxssDistributionName;
+                    context->DistributionPath = lxssBasePathName;
 
-                NtClose(keyHandle);
-                return FALSE;
+                    if (context->TranslatedPath = PhCreateString2(context->FileName))
+                    {
+                        PhSkipStringRef(&context->TranslatedPath->sr, lxssBasePathName->Length);
+                        PhSkipStringRef(&context->TranslatedPath->sr, sizeof(L"rootfs"));
+                    }
+
+                    NtClose(keyHandle);
+                    return FALSE;
+                }
             }
 
             PhClearReference(&lxssBasePathName);
@@ -88,6 +94,7 @@ NTSTATUS PhGetWslDistributionFromPath(
     HANDLE keyHandle;
 
     memset(&enumContext, 0, sizeof(PH_WSL_ENUM_CONTEXT));
+    enumContext.Found = FALSE;
     enumContext.FileName = FileName;
 
     status = PhOpenKey(
@@ -112,20 +119,27 @@ NTSTATUS PhGetWslDistributionFromPath(
 
     if (NT_SUCCESS(status))
     {
-        if (DistributionName)
-            *DistributionName = enumContext.DistributionName;
-        else
-            PhClearReference(&enumContext.DistributionName);
+        if (enumContext.Found)
+        {
+            if (DistributionName)
+                *DistributionName = enumContext.DistributionName;
+            else
+                PhClearReference(&enumContext.DistributionName);
 
-        if (DistributionPath)
-            *DistributionPath = enumContext.DistributionPath;
-        else
-            PhClearReference(&enumContext.DistributionPath);
+            if (DistributionPath)
+                *DistributionPath = enumContext.DistributionPath;
+            else
+                PhClearReference(&enumContext.DistributionPath);
 
-        if (TranslatedPath)
-            *TranslatedPath = PhConvertNtPathSeperatorToAltSeperator(enumContext.TranslatedPath);
+            if (TranslatedPath)
+                *TranslatedPath = PhConvertNtPathSeperatorToAltSeperator(enumContext.TranslatedPath);
+            else
+                PhClearReference(&enumContext.TranslatedPath);
+        }
         else
-            PhClearReference(&enumContext.TranslatedPath);
+        {
+            status = STATUS_NOT_FOUND;
+        }
     }
 
     return status;
