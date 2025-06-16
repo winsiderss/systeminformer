@@ -78,16 +78,16 @@ BEGIN
             VALUE "CompanyName", "System Informer - Setup"
             VALUE "FileDescription", "System Informer - Setup"
             VALUE "FileVersion", PHAPP_VERSION_STRING
-            VALUE "InternalName", "systeminformer-setup.exe"
+            VALUE "InternalName", "System Informer - Setup"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
-            VALUE "OriginalFilename", "systeminformer-setup.exe"
+            VALUE "OriginalFilename", "System Informer - Setup"
             VALUE "ProductName", "System Informer - Setup"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x409, 65001
+        VALUE "Translation", 0x0409, 0x04b0
     END
 END
 
