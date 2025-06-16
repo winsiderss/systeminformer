@@ -1671,6 +1671,28 @@ NTSTATUS PhSetProcessEmptyWorkingSet(
     return status;
 }
 
+NTSTATUS PhSetProcessWorkingSetEmpty(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    NTSTATUS status;
+    PROCESS_WORKING_SET_CONTROL controlInfo;
+
+    memset(&controlInfo, 0, sizeof(PROCESS_WORKING_SET_CONTROL));
+    controlInfo.Version = PROCESS_WORKING_SET_CONTROL_VERSION;
+    controlInfo.Operation = ProcessWorkingSetEmpty;
+    controlInfo.Flags = PROCESS_WORKING_SET_FLAG_EMPTY_PAGES;
+
+    status = NtSetInformationProcess(
+        ProcessHandle,
+        ProcessWorkingSetControl,
+        &controlInfo,
+        sizeof(PROCESS_WORKING_SET_CONTROL)
+        );
+
+    return status;
+}
+
 NTSTATUS PhSetProcessEmptyPageWorkingSet(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,

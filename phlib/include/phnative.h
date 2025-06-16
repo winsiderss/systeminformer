@@ -2239,6 +2239,13 @@ PhSetProcessEmptyWorkingSet(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetProcessWorkingSetEmpty(
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetProcessEmptyPageWorkingSet(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
