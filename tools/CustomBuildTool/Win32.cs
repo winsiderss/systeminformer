@@ -122,13 +122,6 @@ namespace CustomBuildTool
                 File.Delete(FileName);
         }
 
-        public static string CreateProcess(string FileName, string Arguments, bool FixNewLines = true, bool RedirectOutput = true)
-        {
-            CreateProcess(FileName, Arguments, out string outputstring, FixNewLines, RedirectOutput);
-
-            return outputstring;
-        }
-
         /// <summary>
         /// Searches for a specified file using environment paths.
         /// </summary>
@@ -296,7 +289,7 @@ namespace CustomBuildTool
 
             if (string.IsNullOrWhiteSpace(Value))
             {
-                if (Verbose)
+                if (Build.BuildToolsDebug || Verbose)
                 {
                     Program.PrintColorMessage($"EnvironmentVariable: {Name} not found.", ConsoleColor.Red);
                 }
@@ -319,7 +312,7 @@ namespace CustomBuildTool
 
             if (Utils.IsSpanNullOrWhiteSpace(Value))
             {
-                if (Verbose)
+                if (Build.BuildToolsDebug || Verbose)
                 {
                     Program.PrintColorMessage($"EnvironmentVariable: {Name} not found.", ConsoleColor.Red);
                 }
