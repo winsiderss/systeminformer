@@ -165,7 +165,7 @@ VOID KphCidTableDelete(
 
     switch (tableCode & KPH_CID_TABLE_LEVEL_MASK)
     {
-        case 0:
+        case KPH_CID_TABLE_L0:
         {
             tableL0 = (PKPH_CID_TABLE_ENTRY)(tableCode & KPH_CID_TABLE_POINTER_MASK);
 
@@ -175,7 +175,7 @@ VOID KphCidTableDelete(
 
             break;
         }
-        case 1:
+        case KPH_CID_TABLE_L1:
         {
             tableL1 = (PKPH_CID_TABLE_ENTRY*)(tableCode & KPH_CID_TABLE_POINTER_MASK);
 
@@ -194,7 +194,7 @@ VOID KphCidTableDelete(
 
             break;
         }
-        case 2:
+        case KPH_CID_TABLE_L2:
         {
             tableL2 = (PKPH_CID_TABLE_ENTRY**)(tableCode & KPH_CID_TABLE_POINTER_MASK);
 
@@ -519,7 +519,7 @@ PKPH_CID_TABLE_ENTRY KphCidGetEntry(
  *
  * \param[in] Entry The CID table entry to invoke the callback for.
  * \param[in] Callback The object callback to invoke.
- * \param[in] CallbackEx The extended callback to invoke.
+ * \param[in] Rundown The rundown callback to invoke.
  * \param[in] Parameter Optional parameter passed to the callback.
  *
  * \return TRUE if enumeration should stop, FALSE otherwise.
@@ -573,7 +573,7 @@ BOOLEAN KphpCidEnumerateInvokeCallback(
  *
  * \param[in] Table The table to enumerate.
  * \param[in] Callback The object callback to invoke.
- * \param[in] CallbackEx The extended callback to invoke.
+ * \param[in] Rundown The rundown callback to invoke.
  * \param[in] Parameter Optional parameter passed to the callback.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -734,10 +734,11 @@ VOID KphCidEnumerate(
  * \brief Enumerates CID entries a CID table for rundown.
  *
  * \details This routine removes all items from the table. After the callback
- * returns the object reference in the table is dereferenced.
+ * returns all object references in the table is dereferenced and removed from
+ * the table.
  *
  * \param[in] Table The table to enumerate.
- * \param[in] Callback The extended callback to invoke.
+ * \param[in] Callback The rundown callback to invoke.
  * \param[in] Parameter Optional parameter passed to the callback.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
