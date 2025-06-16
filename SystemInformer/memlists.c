@@ -561,9 +561,9 @@ VOID PhShowMemoryListCommand(
             if (!PhIsNullOrEmptyString(message))
             {
                 if (showError)
-                    PhShowError2(ParentWindow, L"Unable to empty the memory list.", L"%s", PhGetString(message));
+                    PhShowError2(ParentWindow, L"Memory Command", L"%s", PhGetString(message));
                 else
-                    PhShowInformation2(ParentWindow, L"Unable to empty the memory list.", L"%s", PhGetString(message));
+                    PhShowInformation2(ParentWindow, L"Memory Command", L"%s", PhGetString(message));
             }
 
             PhClearReference(&message);
@@ -598,7 +598,7 @@ VOID PhShowMemoryListCommand(
 
             message = PhFinalStringBuilderString(&stringBuilder);
             if (!PhIsNullOrEmptyString(message))
-                PhShowInformation2(ParentWindow, L"Unable to empty the memory list.", L"%s", PhGetString(message));
+                PhShowInformation2(ParentWindow, L"Memory Command", L"%s", PhGetString(message));
             PhClearReference(&message);
         }
     }
