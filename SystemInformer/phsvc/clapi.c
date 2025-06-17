@@ -15,7 +15,7 @@
 
 HANDLE PhSvcClPortHandle = NULL;
 PVOID PhSvcClPortHeap = NULL;
-ULONG PhSvcClServerProcessId = ULONG_MAX;
+HANDLE PhSvcClServerProcessId = NULL;
 
 NTSTATUS PhSvcConnectToServer(
     _In_ PUNICODE_STRING PortName,
@@ -71,7 +71,7 @@ NTSTATUS PhSvcConnectToServer(
     securityQos.EffectiveOnly = TRUE;
 
     connectInfoLength = sizeof(PHSVC_API_CONNECTINFO);
-    connectInfo.ServerProcessId = ULONG_MAX;
+    connectInfo.ServerProcessId = 0;
 
     status = NtConnectPort(
         &PhSvcClPortHandle,
@@ -88,7 +88,7 @@ NTSTATUS PhSvcConnectToServer(
     if (!NT_SUCCESS(status))
         return status;
 
-    PhSvcClServerProcessId = connectInfo.ServerProcessId;
+    PhSvcClServerProcessId = UlongToHandle(connectInfo.ServerProcessId);
 
     //
     // Create the port heap.
@@ -140,7 +140,7 @@ VOID PhSvcDisconnectFromServer(
         PhSvcClPortHandle = NULL;
     }
 
-    PhSvcClServerProcessId = ULONG_MAX;
+    PhSvcClServerProcessId = 0;
 }
 
 _Success_(return != NULL)
@@ -1185,7 +1185,7 @@ NTSTATUS PhSvcCallWriteMiniDumpProcess(
     status = PhOpenProcess(
         &serverHandle,
         PROCESS_DUP_HANDLE,
-        UlongToHandle(PhSvcClServerProcessId)
+        PhSvcClServerProcessId
         );
 
     if (!NT_SUCCESS(status))

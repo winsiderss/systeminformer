@@ -123,7 +123,13 @@ NTSTATUS PhSvcApiRequestThreadStart(
     threadContext.CurrentClient = NULL;
     threadContext.OldClient = NULL;
 
-    PhTlsSetValue(PhSvcApiThreadContextTlsIndex, &threadContext);
+    status = PhTlsSetValue(PhSvcApiThreadContextTlsIndex, &threadContext);
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDeleteAutoPool(&autoPool);
+        return status;
+    }
 
     portHandle = PhSvcApiPortHandle;
     messageSize = PhIsExecutingInWow64() ? sizeof(PHSVC_API_MSG64) : sizeof(PHSVC_API_MSG);
