@@ -1428,6 +1428,7 @@ CleanupExit:
 // rev from Invoke-CommandInDesktopPackage (dmex)
 /**
  * Creates a new process in the context of the supplied PackageFamilyName and AppId.
+ * 
  * \li \c The created process will have the identity of the provided AppId and will have access to its virtualized file system and registry (if any).
  * \li \c The new process will have a token that's similar to, but not identical to, a real AppId process.
  * \li \c The primary use-case of this command is to invoke debugging or troubleshooting tools in the context of the packaged app to access its virtualized resources.
@@ -1437,22 +1438,22 @@ CleanupExit:
  * \li \c In particular, the new process will not be created in an AppContainer even if an AppId process would normally be created in an AppContainer.
  * \li \c Features such as Privacy Controls or other App Settings may or may not apply to the new process.
  * \li \c You shouldn't rely on any specific side-effects of using this command, as they're undefined and subject to change.
- *
+
  * \param ApplicationUserModelId The Application ID from the target package's manifest.
  * \param Executable An executable to invoke.
  * \param Arguments Optional arguments to be passed to the new process.
+ * \param Directory Optional 
  * \param PreventBreakaway Causes all child processes of the invoked process to also be created in the context of the AppId. By default, child processes are created without any context. This switch is useful for running cmd.exe so that you can launch multiple other tools in the package context.
  * \param ParentProcessId A process to use instead of the calling process as the parent for the process being created.
  * \param ProcessHandle A handle to a process.
- *
  * \return Successful or errant status.
- *
  * \remarks https://learn.microsoft.com/en-us/powershell/module/appx/invoke-commandindesktoppackage
  */
 HRESULT PhCreateProcessDesktopPackage(
     _In_ PCWSTR ApplicationUserModelId,
     _In_ PCWSTR Executable,
     _In_ PCWSTR Arguments,
+    _In_opt_ PCWSTR Directory,
     _In_ BOOLEAN PreventBreakaway,
     _In_opt_ HANDLE ParentProcessId,
     _Out_opt_ PHANDLE ProcessHandle
@@ -1485,15 +1486,31 @@ HRESULT PhCreateProcessDesktopPackage(
         ULONG options = DAXAO_CHECK_FOR_APPINSTALLER_UPDATES | DAXAO_CENTENNIAL_PROCESS;
         SetFlag(options, PreventBreakaway ? DAXAO_NONPACKAGED_EXE_PROCESS_TREE : DAXAO_NONPACKAGED_EXE);
 
-        status = IDesktopAppXActivator_ActivateWithOptions(
+        status = IDesktopAppXActivator_ActivateWithOptionsArgsWorkingDirectoryShowWindow(
             desktopAppXActivator,
             ApplicationUserModelId,
             Executable,
             Arguments,
             options,
             HandleToUlong(ParentProcessId),
+            NULL,
+            Directory,
+            SW_SHOW,
             ProcessHandle
             );
+
+        if (HR_FAILED(status))
+        {
+            status = IDesktopAppXActivator_ActivateWithOptions(
+                desktopAppXActivator,
+                ApplicationUserModelId,
+                Executable,
+                Arguments,
+                options,
+                HandleToUlong(ParentProcessId),
+                ProcessHandle
+                );
+        }
 
         IDesktopAppXActivator_Release(desktopAppXActivator);
     }

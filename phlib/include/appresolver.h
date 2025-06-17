@@ -127,6 +127,7 @@ HRESULT PhCreateProcessDesktopPackage(
     _In_ PCWSTR ApplicationUserModelId,
     _In_ PCWSTR Executable,
     _In_ PCWSTR Arguments,
+    _In_opt_ PCWSTR Directory,
     _In_ BOOLEAN PreventBreakaway,
     _In_opt_ HANDLE ParentProcessId,
     _Out_opt_ PHANDLE ProcessHandle
