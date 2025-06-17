@@ -142,20 +142,27 @@ namespace CustomBuildTool
             this.SigningCallbackWithFileHandle = null;
         }
 
+        internal bool IsAppxFile(ReadOnlySpan<char> FileName)
+        {
+            if (FileName.EndsWith(".appx", StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (FileName.EndsWith(".msix", StringComparison.OrdinalIgnoreCase))
+                return true;
+            return false;
+        }
+
         /// <summary>Authenticode signs a file.</summary>
         /// <param name="FileName">The path to the file to signed.</param>
         /// <param name="Description">The description to apply to the signature.</param>
         /// <param name="DescriptionUrl">A URL describing the signature or the signer.</param>
         /// <param name="PageHashing">True if the signing process should try to include page hashing, otherwise false.
         /// Note that page hashing still may be disabled if the Subject Interface Package does not support page hashing.</param>
-        /// <param name="IsAppxFile">A URL describing the signature or the signer.</param>
         /// <returns>A HRESULT indicating the result of the signing operation.</returns>
         internal HRESULT SignFile(
             ReadOnlySpan<char> FileName, 
             ReadOnlySpan<char> Description = default,
             ReadOnlySpan<char> DescriptionUrl = default, 
-            bool PageHashing = false, 
-            bool IsAppxFile = false
+            bool PageHashing = false
             )
         {
             HRESULT result;
@@ -227,7 +234,7 @@ namespace CustomBuildTool
                 //        Marshal.GetFunctionPointerForDelegate(this.SigningCallbaackEx);
                 //}
 
-                if (IsAppxFile)
+                if (IsAppxFile(FileName))
                 {
                     var clientData = stackalloc APPX_SIP_CLIENT_DATA[1];
                     var parameters = stackalloc SIGNER_SIGN_EX_PARAMS[1];

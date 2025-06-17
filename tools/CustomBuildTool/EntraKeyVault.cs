@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -117,7 +117,7 @@ namespace CustomBuildTool
                         {
                             foreach (var file in files)
                             {
-                                var result = authenticodeKeyVaultSigner.SignFile(file, null, null, true);
+                                var result = authenticodeKeyVaultSigner.SignFile(file, null, null);
 
                                 if (result == HRESULT.S_OK)
                                     Program.PrintColorMessage($"Signed: {file}", ConsoleColor.Green);
@@ -128,7 +128,7 @@ namespace CustomBuildTool
                     }
                     else if (File.Exists(Path))
                     {
-                        var result = authenticodeKeyVaultSigner.SignFile(Path, null, null, true);
+                        var result = authenticodeKeyVaultSigner.SignFile(Path, null, null);
 
                         //if (result == HRESULT.COR_E_BADIMAGEFORMAT)
                         //{
