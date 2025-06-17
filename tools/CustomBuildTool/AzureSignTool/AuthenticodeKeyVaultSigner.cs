@@ -148,6 +148,10 @@ namespace CustomBuildTool
                 return true;
             if (FileName.EndsWith(".msix", StringComparison.OrdinalIgnoreCase))
                 return true;
+            if (FileName.EndsWith(".appxbundle", StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (FileName.EndsWith(".msixbundle", StringComparison.OrdinalIgnoreCase))
+                return true;
             return false;
         }
 
