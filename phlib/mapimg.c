@@ -3378,7 +3378,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
-                continue;
+                return GetExceptionCode();
             }
 
             richHeaderValue += _rotl(value, i);
@@ -3399,7 +3399,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
-                continue;
+                return GetExceptionCode();
             }
 
             prodid = entry->dwProdid ^ richHeaderKey;
@@ -3427,8 +3427,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
-                //return GetExceptionCode();
-                continue;
+                return GetExceptionCode();
             }
 
             // The prodid header can include 3 extra checksum values. Ignore these for now (dmex)
