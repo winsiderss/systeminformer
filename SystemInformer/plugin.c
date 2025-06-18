@@ -1207,10 +1207,10 @@ NTSTATUS PhPluginQueryPhSvc(
     _Out_ PPH_PLUGIN_PHSVC_CLIENT Client
     )
 {
-    if (PhSvcClServerProcessId == ULONG_MAX)
+    if (!PhSvcClServerProcessId)
         return STATUS_INVALID_CID;
 
-    Client->ServerProcessId = UlongToHandle(PhSvcClServerProcessId);
+    Client->ServerProcessId = PhSvcClServerProcessId;
     Client->FreeHeap = PhSvcpFreeHeap;
     Client->CreateString = PhSvcpCreateString;
 
