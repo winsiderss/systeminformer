@@ -138,6 +138,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_POWERTHROTTLING, FALSE, L"Power throttling", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     //PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CONTAINERID, FALSE, L"Container ID", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STARTADDRESS, FALSE, L"Start address (Native)", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_RPC, FALSE, L"RPC usage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PH_THREAD_TREELIST_COLUMN_MAXIMUM, PhpThreadTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
@@ -728,6 +729,48 @@ VOID PhpUpdateThreadNodeApartmentState(
     }
 }
 
+VOID PhpUpdateThreadNodeRpc(
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    BOOLEAN hasRpcState = FALSE;
+
+    if (!ThreadNode->ThreadReadVmHandleValid)
+    {
+        if (!ThreadNode->ThreadReadVmHandle)
+        {
+            if (ThreadNode->ThreadItem->ThreadHandle)
+            {
+                HANDLE processHandle;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
+                    Context->ProcessId
+                    )))
+                {
+                    ThreadNode->ThreadReadVmHandle = processHandle;
+                }
+            }
+        }
+
+        ThreadNode->ThreadReadVmHandleValid = TRUE;
+    }
+
+    if (ThreadNode->ThreadItem->ThreadHandle && ThreadNode->ThreadReadVmHandle)
+    {
+        status = PhGetThreadRpcState(
+            ThreadNode->ThreadItem->ThreadHandle,
+            ThreadNode->ThreadReadVmHandle,
+            &hasRpcState
+            );
+    }
+
+    ThreadNode->HasRpcState = NT_SUCCESS(status) && hasRpcState;
+}
+
 VOID PhpUpdateThreadNodeFiber(
     _In_ PPH_THREAD_LIST_CONTEXT Context,
     _In_ PPH_THREAD_NODE ThreadNode
@@ -1142,6 +1185,15 @@ BEGIN_SORT_FUNCTION(ApartmentFlags)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(HasRpc)
+{
+    PhpUpdateThreadNodeRpc(context, node1);
+    PhpUpdateThreadNodeRpc(context, node2);
+
+    sortResult = ucharcmp(node1->HasRpcState, node2->HasRpcState);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(Fiber)
 {
     PhpUpdateThreadNodeFiber(context, node1);
@@ -1295,6 +1347,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(Created), // Timeline
                     SORT_FUNCTION(ApartmentType),
                     SORT_FUNCTION(ApartmentFlags),
+                    SORT_FUNCTION(HasRpc),
                     SORT_FUNCTION(Fiber),
                     SORT_FUNCTION(PriorityBoost),
                     SORT_FUNCTION(CpuUser),
@@ -1991,6 +2044,26 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     }
 
                     getCellText->Text = PhGetStringRef(node->ApartmentFlagsText);
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_RPC:
+                {
+                    if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                        break;
+                    }
+    
+                    PhpUpdateThreadNodeRpc(context, node);
+    
+                    if (node->HasRpcState)
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Yes");
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_FIBER:
