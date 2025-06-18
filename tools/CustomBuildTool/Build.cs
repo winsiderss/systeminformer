@@ -92,7 +92,7 @@ namespace CustomBuildTool
                 }
             }
 
-            if (Win32.GetEnvironmentVariableSpan("SYSTEM_DEBUG", out ReadOnlySpan<char> build_debug, false))
+            if (Win32.GetEnvironmentVariableSpan("SYSTEM_DEBUG", out ReadOnlySpan<char> build_debug))
             {
                 if (build_debug.Equals("true", StringComparison.OrdinalIgnoreCase))
                 {
