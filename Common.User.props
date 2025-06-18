@@ -129,6 +129,7 @@
           <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN32;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+          <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
           <Optimization>Disabled</Optimization>
           <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
           <CallingConvention>StdCall</CallingConvention>
@@ -140,7 +141,7 @@
           <IntrinsicFunctions>true</IntrinsicFunctions>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NOOPTIDATA /BASERELOCCLUSTERING /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
@@ -156,6 +157,7 @@
           <AdditionalOptions>/utf-8 /d1nodatetime /jumptablerdata %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+          <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
           <Optimization>Disabled</Optimization>
           <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
           <CallingConvention>StdCall</CallingConvention>
@@ -167,7 +169,7 @@
           <IntrinsicFunctions>true</IntrinsicFunctions>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NOOPTIDATA /BASERELOCCLUSTERING /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX64</TargetMachine>
@@ -183,6 +185,7 @@
           <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+          <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
           <Optimization>Disabled</Optimization>
           <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
           <CallingConvention>StdCall</CallingConvention>
@@ -195,7 +198,7 @@
           <GuardSignedReturns>true</GuardSignedReturns>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NOOPTIDATA /BASERELOCCLUSTERING /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
@@ -225,7 +228,7 @@
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOOPTIDATA /BASERELOCCLUSTERING %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <CETCompat>true</CETCompat>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
@@ -245,6 +248,7 @@
           <AdditionalOptions>/utf-8 /d1nodatetime /guard:xfg /jumptablerdata /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
           <Optimization>MaxSpeed</Optimization>
           <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
           <CallingConvention>StdCall</CallingConvention>
@@ -260,7 +264,7 @@
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:xfg %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /GUARD:XFG /NOOPTIDATA /BASERELOCCLUSTERING %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <CETCompat>true</CETCompat>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
@@ -280,6 +284,7 @@
           <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
           <Optimization>MaxSpeed</Optimization>
           <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
           <CallingConvention>StdCall</CallingConvention>
@@ -294,7 +299,7 @@
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOOPTIDATA /BASERELOCCLUSTERING %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
