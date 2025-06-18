@@ -32,9 +32,10 @@ NTSTATUS PhInitializeLxssImageVersionInfo(
     );
 
 NTSTATUS PhCreateProcessLxss(
-    _In_ PPH_STRING LxssDistribution,
-    _In_ PPH_STRING LxssCommandLine,
-    _Out_ PPH_STRING *Result
+    _In_ PPH_STRING DistributionGuid,
+    _In_ PPH_STRING DistributionName,
+    _In_ PPH_STRING DistributionCommand,
+    _Out_ PPH_STRING* Result
     );
 
 EXTERN_C_END
