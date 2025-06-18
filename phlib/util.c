@@ -4685,7 +4685,7 @@ NTSTATUS PhCreateProcessWin32Ex(
     PPH_STRING commandLine = NULL;
     PPH_STRING currentDirectory = NULL;
     STARTUPINFOEX startupInfo;
-    PROCESS_INFORMATION processInfo;
+    PROCESS_INFORMATION processInfo = { 0 };
     ULONG newFlags;
 
     if (CommandLine) // duplicate because CreateProcess modifies the string (wj32)
@@ -4856,6 +4856,7 @@ NTSTATUS PhCreateProcessWin32Ex(
  * the process to be elevated or unelevated depending on the specified options.
  * \li \c PH_CREATE_PROCESS_SET_SESSION_ID \a SessionId is specified in \a Information.
  * \li \c PH_CREATE_PROCESS_WITH_PROFILE Load the user profile, if supported.
+ * \param StartupInfo A STARTUPINFO structure containing additional parameters for the process.
  * \param ClientId A variable which receives the identifier of the initial thread.
  * \param ProcessHandle A variable which receives a handle to the process.
  * \param ThreadHandle A variable which receives a handle to the initial thread.
@@ -4863,6 +4864,7 @@ NTSTATUS PhCreateProcessWin32Ex(
 NTSTATUS PhCreateProcessAsUser(
     _In_ PPH_CREATE_PROCESS_AS_USER_INFO Information,
     _In_ ULONG Flags,
+    _In_opt_ PVOID StartupInfo,
     _Out_opt_ PCLIENT_ID ClientId,
     _Out_opt_ PHANDLE ProcessHandle,
     _Out_opt_ PHANDLE ThreadHandle
@@ -4879,11 +4881,14 @@ NTSTATUS PhCreateProcessAsUser(
     if (!Information->ApplicationName && !Information->CommandLine)
         return STATUS_INVALID_PARAMETER_MIX;
 
-    RtlZeroMemory(&startupInfo, sizeof(STARTUPINFOEX));
-    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
-    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-    startupInfo.StartupInfo.wShowWindow = SW_NORMAL;
-    startupInfo.StartupInfo.lpDesktop = (PWSTR)Information->DesktopName;
+    if (!StartupInfo)
+    {
+        RtlZeroMemory(&startupInfo, sizeof(STARTUPINFOEX));
+        startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+        startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
+        startupInfo.StartupInfo.wShowWindow = SW_NORMAL;
+        startupInfo.StartupInfo.lpDesktop = (PWSTR)Information->DesktopName;
+    }
 
     // Try to use CreateProcessWithLogonW if we need to load the user profile.
     // This isn't compatible with some options.
@@ -4914,18 +4919,34 @@ NTSTATUS PhCreateProcessAsUser(
 
         if (useWithLogon)
         {
+            PPH_STRING applicationName = NULL;
             PPH_STRING commandLine = NULL;
-            PROCESS_INFORMATION processInfo = { 0 };
+            PPH_STRING currentDirectory = NULL;
+            PROCESS_INFORMATION processInfo = { NULL };
             ULONG newFlags = 0;
 
             if (!Information->LogonFlags)
                 Information->LogonFlags = LOGON_WITH_PROFILE;
 
+            if (Information->ApplicationName)
+            {
+                applicationName = PhCreateString(Information->ApplicationName);
+            }
+
             if (Information->CommandLine) // duplicate because CreateProcess modifies the string
+            {
                 commandLine = PhCreateString(Information->CommandLine);
+            }
+
+            if (Information->CurrentDirectory)
+            {
+                currentDirectory = PhCreateString(Information->CurrentDirectory);
+            }
 
             if (!Information->Environment)
-                Flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
+            {
+                SetFlag(Flags, PH_CREATE_PROCESS_UNICODE_ENVIRONMENT);
+            }
 
             PhMapFlags1(&newFlags, Flags, PhpCreateProcessMappings, sizeof(PhpCreateProcessMappings) / sizeof(PH_FLAG_MAPPING));
 
@@ -4934,20 +4955,24 @@ NTSTATUS PhCreateProcessAsUser(
                 Information->DomainName,
                 Information->Password,
                 Information->LogonFlags,
-                Information->ApplicationName,
+                PhGetString(applicationName),
                 PhGetString(commandLine),
                 newFlags,
                 Information->Environment,
-                Information->CurrentDirectory,
-                &startupInfo.StartupInfo,
+                PhGetString(currentDirectory),
+                StartupInfo ? StartupInfo : &startupInfo,
                 &processInfo
                 ))
                 status = STATUS_SUCCESS;
             else
                 status = PhGetLastWin32ErrorAsNtStatus();
 
+            if (applicationName)
+                PhDereferenceObject(applicationName);
             if (commandLine)
                 PhDereferenceObject(commandLine);
+            if (currentDirectory)
+                PhDereferenceObject(currentDirectory);
 
             if (NT_SUCCESS(status))
             {
