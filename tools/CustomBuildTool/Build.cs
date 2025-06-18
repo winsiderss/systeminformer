@@ -301,7 +301,7 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(BuildFlags.Build32bit))
                     {
                         Win32.CopyIfNewer(
-                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}", 
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
                             $"{BuildWorkingFolder}\\bin\\Debug32\\Resources\\{file.Value}",
                             Flags);
                     }
@@ -309,7 +309,7 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(BuildFlags.Build64bit))
                     {
                         Win32.CopyIfNewer(
-                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}", 
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
                             $"{BuildWorkingFolder}\\bin\\Debug64\\Resources\\{file.Value}",
                             Flags);
                     }
@@ -317,8 +317,8 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(BuildFlags.BuildArm64bit))
                     {
                         Win32.CopyIfNewer(
-                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}", 
-                            $"{BuildWorkingFolder}\\bin\\DebugARM64\\Resources\\{file.Value}", 
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
+                            $"{BuildWorkingFolder}\\bin\\DebugARM64\\Resources\\{file.Value}",
                             Flags);
                     }
                 }
@@ -344,7 +344,7 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(BuildFlags.BuildArm64bit))
                     {
                         Win32.CopyIfNewer(
-                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}", 
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
                             $"{BuildWorkingFolder}\\bin\\ReleaseARM64\\Resources\\{file.Value}",
                             Flags);
                     }
@@ -475,19 +475,13 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildDynamicData(string DataDirectory)
+        public static bool BuildDynamicData(string OutDir)
         {
             Program.PrintColorMessage("Building dynamic data...", ConsoleColor.Cyan);
 
-            if (string.IsNullOrWhiteSpace(DataDirectory))
-            {
-                Program.PrintColorMessage($"[ERROR] Invalid DataDirectory", ConsoleColor.Red);
-                return false;
-            }
-
             try
             {
-                return DynData.Execute(DataDirectory, BuildCanary);
+                return DynData.Execute(OutDir, BuildCanary);
             }
             catch (Exception ex)
             {
