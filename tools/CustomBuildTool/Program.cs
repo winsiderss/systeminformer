@@ -65,10 +65,12 @@ namespace CustomBuildTool
                     Environment.Exit(1);
                 }
             }
-            else if (ProgramArgs.TryGetValue("-kphsign", out string SignArg))
+            else if (ProgramArgs.TryGetValue("-kphsign", out string keyName))
             {
-                if (!Verify.CreateSigFile("kph", SignArg, Build.BuildCanary))
+                if (!Verify.CreateSigFile("kph", keyName, Build.BuildCanary))
+                {
                     Environment.Exit(1);
+                }
             }
             else if (ProgramArgs.ContainsKey("-decrypt"))
             {
@@ -108,9 +110,11 @@ namespace CustomBuildTool
 
                 //if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
                 //    Environment.Exit(1);
-                if (!Build.CopyTextFiles(BuildFlags.Release))
+                if (!Build.CopyTextFiles(true, BuildFlags.Release))
                     Environment.Exit(1);
-                if (!Build.BuildBinZip())
+                if (!Build.BuildBinZip(BuildFlags.Release))
+                    Environment.Exit(1);
+                if (!Build.CopyTextFiles(false, BuildFlags.Release))
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
@@ -138,9 +142,9 @@ namespace CustomBuildTool
                     Environment.Exit(1);
                 //if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
                 //    Environment.Exit(1);
-                if (!Build.CopyTextFiles(BuildFlags.Release))
+                if (!Build.CopyTextFiles(true, BuildFlags.Release))
                     Environment.Exit(1);
-                if (!Build.BuildBinZip())
+                if (!Build.BuildBinZip(BuildFlags.Release))
                     Environment.Exit(1);
 
                 foreach (var (channel, _) in BuildConfig.Build_Channels)
@@ -148,6 +152,9 @@ namespace CustomBuildTool
                     if (!Build.BuildSetupExe(channel))
                         Environment.Exit(1);
                 }
+
+                if (!Build.CopyTextFiles(false, BuildFlags.Release))
+                    Environment.Exit(1);
             }
             else if (ProgramArgs.ContainsKey("-pipeline-deploy"))
             {
@@ -181,10 +188,11 @@ namespace CustomBuildTool
                 //    Environment.Exit(1);
                 if (!Build.CopyWow64Files(flags)) // required after plugin build (dmex)
                     Environment.Exit(1);
-                if (!Build.CopyTextFiles(flags))
+                if (!Build.CopyTextFiles(true, flags))
                     Environment.Exit(1);
-
                 if (!Build.BuildStorePackage(flags))
+                    Environment.Exit(1);
+                if (!Build.CopyTextFiles(false, flags))
                     Environment.Exit(1);
 
                 Build.BuildPdbZip(true);
@@ -269,9 +277,9 @@ namespace CustomBuildTool
                 //    Environment.Exit(1);
                 if (!Build.CopyWow64Files(BuildFlags.Release))
                     Environment.Exit(1);
-                if (!Build.CopyTextFiles(BuildFlags.Release))
+                if (!Build.CopyTextFiles(true, BuildFlags.Release))
                     Environment.Exit(1);
-                if (!Build.BuildBinZip())
+                if (!Build.BuildBinZip(BuildFlags.Release))
                     Environment.Exit(1);
 
                 foreach (var (channel, _) in BuildConfig.Build_Channels)
@@ -279,6 +287,9 @@ namespace CustomBuildTool
                     if (!Build.BuildSetupExe(channel))
                         Environment.Exit(1);
                 }
+
+                if (!Build.CopyTextFiles(false, BuildFlags.Release))
+                    Environment.Exit(1);
 
                 Build.BuildPdbZip(false);
                 //Build.BuildSdkZip();
@@ -288,41 +299,6 @@ namespace CustomBuildTool
             }
         }
 
-        private static bool HandleSingleArgumentCommands()
-        {
-            if (ProgramArgs.ContainsKey("-write-tools-id"))
-            {
-                WriteToolsId();
-                return true;
-            }
-
-            if (ProgramArgs.ContainsKey("-cleanup"))
-            {
-                Build.CleanupBuildEnvironment();
-                Build.ShowBuildStats();
-                return true;
-            }
-
-            if (ProgramArgs.ContainsKey("-encrypt") && !Verify.EncryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
-                Environment.Exit(1);
-
-            if (ProgramArgs.ContainsKey("-decrypt") && !Verify.DecryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
-                Environment.Exit(1);
-
-            if (ProgramArgs.TryGetValue("-dyndata", out string ArgDynData) && !Build.BuildDynamicData(ArgDynData))
-                Environment.Exit(1);
-
-            if (ProgramArgs.ContainsKey("-phapppub_gen") && !Build.BuildPublicHeaderFiles())
-                Environment.Exit(1);
-
-            if (ProgramArgs.TryGetValue("-azsign", out string Path) && !EntraKeyVault.SignFiles(Path))
-                Environment.Exit(1);
-
-            if (ProgramArgs.TryGetValue("-kphsign", out string SignArg) && !Verify.CreateSigFile("kph", SignArg, Build.BuildCanary))
-                Environment.Exit(1);
-
-            return false;
-        }
 
         public static void PrintColorMessage(string Message, ConsoleColor Color, bool Newline = true, BuildFlags Flags = BuildFlags.BuildVerbose)
         {
@@ -353,12 +329,14 @@ namespace CustomBuildTool
         private static void CheckForOutOfDateTools()
         {
 #if RELEASE
+            string directory = Path.GetDirectoryName(Environment.ProcessPath);
+            string fileameId = Path.Join([directory, "\\ToolsId.txt"]);
             string currentId = GetToolsId();
             string previousId = string.Empty;
 
-            if (File.Exists("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt"))
+            if (File.Exists(fileameId))
             {
-                previousId = Utils.ReadAllText("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt");
+                previousId = Utils.ReadAllText(fileameId);
             }
 
             if (string.IsNullOrWhiteSpace(previousId) || !previousId.Equals(currentId, StringComparison.OrdinalIgnoreCase))
@@ -370,8 +348,10 @@ namespace CustomBuildTool
 
         private static void WriteToolsId()
         {
+            string directory = Path.GetDirectoryName(Environment.ProcessPath);
+            string fileameId = Path.Join([directory, "\\ToolsId.txt"]);
             string currentHash = GetToolsId();
-            File.WriteAllText("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt", currentHash);
+            Utils.WriteAllText(fileameId, currentHash);
             Program.PrintColorMessage("Tools Hash: ", ConsoleColor.Gray, false);
             Program.PrintColorMessage($"{currentHash}", ConsoleColor.Green);
         }

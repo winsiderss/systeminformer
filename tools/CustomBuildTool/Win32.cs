@@ -283,13 +283,13 @@ namespace CustomBuildTool
         /// <param name="Name">The name of the environment variable.</param>
         /// <param name="Value">The value of the environment variable.</param>
         /// <returns>True if the environment variable was found.</returns>
-        public static bool GetEnvironmentVariable(string Name, out string Value, bool Verbose = true)
+        public static bool GetEnvironmentVariable(string Name, out string Value)
         {
             Value = Environment.GetEnvironmentVariable(Name, EnvironmentVariableTarget.Process);
 
             if (string.IsNullOrWhiteSpace(Value))
             {
-                if (Build.BuildToolsDebug || Verbose)
+                if (Build.BuildToolsDebug)
                 {
                     Program.PrintColorMessage($"EnvironmentVariable: {Name} not found.", ConsoleColor.Red);
                 }
@@ -305,14 +305,14 @@ namespace CustomBuildTool
         /// <param name="Name">The name of the environment variable.</param>
         /// <param name="Value">The value of the environment variable.</param>
         /// <returns>True if the environment variable was found.</returns>
-        public static bool GetEnvironmentVariableSpan(string Name, out ReadOnlySpan<char> Value, bool Verbose = true)
+        public static bool GetEnvironmentVariableSpan(string Name, out ReadOnlySpan<char> Value)
         {
             var value = Environment.GetEnvironmentVariable(Name, EnvironmentVariableTarget.Process);
             Value = value.AsSpan();
 
             if (Utils.IsSpanNullOrWhiteSpace(Value))
             {
-                if (Build.BuildToolsDebug || Verbose)
+                if (Build.BuildToolsDebug)
                 {
                     Program.PrintColorMessage($"EnvironmentVariable: {Name} not found.", ConsoleColor.Red);
                 }
@@ -327,9 +327,9 @@ namespace CustomBuildTool
         /// </summary>
         /// <param name="Name">The name of the environment variable.</param>
         /// <returns>True if the environment variable was found.</returns>
-        public static bool HasEnvironmentVariable(string Name, bool Verbose = true)
+        public static bool HasEnvironmentVariable(string Name)
         {
-            return GetEnvironmentVariableSpan(Name, out ReadOnlySpan<char> _, Verbose);
+            return GetEnvironmentVariableSpan(Name, out ReadOnlySpan<char> _);
         }
 
         /// <summary>

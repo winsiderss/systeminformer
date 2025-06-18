@@ -848,6 +848,7 @@ namespace CustomBuildTool
         [JsonPropertyName("size")] public ulong Size { get; init; }
         [JsonPropertyName("state")] public string State { get; init; }
         [JsonPropertyName("browser_download_url")] public string DownloadUrl { get; init; }
+        [JsonPropertyName("digest")] public string Hash { get; init; }
 
         [JsonIgnore]
         public bool Uploaded => string.Equals(this.State, "uploaded", StringComparison.OrdinalIgnoreCase);

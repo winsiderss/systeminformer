@@ -26,6 +26,7 @@ namespace CustomBuildTool
         public static string BuildShortVersion = string.Empty;
         public static string BuildLongVersion = string.Empty;
         public static string BuildSourceLink = string.Empty;
+        public static string BuildSimdExtensions = string.Empty;
         public const string BuildVersionMajor = "3";
         public const string BuildVersionMinor = "2";
 
@@ -46,15 +47,10 @@ namespace CustomBuildTool
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath("\\build\\output");
 
-            // Ensures consistent time stamp across build invocations. The file is written by pipeline builds.
-            if (File.Exists($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt"))
+            if (!InitializeBuildTimestamp())
             {
-                ReadOnlySpan<char> timestamp = Utils.ReadAllText($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt");
-                Build.TimeStart = DateTime.Parse(timestamp);
-            }
-            else
-            {
-                Build.TimeStart = DateTime.UtcNow;
+                Program.PrintColorMessage("Unable to initialize build timestamp.", ConsoleColor.Red);
+                return false;
             }
 
             if (!InitializeBuildArguments())
@@ -66,14 +62,28 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static bool InitializeBuildTimestamp()
+        {
+            string file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-timestamp.txt"]);
+
+            // Ensures consistent time stamp across build invocations. The file is written by pipeline builds.
+
+            if (File.Exists(file) && DateTime.TryParse(Utils.ReadAllText(file), out var dateTime))
+                Build.TimeStart = dateTime;
+            else
+                Build.TimeStart = DateTime.UtcNow;
+
+            return true;
+        }
+
         public static bool InitializeBuildArguments()
         {
-            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS", false) || Win32.HasEnvironmentVariable("TF_BUILD", false))
+            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS") || Win32.HasEnvironmentVariable("TF_BUILD"))
             {
                 Build.BuildIntegration = true;
             }
 
-            if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition, false))
+            if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition))
             {
                 if (build_definition.Equals("canary", StringComparison.OrdinalIgnoreCase))
                 {
@@ -91,21 +101,26 @@ namespace CustomBuildTool
                 }
             }
 
-            if (Win32.GetEnvironmentVariable("BUILD_SOURCEVERSION", out string buildsource, false))
+            if (Win32.GetEnvironmentVariable("BUILD_SOURCEVERSION", out string build_source))
             {
-                Build.BuildCommitHash = buildsource;
+                Build.BuildCommitHash = build_source;
             }
 
-            if (Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out string buildbranch, false))
+            if (Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out string build_branch))
             {
-                Build.BuildCommitBranch = buildbranch;
+                Build.BuildCommitBranch = build_branch;
             }
 
-            if (Win32.GetEnvironmentVariable("BUILD_REDIRECTOUTPUT", out string buildredirectoutput, false))
+            if (Win32.GetEnvironmentVariable("BUILD_REDIRECTOUTPUT", out string build_output))
             {
-                Build.BuildRedirectOutput = buildredirectoutput.Equals("true", StringComparison.OrdinalIgnoreCase);
+                Build.BuildRedirectOutput = build_output.Equals("true", StringComparison.OrdinalIgnoreCase);
             }
 
+            if (Win32.GetEnvironmentVariable("BUILD_SIMD", out string build_simd))
+            {
+                Build.BuildSimdExtensions = build_simd;
+            }
+ 
             return true;
         }
 
@@ -229,20 +244,45 @@ namespace CustomBuildTool
             Program.PrintColorMessage($" second(s) {Environment.NewLine + Environment.NewLine}", ConsoleColor.DarkGray, false);
         }
 
-        public static bool CopyTextFiles(BuildFlags Flags)
+        public static bool CopyTextFiles(bool Update, BuildFlags Flags)
         {
-            //if (Update)
+            string[] Build_Text_Files =
+            [
+                "README.txt",
+                "COPYRIGHT.txt",
+                "LICENSE.txt",
+            ];
 
-            Win32.CopyIfNewer("README.txt", "bin\\README.txt");
-            Win32.CopyIfNewer("COPYRIGHT.txt", "bin\\COPYRIGHT.txt");
-            Win32.CopyIfNewer("LICENSE.txt", "bin\\LICENSE.txt");
-
-            //else
-            //{
-            //    Win32.DeleteFile("bin\\README.txt");
-            //    Win32.DeleteFile("bin\\COPYRIGHT.txt");
-            //    Win32.DeleteFile("bin\\LICENSE.txt");
-            //}
+            if (Update)
+            {
+                foreach (string file in Build_Text_Files)
+                {
+                    if (Flags.HasFlag(BuildFlags.BuildRelease))
+                    {
+                        if (Flags.HasFlag(BuildFlags.Build32bit))
+                            Win32.CopyIfNewer(file, $"bin\\Release32\\{file}", Flags);
+                        if (Flags.HasFlag(BuildFlags.Build64bit))
+                            Win32.CopyIfNewer(file, $"bin\\Release64\\{file}", Flags);
+                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                            Win32.CopyIfNewer(file, $"bin\\ReleaseARM64\\{file}", Flags);
+                    }
+                }
+            }
+            else
+            {
+                foreach (string file in Build_Text_Files)
+                {
+                    if (Flags.HasFlag(BuildFlags.BuildRelease))
+                    {
+                        if (Flags.HasFlag(BuildFlags.Build32bit))
+                            Win32.DeleteFile($"bin\\Release32\\{file}");
+                        if (Flags.HasFlag(BuildFlags.Build64bit))
+                            Win32.DeleteFile($"bin\\Release64\\{file}");
+                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                            Win32.DeleteFile($"bin\\ReleaseARM64\\{file}");
+                    }
+                }
+            }
 
             return true;
         }
@@ -712,7 +752,7 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildBinZip()
+        public static bool BuildBinZip(BuildFlags Flags)
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage($"Building build-bin.zip... ", ConsoleColor.Cyan, false);
@@ -761,7 +801,10 @@ namespace CustomBuildTool
                         $"{BuildOutputFolder}\\systeminformer-setup-package-pdb.zip"
                         );
 
-                    Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-setup-package-pdb.zip").ToPrettySize(), ConsoleColor.Green);
+                    Program.PrintColorMessage(
+                        Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-setup-package-pdb.zip").ToPrettySize(), 
+                        ConsoleColor.Green
+                        );
                 }
                 else
                 {
@@ -774,7 +817,10 @@ namespace CustomBuildTool
                         $"{BuildOutputFolder}\\systeminformer-build-pdb.zip"
                         );
 
-                    Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-pdb.zip").ToPrettySize(), ConsoleColor.Green);
+                    Program.PrintColorMessage(
+                        Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-pdb.zip").ToPrettySize(), 
+                        ConsoleColor.Green
+                        );
                 }
             }
             catch (Exception ex)
@@ -861,7 +907,8 @@ namespace CustomBuildTool
             commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
             commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
             commandLine.Append($"/p:ExternalLinkerOptions=\"{linkerOptions.ToString()}\" ");
-            commandLine.Append($"/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog ");
+            commandLine.Append($"/p:ExternalSimdOptions=\"{Build.BuildSimdExtensions}\" ");
+            //commandLine.Append($"/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog ");
 
             if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
             {
