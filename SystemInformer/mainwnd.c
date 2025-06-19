@@ -3777,19 +3777,22 @@ VOID PhMwpInitializeSectionMenuItems(
     _In_ ULONG StartIndex
     )
 {
-    if (CurrentPage)
+    BOOLEAN removeSeparator = TRUE;
+    PH_MAIN_TAB_PAGE_MENU_INFORMATION menuInfo;
+
+    menuInfo.Menu = Menu;
+    menuInfo.StartIndex = StartIndex;
+
+    for (ULONG i = PageList->Count; i > 0; i--)
     {
-        PH_MAIN_TAB_PAGE_MENU_INFORMATION menuInfo;
+        PPH_MAIN_TAB_PAGE page = PageList->Items[i - 1];
 
-        menuInfo.Menu = Menu;
-        menuInfo.StartIndex = StartIndex;
-
-        if (!CurrentPage->Callback(CurrentPage, MainTabPageInitializeSectionMenuItems, &menuInfo, NULL))
-        {
-            // Remove the extra separator.
-            PhRemoveEMenuItem(Menu, NULL, StartIndex);
-        }
+        if (page->Callback(CurrentPage, MainTabPageInitializeSectionMenuItems, &menuInfo, NULL))
+            removeSeparator = FALSE;
     }
+
+    if (removeSeparator)
+        PhRemoveEMenuItem(Menu, NULL, StartIndex);
 }
 
 VOID PhMwpLayoutTabControl(
