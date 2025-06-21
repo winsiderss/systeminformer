@@ -92,7 +92,7 @@ BOOLEAN KphCommsInformerEnabled(
     _In_ PCKPH_INFORMER_SETTINGS Settings
     );
 
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 ULONG KphGetConnectedClientCount(
     VOID
     );
