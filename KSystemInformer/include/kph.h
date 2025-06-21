@@ -422,6 +422,7 @@ BOOLEAN KphTestSigningEnabled(
 extern PUNICODE_STRING KphAltitude;
 extern PUNICODE_STRING KphPortName;
 extern KPH_PARAMETER_FLAGS KphParameterFlags;
+extern PUNICODE_STRING KphSystemProcessName;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphCleanupParameters(
