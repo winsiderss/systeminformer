@@ -381,6 +381,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"KsiRandomizedPoolTag", L"0");
     PhpAddIntegerSetting(L"KsiEnableUnloadProtection", L"1");
     PhpAddIntegerSetting(L"KsiDynDataNoEmbedded", L"0");
+    PhpAddIntegerSetting(L"KsiDisableSystemProcess", L"0");
+    PhpAddIntegerSetting(L"KsiDisableThreadNames", L"0");
     PhpAddIntegerSetting(L"KsiClientProcessProtectionLevel", L"0");
     PhpAddStringSetting(L"KsiPreviousTemporaryDriverFile", L"");
     PhpAddIntegerSetting(L"KsiEnableFsFeatureOffloadRead", L"1");  // SUPPORTED_FS_FEATURES_OFFLOAD_READ
