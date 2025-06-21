@@ -117,3 +117,7 @@
 // ringbuff
 
 #define KPH_TAG_RING_BUFFER                     '0RpK'
+
+// kphthread
+
+#define KPH_TAG_THREAD_START_CONTEXT             '0rpK'

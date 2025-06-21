@@ -132,6 +132,9 @@
     <ClCompile Include="ringbuff.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="kphthread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">

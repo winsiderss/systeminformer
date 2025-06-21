@@ -852,6 +852,27 @@ typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
     ULONG CommandLineOffset;
 } PROCESS_TELEMETRY_ID_INFORMATION, *PPROCESS_TELEMETRY_ID_INFORMATION;
 
+#define PROCESS_CREATE_FLAGS_MINIMAL_PROCESS 0x00000800 // NtCreateProcessEx only
+
+typedef
+_Function_class_(ZW_CREATE_PROCESS_EX)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZW_CREATE_PROCESS_EX(
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ HANDLE ParentProcess,
+    _In_ ULONG Flags, // PROCESS_CREATE_FLAGS_*
+    _In_opt_ HANDLE SectionHandle,
+    _In_opt_ HANDLE DebugPort,
+    _In_opt_ HANDLE TokenHandle,
+    _Reserved_ ULONG Reserved // JobMemberLevel
+    );
+typedef ZW_CREATE_PROCESS_EX* PZW_CREATE_PROCESS_EX;
+
+
 // RTL
 
 #ifndef RTL_MAX_DRIVE_LETTERS
