@@ -567,8 +567,6 @@ VOID KSIAPI KphpDeferDeleteObjectWorker(
 
 /**
  * \brief Initializes the object subsystem.
- *
- * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphObjectInitialize(
