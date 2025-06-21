@@ -14,7 +14,6 @@
 
 typedef struct _KPH_CLIENT
 {
-    LIST_ENTRY Entry;
     PKPH_PROCESS_CONTEXT Process;
     PFLT_PORT Port;
     KPH_REFERENCE DriverUnloadProtectionRef;
@@ -92,7 +91,7 @@ BOOLEAN KphCommsInformerEnabled(
     _In_ PCKPH_INFORMER_SETTINGS Settings
     );
 
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 ULONG KphGetConnectedClientCount(
     VOID
     );
