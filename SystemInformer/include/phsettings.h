@@ -502,6 +502,7 @@ EXT ULONG PhProcessMonitorLookback;
 #define SETTING_KSI_OBJECT_NAME                                     L"KsiObjectName"
 #define SETTING_KSI_PORT_NAME                                       L"KsiPortName"
 #define SETTING_KSI_ALTITUDE                                        L"KsiAltitude"
+#define SETTING_KSI_SYSTEM_PROCESS_NAME                             L"KsiSystemProcessName"
 #define SETTING_KSI_DISABLE_IMAGE_LOAD_PROTECTION                   L"KsiDisableImageLoadProtection"
 #define SETTING_KSI_ENABLE_SPLASH_SCREEN                            L"KsiEnableSplashScreen"
 #define SETTING_KSI_ENABLE_LOAD_NATIVE                              L"KsiEnableLoadNative"
