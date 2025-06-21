@@ -695,7 +695,9 @@ typedef union _KPH_PARAMETER_FLAGS
         ULONG DisableImageLoadProtection : 1;
         ULONG RandomizedPoolTag : 1;
         ULONG DynDataNoEmbedded : 1;
-        ULONG Reserved : 29;
+        ULONG DisableSystemProcess : 1;
+        ULONG DisableThreadNames : 1;
+        ULONG Reserved : 27;
     };
 } KPH_PARAMETER_FLAGS, *PKPH_PARAMETER_FLAGS;
 
