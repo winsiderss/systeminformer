@@ -511,6 +511,8 @@ EXT ULONG PhProcessMonitorLookback;
 #define SETTING_KSI_RANDOMIZED_POOL_TAG                             L"KsiRandomizedPoolTag"
 #define SETTING_KSI_ENABLE_UNLOAD_PROTECTION                        L"KsiEnableUnloadProtection"
 #define SETTING_KSI_DYN_DATA_NO_EMBEDDED                            L"KsiDynDataNoEmbedded"
+#define SETTING_KSI_DISABLE_SYSTEM_PROCESS                          L"KsiDisableSystemProcess"
+#define SETTING_KSI_DISABLE_THREAD_NAMES                            L"KsiDisableThreadNames"
 #define SETTING_KSI_CLIENT_PROCESS_PROTECTION_LEVEL                 L"KsiClientProcessProtectionLevel"
 #define SETTING_KSI_PREVIOUS_TEMPORARY_DRIVER_FILE                  L"KsiPreviousTemporaryDriverFile"
 #define SETTING_KSI_ENABLE_FS_FEATURE_OFFLOAD_READ                  L"KsiEnableFsFeatureOffloadRead"

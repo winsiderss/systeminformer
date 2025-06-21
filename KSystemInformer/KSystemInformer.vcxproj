@@ -70,6 +70,7 @@
     <ClCompile Include="informer_thread.c" />
     <ClCompile Include="knowndll.c" />
     <ClCompile Include="kphobject.c" />
+    <ClCompile Include="kphthread.c" />
     <ClCompile Include="lsa.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="object.c" />
