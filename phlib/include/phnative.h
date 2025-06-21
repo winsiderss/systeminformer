@@ -4142,6 +4142,15 @@ PhGetThreadApartmentCallState(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetThreadRpcState(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN HasRpcState
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetThreadCriticalSectionOwnerThread(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessId,

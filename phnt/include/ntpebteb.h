@@ -942,6 +942,13 @@ typedef struct _TEB_ACTIVE_FRAME_EX
 #define STATIC_UNICODE_BUFFER_LENGTH 261
 #define WIN32_CLIENT_INFO_LENGTH 62
 
+// rev - xor key for ReservedForNtRpc
+#ifdef _WIN64
+#define RPC_THREAD_POINTER_KEY 0xABABABABDEDEDEDEui64
+#else
+#define RPC_THREAD_POINTER_KEY 0xABABABAB
+#endif
+
 /**
  * Thread Environment Block (TEB) structure.
  *
@@ -1192,7 +1199,7 @@ typedef struct _TEB
     PVOID Vdm;
 
     //
-    // Reserved for RPC.
+    // Reserved for RPC. The pointer is XOR'ed with RPC_THREAD_POINTER_KEY.
     //
     PVOID ReservedForNtRpc;
 

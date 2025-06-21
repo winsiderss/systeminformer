@@ -1309,6 +1309,69 @@ NTSTATUS PhGetThreadApartmentCallState(
     return status;
 }
 
+/**
+ * Determines if a thread has an associated RPC state.
+ *
+ * \param[in] ThreadHandle A handle to the thread. The handle must have
+ * THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param[in] ProcessHandle A handle to the process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param[out] HasRpcState Whether the thread has allocated RPC state.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetThreadRpcState(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN HasRpcState
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return status;
+
+#ifdef _WIN64
+    if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
+        return status;
+
+    if (isWow64)
+    {
+        ULONG reservedForNtRpc32 = 0;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, ReservedForNtRpc)),
+            &reservedForNtRpc32,
+            sizeof(ULONG),
+            NULL
+            );
+
+        *HasRpcState = !!reservedForNtRpc32;
+    }
+    else
+#endif
+    {
+        ULONG_PTR reservedForNtRpc = 0;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, ReservedForNtRpc)),
+            &reservedForNtRpc,
+            sizeof(ULONG_PTR),
+            NULL
+            );
+
+        *HasRpcState = !!reservedForNtRpc;
+    }
+
+    return status;
+}
+
 // rev from advapi32!WctGetCritSecInfo (dmex)
 /**
  * Retrieves the thread identifier when a thread is blocked on a critical section.

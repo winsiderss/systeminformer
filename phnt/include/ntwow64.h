@@ -459,6 +459,9 @@ typedef struct tagSOleTlsData32
     // ... (other fields are version-dependant)
 } SOleTlsData32, *PSOleTlsData32;
 
+// rev
+#define RPC_THREAD_POINTER_KEY32 0xABABABAB
+
 typedef struct _TEB32
 {
     NT_TIB32 NtTib;
