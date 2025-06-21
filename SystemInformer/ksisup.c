@@ -1133,6 +1133,8 @@ VOID KsiConnect(
     config.Flags.DisableImageLoadProtection = !!PhGetIntegerSetting(L"KsiDisableImageLoadProtection");
     config.Flags.RandomizedPoolTag = !!PhGetIntegerSetting(L"KsiRandomizedPoolTag");
     config.Flags.DynDataNoEmbedded = !!PhGetIntegerSetting(L"KsiDynDataNoEmbedded");
+    config.Flags.DisableSystemProcess = !!PhGetIntegerSetting(L"KsiDisableSystemProcess");
+    config.Flags.DisableThreadNames = !!PhGetIntegerSetting(L"KsiDisableThreadNames");
     config.EnableNativeLoad = KsiEnableLoadNative;
     config.EnableFilterLoad = KsiEnableLoadFilter;
     config.RingBufferLength = PhGetIntegerSetting(L"KsiRingBufferLength");
