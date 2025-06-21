@@ -23,7 +23,11 @@ KPH_PROTECTED_DATA_SECTION_PUSH();
 static BYTE KsipProtectedSection = 0;
 static PMM_PROTECT_DRIVER_SECTION KsipMmProtectDriverSection = NULL;
 static PKE_REMOVE_QUEUE_APC KsipKeRemoveQueueApc = NULL;
+static PZW_CREATE_PROCESS_EX KsipZwCreateProcessEx = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
+static KEVENT KsipDummyThreadEvent;
+static HANDLE KsipSystemProcessHandle = NULL;
+PEPROCESS KsiSystemProcess = NULL;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 PVOID KsipGetSystemRoutineAddress(
@@ -293,6 +297,146 @@ VOID KSIAPI KsiQueueWorkItem(
 }
 
 //
+// This is an extension that allows a minimal system process to be created.
+// Minimal processes must be terminated using PsTerminateMinimalProcess, but
+// this routine is not exported or accessible through normal means. If a minimal
+// process is deleted without first calling PsTerminateMinimalProcess, the
+// system will bug check with INVALID_MINIMAL_PROCESS_STATE.
+//
+// This implementation creates and exposes a minimal system process object that
+// the System Informer driver can use. To work around the limitation, the
+// lifetime of this process object is managed by this pinned module. This allows
+// System Informer to reuse the existing minimal process object without needing
+// to terminate it.
+//
+// As a result, the minimal process object is effectively "leaked" and requires
+// a system reboot to be removed. This is currently the most practical approach
+// until Microsoft provides official APIs for drivers to manage minimal
+// processes more appropriately.
+//
+// N.B. This implementation makes some assumptions. It assumes that the current
+// process is PsInitialSystemProcess. And the routine is not thread safe. It
+// should be used only by System Informer during driver initialization.
+//
+
+_IRQL_requires_same_
+_Function_class_(KSTART_ROUTINE)
+VOID KsipDummyThreadRoutine(
+    _In_ PVOID StartContext
+    )
+{
+    UNREFERENCED_PARAMETER(StartContext);
+
+    //
+    // This dummy thread ensures the process remains active. This is the same
+    // pattern that the Registry process uses to keep itself active (without a
+    // call to KeBugCheckEx if the wait returns).
+    //
+
+    KeWaitForSingleObject(&KsipDummyThreadEvent,
+                          Executive,
+                          KernelMode,
+                          FALSE,
+                          NULL);
+
+    PsTerminateSystemThread(STATUS_SUCCESS);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSTATUS KSIAPI KsiInitializeSystemProcess(
+    _In_ PCUNICODE_STRING ProcessName
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
+
+    if (!KsipZwCreateProcessEx)
+    {
+        return STATUS_NOINTERFACE;
+    }
+
+    if (KsiSystemProcess)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    threadHandle = NULL;
+
+    if (!KsipSystemProcessHandle)
+    {
+        HANDLE processHandle;
+
+        InitializeObjectAttributes(&objectAttributes,
+                                   (PUNICODE_STRING)ProcessName,
+                                   OBJ_KERNEL_HANDLE,
+                                   NULL,
+                                   NULL);
+
+        status = KsipZwCreateProcessEx(&processHandle,
+                                       PROCESS_ALL_ACCESS,
+                                       &objectAttributes,
+                                       ZwCurrentProcess(),
+                                       PROCESS_CREATE_FLAGS_MINIMAL_PROCESS,
+                                       NULL,
+                                       NULL,
+                                       NULL,
+                                       0);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        //
+        // N.B. We cannot close the handle at this point, as there is no clean
+        // way to call PsTerminateMinimalProcess. Closing the handle risks
+        // triggering a bug check with INVALID_MINIMAL_PROCESS_STATE. If we fail
+        // below, the process object pointer (KsiSystemProcess) will remain
+        // NULL, allowing us to re-enter this path and try again - though it
+        // will likely continue to fail.
+        //
+        KsipSystemProcessHandle = processHandle;
+    }
+
+    InitializeObjectAttributes(&objectAttributes,
+                               NULL,
+                               OBJ_KERNEL_HANDLE,
+                               NULL,
+                               NULL);
+
+    status = PsCreateSystemThread(&threadHandle,
+                                  THREAD_ALL_ACCESS,
+                                  &objectAttributes,
+                                  KsipSystemProcessHandle,
+                                  NULL,
+                                  KsipDummyThreadRoutine,
+                                  NULL);
+    if (!NT_SUCCESS(status))
+    {
+        threadHandle = NULL;
+        goto Exit;
+    }
+
+    NT_VERIFY(NT_SUCCESS(ObReferenceObjectByHandle(KsipSystemProcessHandle,
+                                                   PROCESS_ALL_ACCESS,
+                                                   *PsProcessType,
+                                                   KernelMode,
+                                                   &KsiSystemProcess,
+                                                   NULL)));
+
+Exit:
+
+    if (threadHandle)
+    {
+        ObCloseHandle(threadHandle, KernelMode);
+    }
+
+    return status;
+}
+
+//
 // General Library Functions
 //
 
@@ -349,8 +493,11 @@ NTSTATUS DllInitialize(
 
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
 
+    KeInitializeEvent(&KsipDummyThreadEvent, SynchronizationEvent, FALSE);
+
     KsipMmProtectDriverSection = (PMM_PROTECT_DRIVER_SECTION)KsipGetSystemRoutineAddress(L"MmProtectDriverSection");
     KsipKeRemoveQueueApc = (PKE_REMOVE_QUEUE_APC)KsipGetSystemRoutineAddress(L"KeRemoveQueueApc");
+    KsipZwCreateProcessEx = (PZW_CREATE_PROCESS_EX)KsipGetSystemRoutineAddress(L"ZwCreateProcessEx");
 
     if (KsipMmProtectDriverSection)
     {
