@@ -38,6 +38,7 @@ static const KPH_MESSAGE_TIMEOUTS KphpDefaultMessageTimeouts =
     .FilePreCreateTimeout = KPH_TIMEOUT(3000),
     .FilePostCreateTimeout = KPH_TIMEOUT(3000),
 };
+static const UNICODE_STRING KphpMessageQueueThreadName = RTL_CONSTANT_STRING(L"System Informer Message Queue");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PFLT_PORT KphpFltServerPort = NULL;
@@ -51,7 +52,7 @@ static LIST_ENTRY KphpConnectedClientList;
 static ULONG KphpConnectedClientCount = 0;
 static NPAGED_LOOKASIDE_LIST KphpMessageQueueItemLookaside;
 static KQUEUE KphpMessageQueue;
-static PKTHREAD* KphpMessageQueueThreads = NULL;
+static PETHREAD* KphpMessageQueueThreads = NULL;
 static ULONG KphpMessageQueueThreadsCount = 0;
 
 /**
@@ -1458,18 +1459,20 @@ NTSTATUS KphpCommsSendMessage(
 }
 
 /**
- * \brief Async message queue thread.
+ * \brief Asynchronous message queue thread.
  *
- * \param[in] StartContext Unused
+ * \param[in] Parameter Unused
  */
-_Function_class_(KSTART_ROUTINE)
-VOID KphpMessageQueueThread (
-    _In_ PVOID StartContext
+_Function_class_(KPH_THREAD_START_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_same_
+NTSTATUS KphpMessageQueueThread(
+    _In_opt_ PVOID Parameter
     )
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    UNREFERENCED_PARAMETER(StartContext);
+    UNREFERENCED_PARAMETER(Parameter);
 
     for (;;)
     {
@@ -1524,7 +1527,7 @@ VOID KphpMessageQueueThread (
         KphpFreeMessageQueueItem(item);
     }
 
-    PsTerminateSystemThread(STATUS_SUCCESS);
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -1606,39 +1609,22 @@ NTSTATUS KphCommsStart(
     NT_ASSERT(KphpMessageQueueThreadsCount == 0);
     for (ULONG i = 0; i < threadCount; i++)
     {
-        HANDLE threadHandle;
-
-        InitializeObjectAttributes(&objectAttributes,
-                                   NULL,
-                                   OBJ_KERNEL_HANDLE,
-                                   NULL,
-                                   NULL);
-
-        status = PsCreateSystemThread(&threadHandle,
-                                      THREAD_ALL_ACCESS,
-                                      &objectAttributes,
-                                      NULL,
-                                      NULL,
-                                      KphpMessageQueueThread,
-                                      NULL);
+        status = KphCreateSystemThread(NULL,
+                                       &KphpMessageQueueThreads[i],
+                                       KphpMessageQueueThread,
+                                       NULL,
+                                       &KphpMessageQueueThreadName,
+                                       KPH_CREATE_SYSTEM_THREAD_IN_KSI_PROCESS);
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           COMMS,
-                          "PsCreateSystemThread failed: %!STATUS!",
+                          "KphCreateSystemThread failed: %!STATUS!",
                           status);
 
+            KphpMessageQueueThreads[i] = NULL;
             goto Exit;
         }
-
-        status = ObReferenceObjectByHandle(threadHandle,
-                                           THREAD_ALL_ACCESS,
-                                           *PsThreadType,
-                                           KernelMode,
-                                           &KphpMessageQueueThreads[i],
-                                           NULL);
-        NT_ASSERT(NT_SUCCESS(status));
-        ObCloseHandle(threadHandle, KernelMode);
 
         ++KphpMessageQueueThreadsCount;
     }
