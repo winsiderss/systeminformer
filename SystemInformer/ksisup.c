@@ -1026,6 +1026,7 @@ VOID KsiConnect(
     PPH_STRING objectName = NULL;
     PPH_STRING portName = NULL;
     PPH_STRING altitude = NULL;
+    PPH_STRING systemProcessName = NULL;
     PPH_STRING tempDriverDir = NULL;
     KPH_LEVEL level;
 
@@ -1116,12 +1117,15 @@ VOID KsiConnect(
         PhClearReference(&portName);
     if (PhIsNullOrEmptyString(altitude = PhGetStringSetting(L"KsiAltitude")))
         PhClearReference(&altitude);
+    if (PhIsNullOrEmptyString(systemProcessName = PhGetStringSetting(L"KsiSystemProcessName")))
+        PhClearReference(&systemProcessName);
 
     config.FileName = &KsiFileName->sr;
     config.ServiceName = &KsiServiceName->sr;
     config.ObjectName = &KsiObjectName->sr;
     config.PortName = (portName ? &portName->sr : NULL);
     config.Altitude = (altitude ? &altitude->sr : NULL);
+    config.SystemProcessName = (systemProcessName ? &systemProcessName->sr : NULL);
     config.FsSupportedFeatures = 0;
     if (!!PhGetIntegerSetting(L"KsiEnableFsFeatureOffloadRead"))
         SetFlag(config.FsSupportedFeatures, SUPPORTED_FS_FEATURES_OFFLOAD_READ);
