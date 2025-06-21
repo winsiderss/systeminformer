@@ -373,6 +373,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"KsiObjectName", L"");
     PhpAddStringSetting(L"KsiPortName", L"");
     PhpAddStringSetting(L"KsiAltitude", L"");
+    PhpAddStringSetting(L"KsiSystemProcessName", L"");
     PhpAddIntegerSetting(L"KsiDisableImageLoadProtection", L"0");
     PhpAddIntegerSetting(L"KsiEnableSplashScreen", L"0");
     PhpAddIntegerSetting(L"KsiEnableLoadNative", L"0");
