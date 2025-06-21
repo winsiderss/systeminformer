@@ -1459,28 +1459,31 @@ NTSTATUS KphpCommsSendMessage(
 }
 
 /**
- * \brief Asynchronous message queue thread.
+ * \brief Processes message queue items.
  *
- * \param[in] Parameter Unused
+ * \param[in] Items The items to process.
+ * \param[in] Count The number of items to process.
+ *
+ * \return TRUE if rundown is active, FALSE otherwise.
  */
-_Function_class_(KPH_THREAD_START_ROUTINE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_IRQL_requires_same_
-NTSTATUS KphpMessageQueueThread(
-    _In_opt_ PVOID Parameter
+BOOLEAN KphpMessageQueueProcessItems(
+    _In_reads_(Count) PLIST_ENTRY* Items,
+    _In_ ULONG Count
     )
 {
+    NTSTATUS status;
+    PLIST_ENTRY entry;
+    PKPHM_QUEUE_ITEM item;
+    BOOLEAN rundown;
+
     KPH_PAGED_CODE_PASSIVE();
 
-    UNREFERENCED_PARAMETER(Parameter);
+    rundown = FALSE;
 
-    for (;;)
+    for (ULONG i = 0; i < Count; i++)
     {
-        NTSTATUS status;
-        PLIST_ENTRY entry;
-        PKPHM_QUEUE_ITEM item;
-
-        entry = KeRemoveQueue(&KphpMessageQueue, KernelMode, NULL);
+        entry = Items[i];
 
         status = (NTSTATUS)(LONG_PTR)entry;
 
@@ -1505,6 +1508,7 @@ NTSTATUS KphpMessageQueueThread(
                           COMMS,
                           "Message queue running down");
 
+            rundown = TRUE;
             break;
         }
 
@@ -1525,6 +1529,47 @@ NTSTATUS KphpMessageQueueThread(
         }
 
         KphpFreeMessageQueueItem(item);
+    }
+
+    return rundown;
+}
+
+/**
+ * \brief Asynchronous message queue thread.
+ *
+ * \param[in] Parameter Unused
+ */
+_Function_class_(KPH_THREAD_START_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_same_
+NTSTATUS KphpMessageQueueThread(
+    _In_opt_ PVOID Parameter
+    )
+{
+    PLIST_ENTRY items[32];
+    ULONG count;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    UNREFERENCED_PARAMETER(Parameter);
+
+    count = ARRAYSIZE(items);
+
+    for (;;)
+    {
+        RtlZeroMemory(items, count * sizeof(PLIST_ENTRY));
+
+        count = KeRemoveQueueEx(&KphpMessageQueue,
+                                KernelMode,
+                                FALSE,
+                                NULL,
+                                items,
+                                ARRAYSIZE(items));
+
+        if (KphpMessageQueueProcessItems(items, count))
+        {
+            break;
+        }
     }
 
     return STATUS_SUCCESS;
@@ -1746,34 +1791,19 @@ VOID KphCommsStop(
     //
     if (entry != NULL)
     {
-        NTSTATUS status;
         PLIST_ENTRY first;
 
         first = entry;
 
         do
         {
-            PKPHM_QUEUE_ITEM item;
+            PLIST_ENTRY item;
 
-            item = CONTAINING_RECORD(entry, KPHM_QUEUE_ITEM, Entry);
+            item = entry;
 
             entry = entry->Flink;
 
-            status = KphpCommsSendMessage(item->Message,
-                                          NULL,
-                                          TRUE,
-                                          item->TargetClientProcess);
-            if (!NT_SUCCESS(status))
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              COMMS,
-                              "Failed to send message (%lu - %!TIME!): %!STATUS!",
-                              (ULONG)item->Message->Header.MessageId,
-                              item->Message->Header.TimeStamp.QuadPart,
-                              status);
-            }
-
-            KphpFreeMessageQueueItem(item);
+            KphpMessageQueueProcessItems(&item, 1);
 
         } while (entry != first);
     }
