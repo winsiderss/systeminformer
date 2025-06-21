@@ -20,9 +20,6 @@ typedef struct _KPH_THREAD_START_CONTEXT
     UNICODE_STRING ThreadName;
 } KPH_THREAD_START_CONTEXT, *PKPH_THREAD_START_CONTEXT;
 
-KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const UNICODE_STRING KphpSystemProcessName = RTL_CONSTANT_STRING(L"System Informer Kernel");
-KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static HANDLE KphpKsiSystemProcessHandle = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
@@ -256,7 +253,7 @@ VOID KphInitializeThreading(
         return;
     }
 
-    status = KsiInitializeSystemProcess(&KphpSystemProcessName);
+    status = KsiInitializeSystemProcess(KphSystemProcessName);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
