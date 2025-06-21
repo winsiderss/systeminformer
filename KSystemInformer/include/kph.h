@@ -2466,6 +2466,16 @@ KsiQueueWorkItem(
     _In_ WORK_QUEUE_TYPE QueueType
     );
 
+extern KSISYSAPI PEPROCESS KsiSystemProcess;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+KSISYSAPI
+NTSTATUS
+KSIAPI
+KsiInitializeSystemProcess(
+    _In_ PCUNICODE_STRING ProcessName
+    );
+
 // system
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2679,5 +2689,29 @@ NTSTATUS KphCreateRingBuffer(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphInitializeRingBuffer(
+    VOID
+    );
+
+// kphthread
+
+#define KPH_CREATE_SYSTEM_THREAD_IN_KSI_PROCESS 0x00000001ul
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSTATUS KphCreateSystemThread(
+    _Out_opt_ PHANDLE ThreadHandle,
+    _Out_opt_ PETHREAD* ThreadObject,
+    _In_ PKSTART_ROUTINE StartRoutine,
+    _In_opt_ _When_(return >= 0, __drv_aliasesMem) PVOID StartContext,
+    _In_opt_ PCUNICODE_STRING ThreadName,
+    _In_ ULONG Flags
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupThreading(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeThreading(
     VOID
     );
