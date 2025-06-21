@@ -223,7 +223,10 @@ NTSTATUS KphSetParameters(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (!Config->PortName && !Config->Altitude && !Config->Flags.Flags)
+    if (!Config->PortName &&
+        !Config->Altitude &&
+        !Config->Flags.Flags &&
+        !Config->SystemProcessName)
     {
         // Don't create parameters key unless we must.
         return STATUS_SUCCESS;
@@ -281,6 +284,20 @@ NTSTATUS KphSetParameters(
         C_ASSERT(sizeof(KPH_PARAMETER_FLAGS) == sizeof(ULONG));
 
         status = PhSetValueKeyUlong(parametersKeyHandle, L"Flags", Config->Flags.Flags);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    if (Config->SystemProcessName)
+    {
+        status = PhSetValueKeyZ(
+            parametersKeyHandle,
+            L"SystemProcessName",
+            REG_SZ,
+            Config->SystemProcessName->Buffer,
+            (ULONG)Config->SystemProcessName->Length + sizeof(UNICODE_NULL)
+            );
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
