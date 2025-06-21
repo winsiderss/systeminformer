@@ -95,6 +95,7 @@ VOID KphpDriverCleanup(
     KphCleanupDynData();
     KphCleanupVerify();
     KphCleanupHashing();
+    KphCleanupThreading();
     KphCleanupParameters();
 
     KsiUninitialize(DriverObject, 0);
@@ -206,6 +207,8 @@ NTSTATUS DriverEntry(
     KphInitializeParameters(RegistryPath);
 
     KphInitializeAlloc();
+
+    KphInitializeThreading();
 
     status = KphInitializeKnownDll();
     if (!NT_SUCCESS(status))
