@@ -36,6 +36,7 @@ static PKPH_DBG_PRINT_SLOT KphpDbgPrintSlots = NULL;
 /**
  * \brief Flushes the debug print slots to the communication port.
  */
+_Requires_lock_held_(KphpDbgPrintLock)
 VOID KphpDebugPrintFlush(
     VOID
     )
@@ -125,9 +126,9 @@ VOID KphpDebugPrintDpc(
     // We use threaded DPCs so we could be invoked at passive or dispatch.
     //
 
-    KeAcquireSpinLock(&KphpDbgPrintLock, &oldIrql);
+    oldIrql = KeAcquireSpinLockForDpc(&KphpDbgPrintLock);
     KphpDebugPrintFlush();
-    KeReleaseSpinLock(&KphpDbgPrintLock, oldIrql);
+    KeReleaseSpinLockForDpc(&KphpDbgPrintLock, oldIrql);
 }
 
 /**
