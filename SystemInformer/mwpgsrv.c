@@ -95,14 +95,13 @@ BOOLEAN PhMwpServicesPageCallback(
         {
             PPH_MAIN_TAB_PAGE_MENU_INFORMATION menuInfo = Parameter1;
             PPH_EMENU menu;
-            ULONG startIndex;
             PPH_EMENU_ITEM menuItem;
 
-            menu = menuInfo->Menu;
-            startIndex = menuInfo->StartIndex;
+            menu = PhCreateEMenuItem(0, 0, L"Services", NULL, NULL);
+            PhInsertEMenuItem(menuInfo->Menu, menu, menuInfo->StartIndex);
 
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEMICROSOFTSERVICES, L"Hide default services", NULL, NULL), startIndex);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEDRIVERSERVICES, L"&Hide driver services", NULL, NULL), startIndex + 1);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEMICROSOFTSERVICES, L"Hide default services", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEDRIVERSERVICES, L"&Hide driver services", NULL, NULL), ULONG_MAX);
 
             if (DriverFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEDRIVERSERVICES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;

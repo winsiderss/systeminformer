@@ -110,13 +110,12 @@ BOOLEAN PhMwpNetworkPageCallback(
         {
             PPH_MAIN_TAB_PAGE_MENU_INFORMATION menuInfo = Parameter1;
             PPH_EMENU menu;
-            ULONG startIndex;
             PPH_EMENU_ITEM menuItem;
 
-            menu = menuInfo->Menu;
-            startIndex = menuInfo->StartIndex;
+            menu = PhCreateEMenuItem(0, 0, L"Network", NULL, NULL);
+            PhInsertEMenuItem(menuInfo->Menu, menu, menuInfo->StartIndex);
 
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEWAITINGCONNECTIONS, L"&Hide waiting connections", NULL, NULL), startIndex);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEWAITINGCONNECTIONS, L"&Hide waiting connections", NULL, NULL), ULONG_MAX);
 
             if (NetworkFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEWAITINGCONNECTIONS)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
