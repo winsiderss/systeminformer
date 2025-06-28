@@ -1364,6 +1364,15 @@ NTSTATUS PhShellProcessHackerEx(
         {
             PhAppendStringBuilder2(&sb, L" -nosettings");
         }
+        else
+        {
+            if (!PhIsNullOrEmptyString(PhSettingsFileName))
+            {
+                PhAppendStringBuilder2(&sb, L" -settings \"");
+                PhAppendStringBuilder(&sb, &PhSettingsFileName->sr);
+                PhAppendStringBuilder2(&sb, L"\"");
+            }
+        }
 
         if (PhStartupParameters.NoKph)
             PhAppendStringBuilder2(&sb, L" -nokph");

@@ -1138,9 +1138,6 @@ VOID PhInitializeAppSettings(
 
     if (!PhStartupParameters.NoSettings)
     {
-        static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
-        PPH_STRING settingsFileName;
-
         // There are three possible locations for the settings file:
         // 1. The file name given in the command line.
         // 2. A file named SystemInformer.exe.settings.xml in the program directory. (This changes
@@ -1150,30 +1147,39 @@ VOID PhInitializeAppSettings(
         // 1. File specified in command line
         if (PhStartupParameters.SettingsFileName)
         {
-            // Get an absolute path now.
-            PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, &PhSettingsFileName, NULL);
+            PPH_STRING settingsFileName;
+
+            if (PhDetermineDosPathNameType(&PhStartupParameters.SettingsFileName->sr) == RtlPathTypeRooted)
+            {
+                PhSetReference(&PhSettingsFileName, PhStartupParameters.SettingsFileName);
+            }
+            else
+            {
+                // Get an absolute path now.
+                if (NT_SUCCESS(PhGetFullPath(PhGetString(PhStartupParameters.SettingsFileName), &settingsFileName, NULL)))
+                {
+                    PhMoveReference(&PhSettingsFileName, PhDosPathNameToNtPathName(&settingsFileName->sr));
+                    PhDereferenceObject(settingsFileName);
+                }
+            }
         }
 
         // 2. File in program directory
         if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
-            PPH_STRING applicationFileName;
+            PPH_STRING settingsFileName;
 
-            if (applicationFileName = PhGetApplicationFileName())
+            if (settingsFileName = PhGetApplicationFileNameZ(L".settings.xml"))
             {
-                settingsFileName = PhConcatStringRef2(&applicationFileName->sr, &settingsSuffix);
-
                 if (PhDoesFileExist(&settingsFileName->sr))
                 {
-                    PhSettingsFileName = settingsFileName;
+                    PhMoveReference(&PhSettingsFileName, settingsFileName);
                     PhPortableEnabled = TRUE;
                 }
                 else
                 {
                     PhDereferenceObject(settingsFileName);
                 }
-
-                PhDereferenceObject(applicationFileName);
             }
         }
 
@@ -1203,8 +1209,6 @@ VOID PhInitializeAppSettings(
                     ) == IDYES)
                 {
                     HANDLE fileHandle;
-                    IO_STATUS_BLOCK isb;
-                    CHAR data[] = "<settings></settings>";
 
                     // This used to delete the file. But it's better to keep the file there
                     // and overwrite it with some valid XML, especially with case (2) above.
@@ -1218,7 +1222,8 @@ VOID PhInitializeAppSettings(
                         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                         )))
                     {
-                        NtWriteFile(fileHandle, NULL, NULL, NULL, &isb, data, sizeof(data) - 1, NULL, NULL);
+                        static CHAR dataXml[] = "<settings></settings>";
+                        PhWriteFile(fileHandle, dataXml, sizeof(dataXml) - 1, NULL, NULL);
                         NtClose(fileHandle);
                     }
                 }
