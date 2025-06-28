@@ -85,7 +85,7 @@ VOID KphCommsStop(
     VOID
     );
 
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
 BOOLEAN KphCommsInformerEnabled(
     _In_ PCKPH_INFORMER_SETTINGS Settings

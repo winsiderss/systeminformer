@@ -240,7 +240,7 @@ PCKPH_INFORMER_SETTINGS KphInformerForMessageId(
     _In_ KPH_MESSAGE_ID MessageId
     );
 
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN KphInformerIsEnabled(
     _In_ PCKPH_INFORMER_SETTINGS Settings,
     _In_opt_ PKPH_PROCESS_CONTEXT Process
@@ -249,7 +249,7 @@ BOOLEAN KphInformerIsEnabled(
 #define KphInformerEnabled(name, proc)                                        \
     KphInformerIsEnabled(&KphInformer##name, proc)
 
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN KphInformerIsEnabled2(
     _In_ PCKPH_INFORMER_SETTINGS Settings,
     _In_opt_ PKPH_PROCESS_CONTEXT ActorProcess,

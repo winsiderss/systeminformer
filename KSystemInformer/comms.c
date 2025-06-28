@@ -196,6 +196,66 @@ PKPH_CLIENT KphpRemoveConnectedClient(
 }
 
 /**
+ * \brief Checks if the informer is enabled for a given client.
+ *
+ * \param[in] Client The client to check.
+ * \param[in] Settings The settings to check.
+ *
+ * \return TRUE if the informer is enabled, FALSE otherwise.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphpCommsInformerEnabled(
+    _In_ PKPH_CLIENT Client,
+    _In_ PCKPH_INFORMER_SETTINGS Settings
+    )
+{
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    return KphCheckInformerSettings(&Client->InformerSettings, Settings);
+}
+
+/**
+ * \brief Checks if the informer is enabled for client communications.
+ *
+ * \details Checks if any of the connected clients have any of the passed
+ * informer settings enabled. This is usually used as a upstream check to
+ * avoid downstream work.
+ *
+ * \param[in] Settings The settings to check.
+ *
+ * \return TRUE if the informer is enabled, FALSE otherwise.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphCommsInformerEnabled(
+    _In_ PCKPH_INFORMER_SETTINGS Settings
+    )
+{
+    BOOLEAN enabled;
+    ULONG clientsCount;
+    PKPH_CLIENT clients[KPH_COMMS_MAX_CLIENTS];
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    enabled = FALSE;
+
+    clientsCount = KphpGetConnectedClients(clients);
+
+    for (ULONG i = 0; i < clientsCount; i++)
+    {
+        if (!enabled)
+        {
+            enabled = KphpCommsInformerEnabled(clients[i], Settings);
+        }
+
+        KphDereferenceObjectDeferDelete(clients[i]);
+    }
+
+    return enabled;
+}
+
+/**
  * \brief Allocates a message queue item.
  *
  * \return Message queue item, null on allocation failure.
@@ -451,66 +511,6 @@ VOID KphCaptureStackInMessage(
                       "KphMsgDynAddStackTrace failed: %!STATUS!",
                       status);
     }
-}
-
-/**
- * \brief Checks if the informer is enabled for a given client.
- *
- * \param[in] Client The client to check.
- * \param[in] Settings The settings to check.
- *
- * \return TRUE if the informer is enabled, FALSE otherwise.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-BOOLEAN KphpCommsInformerEnabled(
-    _In_ PKPH_CLIENT Client,
-    _In_ PCKPH_INFORMER_SETTINGS Settings
-    )
-{
-    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
-
-    return KphCheckInformerSettings(&Client->InformerSettings, Settings);
-}
-
-/**
- * \brief Checks if the informer is enabled for client communications.
- *
- * \details Checks if any of the connected clients have any of the passed
- * informer settings enabled. This is usually used as a upstream check to
- * avoid downstream work.
- *
- * \param[in] Settings The settings to check.
- *
- * \return TRUE if the informer is enabled, FALSE otherwise.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-BOOLEAN KphCommsInformerEnabled(
-    _In_ PCKPH_INFORMER_SETTINGS Settings
-    )
-{
-    BOOLEAN enabled;
-    ULONG clientsCount;
-    PKPH_CLIENT clients[KPH_COMMS_MAX_CLIENTS];
-
-    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
-
-    enabled = FALSE;
-
-    clientsCount = KphpGetConnectedClients(clients);
-
-    for (ULONG i = 0; i < clientsCount; i++)
-    {
-        if (!enabled)
-        {
-            enabled = KphpCommsInformerEnabled(clients[i], Settings);
-        }
-
-        KphDereferenceObject(clients[i]);
-    }
-
-    return enabled;
 }
 
 KPH_PAGED_FILE();
@@ -1511,24 +1511,12 @@ VOID KphpCommsSendMessage(
     )
 {
     NTSTATUS status;
-    PCKPH_INFORMER_SETTINGS informer;
     PKPH_MESSAGE reply;
     ULONG replyLength;
     KPH_PROCESS_STATE processState;
     LARGE_INTEGER timeout;
 
     KPH_PAGED_CODE();
-
-    informer = KphInformerForMessageId(Message->Header.MessageId);
-    if (informer && !KphpCommsInformerEnabled(Client, informer))
-    {
-        //
-        // In some cases we can't check if the informer is enabled beforehand or
-        // the settings could have changed while draining the queue. Regardless,
-        // the client isn't interested in this message.
-        //
-        return;
-    }
 
     //
     // Since we support multiple clients and only one client may be the
