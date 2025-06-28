@@ -2078,9 +2078,12 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemResourceDeadlockTimeout, // ULONG
     SystemBreakOnContextUnwindFailureInformation, // ULONG (requires SeDebugPrivilege)
     SystemOslRamdiskInformation, // SYSTEM_OSL_RAMDISK_INFORMATION
-    SystemCodeIntegrityPolicyManagementInformation, // since 25H2
+    SystemCodeIntegrityPolicyManagementInformation, // SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT // since 25H2
     SystemMemoryNumaCacheInformation,
-    SystemProcessorFeaturesBitMapInformation,
+    SystemProcessorFeaturesBitMapInformation, // 250
+    SystemRefTraceInformationEx, // SYSTEM_REF_TRACE_INFORMATION_EX
+    SystemBasicProcessInformation, // SYSTEM_BASICPROCESS_INFORMATION
+    SystemHandleCountInformation, // SYSTEM_HANDLECOUNT_INFORMATION
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -5638,6 +5641,72 @@ typedef struct _SYSTEM_OSL_RAMDISK_INFORMATION
     SYSTEM_OSL_RAMDISK_ENTRY Entries[1];
 } SYSTEM_OSL_RAMDISK_INFORMATION, *PSYSTEM_OSL_RAMDISK_INFORMATION;
 
+// private
+typedef enum _CI_POLICY_MGMT_OPERATION 
+{
+    CI_POLICY_MGMT_OPERATION_NONE = 0,
+    CI_POLICY_MGMT_OPERATION_OPEN_TX = 1,
+    CI_POLICY_MGMT_OPERATION_COMMIT_TX = 2,
+    CI_POLICY_MGMT_OPERATION_CLOSE_TX = 3,
+    CI_POLICY_MGMT_OPERATION_ADD_POLICY = 4,
+    CI_POLICY_MGMT_OPERATION_REMOVE_POLICY = 5,
+    CI_POLICY_MGMT_OPERATION_GET_POLICY = 6,
+    CI_POLICY_MGMT_OPERATION_GET_POLICY_IDS = 7,
+    CI_POLICY_MGMT_OPERATION_MAX = 8
+} CI_POLICY_MGMT_OPERATION;
+
+// private
+typedef struct _SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT 
+{
+    CI_POLICY_MGMT_OPERATION Operation;
+    UCHAR UseInProgressState; 
+    ULONG Arg1Len;
+    PUCHAR Arg1;
+    ULONG Arg2Len;
+    PUCHAR Arg2;
+} SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT, *PSYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT;
+
+// private
+typedef struct _SYSTEM_REF_TRACE_INFORMATION_EX 
+{
+    ULONG Version;
+    ULONGLONG MemoryLimits;
+    union 
+    {
+        ULONG Flags;
+        struct 
+        {
+            ULONG TraceEnable        : 1;
+            ULONG TracePermanent     : 1;
+            ULONG UseTracePoolTags   : 1;
+            ULONG TraceByStacksOnly  : 1;
+            ULONG ReservedFlags      : 28;
+        };
+    };
+    UNICODE_STRING TraceProcessName;
+    UNICODE_STRING TracePoolTags;
+    ULONG MaxObjectRefTraces;
+    ULONG TracedObjectLimit;
+} SYSTEM_REF_TRACE_INFORMATION_EX, *PSYSTEM_REF_TRACE_INFORMATION_EX;
+
+// private
+typedef struct _SYSTEM_BASICPROCESS_INFORMATION
+{
+    ULONG NextEntryOffset;
+    HANDLE UniqueProcessId;
+    HANDLE InheritedFromUniqueProcessId;
+    ULONG64 SequenceNumber;
+    UNICODE_STRING ImageName;
+} SYSTEM_BASICPROCESS_INFORMATION, *PSYSTEM_BASICPROCESS_INFORMATION;
+
+// private
+typedef struct _SYSTEM_HANDLECOUNT_INFORMATION 
+{
+    ULONG ProcessCount;
+    ULONG ThreadCount;
+    ULONG HandleCount;
+} SYSTEM_HANDLECOUNT_INFORMATION, *PSYSTEM_HANDLECOUNT_INFORMATION;
+
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
@@ -6207,8 +6276,8 @@ typedef struct _KUSER_SHARED_DATA
     // Reserved fields - do not use.
     //
 
-    ULONG Reserved1;
-    ULONG Reserved3;
+    ULONG MaximumUserModeAddressDeprecated; // Deprecated, use SystemBasicInformation instead.
+    ULONG SystemRangeStartDeprecated; // Deprecated, use SystemRangeStartInformation instead.
 
     //
     // Time slippage while in debugger.
@@ -6677,8 +6746,8 @@ static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NativeProcessorArchitecture) == 0x
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtMajorVersion) == 0x26c);
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtMinorVersion) == 0x270);
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ProcessorFeatures) == 0x274);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved1) == 0x2b4);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved3) == 0x2b8);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, MaximumUserModeAddressDeprecated) == 0x2b4);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemRangeStartDeprecated) == 0x2b8);
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeSlip) == 0x2bc);
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, AlternativeArchitecture) == 0x2c0);
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemExpirationDate) == 0x2c8);
