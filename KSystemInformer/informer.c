@@ -211,14 +211,14 @@ PCKPH_INFORMER_SETTINGS KphInformerForMessageId(
  *
  * \return TRUE if the informer is filtered, FALSE otherwise.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
 BOOLEAN KphpInformerProcessIsFiltered(
     _In_ PCKPH_INFORMER_SETTINGS Settings,
     _In_ PKPH_PROCESS_CONTEXT Process
     )
 {
-    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     return KphCheckInformerSettings(&Process->InformerFilter, Settings);
 }
@@ -231,13 +231,13 @@ BOOLEAN KphpInformerProcessIsFiltered(
  *
  * \return TRUE if the informer is enabled, FALSE otherwise.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN KphInformerIsEnabled(
     _In_ PCKPH_INFORMER_SETTINGS Settings,
     _In_opt_ PKPH_PROCESS_CONTEXT Process
     )
 {
-    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (!KphCommsInformerEnabled(Settings))
     {
@@ -261,14 +261,14 @@ BOOLEAN KphInformerIsEnabled(
  *
  * \return TRUE if the informer is enabled, FALSE otherwise.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN KphInformerIsEnabled2(
     _In_ PCKPH_INFORMER_SETTINGS Settings,
     _In_opt_ PKPH_PROCESS_CONTEXT ActorProcess,
     _In_opt_ PKPH_PROCESS_CONTEXT TargetProcess
     )
 {
-    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (!KphCommsInformerEnabled(Settings))
     {
