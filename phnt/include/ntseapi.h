@@ -107,6 +107,7 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenIsSandboxed, // q: ULONG // since 19H1
     TokenIsAppSilo, // q: ULONG // since WIN11 22H2 // previously TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
     TokenLoggingInformation, // TOKEN_LOGGING_INFORMATION // since 24H2
+    TokenLearningMode, // since 25H2
     MaxTokenInfoClass
 } TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
 #else
