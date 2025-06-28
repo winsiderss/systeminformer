@@ -275,13 +275,13 @@ VOID PvpPeClrEnumSections(
         PhPrintUInt32(value, ++count);
         lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
 
-        if (PhCopyStringZFromBytes(
+        if (NT_SUCCESS(PhCopyStringZFromBytes(
             streamHeader->Name,
             sizeof(streamHeader->Name),
             sectionName,
             RTL_NUMBER_OF(sectionName),
             NULL
-            ))
+            )))
         {
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, sectionName);
         }
