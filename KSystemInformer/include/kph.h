@@ -56,6 +56,9 @@
     NT_ASSERT(KeGetCurrentIrql() >= DISPATCH_LEVEL);                           \
     NT_ANALYSIS_ASSUME((KeGetCurrentIrql() == DISPATCH_LEVEL) ||               \
                        (KeGetCurrentIrql() == HIGH_LEVEL))
+#define KPH_NPAGED_CODE_DISPATCH()                                             \
+    NT_ASSERT(KeGetCurrentIrql() == DISPATCH_LEVEL);                           \
+    NT_ANALYSIS_ASSUME(KeGetCurrentIrql() == DISPATCH_LEVEL)
 
 //
 // N.B. This decorates code to indicate that the code supports up to APC_LEVEL
