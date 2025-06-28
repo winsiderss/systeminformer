@@ -246,7 +246,16 @@ BOOLEAN
 NTAPI
 PhUiReduceWorkingSetProcesses(
     _In_ HWND WindowHandle,
-    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ CONST PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiSetEmptyWorkingSetProcesses(
+    _In_ HWND WindowHandle,
+    _In_ CONST PPH_PROCESS_ITEM* Processes,
     _In_ ULONG NumberOfProcesses
     );
 

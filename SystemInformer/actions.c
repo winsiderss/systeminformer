@@ -86,7 +86,7 @@ BOOLEAN PhpShowElevatePrompt(
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.hwndParent = WindowHandle;
-    config.hInstance = PhInstanceHandle;
+    config.hInstance = NtCurrentImageBase();
     config.dwFlags = IsWindowVisible(WindowHandle) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainIcon = TD_ERROR_ICON;
@@ -2813,7 +2813,7 @@ BOOLEAN PhUiDebugProcess(
 
 BOOLEAN PhUiReduceWorkingSetProcesses(
     _In_ HWND WindowHandle,
-    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ CONST PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
     )
 {
@@ -2851,6 +2851,44 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
             success = FALSE;
 
             if (!PhpShowErrorProcess(WindowHandle, L"reduce the working set of", Processes[i], status, 0))
+                break;
+        }
+    }
+
+    return success;
+}
+
+BOOLEAN PhUiSetEmptyWorkingSetProcesses(
+    _In_ HWND WindowHandle,
+    _In_ CONST PPH_PROCESS_ITEM* Processes,
+    _In_ ULONG NumberOfProcesses
+    )
+{
+    BOOLEAN success = TRUE;
+    ULONG i;
+
+    for (i = 0; i < NumberOfProcesses; i++)
+    {
+        NTSTATUS status;
+        HANDLE processHandle;
+
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_VM_OPERATION,
+            Processes[i]->ProcessId
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            status = PhSetProcessWorkingSetEmpty(processHandle);
+            NtClose(processHandle);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
+
+            if (!PhpShowErrorProcess(WindowHandle, L"empty the working set of", Processes[i], status, 0))
                 break;
         }
     }
