@@ -2800,6 +2800,7 @@ NtQueueApcThreadEx2(
 #define ProcThreadAttributeCreateStore 28 // ULONG // rev (diversenok)
 #define ProcThreadAttributeTrustedApp 29
 #define ProcThreadAttributeSveVectorLength 30
+#define ProcThreadAttributeSmeVectorLength 31 // since 25H2
 
 #ifndef PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS
 #define PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS \
@@ -3429,7 +3430,8 @@ NtCreateThreadEx(
 #define JobObjectPagePriorityLimit 49 // JOBOBJECT_PAGE_PRIORITY_LIMIT
 #define JobObjectServerSiloDiagnosticInformation 50 // SERVERSILO_DIAGNOSTIC_INFORMATION // since 24H2
 #define JobObjectNetworkAccountingInformation 51 // JOBOBJECT_NETWORK_ACCOUNTING_INFORMATION
-#define MaxJobObjectInfoClass 52
+#define JobObjectCpuPartition 52 // since 25H2
+#define MaxJobObjectInfoClass 53
 
 // rev // extended limit v2
 #define JOB_OBJECT_LIMIT_SILO_READY 0x00400000

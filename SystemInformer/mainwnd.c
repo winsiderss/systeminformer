@@ -657,16 +657,6 @@ VOID PhMwpOnSettingChange(
 
     if (Action == 0 && Metric)
     {
-        // Reload environment variables
-
-        if (PhEqualStringZ(Metric, L"Environment", TRUE))
-        {
-            // Reload the environment so when the user starts
-            // processes via the run menu they're created
-            // with the correct environment variables. (dmex)
-            PhRegenerateUserEnvironment(NULL, TRUE);
-        }
-
         // Reload dark theme metrics
 
         //if (PhEqualStringZ(Metric, L"ImmersiveColorSet", TRUE))
@@ -984,7 +974,11 @@ VOID PhMwpOnCommand(
                         mode = PH_EXPORT_MODE_TABS;
 
                     PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
-                    PhWritePhTextHeader(fileStream);
+
+                    if (mode != PH_EXPORT_MODE_CSV)
+                    {
+                        PhWritePhTextHeader(fileStream);
+                    }
 
                     exportContent.FileStream = fileStream;
                     exportContent.Mode = mode;

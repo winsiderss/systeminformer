@@ -11104,15 +11104,16 @@ RtlFlsSetValue(
     _In_ PVOID FlsData
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
+#define RTL_FLS_DATA_CLEANUP_PER_SLOT 1
+#define RTL_FLS_DATA_CLEANUP_DEALLOCATE 2
+
 NTSYSAPI
-NTSTATUS
+VOID
 NTAPI
 RtlProcessFlsData(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PVOID* FlsData
+    _In_ PVOID FlsData,
+    _In_ ULONG Flags
     );
-#endif // PHNT_VERSION >= PHNT_WINDOWS_10_20H1
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
@@ -11248,7 +11249,6 @@ RtlSetThreadPlaceholderCompatibilityMode(
 #define PHCM_ERROR_NO_PEB ((CHAR)-3)
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS4)
-
 NTSYSAPI
 CHAR
 NTAPI
@@ -11262,7 +11262,6 @@ NTAPI
 RtlSetProcessPlaceholderCompatibilityMode(
     _In_ CHAR Mode
     );
-
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS4
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)

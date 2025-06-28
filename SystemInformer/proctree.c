@@ -3002,8 +3002,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     SIZE_T value = 0;
                     PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PagefileUsage), &value);
-                    PhMoveReference(&node->IoWRateText, PhFormatSize(value, ULONG_MAX));
-                    getCellText->Text = node->IoWRateText->sr;
+                    PhMoveReference(&node->PrivateBytesText, PhFormatSize(value, ULONG_MAX));
+                    getCellText->Text = PhGetStringRef(node->PrivateBytesText);
                 }
                 break;
             case PHPRTLC_USERNAME:

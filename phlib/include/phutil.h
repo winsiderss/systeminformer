@@ -1201,7 +1201,7 @@ PhGetApplicationFileName(
 FORCEINLINE
 PPH_STRING
 PhGetApplicationFileNameZ(
-    _In_ PCPH_STRINGREF Suffix
+    _In_ PCWSTR AppendPath
     )
 {
     PPH_STRING fileName = NULL;
@@ -1209,7 +1209,10 @@ PhGetApplicationFileNameZ(
 
     if (applicationFileName = PhGetApplicationFileName())
     {
-        fileName = PhConcatStringRef2(&applicationFileName->sr, Suffix);
+        PH_STRINGREF string;
+
+        PhInitializeStringRef(&string, AppendPath);
+        fileName = PhConcatStringRef2(&applicationFileName->sr, &string);
         PhDereferenceObject(applicationFileName);
     }
 

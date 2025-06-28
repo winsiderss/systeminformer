@@ -452,7 +452,11 @@ VOID PhpProcessMemorySave(
                 mode = PH_EXPORT_MODE_TABS;
 
             PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
-            PhWritePhTextHeader(fileStream);
+
+            if (mode != PH_EXPORT_MODE_CSV)
+            {
+                PhWritePhTextHeader(fileStream);
+            }
 
             lines = PhpGetProcessMemoryTreeListLines(
                 MemoryContext->TreeNewHandle,
