@@ -1185,15 +1185,6 @@ BEGIN_SORT_FUNCTION(ApartmentFlags)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(HasRpc)
-{
-    PhpUpdateThreadNodeRpc(context, node1);
-    PhpUpdateThreadNodeRpc(context, node2);
-
-    sortResult = ucharcmp(node1->HasRpcState, node2->HasRpcState);
-}
-END_SORT_FUNCTION
-
 BEGIN_SORT_FUNCTION(Fiber)
 {
     PhpUpdateThreadNodeFiber(context, node1);
@@ -1293,6 +1284,15 @@ BEGIN_SORT_FUNCTION(StartAddressKernel)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(HasRpc)
+{
+    PhpUpdateThreadNodeRpc(context, node1);
+    PhpUpdateThreadNodeRpc(context, node2);
+
+    sortResult = ucharcmp(node1->HasRpcState, node2->HasRpcState);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1347,7 +1347,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(Created), // Timeline
                     SORT_FUNCTION(ApartmentType),
                     SORT_FUNCTION(ApartmentFlags),
-                    SORT_FUNCTION(HasRpc),
                     SORT_FUNCTION(Fiber),
                     SORT_FUNCTION(PriorityBoost),
                     SORT_FUNCTION(CpuUser),
@@ -1363,6 +1362,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(LxssTid),
                     SORT_FUNCTION(PowerThrottling),
                     SORT_FUNCTION(StartAddressKernel),
+                    SORT_FUNCTION(HasRpc),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -2046,26 +2046,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     getCellText->Text = PhGetStringRef(node->ApartmentFlagsText);
                 }
                 break;
-            case PH_THREAD_TREELIST_COLUMN_RPC:
-                {
-                    if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
-                        break;
-                    }
-    
-                    PhpUpdateThreadNodeRpc(context, node);
-    
-                    if (node->HasRpcState)
-                    {
-                        PhInitializeStringRef(&getCellText->Text, L"Yes");
-                    }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
-                    }
-                }
-                break;
             case PH_THREAD_TREELIST_COLUMN_FIBER:
                 {
                     if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
@@ -2271,6 +2251,26 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             case PH_THREAD_TREELIST_COLUMN_POWERTHROTTLING:
                 {
                     if (threadItem->PowerThrottling)
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Yes");
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_RPC:
+                {
+                    if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                        break;
+                    }
+    
+                    PhpUpdateThreadNodeRpc(context, node);
+    
+                    if (node->HasRpcState)
                     {
                         PhInitializeStringRef(&getCellText->Text, L"Yes");
                     }
