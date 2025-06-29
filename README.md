@@ -36,7 +36,7 @@
         <img src="https://img.shields.io/badge/Twitter-grey?style=for-the-badge&logoColor=white&logo=x"/>
     </a>
     <a href="https://systeminformer.com">
-        <img src="https://img.shields.io/badge/Website-grey?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTIgMTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjYiIGN5PSI2IiByPSI1LjUiIHN0cm9rZT0id2hpdGUiLz4KPGVsbGlwc2UgY3g9IjYiIGN5PSI2IiByeD0iNS41IiByeT0iMiIgdHJhbnNmb3JtPSJyb3RhdGUoOTAgNiA2KSIgc3Ryb2tlPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMSA2SDExIiBzdHJva2U9IndoaXRlIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+"/>
+        <img src="https://img.shields.io/badge/Website-grey?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTIgMTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iNiIgY3k9IjYiIHI9IjUuNSIgc3Ryb2tlPSJ3aGl0ZSIvPjxlbGxpcHNlIGN4PSI2IiBjeT0iNiIgcng9IjUuNSIgcnk9IjIiIHRyYW5zZm9ybT0icm90YXRlKDkwIDYgNikiIHN0cm9rZT0id2hpdGUiLz48cGF0aCBkPSJNMSA2SDExIiBzdHJva2U9IndoaXRlIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4="/>
     </a>
 </p>
 
