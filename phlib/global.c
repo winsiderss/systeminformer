@@ -181,6 +181,10 @@ NTSTATUS PhInitializeWindowsInformation(
         {
             WindowsVersion = WINDOWS_NEW;
         }
+        else if (buildVersion >= 26200)
+        {
+            WindowsVersion = WINDOWS_11_25H2;
+        }
         else if (buildVersion >= 26100)
         {
             WindowsVersion = WINDOWS_11_24H2;
