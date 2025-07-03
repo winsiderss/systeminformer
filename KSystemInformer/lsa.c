@@ -27,18 +27,19 @@ KPH_PAGED_FILE();
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 NTSTATUS KphpGetLsassProcessId(
     _Out_ PHANDLE ProcessId
     )
 {
     NTSTATUS status;
+    KIRQL currentIrql;
     PKPH_DYN dyn;
     HANDLE portHandle;
     KAPC_STATE apcState;
     KPH_ALPC_COMMUNICATION_INFORMATION info;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     //
     // We cache the process ID of lsass since opening and closing the connection
@@ -58,6 +59,17 @@ NTSTATUS KphpGetLsassProcessId(
     if (*ProcessId)
     {
         return STATUS_SUCCESS;
+    }
+
+    currentIrql = KeGetCurrentIrql();
+    if (currentIrql > PASSIVE_LEVEL)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphpGetLsassProcessId called at %!irql!",
+                      currentIrql);
+
+        return STATUS_INVALID_LEVEL;
     }
 
     //
@@ -147,7 +159,7 @@ Exit:
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphProcessIsLsass(
     _In_ PEPROCESS Process,
@@ -159,7 +171,7 @@ NTSTATUS KphProcessIsLsass(
     SECURITY_SUBJECT_CONTEXT subjectContext;
     BOOLEAN result;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     *IsLsass = FALSE;
 
