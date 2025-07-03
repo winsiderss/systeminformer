@@ -261,6 +261,18 @@ VOID PvAddTreeViewSections(
             PvPeResourcesDlgProc,
             NULL
             );
+
+        // Manifest page
+        if (NT_SUCCESS(PhGetMappedImageResource(&PvMappedImage, MAKEINTRESOURCEW(1), RT_MANIFEST, 0, NULL, NULL)))
+        {
+            PvCreateTabSection(
+                L"Manifest",
+                PhInstanceHandle,
+                MAKEINTRESOURCE(IDD_PEPREVIEW),
+                PvPeAppManifestDlgProc,
+                NULL
+                );
+        }
     }
 
     // CLR page
