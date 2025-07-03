@@ -1341,7 +1341,7 @@ VOID KphFreeNameFileObject(
  *
  * \return TRUE if the subject has the desired privilege, FALSE otherwise.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 BOOLEAN KphSinglePrivilegeCheckEx(
     _In_ LUID PrivilegeValue,
     _In_ PSECURITY_SUBJECT_CONTEXT SubjectSecurityContext,
@@ -1350,7 +1350,7 @@ BOOLEAN KphSinglePrivilegeCheckEx(
 {
     PRIVILEGE_SET requiredPrivileges;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     requiredPrivileges.PrivilegeCount = 1;
     requiredPrivileges.Control = PRIVILEGE_SET_ALL_NECESSARY;
@@ -1370,7 +1370,7 @@ BOOLEAN KphSinglePrivilegeCheckEx(
  *
  * \return TRUE if the subject has the desired privilege, FALSE otherwise.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 BOOLEAN KphSinglePrivilegeCheck(
     _In_ LUID PrivilegeValue,
     _In_ KPROCESSOR_MODE AccessMode
@@ -1379,7 +1379,7 @@ BOOLEAN KphSinglePrivilegeCheck(
     BOOLEAN accessGranted;
     SECURITY_SUBJECT_CONTEXT subjectContext;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     SeCaptureSubjectContext(&subjectContext);
 
