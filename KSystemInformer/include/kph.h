@@ -1310,14 +1310,14 @@ VOID KphFreeNameFileObject(
     _In_freesMem_ PUNICODE_STRING FileName
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 BOOLEAN KphSinglePrivilegeCheckEx(
     _In_ LUID PrivilegeValue,
     _In_ PSECURITY_SUBJECT_CONTEXT SubjectSecurityContext,
     _In_ KPROCESSOR_MODE AccessMode
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 BOOLEAN KphSinglePrivilegeCheck(
     _In_ LUID PrivilegeValue,
     _In_ KPROCESSOR_MODE AccessMode
@@ -1503,7 +1503,7 @@ NTSTATUS KphCopyUnicodeStringToMode(
 
 // lsa
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphProcessIsLsass(
     _In_ PEPROCESS Process,
@@ -2076,13 +2076,13 @@ PKPH_PROCESS_CONTEXT KphUntrackProcessContext(
     _In_ HANDLE ProcessId
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 PKPH_THREAD_CONTEXT KphTrackThreadContext(
     _In_ PETHREAD Thread
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 PKPH_THREAD_CONTEXT KphUntrackThreadContext(
     _In_ HANDLE ThreadId
@@ -2207,7 +2207,7 @@ BOOLEAN KphIsProtectedProcess(
     _In_ PKPH_PROCESS_CONTEXT Process
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphApplyObProtections(
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     );
