@@ -41,7 +41,7 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
     _In_ BOOLEAN Create,
-    _In_ PETHREAD Thread
+    _In_opt_ PETHREAD Thread
     )
 {
     PKPH_THREAD_CONTEXT thread;
@@ -66,6 +66,17 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
         thread->ExitNotification = TRUE;
 
         return thread;
+    }
+
+    if (!Thread)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "Failed to track thread %lu in process %lu",
+                      HandleToULong(ThreadId),
+                      HandleToULong(ProcessId));
+
+        return NULL;
     }
 
     thread = KphTrackThreadContext(Thread);
@@ -278,13 +289,22 @@ VOID KphpCreateThreadNotifyRoutine(
     _In_ BOOLEAN Create
     )
 {
+    NTSTATUS status;
     PKPH_THREAD_CONTEXT thread;
     PETHREAD threadObject;
 
     KPH_PAGED_CODE();
 
-    NT_VERIFY(NT_SUCCESS(PsLookupThreadByThreadId(ThreadId, &threadObject)));
-    NT_ASSERT(threadObject);
+    status = PsLookupThreadByThreadId(ThreadId, &threadObject);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "PsLookupThreadByThreadId failed: %!STATUS!",
+                      status);
+
+        threadObject = NULL;
+    }
 
     if (Create)
     {
@@ -324,7 +344,10 @@ VOID KphpCreateThreadNotifyRoutine(
         KphDereferenceObject(thread);
     }
 
-    ObDereferenceObject(threadObject);
+    if (threadObject)
+    {
+        ObDereferenceObject(threadObject);
+    }
 }
 
 /**
