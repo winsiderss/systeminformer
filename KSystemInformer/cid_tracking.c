@@ -196,12 +196,12 @@ VOID KphCidMarkPopulated(
 /**
  * \brief Waits for the CID tracking to be marked as populated.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpCidWaitForPopulate(
     VOID
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (KphpCidPopulated)
     {
@@ -739,7 +739,7 @@ VOID KSIAPI KphpFreeProcessContext(
  * \return Allocated thread context object, null on allocation failure.
  */
 _Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Return_allocatesMem_size_(Size)
 PVOID KSIAPI KphpAllocateThreadContext(
     _In_ SIZE_T Size
@@ -747,7 +747,7 @@ PVOID KSIAPI KphpAllocateThreadContext(
 {
     PVOID object;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     DBG_UNREFERENCED_PARAMETER(Size);
     NT_ASSERT(KphpThreadContextLookaside);
@@ -1001,7 +1001,7 @@ Exit:
  * \return STATUS_SUCCESS
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpInitializeThreadContext(
     _Inout_ PVOID Object,
@@ -1013,7 +1013,7 @@ NTSTATUS KSIAPI KphpInitializeThreadContext(
     PETHREAD threadObject;
     HANDLE threadHandle;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     NT_ASSERT(Parameter);
 
@@ -1392,7 +1392,7 @@ VOID KphCidCleanup(
  * object is already being tracked and is not of the expected type. The caller
  * *must* dereference the object when they are through with it.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 PVOID KphpTrackContext(
     _In_ HANDLE Cid,
@@ -1405,7 +1405,7 @@ PVOID KphpTrackContext(
     PKPH_CID_TABLE_ENTRY entry;
     PVOID object;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     entry = KphCidGetEntry(Cid, &KphpCidTable);
     if (!entry)
@@ -1859,13 +1859,13 @@ PKPH_PROCESS_CONTEXT KphUntrackProcessContext(
  * return an existing thread context if the thread is already tracked. The
  * caller *must* dereference the object when they are through with it.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 PKPH_THREAD_CONTEXT KphTrackThreadContext(
     _In_ PETHREAD Thread
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     KphpCidWaitForPopulate();
 
@@ -1883,7 +1883,7 @@ PKPH_THREAD_CONTEXT KphTrackThreadContext(
  * \return Pointer to the thread context, null if not found. The caller *must*
  * dereference the object when they are through with it.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 PKPH_THREAD_CONTEXT KphUntrackThreadContext(
     _In_ HANDLE ThreadId
@@ -1891,7 +1891,7 @@ PKPH_THREAD_CONTEXT KphUntrackThreadContext(
 {
     PKPH_THREAD_CONTEXT thread;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     KphpCidWaitForPopulate();
 
