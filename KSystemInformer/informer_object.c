@@ -55,7 +55,7 @@ static ULONG64 KphpObSequence = 0;
  *
  * \return The object operation options.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 KPH_OB_OPTIONS KphpObGetOptions(
     _In_ POB_PRE_OPERATION_INFORMATION Info
     )
@@ -63,7 +63,7 @@ KPH_OB_OPTIONS KphpObGetOptions(
     KPH_OB_OPTIONS options;
     PKPH_PROCESS_CONTEXT process;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     options.Flags = 0;
 
@@ -141,14 +141,14 @@ KPH_OB_OPTIONS KphpObGetOptions(
  *
  * \return The message ID for the callback.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 KPH_MESSAGE_ID KphpObPreGetMessageId(
     _In_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
     KPH_MESSAGE_ID messageId;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
     {
@@ -197,14 +197,14 @@ KPH_MESSAGE_ID KphpObPreGetMessageId(
  *
  * \return The message ID for the callback.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 KPH_MESSAGE_ID KphpObPostGetMessageId(
     _In_ POB_POST_OPERATION_INFORMATION Info
     )
 {
     KPH_MESSAGE_ID messageId;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
     {
@@ -254,7 +254,7 @@ KPH_MESSAGE_ID KphpObPostGetMessageId(
  * \param[in,out] Message The message to populate.
  * \param[in] Object The object for which the name is populated in the message.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpObCopyObjectName(
     _Inout_ PKPH_MESSAGE Message,
     _In_ PVOID Object
@@ -264,7 +264,7 @@ VOID KphpObCopyObjectName(
     POBJECT_NAME_INFORMATION info;
     ULONG length;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     info = NULL;
 
@@ -326,13 +326,13 @@ Exit:
  * \param[in,out] Message The message to populate.
  * \param[in] Info Object manager pre-operation callback information.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpObPreFillMessage(
     _Inout_ PKPH_MESSAGE Message,
     _In_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     Message->Kernel.Handle.ContextClientId.UniqueProcess = PsGetCurrentProcessId();
     Message->Kernel.Handle.ContextClientId.UniqueThread = PsGetCurrentThreadId();
@@ -418,14 +418,14 @@ VOID KphpObPreFillMessage(
  * \param[in] Info Object manager post-operation callback information.
  * \param[in] Context The object call context.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpObPostFillMessage(
     _Inout_ PKPH_MESSAGE Message,
     _In_ POB_POST_OPERATION_INFORMATION Info,
     _In_ PKPH_OB_CALL_CONTEXT Context
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     Message->Kernel.Handle.ContextClientId.UniqueProcess = PsGetCurrentProcessId();
     Message->Kernel.Handle.ContextClientId.UniqueThread = PsGetCurrentThreadId();
@@ -517,7 +517,7 @@ VOID KphpObPostFillMessage(
  * \param[in] Sequence The sequence number for the message.
  * \param[in] Context The object call context.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpObPostOpSend(
     _In_ POB_POST_OPERATION_INFORMATION Info,
     _In_ ULONG64 Sequence,
@@ -526,7 +526,7 @@ VOID KphpObPostOpSend(
 {
     PKPH_MESSAGE msg;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     msg = KphAllocateMessage();
     if (!msg)
@@ -559,7 +559,7 @@ VOID KphpObPostOpSend(
  * \param[in] Info The object post-operation information.
  */
 _Function_class_(POB_POST_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpObPostOp(
     _In_ PVOID Context,
     _In_ POB_POST_OPERATION_INFORMATION Info
@@ -568,7 +568,7 @@ VOID KphpObPostOp(
     PKPH_OB_CALL_CONTEXT context;
     ULONG64 sequence;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -591,7 +591,7 @@ VOID KphpObPostOp(
  * \param[in] Sequence The pre-operation sequence number.
  * \param[in] TimeStamp The pre-operation time stamp.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpObPreOpSetCallContext(
     _In_ POB_PRE_OPERATION_INFORMATION Info,
     _In_ PKPH_OB_OPTIONS Options,
@@ -601,7 +601,7 @@ VOID KphpObPreOpSetCallContext(
 {
     PKPH_OB_CALL_CONTEXT context;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     context = KphAllocateFromPagedLookaside(&KphpObCallContextLookaside);
     if (!context)
@@ -651,7 +651,7 @@ VOID KphpObPreOpSetCallContext(
  * \param[in] Sequence The sequence number for the message.
  * \param[out] TimeStamp Receives the time stamp of the pre-operation message.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpObPreOpSend(
     _In_ POB_PRE_OPERATION_INFORMATION Info,
     _In_ PKPH_OB_OPTIONS Options,
@@ -661,7 +661,7 @@ VOID KphpObPreOpSend(
 {
     PKPH_MESSAGE msg;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     msg = KphAllocateMessage();
     if (!msg)
@@ -787,14 +787,30 @@ Exit:
  *
  * \param[in] ThreadObject The thread object to track.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpObPerformThreadTracking(
     _In_ PETHREAD ThreadObject
     )
 {
     PKPH_THREAD_CONTEXT thread;
 
-    KPH_PAGED_CODE_PASSIVE();
+    //
+    // N.B. Although Microsoft's documentation states that object callbacks
+    // are invoked at PASSIVE_LEVEL, they can and *do* get invoked at APC_LEVEL
+    // in practice.
+    //
+    // This is because thread creation can happen at APC_LEVEL and thread
+    // creation will open a handle to the thread object, which in turn invokes
+    // the object manager callbacks. This behavior has been observed and is
+    // triggered by Microsoft's own kernel components - no third-party drivers.
+    // As such, assuming callbacks always run at PASSIVE_LEVEL is unsafe. This
+    // contradicts the stated IRQL guarantees - use caution.
+    //
+    // For reference, see the documentation for PCREATE_THREAD_NOTIFY_ROUTINE.
+    // Note that although PsCreateSystemThread being documented as requiring
+    // PASSIVE_LEVEL, it can and *does* get invoked at APC_LEVEL in practice.
+    //
+    KPH_PAGED_CODE();
 
     thread = KphGetEThreadContext(ThreadObject);
     if (thread)
@@ -845,12 +861,14 @@ Exit:
  *
  * \param[in] Info Object manager pre-operation callback information.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpObPerformProcessAndThreadTracking(
     _In_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KIRQL currentIrql;
+
+    KPH_PAGED_CODE();
 
     //
     // During the object pre-operation callback, supplement process and thread
@@ -883,16 +901,36 @@ VOID KphpObPerformProcessAndThreadTracking(
         return;
     }
 
-    KphpObPerformProcessTracking(PsGetCurrentProcess());
+    //
+    // N.B. Thread creation routines can be invoked at APC_LEVEL, which in turn
+    // causes the object manager's pre-operation callbacks to be invoked. Our
+    // thread tracking supports being called at APC_LEVEL, but process tracking
+    // requires PASSIVE_LEVEL. Therefore, we check the current IRQL below before
+    // attempting any process tracking.
+    //
+    currentIrql = KeGetCurrentIrql();
+
+    if (currentIrql == PASSIVE_LEVEL)
+    {
+        KphpObPerformProcessTracking(PsGetCurrentProcess());
+    }
+
     KphpObPerformThreadTracking(PsGetCurrentThread());
 
     if (Info->ObjectType == *PsProcessType)
     {
-        KphpObPerformProcessTracking(Info->Object);
+        if (currentIrql == PASSIVE_LEVEL)
+        {
+            KphpObPerformProcessTracking(Info->Object);
+        }
     }
     else if (Info->ObjectType == *PsThreadType)
     {
-        KphpObPerformProcessTracking(PsGetThreadProcess(Info->Object));
+        if (currentIrql == PASSIVE_LEVEL)
+        {
+            KphpObPerformProcessTracking(PsGetThreadProcess(Info->Object));
+        }
+
         KphpObPerformThreadTracking(Info->Object);
     }
 }
@@ -906,7 +944,7 @@ VOID KphpObPerformProcessAndThreadTracking(
  * \return OB_PREOP_SUCCESS
  */
 _Function_class_(POB_PRE_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 OB_PREOP_CALLBACK_STATUS KphpObPreOp(
     _In_ PVOID Context,
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
@@ -916,7 +954,23 @@ OB_PREOP_CALLBACK_STATUS KphpObPreOp(
     ULONG64 sequence;
     LARGE_INTEGER timeStamp;
 
-    KPH_PAGED_CODE_PASSIVE();
+    //
+    // N.B. Although Microsoft's documentation states that object callbacks
+    // are invoked at PASSIVE_LEVEL, they can and *do* get invoked at APC_LEVEL
+    // in practice.
+    //
+    // This is because thread creation can happen at APC_LEVEL and thread
+    // creation will open a handle to the thread object, which in turn invokes
+    // the object manager callbacks. This behavior has been observed and is
+    // triggered by Microsoft's own kernel components - no third-party drivers.
+    // As such, assuming callbacks always run at PASSIVE_LEVEL is unsafe. This
+    // contradicts the stated IRQL guarantees - use caution.
+    //
+    // For reference, see the documentation for PCREATE_THREAD_NOTIFY_ROUTINE.
+    // Note that although PsCreateSystemThread being documented as requiring
+    // PASSIVE_LEVEL, it can and *does* get invoked at APC_LEVEL in practice.
+    //
+    KPH_PAGED_CODE();
 
     UNREFERENCED_PARAMETER(Context);
 

@@ -158,7 +158,7 @@ VOID KSIAPI KphpFreeImageLoadApc(
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 NTSTATUS KphpShouldSuppressObjectProtections(
     _In_ PKPH_PROCESS_CONTEXT Actor,
     _In_ PKPH_PROCESS_CONTEXT Target,
@@ -168,7 +168,7 @@ NTSTATUS KphpShouldSuppressObjectProtections(
     NTSTATUS status;
     BOOLEAN isLsass;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     *Suppress = FALSE;
 
@@ -588,15 +588,14 @@ Exit:
  *
  * \return TRUE if we should permit, FALSE otherwise.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-KphpShouldPermitCreatorProcess(
+_IRQL_requires_max_(APC_LEVEL)
+BOOLEAN KphpShouldPermitCreatorProcess(
     _In_ POB_PRE_OPERATION_INFORMATION Info,
     _In_ PKPH_THREAD_CONTEXT Actor,
     _In_ PKPH_PROCESS_CONTEXT Process
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     NT_ASSERT(Process->VerifiedProcess);
 
@@ -623,7 +622,7 @@ KphpShouldPermitCreatorProcess(
  *
  * \param[in,out] Info Object pre operation information to apply protections.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphApplyObProtections(
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     )
@@ -637,7 +636,7 @@ VOID KphApplyObProtections(
     ACCESS_MASK desiredAccess;
     PACCESS_MASK access;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     process = NULL;
     actor = NULL;
