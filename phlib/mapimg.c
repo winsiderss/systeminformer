@@ -2793,9 +2793,9 @@ NTSTATUS PhGetMappedImageResource(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PCWSTR Name,
     _In_ PCWSTR Type,
-    _In_ USHORT Language,
-    _Out_opt_ ULONG *ResourceLength,
-    _Out_opt_ PVOID *ResourceBuffer
+    _In_opt_ USHORT Language,
+    _Out_opt_ PULONG ResourceLength,
+    _Out_opt_ PVOID* ResourceBuffer
     )
 {
     NTSTATUS status;
