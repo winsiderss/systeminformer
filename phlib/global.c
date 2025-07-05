@@ -177,9 +177,13 @@ NTSTATUS PhInitializeWindowsInformation(
     // Windows 10, Windows Server 2016
     else if (majorVersion == 10 && minorVersion == 0)
     {
-        if (buildVersion > 26100)
+        if (buildVersion > 26200)
         {
             WindowsVersion = WINDOWS_NEW;
+        }
+        else if (buildVersion >= 26200)
+        {
+            WindowsVersion = WINDOWS_11_25H2;
         }
         else if (buildVersion >= 26100)
         {
