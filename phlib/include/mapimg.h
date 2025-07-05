@@ -35,7 +35,7 @@ typedef struct _PH_MAPPED_IMAGE
                 PIMAGE_NT_HEADERS64 NtHeaders64;
                 PIMAGE_NT_HEADERS NtHeaders;
             };
-            
+
             USHORT Magic;
             USHORT NumberOfSections;
             PIMAGE_SECTION_HEADER Sections;
@@ -620,6 +620,18 @@ NTAPI
 PhGetMappedImageResources(
     _Out_ PPH_MAPPED_IMAGE_RESOURCES Resources,
     _In_ PPH_MAPPED_IMAGE MappedImage
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageResource(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _In_opt_ USHORT Language,
+    _Out_opt_ PULONG ResourceLength,
+    _Out_opt_ PVOID* ResourceBuffer
     );
 
 typedef struct _PH_IMAGE_TLS_CALLBACK_ENTRY
