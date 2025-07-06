@@ -239,6 +239,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ShowCommitInSummary", L"1");
     PhpAddIntegerSetting(L"ShowCpuBelow001", L"0");
     PhpAddIntegerSetting(L"ShowHexId", L"0");
+    PhpAddIntegerSetting(L"SortChildProcesses", L"0");
     PhpAddIntegerSetting(L"StartHidden", L"0");
     PhpAddIntegerSetting(L"SysInfoShowCpuSpeedMhz", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");
@@ -396,6 +397,7 @@ VOID PhUpdateCachedSettings(
     PH_GET_INTEGER_CACHED_SETTING(PropagateCpuUsage);
     PH_GET_INTEGER_CACHED_SETTING(ScrollToNewProcesses);
     PH_GET_INTEGER_CACHED_SETTING(ScrollToRemovedProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(SortChildProcesses);
     PH_GET_INTEGER_CACHED_SETTING(ShowCpuBelow001);
     PH_GET_INTEGER_CACHED_SETTING(UpdateInterval);
 
