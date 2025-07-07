@@ -481,4 +481,32 @@ NTSTATUS PhGetProcessItemFileNameWin32(
     _Out_ PPH_STRING *FileNameWin32
     );
 
+// begin_phapppub
+typedef enum _PH_AGGREGATE_TYPE
+{
+    AggregateTypeFloat,
+    AggregateTypeInt32,
+    AggregateTypeInt64,
+    AggregateTypeIntPtr
+} PH_AGGREGATE_TYPE;
+
+typedef enum _PH_AGGREGATE_LOCATION
+{
+    AggregateProcessItem,
+    AggregateProcessNode,
+} PH_AGGREGATE_LOCATION;
+
+PHAPPAPI
+VOID
+NTAPI
+PhAggregateProcessFieldIfNeeded(
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_ PH_AGGREGATE_TYPE Type,
+    _In_ PH_AGGREGATE_LOCATION Location,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T FieldOffset,
+    _Inout_ PVOID AggregatedValue
+    );
+// end_phapppub
+
 #endif
