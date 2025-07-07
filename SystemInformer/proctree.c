@@ -1915,22 +1915,42 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Cpu)
 {
-    sortResult = singlecmp(processItem1->CpuUsage, processItem2->CpuUsage);
+    FLOAT number1 = 0;
+    FLOAT number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeFloat, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeFloat, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &number2);
+
+    sortResult = singlecmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoTotalRate)
 {
-    sortResult = uint64cmp(
-        processItem1->IoReadDelta.Delta + processItem1->IoWriteDelta.Delta + processItem1->IoOtherDelta.Delta,
-        processItem2->IoReadDelta.Delta + processItem2->IoWriteDelta.Delta + processItem2->IoOtherDelta.Delta
-        );
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Delta), &number1);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Delta), &number1);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Delta), &number1);
+
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Delta), &number2);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Delta), &number2);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Delta), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PrivateBytes)
 {
-    sortResult = uintptrcmp(processItem1->VmCounters.PagefileUsage, processItem2->VmCounters.PagefileUsage);
+    ULONG_PTR number1 = 0;
+    ULONG_PTR number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PagefileUsage), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeIntPtr, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PagefileUsage), &number2);
+
+    sortResult = uintptrcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -2008,7 +2028,14 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(WorkingSet)
 {
-    sortResult = uintptrcmp(processItem1->VmCounters.WorkingSetSize, processItem2->VmCounters.WorkingSetSize);
+    ULONG_PTR number1 = 0;
+    ULONG_PTR number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.WorkingSetSize), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeIntPtr, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.WorkingSetSize), &number2);
+
+
+    sortResult = uintptrcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -2020,7 +2047,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PrivateWs)
 {
-    sortResult = uint64cmp(processItem1->WorkingSetPrivateSize, processItem2->WorkingSetPrivateSize);
+    ULONG_PTR number1 = 0;
+    ULONG_PTR number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, WorkingSetPrivateSize), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeIntPtr, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, WorkingSetPrivateSize), &number2);
+
+    sortResult = uintptrcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -2042,7 +2075,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(VirtualSize)
 {
-    sortResult = uintptrcmp(processItem1->VmCounters.VirtualSize, processItem2->VmCounters.VirtualSize);
+    ULONG_PTR number1 = 0;
+    ULONG_PTR number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.VirtualSize), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeIntPtr, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.VirtualSize), &number2);
+
+    sortResult = uintptrcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -2054,7 +2093,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PageFaults)
 {
-    sortResult = uintcmp(processItem1->VmCounters.PageFaultCount, processItem2->VmCounters.PageFaultCount);
+    ULONG number1 = 0;
+    ULONG number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PageFaultCount), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PageFaultCount), &number2);
+
+    sortResult = uintcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -2072,43 +2117,79 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Threads)
 {
-    sortResult = uintcmp(processItem1->NumberOfThreads, processItem2->NumberOfThreads);
+    ULONG number1 = 0;
+    ULONG number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, NumberOfThreads), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, NumberOfThreads), &number2);
+
+    sortResult = uintcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Handles)
 {
-    sortResult = uintcmp(processItem1->NumberOfHandles, processItem2->NumberOfHandles);
+    ULONG number1 = 0;
+    ULONG number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, NumberOfHandles), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, NumberOfHandles), &number2);
+
+    sortResult = uintcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(GdiHandles)
 {
+    ULONG number1 = 0;
+    ULONG number2 = 0;
+
     PhpUpdateProcessNodeGdiUserHandles(node1);
     PhpUpdateProcessNodeGdiUserHandles(node2);
 
-    sortResult = uintcmp(node1->GdiHandles, node2->GdiHandles);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &number2);
+
+    sortResult = uintcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(UserHandles)
 {
-    sortResult = uintcmp(node1->UserHandles, node2->UserHandles);
+    ULONG number1 = 0;
+    ULONG number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &number2);
+
+    sortResult = uintcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoRoRate)
 {
-    sortResult = uint64cmp(
-        processItem1->IoReadDelta.Delta + processItem1->IoOtherDelta.Delta,
-        processItem2->IoReadDelta.Delta + processItem2->IoOtherDelta.Delta
-        );
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Delta), &number1);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Delta), &number1);
+
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Delta), &number2);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Delta), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoWRate)
 {
-    sortResult = uint64cmp(processItem1->IoWriteDelta.Delta, processItem2->IoWriteDelta.Delta);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Delta), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Delta), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -2233,13 +2314,25 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Cycles)
 {
-    sortResult = uint64cmp(processItem1->CycleTimeDelta.Value, processItem2->CycleTimeDelta.Value);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CyclesDelta)
 {
-    sortResult = uint64cmp(processItem1->CycleTimeDelta.Delta, processItem2->CycleTimeDelta.Delta);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Delta), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Delta), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -2261,73 +2354,145 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ContextSwitches)
 {
-    sortResult = uint64cmp(processItem1->ContextSwitchesDelta.Value, processItem2->ContextSwitchesDelta.Value);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ContextSwitchesDelta)
 {
-    sortResult = int64cmp((LONGLONG)processItem1->ContextSwitchesDelta.Delta, (LONGLONG)processItem2->ContextSwitchesDelta.Delta);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Delta), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Delta), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PageFaultsDelta)
 {
-    sortResult = uintcmp(processItem1->PageFaultsDelta.Delta, processItem2->PageFaultsDelta.Delta);
+    ULONG number1 = 0;
+    ULONG number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, PageFaultsDelta.Delta), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, PageFaultsDelta.Delta), &number2);
+
+    sortResult = uintcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoReads)
 {
-    sortResult = uint64cmp(processItem1->IoReadCountDelta.Value, processItem2->IoReadCountDelta.Value);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoWrites)
 {
-    sortResult = uint64cmp(processItem1->IoWriteCountDelta.Value, processItem2->IoWriteCountDelta.Value);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoOther)
 {
-    sortResult = uint64cmp(processItem1->IoOtherCountDelta.Value, processItem2->IoOtherCountDelta.Value);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoReadBytes)
 {
-    sortResult = uint64cmp(processItem1->IoReadDelta.Value, processItem2->IoReadDelta.Value);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoWriteBytes)
 {
-    sortResult = uint64cmp(processItem1->IoWriteDelta.Value, processItem2->IoWriteDelta.Value);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoOtherBytes)
 {
-    sortResult = uint64cmp(processItem1->IoOtherDelta.Value, processItem2->IoOtherDelta.Value);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoReadsDelta)
 {
-    sortResult = uint64cmp(processItem1->IoReadCountDelta.Delta, processItem2->IoReadCountDelta.Delta);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoWritesDelta)
 {
-    sortResult = uint64cmp(processItem1->IoWriteCountDelta.Delta, processItem2->IoWriteCountDelta.Delta);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoOtherDelta)
 {
-    sortResult = uint64cmp(processItem1->IoOtherCountDelta.Delta, processItem2->IoOtherCountDelta.Delta);
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Value), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Value), &number2);
+
+    sortResult = uint64cmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -2341,7 +2506,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PagedPool)
 {
-    sortResult = uintptrcmp(processItem1->VmCounters.QuotaPagedPoolUsage, processItem2->VmCounters.QuotaPagedPoolUsage);
+    ULONG_PTR number1 = 0;
+    ULONG_PTR number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaPagedPoolUsage), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeIntPtr, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaPagedPoolUsage), &number2);
+
+    sortResult = uintptrcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -2353,7 +2524,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(NonPagedPool)
 {
-    sortResult = uintptrcmp(processItem1->VmCounters.QuotaNonPagedPoolUsage, processItem2->VmCounters.QuotaNonPagedPoolUsage);
+    ULONG_PTR number1 = 0;
+    ULONG_PTR number2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaNonPagedPoolUsage), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeIntPtr, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaNonPagedPoolUsage), &number2);
+
+    sortResult = uintptrcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
@@ -2365,24 +2542,41 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(MinimumWorkingSet)
 {
+    ULONG_PTR number1 = 0;
+    ULONG_PTR number2 = 0;
+
     PhpUpdateProcessNodeQuotaLimits(node1);
     PhpUpdateProcessNodeQuotaLimits(node2);
-    sortResult = uintptrcmp(node1->MinimumWorkingSetSize, node2->MinimumWorkingSetSize);
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &number1);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &number1);
+
+    sortResult = uintptrcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(MaximumWorkingSet)
 {
+    ULONG_PTR number1 = 0;
+    ULONG_PTR number2 = 0;
+
     PhpUpdateProcessNodeQuotaLimits(node1);
     PhpUpdateProcessNodeQuotaLimits(node2);
-    sortResult = uintptrcmp(node1->MaximumWorkingSetSize, node2->MaximumWorkingSetSize);
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number1);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number1);
+
+    sortResult = uintptrcmp(number1, number2);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PrivateBytesDelta)
 {
-    LONG_PTR value1 = processItem1->PrivateBytesDelta.Delta;
-    LONG_PTR value2 = processItem2->PrivateBytesDelta.Delta;
+    LONG_PTR value1 = 0;
+    LONG_PTR value2 = 0;
+
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, PrivateBytesDelta.Delta), &value1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeIntPtr, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, PrivateBytesDelta.Delta), &value2);
 
     // Ignore zero when sorting (dmex)
     if (value1 != 0 && value2 != 0)

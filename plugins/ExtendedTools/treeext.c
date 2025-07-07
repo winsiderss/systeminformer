@@ -906,6 +906,64 @@ VOID EtProcessTreeNewMessage(
     }
 }
 
+FORCEINLINE LONG EtpSortAggregateIfNeeded(
+    _In_ PPH_PROCESS_NODE ProcessNode1,
+    _In_ PET_PROCESS_BLOCK Block1,
+    _In_ PPH_PROCESS_NODE ProcessNode2,
+    _In_ PET_PROCESS_BLOCK Block2,
+    _In_ SIZE_T FieldOffset
+    )
+{
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(ProcessNode1, AggregateTypeInt64, Block1, FieldOffset, &number1);
+    PhpAggregateFieldIfNeeded(ProcessNode2, AggregateTypeInt64, Block2, FieldOffset, &number2);
+
+    return uint64cmp(number1, number2);
+}
+
+#define ET_SORT_AGGREGATE_IF_NEEDED(Field)                                     \
+    EtpSortAggregateIfNeeded(                                                  \
+        node1,                                                                 \
+        block1,                                                                \
+        node2,                                                                 \
+        block2,                                                                \
+        FIELD_OFFSET(ET_PROCESS_BLOCK, Field)                                  \
+        )
+
+FORCEINLINE LONG EtpSortAggregateIfNeeded2(
+    _In_ PPH_PROCESS_NODE ProcessNode1,
+    _In_ PET_PROCESS_BLOCK Block1,
+    _In_ PPH_PROCESS_NODE ProcessNode2,
+    _In_ PET_PROCESS_BLOCK Block2,
+    _In_ SIZE_T FieldOffset1,
+    _In_ SIZE_T FieldOffset2
+    )
+{
+    ULONG64 number1 = 0;
+    ULONG64 number2 = 0;
+
+    PhpAggregateFieldIfNeeded(ProcessNode1, AggregateTypeInt64, Block1, FieldOffset1, &number1);
+    PhpAggregateFieldIfNeeded(ProcessNode1, AggregateTypeInt64, Block1, FieldOffset2, &number1);
+
+    PhpAggregateFieldIfNeeded(ProcessNode2, AggregateTypeInt64, Block2, FieldOffset2, &number2);
+    PhpAggregateFieldIfNeeded(ProcessNode2, AggregateTypeInt64, Block2, FieldOffset2, &number2);
+
+    return uint64cmp(number1, number2);
+}
+
+#define ET_SORT_AGGREGATE_IF_NEEDED_2(Field1, Field2)                          \
+    EtpSortAggregateIfNeeded2(                                                 \
+        node1,                                                                 \
+        block1,                                                                \
+        node2,                                                                 \
+        block2,                                                                \
+        FIELD_OFFSET(ET_PROCESS_BLOCK, Field1),                                \
+        FIELD_OFFSET(ET_PROCESS_BLOCK, Field2)                                 \
+        )
+
+
 LONG EtpProcessTreeNewSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -928,64 +986,64 @@ LONG EtpProcessTreeNewSortFunction(
     switch (SubId)
     {
     case ETPRTNC_DISKREADS:
-        result = uint64cmp(block1->DiskReadCount, block2->DiskReadCount);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(DiskReadCount);
         break;
     case ETPRTNC_DISKWRITES:
-        result = uint64cmp(block1->DiskWriteCount, block2->DiskWriteCount);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(DiskWriteCount);
         break;
     case ETPRTNC_DISKREADBYTES:
-        result = uint64cmp(block1->DiskReadRaw, block2->DiskReadRaw);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(DiskReadRaw);
         break;
     case ETPRTNC_DISKWRITEBYTES:
-        result = uint64cmp(block1->DiskWriteRaw, block2->DiskWriteRaw);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(DiskWriteRaw);
         break;
     case ETPRTNC_DISKTOTALBYTES:
-        result = uint64cmp(block1->DiskReadRaw + block1->DiskWriteRaw, block2->DiskReadRaw + block2->DiskWriteRaw);
+        result = ET_SORT_AGGREGATE_IF_NEEDED_2(DiskReadRaw, DiskWriteRaw);
         break;
     case ETPRTNC_DISKREADSDELTA:
-        result = uint64cmp(block1->DiskReadDelta.Delta, block2->DiskReadDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(DiskReadDelta.Delta);
         break;
     case ETPRTNC_DISKWRITESDELTA:
-        result = uint64cmp(block1->DiskWriteDelta.Delta, block2->DiskWriteDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(DiskWriteDelta.Delta);
         break;
     case ETPRTNC_DISKREADBYTESDELTA:
-        result = uint64cmp(block1->DiskReadRawDelta.Delta, block2->DiskReadRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(DiskReadRawDelta.Delta);
         break;
     case ETPRTNC_DISKWRITEBYTESDELTA:
-        result = uint64cmp(block1->DiskWriteRawDelta.Delta, block2->DiskWriteRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(DiskWriteRawDelta.Delta);
         break;
     case ETPRTNC_DISKTOTALBYTESDELTA:
-        result = uint64cmp(block1->DiskReadRawDelta.Delta + block1->DiskWriteRawDelta.Delta, block2->DiskReadRawDelta.Delta + block2->DiskWriteRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED_2(DiskReadRawDelta.Delta, DiskWriteRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKRECEIVES:
-        result = uint64cmp(block1->NetworkReceiveCount, block2->NetworkReceiveCount);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NetworkReceiveCount);
         break;
     case ETPRTNC_NETWORKSENDS:
-        result = uint64cmp(block1->NetworkSendCount, block2->NetworkSendCount);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NetworkSendCount);
         break;
     case ETPRTNC_NETWORKRECEIVEBYTES:
-        result = uint64cmp(block1->NetworkReceiveRaw, block2->NetworkReceiveRaw);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NetworkReceiveRaw);
         break;
     case ETPRTNC_NETWORKSENDBYTES:
-        result = uint64cmp(block1->NetworkSendRaw, block2->NetworkSendRaw);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NetworkSendRaw);
         break;
     case ETPRTNC_NETWORKTOTALBYTES:
-        result = uint64cmp(block1->NetworkReceiveRaw + block1->NetworkSendRaw, block2->NetworkReceiveRaw + block2->NetworkSendRaw);
+        result = ET_SORT_AGGREGATE_IF_NEEDED_2(NetworkReceiveRaw, NetworkSendRaw);
         break;
     case ETPRTNC_NETWORKRECEIVESDELTA:
-        result = uint64cmp(block1->NetworkReceiveDelta.Delta, block2->NetworkReceiveDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NetworkReceiveDelta.Delta);
         break;
     case ETPRTNC_NETWORKSENDSDELTA:
-        result = uint64cmp(block1->NetworkSendDelta.Delta, block2->NetworkSendDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NetworkSendDelta.Delta);
         break;
     case ETPRTNC_NETWORKRECEIVEBYTESDELTA:
-        result = uint64cmp(block1->NetworkReceiveRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NetworkReceiveRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKSENDBYTESDELTA:
-        result = uint64cmp(block1->NetworkSendRawDelta.Delta, block2->NetworkSendRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NetworkSendRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKTOTALBYTESDELTA:
-        result = uint64cmp(block1->NetworkReceiveRawDelta.Delta + block1->NetworkSendRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta + block2->NetworkSendRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED_2(NetworkReceiveRawDelta.Delta, NetworkSendRawDelta.Delta);
         break;
     case ETPRTNC_HARDFAULTS:
         result = uintcmp(block1->ProcessItem->HardFaultsDelta.Value, block2->ProcessItem->HardFaultsDelta.Value);
@@ -997,43 +1055,43 @@ LONG EtpProcessTreeNewSortFunction(
         result = uintcmp(block1->ProcessItem->PeakNumberOfThreads, block2->ProcessItem->PeakNumberOfThreads);
         break;
     case ETPRTNC_GPU:
-        result = singlecmp(block1->GpuNodeUtilization, block2->GpuNodeUtilization);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(GpuNodeUtilization);
         break;
     case ETPRTNC_GPUDEDICATEDBYTES:
-        result = uint64cmp(block1->GpuDedicatedUsage, block2->GpuDedicatedUsage);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(GpuDedicatedUsage);
         break;
     case ETPRTNC_GPUSHAREDBYTES:
-        result = uint64cmp(block1->GpuSharedUsage, block2->GpuSharedUsage);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(GpuSharedUsage);
         break;
     case ETPRTNC_DISKREADRATE:
-        result = uint64cmp(block1->DiskReadRawDelta.Delta, block2->DiskReadRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(DiskReadRawDelta.Delta);
         break;
     case ETPRTNC_DISKWRITERATE:
-        result = uint64cmp(block1->DiskWriteRawDelta.Delta, block2->DiskWriteRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(DiskWriteRawDelta.Delta);
         break;
     case ETPRTNC_DISKTOTALRATE:
-        result = uint64cmp(block1->DiskReadRawDelta.Delta + block1->DiskWriteRawDelta.Delta, block2->DiskReadRawDelta.Delta + block2->DiskWriteRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED_2(DiskReadRawDelta.Delta, DiskWriteRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKRECEIVERATE:
-        result = uint64cmp(block1->NetworkReceiveRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NetworkReceiveRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKSENDRATE:
-        result = uint64cmp(block1->NetworkSendRawDelta.Delta, block2->NetworkSendRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NetworkSendRawDelta.Delta);
         break;
     case ETPRTNC_NETWORKTOTALRATE:
-        result = uint64cmp(block1->NetworkReceiveRawDelta.Delta + block1->NetworkSendRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta + block2->NetworkSendRawDelta.Delta);
+        result = ET_SORT_AGGREGATE_IF_NEEDED_2(NetworkReceiveRawDelta.Delta, NetworkSendRawDelta.Delta);
         break;
     case ETPRTNC_FPS:
-        result = singlecmp(block1->FramesPerSecond, block2->FramesPerSecond);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(FramesPerSecond);
         break;
     case ETPRTNC_NPU:
-        result = singlecmp(block1->NpuNodeUtilization, block2->NpuNodeUtilization);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NpuNodeUtilization);
         break;
     case ETPRTNC_NPUDEDICATEDBYTES:
-        result = uint64cmp(block1->NpuDedicatedUsage, block2->NpuDedicatedUsage);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NpuDedicatedUsage);
         break;
     case ETPRTNC_NPUSHAREDBYTES:
-        result = uint64cmp(block1->NpuSharedUsage, block2->NpuSharedUsage);
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NpuSharedUsage);
         break;
     }
 
