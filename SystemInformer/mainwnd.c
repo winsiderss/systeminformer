@@ -1053,6 +1053,16 @@ VOID PhMwpOnCommand(
             PhMwpExecuteNotificationSettingsMenuCommand(WindowHandle, Id);
         }
         break;
+    case ID_VIEW_COLLAPSEALL:
+        {
+            PhExpandAllProcessNodes(FALSE);
+        }
+        break;
+    case ID_VIEW_EXPANDALL:
+        {
+            PhExpandAllProcessNodes(TRUE);
+        }
+        break;
     case ID_VIEW_HIDEPROCESSESFROMOTHERUSERS:
         {
             PhMwpToggleCurrentUserProcessTreeFilter();
