@@ -807,6 +807,7 @@
 #define ID_VIEW_ORGANIZECOLUMNSETS      40256
 #define ID_VIEW_SAVECOLUMNSET           40257
 #define ID_VIEW_LOADCOLUMNSET           40258
+#define ID_VIEW_SORTROOTPROCESSES       40262
 #define ID_DIGIT1                       40263
 #define ID_DIGIT2                       40264
 #define ID_DIGIT3                       40265

@@ -1078,6 +1078,11 @@ VOID PhMwpOnCommand(
             PH_SET_INTEGER_CACHED_SETTING(SortChildProcesses, !PhCsSortChildProcesses);
         }
         break;
+    case ID_VIEW_SORTROOTPROCESSES:
+        {
+            PH_SET_INTEGER_CACHED_SETTING(SortRootProcesses, !PhCsSortRootProcesses);
+        }
+        break;
     case ID_VIEW_SHOWCPUBELOW001:
         {
             PH_SET_INTEGER_CACHED_SETTING(ShowCpuBelow001, !PhCsShowCpuBelow001);

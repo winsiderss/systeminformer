@@ -760,7 +760,7 @@ VOID PhTickProcessNodes(
 
     fullyInvalidated = FALSE;
 
-    if (PhCsSortChildProcesses || ProcessTreeListSortOrder != NoSortOrder)
+    if (PhCsSortRootProcesses || PhCsSortChildProcesses || ProcessTreeListSortOrder != NoSortOrder)
     {
         // Force a rebuild to sort the items.
         TreeNew_NodesStructured(ProcessTreeListHandle);
@@ -2752,6 +2752,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     getChildren->Children = (PPH_TREENEW_NODE *)ProcessNodeRootList->Items;
                     getChildren->NumberOfChildren = ProcessNodeRootList->Count;
+                    if (PhCsSortRootProcesses)
+                        sortList = ProcessNodeRootList;
                 }
                 else if (sortOrder == NoSortOrder)
                 {
@@ -2776,6 +2778,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     {
                         getChildren->Children = (PPH_TREENEW_NODE *)ProcessNodeRootList->Items;
                         getChildren->NumberOfChildren = ProcessNodeRootList->Count;
+                        if (PhCsSortRootProcesses)
+                            sortList = ProcessNodeRootList;
                     }
                     else
                     {

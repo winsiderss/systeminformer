@@ -108,6 +108,7 @@ BOOLEAN PhMwpProcessesPageCallback(
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEMICROSOFTPROCESSES, L"Hide &system processes", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scrol&l to new processes", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SORTCHILDPROCESSES, L"Sort &child processes", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SORTROOTPROCESSES, L"Sort &root processes", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU &below 0.01", NULL, NULL), ULONG_MAX);
 
             if (PhGetIntegerSetting(L"HideOtherUserProcesses") && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
@@ -119,6 +120,8 @@ BOOLEAN PhMwpProcessesPageCallback(
             if (PhCsScrollToNewProcesses && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_SCROLLTONEWPROCESSES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
             if (PhCsSortChildProcesses && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_SORTCHILDPROCESSES)))
+                menuItem->Flags |= PH_EMENU_CHECKED;
+            if (PhCsSortRootProcesses && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_SORTROOTPROCESSES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
 
             if (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_SHOWCPUBELOW001))
