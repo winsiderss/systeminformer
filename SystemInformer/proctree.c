@@ -760,7 +760,7 @@ VOID PhTickProcessNodes(
 
     fullyInvalidated = FALSE;
 
-    if (ProcessTreeListSortOrder != NoSortOrder)
+    if (PhCsSortChildProcesses || ProcessTreeListSortOrder != NoSortOrder)
     {
         // Force a rebuild to sort the items.
         TreeNew_NodesStructured(ProcessTreeListHandle);
@@ -937,7 +937,7 @@ static VOID PhpAggregateFieldIfNeeded(
     _Inout_ PVOID AggregatedValue
     )
 {
-    if (!PhCsPropagateCpuUsage || ProcessNode->Node.Expanded || ProcessTreeListSortOrder != NoSortOrder)
+    if (!PhCsPropagateCpuUsage || ProcessNode->Node.Expanded || (!PhCsSortChildProcesses && ProcessTreeListSortOrder != NoSortOrder))
     {
         PhpAccumulateField(AggregatedValue, PhpFieldForAggregate(ProcessNode, Location, FieldOffset), Type);
     }
@@ -5325,7 +5325,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             if (!node)
                 break;
 
-            if (ProcessTreeListSortOrder == NoSortOrder)
+            if (PhCsSortChildProcesses || ProcessTreeListSortOrder == NoSortOrder)
             {
                 // in NoSortOrder we select subtree (TheEragon)
 
