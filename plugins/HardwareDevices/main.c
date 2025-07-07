@@ -691,6 +691,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_DEVICE_ARRIVED_COLOR, L"00ff7f" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHTING_DURATION, L"bb8" }, // 3000ms
                 { IntegerSettingType, SETTING_NAME_DEVICE_SORT_CHILD_DEVICES, L"0" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_SORT_ROOT_DEVICES, L"0" },
             };
 
             WPP_INIT_TRACING(PLUGIN_NAME);

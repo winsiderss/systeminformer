@@ -45,6 +45,7 @@ static BOOLEAN ShowSoftwareComponents = TRUE;
 static BOOLEAN ShowDeviceInterfaces = TRUE;
 static BOOLEAN ShowDisabledDeviceInterfaces = TRUE;
 static BOOLEAN SortChildDevices = FALSE;
+static BOOLEAN SortRootDevices = FALSE;
 static BOOLEAN HighlightUpperFiltered = TRUE;
 static BOOLEAN HighlightLowerFiltered = TRUE;
 static ULONG DeviceProblemColor = 0;
@@ -644,6 +645,8 @@ BOOLEAN NTAPI DeviceTreeCallback(
                     {
                         getChildren->Children = (PPH_TREENEW_NODE*)DeviceTree->Roots->Items;
                         getChildren->NumberOfChildren = DeviceTree->Roots->Count;
+                        if (SortRootDevices)
+                            sortList = DeviceTree->Roots;
                     }
                     else if (sortContext.SortOrder == NoSortOrder)
                     {
@@ -668,6 +671,8 @@ BOOLEAN NTAPI DeviceTreeCallback(
                         {
                             getChildren->Children = (PPH_TREENEW_NODE*)DeviceTree->Roots->Items;
                             getChildren->NumberOfChildren = DeviceTree->Roots->Count;
+                            if (SortRootDevices)
+                                sortList = DeviceTree->Roots;
                         }
                         else
                         {
@@ -1489,6 +1494,7 @@ BOOLEAN DevicesTabPageCallback(
             PPH_EMENU_ITEM showDeviceInterfaces;
             PPH_EMENU_ITEM showDisabledDeviceInterfaces;
             PPH_EMENU_ITEM sortChildDevices;
+            PPH_EMENU_ITEM sortRootDevices;
             PPH_EMENU_ITEM highlightUpperFiltered;
             PPH_EMENU_ITEM highlightLowerFiltered;
 
@@ -1505,8 +1511,9 @@ BOOLEAN DevicesTabPageCallback(
             PhInsertEMenuItem(menu, showDeviceInterfaces = PhPluginCreateEMenuItem(PluginInstance, 0, 104, L"Show device interfaces", NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, showDisabledDeviceInterfaces = PhPluginCreateEMenuItem(PluginInstance, 0, 105, L"Show disabled device interfaces", NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, sortChildDevices = PhPluginCreateEMenuItem(PluginInstance, 0, 106, L"Sort child devices", NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, highlightUpperFiltered = PhPluginCreateEMenuItem(PluginInstance, 0, 107, L"Highlight upper filtered", NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, highlightLowerFiltered = PhPluginCreateEMenuItem(PluginInstance, 0, 108, L"Highlight lower filtered", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, sortRootDevices = PhPluginCreateEMenuItem(PluginInstance, 0, 107, L"Sort root devices", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, highlightUpperFiltered = PhPluginCreateEMenuItem(PluginInstance, 0, 108, L"Highlight upper filtered", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, highlightLowerFiltered = PhPluginCreateEMenuItem(PluginInstance, 0, 109, L"Highlight lower filtered", NULL), ULONG_MAX);
 
             if (AutoRefreshDeviceTree)
                 autoRefresh->Flags |= PH_EMENU_CHECKED;
@@ -1520,6 +1527,8 @@ BOOLEAN DevicesTabPageCallback(
                 showDisabledDeviceInterfaces->Flags |= PH_EMENU_CHECKED;
             if (SortChildDevices)
                 sortChildDevices->Flags |= PH_EMENU_CHECKED;
+            if (SortRootDevices)
+                sortRootDevices->Flags |= PH_EMENU_CHECKED;
             if (HighlightUpperFiltered)
                 highlightUpperFiltered->Flags |= PH_EMENU_CHECKED;
             if (HighlightLowerFiltered)
@@ -1578,11 +1587,16 @@ VOID NTAPI DeviceTreeMenuItemCallback(
         republish = TRUE;
         break;
     case 107:
+        SortRootDevices = !SortRootDevices;
+        PhSetIntegerSetting(SETTING_NAME_DEVICE_SORT_ROOT_DEVICES, SortRootDevices);
+        republish = TRUE;
+        break;
+    case 108:
         HighlightUpperFiltered = !HighlightUpperFiltered;
         PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED, HighlightUpperFiltered);
         invalidate = TRUE;
         break;
-    case 108:
+    case 109:
         HighlightLowerFiltered = !HighlightLowerFiltered;
         PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED, HighlightLowerFiltered);
         invalidate = TRUE;
