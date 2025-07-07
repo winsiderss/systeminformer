@@ -39,20 +39,6 @@ typedef struct _COLUMN_INFO
     BOOLEAN SortDescending;
 } COLUMN_INFO, *PCOLUMN_INFO;
 
-typedef enum _PHP_AGGREGATE_TYPE
-{
-    AggregateTypeFloat,
-    AggregateTypeInt32,
-    AggregateTypeInt64,
-    AggregateTypeIntPtr
-} PHP_AGGREGATE_TYPE;
-
-typedef enum _PHP_AGGREGATE_LOCATION
-{
-    AggregateLocationProcessNode,
-    AggregateLocationProcessItem
-} PHP_AGGREGATE_LOCATION;
-
 static ULONG ProcessTreeListSortColumn;
 static PH_SORT_ORDER ProcessTreeListSortOrder;
 
@@ -142,88 +128,15 @@ VOID EtProcessTreeNewInitializing(
     PhPluginEnableTreeNewNotify(PluginInstance, treeNewInfo->CmData);
 }
 
-// Copied from ProcessHacker\proctree.c
-FORCEINLINE PVOID PhpFieldForAggregate(
-    _In_ PPH_PROCESS_NODE ProcessNode,
-    _In_ PHP_AGGREGATE_LOCATION Location,
-    _In_ SIZE_T FieldOffset
-    )
-{
-    PVOID object;
-
-    switch (Location)
-    {
-    case AggregateLocationProcessNode:
-        object = PhPluginGetObjectExtension(PluginInstance, ProcessNode->ProcessItem, EmProcessNodeType);
-        break;
-    case AggregateLocationProcessItem:
-        object = PhPluginGetObjectExtension(PluginInstance, ProcessNode->ProcessItem, EmProcessItemType);
-        break;
-    default:
-        PhRaiseStatus(STATUS_INVALID_PARAMETER);
-    }
-
-    return PTR_ADD_OFFSET(object, FieldOffset);
-}
-
-// Copied from ProcessHacker\proctree.c
-FORCEINLINE VOID PhpAccumulateField(
-    _Inout_ PVOID Accumulator,
-    _In_ PVOID Value,
-    _In_ PHP_AGGREGATE_TYPE Type
-    )
-{
-    switch (Type)
-    {
-    case AggregateTypeFloat:
-        *(PFLOAT)Accumulator += *(PFLOAT)Value;
-        break;
-    case AggregateTypeInt32:
-        *(PULONG)Accumulator += *(PULONG)Value;
-        break;
-    case AggregateTypeInt64:
-        *(PULONG64)Accumulator += *(PULONG64)Value;
-        break;
-    case AggregateTypeIntPtr:
-        *(PULONG_PTR)Accumulator += *(PULONG_PTR)Value;
-        break;
-    }
-}
-
-// Copied from ProcessHacker\proctree.c
-static VOID PhpAggregateField(
-    _In_ PPH_PROCESS_NODE ProcessNode,
-    _In_ PHP_AGGREGATE_TYPE Type,
-    _In_ PHP_AGGREGATE_LOCATION Location,
-    _In_ SIZE_T FieldOffset,
-    _Inout_ PVOID AggregatedValue
-    )
-{
-    PhpAccumulateField(AggregatedValue, PhpFieldForAggregate(ProcessNode, Location, FieldOffset), Type);
-
-    for (ULONG i = 0; i < ProcessNode->Children->Count; i++)
-    {
-        PhpAggregateField(ProcessNode->Children->Items[i], Type, Location, FieldOffset, AggregatedValue);
-    }
-}
-
-// Copied from ProcessHacker\proctree.c
 static VOID PhpAggregateFieldIfNeeded(
     _In_ PPH_PROCESS_NODE ProcessNode,
-    _In_ PHP_AGGREGATE_TYPE Type,
-    _In_ PHP_AGGREGATE_LOCATION Location,
+    _In_ PH_AGGREGATE_TYPE Type,
+    _In_ PVOID BaseAddress,
     _In_ SIZE_T FieldOffset,
     _Inout_ PVOID AggregatedValue
     )
 {
-    if (!EtPropagateCpuUsage || ProcessNode->Node.Expanded || ProcessTreeListSortOrder != NoSortOrder)
-    {
-        PhpAccumulateField(AggregatedValue, PhpFieldForAggregate(ProcessNode, Location, FieldOffset), Type);
-    }
-    else
-    {
-        PhpAggregateField(ProcessNode, Type, Location, FieldOffset, AggregatedValue);
-    }
+    PhAggregateProcessFieldIfNeeded(ProcessNode, Type, AggregateProcessItem, BaseAddress, FieldOffset, AggregatedValue);
 }
 
 VOID EtProcessTreeNewMessage(
@@ -258,7 +171,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadCount), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadCount), &number);
 
                     EtFormatInt64(number, block, message);
                 }
@@ -267,7 +180,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteCount), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteCount), &number);
 
                     EtFormatInt64(number, block, message);
                 }
@@ -276,7 +189,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRaw), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRaw), &number);
 
                     EtFormatSize(number, block, message);
                 }
@@ -285,7 +198,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRaw), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRaw), &number);
 
                     EtFormatSize(number, block, message);
                 }
@@ -294,8 +207,8 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRaw), &number);
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRaw), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRaw), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRaw), &number);
 
                     EtFormatSize(number, block, message);
                 }
@@ -304,7 +217,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadDelta.Delta), &number);
 
                     EtFormatInt64(number, block, message);
                 }
@@ -313,7 +226,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteDelta.Delta), &number);
 
                     EtFormatInt64(number, block, message);
                 }
@@ -322,7 +235,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta.Delta), &number);
 
                     EtFormatRate(number, block, message);
                 }
@@ -331,7 +244,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta.Delta), &number);
 
                     EtFormatRate(number, block, message);
                 }
@@ -340,8 +253,8 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta.Delta), &number);
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta.Delta), &number);
 
                     EtFormatRate(number, block, message);
                 }
@@ -350,7 +263,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveCount), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveCount), &number);
 
                     EtFormatInt64(number, block, message);
                 }
@@ -359,7 +272,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendCount), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendCount), &number);
 
                     EtFormatInt64(number, block, message);
                 }
@@ -368,7 +281,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRaw), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRaw), &number);
 
                     EtFormatSize(number, block, message);
                 }
@@ -377,7 +290,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRaw), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRaw), &number);
 
                     EtFormatSize(number, block, message);
                 }
@@ -386,8 +299,8 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRaw), &number);
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRaw), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRaw), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRaw), &number);
 
                     EtFormatSize(number, block, message);
                 }
@@ -396,7 +309,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveDelta.Delta), &number);
 
                     EtFormatRate(number, block, message);
                 }
@@ -405,7 +318,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendDelta.Delta), &number);
 
                     EtFormatRate(number, block, message);
                 }
@@ -414,7 +327,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRawDelta.Delta), &number);
 
                     EtFormatSize(number, block, message);
                 }
@@ -423,7 +336,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRawDelta.Delta), &number);
 
                     EtFormatSize(number, block, message);
                 }
@@ -432,8 +345,8 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRawDelta.Delta), &number);
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRawDelta.Delta), &number);
 
                     EtFormatSize(number, block, message);
                 }
@@ -455,7 +368,7 @@ VOID EtProcessTreeNewMessage(
                     PhpAggregateFieldIfNeeded(
                         processNode,
                         AggregateTypeFloat,
-                        AggregateLocationProcessItem,
+                        block,
                         FIELD_OFFSET(ET_PROCESS_BLOCK, GpuNodeUtilization),
                         &gpuUsage
                         );
@@ -471,7 +384,7 @@ VOID EtProcessTreeNewMessage(
                     PhpAggregateFieldIfNeeded(
                         processNode,
                         AggregateTypeInt64,
-                        AggregateLocationProcessItem,
+                        block,
                         FIELD_OFFSET(ET_PROCESS_BLOCK, GpuDedicatedUsage),
                         &gpuDedicatedUsage
                         );
@@ -486,7 +399,7 @@ VOID EtProcessTreeNewMessage(
                     PhpAggregateFieldIfNeeded(
                         processNode,
                         AggregateTypeInt64,
-                        AggregateLocationProcessItem,
+                        block,
                         FIELD_OFFSET(ET_PROCESS_BLOCK, GpuSharedUsage),
                         &gpuSharedUsage
                         );
@@ -498,7 +411,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta.Delta), &number);
 
                     EtFormatRate(number, block, message);
                 }
@@ -507,7 +420,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta.Delta), &number);
 
                     EtFormatRate(number, block, message);
                 }
@@ -516,8 +429,8 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta.Delta), &number);
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta.Delta), &number);
 
                     EtFormatRate(number, block, message);
                 }
@@ -526,7 +439,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRawDelta.Delta), &number);
 
                     EtFormatRate(number, block, message);
                 }
@@ -535,7 +448,7 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRawDelta.Delta), &number);
 
                     EtFormatRate(number, block, message);
                 }
@@ -544,8 +457,8 @@ VOID EtProcessTreeNewMessage(
                 {
                     ULONG64 number = 0;
 
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRawDelta.Delta), &number);
-                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRawDelta.Delta), &number);
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRawDelta.Delta), &number);
 
                     EtFormatRate(number, block, message);
                 }
@@ -557,7 +470,7 @@ VOID EtProcessTreeNewMessage(
                     PhpAggregateFieldIfNeeded(
                         processNode,
                         AggregateTypeFloat,
-                        AggregateLocationProcessItem,
+                        block,
                         FIELD_OFFSET(ET_PROCESS_BLOCK, FramesPerSecond),
                         &frames
                         );
@@ -572,7 +485,7 @@ VOID EtProcessTreeNewMessage(
                     PhpAggregateFieldIfNeeded(
                         processNode,
                         AggregateTypeFloat,
-                        AggregateLocationProcessItem,
+                        block,
                         FIELD_OFFSET(ET_PROCESS_BLOCK, NpuNodeUtilization),
                         &npuUsage
                         );
@@ -588,7 +501,7 @@ VOID EtProcessTreeNewMessage(
                     PhpAggregateFieldIfNeeded(
                         processNode,
                         AggregateTypeInt64,
-                        AggregateLocationProcessItem,
+                        block,
                         FIELD_OFFSET(ET_PROCESS_BLOCK, NpuDedicatedUsage),
                         &npuDedicatedUsage
                         );
@@ -603,7 +516,7 @@ VOID EtProcessTreeNewMessage(
                     PhpAggregateFieldIfNeeded(
                         processNode,
                         AggregateTypeInt64,
-                        AggregateLocationProcessItem,
+                        block,
                         FIELD_OFFSET(ET_PROCESS_BLOCK, NpuSharedUsage),
                         &npuSharedUsage
                         );
