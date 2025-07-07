@@ -594,6 +594,30 @@ VOID DeviceTreeGetSelectedDeviceItems(
     *Devices = PhFinalArrayItems(&array);
 }
 
+VOID DevicesExpandAllNodes(
+    _In_ BOOLEAN Expand
+    )
+{
+    BOOLEAN needsRestructure = FALSE;
+
+    if (!DeviceTree)
+        return;
+
+    for (ULONG i = 0; i < DeviceTree->Nodes->Count; i++)
+    {
+        PDEVICE_NODE node = DeviceTree->Nodes->Items[i];
+
+        if (node->Children->Count != 0 && node->Node.Expanded != Expand)
+        {
+            node->Node.Expanded = Expand;
+            needsRestructure = TRUE;
+        }
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(DeviceTreeHandle);
+}
+
 VOID DeviceTreeUpdateVisibleColumns(
     VOID
     )
@@ -1503,6 +1527,9 @@ BOOLEAN DevicesTabPageCallback(
             menu = PhCreateEMenuItem(0, 0, L"Devices", NULL, NULL);
             PhInsertEMenuItem(menuInfo->Menu, menu, menuInfo->StartIndex);
 
+            PhInsertEMenuItem(menu, PhPluginCreateEMenuItem(PluginInstance, 0, 98, L"Collapse all", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhPluginCreateEMenuItem(PluginInstance, 0, 99, L"Expand all", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, PhPluginCreateEMenuItem(PluginInstance, 0, 100, L"Refresh", NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, autoRefresh = PhPluginCreateEMenuItem(PluginInstance, 0, 101, L"Refresh automatically", NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -1554,6 +1581,12 @@ VOID NTAPI DeviceTreeMenuItemCallback(
 
     switch (menuItem->Id)
     {
+    case 98:
+        DevicesExpandAllNodes(FALSE);
+        break;
+    case 99:
+        DevicesExpandAllNodes(TRUE);
+        break;
     case 100:
         republish = TRUE;
         break;
