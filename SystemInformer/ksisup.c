@@ -548,7 +548,8 @@ VOID PhShowKsiMessage(
 
 VOID KsiCreateRandomizedName(
     _In_ PCWSTR Prefix,
-    _Out_ PPH_STRING* Name
+    _Out_ PPH_STRING* Name,
+    _In_ BOOLEAN Numeric
     )
 {
     ULONG length;
@@ -556,7 +557,10 @@ VOID KsiCreateRandomizedName(
 
     length = (PhGenerateRandomNumber64() % 6) + 8; // 8-12 characters
 
-    PhGenerateRandomAlphaString(buffer, length);
+    if (Numeric)
+        PhGenerateRandomNumericString(buffer, length);
+    else
+        PhGenerateRandomAlphaString(buffer, length);
 
     *Name = PhConcatStrings2(Prefix, buffer);
 }
@@ -577,7 +581,7 @@ NTSTATUS KsiSvcConnectToServer(
     if (!(fileName = PhGetApplicationFileNameWin32()))
         return STATUS_UNSUCCESSFUL;
 
-    KsiCreateRandomizedName(L"SystemInformer_", &serviceName);
+    KsiCreateRandomizedName(L"SystemInformer_", &serviceName, FALSE);
 
     commandLine = PhFormatString(
         L"\"%s\" -ras \"%s\"",
@@ -1208,6 +1212,7 @@ VOID KsiConnect(
         PPH_STRING randomServiceName;
         PPH_STRING randomPortName;
         PPH_STRING randomObjectName;
+        PPH_STRING randomAltitude;
 
         //
         // Malware might be blocking the driver load. Offer the user a chance
@@ -1226,15 +1231,17 @@ VOID KsiConnect(
             goto CleanupExit;
         }
 
-        KsiCreateRandomizedName(L"", &randomServiceName);
-        KsiCreateRandomizedName(L"\\", &randomPortName);
-        KsiCreateRandomizedName(L"\\Driver\\", &randomObjectName);
+        KsiCreateRandomizedName(L"", &randomServiceName, FALSE);
+        KsiCreateRandomizedName(L"\\", &randomPortName, FALSE);
+        KsiCreateRandomizedName(L"\\Driver\\", &randomObjectName, FALSE);
+        KsiCreateRandomizedName(L"385210.5", &randomAltitude, TRUE);
 
         config.EnableNativeLoad = TRUE;
         config.EnableFilterLoad = FALSE;
         config.ServiceName = &randomServiceName->sr;
         config.PortName = &randomPortName->sr;
         config.ObjectName = &randomObjectName->sr;
+        config.Altitude = &randomAltitude->sr;
 
         PhMoveReference(&KsiServiceName, PhReferenceObject(randomServiceName));
         PhMoveReference(&KsiObjectName, PhReferenceObject(randomObjectName));
@@ -1255,6 +1262,7 @@ VOID KsiConnect(
             PhSetStringSetting2(L"KsiServiceName", &randomServiceName->sr);
             PhSetStringSetting2(L"KsiPortName", &randomPortName->sr);
             PhSetStringSetting2(L"KsiObjectName", &randomObjectName->sr);
+            PhSetStringSetting2(L"KsiAltitude", &randomAltitude->sr);
 
             PhSaveSettings2(PhSettingsFileName);
 
@@ -1271,6 +1279,7 @@ VOID KsiConnect(
         PhDereferenceObject(randomServiceName);
         PhDereferenceObject(randomPortName);
         PhDereferenceObject(randomObjectName);
+        PhDereferenceObject(randomAltitude);
     }
 
     if (!NT_SUCCESS(status))
