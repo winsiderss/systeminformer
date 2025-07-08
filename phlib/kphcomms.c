@@ -41,11 +41,26 @@ PH_RUNDOWN_PROTECT KphpCommsRundown;
 PH_FREE_LIST KphpCommsReplyFreeList;
 HANDLE KphpCommsRingBufferThread = NULL;
 KPH_RING_BUFFER_CONNECT KphpCommsRingBuffer = { 0 };
+ULONG KphpCommsTlsSlot = TLS_OUT_OF_INDEXES;
 
-#define KPH_COMMS_MIN_THREADS   2
-#define KPH_COMMS_MESSAGE_SCALE 2
-#define KPH_COMMS_THREAD_SCALE  2
-#define KPH_COMMS_MAX_MESSAGES  1024
+#define KPH_COMMS_MIN_THREADS           2
+#define KPH_COMMS_MESSAGE_SCALE         2
+#define KPH_COMMS_THREAD_SCALE          2
+#define KPH_COMMS_MAX_MESSAGES          1024
+#define KPH_COMMS_THREAD_PROPERTIES_SET UlongToPtr(1)
+
+VOID KphpCommsSetThreadProperties(
+    _In_z_ PCWSTR ThreadName,
+    _In_ KPRIORITY Priority
+    )
+{
+    if (PhTlsGetValue(KphpCommsTlsSlot) != KPH_COMMS_THREAD_PROPERTIES_SET)
+    {
+        PhSetThreadName(NtCurrentThread(), ThreadName);
+        PhSetThreadBasePriority(NtCurrentThread(), Priority);
+        PhTlsSetValue(KphpCommsTlsSlot, KPH_COMMS_THREAD_PROPERTIES_SET);
+    }
+}
 
 /**
  * \brief Unhandled communications callback.
@@ -103,6 +118,8 @@ VOID WINAPI KphpCommsIoCallback(
 
     if (!PhAcquireRundownProtection(&KphpCommsRundown))
         return;
+
+    KphpCommsSetThreadProperties(L"Message Processor", THREAD_PRIORITY_HIGHEST);
 
     msg = CONTAINING_RECORD(ApcContext, KPH_UMESSAGE, Overlapped);
 
@@ -219,6 +236,7 @@ NTSTATUS NTAPI KphpRingBufferProcessor(
     _In_ PVOID Context
     )
 {
+    KphpCommsSetThreadProperties(L"Message Ring Processor", THREAD_PRIORITY_ABOVE_NORMAL);
     KphProcessRingBuffer(&KphpCommsRingBuffer.Ring, KphpRingBufferCallback, NULL);
     return STATUS_SUCCESS;
 }
@@ -310,6 +328,13 @@ NTSTATUS KphCommsStart(
 
     PhInitializeRundownProtection(&KphpCommsRundown);
     PhInitializeFreeList(&KphpCommsReplyFreeList, sizeof(KPH_UREPLY), 16);
+
+    KphpCommsTlsSlot = PhTlsAlloc();
+    if (KphpCommsTlsSlot == TLS_OUT_OF_INDEXES)
+    {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto CleanupExit;
+    }
 
     if (RingBufferLength)
     {
@@ -457,6 +482,12 @@ VOID KphCommsStop(
 
         PhFree(KphpCommsMessages);
         KphpCommsMessages = NULL;
+    }
+
+    if (KphpCommsTlsSlot != TLS_OUT_OF_INDEXES)
+    {
+        PhTlsFree(KphpCommsTlsSlot);
+        KphpCommsTlsSlot = TLS_OUT_OF_INDEXES;
     }
 
     PhDeleteFreeList(&KphpCommsReplyFreeList);
