@@ -56,7 +56,6 @@ KphCommsIsConnected(
     VOID
     );
 
-_Must_inspect_result_
 NTSTATUS
 NTAPI
 KphCommsReplyMessage(

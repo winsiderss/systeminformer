@@ -444,7 +444,6 @@ BOOLEAN KphCommsIsConnected(
  *
  * \return Successful or errant status.
  */
-_Use_decl_annotations_
 NTSTATUS KphCommsReplyMessage(
     _In_ ULONG_PTR ReplyToken,
     _In_ PKPH_MESSAGE Message
@@ -516,7 +515,7 @@ CleanupExit:
  *
  * \return Successful or errant status.
  */
-_Use_decl_annotations_
+_Must_inspect_result_
 NTSTATUS KphCommsSendMessage(
     _Inout_ PKPH_MESSAGE Message
     )
