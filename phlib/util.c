@@ -1414,6 +1414,34 @@ VOID PhGenerateRandomAlphaString(
     Buffer[Count - 1] = UNICODE_NULL;
 }
 
+/**
+ * Fills a buffer with random numeric characters.
+ *
+ * \param Buffer The buffer to fill with random characters, plus a null terminator.
+ * \param Count The number of characters available in the buffer, including space for the null
+ * terminator.
+ */
+VOID PhGenerateRandomNumericString(
+    _Out_writes_z_(Count) PWSTR Buffer,
+    _In_ SIZE_T Count
+    )
+{
+    ULARGE_INTEGER seed;
+    ULONG i;
+
+    if (Count == 0)
+        return;
+
+    seed.QuadPart = PhReadPerformanceCounter();
+
+    for (i = 0; i < Count - 1; i++)
+    {
+        Buffer[i] = L'0' + (RtlRandomEx(&seed.LowPart) % 10);
+    }
+
+    Buffer[Count - 1] = UNICODE_NULL;
+}
+
 ULONG64 PhGenerateRandomNumber64(
     VOID
     )

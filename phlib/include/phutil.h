@@ -680,6 +680,15 @@ PhGenerateRandomAlphaString(
     _In_ SIZE_T Count
     );
 
+
+PHLIBAPI
+VOID
+NTAPI
+PhGenerateRandomNumericString(
+    _Out_writes_z_(Count) PWSTR Buffer,
+    _In_ SIZE_T Count
+    );
+
 FORCEINLINE
 VOID
 PhGenerateRandomAlphaStringRef(
