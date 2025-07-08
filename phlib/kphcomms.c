@@ -87,6 +87,7 @@ VOID KphpCommsCallbackUnhandled(
  * \param[in] IoSB Result of the asynchronous I/O operation.
  * \param[in,out] Io Unused
  */
+_Function_class_(TP_IO_CALLBACK)
 VOID WINAPI KphpCommsIoCallback(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID Context,
@@ -213,6 +214,7 @@ Exit:
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI KphpRingBufferProcessor(
     _In_ PVOID Context
     )
@@ -497,7 +499,6 @@ BOOLEAN KphCommsIsConnected(
  *
  * \return Successful or errant status.
  */
-_Use_decl_annotations_
 NTSTATUS KphCommsReplyMessage(
     _In_ ULONG_PTR ReplyToken,
     _In_ PKPH_MESSAGE Message
@@ -569,7 +570,7 @@ CleanupExit:
  *
  * \return Successful or errant status.
  */
-_Use_decl_annotations_
+_Must_inspect_result_
 NTSTATUS KphCommsSendMessage(
     _Inout_ PKPH_MESSAGE Message
     )
