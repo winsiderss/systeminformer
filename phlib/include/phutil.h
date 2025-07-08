@@ -680,6 +680,15 @@ PhGenerateRandomAlphaString(
     _In_ SIZE_T Count
     );
 
+
+PHLIBAPI
+VOID
+NTAPI
+PhGenerateRandomNumericString(
+    _Out_writes_z_(Count) PWSTR Buffer,
+    _In_ SIZE_T Count
+    );
+
 FORCEINLINE
 VOID
 PhGenerateRandomAlphaStringRef(
@@ -2322,7 +2331,7 @@ PhGetNanosecondsStopwatch(
 {
     DOUBLE elapsedNanoseconds;
 
-    // Convert to nanoseconds before dividing by ticks-per-second.  
+    // Convert to nanoseconds before dividing by ticks-per-second.
     elapsedNanoseconds = (DOUBLE)(Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart);
     elapsedNanoseconds *= 1000000000.0;
     elapsedNanoseconds /= (DOUBLE)Stopwatch->Frequency.QuadPart;
