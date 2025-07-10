@@ -398,7 +398,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_KSI_RING_BUFFER_LENGTH, L"4000000"); // bytes
 
     PhpAddIntegerSetting(SETTING_ENABLE_PROCESS_MONITOR, L"0");
-    PhpAddIntegerSetting(SETTING_PROCESS_MONITOR_LOOKBACK, L"a");
+    PhpAddIntegerSetting(SETTING_PROCESS_MONITOR_LOOKBACK, L"1e");
+    PhpAddIntegerSetting(SETTING_PROCESS_MONITOR_CACHE_LIMIT, L"20000");
 }
 
 VOID PhUpdateCachedSettings(
@@ -496,4 +497,5 @@ VOID PhUpdateCachedSettings(
 
     PhEnableProcessMonitor = !!PhGetIntegerSetting(SETTING_ENABLE_PROCESS_MONITOR);
     PhProcessMonitorLookback = PhGetIntegerSetting(SETTING_PROCESS_MONITOR_LOOKBACK);
+    PhProcessMonitorCacheLimit = PhGetIntegerSetting(SETTING_PROCESS_MONITOR_CACHE_LIMIT);
 }
