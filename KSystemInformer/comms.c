@@ -1497,7 +1497,12 @@ Exit:
  * \brief Sends a message to a specific client.
  *
  * \param[in] Client The client to send the message to.
- * \param[in] Message The message to send.
+ * \param[in] Message The message to send. May contain multiple messages if
+ * the send is originating from the asynchronous message queue and the
+ * asynchronous message queue has coalesced multiple messages into one.
+ * \param[in] Length The length of the message to send. May constitute multiple
+ * messages if the send is originating from the asynchronous message queue and
+ * the asynchronous message queue has coalesced multiple messages into one.
  * \param[out] Reply The reply from last client.
  * \param[in] FromAsyncQueue If TRUE the message is being sent from the
  * asynchronous message queue, otherwise FALSE.
@@ -1506,6 +1511,7 @@ _IRQL_requires_max_(APC_LEVEL)
 VOID KphpCommsSendMessage(
     _In_ PKPH_CLIENT Client,
     _In_ PKPH_MESSAGE Message,
+    _In_ ULONG Length,
     _Inout_opt_ PKPH_MESSAGE Reply,
     _In_ BOOLEAN FromAsyncQueue
     )
@@ -1538,6 +1544,7 @@ VOID KphpCommsSendMessage(
         PKPH_MESSAGE async;
 
         NT_ASSERT(!FromAsyncQueue);
+        NT_ASSERT(Message->Header.Size == Length);
 
         //
         // This is a precaution to prevent a bottleneck. In this case the kernel
@@ -1577,19 +1584,30 @@ VOID KphpCommsSendMessage(
         return;
     }
 
-    KphTracePrint(TRACE_LEVEL_VERBOSE,
-                  COMMS,
-                  "Sending message (%lu - %!TIME!) to client: %wZ (%lu)",
-                  (ULONG)Message->Header.MessageId,
-                  Message->Header.TimeStamp.QuadPart,
-                  &Client->Process->ImageName,
-                  HandleToULong(Client->Process->ProcessId));
+    for (ULONG offset = 0; offset < Length; NOTHING)
+    {
+        PKPH_MESSAGE message;
+
+        NT_ASSERT(offset < sizeof(KPH_MESSAGE));
+
+        message = Add2Ptr(Message, offset);
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "Sending message (%lu - %!TIME!) to client: %wZ (%lu)",
+                      (ULONG)message->Header.MessageId,
+                      message->Header.TimeStamp.QuadPart,
+                      &Client->Process->ImageName,
+                      HandleToULong(Client->Process->ProcessId));
+
+        offset += message->Header.Size;
+    }
 
     timeout = KphpGetTimeoutForMessage(Client, Message, FromAsyncQueue);
 
     status = KphpFltSendMessage(&Client->Port,
                                 Message,
-                                Message->Header.Size,
+                                Length,
                                 reply,
                                 (reply ? &replyLength : NULL),
                                 &timeout);
@@ -1644,33 +1662,89 @@ VOID KphpCommsSendMessage(
 }
 
 /**
- * \brief Processes message queue items.
+ * \brief Attempts to coalesce consecutive items in a message queue to minimize
+ * the number of individual message transactions.
+ *
+ * \details This function optimizes message transmission by combining compatible
+ * items from the queue into a single message. If coalescing is not possible,
+ * it simply returns the next item to be sent as-is.
  *
  * \param[in] Items The items to process.
  * \param[in] Count The number of items to process.
+ * \param[in,out] Index The index of the first item to consider for coalescing.
+ * Incremented for each coalesced item.
+ * \param[out] Length Receives the length (in bytes) of the message to send,
+ * including any coalesced items.
+ * \param[out] Rundown Set to TRUE if rundown is active, FALSE otherwise.
  *
- * \return TRUE if rundown is active, FALSE otherwise.
+ * \return The next item to send, NULL otherwise.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN KphpMessageQueueProcessItems(
+_Must_inspect_result_
+PKPHM_QUEUE_ITEM KphpMessageQueueCoalesceItems(
     _In_reads_(Count) PLIST_ENTRY* Items,
-    _In_ ULONG Count
+    _In_ ULONG Count,
+    _Inout_ PULONG Index,
+    _Out_ PULONG Length,
+    _Out_ PBOOLEAN Rundown
     )
 {
     NTSTATUS status;
-    PLIST_ENTRY entry;
-    PKPHM_QUEUE_ITEM item;
-    BOOLEAN rundown;
+    PKPHM_QUEUE_ITEM first;
+    ULONG coalescedCount;
+    ULONG remainingLength;
+    PVOID messagePointer;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    rundown = FALSE;
+    NT_ASSERT(*Index < Count);
 
-    for (ULONG i = 0; i < Count; i++)
+    *Rundown = FALSE;
+
+    first = NULL;
+    remainingLength = sizeof(KPH_MESSAGE);
+    coalescedCount = 0;
+
+    status = (NTSTATUS)(LONG_PTR)Items[*Index];
+
+    if ((status == STATUS_TIMEOUT) ||
+        (status == STATUS_USER_APC))
     {
-        entry = Items[i];
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      COMMS,
+                      "Unexpected queue status: %!STATUS!",
+                      status);
 
-        status = (NTSTATUS)(LONG_PTR)entry;
+        goto Exit;
+    }
+
+    if (status == STATUS_ABANDONED)
+    {
+        //
+        // The rundown logic is responsible for draining/servicing the
+        // remaining queue items.
+        //
+        KphTracePrint(TRACE_LEVEL_INFORMATION,
+                      COMMS,
+                      "Message queue running down");
+
+        *Rundown = TRUE;
+        goto Exit;
+    }
+
+    first = CONTAINING_RECORD(Items[*Index], KPHM_QUEUE_ITEM, Entry);
+
+    NT_ASSERT(first);
+
+    messagePointer = Add2Ptr(first->Message, first->Message->Header.Size);
+    remainingLength = (sizeof(KPH_MESSAGE) - first->Message->Header.Size);
+
+    for (ULONG i = (*Index + 1); i < Count; i++)
+    {
+        PKPHM_QUEUE_ITEM item;
+        BOOLEAN clientsMatch;
+
+        status = (NTSTATUS)(LONG_PTR)Items[i];
 
         if ((status == STATUS_TIMEOUT) ||
             (status == STATUS_USER_APC))
@@ -1693,21 +1767,122 @@ BOOLEAN KphpMessageQueueProcessItems(
                           COMMS,
                           "Message queue running down");
 
-            rundown = TRUE;
+            *Rundown = TRUE;
+            goto Exit;
+        }
+
+        item = CONTAINING_RECORD(Items[i], KPHM_QUEUE_ITEM, Entry);
+
+        NT_ASSERT(item);
+
+        //
+        // Verify that the client list matches and there is sufficient room to
+        // coalesce this message into the first.
+        //
+
+        if (first->TargetClientCount != item->TargetClientCount)
+        {
             break;
         }
 
-        item = CONTAINING_RECORD(entry, KPHM_QUEUE_ITEM, Entry);
+        clientsMatch = TRUE;
 
-        for (ULONG j = 0; j < item->TargetClientCount; j++)
+        for (ULONG j = 0; j < first->TargetClientCount; j++)
         {
-            KphpCommsSendMessage(item->TargetClients[j],
-                                 item->Message,
-                                 NULL,
-                                 TRUE);
+            if (first->TargetClients[j] != item->TargetClients[j])
+            {
+                clientsMatch = FALSE;
+                break;
+            }
         }
 
+        if (!clientsMatch)
+        {
+            break;
+        }
+
+        if (remainingLength < item->Message->Header.Size)
+        {
+            break;
+        }
+
+        RtlCopyMemory(messagePointer,
+                      item->Message,
+                      item->Message->Header.Size);
+
+        messagePointer = Add2Ptr(messagePointer, item->Message->Header.Size);
+        remainingLength -= item->Message->Header.Size;
+
+        (*Index)++;
+        coalescedCount++;
+
         KphpFreeMessageQueueItem(item);
+    }
+
+Exit:
+
+    *Length = (sizeof(KPH_MESSAGE) - remainingLength);
+
+    if (coalescedCount)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "Coalesced %lu messages (%lu bytes)",
+                      coalescedCount + 1,
+                      *Length);
+    }
+
+    return first;
+}
+
+/**
+ * \brief Processes message queue items.
+ *
+ * \param[in] Items The items to process.
+ * \param[in] Count The number of items to process.
+ *
+ * \return TRUE if rundown is active, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphpMessageQueueProcessItems(
+    _In_reads_(Count) PLIST_ENTRY* Items,
+    _In_ ULONG Count
+    )
+{
+    BOOLEAN rundown;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    rundown = FALSE;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        PKPHM_QUEUE_ITEM item;
+        ULONG length;
+
+        item = KphpMessageQueueCoalesceItems(Items,
+                                             Count,
+                                             &i,
+                                             &length,
+                                             &rundown);
+        if (item)
+        {
+            for (ULONG j = 0; j < item->TargetClientCount; j++)
+            {
+                KphpCommsSendMessage(item->TargetClients[j],
+                                     item->Message,
+                                     length,
+                                     NULL,
+                                     TRUE);
+            }
+
+            KphpFreeMessageQueueItem(item);
+        }
+
+        if (rundown)
+        {
+            break;
+        }
     }
 
     return rundown;
@@ -2084,7 +2259,11 @@ NTSTATUS KphCommsSendMessage(
 
     for (ULONG i = 0; i < clientCount; i++)
     {
-        KphpCommsSendMessage(clients[i], Message, Reply, FALSE);
+        KphpCommsSendMessage(clients[i],
+                             Message,
+                             Message->Header.Size,
+                             Reply,
+                             FALSE);
 
         KphDereferenceObject(clients[i]);
 
