@@ -48,7 +48,8 @@ EXTERN_C ULONG WindowsVersion;
 #define WINDOWS_11_22H2 115 // September, 2022  // Build 22621
 #define WINDOWS_11_23H2 116 // October, 2023    // Build 22631
 #define WINDOWS_11_24H2 117 // October, 2024    // Build 26100
-#define WINDOWS_MAX WINDOWS_11_24H2
+#define WINDOWS_11_25H2 118 // October, 2025    // Build 26200
+#define WINDOWS_MAX WINDOWS_11_25H2
 #define WINDOWS_NEW ULONG_MAX
 
 #ifdef DEBUG
