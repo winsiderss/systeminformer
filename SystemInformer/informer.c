@@ -19,6 +19,13 @@
 
 #include <informer.h>
 
+typedef struct _PH_INFORMER_DB_REAP
+{
+    ULONG64 ProcessStartKey;
+    ULONG64 MaxCount;
+    ULONG Seconds;
+} PH_INFORMER_DB_REAP, *PPH_INFORMER_DB_REAP;
+
 typedef int SQLITE_APICALL sqlite3_open_v2_fn(
   const char *filename,   /* Database filename (UTF-8) */
   sqlite3 **ppDb,         /* OUT: SQLite db handle */
@@ -61,10 +68,13 @@ static PPH_OBJECT_TYPE KphMessageObjectType = NULL;
 static PH_CALLBACK_REGISTRATION PhpInformerProcessesUpdatedRegistration;
 static PH_CALLBACK_REGISTRATION PhpInformerProcessesRemovedRegistration;
 
+static PH_FREE_LIST PhpInformerReapFreeList;
 static PH_QUEUED_LOCK PhpInformerDatabaseLock = PH_QUEUED_LOCK_INIT;
 static sqlite3* PhpInformerDB = NULL;
 static sqlite3_stmt* PhpInformerDBInsert = NULL;
-static sqlite3_stmt* PhpInformerDBReap = NULL;
+static sqlite3_stmt* PhpInformerDBQueryCount = NULL;
+static sqlite3_stmt* PhpInformerDBReapMax = NULL;
+static sqlite3_stmt* PhpInformerDBReapTime = NULL;
 static sqlite3_stmt* PhpInformerDBReapProc = NULL;
 static sqlite3_stmt* PhpInformerDBQuery = NULL;
 static sqlite3_stmt* PhpInformerDBQueryProc = NULL;
@@ -147,6 +157,20 @@ VOID PhpInformerGetKeys(
     }
 }
 
+ULONG64 PhpInformerDatabaseQueryCountUnsafe(
+    VOID
+    )
+{
+    ULONG64 count = 0;
+
+    if (sqlite3_step_I(PhpInformerDBQueryCount) == SQLITE_ROW)
+        count = sqlite3_column_int64_I(PhpInformerDBQueryCount, 0);
+
+    sqlite3_reset_I(PhpInformerDBQueryCount);
+
+    return count;
+}
+
 VOID PhpInformerDatabaseInsert(
     _In_ PKPH_MESSAGE Message
     )
@@ -172,36 +196,42 @@ VOID PhpInformerDatabaseInsert(
 }
 
 VOID PhpInformerDatabaseReap(
-    _In_ ULONG64 ProcessStartKey,
-    _In_ ULONG Seconds
+    _In_ PPH_INFORMER_DB_REAP Reap
     )
 {
     LARGE_INTEGER systemTime;
 
-    if (PhpInformerDBReap && PhpInformerDBReapProc)
+    PhAcquireQueuedLockExclusive(&PhpInformerDatabaseLock);
+
+    if (PhpInformerDBReapProc && Reap->ProcessStartKey)
+    {
+        sqlite3_bind_int64_I(PhpInformerDBReapProc, 1, Reap->ProcessStartKey);
+        sqlite3_bind_int64_I(PhpInformerDBReapProc, 2, Reap->ProcessStartKey);
+        sqlite3_step_I(PhpInformerDBReapProc);
+        sqlite3_reset_I(PhpInformerDBReapProc);
+    }
+
+    if (PhpInformerDBReapTime && Reap->Seconds)
     {
         KphMsgQuerySystemTime(&systemTime);
-        systemTime.QuadPart -= (LONG64)Seconds * 10000000;
+        systemTime.QuadPart -= (LONG64)Reap->Seconds * 10000000;
 
-        PhAcquireQueuedLockExclusive(&PhpInformerDatabaseLock);
-
-        if (ProcessStartKey)
-        {
-            sqlite3_bind_int64_I(PhpInformerDBReapProc, 1, ProcessStartKey);
-            sqlite3_bind_int64_I(PhpInformerDBReapProc, 2, ProcessStartKey);
-            sqlite3_bind_int64_I(PhpInformerDBReapProc, 3, systemTime.QuadPart);
-            sqlite3_step_I(PhpInformerDBReapProc);
-            sqlite3_reset_I(PhpInformerDBReapProc);
-        }
-        else
-        {
-            sqlite3_bind_int64_I(PhpInformerDBReap, 1, systemTime.QuadPart);
-            sqlite3_step_I(PhpInformerDBReap);
-            sqlite3_reset_I(PhpInformerDBReap);
-        }
-
-        PhReleaseQueuedLockExclusive(&PhpInformerDatabaseLock);
+        sqlite3_bind_int64_I(PhpInformerDBReapTime, 1, systemTime.QuadPart);
+        sqlite3_step_I(PhpInformerDBReapTime);
+        sqlite3_reset_I(PhpInformerDBReapTime);
     }
+
+    if (PhpInformerDBReapMax && Reap->MaxCount)
+    {
+        if (PhpInformerDatabaseQueryCountUnsafe() > Reap->MaxCount)
+        {
+            sqlite3_bind_int64_I(PhpInformerDBReapMax, 1, Reap->MaxCount);
+            sqlite3_step_I(PhpInformerDBReapMax);
+            sqlite3_reset_I(PhpInformerDBReapMax);
+        }
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpInformerDatabaseLock);
 }
 
 PPH_LIST PhInformerDatabaseQuery(
@@ -231,7 +261,7 @@ PPH_LIST PhInformerDatabaseQuery(
         {
             sqlite3_bind_int64_I(PhpInformerDBQueryProc, 1, ProcessStartKey);
             sqlite3_bind_int64_I(PhpInformerDBQueryProc, 2, ProcessStartKey);
-            sqlite3_bind_int64_I(PhpInformerDBQuery, 3, timeStamp.QuadPart);
+            sqlite3_bind_int64_I(PhpInformerDBQueryProc, 3, timeStamp.QuadPart);
 
             while (sqlite3_step_I(PhpInformerDBQueryProc) == SQLITE_ROW)
             {
@@ -344,6 +374,7 @@ VOID PhpInitializeInformerDatabase(
             "PRAGMA journal_mode = OFF;"
             "DROP TABLE IF EXISTS messages;"
             "CREATE TABLE messages("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "time_stamp INTEGER NOT NULL,"
             "actor_key INTEGER NOT NULL,"
             "target_key INTEGER NOT NULL,"
@@ -415,17 +446,38 @@ VOID PhpInitializeInformerDatabase(
 
             sqlite3_prepare_v2_I(
                 PhpInformerDB,
-                "DELETE FROM messages "
-                "WHERE time_stamp < ?;",
+                "SELECT COUNT(*) FROM messages;",
                 -1,
-                &PhpInformerDBReap,
+                &PhpInformerDBQueryCount,
                 NULL
                 );
 
             sqlite3_prepare_v2_I(
                 PhpInformerDB,
                 "DELETE FROM messages "
-                "WHERE (actor_key = ? OR target_key = ?) AND time_stamp < ?;",
+                "WHERE id IN ("
+                "    SELECT id FROM messages "
+                "    ORDER BY id ASC "
+                "    LIMIT (SELECT COUNT(*) - ? FROM messages)"
+                ");",
+                -1,
+                &PhpInformerDBReapMax,
+                NULL
+                );
+
+            sqlite3_prepare_v2_I(
+                PhpInformerDB,
+                "DELETE FROM messages "
+                "WHERE time_stamp < ?;",
+                -1,
+                &PhpInformerDBReapTime,
+                NULL
+                );
+
+            sqlite3_prepare_v2_I(
+                PhpInformerDB,
+                "DELETE FROM messages "
+                "WHERE actor_key = ? OR target_key = ?;",
                 -1,
                 &PhpInformerDBReapProc,
                 NULL
@@ -494,39 +546,57 @@ BOOLEAN PhInformerDispatch(
     return context.Handled;
 }
 
-static VOID NTAPI PhpInformerProcessUpdatedHandler(
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI PhpInformerReapWorkItemRoutine(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_INFORMER_DB_REAP reap = Parameter;
+
+    PhpInformerDatabaseReap(reap);
+
+    PhFreeToFreeList(&PhpInformerReapFreeList, reap);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI PhpInformerProcessUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     )
 {
     ULONG runCount = PtrToUlong(Parameter);
+    PPH_INFORMER_DB_REAP reap;
+
+    reap = PhAllocateFromFreeList(&PhpInformerReapFreeList);
 
     //
-    // TODO investigate enqueue of the reap activity to get out of the callback.
+    // We cache the process monitor data for a lookback period so when a user
+    // desires to inspect real time activity for a process we can provide a
+    // reasonable amount of historical data. Here, reap the information that has
+    // expired from the configured lookback period. We also configure a cache
+    // limit which enforces a maximum on the total number of retained messages.
     //
 
-    if (runCount % PhProcessMonitorLookback == 0)
-    {
-        //
-        // We cache the process monitor data for a lookback period so when a
-        // user desires to inspect real time activity for a process we can
-        // provide a reasonable amount of historical data. Here, reap the
-        // information that has expired from the configured lookback period.
-        //
-        PhpInformerDatabaseReap(0, PhProcessMonitorLookback);
-    }
+    reap->ProcessStartKey = 0;
+    reap->MaxCount = PhProcessMonitorCacheLimit;
+
+    if (PhProcessMonitorLookback && runCount % PhProcessMonitorLookback == 0)
+        reap->Seconds = PhProcessMonitorLookback;
+
+    if (!NT_SUCCESS(PhQueueUserWorkItem(PhpInformerReapWorkItemRoutine, reap)))
+        PhFreeToFreeList(&PhpInformerReapFreeList, reap);
 }
 
-static VOID NTAPI PhpInformerProcessRemovedHandler(
+_Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI PhpInformerProcessRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
-
-    //
-    // TODO investigate enqueue of the reap activity to get out of the callback.
-    //
+    PPH_INFORMER_DB_REAP reap;
 
     if (processItem->ProcessStartKey)
     {
@@ -541,7 +611,15 @@ static VOID NTAPI PhpInformerProcessRemovedHandler(
         // the database to reap what it can. Anything missed will be reaped by
         // the periodic lookback reaper.
         //
-        PhpInformerDatabaseReap(processItem->ProcessStartKey, 0);
+
+        reap = PhAllocateFromFreeList(&PhpInformerReapFreeList);
+
+        reap->ProcessStartKey = processItem->ProcessStartKey;
+        reap->MaxCount = 0;
+        reap->Seconds = 0;
+
+        if (!NT_SUCCESS(PhQueueUserWorkItem(PhpInformerReapWorkItemRoutine, reap)))
+            PhFreeToFreeList(&PhpInformerReapFreeList, reap);
     }
 }
 
@@ -549,7 +627,19 @@ VOID PhInformerInitialize(
     VOID
     )
 {
-    KphMessageObjectType = PhCreateObjectType(L"KsiMessage", 0, NULL);
+    PH_OBJECT_TYPE_PARAMETERS parameters;
+
+    parameters.FreeListSize = 1024;
+    parameters.FreeListCount = 65536;
+
+    KphMessageObjectType = PhCreateObjectTypeEx(
+        L"KsiMessage",
+        PH_OBJECT_TYPE_TRY_USE_FREE_LIST,
+        NULL,
+        &parameters
+        );
+
+    PhInitializeFreeList(&PhpInformerReapFreeList, sizeof(PH_INFORMER_DB_REAP), 10);
 
     if (PhEnableProcessMonitor)
     {
