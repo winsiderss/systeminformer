@@ -143,6 +143,7 @@ EXT ULONG PhCsEnableHandleSnapshot;
 
 EXT BOOLEAN PhEnableProcessMonitor;
 EXT ULONG PhProcessMonitorLookback;
+EXT ULONG PhProcessMonitorCacheLimit;
 
 #pragma pop_macro("EXT")
 
@@ -523,5 +524,6 @@ EXT ULONG PhProcessMonitorLookback;
 
 #define SETTING_ENABLE_PROCESS_MONITOR                              L"EnableProcessMonitor"
 #define SETTING_PROCESS_MONITOR_LOOKBACK                            L"ProcessMonitorLookback"
+#define SETTING_PROCESS_MONITOR_CACHE_LIMIT                         L"ProcessMonitorCacheLimit"
 
 #endif
