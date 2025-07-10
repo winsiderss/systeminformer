@@ -143,6 +143,7 @@ EXT ULONG PhCsEnableHandleSnapshot;
 
 EXT BOOLEAN PhEnableProcessMonitor;
 EXT ULONG PhProcessMonitorLookback;
+EXT ULONG PhProcessMonitorCacheLimit;
 
 #pragma pop_macro("EXT")
 
