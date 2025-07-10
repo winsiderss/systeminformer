@@ -113,8 +113,7 @@ VOID WINAPI KphpCommsIoCallback(
 {
     NTSTATUS status;
     PKPH_UMESSAGE msg;
-    BOOLEAN handled;
-    ULONG_PTR replyToken;
+    SIZE_T length;
 
     if (!PhAcquireRundownProtection(&KphpCommsRundown))
         return;
@@ -126,9 +125,16 @@ VOID WINAPI KphpCommsIoCallback(
     if (IoSB->Status != STATUS_SUCCESS)
         goto QueueIoOperation;
 
-    assert(IoSB->Information >= KPH_MESSAGE_MIN_SIZE);
+    assert(IoSB->Information >= UFIELD_OFFSET(KPH_UMESSAGE, Message));
 
-    if (IoSB->Information < KPH_MESSAGE_MIN_SIZE)
+    if (IoSB->Information < UFIELD_OFFSET(KPH_UMESSAGE, Message))
+        goto QueueIoOperation;
+
+    length = IoSB->Information - UFIELD_OFFSET(KPH_UMESSAGE, Message);
+
+    assert(length >= KPH_MESSAGE_MIN_SIZE);
+
+    if (length < KPH_MESSAGE_MIN_SIZE)
         goto QueueIoOperation;
 
     if (!NT_SUCCESS(status = KphMsgValidate(&msg->Message)))
@@ -138,17 +144,37 @@ VOID WINAPI KphpCommsIoCallback(
     }
 
     if (msg->MessageHeader.ReplyLength)
+    {
+        BOOLEAN handled;
+        ULONG_PTR replyToken;
+
         replyToken = (ULONG_PTR)&msg->MessageHeader;
-    else
-        replyToken = 0;
 
-    if (KphpCommsRegisteredCallback)
-        handled = KphpCommsRegisteredCallback(replyToken, &msg->Message);
-    else
-        handled = FALSE;
+        assert(length == msg->Message.Header.Size);
 
-    if (!handled)
-        KphpCommsCallbackUnhandled(replyToken, &msg->Message);
+        if (KphpCommsRegisteredCallback)
+            handled = KphpCommsRegisteredCallback(replyToken, &msg->Message);
+        else
+            handled = FALSE;
+
+        if (!handled)
+            KphpCommsCallbackUnhandled(replyToken, &msg->Message);
+    }
+    else if (KphpCommsRegisteredCallback)
+    {
+        for (ULONG offset = 0; offset < length; NOTHING)
+        {
+            PKPH_MESSAGE message;
+
+            assert(offset < sizeof(KPH_MESSAGE));
+
+            message = PTR_ADD_OFFSET(&msg->Message, offset);
+
+            KphpCommsRegisteredCallback(0, message);
+
+            offset += message->Header.Size;
+        }
+    }
 
 QueueIoOperation:
 
