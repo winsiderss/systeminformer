@@ -12,6 +12,7 @@
 #include <phsettings.h>
 #include <phplug.h>
 #include <procprv.h>
+#include <kphuser.h>
 #include <kphcomms.h>
 #include <mapldr.h>
 
@@ -62,8 +63,6 @@ typedef int SQLITE_APICALL sqlite3_step_fn(sqlite3_stmt*);
 typedef int SQLITE_APICALL sqlite3_reset_fn(sqlite3_stmt *pStmt);
 typedef sqlite3_int64 SQLITE_APICALL sqlite3_value_int64_fn(sqlite3_value*);
 typedef sqlite3_int64 SQLITE_APICALL sqlite3_column_int64_fn(sqlite3_stmt*, int iCol);
-
-static PPH_OBJECT_TYPE KphMessageObjectType = NULL;
 
 static PH_CALLBACK_REGISTRATION PhpInformerProcessesUpdatedRegistration;
 static PH_CALLBACK_REGISTRATION PhpInformerProcessesRemovedRegistration;
@@ -530,7 +529,7 @@ BOOLEAN PhInformerDispatch(
     PKPH_MESSAGE message;
     PH_INFORMER_CONTEXT context;
 
-    message = PhCreateObject(Message->Header.Size, KphMessageObjectType);
+    message = KphCreateMessage(Message->Header.Size);
     memcpy(message, Message, Message->Header.Size);
 
     context.Message = message;
@@ -627,19 +626,7 @@ VOID PhInformerInitialize(
     VOID
     )
 {
-    PH_OBJECT_TYPE_PARAMETERS parameters;
-
-    parameters.FreeListSize = 1024;
-    parameters.FreeListCount = 65536;
-
-    KphMessageObjectType = PhCreateObjectTypeEx(
-        L"KsiMessage",
-        PH_OBJECT_TYPE_TRY_USE_FREE_LIST,
-        NULL,
-        &parameters
-        );
-
-    PhInitializeFreeList(&PhpInformerReapFreeList, sizeof(PH_INFORMER_DB_REAP), 10);
+    PhInitializeFreeList(&PhpInformerReapFreeList, sizeof(PH_INFORMER_DB_REAP), 16);
 
     if (PhEnableProcessMonitor)
     {

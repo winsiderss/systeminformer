@@ -15,13 +15,58 @@
 #include <kphuser.h>
 
 static CONST PH_STRINGREF KphDefaultPortName = PH_STRINGREF_INIT(KPH_PORT_NAME);
-static PH_FREE_LIST KphMessageFreeList;
+static PPH_OBJECT_TYPE KphMessageObjectType = NULL;
+static PPH_OBJECT_TYPE KphUserMessageObjectType = NULL;
 
 VOID KphInitialize(
     VOID
     )
 {
-    PhInitializeFreeList(&KphMessageFreeList, sizeof(KPH_MESSAGE), 16);
+    PH_OBJECT_TYPE_PARAMETERS parameters;
+
+    parameters.FreeListSize = sizeof(KPH_MESSAGE) / 8;
+    parameters.FreeListCount = 65536;
+
+    KphMessageObjectType = PhCreateObjectTypeEx(
+        L"KsiMessage",
+        PH_OBJECT_TYPE_TRY_USE_FREE_LIST,
+        NULL,
+        &parameters
+        );
+
+    parameters.FreeListSize = KPH_MESSAGE_MIN_SIZE;
+    parameters.FreeListCount = 16;
+
+    KphUserMessageObjectType = PhCreateObjectTypeEx(
+        L"KsiUserMessage",
+        PH_OBJECT_TYPE_USE_FREE_LIST,
+        NULL,
+        &parameters
+        );
+}
+
+PKPH_MESSAGE KphCreateMessage(
+    _In_ SIZE_T Size
+    )
+{
+    assert(KphMessageObjectType);
+
+    return PhCreateObject(Size, KphMessageObjectType);
+}
+
+PKPH_MESSAGE KphCreateUserMessage(
+    _In_ KPH_MESSAGE_ID MessageId
+    )
+{
+    PKPH_MESSAGE msg;
+
+    assert(KphUserMessageObjectType);
+
+    msg = PhCreateObject(KPH_MESSAGE_MIN_SIZE, KphUserMessageObjectType);
+
+    KphMsgInit(msg, MessageId);
+
+    return msg;
 }
 
 NTSTATUS KphConnect(
@@ -535,15 +580,6 @@ NTSTATUS KphServiceStop(
     return status;
 }
 
-PPH_FREE_LIST KphGetMessageFreeList(
-    VOID
-    )
-{
-    KSI_COMMS_INIT_ASSERT();
-
-    return &KphMessageFreeList;
-}
-
 NTSTATUS KphGetInformerSettings(
     _Out_ PKPH_INFORMER_SETTINGS Settings
     )
@@ -551,11 +587,8 @@ NTSTATUS KphGetInformerSettings(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
     RtlZeroMemory(Settings, sizeof(KPH_INFORMER_SETTINGS));
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgGetInformerSettings);
+    msg = KphCreateUserMessage(KphMsgGetInformerSettings);
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
@@ -564,7 +597,7 @@ NTSTATUS KphGetInformerSettings(
         RtlCopyMemory(Settings, &msg->User.GetInformerSettings.Settings, sizeof(KPH_INFORMER_SETTINGS));
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -575,10 +608,7 @@ NTSTATUS KphSetInformerSettings(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgSetInformerSettings);
+    msg = KphCreateUserMessage(KphMsgSetInformerSettings);
     RtlCopyMemory(&msg->User.SetInformerSettings.Settings, Settings, sizeof(KPH_INFORMER_SETTINGS));
     status = KphCommsSendMessage(msg);
 
@@ -587,7 +617,7 @@ NTSTATUS KphSetInformerSettings(
         status = msg->User.SetInformerSettings.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -600,10 +630,7 @@ NTSTATUS KphOpenProcess(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgOpenProcess);
+    msg = KphCreateUserMessage(KphMsgOpenProcess);
     msg->User.OpenProcess.ProcessHandle = ProcessHandle;
     msg->User.OpenProcess.DesiredAccess = DesiredAccess;
     msg->User.OpenProcess.ClientId = ClientId;
@@ -614,7 +641,7 @@ NTSTATUS KphOpenProcess(
         status = msg->User.OpenProcess.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -627,10 +654,7 @@ NTSTATUS KphOpenProcessToken(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgOpenProcessToken);
+    msg = KphCreateUserMessage(KphMsgOpenProcessToken);
     msg->User.OpenProcessToken.ProcessHandle = ProcessHandle;
     msg->User.OpenProcessToken.DesiredAccess = DesiredAccess;
     msg->User.OpenProcessToken.TokenHandle = TokenHandle;
@@ -641,7 +665,7 @@ NTSTATUS KphOpenProcessToken(
         status = msg->User.OpenProcessToken.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -654,10 +678,7 @@ NTSTATUS KphOpenProcessJob(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgOpenProcessJob);
+    msg = KphCreateUserMessage(KphMsgOpenProcessJob);
     msg->User.OpenProcessJob.ProcessHandle = ProcessHandle;
     msg->User.OpenProcessJob.DesiredAccess = DesiredAccess;
     msg->User.OpenProcessJob.JobHandle = JobHandle;
@@ -668,7 +689,7 @@ NTSTATUS KphOpenProcessJob(
         status = msg->User.OpenProcessJob.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -680,10 +701,7 @@ NTSTATUS KphTerminateProcess(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgTerminateProcess);
+    msg = KphCreateUserMessage(KphMsgTerminateProcess);
     msg->User.TerminateProcess.ProcessHandle = ProcessHandle;
     msg->User.TerminateProcess.ExitStatus = ExitStatus;
     status = KphCommsSendMessage(msg);
@@ -693,7 +711,7 @@ NTSTATUS KphTerminateProcess(
         status = msg->User.TerminateProcess.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -708,10 +726,7 @@ NTSTATUS KphReadVirtualMemory(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgReadVirtualMemory);
+    msg = KphCreateUserMessage(KphMsgReadVirtualMemory);
     msg->User.ReadVirtualMemory.ProcessHandle = ProcessHandle;
     msg->User.ReadVirtualMemory.BaseAddress = BaseAddress;
     msg->User.ReadVirtualMemory.Buffer = Buffer;
@@ -724,7 +739,7 @@ NTSTATUS KphReadVirtualMemory(
         status = msg->User.ReadVirtualMemory.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -737,10 +752,7 @@ NTSTATUS KphOpenThread(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgOpenThread);
+    msg = KphCreateUserMessage(KphMsgOpenThread);
     msg->User.OpenThread.ThreadHandle = ThreadHandle;
     msg->User.OpenThread.DesiredAccess = DesiredAccess;
     msg->User.OpenThread.ClientId = ClientId;
@@ -751,7 +763,7 @@ NTSTATUS KphOpenThread(
         status = msg->User.OpenThread.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -764,10 +776,7 @@ NTSTATUS KphOpenThreadProcess(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgOpenThreadProcess);
+    msg = KphCreateUserMessage(KphMsgOpenThreadProcess);
     msg->User.OpenThreadProcess.ThreadHandle = ThreadHandle;
     msg->User.OpenThreadProcess.DesiredAccess = DesiredAccess;
     msg->User.OpenThreadProcess.ProcessHandle = ProcessHandle;
@@ -778,7 +787,7 @@ NTSTATUS KphOpenThreadProcess(
         status = msg->User.OpenThreadProcess.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -796,10 +805,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
     PKPH_MESSAGE msg;
     LARGE_INTEGER timeout;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgCaptureStackBackTraceThread);
+    msg = KphCreateUserMessage(KphMsgCaptureStackBackTraceThread);
     msg->User.CaptureStackBackTraceThread.ThreadHandle = ThreadHandle;
     msg->User.CaptureStackBackTraceThread.FramesToSkip = FramesToSkip;
     msg->User.CaptureStackBackTraceThread.FramesToCapture = FramesToCapture;
@@ -815,7 +821,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
         status = msg->User.CaptureStackBackTraceThread.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -829,10 +835,7 @@ NTSTATUS KphEnumerateProcessHandles(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgEnumerateProcessHandles);
+    msg = KphCreateUserMessage(KphMsgEnumerateProcessHandles);
     msg->User.EnumerateProcessHandles.ProcessHandle = ProcessHandle;
     msg->User.EnumerateProcessHandles.Buffer = Buffer;
     msg->User.EnumerateProcessHandles.BufferLength = BufferLength;
@@ -844,7 +847,7 @@ NTSTATUS KphEnumerateProcessHandles(
         status = msg->User.EnumerateProcessHandles.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -902,10 +905,7 @@ NTSTATUS KphQueryInformationObject(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgQueryInformationObject);
+    msg = KphCreateUserMessage(KphMsgQueryInformationObject);
     msg->User.QueryInformationObject.ProcessHandle = ProcessHandle;
     msg->User.QueryInformationObject.Handle = Handle;
     msg->User.QueryInformationObject.ObjectInformationClass = ObjectInformationClass;
@@ -919,7 +919,7 @@ NTSTATUS KphQueryInformationObject(
         status = msg->User.QueryInformationObject.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1028,10 +1028,7 @@ NTSTATUS KphSetInformationObject(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgSetInformationObject);
+    msg = KphCreateUserMessage(KphMsgSetInformationObject);
     msg->User.SetInformationObject.ProcessHandle = ProcessHandle;
     msg->User.SetInformationObject.Handle = Handle;
     msg->User.SetInformationObject.ObjectInformationClass = ObjectInformationClass;
@@ -1044,7 +1041,7 @@ NTSTATUS KphSetInformationObject(
         status = msg->User.SetInformationObject.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1057,10 +1054,7 @@ NTSTATUS KphOpenDriver(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgOpenDriver);
+    msg = KphCreateUserMessage(KphMsgOpenDriver);
     msg->User.OpenDriver.DriverHandle = DriverHandle;
     msg->User.OpenDriver.DesiredAccess = DesiredAccess;
     msg->User.OpenDriver.ObjectAttributes = (POBJECT_ATTRIBUTES)ObjectAttributes;
@@ -1071,7 +1065,7 @@ NTSTATUS KphOpenDriver(
         status = msg->User.OpenDriver.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1086,10 +1080,7 @@ NTSTATUS KphQueryInformationDriver(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgQueryInformationDriver);
+    msg = KphCreateUserMessage(KphMsgQueryInformationDriver);
     msg->User.QueryInformationDriver.DriverHandle = DriverHandle;
     msg->User.QueryInformationDriver.DriverInformationClass = DriverInformationClass;
     msg->User.QueryInformationDriver.DriverInformation = DriverInformation;
@@ -1102,7 +1093,7 @@ NTSTATUS KphQueryInformationDriver(
         status = msg->User.QueryInformationDriver.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1117,10 +1108,7 @@ NTSTATUS KphQueryInformationProcess(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgQueryInformationProcess);
+    msg = KphCreateUserMessage(KphMsgQueryInformationProcess);
     msg->User.QueryInformationProcess.ProcessHandle = ProcessHandle;
     msg->User.QueryInformationProcess.ProcessInformationClass = ProcessInformationClass;
     msg->User.QueryInformationProcess.ProcessInformation = ProcessInformation;
@@ -1133,7 +1121,7 @@ NTSTATUS KphQueryInformationProcess(
         status = msg->User.QueryInformationProcess.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1228,10 +1216,7 @@ NTSTATUS KphSetInformationProcess(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgSetInformationProcess);
+    msg = KphCreateUserMessage(KphMsgSetInformationProcess);
     msg->User.SetInformationProcess.ProcessHandle = ProcessHandle;
     msg->User.SetInformationProcess.ProcessInformationClass = ProcessInformationClass;
     msg->User.SetInformationProcess.ProcessInformation = ProcessInformation;
@@ -1243,7 +1228,7 @@ NTSTATUS KphSetInformationProcess(
         status = msg->User.SetInformationProcess.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1257,10 +1242,7 @@ NTSTATUS KphSetInformationThread(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgSetInformationThread);
+    msg = KphCreateUserMessage(KphMsgSetInformationThread);
     msg->User.SetInformationThread.ThreadHandle = ThreadHandle;
     msg->User.SetInformationThread.ThreadInformationClass = ThreadInformationClass;
     msg->User.SetInformationThread.ThreadInformation = ThreadInformation;
@@ -1272,7 +1254,7 @@ NTSTATUS KphSetInformationThread(
         status = msg->User.SetInformationThread.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1285,10 +1267,7 @@ NTSTATUS KphSystemControl(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgSystemControl);
+    msg = KphCreateUserMessage(KphMsgSystemControl);
     msg->User.SystemControl.SystemControlClass = SystemControlClass;
     msg->User.SystemControl.SystemControlInfo = SystemControlInfo;
     msg->User.SystemControl.SystemControlInfoLength = SystemControlInfoLength;
@@ -1299,7 +1278,7 @@ NTSTATUS KphSystemControl(
         status = msg->User.SystemControl.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1315,10 +1294,7 @@ NTSTATUS KphAlpcQueryInformation(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgAlpcQueryInformation);
+    msg = KphCreateUserMessage(KphMsgAlpcQueryInformation);
     msg->User.AlpcQueryInformation.ProcessHandle = ProcessHandle;
     msg->User.AlpcQueryInformation.PortHandle = PortHandle;
     msg->User.AlpcQueryInformation.AlpcInformationClass = AlpcInformationClass;
@@ -1332,7 +1308,7 @@ NTSTATUS KphAlpcQueryInformation(
         status = msg->User.AlpcQueryInformation.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1411,14 +1387,11 @@ NTSTATUS KphQueryInformationFile(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
     // TODO(jxy-s) safety added to driver (2023-06-19) remove this after next driver release
     if (KphpFileObjectIsBusy(ProcessHandle, FileHandle))
         return STATUS_POSSIBLE_DEADLOCK;
 
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgQueryInformationFile);
+    msg = KphCreateUserMessage(KphMsgQueryInformationFile);
     msg->User.QueryInformationFile.ProcessHandle = ProcessHandle;
     msg->User.QueryInformationFile.FileHandle = FileHandle;
     msg->User.QueryInformationFile.FileInformationClass = FileInformationClass;
@@ -1432,7 +1405,7 @@ NTSTATUS KphQueryInformationFile(
         status = msg->User.QueryInformationFile.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1448,10 +1421,7 @@ NTSTATUS KphQueryVolumeInformationFile(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgQueryVolumeInformationFile);
+    msg = KphCreateUserMessage(KphMsgQueryVolumeInformationFile);
     msg->User.QueryVolumeInformationFile.ProcessHandle = ProcessHandle;
     msg->User.QueryVolumeInformationFile.FileHandle = FileHandle;
     msg->User.QueryVolumeInformationFile.FsInformationClass = FsInformationClass;
@@ -1465,7 +1435,7 @@ NTSTATUS KphQueryVolumeInformationFile(
         status = msg->User.QueryVolumeInformationFile.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1479,10 +1449,7 @@ NTSTATUS KphDuplicateObject(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgDuplicateObject);
+    msg = KphCreateUserMessage(KphMsgDuplicateObject);
     msg->User.DuplicateObject.ProcessHandle = ProcessHandle;
     msg->User.DuplicateObject.SourceHandle = SourceHandle;
     msg->User.DuplicateObject.DesiredAccess = DesiredAccess;
@@ -1494,7 +1461,7 @@ NTSTATUS KphDuplicateObject(
         status = msg->User.DuplicateObject.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1506,10 +1473,7 @@ NTSTATUS KphQueryPerformanceCounter(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgQueryPerformanceCounter);
+    msg = KphCreateUserMessage(KphMsgQueryPerformanceCounter);
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
@@ -1529,7 +1493,7 @@ NTSTATUS KphQueryPerformanceCounter(
         }
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1551,10 +1515,7 @@ NTSTATUS KphCreateFile(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgCreateFile);
+    msg = KphCreateUserMessage(KphMsgCreateFile);
     msg->User.CreateFile.FileHandle = FileHandle;
     msg->User.CreateFile.DesiredAccess = DesiredAccess;
     msg->User.CreateFile.ObjectAttributes = (POBJECT_ATTRIBUTES)ObjectAttributes;
@@ -1574,7 +1535,7 @@ NTSTATUS KphCreateFile(
         status = msg->User.CreateFile.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1589,10 +1550,7 @@ NTSTATUS KphQueryInformationThread(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgQueryInformationThread);
+    msg = KphCreateUserMessage(KphMsgQueryInformationThread);
     msg->User.QueryInformationThread.ThreadHandle = ThreadHandle;
     msg->User.QueryInformationThread.ThreadInformationClass = ThreadInformationClass;
     msg->User.QueryInformationThread.ThreadInformation = ThreadInformation;
@@ -1605,7 +1563,7 @@ NTSTATUS KphQueryInformationThread(
         status = msg->User.QueryInformationThread.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1620,10 +1578,7 @@ NTSTATUS KphQuerySection(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgQuerySection);
+    msg = KphCreateUserMessage(KphMsgQuerySection);
     msg->User.QuerySection.SectionHandle = SectionHandle;
     msg->User.QuerySection.SectionInformationClass = SectionInformationClass;
     msg->User.QuerySection.SectionInformation = SectionInformation;
@@ -1636,7 +1591,7 @@ NTSTATUS KphQuerySection(
         status = msg->User.QuerySection.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1691,10 +1646,7 @@ NTSTATUS KphCompareObjects(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgCompareObjects);
+    msg = KphCreateUserMessage(KphMsgCompareObjects);
     msg->User.CompareObjects.ProcessHandle = ProcessHandle;
     msg->User.CompareObjects.FirstObjectHandle = FirstObjectHandle;
     msg->User.CompareObjects.SecondObjectHandle = SecondObjectHandle;
@@ -1705,7 +1657,7 @@ NTSTATUS KphCompareObjects(
         status = msg->User.CompareObjects.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1716,10 +1668,7 @@ NTSTATUS KphGetMessageTimeouts(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgGetMessageTimeouts);
+    msg = KphCreateUserMessage(KphMsgGetMessageTimeouts);
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
@@ -1727,7 +1676,7 @@ NTSTATUS KphGetMessageTimeouts(
         RtlCopyMemory(Timeouts, &msg->User.GetMessageTimeouts.Timeouts, sizeof(*Timeouts));
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1738,10 +1687,7 @@ NTSTATUS KphSetMessageTimeouts(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgSetMessageTimeouts);
+    msg = KphCreateUserMessage(KphMsgSetMessageTimeouts);
     RtlCopyMemory(&msg->User.SetMessageTimeouts.Timeouts, Timeouts, sizeof(*Timeouts));
     status = KphCommsSendMessage(msg);
 
@@ -1750,7 +1696,7 @@ NTSTATUS KphSetMessageTimeouts(
         status = msg->User.SetMessageTimeouts.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1762,16 +1708,13 @@ NTSTATUS KphAcquireDriverUnloadProtection(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
     if (PreviousCount)
         *PreviousCount = 0;
 
     if (ClientPreviousCount)
         *ClientPreviousCount = 0;
 
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgAcquireDriverUnloadProtection);
+    msg = KphCreateUserMessage(KphMsgAcquireDriverUnloadProtection);
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
@@ -1788,7 +1731,7 @@ NTSTATUS KphAcquireDriverUnloadProtection(
         }
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1800,10 +1743,7 @@ NTSTATUS KphReleaseDriverUnloadProtection(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgReleaseDriverUnloadProtection);
+    msg = KphCreateUserMessage(KphMsgReleaseDriverUnloadProtection);
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
@@ -1820,7 +1760,7 @@ NTSTATUS KphReleaseDriverUnloadProtection(
         }
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1831,10 +1771,7 @@ NTSTATUS KphGetConnectedClientCount(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgGetConnectedClientCount);
+    msg = KphCreateUserMessage(KphMsgGetConnectedClientCount);
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
@@ -1842,7 +1779,7 @@ NTSTATUS KphGetConnectedClientCount(
         *Count = msg->User.GetConnectedClientCount.Count;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1856,10 +1793,7 @@ NTSTATUS KphActivateDynData(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgActivateDynData);
+    msg = KphCreateUserMessage(KphMsgActivateDynData);
     msg->User.ActivateDynData.DynData = DynData;
     msg->User.ActivateDynData.DynDataLength = DynDataLength;
     msg->User.ActivateDynData.Signature = Signature;
@@ -1871,7 +1805,7 @@ NTSTATUS KphActivateDynData(
         status = msg->User.ActivateDynData.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1885,10 +1819,7 @@ NTSTATUS KphRequestSessionAccessToken(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgRequestSessionAccessToken);
+    msg = KphCreateUserMessage(KphMsgRequestSessionAccessToken);
     msg->User.RequestSessionAccessToken.Expiry = *Expiry;
     msg->User.RequestSessionAccessToken.Privileges = Privileges;
     msg->User.RequestSessionAccessToken.Uses = Uses;
@@ -1903,7 +1834,7 @@ NTSTATUS KphRequestSessionAccessToken(
         status = msg->User.RequestSessionAccessToken.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1916,10 +1847,7 @@ NTSTATUS KphAssignProcessSessionToken(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgAssignProcessSessionToken);
+    msg = KphCreateUserMessage(KphMsgAssignProcessSessionToken);
     msg->User.AssignProcessSessionToken.ProcessHandle = ProcessHandle;
     msg->User.AssignProcessSessionToken.Signature = Signature;
     msg->User.AssignProcessSessionToken.SignatureLength = SignatureLength;
@@ -1930,7 +1858,7 @@ NTSTATUS KphAssignProcessSessionToken(
         status = msg->User.AssignProcessSessionToken.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1943,10 +1871,7 @@ NTSTATUS KphAssignThreadSessionToken(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgAssignThreadSessionToken);
+    msg = KphCreateUserMessage(KphMsgAssignThreadSessionToken);
     msg->User.AssignThreadSessionToken.ThreadHandle = ThreadHandle;
     msg->User.AssignThreadSessionToken.Signature = Signature;
     msg->User.AssignThreadSessionToken.SignatureLength = SignatureLength;
@@ -1957,7 +1882,7 @@ NTSTATUS KphAssignThreadSessionToken(
         status = msg->User.AssignThreadSessionToken.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1969,10 +1894,7 @@ NTSTATUS KphGetInformerProcessFilter(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgGetInformerProcessFilter);
+    msg = KphCreateUserMessage(KphMsgGetInformerProcessFilter);
     msg->User.GetInformerProcessFilter.ProcessHandle = ProcessHandle;
     msg->User.GetInformerProcessFilter.Filter = Filter;
     status = KphCommsSendMessage(msg);
@@ -1982,7 +1904,7 @@ NTSTATUS KphGetInformerProcessFilter(
         status = msg->User.GetInformerProcessFilter.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -1994,10 +1916,7 @@ NTSTATUS KphSetInformerProcessFilter(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgSetInformerProcessFilter);
+    msg = KphCreateUserMessage(KphMsgSetInformerProcessFilter);
     msg->User.SetInformerProcessFilter.ProcessHandle = ProcessHandle;
     msg->User.SetInformerProcessFilter.Filter = Filter;
     status = KphCommsSendMessage(msg);
@@ -2007,7 +1926,7 @@ NTSTATUS KphSetInformerProcessFilter(
         status = msg->User.SetInformerProcessFilter.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -2020,10 +1939,7 @@ NTSTATUS KphStripProtectedProcessMasks(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgStripProtectedProcessMasks);
+    msg = KphCreateUserMessage(KphMsgStripProtectedProcessMasks);
     msg->User.StripProtectedProcessMasks.ProcessHandle = ProcessHandle;
     msg->User.StripProtectedProcessMasks.ProcessAllowedMask = ProcessAllowedMask;
     msg->User.StripProtectedProcessMasks.ThreadAllowedMask = ThreadAllowedMask;
@@ -2034,7 +1950,7 @@ NTSTATUS KphStripProtectedProcessMasks(
         status = msg->User.StripProtectedProcessMasks.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -2050,10 +1966,7 @@ NTSTATUS KphQueryVirtualMemory(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgQueryVirtualMemory);
+    msg = KphCreateUserMessage(KphMsgQueryVirtualMemory);
     msg->User.QueryVirtualMemory.ProcessHandle = ProcessHandle;
     msg->User.QueryVirtualMemory.BaseAddress = BaseAddress;
     msg->User.QueryVirtualMemory.MemoryInformationClass = MemoryInformationClass;
@@ -2067,7 +1980,7 @@ NTSTATUS KphQueryVirtualMemory(
         status = msg->User.QueryVirtualMemory.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -2080,10 +1993,7 @@ NTSTATUS KsiQueryHashInformationFile(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgQueryHashInformationFile);
+    msg = KphCreateUserMessage(KphMsgQueryHashInformationFile);
     msg->User.QueryHashInformationFile.FileHandle = FileHandle;
     msg->User.QueryHashInformationFile.HashingInformation = HashInformation;
     msg->User.QueryHashInformationFile.HashingInformationLength = HashInformationLength;
@@ -2094,7 +2004,7 @@ NTSTATUS KsiQueryHashInformationFile(
         status = msg->User.QueryHashInformationFile.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -2107,10 +2017,7 @@ NTSTATUS KphOpenDevice(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgOpenDevice);
+    msg = KphCreateUserMessage(KphMsgOpenDevice);
     msg->User.OpenDevice.DeviceHandle = DeviceHandle;
     msg->User.OpenDevice.DesiredAccess = DesiredAccess;
     msg->User.OpenDevice.ObjectAttributes = ObjectAttributes;
@@ -2121,7 +2028,7 @@ NTSTATUS KphOpenDevice(
         status = msg->User.OpenDevice.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -2134,10 +2041,7 @@ NTSTATUS KphOpenDeviceDriver(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgOpenDeviceDriver);
+    msg = KphCreateUserMessage(KphMsgOpenDeviceDriver);
     msg->User.OpenDeviceDriver.DeviceHandle = DeviceHandle;
     msg->User.OpenDeviceDriver.DesiredAccess = DesiredAccess;
     msg->User.OpenDeviceDriver.DriverHandle = DriverHandle;
@@ -2148,7 +2052,7 @@ NTSTATUS KphOpenDeviceDriver(
         status = msg->User.OpenDeviceDriver.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }
 
@@ -2161,10 +2065,7 @@ NTSTATUS KphOpenDeviceBaseDevice(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgOpenDeviceBaseDevice);
+    msg = KphCreateUserMessage(KphMsgOpenDeviceBaseDevice);
     msg->User.OpenDeviceBaseDevice.DeviceHandle = DeviceHandle;
     msg->User.OpenDeviceBaseDevice.DesiredAccess = DesiredAccess;
     msg->User.OpenDeviceBaseDevice.BaseDeviceHandle = BaseDeviceHandle;
@@ -2175,6 +2076,6 @@ NTSTATUS KphOpenDeviceBaseDevice(
         status = msg->User.OpenDeviceBaseDevice.Status;
     }
 
-    PhFreeToFreeList(&KphMessageFreeList, msg);
+    PhDereferenceObject(msg);
     return status;
 }

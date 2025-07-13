@@ -23,12 +23,6 @@ EXTERN_C_START
 #define KPH_OBJECT_NAME  TEXT("\\Driver\\KSystemInformer")
 #define KPH_PORT_NAME    TEXT("\\KSystemInformer")
 
-#ifdef DEBUG
-#define KSI_COMMS_INIT_ASSERT() assert(KphMessageFreeList.Size == sizeof(KPH_MESSAGE))
-#else
-#define KSI_COMMS_INIT_ASSERT()
-#endif
-
 typedef struct _KPH_CONFIG_PARAMETERS
 {
     _In_ PPH_STRINGREF FileName;
@@ -108,10 +102,10 @@ KphServiceStop(
 //    );
 
 PHLIBAPI
-PPH_FREE_LIST
+PKPH_MESSAGE
 NTAPI
-KphGetMessageFreeList(
-    VOID
+KphCreateMessage(
+    _In_ SIZE_T Size
     );
 
 PHLIBAPI
