@@ -79,19 +79,17 @@ VOID KphpCommsCallbackUnhandled(
     _In_ PCKPH_MESSAGE Message
     )
 {
-    PPH_FREE_LIST freelist;
     PKPH_MESSAGE msg;
 
     if (!ReplyToken)
         return;
 
-    freelist = KphGetMessageFreeList();
-
-    msg = PhAllocateFromFreeList(freelist);
+    msg = KphCreateMessage(KPH_MESSAGE_MIN_SIZE);
     KphMsgInit(msg, KphMsgUnhandled);
+
     KphCommsReplyMessage(ReplyToken, msg);
 
-    PhFreeToFreeList(freelist, msg);
+    PhDereferenceObject(msg);
 }
 
 /**
@@ -601,7 +599,7 @@ NTSTATUS KphCommsSendMessage(
     status = PhFilterSendMessage(
         KphpCommsFltPortHandle,
         Message,
-        sizeof(KPH_MESSAGE),
+        Message->Header.Size,
         NULL,
         0,
         &bytesReturned
