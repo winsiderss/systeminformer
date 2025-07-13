@@ -133,6 +133,8 @@ QueueIoOperation:
 
     RtlZeroMemory(&msg->Overlapped, FIELD_OFFSET(OVERLAPPED, hEvent));
 
+    assert(Io == KphpCommsThreadPoolIo);
+
     TpStartAsyncIoOperation(KphpCommsThreadPoolIo);
 
     status = PhFilterGetMessage(
@@ -159,9 +161,6 @@ QueueIoOperation:
     }
 
     PhReleaseRundownProtection(&KphpCommsRundown);
-
-    // Start the next asynchronous I/O operation
-    TpStartAsyncIoOperation(Io);
 }
 
 static VOID KphpTpSetPoolThreadBasePriority(

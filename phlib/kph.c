@@ -413,6 +413,10 @@ NTSTATUS KsiLoadUnloadService(
     HANDLE parametersKeyHandle = NULL;
     ULONG disposition;
 
+    assert(Config->FileName);
+    assert(Config->ServiceName);
+    assert(Config->ObjectName);
+
     fullServiceKeyName = PhConcatStringRef2(&fullServicesKeyName, Config->ServiceName);
 
     if (!PhStringRefToUnicodeString(&fullServiceKeyName->sr, &driverServiceKeyName))
@@ -421,45 +425,45 @@ NTSTATUS KsiLoadUnloadService(
         return STATUS_NAME_TOO_LONG;
     }
 
+    status = PhCreateKey(
+        &serviceKeyHandle,
+        KEY_WRITE | KEY_CREATE_SUB_KEY,
+        NULL,
+        &fullServiceKeyName->sr,
+        0,
+        0,
+        &disposition
+        );
+    if (NT_SUCCESS(status) && disposition == REG_CREATED_NEW_KEY)
+    {
+        ULONG regValue;
+
+        fullServiceFileName = PhConcatStringRef2(&PhNtDosDevicesPrefix, Config->FileName);
+        regValue = SERVICE_ERROR_NORMAL;
+        PhSetValueKeyZ(serviceKeyHandle, L"ErrorControl", REG_DWORD, &regValue, sizeof(ULONG));
+        regValue = SERVICE_KERNEL_DRIVER;
+        PhSetValueKeyZ(serviceKeyHandle, L"Type", REG_DWORD, &regValue, sizeof(ULONG));
+        regValue = SERVICE_DISABLED;
+        PhSetValueKeyZ(serviceKeyHandle, L"Start", REG_DWORD, &regValue, sizeof(ULONG));
+        PhSetValueKeyZ(serviceKeyHandle, L"ImagePath", REG_SZ, fullServiceFileName->Buffer, (ULONG)fullServiceFileName->Length + sizeof(UNICODE_NULL));
+        PhSetValueKeyZ(serviceKeyHandle, L"ObjectName", REG_SZ, Config->ObjectName->Buffer, (ULONG)Config->ObjectName->Length + sizeof(UNICODE_NULL));
+        PhDereferenceObject(fullServiceFileName);
+
+        KphSetParameters(Config);
+
+        NtClose(serviceKeyHandle);
+    }
+
     if (LoadDriver)
     {
-        status = PhCreateKey(
-            &serviceKeyHandle,
-            KEY_WRITE,
-            NULL,
-            &fullServiceKeyName->sr,
-            0,
-            0,
-            &disposition
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            if (disposition == REG_CREATED_NEW_KEY)
-            {
-                ULONG regValue;
-
-                fullServiceFileName = PhConcatStringRef2(&PhNtDosDevicesPrefix, Config->FileName);
-                regValue = SERVICE_ERROR_NORMAL;
-                PhSetValueKeyZ(serviceKeyHandle, L"ErrorControl", REG_DWORD, &regValue, sizeof(ULONG));
-                regValue = SERVICE_KERNEL_DRIVER;
-                PhSetValueKeyZ(serviceKeyHandle, L"Type", REG_DWORD, &regValue, sizeof(ULONG));
-                regValue = SERVICE_DISABLED;
-                PhSetValueKeyZ(serviceKeyHandle, L"Start", REG_DWORD, &regValue, sizeof(ULONG));
-                PhSetValueKeyZ(serviceKeyHandle, L"ImagePath", REG_SZ, fullServiceFileName->Buffer, (ULONG)fullServiceFileName->Length + sizeof(UNICODE_NULL));
-                PhSetValueKeyZ(serviceKeyHandle, L"ObjectName", REG_SZ, Config->ObjectName->Buffer, (ULONG)Config->ObjectName->Length + sizeof(UNICODE_NULL));
-                PhDereferenceObject(fullServiceFileName);
-
-                KphSetParameters(Config);
-            }
-
-            NtClose(serviceKeyHandle);
-        }
-
         if (Config->EnableFilterLoad)
             status = PhFilterLoadUnload(Config->ServiceName, TRUE);
         else
             status = NtLoadDriver(&driverServiceKeyName);
+
+        // Handle rare race condition with natively loading the driver.
+        if (status == STATUS_IMAGE_ALREADY_LOADED)
+            status = STATUS_SUCCESS;
     }
     else
     {

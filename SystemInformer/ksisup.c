@@ -40,6 +40,8 @@ static PPH_STRING KsiSupportString = NULL;
 static BOOLEAN KsiEnableLoadNative = FALSE;
 static BOOLEAN KsiEnableLoadFilter = FALSE;
 static PPH_STRING KsiServiceName = NULL;
+static PPH_STRING KsiFileName = NULL;
+static PPH_STRING KsiObjectName = NULL;
 
 #ifdef DEBUG
 //#define KSI_DEBUG_DELAY_SPLASHSCREEN 1
@@ -833,7 +835,7 @@ CleanupExit:
     return status;
 }
 
-PPH_STRING PhGetKsiDirectory(
+PPH_STRING PhGetKsiFileName(
     VOID
     )
 {
@@ -1011,10 +1013,7 @@ VOID KsiConnect(
         goto CleanupExit;
     }
 
-    if (!(ksiFileName = PhGetKsiDirectory()))
-        goto CleanupExit;
-
-    if (!PhDoesFileExistWin32(PhGetString(ksiFileName)))
+    if (!PhDoesFileExistWin32(PhGetString(KsiFileName)))
     {
         PhShowKsiMessageEx(
             WindowHandle,
@@ -1027,16 +1026,14 @@ VOID KsiConnect(
         goto CleanupExit;
     }
 
-    if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KsiObjectName")))
-        PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));
     if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KsiPortName")))
         PhClearReference(&portName);
     if (PhIsNullOrEmptyString(altitude = PhGetStringSetting(L"KsiAltitude")))
         PhClearReference(&altitude);
 
-    config.FileName = &ksiFileName->sr;
+    config.FileName = &KsiFileName->sr;
     config.ServiceName = &KsiServiceName->sr;
-    config.ObjectName = &objectName->sr;
+    config.ObjectName = &KsiObjectName->sr;
     config.PortName = (portName ? &portName->sr : NULL);
     config.Altitude = (altitude ? &altitude->sr : NULL);
     config.FsSupportedFeatures = 0;
@@ -1095,7 +1092,7 @@ VOID KsiConnect(
                 status = KphConnect(&config);
             }
 
-            PhDereferenceObject(tempFileName);
+            PhMoveReference(&KsiFileName, tempFileName);
         }
 
         if (!NT_SUCCESS(status) && tempDriverDir)
@@ -1108,7 +1105,7 @@ VOID KsiConnect(
 
                 status = KphConnect(&config);
 
-                PhDereferenceObject(tempFileName);
+                PhMoveReference(&KsiFileName, tempFileName);
             }
         }
     }
@@ -1146,10 +1143,10 @@ VOID KsiConnect(
         config.PortName = &randomPortName->sr;
         config.ObjectName = &randomObjectName->sr;
 
+        PhMoveReference(&KsiServiceName, PhReferenceObject(randomServiceName));
+        PhMoveReference(&KsiObjectName, PhReferenceObject(randomObjectName));
         KsiEnableLoadNative = TRUE;
         KsiEnableLoadFilter = FALSE;
-        PhDereferenceObject(KsiServiceName);
-        KsiServiceName = PhReferenceObject(randomServiceName);
 
         status = KphConnect(&config);
 
@@ -1436,7 +1433,10 @@ VOID PhInitializeKsi(
     KphInitialize();
     PhInformerInitialize();
 
+    KsiFileName = PhGetKsiFileName();
     KsiServiceName = PhGetKsiServiceName();
+    if (PhIsNullOrEmptyString(KsiObjectName = PhGetStringSetting(L"KsiObjectName")))
+        PhMoveReference(&KsiObjectName, PhCreateString(KPH_OBJECT_NAME));
     KsiEnableLoadNative = !!PhGetIntegerSetting(L"KsiEnableLoadNative");
     KsiEnableLoadFilter = !!PhGetIntegerSetting(L"KsiEnableLoadFilter");
 
@@ -1482,7 +1482,9 @@ NTSTATUS PhCleanupKsi(
     if (!shouldUnload)
         return STATUS_SUCCESS;
 
+    config.FileName = &KsiFileName->sr;
     config.ServiceName = &KsiServiceName->sr;
+    config.ObjectName = &KsiObjectName->sr;
     config.EnableNativeLoad = KsiEnableLoadNative;
     config.EnableFilterLoad = KsiEnableLoadFilter;
     status = KphServiceStop(&config);
