@@ -1354,27 +1354,6 @@ NTSTATUS KphAlpcQueryCommunicationsNamesInfo(
     return status;
 }
 
-BOOLEAN KphpFileObjectIsBusy(
-    _In_ HANDLE ProcessHandle,
-    _In_ HANDLE FileHandle
-    )
-{
-    KPH_FILE_OBJECT_INFORMATION fileInfo;
-    if (NT_SUCCESS(KphQueryInformationObject(
-        ProcessHandle,
-        FileHandle,
-        KphObjectFileObjectInformation,
-        &fileInfo,
-        sizeof(fileInfo),
-        NULL
-        )))
-    {
-        return fileInfo.Busy ? TRUE : FALSE;
-    }
-
-    return TRUE;
-}
-
 NTSTATUS KphQueryInformationFile(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE FileHandle,
@@ -1386,10 +1365,6 @@ NTSTATUS KphQueryInformationFile(
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
-
-    // TODO(jxy-s) safety added to driver (2023-06-19) remove this after next driver release
-    if (KphpFileObjectIsBusy(ProcessHandle, FileHandle))
-        return STATUS_POSSIBLE_DEADLOCK;
 
     msg = KphCreateUserMessage(KphMsgQueryInformationFile);
     msg->User.QueryInformationFile.ProcessHandle = ProcessHandle;
