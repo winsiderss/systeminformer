@@ -112,9 +112,9 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_SERVICE, FALSE, L"Service", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ENCLAVE_TYPE, FALSE, L"Enclave type", 40, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_BASE_ADDRESS, FALSE, L"Enclave base address", 80, PH_ALIGN_RIGHT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_BASE_ADDRESS, FALSE, L"Enclave base address", 80, PH_ALIGN_LEFT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_SIZE, FALSE, L"Enclave size", 80, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ARCHITECTURE, FALSE, L"Architecture", 80, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ARCHITECTURE, FALSE, L"Architecture", 80, PH_ALIGN_LEFT, ULONG_MAX, DT_RIGHT, TRUE);
 
     PhCmInitializeManager(&Context->Cm, Context->TreeNewHandle, PHMOTLC_MAXIMUM, PhpModuleTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
