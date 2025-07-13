@@ -1581,7 +1581,8 @@ VOID KphpCommsSendMessage(
 
         KphpCommsSendMessageAsync(async, Client);
 
-        return;
+        status = STATUS_POSSIBLE_DEADLOCK;
+        goto Exit;
     }
 
     for (ULONG offset = 0; offset < Length; NOTHING)
@@ -1611,51 +1612,58 @@ VOID KphpCommsSendMessage(
                                 reply,
                                 (reply ? &replyLength : NULL),
                                 &timeout);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "KphpFltSendMessage failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
     if (!reply)
     {
-        NT_ANALYSIS_ASSUME(NT_SUCCESS(status));
-        return;
+        goto Exit;
     }
 
-    if (NT_SUCCESS(status))
+    processState = KphGetProcessState(Client->Process);
+    if (!KphTestProcessState(processState, KPH_PROCESS_STATE_MAXIMUM))
     {
-        processState = KphGetProcessState(Client->Process);
-        if (!KphTestProcessState(processState, KPH_PROCESS_STATE_MAXIMUM))
-        {
-            KphTracePrint(TRACE_LEVEL_CRITICAL,
-                          COMMS,
-                          "Untrusted client %wZ (%lu) (0x%08x)",
-                          &Client->Process->ImageName,
-                          HandleToULong(Client->Process->ProcessId),
-                          processState);
+        KphTracePrint(TRACE_LEVEL_CRITICAL,
+                      COMMS,
+                      "Untrusted client %wZ (%lu) (0x%08x)",
+                      &Client->Process->ImageName,
+                      HandleToULong(Client->Process->ProcessId),
+                      processState);
 
-            status = STATUS_REPLY_MESSAGE_MISMATCH;
-        }
-        else
-        {
-            status = KphMsgValidate(reply);
-            if (!NT_SUCCESS(status))
-            {
-                KphTracePrint(TRACE_LEVEL_WARNING,
-                              COMMS,
-                              "Received invalid reply from client: %wZ (%lu)",
-                              &Client->Process->ImageName,
-                              HandleToULong(Client->Process->ProcessId));
-            }
-            else
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              COMMS,
-                              "Received reply (%lu - %!TIME!) from client: %wZ (%lu)",
-                              (ULONG)reply->Header.MessageId,
-                              reply->Header.TimeStamp.QuadPart,
-                              &Client->Process->ImageName,
-                              HandleToULong(Client->Process->ProcessId));
-            }
-        }
+        status = STATUS_REPLY_MESSAGE_MISMATCH;
+        goto Exit;
     }
 
+    status = KphMsgValidate(reply);
     if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_WARNING,
+                      COMMS,
+                      "Received invalid reply from client: %wZ (%lu)",
+                      &Client->Process->ImageName,
+                      HandleToULong(Client->Process->ProcessId));
+
+        goto Exit;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  COMMS,
+                  "Received reply (%lu - %!TIME!) from client: %wZ (%lu)",
+                  (ULONG)reply->Header.MessageId,
+                  reply->Header.TimeStamp.QuadPart,
+                  &Client->Process->ImageName,
+                  HandleToULong(Client->Process->ProcessId));
+
+Exit:
+
+    if (!NT_SUCCESS(status) && reply)
     {
         KphMsgInit(reply, KphMsgUnhandled);
     }
