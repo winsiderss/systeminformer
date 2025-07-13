@@ -428,11 +428,7 @@ VOID PhHandleProviderUpdate(
                 {
                     // Also compare the object pointers to make sure a different object wasn't
                     // re-opened with the same handle value.
-                    if (
-                        // TODO(jxy-s): remove following line after next driver release, see commit 3a54b8329
-                        handleProvider->ProcessId != SYSTEM_PROCESS_ID &&
-                        level >= KphLevelMed && handleProvider->ProcessHandle
-                        )
+                    if (level >= KphLevelMed && handleProvider->ProcessHandle)
                     {
                         found = NT_SUCCESS(KphCompareObjects(
                             handleProvider->ProcessHandle,
