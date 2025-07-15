@@ -988,26 +988,43 @@ static VOID PhpUpdateProcessNodeWsCounters(
     }
 }
 
-static VOID PhpUpdateProcessNodeGdiUserHandles(
+static VOID PhpUpdateProcessNodeGdiHandles(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!FlagOn(ProcessNode->ValidMask, PHPN_GDIUSERHANDLES))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_GDIHANDLES))
     {
         if (ProcessNode->ProcessItem->QueryHandle)
         {
             if (!NT_SUCCESS(PhGetProcessGuiResources(ProcessNode->ProcessItem->QueryHandle, GR_GDIOBJECTS, &ProcessNode->GdiHandles)))
                 ProcessNode->GdiHandles = 0;
+        }
+        else
+        {
+            ProcessNode->GdiHandles = 0;
+        }
+
+        SetFlag(ProcessNode->ValidMask, PHPN_GDIHANDLES);
+    }
+}
+
+static VOID PhpUpdateProcessNodeUserHandles(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_USERHANDLES))
+    {
+        if (ProcessNode->ProcessItem->QueryHandle)
+        {
             if (!NT_SUCCESS(PhGetProcessGuiResources(ProcessNode->ProcessItem->QueryHandle, GR_USEROBJECTS, &ProcessNode->UserHandles)))
                 ProcessNode->UserHandles = 0;
         }
         else
         {
-            ProcessNode->GdiHandles = 0;
             ProcessNode->UserHandles = 0;
         }
 
-        SetFlag(ProcessNode->ValidMask, PHPN_GDIUSERHANDLES);
+        SetFlag(ProcessNode->ValidMask, PHPN_USERHANDLES);
     }
 }
 
@@ -2144,8 +2161,8 @@ BEGIN_SORT_FUNCTION(GdiHandles)
     ULONG number1 = 0;
     ULONG number2 = 0;
 
-    PhpUpdateProcessNodeGdiUserHandles(node1);
-    PhpUpdateProcessNodeGdiUserHandles(node2);
+    PhpUpdateProcessNodeGdiHandles(node1);
+    PhpUpdateProcessNodeGdiHandles(node2);
 
     PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessNode, processItem1, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &number1);
     PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessNode, processItem2, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &number2);
@@ -2158,6 +2175,9 @@ BEGIN_SORT_FUNCTION(UserHandles)
 {
     ULONG number1 = 0;
     ULONG number2 = 0;
+
+    PhpUpdateProcessNodeUserHandles(node1);
+    PhpUpdateProcessNodeUserHandles(node2);
 
     PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessNode, processItem1, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &number1);
     PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessNode, processItem2, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &number2);
@@ -3390,7 +3410,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_GDIHANDLES:
                 {
-                    PhpUpdateProcessNodeGdiUserHandles(node);
+                    PhpUpdateProcessNodeGdiHandles(node);
 
                     ULONG value = 0;
                     PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateProcessNode, processItem, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &value);
@@ -3401,7 +3421,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_USERHANDLES:
                 {
-                    PhpUpdateProcessNodeGdiUserHandles(node);
+                    PhpUpdateProcessNodeUserHandles(node);
 
                     ULONG value = 0;
                     PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateProcessNode, processItem, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &value);
