@@ -11,6 +11,55 @@
 
 #include <peview.h>
 
+// https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64
+
+typedef enum _IMAGE_AMD64_UNWIND_OP_CODES
+{
+    AMD64_UWOP_PUSH_NONVOL = 0, /* info == register number */
+    AMD64_UWOP_ALLOC_LARGE,     /* no info, alloc size in next 2 slots */
+    AMD64_UWOP_ALLOC_SMALL,     /* info == size of allocation / 8 - 1 */
+    AMD64_UWOP_SET_FPREG,       /* no info, FP = RSP + UNWIND_INFO.FPRegOffset*16 */
+    AMD64_UWOP_SAVE_NONVOL,     /* info == register number, offset in next slot */
+    AMD64_UWOP_SAVE_NONVOL_FAR, /* info == register number, offset in next 2 slots */
+    AMD64_UWOP_SAVE_XMM128 = 8, /* info == XMM reg number, offset in next slot */
+    AMD64_UWOP_SAVE_XMM128_FAR, /* info == XMM reg number, offset in next 2 slots */
+    AMD64_UWOP_PUSH_MACHFRAME   /* info == 0: no error-code, 1: error-code */
+} IMAGE_AMD64_UNWIND_CODE_OPS;
+
+typedef union _IMAGE_AMD64_UNWIND_CODE
+{
+    struct
+    {
+        UCHAR CodeOffset;
+        UCHAR UnwindOp : 4;
+        UCHAR OpInfo   : 4;
+    };
+    USHORT FrameOffset;
+} IMAGE_AMD64_UNWIND_CODE, *PIMAGE_AMD64_UNWIND_CODE;
+
+typedef struct _IMAGE_AMD64_UNWIND_INFO
+{
+    UCHAR Version       : 3;
+    UCHAR Flags         : 5;          // UNW_FLAG_*
+    UCHAR SizeOfProlog;
+    UCHAR CountOfCodes;
+    UCHAR FrameRegister : 4;
+    UCHAR FrameOffset   : 4;
+    USHORT UnwindCode[ANYSIZE_ARRAY]; // IMAGE_AMD64_UNWIND_CODE_OPS
+/*  USHORT MoreUnwindCode[((CountOfCodes + 1) & ~1) - 1];
+*   union
+*   {
+*       ULONG ExceptionHandler;
+*       ULONG FunctionEntry;
+*   };
+*   ULONG ExceptionData[]; */
+} IMAGE_AMD64_UNWIND_INFO, *PIMAGE_AMD64_UNWIND_INFO;
+
+#define GetAMD64UnwindCodeEntry(info, index) ((info)->UnwindCode[index])
+#define GetAMD64LanguageSpecificDataPtr(info) ((PVOID)&GetAMD64UnwindCodeEntry((info),((info)->CountOfCodes + 1) & ~1))
+#define GetAMD64ExceptionHandlerRva(info) (*(PULONG)GetAMD64LanguageSpecificDataPtr(info))
+#define GetAMD64ChainedFunction(info) ((PIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY)GetAMD64LanguageSpecificDataPtr(info))
+
 typedef struct _PVP_PE_EXCEPTION_CONTEXT
 {
     HWND WindowHandle;
@@ -47,6 +96,13 @@ VOID PvEnumerateExceptionEntries(
     _In_ PPVP_PE_EXCEPTION_CONTEXT Context
     )
 {
+    static const PH_ACCESS_ENTRY unwFlags[] =
+    {
+        { L"UNW_FLAG_EHANDLER",  UNW_FLAG_EHANDLER, FALSE, FALSE, L"Exception handler" },
+        { L"UNW_FLAG_UHANDLER",  UNW_FLAG_UHANDLER, FALSE, FALSE, L"Termination handler" },
+        { L"UNW_FLAG_CHAININFO", UNW_FLAG_CHAININFO, FALSE, FALSE, L"Chained unwind info" },
+    };
+
     ULONG count = 0;
     ULONG imageMachine;
     PH_MAPPED_IMAGE_EXCEPTIONS exceptions;
@@ -151,7 +207,7 @@ VOID PvEnumerateExceptionEntries(
                 PhDereferenceObject(symbolName);
             }
 
-            if (symbol) PhDereferenceObject(symbol);
+            PhClearReference(&symbol);
 
             if (entry->BeginAddress)
             {
@@ -169,6 +225,61 @@ VOID PvEnumerateExceptionEntries(
                     if (NT_SUCCESS(PhGetMappedImageSectionName(directorySection, sectionName, RTL_NUMBER_OF(sectionName), NULL)))
                     {
                         PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 6, sectionName);
+                    }
+                }
+            }
+
+            if (entry->UnwindData)
+            {
+                PIMAGE_AMD64_UNWIND_INFO unwInfo;
+
+                unwInfo = PhMappedImageRvaToVa(&PvMappedImage, entry->UnwindData, NULL);
+
+                if (unwInfo)
+                {
+                    if (unwInfo->Flags)
+                    {
+                        PH_FORMAT format[4];
+                        PPH_STRING flagsString;
+
+                        flagsString = PhGetAccessString(unwInfo->Flags, (PPH_ACCESS_ENTRY)unwFlags, RTL_NUMBER_OF(unwFlags));
+
+                        PhInitFormatSR(&format[0], flagsString->sr);
+                        PhInitFormatS(&format[1], L" (0x");
+                        PhInitFormatX(&format[2], unwInfo->Flags);
+                        PhInitFormatS(&format[3], L")");
+
+                        PhMoveReference(&flagsString, PhFormat(format, 4, 10));
+
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, flagsString->Buffer);
+
+                        PhDereferenceObject(flagsString);
+                    }
+
+                    if (unwInfo->Flags & UNW_FLAG_CHAININFO)
+                    {
+                        PhPrintPointer(value, UlongToPtr(GetAMD64ChainedFunction(unwInfo)->UnwindData));
+
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 8, value);
+                    }
+                    else if (unwInfo->Flags & (UNW_FLAG_EHANDLER | UNW_FLAG_UHANDLER))
+                    {
+                        symbol = PhGetSymbolFromAddress(
+                            PvSymbolProvider,
+                            PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, GetAMD64ExceptionHandlerRva(unwInfo)),
+                            NULL,
+                            NULL,
+                            &symbolName,
+                            NULL
+                            );
+
+                        if (symbolName)
+                        {
+                            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 8, symbolName->Buffer);
+                            PhDereferenceObject(symbolName);
+                        }
+
+                        PhClearReference(&symbol);
                     }
                 }
             }
@@ -373,6 +484,8 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
                 PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
                 PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 200, L"Symbol");
                 PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Section");
+                PhAddListViewColumn(context->ListViewHandle, 7, 7, 7, LVCFMT_LEFT, 100, L"Flags");
+                PhAddListViewColumn(context->ListViewHandle, 8, 8, 8, LVCFMT_LEFT, 200, L"Handler");
                 PhLoadListViewColumnsFromSetting(L"ImageExceptionsAmd64ListViewColumns", context->ListViewHandle);
 
                 ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, PvpPeExceptionSizeCompareFunctionAmd64);
