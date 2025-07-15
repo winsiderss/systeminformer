@@ -2164,8 +2164,8 @@ BEGIN_SORT_FUNCTION(GdiHandles)
     PhpUpdateProcessNodeGdiHandles(node1);
     PhpUpdateProcessNodeGdiHandles(node2);
 
-    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessNode, processItem1, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &number1);
-    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessNode, processItem2, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &number2);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessNode, node2, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &number2);
 
     sortResult = uintcmp(number1, number2);
 }
@@ -2179,8 +2179,8 @@ BEGIN_SORT_FUNCTION(UserHandles)
     PhpUpdateProcessNodeUserHandles(node1);
     PhpUpdateProcessNodeUserHandles(node2);
 
-    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessNode, processItem1, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &number1);
-    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessNode, processItem2, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &number2);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt32, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt32, AggregateProcessNode, node2, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &number2);
 
     sortResult = uintcmp(number1, number2);
 }
@@ -3413,7 +3413,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhpUpdateProcessNodeGdiHandles(node);
 
                     ULONG value = 0;
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateProcessNode, processItem, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &value);
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateProcessNode, node, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &value);
                     //PhpFormatInt32GroupDigits(value, node->GdiHandlesText, sizeof(node->GdiHandlesText), &getCellText->Text);
                     PhMoveReference(&node->GdiHandlesText, PhFormatUInt64(value, TRUE));
                     getCellText->Text = node->GdiHandlesText->sr;
@@ -3424,7 +3424,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhpUpdateProcessNodeUserHandles(node);
 
                     ULONG value = 0;
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateProcessNode, processItem, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &value);
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateProcessNode, node, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &value);
                     //PhpFormatInt32GroupDigits(value, node->UserHandlesText, sizeof(node->UserHandlesText), &getCellText->Text);
                     PhMoveReference(&node->UserHandlesText, PhFormatUInt64(value, TRUE));
                     getCellText->Text = node->UserHandlesText->sr;
