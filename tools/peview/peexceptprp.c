@@ -13,6 +13,19 @@
 
 // https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64
 
+#ifndef UNW_FLAG_NHANDLER
+#define UNW_FLAG_NHANDLER       0x0
+#endif
+#ifndef UNW_FLAG_EHANDLER
+#define UNW_FLAG_EHANDLER       0x1
+#endif
+#ifndef UNW_FLAG_UHANDLER
+#define UNW_FLAG_UHANDLER       0x2
+#endif
+#ifndef UNW_FLAG_CHAININFO
+#define UNW_FLAG_CHAININFO      0x4
+#endif
+
 typedef enum _IMAGE_AMD64_UNWIND_OP_CODES
 {
     AMD64_UWOP_PUSH_NONVOL = 0, /* info == register number */
