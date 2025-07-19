@@ -609,6 +609,7 @@ HRESULT CALLBACK PhMemoryListCommandDialogCallbackProc(
 }
 
 VOID PhMemoryListCommandDialog(
+    _In_ HWND PrentWindow,
     _In_ PPH_MEMORY_LIST_COMMAND_CONTEXT Context
     )
 {
@@ -619,10 +620,11 @@ VOID PhMemoryListCommandDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_SHOW_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED | TDF_CALLBACK_TIMER;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED | TDF_CALLBACK_TIMER;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON | TDCBF_CANCEL_BUTTON;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.pfCallback = PhMemoryListCommandDialogCallbackProc;
+    config.hwndParent = PrentWindow;
     config.lpCallbackData = (LONG_PTR)context;
     config.pszWindowTitle = PhApplicationName;
     if (context->CommandsCount > 1)
@@ -705,7 +707,7 @@ VOID PhShowMemoryListCommand(
         {
             context.CommandsCount = 1;
             context.Commands[0] = PhMemoryListCommands[selectedItem->Id];
-            PhMemoryListCommandDialog(&context);
+            PhMemoryListCommandDialog(ParentWindow, &context);
         }
         else if (!PhGetOwnTokenAttributes().Elevated)
         {
@@ -719,7 +721,7 @@ VOID PhShowMemoryListCommand(
                 PhMemoryListCommands,
                 sizeof(PH_MEMORY_LIST_COMMAND_ENTRY) * context.CommandsCount
                 );
-            PhMemoryListCommandDialog(&context);
+            PhMemoryListCommandDialog(ParentWindow, &context);
         }
     }
 
