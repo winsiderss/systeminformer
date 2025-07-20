@@ -171,7 +171,7 @@ VOID PhpInitializeThreadMenu(
         ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         IO_PRIORITY_HINT ioPriority = ULONG_MAX;
         ULONG pagePriority = ULONG_MAX;
-        BOOLEAN threadPriorityBoostDisabled = FALSE;
+        BOOLEAN threadPriorityBoost = FALSE;
         ULONG id = 0;
 
         if (NT_SUCCESS(PhOpenThread(
@@ -185,7 +185,7 @@ VOID PhpInitializeThreadMenu(
             PhGetThreadBasePriority(threadHandle, &threadPriority);
             PhGetThreadIoPriority(threadHandle, &ioPriority);
             PhGetThreadPagePriority(threadHandle, &pagePriority);
-            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoostDisabled);
+            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
 
             if (NT_SUCCESS(PhOpenThreadToken(
                 threadHandle,
@@ -294,7 +294,7 @@ VOID PhpInitializeThreadMenu(
             }
         }
 
-        if (!threadPriorityBoostDisabled)
+        if (threadPriorityBoost)
         {
             PhSetFlagsEMenuItem(Menu, ID_THREAD_BOOST, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
         }
