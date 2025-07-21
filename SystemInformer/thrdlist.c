@@ -139,6 +139,7 @@ VOID PhInitializeThreadList(
     //PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CONTAINERID, FALSE, L"Container ID", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STARTADDRESS, FALSE, L"Start address (Native)", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_RPC, FALSE, L"RPC usage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_ACTUALBASEPRIORITY, FALSE, L"Base priority (actual)", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PH_THREAD_TREELIST_COLUMN_MAXIMUM, PhpThreadTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
@@ -351,7 +352,6 @@ VOID PhpDestroyThreadNode(
     if (ThreadNode->CyclesDeltaText) PhDereferenceObject(ThreadNode->CyclesDeltaText);
     if (ThreadNode->ContextSwitchesDeltaText) PhDereferenceObject(ThreadNode->ContextSwitchesDeltaText);
     if (ThreadNode->StartAddressText) PhDereferenceObject(ThreadNode->StartAddressText);
-    if (ThreadNode->PrioritySymbolicText) PhDereferenceObject(ThreadNode->PrioritySymbolicText);
     if (ThreadNode->CreatedText) PhDereferenceObject(ThreadNode->CreatedText);
     if (ThreadNode->NameText) PhDereferenceObject(ThreadNode->NameText);
     if (ThreadNode->StateText) PhDereferenceObject(ThreadNode->StateText);
@@ -954,7 +954,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PrioritySymbolic)
 {
-    sortResult = intcmp(threadItem1->BasePriorityIncrement, threadItem2->BasePriorityIncrement);
+    sortResult = intcmp(threadItem1->BasePriority, threadItem2->BasePriority);
 }
 END_SORT_FUNCTION
 
@@ -1293,6 +1293,12 @@ BEGIN_SORT_FUNCTION(HasRpc)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ActualBasePriority)
+{
+    sortResult = intcmp(threadItem1->ActualBasePriority, threadItem2->ActualBasePriority);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1363,6 +1369,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(PowerThrottling),
                     SORT_FUNCTION(StartAddressKernel),
                     SORT_FUNCTION(HasRpc),
+                    SORT_FUNCTION(ActualBasePriority),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1550,8 +1557,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_PRIORITYSYMBOLIC:
                 {
-                    PhMoveReference(&node->PrioritySymbolicText, PhGetBasePriorityIncrementString(threadItem->BasePriorityIncrement));
-                    getCellText->Text = PhGetStringRef(node->PrioritySymbolicText);
+                    getCellText->Text = *PhGetBasePrioritySymbolicString(threadItem->BasePriority);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_SERVICE:
@@ -2267,9 +2273,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         PhInitializeEmptyStringRef(&getCellText->Text);
                         break;
                     }
-    
+
                     PhpUpdateThreadNodeRpc(context, node);
-    
+
                     if (node->HasRpcState)
                     {
                         PhInitializeStringRef(&getCellText->Text, L"Yes");
@@ -2277,6 +2283,20 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     else
                     {
                         PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_ACTUALBASEPRIORITY:
+                {
+                    SIZE_T returnLength;
+                    PH_FORMAT format[1];
+
+                    PhInitFormatD(&format[0], threadItem->ActualBasePriority);
+
+                    if (PhFormatToBuffer(format, 1, node->ActualBasePriorityText, sizeof(node->ActualBasePriorityText), &returnLength))
+                    {
+                        getCellText->Text.Buffer = node->ActualBasePriorityText;
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                     }
                 }
                 break;

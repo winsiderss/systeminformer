@@ -168,7 +168,7 @@ VOID PhpInitializeThreadMenu(
     if (NumberOfThreads == 1)
     {
         HANDLE threadHandle;
-        ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
+        KPRIORITY threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         IO_PRIORITY_HINT ioPriority = ULONG_MAX;
         ULONG pagePriority = ULONG_MAX;
         BOOLEAN threadPriorityBoost = FALSE;
@@ -201,31 +201,38 @@ VOID PhpInitializeThreadMenu(
             NtClose(threadHandle);
         }
 
-        switch (threadPriority)
-        {
-        case THREAD_PRIORITY_TIME_CRITICAL + 1:
-        case THREAD_PRIORITY_TIME_CRITICAL:
-            id = ID_PRIORITY_TIMECRITICAL;
-            break;
-        case THREAD_PRIORITY_HIGHEST:
-            id = ID_PRIORITY_HIGHEST;
-            break;
-        case THREAD_PRIORITY_ABOVE_NORMAL:
-            id = ID_PRIORITY_ABOVENORMAL;
-            break;
-        case THREAD_PRIORITY_NORMAL:
-            id = ID_PRIORITY_NORMAL;
-            break;
-        case THREAD_PRIORITY_BELOW_NORMAL:
-            id = ID_PRIORITY_BELOWNORMAL;
-            break;
-        case THREAD_PRIORITY_LOWEST:
-            id = ID_PRIORITY_LOWEST;
-            break;
-        case THREAD_PRIORITY_IDLE:
-        case THREAD_PRIORITY_IDLE - 1:
+        // See PhGetBasePrioritySymbolicString
+        if (threadPriority == THREAD_PRIORITY_ERROR_RETURN)
+            NOTHING;
+        else if (threadPriority >= THREAD_BASE_PRIORITY_LOWRT) // 15
+            NOTHING;
+        else if (threadPriority <= THREAD_BASE_PRIORITY_IDLE)  // -15
             id = ID_PRIORITY_IDLE;
-            break;
+        else if (threadPriority < THREAD_BASE_PRIORITY_MIN)    // -2
+            NOTHING;
+        else if (threadPriority > THREAD_BASE_PRIORITY_MAX)    // 2
+            id = ID_PRIORITY_TIMECRITICAL;
+        else
+        {
+            switch (threadPriority)
+            {
+            case THREAD_PRIORITY_HIGHEST:                      // 2
+                id = ID_PRIORITY_HIGHEST;
+                break;
+            case THREAD_PRIORITY_ABOVE_NORMAL:                 // 1
+                id = ID_PRIORITY_ABOVENORMAL;
+                break;
+            case THREAD_PRIORITY_NORMAL:                       // 0
+                id = ID_PRIORITY_NORMAL;
+                break;
+            case THREAD_PRIORITY_BELOW_NORMAL:                 // -1
+                id = ID_PRIORITY_BELOWNORMAL;
+                break;
+            case THREAD_PRIORITY_LOWEST:                       // -2
+                id = ID_PRIORITY_LOWEST;
+                break;
+            DEFAULT_UNREACHABLE;
+            }
         }
 
         if (id != 0)
@@ -411,9 +418,9 @@ BOOLEAN PhpThreadTreeFilterCallback(
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(threadNode->PrioritySymbolicText))
+    if (threadItem->BasePriority != THREAD_PRIORITY_ERROR_RETURN)
     {
-        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->PrioritySymbolicText->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, PhGetBasePrioritySymbolicString(threadItem->BasePriority)))
             return TRUE;
     }
 
@@ -462,6 +469,12 @@ BOOLEAN PhpThreadTreeFilterCallback(
     if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressWin32FileName))
     {
         if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->ThreadItem->StartAddressWin32FileName->sr))
+            return TRUE;
+    }
+
+    if (threadNode->ActualBasePriorityText[0])
+    {
+        if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, threadNode->ActualBasePriorityText))
             return TRUE;
     }
 
@@ -1417,6 +1430,10 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     case ID_PRIORITY_IDLE:
                         threadPriorityWin32 = THREAD_PRIORITY_IDLE;
                         break;
+                    // TODO(jxy-s) Implement support for forcing thread to background
+                    // see KernelBase!SetThreadPriority THREAD_PRIORITY_BACKGROUND_BEGIN
+                    // calls NtSetInformationThread with ThreadActualBasePriority to force
+                    // the base priority increment below what is normally possible.
                     }
 
                     if (threadPriorityWin32 != LONG_MAX)

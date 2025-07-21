@@ -598,32 +598,49 @@ static NTSTATUS PhpGetThreadCycleTime(
     return STATUS_INVALID_PARAMETER;
 }
 
-PPH_STRING PhGetBasePriorityIncrementString(
-    _In_ KPRIORITY Increment
+PCPH_STRINGREF PhGetBasePrioritySymbolicString(
+    _In_ KPRIORITY BasePriority
     )
 {
-    switch (Increment)
+    static const PH_STRINGREF errorReturn = PH_STRINGREF_INIT(L"");
+    static const PH_STRINGREF realTime = PH_STRINGREF_INIT(L"Real-time");
+    static const PH_STRINGREF idle = PH_STRINGREF_INIT(L"Idle");
+    static const PH_STRINGREF background = PH_STRINGREF_INIT(L"Background");
+    static const PH_STRINGREF timeCritical = PH_STRINGREF_INIT(L"Time critical");
+    static const PH_STRINGREF highest = PH_STRINGREF_INIT(L"Highest");
+    static const PH_STRINGREF aboveNormal = PH_STRINGREF_INIT(L"Above normal");
+    static const PH_STRINGREF normal = PH_STRINGREF_INIT(L"Normal");
+    static const PH_STRINGREF belowNormal = PH_STRINGREF_INIT(L"Below normal");
+    static const PH_STRINGREF lowest = PH_STRINGREF_INIT(L"Lowest");
+
+    if (BasePriority == THREAD_PRIORITY_ERROR_RETURN)
+        return &errorReturn;
+
+    if (BasePriority >= THREAD_BASE_PRIORITY_LOWRT) // 15
+        return &realTime;
+
+    if (BasePriority <= THREAD_BASE_PRIORITY_IDLE)  // -15
+        return &idle;
+
+    if (BasePriority < THREAD_BASE_PRIORITY_MIN)    // -2
+        return &background;
+
+    if (BasePriority > THREAD_BASE_PRIORITY_MAX)    // 2
+        return &timeCritical;
+
+    switch (BasePriority)
     {
-    case THREAD_BASE_PRIORITY_LOWRT + 1:
-    case THREAD_BASE_PRIORITY_LOWRT:
-        return PhCreateString(L"Time critical");
-    case THREAD_PRIORITY_HIGHEST:
-        return PhCreateString(L"Highest");
-    case THREAD_PRIORITY_ABOVE_NORMAL:
-        return PhCreateString(L"Above normal");
-    case THREAD_PRIORITY_NORMAL:
-        return PhCreateString(L"Normal");
-    case THREAD_PRIORITY_BELOW_NORMAL:
-        return PhCreateString(L"Below normal");
-    case THREAD_PRIORITY_LOWEST:
-        return PhCreateString(L"Lowest");
-    case THREAD_BASE_PRIORITY_IDLE:
-    case THREAD_BASE_PRIORITY_IDLE - 1:
-        return PhCreateString(L"Idle");
-    case THREAD_PRIORITY_ERROR_RETURN:
-        return NULL;
-    default:
-        return PhFormatString(L"%ld", Increment);
+    case THREAD_PRIORITY_HIGHEST:                   // 2
+        return &highest;
+    case THREAD_PRIORITY_ABOVE_NORMAL:              // 1
+        return &aboveNormal;
+    case THREAD_PRIORITY_NORMAL:                    // 0
+        return &normal;
+    case THREAD_PRIORITY_BELOW_NORMAL:              // -1
+        return &belowNormal;
+    case THREAD_PRIORITY_LOWEST:                    // -2
+        return &lowest;
+    DEFAULT_UNREACHABLE;
     }
 }
 
@@ -818,7 +835,7 @@ VOID PhpThreadProviderUpdate(
             threadItem->CreateTime = thread->CreateTime;
             threadItem->StartAddress = thread->StartAddress;
             threadItem->Priority = thread->Priority;
-            threadItem->BasePriority = thread->BasePriority;
+            threadItem->ActualBasePriority = thread->BasePriority;
             PhUpdateDelta(&threadItem->ContextSwitchesDelta, thread->ContextSwitches);
             threadItem->State = thread->ThreadState;
             threadItem->WaitReason = thread->WaitReason;
@@ -880,11 +897,11 @@ VOID PhpThreadProviderUpdate(
                 &basicInfo
                 )))
             {
-                threadItem->BasePriorityIncrement = basicInfo.BasePriority;
+                threadItem->BasePriority = basicInfo.BasePriority;
             }
             else
             {
-                threadItem->BasePriorityIncrement = THREAD_PRIORITY_ERROR_RETURN;
+                threadItem->BasePriority = THREAD_PRIORITY_ERROR_RETURN;
             }
 
             // Affinity
@@ -1019,10 +1036,20 @@ VOID PhpThreadProviderUpdate(
 
             threadItem->KernelTime = thread->KernelTime;
             threadItem->UserTime = thread->UserTime;
-            threadItem->Priority = thread->Priority;
-            threadItem->BasePriority = thread->BasePriority;
             threadItem->State = thread->ThreadState;
             threadItem->WaitTime = thread->WaitTime;
+
+            if (threadItem->Priority != thread->Priority)
+            {
+                threadItem->Priority = thread->Priority;
+                modified = TRUE;
+            }
+
+            if (threadItem->ActualBasePriority != thread->BasePriority)
+            {
+                threadItem->ActualBasePriority = thread->BasePriority;
+                modified = TRUE;
+            }
 
             if (threadItem->WaitReason != thread->WaitReason)
             {
@@ -1195,24 +1222,23 @@ VOID PhpThreadProviderUpdate(
                 threadItem->CpuUserUsage = userCpuUsage;
             }
 
-            // Update the base priority increment.
-            // Update the thread affinity.
+            // Update the base priority.
             {
-                KPRIORITY oldBasePriorityIncrement = threadItem->BasePriorityIncrement;
+                KPRIORITY oldBasePriorityIncrement = threadItem->BasePriority;
 
                 if (threadItem->ThreadHandle && NT_SUCCESS(PhGetThreadBasicInformation(
                     threadItem->ThreadHandle,
                     &basicInfo
                     )))
                 {
-                    threadItem->BasePriorityIncrement = basicInfo.BasePriority;
+                    threadItem->BasePriority = basicInfo.BasePriority;
                 }
                 else
                 {
-                    threadItem->BasePriorityIncrement = THREAD_PRIORITY_ERROR_RETURN;
+                    threadItem->BasePriority = THREAD_PRIORITY_ERROR_RETURN;
                 }
 
-                if (threadItem->BasePriorityIncrement != oldBasePriorityIncrement)
+                if (threadItem->BasePriority != oldBasePriorityIncrement)
                 {
                     modified = TRUE;
                 }

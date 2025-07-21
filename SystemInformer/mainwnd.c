@@ -1881,7 +1881,7 @@ VOID PhMwpOnCommand(
             if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
             {
                 PhReferenceObjects(processes, numberOfProcesses);
-                PhMwpExecuteProcessPriorityCommand(WindowHandle, Id, processes, numberOfProcesses);
+                PhMwpExecuteProcessPriorityClassCommand(WindowHandle, Id, processes, numberOfProcesses);
                 PhDereferenceObjects(processes, numberOfProcesses);
                 PhFree(processes);
             }
@@ -4057,7 +4057,7 @@ VOID PhAddMiniProcessMenuItems(
 
     // Priority
 
-    priorityMenu = PhCreateEMenuItem(0, ID_PROCESS_PRIORITY, L"&Priority", NULL, ProcessId);
+    priorityMenu = PhCreateEMenuItem(0, ID_PROCESS_PRIORITYCLASS, L"&Priority class", NULL, ProcessId);
 
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, ProcessId), ULONG_MAX);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"&High", NULL, ProcessId), ULONG_MAX);
@@ -4159,7 +4159,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
 
             if (processItem = PhReferenceProcessItem(processId))
             {
-                PhMwpExecuteProcessPriorityCommand(PhMainWndHandle, MenuItem->Id, &processItem, 1);
+                PhMwpExecuteProcessPriorityClassCommand(PhMainWndHandle, MenuItem->Id, &processItem, 1);
                 PhDereferenceObject(processItem);
             }
             else

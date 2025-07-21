@@ -376,7 +376,7 @@ BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     return TRUE;
 }
 
-BOOLEAN PhMwpExecuteProcessPriorityCommand(
+BOOLEAN PhMwpExecuteProcessPriorityClassCommand(
     _In_ HWND WindowHandle,
     _In_ ULONG Id,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -409,7 +409,7 @@ BOOLEAN PhMwpExecuteProcessPriorityCommand(
         return FALSE;
     }
 
-    PhUiSetPriorityProcesses(WindowHandle, Processes, NumberOfProcesses, priorityClass);
+    PhUiSetPriorityClassProcesses(WindowHandle, Processes, NumberOfProcesses, priorityClass);
 
     return TRUE;
 }
@@ -747,7 +747,7 @@ VOID PhMwpInitializeProcessMenu(
         }
 
         // Enable the Priority menu item.
-        if (item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_PRIORITY))
+        if (item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_PRIORITYCLASS))
             item->Flags &= ~PH_EMENU_DISABLED;
 
         // Enable the I/O Priority menu item.
@@ -921,7 +921,7 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
 
-    menuItem = PhCreateEMenuItem(0, ID_PROCESS_PRIORITY, L"&Priority", NULL, NULL);
+    menuItem = PhCreateEMenuItem(0, ID_PROCESS_PRIORITYCLASS, L"&Priority class", NULL, NULL);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"&High", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"&Above normal", NULL, NULL), ULONG_MAX);

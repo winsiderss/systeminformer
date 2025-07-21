@@ -3400,7 +3400,7 @@ BOOLEAN PhUiSetIoPriorityProcesses(
             }
             else
             {
-                // See comment in PhUiSetPriorityProcesses.
+                // See comment in PhUiSetPriorityClassProcesses.
                 status = STATUS_UNSUCCESSFUL;
             }
 
@@ -3471,7 +3471,7 @@ BOOLEAN PhUiSetPagePriorityProcess(
         }
         else
         {
-            // See comment in PhUiSetPriorityProcesses.
+            // See comment in PhUiSetPriorityClassProcesses.
             status = STATUS_UNSUCCESSFUL;
         }
 
@@ -3487,7 +3487,7 @@ BOOLEAN PhUiSetPagePriorityProcess(
     return TRUE;
 }
 
-BOOLEAN PhUiSetPriorityProcesses(
+BOOLEAN PhUiSetPriorityClassProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses,
@@ -3532,7 +3532,7 @@ BOOLEAN PhUiSetPriorityProcesses(
             // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 WindowHandle,
-                PhaConcatStrings2(L"Unable to set the priority of ", Processes[i]->ProcessName->Buffer)->Buffer,
+                PhaConcatStrings2(L"Unable to set the priority class of ", Processes[i]->ProcessName->Buffer)->Buffer,
                 status,
                 &connected,
                 &cancelled
@@ -3543,7 +3543,7 @@ BOOLEAN PhUiSetPriorityProcesses(
                     if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[i]->ProcessId, PhSvcControlProcessPriority, PriorityClass)))
                         success = TRUE;
                     else
-                        PhpShowErrorProcess(WindowHandle, L"set the priority of", Processes[i], status, 0);
+                        PhpShowErrorProcess(WindowHandle, L"set the priority class of", Processes[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
                 }
@@ -3557,7 +3557,7 @@ BOOLEAN PhUiSetPriorityProcesses(
                 if (cancelled)
                     break;
 
-                if (!PhpShowErrorProcess(WindowHandle, L"set the priority of", Processes[i], status, 0))
+                if (!PhpShowErrorProcess(WindowHandle, L"set the priority class of", Processes[i], status, 0))
                     break;
             }
         }

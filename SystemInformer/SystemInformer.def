@@ -258,7 +258,7 @@ EXPORTS
     PhUiSetIoPriorityThread
     PhUiSetPagePriorityProcess
     PhUiSetPagePriorityThread
-    PhUiSetPriorityProcesses
+    PhUiSetPriorityClassProcesses
     PhUiSetPriorityThread
     PhUiSetPriorityThreads
     PhUiSetVirtualizationProcess

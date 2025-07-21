@@ -338,7 +338,7 @@ PhUiSetPagePriorityProcess(
 PHAPPAPI
 BOOLEAN
 NTAPI
-PhUiSetPriorityProcesses(
+PhUiSetPriorityClassProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses,

@@ -43,12 +43,12 @@ typedef struct _PH_THREAD_ITEM
 
     KPRIORITY Priority;
     KPRIORITY BasePriority;
+    KPRIORITY ActualBasePriority; // KeSetActualBasePriorityThread (jxy-s)
     PKAFFINITY AffinityMasks; // PhSystemProcessorInformation.NumberOfProcessorGroups
     ULONG AffinityPopulationCount;
     ULONG WaitTime;
     KTHREAD_STATE State;
     KWAIT_REASON WaitReason;
-    KPRIORITY BasePriorityIncrement;
 
     HANDLE ThreadHandle;
 
@@ -152,8 +152,8 @@ VOID PhDereferenceAllThreadItems(
     _In_ PPH_THREAD_PROVIDER ThreadProvider
     );
 
-PPH_STRING PhGetBasePriorityIncrementString(
-    _In_ KPRIORITY Increment
+PCPH_STRINGREF PhGetBasePrioritySymbolicString(
+    _In_ KPRIORITY BasePriority
     );
 
 VOID PhThreadProviderInitialUpdate(

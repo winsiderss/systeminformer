@@ -448,7 +448,7 @@ BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     _In_opt_ PVOID Context
     );
 
-BOOLEAN PhMwpExecuteProcessPriorityCommand(
+BOOLEAN PhMwpExecuteProcessPriorityClassCommand(
     _In_ HWND WindowHandle,
     _In_ ULONG Id,
     _In_ PPH_PROCESS_ITEM *Processes,
