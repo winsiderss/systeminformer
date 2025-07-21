@@ -616,30 +616,34 @@ PCPH_STRINGREF PhGetBasePrioritySymbolicString(
     if (BasePriority == THREAD_PRIORITY_ERROR_RETURN)
         return &errorReturn;
 
+    //
+    // N.B. This check is > 16 despite 16 being a real-time priority since
+    // requesting THREAD_PRIORITY_TIME_CRITICAL actually sets the base priority
+    // to the saturation value of LOW_REALTIME_PRIORITY. (jxy-s)
+    //
+    if (BasePriority > LOW_REALTIME_PRIORITY)      // 16
+        return &realTime;
 
-    if (BasePriority > THREAD_BASE_PRIORITY_LOWRT)  // 15
-        return &realTime; // LOW_REALTIME_PRIORITY (16) - HIGH_PRIORITY (31)
-
-    if (BasePriority <= THREAD_BASE_PRIORITY_IDLE)  // -15
+    if (BasePriority <= THREAD_BASE_PRIORITY_IDLE) // -15
         return &idle;
 
-    if (BasePriority < THREAD_BASE_PRIORITY_MIN)    // -2
+    if (BasePriority < THREAD_BASE_PRIORITY_MIN)   // -2
         return &background;
 
-    if (BasePriority > THREAD_BASE_PRIORITY_MAX)    // 2
+    if (BasePriority > THREAD_BASE_PRIORITY_MAX)   // 2
         return &timeCritical;
 
     switch (BasePriority)
     {
-    case THREAD_PRIORITY_HIGHEST:                   // 2
+    case THREAD_PRIORITY_HIGHEST:                  // 2
         return &highest;
-    case THREAD_PRIORITY_ABOVE_NORMAL:              // 1
+    case THREAD_PRIORITY_ABOVE_NORMAL:             // 1
         return &aboveNormal;
-    case THREAD_PRIORITY_NORMAL:                    // 0
+    case THREAD_PRIORITY_NORMAL:                   // 0
         return &normal;
-    case THREAD_PRIORITY_BELOW_NORMAL:              // -1
+    case THREAD_PRIORITY_BELOW_NORMAL:             // -1
         return &belowNormal;
-    case THREAD_PRIORITY_LOWEST:                    // -2
+    case THREAD_PRIORITY_LOWEST:                   // -2
         return &lowest;
     DEFAULT_UNREACHABLE;
     }

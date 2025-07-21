@@ -204,31 +204,31 @@ VOID PhpInitializeThreadMenu(
         // See PhGetBasePrioritySymbolicString
         if (threadPriority == THREAD_PRIORITY_ERROR_RETURN)
             NOTHING;
-        else if (threadPriority > THREAD_BASE_PRIORITY_LOWRT)  // 15
+        else if (threadPriority > LOW_REALTIME_PRIORITY)      // 16
             NOTHING;
-        else if (threadPriority <= THREAD_BASE_PRIORITY_IDLE)  // -15
+        else if (threadPriority <= THREAD_BASE_PRIORITY_IDLE) // -15
             id = ID_PRIORITY_IDLE;
-        else if (threadPriority < THREAD_BASE_PRIORITY_MIN)    // -2
+        else if (threadPriority < THREAD_BASE_PRIORITY_MIN)   // -2
             NOTHING;
-        else if (threadPriority > THREAD_BASE_PRIORITY_MAX)    // 2
+        else if (threadPriority > THREAD_BASE_PRIORITY_MAX)   // 2
             id = ID_PRIORITY_TIMECRITICAL;
         else
         {
             switch (threadPriority)
             {
-            case THREAD_PRIORITY_HIGHEST:                      // 2
+            case THREAD_PRIORITY_HIGHEST:                     // 2
                 id = ID_PRIORITY_HIGHEST;
                 break;
-            case THREAD_PRIORITY_ABOVE_NORMAL:                 // 1
+            case THREAD_PRIORITY_ABOVE_NORMAL:                // 1
                 id = ID_PRIORITY_ABOVENORMAL;
                 break;
-            case THREAD_PRIORITY_NORMAL:                       // 0
+            case THREAD_PRIORITY_NORMAL:                      // 0
                 id = ID_PRIORITY_NORMAL;
                 break;
-            case THREAD_PRIORITY_BELOW_NORMAL:                 // -1
+            case THREAD_PRIORITY_BELOW_NORMAL:                // -1
                 id = ID_PRIORITY_BELOWNORMAL;
                 break;
-            case THREAD_PRIORITY_LOWEST:                       // -2
+            case THREAD_PRIORITY_LOWEST:                      // -2
                 id = ID_PRIORITY_LOWEST;
                 break;
             DEFAULT_UNREACHABLE;
