@@ -616,8 +616,9 @@ PCPH_STRINGREF PhGetBasePrioritySymbolicString(
     if (BasePriority == THREAD_PRIORITY_ERROR_RETURN)
         return &errorReturn;
 
-    if (BasePriority >= THREAD_BASE_PRIORITY_LOWRT) // 15
-        return &realTime;
+
+    if (BasePriority > THREAD_BASE_PRIORITY_LOWRT)  // 15
+        return &realTime; // LOW_REALTIME_PRIORITY (16) - HIGH_PRIORITY (31)
 
     if (BasePriority <= THREAD_BASE_PRIORITY_IDLE)  // -15
         return &idle;

@@ -204,7 +204,7 @@ VOID PhpInitializeThreadMenu(
         // See PhGetBasePrioritySymbolicString
         if (threadPriority == THREAD_PRIORITY_ERROR_RETURN)
             NOTHING;
-        else if (threadPriority >= THREAD_BASE_PRIORITY_LOWRT) // 15
+        else if (threadPriority > THREAD_BASE_PRIORITY_LOWRT)  // 15
             NOTHING;
         else if (threadPriority <= THREAD_BASE_PRIORITY_IDLE)  // -15
             id = ID_PRIORITY_IDLE;
