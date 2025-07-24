@@ -93,6 +93,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
     {
     case WM_INITDIALOG:
         {
+            PPH_STRING fileName = NULL;
             PH_IMAGE_VERSION_INFO versionInfo;
             BOOLEAN versionInfoInitialized;
             PPH_STRING processNameString;
@@ -108,6 +109,11 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             {
                 processNameString = context->Record->ProcessName;
             }
+
+            if (context->Record->FileName)
+                fileName = PhGetFileName(context->Record->FileName);
+            if (!fileName)
+                fileName = context->Record->FileName;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
@@ -150,15 +156,15 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             memset(&versionInfo, 0, sizeof(PH_IMAGE_VERSION_INFO));
             versionInfoInitialized = FALSE;
 
-            if (context->Record->FileName)
+            if (fileName)
             {
                 PhExtractIcon(
-                    context->Record->FileName->Buffer,
+                    fileName->Buffer,
                     &context->FileIcon,
                     NULL
                     );
 
-                if (NT_SUCCESS(PhInitializeImageVersionInfo(&versionInfo, context->Record->FileName->Buffer)))
+                if (NT_SUCCESS(PhInitializeImageVersionInfo(&versionInfo, fileName->Buffer)))
                 {
                     versionInfoInitialized = TRUE;
                 }
@@ -184,12 +190,12 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             PhSetDialogItemText(hwndDlg, IDC_NAME, PhGetStringOrDefault(versionInfo.FileDescription, L"N/A"));
             PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME, PhGetStringOrDefault(versionInfo.CompanyName, L"N/A"));
             PhSetDialogItemText(hwndDlg, IDC_VERSION, PhGetStringOrDefault(versionInfo.FileVersion, L"N/A"));
-            PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhGetStringOrDefault(context->Record->FileName, L"N/A"));
+            PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhGetStringOrDefault(fileName, L"N/A"));
 
             if (versionInfoInitialized)
                 PhDeleteImageVersionInfo(&versionInfo);
 
-            if (!context->Record->FileName)
+            if (!fileName)
                 EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
 
             PhSetDialogItemText(hwndDlg, IDC_CMDLINE, PhGetStringOrDefault(context->Record->CommandLine, L"N/A"));
@@ -207,6 +213,9 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, context->Record->SessionId, FALSE);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            if (fileName && fileName != context->Record->FileName)
+                PhDereferenceObject(fileName);
         }
         break;
     case WM_DESTROY:
