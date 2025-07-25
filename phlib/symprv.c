@@ -74,6 +74,7 @@ PH_CALLBACK_DECLARE(PhSymbolEventCallback);
 static PH_INITONCE PhSymInitOnce = PH_INITONCE_INIT;
 static HANDLE PhNextFakeHandle = (HANDLE)0;
 static PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
+static PH_FREE_LIST PhSymEventFreeList;
 #define PH_LOCK_SYMBOLS() PhAcquireFastLockExclusive(&PhSymMutex)
 #define PH_UNLOCK_SYMBOLS() PhReleaseFastLockExclusive(&PhSymMutex)
 
@@ -183,20 +184,44 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     if (symbolProvider->IsRealHandle) NtClose(symbolProvider->ProcessHandle);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS PhpSymbolProviderCallbackWorkItem(
+    _In_ PVOID Context
+    )
+{
+    PPH_SYMBOL_EVENT_DATA data = Context;
+
+    PhInvokeCallback(&PhSymbolEventCallback, &data);
+
+    PhClearReference(&data->EventMessage);
+    PhFreeToFreeList(&PhSymEventFreeList, data);
+
+    return STATUS_SUCCESS;
+}
+
 static VOID PhpSymbolProviderInvokeCallback(
     _In_ ULONG EventType,
     _In_opt_ PPH_STRING EventMessage,
     _In_opt_ ULONG64 EventProgress
     )
 {
-    PH_SYMBOL_EVENT_DATA data;
+    PPH_SYMBOL_EVENT_DATA data;
 
-    memset(&data, 0, sizeof(PH_SYMBOL_EVENT_DATA));
-    data.EventType = EventType;
-    data.EventMessage = EventMessage;
-    data.EventProgress = EventProgress;
+    data = PhAllocateFromFreeList(&PhSymEventFreeList);
 
-    PhInvokeCallback(&PhSymbolEventCallback, &data);
+    memset(data, 0, sizeof(PH_SYMBOL_EVENT_DATA));
+    data->EventType = EventType;
+    data->EventMessage = EventMessage;
+    data->EventProgress = EventProgress;
+
+    if (data->EventMessage)
+        PhReferenceObject(data->EventMessage);
+
+    if (!NT_SUCCESS(PhQueueUserWorkItem(PhpSymbolProviderCallbackWorkItem, data)))
+    {
+        PhClearReference(&data->EventMessage);
+        PhFreeToFreeList(&PhSymEventFreeList, data);
+    }
 }
 
 static VOID PhpSymbolProviderEventCallback(
@@ -418,6 +443,8 @@ VOID PhpSymbolProviderCompleteInitialization(
     {
         return;
     }
+
+    PhInitializeFreeList(&PhSymEventFreeList, sizeof(PH_SYMBOL_EVENT_DATA), 5);
 
     winsdkPath = NULL;
     dbgcoreHandle = NULL;
