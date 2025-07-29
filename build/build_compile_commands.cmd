@@ -30,8 +30,16 @@ if not exist %COMPILE_COMMANDS_LOGGER% (
 set BUILD_ARGS=-t:rebuild -p:Configuration=Debug;Platform=%BUILD_PLATFORM% -logger:%COMPILE_COMMANDS_LOGGER% --terminalLogger:auto
 
 msbuild /m KSystemInformer\KSystemInformer.sln %BUILD_ARGS%
+if %ERRORLEVEL% neq 0 goto end
+echo:
+
 msbuild /m SystemInformer.sln %BUILD_ARGS%
+if %ERRORLEVEL% neq 0 goto end
+echo:
+
 msbuild /m Plugins\Plugins.sln %BUILD_ARGS%
+if %ERRORLEVEL% neq 0 goto end
+echo:
 
 :end
 pause
