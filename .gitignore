@@ -93,6 +93,10 @@ build/.cmake/
 build/CMakeCache.txt
 build/CMakeFiles/
 
+# JSON Compilation Database
+**/compile_commands.json
+**/.cache/
+
 ##########################
 ## Project specific rules
 ##########################
