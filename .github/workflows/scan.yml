@@ -27,7 +27,9 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: cpp
-          packs: microsoft/windows-drivers
+          build-mode: manual
+          config-file: microsoft/Windows-Driver-Developer-Supplemental-Tools/config/codeql-config.yml@development
+          packs: microsoft/windows-drivers@1.6.0
       - name: Build Driver
         shell: cmd
         working-directory: ${{github.workspace}}
