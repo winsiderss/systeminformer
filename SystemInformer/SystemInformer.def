@@ -23,6 +23,7 @@ EXPORTS
     PhAddProcessPropPage2
     PhAddPropPageLayoutItem
     PhAddTreeNewFilter
+    PhAggregateProcessFieldIfNeeded
     PhApplyTreeNewFilters
     PhApplyTreeNewFiltersToNode
     PhChoiceDialog
@@ -253,6 +254,7 @@ EXPORTS
     PhUiSetBoostPriorityThreads
     PhUiSetCriticalProcess
     PhUiSetEcoModeProcess
+    PhUiSetEmptyWorkingSetProcesses
     PhUiSetExecutionRequiredProcess
     PhUiSetIoPriorityProcesses
     PhUiSetIoPriorityThread
