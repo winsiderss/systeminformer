@@ -1,8 +1,18 @@
 version: 2
 updates:
-    directory: "/"
-    schedule:
-      interval: "weekly"
+
+- package-ecosystem: "nuget"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+  reviewers:
+    - "dmex","jxy-s"
+  open-pull-requests-limit: 5
+
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
   reviewers:
     - "dmex","jxy-s"
   open-pull-requests-limit: 5
