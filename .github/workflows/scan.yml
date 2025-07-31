@@ -35,7 +35,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: cpp
-          packs: microsoft/cpp-queries@0.0.4,microsoft/windows-drivers@1.8.0
+          packs: microsoft/cpp-queries@0.0.4,microsoft/windows-drivers@1.7.1
 
       - name: Build Driver
         shell: cmd
