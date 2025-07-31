@@ -1,0 +1,8 @@
+version: 2
+updates:
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  reviewers:
+    - "dmex","jxy-s"
+  open-pull-requests-limit: 5
