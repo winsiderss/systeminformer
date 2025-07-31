@@ -1,6 +1,6 @@
 version: 2
 updates:
-  - package-ecosystem: "github action"
+  - package-ecosystem: "github-actions"
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
