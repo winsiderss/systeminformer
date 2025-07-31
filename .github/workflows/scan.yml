@@ -5,41 +5,50 @@ on:
   schedule:
     - cron: '00 16 * * 1'
 
-permissions:
-  actions: read
-  contents: read
-  security-events: write
-
 jobs:
   analyze_driver:
-    runs-on: windows-latest
+    name: Analysis
+    runs-on: windows-latest  
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
     strategy:
       fail-fast: false
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
       - name: Install Nuget Packages
         run: nuget restore .\packages.config -PackagesDirectory .\packages\
+
       - name: Build Tools
         shell: cmd
         working-directory: ${{github.workspace}}
         run: build\build_tools.cmd
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: cpp
-          build-mode: manual
-          config-file: microsoft/Windows-Driver-Developer-Supplemental-Tools/config/codeql-config.yml@development
-          packs: microsoft/windows-drivers@1.6.0
+          packs: microsoft/cpp-queries@0.0.4,microsoft/windows-drivers@1.8.0
+
       - name: Build Driver
         shell: cmd
         working-directory: ${{github.workspace}}
         run: build\build_zdriver.cmd
+
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:cpp"
           output: sarif-results
           upload: failure-only
+
       - name: Filter CodeQL Results
         uses: advanced-security/filter-sarif@v1
         with:
@@ -47,6 +56,7 @@ jobs:
           patterns: -packages/**/*
           input: sarif-results/cpp.sarif
           output: sarif-results/cpp.sarif
+
       - name: Upload CodeQL Results
         uses: github/codeql-action/upload-sarif@v3
         with:
