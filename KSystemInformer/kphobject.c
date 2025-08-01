@@ -538,9 +538,9 @@ KPH_PAGED_FILE();
  *
  * \param[in] Parameter Unused parameter.
  */
+_Function_class_(KSI_WORK_QUEUE_ROUTINE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _IRQL_requires_same_
-_Function_class_(KSI_WORK_QUEUE_ROUTINE)
 VOID KSIAPI KphpDeferDeleteObjectWorker(
     _In_opt_ PVOID Parameter
     )
