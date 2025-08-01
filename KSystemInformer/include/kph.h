@@ -91,7 +91,7 @@
 #define _FreesMem_ _Pre_notnull_ _Post_ptr_invalid_ __drv_freesMem(Mem)
 #define _In_freesMem_ _In_ _FreesMem_
 #define _In_aliasesMem_ _In_ _Pre_notnull_ _Post_ptr_invalid_ __drv_aliasesMem
-#define _Return_allocatesMem_ __drv_allocatesMem(Mem) _Post_maybenull_ _Must_inspect_result_
+#define _Return_allocatesMem_ __drv_allocatesMem(Mem) _Check_return_ _Ret_maybenull_
 #define _Return_allocatesMem_size_(size) _Return_allocatesMem_ _Post_writable_byte_size_(size)
 #define _IRQL_requires_for_wait_(timeout)                                      \
     _When_(((timeout == NULL) || (timeout->QuadPart != 0)),                    \
@@ -112,7 +112,6 @@ ULONG64 InterlockedExchangeU64(
 {
     return (ULONG64)InterlockedExchange64((LONG64*)Target, (LONG64)Value);
 }
-
 
 FORCEINLINE
 ULONG64 InterlockedCompareExchangeU64(
@@ -2432,9 +2431,9 @@ KsiRemoveQueueApc(
     );
 
 typedef
+_Function_class_(KSI_WORK_QUEUE_ROUTINE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _IRQL_requires_same_
-_Function_class_(KSI_WORK_QUEUE_ROUTINE)
 VOID
 KSIAPI
 KSI_WORK_QUEUE_ROUTINE(
