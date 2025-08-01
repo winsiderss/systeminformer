@@ -2224,8 +2224,7 @@ typedef enum _KSI_KAPC_CLEANUP_REASON
 
 typedef
 _Function_class_(KSI_KCLEANUP_ROUTINE)
-_IRQL_requires_min_(PASSIVE_LEVEL)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_(PASSIVE_LEVEL)
 _IRQL_requires_same_
 VOID
 KSIAPI

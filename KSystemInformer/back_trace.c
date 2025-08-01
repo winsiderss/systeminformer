@@ -260,8 +260,6 @@ ULONG KphCaptureStackBackTrace(
     return frames;
 }
 
-KPH_PAGED_FILE();
-
 /**
  * \brief Captures the current stack back trace into a back trace object.
  *
@@ -275,8 +273,6 @@ VOID KphpCaptureStackBackTraceIntoObject(
 {
     PULONG backTraceHash;
     ULONG capturedFrames;
-
-    KPH_PAGED_CODE();
 
     if (BackTrace->DoHash)
     {
@@ -321,8 +317,6 @@ VOID KSIAPI KphpCaptureStackBackTraceThreadSpecialApc(
 {
     PKPH_STACK_BACK_TRACE_OBJECT backTrace;
 
-    KPH_PAGED_CODE();
-
     UNREFERENCED_PARAMETER(NormalRoutine);
     UNREFERENCED_PARAMETER(NormalContext);
     UNREFERENCED_PARAMETER(SystemArgument1);
@@ -333,6 +327,8 @@ VOID KSIAPI KphpCaptureStackBackTraceThreadSpecialApc(
     KphpCaptureStackBackTraceIntoObject(backTrace);
 }
 
+KPH_PAGED_FILE();
+
 /**
  * \brief APC cleanup routine for stack back trace capture.
  *
@@ -340,8 +336,7 @@ VOID KSIAPI KphpCaptureStackBackTraceThreadSpecialApc(
  * \param[in] Reason Unused.
  */
 _Function_class_(KSI_KCLEANUP_ROUTINE)
-_IRQL_requires_min_(PASSIVE_LEVEL)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_(PASSIVE_LEVEL)
 _IRQL_requires_same_
 VOID KSIAPI KphpCaptureStackBackTraceThreadSpecialApcCleanup(
     _In_ PKSI_KAPC Apc,

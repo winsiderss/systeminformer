@@ -26,6 +26,49 @@ KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpProcesCreateApcLookaside = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
+/**
+ * \brief Performs process creation actions at return from system.
+ *
+ * \details We use an APC to do state tracking in the current thread context.
+ * This enables us to identify when the thread is currently in the kernel
+ * creating a process. In this kernel routine we clear state from the acting
+ * thread before it returns from the system.
+ *
+ * \param[in] Apc The APC that is executing.
+ * \param[in] NormalRoutine Set to NULL to cancel the faked routine.
+ * \param[in,out] NormalContext Unused.
+ * \param[in,out] SystemArgument1 Unused.
+ * \param[in,out] SystemArgument2 Unused.
+ */
+_Function_class_(KSI_KKERNEL_ROUTINE)
+_IRQL_requires_(APC_LEVEL)
+_IRQL_requires_same_
+VOID KSIAPI KphpProcessCreateKernelRoutine(
+    _In_ PKSI_KAPC Apc,
+    _Inout_ _Deref_pre_maybenull_ PKNORMAL_ROUTINE* NormalRoutine,
+    _Inout_ _Deref_pre_maybenull_ PVOID* NormalContext,
+    _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument1,
+    _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument2
+    )
+{
+    PKPH_PROCESS_CREATE_APC apc;
+
+    apc = CONTAINING_RECORD(Apc, KPH_PROCESS_CREATE_APC, Apc);
+
+    DBG_UNREFERENCED_PARAMETER(NormalRoutine);
+    NT_ASSERT(apc->Actor->ProcessContext->ApcNoopRoutine);
+    NT_ASSERT(*NormalRoutine == apc->Actor->ProcessContext->ApcNoopRoutine);
+
+    *NormalContext = NULL;
+    *SystemArgument1 = NULL;
+    *SystemArgument2 = NULL;
+
+    NT_ASSERT(apc->Actor->IsCreatingProcess);
+
+    apc->Actor->IsCreatingProcess = FALSE;
+    apc->Actor->IsCreatingProcessId = NULL;
+}
+
 KPH_PAGED_FILE();
 
 /**
@@ -363,8 +406,7 @@ Exit:
  * \param[in] Reason Unused.
  */
 _Function_class_(KSI_KCLEANUP_ROUTINE)
-_IRQL_requires_min_(PASSIVE_LEVEL)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_(PASSIVE_LEVEL)
 _IRQL_requires_same_
 VOID
 KSIAPI
@@ -382,51 +424,6 @@ KphpProcessCreateCleanupRoutine(
     apc = CONTAINING_RECORD(Apc, KPH_PROCESS_CREATE_APC, Apc);
 
     KphpFreeProcessCreateApc(apc);
-}
-
-/**
- * \brief Performs process creation actions at return from system.
- *
- * \details We use an APC to do state tracking in the current thread context.
- * This enables us to identify when the thread is currently in the kernel
- * creating a process. In this kernel routine we clear state from the acting
- * thread before it returns from the system.
- *
- * \param[in] Apc The APC that is executing.
- * \param[in] NormalRoutine Set to NULL to cancel the faked routine.
- * \param[in,out] NormalContext Unused.
- * \param[in,out] SystemArgument1 Unused.
- * \param[in,out] SystemArgument2 Unused.
- */
-_Function_class_(KSI_KKERNEL_ROUTINE)
-_IRQL_requires_(APC_LEVEL)
-_IRQL_requires_same_
-VOID KSIAPI KphpProcessCreateKernelRoutine(
-    _In_ PKSI_KAPC Apc,
-    _Inout_ _Deref_pre_maybenull_ PKNORMAL_ROUTINE* NormalRoutine,
-    _Inout_ _Deref_pre_maybenull_ PVOID* NormalContext,
-    _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument1,
-    _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument2
-    )
-{
-    PKPH_PROCESS_CREATE_APC apc;
-
-    KPH_PAGED_CODE();
-
-    apc = CONTAINING_RECORD(Apc, KPH_PROCESS_CREATE_APC, Apc);
-
-    DBG_UNREFERENCED_PARAMETER(NormalRoutine);
-    NT_ASSERT(apc->Actor->ProcessContext->ApcNoopRoutine);
-    NT_ASSERT(*NormalRoutine == apc->Actor->ProcessContext->ApcNoopRoutine);
-
-    *NormalContext = NULL;
-    *SystemArgument1 = NULL;
-    *SystemArgument2 = NULL;
-
-    NT_ASSERT(apc->Actor->IsCreatingProcess);
-
-    apc->Actor->IsCreatingProcess = FALSE;
-    apc->Actor->IsCreatingProcessId = NULL;
 }
 
 /**

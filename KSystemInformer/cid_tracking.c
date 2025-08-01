@@ -164,6 +164,129 @@ PKPH_THREAD_CONTEXT KphGetThreadContext(
     return KphpLookupContext(ThreadId, KphThreadContextType);
 }
 
+/**
+ * \brief Performs thread context initialization for a WSL thread.
+ *
+ * \param[in] Dyn Dynamic configuration.
+ * \param[in] ThreadContext The thread context to initialize.
+ */
+_IRQL_requires_(APC_LEVEL)
+VOID KphpInitializeWSLThreadContext(
+    _In_ PKPH_DYN Dyn,
+    _In_ PKPH_THREAD_CONTEXT ThreadContext
+    )
+{
+    PVOID picoContext;
+    PVOID value;
+
+    //
+    // We use an APC here to reach into the thread pico context. We could
+    // reach directly into the pico context elsewhere, but reversing shows
+    // intent for possible other pico subsystem providers in the future.
+    // So, we use some "undocumented" APIs in the APC to ask "nicely" for
+    // the correct pico context.
+    //
+
+    if ((ThreadContext->SubsystemType != SubsystemInformationTypeWSL) ||
+        !KphDynLxpThreadGetCurrent ||
+        (Dyn->LxPicoThrdInfo == ULONG_MAX) ||
+        (Dyn->LxPicoThrdInfoTID == ULONG_MAX) ||
+        (Dyn->LxPicoProc == ULONG_MAX) ||
+        (Dyn->LxPicoProcInfo == ULONG_MAX) ||
+        (Dyn->LxPicoProcInfoPID == ULONG_MAX))
+    {
+        return;
+    }
+
+    if (!KphDynLxpThreadGetCurrent(&picoContext))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "LxpThreadGetCurrent failed");
+
+        return;
+    }
+
+    if (!ThreadContext->WSL.ValidThreadId)
+    {
+        value = *(PVOID*)Add2Ptr(picoContext, Dyn->LxPicoThrdInfo);
+        ThreadContext->WSL.ThreadId =
+            *(PULONG)Add2Ptr(value, Dyn->LxPicoThrdInfoTID);
+
+        ThreadContext->WSL.ValidThreadId = TRUE;
+    }
+
+    if (ThreadContext->ProcessContext &&
+        !ThreadContext->ProcessContext->WSL.ValidProcessId)
+    {
+        value = *(PVOID*)Add2Ptr(picoContext, Dyn->LxPicoProc);
+        value = *(PVOID*)Add2Ptr(value, Dyn->LxPicoProcInfo);
+        ThreadContext->ProcessContext->WSL.ProcessId =
+            *(PULONG)Add2Ptr(value, Dyn->LxPicoProcInfoPID);
+
+        ThreadContext->ProcessContext->WSL.ValidProcessId = TRUE;
+    }
+}
+
+/**
+ * \brief APC routine for thread tracking.
+ *
+ * \param[in] Apc The ACP executed, contained within the CID APC.
+ * \param[in] NormalRoutine Unused.
+ * \param[in] NormalContext Unused.
+ * \param[in] SystemArgument1 Unused.
+ * \param[in] SystemArgument2 Unused.
+ */
+_Function_class_(KSI_KKERNEL_ROUTINE)
+_IRQL_requires_(APC_LEVEL)
+_IRQL_requires_same_
+VOID KSIAPI KphpInitializeThreadContextSpecialApc(
+    _In_ PKSI_KAPC Apc,
+    _Inout_ _Deref_pre_maybenull_ PKNORMAL_ROUTINE* NormalRoutine,
+    _Inout_ _Deref_pre_maybenull_ PVOID* NormalContext,
+    _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument1,
+    _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument2
+    )
+{
+    PKPH_CID_APC apc;
+    PKPH_DYN dyn;
+    PTEB teb;
+
+    UNREFERENCED_PARAMETER(NormalRoutine);
+    UNREFERENCED_PARAMETER(NormalContext);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
+
+    apc = CONTAINING_RECORD(Apc, KPH_CID_APC, Apc);
+
+    NT_ASSERT(apc->Thread->EThread == KeGetCurrentThread());
+
+    teb = PsGetCurrentThreadTeb();
+    if (teb)
+    {
+        __try
+        {
+            apc->Thread->SubProcessTag = teb->SubProcessTag;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          TRACKING,
+                          "Failed to populate SubProcessTag: %!STATUS!",
+                          GetExceptionCode());
+        }
+    }
+
+    dyn = KphReferenceDynData();
+    if (dyn)
+    {
+        KphpInitializeWSLThreadContext(dyn, apc->Thread);
+        KphDereferenceObject(dyn);
+    }
+
+    KeSetEvent(&apc->CompletedEvent, EVENT_INCREMENT, FALSE);
+}
+
 KPH_PAGED_FILE();
 
 /**
@@ -326,8 +449,7 @@ VOID KSIAPI KphpFreeCidApc(
  * \param[in] Reason Unused.
  */
 _Function_class_(KSI_KCLEANUP_ROUTINE)
-_IRQL_requires_min_(PASSIVE_LEVEL)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_(PASSIVE_LEVEL)
 _IRQL_requires_same_
 VOID KSIAPI KphpCidApcCleanup(
     _In_ PKSI_KAPC Apc,
@@ -760,133 +882,6 @@ PVOID KSIAPI KphpAllocateThreadContext(
     }
 
     return object;
-}
-
-/**
- * \brief Performs thread context initialization for a WSL thread.
- *
- * \param[in] Dyn Dynamic configuration.
- * \param[in] ThreadContext The thread context to initialize.
- */
-_IRQL_requires_(APC_LEVEL)
-VOID KphpInitializeWSLThreadContext(
-    _In_ PKPH_DYN Dyn,
-    _In_ PKPH_THREAD_CONTEXT ThreadContext
-    )
-{
-    PVOID picoContext;
-    PVOID value;
-
-    KPH_PAGED_CODE();
-
-    //
-    // We use an APC here to reach into the thread pico context. We could
-    // reach directly into the pico context elsewhere, but reversing shows
-    // intent for possible other pico subsystem providers in the future.
-    // So, we use some "undocumented" APIs in the APC to ask "nicely" for
-    // the correct pico context.
-    //
-
-    if ((ThreadContext->SubsystemType != SubsystemInformationTypeWSL) ||
-        !KphDynLxpThreadGetCurrent ||
-        (Dyn->LxPicoThrdInfo == ULONG_MAX) ||
-        (Dyn->LxPicoThrdInfoTID == ULONG_MAX) ||
-        (Dyn->LxPicoProc == ULONG_MAX) ||
-        (Dyn->LxPicoProcInfo == ULONG_MAX) ||
-        (Dyn->LxPicoProcInfoPID == ULONG_MAX))
-    {
-        return;
-    }
-
-    if (!KphDynLxpThreadGetCurrent(&picoContext))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      TRACKING,
-                      "LxpThreadGetCurrent failed");
-
-        return;
-    }
-
-    if (!ThreadContext->WSL.ValidThreadId)
-    {
-        value = *(PVOID*)Add2Ptr(picoContext, Dyn->LxPicoThrdInfo);
-        ThreadContext->WSL.ThreadId =
-            *(PULONG)Add2Ptr(value, Dyn->LxPicoThrdInfoTID);
-
-        ThreadContext->WSL.ValidThreadId = TRUE;
-    }
-
-    if (ThreadContext->ProcessContext &&
-        !ThreadContext->ProcessContext->WSL.ValidProcessId)
-    {
-        value = *(PVOID*)Add2Ptr(picoContext, Dyn->LxPicoProc);
-        value = *(PVOID*)Add2Ptr(value, Dyn->LxPicoProcInfo);
-        ThreadContext->ProcessContext->WSL.ProcessId =
-            *(PULONG)Add2Ptr(value, Dyn->LxPicoProcInfoPID);
-
-        ThreadContext->ProcessContext->WSL.ValidProcessId = TRUE;
-    }
-}
-
-/**
- * \brief APC routine for thread tracking.
- *
- * \param[in] Apc The ACP executed, contained within the CID APC.
- * \param[in] NormalRoutine Unused.
- * \param[in] NormalContext Unused.
- * \param[in] SystemArgument1 Unused.
- * \param[in] SystemArgument2 Unused.
- */
-_Function_class_(KSI_KKERNEL_ROUTINE)
-_IRQL_requires_(APC_LEVEL)
-_IRQL_requires_same_
-VOID KSIAPI KphpInitializeThreadContextSpecialApc(
-    _In_ PKSI_KAPC Apc,
-    _Inout_ _Deref_pre_maybenull_ PKNORMAL_ROUTINE* NormalRoutine,
-    _Inout_ _Deref_pre_maybenull_ PVOID* NormalContext,
-    _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument1,
-    _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument2
-    )
-{
-    PKPH_CID_APC apc;
-    PKPH_DYN dyn;
-    PTEB teb;
-
-    KPH_PAGED_CODE();
-
-    UNREFERENCED_PARAMETER(NormalRoutine);
-    UNREFERENCED_PARAMETER(NormalContext);
-    UNREFERENCED_PARAMETER(SystemArgument1);
-    UNREFERENCED_PARAMETER(SystemArgument2);
-
-    apc = CONTAINING_RECORD(Apc, KPH_CID_APC, Apc);
-
-    NT_ASSERT(apc->Thread->EThread == KeGetCurrentThread());
-
-    teb = PsGetCurrentThreadTeb();
-    if (teb)
-    {
-        __try
-        {
-            apc->Thread->SubProcessTag = teb->SubProcessTag;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          TRACKING,
-                          "Failed to populate SubProcessTag: %!STATUS!",
-                          GetExceptionCode());
-        }
-    }
-
-    dyn = KphReferenceDynData();
-    if (dyn)
-    {
-        KphpInitializeWSLThreadContext(dyn, apc->Thread);
-        KphDereferenceObject(dyn);
-    }
-
-    KeSetEvent(&apc->CompletedEvent, EVENT_INCREMENT, FALSE);
 }
 
 /**
