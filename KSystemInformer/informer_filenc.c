@@ -77,15 +77,12 @@ NTSTATUS KphpFltGetFileNameInformation(
  * \brief Retrieves the length of the file name from the related objects.
  *
  * \param[in] FltObjects The related objects for the operation.
- * \param[out] Length The length of the file name.
  *
- * \return STATUS_SUCCESS
+ * \return The length of the file name.
  */
 _IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphpFltNameCacheFileNameLength(
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _Out_ PULONG Length
+ULONG KphpFltNameCacheFileNameLength(
+    _In_ PCFLT_RELATED_OBJECTS FltObjects
     )
 {
     ULONG length;
@@ -94,13 +91,12 @@ NTSTATUS KphpFltNameCacheFileNameLength(
 
     NT_ASSERT(FltObjects->FileObject && FltObjects->Volume);
 
-    (VOID)FltGetVolumeName(FltObjects->Volume, NULL, &length);
+    NT_VERIFY(FltGetVolumeName(FltObjects->Volume, NULL, &length)
+              == STATUS_BUFFER_TOO_SMALL);
 
     length += FltObjects->FileObject->FileName.Length;
 
-    *Length = length;
-
-    return STATUS_SUCCESS;
+    return length;
 }
 
 /**
@@ -115,13 +111,17 @@ VOID KphpFltNameCacheCopyFileName(
     _Inout_ PUNICODE_STRING FileName
     )
 {
+    PUNICODE_STRING fileName;
+
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(FltObjects->FileObject && FltObjects->Volume);
 
-    (VOID)FltGetVolumeName(FltObjects->Volume, FileName, NULL);
+    NT_VERIFY(NT_SUCCESS(FltGetVolumeName(FltObjects->Volume, FileName, NULL)));
 
-    RtlAppendUnicodeStringToString(FileName, &FltObjects->FileObject->FileName);
+    fileName = &FltObjects->FileObject->FileName;
+
+    NT_VERIFY(NT_SUCCESS(RtlAppendUnicodeStringToString(FileName, fileName)));
 }
 
 /**
@@ -164,16 +164,7 @@ NTSTATUS KphpFltGetFileNameUseContext(
     // Try to create a new context.
     //
 
-    status = KphpFltNameCacheFileNameLength(FltObjects, &length);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      INFORMER,
-                      "KphpFltFileNameLength failed: %!STATUS!",
-                      status);
-
-        return status;
-    }
+    length = KphpFltNameCacheFileNameLength(FltObjects);
 
     status = FltAllocateContext(FltObjects->Filter,
                                 FLT_STREAMHANDLE_CONTEXT,
@@ -309,16 +300,7 @@ NTSTATUS KphpFltGetFileNameUseNameCache(
     // Try to create new entry and insert it into the cache.
     //
 
-    status = KphpFltNameCacheFileNameLength(FltObjects, &length);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      INFORMER,
-                      "KphpFltFileNameLength failed: %!STATUS!",
-                      status);
-
-        return status;
-    }
+    length = KphpFltNameCacheFileNameLength(FltObjects);
 
     status = KphCreateObject(KphpCachedFileNameType,
                              length + sizeof(KPH_FLT_FILE_NAME_CACHE_ENTRY),
@@ -415,7 +397,6 @@ NTSTATUS KphpFltGetFileNameCopy(
     _Out_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
-    NTSTATUS status;
     ULONG length;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
@@ -423,16 +404,7 @@ NTSTATUS KphpFltGetFileNameCopy(
     NT_ASSERT(FltObjects->Volume);
     NT_ASSERT(FltObjects->FileObject);
 
-    status = KphpFltNameCacheFileNameLength(FltObjects, &length);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      INFORMER,
-                      "KphpFltFileNameLength failed: %!STATUS!",
-                      status);
-
-        return status;
-    }
+    length = KphpFltNameCacheFileNameLength(FltObjects);
 
     FltFileName->FileName = KphAllocateNPaged(length + sizeof(UNICODE_STRING),
                                               KPH_TAG_FLT_FILE_NAME);
