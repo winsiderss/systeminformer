@@ -97,6 +97,11 @@ build/CMakeFiles/
 **/compile_commands.json
 **/.cache/
 
+# AI instructions and caches
+.github/copilot-instructions.md
+.clinerules
+memory-bank/
+
 ##########################
 ## Project specific rules
 ##########################
