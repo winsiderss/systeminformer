@@ -16,8 +16,8 @@ PPH_OBJECT_TYPE UploadContextType = NULL;
 PH_INITONCE UploadContextTypeInitOnce = PH_INITONCE_INIT;
 CONST SERVICE_INFO UploadServiceInfo[] =
 {
-    { MENUITEM_HYBRIDANALYSIS_UPLOAD, L"www.hybrid-analysis.com", L"/api/v2/submit/file", L"file" },
-    { MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"www.hybrid-analysis.com", L"/api/v2/submit/file", L"file" },
+    { MENUITEM_HYBRIDANALYSIS_UPLOAD, L"hybrid-analysis.com", L"/api/v2/submit/file", L"file" },
+    { MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"hybrid-analysis.com", L"/api/v2/submit/file", L"file" },
     { MENUITEM_VIRUSTOTAL_UPLOAD, L"www.virustotal.com", L"???", L"file" },
     { MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"www.virustotal.com", L"???", L"file" },
     { MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
