@@ -79,7 +79,7 @@ if /i "%ACTION%"=="clean" (
     if %ERRORLEVEL% neq 0 goto end
 ) else if /i "%ACTION%"=="build" (
     echo Setting up Visual Studio environment for %VCVARS_ARCH%...
-    call "%ProgramFiles%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" %VCVARS_ARCH%
+    call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" %VCVARS_ARCH%
     if %ERRORLEVEL% neq 0 goto end
     cmake --build %BUILD_DIR% --config %CONFIG%
     if %ERRORLEVEL% neq 0 goto end

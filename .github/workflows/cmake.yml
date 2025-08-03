@@ -20,7 +20,7 @@ jobs:
         config: ['Debug', 'Release']
         generator: ['Ninja', 'Visual Studio 17 2022']
     runs-on: ${{ matrix.os }}
-    name: Build ${{ matrix.config }} ${{ matrix.platform }} ${{ matrix.generator }}
+    name: ${{ matrix.config }} ${{ matrix.platform }} ${{ matrix.generator }}
     steps:
     - uses: actions/checkout@v4
     - name: Install Nuget Packages
