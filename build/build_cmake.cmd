@@ -8,6 +8,15 @@ set PLATFORM=%3
 set ACTION=%4
 set BUILD_DIR=""
 
+for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
+   set "VSINSTALLPATH=%%a"
+)
+
+if not defined VSINSTALLPATH (
+   echo No Visual Studio installation detected.
+   goto end
+)
+
 if /i "%CONFIG%"=="Debug" (
     set BUILD_DIR=build-debug
 ) else if /i "%CONFIG%"=="Release" (
@@ -58,7 +67,7 @@ if /i "%ACTION%"=="clean" (
     if exist "%BUILD_DIR%" rmdir /s /q "%BUILD_DIR%"
 ) else if /i "%ACTION%"=="generate" (
     echo Setting up Visual Studio environment for %VCVARS_ARCH%...
-    call "%ProgramFiles%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" %VCVARS_ARCH%
+    call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" %VCVARS_ARCH%
     if %ERRORLEVEL% neq 0 goto end
     if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
     cmake -G %GENERATOR% -S %SOURCE_DIR% -B %BUILD_DIR% ^
