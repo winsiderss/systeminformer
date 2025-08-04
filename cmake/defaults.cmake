@@ -176,15 +176,11 @@ set(SI_LINK_FLAGS_USER
     # Debug
     #
     $<$<CONFIG:Debug>:/INCREMENTAL>                      # Incremental linking for debug
-    $<$<CONFIG:Debug>:/MANIFEST:NO>                      # Disable manifest generation for debug
 
     #
     # Release
     #
     $<$<CONFIG:Release>:/INCREMENTAL:NO>                 # Disable incremental for release
-    $<$<CONFIG:Release>:/MANIFEST>                       # Enable manifest generation
-    $<$<CONFIG:Release>:/MANIFEST:EMBED>                 # Embed manifest in executable
-    $<$<CONFIG:Release>:/MANIFESTUAC:"LEVEL='ASINVOKER' UIACCESS='FALSE'"> # UAC configuration
     $<$<CONFIG:Release>:/OPT:REF>                        # Eliminate unreferenced
     $<$<CONFIG:Release>:/OPT:ICF>                        # COMDAT folding
     $<$<CONFIG:Release>:/LTCG>                           # Link-time code generation

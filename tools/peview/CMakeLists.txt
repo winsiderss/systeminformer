@@ -15,6 +15,7 @@ source_group("Header Files" FILES ${HEADERS})
 set(RESOURCES
     "version.rc"
     "peview.rc"
+    "peview.manifest"
     "resources/case_sensitive_modern_dark.svg"
     "resources/case_sensitive_modern_light.svg"
     "resources/regex_modern_dark.svg"
@@ -98,7 +99,7 @@ source_group("Source Files\\Pages\\Windows" FILES ${SOURCES_PAGES_WINDOWS})
 
 set(ALL_FILES
     ${HEADERS}
-    ${RESOURCE}
+    ${RESOURCES}
     ${SOURCES}
     ${SOURCES_PAGES}
     ${SOURCES_PAGES_LINUX}

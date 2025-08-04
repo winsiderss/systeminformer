@@ -63,6 +63,7 @@ set(RESOURCES
     "version.rc"
     "SystemInformer.def"
     "SystemInformer.rc"
+    "SystemInformer.manifest"
     "resources/application.ico"
     "resources/capslist.txt"
     "resources/case_sensitive_modern_dark.svg"
