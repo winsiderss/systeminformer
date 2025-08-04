@@ -67,4 +67,13 @@ if exist "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuild
 )
 
 :end
+
+if not exist "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" (
+   echo:
+   echo CustomBuildTool build failed.
+   echo:
+)
+
+if "%TIB%"=="false" (
 pause
+)
