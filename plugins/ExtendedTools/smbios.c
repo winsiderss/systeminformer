@@ -1608,7 +1608,7 @@ VOID EtSMBIOSSystemSlot(
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, SegmentGroup))
         ET_SMBIOS_UINT32(L"Segment group", Entry->SystemSlot.SegmentGroup);
 
-    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, DeviceFunctionNumber));
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, DeviceFunctionNumber))
     {
         ET_SMBIOS_UINT32(L"Device number", Entry->SystemSlot.DeviceFunctionNumber.DeviceNumber);
         ET_SMBIOS_UINT32(L"Function number", Entry->SystemSlot.DeviceFunctionNumber.FunctionNumber);
