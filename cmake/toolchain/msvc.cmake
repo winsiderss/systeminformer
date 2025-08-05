@@ -97,10 +97,10 @@ elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
         /CETCOMPAT                      # CET compatibility
     )
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
-    list(APPEND SI_COMPILE_FLAGS_INIT
+    list(APPEND SI_COMPILE_FLAGS_RELEASE_INIT
         /QIntel-jcc-erratum             # Intel erratum 1279
     )
-    list(APPEND SI_LINK_FLAGS_INIT
+    list(APPEND SI_LINK_FLAGS_RELEASE_INIT
         /SAFESEH                        # EH continuation guard
         /CETCOMPAT                      # CET compatibility
     )

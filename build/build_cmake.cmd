@@ -68,6 +68,11 @@ if /i "%GENERATOR:"=%"=="Ninja" (
     set CMAKE_GEN_OPTS=-DCMAKE_BUILD_TYPE=%CONFIG%
 )
 
+set CMAKE_BUILD_OPTS=
+if not "%GENERATOR:"=%"=="%GENERATOR:Visual Studio=%" (
+    set CMAKE_BUILD_OPTS=-- /m /p:Platform=%PLATFORM% -terminalLogger:auto
+)
+
 if /i "%ACTION%"=="clean" (
     if exist "%BUILD_DIR%" rmdir /s /q "%BUILD_DIR%"
 ) else if /i "%ACTION%"=="generate" (
@@ -75,18 +80,18 @@ if /i "%ACTION%"=="clean" (
     call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" %VCVARS_ARCH%
     if %ERRORLEVEL% neq 0 goto end
     if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
-    cmake -G %GENERATOR%  ^ -S %SOURCE_DIR% -B %BUILD_DIR% ^
+    cmake -G %GENERATOR% -S %SOURCE_DIR% -B %BUILD_DIR% ^
         --toolchain %TOOLCHAIN% ^
-        %CMAKE_GEN_OPTS% ^
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ^
         -DSI_WITH_CORE=ON ^
-        -DSI_WITH_PLUGINS=ON
+        -DSI_WITH_PLUGINS=ON ^
+        %CMAKE_GEN_OPTS%
     if %ERRORLEVEL% neq 0 goto end
 ) else if /i "%ACTION%"=="build" (
     echo Setting up Visual Studio environment for %VCVARS_ARCH%...
     call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" %VCVARS_ARCH%
     if %ERRORLEVEL% neq 0 goto end
-    cmake --build %BUILD_DIR% --config %CONFIG%
+    cmake --build %BUILD_DIR% --config %CONFIG% %CMAKE_BUILD_OPTS%
     if %ERRORLEVEL% neq 0 goto end
 ) else (
     echo Error: Invalid action "%ACTION%". Use "generate", "build", or "clean".
