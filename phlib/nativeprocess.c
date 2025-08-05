@@ -687,7 +687,7 @@ NTSTATUS PhGetProcessDeviceMap(
  */
 NTSTATUS PhGetProcessPebString(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG Offset,
+    _In_ PH_PEB_OFFSET Offset,
     _Out_ PPH_STRING *String
     )
 {
