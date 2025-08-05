@@ -2,12 +2,12 @@
 @setlocal enableextensions
 @cd /d "%~dp0\..\"
 
-set GENERATOR=%1
-set CONFIG=%2
-set PLATFORM=%3
-set ACTION=%4
-set TOOLCHAIN=""
-set BUILD_DIR=""
+set GENERATOR=%~1
+set CONFIG=%~2
+set PLATFORM=%~3
+set ACTION=%~4
+set TOOLCHAIN=
+set BUILD_DIR=
 
 for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
    set "VSINSTALLPATH=%%a"
@@ -64,12 +64,12 @@ echo Toolchain:     %TOOLCHAIN%
 echo ===============================================
 
 set CMAKE_GEN_OPTS=
-if /i "%GENERATOR:"=%"=="Ninja" (
+if /i "%GENERATOR%"=="Ninja" (
     set CMAKE_GEN_OPTS=-DCMAKE_BUILD_TYPE=%CONFIG%
 )
 
 set CMAKE_BUILD_OPTS=
-if not "%GENERATOR:"=%"=="%GENERATOR:Visual Studio=%" (
+if not "%GENERATOR:Visual Studio=%"=="%GENERATOR%" (
     set CMAKE_BUILD_OPTS=-- /m /p:Platform=%PLATFORM% -terminalLogger:auto
 )
 
@@ -80,7 +80,7 @@ if /i "%ACTION%"=="clean" (
     call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" %VCVARS_ARCH%
     if %ERRORLEVEL% neq 0 goto end
     if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
-    cmake -G %GENERATOR% -S %SOURCE_DIR% -B %BUILD_DIR% ^
+    cmake -G "%GENERATOR%" -S %SOURCE_DIR% -B %BUILD_DIR% ^
         --toolchain %TOOLCHAIN% ^
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ^
         -DSI_WITH_CORE=ON ^
