@@ -9,10 +9,9 @@ include(tools)
 include(platform)
 
 #
-# Detect and set the platform for simplicity elsewhere.
+# Helper function for setting up a System Informer target
 #
-
-function(si_set_target_defaults target)
+function(_si_set_target_defaults target)
     set(options PLUGIN)
     set(oneValueArgs TYPE)
     set(multiValueArgs)
@@ -71,7 +70,7 @@ endfunction()
 #
 function(si_add_library target)
     add_library(${target} ${ARGN})
-    si_set_target_defaults(${target} TYPE UM_LIB)
+    _si_set_target_defaults(${target} TYPE UM_LIB)
 endfunction()
 
 #
@@ -79,7 +78,7 @@ endfunction()
 #
 function(si_add_executable target)
     add_executable(${target} ${ARGN})
-    si_set_target_defaults(${target} TYPE UM_BIN)
+    _si_set_target_defaults(${target} TYPE UM_BIN)
 endfunction()
 
 #
@@ -87,7 +86,7 @@ endfunction()
 #
 function(si_add_plugin target)
     add_library(${target} SHARED ${ARGN})
-    si_set_target_defaults(${target} TYPE UM_LIB PLUGIN)
+    _si_set_target_defaults(${target} TYPE UM_LIB PLUGIN)
 endfunction()
 
 #
@@ -95,7 +94,7 @@ endfunction()
 #
 function(si_add_kernel_library target)
     add_library(${target} ${ARGN})
-    si_set_target_defaults(${target} TYPE KM_LIB)
+    _si_set_target_defaults(${target} TYPE KM_LIB)
 endfunction()
 
 #
@@ -103,5 +102,5 @@ endfunction()
 #
 function(si_add_kernel_driver target)
     add_executable(${target} ${ARGN})
-    si_set_target_defaults(${target} TYPE KM_BIN)
+    _si_set_target_defaults(${target} TYPE KM_BIN)
 endfunction()
