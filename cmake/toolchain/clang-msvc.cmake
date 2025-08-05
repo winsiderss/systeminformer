@@ -11,14 +11,35 @@ set(SI_CXX_STANDARD_FLAG /std:c++latest)
 
 set(CMAKE_RC_FLAGS_INIT "/nologo")
 
-list(REMOVE_ITEM SI_COMPILE_FLAGS_INIT
-    /MP
-    /Gm-
-    /Zc:preprocessor
-    /d1nodatetime
+set(_remove "__SI_REMOVE")
+set(SI_CLANG_MSVC_REPLACE_COMPILE_FLAGS
+    /MP                 ${_remove}
+    /Gm-                ${_remove}
+    /Zc:preprocessor    ${_remove}
+    /d1nodatetime       ${_remove}
+    /guard:xfg          ${_remove}
+    /ZI                 /Z7
+    /Qspectre           -mretpoline
 )
+list(LENGTH SI_CLANG_MSVC_REPLACE_COMPILE_FLAGS _replace_total)
+math(EXPR _max_idx "${_replace_total} - 1")
+foreach(_idx RANGE 0 ${_max_idx} 2)
+    math(EXPR _next_idx "${_idx} + 1")
+    list(GET SI_CLANG_MSVC_REPLACE_COMPILE_FLAGS ${_idx} _old_flag)
+    list(GET SI_CLANG_MSVC_REPLACE_COMPILE_FLAGS ${_next_idx} _new_flag)
 
-list(TRANSFORM SI_COMPILE_FLAGS_DEBUG_INIT REPLACE "/ZI" "/Z7")
+    if(_new_flag STREQUAL "${_remove}")
+        message(VERBOSE "clang-msvc removing: ${_old_flag}")
+        list(REMOVE_ITEM SI_COMPILE_FLAGS_INIT ${_old_flag})
+        list(REMOVE_ITEM SI_COMPILE_FLAGS_DEBUG_INIT ${_old_flag})
+        list(REMOVE_ITEM SI_COMPILE_FLAGS_RELEASE_INIT ${_old_flag})
+    else()
+        message(VERBOSE "clang-msvc replacing: ${_old_flag} ${_new_flag}")
+        list(TRANSFORM SI_COMPILE_FLAGS_INIT REPLACE "${_old_flag}" "${_new_flag}")
+        list(TRANSFORM SI_COMPILE_FLAGS_DEBUG_INIT REPLACE "${_old_flag}" "${_new_flag}")
+        list(TRANSFORM SI_COMPILE_FLAGS_RELEASE_INIT REPLACE "${_old_flag}" "${_new_flag}")
+    endif()
+endforeach()
 
 # TODO(jxy-s) Many of these should be moved out of the toolchain and into the
 # project and/or fixed in the project sources.

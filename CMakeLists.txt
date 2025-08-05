@@ -33,7 +33,9 @@ if(NOT SI_WITH_WPP_KERNEL)
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_compile_options(/d1trimfile:${SI_ROOT})
+    if (NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
+        add_compile_options(/d1trimfile:${SI_ROOT})
+    endif()
 endif()
 
 if(SI_WITH_CORE)
