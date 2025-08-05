@@ -65,7 +65,7 @@ set(SI_LINK_FLAGS_DEBUG_INIT
     /INCREMENTAL                        # Incremental linking
 )
 set(SI_LINK_FLAGS_RELEASE_INIT
-    /RELEASE                            # Release flags
+    /RELEASE                            # Set release checksum
     /INCREMENTAL:NO                     # Incremental linking off
     /OPT:REF                            # Eliminate unreferenced
     /OPT:ICF                            # COMDAT folding
