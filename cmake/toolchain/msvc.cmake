@@ -4,7 +4,7 @@
 # This file is part of System Informer.
 #
 
-set(SI_C_STANDARD_FLAG /std:clatest)
+set(SI_C_STANDARD_FLAG   /std:clatest)
 set(SI_CXX_STANDARD_FLAG /std:c++latest)
 
 #

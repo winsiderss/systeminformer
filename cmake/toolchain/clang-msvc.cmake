@@ -6,7 +6,7 @@
 
 include(${CMAKE_CURRENT_LIST_DIR}/msvc.cmake)
 
-set(SI_C_STANDARD_FLAG /std:c17)
+set(SI_C_STANDARD_FLAG   /std:c17)
 set(SI_CXX_STANDARD_FLAG /std:c++latest)
 
 set(CMAKE_RC_FLAGS_INIT "/nologo")
