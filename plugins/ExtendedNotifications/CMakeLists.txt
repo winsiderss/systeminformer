@@ -28,3 +28,7 @@ set(ALL_FILES
 )
 
 si_add_plugin(ExtendedNotifications ${ALL_FILES})
+
+target_link_libraries(ExtendedNotifications PRIVATE
+    user32
+)

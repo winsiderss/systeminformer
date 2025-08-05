@@ -125,6 +125,9 @@ si_add_plugin(ExtendedTools ${ALL_FILES})
 
 target_link_libraries(ExtendedTools PRIVATE
     delayimp
+    user32
+    gdi32
+    advapi32
     cfgmgr32
     oleaut32
     tdh

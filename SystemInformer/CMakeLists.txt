@@ -221,6 +221,15 @@ target_link_libraries(SystemInformer PRIVATE
     phnt
     phlib
     kphlib_um
+    delayimp
+
+    user32
+    gdi32
+    comdlg32
+    advapi32
+    ole32
+    oleaut32
+
     setupapi
     cfgmgr32
     aclui

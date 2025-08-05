@@ -38,6 +38,8 @@ si_add_plugin(Updater ${ALL_FILES})
 
 target_link_libraries(Updater PRIVATE
     delayimp
+    user32
+    gdi32
     bcrypt
     kphlib_um
 )

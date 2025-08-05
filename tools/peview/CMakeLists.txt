@@ -117,6 +117,13 @@ target_link_libraries(peview PRIVATE
     phlib
     kphlib_um
     delayimp
+    user32
+    gdi32
+    comdlg32
+    advapi32
+    shell32
+    ole32
+    oleaut32
     aclui
     bcrypt
     cryptui
@@ -131,17 +138,17 @@ target_link_libraries(peview PRIVATE
 )
 
 target_link_options(peview PRIVATE
-    /DELAYLOAD:aclui.dll;
-    /DELAYLOAD:advapi32.dll;
-    /DELAYLOAD:bcrypt.dll;
-    /DELAYLOAD:comctl32.dll;
-    /DELAYLOAD:comdlg32.dll;
-    /DELAYLOAD:cryptui.dll;
-    /DELAYLOAD:crypt32.dll;
-    /DELAYLOAD:gdi32.dll;
-    /DELAYLOAD:ole32.dll;
-    /DELAYLOAD:oleaut32.dll;
-    /DELAYLOAD:propsys.dll;
-    /DELAYLOAD:shell32.dll;
-    /DELAYLOAD:user32.dll;
+    /DELAYLOAD:aclui.dll
+    /DELAYLOAD:advapi32.dll
+    /DELAYLOAD:bcrypt.dll
+    /DELAYLOAD:comctl32.dll
+    /DELAYLOAD:comdlg32.dll
+    /DELAYLOAD:cryptui.dll
+    /DELAYLOAD:crypt32.dll
+    /DELAYLOAD:gdi32.dll
+    /DELAYLOAD:ole32.dll
+    /DELAYLOAD:oleaut32.dll
+    /DELAYLOAD:propsys.dll
+    /DELAYLOAD:shell32.dll
+    /DELAYLOAD:user32.dll
 )

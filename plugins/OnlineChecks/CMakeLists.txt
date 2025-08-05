@@ -34,3 +34,7 @@ set(ALL_FILES
 )
 
 si_add_plugin(OnlineChecks ${ALL_FILES})
+
+target_link_libraries(OnlineChecks PRIVATE
+    user32
+)

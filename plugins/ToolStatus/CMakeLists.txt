@@ -35,3 +35,8 @@ set(ALL_FILES
 )
 
 si_add_plugin(ToolStatus ${ALL_FILES})
+
+target_link_libraries(ToolStatus PRIVATE
+    user32
+    gdi32
+)

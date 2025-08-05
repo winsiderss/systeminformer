@@ -34,6 +34,7 @@ si_add_plugin(UserNotes ${ALL_FILES})
 
 target_link_libraries(UserNotes PRIVATE
     delayimp
+    user32
     comdlg32
 )
 

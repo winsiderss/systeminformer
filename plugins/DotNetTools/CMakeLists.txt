@@ -53,6 +53,7 @@ si_add_plugin(DotNetTools ${ALL_FILES})
 
 target_link_libraries(DotNetTools PRIVATE
     delayimp
+    user32
     advapi32
 )
 

@@ -6,6 +6,7 @@ set GENERATOR=%1
 set CONFIG=%2
 set PLATFORM=%3
 set ACTION=%4
+set TOOLCHAIN=""
 set BUILD_DIR=""
 
 for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
@@ -31,12 +32,15 @@ if /i "%CONFIG%"=="Debug" (
 if /i "%PLATFORM%"=="Win32" (
     set VCVARS_ARCH=amd64_x86
     set BUILD_DIR="%CD%\%BUILD_DIR%-32"
+    set TOOLCHAIN="%CD%\cmake\toolchain\msvc-x86.cmake"
 ) else if /i "%PLATFORM%"=="x64" (
     set VCVARS_ARCH=amd64
     set BUILD_DIR="%CD%\%BUILD_DIR%-64"
+    set TOOLCHAIN="%CD%\cmake\toolchain\msvc-amd64.cmake"
 ) else if /i "%PLATFORM%"=="ARM64" (
     set VCVARS_ARCH=amd64_arm64
     set BUILD_DIR="%CD%\%BUILD_DIR%-arm64"
+    set TOOLCHAIN="%CD%\cmake\toolchain\msvc-arm64.cmake"
 ) else (
     echo Error: Unsupported platform: %PLATFORM%
     echo Supported platforms: Win32, x64, ARM64
@@ -49,13 +53,14 @@ set SOURCE_DIR="%CD%"
 echo ===============================================
 echo System Informer CMake Build Script
 echo ===============================================
-echo Action:           %ACTION%
-echo Generator:        %GENERATOR%
-echo Build Directory:  %BUILD_DIR%
-echo Source Directory: %SOURCE_DIR%
-echo Configuration:    %CONFIG%
-echo Platform:         %PLATFORM%
-echo VCVARS:           %VCVARS_ARCH%
+echo Action:        %ACTION%
+echo Generator:     %GENERATOR%
+echo Configuration: %CONFIG%
+echo Platform:      %PLATFORM%
+echo VCVARS:        %VCVARS_ARCH%
+echo Source:        %SOURCE_DIR%
+echo Build:         %BUILD_DIR%
+echo Toolchain:     %TOOLCHAIN%
 echo ===============================================
 
 set CMAKE_GEN_OPTS=
@@ -70,12 +75,12 @@ if /i "%ACTION%"=="clean" (
     call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" %VCVARS_ARCH%
     if %ERRORLEVEL% neq 0 goto end
     if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
-    cmake -G %GENERATOR% -S %SOURCE_DIR% -B %BUILD_DIR% ^
+    cmake -G %GENERATOR%  ^ -S %SOURCE_DIR% -B %BUILD_DIR% ^
+        --toolchain %TOOLCHAIN% ^
         %CMAKE_GEN_OPTS% ^
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ^
         -DSI_WITH_CORE=ON ^
-        -DSI_WITH_PLUGINS=ON ^
-        -DSI_WITH_KERNEL=OFF
+        -DSI_WITH_PLUGINS=ON
     if %ERRORLEVEL% neq 0 goto end
 ) else if /i "%ACTION%"=="build" (
     echo Setting up Visual Studio environment for %VCVARS_ARCH%...
@@ -84,7 +89,7 @@ if /i "%ACTION%"=="clean" (
     cmake --build %BUILD_DIR% --config %CONFIG%
     if %ERRORLEVEL% neq 0 goto end
 ) else (
-    echo Error: Invalid action "%ACTION%". Use "configure", "build", or "clean".
+    echo Error: Invalid action "%ACTION%". Use "generate", "build", or "clean".
     set ERRORLEVEL=1
 )
 

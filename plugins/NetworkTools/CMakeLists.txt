@@ -47,11 +47,13 @@ si_add_plugin(NetworkTools ${ALL_FILES})
 target_link_libraries(NetworkTools PRIVATE
     thirdparty
     delayimp
+    user32
+    gdi32
     iphlpapi
     ws2_32
 )
 
 target_link_options(NetworkTools PRIVATE
-    /DELAYLOAD:iphlpapi.dll
+    /delayload:iphlpapi.dll
     /DELAYLOAD:ws2_32.dll
 )

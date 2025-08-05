@@ -38,6 +38,7 @@ si_add_plugin(ExtendedServices ${ALL_FILES})
 
 target_link_libraries(ExtendedServices PRIVATE
     delayimp
+    user32
     cfgmgr32
 )
 

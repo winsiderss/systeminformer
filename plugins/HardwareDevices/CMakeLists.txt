@@ -78,6 +78,8 @@ si_add_plugin(HardwareDevices
 
 target_link_libraries(HardwareDevices PRIVATE
     delayimp
+    user32
+    gdi32
     cfgmgr32
     iphlpapi
     wlanapi

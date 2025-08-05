@@ -48,11 +48,3 @@ target_include_directories(kphlib_um PUBLIC
 target_link_libraries(kphlib_um PRIVATE
     phnt
 )
-
-if(SI_WITH_KERNEL)
-    si_add_kernel_library(kphlib_um STATIC ${HEADERS} ${RESOURCES} ${SOURCES})
-
-    target_include_directories(kphlib_km PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    )
-endif()

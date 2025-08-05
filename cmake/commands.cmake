@@ -5,8 +5,12 @@
 #
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
-include(defaults)
 include(tools)
+include(platform)
+
+#
+# Detect and set the platform for simplicity elsewhere.
+#
 
 function(si_set_target_defaults target)
     set(options PLUGIN)
@@ -18,11 +22,6 @@ function(si_set_target_defaults target)
         message(FATAL_ERROR "Invalid target type: ${arg_TYPE}")
     endif()
 
-    target_compile_features(${target} PRIVATE
-        c_std_17   # CMake needs to add MSVC support for C23
-        cxx_std_23
-    )
-
     #
     # Specifying /NATVIS on the linker options doesn't work, it gets omitted by
     # the generators. Inject the dependency into the sources instead, which is
@@ -30,12 +29,6 @@ function(si_set_target_defaults target)
     #
     source_group("Resource Files" FILES ${SI_ROOT}/SystemInformer.natvis)
     target_sources(${target} PRIVATE ${SI_ROOT}/SystemInformer.natvis)
-
-    set_target_properties(${target} PROPERTIES
-        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-        MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug>:EditAndContinue>$<$<NOT:$<CONFIG:Debug>>:ProgramDatabase>"
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
-    )
 
     if(NOT SI_OUTPUT_DIR STREQUAL "" AND NOT SI_OUTPUT_DIR STREQUAL "OFF")
         if(arg_PLUGIN)
@@ -52,20 +45,12 @@ function(si_set_target_defaults target)
     endif()
 
     if(arg_TYPE STREQUAL "UM_LIB")
-        target_compile_options(${target} PRIVATE ${SI_COMPILE_FLAGS_USER})
-        target_compile_definitions(${target} PRIVATE ${SI_COMPILE_DEFS_USER})
+        target_compile_options(${target} PRIVATE /Gz) # __stcall calling convention
     elseif(arg_TYPE STREQUAL "UM_BIN")
-        target_compile_options(${target} PRIVATE ${SI_COMPILE_FLAGS_USER})
-        target_compile_definitions(${target} PRIVATE ${SI_COMPILE_DEFS_USER})
-        target_link_options(${target} PRIVATE ${SI_LINK_FLAGS_USER})
+        target_compile_options(${target} PRIVATE /Gz) # __stcall calling convention
         si_kphsign(${target})
     elseif(arg_TYPE STREQUAL "KM_LIB")
-        target_compile_options(${target} PRIVATE ${SI_COMPILE_FLAGS_KERNEL})
-        target_compile_definitions(${target} PRIVATE ${SI_COMPILE_DEFS_KERNEL})
     elseif(arg_TYPE STREQUAL "KM_BIN")
-        target_compile_options(${target} PRIVATE ${SI_COMPILE_FLAGS_KERNEL})
-        target_compile_definitions(${target} PRIVATE ${SI_COMPILE_DEFS_KERNEL})
-        target_link_options(${target} PRIVATE ${SI_LINK_FLAGS_KERNEL})
         set_target_properties(${target} PROPERTIES SUFFIX ".sys")
     endif()
 
