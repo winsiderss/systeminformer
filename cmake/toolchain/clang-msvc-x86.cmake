@@ -26,5 +26,6 @@ set(CMAKE_CXX_FLAGS "-m32")
 set(CMAKE_C_COMPILER_TARGET "i686-pc-windows-msvc")
 set(CMAKE_CXX_COMPILER_TARGET "i686-pc-windows-msvc")
 
-set(CMAKE_USER_MAKE_RULES_OVERRIDE ${CMAKE_CURRENT_LIST_DIR}/overrides-msvc.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/msvc.cmake)
+set(CMAKE_USER_MAKE_RULES_OVERRIDE ${CMAKE_CURRENT_LIST_DIR}/override-msvc.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/clang-msvc.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/finalize-msvc.cmake)

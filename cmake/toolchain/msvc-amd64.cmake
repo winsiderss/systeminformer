@@ -18,5 +18,6 @@ set(CMAKE_LINKER link)
 set(CMAKE_MC_COMPILER mc)
 set(CMAKE_RC_COMPILER rc)
 
-set(CMAKE_USER_MAKE_RULES_OVERRIDE ${CMAKE_CURRENT_LIST_DIR}/overrides-msvc.cmake)
+set(CMAKE_USER_MAKE_RULES_OVERRIDE ${CMAKE_CURRENT_LIST_DIR}/override-msvc.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/msvc.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/finalize-msvc.cmake)
