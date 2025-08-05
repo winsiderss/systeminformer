@@ -7,7 +7,7 @@
 set(SI_CUSTOM_BUILD_TOOL "${SI_ROOT}/tools/CustomBuildTool/bin/Release/$ENV{PROCESSOR_ARCHITECTURE}/CustomBuildTool.exe")
 
 if (NOT EXISTS "${SI_CUSTOM_BUILD_TOOL}")
-    message(FATAL_ERROR "CustomBuildTool.exe not found. Run build\\build_init.cmd first.")
+    message(FATAL_ERROR "CustomBuildTool.exe not found. Run build\\build_tools.cmd first.")
 endif()
 
 function(si_sdkbuild target)
