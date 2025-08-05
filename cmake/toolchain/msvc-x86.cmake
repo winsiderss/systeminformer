@@ -4,8 +4,6 @@
 # This file is part of System Informer.
 #
 
-set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES)
-
 set(CMAKE_SYSTEM_NAME      Windows)
 set(CMAKE_SYSTEM_PROCESSOR x86)
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
