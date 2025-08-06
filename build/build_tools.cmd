@@ -73,6 +73,4 @@ if exist "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuild
 
 :end
 
-if "%TIB%"=="false" (
-pause
-)
+if "%TIB%"=="false" pause
