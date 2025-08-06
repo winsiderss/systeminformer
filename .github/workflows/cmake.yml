@@ -16,11 +16,22 @@ jobs:
     strategy:
       matrix:
         os: ['windows-latest']
-        platform: ['x64', 'Win32', 'ARM64']
-        config: ['Debug', 'Release']
-        generator: ['Ninja', 'Visual Studio 17 2022']
+        toolchain:
+          - 'msvc-amd64'
+          - 'msvc-arm64'
+          - 'msvc-x86'
+          # - 'clang-msvc-amd64'
+          # - 'clang-msvc-arm64'
+          # - 'clang-msvc-x86'
+        config:
+          - 'Debug'
+          - 'Release'
+        generator:
+          - 'Ninja'
+          # - 'Visual Studio 17 2022'
     runs-on: ${{ matrix.os }}
-    name: ${{ matrix.config }} ${{ matrix.platform }} ${{ matrix.generator }}
+    name: ${{ matrix.config }} ${{ matrix.toolchain }}
+    # name: ${{ matrix.config }} ${{ matrix.toolchain }} ${{ matrix.generator }}
     steps:
     - uses: actions/checkout@v4
     - name: Install Nuget Packages
@@ -32,8 +43,8 @@ jobs:
     - name: Generate
       shell: cmd
       working-directory: ${{github.workspace}}
-      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.config }} ${{ matrix.platform }} generate
+      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.config }} ${{ matrix.toolchain }} generate
     - name: Build
       shell: cmd
       working-directory: ${{github.workspace}}
-      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.config }} ${{ matrix.platform }} build
+      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.config }} ${{ matrix.toolchain }} build
