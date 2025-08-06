@@ -19,7 +19,8 @@ set(SI_CLANG_MSVC_REPLACE_COMPILE_FLAGS
     /d1nodatetime       ${_remove}
     /guard:xfg          ${_remove}
     /ZI                 /Z7
-    /Qspectre           -mretpoline
+    # TODO(jxy-s) Investigate failures related to this flag.
+    /Qspectre           ${_remove} # -mspeculative-load-hardening
 )
 list(LENGTH SI_CLANG_MSVC_REPLACE_COMPILE_FLAGS _replace_total)
 math(EXPR _max_idx "${_replace_total} - 1")
