@@ -146,13 +146,12 @@ function(si_target_tracewpp target)
     #
     # Try to locate the WPP config directory.
     #
-    set(_config_dir "$ENV{WDKBinRoot}/WppConfig/Rev1")
-    if(NOT EXISTS "${_config_dir}")
-        set(_config_dir "$ENV{WindowsSdkVerBinPath}/WppConfig/Rev1")
-        if(NOT EXISTS "${_config_dir}")
-            message(FATAL_ERROR "WPP config directory not found.")
-        endif()
-    endif()
+    find_path(_config_dir "defaultwpp.ini" PATHS
+        ENV "WDKBinRoot"
+        ENV "WindowsSdkVerBinPath"
+        PATH_SUFFIXES "WppConfig/Rev1"
+        REQUIRED
+    )
 
     get_target_property(_target_binary_dir ${target} BINARY_DIR)
     set(_tmh_out_dir "${_target_binary_dir}/tmh")
