@@ -689,13 +689,16 @@ typedef enum _SECTION_INHERIT
 } SECTION_INHERIT;
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#define MEM_EXECUTE_OPTION_ENABLE 0x1
-#define MEM_EXECUTE_OPTION_DISABLE 0x2
-#define MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION 0x4
-#define MEM_EXECUTE_OPTION_PERMANENT 0x8
-#define MEM_EXECUTE_OPTION_EXECUTE_DISPATCH_ENABLE 0x10
-#define MEM_EXECUTE_OPTION_IMAGE_DISPATCH_ENABLE 0x20
-#define MEM_EXECUTE_OPTION_DISABLE_EXCEPTION_CHAIN_VALIDATION 0x40
+// Flags directly correspond to KPROCESS.Flags, of type KEXECUTE_OPTIONS (named bitfields available).
+// Flags adjust OS behavior for 32-bit processes only. They are effectively ignored for ARM64 and x64 processes.
+// [nt!Mi]canGrantExecute = KF_GLOBAL_32BIT_EXECUTE || MEM_EXECUTE_OPTION_ENABLE || (!KF_GLOBAL_32BIT_NOEXECUTE && !MEM_EXECUTE_OPTION_DISABLE)
+#define MEM_EXECUTE_OPTION_DISABLE 0x1      // respect the NX bit: DEP on, only run code from executable pages
+#define MEM_EXECUTE_OPTION_ENABLE 0x2       // ignore the NX bit: DEP off, enable executing most of ro/rw memory; trumps over the _DISABLE option
+#define MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION 0x4  // do not emulate NX code sequences which look like ATL thunks
+#define MEM_EXECUTE_OPTION_PERMANENT 0x8                // changing any MEM_EXECUTE_* option for the process is not allowed [anymore]
+#define MEM_EXECUTE_OPTION_EXECUTE_DISPATCH_ENABLE 0x10 // allow non-executable exception handlers (ntdll!RtlIsValidHandler)
+#define MEM_EXECUTE_OPTION_IMAGE_DISPATCH_ENABLE 0x20   // allow non-MEM_IMAGE exception handlers (ntdll!RtlIsValidHandler)
+#define MEM_EXECUTE_OPTION_DISABLE_EXCEPTION_CHAIN_VALIDATION 0x40  // don't invoke ntdll!RtlpIsValidExceptionChain to check SEH chain
 #define MEM_EXECUTE_OPTION_VALID_FLAGS 0x7f
 
 //

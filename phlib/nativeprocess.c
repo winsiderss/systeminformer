@@ -1055,7 +1055,11 @@ NTSTATUS PhGetProcessDepStatus(
         return status;
 
     // Check if execution of data pages is enabled.
-    if (executeFlags & MEM_EXECUTE_OPTION_ENABLE)
+    // TODO: if we want real, effective DEP status here as computed by nt!MiCanGrantExecute (x64 oskernels):
+    // canGrantExecEvenForNxPages = (EPROCESS.WoW64Process && EPROCESS.Machine == IMAGE_FILE_MACHINE_I386)
+    //     && (KF_GLOBAL_32BIT_EXECUTE || MEM_EXECUTE_OPTION_ENABLE
+    //         || (!KF_GLOBAL_32BIT_NOEXECUTE && !MEM_EXECUTE_OPTION_DISABLE));
+    if (executeFlags & MEM_EXECUTE_OPTION_DISABLE)
         depStatus = PH_PROCESS_DEP_ENABLED;
     else
         depStatus = 0;
