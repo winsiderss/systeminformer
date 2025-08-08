@@ -24,10 +24,8 @@ option(SI_WITH_PREFAST       "Enables prefast analysis"         OFF)
 option(SI_WITH_WPP_USER      "Enables user mode WPP trace"      OFF)
 option(SI_WITH_WPP_KERNEL    "Enables kernel mode WPP trace"    ON)
 
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    if (NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
-        add_compile_options(/d1trimfile:${SI_ROOT})
-    endif()
+if (CMAKE_BUILD_TYPE STREQUAL "Release" AND MSVC_NO_CLANG)
+    add_compile_options(/d1trimfile:${SI_ROOT})
 endif()
 
 if(SI_WITH_CORE)

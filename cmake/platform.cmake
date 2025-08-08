@@ -4,6 +4,17 @@
 # This file is part of System Informer.
 #
 
+if(MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    set(MSVC_CLANG ON)
+else()
+    set(MSVC_CLANG OFF)
+endif()
+if (MSVC AND NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    set(MSVC_NO_CLANG ON)
+else()
+    set(MSVC_NO_CLANG OFF)
+endif()
+
 if(CMAKE_VS_PLATFORM_NAME)
     set(SI_PLATFORM "${CMAKE_VS_PLATFORM_NAME}")
 elseif(CMAKE_GENERATOR_PLATFORM)
