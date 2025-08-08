@@ -86,4 +86,5 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     "-Wno-extra-tokens"
     "-Wno-comment"
     "-Wno-invalid-offsetof"
+    "-Wno-extern-initializer"
 )

@@ -24,14 +24,6 @@ option(SI_WITH_WPP_KERNEL "Enables kernel mode WPP trace" ON)
 # set up to allow user to disable with "" or "OFF"
 set(SI_OUTPUT_DIR "${SI_ROOT}/bin-cmake" CACHE PATH "Output directory")
 
-if(NOT SI_WITH_WPP_USER)
-    add_compile_definitions(SI_NO_WPP)
-endif()
-
-if(NOT SI_WITH_WPP_KERNEL)
-    add_compile_definitions(KSI_NO_WPP)
-endif()
-
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     if (NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
         add_compile_options(/d1trimfile:${SI_ROOT})

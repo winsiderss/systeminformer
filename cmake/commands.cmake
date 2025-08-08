@@ -7,6 +7,7 @@
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 include(tools)
 include(platform)
+include(tracewpp)
 
 #
 # Helper function for setting up a System Informer target
@@ -43,14 +44,57 @@ function(_si_set_target_defaults target)
         endif()
     endif()
 
+    get_target_property(_target_sources ${target} SOURCES)
+    if(NOT _target_sources)
+        set(_target_sources "")
+    endif()
+
     if(arg_TYPE STREQUAL "UM_LIB")
         target_compile_options(${target} PRIVATE /Gz) # __stcall calling convention
+        if(SI_WITH_WPP_USER)
+            si_target_tracewpp(${target} WPP_USER_MODE
+                WPP_EXT ".c.cpp.h.hpp" WPP_PRESERVE_EXT
+                WPP_SCAN "${CMAKE_SOURCE_DIR}/phlib/include/trace.h"
+                ${_target_sources}
+            )
+            target_link_libraries(${target} PRIVATE advapi32)
+        else()
+            target_compile_definitions(${target} PRIVATE SI_NO_WPP)
+        endif()
     elseif(arg_TYPE STREQUAL "UM_BIN")
         target_compile_options(${target} PRIVATE /Gz) # __stcall calling convention
+        if(SI_WITH_WPP_USER)
+            si_target_tracewpp(${target} WPP_USER_MODE
+                WPP_EXT ".c.cpp.h.hpp" WPP_PRESERVE_EXT
+                WPP_SCAN "${CMAKE_SOURCE_DIR}/phlib/include/trace.h"
+                ${_target_sources}
+            )
+            target_link_libraries(${target} PRIVATE advapi32)
+        else()
+            target_compile_definitions(${target} PRIVATE SI_NO_WPP)
+        endif()
         si_kphsign(${target})
     elseif(arg_TYPE STREQUAL "KM_LIB")
+        if(SI_WITH_WPP_KERNEL)
+            si_target_tracewpp(${target} WPP_KERNEL_MODE
+                WPP_EXT ".c.cpp.h.hpp" WPP_PRESERVE_EXT
+                WPP_SCAN "${CMAKE_SOURCE_DIR}/KSystemInformer/include/trace.h"
+                ${_target_sources}
+            )
+        else()
+            target_compile_definitions(${target} PRIVATE KSI_NO_WPP)
+        endif()
     elseif(arg_TYPE STREQUAL "KM_BIN")
         set_target_properties(${target} PROPERTIES SUFFIX ".sys")
+        if(SI_WITH_WPP_KERNEL)
+            si_target_tracewpp(${target} WPP_KERNEL_MODE
+                WPP_EXT ".c.cpp.h.hpp" WPP_PRESERVE_EXT
+                WPP_SCAN "${CMAKE_SOURCE_DIR}/KSystemInformer/include/trace.h"
+                ${_target_sources}
+            )
+        else()
+            target_compile_definitions(${target} PRIVATE KSI_NO_WPP)
+        endif()
     endif()
 
     if (arg_PLUGIN)
