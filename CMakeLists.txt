@@ -13,16 +13,16 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(commands)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
-
-option(SI_WITH_CORE "Configure core projects" ON)
-option(SI_WITH_PLUGINS "Configure plugin projects" OFF)
-option(SI_WITH_KERNEL "Configure kernel projects" OFF)
-option(SI_WITH_PREFAST "Enables prefast analysis" OFF)
-option(SI_WITH_WPP_USER "Enables user mode WPP trace" OFF)
-option(SI_WITH_WPP_KERNEL "Enables kernel mode WPP trace" ON)
 # TODO change this to bin once we fully transition to cmake
 # set up to allow user to disable with "" or "OFF"
 set(SI_OUTPUT_DIR "${SI_ROOT}/bin-cmake" CACHE PATH "Output directory")
+
+option(SI_WITH_CORE          "Configure core projects"          ON)
+option(SI_WITH_PLUGINS       "Configure plugin projects"        OFF)
+option(SI_WITH_KERNEL        "Configure kernel projects"        OFF)
+option(SI_WITH_PREFAST       "Enables prefast analysis"         OFF)
+option(SI_WITH_WPP_USER      "Enables user mode WPP trace"      OFF)
+option(SI_WITH_WPP_KERNEL    "Enables kernel mode WPP trace"    ON)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     if (NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
