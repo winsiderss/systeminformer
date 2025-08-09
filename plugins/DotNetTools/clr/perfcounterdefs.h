@@ -319,4 +319,4 @@ typedef struct _PerfCounterIPCControlBlock_Wow64
 #include <poppack.h>
 
 
-#endif _PERF_COUNTERS_H_
+#endif // _PERF_COUNTERS_H_

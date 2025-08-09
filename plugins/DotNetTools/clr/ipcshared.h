@@ -43,4 +43,4 @@
 #define CorSxSPublicInstanceName            L"%s_p%lu_r%lu"
 #define CorSxSPublicInstanceNameWhidbey     L"%s_p%lu"
 
-#endif _IPC_SHARED_H_
+#endif // _IPC_SHARED_H_

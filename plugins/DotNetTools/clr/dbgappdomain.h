@@ -124,4 +124,4 @@ C_ASSERT(FIELD_OFFSET(AppDomainEnumerationIPCBlock, ListOfAppDomains) == 0x28);
 C_ASSERT(FIELD_OFFSET(AppDomainEnumerationIPCBlock, LockInvalid) == 0x30);
 #endif
 
-#endif _DBG_APPDOMAIN_H_
+#endif // _DBG_APPDOMAIN_H_

@@ -84,7 +84,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-extern-c-compat
     -Wno-void-pointer-to-int-cast
     -Wno-int-to-void-pointer-cast
-    -Wno-extra-tokens
 
     # TODO(jxy-s) Should be narrowly suppressed in specific places.
     -Wno-unused-value
