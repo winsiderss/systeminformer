@@ -93,7 +93,7 @@ enum class Channel : uint8_t {
     static uint8_t  const Level   = level_; \
     static uint8_t  const Opcode  = opcode_; \
     static uint16_t const Task    = task_; \
-    static Keyword  const Keyword = (Keyword) keyword_; \
+    static Keyword  const Keyword = (enum Keyword) keyword_; \
 };
 
 // BlitCancel needs to be added manually if etw_list run on <Win11:
