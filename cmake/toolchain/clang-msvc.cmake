@@ -62,6 +62,7 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-unused-local-typedef
     -Wno-overloaded-virtual
     -Wno-comment
+    -Wno-extern-c-compat
 
     # TODO(jxy-s) Common pattern in project, move to project configuration.
     -Wno-parentheses
@@ -81,7 +82,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-tautological-constant-out-of-range-compare
     -Wno-implicit-const-int-float-conversion
     -Wno-misleading-indentation
-    -Wno-extern-c-compat
     -Wno-void-pointer-to-int-cast
     -Wno-int-to-void-pointer-cast
 
