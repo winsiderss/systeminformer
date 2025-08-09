@@ -61,6 +61,7 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-pragma-pack
     -Wno-unused-local-typedef
     -Wno-overloaded-virtual
+    -Wno-comment
 
     # TODO(jxy-s) Common pattern in project, move to project configuration.
     -Wno-parentheses
@@ -84,7 +85,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-void-pointer-to-int-cast
     -Wno-int-to-void-pointer-cast
     -Wno-extra-tokens
-    -Wno-comment
 
     # TODO(jxy-s) Should be narrowly suppressed in specific places.
     -Wno-unused-value
