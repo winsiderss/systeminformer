@@ -1098,7 +1098,7 @@ typedef struct _PROCESS_KEEPALIVE_COUNT_INFORMATION
 } PROCESS_KEEPALIVE_COUNT_INFORMATION, *PPROCESS_KEEPALIVE_COUNT_INFORMATION;
 
 /**
- * The PROCESS_REVOKE_FILE_HANDLES_INFORMATION structure revokes handles to the specified device from a process. 
+ * The PROCESS_REVOKE_FILE_HANDLES_INFORMATION structure revokes handles to the specified device from a process.
  */
 typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
 {
@@ -1415,7 +1415,7 @@ typedef struct _PROCESS_UPTIME_INFORMATION
         ULONG HangCount : 4;           // The number of times the process was detected as hanging.
         ULONG GhostCount : 4;          // The number of times the process was detected as a ghost process.
         ULONG Crashed : 1;             // Indicates whether the process has crashed (1 if true, 0 otherwise).
-        ULONG Terminated : 1;          // Indicates whether the process has been terminated (1 if true, 0 otherwise). 
+        ULONG Terminated : 1;          // Indicates whether the process has been terminated (1 if true, 0 otherwise).
     };
 } PROCESS_UPTIME_INFORMATION, *PPROCESS_UPTIME_INFORMATION;
 
