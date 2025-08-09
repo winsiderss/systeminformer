@@ -404,6 +404,11 @@ NTSTATUS PhInitializeProcessorInformation(
     }
 }
 
+#define WORKAROUND_CRTBUG_EXITPROCESS
+#ifdef WORKAROUND_CRTBUG_EXITPROCESS
+PH_CLANG_DIAGNOSTIC_PUSH
+PH_CLANG_DIAGNOSTIC_IGNORED("-Winvalid-noreturn")
+#endif
 _Use_decl_annotations_
 VOID PhExitApplication(
     _In_opt_ NTSTATUS Status
@@ -413,7 +418,6 @@ VOID PhExitApplication(
 
     WPP_CLEANUP();
 
-#define WORKAROUND_CRTBUG_EXITPROCESS
 #ifdef WORKAROUND_CRTBUG_EXITPROCESS
     //HANDLE standardHandle;
     //
@@ -435,3 +439,6 @@ VOID PhExitApplication(
     RtlExitUserProcess(Status);
 #endif
 }
+#ifdef WORKAROUND_CRTBUG_EXITPROCESS
+PH_CLANG_DIAGNOSTIC_POP
+#endif
