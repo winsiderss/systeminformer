@@ -65,14 +65,16 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     # TODO(jxy-s) Common pattern in project, move to project configuration.
     -Wno-parentheses
     -Wno-incompatible-pointer-types
+    -Wno-unused-variable
+    -Wno-switch
+    -Wno-missing-braces
+
+    # TODO(jxy-s) Prevalent in project, but should maybe be addressed.
+    -Wno-visibility
+    -Wno-pointer-sign
 
     # TODO(jxy-s) Likely fixable with some small/medium refactors.
-    -Wno-unused-variable
-    -Wno-visibility
-    -Wno-switch
-    -Wno-pointer-sign
     -Wno-unused-but-set-variable
-    -Wno-missing-braces
     -Wno-sizeof-array-div
     -Wno-invalid-noreturn
     -Wno-enum-conversion
