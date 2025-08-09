@@ -75,7 +75,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
 
     # TODO(jxy-s) Likely fixable with some small/medium refactors.
     -Wno-unused-but-set-variable
-    -Wno-sizeof-array-div
     -Wno-invalid-noreturn
     -Wno-enum-conversion
     -Wno-single-bit-bitfield-constant-conversion
