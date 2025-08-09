@@ -80,7 +80,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-single-bit-bitfield-constant-conversion
     -Wno-tautological-constant-out-of-range-compare
     -Wno-implicit-const-int-float-conversion
-    -Wno-misleading-indentation
     -Wno-void-pointer-to-int-cast
     -Wno-int-to-void-pointer-cast
 
