@@ -2058,7 +2058,7 @@ NTSTATUS PhGetProcessesUsingVolumeOrFile(
         bufferSize *= 2;
 
         // Fail if we're resizing the buffer to something very large.
-        if (bufferSize > SIZE_MAX)
+        if (bufferSize > (1 << 30)) // 1GiB
             return STATUS_INSUFFICIENT_RESOURCES;
 
         buffer = PhAllocate(bufferSize);

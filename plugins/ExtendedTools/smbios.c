@@ -2932,7 +2932,7 @@ VOID EtSMBIOSTemperatureProbe(
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, MaximumValue) &&
-        Entry->TemperatureProbe.MaximumValue != 0x8000)
+        (USHORT)Entry->TemperatureProbe.MaximumValue != 0x8000)
     {
         PH_FORMAT format[2];
         PPH_STRING string;
@@ -2946,7 +2946,7 @@ VOID EtSMBIOSTemperatureProbe(
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, MinimumValue) &&
-        Entry->TemperatureProbe.MinimumValue != 0x8000)
+        (USHORT)Entry->TemperatureProbe.MinimumValue != 0x8000)
     {
         PH_FORMAT format[2];
         PPH_STRING string;
@@ -3007,7 +3007,7 @@ VOID EtSMBIOSTemperatureProbe(
         ET_SMBIOS_UINT32IX(L"OEM define", Entry->TemperatureProbe.OEMDefined);
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, NominalValue) &&
-        Entry->TemperatureProbe.NominalValue != 0x8000)
+        (USHORT)Entry->TemperatureProbe.NominalValue != 0x8000)
     {
         PH_FORMAT format[2];
         PPH_STRING string;
@@ -3194,13 +3194,13 @@ VOID EtSMBIOS64BitMemoryError(
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError64, ArrayErrorAddress) &&
-        Entry->MemoryError32.ArrayErrorAddress != 0x8000000000000000)
+        Entry->MemoryError32.ArrayErrorAddress != 0x80000000)
     {
         ET_SMBIOS_UINT64IX(L"Array error address", Entry->MemoryError64.ArrayErrorAddress);
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError64, DeviceErrorAddress) &&
-        Entry->MemoryError32.DeviceErrorAddress != 0x8000000000000000)
+        Entry->MemoryError32.DeviceErrorAddress != 0x80000000)
     {
         ET_SMBIOS_UINT64IX(L"Device error address", Entry->MemoryError64.DeviceErrorAddress);
     }
