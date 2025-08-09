@@ -46,54 +46,55 @@ endforeach()
 # project and/or fixed in the project sources.
 # Only suppress here if Microsoft code ends up needing it...
 list(APPEND SI_COMPILE_FLAGS_INIT
-    "-mavx"                         # Enable AVX instructions
-    "-mavx2"                        # Enable AVX2 instructions
-    "-mavx512vl"                    # Enable AVX512VL instructions
-    "-mrdrnd"                       # Enable RDRAND instructions
+    -mavx                         # Enable AVX instructions
+    -mavx2                        # Enable AVX2 instructions
+    -mavx512vl                    # Enable AVX512VL instructions
+    -mrdrnd                       # Enable RDRAND instructions
 
     # Required for Microsoft headers
-    "-Wno-microsoft-enum-forward-reference"
-    "-Wno-microsoft-static-assert"
-    "-Wno-microsoft-anon-tag"
-    "-Wno-microsoft-include"
-    "-Wno-ignored-pragma-intrinsic"
-    "-Wno-ignored-attributes"
-    "-Wno-pragma-pack"
-    "-Wno-unused-local-typedef"
-    "-Wno-overloaded-virtual"
+    -Wno-microsoft-enum-forward-reference
+    -Wno-microsoft-static-assert
+    -Wno-microsoft-anon-tag
+    -Wno-microsoft-include
+    -Wno-ignored-pragma-intrinsic
+    -Wno-ignored-attributes
+    -Wno-pragma-pack
+    -Wno-unused-local-typedef
+    -Wno-overloaded-virtual
 
     # TODO(jxy-s) Common pattern in project, move to project configuration.
-    "-Wno-parentheses"
-    "-Wno-incompatible-pointer-types"
+    -Wno-parentheses
+    -Wno-incompatible-pointer-types
 
     # TODO(jxy-s) Likely fixable with some small/medium refactors.
-    "-Wno-unused-variable"
-    "-Wno-visibility"
-    "-Wno-switch"
-    "-Wno-pointer-sign"
-    "-Wno-unused-but-set-variable"
-    "-Wno-missing-braces"
-    "-Wno-sizeof-array-div"
-    "-Wno-invalid-noreturn"
-    "-Wno-enum-conversion"
-    "-Wno-single-bit-bitfield-constant-conversion"
-    "-Wno-tautological-constant-out-of-range-compare"
-    "-Wno-implicit-const-int-float-conversion"
-    "-Wno-misleading-indentation"
-    "-Wno-extern-c-compat"
-    "-Wno-void-pointer-to-int-cast"
-    "-Wno-int-to-void-pointer-cast"
-    "-Wno-extra-tokens"
-    "-Wno-comment"
-    "-Wno-invalid-offsetof"
+    -Wno-unused-variable
+    -Wno-visibility
+    -Wno-switch
+    -Wno-pointer-sign
+    -Wno-unused-but-set-variable
+    -Wno-missing-braces
+    -Wno-sizeof-array-div
+    -Wno-invalid-noreturn
+    -Wno-enum-conversion
+    -Wno-single-bit-bitfield-constant-conversion
+    -Wno-tautological-constant-out-of-range-compare
+    -Wno-implicit-const-int-float-conversion
+    -Wno-misleading-indentation
+    -Wno-extern-c-compat
+    -Wno-void-pointer-to-int-cast
+    -Wno-int-to-void-pointer-cast
+    -Wno-extra-tokens
+    -Wno-comment
+    -Wno-invalid-offsetof
 
     # TODO(jxy-s) Should be narrowly suppressed in specific places.
-    "-Wno-unused-value"
-    "-Wno-reorder-ctor"
+    -Wno-unused-value
+    -Wno-reorder-ctor
 
-    # TODO(jxy-s) Requires significant refactor of use of static_assert
+    # TODO(jxy-s) Requires significant refactor of use of static_assert. Or wait
+    # for c23 to be available for clang-msvc.
     # error: '_Static_assert' with no message is a C23 extension [-Werror,-Wc23-extensions]
-    "-Wno-c23-extensions"
+    -Wno-c23-extensions
 
     # TODO(jxy-s) Needs investigation
     #C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\lib\clang\19\include\xmmintrin.h(2187,9): error: '_MM_HINT_T2' macro redefined [-Werror,-Wmacro-redefined]
@@ -102,13 +103,13 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     #C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\um\winnt.h(3651,9): note: previous definition is here
     # 3651 | #define _MM_HINT_T2     3
     #      |         ^
-    "-Wno-macro-redefined"
+    -Wno-macro-redefined
 
     # TODO(jxy-s) Fairly large refactor, but should be able to address this.
     # Or might be acceptable to suppress this in project configuration.
     # #pragma deprecated
     # #pragma prefast
-    "-Wno-unknown-pragmas"
+    -Wno-unknown-pragmas
 
     # TODO(jxy-s) Investigate, maybe fixable? However, unused functions are a
     # common pattern. But the only errors are from here:
@@ -118,5 +119,5 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     #C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\lib\clang\19\include\amxcomplexintrin.h(162,13): error: unused function '__tile_cmmrlfp16ps' [-Werror,-Wunused-function]
     #  162 | static void __tile_cmmrlfp16ps(__tile1024i *dst, __tile1024i src0,
     #      |             ^~~~~~~~~~~~~~~~~~
-    "-Wno-unused-function"
+    -Wno-unused-function
 )
