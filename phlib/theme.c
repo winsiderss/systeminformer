@@ -1709,7 +1709,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                             isCheckbox ? BP_CHECKBOX : BP_RADIOBUTTON,
                             state,
                             &bufferRect,
-                            TS_TRUE,
+                            THEMEPARTSIZE_TRUE,
                             &checkBoxSize
                             );
                         GetTextExtentPoint32W(DrawInfo->hdc, L"T", 1, &textSize);
@@ -3037,7 +3037,7 @@ VOID ThemeWindowRenderComboBox(
             CP_DROPDOWNBUTTONRIGHT,
             CBXSR_NORMAL,
             NULL,
-            TS_TRUE,
+            THEMEPARTSIZE_TRUE,
             &dropdownSize
             );
 

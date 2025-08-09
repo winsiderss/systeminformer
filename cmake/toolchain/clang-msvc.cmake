@@ -77,7 +77,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
 
     # TODO(jxy-s) Likely fixable with some small/medium refactors.
     -Wno-unused-but-set-variable
-    -Wno-enum-conversion
     -Wno-single-bit-bitfield-constant-conversion
     -Wno-tautological-constant-out-of-range-compare
     -Wno-implicit-const-int-float-conversion

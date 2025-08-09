@@ -867,7 +867,7 @@ VOID ThemeWindowRenderHeaderControl(
                     HP_HEADERSORTARROW,
                     HSAS_SORTEDUP,
                     NULL,
-                    TS_TRUE,
+                    THEMEPARTSIZE_TRUE,
                     &sortArrowSize
                     ))
                 {
@@ -897,7 +897,7 @@ VOID ThemeWindowRenderHeaderControl(
                     HP_HEADERSORTARROW,
                     HSAS_SORTEDDOWN,
                     NULL,
-                    TS_TRUE,
+                    THEMEPARTSIZE_TRUE,
                     &sortArrowSize
                     ))
                 {
