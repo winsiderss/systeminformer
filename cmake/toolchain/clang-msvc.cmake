@@ -85,7 +85,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-int-to-void-pointer-cast
     -Wno-extra-tokens
     -Wno-comment
-    -Wno-invalid-offsetof
 
     # TODO(jxy-s) Should be narrowly suppressed in specific places.
     -Wno-unused-value

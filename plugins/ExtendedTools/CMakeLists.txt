@@ -142,3 +142,13 @@ target_link_options(ExtendedTools PRIVATE
     /DELAYLOAD:tbs.dll
     /DELAYLOAD:winsta.dll
 )
+
+if(MSVC_CLANG)
+    set_source_files_properties(
+        "PresentMon/TraceSession.cpp"
+        PROPERTIES
+        TARGET_DIRECTORY ExtendedTools
+        COMPILE_FLAGS
+            -Wno-invalid-offsetof
+    )
+endif()
