@@ -458,7 +458,7 @@ VOID PhaMapDisplayIndexListView(
 }
 
 VOID PhaMapDisplayIndexIListView(
-    _In_ struct IListView* ListView,
+    _In_ PVOID ListView,
     _Out_writes_(Count) PULONG DisplayToId,
     _Out_writes_opt_(Count) PPH_STRING *DisplayToText,
     _In_ ULONG Count,
@@ -477,7 +477,7 @@ VOID PhaMapDisplayIndexIListView(
 
     for (i = 0; i < Count; i++)
     {
-        if (SUCCEEDED(IListView_GetColumn(ListView, i, &lvColumn)))
+        if (SUCCEEDED(IListView_GetColumn((struct IListView*)ListView, i, &lvColumn)))
         {
             ULONG displayIndex;
 
@@ -536,7 +536,7 @@ PPH_STRING PhGetListViewItemText(
 }
 
 PPH_STRING PhGetIListViewItemText(
-    _In_ struct IListView* ListView,
+    _In_ PVOID ListView,
     _In_ LONG Index,
     _In_ LONG SubItemIndex
     )
@@ -567,7 +567,7 @@ PPH_STRING PhGetIListViewItemText(
         lvItem.pszText = buffer->Buffer;
         lvItem.cchTextMax = (LONG)allocatedCount;
 
-        if (SUCCEEDED(IListView_GetItem(ListView, &lvItem)))
+        if (SUCCEEDED(IListView_GetItem((struct IListView*)ListView, &lvItem)))
             break;
 
         count = PhCountStringZ(lvItem.pszText);
@@ -624,7 +624,7 @@ PPH_STRING PhGetListViewSelectedItemText(
 }
 
 PPH_STRING PhGetIListViewSelectedItemText(
-    _In_ struct IListView* ListView
+    _In_ PVOID ListView
     )
 {
     LONG index;
@@ -662,7 +662,7 @@ PPH_STRING PhaGetListViewItemText(
 }
 
 PPH_STRING PhaGetIListViewItemText(
-    _In_ struct IListView* ListView,
+    _In_ PVOID ListView,
     _In_ LONG Index,
     _In_ LONG SubItemIndex
     )
@@ -722,7 +722,7 @@ PPH_STRING PhGetListViewText(
 }
 
 PPH_STRING PhGetIListViewText(
-    _In_ struct IListView* ListView
+    _In_ PVOID ListView
     )
 {
     PH_AUTO_POOL autoPool;
@@ -737,13 +737,13 @@ PPH_STRING PhGetIListViewText(
     PhInitializeAutoPool(&autoPool);
 
     PhaMapDisplayIndexIListView(ListView, displayToId, NULL, 100, &columns);
-    IListView_GetItemCount(ListView, &rows);
+    IListView_GetItemCount((struct IListView*)ListView, &rows);
 
     PhInitializeStringBuilder(&stringBuilder, 0x100);
 
     for (i = 0; i < rows; i++)
     {
-        if (!SUCCEEDED(IListView_GetItemState(ListView, i, 0, LVIS_SELECTED, &state)))
+        if (!SUCCEEDED(IListView_GetItemState((struct IListView*)ListView, i, 0, LVIS_SELECTED, &state)))
             continue;
 
         if (!FlagOn(state, LVIS_SELECTED))
