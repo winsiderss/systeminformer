@@ -222,3 +222,15 @@ target_compile_definitions(thirdparty PRIVATE
     CAPSTONE_HAS_X86
     CAPSTONE_USE_SYS_DYN_MEM
 )
+
+if(MSVC_CLANG)
+    set_source_files_properties(
+        "detours/disasm.cpp"
+        "detours/disolx64.cpp"
+        "detours/disolx86.cpp"
+        PROPERTIES
+        TARGET_DIRECTORY thirdparty
+        COMPILE_FLAGS
+            -Wno-reorder-ctor
+    )
+endif()

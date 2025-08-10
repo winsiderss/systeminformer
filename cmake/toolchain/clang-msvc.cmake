@@ -68,6 +68,7 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-parentheses
     -Wno-incompatible-pointer-types
     -Wno-unused-variable
+    -Wno-unused-but-set-variable
     -Wno-switch
     -Wno-missing-braces
 
@@ -75,12 +76,8 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-visibility
     -Wno-pointer-sign
 
-    # TODO(jxy-s) Likely fixable with some small/medium refactors.
-    -Wno-unused-but-set-variable
-
     # TODO(jxy-s) Should be narrowly suppressed in specific places.
     -Wno-unused-value
-    -Wno-reorder-ctor
 
     # TODO(jxy-s) Requires significant refactor of use of static_assert. Or wait
     # for c23 to be available for clang-msvc.
