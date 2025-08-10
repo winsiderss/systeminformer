@@ -63,6 +63,8 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-overloaded-virtual
     -Wno-comment
     -Wno-extern-c-compat
+    -Wno-extern-initializer
+    -Wno-unused-value
 
     # TODO(jxy-s) Common pattern in project, move to project configuration.
     -Wno-parentheses
@@ -75,9 +77,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     # TODO(jxy-s) Prevalent in project, but should maybe be addressed.
     -Wno-visibility
     -Wno-pointer-sign
-
-    # TODO(jxy-s) Should be narrowly suppressed in specific places.
-    -Wno-unused-value
 
     # TODO(jxy-s) Requires significant refactor of use of static_assert. Or wait
     # for c23 to be available for clang-msvc.
