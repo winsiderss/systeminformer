@@ -66,14 +66,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-extern-initializer
     -Wno-unused-value
 
-    # TODO(jxy-s) Common pattern in project, move to project configuration.
-    -Wno-parentheses
-    -Wno-incompatible-pointer-types
-    -Wno-unused-variable
-    -Wno-unused-but-set-variable
-    -Wno-switch
-    -Wno-missing-braces
-
     # TODO(jxy-s) Prevalent in project, but should maybe be addressed.
     -Wno-visibility
     -Wno-pointer-sign

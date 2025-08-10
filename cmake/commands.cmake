@@ -9,6 +9,15 @@ include(tools)
 include(platform)
 include(tracewpp)
 
+set(SI_UM_CLANG_NO_DIAGNOSTICS
+    -Wno-incompatible-pointer-types
+    -Wno-missing-braces
+    -Wno-parentheses
+    -Wno-switch
+    -Wno-unused-but-set-variable
+    -Wno-unused-variable
+)
+
 #
 # Helper function for setting up a System Informer target
 #
@@ -51,6 +60,9 @@ function(_si_set_target_defaults target)
 
     if(arg_TYPE STREQUAL "UM_LIB")
         target_compile_options(${target} PRIVATE /Gz) # __stcall calling convention
+        if(MSVC_CLANG)
+            target_compile_options(${target} PRIVATE ${SI_UM_CLANG_NO_DIAGNOSTICS})
+        endif()
         if(SI_WITH_WPP_USER)
             si_target_tracewpp(${target} WPP_USER_MODE
                 WPP_EXT ".c.cpp.h.hpp" WPP_PRESERVE_EXT
@@ -63,6 +75,9 @@ function(_si_set_target_defaults target)
         endif()
     elseif(arg_TYPE STREQUAL "UM_BIN")
         target_compile_options(${target} PRIVATE /Gz) # __stcall calling convention
+        if(MSVC_CLANG)
+            target_compile_options(${target} PRIVATE ${SI_UM_CLANG_NO_DIAGNOSTICS})
+        endif()
         if(SI_WITH_WPP_USER)
             si_target_tracewpp(${target} WPP_USER_MODE
                 WPP_EXT ".c.cpp.h.hpp" WPP_PRESERVE_EXT
