@@ -1284,7 +1284,7 @@ VOID NTAPI MenuItemCallback(
         break;
     case PROCESS_HIGHLIGHT_ID:
         {
-            BOOLEAN highlightPresent = (BOOLEAN)menuItem->Context;
+            BOOLEAN highlightPresent = (BOOLEAN)PtrToUlong(menuItem->Context);
 
             if (!highlightPresent)
             {

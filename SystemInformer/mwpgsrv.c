@@ -139,7 +139,7 @@ BOOLEAN PhMwpServicesPageCallback(
         break;
     case MainTabPageUpdateAutomaticallyChanged:
         {
-            BOOLEAN updateAutomatically = (BOOLEAN)Parameter1;
+            BOOLEAN updateAutomatically = (BOOLEAN)PtrToUlong(Parameter1);
 
             PhSetEnabledProvider(&PhMwpServiceProviderRegistration, updateAutomatically);
         }

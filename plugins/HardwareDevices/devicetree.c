@@ -1459,7 +1459,7 @@ BOOLEAN DevicesTabPageCallback(
         return TRUE;
     case MainTabPageSelected:
         {
-            DeviceTabSelected = (BOOLEAN)Parameter1;
+            DeviceTabSelected = (BOOLEAN)PtrToUlong(Parameter1);
             if (DeviceTabSelected)
             {
                 DeviceTreePublishAsync(FALSE);

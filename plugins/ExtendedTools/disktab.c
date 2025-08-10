@@ -203,7 +203,7 @@ BOOLEAN EtpDiskPageCallback(
         return TRUE;
     case MainTabPageSelected:
         {
-            BOOLEAN selected = (BOOLEAN)Parameter1;
+            BOOLEAN selected = (BOOLEAN)PtrToUlong(Parameter1);
 
             if (selected)
             {
