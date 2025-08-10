@@ -531,7 +531,11 @@ VOID PhpDeferDeleteObject(
 
     // Save TypeIndex and Flags since they get overwritten when we push the object onto the defer
     // delete list.
+
+PH_CLANG_DIAGNOSTIC_PUSH();
+PH_CLANG_DIAGNOSTIC_IGNORED("-Wsingle-bit-bitfield-constant-conversion");
     ObjectHeader->DeferDelete = 1;
+PH_CLANG_DIAGNOSTIC_POP();
     MemoryBarrier();
     ObjectHeader->SavedTypeIndex = ObjectHeader->TypeIndex;
     ObjectHeader->SavedFlags = ObjectHeader->Flags;
