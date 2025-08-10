@@ -191,7 +191,7 @@ NTSTATUS PhpSymbolProviderCallbackWorkItem(
 {
     PPH_SYMBOL_EVENT_DATA data = Context;
 
-    PhInvokeCallback(&PhSymbolEventCallback, &data);
+    PhInvokeCallback(&PhSymbolEventCallback, data);
 
     PhClearReference(&data->EventMessage);
     PhFreeToFreeList(&PhSymEventFreeList, data);
