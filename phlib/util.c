@@ -1951,7 +1951,7 @@ PPH_STRING PhFormatTimeSpanRelative(
     FLOAT years;
     FLOAT centuries;
 
-    days = (FLOAT)TimeSpan / PH_TICKS_PER_DAY;
+    days = (FLOAT)TimeSpan / (FLOAT)PH_TICKS_PER_DAY;
     weeks = days / 7;
     fortnights = weeks / 2;
     years = days / 365.2425f;
@@ -1988,10 +1988,10 @@ PPH_STRING PhFormatTimeSpanRelative(
         ULONG minutesPartial;
         ULONG hoursPartial;
 
-        milliseconds = (FLOAT)TimeSpan / PH_TICKS_PER_MS;
-        seconds = (FLOAT)TimeSpan / PH_TICKS_PER_SEC;
-        minutes = (FLOAT)TimeSpan / PH_TICKS_PER_MIN;
-        hours = (FLOAT)TimeSpan / PH_TICKS_PER_HOUR;
+        milliseconds = (FLOAT)TimeSpan / (FLOAT)PH_TICKS_PER_MS;
+        seconds = (FLOAT)TimeSpan / (FLOAT)PH_TICKS_PER_SEC;
+        minutes = (FLOAT)TimeSpan / (FLOAT)PH_TICKS_PER_MIN;
+        hours = (FLOAT)TimeSpan / (FLOAT)PH_TICKS_PER_HOUR;
 
         if (days >= 1)
         {
