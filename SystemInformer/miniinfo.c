@@ -378,7 +378,7 @@ VOID PhMipContainerOnShowWindow(
         for (i = 0; i < SectionList->Count; i++)
         {
             section = SectionList->Items[i];
-            section->Callback(section, MiniInfoShowing, (PVOID)Showing, NULL);
+            section->Callback(section, MiniInfoShowing, UlongToPtr(Showing), NULL);
         }
     }
 }

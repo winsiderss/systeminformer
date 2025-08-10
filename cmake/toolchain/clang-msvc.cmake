@@ -77,7 +77,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
 
     # TODO(jxy-s) Likely fixable with some small/medium refactors.
     -Wno-unused-but-set-variable
-    -Wno-int-to-void-pointer-cast
 
     # TODO(jxy-s) Should be narrowly suppressed in specific places.
     -Wno-unused-value
