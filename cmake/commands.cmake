@@ -10,6 +10,7 @@ include(platform)
 include(tracewpp)
 
 set(SI_UM_CLANG_NO_DIAGNOSTICS
+    -Wno-c23-extensions
     -Wno-incompatible-pointer-types
     -Wno-missing-braces
     -Wno-parentheses

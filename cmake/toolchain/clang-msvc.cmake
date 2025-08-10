@@ -71,11 +71,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-visibility
     -Wno-pointer-sign
 
-    # TODO(jxy-s) Requires significant refactor of use of static_assert. Or wait
-    # for c23 to be available for clang-msvc.
-    # error: '_Static_assert' with no message is a C23 extension [-Werror,-Wc23-extensions]
-    -Wno-c23-extensions
-
     # TODO(jxy-s) Investigate, maybe fixable? However, unused functions are a
     # common pattern. But the only errors are from here:
     #C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\lib\clang\19\include\amxcomplexintrin.h(139,13): error: unused function '__tile_cmmimfp16ps' [-Werror,-Wunused-function]
