@@ -28,7 +28,20 @@
 //  3649 | #define _MM_HINT_T0     1
 //       |
 //
-#if defined(__clang__) && defined(_MM_HINT_T0)
+// Workaround for unused function warnings.
+// Narrowly suppress -Wunused-function warnings.
+//
+// C:\Program Files\LLVM\lib\clang\20\include\amxcomplexintrin.h(139,13): error: unused function '__tile_cmmimfp16ps' [-Werror,-Wunused-function]
+//   139 | static void __tile_cmmimfp16ps(__tile1024i *dst, __tile1024i src0,
+//       |             ^~~~~~~~~~~~~~~~~~
+// C:\Program Files\LLVM\lib\clang\20\include\amxcomplexintrin.h(162,13): error: unused function '__tile_cmmrlfp16ps' [-Werror,-Wunused-function]
+//   162 | static void __tile_cmmrlfp16ps(__tile1024i *dst, __tile1024i src0,
+//       |             ^~~~~~~~~~~~~~~~~~
+//
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#ifdef _MM_HINT_T0
 #pragma push_macro("_MM_HINT_T0")
 #pragma push_macro("_MM_HINT_T1")
 #pragma push_macro("_MM_HINT_T2")
@@ -36,14 +49,18 @@
 #undef _MM_HINT_T1
 #undef _MM_HINT_T2
 #define PH_SAVED_MM_HINT_MACROS
-#endif
+#endif // _MM_HINT_T0
+#endif // __clang__
 #include <intrin.h>
-#if defined(__clang__) && defined(PH_SAVED_MM_HINT_MACROS)
+#ifdef __clang__
+#pragma clang diagnostic pop
+#ifdef PH_SAVED_MM_HINT_MACROS
 #pragma pop_macro("_MM_HINT_T2")
 #pragma pop_macro("_MM_HINT_T1")
 #pragma pop_macro("_MM_HINT_T0")
 #undef PH_SAVED_MM_HINT_MACROS
-#endif
+#endif // PH_SAVED_MM_HINT_MACROS
+#endif // __clang__
 
 #include <wchar.h>
 #include <assert.h>

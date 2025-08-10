@@ -70,14 +70,4 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     # TODO(jxy-s) Prevalent in project, but should maybe be addressed.
     -Wno-visibility
     -Wno-pointer-sign
-
-    # TODO(jxy-s) Investigate, maybe fixable? However, unused functions are a
-    # common pattern. But the only errors are from here:
-    #C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\lib\clang\19\include\amxcomplexintrin.h(139,13): error: unused function '__tile_cmmimfp16ps' [-Werror,-Wunused-function]
-    #  139 | static void __tile_cmmimfp16ps(__tile1024i *dst, __tile1024i src0,
-    #      |             ^~~~~~~~~~~~~~~~~~
-    #C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\lib\clang\19\include\amxcomplexintrin.h(162,13): error: unused function '__tile_cmmrlfp16ps' [-Werror,-Wunused-function]
-    #  162 | static void __tile_cmmrlfp16ps(__tile1024i *dst, __tile1024i src0,
-    #      |             ^~~~~~~~~~~~~~~~~~
-    -Wno-unused-function
 )

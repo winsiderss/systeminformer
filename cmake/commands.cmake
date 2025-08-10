@@ -16,6 +16,7 @@ set(SI_UM_CLANG_NO_DIAGNOSTICS
     -Wno-parentheses
     -Wno-switch
     -Wno-unused-but-set-variable
+    -Wno-unused-function
     -Wno-unused-variable
 )
 
