@@ -28,14 +28,14 @@
 
 #ifdef __clang__
 #define PH_CLANG_STRINGIFYX(x)         #x
-#define PH_CLANG_STRINGIFY(x)          TMH_STRINGIFYX(x)
-#define PH_CLANG_DIAGNOSTIC_PUSH       _Pragma("clang diagnostic push")
+#define PH_CLANG_STRINGIFY(x)          PH_CLANG_STRINGIFYX(x)
+#define PH_CLANG_DIAGNOSTIC_PUSH()     _Pragma("clang diagnostic push")
 #define PH_CLANG_DIAGNOSTIC_IGNORED(x) _Pragma(PH_CLANG_STRINGIFY(clang diagnostic ignored x))
-#define PH_CLANG_DIAGNOSTIC_POP        _Pragma("clang diagnostic pop")
+#define PH_CLANG_DIAGNOSTIC_POP()      _Pragma("clang diagnostic pop")
 #else
-#define PH_CLANG_DIAGNOSTIC_PUSH
+#define PH_CLANG_DIAGNOSTIC_PUSH()
 #define PH_CLANG_DIAGNOSTIC_IGNORED(x)
-#define PH_CLANG_DIAGNOSTIC_POP
+#define PH_CLANG_DIAGNOSTIC_POP()
 #endif
 
 #include <phnt_windows.h>
