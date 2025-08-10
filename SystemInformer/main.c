@@ -523,6 +523,8 @@ BOOLEAN NTAPI PhpPreviousInstancesCallback(
             PhForegroundPreviousInstance(objectInfo.ClientId.UniqueProcess);
     }
 
+    NtClose(objectHandle);
+
     return TRUE;
 }
 
