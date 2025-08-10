@@ -44,12 +44,12 @@ endforeach()
 
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
 else()
-list(APPEND SI_COMPILE_FLAGS_INIT
-    -mavx                         # Enable AVX instructions
-    -mavx2                        # Enable AVX2 instructions
-    -mavx512vl                    # Enable AVX512VL instructions
-    -mrdrnd                       # Enable RDRAND instructions
-)
+    list(APPEND SI_COMPILE_FLAGS_INIT
+        -mavx                         # Enable AVX instructions
+        -mavx2                        # Enable AVX2 instructions
+        -mavx512vl                    # Enable AVX512VL instructions
+        -mrdrnd                       # Enable RDRAND instructions
+    )
 endif()
 
 #
