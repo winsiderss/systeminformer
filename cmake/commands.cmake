@@ -18,6 +18,7 @@ set(SI_UM_CLANG_NO_DIAGNOSTICS
     -Wno-unused-but-set-variable
     -Wno-unused-function
     -Wno-unused-variable
+    -Wno-visibility
 )
 
 #

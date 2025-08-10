@@ -68,6 +68,5 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-unused-value
 
     # TODO(jxy-s) Prevalent in project, but should maybe be addressed.
-    -Wno-visibility
     -Wno-pointer-sign
 )
