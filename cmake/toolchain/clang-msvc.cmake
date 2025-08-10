@@ -75,15 +75,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     # error: '_Static_assert' with no message is a C23 extension [-Werror,-Wc23-extensions]
     -Wno-c23-extensions
 
-    # TODO(jxy-s) Needs investigation
-    #C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\lib\clang\19\include\xmmintrin.h(2187,9): error: '_MM_HINT_T2' macro redefined [-Werror,-Wmacro-redefined]
-    # 2187 | #define _MM_HINT_T2  1
-    #      |         ^
-    #C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\um\winnt.h(3651,9): note: previous definition is here
-    # 3651 | #define _MM_HINT_T2     3
-    #      |         ^
-    -Wno-macro-redefined
-
     # TODO(jxy-s) Fairly large refactor, but should be able to address this.
     # Or might be acceptable to suppress this in project configuration.
     # #pragma deprecated

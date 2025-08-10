@@ -15,7 +15,36 @@
 
 // This header file provides some useful definitions specific to phlib.
 
+//
+// Workaround for macro redefinition conflicts between Clang and MSVC.
+// Save and restore these definitions.
+//
+// See: https://github.com/llvm/llvm-project/issues/36748
+//
+// C:\Program Files\LLVM\lib\clang\20\include\xmmintrin.h(2195,9): error: '_MM_HINT_T0' macro redefined [-Werror,-Wmacro-redefined]
+//  2195 | #define _MM_HINT_T0  3
+//       |         ^
+// C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\um\winnt.h(3649,9): note: previous definition is here
+//  3649 | #define _MM_HINT_T0     1
+//       |
+//
+#if defined(__clang__) && defined(_MM_HINT_T0)
+#pragma push_macro("_MM_HINT_T0")
+#pragma push_macro("_MM_HINT_T1")
+#pragma push_macro("_MM_HINT_T2")
+#undef _MM_HINT_T0
+#undef _MM_HINT_T1
+#undef _MM_HINT_T2
+#define PH_SAVED_MM_HINT_MACROS
+#endif
 #include <intrin.h>
+#if defined(__clang__) && defined(PH_SAVED_MM_HINT_MACROS)
+#pragma pop_macro("_MM_HINT_T2")
+#pragma pop_macro("_MM_HINT_T1")
+#pragma pop_macro("_MM_HINT_T0")
+#undef PH_SAVED_MM_HINT_MACROS
+#endif
+
 #include <wchar.h>
 #include <assert.h>
 #include <stdalign.h>
