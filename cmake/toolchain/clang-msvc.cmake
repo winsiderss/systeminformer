@@ -52,18 +52,18 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -mrdrnd                       # Enable RDRAND instructions
 
     # Required for Microsoft headers
-    -Wno-microsoft-enum-forward-reference
-    -Wno-microsoft-static-assert
-    -Wno-microsoft-anon-tag
-    -Wno-microsoft-include
-    -Wno-ignored-pragma-intrinsic
-    -Wno-ignored-attributes
-    -Wno-pragma-pack
-    -Wno-unused-local-typedef
-    -Wno-overloaded-virtual
     -Wno-comment
     -Wno-extern-c-compat
     -Wno-extern-initializer
+    -Wno-ignored-attributes
+    -Wno-ignored-pragma-intrinsic
+    -Wno-microsoft-anon-tag
+    -Wno-microsoft-enum-forward-reference
+    -Wno-microsoft-include
+    -Wno-microsoft-static-assert
+    -Wno-overloaded-virtual
+    -Wno-pragma-pack
+    -Wno-unused-local-typedef
     -Wno-unused-value
 
     # TODO(jxy-s) Prevalent in project, but should maybe be addressed.
