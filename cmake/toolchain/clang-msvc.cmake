@@ -63,6 +63,7 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-microsoft-static-assert
     -Wno-overloaded-virtual
     -Wno-pragma-pack
+    -Wno-unknown-pragmas
     -Wno-unused-local-typedef
     -Wno-unused-value
 
@@ -74,12 +75,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     # for c23 to be available for clang-msvc.
     # error: '_Static_assert' with no message is a C23 extension [-Werror,-Wc23-extensions]
     -Wno-c23-extensions
-
-    # TODO(jxy-s) Fairly large refactor, but should be able to address this.
-    # Or might be acceptable to suppress this in project configuration.
-    # #pragma deprecated
-    # #pragma prefast
-    -Wno-unknown-pragmas
 
     # TODO(jxy-s) Investigate, maybe fixable? However, unused functions are a
     # common pattern. But the only errors are from here:
