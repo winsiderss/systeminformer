@@ -14,6 +14,7 @@ set(SI_UM_CLANG_NO_DIAGNOSTICS
     -Wno-incompatible-pointer-types
     -Wno-missing-braces
     -Wno-parentheses
+    -Wno-pointer-sign
     -Wno-switch
     -Wno-unused-but-set-variable
     -Wno-unused-function

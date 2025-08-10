@@ -66,7 +66,4 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-unknown-pragmas
     -Wno-unused-local-typedef
     -Wno-unused-value
-
-    # TODO(jxy-s) Prevalent in project, but should maybe be addressed.
-    -Wno-pointer-sign
 )
