@@ -185,7 +185,8 @@ function(si_target_tracewpp target)
             cmake_path(GET _tmh_file FILENAME _tmh_file)
             set_source_files_properties(${_src_file} PROPERTIES
                 TARGET_DIRECTORY ${target}
-                COMPILE_DEFINITIONS "TMH_FILE=${_tmh_file}")
+                COMPILE_DEFINITIONS "TMH_FILE=${_tmh_file}"
+            )
         endforeach()
     endif()
 
