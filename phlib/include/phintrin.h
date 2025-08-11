@@ -15,6 +15,10 @@
 
 #include <intrin.h>
 
+#if defined(_M_ARM64) && defined(__clang__)
+#include <arm_acle.h>
+#endif
+
 #ifdef _ARM64_
 #define PhHasIntrinsics TRUE
 #define PhHasPopulationCount TRUE

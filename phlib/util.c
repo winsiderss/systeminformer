@@ -27,6 +27,7 @@
 #include <mapimg.h>
 #include <mapldr.h>
 #include <lsasup.h>
+#include <phintrin.h>
 #include <wslsup.h>
 #include <thirdparty.h>
 

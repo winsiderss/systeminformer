@@ -43,6 +43,9 @@ foreach(_idx RANGE 0 ${_max_idx} 2)
 endforeach()
 
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+    list(APPEND SI_COMPILE_FLAGS_INIT
+        -mcrc                         # Enable ARM64 CRC32 instructions
+    )
 else()
     list(APPEND SI_COMPILE_FLAGS_INIT
         -mavx                         # Enable AVX instructions
