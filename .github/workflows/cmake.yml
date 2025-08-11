@@ -20,18 +20,16 @@ jobs:
           - 'msvc-amd64'
           - 'msvc-arm64'
           - 'msvc-x86'
-          # - 'clang-msvc-amd64'
-          # - 'clang-msvc-arm64'
-          # - 'clang-msvc-x86'
+          - 'clang-msvc-amd64'
+          - 'clang-msvc-arm64'
+          - 'clang-msvc-x86'
         config:
           - 'Debug'
           - 'Release'
         generator:
           - 'Ninja'
-          # - 'Visual Studio 17 2022'
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.config }} ${{ matrix.toolchain }}
-    # name: ${{ matrix.config }} ${{ matrix.toolchain }} ${{ matrix.generator }}
     steps:
     - uses: actions/checkout@v4
     - name: Install Nuget Packages
