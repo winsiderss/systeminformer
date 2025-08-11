@@ -148,7 +148,6 @@ if(MSVC_CLANG)
         "PresentMon/TraceSession.cpp"
         PROPERTIES
         TARGET_DIRECTORY ExtendedTools
-        COMPILE_FLAGS
-            -Wno-invalid-offsetof
+        COMPILE_OPTIONS "-Wno-invalid-offsetof"
     )
 endif()

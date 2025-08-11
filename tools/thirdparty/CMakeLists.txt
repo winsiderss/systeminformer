@@ -230,8 +230,7 @@ if(MSVC_CLANG)
         "detours/disolx86.cpp"
         PROPERTIES
         TARGET_DIRECTORY thirdparty
-        COMPILE_FLAGS
-            -Wno-reorder-ctor
+        COMPILE_OPTIONS "-Wno-reorder-ctor"
     )
     set_source_files_properties(
         "jsonc/arraylist.c"
@@ -239,16 +238,13 @@ if(MSVC_CLANG)
         "ssdeep/fuzzy.c"
         PROPERTIES
         TARGET_DIRECTORY thirdparty
-        COMPILE_FLAGS
-            -Wno-tautological-constant-out-of-range-compare
+        COMPILE_OPTIONS "-Wno-tautological-constant-out-of-range-compare"
     )
     set_source_files_properties(
         ${SOURCES_JSON_C}
         ${HEADERS_JSON_C}
         PROPERTIES
         TARGET_DIRECTORY thirdparty
-        COMPILE_FLAGS
-            -Wno-int-to-void-pointer-cast
-            -Wno-void-pointer-to-int-cast
+        COMPILE_OPTIONS "-Wno-int-to-void-pointer-cast;-Wno-void-pointer-to-int-cast"
     )
 endif()
