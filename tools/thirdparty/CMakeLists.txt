@@ -233,9 +233,6 @@ if(MSVC_CLANG)
         COMPILE_FLAGS
             -Wno-reorder-ctor
     )
-endif()
-
-if(MSVC_CLANG)
     set_source_files_properties(
         "jsonc/arraylist.c"
         "jsonc/json_object.c"
@@ -244,5 +241,14 @@ if(MSVC_CLANG)
         TARGET_DIRECTORY thirdparty
         COMPILE_FLAGS
             -Wno-tautological-constant-out-of-range-compare
+    )
+    set_source_files_properties(
+        ${SOURCES_JSON_C}
+        ${HEADERS_JSON_C}
+        PROPERTIES
+        TARGET_DIRECTORY thirdparty
+        COMPILE_FLAGS
+            -Wno-int-to-void-pointer-cast
+            -Wno-void-pointer-to-int-cast
     )
 endif()
