@@ -50,6 +50,9 @@ set(SI_COMPILE_FLAGS_RELEASE_INIT
 #
 # Linker flags
 #
+set(SI_STATIC_LINK_FLAGS_INIT
+    /MACHINE:${CMAKE_SYSTEM_PROCESSOR}  # Target platform
+)
 set(SI_LINK_FLAGS_INIT
     /MACHINE:${CMAKE_SYSTEM_PROCESSOR}  # Target platform
     /DEBUG                              # Generate debug info
