@@ -234,3 +234,15 @@ if(MSVC_CLANG)
             -Wno-reorder-ctor
     )
 endif()
+
+if(MSVC_CLANG)
+    set_source_files_properties(
+        "jsonc/arraylist.c"
+        "jsonc/json_object.c"
+        "ssdeep/fuzzy.c"
+        PROPERTIES
+        TARGET_DIRECTORY thirdparty
+        COMPILE_FLAGS
+            -Wno-tautological-constant-out-of-range-compare
+    )
+endif()

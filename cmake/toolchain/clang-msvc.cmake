@@ -74,3 +74,8 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-unused-local-typedef
     -Wno-unused-value
 )
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
+    list(APPEND SI_COMPILE_FLAGS_INIT
+        -Wno-missing-prototype-for-cc
+    )
+endif()
