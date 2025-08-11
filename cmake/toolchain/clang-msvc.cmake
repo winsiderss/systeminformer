@@ -59,6 +59,8 @@ endif()
 # Only suppress here if Microsoft code ends up needing it.
 #
 list(APPEND SI_COMPILE_FLAGS_INIT
+    -fms-compatibility
+    -fms-extensions
     -Wno-comment
     -Wno-extern-c-compat
     -Wno-extern-initializer
