@@ -77,6 +77,9 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-unknown-pragmas
     -Wno-unused-local-typedef
     -Wno-unused-value
+
+    # TODO(jxy-s) Needs investigation. Required for CI but not local.
+    -Wno-int-to-void-pointer-cast
 )
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
     list(APPEND SI_COMPILE_FLAGS_INIT
