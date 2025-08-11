@@ -80,6 +80,7 @@ list(APPEND SI_COMPILE_FLAGS_INIT
 
     # TODO(jxy-s) Needs investigation. Required for CI but not local.
     -Wno-int-to-void-pointer-cast
+    -Wno-void-pointer-to-int-cast
 )
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
     list(APPEND SI_COMPILE_FLAGS_INIT
