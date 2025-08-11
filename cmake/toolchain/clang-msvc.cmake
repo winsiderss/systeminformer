@@ -21,6 +21,8 @@ set(SI_CLANG_MSVC_REPLACE_COMPILE_FLAGS
     /ZI                 /Z7
     # TODO(jxy-s) Investigate failures related to this flag.
     /Qspectre           ${_remove} # -mspeculative-load-hardening
+    # TODO(jxy-s) Needs investigation. Works locally, but fails on CI.
+    /guard:signret      ${_remove}
 )
 list(LENGTH SI_CLANG_MSVC_REPLACE_COMPILE_FLAGS _replace_total)
 math(EXPR _max_idx "${_replace_total} - 1")
