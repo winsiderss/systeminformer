@@ -233,16 +233,11 @@ if(MSVC_CLANG)
         COMPILE_OPTIONS "-Wno-reorder-ctor"
     )
     set_source_files_properties(
+        "jsonc/arraylist.c"
+        "jsonc/json_object.c"
         "ssdeep/fuzzy.c"
         PROPERTIES
         TARGET_DIRECTORY thirdparty
         COMPILE_OPTIONS "-Wno-tautological-constant-out-of-range-compare"
-    )
-    set_source_files_properties(
-        ${SOURCES_JSON_C}
-        ${HEADERS_JSON_C}
-        PROPERTIES
-        TARGET_DIRECTORY thirdparty
-        COMPILE_OPTIONS "-Wno-tautological-constant-out-of-range-compare;-Wno-int-to-void-pointer-cast;-Wno-void-pointer-to-int-cast"
     )
 endif()
