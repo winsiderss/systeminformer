@@ -31,7 +31,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.config }} ${{ matrix.toolchain }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Install Nuget Packages
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
     - name: Build Tools
