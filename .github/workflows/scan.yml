@@ -44,7 +44,6 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          config-file: microsoft/Windows-Driver-Developer-Supplemental-Tools/config/codeql-config.yml@WHCP_25H2
           packs: 'microsoft/windows-drivers@1.8.0,microsoft/cpp-queries@0.0.4'
 
       - name: Build Driver
