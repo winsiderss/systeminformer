@@ -1,12 +1,11 @@
-name: continuous-integration
+name: 'continuous-integration'
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
   workflow_dispatch:
+  push:
+    branches: ['master']
+  pull_request:
+    branches: ['master']
 
 permissions:
   contents: read
@@ -14,68 +13,96 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: ['windows-latest']
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+    - uses: actions/checkout@v5
+
     - name: Install Nuget Packages
+      shell: cmd
+      working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
+
     - name: Build Init
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
+
     - name: Build Solution
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_debug.cmd
+
   build-release:
     strategy:
       matrix:
         os: ['windows-latest']
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
     - name: Install Nuget Packages
+      shell: cmd
+      working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
+
     - name: Build Init
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
+
     - name: Build Solution
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_release.cmd
+
   build-driver:
     strategy:
       matrix:
         os: ['windows-latest']
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+    - uses: actions/checkout@v5
+
     - name: Install Nuget Packages
+      shell: cmd
+      working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
+
     - name: Build Tools
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_tools.cmd
+
     - name: Build Driver
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_zdriver.cmd prefast
+
   build-driver-release:
     strategy:
       matrix:
         os: ['windows-latest']
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+    - uses: actions/checkout@v5
+
     - name: Install Nuget Packages
+      shell: cmd
+      working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
+
     - name: Build Tools
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_tools.cmd
+
     - name: Build Driver
       shell: cmd
       working-directory: ${{github.workspace}}
