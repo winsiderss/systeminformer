@@ -14,26 +14,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['windows-latest']
+        os: 
+          - windows-latest
         toolchain:
-          - 'msvc-amd64'
-          - 'msvc-arm64'
-          - 'msvc-x86'
-          - 'clang-msvc-amd64'
-          - 'clang-msvc-arm64'
-          - 'clang-msvc-x86'
-        config: ['Debug','Release']
+          - msvc-amd64
+          - msvc-arm64
+          - msvc-x86
+          - clang-msvc-amd64
+          - clang-msvc-arm64
+          - clang-msvc-x86
+        configuration:
+          - Debug
+          - Release
         generator:
-          - 'Ninja'
-
+          - Ninja
     runs-on: ${{ matrix.os }}
-    name: ${{ matrix.config }} ${{ matrix.toolchain }}
-
+    name: ${{ matrix.configuration }} ${{ matrix.toolchain }}
     steps:
     - name: Checkout repository
-    - uses: actions/checkout@v5
+      uses: actions/checkout@v5
 
-    - name: Install Nuget Packages
+    - name: Nuget Restore
       shell: cmd
       working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
@@ -46,9 +47,9 @@ jobs:
     - name: Generate
       shell: cmd
       working-directory: ${{github.workspace}}
-      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.config }} ${{ matrix.toolchain }} generate
+      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.configuration }} ${{ matrix.toolchain }} generate
 
     - name: Build
       shell: cmd
       working-directory: ${{github.workspace}}
-      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.config }} ${{ matrix.toolchain }} build
+      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.configuration }} ${{ matrix.toolchain }} build
