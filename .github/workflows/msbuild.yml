@@ -7,11 +7,10 @@ on:
   pull_request:
     branches: ['master']
 
-permissions:
-  contents: read
-
 jobs:
   build:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -19,14 +18,21 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-    - uses: actions/checkout@v5
+      uses: actions/checkout@v5
 
-    - name: Install Nuget Packages
+    - name: NuGet Cache
+      uses: actions/cache@v4
+      with:
+        path: packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Nuget Restore
       shell: cmd
       working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
-    - name: Build Init
+    - name: Build Tools
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
@@ -45,12 +51,19 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v5
 
-    - name: Install Nuget Packages
+    - name: NuGet Cache
+      uses: actions/cache@v4
+      with:
+        path: packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Nuget Restore
       shell: cmd
       working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
-    - name: Build Init
+    - name: Build Tools
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
@@ -67,9 +80,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-    - uses: actions/checkout@v5
+      uses: actions/checkout@v5
 
-    - name: Install Nuget Packages
+    - name: NuGet Cache
+      uses: actions/cache@v4
+      with:
+        path: packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Nuget Restore
       shell: cmd
       working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
@@ -91,9 +111,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-    - uses: actions/checkout@v5
+      uses: actions/checkout@v5
 
-    - name: Install Nuget Packages
+    - name: NuGet Cache
+      uses: actions/cache@v4
+      with:
+        path: packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Nuget Restore
       shell: cmd
       working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
