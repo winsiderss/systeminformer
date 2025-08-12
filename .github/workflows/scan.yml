@@ -8,7 +8,7 @@ on:
 jobs:
   analyze_driver:
     name: Analysis
-    runs-on: windows-latest
+    runs-on: windows-2025
     permissions:
       actions: read
       contents: read
