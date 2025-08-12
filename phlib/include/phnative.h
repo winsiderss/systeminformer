@@ -1256,6 +1256,47 @@ PhGetDaclSecurityDescriptorNotNull(
 }
 
 FORCEINLINE
+UCHAR
+NTAPI
+PhRequiredAclRevision(
+    _In_ UCHAR AceType
+    )
+{
+    switch (AceType)
+    {
+    case ACCESS_ALLOWED_OBJECT_ACE_TYPE:
+    case ACCESS_DENIED_OBJECT_ACE_TYPE:
+    case SYSTEM_AUDIT_OBJECT_ACE_TYPE:
+    case SYSTEM_ALARM_OBJECT_ACE_TYPE:
+    case ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE:
+    case ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE:
+    case SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE:
+    case SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE:
+        return ACL_REVISION4;
+
+    case ACCESS_ALLOWED_COMPOUND_ACE_TYPE:
+        return ACL_REVISION3;
+
+    default:
+        return ACL_REVISION2;
+    }
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhEnsureAclRevision(
+    _Inout_ PUCHAR AclRevision,
+    _In_ UCHAR AceType
+    )
+{
+    UCHAR requiredRevision = PhRequiredAclRevision(AceType);
+
+    if (requiredRevision > *AclRevision)
+        *AclRevision = requiredRevision;
+}
+
+FORCEINLINE
 NTSTATUS
 NTAPI
 PhAddAccessAllowedAce(

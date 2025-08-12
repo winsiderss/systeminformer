@@ -262,6 +262,7 @@ NTSTATUS PhMergeSystemAcls(
             {
                 RtlCopyMemory(mergedAce, ace, ace->AceSize);
                 mergedSacl->AceCount++;
+                PhEnsureAclRevision(&mergedSacl->AclRevision, mergedAce->AceType);
                 mergedAce = (PACE_HEADER)PTR_ADD_OFFSET(mergedAce, mergedAce->AceSize);
             }
 
@@ -281,6 +282,7 @@ NTSTATUS PhMergeSystemAcls(
             {
                 RtlCopyMemory(mergedAce, ace, ace->AceSize);
                 mergedSacl->AceCount++;
+                PhEnsureAclRevision(&mergedSacl->AclRevision, mergedAce->AceType);
                 mergedAce = (PACE_HEADER)PTR_ADD_OFFSET(mergedAce, mergedAce->AceSize);
             }
 
