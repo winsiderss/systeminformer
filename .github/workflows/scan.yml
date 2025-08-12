@@ -3,12 +3,12 @@ name: 'CodeQL Analysis'
 on:
   workflow_dispatch:
   schedule:
-    - cron: '00 16 * * 1'
+    - cron: '00 0 * * 0'
 
 jobs:
   analyze_driver:
     name: Analysis
-    runs-on: ['windows-latest']
+    runs-on: windows-latest
     permissions:
       actions: read
       contents: read
@@ -17,13 +17,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['cpp', 'csharp']
+        language: ['cpp']
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Install Nuget Packages
+      - name: NuGet Cache
+        uses: actions/cache@v4
+        with:
+          path: packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
+          restore-keys: nuget-${{ runner.os }}-
+          
+      - name: Nuget Restore
         shell: cmd
         working-directory: ${{github.workspace}}
         run: nuget restore .\packages.config -PackagesDirectory .\packages\
