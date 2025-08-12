@@ -1,12 +1,11 @@
-name: cmake-continuous-integration
+name: 'cmake-continuous-integration'
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
   workflow_dispatch:
+  push:
+    branches: ['master']
+  pull_request:
+    branches: ['master']
 
 permissions:
   contents: read
@@ -31,17 +30,24 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.config }} ${{ matrix.toolchain }}
     steps:
+    - name: Checkout repository
     - uses: actions/checkout@v5
+
     - name: Install Nuget Packages
+      shell: cmd
+      working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
+
     - name: Build Tools
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_tools.cmd
+
     - name: Generate
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.config }} ${{ matrix.toolchain }} generate
+
     - name: Build
       shell: cmd
       working-directory: ${{github.workspace}}
