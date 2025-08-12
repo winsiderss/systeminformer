@@ -708,6 +708,46 @@ static NTSTATUS PhpOpenSecurityDummyHandle(
     return STATUS_SUCCESS;
 }
 
+static NTSTATUS PhpOpenComDummyAccessPermissionsHandle(
+    _Inout_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    *Handle = (HANDLE)SD_ACCESSPERMISSIONS;
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS PhpOpenComDummyAccessRestrictionsHandle(
+    _Inout_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    *Handle = (HANDLE)SD_ACCESSRESTRICTIONS;
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS PhpOpenComDummyLaunchPermissionsHandle(
+    _Inout_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    *Handle = (HANDLE)SD_LAUNCHPERMISSIONS;
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS PhpOpenComDummyLaunchRestrictionsHandle(
+    _Inout_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    *Handle = (HANDLE)SD_LAUNCHRESTRICTIONS;
+    return STATUS_SUCCESS;
+}
+
 static NTSTATUS PhpOpenSecurityDesktopHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -1386,6 +1426,54 @@ VOID PhMwpOnCommand(
                 L"Terminal Server Listener",
                 L"RdpDefault",
                 PhpOpenSecurityDummyHandle,
+                NULL,
+                NULL
+                );
+        }
+        break;
+    case ID_TOOLS_COM_ACCESS_PERMISSIONS:
+        {
+            PhEditSecurity(
+                NULL,
+                L"COM Access Permissions",
+                L"ComAccess",
+                PhpOpenComDummyAccessPermissionsHandle,
+                NULL,
+                NULL
+                );
+        }
+        break;
+    case ID_TOOLS_COM_ACCESS_RESTRICTIONS:
+        {
+            PhEditSecurity(
+                NULL,
+                L"COM Access Restrictions",
+                L"ComAccess",
+                PhpOpenComDummyAccessRestrictionsHandle,
+                NULL,
+                NULL
+                );
+        }
+        break;
+    case ID_TOOLS_COM_LAUNCH_PERMISSIONS:
+        {
+            PhEditSecurity(
+                NULL,
+                L"COM Launch Permissions",
+                L"ComLaunch",
+                PhpOpenComDummyLaunchPermissionsHandle,
+                NULL,
+                NULL
+                );
+        }
+        break;
+    case ID_TOOLS_COM_LAUNCH_RESTRICTIONS:
+        {
+            PhEditSecurity(
+                NULL,
+                L"COM Launch Restrictions",
+                L"ComLaunch",
+                PhpOpenComDummyLaunchRestrictionsHandle,
                 NULL,
                 NULL
                 );
@@ -3124,6 +3212,10 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_SCM_PERMISSIONS, L"Service Control Manager", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_RDP_PERMISSIONS, L"Terminal Server Listener", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_WMI_PERMISSIONS, L"WMI Root Namespace", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_COM_ACCESS_PERMISSIONS, L"COM Access Permissions", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_COM_ACCESS_RESTRICTIONS, L"COM Access Restrictions", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_COM_LAUNCH_PERMISSIONS, L"COM Launch Permissions", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_COM_LAUNCH_RESTRICTIONS, L"COM Launch Restrictions", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_DESKTOP_PERMISSIONS, L"Current Window Desktop", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_STATION_PERMISSIONS, L"Current Window Station", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, menuItem, ULONG_MAX);

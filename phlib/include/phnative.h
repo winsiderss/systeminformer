@@ -250,6 +250,26 @@ PhSetObjectSecurity(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhMergeSystemAcls(
+    _In_opt_ PACL LowerSacl,
+    _In_opt_ PACL HigherSacl,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Outptr_result_maybenull_ PACL* MergedSacl
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhMergeSecurityDescriptors(
+    _In_ PSECURITY_DESCRIPTOR LowerSecurityDescriptor,
+    _In_ PSECURITY_DESCRIPTOR HigherSecurityDescriptor,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Outptr_ PSECURITY_DESCRIPTOR* MergedSecurityDescriptor
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhTerminateProcess(
     _In_ HANDLE ProcessHandle,
     _In_ NTSTATUS ExitStatus

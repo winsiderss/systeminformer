@@ -115,6 +115,380 @@ NTSTATUS PhSetObjectSecurity(
         );
 }
 
+#define SACL_ACE_TYPES_MASK ( \
+    (1 << SYSTEM_AUDIT_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_ACE_TYPE) | \
+    (1 << SYSTEM_AUDIT_OBJECT_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_OBJECT_ACE_TYPE) | \
+    (1 << SYSTEM_AUDIT_CALLBACK_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_CALLBACK_ACE_TYPE) | \
+    (1 << SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE))
+
+#define MANDATORY_LABEL_ACE_TYPES_MASK (1 << SYSTEM_MANDATORY_LABEL_ACE_TYPE)
+#define RESOURCE_ATTRIBUTE_ACE_TYPE_MASK (1 << SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE)
+#define SCOPED_POLICY_ACE_TYPE_MASK (1 << SYSTEM_SCOPED_POLICY_ID_ACE_TYPE)
+#define PROCESS_TRUST_ACE_TYPE_MASK (1 << SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE)
+#define ACCESS_FILTER_ACE_TYPE_MASK (1 << SYSTEM_ACCESS_FILTER_ACE_TYPE)
+
+/**
+ * Merges two SACLs according to the provided security information.
+ * The function preserves ACEs not covered by the change from the lower SACL and replaces other
+ * ACEs with the ones from the higher SACL.
+ * 
+ * Example:
+ *  - A lower SACL containing two ACEs: a trust label and a mandatory label.
+ *  - A higher SACL containing one ACE: a trust label.
+ *  - Security information specifies PROCESS_TRUST_LABEL_SECURITY_INFORMATION.
+ * Result: a SACL with the trust label from the higher SACL and the mandatory label from the lower SACL.
+ *
+ * \param LowerSacl An existing SACL with potentially mixed ACE types.
+ * \param HigherSacl An overlaying SACL for the specified security information.
+ * \param SecurityInformation The type of security information to be set.
+ * \param MergedSacl The new merged SACL.
+ */
+NTSTATUS PhMergeSystemAcls(
+    _In_opt_ PACL LowerSacl,
+    _In_opt_ PACL HigherSacl,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Outptr_result_maybenull_ PACL* MergedSacl
+    )
+{
+    NTSTATUS status;
+    ULONG aceTypesToReplace = 0;
+    ULONG requiredSize = 0;
+    PACL mergedSacl;
+    PACE_HEADER mergedAce;
+
+    if (!LowerSacl && !HigherSacl)
+    {
+        // Nothing to merge
+        *MergedSacl = NULL;
+        return STATUS_SUCCESS;
+    }
+
+    if (LowerSacl && (LowerSacl->AclRevision < MIN_ACL_REVISION || LowerSacl->AclRevision > MAX_ACL_REVISION))
+        return STATUS_UNKNOWN_REVISION;
+
+    if (HigherSacl && (HigherSacl->AclRevision < MIN_ACL_REVISION || HigherSacl->AclRevision > MAX_ACL_REVISION))
+        return STATUS_UNKNOWN_REVISION;
+
+    // Identify which types of ACEs we want to keep from the lower SACL and
+    // which to replace with the ones from the higher SACL
+
+    if (SecurityInformation & SACL_SECURITY_INFORMATION)
+        aceTypesToReplace |= SACL_ACE_TYPES_MASK;
+
+    if (SecurityInformation & LABEL_SECURITY_INFORMATION)
+        aceTypesToReplace |= MANDATORY_LABEL_ACE_TYPES_MASK;
+
+    if (SecurityInformation & ATTRIBUTE_SECURITY_INFORMATION)
+        aceTypesToReplace |= RESOURCE_ATTRIBUTE_ACE_TYPE_MASK;
+
+    if (SecurityInformation & SCOPE_SECURITY_INFORMATION)
+        aceTypesToReplace |= SCOPED_POLICY_ACE_TYPE_MASK;
+
+    if (SecurityInformation & PROCESS_TRUST_LABEL_SECURITY_INFORMATION)
+        aceTypesToReplace |= PROCESS_TRUST_ACE_TYPE_MASK;
+
+    if (SecurityInformation & ACCESS_FILTER_SECURITY_INFORMATION)
+        aceTypesToReplace |= ACCESS_FILTER_ACE_TYPE_MASK;
+
+    // Calculate the size of ACEs to keep from the lower SACL
+
+    if (LowerSacl)
+    {
+        PVOID lowerSaclEnd = PTR_ADD_OFFSET(LowerSacl, LowerSacl->AclSize);
+        PACE_HEADER ace = (PACE_HEADER)PTR_ADD_OFFSET(LowerSacl, sizeof(ACL));
+
+        for (USHORT i = 0; i < LowerSacl->AceCount; i++)
+        {
+            if ((PVOID)ace >= lowerSaclEnd)
+                return STATUS_UNSUCCESSFUL;
+
+            if (!((1 << ace->AceType) & aceTypesToReplace))
+                requiredSize += ace->AceSize;
+
+            ace = (PACE_HEADER)PTR_ADD_OFFSET(ace, ace->AceSize);
+        }
+    }
+
+    // Calculate the size of ACEs to use from the higher SACL
+
+    if (HigherSacl)
+    {
+        PVOID higherSaclEnd = PTR_ADD_OFFSET(HigherSacl, HigherSacl->AclSize);
+        PACE_HEADER ace = (PACE_HEADER)PTR_ADD_OFFSET(HigherSacl, sizeof(ACL));
+
+        for (USHORT i = 0; i < HigherSacl->AceCount; i++)
+        {
+            if ((PVOID)ace >= higherSaclEnd)
+                return STATUS_UNSUCCESSFUL;
+
+            if ((1 << ace->AceType) & aceTypesToReplace)
+                requiredSize += ace->AceSize;
+
+            ace = (PACE_HEADER)PTR_ADD_OFFSET(ace, ace->AceSize);
+        }
+    }
+
+    // Allocate a new SACL
+
+    requiredSize = sizeof(ACL) + ALIGN_UP_BY(requiredSize, sizeof(ULONG));
+
+    if (requiredSize > USHORT_MAX)
+        return STATUS_INVALID_PARAMETER;
+
+    mergedSacl = (PACL)PhAllocate(requiredSize);
+    mergedAce = (PACE_HEADER)PTR_ADD_OFFSET(mergedSacl, sizeof(ACL));
+
+    status = PhCreateAcl(mergedSacl, requiredSize, ACL_REVISION);
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(MergedSacl);
+        return status;
+    }
+
+    // Add the lower SACL ACEs we keep
+
+    if (LowerSacl)
+    {
+        PACE_HEADER ace = (PACE_HEADER)PTR_ADD_OFFSET(LowerSacl, sizeof(ACL));
+
+        for (USHORT i = 0; i < LowerSacl->AceCount; i++)
+        {
+            if (!((1 << ace->AceType) & aceTypesToReplace))
+            {
+                RtlCopyMemory(mergedAce, ace, ace->AceSize);
+                mergedSacl->AceCount++;
+                mergedAce = (PACE_HEADER)PTR_ADD_OFFSET(mergedAce, mergedAce->AceSize);
+            }
+
+            ace = (PACE_HEADER)PTR_ADD_OFFSET(ace, ace->AceSize);
+        }
+    }
+
+    // Add the higher SACL ACEs
+
+    if (HigherSacl)
+    {
+        PACE_HEADER ace = (PACE_HEADER)PTR_ADD_OFFSET(HigherSacl, sizeof(ACL));
+
+        for (USHORT i = 0; i < HigherSacl->AceCount; i++)
+        {
+            if ((1 << ace->AceType) & aceTypesToReplace)
+            {
+                RtlCopyMemory(mergedAce, ace, ace->AceSize);
+                mergedSacl->AceCount++;
+                mergedAce = (PACE_HEADER)PTR_ADD_OFFSET(mergedAce, mergedAce->AceSize);
+            }
+
+            ace = (PACE_HEADER)PTR_ADD_OFFSET(ace, ace->AceSize);
+        }
+    }
+
+    *MergedSacl = mergedSacl;
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Merges two security descriptors according to the provided security information.
+ * The function preserves parts not covered by the change from the lower security descriptor and
+ * replaces other parts with the ones from the higher security descriptor.
+ * 
+ * Example:
+ *  - A lower security descriptor containing a DACL, an owner, and a SACL with a trust label.
+ *  - A higher security descriptor containing a DACL, and a SACL with a mandatory label.
+ *  - Security information specifies DACL_SECURITY_INFORMATION and LABEL_SECURITY_INFORMATION.
+ * Result: a security descriptor with the higher DACL, the lower owner, and a merged SACL with
+ * the lower trust label and the higher mandatory label.
+ *
+ * \param LowerSecurityDescriptor An existing security descriptor.
+ * \param HigherSecurityDescriptor An overlaying security descriptor for the specified security information.
+ * \param SecurityInformation The type of security information to be set.
+ * \param MergedSecurityDescriptor The new merged security descriptor.
+ */
+NTSTATUS PhMergeSecurityDescriptors(
+    _In_ PSECURITY_DESCRIPTOR LowerSecurityDescriptor,
+    _In_ PSECURITY_DESCRIPTOR HigherSecurityDescriptor,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Outptr_ PSECURITY_DESCRIPTOR* MergedSecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    SECURITY_DESCRIPTOR mergedSecurityDescriptor;
+    PACL acl;
+    PSID sid;
+    BOOLEAN present;
+    BOOLEAN defaulted;
+    PACL higherSacl;
+    PACL lowerSacl;
+    PACL mergedSacl = NULL;
+    PSECURITY_DESCRIPTOR relativeSecurityDescriptor = NULL;
+    ULONG requiredLength = 0;
+
+    status = PhCreateSecurityDescriptor(&mergedSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Choose the DACL
+
+    status = RtlGetDaclSecurityDescriptor(
+        (SecurityInformation & DACL_SECURITY_INFORMATION) ? HigherSecurityDescriptor : LowerSecurityDescriptor,
+        &present,
+        &acl,
+        &defaulted
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = RtlSetDaclSecurityDescriptor(
+        &mergedSecurityDescriptor,
+        present,
+        acl,
+        defaulted
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Choose the owner
+
+    status = RtlGetOwnerSecurityDescriptor(
+        (SecurityInformation & OWNER_SECURITY_INFORMATION) ? HigherSecurityDescriptor : LowerSecurityDescriptor,
+        &sid,
+        &defaulted
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!sid)
+        return STATUS_INVALID_OWNER;
+
+    status = RtlSetOwnerSecurityDescriptor(
+        &mergedSecurityDescriptor,
+        sid,
+        defaulted
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Choose the primary group
+
+    status = RtlGetGroupSecurityDescriptor(
+        (SecurityInformation & GROUP_SECURITY_INFORMATION) ? HigherSecurityDescriptor : LowerSecurityDescriptor,
+        &sid,
+        &defaulted
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!sid)
+        return STATUS_INVALID_PRIMARY_GROUP;
+
+    status = RtlSetGroupSecurityDescriptor(
+        &mergedSecurityDescriptor,
+        sid,
+        defaulted
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Collect both SACLs
+
+    status = RtlGetSaclSecurityDescriptor(
+        LowerSecurityDescriptor,
+        &present,
+        &lowerSacl,
+        &defaulted
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!present)
+        lowerSacl = NULL;
+
+    status = RtlGetSaclSecurityDescriptor(
+        HigherSecurityDescriptor,
+        &present,
+        &higherSacl,
+        &defaulted
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!present)
+        higherSacl = NULL;
+
+    // Merge SACLs and apply
+
+    status = PhMergeSystemAcls(
+        lowerSacl,
+        higherSacl,
+        SecurityInformation,
+        &mergedSacl
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = RtlSetSaclSecurityDescriptor(
+        &mergedSecurityDescriptor,
+        !!mergedSacl,
+        mergedSacl,
+        FALSE
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // Make the buffer self-relative
+
+    status = RtlAbsoluteToSelfRelativeSD(
+        &mergedSecurityDescriptor,
+        NULL,
+        &requiredLength
+        );
+
+    if (status != STATUS_BUFFER_TOO_SMALL)
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+        goto CleanupExit;
+    }
+
+    relativeSecurityDescriptor = PhAllocate(requiredLength);
+
+    status = RtlAbsoluteToSelfRelativeSD(
+        &mergedSecurityDescriptor,
+        relativeSecurityDescriptor,
+        &requiredLength
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    *MergedSecurityDescriptor = relativeSecurityDescriptor;
+    relativeSecurityDescriptor = NULL;
+
+CleanupExit:
+    if (mergedSacl)
+        PhFree(mergedSacl);
+
+    if (relativeSecurityDescriptor)
+        PhFree(relativeSecurityDescriptor);
+   
+    return status;
+}
+
 NTSTATUS PhEnumProcessEnvironmentVariables(
     _In_ PVOID Environment,
     _In_ ULONG EnvironmentLength,
