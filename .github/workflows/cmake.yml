@@ -7,12 +7,12 @@ on:
   pull_request:
     branches: ['master']
 
-permissions:
-  contents: read
-
 jobs:
   build:
+    permissions:
+      contents: read
     strategy:
+      fail-fast: false
       matrix:
         os: ['windows-latest']
         toolchain:
@@ -22,13 +22,13 @@ jobs:
           - 'clang-msvc-amd64'
           - 'clang-msvc-arm64'
           - 'clang-msvc-x86'
-        config:
-          - 'Debug'
-          - 'Release'
+        config: ['Debug','Release']
         generator:
           - 'Ninja'
+
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.config }} ${{ matrix.toolchain }}
+
     steps:
     - name: Checkout repository
     - uses: actions/checkout@v5
