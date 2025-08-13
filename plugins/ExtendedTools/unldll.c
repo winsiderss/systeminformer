@@ -143,7 +143,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
             lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, buffer, rtlEvent);
 
             // Name
-            if (PhCopyStringZ(rtlEvent->ImageName, RTL_NUMBER_OF(rtlEvent->ImageName), buffer, RTL_NUMBER_OF(buffer), NULL))
+            if (NT_SUCCESS(PhCopyStringZ(rtlEvent->ImageName, RTL_NUMBER_OF(rtlEvent->ImageName), buffer, RTL_NUMBER_OF(buffer), NULL)))
             {
                 PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, buffer);
             }
@@ -221,7 +221,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
             lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, buffer, rtlEvent);
 
             // Name
-            if (PhCopyStringZ(rtlEvent->ImageName, RTL_NUMBER_OF(rtlEvent->ImageName), buffer, RTL_NUMBER_OF(buffer), NULL))
+            if (NT_SUCCESS(PhCopyStringZ(rtlEvent->ImageName, RTL_NUMBER_OF(rtlEvent->ImageName), buffer, RTL_NUMBER_OF(buffer), NULL)))
             {
                 PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, buffer);
             }
