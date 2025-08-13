@@ -114,6 +114,19 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+// COM access and launch policy
+
+NTSTATUS PhGetComSecurityDescriptor(
+    _In_ COMSD comSDType,
+    _Outptr_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    );
+
+NTSTATUS PhSetComSecurityDescriptor(
+    _In_ COMSD comSDType,
+    _In_ ULONG SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
 // Defender offline scan
 
 HRESULT PhRestartDefenderOfflineScan(

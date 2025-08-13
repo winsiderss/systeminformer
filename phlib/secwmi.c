@@ -834,6 +834,187 @@ CleanupExit:
     return STATUS_INVALID_SECURITY_DESCR;
 }
 
+static PH_STRINGREF OleKeyName = PH_STRINGREF_INIT(L"\\REGISTRY\\MACHINE\\SOFTWARE\\Microsoft\\Ole");
+static PH_STRINGREF OlePermissionValueName[] =
+{
+    PH_STRINGREF_INIT(L"DefaultLaunchPermission"),
+    PH_STRINGREF_INIT(L"DefaultAccessPermission"),
+    PH_STRINGREF_INIT(L"MachineLaunchRestriction"),
+    PH_STRINGREF_INIT(L"MachineAccessRestriction"),
+};
+
+/**
+ * Read a COM access/launch policy security descriptor override from the registry.
+ *
+ * \param ComSDType The type of a security descriptor to read.
+ * \param SecurityDescriptor A security descriptor buffer.
+ */
+NTSTATUS PhGetComSecurityDescriptorOverride(
+    _In_ COMSD ComSDType,
+    _Outptr_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle = NULL;
+    PKEY_VALUE_PARTIAL_INFORMATION value = NULL;
+
+    if (ComSDType >= RTL_NUMBER_OF(OlePermissionValueName))
+        return STATUS_INVALID_PARAMETER;
+
+    status = PhOpenKey(&keyHandle, KEY_QUERY_VALUE, NULL, &OleKeyName, OBJ_CASE_INSENSITIVE);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhQueryValueKey(keyHandle, &OlePermissionValueName[ComSDType], KeyValuePartialInformation, &value);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (!RtlValidRelativeSecurityDescriptor(
+        (PSECURITY_DESCRIPTOR)value->Data,
+        value->DataLength,
+        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION))
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+        goto CleanupExit;
+    }
+
+    *SecurityDescriptor = PhAllocateCopy(value->Data, value->DataLength);
+
+CleanupExit:
+    if (keyHandle)
+        NtClose(keyHandle);
+
+    if (value)
+        PhFree(value);
+
+    return status;
+}
+
+/**
+ * Query a COM access/launch policy security descriptor.
+ *
+ * \param ComSDType The type of a security descriptor to query.
+ * \param SecurityDescriptor A security descriptor buffer.
+ */
+NTSTATUS PhGetComSecurityDescriptor(
+    _In_ COMSD ComSDType,
+    _Outptr_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    HRESULT hresult;
+    PSECURITY_DESCRIPTOR securityDescriptor = NULL;
+
+    status = PhGetComSecurityDescriptorOverride(ComSDType, SecurityDescriptor);
+
+    if (NT_SUCCESS(status) || (status != STATUS_OBJECT_NAME_NOT_FOUND))
+        return status;
+
+    hresult = CoGetSystemSecurityPermissions(ComSDType, &securityDescriptor);
+
+    if (HR_FAILED(hresult))
+    {
+        switch (hresult)
+        {
+        case E_ACCESSDENIED:
+            return STATUS_ACCESS_DENIED;
+        case E_OUTOFMEMORY:
+            return STATUS_NO_MEMORY;
+        case E_INVALIDARG:
+            return STATUS_INVALID_PARAMETER;
+        }
+
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    if (!RtlValidSecurityDescriptor(securityDescriptor))
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+        goto CleanupExit;
+    }
+
+    *SecurityDescriptor = PhAllocateCopy(
+        securityDescriptor,
+        RtlLengthSecurityDescriptor(securityDescriptor)
+        );
+
+CleanupExit:
+    if (securityDescriptor)
+        LocalFree(securityDescriptor);
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Adjust a COM access/launch policy security descriptor.
+ *
+ * \param ComSDType The type of a security descriptor to read.
+ * \param SecurityInformation The security information to change.
+ * \param SecurityDescriptor A security descriptor buffer.
+ */
+NTSTATUS PhSetComSecurityDescriptor(
+    _In_ COMSD ComSDType,
+    _In_ ULONG SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle = NULL;
+    PSECURITY_DESCRIPTOR originalSecurityDescriptor = NULL;
+    PSECURITY_DESCRIPTOR mergedSecurityDescriptor = NULL;
+
+    if (ComSDType >= RTL_NUMBER_OF(OlePermissionValueName))
+        return STATUS_INVALID_PARAMETER;
+
+    status = PhOpenKey(&keyHandle, KEY_SET_VALUE, NULL, &OleKeyName, OBJ_CASE_INSENSITIVE);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetComSecurityDescriptor(ComSDType, &originalSecurityDescriptor);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhMergeSecurityDescriptors(
+        originalSecurityDescriptor,
+        SecurityDescriptor,
+        SecurityInformation,
+        &mergedSecurityDescriptor
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhSetValueKey(
+        keyHandle,
+        &OlePermissionValueName[ComSDType],
+        REG_BINARY,
+        mergedSecurityDescriptor,
+        RtlLengthSecurityDescriptor(mergedSecurityDescriptor)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        // Notify RPCSS about the change
+        UpdateDCOMSettings();        
+    }
+
+CleanupExit:
+    if (keyHandle)
+        NtClose(keyHandle);
+
+    if (originalSecurityDescriptor)
+        PhFree(originalSecurityDescriptor);
+
+    if (mergedSecurityDescriptor)
+        PhFree(mergedSecurityDescriptor);
+
+    return status;
+}
+
 HRESULT PhRestartDefenderOfflineScan(
     VOID
     )
