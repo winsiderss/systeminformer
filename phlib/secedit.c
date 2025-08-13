@@ -1389,6 +1389,10 @@ NTSTATUS PhStdGetObjectSecurity(
     case PH_SE_WMIDEF_OBJECT_TYPE:
         status = PhGetWmiNamespaceSecurityDescriptor(SecurityDescriptor);
         break;
+    case PH_SE_COMACCESSDEF_OBJECT_TYPE:
+    case PH_SE_COMLAUNCHDEF_OBJECT_TYPE:
+        status = PhGetComSecurityDescriptor((COMSD)handle, SecurityDescriptor);
+        break;
     case PH_SE_DEFAULT_OBJECT_TYPE:
     default:
         status = PhGetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
@@ -1461,6 +1465,10 @@ NTSTATUS PhStdSetObjectSecurity(
         break;
     case PH_SE_WMIDEF_OBJECT_TYPE:
         status = PhSetWmiNamespaceSecurityDescriptor(SecurityDescriptor);
+        break;
+    case PH_SE_COMACCESSDEF_OBJECT_TYPE:
+    case PH_SE_COMLAUNCHDEF_OBJECT_TYPE:
+        status = PhSetComSecurityDescriptor((COMSD)handle, SecurityInformation, SecurityDescriptor);
         break;
     case PH_SE_DEFAULT_OBJECT_TYPE:
     default:
@@ -1837,6 +1845,10 @@ PH_SE_OBJECT_TYPE PhSecurityObjectType(
         return PH_SE_RDPDEF_OBJECT_TYPE;
     if (PhEqualString2(ObjectType, L"WmiDefault", TRUE))
         return PH_SE_WMIDEF_OBJECT_TYPE;
+    if (PhEqualString2(ObjectType, L"ComAccess", TRUE))
+        return PH_SE_COMACCESSDEF_OBJECT_TYPE;
+    if (PhEqualString2(ObjectType, L"ComLaunch", TRUE))
+        return PH_SE_COMLAUNCHDEF_OBJECT_TYPE;
 
     if (
         PhEqualString2(ObjectType, L"LsaAccount", TRUE) ||

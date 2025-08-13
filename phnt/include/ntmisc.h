@@ -1012,6 +1012,14 @@ typedef struct tagSOleTlsData
     // ... (other fields are version-dependant)
 } SOleTlsData, *PSOleTlsData;
 
+// private // ole32.dll
+WINBASEAPI
+VOID
+WINAPI
+UpdateDCOMSettings(
+    VOID
+    );
+
 //
 // AppCompat
 //
