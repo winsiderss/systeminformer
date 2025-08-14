@@ -12,6 +12,7 @@ source_group("Header Files" FILES ${HEADERS})
 
 set(RESOURCES,
     "version.rc"
+    "Updater.rc"
 )
 source_group("Resource Files" FILES ${RESOURCES})
 
@@ -47,4 +48,3 @@ target_link_libraries(Updater PRIVATE
 target_link_options(Updater PRIVATE
     /DELAYLOAD:bcrypt.dll
 )
-

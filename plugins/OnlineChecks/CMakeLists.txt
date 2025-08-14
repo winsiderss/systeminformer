@@ -12,6 +12,7 @@ source_group("Header Files" FILES ${HEADERS})
 
 set(RESOURCES,
     "version.rc"
+    "OnlineChecks.rc"
 )
 source_group("Resource Files" FILES ${RESOURCES})
 

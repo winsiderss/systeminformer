@@ -27,6 +27,7 @@ source_group("Header Files\\clr" FILES ${HEADERS_CLR})
 
 set(RESOURCES,
     "version.rc"
+    "DotNetTools.rc"
 )
 source_group("Resource Files" FILES ${RESOURCES})
 

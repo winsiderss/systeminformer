@@ -80,6 +80,7 @@ source_group("Source Files" FILES ${SOURCES})
 
 set(RESOURCES,
     "version.rc"
+    "ExtendedTools.rc"
 )
 source_group("Resource Files" FILES ${RESOURCES})
 

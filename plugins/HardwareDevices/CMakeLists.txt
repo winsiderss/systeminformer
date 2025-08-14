@@ -13,6 +13,7 @@ source_group("Header Files" FILES ${HEADERS})
 
 set(RESOURCES,
     "version.rc"
+    "HardwareDevices.rc"
 )
 source_group("Resource Files" FILES ${RESOURCES})
 
