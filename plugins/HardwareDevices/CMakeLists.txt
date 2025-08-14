@@ -11,7 +11,7 @@ set(HEADERS
 )
 source_group("Header Files" FILES ${HEADERS})
 
-set(RESOURCES,
+set(RESOURCES
     "version.rc"
     "HardwareDevices.rc"
 )

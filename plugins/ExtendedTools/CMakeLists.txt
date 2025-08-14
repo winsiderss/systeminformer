@@ -78,7 +78,7 @@ set(SOURCES
 )
 source_group("Source Files" FILES ${SOURCES})
 
-set(RESOURCES,
+set(RESOURCES
     "version.rc"
     "ExtendedTools.rc"
 )
