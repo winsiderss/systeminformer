@@ -90,16 +90,22 @@ function(_si_target_prefast_opts target)
     )
     string(REGEX REPLACE "[\\\\/]+$" "" _rulesets_dir "${_rulesets_dir}")
 
+    #
+    # Plugins other than EspXEngine are disabled for now. Only EspXEngine is
+    # included by MSBuild for user mode code analysis. Including the others in
+    # user mode causes some interesting analysis errors. If this path ever gets
+    # used for kernel mode builds this section should be revisited. (jxy-s)
+    #
     set(_plugins)
-    find_program(_plugin_espx_engine "EspXEngine.dll" PATHS "VC/Tools/MSVC" REQUIRED)
-    find_program(_plugin_win_prefast "WindowsPrefast.dll" PATHS "Windows Kits/10/bin" REQUIRED)
-    find_program(_plugin_drivers "drivers.dll" PATHS "Windows Kits/10/bin" REQUIRED)
-    cmake_path(NATIVE_PATH _plugin_espx_engine NORMALIZE _plugin_espx_engine)
-    cmake_path(NATIVE_PATH _plugin_win_prefast NORMALIZE _plugin_win_prefast)
-    cmake_path(NATIVE_PATH _plugin_drivers NORMALIZE _plugin_drivers)
-    list(APPEND _plugins ${_plugin_espx_engine})
-    list(APPEND _plugins ${_plugin_win_prefast})
-    list(APPEND _plugins ${_plugin_drivers})
+    find_program(_plugin "EspXEngine.dll" PATHS "VC/Tools/MSVC" REQUIRED)
+    cmake_path(NATIVE_PATH _plugin NORMALIZE _plugin)
+    list(APPEND _plugins ${_plugin})
+    #find_program(_plugin "WindowsPrefast.dll" PATHS "Windows Kits/10/bin" REQUIRED)
+    #cmake_path(NATIVE_PATH _plugin NORMALIZE _plugin)
+    #list(APPEND _plugins ${_plugin})
+    #find_program(_plugin "drivers.dll" PATHS "Windows Kits/10/bin" REQUIRED)
+    #cmake_path(NATIVE_PATH _plugin NORMALIZE _plugin)
+    #list(APPEND _plugins ${_plugin})
 
     #
     # Handle arguments - N.B. exclude paths will be handled later.
