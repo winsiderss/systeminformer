@@ -64,6 +64,7 @@ function(_si_set_target_defaults target)
 
     if(arg_TYPE STREQUAL "UM_LIB")
         target_compile_options(${target} PRIVATE /Gz) # __stcall calling convention
+        target_link_options(${target} PRIVATE /SUBSYSTEM:WINDOWS,6.1)
         if(MSVC_CLANG)
             target_compile_options(${target} PRIVATE ${SI_UM_CLANG_NO_DIAGNOSTICS})
         endif()
@@ -79,6 +80,7 @@ function(_si_set_target_defaults target)
         endif()
     elseif(arg_TYPE STREQUAL "UM_BIN")
         target_compile_options(${target} PRIVATE /Gz) # __stcall calling convention
+        target_link_options(${target} PRIVATE /SUBSYSTEM:WINDOWS,6.1)
         if(MSVC_CLANG)
             target_compile_options(${target} PRIVATE ${SI_UM_CLANG_NO_DIAGNOSTICS})
         endif()
