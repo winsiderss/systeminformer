@@ -2716,15 +2716,18 @@ END_SORT_FUNCTION
 BEGIN_SORT_FUNCTION(Protection)
 {
     sortResult = ucharcmp((BOOLEAN)processItem1->IsSecureSystem, (BOOLEAN)processItem2->IsSecureSystem);
-    if (sortResult != 0)
-        return sortResult;
-    sortResult = ucharcmp((BOOLEAN)processItem1->IsSecureProcess, (BOOLEAN)processItem2->IsSecureProcess);
-    if (sortResult != 0)
-        return sortResult;
-    sortResult = ucharcmp((BOOLEAN)processItem1->IsProtectedProcess, (BOOLEAN)processItem2->IsProtectedProcess);
-    if (sortResult != 0)
-        return sortResult;
-    sortResult = ucharcmp(processItem1->Protection.Level, processItem2->Protection.Level);
+    if (sortResult == 0)
+    {
+        sortResult = ucharcmp((BOOLEAN)processItem1->IsSecureProcess, (BOOLEAN)processItem2->IsSecureProcess);
+        if (sortResult == 0)
+        {
+            sortResult = ucharcmp((BOOLEAN)processItem1->IsProtectedProcess, (BOOLEAN)processItem2->IsProtectedProcess);
+            if (sortResult == 0)
+            {
+                sortResult = ucharcmp(processItem1->Protection.Level, processItem2->Protection.Level);
+            }
+        }
+    }
 }
 END_SORT_FUNCTION
 
