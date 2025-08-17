@@ -717,6 +717,7 @@ NTSTATUS KphQueryNameObject(
                                         Buffer,
                                         BufferLength,
                                         ReturnLength);
+
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphQueryNameFileObject: %!STATUS!",
@@ -725,6 +726,7 @@ NTSTATUS KphQueryNameObject(
     else
     {
         status = ObQueryNameString(Object, Buffer, BufferLength, ReturnLength);
+
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObQueryNameString: %!STATUS!",
