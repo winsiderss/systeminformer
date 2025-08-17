@@ -40,6 +40,10 @@
     PAGED_CODE();                                                              \
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);                            \
     NT_ANALYSIS_ASSUME(KeGetCurrentIrql() == PASSIVE_LEVEL)
+#define KPH_PAGED_CODE_APC()                                                   \
+    PAGED_CODE();                                                              \
+    NT_ASSERT(KeGetCurrentIrql() == APC_LEVEL);                                \
+    NT_ANALYSIS_ASSUME(KeGetCurrentIrql() == APC_LEVEL)
 #define KPH_NPAGED_CODE_PASSIVE()                                              \
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);                            \
     NT_ANALYSIS_ASSUME(KeGetCurrentIrql() == PASSIVE_LEVEL)

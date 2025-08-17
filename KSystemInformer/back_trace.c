@@ -276,7 +276,7 @@ VOID KphpCaptureStackBackTraceIntoObject(
     PULONG backTraceHash;
     ULONG capturedFrames;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     if (BackTrace->DoHash)
     {
@@ -321,7 +321,7 @@ VOID KSIAPI KphpCaptureStackBackTraceThreadSpecialApc(
 {
     PKPH_STACK_BACK_TRACE_OBJECT backTrace;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     UNREFERENCED_PARAMETER(NormalRoutine);
     UNREFERENCED_PARAMETER(NormalContext);

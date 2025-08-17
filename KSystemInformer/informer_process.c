@@ -434,7 +434,7 @@ VOID KSIAPI KphpProcessCreateKernelRoutine(
 {
     PKPH_PROCESS_CREATE_APC apc;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     apc = CONTAINING_RECORD(Apc, KPH_PROCESS_CREATE_APC, Apc);
 
