@@ -1329,7 +1329,7 @@ VOID KphpUnlinkProcessContextThreadContexts(
  */
 _Function_class_(KPH_CID_RUNDOWN_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN KSIAPI KphpCidCleanupCallback(
+VOID KSIAPI KphpCidCleanupCallback(
     _In_ PVOID Object,
     _In_opt_ PVOID Parameter
     )
@@ -1346,8 +1346,6 @@ BOOLEAN KSIAPI KphpCidCleanupCallback(
 
         KphpUnlinkProcessContextThreadContexts(process);
     }
-
-    return FALSE;
 }
 
 /**
