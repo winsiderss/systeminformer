@@ -956,7 +956,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineSecond(
     _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument2
     )
 {
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     UNREFERENCED_PARAMETER(Apc);
     DBG_UNREFERENCED_PARAMETER(NormalRoutine);
@@ -995,7 +995,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineFirst(
     PKPH_IMAGE_LOAD_APC secondApc;
     KPH_IMAGE_LOAD_APC_INIT init;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     secondApc = NULL;
 
@@ -1721,7 +1721,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineApcsDisabled(
     _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument2
     )
 {
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     UNREFERENCED_PARAMETER(Apc);
     DBG_UNREFERENCED_PARAMETER(NormalRoutine);

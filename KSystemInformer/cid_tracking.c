@@ -777,7 +777,7 @@ VOID KphpInitializeWSLThreadContext(
     PVOID picoContext;
     PVOID value;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     //
     // We use an APC here to reach into the thread pico context. We could
@@ -852,7 +852,7 @@ VOID KSIAPI KphpInitializeThreadContextSpecialApc(
     PKPH_DYN dyn;
     PTEB teb;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     UNREFERENCED_PARAMETER(NormalRoutine);
     UNREFERENCED_PARAMETER(NormalContext);
