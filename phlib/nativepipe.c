@@ -245,10 +245,13 @@ NTSTATUS PhCreateNamedPipe(
 
     if (NT_SUCCESS(PhDefaultNpAcl(&pipeAcl)))
     {
-        PhCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-        PhSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
-
-        objectAttributes.SecurityDescriptor = &securityDescriptor;
+        if (NT_SUCCESS(PhCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION)))
+        {
+            if (NT_SUCCESS(PhSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE)))
+            {
+                objectAttributes.SecurityDescriptor = &securityDescriptor;
+            }
+        }
     }
 
     status = NtCreateNamedPipeFile(

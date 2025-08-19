@@ -5391,13 +5391,14 @@ NTSTATUS PhFilterTokenForLimitedUser(
 
             // Set the security descriptor of the new token.
 
-            PhCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-
-            if (NT_SUCCESS(PhSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE)))
+            if (NT_SUCCESS(PhCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION)))
             {
-                assert(RtlValidSecurityDescriptor(&newSecurityDescriptor));
+                if (NT_SUCCESS(PhSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE)))
+                {
+                    assert(RtlValidSecurityDescriptor(&newSecurityDescriptor));
 
-                PhSetObjectSecurity(newTokenHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
+                    PhSetObjectSecurity(newTokenHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
+                }
             }
 
             // Set the default DACL.
