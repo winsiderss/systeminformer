@@ -28,6 +28,8 @@ PCRE2 uses memmove() if HAVE_MEMMOVE is defined; otherwise it uses bcopy() if
 HAVE_BCOPY is defined. If your system has neither bcopy() nor memmove(), make
 sure both macros are undefined; an emulation function will then be used. */
 
+#define HAVE_CONFIG_H 1
+
 /* By default, the \R escape sequence matches any Unicode line ending
    character or sequence of characters. If BSR_ANYCRLF is defined (to any
    value), this is changed so that backslash-R matches only CR, LF, or CRLF.
@@ -54,11 +56,25 @@ sure both macros are undefined; an emulation function will then be used. */
    LF does in an ASCII/Unicode environment. */
 /* #undef EBCDIC_NL25 */
 
+/* Define to 1 if you have the <assert.h> header file. */
+#ifndef HAVE_ASSERT_H
+#define HAVE_ASSERT_H 1
+#endif
+
 /* Define this if your compiler supports __attribute__((uninitialized)) */
 /* #undef HAVE_ATTRIBUTE_UNINITIALIZED */
 
 /* Define to 1 if you have the `bcopy' function. */
 /* #undef HAVE_BCOPY */
+
+/* Define this if your compiler provides __assume() */
+/* #undef HAVE_BUILTIN_ASSUME */
+
+/* Define this if your compiler provides __builtin_mul_overflow() */
+/* #undef HAVE_BUILTIN_MUL_OVERFLOW */
+
+/* Define this if your compiler provides __builtin_unreachable() */
+/* #undef HAVE_BUILTIN_UNREACHABLE */
 
 /* Define to 1 if you have the <bzlib.h> header file. */
 /* #undef HAVE_BZLIB_H */
@@ -164,7 +180,8 @@ sure both macros are undefined; an emulation function will then be used. */
 /* Define to 1 if you have the <unistd.h> header file. */
 /* #undef HAVE_UNISTD_H */
 
-/* Define to 1 if the compiler supports simple visibility declarations. */
+/* Define to 1 if the compiler supports GCC compatible visibility
+   declarations. */
 /* #undef HAVE_VISIBILITY */
 
 /* Define to 1 if you have the <wchar.h> header file. */
@@ -207,7 +224,7 @@ sure both macros are undefined; an emulation function will then be used. */
    matching attempt. The value is also used to limit a loop counter in
    pcre2_dfa_match(). There is a runtime interface for setting a different
    limit. The limit exists in order to catch runaway regular expressions that
-   take for ever to determine that they do not match. The default is set very
+   take forever to determine that they do not match. The default is set very
    large so that it does not accidentally catch legitimate cases. */
 #ifndef MATCH_LIMIT
 #define MATCH_LIMIT 10000000
@@ -238,7 +255,13 @@ sure both macros are undefined; an emulation function will then be used. */
    Care must be taken if it is increased, because it guards against integer
    overflow caused by enormously large patterns. */
 #ifndef MAX_NAME_SIZE
-#define MAX_NAME_SIZE 32
+#define MAX_NAME_SIZE 128
+#endif
+
+/* The value of MAX_VARLOOKBEHIND specifies the default maximum length, in
+   characters, for a variable-length lookbehind assertion. */
+#ifndef MAX_VARLOOKBEHIND
+#define MAX_VARLOOKBEHIND 255
 #endif
 
 /* Defining NEVER_BACKSLASH_C locks out the use of \C in all patterns. */
@@ -262,7 +285,7 @@ sure both macros are undefined; an emulation function will then be used. */
 #define PACKAGE_NAME "PCRE2"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "PCRE2 10.40"
+#define PACKAGE_STRING "PCRE2 10.45"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "pcre2"
@@ -271,7 +294,7 @@ sure both macros are undefined; an emulation function will then be used. */
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "10.40"
+#define PACKAGE_VERSION "10.45"
 
 /* The value of PARENS_NEST_LIMIT specifies the maximum depth of nested
    parentheses (of any kind) in a pattern. This limits the amount of system
@@ -301,12 +324,16 @@ sure both macros are undefined; an emulation function will then be used. */
 /* Define to any value to include debugging code. */
 /* #undef PCRE2_DEBUG */
 
+/* to make a symbol visible */
+#define PCRE2_EXPORT
+
 /* If you are compiling for a system other than a Unix-like system or
    Win32, and it needs some magic to be inserted before the definition
    of a function that is exported by the library, define this macro to
    contain the relevant magic. If you do not define this macro, a suitable
-    __declspec value is used for Windows systems; in other environments
-   "extern" is used for a C compiler and "extern C" for a C++ compiler.
+   __declspec value is used for Windows systems; in other environments
+   a compiler relevant "extern" is used with any "visibility" related
+   attributes from PCRE2_EXPORT included.
    This macro apears at the start of every exported function that is part
    of the external API. It does not appear on functions that are "external"
    in the C sense, but which are internal to the library. */
@@ -332,6 +359,9 @@ sure both macros are undefined; an emulation function will then be used. */
 #ifndef STDC_HEADERS
 #define STDC_HEADERS 1
 #endif
+
+/* Define to any value to enable differential fuzzing support. */
+/* #undef SUPPORT_DIFF_FUZZ */
 
 /* Define to any value to enable support for Just-In-Time compiling. */
 /* #undef SUPPORT_JIT */
@@ -472,7 +502,13 @@ sure both macros are undefined; an emulation function will then be used. */
 #endif
 
 /* Version number of package */
-#define VERSION "10.40"
+#define VERSION "10.45"
+
+/* Number of bits in a file offset, on hosts where this is settable. */
+/* #undef _FILE_OFFSET_BITS */
+
+/* Define for large files, on AIX-style hosts. */
+/* #undef _LARGE_FILES */
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */

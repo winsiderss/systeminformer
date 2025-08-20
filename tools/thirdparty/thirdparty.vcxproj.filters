@@ -261,6 +261,18 @@
     <ClCompile Include="xxhash\xxhashwrapper.c">
       <Filter>xxhash</Filter>
     </ClCompile>
+    <ClCompile Include="miniz\miniz_tdef.c">
+      <Filter>miniz</Filter>
+    </ClCompile>
+    <ClCompile Include="miniz\miniz_tinfl.c">
+      <Filter>miniz</Filter>
+    </ClCompile>
+    <ClCompile Include="miniz\miniz_zip.c">
+      <Filter>miniz</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_compile_class.c" />
+    <ClCompile Include="pcre\pcre2_ucptables.c" />
+    <ClCompile Include="pcre\pcre2_chkdint.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mxml\config.h">
@@ -413,5 +425,19 @@
     <ClInclude Include="xxhash\xxhashwrapper.h">
       <Filter>xxhash</Filter>
     </ClInclude>
+    <ClInclude Include="miniz\miniz_common.h">
+      <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz\miniz_tdef.h">
+      <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz\miniz_tinfl.h">
+      <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz\miniz_zip.h">
+      <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_compile.h" />
+    <ClInclude Include="pcre\pcre2_util.h" />
   </ItemGroup>
 </Project>

@@ -5,9 +5,8 @@
 /* PCRE is a library of functions to support regular expressions whose syntax
 and semantics are as close as possible to those of the Perl 5 language.
 
-                       Written by Philip Hazel
-     Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2016 University of Cambridge
+                     Written by Philip Hazel
+            Copyright (c) 2023 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -38,83 +37,58 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
+/* This file contains functions to implement checked integer operation */
 
-/* This file contains a function that converts a Unicode character code point
-into a UTF string. The behaviour is different for each code unit width. */
-
-
+#ifndef PCRE2_PCRE2TEST
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "pcre2_internal.h"
-
-
-/* If SUPPORT_UNICODE is not defined, this function will never be called.
-Supply a dummy function because some compilers do not like empty source
-modules. */
-
-#ifndef SUPPORT_UNICODE
-unsigned int
-PRIV(ord2utf)(uint32_t cvalue, PCRE2_UCHAR *buffer)
-{
-(void)(cvalue);
-(void)(buffer);
-return 0;
-}
-#else  /* SUPPORT_UNICODE */
-
+#endif
 
 /*************************************************
-*          Convert code point to UTF             *
+*        Checked Integer Multiplication          *
 *************************************************/
 
 /*
 Arguments:
-  cvalue     the character value
-  buffer     pointer to buffer for result
+  r         A pointer to PCRE2_SIZE to store the answer
+  a, b      Two integers
 
-Returns:     number of code units placed in the buffer
-*/
+Returns:    Bool indicating if the operation overflows
 
-unsigned int
-PRIV(ord2utf)(uint32_t cvalue, PCRE2_UCHAR *buffer)
+It is modeled after C23's <stdckdint.h> interface
+The INT64_OR_DOUBLE type is a 64-bit integer type when available,
+otherwise double. */
+
+BOOL
+PRIV(ckd_smul)(PCRE2_SIZE *r, int a, int b)
 {
-/* Convert to UTF-8 */
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+PCRE2_SIZE m;
 
-#if PCRE2_CODE_UNIT_WIDTH == 8
-int i, j;
-for (i = 0; i < PRIV(utf8_table1_size); i++)
-  if ((int)cvalue <= PRIV(utf8_table1)[i]) break;
-buffer += i;
-for (j = i; j > 0; j--)
- {
- *buffer-- = 0x80 | (cvalue & 0x3f);
- cvalue >>= 6;
- }
-*buffer = PRIV(utf8_table2)[i] | cvalue;
-return i + 1;
+if (__builtin_mul_overflow(a, b, &m)) return TRUE;
 
-/* Convert to UTF-16 */
-
-#elif PCRE2_CODE_UNIT_WIDTH == 16
-if (cvalue <= 0xffff)
-  {
-  *buffer = (PCRE2_UCHAR)cvalue;
-  return 1;
-  }
-cvalue -= 0x10000;
-*buffer++ = 0xd800 | (cvalue >> 10);
-*buffer = 0xdc00 | (cvalue & 0x3ff);
-return 2;
-
-/* Convert to UTF-32 */
-
+*r = m;
 #else
-*buffer = (PCRE2_UCHAR)cvalue;
-return 1;
-#endif
-}
-#endif  /* SUPPORT_UNICODE */
+INT64_OR_DOUBLE m;
 
-/* End of pcre2_ord2utf.c */
+PCRE2_ASSERT(a >= 0 && b >= 0);
+
+m = (INT64_OR_DOUBLE)a * (INT64_OR_DOUBLE)b;
+
+#if defined INT64_MAX || defined int64_t
+if (sizeof(m) > sizeof(*r) && m > (INT64_OR_DOUBLE)PCRE2_SIZE_MAX) return TRUE;
+*r = (PCRE2_SIZE)m;
+#else
+if (m > PCRE2_SIZE_MAX) return TRUE;
+*r = m;
+#endif
+
+#endif
+
+return FALSE;
+}
+
+/* End of pcre2_chkdint.c */
