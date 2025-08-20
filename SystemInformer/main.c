@@ -753,7 +753,7 @@ LONG CALLBACK PhpUnhandledExceptionCallback(
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
-    if (NT_SUCCESS(PhIsInteractiveUserSession())
+    if (NT_SUCCESS(PhIsInteractiveUserSession()))
     {
         TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
         TASKDIALOG_BUTTON buttons[6] =
