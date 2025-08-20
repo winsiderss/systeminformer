@@ -440,14 +440,14 @@ PhInvalidateAllProcessNodes(
     );
 
 PHAPPAPI
-VOID
+BOOLEAN
 NTAPI
 PhSelectAndEnsureVisibleProcessNode(
     _In_ PPH_PROCESS_NODE ProcessNode
     );
 // end_phapppub
 
-VOID PhSelectAndEnsureVisibleProcessNodes(
+BOOLEAN PhSelectAndEnsureVisibleProcessNodes(
     _In_ PPH_PROCESS_NODE *ProcessNodes,
     _In_ ULONG NumberOfProcessNodes
     );
