@@ -543,6 +543,7 @@ PhDuplicateProcessInformation(
 // end_phapppub
 
 PPH_PROCESS_ITEM
+NTAPI
 PhCreateProcessItemFromHandle(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ProcessHandle,

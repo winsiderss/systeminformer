@@ -72,26 +72,25 @@ static PPH_HASHTABLE WindowCallbackHashTable = NULL;
 static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
 static ULONG WindowCallbackFlsIndex = FLS_OUT_OF_INDEXES;
 
-static __typeof__(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
-static __typeof__(&OpenThemeData) OpenThemeData_I = NULL;
-static __typeof__(&CloseThemeData) CloseThemeData_I = NULL;
-static __typeof__(&SetWindowTheme) SetWindowTheme_I = NULL;
-static __typeof__(&IsThemeActive) IsThemeActive_I = NULL;
-static __typeof__(&IsThemePartDefined) IsThemePartDefined_I = NULL;
+static typeof(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
+static typeof(&OpenThemeData) OpenThemeData_I = NULL;
+static typeof(&CloseThemeData) CloseThemeData_I = NULL;
+static typeof(&SetWindowTheme) SetWindowTheme_I = NULL;
+static typeof(&IsThemeActive) IsThemeActive_I = NULL;
+static typeof(&IsThemePartDefined) IsThemePartDefined_I = NULL;
 static _GetThemeClass GetThemeClass_I = NULL;
-static __typeof__(&GetThemeColor) GetThemeColor_I = NULL;
-static __typeof__(&GetThemeInt) GetThemeInt_I = NULL;
-static __typeof__(&GetThemePartSize) GetThemePartSize_I = NULL;
-static __typeof__(&DrawThemeBackground) DrawThemeBackground_I = NULL;
-static __typeof__(&DrawThemeTextEx) DrawThemeTextEx_I = NULL;
+static typeof(&GetThemeColor) GetThemeColor_I = NULL;
+static typeof(&GetThemeInt) GetThemeInt_I = NULL;
+static typeof(&GetThemePartSize) GetThemePartSize_I = NULL;
+static typeof(&DrawThemeBackground) DrawThemeBackground_I = NULL;
 static _AllowDarkModeForWindow AllowDarkModeForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 133)
 static _IsDarkModeAllowedForWindow IsDarkModeAllowedForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 137)
-static __typeof__(&GetDpiForMonitor) GetDpiForMonitor_I = NULL; // win81+
-static __typeof__(&GetDpiForWindow) GetDpiForWindow_I = NULL; // win10rs1+
-static __typeof__(&GetDpiForSystem) GetDpiForSystem_I = NULL; // win10rs1+
+static typeof(&GetDpiForMonitor) GetDpiForMonitor_I = NULL; // win81+
+static typeof(&GetDpiForWindow) GetDpiForWindow_I = NULL; // win10rs1+
+static typeof(&GetDpiForSystem) GetDpiForSystem_I = NULL; // win10rs1+
 //static _GetDpiForSession GetDpiForSession_I = NULL; // ordinal 2713
-static __typeof__(&GetSystemMetricsForDpi) GetSystemMetricsForDpi_I = NULL;
-static __typeof__(&SystemParametersInfoForDpi) SystemParametersInfoForDpi_I = NULL;
+static typeof(&GetSystemMetricsForDpi) GetSystemMetricsForDpi_I = NULL;
+static typeof(&SystemParametersInfoForDpi) SystemParametersInfoForDpi_I = NULL;
 static _CreateMRUList CreateMRUList_I = NULL;
 static _AddMRUString AddMRUString_I = NULL;
 static _EnumMRUList EnumMRUList_I = NULL;
@@ -538,7 +537,7 @@ BOOLEAN PhGetThemeInt(
     if (!GetThemeInt_I)
         return FALSE;
 
-    return SUCCEEDED(GetThemeInt_I(ThemeHandle, PartId, StateId, PropId, Value));
+    return SUCCEEDED(GetThemeInt_I(ThemeHandle, PartId, StateId, PropId, (PLONG)Value));
 }
 
 _Success_(return)
@@ -573,6 +572,28 @@ BOOLEAN PhDrawThemeBackground(
     return SUCCEEDED(DrawThemeBackground_I(ThemeHandle, hdc, PartId, StateId, Rect, ClipRect));
 }
 
+BOOLEAN PhDrawThemeText(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
+    _In_reads_(cchText) LPCWSTR Text,
+    _In_ LONG cchText,
+    _In_ ULONG TextFlags,
+    _In_ LPCRECT Rect
+    )
+{
+    static typeof(&DrawThemeText) DrawThemeText_I = NULL;
+
+    if (!DrawThemeText_I)
+        DrawThemeText_I = PhGetModuleProcAddress(L"uxtheme.dll", "DrawThemeText");
+
+    if (!DrawThemeText_I)
+        return FALSE;
+
+    return HR_SUCCESS(DrawThemeText_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, 0, Rect));
+}
+
 BOOLEAN PhDrawThemeTextEx(
     _In_ HTHEME ThemeHandle,
     _In_ HDC hdc,
@@ -585,14 +606,51 @@ BOOLEAN PhDrawThemeTextEx(
     _In_opt_ const PVOID Options // DTTOPTS*
     )
 {
+    static typeof(&DrawThemeTextEx) DrawThemeTextEx_I = NULL;
+
     if (!DrawThemeTextEx_I)
         DrawThemeTextEx_I = PhGetModuleProcAddress(L"uxtheme.dll", "DrawThemeTextEx");
 
     if (!DrawThemeTextEx_I)
         return FALSE;
 
-    return SUCCEEDED(DrawThemeTextEx_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, Rect, Options));
+    return HR_SUCCESS(DrawThemeTextEx_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, Rect, Options));
 }
+
+BOOLEAN PhIsThemeBackgroundPartiallyTransparent(
+    _In_ HTHEME ThemeHandle,
+    _In_ LONG PartId,
+    _In_ LONG StateId
+    )
+{
+    static typeof(&IsThemeBackgroundPartiallyTransparent) IsThemeBackgroundPartiallyTransparent_I = NULL;
+
+    if (!IsThemeBackgroundPartiallyTransparent_I)
+        IsThemeBackgroundPartiallyTransparent_I = PhGetModuleProcAddress(L"uxtheme.dll", "IsThemeBackgroundPartiallyTransparent");
+
+    if (!IsThemeBackgroundPartiallyTransparent_I)
+        return FALSE;
+
+    return !!IsThemeBackgroundPartiallyTransparent_I(ThemeHandle, PartId, StateId);
+}
+
+BOOLEAN PhDrawThemeParentBackground(
+    _In_ HWND WindowHandle,
+    _In_ HDC Hdc,
+    _In_opt_ const PRECT Rect
+    )
+{
+    static typeof(&DrawThemeParentBackground) DrawThemeParentBackground_I = NULL;
+
+    if (!DrawThemeParentBackground_I)
+        DrawThemeParentBackground_I = PhGetModuleProcAddress(L"uxtheme.dll", "DrawThemeParentBackground");
+
+    if (!DrawThemeParentBackground_I)
+        return FALSE;
+
+    return HR_SUCCESS(DrawThemeParentBackground_I(WindowHandle, Hdc, Rect));
+}
+
 
 BOOLEAN PhAllowDarkModeForWindow(
     _In_ HWND WindowHandle,
@@ -696,7 +754,7 @@ BOOLEAN PhSetChildWindowNoActivate(
         _In_ HWND WindowHandle
         );
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(SetChildWindowNoActivate) SetChildWindowNoActivate_I = NULL; // NtUserSetChildWindowNoActivate
+    static typeof(SetChildWindowNoActivate) SetChildWindowNoActivate_I = NULL; // NtUserSetChildWindowNoActivate
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -1329,6 +1387,7 @@ VOID PhSetImageListBitmap(
     }
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN SharedIconCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -1361,6 +1420,7 @@ static BOOLEAN SharedIconCacheHashtableEqualFunction(
     }
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG SharedIconCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -2303,18 +2363,15 @@ VOID PhLayoutManagerLayout(
     )
 {
     PPH_LAYOUT_ITEM item;
-    LONG dpiValue;
     ULONG i;
 
     Manager->LayoutNumber++;
-
-    dpiValue = PhGetWindowDpi(Manager->RootItem.Handle);
-    Manager->dpiValue = dpiValue;
+    Manager->dpiValue = PhGetWindowDpi(Manager->RootItem.Handle);
 
     if (!PhGetClientRect(Manager->RootItem.Handle, &Manager->RootItem.Rect))
         return;
 
-    PhGetSizeDpiValue(&Manager->RootItem.Rect, dpiValue, FALSE);
+    PhGetSizeDpiValue(&Manager->RootItem.Rect, Manager->dpiValue, FALSE);
 
     for (i = 0; i < Manager->List->Count; i++)
     {
@@ -2457,6 +2514,7 @@ typedef struct _PH_WINDOW_ENUM_CONTEXT
     _Function_class_(PH_WINDOW_ENUM_CALLBACK)
     _In_ PPH_WINDOW_ENUM_CALLBACK Callback;
     _In_opt_ PVOID Context;
+    BOOLEAN StopSearch;
 } PH_WINDOW_ENUM_CONTEXT, *PPH_WINDOW_ENUM_CONTEXT;
 
 static BOOL CALLBACK PhEnumWindowsCallback(
@@ -2469,6 +2527,9 @@ static BOOL CALLBACK PhEnumWindowsCallback(
     if (context->Callback(WindowHandle, context->Context))
         return TRUE;
 
+    context->StopSearch = TRUE;
+    // Note: If EnumWindowsProc returns zero, the return value is also zero.
+    // The callback should call SetLastError, but we can check StopSearch (dmex)
     return FALSE;
 }
 
@@ -2490,7 +2551,7 @@ NTSTATUS PhEnumWindows(
     context.Callback = Callback;
     context.Context = Context;
 
-    if (EnumWindows(PhEnumWindowsCallback, (LPARAM)&context))
+    if (EnumWindows(PhEnumWindowsCallback, (LPARAM)&context) || context.StopSearch)
         return STATUS_SUCCESS;
 
     return PhGetLastWin32ErrorAsNtStatus();
@@ -2545,6 +2606,7 @@ typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
     BOOLEAN SkipInvisible;
 } GET_PROCESS_MAIN_WINDOW_CONTEXT, *PGET_PROCESS_MAIN_WINDOW_CONTEXT;
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
     _In_ HWND WindowHandle,
     _In_ PVOID Context
@@ -2710,10 +2772,25 @@ BOOLEAN PhSetWindowText(
     _In_ PCWSTR WindowText
     )
 {
-    if (SendMessage(WindowHandle, WM_SETTEXT, 0, (LPARAM)WindowText) > 0)
+    ULONG_PTR result = 0;
+
+    if (SendMessageTimeout(
+        WindowHandle,
+        WM_SETTEXT,
+        0,
+        (LPARAM)WindowText,
+        SMTO_ABORTIFHUNG | SMTO_BLOCK,
+        1000,
+        &result
+        ) && result > 0)
     {
         return TRUE;
     }
+
+    //if (SendMessage(WindowHandle, WM_SETTEXT, 0, (LPARAM)WindowText) > 0)
+    //{
+    //    return TRUE;
+    //}
 
     //if (DefWindowProc(WindowHandle, WM_SETTEXT, 0, (LPARAM)WindowText) > 0)
     //{
@@ -2968,7 +3045,7 @@ BOOLEAN PhIsImmersiveProcess(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&IsImmersiveProcess) IsImmersiveProcess_I = NULL;
+    static typeof(&IsImmersiveProcess) IsImmersiveProcess_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -3015,8 +3092,8 @@ BOOLEAN PhGetProcessDpiAwareness(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&GetDpiAwarenessContextForProcess) GetDpiAwarenessContextForProcess_I = NULL;
-    static __typeof__(&AreDpiAwarenessContextsEqual) AreDpiAwarenessContextsEqual_I = NULL;
+    static typeof(&GetDpiAwarenessContextForProcess) GetDpiAwarenessContextForProcess_I = NULL;
+    static typeof(&AreDpiAwarenessContextsEqual) AreDpiAwarenessContextsEqual_I = NULL;
     static BOOL (WINAPI* GetProcessDpiAwarenessInternal_I)(_In_ HANDLE hprocess, _Out_ PROCESS_DPI_AWARENESS* value) = NULL;
 
     if (PhBeginInitOnce(&initOnce))
@@ -3105,7 +3182,7 @@ NTSTATUS PhGetPhysicallyInstalledSystemMemory(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&GetPhysicallyInstalledSystemMemory) GetPhysicallyInstalledSystemMemory_I = NULL;
+    static typeof(&GetPhysicallyInstalledSystemMemory) GetPhysicallyInstalledSystemMemory_I = NULL;
     ULONGLONG physicallyInstalledSystemMemory = 0;
 
     if (PhBeginInitOnce(&initOnce))
@@ -3203,7 +3280,7 @@ NTSTATUS PhGetSendMessageReceiver(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&GetSendMessageReceiver) GetSendMessageReceiver_I = NULL;
+    static typeof(&GetSendMessageReceiver) GetSendMessageReceiver_I = NULL;
     HWND windowHandle;
 
     // GetSendMessageReceiver is an undocumented function exported by
@@ -3282,98 +3359,6 @@ BOOLEAN PhExtractIcon(
     return FALSE;
 }
 
-NTSTATUS PhLoadIconFromResourceDirectory(
-    _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
-    _In_ LONG ResourceIndex,
-    _In_ PCWSTR ResourceType,
-    _Out_opt_ ULONG* ResourceLength,
-    _Out_opt_ PVOID* ResourceBuffer
-    )
-{
-    ULONG resourceIndex;
-    ULONG resourceCount;
-    PVOID resourceBuffer;
-    PIMAGE_RESOURCE_DIRECTORY nameDirectory;
-    PIMAGE_RESOURCE_DIRECTORY languageDirectory;
-    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceType;
-    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceName;
-    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceLanguage;
-    PIMAGE_RESOURCE_DATA_ENTRY resourceData;
-
-    // Find the type
-    resourceCount = ResourceDirectory->NumberOfIdEntries + ResourceDirectory->NumberOfNamedEntries;
-    resourceType = PTR_ADD_OFFSET(ResourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-
-    for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
-    {
-        if (resourceType[resourceIndex].NameIsString)
-            continue;
-        if (resourceType[resourceIndex].Name == PtrToUlong(ResourceType))
-            break;
-    }
-
-    if (resourceIndex == resourceCount)
-        return STATUS_RESOURCE_TYPE_NOT_FOUND;
-    if (!resourceType[resourceIndex].DataIsDirectory)
-        return STATUS_RESOURCE_TYPE_NOT_FOUND;
-
-    // Find the name
-    nameDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceType[resourceIndex].OffsetToDirectory);
-    resourceCount = nameDirectory->NumberOfIdEntries + nameDirectory->NumberOfNamedEntries;
-    resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-
-    if (ResourceIndex < 0) // RT_ICON and DEVPKEY_DeviceClass_IconPath
-    {
-        for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
-        {
-            if (resourceName[resourceIndex].NameIsString)
-                continue;
-            if (resourceName[resourceIndex].Name == (ULONG)-ResourceIndex)
-                break;
-        }
-    }
-    else // RT_GROUP_ICON
-    {
-        resourceIndex = ResourceIndex;
-    }
-
-    if (resourceIndex >= resourceCount)
-        return STATUS_RESOURCE_NAME_NOT_FOUND;
-    if (!resourceName[resourceIndex].DataIsDirectory)
-        return STATUS_RESOURCE_NAME_NOT_FOUND;
-
-    // Find the language
-    languageDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceName[resourceIndex].OffsetToDirectory);
-    //resourceCount = languageDirectory->NumberOfIdEntries + languageDirectory->NumberOfNamedEntries;
-    resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-    resourceIndex = 0; // use the first entry
-
-    if (resourceLanguage[resourceIndex].DataIsDirectory)
-        return STATUS_RESOURCE_LANG_NOT_FOUND;
-
-    resourceData = PTR_ADD_OFFSET(ResourceDirectory, resourceLanguage[resourceIndex].OffsetToData);
-
-    if (!resourceData)
-        return STATUS_RESOURCE_DATA_NOT_FOUND;
-
-    resourceBuffer = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
-
-    if (!resourceBuffer)
-        return STATUS_RESOURCE_DATA_NOT_FOUND;
-
-    if (ResourceLength)
-        *ResourceLength = resourceData->Size;
-    if (ResourceBuffer)
-        *ResourceBuffer = resourceBuffer;
-
-    // if (LDR_IS_IMAGEMAPPING(ImageBaseAddress))
-    // PhLoaderEntryImageRvaToVa(ImageBaseAddress, resourceData->OffsetToData, resourceBuffer);
-    // PhLoadResource(ImageBaseAddress, MAKEINTRESOURCE(ResourceIndex), ResourceType, &resourceLength, &resourceBuffer);
-
-    return STATUS_SUCCESS;
-}
-
 #ifndef MAKEFOURCC
 #define MAKEFOURCC(ch0, ch1, ch2, ch3) \
  ((ULONG)(BYTE)(ch0) | ((ULONG)(BYTE)(ch1) << 8) | \
@@ -3396,7 +3381,7 @@ NTSTATUS PhCreateIconFromResourceDirectory(
     _In_ LONG Width,
     _In_ LONG Height,
     _In_ ULONG Flags,
-    _Out_opt_ HICON* IconHandle
+    _Out_ HICON* IconHandle
     )
 {
     NTSTATUS status;
@@ -3416,7 +3401,7 @@ NTSTATUS PhCreateIconFromResourceDirectory(
         return PhGetLastWin32ErrorAsNtStatus();
     }
 
-    status = PhLoadIconFromResourceDirectory(
+    status = PhGetMappedImageResourceIndex(
         MappedImage,
         ResourceDirectory,
         -iconResourceId,
@@ -3639,8 +3624,7 @@ NTSTATUS PhExtractIconEx(
         if (!resourceDirectory)
             goto CleanupExit;
 
-
-        status = PhLoadIconFromResourceDirectory(
+        status = PhGetMappedImageResourceIndex(
             &mappedImage,
             resourceDirectory,
             IconIndex,
@@ -4026,10 +4010,7 @@ BOOLEAN PhSetProcessShutdownParameters(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *SetProcessShutdownParameters_I)(
-        _In_ ULONG dwLevel,
-        _In_ ULONG dwFlags
-        ) = NULL;
+    static typeof(&SetProcessShutdownParameters) SetProcessShutdownParameters_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -4214,23 +4195,23 @@ HBITMAP PhCreateBitmapHandle(
     return bitmapHandle;
 }
 
-static PGUID PhpGetImageFormatDecoderType(
+static PCGUID PhpGetImageFormatDecoderType(
     _In_ PH_IMAGE_FORMAT_TYPE Format
     )
 {
     switch (Format)
     {
     case PH_IMAGE_FORMAT_TYPE_ICO:
-        return (PGUID)&GUID_ContainerFormatIco;
+        return &GUID_ContainerFormatIco;
     case PH_IMAGE_FORMAT_TYPE_BMP:
-        return (PGUID)&GUID_ContainerFormatBmp;
+        return &GUID_ContainerFormatBmp;
     case PH_IMAGE_FORMAT_TYPE_JPG:
-        return (PGUID)&GUID_ContainerFormatJpeg;
+        return &GUID_ContainerFormatJpeg;
     case PH_IMAGE_FORMAT_TYPE_PNG:
-        return (PGUID)&GUID_ContainerFormatPng;
+        return &GUID_ContainerFormatPng;
     }
 
-    return (PGUID)&GUID_ContainerFormatRaw;
+    return &GUID_ContainerFormatRaw;
 }
 
 HBITMAP PhLoadImageFormatFromResource(

@@ -468,7 +468,7 @@ PhReAllocateZeroSafe(
 /**
  * The PhInitializeSListHead function initializes a sequenced singly linked listhead.
  *
- * \param SListHead A pointer to a sequenced singly linked listhead.
+ * \param ListHead A pointer to a sequenced singly linked listhead.
  */
 FORCEINLINE
 VOID
@@ -491,7 +491,7 @@ PhInitializeSListHead(
 /**
  * The PhQueryDepthSList function queries the current number of entries contained in a sequenced single linked list.
  *
- * \param SListHead A pointer to a sequenced singly linked listhead.
+ * \param ListHead A pointer to a sequenced singly linked listhead.
  * \return The current number of entries in the sequenced singly linked list is returned as the function value.
  */
 FORCEINLINE

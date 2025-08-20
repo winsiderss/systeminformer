@@ -46,21 +46,25 @@ typedef struct _PH_THREAD_QUERY_DATA
     PPH_STRING ServiceName;
 } PH_THREAD_QUERY_DATA, *PPH_THREAD_QUERY_DATA;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpThreadProviderDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpThreadItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpThreadHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpThreadHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -258,6 +262,7 @@ PPH_THREAD_ITEM PhCreateThreadItem(
     return threadItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpThreadItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -274,6 +279,7 @@ VOID PhpThreadItemDeleteProcedure(
     if (threadItem->AffinityMasks) PhFree(threadItem->AffinityMasks);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpThreadHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -284,6 +290,7 @@ BOOLEAN PhpThreadHashtableEqualFunction(
         (*(PPH_THREAD_ITEM *)Entry2)->ThreadId;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpThreadHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -915,23 +922,24 @@ VOID PhpThreadProviderUpdate(
 
                 threadItem->AffinityMasks = PhAllocateZero(sizeof(KAFFINITY) * PhSystemProcessorInformation.NumberOfProcessorGroups);
 
-                for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+                for (USHORT j = 0; j < PhSystemProcessorInformation.NumberOfProcessorGroups; j++)
                 {
                     GROUP_AFFINITY affinity;
 
-                    affinity.Group = i;
+                    RtlZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
+                    affinity.Group = j;
 
                     if (threadItem->ThreadHandle &&
                         NT_SUCCESS(PhGetThreadGroupAffinity(threadItem->ThreadHandle, &affinity)))
                     {
-                        threadItem->AffinityMasks[i] = affinity.Mask;
+                        threadItem->AffinityMasks[j] = affinity.Mask;
                     }
                     else
                     {
-                        threadItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                        threadItem->AffinityMasks[j] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[j];
                     }
 
-                    affinityPopulationCount += PhCountBitsUlongPtr(threadItem->AffinityMasks[i]);
+                    affinityPopulationCount += PhCountBitsUlongPtr(threadItem->AffinityMasks[j]);
                 }
 
                 threadItem->AffinityPopulationCount = affinityPopulationCount;
@@ -1253,23 +1261,24 @@ VOID PhpThreadProviderUpdate(
             {
                 ULONG affinityPopulationCount = 0;
 
-                for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+                for (USHORT j = 0; j < PhSystemProcessorInformation.NumberOfProcessorGroups; j++)
                 {
                     GROUP_AFFINITY affinity;
 
-                    affinity.Group = i;
+                    RtlZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
+                    affinity.Group = j;
 
                     if (threadItem->ThreadHandle &&
                         NT_SUCCESS(PhGetThreadGroupAffinity(threadItem->ThreadHandle, &affinity)))
                     {
-                        threadItem->AffinityMasks[i] = affinity.Mask;
+                        threadItem->AffinityMasks[j] = affinity.Mask;
                     }
                     else
                     {
-                        threadItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                        threadItem->AffinityMasks[j] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[j];
                     }
 
-                    affinityPopulationCount += PhCountBitsUlongPtr(threadItem->AffinityMasks[i]);
+                    affinityPopulationCount += PhCountBitsUlongPtr(threadItem->AffinityMasks[j]);
                 }
 
                 if (threadItem->AffinityPopulationCount != affinityPopulationCount)

@@ -203,15 +203,15 @@ VOID PhSetPluginDisabled(
     PhDereferenceObject(disabled);
 }
 
-PPH_STRING PhGetPluginDirectoryPath(
-    _In_ BOOLEAN NativeFileName
-    )
-{
-    static CONST PH_STRINGREF pluginsDirectory = PH_STRINGREF_INIT(L"plugins\\");
-
-    return PhGetApplicationDirectoryFileName(&pluginsDirectory, NativeFileName);
-}
-
+//PPH_STRING PhGetPluginDirectoryPath(
+//    _In_ BOOLEAN NativeFileName
+//    )
+//{
+//    static CONST PH_STRINGREF pluginsDirectory = PH_STRINGREF_INIT(L"plugins\\");
+//
+//    return PhGetApplicationDirectoryFileName(&pluginsDirectory, NativeFileName);
+//}
+//
 //PPH_STRING PhpGetPluginDirectoryPath(
 //    VOID
 //    )
@@ -464,6 +464,7 @@ VOID PhLoadPlugins(
     VOID
     )
 {
+    static CONST PH_STRINGREF pluginsDirectory = PH_STRINGREF_INIT(L"plugins\\");
     NTSTATUS status;
     BOOLEAN pluginLoadNative;
     BOOLEAN pluginLoadDefault;
@@ -473,7 +474,7 @@ VOID PhLoadPlugins(
 
     pluginLoadNative = !!PhGetIntegerSetting(L"EnablePluginsNative");
     pluginLoadDefault = !!PhGetIntegerSetting(L"EnableDefaultSafePlugins");
-    pluginDirectoryPath = PhGetPluginDirectoryPath(pluginLoadNative);
+    pluginDirectoryPath = PhGetApplicationDirectoryFileName(&pluginsDirectory, pluginLoadNative);
 
     if (PhIsNullOrEmptyString(pluginDirectoryPath))
         return;

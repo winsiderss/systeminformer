@@ -1127,7 +1127,7 @@ BOOL
 NTAPI
 NtUserSetWindowPos(
     _In_ HWND WindowHandle,
-    _In_ HWND WindowHandleInsertAfter,
+    _In_opt_ HWND WindowHandleInsertAfter,
     _In_ LONG X,
     _In_ LONG Y,
     _In_ LONG cx,

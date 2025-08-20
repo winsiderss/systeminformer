@@ -118,43 +118,38 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntryNameHash(
     return NULL;
 }
 
-/*!
-    @brief PhLoadLibrary prevents the loader from searching in an unsafe
-     order by first requiring the loader try to load and resolve through
-     System32. Then upping the loading flags until the library is loaded.
-
-    @param[in] FileName - The file name of the library to load.
-
-    @return HMODULE to the library on success, null on failure.
-*/
+/**
+ * Loads the specified file into the address space of the calling process.
+ * PhLoadLibrary prevents the loader from searching in an unsafe order by first
+ * limiting the search path to \System32 or the application directory.
+ *
+ * \param[in] FileName The file name of the library to load.
+ * \return HMODULE to the library on success, null on failure.
+ */
 PVOID PhLoadLibrary(
     _In_ PCWSTR FileName
     )
 {
     PVOID baseAddress;
 
-    // Force LOAD_LIBRARY_SEARCH_SYSTEM32. If the library file name is a fully
-    // qualified path this will succeed.
+    // Force System32 as the default search path.
+    // - If the file name is not qualified this will fail.
+    // - If the file name qualified this will succeed.
+    // Note: Directories in the standard search path are not searched.
 
-    if (baseAddress = LoadLibraryEx(
-        FileName,
-        NULL,
-        LOAD_LIBRARY_SEARCH_SYSTEM32
-        ))
-    {
+    if (baseAddress = LoadLibraryEx(FileName, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32))
         return baseAddress;
-    }
 
-    // Include the application directory now.
+    // Force the current executable directory as the default search path.
+    // - If the file name is not qualified this will fail.
+    // - If the file name qualified this will succeed.
+    // Note: Directories in the standard search path are not searched.
 
-    if (baseAddress = LoadLibraryEx(
-        FileName,
-        NULL,
-        LOAD_LIBRARY_SEARCH_APPLICATION_DIR
-        ))
-    {
+    if (baseAddress = LoadLibraryEx(FileName, NULL, LOAD_LIBRARY_SEARCH_APPLICATION_DIR))
         return baseAddress;
-    }
+
+    // Windows 7, Windows 8, Windows Server 2008 R2, and Windows Server 2008
+    // don't support the above flags prior to installing KB2533623. (dmex)
 
     if (WindowsVersion < WINDOWS_8)
     {
@@ -169,6 +164,38 @@ PVOID PhLoadLibrary(
     return NULL;
 }
 
+/**
+ * Loads a library with specific flags.
+ *
+ * \param[out] BaseAddress Receives the base address of the loaded library.
+ * \param[in] FileName The file name of the library to load.
+ * \param[in] Flags Flags to control the loading behavior.
+ * \return NTSTATUS code.
+ */
+NTSTATUS PhLoadLibraryEx(
+    _Out_ PVOID* BaseAddress,
+    _In_ PCWSTR FileName,
+    _In_ ULONG Flags
+    )
+{
+    PVOID baseAddress;
+
+    if (baseAddress = LoadLibraryEx(FileName, NULL, Flags))
+    {
+        *BaseAddress = baseAddress;
+        return STATUS_SUCCESS;
+    }
+
+    *BaseAddress = NULL;
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
+/**
+ * Frees a loaded library.
+ *
+ * \param BaseAddress The base address of the library to free.
+ * \return TRUE if successful, FALSE otherwise.
+ */
 BOOLEAN PhFreeLibrary(
     _In_ PVOID BaseAddress
     )
@@ -413,26 +440,26 @@ typedef struct _PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT
     PPH_STRING FileName;
 } PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT, *PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT;
 
+_Function_class_(PH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK)
 static NTSTATUS NTAPI PhpGetProcedureAddressRemoteLimitedCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID VirtualAddress,
     _In_ PVOID ImageBase,
     _In_ SIZE_T ImageSize,
     _In_ PPH_STRING FileName,
-    _In_opt_ PVOID Context
+    _In_ PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT Context
     )
 {
-    PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT context = (PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT)Context;
-
-    if (PhEqualString(FileName, context->FileName, TRUE))
+    if (PhEqualString(FileName, Context->FileName, TRUE))
     {
-        context->DllBase = ImageBase;
+        Context->DllBase = ImageBase;
         return STATUS_NO_MORE_ENTRIES;
     }
 
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_ENUM_PROCESS_MODULES_CALLBACK)
 static BOOLEAN PhpGetProcedureAddressRemoteCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
     _In_ PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT Context

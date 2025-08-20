@@ -50,7 +50,7 @@ static HANDLE PhSipThread = NULL;
 HWND PhSipWindow = NULL;
 static PPH_LIST PhSipDialogList = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
-static PWSTR InitialSectionName;
+static PCWSTR InitialSectionName;
 static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 static PH_CALLBACK_REGISTRATION SettingsUpdatedRegistration;
@@ -72,7 +72,7 @@ VOID PhShowSystemInformationDialog(
     _In_opt_ PCWSTR SectionName
     )
 {
-    InitialSectionName = (PWSTR)SectionName;
+    InitialSectionName = SectionName;
 
     if (!PhSipThread)
     {

@@ -2965,6 +2965,7 @@ BEGIN_SORT_FUNCTION(Version)
 }
 END_SORT_FUNCTION
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhRunAsPackageNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -2976,6 +2977,7 @@ BOOLEAN PhRunAsPackageNodeHashtableEqualFunction(
     return PhEqualString(node1->AppUserModelId, node2->AppUserModelId, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhRunAsPackageNodeHashtableHashFunction(
     _In_ PVOID Entry
     )

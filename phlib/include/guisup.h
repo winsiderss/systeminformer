@@ -236,6 +236,24 @@ PhDrawThemeTextEx(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhIsThemeBackgroundPartiallyTransparent(
+    _In_ HTHEME ThemeHandle,
+    _In_ LONG PartId,
+    _In_ LONG StateId
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhDrawThemeParentBackground(
+    _In_ HWND WindowHandle,
+    _In_ HDC Hdc,
+    _In_opt_ const PRECT Rect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhAllowDarkModeForWindow(
     _In_ HWND WindowHandle,
     _In_ BOOL Enabled
@@ -466,6 +484,23 @@ FORCEINLINE BOOL PhKillTimer(
     return KillTimer(WindowHandle, TimerID);
 }
 
+FORCEINLINE VOID PhBringWindowToTop(
+    _In_ HWND WindowHandle
+    )
+{
+    // Move the window to the top of the Z-order. (dmex)
+    // This is a workaround for a Windows or third party issue breaking
+    // SetForegroundWindow and displaying the main window behind other programs.
+    // https://github.com/winsiderss/systeminformer/issues/639
+
+    SetWindowPos(
+        WindowHandle,
+        HWND_TOP,
+        0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE
+        );
+}
+
 #define IDC_DIVIDER MAKEINTRESOURCE(106) // comctl32.dll
 
 FORCEINLINE
@@ -540,13 +575,13 @@ FORCEINLINE LRESULT PhReflectMessage(
             return result_; \
     }
 
-#define REFLECT_MESSAGE_DLG(hwndDlg, hwnd, msg, wParam, lParam) \
+#define REFLECT_MESSAGE_DLG(WindowHandle, hwnd, msg, wParam, lParam) \
     { \
         LRESULT result_ = PhReflectMessage(hwnd, msg, wParam, lParam); \
         \
         if (result_) \
         { \
-            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, result_); \
+            SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, result_); \
             return TRUE; \
         } \
     }
@@ -814,8 +849,8 @@ PhAddTabControlTab(
     _In_ PCWSTR Text
     );
 
-#define PhaGetDlgItemText(hwndDlg, id) \
-    PH_AUTO_T(PH_STRING, PhGetWindowText(GetDlgItem(hwndDlg, id)))
+#define PhaGetDlgItemText(WindowHandle, id) \
+    PH_AUTO_T(PH_STRING, PhGetWindowText(GetDlgItem(WindowHandle, id)))
 
 PHLIBAPI
 PPH_STRING

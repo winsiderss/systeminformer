@@ -304,14 +304,20 @@ PhHttpBeginRequest(
     _In_ ULONG Flags
     );
 
+#define PH_HTTP_IGNORE_REQUEST_TOTAL_LENGTH 0
+#define PH_HTTP_NO_ADDITIONAL_HEADERS NULL
+#define PH_HTTP_NO_REQUEST_DATA NULL
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhHttpSendRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_opt_ PCWSTR HeadersBuffer,
+    _In_ ULONG HeadersLength,
     _In_opt_ PVOID OptionalBuffer,
-    _In_opt_ ULONG OptionalLength,
-    _In_opt_ ULONG TotalLength
+    _In_ ULONG OptionalLength,
+    _In_ ULONG TotalLength
     );
 
 PHLIBAPI

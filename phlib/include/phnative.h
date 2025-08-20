@@ -43,7 +43,9 @@ PhIsNullOrInvalidHandle(
     return (((ULONG_PTR)Handle + 1) & 0xFFFFFFFFFFFFFFFEuLL) == 0;
 }
 
+//
 // General object-related function types
+//
 
 typedef _Function_class_(PH_OPEN_OBJECT)
 NTSTATUS NTAPI PH_OPEN_OBJECT(
@@ -622,7 +624,15 @@ NTAPI
 PhLoadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
-    _In_ BOOLEAN LoadDllUsingApcThread,
+    _In_opt_ ULONG Timeout
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoadDllProcessApcThread(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_STRINGREF FileName,
     _In_opt_ ULONG Timeout
     );
 
@@ -699,7 +709,7 @@ NTSTATUS
 NTAPI
 PhInvokeWindowProcedureRemote(
     _In_ HWND WindowHandle,
-    _In_ PVOID ApcRoutine,
+    _In_ PPS_APC_ROUTINE ApcRoutine,
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
@@ -974,7 +984,7 @@ PhInitializeSid(
     _In_ UCHAR SubAuthorityCount
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_SID)
     return NT_SUCCESS(RtlInitializeSid(Sid, IdentifierAuthority, SubAuthorityCount));
 #else
     ((PISID)Sid)->Revision = SID_REVISION;
@@ -998,7 +1008,7 @@ PhLengthSid(
     _In_ PSID Sid
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_SID)
     return RtlLengthSid(Sid);
 #else
     //return UFIELD_OFFSET(SID, SubAuthority) + (((PISID)Sid)->SubAuthorityCount * sizeof(ULONG));
@@ -1014,7 +1024,7 @@ PhLengthRequiredSid(
     _In_ ULONG SubAuthorityCount
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_SID)
     return RtlLengthRequiredSid(SubAuthorityCount);
 #else
     return UFIELD_OFFSET(SID, SubAuthority[SubAuthorityCount]);
@@ -1030,7 +1040,7 @@ PhEqualSid(
     _In_ PSID Sid2
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_SID)
     return RtlEqualSid(Sid1, Sid2);
 #else
     if (!(Sid1 && Sid2))
@@ -1062,7 +1072,7 @@ PhValidSid(
     _In_ PSID Sid
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_SID)
     return RtlValidSid(Sid);
 #else
     if (
@@ -1087,7 +1097,7 @@ PhSubAuthoritySid(
     _In_ ULONG SubAuthority
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_SID)
     return RtlSubAuthoritySid(Sid, SubAuthority);
 #else
     return &((PISID)Sid)->SubAuthority[SubAuthority];
@@ -1102,7 +1112,7 @@ PhSubAuthorityCountSid(
     _In_ PSID Sid
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_SID)
     return RtlSubAuthorityCountSid(Sid);
 #else
     return &((PISID)Sid)->SubAuthorityCount;
@@ -1117,7 +1127,7 @@ PhIdentifierAuthoritySid(
     _In_ PSID Sid
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_SID)
     return RtlIdentifierAuthoritySid(Sid);
 #else
     return &((PISID)Sid)->IdentifierAuthority;
@@ -1132,7 +1142,7 @@ PhEqualIdentifierAuthoritySid(
     _In_ PSID_IDENTIFIER_AUTHORITY IdentifierAuthoritySid2
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_SID)
     return RtlEqualMemory(RtlIdentifierAuthoritySid(IdentifierAuthoritySid1), RtlIdentifierAuthoritySid(IdentifierAuthoritySid2), sizeof(SID_IDENTIFIER_AUTHORITY));
 #else
     return (BOOLEAN)RtlEqualMemory(IdentifierAuthoritySid1, IdentifierAuthoritySid2, sizeof(SID_IDENTIFIER_AUTHORITY));
@@ -1307,9 +1317,10 @@ PhEnsureAclRevision(
 FORCEINLINE
 NTSTATUS
 NTAPI
-PhAddAccessAllowedAce(
+PhAddAccessAllowedAceEx(
     _In_ PACL Acl,
     _In_ ULONG AceRevision,
+    _In_ UCHAR AceFlags,
     _In_ ACCESS_MASK AccessMask,
     _In_ PSID Sid
     )
@@ -1334,13 +1345,26 @@ PhAddAccessAllowedAce(
     const PACCESS_ALLOWED_ACE ace = (PACCESS_ALLOWED_ACE)offset;
     const PACE_HEADER header = &ace->Header;
     header->AceType = ACCESS_ALLOWED_ACE_TYPE;
-    header->AceFlags = 0;
+    header->AceFlags = AceFlags;
     header->AceSize = (USHORT)size;
     ace->Mask = AccessMask;
     memmove(&ace->SidStart, Sid, length);
     Acl->AceCount++;
 
     return STATUS_SUCCESS;
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhAddAccessAllowedAce(
+    _In_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PSID Sid
+    )
+{
+    return PhAddAccessAllowedAceEx(Acl, AceRevision, 0, AccessMask, Sid);
 }
 
 FORCEINLINE
@@ -3293,7 +3317,6 @@ NTAPI
 PhSetValueKeyStringZ(
     _In_ HANDLE KeyHandle,
     _In_ PCWSTR ValueName,
-    _In_ ULONG ValueType,
     _In_ PCPH_STRINGREF String
     )
 {
@@ -3309,9 +3332,55 @@ PhSetValueKeyStringZ(
     return PhSetValueKey(
         KeyHandle,
         &valueName,
-        ValueType,
+        REG_SZ,
         String->Buffer,
         (ULONG)String->Length + sizeof(UNICODE_NULL)
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetValueKeyString2Z(
+    _In_ HANDLE KeyHandle,
+    _In_ PCWSTR ValueName,
+    _In_ PCWSTR String
+    )
+{
+    PH_STRINGREF valueName;
+    PH_STRINGREF valueString;
+
+    PhInitializeStringRef(&valueName, ValueName);
+    PhInitializeStringRef(&valueString, String);
+
+    return PhSetValueKey(
+        KeyHandle,
+        &valueName,
+        REG_SZ,
+        valueString.Buffer,
+        (ULONG)valueString.Length + sizeof(UNICODE_NULL)
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetValueKeyUlong(
+    _In_ HANDLE KeyHandle,
+    _In_ PCWSTR ValueName,
+    _In_ ULONG Value
+    )
+{
+    PH_STRINGREF valueName;
+
+    PhInitializeStringRef(&valueName, ValueName);
+
+    return PhSetValueKey(
+        KeyHandle,
+        &valueName,
+        REG_DWORD,
+        &Value,
+        sizeof(ULONG)
         );
 }
 

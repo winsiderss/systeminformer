@@ -358,7 +358,7 @@ VOID PhMwpInitializeProviders(
 }
 
 VOID PhMwpShowWindow(
-    _In_ INT ShowCommand
+    _In_ LONG ShowCommand
     )
 {
     if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && PhNfIconsEnabled())
@@ -410,6 +410,7 @@ VOID PhMwpShowWindow(
     {
         ShowWindow(PhMainWndHandle, ShowCommand);
         UpdateWindow(PhMainWndHandle);
+        PhBringWindowToTop(PhMainWndHandle);
         SetForegroundWindow(PhMainWndHandle);
     }
 

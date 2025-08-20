@@ -26,11 +26,13 @@
 #include <phsettings.h>
 #include <procprv.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpNetworkNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpNetworkNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -92,6 +94,7 @@ VOID PhNetworkTreeListInitialization(
     NetworkNodeList = PhCreateList(100);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpNetworkNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -103,6 +106,7 @@ BOOLEAN PhpNetworkNodeHashtableEqualFunction(
     return networkNode1->NetworkItem == networkNode2->NetworkItem;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpNetworkNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -1044,16 +1048,27 @@ VOID PhDeselectAllNetworkNodes(
     TreeNew_DeselectRange(NetworkTreeListHandle, 0, -1);
 }
 
-VOID PhSelectAndEnsureVisibleNetworkNode(
+BOOLEAN PhSelectAndEnsureVisibleNetworkNode(
     _In_ PPH_NETWORK_NODE NetworkNode
     )
 {
     PhDeselectAllNetworkNodes();
 
-    if (!NetworkNode->Node.Visible)
-        return;
-
-    TreeNew_FocusMarkSelectNode(NetworkTreeListHandle, &NetworkNode->Node);
+    if (NetworkNode->Node.Visible)
+    {
+        TreeNew_FocusMarkSelectNode(NetworkTreeListHandle, &NetworkNode->Node);
+        return TRUE;
+    }
+    else
+    {
+        PhShowInformation2(
+            PhMainWndHandle,
+            L"Unable to perform the operation.",
+            L"%s",
+            L"This node cannot be displayed because it is currently hidden by your active filter settings or preferences."
+            );
+        return FALSE;
+    }
 }
 
 VOID PhInvalidateAllNetworkNodes(

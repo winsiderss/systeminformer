@@ -377,7 +377,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"KsiEnableSplashScreen", L"0");
     PhpAddIntegerSetting(L"KsiEnableLoadNative", L"0");
     PhpAddIntegerSetting(L"KsiEnableLoadFilter", L"0");
-    PhpAddIntegerSetting(L"KsiUnloadOnExit", L"1");
+    PhpAddIntegerSetting(L"KsiUnloadOnExit", L"0");
     PhpAddIntegerSetting(L"KsiRandomizedPoolTag", L"0");
     PhpAddIntegerSetting(L"KsiEnableUnloadProtection", L"1");
     PhpAddIntegerSetting(L"KsiDynDataNoEmbedded", L"0");

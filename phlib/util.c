@@ -31,7 +31,7 @@
 #include <wslsup.h>
 #include <thirdparty.h>
 
-#if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
+#if defined(PH_BUILD_MSIX)
 #include <roapi.h>
 #include <winstring.h>
 #endif
@@ -477,7 +477,7 @@ BOOLEAN PhSystemTimeToTzSpecificLocalTime(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&SystemTimeToTzSpecificLocalTimeEx) SystemTimeToTzSpecificLocalTimeEx_I = NULL;
+    static typeof(&SystemTimeToTzSpecificLocalTimeEx) SystemTimeToTzSpecificLocalTimeEx_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -2115,7 +2115,7 @@ PPH_STRING PhFormatUInt64Prefix(
 
     while (
         number >= 1000 &&
-        i < RTL_NUMBER_OF(PhPrefixUnitNamesCounted) &&
+        i + 1 < RTL_NUMBER_OF(PhPrefixUnitNamesCounted) &&
         i < PhMaxSizeUnit
         )
     {
@@ -2149,7 +2149,7 @@ PPH_STRING PhFormatUInt64BitratePrefix(
 
     while (
         number >= 1000 &&
-        i < RTL_NUMBER_OF(PhSiPrefixUnitNamesCounted) &&
+        i + 1 < RTL_NUMBER_OF(PhSiPrefixUnitNamesCounted) &&
         i < PhMaxSizeUnit
         )
     {
@@ -2311,7 +2311,7 @@ NTSTATUS PhFormatGuidToBuffer(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&RtlStringFromGUIDEx) RtlStringFromGUIDEx_I = NULL;
+    static typeof(&RtlStringFromGUIDEx) RtlStringFromGUIDEx_I = NULL;
     NTSTATUS status;
     UNICODE_STRING unicodeString;
 
@@ -5420,17 +5420,17 @@ NTSTATUS PhFilterTokenForLimitedUser(
     return STATUS_SUCCESS;
 }
 
-PPH_STRING PhGetSecurityDescriptorAsString(
+NTSTATUS PhGetSecurityDescriptorAsString(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    _Out_ PPH_STRING* SecurityDescriptorString
     )
 {
-    PPH_STRING securityDescriptorString = NULL;
     ULONG stringSecurityDescriptorLength = 0;
     PWSTR stringSecurityDescriptor = NULL;
 
     if (!ConvertSecurityDescriptorToStringSecurityDescriptorW_Import())
-        return NULL;
+        return STATUS_PROCEDURE_NOT_FOUND;
 
     if (ConvertSecurityDescriptorToStringSecurityDescriptorW_Import()(
         SecurityDescriptor,
@@ -5440,20 +5440,21 @@ PPH_STRING PhGetSecurityDescriptorAsString(
         &stringSecurityDescriptorLength
         ))
     {
-        if (!(stringSecurityDescriptorLength & 1)) // validate the string length
+        if (stringSecurityDescriptorLength & 1) // validate the string length
         {
             LocalFree(stringSecurityDescriptor);
-            return NULL;
+            return STATUS_FAIL_CHECK;
         }
 
-        securityDescriptorString = PhCreateStringEx(
+        *SecurityDescriptorString = PhCreateStringEx(
             stringSecurityDescriptor,
             stringSecurityDescriptorLength * sizeof(WCHAR)
             );
         LocalFree(stringSecurityDescriptor);
+        return STATUS_SUCCESS;
     }
 
-    return securityDescriptorString;
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
@@ -5489,40 +5490,42 @@ PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
     return securityDescriptor;
 }
 
-_Success_(return)
-BOOLEAN PhGetObjectSecurityDescriptorAsString(
+NTSTATUS PhGetObjectSecurityDescriptorAsString(
     _In_ HANDLE Handle,
     _Out_ PPH_STRING* SecurityDescriptorString
     )
 {
+    NTSTATUS status;
     PSECURITY_DESCRIPTOR securityDescriptor;
     PPH_STRING securityDescriptorString;
 
-    if (NT_SUCCESS(PhGetObjectSecurity(
+    status = PhGetObjectSecurity(
         Handle,
         OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
         DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
         ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
         &securityDescriptor
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetSecurityDescriptorAsString(
+        securityDescriptor,
+        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+        DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
+        ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
+        &securityDescriptorString
+        );
+
+    PhFree(securityDescriptor);
+
+    if (NT_SUCCESS(status))
     {
-        if (securityDescriptorString = PhGetSecurityDescriptorAsString(
-            OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
-            DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
-            ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
-            securityDescriptor
-            ))
-        {
-            *SecurityDescriptorString = securityDescriptorString;
-
-            PhFree(securityDescriptor);
-            return TRUE;
-        }
-
-        PhFree(securityDescriptor);
+        *SecurityDescriptorString = securityDescriptorString;
     }
 
-    return FALSE;
+    return status;
 }
 
 /**
@@ -5537,7 +5540,7 @@ BOOLEAN PhShellExecuteWin32(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&ShellExecuteExW) ShellExecuteExW_I = NULL;
+    static typeof(&ShellExecuteExW) ShellExecuteExW_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5674,8 +5677,8 @@ VOID PhShellExploreFile(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&SHOpenFolderAndSelectItems) SHOpenFolderAndSelectItems_I = NULL;
-    static __typeof__(&SHParseDisplayName) SHParseDisplayName_I = NULL;
+    static typeof(&SHOpenFolderAndSelectItems) SHOpenFolderAndSelectItems_I = NULL;
+    static typeof(&SHParseDisplayName) SHParseDisplayName_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5755,7 +5758,7 @@ BOOLEAN PhShellNotifyIcon(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&Shell_NotifyIconW) Shell_NotifyIconW_I = NULL;
+    static typeof(&Shell_NotifyIconW) Shell_NotifyIconW_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5783,7 +5786,7 @@ HRESULT PhShellGetKnownFolderPath(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&SHGetKnownFolderPath) SHGetKnownFolderPath_I = NULL;
+    static typeof(&SHGetKnownFolderPath) SHGetKnownFolderPath_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5812,7 +5815,7 @@ HRESULT PhShellGetKnownFolderItem(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&SHGetKnownFolderItem) SHGetKnownFolderItem_I = NULL;
+    static typeof(&SHGetKnownFolderItem) SHGetKnownFolderItem_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -6569,8 +6572,8 @@ VOID PhSetFileDialogFileName(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&SHParseDisplayName) SHParseDisplayName_I = NULL;
-    static __typeof__(&SHCreateItemFromIDList) SHCreateItemFromIDList_I = NULL;
+    static typeof(&SHParseDisplayName) SHParseDisplayName_I = NULL;
+    static typeof(&SHCreateItemFromIDList) SHCreateItemFromIDList_I = NULL;
     PPHP_FILE_DIALOG fileDialog = FileDialog;
     PH_STRINGREF fileName;
 
@@ -7573,7 +7576,7 @@ PWSTR* PhCommandLineToArgv(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&CommandLineToArgvW) CommandLineToArgvW_I = NULL;
+    static typeof(&CommandLineToArgvW) CommandLineToArgvW_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -8221,7 +8224,7 @@ HRESULT PhGetClassObject(
     _Out_ PVOID* Ppv
     )
 {
-#if (PH_NATIVE_COM_CLASS_FACTORY)
+#if defined(PH_BUILD_MSIX)
     HRESULT status;
     IClassFactory* classFactory;
 
@@ -8314,10 +8317,10 @@ HRESULT PhGetActivationFactory(
     _Out_ PVOID* Ppv
     )
 {
-#if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
+#if defined(PH_BUILD_MSIX)
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
-    static __typeof__(&RoGetActivationFactory) RoGetActivationFactory_I = NULL;
+    static typeof(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
+    static typeof(&RoGetActivationFactory) RoGetActivationFactory_I = NULL;
     HRESULT status;
     HSTRING runtimeClassStringHandle = NULL;
     HSTRING_HEADER runtimeClassStringHeader;
@@ -8436,10 +8439,10 @@ HRESULT PhActivateInstance(
     _Out_ PVOID* Ppv
     )
 {
-#if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
+#if defined(PH_BUILD_MSIX)
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
-    static __typeof__(&RoActivateInstance) RoActivateInstance_I = NULL;
+    static typeof(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
+    static typeof(&RoActivateInstance) RoActivateInstance_I = NULL;
     HRESULT status;
     HSTRING runtimeClassStringHandle = NULL;
     HSTRING_HEADER runtimeClassStringHeader;
@@ -9890,7 +9893,7 @@ BOOLEAN PhIsDirectXRunningFullScreen(
     VOID
     )
 {
-    static __typeof__(&D3DKMTCheckExclusiveOwnership) D3DKMTCheckExclusiveOwnership_I = NULL;
+    static typeof(&D3DKMTCheckExclusiveOwnership) D3DKMTCheckExclusiveOwnership_I = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))
@@ -9915,7 +9918,7 @@ NTSTATUS PhRestoreFromDirectXRunningFullScreen(
     _In_ HANDLE ProcessHandle
     )
 {
-    static __typeof__(&D3DKMTReleaseProcessVidPnSourceOwners) D3DKMTReleaseProcessVidPnSourceOwners_I = NULL;
+    static typeof(&D3DKMTReleaseProcessVidPnSourceOwners) D3DKMTReleaseProcessVidPnSourceOwners_I = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))
@@ -9940,7 +9943,7 @@ NTSTATUS PhQueryDirectXExclusiveOwnership(
     _Inout_ PD3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP QueryExclusiveOwnership
     )
 {
-    static __typeof__(&D3DKMTQueryVidPnExclusiveOwnership) D3DKMTQueryVidPnExclusiveOwnership_I = NULL; // same typedef as NtGdiDdDDIQueryVidPnExclusiveOwnership
+    static typeof(&D3DKMTQueryVidPnExclusiveOwnership) D3DKMTQueryVidPnExclusiveOwnership_I = NULL; // same typedef as NtGdiDdDDIQueryVidPnExclusiveOwnership
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))

@@ -355,6 +355,39 @@ VOID PhReInitializeWindowTheme(
 #define DWMWA_SYSTEMBACKDROP_TYPE 38
 #endif
 
+HRESULT PhGetWindowThemeAttribute(
+    _In_ HWND WindowHandle,
+    _In_ ULONG AttributeId,
+    _Out_writes_bytes_(AttributeLength) PVOID Attribute,
+    _In_ ULONG AttributeLength
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI* DwmGetWindowAttribute_I)(
+        _In_ HWND WindowHandle,
+        _In_ ULONG AttributeId,
+        _Out_writes_bytes_(AttributeLength) PVOID Attribute,
+        _In_ ULONG AttributeLength
+        );
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"dwmapi.dll"))
+        {
+            DwmGetWindowAttribute_I = PhGetDllBaseProcedureAddress(baseAddress, "DwmGetWindowAttribute", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!DwmGetWindowAttribute_I)
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+
+    return DwmGetWindowAttribute_I(WindowHandle, AttributeId, Attribute, AttributeLength);
+}
+
 HRESULT PhSetWindowThemeAttribute(
     _In_ HWND WindowHandle,
     _In_ ULONG AttributeId,

@@ -11,7 +11,6 @@
  */
 
 #include <phapp.h>
-
 #include <secedit.h>
 #include <svcsup.h>
 #include <mainwnd.h>
@@ -163,11 +162,14 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
         break;
     case WM_SYSCOMMAND:
         {
+            // Note: This fixes closing the window from the taskbar preview window. (dmex)
             switch (wParam & 0xFFF0)
             {
             case SC_CLOSE:
                 {
-                    PostMessage(hwnd, WM_CLOSE, 0, 0);
+                    PostQuitMessage(0);
+                    //SetWindowLongPtr(hwnd, DWLP_MSGRESULT, TRUE);
+                    //return TRUE;
                 }
                 break;
             }

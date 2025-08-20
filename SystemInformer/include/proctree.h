@@ -129,8 +129,9 @@
 #define PHPRTLC_START_KEY 104
 #define PHPRTLC_MITIGATION_POLICIES 105
 #define PHPRTLC_SERVICES 106
+#define PHPRTLC_SILO 107
 
-#define PHPRTLC_MAXIMUM 107
+#define PHPRTLC_MAXIMUM 108
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -159,6 +160,7 @@
 #define PHPN_STARTKEY 0x800000
 #define PHPN_SERVICES 0x1000000
 #define PHPN_USERHANDLES 0x2000000
+#define PHPN_SERVERSILO 0x4000000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -236,9 +238,11 @@ typedef struct _PH_PROCESS_NODE
     // Start key
     ULONGLONG ProcessStartKey;
 
+    PPH_STRING FileNameWin32;
+    ULONG ServerSiloId;
+
     PPH_STRING TooltipText;
     ULONG64 TooltipTextValidToTickCount;
-    PPH_STRING FileNameWin32;
 
     // Text buffers
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1 + 3];
@@ -305,6 +309,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ProcessStartKeyText;
     PPH_STRING MitigationPoliciesText;
     PPH_STRING ServicesText;
+    PPH_STRING ServerSiloText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;

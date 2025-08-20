@@ -27,7 +27,7 @@ PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
 HWND NetworkTreeNewHandle = NULL;
 BOOLEAN NetworkExtensionEnabled = FALSE;
-LIST_ENTRY NetworkExtensionListHead = { &NetworkExtensionListHead, &NetworkExtensionListHead };
+RTL_STATIC_LIST_HEAD(NetworkExtensionListHead);
 PH_QUEUED_LOCK NetworkExtensionListLock = PH_QUEUED_LOCK_INIT;
 
 NETWORKTOOLS_INTERFACE PluginInterface =

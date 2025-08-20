@@ -18,7 +18,7 @@ EXTERN_C_START
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
 extern PH_CALLBACK PhSymbolEventCallback;
 
-#define PH_MAX_SYMBOL_NAME_LEN 128
+#define PH_MAX_SYMBOL_NAME_LEN MAX_SYM_NAME
 
 typedef struct _PH_SYMBOL_PROVIDER
 {
@@ -318,10 +318,10 @@ typedef struct _PH_THREAD_STACK_FRAME
  *
  * \param StackFrame A structure providing information about the stack frame.
  * \param Context A user-defined value passed to PhWalkThreadStack().
- *
  * \return TRUE to continue the stack walk, FALSE to stop.
  */
-typedef BOOLEAN (NTAPI *PPH_WALK_THREAD_STACK_CALLBACK)(
+typedef _Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
+BOOLEAN NTAPI PH_WALK_THREAD_STACK_CALLBACK(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
     _In_opt_ PVOID Context
     );

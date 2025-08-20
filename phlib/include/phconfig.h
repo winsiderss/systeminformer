@@ -77,7 +77,7 @@ DECLSPEC_NORETURN
 VOID
 NTAPI
 PhExitApplication(
-    _In_opt_ NTSTATUS Status
+    _In_ NTSTATUS Status
     );
 
 // Processor group support (dmex)

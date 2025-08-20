@@ -763,7 +763,7 @@ BOOLEAN PhGetAccessEntries(
     {
         Type = L"File";
     }
-	else if (PhEqualStringZ(Type, L"Device", TRUE))
+    else if (PhEqualStringZ(Type, L"Device", TRUE))
     {
         Type = L"File";
     }
@@ -860,8 +860,8 @@ static int __cdecl PhpAccessEntryCompare(
     _In_ const void *elem2
     )
 {
-    PPH_ACCESS_ENTRY entry1 = (PPH_ACCESS_ENTRY)elem1;
-    PPH_ACCESS_ENTRY entry2 = (PPH_ACCESS_ENTRY)elem2;
+    const PH_ACCESS_ENTRY* entry1 = (const PH_ACCESS_ENTRY*)elem1;
+    const PH_ACCESS_ENTRY* entry2 = (const PH_ACCESS_ENTRY*)elem2;
 
     return uintcmp(PhCountBits(entry2->Access), PhCountBits(entry1->Access));
 }

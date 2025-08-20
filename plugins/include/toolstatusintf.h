@@ -74,8 +74,8 @@ typedef VOID (NTAPI *PTOOLSTATUS_REGISTER_TOOLBAR_GRAPH)(
     _In_ ULONG Id,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
-    _In_ PVOID Context,
-    _In_ PTOOLSTATUS_GRAPH_CALLBACK Callback
+    _In_opt_ PVOID Context,
+    _In_ PTOOLSTATUS_GRAPH_CALLBACK GraphCallback
     );
 
 typedef struct _PH_TOOLBAR_GRAPH

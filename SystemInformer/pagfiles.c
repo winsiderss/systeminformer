@@ -38,7 +38,7 @@ VOID PhShowPagefilesDialog(
     if (!PhPageFileWindowHandle)
     {
         PhPageFileWindowHandle = PhCreateDialog(
-            PhInstanceHandle,
+            NtCurrentImageBase(),
             MAKEINTRESOURCE(IDD_PAGEFILES),
             PhCsForceNoParent ? NULL : ParentWindowHandle,
             PhpPagefilesDlgProc,

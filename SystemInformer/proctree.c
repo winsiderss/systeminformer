@@ -973,6 +973,7 @@ static VOID PhpUpdateProcessNodeWsCounters(
         BOOLEAN success = FALSE;
 
         if (
+            ProcessNode->ProcessItem->QueryHandle &&
             PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId) &&
             ProcessNode->ProcessItem->IsHandleValid // PROCESS_QUERY_INFORMATION
             )
@@ -1105,6 +1106,7 @@ static VOID PhpUpdateProcessNodeDepStatus(
 
 #ifdef _WIN64
         if (
+            ProcessNode->ProcessItem->QueryHandle &&
             PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId) &&
             ProcessNode->ProcessItem->IsWow64Process &&
             ProcessNode->ProcessItem->IsHandleValid // PROCESS_QUERY_INFORMATION

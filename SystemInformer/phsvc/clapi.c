@@ -292,6 +292,7 @@ NTSTATUS PhSvcpCallExecuteRunAsCommand(
     m.p.u.ExecuteRunAsCommand.i.UseLinkedToken = Parameters->UseLinkedToken;
     m.p.u.ExecuteRunAsCommand.i.CreateSuspendedProcess = Parameters->CreateSuspendedProcess;
     m.p.u.ExecuteRunAsCommand.i.CreateUIAccessProcess = Parameters->CreateUIAccessProcess;
+    m.p.u.ExecuteRunAsCommand.i.WindowHandle = Parameters->WindowHandle;
 
     status = STATUS_NO_MEMORY;
 

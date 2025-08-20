@@ -28,8 +28,10 @@ typedef struct _PH_PROCESS_PROPSHEETCONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LAYOUT_ITEM TabPageItem;
     BOOLEAN LayoutInitialized;
+    HFONT PropSheetWindowFont;
 } PH_PROCESS_PROPSHEETCONTEXT, *PPH_PROCESS_PROPSHEETCONTEXT;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -52,17 +54,19 @@ LRESULT CALLBACK PhpPropSheetWndProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
-INT CALLBACK PhpStandardPropPageProc(
+UINT CALLBACK PhpStandardPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessPropPageWaitContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

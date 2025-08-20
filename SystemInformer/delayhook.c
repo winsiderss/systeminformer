@@ -1335,6 +1335,7 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
     _In_ LPARAM lParam
     );
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_ HWND hwndDlg,
     _In_opt_ PVOID Context
@@ -1775,6 +1776,7 @@ HTHEME PhOpenNcThemeDataHook(
     return DefaultOpenNcThemeData(hwnd, pszClassList);
 }
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID CallbackData

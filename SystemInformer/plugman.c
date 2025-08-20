@@ -685,7 +685,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
             case IDC_DISABLED:
                 {
                     PhDialogBox(
-                        PhInstanceHandle,
+                        NtCurrentImageBase(),
                         MAKEINTRESOURCE(IDD_PLUGINSDISABLED),
                         hwndDlg,
                         PhpPluginsDisabledDlgProc,
@@ -767,7 +767,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                         case PH_PLUGIN_TREE_ITEM_MENU_PROPERTIES:
                             {
                                 PhDialogBox(
-                                    PhInstanceHandle,
+                                    NtCurrentImageBase(),
                                     MAKEINTRESOURCE(IDD_PLUGINPROPERTIES),
                                     hwndDlg,
                                     PhpPluginPropertiesDlgProc,
@@ -788,7 +788,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                         break;
 
                     PhDialogBox(
-                        PhInstanceHandle,
+                        NtCurrentImageBase(),
                         MAKEINTRESOURCE(IDD_PLUGINPROPERTIES),
                         hwndDlg,
                         PhpPluginPropertiesDlgProc,
