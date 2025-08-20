@@ -585,7 +585,7 @@ NTSTATUS PhGetThreadLastSystemCall(
             ThreadHandle,
             ThreadLastSystemCall,
             LastSystemCall,
-            RTL_SIZEOF_THROUGH_FIELD(THREAD_LAST_SYSCALL_INFORMATION, Pad),
+            FIELD_OFFSET(THREAD_LAST_SYSCALL_INFORMATION, WaitTime),
             NULL
             );
     }

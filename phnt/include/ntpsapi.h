@@ -2067,9 +2067,7 @@ NtResumeProcess(
 // Macros
 //
 
-inline HANDLE NtCurrentProcess() { return (HANDLE)((LONG_PTR)-1); }
-
-//#define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
+#define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
 #define ZwCurrentProcess() NtCurrentProcess()
 #define NtCurrentThread() ((HANDLE)(LONG_PTR)-2)
 #define ZwCurrentThread() NtCurrentThread()
