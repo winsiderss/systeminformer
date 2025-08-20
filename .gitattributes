@@ -39,6 +39,7 @@
 *.rc            text
 *.sln           text
 *.txt           text
+*.vsconfig      text
 *.vcxproj       text
 *.filters       text
 *.xml           text
@@ -47,6 +48,7 @@
 **AUTHORS       text
 **COPYING       text
 **CHANGELOG     text
+**CODEOWNERS    text
 **LICENSE       text
 **LICENCE       text
 **README        text
