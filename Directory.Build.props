@@ -2,10 +2,10 @@
   <PropertyGroup>
     <SystemInformerRoot>$(MSBuildThisFileDirectory)</SystemInformerRoot>
   </PropertyGroup>
-  <Import Project="packages\Microsoft.Windows.SDK.CPP.10.0.26100.4204\build\native\Microsoft.Windows.SDK.cpp.props" Condition="Exists('packages\Microsoft.Windows.SDK.CPP.10.0.26100.4204\build\native\Microsoft.Windows.SDK.cpp.props')"/>
-  <Import Project="packages\Microsoft.Windows.SDK.CPP.x86.10.0.26100.4204\build\native\Microsoft.Windows.SDK.cpp.x86.props" Condition="Exists('packages\Microsoft.Windows.SDK.CPP.x86.10.0.26100.4204\build\native\Microsoft.Windows.SDK.cpp.x86.props') and '$(Platform)' == 'Win32'"/>
-  <Import Project="packages\Microsoft.Windows.SDK.CPP.x64.10.0.26100.4204\build\native\Microsoft.Windows.SDK.cpp.x64.props" Condition="Exists('packages\Microsoft.Windows.SDK.CPP.x64.10.0.26100.4204\build\native\Microsoft.Windows.SDK.cpp.x64.props') and '$(Platform)' == 'x64'"/>
-  <Import Project="packages\Microsoft.Windows.SDK.CPP.ARM64.10.0.26100.4204\build\native\Microsoft.Windows.SDK.cpp.ARM64.props" Condition="Exists('packages\Microsoft.Windows.SDK.CPP.ARM64.10.0.26100.4204\build\native\Microsoft.Windows.SDK.cpp.ARM64.props') and '$(Platform)' == 'ARM64'"/>
+  <Import Project="packages\Microsoft.Windows.SDK.CPP.10.0.26100.4948\build\native\Microsoft.Windows.SDK.cpp.props" Condition="Exists('packages\Microsoft.Windows.SDK.CPP.10.0.26100.4948\build\native\Microsoft.Windows.SDK.cpp.props')"/>
+  <Import Project="packages\Microsoft.Windows.SDK.CPP.x86.10.0.26100.4948\build\native\Microsoft.Windows.SDK.cpp.x86.props" Condition="Exists('packages\Microsoft.Windows.SDK.CPP.x86.10.0.26100.4948\build\native\Microsoft.Windows.SDK.cpp.x86.props') and '$(Platform)' == 'Win32'"/>
+  <Import Project="packages\Microsoft.Windows.SDK.CPP.x64.10.0.26100.4948\build\native\Microsoft.Windows.SDK.cpp.x64.props" Condition="Exists('packages\Microsoft.Windows.SDK.CPP.x64.10.0.26100.4948\build\native\Microsoft.Windows.SDK.cpp.x64.props') and '$(Platform)' == 'x64'"/>
+  <Import Project="packages\Microsoft.Windows.SDK.CPP.ARM64.10.0.26100.4948\build\native\Microsoft.Windows.SDK.cpp.ARM64.props" Condition="Exists('packages\Microsoft.Windows.SDK.CPP.ARM64.10.0.26100.4948\build\native\Microsoft.Windows.SDK.cpp.ARM64.props') and '$(Platform)' == 'ARM64'"/>
   <Import Project="packages\Microsoft.Windows.WDK.x64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.x64.props" Condition="Exists('packages\Microsoft.Windows.WDK.x64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.x64.props') and '$(Platform)' == 'x64'"/>
   <Import Project="packages\Microsoft.Windows.WDK.ARM64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.ARM64.props" Condition="Exists('packages\Microsoft.Windows.WDK.ARM64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.ARM64.props') and '$(Platform)' == 'ARM64'"/>
 </Project>
