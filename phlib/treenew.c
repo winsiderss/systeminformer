@@ -336,6 +336,7 @@ LRESULT CALLBACK PhTnpWndProc(
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+_Function_class_(PH_TREENEW_CALLBACK)
 BOOLEAN NTAPI PhTnpNullCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -3446,7 +3447,7 @@ VOID PhTnpAutoSizeColumnHeader(
             }
         }
 
-        newWidth = maximumWidth + TNP_CELL_RIGHT_MARGIN; // right padding
+        newWidth = maximumWidth + Context->CellMarginRight; // right padding
 
         if (Column->Fixed)
             newWidth++;
@@ -3802,7 +3803,7 @@ BOOLEAN PhTnpGetCellParts(
     Parts->CellRect.top = Parts->RowRect.top;
     Parts->CellRect.bottom = Parts->RowRect.bottom;
 
-    currentX += TNP_CELL_LEFT_MARGIN;
+    currentX += Context->CellMarginLeft;
 
     if (Column == Context->FirstColumn)
     {
@@ -3830,13 +3831,13 @@ BOOLEAN PhTnpGetCellParts(
             Parts->IconRect.top = Parts->RowRect.top + iconVerticalMargin;
             Parts->IconRect.bottom = Parts->RowRect.bottom - iconVerticalMargin;
 
-            currentX += Context->SmallIconWidth + TNP_ICON_RIGHT_PADDING;
+            currentX += Context->SmallIconWidth + Context->IconRightPadding;
         }
     }
 
     Parts->Flags |= TN_PART_CONTENT;
     Parts->ContentRect.left = currentX;
-    Parts->ContentRect.right = Parts->CellRect.right - TNP_CELL_RIGHT_MARGIN;
+    Parts->ContentRect.right = Parts->CellRect.right - Context->CellMarginRight;
     Parts->ContentRect.top = Parts->RowRect.top;
     Parts->ContentRect.bottom = Parts->RowRect.bottom;
 
@@ -4024,7 +4025,7 @@ VOID PhTnpHitTest(
                         isFirstColumn = HitTest->Column == Context->FirstColumn;
 
                         currentX = columnX;
-                        currentX += TNP_CELL_LEFT_MARGIN;
+                        currentX += Context->CellMarginLeft;
 
                         if (isFirstColumn)
                         {
@@ -6434,7 +6435,7 @@ _Success_(return)
 BOOLEAN PhTnpGetTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPOINT Point,
-    _Out_ PWSTR *Text
+    _Out_ PPH_STRING *Text
     )
 {
     PH_TREENEW_HIT_TEST hitTest;
@@ -6539,7 +6540,7 @@ BOOLEAN PhTnpGetTooltipText(
 
     if (Context->TooltipText)
     {
-        *Text = Context->TooltipText->Buffer;
+        *Text = Context->TooltipText;
         return TRUE;
     }
 
@@ -6673,7 +6674,7 @@ BOOLEAN PhTnpGetHeaderTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ BOOLEAN Fixed,
     _In_ PPOINT Point,
-    _Out_ PWSTR *Text
+    _Out_ PPH_STRING *Text
     )
 {
     LOGICAL result;
@@ -6715,7 +6716,7 @@ BOOLEAN PhTnpGetHeaderTooltipText(
         PhMoveReference(&Context->TooltipText, PhCreateStringEx(text, textCount * sizeof(WCHAR)));
     }
 
-    *Text = Context->TooltipText->Buffer;
+    *Text = Context->TooltipText;
 
     // Always use the default parameters for column header tooltips.
     Context->NewTooltipFont = Context->Font;
@@ -7804,8 +7805,9 @@ VOID PhTnpDestroyBufferedContext(
     Context->BufferedBitmap = NULL;
 }
 
-VOID PhTnpGetMessagePos(
-    _In_ HWND hwnd,
+_Success_(return)
+BOOLEAN PhTnpGetMessagePos(
+    _In_ HWND WindowHandle,
     _Out_ PPOINT ClientPoint
     )
 {
@@ -7815,7 +7817,36 @@ VOID PhTnpGetMessagePos(
     position = GetMessagePos();
     point.x = GET_X_LPARAM(position);
     point.y = GET_Y_LPARAM(position);
-    ScreenToClient(hwnd, &point);
 
-    *ClientPoint = point;
+    if (ScreenToClient(WindowHandle, &point))
+    {
+        *ClientPoint = point;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+LRESULT PhTnSendMessage(
+    _In_ HWND WindowHandle,
+    _In_ ULONG WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    if (WindowMessage >= TNM_FIRST && WindowMessage <= TNM_LAST)
+    {
+        PVOID context;
+
+#ifdef DEBUG
+        RTL_ASSERT(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL));
+#endif
+
+        if (context = PhGetWindowContextEx(WindowHandle))
+        {
+            return PhTnpOnUserMessage(WindowHandle, context, WindowMessage, wParam, lParam);
+        }
+    }
+
+    return SendMessage(WindowHandle, WindowMessage, wParam, lParam);
 }

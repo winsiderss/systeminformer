@@ -333,6 +333,7 @@ typedef struct _PHP_PREVIOUS_MAIN_WINDOW_CONTEXT
     PPH_STRING WindowName;
 } PHP_PREVIOUS_MAIN_WINDOW_CONTEXT, *PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT;
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
     _In_ HWND WindowHandle,
     _In_ PVOID Context
@@ -391,6 +392,7 @@ static VOID PhForegroundPreviousInstance(
     HANDLE processHandle = NULL;
     HANDLE tokenHandle = NULL;
     PH_TOKEN_USER tokenUser;
+    ULONG sessionId = 0;
     ULONG attempts = 0;
 
     PhTraceFuncEnter("Foreground previous instance: %lu", HandleToUlong(ProcessId));
@@ -403,6 +405,10 @@ static VOID PhForegroundPreviousInstance(
         goto CleanupExit;
     if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId)))
         goto CleanupExit;
+    if (!NT_SUCCESS(PhGetProcessSessionId(processHandle, &sessionId)))
+        goto CleanupExit;
+    if (NtCurrentPeb()->SessionId != sessionId)
+        goto CleanupExit;
     if (!NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
         goto CleanupExit;
     if (!NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
@@ -414,8 +420,8 @@ static VOID PhForegroundPreviousInstance(
     do
     {
         PhEnumWindows(PhPreviousInstanceWindowEnumProc, &context);
-        PhDelayExecution(100);
-    } while (++attempts < 50);
+        PhDelayExecution(500);
+    } while (++attempts < 10);
 
 CleanupExit:
 
@@ -486,44 +492,32 @@ BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_ PVOID Context
     )
 {
-    static CONST PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"SiMutant_");
-    HANDLE objectHandle;
-    UNICODE_STRING objectName;
-    OBJECT_ATTRIBUTES objectAttributes;
     MUTANT_OWNER_INFORMATION objectInfo;
+    HANDLE objectHandle;
 
-    if (!PhStartsWithStringRef(Name, &objectNameSr, FALSE))
+    if (!PhStartsWithStringRef2(Name, L"SiMutant_", FALSE))
         return TRUE;
-    if (!PhStringRefToUnicodeString(Name, &objectName))
-        return TRUE;
 
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &objectName,
-        OBJ_CASE_INSENSITIVE,
-        RootDirectory,
-        NULL
-        );
-
-    if (!NT_SUCCESS(NtOpenMutant(
+    if (NT_SUCCESS(PhOpenMutant(
         &objectHandle,
         MUTANT_QUERY_STATE,
-        &objectAttributes
+        RootDirectory,
+        Name
         )))
     {
-        return TRUE;
-    }
+        if (NT_SUCCESS(PhGetMutantOwnerInformation(
+            objectHandle,
+            &objectInfo
+            )))
+        {
+            if (objectInfo.ClientId.UniqueProcess != NtCurrentProcessId())
+            {
+                PhForegroundPreviousInstance(objectInfo.ClientId.UniqueProcess);
+            }
+        }
 
-    if (NT_SUCCESS(PhGetMutantOwnerInformation(
-        objectHandle,
-        &objectInfo
-        )))
-    {
-        if (objectInfo.ClientId.UniqueProcess != NtCurrentProcessId())
-            PhForegroundPreviousInstance(objectInfo.ClientId.UniqueProcess);
+        NtClose(objectHandle);
     }
-
-    NtClose(objectHandle);
 
     return TRUE;
 }
@@ -532,7 +526,7 @@ VOID PhActivatePreviousInstance(
     VOID
     )
 {
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     //HANDLE fileHandle;
     //PPH_STRING applicationFileName;
 
@@ -744,13 +738,13 @@ VOID PhpCreateUnhandledExceptionCrashDump(
     PhDereferenceObject(directory);
 }
 
-ULONG CALLBACK PhpUnhandledExceptionCallback(
+LONG CALLBACK PhpUnhandledExceptionCallback(
     _In_ PEXCEPTION_POINTERS ExceptionInfo
     )
 {
     PPH_STRING errorMessage;
     PPH_STRING message;
-    INT result;
+    LONG result;
 
     // Let the debugger handle the exception. (dmex)
     if (PhIsDebuggerPresent())
@@ -759,7 +753,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
-    if (PhIsInteractiveUserSession())
+    if (NT_SUCCESS(PhIsInteractiveUserSession())
     {
         TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
         TASKDIALOG_BUTTON buttons[6] =

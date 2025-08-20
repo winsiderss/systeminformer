@@ -1084,17 +1084,22 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
 // private
 typedef struct _DYNAMIC_FUNCTION_TABLE DYNAMIC_FUNCTION_TABLE, *PDYNAMIC_FUNCTION_TABLE;
 
-// private
+/**
+ * The PROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION structure is used to manage dynamic function tables for a process.
+ */
 typedef struct _PROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION
 {
-    PDYNAMIC_FUNCTION_TABLE DynamicFunctionTable;
-    BOOLEAN Remove;
+    PDYNAMIC_FUNCTION_TABLE DynamicFunctionTable; // Pointer to the dynamic function table.
+    BOOLEAN Remove; // Indicates whether to remove (TRUE) or add (FALSE) the dynamic function table.
 } PROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION, *PPROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION;
 
+/**
+ * The PROCESS_KEEPALIVE_COUNT_INFORMATION structure contains information about the wake and no-wake counts for a process.
+ */
 typedef struct _PROCESS_KEEPALIVE_COUNT_INFORMATION
 {
-    ULONG WakeCount;
-    ULONG NoWakeCount;
+    ULONG WakeCount;    // The number of times the process has been awakened.
+    ULONG NoWakeCount;  // The number of times the process was not awakened when expected.
 } PROCESS_KEEPALIVE_COUNT_INFORMATION, *PPROCESS_KEEPALIVE_COUNT_INFORMATION;
 
 /**
@@ -1316,10 +1321,13 @@ typedef struct _POWER_THROTTLING_PROCESS_STATE
 #define WIN32K_SYSCALL_FILTER_STATE_ENABLE 0x1
 #define WIN32K_SYSCALL_FILTER_STATE_AUDIT 0x2
 
+/**
+ * The WIN32K_SYSCALL_FILTER structure is used to specify filtering options for Win32k system calls.
+ */
 typedef struct _WIN32K_SYSCALL_FILTER
 {
-    ULONG FilterState;
-    ULONG FilterSet;
+    ULONG FilterState; // The state of the Win32k syscall filter (e.g., enable, audit).
+    ULONG FilterSet;   // The set of Win32k syscalls to be filtered.
 } WIN32K_SYSCALL_FILTER, *PWIN32K_SYSCALL_FILTER;
 
 // private
@@ -1358,13 +1366,17 @@ typedef struct _PROCESS_ENERGY_TRACKING_STATE
     WCHAR Tag[64];
 } PROCESS_ENERGY_TRACKING_STATE, *PPROCESS_ENERGY_TRACKING_STATE;
 
+/**
+ * The MANAGE_WRITES_TO_EXECUTABLE_MEMORY structure controls write permissions to executable memory
+ * for processes and threads, and provides a signal for kernel write events.
+ */
 typedef struct _MANAGE_WRITES_TO_EXECUTABLE_MEMORY
 {
-    ULONG Version : 8;
-    ULONG ProcessEnableWriteExceptions : 1;
-    ULONG ThreadAllowWrites : 1;
-    ULONG Spare : 22;
-    PVOID KernelWriteToExecutableSignal; // 19H1
+    ULONG Version : 8;                         // The version of the structure.
+    ULONG ProcessEnableWriteExceptions : 1;    // Enables write exceptions for the process.
+    ULONG ThreadAllowWrites : 1;               // Allows the thread to write to executable memory.
+    ULONG Spare : 22;                          // Reserved for future use.
+    HANDLE KernelWriteToExecutableSignal;      // Pointer to kernel signal for write-to-executable events (19H1+).
 } MANAGE_WRITES_TO_EXECUTABLE_MEMORY, *PMANAGE_WRITES_TO_EXECUTABLE_MEMORY;
 
 #define POWER_THROTTLING_THREAD_CURRENT_VERSION 1
@@ -1388,13 +1400,17 @@ typedef struct _POWER_THROTTLING_THREAD_STATE
 #define PROCESS_READWRITEVM_LOGGING_ENABLE_READVM_V 1UL
 #define PROCESS_READWRITEVM_LOGGING_ENABLE_WRITEVM_V 2UL
 
+/**
+ * The PROCESS_READWRITEVM_LOGGING_INFORMATION structure provides flags to enable logging
+ * of read and write operations to a process's virtual memory.
+ */
 typedef union _PROCESS_READWRITEVM_LOGGING_INFORMATION
 {
     UCHAR Flags;
     struct
     {
-        UCHAR EnableReadVmLogging : 1;
-        UCHAR EnableWriteVmLogging : 1;
+        UCHAR EnableReadVmLogging : 1;  // Enable logging of read operations to virtual memory.
+        UCHAR EnableWriteVmLogging : 1; // Enable logging of write operations to virtual memory.
         UCHAR Unused : 6;
     };
 } PROCESS_READWRITEVM_LOGGING_INFORMATION, *PPROCESS_READWRITEVM_LOGGING_INFORMATION;
@@ -1419,19 +1435,29 @@ typedef struct _PROCESS_UPTIME_INFORMATION
     };
 } PROCESS_UPTIME_INFORMATION, *PPROCESS_UPTIME_INFORMATION;
 
+/**
+ * The PROCESS_SYSTEM_RESOURCE_MANAGEMENT union is used to specify system resource management flags for a process.
+ */
 typedef union _PROCESS_SYSTEM_RESOURCE_MANAGEMENT
 {
     ULONG Flags;
     struct
     {
-        ULONG Foreground : 1;
+        ULONG Foreground : 1; // Indicates if the process is a foreground process (1 = foreground, 0 = background).
         ULONG Reserved : 31;
     };
 } PROCESS_SYSTEM_RESOURCE_MANAGEMENT, *PPROCESS_SYSTEM_RESOURCE_MANAGEMENT;
 
+/**
+ * The PROCESS_SECURITY_DOMAIN_INFORMATION structure contains the security domain identifier for a process.
+ *
+ * This structure is used to query or set the security domain of a process, which can be used for isolation
+ * and security boundary purposes in Windows. The SecurityDomain field is a 64-bit value that uniquely
+ * identifies the security domain associated with the process.
+ */
 typedef struct _PROCESS_SECURITY_DOMAIN_INFORMATION
 {
-    ULONGLONG SecurityDomain;
+    ULONGLONG SecurityDomain; // The unique identifier of the process's security domain.
 } PROCESS_SECURITY_DOMAIN_INFORMATION, *PPROCESS_SECURITY_DOMAIN_INFORMATION;
 
 typedef struct _PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
@@ -1439,22 +1465,35 @@ typedef struct _PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
     HANDLE ProcessHandle;
 } PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION, *PPROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION;
 
+/**
+ * The PROCESS_LOGGING_INFORMATION structure provides flags to enable or disable logging
+ * for specific process and thread events, such as virtual memory access, suspend/resume,
+ * execution protection, and impersonation.
+ */
 typedef union _PROCESS_LOGGING_INFORMATION
 {
     ULONG Flags;
     struct
     {
-        ULONG EnableReadVmLogging : 1;
-        ULONG EnableWriteVmLogging : 1;
-        ULONG EnableProcessSuspendResumeLogging : 1;
-        ULONG EnableThreadSuspendResumeLogging : 1;
-        ULONG EnableLocalExecProtectVmLogging : 1;
-        ULONG EnableRemoteExecProtectVmLogging : 1;
-        ULONG EnableImpersonationLogging : 1;
+        ULONG EnableReadVmLogging : 1;                  // Enables logging of read operations to process virtual memory.
+        ULONG EnableWriteVmLogging : 1;                 // Enables logging of write operations to process virtual memory.
+        ULONG EnableProcessSuspendResumeLogging : 1;    // Enables logging of process suspend and resume events.
+        ULONG EnableThreadSuspendResumeLogging : 1;     // Enables logging of thread suspend and resume events.
+        ULONG EnableLocalExecProtectVmLogging : 1;      // Enables logging of local execution protection for virtual memory.
+        ULONG EnableRemoteExecProtectVmLogging : 1;     // Enables logging of remote execution protection for virtual memory.
+        ULONG EnableImpersonationLogging : 1;           // Enables logging of impersonation events.
         ULONG Reserved : 25;
     };
 } PROCESS_LOGGING_INFORMATION, *PPROCESS_LOGGING_INFORMATION;
 
+#define PROCESS_LEAP_SECOND_FLAG_ENABLE_SIXTY_SECOND 0x1
+#define PROCESS_LEAP_SECOND_VALID_FLAGS (PROCESS_LEAP_SECOND_INFO_FLAG_ENABLE_SIXTY_SECOND)
+
+/**
+ * The PROCESS_LEAP_SECOND_INFORMATION structure contains information about leap second adjustments for a process.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_leap_second_info
+ */
 typedef struct _PROCESS_LEAP_SECOND_INFORMATION
 {
     ULONG Flags;
@@ -1475,12 +1514,20 @@ typedef struct _PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION
     PVOID Ssp;
 } PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION, *PPROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION;
 
+/**
+ * The PROCESS_SYSCALL_PROVIDER_INFORMATION structure contains information about a system call provider
+ * and level for system call filtering or instrumentation.
+ */
 typedef struct _PROCESS_SYSCALL_PROVIDER_INFORMATION
 {
-    GUID ProviderId;
-    UCHAR Level;
+    GUID ProviderId; // The unique identifier of the system call provider.
+    UCHAR Level;     // The level or mode of the provider.
 } PROCESS_SYSCALL_PROVIDER_INFORMATION, *PPROCESS_SYSCALL_PROVIDER_INFORMATION;
 
+/**
+ * Contains dynamic enforced address ranges used by various features related to user-mode Hardware-enforced Stack Protection (HSP).
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-process_dynamic_enforced_address_range
+ */
 //typedef struct _PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE
 //{
 //    ULONG_PTR BaseAddress;
@@ -1557,20 +1604,18 @@ typedef struct _THREAD_BASIC_INFORMATION
     PTEB TebBaseAddress;        // The base address of the memory region containing the TEB structure. (NtCurrentTeb)
     CLIENT_ID ClientId;         // The process and thread identifier of the thread.
     KAFFINITY AffinityMask;     // The affinity mask of the thread. (deprecated) (SetThreadAffinityMask)
-    KPRIORITY Priority;
-    KPRIORITY BasePriority;
+    KPRIORITY Priority;         // The current priority of the thread. (GetThreadPriority)
+    KPRIORITY BasePriority;     // The current base priority of the thread determined by the thread priority and process priority class.
 } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
 
+/**
+ * The THREAD_LAST_SYSCALL_INFORMATION structure contains information about the last system call made by a thread.
+ */
 typedef struct _THREAD_LAST_SYSCALL_INFORMATION
 {
-    PVOID FirstArgument;
-    USHORT SystemCallNumber;
-#ifdef WIN64
-    USHORT Pad[0x3]; // since REDSTONE2
-#else
-    USHORT Pad[0x1]; // since REDSTONE2
-#endif
-    ULONG64 WaitTime;
+    PVOID FirstArgument;        // Pointer to the first argument of the last system call.
+    USHORT SystemCallNumber;    // The system call number of the last system call made by the thread.
+    ULONG64 WaitTime;           // The time spent waiting for the system call to complete, in milliseconds.
 } THREAD_LAST_SYSCALL_INFORMATION, *PTHREAD_LAST_SYSCALL_INFORMATION;
 
 /**
@@ -2022,7 +2067,9 @@ NtResumeProcess(
 // Macros
 //
 
-#define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
+inline HANDLE NtCurrentProcess() { return (HANDLE)((LONG_PTR)-1); }
+
+//#define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
 #define ZwCurrentProcess() NtCurrentProcess()
 #define NtCurrentThread() ((HANDLE)(LONG_PTR)-2)
 #define ZwCurrentThread() NtCurrentThread()
@@ -2044,7 +2091,7 @@ EXTERN_C CONST IMAGE_DOS_HEADER __ImageBase;
 #define NtCurrentImageBase() ((PVOID)((PIMAGE_DOS_HEADER)&__ImageBase))
 
 #define NtCurrentSessionId() (RtlGetActiveConsoleId()) // USER_SHARED_DATA->ActiveConsoleId
-#define NtCurrentLogonId() (NtCurrentPeb()->LogonId)
+//#define NtCurrentLogonId() (NtCurrentPeb()->LogonId)
 
 /**
  * Retrieves information about the specified process.
@@ -3945,6 +3992,43 @@ PssNtQuerySnapshot(
     _Out_writes_bytes_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength
     );
+
+// rev
+typedef struct _PSSNT_WALK_MARKER_INFO
+{
+    ULONG Signature; // Win32: 0x4D575350 // 'PSSM'
+    HANDLE SectionHandle;
+} PSSNT_WALK_MARKER_INFO, *PNPSSNT_WALK_MARKER_INFO;
+    
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+PssNtWalkSnapshot(
+    _In_ HANDLE SnapshotHandle,
+    _In_ ULONG InformationClass,
+    _In_ HANDLE WalkMarkerHandle,
+    _Out_writes_bytes_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+PssNtFreeWalkMarker(
+    _Inout_ PHANDLE WalkMarkerHandle
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+PssNtValidateDescriptor(
+    _In_ HANDLE SnapshotHandle,
+    _In_opt_ PVOID ExceptionAddress
+    );
+
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 
 // rev

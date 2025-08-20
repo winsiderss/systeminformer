@@ -427,8 +427,6 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     PhInitializeCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, PhStatisticsSampleCount);
     //PhInitializeCircularBuffer_SIZE_T(&processItem->WorkingSetHistory, PhStatisticsSampleCount);
 
-    PhEmCallObjectOperation(EmProcessItemType, processItem, EmObjectCreate);
-
     //
     // Initialize ImageCoherencyStatus to STATUS_PENDING this notes that the
     // image coherency hasn't been done yet. This prevents the process items
@@ -436,6 +434,13 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     // the analysis runs. See: PhpShouldShowImageCoherency
     //
     processItem->ImageCoherencyStatus = STATUS_PENDING;
+
+    //
+    // Notify object operations of object creation. Note: This must be the last
+    // call after all other methods, otherwise extensions that rely on the
+    // object being initialized might crash or have undefined behavior. (dmex)
+    //
+    PhEmCallObjectOperation(EmProcessItemType, processItem, EmObjectCreate);
 
     return processItem;
 }

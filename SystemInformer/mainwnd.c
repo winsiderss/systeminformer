@@ -44,6 +44,7 @@ HWND PhMainWndHandle = NULL;
 BOOLEAN PhMainWndExiting = FALSE;
 BOOLEAN PhMainWndEarlyExit = FALSE;
 WNDPROC PhMainWndProc = PhMwpWndProc;
+KPH_LEVEL PhMainWndLevel = KphLevelNone;
 
 PH_PROVIDER_REGISTRATION PhMwpProcessProviderRegistration;
 PH_PROVIDER_REGISTRATION PhMwpServiceProviderRegistration;
@@ -66,7 +67,7 @@ static LONG LayoutBorderSize = 0;
 static HWND TabControlHandle = NULL;
 static PPH_LIST PageList = NULL;
 static PPH_MAIN_TAB_PAGE CurrentPage = NULL;
-static INT OldTabIndex = 0;
+static LONG OldTabIndex = 0;
 
 static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
@@ -281,7 +282,7 @@ RTL_ATOM PhMwpInitializeWindowClass(
 }
 
 PPH_STRING PhMwpInitializeWindowTitle(
-    VOID
+    _In_ ULONG KphLevel
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -304,7 +305,7 @@ PPH_STRING PhMwpInitializeWindowTitle(
         PhDereferenceObject(currentUserName);
     }
 
-    switch (KphLevelEx(FALSE))
+    switch (KphLevel)
     {
     case KphLevelMax:
         PhAppendStringBuilder2(&stringBuilder, L"++");
@@ -538,18 +539,11 @@ VOID PhMwpInitializeControls(
     CurrentPage = PageList->Items[0];
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhMwpLoadStage1Worker(
     _In_ PVOID Parameter
     )
 {
-    // Initialize the window title. (handled by PhMwpOnSetFocus) (dmex)
-    //PPH_STRING windowTitle;
-    //if (windowTitle = PhMwpInitializeWindowTitle())
-    //{
-    //    PhSetWindowText((HWND)Parameter, PhGetString(windowTitle));
-    //    PhDereferenceObject(windowTitle);
-    //}
-
     // If the update interval is too large, the user might have to wait a while before seeing some types of
     // process-related data. We force an update by boosting the provider shortly after the program
     // starts up to make things appear more quickly.
@@ -583,6 +577,19 @@ NTSTATUS PhMwpLoadStage1Worker(
     // such that we can handle notifications and dispatch them to other plug-ins. Here we initialize
     // only the device notifications. (jxy-s).
     PhMwpInitializeDeviceNotifications();
+
+    // Delayed initialize window title (dmex)
+    {
+        PPH_STRING windowTitle;
+
+        PhMainWndLevel = KphLevelEx(FALSE);
+
+        if (windowTitle = PhMwpInitializeWindowTitle(PhMainWndLevel))
+        {
+            PhSetWindowText((HWND)Parameter, PhGetString(windowTitle));
+            PhDereferenceObject(windowTitle);
+        }
+    }
 
     DelayedLoadCompleted = TRUE;
     //PostMessage((HWND)Parameter, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
@@ -2556,14 +2563,30 @@ VOID PhMwpOnSetFocus(
 {
     PPH_STRING windowTitle;
 
-    if (windowTitle = PhMwpInitializeWindowTitle())
+    // Update the window status.
+
     {
-        PhSetWindowText(WindowHandle, PhGetString(windowTitle));
-        PhDereferenceObject(windowTitle);
+        KPH_LEVEL status;
+        PPH_STRING windowTitle;
+
+        if (DelayedLoadCompleted && PhMainWndLevel != (status = KphLevelEx(FALSE)))
+        {
+            PhMainWndLevel = status;
+
+            if (windowTitle = PhMwpInitializeWindowTitle(PhMainWndLevel))
+            {
+                PhSetWindowText(WindowHandle, PhGetString(windowTitle));
+                PhDereferenceObject(windowTitle);
+            }
+        }
     }
 
+    // Update the window focus.
+
     if (CurrentPage->WindowHandle)
+    {
         SetFocus(CurrentPage->WindowHandle);
+    }
 }
 
 _Success_(return)
@@ -3332,7 +3355,7 @@ VOID PhMwpInitializeMainMenu(
 
     // Initialize the submenu.
 
-    for (INT i = 0; i < RTL_NUMBER_OF(SubMenuHandles); i++)
+    for (LONG i = 0; i < RTL_NUMBER_OF(SubMenuHandles); i++)
     {
         SubMenuHandles[i] = GetSubMenu(menuHandle, i);
     }
@@ -3958,7 +3981,7 @@ VOID PhMwpSelectionChangedTabControl(
     _In_ LONG OldIndex
     )
 {
-    INT selectedIndex;
+    LONG selectedIndex;
     HDWP deferHandle;
     ULONG i;
 
@@ -4055,7 +4078,7 @@ VOID PhMwpSelectPage(
     _In_ ULONG Index
     )
 {
-    INT oldIndex;
+    LONG oldIndex;
 
     oldIndex = TabCtrl_GetCurSel(TabControlHandle);
     TabCtrl_SetCurSel(TabControlHandle, Index);

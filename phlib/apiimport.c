@@ -133,13 +133,13 @@ PVOID PhpImportProcedureNative(
  * @param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT(Module, Name) \
-__typeof__(&(Name)) Name##_Import(VOID) \
+typeof(&(Name)) Name##_Import(VOID) \
 { \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (__typeof__(&(Name)))PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
+    return (typeof(&(Name)))PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
 /**
@@ -149,13 +149,13 @@ __typeof__(&(Name)) Name##_Import(VOID) \
  * @param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT_NATIVE(Module, Name) \
-__typeof__(&(Name)) Name##_Import(VOID) \
+typeof(&(Name)) Name##_Import(VOID) \
 { \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (__typeof__(&(Name)))PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
+    return (typeof(&(Name)))PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);

@@ -90,9 +90,7 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (processNode->ProcessItem->Protection.Level ||
-        processNode->ProcessItem->IsSecureProcess ||
-        processNode->ProcessItem->IsProtectedProcess)
+    if (processNode->ProcessItem->ProtectionString)
     {
         if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->ProtectionString->sr))
             return TRUE;

@@ -634,7 +634,7 @@ BOOLEAN EtQueryDeviceProperties(
     );
 
 PPH_STRING EtGetNodeEngineTypeString(
-    _In_ D3DKMT_NODEMETADATA NodeMetaData
+    _In_ D3DKMT_NODEMETADATA* NodeMetaData
     );
 
 BOOLEAN EtIsSoftwareDevice(

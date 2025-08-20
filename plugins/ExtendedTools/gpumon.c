@@ -151,7 +151,7 @@ PETP_GPU_ADAPTER EtpAddGpuAdapter(
                 sizeof(D3DKMT_NODEMETADATA)
                 )))
             {
-                PhAddItemList(adapter->NodeNameList, EtGetNodeEngineTypeString(metaDataInfo));
+                PhAddItemList(adapter->NodeNameList, EtGetNodeEngineTypeString(&metaDataInfo));
             }
             else
             {

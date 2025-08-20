@@ -152,7 +152,7 @@ PETP_NPU_ADAPTER EtpAddNpuAdapter(
                 sizeof(D3DKMT_NODEMETADATA)
                 )))
             {
-                PhAddItemList(adapter->NodeNameList, EtGetNodeEngineTypeString(metaDataInfo));
+                PhAddItemList(adapter->NodeNameList, EtGetNodeEngineTypeString(&metaDataInfo));
             }
             else
             {

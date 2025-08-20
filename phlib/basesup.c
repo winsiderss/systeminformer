@@ -444,6 +444,7 @@ NTSTATUS PhCreateThread2(
     return status;
 }
 
+_Function_class_(TP_CALLBACK_ROUTINE)
 VOID PhpBaseThreadQueueStart(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _In_ _Frees_ptr_ PVOID Context
@@ -967,10 +968,10 @@ PVOID PhReAllocateSafe(
     }
     if (Memory)
     {
-        return RtlReAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Memory, Size);
+        return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
     }
 
-    return RtlAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Size);
+    return RtlAllocateHeap(PhHeapHandle, 0, Size);
 #endif
 }
 

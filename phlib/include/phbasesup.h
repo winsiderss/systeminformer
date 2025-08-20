@@ -233,6 +233,7 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
+_Success_(return != NULL)
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -246,6 +247,7 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
+_Success_(return != NULL)
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -266,7 +268,6 @@ PhFree(
 PHLIBAPI
 _May_raise_
 _Post_writable_byte_size_(Size)
-_Success_(return != NULL)
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -4805,7 +4806,7 @@ PhInitFormatI64XPadZeroes(
     Format->Type = UInt64FormatType | FormatUseRadix | FormatPadZeros;
     Format->u.UInt64 = UInt64;
     Format->Radix = 16;
-    Format->Width = sizeof(ULONG64) * 2;
+    Format->Width = Width;
 }
 
 FORCEINLINE

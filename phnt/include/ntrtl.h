@@ -274,10 +274,12 @@ RemoveTailList(
     Entry = ListHead->Blink;
     PrevEntry = Entry->Blink;
 
+#if !defined(NO_LIST_ENTRY_CHECKS)
     if ((Entry->Flink != ListHead) || (PrevEntry->Flink != Entry)) 
     {
         RtlFatalListEntryError((PVOID)PrevEntry, (PVOID)Entry, (PVOID)ListHead);
     }
+#endif
 
     ListHead->Blink = PrevEntry;
     PrevEntry->Flink = ListHead;
@@ -297,10 +299,12 @@ InsertTailList(
 
     PrevEntry = ListHead->Blink;
 
+#if !defined(NO_LIST_ENTRY_CHECKS)
     if (PrevEntry->Flink != ListHead) 
     {
         RtlFatalListEntryError((PVOID)PrevEntry, (PVOID)ListHead, (PVOID)PrevEntry->Flink);
     }
+#endif
 
     Entry->Flink = ListHead;
     Entry->Blink = PrevEntry;
@@ -320,12 +324,14 @@ InsertHeadList(
 
     NextEntry = ListHead->Flink;
 
+#if !defined(NO_LIST_ENTRY_CHECKS)
     RtlCheckListEntry(ListHead);
 
     if (NextEntry->Blink != ListHead) 
     {
         RtlFatalListEntryError((PVOID)ListHead, (PVOID)NextEntry, (PVOID)NextEntry->Blink);
     }
+#endif
 
     Entry->Flink = NextEntry;
     Entry->Blink = ListHead;
@@ -343,8 +349,10 @@ AppendTailList(
 {
     PLIST_ENTRY ListEnd = ListHead->Blink;
 
+#if !defined(NO_LIST_ENTRY_CHECKS)
     RtlCheckListEntry(ListHead);
     RtlCheckListEntry(ListToAppend);
+#endif
 
     ListHead->Blink->Flink = ListToAppend;
     ListHead->Blink = ListToAppend->Blink;
@@ -4143,6 +4151,16 @@ RtlLocateExtendedFeature(
     );
 
 NTSYSAPI
+PVOID
+NTAPI
+RtlLocateExtendedFeature2(
+    _In_ PCONTEXT_EX ContextEx,
+    _In_ ULONG FeatureId,
+    _In_ XSTATE_CONFIGURATION XState,
+    _Out_opt_ PULONG Length
+    );
+
+NTSYSAPI
 PCONTEXT
 NTAPI
 RtlLocateLegacyContext(
@@ -4762,6 +4780,38 @@ RtlCompareMemoryUlong(
     _In_ ULONG Pattern
     );
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCopyMappedMemory(
+    _Out_writes_bytes_all_(Length) PVOID Destination,
+    _In_reads_bytes_(Length) PVOID Source,
+    _In_ SIZE_T Length
+    );
+
+#if defined(_M_AMD64) || defined(_M_ARM64)
+NTSYSAPI
+VOID
+NTAPI
+RtlCopyMemoryNonTemporal(
+   _Out_writes_bytes_all_(Length) VOID UNALIGNED *Destination,
+   _In_reads_bytes_(Length) CONST VOID UNALIGNED *Source,
+   _In_ SIZE_T Length
+   );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlFillMemoryNonTemporal(
+   _Out_writes_bytes_all_(Length) VOID UNALIGNED *Destination,
+   _In_ SIZE_T Length,
+   _In_ CONST UCHAR Value
+   );
+#else
+#define RtlCopyMemoryNonTemporal RtlCopyMemory
+#define RtlFillMemoryNonTemporal RtlFillMemory
+#endif
+    
 #if defined(_M_AMD64)
 FORCEINLINE
 VOID
@@ -7333,11 +7383,29 @@ typedef IN_ADDR const *PCIN_ADDR;
 typedef IN6_ADDR const *PCIN6_ADDR;
 
 NTSYSAPI
+PSTR
+NTAPI
+RtlIpv4AddressToStringA(
+    _In_ PCIN_ADDR Address,
+    _Out_writes_(16) PSTR AddressString
+    );
+
+NTSYSAPI
 PWSTR
 NTAPI
 RtlIpv4AddressToStringW(
     _In_ PCIN_ADDR Address,
     _Out_writes_(16) PWSTR AddressString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIpv4AddressToStringExA(
+    _In_ PCIN_ADDR Address,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PSTR AddressString,
+    _Inout_ PULONG AddressStringLength
     );
 
 NTSYSAPI
@@ -7351,11 +7419,30 @@ RtlIpv4AddressToStringExW(
     );
 
 NTSYSAPI
+PSTR
+NTAPI
+RtlIpv6AddressToStringA(
+    _In_ PCIN6_ADDR Address,
+    _Out_writes_(46) PSTR AddressString
+    );
+
+NTSYSAPI
 PWSTR
 NTAPI
 RtlIpv6AddressToStringW(
     _In_ PCIN6_ADDR Address,
     _Out_writes_(46) PWSTR AddressString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIpv6AddressToStringExA(
+    _In_ PCIN6_ADDR Address,
+    _In_ ULONG ScopeId,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PSTR AddressString,
+    _Inout_ PULONG AddressStringLength
     );
 
 NTSYSAPI
@@ -7372,11 +7459,31 @@ RtlIpv6AddressToStringExW(
 NTSYSAPI
 NTSTATUS
 NTAPI
+RtlIpv4StringToAddressA(
+    _In_ PCSTR AddressString,
+    _In_ BOOLEAN Strict,
+    _Out_ PCSTR *Terminator,
+    _Out_ PIN_ADDR Address
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
 RtlIpv4StringToAddressW(
     _In_ PCWSTR AddressString,
     _In_ BOOLEAN Strict,
-    _Out_ LPCWSTR *Terminator,
+    _Out_ PCWSTR *Terminator,
     _Out_ PIN_ADDR Address
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIpv4StringToAddressExA(
+    _In_ PCSTR AddressString,
+    _In_ BOOLEAN Strict,
+    _Out_ PIN_ADDR Address,
+    _Out_ PUSHORT Port
     );
 
 NTSYSAPI
@@ -7392,10 +7499,29 @@ RtlIpv4StringToAddressExW(
 NTSYSAPI
 NTSTATUS
 NTAPI
+RtlIpv6StringToAddressA(
+    _In_ PCSTR AddressString,
+    _Out_ PCSTR *Terminator,
+    _Out_ PIN6_ADDR Address
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
 RtlIpv6StringToAddressW(
     _In_ PCWSTR AddressString,
     _Out_ PCWSTR *Terminator,
     _Out_ PIN6_ADDR Address
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIpv6StringToAddressExA(
+    _In_ PCSTR AddressString,
+    _Out_ PIN6_ADDR Address,
+    _Out_ PULONG ScopeId,
+    _Out_ PUSHORT Port
     );
 
 NTSYSAPI
@@ -9127,6 +9253,21 @@ RtlAddProcessTrustLabelAce(
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAccessFilterAce(
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG AceFlags, // TRUST_PROTECTED_FILTER_ACE_FLAG
+    _In_ PSID AccessFilterSid,
+    _In_ UCHAR AceType, // SYSTEM_FILTERING_ACE_TYPE
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PVOID Buffer, // SYSTEM_ACCESS_FILTER_ACE
+    _In_ USHORT BufferLength
+    );
+
 //
 // Named pipes
 //
@@ -9294,7 +9435,9 @@ RtlCreateAndSetSD(
     _Out_ PSECURITY_DESCRIPTOR* NewSecurityDescriptor
     );
 
+//
 // Misc. security
+//
 
 NTSYSAPI
 VOID
@@ -9389,6 +9532,18 @@ RtlQueryValidationRunlevel(
     );
 
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlNewSecurityGrantedAccess(
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PPRIVILEGE_SET NewPrivileges,
+    _Inout_ PULONG Length, 
+    _In_opt_ HANDLE TokenHandle,
+    _In_ PGENERIC_MAPPING GenericMapping,   
+    _Out_ PACCESS_MASK RemainingDesiredAccess
+    );
 
 //
 // Private namespaces
@@ -9558,6 +9713,18 @@ BOOLEAN
 NTAPI
 RtlGetNtProductType(
     _Out_ PNT_PRODUCT_TYPE NtProductType
+    );
+
+// private
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlGetProductInfo(
+    _In_ ULONG OSMajorVersion,
+    _In_ ULONG OSMinorVersion,
+    _In_ ULONG SpMajorVersion,
+    _In_ ULONG SpMinorVersion,
+    _Out_ PULONG ReturnedProductType
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
@@ -11595,8 +11762,8 @@ NTAPI
 RtlGetSystemBootStatus(
     _In_ RTL_BSD_ITEM_TYPE BootStatusInformationClass,
     _Out_ PVOID DataBuffer,
-    _In_ ULONG DataLength,
-    _Out_opt_ PULONG ReturnLength
+    _In_ ULONG DataLength
+    //_Out_opt_ PULONG ReturnLength
     );
 
 // rev
@@ -11606,8 +11773,8 @@ NTAPI
 RtlSetSystemBootStatus(
     _In_ RTL_BSD_ITEM_TYPE BootStatusInformationClass,
     _In_ PVOID DataBuffer,
-    _In_ ULONG DataLength,
-    _Out_opt_ PULONG ReturnLength
+    _In_ ULONG DataLength
+    //_Out_opt_ PULONG ReturnLength
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
@@ -12059,6 +12226,14 @@ RtlNotifyFeatureToggleUsage(
     _In_ ULONG Flags
     );
 
+// rev
+NTSYSAPI
+ULONG
+NTAPI
+RtlGetFeatureTogglesChangeToken(
+    VOID
+    );
+
 //
 // Run Once
 //
@@ -12216,6 +12391,15 @@ RtlWnfDllUnloadCallback(
     );
 
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10
+
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
+NTSYSAPI
+ULONG_PTR
+NTAPI
+RtlGetReturnAddressHijackTarget (
+    VOID
+    );
+#endif
 
 #define COPY_FILE_CHUNK_DUPLICATE_EXTENTS 0x00000001L // 24H2
 #define VALID_COPY_FILE_CHUNK_FLAGS (COPY_FILE_CHUNK_DUPLICATE_EXTENTS)

@@ -531,23 +531,23 @@ NTSTATUS TaskbarIconUpdateThread(
     );
 
 HICON PhUpdateIconCpuHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 HICON PhUpdateIconIoHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 HICON PhUpdateIconCommitHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 HICON PhUpdateIconPhysicalHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 HICON PhUpdateIconCpuUsage(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 #endif

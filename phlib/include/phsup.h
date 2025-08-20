@@ -121,7 +121,7 @@
 #define UInt32Add32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) + ((unsigned int)(b)))) // Avoids warning C26451 (dmex)
 #define UInt32Sub32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) - ((unsigned int)(b))))
 #define UInt32Div32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) / ((unsigned int)(b))))
-#define UInt32Mul32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) / ((unsigned int)(b))))
+#define UInt32Mul32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) * ((unsigned int)(b))))
 #else
 #define UInt32Add32To64(a, b) (((unsigned __int64)((unsigned int)(a))) + ((unsigned __int64)((unsigned int)(b)))) // from UInt32x32To64 (dmex)
 #define UInt32Sub32To64(a, b) (((unsigned __int64)((unsigned int)(a))) - ((unsigned __int64)((unsigned int)(b))))

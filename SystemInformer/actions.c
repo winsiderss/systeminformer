@@ -1374,6 +1374,7 @@ BOOLEAN PhIsDangerousProcess(
     return FALSE;
 }
 
+#if defined(PH_TS_IS_SYSTEM_PROCESS)
 typedef struct _PH_IS_SYSTEM_PROCESS_CONTEXT
 {
     PPH_STRING BaseName;
@@ -1427,7 +1428,7 @@ BOOLEAN PhIsTerminalServerSystemProcess(
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
         KEY_READ,
-        PH_KEY_CURRENT_USER,
+        PH_KEY_LOCAL_MACHINE,
         &keyName,
         0
         )))
@@ -1457,6 +1458,7 @@ BOOLEAN PhIsTerminalServerSystemProcess(
     PhDereferenceObject(fileName);
     return FALSE;
 }
+#endif
 
 /**
  * Checks if the user wants to proceed with an operation.

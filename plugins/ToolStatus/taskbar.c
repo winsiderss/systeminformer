@@ -288,7 +288,7 @@ HICON PhBitmapToIcon(
 }
 
 HICON PhUpdateIconCpuHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -325,9 +325,9 @@ HICON PhUpdateIconCpuHistory(
     if (!(lineData2 = _malloca(maxDataCount * sizeof(FLOAT))))
         return NULL;
 
-    lineDataCount = min(maxDataCount, Statistics.CpuKernelHistory->Count);
-    PhCopyCircularBuffer_FLOAT(Statistics.CpuKernelHistory, lineData1, lineDataCount);
-    PhCopyCircularBuffer_FLOAT(Statistics.CpuUserHistory, lineData2, lineDataCount);
+    lineDataCount = min(maxDataCount, Statistics->CpuKernelHistory->Count);
+    PhCopyCircularBuffer_FLOAT(Statistics->CpuKernelHistory, lineData1, lineDataCount);
+    PhCopyCircularBuffer_FLOAT(Statistics->CpuUserHistory, lineData2, lineDataCount);
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
@@ -348,7 +348,7 @@ HICON PhUpdateIconCpuHistory(
 }
 
 HICON PhUpdateIconIoHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -387,14 +387,14 @@ HICON PhUpdateIconIoHistory(
     if (!(lineData2 = _malloca(maxDataCount * sizeof(FLOAT))))
         return NULL;
 
-    lineDataCount = min(maxDataCount, Statistics.IoReadHistory->Count);
+    lineDataCount = min(maxDataCount, Statistics->IoReadHistory->Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
 
     for (i = 0; i < lineDataCount; i++)
     {
-        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics.IoReadHistory, i)
-                     + (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics.IoOtherHistory, i);
-        lineData2[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics.IoWriteHistory, i);
+        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics->IoReadHistory, i)
+                     + (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics->IoOtherHistory, i);
+        lineData2[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics->IoWriteHistory, i);
 
         if (max < lineData1[i] + lineData2[i])
             max = lineData1[i] + lineData2[i];
@@ -422,7 +422,7 @@ HICON PhUpdateIconIoHistory(
 }
 
 HICON PhUpdateIconCommitHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -457,12 +457,12 @@ HICON PhUpdateIconCommitHistory(
     if (!(lineData1 = _malloca(maxDataCount * sizeof(FLOAT))))
         return NULL;
 
-    lineDataCount = min(maxDataCount, Statistics.CommitHistory->Count);
+    lineDataCount = min(maxDataCount, Statistics->CommitHistory->Count);
 
     for (i = 0; i < lineDataCount; i++)
-        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(Statistics.CommitHistory, i);
+        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(Statistics->CommitHistory, i);
 
-    PhDivideSinglesBySingle(lineData1, (FLOAT)Statistics.Performance->CommitLimit, lineDataCount);
+    PhDivideSinglesBySingle(lineData1, (FLOAT)Statistics->Performance->CommitLimit, lineDataCount);
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
@@ -479,7 +479,7 @@ HICON PhUpdateIconCommitHistory(
 }
 
 HICON PhUpdateIconPhysicalHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -514,10 +514,10 @@ HICON PhUpdateIconPhysicalHistory(
     if (!(lineData1 = _malloca(maxDataCount * sizeof(FLOAT))))
         return NULL;
 
-    lineDataCount = min(maxDataCount, Statistics.CommitHistory->Count);
+    lineDataCount = min(maxDataCount, Statistics->CommitHistory->Count);
 
     for (i = 0; i < lineDataCount; i++)
-        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(Statistics.PhysicalHistory, i);
+        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(Statistics->PhysicalHistory, i);
 
     PhDivideSinglesBySingle(lineData1, (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages, lineDataCount);
 
@@ -536,7 +536,7 @@ HICON PhUpdateIconPhysicalHistory(
 }
 
 HICON PhUpdateIconCpuUsage(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
     ULONG width;
@@ -556,8 +556,8 @@ HICON PhUpdateIconCpuUsage(
         COLORREF uColor = PhGetIntegerSetting(L"ColorCpuUser");
         COLORREF kbColor = PhHalveColorBrightness(kColor);
         COLORREF ubColor = PhHalveColorBrightness(uColor);
-        FLOAT k = Statistics.CpuKernelUsage;
-        FLOAT u = Statistics.CpuUserUsage;
+        FLOAT k = Statistics->CpuKernelUsage;
+        FLOAT u = Statistics->CpuUserUsage;
         LONG kl = (LONG)(k * height);
         LONG ul = (LONG)(u * height);
         RECT rect;

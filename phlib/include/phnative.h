@@ -45,29 +45,37 @@ PhIsNullOrInvalidHandle(
 
 // General object-related function types
 
-typedef NTSTATUS (NTAPI *PPH_OPEN_OBJECT)(
+typedef _Function_class_(PH_OPEN_OBJECT)
+NTSTATUS NTAPI PH_OPEN_OBJECT(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PVOID Context
     );
+typedef PH_OPEN_OBJECT* PPH_OPEN_OBJECT;
 
-typedef NTSTATUS (NTAPI *PPH_CLOSE_OBJECT)(
+typedef _Function_class_(PH_CLOSE_OBJECT)
+NTSTATUS NTAPI PH_CLOSE_OBJECT(
     _In_ HANDLE Handle,
     _In_ BOOLEAN Release,
     _In_opt_ PVOID Context
     );
+typedef PH_CLOSE_OBJECT* PPH_CLOSE_OBJECT;
 
-typedef NTSTATUS (NTAPI *PPH_GET_OBJECT_SECURITY)(
+typedef _Function_class_(PH_GET_OBJECT_SECURITY)
+NTSTATUS NTAPI PH_GET_OBJECT_SECURITY(
     _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_opt_ PVOID Context
     );
+typedef PH_GET_OBJECT_SECURITY* PPH_GET_OBJECT_SECURITY;
 
-typedef NTSTATUS (NTAPI *PPH_SET_OBJECT_SECURITY)(
+typedef _Function_class_(PH_SET_OBJECT_SECURITY)
+NTSTATUS NTAPI PH_SET_OBJECT_SECURITY(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_opt_ PVOID Context
     );
+typedef PH_SET_OBJECT_SECURITY* PPH_SET_OBJECT_SECURITY;
 
 typedef struct _PH_TOKEN_ATTRIBUTES
 {
