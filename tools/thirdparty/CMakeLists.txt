@@ -75,6 +75,7 @@ set(SOURCES_PCRE
     "pcre/pcre2_chartables.c"
     "pcre/pcre2_chkdint.c"
     "pcre/pcre2_compile.c"
+    "pcre/pcre2_compile_class.c"
     "pcre/pcre2_chkdint.c"
     "pcre/pcre2_config.c"
     "pcre/pcre2_context.c"
