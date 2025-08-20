@@ -73,7 +73,9 @@ source_group("Mini-XML\\Headers" FILES ${HEADERS_MINI_XML})
 set(SOURCES_PCRE
     "pcre/pcre2_auto_possess.c"
     "pcre/pcre2_chartables.c"
+    "pcre/pcre2_chkdint.c"
     "pcre/pcre2_compile.c"
+    "pcre/pcre2_chkdint.c"
     "pcre/pcre2_config.c"
     "pcre/pcre2_context.c"
     "pcre/pcre2_convert.c"
@@ -96,6 +98,7 @@ set(SOURCES_PCRE
     "pcre/pcre2_substring.c"
     "pcre/pcre2_tables.c"
     "pcre/pcre2_ucd.c"
+    "pcre/pcre2_ucptables.c"
     "pcre/pcre2_valid_utf.c"
     "pcre/pcre2_xclass.c"
     "pcre/pcre2posix.c"
@@ -109,6 +112,8 @@ set(HEADERS_PCRE
     "pcre/pcre2_intmodedep.h"
     "pcre/pcre2_ucp.h"
     "pcre/pcre2posix.h"
+    "pcre/pcre2_compile.h"
+    "pcre/pcre2_util.h"
 )
 source_group("PCRE\\Headers" FILES ${HEADERS_PCRE})
 
@@ -144,6 +149,13 @@ source_group("md5" FILES ${SOURCES_MD5})
 set(SOURCES_MINIZ
     "miniz/miniz.c"
     "miniz/miniz.h"
+    "miniz/miniz_tdef.c"
+    "miniz/miniz_tinfl.c"
+    "miniz/miniz_zip.c"
+    "miniz/miniz_common.h"
+    "miniz/miniz_tdef.h"
+    "miniz/miniz_tinfl.h"
+    "miniz/miniz_zip.h"
 )
 source_group("miniz" FILES ${SOURCES_MINIZ})
 
