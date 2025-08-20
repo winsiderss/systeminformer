@@ -1,6 +1,0 @@
-{
-	"image": "mcr.microsoft.com/devcontainers/universal:2",
-	"features": {
-		"ghcr.io/lee-orr/rusty-dev-containers/rust_windows_msvc:0": {}
-	}
-}
