@@ -1061,16 +1061,27 @@ VOID PhDeselectAllServiceNodes(
     TreeNew_DeselectRange(ServiceTreeListHandle, 0, -1);
 }
 
-VOID PhSelectAndEnsureVisibleServiceNode(
+BOOLEAN PhSelectAndEnsureVisibleServiceNode(
     _In_ PPH_SERVICE_NODE ServiceNode
     )
 {
     PhDeselectAllServiceNodes();
 
-    if (!ServiceNode->Node.Visible)
-        return;
-
-    TreeNew_FocusMarkSelectNode(ServiceTreeListHandle, &ServiceNode->Node);
+    if (ServiceNode->Node.Visible)
+    {
+        TreeNew_FocusMarkSelectNode(ServiceTreeListHandle, &ServiceNode->Node);
+        return TRUE;
+    }
+    else
+    {
+        PhShowInformation2(
+            PhMainWndHandle,
+            L"Unable to perform the operation.",
+            L"%s",
+            L"This node cannot be displayed because it is currently hidden by your active filter settings or preferences."
+            );
+        return FALSE;
+    }
 }
 
 VOID PhCopyServiceList(

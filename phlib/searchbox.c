@@ -599,7 +599,14 @@ BOOLEAN PhpSearchUpdateText(
     //    return FALSE;
     //}
 
-    if (!PhGetSearchTextToBuffer(WindowHandle, Context, searchboxTextBuffer, RTL_NUMBER_OF(searchboxTextBuffer), &searchboxTextBufferLength))
+    if (!PhGetSearchTextToBuffer(
+        WindowHandle,
+        Context,
+        searchboxTextBuffer,
+        RTL_NUMBER_OF(searchboxTextBuffer),
+        &searchboxTextBufferLength
+        ))
+    {
         return FALSE;
 
     newSearchboxText.Buffer = searchboxTextBuffer;

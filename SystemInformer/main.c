@@ -485,6 +485,7 @@ VOID PhInitializePreviousInstance(
     }
 }
 
+_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
 BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,

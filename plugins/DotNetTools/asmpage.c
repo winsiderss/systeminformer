@@ -1148,8 +1148,7 @@ PPH_STRING DnCreateStringSafe(
         WCHAR alignedBuffer[0x800];
 
         // Address is not aligned, use memcpy to access the string.
-
-        while (UnalignedString[alignedLength] != UNICODE_NULL && alignedLength < RTL_NUMBER_OF(alignedBuffer) - sizeof(UNICODE_NULL))
+        while (UnalignedString[alignedLength] != UNICODE_NULL && alignedLength < RTL_NUMBER_OF(alignedBuffer) - 1)
         {
             alignedLength++;
         }
@@ -1612,6 +1611,7 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
     return Context->TraceResult;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS DotNetTraceQueryThreadStart(
     _In_ PVOID Parameter
     )
@@ -1686,6 +1686,7 @@ NTSTATUS DotNetTraceQueryThreadStart(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS DotNetSosTraceQueryThreadStart(
     _In_ PASMPAGE_QUERY_CONTEXT Context
     )
@@ -1819,6 +1820,7 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID DotNetQueryContextDeleteProcedure(
     _In_ PASMPAGE_QUERY_CONTEXT Context,
     _In_ ULONG Flags

@@ -20,9 +20,9 @@
 #include <appresolverp.h>
 #include <appresolver.h>
 
-static __typeof__(&AppContainerDeriveSidFromMoniker) AppContainerDeriveSidFromMoniker_I = NULL;
-static __typeof__(&AppContainerLookupMoniker) AppContainerLookupMoniker_I = NULL;
-static __typeof__(&AppContainerFreeMemory) AppContainerFreeMemory_I = NULL;
+static typeof(&AppContainerDeriveSidFromMoniker) AppContainerDeriveSidFromMoniker_I = NULL;
+static typeof(&AppContainerLookupMoniker) AppContainerLookupMoniker_I = NULL;
+static typeof(&AppContainerFreeMemory) AppContainerFreeMemory_I = NULL;
 
 /**
  * Queries the AppResolver interface.

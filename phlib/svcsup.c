@@ -1309,7 +1309,17 @@ NTSTATUS PhGetServiceFileName(
 
             if (expandedString = PhExpandEnvironmentStrings(&serviceDllString->sr))
             {
-                PhMoveReference(&serviceDllString, expandedString);
+                PH_STRINGREF fileName;
+                PH_STRINGREF arguments;
+
+                if (PhParseCommandLineFuzzy(&expandedString->sr, &fileName, &arguments, NULL))
+                {
+                    PhMoveReference(&serviceDllString, PhCreateString2(&fileName));
+                }
+                else
+                {
+                    PhMoveReference(&serviceDllString, expandedString);
+                }
             }
         }
         else

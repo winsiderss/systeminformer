@@ -179,7 +179,7 @@ LRESULT CALLBACK PhTnpWndProc(
         return 0;
     case WM_SETCURSOR:
         {
-            if (PhTnpOnSetCursor(hwnd, context, (HWND)wParam))
+            if (PhTnpOnSetCursor(hwnd, context, (HWND)wParam, LOWORD(lParam), HIWORD(lParam)))
                 return TRUE;
         }
         break;
@@ -797,7 +797,9 @@ BOOLEAN PhTnpOnNcPaint(
 BOOLEAN PhTnpOnSetCursor(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ HWND CursorWindowHandle
+    _In_ HWND CursorWindowHandle,
+    _In_ ULONG HitTest,
+    _In_ ULONG Source
     )
 {
     POINT point;

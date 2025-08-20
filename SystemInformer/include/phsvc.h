@@ -90,10 +90,13 @@ VOID PhSvcHandleConnectionRequest(
 
 // svcapi
 
-typedef NTSTATUS (NTAPI *PPHSVC_API_PROCEDURE)(
+typedef _Function_class_(PHSVC_API_PROCEDURE)
+NTSTATUS NTAPI PHSVC_API_PROCEDURE(
     _In_ PPHSVC_CLIENT Client,
     _Inout_ PPHSVC_API_PAYLOAD Payload
     );
+typedef PHSVC_API_PROCEDURE* PPHSVC_API_PROCEDURE;
+typedef CONST PPHSVC_API_PROCEDURE PCPHSVC_API_PROCEDURE;
 
 VOID PhSvcDispatchApiCall(
     _In_ PPHSVC_CLIENT Client,
@@ -143,6 +146,7 @@ NTSTATUS PhSvcApiDefault(
     _Inout_ PPHSVC_API_PAYLOAD Payload
     );
 
+_Function_class_(PHSVC_API_PROCEDURE)
 NTSTATUS PhSvcApiPlugin(
     _In_ PPHSVC_CLIENT Client,
     _Inout_ PPHSVC_API_PAYLOAD Payload

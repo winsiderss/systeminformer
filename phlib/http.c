@@ -572,19 +572,21 @@ NTSTATUS PhHttpBeginRequest(
 
 NTSTATUS PhHttpSendRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_opt_ PCWSTR HeadersBuffer,
+    _In_ ULONG HeadersLength,
     _In_opt_ PVOID OptionalBuffer,
-    _In_opt_ ULONG OptionalLength,
-    _In_opt_ ULONG TotalLength
+    _In_ ULONG OptionalLength,
+    _In_ ULONG TotalLength
     )
 {
     if (WinHttpSendRequest(
         HttpContext->RequestHandle,
-        WINHTTP_NO_ADDITIONAL_HEADERS,
-        0,
+        HeadersBuffer,
+        HeadersLength,
         OptionalBuffer,
         OptionalLength,
         TotalLength,
-        0
+        (ULONG_PTR)HttpContext
         ))
     {
         return STATUS_SUCCESS;
@@ -1323,7 +1325,7 @@ NTSTATUS PhHttpSetCallback(
         0
         );
 
-    if (previousCallback = WINHTTP_INVALID_STATUS_CALLBACK)
+    if (previousCallback == WINHTTP_INVALID_STATUS_CALLBACK)
     {
         return PhGetLastWinHttpErrorAsNtStatus();
     }
@@ -1331,20 +1333,26 @@ NTSTATUS PhHttpSetCallback(
     return STATUS_SUCCESS;
 }
 
+NTSTATUS PhHttpGetContext(
+    _In_ PVOID HttpHandle,
+    _In_ PVOID Context
+    )
+{
+    ULONG bufferLength = sizeof(ULONG_PTR);
+
+    if (WinHttpQueryOption(HttpHandle, WINHTTP_OPTION_CONTEXT_VALUE, Context, &bufferLength))
+        return STATUS_SUCCESS;
+
+    return PhGetLastWinHttpErrorAsNtStatus();
+}
+
 NTSTATUS PhHttpSetContext(
     _In_ PVOID HttpHandle,
     _In_ PVOID Context
     )
 {
-    if (WinHttpSetOption(
-        HttpHandle,
-        WINHTTP_OPTION_CONTEXT_VALUE,
-        Context,
-        sizeof(ULONG_PTR)
-        ))
-    {
+    if (WinHttpSetOption(HttpHandle, WINHTTP_OPTION_CONTEXT_VALUE, Context, sizeof(ULONG_PTR)))
         return STATUS_SUCCESS;
-    }
 
     return PhGetLastWinHttpErrorAsNtStatus();
 }
@@ -1898,14 +1906,14 @@ PPH_STRING PhDnsReverseLookupNameFromAddress(
     }
 }
 
-static __typeof__(&DnsQuery_W) DnsQuery_W_I = NULL;
-#if (PHNT_DNSQUERY_FUTURE)
-static __typeof__(&DnsQueryEx) DnsQueryEx_I = NULL;
-static __typeof__(&DnsCancelQuery) DnsCancelQuery_I = NULL;
+static typeof(&DnsQuery_W) DnsQuery_W_I = NULL;
+#if defined(PHNT_DNSQUERY_FUTURE)
+static typeof(&DnsQueryEx) DnsQueryEx_I = NULL;
+static typeof(&DnsCancelQuery) DnsCancelQuery_I = NULL;
 #endif
-static __typeof__(&DnsExtractRecordsFromMessage_W) DnsExtractRecordsFromMessage_W_I = NULL;
-static __typeof__(&DnsWriteQuestionToBuffer_W) DnsWriteQuestionToBuffer_W_I = NULL;
-static __typeof__(&DnsFree) DnsFree_I = NULL;
+static typeof(&DnsExtractRecordsFromMessage_W) DnsExtractRecordsFromMessage_W_I = NULL;
+static typeof(&DnsWriteQuestionToBuffer_W) DnsWriteQuestionToBuffer_W_I = NULL;
+static typeof(&DnsFree) DnsFree_I = NULL;
 
 static BOOLEAN PhDnsApiInitialized(
     VOID
@@ -1921,7 +1929,7 @@ static BOOLEAN PhDnsApiInitialized(
         if (baseAddress = PhLoadLibrary(L"dnsapi.dll"))
         {
             DnsQuery_W_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsQuery_W", 0);
-#if (PHNT_DNSQUERY_FUTURE)
+#if defined(PHNT_DNSQUERY_FUTURE)
             DnsQueryEx_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsQueryEx", 0);
             DnsCancelQuery_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsCancelQuery", 0);
 #endif
@@ -1932,7 +1940,7 @@ static BOOLEAN PhDnsApiInitialized(
 
         if (
             DnsQuery_W_I &&
-#if (PHNT_DNSQUERY_FUTURE)
+#if defined(PHNT_DNSQUERY_FUTURE)
             DnsQueryEx_I &&
             DnsCancelQuery_I &&
 #endif
@@ -2315,7 +2323,7 @@ VOID PhDnsFree(
     DnsFree_I(DnsRecordList, DnsFreeRecordList);
 }
 
-#if (PHNT_DNSQUERY_FUTURE)
+#if defined(PHNT_DNSQUERY_FUTURE)
 typedef struct _PH_DNS_QUERY_CONTEXT
 {
     volatile LONG RefCount;

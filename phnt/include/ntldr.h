@@ -1673,6 +1673,14 @@ LdrpResGetMappingSize(
     _In_ BOOLEAN GetFileSizeFromLoadAsDataTable
     );
 
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrAppxHandleIntegrityFailure(
+    _In_ NTSTATUS Status
+    );
+
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif

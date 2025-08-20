@@ -35,11 +35,13 @@
 #include <xmllite.h>
 #include <shlwapi.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpSettingsHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -61,6 +63,7 @@ VOID PhSettingsInitialization(
     PhIgnoredSettings = PhCreateList(4);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -72,6 +75,7 @@ BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     return PhEqualStringRef(&setting1->Name, &setting2->Name, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpSettingsHashtableHashFunction(
     _In_ PVOID Entry
     )

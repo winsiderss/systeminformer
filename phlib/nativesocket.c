@@ -257,6 +257,46 @@ NTSTATUS PhAfdQuerySimpleInfo(
  * \param[in] Level A level for the option, such as SOL_SOCKET or IPPROTO_IP.
  * \param[in] OptionName An option identifier within the level, such as SO_REUSEADDR or IP_TTL.
  * \param[out] OptionValue A buffer that receives the option value.
+ * \param[in] OptionLength The size of the OptionValue buffer.
+ * \param[in] ReturnLength The size of the returned option value, if available.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdQuerySocketOption(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG Level,
+    _In_ ULONG OptionName,
+    _Out_ PVOID OptionValue,
+    _In_ ULONG OptionLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    AFD_TL_IO_CONTROL_INFO controlInfo;
+
+    memset(&controlInfo, 0, sizeof(AFD_TL_IO_CONTROL_INFO));
+    controlInfo.Type = TlGetSockOptIoControlType;
+    controlInfo.EndpointIoctl = TRUE;
+    controlInfo.Level = Level;
+    controlInfo.IoControlCode = OptionName;
+
+    return PhAfdDeviceIoControl(
+        SocketHandle,
+        IOCTL_AFD_TRANSPORT_IOCTL,
+        &controlInfo,
+        sizeof(AFD_TL_IO_CONTROL_INFO),
+        OptionValue,
+        OptionLength,
+        ReturnLength,
+        NULL
+        );
+}
+
+/**
+ * Retrieves socket option for an AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] Level A level for the option, such as SOL_SOCKET or IPPROTO_IP.
+ * \param[in] OptionName An option identifier within the level, such as SO_REUSEADDR or IP_TTL.
+ * \param[out] OptionValue A buffer that receives the option value.
  * \return Successful or errant status.
  */
 NTSTATUS PhAfdQueryOption(
@@ -1072,45 +1112,54 @@ PCWSTR PhpAfdGetProtocolString(
         return L"UNIX";
     case AF_INET:
     case AF_INET6:
-        switch (Protocol)
         {
-        case IPPROTO_ICMP:
-            return L"ICMP";
-        case IPPROTO_IGMP:
-            return L"IGMP";
-        case IPPROTO_TCP:
-            return L"TCP";
-        case IPPROTO_UDP:
-            return L"UDP";
-        case IPPROTO_RDP:
-            return L"RDP";
-        case IPPROTO_ICMPV6:
-            return L"ICMPv6";
-        case IPPROTO_PGM:
-            return L"PGM";
-        case IPPROTO_L2TP:
-            return L"L2TP";
-        case IPPROTO_SCTP:
-            return L"SCTP";
-        case IPPROTO_RAW:
-            return L"RAW";
-        case IPPROTO_RESERVED_IPSEC:
-            return L"IPSec";
+            switch (Protocol)
+            {
+            case IPPROTO_ICMP:
+                return L"ICMP";
+            case IPPROTO_IGMP:
+                return L"IGMP";
+            case IPPROTO_TCP:
+                return L"TCP";
+            case IPPROTO_UDP:
+                return L"UDP";
+            case IPPROTO_RDP:
+                return L"RDP";
+            case IPPROTO_ICMPV6:
+                return L"ICMPv6";
+            case IPPROTO_PGM:
+                return L"PGM";
+            case IPPROTO_L2TP:
+                return L"L2TP";
+            case IPPROTO_SCTP:
+                return L"SCTP";
+            case IPPROTO_RAW:
+                return L"RAW";
+            case IPPROTO_RESERVED_IPSEC:
+                return L"IPSec";
+            }
         }
+        break;
     case AF_BTH:
-        switch (Protocol)
         {
-        case BTHPROTO_RFCOMM:
-            return L"RFCOMM";
-        case BTHPROTO_L2CAP:
-            return L"L2CAP";
+            switch (Protocol)
+            {
+            case BTHPROTO_RFCOMM:
+                return L"RFCOMM";
+            case BTHPROTO_L2CAP:
+                return L"L2CAP";
+            }
         }
+        break;
     case AF_HYPERV:
-        switch (Protocol)
         {
-        case HV_PROTOCOL_RAW:
-            return L"RAW";
+            switch (Protocol)
+            {
+            case HV_PROTOCOL_RAW:
+                return L"RAW";
+            }
         }
+        break;
     }
 
     return NULL;

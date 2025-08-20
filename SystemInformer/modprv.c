@@ -53,15 +53,18 @@ VOID NTAPI PhpModuleItemDeleteProcedure(
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpModuleHashtableHashFunction(
     _In_ PVOID Entry
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhModuleEnclaveListInitialize(
     _In_ PVOID ThreadParameter
     );
@@ -299,6 +302,7 @@ VOID PhpModuleItemDeleteProcedure(
     PhDeleteImageVersionInfo(&moduleItem->VersionInfo);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -320,6 +324,7 @@ BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     }
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpModuleHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -408,6 +413,7 @@ VOID PhpRemoveModuleItem(
     PhDereferenceObject(ModuleItem);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpModuleQueryWorker(
     _In_ PVOID Parameter
     )
@@ -1195,6 +1201,7 @@ NTSTATUS PhEnumGenericEnclaveModules(
     return status;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhModuleEnclaveListInitialize(
     _In_ PVOID ThreadParameter
     )

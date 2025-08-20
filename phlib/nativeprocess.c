@@ -1917,7 +1917,7 @@ NTSTATUS PhGetProcessActivityModerationState(
 {
     NTSTATUS status;
     SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS activityModeration;
-    PKEY_VALUE_PARTIAL_INFORMATION keyValueInfo;
+    PKEY_VALUE_PARTIAL_INFORMATION keyValueInfo = NULL;
 
     RtlZeroMemory(&activityModeration, sizeof(SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS));
 
@@ -1929,7 +1929,7 @@ NTSTATUS PhGetProcessActivityModerationState(
         );
 
     if (!NT_SUCCESS(status))
-        goto CleanupExit;
+        return status;
 
     status = PhQueryValueKey(
         activityModeration.UserKeyHandle,
@@ -1952,16 +1952,20 @@ NTSTATUS PhGetProcessActivityModerationState(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    RtlMoveMemory(
+    RtlCopyMemory(
         ModerationSettings,
         keyValueInfo->Data,
-        sizeof(activityModeration)
+        sizeof(SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS)
         );
 
 CleanupExit:
     if (activityModeration.UserKeyHandle)
     {
         NtClose(activityModeration.UserKeyHandle);
+    }
+    if (keyValueInfo)
+    {
+        PhFree(keyValueInfo);
     }
 
     return status;
@@ -1976,7 +1980,7 @@ NTSTATUS PhSetProcessActivityModerationState(
     NTSTATUS status;
     SYSTEM_ACTIVITY_MODERATION_INFO moderationInfo;
 
-    memset(&moderationInfo, 0, sizeof(SYSTEM_ACTIVITY_MODERATION_INFO));
+    RtlZeroMemory(&moderationInfo, sizeof(SYSTEM_ACTIVITY_MODERATION_INFO));
     moderationInfo.AppType = ModerationType;
     moderationInfo.ModerationState = ModerationState;
     PhStringRefToUnicodeString(ModerationIdentifier, &moderationInfo.Identifier);
@@ -2016,6 +2020,8 @@ NTSTATUS PhSetProcessActivityModerationState(
                 &moderationSettings,
                 sizeof(SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS)
                 );
+
+            NtClose(activityModeration.UserKeyHandle);
         }
     }
 

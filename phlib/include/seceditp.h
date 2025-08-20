@@ -248,7 +248,7 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation3_Release(
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
     _In_ ISecurityInformation3 *This,
-    _Outptr_ PCWSTR *ppszResourceName
+    _Outptr_ PWSTR *ResourceName
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation3_OpenElevatedEditor(

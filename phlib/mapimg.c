@@ -25,6 +25,7 @@ NTSTATUS PhInitializeMappedImage(
     ULONG_PTR dosHeaderOffset;
     ULONG_PTR ntHeadersOffset;
 
+    memset(MappedImage, 0, sizeof(PH_MAPPED_IMAGE));
     MappedImage->ViewBase = ViewBase;
     MappedImage->ViewSize = ViewSize;
 
@@ -50,6 +51,8 @@ NTSTATUS PhInitializeMappedImage(
     {
         return GetExceptionCode();
     }
+
+    MappedImage->Signature = dosHeader->e_magic;
 
     // Check the initial MZ.
 
@@ -92,17 +95,16 @@ NTSTATUS PhInitializeMappedImage(
     if (ntHeaders->Signature != IMAGE_NT_SIGNATURE)
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    MappedImage->Magic = ntHeaders->OptionalHeader.Magic;
-
     if (
-        MappedImage->Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC &&
-        MappedImage->Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC
+        ntHeaders->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC &&
+        ntHeaders->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC
         )
         return STATUS_INVALID_IMAGE_FORMAT;
 
     // Get a pointer to the first section.
 
     MappedImage->NtHeaders = ntHeaders;
+    MappedImage->Magic = ntHeaders->OptionalHeader.Magic;
     MappedImage->NumberOfSections = ntHeaders->FileHeader.NumberOfSections;
     MappedImage->Sections = IMAGE_FIRST_SECTION(ntHeaders);
 
@@ -2315,6 +2317,10 @@ USHORT PhCheckSum(
     return (USHORT)Sum;
 }
 
+/**
+ * Computes the checksum of the specified image file.
+ * \return ULONG The computed checksum.
+ */
 ULONG PhCheckSumMappedImage(
     _In_ PPH_MAPPED_IMAGE MappedImage
     )
@@ -2945,6 +2951,98 @@ NTSTATUS PhGetMappedImageResource(
     return STATUS_UNSUCCESSFUL;
 }
 
+NTSTATUS PhGetMappedImageResourceIndex(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
+    _In_ LONG ResourceIndex,
+    _In_ PCWSTR ResourceType,
+    _Out_opt_ ULONG* ResourceLength,
+    _Out_opt_ PVOID* ResourceBuffer
+    )
+{
+    ULONG resourceIndex;
+    ULONG resourceCount;
+    PVOID resourceBuffer;
+    PIMAGE_RESOURCE_DIRECTORY nameDirectory;
+    PIMAGE_RESOURCE_DIRECTORY languageDirectory;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceType;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceName;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceLanguage;
+    PIMAGE_RESOURCE_DATA_ENTRY resourceData;
+
+    // Find the type
+    resourceCount = ResourceDirectory->NumberOfIdEntries + ResourceDirectory->NumberOfNamedEntries;
+    resourceType = PTR_ADD_OFFSET(ResourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+
+    for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
+    {
+        if (resourceType[resourceIndex].NameIsString)
+            continue;
+        if (resourceType[resourceIndex].Name == PtrToUlong(ResourceType))
+            break;
+    }
+
+    if (resourceIndex == resourceCount)
+        return STATUS_RESOURCE_TYPE_NOT_FOUND;
+    if (!resourceType[resourceIndex].DataIsDirectory)
+        return STATUS_RESOURCE_TYPE_NOT_FOUND;
+
+    // Find the name
+    nameDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceType[resourceIndex].OffsetToDirectory);
+    resourceCount = nameDirectory->NumberOfIdEntries + nameDirectory->NumberOfNamedEntries;
+    resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+
+    if (ResourceIndex < 0) // RT_ICON and DEVPKEY_DeviceClass_IconPath
+    {
+        for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
+        {
+            if (resourceName[resourceIndex].NameIsString)
+                continue;
+            if (resourceName[resourceIndex].Name == (ULONG)-ResourceIndex)
+                break;
+        }
+    }
+    else // RT_GROUP_ICON
+    {
+        resourceIndex = ResourceIndex;
+    }
+
+    if (resourceIndex >= resourceCount)
+        return STATUS_RESOURCE_NAME_NOT_FOUND;
+    if (!resourceName[resourceIndex].DataIsDirectory)
+        return STATUS_RESOURCE_NAME_NOT_FOUND;
+
+    // Find the language
+    languageDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceName[resourceIndex].OffsetToDirectory);
+    //resourceCount = languageDirectory->NumberOfIdEntries + languageDirectory->NumberOfNamedEntries;
+    resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+    resourceIndex = 0; // use the first entry
+
+    if (resourceLanguage[resourceIndex].DataIsDirectory)
+        return STATUS_RESOURCE_LANG_NOT_FOUND;
+
+    resourceData = PTR_ADD_OFFSET(ResourceDirectory, resourceLanguage[resourceIndex].OffsetToData);
+
+    if (!resourceData)
+        return STATUS_RESOURCE_DATA_NOT_FOUND;
+
+    resourceBuffer = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
+
+    if (!resourceBuffer)
+        return STATUS_RESOURCE_DATA_NOT_FOUND;
+
+    if (ResourceLength)
+        *ResourceLength = resourceData->Size;
+    if (ResourceBuffer)
+        *ResourceBuffer = resourceBuffer;
+
+    // if (LDR_IS_IMAGEMAPPING(ImageBaseAddress))
+    // PhLoaderEntryImageRvaToVa(ImageBaseAddress, resourceData->OffsetToData, resourceBuffer);
+    // PhLoadResource(ImageBaseAddress, MAKEINTRESOURCE(ResourceIndex), ResourceType, &resourceLength, &resourceBuffer);
+
+    return STATUS_SUCCESS;
+}
+
 NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
     _Out_ PPH_MAPPED_IMAGE_TLS_CALLBACKS TlsCallbacks,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -2953,9 +3051,9 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
     NTSTATUS status;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_TLS_DIRECTORY32 tlsDirectory;
-    ULONG_PTR tlsCallbacksOffset;
+    ULONG tlsCallbacksOffset;
 
-    // Get a pointer to the resource directory.
+    // Get a pointer to the TLS directory.
 
     status = PhGetMappedImageDataDirectory(
         MappedImage,
@@ -2993,7 +3091,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
         tlsCallbacksOffset = 0;
 
     //TlsCallbacks->CallbackIndexes = PhMappedImageRvaToVa(MappedImage, PtrToUlong(PTR_SUB_OFFSET(tlsDirectory->AddressOfIndex, tlsCallbacksOffset)), NULL);
-    TlsCallbacks->CallbackAddress = PhMappedImageRvaToVa(MappedImage, PtrToUlong(PTR_SUB_OFFSET(tlsDirectory->AddressOfCallBacks, tlsCallbacksOffset)), NULL);
+    TlsCallbacks->CallbackAddress = PhMappedImageRvaToVa(MappedImage, (tlsDirectory->AddressOfCallBacks - tlsCallbacksOffset), NULL);
 
     if (TlsCallbacks->CallbackAddress)
         return STATUS_SUCCESS;
@@ -3011,7 +3109,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory64(
     PIMAGE_TLS_DIRECTORY64 tlsDirectory;
     ULONG_PTR tlsCallbacksOffset;
 
-    // Get a pointer to the resource directory.
+    // Get a pointer to the TLS directory.
 
     status = PhGetMappedImageDataDirectory(
         MappedImage,

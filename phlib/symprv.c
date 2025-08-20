@@ -74,29 +74,31 @@ PH_CALLBACK_DECLARE(PhSymbolEventCallback);
 static PH_INITONCE PhSymInitOnce = PH_INITONCE_INIT;
 static HANDLE PhNextFakeHandle = (HANDLE)0;
 static PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
+#if defined(PH_SYMEVNT_WORKQUEUE)
 static PH_FREE_LIST PhSymEventFreeList;
+#endif
 #define PH_LOCK_SYMBOLS() PhAcquireFastLockExclusive(&PhSymMutex)
 #define PH_UNLOCK_SYMBOLS() PhReleaseFastLockExclusive(&PhSymMutex)
 
-_SymInitializeW SymInitializeW_I = NULL;
-_SymCleanup SymCleanup_I = NULL;
-_SymEnumSymbolsW SymEnumSymbolsW_I = NULL;
-_SymFromAddrW SymFromAddrW_I = NULL;
-_SymFromNameW SymFromNameW_I = NULL;
-_SymGetLineFromAddrW64 SymGetLineFromAddrW64_I = NULL;
-_SymLoadModuleExW SymLoadModuleExW_I = NULL;
-_SymGetOptions SymGetOptions_I = NULL;
-_SymSetOptions SymSetOptions_I = NULL;
-_SymSetSearchPathW SymSetSearchPathW_I = NULL;
-_SymFunctionTableAccess64 SymFunctionTableAccess64_I = NULL;
-_SymGetModuleBase64 SymGetModuleBase64_I = NULL;
-_SymRegisterCallbackW64 SymRegisterCallbackW64_I = NULL;
-_StackWalk64 StackWalk64_I = NULL;
-_StackWalkEx StackWalkEx_I = NULL;
-_SymFromInlineContextW SymFromInlineContextW_I = NULL;
-_SymGetLineFromInlineContextW SymGetLineFromInlineContextW_I = NULL;
-_MiniDumpWriteDump MiniDumpWriteDump_I = NULL;
-_UnDecorateSymbolNameW UnDecorateSymbolNameW_I = NULL;
+typeof(&SymInitializeW) SymInitializeW_I = NULL;
+typeof(&SymCleanup) SymCleanup_I = NULL;
+typeof(&SymEnumSymbolsW) SymEnumSymbolsW_I = NULL;
+typeof(&SymFromAddrW) SymFromAddrW_I = NULL;
+typeof(&SymFromNameW) SymFromNameW_I = NULL;
+typeof(&SymGetLineFromAddrW64) SymGetLineFromAddrW64_I = NULL;
+typeof(&SymLoadModuleExW) SymLoadModuleExW_I = NULL;
+typeof(&SymGetOptions) SymGetOptions_I = NULL;
+typeof(&SymSetOptions) SymSetOptions_I = NULL;
+typeof(&SymSetSearchPathW) SymSetSearchPathW_I = NULL;
+typeof(&SymFunctionTableAccess64) SymFunctionTableAccess64_I = NULL;
+typeof(&SymGetModuleBase64) SymGetModuleBase64_I = NULL;
+typeof(&SymRegisterCallbackW64) SymRegisterCallbackW64_I = NULL;
+typeof(&StackWalk64) StackWalk64_I = NULL;
+typeof(&StackWalkEx) StackWalkEx_I = NULL;
+typeof(&SymFromInlineContextW) SymFromInlineContextW_I = NULL;
+typeof(&SymGetLineFromInlineContextW) SymGetLineFromInlineContextW_I = NULL;
+typeof(&MiniDumpWriteDump) MiniDumpWriteDump_I = NULL;
+typeof(&UnDecorateSymbolNameW) UnDecorateSymbolNameW_I = NULL;
 _SymGetDiaSource SymGetDiaSource_I = NULL;
 _SymGetDiaSession SymGetDiaSession_I = NULL;
 _SymFreeDiaString SymFreeDiaString_I = NULL;
@@ -165,8 +167,6 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)Object;
     PLIST_ENTRY listEntry;
 
-    symbolProvider->Terminating = TRUE;
-
     PhpUnregisterSymbolProvider(symbolProvider);
 
     listEntry = symbolProvider->ModulesListHead.Flink;
@@ -184,6 +184,7 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     if (symbolProvider->IsRealHandle) NtClose(symbolProvider->ProcessHandle);
 }
 
+#if defined(PH_SYMEVNT_WORKQUEUE)
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpSymbolProviderCallbackWorkItem(
     _In_ PVOID Context
@@ -198,6 +199,7 @@ NTSTATUS PhpSymbolProviderCallbackWorkItem(
 
     return STATUS_SUCCESS;
 }
+#endif
 
 static VOID PhpSymbolProviderInvokeCallback(
     _In_ ULONG EventType,
@@ -205,23 +207,30 @@ static VOID PhpSymbolProviderInvokeCallback(
     _In_opt_ ULONG64 EventProgress
     )
 {
+#if defined(PH_SYMEVNT_WORKQUEUE)
     PPH_SYMBOL_EVENT_DATA data;
 
     data = PhAllocateFromFreeList(&PhSymEventFreeList);
-
     memset(data, 0, sizeof(PH_SYMBOL_EVENT_DATA));
     data->EventType = EventType;
-    data->EventMessage = EventMessage;
     data->EventProgress = EventProgress;
-
-    if (data->EventMessage)
-        PhReferenceObject(data->EventMessage);
+    PhSetReference(&data->EventMessage, EventMessage);
 
     if (!NT_SUCCESS(PhQueueUserWorkItem(PhpSymbolProviderCallbackWorkItem, data)))
     {
         PhClearReference(&data->EventMessage);
         PhFreeToFreeList(&PhSymEventFreeList, data);
     }
+#else
+    PH_SYMBOL_EVENT_DATA data;
+
+    memset(&data, 0, sizeof(PH_SYMBOL_EVENT_DATA));
+    data.EventType = EventType;
+    data.EventMessage = EventMessage;
+    data.EventProgress = EventProgress;
+
+    PhInvokeCallback(&PhSymbolEventCallback, &data);
+#endif
 }
 
 static VOID PhpSymbolProviderEventCallback(
@@ -444,7 +453,9 @@ VOID PhpSymbolProviderCompleteInitialization(
         return;
     }
 
+#if defined(PH_SYMEVNT_WORKQUEUE)
     PhInitializeFreeList(&PhSymEventFreeList, sizeof(PH_SYMBOL_EVENT_DATA), 5);
+#endif
 
     winsdkPath = NULL;
     dbgcoreHandle = NULL;
@@ -629,6 +640,10 @@ VOID PhpUnregisterSymbolProvider(
 {
     if (!SymbolProvider)
         return;
+
+    if (SymbolProvider->Terminating)
+        return;
+    SymbolProvider->Terminating = TRUE;
 
     if (SymCleanup_I)
     {
@@ -879,13 +894,13 @@ VOID PhpSymbolInfoAnsiToUnicode(
 
         copyCount = min(SymbolInfoA->NameLen, SymbolInfoW->MaxNameLen - 1);
 
-        if (PhCopyStringZFromMultiByte(
+        if (NT_SUCCESS(PhCopyStringZFromMultiByte(
             SymbolInfoA->Name,
             copyCount,
             SymbolInfoW->Name,
             SymbolInfoW->MaxNameLen,
             NULL
-            ))
+            )))
         {
             SymbolInfoW->NameLen = copyCount;
         }
@@ -912,7 +927,7 @@ PPH_STRING PhGetSymbolFromAddress(
     PVOID modBase = NULL;
     PPH_STRING symbolName = NULL;
 
-    if (Address == 0)
+    if (Address == NULL)
     {
         if (ResolveLevel) *ResolveLevel = PhsrlInvalid;
         if (FileName) *FileName = NULL;
@@ -2123,6 +2138,7 @@ NTSTATUS PhWalkThreadStack(
 {
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN suspended = FALSE;
+    BOOLEAN deepfreeze = FALSE;
     BOOLEAN processOpened = FALSE;
     BOOLEAN isCurrentThread = FALSE;
     BOOLEAN isSystemThread = FALSE;
@@ -2195,17 +2211,21 @@ NTSTATUS PhWalkThreadStack(
     // the current thread or a kernel-mode thread.
     if (!isCurrentThread && !isSystemThread)
     {
+        if (WindowsVersion >= WINDOWS_11)
+        {
+            // Note: NtSuspendThread does not always suspend the thread due to race conditions in the kernel and third party processes.
+            // Windows 11 added state change support and fixed these and other bugs. We need to freeze the thread for an accurate result. (dmex)
+            // https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/controlling-processes-and-threads#freezing-and-suspending-threads
+
+            if (NT_SUCCESS(PhFreezeThread(&stateChangeHandle, ThreadHandle)))
+            {
+                deepfreeze = TRUE;
+            }
+        }
+
         if (NT_SUCCESS(NtSuspendThread(ThreadHandle, NULL)))
         {
             suspended = TRUE;
-        }
-
-        if (WindowsVersion >= WINDOWS_11)
-        {
-            // Note: NtSuspendThread does not always suspend the thread due to race condition issues in the kernel and third party processes.
-            // Windows 11 added state change support and fixed these and other bugs. We need to freeze the thread for an accurate result. (dmex)
-            // https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/controlling-processes-and-threads#freezing-and-suspending-threads
-            PhFreezeThread(&stateChangeHandle, ThreadHandle);
         }
     }
 
@@ -2236,7 +2256,7 @@ NTSTATUS PhWalkThreadStack(
                 threadStackFrame.Machine = PH_THREAD_STACK_NATIVE_MACHINE;
                 threadStackFrame.Flags = PH_THREAD_STACK_FRAME_KERNEL;
 
-                if ((UINT_PTR)stack[i] <= PhSystemBasicInformation.MaximumUserModeAddress)
+                if ((ULONG_PTR)stack[i] <= PhSystemBasicInformation.MaximumUserModeAddress)
                     break;
 
                 if (!Callback(&threadStackFrame, Context))
@@ -2264,9 +2284,10 @@ NTSTATUS PhWalkThreadStack(
         machine = PH_THREAD_STACK_NATIVE_MACHINE;
 
         memset(&context, 0, sizeof(context));
-        context.ContextFlags = CONTEXT_FULL;
+        context.ContextFlags = CONTEXT_ALL;
+        context.ContextFlags |= CONTEXT_EXCEPTION_REQUEST;
 
-        if (!NT_SUCCESS(status = NtGetContextThread(ThreadHandle, &context)))
+        if (!NT_SUCCESS(status = PhGetContextThread(ThreadHandle, &context)))
             goto SkipUserStack;
 
         memset(&stackFrame, 0, sizeof(STACKFRAME_EX));
@@ -2453,6 +2474,7 @@ SkipUserStack:
 
         memset(&context, 0, sizeof(WOW64_CONTEXT));
         context.ContextFlags = WOW64_CONTEXT_ALL;
+        context.ContextFlags |= CONTEXT_EXCEPTION_REQUEST;
 
         if (!NT_SUCCESS(status = PhGetThreadWow64Context(ThreadHandle, &context)))
             goto SkipI386Stack;
@@ -2531,6 +2553,7 @@ SkipI386Stack:
 
         memset(&context, 0, sizeof(ARM_NT_CONTEXT));
         context.ContextFlags = CONTEXT_ARM_ALL;
+        context.ContextFlags |= CONTEXT_EXCEPTION_REQUEST;
 
         // ThreadWow64Context ARM_NT_CONTEXT
         if (!NT_SUCCESS(status = PhGetThreadArm32Context(ThreadHandle, &context)))
@@ -2582,13 +2605,20 @@ SkipARMStack:
 
 ResumeExit:
     if (suspended)
+    {
         NtResumeThread(ThreadHandle, NULL);
+    }
 
     if (stateChangeHandle)
+    {
+        PhThawThread(stateChangeHandle, ThreadHandle);
         NtClose(stateChangeHandle);
+    }
 
     if (processOpened)
+    {
         NtClose(ProcessHandle);
+    }
 
     return status;
 }

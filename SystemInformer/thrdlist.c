@@ -24,11 +24,13 @@
 #include <thrdprv.h>
 #include <secedit.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpThreadNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpThreadNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -167,6 +169,7 @@ VOID PhDeleteThreadList(
     PhDereferenceObject(Context->NodeList);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpThreadNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -178,6 +181,7 @@ BOOLEAN PhpThreadNodeHashtableEqualFunction(
     return threadNode1->ThreadId == threadNode2->ThreadId;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpThreadNodeHashtableHashFunction(
     _In_ PVOID Entry
     )

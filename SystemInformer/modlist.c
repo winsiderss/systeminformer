@@ -22,11 +22,13 @@
 #include <svcsup.h>
 #include <phsettings.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpModuleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpModuleNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -141,6 +143,7 @@ VOID PhDeleteModuleList(
     PhDereferenceObject(Context->NodeRootList);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpModuleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -152,6 +155,7 @@ BOOLEAN PhpModuleNodeHashtableEqualFunction(
     return moduleNode1->ModuleItem == moduleNode2->ModuleItem;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpModuleNodeHashtableHashFunction(
     _In_ PVOID Entry
     )

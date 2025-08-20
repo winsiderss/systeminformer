@@ -449,7 +449,6 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     HRESULT status;
     PVOID securityDescriptor = NULL;
     PVOID securityDescriptorData = NULL;
-    PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
     BSTR wbemObjectString = NULL;
     BSTR wbemMethodString = NULL;
@@ -578,7 +577,6 @@ CleanupExit:
         IWbemLocator_Release(wbemLocator);
 
     VariantClear(&variantArrayValue);
-    PhClearReference(&querySelectString);
 
     if (wbemMethodString)
         SysFreeString(wbemMethodString);
@@ -611,7 +609,6 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     )
 {
     HRESULT status;
-    PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
     BSTR wbemObjectString = NULL;
     BSTR wbemMethodString = NULL;
@@ -818,8 +815,6 @@ CleanupExit:
         SysFreeString(wbemObjectString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
-    if (querySelectString)
-        PhDereferenceObject(querySelectString);
 
     if (HR_SUCCESS(status))
     {
@@ -1020,7 +1015,6 @@ HRESULT PhRestartDefenderOfflineScan(
     )
 {
     HRESULT status;
-    PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
     BSTR wbemObjectString = NULL;
     BSTR wbemMethodString = NULL;
@@ -1122,8 +1116,6 @@ CleanupExit:
         SysFreeString(wbemObjectString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
-    if (querySelectString)
-        PhDereferenceObject(querySelectString);
 
     return status;
 }

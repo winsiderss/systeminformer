@@ -283,7 +283,7 @@ NTSTATUS PhCommandModeStart(
 // anawait
 
 VOID PhUiAnalyzeWaitThread(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider

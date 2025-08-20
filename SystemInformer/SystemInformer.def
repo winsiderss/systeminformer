@@ -169,6 +169,7 @@ EXPORTS
     PhShowHandleObjectProperties2
     PhShowHandlePropertiesEx
     PhShowIconNotification
+    PhShowIconNotificationEx
     PhShowProcessAffinityDialog2
     PhShowProcessProperties
     PhShowProcessRecordDialog
@@ -892,6 +893,7 @@ EXPORTS
     PhBitmapSetAlpha
     PhCreateCommonFont
     PhCreateDialog
+    PhCreateDIBSection
     PhCreateIconTitleFont
     PhCreateWindowEx
     PhDeleteLayoutManager
@@ -915,6 +917,7 @@ EXPORTS
     PhGetStockApplicationIcon
     PhGetStockObject
     PhGetWindowClientId
+    PhGetWindowCompositionAttribute
     PhGetWindowContext
     PhGetWindowText
     PhGetWindowTextEx
@@ -1170,6 +1173,7 @@ EXPORTS
     PhHttpDownloadString
     PhHttpReceiveResponse
     PhHttpGetErrorMessage
+    PhHttpSetEventCallback
     PhHttpQueryHeaderString
     PhHttpQueryHeaderUlong
     PhHttpQueryHeaderUlong64

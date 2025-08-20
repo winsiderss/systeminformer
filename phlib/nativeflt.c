@@ -162,14 +162,14 @@ NTSTATUS PhFilterLoadUnload(
     };
 
     RtlInitUnicodeString(&objectName, FLT_MSG_DEVICE_NAME);
-    InitializeObjectAttributes(
+    InitializeObjectAttributesEx(
         &objectAttributes,
         &objectName,
         OBJ_CASE_INSENSITIVE | (WindowsVersion < WINDOWS_10 ? 0 : OBJ_DONT_REPARSE),
         NULL,
-        NULL
+        NULL,
+        &filterSecurityQos
         );
-    objectAttributes.SecurityQualityOfService = &filterSecurityQos;
 
     if (!NT_SUCCESS(status = NtCreateFile(
         &fileHandle,

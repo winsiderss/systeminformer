@@ -357,6 +357,7 @@ static VOID PhpDeleteNewObjectList(
 }
 #endif
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN PhpStringHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -368,6 +369,7 @@ static BOOLEAN PhpStringHashtableEqualFunction(
     return PhEqualString(entry1->String, entry2->String, FALSE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG PhpStringHashtableHashFunction(
     _In_ PVOID Entry
     )

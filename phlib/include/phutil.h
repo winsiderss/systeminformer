@@ -1540,11 +1540,12 @@ PhFilterTokenForLimitedUser(
     );
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhGetSecurityDescriptorAsString(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    _Out_ PPH_STRING* SecurityDescriptorString
     );
 
 PHLIBAPI
@@ -1554,9 +1555,8 @@ PhGetSecurityDescriptorFromString(
     _In_ PCWSTR SecurityDescriptorString
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetObjectSecurityDescriptorAsString(
     _In_ HANDLE Handle,

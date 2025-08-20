@@ -2240,7 +2240,9 @@ BOOLEAN PhpSelectFavoriteInRegedit(
         info.fMask = MIIM_ID | MIIM_STRING;
         info.dwTypeData = buffer;
         info.cch = RTL_NUMBER_OF(buffer);
-        GetMenuItemInfo(favoritesMenu, i, TRUE, &info);
+
+        if (!GetMenuItemInfo(favoritesMenu, i, TRUE, &info))
+            continue;
 
         if (info.cch == FavoriteName->Length / sizeof(WCHAR))
         {
@@ -2542,9 +2544,9 @@ HICON PhGetApplicationIcon(
     if (!smallIcon || !largeIcon)
     {
         if (!smallIcon)
-            smallIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, systemDpi);
+            smallIcon = PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, systemDpi);
         if (!largeIcon)
-            largeIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, systemDpi);
+            largeIcon = PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, systemDpi);
     }
 
     return SmallIcon ? smallIcon : largeIcon;
@@ -2556,8 +2558,8 @@ HICON PhGetApplicationIconEx(
     )
 {
     if (SmallIcon)
-        return PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, WindowDpi);
-    return PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, WindowDpi);
+        return PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, WindowDpi);
+    return PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, WindowDpi);
 }
 
 VOID PhSetWindowIcon(

@@ -120,7 +120,7 @@ ULONG64
 UnsignedMultiply128(
     _In_ ULONGLONG ullMultiplicand,
     _In_ ULONGLONG ullMultiplier,
-    _Out_ _Deref_out_range_(==, ullMultiplicand * ullMultiplier) ULONGLONG* pullResultHigh);
+    _Out_ ULONGLONG* pullResultHigh); // _Deref_out_range_(==, ullMultiplicand * ullMultiplier) 
 
 #if !defined(_ARM64EC_)
 #pragma intrinsic(_umul128)

@@ -139,7 +139,7 @@ typeof(&(Name)) Name##_Import(VOID) \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (typeof(&(Name)))PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
+    return (typeof(&(Name)))PhpImportProcedure(&initOnce, &cache, &cookie, (Module), (#Name)); \
 }
 
 /**
@@ -155,7 +155,7 @@ typeof(&(Name)) Name##_Import(VOID) \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (typeof(&(Name)))PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
+    return (typeof(&(Name)))PhpImportProcedureNative(&initOnce, &cache, &cookie, (Module), (#Name)); \
 }
 
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
