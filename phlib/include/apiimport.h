@@ -21,7 +21,7 @@
 
 EXTERN_C_START
 
-#define PH_DECLARE_IMPORT(Name) typeof(&(Name)) Name##_Import(VOID)
+#define PH_DECLARE_IMPORT(Name) __typeof__(&(Name)) Name##_Import(VOID)
 
 // Ntdll
 

@@ -95,19 +95,19 @@ VOID NTAPI TaskbarUpdateGraphs(
         switch (TaskbarListIconType)
         {
         case TASKBAR_ICON_CPU_HISTORY:
-            overlayIcon = PhUpdateIconCpuHistory(SystemStatistics);
+            overlayIcon = PhUpdateIconCpuHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_IO_HISTORY:
-            overlayIcon = PhUpdateIconIoHistory(SystemStatistics);
+            overlayIcon = PhUpdateIconIoHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_COMMIT_HISTORY:
-            overlayIcon = PhUpdateIconCommitHistory(SystemStatistics);
+            overlayIcon = PhUpdateIconCommitHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_PHYSICAL_HISTORY:
-            overlayIcon = PhUpdateIconPhysicalHistory(SystemStatistics);
+            overlayIcon = PhUpdateIconPhysicalHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_CPU_USAGE:
-            overlayIcon = PhUpdateIconCpuUsage(SystemStatistics);
+            overlayIcon = PhUpdateIconCpuUsage(&SystemStatistics);
             break;
         }
 

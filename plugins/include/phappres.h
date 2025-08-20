@@ -30,7 +30,7 @@
 #endif
 
 #ifndef PHAPP_VERSION_COMMITHASH
-#define PHAPP_VERSION_COMMITHASH ""
+#define PHAPP_VERSION_COMMITHASH nocommit
 #endif
 
 #define DO_MAKE_STR(x) #x
