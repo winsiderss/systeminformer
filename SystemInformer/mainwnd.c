@@ -2561,26 +2561,22 @@ VOID PhMwpOnSetFocus(
     _In_ HWND WindowHandle
     )
 {
-    PPH_STRING windowTitle;
-
     // Update the window status.
 
+    KPH_LEVEL status;
+    PPH_STRING windowTitle;
+
+    if (DelayedLoadCompleted && PhMainWndLevel != (status = KphLevelEx(FALSE)))
     {
-        KPH_LEVEL status;
-        PPH_STRING windowTitle;
+        PhMainWndLevel = status;
 
-        if (DelayedLoadCompleted && PhMainWndLevel != (status = KphLevelEx(FALSE)))
+        if (windowTitle = PhMwpInitializeWindowTitle(PhMainWndLevel))
         {
-            PhMainWndLevel = status;
-
-            if (windowTitle = PhMwpInitializeWindowTitle(PhMainWndLevel))
-            {
-                PhSetWindowText(WindowHandle, PhGetString(windowTitle));
-                PhDereferenceObject(windowTitle);
-            }
+            PhSetWindowText(WindowHandle, PhGetString(windowTitle));
+            PhDereferenceObject(windowTitle);
         }
     }
-
+    
     // Update the window focus.
 
     if (CurrentPage->WindowHandle)
