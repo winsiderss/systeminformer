@@ -1704,9 +1704,16 @@ BOOLEAN PhTnpOnNotify(
             {
                 NMTTDISPINFO *info = (NMTTDISPINFO *)Header;
                 POINT point;
+                PPH_STRING string;
 
-                PhTnpGetMessagePos(hwnd, &point);
-                PhTnpGetTooltipText(Context, &point, &info->lpszText);
+                if (PhTnpGetMessagePos(hwnd, &point))
+                {
+                    if (PhTnpGetTooltipText(Context, &point, &string))
+                    {
+                        info->lpszText = string->Buffer;
+                        break;
+                    }
+                }
             }
         }
         break;
@@ -7090,9 +7097,16 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                     {
                         NMTTDISPINFO *info = (NMTTDISPINFO *)header;
                         POINT point;
+                        PPH_STRING string;
 
-                        PhTnpGetMessagePos(hwnd, &point);
-                        PhTnpGetHeaderTooltipText(context, info->lParam == TNP_TOOLTIPS_FIXED_HEADER, &point, &info->lpszText);
+                        if (PhTnpGetMessagePos(hwnd, &point))
+                        {
+                            if (PhTnpGetHeaderTooltipText(context, info->lParam == TNP_TOOLTIPS_FIXED_HEADER, &point, &string))
+                            {
+                                info->lpszText = string->Buffer;
+                                break;
+                            }
+                        }
                     }
                 }
                 break;
