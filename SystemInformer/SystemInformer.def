@@ -169,7 +169,6 @@ EXPORTS
     PhShowHandleObjectProperties2
     PhShowHandlePropertiesEx
     PhShowIconNotification
-    PhShowIconNotificationEx
     PhShowProcessAffinityDialog2
     PhShowProcessProperties
     PhShowProcessRecordDialog
@@ -1173,7 +1172,6 @@ EXPORTS
     PhHttpDownloadString
     PhHttpReceiveResponse
     PhHttpGetErrorMessage
-    PhHttpSetEventCallback
     PhHttpQueryHeaderString
     PhHttpQueryHeaderUlong
     PhHttpQueryHeaderUlong64
