@@ -100,6 +100,7 @@ typedef struct _PH_THREAD_STACKS_FRAME_NODE
     WCHAR ReturnAddressString[PH_PTR_STR_LEN_1];
     PH_STRINGREF Architecture;
     PPH_STRING FrameDistanceString;
+    PPH_STRING SymbolStatusString;
 } PH_THREAD_STACKS_FRAME_NODE, *PPH_THREAD_STACKS_FRAME_NODE;
 
 typedef struct _PH_THREAD_STACKS_NODE
@@ -186,6 +187,7 @@ const ACCESS_MASK PhpThreadStacksThreadAccessMasks[] =
     THREAD_QUERY_LIMITED_INFORMATION,
 };
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpThreadStacksNodeDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -244,6 +246,7 @@ PPH_THREAD_STACKS_NODE PhpThreadStacksCreateNode(
     return node;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpThreadStacksWorkerContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -278,6 +281,7 @@ PPH_THREAD_STACKS_WORKER_CONTEXT PhpThreadStacksCreateWorkerContext(
     return context;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpThreadStacksContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
