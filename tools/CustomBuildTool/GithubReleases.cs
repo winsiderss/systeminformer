@@ -13,13 +13,13 @@ namespace CustomBuildTool
 {
     public static class GithubReleases
     {
-        private static readonly string BaseUrl;
         private static readonly string BaseToken;
+        private static readonly string BaseUrl;
 
         static GithubReleases()
         {
-            BaseUrl = Win32.GetEnvironmentVariable("GITHUB_MIRROR_API");
             BaseToken = Win32.GetEnvironmentVariable("GITHUB_MIRROR_KEY");
+            BaseUrl = Win32.GetEnvironmentVariable("GITHUB_MIRROR_API");
         }
 
         public static GithubReleasesResponse CreateRelease(string Version)

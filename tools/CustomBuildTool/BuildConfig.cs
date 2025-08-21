@@ -153,16 +153,10 @@ namespace CustomBuildTool
         ];
     }
 
-    public class BuildFile
+    public class BuildFile(string Filename, bool UploadCanary)
     {
-        public readonly string FileName;
-        public readonly bool UploadCanary;
-
-        public BuildFile(string Filename, bool UploadCanary)
-        {
-            this.FileName = Filename;
-            this.UploadCanary = UploadCanary;
-        }
+        public readonly string FileName = Filename;
+        public readonly bool UploadCanary = UploadCanary;
 
         public override string ToString()
         {
@@ -174,4 +168,23 @@ namespace CustomBuildTool
             return this.FileName.GetHashCode();
         }
     }
+
+    public class DeployFile(string Filename, string FileHash, string FileSignature, string FileLength)
+    {
+        public readonly string FileName = Filename;
+        public readonly string FileHash = FileHash;
+        public readonly string FileSignature = FileSignature;
+        public readonly string FileLength = FileLength;
+
+        public override string ToString()
+        {
+            return this.FileName;
+        }
+
+        public override int GetHashCode()
+        {
+            return this.FileName.GetHashCode();
+        }
+    }
+
 }

@@ -25,7 +25,7 @@ namespace CustomBuildTool
         {
             //ENTRA_TIMESTAMP_ALGORITHM = Win32.GetEnvironmentVariable("BUILD_TIMESTAMP_ALGORITHM");
             ENTRA_TIMESTAMP_SERVER = Win32.GetEnvironmentVariable("BUILD_TIMESTAMP_SERVER");
-            ENTRA_CERIFICATE_NAME = Win32.GetEnvironmentVariable("BUILD_ENTRA_CERT_ID");
+            ENTRA_CERIFICATE_NAME =  Win32.GetEnvironmentVariable("BUILD_ENTRA_CERT_ID");
             ENTRA_CERIFICATE_VAULT = Win32.GetEnvironmentVariable("BUILD_ENTRA_VAULT_ID");
             ENTRA_TENANT_GUID = Win32.GetEnvironmentVariable("BUILD_ENTRA_TENANT_ID");
             ENTRA_CLIENT_GUID = Win32.GetEnvironmentVariable("BUILD_ENTRA_CLIENT_ID");
@@ -88,6 +88,30 @@ namespace CustomBuildTool
             string ClientSecret
             )
         {
+            // Try a few times in case of transient Azure connectivity (dmex)
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (KeyVaultDigestSignFiles(Path, TimeStampServer, AzureCertName, AzureVaultName, TenantGuid, ClientGuid, ClientSecret))
+                    return true;
+
+                Program.PrintColorMessage("Retrying....", ConsoleColor.Yellow);
+            }
+
+            Program.PrintColorMessage("KeyVaultDigestSignFiles Failed.", ConsoleColor.Red);
+            return false;
+        }
+
+        public static bool KeyVaultDigestSignFiles(
+            string Path,
+            string TimeStampServer,
+            string AzureCertName,
+            string AzureVaultName,
+            string TenantGuid,
+            string ClientGuid,
+            string ClientSecret
+            )
+        {
             try
             {
                 var azureCertificateTimeStamp = new TimeStampConfiguration(TimeStampServer, TimeStampType.RFC3161);
@@ -130,19 +154,23 @@ namespace CustomBuildTool
                     {
                         var result = authenticodeKeyVaultSigner.SignFile(Path, null, null);
 
-                        //if (result == HRESULT.COR_E_BADIMAGEFORMAT)
-                        //{
-                        //    Program.PrintColorMessage($"[ERROR] The AppxManifest.xml publisher CN does not match the certificate: ({result}) {Path}", ConsoleColor.Red);
-                        //}
-                        //else if (result == HRESULT.TRUST_E_SUBJECT_FORM_UNKNOWN)
-                        //{
-                        //    Program.PrintColorMessage($"[ERROR] File content not supported: ({result}) {Path}", ConsoleColor.Red);
-                        //}
+                        if (result == HRESULT.COR_E_BADIMAGEFORMAT)
+                        {
+                            Program.PrintColorMessage($"[ERROR] The AppxManifest.xml publisher CN does not match the certificate: ({result}) {Path}", ConsoleColor.Red);
+                            return false;
+                        }
+                        else if (result == HRESULT.TRUST_E_SUBJECT_FORM_UNKNOWN)
+                        {
+                            Program.PrintColorMessage($"[ERROR] File content not supported: ({result}) {Path}", ConsoleColor.Red);
+                            return false;
+                        }
+                        else if (result != HRESULT.S_OK)
+                        {
+                            Program.PrintColorMessage($"[ERROR] ({result}) {Path}", ConsoleColor.Red);
+                            return false;
+                        }
 
-                        if (result == HRESULT.S_OK)
-                            Program.PrintColorMessage($"Signed: {Path}", ConsoleColor.Green);
-                        else
-                            Program.PrintColorMessage($"Failed: ({result}) {Path}", ConsoleColor.Red);
+                        Program.PrintColorMessage($"Success: {Path}", ConsoleColor.Green);
                     }
                     else
                     {

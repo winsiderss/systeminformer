@@ -141,7 +141,8 @@ namespace CustomBuildTool
 
                 if (File.Exists(FileName))
                 {
-                    var signature = Sign(keyMaterial, FileName);
+                    var signature = SignData(keyMaterial, FileName);
+                    
                     Utils.WriteAllBytes(sigFileName, signature);
                 }
                 else
@@ -158,22 +159,20 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool CreateSigString(string KeyName, string FileName, out string Signature)
+        public static string CreateSigString(string KeyName, string FileName)
         {
-            Signature = null;
+            if (File.Exists(FileName))
+                return null;
 
             try
             {
                 if (GetKeyMaterial(KeyName, out byte[] keyMaterial))
                 {
-                    if (File.Exists(FileName))
+                    byte[] buffer = SignData(keyMaterial, FileName);
+
+                    if (buffer.Length != 0)
                     {
-                        var signature = Sign(keyMaterial, FileName);
-                        Signature = Convert.ToHexString(signature);
-                    }
-                    else
-                    {
-                        Program.PrintColorMessage($"[Skipped] {FileName}", ConsoleColor.Yellow);
+                        return Convert.ToHexString(buffer);
                     }
                 }
             }
@@ -182,7 +181,7 @@ namespace CustomBuildTool
                 Program.PrintColorMessage($"Unable to create signature string {Path.GetFileName(FileName)}: {e}", ConsoleColor.Yellow);
             }
 
-            return !string.IsNullOrWhiteSpace(Signature);
+            return null;
         }
 
         private static byte[] Encrypt(Stream Stream, string Secret, string Salt)
@@ -316,7 +315,7 @@ namespace CustomBuildTool
             return buffer;
         }
 
-        private static byte[] Sign(byte[] KeyMaterial, string FileName)
+        private static byte[] SignData(byte[] KeyMaterial, string FileName)
         {
             byte[] buffer;
 
