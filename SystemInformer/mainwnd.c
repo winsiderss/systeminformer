@@ -579,7 +579,7 @@ NTSTATUS PhMwpLoadStage1Worker(
     // only the device notifications. (jxy-s).
     PhMwpInitializeDeviceNotifications();
 
-    // Delayed initialize window title (dmex)
+    // Initialize window title (dmex)
     {
         PPH_STRING windowTitle;
 
@@ -2562,27 +2562,29 @@ VOID PhMwpOnSetFocus(
     _In_ HWND WindowHandle
     )
 {
-    // Update the window status.
-
-    KPH_LEVEL status;
-    PPH_STRING windowTitle;
-
-    if (DelayedLoadCompleted && PhMainWndLevel != (status = KphLevelEx(FALSE)))
-    {
-        PhMainWndLevel = status;
-
-        if (windowTitle = PhMwpInitializeWindowTitle(PhMainWndLevel))
-        {
-            PhSetWindowText(WindowHandle, PhGetString(windowTitle));
-            PhDereferenceObject(windowTitle);
-        }
-    }
-    
     // Update the window focus.
 
     if (CurrentPage->WindowHandle)
     {
         SetFocus(CurrentPage->WindowHandle);
+    }
+
+    // Update the window status.
+
+    {
+        KPH_LEVEL status;
+        PPH_STRING windowTitle;
+
+        if (DelayedLoadCompleted && PhMainWndLevel != (status = KphLevelEx(FALSE)))
+        {
+            PhMainWndLevel = status;
+
+            if (windowTitle = PhMwpInitializeWindowTitle(PhMainWndLevel))
+            {
+                PhSetWindowText(WindowHandle, PhGetString(windowTitle));
+                PhDereferenceObject(windowTitle);
+            }
+        }
     }
 }
 
