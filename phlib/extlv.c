@@ -18,6 +18,7 @@
 
 #include <ph.h>
 #include <guisup.h>
+#include <emenu.h>
 
 #define PH_MAX_COMPARE_FUNCTIONS 16
 
@@ -31,7 +32,9 @@ typedef struct _PH_EXTLV_CONTEXT
 
     BOOLEAN TriState;
     LONG SortColumn;
+    LONG DefaultSortColumn;
     PH_SORT_ORDER SortOrder;
+    PH_SORT_ORDER DefaultSortOrder;
     BOOLEAN SortFast;
 
     _Function_class_(PH_COMPARE_FUNCTION)
@@ -123,10 +126,11 @@ VOID PhSetExtendedListViewEx(
     context->Context = NULL;
     context->TriState = FALSE;
     context->SortColumn = SortColumn;
+    context->DefaultSortColumn = SortColumn;
     context->SortOrder = SortOrder;
+    context->DefaultSortOrder = SortOrder;
     context->SortFast = FALSE;
     context->TriStateCompareFunction = NULL;
-    memset(context->CompareFunctions, 0, sizeof(context->CompareFunctions));
     context->NumberOfFallbackColumns = 0;
     context->ItemColorFunction = NULL;
     context->ItemFontFunction = NULL;
@@ -219,6 +223,105 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                         PhSetHeaderSortIcon(headerHandle, context->SortColumn, context->SortOrder);
                         ExtendedListView_SortItems(WindowHandle);
                     }
+                }
+                break;
+            case NM_RCLICK:
+                {
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM selectedItem;
+                    POINT position;
+                    ULONG meassageposition;
+
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Size column to fit", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Size all columns to fit", NULL, NULL), ULONG_MAX);
+
+                    {
+                        LONG sortColumn;
+                        PH_SORT_ORDER sortOrder;
+                    
+                        ExtendedListView_GetSort(WindowHandle, &sortColumn, &sortOrder);
+                    
+                        if (sortOrder != context->DefaultSortOrder || (context->DefaultSortOrder != NoSortOrder && sortColumn != context->DefaultSortColumn))
+                        {
+                            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Reset sort", NULL, NULL), ULONG_MAX);
+                        }
+                    }
+
+                    meassageposition = GetMessagePos();
+                    position.x = GET_X_LPARAM(meassageposition);
+                    position.y = GET_Y_LPARAM(meassageposition);
+      
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        WindowHandle,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        position.x,
+                        position.y
+                        );
+
+                    if (selectedItem && selectedItem->Id)
+                    {
+                        switch (selectedItem->Id)
+                        {
+                        case 1:
+                            {
+                                HWND headerWindow;
+                                LONG headerCount;
+                                RECT headerRect;
+
+                                headerWindow = ListView_GetHeader(WindowHandle);
+                                headerCount = Header_GetItemCount(headerWindow);
+
+                                if (headerCount != INT_ERROR)
+                                {
+                                    if (!ScreenToClient(WindowHandle, &position))
+                                        break;
+
+                                    for (LONG i = 0; i < headerCount; ++i)
+                                    {
+                                        if (Header_GetItemRect(headerWindow, i, &headerRect) && PtInRect(&headerRect, position))
+                                        {
+                                            SendMessage(WindowHandle, LVM_SETCOLUMNWIDTH, i, LVSCW_AUTOSIZE);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                        case 2:
+                            {
+                                HWND headerWindow = ListView_GetHeader(WindowHandle);
+                                LONG headerCount = Header_GetItemCount(headerWindow);
+
+                                if (headerCount != INT_ERROR)
+                                {
+                                    for (LONG i = 0; i < headerCount; i++)
+                                    {
+                                        HDITEM item;
+
+                                        item.mask = HDI_ORDER;
+
+                                        if (Header_GetItem(headerWindow, i, &item))
+                                        {
+                                            SendMessage(WindowHandle, LVM_SETCOLUMNWIDTH, item.iOrder, LVSCW_AUTOSIZE);
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                        case 3:
+                            {
+                                ExtendedListView_SetSort(WindowHandle, context->DefaultSortColumn, context->DefaultSortOrder);
+                                ExtendedListView_SortItems(WindowHandle);
+                            }
+                            break;
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
                 }
                 break;
             }

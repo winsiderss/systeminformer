@@ -37,12 +37,10 @@
         <rescap:Capability Name="allowElevation"/>
         <rescap:Capability Name="broadFileSystemAccess"/>
         <rescap:Capability Name="packageManagement"/>
-        <rescap:Capability Name="protectedApp"/>
         <rescap:Capability Name="runFullTrust"/>
         <rescap:Capability Name="smbios"/>
         <rescap:Capability Name="uiAccess"/>
         <rescap:Capability Name="unvirtualizedResources"/>
-        <rescap:Capability Name="userSystemId"/>
     </Capabilities>
     <Applications>
         <Application 

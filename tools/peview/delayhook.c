@@ -965,13 +965,13 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
             }
         }
 
-		context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
-		context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
-		context->CursorPos.x = LONG_MIN;
-		context->CursorPos.y = LONG_MIN;
-		PhSetWindowContext(WindowHandle, LONG_MAX, context);
+        context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
+        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
+        context->CursorPos.x = LONG_MIN;
+        context->CursorPos.y = LONG_MIN;
+        PhSetWindowContext(WindowHandle, LONG_MAX, context);
 
-		PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
+        PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
 
         InvalidateRect(WindowHandle, NULL, FALSE);
     }
@@ -1869,10 +1869,10 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 
         PhInitializeThemeWindowFrame(WindowHandle);
 
-        PTASKDIALOG_WINDOW_CONTEXT context = PhAllocateZero(sizeof(TASKDIALOG_WINDOW_CONTEXT));
-        context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
-        context->CallbackData = CallbackData;
-        PhSetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG, context);
+        PTASKDIALOG_WINDOW_CONTEXT windowContext = PhAllocateZero(sizeof(TASKDIALOG_WINDOW_CONTEXT));
+        windowContext->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
+        windowContext->CallbackData = CallbackData;
+        PhSetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG, windowContext);
         windowHasContext = TRUE;
     }
 

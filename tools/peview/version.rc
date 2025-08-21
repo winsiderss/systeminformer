@@ -69,6 +69,7 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
+            VALUE "Comments", PHAPP_VERSION_COMMITHASH
             VALUE "CompanyName", "Winsider Seminars & Solutions"
             VALUE "FileDescription", "Portable Executable Viewer"
             VALUE "FileVersion", PHAPP_VERSION_STRING
