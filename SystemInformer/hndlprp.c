@@ -19,6 +19,7 @@
 #include <emenu.h>
 #include <settings.h>
 #include <hndlinfo.h>
+#include <lsasup.h>
 #include <procprv.h>
 #include <secedit.h>
 #include <phafd.h>
@@ -46,7 +47,12 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
     PH_HANDLE_GENERAL_INDEX_NAME,
     PH_HANDLE_GENERAL_INDEX_TYPE,
     PH_HANDLE_GENERAL_INDEX_OBJECT,
+    PH_HANDLE_GENERAL_INDEX_FULLNAME,
+
+    PH_HANDLE_GENERAL_INDEX_ACCESSS,
+    PH_HANDLE_GENERAL_INDEX_ACCESSGENERIC,
     PH_HANDLE_GENERAL_INDEX_ACCESSMASK,
+    PH_HANDLE_GENERAL_INDEX_SDDL,
 
     PH_HANDLE_GENERAL_INDEX_REFERENCES,
     PH_HANDLE_GENERAL_INDEX_HANDLES,
@@ -101,7 +107,6 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
     INT ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
-    PPH_PLUGIN OwnerPlugin;
 } HANDLE_PROPERTIES_CONTEXT, *PHANDLE_PROPERTIES_CONTEXT;
 
 #define PH_FILEMODE_ASYNC 0x01000000
@@ -191,6 +196,7 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
     return status;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpDuplicateHandleCloseProcess(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -248,7 +254,6 @@ NTSTATUS PhpShowHandlePropertiesThread(
     memset(&context, 0, sizeof(HANDLE_PROPERTIES_CONTEXT));
     context.ProcessId = handleContext->ProcessId;
     context.HandleItem = handleContext->HandleItem;
-    context.OwnerPlugin = handleContext->OwnerPlugin;
     context.ParentWindow = handleContext->ParentWindowHandle;
 
     PhInitializeAutoPool(&autoPool);
@@ -258,7 +263,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE;
-    propSheetHeader.hInstance = PhInstanceHandle;
+    propSheetHeader.hInstance = NtCurrentImageBase();
     propSheetHeader.hwndParent = PhCsForceNoParent ? NULL : handleContext->ParentWindowHandle;
     propSheetHeader.pszCaption = handleContext->Caption ? handleContext->Caption : L"Handle";
     propSheetHeader.nPages = 0;
@@ -269,7 +274,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_HNDLGENERAL);
-    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.hInstance = NtCurrentImageBase();
     propSheetPage.pfnDlgProc = PhpHandleGeneralDlgProc;
     propSheetPage.lParam = (LPARAM)&context;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
@@ -457,12 +462,20 @@ VOID PhpUpdateHandleGeneralListViewGroups(
 {
     IListView_EnableGroupView(Context->ListViewClass, TRUE);
     PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, L"Basic information");
+    PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECURITY, L"Security information");
     PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_REFERENCES, L"References");
     PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_QUOTA, L"Quota charges");
+
     PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_NAME, L"Name");
     PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_TYPE, L"Type");
     PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_OBJECT, L"Object address");
-    PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, L"Granted access");
+    PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_FULLNAME, L"FullPath");
+
+    PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECURITY, PH_HANDLE_GENERAL_INDEX_ACCESSS, L"Granted access");
+    PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECURITY, PH_HANDLE_GENERAL_INDEX_ACCESSGENERIC, L"Granted access (generic)");
+    PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECURITY, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, L"Granted access (mask)");
+    PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECURITY, PH_HANDLE_GENERAL_INDEX_SDDL, L"SDDL");
+
     PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_REFERENCES, PH_HANDLE_GENERAL_INDEX_REFERENCES, L"References");
     PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_REFERENCES, PH_HANDLE_GENERAL_INDEX_HANDLES, L"Handles");
     PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_QUOTA, PH_HANDLE_GENERAL_INDEX_PAGED, L"Paged");
@@ -554,60 +567,154 @@ VOID PhpUpdateHandleGeneral(
     )
 {
     HANDLE processHandle;
-    PPH_ACCESS_ENTRY accessEntries;
-    ULONG numberOfAccessEntries;
-    WCHAR string[PH_INT64_STR_LEN_1];
 
-    if (PhpIsVerboseBestObjectName(Context->HandleItem))
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->ObjectName));
-    else
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->BestObjectName));
+    // Name, FullName
+
+    if (PhpIsVerboseBestObjectName(Context->HandleItem) && Context->HandleItem->ObjectName)
+    {
+        PPH_STRING objectName;
+
+        objectName = PhGetBaseName(Context->HandleItem->ObjectName);
+        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(objectName));
+        PhClearReference(&objectName);
+
+        objectName = PhReferenceObject(Context->HandleItem->ObjectName);
+        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FULLNAME, 1, PhGetStringOrEmpty(objectName));
+        PhClearReference(&objectName);
+    }
+    else if (Context->HandleItem->BestObjectName)
+    {
+        PPH_STRING objectName;
+
+        objectName = PhGetBaseName(Context->HandleItem->BestObjectName);
+        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(objectName));
+        PhClearReference(&objectName);
+
+        objectName = PhReferenceObject(Context->HandleItem->BestObjectName);
+        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FULLNAME, 1, PhGetStringOrEmpty(objectName));
+        PhClearReference(&objectName);
+    }
+
+    // Type
 
     PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_TYPE, 1, PhGetStringOrEmpty(Context->HandleItem->TypeName));
 
+    // Address
+
     if (Context->HandleItem->Object)
     {
+        WCHAR string[PH_INT64_STR_LEN_1];
+
         PhPrintPointer(string, Context->HandleItem->Object);
         PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_OBJECT, 1, string);
     }
-
-    if (PhGetAccessEntries(
-        PhGetStringOrEmpty(Context->HandleItem->TypeName),
-        &accessEntries,
-        &numberOfAccessEntries
-        ))
+    else
     {
-        PPH_STRING accessString;
-        PPH_STRING grantedAccessString;
+        if (PhGetOwnTokenAttributes().Elevated && PhGetIntegerSetting(L"EnableHandleSnapshot"))
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_OBJECT, 1, L"(snapshot)");
+        else
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_OBJECT, 1, L"N/A");
+    }
 
-        accessString = PH_AUTO(PhGetAccessString(
-            Context->HandleItem->GrantedAccess,
-            accessEntries,
-            numberOfAccessEntries
-            ));
+    // AccessMask (Symbolic)
+    {
+        PPH_ACCESS_ENTRY accessEntries;
+        ULONG numberOfAccessEntries;
 
-        if (accessString->Length != 0)
+        if (PhGetAccessEntries(
+            PhGetStringOrEmpty(Context->HandleItem->TypeName),
+            &accessEntries,
+            &numberOfAccessEntries
+            ))
         {
-            grantedAccessString = PH_AUTO(PhFormatString(
-                L"0x%x (%s)",
-                Context->HandleItem->GrantedAccess,
-                accessString->Buffer
-                ));
+            PPH_STRING accessString;
 
-            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, 1, grantedAccessString->Buffer);
+            if (accessString = PH_AUTO(PhGetAccessString(
+                Context->HandleItem->GrantedAccess,
+                accessEntries,
+                numberOfAccessEntries
+                )))
+            {
+                PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ACCESSS, 1, PhGetString(accessString));
+            }
+            else
+            {
+                PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ACCESSS, 1, L"N/A");
+            }
+
+            PhFree(accessEntries);
         }
         else
         {
-            PhPrintPointer(string, UlongToPtr(Context->HandleItem->GrantedAccess));
-            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, 1, string);
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ACCESSS, 1, L"N/A");
+        }
+    }
+
+    // AccessMask (Generic)
+    {
+        PPH_STRING genericString = NULL;
+        GENERIC_MAPPING genericMapping;
+
+        if (Context->HandleItem->TypeName && NT_SUCCESS(PhGetObjectTypeMask(
+            &Context->HandleItem->TypeName->sr,
+            &genericMapping
+            )))
+        {
+            PH_STRING_BUILDER stringBuilder;
+
+            PhInitializeStringBuilder(&stringBuilder, 64);
+
+            if (FlagOn(Context->HandleItem->GrantedAccess, genericMapping.GenericRead))
+                PhAppendStringBuilder2(&stringBuilder, L"Read, ");
+            if (FlagOn(Context->HandleItem->GrantedAccess, genericMapping.GenericWrite))
+                PhAppendStringBuilder2(&stringBuilder, L"Write, ");
+            if (FlagOn(Context->HandleItem->GrantedAccess, genericMapping.GenericExecute))
+                PhAppendStringBuilder2(&stringBuilder, L"Execute, ");
+            if (FlagOn(Context->HandleItem->GrantedAccess, genericMapping.GenericAll))
+                PhAppendStringBuilder2(&stringBuilder, L"All, ");
+
+            if (PhEndsWithStringRef2(&stringBuilder.String->sr, L", ", FALSE))
+                PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+            genericString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
         }
 
-        PhFree(accessEntries);
+        if (!PhIsNullOrEmptyString(genericString))
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ACCESSGENERIC, 1, PhGetString(genericString));
+        else
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ACCESSGENERIC, 1, L"N/A");
     }
-    else
+
+    // AccessMask (Hex)
     {
+        WCHAR string[PH_INT64_STR_LEN_1];
+
         PhPrintPointer(string, UlongToPtr(Context->HandleItem->GrantedAccess));
         PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, 1, string);
+    }
+
+    // AccessMask (SDDL)
+    {
+        NTSTATUS status;
+        PPH_STRING handleSddlString;
+
+        status = PhGetObjectSecurityDescriptorAsString(
+            Context->HandleItem->Handle,
+            &handleSddlString
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SDDL, 1, PhGetString(handleSddlString));
+            PhDereferenceObject(handleSddlString);
+        }
+        else
+        {
+            WCHAR string[PH_INT64_STR_LEN_1];
+
+            PhPrintPointer(string, UlongToPtr(status));
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SDDL, 1, string);
+        }
     }
 
     if (NT_SUCCESS(PhOpenProcess(
@@ -628,6 +735,8 @@ VOID PhpUpdateHandleGeneral(
             NULL
             )))
         {
+            WCHAR string[PH_INT64_STR_LEN_1];
+
             PhPrintUInt32(string, basicInfo.PointerCount);
             PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
 
@@ -677,6 +786,7 @@ VOID PhpUpdateHandleGeneral(
             {
                 PH_FORMAT format[5];
                 PPH_STRING alpcFlagsString;
+                WCHAR string[PH_INT64_STR_LEN_1];
 
                 alpcFlagsString = PhGetAccessString(
                     basicInfo.Flags,
@@ -837,6 +947,7 @@ VOID PhpUpdateHandleGeneral(
                     {
                         PH_FORMAT format[5];
                         PPH_STRING alpcFlagsString;
+                        WCHAR string[PH_INT64_STR_LEN_1];
 
                         alpcFlagsString = PhGetAccessString(
                             alpcBasicInfo.Flags,
@@ -1386,7 +1497,7 @@ VOID PhpUpdateHandleGeneral(
     else if (PhEqualString2(Context->HandleItem->TypeName, L"Section", TRUE))
     {
         NTSTATUS status;
-        SECTION_BASIC_INFORMATION basicInfo;
+        SECTION_BASIC_INFORMATION basicInfo = { NULL };
         PPH_STRING fileName = NULL;
 
         if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
@@ -1910,18 +2021,14 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
 
-            // Plugins can load window position in GeneralCallbackHandlePropertiesWindowInitialized, ex. Object Manager (Dart Vanya)
-            if (!PhPluginsEnabled || !context->OwnerPlugin)
-            {
-                // HACK
-                if (PhValidWindowPlacementFromSetting(L"HandlePropertiesWindowPosition"))
-                    PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
-                else
-                    PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
-            }
-
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+
+            // HACK
+            if (PhValidWindowPlacementFromSetting(L"HandlePropertiesWindowPosition"))
+                PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
+            else
+                PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
 
             PhpUpdateHandleGeneralListViewGroups(context);
             PhpUpdateHandleGeneral(context);
@@ -1944,8 +2051,6 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhRemoveDialogContext(hwndDlg);
-
             PhUnregisterWindowCallback(context->ParentWindow);
 
             PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
@@ -1953,6 +2058,8 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhDestroyListViewInterface(context->ListViewClass);
+
+            PhRemoveDialogContext(hwndDlg);
         }
         break;
     case WM_SIZE:
