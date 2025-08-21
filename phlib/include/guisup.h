@@ -1156,6 +1156,38 @@ PhCreateWindowEx(
     _In_opt_ PVOID Parameter
     );
 
+FORCEINLINE
+HWND
+PhCreateWindow(
+    _In_ PCWSTR ClassName,
+    _In_opt_ PCWSTR WindowName,
+    _In_ ULONG Style,
+    _In_ LONG X,
+    _In_ LONG Y,
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_opt_ HWND ParentWindow,
+    _In_opt_ HMENU MenuHandle,
+    _In_opt_ PVOID InstanceHandle,
+    _In_opt_ PVOID Parameter
+    )
+{
+    return PhCreateWindowEx(
+        ClassName,
+        WindowName,
+        Style,
+        0,
+        X,
+        Y,
+        Width,
+        Height,
+        ParentWindow,
+        MenuHandle,
+        InstanceHandle,
+        Parameter
+        );
+}
+
 PHLIBAPI
 INT_PTR
 NTAPI
