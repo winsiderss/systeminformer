@@ -28,12 +28,13 @@ typedef struct _PH_PROCESS_PROPCONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
     PPH_STRING Title;
+    PROPSHEETHEADER PropSheetHeader;
+    HPROPSHEETPAGE* PropSheetPages;
+
     HANDLE SelectThreadId;
+
     PPH_PROCESS_WAITPROPCONTEXT ProcessWaitContext;
     BOOLEAN WaitInitialized;
-
-    PROPSHEETHEADER PropSheetHeader;
-    HPROPSHEETPAGE PropSheetPages[20];
 } PH_PROCESS_PROPCONTEXT, *PPH_PROCESS_PROPCONTEXT;
 
 // begin_phapppub
