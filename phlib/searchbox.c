@@ -608,6 +608,7 @@ BOOLEAN PhpSearchUpdateText(
         ))
     {
         return FALSE;
+    }
 
     newSearchboxText.Buffer = searchboxTextBuffer;
     newSearchboxText.Length = searchboxTextBufferLength * sizeof(WCHAR);
@@ -1310,7 +1311,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 
 VOID PhCreateSearchControlEx(
     _In_ HWND ParentWindowHandle,
-    _In_ HWND WindowHandle,
+    _In_ HWND SearchWindowHandle,
     _In_opt_ PCWSTR BannerText,
     _In_ PVOID ImageBaseAddress,
     _In_ PCWSTR SearchButtonResource,
@@ -1346,12 +1347,12 @@ VOID PhCreateSearchControlEx(
     context->CaseButton.Active = !!PhGetIntegerSetting(context->CaseSetting);
 
     // Subclass the Edit control window procedure.
-    context->DefaultWindowProc = PhGetWindowProcedure(WindowHandle);
-    PhSetWindowContext(WindowHandle, SHRT_MAX, context);
-    PhSetWindowProcedure(WindowHandle, PhpSearchWndSubclassProc);
+    context->DefaultWindowProc = PhGetWindowProcedure(SearchWindowHandle);
+    PhSetWindowContext(SearchWindowHandle, SHRT_MAX, context);
+    PhSetWindowProcedure(SearchWindowHandle, PhpSearchWndSubclassProc);
 
     // Initialize the theme parameters.
-    PhpSearchControlThemeChanged(context, WindowHandle);
+    PhpSearchControlThemeChanged(context, SearchWindowHandle);
 }
 
 BOOLEAN PhSearchControlMatch(
