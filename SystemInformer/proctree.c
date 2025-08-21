@@ -4676,17 +4676,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     }
                 }
                 break;
-            case PHPRTLC_SILO:
-                {
-                    PhpUpdateProcessNodeServerSilo(node);
-
-                    if (node->ServerSiloId != 0)
-                    {
-                        PhMoveReference(&node->ServerSiloText, PhFormatUInt64(node->ServerSiloId, FALSE));
-                        getCellText->Text = PhGetStringRef(node->ServerSiloText);
-                    }
-                }
-                break;
             default:
                 return FALSE;
             }
