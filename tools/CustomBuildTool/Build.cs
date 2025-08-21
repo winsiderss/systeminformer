@@ -65,14 +65,21 @@ namespace CustomBuildTool
 
         public static bool InitializeBuildTimestamp()
         {
-            string file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-timestamp.txt"]);
+            if (Build.BuildIntegration)
+            {
+                string file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-timestamp.txt"]);
 
-            // Ensures consistent time stamp across build invocations. The file is written by pipeline builds.
+                // Ensures consistent time stamp across build invocations. The file is written by pipeline builds.
 
-            if (File.Exists(file) && DateTime.TryParse(Utils.ReadAllText(file), out var dateTime))
-                Build.TimeStart = dateTime;
+                if (File.Exists(file) && DateTime.TryParse(Utils.ReadAllText(file), out var dateTime))
+                    Build.TimeStart = dateTime;
+                else
+                    Build.TimeStart = DateTime.UtcNow;
+            }
             else
+            {
                 Build.TimeStart = DateTime.UtcNow;
+            }
 
             return true;
         }
@@ -236,10 +243,10 @@ namespace CustomBuildTool
 
         public static void ShowBuildStats()
         {
-            TimeSpan buildTime = (DateTime.UtcNow - Build.TimeStart);
+            TimeSpan buildTime = DateTime.UtcNow - Build.TimeStart;
 
             Program.PrintColorMessage($"{Environment.NewLine}Build Time: ", ConsoleColor.DarkGray, false);
-            Program.PrintColorMessage(buildTime.Minutes.ToString(), ConsoleColor.Green, false);
+            Program.PrintColorMessage(buildTime.TotalMinutes.ToString("0"), ConsoleColor.Green, false);
             Program.PrintColorMessage(" minute(s), ", ConsoleColor.DarkGray, false);
             Program.PrintColorMessage(buildTime.Seconds.ToString(), ConsoleColor.Green, false);
             Program.PrintColorMessage($" second(s) {Environment.NewLine + Environment.NewLine}", ConsoleColor.DarkGray, false);
