@@ -27,6 +27,7 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
     _In_ ULONG NumberOfSegments
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtGpuProcessesUpdatedCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

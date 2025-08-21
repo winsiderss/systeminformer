@@ -255,6 +255,77 @@ PPH_STRING PvVersionInfoFileTypeToString(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+PVOID PvGetFileVersionInfoValue2(
+    _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo
+    )
+{
+    const PCWSTR keyOffset = VersionInfo->Key + PhCountStringZ(VersionInfo->Key) + 1;
+
+    return PTR_ADD_OFFSET(VersionInfo, ALIGN_UP(PTR_SUB_OFFSET(keyOffset, VersionInfo), ULONG));
+}
+
+VOID PvEnumFileVersionInfo(
+    _In_ HWND ListViewHandle,
+    _Inout_ PULONG Count,
+    _In_ PVOID VersionBlock,
+    _In_ PPH_STRING CurrentName,
+    _In_ ULONG Depth)
+{
+    PVOID value;
+    ULONG valueOffset;
+    PVS_VERSION_INFO_STRUCT32 child;
+    PVS_VERSION_INFO_STRUCT32 VersionInfo = VersionBlock;
+
+    if (!(value = PvGetFileVersionInfoValue2(VersionInfo)))
+        return;
+
+    valueOffset = VersionInfo->ValueLength * (VersionInfo->Type ? sizeof(WCHAR) : sizeof(CHAR));
+    child = PTR_ADD_OFFSET(value, ALIGN_UP(valueOffset, ULONG));
+
+    while ((ULONG_PTR)child < (ULONG_PTR)PTR_ADD_OFFSET(VersionInfo, VersionInfo->Length))
+    {
+        if (CurrentName)
+        {
+            PPH_STRING string;
+
+            string = PhFormatString(
+                L"\\%s\\%s",
+                PhGetString(CurrentName),
+                child->Key
+                );
+
+            PvEnumFileVersionInfo(
+                ListViewHandle,
+                Count,
+                child,
+                string,
+                Depth + 1
+                );
+
+            PvAddVersionInfoItem(
+                ListViewHandle,
+                Count,
+                1,
+                PhGetString(string),
+                child->ValueLength ? PvGetFileVersionInfoValue(child) : L""
+                );
+
+            PhDereferenceObject(string);
+        }
+        else
+        {
+            PPH_STRING nameString = PhFormatString(L"%s", child->Key);
+            PvEnumFileVersionInfo(ListViewHandle, Count, child, nameString, Depth + 1);
+            PhDereferenceObject(nameString);
+        }
+
+        if (child->Length == 0)
+            break;
+
+        child = PTR_ADD_OFFSET(child, ALIGN_UP(child->Length, ULONG));
+    }
+}
+
 // Enumerate any custom strings in the StringFileInfo (dmex)
 VOID PvEnumVersionInfo(
     _In_ HWND ListViewHandle
@@ -264,7 +335,6 @@ VOID PvEnumVersionInfo(
     ULONG count = 0;
     VS_FIXEDFILEINFO* rootBlock;
     PVOID versionInfo;
-    ULONG langCodePage;
 
     status = PhGetFileVersionInfo(PvFileName->Buffer, &versionInfo);
 
@@ -285,20 +355,41 @@ VOID PvEnumVersionInfo(
         PvAddVersionInfoItem(ListViewHandle, &count, 0, L"FileDate", PhaFormatString(L"%lu.%lu.%lu.%lu", HIWORD(rootBlock->dwFileDateMS), LOWORD(rootBlock->dwFileDateMS), HIWORD(rootBlock->dwFileDateLS), LOWORD(rootBlock->dwFileDateLS))->Buffer);
     }
 
-    // TODO: Enumerate the language block.
-    langCodePage = PhGetFileVersionInfoLangCodePage(versionInfo);
+    static PH_STRINGREF blockStringInfoName = PH_STRINGREF_INIT(L"StringFileInfo");
+    PVS_VERSION_INFO_STRUCT32 blockStringInfo;
 
-    // Use the default language code page.
-    if (!PvDumpFileVersionInfo(versionInfo, langCodePage, ListViewHandle, &count))
+    //PvEnumFileVersionInfo(ListViewHandle, &count, versionInfo, NULL, 0);
+
+    if (NT_SUCCESS(PhGetFileVersionInfoKey(
+        versionInfo,
+        blockStringInfoName.Length / sizeof(WCHAR),
+        blockStringInfoName.Buffer,
+        &blockStringInfo
+        )))
     {
-        // Use the windows-1252 code page.
-        if (!PvDumpFileVersionInfo(versionInfo, (langCodePage & 0xffff0000) + 1252, ListViewHandle, &count))
+        PvEnumFileVersionInfo(ListViewHandle, &count, blockStringInfo, NULL, 0);
+    }
+
+    {
+        PLANGANDCODEPAGE codePage;
+        ULONG codePageLength;
+
+        if (NT_SUCCESS(PhGetFileVersionVarFileInfoValueZ(versionInfo, L"Translation", &codePage, &codePageLength)))
         {
-            // Use the default language (US English).
-            if (!PvDumpFileVersionInfo(versionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 1252, ListViewHandle, &count))
+            for (ULONG i = 0; i < (codePageLength / sizeof(LANGANDCODEPAGE)); i++)
             {
-                // Use the default language (US English).
-                PvDumpFileVersionInfo(versionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 0, ListViewHandle, &count);
+                SIZE_T returnLength;
+                PH_FORMAT format[3];
+                WCHAR langNameString[65];
+
+                PhInitFormatX(&format[0], ((ULONG)codePage[i].Language << 16) + codePage[i].CodePage);
+                format[0].Type |= FormatPadZeros | FormatUpperCase;
+                format[0].Width = 8;
+
+                if (PhFormatToBuffer(format, 1, langNameString, sizeof(langNameString), &returnLength))
+                {
+                    PvAddVersionInfoItem(ListViewHandle, &count, 2, L"Translation", langNameString);
+                }
             }
         }
     }
@@ -356,6 +447,7 @@ INT_PTR CALLBACK PvpPeVersionInfoDlgProc(
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
             PhAddListViewGroup(context->ListViewHandle, 0, L"FixedFileInfo");
             PhAddListViewGroup(context->ListViewHandle, 1, L"StringFileInfo");
+            PhAddListViewGroup(context->ListViewHandle, 2, L"VarFileInfo");
 
             PvEnumVersionInfo(context->ListViewHandle);
 

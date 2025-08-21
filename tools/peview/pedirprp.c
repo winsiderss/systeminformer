@@ -215,7 +215,7 @@ VOID PvpPeEnumerateImageDataDirectory(
 
             if (directorySection)
             {
-                directoryNode->RawStart = PTR_ADD_OFFSET(PTR_SUB_OFFSET(directoryAddress, directorySection->VirtualAddress), directorySection->PointerToRawData);
+                directoryNode->RawStart = PTR_ADD_OFFSET((directoryAddress - directorySection->VirtualAddress), directorySection->PointerToRawData);
                 PhPrintPointer(value, directoryNode->RawStart);
                 directoryNode->RawStartString = PhCreateString(value);
 

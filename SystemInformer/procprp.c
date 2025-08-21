@@ -502,7 +502,7 @@ VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
         PhDereferenceObject(propPageContext->PropContext);
 }
 
-INT CALLBACK PhpStandardPropPageProc(
+UINT CALLBACK PhpStandardPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp

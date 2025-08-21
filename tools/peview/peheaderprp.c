@@ -243,7 +243,7 @@ VOID PvSetPeImageDosStubHeaderProperties(
     if (imageDosStubRichLength)
     {
         PhPrintPointer(value, UlongToPtr(imageDosStubRichStart));
-        PhPrintPointer(size, PTR_ADD_OFFSET(imageDosStubRichStart, imageDosStubRichLength));
+        PhPrintPointer(size, UlongToPtr(imageDosStubRichStart + imageDosStubRichLength));
         string = PhaFormatString(L"%s-%s", value, size);
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_RICHSIZE, 1, PhaFormatString(
             L"%s (%s)",
@@ -632,7 +632,7 @@ VOID PvSetPeImageOverlayHeaderProperties(
     _In_ PPVP_PE_HEADER_CONTEXT Context
     )
 {
-    ULONG lastRawDataAddress = 0;
+    ULONG64 lastRawDataAddress = 0;
     ULONG64 lastRawDataOffset = 0;
 
     for (USHORT i = 0; i < PvMappedImage.NumberOfSections; i++)
@@ -640,7 +640,7 @@ VOID PvSetPeImageOverlayHeaderProperties(
         if (PvMappedImage.Sections[i].PointerToRawData > lastRawDataAddress)
         {
             lastRawDataAddress = PvMappedImage.Sections[i].PointerToRawData;
-            lastRawDataOffset = (ULONG64)PTR_ADD_OFFSET(lastRawDataAddress, PvMappedImage.Sections[i].SizeOfRawData);
+            lastRawDataOffset = lastRawDataAddress + PvMappedImage.Sections[i].SizeOfRawData;
         }
     }
 

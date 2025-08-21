@@ -190,26 +190,21 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
         PPH_STRING key = PhGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
         PPH_STRING id = PhGetStringSetting(SETTING_NAME_GEOLITE_API_ID);
 
-        if (PhIsNullOrEmptyString(key) || PhIsNullOrEmptyString(id))
-        {
+        if (!PhIsNullOrEmptyString(key) && !PhIsNullOrEmptyString(id))
+            status = PhHttpSetCredentials(httpContext, PhGetString(id), PhGetString(key));
+        else
             status = STATUS_GENERIC_COMMAND_FAILED;
-            PhClearReference(&key);
-            PhClearReference(&id);
-            goto CleanupExit;
-        }
-
-        if (!NT_SUCCESS(status = PhHttpSetCredentials(httpContext, PhGetString(id), PhGetString(key))))
-        {
-            PhClearReference(&key);
-            PhClearReference(&id);
-            goto CleanupExit;
-        }
 
         PhClearReference(&key);
         PhClearReference(&id);
+
+        if (!NT_SUCCESS(status))
+        {
+            goto CleanupExit;
+        }
     }
 
-    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, PH_HTTP_NO_REQUEST_DATA, 0, PH_HTTP_IGNORE_REQUEST_TOTAL_LENGTH)))
         goto CleanupExit;
 
     SetDialogStatusText(Context->DialogHandle, L"Waiting for response...");
