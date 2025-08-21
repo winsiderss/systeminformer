@@ -46,16 +46,15 @@ namespace CustomBuildTool
 
         public static string SendMessage(HttpRequestMessage HttpMessage)
         {
-            string response = null;
+            string response;
 
             try
             {
                 var httpTask = CreateHttpClient().SendAsync(HttpMessage).GetAwaiter().GetResult();
 
-                if (httpTask.IsSuccessStatusCode)
-                {
-                    response = httpTask.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                }
+                //if (httpTask.IsSuccessStatusCode)
+
+                response = httpTask.Content.ReadAsStringAsync().GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
@@ -88,4 +87,42 @@ namespace CustomBuildTool
             return result;
         }
     }
+
+    public class ProgressableStreamContent : HttpContent
+    {
+        private const int DefaultBufferSize = 4096;
+        private readonly Stream _content;
+        private readonly int _bufferSize;
+        private readonly Action<long, long> _progress;
+
+        public ProgressableStreamContent(Stream content, Action<long, long> progress, int bufferSize = DefaultBufferSize)
+        {
+            _content = content;
+            _bufferSize = bufferSize;
+            _progress = progress;
+            Headers.ContentLength = content.Length;
+        }
+
+        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        {
+            var buffer = new byte[_bufferSize];
+            var memory = buffer.AsMemory();// new Memory<byte>(buffer);
+            long totalBytesRead = 0;
+            int bytesRead;
+
+            while ((bytesRead = await _content.ReadAsync(memory)) > 0)
+            {
+                await stream.WriteAsync(memory);
+                totalBytesRead += bytesRead;
+                _progress?.Invoke(totalBytesRead, _content.Length);
+            }
+        }
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = _content.Length;
+            return true;
+        }
+    }
+
 }

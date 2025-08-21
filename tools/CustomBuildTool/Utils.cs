@@ -34,7 +34,7 @@ namespace CustomBuildTool
                     dict[s] = string.Empty;
                     argPending = s;
                 }
-                else if (!string.IsNullOrEmpty(argPending))
+                else if (!string.IsNullOrWhiteSpace(argPending))
                 {
                     dict[argPending] = s;
                     argPending = null;
@@ -74,7 +74,7 @@ namespace CustomBuildTool
                         kvp[key] = string.Empty;
                     }
                 }
-                else if (!string.IsNullOrEmpty(key))
+                else if (!string.IsNullOrWhiteSpace(key))
                 {
                     kvp[key] += s;
                 }
@@ -122,7 +122,7 @@ namespace CustomBuildTool
                 return null;
             }
 
-            int errorcode = Win32.CreateProcess(file, Command, out var outputString, false);
+            Win32.CreateProcess(file, Command, out var outputString, false);
 
             return outputString.Trim();
         }
@@ -352,7 +352,7 @@ namespace CustomBuildTool
                 return null;
             }
 
-            int errorcode = Win32.CreateProcess(currentGitPath, $"{currentGitDirectory} {Command}", out var outputString, false);
+            Win32.CreateProcess(currentGitPath, $"{currentGitDirectory} {Command}", out var outputString, false);
 
             return outputString.Trim();
         }
@@ -511,15 +511,15 @@ namespace CustomBuildTool
 
         public static string ExecuteMsixCommand(string Command)
         {
-            string currentMisxPath = GetMakeAppxPath();
+            string file = GetMakeAppxPath();
 
-            if (string.IsNullOrWhiteSpace(currentMisxPath))
+            if (string.IsNullOrWhiteSpace(file))
             {
                 Program.PrintColorMessage("[ExecuteMsixCommand] File is invalid.", ConsoleColor.Red);
                 return null;
             }
 
-            int errorcode = Win32.CreateProcess(currentMisxPath, Command, out var outputString, false);
+            Win32.CreateProcess(file, Command, out var outputString, false);
 
             return outputString.Replace("\r\n\r\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
         }
@@ -540,6 +540,92 @@ namespace CustomBuildTool
                 return string.Empty;
 
             return signToolPath;
+        }
+
+        public static string GetSymStorePath()
+        {
+            string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
+            if (string.IsNullOrWhiteSpace(kitsRoot))
+                return null;
+
+            string kitsPath = Utils.ExpandFullPath(kitsRoot);
+            if (string.IsNullOrWhiteSpace(kitsPath))
+                return null;
+
+            string symStorePath = Path.Join([kitsPath, "Debuggers\\x64\\symstore.exe"]);
+            if (string.IsNullOrWhiteSpace(symStorePath))
+                return null;
+
+            return symStorePath;
+        }
+
+        public static int ExecuteSymStoreCommand(string Command)
+        {
+            string file = GetSymStorePath();
+
+            if (string.IsNullOrWhiteSpace(file))
+            {
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] File is invalid.", ConsoleColor.Red);
+                return int.MaxValue;
+            }
+
+            return Win32.CreateProcess(file, Command, out _, false, false);
+        }
+
+        public static string GetDevEnvPath()
+        {
+            var instance = VisualStudio.GetVisualStudioInstance();
+            {
+                string file = Path.Join([instance.Path, "Common7\\IDE\\devenv.com"]);
+
+                if (File.Exists(file))
+                {
+                    return file;
+                }
+            }
+
+            string vswhere = GetVswhereFilePath();
+
+            if (string.IsNullOrWhiteSpace(vswhere))
+                return null;
+
+            int errorcode = Win32.CreateProcess(
+                vswhere,
+                "-latest " +
+                "-prerelease " +
+                "-products * " +
+                "-requiresAny " +
+                "-requires Microsoft.Component.MSBuild " +
+                "-property installationPath ",
+                out string vswhereResult
+                );
+
+            if (errorcode != 0 || string.IsNullOrWhiteSpace(vswhereResult))
+                return null;
+
+            {
+                string file = Path.Join([vswhereResult, "Common7\\IDE\\devenv.com"]);
+
+                if (File.Exists(file))
+                {
+                    return file;
+                }
+            }
+
+            return null;
+        }
+
+        public static int ExecuteDevEnvCommand(string Command)
+        {
+            string currentDevEnvPath = GetDevEnvPath();
+
+            if (string.IsNullOrWhiteSpace(currentDevEnvPath))
+            {
+                Program.PrintColorMessage("[ExecuteDevEnvCommand] File is invalid.", ConsoleColor.Red);
+                return int.MaxValue;
+            }
+
+            return Win32.CreateProcess(currentDevEnvPath, Command, out _, false, false);
         }
 
         //public static string GetMsbuildFilePath()
@@ -702,7 +788,7 @@ namespace CustomBuildTool
                     {
                         string variable = new string(offset);
 
-                        if (string.IsNullOrEmpty(variable))
+                        if (string.IsNullOrWhiteSpace(variable))
                             break;
 
                         string[] parts = variable.Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -1126,6 +1212,112 @@ namespace CustomBuildTool
         public string Payload { get; init; }
     }
 
+    public class SourceForgeResponseData
+    {
+        [JsonPropertyName("file_type")]
+        public string file_type { get; init; }
+
+        [JsonPropertyName("explicitly_staged")]
+        public string explicitly_staged { get; init; }
+
+        [JsonPropertyName("date")]
+        public string date { get; init; }
+
+        [JsonPropertyName("mtime")]
+        public string Paylomtimead { get; init; }
+
+        [JsonPropertyName("id")]
+        public string id { get; init; }
+       
+        [JsonPropertyName("size")]
+        public string size { get; init; }
+       
+        [JsonPropertyName("x_stage")]
+        public string x_stage { get; init; }
+       
+        [JsonPropertyName("downloadable")]
+        public string downloadable { get; init; }
+       
+        [JsonPropertyName("stage")]
+        public string stage { get; init; }
+       
+        [JsonPropertyName("type")]
+        public string type { get; init; }
+
+        [JsonPropertyName("mime_type")]
+        public string mime_type { get; init; }
+
+        [JsonPropertyName("staged_dir")]
+        public string staged_dir { get; init; }
+
+        [JsonPropertyName("vscan")]
+        public string vscan { get; init; }
+
+        [JsonPropertyName("path")]
+        public string path { get; init; }
+
+        [JsonPropertyName("crtime")]
+        public string crtime { get; init; }
+
+        [JsonPropertyName("md5")]
+        public string md5 { get; init; }
+
+        [JsonPropertyName("sha1")]
+        public string sha1 { get; init; }
+
+        [JsonPropertyName("name")]
+        public string name { get; init; }
+
+        //[JsonPropertyName("staged")]
+        //public string staged { get; init; }
+
+        [JsonPropertyName("modified")]
+        public string modified { get; init; }
+
+        [JsonPropertyName("project")]
+        public string project { get; init; }
+
+        [JsonPropertyName("vscan_prog")]
+        public string vscan_prog { get; init; }
+
+        [JsonPropertyName("vscan_when")]
+        public string vscan_when { get; init; }
+    }
+
+    public class SourceForgeUploadResponse
+    {
+        [JsonPropertyName("result")]
+        public SourceForgeResponseData Result { get; init; }
+    }
+
+    public class VirusTotalLargeUploadResponse
+    {
+        [JsonPropertyName("data")]
+        public string data { get; init; }
+    }
+
+    public class VirusTotalAnalysisLinksResponse
+    {
+        [JsonPropertyName("self")]
+        public string self { get; init; }
+    }
+
+    public class VirusTotalAnalysisDataResponse
+    {
+        [JsonPropertyName("type")]
+        public string type { get; init; }
+        [JsonPropertyName("id")]
+        public string id { get; init; }
+        [JsonPropertyName("links")]
+        public VirusTotalAnalysisLinksResponse links { get; init; }
+    }
+
+    public class VirusTotalAnalysisResponse
+    {
+        [JsonPropertyName("data")]
+        public VirusTotalAnalysisDataResponse data { get; init; }
+    }
+
     [JsonSerializable(typeof(BuildUpdateRequest))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class BuildUpdateRequestContext : JsonSerializerContext
@@ -1157,6 +1349,27 @@ namespace CustomBuildTool
     [JsonSerializable(typeof(GithubCommitResponse))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class GithubCommitResponseContext : JsonSerializerContext
+    {
+
+    }
+
+    [JsonSerializable(typeof(SourceForgeUploadResponse))]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
+    public partial class SourceForgeUploadResponseContext : JsonSerializerContext
+    {
+
+    }
+
+    [JsonSerializable(typeof(VirusTotalLargeUploadResponse))]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
+    public partial class VirusTotalLargeUploadResponseContext : JsonSerializerContext
+    {
+
+    }
+
+    [JsonSerializable(typeof(VirusTotalAnalysisResponse))]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
+    public partial class VirusTotalAnalysisResponseContext : JsonSerializerContext
     {
 
     }
