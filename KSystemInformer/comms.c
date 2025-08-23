@@ -948,7 +948,7 @@ VOID KphpSendRequiredStateFailure(
     if (!msg)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      INFORMER,
+                      COMMS,
                       "Failed to allocate message");
         return;
     }
