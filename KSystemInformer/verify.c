@@ -698,7 +698,7 @@ NTSTATUS KphVerifyFile(
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
+                      VERIFY,
                       "KphCreateFile failed: %!STATUS!",
                       status);
 
@@ -708,7 +708,7 @@ NTSTATUS KphVerifyFile(
     else if (status == STATUS_OPLOCK_BREAK_IN_PROGRESS)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
+                      VERIFY,
                       "KphCreateFile failed: %!STATUS!",
                       status);
 

@@ -206,7 +206,7 @@ ULONG64 KphGetProcessSequenceNumber(
     if (!process)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      GENERAL,
+                      UTIL,
                       "Failed to get process sequence number for PID %lu",
                       HandleToULong(PsGetProcessId(Process)));
 
@@ -246,7 +246,7 @@ ULONG64 KphGetProcessStartKey(
     if (!process)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      GENERAL,
+                      UTIL,
                       "Failed to get process start key for PID %lu",
                       HandleToULong(PsGetProcessId(Process)));
 
@@ -2052,7 +2052,7 @@ NTSTATUS KphOpenParametersKey(
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      GENERAL,
+                      UTIL,
                       "Unable to open Parameters key: %!STATUS!",
                       status);
 
@@ -2288,7 +2288,7 @@ NTSTATUS KphGetSigningLevel(
     }
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
-                  PROTECTION,
+                  UTIL,
                   "CiValidateFileObject: \"%wZ\" 0x%08lx \"%Z\" \"%Z\" "
                   "%!STATUS! %!STATUS!",
                   &FileObject->FileName,

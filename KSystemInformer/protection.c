@@ -1309,7 +1309,7 @@ NTSTATUS KphpReOpenImageFile(
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
+                      PROTECTION,
                       "KphGetNameFileObject failed: %!STATUS!",
                       status);
 
@@ -1340,7 +1340,7 @@ NTSTATUS KphpReOpenImageFile(
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
+                      PROTECTION,
                       "KphCreateFile failed: %!STATUS!",
                       status);
 
@@ -1350,7 +1350,7 @@ NTSTATUS KphpReOpenImageFile(
     else if (status == STATUS_OPLOCK_BREAK_IN_PROGRESS)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
+                      PROTECTION,
                       "KphCreateFile failed: %!STATUS!",
                       status);
 
@@ -1367,7 +1367,7 @@ NTSTATUS KphpReOpenImageFile(
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
+                      PROTECTION,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
 
@@ -1383,7 +1383,7 @@ NTSTATUS KphpReOpenImageFile(
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
+                      PROTECTION,
                       "KphMapViewInSystem failed: %!STATUS!",
                       status);
 
@@ -1399,7 +1399,7 @@ NTSTATUS KphpReOpenImageFile(
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
+                      PROTECTION,
                       "KphMapViewInSystem failed: %!STATUS!",
                       status);
 
