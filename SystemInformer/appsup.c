@@ -19,6 +19,7 @@
 
 #include <actions.h>
 #include <mainwnd.h>
+#include <lsasup.h>
 #include <phappres.h>
 #include <phsvccl.h>
 #include <thirdparty.h>
@@ -134,6 +135,105 @@ PCPH_STRINGREF PhGetProcessPriorityClassString(
     //default:
     //    return L"Unknown";
     //}
+}
+
+static CONST PH_KEY_VALUE_PAIR PhProtectedTypeStrings[] =
+{
+    SIP(L"None", NULL), // PsProtectedTypeNone
+    SIP(L"Light", PsProtectedTypeProtectedLight),
+    SIP(L"Full", PsProtectedTypeProtected),
+};
+
+static CONST PH_KEY_VALUE_PAIR PhProtectedSignerStrings[] =
+{
+    SIP(L"None", NULL), // PsProtectedSignerNone
+    SIP(L"Authenticode", PsProtectedSignerAuthenticode),
+    SIP(L"CodeGen", PsProtectedSignerCodeGen),
+    SIP(L"Antimalware", PsProtectedSignerAntimalware),
+    SIP(L"Lsa", PsProtectedSignerLsa),
+    SIP(L"Windows", PsProtectedSignerWindows),
+    SIP(L"WinTcb", PsProtectedSignerWinTcb),
+    SIP(L"WinSystem", PsProtectedSignerWinSystem),
+    SIP(L"StoreApp", PsProtectedSignerApp),
+};
+
+static_assert(RTL_NUMBER_OF(PhProtectedTypeStrings) == PsProtectedTypeMax, "PsProtectedTypeStrings must equal PsProtectedTypeMax (value offsets)");
+static_assert(RTL_NUMBER_OF(PhProtectedSignerStrings) == PsProtectedSignerMax, "PhProtectedSignerStrings must equal PsProtectedSignerMax (value offsets)");
+
+PPH_STRING PhGetProcessProtectionString(
+    _In_ PS_PROTECTION Protection,
+    _In_ BOOLEAN IsSecureProcess
+    )
+{
+    if (Protection.Level)
+    {
+        static PPH_STRING PhpProtectionNoneString = NULL;
+        PH_FORMAT format[6];
+        ULONG count = 0;
+        PCWSTR type;
+        PCWSTR signer;
+
+        if (!PhpProtectionNoneString)
+            PhpProtectionNoneString = PhCreateString(L"None");
+
+        if (IsSecureProcess)
+        {
+            PhInitFormatS(&format[count++], L"Secure ");
+        }
+
+        if (PhIndexStringSiKeyValuePairs(
+            PhProtectedTypeStrings,
+            sizeof(PhProtectedTypeStrings),
+            Protection.Type,
+            &type
+            ))
+        {
+            PhInitFormatS(&format[count++], type);
+        }
+        else
+        {
+            PhInitFormatS(&format[count++], L"Unknown");
+        }
+
+        if (PhIndexStringSiKeyValuePairs(
+            PhProtectedSignerStrings,
+            sizeof(PhProtectedSignerStrings),
+            Protection.Signer,
+            &signer
+            ))
+        {
+            PhInitFormatS(&format[count++], L" (");
+            PhInitFormatS(&format[count++], signer);
+            PhInitFormatS(&format[count++], L")");
+        }
+        else
+        {
+            PhInitFormatS(&format[count++], L" (");
+            PhInitFormatS(&format[count++], L"Unknown");
+            PhInitFormatS(&format[count++], L")");
+        }
+
+        if (Protection.Audit)
+        {
+            PhInitFormatS(&format[count++], L" (Audit)");
+        }
+
+        return PhFormat(format, count, 10);
+    }
+    else
+    {
+        static PPH_STRING PhpProtectionSecureIUMString = NULL;
+
+        if (!PhpProtectionSecureIUMString)
+            PhpProtectionSecureIUMString = PhCreateString(L"Secure (IUM)");
+
+        if (IsSecureProcess)
+        {
+            return PhReferenceObject(PhpProtectionSecureIUMString);
+        }
+    }
+
+    return NULL;
 }
 
 /**
@@ -2511,15 +2611,7 @@ BOOLEAN PhShellOpenKey2(
 
     // Create our entry in Favorites.
 
-    if (!NT_SUCCESS(PhCreateKey(
-        &favoritesKeyHandle,
-        KEY_WRITE,
-        PH_KEY_CURRENT_USER,
-        &favoritesKeyName,
-        0,
-        0,
-        NULL
-        )))
+    if (!NT_SUCCESS(PhRegeditOpenUserFavoritesKey(regeditWindow, &favoritesKeyHandle)))
         goto CleanupExit;
 
     memcpy(favoriteName, L"A_SystemInformer", 16 * sizeof(WCHAR));

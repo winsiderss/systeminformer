@@ -964,6 +964,7 @@ EXPORTS
     PhThemeWindowDrawRebar
     PhThemeWindowDrawToolbar
     PhUnregisterWindowCallback
+    PhUserQueryWindow
     PhWindowThemeControlColor
 
 ; hndlinfo

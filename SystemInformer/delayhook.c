@@ -1130,7 +1130,7 @@ VOID PhRegisterDialogSuperClass(
 
     PhDefaultDialogWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhDialogWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(L"#32770", NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1150,7 +1150,7 @@ VOID PhRegisterMenuSuperClass(
 
     PhDefaultMenuWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhMenuWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(L"#32768", NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1170,7 +1170,7 @@ VOID PhRegisterRebarSuperClass(
 
     PhDefaultRebarWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhRebarWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(REBARCLASSNAME, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1190,7 +1190,7 @@ VOID PhRegisterComboBoxSuperClass(
 
     PhDefaultComboBoxWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhComboBoxWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(WC_COMBOBOX, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1210,7 +1210,7 @@ VOID PhRegisterStaticSuperClass(
 
     PhDefaultStaticWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhStaticWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(WC_STATIC, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1230,7 +1230,7 @@ VOID PhRegisterStatusBarSuperClass(
 
     PhDefaultStatusbarWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhStatusBarWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(STATUSCLASSNAME, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1250,7 +1250,7 @@ VOID PhRegisterEditSuperClass(
 
     PhDefaultEditWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhEditWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(WC_EDIT, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1270,7 +1270,7 @@ VOID PhRegisterHeaderSuperClass(
 
     PhDefaultHeaderWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhHeaderWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(WC_HEADER, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1281,15 +1281,15 @@ VOID PhRegisterHeaderSuperClass(
 
 // Detours export procedure hooks
 
-static __typeof__(&DrawThemeBackground) DefaultDrawThemeBackground = NULL;
-static __typeof__(&DrawThemeBackgroundEx) DefaultDrawThemeBackgroundEx = NULL;
-static __typeof__(&DrawThemeText) DefaultDrawThemeText = NULL;
-static __typeof__(&DrawThemeTextEx) DefaultDrawThemeTextEx = NULL;
-static __typeof__(&DrawTextW) DefaultComCtl32DrawTextW = NULL;
-static __typeof__(&TaskDialogIndirect) DefaultTaskDialogIndirect = NULL;
-static __typeof__(&GetThemeColor) DefaultGetThemeColor = NULL;
-static __typeof__(&SystemParametersInfoW) DefaultSystemParametersInfo = NULL;
-static __typeof__(&CreateWindowExW) DefaultCreateWindowEx = NULL;
+static typeof(&DrawThemeBackground) DefaultDrawThemeBackground = NULL;
+static typeof(&DrawThemeBackgroundEx) DefaultDrawThemeBackgroundEx = NULL;
+static typeof(&DrawThemeText) DefaultDrawThemeText = NULL;
+static typeof(&DrawThemeTextEx) DefaultDrawThemeTextEx = NULL;
+static typeof(&DrawTextW) DefaultComCtl32DrawTextW = NULL;
+static typeof(&TaskDialogIndirect) DefaultTaskDialogIndirect = NULL;
+static typeof(&GetThemeColor) DefaultGetThemeColor = NULL;
+static typeof(&SystemParametersInfoW) DefaultSystemParametersInfo = NULL;
+static typeof(&CreateWindowExW) DefaultCreateWindowEx = NULL;
 
 // uxtheme.dll ordinal 49
 static HTHEME(WINAPI* DefaultOpenNcThemeData)(

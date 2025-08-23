@@ -173,41 +173,6 @@ BOOLEAN PhpUpdaterExtractCoAuthorName(
     return TRUE;
 }
 
-PPH_STRING PhUpdaterCreateUserAgentString(
-    VOID
-    )
-{
-    PH_FORMAT format[8];
-    SIZE_T returnLength;
-    ULONG majorVersion;
-    ULONG minorVersion;
-    ULONG buildVersion;
-    ULONG revisionVersion;
-    WCHAR formatBuffer[260];
-
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
-    PhInitFormatS(&format[0], L"SystemInformer_");
-    PhInitFormatU(&format[1], majorVersion);
-    PhInitFormatC(&format[2], L'.');
-    PhInitFormatU(&format[3], minorVersion);
-    PhInitFormatC(&format[4], L'.');
-    PhInitFormatU(&format[5], buildVersion);
-    PhInitFormatC(&format[6], L'.');
-    PhInitFormatU(&format[7], revisionVersion);
-
-    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
-    {
-        PH_STRINGREF stringFormat;
-
-        stringFormat.Buffer = formatBuffer;
-        stringFormat.Length = returnLength - sizeof(UNICODE_NULL);
-
-        return PhCreateString2(&stringFormat);
-    }
-
-    return PhFormat(format, RTL_NUMBER_OF(format), 0);
-}
-
 PPH_LIST PhpUpdaterQueryCommitHistory(
     VOID
     )
@@ -226,7 +191,7 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, L"/repos/winsiderss/systeminformer/commits", PH_HTTP_FLAG_SECURE)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, PH_HTTP_NO_REQUEST_DATA, 0, 0)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
@@ -408,27 +373,20 @@ PPH_STRING PhpUpdaterCommitStringToTime(
     if (!PhStringToUInt64(&ssPartSr, 10, &second))
         return NULL;
 
-    if (year < SHRT_MIN || year > SHRT_MAX)
-        return NULL;
-    if (month < SHRT_MIN || month > SHRT_MAX)
-        return NULL;
-    if (day < SHRT_MIN || day > SHRT_MAX)
-        return NULL;
-    if (hour < SHRT_MIN || hour > SHRT_MAX)
-        return NULL;
-    if (minute < SHRT_MIN || minute > SHRT_MAX)
-        return NULL;
-    if (second < SHRT_MIN || second > SHRT_MAX)
-        return NULL;
-
     memset(&time, 0, sizeof(SYSTEMTIME));
-    time.wYear = (short)year;
-    time.wMonth = (short)month;
-    time.wDay = (short)day;
-    time.wHour = (short)hour;
-    time.wMinute = (short)minute;
-    time.wSecond = (short)second;
 
+    if (!NT_SUCCESS(RtlULong64ToUShort(year, &time.wYear)))
+        return NULL;
+    if (!NT_SUCCESS(RtlULong64ToUShort(month, &time.wMonth)))
+        return NULL;
+    if (!NT_SUCCESS(RtlULong64ToUShort(day, &time.wDay)))
+        return NULL;
+    if (!NT_SUCCESS(RtlULong64ToUShort(hour, &time.wHour)))
+        return NULL;
+    if (!NT_SUCCESS(RtlULong64ToUShort(minute, &time.wMinute)))
+        return NULL;
+    if (!NT_SUCCESS(RtlULong64ToUShort(second, &time.wSecond)))
+        return NULL;
     if (!PhSystemTimeToTzSpecificLocalTime(&time, &localTime))
         return NULL;
 

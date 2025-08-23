@@ -107,6 +107,7 @@ VOID NTAPI TaskbarUpdateGraphs(
             overlayIcon = PhUpdateIconCommitHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_PHYSICAL_HISTORY:
+            overlayIcon = PhUpdateIconPhysicalHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_CPU_USAGE:
             overlayIcon = PhUpdateIconCpuUsage(&SystemStatistics);

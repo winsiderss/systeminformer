@@ -177,8 +177,6 @@ VOID WepFillWindowInfo(
     )
 {
     PPH_STRING windowText;
-    ULONG threadId;
-    ULONG processId;
 
     PhPrintPointer(Node->WindowHandleString, Node->WindowHandle);
     GetClassName(Node->WindowHandle, Node->WindowClass, RTL_NUMBER_OF(Node->WindowClass));
@@ -189,40 +187,41 @@ VOID WepFillWindowInfo(
     if (PhIsNullOrEmptyString(Node->WindowText))
         PhMoveReference(&Node->WindowText, PhReferenceEmptyString());
 
-    threadId = GetWindowThreadProcessId(Node->WindowHandle, &processId);
-    Node->ClientId.UniqueProcess = UlongToHandle(processId);
-    Node->ClientId.UniqueThread = UlongToHandle(threadId);
+    PhGetWindowClientId(Node->WindowHandle, &Node->ClientId);
     Node->ThreadString = PhGetClientIdName(&Node->ClientId);
 
     Node->WindowVisible = !!IsWindowVisible(Node->WindowHandle);
     Node->HasChildren = !!FindWindowEx(Node->WindowHandle, NULL, NULL, NULL);
 
-    if (processId)
+    if (Node->ClientId.UniqueProcess)
     {
-        HANDLE processHandle;
+        PPH_PROCESS_ITEM processItem;
         PVOID instanceHandle;
         PPH_STRING fileName;
 
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, UlongToHandle(processId))))
+        if (processItem = PhReferenceProcessItem(Node->ClientId.UniqueProcess))
         {
-            if (!(instanceHandle = (PVOID)GetWindowLongPtr(Node->WindowHandle, GWLP_HINSTANCE)))
+            if (processItem->QueryHandle)
             {
-                instanceHandle = (PVOID)GetClassLongPtr(Node->WindowHandle, GCLP_HMODULE);
-            }
-
-            if (instanceHandle)
-            {
-                if (NT_SUCCESS(PhGetProcessMappedFileName(processHandle, instanceHandle, &fileName)))
+                if (!(instanceHandle = (PVOID)GetWindowLongPtr(Node->WindowHandle, GWLP_HINSTANCE)))
                 {
-                    PhMoveReference(&fileName, PhGetFileName(fileName));
-                    PhSetReference(&Node->FileNameWin32, fileName);
+                    instanceHandle = (PVOID)GetClassLongPtr(Node->WindowHandle, GCLP_HMODULE);
+                }
 
-                    PhMoveReference(&fileName, PhGetBaseName(fileName));
-                    PhMoveReference(&Node->ModuleString, fileName);
+                if (instanceHandle)
+                {
+                    if (NT_SUCCESS(PhGetProcessMappedFileName(processItem->QueryHandle, instanceHandle, &fileName)))
+                    {
+                        PhMoveReference(&fileName, PhGetFileName(fileName));
+                        PhSetReference(&Node->FileNameWin32, fileName);
+
+                        PhMoveReference(&fileName, PhGetBaseName(fileName));
+                        PhMoveReference(&Node->ModuleString, fileName);
+                    }
                 }
             }
 
-            NtClose(processHandle);
+            PhDereferenceObject(processItem);
         }
     }
 
@@ -273,14 +272,14 @@ BOOLEAN CALLBACK WepEnumChildWindowsProc(
 {
     PWE_WINDOW_ENUM_CONTEXT context = (PWE_WINDOW_ENUM_CONTEXT)Context;
     PWE_WINDOW_NODE childNode;
-    ULONG processId = 0;
-    ULONG threadId = 0;
+    CLIENT_ID clientId;
 
-    threadId = GetWindowThreadProcessId(WindowHandle, &processId);
+    if (!NT_SUCCESS(PhGetWindowClientId(WindowHandle, &clientId)))
+        return TRUE;
 
     if (
-        (!context->FilterProcessId || UlongToHandle(processId) == context->FilterProcessId) &&
-        (!context->FilterThreadId || UlongToHandle(threadId) == context->FilterThreadId)
+        (!context->FilterProcessId || clientId.UniqueProcess == context->FilterProcessId) &&
+        (!context->FilterThreadId || clientId.UniqueThread == context->FilterThreadId)
         )
     {
         childNode = WepAddChildWindowNode(
@@ -332,14 +331,14 @@ VOID WepAddEnumChildWindows(
         // Set a reasonable limit to prevent infinite loops.
         while (i < 0x4000 && (childWindow = FindWindowEx(WindowHandle, childWindow, NULL, NULL)))
         {
-            ULONG processId;
-            ULONG threadId;
+            CLIENT_ID clientId;
 
-            threadId = GetWindowThreadProcessId(childWindow, &processId);
+            if (!NT_SUCCESS(PhGetWindowClientId(childWindow, &clientId)))
+                continue;
 
             if (
-                (!FilterProcessId || UlongToHandle(processId) == FilterProcessId) &&
-                (!FilterThreadId || UlongToHandle(threadId) == FilterThreadId)
+                (!FilterProcessId || clientId.UniqueProcess == FilterProcessId) &&
+                (!FilterThreadId || clientId.UniqueThread == FilterThreadId)
                 )
             {
                 PWE_WINDOW_NODE childNode = WepAddChildWindowNode(&Context->TreeContext, ParentNode, childWindow);
@@ -733,6 +732,7 @@ VOID WepDestroyRemoteWindow(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI WepWindowNotifyEventChangeCallback(
     _In_ PVOID Parameter,
     _In_ PWINDOWS_CONTEXT Context

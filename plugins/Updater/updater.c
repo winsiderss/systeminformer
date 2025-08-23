@@ -25,6 +25,7 @@ PH_EVENT InitializedEvent = PH_EVENT_INIT;
 PPH_OBJECT_TYPE UpdateContextType = NULL;
 PH_INITONCE UpdateContextTypeInitOnce = PH_INITONCE_INIT;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID UpdateContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -230,7 +231,7 @@ BOOLEAN LastUpdateCheckExpired(
     {
         PhTimeToSecondsSince1970(&currentTimeUpdateTicks, &lastTimeUpdateSeconds);
         PhSetIntegerSetting(SETTING_NAME_LAST_CHECK, lastTimeUpdateSeconds);
-        return TRUE;
+        return FALSE; // FirstRun
     }
 
     PhSecondsSince1970ToTime(lastTimeUpdateSeconds, &lastTimeUpdateTicks);
@@ -293,13 +294,17 @@ NTSTATUS UpdatePlatformSupportInformation(
 {
     NTSTATUS status;
     HANDLE fileHandle;
+    USHORT imageMachine;
+    ULONG imageDateStamp;
+    ULONG imageSizeOfImage;
+    PPH_STRING imageHashString;
     PH_MAPPED_IMAGE mappedImage;
     LARGE_INTEGER fileSize;
     PH_HASH_CONTEXT hashContext;
     ULONG64 bytesRemaining;
     ULONG numberOfBytesRead;
-    BYTE buffer[PAGE_SIZE];
-    BYTE hash[256 / 8];
+    ULONG bufferLength;
+    PBYTE buffer;
 
     if (!NT_SUCCESS(status = PhCreateFile(
         &fileHandle,
@@ -314,9 +319,17 @@ NTSTATUS UpdatePlatformSupportInformation(
 
     if (!NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)))
         goto CleanupExit;
-
     if (!NT_SUCCESS(status = PhInitializeHash(&hashContext, Sha256HashAlgorithm)))
         goto CleanupExit;
+
+    bufferLength = PAGE_SIZE * 2;
+    buffer = PhAllocateSafe(bufferLength);
+
+    if (!buffer)
+    {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto CleanupExit;
+    }
 
     bytesRemaining = (ULONG64)fileSize.QuadPart;
 
@@ -325,7 +338,7 @@ NTSTATUS UpdatePlatformSupportInformation(
         status = PhReadFile(
             fileHandle,
             buffer,
-            sizeof(buffer),
+            bufferLength,
             NULL,
             &numberOfBytesRead
             );
@@ -345,24 +358,52 @@ NTSTATUS UpdatePlatformSupportInformation(
         bytesRemaining -= numberOfBytesRead;
     }
 
-    if (NT_SUCCESS(status = PhLoadMappedImageHeaderPageSize(NULL, fileHandle, &mappedImage)))
+    PhFree(buffer);
+
+    status = PhFinalHashString(
+        &hashContext,
+        &imageHashString
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    __try
     {
-        *ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-        *TimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-        *SizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
+        status = PhLoadMappedImageHeaderPageSize(
+            NULL,
+            fileHandle,
+            &mappedImage
+            );
 
-        if (NT_SUCCESS(status = PhFinalHash(&hashContext, hash, sizeof(hash), NULL)))
+        if (NT_SUCCESS(status))
         {
-            *HashString = PhBufferToHexString(hash, sizeof(hash));
-        }
+            imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+            imageDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+            imageSizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
 
-        PhUnloadMappedImage(&mappedImage);
+            PhUnloadMappedImage(&mappedImage);
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *ImageMachine = imageMachine;
+        *TimeDateStamp = imageDateStamp;
+        *SizeOfImage = imageSizeOfImage;
+        *HashString = imageHashString;
+
+        NtClose(fileHandle);
+        return STATUS_SUCCESS;
     }
 
 CleanupExit:
-
     NtClose(fileHandle);
-
+    PhClearReference(&imageHashString);
     return status;
 }
 
@@ -601,7 +642,7 @@ BOOLEAN QueryUpdateData(
         }
     }
 
-    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, PH_HTTP_NO_REQUEST_DATA, 0, 0)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
@@ -704,7 +745,7 @@ NTSTATUS UpdateCheckSilentThread(
         goto CleanupExit;
 #endif
 
-    PhDelayExecution(5 * 1000);
+    //PhDelayExecution(5 * 1000);
 
     PhClearCacheDirectory(context->PortableMode);
 
@@ -727,8 +768,24 @@ NTSTATUS UpdateCheckSilentThread(
                 // We have data we're going to cache and pass into the dialog
                 context->HaveData = TRUE;
 
-                // Show the dialog asynchronously on a new thread.
-                ShowUpdateDialog(context);
+                if (PhGetIntegerSetting(SETTING_NAME_SHOW_NOTIFICATION))
+                {
+                    if (!HR_SUCCESS(PhShowIconNotificationEx(
+                        L"New version of System Informer available",
+                        L"Help menu > Check for updates",
+                        5000,
+                        NULL,
+                        NULL
+                        )))
+                    {
+                        ShowUpdateDialog(context);
+                    }
+                }
+                else
+                {
+                    // Show the dialog asynchronously on a new thread.
+                    ShowUpdateDialog(context);
+                }
             }
         }
     }

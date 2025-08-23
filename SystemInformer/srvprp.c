@@ -60,6 +60,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenServiceCallback(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -86,6 +87,7 @@ static NTSTATUS PhpOpenServiceCallback(
     return status;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS PhpCloseServiceCallback(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -105,10 +107,11 @@ NTSTATUS PhpCloseServiceCallback(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_SET_OBJECT_SECURITY)
 static _Callback_ NTSTATUS PhpSetServiceSecurityCallback(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_STD_OBJECT_SECURITY stdObjectSecurity = ((PPH_STD_OBJECT_SECURITY)Context);
@@ -230,7 +233,7 @@ NTSTATUS PhpShowServicePropertiesThread(
         PSH_PROPTITLE |
         PSH_USECALLBACK |
         PSH_USEHICON;
-    propSheetHeader.hInstance = PhInstanceHandle;
+    propSheetHeader.hInstance = NtCurrentImageBase();
     //propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = PhGetString(serviceItem->Name);
     propSheetHeader.nPages = 0;
@@ -248,7 +251,7 @@ NTSTATUS PhpShowServicePropertiesThread(
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVGENERAL);
-    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.hInstance = NtCurrentImageBase();
     propSheetPage.pfnDlgProc = PhpServiceGeneralDlgProc;
     propSheetPage.lParam = (LPARAM)&context;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
