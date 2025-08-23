@@ -75,8 +75,7 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "Comments", PHAPP_VERSION_COMMITHASH
-            VALUE "CompanyName", "Winsider Seminars & Solutions"
+            VALUE "CompanyName", "Winsider Seminars & Solutions, Inc."
             VALUE "FileDescription", "System Informer - Setup"
             VALUE "FileVersion", PHAPP_VERSION_STRING
             VALUE "InternalName", "System Informer - Setup"
@@ -84,6 +83,7 @@ BEGIN
             VALUE "OriginalFilename", "System Informer - Setup"
             VALUE "ProductName", "System Informer - Setup"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
+            VALUE "Comments", PHAPP_VERSION_COMMIT
         END
     END
     BLOCK "VarFileInfo"

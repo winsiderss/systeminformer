@@ -36,7 +36,7 @@
 #include <treenewp.h>
 #include <vssym32.h>
 
-BOOLEAN PhTreeNewInitialization(
+RTL_ATOM PhTreeNewInitialization(
     VOID
     )
 {
@@ -52,10 +52,7 @@ BOOLEAN PhTreeNewInitialization(
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     wcex.lpszClassName = PH_TREENEW_CLASSNAME;
 
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
-        return FALSE;
-
-    return TRUE;
+    return RegisterClassEx(&wcex);
 }
 
 LRESULT CALLBACK PhTnpWndProc(
@@ -1374,7 +1371,7 @@ VOID PhTnpOnContextMenu(
             clientPoint.y = 0;
         }
 
-        GetWindowRect(hwnd, &windowRect);
+        PhGetWindowRect(hwnd, &windowRect);
         CursorScreenX = windowRect.left + clientPoint.x;
         CursorScreenY = windowRect.top + clientPoint.y;
     }

@@ -154,7 +154,7 @@ VOID RebarCreateOrUpdateWindow(
 
         ToolbarWindowFont = SystemInformer_GetFont();
 
-        RebarHandle = CreateWindow(
+        RebarHandle = PhCreateWindow(
             REBARCLASSNAME,
             NULL,
             WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT, // | RBS_AUTOSIZE  CCS_NOPARENTALIGN
@@ -165,7 +165,7 @@ VOID RebarCreateOrUpdateWindow(
             NULL
             );
 
-        ToolBarHandle = CreateWindow(
+        ToolBarHandle = PhCreateWindow(
             TOOLBARCLASSNAME,
             NULL,
             WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NOPARENTALIGN | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
@@ -227,12 +227,11 @@ VOID RebarCreateOrUpdateWindow(
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
         NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
 
-        if (SearchboxHandle = CreateWindowEx(
-            WS_EX_CLIENTEDGE,
+        if (SearchboxHandle = PhCreateWindowEx(
             WC_EDIT,
             NULL,
             WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL,
-
+            WS_EX_CLIENTEDGE,
             0, 0,
             0, 0,
             MainWindowHandle,
@@ -253,7 +252,7 @@ VOID RebarCreateOrUpdateWindow(
 
     if (ToolStatusConfig.StatusBarEnabled && !StatusBarHandle)
     {
-        StatusBarHandle = CreateWindow(
+        StatusBarHandle = PhCreateWindow(
             STATUSCLASSNAME,
             NULL,
             WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP, // SBARS_TOOLTIPS

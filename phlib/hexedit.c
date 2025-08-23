@@ -17,29 +17,27 @@
 
 // Code originally from http://www.codeguru.com/Cpp/controls/editctrl/article.php/c539
 
-BOOLEAN PhHexEditInitialization(
+RTL_ATOM PhHexEditInitialization(
     VOID
     )
 {
-    WNDCLASSEX c;
+    WNDCLASSEX wcex;
 
-    memset(&c, 0, sizeof(WNDCLASSEX));
-    c.cbSize = sizeof(WNDCLASSEX);
-    c.lpszClassName = PH_HEXEDIT_CLASSNAME;
-    c.style = CS_GLOBALCLASS;
-    c.cbWndExtra = sizeof(PVOID);
-    c.hInstance = NtCurrentImageBase();
-    c.lpfnWndProc = PhpHexEditWndProc;
-    c.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+    memset(&wcex, 0, sizeof(WNDCLASSEX));
+    wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.style = CS_GLOBALCLASS | CS_DBLCLKS | CS_PARENTDC;
+    wcex.lpfnWndProc = PhpHexEditWndProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = sizeof(PVOID);
+    wcex.hInstance = NtCurrentImageBase();
+    wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+    wcex.lpszClassName = PH_HEXEDIT_CLASSNAME;
 
-    if (RegisterClassEx(&c) == INVALID_ATOM)
-        return FALSE;
-
-    return TRUE;
+    return RegisterClassEx(&wcex);
 }
 
-VOID PhpCreateHexEditContext(
-    _Out_ PPHP_HEXEDIT_CONTEXT *Context
+PPHP_HEXEDIT_CONTEXT PhpCreateHexEditContext(
+    VOID
     )
 {
     PPHP_HEXEDIT_CONTEXT context;
@@ -75,7 +73,7 @@ VOID PhpCreateHexEditContext(
     context->SelStart = -1;
     context->SelEnd = -1;
 
-    *Context = context;
+    return context;
 }
 
 VOID PhpFreeHexEditContext(
@@ -99,9 +97,9 @@ LRESULT CALLBACK PhpHexEditWndProc(
 
     context = PhGetWindowContextEx(hwnd);
 
-    if (uMsg == WM_CREATE)
+    if (uMsg == WM_NCCREATE)
     {
-        PhpCreateHexEditContext(&context);
+        context = PhpCreateHexEditContext();
         PhSetWindowContextEx(hwnd, context);
     }
 

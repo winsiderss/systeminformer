@@ -85,7 +85,7 @@ typedef struct _PH_GRAPH_DRAW_INFO
 #define PH_GRAPH_CLASSNAME L"PhGraph"
 
 PHLIBAPI
-BOOLEAN
+RTL_ATOM
 NTAPI
 PhGraphControlInitialization(
     VOID

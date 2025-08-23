@@ -24,7 +24,9 @@ extern "C" {
 #define EDIT_LOW 3
 
 PHLIBAPI
-BOOLEAN PhHexEditInitialization(
+RTL_ATOM
+NTAPI
+PhHexEditInitialization(
     VOID
     );
 

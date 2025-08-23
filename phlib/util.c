@@ -106,7 +106,7 @@ VOID PhAdjustRectangleToWorkingArea(
     }
     else
     {
-        RECT rect;
+        RECT rect = { 0 };
 
         PhRectangleToRect(&rect, Rectangle);
         monitor = MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
@@ -117,7 +117,7 @@ VOID PhAdjustRectangleToWorkingArea(
 
     if (GetMonitorInfo(monitor, &monitorInfo))
     {
-        PH_RECTANGLE bounds;
+        PH_RECTANGLE bounds = { 0 };
 
         PhRectToRectangle(&bounds, &monitorInfo.rcWork);
         PhAdjustRectangleToBounds(Rectangle, &bounds);
@@ -139,13 +139,14 @@ VOID PhCenterWindow(
     if (ParentWindowHandle)
     {
         RECT rect, parentRect;
-        PH_RECTANGLE rectangle, parentRectangle;
+        PH_RECTANGLE rectangle = { 0 };
+        PH_RECTANGLE parentRectangle = { 0 };
 
         if (!IsWindowVisible(ParentWindowHandle) || IsMinimized(ParentWindowHandle))
             return;
 
-        GetWindowRect(WindowHandle, &rect);
-        GetWindowRect(ParentWindowHandle, &parentRect);
+        PhGetWindowRect(WindowHandle, &rect);
+        PhGetWindowRect(ParentWindowHandle, &parentRect);
 
         PhRectToRectangle(&rectangle, &rect);
         PhRectToRectangle(&parentRectangle, &parentRect);
@@ -168,10 +169,10 @@ VOID PhCenterWindow(
             ))
         {
             RECT rect;
-            PH_RECTANGLE rectangle;
-            PH_RECTANGLE bounds;
+            PH_RECTANGLE rectangle = { 0 };;
+            PH_RECTANGLE bounds = { 0 };;
 
-            GetWindowRect(WindowHandle, &rect);
+            PhGetWindowRect(WindowHandle, &rect);
 
             PhRectToRectangle(&rectangle, &rect);
             PhRectToRectangle(&bounds, &monitorInfo.rcWork);

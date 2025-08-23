@@ -1,7 +1,21 @@
 @echo off
 @setlocal enableextensions
 
-call "%ProgramFiles%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
+for /f "usebackq tokens=*" %%A in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
+    set VSINSTALLPATH=%%A
+)
+
+if not defined VSINSTALLPATH (
+    echo [-] Visual Studio not found
+    goto end
+)
+
+if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
+   call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
+) else (
+    echo [-] Failed to set up build environment
+    goto end
+)
 
 echo;
 
