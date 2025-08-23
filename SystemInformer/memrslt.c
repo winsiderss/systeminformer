@@ -587,9 +587,12 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 {
                     if (header->hwndFrom == lvHandle)
                     {
-                        POINT point;
+                        POINT position;
                         PPH_EMENU menu;
                         PPH_EMENU_ITEM selectedItem;
+
+                        if (!PhGetMessagePos(&position))
+                            break;
 
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MEMORY_READWRITEMEMORY, L"Read/Write memory", NULL, NULL), ULONG_MAX);
@@ -597,15 +600,13 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
                         PhInsertCopyListViewEMenuItem(menu, IDC_COPY, lvHandle);
 
-                        GetCursorPos(&point);
-
                         selectedItem = PhShowEMenu(
                             menu,
                             hwndDlg,
                             PH_EMENU_SHOW_LEFTRIGHT,
                             PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                            point.x,
-                            point.y
+                            position.x,
+                            position.y
                             );
 
                         if (selectedItem)

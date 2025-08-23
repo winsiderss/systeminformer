@@ -75,7 +75,7 @@ typedef struct _PH_RECTANGLE
 FORCEINLINE
 VOID
 PhRectToRectangle(
-    _Inout_ PPH_RECTANGLE Rectangle,
+    _Out_ PPH_RECTANGLE Rectangle,
     _In_ PRECT Rect
     )
 {
@@ -88,7 +88,7 @@ PhRectToRectangle(
 FORCEINLINE
 VOID
 PhRectangleToRect(
-    _Inout_ PRECT Rect,
+    _Out_ PRECT Rect,
     _In_ PPH_RECTANGLE Rectangle
     )
 {
@@ -112,7 +112,7 @@ PhConvertRect(
 FORCEINLINE
 VOID
 PhMapRect(
-    _Inout_ PRECT Rect,
+    _Out_ PRECT Rect,
     _In_ PRECT InnerRect,
     _In_ PRECT OuterRect
     )

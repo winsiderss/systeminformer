@@ -69,7 +69,7 @@ LRESULT CALLBACK PhpGraphWndProc(
 RECT PhNormalGraphTextMargin = { 5, 5, 5, 5 };
 RECT PhNormalGraphTextPadding = { 3, 3, 3, 3 };
 
-BOOLEAN PhGraphControlInitialization(
+RTL_ATOM PhGraphControlInitialization(
     VOID
     )
 {
@@ -85,10 +85,7 @@ BOOLEAN PhGraphControlInitialization(
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     wcex.lpszClassName = PH_GRAPH_CLASSNAME;
 
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
-        return FALSE;
-
-    return TRUE;
+    return RegisterClassEx(&wcex);
 }
 
 FORCEINLINE VOID PhpGetGraphPoint(
@@ -1102,9 +1099,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                         RECT clientRect;
                         PH_GRAPH_GETTOOLTIPTEXT getTooltipText;
 
-                        if (!GetCursorPos(&point))
-                            break;
-                        if (!ScreenToClient(hwnd, &point))
+                        if (!PhGetClientPos(hwnd, &point))
                             break;
                         if (!PhGetClientRect(hwnd, &clientRect))
                             break;

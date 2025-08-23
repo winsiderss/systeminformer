@@ -16,26 +16,22 @@ FORCEINLINE
 HICON
 CommonBitmapToIcon(
     _In_ HBITMAP BitmapHandle,
-    _In_ INT Width,
-    _In_ INT Height
+    _In_ LONG Width,
+    _In_ LONG Height
     )
 {
     HICON icon;
-    HDC screenDc;
-    HBITMAP screenBitmap;
     ICONINFO iconInfo = { 0 };
+    HBITMAP maskBitmap;
 
-    screenDc = GetDC(NULL);
-    screenBitmap = CreateCompatibleBitmap(screenDc, Width, Height);
+    maskBitmap = CreateBitmap(Width, Height, 1, 1, NULL);
 
     iconInfo.fIcon = TRUE;
     iconInfo.hbmColor = BitmapHandle;
-    iconInfo.hbmMask = screenBitmap;
+    iconInfo.hbmMask = maskBitmap;
 
     icon = CreateIconIndirect(&iconInfo);
-
-    DeleteBitmap(screenBitmap);
-    ReleaseDC(NULL, screenDc);
+    DeleteBitmap(maskBitmap);
 
     return icon;
 }

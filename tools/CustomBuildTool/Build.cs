@@ -24,11 +24,11 @@ namespace CustomBuildTool
         public static string BuildWorkingFolder = string.Empty;
         public static string BuildCommitBranch = "orphan";
         public static string BuildCommitHash = new('0', 40);
-        public static string BuildShortVersion = "1.0.0";
-        public static string BuildLongVersion = "1.0.0.0";
+        public static string BuildShortVersion = "0.0.0";
+        public static string BuildLongVersion = "0.0.0.0";
         public static string BuildSourceLink = string.Empty;
         public static string BuildSimdExtensions = string.Empty;
-        public static string BuildVersionMajor = "2";
+        public static string BuildVersionMajor = "0";
         public static string BuildVersionMinor = "0";
 
         public static bool InitializeBuildEnvironment()
@@ -177,7 +177,7 @@ namespace CustomBuildTool
                 if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
                 {
                     Program.PrintColorMessage(" (", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(Build.BuildCommitHash.Substring(0, 8), ConsoleColor.DarkCyan, false);
+                    Program.PrintColorMessage(Build.BuildCommitHash[..8], ConsoleColor.DarkCyan, false);
                     Program.PrintColorMessage(")", ConsoleColor.DarkGray, false);
                 }
 
@@ -229,6 +229,11 @@ namespace CustomBuildTool
                 // Format the strings: 1005|24005
                 return string.Concat([first, second]);
             }
+        }
+
+        public static string BuildHash()
+        {
+            return string.IsNullOrWhiteSpace(Build.BuildCommitHash) ? "00000000" : Build.BuildCommitHash[..8];
         }
 
         public static string BuildUpdated
@@ -336,10 +341,10 @@ namespace CustomBuildTool
         {
             var Build_Resource_Files = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase)
             {
-                { "SystemInformer.png", "icon.png" },
-                { "CapsList.txt", "CapsList.txt" },
-                { "EtwGuids.txt", "EtwGuids.txt" },
-                { "PoolTag.txt", "PoolTag.txt" },
+                ["SystemInformer.png"] = "icon.png",
+                ["CapsList.txt"] = "CapsList.txt",
+                ["EtwGuids.txt"] = "EtwGuids.txt",
+                ["PoolTag.txt"] = "PoolTag.txt",
             };
 
             foreach (var file in Build_Resource_Files)
@@ -616,12 +621,8 @@ namespace CustomBuildTool
         {
             string[] Build_Sdk_Files =
             [
-                // symbols
-                "SystemInformer.pdb",
-                "KSystemInformer.pdb",
-                "ksi.pdb",
-                // libs
-                "SystemInformer.lib"
+                "SystemInformer.lib",
+                "SystemInformer.pdb"
             ];
 
             foreach (string folder in BuildConfig.Build_Sdk_Directories)
@@ -925,35 +926,43 @@ namespace CustomBuildTool
 
         private static string MsbuildCommandString(string Solution, string Platform, BuildFlags Flags, string Channel = null)
         {
+            List<string> compilerOptionsList = new List<string>();
             StringBuilder commandLine = new StringBuilder(0x100);
             StringBuilder compilerOptions = new StringBuilder(0x100);
             StringBuilder linkerOptions = new StringBuilder(0x100);
 
             if (Flags.HasFlag(BuildFlags.BuildApi))
-                compilerOptions.Append("PH_BUILD_API;");
+                compilerOptionsList.Add("PH_BUILD_API");
             if (Flags.HasFlag(BuildFlags.BuildMsix))
-                compilerOptions.Append("PH_BUILD_MSIX;");
+                compilerOptionsList.Add("PH_BUILD_MSIX");
             if (!string.IsNullOrWhiteSpace(Channel))
-                compilerOptions.Append($"PH_RELEASE_CHANNEL_ID=\"{BuildConfig.Build_Channels[Channel]}\";");
+                compilerOptionsList.Add($"PH_RELEASE_CHANNEL_ID=\"{BuildConfig.Build_Channels[Channel]}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
-                compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildCommitHash.AsSpan(0, 8)}\";");
+                compilerOptionsList.Add($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildHash()}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionMajor))
-                compilerOptions.Append($"PHAPP_VERSION_MAJOR=\"{Build.BuildVersionMajor}\";");
+                compilerOptionsList.Add($"PHAPP_VERSION_MAJOR=\"{Build.BuildVersionMajor}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionMinor))
-                compilerOptions.Append($"PHAPP_VERSION_MINOR=\"{Build.BuildVersionMinor}\";");
+                compilerOptionsList.Add($"PHAPP_VERSION_MINOR=\"{Build.BuildVersionMinor}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionBuild))
-                compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{Build.BuildVersionBuild}\";");
+                compilerOptionsList.Add($"PHAPP_VERSION_BUILD=\"{Build.BuildVersionBuild}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionRevision))
-                compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{Build.BuildVersionRevision}\";");
+                compilerOptionsList.Add($"PHAPP_VERSION_REVISION=\"{Build.BuildVersionRevision}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
                 linkerOptions.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\" ");
 
+            compilerOptions.AppendJoin(";", compilerOptionsList);
+
             commandLine.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
-            commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
-            commandLine.Append($"/p:ExternalLinkerOptions=\"{linkerOptions.ToString()}\" ");
-            commandLine.Append($"/p:ExternalSimdOptions=\"{Build.BuildSimdExtensions}\" ");
-            //commandLine.Append($"/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog ");
+
+            if (compilerOptions.Length > 0)
+                commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
+            if (linkerOptions.Length > 0)
+                commandLine.Append($"/p:ExternalLinkerOptions=\"{linkerOptions.ToString()}\" ");
+            if (!string.IsNullOrEmpty(Build.BuildSimdExtensions))
+                commandLine.Append($"/p:ExternalSimdOptions=\"{Build.BuildSimdExtensions}\" ");
+
+            commandLine.Append($"/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog ");
 
             if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
             {

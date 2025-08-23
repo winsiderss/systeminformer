@@ -61,7 +61,6 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "Comments", PHAPP_VERSION_COMMITHASH
             VALUE "CompanyName", "Winsider Seminars & Solutions"
             VALUE "FileDescription", "System Informer"
             VALUE "FileVersion", PHAPP_VERSION_STRING
@@ -70,6 +69,7 @@ BEGIN
             VALUE "OriginalFilename", "System Informer"
             VALUE "ProductName", "System Informer"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
+            VALUE "Comments", PHAPP_VERSION_COMMIT
         END
     END
     BLOCK "VarFileInfo"
@@ -77,7 +77,6 @@ BEGIN
         VALUE "Translation", 0x0409, 0x04b0
     END
 END
-
 
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////

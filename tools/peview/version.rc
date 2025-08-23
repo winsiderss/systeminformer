@@ -69,8 +69,7 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "Comments", PHAPP_VERSION_COMMITHASH
-            VALUE "CompanyName", "Winsider Seminars & Solutions"
+            VALUE "CompanyName", "Winsider Seminars & Solutions, Inc."
             VALUE "FileDescription", "Portable Executable Viewer"
             VALUE "FileVersion", PHAPP_VERSION_STRING
             VALUE "InternalName", "Portable Executable Viewer"
@@ -78,6 +77,7 @@ BEGIN
             VALUE "OriginalFilename", "peview.exe"
             VALUE "ProductName", "Portable Executable Viewer"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
+            VALUE "Comments", PHAPP_VERSION_COMMIT
         END
     END
     BLOCK "VarFileInfo"

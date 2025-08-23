@@ -266,6 +266,7 @@ PhIsDarkModeAllowedForWindow(
     _In_ HWND WindowHandle
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -274,6 +275,64 @@ PhGetWindowRect(
     _Out_ PRECT WindowRect
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetCursorPos(
+    _Out_ PPOINT Point
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetMessagePos(
+    _Out_ PPOINT MessagePoint
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetClientPos(
+    _In_ HWND WindowHandle,
+    _Out_ PPOINT ClientPoint
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhClientToScreen(
+    _In_ HWND WindowHandle,
+    _Inout_ PPOINT Point
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhScreenToClient(
+    _In_ HWND WindowHandle,
+    _Inout_ PPOINT Point
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhClientToScreenRect(
+    _In_ HWND WindowHandle,
+    _Inout_ PRECT Rect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhScreenToClientRect(
+    _In_ HWND WindowHandle,
+    _Inout_ PRECT Rect
+    );
+
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -1502,6 +1561,19 @@ PhSetWindowAlwaysOnTop(
     _In_ BOOLEAN AlwaysOnTop
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSendMessageTimeout(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ UINT Timeout,
+    _Out_opt_ PULONG_PTR Result
+    );
+
 FORCEINLINE ULONG PhGetWindowTextLength(
     _In_ HWND WindowHandle
     )
@@ -1583,7 +1655,9 @@ PhBitmapSetAlpha(
     _In_ LONG Height
     );
 
-// extlv
+//
+// Extended ListView
+//
 
 #define PH_ALIGN_CENTER 0x0
 #define PH_ALIGN_LEFT 0x1
@@ -1605,17 +1679,21 @@ typedef enum _PH_ITEM_STATE
     RemovingItemState
 } PH_ITEM_STATE;
 
-typedef COLORREF (NTAPI *PPH_EXTLV_GET_ITEM_COLOR)(
+typedef _Function_class_(PH_EXTLV_GET_ITEM_COLOR)
+COLORREF NTAPI PH_EXTLV_GET_ITEM_COLOR(
     _In_ LONG Index,
     _In_ PVOID Param,
     _In_opt_ PVOID Context
     );
+typedef PH_EXTLV_GET_ITEM_COLOR* PPH_EXTLV_GET_ITEM_COLOR;
 
-typedef HFONT (NTAPI *PPH_EXTLV_GET_ITEM_FONT)(
+typedef _Function_class_(PH_EXTLV_GET_ITEM_FONT)
+HFONT NTAPI PH_EXTLV_GET_ITEM_FONT(
     _In_ LONG Index,
     _In_ PVOID Param,
     _In_opt_ PVOID Context
     );
+typedef PH_EXTLV_GET_ITEM_FONT* PPH_EXTLV_GET_ITEM_FONT;
 
 PHLIBAPI
 VOID
@@ -2631,18 +2709,18 @@ PhRectEmpty(
 #if defined(PHNT_NATIVE_RECT)
     return !!IsRectEmpty(Rect);
 #else
-    if (!Rect)
-        return TRUE;
-
-    if (Rect->left >= Rect->right || Rect->top >= Rect->bottom)
-        return TRUE;
+    if (Rect)
+    {
+        if (Rect->left >= Rect->right || Rect->top >= Rect->bottom)
+            return TRUE;
+    }
 
     return FALSE;
 #endif
 }
 
 FORCEINLINE
-VOID
+BOOLEAN
 NTAPI
 PhInflateRect(
     _In_ PRECT Rect,
@@ -2651,17 +2729,18 @@ PhInflateRect(
     )
 {
 #if defined(PHNT_NATIVE_RECT)
-    InflateRect(Rect, dx, dy);
+    return !!InflateRect(Rect, dx, dy);
 #else
     Rect->left -= dx;
     Rect->top -= dy;
     Rect->right += dx;
     Rect->bottom += dy;
+    return TRUE;
 #endif
 }
 
 FORCEINLINE
-VOID
+BOOLEAN
 NTAPI
 PhOffsetRect(
     _In_ PRECT Rect,
@@ -2670,12 +2749,13 @@ PhOffsetRect(
     )
 {
 #if defined(PHNT_NATIVE_RECT)
-    OffsetRect(Rect, dx, dy);
+    return !!OffsetRect(Rect, dx, dy);
 #else
     Rect->left += dx;
     Rect->top += dy;
     Rect->right += dx;
     Rect->bottom += dy;
+    return TRUE;
 #endif
 }
 

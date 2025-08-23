@@ -701,16 +701,20 @@ BOOLEAN PhIsDarkModeAllowedForWindow(
 //    return dpi;
 //}
 
+_Success_(return)
 BOOLEAN PhGetWindowRect(
     _In_ HWND WindowHandle,
     _Out_ PRECT WindowRect
     )
 {
+    memset(WindowRect, 0, sizeof(RECT));
+
     // Note: GetWindowRect can return success with either invalid (0,0) or empty rects (40,40) and in some cases
     // this results in unwanted clipping, performance issues with the CreateCompatibleBitmap double buffering and
     // issues with MonitorFromRect layout and DPI queries, so ignore the return status and check the rect (dmex)
 
-    GetWindowRect(WindowHandle, WindowRect);
+    if (!GetWindowRect(WindowHandle, WindowRect))
+        return FALSE;
 
     if (PhRectEmpty(WindowRect))
         return FALSE;
@@ -718,12 +722,159 @@ BOOLEAN PhGetWindowRect(
     return TRUE;
 }
 
+_Success_(return)
+BOOLEAN PhGetCursorPos(
+    _Out_ PPOINT Point
+    )
+{
+    if (GetCursorPos(Point))
+        return TRUE;
+
+    memset(Point, 0, sizeof(POINT));
+    return FALSE;
+}
+
+_Success_(return)
+BOOLEAN PhGetMessagePos(
+    _Out_ PPOINT MessagePoint
+    )
+{
+    ULONG position;
+    POINT point;
+
+    position = GetMessagePos();
+    point.x = GET_X_LPARAM(position);
+    point.y = GET_Y_LPARAM(position);
+    memcpy(MessagePoint, &point, sizeof(POINT));
+    return TRUE;
+}
+
+_Success_(return)
+BOOLEAN PhGetClientPos(
+    _In_ HWND WindowHandle,
+    _Out_ PPOINT ClientPoint
+    )
+{
+    ULONG position;
+    POINT point;
+
+    position = GetMessagePos();
+    point.x = GET_X_LPARAM(position);
+    point.y = GET_Y_LPARAM(position);
+
+    if (ScreenToClient(WindowHandle, &point))
+    {
+        memcpy(ClientPoint, &point, sizeof(POINT));
+        return TRUE;
+    }
+
+    memset(ClientPoint, 0, sizeof(POINT));
+    return FALSE;
+}
+
+BOOLEAN PhClientToScreen(
+    _In_ HWND WindowHandle,
+    _Inout_ PPOINT Point
+    )
+{
+    if (ClientToScreen(WindowHandle, Point))
+        return TRUE;
+    return FALSE;
+}
+
+BOOLEAN PhScreenToClient(
+    _In_ HWND WindowHandle,
+    _Inout_ PPOINT Point
+    )
+{
+    if (ScreenToClient(WindowHandle, Point))
+        return TRUE;
+    return FALSE;
+}
+
+BOOLEAN PhClientToScreenRect(
+    _In_ HWND WindowHandle,
+    _Inout_ PRECT Rect
+    )
+{
+    //if (!ClientToScreen(WindowHandle, (PPOINT)Rect))
+    //    return FALSE;
+    //if (!ClientToScreen(WindowHandle, ((PPOINT)Rect) + 1))
+    //    return FALSE;
+
+    if (MapWindowRect(WindowHandle, HWND_DESKTOP, Rect) == 0)
+        return FALSE;
+
+    return TRUE;
+}
+
+BOOLEAN PhScreenToClientRect(
+    _In_ HWND WindowHandle,
+    _Inout_ PRECT Rect
+    )
+{
+    if (MapWindowRect(HWND_DESKTOP, WindowHandle, Rect) == 0)
+        return FALSE;
+
+    return TRUE;
+
+    //if (!ScreenToClient(WindowHandle, (PPOINT)Rect))
+    //    return FALSE;
+    //if (!ScreenToClient(WindowHandle, ((PPOINT)Rect) + 1))
+    //    return FALSE;
+    //return TRUE;
+}
+
+BOOLEAN PhGetClientRectOffsetScroll(
+    _In_ HWND WindowHandle,
+    _Out_ PRECT ClientRect
+    )
+{
+    LONG scrollRangeMax;
+    LONG scrollRangeMin;
+    LONG scrollPosition;
+
+    if (!GetClientRect(WindowHandle, ClientRect))
+        return FALSE;
+
+    if (!(ClientRect->right && ClientRect->bottom))
+        return FALSE;
+
+    LONG_PTR windowStyle = PhGetWindowStyle(WindowHandle);
+
+    if (FlagOn(windowStyle, WS_HSCROLL))
+    {
+        if (GetScrollRange(WindowHandle, SB_HORZ, &scrollRangeMin, &scrollRangeMax))
+        {
+            scrollPosition = GetScrollPos(WindowHandle, SB_HORZ);
+            ClientRect->right = ClientRect->left + scrollRangeMax;
+            PhOffsetRect(ClientRect, -scrollPosition, 0);
+        }
+    }
+
+    if (FlagOn(windowStyle, WS_VSCROLL))
+    {
+        if (GetScrollRange(WindowHandle, SB_VERT, &scrollRangeMin, &scrollRangeMax))
+        {
+            scrollPosition = GetScrollPos(WindowHandle, SB_VERT);
+            ClientRect->bottom = ClientRect->top + scrollRangeMax;
+            PhOffsetRect(ClientRect, 0, -scrollPosition);
+        }
+    }
+
+    return TRUE;
+}
+
+_Success_(return)
 BOOLEAN PhGetClientRect(
     _In_ HWND WindowHandle,
     _Out_ PRECT ClientRect
     )
 {
-    GetClientRect(WindowHandle, ClientRect);
+    memset(ClientRect, 0, sizeof(RECT));
+
+    if (!GetClientRect(WindowHandle, ClientRect))
+        return FALSE;
 
     if (!(ClientRect->right && ClientRect->bottom))
         return FALSE;
@@ -886,14 +1037,14 @@ LONG PhGetTaskbarDpi(
 
     if (windowHandle = PhGetShellWindow())
     {
-        GetWindowRect(windowHandle, &windowRect);
+        PhGetWindowRect(windowHandle, &windowRect);
     }
 
     if (PhRectEmpty(&windowRect))
     {
         if (windowHandle = GetDesktopWindow())
         {
-            GetWindowRect(windowHandle, &windowRect);
+            PhGetWindowRect(windowHandle, &windowRect);
         }
     }
 
@@ -2196,7 +2347,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     if (!ParentItem)
         ParentItem = &Manager->RootItem;
 
-    item = PhAllocate(sizeof(PH_LAYOUT_ITEM));
+    item = PhAllocateZero(sizeof(PH_LAYOUT_ITEM));
     item->Handle = Handle;
     item->ParentItem = ParentItem;
     item->LayoutNumber = Manager->LayoutNumber;
@@ -2214,7 +2365,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
 
     item->LayoutParentItem->NumberOfChildren++;
 
-    GetWindowRect(Handle, &item->Rect);
+    PhGetWindowRect(Handle, &item->Rect);
     MapWindowRect(HWND_DESKTOP, item->LayoutParentItem->Handle, &item->Rect);
 
     if (item->Anchor & PH_LAYOUT_TAB_CONTROL)
@@ -2827,6 +2978,39 @@ VOID PhSetWindowAlwaysOnTop(
         0, 0, 0, 0,
         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE
         );
+}
+
+_Success_(return)
+BOOLEAN PhSendMessageTimeout(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ UINT Timeout,
+    _Out_opt_ PULONG_PTR Result
+    )
+{
+    ULONG_PTR result = 0;
+
+    if (SendMessageTimeoutW(
+        WindowHandle,
+        WindowMessage,
+        wParam,
+        lParam,
+        SMTO_ABORTIFHUNG | SMTO_BLOCK,
+        Timeout,
+        &result
+        ) && result > 0)
+    {
+        if (Result)
+        {
+            *Result = result;
+        }
+
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 _Use_decl_annotations_

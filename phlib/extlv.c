@@ -227,32 +227,30 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 break;
             case NM_RCLICK:
                 {
+                    LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)lParam;
+                    HWND headerHandle;
                     PPH_EMENU menu;
                     PPH_EMENU_ITEM selectedItem;
                     POINT position;
-                    ULONG meassageposition;
+
+                    headerHandle = PhGetExtendedListViewHeader(context);
+
+                    if (header->hwndFrom != headerHandle)
+                        break;
+
+                    if (!PhGetMessagePos(&position))
+                        break;
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Size column to fit", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Size all columns to fit", NULL, NULL), ULONG_MAX);
 
+                    if (context->SortOrder != context->DefaultSortOrder || context->SortColumn != context->DefaultSortColumn)
                     {
-                        LONG sortColumn;
-                        PH_SORT_ORDER sortOrder;
-                    
-                        ExtendedListView_GetSort(WindowHandle, &sortColumn, &sortOrder);
-                    
-                        if (sortOrder != context->DefaultSortOrder || (context->DefaultSortOrder != NoSortOrder && sortColumn != context->DefaultSortColumn))
-                        {
-                            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Reset sort", NULL, NULL), ULONG_MAX);
-                        }
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Reset sort", NULL, NULL), ULONG_MAX);
                     }
 
-                    meassageposition = GetMessagePos();
-                    position.x = GET_X_LPARAM(meassageposition);
-                    position.y = GET_Y_LPARAM(meassageposition);
-      
                     selectedItem = PhShowEMenu(
                         menu,
                         WindowHandle,
@@ -268,23 +266,22 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                         {
                         case 1:
                             {
-                                HWND headerWindow;
                                 LONG headerCount;
-                                RECT headerRect;
 
-                                headerWindow = ListView_GetHeader(WindowHandle);
-                                headerCount = Header_GetItemCount(headerWindow);
+                                headerCount = Header_GetItemCount(headerHandle);
 
                                 if (headerCount != INT_ERROR)
                                 {
-                                    if (!ScreenToClient(WindowHandle, &position))
+                                    if (!PhScreenToClient(WindowHandle, &position))
                                         break;
 
                                     for (LONG i = 0; i < headerCount; ++i)
                                     {
-                                        if (Header_GetItemRect(headerWindow, i, &headerRect) && PtInRect(&headerRect, position))
+                                        RECT headerRect;
+
+                                        if (Header_GetItemRect(headerHandle, i, &headerRect) && PhPtInRect(&headerRect, position))
                                         {
-                                            SendMessage(WindowHandle, LVM_SETCOLUMNWIDTH, i, LVSCW_AUTOSIZE);
+                                            CallWindowProc(oldWndProc, WindowHandle, LVM_SETCOLUMNWIDTH, i, LVSCW_AUTOSIZE);
                                             break;
                                         }
                                     }
@@ -293,8 +290,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                             break;
                         case 2:
                             {
-                                HWND headerWindow = ListView_GetHeader(WindowHandle);
-                                LONG headerCount = Header_GetItemCount(headerWindow);
+                                LONG headerCount;
+
+                                headerCount = Header_GetItemCount(headerHandle);
 
                                 if (headerCount != INT_ERROR)
                                 {
@@ -304,9 +302,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
 
                                         item.mask = HDI_ORDER;
 
-                                        if (Header_GetItem(headerWindow, i, &item))
+                                        if (Header_GetItem(headerHandle, i, &item))
                                         {
-                                            SendMessage(WindowHandle, LVM_SETCOLUMNWIDTH, item.iOrder, LVSCW_AUTOSIZE);
+                                            CallWindowProc(oldWndProc, WindowHandle, LVM_SETCOLUMNWIDTH, item.iOrder, LVSCW_AUTOSIZE);
                                         }
                                     }
                                 }
@@ -323,7 +321,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
 
                     PhDestroyEMenu(menu);
                 }
-                break;
+                return 1;
             }
         }
         break;

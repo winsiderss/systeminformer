@@ -1331,18 +1331,22 @@ NTSTATUS PhSvcApiSendMessage(
     _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
-    if (SendMessage(
+    ULONG_PTR result = 0;
+
+    if (PhSendMessageTimeout(
         Payload->u.PostMessage.i.hWnd,
         Payload->u.PostMessage.i.Msg,
         Payload->u.PostMessage.i.wParam,
-        Payload->u.PostMessage.i.lParam
-        ))
+        Payload->u.PostMessage.i.lParam,
+        5000,
+        &result
+        ) && result > 0)
     {
         return STATUS_SUCCESS;
     }
     else
     {
-        return PhGetLastWin32ErrorAsNtStatus();
+        return STATUS_UNSUCCESSFUL;
     }
 }
 

@@ -68,15 +68,15 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "Comments", PHAPP_VERSION_COMMITHASH
-            VALUE "CompanyName", "Winsider Seminars & Solutions"
-            VALUE "FileDescription", "System Informer"
+            VALUE "CompanyName", "Winsider Seminars & Solutions, Inc."
+            VALUE "FileDescription", "ExtendedNotifications"
             VALUE "FileVersion", PHAPP_VERSION_STRING
-            VALUE "InternalName", "System Informer"
+            VALUE "InternalName", "ExtendedNotifications"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
             VALUE "OriginalFilename", "ExtendedNotifications.dll"
-            VALUE "ProductName", "System Informer"
+            VALUE "ProductName", "ExtendedNotifications"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
+            VALUE "Comments", PHAPP_VERSION_COMMIT
         END
     END
     BLOCK "VarFileInfo"

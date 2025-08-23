@@ -16,10 +16,10 @@ namespace CustomBuildTool
         // N.B. Order is important, SortedDictionary is used on purpose.
         public static readonly SortedDictionary<string, int> Build_Channels = new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase)
         {
-            { "release",   0 }, // PhReleaseChannel
-            //{ "preview",   1 }, // PhPreviewChannel
-            { "canary",    2 }, // PhCanaryChannel
-            //{ "developer", 3 }, // PhDeveloperChannel
+            ["release"] = 0, // PhReleaseChannel
+            //["preview"] = 1, // PhPreviewChannel
+            ["canary"] = 2, // PhCanaryChannel
+            //["developer"] = 3, // PhDeveloperChannel
         };
 
         public static readonly ImmutableArray<BuildFile> Build_Release_Files =
