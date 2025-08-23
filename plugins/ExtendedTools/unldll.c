@@ -94,25 +94,31 @@ NTSTATUS EtpRefreshUnloadedDlls(
     if (Context->IsWow64Process)
     {
         PPH_STRING eventTraceString;
+        PPH_BYTES eventTraceUtf8String;
         ULONG capturedEventTraceLength;
 
         if (!PhUiConnectToPhSvcEx(hwndDlg, Wow64PhSvcMode, FALSE))
             return STATUS_FAIL_CHECK;
 
-        if (!NT_SUCCESS(status = CallGetProcessUnloadedDlls(Context->ProcessId, &eventTraceString)))
+        if (!NT_SUCCESS(status = CallGetProcessUnloadedDlls(Context->ProcessId, &eventTraceUtf8String)))
         {
             PhUiDisconnectFromPhSvc();
             return status;
         }
 
+        eventTraceString = PhConvertBytesToUtf16(eventTraceUtf8String);
+        PhDereferenceObject(eventTraceUtf8String);
+
+        if (!eventTraceString)
+        {
+            PhUiDisconnectFromPhSvc();
+            return STATUS_UNSUCCESSFUL;
+        }
+
         capturedEventTraceLength = sizeof(RTL_UNLOAD_EVENT_TRACE32) * RTL_UNLOAD_EVENT_TRACE_NUMBER;
         capturedEventTrace = PhAllocateZero(capturedEventTraceLength);
 
-        if (!PhHexStringToBufferEx(
-            &eventTraceString->sr,
-            capturedEventTraceLength,
-            capturedEventTrace
-            ))
+        if (!PhHexStringToBufferEx(&eventTraceString->sr, capturedEventTraceLength, capturedEventTrace))
         {
             PhUiDisconnectFromPhSvc();
 

@@ -881,7 +881,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             RECT buttonRect;
 
             // Get the screen coordinates of the mouse.
-            //if (!PhGetCursorPos(&windowPoint))
+            //if (!PhGetMessagePos(&windowPoint))
             //    break;
             windowPoint.x = GET_X_LPARAM(lParam);
             windowPoint.y = GET_Y_LPARAM(lParam);
@@ -910,10 +910,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             RECT buttonRect;
 
             // Get the screen coordinates of the mouse.
-            //if (!PhGetMessagePos(&windowPoint))
-            //    break;
-            windowPoint.x = GET_X_LPARAM(lParam);
-            windowPoint.y = GET_Y_LPARAM(lParam);
+            if (!PhGetMessagePos(&windowPoint))
+                break;
 
             // Get the screen coordinates of the window.
             if (!PhGetWindowRect(WindowHandle, &windowRect))
