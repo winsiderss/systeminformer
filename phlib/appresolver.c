@@ -167,7 +167,7 @@ HRESULT PhAppResolverGetAppIdForProcess(
             appIdText
             );
 
-        if ((appIdTextLength & 1) && appIdTextLength > sizeof(UNICODE_NULL))
+        if ((appIdTextLength % sizeof(WCHAR)) == 0 && appIdTextLength > sizeof(UNICODE_NULL))
         {
             *ApplicationUserModelId = PhCreateStringEx(
                 appIdText,
@@ -243,7 +243,7 @@ HRESULT PhAppResolverGetAppIdForWindow(
             appIdText
             );
 
-        if ((appIdTextLength & 1) && appIdTextLength > sizeof(UNICODE_NULL))
+        if ((appIdTextLength % sizeof(WCHAR)) == 0 && appIdTextLength > sizeof(UNICODE_NULL))
         {
             *ApplicationUserModelId = PhCreateStringEx(
                 appIdText,

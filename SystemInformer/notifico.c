@@ -666,8 +666,8 @@ HRESULT PhpShowToastNotification(
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static PPH_STRING iconFileName = NULL;
-    PH_STRINGREF iconAppName = PH_STRINGREF_INIT(L"");
-    PPH_STRING appId = NULL;
+    PH_STRINGREF iconAppId = PH_STRINGREF_INIT(L"");
+    PPH_STRING processAppId = NULL;
     HRESULT result;
     PPH_STRING toastXml;
     PH_FORMAT format[7];
@@ -689,14 +689,16 @@ HRESULT PhpShowToastNotification(
     if (!iconFileName)
         return E_FAIL;
 
-    if (HR_SUCCESS(PhAppResolverGetAppIdForProcess(NtCurrentProcessId(), &appId)))
-    {
-        iconAppName = appId->sr;
-        PhAutoDereferenceObject(appId);
-    }
+    if (HR_SUCCESS(PhAppResolverGetAppIdForProcess(NtCurrentProcessId(), &processAppId)))
+        iconAppId = processAppId->sr;
     else
     {
-        PhInitializeStringRefLongHint(&iconAppName, PhApplicationName);
+        if (HR_SUCCESS(PhAppResolverGetAppIdForWindow(PhMainWndHandle, &processAppId)))
+            iconAppId = processAppId->sr;
+        else
+        {
+            PhInitializeStringRefLongHint(&iconAppId, PhApplicationName);
+        }
     }
 
     result = PhInitializeToastRuntime();
@@ -728,14 +730,15 @@ HRESULT PhpShowToastNotification(
     toastXml = PhFormat(format, RTL_NUMBER_OF(format), 0);
 
     result = PhShowToastStringRef(
-        &iconAppName,
+        &iconAppId,
         &toastXml->sr,
         Timeout * 1000,
         ToastCallback,
         Context
         );
 
-    PhDereferenceObject(toastXml);
+    PhClearReference(&toastXml);
+    PhClearReference(&processAppId);
 
     return result;
 }
@@ -1002,20 +1005,26 @@ HICON PhNfpGetBlackIcon(
         ULONG height;
         PVOID bits;
         HDC hdc;
+        HBITMAP mask;
         HBITMAP oldBitmap;
         ICONINFO iconInfo;
 
         PhNfpBeginBitmap2(&PhNfpBlackBitmapContext, &width, &height, &PhNfpBlackBitmap, &bits, &hdc, &oldBitmap);
         memset(bits, PhNfTransparencyEnabled ? 1 : 0, width * height * sizeof(RGBQUAD));
 
+        // Create a monochrome mask bitmap for the icon.
+        if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
+            return NULL;
+        
         iconInfo.fIcon = TRUE;
         iconInfo.xHotspot = 0;
         iconInfo.yHotspot = 0;
-        iconInfo.hbmMask = PhNfpBlackBitmap;
+        iconInfo.hbmMask = mask;
         iconInfo.hbmColor = PhNfpBlackBitmap;
         PhNfpBlackIcon = CreateIconIndirect(&iconInfo);
 
         SelectBitmap(hdc, oldBitmap);
+        DeleteBitmap(mask);
     }
 
     return PhNfpBlackIcon;

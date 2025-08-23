@@ -272,7 +272,7 @@ NTSTATUS PhpTokenDialogThread(
     propSheetPage->lParam = (LPARAM)Context;
 
     PhDialogBox(
-        PhInstanceHandle,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_OBJTOKEN),
         NULL,
         PhpTokenPageProc,
@@ -358,7 +358,7 @@ HPROPSHEETPAGE PhCreateTokenPage(
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.dwFlags = PSP_USECALLBACK;
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OBJTOKEN);
-    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.hInstance = NtCurrentImageBase();
     propSheetPage.pfnDlgProc = PhpTokenPageProc;
     propSheetPage.lParam = (LPARAM)tokenPageContext;
     propSheetPage.pfnCallback = PhpTokenPropPageProc;

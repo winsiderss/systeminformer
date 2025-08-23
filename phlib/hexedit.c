@@ -25,7 +25,7 @@ RTL_ATOM PhHexEditInitialization(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = CS_GLOBALCLASS | CS_DBLCLKS | CS_PARENTDC;
+    wcex.style = CS_GLOBALCLASS | CS_DBLCLKS;
     wcex.lpfnWndProc = PhpHexEditWndProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = sizeof(PVOID);

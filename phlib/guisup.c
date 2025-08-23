@@ -387,22 +387,22 @@ HFONT PhInitializeMonospaceFont(
 }
 
 /**
- * The PhGetScreenDC function retrieves a handle to a device context (DC) for the entire screen.
- *
+ * The PhGetDC function retrieves a handle to a device context (DC).
  * \return The handle to the requested stock object.
  */
-HDC PhGetScreenDC(
-    VOID
+HDC PhGetDC(
+    _In_opt_ HWND WindowHandle
     )
 {
-    static HDC hdc = NULL;
+    return GetDC(WindowHandle);
+}
 
-    if (hdc == NULL)
-    {
-        hdc = GetDC(NULL);
-    }
-
-    return hdc;
+VOID PhReleaseDC(
+    _In_opt_ HWND WindowHandle,
+    _In_ _Frees_ptr_ HDC Hdc
+    )
+{
+    ReleaseDC(WindowHandle, Hdc);
 }
 
 /**
@@ -415,16 +415,7 @@ HGDIOBJ PhGetStockObject(
     _In_ LONG Index
     )
 {
-    static HBRUSH brush[STOCK_LAST + 1] = { NULL };
-
-    assert(Index <= STOCK_LAST);
-
-    if (brush[Index] == NULL)
-    {
-        brush[Index] = GetStockObject(Index);
-    }
-
-    return brush[Index];
+    return GetStockObject(Index);
 }
 
 /**
@@ -2992,7 +2983,7 @@ BOOLEAN PhSendMessageTimeout(
 {
     ULONG_PTR result = 0;
 
-    if (SendMessageTimeoutW(
+    if (SendMessageTimeout(
         WindowHandle,
         WindowMessage,
         wParam,
@@ -4363,6 +4354,7 @@ HBITMAP PhCreateBitmapHandle(
     _Outptr_opt_ _When_(return != NULL, _Notnull_) PVOID* Bits
     )
 {
+    HDC hdc;
     HBITMAP bitmapHandle;
     BITMAPINFO bitmapInfo;
 
@@ -4374,7 +4366,9 @@ HBITMAP PhCreateBitmapHandle(
     bitmapInfo.bmiHeader.biBitCount = 32;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-    bitmapHandle = CreateDIBSection(PhGetScreenDC(), &bitmapInfo, DIB_RGB_COLORS, Bits, NULL, 0);
+    hdc = PhGetDC(NULL);
+    bitmapHandle = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, Bits, NULL, 0);
+    PhReleaseDC(NULL, hdc);
 
     return bitmapHandle;
 }
@@ -5202,4 +5196,40 @@ NTSTATUS PhTerminateWindow(
         return STATUS_SUCCESS;
 
     return PhGetLastWin32ErrorAsNtStatus();
+}
+
+/**
+ * Queries information for a window using the user subsystem entry NtUserQueryWindow.
+ *
+ * \param WindowHandle A handle to the target window.
+ * \param WindowInfo The WINDOWINFOCLASS selector describing which piece of information to query.
+ * \return The value returned by NtUserQueryWindow on success. Returns 0 (NULL) if the
+ * function is unavailable or the call fails.
+ */
+ULONG_PTR PhUserQueryWindow(
+    _In_ HWND WindowHandle,
+    _In_ WINDOWINFOCLASS WindowInfo
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(&NtUserQueryWindow) NtUserQueryWindow_I = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhGetDllHandle(L"win32u.dll"))
+        {
+            NtUserQueryWindow_I = PhGetDllBaseProcedureAddress(baseAddress, "NtUserQueryWindow", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (NtUserQueryWindow_I)
+    {
+        return NtUserQueryWindow_I(WindowHandle, WindowInfo);
+    }
+
+    return 0;
 }

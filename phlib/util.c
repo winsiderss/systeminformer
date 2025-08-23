@@ -3626,9 +3626,9 @@ PPH_STRING PhGetApplicationFileName(
     {
         if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
         {
-            if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
+            if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), NtCurrentImageBase(), &fileName)))
             {
-                if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
+                if (fileName = PhGetDllFileName(NtCurrentImageBase(), NULL))
                 {
                     PPH_STRING fullPath;
 

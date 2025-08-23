@@ -44,11 +44,11 @@ RTL_ATOM PhTreeNewInitialization(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = CS_DBLCLKS | CS_GLOBALCLASS | CS_PARENTDC;
+    wcex.style = CS_DBLCLKS | CS_GLOBALCLASS;
     wcex.lpfnWndProc = PhTnpWndProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = sizeof(PVOID);
-    wcex.hInstance = PhInstanceHandle;
+    wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     wcex.lpszClassName = PH_TREENEW_CLASSNAME;
 
@@ -6384,6 +6384,7 @@ VOID PhTnpInitializeTooltips(
         0,
         NULL,
         NULL,
+        NtCurrentImageBase(),
         NULL,
         NULL
         );
@@ -7806,16 +7807,28 @@ VOID PhTnpCreateBufferedContext(
 
 VOID PhTnpDestroyBufferedContext(
     _In_ PPH_TREENEW_CONTEXT Context
-    )
+)
 {
     // The original bitmap must be selected back into the context, otherwise the bitmap can't be
     // deleted.
-    SelectBitmap(Context->BufferedContext, Context->BufferedOldBitmap);
-    DeleteBitmap(Context->BufferedBitmap);
-    DeleteDC(Context->BufferedContext);
 
-    Context->BufferedContext = NULL;
-    Context->BufferedBitmap = NULL;
+    if (Context->BufferedOldBitmap)
+    {
+        SelectBitmap(Context->BufferedContext, Context->BufferedOldBitmap);
+        Context->BufferedOldBitmap = NULL;
+    }
+
+    if (Context->BufferedBitmap)
+    {
+        DeleteBitmap(Context->BufferedBitmap);
+        Context->BufferedBitmap = NULL;
+    }
+
+    if (Context->BufferedContext)
+    {
+        DeleteDC(Context->BufferedContext);
+        Context->BufferedContext = NULL;
+    }
 }
 
 _Success_(return)

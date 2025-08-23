@@ -77,7 +77,7 @@ RTL_ATOM PhGraphControlInitialization(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = CS_GLOBALCLASS | CS_DBLCLKS | CS_PARENTDC;
+    wcex.style = CS_GLOBALCLASS | CS_DBLCLKS;
     wcex.lpfnWndProc = PhpGraphWndProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = sizeof(PVOID);
@@ -720,8 +720,25 @@ static VOID PhpCreateBufferedContext(
     bitmapInfo.bmiHeader.biBitCount = 32;
 
     Context->BufferedContext = CreateCompatibleDC(NULL);
-    Context->BufferedBitmap = CreateDIBSection(Context->BufferedContext, &bitmapInfo, DIB_RGB_COLORS, &Context->BufferedBits, NULL, 0);
-    Context->BufferedOldBitmap = SelectBitmap(Context->BufferedContext, Context->BufferedBitmap);
+
+    if (!Context->BufferedContext)
+        return;
+
+    Context->BufferedBitmap = PhCreateDIBSection(
+        Context->BufferedContext,
+        PHBF_DIB,
+        Context->BufferedContextRect.right,
+        Context->BufferedContextRect.bottom,
+        &Context->BufferedBits
+        );
+
+    if (!Context->BufferedBitmap)
+        return;
+
+    Context->BufferedOldBitmap = SelectBitmap(
+        Context->BufferedContext,
+        Context->BufferedBitmap
+        );
 }
 
 static VOID PhpDeleteFadeOutContext(

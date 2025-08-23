@@ -105,6 +105,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     WINDOW_PROPERTIES_INDEX_TOPLEVEL,
     WINDOW_PROPERTIES_INDEX_CLOAKED,
     WINDOW_PROPERTIES_INDEX_IAMID,
+    WINDOW_PROPERTIES_INDEX_IMEWND,
 
     WINDOW_PROPERTIES_INDEX_CLASS_NAME,
     WINDOW_PROPERTIES_INDEX_CLASS_BASENAME,
@@ -139,6 +140,13 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
     );
 
 INT_PTR CALLBACK WepWindowPropStoreDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK WepWindowAttributeDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -239,6 +247,7 @@ static STRING_INTEGER_PAIR WepClassStylePairs[] =
 
 PPH_OBJECT_TYPE WeWindowItemType = NULL;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI WeWindowItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -356,6 +365,13 @@ NTSTATUS WepPropertiesThreadStart(
         newPage = PvCreatePropPageContext(
             MAKEINTRESOURCE(IDD_WNDPROPSTORAGE),
             WepWindowPropStoreDlgProc,
+            context);
+        PvAddPropPage(propContext, newPage);
+        
+        // DWM attributes
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_WNDPROPSTORAGE),
+            WepWindowAttributeDlgProc,
             context);
         PvAddPropPage(propContext, newPage);
 
@@ -598,6 +614,7 @@ static BOOLEAN WepIsWindowCloaked(
     {
         DwmGetWindowAttribute_I(WindowHandle, DWMWA_CLOAKED, &windowCloaked, sizeof(BOOL));
     }
+#undef DWMWA_CLOAKED
 
     return !!windowCloaked;
 }
@@ -784,7 +801,7 @@ VOID WepRefreshWindowGeneralInfo(
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_WNDHANDLE, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)Context->WindowHandle)->Buffer);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_WNDMSGONLY, 1, Context->MessageOnlyWindow ? L"Yes" : L"No");
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_WNDEXTRA, 1, PhaFormatString(L"%lu bytes (%s)", windowExtra, PhaFormatSize(windowExtra, ULONG_MAX)->Buffer)->Buffer);
-    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_DLGCTLID, 1, PhaFormatString(L"%lu", windowId)->Buffer);
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_DLGCTLID, 1, PhaFormatString(L"%lu (0x%x)", windowId, windowId)->Buffer);
 
     if (Context->MessageOnlyWindow)
     {
@@ -966,6 +983,16 @@ VOID WepRefreshWindowGeneralInfo(
         {
             PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_IAMID, 1, L"N/A");
         }
+    }
+
+    // IME
+    {
+        ULONG_PTR defaultIMEWindow = PhUserQueryWindow(Context->WindowHandle, WindowDefaultImeWindow);
+
+        PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_IMEWND, 1, PhaFormatString(
+            L"0x%Ix",
+            (ULONG_PTR)defaultIMEWindow
+            )->Buffer);
     }
 }
 
@@ -1340,6 +1367,7 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_TOPLEVEL, L"Top level", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_CLOAKED, L"Cloaked", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_IAMID, L"Band", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_IMEWND, L"IME Window", NULL);
 
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_NAME, L"Name", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_BASENAME, L"Base name", NULL);
@@ -2494,6 +2522,248 @@ INT_PTR CALLBACK WepWindowPreviewDlgProc(
     case WM_TIMER:
         {
             InvalidateRect(hwndDlg, NULL, TRUE);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+VOID WepQueryWindowAttributes(
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context,
+    _In_ WINDOWCOMPOSITIONATTRIB i,
+    _In_ PCWSTR Name,
+    _Inout_ PULONG Count
+    )
+{
+    HRESULT result;
+    WINDOWCOMPOSITIONATTRIBUTEDATA data = { 0 };
+    BYTE buffer[256] = { 0 };
+    data.Attribute = i;
+    data.Data = buffer;
+    data.Length = sizeof(buffer);
+
+    result = PhGetWindowCompositionAttribute(Context->WindowHandle, &data);
+
+    if (SUCCEEDED(result))
+    {
+        LONG lvItemIndex;
+        WCHAR value[PH_INT64_STR_LEN_1];
+
+        PhPrintUInt32(value, (*Count)++);
+        lvItemIndex = PhAddListViewItem(Context->PropStoreListViewHandle, MAXINT, value, NULL);
+        PhSetListViewSubItem(Context->PropStoreListViewHandle, lvItemIndex, 1, Name);
+
+        if (i == WCA_EXTENDED_FRAME_BOUNDS || i == WCA_CAPTION_BUTTON_BOUNDS)
+        {
+            PRECT rect = (PRECT)buffer;
+            PPH_STRING string = PhaFormatString(
+                L"RECT { left: %d, top: %d, right: %d, bottom: %d }",
+                rect->left,
+                rect->top,
+                rect->right,
+                rect->bottom
+                );
+            PhSetListViewSubItem(Context->PropStoreListViewHandle, lvItemIndex, 2, PhGetStringOrEmpty(string));
+        }
+        else if (i == WCA_ACCENT_POLICY || i == WCA_PART_COLOR)
+        {
+            PhPrintUInt32IX(value, *(PULONG)buffer);
+            PhSetListViewSubItem(Context->PropStoreListViewHandle, lvItemIndex, 2, value);
+        }
+        else
+        {
+            PhSetListViewSubItem(Context->PropStoreListViewHandle, lvItemIndex, 2, *(PBOOL)buffer ? L"true" : L"false");
+        }
+    }
+    else
+    {
+        //PPH_STRING message;
+        LONG lvItemIndex;
+        WCHAR value[PH_INT64_STR_LEN_1];
+
+        PhPrintUInt32(value, (*Count)++);
+        lvItemIndex = PhAddListViewItem(Context->PropStoreListViewHandle, MAXINT, value, NULL);
+        PhSetListViewSubItem(Context->PropStoreListViewHandle, lvItemIndex, 1, Name);
+        PhPrintUInt32IX(value, result);
+        //message = PhGetStatusMessage(result, 0);
+        PhSetListViewSubItem(Context->PropStoreListViewHandle, lvItemIndex, 2, PhaFormatString(L"0x%s (Failed)", value)->Buffer);
+        //PhSetListViewSubItem(Context->PropStoreListViewHandle, lvItemIndex, 2, PhaFormatString(L"0x%s (%s)", value, PhGetStringOrDefault(message, L"Failed"))->Buffer);
+        //PhClearReference(&message);
+    }
+}
+
+VOID WepRefreshWindowAttributes(
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    ULONG count = 1;
+
+    ExtendedListView_SetRedraw(Context->PropStoreListViewHandle, FALSE);
+    ListView_DeleteAllItems(Context->PropStoreListViewHandle);
+
+    WepQueryWindowAttributes(Context, WCA_NCRENDERING_ENABLED, L"WCA_NCRENDERING_ENABLED", &count);
+    WepQueryWindowAttributes(Context, WCA_NCRENDERING_POLICY, L"WCA_NCRENDERING_POLICY", &count);
+    WepQueryWindowAttributes(Context, WCA_TRANSITIONS_FORCEDISABLED, L"WCA_TRANSITIONS_FORCEDISABLED", &count);
+    WepQueryWindowAttributes(Context, WCA_ALLOW_NCPAINT, L"WCA_ALLOW_NCPAINT", &count);
+    WepQueryWindowAttributes(Context, WCA_CAPTION_BUTTON_BOUNDS, L"WCA_CAPTION_BUTTON_BOUNDS", &count);
+    WepQueryWindowAttributes(Context, WCA_NONCLIENT_RTL_LAYOUT, L"WCA_NONCLIENT_RTL_LAYOUT", &count);
+    WepQueryWindowAttributes(Context, WCA_FORCE_ICONIC_REPRESENTATION, L"WCA_FORCE_ICONIC_REPRESENTATION", &count);
+    WepQueryWindowAttributes(Context, WCA_EXTENDED_FRAME_BOUNDS, L"WCA_EXTENDED_FRAME_BOUNDS", &count);
+    WepQueryWindowAttributes(Context, WCA_HAS_ICONIC_BITMAP, L"WCA_HAS_ICONIC_BITMAP", &count);
+    WepQueryWindowAttributes(Context, WCA_THEME_ATTRIBUTES, L"WCA_THEME_ATTRIBUTES", &count);
+    WepQueryWindowAttributes(Context, WCA_NCRENDERING_EXILED, L"WCA_NCRENDERING_EXILED", &count);
+    WepQueryWindowAttributes(Context, WCA_NCADORNMENTINFO, L"WCA_NCADORNMENTINFO", &count);
+    WepQueryWindowAttributes(Context, WCA_EXCLUDED_FROM_LIVEPREVIEW, L"WCA_EXCLUDED_FROM_LIVEPREVIEW", &count);
+    WepQueryWindowAttributes(Context, WCA_VIDEO_OVERLAY_ACTIVE, L"WCA_VIDEO_OVERLAY_ACTIVE", &count);
+    WepQueryWindowAttributes(Context, WCA_FORCE_ACTIVEWINDOW_APPEARANCE, L"WCA_FORCE_ACTIVEWINDOW_APPEARANCE", &count);
+    WepQueryWindowAttributes(Context, WCA_DISALLOW_PEEK, L"WCA_DISALLOW_PEEK", &count);
+    WepQueryWindowAttributes(Context, WCA_CLOAK, L"WCA_CLOAK", &count);
+    WepQueryWindowAttributes(Context, WCA_CLOAKED, L"WCA_CLOAKED", &count);
+    WepQueryWindowAttributes(Context, WCA_ACCENT_POLICY, L"WCA_ACCENT_POLICY", &count);
+    WepQueryWindowAttributes(Context, WCA_FREEZE_REPRESENTATION, L"WCA_FREEZE_REPRESENTATION", &count);
+    WepQueryWindowAttributes(Context, WCA_EVER_UNCLOAKED, L"WCA_EVER_UNCLOAKED", &count);
+    WepQueryWindowAttributes(Context, WCA_VISUAL_OWNER, L"WCA_VISUAL_OWNER", &count);
+    WepQueryWindowAttributes(Context, WCA_HOLOGRAPHIC, L"WCA_HOLOGRAPHIC", &count);
+    WepQueryWindowAttributes(Context, WCA_EXCLUDED_FROM_DDA, L"WCA_EXCLUDED_FROM_DDA", &count);
+    WepQueryWindowAttributes(Context, WCA_PASSIVEUPDATEMODE, L"WCA_PASSIVEUPDATEMODE", &count);
+    WepQueryWindowAttributes(Context, WCA_USEDARKMODECOLORS, L"WCA_USEDARKMODECOLORS", &count);
+    WepQueryWindowAttributes(Context, WCA_CORNER_STYLE, L"WCA_CORNER_STYLE", &count);
+    WepQueryWindowAttributes(Context, WCA_PART_COLOR, L"WCA_PART_COLOR", &count);
+    WepQueryWindowAttributes(Context, WCA_DISABLE_MOVESIZE_FEEDBACK, L"WCA_DISABLE_MOVESIZE_FEEDBACK", &count);
+    WepQueryWindowAttributes(Context, WCA_SYSTEMBACKDROP_TYPE, L"WCA_SYSTEMBACKDROP_TYPE", &count);
+    WepQueryWindowAttributes(Context, WCA_SET_TAGGED_WINDOW_RECT, L"WCA_SET_TAGGED_WINDOW_RECT", &count);
+    WepQueryWindowAttributes(Context, WCA_CLEAR_TAGGED_WINDOW_RECT, L"WCA_CLEAR_TAGGED_WINDOW_RECT", &count);
+    WepQueryWindowAttributes(Context, WCA_REMOTEAPP_POLICY, L"WCA_REMOTEAPP_POLICY", &count);
+    WepQueryWindowAttributes(Context, WCA_HAS_ACCENT_POLICY, L"WCA_HAS_ACCENT_POLICY", &count);
+    WepQueryWindowAttributes(Context, WCA_REDIRECTIONBITMAP_FILL_COLOR, L"WCA_REDIRECTIONBITMAP_FILL_COLOR", &count);
+    WepQueryWindowAttributes(Context, WCA_REDIRECTIONBITMAP_ALPHA, L"WCA_REDIRECTIONBITMAP_ALPHA", &count);
+    WepQueryWindowAttributes(Context, WCA_BORDER_MARGINS, L"WCA_BORDER_MARGINS", &count);
+
+    ExtendedListView_SortItems(Context->PropStoreListViewHandle);
+    ExtendedListView_SetRedraw(Context->PropStoreListViewHandle, TRUE);
+}
+
+INT_PTR CALLBACK WepWindowAttributeDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PWINDOW_PROPERTIES_CONTEXT context;
+    LPPROPSHEETPAGE propSheetPage;
+    PPV_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
+    context = (PWINDOW_PROPERTIES_CONTEXT)propPageContext->Context;
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            context->PropStoreListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            PhSetListViewStyle(context->PropStoreListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(context->PropStoreListViewHandle, L"explorer");
+            PhAddListViewColumn(context->PropStoreListViewHandle, 0, 0, 0, LVCFMT_LEFT, 50, L"#");
+            PhAddListViewColumn(context->PropStoreListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name");
+            PhAddListViewColumn(context->PropStoreListViewHandle, 2, 2, 2, LVCFMT_LEFT, 150, L"Value");
+            PhSetExtendedListView(context->PropStoreListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, context->PropStoreListViewHandle);
+
+            WepRefreshWindowAttributes(context);
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveListViewColumnsToSetting(SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, context->PropStoreListViewHandle);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, context->PropStoreListViewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyBehaviors(lParam, context->PropStoreListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->PropStoreListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID *listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(context->PropStoreListViewHandle, &point);
+
+                PhGetSelectedListViewItemParams(context->PropStoreListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, context->PropStoreListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        if (!PhHandleCopyListViewEMenuItem(item))
+                        {
+                            switch (item->Id)
+                            {
+                            case PHAPP_IDC_COPY:
+                                {
+                                    PhCopyListView(context->PropStoreListViewHandle);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
+        }
+        break;
+    case WM_PH_UPDATE_DIALOG:
+        {
+            WepRefreshWindowAttributes(context);
         }
         break;
     }

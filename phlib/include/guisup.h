@@ -97,8 +97,16 @@ PhInitializeMonospaceFont(
 PHLIBAPI
 HDC
 NTAPI
-PhGetScreenDC(
-    VOID
+PhGetDC(
+    _In_opt_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhReleaseDC(
+    _In_opt_ HWND WindowHandle,
+    _In_ _Frees_ptr_ HDC Hdc
     );
 
 PHLIBAPI
@@ -2502,10 +2510,12 @@ PhRecentListAddCommand(
     _In_ PPH_STRINGREF Command
     );
 
-typedef BOOLEAN (NTAPI* PPH_ENUM_MRULIST_CALLBACK)(
+typedef _Function_class_(PH_ENUM_MRULIST_CALLBACK)
+BOOLEAN NTAPI PH_ENUM_MRULIST_CALLBACK(
     _In_ PPH_STRINGREF Command,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_MRULIST_CALLBACK* PPH_ENUM_MRULIST_CALLBACK;
 
 PHLIBAPI
 VOID
@@ -2523,10 +2533,17 @@ PhTerminateWindow(
     _In_ BOOLEAN Force
     );
 
+PHLIBAPI
+ULONG_PTR
+NTAPI
+PhUserQueryWindow(
+    _In_ HWND WindowHandle,
+    _In_ WINDOWINFOCLASS WindowInfo
+    );
+
 #ifndef DBT_DEVICEARRIVAL
 #define DBT_DEVICEARRIVAL        0x8000  // system detected a new device
 #define DBT_DEVICEREMOVECOMPLETE 0x8004  // device is gone
-
 #define DBT_DEVTYP_VOLUME        0x00000002  // logical volume
 
 typedef struct _DEV_BROADCAST_HDR
