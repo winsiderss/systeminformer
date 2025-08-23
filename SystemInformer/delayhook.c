@@ -965,15 +965,15 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
             }
         }
 
-		context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
-		context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
-		context->CursorPos.x = LONG_MIN;
-		context->CursorPos.y = LONG_MIN;
-		PhSetWindowContext(WindowHandle, LONG_MAX, context);
+        context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
+        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
+        context->CursorPos.x = LONG_MIN;
+        context->CursorPos.y = LONG_MIN;
+        PhSetWindowContext(WindowHandle, LONG_MAX, context);
 
-		PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
+        PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
 
-		InvalidateRect(WindowHandle, NULL, FALSE);
+        InvalidateRect(WindowHandle, NULL, FALSE);
     }
     else
     {

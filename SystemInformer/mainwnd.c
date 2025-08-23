@@ -679,6 +679,7 @@ VOID PhMwpOnSettingChange(
     //}
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenServiceControlManager(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -696,6 +697,7 @@ static NTSTATUS PhpOpenServiceControlManager(
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseServiceControlManager(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -707,6 +709,7 @@ static NTSTATUS PhpCloseServiceControlManager(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenSecurityDummyHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -716,6 +719,7 @@ static NTSTATUS PhpOpenSecurityDummyHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyAccessPermissionsHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -726,6 +730,7 @@ static NTSTATUS PhpOpenComDummyAccessPermissionsHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyAccessRestrictionsHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -736,6 +741,7 @@ static NTSTATUS PhpOpenComDummyAccessRestrictionsHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyLaunchPermissionsHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -746,6 +752,7 @@ static NTSTATUS PhpOpenComDummyLaunchPermissionsHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyLaunchRestrictionsHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -756,6 +763,7 @@ static NTSTATUS PhpOpenComDummyLaunchRestrictionsHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenSecurityDesktopHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -778,6 +786,7 @@ static NTSTATUS PhpOpenSecurityDesktopHandle(
     return STATUS_UNSUCCESSFUL;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseSecurityDesktopHandle(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -789,6 +798,7 @@ static NTSTATUS PhpCloseSecurityDesktopHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenSecurityStationHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -810,6 +820,7 @@ static NTSTATUS PhpOpenSecurityStationHandle(
     return STATUS_UNSUCCESSFUL;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseSecurityStationHandle(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -4501,6 +4512,17 @@ VOID PhShowIconNotification(
     )
 {
     PhNfShowBalloonTip(Title, Text, 10);
+}
+
+HRESULT PhShowIconNotificationEx(
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Text,
+    _In_ ULONG Timeout,
+    _In_opt_ PPH_TOAST_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    return PhNfShowBalloonTipEx(Title, Text, Timeout, Callback, Context);
 }
 
 VOID PhShowDetailsForIconNotification(

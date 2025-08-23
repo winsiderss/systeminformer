@@ -167,6 +167,14 @@ BOOLEAN PhNfShowBalloonTip(
     _In_ ULONG Timeout
     );
 
+HRESULT PhNfShowBalloonTipEx(
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Text,
+    _In_ ULONG Timeout,
+    _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
+    _In_opt_ PVOID Context
+    );
+
 HICON PhNfBitmapToIcon(
     _In_ HBITMAP Bitmap
     );

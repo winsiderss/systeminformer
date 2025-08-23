@@ -653,7 +653,8 @@ VOID PhpRemoveProcessItem(
     PhDereferenceObject(ProcessItem);
 }
 
-BOOLEAN PhpSidFullNameCacheHashtableEqualFunction(
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+static BOOLEAN PhpSidFullNameCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -664,7 +665,8 @@ BOOLEAN PhpSidFullNameCacheHashtableEqualFunction(
     return PhEqualSid(entry1->Sid, entry2->Sid);
 }
 
-ULONG PhpSidFullNameCacheHashtableHashFunction(
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+static ULONG PhpSidFullNameCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
 {

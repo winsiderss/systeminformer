@@ -9,9 +9,13 @@
  *
  */
 
-#include <notiftoast.h>
+#include <phapp.h>
 #include <mapldr.h>
 #include <appresolver.h>
+
+#include <mainwnd.h>
+#include <notifico.h>
+#include <notiftoast.h>
 
 #include <wrl.h>
 #include <roapi.h>
@@ -227,7 +231,7 @@ HRESULT PH::Toast::Initialize(
     //
     ComPtr<IXmlDocument> xmlDocument;
     RETURN_IF_FAILED(manager->GetTemplateContent(
-        ToastTemplateType::ToastTemplateType_ToastText01,
+        ToastTemplateType::ToastTemplateType_ToastImageAndText02,
         &xmlDocument));
 
     //

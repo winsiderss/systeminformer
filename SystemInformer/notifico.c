@@ -655,21 +655,25 @@ VOID NTAPI PhpToastCallback(
         PhShowDetailsForIconNotification();
 }
 
-BOOLEAN PhpShowToastNotification(
+HRESULT PhpShowToastNotification(
     _In_ PPH_STRING Title,
     _In_ PPH_STRING Text,
-    _In_ ULONG Timeout
+    _In_ ULONG Timeout,
+    _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
+    _In_opt_ PVOID Context,
+    _In_opt_ BOOLEAN Force
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PH_STRINGREF iconAppName = PH_STRINGREF_INIT(L"");
     static PPH_STRING iconFileName = NULL;
+    PH_STRINGREF iconAppName = PH_STRINGREF_INIT(L"");
+    PPH_STRING appId = NULL;
     HRESULT result;
     PPH_STRING toastXml;
     PH_FORMAT format[7];
 
-    if (!PhGetIntegerSetting(L"ToastNotifyEnabled"))
-        return FALSE;
+    if (!Force && !PhGetIntegerSetting(L"ToastNotifyEnabled"))
+        return E_FAIL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -678,16 +682,26 @@ BOOLEAN PhpShowToastNotification(
         if (!PhDoesFileExistWin32(PhGetString(iconFileName)))
             PhClearReference(&iconFileName);
 
-        PhInitializeStringRefLongHint(&iconAppName, PhApplicationName);
 
         PhEndInitOnce(&initOnce);
     }
 
     if (!iconFileName)
-        return FALSE;
+        return E_FAIL;
 
-    if (PhInitializeToastRuntime() != S_OK)
-        return FALSE;
+    if (HR_SUCCESS(PhAppResolverGetAppIdForProcess(NtCurrentProcessId(), &appId)))
+    {
+        iconAppName = appId->sr;
+        PhAutoDereferenceObject(appId);
+    }
+    else
+    {
+        PhInitializeStringRefLongHint(&iconAppName, PhApplicationName);
+    }
+
+    result = PhInitializeToastRuntime();
+    if (HR_FAILED(result))
+        return result;
 
     //toastXml = PhFormatString(
     //    L"<toast>\r\n"
@@ -717,13 +731,13 @@ BOOLEAN PhpShowToastNotification(
         &iconAppName,
         &toastXml->sr,
         Timeout * 1000,
-        PhpToastCallback,
-        NULL
+        ToastCallback,
+        Context
         );
 
     PhDereferenceObject(toastXml);
 
-    return HR_SUCCESS(result);
+    return result;
 }
 
 BOOLEAN PhNfpShowBalloonTip(
@@ -802,19 +816,62 @@ BOOLEAN PhNfShowBalloonTip(
     return TRUE;
 }
 
+HRESULT PhNfShowBalloonTipEx(
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Text,
+    _In_ ULONG Timeout,
+    _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_STRING BalloonTitle;
+    PPH_STRING BalloonText;
+
+    BalloonTitle = Title ? PhCreateString(Title) : NULL;
+    BalloonText = Text ? PhCreateString(Text) : NULL;
+
+    return PhpShowToastNotification(
+        BalloonTitle,
+        BalloonText,
+        Timeout,
+        ToastCallback,
+        Context,
+        TRUE
+        );
+}
+
 HICON PhNfBitmapToIcon(
     _In_ HBITMAP Bitmap
     )
 {
+    HICON iconHandle;
+    HBITMAP mask;
     ICONINFO iconInfo;
 
+    // Create a monochrome mask bitmap for the icon.
+    {
+        BITMAP bitmapInfo;
+
+        memset(&bitmapInfo, 0, sizeof(BITMAP));
+
+        if (GetObject(Bitmap, sizeof(BITMAP), &bitmapInfo) == 0)
+            return NULL;
+
+        if (!(mask = CreateBitmap(bitmapInfo.bmWidth, bitmapInfo.bmHeight, 1, 1, NULL)))
+            return NULL;
+    }
+
+    memset(&iconInfo, 0, sizeof(ICONINFO));
     iconInfo.fIcon = TRUE;
     iconInfo.xHotspot = 0;
     iconInfo.yHotspot = 0;
-    iconInfo.hbmMask = Bitmap;
+    iconInfo.hbmMask = mask;
     iconInfo.hbmColor = Bitmap;
 
-    return CreateIconIndirect(&iconInfo);
+    iconHandle = CreateIconIndirect(&iconInfo);
+    DeleteBitmap(mask);
+
+    return iconHandle;
 }
 
 PPH_NF_ICON PhNfGetIconById(
@@ -1233,11 +1290,14 @@ VOID PhNfTrayIconFlushWorkQueueData(
 
         if (data->ShowBalloon)
         {
-            if (!PhpShowToastNotification(
+            if (!HR_SUCCESS(PhpShowToastNotification(
                 data->BalloonTitle,
                 data->BalloonText,
-                data->BalloonTimeout
-                ))
+                data->BalloonTimeout,
+                PhpToastCallback,
+                NULL,
+                FALSE
+                )))
             {
                 PhNfpShowBalloonTip(
                     PhGetString(data->BalloonTitle),
@@ -1336,6 +1396,7 @@ VOID PhNfpProcessesUpdatedHandler(
 
     if (PhpTrayIconEventHandle)// && PhNfIconsEnabled())
     {
+        NtSetEvent(PhpTrayIconEventHandle, NULL);
     }
 }
 
