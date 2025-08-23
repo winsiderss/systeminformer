@@ -1572,8 +1572,8 @@ VOID PhInitializeTreeNewColumnMenuEx(
 
     if (Flags & PH_TN_COLUMN_MENU_SHOW_RESET_SORT)
     {
-        ULONG sortColumn;
-        PH_SORT_ORDER sortOrder;
+        ULONG sortColumn = 0;
+        PH_SORT_ORDER sortOrder = NoSortOrder;
 
         TreeNew_GetSort(Data->TreeNewHandle, &sortColumn, &sortOrder);
 
@@ -1623,8 +1623,8 @@ VOID PhpEnsureValidSortColumnTreeNew(
     _In_ PH_SORT_ORDER DefaultSortOrder
     )
 {
-    ULONG sortColumn;
-    PH_SORT_ORDER sortOrder;
+    ULONG sortColumn = 0;
+    PH_SORT_ORDER sortOrder = NoSortOrder;
 
     // Make sure the column we're sorting by is actually visible, and if not, don't sort anymore.
 
@@ -1984,6 +1984,7 @@ BOOLEAN PhHandleCopyCellEMenuItem(
     return TRUE;
 }
 
+_Function_class_(PH_EMENU_ITEM_DELETE_FUNCTION)
 VOID NTAPI PhpCopyListViewEMenuItemDeleteFunction(
     _In_ PPH_EMENU_ITEM Item
     )
@@ -2015,9 +2016,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     PH_FORMAT format[3];
     WCHAR headerText[MAX_PATH] = L"";
 
-    if (!GetCursorPos(&location))
-        return FALSE;
-    if (!ScreenToClient(ListViewHandle, &location))
+    if (!PhGetClientPos(ListViewHandle, &location))
         return FALSE;
 
     memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
@@ -2088,9 +2087,7 @@ BOOLEAN PhInsertCopyIListViewEMenuItem(
     PH_FORMAT format[3];
     WCHAR headerText[MAX_PATH] = L"";
 
-    if (!GetCursorPos(&location))
-        return FALSE;
-    if (!ScreenToClient(ListViewHandle, &location))
+    if (!PhGetClientPos(ListViewHandle, &location))
         return FALSE;
 
     memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
@@ -2218,7 +2215,7 @@ BOOLEAN PhpSelectFavoriteInRegedit(
     if (UsePhSvc)
         PhSvcCallSendMessage(RegeditWindow, WM_MENUSELECT, MAKEWPARAM(3, MF_POPUP), (LPARAM)menu);
     else
-        SendMessage(RegeditWindow, WM_MENUSELECT, MAKEWPARAM(3, MF_POPUP), (LPARAM)menu);
+        PhSendMessageTimeout(RegeditWindow, WM_MENUSELECT, MAKEWPARAM(3, MF_POPUP), (LPARAM)menu, 5000, NULL);
 
     if (!(favoritesMenu = GetSubMenu(menu, 3)))
         return FALSE;
@@ -2232,11 +2229,13 @@ BOOLEAN PhpSelectFavoriteInRegedit(
     if (count > 1000)
         count = 1000;
 
-    for (i = 3; i < count; i++)
+    for (i = 0; i < count; i++)
     {
-        MENUITEMINFO info = { sizeof(MENUITEMINFO) };
+        MENUITEMINFO info;
         WCHAR buffer[MAX_PATH];
 
+        memset(&info, 0, sizeof(MENUITEMINFO));
+        info.cbSize = sizeof(MENUITEMINFO);
         info.fMask = MIIM_ID | MIIM_STRING;
         info.dwTypeData = buffer;
         info.cch = RTL_NUMBER_OF(buffer);
@@ -2266,7 +2265,7 @@ BOOLEAN PhpSelectFavoriteInRegedit(
     if (UsePhSvc)
         PhSvcCallSendMessage(RegeditWindow, WM_COMMAND, MAKEWPARAM(id, 0), 0);
     else
-        SendMessage(RegeditWindow, WM_COMMAND, MAKEWPARAM(id, 0), 0);
+        PhSendMessageTimeout(RegeditWindow, WM_COMMAND, MAKEWPARAM(id, 0), 0, 5000, NULL);
 
     // "Close" the Favorites menu and restore normal status bar text.
     if (UsePhSvc)
@@ -2278,12 +2277,9 @@ BOOLEAN PhpSelectFavoriteInRegedit(
     if (IsMinimized(RegeditWindow))
     {
         ShowWindow(RegeditWindow, SW_RESTORE);
-        SetForegroundWindow(RegeditWindow);
     }
-    else
-    {
-        SetForegroundWindow(RegeditWindow);
-    }
+
+    SetForegroundWindow(RegeditWindow);
 
     return TRUE;
 }
@@ -2373,6 +2369,113 @@ VOID PhShellOpenKey(
     PhDereferenceObject(regeditFileName);
 }
 
+NTSTATUS PhRegeditOpenUserFavoritesKey(
+    _In_ HWND RegeditWindow,
+    _Out_ PHANDLE KeyHandle
+    )
+{
+    static CONST PH_STRINGREF favoritesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit\\Favorites");
+    NTSTATUS status;
+    CLIENT_ID clientId;
+    HANDLE processHandle;
+    HANDLE tokenHandle;
+    HANDLE keyUserHandle;
+    HANDLE keyFavoritesHandle;
+    PH_TOKEN_USER tokenUser;
+    PPH_STRING tokenUserSid;
+
+    status = PhGetWindowClientId(RegeditWindow, &clientId);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhOpenProcessClientId(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        &clientId
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhOpenProcessToken(
+        processHandle,
+        TOKEN_QUERY,
+        &tokenHandle
+        );
+
+    NtClose(processHandle);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetTokenUser(
+        tokenHandle,
+        &tokenUser
+        );
+
+    NtClose(tokenHandle);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (!(tokenUserSid = PhSidToStringSid(tokenUser.User.Sid)))
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
+
+    status = PhOpenKey(
+        &keyUserHandle,
+        KEY_READ,
+        PH_KEY_USERS,
+        &tokenUserSid->sr,
+        0
+        );
+
+    PhDereferenceObject(tokenUserSid);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhCreateKey(
+        &keyFavoritesHandle,
+        KEY_WRITE,
+        keyUserHandle,
+        &favoritesKeyName,
+        0,
+        0,
+        NULL
+        );
+
+    NtClose(keyUserHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        *KeyHandle = keyFavoritesHandle;
+        return STATUS_SUCCESS;
+    }
+
+CleanupExit:
+    status = PhCreateKey(
+        &keyFavoritesHandle,
+        KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &favoritesKeyName,
+        0,
+        0,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *KeyHandle = keyFavoritesHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return status;
+}
+
 /**
  * Opens a key in the Registry Editor. If the Registry Editor is already open,
  * the specified key is selected in the Registry Editor.
@@ -2385,7 +2488,6 @@ BOOLEAN PhShellOpenKey2(
     _In_ PPH_STRING KeyName
     )
 {
-    static CONST PH_STRINGREF favoritesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit\\Favorites");
     BOOLEAN result = FALSE;
     HWND regeditWindow;
     HANDLE favoritesKeyHandle;

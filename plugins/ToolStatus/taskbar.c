@@ -14,6 +14,7 @@
 PH_TASKBAR_ICON TaskbarListIconType = TASKBAR_ICON_NONE;
 BOOLEAN TaskbarIsDirty = FALSE;
 BOOLEAN TaskbarMainWndExiting = FALSE;
+BOOLEAN TaskbarTransparencyEnabled = FALSE;
 static HANDLE TaskbarListClass = NULL;
 static HANDLE TaskbarThreadHandle = NULL;
 static HANDLE TaskbarEventHandle = NULL;
@@ -22,6 +23,8 @@ VOID NTAPI TaskbarInitialize(
     VOID
     )
 {
+    TaskbarTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
+
     if (TaskbarListIconType != TASKBAR_ICON_NONE)
     {
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -95,19 +98,18 @@ VOID NTAPI TaskbarUpdateGraphs(
         switch (TaskbarListIconType)
         {
         case TASKBAR_ICON_CPU_HISTORY:
-            overlayIcon = PhUpdateIconCpuHistory(SystemStatistics);
+            overlayIcon = PhUpdateIconCpuHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_IO_HISTORY:
-            overlayIcon = PhUpdateIconIoHistory(SystemStatistics);
+            overlayIcon = PhUpdateIconIoHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_COMMIT_HISTORY:
-            overlayIcon = PhUpdateIconCommitHistory(SystemStatistics);
+            overlayIcon = PhUpdateIconCommitHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_PHYSICAL_HISTORY:
-            overlayIcon = PhUpdateIconPhysicalHistory(SystemStatistics);
             break;
         case TASKBAR_ICON_CPU_USAGE:
-            overlayIcon = PhUpdateIconCpuUsage(SystemStatistics);
+            overlayIcon = PhUpdateIconCpuUsage(&SystemStatistics);
             break;
         }
 
@@ -206,18 +208,8 @@ static VOID PhBeginBitmap2(
 
     if (!Context->Bitmap)
     {
-        BITMAPINFO bitmapInfo;
-
-        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biPlanes = 1;
-        bitmapInfo.bmiHeader.biCompression = BI_RGB;
-        bitmapInfo.bmiHeader.biWidth = Context->Width;
-        bitmapInfo.bmiHeader.biHeight = Context->Height;
-        bitmapInfo.bmiHeader.biBitCount = 32;
-
         Context->Hdc = CreateCompatibleDC(NULL);
-        Context->Bitmap = CreateDIBSection(Context->Hdc, &bitmapInfo, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
+        Context->Bitmap = PhCreateDIBSection(Context->Hdc, PHBF_DIB, Context->Width, Context->Height, &Context->Bits);
         Context->TaskbarDpi = dpiValue;
     }
 
@@ -255,7 +247,7 @@ HICON PhGetBlackIcon(
         ICONINFO iconInfo;
 
         PhBeginBitmap2(&PhBlackBitmapContext, &width, &height, &PhBlackBitmap, &bits, &hdc, &oldBitmap);
-        memset(bits, 0, width * height * sizeof(RGBQUAD));
+        memset(bits, TaskbarTransparencyEnabled ? 1 : 0, width * height * sizeof(RGBQUAD));
 
         iconInfo.fIcon = TRUE;
         iconInfo.xHotspot = 0;

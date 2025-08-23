@@ -837,9 +837,9 @@ NTSTATUS UpdateDownloadThread(
     ULONG64 timeBitsPerSecond;
     LARGE_INTEGER allocationSize;
     ULONG bytesDownloaded = 0;
+    ULONG bytesWritten = 0;
     ULONG_PTR totalDownloaded = 0;
     PPH_STRING string;
-    IO_STATUS_BLOCK isb;
     PBYTE httpBuffer = NULL;
     ULONG httpBufferLength;
 
@@ -876,7 +876,7 @@ NTSTATUS UpdateDownloadThread(
     if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &contentLength)))
         goto CleanupExit;
 
-    httpBufferLength = PAGE_SIZE;
+    httpBufferLength = PAGE_SIZE * 2;
     httpBuffer = PhAllocateSafe(httpBufferLength);
 
     if (!httpBuffer)
@@ -890,8 +890,8 @@ NTSTATUS UpdateDownloadThread(
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s");
     PhDereferenceObject(string);
 
+    // Create temporary file.
     {
-        // Create temporary path.
         context->SetupFilePath = UpdateParseDownloadFileName(context, downloadUrlPath);
 
         if (PhIsNullOrEmptyString(context->SetupFilePath))
@@ -902,7 +902,6 @@ NTSTATUS UpdateDownloadThread(
 
         allocationSize.QuadPart = contentLength;
 
-        // Create temporary file.
         status = PhCreateFileWin32Ex(
             &tempFileHandle,
             PhGetString(context->SetupFilePath),
@@ -936,36 +935,34 @@ NTSTATUS UpdateDownloadThread(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        // If we get zero bytes, the file was uploaded or there was an error
+        // If we get zero bytes, the file was downloaded or there was an error.
         if (bytesDownloaded == 0)
             break;
 
-        // If the dialog was closed, just cleanup and exit
+        // Update was cancelled, cleanup and exit.
         if (context->Cancel)
             goto CleanupExit;
 
         // Update the hash of bytes we downloaded.
-        if (!NT_SUCCESS(status = UpdaterUpdateHash(hashContext, httpBuffer, bytesDownloaded)))
+        status = UpdaterHashData(hashContext, httpBuffer, bytesDownloaded);
+
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
 
         // Write the downloaded bytes to disk.
-        if (!NT_SUCCESS(status = NtWriteFile(
+        status = PhWriteFile(
             tempFileHandle,
-            NULL,
-            NULL,
-            NULL,
-            &isb,
             httpBuffer,
             bytesDownloaded,
             NULL,
-            NULL
-            )))
-        {
+            &bytesWritten
+            );
+
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
-        }
 
         // Check the number of bytes written are the same we downloaded.
-        if (bytesDownloaded != isb.Information)
+        if (bytesDownloaded != bytesWritten)
         {
             status = STATUS_DATA_CHECKSUM_ERROR;
             goto CleanupExit;
@@ -978,14 +975,14 @@ NTSTATUS UpdateDownloadThread(
         PhQuerySystemTime(&timeNow);
 
         // Calculate the number of ticks
-        totalDownloaded += isb.Information;
+        totalDownloaded += bytesWritten;
         timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
         timeBitsPerSecond = timeTicks ? totalDownloaded / timeTicks : 0;
 
 #ifdef FORCE_NO_STATUS_TIMER
-        ULONG percent = totalDownloaded * 100 / contentLength;
+        ULONG percent = (ULONG)totalDownloaded * 100 / (ULONG)contentLength;
         PH_FORMAT format[9];
-        WCHAR string[MAX_PATH];
+        WCHAR stringformat[MAX_PATH];
 
         // L"Downloaded: %s / %s (%.0f%%)\r\nSpeed: %s/s"
         PhInitFormatS(&format[0], L"Downloaded: ");
@@ -998,9 +995,14 @@ NTSTATUS UpdateDownloadThread(
         PhInitFormatSize(&format[7], timeBitsPerSecond);
         PhInitFormatS(&format[8], L"/s");
 
-        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), stringformat, sizeof(stringformat), NULL))
         {
-            SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
+            SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)stringformat);
+        }
+        if (context->ProgressMarquee)
+        {
+            SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
+            context->ProgressMarquee = FALSE;
         }
 
         SendMessage(context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
@@ -1089,7 +1091,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
 
     switch (uMsg)
     {
-    case WM_NCDESTROY:
+    case WM_DESTROY:
         {
             context->Cancel = TRUE;
 

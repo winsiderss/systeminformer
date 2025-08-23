@@ -2797,13 +2797,6 @@ HICON PhGdiplusConvertHBitmapToHIcon(
     _In_ HBITMAP BitmapHandle
     );
 
-LRESULT PhTnSendMessage(
-    _In_ HWND WindowHandle,
-    _In_ ULONG WindowMessage,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
 EXTERN_C_END
 
 #endif
