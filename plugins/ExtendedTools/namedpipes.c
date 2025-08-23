@@ -23,6 +23,7 @@ typedef struct _PIPE_ENUM_DIALOG_CONTEXT
     BOOLEAN UseKph;
 } PIPE_ENUM_DIALOG_CONTEXT, *PPIPE_ENUM_DIALOG_CONTEXT;
 
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
 BOOLEAN NTAPI EtNamedPipeDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,

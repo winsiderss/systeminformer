@@ -763,6 +763,29 @@ BOOLEAN PhGetClientPos(
     return FALSE;
 }
 
+_Success_(return)
+BOOLEAN PhGetScreenPos(
+    _In_ HWND WindowHandle,
+    _Out_ PPOINT ClientPoint
+    )
+{
+    ULONG position;
+    POINT point;
+
+    position = GetMessagePos();
+    point.x = GET_X_LPARAM(position);
+    point.y = GET_Y_LPARAM(position);
+
+    if (ClientToScreen(WindowHandle, &point))
+    {
+        memcpy(ClientPoint, &point, sizeof(POINT));
+        return TRUE;
+    }
+
+    memset(ClientPoint, 0, sizeof(POINT));
+    return FALSE;
+}
+
 BOOLEAN PhClientToScreen(
     _In_ HWND WindowHandle,
     _Inout_ PPOINT Point

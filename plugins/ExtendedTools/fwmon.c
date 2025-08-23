@@ -24,7 +24,7 @@ ULONG FwRunCount = 0;
 ULONG EtFwMaxEventAge = 60;
 SLIST_HEADER EtFwPacketListHead;
 PH_FREE_LIST EtFwPacketFreeList;
-LIST_ENTRY EtFwAgeListHead = { &EtFwAgeListHead, &EtFwAgeListHead };
+RTL_STATIC_LIST_HEAD(EtFwAgeListHead);
 BOOLEAN EtFwEnableResolveCache = TRUE;
 BOOLEAN EtFwEnableResolveDoH = FALSE;
 BOOLEAN EtFwIgnoreOnError = TRUE;
@@ -2131,7 +2131,7 @@ ULONG EtFwMonitorInitialize(
 
     status = FwpmEngineOpen(
         NULL,
-        RPC_C_AUTHN_WINNT,
+        RPC_C_AUTHN_DEFAULT,
         NULL,
         &session,
         &EtFwEngineHandle

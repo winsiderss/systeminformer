@@ -308,6 +308,15 @@ PhGetClientPos(
     _Out_ PPOINT ClientPoint
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetScreenPos(
+    _In_ HWND WindowHandle,
+    _Out_ PPOINT ClientPoint
+    );
+
 PHLIBAPI
 BOOLEAN
 NTAPI
