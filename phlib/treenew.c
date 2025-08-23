@@ -6385,7 +6385,6 @@ VOID PhTnpInitializeTooltips(
         NULL,
         NULL,
         NtCurrentImageBase(),
-        NULL,
         NULL
         );
 
