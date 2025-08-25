@@ -74,7 +74,6 @@ set(SI_LINK_FLAGS_RELEASE_INIT
     /OPT:ICF                            # COMDAT folding
     /LTCG                               # Link-time code generation
     /GUARD:CF                           # Control flow guard
-    /GUARD:DELAYLOADSIGNRET             # Delayed load signature return guard
 )
 
 #
@@ -82,7 +81,7 @@ set(SI_LINK_FLAGS_RELEASE_INIT
 #
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
     list(APPEND SI_COMPILE_FLAGS_RELEASE_INIT
-        /guard:signret                  # Signed return guard
+        /guard:signret                  # Signed return instruction generation
         /guard:ehcont                   # EH continuation guard
     )
     list(APPEND SI_LINK_FLAGS_RELEASE_INIT
