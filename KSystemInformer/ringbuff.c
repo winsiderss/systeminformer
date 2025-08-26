@@ -536,22 +536,10 @@ NTSTATUS KphCreateRingBuffer(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
+    status = KphZeroModeMemory(User, sizeof(KPH_RING_BUFFER_USER), AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        __try
-        {
-            ProbeOutputType(User, KPH_RING_BUFFER_USER);
-            RtlZeroVolatileMemory(User, sizeof(KPH_RING_BUFFER_USER));
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
-    else
-    {
-        RtlZeroMemory(User, sizeof(KPH_RING_BUFFER_USER));
+        goto Exit;
     }
 
     status = RtlULongAdd(Length,
@@ -691,23 +679,20 @@ NTSTATUS KphCreateRingBuffer(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
+    status = KphWritePointerToMode(&User->Consumer,
+                                   userConsumerBase,
+                                   AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        __try
-        {
-            RtlWritePointerToUser(&User->Consumer, userConsumerBase);
-            RtlWritePointerToUser(&User->Producer, userProducerBase);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
+        goto Exit;
     }
-    else
+
+    status = KphWritePointerToMode(&User->Producer,
+                                   userProducerBase,
+                                   AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        User->Consumer = userProducerBase;
-        User->Producer = userConsumerBase;
+        goto Exit;
     }
 
     userProducerBase = NULL;
