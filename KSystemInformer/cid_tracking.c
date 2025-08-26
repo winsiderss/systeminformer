@@ -871,7 +871,7 @@ VOID KSIAPI KphpInitializeThreadContextSpecialApc(
     {
         __try
         {
-            apc->Thread->SubProcessTag = RtlReadPointerFromUser(&teb->SubProcessTag);
+            apc->Thread->SubProcessTag = ReadPointerFromUser(&teb->SubProcessTag);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
