@@ -810,6 +810,7 @@ lpacSessionManagement
 lpacWebPlatform
 mediaFoundationCdmFiles
 microphone
+Microsoft.appCategory.chatAgent_8wekyb3d8bbwe
 Microsoft.cellularSARConfiguration_8wekyb3d8bbwe
 Microsoft.classicAppCompat_8wekyb3d8bbwe
 Microsoft.classicAppCompatElevated_8wekyb3d8bbwe

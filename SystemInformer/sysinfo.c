@@ -357,7 +357,7 @@ VOID PhSipOnInitDialog(
     VOID
     )
 {
-    RECT clientRect;
+    //RECT clientRect;
     PH_STRINGREF sectionName;
     PPH_SYSINFO_SECTION section;
 
@@ -409,7 +409,7 @@ VOID PhSipOnInitDialog(
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackSystemInformationInitializing), &pointers);
     }
 
-    SeparatorControl = CreateWindow(
+    SeparatorControl = PhCreateWindow(
         WC_STATIC,
         NULL,
         WS_CHILD | SS_OWNERDRAW,
@@ -422,7 +422,7 @@ VOID PhSipOnInitDialog(
         NULL,
         NULL
         );
-    RestoreSummaryControl = CreateWindow(
+    RestoreSummaryControl = PhCreateWindow(
         WC_STATIC,
         NULL,
         WS_CHILD | WS_TABSTOP | SS_OWNERDRAW | SS_NOTIFY,
@@ -440,7 +440,7 @@ VOID PhSipOnInitDialog(
     PhSetWindowProcedure(RestoreSummaryControl, PhSipPanelHookWndProc);
     RestoreSummaryControlHot = FALSE;
 
-    GetClientRect(PhSipWindow, &clientRect);
+    //PhGetClientRect(PhSipWindow, &clientRect);
     MinimumSize.left = 0;
     MinimumSize.top = 0;
     MinimumSize.right = 430;
@@ -1009,6 +1009,7 @@ VOID PhSiNotifyChangeSettings(
     PhSipUpdateColorParameters();
 }
 
+_Function_class_(PH_SYSINFO_COLOR_SETUP_FUNCTION)
 VOID PhSiSetColorsGraphDrawInfo(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ COLORREF Color1,
@@ -1284,6 +1285,7 @@ VOID PhSipUpdateColorParameters(
     }
 }
 
+_Function_class_(PH_SYSINFO_CREATE_SECTION)
 PPH_SYSINFO_SECTION PhSipCreateSection(
     _In_ PPH_SYSINFO_SECTION Template
     )
@@ -1309,7 +1311,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     graphCreateParams.Options = options;
     graphCreateParams.Context = section;
 
-    section->GraphHandle = CreateWindow(
+    section->GraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP | GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL,
@@ -1327,7 +1329,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     section->Parameters = &CurrentParameters;
 
     section->PanelId = IDDYNAMIC + SectionList->Count * 2 + 2;
-    section->PanelHandle = CreateWindow(
+    section->PanelHandle = PhCreateWindow(
         WC_STATIC,
         NULL,
         WS_CHILD | SS_OWNERDRAW | SS_NOTIFY,
@@ -1367,6 +1369,7 @@ VOID PhSipDestroySection(
     PhFree(Section);
 }
 
+_Function_class_(PH_SYSINFO_FIND_SECTION)
 PPH_SYSINFO_SECTION PhSipFindSection(
     _In_ PPH_STRINGREF Name
     )
@@ -1865,7 +1868,8 @@ VOID PhSipLayoutSummaryView(
     HDWP deferHandle;
     ULONG y;
 
-    GetClientRect(PhSipWindow, &clientRect);
+    if (!PhGetClientRect(PhSipWindow, &clientRect))
+        return;
 
     availableHeight = clientRect.bottom - CurrentParameters.WindowPadding * 2;
     availableWidth = clientRect.right - CurrentParameters.WindowPadding * 2;
@@ -1910,7 +1914,8 @@ VOID PhSipLayoutSectionView(
     ULONG y;
     ULONG containerLeft;
 
-    GetClientRect(PhSipWindow, &clientRect);
+    if (!PhGetClientRect(PhSipWindow, &clientRect))
+        return;
 
     availableHeight = clientRect.bottom - CurrentParameters.WindowPadding * 2;
     availableWidth = clientRect.right - CurrentParameters.WindowPadding * 2;
@@ -2005,6 +2010,7 @@ VOID PhSipLayoutSectionView(
     }
 }
 
+_Function_class_(PH_SYSINFO_ENTER_SECTION_VIEW)
 VOID PhSipEnterSectionView(
     _In_ PPH_SYSINFO_SECTION NewSection
     )
@@ -2082,6 +2088,7 @@ VOID PhSipEnterSectionViewInner(
     }
 }
 
+_Function_class_(PH_SYSINFO_RESTORE_SUMMARY_VIEW)
 VOID PhSipRestoreSummaryView(
     VOID
     )

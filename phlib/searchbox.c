@@ -1192,18 +1192,17 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             }
 
             PAINTSTRUCT paintStruct;
+            RECT clientRect;
             HDC hdc;
 
             if (hdc = BeginPaint(WindowHandle, &paintStruct))
             {
                 HDC bufferDc;
-                RECT clientRect;
                 HFONT oldFont;
                 HBITMAP bufferBitmap;
                 HBITMAP oldBufferBitmap;
 
-                GetClientRect(WindowHandle, &clientRect);
-
+                clientRect = paintStruct.rcPaint;
                 bufferDc = CreateCompatibleDC(hdc);
                 bufferBitmap = CreateCompatibleBitmap(hdc, clientRect.right, clientRect.bottom);
                 oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);

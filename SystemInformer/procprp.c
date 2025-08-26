@@ -330,6 +330,8 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 
             CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 
+            PhLayoutManagerUpdateDpi(&propSheetContext->LayoutManager, LOWORD(wParam));
+
             {
                 SetWindowPos(
                     hwnd,
@@ -800,7 +802,7 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
         PhMapRect(&margin, &margin, &dialogRect);
         PhConvertRect(&margin, &dialogRect);
 
-        item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, margin);
+        item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, &margin);
     }
     else
     {

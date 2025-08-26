@@ -1201,7 +1201,8 @@ BOOLEAN PhGetListViewContextMenuPoint(
             Point->x = bounds.left + PhGetSystemMetrics(SM_CXSMICON, dpiValue) / 2;
             Point->y = bounds.top + PhGetSystemMetrics(SM_CYSMICON, dpiValue) / 2;
 
-            GetClientRect(ListViewHandle, &clientRect);
+            if (!PhGetClientRect(ListViewHandle, &clientRect))
+                return FALSE;
 
             if (Point->x < 0 || Point->y < 0 || Point->x >= clientRect.right || Point->y >= clientRect.bottom)
             {

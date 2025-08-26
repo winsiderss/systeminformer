@@ -140,6 +140,7 @@ VOID PhSipUpdateColorParameters(
     VOID
     );
 
+_Function_class_(PH_SYSINFO_CREATE_SECTION)
 PPH_SYSINFO_SECTION PhSipCreateSection(
     _In_ PPH_SYSINFO_SECTION Template
     );
@@ -148,6 +149,7 @@ VOID PhSipDestroySection(
     _In_ PPH_SYSINFO_SECTION Section
     );
 
+_Function_class_(PH_SYSINFO_FIND_SECTION)
 PPH_SYSINFO_SECTION PhSipFindSection(
     _In_ PPH_STRINGREF Name
     );
@@ -185,6 +187,7 @@ VOID PhSipLayoutSectionView(
     VOID
     );
 
+_Function_class_(PH_SYSINFO_ENTER_SECTION_VIEW)
 VOID PhSipEnterSectionView(
     _In_ PPH_SYSINFO_SECTION NewSection
     );
@@ -196,6 +199,7 @@ VOID PhSipEnterSectionViewInner(
     _Inout_ HDWP *ContainerDeferHandle
     );
 
+_Function_class_(PH_SYSINFO_RESTORE_SUMMARY_VIEW)
 VOID PhSipRestoreSummaryView(
     VOID
     );
@@ -261,6 +265,7 @@ VOID NTAPI PhSipSysInfoSettingsCallback(
 
 // CPU section
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipCpuSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -362,6 +367,7 @@ BOOLEAN PhIsCoreParked(
 
 // Memory section
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipMemorySectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -445,6 +451,7 @@ BOOLEAN PhSipGetMemoryCompressionLimits(
 
 // I/O section
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipIoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,

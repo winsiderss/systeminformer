@@ -14,7 +14,7 @@
 
 // Wait Chain Traversal Documentation:
 // https://learn.microsoft.com/en-us/windows/win32/debug/wait-chain-traversal
-// http://msdn.microsoft.com/en-us/library/windows/desktop/ms681622.aspx
+// https://msdn.microsoft.com/en-us/library/windows/desktop/ms681622.aspx
 
 #define WCT_GETINFO_ALL_FLAGS (WCT_OUT_OF_PROC_FLAG|WCT_OUT_OF_PROC_COM_FLAG|WCT_OUT_OF_PROC_CS_FLAG|WCT_NETWORK_IO_FLAG)
 

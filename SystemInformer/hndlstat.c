@@ -267,6 +267,11 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
             PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);

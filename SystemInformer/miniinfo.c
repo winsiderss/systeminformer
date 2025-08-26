@@ -959,7 +959,8 @@ VOID PhMipLayout(
     RECT clientRect;
     RECT windowRect;
 
-    GetClientRect(PhMipContainerWindow, &clientRect);
+    if (!PhGetClientRect(PhMipContainerWindow, &clientRect))
+        return;
 
     MoveWindow(
         PhMipWindow,
@@ -970,7 +971,9 @@ VOID PhMipLayout(
 
     PhLayoutManagerLayout(&PhMipLayoutManager);
 
-    GetWindowRect(PhMipLayoutWindow, &windowRect);
+    if (!PhGetWindowRect(PhMipLayoutWindow, &windowRect))
+        return;
+
     MapWindowRect(NULL, PhMipWindow, &windowRect);
 
     if (CurrentSection && CurrentSection->DialogHandle)
@@ -1379,6 +1382,11 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
 
             listSection->TreeNewHandle = NULL;
             listSection->DialogHandle = NULL;
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdateDpi(&listSection->LayoutManager, LOWORD(wParam));
         }
         break;
     case WM_SIZE:

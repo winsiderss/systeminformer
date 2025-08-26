@@ -467,7 +467,7 @@ VOID PhMwpInitializeControls(
         treelistCreateParams.RowHeight = PhGetIntegerSetting(L"TreeListCustomRowSize");
     }
 
-    TabControlHandle = CreateWindow(
+    TabControlHandle = PhCreateWindow(
         WC_TABCONTROL,
         NULL,
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TCS_MULTILINE,
@@ -481,7 +481,7 @@ VOID PhMwpInitializeControls(
         NULL
         );
 
-    PhMwpProcessTreeNewHandle = CreateWindow(
+    PhMwpProcessTreeNewHandle = PhCreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER | thinRows | treelistBorder | treelistCustomColors | treelistCustomHeaderDraw,
@@ -495,7 +495,7 @@ VOID PhMwpInitializeControls(
         &treelistCreateParams
         );
 
-    PhMwpServiceTreeNewHandle = CreateWindow(
+    PhMwpServiceTreeNewHandle = PhCreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
@@ -509,7 +509,7 @@ VOID PhMwpInitializeControls(
         &treelistCreateParams
         );
 
-    PhMwpNetworkTreeNewHandle = CreateWindow(
+    PhMwpNetworkTreeNewHandle = PhCreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,

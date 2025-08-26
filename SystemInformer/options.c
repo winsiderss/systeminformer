@@ -627,7 +627,8 @@ VOID PhOptionsLayoutSectionView(
     {
         RECT clientRect;
 
-        GetClientRect(ContainerControl, &clientRect);
+        if (!PhGetClientRect(ContainerControl, &clientRect))
+            return;
 
         SetWindowPos(
             CurrentSection->DialogHandle,
@@ -1881,6 +1882,8 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            PhLayoutManagerUpdateDpi(&LayoutManager, LOWORD(wParam));
+
             PhpOptionsSetImageList(ListViewHandle, FALSE);
         }
         break;
@@ -2254,6 +2257,11 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdateDpi(&LayoutManager, LOWORD(wParam));
         }
         break;
     case WM_SIZE:
@@ -3097,6 +3105,11 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
@@ -3438,6 +3451,11 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdateDpi(&LayoutManager, LOWORD(wParam));
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&LayoutManager);
@@ -3696,6 +3714,11 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             }
 
             PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdateDpi(&LayoutManager, LOWORD(wParam));
         }
         break;
     case WM_SIZE:

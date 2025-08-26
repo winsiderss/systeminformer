@@ -50,7 +50,7 @@ namespace CustomBuildTool
                     requestMessage.Content = new StreamContent(bufferedStream);
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
-                    var response = HttpClient.SendMessage(requestMessage, SourceForgeUploadResponseContext.Default.SourceForgeUploadResponse);
+                    var response = BuildHttpClient.SendMessage(requestMessage, SourceForgeUploadResponseContext.Default.SourceForgeUploadResponse);
 
                     return response;
                 }

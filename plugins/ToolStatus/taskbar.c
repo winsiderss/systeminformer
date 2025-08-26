@@ -244,20 +244,25 @@ HICON PhGetBlackIcon(
         ULONG height;
         PVOID bits;
         HDC hdc;
+        HBITMAP mask;
         HBITMAP oldBitmap;
         ICONINFO iconInfo;
 
         PhBeginBitmap2(&PhBlackBitmapContext, &width, &height, &PhBlackBitmap, &bits, &hdc, &oldBitmap);
         memset(bits, TaskbarTransparencyEnabled ? 1 : 0, width * height * sizeof(RGBQUAD));
 
+        if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
+            return NULL;
+
         iconInfo.fIcon = TRUE;
         iconInfo.xHotspot = 0;
         iconInfo.yHotspot = 0;
-        iconInfo.hbmMask = PhBlackBitmap;
+        iconInfo.hbmMask = mask;
         iconInfo.hbmColor = PhBlackBitmap;
         PhBlackIcon = CreateIconIndirect(&iconInfo);
 
         SelectBitmap(hdc, oldBitmap);
+        DeleteBitmap(mask);
     }
 
     return PhBlackIcon;
@@ -405,6 +410,11 @@ HICON PhUpdateIconIoHistory(
     drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
+    if (TaskbarTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
     SelectBitmap(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
 
@@ -462,6 +472,11 @@ HICON PhUpdateIconCommitHistory(
     drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorPrivate");
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
+
+    if (TaskbarTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
@@ -526,6 +541,7 @@ HICON PhUpdateIconPhysicalHistory(
     _freea(lineData1);
 
     return icon;
+    return 0;
 }
 
 HICON PhUpdateIconCpuUsage(

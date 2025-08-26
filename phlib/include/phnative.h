@@ -257,6 +257,22 @@ PhSetObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+#define AUDIT_ALARM_ACE_TYPE_MASK ( \
+    (1 << SYSTEM_AUDIT_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_ACE_TYPE) | \
+    (1 << SYSTEM_AUDIT_OBJECT_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_OBJECT_ACE_TYPE) | \
+    (1 << SYSTEM_AUDIT_CALLBACK_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_CALLBACK_ACE_TYPE) | \
+    (1 << SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE))
+
+#define MANDATORY_LABEL_ACE_TYPE_MASK (1 << SYSTEM_MANDATORY_LABEL_ACE_TYPE)
+#define RESOURCE_ATTRIBUTE_ACE_TYPE_MASK (1 << SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE)
+#define SCOPED_POLICY_ACE_TYPE_MASK (1 << SYSTEM_SCOPED_POLICY_ID_ACE_TYPE)
+#define PROCESS_TRUST_ACE_TYPE_MASK (1 << SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE)
+#define ACCESS_FILTER_ACE_TYPE_MASK (1 << SYSTEM_ACCESS_FILTER_ACE_TYPE)
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -283,6 +299,20 @@ NTAPI
 PhTerminateProcess(
     _In_ HANDLE ProcessHandle,
     _In_ NTSTATUS ExitStatus
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSuspendProcess(
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhResumeProcess(
+    _In_ HANDLE ProcessHandle
     );
 
 PHLIBAPI
@@ -1211,6 +1241,73 @@ PhFirstFreeAce(
 FORCEINLINE
 NTSTATUS
 NTAPI
+PhGetAce(
+    _In_ PACL Acl,
+    _In_ ULONG AceIndex,
+    _Out_ PVOID* Ace
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetAce(Acl, AceIndex, Ace);
+#else
+    PVOID current;
+    PVOID lastace;
+
+    if (
+        Acl->AclRevision >= MIN_ACL_REVISION ||
+        Acl->AclRevision <= MAX_ACL_REVISION ||
+        AceIndex >= Acl->AceCount
+        )
+    {
+        return STATUS_INVALID_ACL;
+    }
+
+    current = PTR_ADD_OFFSET(Acl, sizeof(ACL));
+    lastace = PTR_ADD_OFFSET(Acl, Acl->AclSize);
+
+    for (ULONG i = 0; i < AceIndex; i++)
+    {
+        if (current >= lastace)
+        {
+            return STATUS_INVALID_ACL;
+        }
+
+        current = PTR_ADD_OFFSET(Ace, ((PACE_HEADER)*Ace)->AceSize);
+    }
+
+    if (current >= lastace)
+    {
+        return STATUS_INVALID_ACL;
+    }
+
+    *Ace = current;
+    return STATUS_SUCCESS;
+#endif
+}
+
+FORCEINLINE
+PVOID
+NTAPI
+PhFirstAce(
+    _In_ PACL Acl
+    )
+{
+    return PTR_ADD_OFFSET(Acl, sizeof(ACL));
+}
+
+FORCEINLINE
+PVOID
+NTAPI
+PhNextAce(
+    _In_ PACL Ace
+    )
+{
+    return PTR_ADD_OFFSET(Ace, ((PACE_HEADER)Ace)->AceSize);
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
 PhCreateAcl(
     _Out_ PACL Acl,
     _In_ ULONG Length,
@@ -1237,6 +1334,53 @@ PhCreateAcl(
 FORCEINLINE
 NTSTATUS
 NTAPI
+PhGetDaclSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PBOOLEAN DaclPresent,
+    _Outptr_result_maybenull_ PACL* Dacl,
+    _Out_ PBOOLEAN DaclDefaulted
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetDaclSecurityDescriptor(SecurityDescriptor, DaclPresent, Dacl, DaclDefaulted);
+#else
+    PISECURITY_DESCRIPTOR securityDescriptor = (PISECURITY_DESCRIPTOR)SecurityDescriptor;
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
+    PACL dacl = NULL;
+
+    if (securityDescriptor->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+
+    if (present = BooleanFlagOn(securityDescriptor->Control, SE_DACL_PRESENT))
+    {
+        defaulted = BooleanFlagOn(securityDescriptor->Control, SE_DACL_DEFAULTED);
+
+        if (BooleanFlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+        {
+            PISECURITY_DESCRIPTOR_RELATIVE securityDescriptorRelative = (PISECURITY_DESCRIPTOR_RELATIVE)SecurityDescriptor;
+
+            if (securityDescriptorRelative->Dacl)
+            {
+                dacl = (PACL)PTR_ADD_OFFSET(SecurityDescriptor, securityDescriptorRelative->Dacl);
+            }
+        }
+        else
+        {
+            dacl = securityDescriptor->Dacl;
+        }
+    }
+
+    *DaclPresent = present;
+    *DaclDefaulted = defaulted;
+    *Dacl = dacl;
+    return STATUS_SUCCESS;
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
 PhGetDaclSecurityDescriptorNotNull(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _Out_ PBOOLEAN DaclPresent,
@@ -1249,7 +1393,7 @@ PhGetDaclSecurityDescriptorNotNull(
     BOOLEAN defaulted = FALSE;
     PACL dacl = NULL;
 
-    status = RtlGetDaclSecurityDescriptor(
+    status = PhGetDaclSecurityDescriptor(
         SecurityDescriptor,
         &present,
         &dacl,
@@ -1271,6 +1415,137 @@ PhGetDaclSecurityDescriptorNotNull(
     }
 
     return status;
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetSaclSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PBOOLEAN SaclPresent,
+    _Outptr_result_maybenull_ PACL* Sacl,
+    _Out_ PBOOLEAN SaclDefaulted
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetSaclSecurityDescriptor(SecurityDescriptor, SaclPresent, Sacl, SaclDefaulted);
+#else
+    PISECURITY_DESCRIPTOR securityDescriptor = (PISECURITY_DESCRIPTOR)SecurityDescriptor;
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
+    PACL sacl = NULL;
+
+    if (securityDescriptor->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+
+    if (present = BooleanFlagOn(securityDescriptor->Control, SE_SACL_PRESENT))
+    {
+        defaulted = BooleanFlagOn(securityDescriptor->Control, SE_DACL_DEFAULTED);
+
+        if (BooleanFlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+        {
+            PISECURITY_DESCRIPTOR_RELATIVE securityDescriptorRelative = (PISECURITY_DESCRIPTOR_RELATIVE)SecurityDescriptor;
+
+            if (securityDescriptorRelative->Sacl)
+            {
+                sacl = (PACL)PTR_ADD_OFFSET(SecurityDescriptor, securityDescriptorRelative->Sacl);
+            }
+        }
+        else
+        {
+            sacl = securityDescriptor->Sacl;
+        }
+    }
+
+    *SaclPresent = present;
+    *SaclDefaulted = defaulted;
+    *Sacl = sacl;
+    return STATUS_SUCCESS;
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetOwnerSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Outptr_result_maybenull_ PSID* Owner,
+    _Out_ PBOOLEAN OwnerDefaulted
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetOwnerSecurityDescriptor(SecurityDescriptor, Owner, OwnerDefaulted);
+#else
+    PISECURITY_DESCRIPTOR securityDescriptor = (PISECURITY_DESCRIPTOR)SecurityDescriptor;
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
+    PSID owner = NULL;
+
+    if (securityDescriptor->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+
+    defaulted = BooleanFlagOn(securityDescriptor->Control, SE_OWNER_DEFAULTED);
+
+    if (BooleanFlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+    {
+        PISECURITY_DESCRIPTOR_RELATIVE securityDescriptorRelative = (PISECURITY_DESCRIPTOR_RELATIVE)SecurityDescriptor;
+
+        if (securityDescriptorRelative->Owner)
+        {
+            owner = PTR_ADD_OFFSET(SecurityDescriptor, securityDescriptorRelative->Owner);
+        }
+    }
+    else
+    {
+        owner = securityDescriptor->Sacl;
+    }
+
+    *OwnerDefaulted = defaulted;
+    *Owner = owner;
+    return STATUS_SUCCESS;
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetGroupSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Outptr_result_maybenull_ PSID* Group,
+    _Out_ PBOOLEAN GroupDefaulted
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetGroupSecurityDescriptor(SecurityDescriptor, Group, GroupDefaulted);
+#else
+    PISECURITY_DESCRIPTOR securityDescriptor = (PISECURITY_DESCRIPTOR)SecurityDescriptor;
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
+    PSID group = NULL;
+
+    if (securityDescriptor->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+
+    defaulted = BooleanFlagOn(securityDescriptor->Control, SE_GROUP_DEFAULTED);
+
+    if (BooleanFlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+    {
+        PISECURITY_DESCRIPTOR_RELATIVE securityDescriptorRelative = (PISECURITY_DESCRIPTOR_RELATIVE)SecurityDescriptor;
+
+        if (securityDescriptorRelative->Group)
+        {
+            group = PTR_ADD_OFFSET(SecurityDescriptor, securityDescriptorRelative->Group);
+        }
+    }
+    else
+    {
+        group = securityDescriptor->Group;
+    }
+
+    *GroupDefaulted = defaulted;
+    *Group = group;
+    return STATUS_SUCCESS;
+#endif
 }
 
 FORCEINLINE
@@ -1325,6 +1600,9 @@ PhAddAccessAllowedAceEx(
     _In_ PSID Sid
     )
 {
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlAddAccessAllowedAceEx(Acl, AceRevision, AceFlags, AccessMask, Sid);
+#else
     ULONG_PTR size;
     ULONG_PTR offset;
     ULONG length;
@@ -1352,6 +1630,7 @@ PhAddAccessAllowedAceEx(
     Acl->AceCount++;
 
     return STATUS_SUCCESS;
+#endif
 }
 
 FORCEINLINE
@@ -1414,16 +1693,22 @@ PhSetOwnerSecurityDescriptor(
 #else
     if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
         return STATUS_UNKNOWN_REVISION;
+
     if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
+    {
         return STATUS_INVALID_SECURITY_DESCR;
-
-    if (OwnerDefaulted)
-        SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_OWNER_DEFAULTED);
+    }
     else
-        ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_OWNER_DEFAULTED);
+    {
+        if (OwnerDefaulted)
+            SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_OWNER_DEFAULTED);
+        else
+            ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_OWNER_DEFAULTED);
 
-    ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Owner = Owner;
-    return STATUS_SUCCESS;
+        ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Owner = Owner;
+
+        return STATUS_SUCCESS;
+    }
 #endif
 }
 
@@ -1441,19 +1726,80 @@ PhSetGroupSecurityDescriptor(
 #else
     if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
         return STATUS_UNKNOWN_REVISION;
+
     if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
+    {
         return STATUS_INVALID_SECURITY_DESCR;
-
-    if (GroupDefaulted)
-        SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_GROUP_DEFAULTED);
+    }
     else
-        ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_GROUP_DEFAULTED);
+    {
+        if (GroupDefaulted)
+            SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_GROUP_DEFAULTED);
+        else
+            ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_GROUP_DEFAULTED);
 
-    ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Group = Group;
-    return STATUS_SUCCESS;
+        ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Group = Group;
+
+        return STATUS_SUCCESS;
+    }
 #endif
 }
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetControlSecurityDescriptor(
+    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ SECURITY_DESCRIPTOR_CONTROL ControlBitsOfInterest,
+    _In_ SECURITY_DESCRIPTOR_CONTROL ControlBitsToSet
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlSetControlSecurityDescriptor(SecurityDescriptor, ControlBitsOfInterest, ControlBitsToSet);
+#else
+    if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+
+    if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
+    {
+        return STATUS_INVALID_SECURITY_DESCR;
+    }
+    else
+    {
+        ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, ControlBitsOfInterest);
+        SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, ControlBitsToSet);
+        return STATUS_SUCCESS;
+    }
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetControlSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PSECURITY_DESCRIPTOR_CONTROL Control,
+    _Out_ PULONG Revision
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetControlSecurityDescriptor(SecurityDescriptor, Control, Revision);
+#else
+    if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+
+    if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
+    {
+        return STATUS_INVALID_SECURITY_DESCR;
+    }
+    else
+    {
+        *Control = ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control;
+        *Revision = ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision;
+        return STATUS_SUCCESS;
+    }
+#endif
+}
 FORCEINLINE
 NTSTATUS
 NTAPI

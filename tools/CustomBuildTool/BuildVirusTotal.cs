@@ -41,7 +41,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                     requestMessage.Headers.Add("x-apikey", BaseToken);
 
-                    var response = HttpClient.SendMessage(requestMessage, VirusTotalLargeUploadResponseContext.Default.VirusTotalLargeUploadResponse);
+                    var response = BuildHttpClient.SendMessage(requestMessage, VirusTotalLargeUploadResponseContext.Default.VirusTotalLargeUploadResponse);
 
                     upload_url = response.data;
                 }
@@ -73,14 +73,14 @@ namespace CustomBuildTool
                     requestMessage.Content = requestMethod;
 
                     {
-                        virusTotalAnalysisResponseContext = HttpClient.SendMessage(requestMessage, VirusTotalAnalysisResponseContext.Default.VirusTotalAnalysisResponse);
+                        virusTotalAnalysisResponseContext = BuildHttpClient.SendMessage(requestMessage, VirusTotalAnalysisResponseContext.Default.VirusTotalAnalysisResponse);
 
                         using (HttpRequestMessage requestAnalysisMessage = new HttpRequestMessage(HttpMethod.Get, virusTotalAnalysisResponseContext.data.links.self))
                         {
                             requestAnalysisMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                             requestAnalysisMessage.Headers.Add("x-apikey", BaseToken);
 
-                            return HttpClient.SendMessage(requestAnalysisMessage);
+                            return BuildHttpClient.SendMessage(requestAnalysisMessage);
                         }
                     }
                 }

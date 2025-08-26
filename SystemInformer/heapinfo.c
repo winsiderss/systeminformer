@@ -854,6 +854,11 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
@@ -1664,6 +1669,11 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
             PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
 
             REFLECT_MESSAGE_DLG(WindowHandle, context->ListViewHandle, WindowMessage, wParam, lParam);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
         }
         break;
     case WM_SIZE:

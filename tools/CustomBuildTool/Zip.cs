@@ -35,7 +35,7 @@ namespace CustomBuildTool
             return result;
         }
 
-        public static void CreateCompressedFolder(string sourceDirectoryName, string destinationArchiveFileName)
+        public static void CreateCompressedFolder(string sourceDirectoryName, string destinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
         {
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
@@ -66,6 +66,11 @@ namespace CustomBuildTool
                         name = name.Replace("Release64\\", "amd64\\", StringComparison.OrdinalIgnoreCase);
                     if (name.StartsWith("ReleaseARM64\\", StringComparison.OrdinalIgnoreCase))
                         name = name.Replace("ReleaseARM64\\", "arm64\\", StringComparison.OrdinalIgnoreCase);
+
+                    if (Flags.HasFlag(BuildFlags.BuildVerbose))
+                    {
+                        Program.PrintColorMessage($"Compressing {file} as {name}...", ConsoleColor.DarkGray);
+                    }
 
                     archive.CreateEntryFromFile(file, name, CompressionLevel.Optimal);
                 }
@@ -103,7 +108,7 @@ namespace CustomBuildTool
             //}
         }
 
-        public static void CreateCompressedSdkFromFolder(string sourceDirectoryName, string destinationArchiveFileName)
+        public static void CreateCompressedSdkFromFolder(string sourceDirectoryName, string destinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
         {
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
@@ -113,6 +118,11 @@ namespace CustomBuildTool
             {
                 for (int i = 0; i < filesToAdd.Length; i++)
                 {
+                    if (Flags.HasFlag(BuildFlags.BuildVerbose))
+                    {
+                        Program.PrintColorMessage($"Compressing {filesToAdd[i]} as {entryNames[i]}...", ConsoleColor.DarkGray);
+                    }
+
                     archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
                 }
             }
@@ -141,7 +151,7 @@ namespace CustomBuildTool
             //}
         }
 
-        public static void CreateCompressedPdbFromFolder(string sourceDirectoryName, string destinationArchiveFileName)
+        public static void CreateCompressedPdbFromFolder(string sourceDirectoryName, string destinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
         {
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
@@ -160,6 +170,11 @@ namespace CustomBuildTool
                         filesToAdd[i].Contains("obj\\", StringComparison.OrdinalIgnoreCase) ||
                         filesToAdd[i].Contains("tests\\", StringComparison.OrdinalIgnoreCase))
                         continue;
+
+                    if (Flags.HasFlag(BuildFlags.BuildVerbose))
+                    {
+                        Program.PrintColorMessage($"Compressing {filesToAdd[i]} as {entryNames[i]}...", ConsoleColor.DarkGray);
+                    }
 
                     archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
                 }

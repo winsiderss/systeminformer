@@ -466,7 +466,7 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
 
 #if defined(_PHLIB_)
 
-extern LRESULT PhTnSendMessage(
+EXTERN_C LRESULT PhTnSendMessage(
     _In_ HWND WindowHandle,
     _In_ ULONG WindowMessage,
     _In_ WPARAM wParam,

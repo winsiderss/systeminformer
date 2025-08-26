@@ -116,6 +116,7 @@ BOOLEAN NTAPI PhpSipCpuSMBIOSCallback(
     return FALSE;
 }
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipCpuSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -427,7 +428,7 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
 
             CpuPanel = PhCreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_CPUPANEL), hwndDlg, PhSipCpuPanelDialogProc, NULL);
             ShowWindow(CpuPanel, SW_SHOW);
-            PhAddLayoutItemEx(&CpuLayoutManager, CpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+            PhAddLayoutItemEx(&CpuLayoutManager, CpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             PhSipCreateCpuGraphs();
 
@@ -479,6 +480,7 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
                 CpuGraphState.TooltipIndex = ULONG_MAX;
             }
 
+            PhLayoutManagerUpdateDpi(&CpuLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&CpuLayoutManager);
             PhSipLayoutCpuGraphs();
         }
@@ -597,7 +599,7 @@ VOID PhSipCreateCpuGraphs(
     graphCreateParams.Callback = PhSipCpuGraphCallback;
     graphCreateParams.Context = UlongToPtr(ULONG_MAX);
 
-    CpuGraphHandle = CreateWindow(
+    CpuGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_CHILD | WS_BORDER,
@@ -620,7 +622,7 @@ VOID PhSipCreateCpuGraphs(
     {
         graphCreateParams.Context = UlongToPtr(i);
 
-        CpusGraphHandle[i] = CreateWindow(
+        CpusGraphHandle[i] = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_CHILD | WS_BORDER,
@@ -652,7 +654,9 @@ VOID PhSipLayoutCpuGraphs(
     rect = CpuGraphMargin;
     PhGetSizeDpiValue(&rect, CpuSection->Parameters->WindowDpi, TRUE);
 
-    GetClientRect(CpuDialog, &clientRect);
+    if (!PhGetClientRect(CpuDialog, &clientRect))
+        return;
+
     deferHandle = BeginDeferWindowPos(OneGraphPerCpu ? NumberOfProcessors : 1);
 
     if (!OneGraphPerCpu)

@@ -29,8 +29,6 @@ namespace CustomBuildTool
             //new BuildFile("\\systeminformer-build-preview-setup.exe", true),
             new BuildFile("\\systeminformer-build-canary-setup.exe", true),
             //new BuildFile("\\systeminformer-build-developer-setup.exe", true),
-            new BuildFile("\\systeminformer-build-src.zip", false),
-            new BuildFile("\\systeminformer-build-sdk.zip", false),
             new BuildFile("\\systeminformer-build-pdb.zip", true),
             //new BuildFile("\\systeminformer-build-checksums.txt", false),
         ];

@@ -505,7 +505,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 ULONG i;
                 LVCOLUMN lvColumn;
 
-                GetClientRect(WindowHandle, &clientRect);
+                if (!PhGetClientRect(WindowHandle, &clientRect))
+                    break;
+
                 availableWidth = clientRect.right;
                 i = 0;
                 lvColumn.mask = LVCF_WIDTH;

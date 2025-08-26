@@ -458,9 +458,9 @@ PHLIBAPI
 VOID
 NTAPI
 PhGetSizeDpiValue(
-    _Inout_ PRECT rect,
+    _Inout_ PRECT Rect,
     _In_ LONG DpiValue,
-    _In_ BOOLEAN isUnpack
+    _In_ BOOLEAN DpiScale
     );
 
 FORCEINLINE LONG_PTR PhGetClassStyle(
@@ -1232,37 +1232,40 @@ PhCreateWindowEx(
     _In_opt_ PVOID Parameter
     );
 
-FORCEINLINE
-HWND
-PhCreateWindow(
-    _In_ PCWSTR ClassName,
-    _In_opt_ PCWSTR WindowName,
-    _In_ ULONG Style,
-    _In_ LONG X,
-    _In_ LONG Y,
-    _In_ LONG Width,
-    _In_ LONG Height,
-    _In_opt_ HWND ParentWindow,
-    _In_opt_ HMENU MenuHandle,
-    _In_opt_ PVOID InstanceHandle,
-    _In_opt_ PVOID Parameter
-    )
-{
-    return PhCreateWindowEx(
-        ClassName,
-        WindowName,
-        Style,
-        0,
-        X,
-        Y,
-        Width,
-        Height,
-        ParentWindow,
-        MenuHandle,
-        InstanceHandle,
-        Parameter
-        );
-}
+#define PhCreateWindow(ClassName, WindowName, Style, X, Y, Width, Height, ParentWindow, MenuHandle, InstanceHandle, Parameter) \
+    PhCreateWindowEx(ClassName, WindowName, Style, 0, X, Y, Width, Height, ParentWindow, MenuHandle, InstanceHandle, Parameter)
+
+//FORCEINLINE
+//HWND
+//PhCreateWindow(
+//    _In_ PCWSTR ClassName,
+//    _In_opt_ PCWSTR WindowName,
+//    _In_ ULONG Style,
+//    _In_ LONG X,
+//    _In_ LONG Y,
+//    _In_ LONG Width,
+//    _In_ LONG Height,
+//    _In_opt_ HWND ParentWindow,
+//    _In_opt_ HMENU MenuHandle,
+//    _In_opt_ PVOID InstanceHandle,
+//    _In_opt_ PVOID Parameter
+//    )
+//{
+//    return PhCreateWindowEx(
+//        ClassName,
+//        WindowName,
+//        Style,
+//        0,
+//        X,
+//        Y,
+//        Width,
+//        Height,
+//        ParentWindow,
+//        MenuHandle,
+//        InstanceHandle,
+//        Parameter
+//        );
+//}
 
 PHLIBAPI
 INT_PTR
@@ -1325,11 +1328,11 @@ typedef struct _PH_LAYOUT_MANAGER
 
     ULONG LayoutNumber;
 
-    LONG dpiValue;
+    LONG WindowDpi;
 } PH_LAYOUT_MANAGER, *PPH_LAYOUT_MANAGER;
 
 PHLIBAPI
-VOID
+BOOLEAN
 NTAPI
 PhInitializeLayoutManager(
     _Out_ PPH_LAYOUT_MANAGER Manager,
@@ -1361,7 +1364,7 @@ PhAddLayoutItemEx(
     _In_ HWND Handle,
     _In_opt_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor,
-    _In_ RECT Margin
+    _In_ PRECT Margin
     );
 
 PHLIBAPI
@@ -1369,6 +1372,14 @@ VOID
 NTAPI
 PhLayoutManagerLayout(
     _Inout_ PPH_LAYOUT_MANAGER Manager
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhLayoutManagerUpdateDpi(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ LONG WindowDpi
     );
 
 #define PH_WINDOW_CONTEXT_DEFAULT 0xFFFF
@@ -2247,7 +2258,7 @@ VOID
 NTAPI
 PhCustomDrawTreeTimeLine(
     _In_ HDC Hdc,
-    _In_ RECT CellRect,
+    _In_ PRECT CellRect,
     _In_ ULONG Flags,
     _In_opt_ PLARGE_INTEGER StartTime,
     _In_ PLARGE_INTEGER CreateTime
@@ -2273,7 +2284,7 @@ HBITMAP PhCreateDIBSection(
     _In_ PH_BUFFERFORMAT Format,
     _In_ LONG Width,
     _In_ LONG Height,
-    _Outptr_opt_ _When_(return != NULL, _Notnull_) PVOID* Bits
+    _Out_opt_ PVOID* Bits
     );
 
 typedef enum _PH_IMAGE_FORMAT_TYPE

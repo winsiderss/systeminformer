@@ -37,7 +37,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.TryGetValue("-azsign", out string Path))
             {
-                if (!EntraKeyVault.SignFiles(Path))
+                if (!BuildAzure.SignFiles(Path))
                     Environment.Exit(1);
             }
             else if (ProgramArgs.ContainsKey("-cleansdk"))
@@ -69,7 +69,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.TryGetValue("-kphsign", out string keyName))
             {
-                if (!Verify.CreateSigFile("kph", keyName, Build.BuildCanary))
+                if (!BuildVerify.CreateSigFile("kph", keyName, Build.BuildCanary))
                 {
                     Environment.Exit(1);
                 }
@@ -78,7 +78,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-decrypt"))
             {
-                if (!Verify.DecryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
+                if (!BuildVerify.DecryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
                 {
                     Environment.Exit(1);
                 }
@@ -87,7 +87,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-encrypt"))
             {
-                if (!Verify.EncryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
+                if (!BuildVerify.EncryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
                 {
                     Environment.Exit(1);
                 }
@@ -102,7 +102,14 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-reflowvalid"))
             {
-                if (!Build.BuildValidateExportDefinitions(BuildFlags.Release))
+                BuildFlags flags = BuildFlags.Release;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
+                if (!Build.BuildValidateExportDefinitions(flags))
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
@@ -121,20 +128,27 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-bin"))
             {
+                BuildFlags flags = BuildFlags.Release;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
                 Build.SetupBuildEnvironment(false);
 
-                if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
+                if (!Build.BuildSolution("SystemInformer.sln", flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
+                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
                     Environment.Exit(1);
 
-                //if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
+                //if (!Build.CopyDebugEngineFiles(flags))
                 //    Environment.Exit(1);
-                if (!Build.CopyTextFiles(true, BuildFlags.Release))
+                if (!Build.CopyTextFiles(true, flags))
                     Environment.Exit(1);
-                if (!Build.BuildBinZip(BuildFlags.Release))
+                if (!Build.BuildBinZip(flags))
                     Environment.Exit(1);
-                if (!Build.CopyTextFiles(false, BuildFlags.Release))
+                if (!Build.CopyTextFiles(false, flags))
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
@@ -143,7 +157,11 @@ namespace CustomBuildTool
             {
                 BuildFlags flags = BuildFlags.Release;
 
-                Build.WriteTimeStampFile();
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
@@ -158,35 +176,49 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-pipeline-package"))
             {
+                BuildFlags flags = BuildFlags.Release;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
                 Build.SetupBuildEnvironment(true);
 
                 if (!Build.ResignFiles())
                     Environment.Exit(1);
-                //if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
+                //if (!Build.CopyDebugEngineFiles(flags))
                 //    Environment.Exit(1);
-                if (!Build.CopyTextFiles(true, BuildFlags.Release))
+                if (!Build.CopyTextFiles(true, flags))
                     Environment.Exit(1);
-                if (!Build.BuildBinZip(BuildFlags.Release))
+                if (!Build.BuildBinZip(flags))
                     Environment.Exit(1);
 
                 foreach (var (channel, _) in BuildConfig.Build_Channels)
                 {
-                    if (!Build.BuildSetupExe(channel))
+                    if (!Build.BuildSetupExe(channel, flags))
                         Environment.Exit(1);
                 }
 
-                if (!Build.CopyTextFiles(false, BuildFlags.Release))
+                if (!Build.CopyTextFiles(false, flags))
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-pipeline-deploy"))
             {
+                BuildFlags flags = BuildFlags.Release;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildPdbZip(false))
+                if (!Build.BuildPdbZip(false, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSymStoreZip())
+                if (!Build.BuildSymStoreZip(flags))
                     Environment.Exit(1);
                 //if (!Build.BuildSdkZip())
                 //    Environment.Exit(1);
@@ -203,7 +235,11 @@ namespace CustomBuildTool
             {
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildMsix;
 
-                Build.WriteTimeStampFile();
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
@@ -223,9 +259,9 @@ namespace CustomBuildTool
                 if (!Build.CopyTextFiles(false, flags))
                     Environment.Exit(1);
 
-                if (!Build.BuildPdbZip(true))
+                if (!Build.BuildPdbZip(true, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSymStoreZip())
+                if (!Build.BuildSymStoreZip(flags))
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
@@ -287,48 +323,62 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-debug"))
             {
+                BuildFlags flags = BuildFlags.Debug;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Debug))
+                if (!Build.BuildSolution("SystemInformer.sln", flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Debug))
+                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
                     Environment.Exit(1);
 
-                //if (!Build.CopyDebugEngineFiles(BuildFlags.Debug))
+                //if (!Build.CopyDebugEngineFiles(flags))
                 //    Environment.Exit(1);
 
                 Build.ShowBuildStats();
             }
             else
             {
+                BuildFlags flags = BuildFlags.Release;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
+                if (!Build.BuildSolution("SystemInformer.sln", flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
+                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
                     Environment.Exit(1);
 
-                //if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
+                //if (!Build.CopyDebugEngineFiles(flags))
                 //    Environment.Exit(1);
-                if (!Build.CopyWow64Files(BuildFlags.Release))
+                if (!Build.CopyWow64Files(flags))
                     Environment.Exit(1);
-                if (!Build.CopyTextFiles(true, BuildFlags.Release))
+                if (!Build.CopyTextFiles(true, flags))
                     Environment.Exit(1);
-                if (!Build.BuildBinZip(BuildFlags.Release))
+                if (!Build.BuildBinZip(flags))
                     Environment.Exit(1);
 
                 foreach (var (channel, _) in BuildConfig.Build_Channels)
                 {
-                    if (!Build.BuildSetupExe(channel))
+                    if (!Build.BuildSetupExe(channel, flags))
                         Environment.Exit(1);
                 }
 
-                if (!Build.CopyTextFiles(false, BuildFlags.Release))
+                if (!Build.CopyTextFiles(false, flags))
                     Environment.Exit(1);
 
-                if (!Build.BuildPdbZip(false))
+                if (!Build.BuildPdbZip(false, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSymStoreZip())
+                if (!Build.BuildSymStoreZip(flags))
                     Environment.Exit(1);
                 if (!Build.BuildChecksumsFile())
                     Environment.Exit(1);
@@ -473,55 +523,4 @@ namespace CustomBuildTool
             };
         }
     }
-    
-    //using var tee = new CWriter("output.txt");
-    //Console.SetOut(tee);
-
-    public class CWriter : TextWriter
-    {
-        private readonly TextWriter consoleWriter;
-        private readonly StreamWriter fileWriter;
-
-        public CWriter(string filePath)
-        {
-            consoleWriter = Console.Out;
-            fileWriter = new StreamWriter(filePath, append: false, Encoding.UTF8)
-            {
-                AutoFlush = true
-            };
-        }
-
-        public override Encoding Encoding => Encoding.UTF8;
-
-        public override void Write(char value)
-        {
-            consoleWriter.Write(value);
-            fileWriter.Write(value);
-            Debug.Write(value);
-        }
-
-        public override void Write(string value)
-        {
-            consoleWriter.Write(value);
-            fileWriter.Write(value);
-            Debug.Write(value);
-        }
-
-        public override void WriteLine(string value)
-        {
-            consoleWriter.WriteLine(value);
-            fileWriter.WriteLine(value);
-            Debug.WriteLine(value);
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                fileWriter?.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-    }
-
 }
