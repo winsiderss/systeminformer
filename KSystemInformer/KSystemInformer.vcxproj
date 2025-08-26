@@ -37,7 +37,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Link>
-      <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;umaccess.lib%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SystemInformerRoot)kphlib\include\</AdditionalIncludeDirectories>
@@ -81,6 +81,7 @@
     <ClCompile Include="session_token.c" />
     <ClCompile Include="system.c" />
     <ClCompile Include="thread.c" />
+    <ClCompile Include="umaccess.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="verify.c" />
     <ClCompile Include="vm.c" />
