@@ -296,7 +296,7 @@ NTSTATUS KphpVerifySessionToken(
 
         __try
         {
-            RtlCopyFromUser(signature, Signature, SignatureLength);
+            CopyFromUser(signature, Signature, SignatureLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {

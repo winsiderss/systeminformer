@@ -438,8 +438,8 @@ NTSTATUS KphActivateDynData(
 
         __try
         {
-            RtlCopyFromUser(dynData, DynData, DynDataLength);
-            RtlCopyFromUser(signature, Signature, SignatureLength);
+            CopyFromUser(dynData, DynData, DynDataLength);
+            CopyFromUser(signature, Signature, SignatureLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {

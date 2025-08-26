@@ -46,21 +46,13 @@ NTSTATUS KphOpenThread(
 
     thread = NULL;
 
-    if (AccessMode != KernelMode)
+    status = KphCopyFromMode(&clientId,
+                             ClientId,
+                             sizeof(CLIENT_ID),
+                             AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        __try
-        {
-            ProbeOutputType(ThreadHandle, HANDLE);
-            RtlCopyFromUser(&clientId, ClientId, sizeof(CLIENT_ID));
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
-        }
-    }
-    else
-    {
-        clientId = *ClientId;
+        goto Exit;
     }
 
     //
@@ -167,20 +159,6 @@ NTSTATUS KphOpenThreadProcess(
     HANDLE processHandle;
 
     KPH_PAGED_CODE_PASSIVE();
-
-    thread = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputType(ProcessHandle, HANDLE);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
-        }
-    }
 
     status = ObReferenceObjectByHandle(ThreadHandle,
                                        0,
@@ -294,30 +272,32 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
+    status = KphWriteULongToMode(CapturedFrames, 0, AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        __try
+        goto Exit;
+    }
+
+    if (BackTraceHash)
+    {
+        status = KphWriteULongToMode(BackTraceHash, 0, AccessMode);
+        if (!NT_SUCCESS(status))
         {
-            ProbeOutputBytes(BackTrace, FramesToCapture * sizeof(PVOID));
-
-            RtlWriteULongToUser(CapturedFrames, 0);
-
-            if (BackTraceHash)
-            {
-                RtlWriteULongToUser(BackTraceHash, 0);
-            }
-
-            if (Timeout)
-            {
-                RtlCopyFromUser(&timeout, Timeout, sizeof(LARGE_INTEGER));
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
             goto Exit;
         }
+    }
 
+    if (Timeout)
+    {
+        status = KphReadLargeIntegerFromMode(&timeout, Timeout, AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+    }
+
+    if (AccessMode != KernelMode)
+    {
         backTrace = KphAllocatePaged(FramesToCapture * sizeof(PVOID),
                                      KPH_TAG_THREAD_BACK_TRACE);
         if (!backTrace)
@@ -332,18 +312,6 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
     }
     else
     {
-        *CapturedFrames = 0;
-
-        if (BackTraceHash)
-        {
-            *BackTraceHash = 0;
-        }
-
-        if (Timeout)
-        {
-            timeout.QuadPart = Timeout->QuadPart;
-        }
-
         backTrace = BackTrace;
     }
 
@@ -386,13 +354,13 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
     {
         __try
         {
-            RtlCopyToUser(BackTrace, backTrace, capturedFrames * sizeof(PVOID));
+            CopyToUser(BackTrace, backTrace, capturedFrames * sizeof(PVOID));
 
-            RtlWriteULongToUser(CapturedFrames, capturedFrames);
+            WriteULongToUser(CapturedFrames, capturedFrames);
 
             if (BackTraceHash)
             {
-                RtlWriteULongToUser(BackTraceHash, backTraceHash);
+                WriteULongToUser(BackTraceHash, backTraceHash);
             }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -482,9 +450,9 @@ NTSTATUS KphSetInformationThread(
 
         __try
         {
-            RtlCopyFromUser(threadInformation,
-                            ThreadInformation,
-                            ThreadInformationLength);
+            CopyFromUser(threadInformation,
+                         ThreadInformation,
+                         ThreadInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -676,30 +644,8 @@ NTSTATUS KphQueryInformationThread(
     KPH_PAGED_CODE_PASSIVE();
 
     dyn = NULL;
-    threadObject = NULL;
     thread = NULL;
     returnLength = 0;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            if (ThreadInformation)
-            {
-                ProbeOutputBytes(ThreadInformation, ThreadInformationLength);
-            }
-
-            if (ReturnLength)
-            {
-                ProbeOutputType(ReturnLength, ULONG);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(ThreadHandle,
                                        0,

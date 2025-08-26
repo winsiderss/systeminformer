@@ -595,31 +595,9 @@ NTSTATUS KphAlpcQueryInformation(
     KPH_PAGED_CODE_PASSIVE();
 
     dyn = NULL;
-    process = NULL;
     port = NULL;
     returnLength = 0;
     buffer = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            if (AlpcInformation)
-            {
-                ProbeOutputBytes(AlpcInformation, AlpcInformationLength);
-            }
-
-            if (ReturnLength)
-            {
-                ProbeOutputType(ReturnLength, ULONG);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(ProcessHandle,
                                        0,

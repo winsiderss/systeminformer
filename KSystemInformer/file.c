@@ -117,20 +117,6 @@ NTSTATUS KphQueryInformationFile(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputBytes(FileInformation, FileInformationLength);
-            ProbeOutputType(IoStatusBlock, IO_STATUS_BLOCK);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
-
     status = ObReferenceObjectByHandle(ProcessHandle,
                                        0,
                                        *PsProcessType,
@@ -250,20 +236,6 @@ NTSTATUS KphQueryVolumeInformationFile(
     {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
-    }
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputBytes(FsInformation, FsInformationLength);
-            ProbeOutputType(IoStatusBlock, IO_STATUS_BLOCK);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
     }
 
     status = ObReferenceObjectByHandle(ProcessHandle,

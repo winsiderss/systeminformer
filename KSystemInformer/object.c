@@ -569,24 +569,6 @@ NTSTATUS KphEnumerateProcessHandles(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputBytes(Buffer, BufferLength);
-
-            if (ReturnLength)
-            {
-                ProbeOutputType(ReturnLength, ULONG);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
-
     dyn = KphReferenceDynData();
     if (!dyn)
     {
@@ -1057,32 +1039,10 @@ NTSTATUS KphQueryInformationObject(
     KPH_PAGED_CODE_PASSIVE();
 
     dyn = NULL;
-    process = NULL;
     returnLength = 0;
     object = NULL;
     buffer = NULL;
     processContext = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            if (ObjectInformation)
-            {
-                ProbeOutputBytes(ObjectInformation, ObjectInformationLength);
-            }
-
-            if (ReturnLength)
-            {
-                ProbeOutputType(ReturnLength, ULONG);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(ProcessHandle,
                                        0,
@@ -2107,9 +2067,9 @@ NTSTATUS KphSetInformationObject(
 
         __try
         {
-            RtlCopyFromUser(objectInformation,
-                            ObjectInformation,
-                            ObjectInformationLength);
+            CopyFromUser(objectInformation,
+                         ObjectInformation,
+                         ObjectInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -2216,19 +2176,6 @@ NTSTATUS KphOpenNamedObject(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputType(ObjectHandle, HANDLE);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
-
     status = ObOpenObjectByName(ObjectAttributes,
                                 ObjectType,
                                 AccessMode,
@@ -2295,19 +2242,6 @@ NTSTATUS KphDuplicateObject(
     {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
-    }
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputType(TargetHandle, HANDLE);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
     }
 
     status = ObReferenceObjectByHandle(ProcessHandle,

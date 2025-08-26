@@ -46,21 +46,13 @@ NTSTATUS KphOpenProcess(
 
     process = NULL;
 
-    if (AccessMode != KernelMode)
+    status = KphCopyFromMode(&clientId,
+                             ClientId,
+                             sizeof(CLIENT_ID),
+                             AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        __try
-        {
-            ProbeOutputType(ProcessHandle, HANDLE);
-            RtlCopyFromUser(&clientId, ClientId, sizeof(CLIENT_ID));
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
-        }
-    }
-    else
-    {
-        clientId = *ClientId;
+        goto Exit;
     }
 
     //
@@ -175,20 +167,7 @@ NTSTATUS KphOpenProcessToken(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    process = NULL;
     primaryToken = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputType(TokenHandle, HANDLE);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
-        }
-    }
 
     status = ObReferenceObjectByHandle(ProcessHandle,
                                        0,
@@ -297,20 +276,6 @@ NTSTATUS KphOpenProcessJob(
     HANDLE jobHandle;
 
     KPH_PAGED_CODE_PASSIVE();
-
-    process = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputType(JobHandle, HANDLE);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
-        }
-    }
 
     status = ObReferenceObjectByHandle(ProcessHandle,
                                        0,
@@ -527,30 +492,8 @@ NTSTATUS KphQueryInformationProcess(
     KPH_PAGED_CODE_PASSIVE();
 
     dyn = NULL;
-    processObject = NULL;
     process = NULL;
     returnLength = 0;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            if (ProcessInformation)
-            {
-                ProbeOutputBytes(ProcessInformation, ProcessInformationLength);
-            }
-
-            if (ReturnLength)
-            {
-                ProbeOutputType(ReturnLength, ULONG);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(ProcessHandle,
                                        0,
@@ -939,9 +882,9 @@ NTSTATUS KphSetInformationProcess(
 
         __try
         {
-            RtlCopyFromUser(processInformation,
-                            ProcessInformation,
-                            ProcessInformationLength);
+            CopyFromUser(processInformation,
+                         ProcessInformation,
+                         ProcessInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
