@@ -223,28 +223,10 @@ NTSTATUS KphReadVirtualMemory(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
+    if (Add2Ptr(BaseAddress, BufferSize) < BaseAddress)
     {
-        if (Add2Ptr(BaseAddress, BufferSize) < BaseAddress)
-        {
-            status = STATUS_ACCESS_VIOLATION;
-            goto Exit;
-        }
-
-        __try
-        {
-            ProbeOutputBytes(Buffer, BufferSize);
-
-            if (NumberOfBytesRead)
-            {
-                ProbeOutputType(NumberOfBytesRead, SIZE_T);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
+        status = STATUS_ACCESS_VIOLATION;
+        goto Exit;
     }
 
     if (!BufferSize)
@@ -315,7 +297,7 @@ NTSTATUS KphReadVirtualMemory(
         {
             __try
             {
-                RtlCopyToUser(Buffer, buffer, numberOfBytesRead);
+                CopyToUser(Buffer, buffer, numberOfBytesRead);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -379,21 +361,7 @@ Exit:
 
     if (NumberOfBytesRead)
     {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                RtlWriteSizeTToUser(NumberOfBytesRead, numberOfBytesRead);
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                NOTHING;
-            }
-        }
-        else
-        {
-            *NumberOfBytesRead = numberOfBytesRead;
-        }
+        KphWriteSizeTToMode(NumberOfBytesRead, numberOfBytesRead, AccessMode);
     }
 
     return status;
@@ -430,30 +398,8 @@ NTSTATUS KphQuerySection(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    sectionObject = NULL;
     returnLength = 0;
     buffer = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            if (SectionInformation)
-            {
-                ProbeOutputBytes(SectionInformation, SectionInformationLength);
-            }
-
-            if (ReturnLength)
-            {
-                ProbeOutputType(ReturnLength, ULONG);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(SectionHandle,
                                        0,
@@ -579,27 +525,6 @@ NTSTATUS KphQueryVirtualMemory(
     returnLength = 0;
     thread = NULL;
     mappedFileName = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            if (MemoryInformation)
-            {
-                ProbeOutputBytes(MemoryInformation, MemoryInformationLength);
-            }
-
-            if (ReturnLength)
-            {
-                ProbeOutputType(ReturnLength, ULONG);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     switch (MemoryInformationClass)
     {
@@ -823,29 +748,19 @@ NTSTATUS KphQueryVirtualMemory(
 
             memoryInformation = MemoryInformation;
 
-            if (AccessMode != KernelMode)
+            status = KphCopyToMode(&memoryInformation->SectionFileSize,
+                                   &tls.SectionFileSize,
+                                   sizeof(LARGE_INTEGER),
+                                   AccessMode);
+            if (!NT_SUCCESS(status))
             {
-                __try
-                {
-                    RtlWriteHandleToUser(&memoryInformation->SectionHandle,
-                                         tls.SectionHandle);
-                    RtlCopyToUser(&memoryInformation->SectionFileSize,
-                                  &tls.SectionFileSize,
-                                  sizeof(LARGE_INTEGER));
-                    returnLength = sizeof(KPH_MEMORY_DATA_SECTION);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    ObCloseHandle(tls.SectionHandle, AccessMode);
-                    status = GetExceptionCode();
-                }
+                ObCloseHandle(tls.SectionHandle, AccessMode);
+                goto Exit;
             }
-            else
-            {
-                memoryInformation->SectionHandle = tls.SectionHandle;
-                memoryInformation->SectionFileSize = tls.SectionFileSize;
-                returnLength = sizeof(KPH_MEMORY_DATA_SECTION);
-            }
+
+            status = KphWriteHandleToMode(&memoryInformation->SectionHandle,
+                                          tls.SectionHandle,
+                                          AccessMode);
 
             break;
         }
