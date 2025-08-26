@@ -54,11 +54,7 @@ NTSTATUS KphOpenDevice(
 
         __try
         {
-            ProbeOutputType(DeviceHandle, HANDLE);
-
-            RtlCopyFromUser(&capturedAttributes,
-                            ObjectAttributes,
-                            sizeof(OBJECT_ATTRIBUTES));
+            ReadStructFromUser(&capturedAttributes, ObjectAttributes);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -198,20 +194,6 @@ NTSTATUS KphOpenDeviceDriver(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    deviceObject = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputType(DriverHandle, HANDLE);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(DeviceHandle,
                                        DesiredAccess,
@@ -286,21 +268,7 @@ NTSTATUS KphOpenDeviceBaseDevice(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    deviceObject = NULL;
     baseDeviceObject = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputType(BaseDeviceHandle, HANDLE);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(DeviceHandle,
                                        DesiredAccess,

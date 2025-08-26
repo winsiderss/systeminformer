@@ -306,28 +306,19 @@ NTSTATUS KphGetInformerProcessFilter(
     NTSTATUS status;
     PEPROCESS processObject;
     PKPH_PROCESS_CONTEXT processContext;
+    KPH_INFORMER_SETTINGS filter;
 
     KPH_PAGED_CODE_PASSIVE();
 
     processObject = NULL;
     processContext = NULL;
 
-    if (AccessMode != KernelMode)
+    status = KphZeroModeMemory(Filter,
+                               sizeof(KPH_INFORMER_SETTINGS),
+                               AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        __try
-        {
-            ProbeOutputType(Filter, KPH_INFORMER_SETTINGS);
-            RtlZeroVolatileMemory(Filter, sizeof(KPH_INFORMER_SETTINGS));
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
-    else
-    {
-        RtlZeroMemory(Filter, sizeof(KPH_INFORMER_SETTINGS));
+        goto Exit;
     }
 
     status = ObReferenceObjectByHandle(ProcessHandle,
@@ -358,24 +349,12 @@ NTSTATUS KphGetInformerProcessFilter(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            KphGetInformerSettings(Filter, &processContext->InformerFilter);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
-    else
-    {
-        KphGetInformerSettings(Filter, &processContext->InformerFilter);
-    }
+    KphGetInformerSettings(&filter, &processContext->InformerFilter);
 
-    status = STATUS_SUCCESS;
+    status = KphCopyToMode(Filter,
+                           &filter,
+                           sizeof(KPH_INFORMER_SETTINGS),
+                           AccessMode);
 
 Exit:
 
@@ -464,21 +443,13 @@ NTSTATUS KphSetInformerProcessFilter(
     processObject = NULL;
     processContext = NULL;
 
-    if (AccessMode != KernelMode)
+    status = KphCopyFromMode(&filter,
+                             Filter,
+                             sizeof(KPH_INFORMER_SETTINGS),
+                             AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        __try
-        {
-            RtlCopyFromUser(&filter, Filter, sizeof(KPH_INFORMER_SETTINGS));
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
-    else
-    {
-        filter = *Filter;
+        goto Exit;
     }
 
     if (ProcessHandle)
