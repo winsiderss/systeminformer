@@ -256,7 +256,8 @@ VOID EtwDiskLayoutGraphs(
     Context->DiskWriteGraphState.Valid = FALSE;
     Context->DiskWriteGraphState.TooltipIndex = ULONG_MAX;
 
-    GetClientRect(Context->WindowHandle, &clientRect);
+    if (!PhGetClientRect(Context->WindowHandle, &clientRect))
+        return;
 
     // Limit the rectangle bottom to the top of the panel.
     GetWindowRect(Context->PanelHandle, &panelRect);
@@ -322,7 +323,8 @@ VOID EtwNetworkLayoutGraphs(
     Context->NetworkReceiveGraphState.Valid = FALSE;
     Context->NetworkReceiveGraphState.TooltipIndex = ULONG_MAX;
 
-    GetClientRect(Context->WindowHandle, &clientRect);
+    if (!PhGetClientRect(Context->WindowHandle, &clientRect))
+        return;
 
     // Limit the rectangle bottom to the top of the panel.
     GetWindowRect(Context->PanelHandle, &panelRect);

@@ -471,6 +471,11 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             REFLECT_MESSAGE_DLG(hwndDlg, PhZombieProcessesListViewHandle, uMsg, wParam, lParam);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdateDpi(&WindowLayoutManager, LOWORD(wParam));
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&WindowLayoutManager);

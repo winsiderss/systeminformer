@@ -11,7 +11,7 @@
 
 namespace CustomBuildTool
 {
-    public static class EntraKeyVault
+    public static class BuildAzure
     {
         //private static string ENTRA_TIMESTAMP_ALGORITHM;
         private static readonly string ENTRA_TIMESTAMP_SERVER;
@@ -21,7 +21,7 @@ namespace CustomBuildTool
         private static readonly string ENTRA_CLIENT_GUID;
         private static readonly string ENTRA_CLIENT_SECRET;
 
-        static EntraKeyVault()
+        static BuildAzure()
         {
             //ENTRA_TIMESTAMP_ALGORITHM = Win32.GetEnvironmentVariable("BUILD_TIMESTAMP_ALGORITHM");
             ENTRA_TIMESTAMP_SERVER = Win32.GetEnvironmentVariable("BUILD_TIMESTAMP_SERVER");
@@ -114,20 +114,20 @@ namespace CustomBuildTool
         {
             try
             {
-                var azureCertificateTimeStamp = new TimeStampConfiguration(TimeStampServer, TimeStampType.RFC3161);
-                var azureCertificateCredential = new Azure.Identity.ClientSecretCredential(TenantGuid, ClientGuid, ClientSecret);
-                var azureCertificateClient = new Azure.Security.KeyVault.Certificates.CertificateClient(new Uri(AzureVaultName), azureCertificateCredential);
-                var azureCertificateBuffer = azureCertificateClient.GetCertificateAsync(AzureCertName).GetAwaiter().GetResult();
+                var certificateTimeStampServer = new TimeStampConfiguration(TimeStampServer, TimeStampType.RFC3161);
+                var certificateCredential = new Azure.Identity.ClientSecretCredential(TenantGuid, ClientGuid, ClientSecret);
+                var certificateClient = new Azure.Security.KeyVault.Certificates.CertificateClient(new Uri(AzureVaultName), certificateCredential);
+                var certificateBuffer = certificateClient.GetCertificateAsync(AzureCertName).GetAwaiter().GetResult();
 
-                if (!azureCertificateBuffer.HasValue)
+                if (!certificateBuffer.HasValue)
                 {
                     Program.PrintColorMessage($"Azure Certificate Failed.", ConsoleColor.Red);
                     return false;
                 }
 
-                using (var azureCertificatePublic = X509CertificateLoader.LoadCertificate(azureCertificateBuffer.Value.Cer))
-                using (var azureCertificateRsa = RSAFactory.Create(azureCertificateCredential, azureCertificateBuffer.Value.KeyId, azureCertificatePublic))
-                using (var authenticodeKeyVaultSigner = new AuthenticodeKeyVaultSigner(azureCertificateRsa, azureCertificatePublic, HashAlgorithmName.SHA256, azureCertificateTimeStamp, null))
+                using (var azureCertificatePublic = X509CertificateLoader.LoadCertificate(certificateBuffer.Value.Cer))
+                using (var azureCertificateRsa = RSAFactory.Create(certificateCredential, certificateBuffer.Value.KeyId, azureCertificatePublic))
+                using (var authenticodeKeyVaultSigner = new AuthenticodeKeyVaultSigner(azureCertificateRsa, azureCertificatePublic, HashAlgorithmName.SHA256, certificateTimeStampServer, null))
                 {
                     if (Directory.Exists(Path))
                     {
@@ -185,6 +185,58 @@ namespace CustomBuildTool
             }
 
             return true;
+        }
+
+        public static string GetAzureADTokenAsync(string TenantId, string ClientId, string ClientSecret)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token")
+            {
+                Content = new FormUrlEncodedContent(
+                [
+                    new KeyValuePair<string, string>("client_id", ClientId),
+                    new KeyValuePair<string, string>("client_secret", ClientSecret),
+                    new KeyValuePair<string, string>("scope", "https://vault.azure.net/.default"),
+                    new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                ])
+            };
+
+            var response = BuildHttpClient.SendMessage(request);
+            using var doc = JsonDocument.Parse(response);
+            return doc.RootElement.GetProperty("access_token").GetString();
+        }
+
+        public static X509Certificate2 DownloadCertificateAsync(string BaseUrl, string Name, string Token)
+        {
+            // Get certificate metadata (public key only)
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/certificates/{Name}?api-version=7.4")
+            {
+                Headers = { 
+                    Accept = { new MediaTypeWithQualityHeaderValue("application/json") } ,
+                    Authorization = new AuthenticationHeaderValue("Bearer", Token)
+                },
+            };
+
+            var response = BuildHttpClient.SendMessage(request);
+            using var doc = JsonDocument.Parse(response);
+            string base64 = doc.RootElement.GetProperty("cer").GetString(); // base64-encoded DER certificate
+            return X509CertificateLoader.LoadCertificate(Convert.FromBase64String(base64));
+        }
+
+        public static X509Certificate2 DownloadCertificateSecretAsync(string BaseUrl, string Name, string Token)
+        {
+            // Get certificate with private key
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/secrets/{Name}?api-version=7.4")
+            {
+                Headers = {
+                    Accept = { new MediaTypeWithQualityHeaderValue("application/json") } ,
+                    Authorization = new AuthenticationHeaderValue("Bearer", Token)
+                },
+            };
+
+            var response = BuildHttpClient.SendMessage(request);
+            using var doc = JsonDocument.Parse(response);
+            string base64 = doc.RootElement.GetProperty("value").GetString(); // base64-encoded PFX (PKCS#12)
+            return X509CertificateLoader.LoadCertificate(Convert.FromBase64String(base64));
         }
     }
 }

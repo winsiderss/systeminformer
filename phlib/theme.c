@@ -583,8 +583,10 @@ VOID PhWindowThemeMainMenuBorder(
         RECT windowRect;
         HDC hdc;
 
-        GetClientRect(WindowHandle, &clientRect);
-        GetWindowRect(WindowHandle, &windowRect);
+        if (!PhGetClientRect(WindowHandle, &clientRect))
+            return;
+        if (!PhGetWindowRect(WindowHandle, &windowRect))
+            return;
 
         MapWindowPoints(WindowHandle, NULL, (PPOINT)&clientRect, 2);
         PhOffsetRect(&clientRect, -windowRect.left, -windowRect.top);
@@ -2463,7 +2465,8 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
             HDC hdc = (HDC)wParam;
             RECT clientRect;
 
-            GetClientRect(WindowHandle, &clientRect);
+            if (!PhGetClientRect(WindowHandle, &clientRect))
+                break;
 
             ThemeWindowRenderGroupBoxControl(WindowHandle, hdc, &clientRect, oldWndProc);
         }
@@ -2826,7 +2829,8 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
                 HBITMAP bufferBitmap;
                 HBITMAP oldBufferBitmap;
 
-                GetClientRect(WindowHandle, &clientRect);
+                if (!PhGetClientRect(WindowHandle, &clientRect))
+                    break;
 
                 hdc = GetDC(WindowHandle);
                 bufferDc = CreateCompatibleDC(hdc);
@@ -3240,7 +3244,8 @@ LRESULT CALLBACK PhpThemeWindowComboBoxControlSubclassProc(
                 HBITMAP bufferBitmap;
                 HBITMAP oldBufferBitmap;
 
-                GetClientRect(WindowHandle, &clientRect);
+                if (!PhGetClientRect(WindowHandle, &clientRect))
+                    break;
 
                 hdc = GetDC(WindowHandle);
                 bufferDc = CreateCompatibleDC(hdc);

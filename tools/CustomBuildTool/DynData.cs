@@ -347,7 +347,7 @@ typedef struct _KPH_DYN_CONFIG
                 File.Delete(configSigFileName);
                 Utils.WriteAllBytes(configFile, config);
 
-                bool configFileSig = Verify.CreateSigFile("kph", configFile, StrictChecks);
+                bool configFileSig = BuildVerify.CreateSigFile("kph", configFile, StrictChecks);
 
                 Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
 
@@ -357,7 +357,7 @@ typedef struct _KPH_DYN_CONFIG
             {
                 Utils.WriteAllBytes(configFile, config);
 
-                bool configFileSig = Verify.CreateSigFile("kph", configFile, StrictChecks);
+                bool configFileSig = BuildVerify.CreateSigFile("kph", configFile, StrictChecks);
 
                 Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
 
@@ -577,6 +577,20 @@ typedef struct _KPH_DYN_CONFIG
 
                 return sb.ToString();
             }
+        }
+
+        public static bool IsValidSessionKey()
+        {
+            try
+            {
+                BuildVerify.PrintCngPublicKeyInfo(SessionTokenPublicKey, CngKeyBlobFormat.GenericPublicBlob);
+            }
+            catch (Exception) 
+            {
+                return false; 
+            }
+
+            return true;
         }
     }
 }

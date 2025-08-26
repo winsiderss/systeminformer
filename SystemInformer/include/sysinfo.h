@@ -162,6 +162,7 @@ VOID PhSiNotifyChangeSettings(
     );
 
 // begin_phapppub
+_Function_class_(PH_SYSINFO_COLOR_SETUP_FUNCTION)
 PHAPPAPI
 VOID
 NTAPI

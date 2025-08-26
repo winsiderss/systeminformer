@@ -291,7 +291,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhHttpDestroy(
-    _In_ _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
+    _In_ _Maybenull_ _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
     );
 
 typedef enum _PH_HTTP_SOCKET_CLOSE_TYPE

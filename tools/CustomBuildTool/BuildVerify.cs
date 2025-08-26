@@ -11,7 +11,7 @@
 
 namespace CustomBuildTool
 {
-    public static class Verify
+    public static class BuildVerify
     {
         public static readonly SortedDictionary<string, KeyValuePair<string, string>> KeyName_Vars = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -343,6 +343,32 @@ namespace CustomBuildTool
             }
 
             return buffer;
+        }
+
+        public static void PrintCngPublicKeyInfo(byte[] KeyBlob, CngKeyBlobFormat KeyFormat)
+        {
+            using (CngKey cngkey = CngKey.Import(KeyBlob, KeyFormat))
+            {
+                if (cngkey.Algorithm == CngAlgorithm.ECDsaP256)
+                {
+                    using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
+                    {
+                        Program.PrintColorMessage($"{ecdsa.ExportSubjectPublicKeyInfoPem()}\n", ConsoleColor.White);
+                    }
+                }
+                else if (cngkey.Algorithm == CngAlgorithm.Rsa)
+                {
+                    using (RSACng rsa = new RSACng(cngkey))
+                    {
+                        Program.PrintColorMessage($"{rsa.ExportSubjectPublicKeyInfoPem()}\n", ConsoleColor.White);
+                        Program.PrintColorMessage($"{rsa.ExportRSAPublicKeyPem()}\n", ConsoleColor.White);
+                    }
+                }
+                else
+                {
+                    throw new NotSupportedException($"Unsupported algorithm: {cngkey.Algorithm}");
+                }
+            }
         }
 
         private static string GetPath(string FileName)

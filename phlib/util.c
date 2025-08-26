@@ -5362,7 +5362,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
     {
         if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &currentUser)))
         {
-            if (!NT_SUCCESS(RtlGetDaclSecurityDescriptor(
+            if (!NT_SUCCESS(PhGetDaclSecurityDescriptor(
                 currentSecurityDescriptor,
                 &currentDaclPresent,
                 &currentDacl,
@@ -5385,7 +5385,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
             {
                 for (i = 0; i < currentDacl->AceCount; i++)
                 {
-                    if (NT_SUCCESS(RtlGetAce(currentDacl, i, &currentAce)))
+                    if (NT_SUCCESS(PhGetAce(currentDacl, i, &currentAce)))
                         RtlAddAce(newDacl, ACL_REVISION, ULONG_MAX, currentAce, currentAce->AceSize);
                 }
             }

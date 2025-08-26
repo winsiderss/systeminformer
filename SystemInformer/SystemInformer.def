@@ -635,6 +635,7 @@ EXPORTS
     PhQueryEnvironmentVariable
     PhQueryFullAttributesFileWin32
     PhQueryKey
+    PhQueryKeyLastWriteTime
     PhQuerySymbolicLinkObject
     PhQueryTokenVariableSize
     PhQueryValueKey

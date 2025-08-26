@@ -1264,7 +1264,7 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
 
     if (NT_SUCCESS(status))
     {
-        if (accessRights = (PACCESS_MASK)LocalAlloc(LPTR, sizeof(PACCESS_MASK) + sizeof(ACCESS_MASK)))
+        if (dacl && (accessRights = (PACCESS_MASK)LocalAlloc(LPTR, sizeof(PACCESS_MASK) + sizeof(ACCESS_MASK))))
         {
             PhBuildTrusteeWithSid(&trustee, UserSid);
 
@@ -1518,7 +1518,10 @@ NTSTATUS PhGetSeObjectSecurity(
         );
 
     if (win32Result != ERROR_SUCCESS)
+    {
+        *SecurityDescriptor = NULL;
         return PhDosErrorToNtStatus(win32Result);
+    }
 
     *SecurityDescriptor = PhAllocateCopy(securityDescriptor, RtlLengthSecurityDescriptor(securityDescriptor));
     LocalFree(securityDescriptor);
@@ -1544,25 +1547,25 @@ NTSTATUS PhSetSeObjectSecurity(
 
     if (FlagOn(SecurityInformation, OWNER_SECURITY_INFORMATION))
     {
-        if (NT_SUCCESS(RtlGetOwnerSecurityDescriptor(SecurityDescriptor, &owner, &defaulted)))
+        if (NT_SUCCESS(PhGetOwnerSecurityDescriptor(SecurityDescriptor, &owner, &defaulted)))
             SetFlag(securityInformation, OWNER_SECURITY_INFORMATION);
     }
 
     if (FlagOn(SecurityInformation, GROUP_SECURITY_INFORMATION))
     {
-        if (NT_SUCCESS(RtlGetGroupSecurityDescriptor(SecurityDescriptor, &group, &defaulted)))
+        if (NT_SUCCESS(PhGetGroupSecurityDescriptor(SecurityDescriptor, &group, &defaulted)))
             SetFlag(securityInformation, GROUP_SECURITY_INFORMATION);
     }
 
     if (FlagOn(SecurityInformation, DACL_SECURITY_INFORMATION))
     {
-        if (NT_SUCCESS(RtlGetDaclSecurityDescriptor(SecurityDescriptor, &present, &dacl, &defaulted)) && present)
+        if (NT_SUCCESS(PhGetDaclSecurityDescriptor(SecurityDescriptor, &present, &dacl, &defaulted)) && present)
             SetFlag(securityInformation, DACL_SECURITY_INFORMATION);
     }
 
     if (FlagOn(SecurityInformation, SACL_SECURITY_INFORMATION))
     {
-        if (NT_SUCCESS(RtlGetSaclSecurityDescriptor(SecurityDescriptor, &present, &sacl, &defaulted)) && present)
+        if (NT_SUCCESS(PhGetSaclSecurityDescriptor(SecurityDescriptor, &present, &sacl, &defaulted)) && present)
             SetFlag(securityInformation, SACL_SECURITY_INFORMATION);
     }
 
@@ -1571,7 +1574,7 @@ NTSTATUS PhSetSeObjectSecurity(
         SECURITY_DESCRIPTOR_CONTROL control;
         ULONG revision;
 
-        if (NT_SUCCESS(RtlGetControlSecurityDescriptor(SecurityDescriptor, &control, &revision)))
+        if (NT_SUCCESS(PhGetControlSecurityDescriptor(SecurityDescriptor, &control, &revision)))
         {
             if (FlagOn(SecurityInformation, DACL_SECURITY_INFORMATION))
             {
@@ -1681,7 +1684,7 @@ NTSTATUS PhGetSeObjectSecurityTokenDefault(
         ULONG allocationLength;
         ULONG allocationLengthRelative = 0;
         PSECURITY_DESCRIPTOR securityDescriptor;
-        PSECURITY_DESCRIPTOR securityRelative;
+        PSECURITY_DESCRIPTOR securityRelative = NULL;
 
         allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + defaultDacl->DefaultDacl->AclSize;
 
@@ -1707,9 +1710,8 @@ NTSTATUS PhGetSeObjectSecurityTokenDefault(
 
         assert(allocationLengthRelative == RtlLengthSecurityDescriptor(securityRelative));
 
-        *SecurityDescriptor = securityRelative;
-
 CleanupExit:
+        *SecurityDescriptor = securityRelative;
         assert(RtlValidSecurityDescriptor(securityDescriptor));
         PhFree(securityDescriptor);
         PhFree(defaultDacl);
@@ -1812,7 +1814,7 @@ NTSTATUS PhSetSeObjectSecurityPowerGuid(
 
     PhSetOwnerSecurityDescriptor(SecurityDescriptor, PhSeAdministratorsSid(), TRUE);
     PhSetGroupSecurityDescriptor(SecurityDescriptor, (PSID)&PhSeLocalSystemSid, TRUE);
-    RtlSetControlSecurityDescriptor(SecurityDescriptor, SE_DACL_PROTECTED | SE_DACL_AUTO_INHERIT_REQ, SE_DACL_PROTECTED);
+    PhSetControlSecurityDescriptor(SecurityDescriptor, SE_DACL_PROTECTED | SE_DACL_AUTO_INHERIT_REQ, SE_DACL_PROTECTED);
 
     if (NT_SUCCESS(status = PhGetSecurityDescriptorAsString(
         SecurityDescriptor,

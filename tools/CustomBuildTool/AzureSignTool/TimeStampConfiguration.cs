@@ -45,8 +45,8 @@ namespace CustomBuildTool
         /// <param name="type">The type of timestamp to use. See <see cref="TimeStampType" /> for details.</param>
         public TimeStampConfiguration(string url, TimeStampType type)
         {
-            Url = url;
-            Type = type;
+            this.Url = url;
+            this.Type = type;
         }
     }
 

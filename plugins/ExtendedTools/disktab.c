@@ -288,6 +288,7 @@ VOID EtInitializeDiskTreeList(
     }
 
     TreeNew_SetSort(WindowHandle, ETDSTNC_TOTALRATEAVERAGE, DescendingSortOrder);
+    TreeNew_SetTriState(WindowHandle, TRUE);
     TreeNew_SetRedraw(WindowHandle, TRUE);
 
     EtLoadSettingsDiskTreeList(WindowHandle);

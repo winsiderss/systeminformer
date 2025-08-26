@@ -11,7 +11,7 @@
 
 namespace CustomBuildTool
 {
-    public static class HttpClient
+    public static class BuildHttpClient
     {
         public static System.Net.Http.HttpClient CreateHttpClient()
         {
@@ -73,7 +73,7 @@ namespace CustomBuildTool
             {
                 string response = SendMessage(HttpMessage);
 
-                if (string.IsNullOrEmpty(response))
+                if (string.IsNullOrWhiteSpace(response))
                     return null;
                    
                 result = JsonSerializer.Deserialize(response, jsonTypeInfo);

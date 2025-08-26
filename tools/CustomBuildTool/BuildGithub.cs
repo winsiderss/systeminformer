@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -11,12 +11,12 @@
 
 namespace CustomBuildTool
 {
-    public static class GithubReleases
+    public static class BuildGithub
     {
         private static readonly string BaseToken;
         private static readonly string BaseUrl;
 
-        static GithubReleases()
+        static BuildGithub()
         {
             BaseToken = Win32.GetEnvironmentVariable("GITHUB_MIRROR_KEY");
             BaseUrl = Win32.GetEnvironmentVariable("GITHUB_MIRROR_API");
@@ -53,7 +53,7 @@ namespace CustomBuildTool
                     requestMessage.Content = new ByteArrayContent(buildPostString);
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-                    var httpResult = HttpClient.SendMessage(requestMessage, GithubReleasesResponseContext.Default.GithubReleasesResponse);
+                    var httpResult = BuildHttpClient.SendMessage(requestMessage, GithubReleasesResponseContext.Default.GithubReleasesResponse);
 
                     if (httpResult == null)
                     {
@@ -95,7 +95,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
 
-                    responseMessage = HttpClient.SendMessageResponse(requestMessage);
+                    responseMessage = BuildHttpClient.SendMessageResponse(requestMessage);
 
                     if (!responseMessage.IsSuccessStatusCode)
                     {
@@ -141,7 +141,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
 
-                    var response = HttpClient.SendMessage(requestMessage);
+                    var response = BuildHttpClient.SendMessage(requestMessage);
 
                     if (string.IsNullOrWhiteSpace(response))
                     {
@@ -156,7 +156,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
 
-                    var response = HttpClient.SendMessage(requestMessage);
+                    var response = BuildHttpClient.SendMessage(requestMessage);
 
                     if (string.IsNullOrWhiteSpace(response))
                     {
@@ -202,7 +202,7 @@ namespace CustomBuildTool
                     requestMessage.Content = new ByteArrayContent(buildPostString);
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-                    var response = HttpClient.SendMessage(requestMessage, GithubReleasesResponseContext.Default.GithubReleasesResponse);
+                    var response = BuildHttpClient.SendMessage(requestMessage, GithubReleasesResponseContext.Default.GithubReleasesResponse);
 
                     if (response == null)
                     {
@@ -256,7 +256,7 @@ namespace CustomBuildTool
                     requestMessage.Content = new StreamContent(bufferedStream);
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
-                    var response = HttpClient.SendMessage(requestMessage, GithubAssetsResponseContext.Default.GithubAssetsResponse);
+                    var response = BuildHttpClient.SendMessage(requestMessage, GithubAssetsResponseContext.Default.GithubAssetsResponse);
 
                     if (response == null)
                     {
@@ -281,6 +281,7 @@ namespace CustomBuildTool
             return null;
         }
     }
+
 
     public class GithubRelease : IComparable, IComparable<GithubRelease>, IEquatable<GithubRelease>
     {

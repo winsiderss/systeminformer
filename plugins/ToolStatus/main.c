@@ -42,6 +42,8 @@ HMENU MainMenu = NULL;
 HACCEL AcceleratorTable = NULL;
 ULONG_PTR SearchMatchHandle = 0;
 ULONG RestoreSearchSelectedProcessId = ULONG_MAX;
+PPH_TREENEW_NODE RestoreSearchSelectedNode = NULL;
+HWND RestoreSearchTreeHandle = NULL;
 PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics = { 0 };
 PH_CALLBACK_DECLARE(SearchChangedEvent);
 PPH_HASHTABLE TabInfoHashtable;
@@ -120,7 +122,7 @@ VOID NTAPI TreeNewInitializingCallback(
 }
 
 VOID RegisterTabSearch(
-    _In_ INT TabIndex,
+    _In_ LONG TabIndex,
     _In_ PWSTR BannerText
     )
 {
@@ -131,7 +133,7 @@ VOID RegisterTabSearch(
 }
 
 PTOOLSTATUS_TAB_INFO RegisterTabInfo(
-    _In_ INT TabIndex
+    _In_ LONG TabIndex
     )
 {
     PTOOLSTATUS_TAB_INFO tabInfoCopy;
@@ -709,6 +711,7 @@ VOID DrawWindowBorderForTargeting(
     }
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI SearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -716,16 +719,41 @@ VOID NTAPI SearchControlCallback(
 {
     SearchMatchHandle = MatchHandle;
 
-    // Expand the nodes to ensure that they will be visible to the user.
-    PhExpandAllProcessNodes(TRUE);
-    PhDeselectAllProcessNodes();
-    PhDeselectAllServiceNodes();
+    if (SearchMatchHandle)
+    {
+        // Expand the nodes to ensure that they will be visible to the user.
+        PhExpandAllProcessNodes(TRUE);
+
+        PhDeselectAllProcessNodes();
+        PhDeselectAllServiceNodes();
+        PhDeselectAllNetworkNodes();
+
+        //if (RestoreRowAfterSearch)
+        {
+            RestoreSearchTreeHandle = NULL;
+            RestoreSearchSelectedNode = NULL;
+        }
+    }
+    else
+    {
+        if (RestoreSearchTreeHandle = GetCurrentTreeNewHandle()) // RestoreRowAfterSearch && (
+        {
+            RestoreSearchSelectedNode = TreeNew_GetSelectedNode(RestoreSearchTreeHandle);
+        }
+    }
 
     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
 
     PhInvokeCallback(&SearchChangedEvent, (PVOID)SearchMatchHandle);
+
+    if (RestoreSearchTreeHandle && RestoreSearchSelectedNode) // estoreRowAfterSearch && 
+    {
+        //TreeNew_NodesStructured(RestoreSearchTreeHandle);
+        TreeNew_FocusMarkSelectNode(RestoreSearchTreeHandle, RestoreSearchSelectedNode);
+        TreeNew_EnsureVisible(RestoreSearchTreeHandle, RestoreSearchSelectedNode);
+    }
 }
 
 VOID SetSearchFocus(
@@ -1085,7 +1113,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
                             }
                         }
 
-                        MapWindowRect(RebarHandle, NULL, &rebar->rc);
+                        MapWindowRect(RebarHandle, HWND_DESKTOP, &rebar->rc);
 
                         selectedItem = PhShowEMenu(
                             menu,
@@ -1188,7 +1216,6 @@ LRESULT CALLBACK MainWindowCallbackProc(
                             break;
 
                         menu = PhCreateEMenu();
-
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOGOFF, L"Log o&ff", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -1216,7 +1243,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
                                 PhDestroyEMenuItem(menuItemRemove);
                         }
 
-                        MapWindowRect(ToolBarHandle, NULL, &toolbar->rcButton);
+                        MapWindowRect(ToolBarHandle, HWND_DESKTOP, &toolbar->rcButton);
 
                         selectedItem = PhShowEMenu(
                             menu,
@@ -1286,6 +1313,53 @@ LRESULT CALLBACK MainWindowCallbackProc(
                 case NM_RCLICK:
                     {
                         StatusBarShowMenu(WindowHandle);
+                    }
+                    break;
+                case NM_DBLCLK:
+                    {
+                        LPNMITEMACTIVATE nmItem = (LPNMITEMACTIVATE)lParam;
+                        LONG parts[MAX_STATUSBAR_ITEMS];
+                        LONG count;
+
+                        if (nmItem->iItem < 0)
+                            break;
+
+                        count = (LONG)SendMessage(StatusBarHandle, SB_GETPARTS, (WPARAM)RTL_NUMBER_OF(parts), (LPARAM)parts);
+
+                        POINT cursorPos;
+                        GetCursorPos(&cursorPos);
+                        ScreenToClient(StatusBarHandle, &cursorPos);
+
+                        for (LONG i = 0; i < count; ++i)
+                        {
+                            RECT rect;
+
+                            if (i == 0)
+                                rect.left = 0;
+                            else
+                                rect.left = parts[i - 1];
+
+                            rect.right = parts[i];
+
+                            if (cursorPos.x >= rect.left && cursorPos.x < rect.right)
+                            {
+                                switch (PtrToUlong(StatusBarItemList->Items[i]))
+                                {
+                                case ID_STATUS_CPUUSAGE:
+                                    PhShowSystemInformationDialog(L"CPU");
+                                    break;
+                                case ID_STATUS_PHYSICALMEMORY:
+                                    PhShowSystemInformationDialog(L"Memory");
+                                    break;
+                                case ID_STATUS_IO_RO:
+                                case ID_STATUS_IO_W:
+                                    PhShowSystemInformationDialog(L"I/O");
+                                    break;
+                                }
+
+                                break;
+                            }
+                        }
                     }
                     break;
                 }
@@ -1660,7 +1734,6 @@ LRESULT CALLBACK MainWindowCallbackProc(
     }
 
     return MainWindowHookProc(WindowHandle, WindowMessage, wParam, lParam);
-
 DefaultWndProc:
     return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
 }

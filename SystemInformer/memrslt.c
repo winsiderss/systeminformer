@@ -428,7 +428,9 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_FILTER_REGEX, L"Regex...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_FILTER_REGEX_CASEINSENSITIVE, L"Regex (case-insensitive)...", NULL, NULL), ULONG_MAX);
 
-                    GetClientRect(GetDlgItem(hwndDlg, IDC_FILTER), &buttonRect);
+                    if (!PhGetClientRect(GetDlgItem(hwndDlg, IDC_FILTER), &buttonRect))
+                        break;
+
                     point.x = 0;
                     point.y = buttonRect.bottom;
 
@@ -693,6 +695,11 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 }
                 break;
             }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
         }
         break;
     case WM_SIZE:

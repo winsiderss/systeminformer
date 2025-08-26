@@ -816,6 +816,11 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
             }
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);

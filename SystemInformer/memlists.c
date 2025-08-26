@@ -651,7 +651,7 @@ VOID PhShowMemoryListCommand(
     )
 {
     PPH_EMENU menu;
-    RECT buttonRect;
+    RECT buttonRect = { 0 };
     PPH_EMENU_ITEM selectedItem;
 
     menu = PhCreateEMenu();
@@ -668,7 +668,7 @@ VOID PhShowMemoryListCommand(
 
     if (ShowTopAlign)
     {
-        GetWindowRect(ButtonWindow, &buttonRect);
+        PhGetWindowRect(ButtonWindow, &buttonRect);
         selectedItem = PhShowEMenu(
             menu,
             ParentWindow,
@@ -682,7 +682,7 @@ VOID PhShowMemoryListCommand(
     {
         POINT point;
 
-        GetClientRect(ButtonWindow, &buttonRect);
+        PhGetClientRect(ButtonWindow, &buttonRect);
         point.x = 0;
         point.y = buttonRect.bottom;
         ClientToScreen(ButtonWindow, &point);

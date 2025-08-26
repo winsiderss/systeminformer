@@ -115,22 +115,6 @@ NTSTATUS PhSetObjectSecurity(
         );
 }
 
-#define AUDIT_ALARM_ACE_TYPE_MASK ( \
-    (1 << SYSTEM_AUDIT_ACE_TYPE) | \
-    (1 << SYSTEM_ALARM_ACE_TYPE) | \
-    (1 << SYSTEM_AUDIT_OBJECT_ACE_TYPE) | \
-    (1 << SYSTEM_ALARM_OBJECT_ACE_TYPE) | \
-    (1 << SYSTEM_AUDIT_CALLBACK_ACE_TYPE) | \
-    (1 << SYSTEM_ALARM_CALLBACK_ACE_TYPE) | \
-    (1 << SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE) | \
-    (1 << SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE))
-
-#define MANDATORY_LABEL_ACE_TYPE_MASK (1 << SYSTEM_MANDATORY_LABEL_ACE_TYPE)
-#define RESOURCE_ATTRIBUTE_ACE_TYPE_MASK (1 << SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE)
-#define SCOPED_POLICY_ACE_TYPE_MASK (1 << SYSTEM_SCOPED_POLICY_ID_ACE_TYPE)
-#define PROCESS_TRUST_ACE_TYPE_MASK (1 << SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE)
-#define ACCESS_FILTER_ACE_TYPE_MASK (1 << SYSTEM_ACCESS_FILTER_ACE_TYPE)
-
 /**
  * Merges two SACLs according to the provided security information.
  * The function preserves ACEs not covered by the change from the lower SACL and replaces other
@@ -203,7 +187,7 @@ NTSTATUS PhMergeSystemAcls(
 
         for (USHORT i = 0; i < LowerSacl->AceCount; i++)
         {
-            if ((PVOID)ace >= lowerSaclEnd)
+            if ((ULONG_PTR)ace >= (ULONG_PTR)lowerSaclEnd)
                 return STATUS_UNSUCCESSFUL;
 
             if (!((1 << ace->AceType) & aceTypesToReplace))
@@ -222,7 +206,7 @@ NTSTATUS PhMergeSystemAcls(
 
         for (USHORT i = 0; i < HigherSacl->AceCount; i++)
         {
-            if ((PVOID)ace >= higherSaclEnd)
+            if ((ULONG_PTR)ace >= (ULONG_PTR)higherSaclEnd)
                 return STATUS_UNSUCCESSFUL;
 
             if ((1 << ace->AceType) & aceTypesToReplace)
@@ -337,7 +321,7 @@ NTSTATUS PhMergeSecurityDescriptors(
 
     // Choose the DACL
 
-    status = RtlGetDaclSecurityDescriptor(
+    status = PhGetDaclSecurityDescriptor(
         (SecurityInformation & DACL_SECURITY_INFORMATION) ? HigherSecurityDescriptor : LowerSecurityDescriptor,
         &present,
         &acl,
@@ -347,7 +331,7 @@ NTSTATUS PhMergeSecurityDescriptors(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = RtlSetDaclSecurityDescriptor(
+    status = PhSetDaclSecurityDescriptor(
         &mergedSecurityDescriptor,
         present,
         acl,
@@ -359,7 +343,7 @@ NTSTATUS PhMergeSecurityDescriptors(
 
     // Choose the owner
 
-    status = RtlGetOwnerSecurityDescriptor(
+    status = PhGetOwnerSecurityDescriptor(
         (SecurityInformation & OWNER_SECURITY_INFORMATION) ? HigherSecurityDescriptor : LowerSecurityDescriptor,
         &sid,
         &defaulted
@@ -371,7 +355,7 @@ NTSTATUS PhMergeSecurityDescriptors(
     if (!sid)
         return STATUS_INVALID_OWNER;
 
-    status = RtlSetOwnerSecurityDescriptor(
+    status = PhSetOwnerSecurityDescriptor(
         &mergedSecurityDescriptor,
         sid,
         defaulted
@@ -382,7 +366,7 @@ NTSTATUS PhMergeSecurityDescriptors(
 
     // Choose the primary group
 
-    status = RtlGetGroupSecurityDescriptor(
+    status = PhGetGroupSecurityDescriptor(
         (SecurityInformation & GROUP_SECURITY_INFORMATION) ? HigherSecurityDescriptor : LowerSecurityDescriptor,
         &sid,
         &defaulted
@@ -394,7 +378,7 @@ NTSTATUS PhMergeSecurityDescriptors(
     if (!sid)
         return STATUS_INVALID_PRIMARY_GROUP;
 
-    status = RtlSetGroupSecurityDescriptor(
+    status = PhSetGroupSecurityDescriptor(
         &mergedSecurityDescriptor,
         sid,
         defaulted
@@ -405,7 +389,7 @@ NTSTATUS PhMergeSecurityDescriptors(
 
     // Collect both SACLs
 
-    status = RtlGetSaclSecurityDescriptor(
+    status = PhGetSaclSecurityDescriptor(
         LowerSecurityDescriptor,
         &present,
         &lowerSacl,
@@ -418,7 +402,7 @@ NTSTATUS PhMergeSecurityDescriptors(
     if (!present)
         lowerSacl = NULL;
 
-    status = RtlGetSaclSecurityDescriptor(
+    status = PhGetSaclSecurityDescriptor(
         HigherSecurityDescriptor,
         &present,
         &higherSacl,

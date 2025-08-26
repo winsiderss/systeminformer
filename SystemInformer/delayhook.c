@@ -199,7 +199,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
 
         if ((style & SS_ICON) == SS_ICON)
         {
-            PhSetWindowContext(WindowHandle, SCHAR_MAX, (PVOID)TRUE);
+            PhSetWindowContext(WindowHandle, SCHAR_MAX, UlongToPtr(TRUE));
         }
     }
 
@@ -222,10 +222,13 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
             if (PhEqualStringZ(windowClassName, L"CHECKLIST_ACLUI", FALSE))
             {
                 RECT rectClient;
-                GetClientRect(WindowHandle, &rectClient);
-                PhInflateRect(&rectClient, 2, 2);
-                MapWindowRect(WindowHandle, ParentHandle, &rectClient);
-                InvalidateRect(ParentHandle, &rectClient, TRUE);     // fix the annoying white border left by the previous active control
+
+                if (PhGetClientRect(WindowHandle, &rectClient))
+                {
+                    PhInflateRect(&rectClient, 2, 2);
+                    MapWindowRect(WindowHandle, ParentHandle, &rectClient);
+                    InvalidateRect(ParentHandle, &rectClient, TRUE);     // fix the annoying white border left by the previous active control
+                }
             }
         }
         break;
@@ -246,8 +249,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                     static HFONT hCheckFont = NULL;
 
                     HDC hdc = BeginPaint(WindowHandle, &ps);
-                    GetClientRect(WindowHandle, &clientRect);
-
+                    clientRect = ps.rcPaint;
                     HDC bufferDc = CreateCompatibleDC(hdc);
                     HBITMAP bufferBitmap = CreateCompatibleBitmap(hdc, clientRect.right, clientRect.bottom);
                     HBITMAP oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
@@ -656,7 +658,9 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
                     RECT bufferRect;
                     HDC hdc;
 
-                    GetClientRect(WindowHandle, &clientRect);
+                    if (!PhGetClientRect(WindowHandle, &clientRect))
+                        break;
+
                     bufferRect.left = 0;
                     bufferRect.top = 0;
                     bufferRect.right = clientRect.right - clientRect.left;
@@ -1091,7 +1095,8 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                     HBITMAP bufferBitmap;
                     HBITMAP oldBufferBitmap;
 
-                    GetClientRect(WindowHandle, &clientRect);
+                    if (!PhGetClientRect(WindowHandle, &clientRect))
+                        break;
 
                     hdc = GetDC(WindowHandle);
                     bufferDc = CreateCompatibleDC(hdc);
