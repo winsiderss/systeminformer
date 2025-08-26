@@ -73,29 +73,7 @@ NTSTATUS KphQueryInformationDriver(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    driverObject = NULL;
     returnLength = 0;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            if (DriverInformation)
-            {
-                ProbeOutputBytes(DriverInformation, DriverInformationLength);
-            }
-
-            if (ReturnLength)
-            {
-                ProbeOutputType(ReturnLength, ULONG);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(DriverHandle,
                                        0,
