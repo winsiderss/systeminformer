@@ -1,6 +1,5 @@
 name: 'Bug report'
 description: Report bugs or other issues
-labels: ["needs-triage"]
 body:
   - type: textarea
     attributes:
