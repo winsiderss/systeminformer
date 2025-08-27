@@ -2806,7 +2806,7 @@ NTAPI
 RtlDoesNameContainWildCards(
     _In_ PCUNICODE_STRING Expression
     );
-    
+
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_19H1
 
 NTSYSAPI
@@ -12396,7 +12396,7 @@ RtlWnfDllUnloadCallback(
 NTSYSAPI
 ULONG_PTR
 NTAPI
-RtlGetReturnAddressHijackTarget (
+RtlGetReturnAddressHijackTarget(
     VOID
     );
 #endif

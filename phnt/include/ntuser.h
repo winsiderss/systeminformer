@@ -981,7 +981,7 @@ NTAPI
 NtUserQueryInformationThread(
     _In_ HANDLE ThreadHandle,
     _In_ USERTHREADINFOCLASS ThreadInformationClass,
-    _Out_writes_bytes_(ReturnLength) PVOID ThreadInformation,
+    _Out_writes_bytes_(*ReturnLength) PVOID ThreadInformation,
     _Out_opt_ PULONG ReturnLength
     );
 
