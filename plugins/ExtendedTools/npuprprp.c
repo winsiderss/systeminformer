@@ -186,7 +186,8 @@ VOID NpuPropLayoutGraphs(
     Context->NpuCommittedGraphState.TooltipIndex = ULONG_MAX;
 
     //PhLayoutManagerLayout(&Context->LayoutManager);
-    GetClientRect(Context->WindowHandle, &clientRect);
+    if (!PhGetClientRect(Context->WindowHandle, &clientRect))
+        return;
 
     // Limit the rectangle bottom to the top of the panel.
     //GetWindowRect(Context->PanelHandle, &panelRect);

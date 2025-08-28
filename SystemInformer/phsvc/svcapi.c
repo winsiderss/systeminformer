@@ -115,6 +115,7 @@ PVOID PhSvcValidateString(
     return address;
 }
 
+_Function_class_(PHSVC_SERVER_PROBE_BUFFER)
 NTSTATUS PhSvcProbeBuffer(
     _In_ PPH_RELATIVE_STRINGREF String,
     _In_ ULONG Alignment,
@@ -144,6 +145,7 @@ NTSTATUS PhSvcProbeBuffer(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PHSVC_SERVER_CAPTURE_BUFFER)
 NTSTATUS PhSvcCaptureBuffer(
     _In_ PPH_RELATIVE_STRINGREF String,
     _In_ BOOLEAN AllowNull,

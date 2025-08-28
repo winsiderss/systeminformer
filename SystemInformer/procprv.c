@@ -4026,6 +4026,7 @@ VOID PhProcessImageListInitialization(
     PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhImageListCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -4037,6 +4038,7 @@ BOOLEAN PhImageListCacheHashtableEqualFunction(
     return PhEqualStringRef(&entry1->FileName->sr, &entry2->FileName->sr, FALSE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhImageListCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -4195,7 +4197,7 @@ VOID PhImageListFlushCache(
 
 VOID PhDrawProcessIcon(
     _In_ HDC hdc,
-    _In_ RECT rect,
+    _In_ PRECT rect,
     _In_ ULONG Index,
     _In_ BOOLEAN Large)
 {
@@ -4207,8 +4209,8 @@ VOID PhDrawProcessIcon(
                 PhProcessLargeImageList,
                 Index,
                 hdc,
-                rect.left,
-                rect.top,
+                rect->left,
+                rect->top,
                 ILD_NORMAL | ILD_TRANSPARENT,
                 FALSE
                 );
@@ -4222,8 +4224,8 @@ VOID PhDrawProcessIcon(
                 PhProcessSmallImageList,
                 Index,
                 hdc,
-                rect.left,
-                rect.top,
+                rect->left,
+                rect->top,
                 ILD_NORMAL | ILD_TRANSPARENT,
                 FALSE
                 );

@@ -102,8 +102,16 @@ VOID NTAPI MenuItemCallback(
     case MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE:
         UploadServiceToOnlineService(menuItem->OwnerWindow, menuItem->Context, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE);
         break;
+    case MENUITEM_FILESCANIO_UPLOAD:
+        UploadToOnlineService(menuItem->Context, MENUITEM_FILESCANIO_UPLOAD);
+        break;
+    case MENUITEM_FILESCANIO_UPLOAD_SERVICE:
+        UploadServiceToOnlineService(menuItem->OwnerWindow, menuItem->Context, MENUITEM_FILESCANIO_UPLOAD_SERVICE);
+        break;
     case MENUITEM_VIRUSTOTAL_UPLOAD_FILE:
     case MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE:
+    case MENUITEM_JOTTI_UPLOAD_FILE:
+    case MENUITEM_FILESCANIO_UPLOAD_FILE:
         {
             static PH_FILETYPE_FILTER filters[] =
             {
@@ -126,6 +134,12 @@ VOID NTAPI MenuItemCallback(
                     break;
                 case MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE:
                     UploadToOnlineService(fileName, MENUITEM_HYBRIDANALYSIS_UPLOAD);
+                    break;
+                case MENUITEM_JOTTI_UPLOAD_FILE:
+                    UploadToOnlineService(fileName, MENUITEM_JOTTI_UPLOAD);
+                    break;
+                case MENUITEM_FILESCANIO_UPLOAD_FILE:
+                    UploadToOnlineService(fileName, MENUITEM_FILESCANIO_UPLOAD);
                     break;
                 }
             }
@@ -152,8 +166,10 @@ VOID NTAPI MainMenuInitializingCallback(
     onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Online Checks", NULL);
     //PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"&Enable VirusTotal scanning", NULL), ULONG_MAX);
     //PhInsertEMenuItem(onlineMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_FILESCANIO_UPLOAD_FILE, L"Upload file to &Filescan...", NULL), ULONG_MAX);
     PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE, L"Upload file to &Hybrid-Analysis...", NULL), ULONG_MAX);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"&Upload file to VirusTotal...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"Upload file to &VirusTotal...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD_FILE, L"Upload file to &Jotti...", NULL), ULONG_MAX);
     //PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), ULONG_MAX);
     PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, ULONG_MAX);
 
@@ -255,6 +271,7 @@ VOID NTAPI ServiceMenuInitializingCallback(
         serviceItem = NULL;
 
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_FILESCANIO_UPLOAD_SERVICE, L"&filescan.io", serviceItem ? serviceItem : NULL), ULONG_MAX);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"&hybrid-analysis.com", serviceItem ? serviceItem : NULL), ULONG_MAX);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.&jotti.org", serviceItem ? serviceItem : NULL), ULONG_MAX);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"&virustotal.com", serviceItem ? serviceItem : NULL), ULONG_MAX);
@@ -298,6 +315,7 @@ VOID ProcessHighlightingColorCallback(
     //UnlockProcessDb();
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG NTAPI VirusTotalProcessNodeSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -314,6 +332,7 @@ LONG NTAPI VirusTotalProcessNodeSortFunction(
     return PhCompareStringWithNullSortOrder(extension1->VirusTotalResult, extension2->VirusTotalResult, SortOrder, TRUE);
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG NTAPI VirusTotalModuleNodeSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -330,6 +349,7 @@ LONG NTAPI VirusTotalModuleNodeSortFunction(
     return PhCompareStringWithNullSortOrder(extension1->VirusTotalResult, extension2->VirusTotalResult, SortOrder, TRUE);
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG NTAPI VirusTotalServiceNodeSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -604,6 +624,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION, L"0" },
                 { StringSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT, L"" },
                 { StringSettingType, SETTING_NAME_HYBRIDANAL_DEFAULT_PAT, L"" },
+                { StringSettingType, SETTING_NAME_FILESCAN_DEFAULT_PAT, L"" },
             };
 
             WPP_INIT_TRACING(PLUGIN_NAME);

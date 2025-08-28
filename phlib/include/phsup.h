@@ -81,8 +81,34 @@
 // Memory
 //
 
+#if defined(_cplusplus)
+template <class T>
+FORCEINLINE T* PTR_ADD_OFFSET(
+    _In_ const T* Pointer,
+    _In_ const T* Offset
+    )
+{
+    return reinterpret_cast<T*>(
+        static_cast<const unsigned char*>(Pointer) +
+        static_cast<const unsigned long long>(Offset)
+        );
+}
+
+template <class T>
+FORCEINLINE T* PTR_SUB_OFFSET(
+    _In_ const T* Pointer,
+    _In_ const T* Offset
+    )
+{
+    return reinterpret_cast<T*>(
+        static_cast<const unsigned char*>(Pointer) -
+        static_cast<const unsigned long long>(Pointer)
+        );
+}
+#else
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
 #define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Offset)))
+#endif
 
 #define PH_LARGE_BUFFER_SIZE (256 * 1024 * 1024)
 

@@ -24,13 +24,12 @@
 /**
  * Imports a procedure from a specified module.
  *
- * @param InitOnce A pointer to an initialization structure.
- * @param Cache A pointer to a cache for the procedure address.
- * @param Cookie A pointer to a cookie for the procedure address.
- * @param ModuleName The name of the module.
- * @param ProcedureName The name of the procedure.
- *
- * @return A pointer to the imported procedure, or NULL if the procedure could not be imported.
+ * \param InitOnce A pointer to an initialization structure.
+ * \param Cache A pointer to a cache for the procedure address.
+ * \param Cookie A pointer to a cookie for the procedure address.
+ * \param ModuleName The name of the module.
+ * \param ProcedureName The name of the procedure.
+ * \return A pointer to the imported procedure, or NULL if the procedure could not be imported.
  */
 FORCEINLINE
 PVOID PhpImportProcedure(
@@ -72,13 +71,12 @@ PVOID PhpImportProcedure(
 /**
  * Imports a procedure from a specified module using native methods.
  *
- * @param InitOnce A pointer to an initialization structure.
- * @param Cache A pointer to a cache for the procedure address.
- * @param Cookie A pointer to a cookie for the procedure address.
- * @param ModuleName The name of the module.
- * @param ProcedureName The name of the procedure.
- *
- * @return A pointer to the imported procedure, or NULL if the procedure could not be imported.
+ * \param InitOnce A pointer to an initialization structure.
+ * \param Cache A pointer to a cache for the procedure address.
+ * \param Cookie A pointer to a cookie for the procedure address.
+ * \param ModuleName The name of the module.
+ * \param ProcedureName The name of the procedure.
+ * \return A pointer to the imported procedure, or NULL if the procedure could not be imported.
  */
 FORCEINLINE
 PVOID PhpImportProcedureNative(
@@ -129,8 +127,8 @@ PVOID PhpImportProcedureNative(
 /**
  * Defines an import function for a specified module and procedure.
  *
- * @param Module The name of the module.
- * @param Name The name of the procedure.
+ * \param Module The name of the module.
+ * \param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT(Module, Name) \
 typeof(&(Name)) Name##_Import(VOID) \
@@ -145,8 +143,8 @@ typeof(&(Name)) Name##_Import(VOID) \
 /**
  * Defines an import function for a specified module and procedure for native loading.
  *
- * @param Module The name of the module.
- * @param Name The name of the procedure.
+ * \param Module The name of the module.
+ * \param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT_NATIVE(Module, Name) \
 typeof(&(Name)) Name##_Import(VOID) \

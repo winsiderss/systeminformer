@@ -7005,7 +7005,7 @@ BOOLEAN TnHeaderCustomPaint(
 VOID PhTnpHeaderCreateBufferedContext(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ HDC Hdc,
-    _In_ RECT BufferRect
+    _In_ PRECT BufferRect
     )
 {
     Context->HeaderBufferedDc = CreateCompatibleDC(Hdc);
@@ -7013,7 +7013,7 @@ VOID PhTnpHeaderCreateBufferedContext(
     if (!Context->HeaderBufferedDc)
         return;
 
-    Context->HeaderBufferedContextRect = BufferRect;
+    Context->HeaderBufferedContextRect = *BufferRect;
     Context->HeaderBufferedBitmap = CreateCompatibleBitmap(
         Hdc,
         Context->HeaderBufferedContextRect.right,

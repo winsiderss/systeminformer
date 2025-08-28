@@ -723,8 +723,6 @@ EXPORTS
     PhGetBaseName
     PhGetClassObject
     PhGetDllFileName
-    PhGetClientRect
-    PhGetDpi
     PhGetDpiValue
     PhGetFileDialogFileName
     PhGetFileDialogFilterIndex
@@ -742,7 +740,6 @@ EXPORTS
     PhGetMonitorDpi
     PhGetNtMessage
     PhGetNtSystemRoot
-    PhGetSizeDpiValue
     PhGetStatusMessage
     PhGetSystemDirectory
     PhGetSystemDpi
@@ -935,6 +932,7 @@ EXPORTS
     PhImageListSetIconSize
     PhImageListSetImageCount
     PhInitializeLayoutManager
+    PhLayoutManagerUpdate
     PhLayoutManagerLayout
     PhLoadIcon
     PhLoadImageFormatFromResource
@@ -1136,7 +1134,6 @@ EXPORTS
     PhCreateXmlOpaqueNode
     PhFindXmlObject
     PhFreeXmlObject
-    PhGetXmlInterface
     PhGetXmlNodeAttributeByIndex
     PhGetXmlNodeAttributeCount
     PhGetXmlNodeAttributeText

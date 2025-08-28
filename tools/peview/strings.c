@@ -396,6 +396,7 @@ BOOLEAN PvpStringsTreeFilterCallback(
     return PvSearchControlMatch(context->SearchMatchHandle, &node->String->sr);
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PvpStringsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -907,7 +908,7 @@ INT_PTR CALLBACK PvStringsDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
         }
         break;
     case WM_SIZE:

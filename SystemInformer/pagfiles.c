@@ -233,7 +233,7 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
                 DestroyWindow(hwndDlg);
             }
 
-            if (PhGetIntegerPairSetting(L"PageFileWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"PageFileWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"PageFileWindowPosition", L"PageFileWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -303,7 +303,8 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:

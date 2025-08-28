@@ -358,6 +358,7 @@ VOID PhpRemoveThreadItem(
     PhDereferenceObject(ThreadItem);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpThreadQueryWorker(
     _In_ PVOID Parameter
     )

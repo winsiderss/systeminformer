@@ -16,11 +16,13 @@ PPH_OBJECT_TYPE PvpPropContextType = NULL;
 PPH_OBJECT_TYPE PvpPropPageContextType = NULL;
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -82,6 +84,7 @@ PPV_PROPCONTEXT HdCreatePropContext(
     return propContext;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -214,6 +217,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PvRefreshButtonWindowEnumCallback(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
@@ -302,8 +306,8 @@ HWND PvpCreateOptionsButton(
         PhSetWindowProcedure(PropSheetWindow, PvRefreshButtonWndProc);
 
         // Create the refresh button.
-        GetClientRect(PropSheetWindow, &clientRect);
-        GetWindowRect(GetDlgItem(PropSheetWindow, IDCANCEL), &rect);
+        PhGetClientRect(PropSheetWindow, &clientRect);
+        PhGetWindowRect(GetDlgItem(PropSheetWindow, IDCANCEL), &rect);
         MapWindowRect(NULL, PropSheetWindow, &rect);
         PropSheetContext->RefreshButtonWindowHandle = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
@@ -352,7 +356,7 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         // Set the Cancel button's text to "Close".
         PhSetDialogItemText(hwnd, IDCANCEL, L"Close");
 
-        if (PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION).X != 0) // HACK
+        if (PhValidWindowPlacementFromSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION))
             PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION, SETTING_NAME_WINDOWS_PROPERTY_SIZE, hwnd);
 
         PropSheetContext->LayoutInitialized = TRUE;
@@ -441,6 +445,7 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
     return propPageContext;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -511,16 +516,16 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
         MapDialogRect(hwnd, &dialogSize);
 
         // Get the original dialog rectangle.
-        GetWindowRect(hwnd, &dialogRect);
+        PhGetWindowRect(hwnd, &dialogRect);
         dialogRect.right = dialogRect.left + dialogSize.right;
         dialogRect.bottom = dialogRect.top + dialogSize.bottom;
 
         // Calculate the margin from the original rectangle.
-        GetWindowRect(Handle, &margin);
+        PhGetWindowRect(Handle, &margin);
         PhMapRect(&margin, &margin, &dialogRect);
         PhConvertRect(&margin, &dialogRect);
 
-        item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, margin);
+        item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, &margin);
     }
     else
     {

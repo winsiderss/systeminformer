@@ -1261,6 +1261,9 @@ NTSTATUS PhGetLoaderEntryImageVaToSection(
     PIMAGE_SECTION_HEADER section;
     PIMAGE_SECTION_HEADER sectionHeader;
     PVOID directorySectionAddress = NULL;
+    PVOID imageSectionStart;
+    ULONG imageSectionSize;
+    PVOID imageSectionEnd;
 
     section = IMAGE_FIRST_SECTION(ImageNtHeader);
 
@@ -1268,13 +1271,22 @@ NTSTATUS PhGetLoaderEntryImageVaToSection(
     {
         sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
 
+        // Note: VirtualSize is used by the loader, SizeOfRawData is used for file on disk.
+        // A .bss section in a PE file might have SizeOfRawData = 0 (since it is not stored in the file) 
+        // and VirtualSize = 4096 (the amount of memory to allocate and zero-fill).
+        // The section length must be the maximum of the two values.
+
+        imageSectionStart = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
+        imageSectionSize = max(sectionHeader->Misc.VirtualSize, sectionHeader->SizeOfRawData);
+        imageSectionEnd = PTR_ADD_OFFSET(imageSectionStart, imageSectionSize);
+
         if (
-            ((ULONG_PTR)ImageDirectoryAddress >= (ULONG_PTR)PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress)) &&
-            ((ULONG_PTR)ImageDirectoryAddress < (ULONG_PTR)PTR_ADD_OFFSET(PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress), sectionHeader->SizeOfRawData))
+            ((ULONG_PTR)ImageDirectoryAddress >= (ULONG_PTR)imageSectionStart) &&
+            ((ULONG_PTR)ImageDirectoryAddress < (ULONG_PTR)imageSectionEnd)
             )
         {
-            directorySectionLength = sectionHeader->Misc.VirtualSize;
-            directorySectionAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
+            directorySectionLength = imageSectionSize;
+            directorySectionAddress = imageSectionStart;
             break;
         }
     }
@@ -1286,7 +1298,38 @@ NTSTATUS PhGetLoaderEntryImageVaToSection(
         return STATUS_SUCCESS;
     }
 
+    *ImageSectionAddress = NULL;
+    *ImageSectionLength = 0;
     return STATUS_SECTION_NOT_IMAGE;
+}
+
+NTSTATUS PhLoaderEntryImageRvaToFileOffset(
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ ULONG Rva,
+    _Out_ PULONG Offset
+    )
+{
+    PIMAGE_SECTION_HEADER section;
+    PIMAGE_SECTION_HEADER sectionHeader;
+
+    section = IMAGE_FIRST_SECTION(ImageNtHeader);
+
+    for (USHORT i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
+    {
+        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
+
+        if (
+            Rva >= sectionHeader->VirtualAddress &&
+            Rva < sectionHeader->VirtualAddress + sectionHeader->SizeOfRawData
+            )
+        {
+            *Offset = sectionHeader->PointerToRawData + (Rva - sectionHeader->VirtualAddress);
+            return STATUS_SUCCESS;
+        }
+    }
+
+    *Offset = 0;
+    return STATUS_NOT_FOUND;
 }
 
 NTSTATUS PhLoaderEntryImageRvaToSection(
@@ -1300,6 +1343,9 @@ NTSTATUS PhLoaderEntryImageRvaToSection(
     PIMAGE_SECTION_HEADER section;
     PIMAGE_SECTION_HEADER sectionHeader;
     PIMAGE_SECTION_HEADER directorySectionHeader = NULL;
+    ULONG imageSectionAddress;
+    SIZE_T imageSectionLength;
+    PVOID imageSectionMaximum;
 
     section = IMAGE_FIRST_SECTION(ImageNtHeader);
 
@@ -1307,12 +1353,16 @@ NTSTATUS PhLoaderEntryImageRvaToSection(
     {
         sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
 
+        imageSectionAddress = sectionHeader->VirtualAddress;
+        imageSectionLength = __max(sectionHeader->Misc.VirtualSize, sectionHeader->SizeOfRawData);
+        imageSectionMaximum = PTR_ADD_OFFSET(imageSectionAddress, imageSectionLength);
+
         if (
-            ((ULONG_PTR)Rva >= (ULONG_PTR)sectionHeader->VirtualAddress) &&
-            ((ULONG_PTR)Rva < (ULONG_PTR)PTR_ADD_OFFSET(sectionHeader->VirtualAddress, sectionHeader->SizeOfRawData))
+            ((ULONG_PTR)Rva >= (ULONG_PTR)imageSectionAddress) &&
+            ((ULONG_PTR)Rva < (ULONG_PTR)imageSectionMaximum)
             )
         {
-            directorySectionLength = sectionHeader->Misc.VirtualSize;
+            directorySectionLength = imageSectionLength;
             directorySectionHeader = sectionHeader;
             break;
         }
@@ -1325,6 +1375,8 @@ NTSTATUS PhLoaderEntryImageRvaToSection(
         return STATUS_SUCCESS;
     }
 
+    *ImageSection = NULL;
+    *ImageSectionLength = 0;
     return STATUS_SECTION_NOT_IMAGE;
 }
 

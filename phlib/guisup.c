@@ -60,7 +60,7 @@ HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 HFONT PhMonospaceFont = NULL;
 LONG PhFontQuality = 0;
-LONG PhSystemDpi = 96;
+LONG PhSystemDpi = USER_DEFAULT_SCREEN_DPI;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
 PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
 
@@ -693,51 +693,6 @@ BOOLEAN PhIsDarkModeAllowedForWindow(
 //}
 
 _Success_(return)
-BOOLEAN PhGetWindowRect(
-    _In_ HWND WindowHandle,
-    _Out_ PRECT WindowRect
-    )
-{
-    // Note: GetWindowRect can return success with either invalid (0,0) or empty rects (40,40) and in some cases
-    // this results in unwanted clipping, performance issues with the CreateCompatibleBitmap double buffering and
-    // issues with MonitorFromRect layout and DPI queries, so ignore the return status and check the rect (dmex)
-
-    if (!GetWindowRect(WindowHandle, WindowRect))
-        return FALSE;
-
-    if (PhRectEmpty(WindowRect))
-        return FALSE;
-
-    return TRUE;
-}
-
-_Success_(return)
-BOOLEAN PhGetCursorPos(
-    _Out_ PPOINT Point
-    )
-{
-    if (GetCursorPos(Point))
-        return TRUE;
-
-    return FALSE;
-}
-
-_Success_(return)
-BOOLEAN PhGetMessagePos(
-    _Out_ PPOINT MessagePoint
-    )
-{
-    ULONG position;
-    POINT point;
-
-    position = GetMessagePos();
-    point.x = GET_X_LPARAM(position);
-    point.y = GET_Y_LPARAM(position);
-    memcpy(MessagePoint, &point, sizeof(POINT));
-    return TRUE;
-}
-
-_Success_(return)
 BOOLEAN PhGetClientPos(
     _In_ HWND WindowHandle,
     _Out_ PPOINT ClientPoint
@@ -874,21 +829,6 @@ BOOLEAN PhGetClientRectOffsetScroll(
     return TRUE;
 }
 
-_Success_(return)
-BOOLEAN PhGetClientRect(
-    _In_ HWND WindowHandle,
-    _Out_ PRECT ClientRect
-    )
-{
-    if (!GetClientRect(WindowHandle, ClientRect))
-        return FALSE;
-
-    if (!(ClientRect->right && ClientRect->bottom))
-        return FALSE;
-
-    return TRUE;
-}
-
 BOOLEAN PhIsHungAppWindow(
     _In_ HWND WindowHandle
     )
@@ -962,19 +902,33 @@ BOOLEAN PhCheckWindowThreadDesktop(
     return !!CheckWindowThreadDesktop_I(WindowHandle, HandleToUlong(ThreadId));
 }
 
-LONG PhGetDpi(
-    _In_ LONG Number,
-    _In_ LONG DpiValue
-    )
-{
-    return PhMultiplyDivideSigned(Number, DpiValue, USER_DEFAULT_SCREEN_DPI);
-}
-
 LONG PhGetMonitorDpi(
-    _In_ LPCRECT rect
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PRECT WindowRect
     )
 {
-    return PhGetDpiValue(NULL, rect);
+    if (WindowRect && GetDpiForMonitor_I)
+    {
+        LONG dpi_x, dpi_y;
+        HMONITOR monitor;
+
+        monitor = MonitorFromRect(WindowRect, MONITOR_DEFAULTTONEAREST);
+
+        if (HR_SUCCESS(GetDpiForMonitor_I(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)))
+            return dpi_x;
+    }
+    else if (WindowHandle && GetDpiForMonitor_I)
+    {
+        LONG dpi_x, dpi_y;
+        HMONITOR monitor;
+
+        monitor = MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST);
+
+        if (HR_SUCCESS(GetDpiForMonitor_I(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)))
+            return dpi_x;
+    }
+
+    return USER_DEFAULT_SCREEN_DPI;
 }
 
 LONG PhGetSystemDpi(
@@ -983,19 +937,13 @@ LONG PhGetSystemDpi(
 {
     LONG dpi;
 
-    dpi = PhGetTaskbarDpi();
+    if (dpi = PhGetTaskbarDpi())
+        return dpi;
 
-    if (dpi == 0)
-    {
-        dpi = PhGetDpiValue(NULL, NULL);
-    }
+    if (dpi = PhGetDpiValue(NULL, NULL))
+        return dpi;
 
-    if (dpi == 0)
-    {
-        dpi = USER_DEFAULT_SCREEN_DPI;
-    }
-
-    return dpi;
+    return USER_DEFAULT_SCREEN_DPI;
 }
 
 // rev from GetDpiForShellUIComponent (dmex)
@@ -1067,7 +1015,7 @@ LONG PhGetTaskbarDpi(
 
     if (!PhRectEmpty(&windowRect))
     {
-        dpi = PhGetMonitorDpi(&windowRect);
+        dpi = PhGetMonitorDpi(NULL, &windowRect);
     }
 
     if (dpi == 0)
@@ -1095,33 +1043,27 @@ LONG PhGetWindowDpi(
     if (WindowsVersion >= WINDOWS_10)
     {
         LONG dpi;
+        RECT windowRect;
 
         if (dpi = PhGetDpiValue(WindowHandle, NULL))
-        {
             return dpi;
-        }
-        else
-        {
-            RECT windowRect;
 
-            if (PhGetWindowRect(WindowHandle, &windowRect))
-            {
-                if (dpi = PhGetDpiValue(NULL, &windowRect))
-                {
-                    return dpi;
-                }
-            }
+        if (PhGetWindowRect(WindowHandle, &windowRect))
+        {
+            if (dpi = PhGetDpiValue(NULL, &windowRect))
+                return dpi;
         }
     }
     else // Windows 7 and Windows 8
     {
+        LONG dpi;
         HDC screenHdc;
 
         if (screenHdc = PhGetDC(WindowHandle))
         {
-            LONG dpi = GetDeviceCaps(screenHdc, LOGPIXELSX);
+            dpi = GetDeviceCaps(screenHdc, LOGPIXELSX);
             PhReleaseDC(WindowHandle, screenHdc);
-            if (dpi) { return dpi; }
+            return dpi;
         }
     }
 
@@ -1130,32 +1072,29 @@ LONG PhGetWindowDpi(
 
 LONG PhGetDpiValue(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ LPCRECT Rect
+    _In_opt_ PRECT WindowRect
     )
 {
+    LONG dpi;
+
     // Windows 10 (RS1)
     if (WindowHandle && GetDpiForWindow_I)
     {
-        LONG dpi;
-
         if (dpi = GetDpiForWindow_I(WindowHandle))
             return dpi;
     }
 
     // Windows 8.1
-    if (Rect && GetDpiForMonitor_I)
+    if (WindowRect && GetDpiForMonitor_I)
     {
-        HMONITOR monitor = MonitorFromRect(Rect, MONITOR_DEFAULTTONEAREST);
-        LONG dpi_x, dpi_y;
-        if (HR_SUCCESS(GetDpiForMonitor_I(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)))
-            return dpi_x;
+        if (dpi = PhGetMonitorDpi(NULL, WindowRect))
+            return dpi;
     }
-    else if (WindowHandle && GetDpiForMonitor_I)
+
+    if (WindowHandle && GetDpiForMonitor_I)
     {
-        HMONITOR monitor = MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST);
-        LONG dpi_x, dpi_y;
-        if (HR_SUCCESS(GetDpiForMonitor_I(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)))
-            return dpi_x;
+        if (dpi = PhGetMonitorDpi(WindowHandle, NULL))
+            return dpi;
     }
 
     // Windows 10 (RS1)
@@ -1172,7 +1111,7 @@ LONG PhGetDpiValue(
 
         if (screenHdc = PhGetDC(NULL))
         {
-            LONG dpi = GetDeviceCaps(screenHdc, LOGPIXELSX);
+            dpi = GetDeviceCaps(screenHdc, LOGPIXELSX);
             PhReleaseDC(NULL, screenHdc);
             if (dpi) { return dpi; }
         }
@@ -1226,37 +1165,6 @@ BOOL PhGetSystemParametersInfo(
     }
 
     return SystemParametersInfo(Action, Param1, Param2, 0);
-}
-
-VOID PhGetSizeDpiValue(
-    _Inout_ PRECT Rect,
-    _In_ LONG DpiValue,
-    _In_ BOOLEAN DpiScale
-    )
-{
-    if (DpiValue == USER_DEFAULT_SCREEN_DPI)
-        return;
-
-    LONG left = Rect->left;
-    LONG top = Rect->top;
-    LONG width = Rect->right - Rect->left;
-    LONG height = Rect->bottom - Rect->top;
-    LONG numerator = DpiScale ? DpiValue : USER_DEFAULT_SCREEN_DPI;
-    LONG denominator = DpiScale ? USER_DEFAULT_SCREEN_DPI : DpiValue;
-
-    if (left)
-        left = PhMultiplyDivideSigned(left, numerator, denominator);
-    if (top)
-        top = PhMultiplyDivideSigned(top, numerator, denominator);
-    if (width)
-        width = PhMultiplyDivideSigned(width, numerator, denominator);
-    if (height)
-        height = PhMultiplyDivideSigned(height, numerator, denominator);
-
-    Rect->left = left;
-    Rect->top = top;
-    Rect->right = left + width;
-    Rect->bottom = top + height;
 }
 
 LONG PhAddTabControlTab(
@@ -2492,7 +2400,6 @@ VOID PhLayoutManagerLayout(
 {
     ULONG count = Manager->List->Count;
     PPH_LAYOUT_ITEM* items = (PPH_LAYOUT_ITEM*)Manager->List->Items;
-    ULONG i;
 
     Manager->LayoutNumber++;
 
@@ -2501,12 +2408,14 @@ VOID PhLayoutManagerLayout(
 
     PhGetSizeDpiValue(&Manager->RootItem.Rect, Manager->WindowDpi, FALSE);
 
-    for (i = 0; i < count; i++)
+    // BeginDeferWindowPos before the child items are laid out.
+    for (ULONG i = 0; i < count; i++)
     {
         PhpLayoutItemLayout(Manager, items[i]);
     }
 
-    for (i = 0; i < count; i++)
+    // EndDeferWindowPos after all child items are laid out.
+    for (ULONG i = 0; i < count; i++)
     {
         PPH_LAYOUT_ITEM item = items[i];
 
@@ -2529,7 +2438,7 @@ VOID PhLayoutManagerLayout(
     }
 }
 
-VOID PhLayoutManagerUpdateDpi(
+VOID PhLayoutManagerUpdate(
     _Inout_ PPH_LAYOUT_MANAGER Manager,
     _In_ LONG WindowDpi
     )

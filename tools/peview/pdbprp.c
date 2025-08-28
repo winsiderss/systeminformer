@@ -726,7 +726,7 @@ BOOLEAN PvSymbolTreeFilterCallback(
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(node->Data))
+    if (!PhIsNullOrEmptyStringRef(node->Data))
     {
         if (PvSearchControlMatch(context->SearchMatchHandle, node->Data))
             return TRUE;

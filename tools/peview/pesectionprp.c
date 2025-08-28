@@ -135,6 +135,7 @@ BOOLEAN PvSectionNodeHashtableCompareFunction(
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PvSectionNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -759,6 +760,7 @@ BOOLEAN PvSectionNodeHashtableCompareFunction(
     return sectionNode1->UniqueId == sectionNode2->UniqueId;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PvSectionNodeHashtableHashFunction(
     _In_ PVOID Entry
     )

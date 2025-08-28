@@ -118,6 +118,12 @@ namespace CustomBuildTool
         {
             try
             {
+                if (!File.Exists(FileName))
+                {
+                    Program.PrintColorMessage($"[ERROR] File missing: {FileName}", ConsoleColor.Red);
+                    return false;
+                }
+
                 string sigFileName = Path.ChangeExtension(FileName, ".sig");
 
                 if (!GetKeyMaterial(KeyName, out byte[] keyMaterial))
@@ -139,16 +145,9 @@ namespace CustomBuildTool
                     }
                 }
 
-                if (File.Exists(FileName))
-                {
-                    var signature = SignData(keyMaterial, FileName);
-                    
-                    Utils.WriteAllBytes(sigFileName, signature);
-                }
-                else
-                {
-                    Program.PrintColorMessage($"[Skipped] {FileName}", ConsoleColor.Yellow);
-                }
+                byte[] signature = SignFile(keyMaterial, FileName);
+
+                Utils.WriteAllBytes(sigFileName, signature);
             }
             catch (Exception e)
             {
@@ -168,11 +167,11 @@ namespace CustomBuildTool
             {
                 if (GetKeyMaterial(KeyName, out byte[] keyMaterial))
                 {
-                    byte[] buffer = SignData(keyMaterial, FileName);
+                    byte[] signature = SignFile(keyMaterial, FileName);
 
-                    if (buffer.Length != 0)
+                    if (signature.Length != 0)
                     {
-                        return Convert.ToHexString(buffer);
+                        return Convert.ToHexString(signature);
                     }
                 }
             }
@@ -315,7 +314,7 @@ namespace CustomBuildTool
             return buffer;
         }
 
-        private static byte[] SignData(byte[] KeyMaterial, string FileName)
+        private static byte[] SignFile(byte[] KeyMaterial, string FileName)
         {
             byte[] buffer;
 

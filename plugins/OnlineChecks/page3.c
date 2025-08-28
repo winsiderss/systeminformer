@@ -27,10 +27,20 @@ HRESULT CALLBACK TaskDialogProgressCallbackProc(
         {
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            context->ProgressMarquee = TRUE;
 
-            if (context->TaskbarListClass)
-                PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, TBPF_INDETERMINATE);
+            //if (context->TaskbarListClass)
+            //{
+            //    PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, PH_TBLF_INDETERMINATE);
+            //}
 
+#ifndef FORCE_NO_STATUS_TIMER
+            if (!context->ProgressTimer)
+            {
+                PhSetTimer(hwndDlg, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
+                context->ProgressTimer = TRUE;
+            }
+#endif
             PhReferenceObject(context);
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UploadFileThreadStart, context);
         }
@@ -65,7 +75,20 @@ HRESULT CALLBACK TaskDialogReScanProgressCallbackProc(
         {
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            context->ProgressMarquee = TRUE;
 
+            //if (context->TaskbarListClass)
+            //{
+            //    PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, PH_TBLF_INDETERMINATE);
+            //}
+
+#ifndef FORCE_NO_STATUS_TIMER
+            if (!context->ProgressTimer)
+            {
+                PhSetTimer(hwndDlg, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
+                context->ProgressTimer = TRUE;
+            }
+#endif
             PhReferenceObject(context);
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UploadRecheckThreadStart, context);
         }
@@ -100,7 +123,20 @@ HRESULT CALLBACK TaskDialogViewReportProgressCallbackProc(
         {
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            //context->ProgressMarquee = TRUE;
 
+            //if (context->TaskbarListClass)
+            //{
+            //    PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, PH_TBLF_INDETERMINATE);
+            //}
+
+#ifndef FORCE_NO_STATUS_TIMER
+            if (!context->ProgressTimer)
+            {
+                PhSetTimer(hwndDlg, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
+                context->ProgressTimer = TRUE;
+            }
+#endif
             PhReferenceObject(context);
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), ViewReportThreadStart, context);
         }
@@ -119,7 +155,7 @@ HRESULT CALLBACK TaskDialogViewReportProgressCallbackProc(
     return S_OK;
 }
 
-VOID ShowVirusTotalProgressDialog(
+VOID ShowFileUploadProgressDialog(
     _In_ PUPLOAD_CONTEXT Context
     )
 {
@@ -127,7 +163,7 @@ VOID ShowVirusTotalProgressDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR | TDF_CALLBACK_TIMER;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
 

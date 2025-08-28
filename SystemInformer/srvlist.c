@@ -33,6 +33,7 @@ BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpServiceNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -94,6 +95,7 @@ BOOLEAN PhpServiceNodeHashtableEqualFunction(
     return serviceNode1->ServiceItem == serviceNode2->ServiceItem;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpServiceNodeHashtableHashFunction(
     _In_ PVOID Entry
     )

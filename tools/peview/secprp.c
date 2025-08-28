@@ -87,22 +87,26 @@ typedef struct _PV_CERTIFICATE_NODE
     PH_STRINGREF TextCache[PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM];
 } PV_CERTIFICATE_NODE, *PPV_CERTIFICATE_NODE;
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PvCertificateNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PvCertificateNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
+
 VOID PvDestroyCertificateNode(
     _In_ PPV_CERTIFICATE_NODE CertificateNode
     );
 BOOLEAN NTAPI PvCertificateTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 BOOLEAN PvpPeFillNodeCertificateInfo(
@@ -222,6 +226,7 @@ VOID PvDeleteCertificateTree(
     PhDereferenceObject(Context->NodeRootList);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PvCertificateNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -233,6 +238,7 @@ BOOLEAN PvCertificateNodeHashtableEqualFunction(
     return node1->Node.Index == node2->Node.Index;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PvCertificateNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -1409,6 +1415,7 @@ VOID PvpPeSaveCertificateContext(
     CryptUIWizExport(0, WindowHandle, NULL, &cryptExportCertInfo, NULL);
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpPeSecuritySearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context

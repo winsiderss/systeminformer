@@ -353,7 +353,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 PhOptionsOnSize();
             }
 
-            if (PhGetIntegerPairSetting(L"OptionsWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"OptionsWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"OptionsWindowPosition", L"OptionsWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
@@ -392,6 +392,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
     case WM_DPICHANGED:
         {
             PhpOptionsSetImageList(OptionsTreeControl, TRUE);
+            PhLayoutManagerUpdate(&WindowLayoutManager, LOWORD(wParam));
+            PhOptionsOnSize();
         }
         break;
     case WM_SIZE:
@@ -783,6 +785,7 @@ typedef struct _PHP_HKURUN_ENTRY
     //PPH_STRING Name;
 } PHP_HKURUN_ENTRY, *PPHP_HKURUN_ENTRY;
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI PhpReadCurrentRunCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_VALUE_FULL_INFORMATION Information,
@@ -1880,9 +1883,10 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
-            PhLayoutManagerUpdateDpi(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
 
             PhpOptionsSetImageList(ListViewHandle, FALSE);
         }
@@ -2259,9 +2263,10 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
-            PhLayoutManagerUpdateDpi(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_SIZE:
@@ -2468,6 +2473,7 @@ VOID OptionsAdvancedSetOptionsTreeList(
     }
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN OptionsAdvancedNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -2479,6 +2485,7 @@ BOOLEAN OptionsAdvancedNodeHashtableEqualFunction(
     return PhEqualStringRef(&node1->Name->sr, &node2->Name->sr, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG OptionsAdvancedNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -3105,9 +3112,10 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
-            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:
@@ -3451,9 +3459,10 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
-            PhLayoutManagerUpdateDpi(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_SIZE:
@@ -3716,9 +3725,10 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
-            PhLayoutManagerUpdateDpi(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_SIZE:

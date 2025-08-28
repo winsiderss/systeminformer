@@ -265,6 +265,7 @@ PWE_WINDOW_NODE WepAddChildWindowNode(
     return childNode;
 }
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK WepEnumChildWindowsProc(
     _In_ HWND WindowHandle,
     _In_ PVOID Context
@@ -847,7 +848,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHEDIT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, NULL);

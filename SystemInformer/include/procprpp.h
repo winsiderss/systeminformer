@@ -118,12 +118,14 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(PH_OPEN_OBJECT)
 NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS NTAPI PhpCloseProcessTokenForPage(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -165,12 +167,14 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(PH_OPEN_OBJECT)
 NTSTATUS NTAPI PhpOpenProcessJobForPage(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS NTAPI PhpCloseProcessJobForPage(
     _In_ HANDLE Handle,
     _In_ BOOLEAN Release,

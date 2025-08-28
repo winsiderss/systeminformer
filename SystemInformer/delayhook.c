@@ -372,7 +372,7 @@ typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
 VOID ThemeWindowStatusBarCreateBufferedContext(
     _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context,
     _In_ HDC Hdc,
-    _In_ RECT BufferRect
+    _In_ PRECT BufferRect
     )
 {
     Context->BufferedDc = CreateCompatibleDC(Hdc);
@@ -380,11 +380,11 @@ VOID ThemeWindowStatusBarCreateBufferedContext(
     if (!Context->BufferedDc)
         return;
 
-    Context->BufferedContextRect = BufferRect;
+    Context->BufferedContextRect = *BufferRect;
     Context->BufferedBitmap = CreateCompatibleBitmap(
         Hdc,
-        Context->BufferedContextRect.right,
-        Context->BufferedContextRect.bottom
+        BufferRect->right,
+        BufferRect->bottom
         );
 
     Context->BufferedOldBitmap = SelectBitmap(Context->BufferedDc, Context->BufferedBitmap);
@@ -677,7 +677,7 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
 
                     if (!context->BufferedDc)
                     {
-                        ThemeWindowStatusBarCreateBufferedContext(context, hdc, bufferRect);
+                        ThemeWindowStatusBarCreateBufferedContext(context, hdc, &bufferRect);
                     }
 
                     if (context->BufferedDc)
@@ -739,7 +739,7 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
 
             if (hdc = GetDCEx(WindowHandle, updateRegion, flags))
             {
-                GetWindowRect(WindowHandle, &windowRect);
+                PhGetWindowRect(WindowHandle, &windowRect);
                 PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
 
                 if (GetFocus() == WindowHandle)

@@ -274,30 +274,153 @@ PhIsDarkModeAllowedForWindow(
     _In_ HWND WindowHandle
     );
 
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhRectEmpty(
+    _In_ PRECT Rect
+    )
+{
+#if defined(PHNT_NATIVE_RECT)
+    return !!IsRectEmpty(Rect);
+#else
+    if (Rect)
+    {
+        if (Rect->left >= Rect->right || Rect->top >= Rect->bottom)
+            return TRUE;
+    }
+
+    return FALSE;
+#endif
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhInflateRect(
+    _In_ PRECT Rect,
+    _In_ LONG dx,
+    _In_ LONG dy
+    )
+{
+#if defined(PHNT_NATIVE_RECT)
+    return !!InflateRect(Rect, dx, dy);
+#else
+    Rect->left -= dx;
+    Rect->top -= dy;
+    Rect->right += dx;
+    Rect->bottom += dy;
+    return TRUE;
+#endif
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhOffsetRect(
+    _In_ PRECT Rect,
+    _In_ LONG dx,
+    _In_ LONG dy
+    )
+{
+#if defined(PHNT_NATIVE_RECT)
+    return !!OffsetRect(Rect, dx, dy);
+#else
+    Rect->left += dx;
+    Rect->top += dy;
+    Rect->right += dx;
+    Rect->bottom += dy;
+    return TRUE;
+#endif
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhPtInRect(
+    _In_ PRECT Rect,
+    _In_ POINT Point
+    )
+{
+#if defined(PHNT_NATIVE_RECT)
+    return !!PtInRect(Rect, Point);
+#else
+    return Point.x >= Rect->left && Point.x < Rect->right &&
+        Point.y >= Rect->top && Point.y < Rect->bottom;
+#endif
+}
+
 _Success_(return)
-PHLIBAPI
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhGetWindowRect(
     _In_ HWND WindowHandle,
     _Out_ PRECT WindowRect
-    );
+    )
+{
+    // Note: GetWindowRect can return success with either invalid (0,0) or empty rects (40,40) and in some cases
+    // this results in unwanted clipping, performance issues with the CreateCompatibleBitmap double buffering and
+    // issues with MonitorFromRect layout and DPI queries, so ignore the return status and check the rect (dmex)
+
+    if (!GetWindowRect(WindowHandle, WindowRect))
+        return FALSE;
+
+    if (PhRectEmpty(WindowRect))
+        return FALSE;
+
+    return TRUE;
+}
 
 _Success_(return)
-PHLIBAPI
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhGetClientRect(
+    _In_ HWND WindowHandle,
+    _Out_ PRECT ClientRect
+    )
+{
+    if (!GetClientRect(WindowHandle, ClientRect))
+        return FALSE;
+
+    if (!(ClientRect->right && ClientRect->bottom))
+        return FALSE;
+
+    return TRUE;
+}
+
+_Success_(return)
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhGetCursorPos(
     _Out_ PPOINT Point
-    );
+    )
+{
+    if (GetCursorPos(Point))
+        return TRUE;
+
+    return FALSE;
+}
 
 _Success_(return)
-PHLIBAPI
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhGetMessagePos(
     _Out_ PPOINT MessagePoint
-    );
+    )
+{
+    ULONG position;
+    POINT point;
+
+    position = GetMessagePos();
+    point.x = GET_X_LPARAM(position);
+    point.y = GET_Y_LPARAM(position);
+    memcpy(MessagePoint, &point, sizeof(POINT));
+    return TRUE;
+}
 
 _Success_(return)
 PHLIBAPI
@@ -349,15 +472,6 @@ PhScreenToClientRect(
     _Inout_ PRECT Rect
     );
 
-_Success_(return)
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhGetClientRect(
-    _In_ HWND WindowHandle,
-    _Out_ PRECT ClientRect
-    );
-
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -372,19 +486,58 @@ PhGetShellWindow(
     VOID
     );
 
-PHLIBAPI
+/**
+ * Converts default logical units (based on 96 DPI) to physical units appropriate for the current current monitor's display DPI.
+ * \param Value The value to scale.
+ * \param Scale The target DPI scale.
+ * \return The scaled value.
+ */
+FORCEINLINE
+LONG
+NTAPI
+PhScaleToDisplay(
+    _In_ LONG Value,
+    _In_ LONG Scale
+    )
+{
+    return PhMultiplyDivideSigned(Value, Scale, USER_DEFAULT_SCREEN_DPI);
+}
+
+/**
+ * Converts a value from physical units (current DPI) to default logical units (based on 96 DPI).
+ *
+ * \param Value The value to convert from physical units.
+ * \param Scale The current DPI scale.
+ * \return The value converted to default logical units (96 DPI).
+ */
+FORCEINLINE
+LONG
+NTAPI
+PhScaleToDefault(
+    _In_ LONG Value,
+    _In_ LONG Scale
+    )
+{
+    return PhMultiplyDivideSigned(Value, USER_DEFAULT_SCREEN_DPI, Scale);
+}
+
+FORCEINLINE
 LONG
 NTAPI
 PhGetDpi(
-    _In_ LONG Number,
-    _In_ LONG DpiValue
-    );
+    _In_ LONG Value,
+    _In_ LONG Scale
+    )
+{
+    return PhMultiplyDivideSigned(Value, Scale, USER_DEFAULT_SCREEN_DPI);
+}
 
 PHLIBAPI
 LONG
 NTAPI
 PhGetMonitorDpi(
-    _In_ LPCRECT rect
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PRECT WindowRect
     );
 
 FORCEINLINE
@@ -397,7 +550,7 @@ PhGetMonitorDpiFromRect(
 
     PhRectangleToRect(&rect, Rectangle);
 
-    return PhGetMonitorDpi(&rect);
+    return PhGetMonitorDpi(NULL, &rect);
 }
 
 PHLIBAPI
@@ -426,8 +579,49 @@ LONG
 NTAPI
 PhGetDpiValue(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ LPCRECT Rect
+    _In_opt_ PRECT WindowRect
     );
+
+FORCEINLINE
+VOID
+PhGetSizeDpiValue(
+    _Inout_ PRECT Rect,
+    _In_ LONG Dpi,
+    _In_ BOOLEAN ScaleToDisplay
+    )
+{
+    PH_RECTANGLE rect;
+
+    if (Dpi == USER_DEFAULT_SCREEN_DPI)
+        return;
+
+    PhRectToRectangle(&rect, Rect);
+
+    if (ScaleToDisplay)
+    {
+        if (rect.Left)
+            rect.Left = PhScaleToDisplay(rect.Left, Dpi);
+        if (rect.Top)
+            rect.Top = PhScaleToDisplay(rect.Top, Dpi);
+        if (rect.Width)
+            rect.Width = PhScaleToDisplay(rect.Width, Dpi);
+        if (rect.Height)
+            rect.Height = PhScaleToDisplay(rect.Height, Dpi);
+    }
+    else
+    {
+        if (rect.Left)
+            rect.Left = PhScaleToDefault(rect.Left, Dpi);
+        if (rect.Top)
+            rect.Top = PhScaleToDefault(rect.Top, Dpi);
+        if (rect.Width)
+            rect.Width = PhScaleToDefault(rect.Width, Dpi);
+        if (rect.Height)
+            rect.Height = PhScaleToDefault(rect.Height, Dpi);
+    }
+
+    PhRectangleToRect(Rect, &rect);
+}
 
 PHLIBAPI
 LONG
@@ -454,23 +648,18 @@ PhGetSystemParametersInfo(
     _In_opt_ LONG DpiValue
     );
 
-PHLIBAPI
-VOID
-NTAPI
-PhGetSizeDpiValue(
-    _Inout_ PRECT Rect,
-    _In_ LONG DpiValue,
-    _In_ BOOLEAN DpiScale
-    );
-
-FORCEINLINE LONG_PTR PhGetClassStyle(
+FORCEINLINE
+LONG_PTR
+PhGetClassStyle(
     _In_ HWND WindowHandle
     )
 {
     return GetClassLongPtr(WindowHandle, GCL_STYLE);
 }
 
-FORCEINLINE VOID PhSetClassStyle(
+FORCEINLINE
+VOID
+PhSetClassStyle(
     _In_ HWND Handle,
     _In_ LONG_PTR Mask,
     _In_ LONG_PTR Value
@@ -483,14 +672,18 @@ FORCEINLINE VOID PhSetClassStyle(
     SetClassLongPtr(Handle, GCL_STYLE, style);
 }
 
-FORCEINLINE LONG_PTR PhGetWindowStyle(
+FORCEINLINE
+LONG_PTR
+PhGetWindowStyle(
     _In_ HWND WindowHandle
     )
 {
     return GetWindowLongPtr(WindowHandle, GWL_STYLE);
 }
 
-FORCEINLINE LONG_PTR PhGetWindowStyleEx(
+FORCEINLINE
+LONG_PTR
+PhGetWindowStyleEx(
     _In_ HWND WindowHandle
     )
 {
@@ -1377,7 +1570,7 @@ PhLayoutManagerLayout(
 PHLIBAPI
 VOID
 NTAPI
-PhLayoutManagerUpdateDpi(
+PhLayoutManagerUpdate(
     _Inout_ PPH_LAYOUT_MANAGER Manager,
     _In_ LONG WindowDpi
     );
@@ -1657,7 +1850,9 @@ FORCEINLINE VOID PhCopyControlRectangle(
 {
     RECT windowRect;
 
-    GetWindowRect(FromControlHandle, &windowRect);
+    if (!PhGetWindowRect(FromControlHandle, &windowRect))
+        return;
+
     MapWindowRect(NULL, ParentWindowHandle, &windowRect);
     MoveWindow(ToControlHandle, windowRect.left, windowRect.top,
         windowRect.right - windowRect.left, windowRect.bottom - windowRect.top, FALSE);
@@ -2735,82 +2930,6 @@ PhDuplicateFontWithNewHeight(
     _In_ LONG NewHeight,
     _In_ LONG dpiValue
     );
-
-FORCEINLINE
-BOOLEAN
-NTAPI
-PhRectEmpty(
-    _In_ PRECT Rect
-    )
-{
-#if defined(PHNT_NATIVE_RECT)
-    return !!IsRectEmpty(Rect);
-#else
-    if (Rect)
-    {
-        if (Rect->left >= Rect->right || Rect->top >= Rect->bottom)
-            return TRUE;
-    }
-
-    return FALSE;
-#endif
-}
-
-FORCEINLINE
-BOOLEAN
-NTAPI
-PhInflateRect(
-    _In_ PRECT Rect,
-    _In_ LONG dx,
-    _In_ LONG dy
-    )
-{
-#if defined(PHNT_NATIVE_RECT)
-    return !!InflateRect(Rect, dx, dy);
-#else
-    Rect->left -= dx;
-    Rect->top -= dy;
-    Rect->right += dx;
-    Rect->bottom += dy;
-    return TRUE;
-#endif
-}
-
-FORCEINLINE
-BOOLEAN
-NTAPI
-PhOffsetRect(
-    _In_ PRECT Rect,
-    _In_ LONG dx,
-    _In_ LONG dy
-    )
-{
-#if defined(PHNT_NATIVE_RECT)
-    return !!OffsetRect(Rect, dx, dy);
-#else
-    Rect->left += dx;
-    Rect->top += dy;
-    Rect->right += dx;
-    Rect->bottom += dy;
-    return TRUE;
-#endif
-}
-
-FORCEINLINE
-BOOLEAN
-NTAPI
-PhPtInRect(
-    _In_ PRECT Rect,
-    _In_ POINT Point
-    )
-{
-#if defined(PHNT_NATIVE_RECT)
-    return !!PtInRect(Rect, Point);
-#else
-    return Point.x >= Rect->left && Point.x < Rect->right &&
-        Point.y >= Rect->top && Point.y < Rect->bottom;
-#endif
-}
 
 VOID PhWindowThemeMainMenuBorder(
     _In_ HWND WindowHandle

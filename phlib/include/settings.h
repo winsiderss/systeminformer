@@ -76,10 +76,12 @@ BOOLEAN PhSettingFromString(
     _Inout_ PPH_SETTING Setting
     );
 
-typedef BOOLEAN (NTAPI *PPH_SETTINGS_ENUM_CALLBACK)(
+typedef _Function_class_(PH_SETTINGS_ENUM_CALLBACK)
+BOOLEAN NTAPI PH_SETTINGS_ENUM_CALLBACK(
     _In_ PPH_SETTING Setting,
     _In_ PVOID Context
     );
+typedef PH_SETTINGS_ENUM_CALLBACK* PPH_SETTINGS_ENUM_CALLBACK;
 
 VOID PhEnumSettings(
     _In_ PPH_SETTINGS_ENUM_CALLBACK Callback,
@@ -96,19 +98,21 @@ PhGetIntegerStringRefSetting(
     );
 
 PHLIBAPI
-PH_INTEGER_PAIR
+BOOLEAN
 NTAPI
 PhGetIntegerPairStringRefSetting(
-    _In_ PCPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name,
+    _Out_ PPH_INTEGER_PAIR IntegerPair
     );
 
 PHLIBAPI
-PPH_SCALABLE_INTEGER_PAIR
+BOOLEAN
 NTAPI
 PhGetScalableIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
-    _In_ BOOLEAN ScaleToCurrent,
-    _In_ LONG dpiValue
+    _In_ BOOLEAN ScaleToDpi,
+    _In_ LONG Dpi,
+    _Out_ PPH_SCALABLE_INTEGER_PAIR* ScalableIntegerPair
     );
 
 PHLIBAPI
@@ -160,26 +164,6 @@ PhSetStringRefSetting(
     );
 
 FORCEINLINE
-LONG
-PhScaleToDisplay(
-    _In_ LONG Value,
-    _In_ LONG Scale
-    )
-{
-    return PhMultiplyDivideSigned(Value, Scale, USER_DEFAULT_SCREEN_DPI);
-}
-
-FORCEINLINE
-LONG
-PhScaleToDefault(
-    _In_ LONG Value,
-    _In_ LONG Scale
-    )
-{
-    return PhMultiplyDivideSigned(Value, USER_DEFAULT_SCREEN_DPI, Scale);
-}
-
-FORCEINLINE
 VOID
 PhScalableIntegerPairToScale(
     _In_ PPH_SCALABLE_INTEGER_PAIR ScalableIntegerPair,
@@ -224,11 +208,14 @@ PhGetIntegerPairSetting(
     _In_ PCWSTR Name
     )
 {
+    PH_INTEGER_PAIR scalableIntegerPair = { 0 };
     PH_STRINGREF name;
 
     PhInitializeStringRef(&name, Name);
 
-    return PhGetIntegerPairStringRefSetting(&name);
+    PhGetIntegerPairStringRefSetting(&name, &scalableIntegerPair);
+
+    return scalableIntegerPair;
 }
 
 FORCEINLINE
@@ -236,15 +223,18 @@ PPH_SCALABLE_INTEGER_PAIR
 NTAPI
 PhGetScalableIntegerPairSetting(
     _In_ PCWSTR Name,
-    _In_ BOOLEAN ScaleToCurrent,
-    _In_ LONG dpiValue
+    _In_ BOOLEAN ScaleToDpi,
+    _In_ LONG Dpi
     )
 {
+    PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair = NULL;
     PH_STRINGREF name;
 
     PhInitializeStringRef(&name, Name);
 
-    return PhGetScalableIntegerPairStringRefSetting(&name, ScaleToCurrent, dpiValue);
+    PhGetScalableIntegerPairStringRefSetting(&name, ScaleToDpi, Dpi, &scalableIntegerPair);
+
+    return scalableIntegerPair;
 }
 
 FORCEINLINE
@@ -478,10 +468,17 @@ PhValidWindowPlacementFromSetting(
     )
 {
     PH_STRINGREF name;
+    PH_INTEGER_PAIR integerPair;
 
     PhInitializeStringRef(&name, Name);
 
-    return PhGetIntegerPairStringRefSetting(&name).X != 0;
+    if (PhGetIntegerPairStringRefSetting(&name, &integerPair))
+    {
+        if (integerPair.X != 0)
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 PHLIBAPI
