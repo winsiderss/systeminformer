@@ -21,7 +21,7 @@ static ProcessInfo* GetProcessInfo(
     if (newProcess)
     {
         PhMoveReference(
-            reinterpret_cast<PVOID*>(&processInfo->ProcessItem),
+            &processInfo->ProcessItem,
             PhReferenceProcessItem(UlongToHandle(ProcessId))
             );
     }
@@ -51,7 +51,7 @@ static void CheckForTerminatedRealtimeProcesses(
             PhQueryPerformanceCounter(&performanceCounter);
             terminatedProcesses->emplace_back(processId, performanceCounter.QuadPart);
 
-            PhClearReference(reinterpret_cast<PVOID*>(&processInfo->ProcessItem));
+            PhClearReference(&processInfo->ProcessItem);
         }
     }
 }
@@ -406,7 +406,7 @@ NTSTATUS PresentMonOutputThread(
 
        if (processInfo->ProcessItem)
        {
-           PhClearReference(reinterpret_cast<PVOID*>(&processInfo->ProcessItem));
+           PhClearReference(&processInfo->ProcessItem);
        }
     }
 

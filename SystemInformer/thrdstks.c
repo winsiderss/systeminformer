@@ -1669,7 +1669,7 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            if (PhGetIntegerPairSetting(L"ThreadStacksWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"ThreadStacksWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"ThreadStacksWindowPosition", L"ThreadStacksWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
