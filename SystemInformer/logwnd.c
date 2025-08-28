@@ -359,7 +359,8 @@ INT_PTR CALLBACK PhpLogDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PhLayoutManagerUpdateDpi(&WindowLayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&WindowLayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&WindowLayoutManager);
         }
         break;
     case WM_SIZE:

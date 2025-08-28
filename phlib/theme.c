@@ -59,10 +59,13 @@ typedef struct _PHP_THEME_WINDOW_COMBO_CONTEXT
     POINT CursorPos;
 } PHP_THEME_WINDOW_COMBO_CONTEXT, *PPHP_THEME_WINDOW_COMBO_CONTEXT;
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
     );
+
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
@@ -705,6 +708,7 @@ VOID PhInitializeWindowThemeACLUI(
     InvalidateRect(ACLUIControl, NULL, FALSE);
 }
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
@@ -946,6 +950,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     return TRUE;
 }
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
@@ -2961,7 +2966,8 @@ LRESULT CALLBACK PhpThemeWindowListBoxControlSubclassProc(
 
             updateRegion = (HRGN)wParam;
 
-            GetWindowRect(WindowHandle, &windowRect);
+            if (!PhGetWindowRect(WindowHandle, &windowRect))
+                break;
 
             // draw the scrollbar without the border.
             {

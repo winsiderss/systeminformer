@@ -44,6 +44,7 @@ VOID PhpPrintHashtableStatistics(
     _In_ PPH_HASHTABLE Hashtable
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpDebugConsoleThreadStart(
     _In_ PVOID Parameter
     );

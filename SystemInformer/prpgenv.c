@@ -182,6 +182,7 @@ VOID PhpSetEnvironmentListStatusMessage(
     }
 }
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI PhEnumEnvironmentKeyValueCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_VALUE_FULL_INFORMATION Information,
@@ -818,7 +819,8 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:

@@ -155,6 +155,14 @@ PhCenterWindow(
     _In_opt_ HWND ParentWindowHandle
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhMoveWindowToMonitor(
+    _In_ HWND WindowHandle,
+    _In_ HMONITOR MonitorHandle
+    );
+
 //
 // NLS
 //
@@ -800,6 +808,17 @@ PPH_STRING
 NTAPI
 PhFormatTimeSpanRelative(
     _In_ ULONG64 TimeSpan
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhFormatTimeSpanRelativeToBuffer(
+    _In_ ULONG64 TimeSpan,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _In_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
     );
 
 PHLIBAPI
@@ -2025,12 +2044,15 @@ typedef struct _PH_COMMAND_LINE_OPTION
     PCWSTR Name;
     PH_COMMAND_LINE_OPTION_TYPE Type;
 } PH_COMMAND_LINE_OPTION, *PPH_COMMAND_LINE_OPTION;
+typedef const PH_COMMAND_LINE_OPTION* PCPH_COMMAND_LINE_OPTION;
 
-typedef BOOLEAN (NTAPI *PPH_COMMAND_LINE_CALLBACK)(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+typedef _Function_class_(PH_COMMAND_LINE_CALLBACK)
+BOOLEAN NTAPI PH_COMMAND_LINE_CALLBACK(
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
     );
+typedef PH_COMMAND_LINE_CALLBACK *PPH_COMMAND_LINE_CALLBACK;
 
 #define PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS 0x1
 #define PH_COMMAND_LINE_IGNORE_FIRST_PART 0x2
@@ -2048,7 +2070,7 @@ BOOLEAN
 NTAPI
 PhParseCommandLine(
     _In_ PCPH_STRINGREF CommandLine,
-    _In_opt_ PPH_COMMAND_LINE_OPTION Options,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Options,
     _In_ ULONG NumberOfOptions,
     _In_ ULONG Flags,
     _In_ PPH_COMMAND_LINE_CALLBACK Callback,

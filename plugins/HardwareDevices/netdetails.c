@@ -659,7 +659,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_NETWORK_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_NETWORK_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_NETWORK_POSITION, SETTING_NAME_NETWORK_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentHandle);

@@ -63,6 +63,7 @@ VOID EtEtwSystemInformationInitializing(
     NetworkSection = Pointers->CreateSection(&section);
 }
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN EtpDiskSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -288,7 +289,7 @@ INT_PTR CALLBACK EtpDiskDialogProc(
 
             margin = panelItem->Margin;
             PhGetSizeDpiValue(&margin, DiskSection->Parameters->WindowDpi, TRUE);
-            PhAddLayoutItemEx(&DiskLayoutManager, DiskPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, margin);
+            PhAddLayoutItemEx(&DiskLayoutManager, DiskPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &margin);
 
             EtpCreateDiskGraph();
             EtpUpdateDiskGraph();
@@ -313,6 +314,7 @@ INT_PTR CALLBACK EtpDiskDialogProc(
             DiskWriteGraphState.Valid = FALSE;
             DiskWriteGraphState.TooltipIndex = ULONG_MAX;
 
+            PhLayoutManagerUpdate(&DiskLayoutManager, DiskSection->Parameters->WindowDpi);
             PhLayoutManagerLayout(&DiskLayoutManager);
             EtpLayoutDiskGraphs(hwndDlg);
         }
@@ -434,8 +436,8 @@ VOID EtpLayoutDiskGraphs(
     PhGetSizeDpiValue(&marginRect, DiskSection->Parameters->WindowDpi, TRUE);
     graphPadding = PhGetDpi(GRAPH_PADDING, DiskSection->Parameters->WindowDpi);
 
-    GetClientRect(WindowHandle, &clientRect);
-    GetClientRect(GetDlgItem(WindowHandle, IDC_DISKREAD_L), &labelRect);
+    PhGetClientRect(WindowHandle, &clientRect);
+    PhGetClientRect(GetDlgItem(WindowHandle, IDC_DISKREAD_L), &labelRect);
     graphWidth = clientRect.right - marginRect.left - marginRect.right;
     graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - graphPadding * 3) / 2;
 
@@ -844,6 +846,7 @@ PPH_STRING EtpGetMaxDiskString(
     return PhReferenceEmptyString();
 }
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN EtpNetworkSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -1046,7 +1049,7 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
 
             margin = panelItem->Margin;
             PhGetSizeDpiValue(&margin, NetworkSection->Parameters->WindowDpi, TRUE);
-            PhAddLayoutItemEx(&NetworkLayoutManager, NetworkPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, margin);
+            PhAddLayoutItemEx(&NetworkLayoutManager, NetworkPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &margin);
 
             EtpCreateNetworkGraph();
             EtpUpdateNetworkGraph();
@@ -1071,6 +1074,7 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             NetworkSendGraphState.Valid = FALSE;
             NetworkSendGraphState.TooltipIndex = ULONG_MAX;
 
+            PhLayoutManagerUpdate(&DiskLayoutManager, DiskSection->Parameters->WindowDpi);
             PhLayoutManagerLayout(&NetworkLayoutManager);
             EtpLayoutNetworkGraphs(hwndDlg);
         }
@@ -1192,8 +1196,8 @@ VOID EtpLayoutNetworkGraphs(
     PhGetSizeDpiValue(&marginRect, NetworkSection->Parameters->WindowDpi, TRUE);
     graphPadding = PhGetDpi(GRAPH_PADDING, NetworkSection->Parameters->WindowDpi);
 
-    GetClientRect(WindowHandle, &clientRect);
-    GetClientRect(GetDlgItem(WindowHandle, IDC_NETRECEIVE_L), &labelRect);
+    PhGetClientRect(WindowHandle, &clientRect);
+    PhGetClientRect(GetDlgItem(WindowHandle, IDC_NETRECEIVE_L), &labelRect);
     graphWidth = clientRect.right - marginRect.left - marginRect.right;
     graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - graphPadding * 3) / 2;
 

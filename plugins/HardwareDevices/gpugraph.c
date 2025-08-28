@@ -265,8 +265,8 @@ VOID GraphicsDeviceLayoutGraphs(
     marginRect = Context->GpuGraphMargin;
     PhGetSizeDpiValue(&marginRect, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
-    GetClientRect(Context->GpuDialog, &clientRect);
-    GetClientRect(GetDlgItem(Context->GpuDialog, IDC_GPU_L), &labelRect);
+    PhGetClientRect(Context->GpuDialog, &clientRect);
+    PhGetClientRect(GetDlgItem(Context->GpuDialog, IDC_GPU_L), &labelRect);
     graphWidth = clientRect.right - marginRect.left - marginRect.right;
 
     //if (EtGpuSupported)
@@ -1360,7 +1360,7 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
 
             context->GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_GPUDEVICE_PANEL), hwndDlg, GraphicsDevicePanelDialogProc, context);
             ShowWindow(context->GpuPanel, SW_SHOW);
-            PhAddLayoutItemEx(&context->GpuLayoutManager, context->GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+            PhAddLayoutItemEx(&context->GpuLayoutManager, context->GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             GraphicsDeviceCreateGraphs(context);
             GraphicsDeviceUpdateGraphs(context);
@@ -1391,6 +1391,8 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
             }
 
+            PhLayoutManagerUpdate(&context->GpuLayoutManager, context->SysinfoSection->Parameters->WindowDpi);
+            PhLayoutManagerLayout(&context->GpuLayoutManager);
             GraphicsDeviceLayoutGraphs(context);
         }
         break;

@@ -121,6 +121,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     WINDOW_PROPERTIES_INDEX_CLASS_WNDPROC,
 } NETADAPTER_DETAILS_INDEX;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS WepPropertiesThreadStart(
     _In_ PVOID Parameter
     );
@@ -333,6 +334,7 @@ BOOLEAN WeShowWindowProperties(
     return TRUE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS WepPropertiesThreadStart(
     _In_ PVOID Parameter
     )
@@ -396,6 +398,7 @@ NTSTATUS WepPropertiesThreadStart(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS WepResolveSymbolFunction(
     _In_ PVOID Parameter
     )
@@ -1520,7 +1523,7 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
 
             WepWindowRefreshGeneralPage(hwndDlg, context);
 
-            if (!PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION).X) // HACK
+            if (!PhValidWindowPlacementFromSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION))
             {
                 PhCenterWindow(GetParent(hwndDlg), context->ParentWindowHandle);
             }
@@ -1763,6 +1766,12 @@ static INT_PTR CALLBACK WepWindowPropEditDlgProc(
         break;
     case WM_SIZE:
         {
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&LayoutManager);
         }
         break;
@@ -2457,8 +2466,10 @@ INT_PTR CALLBACK WepWindowPreviewDlgProc(
             RECT windowClientRect;
             HBITMAP bitmap;
 
-            GetClientRect(hwndDlg, &clientRect);
-            GetClientRect(context->WindowHandle, &windowClientRect);
+            if (!PhGetClientRect(hwndDlg, &clientRect))
+                break;
+            if (!PhGetClientRect(context->WindowHandle, &windowClientRect))
+                break;
 
             hdc = BeginPaint(hwndDlg, &paint);
             bufferDc = CreateCompatibleDC(hdc);

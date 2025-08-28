@@ -123,6 +123,7 @@ VOID NTAPI TaskbarUpdateGraphs(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS TaskbarIconUpdateThread(
     _In_opt_ PVOID Context
     )

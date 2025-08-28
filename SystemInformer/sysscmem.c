@@ -553,7 +553,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             PhysicalGraphState.Valid = FALSE;
             PhysicalGraphState.TooltipIndex = ULONG_MAX;
 
-            PhLayoutManagerUpdateDpi(&MemoryLayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&MemoryLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&MemoryLayoutManager);
             PhSipLayoutMemoryGraphs(hwndDlg);
         }

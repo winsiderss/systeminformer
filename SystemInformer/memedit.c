@@ -280,7 +280,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                     LONG dpiValue;
 
                     PhRectangleToRect(&rect, &windowRectangle);
-                    dpiValue = PhGetMonitorDpi(&rect);
+                    dpiValue = PhGetMonitorDpi(NULL, &rect);
 
                     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue)->Pair;
                     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
@@ -557,7 +557,8 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:

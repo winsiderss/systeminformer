@@ -250,8 +250,8 @@ VOID RaplDeviceLayoutGraphs(
     margin = Context->GraphMargin;
     PhGetSizeDpiValue(&margin, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
-    GetClientRect(Context->WindowHandle, &clientRect);
-    GetClientRect(Context->PackageGraphLabelHandle, &labelRect);
+    PhGetClientRect(Context->WindowHandle, &clientRect);
+    PhGetClientRect(Context->PackageGraphLabelHandle, &labelRect);
     graphWidth = clientRect.right - margin.left - margin.right;
     graphHeight = (clientRect.bottom - margin.top - margin.bottom - labelRect.bottom * 4 - Context->GraphPadding * 5) / 4;
 
@@ -712,7 +712,7 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
 
             context->RaplDevicePanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_RAPLDEVICE_PANEL), hwndDlg, RaplDevicePanelDialogProc, context);
             ShowWindow(context->RaplDevicePanel, SW_SHOW);
-            PhAddLayoutItemEx(&context->LayoutManager, context->RaplDevicePanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+            PhAddLayoutItemEx(&context->LayoutManager, context->RaplDevicePanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             RaplDeviceInitializeGraphStates(context);
             RaplDeviceCreateGraphs(context);
@@ -760,6 +760,7 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_DEVICENAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
             }
 
+            PhLayoutManagerUpdate(&context->LayoutManager, context->SysinfoSection->Parameters->WindowDpi);
             PhLayoutManagerLayout(&context->LayoutManager);
             RaplDeviceLayoutGraphs(context);
         }
@@ -803,6 +804,7 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
     return FALSE;
 }
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN RaplDeviceSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,

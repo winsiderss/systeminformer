@@ -280,7 +280,8 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
 
             PhpChooseProcessSetImagelist(context);
 

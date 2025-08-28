@@ -279,8 +279,8 @@ VOID DiskDeviceLayoutGraphs(
     margin = Context->GraphMargin;
     PhGetSizeDpiValue(&margin, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
-    GetClientRect(Context->WindowHandle, &clientRect);
-    GetClientRect(Context->LabelWriteHandle, &labelRect);
+    PhGetClientRect(Context->WindowHandle, &clientRect);
+    PhGetClientRect(Context->LabelWriteHandle, &labelRect);
     graphWidth = clientRect.right - margin.left - margin.right;
     graphHeight = (clientRect.bottom - margin.top - margin.bottom - labelRect.bottom * 2 - Context->GraphPadding * 3) / 2;
 
@@ -566,7 +566,7 @@ INT_PTR CALLBACK DiskDeviceDialogProc(
 
             context->PanelWindowHandle = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_DISKDRIVE_PANEL), hwndDlg, DiskDevicePanelDialogProc, context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
-            PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+            PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             DiskDeviceUpdateDialogDpi(context);
             DiskDeviceUpdateTitle(context);
@@ -609,6 +609,7 @@ INT_PTR CALLBACK DiskDeviceDialogProc(
                 SetWindowFont(context->DiskNameLabel, context->SysinfoSection->Parameters->MediumFont, FALSE);
             }
 
+            PhLayoutManagerUpdate(&context->LayoutManager, context->SysinfoSection->Parameters->WindowDpi);
             PhLayoutManagerLayout(&context->LayoutManager);
             DiskDeviceLayoutGraphs(context);
         }
@@ -644,6 +645,7 @@ INT_PTR CALLBACK DiskDeviceDialogProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS DiskDeviceQueryNameWorkQueueItem(
     _In_ PDV_DISK_ENTRY DiskEntry
     )
@@ -672,6 +674,7 @@ VOID DiskDeviceQueueNameUpdate(
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), DiskDeviceQueryNameWorkQueueItem, DiskEntry);
 }
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN DiskDeviceSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,

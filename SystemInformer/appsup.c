@@ -591,7 +591,7 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
 }
 
 static BOOLEAN NTAPI PhpSvchostCommandLineCallback(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
     )
@@ -619,7 +619,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
         {
             // svchost.exe -k <GroupName>
 
-            static PH_COMMAND_LINE_OPTION options[] =
+            static CONST PH_COMMAND_LINE_OPTION options[] =
             {
                 { 1, L"k", MandatoryArgumentType }
             };
@@ -2137,7 +2137,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
 
     PhInitializeStringRefLongHint(&columnText, headerText);
 
-    if (PhIsNullOrEmptyString(&columnText))
+    if (PhIsNullOrEmptyStringRef(&columnText))
         return FALSE;
 
     if (!PhFindEMenuItemEx(Menu, 0, NULL, InsertAfterId, &parentItem, &indexInParent))
@@ -2209,7 +2209,7 @@ BOOLEAN PhInsertCopyIListViewEMenuItem(
 
     PhInitializeStringRefLongHint(&columnText, headerText);
 
-    if (PhIsNullOrEmptyString(&columnText))
+    if (PhIsNullOrEmptyStringRef(&columnText))
         return FALSE;
 
     if (!PhFindEMenuItemEx(Menu, 0, NULL, InsertAfterId, &parentItem, &indexInParent))

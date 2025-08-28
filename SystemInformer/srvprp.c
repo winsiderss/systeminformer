@@ -388,7 +388,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             context->ServiceDllWindowHandle = GetDlgItem(hwndDlg, IDC_SERVICEDLL);
 
             // HACK
-            if (PhGetIntegerPairSetting(L"ServiceWindowPosition").X == 0)
+            if (PhValidWindowPlacementFromSetting(L"ServiceWindowPosition"))
                 PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
             else
                 PhLoadWindowPlacementFromSetting(L"ServiceWindowPosition", NULL, GetParent(hwndDlg));

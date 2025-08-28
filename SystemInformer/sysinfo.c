@@ -88,6 +88,7 @@ VOID PhShowSystemInformationDialog(
     SendMessage(PhSipWindow, SI_MSG_SYSINFO_ACTIVATE, (WPARAM)SectionName, 0);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhSipSysInfoThreadStart(
     _In_ PVOID Parameter
     )

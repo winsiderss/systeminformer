@@ -318,7 +318,7 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             IoOtherGraphState.Valid = FALSE;
             IoOtherGraphState.TooltipIndex = ULONG_MAX;
 
-            PhLayoutManagerUpdateDpi(&IoLayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&IoLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&IoLayoutManager);
             PhSipLayoutIoGraphs(hwndDlg);
         }

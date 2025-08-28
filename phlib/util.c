@@ -7199,7 +7199,7 @@ PPH_STRING PhParseCommandLinePart(
  */
 BOOLEAN PhParseCommandLine(
     _In_ PCPH_STRINGREF CommandLine,
-    _In_opt_ PPH_COMMAND_LINE_OPTION Options,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Options,
     _In_ ULONG NumberOfOptions,
     _In_ ULONG Flags,
     _In_ PPH_COMMAND_LINE_CALLBACK Callback,
@@ -7213,7 +7213,7 @@ BOOLEAN PhParseCommandLine(
     BOOLEAN wasFirst = TRUE;
 
     PH_STRINGREF optionName;
-    PPH_COMMAND_LINE_OPTION option = NULL;
+    PCPH_COMMAND_LINE_OPTION option = NULL;
     PPH_STRING optionValue;
 
     if (CommandLine->Length == 0)
@@ -7356,10 +7356,10 @@ PPH_STRING PhEscapeCommandLinePart(
     static CONST PH_STRINGREF backslashAndQuote = PH_STRINGREF_INIT(L"\\\"");
     PH_STRING_BUILDER stringBuilder;
     ULONG numberOfBackslashes;
-    ULONG length;
+    SIZE_T length;
     ULONG i;
 
-    length = (ULONG)String->Length / sizeof(WCHAR);
+    length = String->Length / sizeof(WCHAR);
     PhInitializeStringBuilder(&stringBuilder, String->Length / sizeof(WCHAR) * 3);
     numberOfBackslashes = 0;
 

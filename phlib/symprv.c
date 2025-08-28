@@ -47,6 +47,7 @@ typedef struct _PH_SYMBOL_MODULE
     USHORT MappedMachine;
 } PH_SYMBOL_MODULE, *PPH_SYMBOL_MODULE;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpSymbolProviderDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

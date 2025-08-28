@@ -36,6 +36,7 @@
 
 extern HWND PhSipWindow;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhSipSysInfoThreadStart(
     _In_ PVOID Parameter
     );

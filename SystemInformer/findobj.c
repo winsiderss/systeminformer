@@ -965,6 +965,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
     return TRUE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpFindObjectsThreadStart(
     _In_ PVOID Parameter
     )
@@ -1169,6 +1170,7 @@ PPH_HANDLE_SEARCH_CONTEXT PhCreateFindObjectContext(
     return context;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhFindObjectsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -1646,7 +1648,8 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:

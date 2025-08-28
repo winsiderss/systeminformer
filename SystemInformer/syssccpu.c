@@ -480,7 +480,7 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
                 CpuGraphState.TooltipIndex = ULONG_MAX;
             }
 
-            PhLayoutManagerUpdateDpi(&CpuLayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&CpuLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&CpuLayoutManager);
             PhSipLayoutCpuGraphs();
         }

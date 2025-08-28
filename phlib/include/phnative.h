@@ -4654,7 +4654,7 @@ NTSTATUS
 NTAPI
 PhGetThreadSocketState(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PPH_THREAD_SOCKET_STATE ThreadSocketState
     );
 
@@ -4683,7 +4683,7 @@ NTSTATUS
 NTAPI
 PhGetThreadIsFiber(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN ThreadIsFiber
     );
 

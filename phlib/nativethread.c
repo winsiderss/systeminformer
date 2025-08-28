@@ -1664,7 +1664,7 @@ NTSTATUS PhGetThreadStackLimits(
 
     if (isWow64)
     {
-        typeof(RTL_FIELD_TYPE(TEB32, NtTib)) ntTib32 = { };
+        typeof(RTL_FIELD_TYPE(TEB32, NtTib)) ntTib32 = { 0 };
 
         status = NtReadVirtualMemory(
             ProcessHandle,
@@ -1680,7 +1680,7 @@ NTSTATUS PhGetThreadStackLimits(
     else
 #endif
     {
-        typeof(RTL_FIELD_TYPE(TEB, NtTib)) ntTib = { };
+        typeof(RTL_FIELD_TYPE(TEB, NtTib)) ntTib = { 0 };
 
         status = NtReadVirtualMemory(
             ProcessHandle,
@@ -1726,7 +1726,7 @@ NTSTATUS PhGetThreadStackSize(
 
     if (isWow64)
     {
-        typeof(RTL_FIELD_TYPE(TEB32, NtTib)) ntTib32 = { };
+        typeof(RTL_FIELD_TYPE(TEB32, NtTib)) ntTib32 = { 0 };
 
         status = NtReadVirtualMemory(
             ProcessHandle,
@@ -1742,7 +1742,7 @@ NTSTATUS PhGetThreadStackSize(
     else
 #endif
     {
-        typeof(RTL_FIELD_TYPE(TEB, NtTib)) ntTib = { };
+        typeof(RTL_FIELD_TYPE(TEB, NtTib)) ntTib = { 0 };
 
         status = NtReadVirtualMemory(
             ProcessHandle,

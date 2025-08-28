@@ -274,11 +274,12 @@ VOID RebarCreateOrUpdateWindow(
             LONG height = ToolStatusGetWindowFontSize(StatusBarHandle, ToolbarWindowFont);
             RECT statusBarRect;
 
-            GetClientRect(StatusBarHandle, &statusBarRect);
-
-            if (statusBarRect.bottom < height)
+            if (PhGetClientRect(StatusBarHandle, &statusBarRect))
             {
-                SendMessage(StatusBarHandle, SB_SETMINHEIGHT, height, 0);
+                if (statusBarRect.bottom < height)
+                {
+                    SendMessage(StatusBarHandle, SB_SETMINHEIGHT, height, 0);
+                }
             }
         }
     }

@@ -73,8 +73,6 @@ namespace CustomBuildTool
                 {
                     Environment.Exit(1);
                 }
-
-                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-decrypt"))
             {

@@ -406,10 +406,11 @@ VOID NTAPI LayoutPaddingCallback(
 
         SendMessage(RebarHandle, WM_SIZE, 0, 0);
 
-        GetClientRect(RebarHandle, &rebarRect);
-
-        // Adjust the PH client area and exclude the rebar width.
-        layoutPadding->Padding.top += rebarRect.bottom;
+        if (PhGetClientRect(RebarHandle, &rebarRect))
+        {
+            // Adjust the PH client area and exclude the rebar width.
+            layoutPadding->Padding.top += rebarRect.bottom;
+        }
 
         // TODO: Replace CCS_TOP with CCS_NOPARENTALIGN and use below code
         //switch (RebarDisplayLocation)
@@ -493,10 +494,11 @@ VOID NTAPI LayoutPaddingCallback(
 
         SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
 
-        GetClientRect(StatusBarHandle, &statusBarRect);
-
-        // Adjust the PH client area and exclude the StatusBar width.
-        layoutPadding->Padding.bottom += statusBarRect.bottom;
+        if (PhGetClientRect(StatusBarHandle, &statusBarRect))
+        {
+            // Adjust the PH client area and exclude the StatusBar width.
+            layoutPadding->Padding.bottom += statusBarRect.bottom;
+        }
 
         //InvalidateRect(StatusBarHandle, NULL, TRUE);
     }
@@ -676,7 +678,9 @@ VOID DrawWindowBorderForTargeting(
     HDC hdc;
     LONG dpiValue;
 
-    GetWindowRect(hWnd, &rect);
+    if (!PhGetWindowRect(hWnd, &rect))
+        return;
+
     hdc = GetWindowDC(hWnd);
 
     if (hdc)
@@ -997,18 +1001,17 @@ LRESULT CALLBACK MainWindowCallbackProc(
                     break;
                 case RBN_CHEVRONPUSHED:
                     {
-                        LPNMREBARCHEVRON rebar;
+                        LPNMREBARCHEVRON rebar = (LPNMREBARCHEVRON)lParam;
                         ULONG index = 0;
                         ULONG buttonCount = 0;
                         RECT toolbarRect;
                         PPH_EMENU menu;
                         PPH_EMENU_ITEM selectedItem;
 
-                        rebar = (LPNMREBARCHEVRON)lParam;
+                        if (!PhGetClientRect(ToolBarHandle, &toolbarRect))
+                            break;
+
                         menu = PhCreateEMenu();
-
-                        GetClientRect(ToolBarHandle, &toolbarRect);
-
                         buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
 
                         for (index = 0; index < buttonCount; index++)

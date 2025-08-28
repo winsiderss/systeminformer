@@ -283,8 +283,8 @@ VOID NetworkDeviceLayoutGraphs(
     margin = Context->GraphMargin;
     PhGetSizeDpiValue(&margin, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
-    GetClientRect(Context->WindowHandle, &clientRect);
-    GetClientRect(Context->LabelSendHandle, &labelRect);
+    PhGetClientRect(Context->WindowHandle, &clientRect);
+    PhGetClientRect(Context->LabelSendHandle, &labelRect);
     graphWidth = clientRect.right - margin.left - margin.right;
     graphHeight = (clientRect.bottom - margin.top - margin.bottom - labelRect.bottom * 2 - Context->GraphPadding * 3) / 2;
 
@@ -549,6 +549,7 @@ VOID NetworkDeviceUpdateAdapterNameText(
     NetworkDeviceUpdateDeviceInfo(NULL, AdapterEntry);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NetworkDeviceQueryNameWorkQueueItem(
     _In_ PDV_NETADAPTER_ENTRY AdapterEntry
     )
@@ -624,7 +625,7 @@ INT_PTR CALLBACK NetworkDeviceDialogProc(
 
             context->PanelWindowHandle = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetworkDevicePanelDialogProc, context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
-            PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+            PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             NetworkDeviceInitializeDialogDpi(context);
             NetworkDeviceUpdateTitle(context);
@@ -667,6 +668,7 @@ INT_PTR CALLBACK NetworkDeviceDialogProc(
                 SetWindowFont(context->AdapterNameLabel, context->SysinfoSection->Parameters->MediumFont, FALSE);
             }
 
+            PhLayoutManagerUpdate(&context->LayoutManager, context->SysinfoSection->Parameters->WindowDpi);
             PhLayoutManagerLayout(&context->LayoutManager);
             NetworkDeviceLayoutGraphs(context);
         }
@@ -702,6 +704,7 @@ INT_PTR CALLBACK NetworkDeviceDialogProc(
     return FALSE;
 }
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN NetworkDeviceSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,

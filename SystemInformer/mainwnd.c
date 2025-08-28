@@ -97,7 +97,7 @@ BOOLEAN PhMainWndInitialization(
     memset(&windowRectangle, 0, sizeof(PH_RECTANGLE));
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
     PhRectangleToRect(&windowRect, &windowRectangle);
-    windowDpi = PhGetMonitorDpi(&windowRect);
+    windowDpi = PhGetMonitorDpi(NULL, &windowRect);
     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, windowDpi)->Pair;
     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
@@ -3070,7 +3070,7 @@ BOOLEAN PhMwpIsWindowOverlapped(
     RECT rectIntersection = { 0 };
     HWND windowHandle = WindowHandle;
 
-    if (!GetWindowRect(WindowHandle, &rectThisWindow))
+    if (!PhGetWindowRect(WindowHandle, &rectThisWindow))
         return FALSE;
 
     while ((windowHandle = GetWindow(windowHandle, GW_HWNDPREV)) && windowHandle != WindowHandle)
@@ -3078,7 +3078,7 @@ BOOLEAN PhMwpIsWindowOverlapped(
         if (!(PhGetWindowStyle(windowHandle) & WS_VISIBLE))
             continue;
 
-        if (!GetWindowRect(windowHandle, &rectOtherWindow))
+        if (!PhGetWindowRect(windowHandle, &rectOtherWindow))
             continue;
 
         if (!(PhGetWindowStyleEx(windowHandle) & WS_EX_TOPMOST) &&

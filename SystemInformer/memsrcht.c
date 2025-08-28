@@ -1142,7 +1142,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            if (PhGetIntegerPairSetting(L"MemStringsWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"MemStringsWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"MemStringsWindowPosition", L"MemStringsWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
@@ -1189,7 +1189,8 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PhLayoutManagerUpdateDpi(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:
@@ -1357,7 +1358,8 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     PPH_EMENU_ITEM zeroPad;
                     PPH_EMENU_ITEM refresh;
 
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect);
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect))
+                        break;
 
                     ansi = PhCreateEMenuItem(0, 1, L"ANSI", NULL, NULL);
                     unicode = PhCreateEMenuItem(0, 2, L"Unicode", NULL, NULL);

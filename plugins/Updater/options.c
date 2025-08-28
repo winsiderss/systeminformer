@@ -394,6 +394,7 @@ PPH_STRING PhpUpdaterCommitStringToTime(
     return PhFormatDate(&localTime, NULL);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI PhpUpdaterQueryCommitHistoryThread(
     _In_ PVOID ThreadParameter
     )
@@ -485,7 +486,7 @@ INT_PTR CALLBACK TextDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_CHANGELOG_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_CHANGELOG_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_CHANGELOG_WINDOW_POSITION, SETTING_NAME_CHANGELOG_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
