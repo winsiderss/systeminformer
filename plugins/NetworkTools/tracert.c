@@ -970,13 +970,6 @@ INT_PTR CALLBACK TracertDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
-    case WM_PH_UPDATE_DIALOG:
-        {
-            PTRACERT_ROOT_NODE node;
-            node = AddTracertNode(context, pingOptions.Ttl);
-            PhReferenceObject(node);
-        }
-        break;
     case NTM_RECEIVEDFINISH:
         {
             BOOLEAN failed = (BOOLEAN)lParam;
