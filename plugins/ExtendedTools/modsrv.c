@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2018-2019
+ *     dmex    2018-2025
  *
  */
 
@@ -20,7 +20,15 @@ typedef struct _MODULE_SERVICES_CONTEXT
     HANDLE ProcessId;
     PPH_STRING ModuleName;
     PH_LAYOUT_MANAGER LayoutManager;
+    ULONG ServiceItemCount;
+    PPH_SERVICE_ITEM* ServiceItems;
 } MODULE_SERVICES_CONTEXT, *PMODULE_SERVICES_CONTEXT;
+
+_Success_(return)
+ULONG PhQueryModuleServiceReferences(
+    _In_ PMODULE_SERVICES_CONTEXT Context,
+    _Out_ PPH_LIST* ServiceList
+    );
 
 INT_PTR CALLBACK EtpModuleServicesDlgProc(
     _In_ HWND hwndDlg,
@@ -34,10 +42,38 @@ NTSTATUS EtpModuleServicesDialogThreadStart(
     _In_ PVOID Parameter
     )
 {
+    PMODULE_SERVICES_CONTEXT context = (PMODULE_SERVICES_CONTEXT)Parameter;
     BOOL result;
     MSG message;
     HWND windowHandle;
+    ULONG status;
+    PPH_LIST serviceList;
     PH_AUTO_POOL autoPool;
+
+    status = PhQueryModuleServiceReferences(context, &serviceList);
+
+    if (status != ERROR_SUCCESS)
+    {
+        PhShowStatus(context->ParentWindowHandle, L"Unable to query module references.", 0, status);
+        return STATUS_SUCCESS;
+    }
+
+    if (serviceList->Count == 0)
+    {
+        PhShowInformation2(context->ParentWindowHandle, L"Unable to query module references.", L"%s", L"This module was not referenced by a service.");
+        PhDereferenceObject(serviceList);
+        PhFree(context);
+        return STATUS_SUCCESS;
+    }
+    else
+    {
+        context->ServiceItemCount = serviceList->Count;
+        context->ServiceItems = PhAllocateCopy(
+            serviceList->Items,
+            serviceList->Count * sizeof(PPH_SERVICE_ITEM)
+            );
+        PhDereferenceObject(serviceList);
+    }
 
     PhInitializeAutoPool(&autoPool);
 
@@ -54,7 +90,7 @@ NTSTATUS EtpModuleServicesDialogThreadStart(
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
-        if (result == -1)
+        if (result == INT_ERROR)
             break;
 
         if (!IsDialogMessage(windowHandle, &message))
@@ -87,8 +123,8 @@ VOID EtShowModuleServicesDialog(
     PhCreateThread2(EtpModuleServicesDialogThreadStart, context);
 }
 
-ULONG PhpQueryModuleServiceReferences(
-    _In_ HWND WindowHandle,
+_Success_(return)
+ULONG PhQueryModuleServiceReferences(
     _In_ PMODULE_SERVICES_CONTEXT Context,
     _Out_ PPH_LIST *ServiceList
     )
@@ -140,18 +176,7 @@ ULONG PhpQueryModuleServiceReferences(
         LocalFree((HLOCAL)namesReferencingModule.OutParams.Names);
     }
 
-    if (ServiceList)
-    {
-        *ServiceList = serviceList;
-    }
-
-    //if (serviceList->Count == 0)
-    //{
-    //    PhShowInformation2(GetParent(WindowHandle), L"", L"This module was not referenced by a service.");
-    //    EndDialog(WindowHandle, IDCANCEL);
-    //    return NULL;
-    //}
-
+    *ServiceList = serviceList;
     return ERROR_SUCCESS;
 }
 
@@ -181,27 +206,12 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
     {
     case WM_INITDIALOG:
         {
-            ULONG win32Result;
-            PPH_LIST serviceList;
-            PPH_SERVICE_ITEM *serviceItems;
             RECT rect;
-
-            if ((win32Result = PhpQueryModuleServiceReferences(hwndDlg, context, &serviceList)) != STATUS_SUCCESS)
-            {
-                PhShowStatus(
-                    context->ParentWindowHandle,
-                    L"Unable to query module references.", 0, win32Result
-                    );
-                DestroyWindow(hwndDlg);
-                return FALSE;
-            }
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            serviceItems = PhAllocateCopy(serviceList->Items, serviceList->Count * sizeof(PPH_SERVICE_ITEM));
-            context->ServiceListHandle = PhCreateServiceListControl(hwndDlg, serviceItems, serviceList->Count);
+            context->ServiceListHandle = PhCreateServiceListControl(hwndDlg, context->ServiceItems, context->ServiceItemCount);
             SendMessage(context->ServiceListHandle, WM_PH_SET_LIST_VIEW_SETTINGS, 0, (LPARAM)SETTING_NAME_MODULE_SERVICES_COLUMNS);
-            PhDereferenceObject(serviceList);
 
             {
                 PPH_PROCESS_ITEM processItem;
@@ -219,25 +229,30 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
                 }
                 else
                 {
-                    message = PhFormatString(L"Services referencing %s:", PhGetString(context->ModuleName));
+                    message = PhFormatString(
+                        L"Services referencing %s:",
+                        PhGetString(context->ModuleName)
+                        );
                 }
 
-                PhSetDialogItemText(hwndDlg, IDC_MESSAGE, message->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_MESSAGE, PhGetString(message));
                 PhDereferenceObject(message);
             }
 
             // Position the control.
-            GetWindowRect(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), &rect);
-            MapWindowRect(NULL, hwndDlg, &rect);
-            MoveWindow(context->ServiceListHandle, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, FALSE);
-            ShowWindow(context->ServiceListHandle, SW_SHOW);
+            if (PhGetWindowRect(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), &rect))
+            {
+                MapWindowRect(NULL, hwndDlg, &rect);
+                MoveWindow(context->ServiceListHandle, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, FALSE);
+                ShowWindow(context->ServiceListHandle, SW_SHOW);
+            }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, context->ServiceListHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION, SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -247,18 +262,25 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
         break;
     case WM_DESTROY:
         {
-            if (context->LayoutManager.List) // HACK (dmex)
-                PhDeleteLayoutManager(&context->LayoutManager);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+            PhSaveWindowPlacementToSetting(SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION, SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE, hwndDlg);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            PhDereferenceObjects(context->ServiceItems, context->ServiceItemCount);
 
             PhDereferenceObject(context->ModuleName);
+
+            PhFree(context);
 
             PostQuitMessage(0);
         }
         break;
-    case WM_NCDESTROY:
+    case WM_DPICHANGED:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-            PhFree(context);
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:
@@ -273,9 +295,6 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
             case IDCANCEL:
             case IDOK:
                 {
-                    // NOTE: Don't save placement during WM_DESTROY since the dialog won't be created after an error querying service references. (dmex)
-                    PhSaveWindowPlacementToSetting(SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION, SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE, hwndDlg);
-
                     DestroyWindow(hwndDlg);
                 }
                 break;

@@ -284,17 +284,17 @@ VOID InitializeFwTreeList(
 
     PhInitializeTreeNewFilterSupport(&EtFwFilterSupport, TreeNewHandle, FwNodeList);
 
-    TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
-    TreeNew_SetTriState(FwTreeNewHandle, TRUE);
-    TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
-
-    LoadSettingsFwTreeList(TreeNewHandle);
-
     if (EtFwToolStatusInterface)
     {
         PhRegisterCallback(EtFwToolStatusInterface->SearchChangedEvent, FwSearchChangedHandler, NULL, &EtFwSearchChangedRegistration);
         PhAddTreeNewFilter(&EtFwFilterSupport, FwSearchFilterCallback, NULL);
     }
+
+    TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
+    TreeNew_SetTriState(FwTreeNewHandle, TRUE);
+    TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
+
+    LoadSettingsFwTreeList(TreeNewHandle);
 }
 
 VOID InitializeFwTreeListDpi(
@@ -466,8 +466,8 @@ VOID FwTickNodes(
         PhSwapReference(&node->TooltipText, NULL);
     }
 
-    //InvalidateRect(FwTreeNewHandle, NULL, FALSE);
     TreeNew_NodesStructured(FwTreeNewHandle);
+    InvalidateRect(FwTreeNewHandle, NULL, FALSE);
 }
 
 VOID FwUpdateNodeTimeStamp(

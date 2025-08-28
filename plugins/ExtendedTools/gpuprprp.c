@@ -185,7 +185,7 @@ VOID GpuPropLayoutGraphs(
     Context->GpuCommittedGraphState.TooltipIndex = ULONG_MAX;
 
     //PhLayoutManagerLayout(&Context->LayoutManager);
-    GetClientRect(Context->WindowHandle, &clientRect);
+    PhGetClientRect(Context->WindowHandle, &clientRect);
 
     // Limit the rectangle bottom to the top of the panel.
     //GetWindowRect(Context->PanelHandle, &panelRect);
@@ -302,6 +302,7 @@ VOID GpuPropUpdateGraphs(
 //    }
 //}
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI GpuProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
