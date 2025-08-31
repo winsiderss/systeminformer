@@ -361,11 +361,9 @@ VOID KphSetServiceSecurity(
 
     PhSetServiceObjectSecurity(ServiceHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
 
-#ifdef DEBUG
-    assert(RtlValidSecurityDescriptor(securityDescriptor));
-    assert(sdAllocationLength < sizeof(securityDescriptorBuffer));
-    assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
-#endif
+    NT_ASSERT(RtlValidSecurityDescriptor(securityDescriptor));
+    NT_ASSERT(sdAllocationLength < sizeof(securityDescriptorBuffer));
+    NT_ASSERT(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 }
 
 _Function_class_(PH_ENUM_KEY_CALLBACK)
@@ -413,9 +411,9 @@ NTSTATUS KsiLoadUnloadService(
     HANDLE parametersKeyHandle = NULL;
     ULONG disposition;
 
-    assert(Config->FileName);
-    assert(Config->ServiceName);
-    assert(Config->ObjectName);
+    NT_ASSERT(Config->FileName);
+    NT_ASSERT(Config->ServiceName);
+    NT_ASSERT(Config->ObjectName);
 
     fullServiceKeyName = PhConcatStringRef2(&fullServicesKeyName, Config->ServiceName);
 
