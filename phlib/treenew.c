@@ -1894,7 +1894,7 @@ LRESULT PhTnpOnUserMessage(
             {
                 return TRUE; // Nothing to change (dmex)
             }
-     
+
             if (sortOrder != NoSortOrder)
             {
                 if (!(column = PhTnpLookupColumnById(Context, sortColumn)))
@@ -7852,9 +7852,7 @@ LRESULT PhTnSendMessage(
     {
         PVOID context;
 
-#ifdef DEBUG
         RTL_ASSERT(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL));
-#endif
 
         if (context = PhGetWindowContextEx(WindowHandle))
         {

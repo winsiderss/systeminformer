@@ -571,7 +571,7 @@ typedef struct _KSYSTEM_TIME
         TRUE)
 #endif
 
-#ifdef RTL_VERIFY
+#ifndef RTL_VERIFY
 #define RTL_VERIFY         ASSERT
 #endif
 #ifndef RTL_VERIFYMSG
@@ -616,6 +616,14 @@ typedef struct _KSYSTEM_TIME
 #endif
 
 #endif // _DEBUG
+
+#ifndef RTL_ASSERT
+#define RTL_ASSERT    ASSERT
+#endif
+
+#ifndef RTL_ASSERTMSG
+#define RTL_ASSERTMSG ASSERTMSG
+#endif
 
 #ifndef NT_ANALYSIS_ASSUME
 #if defined(_PREFAST_)
