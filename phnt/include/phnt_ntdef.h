@@ -541,7 +541,7 @@ typedef struct _KSYSTEM_TIME
 #define BYTES_TO_PAGES(Size) (((Size) >> PAGE_SHIFT) + (((Size) & PAGE_MASK) != 0))
 #endif
 
-#if _DEBUG
+#ifdef _DEBUG
 
 #ifndef ASSERT
 #define ASSERT( exp ) \
@@ -661,7 +661,7 @@ typedef struct _KSYSTEM_TIME
         TRUE)
 #endif
 
-#if _DEBUG
+#ifdef _DEBUG
 
 #ifndef NT_ASSERT_ASSUME
 #define NT_ASSERT_ASSUME(_exp) \
