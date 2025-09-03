@@ -7121,6 +7121,8 @@ RtlGetLastNtStatus(
     VOID
     );
 
+_Check_return_
+_Post_equals_last_error_
 NTSYSAPI
 LONG
 NTAPI
