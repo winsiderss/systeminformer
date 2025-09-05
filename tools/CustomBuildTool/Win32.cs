@@ -227,9 +227,11 @@ namespace CustomBuildTool
             }
 
             if (updated)
+            {
                 Program.PrintColorMessage($"[SDK] {SourceFile} copied to {DestinationFile}", ConsoleColor.Green, true, Flags);
-            else
-                Program.PrintColorMessage($"[SDK] Skipped: {SourceFile} older than {DestinationFile}", ConsoleColor.DarkGray, true, Flags);
+            }
+            //else
+            //    Program.PrintColorMessage($"[SDK] Skipped: {SourceFile} same as {DestinationFile}", ConsoleColor.DarkGray, true, Flags);
         }
 
         public static void CopyVersionIfNewer(string SourceFile, string DestinationFile, BuildFlags Flags = BuildFlags.None)
@@ -275,9 +277,11 @@ namespace CustomBuildTool
             }
 
             if (updated)
-                Program.PrintColorMessage($"[Success] {SourceFile} copied to {DestinationFile}", ConsoleColor.Green, true, Flags);
-            else
-                Program.PrintColorMessage($"[Skipped] {SourceFile} was older than {DestinationFile}", ConsoleColor.DarkGray, true, Flags);
+            {
+                Program.PrintColorMessage($"[SDK] {SourceFile} copied to {DestinationFile}", ConsoleColor.Green, true, Flags);
+            }
+            //else
+            //    Program.PrintColorMessage($"[SDK] Skipped: {SourceFile} older than {DestinationFile}", ConsoleColor.DarkGray, true, Flags);
         }
 
         /// <summary>

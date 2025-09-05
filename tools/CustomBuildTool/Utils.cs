@@ -869,10 +869,16 @@ namespace CustomBuildTool
 
                         for (uint i = 0; i < exportDirectory->NumberOfNames; i++)
                         {
-                            var exportName = Marshal.PtrToStringUTF8((nint)PInvoke.ImageRvaToVa(loadedMappedImage.FileHeader, loadedMappedImage.MappedAddress, exportNameTable[i], null));
+                            uint nameRva = exportNameTable[i];
+                            IntPtr namePtr = (IntPtr)PInvoke.ImageRvaToVa(loadedMappedImage.FileHeader, loadedMappedImage.MappedAddress, nameRva, null);
+                            var exportName = Marshal.PtrToStringUTF8(namePtr);
 
                             Program.PrintColorMessage($"{i}: {exportName}", ConsoleColor.Yellow);
                         }
+                    }
+                    else
+                    {
+                        Program.PrintColorMessage("IMAGE_DIRECTORY_ENTRY_EXPORT", ConsoleColor.Red);
                     }
                 }
                 catch (Exception ex)
@@ -911,50 +917,154 @@ namespace CustomBuildTool
         [JsonPropertyName("release_setup_length")] public string ReleaseSetupLength { get; init; }
         [JsonPropertyName("release_setup_hash")] public string ReleaseSetupHash { get; init; }
         [JsonPropertyName("release_setup_sig")] public string ReleaseSetupSig { get; init; }
+
+        public override string ToString()
+        {
+            return this.BuildId;
+        }
+
+        public string SerializeToJson()
+        {
+            return JsonSerializer.Serialize(this, BuildUpdateRequestContext.Default.BuildUpdateRequest);
+        }
+
+        public byte[] SerializeToBytes()
+        {
+            return JsonSerializer.SerializeToUtf8Bytes(this, BuildUpdateRequestContext.Default.BuildUpdateRequest);
+        }
     }
 
     public class GithubReleasesRequest
     {
-        [JsonPropertyName("tag_name")] public string ReleaseTag { get; init; }
-        [JsonPropertyName("target_commitish")] public string Branch { get; init; }
-        [JsonPropertyName("name")] public string Name { get; init; }
-        [JsonPropertyName("body")] public string Description { get; init; }
+        [JsonPropertyName("tag_name")] 
+        public string ReleaseTag { get; init; }
 
-        [JsonPropertyName("draft")] public bool Draft { get; init; }
-        [JsonPropertyName("prerelease")] public bool Prerelease { get; init; }
-        [JsonPropertyName("generate_release_notes")] public bool GenerateReleaseNotes { get; init; }
+        [JsonPropertyName("target_commitish")] 
+        public string Branch { get; init; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; init; }
+
+        [JsonPropertyName("body")]
+        public string Description { get; init; }
+
+        [JsonPropertyName("draft")] 
+        public bool Draft { get; init; }
+
+        [JsonPropertyName("prerelease")] 
+        public bool Prerelease { get; init; }
+
+        [JsonPropertyName("generate_release_notes")] 
+        public bool GenerateReleaseNotes { get; init; }
 
         public override string ToString()
         {
             return this.ReleaseTag;
         }
+
+        public string SerializeToJson()
+        {
+            return JsonSerializer.Serialize(this, GithubResponseContext.Default.GithubReleasesRequest);
+        }
+
+        public byte[] SerializeToBytes()
+        {
+            return JsonSerializer.SerializeToUtf8Bytes(this, GithubResponseContext.Default.GithubReleasesRequest);
+        }
     }
 
     public class GithubReleasesResponse
     {
-        [JsonPropertyName("id")] public ulong ID { get; init; }
-        [JsonPropertyName("upload_url")] public string UploadUrl { get; init; }
-        [JsonPropertyName("html_url")] public string HtmlUrl { get; init; }
-        [JsonPropertyName("assets")] public List<GithubAssetsResponse> Assets { get; init; }
-        [JsonIgnore] public string ReleaseId => this.ID.ToString();
+        [JsonPropertyName("id")] 
+        public ulong ID { get; init; }
+
+        [JsonPropertyName("upload_url")] 
+        public string UploadUrl { get; init; }
+
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; init; }
+
+        [JsonPropertyName("assets")]
+        public List<GithubAssetsResponse> Assets { get; init; }
+
+        [JsonIgnore] 
+        public string ReleaseId => this.ID.ToString();
 
         public override string ToString()
         {
             return this.ReleaseId;
         }
+
+        public string SerializeToJson()
+        {
+            return JsonSerializer.Serialize(this, GithubResponseContext.Default.GithubReleasesRequest);
+        }
+
+        public byte[] SerializeToBytes()
+        {
+            return JsonSerializer.SerializeToUtf8Bytes(this, GithubResponseContext.Default.GithubReleasesRequest);
+        }
     }
 
     public class GithubAssetsResponse
     {
-        [JsonPropertyName("name")] public string Name { get; init; }
-        [JsonPropertyName("label")] public string Label { get; init; }
-        [JsonPropertyName("size")] public ulong Size { get; init; }
-        [JsonPropertyName("state")] public string State { get; init; }
-        [JsonPropertyName("browser_download_url")] public string DownloadUrl { get; init; }
-        [JsonPropertyName("digest")] public string Hash { get; init; }
+        [JsonPropertyName("id")]
+        public ulong Id { get; init; }
+
+        [JsonPropertyName("name")] 
+        public string Name { get; init; }
+
+        [JsonPropertyName("label")] 
+        public string Label { get; init; }
+
+        [JsonPropertyName("size")] 
+        public ulong Size { get; init; }
+
+        [JsonPropertyName("state")] 
+        public string State { get; init; }
+
+        [JsonPropertyName("browser_download_url")]
+        public string DownloadUrl { get; init; }
+
+        [JsonPropertyName("digest")] 
+        public string Digest { get; init; }
 
         [JsonIgnore]
         public bool Uploaded => string.Equals(this.State, "uploaded", StringComparison.OrdinalIgnoreCase);
+
+        [JsonIgnore]
+        public string HashAlgorithm
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(this.Digest))
+                    return string.Empty;
+
+                if (this.Digest.AsSpan().IndexOf(':') is int idx && idx >= 0)
+                {
+                    return this.Digest[..idx];
+                }
+
+                return string.Empty;
+            }
+        }
+
+        [JsonIgnore]
+        public string HashValue
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(this.Digest))
+                    return string.Empty;
+
+                if (this.Digest.AsSpan().IndexOf(':') is int idx && idx >= 0)
+                {
+                    return this.Digest[idx..];
+                }
+
+                return string.Empty;
+            }
+        }
 
         public override string ToString()
         {
@@ -1323,8 +1433,10 @@ namespace CustomBuildTool
     {
         [JsonPropertyName("type")]
         public string type { get; init; }
+
         [JsonPropertyName("id")]
         public string id { get; init; }
+
         [JsonPropertyName("links")]
         public VirusTotalAnalysisLinksResponse links { get; init; }
     }
@@ -1342,30 +1454,12 @@ namespace CustomBuildTool
 
     }
 
+    [JsonSerializable(typeof(GithubAssetsResponse))]
+    [JsonSerializable(typeof(GithubCommitResponse))]
     [JsonSerializable(typeof(GithubReleasesRequest))]
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
-    public partial class GithubReleasesRequestContext : JsonSerializerContext
-    {
-
-    }
-
     [JsonSerializable(typeof(GithubReleasesResponse))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
-    public partial class GithubReleasesResponseContext : JsonSerializerContext
-    {
-
-    }
-
-    [JsonSerializable(typeof(GithubAssetsResponse))]
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
-    public partial class GithubAssetsResponseContext : JsonSerializerContext
-    {
-
-    }
-
-    [JsonSerializable(typeof(GithubCommitResponse))]
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
-    public partial class GithubCommitResponseContext : JsonSerializerContext
+    public partial class GithubResponseContext : JsonSerializerContext
     {
 
     }
@@ -1378,15 +1472,9 @@ namespace CustomBuildTool
     }
 
     [JsonSerializable(typeof(VirusTotalLargeUploadResponse))]
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
-    public partial class VirusTotalLargeUploadResponseContext : JsonSerializerContext
-    {
-
-    }
-
     [JsonSerializable(typeof(VirusTotalAnalysisResponse))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
-    public partial class VirusTotalAnalysisResponseContext : JsonSerializerContext
+    public partial class VirusTotalResponseContext : JsonSerializerContext
     {
 
     }

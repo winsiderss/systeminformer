@@ -13,18 +13,32 @@ namespace CustomBuildTool
 {
     public static class BuildHttpClient
     {
-        public static System.Net.Http.HttpClient CreateHttpClient()
+        internal static HttpClientHandler BuildHttpClientHandler = null;
+        public static HttpClientHandler CreateHttpHandler()
         {
-            var httpClientHandler = new HttpClientHandler();
-            httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-            httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
+            BuildHttpClientHandler ??= new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.All,
+                SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
+            };
 
-            var httpClient = new System.Net.Http.HttpClient(httpClientHandler);
-            httpClient.DefaultRequestVersion = HttpVersion.Version20;
-            httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-            httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
+            return BuildHttpClientHandler;
+        }
 
-            return httpClient;
+        internal static HttpClient BuildNetHttpClient = null;
+        public static HttpClient CreateHttpClient()
+        {
+            if (BuildNetHttpClient == null)
+            {
+                BuildNetHttpClient = new HttpClient(CreateHttpHandler())
+                {
+                    DefaultRequestVersion = HttpVersion.Version20,
+                    DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
+                };
+                BuildNetHttpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
+            }
+
+            return BuildNetHttpClient;
         }
 
         public static HttpResponseMessage SendMessageResponse(HttpRequestMessage HttpMessage)
@@ -124,5 +138,55 @@ namespace CustomBuildTool
             return true;
         }
     }
+}
 
+namespace CustomBuildTool
+{
+    public static class HttpLogging
+    {
+        private static HttpEventListener httpEventListener = null;
+        public static void StartHttpLogging()
+        {
+            if (httpEventListener == null)
+            {
+                httpEventListener = new HttpEventListener();
+            }
+        }
+        public static void StopHttpLogging()
+        {
+            if (httpEventListener != null)
+            {
+                httpEventListener.Dispose();
+                httpEventListener = null;
+            }
+        }
+    }
+
+    // EventSource-based runtime logging from System.Net.Http 
+    public sealed class HttpEventListener : System.Diagnostics.Tracing.EventListener
+    {
+        protected override void OnEventSourceCreated(System.Diagnostics.Tracing.EventSource eventSource)
+        {
+            // System.Net providers: System.Net.Http, System.Net.Sockets, System.Net.NameResolution 
+            if (eventSource.Name == "System.Net.Http" || eventSource.Name == "System.Net.Sockets" || eventSource.Name == "System.Net.NameResolution")
+            {
+                this.EnableEvents(eventSource, System.Diagnostics.Tracing.EventLevel.Informational);
+            }
+
+            base.OnEventSourceCreated(eventSource);
+        }
+        protected override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData)
+        {
+            try
+            {
+                var payload = eventData.Payload == null ? "" : string.Join(", ", eventData.Payload);
+
+                Console.WriteLine($"[NET] {eventData.EventSource.Name}:{eventData.Level} {eventData.EventName} | {payload}");
+            }
+            catch 
+            { 
+                /* avoid throwing from listener */
+            }
+        }
+    }
 }

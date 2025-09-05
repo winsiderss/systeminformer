@@ -319,18 +319,18 @@ VOID KphSetServiceSecurity(
     sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid((PSID)&PhSeServiceSid) +
+        PhLengthSid(&PhSeServiceSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         PhLengthSid(administratorsSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid((PSID)&PhSeInteractiveSid);
+        PhLengthSid(&PhSeInteractiveSid);
 
     securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
     PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    PhAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, (PSID)&PhSeServiceSid);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, &PhSeServiceSid);
     PhAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, administratorsSid);
     PhAddAccessAllowedAce(dacl, ACL_REVISION,
         SERVICE_QUERY_CONFIG |
@@ -339,7 +339,7 @@ VOID KphSetServiceSecurity(
         SERVICE_STOP |
         SERVICE_INTERROGATE |
         DELETE,
-        (PSID)&PhSeInteractiveSid
+        &PhSeInteractiveSid
         );
     PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 

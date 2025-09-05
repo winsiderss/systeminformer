@@ -116,7 +116,7 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
 
 typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
 {
-    PSID Sid;
+    PCSID Sid;
     PPH_STRING FullName;
 } PH_SID_FULL_NAME_CACHE_ENTRY, *PPH_SID_FULL_NAME_CACHE_ENTRY;
 
@@ -665,14 +665,14 @@ static BOOLEAN PhpSidFullNameCacheHashtableEqualFunction(
     return PhEqualSid(entry1->Sid, entry2->Sid);
 }
 
-_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG PhpSidFullNameCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
     PPH_SID_FULL_NAME_CACHE_ENTRY entry = Entry;
 
-    return PhHashBytes(entry->Sid, PhLengthSid(entry->Sid));
+    return PhHashBytes((PUCHAR)entry->Sid, PhLengthSid(entry->Sid));
 }
 
 PPH_STRING PhpGetSidFullNameCachedSlow(
@@ -717,7 +717,7 @@ PPH_STRING PhpGetSidFullNameCachedSlow(
 }
 
 PPH_STRING PhpGetSidFullNameCached(
-    _In_ PSID Sid
+    _In_ PCSID Sid
     )
 {
     if (PhpSidFullNameCacheHashtable)
@@ -749,7 +749,7 @@ VOID PhpFlushSidFullNameCache(
 
     while (entry = PhNextEnumHashtable(&enumContext))
     {
-        PhFree(entry->Sid);
+        PhFree((PVOID)entry->Sid);
         PhDereferenceObject(entry->FullName);
     }
 
@@ -1421,9 +1421,9 @@ VOID PhpFillProcessItem(
             ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
         {
             if (!ProcessItem->Sid)
-                ProcessItem->Sid = PhAllocateCopy((PSID)&PhSeLocalSystemSid, PhLengthSid((PSID)&PhSeLocalSystemSid));
+                ProcessItem->Sid = PhAllocateCopy((PSID)&PhSeLocalSystemSid, PhLengthSid(&PhSeLocalSystemSid));
             if (!ProcessItem->UserName)
-                ProcessItem->UserName = PhpGetSidFullNameCached((PSID)&PhSeLocalSystemSid);
+                ProcessItem->UserName = PhpGetSidFullNameCached(&PhSeLocalSystemSid);
 
             ProcessItem->IsSystemProcess = TRUE;
         }

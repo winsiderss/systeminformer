@@ -427,7 +427,7 @@ NTSTATUS PhMergeSecurityDescriptors(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = RtlSetSaclSecurityDescriptor(
+    status = PhSetSaclSecurityDescriptor(
         &mergedSecurityDescriptor,
         !!mergedSacl,
         mergedSacl,

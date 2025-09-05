@@ -80,8 +80,6 @@ namespace CustomBuildTool
                 {
                     Environment.Exit(1);
                 }
-
-                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-encrypt"))
             {
@@ -89,14 +87,10 @@ namespace CustomBuildTool
                 {
                     Environment.Exit(1);
                 }
-
-                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-reflow"))
             {
                 Build.ExportDefinitions(true);
-
-                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-reflowvalid"))
             {
@@ -109,14 +103,10 @@ namespace CustomBuildTool
 
                 if (!Build.BuildValidateExportDefinitions(flags))
                     Environment.Exit(1);
-
-                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-reflowrevert"))
             {
                 Build.ExportDefinitionsRevert();
-
-                Build.ShowBuildStats();
             }
             else if (ProgramArgs.TryGetValue("-devenv-build", out string Command))
             {
@@ -519,6 +509,11 @@ namespace CustomBuildTool
                 ConsoleColor.White           => "\e[97m",
                 _                            => "\e[0m"
             };
+        }
+
+        public static string CreateConsoleHyperlink(string Uri, string Text)
+        {
+            return $"\x1B]8;;{Uri}\x1B\\{Text}\x1B]8;;\x1B\\";
         }
     }
 }

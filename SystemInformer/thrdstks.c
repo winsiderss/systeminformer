@@ -1306,7 +1306,9 @@ BOOLEAN NTAPI PhpThreadStacksTreeNewCallback(
 
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
+            data.DefaultSortOrder = NoSortOrder;
             data.DefaultSortColumn = 0;
+
             PhInitializeTreeNewColumnMenuEx(&data, 0);
 
             data.Selection = PhShowEMenu(

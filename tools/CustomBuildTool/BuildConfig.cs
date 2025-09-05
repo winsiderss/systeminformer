@@ -22,17 +22,6 @@ namespace CustomBuildTool
             //["developer"] = 3, // PhDeveloperChannel
         };
 
-        public static readonly ImmutableArray<BuildFile> Build_Release_Files =
-        [
-            new BuildFile("\\systeminformer-build-bin.zip", true),
-            new BuildFile("\\systeminformer-build-release-setup.exe", true),
-            //new BuildFile("\\systeminformer-build-preview-setup.exe", true),
-            new BuildFile("\\systeminformer-build-canary-setup.exe", true),
-            //new BuildFile("\\systeminformer-build-developer-setup.exe", true),
-            new BuildFile("\\systeminformer-build-pdb.zip", true),
-            //new BuildFile("\\systeminformer-build-checksums.txt", false),
-        ];
-
         public static readonly ImmutableArray<string> Build_Sdk_Directories =
         [
             "sdk",
@@ -151,37 +140,47 @@ namespace CustomBuildTool
         ];
     }
 
-    public class BuildFile(string Filename, bool UploadCanary)
+    public class DeployFile(string Name, string Filename, string FileHash, string FileSignature, string FileLength)
     {
-        public readonly string FileName = Filename;
-        public readonly bool UploadCanary = UploadCanary;
-
-        public override string ToString()
-        {
-            return this.FileName;
-        }
-
-        public override int GetHashCode()
-        {
-            return this.FileName.GetHashCode();
-        }
-    }
-
-    public class DeployFile(string Filename, string FileHash, string FileSignature, string FileLength)
-    {
+        public readonly string Name = Name;
         public readonly string FileName = Filename;
         public readonly string FileHash = FileHash;
         public readonly string FileSignature = FileSignature;
         public readonly string FileLength = FileLength;
 
+        public string DownloadHash { get; private set; }
+        public string DownloadLink { get; private set; }
+
+        public void UpdateAssetsResponse(GithubAssetsResponse response)
+        {
+            if (response == null)
+            {
+                Program.PrintColorMessage("[UpdateAssetsResponse] response null.", ConsoleColor.Red);
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(response.HashValue))
+            {
+                Program.PrintColorMessage("[UpdateAssetsResponse] HashValue null.", ConsoleColor.Red);
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(response.DownloadUrl))
+            {
+                Program.PrintColorMessage("[UpdateAssetsResponse] DownloadUrl null.", ConsoleColor.Red);
+                return;
+            }
+
+            this.DownloadHash = response.HashValue;
+            this.DownloadLink = response.DownloadUrl;
+        }
+
         public override string ToString()
         {
-            return this.FileName;
+            return this.Name;
         }
 
         public override int GetHashCode()
         {
-            return this.FileName.GetHashCode();
+            return this.Name.GetHashCode();
         }
     }
 

@@ -966,8 +966,8 @@ NTSTATUS PhDefaultNpAcl(
 
         pipeAcl = PhAllocateZero(defaultAclSize);
         PhCreateAcl(pipeAcl, defaultAclSize, ACL_REVISION);
-        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, (PSID)&PhSeLocalSystemSid);
-        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, (PSID)PhSeAdministratorsSid());
+        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, &PhSeLocalSystemSid);
+        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, PhSeAdministratorsSid());
 
         if (tokenAppContainer.AppContainer.Sid)
             PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, tokenAppContainer.AppContainer.Sid);
@@ -975,8 +975,8 @@ NTSTATUS PhDefaultNpAcl(
             PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, appContainerSidParent);
 
         PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, tokenQuery.TokenOwner.Owner);
-        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_READ, (PSID)&PhSeEveryoneSid);
-        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_READ, (PSID)&PhSeAnonymousLogonSid);
+        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_READ, &PhSeEveryoneSid);
+        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_READ, &PhSeAnonymousLogonSid);
 
         *DefaultNpAc = pipeAcl;
 

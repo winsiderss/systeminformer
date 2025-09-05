@@ -144,15 +144,16 @@ VOID PhCenterWindow(
 
         if (!IsWindowVisible(ParentWindowHandle) || IsMinimized(ParentWindowHandle))
             return;
-
-        PhGetWindowRect(WindowHandle, &rect);
-        PhGetWindowRect(ParentWindowHandle, &parentRect);
+        if (!PhGetWindowRect(WindowHandle, &rect))
+            return;
+        if (!PhGetWindowRect(ParentWindowHandle, &parentRect))
+            return;
 
         PhRectToRectangle(&rectangle, &rect);
         PhRectToRectangle(&parentRectangle, &parentRect);
-
         PhCenterRectangle(&rectangle, &parentRectangle);
         PhAdjustRectangleToWorkingArea(WindowHandle, &rectangle);
+
         MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
             rectangle.Width, rectangle.Height, FALSE);
     }
@@ -172,16 +173,78 @@ VOID PhCenterWindow(
             PH_RECTANGLE rectangle = { 0 };;
             PH_RECTANGLE bounds = { 0 };;
 
-            PhGetWindowRect(WindowHandle, &rect);
+            if (!PhGetWindowRect(WindowHandle, &rect))
+                return;
 
             PhRectToRectangle(&rectangle, &rect);
             PhRectToRectangle(&bounds, &monitorInfo.rcWork);
-
             PhCenterRectangle(&rectangle, &bounds);
+
             MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
                 rectangle.Width, rectangle.Height, FALSE);
         }
     }
+}
+
+NTSTATUS PhMoveWindowToMonitor(
+    _In_ HWND WindowHandle,
+    _In_ HMONITOR MonitorHandle
+    )
+{
+    MONITORINFO currentMonitorInfo;
+    MONITORINFO targetMonitorInfo;
+    PH_RECTANGLE rectangle = { 0 };
+    PH_RECTANGLE bounds = { 0 };
+    HMONITOR monitor;
+    RECT windowRect;
+    RECT targetRect;
+
+    // Get window position
+
+    if (!PhGetWindowRect(WindowHandle, &windowRect))
+        return PhGetLastWin32ErrorAsNtStatus();
+
+    // Get current monitor
+
+    memset(&currentMonitorInfo, 0, sizeof(MONITORINFO));
+    currentMonitorInfo.cbSize = sizeof(currentMonitorInfo);
+
+    monitor = MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST);
+
+    if (!GetMonitorInfo(monitor, &currentMonitorInfo))
+        return PhGetLastWin32ErrorAsNtStatus();
+
+    // Get target monitor
+
+    memset(&targetMonitorInfo, 0, sizeof(MONITORINFO));
+    targetMonitorInfo.cbSize = sizeof(targetMonitorInfo);
+
+    if (!GetMonitorInfo(MonitorHandle, &targetMonitorInfo))
+        return PhGetLastWin32ErrorAsNtStatus();
+
+    // Calculate relative position
+
+    RECT currentMonitorRect = currentMonitorInfo.rcMonitor;
+    LONG left = windowRect.left - currentMonitorRect.left;
+    LONG top = windowRect.top - currentMonitorRect.top;
+    LONG width = windowRect.right - windowRect.left;
+    LONG height = windowRect.bottom - windowRect.top;
+
+    targetRect.left = targetMonitorInfo.rcMonitor.left + left;
+    targetRect.top = targetMonitorInfo.rcMonitor.top + top;
+    targetRect.right = targetRect.left + width;
+    targetRect.bottom = targetRect.top + height;
+
+    // Adjust relative position
+
+    PhRectToRectangle(&rectangle, &targetRect);
+    PhRectToRectangle(&bounds, &targetMonitorInfo.rcWork);
+    PhAdjustRectangleToBounds(&rectangle, &bounds);
+
+    MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
+        rectangle.Width, rectangle.Height, TRUE);
+
+    return STATUS_SUCCESS;
 }
 
 // rev from GetSystemDefaultLCID
@@ -4298,7 +4361,7 @@ PPH_STRING PhGetTemporaryDirectory(
 
     if (
         PhGetOwnTokenAttributes().Elevated &&
-        PhEqualSid(PhGetOwnTokenAttributes().TokenSid, (PSID)&PhSeLocalSystemSid)
+        PhEqualSid(PhGetOwnTokenAttributes().TokenSid, &PhSeLocalSystemSid)
         )
     {
         static CONST PH_STRINGREF systemTemp = PH_STRINGREF_INIT(L"SystemTemp");

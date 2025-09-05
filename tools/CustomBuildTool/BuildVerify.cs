@@ -116,6 +116,18 @@ namespace CustomBuildTool
 
         public static bool CreateSigFile(string KeyName, string FileName, bool StrictChecks)
         {
+            if (string.IsNullOrWhiteSpace(KeyName))
+            {
+                Program.PrintColorMessage($"[ERROR] CreateSigFile: KeyName is empty.", ConsoleColor.Red);
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(FileName))
+            {
+                Program.PrintColorMessage($"[ERROR] CreateSigFile: FileName is empty.", ConsoleColor.Red);
+                return false;
+            }
+
             try
             {
                 if (!File.Exists(FileName))

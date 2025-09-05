@@ -56,7 +56,7 @@ namespace CustomBuildTool
             return HashDataIncremental(data, offset, count, hashAlgorithm);
         }
 
-        private byte[] HashDataIncremental(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
+        private static byte[] HashDataIncremental(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
         {
             using (IncrementalHash hash = IncrementalHash.CreateHash(hashAlgorithm))
             {
@@ -102,8 +102,8 @@ namespace CustomBuildTool
 
             // Avoid null check every call
             var pk = this.PublicKey;
-            if (pk is null)
-                throw new ObjectDisposedException(nameof(ECDsaKeyVault));
+            ObjectDisposedException.ThrowIf(pk is null, this);
+
             return pk.VerifyHash(hash, signature);
         }
 
@@ -180,17 +180,6 @@ namespace CustomBuildTool
             ObjectDisposedException.ThrowIf(this.Disposed, this);
         }
 
-        ~ECDsaKeyVault()
-        {
-            Dispose(false);
-        }
-
-        public new void Dispose()
-        {
-            Dispose(true);
-        }
-
-        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
             if (this.Disposed)
@@ -204,7 +193,6 @@ namespace CustomBuildTool
 
             this.Disposed = true;
             base.Dispose(disposing);
-            GC.SuppressFinalize(this);
         }
     }
 }
