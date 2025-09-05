@@ -2174,8 +2174,7 @@ NtGetNextProcess(
  * @param ThreadHandle An optional handle to a thread. If this parameter is NULL, the function retrieves the first thread in the process.
  * @param DesiredAccess The access rights desired for the new thread handle.
  * @param HandleAttributes The attributes for the new thread handle.
- * @param Flags Flags that modify the behavior of the function. This can be a combination of the following flags:
- * - \ref THREAD_GET_NEXT_FLAGS_PREVIOUS_THREAD (0x00000001): Retrieve the previous thread in the process.
+ * @param Flags Flags that modify the behavior of the function. Unused and should be zero.
  * @param NewThreadHandle A pointer to a variable that receives the handle to the next thread.
  * @return NTSTATUS Successful or errant status.
  */
