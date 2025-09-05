@@ -4639,8 +4639,7 @@ VOID PhpFillDynamicRelocations(
             {
                 PH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
 
-                if (relocations[i].PageRelativeOffset == 0 ||
-                    ((PIMAGE_RELOCATION_RECORD)&relocations[i])->Type == 0)
+                if (relocations[i].PageRelativeOffset == 0)
                 {
                     break;
                 }
