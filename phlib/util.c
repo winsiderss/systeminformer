@@ -7947,7 +7947,7 @@ HANDLE PhGetNamespaceHandle(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x80];
+        UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x70];
         PSID administratorsSid = PhSeAdministratorsSid();
         UNICODE_STRING objectName;
         OBJECT_ATTRIBUTES objectAttributes;
@@ -7960,20 +7960,20 @@ HANDLE PhGetNamespaceHandle(
         sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
             (ULONG)sizeof(ACL) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            PhLengthSid((PSID)&PhSeLocalSid) +
+            PhLengthSid(&PhSeLocalSid) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
             PhLengthSid(administratorsSid) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            PhLengthSid((PSID)&PhSeInteractiveSid);
+            PhLengthSid(&PhSeInteractiveSid);
 
         securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
-        dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
+        dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
         PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, (PSID)&PhSeLocalSid);
+        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, &PhSeLocalSid);
         PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid);
-        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, (PSID)&PhSeInteractiveSid);
+        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, &PhSeInteractiveSid);
         PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
         RtlInitUnicodeString(&objectName, L"\\BaseNamedObjects\\SystemInformer");

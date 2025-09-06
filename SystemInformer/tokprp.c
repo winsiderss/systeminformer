@@ -2399,18 +2399,18 @@ VOID PhpShowTokenAdvancedProperties(
     PhModalPropertySheet(&propSheetHeader);
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenLinkedToken(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PVOID Context
     )
 {
-    if (Context)
-        return PhGetTokenLinkedToken((HANDLE)Context, Handle);
-
+    if (Context) return PhGetTokenLinkedToken((HANDLE)Context, Handle);
     return STATUS_UNSUCCESSFUL;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseLinkedToken(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,

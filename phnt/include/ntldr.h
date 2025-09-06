@@ -164,16 +164,18 @@ typedef struct _LDR_DATA_TABLE_ENTRY
             ULONG InIndexes : 1;
             ULONG ShimDll : 1;
             ULONG InExceptionTable : 1;
-            ULONG ReservedFlags1 : 2;
+            ULONG VerifierProvider : 1;
+            ULONG ShimEngineCalloutSent : 1;
             ULONG LoadInProgress : 1;
             ULONG LoadConfigProcessed : 1;
             ULONG EntryProcessed : 1;
             ULONG ProtectDelayLoad : 1;
-            ULONG ReservedFlags3 : 2;
+            ULONG AuxIatCopyPrivate : 1;
+            ULONG ReservedFlags3 : 1;
             ULONG DontCallForThreads : 1;
             ULONG ProcessAttachCalled : 1;
             ULONG ProcessAttachFailed : 1;
-            ULONG CorDeferredValidate : 1;
+            ULONG ScpInExceptionTable : 1;
             ULONG CorImage : 1;
             ULONG DontRelocate : 1;
             ULONG CorILOnly : 1;
@@ -210,6 +212,42 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     PVOID ActivePatchImageBase;
     LDR_HOT_PATCH_STATE HotPatchState;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
+
+typedef const LDR_DATA_TABLE_ENTRY* PCLDR_DATA_TABLE_ENTRY;
+
+#if defined(WIN64)
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InLoadOrderLinks) == 0x0);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks) == 0x10);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks) == 0x20);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DllBase) == 0x30);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, EntryPoint) == 0x38);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, SizeOfImage) == 0x40);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ObsoleteLoadCount) == 0x6c);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, TimeDateStamp) == 0x80);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DdagNode) == 0x98);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ParentDllBase) == 0xb8);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, OriginalBase) == 0xf8);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, BaseNameHashValue) == 0x108);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, LoadReason) == 0x10c);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, CheckSum) == 0x120);
+C_ASSERT(sizeof(LDR_DATA_TABLE_ENTRY) == 0x138);
+#else
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, InLoadOrderLinks) == 0x0);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, InMemoryOrderLinks) == 0x8);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, InInitializationOrderLinks) == 0x10);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, DllBase) == 0x18);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, EntryPoint) == 0x1c);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, SizeOfImage) == 0x20);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ObsoleteLoadCount) == 0x38);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, TimeDateStamp) == 0x44);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, DdagNode) == 0x50);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ParentDllBase) == 0x60);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, OriginalBase) == 0x80);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, BaseNameHashValue) == 0x90);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, LoadReason) == 0x94);
+C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, CheckSum) == 0xA8);
+C_ASSERT(sizeof(LDR_DATA_TABLE_ENTRY) == 0xB8);
+#endif
 
 #define LDR_IS_DATAFILE(DllHandle) (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)1)
 #define LDR_IS_IMAGEMAPPING(DllHandle) (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)2)

@@ -150,7 +150,7 @@
 
 /**
  * The PEB_LDR_DATA structure contains information about the loaded modules for the process.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data
  */
 typedef struct _PEB_LDR_DATA
 {
@@ -392,7 +392,7 @@ typedef struct _PAGE_PRIORITY_INFORMATION
 /**
  * The PROCESS_BASIC_INFORMATION structure contains basic information about a process.
  *
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information
  */
 typedef struct _PROCESS_BASIC_INFORMATION
 {
@@ -446,7 +446,7 @@ typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
 /**
  * The VM_COUNTERS structure contains various memory usage statistics for a process.
  *
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters
  */
 typedef struct _VM_COUNTERS
 {
@@ -466,7 +466,7 @@ typedef struct _VM_COUNTERS
 /**
  * The VM_COUNTERS_EX structure extends VM_COUNTERS to include private memory usage.
  *
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
  */
 typedef struct _VM_COUNTERS_EX
 {
@@ -487,7 +487,7 @@ typedef struct _VM_COUNTERS_EX
 /**
  * The VM_COUNTERS_EX2 structure extends VM_COUNTERS_EX to include private working set size and shared commit usage.
  *
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
  */
 typedef struct _VM_COUNTERS_EX2
 {
@@ -517,7 +517,7 @@ typedef struct _VM_COUNTERS_EX2
 /**
  * The KERNEL_USER_TIMES structure contains timing information for a process or thread.
  *
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes
  */
 typedef struct _KERNEL_USER_TIMES
 {
@@ -640,7 +640,7 @@ typedef struct _PROCESS_LDT_SIZE
 /**
  * The PROCESS_WS_WATCH_INFORMATION structure is used to store information about working set watch events for a process.
  *
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information
  */
 typedef struct _PROCESS_WS_WATCH_INFORMATION
 {
@@ -653,7 +653,7 @@ typedef struct _PROCESS_WS_WATCH_INFORMATION
 /**
  * The PROCESS_WS_WATCH_INFORMATION_EX structure contains extended information about a page added to a process working set.
  *
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information_ex
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information_ex
  */
 typedef struct _PROCESS_WS_WATCH_INFORMATION_EX
 {
@@ -1277,7 +1277,7 @@ typedef struct _PROCESS_COMMIT_RELEASE_INFORMATION
 /**
  * The PROCESS_JOB_MEMORY_INFO structure contains Represents app memory usage at a single point in time.
  *
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-app_memory_information
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-app_memory_information
  */
 typedef struct _PROCESS_JOB_MEMORY_INFO
 {
@@ -1580,7 +1580,7 @@ typedef struct _PROCESS_AVAILABLE_CPUS_INFORMATION
 /**
  * The NtQueryPortInformationProcess function retrieves the status of the current process exception port.
  *
- * @return LOGICAL If TRUE, the process exception port is valid.
+ * \return LOGICAL If TRUE, the process exception port is valid.
  */
 NTSYSCALLAPI
 LOGICAL
@@ -1657,7 +1657,7 @@ typedef struct _THREAD_TEB_INFORMATION
 /**
  * The COUNTER_READING structure is used to store individual counter data from a hardware counter.
  *
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-hardware_counter_data
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-hardware_counter_data
  */
 typedef struct _COUNTER_READING
 {
@@ -1674,7 +1674,7 @@ typedef struct _COUNTER_READING
 /**
  * The THREAD_PERFORMANCE_DATA structure aggregates various performance metrics for a thread.
  *
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-performance_data
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-performance_data
  */
 typedef struct _THREAD_PERFORMANCE_DATA
 {
@@ -1701,7 +1701,7 @@ typedef struct _THREAD_PERFORMANCE_DATA
 /**
  * The THREAD_PROFILING_INFORMATION structure contains profiling information and references to performance data.
  *
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readthreadprofilingdata
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readthreadprofilingdata
  */
 typedef struct _THREAD_PROFILING_INFORMATION
 {
@@ -1778,8 +1778,8 @@ typedef struct _THREAD_UMS_INFORMATION
 /**
  * The THREAD_NAME_INFORMATION structure assigns a description to a thread.
  *
- * @remarks The handle must have THREAD_SET_LIMITED_INFORMATION access.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreaddescription
+ * \remarks The handle must have THREAD_SET_LIMITED_INFORMATION access.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreaddescription
  */
 typedef struct _THREAD_NAME_INFORMATION
 {
@@ -1922,15 +1922,15 @@ typedef struct _THREAD_INDEX_INFORMATION
 /**
  * Creates a new process.
  *
- * @param ProcessHandle A pointer to a handle that receives the process object handle.
- * @param DesiredAccess The access rights desired for the process object.
- * @param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new process.
- * @param ParentProcess A handle to the parent process.
- * @param InheritObjectTable If TRUE, the new process inherits the object table of the parent process.
- * @param SectionHandle Optional. A handle to a section object to be used for the new process.
- * @param DebugPort Optional. A handle to a debug port to be used for the new process.
- * @param TokenHandle Optional. A handle to an access token to be used for the new process.
- * @return NTSTATUS Successful or errant status.
+ * \param ProcessHandle A pointer to a handle that receives the process object handle.
+ * \param DesiredAccess The access rights desired for the process object.
+ * \param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new process.
+ * \param ParentProcess A handle to the parent process.
+ * \param InheritObjectTable If TRUE, the new process inherits the object table of the parent process.
+ * \param SectionHandle Optional. A handle to a section object to be used for the new process.
+ * \param DebugPort Optional. A handle to a debug port to be used for the new process.
+ * \param TokenHandle Optional. A handle to an access token to be used for the new process.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1973,16 +1973,16 @@ NtCreateProcess(
 /**
  * Creates a new process with extended options.
  *
- * @param ProcessHandle A pointer to a handle that receives the process object handle.
- * @param DesiredAccess The access rights desired for the process object.
- * @param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new process.
- * @param ParentProcess A handle to the parent process.
- * @param Flags Flags that control the creation of the process. These flags are defined as PROCESS_CREATE_FLAGS_*.
- * @param SectionHandle Optional. A handle to a section object to be used for the new process.
- * @param DebugPort Optional. A handle to a debug port to be used for the new process.
- * @param TokenHandle Optional. A handle to an access token to be used for the new process.
- * @param Reserved Reserved for future use. Must be zero.
- * @return NTSTATUS Successful or errant status.
+ * \param ProcessHandle A pointer to a handle that receives the process object handle.
+ * \param DesiredAccess The access rights desired for the process object.
+ * \param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new process.
+ * \param ParentProcess A handle to the parent process.
+ * \param Flags Flags that control the creation of the process. These flags are defined as PROCESS_CREATE_FLAGS_*.
+ * \param SectionHandle Optional. A handle to a section object to be used for the new process.
+ * \param DebugPort Optional. A handle to a debug port to be used for the new process.
+ * \param TokenHandle Optional. A handle to an access token to be used for the new process.
+ * \param Reserved Reserved for future use. Must be zero.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2002,12 +2002,12 @@ NtCreateProcessEx(
 /**
  * Opens an existing process object.
  *
- * @param ProcessHandle A pointer to a handle that receives the process object handle.
- * @param DesiredAccess The access rights desired for the process object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new process.
- * @param ClientId Optional. A pointer to a CLIENT_ID structure that specifies the client ID of the process to be opened.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess
+ * \param ProcessHandle A pointer to a handle that receives the process object handle.
+ * \param DesiredAccess The access rights desired for the process object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new process.
+ * \param ClientId Optional. A pointer to a CLIENT_ID structure that specifies the client ID of the process to be opened.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2022,10 +2022,10 @@ NtOpenProcess(
 /**
  * Terminates the specified process.
  *
- * @param ProcessHandle Optional. A handle to the process to be terminated. If this parameter is NULL, the calling process is terminated.
- * @param ExitStatus The exit status to be used by the process and the process's termination status.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess
+ * \param ProcessHandle Optional. A handle to the process to be terminated. If this parameter is NULL, the calling process is terminated.
+ * \param ExitStatus The exit status to be used by the process and the process's termination status.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2038,9 +2038,9 @@ NtTerminateProcess(
 /**
  * Suspends the specified process.
  *
- * @param ProcessHandle A handle to the process to be suspended.
- * @return NTSTATUS Successful or errant status.
- * @remarks Use NtCreateProcessStateChange instead.
+ * \param ProcessHandle A handle to the process to be suspended.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks Use NtCreateProcessStateChange instead.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2052,9 +2052,9 @@ NtSuspendProcess(
 /**
  * Resumes the specified process.
  *
- * @param ProcessHandle A handle to the process to be resumed.
- * @return NTSTATUS Successful or errant status.
- * @remarks Use NtCreateProcessStateChange instead.
+ * \param ProcessHandle A handle to the process to be resumed.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks Use NtCreateProcessStateChange instead.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2094,12 +2094,12 @@ EXTERN_C CONST IMAGE_DOS_HEADER __ImageBase;
 /**
  * Retrieves information about the specified process.
  *
- * @param ProcessHandle A handle to the process.
- * @param ProcessInformationClass The type of process information to be retrieved.
- * @param ProcessInformation A pointer to a buffer that receives the process information.
- * @param ProcessInformationLength The size of the buffer pointed to by the ProcessInformation parameter.
- * @param ReturnLength An optional pointer to a variable that receives the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param ProcessHandle A handle to the process.
+ * \param ProcessInformationClass The type of process information to be retrieved.
+ * \param ProcessInformation A pointer to a buffer that receives the process information.
+ * \param ProcessInformationLength The size of the buffer pointed to by the ProcessInformation parameter.
+ * \param ReturnLength An optional pointer to a variable that receives the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2127,11 +2127,11 @@ NtWow64QueryInformationProcess64(
 /**
  * Sets information for the specified process.
  *
- * @param ProcessHandle A handle to the process.
- * @param ProcessInformationClass The type of process information to be set.
- * @param ProcessInformation A pointer to a buffer that contains the process information.
- * @param ProcessInformationLength The size of the buffer pointed to by the ProcessInformation parameter.
- * @return NTSTATUS Successful or errant status.
+ * \param ProcessHandle A handle to the process.
+ * \param ProcessInformationClass The type of process information to be set.
+ * \param ProcessInformation A pointer to a buffer that contains the process information.
+ * \param ProcessInformationLength The size of the buffer pointed to by the ProcessInformation parameter.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2143,18 +2143,27 @@ NtSetInformationProcess(
     _In_ ULONG ProcessInformationLength
     );
 
+/**
+ * The PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS flag retrieves the previous process in the system.
+ *
+ * When calling NtGetNextProcess, this flag can be specified in the Flags parameter to indicate
+ * that the function should return the previous process in the system enumeration order,
+ * rather than the next process. This can be useful for iterating through processes in reverse order.
+ */
+#ifndef PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS
 #define PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS 0x00000001
+#endif
 
 /**
  * Retrieves a handle to the next process in the system.
  *
- * @param ProcessHandle An optional handle to a process. If this parameter is NULL, the function retrieves the first process in the system.
- * @param DesiredAccess The access rights desired for the new process handle.
- * @param HandleAttributes The attributes for the new process handle.
- * @param Flags Flags that modify the behavior of the function. This can be a combination of the following flags:
+ * \param ProcessHandle An optional handle to a process. If this parameter is NULL, the function retrieves the first process in the system.
+ * \param DesiredAccess The access rights desired for the new process handle.
+ * \param HandleAttributes The attributes for the new process handle.
+ * \param Flags Flags that modify the behavior of the function. This can be a combination of the following flags:
  * - \ref PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS (0x00000001): Retrieve the previous process in the system.
- * @param NewProcessHandle A pointer to a variable that receives the handle to the next process.
- * @return NTSTATUS Successful or errant status.
+ * \param NewProcessHandle A pointer to a variable that receives the handle to the next process.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2170,13 +2179,13 @@ NtGetNextProcess(
 /**
  * Retrieves a handle to the next thread in the system.
  *
- * @param ProcessHandle A handle to the process for enumerateration of threads.
- * @param ThreadHandle An optional handle to a thread. If this parameter is NULL, the function retrieves the first thread in the process.
- * @param DesiredAccess The access rights desired for the new thread handle.
- * @param HandleAttributes The attributes for the new thread handle.
- * @param Flags Flags that modify the behavior of the function. Unused and should be zero.
- * @param NewThreadHandle A pointer to a variable that receives the handle to the next thread.
- * @return NTSTATUS Successful or errant status.
+ * \param ProcessHandle A handle to the process for enumerateration of threads.
+ * \param ThreadHandle An optional handle to a thread. If this parameter is NULL, the function retrieves the first thread in the process.
+ * \param DesiredAccess The access rights desired for the new thread handle.
+ * \param HandleAttributes The attributes for the new thread handle.
+ * \param Flags Flags that modify the behavior of the function. Unused and should be zero.
+ * \param NewThreadHandle A pointer to a variable that receives the handle to the next thread.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2186,7 +2195,7 @@ NtGetNextThread(
     _In_opt_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG HandleAttributes,
-    _In_ ULONG Flags,
+    _In_opt_ _Reserved_ ULONG Flags,
     _Out_ PHANDLE NewThreadHandle
     );
 
@@ -2205,12 +2214,12 @@ typedef enum _PROCESS_STATE_CHANGE_TYPE
 /**
  * Creates a state change handle for changing the suspension state of a process.
  *
- * @param ProcessStateChangeHandle A pointer to a variable that receives the handle.
- * @param DesiredAccess The access rights desired for the handle.
- * @param ObjectAttributes Optional attributes for the handle.
- * @param ProcessHandle A handle to the process.
- * @param Reserved Reserved for future use.
- * @return NTSTATUS Successful or errant status.
+ * \param ProcessStateChangeHandle A pointer to a variable that receives the handle.
+ * \param DesiredAccess The access rights desired for the handle.
+ * \param ObjectAttributes Optional attributes for the handle.
+ * \param ProcessHandle A handle to the process.
+ * \param Reserved Reserved for future use.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2226,13 +2235,13 @@ NtCreateProcessStateChange(
 /**
  * Changes the suspension state of a process.
  *
- * @param ProcessStateChangeHandle A handle to the process state change object.
- * @param ProcessHandle A handle to the process.
- * @param StateChangeType The type of state change.
- * @param ExtendedInformation Optional extended information.
- * @param ExtendedInformationLength The length of the extended information.
- * @param Reserved Reserved for future use.
- * @return NTSTATUS Successful or errant status.
+ * \param ProcessStateChangeHandle A handle to the process state change object.
+ * \param ProcessHandle A handle to the process.
+ * \param StateChangeType The type of state change.
+ * \param ExtendedInformation Optional extended information.
+ * \param ExtendedInformationLength The length of the extended information.
+ * \param Reserved Reserved for future use.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2251,12 +2260,12 @@ NtChangeProcessState(
 /**
  * Creates a state change handle for changing the suspension state of a thread.
  *
- * @param ThreadStateChangeHandle A pointer to a variable that receives the handle.
- * @param DesiredAccess The access rights desired for the handle.
- * @param ObjectAttributes Optional attributes for the handle.
- * @param ThreadHandle A handle to the thread.
- * @param Reserved Reserved for future use.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadStateChangeHandle A pointer to a variable that receives the handle.
+ * \param DesiredAccess The access rights desired for the handle.
+ * \param ObjectAttributes Optional attributes for the handle.
+ * \param ThreadHandle A handle to the thread.
+ * \param Reserved Reserved for future use.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2279,13 +2288,13 @@ typedef enum _THREAD_STATE_CHANGE_TYPE
 /**
  * Changes the suspension state of a thread.
  *
- * @param ThreadStateChangeHandle A handle to the thread state change object.
- * @param ThreadHandle A handle to the thread.
- * @param StateChangeType The type of state change.
- * @param ExtendedInformation Optional extended information.
- * @param ExtendedInformationLength The length of the extended information.
- * @param Reserved Reserved for future use.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadStateChangeHandle A handle to the thread state change object.
+ * \param ThreadHandle A handle to the thread.
+ * \param StateChangeType The type of state change.
+ * \param ExtendedInformation Optional extended information.
+ * \param ExtendedInformationLength The length of the extended information.
+ * \param Reserved Reserved for future use.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2308,15 +2317,15 @@ NtChangeThreadState(
 /**
  * Creates a new thread in the specified process.
  *
- * @param ThreadHandle A pointer to a handle that receives the thread object handle.
- * @param DesiredAccess The access rights desired for the thread object.
- * @param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
- * @param ProcessHandle A handle to the process in which the thread is to be created.
- * @param ClientId A pointer to a CLIENT_ID structure that receives the client ID of the new thread.
- * @param ThreadContext A pointer to a CONTEXT structure that specifies the initial context of the new thread.
- * @param InitialTeb A pointer to an INITIAL_TEB structure that specifies the initial stack limits of the new thread.
- * @param CreateSuspended If TRUE, the thread is created in a suspended state.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle A pointer to a handle that receives the thread object handle.
+ * \param DesiredAccess The access rights desired for the thread object.
+ * \param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
+ * \param ProcessHandle A handle to the process in which the thread is to be created.
+ * \param ClientId A pointer to a CLIENT_ID structure that receives the client ID of the new thread.
+ * \param ThreadContext A pointer to a CONTEXT structure that specifies the initial context of the new thread.
+ * \param InitialTeb A pointer to an INITIAL_TEB structure that specifies the initial stack limits of the new thread.
+ * \param CreateSuspended If TRUE, the thread is created in a suspended state.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2335,11 +2344,11 @@ NtCreateThread(
 /**
  * Opens an existing thread object.
  *
- * @param ThreadHandle A pointer to a handle that receives the thread object handle.
- * @param DesiredAccess The access rights desired for the thread object.
- * @param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
- * @param ClientId Optional. A pointer to a CLIENT_ID structure that specifies the client ID of the thread to be opened.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle A pointer to a handle that receives the thread object handle.
+ * \param DesiredAccess The access rights desired for the thread object.
+ * \param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
+ * \param ClientId Optional. A pointer to a CLIENT_ID structure that specifies the client ID of the thread to be opened.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2354,9 +2363,9 @@ NtOpenThread(
 /**
  * Terminates the specified thread.
  *
- * @param ThreadHandle Optional. A handle to the thread to be terminated. If this parameter is NULL, the calling thread is terminated.
- * @param ExitStatus The exit status to be used by the thread and the thread's termination status.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle Optional. A handle to the thread to be terminated. If this parameter is NULL, the calling thread is terminated.
+ * \param ExitStatus The exit status to be used by the thread and the thread's termination status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2369,9 +2378,9 @@ NtTerminateThread(
 /**
  * Suspends the specified thread.
  *
- * @param ThreadHandle A handle to the thread to be suspended.
- * @param PreviousSuspendCount Optional. A pointer to a variable that receives the thread's previous suspend count.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle A handle to the thread to be suspended.
+ * \param PreviousSuspendCount Optional. A pointer to a variable that receives the thread's previous suspend count.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2384,9 +2393,9 @@ NtSuspendThread(
 /**
  * Resumes the specified thread.
  *
- * @param ThreadHandle A handle to the thread to be resumed.
- * @param PreviousSuspendCount Optional. A pointer to a variable that receives the thread's previous suspend count.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle A handle to the thread to be resumed.
+ * \param PreviousSuspendCount Optional. A pointer to a variable that receives the thread's previous suspend count.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2426,9 +2435,9 @@ NtGetCurrentProcessorNumberEx(
 /**
  * Retrieves the context of the specified thread.
  *
- * @param ThreadHandle A handle to the thread.
- * @param ThreadContext A pointer to a CONTEXT structure that receives the thread context.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle A handle to the thread.
+ * \param ThreadContext A pointer to a CONTEXT structure that receives the thread context.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2441,9 +2450,9 @@ NtGetContextThread(
 /**
  * Sets the context of the specified thread.
  *
- * @param ThreadHandle A handle to the thread.
- * @param ThreadContext A pointer to a CONTEXT structure that specifies the thread context.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle A handle to the thread.
+ * \param ThreadContext A pointer to a CONTEXT structure that specifies the thread context.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2456,12 +2465,12 @@ NtSetContextThread(
 /**
  * Retrieves information about the specified thread.
  *
- * @param ThreadHandle A handle to the thread.
- * @param ThreadInformationClass The type of thread information to be retrieved.
- * @param ThreadInformation A pointer to a buffer that receives the thread information.
- * @param ThreadInformationLength The size of the buffer pointed to by the ThreadInformation parameter.
- * @param ReturnLength An optional pointer to a variable that receives the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle A handle to the thread.
+ * \param ThreadInformationClass The type of thread information to be retrieved.
+ * \param ThreadInformation A pointer to a buffer that receives the thread information.
+ * \param ThreadInformationLength The size of the buffer pointed to by the ThreadInformation parameter.
+ * \param ReturnLength An optional pointer to a variable that receives the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2477,11 +2486,11 @@ NtQueryInformationThread(
 /**
  * Sets information for the specified thread.
  *
- * @param ThreadHandle A handle to the thread.
- * @param ThreadInformationClass The type of thread information to be set.
- * @param ThreadInformation A pointer to a buffer that contains the thread information.
- * @param ThreadInformationLength The size of the buffer pointed to by the ThreadInformation parameter.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle A handle to the thread.
+ * \param ThreadInformationClass The type of thread information to be set.
+ * \param ThreadInformation A pointer to a buffer that contains the thread information.
+ * \param ThreadInformationLength The size of the buffer pointed to by the ThreadInformation parameter.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2496,8 +2505,8 @@ NtSetInformationThread(
 /**
  * Sends an alert to the specified thread.
  *
- * @param ThreadHandle A handle to the thread to be alerted.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle A handle to the thread to be alerted.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2509,9 +2518,9 @@ NtAlertThread(
 /**
  * Resumes a thread that was previously suspended and sends an alert to it.
  *
- * @param ThreadHandle A handle to the thread to be resumed and alerted.
- * @param PreviousSuspendCount An optional pointer to a variable that receives the thread's previous suspend count.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle A handle to the thread to be resumed and alerted.
+ * \param PreviousSuspendCount An optional pointer to a variable that receives the thread's previous suspend count.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2524,7 +2533,7 @@ NtAlertResumeThread(
 /**
  * Tests whether the current thread has an alert pending.
  *
- * @return NTSTATUS Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2538,8 +2547,8 @@ NtTestAlert(
 /**
  * Sends an alert to the specified thread.
  *
- * @param ThreadId The thread ID of the thread to be alerted.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadId The thread ID of the thread to be alerted.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2553,9 +2562,9 @@ NtAlertThreadByThreadId(
 /**
  * Sends an alert to the specified thread by its thread ID, with an optional lock.
  *
- * @param ThreadId The thread ID of the thread to be alerted.
- * @param Lock An optional pointer to an SRW lock to be used during the alert.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadId The thread ID of the thread to be alerted.
+ * \param Lock An optional pointer to an SRW lock to be used during the alert.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2568,11 +2577,11 @@ NtAlertThreadByThreadIdEx(
 /**
  * Sends an alert to multiple threads by their thread IDs.
  *
- * @param MultipleThreadId A pointer to an array of thread IDs to be alerted.
- * @param Count The number of thread IDs in the array.
- * @param Boost A pointer to a boost value to be applied to the threads.
- * @param BoostCount The number of boost values in the array.
- * @return NTSTATUS Successful or errant status.
+ * \param MultipleThreadId A pointer to an array of thread IDs to be alerted.
+ * \param Count The number of thread IDs in the array.
+ * \param Boost A pointer to a boost value to be applied to the threads.
+ * \param BoostCount The number of boost values in the array.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2590,9 +2599,9 @@ NtAlertMultipleThreadByThreadId(
 /**
  * Waits for an alert to be delivered to the specified thread.
  *
- * @param Address The address to wait for an alert on.
- * @param Timeout The timeout value for waiting, or NULL for no timeout.
- * @return NTSTATUS Successful or errant status.
+ * \param Address The address to wait for an alert on.
+ * \param Timeout The timeout value for waiting, or NULL for no timeout.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2606,10 +2615,10 @@ NtWaitForAlertByThreadId(
 /**
  * Impersonates a client thread.
  *
- * @param ServerThreadHandle A handle to the server thread.
- * @param ClientThreadHandle A handle to the client thread.
- * @param SecurityQos A pointer to a SECURITY_QUALITY_OF_SERVICE structure that specifies the impersonation level and context tracking mode.
- * @return NTSTATUS Successful or errant status.
+ * \param ServerThreadHandle A handle to the server thread.
+ * \param ClientThreadHandle A handle to the client thread.
+ * \param SecurityQos A pointer to a SECURITY_QUALITY_OF_SERVICE structure that specifies the impersonation level and context tracking mode.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2623,8 +2632,8 @@ NtImpersonateThread(
 /**
  * Registers a thread termination port.
  *
- * @param PortHandle A handle to the port to be registered.
- * @return NTSTATUS Successful or errant status.
+ * \param PortHandle A handle to the port to be registered.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2636,13 +2645,13 @@ NtRegisterThreadTerminatePort(
 /**
  * Sets LDT (Local Descriptor Table) entries.
  *
- * @param Selector0 The first selector.
- * @param Entry0Low The low part of the first entry.
- * @param Entry0Hi The high part of the first entry.
- * @param Selector1 The second selector.
- * @param Entry1Low The low part of the second entry.
- * @param Entry1Hi The high part of the second entry.
- * @return NTSTATUS Successful or errant status.
+ * \param Selector0 The first selector.
+ * \param Entry0Low The low part of the first entry.
+ * \param Entry0Hi The high part of the first entry.
+ * \param Selector1 The second selector.
+ * \param Entry1Low The low part of the second entry.
+ * \param Entry1Hi The high part of the second entry.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2659,9 +2668,9 @@ NtSetLdtEntries(
 /**
  * Dispatches the Asynchronous Procedure Call (APC) from the NtQueueApc* functions to the specified routine.
  *
- * @param ApcRoutine A pointer to the APC routine to be executed.
- * @param Parameter Optional. A pointer to a parameter to be passed to the APC routine.
- * @param ActxContext Optional. A handle to an activation context.
+ * \param ApcRoutine A pointer to the APC routine to be executed.
+ * \param Parameter Optional. A pointer to a parameter to be passed to the APC routine.
+ * \param ActxContext Optional. A handle to an activation context.
  */
 NTSYSAPI
 VOID
@@ -2675,9 +2684,9 @@ RtlDispatchAPC(
 /**
  * A pointer to a function that serves as an APC routine.
  *
- * @param ApcArgument1 Optional. A pointer to the first argument to be passed to the APC routine.
- * @param ApcArgument2 Optional. A pointer to the second argument to be passed to the APC routine.
- * @param ApcArgument3 Optional. A pointer to the third argument to be passed to the APC routine.
+ * \param ApcArgument1 Optional. A pointer to the first argument to be passed to the APC routine.
+ * \param ApcArgument2 Optional. A pointer to the second argument to be passed to the APC routine.
+ * \param ApcArgument3 Optional. A pointer to the third argument to be passed to the APC routine.
  */
 typedef _Function_class_(PS_APC_ROUTINE)
 VOID NTAPI PS_APC_ROUTINE(
@@ -2690,8 +2699,8 @@ typedef PS_APC_ROUTINE* PPS_APC_ROUTINE;
 /**
  * Encodes an APC routine pointer for use in a WOW64 environment.
  *
- * @param ApcRoutine The APC routine pointer to be encoded.
- * @return PVOID The encoded APC routine pointer.
+ * \param ApcRoutine The APC routine pointer to be encoded.
+ * \return PVOID The encoded APC routine pointer.
  */
 #define Wow64EncodeApcRoutine(ApcRoutine) \
     ((PVOID)((0 - ((LONG_PTR)(ApcRoutine))) << 2))
@@ -2699,8 +2708,8 @@ typedef PS_APC_ROUTINE* PPS_APC_ROUTINE;
 /**
  * Decodes an APC routine pointer that was encoded for use in a WOW64 environment.
  *
- * @param ApcRoutine The encoded APC routine pointer to be decoded.
- * @return PVOID The decoded APC routine pointer.
+ * \param ApcRoutine The encoded APC routine pointer to be decoded.
+ * \return PVOID The decoded APC routine pointer.
  */
 #define Wow64DecodeApcRoutine(ApcRoutine) \
     ((PVOID)(0 - (((LONG_PTR)(ApcRoutine)) >> 2)))
@@ -2708,13 +2717,13 @@ typedef PS_APC_ROUTINE* PPS_APC_ROUTINE;
 /**
  * Queues an APC (Asynchronous Procedure Call) to a thread.
  *
- * @param ThreadHandle Handle to the thread to which the APC is to be queued.
- * @param ApcRoutine A pointer to the RtlDispatchAPC function or custom APC routine to be executed.
- * @param ApcArgument1 Optional first argument to be passed to the APC routine.
- * @param ApcArgument2 Optional second argument to be passed to the APC routine.
- * @param ApcArgument3 Optional third argument to be passed to the APC routine.
- * @return NTSTATUS Successful or errant status.
- * @remarks The APC will be executed in the context of the specified thread when the thread enters an alertable wait state or when any
+ * \param ThreadHandle Handle to the thread to which the APC is to be queued.
+ * \param ApcRoutine A pointer to the RtlDispatchAPC function or custom APC routine to be executed.
+ * \param ApcArgument1 Optional first argument to be passed to the APC routine.
+ * \param ApcArgument2 Optional second argument to be passed to the APC routine.
+ * \param ApcArgument3 Optional third argument to be passed to the APC routine.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The APC will be executed in the context of the specified thread when the thread enters an alertable wait state or when any
  * process calls the NtTestAlert, NtAlertThread, NtAlertResumeThread or NtAlertThreadByThreadId functions.
  */
 NTSYSCALLAPI
@@ -2736,14 +2745,14 @@ NtQueueApcThread(
 /**
  * Queues an APC (Asynchronous Procedure Call) to a thread.
  *
- * @param ThreadHandle Handle to the thread to which the APC is to be queued.
- * @param ReserveHandle Optional handle to a reserve object. This can be QUEUE_USER_APC_SPECIAL_USER_APC or a handle returned by NtAllocateReserveObject.
- * @param ApcRoutine A pointer to the RtlDispatchAPC function or custom APC routine to be executed.
- * @param ApcArgument1 Optional first argument to be passed to the APC routine.
- * @param ApcArgument2 Optional second argument to be passed to the APC routine.
- * @param ApcArgument3 Optional third argument to be passed to the APC routine.
- * @return NTSTATUS Successful or errant status.
- * @remarks The APC will be executed in the context of the specified thread after the thread enters an alertable wait state or immediately
+ * \param ThreadHandle Handle to the thread to which the APC is to be queued.
+ * \param ReserveHandle Optional handle to a reserve object. This can be QUEUE_USER_APC_SPECIAL_USER_APC or a handle returned by NtAllocateReserveObject.
+ * \param ApcRoutine A pointer to the RtlDispatchAPC function or custom APC routine to be executed.
+ * \param ApcArgument1 Optional first argument to be passed to the APC routine.
+ * \param ApcArgument2 Optional second argument to be passed to the APC routine.
+ * \param ApcArgument3 Optional third argument to be passed to the APC routine.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The APC will be executed in the context of the specified thread after the thread enters an alertable wait state or immediately
  * when QUEUE_USER_APC_SPECIAL_USER_APC is used or NtTestAlert, NtAlertThread, NtAlertResumeThread or NtAlertThreadByThreadId are called.
  */
 NTSYSCALLAPI
@@ -2777,15 +2786,15 @@ typedef struct _APC_CALLBACK_DATA_CONTEXT
 /**
  * Queues an Asynchronous Procedure Call (APC) to a specified thread.
  *
- * @param ThreadHandle A handle to the thread to which the APC is to be queued.
- * @param ReserveHandle An optional handle to a reserve object. This can be obtained using NtAllocateReserveObject.
- * @param ApcFlags Flags that control the behavior of the APC. These flags are defined in QUEUE_USER_APC_FLAGS.
- * @param ApcRoutine A pointer to the RtlDispatchAPC function or custom APC routine to be executed.
- * @param ApcArgument1 An optional argument to be passed to the APC routine.
- * @param ApcArgument2 An optional argument to be passed to the APC routine.
- * @param ApcArgument3 An optional argument to be passed to the APC routine.
- * @return NTSTATUS Successful or errant status.
- * @remarks The APC will be executed in the context of the specified thread when the thread enters an alertable wait state or immediately
+ * \param ThreadHandle A handle to the thread to which the APC is to be queued.
+ * \param ReserveHandle An optional handle to a reserve object. This can be obtained using NtAllocateReserveObject.
+ * \param ApcFlags Flags that control the behavior of the APC. These flags are defined in QUEUE_USER_APC_FLAGS.
+ * \param ApcRoutine A pointer to the RtlDispatchAPC function or custom APC routine to be executed.
+ * \param ApcArgument1 An optional argument to be passed to the APC routine.
+ * \param ApcArgument2 An optional argument to be passed to the APC routine.
+ * \param ApcArgument3 An optional argument to be passed to the APC routine.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The APC will be executed in the context of the specified thread when the thread enters an alertable wait state or immediately
  * when QUEUE_USER_APC_SPECIAL_USER_APC is used or any process calls the NtTestAlert, NtAlertThread,
  * NtAlertResumeThread or NtAlertThreadByThreadId functions.
  */
@@ -3328,18 +3337,18 @@ typedef struct _PS_CREATE_INFO
 /**
  * Creates a new process and primary thread.
  *
- * @param ProcessHandle A pointer to a handle that receives the process object handle.
- * @param ThreadHandle A pointer to a handle that receives the thread object handle.
- * @param ProcessDesiredAccess The access rights desired for the process object.
- * @param ThreadDesiredAccess The access rights desired for the thread object.
- * @param ProcessObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new process.
- * @param ThreadObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
- * @param ProcessFlags Flags that control the creation of the process. These flags are defined as PROCESS_CREATE_FLAGS_*.
- * @param ThreadFlags Flags that control the creation of the thread. These flags are defined as THREAD_CREATE_FLAGS_*.
- * @param ProcessParameters Optional. A pointer to a RTL_USER_PROCESS_PARAMETERS structure that specifies the parameters for the new process.
- * @param CreateInfo A pointer to a PS_CREATE_INFO structure that specifies additional information for the process creation.
- * @param AttributeList Optional. A pointer to a list of attributes for the process and thread.
- * @return NTSTATUS Successful or errant status.
+ * \param ProcessHandle A pointer to a handle that receives the process object handle.
+ * \param ThreadHandle A pointer to a handle that receives the thread object handle.
+ * \param ProcessDesiredAccess The access rights desired for the process object.
+ * \param ThreadDesiredAccess The access rights desired for the thread object.
+ * \param ProcessObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new process.
+ * \param ThreadObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
+ * \param ProcessFlags Flags that control the creation of the process. These flags are defined as PROCESS_CREATE_FLAGS_*.
+ * \param ThreadFlags Flags that control the creation of the thread. These flags are defined as THREAD_CREATE_FLAGS_*.
+ * \param ProcessParameters Optional. A pointer to a RTL_USER_PROCESS_PARAMETERS structure that specifies the parameters for the new process.
+ * \param CreateInfo A pointer to a PS_CREATE_INFO structure that specifies additional information for the process creation.
+ * \param AttributeList Optional. A pointer to a list of attributes for the process and thread.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3371,8 +3380,8 @@ NtCreateUserProcess(
 /**
  * A pointer to a user-defined function that serves as the starting routine for a new thread.
  *
- * @param ThreadParameter A pointer to a variable to be passed to the thread.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadParameter A pointer to a variable to be passed to the thread.
+ * \return NTSTATUS Successful or errant status.
  */
 typedef _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI USER_THREAD_START_ROUTINE(
@@ -3383,18 +3392,18 @@ typedef USER_THREAD_START_ROUTINE* PUSER_THREAD_START_ROUTINE;
 /**
  * Creates a new thread in the specified process.
  *
- * @param ThreadHandle A pointer to a handle that receives the thread object handle.
- * @param DesiredAccess The access rights desired for the thread object.
- * @param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
- * @param ProcessHandle A handle to the process in which the thread is to be created.
- * @param StartRoutine A pointer to the application-defined function to be executed by the thread.
- * @param Argument Optional. A pointer to a variable to be passed to the thread.
- * @param CreateFlags Flags that control the creation of the thread. These flags are defined as THREAD_CREATE_FLAGS_*.
- * @param ZeroBits The number of zero bits in the starting address of the thread's stack.
- * @param StackSize The initial size of the thread's stack, in bytes.
- * @param MaximumStackSize The maximum size of the thread's stack, in bytes.
- * @param AttributeList Optional. A pointer to a list of attributes for the thread.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle A pointer to a handle that receives the thread object handle.
+ * \param DesiredAccess The access rights desired for the thread object.
+ * \param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
+ * \param ProcessHandle A handle to the process in which the thread is to be created.
+ * \param StartRoutine A pointer to the application-defined function to be executed by the thread.
+ * \param Argument Optional. A pointer to a variable to be passed to the thread.
+ * \param CreateFlags Flags that control the creation of the thread. These flags are defined as THREAD_CREATE_FLAGS_*.
+ * \param ZeroBits The number of zero bits in the starting address of the thread's stack.
+ * \param StackSize The initial size of the thread's stack, in bytes.
+ * \param MaximumStackSize The maximum size of the thread's stack, in bytes.
+ * \param AttributeList Optional. A pointer to a list of attributes for the thread.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3664,10 +3673,10 @@ typedef struct _JOBOBJECT_NETWORK_ACCOUNTING_INFORMATION
 /**
  * Creates or opens a job object.
  *
- * @param JobHandle A handle to the job object.
- * @param DesiredAccess The access rights desired for the thread object.
- * @param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
- * @return NTSTATUS Successful or errant status.
+ * \param JobHandle A handle to the job object.
+ * \param DesiredAccess The access rights desired for the thread object.
+ * \param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3681,10 +3690,10 @@ NtCreateJobObject(
 /**
  * Opens an existing job object.
  *
- * @param JobHandle A handle to the job object.
- * @param DesiredAccess The access rights desired for the thread object.
- * @param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
- * @return NTSTATUS Successful or errant status.
+ * \param JobHandle A handle to the job object.
+ * \param DesiredAccess The access rights desired for the thread object.
+ * \param ObjectAttributes Optional. A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new thread.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3698,9 +3707,9 @@ NtOpenJobObject(
 /**
  * Assigns a process to an existing job object.
  *
- * @param JobHandle A handle to the job object to which the process will be associated. The handle must have the JOB_OBJECT_ASSIGN_PROCESS access right.
- * @param ProcessHandle A handle to the process to associate with the job object. The handle must have the PROCESS_SET_QUOTA and PROCESS_TERMINATE access rights.
- * @return NTSTATUS Successful or errant status.
+ * \param JobHandle A handle to the job object to which the process will be associated. The handle must have the JOB_OBJECT_ASSIGN_PROCESS access right.
+ * \param ProcessHandle A handle to the process to associate with the job object. The handle must have the PROCESS_SET_QUOTA and PROCESS_TERMINATE access rights.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3713,9 +3722,9 @@ NtAssignProcessToJobObject(
 /**
  * Terminates all processes associated with the job object. If the job is nested, all processes currently associated with the job and all child jobs in the hierarchy are terminated.
  *
- * @param JobHandle A handle to the job whose processes will be terminated. The handle must have the JOB_OBJECT_TERMINATE access right.
- * @param ExitStatus The exit status to be used by all processes and threads in the job object.
- * @return NTSTATUS Successful or errant status.
+ * \param JobHandle A handle to the job whose processes will be terminated. The handle must have the JOB_OBJECT_TERMINATE access right.
+ * \param ExitStatus The exit status to be used by all processes and threads in the job object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3728,10 +3737,10 @@ NtTerminateJobObject(
 /**
  * Checks if a process is associated with a job object.
  *
- * @param ProcessHandle A handle to the process to be checked.
- * @param JobHandle An optional handle to the job object. If this parameter is NULL, the function checks if the process is associated with any job object.
- * @return NTSTATUS Successful or errant status.
- * @remarks This function can be used to determine if a process is running within a job object, which can be useful for managing process resources and constraints.
+ * \param ProcessHandle A handle to the process to be checked.
+ * \param JobHandle An optional handle to the job object. If this parameter is NULL, the function checks if the process is associated with any job object.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function can be used to determine if a process is running within a job object, which can be useful for managing process resources and constraints.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3744,13 +3753,13 @@ NtIsProcessInJob(
 /**
  * Retrieves information about a job object.
  *
- * @param JobHandle An optional handle to the job object. If this parameter is NULL, the function retrieves information about the job object associated with the calling process.
- * @param JobObjectInformationClass The type of job object information to be retrieved.
- * @param JobObjectInformation A pointer to a buffer that receives the job object information.
- * @param JobObjectInformationLength The size of the buffer pointed to by the JobObjectInformation parameter.
- * @param ReturnLength An optional pointer to a variable that receives the size of the data returned.
- * @return NTSTATUS Successful or errant status.
- * @remarks This function can be used to query various types of information about a job object, such as accounting information, limit information, and process ID list.
+ * \param JobHandle An optional handle to the job object. If this parameter is NULL, the function retrieves information about the job object associated with the calling process.
+ * \param JobObjectInformationClass The type of job object information to be retrieved.
+ * \param JobObjectInformation A pointer to a buffer that receives the job object information.
+ * \param JobObjectInformationLength The size of the buffer pointed to by the JobObjectInformation parameter.
+ * \param ReturnLength An optional pointer to a variable that receives the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function can be used to query various types of information about a job object, such as accounting information, limit information, and process ID list.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3766,12 +3775,12 @@ NtQueryInformationJobObject(
 /**
  * Sets information for a job object.
  *
- * @param JobHandle A handle to the job object.
- * @param JobObjectInformationClass The type of job object information to be set.
- * @param JobObjectInformation A pointer to a buffer that contains the job object information.
- * @param JobObjectInformationLength The size of the buffer pointed to by the JobObjectInformation parameter.
- * @return NTSTATUS Successful or errant status.
- * @remarks This function can be used to set various types of information for a job object, such as limit information, UI restrictions, and security limit information.
+ * \param JobHandle A handle to the job object.
+ * \param JobObjectInformationClass The type of job object information to be set.
+ * \param JobObjectInformation A pointer to a buffer that contains the job object information.
+ * \param JobObjectInformationLength The size of the buffer pointed to by the JobObjectInformation parameter.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function can be used to set various types of information for a job object, such as limit information, UI restrictions, and security limit information.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3786,11 +3795,11 @@ NtSetInformationJobObject(
 /**
  * Creates a set of job objects.
  *
- * @param NumJob The number of job objects in the set.
- * @param UserJobSet A pointer to an array of JOB_SET_ARRAY structures that specify the job objects in the set.
- * @param Flags Reserved for future use. Must be zero.
- * @return NTSTATUS Successful or errant status.
- * @remarks This function can be used to create a set of job objects, which can be useful for managing groups of related processes.
+ * \param NumJob The number of job objects in the set.
+ * \param UserJobSet A pointer to an array of JOB_SET_ARRAY structures that specify the job objects in the set.
+ * \param Flags Reserved for future use. Must be zero.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function can be used to create a set of job objects, which can be useful for managing groups of related processes.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3829,10 +3838,10 @@ typedef enum _MEMORY_RESERVE_TYPE
 /**
  * Allocates a memory reserve object.
  *
- * @param MemoryReserveHandle Pointer to a variable that receives the memory reserve object handle.
- * @param ObjectAttributes Pointer to an object attributes structure.
- * @param Type The type of memory reserve.
- * @return NTSTATUS Successful or errant status.
+ * \param MemoryReserveHandle Pointer to a variable that receives the memory reserve object handle.
+ * \param ObjectAttributes Pointer to an object attributes structure.
+ * \param Type The type of memory reserve.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3902,11 +3911,11 @@ typedef enum _PSSNT_QUERY_INFORMATION_CLASS
 /**
  * Captures a snapshot of the specified process.
  *
- * @param SnapshotHandle Pointer to a variable that receives the snapshot handle.
- * @param ProcessHandle Handle to the process.
- * @param CaptureFlags Flags indicating what to capture.
- * @param ThreadContextFlags Optional flags for capturing thread context.
- * @return NTSTATUS Successful or errant status.
+ * \param SnapshotHandle Pointer to a variable that receives the snapshot handle.
+ * \param ProcessHandle Handle to the process.
+ * \param CaptureFlags Flags indicating what to capture.
+ * \param ThreadContextFlags Optional flags for capturing thread context.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -3922,12 +3931,12 @@ PssNtCaptureSnapshot(
 /**
  * Duplicates a process snapshot from one process to another.
  *
- * @param SourceProcessHandle Handle to the source process.
- * @param SnapshotHandle Handle to the snapshot to duplicate.
- * @param TargetProcessHandle Handle to the target process.
- * @param TargetSnapshotHandle Pointer to a variable that receives the duplicated snapshot handle.
- * @param Flags Optional flags for duplication.
- * @return NTSTATUS Successful or errant status.
+ * \param SourceProcessHandle Handle to the source process.
+ * \param SnapshotHandle Handle to the snapshot to duplicate.
+ * \param TargetProcessHandle Handle to the target process.
+ * \param TargetSnapshotHandle Pointer to a variable that receives the duplicated snapshot handle.
+ * \param Flags Optional flags for duplication.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -3944,8 +3953,8 @@ PssNtDuplicateSnapshot(
 /**
  * Frees a remote process snapshot.
  *
- * @param SnapshotHandle Handle to the snapshot to free.
- * @return NTSTATUS Successful or errant status.
+ * \param SnapshotHandle Handle to the snapshot to free.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -3958,9 +3967,9 @@ PssNtFreeSnapshot(
 /**
  * Frees a snapshot.
  *
- * @param ProcessHandle A handle to the process that contains the snapshot. The handle must have PROCESS_VM_READ, PROCESS_VM_OPERATION, and PROCESS_DUP_HANDLE rights.
- * @param SnapshotHandle Handle to the snapshot to free.
- * @return NTSTATUS Successful or errant status.
+ * \param ProcessHandle A handle to the process that contains the snapshot. The handle must have PROCESS_VM_READ, PROCESS_VM_OPERATION, and PROCESS_DUP_HANDLE rights.
+ * \param SnapshotHandle Handle to the snapshot to free.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -3974,11 +3983,11 @@ PssNtFreeRemoteSnapshot(
 /**
  * Queries information from a the specified snapshot.
  *
- * @param SnapshotHandle Handle to the snapshot.
- * @param InformationClass The information class to query.
- * @param Buffer Pointer to a buffer that receives the queried information.
- * @param BufferLength Length of the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param SnapshotHandle Handle to the snapshot.
+ * \param InformationClass The information class to query.
+ * \param Buffer Pointer to a buffer that receives the queried information.
+ * \param BufferLength Length of the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -4050,12 +4059,12 @@ typedef struct _NTPSS_MEMORY_BULK_INFORMATION
 /**
  * Captures virtual address space bulk information for a process.
  *
- * @param ProcessHandle Handle to the process.
- * @param BaseAddress Optional base address to start the capture.
- * @param BulkInformation Pointer to the memory bulk information structure.
- * @param BulkInformationLength Length of the memory bulk information structure.
- * @param ReturnLength Optional pointer to a variable that receives the length of the captured information.
- * @return NTSTATUS Successful or errant status.
+ * \param ProcessHandle Handle to the process.
+ * \param BaseAddress Optional base address to start the capture.
+ * \param BulkInformation Pointer to the memory bulk information structure.
+ * \param BulkInformationLength Length of the memory bulk information structure.
+ * \param ReturnLength Optional pointer to a variable that receives the length of the captured information.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS

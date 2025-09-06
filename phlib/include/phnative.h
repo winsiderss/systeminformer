@@ -1014,7 +1014,7 @@ PhInitializeSid(
     _In_ UCHAR SubAuthorityCount
     )
 {
-#if defined(PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_INLINE)
     return NT_SUCCESS(RtlInitializeSid(Sid, IdentifierAuthority, SubAuthorityCount));
 #else
     ((PISID)Sid)->Revision = SID_REVISION;
@@ -1038,8 +1038,8 @@ PhLengthSid(
     _In_ PCSID Sid
     )
 {
-#if defined(PHNT_NATIVE_SID)
-    return RtlLengthSid(Sid);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlLengthSid((PSID)Sid);
 #else
     //return UFIELD_OFFSET(SID, SubAuthority) + (((PISID)Sid)->SubAuthorityCount * sizeof(ULONG));
     return UFIELD_OFFSET(SID, SubAuthority[((PISID)Sid)->SubAuthorityCount]);
@@ -1054,7 +1054,7 @@ PhLengthRequiredSid(
     _In_ ULONG SubAuthorityCount
     )
 {
-#if defined(PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_INLINE)
     return RtlLengthRequiredSid(SubAuthorityCount);
 #else
     return UFIELD_OFFSET(SID, SubAuthority[SubAuthorityCount]);
@@ -1070,8 +1070,8 @@ PhEqualSid(
     _In_ PCSID Sid2
     )
 {
-#if defined(PHNT_NATIVE_SID)
-    return RtlEqualSid(Sid1, Sid2);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlEqualSid((PSID)Sid1, (PSID)Sid2);
 #else
     if (!(Sid1 && Sid2))
         return FALSE;
@@ -1102,8 +1102,8 @@ PhValidSid(
     _In_ PCSID Sid
     )
 {
-#if defined(PHNT_NATIVE_SID)
-    return RtlValidSid(Sid);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlValidSid((PSID)Sid);
 #else
     if (
         ((PISID)Sid) &&
@@ -1127,8 +1127,8 @@ PhSubAuthoritySid(
     _In_ ULONG SubAuthority
     )
 {
-#if defined(PHNT_NATIVE_SID)
-    return RtlSubAuthoritySid(Sid, SubAuthority);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlSubAuthoritySid((PSID)Sid, SubAuthority);
 #else
     return &((PISID)Sid)->SubAuthority[SubAuthority];
 #endif
@@ -1142,8 +1142,8 @@ PhSubAuthorityCountSid(
     _In_ PCSID Sid
     )
 {
-#if defined(PHNT_NATIVE_SID)
-    return RtlSubAuthorityCountSid(Sid);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlSubAuthorityCountSid((PSID)Sid);
 #else
     return &((PISID)Sid)->SubAuthorityCount;
 #endif
@@ -1157,8 +1157,8 @@ PhIdentifierAuthoritySid(
     _In_ PCSID Sid
     )
 {
-#if defined(PHNT_NATIVE_SID)
-    return RtlIdentifierAuthoritySid(Sid);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlIdentifierAuthoritySid((PSID)Sid);
 #else
     return &((PISID)Sid)->IdentifierAuthority;
 #endif
@@ -1172,7 +1172,7 @@ PhEqualIdentifierAuthoritySid(
     _In_ PSID_IDENTIFIER_AUTHORITY IdentifierAuthoritySid2
     )
 {
-#if defined(PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_INLINE)
     return RtlEqualMemory(RtlIdentifierAuthoritySid(IdentifierAuthoritySid1), RtlIdentifierAuthoritySid(IdentifierAuthoritySid2), sizeof(SID_IDENTIFIER_AUTHORITY));
 #else
     return (BOOLEAN)RtlEqualMemory(IdentifierAuthoritySid1, IdentifierAuthoritySid2, sizeof(SID_IDENTIFIER_AUTHORITY));
@@ -1809,7 +1809,7 @@ PhAddAccessAllowedAceEx(
     )
 {
 #if defined(PHNT_NATIVE_INLINE)
-    return RtlAddAccessAllowedAceEx(Acl, AceRevision, AceFlags, AccessMask, Sid);
+    return RtlAddAccessAllowedAceEx(Acl, AceRevision, AceFlags, AccessMask, (PSID)Sid);
 #else
     PVOID offset;
 
@@ -1995,11 +1995,11 @@ PhAreLongPathsEnabled(
     VOID
     )
 {
-#if defined(PHNT_NATIVE_INLINE)
-    return RtlAreLongPathsEnabled();
-#else
+//#if defined(PHNT_NATIVE_INLINE)
+//    return RtlAreLongPathsEnabled();
+//#else
     return NtCurrentPeb()->IsLongPathAwareProcess;
-#endif
+//#endif
 }
 
 FORCEINLINE
@@ -2028,7 +2028,7 @@ PhFreeAnsiString(
     )
 {
 #if defined(PHNT_NATIVE_INLINE)
-    RtlFreeAnsiString(UnicodeString);
+    RtlFreeAnsiString(AnsiString);
 #else
     if (AnsiString->Buffer)
     {
@@ -2045,11 +2045,15 @@ PhFreeUTF8String(
     _Inout_ _At_(Utf8String->Buffer, _Frees_ptr_opt_) PUTF8_STRING Utf8String
     )
 {
+#if defined(PHNT_NATIVE_INLINE)
+    RtlFreeUTF8String(Utf8String);
+#else
     if (Utf8String->Buffer)
     {
         RtlFreeHeap(RtlProcessHeap(), 0, Utf8String->Buffer);
         memset(Utf8String, 0, sizeof(UTF8_STRING));
     }
+#endif
 }
 
 FORCEINLINE

@@ -144,12 +144,14 @@ NTSTATUS PhBaseInitialization(
     PhStringType = PhCreateObjectType(L"String", 0, NULL);
     PhBytesType = PhCreateObjectType(L"Bytes", 0, NULL);
 
+    memset(&parameters, 0, sizeof(PH_OBJECT_TYPE_PARAMETERS));
     parameters.FreeListSize = sizeof(PH_LIST);
     parameters.FreeListCount = 128;
 
     PhListType = PhCreateObjectTypeEx(L"List", PH_OBJECT_TYPE_USE_FREE_LIST, PhpListDeleteProcedure, &parameters);
     PhPointerListType = PhCreateObjectType(L"PointerList", 0, PhpPointerListDeleteProcedure);
 
+    memset(&parameters, 0, sizeof(PH_OBJECT_TYPE_PARAMETERS));
     parameters.FreeListSize = sizeof(PH_HASHTABLE);
     parameters.FreeListCount = 64;
 
@@ -183,6 +185,7 @@ NTSTATUS PhpBaseThreadStart(
     PhFreeToFreeList(&PhpBaseThreadContextFreeList, Parameter);
 
 #ifdef DEBUG
+    memset(&dbg, 0, sizeof(PHP_BASE_THREAD_DBG));
     dbg.ClientId = NtCurrentTeb()->ClientId;
     dbg.StartAddress = context.StartAddress;
     dbg.Parameter = context.Parameter;
