@@ -2305,7 +2305,7 @@ NtChangeThreadState(
     _In_ THREAD_STATE_CHANGE_TYPE StateChangeType,
     _In_opt_ PVOID ExtendedInformation,
     _In_opt_ SIZE_T ExtendedInformationLength,
-    _In_opt_ ULONG64 Reserved
+    _In_opt_ ULONG Reserved
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
@@ -4005,7 +4005,7 @@ typedef struct _PSSNT_WALK_MARKER_INFO
     ULONG Signature; // Win32: 0x4D575350 // 'PSSM'
     HANDLE SectionHandle;
 } PSSNT_WALK_MARKER_INFO, *PNPSSNT_WALK_MARKER_INFO;
-    
+
 // rev
 NTSYSAPI
 NTSTATUS
