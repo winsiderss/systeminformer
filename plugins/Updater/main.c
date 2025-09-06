@@ -10,7 +10,6 @@
  */
 
 #include "updater.h"
-
 #include <trace.h>
 
 PPH_PLUGIN PluginInstance;
@@ -19,6 +18,7 @@ PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -47,6 +47,7 @@ VOID NTAPI MainWindowShowingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -90,6 +91,7 @@ VOID NTAPI MainMenuInitializingCallback(
     //}
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuItemCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -129,6 +131,7 @@ VOID NTAPI MenuItemCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -138,7 +141,7 @@ VOID NTAPI ShowOptionsCallback(
 
     optionsEntry->CreateSection(
         L"Updater",
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_OPTIONS),
         OptionsDlgProc,
         NULL
@@ -167,7 +170,8 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_UPDATE_MODE, L"0" },
                 { IntegerSettingType, SETTING_NAME_UPDATE_AVAILABLE, L"0" },
                 { StringSettingType, SETTING_NAME_UPDATE_DATA, L"" },
-                { IntegerSettingType, SETTING_NAME_AUTO_CHECK_PAGE, L"0" }
+                { IntegerSettingType, SETTING_NAME_AUTO_CHECK_PAGE, L"0" },
+                { IntegerSettingType, SETTING_NAME_SHOW_NOTIFICATION, L"0" }
             };
 
             WPP_INIT_TRACING(PLUGIN_NAME);

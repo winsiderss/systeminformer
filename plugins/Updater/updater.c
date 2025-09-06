@@ -25,6 +25,7 @@ PH_EVENT InitializedEvent = PH_EVENT_INIT;
 PPH_OBJECT_TYPE UpdateContextType = NULL;
 PH_INITONCE UpdateContextTypeInitOnce = PH_INITONCE_INIT;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID UpdateContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -170,7 +171,7 @@ VOID TaskDialogLinkClicked(
     )
 {
     PhDialogBox(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_TEXT),
         Context->DialogHandle,
         TextDlgProc,
@@ -230,7 +231,7 @@ BOOLEAN LastUpdateCheckExpired(
     {
         PhTimeToSecondsSince1970(&currentTimeUpdateTicks, &lastTimeUpdateSeconds);
         PhSetIntegerSetting(SETTING_NAME_LAST_CHECK, lastTimeUpdateSeconds);
-        return TRUE;
+        return FALSE; // FirstRun
     }
 
     PhSecondsSince1970ToTime(lastTimeUpdateSeconds, &lastTimeUpdateTicks);
@@ -284,7 +285,7 @@ PPH_STRING UpdateVersionString(
 }
 
 NTSTATUS UpdatePlatformSupportInformation(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_ PUSHORT ImageMachine,
     _Out_ PULONG TimeDateStamp,
     _Out_ PULONG SizeOfImage,
@@ -293,13 +294,17 @@ NTSTATUS UpdatePlatformSupportInformation(
 {
     NTSTATUS status;
     HANDLE fileHandle;
+    USHORT imageMachine;
+    ULONG imageDateStamp;
+    ULONG imageSizeOfImage;
+    PPH_STRING imageHashString;
     PH_MAPPED_IMAGE mappedImage;
     LARGE_INTEGER fileSize;
     PH_HASH_CONTEXT hashContext;
     ULONG64 bytesRemaining;
     ULONG numberOfBytesRead;
-    BYTE buffer[PAGE_SIZE];
-    BYTE hash[256 / 8];
+    ULONG bufferLength;
+    PBYTE buffer;
 
     if (!NT_SUCCESS(status = PhCreateFile(
         &fileHandle,
@@ -314,8 +319,17 @@ NTSTATUS UpdatePlatformSupportInformation(
 
     if (!NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)))
         goto CleanupExit;
+    if (!NT_SUCCESS(status = PhInitializeHash(&hashContext, Sha256HashAlgorithm)))
+        goto CleanupExit;
 
-    PhInitializeHash(&hashContext, Sha256HashAlgorithm);
+    bufferLength = PAGE_SIZE * 2;
+    buffer = PhAllocateSafe(bufferLength);
+
+    if (!buffer)
+    {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto CleanupExit;
+    }
 
     bytesRemaining = (ULONG64)fileSize.QuadPart;
 
@@ -324,7 +338,7 @@ NTSTATUS UpdatePlatformSupportInformation(
         status = PhReadFile(
             fileHandle,
             buffer,
-            sizeof(buffer),
+            bufferLength,
             NULL,
             &numberOfBytesRead
             );
@@ -332,26 +346,64 @@ NTSTATUS UpdatePlatformSupportInformation(
         if (!NT_SUCCESS(status))
             break;
 
-        PhUpdateHash(&hashContext, buffer, numberOfBytesRead);
+        status = PhUpdateHash(
+            &hashContext,
+            buffer,
+            numberOfBytesRead
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
         bytesRemaining -= numberOfBytesRead;
     }
 
-    if (NT_SUCCESS(status = PhLoadMappedImageHeaderPageSize(NULL, fileHandle, &mappedImage)))
+    PhFree(buffer);
+
+    status = PhFinalHashString(
+        &hashContext,
+        &imageHashString
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    __try
     {
-        *ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-        *TimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-        *SizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
+        status = PhLoadMappedImageHeaderPageSize(
+            NULL,
+            fileHandle,
+            &mappedImage
+            );
 
-        PhFinalHash(&hashContext, hash, sizeof(hash), NULL);
-        *HashString = PhBufferToHexString(hash, sizeof(hash));
+        if (NT_SUCCESS(status))
+        {
+            imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+            imageDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+            imageSizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
 
-        PhUnloadMappedImage(&mappedImage);
+            PhUnloadMappedImage(&mappedImage);
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *ImageMachine = imageMachine;
+        *TimeDateStamp = imageDateStamp;
+        *SizeOfImage = imageSizeOfImage;
+        *HashString = imageHashString;
+
+        NtClose(fileHandle);
+        return STATUS_SUCCESS;
     }
 
 CleanupExit:
-
     NtClose(fileHandle);
-
+    PhClearReference(&imageHashString);
     return status;
 }
 
@@ -359,7 +411,7 @@ PPH_STRING UpdatePlatformSupportString(
     VOID
     )
 {
-    static PH_STRINGREF platformHeader = PH_STRINGREF_INIT(L"SystemInformer-PlatformSupport: ");
+    static CONST PH_STRINGREF platformHeader = PH_STRINGREF_INIT(L"SystemInformer-PlatformSupport: ");
     static UPDATER_PLATFORM_SUPPORT_ENTRY platformFiles[] =
     {
         { KPH_DYN_CLASS_NTOSKRNL, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe") },
@@ -370,7 +422,6 @@ PPH_STRING UpdatePlatformSupportString(
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 30);
-
     PhAppendStringBuilder(&stringBuilder, &platformHeader);
     PhAppendStringBuilder2(&stringBuilder, L"{\"version\":1,");
     PhAppendStringBuilder2(&stringBuilder, L"\"files\":[");
@@ -434,7 +485,7 @@ PPH_STRING UpdateWindowsString(
 
     if (NT_SUCCESS(PhGetKernelFileNameEx(&fileName, &imageBase, &imageSize)))
     {
-        if (versionInfo = PhGetFileVersionInfoEx(&fileName->sr))
+        if (NT_SUCCESS(PhGetFileVersionInfoEx(&fileName->sr, &versionInfo)))
         {
             VS_FIXEDFILEINFO* rootBlock;
 
@@ -591,9 +642,11 @@ BOOLEAN QueryUpdateData(
         }
     }
 
-    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, PH_HTTP_NO_REQUEST_DATA, 0, 0)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;
@@ -678,6 +731,7 @@ BOOLEAN QueryUpdateDataWithFailover(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateCheckSilentThread(
     _In_ PVOID Parameter
     )
@@ -691,7 +745,7 @@ NTSTATUS UpdateCheckSilentThread(
         goto CleanupExit;
 #endif
 
-    PhDelayExecution(5 * 1000);
+    //PhDelayExecution(5 * 1000);
 
     PhClearCacheDirectory(context->PortableMode);
 
@@ -714,8 +768,24 @@ NTSTATUS UpdateCheckSilentThread(
                 // We have data we're going to cache and pass into the dialog
                 context->HaveData = TRUE;
 
-                // Show the dialog asynchronously on a new thread.
-                ShowUpdateDialog(context);
+                if (PhGetIntegerSetting(SETTING_NAME_SHOW_NOTIFICATION))
+                {
+                    if (!HR_SUCCESS(PhShowIconNotificationEx(
+                        L"New version of System Informer available",
+                        L"Help menu > Check for updates",
+                        5000,
+                        NULL,
+                        NULL
+                        )))
+                    {
+                        ShowUpdateDialog(context);
+                    }
+                }
+                else
+                {
+                    // Show the dialog asynchronously on a new thread.
+                    ShowUpdateDialog(context);
+                }
             }
         }
     }
@@ -728,6 +798,7 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateCheckThread(
     _In_ PVOID Parameter
     )
@@ -736,7 +807,7 @@ NTSTATUS UpdateCheckThread(
     PH_AUTO_POOL autoPool;
 
     context = (PPH_UPDATER_CONTEXT)Parameter;
-    context->ErrorCode = STATUS_SUCCESS;
+    context->UpdateStatus = STATUS_SUCCESS;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -800,6 +871,7 @@ PPH_STRING UpdateParseDownloadFileName(
     return localfileName;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateDownloadThread(
     _In_ PVOID Parameter
     )
@@ -822,9 +894,9 @@ NTSTATUS UpdateDownloadThread(
     ULONG64 timeBitsPerSecond;
     LARGE_INTEGER allocationSize;
     ULONG bytesDownloaded = 0;
+    ULONG bytesWritten = 0;
     ULONG_PTR totalDownloaded = 0;
     PPH_STRING string;
-    IO_STATUS_BLOCK isb;
     PBYTE httpBuffer = NULL;
     ULONG httpBufferLength;
 
@@ -838,28 +910,30 @@ NTSTATUS UpdateDownloadThread(
     if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
 
-    PhHttpSetProtocal(httpContext, TRUE, PH_HTTP_PROTOCOL_FLAG_HTTP2, 5000);
+    PhHttpSetProtocol(httpContext, TRUE, PH_HTTP_PROTOCOL_FLAG_HTTP2, 5000);
 
     if (!NT_SUCCESS(status = PhHttpConnect(httpContext, PhGetString(downloadHostPath), httpPort)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(downloadUrlPath), (httpPort == PH_HTTP_DEFAULT_HTTPS_PORT ? PH_HTTP_FLAG_SECURE : 0))))
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(downloadUrlPath), PH_HTTP_FLAG_SECURE)))
         goto CleanupExit;
 
     PhHttpSetFeature(httpContext, PH_HTTP_FEATURE_KEEP_ALIVE, FALSE);
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
 
-    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, PH_HTTP_NO_REQUEST_DATA, 0, 0)))
         goto CleanupExit;
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
 
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
+        goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &contentLength)))
         goto CleanupExit;
 
-    httpBufferLength = PAGE_SIZE;
+    httpBufferLength = PAGE_SIZE * 2;
     httpBuffer = PhAllocateSafe(httpBufferLength);
 
     if (!httpBuffer)
@@ -873,8 +947,8 @@ NTSTATUS UpdateDownloadThread(
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s");
     PhDereferenceObject(string);
 
+    // Create temporary file.
     {
-        // Create temporary path.
         context->SetupFilePath = UpdateParseDownloadFileName(context, downloadUrlPath);
 
         if (PhIsNullOrEmptyString(context->SetupFilePath))
@@ -885,7 +959,6 @@ NTSTATUS UpdateDownloadThread(
 
         allocationSize.QuadPart = contentLength;
 
-        // Create temporary file.
         status = PhCreateFileWin32Ex(
             &tempFileHandle,
             PhGetString(context->SetupFilePath),
@@ -903,7 +976,9 @@ NTSTATUS UpdateDownloadThread(
     }
 
     // Initialize hash algorithm.
-    if (!(hashContext = UpdaterInitializeHash(context->Channel)))
+    status = UpdaterInitializeHash(&hashContext, context->Channel);
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
 
     // Start the clock.
@@ -917,35 +992,34 @@ NTSTATUS UpdateDownloadThread(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        // If we get zero bytes, the file was uploaded or there was an error
+        // If we get zero bytes, the file was downloaded or there was an error.
         if (bytesDownloaded == 0)
             break;
 
-        // If the dialog was closed, just cleanup and exit
+        // Update was cancelled, cleanup and exit.
         if (context->Cancel)
             goto CleanupExit;
 
         // Update the hash of bytes we downloaded.
-        UpdaterUpdateHash(hashContext, httpBuffer, bytesDownloaded);
+        status = UpdaterHashData(hashContext, httpBuffer, bytesDownloaded);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
 
         // Write the downloaded bytes to disk.
-        if (!NT_SUCCESS(status = NtWriteFile(
+        status = PhWriteFile(
             tempFileHandle,
-            NULL,
-            NULL,
-            NULL,
-            &isb,
             httpBuffer,
             bytesDownloaded,
             NULL,
-            NULL
-            )))
-        {
+            &bytesWritten
+            );
+
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
-        }
 
         // Check the number of bytes written are the same we downloaded.
-        if (bytesDownloaded != isb.Information)
+        if (bytesDownloaded != bytesWritten)
         {
             status = STATUS_DATA_CHECKSUM_ERROR;
             goto CleanupExit;
@@ -958,14 +1032,14 @@ NTSTATUS UpdateDownloadThread(
         PhQuerySystemTime(&timeNow);
 
         // Calculate the number of ticks
-        totalDownloaded += isb.Information;
+        totalDownloaded += bytesWritten;
         timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
         timeBitsPerSecond = timeTicks ? totalDownloaded / timeTicks : 0;
 
 #ifdef FORCE_NO_STATUS_TIMER
-        ULONG percent = totalDownloaded * 100 / contentLength;
+        ULONG percent = (ULONG)totalDownloaded * 100 / (ULONG)contentLength;
         PH_FORMAT format[9];
-        WCHAR string[MAX_PATH];
+        WCHAR stringformat[MAX_PATH];
 
         // L"Downloaded: %s / %s (%.0f%%)\r\nSpeed: %s/s"
         PhInitFormatS(&format[0], L"Downloaded: ");
@@ -978,9 +1052,14 @@ NTSTATUS UpdateDownloadThread(
         PhInitFormatSize(&format[7], timeBitsPerSecond);
         PhInitFormatS(&format[8], L"/s");
 
-        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), stringformat, sizeof(stringformat), NULL))
         {
-            SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
+            SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)stringformat);
+        }
+        if (context->ProgressMarquee)
+        {
+            SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
+            context->ProgressMarquee = FALSE;
         }
 
         SendMessage(context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
@@ -994,11 +1073,11 @@ NTSTATUS UpdateDownloadThread(
 #endif
     }
 
-    if (UpdaterVerifyHash(hashContext, context->SetupFileHash))
+    if (NT_SUCCESS(status = UpdaterVerifyHash(hashContext, context->SetupFileHash)))
     {
         hashSuccess = TRUE;
 
-        if (UpdaterVerifySignature(hashContext, context->SetupFileSignature))
+        if (NT_SUCCESS(status = UpdaterVerifySignature(hashContext, context->SetupFileSignature)))
         {
             signatureSuccess = TRUE;
         }
@@ -1014,7 +1093,7 @@ NTSTATUS UpdateDownloadThread(
     }
 
 CleanupExit:
-    context->ErrorCode = PhNtStatusToDosError(status);
+    context->UpdateStatus = status;
 
     if (httpContext)
         PhHttpDestroy(httpContext);
@@ -1069,7 +1148,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
 
     switch (uMsg)
     {
-    case WM_NCDESTROY:
+    case WM_DESTROY:
         {
             context->Cancel = TRUE;
 
@@ -1255,6 +1334,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     return S_OK;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS ShowUpdateDialogThread(
     _In_ PVOID Parameter
     )
@@ -1272,7 +1352,7 @@ NTSTATUS ShowUpdateDialogThread(
 
     // Start TaskDialog bootstrap
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-    config.hInstance = PluginInstance->DllBase;
+    config.hInstance = NtCurrentImageBase();
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = TaskDialogBootstrapCallback;
@@ -1377,7 +1457,7 @@ VOID ShowStartupUpdateDialog(
 
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-    config.hInstance = PluginInstance->DllBase;
+    config.hInstance = NtCurrentImageBase();
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = TaskDialogBootstrapCallback;

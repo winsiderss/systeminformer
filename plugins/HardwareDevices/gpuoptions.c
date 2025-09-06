@@ -302,7 +302,6 @@ VOID FindGraphicsDevices(
     ULONG deviceIndex = 0;
     ULONG deviceCount = 0;
     PDEV_OBJECT deviceObjects = NULL;
-    LUID fakeLuid;
 
     const DEVPROPCOMPKEY deviceProperties[] =
     {
@@ -317,9 +316,6 @@ VOID FindGraphicsDevices(
         {DEVPROP_OPERATOR_EQUALS,{{DEVPKEY_DeviceInterface_ClassGuid, DEVPROP_STORE_SYSTEM, NULL}, DEVPROP_TYPE_GUID, sizeof(GUID), (PVOID)&GUID_COMPUTE_DEVICE_ARRIVAL}},
         {DEVPROP_OPERATOR_OR_CLOSE, {0}}
     };
-
-    fakeLuid.HighPart = LONG_MAX;
-    fakeLuid.LowPart = ULONG_MAX;
 
     if (SUCCEEDED(PhDevGetObjects(
         DevObjectTypeDeviceInterface,
@@ -352,9 +348,7 @@ VOID FindGraphicsDevices(
             entry = PhAllocateZero(sizeof(GPU_ENUM_ENTRY));
             entry->DeviceIndex = ++deviceIndex;
             entry->DevicePath = PhCreateString(device->pszObjectId);
-
-            entry->AdapterLuid = fakeLuid;
-            fakeLuid.HighPart--;
+            entry->AdapterLuid.LowPart = i;
 
             if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(entry->DevicePath))))
             {
@@ -381,7 +375,7 @@ VOID FindGraphicsDevices(
                 PhSetReference(&entry->DeviceName, entry->DevicePath);
             }
 
-            if (entry->DevicePresent)
+            //if (entry->DevicePresent)
             {
                 PPH_STRING locationString = NULL;
 
@@ -421,7 +415,9 @@ VOID FindGraphicsDevices(
                     }
 
                     if (propertyList[3].BufferSize >= sizeof(LUID))
+                    {
                         entry->AdapterLuid = *(PLUID)propertyList[3].Buffer;
+                    }
 
                     if (locationString)
                     {
@@ -440,12 +436,11 @@ VOID FindGraphicsDevices(
             // Avoid duplicates, querying for GUID_DISPLAY_DEVICE_ARRIVAL and
             // GUID_COMPUTE_DEVICE_ARRIVAL together will return duplicates.
             BOOLEAN duplicate = FALSE;
-            for (ULONG i = 0; i < deviceList->Count; i++)
+            for (ULONG j = 0; j < deviceList->Count; j++)
             {
-                PGPU_ENUM_ENTRY currentEntry = deviceList->Items[i];
+                PGPU_ENUM_ENTRY currentEntry = deviceList->Items[j];
 
-                if (currentEntry->AdapterLuid.HighPart == entry->AdapterLuid.HighPart &&
-                    currentEntry->AdapterLuid.LowPart == entry->AdapterLuid.LowPart)
+                if (RtlIsEqualLuid(&currentEntry->AdapterLuid, &entry->AdapterLuid))
                 {
                     duplicate = TRUE;
                     break;

@@ -1608,7 +1608,7 @@ VOID EtSMBIOSSystemSlot(
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, SegmentGroup))
         ET_SMBIOS_UINT32(L"Segment group", Entry->SystemSlot.SegmentGroup);
 
-    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, DeviceFunctionNumber));
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, DeviceFunctionNumber))
     {
         ET_SMBIOS_UINT32(L"Device number", Entry->SystemSlot.DeviceFunctionNumber.DeviceNumber);
         ET_SMBIOS_UINT32(L"Function number", Entry->SystemSlot.DeviceFunctionNumber.FunctionNumber);
@@ -2676,7 +2676,7 @@ VOID EtSMBIOSHardwareSecurity(
     {
         ET_SMBIOS_ENUM(L"Front panel reset", Entry->HardwareSecurity.HardwareSecuritySettings.FrontPanelReset, settings);
         ET_SMBIOS_ENUM(L"Administrator password", Entry->HardwareSecurity.HardwareSecuritySettings.AdministratorPassword, settings);
-        ET_SMBIOS_ENUM(L"Administrator password", Entry->HardwareSecurity.HardwareSecuritySettings.KeyboardPassword, settings);
+        ET_SMBIOS_ENUM(L"Keyboard password", Entry->HardwareSecurity.HardwareSecuritySettings.KeyboardPassword, settings);
         ET_SMBIOS_ENUM(L"Power-on password", Entry->HardwareSecurity.HardwareSecuritySettings.PowerOnPassword, settings);
     }
 }
@@ -2932,7 +2932,7 @@ VOID EtSMBIOSTemperatureProbe(
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, MaximumValue) &&
-        Entry->TemperatureProbe.MaximumValue != 0x8000)
+        (USHORT)Entry->TemperatureProbe.MaximumValue != 0x8000)
     {
         PH_FORMAT format[2];
         PPH_STRING string;
@@ -2946,7 +2946,7 @@ VOID EtSMBIOSTemperatureProbe(
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, MinimumValue) &&
-        Entry->TemperatureProbe.MinimumValue != 0x8000)
+        (USHORT)Entry->TemperatureProbe.MinimumValue != 0x8000)
     {
         PH_FORMAT format[2];
         PPH_STRING string;
@@ -3007,7 +3007,7 @@ VOID EtSMBIOSTemperatureProbe(
         ET_SMBIOS_UINT32IX(L"OEM define", Entry->TemperatureProbe.OEMDefined);
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, NominalValue) &&
-        Entry->TemperatureProbe.NominalValue != 0x8000)
+        (USHORT)Entry->TemperatureProbe.NominalValue != 0x8000)
     {
         PH_FORMAT format[2];
         PPH_STRING string;
@@ -3194,13 +3194,13 @@ VOID EtSMBIOS64BitMemoryError(
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError64, ArrayErrorAddress) &&
-        Entry->MemoryError32.ArrayErrorAddress != 0x8000000000000000)
+        Entry->MemoryError32.ArrayErrorAddress != 0x80000000)
     {
         ET_SMBIOS_UINT64IX(L"Array error address", Entry->MemoryError64.ArrayErrorAddress);
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError64, DeviceErrorAddress) &&
-        Entry->MemoryError32.DeviceErrorAddress != 0x8000000000000000)
+        Entry->MemoryError32.DeviceErrorAddress != 0x80000000)
     {
         ET_SMBIOS_UINT64IX(L"Device error address", Entry->MemoryError64.DeviceErrorAddress);
     }
@@ -4267,7 +4267,7 @@ INT_PTR CALLBACK EtSMBIOSDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             PhLoadListViewColumnsFromSetting(SETTING_NAME_SMBIOS_INFO_COLUMNS, context->ListViewHandle);
-            if (PhGetIntegerPairSetting(SETTING_NAME_SMBIOS_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_SMBIOS_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_SMBIOS_WINDOW_POSITION, SETTING_NAME_SMBIOS_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
@@ -4288,7 +4288,15 @@ INT_PTR CALLBACK EtSMBIOSDlgProc(
         }
         break;
     case WM_SIZE:
-        PhLayoutManagerLayout(&context->LayoutManager);
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
         break;
     case WM_COMMAND:
         {
@@ -4377,7 +4385,7 @@ VOID EtShowSMBIOSDialog(
     )
 {
     PhDialogBox(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_SMBIOS),
         NULL,
         EtSMBIOSDlgProc,

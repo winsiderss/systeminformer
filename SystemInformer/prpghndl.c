@@ -24,13 +24,16 @@
 #include <extmgri.h>
 #include <hndlmenu.h>
 #include <hndlprv.h>
+#include <mainwnd.h>
 #include <phplug.h>
 #include <phsettings.h>
 #include <procprv.h>
+#include <proctree.h>
 #include <secedit.h>
 
 static CONST PH_STRINGREF EmptyHandlesText = PH_STRINGREF_INIT(L"There are no handles to display.");
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI HandleAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -43,6 +46,7 @@ static VOID NTAPI HandleAddedHandler(
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI HandleModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -53,6 +57,7 @@ static VOID NTAPI HandleModifiedHandler(
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI HandleRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -63,6 +68,7 @@ static VOID NTAPI HandleRemovedHandler(
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI HandlesUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -73,6 +79,7 @@ static VOID NTAPI HandlesUpdatedHandler(
     PostMessage(handlesContext->WindowHandle, WM_PH_HANDLES_UPDATED, PhGetRunIdProvider(&handlesContext->ProviderRegistration), 0);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI HandlesUpdateAutomaticallyHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -103,7 +110,7 @@ VOID PhpInitializeHandleMenu(
         info.Handle = Handles[0]->Handle;
         info.TypeName = Handles[0]->TypeName;
         info.BestObjectName = Handles[0]->BestObjectName;
-        PhInsertHandleObjectPropertiesEMenuItems(Menu, ID_HANDLE_COPY, TRUE, &info);
+        PhInsertHandleObjectPropertiesEMenuItems(Menu, ID_HANDLE_PROPERTIES, TRUE, &info);
     }
     else
     {
@@ -348,12 +355,15 @@ NTSTATUS PhpProcessHandleOpenCallback(
             context->ProcessId
             )))
         {
-            status = KphDuplicateObject(
+            status = NtDuplicateObject(
                 processHandle,
                 context->HandleItem->Handle,
+                NtCurrentProcess(),
+                Handle,
                 DesiredAccess,
-                Handle
-                );
+                0,
+                0
+            );
             NtClose(processHandle);
         }
     }
@@ -642,6 +652,62 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                             PhpProcessHandleCloseCallback,
                             context
                             );
+                    }
+                }
+                break;
+            case ID_HANDLE_GOTOOWNINGPROCESS:
+                {
+                    PPH_HANDLE_ITEM handleItem = PhGetSelectedHandleItem(&handlesContext->ListContext);
+
+                    if (handleItem)
+                    {
+                        HANDLE processHandle;
+                        HANDLE objectHHandle;
+                        PPH_PROCESS_NODE processNode;
+                        NTSTATUS status;
+
+                        if (NT_SUCCESS(status = PhOpenProcess(
+                            &processHandle,
+                            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_DUP_HANDLE,
+                            handleItem->ProcessId
+                            )))
+                        {
+                            if (NT_SUCCESS(status = NtDuplicateObject(
+                                processHandle,
+                                handleItem->Handle,
+                                NtCurrentProcess(),
+                                &objectHHandle,
+                                PROCESS_QUERY_LIMITED_INFORMATION,
+                                0,
+                                0
+                                )))
+                            {
+                                PROCESS_BASIC_INFORMATION basicInfo;
+
+                                if (NT_SUCCESS(status = PhGetProcessBasicInformation(objectHHandle, &basicInfo)))
+                                {
+                                    if (processNode = PhFindProcessNode(basicInfo.UniqueProcessId))
+                                    {
+                                        SystemInformer_SelectTabPage(0);
+                                        SystemInformer_SelectProcessNode(processNode);
+                                        SystemInformer_ToggleVisible(TRUE);
+                                    }
+                                    else
+                                    {
+                                        PhShowStatus(hwndDlg, L"The process does not exist.", STATUS_INVALID_CID, 0);
+                                    }
+                                }
+
+                                NtClose(objectHHandle);
+                            }
+
+                            NtClose(processHandle);
+                        }
+
+                         if (!NT_SUCCESS(status))
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to query the process.", status, 0);
+                        }
                     }
                 }
                 break;

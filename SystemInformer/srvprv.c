@@ -83,16 +83,19 @@ typedef struct _PH_SERVICE_QUERY_S2_DATA
     BOOLEAN MicrosoftService;
 } PH_SERVICE_QUERY_S2_DATA, *PPH_SERVICE_QUERY_S2_DATA;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpServiceItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpServiceHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpServiceHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -132,9 +135,9 @@ static HANDLE PhNonPollEventHandle = NULL;
 static RTL_STATIC_LIST_HEAD(PhpNonPollServiceListHead);
 static RTL_STATIC_LIST_HEAD(PhpNonPollServicePendingListHead);
 static SLIST_HEADER PhpServiceQueryDataListHead;
-static __typeof__(&NotifyServiceStatusChangeW) NotifyServiceStatusChange_I = NULL;
-static __typeof__(&SubscribeServiceChangeNotifications) SubscribeServiceChangeNotifications_I = NULL;
-static __typeof__(&UnsubscribeServiceChangeNotifications) UnsubscribeServiceChangeNotifications_I = NULL;
+static typeof(&NotifyServiceStatusChangeW) NotifyServiceStatusChange_I = NULL;
+static typeof(&SubscribeServiceChangeNotifications) SubscribeServiceChangeNotifications_I = NULL;
+static typeof(&UnsubscribeServiceChangeNotifications) UnsubscribeServiceChangeNotifications_I = NULL;
 
 BOOLEAN PhServiceProviderInitialization(
     VOID
@@ -194,6 +197,7 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
     return serviceItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpServiceItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -211,6 +215,7 @@ VOID PhpServiceItemDeleteProcedure(
     //PhDeleteImageVersionInfo(&serviceItem->VersionInfo);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpServiceHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -222,6 +227,7 @@ BOOLEAN PhpServiceHashtableEqualFunction(
     return PhEqualStringRef(&serviceItem1->Key, &serviceItem2->Key, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpServiceHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -469,12 +475,12 @@ VOID PhServiceQueryStage1(
 
             if (nativeFilename = PhDosPathNameToNtPathName(&fileName->sr))
             {
-                if (PhInitializeImageVersionInfoCached(
+                if (NT_SUCCESS(PhInitializeImageVersionInfoCached(
                     &versionInfo, // Data->VersionInfo
                     nativeFilename,
                     FALSE,
                     !!PhCsEnableVersionSupport
-                    ))
+                    )))
                 {
                     // Note: This is how msconfig determines default services. (dmex)
                     if (versionInfo.CompanyName && PhStartsWithStringRef2(&versionInfo.CompanyName->sr, L"Microsoft", TRUE))
@@ -520,6 +526,7 @@ VOID PhServiceQueryStage2(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpServiceQueryStage1Worker(
     _In_ PVOID Parameter
     )
@@ -533,6 +540,7 @@ NTSTATUS PhpServiceQueryStage1Worker(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpServiceQueryStage2Worker(
     _In_ PVOID Parameter
     )
@@ -734,6 +742,7 @@ VOID PhUpdateServiceItemConfig(
     PhCloseServiceHandle(serviceHandle);
 }
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhServiceProviderUpdate(
     _In_ PVOID Object
     )
@@ -1174,6 +1183,7 @@ VOID PhDestroyServiceNotifyContext(
     PhFree(NotifyContext);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhServiceNonPollThreadStart(
     _In_ PVOID Parameter
     )

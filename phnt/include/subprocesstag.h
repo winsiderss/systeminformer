@@ -92,12 +92,10 @@ I_QueryTagInformation(
     _Inout_ PVOID TagInfo
     );
 
-typedef _Function_class_(QUERY_TAG_INFORMATION)
-ULONG NTAPI QUERY_TAG_INFORMATION(
+typedef ULONG (NTAPI* PQUERY_TAG_INFORMATION)(
     _In_opt_ PCWSTR MachineName,
     _In_ TAG_INFO_LEVEL InfoLevel,
     _Inout_ PVOID TagInfo
     );
-typedef QUERY_TAG_INFORMATION *PQUERY_TAG_INFORMATION;
 
 #endif

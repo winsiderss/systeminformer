@@ -36,7 +36,9 @@
 
 #define GDI_MAKE_HANDLE(Index, Unique) ((ULONG)(((ULONG)(Unique) << GDI_HANDLE_INDEX_BITS) | (ULONG)(Index)))
 
+//
 // GDI server-side types
+//
 
 #define GDI_DEF_TYPE 0 // invalid handle
 #define GDI_DC_TYPE 1
@@ -70,7 +72,9 @@
 #define GDI_DCIOBJ_TYPE 29 // unused
 #define GDI_SPOOL_TYPE 30
 
+//
 // GDI client-side types
+//
 
 #define GDI_CLIENT_TYPE_FROM_HANDLE(Handle) ((ULONG)(Handle) & ((GDI_HANDLE_ALTTYPE_MASK << GDI_HANDLE_ALTTYPE_SHIFT) | \
     (GDI_HANDLE_TYPE_MASK << GDI_HANDLE_TYPE_SHIFT)))

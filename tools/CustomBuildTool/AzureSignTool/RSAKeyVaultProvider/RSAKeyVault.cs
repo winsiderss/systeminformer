@@ -16,9 +16,9 @@ namespace CustomBuildTool
     /// </summary>
     public sealed class RSAKeyVault : RSA, IDisposable
     {
-        private readonly KeyVaultContext context;
-        private RSA publicKey;
-        private bool disposed;
+        private readonly KeyVaultContext VaultContext;
+        private RSA PublicKey;
+        private bool Disposed;
 
         /// <summary>
         /// Creates a new RSAKeyVault instance
@@ -29,10 +29,10 @@ namespace CustomBuildTool
             if (!context.IsValid)
                 throw new ArgumentException("Must not be the default", nameof(context));
 
-            this.context = context;
-            publicKey = context.Key.ToRSA();
-            KeySizeValue = publicKey.KeySize;
-            LegalKeySizesValue = [new KeySizes(publicKey.KeySize, publicKey.KeySize, 0)];
+            this.VaultContext = context;
+            this.PublicKey = context.Key.ToRSA();
+            this.KeySizeValue = this.PublicKey.KeySize;
+            this.LegalKeySizesValue = [new KeySizes(this.PublicKey.KeySize, this.PublicKey.KeySize, 0)];
         }
 
         /// <inheritdoc/>
@@ -46,7 +46,7 @@ namespace CustomBuildTool
 
             try
             {
-                return context.SignDigest(hash, hashAlgorithm, KeyVaultSignatureAlgorithm.RSAPkcs15);
+                return this.VaultContext.SignDigest(hash, hashAlgorithm, KeyVaultSignatureAlgorithm.RSAPkcs15);
             }
             catch (Exception e)
             {
@@ -58,7 +58,7 @@ namespace CustomBuildTool
         public override bool VerifyHash(byte[] hash, byte[] signature, HashAlgorithmName hashAlgorithm, RSASignaturePadding padding)
         {
             CheckDisposed();
-            return publicKey.VerifyHash(hash, signature, hashAlgorithm, padding);
+            return this.PublicKey.VerifyHash(hash, signature, hashAlgorithm, padding);
         }
 
         /// <inheritdoc/>
@@ -90,7 +90,7 @@ namespace CustomBuildTool
 
             try
             {
-                return context.DecryptData(data, padding);
+                return this.VaultContext.DecryptData(data, padding);
             }
             catch (Exception e)
             {
@@ -103,7 +103,7 @@ namespace CustomBuildTool
         {
             CheckDisposed();
 
-            return publicKey.Encrypt(data, padding);
+            return this.PublicKey.Encrypt(data, padding);
         }
 
         /// <inheritdoc/>
@@ -114,7 +114,7 @@ namespace CustomBuildTool
             if (includePrivateParameters)
                 throw new NotSupportedException("Private keys cannot be exported by this provider");
 
-            return publicKey.ExportParameters(false);
+            return this.PublicKey.ExportParameters(false);
         }
 
         /// <inheritdoc/>
@@ -125,7 +125,7 @@ namespace CustomBuildTool
 
         private void CheckDisposed()
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
+            ObjectDisposedException.ThrowIf(this.Disposed, this);
         }
 
         ~RSAKeyVault()
@@ -142,16 +142,16 @@ namespace CustomBuildTool
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            if (disposed)
+            if (this.Disposed)
                 return;
 
             if (disposing)
             {
-                publicKey?.Dispose();
-                publicKey = null;
+                this.PublicKey?.Dispose();
+                this.PublicKey = null;
             }
 
-            disposed = true;
+            this.Disposed = true;
             base.Dispose(disposing);
         }
 

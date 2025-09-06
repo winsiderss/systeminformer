@@ -17,7 +17,7 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
    goto end
 )
 
-MakeAppx.exe pack /o /f msix\MsixPackage64.msix.map /p msix\systeminformer-build-package.msix
+MakeAppx.exe pack /o /f msix\PackageManifest64.msix.map /p msix\systeminformer-build-package.msix
 
 :end
 pause

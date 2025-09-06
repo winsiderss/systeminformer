@@ -279,6 +279,7 @@ VOID InitializeDbPath(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -289,6 +290,7 @@ VOID NTAPI LoadCallback(
     LoadDb();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -297,6 +299,7 @@ VOID NTAPI UnloadCallback(
     NOTHING;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -313,6 +316,7 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1280,7 +1284,7 @@ VOID NTAPI MenuItemCallback(
         break;
     case PROCESS_HIGHLIGHT_ID:
         {
-            BOOLEAN highlightPresent = (BOOLEAN)menuItem->Context;
+            BOOLEAN highlightPresent = (BOOLEAN)PtrToUlong(menuItem->Context);
 
             if (!highlightPresent)
             {
@@ -1813,6 +1817,7 @@ VOID NTAPI MenuItemCallback(
     PhDereferenceObject(processItem);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuHookCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2104,6 +2109,7 @@ VOID InvalidateProcessAffinity(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID TreeNewMessageCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -2173,6 +2179,7 @@ VOID TreeNewMessageCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID MainWindowShowingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -2184,6 +2191,7 @@ VOID MainWindowShowingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ProcessPropertiesInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2314,7 +2322,7 @@ VOID AddSavePriorityMenuItemsAndHook(
     }
 
     // Priority
-    if (priorityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_PRIORITY))
+    if (priorityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_PRIORITYCLASS))
     {
         PhInsertEMenuItem(priorityMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
         PhInsertEMenuItem(priorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PRIORITY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
@@ -2394,6 +2402,7 @@ VOID AddSavePriorityMenuItemsAndHook(
     PhPluginAddMenuHook(MenuInfo, PluginInstance, UseSelectionForHook ? NULL : ProcessItem->ProcessId);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ProcessMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2574,6 +2583,7 @@ LONG NTAPI ServiceCommentSortFunction(
     return PhCompareStringWithNull(extension1->Comment, extension2->Comment, TRUE);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ServiceTreeNewInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2592,6 +2602,7 @@ VOID ServiceTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ServiceCommentSortFunction);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID MiListSectionMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2608,6 +2619,7 @@ VOID MiListSectionMenuInitializingCallback(
     AddSavePriorityMenuItemsAndHook(menuInfo, processItem, FALSE);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ProcessModifiedCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2621,6 +2633,7 @@ VOID ProcessModifiedCallback(
     extension->ValidAffinity = FALSE;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -2765,6 +2778,7 @@ VOID ProcessesUpdatedCallback(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID SearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

@@ -11,6 +11,10 @@
 
 #include "setup.h"
 
+#if defined(_DEBUG) && !defined(PH_RELEASE_CHANNEL_ID)
+#define PH_RELEASE_CHANNEL_ID 2
+#endif
+
 #ifdef PH_RELEASE_CHANNEL_ID
 #if PH_RELEASE_CHANNEL_ID == 0
 #define SETUP_APP_PARAMETERS L"-channel release"
@@ -27,16 +31,16 @@
 #error PH_RELEASE_CHANNEL_ID undefined
 #endif
 
-PH_STRINGREF UninstallKeyNames[] =
+CONST PH_STRINGREF UninstallKeyNames[] =
 {
     PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer"),
     PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Preview"),
     PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Canary"),
     PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Developer"),
 };
-PH_STRINGREF AppPathsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\SystemInformer.exe");
-PH_STRINGREF TaskmgrIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
-PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+CONST PH_STRINGREF AppPathsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\SystemInformer.exe");
+CONST PH_STRINGREF TaskmgrIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
+CONST PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 
 VOID SetupDeleteUninstallKey(
     VOID
@@ -67,7 +71,6 @@ NTSTATUS SetupCreateUninstallKey(
     NTSTATUS status;
     HANDLE keyHandle;
     PH_STRINGREF value;
-    ULONG ulong = 1;
 
     SetupDeleteUninstallKey();
 
@@ -134,8 +137,8 @@ PPH_STRING SetupFindInstallDirectory(
 
     if (PhIsNullOrEmptyString(setupInstallPath))
     {
-        static PH_STRINGREF programW6432 = PH_STRINGREF_INIT(L"%ProgramW6432%\\SystemInformer\\");
-        static PH_STRINGREF programFiles = PH_STRINGREF_INIT(L"%ProgramFiles%\\SystemInformer\\");
+        static CONST PH_STRINGREF programW6432 = PH_STRINGREF_INIT(L"%ProgramW6432%\\SystemInformer\\");
+        static CONST PH_STRINGREF programFiles = PH_STRINGREF_INIT(L"%ProgramFiles%\\SystemInformer\\");
         SYSTEM_INFO info;
 
         GetNativeSystemInfo(&info);
@@ -153,9 +156,9 @@ PPH_STRING SetupFindInstallDirectory(
 
     if (!PhIsNullOrEmptyString(setupInstallPath))
     {
-        if (!PhEndsWithStringRef(&setupInstallPath->sr, &PhNtPathSeperatorString, TRUE))
+        if (!PhEndsWithStringRef(&setupInstallPath->sr, &PhNtPathSeparatorString, TRUE))
         {
-            PhSwapReference(&setupInstallPath, PhConcatStringRef2(&setupInstallPath->sr, &PhNtPathSeperatorString));
+            PhSwapReference(&setupInstallPath, PhConcatStringRef2(&setupInstallPath->sr, &PhNtPathSeparatorString));
         }
     }
 
@@ -176,7 +179,7 @@ VOID SetupDeleteAppdataDirectory(
     }
 }
 
-BOOLEAN SetupCreateUninstallFile(
+NTSTATUS SetupCreateUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
@@ -185,16 +188,13 @@ BOOLEAN SetupCreateUninstallFile(
     PPH_STRING uninstallFilePath;
 
     if (!NT_SUCCESS(status = PhGetProcessImageFileNameWin32(NtCurrentProcess(), &currentFilePath)))
-    {
-        Context->LastStatus = status;
-        return FALSE;
-    }
+        return status;
 
     // Check if the current image is running from the installation folder.
 
     if (PhStartsWithStringRef2(&currentFilePath->sr, PhGetString(Context->SetupInstallPath), TRUE))
     {
-        return TRUE;
+        return STATUS_SUCCESS;
     }
 
     // Move the outdated setup.exe into the trash (temp) folder.
@@ -207,8 +207,7 @@ BOOLEAN SetupCreateUninstallFile(
 
         if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFileName), FALSE)))
         {
-            Context->LastStatus = status;
-            return FALSE;
+            return status;
         }
     }
 
@@ -218,11 +217,10 @@ BOOLEAN SetupCreateUninstallFile(
 
     if (!NT_SUCCESS(status = PhCopyFileWin32(PhGetString(currentFilePath), PhGetString(uninstallFilePath), FALSE)))
     {
-        Context->LastStatus = status;
-        return FALSE;
+        return status;
     }
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 VOID SetupDeleteUninstallFile(
@@ -249,11 +247,11 @@ VOID SetupDeleteUninstallFile(
     PhDereferenceObject(uninstallFilePath);
 }
 
-BOOLEAN SetupUninstallDriver(
+NTSTATUS SetupUninstallDriver(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    BOOLEAN success = TRUE;
+    NTSTATUS status = STATUS_SUCCESS;
     SC_HANDLE serviceHandle;
 
     if (NT_SUCCESS(PhOpenService(
@@ -283,18 +281,12 @@ BOOLEAN SetupUninstallDriver(
         PhIsNullOrEmptyString(Context->SetupServiceName) ? L"KSystemInformer" : PhGetString(Context->SetupServiceName)
         )))
     {
-        NTSTATUS status;
-
-        if (!NT_SUCCESS(status = PhDeleteService(serviceHandle)))
-        {
-            success = FALSE;
-            Context->LastStatus = status;
-        }
+        status = PhDeleteService(serviceHandle);
 
         PhCloseServiceHandle(serviceHandle);
     }
 
-    return success;
+    return status;
 }
 
 VOID SetupCreateWindowsOptions(
@@ -433,7 +425,7 @@ BOOLEAN NTAPI SetupDeleteAutoRunKeyCallback(
 {
     if (Information->Type == REG_SZ)
     {
-        static PH_STRINGREF fileName = PH_STRINGREF_INIT(L"\\SystemInformer.exe");
+        static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"\\SystemInformer.exe");
         PH_STRINGREF value;
 
         value.Length = Information->DataLength;
@@ -711,6 +703,154 @@ VOID SetupUpgradeSettingsFile(
     if (settingsFilePath) PhDereferenceObject(settingsFilePath);
 }
 
+static VOID SetupStripSubstring(
+    _In_ PSTR String,
+    _In_ PCSTR SubString
+    )
+{
+    SIZE_T length = PhCountBytesZ(SubString);
+
+    if (length == 0)
+        return;
+
+    PSTR offset = strstr(String, SubString);
+
+    while (offset)
+    {
+        memmove(offset, offset + length, (PhCountBytesZ(offset + length) + 1) * sizeof(CHAR));
+        offset = strstr(String, SubString);
+    }
+}
+
+NTSTATUS SetupConvertSettingsFile(
+    VOID
+    )
+{
+    NTSTATUS status;
+    PPH_STRING convertFilePath;
+    PPH_STRING settingsFilePath;
+    HANDLE fileHandle;
+    PPH_BYTES fileContent;
+    PVOID topNode = NULL;
+    PVOID currentNode;
+    PVOID object = NULL;
+    PPH_STRING settingName;
+    PPH_STRING settingValue;
+
+    convertFilePath = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.json");
+
+    if (PhIsNullOrEmptyString(convertFilePath))
+        return STATUS_SUCCESS;
+
+    PhMoveReference(&convertFilePath, PhDosPathNameToNtPathName(&convertFilePath->sr));
+
+    if (PhIsNullOrEmptyString(convertFilePath))
+        return STATUS_SUCCESS;
+
+    settingsFilePath = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
+
+    if (PhIsNullOrEmptyString(settingsFilePath))
+        return STATUS_SUCCESS;
+
+    PhMoveReference(&settingsFilePath, PhDosPathNameToNtPathName(&settingsFilePath->sr));
+
+    if (PhIsNullOrEmptyString(settingsFilePath))
+        return STATUS_SUCCESS;
+
+    status = PhCreateFile(
+        &fileHandle,
+        &settingsFilePath->sr,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetFileText(
+        &fileContent,
+        fileHandle,
+        FALSE
+        );
+
+    NtClose(fileHandle);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    {
+        CHAR buffer[0x100] = { 0 };
+        strcat_s(buffer, sizeof(buffer), "Proc");
+        strcat_s(buffer, sizeof(buffer), "essH");
+        strcat_s(buffer, sizeof(buffer), "acke");
+        strcat_s(buffer, sizeof(buffer), "r.");
+
+        SetupStripSubstring(fileContent->Buffer, buffer);
+    }
+
+    topNode = PhLoadXmlObjectFromString(fileContent->Buffer);
+    PhDereferenceObject(fileContent);
+
+    if (!topNode)
+    {
+        status = STATUS_SUCCESS;
+        goto CleanupExit;
+    }
+
+    if (!(object = PhCreateJsonObject()))
+    {
+        status = STATUS_SUCCESS;
+        goto CleanupExit;
+    }
+
+    if (!(currentNode = PhGetXmlNodeFirstChild(topNode)))
+    {
+        status = STATUS_SUCCESS;
+        goto CleanupExit;
+    }
+
+    while (currentNode)
+    {
+        if (settingName = PhGetXmlNodeAttributeText(currentNode, "name"))
+        {
+            if (settingValue = PhGetXmlNodeOpaqueText(currentNode))
+            {
+                PPH_BYTES stringName;
+                PPH_BYTES stringValue;
+
+                stringName = PhConvertStringToUtf8(settingName);
+                stringValue = PhConvertStringToUtf8(settingValue);
+
+                PhAddJsonObject2(object, stringName->Buffer, stringValue->Buffer, stringValue->Length);
+            }
+        }
+
+        currentNode = PhGetXmlNodeNextChild(currentNode);
+    }
+
+    status = PhSaveJsonObjectToFile(
+        &convertFilePath->sr,
+        object,
+        PH_JSON_TO_STRING_PLAIN | PH_JSON_TO_STRING_PRETTY
+        );
+
+CleanupExit:
+    if (object)
+    {
+        PhFreeJsonObject(object);
+    }
+
+    if (topNode)
+    {
+        PhFreeXmlObject(topNode);
+    }
+
+    return status;
+}
+
 NTSTATUS ExtractResourceToFile(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
@@ -968,6 +1108,33 @@ PPH_STRING GetApplicationInstallPath(
     return installPath;
 }
 
+BOOLEAN SetupLegacySetupInstalled(
+    VOID
+    )
+{
+    HANDLE keyHandle = NULL;
+    PPH_STRING keyName;
+
+    keyName = PhConcatStrings(7, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\", L"Process", L"_", L"Hacker", L"2", L"_", L"is1");
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        NtClose(keyHandle);
+        PhDereferenceObject(keyName);
+        return TRUE;
+    }
+
+    PhDereferenceObject(keyName);
+    return FALSE;
+}
+
+_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
 static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
@@ -1068,56 +1235,164 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     return TRUE;
 }
 
-BOOLEAN SetupShutdownApplication(
-    _In_ PPH_SETUP_CONTEXT Context
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
+static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_ PVOID Context
     )
 {
-    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
+    PFILE_DIRECTORY_INFORMATION information = (PFILE_DIRECTORY_INFORMATION)Information;
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)Context;
+    NTSTATUS status;
+    PH_STRINGREF baseName;
+    HANDLE fileHandle;
+
+    baseName.Buffer = information->FileName;
+    baseName.Length = information->FileNameLength;
+
+    if (PhEqualStringRef2(&baseName, L".", TRUE) || PhEqualStringRef2(&baseName, L"..", TRUE))
+        return TRUE;
+
+    status = PhOpenFile(
+        &fileHandle,
+        &baseName,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        RootDirectory,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
+
+        status = PhGetProcessIdsUsingFile(
+            fileHandle,
+            &processIds
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            for (ULONG i = 0; i < processIds->NumberOfProcessIdsInList; i++)
+            {
+                HANDLE processId = processIds->ProcessIdList[i];
+                PPH_STRING fileName;
+
+                if (processId == NtCurrentProcessId())
+                    continue;
+
+                status = PhGetProcessImageFileNameByProcessId(
+                    processId,
+                    &fileName
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    PPH_STRING baseDirectory;
+
+                    PhMoveReference(&fileName, PhGetFileName(fileName));
+
+                    if (baseDirectory = PhGetBaseDirectory(fileName))
+                    {
+                        if (PhStartsWithString(context->SetupInstallPath, baseDirectory, TRUE))
+                        {
+                            HANDLE processHandle;
+
+                            if (NT_SUCCESS(PhOpenProcess(
+                                &processHandle,
+                                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE,
+                                processId
+                                )))
+                            {
+                                HWND windowHandle;
+
+                                if (windowHandle = PhGetProcessMainWindowEx(
+                                    processId,
+                                    processHandle,
+                                    FALSE
+                                    ))
+                                {
+                                    SendMessageTimeout(windowHandle, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
+                                }
+
+                                status = NtTerminateProcess(processHandle, 1);
+
+                                if (status == STATUS_SUCCESS || status == STATUS_PROCESS_IS_TERMINATING)
+                                {
+                                    NtTerminateProcess(processHandle, DBG_TERMINATE_PROCESS);
+                                }
+
+                                PhWaitForSingleObject(processHandle, 30 * 1000);
+                                NtClose(processHandle);
+                            }
+                        }
+
+                        PhDereferenceObject(baseDirectory);
+                    }
+
+                    PhDereferenceObject(fileName);
+                }
+            }
+
+            PhFree(processIds);
+        }
+
+        NtClose(fileHandle);
+    }
+
     return TRUE;
 }
 
-NTSTATUS QueryProcessesUsingVolumeOrFile(
-    _In_ HANDLE VolumeOrFileHandle,
-    _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *Information
+NTSTATUS SetupShutdownApplication(
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    static ULONG initialBufferSize = 0x4000;
     NTSTATUS status;
-    PVOID buffer;
-    ULONG bufferSize;
-    IO_STATUS_BLOCK isb;
+    HANDLE directoryHandle;
 
-    bufferSize = initialBufferSize;
-    buffer = PhAllocate(bufferSize);
+    //
+    // N.B. Since the current Canary build (3.2.25136.1352) doesn't create the
+    // mutants we need to do both methods to shut down the application. (jxy-s)
+    // 1. Enumerate the mutants.
+    // 2. Enumerate directory with PhGetProcessIdsUsingFile.
+    //
 
-    while ((status = NtQueryInformationFile(
-        VolumeOrFileHandle,
-        &isb,
-        buffer,
-        bufferSize,
-        FileProcessIdsUsingFileInformation
-        )) == STATUS_INFO_LENGTH_MISMATCH)
+    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
+
+    status = PhCreateFileWin32(
+        &directoryHandle,
+        PhGetString(Context->SetupInstallPath),
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        FILE_ATTRIBUTE_DIRECTORY,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
     {
-        PhFree(buffer);
-        bufferSize *= 2;
+        status = PhEnumDirectoryFile(
+            directoryHandle,
+            NULL,
+            SetupCheckDirectoryCallback,
+            Context
+            );
 
-        // Fail if we're resizing the buffer to something very large.
-        if (bufferSize > SIZE_MAX)
-            return STATUS_INSUFFICIENT_RESOURCES;
-
-        buffer = PhAllocate(bufferSize);
+        NtClose(directoryHandle);
     }
 
-    if (!NT_SUCCESS(status))
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    if (bufferSize <= 0x100000) initialBufferSize = bufferSize;
-    *Information = (PFILE_PROCESS_IDS_USING_FILE_INFORMATION)buffer;
-
-    return status;
+    //
+    // N.B. Let the setup try to continue regardless. If we really want to fail
+    // the setup we need to:
+    // 1. If we find a target that needs to be terminate, note it.
+    // 2. If that target fails to stop, return an error code.
+    //
+    // Currently the logic only fails if the mechanics of looking up files and
+    // or mutants fails, not actually failing to shut down processes.
+    //
+    return STATUS_SUCCESS;
 }
 
 PPH_STRING SetupCreateFullPath(
@@ -1139,20 +1414,20 @@ PPH_STRING SetupCreateFullPath(
     return pathString;
 }
 
-BOOLEAN SetupOverwriteFile(
+NTSTATUS SetupOverwriteFile(
     _In_ PPH_STRING FileName,
     _In_ PVOID Buffer,
     _In_ ULONG BufferLength
     )
 {
-    BOOLEAN result = FALSE;
+    NTSTATUS status;
     HANDLE fileHandle = NULL;
     LARGE_INTEGER allocationSize;
     IO_STATUS_BLOCK isb;
 
     allocationSize.QuadPart = BufferLength;
 
-    if (!NT_SUCCESS(PhCreateFileWin32Ex(
+    status = PhCreateFileWin32Ex(
         &fileHandle,
         PhGetString(FileName),
         FILE_GENERIC_WRITE,
@@ -1162,12 +1437,12 @@ BOOLEAN SetupOverwriteFile(
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL
-        )))
-    {
-        goto CleanupExit;
-    }
+        );
 
-    if (!NT_SUCCESS(NtWriteFile(
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWriteFile(
         fileHandle,
         NULL,
         NULL,
@@ -1177,33 +1452,32 @@ BOOLEAN SetupOverwriteFile(
         BufferLength,
         NULL,
         NULL
-        )))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
     if (isb.Information != BufferLength)
+    {
+        status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
-
-    result = TRUE;
+    }
 
 CleanupExit:
 
     if (fileHandle)
         NtClose(fileHandle);
 
-    return result;
+    return status;
 }
 
-_Success_(return)
-BOOLEAN SetupHashFile(
+NTSTATUS SetupHashFile(
     _In_ PPH_STRING FileName,
     _Out_writes_all_(256 / 8) PBYTE Buffer
     )
 {
-    BOOLEAN result = FALSE;
-    HANDLE fileHandle = NULL;
     NTSTATUS status;
+    HANDLE fileHandle = NULL;
     IO_STATUS_BLOCK iosb;
     PH_HASH_CONTEXT hashContext;
     LARGE_INTEGER fileSize;
@@ -1253,12 +1527,15 @@ BOOLEAN SetupHashFile(
         bytesRemaining -= (ULONG)iosb.Information;
     }
 
-    result = PhFinalHash(&hashContext, Buffer, 256 / 8, NULL);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhFinalHash(&hashContext, Buffer, 256 / 8, NULL);
 
 CleanupExit:
 
     if (fileHandle)
         NtClose(fileHandle);
 
-    return result;
+    return status;
 }

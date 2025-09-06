@@ -30,10 +30,13 @@ if exist "tools\CustomBuildTool\.vs" (
 )
 
 if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
-   call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
-   dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\amd64.pubxml /p:ContinuousIntegrationBuild=%TIB%
-   call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" arm64
-   dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\arm64.pubxml /p:ContinuousIntegrationBuild=%TIB%
+    if "%PROCESSOR_ARCHITECTURE%"=="ARM64" (
+       call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" arm64
+       dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\arm64.pubxml /p:ContinuousIntegrationBuild=%TIB%
+    ) else (
+       call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
+       dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\amd64.pubxml /p:ContinuousIntegrationBuild=%TIB%
+    )
 ) else (
    goto end
 )
@@ -63,8 +66,11 @@ if exist "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuild
    start /B /W "" "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" "-write-tools-id"
    echo:
 ) else (
-   goto end
+   echo:
+   echo CustomBuildTool build failed.
+   echo:
 )
 
 :end
-pause
+
+if "%TIB%"=="false" pause

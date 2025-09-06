@@ -15,6 +15,7 @@
 PPH_OBJECT_TYPE TracertContextType = NULL;
 PH_INITONCE TracertContextTypeInitOnce = PH_INITONCE_INIT;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID TracertContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -73,6 +74,7 @@ PPH_STRING TracertGetErrorMessage(
     return message;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS TracertHostnameLookupCallback(
     _In_ PVOID Parameter
     )
@@ -259,7 +261,7 @@ VOID TracertQueueHostLookup(
         memset(&sockAddrIn6, 0, sizeof(IN6_ADDR));
         memcpy(&sockAddrIn6, SocketAddress, sizeof(IN6_ADDR));
 
-        if (NT_SUCCESS(RtlIpv6AddressToStringEx(&sockAddrIn6, 0, 0, addressString, &addressStringLength)))
+        if (NT_SUCCESS(PhIpv6AddressToString(&sockAddrIn6, 0, 0, addressString, &addressStringLength)))
         {
             if (PhIsNullOrEmptyString(Node->IpAddressString))
             {
@@ -785,7 +787,7 @@ INT_PTR CALLBACK TracertDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_TRACERT_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_TRACERT_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
@@ -958,7 +960,15 @@ INT_PTR CALLBACK TracertDlgProc(
         }
         break;
     case WM_SIZE:
-        PhLayoutManagerLayout(&context->LayoutManager);
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
         break;
     case NTM_RECEIVEDFINISH:
         {
@@ -1025,6 +1035,7 @@ INT_PTR CALLBACK TracertDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS TracertDialogThreadStart(
     _In_ PVOID Parameter
     )
@@ -1103,7 +1114,7 @@ VOID ShowTracertWindow(
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+        if (NT_SUCCESS(PhIpv6AddressToString(
             &NetworkItem->RemoteEndpoint.Address.In6Addr,
             0,
             0,
@@ -1154,7 +1165,7 @@ VOID ShowTracertWindowFromAddress(
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+        if (NT_SUCCESS(PhIpv6AddressToString(
             &RemoteEndpoint.Address.In6Addr,
             0,
             0,

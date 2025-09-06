@@ -59,7 +59,7 @@ VOID PvEnumerateImagePogoSections(
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, entry->Name);
             PhPrintPointer(value, UlongToPtr(entry->Rva));
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
-            PhPrintPointer(value, PTR_ADD_OFFSET(entry->Rva, entry->Size));
+            PhPrintPointer(value, UlongToPtr(entry->Rva + entry->Size));
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, value);
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(entry->Size, ULONG_MAX)->Buffer);
 
@@ -67,7 +67,7 @@ VOID PvEnumerateImagePogoSections(
             {
                 WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
 
-                if (PhGetMappedImageSectionName(section, sectionName, RTL_NUMBER_OF(sectionName), NULL))
+                if (NT_SUCCESS(PhGetMappedImageSectionName(section, sectionName, RTL_NUMBER_OF(sectionName), NULL)))
                 {
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, sectionName);
                 }

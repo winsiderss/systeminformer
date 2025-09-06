@@ -36,6 +36,7 @@
 
 extern HWND PhSipWindow;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhSipSysInfoThreadStart(
     _In_ PVOID Parameter
     );
@@ -140,6 +141,7 @@ VOID PhSipUpdateColorParameters(
     VOID
     );
 
+_Function_class_(PH_SYSINFO_CREATE_SECTION)
 PPH_SYSINFO_SECTION PhSipCreateSection(
     _In_ PPH_SYSINFO_SECTION Template
     );
@@ -148,6 +150,7 @@ VOID PhSipDestroySection(
     _In_ PPH_SYSINFO_SECTION Section
     );
 
+_Function_class_(PH_SYSINFO_FIND_SECTION)
 PPH_SYSINFO_SECTION PhSipFindSection(
     _In_ PPH_STRINGREF Name
     );
@@ -185,6 +188,7 @@ VOID PhSipLayoutSectionView(
     VOID
     );
 
+_Function_class_(PH_SYSINFO_ENTER_SECTION_VIEW)
 VOID PhSipEnterSectionView(
     _In_ PPH_SYSINFO_SECTION NewSection
     );
@@ -196,6 +200,7 @@ VOID PhSipEnterSectionViewInner(
     _Inout_ HDWP *ContainerDeferHandle
     );
 
+_Function_class_(PH_SYSINFO_RESTORE_SUMMARY_VIEW)
 VOID PhSipRestoreSummaryView(
     VOID
     );
@@ -247,11 +252,13 @@ VOID PhSipSaveWindowState(
     VOID
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhSipSysInfoUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhSipSysInfoSettingsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -259,6 +266,7 @@ VOID NTAPI PhSipSysInfoSettingsCallback(
 
 // CPU section
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipCpuSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -356,6 +364,7 @@ BOOLEAN PhIsCoreParked(
 
 // Memory section
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipMemorySectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -439,6 +448,7 @@ BOOLEAN PhSipGetMemoryCompressionLimits(
 
 // I/O section
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipIoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,

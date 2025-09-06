@@ -370,7 +370,7 @@ typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
 VOID ThemeWindowStatusBarCreateBufferedContext(
     _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context,
     _In_ HDC Hdc,
-    _In_ RECT BufferRect
+    _In_ PRECT BufferRect
     )
 {
     Context->BufferedDc = CreateCompatibleDC(Hdc);
@@ -378,11 +378,11 @@ VOID ThemeWindowStatusBarCreateBufferedContext(
     if (!Context->BufferedDc)
         return;
 
-    Context->BufferedContextRect = BufferRect;
+    Context->BufferedContextRect = *BufferRect;
     Context->BufferedBitmap = CreateCompatibleBitmap(
         Hdc,
-        Context->BufferedContextRect.right,
-        Context->BufferedContextRect.bottom
+        BufferRect->right,
+        BufferRect->bottom
         );
 
     Context->BufferedOldBitmap = SelectBitmap(Context->BufferedDc, Context->BufferedBitmap);
@@ -673,7 +673,7 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
 
                     if (!context->BufferedDc)
                     {
-                        ThemeWindowStatusBarCreateBufferedContext(context, hdc, bufferRect);
+                        ThemeWindowStatusBarCreateBufferedContext(context, hdc, &bufferRect);
                     }
 
                     if (context->BufferedDc)
@@ -867,7 +867,7 @@ VOID ThemeWindowRenderHeaderControl(
                     HP_HEADERSORTARROW,
                     HSAS_SORTEDUP,
                     NULL,
-                    TS_TRUE,
+                    THEMEPARTSIZE_TRUE,
                     &sortArrowSize
                     ))
                 {
@@ -897,7 +897,7 @@ VOID ThemeWindowRenderHeaderControl(
                     HP_HEADERSORTARROW,
                     HSAS_SORTEDDOWN,
                     NULL,
-                    TS_TRUE,
+                    THEMEPARTSIZE_TRUE,
                     &sortArrowSize
                     ))
                 {
@@ -965,13 +965,13 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
             }
         }
 
-		context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
-		context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
-		context->CursorPos.x = LONG_MIN;
-		context->CursorPos.y = LONG_MIN;
-		PhSetWindowContext(WindowHandle, LONG_MAX, context);
+        context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
+        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
+        context->CursorPos.x = LONG_MIN;
+        context->CursorPos.y = LONG_MIN;
+        PhSetWindowContext(WindowHandle, LONG_MAX, context);
 
-		PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
+        PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
 
         InvalidateRect(WindowHandle, NULL, FALSE);
     }
@@ -1412,6 +1412,7 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
     _In_ LPARAM lParam
     );
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_ HWND hwndDlg,
     _In_opt_ PVOID Context
@@ -1851,6 +1852,7 @@ HTHEME PhOpenNcThemeDataHook(
     return DefaultOpenNcThemeData(hwnd, pszClassList);
 }
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID CallbackData
@@ -1869,10 +1871,10 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 
         PhInitializeThemeWindowFrame(WindowHandle);
 
-        PTASKDIALOG_WINDOW_CONTEXT context = PhAllocateZero(sizeof(TASKDIALOG_WINDOW_CONTEXT));
-        context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
-        context->CallbackData = CallbackData;
-        PhSetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG, context);
+        PTASKDIALOG_WINDOW_CONTEXT windowContext = PhAllocateZero(sizeof(TASKDIALOG_WINDOW_CONTEXT));
+        windowContext->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
+        windowContext->CallbackData = CallbackData;
+        PhSetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG, windowContext);
         windowHasContext = TRUE;
     }
 

@@ -11,6 +11,7 @@
 
 #include <ph.h>
 #include <phnet.h>
+
 #include <winhttp.h>
 #include <apiimport.h>
 #include <mapldr.h>
@@ -41,78 +42,15 @@ static const PH_FLAG_MAPPING PhpHttpSecurityFlagsMappings[] =
 
 NTSTATUS PhHttpErrorToNtStatus(
     _In_ ULONG WinhttpError
-    )
-{
-    switch (WinhttpError)
-    {
-    case ERROR_WINHTTP_OUT_OF_HANDLES: return STATUS_NO_MEMORY;
-    case ERROR_WINHTTP_TIMEOUT: return STATUS_TIMEOUT;
-    case ERROR_WINHTTP_INTERNAL_ERROR: return STATUS_INTERNAL_ERROR;
-    case ERROR_WINHTTP_INVALID_URL: return STATUS_OBJECT_PATH_INVALID;
-    case ERROR_WINHTTP_UNRECOGNIZED_SCHEME: return STATUS_OBJECT_NAME_INVALID;
-    case ERROR_WINHTTP_NAME_NOT_RESOLVED: return STATUS_OBJECT_NAME_NOT_FOUND;
-    case ERROR_WINHTTP_INVALID_OPTION:
-    case ERROR_WINHTTP_OPTION_NOT_SETTABLE: return STATUS_INVALID_DEVICE_REQUEST;
-    case ERROR_WINHTTP_SHUTDOWN:  return STATUS_SYSTEM_SHUTDOWN;
-    case ERROR_WINHTTP_LOGIN_FAILURE: return STATUS_LOGON_FAILURE;
-    case ERROR_WINHTTP_OPERATION_CANCELLED: return STATUS_CANCELLED;
-    case ERROR_WINHTTP_INCORRECT_HANDLE_TYPE:
-    case ERROR_WINHTTP_INCORRECT_HANDLE_STATE: return STATUS_INVALID_HANDLE;
-    case ERROR_WINHTTP_CANNOT_CONNECT: return STATUS_CONNECTION_REFUSED;
-    case ERROR_WINHTTP_CONNECTION_ERROR: return STATUS_CONNECTION_ABORTED;
-    case ERROR_WINHTTP_RESEND_REQUEST: return STATUS_RETRY;
-    case ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED: return STATUS_PKINIT_FAILURE;
-    case ERROR_WINHTTP_CANNOT_CALL_BEFORE_OPEN:
-    case ERROR_WINHTTP_CANNOT_CALL_BEFORE_SEND:
-    case ERROR_WINHTTP_CANNOT_CALL_AFTER_SEND:
-    case ERROR_WINHTTP_CANNOT_CALL_AFTER_OPEN: return STATUS_INVALID_DEVICE_STATE;
-    case ERROR_WINHTTP_HEADER_NOT_FOUND: return STATUS_OBJECT_NAME_NOT_FOUND;
-    case ERROR_WINHTTP_INVALID_SERVER_RESPONSE: return STATUS_INVALID_NETWORK_RESPONSE;
-    case ERROR_WINHTTP_INVALID_HEADER:
-    case ERROR_WINHTTP_INVALID_QUERY_REQUEST: return STATUS_INVALID_PARAMETER;
-    case ERROR_WINHTTP_HEADER_ALREADY_EXISTS: return STATUS_OBJECT_NAME_COLLISION;
-    case ERROR_WINHTTP_REDIRECT_FAILED: return STATUS_UNSUCCESSFUL;
-    case ERROR_WINHTTP_AUTO_PROXY_SERVICE_ERROR: return STATUS_LOGON_FAILURE;
-    case ERROR_WINHTTP_BAD_AUTO_PROXY_SCRIPT:
-    case ERROR_WINHTTP_UNABLE_TO_DOWNLOAD_SCRIPT:
-    case ERROR_WINHTTP_UNHANDLED_SCRIPT_TYPE:
-    case ERROR_WINHTTP_SCRIPT_EXECUTION_ERROR: return STATUS_INVALID_PARAMETER;
-    case ERROR_WINHTTP_NOT_INITIALIZED: return STATUS_INVALID_DEVICE_STATE;
-    case ERROR_WINHTTP_SECURE_FAILURE: return STATUS_ENCRYPTION_FAILED;
-    case ERROR_WINHTTP_SECURE_CERT_DATE_INVALID:
-    case ERROR_WINHTTP_SECURE_CERT_CN_INVALID:
-    case ERROR_WINHTTP_SECURE_INVALID_CA:
-    case ERROR_WINHTTP_SECURE_CERT_REV_FAILED:
-    case ERROR_WINHTTP_SECURE_CHANNEL_ERROR:
-    case ERROR_WINHTTP_SECURE_INVALID_CERT:
-    case ERROR_WINHTTP_SECURE_CERT_REVOKED:
-    case ERROR_WINHTTP_SECURE_CERT_WRONG_USAGE:
-    case ERROR_WINHTTP_AUTODETECTION_FAILED: return STATUS_NO_SECURITY_CONTEXT;
-    case ERROR_WINHTTP_HEADER_COUNT_EXCEEDED:
-    case ERROR_WINHTTP_HEADER_SIZE_OVERFLOW:
-    case ERROR_WINHTTP_CHUNKED_ENCODING_HEADER_SIZE_OVERFLOW:
-    case ERROR_WINHTTP_RESPONSE_DRAIN_OVERFLOW: return STATUS_BUFFER_OVERFLOW;
-    case ERROR_WINHTTP_CLIENT_CERT_NO_PRIVATE_KEY:
-    case ERROR_WINHTTP_CLIENT_CERT_NO_ACCESS_PRIVATE_KEY: return STATUS_INVALID_PARAMETER;
-    case ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED_PROXY: return STATUS_NO_SECURITY_CONTEXT;
-    case ERROR_WINHTTP_SECURE_FAILURE_PROXY:
-    case ERROR_WINHTTP_RESERVED_189:
-    case ERROR_WINHTTP_HTTP_PROTOCOL_MISMATCH:
-    case ERROR_WINHTTP_GLOBAL_CALLBACK_FAILED: return STATUS_INVALID_PARAMETER;
-    case ERROR_WINHTTP_FEATURE_DISABLED:
-    case ERROR_WINHTTP_FAST_FORWARDING_NOT_SUPPORTED: return STATUS_NOT_SUPPORTED;
-    }
+    );
 
-    if (
-        WinhttpError < WINHTTP_ERROR_BASE ||
-        WinhttpError > ERROR_WINHTTP_FAST_FORWARDING_NOT_SUPPORTED
-        )
-    {
-        return PhDosErrorToNtStatus(WinhttpError);
-    }
-
-    return STATUS_UNSUCCESSFUL;
-}
+VOID CALLBACK PhWinHttpStatusCallback(
+    _In_ HINTERNET InternetHandle,
+    _In_ ULONG_PTR Context,
+    _In_ ULONG InternetStatus,
+    _In_opt_ PVOID StatusInformation,
+    _In_ ULONG StatusInformationLength
+    );
 
 NTSTATUS PhGetLastWinHttpErrorAsNtStatus(
     VOID
@@ -121,165 +59,50 @@ NTSTATUS PhGetLastWinHttpErrorAsNtStatus(
     return PhHttpErrorToNtStatus(PhGetLastError());
 }
 
-VOID CALLBACK PhWinHttpStatusCallback(
-    _In_ HINTERNET InternetHandle,
-    _In_ ULONG_PTR Context,
-    _In_ ULONG InternetStatus,
-    _In_opt_ PVOID StatusInformation,
-    _In_ ULONG StatusInformationLength
+PPH_STRING PhWinHttpUserAgentString(
+    VOID
     )
 {
-    //switch (InternetStatus)
-    //{
-    //case WINHTTP_CALLBACK_STATUS_RESOLVING_NAME:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_RESOLVING_NAME\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_NAME_RESOLVED:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_NAME_RESOLVED\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_CONNECTING_TO_SERVER:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_CONNECTING_TO_SERVER\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_CONNECTED_TO_SERVER:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_CONNECTED_TO_SERVER\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_SENDING_REQUEST:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_SENDING_REQUEST\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_REQUEST_SENT:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_REQUEST_SENT\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_RECEIVING_RESPONSE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_RECEIVING_RESPONSE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_RESPONSE_RECEIVED:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_RESPONSE_RECEIVED\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_HANDLE_CREATED:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_HANDLE_CREATED\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_DETECTING_PROXY:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_DETECTING_PROXY\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_REDIRECT:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_REDIRECT\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_SECURE_FAILURE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_SECURE_FAILURE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_READ_COMPLETE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_REQUEST_ERROR\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_CLOSE_COMPLETE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_CLOSE_COMPLETE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_SHUTDOWN_COMPLETE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_SHUTDOWN_COMPLETE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_SETTINGS_WRITE_COMPLETE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_SETTINGS_WRITE_COMPLETE\n");
-    //    }
-    //    break;
-    //case WINHTTP_CALLBACK_STATUS_SETTINGS_READ_COMPLETE:
-    //    {
-    //        dprintf("WINHTTP_CALLBACK_STATUS_SETTINGS_READ_COMPLETE\n");
-    //    }
-    //    break;
-    //}
+    PH_FORMAT format[8];
+    SIZE_T returnLength;
+    WCHAR formatBuffer[260];
+
+#ifndef PHAPP_VERSION_MAJOR
+#define PHAPP_VERSION_MAJOR 0
+#endif
+
+#ifndef PHAPP_VERSION_MINOR
+#define PHAPP_VERSION_MINOR 0
+#endif
+
+    PhInitFormatS(&format[0], L"SystemInformer_A2D1C96D_D25915D9_");
+    PhInitFormatU(&format[1], PHAPP_VERSION_MAJOR);
+    PhInitFormatC(&format[2], L'_');
+    PhInitFormatU(&format[3], PHAPP_VERSION_MINOR);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+    {
+        PH_STRINGREF stringFormat;
+
+        stringFormat.Buffer = formatBuffer;
+        stringFormat.Length = returnLength - sizeof(UNICODE_NULL);
+
+        return PhCreateString2(&stringFormat);
+    }
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
 static NTSTATUS PhWinHttpOpen(
     _Out_ HINTERNET* SessionHandle
     )
 {
+    NTSTATUS status;
     HINTERNET sessionHandle;
+    PPH_STRING httpUserAgent;
     ULONG httpAccessType;
+
+    httpUserAgent = PhWinHttpUserAgentString();
 
     if (WindowsVersion >= WINDOWS_8_1)
         httpAccessType = WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY;
@@ -287,7 +110,7 @@ static NTSTATUS PhWinHttpOpen(
         httpAccessType = WINHTTP_ACCESS_TYPE_DEFAULT_PROXY;
 
     if (sessionHandle = WinHttpOpen(
-        L"SystemInformer_3.2_A2D1C96D_D25915D9",
+        PhGetString(httpUserAgent),
         httpAccessType,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
@@ -295,10 +118,17 @@ static NTSTATUS PhWinHttpOpen(
         ))
     {
         *SessionHandle = sessionHandle;
-        return STATUS_SUCCESS;
+        status = STATUS_SUCCESS;
+    }
+    else
+    {
+        *SessionHandle = NULL;
+        status = PhGetLastWinHttpErrorAsNtStatus();
     }
 
-    return PhGetLastWinHttpErrorAsNtStatus();
+    PhDereferenceObject(httpUserAgent);
+
+    return status;
 }
 
 static NTSTATUS PhWinHttpConnect(
@@ -376,11 +206,6 @@ NTSTATUS PhHttpInitialize(
     httpContext = PhAllocateZero(sizeof(PH_HTTP_CONTEXT));
     httpContext->SessionHandle = sessionHandle;
 
-#if DEBUG
-    PhHttpSetContext(sessionHandle, httpContext);
-    PhHttpSetCallback(sessionHandle, PhWinHttpStatusCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS);
-#endif
-
     if (WindowsVersion < WINDOWS_8_1)
     {
         PhHttpSetOption(sessionHandle, WINHTTP_OPTION_SECURE_PROTOCOLS, WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2);
@@ -422,21 +247,21 @@ NTSTATUS PhHttpInitialize(
 }
 
 VOID PhHttpDestroy(
-    _In_ _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
+    _In_ _Maybenull_ _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
     )
 {
     if (!HttpContext)
         return;
 
-    if (HttpContext->SessionHandle)
-    {
-        // WinHTTP does not synchronize WinHttpSetStatusCallback with worker threads.
-        // If a callback originating in another thread is in progress when an application calls WinHttpSetStatusCallback,
-        // the application still receives a callback notification even after WinHttpSetStatusCallback successfully
-        // sets the callback function to NULL and returns.
-
-        PhHttpSetCallback(HttpContext->SessionHandle, NULL, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS);
-    }
+    // if (HttpContext->SessionHandle && HttpContext->EventCallbackRegistered)
+    // {
+    //     // WinHTTP does not synchronize WinHttpSetStatusCallback with worker threads.
+    //     // If a callback originating in another thread is in progress when an application calls WinHttpSetStatusCallback,
+    //     // the application still receives a callback notification even after WinHttpSetStatusCallback successfully
+    //     // sets the callback function to NULL and returns.
+    //
+    //     PhHttpSetCallback(HttpContext->SessionHandle, NULL, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS);
+    // }
 
     PhHttpClose(HttpContext, ULONG_MAX);
 
@@ -484,6 +309,11 @@ NTSTATUS PhHttpConnect(
 {
     NTSTATUS status;
     HINTERNET connectionHandle;
+
+    if (HttpContext->Callback)
+    {
+        HttpContext->Callback(PHHTTP_EVENT_CONNECTING, NULL, HttpContext->Context);
+    }
 
     status = PhWinHttpConnect(
         HttpContext->SessionHandle,
@@ -546,7 +376,7 @@ NTSTATUS PhHttpConnect(
 
 NTSTATUS PhHttpBeginRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PCWSTR RequestMethod,
+    _In_opt_ PCWSTR RequestMethod,
     _In_ PCWSTR RequestPath,
     _In_ ULONG Flags
     )
@@ -565,6 +395,8 @@ NTSTATUS PhHttpBeginRequest(
     if (NT_SUCCESS(status))
     {
         HttpContext->RequestHandle = requestHandle;
+
+        //PhHttpSetContext(requestHandle, HttpContext);
     }
 
     return status;
@@ -572,19 +404,26 @@ NTSTATUS PhHttpBeginRequest(
 
 NTSTATUS PhHttpSendRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_opt_ PCWSTR HeadersBuffer,
+    _In_ ULONG HeadersLength,
     _In_opt_ PVOID OptionalBuffer,
-    _In_opt_ ULONG OptionalLength,
-    _In_opt_ ULONG TotalLength
+    _In_ ULONG OptionalLength,
+    _In_ ULONG TotalLength
     )
 {
+    if (HttpContext->Callback)
+    {
+        HttpContext->Callback(PHHTTP_EVENT_SENDING_REQUEST, NULL, HttpContext->Context);
+    }
+
     if (WinHttpSendRequest(
         HttpContext->RequestHandle,
-        WINHTTP_NO_ADDITIONAL_HEADERS,
-        0,
+        HeadersBuffer,
+        HeadersLength,
         OptionalBuffer,
         OptionalLength,
         TotalLength,
-        0
+        (ULONG_PTR)HttpContext
         ))
     {
         return STATUS_SUCCESS;
@@ -1323,7 +1162,7 @@ NTSTATUS PhHttpSetCallback(
         0
         );
 
-    if (previousCallback = WINHTTP_INVALID_STATUS_CALLBACK)
+    if (previousCallback == WINHTTP_INVALID_STATUS_CALLBACK)
     {
         return PhGetLastWinHttpErrorAsNtStatus();
     }
@@ -1331,20 +1170,26 @@ NTSTATUS PhHttpSetCallback(
     return STATUS_SUCCESS;
 }
 
+NTSTATUS PhHttpGetContext(
+    _In_ PVOID HttpHandle,
+    _In_ PVOID Context
+    )
+{
+    ULONG bufferLength = sizeof(ULONG_PTR);
+
+    if (WinHttpQueryOption(HttpHandle, WINHTTP_OPTION_CONTEXT_VALUE, Context, &bufferLength))
+        return STATUS_SUCCESS;
+
+    return PhGetLastWinHttpErrorAsNtStatus();
+}
+
 NTSTATUS PhHttpSetContext(
     _In_ PVOID HttpHandle,
     _In_ PVOID Context
     )
 {
-    if (WinHttpSetOption(
-        HttpHandle,
-        WINHTTP_OPTION_CONTEXT_VALUE,
-        Context,
-        sizeof(ULONG_PTR)
-        ))
-    {
+    if (WinHttpSetOption(HttpHandle, WINHTTP_OPTION_CONTEXT_VALUE, Context, sizeof(ULONG_PTR)))
         return STATUS_SUCCESS;
-    }
 
     return PhGetLastWinHttpErrorAsNtStatus();
 }
@@ -1376,10 +1221,10 @@ NTSTATUS PhHttpSetSecurity(
     return PhGetLastWinHttpErrorAsNtStatus();
 }
 
-NTSTATUS PhHttpSetProtocal(
+NTSTATUS PhHttpSetProtocol(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ BOOLEAN Session,
-    _In_ ULONG Protocal,
+    _In_ ULONG Protocol,
     _In_ ULONG Timeout
     )
 {
@@ -1387,24 +1232,24 @@ NTSTATUS PhHttpSetProtocal(
 
     if (Session)
     {
-        status = PhHttpSetOption(HttpContext->SessionHandle, WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL, Protocal);
+        status = PhHttpSetOption(HttpContext->SessionHandle, WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL, Protocol);
 
         if (!NT_SUCCESS(status))
             return status;
 
-        if (FlagOn(Protocal, PH_HTTP_PROTOCOL_FLAG_HTTP3))
+        if (FlagOn(Protocol, PH_HTTP_PROTOCOL_FLAG_HTTP3))
         {
             status = PhHttpSetOption(HttpContext->SessionHandle, WINHTTP_OPTION_HTTP3_HANDSHAKE_TIMEOUT, Timeout);
         }
     }
     else
     {
-        status = PhHttpSetOption(HttpContext->RequestHandle, WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL, Protocal);
+        status = PhHttpSetOption(HttpContext->RequestHandle, WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL, Protocol);
 
         if (!NT_SUCCESS(status))
             return status;
         
-        if (FlagOn(Protocal, PH_HTTP_PROTOCOL_FLAG_HTTP3))
+        if (FlagOn(Protocol, PH_HTTP_PROTOCOL_FLAG_HTTP3))
         {
             status = PhHttpSetOption(HttpContext->RequestHandle, WINHTTP_OPTION_HTTP3_HANDSHAKE_TIMEOUT, Timeout);
         }
@@ -1415,12 +1260,14 @@ NTSTATUS PhHttpSetProtocal(
 
 NTSTATUS PhHttpCrackUrl(
     _In_ PPH_STRING Url,
-    _Out_opt_ PPH_STRING *HostPart,
-    _Out_opt_ PPH_STRING *PathPart,
-    _Out_opt_ PUSHORT PortPart
+    _Out_ PPH_STRING *HostPart,
+    _Out_ PPH_STRING *PathPart,
+    _Out_ PUSHORT PortPart
     )
 {
     URL_COMPONENTS httpParts;
+    PPH_STRING hostPart = NULL;
+    PPH_STRING pathPart = NULL;
 
     memset(&httpParts, 0, sizeof(URL_COMPONENTS));
     httpParts.dwStructSize = sizeof(URL_COMPONENTS);
@@ -1437,16 +1284,34 @@ NTSTATUS PhHttpCrackUrl(
         return PhGetLastWinHttpErrorAsNtStatus();
     }
 
-    if (HostPart && httpParts.dwHostNameLength)
-        *HostPart = PhCreateStringEx(httpParts.lpszHostName, httpParts.dwHostNameLength * sizeof(WCHAR));
+    if (httpParts.dwHostNameLength)
+    {
+        hostPart = PhCreateStringEx(httpParts.lpszHostName, httpParts.dwHostNameLength * sizeof(WCHAR));
+    }
 
-    if (PathPart && httpParts.dwUrlPathLength)
-        *PathPart = PhCreateStringEx(httpParts.lpszUrlPath, httpParts.dwUrlPathLength * sizeof(WCHAR));
+    if (httpParts.dwUrlPathLength)
+    {
+        pathPart = PhCreateStringEx(httpParts.lpszUrlPath, httpParts.dwUrlPathLength * sizeof(WCHAR));
+    }
 
-    if (PortPart)
-        *PortPart = httpParts.nPort;
+    if (hostPart && pathPart)
+    {
+        *HostPart = hostPart;
+        *PathPart = pathPart;
 
-    return STATUS_SUCCESS;
+        if (PortPart)
+        {
+            *PortPart = httpParts.nPort;
+        }
+
+        return STATUS_SUCCESS;
+    }
+    else
+    {
+        PhClearReference(&hostPart);
+        PhClearReference(&pathPart);
+        return STATUS_UNSUCCESSFUL;
+    }
 }
 
 PPH_STRING PhHttpGetErrorMessage(
@@ -1508,6 +1373,7 @@ NTSTATUS PhHttpGetCertificateInfo(
         return STATUS_SUCCESS;
     }
 
+    RtlZeroMemory(Certificate, sizeof(PH_HTTP_CERTIFICATE_INFO));
     return PhGetLastWinHttpErrorAsNtStatus();
 }
 
@@ -1621,6 +1487,340 @@ NTSTATUS PhHttpSetCredentials(
     }
 
     return PhGetLastWinHttpErrorAsNtStatus();
+}
+
+NTSTATUS PhHttpSetEventCallback(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ PPH_HTTP_EVENT_CALLBACK EventCallback,
+    _In_opt_ PVOID Context
+    )
+{
+    HttpContext->Callback = EventCallback;
+    HttpContext->Context = Context;
+
+    //PhHttpSetContext(HttpContext->SessionHandle, HttpContext);
+    //PhHttpSetCallback(HttpContext->SessionHandle, PhWinHttpStatusCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS);
+
+    if (HttpContext->Callback)
+    {
+        HttpContext->Callback(PHHTTP_EVENT_INITIALIZING, NULL, Context);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+VOID CALLBACK PhWinHttpStatusCallback(
+    _In_ HINTERNET InternetHandle,
+    _In_ ULONG_PTR Context,
+    _In_ ULONG InternetStatus,
+    _In_opt_ PVOID StatusInformation,
+    _In_ ULONG StatusInformationLength
+    )
+{
+    PPH_HTTP_CONTEXT context = NULL;
+
+    if (!Context)
+    {
+        PVOID httpContext;
+
+        if (NT_SUCCESS(PhHttpGetContext(InternetHandle, &httpContext)))
+        {
+            context = (PPH_HTTP_CONTEXT)httpContext;
+        }
+    }
+    else
+    {
+        context = (PPH_HTTP_CONTEXT)Context;
+    }
+
+    switch (InternetStatus)
+    {
+    case WINHTTP_CALLBACK_STATUS_RESOLVING_NAME:
+        {
+            PH_STRINGREF string;
+
+            string.Buffer = (PWSTR)StatusInformation;
+            string.Length = (StatusInformationLength - 1) * sizeof(WCHAR);
+
+            if (context->Callback)
+            {
+                context->Callback(PHHTTP_EVENT_RESOLVING_NAME, &string, context->Context);
+            }
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_NAME_RESOLVED:
+        {
+            PH_STRINGREF string;
+
+            string.Buffer = (PWSTR)StatusInformation;
+            string.Length = (StatusInformationLength - 1) * sizeof(WCHAR);
+
+            if (context->Callback)
+            {
+                context->Callback(PHHTTP_EVENT_NAME_RESOLVED, &string, context->Context);
+            }
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_CONNECTING_TO_SERVER:
+        {
+            PH_STRINGREF string;
+
+            string.Buffer = (PWSTR)StatusInformation;
+            string.Length = (StatusInformationLength - 1) * sizeof(WCHAR);
+
+            if (context->Callback)
+            {
+                context->Callback(PHHTTP_EVENT_CONNECTING, &string, context->Context);
+            }
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_CONNECTED_TO_SERVER:
+        {
+            PH_STRINGREF string;
+
+            string.Buffer = (PWSTR)StatusInformation;
+            string.Length = (StatusInformationLength - 1) * sizeof(WCHAR);
+
+            if (context->Callback)
+            {
+                context->Callback(InternetStatus, &string, context->Context);
+            }
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_SENDING_REQUEST:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_SENDING_REQUEST\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_REQUEST_SENT:
+        {
+            ULONG numberOfBytesSent = *(PULONG)StatusInformation;
+            dprintf("WINHTTP_CALLBACK_STATUS_REQUEST_SENT: %lu\n", numberOfBytesSent);
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_RECEIVING_RESPONSE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_RECEIVING_RESPONSE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_RESPONSE_RECEIVED:
+        {
+            ULONG numberOfBytesReceived = *(PULONG)StatusInformation;
+            dprintf("WINHTTP_CALLBACK_STATUS_RESPONSE_RECEIVED: %lu\n", numberOfBytesReceived);
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_HANDLE_CREATED:
+        {
+            HINTERNET handle = (HINTERNET)*(PULONG_PTR)StatusInformation;
+            ULONG option = 0;
+            ULONG optionLength = sizeof(ULONG);
+
+            dprintf("WINHTTP_CALLBACK_STATUS_HANDLE_CREATED: 0x%llx ", handle);
+
+            if (WinHttpQueryOption(
+                handle,
+                WINHTTP_OPTION_HANDLE_TYPE,
+                &option,
+                &optionLength
+                ))
+            {
+                switch (option)
+                {
+                case WINHTTP_HANDLE_TYPE_SESSION:
+                    dprintf("[%s]\n", "Session handle");
+                    break;
+                case WINHTTP_HANDLE_TYPE_CONNECT:
+                    dprintf("[%s]\n", "Connect handle");
+                    break;
+                case WINHTTP_HANDLE_TYPE_REQUEST:
+                    dprintf("[%s]\n", "Request handle");
+                    break;
+                case WINHTTP_HANDLE_TYPE_PROXY_RESOLVER:
+                    dprintf("[%s]\n", "Proxy handle");
+                    break;
+                case WINHTTP_HANDLE_TYPE_WEBSOCKET:
+                    dprintf("[%s]\n", "Websocket handle");
+                    break;
+                case WINHTTP_HANDLE_TYPE_PROTOCOL:
+                    dprintf("[%s]\n", "Protocol handle");
+                    break;
+                }
+            }
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING:
+        {
+            HINTERNET handle = (HINTERNET)*(PULONG_PTR)StatusInformation;
+
+            dprintf("WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING: 0x%llx\n", handle);
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_DETECTING_PROXY:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_DETECTING_PROXY\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_REDIRECT:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_REDIRECT\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_SECURE_FAILURE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_SECURE_FAILURE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_READ_COMPLETE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_REQUEST_ERROR\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_CLOSE_COMPLETE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_CLOSE_COMPLETE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_SHUTDOWN_COMPLETE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_SHUTDOWN_COMPLETE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_SETTINGS_WRITE_COMPLETE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_SETTINGS_WRITE_COMPLETE\n");
+        }
+        break;
+    case WINHTTP_CALLBACK_STATUS_SETTINGS_READ_COMPLETE:
+        {
+            dprintf("WINHTTP_CALLBACK_STATUS_SETTINGS_READ_COMPLETE\n");
+        }
+        break;
+    }
+}
+
+NTSTATUS PhHttpErrorToNtStatus(
+    _In_ ULONG WinhttpError
+    )
+{
+    switch (WinhttpError)
+    {
+    case ERROR_WINHTTP_OUT_OF_HANDLES: return STATUS_NO_MEMORY;
+    case ERROR_WINHTTP_TIMEOUT: return STATUS_TIMEOUT;
+    case ERROR_WINHTTP_INTERNAL_ERROR: return STATUS_INTERNAL_ERROR;
+    case ERROR_WINHTTP_INVALID_URL: return STATUS_OBJECT_PATH_INVALID;
+    case ERROR_WINHTTP_UNRECOGNIZED_SCHEME: return STATUS_OBJECT_NAME_INVALID;
+    case ERROR_WINHTTP_NAME_NOT_RESOLVED: return STATUS_OBJECT_NAME_NOT_FOUND;
+    case ERROR_WINHTTP_INVALID_OPTION:
+    case ERROR_WINHTTP_OPTION_NOT_SETTABLE: return STATUS_INVALID_DEVICE_REQUEST;
+    case ERROR_WINHTTP_SHUTDOWN:  return STATUS_SYSTEM_SHUTDOWN;
+    case ERROR_WINHTTP_LOGIN_FAILURE: return STATUS_LOGON_FAILURE;
+    case ERROR_WINHTTP_OPERATION_CANCELLED: return STATUS_CANCELLED;
+    case ERROR_WINHTTP_INCORRECT_HANDLE_TYPE:
+    case ERROR_WINHTTP_INCORRECT_HANDLE_STATE: return STATUS_INVALID_HANDLE;
+    case ERROR_WINHTTP_CANNOT_CONNECT: return STATUS_CONNECTION_REFUSED;
+    case ERROR_WINHTTP_CONNECTION_ERROR: return STATUS_CONNECTION_ABORTED;
+    case ERROR_WINHTTP_RESEND_REQUEST: return STATUS_RETRY;
+    case ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED: return STATUS_PKINIT_FAILURE;
+    case ERROR_WINHTTP_CANNOT_CALL_BEFORE_OPEN:
+    case ERROR_WINHTTP_CANNOT_CALL_BEFORE_SEND:
+    case ERROR_WINHTTP_CANNOT_CALL_AFTER_SEND:
+    case ERROR_WINHTTP_CANNOT_CALL_AFTER_OPEN: return STATUS_INVALID_DEVICE_STATE;
+    case ERROR_WINHTTP_HEADER_NOT_FOUND: return STATUS_OBJECT_NAME_NOT_FOUND;
+    case ERROR_WINHTTP_INVALID_SERVER_RESPONSE: return STATUS_INVALID_NETWORK_RESPONSE;
+    case ERROR_WINHTTP_INVALID_HEADER:
+    case ERROR_WINHTTP_INVALID_QUERY_REQUEST: return STATUS_INVALID_PARAMETER;
+    case ERROR_WINHTTP_HEADER_ALREADY_EXISTS: return STATUS_OBJECT_NAME_COLLISION;
+    case ERROR_WINHTTP_REDIRECT_FAILED: return STATUS_UNSUCCESSFUL;
+    case ERROR_WINHTTP_AUTO_PROXY_SERVICE_ERROR: return STATUS_LOGON_FAILURE;
+    case ERROR_WINHTTP_BAD_AUTO_PROXY_SCRIPT:
+    case ERROR_WINHTTP_UNABLE_TO_DOWNLOAD_SCRIPT:
+    case ERROR_WINHTTP_UNHANDLED_SCRIPT_TYPE:
+    case ERROR_WINHTTP_SCRIPT_EXECUTION_ERROR: return STATUS_INVALID_PARAMETER;
+    case ERROR_WINHTTP_NOT_INITIALIZED: return STATUS_INVALID_DEVICE_STATE;
+    case ERROR_WINHTTP_SECURE_FAILURE: return STATUS_ENCRYPTION_FAILED;
+    case ERROR_WINHTTP_SECURE_CERT_DATE_INVALID:
+    case ERROR_WINHTTP_SECURE_CERT_CN_INVALID:
+    case ERROR_WINHTTP_SECURE_INVALID_CA:
+    case ERROR_WINHTTP_SECURE_CERT_REV_FAILED:
+    case ERROR_WINHTTP_SECURE_CHANNEL_ERROR:
+    case ERROR_WINHTTP_SECURE_INVALID_CERT:
+    case ERROR_WINHTTP_SECURE_CERT_REVOKED:
+    case ERROR_WINHTTP_SECURE_CERT_WRONG_USAGE:
+    case ERROR_WINHTTP_AUTODETECTION_FAILED: return STATUS_NO_SECURITY_CONTEXT;
+    case ERROR_WINHTTP_HEADER_COUNT_EXCEEDED:
+    case ERROR_WINHTTP_HEADER_SIZE_OVERFLOW:
+    case ERROR_WINHTTP_CHUNKED_ENCODING_HEADER_SIZE_OVERFLOW:
+    case ERROR_WINHTTP_RESPONSE_DRAIN_OVERFLOW: return STATUS_BUFFER_OVERFLOW;
+    case ERROR_WINHTTP_CLIENT_CERT_NO_PRIVATE_KEY:
+    case ERROR_WINHTTP_CLIENT_CERT_NO_ACCESS_PRIVATE_KEY: return STATUS_INVALID_PARAMETER;
+    case ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED_PROXY: return STATUS_NO_SECURITY_CONTEXT;
+    case ERROR_WINHTTP_SECURE_FAILURE_PROXY:
+    case ERROR_WINHTTP_RESERVED_189:
+    case ERROR_WINHTTP_HTTP_PROTOCOL_MISMATCH:
+    case ERROR_WINHTTP_GLOBAL_CALLBACK_FAILED: return STATUS_INVALID_PARAMETER;
+    case ERROR_WINHTTP_FEATURE_DISABLED:
+    case ERROR_WINHTTP_FAST_FORWARDING_NOT_SUPPORTED: return STATUS_NOT_SUPPORTED;
+    }
+
+    if (
+        WinhttpError < WINHTTP_ERROR_BASE ||
+        WinhttpError > ERROR_WINHTTP_FAST_FORWARDING_NOT_SUPPORTED
+        )
+    {
+        return PhDosErrorToNtStatus(WinhttpError);
+    }
+
+    return STATUS_UNSUCCESSFUL;
 }
 
 //
@@ -1898,14 +2098,14 @@ PPH_STRING PhDnsReverseLookupNameFromAddress(
     }
 }
 
-static __typeof__(&DnsQuery_W) DnsQuery_W_I = NULL;
-#if (PHNT_DNSQUERY_FUTURE)
-static __typeof__(&DnsQueryEx) DnsQueryEx_I = NULL;
-static __typeof__(&DnsCancelQuery) DnsCancelQuery_I = NULL;
+static typeof(&DnsQuery_W) DnsQuery_W_I = NULL;
+#if defined(PHNT_DNSQUERY_FUTURE)
+static typeof(&DnsQueryEx) DnsQueryEx_I = NULL;
+static typeof(&DnsCancelQuery) DnsCancelQuery_I = NULL;
 #endif
-static __typeof__(&DnsExtractRecordsFromMessage_W) DnsExtractRecordsFromMessage_W_I = NULL;
-static __typeof__(&DnsWriteQuestionToBuffer_W) DnsWriteQuestionToBuffer_W_I = NULL;
-static __typeof__(&DnsFree) DnsFree_I = NULL;
+static typeof(&DnsExtractRecordsFromMessage_W) DnsExtractRecordsFromMessage_W_I = NULL;
+static typeof(&DnsWriteQuestionToBuffer_W) DnsWriteQuestionToBuffer_W_I = NULL;
+static typeof(&DnsFree) DnsFree_I = NULL;
 
 static BOOLEAN PhDnsApiInitialized(
     VOID
@@ -1921,7 +2121,7 @@ static BOOLEAN PhDnsApiInitialized(
         if (baseAddress = PhLoadLibrary(L"dnsapi.dll"))
         {
             DnsQuery_W_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsQuery_W", 0);
-#if (PHNT_DNSQUERY_FUTURE)
+#if defined(PHNT_DNSQUERY_FUTURE)
             DnsQueryEx_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsQueryEx", 0);
             DnsCancelQuery_I = PhGetDllBaseProcedureAddress(baseAddress, "DnsCancelQuery", 0);
 #endif
@@ -1932,7 +2132,7 @@ static BOOLEAN PhDnsApiInitialized(
 
         if (
             DnsQuery_W_I &&
-#if (PHNT_DNSQUERY_FUTURE)
+#if defined(PHNT_DNSQUERY_FUTURE)
             DnsQueryEx_I &&
             DnsCancelQuery_I &&
 #endif
@@ -2315,7 +2515,7 @@ VOID PhDnsFree(
     DnsFree_I(DnsRecordList, DnsFreeRecordList);
 }
 
-#if (PHNT_DNSQUERY_FUTURE)
+#if defined(PHNT_DNSQUERY_FUTURE)
 typedef struct _PH_DNS_QUERY_CONTEXT
 {
     volatile LONG RefCount;

@@ -731,7 +731,7 @@ VOID KphCidEnumerate(
 }
 
 /**
- * \brief Enumerates CID entires a CID table for rundown.
+ * \brief Enumerates CID entries a CID table for rundown.
  *
  * \details This routine removes all items from the table. After the callback
  * returns the object reference in the table is dereferenced.

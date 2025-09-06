@@ -67,22 +67,24 @@ BEGIN
     COMBOBOX        IDC_FIRSTFAILURE,85,7,103,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Second failure:",IDC_STATIC,7,24,49,8
     COMBOBOX        IDC_SECONDFAILURE,85,23,103,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Subsequent failures:",IDC_STATIC,7,40,67,8
-    COMBOBOX        IDC_SUBSEQUENTFAILURES,85,39,103,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Reset fail count after:",IDC_STATIC,7,56,72,8
-    EDITTEXT        IDC_RESETFAILCOUNT,85,55,40,12,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "days",IDC_STATIC,130,56,16,8
-    LTEXT           "Restart service after:",IDC_RESTARTSERVICEAFTER_LABEL,7,72,70,8
-    EDITTEXT        IDC_RESTARTSERVICEAFTER,85,71,40,12,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "minutes",IDC_RESTARTSERVICEAFTER_MINUTES,130,72,26,8
+    LTEXT           "Third failure:",IDC_STATIC,7,40,67,8
+    COMBOBOX        IDC_THIRDFAILURE,85,39,103,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Reset fail count after:",IDC_STATIC,7,74,72,8
+    EDITTEXT        IDC_RESETFAILCOUNT,85,73,40,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "days",IDC_STATIC,130,74,16,8
+    LTEXT           "Restart service after:",IDC_RESTARTSERVICEAFTER_LABEL,7,90,70,8
+    EDITTEXT        IDC_RESTARTSERVICEAFTER,85,89,40,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "minutes",IDC_RESTARTSERVICEAFTER_MINUTES,130,90,26,8
     CONTROL         "Enable actions for stops with errors",IDC_ENABLEFORERRORSTOPS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,87,129,10
-    PUSHBUTTON      "Restart computer options...",IDC_RESTARTCOMPUTEROPTIONS,7,100,114,14
-    GROUPBOX        "Run program",IDC_RUNPROGRAM_GROUP,7,118,268,45
-    LTEXT           "Program:",IDC_RUNPROGRAM_LABEL,15,132,30,8
-    EDITTEXT        IDC_RUNPROGRAM,50,131,165,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "Browse...",IDC_BROWSE,220,130,50,14
-    LTEXT           "Append /fail=%1% to pass the fail count to the program.",IDC_RUNPROGRAM_INFO,15,148,186,8
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,105,129,10
+    PUSHBUTTON      "Restart computer options...",IDC_RESTARTCOMPUTEROPTIONS,7,118,114,14
+    GROUPBOX        "Run program",IDC_RUNPROGRAM_GROUP,7,136,268,45
+    LTEXT           "Program:",IDC_RUNPROGRAM_LABEL,15,150,30,8
+    EDITTEXT        IDC_RUNPROGRAM,50,149,165,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_BROWSE,220,148,50,14
+    LTEXT           "Append /fail=%1% to pass the fail count to the program.",IDC_RUNPROGRAM_INFO,15,166,186,8
+    LTEXT           "Subsequent failures:",IDC_STATIC,7,56,67,8
+    COMBOBOX        IDC_SUBSEQUENTFAILURES,85,55,103,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_RESTARTCOMP DIALOGEX 0, 0, 245, 137
@@ -328,6 +330,15 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_SRVRECOVERY AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

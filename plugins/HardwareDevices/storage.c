@@ -509,15 +509,15 @@ NTSTATUS DiskDriveQueryImminentFailure(
         //the disk operates, some are only updated during SMART self-tests, or at special events like power-on or
         //unloading the heads of a disk drive, etc
 
-        //Each attribute may have an associated threshhold. When the value exceeds the threshhold, the attribute
-        //triggers a SMART 'threshhold exceeded' event. This event indicates that either the disk is expected to fail
+        //Each attribute may have an associated threshold. When the value exceeds the threshold, the attribute
+        //triggers a SMART 'threshold exceeded' event. This event indicates that either the disk is expected to fail
         //in less than 24 hours or it has exceeded its design or usage lifetime.
-        //When an attribute value is greater than or equal to the threshhold, the threshhold is considered to be
+        //When an attribute value is greater than or equal to the threshold, the threshold is considered to be
         //exceeded. A flag is set indicating that failure is likely.
-        //There is no standard way for a host to read or change attribute threshholds.
+        //There is no standard way for a host to read or change attribute thresholds.
         //See the SMART(RETURN STATUS) command for information about how a device reports that a
-        //threshhold has been exceeded.
-        // TODO: Query Threshholds.
+        //threshold has been exceeded.
+        // TODO: Query thresholds.
 
         for (UCHAR i = 0; i < 30; ++i)
         {
@@ -922,7 +922,7 @@ NTSTATUS DiskDriveQueryVolumeAttributes(
     return status;
 }
 
-PWSTR SmartAttributeGetText(
+PCWSTR SmartAttributeGetText(
     _In_ SMART_ATTRIBUTE_ID AttributeId
     )
 {

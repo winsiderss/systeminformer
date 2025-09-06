@@ -13,19 +13,17 @@
 #include <phapp.h>
 #include <phsvccl.h>
 
-HANDLE PhSvcClPortHandle;
-PVOID PhSvcClPortHeap;
-HANDLE PhSvcClServerProcessId;
+HANDLE PhSvcClPortHandle = NULL;
+PVOID PhSvcClPortHeap = NULL;
+HANDLE PhSvcClServerProcessId = NULL;
 
 NTSTATUS PhSvcConnectToServer(
     _In_ PUNICODE_STRING PortName,
     _In_opt_ SIZE_T PortSectionSize
     )
 {
-    static ULONG heapCompatibility = HEAP_COMPATIBILITY_LFH;
     NTSTATUS status;
     HANDLE sectionHandle;
-    OBJECT_ATTRIBUTES objectAttributes;
     LARGE_INTEGER sectionSize;
     PORT_VIEW clientView;
     REMOTE_PORT_VIEW serverView;
@@ -40,21 +38,13 @@ NTSTATUS PhSvcConnectToServer(
     if (PortSectionSize == 0)
         PortSectionSize = UInt32x32To64(8, 1024 * 1024); // 8 MB
 
-    InitializeObjectAttributes(
-        &objectAttributes,
-        NULL,
-        OBJ_EXCLUSIVE,
-        NULL,
-        NULL
-        );
+    sectionSize.QuadPart = PortSectionSize;
 
     // Create the port section and connect to the port.
 
-    sectionSize.QuadPart = PortSectionSize;
-    status = NtCreateSection(
+    status = PhCreateSection(
         &sectionHandle,
         SECTION_ALL_ACCESS,
-        &objectAttributes,
         &sectionSize,
         PAGE_READWRITE,
         SEC_COMMIT,
@@ -81,7 +71,7 @@ NTSTATUS PhSvcConnectToServer(
     securityQos.EffectiveOnly = TRUE;
 
     connectInfoLength = sizeof(PHSVC_API_CONNECTINFO);
-    connectInfo.ServerProcessId = ULONG_MAX;
+    connectInfo.ServerProcessId = 0;
 
     status = NtConnectPort(
         &PhSvcClPortHandle,
@@ -100,7 +90,9 @@ NTSTATUS PhSvcConnectToServer(
 
     PhSvcClServerProcessId = UlongToHandle(connectInfo.ServerProcessId);
 
+    //
     // Create the port heap.
+    //
 
     PhSvcClPortHeap = RtlCreateHeap(
         HEAP_CLASS_1,
@@ -117,10 +109,15 @@ NTSTATUS PhSvcConnectToServer(
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
+    //
+    // Enable the low-fragmentation heap (LFH).
+    //
+
+    const ULONG defaultHeapCompatibilityMode = HEAP_COMPATIBILITY_MODE_LFH;
     RtlSetHeapInformation(
         PhSvcClPortHeap,
         HeapCompatibilityInformation,
-        &heapCompatibility,
+        &defaultHeapCompatibilityMode,
         sizeof(ULONG)
         );
 
@@ -143,7 +140,7 @@ VOID PhSvcDisconnectFromServer(
         PhSvcClPortHandle = NULL;
     }
 
-    PhSvcClServerProcessId = NULL;
+    PhSvcClServerProcessId = 0;
 }
 
 _Success_(return != NULL)
@@ -295,6 +292,7 @@ NTSTATUS PhSvcpCallExecuteRunAsCommand(
     m.p.u.ExecuteRunAsCommand.i.UseLinkedToken = Parameters->UseLinkedToken;
     m.p.u.ExecuteRunAsCommand.i.CreateSuspendedProcess = Parameters->CreateSuspendedProcess;
     m.p.u.ExecuteRunAsCommand.i.CreateUIAccessProcess = Parameters->CreateUIAccessProcess;
+    m.p.u.ExecuteRunAsCommand.i.WindowHandle = Parameters->WindowHandle;
 
     status = STATUS_NO_MEMORY;
 
@@ -714,6 +712,7 @@ VOID PhSvcpPackBuffer(
 
     va_start(argptr, NumberOfPointersToRebase);
     PhSvcpPackBuffer_V(BytesBuilder, PointerInBytesBuilder, Length, Alignment, NumberOfPointersToRebase, argptr);
+    va_end(argptr);
 }
 
 SIZE_T PhSvcpBufferLengthStringZ(

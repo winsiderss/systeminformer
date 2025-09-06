@@ -835,6 +835,7 @@ typedef struct _SEARCH_HANDLE_CONTEXT
     HANDLE ProcessHandle;
 } SEARCH_HANDLE_CONTEXT, *PSEARCH_HANDLE_CONTEXT;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS NTAPI SearchHandleFunction(
     _In_ PVOID Parameter
     )
@@ -908,6 +909,7 @@ typedef struct _SEARCH_MODULE_CONTEXT
     HANDLE ProcessId;
 } SEARCH_MODULE_CONTEXT, *PSEARCH_MODULE_CONTEXT;
 
+_Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
 static BOOLEAN NTAPI EnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
     _In_ PSEARCH_MODULE_CONTEXT Context
@@ -964,6 +966,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
     return TRUE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpFindObjectsThreadStart(
     _In_ PVOID Parameter
     )
@@ -1129,6 +1132,7 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpFindObjectsDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -1167,6 +1171,7 @@ PPH_HANDLE_SEARCH_CONTEXT PhCreateFindObjectContext(
     return context;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhFindObjectsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -1387,6 +1392,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_OBJECT_CLOSE, L"C&lose\bDel", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_OBJECT_GOTOOWNINGPROCESS, L"Go to &process...", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_OBJECT_PROPERTIES, L"Prope&rties", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_OBJECT_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
@@ -1641,6 +1647,12 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
             }
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
@@ -1710,6 +1722,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpFindObjectsDialogThreadStart(
     _In_ PVOID Parameter
     )
@@ -1732,7 +1745,7 @@ NTSTATUS PhpFindObjectsDialogThreadStart(
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
-        if (result == -1)
+        if (result == INT_ERROR)
             break;
 
         if (!IsDialogMessage(PhFindObjectsWindowHandle, &message))

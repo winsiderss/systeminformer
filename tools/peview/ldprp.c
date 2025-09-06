@@ -63,6 +63,10 @@ PPH_STRING PvpGetPeGuardFlagsText(
         PhAppendStringBuilder2(&stringBuilder, L"EH continuation table, ");
     if (GuardFlags & IMAGE_GUARD_XFG_ENABLED)
         PhAppendStringBuilder2(&stringBuilder, L"XFG, ");
+    if (GuardFlags & IMAGE_GUARD_CASTGUARD_PRESENT)
+        PhAppendStringBuilder2(&stringBuilder, L"Cast guard, ");
+    if (GuardFlags & IMAGE_GUARD_MEMCPY_PRESENT)
+        PhAppendStringBuilder2(&stringBuilder, L"Guarded memcpy, ");
 
     if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);

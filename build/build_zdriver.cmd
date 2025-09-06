@@ -2,9 +2,15 @@
 @setlocal enableextensions
 @cd /d "%~dp0\..\"
 
-set BUILD_TOOL="tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe"
+REM Check if terminal logging is supported
+set "TLG=auto"
+if "%GITHUB_ACTIONS%"=="true" (
+    set "TLG=off"
+) else if "%TF_BUILD%"=="true" (
+    set "TLG=off"
+)
 
-if not exist %BUILD_TOOL% (
+if not exist "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" (
     echo Build tool not found. Run build\build_init.cmd first.
     exit /b 1
 )
@@ -67,10 +73,10 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
 
 echo [+] Building... %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS% %LEGACY_BUILD%
 
-msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=x64 -maxCpuCount -terminalLogger:auto -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
+msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=x64 -maxCpuCount -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
 if %ERRORLEVEL% neq 0 goto end
 
-msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=ARM64 -maxCpuCount -terminalLogger:auto -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
+msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=ARM64 -maxCpuCount -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
 if %ERRORLEVEL% neq 0 goto end
 
 echo [+] Build Complete! %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS% %LEGACY_BUILD%

@@ -71,7 +71,7 @@ VOID AddTreeNewColumn(
     _In_ PVOID Context,
     _In_ ULONG SubId,
     _In_ BOOLEAN Visible,
-    _In_ PWSTR Text,
+    _In_ PCWSTR Text,
     _In_ ULONG Width,
     _In_ ULONG Alignment,
     _In_ ULONG TextFlags,
@@ -114,6 +114,7 @@ VOID DispatchTreeNewMessage(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID ThreadAddedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -130,6 +131,7 @@ static VOID ThreadAddedHandler(
     dnThread->ThreadItem = threadItem;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID ThreadRemovedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

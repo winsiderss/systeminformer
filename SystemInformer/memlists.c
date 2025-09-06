@@ -61,6 +61,7 @@ VOID PhShowMemoryListsDialog(
         SetForegroundWindow(PhMemoryListsWindowHandle);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -162,8 +163,7 @@ VOID
 NTAPI
 PH_MEMORY_LIST_COMMAND_CALLBACK(
     _In_ HWND ParentWindow,
-    _Out_ PPH_STRING* Message,
-    _Out_opt_ PBOOLEAN ShowError
+    _Out_ PPH_STRING* Message
     );
 typedef PH_MEMORY_LIST_COMMAND_CALLBACK *PPH_MEMORY_LIST_COMMAND_CALLBACK;
 
@@ -235,8 +235,7 @@ NTSTATUS PhpMemoryListCommandCommon(
 _Function_class_(PH_MEMORY_LIST_COMMAND_CALLBACK)
 VOID NTAPI PhpEmptyWorkingSetsCommand(
     _In_ HWND ParentWindow,
-    _Out_ PPH_STRING* Message,
-    _Out_opt_ PBOOLEAN ShowError
+    _Out_ PPH_STRING* Message
     )
 {
     NTSTATUS status;
@@ -247,16 +246,12 @@ VOID NTAPI PhpEmptyWorkingSetsCommand(
         *Message = PhCreateString(L"Working sets emptied.");
     else
         *Message = PhpCreateCommandStatusString(L"Unable to empty working sets.", status);
-
-    if (ShowError)
-        *ShowError = !NT_SUCCESS(status);
 }
 
 _Function_class_(PH_MEMORY_LIST_COMMAND_CALLBACK)
 VOID NTAPI PhpFlushModifiedListCommand(
     _In_ HWND ParentWindow,
-    _Out_ PPH_STRING* Message,
-    _Out_opt_ PBOOLEAN ShowError
+    _Out_ PPH_STRING* Message
     )
 {
     NTSTATUS status;
@@ -267,16 +262,12 @@ VOID NTAPI PhpFlushModifiedListCommand(
         *Message = PhCreateString(L"Modified page lists emptied.");
     else
         *Message = PhpCreateCommandStatusString(L"Unable to empty modified page lists.", status);
-
-    if (ShowError)
-        *ShowError = !NT_SUCCESS(status);
 }
 
 _Function_class_(PH_MEMORY_LIST_COMMAND_CALLBACK)
 VOID NTAPI PhpPurgeStandbyListCommand(
     _In_ HWND ParentWindow,
-    _Out_ PPH_STRING* Message,
-    _Out_opt_ PBOOLEAN ShowError
+    _Out_ PPH_STRING* Message
     )
 {
     NTSTATUS status;
@@ -287,16 +278,12 @@ VOID NTAPI PhpPurgeStandbyListCommand(
         *Message = PhCreateString(L"Standby lists emptied.");
     else
         *Message = PhpCreateCommandStatusString(L"Unable to empty standby lists.", status);
-
-    if (ShowError)
-        *ShowError = !NT_SUCCESS(status);
 }
 
 _Function_class_(PH_MEMORY_LIST_COMMAND_CALLBACK)
 VOID NTAPI PhpPurgeLowPriorityStandbyListCommand(
     _In_ HWND ParentWindow,
-    _Out_ PPH_STRING* Message,
-    _Out_opt_ PBOOLEAN ShowError
+    _Out_ PPH_STRING* Message
     )
 {
     NTSTATUS status;
@@ -307,16 +294,12 @@ VOID NTAPI PhpPurgeLowPriorityStandbyListCommand(
         *Message = PhCreateString(L"Priority 0 standby list emptied.");
     else
         *Message = PhpCreateCommandStatusString(L"Unable to empty priority 0 standby list.", status);
-
-    if (ShowError)
-        *ShowError = !NT_SUCCESS(status);
 }
 
 _Function_class_(PH_MEMORY_LIST_COMMAND_CALLBACK)
-VOID NTAPI PhpCombinMemoryListsCommand(
+VOID NTAPI PhpCombineMemoryListsCommand(
     _In_ HWND ParentWindow,
-    _Out_ PPH_STRING* Message,
-    _Out_opt_ PBOOLEAN ShowError
+    _Out_ PPH_STRING* Message
     )
 {
     NTSTATUS status;
@@ -347,32 +330,22 @@ VOID NTAPI PhpCombinMemoryListsCommand(
     {
         *Message = PhpCreateCommandStatusString(L"Unable to combine memory pages.", status);
     }
-
-    if (ShowError)
-        *ShowError = !NT_SUCCESS(status);
 }
 
 _Function_class_(PH_MEMORY_LIST_COMMAND_CALLBACK)
 VOID NTAPI PhpEmptyCompressionStoreCommand(
     _In_ HWND ParentWindow,
-    _Out_ PPH_STRING* Message,
-    _Out_opt_ PBOOLEAN ShowError
+    _Out_ PPH_STRING* Message
     )
 {
     NTSTATUS status;
 
     if (KsiLevel() < KphLevelMax)
     {
-        // hack(jxy-s): show error presence we're being invoked directly instead of "empty all"
-        // if show error is passed, show that the driver is not connected
-        if (ShowError)
-        {
-            PhShowKsiNotConnected(
-                ParentWindow,
-                L"Emptying the compression store requires a connection to the kernel driver."
-                );
-            *ShowError = FALSE;
-        }
+        PhShowKsiNotConnected(
+            ParentWindow,
+            L"Emptying the compression store requires a connection to the kernel driver."
+            );
 
         *Message = NULL;
         return;
@@ -390,16 +363,12 @@ VOID NTAPI PhpEmptyCompressionStoreCommand(
         *Message = PhCreateString(L"Compression stores emptied.");
     else
         *Message = PhpCreateCommandStatusString(L"Unable to empty compression stores.", status);
-
-    if (ShowError)
-        *ShowError = !NT_SUCCESS(status);
 }
 
 _Function_class_(PH_MEMORY_LIST_COMMAND_CALLBACK)
 VOID NTAPI PhpEmptyRegistryCacheCommand(
     _In_ HWND ParentWindow,
-    _Out_ PPH_STRING* Message,
-    _Out_opt_ PBOOLEAN ShowError
+    _Out_ PPH_STRING* Message
     )
 {
     NTSTATUS status;
@@ -412,16 +381,12 @@ VOID NTAPI PhpEmptyRegistryCacheCommand(
         *Message = PhCreateString(L"Registry cache emptied.");
     else
         *Message = PhpCreateCommandStatusString(L"Unable to empty registry cache.", status);
-
-    if (ShowError)
-        *ShowError = !NT_SUCCESS(status);
 }
 
 _Function_class_(PH_MEMORY_LIST_COMMAND_CALLBACK)
 VOID NTAPI PhpEmptySystemFileCacheCommand(
     _In_ HWND ParentWindow,
-    _Out_ PPH_STRING* Message,
-    _Out_opt_ PBOOLEAN ShowError
+    _Out_ PPH_STRING* Message
     )
 {
     NTSTATUS status;
@@ -456,16 +421,12 @@ VOID NTAPI PhpEmptySystemFileCacheCommand(
     {
         *Message = PhpCreateCommandStatusString(L"Unable to empty system file cache.", status);
     }
-
-    if (ShowError)
-        *ShowError = !NT_SUCCESS(status);
 }
 
 _Function_class_(PH_MEMORY_LIST_COMMAND_CALLBACK)
 VOID NTAPI PhpFlushModifiedFileCacheCommand(
     _In_ HWND ParentWindow,
-    _Out_ PPH_STRING* Message,
-    _Out_opt_ PBOOLEAN ShowError
+    _Out_ PPH_STRING* Message
     )
 {
     NTSTATUS status;
@@ -478,9 +439,209 @@ VOID NTAPI PhpFlushModifiedFileCacheCommand(
         *Message = PhCreateString(L"Volume file cache flushed to disk.");
     else
         *Message = PhpCreateCommandStatusString(L"Unable to flush volume file cache.", status);
+}
 
-    if (ShowError)
-        *ShowError = !NT_SUCCESS(status);
+typedef struct _PH_MEMORY_LIST_COMMAND_ENTRY
+{
+    PPH_MEMORY_LIST_COMMAND_CALLBACK Callback;
+    PH_STRINGREF WorkingMessage;
+} PH_MEMORY_LIST_COMMAND_ENTRY, *PPH_MEMORY_LIST_COMMAND_ENTRY;
+
+static const PH_MEMORY_LIST_COMMAND_ENTRY PhMemoryListCommands[] =
+{
+    { PhpCombineMemoryListsCommand, PH_STRINGREF_INIT(L"Combining memory pages...") },
+    { PhpEmptyCompressionStoreCommand, PH_STRINGREF_INIT(L"Emptying compression store...") },
+    { PhpEmptySystemFileCacheCommand, PH_STRINGREF_INIT(L"Emptying system file cache ...") },
+    { PhpEmptyRegistryCacheCommand, PH_STRINGREF_INIT(L"Emptying registry cache...") },
+    { PhpEmptyWorkingSetsCommand, PH_STRINGREF_INIT(L"Emptying working sets...") },
+    { PhpFlushModifiedListCommand, PH_STRINGREF_INIT(L"Emptying modified page list...") },
+    { PhpFlushModifiedFileCacheCommand, PH_STRINGREF_INIT(L"Emptying modified file cache...") },
+    { PhpPurgeStandbyListCommand, PH_STRINGREF_INIT(L"Emptying standby list...") },
+    { PhpPurgeLowPriorityStandbyListCommand, PH_STRINGREF_INIT(L"Emptying priority 0 standby list...") },
+};
+
+typedef struct _PH_MEMORY_LIST_COMMAND_CONTEXT
+{
+    HWND WindowHandle;
+    HANDLE ThreadHandle;
+    BOOLEAN Cancel;
+    BOOLEAN Completed;
+    PH_QUEUED_LOCK MessageLock;
+    PPH_STRING Message;
+    ULONG CommandsComplete;
+    ULONG CommandsCount;
+    PH_MEMORY_LIST_COMMAND_ENTRY Commands[RTL_NUMBER_OF(PhMemoryListCommands)];
+} PH_MEMORY_LIST_COMMAND_CONTEXT, *PPH_MEMORY_LIST_COMMAND_CONTEXT;
+
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI PhMemoryListCommandThread(
+    _In_ PVOID ThreadParameter
+    )
+{
+    static const PH_STRINGREF lineBreak = PH_STRINGREF_INIT(L"\r\n");
+    PPH_MEMORY_LIST_COMMAND_CONTEXT context = ThreadParameter;
+
+    for (ULONG i = 0; i < context->CommandsCount; i++)
+    {
+        PPH_MEMORY_LIST_COMMAND_ENTRY entry;
+        PPH_STRING message = NULL;
+
+        entry = &context->Commands[i];
+
+        if (context->Cancel)
+            break;
+
+        PhAcquireQueuedLockExclusive(&context->MessageLock);
+        if (context->Message)
+            PhMoveReference(&context->Message, PhConcatStringRef3(&context->Message->sr, &lineBreak, &entry->WorkingMessage));
+        else
+            context->Message = PhCreateString2(&entry->WorkingMessage);
+        PhReleaseQueuedLockExclusive(&context->MessageLock);
+
+        entry->Callback(context->WindowHandle, &message);
+        context->CommandsComplete++;
+
+        if (message)
+        {
+            PhAcquireQueuedLockExclusive(&context->MessageLock);
+            PhMoveReference(&context->Message, PhConcatStringRef3(&context->Message->sr, &lineBreak, &message->sr));
+            PhReleaseQueuedLockExclusive(&context->MessageLock);
+            PhDereferenceObject(message);
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+HRESULT CALLBACK PhMemoryListCommandDialogCallbackProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT Notification,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR Context
+    )
+{
+    PPH_MEMORY_LIST_COMMAND_CONTEXT context = (PPH_MEMORY_LIST_COMMAND_CONTEXT)Context;
+
+    switch (Notification)
+    {
+    case TDN_CREATED:
+        {
+            NTSTATUS status;
+            HANDLE threadHandle;
+
+            context->WindowHandle = WindowHandle;
+            PhInitializeQueuedLock(&context->MessageLock);
+
+            SendMessage(WindowHandle, TDM_ENABLE_BUTTON, IDCLOSE, FALSE);
+
+            if (context->CommandsCount == 1)
+            {
+                SendMessage(WindowHandle, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+                SendMessage(WindowHandle, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            }
+
+            if (NT_SUCCESS(status = PhCreateThreadEx(
+                &threadHandle,
+                PhMemoryListCommandThread,
+                context
+                )))
+            {
+                context->ThreadHandle = threadHandle;
+            }
+            else
+            {
+                PhShowStatus(WindowHandle, L"Unable to create the window.", status, 0);
+            }
+        }
+        break;
+    case TDN_BUTTON_CLICKED:
+        {
+            if ((INT)wParam == IDCANCEL)
+            {
+                context->Cancel = TRUE;
+                SendMessage(WindowHandle, TDM_ENABLE_BUTTON, IDCANCEL, FALSE);
+            }
+        }
+        break;
+    case TDN_TIMER:
+        {
+            PPH_STRING string;
+
+            if (context->Completed)
+                break;
+
+            PhAcquireQueuedLockExclusive(&context->MessageLock);
+            string = context->Message ? PhReferenceObject(context->Message) : NULL;
+            PhReleaseQueuedLockExclusive(&context->MessageLock);
+
+            if (string)
+            {
+                SendMessage(WindowHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string->Buffer);
+                PhDereferenceObject(string);
+            }
+
+            if (context->CommandsComplete == context->CommandsCount)
+            {
+                if (context->CommandsCount == 1)
+                {
+                    SendMessage(WindowHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
+                    SendMessage(WindowHandle, TDM_SET_PROGRESS_BAR_MARQUEE, FALSE, 0);
+                }
+
+                SendMessage(WindowHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)100, 0);
+
+                SendMessage(WindowHandle, TDM_ENABLE_BUTTON, IDCLOSE, TRUE);
+                SendMessage(WindowHandle, TDM_ENABLE_BUTTON, IDCANCEL, FALSE);
+
+                context->Completed = TRUE;
+            }
+            else if (context->CommandsCount > 1)
+            {
+                FLOAT progress = (FLOAT)(context->CommandsComplete + 1) / context->CommandsCount;
+                SendMessage(WindowHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)(progress * 100), 0);
+            }
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+VOID PhMemoryListCommandDialog(
+    _In_ HWND PrentWindow,
+    _In_ PPH_MEMORY_LIST_COMMAND_CONTEXT Context
+    )
+{
+    TASKDIALOGCONFIG config;
+    PPH_MEMORY_LIST_COMMAND_CONTEXT context;
+
+    context = PhAllocateCopy(Context, sizeof(PH_MEMORY_LIST_COMMAND_CONTEXT));
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED | TDF_CALLBACK_TIMER;
+    config.dwCommonButtons = TDCBF_CLOSE_BUTTON | TDCBF_CANCEL_BUTTON;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.pfCallback = PhMemoryListCommandDialogCallbackProc;
+    config.hwndParent = PrentWindow;
+    config.lpCallbackData = (LONG_PTR)context;
+    config.pszWindowTitle = PhApplicationName;
+    if (context->CommandsCount > 1)
+        config.pszMainInstruction = L"Executing memory commands...";
+    else
+        config.pszMainInstruction = L"Executing memory command...";
+    config.pszContent = L" ";
+    config.cxWidth = 200;
+
+    TaskDialogIndirect(&config, NULL, NULL, NULL);
+
+    if (context->ThreadHandle)
+        NtWaitForSingleObject(context->ThreadHandle, FALSE, NULL);
+
+    PhClearReference(&context->Message);
+
+    PhFree(context);
 }
 
 VOID PhShowMemoryListCommand(
@@ -489,20 +650,8 @@ VOID PhShowMemoryListCommand(
     _In_ BOOLEAN ShowTopAlign
     )
 {
-    static PPH_MEMORY_LIST_COMMAND_CALLBACK commands[] =
-    {
-        PhpCombinMemoryListsCommand,
-        PhpEmptyCompressionStoreCommand,
-        PhpEmptySystemFileCacheCommand,
-        PhpEmptyRegistryCacheCommand,
-        PhpEmptyWorkingSetsCommand,
-        PhpFlushModifiedListCommand,
-        PhpFlushModifiedFileCacheCommand,
-        PhpPurgeStandbyListCommand,
-        PhpPurgeLowPriorityStandbyListCommand,
-    };
     PPH_EMENU menu;
-    RECT buttonRect;
+    RECT buttonRect = { 0 };
     PPH_EMENU_ITEM selectedItem;
 
     menu = PhCreateEMenu();
@@ -515,11 +664,11 @@ VOID PhShowMemoryListCommand(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 6, L"Empty &modified file cache", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 7, L"Empty &standby list", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 8, L"Empty &priority 0 standby list", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, RTL_NUMBER_OF(commands), L"Empty &all", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, RTL_NUMBER_OF(PhMemoryListCommands), L"Empty &all", NULL, NULL), ULONG_MAX);
 
     if (ShowTopAlign)
     {
-        GetWindowRect(ButtonWindow, &buttonRect);
+        PhGetWindowRect(ButtonWindow, &buttonRect);
         selectedItem = PhShowEMenu(
             menu,
             ParentWindow,
@@ -533,7 +682,7 @@ VOID PhShowMemoryListCommand(
     {
         POINT point;
 
-        GetClientRect(ButtonWindow, &buttonRect);
+        PhGetClientRect(ButtonWindow, &buttonRect);
         point.x = 0;
         point.y = buttonRect.bottom;
         ClientToScreen(ButtonWindow, &point);
@@ -550,22 +699,15 @@ VOID PhShowMemoryListCommand(
 
     if (selectedItem)
     {
-        if (selectedItem->Id < RTL_NUMBER_OF(commands))
+        PH_MEMORY_LIST_COMMAND_CONTEXT context;
+
+        memset(&context, 0, sizeof(PH_MEMORY_LIST_COMMAND_CONTEXT));
+
+        if (selectedItem->Id < RTL_NUMBER_OF(PhMemoryListCommands))
         {
-            PPH_STRING message = NULL;
-            BOOLEAN showError = TRUE;
-
-            commands[selectedItem->Id](ParentWindow, &message, &showError);
-
-            if (!PhIsNullOrEmptyString(message))
-            {
-                if (showError)
-                    PhShowError2(ParentWindow, L"Unable to empty the memory list.", L"%s", PhGetString(message));
-                else
-                    PhShowInformation2(ParentWindow, L"Unable to empty the memory list.", L"%s", PhGetString(message));
-            }
-
-            PhClearReference(&message);
+            context.CommandsCount = 1;
+            context.Commands[0] = PhMemoryListCommands[selectedItem->Id];
+            PhMemoryListCommandDialog(ParentWindow, &context);
         }
         else if (!PhGetOwnTokenAttributes().Elevated)
         {
@@ -573,32 +715,13 @@ VOID PhShowMemoryListCommand(
         }
         else
         {
-            PH_STRING_BUILDER stringBuilder;
-            PPH_STRING message;
-
-            PhInitializeStringBuilder(&stringBuilder, 100);
-
-            for (ULONG i = 0; i < RTL_NUMBER_OF(commands); i++)
-            {
-                message = NULL;
-
-                commands[i](ParentWindow, &message, NULL);
-
-                if (!PhIsNullOrEmptyString(message))
-                {
-                    PhAppendStringBuilder(&stringBuilder, &message->sr);
-                    PhAppendStringBuilder2(&stringBuilder, L"\r\n");
-                    PhClearReference(&message);
-                }
-            }
-
-            if (stringBuilder.String->Length > 2)
-                PhRemoveEndStringBuilder(&stringBuilder, 2);
-
-            message = PhFinalStringBuilderString(&stringBuilder);
-            if (!PhIsNullOrEmptyString(message))
-                PhShowInformation2(ParentWindow, L"Unable to empty the memory list.", L"%s", PhGetString(message));
-            PhClearReference(&message);
+            context.CommandsCount = RTL_NUMBER_OF(PhMemoryListCommands);
+            memcpy(
+                context.Commands,
+                PhMemoryListCommands,
+                sizeof(PH_MEMORY_LIST_COMMAND_ENTRY) * context.CommandsCount
+                );
+            PhMemoryListCommandDialog(ParentWindow, &context);
         }
     }
 

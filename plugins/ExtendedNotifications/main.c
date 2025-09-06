@@ -19,16 +19,19 @@
 
 #include <trace.h>
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI NotifyEventCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -287,9 +290,10 @@ PPH_STRING SaveFilterList(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_STRING settings;
@@ -315,6 +319,7 @@ VOID NTAPI LoadCallback(
     FileLogInitialization();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -324,28 +329,28 @@ VOID NTAPI ShowOptionsCallback(
 
     optionsEntry->CreateSection(
         L"Notifications - Processes",
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_PROCESSES),
         ProcessesDlgProc,
         NULL
         );
     optionsEntry->CreateSection(
         L"Notifications - Services",
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_SERVICES),
         ServicesDlgProc,
         NULL
         );
     optionsEntry->CreateSection(
         L"Notifications - Devices",
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_DEVICES),
         DevicesDlgProc,
         NULL
         );
     optionsEntry->CreateSection(
         L"Notifications - Logging",
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_LOGGING),
         LoggingDlgProc,
         NULL
@@ -387,6 +392,7 @@ BOOLEAN MatchFilterList(
     return FALSE;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI NotifyEventCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -775,6 +781,12 @@ INT_PTR CALLBACK ProcessesDlgProc(
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&LayoutManager);
@@ -842,6 +854,12 @@ INT_PTR CALLBACK ServicesDlgProc(
             EditingServiceFilterList = NULL;
 
             PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_SIZE:
@@ -913,6 +931,12 @@ INT_PTR CALLBACK DevicesDlgProc(
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&LayoutManager);
@@ -955,6 +979,12 @@ INT_PTR CALLBACK LoggingDlgProc(
             PhSetStringSetting2(SETTING_NAME_LOG_FILENAME, &PhaGetDlgItemText(hwndDlg, IDC_LOGFILENAME)->sr);
 
             PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_SIZE:

@@ -24,7 +24,7 @@ ULONG FwRunCount = 0;
 ULONG EtFwMaxEventAge = 60;
 SLIST_HEADER EtFwPacketListHead;
 PH_FREE_LIST EtFwPacketFreeList;
-LIST_ENTRY EtFwAgeListHead = { &EtFwAgeListHead, &EtFwAgeListHead };
+RTL_STATIC_LIST_HEAD(EtFwAgeListHead);
 BOOLEAN EtFwEnableResolveCache = TRUE;
 BOOLEAN EtFwEnableResolveDoH = FALSE;
 BOOLEAN EtFwIgnoreOnError = TRUE;
@@ -144,6 +144,7 @@ VOID EtFwQueryHostnameForEntry(
     _In_ PFW_EVENT_ITEM Entry
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN EtFwResolveCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -155,6 +156,7 @@ BOOLEAN EtFwResolveCacheHashtableEqualFunction(
     return PhEqualIpAddress(&cacheItem1->Address, &cacheItem2->Address);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI EtFwResolveCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -214,6 +216,7 @@ PFW_RESOLVE_CACHE_ITEM EtFwLookupResolveCacheItem(
         return NULL;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI FwObjectTypeDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -666,6 +669,7 @@ PPH_STRING EtFwGetNameFromAddress(
     return addressEndpointString;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtFwNetworkItemQueryWorker(
     _In_ PVOID Parameter
     )
@@ -960,6 +964,7 @@ typedef struct _ETFW_FILTER_DISPLAY_CONTEXT
     PPH_STRING Description;
 } ETFW_FILTER_DISPLAY_CONTEXT, *PETFW_FILTER_DISPLAY_CONTEXT;
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN NTAPI EtFwFilterDisplayDataEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -971,6 +976,7 @@ static BOOLEAN NTAPI EtFwFilterDisplayDataEqualFunction(
     return entry1->FilterId == entry2->FilterId;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG NTAPI EtFwFilterDisplayDataHashFunction(
     _In_ PVOID Entry
     )
@@ -1375,6 +1381,7 @@ typedef struct _ETFW_SID_FULL_NAME_CACHE_ENTRY
     PPH_STRING FullName;
 } ETFW_SID_FULL_NAME_CACHE_ENTRY, *PETFW_SID_FULL_NAME_CACHE_ENTRY;
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN EtFwSidFullNameCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -1386,6 +1393,7 @@ BOOLEAN EtFwSidFullNameCacheHashtableEqualFunction(
     return PhEqualSid(entry1->Sid, entry2->Sid);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG EtFwSidFullNameCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -1525,6 +1533,7 @@ typedef struct _ETFW_NAME_PROCESS_CACHE_ENTRY
     ULONG FileNameHash;
 } ETFW_NAME_PROCESS_CACHE_ENTRY, *PETFW_NAME_PROCESS_CACHE_ENTRY;
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN EtFwFileNameProcessCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -1536,6 +1545,7 @@ BOOLEAN EtFwFileNameProcessCacheHashtableEqualFunction(
     return entry1->FileNameHash == entry2->FileNameHash;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG EtFwFileNameProcessCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -1830,7 +1840,7 @@ VOID CALLBACK EtFwEventCallback(
             PPH_STRING fileName;
 
             fileName = PhCreateStringEx(
-                (PWSTR)FwEvent->header.appId.data,
+                (PCWSTR)FwEvent->header.appId.data,
                 (SIZE_T)FwEvent->header.appId.size - sizeof(UNICODE_NULL)
                 );
 
@@ -1891,6 +1901,7 @@ VOID CALLBACK EtFwEventCallback(
     FwPushFirewallEvent(&entry);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtFwProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -2130,7 +2141,7 @@ ULONG EtFwMonitorInitialize(
 
     status = FwpmEngineOpen(
         NULL,
-        RPC_C_AUTHN_WINNT,
+        RPC_C_AUTHN_DEFAULT,
         NULL,
         &session,
         &EtFwEngineHandle

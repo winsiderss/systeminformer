@@ -617,7 +617,7 @@ VOID PrintType(
             if (dwInfo == ULONG_MAX)
                 break;
 
-            PhAppendFormatStringBuilder(StringBuilder, L"%s", rgBaseType[dwInfo]);
+            PhAppendFormatStringBuilder(StringBuilder, L"%s", rgBaseType[dwInfo]->Buffer);
         }
         break;
     case SymTagTypedef:

@@ -75,7 +75,7 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_LIST PluginParameters;
     PPH_STRING SelectTab;
     PPH_STRING SysInfo;
-    ULONG UpdateChannel;
+    PH_RELEASE_CHANNEL UpdateChannel;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 extern BOOLEAN PhPluginsEnabled;
@@ -283,7 +283,7 @@ NTSTATUS PhCommandModeStart(
 // anawait
 
 VOID PhUiAnalyzeWaitThread(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider
@@ -798,7 +798,6 @@ NTSTATUS PhInvokeRunAsService(
 // searchbox
 
 // begin_phapppub
-
 typedef _Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PH_SEARCHCONTROL_CALLBACK(
     _In_ ULONG_PTR MatchHandle,
@@ -811,7 +810,7 @@ VOID
 NTAPI
 PhCreateSearchControl(
     _In_ HWND ParentWindowHandle,
-    _In_ HWND WindowHandle,
+    _In_ HWND SearchWindowHandle,
     _In_opt_ PCWSTR BannerText,
     _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
@@ -882,6 +881,12 @@ VOID PhShowThreadStacksDialog(
     _In_ HWND ParentWindowHandle
     );
 
+// userslist
+
+VOID PhShowUserListDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
 // tokprp
 
 PPH_STRING PhGetGroupAttributesString(
@@ -907,12 +912,6 @@ VOID PhShowTokenProperties(
     _In_ HANDLE ProcessId,
     _In_ PVOID Context,
     _In_opt_ PCWSTR Title
-    );
-
-INT CALLBACK PhpTokenSheetProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ LPARAM lParam
     );
 
 HPROPSHEETPAGE PhCreateTokenPage(

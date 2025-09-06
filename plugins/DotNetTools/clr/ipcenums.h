@@ -63,4 +63,4 @@ typedef enum _ELegacyPublicIPCClient
     eLegacyPublicIPC_MAX
 } ELegacyPublicIPCClient;
 
-#endif _IPC_ENUMS_H_
+#endif // _IPC_ENUMS_H_

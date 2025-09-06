@@ -1,42 +1,136 @@
-name: continuous-integration
+name: 'continuous-integration'
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
   workflow_dispatch:
-
-permissions:
-  contents: read
+  push:
+    branches: ['master']
+  pull_request:
+    branches: ['master']
 
 jobs:
   build:
-    runs-on: windows-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['windows-latest']
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
-    - name: Install Nuget Packages
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
+    - name: NuGet Cache
+      uses: actions/cache@v4
+      with:
+        path: packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Nuget Restore
+      shell: cmd
+      working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
-    - name: Build Init
+
+    - name: Build Tools
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
+
     - name: Build Solution
       shell: cmd
       working-directory: ${{github.workspace}}
-      run: build\build_verbose.cmd
-  build_driver:
-    runs-on: windows-latest
+      run: build\build_debug.cmd
+
+  build-release:
+    strategy:
+      matrix:
+        os: ['windows-latest']
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
-    - name: Install Nuget Packages
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
+    - name: NuGet Cache
+      uses: actions/cache@v4
+      with:
+        path: packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Nuget Restore
+      shell: cmd
+      working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
+
+    - name: Build Tools
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_init.cmd
+
+    - name: Build Solution
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_release.cmd
+
+  build-driver:
+    strategy:
+      matrix:
+        os: ['windows-latest']
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
+    - name: NuGet Cache
+      uses: actions/cache@v4
+      with:
+        path: packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Nuget Restore
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: nuget restore .\packages.config -PackagesDirectory .\packages\
+
     - name: Build Tools
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_tools.cmd
+
     - name: Build Driver
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_zdriver.cmd prefast
+
+  build-driver-release:
+    strategy:
+      matrix:
+        os: ['windows-latest']
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
+    - name: NuGet Cache
+      uses: actions/cache@v4
+      with:
+        path: packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Nuget Restore
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: nuget restore .\packages.config -PackagesDirectory .\packages\
+
+    - name: Build Tools
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_tools.cmd
+
+    - name: Build Driver
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_zdriver.cmd release

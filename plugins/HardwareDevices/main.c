@@ -53,6 +53,7 @@ VOID NTAPI LoadSettings(
     NetUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -71,6 +72,7 @@ VOID NTAPI LoadCallback(
     RaplDevicesLoadList();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -79,6 +81,7 @@ VOID NTAPI UnloadCallback(
     NOTHING;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -119,6 +122,7 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -130,6 +134,7 @@ VOID NTAPI MainWindowShowingCallback(
         InitializeDevicesTab();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessesUpdatedCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -143,6 +148,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     RaplDevicesUpdate(runCount);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI SystemInformationInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -235,6 +241,7 @@ VOID NTAPI SystemInformationInitializingCallback(
     PhReleaseQueuedLockShared(&RaplDevicesListLock);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI SettingsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -683,6 +690,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_DEVICE_INTERFACES_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_ARRIVED_COLOR, L"00ff7f" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHTING_DURATION, L"bb8" }, // 3000ms
+                { IntegerSettingType, SETTING_NAME_DEVICE_SORT_CHILD_DEVICES, L"0" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_SORT_ROOT_DEVICES, L"0" },
             };
 
             WPP_INIT_TRACING(PLUGIN_NAME);

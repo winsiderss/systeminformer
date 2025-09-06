@@ -165,7 +165,7 @@ INT_PTR CALLBACK EtpNpuNodesDlgProc(
             SetWindowPos(hwndDlg, NULL, 0, 0, MinimumSize.right, MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
 
             // Note: This dialog must be centered after all other graphs and controls have been added.
-            if (PhGetIntegerPairSetting(SETTING_NAME_NPU_NODES_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_NPU_NODES_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_NPU_NODES_WINDOW_POSITION, SETTING_NAME_NPU_NODES_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, (HWND)lParam);
@@ -223,7 +223,7 @@ INT_PTR CALLBACK EtpNpuNodesDlgProc(
 
             deferHandle = BeginDeferWindowPos(EtNpuTotalNodeCount);
 
-            GetClientRect(hwndDlg, &clientRect);
+            PhGetClientRect(hwndDlg, &clientRect);
             cellHeight = (clientRect.bottom - LayoutMargin.top - LayoutMargin.bottom - GRAPH_PADDING * numberOfYPaddings) / numberOfRows;
             y = LayoutMargin.top;
             i = 0;

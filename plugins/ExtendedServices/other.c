@@ -233,7 +233,7 @@ NTSTATUS EspLoadOtherInfo(
 }
 
 PPH_STRING EspGetServiceSidString(
-    _In_ PPH_STRINGREF ServiceName
+    _In_ PCPH_STRINGREF ServiceName
     )
 {
     BYTE serviceSidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };
@@ -258,7 +258,7 @@ PPH_STRING EspGetServiceSidString(
 }
 
 NTSTATUS EspChangeServiceConfig2(
-    _In_ PWSTR ServiceName,
+    _In_ PCWSTR ServiceName,
     _In_opt_ SC_HANDLE ServiceHandle,
     _In_ ULONG InfoLevel,
     _In_ PVOID Info
@@ -725,6 +725,12 @@ Done:
         break;
     case WM_SIZE:
         {
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;

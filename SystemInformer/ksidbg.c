@@ -1513,6 +1513,7 @@ VOID KsiDebugLogMessageRaw(
 volatile ULONG64 KsiMessagesReceived = 0;
 volatile ULONG64 KsiBytesReceived = 0;
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI KsiDebugLogMessageCallback(
     _In_ PPH_INFORMER_CONTEXT Informer,
     _In_opt_ PVOID Context
@@ -1525,6 +1526,7 @@ VOID NTAPI KsiDebugLogMessageCallback(
     InterlockedAddRelease64(&KsiBytesReceived, Informer->Message->Header.Size);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI KsiDebugMonitorRoutine(
     _In_ PVOID Parameter
     )

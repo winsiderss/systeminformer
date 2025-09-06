@@ -40,6 +40,8 @@ static PPH_STRING KsiSupportString = NULL;
 static BOOLEAN KsiEnableLoadNative = FALSE;
 static BOOLEAN KsiEnableLoadFilter = FALSE;
 static PPH_STRING KsiServiceName = NULL;
+static PPH_STRING KsiFileName = NULL;
+static PPH_STRING KsiObjectName = NULL;
 
 #ifdef DEBUG
 //#define KSI_DEBUG_DELAY_SPLASHSCREEN 1
@@ -74,6 +76,80 @@ PPH_STRING KsiGetKernelFileName(
     return NULL;
 }
 
+PCWSTR KsiGetWindowsVersionString(
+    VOID
+    )
+{
+    switch (WindowsVersion)
+    {
+    case WINDOWS_7:
+        return L"Windows 7";
+    case WINDOWS_8:
+        return L"Windows 8";
+    case WINDOWS_8_1:
+        return L"Windows 8.1";
+    case WINDOWS_10:
+        return L"Windows 10 RTM";
+    case WINDOWS_10_TH2:
+        return L"Windows 10 TH2";
+    case WINDOWS_10_RS1:
+        return L"Windows 10 RS1";
+    case WINDOWS_10_RS2:
+        return L"Windows 10 RS2";
+    case WINDOWS_10_RS3:
+        return L"Windows 10 RS3";
+    case WINDOWS_10_RS4:
+        return L"Windows 10 RS4";
+    case WINDOWS_10_RS5:
+        return L"Windows 10 RS5";
+    case WINDOWS_10_19H1:
+        return L"Windows 10 19H1";
+    case WINDOWS_10_19H2:
+        return L"Windows 10 19H2";
+    case WINDOWS_10_20H1:
+        return L"Windows 10 20H1";
+    case WINDOWS_10_20H2:
+        return L"Windows 10 20H2";
+    case WINDOWS_10_21H1:
+        return L"Windows 10 21H1";
+    case WINDOWS_10_21H2:
+        return L"Windows 10 21H2";
+    case WINDOWS_10_22H2:
+        return L"Windows 10 22H2";
+    case WINDOWS_11:
+        return L"Windows 11";
+    case WINDOWS_11_22H2:
+        return L"Windows 11 22H2";
+    case WINDOWS_11_23H2:
+        return L"Windows 11 23H2";
+    case WINDOWS_11_24H2:
+        return L"Windows 11 24H2";
+    case WINDOWS_11_25H2:
+        return L"Windows 11 25H2";
+    case WINDOWS_NEW:
+        return L"Windows Insider Preview";
+    }
+
+    static_assert(WINDOWS_MAX == WINDOWS_11_25H2, "KsiGetWindowsVersionString must include all versions");
+
+    return L"Windows";
+}
+
+PPH_STRING KsiGetWindowsBuildString(
+    VOID
+    )
+{
+    PH_FORMAT format[5];
+
+    PhInitFormatU(&format[0], PhOsVersion.MajorVersion);
+    PhInitFormatC(&format[1], L'.');
+    PhInitFormatU(&format[2], PhOsVersion.MinorVersion);
+    PhInitFormatC(&format[3], L'.');
+    PhInitFormatU(&format[4], PhOsVersion.BuildNumber);
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
+}
+
 PPH_STRING KsiGetKernelVersionString(
     VOID
     )
@@ -87,7 +163,7 @@ PPH_STRING KsiGetKernelVersionString(
 
         if (fileName = KsiGetKernelFileName())
         {
-            if (PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE))
+            if (NT_SUCCESS(PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE)))
             {
                 KsiKernelVersion = versionInfo.FileVersion;
 
@@ -243,6 +319,7 @@ PPH_STRING PhpGetKsiMessage(
     _In_ va_list ArgPtr
     )
 {
+    PPH_STRING buildString;
     PPH_STRING versionString;
     PPH_STRING kernelVersion;
     PPH_STRING errorMessage;
@@ -251,12 +328,12 @@ PPH_STRING PhpGetKsiMessage(
     PPH_STRING messageString;
     ULONG processState;
 
+    buildString = KsiGetWindowsBuildString();
     versionString = PhGetApplicationVersionString(FALSE);
     kernelVersion = KsiGetKernelVersionString();
     errorMessage = NULL;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
-
     PhAppendFormatStringBuilder_V(&stringBuilder, Format, ArgPtr);
     PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
 
@@ -293,8 +370,8 @@ PPH_STRING PhpGetKsiMessage(
     PhAppendFormatStringBuilder(
         &stringBuilder,
         L"%ls %ls\r\n",
-        WindowsVersionName,
-        WindowsVersionString
+        KsiGetWindowsVersionString(),
+        PhGetString(buildString)
         );
 
     PhAppendStringBuilder2(&stringBuilder, L"Windows Kernel ");
@@ -326,7 +403,8 @@ PPH_STRING PhpGetKsiMessage(
 
     PhClearReference(&errorMessage);
     PhClearReference(&kernelVersion);
-    PhDereferenceObject(versionString);
+    PhClearReference(&versionString);
+    PhClearReference(&buildString);
 
     return messageString;
 }
@@ -607,6 +685,7 @@ PPH_STRING PhGetKsiServiceName(
     return string;
 }
 
+_Function_class_(KPH_COMMS_CALLBACK)
 BOOLEAN KsiCommsCallback(
     _In_ ULONG_PTR ReplyToken,
     _In_ PCKPH_MESSAGE Message
@@ -623,7 +702,7 @@ BOOLEAN KsiCommsCallback(
 }
 
 NTSTATUS KsiReadConfiguration(
-    _In_ PCWSTR FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_ PBYTE* Data,
     _Out_ PULONG Length
     )
@@ -635,12 +714,9 @@ NTSTATUS KsiReadConfiguration(
     *Data = NULL;
     *Length = 0;
 
-    status = STATUS_NO_SUCH_FILE;
-
-    fileName = PhGetApplicationDirectoryFileNameZ(FileName, TRUE);
-    if (fileName)
+    if (fileName = PhGetApplicationDirectoryFileName(FileName, TRUE))
     {
-        if (NT_SUCCESS(status = PhCreateFile(
+        status = PhCreateFile(
             &fileHandle,
             &fileName->sr,
             FILE_GENERIC_READ,
@@ -648,14 +724,19 @@ NTSTATUS KsiReadConfiguration(
             FILE_SHARE_READ,
             FILE_OPEN,
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             status = PhGetFileData(fileHandle, Data, Length);
-
             NtClose(fileHandle);
         }
 
         PhDereferenceObject(fileName);
+    }
+    else
+    {
+        status = STATUS_NO_SUCH_FILE;
     }
 
     return status;
@@ -669,8 +750,6 @@ NTSTATUS KsiValidateDynamicConfiguration(
     NTSTATUS status;
     PPH_STRING fileName;
     KSI_SUPPORT_DATA supportData;
-
-    status = STATUS_NO_SUCH_FILE;
 
     if (fileName = KsiGetKernelFileName())
     {
@@ -689,6 +768,10 @@ NTSTATUS KsiValidateDynamicConfiguration(
 
         PhDereferenceObject(fileName);
     }
+    else
+    {
+        status = STATUS_NO_SUCH_FILE;
+    }
 
     return status;
 }
@@ -700,6 +783,8 @@ NTSTATUS KsiGetDynData(
     _Out_ PULONG SignatureLength
     )
 {
+    static CONST PH_STRINGREF dataFileName = PH_STRINGREF_INIT(L"ksidyn.bin");
+    static CONST PH_STRINGREF sigFileName = PH_STRINGREF_INIT(L"ksidyn.sig");
     NTSTATUS status;
     PBYTE data = NULL;
     ULONG dataLength;
@@ -713,7 +798,7 @@ NTSTATUS KsiGetDynData(
     *Signature = NULL;
     *SignatureLength = 0;
 
-    status = KsiReadConfiguration(L"ksidyn.bin", &data, &dataLength);
+    status = KsiReadConfiguration(&dataFileName, &data, &dataLength);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -721,7 +806,7 @@ NTSTATUS KsiGetDynData(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = KsiReadConfiguration(L"ksidyn.sig", &sig, &sigLength);
+    status = KsiReadConfiguration(&sigFileName, &sig, &sigLength);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -750,7 +835,7 @@ CleanupExit:
     return status;
 }
 
-PPH_STRING PhGetKsiDirectory(
+PPH_STRING PhGetKsiFileName(
     VOID
     )
 {
@@ -928,10 +1013,7 @@ VOID KsiConnect(
         goto CleanupExit;
     }
 
-    if (!(ksiFileName = PhGetKsiDirectory()))
-        goto CleanupExit;
-
-    if (!PhDoesFileExistWin32(PhGetString(ksiFileName)))
+    if (!PhDoesFileExistWin32(PhGetString(KsiFileName)))
     {
         PhShowKsiMessageEx(
             WindowHandle,
@@ -944,16 +1026,14 @@ VOID KsiConnect(
         goto CleanupExit;
     }
 
-    if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KsiObjectName")))
-        PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));
     if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KsiPortName")))
         PhClearReference(&portName);
     if (PhIsNullOrEmptyString(altitude = PhGetStringSetting(L"KsiAltitude")))
         PhClearReference(&altitude);
 
-    config.FileName = &ksiFileName->sr;
+    config.FileName = &KsiFileName->sr;
     config.ServiceName = &KsiServiceName->sr;
-    config.ObjectName = &objectName->sr;
+    config.ObjectName = &KsiObjectName->sr;
     config.PortName = (portName ? &portName->sr : NULL);
     config.Altitude = (altitude ? &altitude->sr : NULL);
     config.FsSupportedFeatures = 0;
@@ -1012,7 +1092,7 @@ VOID KsiConnect(
                 status = KphConnect(&config);
             }
 
-            PhDereferenceObject(tempFileName);
+            PhMoveReference(&KsiFileName, tempFileName);
         }
 
         if (!NT_SUCCESS(status) && tempDriverDir)
@@ -1025,7 +1105,7 @@ VOID KsiConnect(
 
                 status = KphConnect(&config);
 
-                PhDereferenceObject(tempFileName);
+                PhMoveReference(&KsiFileName, tempFileName);
             }
         }
     }
@@ -1063,10 +1143,10 @@ VOID KsiConnect(
         config.PortName = &randomPortName->sr;
         config.ObjectName = &randomObjectName->sr;
 
+        PhMoveReference(&KsiServiceName, PhReferenceObject(randomServiceName));
+        PhMoveReference(&KsiObjectName, PhReferenceObject(randomObjectName));
         KsiEnableLoadNative = TRUE;
         KsiEnableLoadFilter = FALSE;
-        PhDereferenceObject(KsiServiceName);
-        KsiServiceName = PhReferenceObject(randomServiceName);
 
         status = KphConnect(&config);
 
@@ -1193,6 +1273,7 @@ CleanupExit:
 #endif
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS KsiInitializeCallbackThread(
     _In_opt_ PVOID CallbackContext
     )
@@ -1352,7 +1433,10 @@ VOID PhInitializeKsi(
     KphInitialize();
     PhInformerInitialize();
 
+    KsiFileName = PhGetKsiFileName();
     KsiServiceName = PhGetKsiServiceName();
+    if (PhIsNullOrEmptyString(KsiObjectName = PhGetStringSetting(L"KsiObjectName")))
+        PhMoveReference(&KsiObjectName, PhCreateString(KPH_OBJECT_NAME));
     KsiEnableLoadNative = !!PhGetIntegerSetting(L"KsiEnableLoadNative");
     KsiEnableLoadFilter = !!PhGetIntegerSetting(L"KsiEnableLoadFilter");
 
@@ -1398,7 +1482,9 @@ NTSTATUS PhCleanupKsi(
     if (!shouldUnload)
         return STATUS_SUCCESS;
 
+    config.FileName = &KsiFileName->sr;
     config.ServiceName = &KsiServiceName->sr;
+    config.ObjectName = &KsiObjectName->sr;
     config.EnableNativeLoad = KsiEnableLoadNative;
     config.EnableFilterLoad = KsiEnableLoadFilter;
     status = KphServiceStop(&config);

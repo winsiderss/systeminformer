@@ -19,27 +19,40 @@
 
 #include <ph.h>
 #include <apiimport.h>
-
 #include <accctrl.h>
 #include <lsasup.h>
 #include <mapldr.h>
 
+ /**
+  * Opens a handle to the local LSA policy.
+  *
+  * @return NTSTATUS Successful or errant status.
+  */
 NTSTATUS PhOpenLsaPolicy(
     _Out_ PLSA_HANDLE PolicyHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PUNICODE_STRING SystemName
     )
 {
+    NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
 
-    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
 
-    return LsaOpenPolicy(
+    status = LsaOpenPolicy(
         SystemName,
         &objectAttributes,
         DesiredAccess,
         PolicyHandle
         );
+
+    return status;
 }
 
 /**
@@ -102,8 +115,7 @@ LSA_HANDLE PhGetLookupPolicyHandle(
  * \param PrivilegeName A variable which receives a pointer to a string containing the privilege
  * name. You must free the string using PhDereferenceObject() when you no longer need it.
  */
-_Success_(return)
-BOOLEAN PhLookupPrivilegeName(
+NTSTATUS PhLookupPrivilegeName(
     _In_ PLUID PrivilegeValue,
     _Out_ PPH_STRING *PrivilegeName
     )
@@ -118,12 +130,12 @@ BOOLEAN PhLookupPrivilegeName(
         );
 
     if (!NT_SUCCESS(status))
-        return FALSE;
+        return status;
 
     *PrivilegeName = PhCreateStringFromUnicodeString(name);
     LsaFreeMemory(name);
 
-    return TRUE;
+    return status;
 }
 
 /**
@@ -134,8 +146,7 @@ BOOLEAN PhLookupPrivilegeName(
  * privilege's display name. You must free the string using PhDereferenceObject() when you no longer
  * need it.
  */
-_Success_(return)
-BOOLEAN PhLookupPrivilegeDisplayName(
+NTSTATUS PhLookupPrivilegeDisplayName(
     _In_ PPH_STRINGREF PrivilegeName,
     _Out_ PPH_STRING *PrivilegeDisplayName
     )
@@ -146,7 +157,7 @@ BOOLEAN PhLookupPrivilegeDisplayName(
     SHORT language;
 
     if (!PhStringRefToUnicodeString(PrivilegeName, &privilegeName))
-        return FALSE;
+        return STATUS_NAME_TOO_LONG;
 
     status = LsaLookupPrivilegeDisplayName(
         PhGetLookupPolicyHandle(),
@@ -156,12 +167,12 @@ BOOLEAN PhLookupPrivilegeDisplayName(
         );
 
     if (!NT_SUCCESS(status))
-        return FALSE;
+        return status;
 
     *PrivilegeDisplayName = PhCreateStringFromUnicodeString(displayName);
     LsaFreeMemory(displayName);
 
-    return TRUE;
+    return status;
 }
 
 /**
@@ -170,22 +181,24 @@ BOOLEAN PhLookupPrivilegeDisplayName(
  * \param PrivilegeName The name of a privilege.
  * \param PrivilegeValue A variable which receives the LUID of the privilege.
  */
-_Success_(return)
-BOOLEAN PhLookupPrivilegeValue(
+NTSTATUS PhLookupPrivilegeValue(
     _In_ PPH_STRINGREF PrivilegeName,
     _Out_ PLUID PrivilegeValue
     )
 {
+    NTSTATUS status;
     UNICODE_STRING privilegeName;
 
     if (!PhStringRefToUnicodeString(PrivilegeName, &privilegeName))
-        return FALSE;
+        return STATUS_NAME_TOO_LONG;
 
-    return NT_SUCCESS(LsaLookupPrivilegeValue(
+    status = LsaLookupPrivilegeValue(
         PhGetLookupPolicyHandle(),
         &privilegeName,
         PrivilegeValue
-        ));
+        );
+
+    return status;
 }
 
 /**
@@ -337,7 +350,7 @@ VOID PhLookupSids(
                 {
                     translatedNames[i] = PhConcatStringRef3(
                         &domainName->sr,
-                        &PhNtPathSeperatorString,
+                        &PhNtPathSeparatorString,
                         &userName->sr
                         );
                 }
@@ -580,19 +593,24 @@ PPH_STRING PhSidToStringSid(
     )
 {
     PPH_STRING string;
-    UNICODE_STRING us;
+    UNICODE_STRING unicodeString;
 
     string = PhCreateStringEx(NULL, SECURITY_MAX_SID_STRING_CHARACTERS * sizeof(WCHAR));
-    PhStringRefToUnicodeString(&string->sr, &us);
+
+    if (!PhStringRefToUnicodeString(&string->sr, &unicodeString))
+    {
+        PhDereferenceObject(string);
+        return NULL;
+    }
 
     if (NT_SUCCESS(RtlConvertSidToUnicodeString(
-        &us,
+        &unicodeString,
         Sid,
         FALSE
         )))
     {
-        string->Length = us.Length;
-        string->Buffer[us.Length / sizeof(WCHAR)] = UNICODE_NULL;
+        string->Length = unicodeString.Length;
+        string->Buffer[unicodeString.Length / sizeof(WCHAR)] = UNICODE_NULL;
 
         return string;
     }
@@ -948,6 +966,7 @@ typedef struct _PH_CAPABILITY_KEY_CALLBACK
     PVOID Context;
 } PH_CAPABILITY_KEY_CALLBACK, *PPH_CAPABILITY_KEY_CALLBACK;
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
@@ -986,6 +1005,7 @@ BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
     return TRUE;
 }
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI PhpDeviceAccessSubKeyEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
@@ -1019,6 +1039,7 @@ BOOLEAN NTAPI PhpDeviceAccessSubKeyEnumerateKeyCallback(
     return TRUE;
 }
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI PhpDeviceAccessEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
@@ -1433,7 +1454,8 @@ NTSTATUS PhCreateServiceSidToBuffer(
     UNICODE_STRING serviceName;
     NTSTATUS status;
 
-    PhStringRefToUnicodeString(ServiceName, &serviceName);
+    if (!PhStringRefToUnicodeString(ServiceName, &serviceName))
+        return STATUS_NAME_TOO_LONG;
 
     status = RtlCreateServiceSid(
         &serviceName,

@@ -51,7 +51,7 @@ RTL_ATOM PhMwpInitializeWindowClass(
     );
 
 PPH_STRING PhMwpInitializeWindowTitle(
-    VOID
+    _In_ ULONG KphLevel
     );
 
 VOID PhMwpInitializeProviders(
@@ -59,7 +59,7 @@ VOID PhMwpInitializeProviders(
     );
 
 VOID PhMwpShowWindow(
-    _In_ INT ShowCommand
+    _In_ LONG ShowCommand
     );
 
 VOID PhMwpApplyUpdateInterval(
@@ -75,6 +75,7 @@ VOID PhMwpInitializeControls(
     _In_ HWND WindowHandle
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhMwpLoadStage1Worker(
     _In_ PVOID Parameter
     );
@@ -106,6 +107,72 @@ VOID PhMwpInvokeUpdateWindowFont(
 VOID PhMwpInvokeUpdateWindowFontMonospace(
     _In_ HWND hwnd,
     _In_opt_ PVOID Parameter
+    );
+
+// main
+
+LONG PhMainMessageLoop(
+    VOID
+    );
+
+VOID PhInitializePreviousInstance(
+    VOID
+    );
+
+VOID PhActivatePreviousInstance(
+    VOID
+    );
+
+VOID PhInitializeCommonControls(
+    VOID
+    );
+
+VOID PhInitializeSuperclassControls( // delayhook.c
+    VOID
+    );
+
+NTSTATUS PhInitializeAppSystem(
+    VOID
+    );
+
+VOID PhInitializeAppSettings(
+    VOID
+    );
+
+VOID PhpProcessStartupParameters(
+    VOID
+    );
+
+VOID PhpEnablePrivileges(
+    VOID
+    );
+
+VOID PhEnableTerminationPolicy(
+    _In_ BOOLEAN Enabled
+    );
+
+NTSTATUS PhInitializeDirectoryPolicy(
+    VOID
+    );
+
+NTSTATUS PhInitializeExceptionPolicy(
+    VOID
+    );
+
+NTSTATUS PhInitializeNamespacePolicy(
+    VOID
+    );
+
+NTSTATUS PhInitializeMitigationPolicy(
+    VOID
+    );
+
+NTSTATUS PhInitializeComPolicy(
+    VOID
+    );
+
+NTSTATUS PhInitializeTimerPolicy(
+    VOID
     );
 
 // Event handlers
@@ -382,7 +449,7 @@ BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     _In_opt_ PVOID Context
     );
 
-BOOLEAN PhMwpExecuteProcessPriorityCommand(
+BOOLEAN PhMwpExecuteProcessPriorityClassCommand(
     _In_ HWND WindowHandle,
     _In_ ULONG Id,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -410,21 +477,25 @@ VOID PhMwpInitializeProcessMenu(
     _In_ ULONG NumberOfProcesses
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessesUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -475,21 +546,25 @@ VOID PhMwpInitializeServiceMenu(
     _In_ ULONG NumberOfServices
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServicesUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -531,21 +606,25 @@ VOID PhMwpInitializeNetworkMenu(
     _In_ ULONG NumberOfNetworkItems
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhMwpNetworkItemAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhMwpNetworkItemModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhMwpNetworkItemRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhMwpNetworkItemsUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context

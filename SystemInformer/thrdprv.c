@@ -46,21 +46,25 @@ typedef struct _PH_THREAD_QUERY_DATA
     PPH_STRING ServiceName;
 } PH_THREAD_QUERY_DATA, *PPH_THREAD_QUERY_DATA;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpThreadProviderDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpThreadItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpThreadHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpThreadHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -148,6 +152,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
     return threadProvider;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpThreadProviderDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -257,6 +262,7 @@ PPH_THREAD_ITEM PhCreateThreadItem(
     return threadItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpThreadItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -273,6 +279,7 @@ VOID PhpThreadItemDeleteProcedure(
     if (threadItem->AffinityMasks) PhFree(threadItem->AffinityMasks);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpThreadHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -283,6 +290,7 @@ BOOLEAN PhpThreadHashtableEqualFunction(
         (*(PPH_THREAD_ITEM *)Entry2)->ThreadId;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpThreadHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -350,6 +358,7 @@ VOID PhpRemoveThreadItem(
     PhDereferenceObject(ThreadItem);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpThreadQueryWorker(
     _In_ PVOID Parameter
     )
@@ -597,32 +606,54 @@ static NTSTATUS PhpGetThreadCycleTime(
     return STATUS_INVALID_PARAMETER;
 }
 
-PPH_STRING PhGetBasePriorityIncrementString(
-    _In_ KPRIORITY Increment
+PCPH_STRINGREF PhGetBasePrioritySymbolicString(
+    _In_ KPRIORITY BasePriority
     )
 {
-    switch (Increment)
+    static const PH_STRINGREF errorReturn = PH_STRINGREF_INIT(L"");
+    static const PH_STRINGREF realTime = PH_STRINGREF_INIT(L"Real-time");
+    static const PH_STRINGREF idle = PH_STRINGREF_INIT(L"Idle");
+    static const PH_STRINGREF background = PH_STRINGREF_INIT(L"Background");
+    static const PH_STRINGREF timeCritical = PH_STRINGREF_INIT(L"Time critical");
+    static const PH_STRINGREF highest = PH_STRINGREF_INIT(L"Highest");
+    static const PH_STRINGREF aboveNormal = PH_STRINGREF_INIT(L"Above normal");
+    static const PH_STRINGREF normal = PH_STRINGREF_INIT(L"Normal");
+    static const PH_STRINGREF belowNormal = PH_STRINGREF_INIT(L"Below normal");
+    static const PH_STRINGREF lowest = PH_STRINGREF_INIT(L"Lowest");
+
+    if (BasePriority == THREAD_PRIORITY_ERROR_RETURN)
+        return &errorReturn;
+
+    //
+    // N.B. This check is > 16 despite 16 being a real-time priority since
+    // requesting THREAD_PRIORITY_TIME_CRITICAL actually sets the base priority
+    // to the saturation value of LOW_REALTIME_PRIORITY. (jxy-s)
+    //
+    if (BasePriority > LOW_REALTIME_PRIORITY)      // 16
+        return &realTime;
+
+    if (BasePriority <= THREAD_BASE_PRIORITY_IDLE) // -15
+        return &idle;
+
+    if (BasePriority < THREAD_BASE_PRIORITY_MIN)   // -2
+        return &background;
+
+    if (BasePriority > THREAD_BASE_PRIORITY_MAX)   // 2
+        return &timeCritical;
+
+    switch (BasePriority)
     {
-    case THREAD_BASE_PRIORITY_LOWRT + 1:
-    case THREAD_BASE_PRIORITY_LOWRT:
-        return PhCreateString(L"Time critical");
-    case THREAD_PRIORITY_HIGHEST:
-        return PhCreateString(L"Highest");
-    case THREAD_PRIORITY_ABOVE_NORMAL:
-        return PhCreateString(L"Above normal");
-    case THREAD_PRIORITY_NORMAL:
-        return PhCreateString(L"Normal");
-    case THREAD_PRIORITY_BELOW_NORMAL:
-        return PhCreateString(L"Below normal");
-    case THREAD_PRIORITY_LOWEST:
-        return PhCreateString(L"Lowest");
-    case THREAD_BASE_PRIORITY_IDLE:
-    case THREAD_BASE_PRIORITY_IDLE - 1:
-        return PhCreateString(L"Idle");
-    case THREAD_PRIORITY_ERROR_RETURN:
-        return NULL;
-    default:
-        return PhFormatString(L"%ld", Increment);
+    case THREAD_PRIORITY_HIGHEST:                  // 2
+        return &highest;
+    case THREAD_PRIORITY_ABOVE_NORMAL:             // 1
+        return &aboveNormal;
+    case THREAD_PRIORITY_NORMAL:                   // 0
+        return &normal;
+    case THREAD_PRIORITY_BELOW_NORMAL:             // -1
+        return &belowNormal;
+    case THREAD_PRIORITY_LOWEST:                   // -2
+        return &lowest;
+    DEFAULT_UNREACHABLE;
     }
 }
 
@@ -639,6 +670,7 @@ VOID PhThreadProviderInitialUpdate(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhpThreadProviderCallbackHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -816,7 +848,7 @@ VOID PhpThreadProviderUpdate(
             threadItem->CreateTime = thread->CreateTime;
             threadItem->StartAddress = thread->StartAddress;
             threadItem->Priority = thread->Priority;
-            threadItem->BasePriority = thread->BasePriority;
+            threadItem->ActualBasePriority = thread->BasePriority;
             PhUpdateDelta(&threadItem->ContextSwitchesDelta, thread->ContextSwitches);
             threadItem->State = thread->ThreadState;
             threadItem->WaitReason = thread->WaitReason;
@@ -878,11 +910,11 @@ VOID PhpThreadProviderUpdate(
                 &basicInfo
                 )))
             {
-                threadItem->BasePriorityIncrement = basicInfo.BasePriority;
+                threadItem->BasePriority = basicInfo.BasePriority;
             }
             else
             {
-                threadItem->BasePriorityIncrement = THREAD_PRIORITY_ERROR_RETURN;
+                threadItem->BasePriority = THREAD_PRIORITY_ERROR_RETURN;
             }
 
             // Affinity
@@ -891,23 +923,24 @@ VOID PhpThreadProviderUpdate(
 
                 threadItem->AffinityMasks = PhAllocateZero(sizeof(KAFFINITY) * PhSystemProcessorInformation.NumberOfProcessorGroups);
 
-                for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+                for (USHORT j = 0; j < PhSystemProcessorInformation.NumberOfProcessorGroups; j++)
                 {
                     GROUP_AFFINITY affinity;
 
-                    affinity.Group = i;
+                    RtlZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
+                    affinity.Group = j;
 
                     if (threadItem->ThreadHandle &&
                         NT_SUCCESS(PhGetThreadGroupAffinity(threadItem->ThreadHandle, &affinity)))
                     {
-                        threadItem->AffinityMasks[i] = affinity.Mask;
+                        threadItem->AffinityMasks[j] = affinity.Mask;
                     }
                     else
                     {
-                        threadItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                        threadItem->AffinityMasks[j] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[j];
                     }
 
-                    affinityPopulationCount += PhCountBitsUlongPtr(threadItem->AffinityMasks[i]);
+                    affinityPopulationCount += PhCountBitsUlongPtr(threadItem->AffinityMasks[j]);
                 }
 
                 threadItem->AffinityPopulationCount = affinityPopulationCount;
@@ -1017,10 +1050,20 @@ VOID PhpThreadProviderUpdate(
 
             threadItem->KernelTime = thread->KernelTime;
             threadItem->UserTime = thread->UserTime;
-            threadItem->Priority = thread->Priority;
-            threadItem->BasePriority = thread->BasePriority;
             threadItem->State = thread->ThreadState;
             threadItem->WaitTime = thread->WaitTime;
+
+            if (threadItem->Priority != thread->Priority)
+            {
+                threadItem->Priority = thread->Priority;
+                modified = TRUE;
+            }
+
+            if (threadItem->ActualBasePriority != thread->BasePriority)
+            {
+                threadItem->ActualBasePriority = thread->BasePriority;
+                modified = TRUE;
+            }
 
             if (threadItem->WaitReason != thread->WaitReason)
             {
@@ -1193,24 +1236,23 @@ VOID PhpThreadProviderUpdate(
                 threadItem->CpuUserUsage = userCpuUsage;
             }
 
-            // Update the base priority increment.
-            // Update the thread affinity.
+            // Update the base priority.
             {
-                KPRIORITY oldBasePriorityIncrement = threadItem->BasePriorityIncrement;
+                KPRIORITY oldBasePriorityIncrement = threadItem->BasePriority;
 
                 if (threadItem->ThreadHandle && NT_SUCCESS(PhGetThreadBasicInformation(
                     threadItem->ThreadHandle,
                     &basicInfo
                     )))
                 {
-                    threadItem->BasePriorityIncrement = basicInfo.BasePriority;
+                    threadItem->BasePriority = basicInfo.BasePriority;
                 }
                 else
                 {
-                    threadItem->BasePriorityIncrement = THREAD_PRIORITY_ERROR_RETURN;
+                    threadItem->BasePriority = THREAD_PRIORITY_ERROR_RETURN;
                 }
 
-                if (threadItem->BasePriorityIncrement != oldBasePriorityIncrement)
+                if (threadItem->BasePriority != oldBasePriorityIncrement)
                 {
                     modified = TRUE;
                 }
@@ -1220,23 +1262,24 @@ VOID PhpThreadProviderUpdate(
             {
                 ULONG affinityPopulationCount = 0;
 
-                for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+                for (USHORT j = 0; j < PhSystemProcessorInformation.NumberOfProcessorGroups; j++)
                 {
                     GROUP_AFFINITY affinity;
 
-                    affinity.Group = i;
+                    RtlZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
+                    affinity.Group = j;
 
                     if (threadItem->ThreadHandle &&
                         NT_SUCCESS(PhGetThreadGroupAffinity(threadItem->ThreadHandle, &affinity)))
                     {
-                        threadItem->AffinityMasks[i] = affinity.Mask;
+                        threadItem->AffinityMasks[j] = affinity.Mask;
                     }
                     else
                     {
-                        threadItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                        threadItem->AffinityMasks[j] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[j];
                     }
 
-                    affinityPopulationCount += PhCountBitsUlongPtr(threadItem->AffinityMasks[i]);
+                    affinityPopulationCount += PhCountBitsUlongPtr(threadItem->AffinityMasks[j]);
                 }
 
                 if (threadItem->AffinityPopulationCount != affinityPopulationCount)

@@ -116,10 +116,11 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
 
 typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
 {
-    PSID Sid;
+    PCSID Sid;
     PPH_STRING FullName;
 } PH_SID_FULL_NAME_CACHE_ENTRY, *PPH_SID_FULL_NAME_CACHE_ENTRY;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -231,70 +232,6 @@ PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 
 static PPH_HASHTABLE PhpSidFullNameCacheHashtable = NULL;
 
-static PPH_STRING PhpProtectionUnknownString = NULL;
-static PPH_STRING PhpProtectionYesString = NULL;
-static PPH_STRING PhpProtectionNoneString = NULL;
-static PPH_STRING PhpProtectionSecureIUMString = NULL;
-
-static CONST PH_KEY_VALUE_PAIR PhProtectedTypeStrings[] =
-{
-    SIP(L"None", PsProtectedTypeNone),
-    SIP(L"Light", PsProtectedTypeProtectedLight),
-    SIP(L"Full", PsProtectedTypeProtected),
-};
-
-static CONST PH_KEY_VALUE_PAIR PhProtectedSignerStrings[] =
-{
-    SIP(L"Authenticode", PsProtectedSignerAuthenticode),
-    SIP(L"CodeGen", PsProtectedSignerCodeGen),
-    SIP(L"Antimalware", PsProtectedSignerAntimalware),
-    SIP(L"Lsa", PsProtectedSignerLsa),
-    SIP(L"Windows", PsProtectedSignerWindows),
-    SIP(L"WinTcb", PsProtectedSignerWinTcb),
-    SIP(L"WinSystem", PsProtectedSignerWinSystem),
-    SIP(L"StoreApp", PsProtectedSignerApp),
-};
-
-PPH_STRING PhpGetProtectionString(
-    _In_ PS_PROTECTION Protection,
-    _In_ BOOLEAN IsSecureProcess
-    )
-{
-    PH_FORMAT format[5];
-    ULONG count = 0;
-    PWSTR type = L"Unknown";
-    PWSTR signer = L"";
-
-    if (Protection.Level == 0)
-    {
-        if (IsSecureProcess)
-            return PhReferenceObject(PhpProtectionSecureIUMString);
-        else
-            return PhReferenceObject(PhpProtectionNoneString);
-    }
-
-    PhFindStringSiKeyValuePairs(PhProtectedTypeStrings, sizeof(PhProtectedTypeStrings), Protection.Type, &type);
-    PhFindStringSiKeyValuePairs(PhProtectedSignerStrings, sizeof(PhProtectedSignerStrings), Protection.Signer, &signer);
-
-    if (IsSecureProcess)
-        PhInitFormatS(&format[count++], L"Secure ");
-
-    PhInitFormatS(&format[count++], type);
-
-    if (signer[0] != UNICODE_NULL)
-    {
-        PhInitFormatS(&format[count++], L" (");
-        PhInitFormatS(&format[count++], signer);
-        PhInitFormatS(&format[count++], Protection.Audit ? L", Audit)" : L")");
-    }
-    else if (Protection.Audit)
-    {
-        PhInitFormatS(&format[count++], L" (Audit)");
-    }
-
-    return PhFormat(format, count, 10);
-}
-
 BOOLEAN PhProcessProviderInitialization(
     VOID
     )
@@ -359,11 +296,6 @@ BOOLEAN PhProcessProviderInitialization(
     PhCpusKernelHistory = historyBuffer;
     PhCpusUserHistory = PhCpusKernelHistory + PhSystemProcessorInformation.NumberOfProcessors;
 
-    PhpProtectionUnknownString = PhCreateString(L"Unknown");
-    PhpProtectionYesString = PhCreateString(L"Yes");
-    PhpProtectionNoneString = PhCreateString(L"None");
-    PhpProtectionSecureIUMString = PhCreateString(L"Secure (IUM)");
-
     return TRUE;
 }
 
@@ -427,19 +359,24 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     PhInitializeCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, PhStatisticsSampleCount);
     //PhInitializeCircularBuffer_SIZE_T(&processItem->WorkingSetHistory, PhStatisticsSampleCount);
 
-    PhEmCallObjectOperation(EmProcessItemType, processItem, EmObjectCreate);
-
     //
-    // Initialize ImageCoherencyStatus to STATUS_PENDING this notes that the
-    // image coherency hasn't been done yet. This prevents the process items
-    // from being noted as "Low Image Coherency" or being highlighted until
-    // the analysis runs. See: PhpShouldShowImageCoherency
+    // Initialize ImageCoherencyStatus to STATUS_PENDING and prevent items
+    // from being noted as "Low Image Coherency" or highlighted until the
+    // analysis runs. See: PhpShouldShowImageCoherency (jxy-s)
     //
     processItem->ImageCoherencyStatus = STATUS_PENDING;
+
+    //
+    // Notify object operations of object creation. Note: This must be the last
+    // call after all other methods, otherwise extensions that rely on the
+    // object being initialized might crash or have undefined behavior. (dmex)
+    //
+    PhEmCallObjectOperation(EmProcessItemType, processItem, EmObjectCreate);
 
     return processItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpProcessItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -476,13 +413,17 @@ VOID PhpProcessItemDeleteProcedure(
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->Sid) PhFree(processItem->Sid);
     if (processItem->ProtectionString) PhDereferenceObject(processItem->ProtectionString);
-    if (processItem->AffinityMasks) PhFree(processItem->AffinityMasks);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
 
-    if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
+    if (!PhSystemProcessorInformation.SingleProcessorGroup)
+    {
+        if (processItem->AffinityMasks) PhFree(processItem->AffinityMasks);
+    }
+
     if (processItem->FreezeHandle) NtClose(processItem->FreezeHandle);
+    if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
 
     if (processItem->Record) PhDereferenceProcessRecord(processItem->Record);
     if (processItem->IconEntry) PhDereferenceObject(processItem->IconEntry);
@@ -643,7 +584,8 @@ VOID PhpRemoveProcessItem(
     PhDereferenceObject(ProcessItem);
 }
 
-BOOLEAN PhpSidFullNameCacheHashtableEqualFunction(
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+static BOOLEAN PhpSidFullNameCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -654,13 +596,14 @@ BOOLEAN PhpSidFullNameCacheHashtableEqualFunction(
     return PhEqualSid(entry1->Sid, entry2->Sid);
 }
 
-ULONG PhpSidFullNameCacheHashtableHashFunction(
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
+static ULONG PhpSidFullNameCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
     PPH_SID_FULL_NAME_CACHE_ENTRY entry = Entry;
 
-    return PhHashBytes(entry->Sid, PhLengthSid(entry->Sid));
+    return PhHashBytes((PUCHAR)entry->Sid, PhLengthSid(entry->Sid));
 }
 
 PPH_STRING PhpGetSidFullNameCachedSlow(
@@ -705,7 +648,7 @@ PPH_STRING PhpGetSidFullNameCachedSlow(
 }
 
 PPH_STRING PhpGetSidFullNameCached(
-    _In_ PSID Sid
+    _In_ PCSID Sid
     )
 {
     if (PhpSidFullNameCacheHashtable)
@@ -737,7 +680,7 @@ VOID PhpFlushSidFullNameCache(
 
     while (entry = PhNextEnumHashtable(&enumContext))
     {
-        PhFree(entry->Sid);
+        PhFree((PVOID)entry->Sid);
         PhDereferenceObject(entry->FullName);
     }
 
@@ -1065,6 +1008,7 @@ VOID PhpProcessQueryStage2(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpProcessQueryStage1Worker(
     _In_ PVOID Parameter
     )
@@ -1083,6 +1027,7 @@ NTSTATUS PhpProcessQueryStage1Worker(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpProcessQueryStage2Worker(
     _In_ PVOID Parameter
     )
@@ -1260,9 +1205,9 @@ VOID PhpFillProcessItem(
     {
         PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
-        if (ProcessItem->QueryHandle &&
-            NT_SUCCESS(PhGetProcessExtendedBasicInformation(ProcessItem->QueryHandle, &basicInfo)))
+        if (ProcessItem->QueryHandle && NT_SUCCESS(PhGetProcessExtendedBasicInformation(ProcessItem->QueryHandle, &basicInfo)))
         {
+            ProcessItem->PebBaseAddress = basicInfo.PebBaseAddress;
             ProcessItem->IsProtectedProcess = basicInfo.IsProtectedProcess;
             ProcessItem->IsSecureProcess = basicInfo.IsSecureProcess;
             ProcessItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
@@ -1276,30 +1221,37 @@ VOID PhpFillProcessItem(
 
     // Affinity
     {
-        ULONG affinitPopulationCount = 0;
-
-        ProcessItem->AffinityMasks = PhAllocateZero(sizeof(KAFFINITY) * PhSystemProcessorInformation.NumberOfProcessorGroups);
-
-        for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+        if (PhSystemProcessorInformation.SingleProcessorGroup)
+        {
+            ProcessItem->AffinityMasks = &PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[0];
+            ProcessItem->AffinityPopulationCount = PhCountBitsUlongPtr(ProcessItem->AffinityMasks[0]);
+        }
+        else
         {
             GROUP_AFFINITY affinity;
 
-            affinity.Group = i;
+            ProcessItem->AffinityMasks = PhAllocateZero(sizeof(KAFFINITY) * PhSystemProcessorInformation.NumberOfProcessorGroups);
 
-            if (ProcessItem->QueryHandle &&
-                NT_SUCCESS(PhGetProcessGroupAffinity(ProcessItem->QueryHandle, &affinity)))
+            for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
             {
-                ProcessItem->AffinityMasks[i] = affinity.Mask;
-            }
-            else
-            {
-                ProcessItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
-            }
+                RtlZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
+                affinity.Group = i;
 
-            affinitPopulationCount += PhCountBitsUlongPtr(ProcessItem->AffinityMasks[i]);
+                if (
+                    ProcessItem->QueryHandle &&
+                    NT_SUCCESS(PhGetProcessGroupAffinity(ProcessItem->QueryHandle, &affinity))
+                    )
+                {
+                    ProcessItem->AffinityMasks[i] = affinity.Mask;
+                }
+                else
+                {
+                    ProcessItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                }
+
+                ProcessItem->AffinityPopulationCount += PhCountBitsUlongPtr(ProcessItem->AffinityMasks[i]);
+            }
         }
-
-        ProcessItem->AffinityPopulationCount = affinitPopulationCount;
     }
 
     // Process information
@@ -1400,9 +1352,9 @@ VOID PhpFillProcessItem(
             ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
         {
             if (!ProcessItem->Sid)
-                ProcessItem->Sid = PhAllocateCopy((PSID)&PhSeLocalSystemSid, PhLengthSid((PSID)&PhSeLocalSystemSid));
+                ProcessItem->Sid = PhAllocateCopy((PSID)&PhSeLocalSystemSid, PhLengthSid(&PhSeLocalSystemSid));
             if (!ProcessItem->UserName)
-                ProcessItem->UserName = PhpGetSidFullNameCached((PSID)&PhSeLocalSystemSid);
+                ProcessItem->UserName = PhpGetSidFullNameCached(&PhSeLocalSystemSid);
 
             ProcessItem->IsSystemProcess = TRUE;
         }
@@ -1468,32 +1420,25 @@ VOID PhpFillProcessItem(
 
     // Protection
     {
-        BOOLEAN haveProtection = FALSE;
-
-        if (ProcessItem->QueryHandle)
+        if (WindowsVersion >= WINDOWS_8_1)
         {
-            if (WindowsVersion >= WINDOWS_8_1)
+            if (ProcessItem->QueryHandle)
             {
                 PS_PROTECTION protection;
 
                 if (NT_SUCCESS(PhGetProcessProtection(ProcessItem->QueryHandle, &protection)))
                 {
                     ProcessItem->Protection.Level = protection.Level;
-                    haveProtection = TRUE;
                 }
             }
-        }
-
-        if (WindowsVersion >= WINDOWS_8_1)
-        {
-            if (haveProtection)
-                ProcessItem->ProtectionString = PhpGetProtectionString(ProcessItem->Protection, (BOOLEAN)ProcessItem->IsSecureProcess);
             else
-                ProcessItem->ProtectionString = PhReferenceObject(PhpProtectionUnknownString);
-        }
-        else if (ProcessItem->IsProtectedProcess)
-        {
-            ProcessItem->ProtectionString = PhReferenceObject(PhpProtectionYesString);
+            {
+                if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID || ProcessItem->ProcessId == INTERRUPTS_PROCESS_ID || ProcessItem->ProcessId == DPCS_PROCESS_ID)
+                {
+                    ProcessItem->Protection.Level = PsProtectedValue(PsProtectedSignerWinSystem, FALSE, PsProtectedTypeProtected);
+                    ProcessItem->IsProtectedProcess = ProcessItem->IsSecureProcess = ProcessItem->IsSystemProcess = TRUE;
+                }
+            }
         }
     }
 
@@ -1567,14 +1512,30 @@ VOID PhpFillProcessItem(
         }
     }
 
-    // On Windows 8.1 and above, processes without threads are reflected processes
-    // which will not terminate if we have a handle open. (wj32)
-    if (Process->UserTime.QuadPart + Process->KernelTime.QuadPart == 0 && Process->NumberOfThreads == 0 && ProcessItem->QueryHandle)
+    //
+    // Snapshot processes are created via NtCreateProcessEx by providing null or
+    // empty object attributes and a parent process handle for what process to
+    // snapshot. They are normally used when inspecting or dumping a process
+    // address space.
+    //
+    // These processes do not have an initial thread and can never have a thread
+    // created within them. They will have a PEB from the originating process.
+    // The PEB check ensures we do not incorrectly designate processes that are
+    // actually valid container processes such as "Secure System". (jxy-s)
+    //
+    if (Process->NumberOfThreads == 0 && ProcessItem->PebBaseAddress)
     {
-        ProcessItem->IsReflectedProcess = TRUE;
+        ProcessItem->IsSnapshotProcess = TRUE;
 
-        NtClose(ProcessItem->QueryHandle);
-        ProcessItem->QueryHandle = NULL;
+        if (ProcessItem->QueryHandle)
+        {
+            //
+            // Snapshot processes will not terminate if we have a handle open.
+            // Close it here or else process objects will leak. (wj32, jxy-s)
+            //
+            NtClose(ProcessItem->QueryHandle);
+            ProcessItem->QueryHandle = NULL;
+        }
     }
 }
 
@@ -2300,6 +2261,7 @@ PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instru
 }
 #endif
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhProcessProviderUpdate(
     _In_ PVOID Object
     )
@@ -3816,6 +3778,7 @@ HIMAGELIST PhProcessLargeImageList = NULL;
 HIMAGELIST PhProcessSmallImageList = NULL;
 PPH_OBJECT_TYPE PhImageListItemType = NULL;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpImageListItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -3987,6 +3950,7 @@ VOID PhProcessImageListInitialization(
     PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhImageListCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -3998,6 +3962,7 @@ BOOLEAN PhImageListCacheHashtableEqualFunction(
     return PhEqualStringRef(&entry1->FileName->sr, &entry2->FileName->sr, FALSE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhImageListCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -4156,7 +4121,7 @@ VOID PhImageListFlushCache(
 
 VOID PhDrawProcessIcon(
     _In_ HDC hdc,
-    _In_ RECT rect,
+    _In_ PRECT rect,
     _In_ ULONG Index,
     _In_ BOOLEAN Large)
 {
@@ -4168,8 +4133,8 @@ VOID PhDrawProcessIcon(
                 PhProcessLargeImageList,
                 Index,
                 hdc,
-                rect.left,
-                rect.top,
+                rect->left,
+                rect->top,
                 ILD_NORMAL | ILD_TRANSPARENT,
                 FALSE
                 );
@@ -4183,8 +4148,8 @@ VOID PhDrawProcessIcon(
                 PhProcessSmallImageList,
                 Index,
                 hdc,
-                rect.left,
-                rect.top,
+                rect->left,
+                rect->top,
                 ILD_NORMAL | ILD_TRANSPARENT,
                 FALSE
                 );

@@ -252,6 +252,8 @@ PvSearchControlMatchPointerRange(
 
 #define WM_PV_SEARCH_FINISHED (WM_APP + 701)
 #define WM_PV_SEARCH_SHOWMENU (WM_APP + 702)
+#define WM_PV_SEARCH_SETREDRAW (WM_APP + 703)
+#define WM_PV_SEARCH_NODESSTRUCTURED (WM_APP + 704)
 
 extern ULONG SearchResultsAddIndex;
 extern PPH_LIST SearchResults;
@@ -487,6 +489,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PeDumpFileSymbols(
     _In_ PPDB_SYMBOL_CONTEXT Context
     );
@@ -604,6 +607,13 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
     );
 
 INT_PTR CALLBACK PvPeResourcesDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvPeAppManifestDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

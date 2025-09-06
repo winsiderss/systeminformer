@@ -18,6 +18,7 @@
 #define MAX_HEAPS 1000
 #define WS_REQUEST_COUNT (PAGE_SIZE / sizeof(MEMORY_WORKING_SET_EX_INFORMATION))
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpMemoryItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -269,6 +270,7 @@ PPH_MEMORY_ITEM PhCreateMemoryItem(
     return memoryItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpMemoryItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -287,6 +289,7 @@ VOID PhpMemoryItemDeleteProcedure(
     }
 }
 
+_Function_class_(PH_AVL_TREE_COMPARE_FUNCTION)
 static LONG NTAPI PhpMemoryItemCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2
@@ -562,6 +565,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         PVOID processHeapsPtr;
         PVOID *processHeaps;
         PVOID apiSetMap;
+        PVOID processParameters;
         PVOID readOnlySharedMemory;
         PVOID codePageData;
         PVOID gdiSharedHandleTable;
@@ -571,11 +575,13 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         PVOID werRegistrationData;
         PVOID siloSharedData;
         PVOID telemetryCoverageData;
+        PVOID leapSecondData;
 #ifdef _WIN64
         PVOID processPeb32;
         ULONG processHeapsPtr32;
         ULONG *processHeaps32;
         ULONG apiSetMap32;
+        ULONG processParameters32;
         ULONG readOnlySharedMemory32;
         ULONG codePageData32;
         ULONG gdiSharedHandleTable32;
@@ -585,6 +591,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         ULONG werRegistrationData32;
         ULONG siloSharedData32;
         ULONG telemetryCoverageData32;
+        ULONG leapSecondData32;
 #endif
         if (PhGetIntegerSetting(L"EnableHeapMemoryTagging"))
         {
@@ -668,6 +675,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 }
 
                 PhFree(processHeaps);
+            }
+
+            // RTL_USER_PROCESS_PARAMETERS
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, ProcessParameters)),
+                &processParameters,
+                sizeof(PVOID),
+                NULL
+                )) && processParameters)
+            {
+                PhpSetMemoryRegionType(List, processParameters, TRUE, ProcessParametersRegion);
             }
 
             // ApiSet schema map
@@ -795,6 +814,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             {
                 PhpSetMemoryRegionType(List, telemetryCoverageData, TRUE, TelemetryCoverageRegion);
             }
+
+            // Leap second data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb, UFIELD_OFFSET(PEB, LeapSecondData)),
+                &leapSecondData,
+                sizeof(PVOID),
+                NULL
+                )) && leapSecondData)
+            {
+                PhpSetMemoryRegionType(List, leapSecondData, TRUE, LeapSecondDataRegion);
+            }
         }
 #ifdef _WIN64
 
@@ -826,6 +857,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 }
 
                 PhFree(processHeaps32);
+            }
+
+            // RTL_USER_PROCESS_PARAMETERS
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb32, FIELD_OFFSET(PEB32, ProcessParameters)),
+                &processParameters32,
+                sizeof(ULONG),
+                NULL
+                )) && processParameters32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(processParameters32), TRUE, ProcessParametersRegion);
             }
 
             // ApiSet schema map
@@ -953,6 +996,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             {
                 PhpSetMemoryRegionType(List, UlongToPtr(telemetryCoverageData32), TRUE, TelemetryCoverageRegion);
             }
+
+            // Leap second data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, LeapSecondData)),
+                &leapSecondData32,
+                sizeof(ULONG),
+                NULL
+                )) && leapSecondData32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(leapSecondData32), TRUE, LeapSecondDataRegion);
+            }
         }
 #endif
     }
@@ -962,16 +1017,16 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     {
         PSYSTEM_EXTENDED_THREAD_INFORMATION thread = (PSYSTEM_EXTENDED_THREAD_INFORMATION)process->Threads + i;
 
-        if (thread->TebBase)
+        if (thread->TebBaseAddress)
         {
             NT_TIB ntTib;
             SIZE_T bytesRead;
 
             // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections.
-            if (memoryItem = PhpSetMemoryRegionType(List, (PVOID)thread->TebBase, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, TebRegion))
+            if (memoryItem = PhpSetMemoryRegionType(List, thread->TebBaseAddress, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, TebRegion))
                 memoryItem->u.Teb.ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
 
-            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, thread->TebBase, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
+            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, thread->TebBaseAddress, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
                 bytesRead == sizeof(NT_TIB))
             {
                 if ((ULONG_PTR)ntTib.StackLimit < (ULONG_PTR)ntTib.StackBase)
@@ -1110,16 +1165,8 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
     if (NT_SUCCESS(status))
     {
-        PVOID cfgBitmapAddress = NULL;
-        PVOID cfgBitmapWow64Address = NULL;
-
-        if (RTL_CONTAINS_FIELD(&ldrInitBlock, ldrInitBlock.Size, Wow64CfgBitMap))
-        {
-            cfgBitmapAddress = (PVOID)ldrInitBlock.CfgBitMap;
-            cfgBitmapWow64Address = (PVOID)ldrInitBlock.Wow64CfgBitMap;
-        }
-
-        if (cfgBitmapAddress && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapAddress)))
+        if (RTL_CONTAINS_FIELD(&ldrInitBlock, ldrInitBlock.Size, CfgBitMap) &&
+            ldrInitBlock.CfgBitMap && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, (PVOID)ldrInitBlock.CfgBitMap)))
         {
             listEntry = &cfgBitmapMemoryItem->ListEntry;
             memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
@@ -1137,7 +1184,8 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         }
 
         // Note: Wow64 processes on 64bit also have CfgBitmap regions.
-        if (isWow64 && cfgBitmapWow64Address && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapWow64Address)))
+        if (RTL_CONTAINS_FIELD(&ldrInitBlock, ldrInitBlock.Size, Wow64CfgBitMap) &&
+            isWow64 && ldrInitBlock.Wow64CfgBitMap && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, (PVOID)ldrInitBlock.Wow64CfgBitMap)))
         {
             listEntry = &cfgBitmapMemoryItem->ListEntry;
             memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);

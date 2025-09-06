@@ -99,7 +99,7 @@ PPH_CM_COLUMN PhCmCreateColumn(
 
 PPH_CM_COLUMN PhCmFindColumn(
     _In_ PPH_CM_MANAGER Manager,
-    _In_ PPH_STRINGREF PluginName,
+    _In_ PCPH_STRINGREF PluginName,
     _In_ ULONG SubId
     )
 {
@@ -305,7 +305,7 @@ BOOLEAN PhCmForwardSort(
 
 BOOLEAN PhCmLoadSettings(
     _In_ HWND TreeNewHandle,
-    _In_ PPH_STRINGREF Settings
+    _In_ PCPH_STRINGREF Settings
     )
 {
     return PhCmLoadSettingsEx(TreeNewHandle, NULL, 0, Settings, NULL);
@@ -315,8 +315,8 @@ BOOLEAN PhCmLoadSettingsEx(
     _In_ HWND TreeNewHandle,
     _In_opt_ PPH_CM_MANAGER Manager,
     _In_ ULONG Flags,
-    _In_ PPH_STRINGREF Settings,
-    _In_opt_ PPH_STRINGREF SortSettings
+    _In_ PCPH_STRINGREF Settings,
+    _In_opt_ PCPH_STRINGREF SortSettings
     )
 {
     BOOLEAN result = FALSE;

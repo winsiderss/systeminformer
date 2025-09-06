@@ -14,7 +14,7 @@
 
 // Wait Chain Traversal Documentation:
 // https://learn.microsoft.com/en-us/windows/win32/debug/wait-chain-traversal
-// http://msdn.microsoft.com/en-us/library/windows/desktop/ms681622.aspx
+// https://msdn.microsoft.com/en-us/library/windows/desktop/ms681622.aspx
 
 #define WCT_GETINFO_ALL_FLAGS (WCT_OUT_OF_PROC_FLAG|WCT_OUT_OF_PROC_COM_FLAG|WCT_OUT_OF_PROC_CS_FLAG|WCT_NETWORK_IO_FLAG)
 
@@ -401,7 +401,7 @@ INT_PTR CALLBACK WaitChainDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_WCT_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_WCT_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_WCT_WINDOW_POSITION, SETTING_NAME_WCT_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);

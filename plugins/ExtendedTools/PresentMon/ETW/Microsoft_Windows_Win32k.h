@@ -82,7 +82,7 @@ enum class Channel : uint8_t {
     static uint8_t  const Level   = level_; \
     static uint8_t  const Opcode  = opcode_; \
     static uint16_t const Task    = task_; \
-    static Keyword  const Keyword = (Keyword) keyword_; \
+    static Keyword  const Keyword = (enum Keyword) keyword_; \
 };
 
 EVENT_DESCRIPTOR_DECL(TokenCompositionSurfaceObject_Info, 0x00c9, 0x01, 0x10, 0x04, 0x00, 0x008a, 0x8000000400001000)

@@ -15,7 +15,53 @@
 
 // This header file provides some useful definitions specific to phlib.
 
+//
+// Workaround for macro redefinition conflicts between Clang and MSVC.
+// Save and restore these definitions.
+//
+// See: https://github.com/llvm/llvm-project/issues/36748
+//
+// C:\Program Files\LLVM\lib\clang\20\include\xmmintrin.h(2195,9): error: '_MM_HINT_T0' macro redefined [-Werror,-Wmacro-redefined]
+//  2195 | #define _MM_HINT_T0  3
+//       |         ^
+// C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\um\winnt.h(3649,9): note: previous definition is here
+//  3649 | #define _MM_HINT_T0     1
+//       |
+//
+// Workaround for unused function warnings.
+// Narrowly suppress -Wunused-function warnings.
+//
+// C:\Program Files\LLVM\lib\clang\20\include\amxcomplexintrin.h(139,13): error: unused function '__tile_cmmimfp16ps' [-Werror,-Wunused-function]
+//   139 | static void __tile_cmmimfp16ps(__tile1024i *dst, __tile1024i src0,
+//       |             ^~~~~~~~~~~~~~~~~~
+// C:\Program Files\LLVM\lib\clang\20\include\amxcomplexintrin.h(162,13): error: unused function '__tile_cmmrlfp16ps' [-Werror,-Wunused-function]
+//   162 | static void __tile_cmmrlfp16ps(__tile1024i *dst, __tile1024i src0,
+//       |             ^~~~~~~~~~~~~~~~~~
+//
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#ifdef _MM_HINT_T0
+#pragma push_macro("_MM_HINT_T0")
+#pragma push_macro("_MM_HINT_T1")
+#pragma push_macro("_MM_HINT_T2")
+#undef _MM_HINT_T0
+#undef _MM_HINT_T1
+#undef _MM_HINT_T2
+#define PH_SAVED_MM_HINT_MACROS
+#endif // _MM_HINT_T0
+#endif // __clang__
 #include <intrin.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#ifdef PH_SAVED_MM_HINT_MACROS
+#pragma pop_macro("_MM_HINT_T2")
+#pragma pop_macro("_MM_HINT_T1")
+#pragma pop_macro("_MM_HINT_T0")
+#undef PH_SAVED_MM_HINT_MACROS
+#endif // PH_SAVED_MM_HINT_MACROS
+#endif // __clang__
+
 #include <wchar.h>
 #include <assert.h>
 #include <stdalign.h>
@@ -35,8 +81,34 @@
 // Memory
 //
 
+#if defined(_cplusplus)
+template <class T>
+FORCEINLINE T* PTR_ADD_OFFSET(
+    _In_ const T* Pointer,
+    _In_ const T* Offset
+    )
+{
+    return reinterpret_cast<T*>(
+        static_cast<const unsigned char*>(Pointer) +
+        static_cast<const unsigned long long>(Offset)
+        );
+}
+
+template <class T>
+FORCEINLINE T* PTR_SUB_OFFSET(
+    _In_ const T* Pointer,
+    _In_ const T* Offset
+    )
+{
+    return reinterpret_cast<T*>(
+        static_cast<const unsigned char*>(Pointer) -
+        static_cast<const unsigned long long>(Pointer)
+        );
+}
+#else
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
 #define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Offset)))
+#endif
 
 #define PH_LARGE_BUFFER_SIZE (256 * 1024 * 1024)
 
@@ -75,7 +147,7 @@
 #define UInt32Add32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) + ((unsigned int)(b)))) // Avoids warning C26451 (dmex)
 #define UInt32Sub32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) - ((unsigned int)(b))))
 #define UInt32Div32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) / ((unsigned int)(b))))
-#define UInt32Mul32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) / ((unsigned int)(b))))
+#define UInt32Mul32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) * ((unsigned int)(b))))
 #else
 #define UInt32Add32To64(a, b) (((unsigned __int64)((unsigned int)(a))) + ((unsigned __int64)((unsigned int)(b)))) // from UInt32x32To64 (dmex)
 #define UInt32Sub32To64(a, b) (((unsigned __int64)((unsigned int)(a))) - ((unsigned __int64)((unsigned int)(b))))

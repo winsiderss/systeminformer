@@ -15,11 +15,13 @@ static PPH_OBJECT_TYPE PvpPropContextType = NULL;
 static PPH_OBJECT_TYPE PvpPropPageContextType = NULL;
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -38,7 +40,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     _In_ LPARAM lParam
     );
 
-INT CALLBACK PvpStandardPropPageProc(
+UINT CALLBACK PvpStandardPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -68,7 +70,7 @@ PPV_PROPCONTEXT HdCreatePropContext(
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE |
         PSH_USECALLBACK;
-    propSheetHeader.hInstance = PluginInstance->DllBase;
+    propSheetHeader.hInstance = NtCurrentImageBase();
     propSheetHeader.hwndParent = NULL;
     propSheetHeader.pszCaption = Caption;
     propSheetHeader.pfnCallback = PvpPropSheetProc;
@@ -81,6 +83,7 @@ PPV_PROPCONTEXT HdCreatePropContext(
     return propContext;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -295,13 +298,16 @@ HWND PvpCreateControlButton(
         RECT clientRect;
         RECT rect;
 
+        // Create the refresh button.
+        if (!PhGetClientRect(PropSheetWindow, &clientRect))
+            return NULL;
+        if (!PhGetWindowRect(GetDlgItem(PropSheetWindow, IDCANCEL), &rect))
+            return NULL;
+
         PropSheetContext->OldOptionsButtonWndProc = PhGetWindowProcedure(PropSheetWindow);
         PhSetWindowContext(PropSheetWindow, SCHAR_MAX, PropSheetContext);
         PhSetWindowProcedure(PropSheetWindow, PvControlButtonWndProc);
 
-        // Create the refresh button.
-        GetClientRect(PropSheetWindow, &clientRect);
-        GetWindowRect(GetDlgItem(PropSheetWindow, IDCANCEL), &rect);
         MapWindowRect(NULL, PropSheetWindow, &rect);
         PropSheetContext->OptionsButtonWindowHandle = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
@@ -338,15 +344,10 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         PPH_LAYOUT_ITEM tabPageItem;
 
         tabControlHandle = PropSheet_GetTabControl(hwnd);
-        tabControlItem = PhAddLayoutItem(&PropSheetContext->LayoutManager, tabControlHandle,
-            NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
-        tabPageItem = PhAddLayoutItem(&PropSheetContext->LayoutManager, tabControlHandle,
-            NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
-
+        tabControlItem = PhAddLayoutItem(&PropSheetContext->LayoutManager, tabControlHandle, NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
+        tabPageItem = PhAddLayoutItem(&PropSheetContext->LayoutManager, tabControlHandle, NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
+        PhAddLayoutItem(&PropSheetContext->LayoutManager, GetDlgItem(hwnd, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
         PropSheetContext->TabPageItem = tabPageItem;
-
-        PhAddLayoutItem(&PropSheetContext->LayoutManager, GetDlgItem(hwnd, IDCANCEL),
-            NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
         if (EnableOptionsButton)
         {
@@ -367,7 +368,7 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
             PropSheetContext->PositionSettingName = PositionSettingName;
             PropSheetContext->SizeSettingName = SizeSettingName;
 
-            if (PhGetIntegerPairSetting(PositionSettingName).X)
+            if (PhValidWindowPlacementFromSetting(PositionSettingName))
             {
                 PhLoadWindowPlacementFromSetting(PositionSettingName, SizeSettingName, hwnd);
             }
@@ -454,7 +455,7 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
 
     propPageContext->PropSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propPageContext->PropSheetPage.dwFlags = PSP_USECALLBACK;
-    propPageContext->PropSheetPage.hInstance = PluginInstance->DllBase;
+    propPageContext->PropSheetPage.hInstance = InstanceHandle;
     propPageContext->PropSheetPage.pszTemplate = Template;
     propPageContext->PropSheetPage.pfnDlgProc = DlgProc;
     propPageContext->PropSheetPage.lParam = (LPARAM)propPageContext;
@@ -465,6 +466,7 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
     return propPageContext;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -476,7 +478,7 @@ VOID NTAPI PvpPropPageContextDeleteProcedure(
         PhDereferenceObject(propPageContext->PropContext);
 }
 
-INT CALLBACK PvpStandardPropPageProc(
+UINT CALLBACK PvpStandardPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -557,16 +559,16 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
         MapDialogRect(hwnd, &dialogSize);
 
         // Get the original dialog rectangle.
-        GetWindowRect(hwnd, &dialogRect);
+        PhGetWindowRect(hwnd, &dialogRect);
         dialogRect.right = dialogRect.left + dialogSize.right;
         dialogRect.bottom = dialogRect.top + dialogSize.bottom;
 
         // Calculate the margin from the original rectangle.
-        GetWindowRect(Handle, &margin);
+        PhGetWindowRect(Handle, &margin);
         PhMapRect(&margin, &margin, &dialogRect);
         PhConvertRect(&margin, &dialogRect);
 
-        item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, margin);
+        item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, &margin);
     }
     else
     {

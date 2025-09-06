@@ -27,6 +27,7 @@
 static PPH_OBJECT_TYPE PhMemoryContextType = NULL;
 static PH_STRINGREF EmptyMemoryText = PH_STRINGREF_INIT(L"There are no memory regions to display.");
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpRefreshProcessMemoryThread(
     _In_ PVOID Context
     )
@@ -356,7 +357,7 @@ PPH_LIST PhpGetProcessMemoryTreeListLines(
     ULONG i;
     ULONG j;
 
-    // Use a local auto-pool to make memory mangement a bit less painful.
+    // Use a local auto-pool to make memory management a bit less painful.
     PhInitializeAutoPool(&autoPool);
 
     rows = NumberOfNodes + 1;
@@ -451,7 +452,11 @@ VOID PhpProcessMemorySave(
                 mode = PH_EXPORT_MODE_TABS;
 
             PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
-            PhWritePhTextHeader(fileStream);
+
+            if (mode != PH_EXPORT_MODE_CSV)
+            {
+                PhWritePhTextHeader(fileStream);
+            }
 
             lines = PhpGetProcessMemoryTreeListLines(
                 MemoryContext->TreeNewHandle,
@@ -481,6 +486,7 @@ VOID PhpProcessMemorySave(
     PhFreeFileDialog(fileDialog);
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpMemoryContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

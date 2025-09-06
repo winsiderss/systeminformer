@@ -7,8 +7,6 @@
 #ifndef _NTEXAPI_H
 #define _NTEXAPI_H
 
-#include <ntkeapi.h>
-
 typedef struct _TEB* PTEB;
 typedef struct _COUNTED_REASON_CONTEXT* PCOUNTED_REASON_CONTEXT;
 typedef struct _FILE_IO_COMPLETION_INFORMATION* PFILE_IO_COMPLETION_INFORMATION;
@@ -28,15 +26,15 @@ typedef struct _RTL_BITMAP* PRTL_BITMAP;
 /**
  * The NtDelayExecution routine suspends the current thread until the specified condition is met.
  *
- * @param Alertable The function returns when either the time-out period has elapsed or when the APC function is called.
- * @param DelayInterval The time interval for which execution is to be suspended, in milliseconds.
+ * \param Alertable The function returns when either the time-out period has elapsed or when the APC function is called.
+ * \param DelayInterval The time interval for which execution is to be suspended, in milliseconds.
  * - A value of zero causes the thread to relinquish the remainder of its time slice to any other thread that is ready to run.
  * - If there are no other threads ready to run, the function returns immediately, and the thread continues execution.
  * - A value of INFINITE indicates that the suspension should not time out.
- * @return NTSTATUS Successful or errant status. The return value is STATUS_USER_APC when Alertable is TRUE, and the function returned due to one or more I/O completion callback functions.
- * @remarks Note that a ready thread is not guaranteed to run immediately. Consequently, the thread will not run until some arbitrary time after the sleep interval elapses,
+ * \return NTSTATUS Successful or errant status. The return value is STATUS_USER_APC when Alertable is TRUE, and the function returned due to one or more I/O completion callback functions.
+ * \remarks Note that a ready thread is not guaranteed to run immediately. Consequently, the thread will not run until some arbitrary time after the sleep interval elapses,
  * based upon the system "tick" frequency and the load factor from other processes.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-sleepex
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-sleepex
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -54,11 +52,11 @@ NtDelayExecution(
  * Retrieves the value of the specified firmware environment variable.
  * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
- * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
- * @param VariableValue A pointer to a buffer that receives the value of the specified firmware environment variable.
- * @param ValueLength The size of the \c VariableValue buffer, in bytes.
- * @param ReturnLength If the function succeeds, the return length is the number of bytes stored in the \c VariableValue buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * \param VariableValue A pointer to a buffer that receives the value of the specified firmware environment variable.
+ * \param ValueLength The size of the \c VariableValue buffer, in bytes.
+ * \param ReturnLength If the function succeeds, the return length is the number of bytes stored in the \c VariableValue buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -92,12 +90,12 @@ NtQuerySystemEnvironmentValue(
  * Retrieves the value of the specified firmware environment variable and its attributes.
  * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
- * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
- * @param VendorGuid The GUID that represents the namespace of the firmware environment variable.
- * @param Buffer A pointer to a buffer that receives the value of the specified firmware environment variable.
- * @param BufferLength The size of the \c Buffer, in bytes.
- * @param Attributes Bitmask identifying UEFI variable attributes associated with the variable.
- * @return NTSTATUS Successful or errant status.
+ * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * \param VendorGuid The GUID that represents the namespace of the firmware environment variable.
+ * \param Buffer A pointer to a buffer that receives the value of the specified firmware environment variable.
+ * \param BufferLength The size of the \c Buffer, in bytes.
+ * \param Attributes Bitmask identifying UEFI variable attributes associated with the variable.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -114,10 +112,10 @@ NtQuerySystemEnvironmentValueEx(
  * Sets the value of the specified firmware environment variable.
  * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
- * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
- * @param VariableValue A pointer to the new value for the firmware environment variable.
+ * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * \param VariableValue A pointer to the new value for the firmware environment variable.
  * If this parameter is zero, the firmware environment variable is deleted.
- * @return NTSTATUS Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -131,15 +129,15 @@ NtSetSystemEnvironmentValue(
  * Sets the value of the specified firmware environment variable and the attributes that indicate how this variable is stored and maintained.
  * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
- * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
- * @param VendorGuid The GUID that represents the namespace of the firmware environment variable.
- * @param Buffer A pointer to the new value for the firmware environment variable.
- * @param BufferLength The size of the pValue buffer, in bytes.
+ * \param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * \param VendorGuid The GUID that represents the namespace of the firmware environment variable.
+ * \param Buffer A pointer to the new value for the firmware environment variable.
+ * \param BufferLength The size of the pValue buffer, in bytes.
  * Unless the VARIABLE_ATTRIBUTE_APPEND_WRITE, VARIABLE_ATTRIBUTE_AUTHENTICATED_WRITE_ACCESS,
  * or VARIABLE_ATTRIBUTE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS variable attribute is set via dwAttributes,
  * setting this value to zero will result in the deletion of this variable.
- * @param Attributes Bitmask to set UEFI variable attributes associated with the variable.
- * @return NTSTATUS Successful or errant status.
+ * \param Attributes Bitmask to set UEFI variable attributes associated with the variable.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -186,7 +184,9 @@ NtEnumerateSystemEnvironmentValuesEx(
     _Inout_ PULONG BufferLength
     );
 
+//
 // EFI
+//
 
 // private
 typedef struct _BOOT_ENTRY
@@ -245,13 +245,12 @@ typedef struct _EFI_DRIVER_ENTRY_LIST
     EFI_DRIVER_ENTRY DriverEntry;
 } EFI_DRIVER_ENTRY_LIST, *PEFI_DRIVER_ENTRY_LIST;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_XP)
 /**
  * The NtAddBootEntry routine adds a new boot entry to the system boot configuration.
  *
- * @param BootEntry A pointer to a BOOT_ENTRY structure that specifies the boot entry to be added.
- * @param Id A pointer to a variable that receives the identifier of the new boot entry.
- * @return NTSTATUS Successful or errant status.
+ * \param BootEntry A pointer to a BOOT_ENTRY structure that specifies the boot entry to be added.
+ * \param Id A pointer to a variable that receives the identifier of the new boot entry.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -264,8 +263,8 @@ NtAddBootEntry(
 /**
  * The NtDeleteBootEntry routine deletes an existing boot entry from the system boot configuration.
  *
- * @param Id The identifier of the boot entry to be deleted.
- * @return NTSTATUS Successful or errant status.
+ * \param Id The identifier of the boot entry to be deleted.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -277,8 +276,8 @@ NtDeleteBootEntry(
 /**
  * The NtModifyBootEntry routine modifies an existing boot entry in the system boot configuration.
  *
- * @param BootEntry A pointer to a BOOT_ENTRY structure that specifies the new boot entry information.
- * @return NTSTATUS Successful or errant status.
+ * \param BootEntry A pointer to a BOOT_ENTRY structure that specifies the new boot entry information.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -290,9 +289,9 @@ NtModifyBootEntry(
 /**
  * The NtEnumerateBootEntries routine retrieves information about all boot entries in the system boot configuration.
  *
- * @param Buffer A pointer to a buffer that receives the boot entries information.
- * @param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param Buffer A pointer to a buffer that receives the boot entries information.
+ * \param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -305,9 +304,9 @@ NtEnumerateBootEntries(
 /**
  * The NtQueryBootEntryOrder routine retrieves the current boot entry order.
  *
- * @param Ids A pointer to a buffer that receives the identifiers of the boot entries in the current boot order.
- * @param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
- * @return NTSTATUS Successful or errant status.
+ * \param Ids A pointer to a buffer that receives the identifiers of the boot entries in the current boot order.
+ * \param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -320,9 +319,9 @@ NtQueryBootEntryOrder(
 /**
  * The NtSetBootEntryOrder routine sets the boot entry order.
  *
- * @param Ids A pointer to a buffer that specifies the identifiers of the boot entries in the desired boot order.
- * @param Count The number of entries in the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param Ids A pointer to a buffer that specifies the identifiers of the boot entries in the desired boot order.
+ * \param Count The number of entries in the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -335,9 +334,9 @@ NtSetBootEntryOrder(
 /**
  * The NtQueryBootOptions routine retrieves the current boot options.
  *
- * @param BootOptions A pointer to a buffer that receives the boot options.
- * @param BootOptionsLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param BootOptions A pointer to a buffer that receives the boot options.
+ * \param BootOptionsLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -350,9 +349,9 @@ NtQueryBootOptions(
 /**
  * The NtSetBootOptions routine sets the boot options.
  *
- * @param BootOptions A pointer to a BOOT_OPTIONS structure that specifies the new boot options.
- * @param FieldsToChange A bitmask that specifies which fields in the BOOT_OPTIONS structure are to be changed.
- * @return NTSTATUS Successful or errant status.
+ * \param BootOptions A pointer to a BOOT_OPTIONS structure that specifies the new boot options.
+ * \param FieldsToChange A bitmask that specifies which fields in the BOOT_OPTIONS structure are to be changed.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -365,11 +364,11 @@ NtSetBootOptions(
 /**
  * The NtTranslateFilePath routine translates a file path from one format to another.
  *
- * @param InputFilePath A pointer to a FILE_PATH structure that specifies the input file path.
- * @param OutputType The type of the output file path.
- * @param OutputFilePath A pointer to a buffer that receives the translated file path.
- * @param OutputFilePathLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param InputFilePath A pointer to a FILE_PATH structure that specifies the input file path.
+ * \param OutputType The type of the output file path.
+ * \param OutputFilePath A pointer to a buffer that receives the translated file path.
+ * \param OutputFilePathLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -380,15 +379,13 @@ NtTranslateFilePath(
     _Out_writes_bytes_opt_(*OutputFilePathLength) PFILE_PATH OutputFilePath,
     _Inout_opt_ PULONG OutputFilePathLength
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_XP)
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * The NtAddDriverEntry routine adds a new driver entry to the system boot configuration.
  *
- * @param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the driver entry to be added.
- * @param Id A pointer to a variable that receives the identifier of the new driver entry.
- * @return NTSTATUS Successful or errant status.
+ * \param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the driver entry to be added.
+ * \param Id A pointer to a variable that receives the identifier of the new driver entry.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -401,8 +398,8 @@ NtAddDriverEntry(
 /**
  * The NtDeleteDriverEntry routine deletes an existing driver entry from the system boot configuration.
  *
- * @param Id The identifier of the driver entry to be deleted.
- * @return NTSTATUS Successful or errant status.
+ * \param Id The identifier of the driver entry to be deleted.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -414,8 +411,8 @@ NtDeleteDriverEntry(
 /**
  * The NtModifyDriverEntry routine modifies an existing driver entry in the system boot configuration.
  *
- * @param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the new driver entry information.
- * @return NTSTATUS Successful or errant status.
+ * \param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the new driver entry information.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -427,9 +424,9 @@ NtModifyDriverEntry(
 /**
  * The NtEnumerateDriverEntries routine retrieves information about all driver entries in the system boot configuration.
  *
- * @param Buffer A pointer to a buffer that receives the driver entries information.
- * @param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param Buffer A pointer to a buffer that receives the driver entries information.
+ * \param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -442,9 +439,9 @@ NtEnumerateDriverEntries(
 /**
  * The NtQueryDriverEntryOrder routine retrieves the current driver entry order.
  *
- * @param Ids A pointer to a buffer that receives the identifiers of the driver entries in the current driver order.
- * @param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
- * @return NTSTATUS Successful or errant status.
+ * \param Ids A pointer to a buffer that receives the identifiers of the driver entries in the current driver order.
+ * \param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -457,9 +454,9 @@ NtQueryDriverEntryOrder(
 /**
  * The NtSetDriverEntryOrder routine sets the driver entry order.
  *
- * @param Ids A pointer to a buffer that specifies the identifiers of the driver entries in the desired driver order.
- * @param Count The number of entries in the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param Ids A pointer to a buffer that specifies the identifiers of the driver entries in the desired driver order.
+ * \param Count The number of entries in the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -468,7 +465,6 @@ NtSetDriverEntryOrder(
     _In_reads_(Count) PULONG Ids,
     _In_ ULONG Count
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 
 typedef enum _FILTER_BOOT_OPTION_OPERATION
 {
@@ -482,12 +478,12 @@ typedef enum _FILTER_BOOT_OPTION_OPERATION
 /**
  * The NtFilterBootOption routine filters boot options based on the specified operation, object type, and element type.
  *
- * @param FilterOperation The operation to be performed on the boot option. This can be one of the values from the FILTER_BOOT_OPTION_OPERATION enumeration.
- * @param ObjectType The type of the object to be filtered.
- * @param ElementType The type of the element within the object to be filtered.
- * @param Data A pointer to a buffer that contains the data to be used in the filter operation. This parameter is optional and can be NULL.
- * @param DataSize The size, in bytes, of the data buffer pointed to by the Data parameter.
- * @return NTSTATUS Successful or errant status.
+ * \param FilterOperation The operation to be performed on the boot option. This can be one of the values from the FILTER_BOOT_OPTION_OPERATION enumeration.
+ * \param ObjectType The type of the object to be filtered.
+ * \param ElementType The type of the element within the object to be filtered.
+ * \param Data A pointer to a buffer that contains the data to be used in the filter operation. This parameter is optional and can be NULL.
+ * \param DataSize The size, in bytes, of the data buffer pointed to by the Data parameter.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -517,28 +513,34 @@ NtFilterBootOption(
 #define EVENT_ALL_ACCESS (EVENT_QUERY_STATE|EVENT_MODIFY_STATE|STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE)
 #endif
 
+/**
+ * The EVENT_INFORMATION_CLASS specifies the type of information to be retrieved about an event object.
+ */
 typedef enum _EVENT_INFORMATION_CLASS
 {
     EventBasicInformation
 } EVENT_INFORMATION_CLASS;
 
+/**
+ * The EVENT_BASIC_INFORMATION structure contains basic information about an event object.
+ */
 typedef struct _EVENT_BASIC_INFORMATION
 {
-    EVENT_TYPE EventType;
-    LONG EventState;
+    EVENT_TYPE EventType;   // The type of the event object (NotificationEvent or SynchronizationEvent).
+    LONG EventState;        // The current state of the event object. Nonzero if the event is signaled; zero if not signaled.
 } EVENT_BASIC_INFORMATION, *PEVENT_BASIC_INFORMATION;
 
 /**
  * The NtCreateEvent routine creates an event object, sets the initial state of the event to the specified value,
  * and opens a handle to the object with the specified desired access.
  *
- * @param EventHandle A pointer to a variable that receives the event object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the event object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @param EventType The type of the event, which can be SynchronizationEvent or a NotificationEvent.
- * @param InitialState The initial state of the event object.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwcreateevent
+ * \param EventHandle A pointer to a variable that receives the event object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the event object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \param EventType The type of the event, which can be SynchronizationEvent or a NotificationEvent.
+ * \param InitialState The initial state of the event object.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwcreateevent
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -554,10 +556,10 @@ NtCreateEvent(
 /**
  * The NtOpenEvent routine opens a handle to an existing event object.
  *
- * @param EventHandle A pointer to a variable that receives the event object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the event object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS Successful or errant status.
+ * \param EventHandle A pointer to a variable that receives the event object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the event object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -571,9 +573,9 @@ NtOpenEvent(
 /**
  * The NtSetEvent routine sets an event object to the signaled state.
  *
- * @param EventHandle A handle to the event object.
- * @param PreviousState A pointer to a variable that receives the previous state of the event object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventHandle A handle to the event object.
+ * \param PreviousState A pointer to a variable that receives the previous state of the event object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -587,9 +589,9 @@ NtSetEvent(
 /**
  * The NtSetEventEx routine sets an event object to the signaled state and optionally acquires a lock.
  *
- * @param ThreadId A handle to the thread.
- * @param Lock A pointer to an RTL_SRWLOCK structure that specifies the lock to acquire.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadId A handle to the thread.
+ * \param Lock A pointer to an RTL_SRWLOCK structure that specifies the lock to acquire.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -603,8 +605,8 @@ NtSetEventEx(
 /**
  * The NtSetEventBoostPriority routine sets an event object to the signaled state and boosts the priority of threads waiting on the event.
  *
- * @param EventHandle A handle to the event object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventHandle A handle to the event object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -616,8 +618,8 @@ NtSetEventBoostPriority(
 /**
  * The NtClearEvent routine sets an event object to the not-signaled state.
  *
- * @param EventHandle A handle to the event object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventHandle A handle to the event object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -629,10 +631,10 @@ NtClearEvent(
 /**
  * The NtResetEvent routine sets an event object to the not-signaled state and optionally returns the previous state.
  *
- * @param EventHandle A handle to the event object.
- * @param PreviousState A pointer to a variable that receives the previous state of the event object.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent
+ * \param EventHandle A handle to the event object.
+ * \param PreviousState A pointer to a variable that receives the previous state of the event object.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -645,10 +647,10 @@ NtResetEvent(
 /**
  * The NtPulseEvent routine sets an event object to the signaled state and then resets it to the not-signaled state after releasing the appropriate number of waiting threads.
  *
- * @param EventHandle A handle to the event object.
- * @param PreviousState A pointer to a variable that receives the previous state of the event object.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-pulseevent
+ * \param EventHandle A handle to the event object.
+ * \param PreviousState A pointer to a variable that receives the previous state of the event object.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-pulseevent
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -661,12 +663,12 @@ NtPulseEvent(
 /**
  * The NtQueryEvent routine retrieves information about an event object.
  *
- * @param EventHandle A handle to the event object.
- * @param EventInformationClass The type of information to be retrieved.
- * @param EventInformation A pointer to a buffer that receives the requested information.
- * @param EventInformationLength The size of the buffer pointed to by EventInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param EventHandle A handle to the event object.
+ * \param EventInformationClass The type of information to be retrieved.
+ * \param EventInformation A pointer to a buffer that receives the requested information.
+ * \param EventInformationLength The size of the buffer pointed to by EventInformation.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -688,10 +690,11 @@ NtQueryEvent(
 /**
  * The NtCreateEventPair routine creates an event pair object and opens a handle to the object with the specified desired access.
  *
- * @param EventPairHandle A pointer to a variable that receives the event pair object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the event pair object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS Successful or errant status.
+ * \remark Event Pairs are used to communicate with protected subsystems (see Context Switches).
+ * \param EventPairHandle A pointer to a variable that receives the event pair object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the event pair object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -705,10 +708,10 @@ NtCreateEventPair(
 /**
  * The NtOpenEventPair routine opens a handle to an existing event pair object.
  *
- * @param EventPairHandle A pointer to a variable that receives the event pair object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the event pair object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A pointer to a variable that receives the event pair object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the event pair object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -722,8 +725,8 @@ NtOpenEventPair(
 /**
  * The NtSetLowEventPair routine sets the low event in an event pair to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -735,8 +738,8 @@ NtSetLowEventPair(
 /**
  * The NtSetHighEventPair routine sets the high event in an event pair to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -748,8 +751,8 @@ NtSetHighEventPair(
 /**
  * The NtWaitLowEventPair routine waits for the low event in an event pair to be set to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -761,8 +764,8 @@ NtWaitLowEventPair(
 /**
  * The NtWaitHighEventPair routine waits for the high event in an event pair to be set to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -774,8 +777,8 @@ NtWaitHighEventPair(
 /**
  * The NtSetLowWaitHighEventPair routine sets the low event in an event pair to the signaled state and waits for the high event to be set to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -787,8 +790,8 @@ NtSetLowWaitHighEventPair(
 /**
  * The NtSetHighWaitLowEventPair routine sets the high event in an event pair to the signaled state and waits for the low event to be set to the signaled state.
  *
- * @param EventPairHandle A handle to the event pair object.
- * @return NTSTATUS Successful or errant status.
+ * \param EventPairHandle A handle to the event pair object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -837,11 +840,11 @@ typedef struct _MUTANT_OWNER_INFORMATION
  * The NtCreateMutant routine creates a mutant object, sets the initial state of the mutant to the specified value,
  * and opens a handle to the object with the specified desired access.
  *
- * @param MutantHandle A pointer to a variable that receives the mutant object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the mutant object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @param InitialOwner If TRUE, the calling thread is the initial owner of the mutant object.
- * @return NTSTATUS Successful or errant status.
+ * \param MutantHandle A pointer to a variable that receives the mutant object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the mutant object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \param InitialOwner If TRUE, the calling thread is the initial owner of the mutant object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -856,10 +859,10 @@ NtCreateMutant(
 /**
  * The NtOpenMutant routine opens a handle to an existing mutant object.
  *
- * @param MutantHandle A pointer to a variable that receives the mutant object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the mutant object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS Successful or errant status.
+ * \param MutantHandle A pointer to a variable that receives the mutant object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the mutant object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -873,9 +876,9 @@ NtOpenMutant(
 /**
  * The NtReleaseMutant routine releases ownership of a mutant object.
  *
- * @param MutantHandle A handle to the mutant object.
- * @param PreviousCount A pointer to a variable that receives the previous count of the mutant object.
- * @return NTSTATUS Successful or errant status.
+ * \param MutantHandle A handle to the mutant object.
+ * \param PreviousCount A pointer to a variable that receives the previous count of the mutant object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -888,12 +891,12 @@ NtReleaseMutant(
 /**
  * The NtQueryMutant routine retrieves information about a mutant object.
  *
- * @param MutantHandle A handle to the mutant object.
- * @param MutantInformationClass The type of information to be retrieved.
- * @param MutantInformation A pointer to a buffer that receives the requested information.
- * @param MutantInformationLength The size of the buffer pointed to by MutantInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param MutantHandle A handle to the mutant object.
+ * \param MutantInformationClass The type of information to be retrieved.
+ * \param MutantInformation A pointer to a buffer that receives the requested information.
+ * \param MutantInformationLength The size of the buffer pointed to by MutantInformation.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -940,12 +943,12 @@ typedef struct _SEMAPHORE_BASIC_INFORMATION
  * The NtCreateSemaphore routine creates a semaphore object, sets the initial count of the semaphore to the specified value,
  * and opens a handle to the object with the specified desired access.
  *
- * @param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the semaphore object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @param InitialCount The initial count of the semaphore object.
- * @param MaximumCount The maximum count of the semaphore object.
- * @return NTSTATUS Successful or errant status.
+ * \param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the semaphore object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \param InitialCount The initial count of the semaphore object.
+ * \param MaximumCount The maximum count of the semaphore object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -961,10 +964,10 @@ NtCreateSemaphore(
 /**
  * The NtOpenSemaphore routine opens a handle to an existing semaphore object.
  *
- * @param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
- * @param DesiredAccess The access mask that specifies the requested access to the semaphore object.
- * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS Successful or errant status.
+ * \param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the semaphore object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -978,10 +981,10 @@ NtOpenSemaphore(
 /**
  * The NtReleaseSemaphore routine increases the count of the specified semaphore object by a specified amount.
  *
- * @param SemaphoreHandle A handle to the semaphore object.
- * @param ReleaseCount The amount by which the semaphore object's count is to be increased.
- * @param PreviousCount A pointer to a variable that receives the previous count of the semaphore object.
- * @return NTSTATUS Successful or errant status.
+ * \param SemaphoreHandle A handle to the semaphore object.
+ * \param ReleaseCount The amount by which the semaphore object's count is to be increased.
+ * \param PreviousCount A pointer to a variable that receives the previous count of the semaphore object.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -995,12 +998,12 @@ NtReleaseSemaphore(
 /**
  * The NtQuerySemaphore routine retrieves information about a semaphore object.
  *
- * @param SemaphoreHandle A handle to the semaphore object.
- * @param SemaphoreInformationClass The type of information to be retrieved.
- * @param SemaphoreInformation A pointer to a buffer that receives the requested information.
- * @param SemaphoreInformationLength The size of the buffer pointed to by SemaphoreInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param SemaphoreHandle A handle to the semaphore object.
+ * \param SemaphoreInformationClass The type of information to be retrieved.
+ * \param SemaphoreInformation A pointer to a buffer that receives the requested information.
+ * \param SemaphoreInformationLength The size of the buffer pointed to by SemaphoreInformation.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1097,7 +1100,6 @@ NtSetTimer(
     _Out_opt_ PBOOLEAN PreviousState
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1107,7 +1109,6 @@ NtSetTimerEx(
     _Inout_updates_bytes_opt_(TimerSetInformationLength) PVOID TimerSetInformation,
     _In_ ULONG TimerSetInformationLength
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1150,7 +1151,6 @@ NtSetIRTimer(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1161,7 +1161,6 @@ NtCreateTimer2(
     _In_ ULONG Attributes, // TIMER_TYPE
     _In_ ACCESS_MASK DesiredAccess
     );
-
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 typedef struct _T2_SET_PARAMETERS_V0
@@ -1174,7 +1173,6 @@ typedef struct _T2_SET_PARAMETERS_V0
 typedef PVOID PT2_CANCEL_PARAMETERS;
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1192,7 +1190,6 @@ NtCancelTimer2(
     _In_ HANDLE TimerHandle,
     _In_ PT2_CANCEL_PARAMETERS Parameters
     );
-
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 //
@@ -1217,7 +1214,6 @@ NtCreateProfile(
     _In_ KAFFINITY Affinity
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1233,7 +1229,6 @@ NtCreateProfileEx(
     _In_ USHORT GroupCount,
     _In_reads_(GroupCount) PGROUP_AFFINITY GroupAffinity
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1317,14 +1312,12 @@ NtWaitForKeyedEvent(
 // UMS
 //
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUmsThreadYield(
     _In_ PVOID SchedulerParam
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 //
 // WNF
@@ -1573,8 +1566,6 @@ typedef struct _WORKER_FACTORY_BASIC_INFORMATION
 
 // end_private
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1667,8 +1658,6 @@ NtWaitForWorkViaWorkerFactory(
 
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-
 //
 // Time
 //
@@ -1676,9 +1665,9 @@ NtWaitForWorkViaWorkerFactory(
 /**
  * The NtQuerySystemTime routine obtains the current system time.
  *
- * @param SystemTime A pointer to a LARGE_INTEGER structure that receives the system time. This is a 64-bit value representing the number of 100-nanosecond intervals since January 1, 1601 (UTC).
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysystemtime
+ * \param SystemTime A pointer to a LARGE_INTEGER structure that receives the system time. This is a 64-bit value representing the number of 100-nanosecond intervals since January 1, 1601 (UTC).
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysystemtime
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1690,11 +1679,11 @@ NtQuerySystemTime(
 /**
  * The NtSetSystemTime routine sets the current system time and date. The system time is expressed in Coordinated Universal Time (UTC).
  *
- * @param SystemTime A pointer to a LARGE_INTEGER structure that that contains the new system date and time.
- * @param PreviousTime A pointer to a LARGE_INTEGER structure that that contains the previous system time.
- * @return NTSTATUS Successful or errant status.
- * @remarks The calling process must have the SE_SYSTEMTIME_NAME privilege.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-setsystemtime
+ * \param SystemTime A pointer to a LARGE_INTEGER structure that that contains the new system date and time.
+ * \param PreviousTime A pointer to a LARGE_INTEGER structure that that contains the previous system time.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The calling process must have the SE_SYSTEMTIME_NAME privilege.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-setsystemtime
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1707,10 +1696,10 @@ NtSetSystemTime(
 /**
  * The NtQueryTimerResolution routine retrieves the range and current value of the system interrupt timer.
  *
- * @param MaximumTime The maximum timer resolution, in 100-nanosecond units.
- * @param MinimumTime The minimum timer resolution, in 100-nanosecond units.
- * @param CurrentTime The current timer resolution, in 100-nanosecond units.
- * @return NTSTATUS Successful or errant status.
+ * \param MaximumTime The maximum timer resolution, in 100-nanosecond units.
+ * \param MinimumTime The minimum timer resolution, in 100-nanosecond units.
+ * \param CurrentTime The current timer resolution, in 100-nanosecond units.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1724,10 +1713,10 @@ NtQueryTimerResolution(
 /**
  * The NtSetTimerResolution routine sets the system interrupt timer resolution to the specified value.
  *
- * @param DesiredTime The desired timer resolution, in 100-nanosecond units.
- * @param SetResolution If TRUE, the timer resolution is set to the value specified by DesiredTime. If FALSE, the timer resolution is reset to the default value.
- * @param ActualTime The actual timer resolution, in 100-nanosecond units.
- * @return NTSTATUS Successful or errant status.
+ * \param DesiredTime The desired timer resolution, in 100-nanosecond units.
+ * \param SetResolution If TRUE, the timer resolution is set to the value specified by DesiredTime. If FALSE, the timer resolution is reset to the default value.
+ * \param ActualTime The actual timer resolution, in 100-nanosecond units.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1742,6 +1731,16 @@ NtSetTimerResolution(
 // Performance Counters
 //
 
+/**
+ * The NtQueryPerformanceCounter routine retrieves the current value of the performance counter,
+ * which is a high resolution (<1us) time stamp that can be used for time-interval measurements.
+ *
+ * \param PerformanceCounter A pointer to a variable that receives the current performance-counter value, in 100-nanosecond units.
+ * \param PerformanceFrequency A pointer to a variable that receives the current performance-frequency value, in 100-nanosecond units.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero. Use RtlQueryPerformanceCounter instead since no system calls are required.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1755,9 +1754,9 @@ NtQueryPerformanceCounter(
 /**
  * The NtQueryAuxiliaryCounterFrequency routine queries the auxiliary counter frequency. (The auxiliary counter is generally the HPET hardware timer).
  *
- * @param AuxiliaryCounterFrequency A pointer to an output buffer that contains the specified auxiliary counter frequency. If the auxiliary counter is not supported, the value in the output buffer will be undefined.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryauxiliarycounterfrequency
+ * \param AuxiliaryCounterFrequency A pointer to an output buffer that contains the specified auxiliary counter frequency. If the auxiliary counter is not supported, the value in the output buffer will be undefined.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryauxiliarycounterfrequency
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1771,12 +1770,12 @@ NtQueryAuxiliaryCounterFrequency(
  * The NtConvertBetweenAuxiliaryCounterAndPerformanceCounter routine converts the specified performance counter value to the corresponding auxiliary counter value;
  * optionally provides the estimated conversion error in nanoseconds due to latencies and maximum possible drift.
  *
- * @param ConvertAuxiliaryToPerformanceCounter  If TRUE, the value will be converted from AUX to QPC. If FALSE, the value will be converted from QPC to AUX.
- * @param PerformanceOrAuxiliaryCounterValue The performance counter value to convert.
- * @param ConvertedValue On success, contains the converted auxiliary counter value. Will be undefined if the function fails.
- * @param ConversionError On success, contains the estimated conversion error, in nanoseconds. Will be undefined if the function fails.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-convertperformancecountertoauxiliarycounter
+ * \param ConvertAuxiliaryToPerformanceCounter  If TRUE, the value will be converted from AUX to QPC. If FALSE, the value will be converted from QPC to AUX.
+ * \param PerformanceOrAuxiliaryCounterValue The performance counter value to convert.
+ * \param ConvertedValue On success, contains the converted auxiliary counter value. Will be undefined if the function fails.
+ * \param ConversionError On success, contains the estimated conversion error, in nanoseconds. Will be undefined if the function fails.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-convertperformancecountertoauxiliarycounter
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1903,7 +1902,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemHotpatchInformation, // q; s: SYSTEM_HOTPATCH_CODE_INFORMATION
     SystemObjectSecurityMode, // q: ULONG // 70
     SystemWatchdogTimerHandler, // s: SYSTEM_WATCHDOG_HANDLER_INFORMATION // (kernel-mode only)
-    SystemWatchdogTimerInformation, // q: SYSTEM_WATCHDOG_TIMER_INFORMATION // NtQuerySystemInformationEx // (kernel-mode only)
+    SystemWatchdogTimerInformation, // q: out: SYSTEM_WATCHDOG_TIMER_INFORMATION (EX in: ULONG WATCHDOG_INFORMATION_CLASS) // NtQuerySystemInformationEx
     SystemLogicalProcessorInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION (EX in: USHORT ProcessorGroup) // NtQuerySystemInformationEx
     SystemWow64SharedInformationObsolete, // not implemented
     SystemRegisterFirmwareTableInformationHandler, // s: SYSTEM_FIRMWARE_TABLE_HANDLER // (kernel-mode only)
@@ -2018,8 +2017,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemPhysicalMemoryInformation, // q: SYSTEM_PHYSICAL_MEMORY_INFORMATION // since REDSTONE2
     SystemControlFlowTransition, // (Warbird/Encrypt/Decrypt/Execute)
     SystemKernelDebuggingAllowed, // s: ULONG
-    SystemActivityModerationExeState, // SYSTEM_ACTIVITY_MODERATION_EXE_STATE
-    SystemActivityModerationUserSettings, // SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
+    SystemActivityModerationExeState, // s: SYSTEM_ACTIVITY_MODERATION_EXE_STATE
+    SystemActivityModerationUserSettings, // q: SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
     SystemCodeIntegrityPoliciesFullInformation, // NtQuerySystemInformationEx
     SystemCodeIntegrityUnlockInformation, // SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION // 190
     SystemIntegrityQuotaInformation,
@@ -2048,15 +2047,15 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSpacesBootInformation, // since 20H2
     SystemFwRamdiskInformation, // SYSTEM_FIRMWARE_RAMDISK_INFORMATION
     SystemWheaIpmiHardwareInformation,
-    SystemDifSetRuleClassInformation, // SYSTEM_DIF_VOLATILE_INFORMATION
-    SystemDifClearRuleClassInformation,
-    SystemDifApplyPluginVerificationOnDriver, // SYSTEM_DIF_PLUGIN_DRIVER_INFORMATION
-    SystemDifRemovePluginVerificationOnDriver, // SYSTEM_DIF_PLUGIN_DRIVER_INFORMATION // 220
+    SystemDifSetRuleClassInformation, // s: SYSTEM_DIF_VOLATILE_INFORMATION (requires SeDebugPrivilege)
+    SystemDifClearRuleClassInformation, // s: NULL (requires SeDebugPrivilege)
+    SystemDifApplyPluginVerificationOnDriver, // SYSTEM_DIF_PLUGIN_DRIVER_INFORMATION (requires SeDebugPrivilege)
+    SystemDifRemovePluginVerificationOnDriver, // SYSTEM_DIF_PLUGIN_DRIVER_INFORMATION (requires SeDebugPrivilege) // 220
     SystemShadowStackInformation, // SYSTEM_SHADOW_STACK_INFORMATION
     SystemBuildVersionInformation, // q: in: ULONG (LayerNumber), out: SYSTEM_BUILD_VERSION_INFORMATION // NtQuerySystemInformationEx // 222
     SystemPoolLimitInformation, // SYSTEM_POOL_LIMIT_INFORMATION (requires SeIncreaseQuotaPrivilege) // NtQuerySystemInformationEx
-    SystemCodeIntegrityAddDynamicStore,
-    SystemCodeIntegrityClearDynamicStores,
+    SystemCodeIntegrityAddDynamicStore, // CodeIntegrity-AllowConfigurablePolicy-CustomKernelSigners
+    SystemCodeIntegrityClearDynamicStores, // CodeIntegrity-AllowConfigurablePolicy-CustomKernelSigners
     SystemDifPoolTrackingInformation,
     SystemPoolZeroingInformation, // q: SYSTEM_POOL_ZEROING_INFORMATION
     SystemDpcWatchdogInformation, // q; s: SYSTEM_DPC_WATCHDOG_CONFIGURATION_INFORMATION
@@ -2079,25 +2078,31 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemResourceDeadlockTimeout, // ULONG
     SystemBreakOnContextUnwindFailureInformation, // ULONG (requires SeDebugPrivilege)
     SystemOslRamdiskInformation, // SYSTEM_OSL_RAMDISK_INFORMATION
-    SystemCodeIntegrityPolicyManagementInformation, // since 25H2
+    SystemCodeIntegrityPolicyManagementInformation, // SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT // since 25H2
     SystemMemoryNumaCacheInformation,
-    SystemProcessorFeaturesBitMapInformation,
+    SystemProcessorFeaturesBitMapInformation, // 250
+    SystemRefTraceInformationEx, // SYSTEM_REF_TRACE_INFORMATION_EX
+    SystemBasicProcessInformation, // SYSTEM_BASICPROCESS_INFORMATION
+    SystemHandleCountInformation, // SYSTEM_HANDLECOUNT_INFORMATION
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
+/**
+ * The SYSTEM_BASIC_INFORMATION structure contains basic information about the current system.
+ */
 typedef struct _SYSTEM_BASIC_INFORMATION
 {
-    ULONG Reserved;
-    ULONG TimerResolution;
-    ULONG PageSize;
-    ULONG NumberOfPhysicalPages;
-    ULONG LowestPhysicalPageNumber;
-    ULONG HighestPhysicalPageNumber;
-    ULONG AllocationGranularity;
-    ULONG_PTR MinimumUserModeAddress;
-    ULONG_PTR MaximumUserModeAddress;
-    KAFFINITY ActiveProcessorsAffinityMask; // deprecated
-    UCHAR NumberOfProcessors; // deprecated
+    ULONG Reserved;                         // Reserved
+    ULONG TimerResolution;                  // The resolution of the timer, in milliseconds. // NtQueryTimerResolution
+    ULONG PageSize;                         // The page size and the granularity of page protection and commitment.
+    ULONG NumberOfPhysicalPages;            // The number of physical pages in the system. // KUSER_SHARED_DATA->NumberOfPhysicalPages
+    ULONG LowestPhysicalPageNumber;         // The lowest memory page accessible to applications and dynamic-link libraries (DLLs).
+    ULONG HighestPhysicalPageNumber;        // The highest memory page accessible to applications and dynamic-link libraries (DLLs).
+    ULONG AllocationGranularity;            // The granularity for the starting address at which virtual memory can be allocated.
+    ULONG_PTR MinimumUserModeAddress;       // A pointer to the lowest memory address accessible to applications and dynamic-link libraries (DLLs).
+    ULONG_PTR MaximumUserModeAddress;       // A pointer to the highest memory address accessible to applications and dynamic-link libraries (DLLs).
+    KAFFINITY ActiveProcessorsAffinityMask; // A mask representing the set of processors configured in the current processor group. // deprecated 
+    UCHAR NumberOfProcessors;               // The number of logical processors in the current processor group. // deprecated
 } SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
 
 // SYSTEM_PROCESSOR_INFORMATION // ProcessorFeatureBits (see also SYSTEM_PROCESSOR_FEATURES_INFORMATION)
@@ -2225,17 +2230,17 @@ typedef struct _SYSTEM_PERFORMANCE_INFORMATION
 } SYSTEM_PERFORMANCE_INFORMATION, *PSYSTEM_PERFORMANCE_INFORMATION;
 
 /**
- * The SYSTEM_PERFORMANCE_INFORMATION structure contains information about the system uptime.
+ * The SYSTEM_TIMEOFDAY_INFORMATION structure contains information about the system uptime.
  */
 typedef struct _SYSTEM_TIMEOFDAY_INFORMATION
 {
-    LARGE_INTEGER BootTime;
-    LARGE_INTEGER CurrentTime;
-    LARGE_INTEGER TimeZoneBias;
-    ULONG TimeZoneId;
-    ULONG Reserved;
-    ULONGLONG BootTimeBias;
-    ULONGLONG SleepTimeBias;
+    LARGE_INTEGER BootTime;         // Number of 100-nanosecond intervals since the system was started.
+    LARGE_INTEGER CurrentTime;      // The current system date and time.
+    LARGE_INTEGER TimeZoneBias;     // Number of 100-nanosecond intervals between local time and Coordinated Universal Time (UTC).
+    ULONG TimeZoneId;               // The current system time zone identifier.
+    ULONG Reserved;                 // Reserved
+    ULONGLONG BootTimeBias;         // Number of 100-nanosecond intervals between the boot time and Coordinated Universal Time (UTC).
+    ULONGLONG SleepTimeBias;        // Number of 100-nanosecond intervals between the sleep time and Coordinated Universal Time (UTC).
 } SYSTEM_TIMEOFDAY_INFORMATION, *PSYSTEM_TIMEOFDAY_INFORMATION;
 
 /**
@@ -2246,45 +2251,48 @@ typedef struct _SYSTEM_THREAD_INFORMATION
 {
     LARGE_INTEGER KernelTime;       // Number of 100-nanosecond intervals spent executing kernel code.
     LARGE_INTEGER UserTime;         // Number of 100-nanosecond intervals spent executing user code.
-    LARGE_INTEGER CreateTime;       // System time when the thread was created.
-    ULONG WaitTime;                 // Time spent in ready queue or waiting (depending on the thread state).
-    PVOID StartAddress;             // Start address of the thread.
-    CLIENT_ID ClientId;             // ID of the thread and the process owning the thread.
-    KPRIORITY Priority;             // Dynamic thread priority.
-    KPRIORITY BasePriority;         // Base thread priority.
-    ULONG ContextSwitches;          // Total context switches.
-    KTHREAD_STATE ThreadState;      // Current thread state.
-    KWAIT_REASON WaitReason;        // The reason the thread is waiting.
+    LARGE_INTEGER CreateTime;       // The date and time when the thread was created.
+    ULONG WaitTime;                 // The current time spent in ready queue or waiting (depending on the thread state).
+    PVOID StartAddress;             // The initial start address of the thread.
+    CLIENT_ID ClientId;             // The identifier of the thread and the process owning the thread.
+    KPRIORITY Priority;             // The dynamic priority of the thread.
+    KPRIORITY BasePriority;         // The starting priority of the thread.
+    ULONG ContextSwitches;          // The total number of context switches performed.
+    KTHREAD_STATE ThreadState;      // The current state of the thread.
+    KWAIT_REASON WaitReason;        // The current reason the thread is waiting.
 } SYSTEM_THREAD_INFORMATION, *PSYSTEM_THREAD_INFORMATION;
 
+/**
+ * The SYSTEM_PROCESS_INFORMATION structure contains information about a process running on a system.
+ */
 typedef struct _SYSTEM_PROCESS_INFORMATION
 {
     ULONG NextEntryOffset;                  // The address of the previous item plus the value in the NextEntryOffset member. For the last item in the array, NextEntryOffset is 0.
     ULONG NumberOfThreads;                  // The NumberOfThreads member contains the number of threads in the process.
-    ULONGLONG WorkingSetPrivateSize;        // since VISTA
-    ULONG HardFaultCount;                   // since WIN7
+    ULONGLONG WorkingSetPrivateSize;        // The total private memory that a process currently has allocated and is physically resident in memory. // since VISTA
+    ULONG HardFaultCount;                   // The total number of hard faults for data from disk rather than from in-memory pages. // since WIN7
     ULONG NumberOfThreadsHighWatermark;     // The peak number of threads that were running at any given point in time, indicative of potential performance bottlenecks related to thread management.
     ULONGLONG CycleTime;                    // The sum of the cycle time of all threads in the process.
     LARGE_INTEGER CreateTime;               // Number of 100-nanosecond intervals since the creation time of the process. Not updated during system timezone changes.
-    LARGE_INTEGER UserTime;
-    LARGE_INTEGER KernelTime;
+    LARGE_INTEGER UserTime;                 // Number of 100-nanosecond intervals the process has executed in user mode.
+    LARGE_INTEGER KernelTime;               // Number of 100-nanosecond intervals the process has executed in kernel mode.
     UNICODE_STRING ImageName;               // The file name of the executable image.
-    KPRIORITY BasePriority;
-    HANDLE UniqueProcessId;
-    HANDLE InheritedFromUniqueProcessId;
-    ULONG HandleCount;
-    ULONG SessionId;
+    KPRIORITY BasePriority;                 // The starting priority of the process.
+    HANDLE UniqueProcessId;                 // The identifier of the process.
+    HANDLE InheritedFromUniqueProcessId;    // The identifier of the process that created this process. Not updated and incorrectly refers to processes with recycled identifiers. 
+    ULONG HandleCount;                      // The current number of open handles used by the process.
+    ULONG SessionId;                        // The identifier of the Remote Desktop Services session under which the specified process is running. 
     ULONG_PTR UniqueProcessKey;             // since VISTA (requires SystemExtendedProcessInformation)
     SIZE_T PeakVirtualSize;                 // The peak size, in bytes, of the virtual memory used by the process.
     SIZE_T VirtualSize;                     // The current size, in bytes, of virtual memory used by the process.
-    ULONG PageFaultCount;                   // The member of page faults for data that is not currently in memory. 
+    ULONG PageFaultCount;                   // The total number of page faults for data that is not currently in memory. The value wraps around to zero on average 24 hours.
     SIZE_T PeakWorkingSetSize;              // The peak size, in kilobytes, of the working set of the process.
     SIZE_T WorkingSetSize;                  // The number of pages visible to the process in physical memory. These pages are resident and available for use without triggering a page fault.
     SIZE_T QuotaPeakPagedPoolUsage;         // The peak quota charged to the process for pool usage, in bytes.
     SIZE_T QuotaPagedPoolUsage;             // The quota charged to the process for paged pool usage, in bytes.
     SIZE_T QuotaPeakNonPagedPoolUsage;      // The peak quota charged to the process for nonpaged pool usage, in bytes.
     SIZE_T QuotaNonPagedPoolUsage;          // The current quota charged to the process for nonpaged pool usage.
-    SIZE_T PagefileUsage;                   // The PagefileUsage member contains the number of bytes of page file storage in use by the process.
+    SIZE_T PagefileUsage;                   // The total number of bytes of page file storage in use by the process.
     SIZE_T PeakPagefileUsage;               // The maximum number of bytes of page-file storage used by the process.
     SIZE_T PrivatePageCount;                // The number of memory pages allocated for the use by the process.
     LARGE_INTEGER ReadOperationCount;       // The total number of read operations performed.
@@ -2304,23 +2312,23 @@ typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
         SYSTEM_THREAD_INFORMATION ThreadInfo;
         struct
         {
-            ULONGLONG KernelTime;
-            ULONGLONG UserTime;
-            ULONGLONG CreateTime;
-            ULONG WaitTime;
-            PVOID StartAddress;
-            CLIENT_ID ClientId;
-            KPRIORITY Priority;
-            KPRIORITY BasePriority;
-            ULONG ContextSwitches;
-            KTHREAD_STATE ThreadState;
-            KWAIT_REASON WaitReason;
+            ULONGLONG KernelTime;           // Number of 100-nanosecond intervals spent executing kernel code.
+            ULONGLONG UserTime;             // Number of 100-nanosecond intervals spent executing user code.
+            ULONGLONG CreateTime;           // The date and time when the thread was created.
+            ULONG WaitTime;                 // The current time spent in ready queue or waiting (depending on the thread state).
+            PVOID StartAddress;             // The initial start address of the thread.
+            CLIENT_ID ClientId;             // The identifier of the thread and the process owning the thread.
+            KPRIORITY Priority;             // The dynamic priority of the thread.
+            KPRIORITY BasePriority;         // The starting priority of the thread.
+            ULONG ContextSwitches;          // The total number of context switches performed.
+            KTHREAD_STATE ThreadState;      // The current state of the thread.
+            KWAIT_REASON WaitReason;        // The current reason the thread is waiting.
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
-    ULONG_PTR StackBase;
-    ULONG_PTR StackLimit;
-    PVOID Win32StartAddress;
-    PVOID TebBase; // since VISTA
+    PVOID StackBase;                        // The lower boundary of the current thread stack.
+    PVOID StackLimit;                       // The upper boundary of the current thread stack.
+    PVOID Win32StartAddress;                // The thread's Win32 start address.
+    PVOID TebBaseAddress;                   // The base address of the memory region containing the TEB structure. // since VISTA
     ULONG_PTR Reserved2;
     ULONG_PTR Reserved3;
     ULONG_PTR Reserved4;
@@ -2328,41 +2336,41 @@ typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
 
 typedef struct _SYSTEM_EXTENDED_PROCESS_INFORMATION
 {
-    ULONG NextEntryOffset;
-    ULONG NumberOfThreads;
-    ULONGLONG WorkingSetPrivateSize; // since VISTA
-    ULONG HardFaultCount; // since WIN7
-    ULONG NumberOfThreadsHighWatermark;
-    ULONGLONG CycleTime;
-    ULONGLONG CreateTime;
-    ULONGLONG UserTime;
-    ULONGLONG KernelTime;
-    UNICODE_STRING ImageName;
-    KPRIORITY BasePriority;
-    HANDLE UniqueProcessId;
-    HANDLE InheritedFromUniqueProcessId;
-    ULONG HandleCount;
-    ULONG SessionId;
-    HANDLE UniqueProcessKey; // since VISTA
-    SIZE_T PeakVirtualSize;
-    SIZE_T VirtualSize;
-    ULONG PageFaultCount;
-    SIZE_T PeakWorkingSetSize;
-    SIZE_T WorkingSetSize;
-    SIZE_T QuotaPeakPagedPoolUsage;
-    SIZE_T QuotaPagedPoolUsage;
-    SIZE_T QuotaPeakNonPagedPoolUsage;
-    SIZE_T QuotaNonPagedPoolUsage;
-    SIZE_T PagefileUsage;
-    SIZE_T PeakPagefileUsage;
-    SIZE_T PrivatePageCount;
-    ULONGLONG ReadOperationCount;
-    ULONGLONG WriteOperationCount;
-    ULONGLONG OtherOperationCount;
-    ULONGLONG ReadTransferCount;
-    ULONGLONG WriteTransferCount;
-    ULONGLONG OtherTransferCount;
-    SYSTEM_EXTENDED_THREAD_INFORMATION Threads[1];
+    ULONG NextEntryOffset;                  // The address of the previous item plus the value in the NextEntryOffset member. For the last item in the array, NextEntryOffset is 0.
+    ULONG NumberOfThreads;                  // The NumberOfThreads member contains the number of threads in the process.
+    ULONGLONG WorkingSetPrivateSize;        // The total private memory that a process currently has allocated and is physically resident in memory. // since VISTA
+    ULONG HardFaultCount;                   // The total number of hard faults for data from disk rather than from in-memory pages. // since WIN7
+    ULONG NumberOfThreadsHighWatermark;     // The peak number of threads that were running at any given point in time, indicative of potential performance bottlenecks related to thread management.
+    ULONGLONG CycleTime;                    // The sum of the cycle time of all threads in the process.
+    ULONGLONG CreateTime;                   // Number of 100-nanosecond intervals since the creation time of the process. Not updated during system timezone changes.
+    ULONGLONG UserTime;                     // Number of 100-nanosecond intervals the process has executed in user mode.
+    ULONGLONG KernelTime;                   // Number of 100-nanosecond intervals the process has executed in kernel mode.
+    UNICODE_STRING ImageName;               // The file name of the executable image.
+    KPRIORITY BasePriority;                 // The starting priority of the process.
+    HANDLE UniqueProcessId;                 // The identifier of the process.
+    HANDLE InheritedFromUniqueProcessId;    // The identifier of the process that created this process. Not updated and incorrectly refers to processes with recycled identifiers. 
+    ULONG HandleCount;                      // The current number of open handles used by the process.
+    ULONG SessionId;                        // The identifier of the Remote Desktop Services session under which the specified process is running. 
+    HANDLE UniqueProcessKey;                // since VISTA (requires SystemExtendedProcessInformation)
+    SIZE_T PeakVirtualSize;                 // The peak size, in bytes, of the virtual memory used by the process.
+    SIZE_T VirtualSize;                     // The current size, in bytes, of virtual memory used by the process.
+    ULONG PageFaultCount;                   // The total number of page faults for data that is not currently in memory. The value wraps around to zero on average 24 hours.
+    SIZE_T PeakWorkingSetSize;              // The peak size, in kilobytes, of the working set of the process.
+    SIZE_T WorkingSetSize;                  // The number of pages visible to the process in physical memory. These pages are resident and available for use without triggering a page fault.
+    SIZE_T QuotaPeakPagedPoolUsage;         // The peak quota charged to the process for pool usage, in bytes.
+    SIZE_T QuotaPagedPoolUsage;             // The quota charged to the process for paged pool usage, in bytes.
+    SIZE_T QuotaPeakNonPagedPoolUsage;      // The peak quota charged to the process for nonpaged pool usage, in bytes.
+    SIZE_T QuotaNonPagedPoolUsage;          // The current quota charged to the process for nonpaged pool usage.
+    SIZE_T PagefileUsage;                   // The total number of bytes of page file storage in use by the process.
+    SIZE_T PeakPagefileUsage;               // The maximum number of bytes of page-file storage used by the process.
+    SIZE_T PrivatePageCount;                // The number of memory pages allocated for the use by the process.
+    ULONGLONG ReadOperationCount;           // The total number of read operations performed.
+    ULONGLONG WriteOperationCount;          // The total number of write operations performed.
+    ULONGLONG OtherOperationCount;          // The total number of I/O operations performed other than read and write operations.
+    ULONGLONG ReadTransferCount;            // The total number of bytes read during a read operation.
+    ULONGLONG WriteTransferCount;           // The total number of bytes written during a write operation.
+    ULONGLONG OtherTransferCount;           // The total number of bytes transferred during operations other than read and write operations.
+    SYSTEM_THREAD_INFORMATION Threads[1];   // This type is not defined in the structure but was added for convenience.
     // SYSTEM_PROCESS_INFORMATION_EXTENSION // SystemFullProcessInformation
 } SYSTEM_EXTENDED_PROCESS_INFORMATION, *PSYSTEM_EXTENDED_PROCESS_INFORMATION;
 
@@ -2716,7 +2724,7 @@ typedef struct _EVENT_TRACE_GROUPMASK_INFORMATION
 {
     EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
     TRACEHANDLE TraceHandle;
-    ULONG EventTraceGroupMasks[8]; // PERFINFO_GROUPMASK
+    ULONG Masks[8]; // PERFINFO_GROUPMASK
 } EVENT_TRACE_GROUPMASK_INFORMATION, *PEVENT_TRACE_GROUPMASK_INFORMATION;
 
 typedef struct _EVENT_TRACE_PERFORMANCE_INFORMATION
@@ -3310,9 +3318,11 @@ typedef struct _SYSTEM_FIRMWARE_TABLE_INFORMATION
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
-typedef NTSTATUS (__cdecl* PFNFTH)(
+typedef _Function_class_(FNFTH)
+NTSTATUS STDAPIVCALLTYPE FNFTH(
     _Inout_ PSYSTEM_FIRMWARE_TABLE_INFORMATION SystemFirmwareTableInfo
     );
+typedef FNFTH* PFNFTH;
 
 // private
 typedef struct _SYSTEM_FIRMWARE_TABLE_HANDLER
@@ -3948,9 +3958,9 @@ typedef struct _SMC_CACHE_DELETE_REQUEST
 
 typedef enum _SM_STORE_MANAGER_TYPE
 {
-    SmStoreManagerTypePhysical=0,
-    SmStoreManagerTypeVirtual=1,
-    SmStoreManagerTypeMax=2
+    SmStoreManagerTypePhysical = 0,
+    SmStoreManagerTypeVirtual = 1,
+    SmStoreManagerTypeMax = 2
 } SM_STORE_MANAGER_TYPE;
 
 typedef struct _SMC_STORE_CREATE_REQUEST
@@ -4688,6 +4698,13 @@ typedef struct _PROCESS_EXTENDED_ENERGY_VALUES
     PROCESS_ENERGY_VALUES Base;
     PROCESS_ENERGY_VALUES_EXTENSION Extension;
 } PROCESS_EXTENDED_ENERGY_VALUES, *PPROCESS_EXTENDED_ENERGY_VALUES;
+
+typedef struct _PROCESS_EXTENDED_ENERGY_VALUES_V1
+{
+    PROCESS_ENERGY_VALUES Base;
+    PROCESS_ENERGY_VALUES_EXTENSION Extension;
+    ULONG64 NpuWorkUnits;
+} PROCESS_EXTENDED_ENERGY_VALUES_V1, *PPROCESS_EXTENDED_ENERGY_VALUES_V1;
 
 // private
 typedef enum _SYSTEM_PROCESS_CLASSIFICATION
@@ -5626,17 +5643,83 @@ typedef struct _SYSTEM_OSL_RAMDISK_INFORMATION
     SYSTEM_OSL_RAMDISK_ENTRY Entries[1];
 } SYSTEM_OSL_RAMDISK_INFORMATION, *PSYSTEM_OSL_RAMDISK_INFORMATION;
 
+// private
+typedef enum _CI_POLICY_MGMT_OPERATION 
+{
+    CI_POLICY_MGMT_OPERATION_NONE = 0,
+    CI_POLICY_MGMT_OPERATION_OPEN_TX = 1,
+    CI_POLICY_MGMT_OPERATION_COMMIT_TX = 2,
+    CI_POLICY_MGMT_OPERATION_CLOSE_TX = 3,
+    CI_POLICY_MGMT_OPERATION_ADD_POLICY = 4,
+    CI_POLICY_MGMT_OPERATION_REMOVE_POLICY = 5,
+    CI_POLICY_MGMT_OPERATION_GET_POLICY = 6,
+    CI_POLICY_MGMT_OPERATION_GET_POLICY_IDS = 7,
+    CI_POLICY_MGMT_OPERATION_MAX = 8
+} CI_POLICY_MGMT_OPERATION;
+
+// private
+typedef struct _SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT 
+{
+    CI_POLICY_MGMT_OPERATION Operation;
+    UCHAR UseInProgressState; 
+    ULONG Arg1Len;
+    PUCHAR Arg1;
+    ULONG Arg2Len;
+    PUCHAR Arg2;
+} SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT, *PSYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT;
+
+// private
+typedef struct _SYSTEM_REF_TRACE_INFORMATION_EX 
+{
+    ULONG Version;
+    ULONGLONG MemoryLimits;
+    union 
+    {
+        ULONG Flags;
+        struct 
+        {
+            ULONG TraceEnable        : 1;
+            ULONG TracePermanent     : 1;
+            ULONG UseTracePoolTags   : 1;
+            ULONG TraceByStacksOnly  : 1;
+            ULONG ReservedFlags      : 28;
+        };
+    };
+    UNICODE_STRING TraceProcessName;
+    UNICODE_STRING TracePoolTags;
+    ULONG MaxObjectRefTraces;
+    ULONG TracedObjectLimit;
+} SYSTEM_REF_TRACE_INFORMATION_EX, *PSYSTEM_REF_TRACE_INFORMATION_EX;
+
+// private
+typedef struct _SYSTEM_BASICPROCESS_INFORMATION
+{
+    ULONG NextEntryOffset;
+    HANDLE UniqueProcessId;
+    HANDLE InheritedFromUniqueProcessId;
+    ULONG64 SequenceNumber;
+    UNICODE_STRING ImageName;
+} SYSTEM_BASICPROCESS_INFORMATION, *PSYSTEM_BASICPROCESS_INFORMATION;
+
+// private
+typedef struct _SYSTEM_HANDLECOUNT_INFORMATION 
+{
+    ULONG ProcessCount;
+    ULONG ThreadCount;
+    ULONG HandleCount;
+} SYSTEM_HANDLECOUNT_INFORMATION, *PSYSTEM_HANDLECOUNT_INFORMATION;
+
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
  * The NtQuerySystemInformation routine queries information about the system.
  *
- * @param SystemInformationClass The type of information to be retrieved.
- * @param SystemInformation A pointer to a buffer that receives the requested information.
- * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
+ * \param SystemInformationClass The type of information to be retrieved.
+ * \param SystemInformation A pointer to a buffer that receives the requested information.
+ * \param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -5648,16 +5731,17 @@ NtQuerySystemInformation(
     _Out_opt_ PULONG ReturnLength
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * The NtQuerySystemInformationEx routine queries information about the system.
  *
- * @param SystemInformationClass The type of information to be retrieved.
- * @param SystemInformation A pointer to a buffer that receives the requested information.
- * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
+ * \param SystemInformationClass The type of information to be retrieved.
+ * \param InputBuffer Pointer to a caller-allocated input buffer that contains class-specific information.
+ * \param InputBufferLength The size of the buffer pointed to by InputBuffer.
+ * \param SystemInformation A pointer to a buffer that receives the requested information.
+ * \param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -5670,16 +5754,14 @@ NtQuerySystemInformationEx(
     _In_ ULONG SystemInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 /**
  * The NtSetSystemInformation routine sets information about the system.
  *
- * @param SystemInformationClass The type of information to be set.
- * @param SystemInformation A pointer to a buffer that receives the requested information.
- * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param SystemInformationClass The type of information to be set.
+ * \param SystemInformation A pointer to a buffer that receives the requested information.
+ * \param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -5761,14 +5843,14 @@ typedef struct _SYSDBG_CONTROL_SPACE
     ULONG Processor;
 } SYSDBG_CONTROL_SPACE, *PSYSDBG_CONTROL_SPACE;
 
-enum _INTERFACE_TYPE;
+typedef enum _INTERFACE_TYPE INTERFACE_TYPE;
 
 typedef struct _SYSDBG_IO_SPACE
 {
     ULONG64 Address;
     PVOID Buffer;
     ULONG Request;
-    enum _INTERFACE_TYPE InterfaceType;
+    INTERFACE_TYPE InterfaceType;
     ULONG BusNumber;
     ULONG AddressSpace;
 } SYSDBG_IO_SPACE, *PSYSDBG_IO_SPACE;
@@ -5779,14 +5861,14 @@ typedef struct _SYSDBG_MSR
     ULONG64 Data;
 } SYSDBG_MSR, *PSYSDBG_MSR;
 
-enum _BUS_DATA_TYPE;
+typedef enum _BUS_DATA_TYPE BUS_DATA_TYPE;
 
 typedef struct _SYSDBG_BUS_DATA
 {
     ULONG Address;
     PVOID Buffer;
     ULONG Request;
-    enum _BUS_DATA_TYPE BusDataType;
+    BUS_DATA_TYPE BusDataType;
     ULONG BusNumber;
     ULONG SlotNumber;
 } SYSDBG_BUS_DATA, *PSYSDBG_BUS_DATA;
@@ -6057,7 +6139,11 @@ typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
 #define SHARED_GLOBAL_FLAGS_QPC_BYPASS_A73_ERRATA (0x40)
 #define SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_RDTSCP (0x80)
 
-
+/**
+ * The KUSER_SHARED_DATA structure contains information shared with user-mode.
+ *
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-kuser_shared_data
+ */
 typedef struct _KUSER_SHARED_DATA
 {
     //
@@ -6192,8 +6278,8 @@ typedef struct _KUSER_SHARED_DATA
     // Reserved fields - do not use.
     //
 
-    ULONG Reserved1;
-    ULONG Reserved3;
+    ULONG MaximumUserModeAddressDeprecated; // Deprecated, use SystemBasicInformation instead.
+    ULONG SystemRangeStartDeprecated; // Deprecated, use SystemRangeStartInformation instead.
 
     //
     // Time slippage while in debugger.
@@ -6637,108 +6723,108 @@ typedef struct _KUSER_SHARED_DATA
 #endif
 } KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
 
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountLowDeprecated) == 0x0);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountMultiplier) == 0x4);
-C_ASSERT(__alignof(KSYSTEM_TIME) == 4);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, InterruptTime) == 0x08);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemTime) == 0x014);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBias) == 0x020);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ImageNumberLow) == 0x02c);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ImageNumberHigh) == 0x02e);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NtSystemRoot) == 0x030);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, MaxStackTraceDepth) == 0x238);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, CryptoExponent) == 0x23c);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneId) == 0x240);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, LargePageMinimum) == 0x244);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, AitSamplingValue) == 0x248);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, AppCompatFlag) == 0x24c);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, RNGSeedVersion) == 0x250);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, GlobalValidationRunlevel) == 0x258);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasStamp) == 0x25c);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NtBuildNumber) == 0x260);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NtProductType) == 0x264);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ProductTypeIsValid) == 0x268);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NativeProcessorArchitecture) == 0x26a);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NtMajorVersion) == 0x26c);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NtMinorVersion) == 0x270);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ProcessorFeatures) == 0x274);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved1) == 0x2b4);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved3) == 0x2b8);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeSlip) == 0x2bc);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, AlternativeArchitecture) == 0x2c0);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemExpirationDate) == 0x2c8);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SuiteMask) == 0x2d0);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, KdDebuggerEnabled) == 0x2d4);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, MitigationPolicies) == 0x2d5);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, CyclesPerYield) == 0x2d6);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveConsoleId) == 0x2d8);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, DismountCount) == 0x2dc);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ComPlusPackage) == 0x2e0);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, LastSystemRITEventTickCount) == 0x2e4);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NumberOfPhysicalPages) == 0x2e8);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SafeBootMode) == 0x2ec);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, VirtualizationFlags) == 0x2ed);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved12) == 0x2ee);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountLowDeprecated) == 0x0);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountMultiplier) == 0x4);
+static_assert(__alignof(KSYSTEM_TIME) == 4);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, InterruptTime) == 0x08);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemTime) == 0x014);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBias) == 0x020);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ImageNumberLow) == 0x02c);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ImageNumberHigh) == 0x02e);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtSystemRoot) == 0x030);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, MaxStackTraceDepth) == 0x238);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, CryptoExponent) == 0x23c);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneId) == 0x240);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, LargePageMinimum) == 0x244);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, AitSamplingValue) == 0x248);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, AppCompatFlag) == 0x24c);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, RNGSeedVersion) == 0x250);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, GlobalValidationRunlevel) == 0x258);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasStamp) == 0x25c);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtBuildNumber) == 0x260);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtProductType) == 0x264);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ProductTypeIsValid) == 0x268);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NativeProcessorArchitecture) == 0x26a);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtMajorVersion) == 0x26c);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtMinorVersion) == 0x270);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ProcessorFeatures) == 0x274);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, MaximumUserModeAddressDeprecated) == 0x2b4);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemRangeStartDeprecated) == 0x2b8);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeSlip) == 0x2bc);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, AlternativeArchitecture) == 0x2c0);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemExpirationDate) == 0x2c8);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SuiteMask) == 0x2d0);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, KdDebuggerEnabled) == 0x2d4);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, MitigationPolicies) == 0x2d5);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, CyclesPerYield) == 0x2d6);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveConsoleId) == 0x2d8);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, DismountCount) == 0x2dc);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ComPlusPackage) == 0x2e0);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, LastSystemRITEventTickCount) == 0x2e4);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NumberOfPhysicalPages) == 0x2e8);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SafeBootMode) == 0x2ec);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, VirtualizationFlags) == 0x2ed);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved12) == 0x2ee);
 #if defined(_MSC_EXTENSIONS)
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SharedDataFlags) == 0x2f0);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SharedDataFlags) == 0x2f0);
 #endif
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TestRetInstruction) == 0x2f8);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcFrequency) == 0x300);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCall) == 0x308);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved2) == 0x30c);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x318); // previously 0x310
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TestRetInstruction) == 0x2f8);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcFrequency) == 0x300);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCall) == 0x308);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved2) == 0x30c);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x318); // previously 0x310
 #if defined(_MSC_EXTENSIONS)
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount) == 0x320);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad) == 0x320);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount) == 0x320);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad) == 0x320);
 #endif
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Cookie) == 0x330);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ConsoleSessionForegroundProcessId) == 0x338);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeUpdateLock) == 0x340);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineSystemTimeQpc) == 0x348);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineInterruptTimeQpc) == 0x350);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrement) == 0x358);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrement) == 0x360);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrementShift) == 0x368);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrementShift) == 0x369);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UnparkedProcessorCount) == 0x36a);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, EnclaveFeatureMask) == 0x36c);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TelemetryCoverageRound) == 0x37c);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UserModeGlobalLogger) == 0x380);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ImageFileExecutionOptions) == 0x3a0);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, LangGenerationCount) == 0x3a4);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved4) == 0x3a8);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, InterruptTimeBias) == 0x3b0);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcBias) == 0x3b8);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveProcessorCount) == 0x3c0);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveGroupCount) == 0x3c4);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved9) == 0x3c5);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcData) == 0x3c6);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcBypassEnabled) == 0x3c6);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcReserved) == 0x3c7);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveStart) == 0x3c8);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveEnd) == 0x3d0);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Cookie) == 0x330);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ConsoleSessionForegroundProcessId) == 0x338);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeUpdateLock) == 0x340);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineSystemTimeQpc) == 0x348);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineInterruptTimeQpc) == 0x350);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrement) == 0x358);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrement) == 0x360);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrementShift) == 0x368);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrementShift) == 0x369);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UnparkedProcessorCount) == 0x36a);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, EnclaveFeatureMask) == 0x36c);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TelemetryCoverageRound) == 0x37c);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserModeGlobalLogger) == 0x380);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ImageFileExecutionOptions) == 0x3a0);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, LangGenerationCount) == 0x3a4);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved4) == 0x3a8);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, InterruptTimeBias) == 0x3b0);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcBias) == 0x3b8);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveProcessorCount) == 0x3c0);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveGroupCount) == 0x3c4);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved9) == 0x3c5);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcData) == 0x3c6);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcBypassEnabled) == 0x3c6);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcReserved) == 0x3c7);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveStart) == 0x3c8);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveEnd) == 0x3d0);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8);
 #if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x710);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x720);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x710);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x720);
 #if defined(_ARM64_)
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64) == 0x728);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64) == 0x728);
 #else
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved10) == 0x728);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved10) == 0x728);
 #endif
 #if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
-C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0xa70);
+static_assert(sizeof(KUSER_SHARED_DATA) == 0xa70);
 #endif
 #else
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x720);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x730);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x720);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x730);
 #if defined(_ARM64_)
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64) == 0x738);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64) == 0x738);
 #else
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved10) == 0x738);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved10) == 0x738);
 #endif
 #if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
-C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0xa80);
+static_assert(sizeof(KUSER_SHARED_DATA) == 0xa80);
 #endif
 #endif
 
@@ -6833,8 +6919,6 @@ NtQueryInstallUILanguage(
     _Out_ LANGID *InstallUILanguageId
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-// private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -6842,7 +6926,6 @@ NtFlushInstallUILanguage(
     _In_ LANGID InstallUILanguage,
     _In_ ULONG SetComittedFlag
     );
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6858,21 +6941,18 @@ NtSetDefaultUILanguage(
     _In_ LANGID DefaultUILanguageId
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-// private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtIsUILanguageComitted(
     VOID
     );
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
+//
 // NLS
+//
 
 // begin_private
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6896,7 +6976,6 @@ NtGetNlsSectionPtr(
     );
 
 #if (PHNT_VERSION < PHNT_WINDOWS_7)
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -6912,7 +6991,6 @@ NTAPI
 NtReleaseCMFViewOwnership(
     VOID
     );
-
 #endif // PHNT_VERSION < PHNT_WINDOWS_7
 
 NTSYSCALLAPI
@@ -6935,8 +7013,6 @@ NtGetMUIRegistryInfo(
     _Inout_ PULONG DataSize,
     _Out_ PVOID Data
     );
-
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 // end_private
 
@@ -7025,42 +7101,34 @@ NtQueryInformationAtom(
 #define FLG_SHOW_LDR_SNAPS 0x00000002 // uk
 #define FLG_DEBUG_INITIAL_COMMAND 0x00000004 // k
 #define FLG_STOP_ON_HUNG_GUI 0x00000008 // k
-
 #define FLG_HEAP_ENABLE_TAIL_CHECK 0x00000010 // u
 #define FLG_HEAP_ENABLE_FREE_CHECK 0x00000020 // u
 #define FLG_HEAP_VALIDATE_PARAMETERS 0x00000040 // u
 #define FLG_HEAP_VALIDATE_ALL 0x00000080 // u
-
 #define FLG_APPLICATION_VERIFIER 0x00000100 // u
 #define FLG_MONITOR_SILENT_PROCESS_EXIT 0x00000200 // uk
 #define FLG_POOL_ENABLE_TAGGING 0x00000400 // k
 #define FLG_HEAP_ENABLE_TAGGING 0x00000800 // u
-
 #define FLG_USER_STACK_TRACE_DB 0x00001000 // u,32
 #define FLG_KERNEL_STACK_TRACE_DB 0x00002000 // k,32
 #define FLG_MAINTAIN_OBJECT_TYPELIST 0x00004000 // k
 #define FLG_HEAP_ENABLE_TAG_BY_DLL 0x00008000 // u
-
 #define FLG_DISABLE_STACK_EXTENSION 0x00010000 // u
 #define FLG_ENABLE_CSRDEBUG 0x00020000 // k
 #define FLG_ENABLE_KDEBUG_SYMBOL_LOAD 0x00040000 // k
 #define FLG_DISABLE_PAGE_KERNEL_STACKS 0x00080000 // k
-
 #define FLG_ENABLE_SYSTEM_CRIT_BREAKS 0x00100000 // u
 #define FLG_HEAP_DISABLE_COALESCING 0x00200000 // u
 #define FLG_ENABLE_CLOSE_EXCEPTIONS 0x00400000 // k
 #define FLG_ENABLE_EXCEPTION_LOGGING 0x00800000 // k
-
 #define FLG_ENABLE_HANDLE_TYPE_TAGGING 0x01000000 // k
 #define FLG_HEAP_PAGE_ALLOCS 0x02000000 // u
 #define FLG_DEBUG_INITIAL_COMMAND_EX 0x04000000 // k
 #define FLG_DISABLE_DBGPRINT 0x08000000 // k
-
 #define FLG_CRITSEC_EVENT_CREATION 0x10000000 // u
 #define FLG_LDR_TOP_DOWN 0x20000000 // u,64
 #define FLG_ENABLE_HANDLE_EXCEPTIONS 0x40000000 // k
 #define FLG_DISABLE_PROTDLLS 0x80000000 // u
-
 #define FLG_VALID_BITS 0xfffffdff
 
 #define FLG_USERMODE_VALID_BITS (FLG_STOP_ON_EXCEPTION | \
@@ -7099,8 +7167,10 @@ NtQueryInformationAtom(
     FLG_DISABLE_DBGPRINT | \
     FLG_ENABLE_HANDLE_EXCEPTIONS)
 
+//
 // Licensing
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
+//
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7111,7 +7181,6 @@ NtQueryLicenseValue(
     _In_ ULONG DataSize,
     _Out_ PULONG ResultDataSize
     );
-#endif
 
 //
 // Misc.
@@ -7146,9 +7215,10 @@ NtDisplayString(
     _In_ PCUNICODE_STRING String
     );
 
+//
 // Boot graphics
+//
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSCALLAPI
 NTSTATUS
@@ -7156,7 +7226,6 @@ NTAPI
 NtDrawText(
     _In_ PCUNICODE_STRING Text
     );
-#endif
 
 //
 // Hot patching
@@ -7274,7 +7343,7 @@ typedef struct _MANAGE_HOT_PATCH_CREATE_PATCH_SECTION
     HANDLE SectionHandle;
 } MANAGE_HOT_PATCH_CREATE_PATCH_SECTION, *PMANAGE_HOT_PATCH_CREATE_PATCH_SECTION;
 
-#ifdef WIN64
+#if defined(_WIN64)
 static_assert(sizeof(MANAGE_HOT_PATCH_LOAD_PATCH) == 0x68, "Size of MANAGE_HOT_PATCH_LOAD_PATCH is incorrect");
 static_assert(sizeof(MANAGE_HOT_PATCH_UNLOAD_PATCH) == 0x50, "Size of MANAGE_HOT_PATCH_UNLOAD_PATCH is incorrect");
 static_assert(sizeof(MANAGE_HOT_PATCH_QUERY_PATCHES) == 0x60, "Size of MANAGE_HOT_PATCH_QUERY_PATCHES is incorrect");

@@ -117,7 +117,7 @@ VOID PvpPeEnumerateFileStreams(
                     if (streamInfo.FileAttributes & FILE_ATTRIBUTE_INTEGRITY_STREAM)
                         PhAppendStringBuilder2(&stringBuilder, L"Integiry, ");
                     if (streamInfo.FileAttributes & FILE_ATTRIBUTE_VIRTUAL)
-                        PhAppendStringBuilder2(&stringBuilder, L"Vitual, ");
+                        PhAppendStringBuilder2(&stringBuilder, L"Virtual, ");
                     if (streamInfo.FileAttributes & FILE_ATTRIBUTE_NO_SCRUB_DATA)
                         PhAppendStringBuilder2(&stringBuilder, L"No scrub, ");
                     if (streamInfo.FileAttributes & FILE_ATTRIBUTE_EA)
@@ -218,6 +218,7 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }
         break;

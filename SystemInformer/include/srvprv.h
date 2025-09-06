@@ -151,6 +151,7 @@ VOID PhUpdateProcessItemServices(
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhServiceProviderUpdate(
     _In_ PVOID Object
     );

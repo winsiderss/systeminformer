@@ -47,7 +47,7 @@ typedef struct _PH_MODULE_ITEM
         };
     };
 
-    enum _VERIFY_RESULT VerifyResult;
+    ULONG VerifyResult;
     PPH_STRING VerifySignerName;
 
     USHORT ImageMachine;
@@ -130,6 +130,7 @@ VOID PhDereferenceAllModuleItems(
     _In_ PPH_MODULE_PROVIDER ModuleProvider
     );
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhModuleProviderUpdate(
     _In_ PVOID Object
     );

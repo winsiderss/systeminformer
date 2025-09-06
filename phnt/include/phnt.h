@@ -55,6 +55,7 @@
 #define PHNT_WINDOWS_11_22H2 115 // September, 2022  // Build 22621
 #define PHNT_WINDOWS_11_23H2 116 // October, 2023    // Build 22631
 #define PHNT_WINDOWS_11_24H2 117 // October, 2024    // Build 26100
+#define PHNT_WINDOWS_11_25H2 117 // October, 2025    // Build 26200
 #define PHNT_WINDOWS_NEW ULONG_MAX
 
 #ifndef PHNT_MODE
@@ -89,13 +90,14 @@ EXTERN_C_START
 #include <ntldr.h>
 #include <ntexapi.h>
 
-#include <ntbcd.h>
 #include <ntmmapi.h>
 #include <ntobapi.h>
 #include <ntpsapi.h>
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
+#include <ntbcd.h>
 #include <ntdbg.h>
+#include <ntintsafe.h>
 #include <ntimage.h>
 #include <ntioapi.h>
 #include <ntlsa.h>
@@ -114,7 +116,6 @@ EXTERN_C_START
 #include <ntwmi.h>
 #include <ntwow64.h>
 #include <ntxcapi.h>
-#include <ntzwapi.h>
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 EXTERN_C_END

@@ -331,7 +331,24 @@ HANDLE PhpGetSemaphoreWorkQueue(
 
     if (!semaphoreHandle)
     {
-        NtCreateSemaphore(&semaphoreHandle, SEMAPHORE_ALL_ACCESS, NULL, 0, MAXLONG);
+        OBJECT_ATTRIBUTES objectAttributes;
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            NULL,
+            OBJ_EXCLUSIVE,
+            NULL,
+            NULL
+            );
+
+        NtCreateSemaphore(
+            &semaphoreHandle,
+            SEMAPHORE_ALL_ACCESS,
+            &objectAttributes,
+            0,
+            MAXLONG
+            );
+
         assert(semaphoreHandle);
 
         if (_InterlockedCompareExchangePointer(
@@ -379,6 +396,7 @@ BOOLEAN PhpCreateWorkQueueThread(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpWorkQueueThreadStart(
     _In_ PVOID Parameter
     )

@@ -134,7 +134,7 @@
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
-#define PHPN_GDIUSERHANDLES 0x2
+#define PHPN_GDIHANDLES 0x2
 #define PHPN_IOPAGEPRIORITY 0x4
 #define PHPN_WINDOW 0x8
 #define PHPN_DEPSTATUS 0x10
@@ -158,6 +158,7 @@
 #define PHPN_REFERENCEDELTA 0x400000
 #define PHPN_STARTKEY 0x800000
 #define PHPN_SERVICES 0x1000000
+#define PHPN_USERHANDLES 0x2000000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -235,9 +236,11 @@ typedef struct _PH_PROCESS_NODE
     // Start key
     ULONGLONG ProcessStartKey;
 
+    PPH_STRING FileNameWin32;
+    ULONG ServerSiloId;
+
     PPH_STRING TooltipText;
     ULONG64 TooltipTextValidToTickCount;
-    PPH_STRING FileNameWin32;
 
     // Text buffers
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1 + 3];
@@ -304,6 +307,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ProcessStartKeyText;
     PPH_STRING MitigationPoliciesText;
     PPH_STRING ServicesText;
+    PPH_STRING ServerSiloText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
@@ -400,6 +404,13 @@ PhGetSelectedProcessItems(
     _Out_ PULONG NumberOfProcesses
     );
 
+PHAPPAPI
+PPH_PROCESS_NODE
+NTAPI
+PhGetSelectedProcessNode(
+    VOID
+    );
+
 _Success_(return)
 PHAPPAPI
 BOOLEAN
@@ -439,14 +450,14 @@ PhInvalidateAllProcessNodes(
     );
 
 PHAPPAPI
-VOID
+BOOLEAN
 NTAPI
 PhSelectAndEnsureVisibleProcessNode(
     _In_ PPH_PROCESS_NODE ProcessNode
     );
 // end_phapppub
 
-VOID PhSelectAndEnsureVisibleProcessNodes(
+BOOLEAN PhSelectAndEnsureVisibleProcessNodes(
     _In_ PPH_PROCESS_NODE *ProcessNodes,
     _In_ ULONG NumberOfProcessNodes
     );
@@ -480,5 +491,33 @@ NTSTATUS PhGetProcessItemFileNameWin32(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _Out_ PPH_STRING *FileNameWin32
     );
+
+// begin_phapppub
+typedef enum _PH_AGGREGATE_TYPE
+{
+    AggregateTypeFloat,
+    AggregateTypeInt32,
+    AggregateTypeInt64,
+    AggregateTypeIntPtr
+} PH_AGGREGATE_TYPE;
+
+typedef enum _PH_AGGREGATE_LOCATION
+{
+    AggregateProcessItem,
+    AggregateProcessNode,
+} PH_AGGREGATE_LOCATION;
+
+PHAPPAPI
+VOID
+NTAPI
+PhAggregateProcessFieldIfNeeded(
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_ PH_AGGREGATE_TYPE Type,
+    _In_ PH_AGGREGATE_LOCATION Location,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T FieldOffset,
+    _Inout_ PVOID AggregatedValue
+    );
+// end_phapppub
 
 #endif

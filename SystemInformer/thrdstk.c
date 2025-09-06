@@ -1261,6 +1261,12 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
             }
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
@@ -1594,6 +1600,7 @@ LRESULT CALLBACK PhpThreadStackTaskDialogSubclassProc(
     return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhpSymbolProviderEventCallbackHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

@@ -206,6 +206,7 @@ PPH_HASHTABLE PvPeCreateSuppressedGuardHashtable(
     return supressedHashTable;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PvpPeExportsEnumerateThread(
     _In_ PPV_EXPORT_CONTEXT Context
     )
@@ -251,7 +252,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
                 if (exportFunction.ForwardedName)
                 {
                     PPH_STRING forwardName;
-                    PPH_STRING importDllName;
+                    PH_STRINGREF hostDllName;
 
                     forwardName = PhConvertUtf8ToUtf16(exportFunction.ForwardedName);
 
@@ -263,14 +264,21 @@ NTSTATUS PvpPeExportsEnumerateThread(
                             PhMoveReference(&forwardName, undecoratedName);
                     }
 
-                    if (importDllName = PhApiSetResolveToHost(&forwardName->sr))
+                    if (NT_SUCCESS(PhApiSetResolveToHost(
+                        NtCurrentPeb()->ApiSetMap,
+                        &forwardName->sr,
+                        &PvFileName->sr,
+                        &hostDllName
+                        )))
                     {
-                        PhMoveReference(&forwardName, PhFormatString(
-                            L"%s (%s)",
-                            PhGetString(forwardName),
-                            PhGetString(importDllName))
-                            );
-                        PhDereferenceObject(importDllName);
+                        PH_FORMAT format[4];
+
+                        PhInitFormatSR(&format[0], forwardName->sr);
+                        PhInitFormatS(&format[1], L" (");
+                        PhInitFormatSR(&format[2], hostDllName);
+                        PhInitFormatC(&format[3], L')');
+
+                        PhMoveReference(&forwardName, PhFormat(format, RTL_NUMBER_OF(format), 10));
                     }
 
                     exportNode->ForwardString = forwardName;

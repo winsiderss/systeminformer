@@ -14,7 +14,7 @@ namespace CustomBuildTool
     /// <summary>
     /// Contains configuration for timestamping authenticode signatures.
     /// </summary>
-    public struct TimeStampConfiguration
+    public readonly struct TimeStampConfiguration
     {
         /// <summary>
         /// The URL to the timestamp authority.
@@ -45,8 +45,8 @@ namespace CustomBuildTool
         /// <param name="type">The type of timestamp to use. See <see cref="TimeStampType" /> for details.</param>
         public TimeStampConfiguration(string url, TimeStampType type)
         {
-            Url = url;
-            Type = type;
+            this.Url = url;
+            this.Type = type;
         }
     }
 

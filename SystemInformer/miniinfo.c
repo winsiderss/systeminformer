@@ -378,7 +378,7 @@ VOID PhMipContainerOnShowWindow(
         for (i = 0; i < SectionList->Count; i++)
         {
             section = SectionList->Items[i];
-            section->Callback(section, MiniInfoShowing, (PVOID)Showing, NULL);
+            section->Callback(section, MiniInfoShowing, UlongToPtr(Showing), NULL);
         }
     }
 }
@@ -646,6 +646,7 @@ BOOLEAN PhMipMessageLoopFilter(
     return FALSE;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMipUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -694,7 +695,7 @@ VOID PhMipCalculateWindowRectangle(
     MONITORINFO monitorInfo = { sizeof(monitorInfo) };
 
     PhLoadWindowPlacementFromSetting(NULL, L"MiniInfoWindowSize", PhMipContainerWindow);
-    GetWindowRect(PhMipContainerWindow, &windowRect);
+    PhGetWindowRect(PhMipContainerWindow, &windowRect);
     SendMessage(PhMipContainerWindow, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&windowRect); // Adjust for the minimum size.
     PhRectToRectangle(&windowRectangle, &windowRect);
 
@@ -720,7 +721,7 @@ VOID PhMipCalculateWindowRectangle(
 
             if ((trayWindow = FindWindow(L"Shell_TrayWnd", NULL)) &&
                 GetMonitorInfo(MonitorFromWindow(trayWindow, MONITOR_DEFAULTTOPRIMARY), &monitorInfo) && // Just in case
-                GetWindowRect(trayWindow, &taskbarRect))
+                PhGetWindowRect(trayWindow, &taskbarRect))
             {
                 LONG monitorMidX = (monitorInfo.rcMonitor.left + monitorInfo.rcMonitor.right) / 2;
                 LONG monitorMidY = (monitorInfo.rcMonitor.top + monitorInfo.rcMonitor.bottom) / 2;
@@ -958,7 +959,8 @@ VOID PhMipLayout(
     RECT clientRect;
     RECT windowRect;
 
-    GetClientRect(PhMipContainerWindow, &clientRect);
+    if (!PhGetClientRect(PhMipContainerWindow, &clientRect))
+        return;
 
     MoveWindow(
         PhMipWindow,
@@ -969,7 +971,9 @@ VOID PhMipLayout(
 
     PhLayoutManagerLayout(&PhMipLayoutManager);
 
-    GetWindowRect(PhMipLayoutWindow, &windowRect);
+    if (!PhGetWindowRect(PhMipLayoutWindow, &windowRect))
+        return;
+
     MapWindowRect(NULL, PhMipWindow, &windowRect);
 
     if (CurrentSection && CurrentSection->DialogHandle)
@@ -1151,7 +1155,7 @@ VOID PhMipShowOptionsMenu(
 
     // Show the menu.
 
-    GetWindowRect(GetDlgItem(PhMipWindow, IDC_OPTIONS), &rect);
+    PhGetWindowRect(GetDlgItem(PhMipWindow, IDC_OPTIONS), &rect);
     menuItem = PhShowEMenu(menu, PhMipWindow, PH_EMENU_SHOW_LEFTRIGHT,
         PH_ALIGN_LEFT | PH_ALIGN_BOTTOM, rect.left, rect.top);
 
@@ -1378,6 +1382,12 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
 
             listSection->TreeNewHandle = NULL;
             listSection->DialogHandle = NULL;
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&listSection->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&listSection->LayoutManager);
         }
         break;
     case WM_SIZE:

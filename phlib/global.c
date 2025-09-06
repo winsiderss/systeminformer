@@ -11,41 +11,16 @@
  */
 
 #include <ph.h>
-#include <phconsole.h>
 #include <phintrnl.h>
-
 #include <trace.h>
-
-VOID PhInitializeRuntimeInformation(
-    VOID
-    );
-
-VOID PhInitializeSystemInformation(
-    VOID
-    );
-
-VOID PhInitializeWindowsInformation(
-    VOID
-    );
-
-BOOLEAN PhHeapInitialization(
-    VOID
-    );
-
-BOOLEAN PhInitializeProcessorInformation(
-    VOID
-    );
 
 PVOID PhInstanceHandle = NULL;
 PCWSTR PhApplicationName = NULL;
-PVOID PhHeapHandle = NULL;
-RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
+HANDLE PhHeapHandle = NULL;
+RTL_OSVERSIONINFOEX PhOsVersion = { 0 };
 PHLIBAPI PH_SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
 PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation = { 0 };
 ULONG WindowsVersion = WINDOWS_NEW;
-static WCHAR WindowsVersionStringBuffer[40] = { L'0', L'.', L'0', L'.', L'0', UNICODE_NULL };
-PCWSTR WindowsVersionString = WindowsVersionStringBuffer;
-PCWSTR WindowsVersionName = L"Windows";
 
 // Internal data
 #ifdef DEBUG
@@ -53,32 +28,30 @@ PHLIB_STATISTICS_BLOCK PhLibStatisticsBlock;
 #endif
 
 NTSTATUS PhInitializePhLib(
-    _In_ PCWSTR ApplicationName,
-    _In_ PVOID ImageBaseAddress
+    _In_ PCWSTR ApplicationName
     )
 {
+    NTSTATUS status;
+
     WPP_INIT_TRACING(ApplicationName);
 
     PhTraceInfo("%ls initializing", ApplicationName);
 
     PhApplicationName = ApplicationName;
-    PhInstanceHandle = ImageBaseAddress;
+    PhInstanceHandle = NtCurrentImageBase();
 
     PhInitializeRuntimeInformation();
     PhInitializeWindowsInformation();
     PhInitializeSystemInformation();
 
-    if (!PhHeapInitialization())
-        return STATUS_UNSUCCESSFUL;
-
-    if (!PhQueuedLockInitialization())
-        return STATUS_UNSUCCESSFUL;
-
-    if (!PhRefInitialization())
-        return STATUS_UNSUCCESSFUL;
-
-    if (!PhBaseInitialization())
-        return STATUS_UNSUCCESSFUL;
+    if (!NT_SUCCESS(status = PhHeapInitialization()))
+        return status;
+    if (!NT_SUCCESS(status = PhQueuedLockInitialization()))
+        return status;
+    if (!NT_SUCCESS(status = PhRefInitialization()))
+        return status;
+    if (!NT_SUCCESS(status = PhBaseInitialization()))
+        return status;
 
     PhInitializeProcessorInformation();
 
@@ -105,28 +78,27 @@ BOOLEAN PhIsExecutingInWow64(
 #endif
 }
 
-VOID PhInitializeRuntimeInformation(
+NTSTATUS PhInitializeRuntimeInformation(
     VOID
     )
 {
-#ifdef _X86_
+#if defined _M_IX86
     // Enable SSE2 CRT support.
     _set_SSE2_enable(1);
 #endif
 
     // Enable UTF8 CRT support.
     //_wsetlocale(LC_ALL, L".UTF8");
+
+    return STATUS_SUCCESS;
 }
 
-VOID PhInitializeSystemInformation(
+NTSTATUS PhInitializeSystemInformation(
     VOID
     )
 {
+    NTSTATUS status;
     SYSTEM_BASIC_INFORMATION basicInfo = { 0 };
-
-    // Note: We can't check the return of SystemBasicInformation
-    // due to third party software hooking the function and returnnig
-    // a random error status.
 
     PhSystemBasicInformation.PageSize = PAGE_SIZE;
     PhSystemBasicInformation.NumberOfProcessors = 1;
@@ -136,241 +108,225 @@ VOID PhInitializeSystemInformation(
     PhSystemBasicInformation.MaximumUserModeAddress = 0x10000;
     PhSystemBasicInformation.ActiveProcessorsAffinityMask = USHRT_MAX;
 
-    NtQuerySystemInformation(
+    status = NtQuerySystemInformation(
         SystemBasicInformation,
         &basicInfo,
         sizeof(SYSTEM_BASIC_INFORMATION),
         NULL
         );
 
-    PhSystemBasicInformation.PageSize = (USHORT)basicInfo.PageSize;
-    PhSystemBasicInformation.NumberOfProcessors = (USHORT)basicInfo.NumberOfProcessors;
-    PhSystemBasicInformation.NumberOfPhysicalPages = basicInfo.NumberOfPhysicalPages;
-    PhSystemBasicInformation.MaximumTimerResolution = basicInfo.TimerResolution;
-    PhSystemBasicInformation.AllocationGranularity = basicInfo.AllocationGranularity;
-    PhSystemBasicInformation.MaximumUserModeAddress = basicInfo.MaximumUserModeAddress;
-    PhSystemBasicInformation.ActiveProcessorsAffinityMask = basicInfo.ActiveProcessorsAffinityMask;
+    if (NT_SUCCESS(status))
+    {
+        PhSystemBasicInformation.PageSize = (USHORT)basicInfo.PageSize;
+        PhSystemBasicInformation.NumberOfProcessors = (USHORT)basicInfo.NumberOfProcessors;
+        PhSystemBasicInformation.NumberOfPhysicalPages = basicInfo.NumberOfPhysicalPages;
+        PhSystemBasicInformation.MaximumTimerResolution = basicInfo.TimerResolution;
+        PhSystemBasicInformation.AllocationGranularity = basicInfo.AllocationGranularity;
+        PhSystemBasicInformation.MaximumUserModeAddress = basicInfo.MaximumUserModeAddress;
+        PhSystemBasicInformation.ActiveProcessorsAffinityMask = basicInfo.ActiveProcessorsAffinityMask;
+    }
+
+    PhTraceInfo("InitializeSystemInformation: %!STATUS!", status);
+
+    return status;
 }
 
-VOID PhInitializeWindowsInformation(
+NTSTATUS PhInitializeWindowsInformation(
     VOID
     )
 {
-    RTL_OSVERSIONINFOEXW versionInfo;
+    NTSTATUS status;
+    RTL_OSVERSIONINFOEX versionInfo;
     ULONG majorVersion;
     ULONG minorVersion;
     ULONG buildVersion;
-    PH_FORMAT format[5];
 
-    memset(&versionInfo, 0, sizeof(RTL_OSVERSIONINFOEXW));
-    versionInfo.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
+    memset(&versionInfo, 0, sizeof(RTL_OSVERSIONINFOEX));
+    versionInfo.OSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEX);
 
-    if (!NT_SUCCESS(RtlGetVersion(&versionInfo)))
+    if (!NT_SUCCESS(status = RtlGetVersion(&versionInfo)))
     {
         WindowsVersion = WINDOWS_ANCIENT;
-        WindowsVersionName = L"Windows";
-        return;
+        return status;
     }
 
-    PhInitFormatU(&format[0], versionInfo.dwMajorVersion);
-    PhInitFormatC(&format[1], L'.');
-    PhInitFormatU(&format[2], versionInfo.dwMinorVersion);
-    PhInitFormatC(&format[3], L'.');
-    PhInitFormatU(&format[4], versionInfo.dwBuildNumber);
-    PhFormatToBuffer(
-        format,
-        RTL_NUMBER_OF(format),
-        WindowsVersionStringBuffer,
-        sizeof(WindowsVersionStringBuffer),
-        NULL
-        );
-
-    memcpy(&PhOsVersion, &versionInfo, sizeof(RTL_OSVERSIONINFOEXW));
-    majorVersion = versionInfo.dwMajorVersion;
-    minorVersion = versionInfo.dwMinorVersion;
-    buildVersion = versionInfo.dwBuildNumber;
+    memcpy(&PhOsVersion, &versionInfo, sizeof(RTL_OSVERSIONINFOEX));
+    majorVersion = versionInfo.MajorVersion;
+    minorVersion = versionInfo.MinorVersion;
+    buildVersion = versionInfo.BuildNumber;
 
     if (majorVersion == 6 && minorVersion < 1 || majorVersion < 6)
     {
         WindowsVersion = WINDOWS_ANCIENT;
-        WindowsVersionName = L"Windows";
     }
     // Windows 7, Windows Server 2008 R2
     else if (majorVersion == 6 && minorVersion == 1)
     {
         WindowsVersion = WINDOWS_7;
-        WindowsVersionName = L"Windows 7";
     }
     // Windows 8, Windows Server 2012
     else if (majorVersion == 6 && minorVersion == 2)
     {
         WindowsVersion = WINDOWS_8;
-        WindowsVersionName = L"Windows 8";
     }
     // Windows 8.1, Windows Server 2012 R2
     else if (majorVersion == 6 && minorVersion == 3)
     {
         WindowsVersion = WINDOWS_8_1;
-        WindowsVersionName = L"Windows 8.1";
     }
     // Windows 10, Windows Server 2016
     else if (majorVersion == 10 && minorVersion == 0)
     {
-        if (buildVersion > 26100)
+        if (buildVersion > 26200)
         {
             WindowsVersion = WINDOWS_NEW;
-            WindowsVersionName = L"Windows Insider Preview";
+        }
+        else if (buildVersion >= 26200)
+        {
+            WindowsVersion = WINDOWS_11_25H2;
         }
         else if (buildVersion >= 26100)
         {
             WindowsVersion = WINDOWS_11_24H2;
-            WindowsVersionName = L"Windows 11 24H2";
         }
         else if (buildVersion >= 22631)
         {
             WindowsVersion = WINDOWS_11_23H2;
-            WindowsVersionName = L"Windows 11 23H2";
         }
         else if (buildVersion >= 22621)
         {
             WindowsVersion = WINDOWS_11_22H2;
-            WindowsVersionName = L"Windows 11 22H2";
         }
         else if (buildVersion >= 22000)
         {
             WindowsVersion = WINDOWS_11;
-            WindowsVersionName = L"Windows 11";
         }
         else if (buildVersion >= 19045)
         {
             WindowsVersion = WINDOWS_10_22H2;
-            WindowsVersionName = L"Windows 10 22H2";
         }
         else if (buildVersion >= 19044)
         {
             WindowsVersion = WINDOWS_10_21H2;
-            WindowsVersionName = L"Windows 10 21H2";
         }
         else if (buildVersion >= 19043)
         {
             WindowsVersion = WINDOWS_10_21H1;
-            WindowsVersionName = L"Windows 10 21H1";
         }
         else if (buildVersion >= 19042)
         {
             WindowsVersion = WINDOWS_10_20H2;
-            WindowsVersionName = L"Windows 10 20H2";
         }
         else if (buildVersion >= 19041)
         {
             WindowsVersion = WINDOWS_10_20H1;
-            WindowsVersionName = L"Windows 10 20H1";
         }
         else if (buildVersion >= 18363)
         {
             WindowsVersion = WINDOWS_10_19H2;
-            WindowsVersionName = L"Windows 10 19H2";
         }
         else if (buildVersion >= 18362)
         {
             WindowsVersion = WINDOWS_10_19H1;
-            WindowsVersionName = L"Windows 10 19H1";
         }
         else if (buildVersion >= 17763)
         {
             WindowsVersion = WINDOWS_10_RS5;
-            WindowsVersionName = L"Windows 10 RS5";
         }
         else if (buildVersion >= 17134)
         {
             WindowsVersion = WINDOWS_10_RS4;
-            WindowsVersionName = L"Windows 10 RS4";
         }
         else if (buildVersion >= 16299)
         {
             WindowsVersion = WINDOWS_10_RS3;
-            WindowsVersionName = L"Windows 10 RS3";
         }
         else if (buildVersion >= 15063)
         {
             WindowsVersion = WINDOWS_10_RS2;
-            WindowsVersionName = L"Windows 10 RS2";
         }
         else if (buildVersion >= 14393)
         {
             WindowsVersion = WINDOWS_10_RS1;
-            WindowsVersionName = L"Windows 10 RS1";
         }
         else if (buildVersion >= 10586)
         {
             WindowsVersion = WINDOWS_10_TH2;
-            WindowsVersionName = L"Windows 10 TH2";
         }
         else if (buildVersion >= 10240)
         {
             WindowsVersion = WINDOWS_10;
-            WindowsVersionName = L"Windows 10 RTM";
         }
         else
         {
             WindowsVersion = WINDOWS_10;
-            WindowsVersionName = L"Windows 10";
         }
     }
     else
     {
         WindowsVersion = WINDOWS_NEW;
-        WindowsVersionName = L"Windows";
     }
+
+    return status;
 }
 
-BOOLEAN PhHeapInitialization(
+NTSTATUS PhHeapInitialization(
     VOID
     )
 {
-#if defined(PH_DEBUG_HEAP)
-    PhHeapHandle = RtlProcessHeap();
-#else
+#if !defined(PH_DEBUG_HEAP)
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+
     if (WindowsVersion >= WINDOWS_8)
     {
-        PhHeapHandle = RtlCreateHeap(
+        if (PhHeapHandle = RtlCreateHeap(
             HEAP_GROWABLE | HEAP_CREATE_SEGMENT_HEAP | HEAP_CLASS_1,
             NULL,
             0,
             0,
             NULL,
             NULL
-            );
+            ))
+        {
+            status = STATUS_SUCCESS;
+        }
     }
 
-    if (!PhHeapHandle)
+    if (!NT_SUCCESS(status))
     {
-        const ULONG defaultHeapCompatibilityMode = HEAP_COMPATIBILITY_LFH;
-
-        PhHeapHandle = RtlCreateHeap(
+        if (PhHeapHandle = RtlCreateHeap(
             HEAP_GROWABLE | HEAP_CLASS_1,
             NULL,
             2 * 1024 * 1024, // 2 MB
             1024 * 1024, // 1 MB
             NULL,
             NULL
-            );
+            ))
+        {
+            status = STATUS_SUCCESS;
+        }
 
-        if (!PhHeapHandle)
-            return FALSE;
-
-        RtlSetHeapInformation(
-            PhHeapHandle,
-            HeapCompatibilityInformation,
-            &defaultHeapCompatibilityMode,
-            sizeof(ULONG)
-            );
+        if (NT_SUCCESS(status))
+        {
+            const ULONG defaultHeapCompatibilityMode = HEAP_COMPATIBILITY_MODE_LFH;
+            RtlSetHeapInformation(
+                PhHeapHandle,
+                HeapCompatibilityInformation,
+                &defaultHeapCompatibilityMode,
+                sizeof(ULONG)
+                );
+        }
     }
+
+    PhTraceInfo("HeapInitialization: %!STATUS!", status);
+    return status;
+#else
+    PhHeapHandle = RtlProcessHeap();
+    return STATUS_SUCCESS;
 #endif
-    return TRUE;
 }
 
-BOOLEAN PhInitializeProcessorInformation(
+NTSTATUS PhInitializeProcessorInformation(
     VOID
     )
 {
@@ -383,22 +339,25 @@ BOOLEAN PhInitializeProcessorInformation(
         PhSystemProcessorInformation.SingleProcessorGroup = TRUE;
         PhSystemProcessorInformation.NumberOfProcessors = PhSystemBasicInformation.NumberOfProcessors;
         PhSystemProcessorInformation.NumberOfProcessorGroups = 1;
-        PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = PhAllocate(sizeof(KAFFINITY));
-        PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[0] = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+        PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = &PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+        return STATUS_SUCCESS;
     }
     else
     {
+        NTSTATUS status;
         PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInformation;
         ULONG processorInformationLength;
         USHORT numberOfProcessorGroups = 0;
         USHORT numberOfProcessors = 0;
         USHORT i;
 
-        if (NT_SUCCESS(PhGetSystemLogicalProcessorInformation(
+        status = PhGetSystemLogicalProcessorInformation(
             RelationGroup,
             &processorInformation,
             &processorInformationLength
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             numberOfProcessorGroups = processorInformation->Group.ActiveGroupCount;
 
@@ -436,42 +395,50 @@ BOOLEAN PhInitializeProcessorInformation(
             PhSystemProcessorInformation.SingleProcessorGroup = TRUE;
             PhSystemProcessorInformation.NumberOfProcessors = PhSystemBasicInformation.NumberOfProcessors;
             PhSystemProcessorInformation.NumberOfProcessorGroups = 1;
-            PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = PhAllocate(sizeof(KAFFINITY));
-            PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[0] = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+            PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = &PhSystemBasicInformation.ActiveProcessorsAffinityMask;
         }
-    }
 
-    return TRUE;
+        PhTraceInfo("InitializeProcessorInformation: %!STATUS!", status);
+
+        return status;
+    }
 }
 
+#define WORKAROUND_CRTBUG_EXITPROCESS
+#ifdef WORKAROUND_CRTBUG_EXITPROCESS
+PH_CLANG_DIAGNOSTIC_PUSH();
+PH_CLANG_DIAGNOSTIC_IGNORED("-Winvalid-noreturn");
+#endif
 _Use_decl_annotations_
 VOID PhExitApplication(
-    _In_opt_ NTSTATUS Status
+    _In_ NTSTATUS Status
     )
 {
     PhTraceInfo("%ls exiting: %!STATUS!", PhApplicationName, Status);
 
     WPP_CLEANUP();
 
-#define WORKAROUND_CRTBUG_EXITPROCESS
 #ifdef WORKAROUND_CRTBUG_EXITPROCESS
-    HANDLE standardHandle;
-
-    if (standardHandle = PhGetStdHandle(STD_OUTPUT_HANDLE))
-    {
-        DEVICE_TYPE deviceType;
-
-        if (NT_SUCCESS(PhGetDeviceType(NtCurrentProcess(), standardHandle, &deviceType)))
-        {
-            if (deviceType == FILE_DEVICE_CONSOLE)
-            {
-                FlushFileBuffers(standardHandle);
-            }
-        }
-    }
+    //HANDLE standardHandle;
+    //
+    //if (standardHandle = PhGetStdHandle(STD_OUTPUT_HANDLE))
+    //{
+    //    DEVICE_TYPE deviceType;
+    //
+    //    if (NT_SUCCESS(PhGetDeviceType(NtCurrentProcess(), standardHandle, &deviceType)))
+    //    {
+    //        if (deviceType == FILE_DEVICE_CONSOLE)
+    //        {
+    //            FlushFileBuffers(standardHandle);
+    //        }
+    //    }
+    //}
 
     NtTerminateProcess(NtCurrentProcess(), Status);
 #else
     RtlExitUserProcess(Status);
 #endif
 }
+#ifdef WORKAROUND_CRTBUG_EXITPROCESS
+PH_CLANG_DIAGNOSTIC_POP();
+#endif

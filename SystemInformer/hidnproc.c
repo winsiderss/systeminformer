@@ -102,30 +102,13 @@ VOID PhZombieProcessesCleanupList(
     _In_ PPH_LIST UpdateList
     )
 {
-    if (ProcessesList)
-    {
-        for (ULONG i = 0; i < ProcessesList->Count; i++)
-        {
-            PPH_ZOMBIE_PROCESS_ENTRY entry = ProcessesList->Items[i];
-
-            if (entry->FileName)
-                PhDereferenceObject(entry->FileName);
-
-            PhFree(entry);
-        }
-
-        PhDereferenceObject(ProcessesList);
-    }
-
     if (UpdateList)
     {
         for (ULONG i = 0; i < UpdateList->Count; i++)
         {
             PPH_ZOMBIE_PROCESS_ENTRY entry = UpdateList->Items[i];
 
-            if (entry->FileName)
-                PhDereferenceObject(entry->FileName);
-
+            PhClearReference(&entry->FileName);
             PhFree(entry);
         }
 
@@ -140,6 +123,7 @@ VOID PhZombieProcessesCleanupList(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
  NTSTATUS PhZombieProcessesThread(
     _In_ PVOID Context
     )
@@ -236,7 +220,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             PhSaveWindowPlacementToSetting(L"ZombieProcessesWindowPosition", L"ZombieProcessesWindowSize", hwndDlg);
             PhSaveListViewColumnsToSetting(L"ZombieProcessesListViewColumns", PhZombieProcessesListViewHandle);
 
-            PhZombieProcessesCleanupList(NULL);
+            PhZombieProcessesCleanupList(ProcessesList);
 
             PhZombieProcessesWindowHandle = NULL;
         }
@@ -487,6 +471,12 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             REFLECT_MESSAGE_DLG(hwndDlg, PhZombieProcessesListViewHandle, uMsg, wParam, lParam);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&WindowLayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&WindowLayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&WindowLayoutManager);
@@ -636,8 +626,9 @@ BOOLEAN NTAPI PhpZombieProcessesCallback(
     )
 {
     PPH_ZOMBIE_PROCESS_ENTRY entry;
+    ULONG count = ((PPH_LIST)Context)->Count;
 
-    for (ULONG i = 0; i < ((PPH_LIST)Context)->Count; i++)
+    for (ULONG i = 0; i < count; i++)
     {
         PPH_ZOMBIE_PROCESS_ENTRY item = ((PPH_LIST)Context)->Items[i];
 
@@ -809,7 +800,7 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
                 if (!Callback(&entry, Context))
                     stop = TRUE;
 
-                PhDereferenceObject(entry.FileName);
+                PhDereferenceObject(fileName);
             }
 
             NtClose(processHandle);
@@ -831,7 +822,7 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
                 if (!Callback(&entry, Context))
                     stop = TRUE;
 
-                PhDereferenceObject(entry.FileName);
+                PhDereferenceObject(fileName);
             }
         }
 
@@ -906,7 +897,7 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
             if (context && !context->Callback(&entry, context->Context))
                 cont = FALSE;
 
-            PhDereferenceObject(entry.FileName);
+            PhDereferenceObject(fileName);
         }
 
         NtClose(processHandle);
@@ -1002,7 +993,7 @@ NTSTATUS NTAPI PhpEnumNextProcessHandles(
                     if (!context->Callback(&entry, context->Context))
                         goto CleanupExit;
 
-                    PhDereferenceObject(entry.FileName);
+                    PhDereferenceObject(fileName);
                 }
                 else
                 {
@@ -1126,7 +1117,7 @@ NTSTATUS PhpEnumZombieSubKeyHandles(
                             if (!Callback(&process, Context))
                                 break;
 
-                            PhDereferenceObject(process.FileName);
+                            PhDereferenceObject(fileName);
                         }
                         else
                         {
@@ -1158,7 +1149,7 @@ NTSTATUS PhpEnumZombieSubKeyHandles(
                     if (!Callback(&process, Context))
                         break;
 
-                    PhDereferenceObject(process.FileName);
+                    PhDereferenceObject(fileName);
                 }
                 else
                 {
@@ -1265,7 +1256,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
                                     if (!Callback(&process, Context))
                                         break;
 
-                                    PhDereferenceObject(process.FileName);
+                                    PhDereferenceObject(fileName);
                                 }
                                 else
                                 {
@@ -1402,7 +1393,7 @@ NTSTATUS PhpEnumNtdllHandles(
                                 if (!Callback(&process, Context))
                                     break;
 
-                                PhDereferenceObject(process.FileName);
+                                PhDereferenceObject(fileName);
                             }
                             else
                             {
@@ -1434,7 +1425,7 @@ NTSTATUS PhpEnumNtdllHandles(
                         if (!Callback(&process, Context))
                             break;
 
-                        PhDereferenceObject(process.FileName);
+                        PhDereferenceObject(fileName);
                     }
                     else
                     {

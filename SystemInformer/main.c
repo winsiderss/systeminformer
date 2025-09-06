@@ -18,8 +18,8 @@
 
 #include <extmgri.h>
 #include <mainwnd.h>
+#include <mainwndp.h>
 #include <netprv.h>
-#include <phconsole.h>
 #include <phsettings.h>
 #include <phsvc.h>
 #include <procprv.h>
@@ -30,75 +30,15 @@
 #include <settings.h>
 #include <srvprv.h>
 
-LONG PhMainMessageLoop(
-    VOID
-    );
-
-VOID PhActivatePreviousInstance(
-    VOID
-    );
-
-VOID PhInitializeCommonControls(
-    VOID
-    );
-
-VOID PhInitializeSuperclassControls( // delayhook.c
-    VOID
-    );
-
-BOOLEAN PhInitializeAppSystem(
-    VOID
-    );
-
-VOID PhpInitializeSettings(
-    VOID
-    );
-
-VOID PhpProcessStartupParameters(
-    VOID
-    );
-
-VOID PhpEnablePrivileges(
-    VOID
-    );
-
-VOID PhEnableTerminationPolicy(
-    _In_ BOOLEAN Enabled
-    );
-
-BOOLEAN PhInitializeDirectoryPolicy(
-    VOID
-    );
-
-BOOLEAN PhInitializeExceptionPolicy(
-    VOID
-    );
-
-BOOLEAN PhInitializeNamespacePolicy(
-    VOID
-    );
-
-BOOLEAN PhInitializeMitigationPolicy(
-    VOID
-    );
-
-BOOLEAN PhInitializeComPolicy(
-    VOID
-    );
-
-BOOLEAN PhInitializeTimerPolicy(
-    VOID
-    );
+#include <trace.h>
 
 BOOLEAN PhPluginsEnabled = FALSE;
 BOOLEAN PhPortableEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
-PH_STARTUP_PARAMETERS PhStartupParameters = { 0 };
-
+PH_STARTUP_PARAMETERS PhStartupParameters = { .UpdateChannel = PhInvalidChannel };
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
 PH_PROVIDER_THREAD PhSecondaryProviderThread;
 PH_PROVIDER_THREAD PhTertiaryProviderThread;
-
 static PPH_LIST DialogList = NULL;
 static PPH_LIST FilterList = NULL;
 static PH_AUTO_POOL BaseAutoPool;
@@ -115,15 +55,15 @@ INT WINAPI wWinMain(
     PHP_BASE_THREAD_DBG dbg;
 #endif
 
-    if (!NT_SUCCESS(PhInitializePhLib(L"System Informer", Instance)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"System Informer")))
         return 1;
-    if (!PhInitializeDirectoryPolicy())
+    if (!NT_SUCCESS(PhInitializeDirectoryPolicy()))
         return 1;
-    if (!PhInitializeExceptionPolicy())
+    if (!NT_SUCCESS(PhInitializeExceptionPolicy()))
         return 1;
-    if (!PhInitializeNamespacePolicy())
+    if (!NT_SUCCESS(PhInitializeNamespacePolicy()))
         return 1;
-    if (!PhInitializeComPolicy())
+    if (!NT_SUCCESS(PhInitializeComPolicy()))
         return 1;
 
     PhpProcessStartupParameters();
@@ -135,43 +75,10 @@ INT WINAPI wWinMain(
     }
 
     PhGuiSupportInitialization();
-    PhpInitializeSettings();
 
-    if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
-        !PhStartupParameters.NewInstance &&
-        !PhStartupParameters.ShowOptions &&
-        !PhStartupParameters.PhSvc &&
-        !PhStartupParameters.KphStartupHigh &&
-        !PhStartupParameters.KphStartupMax)
-    {
-        PhActivatePreviousInstance();
-    }
+    PhInitializeAppSettings();
 
-    if (PhGetIntegerSetting(L"EnableStartAsAdmin") &&
-        !PhStartupParameters.NewInstance &&
-        !PhStartupParameters.ShowOptions &&
-        !PhStartupParameters.PhSvc)
-    {
-        if (PhGetOwnTokenAttributes().Elevated)
-        {
-            if (PhGetIntegerSetting(L"EnableStartAsAdminAlwaysOnTop"))
-            {
-                if (NT_SUCCESS(PhRunAsAdminTaskUIAccess()))
-                {
-                    PhActivatePreviousInstance();
-                    PhExitApplication(STATUS_SUCCESS);
-                }
-            }
-        }
-        else
-        {
-            if (SUCCEEDED(PhRunAsAdminTask(&SI_RUNAS_ADMIN_TASK_NAME)))
-            {
-                PhActivatePreviousInstance();
-                PhExitApplication(STATUS_SUCCESS);
-            }
-        }
-    }
+    PhInitializePreviousInstance();
 
     PhInitializeSuperclassControls();
 
@@ -213,7 +120,7 @@ INT WINAPI wWinMain(
     }
 
     // N.B. Must be called after loading plugins since we set Microsoft signed only.
-    if (!PhInitializeMitigationPolicy())
+    if (!NT_SUCCESS(PhInitializeMitigationPolicy()))
         return 1;
 
     if (PhStartupParameters.PhSvc)
@@ -289,6 +196,7 @@ INT WINAPI wWinMain(
     }
 
     PhExitApplication(result);
+    return result;
 }
 
 LONG PhMainMessageLoop(
@@ -299,7 +207,7 @@ LONG PhMainMessageLoop(
     MSG message;
     HACCEL acceleratorTable;
 
-    acceleratorTable = LoadAccelerators(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND_ACCEL));
+    acceleratorTable = LoadAccelerators(NtCurrentImageBase(), MAKEINTRESOURCE(IDR_MAINWND_ACCEL));
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
@@ -380,7 +288,7 @@ VOID PhUnregisterDialog(
 
     indexOfDialog = PhFindItemList(DialogList, (PVOID)DialogWindowHandle);
 
-    if (indexOfDialog != -1)
+    if (indexOfDialog != ULONG_MAX)
         PhRemoveItemList(DialogList, indexOfDialog);
 }
 
@@ -423,20 +331,21 @@ typedef struct _PHP_PREVIOUS_MAIN_WINDOW_CONTEXT
 {
     HANDLE ProcessId;
     PPH_STRING WindowName;
-    PPH_LIST WindowList;
 } PHP_PREVIOUS_MAIN_WINDOW_CONTEXT, *PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT;
 
-static BOOL CALLBACK PhpPreviousInstanceWindowEnumProc(
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
     _In_ HWND WindowHandle,
     _In_ PVOID Context
     )
 {
     PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT context = (PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT)Context;
-    ULONG processId = ULONG_MAX;
+    CLIENT_ID clientId;
 
-    GetWindowThreadProcessId(WindowHandle, &processId);
+    if (!NT_SUCCESS(PhGetWindowClientId(WindowHandle, &clientId)))
+        return TRUE;
 
-    if (UlongToHandle(processId) == context->ProcessId && context->WindowName)
+    if (clientId.UniqueProcess == context->ProcessId)
     {
         WCHAR className[256];
 
@@ -444,7 +353,30 @@ static BOOL CALLBACK PhpPreviousInstanceWindowEnumProc(
         {
             if (PhEqualStringZ(className, PhGetString(context->WindowName), FALSE))
             {
-                PhAddItemList(context->WindowList, WindowHandle);
+                ULONG_PTR result = 0;
+
+                PhTrace(
+                    "Found previous instance window: %ls (%p)",
+                    className,
+                    WindowHandle
+                    );
+
+                SendMessageTimeout(
+                    WindowHandle,
+                    WM_PH_ACTIVATE,
+                    PhStartupParameters.SelectPid,
+                    0,
+                    SMTO_ABORTIFHUNG | SMTO_BLOCK,
+                    5000,
+                    &result
+                    );
+
+                if (result == PH_ACTIVATE_REPLY)
+                {
+                    SetForegroundWindow(WindowHandle);
+
+                    PhExitApplication(STATUS_SUCCESS);
+                }
             }
         }
     }
@@ -452,105 +384,142 @@ static BOOL CALLBACK PhpPreviousInstanceWindowEnumProc(
     return TRUE;
 }
 
-static BOOLEAN NTAPI PhpPreviousInstancesCallback(
+static VOID PhForegroundPreviousInstance(
+    _In_ HANDLE ProcessId
+    )
+{
+    PHP_PREVIOUS_MAIN_WINDOW_CONTEXT context;
+    HANDLE processHandle = NULL;
+    HANDLE tokenHandle = NULL;
+    PH_TOKEN_USER tokenUser;
+    ULONG sessionId = 0;
+    ULONG attempts = 0;
+
+    PhTraceFuncEnter("Foreground previous instance: %lu", HandleToUlong(ProcessId));
+
+    memset(&context, 0, sizeof(PHP_PREVIOUS_MAIN_WINDOW_CONTEXT));
+    context.ProcessId = ProcessId;
+    context.WindowName = PhGetStringSetting(L"MainWindowClassName");
+
+    if (PhIsNullOrEmptyString(context.WindowName))
+        goto CleanupExit;
+    if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(PhGetProcessSessionId(processHandle, &sessionId)))
+        goto CleanupExit;
+    if (NtCurrentPeb()->SessionId != sessionId)
+        goto CleanupExit;
+    if (!NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
+        goto CleanupExit;
+    if (!PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
+        goto CleanupExit;
+
+    // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
+    do
+    {
+        PhEnumWindows(PhPreviousInstanceWindowEnumProc, &context);
+        PhDelayExecution(500);
+    } while (++attempts < 10);
+
+CleanupExit:
+
+    if (tokenHandle)
+    {
+        NtClose(tokenHandle);
+    }
+
+    if (processHandle)
+    {
+        NtClose(processHandle);
+    }
+
+    PhClearReference(&context.WindowName);
+
+    PhTraceFuncExit(
+        "Foreground previous instance: %lu (%lu attempts)",
+        HandleToUlong(ProcessId),
+        attempts
+        );
+}
+
+VOID PhInitializePreviousInstance(
+    VOID
+    )
+{
+    if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
+        !PhStartupParameters.NewInstance &&
+        !PhStartupParameters.ShowOptions &&
+        !PhStartupParameters.PhSvc &&
+        !PhStartupParameters.KphStartupHigh &&
+        !PhStartupParameters.KphStartupMax)
+    {
+        PhActivatePreviousInstance();
+    }
+
+    if (PhGetIntegerSetting(L"EnableStartAsAdmin") &&
+        !PhStartupParameters.NewInstance &&
+        !PhStartupParameters.ShowOptions &&
+        !PhStartupParameters.PhSvc)
+    {
+        if (PhGetOwnTokenAttributes().Elevated)
+        {
+            if (PhGetIntegerSetting(L"EnableStartAsAdminAlwaysOnTop"))
+            {
+                if (NT_SUCCESS(PhRunAsAdminTaskUIAccess()))
+                {
+                    PhActivatePreviousInstance();
+                    PhExitApplication(STATUS_SUCCESS);
+                }
+            }
+        }
+        else
+        {
+            if (SUCCEEDED(PhRunAsAdminTask(&SI_RUNAS_ADMIN_TASK_NAME)))
+            {
+                PhActivatePreviousInstance();
+                PhExitApplication(STATUS_SUCCESS);
+            }
+        }
+    }
+}
+
+_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
+BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_ PVOID Context
     )
 {
-    static CONST PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"SiMutant_");
-    HANDLE objectHandle;
-    UNICODE_STRING objectName;
-    OBJECT_ATTRIBUTES objectAttributes;
     MUTANT_OWNER_INFORMATION objectInfo;
+    HANDLE objectHandle;
 
-    if (!PhStartsWithStringRef(Name, &objectNameSr, FALSE))
+    if (!PhStartsWithStringRef2(Name, L"SiMutant_", FALSE))
         return TRUE;
-    if (!PhStringRefToUnicodeString(Name, &objectName))
-        return TRUE;
 
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &objectName,
-        OBJ_CASE_INSENSITIVE,
-        RootDirectory,
-        NULL
-        );
-
-    if (!NT_SUCCESS(NtOpenMutant(
+    if (NT_SUCCESS(PhOpenMutant(
         &objectHandle,
         MUTANT_QUERY_STATE,
-        &objectAttributes
+        RootDirectory,
+        Name
         )))
     {
-        return TRUE;
-    }
-
-    if (NT_SUCCESS(PhGetMutantOwnerInformation(
-        objectHandle,
-        &objectInfo
-        )))
-    {
-        HANDLE processHandle = NULL;
-        HANDLE tokenHandle = NULL;
-        PROCESS_BASIC_INFORMATION basicInfo;
-        PH_TOKEN_USER tokenUser;
-        ULONG attempts = 50;
-
-        if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
-            goto CleanupExit;
-        if (!NT_SUCCESS(PhOpenProcessClientId(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, &objectInfo.ClientId)))
-            goto CleanupExit;
-        if (!NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
-            goto CleanupExit;
-        if (!NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
-            goto CleanupExit;
-        if (!NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
-            goto CleanupExit;
-        if (!PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
-            goto CleanupExit;
-
-        //AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
-        //PhConsoleSetForeground(processHandle, TRUE);
-
-        // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
-        do
+        if (NT_SUCCESS(PhGetMutantOwnerInformation(
+            objectHandle,
+            &objectInfo
+            )))
         {
-            PHP_PREVIOUS_MAIN_WINDOW_CONTEXT context;
-
-            memset(&context, 0, sizeof(PHP_PREVIOUS_MAIN_WINDOW_CONTEXT));
-            context.ProcessId = objectInfo.ClientId.UniqueProcess;
-            context.WindowName = PhGetStringSetting(L"MainWindowClassName");
-            context.WindowList = PhCreateList(2);
-
-            PhEnumWindows(PhpPreviousInstanceWindowEnumProc, &context);
-
-            for (ULONG i = 0; i < context.WindowList->Count; i++)
+            if (objectInfo.ClientId.UniqueProcess != NtCurrentProcessId())
             {
-                HWND windowHandle = context.WindowList->Items[i];
-                ULONG_PTR result = 0;
-
-                SendMessageTimeout(windowHandle, WM_PH_ACTIVATE, PhStartupParameters.SelectPid, 0, SMTO_ABORTIFHUNG | SMTO_BLOCK, 5000, &result);
-
-                if (result == PH_ACTIVATE_REPLY)
-                {
-                    SetForegroundWindow(windowHandle);
-                    PhExitApplication(STATUS_SUCCESS);
-                }
+                PhForegroundPreviousInstance(objectInfo.ClientId.UniqueProcess);
             }
+        }
 
-            PhDereferenceObject(context.WindowList);
-            PhDereferenceObject(context.WindowName);
-            PhDelayExecution(100);
-        } while (--attempts != 0);
-
-    CleanupExit:
-        if (tokenHandle) NtClose(tokenHandle);
-        if (processHandle) NtClose(processHandle);
+        NtClose(objectHandle);
     }
 
-    NtClose(objectHandle);
     return TRUE;
 }
 
@@ -558,7 +527,62 @@ VOID PhActivatePreviousInstance(
     VOID
     )
 {
-    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
+    NTSTATUS status;
+    //HANDLE fileHandle;
+    //PPH_STRING applicationFileName;
+
+    PhTraceFuncEnter("Activate previous instance");
+
+    status = PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
+
+    //if (applicationFileName = PhGetApplicationFileName())
+    //{
+    //    if (NT_SUCCESS(status = PhOpenFile(
+    //        &fileHandle,
+    //        &applicationFileName->sr,
+    //        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+    //        NULL,
+    //        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+    //        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+    //        NULL
+    //        )))
+    //    {
+    //        PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
+
+    //        if (NT_SUCCESS(status = PhGetProcessIdsUsingFile(
+    //            fileHandle,
+    //            &processIds
+    //            )))
+    //        {
+    //            for (ULONG i = 0; i < processIds->NumberOfProcessIdsInList; i++)
+    //            {
+    //                HANDLE processId = processIds->ProcessIdList[i];
+    //                PPH_STRING fileName;
+
+    //                if (processId == NtCurrentProcessId())
+    //                    continue;
+
+    //                if (NT_SUCCESS(status = PhGetProcessImageFileNameByProcessId(processId, &fileName)))
+    //                {
+    //                    if (PhEqualString(applicationFileName, fileName, TRUE))
+    //                    {
+    //                        PhForegroundPreviousInstance(processId);
+    //                    }
+
+    //                    PhDereferenceObject(fileName);
+    //                }
+    //            }
+
+    //            PhFree(processIds);
+    //        }
+
+    //        NtClose(fileHandle);
+    //    }
+
+    //    PhDereferenceObject(applicationFileName);
+    //}
+
+    PhTraceFuncExit("Activate previous instance: %!STATUS!", status);
 }
 
 VOID PhInitializeCommonControls(
@@ -582,7 +606,7 @@ VOID PhInitializeCommonControls(
     InitCommonControlsEx(&icex);
 }
 
-BOOLEAN PhInitializeDirectoryPolicy(
+NTSTATUS PhInitializeDirectoryPolicy(
     VOID
     )
 {
@@ -591,26 +615,26 @@ BOOLEAN PhInitializeDirectoryPolicy(
     PH_STRINGREF currentDirectory;
 
     if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
 
     PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath, &currentDirectory);
 
     if (PhEqualStringRef(&applicationDirectory->sr, &currentDirectory, TRUE))
     {
         PhDereferenceObject(applicationDirectory);
-        return TRUE;
+        return STATUS_SUCCESS;
     }
 
     if (!PhStringRefToUnicodeString(&applicationDirectory->sr, &applicationDirectoryUs))
     {
         PhDereferenceObject(applicationDirectory);
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     }
 
     if (!NT_SUCCESS(RtlSetCurrentDirectory_U(&applicationDirectoryUs)))
     {
         PhDereferenceObject(applicationDirectory);
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     }
 
     PhDereferenceObject(applicationDirectory);
@@ -715,13 +739,13 @@ VOID PhpCreateUnhandledExceptionCrashDump(
     PhDereferenceObject(directory);
 }
 
-ULONG CALLBACK PhpUnhandledExceptionCallback(
+LONG CALLBACK PhpUnhandledExceptionCallback(
     _In_ PEXCEPTION_POINTERS ExceptionInfo
     )
 {
     PPH_STRING errorMessage;
     PPH_STRING message;
-    INT result;
+    LONG result;
 
     // Let the debugger handle the exception. (dmex)
     if (PhIsDebuggerPresent())
@@ -730,7 +754,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
-    if (PhIsInteractiveUserSession())
+    if (NT_SUCCESS(PhIsInteractiveUserSession()))
     {
         TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
         TASKDIALOG_BUTTON buttons[6] =
@@ -868,7 +892,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
 }
 #pragma endregion
 
-BOOLEAN PhInitializeExceptionPolicy(
+NTSTATUS PhInitializeExceptionPolicy(
     VOID
     )
 {
@@ -883,12 +907,12 @@ BOOLEAN PhInitializeExceptionPolicy(
 #else
     PhSetProcessErrorMode(NtCurrentProcess(), 0);
 #endif
-    RtlSetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
+    SetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
-BOOLEAN PhInitializeNamespacePolicy(
+NTSTATUS PhInitializeNamespacePolicy(
     VOID
     )
 {
@@ -911,14 +935,14 @@ BOOLEAN PhInitializeNamespacePolicy(
         &returnLength
         ))
     {
-        return FALSE;
+        return STATUS_BUFFER_TOO_SMALL;
     }
 
     objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
     objectNameSr.Buffer = formatBuffer;
 
     if (!PhStringRefToUnicodeString(&objectNameSr, &objectNameUs))
-        return FALSE;
+        return STATUS_NAME_TOO_LONG;
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -935,10 +959,10 @@ BOOLEAN PhInitializeNamespacePolicy(
         TRUE
         );
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
-BOOLEAN PhInitializeMitigationPolicy(
+NTSTATUS PhInitializeMitigationPolicy(
     VOID
     )
 {
@@ -968,10 +992,10 @@ BOOLEAN PhInitializeMitigationPolicy(
         //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
     }
 #endif
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
-BOOLEAN PhInitializeComPolicy(
+NTSTATUS PhInitializeComPolicy(
     VOID
     )
 {
@@ -1013,12 +1037,12 @@ BOOLEAN PhInitializeComPolicy(
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
     PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     PhCreateAcl(dacl, securityDescriptorAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeAuthenticatedUserSid);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeLocalSystemSid);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, administratorsSid);
-    RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
-    RtlSetGroupSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
-    RtlSetOwnerSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeAuthenticatedUserSid);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeLocalSystemSid);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, administratorsSid);
+    PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+    PhSetGroupSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
+    PhSetOwnerSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
 
     if (!SUCCEEDED(CoInitializeSecurity(
         securityDescriptor,
@@ -1036,6 +1060,7 @@ BOOLEAN PhInitializeComPolicy(
     }
 
 #ifdef DEBUG
+    assert(RtlValidSecurityDescriptor(securityDescriptor));
     assert(securityDescriptorAllocationLength < sizeof(securityDescriptorBuffer));
     assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif
@@ -1045,7 +1070,7 @@ BOOLEAN PhInitializeComPolicy(
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         NOTHING;
 
-    return TRUE;
+    return STATUS_SUCCESS;
 #endif
 }
 
@@ -1074,7 +1099,7 @@ VOID PhEnableTerminationPolicy(
     }
 }
 
-BOOLEAN PhInitializeTimerPolicy(
+NTSTATUS PhInitializeTimerPolicy(
     VOID
     )
 {
@@ -1082,26 +1107,26 @@ BOOLEAN PhInitializeTimerPolicy(
 
     SetUserObjectInformation(NtCurrentProcess(), UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &timerSuppression, sizeof(BOOL));
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
-BOOLEAN PhInitializeAppSystem(
+NTSTATUS PhInitializeAppSystem(
     VOID
     )
 {
     if (!PhProcessProviderInitialization())
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     if (!PhServiceProviderInitialization())
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     if (!PhNetworkProviderInitialization())
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
 
     PhSetHandleClientIdFunction(PhGetClientIdName);
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
-VOID PhpInitializeSettings(
+VOID PhInitializeAppSettings(
     VOID
     )
 {
@@ -1110,9 +1135,6 @@ VOID PhpInitializeSettings(
 
     if (!PhStartupParameters.NoSettings)
     {
-        static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
-        PPH_STRING settingsFileName;
-
         // There are three possible locations for the settings file:
         // 1. The file name given in the command line.
         // 2. A file named SystemInformer.exe.settings.xml in the program directory. (This changes
@@ -1122,30 +1144,39 @@ VOID PhpInitializeSettings(
         // 1. File specified in command line
         if (PhStartupParameters.SettingsFileName)
         {
-            // Get an absolute path now.
-            PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, &PhSettingsFileName, NULL);
+            PPH_STRING settingsFileName;
+
+            if (PhDetermineDosPathNameType(&PhStartupParameters.SettingsFileName->sr) == RtlPathTypeRooted)
+            {
+                PhSetReference(&PhSettingsFileName, PhStartupParameters.SettingsFileName);
+            }
+            else
+            {
+                // Get an absolute path now.
+                if (NT_SUCCESS(PhGetFullPath(PhGetString(PhStartupParameters.SettingsFileName), &settingsFileName, NULL)))
+                {
+                    PhMoveReference(&PhSettingsFileName, PhDosPathNameToNtPathName(&settingsFileName->sr));
+                    PhDereferenceObject(settingsFileName);
+                }
+            }
         }
 
         // 2. File in program directory
         if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
-            PPH_STRING applicationFileName;
+            PPH_STRING settingsFileName;
 
-            if (applicationFileName = PhGetApplicationFileName())
+            if (settingsFileName = PhGetApplicationFileNameZ(L".settings.xml"))
             {
-                settingsFileName = PhConcatStringRef2(&applicationFileName->sr, &settingsSuffix);
-
                 if (PhDoesFileExist(&settingsFileName->sr))
                 {
-                    PhSettingsFileName = settingsFileName;
+                    PhMoveReference(&PhSettingsFileName, settingsFileName);
                     PhPortableEnabled = TRUE;
                 }
                 else
                 {
                     PhDereferenceObject(settingsFileName);
                 }
-
-                PhDereferenceObject(applicationFileName);
             }
         }
 
@@ -1175,8 +1206,6 @@ VOID PhpInitializeSettings(
                     ) == IDYES)
                 {
                     HANDLE fileHandle;
-                    IO_STATUS_BLOCK isb;
-                    CHAR data[] = "<settings></settings>";
 
                     // This used to delete the file. But it's better to keep the file there
                     // and overwrite it with some valid XML, especially with case (2) above.
@@ -1190,7 +1219,8 @@ VOID PhpInitializeSettings(
                         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                         )))
                     {
-                        NtWriteFile(fileHandle, NULL, NULL, NULL, &isb, data, sizeof(data) - 1, NULL, NULL);
+                        static CHAR dataXml[] = "<settings></settings>";
+                        PhWriteFile(fileHandle, dataXml, sizeof(dataXml) - 1, NULL, NULL);
                         NtClose(fileHandle);
                     }
                 }
@@ -1246,7 +1276,7 @@ VOID PhpInitializeSettings(
         PhSetIntegerSetting(L"SampleCount", sampleCount);
     }
 
-    if (PhStartupParameters.UpdateChannel)
+    if (PhStartupParameters.UpdateChannel != PhInvalidChannel)
     {
         PhSetIntegerSetting(L"ReleaseChannel", PhStartupParameters.UpdateChannel);
     }
@@ -1291,7 +1321,7 @@ typedef enum _PH_COMMAND_ARG
 } PH_COMMAND_ARG;
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
     )
@@ -1439,7 +1469,7 @@ VOID PhpProcessStartupParameters(
     VOID
     )
 {
-    PH_COMMAND_LINE_OPTION options[] =
+    CONST PH_COMMAND_LINE_OPTION options[] =
     {
         { PH_ARG_SETTINGS, L"settings", MandatoryArgumentType },
         { PH_ARG_NOSETTINGS, L"nosettings", NoArgumentType },

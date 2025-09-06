@@ -76,10 +76,10 @@ typedef struct _D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1
 #define PH_RECORD_MAX_USAGE 1
 
 EXTERN_C PPH_PLUGIN PluginInstance;
-extern LIST_ENTRY EtProcessBlockListHead;
-extern LIST_ENTRY EtNetworkBlockListHead;
-extern HWND ProcessTreeNewHandle;
-extern HWND NetworkTreeNewHandle;
+EXTERN_C LIST_ENTRY EtProcessBlockListHead;
+EXTERN_C LIST_ENTRY EtNetworkBlockListHead;
+EXTERN_C HWND ProcessTreeNewHandle;
+EXTERN_C HWND NetworkTreeNewHandle;
 
 EXTERN_C ULONG EtWindowsVersion;
 EXTERN_C BOOLEAN EtIsExecutingInWow64;
@@ -197,7 +197,7 @@ VOID DispatchPhSvcRequest(
 
 NTSTATUS CallGetProcessUnloadedDlls(
     _In_ HANDLE ProcessId,
-    _Out_ PPH_STRING *UnloadedDlls
+    _Out_ PPH_BYTES *UnloadedDlls
     );
 
 // Disk item
@@ -634,7 +634,7 @@ BOOLEAN EtQueryDeviceProperties(
     );
 
 PPH_STRING EtGetNodeEngineTypeString(
-    _In_ D3DKMT_NODEMETADATA NodeMetaData
+    _In_ D3DKMT_NODEMETADATA* NodeMetaData
     );
 
 BOOLEAN EtIsSoftwareDevice(
@@ -1545,21 +1545,25 @@ VOID ShowFwContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU TreeMouseEvent
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemModifiedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemRemovedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemsUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1574,6 +1578,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwSearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1675,7 +1680,7 @@ NTSTATUS EtDuplicateHandleFromProcessEx(
     );
 
 PPH_STRING EtGetWindowStationType(
-    _In_ PPH_STRINGREF StationName
+    _In_ PCPH_STRINGREF StationName
     );
 
 NTSTATUS EtObjectManagerGetHandleInfoEx(
@@ -1690,7 +1695,7 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
 #include <winsta.h>
 
 ULONG EtSessionIdFromObjectName(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 PCWSTR EtMapSessionConnectState(

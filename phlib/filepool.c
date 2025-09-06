@@ -129,10 +129,9 @@ NTSTATUS PhCreateFilePool(
     }
 
     // Create a section.
-    status = NtCreateSection(
+    status = PhCreateSection(
         &sectionHandle,
         SECTION_ALL_ACCESS,
-        NULL,
         &fileSize,
         !ReadOnly ? PAGE_READWRITE : PAGE_READONLY,
         SEC_COMMIT,
@@ -754,11 +753,10 @@ NTSTATUS PhFppMapRange(
     sectionOffset.QuadPart = Offset;
     viewSize = Size;
 
-    status = NtMapViewOfSection(
+    status = PhMapViewOfSection(
         Pool->SectionHandle,
         NtCurrentProcess(),
         &baseAddress,
-        0,
         viewSize,
         &sectionOffset,
         &viewSize,
@@ -784,7 +782,7 @@ NTSTATUS PhFppUnmapRange(
     _In_ PVOID Base
     )
 {
-    return NtUnmapViewOfSection(NtCurrentProcess(), Base);
+    return PhUnmapViewOfSection(NtCurrentProcess(), Base);
 }
 
 /**

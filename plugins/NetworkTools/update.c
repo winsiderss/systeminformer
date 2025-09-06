@@ -143,6 +143,11 @@ NTSTATUS ExtractUpdateToFile(
     return status;
 }
 
+#define SetDialogStatusText(WindowHandle, Text) \
+    SendMessage((WindowHandle), TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)(Text))
+#define SetDialogContentText(WindowHandle, Text) \
+    SendMessage((WindowHandle), TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)(Text))
+
 _Success_(return)
 BOOLEAN GeoLiteDownloadUpdateToFile(
     _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context,
@@ -170,7 +175,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
         PhGetString(httpRequestString)
         ));
 
-    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
+    SetDialogStatusText(Context->DialogHandle, L"Connecting...");
 
     if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
@@ -179,35 +184,30 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
     if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(httpRequestString), PH_HTTP_FLAG_SECURE)))
         goto CleanupExit;
 
-    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
+    SetDialogStatusText(Context->DialogHandle, L"Sending download request...");
 
     {
         PPH_STRING key = PhGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
         PPH_STRING id = PhGetStringSetting(SETTING_NAME_GEOLITE_API_ID);
 
-        if (PhIsNullOrEmptyString(key) || PhIsNullOrEmptyString(id))
-        {
+        if (!PhIsNullOrEmptyString(key) && !PhIsNullOrEmptyString(id))
+            status = PhHttpSetCredentials(httpContext, PhGetString(id), PhGetString(key));
+        else
             status = STATUS_GENERIC_COMMAND_FAILED;
-            PhClearReference(&key);
-            PhClearReference(&id);
-            goto CleanupExit;
-        }
-
-        if (!NT_SUCCESS(status = PhHttpSetCredentials(httpContext, PhGetString(id), PhGetString(key))))
-        {
-            PhClearReference(&key);
-            PhClearReference(&id);
-            goto CleanupExit;
-        }
 
         PhClearReference(&key);
         PhClearReference(&id);
+
+        if (!NT_SUCCESS(status))
+        {
+            goto CleanupExit;
+        }
     }
 
-    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, PH_HTTP_NO_REQUEST_DATA, 0, PH_HTTP_IGNORE_REQUEST_TOTAL_LENGTH)))
         goto CleanupExit;
 
-    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
+    SetDialogStatusText(Context->DialogHandle, L"Waiting for response...");
 
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
@@ -220,7 +220,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
 
     httpString = GeoLiteDatabaseNameFormatString(L"Downloading GeoLite2-%s...");
     SendMessage(Context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
-    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhGetString(httpString));
+    SetDialogStatusText(Context->DialogHandle, PhGetString(httpString));
     PhDereferenceObject(httpString);
 
     // Extract the content hash from the request headers.
@@ -395,11 +395,8 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
         PPH_STRING finalHashString;
         UCHAR finalHashBuffer[32];
 
-        if (!PhFinalHash(&hashContext, finalHashBuffer, 16, NULL))
-        {
-            status = STATUS_FAIL_CHECK;
+        if (!NT_SUCCESS(status = PhFinalHash(&hashContext, finalHashBuffer, 16, NULL)))
             goto CleanupExit;
-        }
 
         finalHashString = PhBufferToHexString(finalHashBuffer, 16);
 
@@ -667,6 +664,7 @@ HRESULT CALLBACK GeoLiteDialogBootstrapCallback(
     return S_OK;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS GeoLiteUpdateTaskDialogThread(
     _In_ PVOID Parameter
     )
@@ -798,7 +796,7 @@ VOID ShowGeoLiteUpdateDialog(
             L"A license key and account number are required to download GeoLite database updates and either the key or number are not configured.\n\n"
             L"GeoLite license keys and accounts are free. If you're unsure how to create keys then please review the documentation here: <a href=\"https://support.maxmind.com/hc/en-us/articles/4407111582235-Generate-a-License-Key\">Generate-a-License-Key</a>\n\n"
             L"Once you've created the key you can copy/paste the text into the Options window > NetworkTools settings and System Informer can start downloading GeoLite database updates.\n\n"
-            L"Special thanks to MaxMind (<a href=\"http://www.maxmind.com\">http://www.maxmind.com</a>) for continuing free GeoLite services <3";
+            L"Special thanks to MaxMind (<a href=\"https://www.maxmind.com\">https://www.maxmind.com</a>) for continuing free GeoLite services <3";
 
         PhShowTaskDialog(&config, NULL, NULL, NULL);
     }

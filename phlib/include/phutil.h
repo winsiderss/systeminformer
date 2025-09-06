@@ -19,6 +19,8 @@ extern CONST WCHAR *PhSizeUnitNames[7];
 extern ULONG PhMaxSizeUnit;
 extern USHORT PhMaxPrecisionUnit;
 extern FLOAT PhMaxPrecisionLimit;
+extern CONST PH_STRINGREF PhPrefixUnitNamesCounted[7];
+extern CONST PH_STRINGREF PhSiPrefixUnitNamesCounted[7];
 
 typedef struct _PH_INTEGER_PAIR
 {
@@ -73,7 +75,7 @@ typedef struct _PH_RECTANGLE
 FORCEINLINE
 VOID
 PhRectToRectangle(
-    _Inout_ PPH_RECTANGLE Rectangle,
+    _Out_ PPH_RECTANGLE Rectangle,
     _In_ PRECT Rect
     )
 {
@@ -86,7 +88,7 @@ PhRectToRectangle(
 FORCEINLINE
 VOID
 PhRectangleToRect(
-    _Inout_ PRECT Rect,
+    _Out_ PRECT Rect,
     _In_ PPH_RECTANGLE Rectangle
     )
 {
@@ -110,7 +112,7 @@ PhConvertRect(
 FORCEINLINE
 VOID
 PhMapRect(
-    _Inout_ PRECT Rect,
+    _Out_ PRECT Rect,
     _In_ PRECT InnerRect,
     _In_ PRECT OuterRect
     )
@@ -151,6 +153,14 @@ NTAPI
 PhCenterWindow(
     _In_ HWND WindowHandle,
     _In_opt_ HWND ParentWindowHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhMoveWindowToMonitor(
+    _In_ HWND WindowHandle,
+    _In_ HMONITOR MonitorHandle
     );
 
 //
@@ -357,9 +367,8 @@ PhTaskDialogNavigatePage(
     _In_ PTASKDIALOGCONFIG Config
     )
 {
-#ifdef DEBUG
     assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL));
-#endif
+
     #define WM_TDM_NAVIGATE_PAGE (WM_USER + 101)
 
     SendMessage(WindowHandle, WM_TDM_NAVIGATE_PAGE, 0, (LPARAM)(Config));
@@ -801,6 +810,17 @@ PhFormatTimeSpanRelative(
     _In_ ULONG64 TimeSpan
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhFormatTimeSpanRelativeToBuffer(
+    _In_ ULONG64 TimeSpan,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _In_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    );
+
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -845,6 +865,17 @@ PhFormatSize(
 
 #define PhaFormatSize(Size, MaxSizeUnit) \
     PH_AUTO_T(PH_STRING, PhFormatSize((Size), (MaxSizeUnit)))
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhFormatSizeToBuffer(
+    _In_ ULONG64 Size,
+    _In_ ULONG MaxSizeUnit,
+    _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
+    _In_opt_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    );
 
 PHLIBAPI
 PPH_STRING
@@ -896,22 +927,23 @@ PhIsFileVersionInfo32(
 }
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhGetFileVersionInfo(
-    _In_ PCWSTR FileName
+    _In_ PCWSTR FileName,
+    _Out_ PVOID* VersionInfo
     );
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhGetFileVersionInfoEx(
-    _In_ PCPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName,
+    _Out_ PVOID* VersionInfo
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetFileVersionInfoKey(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
@@ -919,6 +951,33 @@ PhGetFileVersionInfoKey(
     _In_ PCWSTR Key,
     _Out_opt_ PVOID* Buffer
     );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetFileVersionVarFileInfoValue(
+    _In_ PVOID VersionInfo,
+    _In_ PCPH_STRINGREF KeyName,
+    _Out_opt_ PVOID* Buffer,
+    _Out_opt_ PULONG BufferLength
+    );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetFileVersionVarFileInfoValueZ(
+    _In_ PVOID VersionInfo,
+    _In_ PCWSTR KeyName,
+    _Out_opt_ PVOID* Buffer,
+    _Out_opt_ PULONG BufferLength
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, KeyName);
+
+    return PhGetFileVersionVarFileInfoValue(VersionInfo, &string, Buffer, BufferLength);
+}
 
 PHLIBAPI
 VS_FIXEDFILEINFO*
@@ -966,8 +1025,7 @@ typedef struct _PH_IMAGE_VERSION_INFO
 } PH_IMAGE_VERSION_INFO, *PPH_IMAGE_VERSION_INFO;
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhInitializeImageVersionInfo(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
@@ -975,8 +1033,7 @@ PhInitializeImageVersionInfo(
     );
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhInitializeImageVersionInfoEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
@@ -1001,9 +1058,8 @@ PhFormatImageVersionInfo(
     _In_opt_ ULONG LineLimit
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhInitializeImageVersionInfoCached(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
@@ -1046,6 +1102,24 @@ PhExpandEnvironmentStringsZ(
     PhInitializeStringRef(&string, String);
 
     return PhExpandEnvironmentStrings(&string);
+}
+
+FORCEINLINE
+PPH_STRING
+PhConvertNtPathSeperatorToAltSeperator(
+    _In_ PPH_STRING String
+    )
+{
+    if (String)
+    {
+        for (ULONG i = 0; i < String->Length / sizeof(WCHAR); i++)
+        {
+            if (String->Buffer[i] == OBJ_NAME_PATH_SEPARATOR) // RtlNtPathSeperatorString
+                String->Buffer[i] = OBJ_NAME_ALTPATH_SEPARATOR; // RtlAlternateDosPathSeperatorString
+        }
+    }
+
+    return String;
 }
 
 PHLIBAPI
@@ -1142,6 +1216,27 @@ NTAPI
 PhGetApplicationFileName(
     VOID
     );
+
+FORCEINLINE
+PPH_STRING
+PhGetApplicationFileNameZ(
+    _In_ PCWSTR AppendPath
+    )
+{
+    PPH_STRING fileName = NULL;
+    PPH_STRING applicationFileName;
+
+    if (applicationFileName = PhGetApplicationFileName())
+    {
+        PH_STRINGREF string;
+
+        PhInitializeStringRef(&string, AppendPath);
+        fileName = PhConcatStringRef2(&applicationFileName->sr, &string);
+        PhDereferenceObject(applicationFileName);
+    }
+
+    return fileName;
+}
 
 PHLIBAPI
 PPH_STRING
@@ -1449,6 +1544,7 @@ NTAPI
 PhCreateProcessAsUser(
     _In_ PPH_CREATE_PROCESS_AS_USER_INFO Information,
     _In_ ULONG Flags,
+    _In_opt_ PVOID StartupInfo,
     _Out_opt_ PCLIENT_ID ClientId,
     _Out_opt_ PHANDLE ProcessHandle,
     _Out_opt_ PHANDLE ThreadHandle
@@ -1463,11 +1559,12 @@ PhFilterTokenForLimitedUser(
     );
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhGetSecurityDescriptorAsString(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    _Out_ PPH_STRING* SecurityDescriptorString
     );
 
 PHLIBAPI
@@ -1477,9 +1574,8 @@ PhGetSecurityDescriptorFromString(
     _In_ PCWSTR SecurityDescriptorString
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetObjectSecurityDescriptorAsString(
     _In_ HANDLE Handle,
@@ -1854,7 +1950,7 @@ ULONG
 NTAPI
 PhCrc32(
     _In_ ULONG Crc,
-    _In_reads_(Length) PCHAR Buffer,
+    _In_reads_(Length) PUCHAR Buffer,
     _In_ SIZE_T Length
     );
 
@@ -1869,11 +1965,17 @@ PhCrc32C(
 
 typedef enum _PH_HASH_ALGORITHM
 {
+    Crc32HashAlgorithm,
+    Crc32CHashAlgorithm,
     Md5HashAlgorithm,
     Sha1HashAlgorithm,
-    Crc32HashAlgorithm,
     Sha256HashAlgorithm
 } PH_HASH_ALGORITHM;
+
+#define PH_HASH_CRC32_LENGTH 4
+#define PH_HASH_MD5_LENGTH 16
+#define PH_HASH_SHA1_LENGTH 20
+#define PH_HASH_SHA256_LENGTH 32
 
 typedef struct _PH_HASH_CONTEXT
 {
@@ -1882,7 +1984,7 @@ typedef struct _PH_HASH_CONTEXT
 } PH_HASH_CONTEXT, *PPH_HASH_CONTEXT;
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhInitializeHash(
     _Out_ PPH_HASH_CONTEXT Context,
@@ -1890,23 +1992,44 @@ PhInitializeHash(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhUpdateHash(
-    _Inout_ PPH_HASH_CONTEXT Context,
+    _In_ PPH_HASH_CONTEXT Context,
     _In_reads_bytes_(Length) PVOID Buffer,
     _In_ ULONG Length
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhFinalHash(
-    _Inout_ PPH_HASH_CONTEXT Context,
+    _In_ PPH_HASH_CONTEXT Context,
     _Out_writes_bytes_(HashLength) PVOID Hash,
     _In_ ULONG HashLength,
     _Out_opt_ PULONG ReturnLength
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhFinalHashString(
+    _In_ PPH_HASH_CONTEXT Context,
+    _Out_ PPH_STRING* HashString
+    )
+{
+    NTSTATUS status;
+    UCHAR hash[PH_HASH_SHA256_LENGTH];
+
+    status = PhFinalHash(Context, hash, sizeof(hash), NULL);
+
+    if (NT_SUCCESS(status))
+    {
+        *HashString = PhBufferToHexString(hash, sizeof(hash));
+    }
+
+    return status;
+}
 
 typedef enum _PH_COMMAND_LINE_OPTION_TYPE
 {
@@ -1921,12 +2044,15 @@ typedef struct _PH_COMMAND_LINE_OPTION
     PCWSTR Name;
     PH_COMMAND_LINE_OPTION_TYPE Type;
 } PH_COMMAND_LINE_OPTION, *PPH_COMMAND_LINE_OPTION;
+typedef const PH_COMMAND_LINE_OPTION* PCPH_COMMAND_LINE_OPTION;
 
-typedef BOOLEAN (NTAPI *PPH_COMMAND_LINE_CALLBACK)(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+typedef _Function_class_(PH_COMMAND_LINE_CALLBACK)
+BOOLEAN NTAPI PH_COMMAND_LINE_CALLBACK(
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
     );
+typedef PH_COMMAND_LINE_CALLBACK *PPH_COMMAND_LINE_CALLBACK;
 
 #define PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS 0x1
 #define PH_COMMAND_LINE_IGNORE_FIRST_PART 0x2
@@ -1944,7 +2070,7 @@ BOOLEAN
 NTAPI
 PhParseCommandLine(
     _In_ PCPH_STRINGREF CommandLine,
-    _In_opt_ PPH_COMMAND_LINE_OPTION Options,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Options,
     _In_ ULONG NumberOfOptions,
     _In_ ULONG Flags,
     _In_ PPH_COMMAND_LINE_CALLBACK Callback,
@@ -2205,10 +2331,13 @@ PhGetNanosecondsStopwatch(
 }
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhApiSetResolveToHost(
-    _In_ PCPH_STRINGREF ApiSetName
+    _In_ PAPI_SET_NAMESPACE Schema,
+    _In_ PCPH_STRINGREF ApiSetName,
+    _In_opt_ PCPH_STRINGREF ParentName,
+    _Out_ PPH_STRINGREF HostBinary
     );
 
 PHLIBAPI

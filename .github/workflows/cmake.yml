@@ -1,0 +1,62 @@
+name: 'cmake-continuous-integration'
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['master']
+  pull_request:
+    branches: ['master']
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+        toolchain:
+          - msvc-amd64
+          - msvc-arm64
+          - msvc-x86
+          - clang-msvc-amd64
+          - clang-msvc-arm64
+          - clang-msvc-x86
+        configuration:
+          - Debug
+          - Release
+        generator:
+          - Ninja
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.configuration }} ${{ matrix.toolchain }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
+    - name: NuGet Cache
+      uses: actions/cache@v4
+      with:
+        path: packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Nuget Restore
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: nuget restore .\packages.config -PackagesDirectory .\packages\
+
+    - name: Build Tools
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_tools.cmd
+
+    - name: Generate
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.configuration }} ${{ matrix.toolchain }} generate
+
+    - name: Build
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.configuration }} ${{ matrix.toolchain }} build

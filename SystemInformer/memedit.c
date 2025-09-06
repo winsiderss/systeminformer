@@ -180,7 +180,7 @@ VOID PhShowMemoryEditorDialog(
 
         // Just in case.
         if ((Flags & PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION) && ProcessId == NtCurrentProcessId())
-            NtUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
+            PhUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
     }
 }
 
@@ -280,7 +280,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                     LONG dpiValue;
 
                     PhRectangleToRect(&rect, &windowRectangle);
-                    dpiValue = PhGetMonitorDpi(&rect);
+                    dpiValue = PhGetMonitorDpi(NULL, &rect);
 
                     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue)->Pair;
                     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
@@ -340,7 +340,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             PhClearReference(&context->Title);
 
             if ((context->Flags & PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION) && context->ProcessId == NtCurrentProcessId())
-                NtUnmapViewOfSection(NtCurrentProcess(), context->BaseAddress);
+                PhUnmapViewOfSection(NtCurrentProcess(), context->BaseAddress);
 
             PhFree(context);
         }
@@ -553,6 +553,12 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 }
                 break;
             }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:

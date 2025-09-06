@@ -14,29 +14,28 @@
 
 EXTERN_C_START
 
-_Success_(return)
-BOOLEAN PhWslQueryDistroProcessCommandLine(
+NTSTATUS PhWslQueryDistroProcessCommandLine(
     _In_ PPH_STRINGREF FileName,
     _In_ ULONG LxssProcessId,
     _Out_ PPH_STRING* Result
     );
 
-_Success_(return)
-BOOLEAN PhWslQueryDistroProcessEnvironment(
+NTSTATUS PhWslQueryDistroProcessEnvironment(
     _In_ PPH_STRINGREF FileName,
     _In_ ULONG LxssProcessId,
     _Out_ PPH_STRING* Result
     );
 
-BOOLEAN PhInitializeLxssImageVersionInfo(
+NTSTATUS PhInitializeLxssImageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRINGREF FileName
     );
 
-BOOLEAN PhCreateProcessLxss(
-    _In_ PPH_STRING LxssDistribution,
-    _In_ PPH_STRING LxssCommandLine,
-    _Out_ PPH_STRING *Result
+NTSTATUS PhCreateProcessLxss(
+    _In_ PPH_STRING DistributionGuid,
+    _In_ PPH_STRING DistributionName,
+    _In_ PPH_STRING DistributionCommand,
+    _Out_ PPH_STRING* Result
     );
 
 EXTERN_C_END

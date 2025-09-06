@@ -44,6 +44,7 @@ VOID PhpPrintHashtableStatistics(
     _In_ PPH_HASHTABLE Hashtable
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpDebugConsoleThreadStart(
     _In_ PVOID Parameter
     );
@@ -357,6 +358,7 @@ static VOID PhpDeleteNewObjectList(
 }
 #endif
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN PhpStringHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -368,6 +370,7 @@ static BOOLEAN PhpStringHashtableEqualFunction(
     return PhEqualString(entry1->String, entry2->String, FALSE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG PhpStringHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -454,6 +457,7 @@ static PH_BARRIER RwStartBarrier;
 static LONG RwReadersActive;
 static LONG RwWritersActive;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhpRwLockTestThreadStart(
     _In_ PVOID Parameter
     )
@@ -598,6 +602,7 @@ VOID FASTCALL PhfReleaseCriticalSection(
     RtlLeaveCriticalSection(CriticalSection);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpDebugConsoleThreadStart(
     _In_ PVOID Parameter
     )
@@ -611,7 +616,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
     PhLoadSymbolProviderOptions(DebugConsoleSymbolProvider);
 
     {
-        static PH_STRINGREF variableNameSr = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
+        static CONST PH_STRINGREF variableNameSr = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
         PPH_STRING variableValue;
         PPH_STRING newSearchPath;
 

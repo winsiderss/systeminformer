@@ -108,8 +108,8 @@
 #include <ole2.h>
 #endif
 
+typedef double DOUBLE;
 typedef DOUBLE *PDOUBLE;
-typedef GUID *PGUID;
 
 // Desktop access rights
 #define DESKTOP_ALL_ACCESS \
@@ -159,6 +159,12 @@ typedef GUID *PGUID;
 #define CONTAINING_RECORD(address, type, field) \
     ((type *)((ULONG_PTR)(address) - UFIELD_OFFSET(type, field)))
 
+
+#ifndef __PGUID_DEFINED__
+#define __PGUID_DEFINED__
+typedef GUID* PGUID;
+#endif
+
 #ifndef __PCGUID_DEFINED__
 #define __PCGUID_DEFINED__
 typedef const GUID* PCGUID;
@@ -166,6 +172,11 @@ typedef const GUID* PCGUID;
 
 #ifndef GUID_NULL
 DEFINE_GUID(GUID_NULL, 0x00000000L, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+#endif
+
+#ifndef __PCSID_DEFINED__
+#define __PCSID_DEFINED__
+typedef const SID* PCSID;
 #endif
 
 #endif

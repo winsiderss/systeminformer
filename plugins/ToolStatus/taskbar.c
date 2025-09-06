@@ -14,6 +14,7 @@
 PH_TASKBAR_ICON TaskbarListIconType = TASKBAR_ICON_NONE;
 BOOLEAN TaskbarIsDirty = FALSE;
 BOOLEAN TaskbarMainWndExiting = FALSE;
+BOOLEAN TaskbarTransparencyEnabled = FALSE;
 static HANDLE TaskbarListClass = NULL;
 static HANDLE TaskbarThreadHandle = NULL;
 static HANDLE TaskbarEventHandle = NULL;
@@ -22,6 +23,8 @@ VOID NTAPI TaskbarInitialize(
     VOID
     )
 {
+    TaskbarTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
+
     if (TaskbarListIconType != TASKBAR_ICON_NONE)
     {
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -95,19 +98,19 @@ VOID NTAPI TaskbarUpdateGraphs(
         switch (TaskbarListIconType)
         {
         case TASKBAR_ICON_CPU_HISTORY:
-            overlayIcon = PhUpdateIconCpuHistory(SystemStatistics);
+            overlayIcon = PhUpdateIconCpuHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_IO_HISTORY:
-            overlayIcon = PhUpdateIconIoHistory(SystemStatistics);
+            overlayIcon = PhUpdateIconIoHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_COMMIT_HISTORY:
-            overlayIcon = PhUpdateIconCommitHistory(SystemStatistics);
+            overlayIcon = PhUpdateIconCommitHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_PHYSICAL_HISTORY:
-            overlayIcon = PhUpdateIconPhysicalHistory(SystemStatistics);
+            overlayIcon = PhUpdateIconPhysicalHistory(&SystemStatistics);
             break;
         case TASKBAR_ICON_CPU_USAGE:
-            overlayIcon = PhUpdateIconCpuUsage(SystemStatistics);
+            overlayIcon = PhUpdateIconCpuUsage(&SystemStatistics);
             break;
         }
 
@@ -120,6 +123,7 @@ VOID NTAPI TaskbarUpdateGraphs(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS TaskbarIconUpdateThread(
     _In_opt_ PVOID Context
     )
@@ -206,18 +210,8 @@ static VOID PhBeginBitmap2(
 
     if (!Context->Bitmap)
     {
-        BITMAPINFO bitmapInfo;
-
-        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biPlanes = 1;
-        bitmapInfo.bmiHeader.biCompression = BI_RGB;
-        bitmapInfo.bmiHeader.biWidth = Context->Width;
-        bitmapInfo.bmiHeader.biHeight = Context->Height;
-        bitmapInfo.bmiHeader.biBitCount = 32;
-
         Context->Hdc = CreateCompatibleDC(NULL);
-        Context->Bitmap = CreateDIBSection(Context->Hdc, &bitmapInfo, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
+        Context->Bitmap = PhCreateDIBSection(Context->Hdc, PHBF_DIB, Context->Width, Context->Height, &Context->Bits);
         Context->TaskbarDpi = dpiValue;
     }
 
@@ -251,20 +245,28 @@ HICON PhGetBlackIcon(
         ULONG height;
         PVOID bits;
         HDC hdc;
+        HBITMAP mask;
         HBITMAP oldBitmap;
         ICONINFO iconInfo;
 
         PhBeginBitmap2(&PhBlackBitmapContext, &width, &height, &PhBlackBitmap, &bits, &hdc, &oldBitmap);
-        memset(bits, 0, width * height * sizeof(RGBQUAD));
+        memset(bits, TaskbarTransparencyEnabled ? 1 : 0, width * height * sizeof(RGBQUAD));
+
+        if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
+            return NULL;
+
+        if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
+            return NULL;
 
         iconInfo.fIcon = TRUE;
         iconInfo.xHotspot = 0;
         iconInfo.yHotspot = 0;
-        iconInfo.hbmMask = PhBlackBitmap;
+        iconInfo.hbmMask = mask;
         iconInfo.hbmColor = PhBlackBitmap;
         PhBlackIcon = CreateIconIndirect(&iconInfo);
 
         SelectBitmap(hdc, oldBitmap);
+        DeleteBitmap(mask);
     }
 
     return PhBlackIcon;
@@ -288,7 +290,7 @@ HICON PhBitmapToIcon(
 }
 
 HICON PhUpdateIconCpuHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -325,9 +327,9 @@ HICON PhUpdateIconCpuHistory(
     if (!(lineData2 = _malloca(maxDataCount * sizeof(FLOAT))))
         return NULL;
 
-    lineDataCount = min(maxDataCount, Statistics.CpuKernelHistory->Count);
-    PhCopyCircularBuffer_FLOAT(Statistics.CpuKernelHistory, lineData1, lineDataCount);
-    PhCopyCircularBuffer_FLOAT(Statistics.CpuUserHistory, lineData2, lineDataCount);
+    lineDataCount = min(maxDataCount, Statistics->CpuKernelHistory->Count);
+    PhCopyCircularBuffer_FLOAT(Statistics->CpuKernelHistory, lineData1, lineDataCount);
+    PhCopyCircularBuffer_FLOAT(Statistics->CpuUserHistory, lineData2, lineDataCount);
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
@@ -348,7 +350,7 @@ HICON PhUpdateIconCpuHistory(
 }
 
 HICON PhUpdateIconIoHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -387,14 +389,14 @@ HICON PhUpdateIconIoHistory(
     if (!(lineData2 = _malloca(maxDataCount * sizeof(FLOAT))))
         return NULL;
 
-    lineDataCount = min(maxDataCount, Statistics.IoReadHistory->Count);
+    lineDataCount = min(maxDataCount, Statistics->IoReadHistory->Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
 
     for (i = 0; i < lineDataCount; i++)
     {
-        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics.IoReadHistory, i)
-                     + (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics.IoOtherHistory, i);
-        lineData2[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics.IoWriteHistory, i);
+        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics->IoReadHistory, i)
+                     + (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics->IoOtherHistory, i);
+        lineData2[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(Statistics->IoWriteHistory, i);
 
         if (max < lineData1[i] + lineData2[i])
             max = lineData1[i] + lineData2[i];
@@ -412,6 +414,11 @@ HICON PhUpdateIconIoHistory(
     drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
+    if (TaskbarTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
     SelectBitmap(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
 
@@ -422,7 +429,7 @@ HICON PhUpdateIconIoHistory(
 }
 
 HICON PhUpdateIconCommitHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -457,18 +464,23 @@ HICON PhUpdateIconCommitHistory(
     if (!(lineData1 = _malloca(maxDataCount * sizeof(FLOAT))))
         return NULL;
 
-    lineDataCount = min(maxDataCount, Statistics.CommitHistory->Count);
+    lineDataCount = min(maxDataCount, Statistics->CommitHistory->Count);
 
     for (i = 0; i < lineDataCount; i++)
-        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(Statistics.CommitHistory, i);
+        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(Statistics->CommitHistory, i);
 
-    PhDivideSinglesBySingle(lineData1, (FLOAT)Statistics.Performance->CommitLimit, lineDataCount);
+    PhDivideSinglesBySingle(lineData1, (FLOAT)Statistics->Performance->CommitLimit, lineDataCount);
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorPrivate");
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
+
+    if (TaskbarTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
@@ -479,7 +491,7 @@ HICON PhUpdateIconCommitHistory(
 }
 
 HICON PhUpdateIconPhysicalHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -514,10 +526,10 @@ HICON PhUpdateIconPhysicalHistory(
     if (!(lineData1 = _malloca(maxDataCount * sizeof(FLOAT))))
         return NULL;
 
-    lineDataCount = min(maxDataCount, Statistics.CommitHistory->Count);
+    lineDataCount = min(maxDataCount, Statistics->CommitHistory->Count);
 
     for (i = 0; i < lineDataCount; i++)
-        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(Statistics.PhysicalHistory, i);
+        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(Statistics->PhysicalHistory, i);
 
     PhDivideSinglesBySingle(lineData1, (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages, lineDataCount);
 
@@ -533,10 +545,11 @@ HICON PhUpdateIconPhysicalHistory(
     _freea(lineData1);
 
     return icon;
+    return 0;
 }
 
 HICON PhUpdateIconCpuUsage(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
     ULONG width;
@@ -556,8 +569,8 @@ HICON PhUpdateIconCpuUsage(
         COLORREF uColor = PhGetIntegerSetting(L"ColorCpuUser");
         COLORREF kbColor = PhHalveColorBrightness(kColor);
         COLORREF ubColor = PhHalveColorBrightness(uColor);
-        FLOAT k = Statistics.CpuKernelUsage;
-        FLOAT u = Statistics.CpuUserUsage;
+        FLOAT k = Statistics->CpuKernelUsage;
+        FLOAT u = Statistics->CpuUserUsage;
         LONG kl = (LONG)(k * height);
         LONG ul = (LONG)(u * height);
         RECT rect;

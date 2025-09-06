@@ -37,7 +37,9 @@ typedef enum _WOW64_SHARED_INFORMATION
     Wow64SharedPageEntriesCount
 } WOW64_SHARED_INFORMATION;
 
+//
 // 32-bit definitions
+//
 
 #define WOW64_POINTER(Type) ULONG
 
@@ -189,6 +191,23 @@ typedef struct _LDR_DATA_TABLE_ENTRY32
     WOW64_POINTER(PVOID) ActivePatchImageBase;
     LDR_HOT_PATCH_STATE HotPatchState;
 } LDR_DATA_TABLE_ENTRY32, *PLDR_DATA_TABLE_ENTRY32;
+
+typedef const LDR_DATA_TABLE_ENTRY32* PCLDR_DATA_TABLE_ENTRY32;
+
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, InMemoryOrderLinks) == 0x8, "LDR_DATA_TABLE_ENTRY32.InMemoryOrderLinks offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, InInitializationOrderLinks) == 0x10, "LDR_DATA_TABLE_ENTRY32.InInitializationOrderLinks offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, DllBase) == 0x18, "LDR_DATA_TABLE_ENTRY32.DllBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, EntryPoint) == 0x1c, "LDR_DATA_TABLE_ENTRY32.EntryPoint offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, SizeOfImage) == 0x20, "LDR_DATA_TABLE_ENTRY32.SizeOfImage offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ObsoleteLoadCount) == 0x38, "LDR_DATA_TABLE_ENTRY32.ObsoleteLoadCount offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, TimeDateStamp) == 0x44, "LDR_DATA_TABLE_ENTRY32.TimeDateStamp offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, DdagNode) == 0x50, "LDR_DATA_TABLE_ENTRY32.DdagNode offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ParentDllBase) == 0x60, "LDR_DATA_TABLE_ENTRY32.ParentDllBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, OriginalBase) == 0x80, "LDR_DATA_TABLE_ENTRY32.OriginalBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, BaseNameHashValue) == 0x90, "LDR_DATA_TABLE_ENTRY32.BaseNameHashValue offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, LoadReason) == 0x94, "LDR_DATA_TABLE_ENTRY32.LoadReason offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, CheckSum) == 0xA8, "LDR_DATA_TABLE_ENTRY32.CheckSum offset incorrect");
+static_assert(sizeof(LDR_DATA_TABLE_ENTRY32) == 0xB8, "LDR_DATA_TABLE_ENTRY32 incorrect size");
 
 typedef struct _CURDIR32
 {
@@ -423,8 +442,6 @@ typedef struct _PEB32
     ULONGLONG ExtendedFeatureDisableMask; // since WIN11
 } PEB32, *PPEB32;
 
-//static_assert(sizeof(PEB32) == 0x460, "sizeof(PEB32) is incorrect"); // REDSTONE3
-//static_assert(sizeof(PEB32) == 0x470, "sizeof(PEB32) is incorrect"); // REDSTONE5
 static_assert(sizeof(PEB32) == 0x488, "sizeof(PEB32) is incorrect"); // WIN11
 
 // Note: Use PhGetProcessPeb32 instead. (dmex)
@@ -445,7 +462,7 @@ typedef struct tagSOleTlsData32
     WOW64_POINTER(PVOID) ThreadBase;
     WOW64_POINTER(PVOID) SmAllocator;
     ULONG ApartmentID;
-    OLETLSFLAGS Flags;
+    ULONG Flags; // OLETLSFLAGS
     LONG TlsMapIndex;
     WOW64_POINTER(PVOID *) TlsSlot;
     ULONG ComInits;
@@ -458,6 +475,9 @@ typedef struct tagSOleTlsData32
     ULONG TIDCaller;
     // ... (other fields are version-dependant)
 } SOleTlsData32, *PSOleTlsData32;
+
+// rev
+#define RPC_THREAD_POINTER_KEY32 0xABABABAB
 
 typedef struct _TEB32
 {
@@ -615,7 +635,9 @@ static_assert(FIELD_OFFSET(TEB32, MuiImpersonation) == 0xfc4, "FIELD_OFFSET(TEB3
 static_assert(FIELD_OFFSET(TEB32, EffectiveContainerId) == 0xff0, "FIELD_OFFSET(TEB32, EffectiveContainerId) is incorrect");
 static_assert(sizeof(TEB32) == 0x1000, "sizeof(TEB32) is incorrect");
 
+//
 // Conversion
+//
 
 FORCEINLINE VOID UStr32ToUStr(
     _Out_ PUNICODE_STRING Destination,

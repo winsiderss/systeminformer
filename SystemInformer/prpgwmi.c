@@ -97,7 +97,7 @@ PPHP_PROCESS_WMI_TREENODE PhpAddWmiProviderNode(
 
 PPHP_PROCESS_WMI_TREENODE PhpFindWmiProviderNode(
     _In_ PPH_PROCESS_WMI_CONTEXT Context,
-    _In_ PWSTR RelativePath
+    _In_ PPH_STRING RelativePath
     );
 
 VOID PhpClearWmiProviderTree(
@@ -591,7 +591,6 @@ PPH_STRING PhpQueryWmiProviderStatistics(
     HRESULT status;
     PPH_STRING wbemProviderString = NULL;
     BSTR wbemResourceString = NULL;
-    BSTR wbemQueryString = NULL;
     IWbemLocator* wbemLocator = NULL;
     IWbemServices* wbemServices = NULL;
     IEnumWbemClassObject* wbemEnumerator = NULL;
@@ -843,8 +842,6 @@ PPH_STRING PhpQueryWmiProviderStatistics(
     }
 
 CleanupExit:
-    if (wbemQueryString)
-        SysFreeString(wbemQueryString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
     if (wbemEnumerator)
@@ -1280,14 +1277,14 @@ PPHP_PROCESS_WMI_TREENODE PhpAddWmiProviderNode(
 
 PPHP_PROCESS_WMI_TREENODE PhpFindWmiProviderNode(
     _In_ PPH_PROCESS_WMI_CONTEXT Context,
-    _In_ PWSTR RelativePath
+    _In_ PPH_STRING RelativePath
     )
 {
     PHP_PROCESS_WMI_TREENODE lookupNode;
     PPHP_PROCESS_WMI_TREENODE lookupNodePtr = &lookupNode;
     PPHP_PROCESS_WMI_TREENODE *node;
 
-    PhInitializeStringRefLongHint(&lookupNode.Provider->RelativePath->sr, RelativePath);
+    lookupNode.Provider->RelativePath = RelativePath;
 
     node = (PPHP_PROCESS_WMI_TREENODE*)PhFindEntryHashtable(
         Context->NodeHashtable,

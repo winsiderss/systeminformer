@@ -498,7 +498,9 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             performanceContext->IoGraphState.Valid = FALSE;
             performanceContext->IoGraphState.TooltipIndex = ULONG_MAX;
 
-            GetClientRect(hwndDlg, &clientRect);
+            if (!PhGetClientRect(hwndDlg, &clientRect))
+                break;
+
             width = clientRect.right - margin.left - margin.right;
             height = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 3;
 

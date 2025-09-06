@@ -34,6 +34,7 @@ ULONG NTAPI EtpDiskHashtableHashFunction(
     _In_ PVOID Entry
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpDiskProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -45,7 +46,7 @@ ULONG EtRunCount = 0;
 PPH_OBJECT_TYPE EtDiskItemType = NULL;
 PPH_HASHTABLE EtDiskHashtable = NULL;
 PH_QUEUED_LOCK EtDiskHashtableLock = PH_QUEUED_LOCK_INIT;
-LIST_ENTRY EtDiskAgeListHead = { &EtDiskAgeListHead, &EtDiskAgeListHead };
+RTL_STATIC_LIST_HEAD(EtDiskAgeListHead);
 PH_CALLBACK_DECLARE(EtDiskItemAddedEvent);
 PH_CALLBACK_DECLARE(EtDiskItemModifiedEvent);
 PH_CALLBACK_DECLARE(EtDiskItemRemovedEvent);
@@ -405,6 +406,7 @@ ULONG64 EtpCalculateAverage(
     return sum / NumberToConsider;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpDiskProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

@@ -25,10 +25,14 @@ if "%3"=="" (
 )
 
 if exist "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" (
-   echo:
-   start /B /W "" "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" "-kphsign" "%1"
-   echo:
-   start /B /W "" "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" "-sdk" "%2" "%3"
+    start /B /W "" "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" "-kphsign" %1
+    if %ERRORLEVEL% neq 0 (
+        echo "[CustomBuildTool] Failed to sign %1"
+    )  
+    start /B /W "" "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" "-sdk" "-verbose" %2 %3
+    if %ERRORLEVEL% neq 0 (
+        echo "[CustomBuildTool] SDK Failed %2 %3"
+    )
 ) else (
    echo CustomBuildTool.exe not found in tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE% folder.
 )

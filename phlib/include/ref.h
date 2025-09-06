@@ -12,20 +12,19 @@
 #ifndef _PH_REF_H
 #define _PH_REF_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 //
 // Configuration
 //
 
-#define PH_OBJECT_SMALL_OBJECT_SIZE 48
+#define PH_OBJECT_SMALL_OBJECT_SIZE  48
 #define PH_OBJECT_SMALL_OBJECT_COUNT 512
 
 // Object type flags
-#define PH_OBJECT_TYPE_USE_FREE_LIST 0x00000001
-#define PH_OBJECT_TYPE_VALID_FLAGS 0x00000001
+#define PH_OBJECT_TYPE_USE_FREE_LIST     0x00000001
+#define PH_OBJECT_TYPE_TRY_USE_FREE_LIST 0x00000002
+#define PH_OBJECT_TYPE_VALID_FLAGS       0x00000003
 
 //
 // Object type callbacks
@@ -85,7 +84,7 @@ extern PH_QUEUED_LOCK PhDbgObjectListLock;
 extern PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook;
 #endif
 
-BOOLEAN PhRefInitialization(
+NTSTATUS PhRefInitialization(
     VOID
     );
 
@@ -233,6 +232,77 @@ PhCreateAlloc(
 // Object reference functions
 //
 
+#if defined(__cplusplus)
+
+EXTERN_C_END
+
+template<typename T>
+FORCEINLINE
+VOID
+PhSwapReference(
+    _Inout_ T** ObjectReference,
+    _In_opt_ T* NewObject
+    )
+{
+    T* oldObject;
+
+    oldObject = *ObjectReference;
+    *ObjectReference = NewObject;
+
+    if (NewObject) PhReferenceObject((PVOID)NewObject);
+    if (oldObject) PhDereferenceObject((PVOID)oldObject);
+}
+
+template<typename T>
+FORCEINLINE
+VOID
+PhMoveReference(
+    _Inout_ T** ObjectReference,
+    _In_opt_ _Assume_refs_(1) T* NewObject
+    )
+{
+    T* oldObject = *ObjectReference;
+    *ObjectReference = NewObject;
+
+    if (oldObject)
+    {
+        PhDereferenceObject((PVOID)oldObject);
+    }
+}
+
+template<typename T>
+FORCEINLINE
+VOID
+PhSetReference(
+    _Out_ T** ObjectReference,
+    _In_opt_ T* NewObject
+    )
+{
+    *ObjectReference = NewObject;
+
+    if (NewObject) PhReferenceObject(NewObject);
+}
+
+template<typename T>
+FORCEINLINE
+VOID
+PhClearReference(
+    _Inout_ T** ObjectReference
+    )
+{
+    T* oldObject = *ObjectReference;
+    *ObjectReference = NULL;
+
+    if (oldObject)
+    {
+        PhDereferenceObject((PVOID)oldObject);
+    }
+}
+
+EXTERN_C_START
+
+#else
+
 FORCEINLINE
 VOID
 PhSwapReference(
@@ -279,11 +349,18 @@ PhSetReference(
 FORCEINLINE
 VOID
 PhClearReference(
-    _Inout_ PVOID *ObjectReference
+    _Inout_ PVOID* ObjectReference
     )
 {
-    PhMoveReference(ObjectReference, NULL);
+    PVOID oldObject;
+
+    oldObject = *ObjectReference;
+    *ObjectReference = NULL;
+
+    if (oldObject) PhDereferenceObject(oldObject);
 }
+
+#endif
 
 //
 // Convenience functions
@@ -365,8 +442,6 @@ PhAutoDereferenceObject(
 #define PH_AUTO PhAutoDereferenceObject
 #define PH_AUTO_T(Type, Object) ((Type *)PH_AUTO(Object))
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

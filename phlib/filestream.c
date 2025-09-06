@@ -130,6 +130,7 @@ NTSTATUS PhCreateFileStream2(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpFileStreamDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -799,7 +800,7 @@ NTSTATUS PhWriteStringAsUtf8FileStreamEx(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PH_STRINGREF block;
-    SIZE_T inPlaceUtf8Size;
+    SIZE_T inPlaceUtf8Size = 0;
     PCHAR inPlaceUtf8 = NULL;
     PPH_BYTES utf8 = NULL;
 
@@ -822,17 +823,16 @@ NTSTATUS PhWriteStringAsUtf8FileStreamEx(
         {
             SIZE_T bytesInUtf8String;
 
-            if (!PhConvertUtf16ToUtf8Buffer(
+            status = PhConvertUtf16ToUtf8Buffer(
                 inPlaceUtf8,
                 inPlaceUtf8Size,
                 &bytesInUtf8String,
                 block.Buffer,
                 block.Length
-                ))
-            {
-                status = STATUS_INVALID_PARAMETER;
+                );
+
+            if (!NT_SUCCESS(status))
                 goto CleanupExit;
-            }
 
             status = PhWriteFileStream(FileStream, inPlaceUtf8, (ULONG)bytesInUtf8String);
         }
@@ -886,9 +886,12 @@ NTSTATUS PhWriteStringFormatAsUtf8FileStream(
     ...
     )
 {
+    NTSTATUS status;
     va_list argptr;
 
     va_start(argptr, Format);
+    status = PhWriteStringFormatAsUtf8FileStream_V(FileStream, Format, argptr);
+    va_end(argptr);
 
-    return PhWriteStringFormatAsUtf8FileStream_V(FileStream, Format, argptr);
+    return status;
 }

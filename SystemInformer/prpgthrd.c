@@ -28,6 +28,7 @@
 
 static PH_STRINGREF EmptyThreadsText = PH_STRINGREF_INIT(L"There are no threads to display.");
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ThreadAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -40,6 +41,7 @@ static VOID NTAPI ThreadAddedHandler(
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderAddedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ThreadModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -50,6 +52,7 @@ static VOID NTAPI ThreadModifiedHandler(
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderModifiedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ThreadRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -60,6 +63,7 @@ static VOID NTAPI ThreadRemovedHandler(
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderRemovedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ThreadsUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -70,6 +74,7 @@ static VOID NTAPI ThreadsUpdatedHandler(
     PostMessage(threadsContext->WindowHandle, WM_PH_THREADS_UPDATED, (ULONG)threadsContext->Provider->RunId, threadsContext->Provider->RunId == 1);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ThreadsLoadingStateChangedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -163,10 +168,10 @@ VOID PhpInitializeThreadMenu(
     if (NumberOfThreads == 1)
     {
         HANDLE threadHandle;
-        ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
+        KPRIORITY threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         IO_PRIORITY_HINT ioPriority = ULONG_MAX;
         ULONG pagePriority = ULONG_MAX;
-        BOOLEAN threadPriorityBoostDisabled = FALSE;
+        BOOLEAN threadPriorityBoost = FALSE;
         ULONG id = 0;
 
         if (NT_SUCCESS(PhOpenThread(
@@ -180,7 +185,7 @@ VOID PhpInitializeThreadMenu(
             PhGetThreadBasePriority(threadHandle, &threadPriority);
             PhGetThreadIoPriority(threadHandle, &ioPriority);
             PhGetThreadPagePriority(threadHandle, &pagePriority);
-            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoostDisabled);
+            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
 
             if (NT_SUCCESS(PhOpenThreadToken(
                 threadHandle,
@@ -196,31 +201,38 @@ VOID PhpInitializeThreadMenu(
             NtClose(threadHandle);
         }
 
-        switch (threadPriority)
-        {
-        case THREAD_PRIORITY_TIME_CRITICAL + 1:
-        case THREAD_PRIORITY_TIME_CRITICAL:
-            id = ID_PRIORITY_TIMECRITICAL;
-            break;
-        case THREAD_PRIORITY_HIGHEST:
-            id = ID_PRIORITY_HIGHEST;
-            break;
-        case THREAD_PRIORITY_ABOVE_NORMAL:
-            id = ID_PRIORITY_ABOVENORMAL;
-            break;
-        case THREAD_PRIORITY_NORMAL:
-            id = ID_PRIORITY_NORMAL;
-            break;
-        case THREAD_PRIORITY_BELOW_NORMAL:
-            id = ID_PRIORITY_BELOWNORMAL;
-            break;
-        case THREAD_PRIORITY_LOWEST:
-            id = ID_PRIORITY_LOWEST;
-            break;
-        case THREAD_PRIORITY_IDLE:
-        case THREAD_PRIORITY_IDLE - 1:
+        // See PhGetBasePrioritySymbolicString
+        if (threadPriority == THREAD_PRIORITY_ERROR_RETURN)
+            NOTHING;
+        else if (threadPriority > LOW_REALTIME_PRIORITY)      // 16
+            NOTHING;
+        else if (threadPriority <= THREAD_BASE_PRIORITY_IDLE) // -15
             id = ID_PRIORITY_IDLE;
-            break;
+        else if (threadPriority < THREAD_BASE_PRIORITY_MIN)   // -2
+            NOTHING;
+        else if (threadPriority > THREAD_BASE_PRIORITY_MAX)   // 2
+            id = ID_PRIORITY_TIMECRITICAL;
+        else
+        {
+            switch (threadPriority)
+            {
+            case THREAD_PRIORITY_HIGHEST:                     // 2
+                id = ID_PRIORITY_HIGHEST;
+                break;
+            case THREAD_PRIORITY_ABOVE_NORMAL:                // 1
+                id = ID_PRIORITY_ABOVENORMAL;
+                break;
+            case THREAD_PRIORITY_NORMAL:                      // 0
+                id = ID_PRIORITY_NORMAL;
+                break;
+            case THREAD_PRIORITY_BELOW_NORMAL:                // -1
+                id = ID_PRIORITY_BELOWNORMAL;
+                break;
+            case THREAD_PRIORITY_LOWEST:                      // -2
+                id = ID_PRIORITY_LOWEST;
+                break;
+            DEFAULT_UNREACHABLE;
+            }
         }
 
         if (id != 0)
@@ -289,7 +301,7 @@ VOID PhpInitializeThreadMenu(
             }
         }
 
-        if (!threadPriorityBoostDisabled)
+        if (threadPriorityBoost)
         {
             PhSetFlagsEMenuItem(Menu, ID_THREAD_BOOST, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
         }
@@ -406,9 +418,9 @@ BOOLEAN PhpThreadTreeFilterCallback(
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(threadNode->PrioritySymbolicText))
+    if (threadItem->BasePriority != THREAD_PRIORITY_ERROR_RETURN)
     {
-        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->PrioritySymbolicText->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, PhGetBasePrioritySymbolicString(threadItem->BasePriority)))
             return TRUE;
     }
 
@@ -457,6 +469,12 @@ BOOLEAN PhpThreadTreeFilterCallback(
     if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressWin32FileName))
     {
         if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->ThreadItem->StartAddressWin32FileName->sr))
+            return TRUE;
+    }
+
+    if (threadNode->ActualBasePriorityText[0])
+    {
+        if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, threadNode->ActualBasePriorityText))
             return TRUE;
     }
 
@@ -831,7 +849,11 @@ VOID PhpProcessThreadsSave(
                 mode = PH_EXPORT_MODE_TABS;
 
             PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
-            PhWritePhTextHeader(fileStream);
+
+            if (mode != PH_EXPORT_MODE_CSV)
+            {
+                PhWritePhTextHeader(fileStream);
+            }
 
             lines = PhpGetProcessThreadTreeListLines(
                 ThreadsContext->TreeNewHandle,
@@ -1408,6 +1430,10 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     case ID_PRIORITY_IDLE:
                         threadPriorityWin32 = THREAD_PRIORITY_IDLE;
                         break;
+                    // TODO(jxy-s) Implement support for forcing thread to background
+                    // see KernelBase!SetThreadPriority THREAD_PRIORITY_BACKGROUND_BEGIN
+                    // calls NtSetInformationThread with ThreadActualBasePriority to force
+                    // the base priority increment below what is normally possible.
                     }
 
                     if (threadPriorityWin32 != LONG_MAX)

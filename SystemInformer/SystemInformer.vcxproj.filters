@@ -348,6 +348,12 @@
     <ClCompile Include="cpuset.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="usrlist.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="netsup.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">

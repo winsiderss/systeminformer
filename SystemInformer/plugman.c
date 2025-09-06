@@ -190,7 +190,7 @@ PPH_PLUGIN_TREE_ROOT_NODE AddPluginsNode(
 
     if (fileName = PhGetPluginFileName(Plugin))
     {
-        if (PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE))
+        if (NT_SUCCESS(PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE)))
         {
             pluginNode->Version = PhReferenceObject(versionInfo.FileVersion);
             PhDeleteImageVersionInfo(&versionInfo);
@@ -685,7 +685,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
             case IDC_DISABLED:
                 {
                     PhDialogBox(
-                        PhInstanceHandle,
+                        NtCurrentImageBase(),
                         MAKEINTRESOURCE(IDD_PLUGINSDISABLED),
                         hwndDlg,
                         PhpPluginsDisabledDlgProc,
@@ -767,7 +767,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                         case PH_PLUGIN_TREE_ITEM_MENU_PROPERTIES:
                             {
                                 PhDialogBox(
-                                    PhInstanceHandle,
+                                    NtCurrentImageBase(),
                                     MAKEINTRESOURCE(IDD_PLUGINPROPERTIES),
                                     hwndDlg,
                                     PhpPluginPropertiesDlgProc,
@@ -788,7 +788,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                         break;
 
                     PhDialogBox(
-                        PhInstanceHandle,
+                        NtCurrentImageBase(),
                         MAKEINTRESOURCE(IDD_PLUGINPROPERTIES),
                         hwndDlg,
                         PhpPluginPropertiesDlgProc,
@@ -797,6 +797,12 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                 }
                 break;
             }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:
@@ -911,7 +917,7 @@ VOID PhpRefreshPluginDetails(
     PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, SelectedPlugin->Information.Description);
     PhSetDialogItemText(hwndDlg, IDC_URL, SelectedPlugin->Information.Url);
 
-    if (fileName && PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE))
+    if (fileName && NT_SUCCESS(PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE)))
     {
         PhSetDialogItemText(hwndDlg, IDC_VERSION, PhGetStringOrDefault(versionInfo.FileVersion, L"Unknown"));
         PhDeleteImageVersionInfo(&versionInfo);

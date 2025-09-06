@@ -83,6 +83,7 @@ VOID PhDereferenceAllHandleItems(
     _In_ PPH_HANDLE_PROVIDER HandleProvider
     );
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhHandleProviderUpdate(
     _In_ PVOID Object
     );

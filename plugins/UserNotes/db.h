@@ -46,6 +46,8 @@ ULONG GetNumberOfDbObjects(
     VOID
     );
 
+extern PH_QUEUED_LOCK ObjectDbLock;
+
 _Acquires_exclusive_lock_(ObjectDbLock)
 VOID LockDb(
     VOID
@@ -58,12 +60,12 @@ VOID UnlockDb(
 
 PDB_OBJECT FindDbObject(
     _In_ ULONG Tag,
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 PDB_OBJECT CreateDbObject(
     _In_ ULONG Tag,
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_opt_ PPH_STRING Comment
     );
 
@@ -95,21 +97,21 @@ VOID EnumDb(
 
 _Success_(return)
 BOOLEAN FindIfeoObject(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _Out_opt_ PULONG CpuPriorityClass,
     _Out_opt_ PULONG IoPriorityClass,
     _Out_opt_ PULONG PagePriorityClass
     );
 
 NTSTATUS CreateIfeoObject(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ ULONG CpuPriority,
     _In_ ULONG IoPriority,
     _In_ ULONG PagePriority
     );
 
 NTSTATUS DeleteIfeoObject(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ ULONG CpuPriority,
     _In_ ULONG IoPriority,
     _In_ ULONG PagePriority

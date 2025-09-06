@@ -34,6 +34,7 @@ static HANDLE EtGpuNodesThreadHandle = NULL;
 static HWND EtGpuNodesWindowHandle = NULL;
 static PH_EVENT EtGpuNodesInitializedEvent = PH_EVENT_INIT;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtpGpuNodesDialogThreadStart(
     _In_ PVOID Parameter
     )
@@ -98,6 +99,7 @@ VOID EtShowGpuNodesDialog(
     PostMessage(EtGpuNodesWindowHandle, WM_PH_SHOW_DIALOG, 0, 0);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -164,7 +166,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             SetWindowPos(hwndDlg, NULL, 0, 0, MinimumSize.right, MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
 
             // Note: This dialog must be centered after all other graphs and controls have been added.
-            if (PhGetIntegerPairSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION, SETTING_NAME_GPU_NODES_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, (HWND)lParam);
@@ -198,6 +200,12 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             PostQuitMessage(0);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             HDWP deferHandle;
@@ -222,7 +230,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
             deferHandle = BeginDeferWindowPos(EtGpuTotalNodeCount);
 
-            GetClientRect(hwndDlg, &clientRect);
+            PhGetClientRect(hwndDlg, &clientRect);
             cellHeight = (clientRect.bottom - LayoutMargin.top - LayoutMargin.bottom - GRAPH_PADDING * numberOfYPaddings) / numberOfRows;
             y = LayoutMargin.top;
             i = 0;

@@ -34,6 +34,8 @@ typedef enum _PH_SE_OBJECT_TYPE
     PH_SE_POWERDEF_OBJECT_TYPE,
     PH_SE_RDPDEF_OBJECT_TYPE,
     PH_SE_WMIDEF_OBJECT_TYPE,
+    PH_SE_COMACCESSDEF_OBJECT_TYPE,
+    PH_SE_COMLAUNCHDEF_OBJECT_TYPE,
     // ...
 
 } PH_SE_OBJECT_TYPE;
@@ -246,7 +248,7 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation3_Release(
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
     _In_ ISecurityInformation3 *This,
-    _Outptr_ PCWSTR *ppszResourceName
+    _Outptr_ PWSTR *ResourceName
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation3_OpenElevatedEditor(

@@ -851,7 +851,7 @@ VOID WhoisParseAddressString(
     }
     else
     {
-        if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+        if (NT_SUCCESS(PhIpv6AddressToString(
             &Context->RemoteEndpoint.Address.In6Addr,
             0,
             0,
@@ -912,7 +912,7 @@ INT_PTR CALLBACK WhoisDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->RichEditHandle, NULL, PH_ANCHOR_ALL);
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_WHOIS_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_WHOIS_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
@@ -948,7 +948,15 @@ INT_PTR CALLBACK WhoisDlgProc(
         }
         break;
     case WM_SIZE:
-        PhLayoutManagerLayout(&context->LayoutManager);
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
         break;
     case WM_NOTIFY:
         {

@@ -277,6 +277,7 @@
     <ClCompile Include="mwpgsrv.c" />
     <ClCompile Include="netlist.c" />
     <ClCompile Include="netprv.c" />
+    <ClCompile Include="netsup.c" />
     <ClCompile Include="notifico.c" />
     <ClCompile Include="notiftoast.cpp" />
     <ClCompile Include="ntobjprp.c" />
@@ -328,6 +329,7 @@
     <ClCompile Include="thrdstk.c" />
     <ClCompile Include="thrdstks.c" />
     <ClCompile Include="tokprp.c" />
+    <ClCompile Include="usrlist.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\actions.h" />

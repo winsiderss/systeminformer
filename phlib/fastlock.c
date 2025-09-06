@@ -12,25 +12,91 @@
 #include <phbase.h>
 #include <fastlock.h>
 
-// FastLock is a port of FastResourceLock from PH 1.x.
+// FastLock is a fast resource (reader-writer) lock.
 //
-// The code contains no comments because it is a direct port. Please see FastResourceLock.cs in PH
+// The code is a direct port of FastResourceLock from PH 1.x. Please see FastResourceLock.cs in PH
 // 1.x for details.
-
+//
 // The fast lock is around 7% faster than the critical section when there is no contention, when
 // used solely for mutual exclusion. It is also much smaller than the critical section.
+//
+// There are three types of acquire methods:
+// * Normal methods (AcquireExclusive, AcquireShared) are preferred for general purpose use.
+// * Busy wait methods (SpinAcquireExclusive, SpinAcquireShared) are preferred if
+// very little time is spent while the lock is acquired. However, these do not give exclusive
+// acquires precedence over shared acquires.
+// * Try methods (TryAcquireExclusive, TryAcquireShared) can be used to quickly test if the lock is available.
+// 
+// Note that all three types of functions can be used concurrently by the same FastLock instance.
+//
+// Details
+//
+// Resource lock value width: 32 bits.
+// Lock owned (either exclusive or shared): L (1 bit).
+// Exclusive waking: W (1 bit).
+// Shared owners count: SC (10 bits).
+// Shared waiters count: SW (10 bits).
+// Exclusive waiters count: EW (10 bits).
+//
+// Acquire exclusive:
+// {L=0,W=0,SC=0,SW,EW=0} -> {L=1,W=0,SC=0,SW,EW=0}
+// {L=0,W=1,SC=0,SW,EW} or {L=1,W,SC,SW,EW} ->
+//     {L,W,SC,SW,EW+1},
+//     wait on event,
+//     {L=0,W=1,SC=0,SW,EW} -> {L=1,W=0,SC=0,SW,EW}
+//
+// Acquire shared:
+// {L=0,W=0,SC=0,SW,EW=0} -> {L=1,W=0,SC=1,SW,EW=0}
+// {L=1,W=0,SC>0,SW,EW=0} -> {L=1,W=0,SC+1,SW,EW=0}
+// {L=1,W=0,SC=0,SW,EW=0} or {L,W=1,SC,SW,EW} or
+//     {L,W,SC,SW,EW>0} -> {L,W,SC,SW+1,EW},
+//     wait on event,
+//     retry.
+//
+// Release exclusive:
+// {L=1,W=0,SC=0,SW,EW>0} ->
+//     {L=0,W=1,SC=0,SW,EW-1},
+//     release one exclusive waiter.
+// {L=1,W=0,SC=0,SW,EW=0} ->
+//     {L=0,W=0,SC=0,SW=0,EW=0},
+//     release all shared waiters.
+//
+// Note that we never do a direct acquire when W=1 
+// (i.e. L=0 if W=1), so here we don't have to check 
+// the value of W.
+//
+// Release shared:
+// {L=1,W=0,SC>1,SW,EW} -> {L=1,W=0,SC-1,SW,EW}
+// {L=1,W=0,SC=1,SW,EW=0} -> {L=0,W=0,SC=0,SW,EW=0}
+// {L=1,W=0,SC=1,SW,EW>0} ->
+//     {L=0,W=1,SC=0,SW,EW-1},
+//     release one exclusive waiter.
+//
+// Again, we don't need to check the value of W.
+//
+// Convert exclusive to shared:
+// {L=1,W=0,SC=0,SW,EW} ->
+//     {L=1,W=0,SC=1,SW=0,EW},
+//     release all shared waiters.
+//
+// Convert shared to exclusive:
+// {L=1,W=0,SC=1,SW,EW} ->
+//     {L=1,W=0,SC=0,SW,EW}
+//
 
+// Lock owned: 1 bit.
 #define PH_LOCK_OWNED 0x1
+// Exclusive waking: 1 bit.
 #define PH_LOCK_EXCLUSIVE_WAKING 0x2
-
+// Shared owners count: 10 bits.
 #define PH_LOCK_SHARED_OWNERS_SHIFT 2
 #define PH_LOCK_SHARED_OWNERS_MASK 0x3fful
 #define PH_LOCK_SHARED_OWNERS_INC 0x4
-
+// Shared waiters count: 10 bits.
 #define PH_LOCK_SHARED_WAITERS_SHIFT 12
 #define PH_LOCK_SHARED_WAITERS_MASK 0x3fful
 #define PH_LOCK_SHARED_WAITERS_INC 0x1000
-
+// Exclusive waiters count: 10 bits.
 #define PH_LOCK_EXCLUSIVE_WAITERS_SHIFT 22
 #define PH_LOCK_EXCLUSIVE_WAITERS_MASK 0x3fful
 #define PH_LOCK_EXCLUSIVE_WAITERS_INC 0x400000
@@ -69,20 +135,37 @@ FORCEINLINE VOID PhpEnsureEventCreated(
     _Inout_ PHANDLE Handle
     )
 {
-    HANDLE handle;
+    HANDLE semaphoreHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
 
     if (ReadPointerAcquire(Handle))
         return;
 
-    NtCreateSemaphore(&handle, SEMAPHORE_ALL_ACCESS, NULL, 0, MAXLONG);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
+
+    NtCreateSemaphore(
+        &semaphoreHandle,
+        SEMAPHORE_ALL_ACCESS,
+        &objectAttributes,
+        0,
+        MAXLONG
+        );
+
+    assert(semaphoreHandle);
 
     if (_InterlockedCompareExchangePointer(
         Handle,
-        handle,
+        semaphoreHandle,
         NULL
         ) != NULL)
     {
-        NtClose(handle);
+        NtClose(semaphoreHandle);
     }
 }
 

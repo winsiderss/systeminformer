@@ -107,6 +107,7 @@ NTSTATUS PhpCallWithTimeout(
     _In_ PLARGE_INTEGER Timeout
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpCallWithTimeoutThreadStart(
     _In_ PVOID Parameter
     );
@@ -714,8 +715,8 @@ PPH_STRING PhGetPnPDeviceName(
         if (deviceCount > 0)
         {
             DEV_OBJECT device = deviceObjects[0];
-            PPH_STRING deviceName;
-            PPH_STRING deviceDesc;
+            PPH_STRING deviceName = NULL;
+            PPH_STRING deviceDesc = NULL;
             PH_STRINGREF displayName;
             PH_STRINGREF displayDesc;
             PH_STRINGREF firstPart;
@@ -873,11 +874,10 @@ NTSTATUS PhGetSectionFileName(
     viewSize = PAGE_SIZE;
     viewBase = NULL;
 
-    status = NtMapViewOfSection(
+    status = PhMapViewOfSection(
         SectionHandle,
         NtCurrentProcess(),
         &viewBase,
-        0,
         0,
         NULL,
         &viewSize,
@@ -890,7 +890,7 @@ NTSTATUS PhGetSectionFileName(
         return status;
 
     status = PhGetProcessMappedFileName(NtCurrentProcess(), viewBase, FileName);
-    NtUnmapViewOfSection(NtCurrentProcess(), viewBase);
+    PhUnmapViewOfSection(NtCurrentProcess(), viewBase);
 
     return status;
 }
@@ -1361,7 +1361,7 @@ NTSTATUS PhpGetBestObjectName(
         }
         else
         {
-            SECTION_BASIC_INFORMATION basicInfo;
+            SECTION_BASIC_INFORMATION basicInfo = { NULL };
 
             if (KsiLevel() >= KphLevelMed)
             {
@@ -1997,7 +1997,8 @@ NTSTATUS PhGetHandleInformationEx(
             PhEqualString2(typeName, L"Process", TRUE) ||
             PhEqualString2(typeName, L"Thread", TRUE) ||
             PhEqualString2(typeName, L"Token", TRUE) ||
-            PhEqualString2(typeName, L"ALPC Port", TRUE)
+            PhEqualString2(typeName, L"ALPC Port", TRUE) ||
+            PhEqualString2(typeName, L"Section", TRUE)
             )
         {
             // PhpGetBestObjectName can provide us with a name.
@@ -2364,6 +2365,7 @@ NTSTATUS PhpCallWithTimeout(
     return status;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpCallWithTimeoutThreadStart(
     _In_ PVOID Parameter
     )
@@ -2409,6 +2411,7 @@ NTSTATUS PhCallWithTimeout(
     return status;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpCommonQueryObjectRoutine(
     _In_ PVOID Parameter
     )

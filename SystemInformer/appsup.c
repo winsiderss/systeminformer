@@ -19,6 +19,7 @@
 
 #include <actions.h>
 #include <mainwnd.h>
+#include <lsasup.h>
 #include <phappres.h>
 #include <phsvccl.h>
 #include <thirdparty.h>
@@ -134,6 +135,105 @@ PCPH_STRINGREF PhGetProcessPriorityClassString(
     //default:
     //    return L"Unknown";
     //}
+}
+
+static CONST PH_KEY_VALUE_PAIR PhProtectedTypeStrings[] =
+{
+    SIP(L"None", NULL), // PsProtectedTypeNone
+    SIP(L"Light", PsProtectedTypeProtectedLight),
+    SIP(L"Full", PsProtectedTypeProtected),
+};
+
+static CONST PH_KEY_VALUE_PAIR PhProtectedSignerStrings[] =
+{
+    SIP(L"None", NULL), // PsProtectedSignerNone
+    SIP(L"Authenticode", PsProtectedSignerAuthenticode),
+    SIP(L"CodeGen", PsProtectedSignerCodeGen),
+    SIP(L"Antimalware", PsProtectedSignerAntimalware),
+    SIP(L"Lsa", PsProtectedSignerLsa),
+    SIP(L"Windows", PsProtectedSignerWindows),
+    SIP(L"WinTcb", PsProtectedSignerWinTcb),
+    SIP(L"WinSystem", PsProtectedSignerWinSystem),
+    SIP(L"StoreApp", PsProtectedSignerApp),
+};
+
+static_assert(RTL_NUMBER_OF(PhProtectedTypeStrings) == PsProtectedTypeMax, "PsProtectedTypeStrings must equal PsProtectedTypeMax (value offsets)");
+static_assert(RTL_NUMBER_OF(PhProtectedSignerStrings) == PsProtectedSignerMax, "PhProtectedSignerStrings must equal PsProtectedSignerMax (value offsets)");
+
+PPH_STRING PhGetProcessProtectionString(
+    _In_ PS_PROTECTION Protection,
+    _In_ BOOLEAN IsSecureProcess
+    )
+{
+    if (Protection.Level)
+    {
+        static PPH_STRING PhpProtectionNoneString = NULL;
+        PH_FORMAT format[6];
+        ULONG count = 0;
+        PCWSTR type;
+        PCWSTR signer;
+
+        if (!PhpProtectionNoneString)
+            PhpProtectionNoneString = PhCreateString(L"None");
+
+        if (IsSecureProcess)
+        {
+            PhInitFormatS(&format[count++], L"Secure ");
+        }
+
+        if (PhIndexStringSiKeyValuePairs(
+            PhProtectedTypeStrings,
+            sizeof(PhProtectedTypeStrings),
+            Protection.Type,
+            &type
+            ))
+        {
+            PhInitFormatS(&format[count++], type);
+        }
+        else
+        {
+            PhInitFormatS(&format[count++], L"Unknown");
+        }
+
+        if (PhIndexStringSiKeyValuePairs(
+            PhProtectedSignerStrings,
+            sizeof(PhProtectedSignerStrings),
+            Protection.Signer,
+            &signer
+            ))
+        {
+            PhInitFormatS(&format[count++], L" (");
+            PhInitFormatS(&format[count++], signer);
+            PhInitFormatS(&format[count++], L")");
+        }
+        else
+        {
+            PhInitFormatS(&format[count++], L" (");
+            PhInitFormatS(&format[count++], L"Unknown");
+            PhInitFormatS(&format[count++], L")");
+        }
+
+        if (Protection.Audit)
+        {
+            PhInitFormatS(&format[count++], L" (Audit)");
+        }
+
+        return PhFormat(format, count, 10);
+    }
+    else
+    {
+        static PPH_STRING PhpProtectionSecureIUMString = NULL;
+
+        if (!PhpProtectionSecureIUMString)
+            PhpProtectionSecureIUMString = PhCreateString(L"Secure (IUM)");
+
+        if (IsSecureProcess)
+        {
+            return PhReferenceObject(PhpProtectionSecureIUMString);
+        }
+    }
+
+    return NULL;
 }
 
 /**
@@ -491,7 +591,7 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
 }
 
 static BOOLEAN NTAPI PhpSvchostCommandLineCallback(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
     )
@@ -519,7 +619,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
         {
             // svchost.exe -k <GroupName>
 
-            static PH_COMMAND_LINE_OPTION options[] =
+            static CONST PH_COMMAND_LINE_OPTION options[] =
             {
                 { 1, L"k", MandatoryArgumentType }
             };
@@ -816,7 +916,7 @@ VOID PhShellExecuteUserString(
     // here because the string may be a URL. (dmex)
     if (PhFindCharInString(executeString, 0, L':') == SIZE_MAX)
     {
-        static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
         static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
         PPH_LIST stringArgList;
         PPH_STRING fileName = NULL;
@@ -842,16 +942,16 @@ VOID PhShellExecuteUserString(
             // Make sure the string is absolute and escape the filename.
             if (PhDetermineDosPathNameType(&fileName->sr) == RtlPathTypeRelative)
             {
-                PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &applicationDirectory->sr, &fileName->sr));
-                PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &seperator));
+                PhMoveReference(&fileName, PhConcatStringRef3(&separator, &applicationDirectory->sr, &fileName->sr));
+                PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &separator));
             }
             else
             {
-                PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &fileName->sr, &seperator));
+                PhMoveReference(&fileName, PhConcatStringRef3(&separator, &fileName->sr, &separator));
             }
 
             // Escape the parameters.
-            PhMoveReference(&fileArgs, PhConcatStringRef3(&seperator, &fileArgs->sr, &seperator));
+            PhMoveReference(&fileArgs, PhConcatStringRef3(&separator, &fileArgs->sr, &separator));
 
             // Create the escaped execute string.
             PhMoveReference(&executeString, PhConcatStringRef3(&fileName->sr, &space, &fileArgs->sr));
@@ -860,12 +960,12 @@ VOID PhShellExecuteUserString(
         {
             if (PhDetermineDosPathNameType(&executeString->sr) == RtlPathTypeRelative)
             {
-                PhMoveReference(&executeString, PhConcatStringRef3(&seperator, &applicationDirectory->sr, &executeString->sr));
-                PhMoveReference(&executeString, PhConcatStringRef2(&executeString->sr, &seperator));
+                PhMoveReference(&executeString, PhConcatStringRef3(&separator, &applicationDirectory->sr, &executeString->sr));
+                PhMoveReference(&executeString, PhConcatStringRef2(&executeString->sr, &separator));
             }
             else
             {
-                PhMoveReference(&executeString, PhConcatStringRef3(&seperator, &executeString->sr, &seperator));
+                PhMoveReference(&executeString, PhConcatStringRef3(&separator, &executeString->sr, &separator));
             }
         }
 
@@ -1101,7 +1201,8 @@ BOOLEAN PhGetListViewContextMenuPoint(
             Point->x = bounds.left + PhGetSystemMetrics(SM_CXSMICON, dpiValue) / 2;
             Point->y = bounds.top + PhGetSystemMetrics(SM_CYSMICON, dpiValue) / 2;
 
-            GetClientRect(ListViewHandle, &clientRect);
+            if (!PhGetClientRect(ListViewHandle, &clientRect))
+                return FALSE;
 
             if (Point->x < 0 || Point->y < 0 || Point->x >= clientRect.right || Point->y >= clientRect.bottom)
             {
@@ -1277,10 +1378,10 @@ VOID PhWritePhTextHeader(
         PhDereferenceObject(version);
     }
 
-    PhWriteStringFormatAsUtf8FileStream(FileStream, L"\r\nWindows NT %lu.%lu", PhOsVersion.dwMajorVersion, PhOsVersion.dwMinorVersion);
+    PhWriteStringFormatAsUtf8FileStream(FileStream, L"\r\nWindows NT %lu.%lu", PhOsVersion.MajorVersion, PhOsVersion.MinorVersion);
 
-    if (PhOsVersion.szCSDVersion[0] != UNICODE_NULL)
-        PhWriteStringFormatAsUtf8FileStream(FileStream, L" %s", PhOsVersion.szCSDVersion);
+    if (PhOsVersion.CSDVersion[0] != UNICODE_NULL)
+        PhWriteStringFormatAsUtf8FileStream(FileStream, L" %s", PhOsVersion.CSDVersion);
 
 #ifdef _WIN64
     PhWriteStringAsUtf8FileStream2(FileStream, L" (64-bit)");
@@ -1363,6 +1464,15 @@ NTSTATUS PhShellProcessHackerEx(
         if (PhStartupParameters.NoSettings)
         {
             PhAppendStringBuilder2(&sb, L" -nosettings");
+        }
+        else
+        {
+            if (!PhIsNullOrEmptyString(PhSettingsFileName))
+            {
+                PhAppendStringBuilder2(&sb, L" -settings \"");
+                PhAppendStringBuilder(&sb, &PhSettingsFileName->sr);
+                PhAppendStringBuilder2(&sb, L"\"");
+            }
         }
 
         if (PhStartupParameters.NoKph)
@@ -1563,8 +1673,8 @@ VOID PhInitializeTreeNewColumnMenuEx(
 
     if (Flags & PH_TN_COLUMN_MENU_SHOW_RESET_SORT)
     {
-        ULONG sortColumn;
-        PH_SORT_ORDER sortOrder;
+        ULONG sortColumn = 0;
+        PH_SORT_ORDER sortOrder = NoSortOrder;
 
         TreeNew_GetSort(Data->TreeNewHandle, &sortColumn, &sortOrder);
 
@@ -1614,8 +1724,8 @@ VOID PhpEnsureValidSortColumnTreeNew(
     _In_ PH_SORT_ORDER DefaultSortOrder
     )
 {
-    ULONG sortColumn;
-    PH_SORT_ORDER sortOrder;
+    ULONG sortColumn = 0;
+    PH_SORT_ORDER sortOrder = NoSortOrder;
 
     // Make sure the column we're sorting by is actually visible, and if not, don't sort anymore.
 
@@ -1975,6 +2085,7 @@ BOOLEAN PhHandleCopyCellEMenuItem(
     return TRUE;
 }
 
+_Function_class_(PH_EMENU_ITEM_DELETE_FUNCTION)
 VOID NTAPI PhpCopyListViewEMenuItemDeleteFunction(
     _In_ PPH_EMENU_ITEM Item
     )
@@ -2006,9 +2117,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     PH_FORMAT format[3];
     WCHAR headerText[MAX_PATH] = L"";
 
-    if (!GetCursorPos(&location))
-        return FALSE;
-    if (!ScreenToClient(ListViewHandle, &location))
+    if (!PhGetClientPos(ListViewHandle, &location))
         return FALSE;
 
     memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
@@ -2028,7 +2137,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
 
     PhInitializeStringRefLongHint(&columnText, headerText);
 
-    if (PhIsNullOrEmptyString(&columnText))
+    if (PhIsNullOrEmptyStringRef(&columnText))
         return FALSE;
 
     if (!PhFindEMenuItemEx(Menu, 0, NULL, InsertAfterId, &parentItem, &indexInParent))
@@ -2079,9 +2188,7 @@ BOOLEAN PhInsertCopyIListViewEMenuItem(
     PH_FORMAT format[3];
     WCHAR headerText[MAX_PATH] = L"";
 
-    if (!GetCursorPos(&location))
-        return FALSE;
-    if (!ScreenToClient(ListViewHandle, &location))
+    if (!PhGetClientPos(ListViewHandle, &location))
         return FALSE;
 
     memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
@@ -2102,7 +2209,7 @@ BOOLEAN PhInsertCopyIListViewEMenuItem(
 
     PhInitializeStringRefLongHint(&columnText, headerText);
 
-    if (PhIsNullOrEmptyString(&columnText))
+    if (PhIsNullOrEmptyStringRef(&columnText))
         return FALSE;
 
     if (!PhFindEMenuItemEx(Menu, 0, NULL, InsertAfterId, &parentItem, &indexInParent))
@@ -2209,7 +2316,7 @@ BOOLEAN PhpSelectFavoriteInRegedit(
     if (UsePhSvc)
         PhSvcCallSendMessage(RegeditWindow, WM_MENUSELECT, MAKEWPARAM(3, MF_POPUP), (LPARAM)menu);
     else
-        SendMessage(RegeditWindow, WM_MENUSELECT, MAKEWPARAM(3, MF_POPUP), (LPARAM)menu);
+        PhSendMessageTimeout(RegeditWindow, WM_MENUSELECT, MAKEWPARAM(3, MF_POPUP), (LPARAM)menu, 5000, NULL);
 
     if (!(favoritesMenu = GetSubMenu(menu, 3)))
         return FALSE;
@@ -2223,15 +2330,19 @@ BOOLEAN PhpSelectFavoriteInRegedit(
     if (count > 1000)
         count = 1000;
 
-    for (i = 3; i < count; i++)
+    for (i = 0; i < count; i++)
     {
-        MENUITEMINFO info = { sizeof(MENUITEMINFO) };
+        MENUITEMINFO info;
         WCHAR buffer[MAX_PATH];
 
+        memset(&info, 0, sizeof(MENUITEMINFO));
+        info.cbSize = sizeof(MENUITEMINFO);
         info.fMask = MIIM_ID | MIIM_STRING;
         info.dwTypeData = buffer;
         info.cch = RTL_NUMBER_OF(buffer);
-        GetMenuItemInfo(favoritesMenu, i, TRUE, &info);
+
+        if (!GetMenuItemInfo(favoritesMenu, i, TRUE, &info))
+            continue;
 
         if (info.cch == FavoriteName->Length / sizeof(WCHAR))
         {
@@ -2255,7 +2366,7 @@ BOOLEAN PhpSelectFavoriteInRegedit(
     if (UsePhSvc)
         PhSvcCallSendMessage(RegeditWindow, WM_COMMAND, MAKEWPARAM(id, 0), 0);
     else
-        SendMessage(RegeditWindow, WM_COMMAND, MAKEWPARAM(id, 0), 0);
+        PhSendMessageTimeout(RegeditWindow, WM_COMMAND, MAKEWPARAM(id, 0), 0, 5000, NULL);
 
     // "Close" the Favorites menu and restore normal status bar text.
     if (UsePhSvc)
@@ -2267,12 +2378,9 @@ BOOLEAN PhpSelectFavoriteInRegedit(
     if (IsMinimized(RegeditWindow))
     {
         ShowWindow(RegeditWindow, SW_RESTORE);
-        SetForegroundWindow(RegeditWindow);
     }
-    else
-    {
-        SetForegroundWindow(RegeditWindow);
-    }
+
+    SetForegroundWindow(RegeditWindow);
 
     return TRUE;
 }
@@ -2362,6 +2470,113 @@ VOID PhShellOpenKey(
     PhDereferenceObject(regeditFileName);
 }
 
+NTSTATUS PhRegeditOpenUserFavoritesKey(
+    _In_ HWND RegeditWindow,
+    _Out_ PHANDLE KeyHandle
+    )
+{
+    static CONST PH_STRINGREF favoritesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit\\Favorites");
+    NTSTATUS status;
+    CLIENT_ID clientId;
+    HANDLE processHandle;
+    HANDLE tokenHandle;
+    HANDLE keyUserHandle;
+    HANDLE keyFavoritesHandle;
+    PH_TOKEN_USER tokenUser;
+    PPH_STRING tokenUserSid;
+
+    status = PhGetWindowClientId(RegeditWindow, &clientId);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhOpenProcessClientId(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        &clientId
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhOpenProcessToken(
+        processHandle,
+        TOKEN_QUERY,
+        &tokenHandle
+        );
+
+    NtClose(processHandle);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetTokenUser(
+        tokenHandle,
+        &tokenUser
+        );
+
+    NtClose(tokenHandle);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (!(tokenUserSid = PhSidToStringSid(tokenUser.User.Sid)))
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
+
+    status = PhOpenKey(
+        &keyUserHandle,
+        KEY_READ,
+        PH_KEY_USERS,
+        &tokenUserSid->sr,
+        0
+        );
+
+    PhDereferenceObject(tokenUserSid);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhCreateKey(
+        &keyFavoritesHandle,
+        KEY_WRITE,
+        keyUserHandle,
+        &favoritesKeyName,
+        0,
+        0,
+        NULL
+        );
+
+    NtClose(keyUserHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        *KeyHandle = keyFavoritesHandle;
+        return STATUS_SUCCESS;
+    }
+
+CleanupExit:
+    status = PhCreateKey(
+        &keyFavoritesHandle,
+        KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &favoritesKeyName,
+        0,
+        0,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *KeyHandle = keyFavoritesHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return status;
+}
+
 /**
  * Opens a key in the Registry Editor. If the Registry Editor is already open,
  * the specified key is selected in the Registry Editor.
@@ -2374,7 +2589,6 @@ BOOLEAN PhShellOpenKey2(
     _In_ PPH_STRING KeyName
     )
 {
-    static CONST PH_STRINGREF favoritesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit\\Favorites");
     BOOLEAN result = FALSE;
     HWND regeditWindow;
     HANDLE favoritesKeyHandle;
@@ -2398,15 +2612,7 @@ BOOLEAN PhShellOpenKey2(
 
     // Create our entry in Favorites.
 
-    if (!NT_SUCCESS(PhCreateKey(
-        &favoritesKeyHandle,
-        KEY_WRITE,
-        PH_KEY_CURRENT_USER,
-        &favoritesKeyName,
-        0,
-        0,
-        NULL
-        )))
+    if (!NT_SUCCESS(PhRegeditOpenUserFavoritesKey(regeditWindow, &favoritesKeyHandle)))
         goto CleanupExit;
 
     memcpy(favoriteName, L"A_SystemInformer", 16 * sizeof(WCHAR));
@@ -2533,9 +2739,9 @@ HICON PhGetApplicationIcon(
     if (!smallIcon || !largeIcon)
     {
         if (!smallIcon)
-            smallIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, systemDpi);
+            smallIcon = PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, systemDpi);
         if (!largeIcon)
-            largeIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, systemDpi);
+            largeIcon = PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, systemDpi);
     }
 
     return SmallIcon ? smallIcon : largeIcon;
@@ -2547,8 +2753,8 @@ HICON PhGetApplicationIconEx(
     )
 {
     if (SmallIcon)
-        return PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, WindowDpi);
-    return PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, WindowDpi);
+        return PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, WindowDpi);
+    return PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, WindowDpi);
 }
 
 VOID PhSetWindowIcon(

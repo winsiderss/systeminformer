@@ -61,7 +61,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
     PhpAddIntegerSetting(L"EnableServiceProgressDialog", L"1");
     PhpAddIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger", L"1");
-    PhpAddIntegerSetting(L"EnableStage2", L"0");
+    PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableStreamerMode", L"0");
     PhpAddIntegerSetting(L"EnableStartAsAdmin", L"0");
     PhpAddIntegerSetting(L"EnableStartAsAdminAlwaysOnTop", L"0");
@@ -239,6 +239,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ShowCommitInSummary", L"1");
     PhpAddIntegerSetting(L"ShowCpuBelow001", L"0");
     PhpAddIntegerSetting(L"ShowHexId", L"0");
+    PhpAddIntegerSetting(L"SortChildProcesses", L"0");
+    PhpAddIntegerSetting(L"SortRootProcesses", L"0");
     PhpAddIntegerSetting(L"StartHidden", L"0");
     PhpAddIntegerSetting(L"SysInfoShowCpuSpeedMhz", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");
@@ -274,6 +276,9 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"TreeListCustomRowSize", L"0");
     PhpAddIntegerSetting(L"TreeListEnableHeaderTotals", L"1");
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
+    PhpAddStringSetting(L"UserListTreeListColumns", L"");
+    PhpAddIntegerPairSetting(L"UserListWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"UserListWindowSize", L"@96|550,420");
     PhpAddIntegerSetting(L"WmiProviderEnableHiddenMenu", L"0");
     PhpAddIntegerSetting(L"WmiProviderEnableTooltipSupport", L"0");
     PhpAddStringSetting(L"WmiProviderTreeListColumns", L"");
@@ -372,7 +377,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"KsiEnableSplashScreen", L"0");
     PhpAddIntegerSetting(L"KsiEnableLoadNative", L"0");
     PhpAddIntegerSetting(L"KsiEnableLoadFilter", L"0");
-    PhpAddIntegerSetting(L"KsiUnloadOnExit", L"1");
+    PhpAddIntegerSetting(L"KsiUnloadOnExit", L"0");
     PhpAddIntegerSetting(L"KsiRandomizedPoolTag", L"0");
     PhpAddIntegerSetting(L"KsiEnableUnloadProtection", L"1");
     PhpAddIntegerSetting(L"KsiDynDataNoEmbedded", L"0");
@@ -393,6 +398,8 @@ VOID PhUpdateCachedSettings(
     PH_GET_INTEGER_CACHED_SETTING(PropagateCpuUsage);
     PH_GET_INTEGER_CACHED_SETTING(ScrollToNewProcesses);
     PH_GET_INTEGER_CACHED_SETTING(ScrollToRemovedProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(SortChildProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(SortRootProcesses);
     PH_GET_INTEGER_CACHED_SETTING(ShowCpuBelow001);
     PH_GET_INTEGER_CACHED_SETTING(UpdateInterval);
 

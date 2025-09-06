@@ -19,23 +19,25 @@ namespace CustomBuildTool
         public static bool HaveArm64BuildTools = true;
         public static bool BuildRedirectOutput = false;
         public static bool BuildIntegration = false;
+        public static bool BuildIntegrationTF = false;
         public static string BuildOutputFolder = string.Empty;
         public static string BuildWorkingFolder = string.Empty;
-        public static string BuildCommitBranch = string.Empty;
-        public static string BuildCommitHash = string.Empty;
-        public static string BuildShortVersion = string.Empty;
-        public static string BuildLongVersion = string.Empty;
+        public static string BuildCommitBranch = "orphan";
+        public static string BuildCommitHash = new('0', 40);
+        public static string BuildShortVersion = "0.0.0";
+        public static string BuildLongVersion = "0.0.0.0";
         public static string BuildSourceLink = string.Empty;
-        public const string BuildVersionMajor = "3";
-        public const string BuildVersionMinor = "2";
+        public static string BuildSimdExtensions = string.Empty;
+        public static string BuildVersionMajor = "0";
+        public static string BuildVersionMinor = "0";
 
         public static bool InitializeBuildEnvironment()
         {
             Win32.SetErrorMode();
             Win32.SetBasePriority();
 
-            Console.InputEncoding = Encoding.UTF8;
-            Console.OutputEncoding = Encoding.UTF8;
+            Console.InputEncoding = Utils.UTF8NoBOM;
+            Console.OutputEncoding = Utils.UTF8NoBOM;
 
             if (!Utils.SetCurrentDirectoryParent("SystemInformer.sln"))
             {
@@ -46,15 +48,10 @@ namespace CustomBuildTool
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath("\\build\\output");
 
-            // Ensures consistent time stamp across build invocations. The file is written by pipeline builds.
-            if (File.Exists($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt"))
+            if (!InitializeBuildTimestamp())
             {
-                ReadOnlySpan<char> timestamp = Utils.ReadAllText($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt");
-                Build.TimeStart = DateTime.Parse(timestamp);
-            }
-            else
-            {
-                Build.TimeStart = DateTime.UtcNow;
+                Program.PrintColorMessage("Unable to initialize build timestamp.", ConsoleColor.Red);
+                return false;
             }
 
             if (!InitializeBuildArguments())
@@ -66,13 +63,19 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static bool InitializeBuildTimestamp()
+        {
+            // Ensures consistent time stamp across build invocations.
+            if (Build.BuildIntegration)
+                Build.TimeStart = BuildDevOps.BuildQueryQueueTime();
+            else
+                Build.TimeStart = DateTime.UtcNow;
+
+            return true;
+        }
+
         public static bool InitializeBuildArguments()
         {
-            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS") || Win32.HasEnvironmentVariable("BUILD_BUILDID"))
-            {
-                Build.BuildIntegration = true;
-            }
-
             if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition))
             {
                 if (build_definition.Equals("canary", StringComparison.OrdinalIgnoreCase))
@@ -91,105 +94,95 @@ namespace CustomBuildTool
                 }
             }
 
-            if (Win32.GetEnvironmentVariable("BUILD_SOURCEVERSION", out string buildsource))
-            {
-                Build.BuildCommitHash = buildsource;
-            }
-
-            if (Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out string buildbranch))
-            {
-                Build.BuildCommitBranch = buildbranch;
-            }
-
-            if (Win32.GetEnvironmentVariable("BUILD_REDIRECTOUTPUT", out string buildredirectoutput))
-            {
-                Build.BuildRedirectOutput = buildredirectoutput.Equals("true", StringComparison.OrdinalIgnoreCase);
-            }
-
-            //{
-            //    VisualStudioInstance instance = Utils.GetVisualStudioInstance();
-            //
-            //    if (instance == null)
-            //    {
-            //        Program.PrintColorMessage("Unable to find Visual Studio.", ConsoleColor.Red);
-            //        return false;
-            //    }
-            //
-            //    if (!instance.HasRequiredDependency)
-            //    {
-            //        Program.PrintColorMessage("Visual Studio does not have required the packages: ", ConsoleColor.Red);
-            //        Program.PrintColorMessage(instance.MissingDependencyList, ConsoleColor.Cyan);
-            //        return false;
-            //    }
-            //}
-
-            return true;
-        }
-        public static void SetupBuildEnvironment(bool ShowBuildInfo)
-        {
-            if (string.IsNullOrWhiteSpace(Build.BuildCommitBranch) && !string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
-            {
-                Build.BuildCommitBranch = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "branch --show-current");
-            }
-
-            if (string.IsNullOrWhiteSpace(Build.BuildCommitHash) && !string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
+            if (!Win32.GetEnvironmentVariable("BUILD_SOURCEVERSION", out Build.BuildCommitHash))
             {
                 Build.BuildCommitHash = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "rev-parse HEAD");
             }
 
-            if (string.IsNullOrEmpty(Build.BuildCommitHash))
+            if (!Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out Build.BuildCommitBranch))
             {
-                Build.BuildShortVersion = "1.0.0";
-                Build.BuildLongVersion = "1.0.0.0";
+                Build.BuildCommitBranch = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "branch --show-current");
             }
-            else
+
+            if (Win32.GetEnvironmentVariable("BUILD_REDIRECTOUTPUT", out string build_output))
+            {
+                Build.BuildRedirectOutput = build_output.Equals("true", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (Win32.GetEnvironmentVariable("BUILD_SIMD", out string build_simd))
+            {
+                Build.BuildSimdExtensions = build_simd;
+            }
+
+            if (Win32.GetEnvironmentVariable("BUILD_MAJORVERSION", out string build_major))
+            {
+                Build.BuildVersionMajor = build_major;
+            }
+
+            if (Win32.GetEnvironmentVariable("BUILD_MINORVERSION", out string build_minor))
+            {
+                Build.BuildVersionMinor = build_minor;
+            }
+
+            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS"))
+            {
+                Build.BuildIntegration = true;
+            }
+            else if (Win32.HasEnvironmentVariable("TF_BUILD"))
+            {
+                Build.BuildIntegration = true;
+                Build.BuildIntegrationTF = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash) && !string.IsNullOrWhiteSpace(Build.BuildVersionMajor))
             {
                 Build.BuildShortVersion = $"{Build.BuildVersionMajor}.{Build.BuildVersionMinor}.{Build.BuildVersionBuild}";
                 Build.BuildLongVersion = $"{Build.BuildVersionMajor}.{Build.BuildVersionMinor}.{Build.BuildVersionBuild}.{Build.BuildVersionRevision}";
             }
 
+            return true;
+        }
+
+        public static void SetupBuildEnvironment(bool ShowBuildInfo)
+        {
             if (ShowBuildInfo)
             {
-                Program.PrintColorMessage("Windows: ", ConsoleColor.DarkGray, false);
+                Program.PrintColorMessage("> Windows: ", ConsoleColor.DarkGray, false);
                 Program.PrintColorMessage(Win32.GetKernelVersion(), ConsoleColor.Green);
 
-                var instance = VisualStudio.GetVisualStudioInstance();
+                var instance = BuildVisualStudio.GetVisualStudioInstance();
                 if (instance != null)
                 {
-                    Program.PrintColorMessage("WindowsSDK: ", ConsoleColor.DarkGray, false);
-                    //Program.PrintColorMessage(Utils.GetWindowsSdkVersion(), ConsoleColor.Green);
+                    Program.PrintColorMessage("> WindowsSDK: ", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage($"{Utils.GetWindowsSdkVersion()} ({instance.GetWindowsSdkFullVersion()})", ConsoleColor.Green, true);
-                    Program.PrintColorMessage("VisualStudio: ", ConsoleColor.DarkGray, false);
+                    Program.PrintColorMessage("> VisualStudio: ", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage(instance.Name, ConsoleColor.Green);
-                    //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.Green, true);
+                    //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.DarkGreen, true);
                     Build.HaveArm64BuildTools = instance.HasARM64BuildToolsComponents;
                 }
 
-                Program.PrintColorMessage("SystemInformer: ", ConsoleColor.DarkGray, false);
+                Program.PrintColorMessage("> SystemInformer: ", ConsoleColor.DarkGray, false);
                 Program.PrintColorMessage(Build.BuildLongVersion, ConsoleColor.Green, false);
 
                 if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
                 {
                     Program.PrintColorMessage(" (", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(Build.BuildCommitHash.Substring(0, 8), ConsoleColor.DarkCyan, false);
+                    //Program.PrintColorMessage(Build.BuildCommitHash[..8], ConsoleColor.DarkGray, false);
+                    Program.PrintColorMessage(Program.CreateConsoleHyperlink(
+                        $"https://github.com/winsiderss/systeminformer/commit/{Build.BuildCommitHash}", 
+                        Build.BuildCommitHash[..8]), ConsoleColor.Blue, false);
                     Program.PrintColorMessage(")", ConsoleColor.DarkGray, false);
                 }
 
-                if (!string.IsNullOrWhiteSpace(Build.BuildCommitBranch))
+                if (!string.IsNullOrWhiteSpace(Build.BuildCommitBranch) && !Build.BuildCommitBranch.Equals("master"))
                 {
                     Program.PrintColorMessage(" [", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(Build.BuildCommitBranch, ConsoleColor.DarkBlue, false);
+                    Program.PrintColorMessage(Build.BuildCommitBranch, ConsoleColor.Blue, false);
                     Program.PrintColorMessage("]", ConsoleColor.DarkGray, false);
                 }
 
                 Program.PrintColorMessage(Environment.NewLine, ConsoleColor.DarkGray);
             }
-        }
-
-        public static void WriteTimeStampFile()
-        {
-            Utils.CreateOutputDirectory();
-            Utils.WriteAllText($"{BuildOutputFolder}\\systeminformer-build-timestamp.txt", TimeStart.ToString("o"));
         }
 
         public static string BuildTimeSpan()
@@ -199,7 +192,7 @@ namespace CustomBuildTool
 
         public static string BuildVersionBuild
         {
-            get 
+            get
             {
                 // Extract the last two digits of the year. For example, if the year is 2023, (Year % 100) will result in 23.
                 var first = (TimeStart.Year % 100).ToString();
@@ -225,6 +218,11 @@ namespace CustomBuildTool
             }
         }
 
+        public static string BuildHash()
+        {
+            return string.IsNullOrWhiteSpace(Build.BuildCommitHash) ? "00000000" : Build.BuildCommitHash[..8];
+        }
+
         public static string BuildUpdated
         {
             get { return new DateTime(TimeStart.Year, TimeStart.Month, TimeStart.Day, TimeStart.Hour, 0, 0).ToString("o"); }
@@ -237,29 +235,54 @@ namespace CustomBuildTool
 
         public static void ShowBuildStats()
         {
-            TimeSpan buildTime = (DateTime.UtcNow - Build.TimeStart);
+            TimeSpan buildTime = DateTime.UtcNow - Build.TimeStart;
 
             Program.PrintColorMessage($"{Environment.NewLine}Build Time: ", ConsoleColor.DarkGray, false);
-            Program.PrintColorMessage(buildTime.Minutes.ToString(), ConsoleColor.Green, false);
+            Program.PrintColorMessage(buildTime.TotalMinutes.ToString("0"), ConsoleColor.Green, false);
             Program.PrintColorMessage(" minute(s), ", ConsoleColor.DarkGray, false);
             Program.PrintColorMessage(buildTime.Seconds.ToString(), ConsoleColor.Green, false);
             Program.PrintColorMessage($" second(s) {Environment.NewLine + Environment.NewLine}", ConsoleColor.DarkGray, false);
         }
 
-        public static bool CopyTextFiles(BuildFlags Flags)
+        public static bool CopyTextFiles(bool Update, BuildFlags Flags)
         {
-            //if (Update)
+            string[] Build_Text_Files =
+            [
+                "README.txt",
+                "COPYRIGHT.txt",
+                "LICENSE.txt",
+            ];
 
-            Win32.CopyIfNewer("README.txt", "bin\\README.txt");
-            Win32.CopyIfNewer("COPYRIGHT.txt", "bin\\COPYRIGHT.txt");
-            Win32.CopyIfNewer("LICENSE.txt", "bin\\LICENSE.txt");
-
-            //else
-            //{
-            //    Win32.DeleteFile("bin\\README.txt");
-            //    Win32.DeleteFile("bin\\COPYRIGHT.txt");
-            //    Win32.DeleteFile("bin\\LICENSE.txt");
-            //}
+            if (Update)
+            {
+                foreach (string file in Build_Text_Files)
+                {
+                    if (Flags.HasFlag(BuildFlags.BuildRelease))
+                    {
+                        if (Flags.HasFlag(BuildFlags.Build32bit))
+                            Win32.CopyIfNewer(file, $"bin\\Release32\\{file}", Flags);
+                        if (Flags.HasFlag(BuildFlags.Build64bit))
+                            Win32.CopyIfNewer(file, $"bin\\Release64\\{file}", Flags);
+                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                            Win32.CopyIfNewer(file, $"bin\\ReleaseARM64\\{file}", Flags);
+                    }
+                }
+            }
+            else
+            {
+                foreach (string file in Build_Text_Files)
+                {
+                    if (Flags.HasFlag(BuildFlags.BuildRelease))
+                    {
+                        if (Flags.HasFlag(BuildFlags.Build32bit))
+                            Win32.DeleteFile($"bin\\Release32\\{file}", Flags);
+                        if (Flags.HasFlag(BuildFlags.Build64bit))
+                            Win32.DeleteFile($"bin\\Release64\\{file}", Flags);
+                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                            Win32.DeleteFile($"bin\\ReleaseARM64\\{file}", Flags);
+                    }
+                }
+            }
 
             return true;
         }
@@ -305,10 +328,10 @@ namespace CustomBuildTool
         {
             var Build_Resource_Files = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase)
             {
-                { "SystemInformer.png", "icon.png" },
-                { "CapsList.txt", "CapsList.txt" },
-                { "EtwGuids.txt", "EtwGuids.txt" },
-                { "PoolTag.txt", "PoolTag.txt" },
+                ["SystemInformer.png"] = "icon.png",
+                ["CapsList.txt"] = "CapsList.txt",
+                ["EtwGuids.txt"] = "EtwGuids.txt",
+                ["PoolTag.txt"] = "PoolTag.txt",
             };
 
             foreach (var file in Build_Resource_Files)
@@ -316,21 +339,55 @@ namespace CustomBuildTool
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug32\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
+                            $"{BuildWorkingFolder}\\bin\\Debug32\\Resources\\{file.Value}",
+                            Flags);
+                    }
+
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug64\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
+                            $"{BuildWorkingFolder}\\bin\\Debug64\\Resources\\{file.Value}",
+                            Flags);
+                    }
+
                     if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\DebugARM64\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
+                            $"{BuildWorkingFolder}\\bin\\DebugARM64\\Resources\\{file.Value}",
+                            Flags);
+                    }
                 }
 
                 if (Flags.HasFlag(BuildFlags.BuildRelease))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release32\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
+                            $"{BuildWorkingFolder}\\bin\\Release32\\Resources\\{file.Value}",
+                            Flags);
+                    }
+
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release64\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
+                            $"{BuildWorkingFolder}\\bin\\Release64\\Resources\\{file.Value}",
+                            Flags);
+                    }
+
                     if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\ReleaseARM64\\Resources\\{file.Value}", Flags);
+                    {
+                        Win32.CopyIfNewer(
+                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
+                            $"{BuildWorkingFolder}\\bin\\ReleaseARM64\\Resources\\{file.Value}",
+                            Flags);
+                    }
                 }
             }
 
@@ -358,12 +415,12 @@ namespace CustomBuildTool
             // - Program Files\Windows Kits\10\Debuggers\Redist\X64 Debuggers and Tools-x64_en-us.msi
             // - App Verifier
             //
-            var Build_DebugCore_Files = new string[]
-            {
+            string[] Build_DebugCore_Files =
+            [
                 "dbgcore.dll",
                 "dbghelp.dll",
                 "symsrv.dll"
-            };
+            ];
 
             string windowsSdkPath = Path.GetFullPath(Path.Join([Utils.GetWindowsSdkPath(), "..\\..\\Debuggers\\"]));
 
@@ -404,41 +461,36 @@ namespace CustomBuildTool
 
         public static bool BuildValidateExportDefinitions(BuildFlags Flags)
         {
-            string[] Build_Wow64_Files =
-            [
-                "SystemInformer.exe",
-            ];
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage("Validating exports...", ConsoleColor.Cyan);
 
-            foreach (string file in Build_Wow64_Files)
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                if (Flags.HasFlag(BuildFlags.Build64bit))
                 {
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        if (!Utils.ValidateImageExports($"bin\\Debug32\\{file}"))
-                            return false;
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        if (!Utils.ValidateImageExports($"bin\\Debug32\\{file}"))
-                            return false;
-                    }
+                    if (!Utils.ValidateImageExports($"bin\\Debug32\\SystemInformer.exe"))
+                        return false;
                 }
 
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
                 {
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        if (!Utils.ValidateImageExports($"bin\\Release32\\{file}"))
-                            return false;
-                    }
+                    if (!Utils.ValidateImageExports($"bin\\Debug32\\SystemInformer.exe"))
+                        return false;
+                }
+            }
 
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        if (!Utils.ValidateImageExports($"bin\\Release32\\{file}"))
-                            return false;
-                    }
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
+            {
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                {
+                    if (!Utils.ValidateImageExports($"bin\\Release32\\SystemInformer.exe"))
+                        return false;
+                }
+
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                {
+                    if (!Utils.ValidateImageExports($"bin\\Release32\\SystemInformer.exe"))
+                        return false;
                 }
             }
 
@@ -481,10 +533,10 @@ namespace CustomBuildTool
         public static bool CopyKernelDriver(BuildFlags Flags)
         {
             string[] Build_Driver_Files =
-            {
+            [
                 "SystemInformer.sys",
-                "ksi.dll",
-            };
+                "ksi.dll"
+            ];
 
             try
             {
@@ -545,7 +597,7 @@ namespace CustomBuildTool
 
             foreach (string file in files)
             {
-                if (!Verify.CreateSigFile("kph", file, BuildCanary))
+                if (!BuildVerify.CreateSigFile("kph", file, BuildCanary))
                     return false;
             }
 
@@ -554,86 +606,87 @@ namespace CustomBuildTool
 
         public static bool BuildSdk(BuildFlags Flags)
         {
+            string[] Build_Sdk_Files =
+            [
+                "SystemInformer.lib",
+                "SystemInformer.pdb"
+            ];
+
             foreach (string folder in BuildConfig.Build_Sdk_Directories)
             {
                 Win32.CreateDirectory(folder);
             }
 
-            // Copy the plugin SDK headers
+            // Copy headers
             foreach (string file in BuildConfig.Build_Phnt_Headers)
-                Win32.CopyIfNewer($"phnt\\include\\{file}", $"sdk\\include\\{file}", Flags);
+                Win32.CopyIfNewer($"phnt\\include\\{file}", $"sdk\\include\\{file}", Flags, true);
             foreach (string file in BuildConfig.Build_Phlib_Headers)
-                Win32.CopyIfNewer($"phlib\\include\\{file}", $"sdk\\include\\{file}", Flags);
+                Win32.CopyIfNewer($"phlib\\include\\{file}", $"sdk\\include\\{file}", Flags, true);
             foreach (string file in BuildConfig.Build_Kphlib_Headers)
-                Win32.CopyIfNewer($"kphlib\\include\\{file}", $"sdk\\include\\{file}", Flags);
+                Win32.CopyIfNewer($"kphlib\\include\\{file}", $"sdk\\include\\{file}", Flags, true);
 
             // Copy readme
-            Win32.CopyIfNewer("SystemInformer\\sdk\\readme.txt", "sdk\\readme.txt", Flags);
-            // Copy symbols
-            //Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "sdk\\dbg\\i386\\SystemInformer.pdb", Flags);
-            //Win32.CopyIfNewer("bin\\Release64\\SystemInformer.pdb", "sdk\\dbg\\amd64\\SystemInformer.pdb", Flags);
-            //Win32.CopyIfNewer("bin\\ReleaseARM64\\SystemInformer.pdb", "sdk\\dbg\\arm64\\SystemInformer.pdb", Flags);
-            //Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\systeminformer.pdb", "sdk\\dbg\\i386\\ksysteminformer.pdb", Flags);
-            //Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\systeminformer.pdb", "sdk\\dbg\\amd64\\ksysteminformer.pdb", Flags);
-            //Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\systeminformer.pdb", "sdk\\dbg\\arm64\\ksysteminformer.pdb", Flags);
-            //Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\ksi.pdb", "sdk\\dbg\\i386\\ksi.pdb", Flags);
-            //Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\ksi.pdb", "sdk\\dbg\\amd64\\ksi.pdb", Flags);
-            //Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\ksi.pdb", "sdk\\dbg\\arm64\\ksi.pdb", Flags);
+            Win32.CopyIfNewer("SystemInformer\\sdk\\readme.txt", "sdk\\readme.txt", Flags, true);
 
-            // Copy libs
-            if (Flags.HasFlag(BuildFlags.BuildDebug))
+            // Copy files
+            foreach (string file in Build_Sdk_Files)
             {
-                if (Flags.HasFlag(BuildFlags.Build32bit))
-                    Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.lib", "sdk\\lib\\i386\\SystemInformer.lib", Flags);
-                if (Flags.HasFlag(BuildFlags.Build64bit))
-                    Win32.CopyIfNewer("bin\\Debug64\\SystemInformer.lib", "sdk\\lib\\amd64\\SystemInformer.lib", Flags);
-                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    Win32.CopyIfNewer("bin\\DebugARM64\\SystemInformer.lib", "sdk\\lib\\arm64\\SystemInformer.lib", Flags);
-            }
+                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                {
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
+                        Win32.CopyIfNewer($"bin\\Debug32\\{file}", $"sdk\\lib\\i386\\{file}", Flags, true);
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                        Win32.CopyIfNewer($"bin\\Debug64\\{file}", $"sdk\\lib\\amd64\\{file}", Flags, true);
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                        Win32.CopyIfNewer($"bin\\DebugARM64\\{file}", $"sdk\\lib\\arm64\\{file}", Flags, true);
+                }
 
-            if (Flags.HasFlag(BuildFlags.BuildRelease))
-            {
-                if (Flags.HasFlag(BuildFlags.Build32bit))
-                    Win32.CopyIfNewer("bin\\Release32\\SystemInformer.lib", "sdk\\lib\\i386\\SystemInformer.lib", Flags);
-                if (Flags.HasFlag(BuildFlags.Build64bit))
-                    Win32.CopyIfNewer("bin\\Release64\\SystemInformer.lib", "sdk\\lib\\amd64\\SystemInformer.lib", Flags);
-                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    Win32.CopyIfNewer("bin\\ReleaseARM64\\SystemInformer.lib", "sdk\\lib\\arm64\\SystemInformer.lib", Flags);
+                if (Flags.HasFlag(BuildFlags.BuildRelease))
+                {
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
+                        Win32.CopyIfNewer($"bin\\Release32\\{file}", $"sdk\\lib\\i386\\{file}", Flags, true);
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                        Win32.CopyIfNewer($"bin\\Release64\\{file}", $"sdk\\lib\\amd64\\{file}", Flags, true);
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                        Win32.CopyIfNewer($"bin\\ReleaseARM64\\{file}", $"sdk\\lib\\arm64\\{file}", Flags, true);
+                }
             }
 
             // Build the SDK
             HeaderGen.Execute();
 
             // Copy the SDK headers
-            Win32.CopyIfNewer("SystemInformer\\include\\phappres.h", "sdk\\include\\phappres.h", Flags);
-            Win32.CopyIfNewer("SystemInformer\\sdk\\phapppub.h", "sdk\\include\\phapppub.h", Flags);
-            Win32.CopyIfNewer("SystemInformer\\sdk\\phdk.h", "sdk\\include\\phdk.h", Flags);
-            //Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h", Flags);
+            Win32.CopyIfNewer("SystemInformer\\include\\phappres.h", "sdk\\include\\phappres.h", Flags, true);
+            Win32.CopyIfNewer("SystemInformer\\sdk\\phapppub.h", "sdk\\include\\phapppub.h", Flags, true);
+            Win32.CopyIfNewer("SystemInformer\\sdk\\phdk.h", "sdk\\include\\phdk.h", Flags, true);
 
-            // Copy the resource header and prefix types with PHAPP
+            //
+            // Copy the resource header and prefix types with PHAPP for the SDK
+            //
+
+            Win32.GetFileBasicInfo("SystemInformer\\resource.h", out var sourceCreationTime, out var sourceWriteTime, out _);
+            Win32.GetFileBasicInfo("sdk\\include\\phappresource.h", out var targetCreationTime, out var targetWriteTime, out var targetAttributes);
+
+            if (sourceCreationTime != targetCreationTime || sourceWriteTime != targetWriteTime)
             {
-                Win32.GetFileTime("SystemInformer\\resource.h", out var sourceCreationTime, out var sourceWriteTime);
-                Win32.GetFileTime("sdk\\include\\phappresource.h", out var destCreationTime, out var destWriteTime);
+                string resourceContent = Utils.ReadAllText("SystemInformer\\resource.h");
+                string targetContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
 
-                if (sourceCreationTime != sourceWriteTime || sourceWriteTime != destWriteTime)
+                if (!resourceContent.Equals(targetContent, StringComparison.OrdinalIgnoreCase))
                 {
-                    string resourceContent = Utils.ReadAllText("SystemInformer\\resource.h");
-
-                    if (!string.IsNullOrWhiteSpace(resourceContent))
-                    {
-                        // Update resource headers with SDK definition
-                        string sdkContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
-
-                        Utils.WriteAllText("sdk\\include\\phappresource.h", sdkContent);
-                        Win32.SetFileTime("sdk\\include\\phappresource.h", sourceCreationTime, sourceWriteTime);
-                    }
+                    if ((targetAttributes & FileAttributes.ReadOnly) != 0)
+                        File.SetAttributes("sdk\\include\\phappresource.h", FileAttributes.Normal);
+                    Utils.WriteAllText("sdk\\include\\phappresource.h", targetContent);
                 }
+
+                Win32.SetFileBasicInfo("sdk\\include\\phappresource.h", sourceCreationTime, sourceWriteTime, true);           
+                //Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h", Flags);
             }
 
             return true;
         }
 
-        public static bool BuildSetupExe(string Channel)
+        public static bool BuildSetupExe(string Channel, BuildFlags Flags)
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage($"Building build-{Channel}-setup.exe... ", ConsoleColor.Cyan, false);
@@ -643,18 +696,22 @@ namespace CustomBuildTool
 
             try
             {
+                string out_file = Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe"]);
+                string exe_file = Path.Join([Build.BuildOutputFolder, $"\\systeminformer-build-{Channel}-setup.exe"]);
+
                 Utils.CreateOutputDirectory();
 
                 Win32.DeleteFile(
-                    $"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe"
+                    exe_file, 
+                    Flags
                     );
 
                 File.Move(
-                    "tools\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe",
-                    $"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe"
+                    out_file, 
+                    exe_file
                     );
 
-                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe").ToPrettySize(), ConsoleColor.Green);
+                Program.PrintColorMessage(Win32.GetFileSize(exe_file).ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
@@ -665,25 +722,29 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildSdkZip()
+        public static bool BuildSdkZip(BuildFlags Flags)
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building build-sdk.zip... ", ConsoleColor.Cyan, false);
 
             try
             {
+                string zip_file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-sdk.zip"]);
+
                 Utils.CreateOutputDirectory();
 
                 Win32.DeleteFile(
-                    $"{BuildOutputFolder}\\systeminformer-build-sdk.zip"
+                    zip_file,
+                    Flags
                     );
 
                 Zip.CreateCompressedSdkFromFolder(
                     "sdk",
-                    $"{BuildOutputFolder}\\systeminformer-build-sdk.zip"
+                    zip_file,
+                    Flags
                     );
 
-                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-sdk.zip").ToPrettySize(), ConsoleColor.Green);
+                Program.PrintColorMessage(Win32.GetFileSize(zip_file).ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
@@ -694,87 +755,29 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static void CreateSettingsFile(string Channel, string Path)
+        public static bool BuildBinZip(BuildFlags Flags)
         {
-            StringBuilder stringBuilder = new StringBuilder(0x100);
+            var Build_Zip_Files = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase)
+            {
+                ["bin\\Release32"] = "systeminformer-build-win32-bin.zip",
+                ["bin\\Release64"] = "systeminformer-build-win64-bin.zip",
+                ["bin\\ReleaseARM64"] = "systeminformer-build-arm64-bin.zip",
+                ["bin"] = "systeminformer-build-bin.zip",
+            };
 
-            stringBuilder.AppendLine("<settings>");
-
-            if (string.Equals(Channel, "release", StringComparison.OrdinalIgnoreCase))
-            {
-                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">0</setting>"); // PhReleaseChannel
-            }
-            else if (string.Equals(Channel, "preview", StringComparison.OrdinalIgnoreCase))
-            {
-                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">1</setting>"); // PhPreviewChannel
-            }
-            else if (string.Equals(Channel, "canary", StringComparison.OrdinalIgnoreCase))
-            {
-                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">2</setting>"); // PhCanaryChannel
-            }
-            else if (string.Equals(Channel, "developer", StringComparison.OrdinalIgnoreCase))
-            {
-                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">3</setting>"); // PhDeveloperChannel
-            }
-            else
-            {
-                throw new Exception($"Invalid channel: {Channel}");
-            }
-
-            stringBuilder.AppendLine("</settings>");
-
-            if (Directory.Exists(Path))
-            {
-                Win32.CreateEmptyFile($"{Path}\\SystemInformer.exe.settings.xml");
-                Utils.WriteAllText($"{Path}\\SystemInformer.exe.settings.xml", stringBuilder.ToString());
-            }
-        }
-
-        public static bool BuildBinZip(string Channel)
-        {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
-            Program.PrintColorMessage($"Building build-{Channel}-bin.zip... ", ConsoleColor.Cyan, false);
 
             try
             {
-                CreateSettingsFile(Channel, "bin\\Release32");
-                CreateSettingsFile(Channel, "bin\\Release64");
-                CreateSettingsFile(Channel, "bin\\ReleaseARM64");
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
-                return false;
-            }
+                foreach (var file in Build_Zip_Files)
+                {
+                    string zip_file = Path.Join([Build.BuildOutputFolder, file.Value]);
 
-            //try
-            //{
-            //    if (Directory.Exists("bin\\Release32"))
-            //        Win32.CreateEmptyFile("bin\\Release32\\usernotesdb.xml");
-            //    if (Directory.Exists("bin\\Release64"))
-            //        Win32.CreateEmptyFile("bin\\Release64\\usernotesdb.xml");
-            //    if (Directory.Exists("bin\\ReleaseARM64"))
-            //        Win32.CreateEmptyFile("bin\\ReleaseARM64\\usernotesdb.xml");
-            //}
-            //catch (Exception ex)
-            //{
-            //    Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
-            //}
-
-            try
-            {
-                Utils.CreateOutputDirectory();
-
-                Win32.DeleteFile(
-                    $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip"
-                    );
-
-                Zip.CreateCompressedFolder(
-                    "bin",
-                    $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip"
-                    );
-
-                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip").ToPrettySize(), ConsoleColor.Green);
+                    Program.PrintColorMessage($"Building {file.Value}... ", ConsoleColor.Cyan, false);
+                    Win32.DeleteFile(zip_file, Flags);
+                    Zip.CreateCompressedFolder(file.Key, zip_file, Flags);
+                    Program.PrintColorMessage(Win32.GetFileSize(zip_file).ToPrettySize(), ConsoleColor.Green);
+                }
             }
             catch (Exception ex)
             {
@@ -785,7 +788,7 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildPdbZip(bool MsixPackageBuild)
+        public static bool BuildPdbZip(bool MsixPackageBuild, BuildFlags Flags)
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage(MsixPackageBuild ? "Building setup-package-pdb..." : "Building build-pdb.zip...", ConsoleColor.Cyan, false);
@@ -796,30 +799,89 @@ namespace CustomBuildTool
 
                 if (MsixPackageBuild)
                 {
+                    string zip_file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-setup-package-pdb.zip"]);
+
                     Win32.DeleteFile(
-                        $"{BuildOutputFolder}\\systeminformer-setup-package-pdb.zip"
+                        zip_file,
+                        Flags
                         );
 
                     Zip.CreateCompressedPdbFromFolder(
                         ".\\",
-                        $"{BuildOutputFolder}\\systeminformer-setup-package-pdb.zip"
+                        zip_file,
+                        Flags
                         );
 
-                    Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-setup-package-pdb.zip").ToPrettySize(), ConsoleColor.Green);
+                    Program.PrintColorMessage(
+                        Win32.GetFileSize(zip_file).ToPrettySize(), 
+                        ConsoleColor.Green
+                        );
                 }
                 else
                 {
+                    string zip_file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-pdb.zip"]);
+
                     Win32.DeleteFile(
-                        $"{BuildOutputFolder}\\systeminformer-build-pdb.zip"
+                        zip_file,
+                        Flags
                         );
 
                     Zip.CreateCompressedPdbFromFolder(
                         ".\\",
-                        $"{BuildOutputFolder}\\systeminformer-build-pdb.zip"
+                        zip_file,
+                        Flags
                         );
 
-                    Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-pdb.zip").ToPrettySize(), ConsoleColor.Green);
+                    Program.PrintColorMessage(
+                        Win32.GetFileSize(zip_file).ToPrettySize(), 
+                        ConsoleColor.Green
+                        );
                 }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+        
+        public static bool BuildSymStoreZip(BuildFlags Flags)
+        {
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage("Building symsrv-package...", ConsoleColor.Cyan, false);
+
+            try
+            {
+                string zip_file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-symbols-package.zip"]);
+
+                Win32.DeleteFile(
+                    zip_file
+                    );
+                Utils.CreateOutputDirectory();
+
+                Utils.ExecuteSymStoreCommand(
+                    @$"add -:REL /r /f ""bin\\Release32\\*.*"" /s ""build\\output\\symbols"" /t SystemInformer /v ""{Build.BuildLongVersion}"" /c ""32bit-{Build.BuildCommitHash}"" /o"
+                    );
+                Utils.ExecuteSymStoreCommand(
+                    @$"add -:REL /r /f ""bin\\Release64\\*.*"" /s ""build\\output\\symbols"" /t SystemInformer /v ""{Build.BuildLongVersion}"" /c ""64bit-{Build.BuildCommitHash}"" /o"
+                    );
+                Utils.ExecuteSymStoreCommand(
+                    @$"add -:REL /r /f ""bin\\ReleaseARM64\\*.*"" /s ""build\\output\\symbols"" /t SystemInformer /v ""{Build.BuildLongVersion}"" /c ""arm64-{Build.BuildCommitHash}"" /o"
+                    );
+               
+                Program.PrintColorMessage("Building symbols-package.zip...", ConsoleColor.Cyan, false);
+
+                Zip.CreateCompressedSdkFromFolder(
+                    "build\\output\\symbols",
+                    zip_file,
+                    Flags
+                    );
+                Program.PrintColorMessage(
+                    Win32.GetFileSize(zip_file).ToPrettySize(), 
+                    ConsoleColor.Green
+                    );
             }
             catch (Exception ex)
             {
@@ -832,6 +894,17 @@ namespace CustomBuildTool
 
         public static bool BuildChecksumsFile()
         {
+            string[] Build_Upload_Files =
+            [
+                "systeminformer-build-win32-bin.zip",
+                "systeminformer-build-win64-bin.zip",
+                "systeminformer-build-arm64-bin.zip",
+                "systeminformer-build-bin.zip",
+                "systeminformer-build-pdb.zip",
+                "systeminformer-build-release-setup.exe",
+                "systeminformer-build-canary-setup.exe"
+            ];
+
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building release checksums...", ConsoleColor.Cyan);
 
@@ -839,17 +912,14 @@ namespace CustomBuildTool
             {
                 StringBuilder sb = new StringBuilder();
 
-                foreach (BuildFile name in BuildConfig.Build_Release_Files)
+                foreach (var name in Build_Upload_Files)
                 {
-                    if (!name.UploadCanary)
-                        continue;
-
-                    string file = Path.Join([BuildOutputFolder, name.FileName]);
+                    string file = Path.Join([Build.BuildOutputFolder, name]);
 
                     if (File.Exists(file))
                     {
                         FileInfo info = new FileInfo(file);
-                        string hash = Verify.HashFile(file);
+                        string hash = BuildVerify.HashFile(file);
 
                         sb.AppendLine(info.Name);
                         sb.AppendLine($"SHA256: {hash}{Environment.NewLine}");
@@ -878,33 +948,42 @@ namespace CustomBuildTool
 
         private static string MsbuildCommandString(string Solution, string Platform, BuildFlags Flags, string Channel = null)
         {
+            List<string> compilerOptionsList = new List<string>();
             StringBuilder commandLine = new StringBuilder(0x100);
             StringBuilder compilerOptions = new StringBuilder(0x100);
             StringBuilder linkerOptions = new StringBuilder(0x100);
 
             if (Flags.HasFlag(BuildFlags.BuildApi))
-                compilerOptions.Append("PH_BUILD_API;");
+                compilerOptionsList.Add("PH_BUILD_API");
             if (Flags.HasFlag(BuildFlags.BuildMsix))
-                compilerOptions.Append("PH_BUILD_MSIX;");
+                compilerOptionsList.Add("PH_BUILD_MSIX");
             if (!string.IsNullOrWhiteSpace(Channel))
-                compilerOptions.Append($"PH_RELEASE_CHANNEL_ID=\"{BuildConfig.Build_Channels[Channel]}\";");
+                compilerOptionsList.Add($"PH_RELEASE_CHANNEL_ID=\"{BuildConfig.Build_Channels[Channel]}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
-                compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildCommitHash.AsSpan(0, 8)}\";");
+                compilerOptionsList.Add($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildHash()}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionMajor))
-                compilerOptions.Append($"PHAPP_VERSION_MAJOR=\"{Build.BuildVersionMajor}\";");
+                compilerOptionsList.Add($"PHAPP_VERSION_MAJOR=\"{Build.BuildVersionMajor}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionMinor))
-                compilerOptions.Append($"PHAPP_VERSION_MINOR=\"{Build.BuildVersionMinor}\";");
+                compilerOptionsList.Add($"PHAPP_VERSION_MINOR=\"{Build.BuildVersionMinor}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionBuild))
-                compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{Build.BuildVersionBuild}\";");
+                compilerOptionsList.Add($"PHAPP_VERSION_BUILD=\"{Build.BuildVersionBuild}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionRevision))
-                compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{Build.BuildVersionRevision}\";");
+                compilerOptionsList.Add($"PHAPP_VERSION_REVISION=\"{Build.BuildVersionRevision}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
                 linkerOptions.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\" ");
 
+            compilerOptions.AppendJoin(";", compilerOptionsList);
+
             commandLine.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
-            commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
-            commandLine.Append($"/p:ExternalLinkerOptions=\"{linkerOptions.ToString()}\" ");
+
+            if (compilerOptions.Length > 0)
+                commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
+            if (linkerOptions.Length > 0)
+                commandLine.Append($"/p:ExternalLinkerOptions=\"{linkerOptions.ToString()}\" ");
+            if (!string.IsNullOrWhiteSpace(Build.BuildSimdExtensions))
+                commandLine.Append($"/p:ExternalSimdOptions=\"{Build.BuildSimdExtensions}\" ");
+
             commandLine.Append($"/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog ");
 
             if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
@@ -919,20 +998,16 @@ namespace CustomBuildTool
 
         private static bool MsbuildCommand(string Solution, string Platform, BuildFlags Flags, string Channel = null)
         {
-            int errorcode;
-            string errorstring;
-            string buildCommandLine;
-
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
             Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
             Program.PrintColorMessage(Platform, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
 
-            buildCommandLine = MsbuildCommandString(Solution, Platform, Flags, Channel);
+            string buildCommandLine = MsbuildCommandString(Solution, Platform, Flags, Channel);
 
-            if (Build.BuildRedirectOutput)
+            if (Build.BuildRedirectOutput && !Build.BuildIntegration)
             {
-                errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out errorstring);
+                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out string errorstring);
 
                 if (errorcode != 0)
                 {
@@ -942,7 +1017,7 @@ namespace CustomBuildTool
             }
             else
             {
-                errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out errorstring, false);
+                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out _, false);
 
                 if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
                 {
@@ -986,65 +1061,38 @@ namespace CustomBuildTool
             return true;
         }
 
-        private struct BuildDeployInfo
+#nullable enable
+        private static DeployFile? CreateBuildDeployFile(string Channel, string Name, string FileName, bool CreateSignature = true)
         {
-            public string BinFilename;
-            public string BinHash;
-            public string BinSig;
-            public ulong BinFileLength;
+            if (CreateSignature)
+            {
+                string fileSign = BuildVerify.CreateSigString(Channel, FileName);
 
-            public string SetupFilename;
-            public string SetupHash;
-            public string SetupSig;
-            public ulong SetupFileLength;
+                if (string.IsNullOrWhiteSpace(fileSign))
+                {
+                    Program.PrintColorMessage("[ERROR] File signature failed.", ConsoleColor.Red);
+                    return null;
+                }
+
+                string fileHash = BuildVerify.HashFile(FileName);
+                string fileSize = Win32.GetFileSize(FileName).ToString();
+
+                if (string.IsNullOrWhiteSpace(fileHash))
+                {
+                    Program.PrintColorMessage("[ERROR] File hash failed.", ConsoleColor.Red);
+                    return null;
+                }
+
+                return new DeployFile(Name, FileName, fileHash, fileSign, fileSize);
+            }
+            else
+            {
+                string fileSize = Win32.GetFileSize(FileName).ToString();
+
+                return new DeployFile(Name, FileName, null, null, fileSize);
+            }
         }
-
-        private static bool GetBuildDeployInfo(string Channel, out BuildDeployInfo Info)
-        {
-            Info = new BuildDeployInfo
-            {
-                BinFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip",
-                SetupFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe"
-            };
-
-            if (!Verify.CreateSigString(Channel, Info.BinFilename, out Info.BinSig))
-            {
-                Program.PrintColorMessage("failed to create bin signature string", ConsoleColor.Red);
-                return false;
-            }
-
-            if (!Verify.CreateSigString(Channel, Info.SetupFilename, out Info.SetupSig))
-            {
-                Program.PrintColorMessage("failed to create setup signature string", ConsoleColor.Red);
-                return false;
-            }
-
-            if (File.Exists(Info.BinFilename))
-            {
-                Info.BinFileLength = Win32.GetFileSize(Info.BinFilename);
-                Info.BinHash = Verify.HashFile(Info.BinFilename);
-            }
-
-            if (File.Exists(Info.SetupFilename))
-            {
-                Info.SetupFileLength = Win32.GetFileSize(Info.SetupFilename);
-                Info.SetupHash = Verify.HashFile(Info.SetupFilename);
-            }
-
-            if (string.IsNullOrWhiteSpace(Info.BinHash))
-            {
-                Program.PrintColorMessage("build-bin hash not found.", ConsoleColor.Red);
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(Info.SetupHash))
-            {
-                Program.PrintColorMessage("build-setup hash not found.", ConsoleColor.Red);
-                return false;
-            }
-
-            return true;
-        }
+#nullable disable
 
         public static bool BuildUpdateServerConfig()
         {
@@ -1053,137 +1101,92 @@ namespace CustomBuildTool
             if (Build.BuildToolsDebug)
                 return true;
 
-            if (!Win32.GetEnvironmentVariable("BUILD_BUILDID", out string buildBuildId))
+            // Define the files to upload (bool true create hash and signatute)
+            var Build_Upload_Files = new Dictionary<string, bool>(4, StringComparer.OrdinalIgnoreCase)
             {
-                Program.PrintColorMessage("BUILD_BUILDID not found.", ConsoleColor.Red);
-                return false;
-            }
-            if (!Win32.GetEnvironmentVariable("BUILD_SF_API", out string buildPostSfUrl))
-            {
-                Program.PrintColorMessage("BUILD_SF_API not found.", ConsoleColor.Red);
-                return false;
-            }
-            if (!Win32.GetEnvironmentVariable("BUILD_SF_KEY", out string buildPostSfApiKey))
-            {
-                Program.PrintColorMessage("BUILD_SF_KEY not found.", ConsoleColor.Red);
-                return false;
-            }
-            if (!Win32.GetEnvironmentVariable("BUILD_CF_API", out string buildPostCfUrl))
-            {
-                Program.PrintColorMessage("BUILD_CF_API not found.", ConsoleColor.Red);
-                return false;
-            }
-            if (!Win32.GetEnvironmentVariable("BUILD_CF_KEY", out string buildPostCfApiKey))
-            {
-                Program.PrintColorMessage("BUILD_CF_KEY not found.", ConsoleColor.Red);
-                return false;
-            }
+                ["systeminformer-build-win32-bin.zip"] = true,
+                ["systeminformer-build-win64-bin.zip"] = true,
+                ["systeminformer-build-arm64-bin.zip"] = true,
+                //["systeminformer-build-bin.zip"] = true,
+                ["systeminformer-build-pdb.zip"] = false,
+                //["systeminformer-build-release-setup.exe"] = true,
+            };
 
-            if (!GetBuildDeployInfo("release", out BuildDeployInfo release))
-                return false;
-            //if (!GetBuildDeployInfo("preview", out BuildDeployInfo preview))
-            //    return false;
-            if (!GetBuildDeployInfo("canary", out BuildDeployInfo canary))
-                return false;
-            //if (!GetBuildDeployInfo("developer", out BuildDeployInfo developer))
-            //    return false;
+            List<DeployFile> deployFiles = new List<DeployFile>();
 
-            if (!BuildUpdateGithubServer(out var BuildUploadInfo))
+            // N.B. HACK we only produce a "release" (default setting) build for the binary (portable).
+            // Sign it using the "release" key. (jxy-s)
+
+            var portable_zip = CreateBuildDeployFile("release", "systeminformer-build-bin.zip", Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-bin.zip"]));
+            var release_exe = CreateBuildDeployFile("release", "systeminformer-build-release-setup.exe", Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-release-setup.exe"]));
+            var canary_exe = CreateBuildDeployFile("canary", "systeminformer-build-canary-setup.exe", Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-canary-setup.exe"]));
+
+            if (portable_zip == null || release_exe == null || canary_exe == null)
             {
-                Program.PrintColorMessage("BuildUpdateGithubServer failed.", ConsoleColor.Red);
+                Program.PrintColorMessage("[ERROR] CreateBuildDeployFile.", ConsoleColor.Red);
                 return false;
             }
 
-            if (!BuildUploadServerConfig(
-                buildBuildId,
-                buildPostSfUrl,
-                buildPostSfApiKey,
-                BuildUploadInfo.Item1,
-                BuildUploadInfo.Item2,
-                BuildUploadInfo.Item3,
-                BuildUploadInfo.Item4,
-                release,
-                canary
-                ))
+            deployFiles.Add(portable_zip);
+            deployFiles.Add(release_exe);
+            deployFiles.Add(canary_exe);
+
+            foreach (var file in Build_Upload_Files)
             {
-                Program.PrintColorMessage("BuildUploadServerConfig-SF failed.", ConsoleColor.Red);
-                return false;
+                deployFiles.Add(CreateBuildDeployFile(
+                    "release",
+                    file.Key,
+                    Path.Join([Build.BuildOutputFolder, file.Key]),
+                    file.Value
+                    ));
             }
 
-            if (!BuildUploadServerConfig(
-                buildBuildId,
-                buildPostCfUrl,
-                buildPostCfApiKey,
-                BuildUploadInfo.Item1,
-                BuildUploadInfo.Item2,
-                BuildUploadInfo.Item3,
-                BuildUploadInfo.Item4,
-                release,
-                canary
-                ))
-            {
-                Program.PrintColorMessage("BuildUploadServerConfig-CF failed.", ConsoleColor.Red);
-                return false;
-            }
+            // Upload the assets to github
 
-            return true;
-        }
-
-        private static bool BuildUpdateGithubServer(out Tuple<string, string, string, string> BuildUploadInfo)
-        {
-            BuildUploadInfo = null;
-
-            if (!Build.BuildCanary)
-                return true;
-            if (Build.BuildToolsDebug)
-                return true;
-
-            GithubRelease githubMirrorUpload = BuildUploadFilesToGithub();
-
+            var githubMirrorUpload = BuildUploadFilesToGithub(deployFiles);
             if (githubMirrorUpload == null)
+                return false;
+
+            // Check assets uploaded to github
+
+            var binzipdownloadlink = githubMirrorUpload.GetFileUrl("systeminformer-build-bin.zip"); // $"systeminformer-{Build.BuildLongVersion}-bin.zip"
+            var relzipdownloadlink = githubMirrorUpload.GetFileUrl("systeminformer-build-release-setup.exe");
+            var canzipdownloadlink = githubMirrorUpload.GetFileUrl("systeminformer-build-canary-setup.exe");
+
+            if (string.IsNullOrWhiteSpace(binzipdownloadlink) || string.IsNullOrWhiteSpace(relzipdownloadlink) || string.IsNullOrWhiteSpace(canzipdownloadlink))
             {
-                Program.PrintColorMessage("build-github upload failed.", ConsoleColor.Red);
+                Program.PrintColorMessage("[ERROR] GetDeployInfo failed.", ConsoleColor.Red);
                 return false;
             }
 
-            string canaryBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-canary-bin.zip");
-            string canarySetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-canary-setup.exe");
-            string releaseBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-release-bin.zip");
-            string releaseSetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-release-setup.exe");
+            // Update the build information.
 
-            if (string.IsNullOrWhiteSpace(canaryBinlink) ||
-                string.IsNullOrWhiteSpace(canarySetuplink) ||
-                string.IsNullOrWhiteSpace(releaseBinlink) ||
-                string.IsNullOrWhiteSpace(releaseSetuplink))
+            if (!BuildUploadServerConfig(portable_zip, release_exe, canary_exe))
             {
-                Program.PrintColorMessage("build-github downloads not found.", ConsoleColor.Red);
+                Program.PrintColorMessage("[ERROR] BuildUploadServerConfig failed.", ConsoleColor.Red);
                 return false;
             }
-
-            BuildUploadInfo = new Tuple<string, string, string, string>(
-                canaryBinlink,
-                canarySetuplink,
-                releaseBinlink,
-                releaseSetuplink
-                );
 
             return true;
         }
 
-        private static GithubRelease BuildUploadFilesToGithub()
+        private static GithubRelease BuildUploadFilesToGithub(List<DeployFile> Files)
         {
             //if (!GithubReleases.DeleteRelease(Build.BuildLongVersion))
             //    return null;
-
-            GithubRelease mirror = null;
 
             try
             {
                 // Create a new github release.
 
-                var response = GithubReleases.CreateRelease(Build.BuildLongVersion);
+                var newGithubRelease = BuildGithub.CreateRelease(
+                    Build.BuildLongVersion,
+                    true, // draft
+                    false, // prerelease
+                    true
+                    );
 
-                if (response == null)
+                if (newGithubRelease == null)
                 {
                     Program.PrintColorMessage("[Github.CreateRelease]", ConsoleColor.Red);
                     return null;
@@ -1191,30 +1194,49 @@ namespace CustomBuildTool
 
                 // Upload the files.
 
-                foreach (BuildFile file in BuildConfig.Build_Release_Files)
+                foreach (DeployFile deployfile in Files)
                 {
-                    if (!file.UploadCanary)
-                        continue;
-
-                    string sourceFile = Path.Join([Build.BuildOutputFolder, file.FileName]);
-
-                    if (File.Exists(sourceFile))
+                    if (!File.Exists(deployfile.FileName))
                     {
-                        var result = GithubReleases.UploadAssets(Build.BuildLongVersion, sourceFile, response.UploadUrl);
-
-                        if (result == null)
-                        {
-                            Program.PrintColorMessage("[Github.UploadAssets]", ConsoleColor.Red);
-                            return null;
-                        }
-
-                        //mirror.Files.Add(new GithubReleaseAsset(file.FileName, result.Download_url));
+                        Program.PrintColorMessage($"[Github.UploadAssets-NotFound] {deployfile.FileName}", ConsoleColor.Yellow);
+                        continue;
                     }
+
+                    string sourceName = Path.GetFileName(deployfile.FileName);
+
+                    if (string.IsNullOrWhiteSpace(sourceName))
+                    {
+                        Program.PrintColorMessage("[Github.UploadAssets] Path.GetFileName", ConsoleColor.Red);
+                        return null;
+                    }
+
+                    var name = sourceName.Replace(
+                        "-build-",
+                        $"-{Build.BuildLongVersion}-",
+                        StringComparison.OrdinalIgnoreCase
+                        );
+
+                    var result = BuildGithub.UploadAsset(
+                        newGithubRelease.UploadUrl,
+                        deployfile.FileName,
+                        sourceName,
+                        name
+                        );
+
+                    if (result == null)
+                    {
+                        Program.PrintColorMessage("[Github.UploadAssets]", ConsoleColor.Red);
+                        return null;
+                    }
+
+                    //mirror.Files.Add(new GithubReleaseAsset(file.FileName, result.Download_url));
+
+                    deployfile.UpdateAssetsResponse(result);
                 }
 
                 // Update the release and make it public.
 
-                var update = GithubReleases.UpdateRelease(response.ReleaseId);
+                var update = BuildGithub.UpdateRelease(newGithubRelease.ReleaseId, false);
 
                 if (update == null)
                 {
@@ -1222,7 +1244,7 @@ namespace CustomBuildTool
                     return null;
                 }
 
-                mirror = new GithubRelease(update.ReleaseId);
+                var mirror = new GithubRelease(update.ReleaseId);
 
                 // Grab the download urls.
 
@@ -1230,37 +1252,33 @@ namespace CustomBuildTool
                 {
                     if (!file.Uploaded)
                     {
-                        continue;
+                        Program.PrintColorMessage($"[GithubReleaseAsset-NotUploaded] {file.Name}", ConsoleColor.Red);
+                        return null;
                     }
 
-                    mirror.Files.Add(new GithubReleaseAsset(file.Name, file.DownloadUrl));
+                    var deployFile = Files.Find(f => f.Name.Equals(file.Name, StringComparison.OrdinalIgnoreCase));
+                    if (deployFile == null)
+                    {
+                        Program.PrintColorMessage($"[GithubReleaseAsset-MissingDeployFile] {file.Name}", ConsoleColor.Red);
+                        return null;
+                    }
+
+                    mirror.Files.Add(new GithubReleaseAsset(file.Name, file.DownloadUrl, deployFile));
                 }
+
+                return mirror;
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage($"[Github] {ex}", ConsoleColor.Red);
                 return null;
             }
-
-            if (!mirror.Valid)
-            {
-                Program.PrintColorMessage("[Github-Valid]", ConsoleColor.Red);
-                return null;
-            }
-
-            return mirror;
         }
 
         private static bool BuildUploadServerConfig(
-            string BuildBuildId,
-            string BuildPostUrl,
-            string BuildPostKey,
-            string CanaryBinLink,
-            string CanarySetupLink,
-            string ReleaseBinLink,
-            string ReleaseSetupLink,
-            BuildDeployInfo Release,
-            BuildDeployInfo Canary
+            DeployFile BinFile,
+            DeployFile ReleaseFile,
+            DeployFile CanaryFile
             )
         {
             if (!Build.BuildCanary)
@@ -1268,15 +1286,40 @@ namespace CustomBuildTool
             if (Build.BuildToolsDebug)
                 return true;
 
-            if (string.IsNullOrWhiteSpace(BuildBuildId) ||
-                string.IsNullOrWhiteSpace(BuildPostUrl) ||
-                string.IsNullOrWhiteSpace(BuildPostKey) ||
-                string.IsNullOrWhiteSpace(CanaryBinLink) ||
-                string.IsNullOrWhiteSpace(CanarySetupLink) ||
-                string.IsNullOrWhiteSpace(ReleaseBinLink) ||
-                string.IsNullOrWhiteSpace(ReleaseSetupLink))
+            if (!Win32.GetEnvironmentVariable("BUILD_BUILDID", out string buildBuildId))
+                return false;
+            if (!Win32.GetEnvironmentVariable("BUILD_CF_API", out string buildPostUrl))
+                return false;
+            if (!Win32.GetEnvironmentVariable("BUILD_CF_KEY", out string buildPostKey))
+                return false;
+
+            if (string.IsNullOrWhiteSpace(buildBuildId) ||
+                string.IsNullOrWhiteSpace(buildPostUrl) ||
+                string.IsNullOrWhiteSpace(buildPostKey))
             {
-                Program.PrintColorMessage("BuildUpdateServerConfig invalid args.", ConsoleColor.Red);
+                Program.PrintColorMessage("BuildUploadServerConfig invalid config.", ConsoleColor.Red);
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(BinFile.DownloadLink) ||
+                string.IsNullOrWhiteSpace(ReleaseFile.DownloadLink) ||
+                string.IsNullOrWhiteSpace(CanaryFile.DownloadLink))
+            {
+                Program.PrintColorMessage("BuildUploadServerConfig invalid DownloadLinks.", ConsoleColor.Red);
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(BinFile.FileSignature) ||
+                string.IsNullOrWhiteSpace(ReleaseFile.FileSignature) ||
+                string.IsNullOrWhiteSpace(CanaryFile.FileSignature))
+            {
+                Program.PrintColorMessage("BuildUploadServerConfig invalid FileSignatures.", ConsoleColor.Red);
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(BinFile.FileHash) ||
+                string.IsNullOrWhiteSpace(ReleaseFile.FileHash) ||
+                string.IsNullOrWhiteSpace(CanaryFile.FileHash))
+            {
+                Program.PrintColorMessage("BuildUploadServerConfig invalid FileHashs.", ConsoleColor.Red);
                 return false;
             }
 
@@ -1288,41 +1331,32 @@ namespace CustomBuildTool
                     BuildDisplay = Build.BuildShortVersion,
                     BuildVersion = Build.BuildLongVersion,
                     BuildCommit = Build.BuildCommitHash,
-                    BuildId = BuildBuildId,
-                    BinUrl = CanaryBinLink,
-                    BinLength = Canary.BinFileLength.ToString(),
-                    BinHash = Canary.BinHash,
-                    BinSig = Canary.BinSig,
-                    SetupUrl = CanarySetupLink,
-                    SetupLength = Canary.SetupFileLength.ToString(),
-                    SetupHash = Canary.SetupHash,
-                    SetupSig = Canary.SetupSig,
-                    ReleaseBinUrl = ReleaseBinLink,
-                    ReleaseBinLength = Release.BinFileLength.ToString(),
-                    ReleaseBinHash = Release.BinHash,
-                    ReleaseBinSig = Release.BinSig,
-                    ReleaseSetupUrl = ReleaseSetupLink,
-                    ReleaseSetupLength = Release.SetupFileLength.ToString(),
-                    ReleaseSetupHash = Release.SetupHash,
-                    ReleaseSetupSig = Release.SetupSig,
+                    BuildId = buildBuildId,
+                    BinUrl = BinFile.DownloadLink,
+                    BinLength = BinFile.FileLength,
+                    BinHash = BinFile.FileHash,
+                    BinSig = BinFile.FileSignature,
+                    ReleaseSetupUrl = ReleaseFile.DownloadLink,
+                    ReleaseSetupLength = ReleaseFile.FileLength,
+                    ReleaseSetupHash = ReleaseFile.FileHash,
+                    ReleaseSetupSig = ReleaseFile.FileSignature,
+                    CanarySetupUrl = CanaryFile.DownloadLink,
+                    CanarySetupLength = CanaryFile.FileLength,
+                    CanarySetupHash = CanaryFile.FileHash,
+                    CanarySetupSig = CanaryFile.FileSignature,
                 };
 
-                byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, BuildUpdateRequestContext.Default.BuildUpdateRequest);
-
-                if (buildPostString.LongLength == 0)
-                    return false;
-
-                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, BuildPostUrl))
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, buildPostUrl))
                 {
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    requestMessage.Headers.Add("X-ApiKey", BuildPostKey);
+                    requestMessage.Headers.Add("X-ApiKey", buildPostKey);
                     requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
                     requestMessage.Version = HttpVersion.Version20;
 
-                    requestMessage.Content = new ByteArrayContent(buildPostString);
+                    requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-                    var httpResult = HttpClient.SendMessage(requestMessage);
+                    var httpResult = BuildHttpClient.SendMessage(requestMessage);
 
                     if (string.IsNullOrWhiteSpace(httpResult))
                     {
@@ -1348,48 +1382,28 @@ namespace CustomBuildTool
 
         private static void BuildMsixPackageManifest(BuildFlags Flags)
         {
+            // Create the package manifest.
+
             if (Flags.HasFlag(BuildFlags.Build32bit))
             {
-                // Create the package manifest.
+                string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
 
-                if (File.Exists("tools\\msix\\PackageTemplate.msix.xml"))
-                {
-                    string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
+                msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x86");
+                msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
+                msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montréal, S=Quebec, C=CA");
 
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x86");
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
-
-                    Utils.WriteAllText("tools\\msix\\MsixManifest32.xml", msixManifestString);
-                }
+                Utils.WriteAllText("tools\\msix\\MsixManifest32.xml", msixManifestString);
             }
 
             if (Flags.HasFlag(BuildFlags.Build64bit))
             {
-                // Create the package manifest.
+                string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
 
-                if (File.Exists("tools\\msix\\PackageTemplate.msix.xml"))
-                {
-                    string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
+                msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x64");
+                msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
+                msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montréal, S=Quebec, C=CA");
 
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x64");
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
-
-                    Utils.WriteAllText("tools\\msix\\MsixManifest64.xml", msixManifestString);
-                }
-            }
-        }
-
-        private static void BuildMsixAppInstaller()
-        {
-            if (File.Exists("tools\\msix\\PackageTemplate.appinstaller"))
-            {
-                string msixAppInstallerString = Utils.ReadAllText("tools\\msix\\PackageTemplate.appinstaller");
-
-                msixAppInstallerString = msixAppInstallerString.Replace("Version=\"3.0.0.0\"", $"Version=\"{Build.BuildLongVersion}\"");
-
-                Utils.WriteAllText("build\\output\\SystemInformer.appinstaller", msixAppInstallerString);
+                Utils.WriteAllText("tools\\msix\\MsixManifest64.xml", msixManifestString);
             }
         }
 
@@ -1406,8 +1420,7 @@ namespace CustomBuildTool
                 packageMap32.AppendLine("\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
                 packageMap32.AppendLine("\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
 
-                var filesToAdd = Directory.GetFiles("bin\\Release32", "*", SearchOption.AllDirectories);
-                foreach (string filePath in filesToAdd)
+                foreach (string filePath in Directory.EnumerateFiles("bin\\Release32", "*", SearchOption.AllDirectories))
                 {
                     if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
                         filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
@@ -1438,8 +1451,7 @@ namespace CustomBuildTool
                 packageMap64.AppendLine("\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
                 packageMap64.AppendLine("\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
 
-                var filesToAdd = Directory.GetFiles("bin\\Release64", "*", SearchOption.AllDirectories);
-                foreach (string filePath in filesToAdd)
+                foreach (string filePath in Directory.EnumerateFiles("bin\\Release64", "*", SearchOption.AllDirectories))
                 {
                     // Ignore junk files
                     if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
@@ -1461,94 +1473,111 @@ namespace CustomBuildTool
             }
         }
 
-        public static void BuildStorePackage(BuildFlags Flags)
+        public static bool BuildStorePackage(BuildFlags Flags)
         {
-            Program.PrintColorMessage("Building package.msixbundle...", ConsoleColor.Cyan);
+            // Cleanup package manifests.
+
+            Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x32.appx", Flags);
+            Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x64.appx", Flags);
+            Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package.msixbundle", Flags);
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixManifest32.xml", Flags);
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixManifest64.xml", Flags);
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixPackage32.map", Flags);
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\MsixPackage64.map", Flags);
+            Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\bundle.map", Flags);
+            Utils.CreateOutputDirectory();
+
+            // Create the package manifests.
 
             BuildMsixPackageManifest(Flags);
             BuildMsixPackageMapping(Flags);
 
             // Create the MSIX package.
 
-            if (Flags.HasFlag(BuildFlags.Build32bit))
+            if (Flags.HasFlag(BuildFlags.Build32bit) && File.Exists("tools\\msix\\MsixPackage32.map"))
             {
-                if (File.Exists("tools\\msix\\MsixPackage32.map"))
+                Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage("Building systeminformer-build-package-x64.msix...", ConsoleColor.Cyan, false);
+
+                string result = Utils.ExecuteMsixCommand(
+                    $"pack /o /f {BuildWorkingFolder}\\tools\\msix\\MsixPackage32.map /p {BuildOutputFolder}\\systeminformer-build-package-x32.msix"
+                    );
+
+                if (!result.EndsWith("Package creation succeeded.", StringComparison.OrdinalIgnoreCase))
                 {
-                    Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x32.appx");
-                    Win32.CreateDirectory(BuildOutputFolder);
-
-                    var result = Utils.ExecuteMsixCommand(
-                        $"pack /o /f tools\\msix\\MsixPackage32.map /p {BuildOutputFolder}\\systeminformer-build-package-x32.appx"
-                        );
-
-                    Program.PrintColorMessage(result, ConsoleColor.DarkGray);
+                    Program.PrintColorMessage(result, ConsoleColor.Gray);
+                    return false;
                 }
+
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-package-x32.msix").ToPrettySize(), ConsoleColor.Green);
             }
 
-            if (Flags.HasFlag(BuildFlags.Build64bit))
+            if (Flags.HasFlag(BuildFlags.Build64bit) && File.Exists("tools\\msix\\MsixPackage64.map"))
             {
-                if (File.Exists("tools\\msix\\MsixPackage64.map"))
+                Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage("Building systeminformer-build-package-x64.msix...", ConsoleColor.Cyan, false);
+
+                string result = Utils.ExecuteMsixCommand(
+                    $"pack /o /f {BuildWorkingFolder}\\tools\\msix\\MsixPackage64.map /p {BuildOutputFolder}\\systeminformer-build-package-x64.msix"
+                    );
+
+                if (!result.EndsWith("Package creation succeeded.", StringComparison.OrdinalIgnoreCase))
                 {
-                    Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x64.appx");
-                    Win32.CreateDirectory(BuildOutputFolder);
-
-                    var result = Utils.ExecuteMsixCommand(
-                        $"pack /o /f tools\\msix\\MsixPackage64.map /p {BuildOutputFolder}\\systeminformer-build-package-x64.msix"
-                        );
-
-                    Program.PrintColorMessage(result, ConsoleColor.DarkGray);
+                    Program.PrintColorMessage(result, ConsoleColor.Gray);
+                    return false;
                 }
+
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix").ToPrettySize(), ConsoleColor.Green);
             }
 
             // Create the bundle package.
+
             if (
                 File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x32.msix") &&
                 File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix")
                 )
             {
-                StringBuilder bundleMap = new StringBuilder(0x100);
-                bundleMap.AppendLine("[Files]");
-                bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x32.msix\" \"systeminformer-build-package-x32.msix\"");
-                bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x64.msix\" \"systeminformer-build-package-x64.msix\"");
+                Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage("Building systeminformer-build-package.msixbundle...", ConsoleColor.Cyan, false);
 
-                Utils.WriteAllText("tools\\msix\\bundle.map", bundleMap.ToString());
-            }
+                {
+                    StringBuilder bundleMap = new StringBuilder(0x100);
+                    bundleMap.AppendLine("[Files]");
+                    bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x32.msix\" \"systeminformer-build-package-x32.msix\"");
+                    bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x64.msix\" \"systeminformer-build-package-x64.msix\"");
+                    Utils.WriteAllText($"{BuildWorkingFolder}\\tools\\msix\\bundle.map", bundleMap.ToString());
+                }
 
-            if (File.Exists("tools\\msix\\bundle.map"))
-            {
-                Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package.msixbundle");
-
-                var result = Utils.ExecuteMsixCommand(
-                    $"bundle /f tools\\msix\\bundle.map /p {BuildOutputFolder}\\systeminformer-build-package.msixbundle"
+                string result = Utils.ExecuteMsixCommand(
+                    $"bundle /f {BuildWorkingFolder}\\tools\\msix\\bundle.map /p {BuildOutputFolder}\\systeminformer-build-package.msixbundle"
                     );
 
-                Program.PrintColorMessage($"{result}", ConsoleColor.DarkGray);
-            }
-            else
-            {
-                if (File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix"))
+                if (!result.EndsWith("Bundle creation succeeded.", StringComparison.OrdinalIgnoreCase))
                 {
-                    File.Move(
-                        $"{BuildOutputFolder}\\systeminformer-build-package-x64.msix",
-                        $"{BuildOutputFolder}\\systeminformer-build-package.msix"
-                        );
+                    Program.PrintColorMessage($"{result}", ConsoleColor.Gray);
+                    return false;
                 }
+
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix").ToPrettySize(), ConsoleColor.Green);
             }
 
-            BuildMsixAppInstaller();
+            if (File.Exists("tools\\msix\\PackageTemplate.appinstaller"))
+            {
+                string msixAppInstallerString = Utils.ReadAllText("tools\\msix\\PackageTemplate.appinstaller");
 
-            Win32.DeleteFile("tools\\msix\\MsixManifest32.xml");
-            Win32.DeleteFile("tools\\msix\\MsixManifest64.xml");
-            Win32.DeleteFile("tools\\msix\\MsixPackage32.map");
-            Win32.DeleteFile("tools\\msix\\MsixPackage64.map");
-            Win32.DeleteFile("tools\\msix\\bundle.map");
+                msixAppInstallerString = msixAppInstallerString.Replace("Version=\"3.0.0.0\"", $"Version=\"{Build.BuildLongVersion}\"");
+
+                Utils.WriteAllText("build\\output\\SystemInformer.appinstaller", msixAppInstallerString);
+            }
+
+            return true;
         }
 
         public static void CopySourceLink(bool CreateSourceLink)
         {
             if (CreateSourceLink)
             {
-                if (!string.IsNullOrEmpty(Build.BuildCommitHash))
+                if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
                 {
                     Build.BuildSourceLink = $"{Build.BuildWorkingFolder}\\sourcelink.json";
 
@@ -1655,11 +1684,9 @@ namespace CustomBuildTool
 
                     if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
                     {
-                        Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
-
                         try
                         {
-                            Win32.DeleteFile(path);
+                            Win32.DeleteFile(path, BuildFlags.BuildVerbose);
                         }
                         catch (Exception ex)
                         {
@@ -1713,19 +1740,19 @@ namespace CustomBuildTool
             var lines = content.Split("\r\n");
             int total = lines.Length;
 
-            if (ReleaseBuild)
-            {
-                while (ordinals.Count < total)
-                {
-                    var value = Random.Shared.Next(1000, 1000 + total);
-
-                    if (!ordinals.Contains(value))
-                    {
-                        ordinals.Add(value);
-                    }
-                }
-            }
-            else
+            //if (ReleaseBuild)
+            //{
+            //    while (ordinals.Count < total)
+            //    {
+            //        var value = Random.Shared.Next(1000, 1000 + total);
+            //
+            //        if (!ordinals.Contains(value))
+            //        {
+            //            ordinals.Add(value);
+            //        }
+            //    }
+            //}
+            //else
             {
                 while (ordinals.Count < total)
                 {

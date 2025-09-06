@@ -16,10 +16,10 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Neutral resources
+// English (United States) resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
-LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -51,19 +51,7 @@ END
 //
 // RCDATA
 //
-#if defined(PH_BUILD_API)
-#ifdef PH_RELEASE_CHANNEL_ID
-#if PH_RELEASE_CHANNEL_ID == 0
-IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-release-bin.zip"
-#elif PH_RELEASE_CHANNEL_ID == 1
-IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-preview-bin.zip"
-#elif PH_RELEASE_CHANNEL_ID == 2
-IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-canary-bin.zip"
-#elif PH_RELEASE_CHANNEL_ID == 3
-IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-developer-bin.zip"
-#endif
-#endif
-#endif
+IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-bin.zip"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -87,22 +75,23 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "CompanyName", "System Informer - Setup"
+            VALUE "CompanyName", "Winsider Seminars & Solutions, Inc."
             VALUE "FileDescription", "System Informer - Setup"
             VALUE "FileVersion", PHAPP_VERSION_STRING
-            VALUE "InternalName", "systeminformer-setup.exe"
+            VALUE "InternalName", "System Informer - Setup"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
-            VALUE "OriginalFilename", "systeminformer-setup.exe"
+            VALUE "OriginalFilename", "System Informer - Setup"
             VALUE "ProductName", "System Informer - Setup"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
+            VALUE "Comments", PHAPP_VERSION_COMMIT
         END
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x409, 1200
+        VALUE "Translation", 0x0409, 0x04b0
     END
 END
 
-#endif    // Neutral resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 

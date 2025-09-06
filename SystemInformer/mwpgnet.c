@@ -110,13 +110,12 @@ BOOLEAN PhMwpNetworkPageCallback(
         {
             PPH_MAIN_TAB_PAGE_MENU_INFORMATION menuInfo = Parameter1;
             PPH_EMENU menu;
-            ULONG startIndex;
             PPH_EMENU_ITEM menuItem;
 
-            menu = menuInfo->Menu;
-            startIndex = menuInfo->StartIndex;
+            menu = PhCreateEMenuItem(0, 0, L"Network", NULL, NULL);
+            PhInsertEMenuItem(menuInfo->Menu, menu, menuInfo->StartIndex);
 
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEWAITINGCONNECTIONS, L"&Hide waiting connections", NULL, NULL), startIndex);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEWAITINGCONNECTIONS, L"&Hide waiting connections", NULL, NULL), ULONG_MAX);
 
             if (NetworkFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEWAITINGCONNECTIONS)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
@@ -213,7 +212,7 @@ VOID PhMwpInitializeNetworkMenu(
     _In_ ULONG NumberOfNetworkItems
     )
 {
-    ULONG i;
+    //ULONG i;
     PPH_EMENU_ITEM item;
 
     if (NumberOfNetworkItems == 0)
@@ -240,25 +239,25 @@ VOID PhMwpInitializeNetworkMenu(
     }
 
     // Close
-    if (NumberOfNetworkItems != 0)
-    {
-        BOOLEAN closeOk = TRUE;
-
-        for (i = 0; i < NumberOfNetworkItems; i++)
-        {
-            if (
-                NetworkItems[i]->ProtocolType != PH_NETWORK_PROTOCOL_TCP4 ||
-                NetworkItems[i]->State != MIB_TCP_STATE_ESTAB
-                )
-            {
-                closeOk = FALSE;
-                break;
-            }
-        }
-
-        if (!closeOk)
-            PhEnableEMenuItem(Menu, ID_NETWORK_CLOSE, FALSE);
-    }
+    //if (NumberOfNetworkItems != 0)
+    //{
+    //    BOOLEAN closeOk = TRUE;
+    //
+    //    for (i = 0; i < NumberOfNetworkItems; i++)
+    //    {
+    //        if (
+    //            NetworkItems[i]->ProtocolType != PH_NETWORK_PROTOCOL_TCP4 ||
+    //            NetworkItems[i]->State != MIB_TCP_STATE_ESTAB
+    //            )
+    //        {
+    //            closeOk = FALSE;
+    //            break;
+    //        }
+    //    }
+    //
+    //    if (!closeOk)
+    //        PhEnableEMenuItem(Menu, ID_NETWORK_CLOSE, FALSE);
+    //}
 }
 
 VOID PhShowNetworkContextMenu(
@@ -324,6 +323,7 @@ VOID PhShowNetworkContextMenu(
     PhFree(networkItems);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -335,6 +335,7 @@ VOID NTAPI PhMwpNetworkItemAddedHandler(
     PhPushProviderEventQueue(&PhMwpNetworkEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -345,6 +346,7 @@ VOID NTAPI PhMwpNetworkItemModifiedHandler(
     PhPushProviderEventQueue(&PhMwpNetworkEventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -355,6 +357,7 @@ VOID NTAPI PhMwpNetworkItemRemovedHandler(
     PhPushProviderEventQueue(&PhMwpNetworkEventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context

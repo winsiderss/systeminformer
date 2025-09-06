@@ -28,6 +28,7 @@
 
 static CONST PH_STRINGREF EmptyModulesText = PH_STRINGREF_INIT(L"There are no modules to display.");
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ModuleAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -40,6 +41,7 @@ static VOID NTAPI ModuleAddedHandler(
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ModuleModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -50,6 +52,7 @@ static VOID NTAPI ModuleModifiedHandler(
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ModuleRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -60,6 +63,7 @@ static VOID NTAPI ModuleRemovedHandler(
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ModulesUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -70,6 +74,7 @@ static VOID NTAPI ModulesUpdatedHandler(
     PostMessage(modulesContext->WindowHandle, WM_PH_MODULES_UPDATED, PhGetRunIdProvider(&modulesContext->ProviderRegistration), 0);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ModulesUpdateAutomaticallyHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -233,6 +238,56 @@ BOOLEAN PhpModulesTreeFilterCallback(
 
     if (!Context->SearchMatchHandle)
         return TRUE;
+
+    // module node
+
+    if (!PhIsNullOrEmptyString(moduleNode->FileNameWin32))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->FileNameWin32->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->SizeText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->SizeText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->TimeStampText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->TimeStampText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->LoadTimeText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->LoadTimeText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->FileModifiedTimeText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->FileModifiedTimeText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->ImageCoherencyText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->ImageCoherencyText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->ServiceText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->ServiceText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->EnclaveSizeText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->EnclaveSizeText->sr))
+            return TRUE;
+    }
 
     // (dmex) TODO: Add search support for the following fields:
     //ULONG Flags;
@@ -476,7 +531,7 @@ PPH_LIST PhpGetProcessModuleTreeListLines(
     ULONG i;
     ULONG j;
 
-    // Use a local auto-pool to make memory mangement a bit less painful.
+    // Use a local auto-pool to make memory management a bit less painful.
     PhInitializeAutoPool(&autoPool);
 
     rows = NumberOfNodes + 1;
@@ -571,7 +626,11 @@ VOID PhpProcessModulesSave(
                 mode = PH_EXPORT_MODE_TABS;
 
             PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
-            PhWritePhTextHeader(fileStream);
+
+            if (mode != PH_EXPORT_MODE_CSV)
+            {
+                PhWritePhTextHeader(fileStream);
+            }
 
             lines = PhpGetProcessModuleTreeListLines(
                 ModulesContext->TreeNewHandle,

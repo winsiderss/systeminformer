@@ -35,7 +35,7 @@ typedef struct _PH_MAPPED_IMAGE
                 PIMAGE_NT_HEADERS64 NtHeaders64;
                 PIMAGE_NT_HEADERS NtHeaders;
             };
-            
+
             USHORT Magic;
             USHORT NumberOfSections;
             PIMAGE_SECTION_HEADER Sections;
@@ -62,7 +62,7 @@ PhMappedImageProbe(
     _In_ SIZE_T Length
     )
 {
-    PhProbeAddress(Address, Length, MappedImage->ViewBase, MappedImage->ViewSize, 1);
+    PhProbeAddress(Address, Length, MappedImage->ViewBase, MappedImage->ViewSize, __alignof(UCHAR));
 }
 
 PHLIBAPI
@@ -173,7 +173,7 @@ PhMappedImageVaToVa(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetMappedImageSectionName(
     _In_ PIMAGE_SECTION_HEADER Section,
@@ -263,13 +263,15 @@ PhLoadRemoteMappedImage(
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     );
 
-typedef NTSTATUS (NTAPI *PPH_READ_VIRTUAL_MEMORY_CALLBACK)(
+typedef _Function_class_(PH_READ_VIRTUAL_MEMORY_CALLBACK)
+NTSTATUS NTAPI PH_READ_VIRTUAL_MEMORY_CALLBACK(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
     _Out_writes_bytes_(BufferSize) PVOID Buffer,
     _In_ SIZE_T BufferSize,
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
+typedef PH_READ_VIRTUAL_MEMORY_CALLBACK* PPH_READ_VIRTUAL_MEMORY_CALLBACK;
 
 PHLIBAPI
 NTSTATUS
@@ -505,6 +507,7 @@ PhGetMappedImageDelayImports(
     _In_ PPH_MAPPED_IMAGE MappedImage
     );
 
+PHLIBAPI
 USHORT
 NTAPI
 PhCheckSum(
@@ -619,6 +622,30 @@ NTAPI
 PhGetMappedImageResources(
     _Out_ PPH_MAPPED_IMAGE_RESOURCES Resources,
     _In_ PPH_MAPPED_IMAGE MappedImage
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageResource(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _In_opt_ USHORT Language,
+    _Out_opt_ PULONG ResourceLength,
+    _Out_opt_ PVOID* ResourceBuffer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageResourceIndex(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
+    _In_ LONG ResourceIndex,
+    _In_ PCWSTR ResourceType,
+    _Out_opt_ ULONG* ResourceLength,
+    _Out_opt_ PVOID* ResourceBuffer
     );
 
 typedef struct _PH_IMAGE_TLS_CALLBACK_ENTRY
@@ -1167,19 +1194,21 @@ PhGetMappedImageVolatileMetadata(
     );
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhGetMappedImageAuthenticodeHash(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PH_HASH_ALGORITHM Algorithm
+    _In_ PH_HASH_ALGORITHM Algorithm,
+    _Out_ PPH_STRING* AuthenticodeHash
     );
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhGetMappedImageWdacHash(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PH_HASH_ALGORITHM Algorithm
+    _In_ PH_HASH_ALGORITHM Algorithm,
+    _Out_ PPH_STRING* WdacHash
     );
 
 PHLIBAPI

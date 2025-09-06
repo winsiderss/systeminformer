@@ -170,7 +170,7 @@ NTAPI
 ZwAcquireProcessActivityReference(
     _Out_ PHANDLE ActivityReferenceHandle,
     _In_ HANDLE ParentProcessHandle,
-    _Reserved_ PROCESS_ACTIVITY_TYPE Reserved
+    _In_ ULONG ProcessActivityType // PROCESS_ACTIVITY_TYPE
     );
 
 NTSYSCALLAPI
@@ -666,7 +666,7 @@ NTSTATUS
 NTAPI
 ZwCallEnclave(
     _In_ PENCLAVE_ROUTINE Routine,
-    _In_ PVOID Reserved,              // reserved for dispatch (RtlEnclaveCallDispatch)
+    _In_ PVOID Reserved,              // SelectVsmEnclaveByNumber > 0 // reserved for dispatch (RtlEnclaveCallDispatch)
     _In_ ULONG Flags,                 // ENCLAVE_CALL_FLAG_*
     _Inout_ PVOID* RoutineParamReturn // input routine parameter, output routine return value
     );
@@ -730,7 +730,7 @@ ZwChangeProcessState(
     _In_ PROCESS_STATE_CHANGE_TYPE StateChangeType,
     _In_opt_ _Reserved_ PVOID ExtendedInformation,
     _In_opt_ _Reserved_ SIZE_T ExtendedInformationLength,
-    _In_opt_ _Reserved_ ULONG64 Reserved
+    _In_opt_ _Reserved_ ULONG Reserved
     );
 
 NTSYSCALLAPI
@@ -1021,7 +1021,7 @@ NTAPI
 ZwCreateFile(
     _Out_ PHANDLE FileHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_opt_ PLARGE_INTEGER AllocationSize,
     _In_ ULONG FileAttributes,
@@ -1038,7 +1038,7 @@ NTAPI
 ZwCreateIoCompletion(
     _Out_ PHANDLE IoCompletionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ ULONG NumberOfConcurrentThreads
     );
 
@@ -1138,7 +1138,7 @@ NTAPI
 ZwCreateMailslotFile(
     _Out_ PHANDLE FileHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ ULONG CreateOptions,
     _In_ ULONG MailslotQuota,
@@ -1162,7 +1162,7 @@ NTAPI
 ZwCreateNamedPipeFile(
     _Out_ PHANDLE FileHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
@@ -1255,7 +1255,7 @@ ZwCreateProcessStateChange(
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ProcessHandle,
-    _In_opt_ _Reserved_ ULONG64 Reserved
+    _In_opt_ _Reserved_ ULONG Reserved
     );
 
 NTSYSCALLAPI
@@ -1400,7 +1400,7 @@ ZwCreateThreadStateChange(
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ThreadHandle,
-    _In_opt_ ULONG64 Reserved
+    _In_opt_ _Reserved_ ULONG Reserved
     );
 
 NTSYSCALLAPI
@@ -1528,7 +1528,7 @@ NTAPI
 ZwCreateWaitCompletionPacket(
     _Out_ PHANDLE WaitCompletionPacketHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -1610,7 +1610,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwDeleteFile(
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -1940,7 +1940,7 @@ NTSTATUS
 NTAPI
 ZwFreeVirtualMemory(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PVOID *BaseAddress,
+    _Inout_ __drv_freesMem(Mem) PVOID *BaseAddress,
     _Inout_ PSIZE_T RegionSize,
     _In_ ULONG FreeType
     );
@@ -2551,7 +2551,7 @@ NTAPI
 ZwOpenFile(
     _Out_ PHANDLE FileHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ ULONG ShareAccess,
     _In_ ULONG OpenOptions
@@ -2563,7 +2563,7 @@ NTAPI
 ZwOpenIoCompletion(
     _Out_ PHANDLE IoCompletionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -2955,7 +2955,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQueryAttributesFile(
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PFILE_BASIC_INFORMATION FileInformation
     );
 
@@ -3089,7 +3089,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQueryFullAttributesFile(
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
@@ -3108,7 +3108,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQueryInformationByName(
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _Out_writes_bytes_(Length) PVOID FileInformation,
     _In_ ULONG Length,
@@ -3564,8 +3564,8 @@ ZwQueryWnfStateData(
     _In_opt_ PCWNF_TYPE_ID TypeId,
     _In_opt_ const VOID* ExplicitScope,
     _Out_ PWNF_CHANGE_STAMP ChangeStamp,
-    _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer,
-    _Inout_ PULONG BufferSize
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength
     );
 
 NTSYSCALLAPI
@@ -3575,8 +3575,8 @@ ZwQueryWnfStateNameInformation(
     _In_ PCWNF_STATE_NAME StateName,
     _In_ WNF_STATE_NAME_INFORMATION NameInfoClass,
     _In_opt_ const VOID* ExplicitScope,
-    _Out_writes_bytes_(InfoBufferSize) PVOID InfoBuffer,
-    _In_ ULONG InfoBufferSize
+    _Out_writes_bytes_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength
     );
 
 NTSYSCALLAPI
@@ -4347,7 +4347,7 @@ ZwSetInformationVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_ VIRTUAL_MEMORY_INFORMATION_CLASS VmInformationClass,
     _In_ SIZE_T NumberOfEntries,
-    _In_reads_(NumberOfEntries) PVOID VirtualAddresses,
+    _In_reads_(NumberOfEntries) PMEMORY_RANGE_ENTRY VirtualAddresses,
     _In_reads_bytes_(VmInformationLength) PVOID VmInformation,
     _In_ ULONG VmInformationLength
     );
@@ -4924,10 +4924,7 @@ NTSTATUS
 NTAPI
 ZwWaitForWorkViaWorkerFactory(
     _In_ HANDLE WorkerFactoryHandle,
-    _Out_writes_to_(Count, *PacketsReturned) PFILE_IO_COMPLETION_INFORMATION MiniPackets,
-    _In_ ULONG Count,
-    _Out_ PULONG PacketsReturned,
-    _In_ PVOID DeferredWork
+    _Out_ PFILE_IO_COMPLETION_INFORMATION MiniPacket
     );
 
 NTSYSCALLAPI
@@ -4949,51 +4946,6 @@ NTSTATUS
 NTAPI
 ZwWorkerFactoryWorkerReady(
     _In_ HANDLE WorkerFactoryHandle
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-ZwWow64QueryInformationProcess64(
-    _In_ HANDLE ProcessHandle,
-    _In_ PROCESSINFOCLASS ProcessInformationClass,
-    _Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
-    _In_ ULONG ProcessInformationLength,
-    _Out_opt_ PULONG ReturnLength
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-ZwWow64QueryVirtualMemory64(
-    _In_ HANDLE ProcessHandle,
-    _In_opt_ ULONGLONG BaseAddress,
-    _In_ MEMORY_INFORMATION_CLASS MemoryInformationClass,
-    _Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
-    _In_ ULONGLONG MemoryInformationLength,
-    _Out_opt_ PULONGLONG ReturnLength
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-ZwWow64ReadVirtualMemory64(
-    _In_ HANDLE ProcessHandle,
-    _In_opt_ ULONGLONG BaseAddress,
-    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
-    _In_ ULONGLONG NumberOfBytesToRead,
-    _Out_opt_ PULONGLONG NumberOfBytesRead
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-ZwWow64WriteVirtualMemory64(
-    _In_ HANDLE ProcessHandle,
-    _In_opt_ ULONGLONG BaseAddress,
-    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
-    _In_ ULONGLONG NumberOfBytesToWrite,
-    _Out_opt_ PULONGLONG NumberOfBytesWritten
     );
 
 NTSYSCALLAPI

@@ -397,7 +397,7 @@ BOOLEAN LookupCountryCodeFromMmdb(
     )
 {
     MMDB_lookup_result_s mmdb_result;
-    INT mmdb_error = 0;
+    LONG mmdb_error = 0;
 
     if (!GeoDbInitialized)
     {
@@ -505,14 +505,14 @@ BOOLEAN LookupSockInAddr6CountryCode(
     return LookupCountryCodeFromMmdb(remoteAddress, CountryCode, CountryName);
 }
 
-INT LookupCountryIcon(
+LONG LookupCountryIcon(
     _In_ ULONG Name
     )
 {
     if (!GeoImageList || !Name)
         return INT_ERROR;
 
-    for (UINT i = 0; i < RTL_NUMBER_OF(GeoCountryResourceTable); i++)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(GeoCountryResourceTable); i++)
     {
         if (Name == GeoCountryResourceTable[i].GeoNameID)
         {
@@ -565,6 +565,7 @@ VOID DrawCountryIcon(
         );
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NetworkToolsGeoDbCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -576,6 +577,7 @@ BOOLEAN NetworkToolsGeoDbCacheHashtableEqualFunction(
     return PhEqualIpAddress(&entry1->RemoteAddress, &entry2->RemoteAddress);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NetworkToolsGeoDbCacheHashtableHashFunction(
     _In_ PVOID Entry
     )

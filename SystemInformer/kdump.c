@@ -22,6 +22,7 @@ typedef struct _PH_LIVE_DUMP_CONFIG
     HANDLE EventHandle;
 } PH_LIVE_DUMP_CONFIG, *PPH_LIVE_DUMP_CONFIG;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpCreateLiveKernelDump(
     _In_ PPH_LIVE_DUMP_CONFIG Context
     )
@@ -234,6 +235,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
     return S_OK;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpLiveDumpTaskDialogThread(
     _In_ PVOID ThreadParameter
     )

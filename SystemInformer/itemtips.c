@@ -171,10 +171,10 @@ PPH_STRING PhGetProcessTooltipText(
                 {
                     PH_IMAGE_VERSION_INFO versionInfo;
 
-                    if (PhInitializeImageVersionInfo(
+                    if (NT_SUCCESS(PhInitializeImageVersionInfo(
                         &versionInfo,
                         knownCommandLine.RunDllAsApp.FileName->Buffer
-                        ))
+                        )))
                     {
                         tempString = PhFormatImageVersionInfo(
                             knownCommandLine.RunDllAsApp.FileName,
@@ -219,10 +219,10 @@ PPH_STRING PhGetProcessTooltipText(
                         PhAppendCharStringBuilder(&stringBuilder, L'\n');
                     }
 
-                    if (knownCommandLine.ComSurrogate.FileName && PhInitializeImageVersionInfo(
+                    if (knownCommandLine.ComSurrogate.FileName && NT_SUCCESS(PhInitializeImageVersionInfo(
                         &versionInfo,
                         knownCommandLine.ComSurrogate.FileName->Buffer
-                        ))
+                        )))
                     {
                         tempString = PhFormatImageVersionInfo(
                             knownCommandLine.ComSurrogate.FileName,
@@ -416,9 +416,11 @@ PPH_STRING PhGetProcessTooltipText(
         {
             PhAppendFormatStringBuilder(
                 &notes,
-                L"    Image is probably packed (%lu imports over %lu modules).\n",
+                L"    Image is probably packed (%lu %ls over %lu %ls).\n",
                 Process->ImportFunctions,
-                Process->ImportModules
+                Process->ImportFunctions == 1 ? L"import" : L"imports",
+                Process->ImportModules,
+                Process->ImportModules == 1 ? L"module" : L"modules"
                 );
         }
 
@@ -426,7 +428,7 @@ PPH_STRING PhGetProcessTooltipText(
         {
             PhAppendFormatStringBuilder(
                 &notes,
-                L"    Low Image Coherency: %.2f%%\n",
+                L"    Low image coherency: %.2f%%\n",
                 (Process->ImageCoherency * 100.0f)
                 );
         }
@@ -455,6 +457,23 @@ PPH_STRING PhGetProcessTooltipText(
             PhAppendFormatStringBuilder(&notes, L"    Package name: %s\n", Process->PackageFullName->Buffer);
         }
 
+        if (notes.String->Length != 0)
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"Notes:\n");
+            PhAppendStringBuilder(&stringBuilder, &notes.String->sr);
+        }
+
+        PhDeleteStringBuilder(&notes);
+        PhInitializeStringBuilder(&notes, 40);
+
+        if (Process->IsSystemProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a system process (TCB).\n");
+        if (Process->IsBeingDebugged)
+            PhAppendStringBuilder2(&notes, L"    Process is being debugged.\n");
+        if (Process->IsSuspended)
+            PhAppendStringBuilder2(&notes, L"    Process is suspended.\n");
+        if (Process->IsFrozenProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is in deep freeze (suspended).\n");
         if (Process->IsDotNet)
             PhAppendStringBuilder2(&notes, L"    Process is managed (.NET).\n");
         if (Process->IsElevated)
@@ -476,10 +495,42 @@ PPH_STRING PhGetProcessTooltipText(
             PhAppendStringBuilder2(&notes, L"    Process is in a job.\n");
         if (Process->IsWow64Process)
             PhAppendStringBuilder2(&notes, L"    Process is 32-bit (WOW64).\n");
+        if (Process->IsProtectedProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a protected process (PP/PPL).\n");
+        if (Process->IsSecureProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a secure isolated process (IUM).\n");
+        if (Process->IsSecureProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a secure virtualization process (HVCI).\n");
+        if (Process->IsSubsystemProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a subsystem process.\n");
+        if (Process->IsPackagedProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a packaged process.\n");
+        if (Process->IsBackgroundProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a background process.\n");
+        if (Process->IsCrossSessionProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a cross session process.\n");
+        //
+        // TODO(jxy-s) Find a way to identify reflected processes maybe initial
+        // thread start address (RtlpProcessReflectionStartup)?
+        //
+        //if (Process->IsReflectedProcess)
+        //    PhAppendStringBuilder2(&notes, L"    Process is a reflected process.\n");
+        //
+        // TODO(jxy-s) Find a way to identify cloned processes. This is distinct
+        // from snapshot process since it is created with an initial thread. The
+        // PEB address and some initial TEB content is likely to be the same as
+        // the process it originated from.
+        //
+        //if (Process->IsClonedProcess)
+        //    PhAppendStringBuilder2(&notes, L"    Process is a cloned process.\n");
+        if (Process->IsSnapshotProcess)
+            PhAppendStringBuilder2(&notes, L"    Process is a snapshot process.\n");
+        if (Process->IsPowerThrottling)
+            PhAppendStringBuilder2(&notes, L"    Process is power throttling (efficiency).\n");
 
         if (notes.String->Length != 0)
         {
-            PhAppendStringBuilder2(&stringBuilder, L"Notes:\n");
+            PhAppendStringBuilder2(&stringBuilder, L"Flags:\n");
             PhAppendStringBuilder(&stringBuilder, &notes.String->sr);
         }
 
@@ -503,9 +554,7 @@ VOID PhpFillUmdfDrivers(
 {
     static CONST PH_STRINGREF activeDevices = PH_STRINGREF_INIT(L"ACTIVE_DEVICES");
     static CONST PH_STRINGREF currentControlSetEnum = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Enum\\");
-
     HANDLE processHandle;
-    ULONG flags = 0;
     PVOID environment;
     ULONG environmentLength;
     ULONG enumerationKey;
@@ -527,7 +576,12 @@ VOID PhpFillUmdfDrivers(
     {
         enumerationKey = 0;
 
-        while (PhEnumProcessEnvironmentVariables(environment, environmentLength, &enumerationKey, &variable))
+        while (NT_SUCCESS(PhEnumProcessEnvironmentVariables(
+            environment,
+            environmentLength,
+            &enumerationKey,
+            &variable
+            )))
         {
             PH_STRINGREF part;
             PH_STRINGREF remainingPart;
@@ -575,12 +629,10 @@ VOID PhpFillUmdfDrivers(
                             PhInitializeStringRef(&deviceName, L"Unknown Device");
                         }
 
-                        hardwareId = PhQueryRegistryStringZ(driverKeyHandle, L"HardwareID");
-
                         PhAppendStringBuilder(Drivers, &StandardIndent);
                         PhAppendStringBuilder(Drivers, &deviceName);
 
-                        if (hardwareId)
+                        if (hardwareId = PhQueryRegistryStringZ(driverKeyHandle, L"HardwareID"))
                         {
                             PhTrimToNullTerminatorString(hardwareId);
 
@@ -788,10 +840,10 @@ PPH_STRING PhGetServiceTooltipText(
             PH_IMAGE_VERSION_INFO versionInfo;
             PPH_STRING versionInfoText;
 
-            if (PhInitializeImageVersionInfo(
+            if (NT_SUCCESS(PhInitializeImageVersionInfo(
                 &versionInfo,
                 fileName->Buffer
-                ))
+                )))
             {
                 versionInfoText = PhFormatImageVersionInfo(
                     fileName,

@@ -13,6 +13,26 @@
 #ifndef _PH_PHINTRNL_H
 #define _PH_PHINTRNL_H
 
+NTSTATUS PhInitializeRuntimeInformation(
+    VOID
+    );
+
+NTSTATUS PhInitializeSystemInformation(
+    VOID
+    );
+
+NTSTATUS PhInitializeWindowsInformation(
+    VOID
+    );
+
+NTSTATUS PhHeapInitialization(
+    VOID
+    );
+
+NTSTATUS PhInitializeProcessorInformation(
+    VOID
+    );
+
 typedef struct _PHLIB_STATISTICS_BLOCK
 {
     // basesup

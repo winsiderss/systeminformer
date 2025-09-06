@@ -2,7 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by resource.rc
 //
-#define IDR_RT_MANIFEST                 1
 #define IDI_ICON                        101
 #define IDR_BIN_DATA                    102
 

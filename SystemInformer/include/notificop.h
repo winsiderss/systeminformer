@@ -72,10 +72,12 @@ BOOLEAN PhNfpModifyNotifyIcon(
     _In_opt_ HICON IconHandle
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhNfpTrayIconUpdateThread(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhNfpProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -85,6 +87,7 @@ VOID PhNfpUpdateRegisteredIcon(
     _In_ PPH_NF_ICON Icon
     );
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpBeginBitmap(
     _Out_ PULONG Width,
     _Out_ PULONG Height,
@@ -94,6 +97,7 @@ VOID PhNfpBeginBitmap(
     _Out_ HBITMAP *OldBitmap
     );
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpBeginBitmap2(
     _Inout_ PPH_NF_BITMAP Context,
     _Out_ PULONG Width,
@@ -104,6 +108,7 @@ VOID PhNfpBeginBitmap2(
     _Out_ HBITMAP *OldBitmap
     );
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCpuHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -111,6 +116,7 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     _Out_ PPH_STRING *NewText,
     _In_opt_ PVOID Context
     );
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpIoHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -118,6 +124,8 @@ VOID PhNfpIoHistoryIconUpdateCallback(
     _Out_ PPH_STRING *NewText,
     _In_opt_ PVOID Context
     );
+
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCommitHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -125,6 +133,8 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     _Out_ PPH_STRING *NewText,
     _In_opt_ PVOID Context
     );
+
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpPhysicalHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -132,6 +142,8 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     _Out_ PPH_STRING *NewText,
     _In_opt_ PVOID Context
     );
+
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCpuUsageIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -142,6 +154,7 @@ VOID PhNfpCpuUsageIconUpdateCallback(
 
 // Text icons
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCpuUsageTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -149,6 +162,8 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
     _Out_ PPH_STRING *NewText,
     _In_opt_ PVOID Context
     );
+
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpIoUsageTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -156,6 +171,8 @@ VOID PhNfpIoUsageTextIconUpdateCallback(
     _Out_ PPH_STRING *NewText,
     _In_opt_ PVOID Context
     );
+
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCommitTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -163,6 +180,8 @@ VOID PhNfpCommitTextIconUpdateCallback(
     _Out_ PPH_STRING *NewText,
     _In_opt_ PVOID Context
     );
+
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -172,6 +191,7 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     );
 
 // plain icon
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpPlainIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,

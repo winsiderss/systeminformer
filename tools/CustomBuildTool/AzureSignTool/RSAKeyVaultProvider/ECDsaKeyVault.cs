@@ -16,9 +16,9 @@ namespace CustomBuildTool
     /// </summary>
     public sealed class ECDsaKeyVault : ECDsa
     {
-        private readonly KeyVaultContext context;
-        private ECDsa publicKey;
-        private bool disposed;
+        private readonly KeyVaultContext VaultContext;
+        private ECDsa PublicKey;
+        private bool Disposed;
 
         /// <summary>
         /// Creates a new ECDsaKeyVault instance
@@ -29,10 +29,10 @@ namespace CustomBuildTool
             if (!context.IsValid)
                 throw new ArgumentException("Must not be the default", nameof(context));
 
-            this.context = context;
-            publicKey = context.Key.ToECDsa();
-            KeySizeValue = publicKey.KeySize;
-            LegalKeySizesValue = [new KeySizes(publicKey.KeySize, publicKey.KeySize, 0)];
+            this.VaultContext = context;
+            this.PublicKey = context.Key.ToECDsa();
+            this.KeySizeValue = this.PublicKey.KeySize;
+            this.LegalKeySizesValue = [new KeySizes(this.PublicKey.KeySize, this.PublicKey.KeySize, 0)];
         }
 
         public override byte[] SignHash(byte[] hash)
@@ -40,24 +40,58 @@ namespace CustomBuildTool
             CheckDisposed();
             ValidateKeyDigestCombination(KeySize, hash.Length);
 
-            return KeySize switch
-            {
-                256 => context.SignDigest(hash, HashAlgorithmName.SHA256, KeyVaultSignatureAlgorithm.ECDsa),
-                384 => context.SignDigest(hash, HashAlgorithmName.SHA384, KeyVaultSignatureAlgorithm.ECDsa),
-                521 => context.SignDigest(hash, HashAlgorithmName.SHA512, KeyVaultSignatureAlgorithm.ECDsa),
-                _ => throw new ArgumentException("Digest length is not valid for the key size.", nameof(hash)),
-            };
+            if (KeySize == 256)
+                return this.VaultContext.SignDigest(hash, HashAlgorithmName.SHA256, KeyVaultSignatureAlgorithm.ECDsa);
+            if (KeySize == 384)
+                return this.VaultContext.SignDigest(hash, HashAlgorithmName.SHA384, KeyVaultSignatureAlgorithm.ECDsa);
+            if (KeySize == 521)
+                return this.VaultContext.SignDigest(hash, HashAlgorithmName.SHA512, KeyVaultSignatureAlgorithm.ECDsa);
+            throw new ArgumentException("Digest length is not valid for the key size.", nameof(hash));
         }
 
         protected override byte[] HashData(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
         {
             ValidateKeyDigestCombination(KeySize, hashAlgorithm);
 
+            return HashDataIncremental(data, offset, count, hashAlgorithm);
+        }
+
+        private static byte[] HashDataIncremental(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
+        {
             using (IncrementalHash hash = IncrementalHash.CreateHash(hashAlgorithm))
             {
                 hash.AppendData(data, offset, count);
                 return hash.GetHashAndReset();
             }
+        }
+
+        private static byte[] HashDataStatic(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
+        {
+            // Use static method for hashing to avoid allocation of IncrementalHash
+            using var sha256 = IncrementalHash.CreateHash(hashAlgorithm);
+            sha256.AppendData(data, offset, count);
+            return sha256.GetHashAndReset();
+        }
+
+        private static byte[] HashDataFixed(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
+        {
+            // Use static method for hashing to avoid allocation of IncrementalHash
+            if (hashAlgorithm == HashAlgorithmName.SHA256)
+            {
+                using var sha256 = System.Security.Cryptography.SHA256.Create();
+                return sha256.ComputeHash(data, offset, count);
+            }
+            if (hashAlgorithm == HashAlgorithmName.SHA384)
+            {
+                using var sha384 = System.Security.Cryptography.SHA384.Create();
+                return sha384.ComputeHash(data, offset, count);
+            }
+            if (hashAlgorithm == HashAlgorithmName.SHA512)
+            {
+                using var sha512 = System.Security.Cryptography.SHA512.Create();
+                return sha512.ComputeHash(data, offset, count);
+            }
+            throw new NotSupportedException("The specified algorithm is not supported.");
         }
 
         /// <inheritdoc/>
@@ -66,7 +100,11 @@ namespace CustomBuildTool
             CheckDisposed();
             ValidateKeyDigestCombination(KeySize, hash.Length);
 
-            return publicKey.VerifyHash(hash, signature);
+            // Avoid null check every call
+            var pk = this.PublicKey;
+            ObjectDisposedException.ThrowIf(pk is null, this);
+
+            return pk.VerifyHash(hash, signature);
         }
 
         ///<inheritdoc/>
@@ -75,7 +113,7 @@ namespace CustomBuildTool
             if (includePrivateParameters)
                 throw new Exception("Private keys cannot be exported by this provider");
 
-            return publicKey.ExportParameters(false);
+            return this.PublicKey.ExportParameters(false);
         }
 
         ///<inheritdoc/>
@@ -84,7 +122,7 @@ namespace CustomBuildTool
             if (includePrivateParameters)
                 throw new Exception("Private keys cannot be exported by this provider");
 
-            return publicKey.ExportExplicitParameters(false);
+            return this.PublicKey.ExportExplicitParameters(false);
         }
 
         /// <summary>
@@ -105,7 +143,7 @@ namespace CustomBuildTool
             if (includePrivateParameters)
                 throw new Exception("Private keys cannot be exported by this provider");
 
-            return publicKey.ToXmlString(false);
+            return this.PublicKey.ToXmlString(false);
         }
 
         /// <summary>
@@ -127,52 +165,33 @@ namespace CustomBuildTool
 
         private static void ValidateKeyDigestCombination(int keySizeBits, HashAlgorithmName hashAlgorithmName)
         {
-            if (hashAlgorithmName != HashAlgorithmName.SHA256 &&
-                hashAlgorithmName != HashAlgorithmName.SHA384 &&
-                hashAlgorithmName != HashAlgorithmName.SHA512)
+            switch (keySizeBits)
             {
-                throw new NotSupportedException("The specified algorithm is not supported.");
-            }
-
-            if ((keySizeBits == 256 && hashAlgorithmName == HashAlgorithmName.SHA256) ||
-                (keySizeBits == 384 && hashAlgorithmName == HashAlgorithmName.SHA384) ||
-                (keySizeBits == 521 && hashAlgorithmName == HashAlgorithmName.SHA512))
-            {
+            case 256 when hashAlgorithmName == HashAlgorithmName.SHA256:
+            case 384 when hashAlgorithmName == HashAlgorithmName.SHA384:
+            case 521 when hashAlgorithmName == HashAlgorithmName.SHA512:
                 return;
             }
-
             throw new NotSupportedException($"The key size '{keySizeBits}' is not valid for digest algorithm '{hashAlgorithmName}'.");
         }
 
         void CheckDisposed()
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
+            ObjectDisposedException.ThrowIf(this.Disposed, this);
         }
 
-        ~ECDsaKeyVault()
-        {
-            Dispose(false);
-        }
-
-        public new void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            if (disposed)
+            if (this.Disposed)
                 return;
 
             if (disposing)
             {
-                publicKey?.Dispose();
-                publicKey = null;
+                this.PublicKey?.Dispose();
+                this.PublicKey = null;
             }
 
-            disposed = true;
+            this.Disposed = true;
             base.Dispose(disposing);
         }
     }

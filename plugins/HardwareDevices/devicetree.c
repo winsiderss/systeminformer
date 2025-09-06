@@ -33,13 +33,21 @@ typedef struct _DEVICE_TREE
     PPH_LIST Roots;
 } DEVICE_TREE, *PDEVICE_TREE;
 
+typedef struct _DEVICE_TREE_SORT_CONTEXT
+{
+    ULONG SortColumn;
+    PH_SORT_ORDER SortOrder;
+} DEVICE_TREE_SORT_CONTEXT, *PDEVICE_TREE_SORT_CONTEXT;
+
 static BOOLEAN AutoRefreshDeviceTree = TRUE;
 static BOOLEAN ShowDisconnected = TRUE;
 static BOOLEAN ShowSoftwareComponents = TRUE;
-static BOOLEAN HighlightUpperFiltered = TRUE;
-static BOOLEAN HighlightLowerFiltered = TRUE;
 static BOOLEAN ShowDeviceInterfaces = TRUE;
 static BOOLEAN ShowDisabledDeviceInterfaces = TRUE;
+static BOOLEAN SortChildDevices = FALSE;
+static BOOLEAN SortRootDevices = FALSE;
+static BOOLEAN HighlightUpperFiltered = TRUE;
+static BOOLEAN HighlightLowerFiltered = TRUE;
 static ULONG DeviceProblemColor = 0;
 static ULONG DeviceDisabledColor = 0;
 static ULONG DeviceDisconnectedColor = 0;
@@ -56,6 +64,7 @@ static ULONG DeviceTreeVisibleColumns[PhMaxDeviceProperty] = { 0 };
 static PH_CALLBACK_REGISTRATION DeviceNotifyRegistration = { 0 };
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration = { 0 };
 static PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration = { 0 };
+static PH_CALLBACK_REGISTRATION DeviceTreeMenuItemCallbackRegistration = { 0 };
 static PDEVICE_TREE DeviceTree = NULL;
 static HIMAGELIST DeviceImageList = NULL;
 static PH_INTEGER_PAIR DeviceIconSize = { 16, 16 };
@@ -270,6 +279,7 @@ PDEVICE_TREE DeviceTreeCreate(
     return tree;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID DeviceTreeDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -370,6 +380,7 @@ VOID NTAPI DeviceTreePublish(
     PhClearReference(&oldTree);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI DeviceTreePublishThread(
     _In_ PVOID Parameter
     )
@@ -436,6 +447,7 @@ BOOLEAN NTAPI DeviceTreeFilterCallback(
     return FALSE;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI DeviceTreeSearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -446,10 +458,12 @@ VOID NTAPI DeviceTreeSearchChangedHandler(
 }
 
 static int __cdecl DeviceTreeSortFunction(
+    void* Context,
     const void* Left,
     const void* Right
     )
 {
+    PDEVICE_TREE_SORT_CONTEXT context = Context;
     int sortResult;
     PDEVICE_NODE lhsNode;
     PDEVICE_NODE rhsNode;
@@ -461,8 +475,8 @@ static int __cdecl DeviceTreeSortFunction(
     sortResult = 0;
     lhsNode = *(PDEVICE_NODE*)Left;
     rhsNode = *(PDEVICE_NODE*)Right;
-    lhs = PhGetDeviceProperty(lhsNode->DeviceItem, DeviceTreeSortColumn);
-    rhs = PhGetDeviceProperty(rhsNode->DeviceItem, DeviceTreeSortColumn);
+    lhs = PhGetDeviceProperty(lhsNode->DeviceItem, context->SortColumn);
+    rhs = PhGetDeviceProperty(rhsNode->DeviceItem, context->SortColumn);
 
     assert(lhs->Type == rhs->Type);
 
@@ -540,7 +554,7 @@ static int __cdecl DeviceTreeSortFunction(
         sortResult = PhCompareStringRef(&srl, &srr, TRUE);
     }
 
-    return PhModifySort(sortResult, DeviceTreeSortOrder);
+    return PhModifySort(sortResult, context->SortOrder);
 }
 
 VOID DeviceNodeShowProperties(
@@ -580,6 +594,30 @@ VOID DeviceTreeGetSelectedDeviceItems(
     *Devices = PhFinalArrayItems(&array);
 }
 
+VOID DevicesExpandAllNodes(
+    _In_ BOOLEAN Expand
+    )
+{
+    BOOLEAN needsRestructure = FALSE;
+
+    if (!DeviceTree)
+        return;
+
+    for (ULONG i = 0; i < DeviceTree->Nodes->Count; i++)
+    {
+        PDEVICE_NODE node = DeviceTree->Nodes->Items[i];
+
+        if (node->Children->Count != 0 && node->Node.Expanded != Expand)
+        {
+            node->Node.Expanded = Expand;
+            needsRestructure = TRUE;
+        }
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(DeviceTreeHandle);
+}
+
 VOID DeviceTreeUpdateVisibleColumns(
     VOID
     )
@@ -617,38 +655,75 @@ BOOLEAN NTAPI DeviceTreeCallback(
             }
             else
             {
-                node = (PDEVICE_NODE)getChildren->Node;
+                PPH_LIST sortList;
+                DEVICE_TREE_SORT_CONTEXT sortContext;
 
-                if (DeviceTreeSortOrder == NoSortOrder)
+                node = (PDEVICE_NODE)getChildren->Node;
+                sortList = NULL;
+                sortContext.SortColumn = DeviceTreeSortColumn;
+                sortContext.SortOrder = DeviceTreeSortOrder;
+
+                if (SortChildDevices)
                 {
                     if (!node)
                     {
                         getChildren->Children = (PPH_TREENEW_NODE*)DeviceTree->Roots->Items;
                         getChildren->NumberOfChildren = DeviceTree->Roots->Count;
+                        if (SortRootDevices)
+                            sortList = DeviceTree->Roots;
+                    }
+                    else if (sortContext.SortOrder == NoSortOrder)
+                    {
+                        getChildren->Children = (PPH_TREENEW_NODE*)node->Children->Items;
+                        getChildren->NumberOfChildren = node->Children->Count;
+                        sortList = node->Children;
+                        sortContext.SortColumn = PhDevicePropertyName;
+                        sortContext.SortOrder = AscendingSortOrder;
                     }
                     else
                     {
                         getChildren->Children = (PPH_TREENEW_NODE*)node->Children->Items;
                         getChildren->NumberOfChildren = node->Children->Count;
+                        sortList = node->Children;
                     }
                 }
                 else
                 {
-                    if (!node)
+                    if (DeviceTreeSortOrder == NoSortOrder)
                     {
-                        if (DeviceTreeSortColumn < PhMaxDeviceProperty)
+                        if (!node)
                         {
-                            qsort(
-                                DeviceTree->Nodes->Items,
-                                DeviceTree->Nodes->Count,
-                                sizeof(PVOID),
-                                DeviceTreeSortFunction
-                                );
+                            getChildren->Children = (PPH_TREENEW_NODE*)DeviceTree->Roots->Items;
+                            getChildren->NumberOfChildren = DeviceTree->Roots->Count;
+                            if (SortRootDevices)
+                                sortList = DeviceTree->Roots;
+                        }
+                        else
+                        {
+                            getChildren->Children = (PPH_TREENEW_NODE*)node->Children->Items;
+                            getChildren->NumberOfChildren = node->Children->Count;
                         }
                     }
+                    else
+                    {
+                        getChildren->Children = (PPH_TREENEW_NODE*)DeviceTree->Nodes->Items;
+                        getChildren->NumberOfChildren = DeviceTree->Nodes->Count;
+                        sortList = DeviceTree->Nodes;
+                    }
+                }
 
-                    getChildren->Children = (PPH_TREENEW_NODE*)DeviceTree->Nodes->Items;
-                    getChildren->NumberOfChildren = DeviceTree->Nodes->Count;
+                if (sortList)
+                {
+                    if (sortContext.SortColumn < PhMaxDeviceProperty)
+                    {
+                        qsort_s(
+                            sortList->Items,
+                            sortList->Count,
+                            sizeof(PVOID),
+                            DeviceTreeSortFunction,
+                            &sortContext
+                            );
+                    }
                 }
             }
         }
@@ -658,7 +733,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
             node = (PDEVICE_NODE)isLeaf->Node;
 
-            if (DeviceTreeSortOrder == NoSortOrder)
+            if (SortChildDevices || DeviceTreeSortOrder == NoSortOrder)
                 isLeaf->IsLeaf = node->Children->Count == 0;
             else
                 isLeaf->IsLeaf = TRUE;
@@ -737,13 +812,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_EMENU menu;
             PPH_EMENU subMenu;
             PPH_EMENU_ITEM selectedItem;
-            PPH_EMENU_ITEM autoRefresh;
-            PPH_EMENU_ITEM showDisconnectedDevices;
-            PPH_EMENU_ITEM showSoftwareDevices;
-            PPH_EMENU_ITEM showDeviceInterfaces;
-            PPH_EMENU_ITEM showDisabledDeviceInterfaces;
-            PPH_EMENU_ITEM highlightUpperFiltered;
-            PPH_EMENU_ITEM highlightLowerFiltered;
             PPH_EMENU_ITEM gotoServiceItem;
             PPH_EMENU_ITEM enable;
             PPH_EMENU_ITEM disable;
@@ -751,7 +819,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_EMENU_ITEM uninstall;
             PPH_EMENU_ITEM properties;
             BOOLEAN republish;
-            BOOLEAN invalidate;
 
             // We muse reference the active tree here since a new tree could be
             // published on the UI thread after we show the context menu.
@@ -762,16 +829,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
             node = (PDEVICE_NODE)contextMenuEvent->Node;
 
             menu = PhCreateEMenu();
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 100, L"Refresh", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, autoRefresh = PhCreateEMenuItem(0, 101, L"Refresh automatically", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-            PhInsertEMenuItem(menu, showDisconnectedDevices = PhCreateEMenuItem(0, 102, L"Show disconnected devices", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, showSoftwareDevices = PhCreateEMenuItem(0, 103, L"Show software components", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, showDeviceInterfaces = PhCreateEMenuItem(0, 104, L"Show device interfaces", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, showDisabledDeviceInterfaces = PhCreateEMenuItem(0, 105, L"Show disabled device interfaces", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, highlightUpperFiltered = PhCreateEMenuItem(0, 106, L"Highlight upper filtered", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, highlightLowerFiltered = PhCreateEMenuItem(0, 107, L"Highlight lower filtered", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, gotoServiceItem = PhCreateEMenuItem(0, 108, L"Go to service...", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, enable = PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);
@@ -791,21 +848,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 11, L"Copy", NULL, NULL), ULONG_MAX);
             PhInsertCopyCellEMenuItem(menu, 11, DeviceTreeHandle, contextMenuEvent->Column);
             PhSetFlagsEMenuItem(menu, 10, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
-
-            if (AutoRefreshDeviceTree)
-                autoRefresh->Flags |= PH_EMENU_CHECKED;
-            if (ShowDisconnected)
-                showDisconnectedDevices->Flags |= PH_EMENU_CHECKED;
-            if (ShowSoftwareComponents)
-                showSoftwareDevices->Flags |= PH_EMENU_CHECKED;
-            if (HighlightUpperFiltered)
-                highlightUpperFiltered->Flags |= PH_EMENU_CHECKED;
-            if (HighlightLowerFiltered)
-                highlightLowerFiltered->Flags |= PH_EMENU_CHECKED;
-            if (ShowDeviceInterfaces)
-                showDeviceInterfaces->Flags |= PH_EMENU_CHECKED;
-            if (ShowDisabledDeviceInterfaces)
-                showDisabledDeviceInterfaces->Flags |= PH_EMENU_CHECKED;
 
             if (!node || numberOfDevices != 1)
             {
@@ -838,7 +880,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
                 );
 
             republish = FALSE;
-            invalidate = FALSE;
 
             if (selectedItem && selectedItem->Id != ULONG_MAX)
             {
@@ -893,43 +934,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
                             PhDereferenceObject(text);
                         }
                         break;
-                    case 100:
-                        republish = TRUE;
-                        break;
-                    case 101:
-                        AutoRefreshDeviceTree = !AutoRefreshDeviceTree;
-                        PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_AUTO_REFRESH, AutoRefreshDeviceTree);
-                        break;
-                    case 102:
-                        ShowDisconnected = !ShowDisconnected;
-                        PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED, ShowDisconnected);
-                        republish = TRUE;
-                        break;
-                    case 103:
-                        ShowSoftwareComponents = !ShowSoftwareComponents;
-                        PhSetIntegerSetting(SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS, ShowSoftwareComponents);
-                        republish = TRUE;
-                        break;
-                    case 104:
-                        ShowDeviceInterfaces = !ShowDeviceInterfaces;
-                        PhSetIntegerSetting(SETTING_NAME_DEVICE_SHOW_DEVICE_INTERFACES, ShowDeviceInterfaces);
-                        republish = TRUE;
-                        break;
-                    case 105:
-                        ShowDisabledDeviceInterfaces = !ShowDisabledDeviceInterfaces;
-                        PhSetIntegerSetting(SETTING_NAME_DEVICE_SHOW_DISABLED_DEVICE_INTERFACES, ShowDisabledDeviceInterfaces);
-                        republish = TRUE;
-                        break;
-                    case 106:
-                        HighlightUpperFiltered = !HighlightUpperFiltered;
-                        PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED, HighlightUpperFiltered);
-                        invalidate = TRUE;
-                        break;
-                    case 107:
-                        HighlightLowerFiltered = !HighlightLowerFiltered;
-                        PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED, HighlightLowerFiltered);
-                        invalidate = TRUE;
-                        break;
                     case 108:
                         {
                             PPH_STRING serviceName = PhGetDeviceProperty(node->DeviceItem, PhDevicePropertyService)->AsString;
@@ -953,15 +957,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PhDestroyEMenu(menu);
 
             if (republish)
-            {
                 DeviceTreePublishAsync(TRUE);
-            }
-            else if (invalidate)
-            {
-                InvalidateDeviceNodes();
-                if (DeviceTreeFilterSupport.FilterList)
-                    PhApplyTreeNewFilters(&DeviceTreeFilterSupport);
-            }
 
             PhFree(devices);
             PhDereferenceObject(activeTree);
@@ -1463,7 +1459,7 @@ BOOLEAN DevicesTabPageCallback(
         return TRUE;
     case MainTabPageSelected:
         {
-            DeviceTabSelected = (BOOLEAN)Parameter1;
+            DeviceTabSelected = (BOOLEAN)PtrToUlong(Parameter1);
             if (DeviceTabSelected)
             {
                 DeviceTreePublishAsync(FALSE);
@@ -1512,9 +1508,147 @@ BOOLEAN DevicesTabPageCallback(
             }
         }
         break;
+    case MainTabPageInitializeSectionMenuItems:
+        {
+            PPH_MAIN_TAB_PAGE_MENU_INFORMATION menuInfo = Parameter1;
+            PPH_EMENU menu;
+            PPH_EMENU_ITEM autoRefresh;
+            PPH_EMENU_ITEM showDisconnectedDevices;
+            PPH_EMENU_ITEM showSoftwareDevices;
+            PPH_EMENU_ITEM showDeviceInterfaces;
+            PPH_EMENU_ITEM showDisabledDeviceInterfaces;
+            PPH_EMENU_ITEM sortChildDevices;
+            PPH_EMENU_ITEM sortRootDevices;
+            PPH_EMENU_ITEM highlightUpperFiltered;
+            PPH_EMENU_ITEM highlightLowerFiltered;
+
+            assert(menuInfo);
+
+            menu = PhCreateEMenuItem(0, 0, L"Devices", NULL, NULL);
+            PhInsertEMenuItem(menuInfo->Menu, menu, menuInfo->StartIndex);
+
+            PhInsertEMenuItem(menu, PhPluginCreateEMenuItem(PluginInstance, 0, 98, L"Collapse all", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhPluginCreateEMenuItem(PluginInstance, 0, 99, L"Expand all", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhPluginCreateEMenuItem(PluginInstance, 0, 100, L"Refresh", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, autoRefresh = PhPluginCreateEMenuItem(PluginInstance, 0, 101, L"Refresh automatically", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+            PhInsertEMenuItem(menu, showDisconnectedDevices = PhPluginCreateEMenuItem(PluginInstance, 0, 102, L"Show disconnected devices", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, showSoftwareDevices = PhPluginCreateEMenuItem(PluginInstance, 0, 103, L"Show software components", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, showDeviceInterfaces = PhPluginCreateEMenuItem(PluginInstance, 0, 104, L"Show device interfaces", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, showDisabledDeviceInterfaces = PhPluginCreateEMenuItem(PluginInstance, 0, 105, L"Show disabled device interfaces", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, sortChildDevices = PhPluginCreateEMenuItem(PluginInstance, 0, 106, L"Sort child devices", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, sortRootDevices = PhPluginCreateEMenuItem(PluginInstance, 0, 107, L"Sort root devices", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, highlightUpperFiltered = PhPluginCreateEMenuItem(PluginInstance, 0, 108, L"Highlight upper filtered", NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, highlightLowerFiltered = PhPluginCreateEMenuItem(PluginInstance, 0, 109, L"Highlight lower filtered", NULL), ULONG_MAX);
+
+            if (AutoRefreshDeviceTree)
+                autoRefresh->Flags |= PH_EMENU_CHECKED;
+            if (ShowDisconnected)
+                showDisconnectedDevices->Flags |= PH_EMENU_CHECKED;
+            if (ShowSoftwareComponents)
+                showSoftwareDevices->Flags |= PH_EMENU_CHECKED;
+            if (ShowDeviceInterfaces)
+                showDeviceInterfaces->Flags |= PH_EMENU_CHECKED;
+            if (ShowDisabledDeviceInterfaces)
+                showDisabledDeviceInterfaces->Flags |= PH_EMENU_CHECKED;
+            if (SortChildDevices)
+                sortChildDevices->Flags |= PH_EMENU_CHECKED;
+            if (SortRootDevices)
+                sortRootDevices->Flags |= PH_EMENU_CHECKED;
+            if (HighlightUpperFiltered)
+                highlightUpperFiltered->Flags |= PH_EMENU_CHECKED;
+            if (HighlightLowerFiltered)
+                highlightLowerFiltered->Flags |= PH_EMENU_CHECKED;
+        }
+        return TRUE;
     }
 
     return FALSE;
+}
+
+_Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI DeviceTreeMenuItemCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    BOOLEAN republish = FALSE;
+    BOOLEAN invalidate = FALSE;
+    PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
+
+    assert(menuItem);
+
+    switch (menuItem->Id)
+    {
+    case 98:
+        DevicesExpandAllNodes(FALSE);
+        break;
+    case 99:
+        DevicesExpandAllNodes(TRUE);
+        break;
+    case 100:
+        republish = TRUE;
+        break;
+    case 101:
+        AutoRefreshDeviceTree = !AutoRefreshDeviceTree;
+        PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_AUTO_REFRESH, AutoRefreshDeviceTree);
+        break;
+    case 102:
+        ShowDisconnected = !ShowDisconnected;
+        PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED, ShowDisconnected);
+        republish = TRUE;
+        break;
+    case 103:
+        ShowSoftwareComponents = !ShowSoftwareComponents;
+        PhSetIntegerSetting(SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS, ShowSoftwareComponents);
+        republish = TRUE;
+        break;
+    case 104:
+        ShowDeviceInterfaces = !ShowDeviceInterfaces;
+        PhSetIntegerSetting(SETTING_NAME_DEVICE_SHOW_DEVICE_INTERFACES, ShowDeviceInterfaces);
+        republish = TRUE;
+        break;
+    case 105:
+        ShowDisabledDeviceInterfaces = !ShowDisabledDeviceInterfaces;
+        PhSetIntegerSetting(SETTING_NAME_DEVICE_SHOW_DISABLED_DEVICE_INTERFACES, ShowDisabledDeviceInterfaces);
+        republish = TRUE;
+        break;
+    case 106:
+        SortChildDevices = !SortChildDevices;
+        PhSetIntegerSetting(SETTING_NAME_DEVICE_SORT_CHILD_DEVICES, SortChildDevices);
+        republish = TRUE;
+        break;
+    case 107:
+        SortRootDevices = !SortRootDevices;
+        PhSetIntegerSetting(SETTING_NAME_DEVICE_SORT_ROOT_DEVICES, SortRootDevices);
+        republish = TRUE;
+        break;
+    case 108:
+        HighlightUpperFiltered = !HighlightUpperFiltered;
+        PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED, HighlightUpperFiltered);
+        invalidate = TRUE;
+        break;
+    case 109:
+        HighlightLowerFiltered = !HighlightLowerFiltered;
+        PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED, HighlightLowerFiltered);
+        invalidate = TRUE;
+        break;
+    }
+
+    if (DeviceTabCreated)
+    {
+        if (republish)
+        {
+            DeviceTreePublishAsync(TRUE);
+        }
+        else if (invalidate)
+        {
+            InvalidateDeviceNodes();
+            if (DeviceTreeFilterSupport.FilterList)
+                PhApplyTreeNewFilters(&DeviceTreeFilterSupport);
+        }
+    }
 }
 
 VOID NTAPI ToolStatusActivateContent(
@@ -1546,6 +1680,7 @@ HWND NTAPI ToolStatusGetTreeNewHandle(
     return DeviceTreeHandle;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI DeviceProviderCallbackHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1563,6 +1698,7 @@ VOID DeviceTreeRemoveDeviceNode(
     NOTHING;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI DeviceTreeProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1600,6 +1736,7 @@ VOID DeviceTreeUpdateCachedSettings(
     HighlightUpperFiltered = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED);
     HighlightLowerFiltered = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED);
     DeviceHighlightingDuration = PhGetIntegerSetting(SETTING_NAME_DEVICE_HIGHLIGHTING_DURATION);
+    SortChildDevices = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_SORT_CHILD_DEVICES);
 
     if (UpdateColors)
     {
@@ -1613,6 +1750,7 @@ VOID DeviceTreeUpdateCachedSettings(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI DeviceTreeSettingsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1646,6 +1784,12 @@ VOID InitializeDevicesTab(
         DeviceTreeSettingsUpdatedCallback,
         NULL,
         &SettingsUpdatedCallbackRegistration
+        );
+    PhRegisterCallback(
+        PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+        DeviceTreeMenuItemCallback,
+        NULL,
+        &DeviceTreeMenuItemCallbackRegistration
         );
 
     DeviceTreeUpdateCachedSettings(TRUE);

@@ -230,6 +230,7 @@ LRESULT CALLBACK PhTnpWndProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(PH_TREENEW_CALLBACK)
 BOOLEAN NTAPI PhTnpNullCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -316,7 +317,9 @@ BOOLEAN PhTnpOnNcPaint(
 BOOLEAN PhTnpOnSetCursor(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ HWND CursorWindowHandle
+    _In_ HWND CursorWindowHandle,
+    _In_ ULONG HitTest,
+    _In_ ULONG Source
     );
 
 VOID PhTnpOnTimer(
@@ -779,7 +782,7 @@ _Success_(return)
 BOOLEAN PhTnpGetTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPOINT Point,
-    _Out_ PWSTR *Text
+    _Out_ PPH_STRING *Text
     );
 
 BOOLEAN PhTnpPrepareTooltipShow(
@@ -806,7 +809,7 @@ BOOLEAN PhTnpGetHeaderTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ BOOLEAN Fixed,
     _In_ PPOINT Point,
-    _Out_ PWSTR *Text
+    _Out_ PPH_STRING *Text
     );
 
 LRESULT CALLBACK PhTnpHeaderHookWndProc(
@@ -853,8 +856,10 @@ VOID PhTnpDestroyBufferedContext(
 
 // Support functions
 
-VOID PhTnpGetMessagePos(
-    _In_ HWND hwnd,
+
+_Success_(return)
+BOOLEAN PhTnpGetMessagePos(
+    _In_ HWND WindowHandle,
     _Out_ PPOINT ClientPoint
     );
 

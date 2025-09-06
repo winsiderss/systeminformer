@@ -421,7 +421,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION, SETTING_NAME_GRAPHICS_DETAILS_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -479,6 +479,9 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
     case WM_DPICHANGED:
         {
             LONG windowDpi = HIWORD(wParam);
+
+            PhLayoutManagerUpdate(&context->LayoutManager, windowDpi);
+            PhLayoutManagerLayout(&context->LayoutManager);
 
             PhSetApplicationWindowIconEx(hwndDlg, windowDpi);
         }

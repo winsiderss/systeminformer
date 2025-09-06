@@ -28,8 +28,10 @@ typedef struct _PH_PROCESS_PROPSHEETCONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LAYOUT_ITEM TabPageItem;
     BOOLEAN LayoutInitialized;
+    HFONT PropSheetWindowFont;
 } PH_PROCESS_PROPSHEETCONTEXT, *PPH_PROCESS_PROPSHEETCONTEXT;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -52,17 +54,19 @@ LRESULT CALLBACK PhpPropSheetWndProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
-INT CALLBACK PhpStandardPropPageProc(
+UINT CALLBACK PhpStandardPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessPropPageWaitContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -77,6 +81,7 @@ VOID PhpFlushProcessPropSheetWaitContextData(
     VOID
     );
 
+_Function_class_(WAIT_CALLBACK_ROUTINE)
 VOID NTAPI PhpProcessPropertiesWaitCallback(
     _In_ PVOID Context,
     _In_ BOOLEAN TimerOrWaitFired
@@ -113,12 +118,14 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(PH_OPEN_OBJECT)
 NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS NTAPI PhpCloseProcessTokenForPage(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -160,12 +167,14 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(PH_OPEN_OBJECT)
 NTSTATUS NTAPI PhpOpenProcessJobForPage(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS NTAPI PhpCloseProcessJobForPage(
     _In_ HANDLE Handle,
     _In_ BOOLEAN Release,

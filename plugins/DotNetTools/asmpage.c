@@ -232,7 +232,7 @@ VOID AddAsmPageToPropContext(
 {
     PhAddProcessPropPage(
         PropContext->PropContext,
-        PhCreateProcessPropPageContextEx(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_PROCDOTNETASM), DotNetAsmPageDlgProc, NULL)
+        PhCreateProcessPropPageContextEx(NtCurrentImageBase(), MAKEINTRESOURCE(IDD_PROCDOTNETASM), DotNetAsmPageDlgProc, NULL)
         );
 }
 
@@ -1133,7 +1133,7 @@ static ULONG NTAPI DotNetBufferCallback(
 }
 
 PPH_STRING DnCreateStringSafe(
-    _In_ UNALIGNED PWSTR UnalignedString
+    _In_ UNALIGNED PCWSTR UnalignedString
     )
 {
     if (IS_ALIGNED(UnalignedString, MAX_NATURAL_ALIGNMENT))
@@ -1145,11 +1145,10 @@ PPH_STRING DnCreateStringSafe(
     else // if (((ULONG_PTR)UnalignedString % sizeof(PWSTR)) != 0)
     {
         SIZE_T alignedLength = 0;
-        WCHAR alignedBuffer[0x400];
+        WCHAR alignedBuffer[0x800];
 
         // Address is not aligned, use memcpy to access the string.
-
-        while (UnalignedString[alignedLength] != UNICODE_NULL && alignedLength < RTL_NUMBER_OF(alignedBuffer) - sizeof(UNICODE_NULL))
+        while (UnalignedString[alignedLength] != UNICODE_NULL && alignedLength < RTL_NUMBER_OF(alignedBuffer) - 1)
         {
             alignedLength++;
         }
@@ -1518,6 +1517,7 @@ static ULONG ProcessDotNetTrace(
     return result;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateDotNetTraceInfoThreadStart(
     _In_ PVOID Parameter
     )
@@ -1611,6 +1611,7 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
     return Context->TraceResult;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS DotNetTraceQueryThreadStart(
     _In_ PVOID Parameter
     )
@@ -1685,6 +1686,7 @@ NTSTATUS DotNetTraceQueryThreadStart(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS DotNetSosTraceQueryThreadStart(
     _In_ PASMPAGE_QUERY_CONTEXT Context
     )
@@ -1818,6 +1820,7 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID DotNetQueryContextDeleteProcedure(
     _In_ PASMPAGE_QUERY_CONTEXT Context,
     _In_ ULONG Flags
@@ -1989,6 +1992,7 @@ BOOLEAN DotNetAsmTreeFilterCallback(
     return FALSE;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI DotNetAsmSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -2118,7 +2122,8 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                     PPH_EMENU_ITEM highlightNativeItem;
                     PPH_EMENU_ITEM selectedItem;
 
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect);
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect))
+                        break;
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, dynamicItem = PhCreateEMenuItem(0, DN_ASM_MENU_HIDE_DYNAMIC_OPTION, L"Hide dynamic", NULL, NULL), ULONG_MAX);

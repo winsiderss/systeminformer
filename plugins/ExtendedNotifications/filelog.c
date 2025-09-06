@@ -14,6 +14,7 @@
 #include <settings.h>
 #include "extnoti.h"
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoggedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -63,6 +64,7 @@ VOID FileLogInitialization(
     PhClearReference(&fileName);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoggedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

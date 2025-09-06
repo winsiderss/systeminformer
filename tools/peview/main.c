@@ -18,8 +18,9 @@ BOOLEAN PvInitializeExceptionPolicy(
     VOID
     );
 
+_Function_class_(PH_COMMAND_LINE_CALLBACK)
 BOOLEAN NTAPI PvpCommandLineCallback(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
     )
@@ -50,6 +51,55 @@ NTSTATUS PvpConnectKph(
     return status;
 }
 
+NTSTATUS PvpInitializeMutant()
+{
+    HANDLE mutantHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING objectName;
+    PH_STRINGREF objectNameSr;
+    SIZE_T returnLength;
+    WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+    PH_FORMAT format[2];
+
+    // Create a mutant for the installer.
+    PhInitFormatS(&format[0], L"SiViewerMutant_");
+    PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
+
+    if (!PhFormatToBuffer(
+        format,
+        RTL_NUMBER_OF(format),
+        formatBuffer,
+        sizeof(formatBuffer),
+        &returnLength
+        ))
+    {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+    objectNameSr.Buffer = formatBuffer;
+
+    if (!PhStringRefToUnicodeString(&objectNameSr, &objectName))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        PhGetNamespaceHandle(),
+        NULL
+        );
+
+    NtCreateMutant(
+        &mutantHandle,
+        MUTANT_QUERY_STATE,
+        &objectAttributes,
+        TRUE
+        );
+
+    return STATUS_SUCCESS;
+}
+
 INT WINAPI wWinMain(
     _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -63,56 +113,12 @@ INT WINAPI wWinMain(
     };
     PH_STRINGREF commandLine;
 
-    if (!NT_SUCCESS(PhInitializePhLib(L"PE Viewer", hInstance)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"PE Viewer")))
         return 1;
     if (!PvInitializeExceptionPolicy())
         return 1;
 
-    // Create a mutant for the installer.
-    {
-        HANDLE mutantHandle;
-        OBJECT_ATTRIBUTES objectAttributes;
-        UNICODE_STRING objectName;
-        PH_STRINGREF objectNameSr;
-        SIZE_T returnLength;
-        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
-        PH_FORMAT format[2];
-
-        PhInitFormatS(&format[0], L"SiViewerMutant_");
-        PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
-
-        if (!PhFormatToBuffer(
-            format,
-            RTL_NUMBER_OF(format),
-            formatBuffer,
-            sizeof(formatBuffer),
-            &returnLength
-            ))
-        {
-            return FALSE;
-        }
-
-        objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
-        objectNameSr.Buffer = formatBuffer;
-
-        if (!PhStringRefToUnicodeString(&objectNameSr, &objectName))
-            return FALSE;
-
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &objectName,
-            OBJ_CASE_INSENSITIVE,
-            PhGetNamespaceHandle(),
-            NULL
-            );
-
-        NtCreateMutant(
-            &mutantHandle,
-            MUTANT_QUERY_STATE,
-            &objectAttributes,
-            TRUE
-            );
-    }
+    PvpInitializeMutant();
 
 #ifndef DEBUG
     if (PhIsExecutingInWow64())

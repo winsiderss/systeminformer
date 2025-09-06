@@ -365,7 +365,7 @@ INT_PTR CALLBACK EtpNpuDialogProc(
 
             NpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_NPUPANEL), hwndDlg, EtpNpuPanelDialogProc, NULL);
             ShowWindow(NpuPanel, SW_SHOW);
-            PhAddLayoutItemEx(&NpuLayoutManager, NpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+            PhAddLayoutItemEx(&NpuLayoutManager, NpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             EtpCreateNpuGraphs();
             EtpUpdateNpuGraphs();
@@ -398,6 +398,8 @@ INT_PTR CALLBACK EtpNpuDialogProc(
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_NPUNAME), NpuSection->Parameters->MediumFont, FALSE);
             }
 
+            PhLayoutManagerUpdate(&NpuLayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&NpuLayoutManager);
             EtpLayoutNpuGraphs(hwndDlg);
         }
         break;
@@ -621,8 +623,8 @@ VOID EtpLayoutNpuGraphs(
     PhGetSizeDpiValue(&marginRect, NpuDialogWindowDpi, TRUE);
     graphPadding = PhGetDpi(ET_NPU_PADDING, NpuDialogWindowDpi);
 
-    GetClientRect(NpuDialog, &clientRect);
-    GetClientRect(GetDlgItem(NpuDialog, IDC_NPU_L), &labelRect);
+    PhGetClientRect(NpuDialog, &clientRect);
+    PhGetClientRect(GetDlgItem(NpuDialog, IDC_NPU_L), &labelRect);
     graphWidth = clientRect.right - marginRect.left - marginRect.right;
 
     if (EtNpuSupported)

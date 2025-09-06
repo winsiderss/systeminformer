@@ -86,7 +86,7 @@ PPH_STRING EtGetAccessString(
     );
 
 PPH_STRING EtGetAccessString2(
-    _In_ PPH_STRINGREF TypeName,
+    _In_ PCPH_STRINGREF TypeName,
     _In_ ACCESS_MASK Access
     );
 
@@ -199,7 +199,7 @@ VOID EtHandlePropertiesInitializing(
 
 typedef enum _ET_OBJECT_GENERAL_CATEGORY
 {
-    OBJECT_GENERAL_CATEGORY_DEVICE = PH_PLUGIN_HANDLE_GENERAL_CATEGORY_FILE,
+    OBJECT_GENERAL_CATEGORY_DEVICE = PH_PLUGIN_HANDLE_GENERAL_CATEGORY_MAXIMUM,
     OBJECT_GENERAL_CATEGORY_DRIVER,
     OBJECT_GENERAL_CATEGORY_TYPE,
     OBJECT_GENERAL_CATEGORY_TYPE_ACCESS,
@@ -208,58 +208,55 @@ typedef enum _ET_OBJECT_GENERAL_CATEGORY
     OBJECT_GENERAL_CATEGORY_SESSION
 } ET_OBJECT_GENERAL_CATEGORY;
 
-typedef enum _ET_OBJECT_GENERAL_INDEX {
-    OBJECT_GENERAL_INDEX_ATTRIBUTES = PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK,
-    OBJECT_GENERAL_INDEX_CREATIONTIME,
+#define OBJECT_GENERAL_INDEX_ATTRIBUTES            0
+#define OBJECT_GENERAL_INDEX_CREATIONTIME          1
 
-    OBJECT_GENERAL_INDEX_DEVICEDRVLOW,
-    OBJECT_GENERAL_INDEX_DEVICEDRVLOWPATH,
-    OBJECT_GENERAL_INDEX_DEVICEDRVHIGH,
-    OBJECT_GENERAL_INDEX_DEVICEDRVHIGHPATH,
-    OBJECT_GENERAL_INDEX_DEVICEPNPNAME,
+#define OBJECT_GENERAL_INDEX_DEVICEDRVLOW          0
+#define OBJECT_GENERAL_INDEX_DEVICEDRVLOWPATH      1
+#define OBJECT_GENERAL_INDEX_DEVICEDRVHIGH         2
+#define OBJECT_GENERAL_INDEX_DEVICEDRVHIGHPATH     3
+#define OBJECT_GENERAL_INDEX_DEVICEPNPNAME         4
 
-    OBJECT_GENERAL_INDEX_DRIVERIMAGE,
-    OBJECT_GENERAL_INDEX_DRIVERSERVICE,
-    OBJECT_GENERAL_INDEX_DRIVERSIZE,
-    OBJECT_GENERAL_INDEX_DRIVERSTART,
-    OBJECT_GENERAL_INDEX_DRIVERFLAGS,
+#define OBJECT_GENERAL_INDEX_DRIVERIMAGE           0
+#define OBJECT_GENERAL_INDEX_DRIVERSERVICE         1
+#define OBJECT_GENERAL_INDEX_DRIVERSIZE            2
+#define OBJECT_GENERAL_INDEX_DRIVERSTART           3
+#define OBJECT_GENERAL_INDEX_DRIVERFLAGS           4
 
-    OBJECT_GENERAL_INDEX_TYPEINDEX,
-    OBJECT_GENERAL_INDEX_TYPEOBJECTS,
-    OBJECT_GENERAL_INDEX_TYPEHANDLES,
-    OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS,
-    OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES,
-    OBJECT_GENERAL_INDEX_TYPEPOOLTYPE,
-    OBJECT_GENERAL_INDEX_TYPEPAGECHARGE,
-    OBJECT_GENERAL_INDEX_TYPENPAGECHARGE,
+#define OBJECT_GENERAL_INDEX_TYPEINDEX             0
+#define OBJECT_GENERAL_INDEX_TYPEOBJECTS           1
+#define OBJECT_GENERAL_INDEX_TYPEHANDLES           2
+#define OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS       3
+#define OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES       4
+#define OBJECT_GENERAL_INDEX_TYPEPOOLTYPE          5
+#define OBJECT_GENERAL_INDEX_TYPEPAGECHARGE        6
+#define OBJECT_GENERAL_INDEX_TYPENPAGECHARGE       7
 
-    OBJECT_GENERAL_INDEX_TYPEVALIDMASK,
-    OBJECT_GENERAL_INDEX_TYPEGENERICREAD,
-    OBJECT_GENERAL_INDEX_TYPEGENERICWRITE,
-    OBJECT_GENERAL_INDEX_TYPEGENERICEXECUTE,
-    OBJECT_GENERAL_INDEX_TYPEGENERICALL,
-    OBJECT_GENERAL_INDEX_TYPEINVALIDATTRIBUTES,
+#define OBJECT_GENERAL_INDEX_TYPEVALIDMASK         0
+#define OBJECT_GENERAL_INDEX_TYPEGENERICREAD       1
+#define OBJECT_GENERAL_INDEX_TYPEGENERICWRITE      2
+#define OBJECT_GENERAL_INDEX_TYPEGENERICEXECUTE    3
+#define OBJECT_GENERAL_INDEX_TYPEGENERICALL        4
+#define OBJECT_GENERAL_INDEX_TYPEINVALIDATTRIBUTES 5
 
-    OBJECT_GENERAL_INDEX_WINSTATYPE,
-    OBJECT_GENERAL_INDEX_WINSTAVISIBLE,
+#define OBJECT_GENERAL_INDEX_WINSTATYPE            0
+#define OBJECT_GENERAL_INDEX_WINSTAVISIBLE         1
 
-    OBJECT_GENERAL_INDEX_DESKTOPIO,
-    OBJECT_GENERAL_INDEX_DESKTOPSID,
-    OBJECT_GENERAL_INDEX_DESKTOPHEAP,
+#define OBJECT_GENERAL_INDEX_DESKTOPIO             0
+#define OBJECT_GENERAL_INDEX_DESKTOPSID            1
+#define OBJECT_GENERAL_INDEX_DESKTOPHEAP           2
 
-    OBJECT_GENERAL_INDEX_SESSIONNAME,
-    OBJECT_GENERAL_INDEX_SESSIONID,
-    OBJECT_GENERAL_INDEX_SESSIONUSERNAME,
-    OBJECT_GENERAL_INDEX_SESSIONSTATE,
-    OBJECT_GENERAL_INDEX_SESSIONLOGON,
-    OBJECT_GENERAL_INDEX_SESSIONCONNECT,
-    OBJECT_GENERAL_INDEX_SESSIONDISCONNECT,
-    OBJECT_GENERAL_INDEX_SESSIONLASTINPUT,
+#define OBJECT_GENERAL_INDEX_SESSIONNAME           0
+#define OBJECT_GENERAL_INDEX_SESSIONID             1
+#define OBJECT_GENERAL_INDEX_SESSIONUSERNAME       2
+#define OBJECT_GENERAL_INDEX_SESSIONSTATE          3
+#define OBJECT_GENERAL_INDEX_SESSIONLOGON          4
+#define OBJECT_GENERAL_INDEX_SESSIONCONNECT        5
+#define OBJECT_GENERAL_INDEX_SESSIONDISCONNECT     6
+#define OBJECT_GENERAL_INDEX_SESSIONLASTINPUT      7
 
-    OBJECT_GENERAL_INDEX_MAXIMUM
-} ET_OBJECT_GENERAL_INDEX;
-
-typedef enum _ET_OBJECT_POOLTYPE {
+typedef enum _ET_OBJECT_POOLTYPE
+{
     PagedPool = 1,
     NonPagedPool = 0,
     NonPagedPoolNx = 0x200,
@@ -487,7 +484,7 @@ VOID EtHandlePropertiesWindowInitialized(
             OBJECT_ATTRIBUTES objectAttributes;
             UNICODE_STRING objectName;
 
-            PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_DEVICE, L"Device driver information");
+            PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_DEVICE, L"Device information");
             PhAddListViewGroupItem(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_DEVICE, OBJECT_GENERAL_INDEX_DEVICEDRVLOW, L"Lower-edge driver", NULL);
             PhAddListViewGroupItem(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_DEVICE, OBJECT_GENERAL_INDEX_DEVICEDRVLOWPATH, L"Lower-edge driver image", NULL);
             PhAddListViewGroupItem(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_DEVICE, OBJECT_GENERAL_INDEX_DEVICEDRVHIGH, L"Upper-edge driver", NULL);
@@ -826,7 +823,7 @@ VOID EtHandlePropertiesWindowInitialized(
 #define T_WINSTA_NETWORK_SERVICE L"-0x0-3e4$"
 
 PPH_STRING EtGetWindowStationType(
-    _In_ PPH_STRINGREF StationName
+    _In_ PCPH_STRINGREF StationName
     )
 {
     if (PhEqualStringRef2(StationName, T_WINSTA_INTERACTIVE, TRUE))
@@ -853,7 +850,7 @@ PPH_STRING EtGetWindowStationType(
 }
 
 ULONG EtSessionIdFromObjectName(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     static PH_STRINGREF session = PH_STRINGREF_INIT(L"Session");
@@ -1072,7 +1069,7 @@ PPH_STRING EtGetAccessString(
 }
 
 PPH_STRING EtGetAccessString2(
-    _In_ PPH_STRINGREF TypeName,
+    _In_ PCPH_STRINGREF TypeName,
     _In_ ACCESS_MASK Access
     )
 {
@@ -1998,20 +1995,20 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                         break;
                     case IDC_SECURITY:
                         {
-                            PET_HANDLE_OPEN_CONTEXT context;
+                            PET_HANDLE_OPEN_CONTEXT handleContext;
 
-                            context = PhAllocateZero(sizeof(ET_HANDLE_OPEN_CONTEXT));
-                            context->HandleItem = PhReferenceObject(listviewItems[0]->HandleItem);
-                            context->ProcessId = listviewItems[0]->ProcessId;
-                            EtUpdateHandleItem(context->ProcessId, context->HandleItem);
+                            handleContext = PhAllocateZero(sizeof(ET_HANDLE_OPEN_CONTEXT));
+                            handleContext->HandleItem = PhReferenceObject(listviewItems[0]->HandleItem);
+                            handleContext->ProcessId = listviewItems[0]->ProcessId;
+                            EtUpdateHandleItem(handleContext->ProcessId, handleContext->HandleItem);
 
                             PhEditSecurity(
                                 !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : hwndDlg,
-                                PhGetString(context->HandleItem->ObjectName),
-                                PhGetString(context->HandleItem->TypeName),
+                                PhGetString(handleContext->HandleItem->ObjectName),
+                                PhGetString(handleContext->HandleItem->TypeName),
                                 EtpProcessHandleOpenCallback,
                                 EtpProcessHandleCloseCallback,
-                                context
+                                handleContext
                                 );
                         }
                         break;
@@ -2080,7 +2077,6 @@ static BOOL CALLBACK EtpEnumDesktopsCallback(
         {
             PPH_STRING sid = PH_AUTO(PhSidToStringSid(UserSid));
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_SID, PhGetString(sid));
-            PhFree(UserSid);
         }
 
         if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))

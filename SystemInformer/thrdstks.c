@@ -100,6 +100,7 @@ typedef struct _PH_THREAD_STACKS_FRAME_NODE
     WCHAR ReturnAddressString[PH_PTR_STR_LEN_1];
     PH_STRINGREF Architecture;
     PPH_STRING FrameDistanceString;
+    PPH_STRING SymbolStatusString;
 } PH_THREAD_STACKS_FRAME_NODE, *PPH_THREAD_STACKS_FRAME_NODE;
 
 typedef struct _PH_THREAD_STACKS_NODE
@@ -186,6 +187,7 @@ const ACCESS_MASK PhpThreadStacksThreadAccessMasks[] =
     THREAD_QUERY_LIMITED_INFORMATION,
 };
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpThreadStacksNodeDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -244,6 +246,7 @@ PPH_THREAD_STACKS_NODE PhpThreadStacksCreateNode(
     return node;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpThreadStacksWorkerContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -278,6 +281,7 @@ PPH_THREAD_STACKS_WORKER_CONTEXT PhpThreadStacksCreateWorkerContext(
     return context;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpThreadStacksContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -1024,6 +1028,7 @@ VOID PhpThreadStacksRestructureNodesWithSearch(
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpThreadStacksSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -1301,7 +1306,9 @@ BOOLEAN NTAPI PhpThreadStacksTreeNewCallback(
 
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
+            data.DefaultSortOrder = NoSortOrder;
             data.DefaultSortColumn = 0;
+
             PhInitializeTreeNewColumnMenuEx(&data, 0);
 
             data.Selection = PhShowEMenu(
@@ -1575,6 +1582,7 @@ VOID PhpInitializeThreadStacksTree(
     PhpThreadStacksLoadSettingsTreeList(Context);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhpThreadStacksSymbolProviderEventCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -1663,7 +1671,7 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            if (PhGetIntegerPairSetting(L"ThreadStacksWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"ThreadStacksWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"ThreadStacksWindowPosition", L"ThreadStacksWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
@@ -1797,6 +1805,7 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpThreadStacksDialogThreadStart(
     _In_ PVOID Parameter
     )

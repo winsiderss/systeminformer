@@ -190,9 +190,9 @@ INT_PTR CALLBACK PhChoiceDlgProc(
                 // Hide the check box and move the buttons up.
 
                 ShowWindow(checkBoxHandle, SW_HIDE);
-                GetWindowRect(checkBoxHandle, &checkBoxRect);
+                PhGetWindowRect(checkBoxHandle, &checkBoxRect);
                 MapWindowRect(NULL, WindowHandle, &checkBoxRect);
-                GetWindowRect(GetDlgItem(WindowHandle, IDOK), &rect);
+                PhGetWindowRect(GetDlgItem(WindowHandle, IDOK), &rect);
                 MapWindowRect(NULL, WindowHandle, &rect);
                 diff = rect.top - checkBoxRect.top;
 
@@ -204,7 +204,7 @@ INT_PTR CALLBACK PhChoiceDlgProc(
                     SWP_NOACTIVATE | SWP_NOZORDER);
 
                 // Cancel
-                GetWindowRect(GetDlgItem(WindowHandle, IDCANCEL), &rect);
+                PhGetWindowRect(GetDlgItem(WindowHandle, IDCANCEL), &rect);
                 MapWindowRect(NULL, WindowHandle, &rect);
                 rect.top -= diff;
                 rect.bottom -= diff;
@@ -213,7 +213,7 @@ INT_PTR CALLBACK PhChoiceDlgProc(
                     SWP_NOACTIVATE | SWP_NOZORDER);
 
                 // Window
-                GetWindowRect(WindowHandle, &rect);
+                PhGetWindowRect(WindowHandle, &rect);
                 rect.bottom -= diff;
                 SetWindowPos(WindowHandle, NULL, rect.left, rect.top,
                     rect.right - rect.left, rect.bottom - rect.top,

@@ -213,7 +213,7 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsPackagedProcess : 1;
             ULONG IsBackgroundProcess : 1;
             ULONG IsCrossSessionProcess : 1;
-            ULONG IsReflectedProcess : 1;
+            ULONG IsSnapshotProcess : 1;
             ULONG IsFrozenProcess : 1;
             ULONG IsUIAccessEnabled : 1;
             ULONG IsControlFlowGuardEnabled : 1;
@@ -304,7 +304,9 @@ typedef struct _PH_PROCESS_ITEM
     FLOAT ImageCoherency;
 
     ULONG LxssProcessId;
+
     HANDLE FreezeHandle;
+    PPEB PebBaseAddress;
 
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
@@ -422,6 +424,7 @@ VOID PhFlushProcessQueryData(
     VOID
     );
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhProcessProviderUpdate(
     _In_ PVOID Object
     );
@@ -541,6 +544,7 @@ PhDuplicateProcessInformation(
 // end_phapppub
 
 PPH_PROCESS_ITEM
+NTAPI
 PhCreateProcessItemFromHandle(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ProcessHandle,

@@ -21,11 +21,13 @@ typedef struct _PH_VERIFY_CACHE_ENTRY
     PPH_STRING VerifySignerName;
 } PH_VERIFY_CACHE_ENTRY, *PPH_VERIFY_CACHE_ENTRY;
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpVerifyCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpVerifyCacheHashtableHashFunction(
     _In_ PVOID Entry
     );

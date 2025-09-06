@@ -68,19 +68,20 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "CompanyName", "Winsider Seminars & Solutions"
-            VALUE "FileDescription", "System Informer"
+            VALUE "CompanyName", "Winsider Seminars & Solutions, Inc."
+            VALUE "FileDescription", "UserNotes"
             VALUE "FileVersion", PHAPP_VERSION_STRING
-            VALUE "InternalName", "System Informer"
+            VALUE "InternalName", "UserNotes"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
             VALUE "OriginalFilename", "UserNotes.dll"
-            VALUE "ProductName", "System Informer"
+            VALUE "ProductName", "UserNotes"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
+            VALUE "Comments", PHAPP_VERSION_COMMIT
         END
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x409, 1200
+        VALUE "Translation", 0x0409, 0x04b0
     END
 END
 

@@ -179,7 +179,7 @@ BOOLEAN FwTabPageCallback(
         return TRUE;
     case MainTabPageSelected:
         {
-            BOOLEAN selected = (BOOLEAN)Parameter1;
+            BOOLEAN selected = (BOOLEAN)PtrToUlong(Parameter1);
 
             if (selected)
             {
@@ -284,17 +284,17 @@ VOID InitializeFwTreeList(
 
     PhInitializeTreeNewFilterSupport(&EtFwFilterSupport, TreeNewHandle, FwNodeList);
 
-    TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
-    TreeNew_SetTriState(FwTreeNewHandle, TRUE);
-    TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
-
-    LoadSettingsFwTreeList(TreeNewHandle);
-
     if (EtFwToolStatusInterface)
     {
         PhRegisterCallback(EtFwToolStatusInterface->SearchChangedEvent, FwSearchChangedHandler, NULL, &EtFwSearchChangedRegistration);
         PhAddTreeNewFilter(&EtFwFilterSupport, FwSearchFilterCallback, NULL);
     }
+
+    TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
+    TreeNew_SetTriState(FwTreeNewHandle, TRUE);
+    TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
+
+    LoadSettingsFwTreeList(TreeNewHandle);
 }
 
 VOID InitializeFwTreeListDpi(
@@ -466,8 +466,8 @@ VOID FwTickNodes(
         PhSwapReference(&node->TooltipText, NULL);
     }
 
-    //InvalidateRect(FwTreeNewHandle, NULL, FALSE);
     TreeNew_NodesStructured(FwTreeNewHandle);
+    InvalidateRect(FwTreeNewHandle, NULL, FALSE);
 }
 
 VOID FwUpdateNodeTimeStamp(
@@ -680,7 +680,7 @@ BEGIN_SORT_FUNCTION(RemoteHostname)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(Protocal)
+BEGIN_SORT_FUNCTION(Protocol)
 {
     sortResult = uint64cmp(node1->IpProtocol, node2->IpProtocol);
 }
@@ -822,7 +822,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         SORT_FUNCTION(RemoteAddress),
                         SORT_FUNCTION(RemotePort),
                         SORT_FUNCTION(RemoteHostname),
-                        SORT_FUNCTION(Protocal),
+                        SORT_FUNCTION(Protocol),
                         SORT_FUNCTION(Timestamp),
                         SORT_FUNCTION(Filename),
                         SORT_FUNCTION(User),
@@ -966,7 +966,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         {
                             ULONG ipv4AddressStringLength = RTL_NUMBER_OF(node->LocalAddressString);
 
-                            if (NT_SUCCESS(PhIpv4AddressToString((PIN_ADDR)&node->LocalEndpoint.Address.Ipv4, 0, node->LocalAddressString, &ipv4AddressStringLength)))
+                            if (NT_SUCCESS(PhIpv4AddressToString(&node->LocalEndpoint.Address.InAddr, 0, node->LocalAddressString, &ipv4AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->LocalAddressString;
                                 getCellText->Text.Length = (node->LocalAddressStringLength = (ipv4AddressStringLength - 1)) * sizeof(WCHAR);
@@ -982,7 +982,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         {
                             ULONG ipv6AddressStringLength = RTL_NUMBER_OF(node->LocalAddressString);
 
-                            if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->LocalEndpoint.Address.Ipv6, node->ScopeId, 0, node->LocalAddressString, &ipv6AddressStringLength)))
+                            if (NT_SUCCESS(PhIpv6AddressToString(&node->LocalEndpoint.Address.In6Addr, node->ScopeId, 0, node->LocalAddressString, &ipv6AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->LocalAddressString;
                                 getCellText->Text.Length = (node->LocalAddressStringLength = (ipv6AddressStringLength - 1)) * sizeof(WCHAR);
@@ -1043,7 +1043,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         {
                             ULONG ipv4AddressStringLength = RTL_NUMBER_OF(node->RemoteAddressString);
 
-                            if (NT_SUCCESS(PhIpv4AddressToString((PIN_ADDR)&node->RemoteEndpoint.Address.Ipv4, 0, node->RemoteAddressString, &ipv4AddressStringLength)))
+                            if (NT_SUCCESS(PhIpv4AddressToString(&node->RemoteEndpoint.Address.InAddr, 0, node->RemoteAddressString, &ipv4AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->RemoteAddressString;
                                 getCellText->Text.Length = (node->RemoteAddressStringLength = (ipv4AddressStringLength - 1)) * sizeof(WCHAR);
@@ -1059,7 +1059,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         {
                             ULONG ipv6AddressStringLength = RTL_NUMBER_OF(node->RemoteAddressString);
 
-                            if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->RemoteEndpoint.Address.Ipv6, node->ScopeId, 0, node->RemoteAddressString, &ipv6AddressStringLength)))
+                            if (NT_SUCCESS(PhIpv6AddressToString(&node->RemoteEndpoint.Address.In6Addr, node->ScopeId, 0, node->RemoteAddressString, &ipv6AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->RemoteAddressString;
                                 getCellText->Text.Length = (node->RemoteAddressStringLength = (ipv6AddressStringLength - 1)) * sizeof(WCHAR);
@@ -1877,6 +1877,7 @@ VOID ShowFwContextMenu(
     PhFree(fwItems);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -1888,6 +1889,7 @@ VOID NTAPI FwItemAddedHandler(
     PhPushProviderEventQueue(&FwNetworkEventQueue, ProviderAddedEvent, Parameter, FwRunCount);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemModifiedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1896,6 +1898,7 @@ VOID NTAPI FwItemModifiedHandler(
     PhPushProviderEventQueue(&FwNetworkEventQueue, ProviderModifiedEvent, Parameter, FwRunCount);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemRemovedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1904,6 +1907,7 @@ VOID NTAPI FwItemRemovedHandler(
     PhPushProviderEventQueue(&FwNetworkEventQueue, ProviderRemovedEvent, Parameter, FwRunCount);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwItemsUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1955,6 +1959,7 @@ VOID NTAPI OnFwItemsUpdated(
         TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI FwSearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1984,7 +1989,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
     }
     else
     {
-        static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"System");
+        static CONST PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"System");
 
         if (wordMatch(&stringSr))
             return TRUE;

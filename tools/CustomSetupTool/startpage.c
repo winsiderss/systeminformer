@@ -40,13 +40,14 @@ VOID SetupShowBrowseDialog(
 
     if (!PhIsNullOrEmptyString(Context->SetupInstallPath))
     {
-        if (!PhEndsWithStringRef(&Context->SetupInstallPath->sr, &PhNtPathSeperatorString, TRUE))
+        if (!PhEndsWithStringRef(&Context->SetupInstallPath->sr, &PhNtPathSeparatorString, TRUE))
         {
-            PhSwapReference(&Context->SetupInstallPath, PhConcatStringRef2(&Context->SetupInstallPath->sr, &PhNtPathSeperatorString));
+            PhSwapReference(&Context->SetupInstallPath, PhConcatStringRef2(&Context->SetupInstallPath->sr, &PhNtPathSeparatorString));
         }
     }
 }
 
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
 static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
@@ -111,6 +112,7 @@ VOID ShowErrorPageDialog(
     )
 {
     TASKDIALOGCONFIG config;
+    PPH_STRING string;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
@@ -118,12 +120,13 @@ VOID ShowErrorPageDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.pszWindowTitle = PhApplicationName;
-    if (Context->LastStatus)
-        config.pszMainInstruction = PhGetStatusMessage(Context->LastStatus, 0)->Buffer;
-    else
-        config.pszMainInstruction = L"Setup failed with an error.";
-    config.pszContent = L"Select Close to exit setup.";
+    config.pszMainInstruction = L"Setup failed with an error.";
     config.cxWidth = 200;
+
+    if (string = PhGetStatusMessage(Context->LastStatus, 0))
+        config.pszContent = PhaFormatString(L"%s\r\n\r\nSelect Close to exit setup.", PhGetString(string))->Buffer;
+    else
+        config.pszContent = L"Select Close to exit setup.";
 
     PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
@@ -157,6 +160,11 @@ HRESULT CALLBACK SetupWelcomePageCallbackProc(
 #ifndef FORCE_TEST_UPDATE_LOCAL_INSTALL
                 if (PhGetOwnTokenAttributes().Elevated)
                 {
+                    if (!context->SetupIsLegacyUpdate && SetupLegacySetupInstalled())
+                    {
+                        SetupShowMessagePromptForLegacyVersion();
+                    }
+
                     ShowConfigPageDialog(context);
                     return S_FALSE;
                 }

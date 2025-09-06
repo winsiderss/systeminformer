@@ -12,9 +12,7 @@
 #ifndef _PH_PHAFD_H
 #define _PH_PHAFD_H
 
-#include <ph.h>
 #include <ntafd.h>
-#include <mstcpip.h>
 
 EXTERN_C_START
 
@@ -66,12 +64,26 @@ PhAfdQuerySimpleInfo(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhAfdQuerySocketOption(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG Level,
+    _In_ ULONG OptionName,
+    _Out_ PVOID OptionValue,
+    _In_ ULONG OptionLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhAfdQueryOption(
     _In_ HANDLE SocketHandle,
     _In_ ULONG Level,
     _In_ ULONG OptionName,
     _Out_ PULONG OptionValue
     );
+
+typedef struct _TCP_INFO_v2 TCP_INFO_v2, *PTCP_INFO_v2;
 
 PHLIBAPI
 NTSTATUS
@@ -200,6 +212,8 @@ PhAfdFormatMtuDiscoveryMode(
     _In_ ULONG MtuDiscover
     );
 
+typedef enum _TCPSTATE TCPSTATE;
+
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -223,4 +237,4 @@ PhAfdFormatSocketBestName(
 
 EXTERN_C_END
 
-#endif _PH_PHAFD_H
+#endif // _PH_PHAFD_H

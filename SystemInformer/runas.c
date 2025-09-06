@@ -156,7 +156,7 @@ VOID PhShowRunAsDialog(
     )
 {
     PhDialogBox(
-        PhInstanceHandle,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_RUNAS),
         PhCsForceNoParent ? NULL : ParentWindowHandle,
         PhpRunAsDlgProc,
@@ -178,7 +178,7 @@ BOOLEAN PhShowRunFileDialog(
     //}
 
     if (PhDialogBox(
-        PhInstanceHandle,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_RUNFILEDLG),
         ParentWindowHandle,
         PhpRunFileWndProc,
@@ -224,7 +224,7 @@ VOID PhShowRunAsPackageDialog(
     )
 {
     PhDialogBox(
-        PhInstanceHandle,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_RUNPACKAGE),
         NULL,
         PhRunAsPackageWndProc,
@@ -294,7 +294,7 @@ PPH_STRING PhpGetCurrentDesktopInfo(
 
     if (winstationName && desktopName)
     {
-        desktopInfo = PhConcatStringRef3(&winstationName->sr, &PhNtPathSeperatorString, &desktopName->sr);
+        desktopInfo = PhConcatStringRef3(&winstationName->sr, &PhNtPathSeparatorString, &desktopName->sr);
     }
 
     if (PhIsNullOrEmptyString(desktopInfo))
@@ -822,7 +822,8 @@ NTSTATUS PhRunAsExecutionAlias(
 NTSTATUS PhRunAsExecuteParentCommand(
     _In_ HWND WindowHandle,
     _In_ PCWSTR CommandLine,
-    _In_ HANDLE ProcessId
+    _In_ HANDLE ProcessId,
+    _In_ BOOLEAN CreateSuspendedProcess
     )
 {
     NTSTATUS status;
@@ -963,9 +964,12 @@ NTSTATUS PhRunAsExecuteParentCommand(
             AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
         }
 
-        PhConsoleSetForeground(newProcessHandle, TRUE);
+        if (!CreateSuspendedProcess)
+        {
+            PhConsoleSetForeground(newProcessHandle, TRUE);
 
-        NtResumeProcess(newProcessHandle);
+            NtResumeProcess(newProcessHandle);
+        }
 
         NtClose(newProcessHandle);
     }
@@ -1139,6 +1143,7 @@ VOID PhRunAsExecuteCommmand(
             &createInfo,
             PH_CREATE_PROCESS_WITH_PROFILE | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | (createSuspended ? PH_CREATE_PROCESS_SUSPENDED : 0),
             NULL,
+            NULL,
             &newProcessHandle,
             NULL
             );
@@ -1181,7 +1186,8 @@ VOID PhRunAsExecuteCommmand(
                 status = PhRunAsExecuteParentCommand(
                     Context->WindowHandle,
                     PhGetString(program),
-                    ProcessId
+                    ProcessId,
+                    createSuspended
                     );
             }
         }
@@ -1280,7 +1286,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            if (PhGetIntegerPairSetting(L"RunAsWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"RunAsWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"RunAsWindowPosition", NULL, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -1487,8 +1493,10 @@ NTSTATUS PhRunAsUpdateDesktop(
             if (currentDaclPresent && currentDacl)
                 newDaclLength += currentDacl->AclSize - sizeof(ACL);
 
-            newDacl = PhAllocate(newDaclLength);
-            PhCreateAcl(newDacl, newDaclLength, ACL_REVISION);
+            newDacl = PhAllocateStack(newDaclLength);
+            RtlZeroMemory(newDacl, newDaclLength);
+
+            status = PhCreateAcl(newDacl, newDaclLength, ACL_REVISION);
 
             // Add the existing DACL entries.
             if (currentDaclPresent && currentDacl)
@@ -1501,21 +1509,32 @@ NTSTATUS PhRunAsUpdateDesktop(
             }
 
             // Allow access for the user.
-            RtlAddAccessAllowedAce(newDacl, ACL_REVISION, DESKTOP_ALL_ACCESS, UserSid);
+
+            if (NT_SUCCESS(status))
+            {
+                status = PhAddAccessAllowedAce(newDacl, ACL_REVISION, DESKTOP_ALL_ACCESS, UserSid);
+            }
 
             // Set the security descriptor of the new token.
 
-            status = PhCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-
             if (NT_SUCCESS(status))
             {
-                status = RtlSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE);
+                status = PhCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
             }
 
             if (NT_SUCCESS(status))
             {
+                status = PhSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE);
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                assert(RtlValidSecurityDescriptor(&newSecurityDescriptor));
+
                 status = PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
             }
+
+            PhFree(newDacl);
         }
 
         CloseDesktop(desktopHandle);
@@ -1590,8 +1609,9 @@ NTSTATUS PhRunAsUpdateWindowStation(
             }
 
             // Allow access for the user.
-            RtlAddAccessAllowedAce(newDacl, ACL_REVISION, WINSTA_ACCESSCLIPBOARD | WINSTA_ACCESSGLOBALATOMS, UserSid);
-            RtlAddAccessAllowedAce(newDacl, ACL_REVISION, WINSTA_ALL_ACCESS, LogonSid);
+
+            PhAddAccessAllowedAce(newDacl, ACL_REVISION, WINSTA_ACCESSCLIPBOARD | WINSTA_ACCESSGLOBALATOMS, UserSid);
+            PhAddAccessAllowedAce(newDacl, ACL_REVISION, WINSTA_ALL_ACCESS, LogonSid);
 
             // Set the security descriptor of the new token.
 
@@ -1599,11 +1619,13 @@ NTSTATUS PhRunAsUpdateWindowStation(
 
             if (NT_SUCCESS(status))
             {
-                status = RtlSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE);
+                status = PhSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE);
             }
 
             if (NT_SUCCESS(status))
             {
+                assert(RtlValidSecurityDescriptor(&newSecurityDescriptor));
+
                 status = PhSetObjectSecurity(wsHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
             }
         }
@@ -1663,16 +1685,16 @@ NTSTATUS PhSetDesktopWinStaAccess(
     securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
-    RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-    RtlCreateAcl(dacl, allocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, (PSID)&PhSeEveryoneSid);
+    PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+    PhCreateAcl(dacl, allocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, (PSID)&PhSeEveryoneSid);
 
     if (WindowsVersion >= WINDOWS_8)
     {
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, allAppPackagesSid);
+        PhAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, allAppPackagesSid);
     }
 
-    RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+    PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
     if (wsHandle = OpenWindowStation(
         L"WinSta0",
@@ -1704,6 +1726,7 @@ NTSTATUS PhSetDesktopWinStaAccess(
     }
 
 #ifdef DEBUG
+    assert(RtlValidSecurityDescriptor(securityDescriptor));
     assert(allocationLength < sizeof(securityDescriptorBuffer));
     assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif
@@ -2116,6 +2139,7 @@ NTSTATUS PhInvokeRunAsService(
         &createInfo,
         flags,
         NULL,
+        NULL,
         &newProcessHandle,
         NULL
         );
@@ -2294,16 +2318,16 @@ BOOLEAN PhpRunFileAsInteractiveUser(
 
     if (fileName)
     {
-        static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
         static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
 
         // Escape the filename.
-        PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &fileName->sr, &seperator));
+        PhMoveReference(&fileName, PhConcatStringRef3(&separator, &fileName->sr, &separator));
 
         if (fileArgs)
         {
             // Escape the parameters.
-            PhMoveReference(&fileArgs, PhConcatStringRef3(&seperator, &fileArgs->sr, &seperator));
+            PhMoveReference(&fileArgs, PhConcatStringRef3(&separator, &fileArgs->sr, &separator));
 
             // Create the escaped execute string.
             executeString = PhConcatStringRef3(&fileName->sr, &space, &fileArgs->sr);
@@ -2425,6 +2449,7 @@ NTSTATUS PhpRunFileProgram(
     return status;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS RunAsCreateProcessThread(
     _In_ PVOID Parameter
     )
@@ -2580,7 +2605,7 @@ static VOID PhpRunFileSetImageList(
     {
         HBITMAP shieldBitmap;
 
-        if (shieldBitmap = PhGetShieldBitmap(Context->WindowDpi, 0, 0))
+        if (shieldBitmap = PhGetShieldBitmap(Context->WindowDpi, PhSmallIconSize.X, PhSmallIconSize.Y))
         {
             PhImageListAddBitmap(Context->ImageListHandle, shieldBitmap, NULL);
             DeleteBitmap(shieldBitmap);
@@ -2940,6 +2965,7 @@ BEGIN_SORT_FUNCTION(Version)
 }
 END_SORT_FUNCTION
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhRunAsPackageNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -2951,6 +2977,7 @@ BOOLEAN PhRunAsPackageNodeHashtableEqualFunction(
     return PhEqualString(node1->AppUserModelId, node2->AppUserModelId, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhRunAsPackageNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -3241,14 +3268,20 @@ BOOLEAN NTAPI PhRunAsPackageTreeNewCallback(
 
                     if (context->ImageListHandle)
                     {
+                        LONG width;
+                        LONG height;
+
+                        width = PhGetSystemMetrics(SM_CXICON, context->WindowDpi);
+                        height = PhGetSystemMetrics(SM_CYICON, context->WindowDpi);
+
                         PhImageListDrawEx(
                             context->ImageListHandle,
                             (ULONG)(ULONG_PTR)node->IconIndex,
                             customDraw->Dc,
-                            customDraw->CellRect.left + 5,
-                            customDraw->CellRect.top + ((customDraw->CellRect.bottom - customDraw->CellRect.top) - 32) / 2,
-                            32,
-                            32,
+                            customDraw->CellRect.left + 5,//((customDraw->CellRect.right - customDraw->CellRect.left) - width) / 2,
+                            customDraw->CellRect.top + ((customDraw->CellRect.bottom - customDraw->CellRect.top) - height) / 2,
+                            width,
+                            height,
                             CLR_DEFAULT,
                             CLR_NONE,
                             ILD_TRANSPARENT,
@@ -3369,7 +3402,6 @@ VOID PhRunAsPackageInitializeTree(
     Context->TitleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL, Context->WindowDpi);
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
-
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
     TreeNew_SetCallback(Context->TreeNewHandle, PhRunAsPackageTreeNewCallback, Context);
     TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(48, Context->WindowDpi));
@@ -3410,6 +3442,7 @@ VOID PhRunAsPackageDeleteTree(
 
 #pragma endregion
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhEnumPackageThreadCallback(
     _In_ PVOID Context
     )
@@ -3427,16 +3460,22 @@ static VOID PhRunAsPackageSetImagelist(
     _Inout_ PPH_RUNAS_PACKAGE_CONTEXT Context
     )
 {
-    PhImageListDestroy(Context->ImageListHandle);
+    if (Context->ImageListHandle)
+    {
+        PhImageListDestroy(Context->ImageListHandle);
+        Context->ImageListHandle = NULL;
+    }
+
     Context->ImageListHandle = PhImageListCreate(
-        PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
-        PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi),
+        PhGetSystemMetrics(SM_CXICON, Context->WindowDpi),
+        PhGetSystemMetrics(SM_CYICON, Context->WindowDpi),
         ILC_MASK | ILC_COLOR32,
         20,
         10
         );
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhPackageWindowContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -3466,6 +3505,7 @@ PPH_RUNAS_PACKAGE_CONTEXT PhCreatePackageWindowContext(
     return context;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpRunAsPackageSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -3525,7 +3565,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (PhGetIntegerPairSetting(L"RunAsPackageWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"RunAsPackageWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"RunAsPackageWindowPosition", L"RunAsPackageWindowSize", WindowHandle);
             else
                 PhCenterWindow(WindowHandle, GetParent(WindowHandle));
@@ -3579,7 +3619,9 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
         break;
     case WM_DPICHANGED:
         {
-            context->WindowDpi = PhGetWindowDpi(WindowHandle);
+            context->WindowDpi = LOWORD(wParam);
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_PH_UPDATE_DIALOG:
@@ -3652,6 +3694,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
                         {
                             PPH_STRING argumentsString = NULL;
                             PPH_STRING commandString = NULL;
+                            PPH_STRING directoryString = NULL;
                             PPH_STRING fullFileName = NULL;
                             PH_STRINGREF fileName;
                             PH_STRINGREF arguments;
@@ -3671,11 +3714,14 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
                             {
                                 argumentsString = PhCreateString2(&arguments);
                             }
+         
+                            directoryString = PhpQueryRunFileParentDirectory(!!PhGetOwnTokenAttributes().Elevated);
 
                             status = PhCreateProcessDesktopPackage(
                                 PhGetString(node->AppUserModelId),
                                 PhGetString(fullFileName),
                                 PhGetString(argumentsString),
+                                PhGetString(directoryString),
                                 FALSE,
                                 NULL,
                                 NULL
@@ -3692,6 +3738,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
                                 PhShowStatus(WindowHandle, L"Unable to execute the command.", 0, status);
                             }
 
+                            PhClearReference(&directoryString);
                             PhClearReference(&argumentsString);
                             PhClearReference(&fullFileName);
                             PhClearReference(&commandString);

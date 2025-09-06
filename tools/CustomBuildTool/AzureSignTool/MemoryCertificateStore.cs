@@ -13,14 +13,14 @@ namespace CustomBuildTool
 {
     internal sealed unsafe class MemoryCertificateStore : IDisposable
     {
-        private HCERTSTORE _handle;
-        private readonly X509Store _store;
-        private bool _disposed;
+        private HCERTSTORE StoreHandle;
+        private readonly X509Store CertStore;
+        private bool Disposed;
 
         private MemoryCertificateStore(HCERTSTORE handle)
         {
-            _handle = handle;
-            _store = new X509Store(handle);
+            this.StoreHandle = handle;
+            this.CertStore = new X509Store(handle);
         }
 
         public static MemoryCertificateStore Create()
@@ -44,32 +44,32 @@ namespace CustomBuildTool
             }
         }
 
-        public IntPtr Handle => _store.StoreHandle;
-        public void Add(X509Certificate2 certificate) => _store.Add(certificate);
-        public void Add(X509Certificate2Collection collection) => _store.AddRange(collection);
-        public X509Certificate2Collection Certificates => _store.Certificates;
+        public IntPtr Handle => this.CertStore.StoreHandle;
+        public void Add(X509Certificate2 certificate) => this.CertStore.Add(certificate);
+        public void Add(X509Certificate2Collection collection) => this.CertStore.AddRange(collection);
+        public X509Certificate2Collection Certificates => this.CertStore.Certificates;
 
         private void FreeHandle()
         {
-            if (_handle != default)
+            if (this.StoreHandle != default)
             {
-                PInvoke.CertCloseStore(_handle, 0);
-                _handle = default;
+                PInvoke.CertCloseStore(this.StoreHandle, 0);
+                this.StoreHandle = default;
             }
         }
 
         private void Dispose(bool disposing)
         {
-            if (_disposed)
+            if (this.Disposed)
                 return;
 
             if (disposing)
             {
-                _store.Dispose();
+                this.CertStore.Dispose();
                 FreeHandle();
             }
 
-            _disposed = true;
+            this.Disposed = true;
         }
 
         public void Dispose()

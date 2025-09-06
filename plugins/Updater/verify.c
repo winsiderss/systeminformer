@@ -53,13 +53,13 @@ static CONST UCHAR UpdaterTrustedPublicKeyCanary[] =
 
 static CONST UCHAR UpdaterTrustedPublicKeyDeveloper[] =
 {
-	0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
+    0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
     0xD1, 0x77, 0x0B, 0xBF, 0x8C, 0xA3, 0xF6, 0x20,
     0x60, 0x29, 0x3E, 0x70, 0xE8, 0xC3, 0x1B, 0x10,
-	0xA4, 0x42, 0x21, 0xAD, 0x73, 0x8B, 0x8A, 0x31,
+    0xA4, 0x42, 0x21, 0xAD, 0x73, 0x8B, 0x8A, 0x31,
     0x3D, 0xC0, 0xD0, 0x8C, 0xD5, 0x1C, 0xC7, 0x33,
     0xA2, 0x00, 0x20, 0x0E, 0x24, 0xB5, 0x1A, 0xC8,
-	0xC8, 0xDA, 0xCF, 0x2E, 0x2E, 0xD5, 0x9F, 0xEF,
+    0xC8, 0xDA, 0xCF, 0x2E, 0x2E, 0xD5, 0x9F, 0xEF,
     0xA7, 0x89, 0xFB, 0x99, 0x94, 0x14, 0x57, 0x5C,
     0x36, 0x04, 0x44, 0x8B, 0xA2, 0x92, 0xF8, 0x0E,
 };
@@ -281,17 +281,18 @@ NTSTATUS UpdaterInitializeSigning(
     ULONG querySize;
 
     // Import the trusted public key.
-    if (!NT_SUCCESS(status = BCryptOpenAlgorithmProvider(
+
+    status = BCryptOpenAlgorithmProvider(
         &Signing->SignAlgHandle,
         SignAlgId,
         NULL,
         0
-        )))
-    {
-        return status;
-    }
+        );
 
-    if (!NT_SUCCESS(status = BCryptImportKeyPair(
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = BCryptImportKeyPair(
         Signing->SignAlgHandle,
         NULL,
         SignBlobType,
@@ -299,37 +300,25 @@ NTSTATUS UpdaterInitializeSigning(
         PublicKey,
         PublicKeySize,
         0
-        )))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         return status;
-    }
 
     Signing->PaddingInfo = PaddingInfo;
     Signing->PaddingFlags = PaddingFlags;
 
     // Open the hash algorithm and allocate memory for the hash object.
 
-    if (!NT_SUCCESS(status = BCryptOpenAlgorithmProvider(
+    status = BCryptOpenAlgorithmProvider(
         &Signing->HashAlgHandle,
         HashAlgId,
         NULL,
         0
-        )))
-    {
-        return status;
-    }
+        );
 
-    if (!NT_SUCCESS(status = BCryptGetProperty(
-        Signing->HashAlgHandle,
-        BCRYPT_OBJECT_LENGTH,
-        (PUCHAR)&Signing->HashObjectSize,
-        sizeof(ULONG),
-        &querySize,
-        0
-        )))
-    {
+    if (!NT_SUCCESS(status))
         return status;
-    }
 
     if (!NT_SUCCESS(status = BCryptGetProperty(
         Signing->HashAlgHandle,
@@ -343,14 +332,16 @@ NTSTATUS UpdaterInitializeSigning(
         return status;
     }
 
-    Signing->HashObject = PhAllocate(Signing->HashObjectSize);
-    Signing->Hash = PhAllocate(Signing->HashSize);
+    if (!(Signing->Hash = PhAllocatePageZero(Signing->HashSize)))
+    {
+        return STATUS_NO_MEMORY;
+    }
 
     if (!NT_SUCCESS(status = BCryptCreateHash(
         Signing->HashAlgHandle,
         &Signing->HashHandle,
-        Signing->HashObject,
-        Signing->HashObjectSize,
+        NULL,
+        0,
         NULL,
         0,
         0
@@ -362,10 +353,12 @@ NTSTATUS UpdaterInitializeSigning(
     return STATUS_SUCCESS;
 }
 
-PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
+NTSTATUS UpdaterInitializeHash(
+    _Out_ PUPDATER_HASH_CONTEXT* Context,
     _In_ PH_RELEASE_CHANNEL Channel
     )
 {
+    NTSTATUS status;
     PUPDATER_HASH_CONTEXT hashContext;
     const UCHAR* publicKey;
     ULONG publicKeySize;
@@ -400,14 +393,18 @@ PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
         publicKeySizeNext = ARRAYSIZE(UpdaterTrustedPublicKeyDeveloperNext);
         break;
     default:
-        return NULL;
+        return STATUS_UNSUCCESSFUL;
     }
 
-    hashContext = PhAllocateZero(sizeof(UPDATER_HASH_CONTEXT));
+    if (!(hashContext = PhAllocatePageZero(sizeof(UPDATER_HASH_CONTEXT))))
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
 
     // Initializing the hash used for validation.
 
-    if (!NT_SUCCESS(BCryptOpenAlgorithmProvider(
+    if (!NT_SUCCESS(status = BCryptOpenAlgorithmProvider(
         &hashContext->HashAlgHandle,
         BCRYPT_SHA256_ALGORITHM,
         NULL,
@@ -417,19 +414,7 @@ PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(BCryptGetProperty(
-        hashContext->HashAlgHandle,
-        BCRYPT_OBJECT_LENGTH,
-        (PUCHAR)&hashContext->HashObjectSize,
-        sizeof(ULONG),
-        &querySize,
-        0
-        )))
-    {
-        goto CleanupExit;
-    }
-
-    if (!NT_SUCCESS(BCryptGetProperty(
+    if (!NT_SUCCESS(status = BCryptGetProperty(
         hashContext->HashAlgHandle,
         BCRYPT_HASH_LENGTH,
         (PUCHAR)&hashContext->HashSize,
@@ -441,14 +426,17 @@ PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
         goto CleanupExit;
     }
 
-    hashContext->HashObject = PhAllocate(hashContext->HashObjectSize);
-    hashContext->Hash = PhAllocate(hashContext->HashSize);
+    if (!(hashContext->Hash = PhAllocatePageZero(hashContext->HashSize)))
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
 
-    if (!NT_SUCCESS(BCryptCreateHash(
+    if (!NT_SUCCESS(status = BCryptCreateHash(
         hashContext->HashAlgHandle,
         &hashContext->HashHandle,
-        hashContext->HashObject,
-        hashContext->HashObjectSize,
+        NULL,
+        0,
         NULL,
         0,
         0
@@ -459,7 +447,7 @@ PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
 
     // Initialize the signing used for authentication.
 
-    if (!NT_SUCCESS(UpdaterInitializeSigning(
+    if (!NT_SUCCESS(status = UpdaterInitializeSigning(
         &hashContext->Sign[UpdaterSigningGenerationCurrent],
         (PUCHAR)publicKey,
         publicKeySize,
@@ -473,7 +461,7 @@ PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(UpdaterInitializeSigning(
+    if (!NT_SUCCESS(status = UpdaterInitializeSigning(
         &hashContext->Sign[UpdaterSigningGenerationNext],
         (PUCHAR)publicKeyNext,
         publicKeySizeNext,
@@ -487,102 +475,114 @@ PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
         goto CleanupExit;
     }
 
-    return hashContext;
-
 CleanupExit:
+    if (NT_SUCCESS(status))
+    {
+        *Context = hashContext;
+    }
+    else
+    {
+        *Context = NULL;
+        UpdaterDestroyHash(hashContext);
+    }
 
-    UpdaterDestroyHash(hashContext);
-    return NULL;
+    return status;
 }
 
-BOOLEAN UpdaterUpdateHash(
-    _Inout_ PUPDATER_HASH_CONTEXT Context,
+NTSTATUS UpdaterHashData(
+    _In_ PUPDATER_HASH_CONTEXT Context,
     _In_reads_bytes_(Length) PVOID Buffer,
     _In_ ULONG Length
     )
 {
-    if (!NT_SUCCESS(BCryptHashData(Context->HashHandle, Buffer, Length, 0)))
-        return FALSE;
+    NTSTATUS status;
+
+    status = BCryptHashData(Context->HashHandle, Buffer, Length, 0);
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     for (ULONG i = 0; i < MaxUpdaterSigningGeneration; i++)
     {
-        // Update the hash.
-        if (!NT_SUCCESS(BCryptHashData(Context->Sign[i].HashHandle, Buffer, Length, 0)))
-            return FALSE;
+        status = BCryptHashData(Context->Sign[i].HashHandle, Buffer, Length, 0);
+
+        if (!NT_SUCCESS(status))
+            return status;
     }
 
-    return TRUE;
+    return status;
 }
 
-BOOLEAN UpdaterVerifyHash(
-    _Inout_ PUPDATER_HASH_CONTEXT Context,
+NTSTATUS UpdaterVerifyHash(
+    _In_ PUPDATER_HASH_CONTEXT Context,
     _In_ PPH_STRING Sha2Hash
     )
 {
+    NTSTATUS status;
     PPH_STRING sha2HexString;
 
     // Compute the final hash.
-    if (!NT_SUCCESS(BCryptFinishHash(
+    status = BCryptFinishHash(
         Context->HashHandle,
         Context->Hash,
         Context->HashSize,
         0
-        )))
-    {
-        return FALSE;
-    }
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (!(sha2HexString = PhBufferToHexString(Context->Hash, Context->HashSize)))
-        return FALSE;
+        return STATUS_FAIL_CHECK;
 
     if (!PhEqualString(sha2HexString, Sha2Hash, TRUE))
     {
         PhDereferenceObject(sha2HexString);
-        return FALSE;
+        return STATUS_FAIL_CHECK;
     }
 
     PhDereferenceObject(sha2HexString);
-    return TRUE;
+    return status;
 }
 
-BOOLEAN UpdaterVerifySignature(
-    _Inout_ PUPDATER_HASH_CONTEXT Context,
+NTSTATUS UpdaterVerifySignature(
+    _In_ PUPDATER_HASH_CONTEXT Context,
     _In_ PPH_STRING HexSignature
     )
 {
-    BOOLEAN result;
+    NTSTATUS status;
     ULONG signatureLength;
     PUCHAR signatureBuffer;
 
     if (!HexSignature)
-        return FALSE;
+        return STATUS_FAIL_CHECK;
 
     signatureLength = (ULONG)HexSignature->Length / sizeof(WCHAR) / 2;
-    signatureBuffer = PhAllocate(signatureLength);
+    signatureBuffer = PhAllocatePageZero(signatureLength);
 
     if (!PhHexStringToBufferEx(&HexSignature->sr, signatureLength, signatureBuffer))
     {
-        PhFree(signatureBuffer);
-        return FALSE;
+        PhFreePage(signatureBuffer);
+        return STATUS_FAIL_CHECK;
     }
 
-    result = FALSE;
+    status = STATUS_FAIL_CHECK;
 
     for (ULONG i = 0; i < MaxUpdaterSigningGeneration; i++)
     {
         // Compute the final hash.
-        if (!NT_SUCCESS(BCryptFinishHash(
+        status = BCryptFinishHash(
             Context->Sign[i].HashHandle,
             Context->Sign[i].Hash,
             Context->Sign[i].HashSize,
             0
-            )))
-        {
+            );
+
+        if (!NT_SUCCESS(status))
             continue;
-        }
 
         // Verify the signature.
-        if (NT_SUCCESS(BCryptVerifySignature(
+        status = BCryptVerifySignature(
             Context->Sign[i].KeyHandle,
             Context->Sign[i].PaddingInfo,
             Context->Sign[i].Hash,
@@ -590,53 +590,70 @@ BOOLEAN UpdaterVerifySignature(
             signatureBuffer,
             signatureLength,
             Context->Sign[i].PaddingFlags
-            )))
-        {
-            result = TRUE;
+            );
+
+        if (NT_SUCCESS(status))
             break;
-        }
     }
 
-    PhFree(signatureBuffer);
-    return result;
+    PhFreePage(signatureBuffer);
+    return status;
 }
 
 VOID UpdaterDestroyHash(
-    _In_ PUPDATER_HASH_CONTEXT Context
+    _Frees_ptr_opt_ PUPDATER_HASH_CONTEXT Context
     )
 {
-    if (Context->HashObject)
-        PhFree(Context->HashObject);
-
-    if (Context->Hash)
-        PhFree(Context->Hash);
-
     if (Context->HashHandle)
+    {
         BCryptDestroyHash(Context->HashHandle);
+        Context->HashHandle = NULL;
+    }
 
     if (Context->HashAlgHandle)
+    {
         BCryptCloseAlgorithmProvider(Context->HashAlgHandle, 0);
+        Context->HashAlgHandle = NULL;
+    }
+
+    if (Context->Hash)
+    {
+        PhFreePage(Context->Hash);
+        Context->Hash = NULL;
+    }
 
     for (ULONG i = 0; i < MaxUpdaterSigningGeneration; i++)
     {
-        if (Context->Sign[i].Hash)
-            PhFree(Context->Sign[i].Hash);
-
-        if (Context->Sign[i].HashObject)
-            PhFree(Context->Sign[i].HashObject);
+        if (Context->Sign[i].HashAlgHandle)
+        {
+            BCryptCloseAlgorithmProvider(Context->Sign[i].HashAlgHandle, 0);
+            Context->Sign[i].HashAlgHandle = NULL;
+        }
 
         if (Context->Sign[i].HashHandle)
+        {
             BCryptDestroyHash(Context->Sign[i].HashHandle);
-
-        if (Context->Sign[i].HashAlgHandle)
-            BCryptCloseAlgorithmProvider(Context->Sign[i].HashAlgHandle, 0);
+            Context->Sign[i].HashHandle = NULL;
+        }
 
         if (Context->Sign[i].KeyHandle)
+        {
             BCryptDestroyKey(Context->Sign[i].KeyHandle);
+            Context->Sign[i].KeyHandle = NULL;
+        }
 
         if (Context->Sign[i].SignAlgHandle)
+        {
             BCryptCloseAlgorithmProvider(Context->Sign[i].SignAlgHandle, 0);
+            Context->Sign[i].SignAlgHandle = NULL;
+        }
+
+        if (Context->Sign[i].Hash)
+        {
+            PhFreePage(Context->Sign[i].Hash);
+            Context->Sign[i].Hash = NULL;
+        }
     }
 
-    PhFree(Context);
+    PhFreePage(Context);
 }

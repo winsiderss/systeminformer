@@ -100,7 +100,7 @@ PhPluginInvokeWindowCallback(
 #define SystemInformer_ShowMemoryResults(ShowMemoryResults) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_RESULTS, 0, (PVOID)(ULONG_PTR)(ShowMemoryResults))
 #define SystemInformer_SelectTabPage(Index) \
-    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE, (PVOID)(ULONG_PTR)(Index), 0)
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE, 0, (PVOID)(ULONG_PTR)(Index))
 #define SystemInformer_GetCallbackLayoutPadding() \
     ((PPH_CALLBACK)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_CALLBACK_LAYOUT_PADDING, 0, 0))
 #define SystemInformer_InvalidateLayoutPadding() \
@@ -295,6 +295,35 @@ NTAPI
 PhShowIconNotification(
     _In_ PCWSTR Title,
     _In_ PCWSTR Text
+    );
+
+typedef enum _PH_TOAST_REASON
+{
+    PhToastReasonUserCanceled,
+    PhToastReasonApplicationHidden,
+    PhToastReasonTimedOut,
+    PhToastReasonActivated,
+    PhToastReasonError,
+    PhToastReasonUnknown
+} PH_TOAST_REASON;
+
+typedef _Function_class_(PH_TOAST_CALLBACK)
+VOID NTAPI PH_TOAST_CALLBACK(
+    _In_ HRESULT Result,
+    _In_ PH_TOAST_REASON Reason,
+    _In_ PVOID Context
+);
+typedef PH_TOAST_CALLBACK* PPH_TOAST_CALLBACK;
+
+PHAPPAPI
+HRESULT
+NTAPI
+PhShowIconNotificationEx(
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Text,
+    _In_ ULONG Timeout,
+    _In_opt_ PPH_TOAST_CALLBACK Callback,
+    _In_opt_ PVOID Context
     );
 // end_phapppub
 

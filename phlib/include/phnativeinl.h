@@ -793,7 +793,7 @@ PhGetProcessAppMemoryInformation(
 
 FORCEINLINE
 NTSTATUS
-PhGetProcessMitigationPolicyInformation(
+PhGetProcessMitigationPolicy(
     _In_ HANDLE ProcessHandle,
     _In_ PROCESS_MITIGATION_POLICY Policy,
     _Out_ PPROCESS_MITIGATION_POLICY_INFORMATION MitigationPolicy
@@ -953,6 +953,12 @@ PhGetThreadTeb32(
     return status;
 }
 
+/**
+ * Gets a thread's Win32 start address.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param StartAddress A variable which receives the start address of the thread.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetThreadStartAddress(
@@ -1842,7 +1848,6 @@ PhGetTokenIsAppContainer(
 *
 * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
 * \param AppContainerNumber The app container number for the token.
-*
 * \return Successful or errant status.
 */
 FORCEINLINE
@@ -1863,6 +1868,12 @@ PhGetTokenAppContainerNumber(
         );
 }
 
+/**
+ * Gets basic information for a event.
+ *
+ * \param EventHandle A handle to a event. The handle must have EVENT_QUERY_STATE access.
+ * \param BasicInformation A variable which receives the information.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetEventBasicInformation(
@@ -1877,6 +1888,46 @@ PhGetEventBasicInformation(
         sizeof(EVENT_BASIC_INFORMATION),
         NULL
         );
+}
+
+FORCEINLINE
+NTSTATUS
+PhOpenMutant(
+    _Out_ PHANDLE MutantHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PCPH_STRINGREF ObjectName
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    if (ObjectName)
+    {
+        if (!PhStringRefToUnicodeString(ObjectName, &objectName))
+            return STATUS_NAME_TOO_LONG;
+    }
+    else
+    {
+        RtlInitEmptyUnicodeString(&objectName, NULL, 0);
+    }
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        RootDirectory,
+        NULL
+        );
+
+    status = NtOpenMutant(
+        MutantHandle,
+        DesiredAccess,
+        &objectAttributes
+        );
+
+    return status;
 }
 
 FORCEINLINE
@@ -2097,7 +2148,6 @@ PhGetSystemBootTime(
 * The system uptime in Coordinated Universal Time (UTC) format.
 *
 * \param Uptime A pointer to a LARGE_INTEGER structure to receive the current system uptime.
-*
 * \return Successful or errant status.
 */
 FORCEINLINE
@@ -2132,11 +2182,11 @@ PhGetSystemUptime(
  * If a nonzero value is specified, the function waits until the object is signaled or the interval elapses.
  * If Timeout is zero, the function does not enter a wait state if the object is not signaled; it always returns immediately.
  * If Timeout is INFINITE, the function will return only when the object is signaled.
- *
  * \return Successful or errant status.
  */
 FORCEINLINE
-NTSTATUS PhWaitForSingleObject(
+NTSTATUS
+PhWaitForSingleObject(
     _In_ HANDLE Handle,
     _In_opt_ ULONG Timeout
     )
@@ -2153,6 +2203,25 @@ NTSTATUS PhWaitForSingleObject(
     {
         return NtWaitForSingleObject(Handle, FALSE, NULL);
     }
+}
+
+/**
+* Provides a process-wide memory barrier that ensures that reads and writes from any CPU cannot move across the barrier.
+*
+* The process-wide memory barrier method differs from the "normal" MemoryBarrier method as follows:
+* The process-wide memory barrier ensures that any read or write from any CPU being used in the process can't move across the barrier.
+* The process-wide memory barrier forces other CPUs to synchronize with process memory (for example, to flush write buffers and synchronize read buffers).
+* The process-wide memory barrier is very expensive. It has to force every CPU in the process do to something, at a probable cost of thousands of cycles.
+* The process-wide memory barrier suffers from all the subtleties of lock-free programming.
+* \sa https://learn.microsoft.com/en-us/dotnet/api/system.threading.interlocked.memorybarrierprocesswid
+*/
+FORCEINLINE
+NTSTATUS
+PhMemoryBarrierProcessWide(
+    VOID
+    )
+{
+    return NtFlushProcessWriteBuffers();
 }
 
 #endif

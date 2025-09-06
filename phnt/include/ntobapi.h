@@ -93,6 +93,7 @@ typedef enum _OBJECT_INFORMATION_CLASS
     ObjectHandleFlagInformation, // qs: OBJECT_HANDLE_FLAG_INFORMATION
     ObjectSessionInformation, // s: void // change object session // (requires SeTcbPrivilege)
     ObjectSessionObjectInformation, // s: void // change object session // (requires SeTcbPrivilege)
+    ObjectSetRefTraceInformation, // since 25H2
     MaxObjectInfoClass
 } OBJECT_INFORMATION_CLASS;
 #else
@@ -103,6 +104,8 @@ typedef enum _OBJECT_INFORMATION_CLASS
 #define ObjectHandleFlagInformation 4
 #define ObjectSessionInformation 5
 #define ObjectSessionObjectInformation 6
+#define ObjectSetRefTraceInformation 7
+#define MaxObjectInfoClass 8
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
@@ -344,7 +347,6 @@ NtWaitForMultipleObjects(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -355,7 +357,6 @@ NtWaitForMultipleObjects32(
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER Timeout
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 
 /**
  * The NtSetSecurityObject routine sets an object's security state.
@@ -572,8 +573,6 @@ typedef struct _OBJECT_BOUNDARY_DESCRIPTOR
     //OBJECT_BOUNDARY_ENTRY Entries[1];
 } OBJECT_BOUNDARY_DESCRIPTOR, *POBJECT_BOUNDARY_DESCRIPTOR;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-
 /**
  * Creates a private namespace.
  *
@@ -627,8 +626,6 @@ NTAPI
 NtDeletePrivateNamespace(
     _In_ HANDLE NamespaceHandle
     );
-
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 

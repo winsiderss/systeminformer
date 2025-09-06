@@ -8,6 +8,12 @@
 
 /CODEOWNERS @dmex @jxy-s
 /KSystemInformer @jxy-s
+/SystemInformer @dmex @jxy-s
+/build @dmex @jxy-s
 /kphlib @jxy-s
+/phlib @dmex @jxy-s
 /phnt @dmex @jxy-s
+/plugins @dmex @jxy-s
+/tools @dmex
 /tools/CustomBuildTool/DynData.cs @jxy-s
+.github/workflows @dmex @jxy-s

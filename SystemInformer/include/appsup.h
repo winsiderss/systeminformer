@@ -266,6 +266,7 @@ typedef enum _PH_RELEASE_CHANNEL
     PhPreviewChannel = 1, // unused, reserved
     PhCanaryChannel = 2,
     PhDeveloperChannel = 3,
+    PhInvalidChannel = ULONG_MAX,
 } PH_RELEASE_CHANNEL, *PPH_RELEASE_CHANNEL;
 
 PHAPPAPI
@@ -382,10 +383,12 @@ typedef struct _PH_TN_FILTER_SUPPORT
     PPH_LIST NodeList;
 } PH_TN_FILTER_SUPPORT, *PPH_TN_FILTER_SUPPORT;
 
-typedef BOOLEAN (NTAPI *PPH_TN_FILTER_FUNCTION)(
+typedef _Function_class_(PH_TN_FILTER_FUNCTION)
+BOOLEAN NTAPI PH_TN_FILTER_FUNCTION(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
+typedef PH_TN_FILTER_FUNCTION* PPH_TN_FILTER_FUNCTION;
 
 typedef struct _PH_TN_FILTER_ENTRY
 {

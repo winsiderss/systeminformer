@@ -148,7 +148,7 @@ BOOLEAN HardwareDeviceShowProperties(
     VOID (WINAPI* DeviceProperties_RunDLL_I)(
         _In_ HWND hwndStub,
         _In_ HINSTANCE hAppInstance,
-        _In_ PWSTR lpCmdLine,
+        _In_ PCWSTR lpCmdLine,
         _In_ INT nCmdShow
         );
 

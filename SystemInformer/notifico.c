@@ -19,6 +19,7 @@
 #include <phplug.h>
 #include <procprv.h>
 #include <settings.h>
+#include <appresolver.h>
 
 #include <mainwndp.h>
 #include <notifico.h>
@@ -91,9 +92,9 @@ VOID PhNfLoadSettings(
         PhSplitStringRefAtChar(&remaining, L'|', &flagsPart, &remaining);
         PhSplitStringRefAtChar(&remaining, L'|', &pluginNamePart, &remaining);
 
-        if (!PhStringToInteger64(&idPart, 10, &idInteger))
+        if (!PhStringToUInt64(&idPart, 10, &idInteger))
             break;
-        if (!PhStringToInteger64(&flagsPart, 10, &flagsInteger))
+        if (!PhStringToUInt64(&flagsPart, 10, &flagsInteger))
             break;
 
         if (flagsInteger)
@@ -654,21 +655,25 @@ VOID NTAPI PhpToastCallback(
         PhShowDetailsForIconNotification();
 }
 
-BOOLEAN PhpShowToastNotification(
+HRESULT PhpShowToastNotification(
     _In_ PPH_STRING Title,
     _In_ PPH_STRING Text,
-    _In_ ULONG Timeout
+    _In_ ULONG Timeout,
+    _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
+    _In_opt_ PVOID Context,
+    _In_opt_ BOOLEAN Force
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PH_STRINGREF iconAppName = PH_STRINGREF_INIT(L"");
     static PPH_STRING iconFileName = NULL;
+    PH_STRINGREF iconAppId = PH_STRINGREF_INIT(L"");
+    PPH_STRING processAppId = NULL;
     HRESULT result;
     PPH_STRING toastXml;
     PH_FORMAT format[7];
 
-    if (!PhGetIntegerSetting(L"ToastNotifyEnabled"))
-        return FALSE;
+    if (!Force && !PhGetIntegerSetting(L"ToastNotifyEnabled"))
+        return E_FAIL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -677,16 +682,28 @@ BOOLEAN PhpShowToastNotification(
         if (!PhDoesFileExistWin32(PhGetString(iconFileName)))
             PhClearReference(&iconFileName);
 
-        PhInitializeStringRefLongHint(&iconAppName, PhApplicationName);
 
         PhEndInitOnce(&initOnce);
     }
 
     if (!iconFileName)
-        return FALSE;
+        return E_FAIL;
 
-    if (PhInitializeToastRuntime() != S_OK)
-        return FALSE;
+    if (HR_SUCCESS(PhAppResolverGetAppIdForProcess(NtCurrentProcessId(), &processAppId)))
+        iconAppId = processAppId->sr;
+    else
+    {
+        if (HR_SUCCESS(PhAppResolverGetAppIdForWindow(PhMainWndHandle, &processAppId)))
+            iconAppId = processAppId->sr;
+        else
+        {
+            PhInitializeStringRefLongHint(&iconAppId, PhApplicationName);
+        }
+    }
+
+    result = PhInitializeToastRuntime();
+    if (HR_FAILED(result))
+        return result;
 
     //toastXml = PhFormatString(
     //    L"<toast>\r\n"
@@ -713,16 +730,17 @@ BOOLEAN PhpShowToastNotification(
     toastXml = PhFormat(format, RTL_NUMBER_OF(format), 0);
 
     result = PhShowToastStringRef(
-        &iconAppName,
+        &iconAppId,
         &toastXml->sr,
         Timeout * 1000,
-        PhpToastCallback,
-        NULL
+        ToastCallback,
+        Context
         );
 
-    PhDereferenceObject(toastXml);
+    PhClearReference(&toastXml);
+    PhClearReference(&processAppId);
 
-    return HR_SUCCESS(result);
+    return result;
 }
 
 BOOLEAN PhNfpShowBalloonTip(
@@ -780,6 +798,11 @@ BOOLEAN PhNfShowBalloonTip(
     _In_ ULONG Timeout
     )
 {
+    if (!PhNfIconsEnabled())
+    {
+        return FALSE;
+    }
+
 #ifndef PH_NF_ENABLE_WORKQUEUE
     return PhNfpShowBalloonTip(Title, Text, Timeout);
 #else
@@ -796,19 +819,62 @@ BOOLEAN PhNfShowBalloonTip(
     return TRUE;
 }
 
+HRESULT PhNfShowBalloonTipEx(
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Text,
+    _In_ ULONG Timeout,
+    _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_STRING BalloonTitle;
+    PPH_STRING BalloonText;
+
+    BalloonTitle = Title ? PhCreateString(Title) : NULL;
+    BalloonText = Text ? PhCreateString(Text) : NULL;
+
+    return PhpShowToastNotification(
+        BalloonTitle,
+        BalloonText,
+        Timeout,
+        ToastCallback,
+        Context,
+        TRUE
+        );
+}
+
 HICON PhNfBitmapToIcon(
     _In_ HBITMAP Bitmap
     )
 {
+    HICON iconHandle;
+    HBITMAP mask;
     ICONINFO iconInfo;
 
+    // Create a monochrome mask bitmap for the icon.
+    {
+        BITMAP bitmapInfo;
+
+        memset(&bitmapInfo, 0, sizeof(BITMAP));
+
+        if (GetObject(Bitmap, sizeof(BITMAP), &bitmapInfo) == 0)
+            return NULL;
+
+        if (!(mask = CreateBitmap(bitmapInfo.bmWidth, bitmapInfo.bmHeight, 1, 1, NULL)))
+            return NULL;
+    }
+
+    memset(&iconInfo, 0, sizeof(ICONINFO));
     iconInfo.fIcon = TRUE;
     iconInfo.xHotspot = 0;
     iconInfo.yHotspot = 0;
-    iconInfo.hbmMask = Bitmap;
+    iconInfo.hbmMask = mask;
     iconInfo.hbmColor = Bitmap;
 
-    return CreateIconIndirect(&iconInfo);
+    iconHandle = CreateIconIndirect(&iconInfo);
+    DeleteBitmap(mask);
+
+    return iconHandle;
 }
 
 PPH_NF_ICON PhNfGetIconById(
@@ -939,20 +1005,26 @@ HICON PhNfpGetBlackIcon(
         ULONG height;
         PVOID bits;
         HDC hdc;
+        HBITMAP mask;
         HBITMAP oldBitmap;
         ICONINFO iconInfo;
 
         PhNfpBeginBitmap2(&PhNfpBlackBitmapContext, &width, &height, &PhNfpBlackBitmap, &bits, &hdc, &oldBitmap);
         memset(bits, PhNfTransparencyEnabled ? 1 : 0, width * height * sizeof(RGBQUAD));
 
+        // Create a monochrome mask bitmap for the icon.
+        if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
+            return NULL;
+        
         iconInfo.fIcon = TRUE;
         iconInfo.xHotspot = 0;
         iconInfo.yHotspot = 0;
-        iconInfo.hbmMask = PhNfpBlackBitmap;
+        iconInfo.hbmMask = mask;
         iconInfo.hbmColor = PhNfpBlackBitmap;
         PhNfpBlackIcon = CreateIconIndirect(&iconInfo);
 
         SelectBitmap(hdc, oldBitmap);
+        DeleteBitmap(mask);
     }
 
     return PhNfpBlackIcon;
@@ -1227,11 +1299,14 @@ VOID PhNfTrayIconFlushWorkQueueData(
 
         if (data->ShowBalloon)
         {
-            if (!PhpShowToastNotification(
+            if (!HR_SUCCESS(PhpShowToastNotification(
                 data->BalloonTitle,
                 data->BalloonText,
-                data->BalloonTimeout
-                ))
+                data->BalloonTimeout,
+                PhpToastCallback,
+                NULL,
+                FALSE
+                )))
             {
                 PhNfpShowBalloonTip(
                     PhGetString(data->BalloonTitle),
@@ -1249,6 +1324,7 @@ VOID PhNfTrayIconFlushWorkQueueData(
 }
 #endif
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhNfpTrayIconUpdateThread(
     _In_opt_ PVOID Context
     )
@@ -1313,23 +1389,21 @@ NTSTATUS PhNfpTrayIconUpdateThread(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhNfpProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    static ULONG processesUpdatedCount = 0;
+    ULONG runCount = PtrToUlong(Parameter);
 
     // Update the icons on a separate thread so we don't block the main window
     // or provider threads when explorer is not responding. (dmex)
 
-    if (processesUpdatedCount != 3)
-    {
-        processesUpdatedCount++;
+    if (runCount < 3)
         return;
-    }
 
-    if (PhpTrayIconEventHandle && PhNfIconsEnabled())
+    if (PhpTrayIconEventHandle)// && PhNfIconsEnabled())
     {
         NtSetEvent(PhpTrayIconEventHandle, NULL);
     }
@@ -1392,6 +1466,7 @@ VOID PhNfpUpdateRegisteredIcon(
         PhDereferenceObject(newText);
 }
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpBeginBitmap(
     _Out_ PULONG Width,
     _Out_ PULONG Height,
@@ -1404,6 +1479,7 @@ VOID PhNfpBeginBitmap(
     PhNfpBeginBitmap2(&PhNfpDefaultBitmapContext, Width, Height, Bitmap, Bits, Hdc, OldBitmap);
 }
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpBeginBitmap2(
     _Inout_ PPH_NF_BITMAP Context,
     _Out_ PULONG Width,
@@ -1480,6 +1556,7 @@ VOID PhNfpBeginBitmap2(
     if (Context->Bitmap) *OldBitmap = SelectBitmap(Context->Hdc, Context->Bitmap);
 }
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCpuHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -1579,6 +1656,7 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     _freea(lineData1);
 }
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpIoHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -1694,6 +1772,7 @@ VOID PhNfpIoHistoryIconUpdateCallback(
     _freea(lineData1);
 }
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCommitHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -1774,6 +1853,7 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     _freea(lineData1);
 }
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpPhysicalHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -1856,6 +1936,7 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     _freea(lineData1);
 }
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCpuUsageIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -2003,6 +2084,7 @@ VOID PhNfpCpuUsageIconUpdateCallback(
 
 // Text icons
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCpuUsageTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -2095,6 +2177,7 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
     if (maxCpuText) PhDereferenceObject(maxCpuText);
 }
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpIoUsageTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -2197,6 +2280,7 @@ VOID PhNfpIoUsageTextIconUpdateCallback(
     if (maxIoProcessItem) PhDereferenceObject(maxIoProcessItem);
 }
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCommitTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -2276,6 +2360,7 @@ VOID PhNfpCommitTextIconUpdateCallback(
     *NewText = PhFormat(format, 5, 0);
 }
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -2358,6 +2443,7 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     *NewText = PhFormat(format, 5, 0);
 }
 
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpPlainIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,

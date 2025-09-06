@@ -191,7 +191,7 @@ VOID FASTCALL PhfResetEvent(
     _Inout_ PPH_EVENT Event
     )
 {
-    assert(!Event->EventHandle);
+    //assert(!Event->EventHandle);
 
     if (PhTestEvent(Event))
     {

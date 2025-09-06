@@ -36,7 +36,7 @@ VOID PhEmInitialization(
 
 VOID PhEmInitializeAppContext(
     _Out_ PPH_EM_APP_CONTEXT AppContext,
-    _In_ PPH_STRINGREF AppName
+    _In_ PCPH_STRINGREF AppName
     );
 
 VOID PhEmSetObjectExtension(
@@ -72,7 +72,7 @@ VOID PhEmCallObjectOperation(
 
 _Success_(return)
 BOOLEAN PhEmParseCompoundId(
-    _In_ PPH_STRINGREF CompoundId,
+    _In_ PCPH_STRINGREF CompoundId,
     _Out_ PPH_STRINGREF AppName,
     _Out_ PULONG SubId
     );

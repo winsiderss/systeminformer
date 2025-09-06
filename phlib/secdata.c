@@ -645,6 +645,24 @@ ACCESS_ENTRIES(Rdp)
     { L"User access (current)", WTS_SECURITY_SET_INFORMATION | WTS_SECURITY_RESET | WTS_SECURITY_VIRTUAL_CHANNELS | WTS_SECURITY_LOGOFF | WTS_SECURITY_DISCONNECT, FALSE, TRUE, NULL }, // WTS_SECURITY_CURRENT_USER_ACCESS
 };
 
+ACCESS_ENTRIES(ComAccess)
+{
+    { L"Full control", COM_RIGHTS_EXECUTE | COM_RIGHTS_EXECUTE_LOCAL | COM_RIGHTS_EXECUTE_REMOTE, TRUE, TRUE, NULL },
+    { L"Execute", COM_RIGHTS_EXECUTE, TRUE, TRUE, NULL },
+    { L"Execute local", COM_RIGHTS_EXECUTE_LOCAL, TRUE, TRUE, NULL },
+    { L"Execute remote", COM_RIGHTS_EXECUTE_REMOTE, TRUE, TRUE, NULL },
+};
+
+ACCESS_ENTRIES(ComLaunch)
+{
+    { L"Full control", COM_RIGHTS_EXECUTE | COM_RIGHTS_EXECUTE_LOCAL | COM_RIGHTS_EXECUTE_REMOTE | COM_RIGHTS_ACTIVATE_LOCAL | COM_RIGHTS_ACTIVATE_REMOTE, TRUE, TRUE, NULL },
+    { L"Execute", COM_RIGHTS_EXECUTE, TRUE, TRUE, NULL },
+    { L"Execute local", COM_RIGHTS_EXECUTE_LOCAL, TRUE, TRUE, NULL },
+    { L"Execute remote", COM_RIGHTS_EXECUTE_REMOTE, TRUE, TRUE, NULL },
+    { L"Activate local", COM_RIGHTS_ACTIVATE_LOCAL, TRUE, TRUE, NULL },
+    { L"Activate remote", COM_RIGHTS_ACTIVATE_REMOTE, TRUE, TRUE, NULL },
+};
+
 static PH_SPECIFIC_TYPE PhSpecificTypes[] =
 {
     ACCESS_ENTRY(AlpcPort, TRUE),
@@ -697,6 +715,8 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(WindowStation, FALSE),
     ACCESS_ENTRY(WmiGuid, TRUE),
     ACCESS_ENTRY(Rdp, FALSE),
+    ACCESS_ENTRY(ComAccess, FALSE),
+    ACCESS_ENTRY(ComLaunch, FALSE),
 };
 
 /**
@@ -743,7 +763,7 @@ BOOLEAN PhGetAccessEntries(
     {
         Type = L"File";
     }
-	else if (PhEqualStringZ(Type, L"Device", TRUE))
+    else if (PhEqualStringZ(Type, L"Device", TRUE))
     {
         Type = L"File";
     }
@@ -840,8 +860,8 @@ static int __cdecl PhpAccessEntryCompare(
     _In_ const void *elem2
     )
 {
-    PPH_ACCESS_ENTRY entry1 = (PPH_ACCESS_ENTRY)elem1;
-    PPH_ACCESS_ENTRY entry2 = (PPH_ACCESS_ENTRY)elem2;
+    const PH_ACCESS_ENTRY* entry1 = (const PH_ACCESS_ENTRY*)elem1;
+    const PH_ACCESS_ENTRY* entry2 = (const PH_ACCESS_ENTRY*)elem2;
 
     return uintcmp(PhCountBits(entry2->Access), PhCountBits(entry1->Access));
 }

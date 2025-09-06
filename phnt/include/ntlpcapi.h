@@ -365,7 +365,9 @@ NtQueryInformationPort(
     _Out_opt_ PULONG ReturnLength
     );
 
+//
 // Asynchronous Local Inter-process Communication
+//
 
 // rev
 typedef HANDLE ALPC_HANDLE, *PALPC_HANDLE;
@@ -653,8 +655,6 @@ typedef struct _ALPC_MESSAGE_HANDLE_INFORMATION
 } ALPC_MESSAGE_HANDLE_INFORMATION, *PALPC_MESSAGE_HANDLE_INFORMATION;
 
 // begin_private
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 //
 // System calls
@@ -990,7 +990,6 @@ AlpcUnregisterCompletionList(
     _In_ HANDLE PortHandle
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -998,7 +997,6 @@ NTAPI
 AlpcRundownCompletionList(
     _In_ HANDLE PortHandle
     );
-#endif
 
 NTSYSAPI
 NTSTATUS
@@ -1061,8 +1059,6 @@ AlpcGetCompletionListMessageAttributes(
     _In_ PVOID CompletionList,
     _In_ PPORT_MESSAGE Message
     );
-
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // end_private
 

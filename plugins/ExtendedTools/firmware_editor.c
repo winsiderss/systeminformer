@@ -138,7 +138,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                     LONG dpiValue;
 
                     PhRectangleToRect(&rect, &windowRectangle);
-                    dpiValue = PhGetMonitorDpi(&rect);
+                    dpiValue = PhGetMonitorDpi(NULL, &rect);
 
                     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue)->Pair;
                     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
@@ -329,11 +329,19 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
+
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
     }
 
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtFirmwareEditorDialogThreadStart(
     _In_ PVOID Parameter
     )
@@ -347,7 +355,7 @@ NTSTATUS EtFirmwareEditorDialogThreadStart(
     PhInitializeAutoPool(&autoPool);
 
     windowHandle = PhCreateDialog(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_FIRMWARE_EDITVAR),
         !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->ParentWindowHandle,
         EtFirmwareEditorDlgProc,

@@ -84,11 +84,7 @@ typedef struct _PH_SETUP_CONTEXT
     PPH_STRING SetupInstallPath;
     PPH_STRING SetupServiceName;
 
-    PVOID ZipBuffer;
-    ULONG ZipBufferLength;
-
     NTSTATUS LastStatus;
-    NTSTATUS ErrorCode;
 
     ULONG CurrentMajorVersion;
     ULONG CurrentMinorVersion;
@@ -157,6 +153,10 @@ VOID ShowUpdateErrorPageDialog(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
+LONG SetupShowMessagePromptForLegacyVersion(
+    VOID
+    );
+
 // util.c
 
 PPH_STRING SetupFindInstallDirectory(
@@ -167,7 +167,7 @@ VOID SetupDeleteAppdataDirectory(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-BOOLEAN SetupUninstallDriver(
+NTSTATUS SetupUninstallDriver(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
@@ -193,7 +193,7 @@ VOID SetupDeleteShortcuts(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-BOOLEAN SetupCreateUninstallFile(
+NTSTATUS SetupCreateUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     );
 VOID SetupDeleteUninstallFile(
@@ -205,6 +205,9 @@ NTSTATUS SetupExecuteApplication(
     );
 
 VOID SetupUpgradeSettingsFile(
+    VOID
+    );
+NTSTATUS SetupConvertSettingsFile(
     VOID
     );
 
@@ -238,7 +241,11 @@ PPH_STRING GetApplicationInstallPath(
     VOID
     );
 
-BOOLEAN SetupShutdownApplication(
+BOOLEAN SetupLegacySetupInstalled(
+    VOID
+    );
+
+NTSTATUS SetupShutdownApplication(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
@@ -252,14 +259,13 @@ PPH_STRING SetupCreateFullPath(
     _In_ PCWSTR FileName
     );
 
-BOOLEAN SetupOverwriteFile(
+NTSTATUS SetupOverwriteFile(
     _In_ PPH_STRING FileName,
     _In_ PVOID Buffer,
     _In_ ULONG BufferLength
     );
 
-_Success_(return)
-BOOLEAN SetupHashFile(
+NTSTATUS SetupHashFile(
     _In_ PPH_STRING FileName,
     _Out_writes_all_(256 / 8) PBYTE Buffer
     );
@@ -286,7 +292,7 @@ BOOLEAN UpdateDownloadUpdateData(
 
 // extract.c
 
-BOOLEAN CALLBACK SetupExtractBuild(
+NTSTATUS CALLBACK SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
     );
 

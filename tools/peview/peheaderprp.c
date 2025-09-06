@@ -243,7 +243,7 @@ VOID PvSetPeImageDosStubHeaderProperties(
     if (imageDosStubRichLength)
     {
         PhPrintPointer(value, UlongToPtr(imageDosStubRichStart));
-        PhPrintPointer(size, PTR_ADD_OFFSET(imageDosStubRichStart, imageDosStubRichLength));
+        PhPrintPointer(size, UlongToPtr(imageDosStubRichStart + imageDosStubRichLength));
         string = PhaFormatString(L"%s-%s", value, size);
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_RICHSIZE, 1, PhaFormatString(
             L"%s (%s)",
@@ -373,6 +373,9 @@ VOID PvSetPeImageOptionalHeaderProperties(
     _In_ PPVP_PE_HEADER_CONTEXT Context
     )
 {
+    PPH_STRING symbol = NULL;
+    PPH_STRING symbolName = NULL;
+
     if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
         PIMAGE_NT_HEADERS32 imageNtHeader = PvMappedImage.NtHeaders32;
@@ -397,8 +400,40 @@ VOID PvSetPeImageOptionalHeaderProperties(
         string = PhaFormatString(L"%s (%s)", value, PhaFormatSize(imageNtHeader->OptionalHeader.SizeOfUninitializedData, ULONG_MAX)->Buffer);
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_UNINITSIZE, 1, PhGetString(string));
 
-        PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.AddressOfEntryPoint));
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_ENTRYPOINT, 1, value);
+        if (imageNtHeader->OptionalHeader.AddressOfEntryPoint)
+        {
+            symbol = PhGetSymbolFromAddress(
+                PvSymbolProvider,
+                PTR_ADD_OFFSET(
+                    PvMappedImage.NtHeaders32->OptionalHeader.ImageBase,
+                    imageNtHeader->OptionalHeader.AddressOfEntryPoint),
+                NULL,
+                NULL,
+                &symbolName,
+                NULL
+                );
+        }
+        if (symbolName)
+        {
+            PH_FORMAT format[5];
+
+            PhInitFormatS(&format[0], L"0x");
+            PhInitFormatIX(&format[1], imageNtHeader->OptionalHeader.AddressOfEntryPoint);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], symbolName->sr);
+            PhInitFormatC(&format[4], L')');
+            string = PhFormat(format, 5, 10);
+
+            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_ENTRYPOINT, 1, PhGetString(string));
+        }
+        else
+        {
+            PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.AddressOfEntryPoint));
+            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_ENTRYPOINT, 1, value);
+        }
+
+        PhClearReference(&symbolName);
+        PhClearReference(&symbol);
 
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.BaseOfCode));
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_BASEOFCODE, 1, value);
@@ -487,9 +522,41 @@ VOID PvSetPeImageOptionalHeaderProperties(
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.SizeOfUninitializedData));
         string = PhaFormatString(L"%s (%s)", value, PhaFormatSize(imageNtHeader->OptionalHeader.SizeOfUninitializedData, ULONG_MAX)->Buffer);
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_UNINITSIZE, 1, PhGetString(string));
+         
+        if (imageNtHeader->OptionalHeader.AddressOfEntryPoint)
+        {
+            symbol = PhGetSymbolFromAddress(
+                PvSymbolProvider,
+                PTR_ADD_OFFSET(
+                    PvMappedImage.NtHeaders64->OptionalHeader.ImageBase,
+                    imageNtHeader->OptionalHeader.AddressOfEntryPoint),
+                NULL,
+                NULL,
+                &symbolName,
+                NULL
+                );
+        }
+        if (symbolName)
+        {
+            PH_FORMAT format[5];
 
-        PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.AddressOfEntryPoint));
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_ENTRYPOINT, 1, value);
+            PhInitFormatS(&format[0], L"0x");
+            PhInitFormatIX(&format[1], imageNtHeader->OptionalHeader.AddressOfEntryPoint);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], symbolName->sr);
+            PhInitFormatC(&format[4], L')');
+            string = PhFormat(format, 5, 10);
+
+            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_ENTRYPOINT, 1, PhGetString(string));
+        }
+        else
+        {
+            PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.AddressOfEntryPoint));
+            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_ENTRYPOINT, 1, value);
+        }
+
+        PhClearReference(&symbolName);
+        PhClearReference(&symbol);
 
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.BaseOfCode));
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_BASEOFCODE, 1, value);
@@ -565,7 +632,7 @@ VOID PvSetPeImageOverlayHeaderProperties(
     _In_ PPVP_PE_HEADER_CONTEXT Context
     )
 {
-    ULONG lastRawDataAddress = 0;
+    ULONG64 lastRawDataAddress = 0;
     ULONG64 lastRawDataOffset = 0;
 
     for (USHORT i = 0; i < PvMappedImage.NumberOfSections; i++)
@@ -573,7 +640,7 @@ VOID PvSetPeImageOverlayHeaderProperties(
         if (PvMappedImage.Sections[i].PointerToRawData > lastRawDataAddress)
         {
             lastRawDataAddress = PvMappedImage.Sections[i].PointerToRawData;
-            lastRawDataOffset = (ULONG64)PTR_ADD_OFFSET(lastRawDataAddress, PvMappedImage.Sections[i].SizeOfRawData);
+            lastRawDataOffset = lastRawDataAddress + PvMappedImage.Sections[i].SizeOfRawData;
         }
     }
 

@@ -82,6 +82,7 @@ VOID EtUpdatePoolTagTable(
     PhFree(poolTagTable);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 BOOLEAN EtPoolTagTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_ PVOID Context
@@ -114,6 +115,7 @@ BOOLEAN EtPoolTagTreeFilterCallback(
     return FALSE;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtPoolMonProcessesUpdatedCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -127,6 +129,7 @@ VOID NTAPI EtPoolMonProcessesUpdatedCallback(
     EtUpdatePoolTagTable(Context);
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI EtPoolMonSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -192,7 +195,7 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_POOL_AUTOSIZE_COLUMNS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_POOL_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_POOL_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_POOL_WINDOW_POSITION, SETTING_NAME_POOL_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
@@ -220,16 +223,6 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->TreeNewHandle, TRUE);
         }
         break;
-    case WM_SIZE:
-        {
-            PhLayoutManagerLayout(&context->LayoutManager);
-
-            if (context->TreeNewAutoSize)
-            {
-                TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_DESCRIPTION, TN_AUTOSIZE_REMAINING_SPACE);
-            }
-        }
-        break;
     case WM_DESTROY:
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
@@ -249,6 +242,27 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
             PhFree(context);
 
             PostQuitMessage(0);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+
+            if (context->TreeNewAutoSize)
+            {
+                TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_DESCRIPTION, TN_AUTOSIZE_REMAINING_SPACE);
+            }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+
+            if (context->TreeNewAutoSize)
+            {
+                TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_DESCRIPTION, TN_AUTOSIZE_REMAINING_SPACE);
+            }
         }
         break;
     case WM_PH_SHOW_DIALOG:
@@ -373,7 +387,7 @@ NTSTATUS EtShowPoolMonDialogThread(
     PhInitializeAutoPool(&autoPool);
 
     EtPoolTagDialogHandle = PhCreateDialog(
-        PluginInstance->DllBase,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_POOL),
         NULL,
         EtPoolMonDlgProc,

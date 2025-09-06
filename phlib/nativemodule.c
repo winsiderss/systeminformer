@@ -18,10 +18,181 @@ BOOLEAN NTAPI PH_ENUM_MODULES_CALLBACK(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID Entry,
     _In_ PVOID AddressOfEntry,
+    _In_ ULONG SizeOfEntry,
     _In_opt_ PVOID Context1,
     _In_opt_ PVOID Context2
     );
 typedef PH_ENUM_MODULES_CALLBACK* PPH_ENUM_MODULES_CALLBACK;
+
+/**
+ * Creates a section object.
+ *
+ * @param SectionHandle Pointer to a variable that receives a handle to the section object.
+ * @param DesiredAccess The access mask that specifies the requested access to the section object.
+ * @param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file, or the maximum the file can be extended or mapped when backed by an ordinary file.
+ * @param SectionPageProtection Specifies the protection to place on each page in the section.
+ * @param AllocationAttributes A bitmask of SEC_XXX flags that determines the allocation attributes of the section.
+ * @param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL, the section is backed by the paging file. Otherwise, the section is backed by the specified file.
+ * @return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhCreateSection(
+    _Out_ PHANDLE SectionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PLARGE_INTEGER MaximumSize,
+    _In_ ULONG SectionPageProtection,
+    _In_ ULONG AllocationAttributes,
+    _In_opt_ HANDLE FileHandle
+    )
+{
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE sectionHandle;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
+
+    //if (WindowsVersion >= WINDOWS_10_RS5)
+    //{
+    //    MEM_ADDRESS_REQUIREMENTS addressRequirement;
+    //    MEM_EXTENDED_PARAMETER extendedParameters[3];
+    //
+    //    addressRequirement.LowestStartingAddress = NULL;
+    //    addressRequirement.HighestEndingAddress = UlongToPtr(MAXLONG); // 0x7fffffff // below 4GB
+    //    addressRequirement.Alignment = PAGE_SIZE;
+    //
+    //    extendedParameters[0].Type = MemExtendedParameterAddressRequirements;
+    //    extendedParameters[0].Pointer = &addressRequirement;
+    //    extendedParameters[1].Type = MemExtendedParameterAttributeFlags;
+    //    extendedParameters[1].ULong64 = MEM_EXTENDED_PARAMETER_EC_CODE;
+    //    extendedParameters[2].Type = MemExtendedParameterImageMachine;
+    //    extendedParameters[2].ULong64 = IMAGE_FILE_MACHINE_ARM64EC;
+    //
+    //    status = NtCreateSectionEx(
+    //        &sectionHandle,
+    //        DesiredAccess,
+    //        &objectAttributes,
+    //        MaximumSize,
+    //        SectionPageProtection,
+    //        AllocationAttributes,
+    //        FileHandle,
+    //        extendedParameters,
+    //        RTL_NUMBER_OF(extendedParameters)
+    //        );
+    //}
+
+    status = NtCreateSection(
+        &sectionHandle,
+        DesiredAccess,
+        &objectAttributes,
+        MaximumSize,
+        SectionPageProtection,
+        AllocationAttributes,
+        FileHandle
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *SectionHandle = sectionHandle;
+    }
+    else
+    {
+        *SectionHandle = NULL;
+    }
+
+    return status;
+}
+
+NTSTATUS PhMapViewOfSection(
+    _In_ HANDLE SectionHandle,
+    _In_ HANDLE ProcessHandle,
+    _Inout_ _At_(*BaseAddress, _Readable_bytes_(*ViewSize) _Writable_bytes_(*ViewSize) _Post_readable_byte_size_(*ViewSize)) PVOID *BaseAddress,
+    _In_ SIZE_T CommitSize,
+    _In_opt_ PLARGE_INTEGER SectionOffset,
+    _Inout_ PSIZE_T ViewSize,
+    _In_ SECTION_INHERIT InheritDisposition,
+    _In_ ULONG AllocationType,
+    _In_ ULONG PageProtection
+    )
+{
+    NTSTATUS status;
+    PVOID baseAddress = *BaseAddress;
+    SIZE_T viewSize = *ViewSize;
+
+    //if (WindowsVersion >= WINDOWS_10_RS5)
+    //{
+    //    MEM_ADDRESS_REQUIREMENTS addressRequirement;
+    //    MEM_EXTENDED_PARAMETER extendedParameters[3];
+    //
+    //    addressRequirement.LowestStartingAddress = NULL;
+    //    addressRequirement.HighestEndingAddress = UlongToPtr(MAXLONG); // 0x7fffffff // below 4GB
+    //    addressRequirement.Alignment = PAGE_SIZE;
+    //
+    //    extendedParameters[0].Type = MemExtendedParameterAddressRequirements;
+    //    extendedParameters[0].Pointer = &addressRequirement;
+    //    extendedParameters[1].Type = MemExtendedParameterAttributeFlags;
+    //    extendedParameters[1].ULong64 = MEM_EXTENDED_PARAMETER_EC_CODE;
+    //    extendedParameters[2].Type = MemExtendedParameterImageMachine;
+    //    extendedParameters[2].ULong64 = IMAGE_FILE_MACHINE_ARM64EC;
+    //
+    //    status = NtMapViewOfSectionEx(
+    //        SectionHandle,
+    //        ProcessHandle,
+    //        &baseAddress,
+    //        SectionOffset,
+    //        &viewSize,
+    //        AllocationType,
+    //        PageProtection,
+    //        extendedParameters,
+    //        RTL_NUMBER_OF(extendedParameters)
+    //        );
+    //}
+
+    status = NtMapViewOfSection(
+        SectionHandle,
+        ProcessHandle,
+        &baseAddress,
+        0,
+        CommitSize,
+        SectionOffset,
+        &viewSize,
+        InheritDisposition,
+        AllocationType,
+        PageProtection
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *BaseAddress = baseAddress;
+        *ViewSize = viewSize;
+    }
+    else
+    {
+        *BaseAddress = NULL;
+        *ViewSize = 0;
+    }
+
+    return status;
+}
+
+NTSTATUS PhUnmapViewOfSection(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress
+    )
+{
+    NTSTATUS status;
+
+    status = NtUnmapViewOfSection(
+        ProcessHandle,
+        BaseAddress
+        );
+
+    return status;
+}
 
 /**
  * Enumerates the modules loaded by the kernel.
@@ -147,7 +318,7 @@ PPH_STRING PhGetKernelFileName(
     if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
         return NULL;
 
-    return PhConvertUtf8ToUtf16((PCSTR)modules->Modules[0].FullPathName);
+    return PhZeroExtendToUtf16((PCSTR)modules->Modules[0].FullPathName);
 }
 
 /**
@@ -198,13 +369,13 @@ NTSTATUS PhGetKernelFileNameEx(
         );
 
     if (status != STATUS_SUCCESS && status != STATUS_INFO_LENGTH_MISMATCH)
-        return status;
+        return STATUS_UNSUCCESSFUL;
     if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
         return STATUS_UNSUCCESSFUL;
 
     if (FileName)
     {
-        *FileName = PhConvertUtf8ToUtf16((PCSTR)modules->Modules[0].FullPathName);
+        *FileName = PhZeroExtendToUtf16((PCSTR)modules->Modules[0].FullPathName);
     }
 
     if (WindowsVersion >= WINDOWS_10_22H2)
@@ -267,11 +438,11 @@ NTSTATUS PhpEnumProcessModules(
 {
     NTSTATUS status;
     PPEB peb;
-    PPEB_LDR_DATA ldr;
+    PVOID ldr;
     PEB_LDR_DATA pebLdrData;
     PLIST_ENTRY startLink;
     PLIST_ENTRY currentLink;
-    ULONG dataTableEntrySize;
+    ULONG entrySize;
     LDR_DATA_TABLE_ENTRY currentEntry;
     ULONG i;
 
@@ -293,7 +464,6 @@ NTSTATUS PhpEnumProcessModules(
     if (!NT_SUCCESS(status))
         return status;
 
-    // Check the process has initialized (dmex)
     if (!ldr)
         return STATUS_UNSUCCESSFUL;
 
@@ -309,20 +479,21 @@ NTSTATUS PhpEnumProcessModules(
     if (!NT_SUCCESS(status))
         return status;
 
+    // Check the loader was initialized (dmex)
     if (!pebLdrData.Initialized)
         return STATUS_UNSUCCESSFUL;
 
     if (WindowsVersion >= WINDOWS_11)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN11;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN11;
     else if (WindowsVersion >= WINDOWS_8)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8;
     else
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
 
     // Traverse the linked list (in load order).
 
     i = 0;
-    startLink = PTR_ADD_OFFSET(ldr, FIELD_OFFSET(PEB_LDR_DATA, InLoadOrderModuleList));
+    startLink = PTR_ADD_OFFSET(ldr, UFIELD_OFFSET(PEB_LDR_DATA, InLoadOrderModuleList));
     currentLink = pebLdrData.InLoadOrderModuleList.Flink;
 
     while (
@@ -337,7 +508,7 @@ NTSTATUS PhpEnumProcessModules(
             ProcessHandle,
             addressOfEntry,
             &currentEntry,
-            dataTableEntrySize,
+            entrySize,
             NULL
             );
 
@@ -352,6 +523,7 @@ NTSTATUS PhpEnumProcessModules(
                 ProcessHandle,
                 &currentEntry,
                 addressOfEntry,
+                entrySize,
                 Context1,
                 Context2
                 ))
@@ -365,10 +537,12 @@ NTSTATUS PhpEnumProcessModules(
     return status;
 }
 
-BOOLEAN NTAPI PhpEnumProcessModulesCallback(
+_Function_class_(PH_ENUM_MODULES_CALLBACK)
+static BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY Entry,
     _In_ PVOID AddressOfEntry,
+    _In_ ULONG SizeOfEntry,
     _In_ PVOID Context1,
     _In_ PVOID Context2
     )
@@ -468,7 +642,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         }
     }
 
-    if (WindowsVersion >= WINDOWS_8 && Entry->DdagNode)
+    if (WindowsVersion >= WINDOWS_8 && Entry->DdagNode && RTL_CONTAINS_FIELD(Entry, SizeOfEntry, DdagNode))
     {
         LDR_DDAG_NODE ldrDagNode;
 
@@ -557,10 +731,12 @@ typedef struct _SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT
     ULONG LoadCount;
 } SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT, *PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT;
 
+_Function_class_(PH_ENUM_MODULES_CALLBACK)
 BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY Entry,
     _In_ PVOID AddressOfEntry,
+    _In_ ULONG SizeOfEntry,
     _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
@@ -632,7 +808,7 @@ NTSTATUS PhpEnumProcessModules32(
     PEB_LDR_DATA32 pebLdrData;
     ULONG startLink; // LIST_ENTRY32 *32
     ULONG currentLink; // LIST_ENTRY32 *32
-    ULONG dataTableEntrySize;
+    ULONG entrySize;
     LDR_DATA_TABLE_ENTRY32 currentEntry;
     ULONG i;
 
@@ -654,7 +830,6 @@ NTSTATUS PhpEnumProcessModules32(
     if (!NT_SUCCESS(status))
         return status;
 
-    // Check the process has initialized (dmex)
     if (!ldr)
         return STATUS_UNSUCCESSFUL;
 
@@ -670,15 +845,16 @@ NTSTATUS PhpEnumProcessModules32(
     if (!NT_SUCCESS(status))
         return status;
 
+    // Check the loader was initialized (dmex)
     if (!pebLdrData.Initialized)
         return STATUS_UNSUCCESSFUL;
 
     if (WindowsVersion >= WINDOWS_11)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN11_32;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN11_32;
     else if (WindowsVersion >= WINDOWS_8)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8_32;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8_32;
     else
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32;
 
     // Traverse the linked list (in load order).
 
@@ -698,7 +874,7 @@ NTSTATUS PhpEnumProcessModules32(
             ProcessHandle,
             addressOfEntry,
             &currentEntry,
-            dataTableEntrySize,
+            entrySize,
             NULL
             );
 
@@ -713,6 +889,7 @@ NTSTATUS PhpEnumProcessModules32(
                 ProcessHandle,
                 &currentEntry,
                 addressOfEntry,
+                entrySize,
                 Context1,
                 Context2
                 ))
@@ -726,10 +903,12 @@ NTSTATUS PhpEnumProcessModules32(
     return status;
 }
 
+_Function_class_(PH_ENUM_MODULES_CALLBACK)
 BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
     _In_ PVOID AddressOfEntry,
+    _In_ ULONG SizeOfEntry,
     _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
@@ -890,7 +1069,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
         nativeEntry.FullDllName.Buffer = fullDllNameBuffer;
     }
 
-    if (WindowsVersion >= WINDOWS_8 && Entry->DdagNode)
+    if (WindowsVersion >= WINDOWS_8 && Entry->DdagNode && RTL_CONTAINS_FIELD(Entry, SizeOfEntry, DdagNode))
     {
         LDR_DDAG_NODE32 ldrDagNode32 = { 0 };
 
@@ -978,10 +1157,12 @@ NTSTATUS PhEnumProcessModules32Ex(
         );
 }
 
-BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
+_Function_class_(PH_ENUM_MODULES_CALLBACK)
+static BOOLEAN NTAPI PhSetProcessModuleLoadCount32Callback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
     _In_ PVOID AddressOfEntry,
+    _In_ ULONG SizeOfEntry,
     _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
@@ -1032,7 +1213,7 @@ NTSTATUS PhSetProcessModuleLoadCount32(
 
     status = PhpEnumProcessModules32(
         ProcessHandle,
-        PhpSetProcessModuleLoadCount32Callback,
+        PhSetProcessModuleLoadCount32Callback,
         &context,
         NULL
         );
@@ -1088,6 +1269,7 @@ BOOLEAN PhIsRtlModuleBase(
     return FALSE;
 }
 
+_Function_class_(PH_ENUM_PROCESS_MODULES_CALLBACK)
 static BOOLEAN EnumGenericProcessModulesCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
     _In_ PENUM_GENERIC_PROCESS_MODULES_CONTEXT Context
@@ -1205,7 +1387,7 @@ VOID PhpRtlModulesToGenericModules(
     }
 }
 
-VOID PhpRtlModulesExToGenericModules(
+static VOID PhpRtlModulesExToGenericModules(
     _In_ PRTL_PROCESS_MODULE_INFORMATION_EX Modules,
     _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
     _In_ PPH_HASHTABLE BaseAddressHashtable,
@@ -1227,7 +1409,7 @@ VOID PhpRtlModulesExToGenericModules(
             continue;
 
         PhAddEntryHashtable(BaseAddressHashtable, &baseAddress);
-        
+
         RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
         moduleInfo.Type = PhGetRtlModuleType(baseAddress);
         moduleInfo.BaseAddress = baseAddress;
@@ -1268,7 +1450,7 @@ VOID PhpRtlModulesExToGenericModules(
     }
 }
 
-BOOLEAN PhpCallbackMappedFileOrImage(
+static BOOLEAN PhpCallbackMappedFileOrImage(
     _In_ PVOID AllocationBase,
     _In_ SIZE_T AllocationSize,
     _In_ ULONG Type,
@@ -1383,7 +1565,7 @@ BOOLEAN PhpCallbackMappedFileOrImage(
 //    }
 //}
 
-VOID PhpEnumGenericMappedFilesAndImages(
+static VOID PhpEnumGenericMappedFilesAndImages(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG Flags,
     _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
@@ -1505,6 +1687,7 @@ VOID PhpEnumGenericMappedFilesAndImages(
     }
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN NTAPI PhpBaseAddressHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -1513,6 +1696,7 @@ static BOOLEAN NTAPI PhpBaseAddressHashtableEqualFunction(
     return *(PVOID *)Entry1 == *(PVOID *)Entry2;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG NTAPI PhpBaseAddressHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -1682,7 +1866,8 @@ typedef struct _PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS
     PVOID Context;
 } PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS, *PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS;
 
-NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
+_Function_class_(PH_ENUM_MEMORY_PAGE_CALLBACK)
+static NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG_PTR NumberOfEntries,
     _In_ PMEMORY_WORKING_SET_BLOCK WorkingSetBlock,
@@ -1785,7 +1970,6 @@ NTSTATUS PhEnumProcessModulesLimited(
         PhEnumProcessModulesLimitedCallback,
         &limitedParameters
         );
-
 
     PhDereferenceObject(baseAddressHashtable);
 

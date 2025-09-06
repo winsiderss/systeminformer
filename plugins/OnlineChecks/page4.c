@@ -25,11 +25,11 @@ HRESULT CALLBACK TaskDialogErrorProc(
     {
     case TDN_NAVIGATED:
         {
-            if (context->TaskbarListClass)
-            {
-                PhTaskbarListSetProgressValue(context->TaskbarListClass, context->DialogHandle, 1, 1);
-                PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, TBPF_ERROR);
-            }
+            //if (context->TaskbarListClass)
+            //{
+            //    PhTaskbarListSetProgressValue(context->TaskbarListClass, context->DialogHandle, 1, 1);
+            //    PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, PH_TBLF_ERROR);
+            //}
         }
         break;
     }

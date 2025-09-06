@@ -353,7 +353,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 PhOptionsOnSize();
             }
 
-            if (PhGetIntegerPairSetting(L"OptionsWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"OptionsWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"OptionsWindowPosition", L"OptionsWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
@@ -392,6 +392,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
     case WM_DPICHANGED:
         {
             PhpOptionsSetImageList(OptionsTreeControl, TRUE);
+            PhLayoutManagerUpdate(&WindowLayoutManager, LOWORD(wParam));
+            PhOptionsOnSize();
         }
         break;
     case WM_SIZE:
@@ -627,7 +629,8 @@ VOID PhOptionsLayoutSectionView(
     {
         RECT clientRect;
 
-        GetClientRect(ContainerControl, &clientRect);
+        if (!PhGetClientRect(ContainerControl, &clientRect))
+            return;
 
         SetWindowPos(
             CurrentSection->DialogHandle,
@@ -782,6 +785,7 @@ typedef struct _PHP_HKURUN_ENTRY
     //PPH_STRING Name;
 } PHP_HKURUN_ENTRY, *PPHP_HKURUN_ENTRY;
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI PhpReadCurrentRunCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_VALUE_FULL_INFORMATION Information,
@@ -879,7 +883,7 @@ static VOID WriteCurrentUserRun(
         )))
     {
         static CONST PH_STRINGREF valueName = PH_STRINGREF_INIT(L"System Informer");
-        static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
 
         if (Present)
         {
@@ -888,7 +892,7 @@ static VOID WriteCurrentUserRun(
 
             if (fileName = PhGetApplicationFileNameWin32())
             {
-                value = PH_AUTO(PhConcatStringRef3(&seperator, &fileName->sr, &seperator));
+                value = PH_AUTO(PhConcatStringRef3(&separator, &fileName->sr, &separator));
 
                 if (StartHidden)
                     value = PH_AUTO(PhConcatStringRefZ(&value->sr, L" -hide"));
@@ -1021,7 +1025,7 @@ VOID PhpSetDefaultTaskManager(
         if (NT_SUCCESS(status))
         {
             static CONST PH_STRINGREF valueName = PH_STRINGREF_INIT(L"Debugger");
-            static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+            static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
 
             if (PhpIsDefaultTaskManager())
             {
@@ -1034,7 +1038,7 @@ VOID PhpSetDefaultTaskManager(
 
                 if (applicationFileName = PhGetApplicationFileNameWin32())
                 {
-                    quotedFileName = PH_AUTO(PhConcatStringRef3(&seperator, &applicationFileName->sr, &seperator));
+                    quotedFileName = PH_AUTO(PhConcatStringRef3(&separator, &applicationFileName->sr, &separator));
 
                     status = PhSetValueKey(
                         taskmgrKeyHandle,
@@ -1072,7 +1076,7 @@ VOID PhpSetDefaultTaskManager(
 //    PhMoveReference(&directory, PhGetBaseDirectory(directory));
 //    PhMoveReference(&fileName, PhGetApplicationFileNameWin32());
 //    PhMoveReference(&fileName, PhGetBaseName(fileName));
-//    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr);
+//    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeparatorString, &fileName->sr);
 //
 //    if (NT_SUCCESS(PhOpenKey(
 //        &keyHandle,
@@ -1124,7 +1128,7 @@ VOID PhpSetDefaultTaskManager(
 //    PhMoveReference(&directory, PhGetBaseDirectory(directory));
 //    fileName = PhGetApplicationFileNameWin32();
 //    PhMoveReference(&fileName, PhGetBaseName(fileName));
-//    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr);
+//    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeparatorString, &fileName->sr);
 //
 //    //if (Enabled)
 //    //{
@@ -1286,7 +1290,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
             directory = PH_AUTO(PhGetBaseDirectory(directory));
             fileName = PH_AUTO(PhGetApplicationFileNameWin32());
             fileName = PH_AUTO(PhGetBaseName(fileName));
-            keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr));
+            keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeparatorString, &fileName->sr));
 
             status = PhCreateKey(
                 &keyHandle,
@@ -1342,7 +1346,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
             directory = PH_AUTO(PhGetBaseDirectory(directory));
             fileName = PH_AUTO(PhGetApplicationFileNameWin32());
             fileName = PH_AUTO(PhGetBaseName(fileName));
-            keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr));
+            keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeparatorString, &fileName->sr));
 
             status = PhOpenKey(
                 &keyHandle,
@@ -1664,6 +1668,18 @@ static VOID PhpAdvancedPageSave(
         RestartRequired = TRUE;
     }
 
+    // When changing driver enabled setting, it only makes sense to require a restart if we're
+    // already elevated. If we're not elevated and asked to restart, we would not connect to the
+    // driver and the user has to elevate (restart) again anyway. (jxy-s)
+    if (PhGetOwnTokenAttributes().Elevated)
+    {
+        SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"KsiEnable");
+    }
+    else
+    {
+        SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"KsiEnable");
+    }
+
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"AllowOnlyOneInstance");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, L"HideOnClose");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, L"HideOnMinimize");
@@ -1671,7 +1687,6 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"MiniInfoWindowEnabled");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE, L"EnableMemStringsTreeDialog");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"MainWindowTabRestoreEnabled");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"KsiEnable");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"EnablePlugins");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"DbgHelpUndecorate");
@@ -1708,6 +1723,7 @@ static VOID PhpAdvancedPageSave(
     SystemInformer_Invoke(PhpOptionsNotifyChangeCallback, NULL);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhpElevateAdvancedThreadStart(
     _In_ PVOID Parameter
     )
@@ -1867,8 +1883,11 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
+
             PhpOptionsSetImageList(ListViewHandle, FALSE);
         }
         break;
@@ -2070,7 +2089,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                                         if (applicationFileName = PhGetApplicationFileNameWin32())
                                         {
-                                            static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+                                            static const PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
                                             HRESULT status;
                                             PPH_STRING quotedFileName;
 
@@ -2081,9 +2100,9 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                             }
 
                                             quotedFileName = PH_AUTO(PhConcatStringRef3(
-                                                &seperator,
+                                                &separator,
                                                 &applicationFileName->sr,
-                                                &seperator
+                                                &separator
                                                 ));
 
                                             status = PhCreateAdminTask(
@@ -2242,6 +2261,12 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_SIZE:
@@ -2448,6 +2473,7 @@ VOID OptionsAdvancedSetOptionsTreeList(
     }
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN OptionsAdvancedNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -2459,6 +2485,7 @@ BOOLEAN OptionsAdvancedNodeHashtableEqualFunction(
     return PhEqualStringRef(&node1->Name->sr, &node2->Name->sr, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG OptionsAdvancedNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -3085,6 +3112,12 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
@@ -3426,6 +3459,12 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&LayoutManager);
@@ -3684,6 +3723,12 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             }
 
             PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_SIZE:

@@ -14,7 +14,7 @@
 #include <verify.h>
 
 BOOLEAN WordMatchStringRef(
-    _In_ PPH_STRINGREF Text
+    _In_ PCPH_STRINGREF Text
     )
 {
     return PhSearchControlMatch(SearchMatchHandle, Text);
@@ -90,9 +90,7 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (processNode->ProcessItem->Protection.Level ||
-        processNode->ProcessItem->IsSecureProcess ||
-        processNode->ProcessItem->IsProtectedProcess)
+    if (processNode->ProcessItem->ProtectionString)
     {
         if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->ProtectionString->sr))
             return TRUE;

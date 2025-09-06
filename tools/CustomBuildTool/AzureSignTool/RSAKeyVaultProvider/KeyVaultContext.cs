@@ -16,7 +16,28 @@ namespace CustomBuildTool
     /// </summary>
     public readonly struct KeyVaultContext
     {
-        private readonly CryptographyClient cryptographyClient;
+        private readonly CryptographyClient CryptographyClient;
+
+        /// <summary>
+        /// Gets the certificate and public key used to validate the signature. May be null if 
+        /// Key isn't part of a certificate
+        /// </summary>
+        public X509Certificate2 Certificate { get; }
+
+        /// <summary>
+        /// Identifier of current key
+        /// </summary>
+        public Uri KeyIdentifier { get; }
+
+        /// <summary>
+        /// Public key 
+        /// </summary>
+        public JsonWebKey Key { get; }
+
+        /// <summary>
+        /// Returns true if properly constructed. If default, then false.
+        /// </summary>
+        public bool IsValid => this.CryptographyClient != null;
 
         /// <summary>
         /// Creates a new Key Vault context.
@@ -30,7 +51,7 @@ namespace CustomBuildTool
             this.Certificate = null;
             this.KeyIdentifier = keyId;
             this.Key = key;
-            this.cryptographyClient = new CryptographyClient(keyId, credential);           
+            this.CryptographyClient = new CryptographyClient(keyId, credential);           
         }
 
         /// <summary>
@@ -44,7 +65,7 @@ namespace CustomBuildTool
 
             this.Certificate = publicCertificate;
             this.KeyIdentifier = keyId;
-            this.cryptographyClient = new CryptographyClient(keyId, credential);
+            this.CryptographyClient = new CryptographyClient(keyId, credential);
 
             string algorithm = publicCertificate.GetKeyAlgorithm();
 
@@ -68,40 +89,23 @@ namespace CustomBuildTool
             }
         }
 
-        /// <summary>
-        /// Gets the certificate and public key used to validate the signature. May be null if 
-        /// Key isn't part of a certificate
-        /// </summary>
-        public X509Certificate2 Certificate { get; }
-
-        /// <summary>
-        /// Identifyer of current key
-        /// </summary>
-        public Uri KeyIdentifier { get; }
-
-        /// <summary>
-        /// Public key 
-        /// </summary>
-        public JsonWebKey Key { get; }
-
         internal byte[] SignDigest(byte[] digest, HashAlgorithmName hashAlgorithm, KeyVaultSignatureAlgorithm signatureAlgorithm)
         {
             var algorithm = SignatureAlgorithmTranslator.SignatureAlgorithmToJwsAlgId(signatureAlgorithm, hashAlgorithm);
 
             if (hashAlgorithm == HashAlgorithmName.SHA1)
             {
-                if (signatureAlgorithm != KeyVaultSignatureAlgorithm.RSAPkcs15)
-                    throw new InvalidOperationException("SHA1 algorithm is not supported for this signature algorithm.");
-
-                digest = CreateSha1Digest(digest);
+                //if (signatureAlgorithm != KeyVaultSignatureAlgorithm.RSAPkcs15)
+                throw new InvalidOperationException("SHA1 algorithm is not supported for this signature algorithm.");
+                //digest = CreateSha1Digest(digest);
             }
 
-            var sigResult = cryptographyClient.Sign(algorithm, digest);
+            var sigResult = this.CryptographyClient.Sign(algorithm, digest);
 
             return sigResult.Signature;
         }
 
-        internal EncryptionAlgorithm EncryptionPaddingToJwsAlgId(RSAEncryptionPadding padding)
+        internal static EncryptionAlgorithm EncryptionPaddingToJwsAlgId(RSAEncryptionPadding padding)
         {
             return padding.Mode switch
             {
@@ -116,30 +120,23 @@ namespace CustomBuildTool
         {
             var algorithm = EncryptionPaddingToJwsAlgId(padding);
 
-            var dataResult = cryptographyClient.Decrypt(algorithm, cipherText);
+            var dataResult = this.CryptographyClient.Decrypt(algorithm, cipherText);
 
             return dataResult.Plaintext;
         }
 
-
-        const int SHA1_SIZE = 20;
-        private static readonly byte[] sha1Digest = [0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2B, 0x0E, 0x03, 0x02, 0x1A, 0x05, 0x00, 0x04, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
-
-        internal static byte[] CreateSha1Digest(byte[] hash)
-        {
-            if (hash.Length != SHA1_SIZE)
-                throw new ArgumentException("Invalid hash value");
-
-            byte[] pkcs1Digest = (byte[])sha1Digest.Clone();
-            Array.Copy(hash, 0, pkcs1Digest, pkcs1Digest.Length - hash.Length, hash.Length);
-
-            return pkcs1Digest;
-        }
-
-
-        /// <summary>
-        /// Returns true if properly constructed. If default, then false.
-        /// </summary>
-        public bool IsValid => cryptographyClient != null;
+        //const int SHA1_SIZE = 20;
+        //private static readonly byte[] sha1Digest = [0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2B, 0x0E, 0x03, 0x02, 0x1A, 0x05, 0x00, 0x04, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        //
+        //internal static byte[] CreateSha1Digest(byte[] hash)
+        //{
+        //    if (hash.Length != SHA1_SIZE)
+        //        throw new ArgumentException("Invalid hash value");
+        //
+        //    byte[] pkcs1Digest = (byte[])sha1Digest.Clone();
+        //    Array.Copy(hash, 0, pkcs1Digest, pkcs1Digest.Length - hash.Length, hash.Length);
+        //
+        //    return pkcs1Digest;
+        //}
     }
 }

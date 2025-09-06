@@ -15,6 +15,9 @@
 #include <kphuser.h>
 #include <lsasup.h>
 #include <mapldr.h>
+#include <phafd.h>
+
+#include "hndlinfo.h"
 
 /**
  * Opens a thread.
@@ -566,6 +569,14 @@ NTSTATUS PhSetThreadGroupAffinity(
     return status;
 }
 
+/**
+ * The PhGetThreadLastSystemCall function returns the last system call of a thread.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param LastSystemCall The last system call of the thread.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetThreadLastSystemCall(
     _In_ HANDLE ThreadHandle,
     _Out_ PTHREAD_LAST_SYSCALL_INFORMATION LastSystemCall
@@ -577,22 +588,29 @@ NTSTATUS PhGetThreadLastSystemCall(
             ThreadHandle,
             ThreadLastSystemCall,
             LastSystemCall,
-            RTL_SIZEOF_THROUGH_FIELD(THREAD_LAST_SYSCALL_INFORMATION, Pad),
+            FIELD_OFFSET(THREAD_LAST_SYSCALL_INFORMATION, WaitTime),
             NULL
             );
     }
-    else
-    {
-        return NtQueryInformationThread(
-            ThreadHandle,
-            ThreadLastSystemCall,
-            LastSystemCall,
-            sizeof(THREAD_LAST_SYSCALL_INFORMATION),
-            NULL
-            );
-    }
+
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadLastSystemCall,
+        LastSystemCall,
+        sizeof(THREAD_LAST_SYSCALL_INFORMATION),
+        NULL
+        );
 }
 
+// rev from Advapi32!ImpersonateAnonymousToken (dmex)
+/**
+ * The PhCreateImpersonationToken function creates an anonymous logon token.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param TokenHandle A handle to the token.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhCreateImpersonationToken(
     _In_ HANDLE ThreadHandle,
     _Out_ PHANDLE TokenHandle
@@ -636,6 +654,15 @@ NTSTATUS PhCreateImpersonationToken(
     return status;
 }
 
+// rev from Advapi32!ImpersonateLoggedOnUser (dmex)
+/**
+ * The PhImpersonateToken function enables the specified thread to impersonate the security context of a token.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param TokenHandle A handle to the token.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhImpersonateToken(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE TokenHandle
@@ -662,19 +689,20 @@ NTSTATUS PhImpersonateToken(
         OBJECT_ATTRIBUTES objectAttributes;
         HANDLE tokenHandle;
 
-        InitializeObjectAttributes(
-            &objectAttributes,
-            NULL,
-            OBJ_EXCLUSIVE,
-            NULL,
-            NULL
-            );
-
+        memset(&securityService, 0, sizeof(SECURITY_QUALITY_OF_SERVICE));
         securityService.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
         securityService.ImpersonationLevel = SecurityImpersonation;
         securityService.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
         securityService.EffectiveOnly = FALSE;
-        objectAttributes.SecurityQualityOfService = &securityService;
+
+        InitializeObjectAttributesEx(
+            &objectAttributes,
+            NULL,
+            OBJ_EXCLUSIVE,
+            NULL,
+            NULL,
+            &securityService
+            );
 
         status = NtDuplicateToken(
             TokenHandle,
@@ -710,6 +738,14 @@ NTSTATUS PhImpersonateToken(
     return status;
 }
 
+// rev from Advapi32!RevertToSelf (dmex)
+/**
+ * The PhRevertImpersonationToken function terminates the impersonation of a security context.
+ *
+ * \param ThreadHandle A handle to the thread.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhRevertImpersonationToken(
     _In_ HANDLE ThreadHandle
     )
@@ -724,6 +760,15 @@ NTSTATUS PhRevertImpersonationToken(
         );
 }
 
+/**
+ * Retrieves the last error status of a thread.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param ProcessHandle A handle to the process.
+ * \param LastStatusValue The last status of the thread.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetThreadLastStatusValue(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
@@ -767,24 +812,130 @@ NTSTATUS PhGetThreadLastStatusValue(
     return status;
 }
 
-NTSTATUS PhGetThreadApartmentState(
+/**
+ * Retrieves statistics about COM multi-threaded apartment (MTA) usage in a process.
+ *
+ * \param[in] ProcessHandle A handle to the process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param[out] MTAInits The total number of MTA references in the process.
+ * \param[out] MTAIncInits The number of MTA references from CoIncrementMTAUsage.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetProcessMTAUsage(
+    _In_ HANDLE ProcessHandle,
+    _Out_opt_ PULONG MTAInits,
+    _Out_opt_ PULONG MTAIncInits
+    )
+{
+    NTSTATUS status;
+#ifdef _WIN64
+    BOOLEAN isWow64;
+#endif
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PMTA_USAGE_GLOBALS mtaUsageGlobals = NULL;
+
+    if (!MTAInits && !MTAIncInits)
+        return STATUS_INVALID_PARAMETER;
+
+#ifdef _WIN64
+    if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
+        return status;
+
+    if (isWow64)
+        return STATUS_NOT_SUPPORTED;
+#endif
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_8)
+        {
+            PVOID combase;
+            PMTA_USAGE_GLOBALS (WINAPI* CoGetMTAUsageInfo_I)(VOID);
+
+            if (combase = PhGetLoaderEntryDllBaseZ(L"combase.dll"))
+            {
+                // combase exports CoGetMTAUsageInfo as ordinal 70
+                CoGetMTAUsageInfo_I = PhGetDllBaseProcedureAddress(combase, NULL, 70);
+
+                if (CoGetMTAUsageInfo_I)
+                {
+                    // CoGetMTAUsageInfo returns addresses of several global variables we can read
+                    mtaUsageGlobals = CoGetMTAUsageInfo_I();
+                }
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!mtaUsageGlobals)
+        return STATUS_UNSUCCESSFUL;
+
+    if (MTAInits)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            mtaUsageGlobals->MTAInits,
+            MTAInits,
+            sizeof(ULONG),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+
+    if (MTAIncInits)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            mtaUsageGlobals->MTAIncInits,
+            MTAIncInits,
+            sizeof(ULONG),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Retrieves COM apartment flags and init count of a thread.
+ *
+ * \param[in] ThreadHandle A handle to the thread. The handle must have
+ * THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param[in] ProcessHandle A handle to the process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param[out] ApartmentFlags The COM apartment flags of the thread.
+ * \param[out] ComInits The number of times the thread initialized COM.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetThreadApartmentFlags(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
-    _Out_ POLETLSFLAGS ApartmentState
+    _Out_ PULONG ApartmentFlags,
+    _Out_opt_ PULONG ComInits
     )
 {
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
+    PVOID apartmentStateOffset;
+    PVOID oletlsBaseAddress;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    __typeof__(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = NULL;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
 
 #ifdef _WIN64
-    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+    if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
+        return status;
 
     if (isWow64)
     {
@@ -816,36 +967,187 @@ NTSTATUS PhGetThreadApartmentState(
         oletlsBaseAddress = (PVOID)oletlsDataAddress;
     }
 
-    if (NT_SUCCESS(status) && oletlsBaseAddress)
-    {
-        PVOID apartmentStateOffset;
+    if (!NT_SUCCESS(status))
+        return status;
 
-        // Note: Teb->ReservedForOle is the SOleTlsData structure
-        // and ApartmentState is the dwFlags field. (dmex)
+    if (!oletlsBaseAddress)
+    {
+        // Return a special error to indicate that we successfully determined
+        // that the thread has no associated COM state. (diversenok)
+        return NTSTATUS_FROM_WIN32(CO_E_NOTINITIALIZED);
+    }
+
+#ifdef _WIN64
+    if (isWow64)
+        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData32, Flags));
+    else
+        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
+#else
+    apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
+#endif
+
+    status = NtReadVirtualMemory(
+        ProcessHandle,
+        apartmentStateOffset,
+        ApartmentFlags,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (ComInits)
+    {
+        PVOID comInitsOffset;
 
 #ifdef _WIN64
         if (isWow64)
-            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData32, Flags));
+            comInitsOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData32, ComInits));
         else
-            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
+            comInitsOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, ComInits));
 #else
-        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
+        comInitsOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, ComInits));
 #endif
 
         status = NtReadVirtualMemory(
             ProcessHandle,
-            apartmentStateOffset,
-            ApartmentState,
+            comInitsOffset,
+            ComInits,
             sizeof(ULONG),
             NULL
             );
     }
-    else
-    {
-        status = STATUS_UNSUCCESSFUL;
-    }
 
     return status;
+}
+
+/**
+ * Determines COM apartment type of a thread, similar to CoGetApartmentType.
+ *
+ * \param[in] ThreadHandle A handle to the thread. The handle must have
+ * THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param[in] ProcessHandle A handle to the process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param[out] ApartmentInfo The COM apartment information of the thread.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetThreadApartment(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_APARTMENT_INFO ApartmentInfo
+    )
+{
+    NTSTATUS status;
+    PH_APARTMENT_INFO info = { 0 };
+
+    //
+    // N.B. Most information about the thread's apartment comes from OLE TLS data in TEB.
+    // Without it, threads can still implicitly belong to the multi-threaded apartment (MTA)
+    // as long as one exists in the process. (diversenok)
+    //
+
+    // Read OLE TLS flags
+    status = PhGetThreadApartmentFlags(ThreadHandle, ProcessHandle, &info.Flags, &info.ComInits);
+
+    if (status == NTSTATUS_FROM_WIN32(CO_E_NOTINITIALIZED))
+    {
+        // For our purposes, no OLE TLS data is equivalent to empty flags
+        info.Flags = 0;
+        info.ComInits = 0;
+        status = STATUS_SUCCESS;
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (info.Flags & OLETLS_APARTMENTTHREADED)
+    {
+        //
+        // N.B. Single-threaded apartments (STAs) belong to one of the three sub-types:
+        //  - Main STA: the first (classic) STA created in the process. It has the responsibility of hosting
+        //    all components with no ThreadingModel and ThreadingModel=Single (which are equivalent).
+        //  - Classic STA: a reentrant single-threaded apartment, usually referred to as just STA.
+        //  - Application STA (ASTA): a non-reentrant single-threaded apartment used primarily by WinRT.
+        //
+
+        if (info.Flags & OLETLS_APPLICATION_STA)
+        {
+            // The non-reentrancy requirement of ASTA means it cannot serve as the main STA
+            info.Type = PH_APARTMENT_TYPE_APPLICATION_STA;
+        }
+        else
+        {
+            THREAD_BASIC_INFORMATION basicInfo;
+            BOOLEAN isMainSta = FALSE;
+
+            //
+            // N.B. There is no flag to distinguish between main and non-main classic STAs.
+            // Internally, CoGetApartmentType compares the caller's thread ID to the thread ID
+            // stored in a private global variable (which we cannot access). Instead, we can
+            // check if the specified thread owns the main STA window - a message-only window
+            // with a known class and name. (diversenok)
+            //
+
+            if (NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+            {
+
+                CLIENT_ID clientId;
+                HWND hwnd = NULL;
+
+                do
+                {
+                    // Find the next main STA window
+                    hwnd = FindWindowExW(
+                        HWND_MESSAGE,
+                        hwnd,
+                        L"OleMainThreadWndClass",
+                        L"OleMainThreadWndName"
+                        );
+
+                    // Check if it belongs to the specified thread ID
+                } while (hwnd && NT_SUCCESS(PhGetWindowClientId(hwnd, &clientId)) &&
+                    (clientId.UniqueProcess != basicInfo.ClientId.UniqueProcess ||
+                    clientId.UniqueThread != basicInfo.ClientId.UniqueThread));
+
+                isMainSta = !!hwnd;
+            }
+
+            info.Type = isMainSta ? PH_APARTMENT_TYPE_MAIN_STA : PH_APARTMENT_TYPE_STA;
+        }
+    }
+    else if (info.Flags & (OLETLS_MULTITHREADED | OLETLS_DISPATCHTHREAD))
+    {
+        // CoGetApartmentType treats explicit MTA threads and dispatch threads equally
+        info.Type = PH_APARTMENT_TYPE_MTA;
+    }
+    else
+    {
+        //
+        // N.B. The thread lacks an explicit apartment. A single MTA init, however, is
+        // enough to put all apartmentless threads into implicit MTA. The existence of MTA
+        // can be checked by reading the process-wide MTA usage counter. (diversenok)
+        // 
+
+        if (!NT_SUCCESS(status = PhGetProcessMTAUsage(ProcessHandle, &info.ComInits, NULL)))
+            return status;
+
+        if (info.ComInits > 0)
+            info.Type = PH_APARTMENT_TYPE_IMPLICIT_MTA;
+        else
+            return NTSTATUS_FROM_WIN32(CO_E_NOTINITIALIZED);
+    }
+
+    //
+    // N.B. Threads can temporarily enter the neutral apartment on top of their existing apartment.
+    // Neutral apartment is often abbreviated to NA, NTA, or TNA. (diversenok)
+    //
+
+    info.InNeutral = !!(info.Flags & OLETLS_INNEUTRALAPT);
+
+    *ApartmentInfo = info;
+    return STATUS_SUCCESS;
 }
 
 // rev from advapi32!WctGetCOMInfo (dmex)
@@ -869,7 +1171,7 @@ NTSTATUS PhGetThreadApartmentCallState(
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    __typeof__(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = NULL;
+    PVOID oletlsBaseAddress = NULL;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
@@ -941,9 +1243,9 @@ NTSTATUS PhGetThreadApartmentCallState(
         ULONG outgoingCallDataOffset = 0;
         ULONG incomingCallDataOffset = 0;
         ULONG outgoingActivationDataOffset = 0;
-        tagOutgoingCallData outgoingCallData;
-        tagIncomingCallData incomingCallData;
-        tagOutgoingActivationData outgoingActivationData;
+        tagOutgoingCallData outgoingCallData = { 0 };
+        tagIncomingCallData incomingCallData = { 0 };
+        tagOutgoingActivationData outgoingActivationData = { 0 };
 
         if (PhBeginInitOnce(&initOnce))
         {
@@ -957,10 +1259,6 @@ NTSTATUS PhGetThreadApartmentCallState(
 
             PhEndInitOnce(&initOnce);
         }
-
-        memset(&outgoingCallData, 0, sizeof(tagOutgoingCallData));
-        memset(&incomingCallData, 0, sizeof(tagIncomingCallData));
-        memset(&outgoingActivationData, 0, sizeof(tagOutgoingActivationData));
 
         if (HR_SUCCESS(CoGetCallState_I(CALL_STATE_TYPE_OUTGOING, &outgoingCallDataOffset)) && outgoingCallDataOffset)
         {
@@ -1004,6 +1302,69 @@ NTSTATUS PhGetThreadApartmentCallState(
     else
     {
         status = STATUS_UNSUCCESSFUL;
+    }
+
+    return status;
+}
+
+/**
+ * Determines if a thread has an associated RPC state.
+ *
+ * \param[in] ThreadHandle A handle to the thread. The handle must have
+ * THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param[in] ProcessHandle A handle to the process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param[out] HasRpcState Whether the thread has allocated RPC state.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetThreadRpcState(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN HasRpcState
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return status;
+
+#ifdef _WIN64
+    if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
+        return status;
+
+    if (isWow64)
+    {
+        typeof(RTL_FIELD_TYPE(TEB32, ReservedForNtRpc)) reservedForNtRpc32 = 0;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, ReservedForNtRpc)),
+            &reservedForNtRpc32,
+            sizeof(RTL_FIELD_TYPE(TEB32, ReservedForNtRpc)),
+            NULL
+            );
+
+        *HasRpcState = !!reservedForNtRpc32;
+    }
+    else
+#endif
+    {
+        typeof(RTL_FIELD_TYPE(TEB, ReservedForNtRpc)) reservedForNtRpc = NULL;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, ReservedForNtRpc)),
+            &reservedForNtRpc,
+            sizeof(RTL_FIELD_TYPE(TEB, ReservedForNtRpc)),
+            NULL
+            );
+
+        *HasRpcState = !!reservedForNtRpc;
     }
 
     return status;
@@ -1079,11 +1440,10 @@ NTSTATUS PhGetThreadSocketState(
 {
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
-    BOOLEAN openedProcessHandle = FALSE;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    __typeof__(RTL_FIELD_TYPE(TEB, WinSockData)) winsockHandleAddress = NULL;
+    typeof(RTL_FIELD_TYPE(TEB, WinSockData)) winsockHandleAddress = NULL;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
@@ -1108,21 +1468,22 @@ NTSTATUS PhGetThreadSocketState(
     else
 #endif
     {
-        ULONG_PTR winsockDataAddress = 0;
+        HANDLE winsockDataAddress = NULL;
 
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, WinSockData)),
             &winsockDataAddress,
-            sizeof(ULONG_PTR),
+            sizeof(HANDLE),
             NULL
             );
 
-        winsockHandleAddress = (HANDLE)winsockDataAddress;
+        winsockHandleAddress = winsockDataAddress;
     }
 
     if (NT_SUCCESS(status) && winsockHandleAddress)
     {
+#if defined(PHLIB_SOCKET_STATE_WINSOCK)
         static LONG (WINAPI* LPFN_WSASTARTUP)(
             _In_ WORD wVersionRequested,
             _Out_ PVOID* lpWSAData
@@ -1168,8 +1529,10 @@ NTSTATUS PhGetThreadSocketState(
             LONG iProtocol;
         } CSADDR_INFO, *PCSADDR_INFO, FAR* LPCSADDR_INFO;
         PVOID wsaStartupData;
+#endif
         HANDLE winsockTargetHandle;
 
+#if defined(PHLIB_SOCKET_STATE_WINSOCK)
         if (PhBeginInitOnce(&initOnce))
         {
             PVOID baseAddress;
@@ -1192,7 +1555,7 @@ NTSTATUS PhGetThreadSocketState(
             status = STATUS_UNSUCCESSFUL;
             goto CleanupExit;
         }
-
+#endif
         status = NtDuplicateObject(
             ProcessHandle,
             winsockHandleAddress,
@@ -1205,22 +1568,44 @@ NTSTATUS PhGetThreadSocketState(
 
         if (NT_SUCCESS(status))
         {
-            ULONG returnLength;
             OBJECT_BASIC_INFORMATION winsockTargetBasicInfo;
-            INT winsockAddressInfoLength = sizeof(CSADDR_INFO);
-            CSADDR_INFO winsockAddressInfo;
 
-            memset(&winsockTargetBasicInfo, 0, sizeof(OBJECT_BASIC_INFORMATION));
-            NtQueryObject(
+            status = PhGetObjectBasicInformation(
+                ProcessHandle,
                 winsockTargetHandle,
-                ObjectBasicInformation,
-                &winsockTargetBasicInfo,
-                sizeof(OBJECT_BASIC_INFORMATION),
-                &returnLength
+                &winsockTargetBasicInfo
                 );
 
-            if (winsockTargetBasicInfo.HandleCount > 2)
+            if (NT_SUCCESS(status))
             {
+                ULONG winsockAddressInfoLength = sizeof(CSADDR_INFO);
+                CSADDR_INFO winsockAddressInfo;
+
+                status = PhAfdQuerySocketOption(
+                    winsockTargetHandle,
+                    SOL_SOCKET,
+                    SO_BSP_STATE,
+                    &winsockAddressInfo,
+                    winsockAddressInfoLength,
+                    &winsockAddressInfoLength
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    if (winsockAddressInfo.iProtocol == 6)
+                    {
+                        if (winsockAddressInfo.LocalAddr.lpSockaddr && winsockAddressInfo.RemoteAddr.lpSockaddr)
+                            *ThreadSocketState = PH_THREAD_SOCKET_STATE_SHARED;
+                        else
+                            *ThreadSocketState = PH_THREAD_SOCKET_STATE_DISCONNECTED;
+                    }
+                    else
+                    {
+                        *ThreadSocketState = PH_THREAD_SOCKET_STATE_NOT_TCPIP;
+                    }
+                }
+ 
+#if defined(PHLIB_SOCKET_STATE_WINSOCK)
                 if (LPFN_GETSOCKOPT((UINT_PTR)winsockTargetHandle, SOL_SOCKET, SO_BSP_STATE, (PCHAR)&winsockAddressInfo, &winsockAddressInfoLength) != SOCKET_ERROR)
                 {
                     if (winsockAddressInfo.iProtocol == 6)
@@ -1237,27 +1622,21 @@ NTSTATUS PhGetThreadSocketState(
                 {
                     status = STATUS_UNSUCCESSFUL; // WSAGetLastError();
                 }
+#endif
             }
-            else
-            {
-                status = STATUS_UNSUCCESSFUL;
-            }
-
+#if defined(PHLIB_SOCKET_STATE_WINSOCK)
             LPFN_CLOSESOCKET((UINT_PTR)winsockTargetHandle);
-
+#endif
             NtClose(winsockTargetHandle);
         }
-
+#if defined(PHLIB_SOCKET_STATE_WINSOCK)
         LPFN_WSACLEANUP();
+#endif
     }
     else
     {
         status = STATUS_UNSUCCESSFUL;
     }
-
-CleanupExit:
-    if (openedProcessHandle)
-        NtClose(ProcessHandle);
 
     return status;
 }
@@ -1271,7 +1650,8 @@ NTSTATUS PhGetThreadStackLimits(
 {
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
-    NT_TIB ntTib;
+    PVOID stackBaseAddress;
+    PVOID stackLimitAddress;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
@@ -1279,51 +1659,45 @@ NTSTATUS PhGetThreadStackLimits(
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
 
-    memset(&ntTib, 0, sizeof(NT_TIB));
-
 #ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
     if (isWow64)
     {
+        typeof(RTL_FIELD_TYPE(TEB32, NtTib)) ntTib32 = { 0 };
+
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, NtTib)),
-            &ntTib,
-            sizeof(NT_TIB32),
+            &ntTib32,
+            sizeof(RTL_FIELD_TYPE(TEB32, NtTib)),
             NULL
             );
+
+        stackBaseAddress = UlongToPtr(ntTib32.StackBase);
+        stackLimitAddress = UlongToPtr(ntTib32.StackLimit);
     }
     else
 #endif
     {
+        typeof(RTL_FIELD_TYPE(TEB, NtTib)) ntTib = { 0 };
+
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, NtTib)),
             &ntTib,
-            sizeof(NT_TIB),
+            sizeof(RTL_FIELD_TYPE(TEB, NtTib)),
             NULL
             );
+
+        stackBaseAddress = ntTib.StackBase;
+        stackLimitAddress = ntTib.StackLimit;
     }
 
     if (NT_SUCCESS(status))
     {
-#ifdef _WIN64
-        if (isWow64)
-        {
-            PNT_TIB32 ntTib32 = (PNT_TIB32)&ntTib;
-            *LowPart = (ULONG_PTR)UlongToPtr(ntTib32->StackLimit);
-            *HighPart = (ULONG_PTR)UlongToPtr(ntTib32->StackBase);
-        }
-        else
-        {
-            *LowPart = (ULONG_PTR)ntTib.StackLimit;
-            *HighPart = (ULONG_PTR)ntTib.StackBase;
-        }
-#else
-        *LowPart = (ULONG_PTR)ntTib.StackLimit;
-        *HighPart = (ULONG_PTR)ntTib.StackBase;
-#endif
+        *LowPart = (ULONG_PTR)stackBaseAddress;
+        *HighPart = (ULONG_PTR)stackLimitAddress;
     }
 
     return status;
@@ -1338,7 +1712,8 @@ NTSTATUS PhGetThreadStackSize(
 {
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
-    NT_TIB ntTib;
+    PVOID stackBaseAddress;
+    PVOID stackLimitAddress;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
@@ -1346,55 +1721,45 @@ NTSTATUS PhGetThreadStackSize(
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
 
-    memset(&ntTib, 0, sizeof(NT_TIB));
-
 #ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
     if (isWow64)
     {
+        typeof(RTL_FIELD_TYPE(TEB32, NtTib)) ntTib32 = { 0 };
+
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, NtTib)),
-            &ntTib,
-            sizeof(NT_TIB32),
+            &ntTib32,
+            sizeof(RTL_FIELD_TYPE(TEB32, NtTib)),
             NULL
             );
+
+        stackBaseAddress = UlongToPtr(ntTib32.StackBase);
+        stackLimitAddress = UlongToPtr(ntTib32.StackLimit);
     }
     else
 #endif
     {
+        typeof(RTL_FIELD_TYPE(TEB, NtTib)) ntTib = { 0 };
+
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, NtTib)),
             &ntTib,
-            sizeof(NT_TIB),
+            sizeof(RTL_FIELD_TYPE(TEB, NtTib)),
             NULL
             );
+
+        stackBaseAddress = ntTib.StackBase;
+        stackLimitAddress = ntTib.StackLimit;
     }
 
     if (NT_SUCCESS(status))
     {
         MEMORY_BASIC_INFORMATION memoryBasicInformation;
-        PVOID stackBaseAddress = NULL;
-        PVOID stackLimitAddress = NULL;
 
-#ifdef _WIN64
-        if (isWow64)
-        {
-            PNT_TIB32 ntTib32 = (PNT_TIB32)&ntTib;
-            stackBaseAddress = UlongToPtr(ntTib32->StackBase);
-            stackLimitAddress = UlongToPtr(ntTib32->StackLimit);
-        }
-        else
-        {
-            stackBaseAddress = ntTib.StackBase;
-            stackLimitAddress = ntTib.StackLimit;
-        }
-#else
-        stackBaseAddress = ntTib.StackBase;
-        stackLimitAddress = ntTib.StackLimit;
-#endif
         memset(&memoryBasicInformation, 0, sizeof(MEMORY_BASIC_INFORMATION));
 
         status = NtQueryVirtualMemory(
@@ -1419,65 +1784,57 @@ NTSTATUS PhGetThreadStackSize(
 
 NTSTATUS PhGetThreadIsFiber(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN ThreadIsFiber
     )
 {
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
-    BOOLEAN openedProcessHandle = FALSE;
+    BOOLEAN threadIsFiber;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    LONG flags = 0;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
-
-    if (!ProcessHandle)
-    {
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &ProcessHandle,
-            PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
-            basicInfo.ClientId.UniqueProcess
-            )))
-            return status;
-
-        openedProcessHandle = TRUE;
-    }
 
 #ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
     if (isWow64)
     {
+        typeof(RTL_FIELD_TYPE(TEB32, SameTebFlags)) flags = 0;
+
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, SameTebFlags)),
             &flags,
-            sizeof(USHORT),
+            sizeof(RTL_FIELD_TYPE(TEB32, SameTebFlags)),
             NULL
             );
+
+        threadIsFiber = _bittest((LONG CONST*)&flags, 2); // HasFiberData offset (dmex)
     }
     else
 #endif
     {
+        typeof(RTL_FIELD_TYPE(TEB, SameTebFlags)) flags = 0;
+
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, SameTebFlags)),
             &flags,
-            sizeof(USHORT),
+            sizeof(RTL_FIELD_TYPE(TEB, SameTebFlags)),
             NULL
             );
+
+        threadIsFiber = _bittest((LONG CONST*)&flags, 2); // HasFiberData offset (dmex)
     }
 
     if (NT_SUCCESS(status))
     {
-        *ThreadIsFiber = _bittest(&flags, 2); // HasFiberData offset (dmex)
+        *ThreadIsFiber = threadIsFiber;
     }
-
-    if (openedProcessHandle)
-        NtClose(ProcessHandle);
 
     return status;
 }
@@ -1600,13 +1957,13 @@ NTSTATUS PhGetProcessRuntimeLibrary(
 }
 
 /**
- * Causes a process to load a DLL.
+ * Loads the specified module into the process's address space using standard LoadLibraryW provided
+ * by the operating system.
  *
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION, PROCESS_VM_READ
  * and PROCESS_VM_WRITE access.
  * \param FileName The file name of the DLL to inject.
- * \param LoadDllUsingApcThread Queues an APC (Asynchronous Procedure Call) when calling LoadLibraryW.
  * \param Timeout The timeout, in milliseconds, for the process to load the DLL.
  *
  * \remarks If the process does not load the DLL before the timeout expires it may crash. Choose the
@@ -1615,7 +1972,122 @@ NTSTATUS PhGetProcessRuntimeLibrary(
 NTSTATUS PhLoadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
-    _In_ BOOLEAN LoadDllUsingApcThread,
+    _In_opt_ ULONG Timeout
+    )
+{
+    NTSTATUS status;
+    PVOID fileNameBaseAddress = NULL;
+    PVOID loadLibraryW = NULL;
+    HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+
+    if (KphProcessLevel(ProcessHandle) > KphLevelMed)
+    {
+        return STATUS_ACCESS_DENIED;
+    }
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->Kernel32FileName,
+        "LoadLibraryW",
+        &loadLibraryW,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhAllocateVirtualMemory(
+        ProcessHandle,
+        &fileNameBaseAddress,
+        FileName->Length + sizeof(UNICODE_NULL),
+        MEM_COMMIT,
+        PAGE_READWRITE
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWriteVirtualMemory(
+        ProcessHandle,
+        fileNameBaseAddress,
+        FileName->Buffer,
+        FileName->Length + sizeof(UNICODE_NULL),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    status = PhCreateUserThread(
+        ProcessHandle,
+        NULL,
+        THREAD_ALL_ACCESS,
+        0,
+        0,
+        0,
+        0,
+        loadLibraryW,
+        fileNameBaseAddress,
+        &threadHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhWaitForSingleObject(threadHandle, Timeout);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+CleanupExit:
+    if (threadHandle)
+        NtClose(threadHandle);
+
+    if (powerRequestHandle)
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+
+    if (fileNameBaseAddress)
+        PhFreeVirtualMemory(ProcessHandle, fileNameBaseAddress, MEM_RELEASE);
+
+    return status;
+}
+
+/**
+ * Loads the specified module into the process's address space using standard Asynchronous Procedure Call (APC)
+ * routines provided by the operating system.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION, PROCESS_VM_READ
+ * and PROCESS_VM_WRITE access.
+ * \param FileName The file name of the DLL to inject.
+ * \param Timeout The timeout, in milliseconds, for the process to load the DLL.
+ *
+ * \remarks If the process does not load the DLL before the timeout expires it may crash. Choose the
+ * timeout value carefully.
+ */
+NTSTATUS PhLoadDllProcessApcThread(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_STRINGREF FileName,
     _In_opt_ ULONG Timeout
     )
 {
@@ -1653,19 +2125,16 @@ NTSTATUS PhLoadDllProcess(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    if (LoadDllUsingApcThread)
-    {
-        status = PhGetProcedureAddressRemote(
-            ProcessHandle,
-            &runtimeLibrary->NtdllFileName,
-            "RtlExitUserThread",
-            &rtlExitUserThread,
-            NULL
-            );
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->NtdllFileName,
+        "RtlExitUserThread",
+        &rtlExitUserThread,
+        NULL
+        );
 
-        if (!NT_SUCCESS(status))
-            goto CleanupExit;
-    }
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
     fileNameAllocationSize = FileName->Length + sizeof(UNICODE_NULL);
     status = NtAllocateVirtualMemory(
@@ -1699,49 +2168,30 @@ NTSTATUS PhLoadDllProcess(
             goto CleanupExit;
     }
 
-    if (LoadDllUsingApcThread)
-    {
-        status = PhCreateUserThread(
-            ProcessHandle,
-            NULL,
-            THREAD_ALL_ACCESS,
-            THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
-            0,
-            0,
-            0,
-            rtlExitUserThread,
-            LongToPtr(STATUS_SUCCESS),
-            &threadHandle,
-            NULL
-            );
+    status = PhCreateUserThread(
+        ProcessHandle,
+        NULL,
+        THREAD_ALL_ACCESS,
+        THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
+        0,
+        0,
+        0,
+        rtlExitUserThread,
+        LongToPtr(STATUS_SUCCESS),
+        &threadHandle,
+        NULL
+        );
 
-        if (!NT_SUCCESS(status))
-            goto CleanupExit;
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
-        status = NtQueueApcThread(
-            threadHandle,
-            loadLibraryW,
-            fileNameBaseAddress,
-            NULL,
-            NULL
-            );
-    }
-    else
-    {
-        status = PhCreateUserThread(
-            ProcessHandle,
-            NULL,
-            THREAD_ALL_ACCESS,
-            0,
-            0,
-            0,
-            0,
-            loadLibraryW,
-            fileNameBaseAddress,
-            &threadHandle,
-            NULL
-            );
-    }
+    status = NtQueueApcThread(
+        threadHandle,
+        loadLibraryW,
+        fileNameBaseAddress,
+        NULL,
+        NULL
+        );
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -2182,14 +2632,45 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Retrieves a copy of the system DLL init block for the process.
+ *
+ * \param[in] ProcessHandle A handle to the process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param[out] SystemDllInitBlock A buffer for a version-independent copy of LdrSystemDllInitBlock.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetProcessSystemDllInitBlock(
     _In_ HANDLE ProcessHandle,
     _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
     )
 {
     NTSTATUS status;
-    PS_SYSTEM_DLL_INIT_BLOCK ldrSystemDllInitBlock = { 0 };
+    PS_SYSTEM_DLL_INIT_BLOCK systemDllInitBlock = { 0 };
     PVOID ldrSystemDllInitBlockAddress;
+    ULONG expectedSize;
+
+    // N.B. Aside from having three revisions, PS_SYSTEM_DLL_INIT_BLOCK
+    // has different fields available on different OS versions. Determine
+    // the maximum number of bytes we can read. (diversenok)
+
+    if (WindowsVersion >= WINDOWS_11_24H2)
+        expectedSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V3);
+    else if (WindowsVersion >= PHNT_WINDOWS_10_20H1)
+        expectedSize = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK_V3, MitigationAuditOptionsMap);
+    else if (WindowsVersion >= PHNT_WINDOWS_10_RS3)
+        expectedSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V2);
+    else if (WindowsVersion >= PHNT_WINDOWS_10_RS2)
+        expectedSize = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK_V2, Wow64CfgBitMapSize);
+    else if (WindowsVersion >= PHNT_WINDOWS_10)
+        expectedSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V1);
+    else if (WindowsVersion >= PHNT_WINDOWS_8_1)
+        expectedSize = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK_V1, CfgBitMapSize);
+    else if (WindowsVersion >= PHNT_WINDOWS_8)
+        expectedSize = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK_V1, MitigationOptions);
+    else
+        return STATUS_NOT_SUPPORTED;
 
     status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
@@ -2205,22 +2686,21 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     status = NtReadVirtualMemory(
         ProcessHandle,
         ldrSystemDllInitBlockAddress,
-        &ldrSystemDllInitBlock,
-        PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1,
+        &systemDllInitBlock,
+        expectedSize,
         NULL
         );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    if (RTL_CONTAINS_FIELD(&ldrSystemDllInitBlock, ldrSystemDllInitBlock.Size, MitigationAuditOptionsMap))
-    {
-        RtlMoveMemory(SystemDllInitBlock, &ldrSystemDllInitBlock, sizeof(ldrSystemDllInitBlock));
-    }
-    else
-    {
-        status = STATUS_INFO_LENGTH_MISMATCH;
-    }
+    if (systemDllInitBlock.Size > expectedSize)
+        systemDllInitBlock.Size = expectedSize;
+
+    status = PhCaptureSystemDllInitBlock(
+        &systemDllInitBlock,
+        SystemDllInitBlock
+        );
 
     return status;
 }
@@ -2549,7 +3029,7 @@ CleanupExit:
  */
 NTSTATUS PhInvokeWindowProcedureRemote(
     _In_ HWND WindowHandle,
-    _In_ PVOID ApcRoutine,
+    _In_ PPS_APC_ROUTINE ApcRoutine,
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3

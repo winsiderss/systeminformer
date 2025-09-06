@@ -57,6 +57,8 @@
 #define SETTING_NAME_DEVICE_INTERFACES_COLUMNS (PLUGIN_NAME L".DeviceInterfacesColumns")
 #define SETTING_NAME_DEVICE_ARRIVED_COLOR (PLUGIN_NAME L".ColorDeviceArrived")
 #define SETTING_NAME_DEVICE_HIGHLIGHTING_DURATION (PLUGIN_NAME L".DeviceHighlightingDuration")
+#define SETTING_NAME_DEVICE_SORT_CHILD_DEVICES (PLUGIN_NAME L".SortChildDevices")
+#define SETTING_NAME_DEVICE_SORT_ROOT_DEVICES (PLUGIN_NAME L".SortRootDevices")
 
 #include <phdk.h>
 #include <phappresource.h>
@@ -476,7 +478,7 @@ BOOLEAN NetworkAdapterQueryInterfaceRow(
     _Out_ PMIB_IF_ROW2 InterfaceRow
     );
 
-PWSTR MediumTypeToString(
+PCWSTR MediumTypeToString(
     _In_ NDIS_PHYSICAL_MEDIUM MediumType
     );
 
@@ -1047,7 +1049,7 @@ typedef struct _SMART_ATTRIBUTES
     UINT RawValue;
 
     // Pre-fail/Advisory bit
-    // This bit is applicable only when the value of this attribute is less than or equal to its threshhold.
+    // This bit is applicable only when the value of this attribute is less than or equal to its threshold.
     // 0 : Advisory: The device has exceeded its intended design life period.
     // 1 : Pre-failure notification : Failure is predicted within 24 hours.
     BOOLEAN Advisory;
@@ -1074,7 +1076,7 @@ typedef struct _SMART_ATTRIBUTES
     BOOLEAN SelfPreserving;
 } SMART_ATTRIBUTES, *PSMART_ATTRIBUTES;
 
-PWSTR SmartAttributeGetText(
+PCWSTR SmartAttributeGetText(
     _In_ SMART_ATTRIBUTE_ID AttributeId
     );
 
@@ -1462,6 +1464,7 @@ VOID GraphicsDeviceSysInfoInitializing(
     _In_ PDV_GPU_ENTRY DiskEntry
     );
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN GraphicsDeviceSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,

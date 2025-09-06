@@ -20,6 +20,10 @@
 #include <appresolverp.h>
 #include <appresolver.h>
 
+static typeof(&AppContainerDeriveSidFromMoniker) AppContainerDeriveSidFromMoniker_I = NULL;
+static typeof(&AppContainerLookupMoniker) AppContainerLookupMoniker_I = NULL;
+static typeof(&AppContainerFreeMemory) AppContainerFreeMemory_I = NULL;
+
 /**
  * Queries the AppResolver interface.
  *
@@ -71,9 +75,9 @@ static PVOID PhpQueryStartMenuCacheInterface(
 }
 
 /**
- * Checks if the Kernel AppCore is initialized.
+ * Checks if the AppContainer functions are initialized.
  *
- * @return TRUE if the Kernel AppCore is initialized, FALSE otherwise.
+ * \return TRUE if initialized, FALSE otherwise.
  */
 static BOOLEAN PhpKernelAppCoreInitialized(
     VOID
@@ -88,7 +92,7 @@ static BOOLEAN PhpKernelAppCoreInitialized(
         {
             PVOID baseAddress;
 
-            if (baseAddress = PhLoadLibrary(L"kernelbase.dll")) // kernel.appcore.dll
+            if(baseAddress = PhLoadLibrary(L"kernelbase.dll"))
             {
                 AppContainerDeriveSidFromMoniker_I = PhGetDllBaseProcedureAddress(baseAddress, "AppContainerDeriveSidFromMoniker", 0);
                 AppContainerLookupMoniker_I = PhGetDllBaseProcedureAddress(baseAddress, "AppContainerLookupMoniker", 0);
@@ -114,10 +118,9 @@ static BOOLEAN PhpKernelAppCoreInitialized(
 /**
  * Retrieves the Application User Model ID (AppUserModelId) for a specified process.
  *
- * @param ProcessId The handle to the process.
- * @param ApplicationUserModelId A pointer to a string that receives the Application User Model ID.
- *
- * @return HRESULT indicating success or failure.
+ * \param ProcessId The handle to the process.
+ * \param ApplicationUserModelId A pointer to a string that receives the Application User Model ID.
+ * \return HRESULT indicating success or failure.
  */
 HRESULT PhAppResolverGetAppIdForProcess(
     _In_ HANDLE ProcessId,
@@ -164,7 +167,7 @@ HRESULT PhAppResolverGetAppIdForProcess(
             appIdText
             );
 
-        if (appIdTextLength > sizeof(UNICODE_NULL))
+        if ((appIdTextLength % sizeof(WCHAR)) == 0 && appIdTextLength > sizeof(UNICODE_NULL))
         {
             *ApplicationUserModelId = PhCreateStringEx(
                 appIdText,
@@ -190,10 +193,10 @@ HRESULT PhAppResolverGetAppIdForProcess(
 /**
  * Retrieves the Application User Model ID (AppUserModelId) for a specified window.
  *
- * @param WindowHandle The handle to the window.
- * @param ApplicationUserModelId A pointer to a string that receives the Application User Model ID.
- *
- * @return HRESULT indicating success or failure.
+ * \param WindowHandle The handle to the window.
+ * \param ApplicationUserModelId A pointer to a string that receives the Application User Model ID.
+ * \return HRESULT indicating success or failure.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-iapplicationactivationmanager-activateapplication
  */
 HRESULT PhAppResolverGetAppIdForWindow(
     _In_ HWND WindowHandle,
@@ -240,7 +243,7 @@ HRESULT PhAppResolverGetAppIdForWindow(
             appIdText
             );
 
-        if (appIdTextLength > sizeof(UNICODE_NULL))
+        if ((appIdTextLength % sizeof(WCHAR)) == 0 && appIdTextLength > sizeof(UNICODE_NULL))
         {
             *ApplicationUserModelId = PhCreateStringEx(
                 appIdText,
@@ -258,6 +261,15 @@ HRESULT PhAppResolverGetAppIdForWindow(
     return status;
 }
 
+/**
+ * Activates the specified Windows Store app for the generic launch contract (Windows.Launch) in the current session.
+ *
+ * \param[in] ApplicationUserModelId The application user model ID of the Windows Store app.
+ * \param[in] CommandLine A pointer to an optional, app-specific, argument string.
+ * \param[out] ProcessId The process ID of the new instance.
+ * \return HRESULT Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-iapplicationactivationmanager-activateapplication
+ */
 HRESULT PhAppResolverActivateAppId(
     _In_ PPH_STRING ApplicationUserModelId,
     _In_opt_ PCWSTR CommandLine,
@@ -298,8 +310,14 @@ HRESULT PhAppResolverActivateAppId(
     return status;
 }
 
+/**
+ * Terminates all processes for the specified package.
+ *
+ * \param PackageFullName The package full name.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT PhAppResolverPackageTerminateProcess(
-    _In_ PPH_STRING PackageFullName
+    _In_ PCWSTR PackageFullName
     )
 {
     HRESULT status;
@@ -316,7 +334,7 @@ HRESULT PhAppResolverPackageTerminateProcess(
     {
         status = IPackageDebugSettings_TerminateAllProcesses(
             packageDebugSettings,
-            PhGetString(PackageFullName)
+            PackageFullName
             );
 
         IPackageDebugSettings_Release(packageDebugSettings);
@@ -325,8 +343,15 @@ HRESULT PhAppResolverPackageTerminateProcess(
     return status;
 }
 
+/**
+ * Enables debug mode for the processes of the specified package.
+ *
+ * \param PackageFullName The package full name.
+ * \return HRESULT Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ipackagedebugsettings-enabledebugging
+ */
 HRESULT PhAppResolverEnablePackageDebug(
-    _In_ PPH_STRING PackageFullName
+    _In_ PCWSTR PackageFullName
     )
 {
     HRESULT status;
@@ -343,7 +368,7 @@ HRESULT PhAppResolverEnablePackageDebug(
     {
         status = IPackageDebugSettings_EnableDebugging(
             packageDebugSettings,
-            PhGetString(PackageFullName),
+            PackageFullName,
             NULL,
             NULL
             );
@@ -354,8 +379,15 @@ HRESULT PhAppResolverEnablePackageDebug(
     return status;
 }
 
+/**
+ * Disables debug mode for the processes of the specified package.
+ *
+ * \param PackageFullName The package full name.
+ * \return HRESULT Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ipackagedebugsettings-disabledebugging
+ */
 HRESULT PhAppResolverDisablePackageDebug(
-    _In_ PPH_STRING PackageFullName
+    _In_ PCWSTR PackageFullName
     )
 {
     HRESULT status;
@@ -372,7 +404,7 @@ HRESULT PhAppResolverDisablePackageDebug(
     {
         status = IPackageDebugSettings_DisableDebugging(
             packageDebugSettings,
-            PhGetString(PackageFullName)
+            PackageFullName
             );
 
         IPackageDebugSettings_Release(packageDebugSettings);
@@ -381,8 +413,15 @@ HRESULT PhAppResolverDisablePackageDebug(
     return status;
 }
 
+/**
+ * Suspends the processes of the package if they are currently running.
+ *
+ * \param PackageFullName The package full name.
+ * \return HRESULT Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ipackagedebugsettings-suspend
+ */
 HRESULT PhAppResolverPackageSuspend(
-    _In_ PPH_STRING PackageFullName
+    _In_ PCWSTR PackageFullName
     )
 {
     HRESULT status;
@@ -399,7 +438,7 @@ HRESULT PhAppResolverPackageSuspend(
     {
         status = IPackageDebugSettings_Suspend(
             packageDebugSettings,
-            PhGetString(PackageFullName)
+            PackageFullName
             );
 
         IPackageDebugSettings_Release(packageDebugSettings);
@@ -408,8 +447,15 @@ HRESULT PhAppResolverPackageSuspend(
     return status;
 }
 
+/**
+ * Resumes the processes of the package if they are currently suspended.
+ *
+ * \param PackageFullName The package full name.
+ * \return HRESULT Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ipackagedebugsettings-resume
+ */
 HRESULT PhAppResolverPackageResume(
-    _In_ PPH_STRING PackageFullName
+    _In_ PCWSTR PackageFullName
     )
 {
     HRESULT status;
@@ -426,7 +472,7 @@ HRESULT PhAppResolverPackageResume(
     {
         status = IPackageDebugSettings_Resume(
             packageDebugSettings,
-            PhGetString(PackageFullName)
+            PackageFullName
             );
 
         IPackageDebugSettings_Release(packageDebugSettings);
@@ -435,12 +481,19 @@ HRESULT PhAppResolverPackageResume(
     return status;
 }
 
-PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
-    _In_ PPH_STRING PackageFullName
+/**
+ * Gets the background tasks that are provided by the specified package.
+ *
+ * \param[in] PackageFullName The package full name.
+ * \param[in,out] BackgroundTasks A list of task names.
+ * \return HRESULT Successful or errant status.
+ */
+HRESULT PhAppResolverEnumeratePackageBackgroundTasks(
+    _In_ PCWSTR PackageFullName,
+    _Inout_ PPH_LIST BackgroundTasks
     )
 {
     HRESULT status;
-    PPH_LIST packageTasks = NULL;
     IPackageDebugSettings* packageDebugSettings;
 
     status = PhGetClassObject(
@@ -458,7 +511,7 @@ PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
 
         status = IPackageDebugSettings_EnumerateBackgroundTasks(
             packageDebugSettings,
-            PhGetString(PackageFullName),
+            PackageFullName,
             &taskCount,
             &taskIds,
             &taskNames
@@ -466,35 +519,33 @@ PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
 
         if (SUCCEEDED(status))
         {
-            if (!packageTasks && taskCount > 0)
-                packageTasks = PhCreateList(taskCount);
-
             for (ULONG i = 0; i < taskCount; i++)
             {
                 PPH_PACKAGE_TASK_ENTRY entry;
-
-                if (!packageTasks)
-                    break;
 
                 entry = PhAllocateZero(sizeof(PH_PACKAGE_TASK_ENTRY));
                 entry->TaskGuid = taskIds[i];
                 entry->TaskName = PhCreateString(taskNames[i]);
 
-                PhAddItemList(packageTasks, entry);
+                PhAddItemList(BackgroundTasks, entry);
             }
         }
 
         IPackageDebugSettings_Release(packageDebugSettings);
     }
 
-    if (packageTasks)
-        return packageTasks;
-    else
-        return NULL;
+    return status;
 }
 
+/**
+ * Stops redirection of background tasks for the specified package.
+ *
+ * \param PackageFullName The package full name.
+ * \return HRESULT Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ipackagedebugsettings-stopsessionredirection
+ */
 HRESULT PhAppResolverPackageStopSessionRedirection(
-    _In_ PPH_STRING PackageFullName
+    _In_ PCWSTR PackageFullName
     )
 {
     HRESULT status;
@@ -511,7 +562,7 @@ HRESULT PhAppResolverPackageStopSessionRedirection(
     {
         status = IPackageDebugSettings_StopSessionRedirection(
             packageDebugSettings,
-            PhGetString(PackageFullName)
+            PackageFullName
             );
 
         IPackageDebugSettings_Release(packageDebugSettings);
@@ -545,27 +596,40 @@ PPH_STRING PhGetAppContainerName(
     {
         static CONST PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
         static CONST PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
+
         HANDLE keyHandle;
-        PPH_STRING sidString;
         PPH_STRING keyPath;
+        USHORT sidStringLength = 0;
+        WCHAR sidString[SECURITY_MAX_SID_STRING_CHARACTERS];
 
-        sidString = PhSidToStringSid(AppContainerSid);
-        keyPath = PhConcatStringRef3(&appcontainerDefaultMappings, &appcontainerMappings, &sidString->sr);
-
-        if (NT_SUCCESS(PhOpenKey(
-            &keyHandle,
-            KEY_READ,
-            PH_KEY_USERS,
-            &keyPath->sr,
-            0
+        if (NT_SUCCESS(PhSidToBuffer(
+            AppContainerSid,
+            sidString,
+            sizeof(sidString),
+            &sidStringLength
             )))
         {
-            PhMoveReference(&appContainerName, PhQueryRegistryStringZ(keyHandle, L"Moniker"));
-            NtClose(keyHandle);
-        }
+            PH_STRINGREF string;
 
-        PhDereferenceObject(keyPath);
-        PhDereferenceObject(sidString);
+            string.Length = sidStringLength;
+            string.Buffer = sidString;
+
+            keyPath = PhConcatStringRef3(&appcontainerDefaultMappings, &appcontainerMappings, &string);
+
+            if (NT_SUCCESS(PhOpenKey(
+                &keyHandle,
+                KEY_READ,
+                PH_KEY_USERS,
+                &keyPath->sr,
+                0
+                )))
+            {
+                PhMoveReference(&appContainerName, PhQueryRegistryStringZ(keyHandle, L"Moniker"));
+                NtClose(keyHandle);
+            }
+
+            PhDereferenceObject(keyPath);
+        }
     }
 
     return appContainerName;
@@ -1364,6 +1428,7 @@ CleanupExit:
 // rev from Invoke-CommandInDesktopPackage (dmex)
 /**
  * Creates a new process in the context of the supplied PackageFamilyName and AppId.
+ * 
  * \li \c The created process will have the identity of the provided AppId and will have access to its virtualized file system and registry (if any).
  * \li \c The new process will have a token that's similar to, but not identical to, a real AppId process.
  * \li \c The primary use-case of this command is to invoke debugging or troubleshooting tools in the context of the packaged app to access its virtualized resources.
@@ -1373,22 +1438,22 @@ CleanupExit:
  * \li \c In particular, the new process will not be created in an AppContainer even if an AppId process would normally be created in an AppContainer.
  * \li \c Features such as Privacy Controls or other App Settings may or may not apply to the new process.
  * \li \c You shouldn't rely on any specific side-effects of using this command, as they're undefined and subject to change.
- *
+
  * \param ApplicationUserModelId The Application ID from the target package's manifest.
  * \param Executable An executable to invoke.
  * \param Arguments Optional arguments to be passed to the new process.
+ * \param Directory Optional 
  * \param PreventBreakaway Causes all child processes of the invoked process to also be created in the context of the AppId. By default, child processes are created without any context. This switch is useful for running cmd.exe so that you can launch multiple other tools in the package context.
  * \param ParentProcessId A process to use instead of the calling process as the parent for the process being created.
  * \param ProcessHandle A handle to a process.
- *
  * \return Successful or errant status.
- *
  * \remarks https://learn.microsoft.com/en-us/powershell/module/appx/invoke-commandindesktoppackage
  */
 HRESULT PhCreateProcessDesktopPackage(
     _In_ PCWSTR ApplicationUserModelId,
     _In_ PCWSTR Executable,
     _In_ PCWSTR Arguments,
+    _In_opt_ PCWSTR Directory,
     _In_ BOOLEAN PreventBreakaway,
     _In_opt_ HANDLE ParentProcessId,
     _Out_opt_ PHANDLE ProcessHandle
@@ -1421,15 +1486,31 @@ HRESULT PhCreateProcessDesktopPackage(
         ULONG options = DAXAO_CHECK_FOR_APPINSTALLER_UPDATES | DAXAO_CENTENNIAL_PROCESS;
         SetFlag(options, PreventBreakaway ? DAXAO_NONPACKAGED_EXE_PROCESS_TREE : DAXAO_NONPACKAGED_EXE);
 
-        status = IDesktopAppXActivator_ActivateWithOptions(
+        status = IDesktopAppXActivator_ActivateWithOptionsArgsWorkingDirectoryShowWindow(
             desktopAppXActivator,
             ApplicationUserModelId,
             Executable,
             Arguments,
             options,
             HandleToUlong(ParentProcessId),
+            NULL,
+            Directory,
+            SW_SHOW,
             ProcessHandle
             );
+
+        if (HR_FAILED(status))
+        {
+            status = IDesktopAppXActivator_ActivateWithOptions(
+                desktopAppXActivator,
+                ApplicationUserModelId,
+                Executable,
+                Arguments,
+                options,
+                HandleToUlong(ParentProcessId),
+                ProcessHandle
+                );
+        }
 
         IDesktopAppXActivator_Release(desktopAppXActivator);
     }

@@ -66,6 +66,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpProcessMiniDumpTaskDialogThread(
     _In_ PVOID ThreadParameter
     );
@@ -119,6 +120,7 @@ PPH_STRING PhpProcessMiniDumpGetFileName(
     return fileName;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpProcessMiniDumpContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -413,6 +415,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
     return TRUE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpProcessMiniDumpThreadStart(
     _In_ PVOID Parameter
     )
@@ -794,6 +797,7 @@ HRESULT CALLBACK PhpProcessMiniDumpTaskDialogCallbackProc(
     return S_OK;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpProcessMiniDumpTaskDialogThread(
     _In_ PVOID ThreadParameter
     )

@@ -170,8 +170,6 @@ NtPlugPlayControl(
     _In_ ULONG PnPControlDataLength
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -193,9 +191,6 @@ NtDisableLastKnownGood(
     VOID
     );
 
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -204,6 +199,5 @@ NtReplacePartitionUnit(
     _In_ PCUNICODE_STRING SpareInstancePath,
     _In_ ULONG Flags
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 #endif // _NTPNPAPI_H

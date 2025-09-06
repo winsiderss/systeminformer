@@ -68,6 +68,7 @@ NTSTATUS KphConnect(
         }
 
         PhCloseServiceHandle(serviceHandle);
+        serviceHandle = NULL;
 
         if (!NT_SUCCESS(status))
             goto CreateAndConnectEnd;
@@ -84,6 +85,7 @@ NTSTATUS KphConnect(
     }
 
     // Try to create the service.
+
     status = PhCreateService(
         &serviceHandle,
         PhGetStringRefZ(Config->ServiceName),
@@ -260,13 +262,7 @@ NTSTATUS KphSetParameters(
 
     if (Config->PortName)
     {
-        status = PhSetValueKeyZ(
-            parametersKeyHandle,
-            L"PortName",
-            REG_SZ,
-            Config->PortName->Buffer,
-            (ULONG)Config->PortName->Length + sizeof(UNICODE_NULL)
-            );
+        status = PhSetValueKeyStringZ(parametersKeyHandle, L"PortName", Config->PortName);
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
@@ -274,13 +270,7 @@ NTSTATUS KphSetParameters(
 
     if (Config->Altitude)
     {
-        status = PhSetValueKeyZ(
-            parametersKeyHandle,
-            L"Altitude",
-            REG_SZ,
-            Config->Altitude->Buffer,
-            (ULONG)Config->Altitude->Length + sizeof(UNICODE_NULL)
-            );
+        status = PhSetValueKeyStringZ(parametersKeyHandle, L"Altitude", Config->Altitude);
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
@@ -290,13 +280,7 @@ NTSTATUS KphSetParameters(
     {
         C_ASSERT(sizeof(KPH_PARAMETER_FLAGS) == sizeof(ULONG));
 
-        status = PhSetValueKeyZ(
-            parametersKeyHandle,
-            L"Flags",
-            REG_DWORD,
-            &Config->Flags.Flags,
-            sizeof(ULONG)
-            );
+        status = PhSetValueKeyUlong(parametersKeyHandle, L"Flags", Config->Flags.Flags);
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
@@ -335,38 +319,38 @@ VOID KphSetServiceSecurity(
     sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid((PSID)&PhSeServiceSid) +
+        PhLengthSid(&PhSeServiceSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         PhLengthSid(administratorsSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid((PSID)&PhSeInteractiveSid);
+        PhLengthSid(&PhSeInteractiveSid);
 
     securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
     PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, (PSID)&PhSeServiceSid);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, administratorsSid);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION,
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, &PhSeServiceSid);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, administratorsSid);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION,
         SERVICE_QUERY_CONFIG |
         SERVICE_QUERY_STATUS |
         SERVICE_START |
         SERVICE_STOP |
         SERVICE_INTERROGATE |
         DELETE,
-        (PSID)&PhSeInteractiveSid
+        &PhSeInteractiveSid
         );
     PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
     PhSetServiceObjectSecurity(ServiceHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
 
-#ifdef DEBUG
-    assert(sdAllocationLength < sizeof(securityDescriptorBuffer));
-    assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
-#endif
+    NT_ASSERT(RtlValidSecurityDescriptor(securityDescriptor));
+    NT_ASSERT(sdAllocationLength < sizeof(securityDescriptorBuffer));
+    NT_ASSERT(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 }
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 static BOOLEAN NTAPI KsiLoadUnloadServiceCleanupKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
@@ -411,6 +395,10 @@ NTSTATUS KsiLoadUnloadService(
     HANDLE parametersKeyHandle = NULL;
     ULONG disposition;
 
+    NT_ASSERT(Config->FileName);
+    NT_ASSERT(Config->ServiceName);
+    NT_ASSERT(Config->ObjectName);
+
     fullServiceKeyName = PhConcatStringRef2(&fullServicesKeyName, Config->ServiceName);
 
     if (!PhStringRefToUnicodeString(&fullServiceKeyName->sr, &driverServiceKeyName))
@@ -419,45 +407,41 @@ NTSTATUS KsiLoadUnloadService(
         return STATUS_NAME_TOO_LONG;
     }
 
+    status = PhCreateKey(
+        &serviceKeyHandle,
+        KEY_WRITE | KEY_CREATE_SUB_KEY,
+        NULL,
+        &fullServiceKeyName->sr,
+        0,
+        0,
+        &disposition
+        );
+
+    if (NT_SUCCESS(status) && disposition == REG_CREATED_NEW_KEY)
+    {
+        fullServiceFileName = PhConcatStringRef2(&PhNtDosDevicesPrefix, Config->FileName);
+        PhSetValueKeyUlong(serviceKeyHandle, L"ErrorControl", SERVICE_ERROR_NORMAL);
+        PhSetValueKeyUlong(serviceKeyHandle, L"Type", SERVICE_KERNEL_DRIVER);
+        PhSetValueKeyUlong(serviceKeyHandle, L"Start", SERVICE_DISABLED);
+        PhSetValueKeyStringZ(serviceKeyHandle, L"ImagePath", &fullServiceFileName->sr);
+        PhSetValueKeyStringZ(serviceKeyHandle, L"ObjectName", Config->ObjectName);
+        PhDereferenceObject(fullServiceFileName);
+
+        KphSetParameters(Config);
+
+        NtClose(serviceKeyHandle);
+    }
+
     if (LoadDriver)
     {
-        status = PhCreateKey(
-            &serviceKeyHandle,
-            KEY_WRITE,
-            NULL,
-            &fullServiceKeyName->sr,
-            0,
-            0,
-            &disposition
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            if (disposition == REG_CREATED_NEW_KEY)
-            {
-                ULONG regValue;
-
-                fullServiceFileName = PhConcatStringRef2(&PhNtDosDevicesPrefix, Config->FileName);
-                regValue = SERVICE_ERROR_NORMAL;
-                PhSetValueKeyZ(serviceKeyHandle, L"ErrorControl", REG_DWORD, &regValue, sizeof(ULONG));
-                regValue = SERVICE_KERNEL_DRIVER;
-                PhSetValueKeyZ(serviceKeyHandle, L"Type", REG_DWORD, &regValue, sizeof(ULONG));
-                regValue = SERVICE_DISABLED;
-                PhSetValueKeyZ(serviceKeyHandle, L"Start", REG_DWORD, &regValue, sizeof(ULONG));
-                PhSetValueKeyZ(serviceKeyHandle, L"ImagePath", REG_SZ, fullServiceFileName->Buffer, (ULONG)fullServiceFileName->Length + sizeof(UNICODE_NULL));
-                PhSetValueKeyZ(serviceKeyHandle, L"ObjectName", REG_SZ, Config->ObjectName->Buffer, (ULONG)Config->ObjectName->Length + sizeof(UNICODE_NULL));
-                PhDereferenceObject(fullServiceFileName);
-
-                KphSetParameters(Config);
-            }
-
-            NtClose(serviceKeyHandle);
-        }
-
         if (Config->EnableFilterLoad)
             status = PhFilterLoadUnload(Config->ServiceName, TRUE);
         else
             status = NtLoadDriver(&driverServiceKeyName);
+
+        // Handle rare race condition with natively loading the driver.
+        if (status == STATUS_IMAGE_ALREADY_LOADED)
+            status = STATUS_SUCCESS;
     }
     else
     {

@@ -1,80 +1,82 @@
 # Auto detect text files
-* text=crlf
+* text=auto working-tree-encoding=UTF-8
 
 # Custom for Visual Studio
-*.cs diff=csharp
-*.sln merge=union
-*.csproj merge=union
-*.vbproj merge=union
-*.fsproj merge=union
-*.dbproj merge=union
+*.cs            diff=csharp
+*.sln           merge=union
+*.csproj        merge=union
+*.vbproj        merge=union
+*.fsproj        merge=union
+*.dbproj        merge=union
 
 # Project files
-*.appinstaller eol=crlf
-*.bat eol=crlf
-*.c eol=crlf
-*.cs eol=crlf
-*.cpp eol=crlf
-*.config eol=crlf
-*.cmd eol=crlf
-*.csproj eol=crlf
-*.def eol=crlf
-*.ddf eol=crlf
-*.editorconfig eol=crlf
-*.gitattributes eol=crlf
-*.gitignore eol=crlf
-*.h eol=crlf
-*.hpp eol=crlf
-*.inc eol=crlf
-*.inf eol=crlf
-*.map eol=crlf
-*.manifest eol=crlf
-*.mc eol=crlf
-*.md eol=crlf
-*.natvis eol=crlf
-*.ps1 eol=crlf
-*.props eol=crlf
-*.pubxml eol=crlf
-*.resx eol=crlf
-*.rc text eol=crlf
-*.sln eol=crlf
-*.txt eol=crlf
-*.vcxproj eol=crlf
-*.filters eol=crlf
-*.xml eol=crlf
-*.yml eol=crlf
+*.appinstaller  text
+*.bat           text
+*.c             text
+*.cs            text
+*.cpp           text
+*.config        text
+*.cmd           text
+*.csproj        text
+*.def           text
+*.ddf           text
+*.editorconfig  text
+*.gitattributes text
+*.gitignore     text
+*.h             text
+*.hpp           text
+*.inc           text
+*.inf           text
+*.map           text
+*.manifest      text
+*.mc            text
+*.md            text
+*.natvis        text
+*.ps1           text
+*.props         text
+*.pubxml        text
+*.resx          text
+*.rc            text
+*.sln           text
+*.txt           text
+*.vsconfig      text
+*.vcxproj       text
+*.filters       text
+*.xml           text
+*.yml           text
 
-**AUTHORS eol=crlf
-**COPYING eol=crlf
-**CHANGELOG eol=crlf
-**LICENSE eol=crlf
-**LICENCE eol=crlf
-**README eol=crlf
+**AUTHORS       text
+**COPYING       text
+**CHANGELOG     text
+**CODEOWNERS    text
+**LICENSE       text
+**LICENCE       text
+**README        text
 
-*.bmp binary
-*.dll binary
-*.exe binary
-*.ico binary
-*.lib binary
-*.pdb binary
-*.png binary
-*.s binary
-*.sys binary
+*.bmp           binary
+*.dll           binary
+*.exe           binary
+*.ico           binary
+*.lib           binary
+*.pdb           binary
+*.png           binary
+*.s             binary
+*.sys           binary
 
 # svg standard require LF
-*.svg eol=lf
+*.svg           text eol=lf
 
 # Standard to msysgit
-*.doc    diff=astextplain
-*.DOC    diff=astextplain
-*.docx   diff=astextplain
-*.DOCX   diff=astextplain
-*.dot    diff=astextplain
-*.DOT    diff=astextplain
-*.pdf    diff=astextplain
-*.PDF    diff=astextplain
-*.rtf    diff=astextplain
-*.RTF    diff=astextplain
+*.doc           diff=astextplain
+*.DOC           diff=astextplain
+*.docx          diff=astextplain
+*.DOCX          diff=astextplain
+*.dot           diff=astextplain
+*.DOT           diff=astextplain
+*.pdf           diff=astextplain
+*.PDF           diff=astextplain
+*.rtf           diff=astextplain
+*.RTF           diff=astextplain
 
 # Ignore files during repository export
 .gitattributes  export-ignore

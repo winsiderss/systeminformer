@@ -12,6 +12,7 @@
 #define IDD_PROCENVIRONMENT             107
 #define IDD_THRDSTACK                   108
 #define IDD_THRDSTACKS                  109
+#define IDD_USRLIST                     110
 #define IDC_CPU                         112
 #define IDC_PRIVATEBYTES                113
 #define IDC_IO                          114
@@ -45,6 +46,7 @@
 #define IDD_OBJSECTION                  148
 #define IDD_AFFINITY                    149
 #define IDD_SYSINFO                     150
+#define IDD_HNDLSECURITY                151
 #define IDD_EDITMESSAGE                 152
 #define IDD_SESSION                     153
 #define IDD_PROCMEMORY                  154
@@ -131,6 +133,8 @@
 #define IDD_MEMSTRINGSMINLEN            276
 #define IDD_MEMSTRINGS                  277
 #define IDD_CPUSETS                     278
+#define IDD_HNDLAUDITING                278
+#define IDD_HNDLSECAUDIT                278
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -642,7 +646,7 @@
 #define ID_PROCESS_VIRTUALIZATION       40034
 #define ID_PROCESS_AFFINITY             40035
 #define ID_PROCESS_CREATEDUMPFILE       40036
-#define ID_PROCESS_PRIORITY             40037
+#define ID_PROCESS_PRIORITYCLASS        40037
 #define ID_MISCELLANEOUS_SETCRITICAL    40038
 #define ID_MISCELLANEOUS_DETACHFROMDEBUGGER 40039
 #define ID_PROCESS_IOPRIORITY           40040
@@ -685,6 +689,7 @@
 #define ID_TRAYICONS_COMMITHISTORY      40096
 #define ID_TRAYICONS_PHYSICALMEMORYHISTORY 40097
 #define ID_VIEW_REFRESH                 40098
+#define ID_TOOLS_USER_LIST              40099
 #define ID_TOOLS_THREADSTACKS           40100
 #define ID_TOOLS_CREATESERVICE          40101
 #define ID_TOOLS_ZOMBIEPROCESSES        40102
@@ -784,6 +789,8 @@
 #define ID_FILTER_REGEX_CASEINSENSITIVE 40221
 #define ID_TAB_NEXT                     40223
 #define ID_TAB_PREV                     40224
+#define ID_VIEW_COLLAPSEALL             40225
+#define ID_VIEW_EXPANDALL               40226
 #define ID_MISCELLANEOUS_RUNAS          40229
 #define ID_MISCELLANEOUS_RUNASTHISUSER  40230
 #define ID_MISCELLANEOUS_PAGESMODIFIED  40231
@@ -809,6 +816,7 @@
 #define ID_VIEW_ORGANIZECOLUMNSETS      40256
 #define ID_VIEW_SAVECOLUMNSET           40257
 #define ID_VIEW_LOADCOLUMNSET           40258
+#define ID_VIEW_SORTROOTPROCESSES       40262
 #define ID_DIGIT1                       40263
 #define ID_DIGIT2                       40264
 #define ID_DIGIT3                       40265
@@ -823,6 +831,7 @@
 #define ID_VIEW_HIDEMICROSOFTSERVICES   40274
 #define ID_VIEW_SECTIONPLACEHOLDER      40274
 #define ID_VIEW_SCROLLTONEWPROCESSES    40275
+#define ID_VIEW_SORTCHILDPROCESSES      40276
 #define ID_TOOLS_STARTTASKMANAGER       40277
 #define ID_COMPUTER_SHUTDOWNHYBRID      40278
 #define ID_COMPUTER_RESTARTADVOPTIONS   40279
@@ -841,6 +850,7 @@
 #define ID_MINIINFO_REFRESHAUTOMATICALLY 40289
 #define ID_TOOLS_STARTRESOURCEMONITOR   40290
 #define ID_TOOLS_SHUTDOWNWSLPROCESSES   40291
+#define ID_HANDLE_GOTOOWNINGPROCESS     40292
 #define IDC_MAXSCREEN                   40293
 #define ID_PRIVILEGE_RESET              40296
 #define ID_GROUP_ENABLE                 40297
@@ -863,6 +873,10 @@
 #define ID_MISCELLANEOUS_EXECUTIONREQUIRED 40313
 #define IDD_OBJAFDSOCKET                40314
 #define ID_PROCESS_CPU_SETS             40315
+#define ID_TOOLS_COM_ACCESS_PERMISSIONS 40315
+#define ID_TOOLS_COM_ACCESS_RESTRICTIONS 40316
+#define ID_TOOLS_COM_LAUNCH_PERMISSIONS 40317
+#define ID_TOOLS_COM_LAUNCH_RESTRICTIONS 40318
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 

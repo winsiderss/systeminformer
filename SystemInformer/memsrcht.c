@@ -285,6 +285,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchTreeCallback(
     return !!treeContext->StopSearch;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpMemorySearchStringsThread(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
@@ -1141,7 +1142,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            if (PhGetIntegerPairSetting(L"MemStringsWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"MemStringsWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"MemStringsWindowPosition", L"MemStringsWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
@@ -1184,6 +1185,12 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             PhFree(context);
 
             PostQuitMessage(0);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:
@@ -1351,7 +1358,8 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     PPH_EMENU_ITEM zeroPad;
                     PPH_EMENU_ITEM refresh;
 
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect);
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect))
+                        break;
 
                     ansi = PhCreateEMenuItem(0, 1, L"ANSI", NULL, NULL);
                     unicode = PhCreateEMenuItem(0, 2, L"Unicode", NULL, NULL);
@@ -1511,6 +1519,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
     _In_ PVOID Parameter
     )
@@ -1537,11 +1546,6 @@ NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
     {
         if (result == INT_ERROR)
             break;
-
-        if (message.message == WM_KEYDOWN)
-        {
-            CallWindowProc(PhpMemoryStringsDlgProc, windowHandle, message.message, message.wParam, message.lParam);
-        }
 
         if (!IsDialogMessage(windowHandle, &message))
         {

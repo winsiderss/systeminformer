@@ -15,13 +15,21 @@ NTSTATUS CALLBACK SetupUninstallBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    NTSTATUS status;
+
     // Stop the application.
-    if (!SetupShutdownApplication(Context))
+    if (!NT_SUCCESS(status = SetupShutdownApplication(Context)))
+    {
+        Context->LastStatus = status;
         goto CleanupExit;
+    }
 
     // Stop the kernel driver.
-    if (!SetupUninstallDriver(Context))
+    if (!NT_SUCCESS(status = SetupUninstallDriver(Context)))
+    {
+        Context->LastStatus = status;
         goto CleanupExit;
+    }
 
     // Remove autorun.
     SetupDeleteWindowsOptions(Context);
@@ -38,20 +46,20 @@ NTSTATUS CALLBACK SetupUninstallBuild(
     // Remove the previous installation.
     if (!NT_SUCCESS(PhDeleteDirectoryWin32(&Context->SetupInstallPath->sr)))
     {
-        static PH_STRINGREF ksiFileName = PH_STRINGREF_INIT(L"ksi.dll");
-        static PH_STRINGREF ksiOldFileName = PH_STRINGREF_INIT(L"ksi.dll-old");
+        static CONST PH_STRINGREF ksiFileName = PH_STRINGREF_INIT(L"ksi.dll");
+        static CONST PH_STRINGREF ksiOldFileName = PH_STRINGREF_INIT(L"ksi.dll-old");
         PPH_STRING ksiFile;
         PPH_STRING ksiOldFile;
 
         ksiFile = PhConcatStringRef3(
             &Context->SetupInstallPath->sr,
-            &PhNtPathSeperatorString,
+            &PhNtPathSeparatorString,
             &ksiFileName
             );
 
         ksiOldFile = PhConcatStringRef3(
             &Context->SetupInstallPath->sr,
-            &PhNtPathSeperatorString,
+            &PhNtPathSeparatorString,
             &ksiOldFileName
             );
 

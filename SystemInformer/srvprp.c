@@ -11,7 +11,6 @@
  */
 
 #include <phapp.h>
-
 #include <secedit.h>
 #include <svcsup.h>
 #include <mainwnd.h>
@@ -61,6 +60,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenServiceCallback(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -87,6 +87,7 @@ static NTSTATUS PhpOpenServiceCallback(
     return status;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS PhpCloseServiceCallback(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -106,10 +107,11 @@ NTSTATUS PhpCloseServiceCallback(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_SET_OBJECT_SECURITY)
 static _Callback_ NTSTATUS PhpSetServiceSecurityCallback(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_STD_OBJECT_SECURITY stdObjectSecurity = ((PPH_STD_OBJECT_SECURITY)Context);
@@ -163,11 +165,14 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
         break;
     case WM_SYSCOMMAND:
         {
+            // Note: This fixes closing the window from the taskbar preview window. (dmex)
             switch (wParam & 0xFFF0)
             {
             case SC_CLOSE:
                 {
-                    PostMessage(hwnd, WM_CLOSE, 0, 0);
+                    PostQuitMessage(0);
+                    //SetWindowLongPtr(hwnd, DWLP_MSGRESULT, TRUE);
+                    //return TRUE;
                 }
                 break;
             }
@@ -191,7 +196,7 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
-INT CALLBACK PhpPropSheetSrvProc(
+LONG CALLBACK PhpPropSheetSrvProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam
@@ -210,6 +215,7 @@ INT CALLBACK PhpPropSheetSrvProc(
     return 0;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpShowServicePropertiesThread(
     _In_ PVOID Context
     )
@@ -227,7 +233,7 @@ NTSTATUS PhpShowServicePropertiesThread(
         PSH_PROPTITLE |
         PSH_USECALLBACK |
         PSH_USEHICON;
-    propSheetHeader.hInstance = PhInstanceHandle;
+    propSheetHeader.hInstance = NtCurrentImageBase();
     //propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = PhGetString(serviceItem->Name);
     propSheetHeader.nPages = 0;
@@ -245,7 +251,7 @@ NTSTATUS PhpShowServicePropertiesThread(
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVGENERAL);
-    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.hInstance = NtCurrentImageBase();
     propSheetPage.pfnDlgProc = PhpServiceGeneralDlgProc;
     propSheetPage.lParam = (LPARAM)&context;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
@@ -382,7 +388,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             context->ServiceDllWindowHandle = GetDlgItem(hwndDlg, IDC_SERVICEDLL);
 
             // HACK
-            if (PhGetIntegerPairSetting(L"ServiceWindowPosition").X == 0)
+            if (PhValidWindowPlacementFromSetting(L"ServiceWindowPosition"))
                 PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
             else
                 PhLoadWindowPlacementFromSetting(L"ServiceWindowPosition", NULL, GetParent(hwndDlg));

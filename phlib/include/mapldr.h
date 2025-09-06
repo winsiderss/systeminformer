@@ -205,6 +205,21 @@ PhGetLoaderEntryDllBaseZ(
 }
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhCaptureSystemDllInitBlock(
+    _In_ PVOID Source,
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK Destination
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemDllInitBlock(
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetDllBaseProcedureAddress(
@@ -282,6 +297,14 @@ PhLoaderEntryImageRvaToVa(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhLoaderEntryImageExportSupressionPresent(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhLoaderEntryGrantSuppressedCall(
@@ -323,6 +346,7 @@ NTSTATUS
 NTAPI
 PhLoaderEntryLoadDll(
     _In_ PCPH_STRINGREF FileName,
+    _In_opt_ HANDLE RootDirectory,
     _Out_ PVOID* BaseAddress
     );
 
@@ -347,6 +371,7 @@ NTSTATUS
 NTAPI
 PhLoadPluginImage(
     _In_ PCPH_STRINGREF FileName,
+    _In_opt_ HANDLE RootDirectory,
     _Out_opt_ PVOID *BaseAddress
     );
 

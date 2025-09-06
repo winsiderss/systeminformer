@@ -23,19 +23,30 @@
 #include <wincodec.h>
 #include <uxtheme.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpWindowContextHashtableHashFunction(
     _In_ PVOID Entry
     );
+
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
     _In_ PVOID Entry
+    );
+
+VOID NTAPI PhWindowFlsCallback(
+    _In_ PVOID FlsData
     );
 
 typedef struct _PH_WINDOW_PROPERTY_CONTEXT
@@ -49,7 +60,7 @@ HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 HFONT PhMonospaceFont = NULL;
 LONG PhFontQuality = 0;
-LONG PhSystemDpi = 96;
+LONG PhSystemDpi = USER_DEFAULT_SCREEN_DPI;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
 PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
 
@@ -59,29 +70,27 @@ static PH_QUEUED_LOCK SharedIconCacheLock = PH_QUEUED_LOCK_INIT;
 
 static PPH_HASHTABLE WindowCallbackHashTable = NULL;
 static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
-static PPH_HASHTABLE WindowContextHashTable = NULL;
-static PH_QUEUED_LOCK WindowContextListLock = PH_QUEUED_LOCK_INIT;
+static ULONG WindowCallbackFlsIndex = FLS_OUT_OF_INDEXES;
 
-static __typeof__(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
-static __typeof__(&OpenThemeData) OpenThemeData_I = NULL;
-static __typeof__(&CloseThemeData) CloseThemeData_I = NULL;
-static __typeof__(&SetWindowTheme) SetWindowTheme_I = NULL;
-static __typeof__(&IsThemeActive) IsThemeActive_I = NULL;
-static __typeof__(&IsThemePartDefined) IsThemePartDefined_I = NULL;
+static typeof(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
+static typeof(&OpenThemeData) OpenThemeData_I = NULL;
+static typeof(&CloseThemeData) CloseThemeData_I = NULL;
+static typeof(&SetWindowTheme) SetWindowTheme_I = NULL;
+static typeof(&IsThemeActive) IsThemeActive_I = NULL;
+static typeof(&IsThemePartDefined) IsThemePartDefined_I = NULL;
 static _GetThemeClass GetThemeClass_I = NULL;
-static __typeof__(&GetThemeColor) GetThemeColor_I = NULL;
-static __typeof__(&GetThemeInt) GetThemeInt_I = NULL;
-static __typeof__(&GetThemePartSize) GetThemePartSize_I = NULL;
-static __typeof__(&DrawThemeBackground) DrawThemeBackground_I = NULL;
-static __typeof__(&DrawThemeTextEx) DrawThemeTextEx_I = NULL;
+static typeof(&GetThemeColor) GetThemeColor_I = NULL;
+static typeof(&GetThemeInt) GetThemeInt_I = NULL;
+static typeof(&GetThemePartSize) GetThemePartSize_I = NULL;
+static typeof(&DrawThemeBackground) DrawThemeBackground_I = NULL;
 static _AllowDarkModeForWindow AllowDarkModeForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 133)
 static _IsDarkModeAllowedForWindow IsDarkModeAllowedForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 137)
-static __typeof__(&GetDpiForMonitor) GetDpiForMonitor_I = NULL; // win81+
-static __typeof__(&GetDpiForWindow) GetDpiForWindow_I = NULL; // win10rs1+
-static __typeof__(&GetDpiForSystem) GetDpiForSystem_I = NULL; // win10rs1+
+static typeof(&GetDpiForMonitor) GetDpiForMonitor_I = NULL; // win81+
+static typeof(&GetDpiForWindow) GetDpiForWindow_I = NULL; // win10rs1+
+static typeof(&GetDpiForSystem) GetDpiForSystem_I = NULL; // win10rs1+
 //static _GetDpiForSession GetDpiForSession_I = NULL; // ordinal 2713
-static __typeof__(&GetSystemMetricsForDpi) GetSystemMetricsForDpi_I = NULL;
-static __typeof__(&SystemParametersInfoForDpi) SystemParametersInfoForDpi_I = NULL;
+static typeof(&GetSystemMetricsForDpi) GetSystemMetricsForDpi_I = NULL;
+static typeof(&SystemParametersInfoForDpi) SystemParametersInfoForDpi_I = NULL;
 static _CreateMRUList CreateMRUList_I = NULL;
 static _AddMRUString AddMRUString_I = NULL;
 static _EnumMRUList EnumMRUList_I = NULL;
@@ -93,16 +102,11 @@ VOID PhGuiSupportInitialization(
 {
     PVOID baseAddress;
 
+    WindowCallbackFlsIndex = FlsAlloc(PhWindowFlsCallback);
     WindowCallbackHashTable = PhCreateHashtable(
         sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
         PhpWindowCallbackHashtableEqualFunction,
         PhpWindowCallbackHashtableHashFunction,
-        10
-        );
-    WindowContextHashTable = PhCreateHashtable(
-        sizeof(PH_WINDOW_PROPERTY_CONTEXT),
-        PhpWindowContextHashtableEqualFunction,
-        PhpWindowContextHashtableHashFunction,
         10
         );
 
@@ -383,22 +387,22 @@ HFONT PhInitializeMonospaceFont(
 }
 
 /**
- * The PhGetScreenDC function retrieves a handle to a device context (DC) for the entire screen.
- *
+ * The PhGetDC function retrieves a handle to a device context (DC).
  * \return The handle to the requested stock object.
  */
-HDC PhGetScreenDC(
-    VOID
+HDC PhGetDC(
+    _In_opt_ HWND WindowHandle
     )
 {
-    static HDC hdc = NULL;
+    return GetDC(WindowHandle);
+}
 
-    if (hdc == NULL)
-    {
-        hdc = GetDC(NULL);
-    }
-
-    return hdc;
+VOID PhReleaseDC(
+    _In_opt_ HWND WindowHandle,
+    _In_ _Frees_ptr_ HDC Hdc
+    )
+{
+    ReleaseDC(WindowHandle, Hdc);
 }
 
 /**
@@ -411,16 +415,7 @@ HGDIOBJ PhGetStockObject(
     _In_ LONG Index
     )
 {
-    static HBRUSH brush[STOCK_LAST + 1] = { NULL };
-
-    assert(Index <= STOCK_LAST);
-
-    if (brush[Index] == NULL)
-    {
-        brush[Index] = GetStockObject(Index);
-    }
-
-    return brush[Index];
+    return GetStockObject(Index);
 }
 
 /**
@@ -533,7 +528,7 @@ BOOLEAN PhGetThemeInt(
     if (!GetThemeInt_I)
         return FALSE;
 
-    return SUCCEEDED(GetThemeInt_I(ThemeHandle, PartId, StateId, PropId, Value));
+    return SUCCEEDED(GetThemeInt_I(ThemeHandle, PartId, StateId, PropId, (PLONG)Value));
 }
 
 _Success_(return)
@@ -568,6 +563,28 @@ BOOLEAN PhDrawThemeBackground(
     return SUCCEEDED(DrawThemeBackground_I(ThemeHandle, hdc, PartId, StateId, Rect, ClipRect));
 }
 
+BOOLEAN PhDrawThemeText(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
+    _In_reads_(cchText) LPCWSTR Text,
+    _In_ LONG cchText,
+    _In_ ULONG TextFlags,
+    _In_ LPCRECT Rect
+    )
+{
+    static typeof(&DrawThemeText) DrawThemeText_I = NULL;
+
+    if (!DrawThemeText_I)
+        DrawThemeText_I = PhGetModuleProcAddress(L"uxtheme.dll", "DrawThemeText");
+
+    if (!DrawThemeText_I)
+        return FALSE;
+
+    return HR_SUCCESS(DrawThemeText_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, 0, Rect));
+}
+
 BOOLEAN PhDrawThemeTextEx(
     _In_ HTHEME ThemeHandle,
     _In_ HDC hdc,
@@ -580,14 +597,51 @@ BOOLEAN PhDrawThemeTextEx(
     _In_opt_ const PVOID Options // DTTOPTS*
     )
 {
+    static typeof(&DrawThemeTextEx) DrawThemeTextEx_I = NULL;
+
     if (!DrawThemeTextEx_I)
         DrawThemeTextEx_I = PhGetModuleProcAddress(L"uxtheme.dll", "DrawThemeTextEx");
 
     if (!DrawThemeTextEx_I)
         return FALSE;
 
-    return SUCCEEDED(DrawThemeTextEx_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, Rect, Options));
+    return HR_SUCCESS(DrawThemeTextEx_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, Rect, Options));
 }
+
+BOOLEAN PhIsThemeBackgroundPartiallyTransparent(
+    _In_ HTHEME ThemeHandle,
+    _In_ LONG PartId,
+    _In_ LONG StateId
+    )
+{
+    static typeof(&IsThemeBackgroundPartiallyTransparent) IsThemeBackgroundPartiallyTransparent_I = NULL;
+
+    if (!IsThemeBackgroundPartiallyTransparent_I)
+        IsThemeBackgroundPartiallyTransparent_I = PhGetModuleProcAddress(L"uxtheme.dll", "IsThemeBackgroundPartiallyTransparent");
+
+    if (!IsThemeBackgroundPartiallyTransparent_I)
+        return FALSE;
+
+    return !!IsThemeBackgroundPartiallyTransparent_I(ThemeHandle, PartId, StateId);
+}
+
+BOOLEAN PhDrawThemeParentBackground(
+    _In_ HWND WindowHandle,
+    _In_ HDC Hdc,
+    _In_opt_ const PRECT Rect
+    )
+{
+    static typeof(&DrawThemeParentBackground) DrawThemeParentBackground_I = NULL;
+
+    if (!DrawThemeParentBackground_I)
+        DrawThemeParentBackground_I = PhGetModuleProcAddress(L"uxtheme.dll", "DrawThemeParentBackground");
+
+    if (!DrawThemeParentBackground_I)
+        return FALSE;
+
+    return HR_SUCCESS(DrawThemeParentBackground_I(WindowHandle, Hdc, Rect));
+}
+
 
 BOOLEAN PhAllowDarkModeForWindow(
     _In_ HWND WindowHandle,
@@ -638,32 +692,139 @@ BOOLEAN PhIsDarkModeAllowedForWindow(
 //    return dpi;
 //}
 
-BOOLEAN PhGetWindowRect(
+_Success_(return)
+BOOLEAN PhGetClientPos(
     _In_ HWND WindowHandle,
-    _Out_ PRECT WindowRect
+    _Out_ PPOINT ClientPoint
     )
 {
-    // Note: GetWindowRect can return success with either invalid (0,0) or empty rects (40,40) and in some cases
-    // this results in unwanted clipping, performance issues with the CreateCompatibleBitmap double buffering and
-    // issues with MonitorFromRect layout and DPI queries, so ignore the return status and check the rect (dmex)
+    ULONG position;
+    POINT point;
 
-    GetWindowRect(WindowHandle, WindowRect);
+    position = GetMessagePos();
+    point.x = GET_X_LPARAM(position);
+    point.y = GET_Y_LPARAM(position);
 
-    if (PhRectEmpty(WindowRect))
+    if (ScreenToClient(WindowHandle, &point))
+    {
+        memcpy(ClientPoint, &point, sizeof(POINT));
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+_Success_(return)
+BOOLEAN PhGetScreenPos(
+    _In_ HWND WindowHandle,
+    _Out_ PPOINT ClientPoint
+    )
+{
+    ULONG position;
+    POINT point;
+
+    position = GetMessagePos();
+    point.x = GET_X_LPARAM(position);
+    point.y = GET_Y_LPARAM(position);
+
+    if (ClientToScreen(WindowHandle, &point))
+    {
+        memcpy(ClientPoint, &point, sizeof(POINT));
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhClientToScreen(
+    _In_ HWND WindowHandle,
+    _Inout_ PPOINT Point
+    )
+{
+    if (ClientToScreen(WindowHandle, Point))
+        return TRUE;
+    return FALSE;
+}
+
+BOOLEAN PhScreenToClient(
+    _In_ HWND WindowHandle,
+    _Inout_ PPOINT Point
+    )
+{
+    if (ScreenToClient(WindowHandle, Point))
+        return TRUE;
+    return FALSE;
+}
+
+BOOLEAN PhClientToScreenRect(
+    _In_ HWND WindowHandle,
+    _Inout_ PRECT Rect
+    )
+{
+    //if (!ClientToScreen(WindowHandle, (PPOINT)Rect))
+    //    return FALSE;
+    //if (!ClientToScreen(WindowHandle, ((PPOINT)Rect) + 1))
+    //    return FALSE;
+
+    if (MapWindowRect(WindowHandle, HWND_DESKTOP, Rect) == 0)
         return FALSE;
 
     return TRUE;
 }
 
-BOOLEAN PhGetClientRect(
+BOOLEAN PhScreenToClientRect(
+    _In_ HWND WindowHandle,
+    _Inout_ PRECT Rect
+    )
+{
+    if (MapWindowRect(HWND_DESKTOP, WindowHandle, Rect) == 0)
+        return FALSE;
+
+    return TRUE;
+
+    //if (!ScreenToClient(WindowHandle, (PPOINT)Rect))
+    //    return FALSE;
+    //if (!ScreenToClient(WindowHandle, ((PPOINT)Rect) + 1))
+    //    return FALSE;
+    //return TRUE;
+}
+
+BOOLEAN PhGetClientRectOffsetScroll(
     _In_ HWND WindowHandle,
     _Out_ PRECT ClientRect
     )
 {
-    GetClientRect(WindowHandle, ClientRect);
+    LONG scrollRangeMax;
+    LONG scrollRangeMin;
+    LONG scrollPosition;
+
+    if (!PhGetClientRect(WindowHandle, ClientRect))
+        return FALSE;
 
     if (!(ClientRect->right && ClientRect->bottom))
         return FALSE;
+
+    LONG_PTR windowStyle = PhGetWindowStyle(WindowHandle);
+
+    if (FlagOn(windowStyle, WS_HSCROLL))
+    {
+        if (GetScrollRange(WindowHandle, SB_HORZ, &scrollRangeMin, &scrollRangeMax))
+        {
+            scrollPosition = GetScrollPos(WindowHandle, SB_HORZ);
+            ClientRect->right = ClientRect->left + scrollRangeMax;
+            PhOffsetRect(ClientRect, -scrollPosition, 0);
+        }
+    }
+
+    if (FlagOn(windowStyle, WS_VSCROLL))
+    {
+        if (GetScrollRange(WindowHandle, SB_VERT, &scrollRangeMin, &scrollRangeMax))
+        {
+            scrollPosition = GetScrollPos(WindowHandle, SB_VERT);
+            ClientRect->bottom = ClientRect->top + scrollRangeMax;
+            PhOffsetRect(ClientRect, 0, -scrollPosition);
+        }
+    }
 
     return TRUE;
 }
@@ -691,7 +852,7 @@ BOOLEAN PhSetChildWindowNoActivate(
         _In_ HWND WindowHandle
         );
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(SetChildWindowNoActivate) SetChildWindowNoActivate_I = NULL; // NtUserSetChildWindowNoActivate
+    static typeof(SetChildWindowNoActivate) SetChildWindowNoActivate_I = NULL; // NtUserSetChildWindowNoActivate
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -741,19 +902,33 @@ BOOLEAN PhCheckWindowThreadDesktop(
     return !!CheckWindowThreadDesktop_I(WindowHandle, HandleToUlong(ThreadId));
 }
 
-LONG PhGetDpi(
-    _In_ LONG Number,
-    _In_ LONG DpiValue
-    )
-{
-    return PhMultiplyDivideSigned(Number, DpiValue, USER_DEFAULT_SCREEN_DPI);
-}
-
 LONG PhGetMonitorDpi(
-    _In_ LPCRECT rect
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PRECT WindowRect
     )
 {
-    return PhGetDpiValue(NULL, rect);
+    if (WindowRect && GetDpiForMonitor_I)
+    {
+        LONG dpi_x, dpi_y;
+        HMONITOR monitor;
+
+        monitor = MonitorFromRect(WindowRect, MONITOR_DEFAULTTONEAREST);
+
+        if (HR_SUCCESS(GetDpiForMonitor_I(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)))
+            return dpi_x;
+    }
+    else if (WindowHandle && GetDpiForMonitor_I)
+    {
+        LONG dpi_x, dpi_y;
+        HMONITOR monitor;
+
+        monitor = MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST);
+
+        if (HR_SUCCESS(GetDpiForMonitor_I(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)))
+            return dpi_x;
+    }
+
+    return USER_DEFAULT_SCREEN_DPI;
 }
 
 LONG PhGetSystemDpi(
@@ -762,19 +937,13 @@ LONG PhGetSystemDpi(
 {
     LONG dpi;
 
-    dpi = PhGetTaskbarDpi();
+    if (dpi = PhGetTaskbarDpi())
+        return dpi;
 
-    if (dpi == 0)
-    {
-        dpi = PhGetDpiValue(NULL, NULL);
-    }
+    if (dpi = PhGetDpiValue(NULL, NULL))
+        return dpi;
 
-    if (dpi == 0)
-    {
-        dpi = USER_DEFAULT_SCREEN_DPI;
-    }
-
-    return dpi;
+    return USER_DEFAULT_SCREEN_DPI;
 }
 
 // rev from GetDpiForShellUIComponent (dmex)
@@ -823,14 +992,14 @@ LONG PhGetTaskbarDpi(
 
     if (windowHandle = PhGetShellWindow())
     {
-        GetWindowRect(windowHandle, &windowRect);
+        PhGetWindowRect(windowHandle, &windowRect);
     }
 
     if (PhRectEmpty(&windowRect))
     {
         if (windowHandle = GetDesktopWindow())
         {
-            GetWindowRect(windowHandle, &windowRect);
+            PhGetWindowRect(windowHandle, &windowRect);
         }
     }
 
@@ -846,7 +1015,7 @@ LONG PhGetTaskbarDpi(
 
     if (!PhRectEmpty(&windowRect))
     {
-        dpi = PhGetMonitorDpi(&windowRect);
+        dpi = PhGetMonitorDpi(NULL, &windowRect);
     }
 
     if (dpi == 0)
@@ -871,105 +1040,80 @@ LONG PhGetWindowDpi(
     _In_ HWND WindowHandle
     )
 {
-    LONG dpi;
-
     if (WindowsVersion >= WINDOWS_10)
     {
+        LONG dpi;
         RECT windowRect;
 
-        dpi = PhGetDpiValue(WindowHandle, NULL);
+        if (dpi = PhGetDpiValue(WindowHandle, NULL))
+            return dpi;
 
-        if (dpi == 0)
+        if (PhGetWindowRect(WindowHandle, &windowRect))
         {
-            if (PhGetWindowRect(WindowHandle, &windowRect))
-            {
-                dpi = PhGetDpiValue(NULL, &windowRect);
-            }
+            if (dpi = PhGetDpiValue(NULL, &windowRect))
+                return dpi;
         }
     }
-    else
+    else // Windows 7 and Windows 8
     {
+        LONG dpi;
         HDC screenHdc;
 
-        if (screenHdc = GetDC(WindowHandle))
+        if (screenHdc = PhGetDC(WindowHandle))
         {
             dpi = GetDeviceCaps(screenHdc, LOGPIXELSX);
-            ReleaseDC(WindowHandle, screenHdc);
-        }
-        else
-        {
-            dpi = USER_DEFAULT_SCREEN_DPI;
+            PhReleaseDC(WindowHandle, screenHdc);
+            return dpi;
         }
     }
 
-    if (dpi == 0)
-    {
-        dpi = USER_DEFAULT_SCREEN_DPI;
-    }
-
-    return dpi;
+    return USER_DEFAULT_SCREEN_DPI;
 }
 
 LONG PhGetDpiValue(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ LPCRECT Rect
+    _In_opt_ PRECT WindowRect
     )
 {
-    if (Rect || WindowHandle)
+    LONG dpi;
+
+    // Windows 10 (RS1)
+    if (WindowHandle && GetDpiForWindow_I)
     {
-        // Windows 10 (RS1)
+        if (dpi = GetDpiForWindow_I(WindowHandle))
+            return dpi;
+    }
 
-        if (GetDpiForWindow_I && WindowHandle)
-        {
-            LONG dpi;
+    // Windows 8.1
+    if (WindowRect && GetDpiForMonitor_I)
+    {
+        if (dpi = PhGetMonitorDpi(NULL, WindowRect))
+            return dpi;
+    }
 
-            if (dpi = GetDpiForWindow_I(WindowHandle))
-            {
-                return dpi;
-            }
-        }
-
-        // Windows 8.1
-
-        if (GetDpiForMonitor_I)
-        {
-            HMONITOR monitor;
-            LONG dpi_x;
-            LONG dpi_y;
-
-            if (Rect)
-                monitor = MonitorFromRect(Rect, MONITOR_DEFAULTTONEAREST);
-            else
-                monitor = MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST);
-
-            if (HR_SUCCESS(GetDpiForMonitor_I(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)))
-            {
-                return dpi_x;
-            }
-        }
+    if (WindowHandle && GetDpiForMonitor_I)
+    {
+        if (dpi = PhGetMonitorDpi(WindowHandle, NULL))
+            return dpi;
     }
 
     // Windows 10 (RS1)
-
-    if (GetDpiForSystem_I)
     {
-        return GetDpiForSystem_I();
+        if (GetDpiForSystem_I)
+        {
+            return GetDpiForSystem_I();
+        }
     }
 
     // Windows 7 and Windows 8
     {
         HDC screenHdc;
-        LONG dpi_x;
 
-        if (screenHdc = GetDC(NULL))
+        if (screenHdc = PhGetDC(NULL))
         {
-            dpi_x = GetDeviceCaps(screenHdc, LOGPIXELSX);
-            ReleaseDC(NULL, screenHdc);
-
-            if (dpi_x != 0)
-            {
-                return dpi_x;
-            }
+            dpi = GetDeviceCaps(screenHdc, LOGPIXELSX);
+            PhReleaseDC(NULL, screenHdc);
+            if (dpi) { return dpi; }
         }
     }
 
@@ -988,7 +1132,7 @@ LONG PhGetSystemMetrics(
     _In_opt_ LONG DpiValue
     )
 {
-    if (GetSystemMetricsForDpi_I && DpiValue)
+    if (DpiValue > 0 && GetSystemMetricsForDpi_I)
     {
         return GetSystemMetricsForDpi_I(Index, DpiValue);
     }
@@ -1015,56 +1159,12 @@ BOOL PhGetSystemParametersInfo(
     _In_opt_ LONG DpiValue
     )
 {
-    if (SystemParametersInfoForDpi_I && DpiValue)
+    if (DpiValue > 0 && SystemParametersInfoForDpi_I)
     {
         return SystemParametersInfoForDpi_I(Action, Param1, Param2, 0, DpiValue);
     }
 
     return SystemParametersInfo(Action, Param1, Param2, 0);
-}
-
-VOID PhGetSizeDpiValue(
-    _Inout_ PRECT rect,
-    _In_ LONG DpiValue,
-    _In_ BOOLEAN isUnpack
-    )
-{
-    PH_RECTANGLE rectangle;
-    LONG numerator;
-    LONG denominator;
-
-    if (DpiValue == USER_DEFAULT_SCREEN_DPI)
-        return;
-
-    if (isUnpack)
-    {
-        numerator = DpiValue;
-        denominator = USER_DEFAULT_SCREEN_DPI;
-    }
-    else
-    {
-        numerator = USER_DEFAULT_SCREEN_DPI;
-        denominator = DpiValue;
-    }
-
-    rectangle.Left = rect->left;
-    rectangle.Top = rect->top;
-    rectangle.Width = rect->right - rect->left;
-    rectangle.Height = rect->bottom - rect->top;
-
-    if (rectangle.Left)
-        rectangle.Left = PhMultiplyDivideSigned(rectangle.Left, numerator, denominator);
-    if (rectangle.Top)
-        rectangle.Top = PhMultiplyDivideSigned(rectangle.Top, numerator, denominator);
-    if (rectangle.Width)
-        rectangle.Width = PhMultiplyDivideSigned(rectangle.Width, numerator, denominator);
-    if (rectangle.Height)
-        rectangle.Height = PhMultiplyDivideSigned(rectangle.Height, numerator, denominator);
-
-    rect->left = rectangle.Left;
-    rect->top = rectangle.Top;
-    rect->right = rectangle.Left + rectangle.Width;
-    rect->bottom = rectangle.Top + rectangle.Height;
 }
 
 LONG PhAddTabControlTab(
@@ -1324,6 +1424,7 @@ VOID PhSetImageListBitmap(
     }
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN SharedIconCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -1356,6 +1457,7 @@ static BOOLEAN SharedIconCacheHashtableEqualFunction(
     }
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG SharedIconCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -2042,32 +2144,30 @@ BOOLEAN PhModalPropertySheet(
     return TRUE;
 }
 
-VOID PhInitializeLayoutManager(
+BOOLEAN PhInitializeLayoutManager(
     _Out_ PPH_LAYOUT_MANAGER Manager,
     _In_ HWND RootWindowHandle
     )
 {
-    RECT rect;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(RootWindowHandle);
-
-    PhGetClientRect(RootWindowHandle, &rect);
-
-    PhGetSizeDpiValue(&rect, dpiValue, FALSE);
+    memset(Manager, 0, sizeof(PH_LAYOUT_MANAGER));
 
     Manager->List = PhCreateList(4);
-
-    Manager->dpiValue = dpiValue;
-    Manager->LayoutNumber = 0;
+    Manager->WindowDpi = PhGetWindowDpi(RootWindowHandle);
 
     Manager->RootItem.Handle = RootWindowHandle;
-    Manager->RootItem.Rect = rect;
     Manager->RootItem.ParentItem = NULL;
     Manager->RootItem.LayoutParentItem = NULL;
     Manager->RootItem.LayoutNumber = 0;
     Manager->RootItem.NumberOfChildren = 0;
     Manager->RootItem.DeferHandle = NULL;
+
+    if (PhGetClientRect(RootWindowHandle, &Manager->RootItem.Rect))
+    {
+        PhGetSizeDpiValue(&Manager->RootItem.Rect, Manager->WindowDpi, FALSE);
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 VOID PhDeleteLayoutManager(
@@ -2099,7 +2199,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
         Handle,
         ParentItem,
         Anchor,
-        dummy
+        &dummy
         );
 
     layoutItem->Margin = layoutItem->Rect;
@@ -2123,7 +2223,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     _In_ HWND Handle,
     _In_opt_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor,
-    _In_ RECT Margin
+    _In_ PRECT Margin
     )
 {
     PPH_LAYOUT_ITEM item;
@@ -2131,7 +2231,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     if (!ParentItem)
         ParentItem = &Manager->RootItem;
 
-    item = PhAllocate(sizeof(PH_LAYOUT_ITEM));
+    item = PhAllocateZero(sizeof(PH_LAYOUT_ITEM));
     item->Handle = Handle;
     item->ParentItem = ParentItem;
     item->LayoutNumber = Manager->LayoutNumber;
@@ -2149,7 +2249,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
 
     item->LayoutParentItem->NumberOfChildren++;
 
-    GetWindowRect(Handle, &item->Rect);
+    PhGetWindowRect(Handle, &item->Rect);
     MapWindowRect(HWND_DESKTOP, item->LayoutParentItem->Handle, &item->Rect);
 
     if (item->Anchor & PH_LAYOUT_TAB_CONTROL)
@@ -2158,10 +2258,9 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
         TabCtrl_AdjustRect(Handle, FALSE, &item->Rect);
     }
 
-    PhGetSizeDpiValue(&item->Rect, Manager->dpiValue, FALSE);
-
-    item->Margin = Margin;
-    PhGetSizeDpiValue(&item->Margin, Manager->dpiValue, FALSE);
+    PhGetSizeDpiValue(&item->Rect, Manager->WindowDpi, FALSE);
+    item->Margin = *Margin;
+    PhGetSizeDpiValue(&item->Margin, Manager->WindowDpi, FALSE);
 
     PhAddItemList(Manager->List, item);
 
@@ -2200,7 +2299,9 @@ VOID PhpLayoutItemLayout(
         hasDummyParent = FALSE;
     }
 
-    GetWindowRect(Item->Handle, &Item->Rect);
+    if (!PhGetWindowRect(Item->Handle, &Item->Rect))
+        return;
+
     MapWindowRect(HWND_DESKTOP, Item->LayoutParentItem->Handle, &Item->Rect);
 
     if (Item->Anchor & PH_LAYOUT_TAB_CONTROL)
@@ -2209,7 +2310,7 @@ VOID PhpLayoutItemLayout(
         TabCtrl_AdjustRect(Item->Handle, FALSE, &Item->Rect);
     }
 
-    PhGetSizeDpiValue(&Item->Rect, Manager->dpiValue, FALSE);
+    PhGetSizeDpiValue(&Item->Rect, Manager->WindowDpi, FALSE);
 
     if (!(Item->Anchor & PH_LAYOUT_DUMMY_MASK))
     {
@@ -2266,7 +2367,7 @@ VOID PhpLayoutItemLayout(
         // Convert the right/bottom back into co-ordinates.
         PhConvertRect(&rect, &Item->LayoutParentItem->Rect);
         Item->Rect = rect;
-        PhGetSizeDpiValue(&rect, Manager->dpiValue, TRUE);
+        PhGetSizeDpiValue(&rect, Manager->WindowDpi, TRUE);
 
         if (!(Item->Anchor & PH_LAYOUT_IMMEDIATE_RESIZE))
         {
@@ -2297,30 +2398,26 @@ VOID PhLayoutManagerLayout(
     _Inout_ PPH_LAYOUT_MANAGER Manager
     )
 {
-    PPH_LAYOUT_ITEM item;
-    LONG dpiValue;
-    ULONG i;
+    ULONG count = Manager->List->Count;
+    PPH_LAYOUT_ITEM* items = (PPH_LAYOUT_ITEM*)Manager->List->Items;
 
     Manager->LayoutNumber++;
-
-    dpiValue = PhGetWindowDpi(Manager->RootItem.Handle);
-    Manager->dpiValue = dpiValue;
 
     if (!PhGetClientRect(Manager->RootItem.Handle, &Manager->RootItem.Rect))
         return;
 
-    PhGetSizeDpiValue(&Manager->RootItem.Rect, dpiValue, FALSE);
+    PhGetSizeDpiValue(&Manager->RootItem.Rect, Manager->WindowDpi, FALSE);
 
-    for (i = 0; i < Manager->List->Count; i++)
+    // BeginDeferWindowPos before the child items are laid out.
+    for (ULONG i = 0; i < count; i++)
     {
-        item = (PPH_LAYOUT_ITEM)Manager->List->Items[i];
-
-        PhpLayoutItemLayout(Manager, item);
+        PhpLayoutItemLayout(Manager, items[i]);
     }
 
-    for (i = 0; i < Manager->List->Count; i++)
+    // EndDeferWindowPos after all child items are laid out.
+    for (ULONG i = 0; i < count; i++)
     {
-        item = (PPH_LAYOUT_ITEM)Manager->List->Items[i];
+        PPH_LAYOUT_ITEM item = items[i];
 
         if (item->DeferHandle)
         {
@@ -2341,6 +2438,18 @@ VOID PhLayoutManagerLayout(
     }
 }
 
+VOID PhLayoutManagerUpdate(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ LONG WindowDpi
+    )
+{
+    if (WindowDpi)
+        Manager->WindowDpi = WindowDpi;
+    else
+        Manager->WindowDpi = PhGetWindowDpi(Manager->RootItem.Handle);
+}
+
+_Use_decl_annotations_
 BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -2354,6 +2463,7 @@ BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
         entry1->PropertyHash == entry2->PropertyHash;
 }
 
+_Use_decl_annotations_
 ULONG NTAPI PhpWindowContextHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -2361,6 +2471,40 @@ ULONG NTAPI PhpWindowContextHashtableHashFunction(
     PPH_WINDOW_PROPERTY_CONTEXT entry = Entry;
 
     return PhHashIntPtr((ULONG_PTR)entry->WindowHandle) ^ entry->PropertyHash; // PhHashInt32
+}
+
+VOID NTAPI PhWindowFlsCallback(
+    _In_ PVOID FlsData
+    )
+{
+    PPH_HASHTABLE hashtable = (PPH_HASHTABLE)FlsData;
+
+    PhClearReference(&hashtable);
+}
+
+static PPH_HASHTABLE PhGetWindowContextHashTable(
+    VOID
+    )
+{
+    PPH_HASHTABLE hashtable;
+
+    if (hashtable = FlsGetValue(WindowCallbackFlsIndex))
+        return hashtable;
+
+    hashtable = PhCreateHashtable(
+        sizeof(PH_WINDOW_PROPERTY_CONTEXT),
+        PhpWindowContextHashtableEqualFunction,
+        PhpWindowContextHashtableHashFunction,
+        5
+        );
+
+    if (!FlsSetValue(WindowCallbackFlsIndex, hashtable))
+    {
+        PhShowStatus(NULL, L"Unable to create the window context.", 0, PhGetLastError());
+        RtlFailFast(FAST_FAIL_INVALID_FLS_DATA);
+    }
+
+    return hashtable;
 }
 
 PVOID PhGetWindowContext(
@@ -2374,9 +2518,7 @@ PVOID PhGetWindowContext(
     lookupEntry.WindowHandle = WindowHandle;
     lookupEntry.PropertyHash = PropertyHash;
 
-    PhAcquireQueuedLockShared(&WindowContextListLock);
-    entry = PhFindEntryHashtable(WindowContextHashTable, &lookupEntry);
-    PhReleaseQueuedLockShared(&WindowContextListLock);
+    entry = PhFindEntryHashtable(PhGetWindowContextHashTable(), &lookupEntry);
 
     if (entry)
         return entry->Context;
@@ -2392,13 +2534,12 @@ VOID PhSetWindowContext(
 {
     PH_WINDOW_PROPERTY_CONTEXT entry;
 
+    memset(&entry, 0, sizeof(PH_WINDOW_PROPERTY_CONTEXT));
     entry.WindowHandle = WindowHandle;
     entry.PropertyHash = PropertyHash;
     entry.Context = Context;
 
-    PhAcquireQueuedLockExclusive(&WindowContextListLock);
-    PhAddEntryHashtable(WindowContextHashTable, &entry);
-    PhReleaseQueuedLockExclusive(&WindowContextListLock);
+    PhAddEntryHashtable(PhGetWindowContextHashTable(), &entry);
 }
 
 VOID PhRemoveWindowContext(
@@ -2411,17 +2552,55 @@ VOID PhRemoveWindowContext(
     lookupEntry.WindowHandle = WindowHandle;
     lookupEntry.PropertyHash = PropertyHash;
 
-    PhAcquireQueuedLockExclusive(&WindowContextListLock);
-    PhRemoveEntryHashtable(WindowContextHashTable, &lookupEntry);
-    PhReleaseQueuedLockExclusive(&WindowContextListLock);
+    PhRemoveEntryHashtable(PhGetWindowContextHashTable(), &lookupEntry);
 }
 
-VOID PhEnumWindows(
-    _In_ PH_ENUM_CALLBACK Callback,
+typedef struct _PH_WINDOW_ENUM_CONTEXT
+{
+    _Function_class_(PH_WINDOW_ENUM_CALLBACK)
+    _In_ PPH_WINDOW_ENUM_CALLBACK Callback;
+    _In_opt_ PVOID Context;
+    BOOLEAN StopSearch;
+} PH_WINDOW_ENUM_CONTEXT, *PPH_WINDOW_ENUM_CONTEXT;
+
+static BOOL CALLBACK PhEnumWindowsCallback(
+    _In_ HWND WindowHandle,
+    _In_opt_ LPARAM Context
+    )
+{
+    PPH_WINDOW_ENUM_CONTEXT context = (PPH_WINDOW_ENUM_CONTEXT)Context;
+
+    if (context->Callback(WindowHandle, context->Context))
+        return TRUE;
+
+    context->StopSearch = TRUE;
+    // Note: If EnumWindowsProc returns zero, the return value is also zero.
+    // The callback should call SetLastError, but we can check StopSearch (dmex)
+    return FALSE;
+}
+
+/**
+ * Enumerates all top-level windows on the screen.
+ *
+ * \param Callback The callback function to be called for each child window.
+ * \param Context An optional context parameter to be passed to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhEnumWindows(
+    _In_ PH_WINDOW_ENUM_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
-    EnumWindows((WNDENUMPROC)Callback, (LPARAM)Context);
+    PH_WINDOW_ENUM_CONTEXT context;
+
+    memset(&context, 0, sizeof(PH_WINDOW_ENUM_CONTEXT));
+    context.Callback = Callback;
+    context.Context = Context;
+
+    if (EnumWindows(PhEnumWindowsCallback, (LPARAM)&context) || context.StopSearch)
+        return STATUS_SUCCESS;
+
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 /**
@@ -2431,15 +2610,23 @@ VOID PhEnumWindows(
  * \param Limit The maximum number of child windows to enumerate.
  * \param Callback The callback function to be called for each child window.
  * \param Context An optional context parameter to be passed to the callback function.
+ * \return NTSTATUS Successful or errant status.
  */
-VOID PhEnumChildWindows(
+NTSTATUS PhEnumChildWindows(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Limit,
-    _In_ PH_CHILD_ENUM_CALLBACK Callback,
+    _In_ PH_WINDOW_ENUM_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
-    EnumChildWindows(WindowHandle, (WNDENUMPROC)Callback, (LPARAM)Context);
+    PH_WINDOW_ENUM_CONTEXT context;
+
+    memset(&context, 0, sizeof(PH_WINDOW_ENUM_CONTEXT));
+    context.Callback = Callback;
+    context.Context = Context;
+
+    if (EnumChildWindows(WindowHandle, PhEnumWindowsCallback, (LPARAM)&context))
+        return STATUS_SUCCESS;
 
     //HWND childWindow = NULL;
     //ULONG i = 0;
@@ -2451,6 +2638,9 @@ VOID PhEnumChildWindows(
     //
     //    i++;
     //}
+   
+    // Note: EnumChildWindows doesn't support GetLastError. (dmex)
+    return STATUS_UNSUCCESSFUL;
 }
 
 typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
@@ -2462,25 +2652,27 @@ typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
     BOOLEAN SkipInvisible;
 } GET_PROCESS_MAIN_WINDOW_CONTEXT, *PGET_PROCESS_MAIN_WINDOW_CONTEXT;
 
-BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+BOOLEAN CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
     _In_ HWND WindowHandle,
     _In_ PVOID Context
     )
 {
     PGET_PROCESS_MAIN_WINDOW_CONTEXT context = (PGET_PROCESS_MAIN_WINDOW_CONTEXT)Context;
-    ULONG processId;
+    CLIENT_ID clientId;
     WINDOWINFO windowInfo;
 
     if (context->SkipInvisible && !IsWindowVisible(WindowHandle))
         return TRUE;
 
-    GetWindowThreadProcessId(WindowHandle, &processId);
+    if (!NT_SUCCESS(PhGetWindowClientId(WindowHandle, &clientId)))
+        return TRUE;
 
     //if (UlongToHandle(processId) == context->ProcessId && (context->SkipInvisible ?
     //    !((parentWindow = GetParent(WindowHandle)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
     //    PhGetWindowTextEx(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0 : TRUE)) // skip windows with no title
 
-    if (UlongToHandle(processId) == context->ProcessId)
+    if (clientId.UniqueProcess == context->ProcessId)
     {
         if (!context->ImmersiveWindow && context->IsImmersive &&
             GetProp(WindowHandle, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
@@ -2562,6 +2754,14 @@ ULONG PhGetDialogItemValue(
     return (ULONG)controlValue;
 }
 
+/**
+ * Sets the text of a control in a dialog box to the string representation of a specified integer value.
+ *
+ * \param WindowHandle The handle of the parent window.
+ * \param ControlID The control to be changed.
+ * \param Value The integer value used to generate the item text.
+ * \param Signed Indicates whether the Value parameter is signed or unsigned.
+ */
 VOID PhSetDialogItemValue(
     _In_ HWND WindowHandle,
     _In_ LONG ControlID,
@@ -2583,7 +2783,14 @@ VOID PhSetDialogItemValue(
     }
 }
 
-VOID PhSetDialogItemText(
+/**
+ * Sets the title or text of a control in a dialog box.
+ *
+ * \param WindowHandle The handle of the parent window.
+ * \param ControlID The control with a title or text to be set.
+ * \param WindowText The text to be copied to the control.
+ */
+BOOLEAN PhSetDialogItemText(
     _In_ HWND WindowHandle,
     _In_ LONG ControlID,
     _In_ PCWSTR WindowText
@@ -2593,16 +2800,50 @@ VOID PhSetDialogItemText(
 
     if (controlHandle = GetDlgItem(WindowHandle, ControlID))
     {
-        PhSetWindowText(controlHandle, WindowText);
+        if (PhSetWindowText(controlHandle, WindowText))
+            return TRUE;
     }
+
+    return FALSE;
 }
 
-VOID PhSetWindowText(
+/**
+ * Sets the title or text of a control.
+ *
+ * \param WindowHandle The handle of the parent window.
+ * \param WindowText The text to be copied to the control.
+ */
+BOOLEAN PhSetWindowText(
     _In_ HWND WindowHandle,
     _In_ PCWSTR WindowText
     )
 {
-    SendMessage(WindowHandle, WM_SETTEXT, 0, (LPARAM)WindowText); // TODO: DefWindowProc (dmex)
+    ULONG_PTR result = 0;
+
+    if (SendMessageTimeout(
+        WindowHandle,
+        WM_SETTEXT,
+        0,
+        (LPARAM)WindowText,
+        SMTO_ABORTIFHUNG | SMTO_BLOCK,
+        1000,
+        &result
+        ) && result > 0)
+    {
+        return TRUE;
+    }
+
+    //if (SendMessage(WindowHandle, WM_SETTEXT, 0, (LPARAM)WindowText) > 0)
+    //{
+    //    return TRUE;
+    //}
+
+    //if (DefWindowProc(WindowHandle, WM_SETTEXT, 0, (LPARAM)WindowText) > 0)
+    //{
+    //    return TRUE;
+    //}
+
+    return FALSE;
 }
 
 VOID PhSetGroupBoxText(
@@ -2634,6 +2875,40 @@ VOID PhSetWindowAlwaysOnTop(
         );
 }
 
+_Success_(return)
+BOOLEAN PhSendMessageTimeout(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ UINT Timeout,
+    _Out_opt_ PULONG_PTR Result
+    )
+{
+    ULONG_PTR result = 0;
+
+    if (SendMessageTimeout(
+        WindowHandle,
+        WindowMessage,
+        wParam,
+        lParam,
+        SMTO_ABORTIFHUNG | SMTO_BLOCK,
+        Timeout,
+        &result
+        ) && result > 0)
+    {
+        if (Result)
+        {
+            *Result = result;
+        }
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+_Use_decl_annotations_
 BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -2644,6 +2919,7 @@ BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
         ((PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION)Entry2)->WindowHandle;
 }
 
+_Use_decl_annotations_
 ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -2848,7 +3124,7 @@ BOOLEAN PhIsImmersiveProcess(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&IsImmersiveProcess) IsImmersiveProcess_I = NULL;
+    static typeof(&IsImmersiveProcess) IsImmersiveProcess_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -2895,8 +3171,8 @@ BOOLEAN PhGetProcessDpiAwareness(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&GetDpiAwarenessContextForProcess) GetDpiAwarenessContextForProcess_I = NULL;
-    static __typeof__(&AreDpiAwarenessContextsEqual) AreDpiAwarenessContextsEqual_I = NULL;
+    static typeof(&GetDpiAwarenessContextForProcess) GetDpiAwarenessContextForProcess_I = NULL;
+    static typeof(&AreDpiAwarenessContextsEqual) AreDpiAwarenessContextsEqual_I = NULL;
     static BOOL (WINAPI* GetProcessDpiAwarenessInternal_I)(_In_ HANDLE hprocess, _Out_ PROCESS_DPI_AWARENESS* value) = NULL;
 
     if (PhBeginInitOnce(&initOnce))
@@ -2985,7 +3261,7 @@ NTSTATUS PhGetPhysicallyInstalledSystemMemory(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&GetPhysicallyInstalledSystemMemory) GetPhysicallyInstalledSystemMemory_I = NULL;
+    static typeof(&GetPhysicallyInstalledSystemMemory) GetPhysicallyInstalledSystemMemory_I = NULL;
     ULONGLONG physicallyInstalledSystemMemory = 0;
 
     if (PhBeginInitOnce(&initOnce))
@@ -3083,7 +3359,7 @@ NTSTATUS PhGetSendMessageReceiver(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&GetSendMessageReceiver) GetSendMessageReceiver_I = NULL;
+    static typeof(&GetSendMessageReceiver) GetSendMessageReceiver_I = NULL;
     HWND windowHandle;
 
     // GetSendMessageReceiver is an undocumented function exported by
@@ -3162,98 +3438,6 @@ BOOLEAN PhExtractIcon(
     return FALSE;
 }
 
-NTSTATUS PhLoadIconFromResourceDirectory(
-    _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
-    _In_ LONG ResourceIndex,
-    _In_ PCWSTR ResourceType,
-    _Out_opt_ ULONG* ResourceLength,
-    _Out_opt_ PVOID* ResourceBuffer
-    )
-{
-    ULONG resourceIndex;
-    ULONG resourceCount;
-    PVOID resourceBuffer;
-    PIMAGE_RESOURCE_DIRECTORY nameDirectory;
-    PIMAGE_RESOURCE_DIRECTORY languageDirectory;
-    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceType;
-    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceName;
-    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceLanguage;
-    PIMAGE_RESOURCE_DATA_ENTRY resourceData;
-
-    // Find the type
-    resourceCount = ResourceDirectory->NumberOfIdEntries + ResourceDirectory->NumberOfNamedEntries;
-    resourceType = PTR_ADD_OFFSET(ResourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-
-    for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
-    {
-        if (resourceType[resourceIndex].NameIsString)
-            continue;
-        if (resourceType[resourceIndex].Name == PtrToUlong(ResourceType))
-            break;
-    }
-
-    if (resourceIndex == resourceCount)
-        return STATUS_RESOURCE_TYPE_NOT_FOUND;
-    if (!resourceType[resourceIndex].DataIsDirectory)
-        return STATUS_RESOURCE_TYPE_NOT_FOUND;
-
-    // Find the name
-    nameDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceType[resourceIndex].OffsetToDirectory);
-    resourceCount = nameDirectory->NumberOfIdEntries + nameDirectory->NumberOfNamedEntries;
-    resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-
-    if (ResourceIndex < 0) // RT_ICON and DEVPKEY_DeviceClass_IconPath
-    {
-        for (resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
-        {
-            if (resourceName[resourceIndex].NameIsString)
-                continue;
-            if (resourceName[resourceIndex].Name == (ULONG)-ResourceIndex)
-                break;
-        }
-    }
-    else // RT_GROUP_ICON
-    {
-        resourceIndex = ResourceIndex;
-    }
-
-    if (resourceIndex >= resourceCount)
-        return STATUS_RESOURCE_NAME_NOT_FOUND;
-    if (!resourceName[resourceIndex].DataIsDirectory)
-        return STATUS_RESOURCE_NAME_NOT_FOUND;
-
-    // Find the language
-    languageDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceName[resourceIndex].OffsetToDirectory);
-    //resourceCount = languageDirectory->NumberOfIdEntries + languageDirectory->NumberOfNamedEntries;
-    resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-    resourceIndex = 0; // use the first entry
-
-    if (resourceLanguage[resourceIndex].DataIsDirectory)
-        return STATUS_RESOURCE_LANG_NOT_FOUND;
-
-    resourceData = PTR_ADD_OFFSET(ResourceDirectory, resourceLanguage[resourceIndex].OffsetToData);
-
-    if (!resourceData)
-        return STATUS_RESOURCE_DATA_NOT_FOUND;
-
-    resourceBuffer = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
-
-    if (!resourceBuffer)
-        return STATUS_RESOURCE_DATA_NOT_FOUND;
-
-    if (ResourceLength)
-        *ResourceLength = resourceData->Size;
-    if (ResourceBuffer)
-        *ResourceBuffer = resourceBuffer;
-
-    // if (LDR_IS_IMAGEMAPPING(ImageBaseAddress))
-    // PhLoaderEntryImageRvaToVa(ImageBaseAddress, resourceData->OffsetToData, resourceBuffer);
-    // PhLoadResource(ImageBaseAddress, MAKEINTRESOURCE(ResourceIndex), ResourceType, &resourceLength, &resourceBuffer);
-
-    return STATUS_SUCCESS;
-}
-
 #ifndef MAKEFOURCC
 #define MAKEFOURCC(ch0, ch1, ch2, ch3) \
  ((ULONG)(BYTE)(ch0) | ((ULONG)(BYTE)(ch1) << 8) | \
@@ -3276,7 +3460,7 @@ NTSTATUS PhCreateIconFromResourceDirectory(
     _In_ LONG Width,
     _In_ LONG Height,
     _In_ ULONG Flags,
-    _Out_opt_ HICON* IconHandle
+    _Out_ HICON* IconHandle
     )
 {
     NTSTATUS status;
@@ -3296,7 +3480,7 @@ NTSTATUS PhCreateIconFromResourceDirectory(
         return PhGetLastWin32ErrorAsNtStatus();
     }
 
-    status = PhLoadIconFromResourceDirectory(
+    status = PhGetMappedImageResourceIndex(
         MappedImage,
         ResourceDirectory,
         -iconResourceId,
@@ -3476,50 +3660,50 @@ NTSTATUS PhExtractIconEx(
         return FALSE;
     }
 
-    if (NativeFileName)
-    {
-        status = PhLoadMappedImageEx(
-            &fileName,
-            NULL,
-            &mappedImage
-            );
-    }
-    else
-    {
-        status = PhLoadMappedImage(
-            PhGetStringRefZ(&fileName),
-            NULL,
-            &mappedImage
-            );
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhClearReference(&resourceFileName);
-        return FALSE;
-    }
-
-    status = PhGetMappedImageDataDirectory(
-        &mappedImage,
-        IMAGE_DIRECTORY_ENTRY_RESOURCE,
-        &dataDirectory
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    resourceDirectory = PhMappedImageRvaToVa(
-        &mappedImage,
-        dataDirectory->VirtualAddress,
-        NULL
-        );
-
-    if (!resourceDirectory)
-        goto CleanupExit;
-
     __try
     {
-        status = PhLoadIconFromResourceDirectory(
+        if (NativeFileName)
+        {
+            status = PhLoadMappedImageEx(
+                &fileName,
+                NULL,
+                &mappedImage
+                );
+        }
+        else
+        {
+            status = PhLoadMappedImage(
+                PhGetStringRefZ(&fileName),
+                NULL,
+                &mappedImage
+                );
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            PhClearReference(&resourceFileName);
+            return FALSE;
+        }
+
+        status = PhGetMappedImageDataDirectory(
+            &mappedImage,
+            IMAGE_DIRECTORY_ENTRY_RESOURCE,
+            &dataDirectory
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        resourceDirectory = PhMappedImageRvaToVa(
+            &mappedImage,
+            dataDirectory->VirtualAddress,
+            NULL
+            );
+
+        if (!resourceDirectory)
+            goto CleanupExit;
+
+        status = PhGetMappedImageResourceIndex(
             &mappedImage,
             resourceDirectory,
             IconIndex,
@@ -3905,10 +4089,7 @@ BOOLEAN PhSetProcessShutdownParameters(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *SetProcessShutdownParameters_I)(
-        _In_ ULONG dwLevel,
-        _In_ ULONG dwFlags
-        ) = NULL;
+    static typeof(&SetProcessShutdownParameters) SetProcessShutdownParameters_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -3932,16 +4113,14 @@ BOOLEAN PhSetProcessShutdownParameters(
 
 VOID PhCustomDrawTreeTimeLine(
     _In_ HDC Hdc,
-    _In_ RECT CellRect,
+    _In_ PRECT CellRect,
     _In_ ULONG Flags,
     _In_opt_ PLARGE_INTEGER StartTime,
     _In_ PLARGE_INTEGER CreateTime
     )
 {
-    RECT rect = CellRect;
-    RECT borderRect = CellRect;
-    FLOAT percent;
-    ULONG flags = 0;
+    RECT drawRect = *CellRect;
+    LONG percent;
     LARGE_INTEGER systemTime;
     LARGE_INTEGER startTime;
     LARGE_INTEGER createTime;
@@ -3966,66 +4145,69 @@ VOID PhCustomDrawTreeTimeLine(
         createTime.QuadPart = systemTime.QuadPart - CreateTime->QuadPart;
     }
 
-    if (createTime.QuadPart > startTime.QuadPart)
+    // Clamp percent between 0 and 100, avoid division by zero.
+    if (createTime.QuadPart > startTime.QuadPart || startTime.QuadPart == 0)
     {
-        SetFlag(flags, PH_DRAW_TIMELINE_OVERFLOW);
+        SetFlag(Flags, PH_DRAW_TIMELINE_OVERFLOW);
+        percent = 100;
+    }
+    else
+    {
+        percent = (LONG)((createTime.QuadPart * 100) / startTime.QuadPart);
+        if (percent < 0) percent = 0;
+        else if (percent > 100) percent = 100;
     }
 
-    percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
-
-    if (percent > 100.f)
-        percent = 100.f;
-    if (percent < 0.0005f)
-        percent = 0.0f;
-
-    if (FlagOn(Flags, PH_DRAW_TIMELINE_DARKTHEME))
-        FillRect(Hdc, &rect, PhThemeWindowBackgroundBrush);
-    else
-        FillRect(Hdc, &rect, (HBRUSH)(COLOR_WINDOW + 1));
-
-    PhInflateRect(&rect, -1, -1);
-    rect.bottom += 1;
-    PhInflateRect(&borderRect, -1, -1);
-    borderRect.bottom += 1;
-
+    // Fill background and set brush color.
     if (FlagOn(Flags, PH_DRAW_TIMELINE_DARKTHEME))
     {
-        FillRect(Hdc, &rect, PhThemeWindowBackgroundBrush);
-
-        if (FlagOn(flags, PH_DRAW_TIMELINE_OVERFLOW))
-            SetDCBrushColor(Hdc, RGB(128, 128, 128));
-        else
-            SetDCBrushColor(Hdc, RGB(0, 130, 135));
-
+        FillRect(Hdc, CellRect, PhThemeWindowBackgroundBrush);
+        SetDCBrushColor(Hdc, FlagOn(Flags, PH_DRAW_TIMELINE_OVERFLOW) ? RGB(128, 128, 128) : RGB(0, 130, 135));
         SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
     }
     else
     {
-        FillRect(Hdc, &rect, (HBRUSH)(COLOR_BTNFACE + 1));
-
-        if (FlagOn(flags, PH_DRAW_TIMELINE_OVERFLOW))
-            SetDCBrushColor(Hdc, RGB(128, 128, 128));
-        else
-            SetDCBrushColor(Hdc, RGB(158, 202, 158));
-
+        FillRect(Hdc, CellRect, (HBRUSH)(COLOR_BTNFACE + 1));
+        SetDCBrushColor(Hdc, FlagOn(Flags, PH_DRAW_TIMELINE_OVERFLOW) ? RGB(128, 128, 128) : RGB(158, 202, 158));
         SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
     }
 
-    rect.left = (LONG)((LONG)rect.right + ((LONG)(rect.left - rect.right) * (percent / 100.f)));
+    PhInflateRect(&drawRect, -1, -1);
+    drawRect.bottom += 1;
 
-    if (rect.left < borderRect.left)
-        rect.left = borderRect.left;
+    //RECT fillRect = *CellRect;
+    //fillRect.right = fillRect.left + ((fillRect.right - fillRect.left) * percent) / 100;
+    //PatBlt(
+    //    Hdc,
+    //    fillRect.left,
+    //    fillRect.top,
+    //    fillRect.right - fillRect.left,
+    //    fillRect.bottom - fillRect.top,
+    //    PATCOPY
+    //    );
+    //
+    //LONG left = CellRect->right - PhMultiplyDivideSigned(CellRect->right - CellRect->left, percent, 100);
+    //PatBlt(
+    //    Hdc,
+    //    left,
+    //    CellRect->top,
+    //    CellRect->right - left,
+    //    CellRect->bottom - CellRect->top,
+    //    PATCOPY
+    //    );
 
+    LONG width = CellRect->right - CellRect->left;
+    LONG left = CellRect->right - ((width * percent) / 100);
     PatBlt(
         Hdc,
-        rect.left,
-        rect.top,
-        rect.right - rect.left,
-        rect.bottom - rect.top,
+        left,
+        CellRect->top,
+        width - (left - CellRect->left),
+        CellRect->bottom - CellRect->top,
         PATCOPY
         );
 
-    FrameRect(Hdc, &borderRect, PhGetStockBrush(GRAY_BRUSH));
+    FrameRect(Hdc, CellRect, PhGetStockBrush(GRAY_BRUSH));
 }
 
 // Windows Imaging Component (WIC) bitmap support
@@ -4035,17 +4217,18 @@ HBITMAP PhCreateDIBSection(
     _In_ PH_BUFFERFORMAT Format,
     _In_ LONG Width,
     _In_ LONG Height,
-    _Outptr_opt_ _When_(return != NULL, _Notnull_) PVOID* Bits
+    _Out_opt_ PVOID* Bits
     )
 {
+    if (Bits)
+    {
+        *Bits = NULL;
+    }
+
     switch (Format)
     {
     case PHBF_COMPATIBLEBITMAP:
         {
-            if (Bits)
-            {
-                *Bits = NULL;
-            }
             return CreateCompatibleBitmap(Hdc, Width, Height);
         }
         break;
@@ -4077,6 +4260,7 @@ HBITMAP PhCreateBitmapHandle(
     _Outptr_opt_ _When_(return != NULL, _Notnull_) PVOID* Bits
     )
 {
+    HDC hdc;
     HBITMAP bitmapHandle;
     BITMAPINFO bitmapInfo;
 
@@ -4088,28 +4272,30 @@ HBITMAP PhCreateBitmapHandle(
     bitmapInfo.bmiHeader.biBitCount = 32;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-    bitmapHandle = CreateDIBSection(PhGetScreenDC(), &bitmapInfo, DIB_RGB_COLORS, Bits, NULL, 0);
+    hdc = PhGetDC(NULL);
+    bitmapHandle = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, Bits, NULL, 0);
+    PhReleaseDC(NULL, hdc);
 
     return bitmapHandle;
 }
 
-static PGUID PhpGetImageFormatDecoderType(
+static PCGUID PhpGetImageFormatDecoderType(
     _In_ PH_IMAGE_FORMAT_TYPE Format
     )
 {
     switch (Format)
     {
     case PH_IMAGE_FORMAT_TYPE_ICO:
-        return (PGUID)&GUID_ContainerFormatIco;
+        return &GUID_ContainerFormatIco;
     case PH_IMAGE_FORMAT_TYPE_BMP:
-        return (PGUID)&GUID_ContainerFormatBmp;
+        return &GUID_ContainerFormatBmp;
     case PH_IMAGE_FORMAT_TYPE_JPG:
-        return (PGUID)&GUID_ContainerFormatJpeg;
+        return &GUID_ContainerFormatJpeg;
     case PH_IMAGE_FORMAT_TYPE_PNG:
-        return (PGUID)&GUID_ContainerFormatPng;
+        return &GUID_ContainerFormatPng;
     }
 
-    return (PGUID)&GUID_ContainerFormatRaw;
+    return &GUID_ContainerFormatRaw;
 }
 
 HBITMAP PhLoadImageFormatFromResource(
@@ -4530,7 +4716,35 @@ CleanupExit:
     return bitmapHandle;
 }
 
-BOOLEAN PhSetWindowCompositionAttribute(
+NTSTATUS PhGetWindowCompositionAttribute(
+    _In_ HWND WindowHandle,
+    _Inout_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* GetWindowCompositionAttribute_I)(
+        _In_ HWND WindowHandle,
+        _Inout_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        GetWindowCompositionAttribute_I = PhGetDllProcedureAddress(L"user32.dll", "GetWindowCompositionAttribute", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (GetWindowCompositionAttribute_I)
+    {
+        if (GetWindowCompositionAttribute_I(WindowHandle, AttributeData))
+        {
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
+NTSTATUS PhSetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
     _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
     )
@@ -4549,13 +4763,16 @@ BOOLEAN PhSetWindowCompositionAttribute(
 
     if (SetWindowCompositionAttribute_I)
     {
-        return !!SetWindowCompositionAttribute_I(WindowHandle, AttributeData);
+        if (SetWindowCompositionAttribute_I(WindowHandle, AttributeData))
+        {
+            return STATUS_SUCCESS;
+        }
     }
 
-    return FALSE;
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
-BOOLEAN PhSetWindowAcrylicCompositionColor(
+NTSTATUS PhSetWindowAcrylicCompositionColor(
     _In_ HWND WindowHandle,
     _In_ ULONG GradientColor
     )
@@ -4617,7 +4834,7 @@ HCURSOR PhLoadDividerCursor(
     return dividerCursorHandle;
 }
 
-BOOLEAN PhIsInteractiveUserSession(
+NTSTATUS PhIsInteractiveUserSession(
     VOID
     )
 {
@@ -4634,10 +4851,12 @@ BOOLEAN PhIsInteractiveUserSession(
         ))
     {
         if (BooleanFlagOn(flags.dwFlags, WSF_VISIBLE))
-            return TRUE;
+            return STATUS_SUCCESS;
+
+        return STATUS_NOT_GUI_PROCESS;
     }
 
-    return FALSE;
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 PPH_STRING PhGetCurrentWindowStationName(
@@ -4883,4 +5102,40 @@ NTSTATUS PhTerminateWindow(
         return STATUS_SUCCESS;
 
     return PhGetLastWin32ErrorAsNtStatus();
+}
+
+/**
+ * Queries information for a window using the user subsystem entry NtUserQueryWindow.
+ *
+ * \param WindowHandle A handle to the target window.
+ * \param WindowInfo The WINDOWINFOCLASS selector describing which piece of information to query.
+ * \return The value returned by NtUserQueryWindow on success. Returns 0 (NULL) if the
+ * function is unavailable or the call fails.
+ */
+ULONG_PTR PhUserQueryWindow(
+    _In_ HWND WindowHandle,
+    _In_ WINDOWINFOCLASS WindowInfo
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(&NtUserQueryWindow) NtUserQueryWindow_I = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhGetDllHandle(L"win32u.dll"))
+        {
+            NtUserQueryWindow_I = PhGetDllBaseProcedureAddress(baseAddress, "NtUserQueryWindow", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (NtUserQueryWindow_I)
+    {
+        return NtUserQueryWindow_I(WindowHandle, WindowInfo);
+    }
+
+    return 0;
 }

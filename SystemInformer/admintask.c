@@ -14,6 +14,8 @@
 #include <taskschd.h>
 #include <secwmi.h>
 
+#include <trace.h>
+
 DEFINE_GUID(CLSID_TaskScheduler, 0x0f87369f, 0xa4e5, 0x4cfc, 0xbd, 0x3e, 0x73, 0xe6, 0x15, 0x45, 0x72, 0xdd);
 DEFINE_GUID(IID_ITaskService, 0x2FABA4C7, 0x4DA9, 0x4013, 0x96, 0x97, 0x20, 0xCC, 0x3F, 0xD4, 0x0F, 0x85);
 DEFINE_GUID(IID_ITaskSettings2, 0x2C05C3F0, 0x6EED, 0x4C05, 0xA1, 0x5F, 0xED, 0x7D, 0x7A, 0x98, 0xA3, 0x69);
@@ -64,7 +66,7 @@ HRESULT PhCreateAdminTask(
 
     taskNameString = PhStringRefToBSTR(TaskName);
     taskFileNameString = PhStringRefToBSTR(FileName);
-    taskFolderString = PhStringRefToBSTR(&PhNtPathSeperatorString);
+    taskFolderString = PhStringRefToBSTR(&PhNtPathSeparatorString);
     taskTimeLimitString = PhStringRefToBSTR(&taskTimeLimit);
 #if (PH_ADMIN_TASK_FORWARD_COMMANDLINE_UNPRIVILEGED)
     taskArgumentsString = PhStringRefToBSTR(&taskArguments);
@@ -296,7 +298,7 @@ HRESULT PhDeleteAdminTask(
         goto CleanupExit;
 
     taskNameString = PhStringRefToBSTR(TaskName);
-    taskFolderString = PhStringRefToBSTR(&PhNtPathSeperatorString);
+    taskFolderString = PhStringRefToBSTR(&PhNtPathSeparatorString);
 
     status = ITaskService_Connect(
         taskService,
@@ -352,6 +354,8 @@ HRESULT PhRunAsAdminTask(
     IRegisteredTask* taskRegisteredTask = NULL;
     IRunningTask* taskRunningTask = NULL;
 
+    PhTraceFuncEnter("Run as admin task");
+
     status = PhGetClassObject(
         L"taskschd.dll",
         &CLSID_TaskScheduler,
@@ -363,7 +367,7 @@ HRESULT PhRunAsAdminTask(
         goto CleanupExit;
 
     taskNameString = PhStringRefToBSTR(TaskName);
-    taskFolderString = PhStringRefToBSTR(&PhNtPathSeperatorString);
+    taskFolderString = PhStringRefToBSTR(&PhNtPathSeparatorString);
 
     status = ITaskService_Connect(
         taskService,
@@ -435,6 +439,8 @@ CleanupExit:
     if (taskNameString)
         SysFreeString(taskNameString);
 
+    PhTraceFuncExit("Run as admin task: %!STATUS!", status);
+
     return status;
 }
 
@@ -446,37 +452,46 @@ NTSTATUS PhRunAsAdminTaskUIAccess(
     BOOLEAN tokenIsUIAccess;
     ULONG sessionId;
     CLIENT_ID desktopId;
-    PPH_STRING fileName;
+    PPH_STRING fileName = NULL;
+
+    PhTraceFuncEnter("Run as admin task UI access");
 
     if (!PhGetOwnTokenAttributes().Elevated)
-        return STATUS_UNSUCCESSFUL;
+    {
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
+    }
 
     if (!NT_SUCCESS(PhGetTokenUIAccess(
         PhGetOwnTokenAttributes().TokenHandle,
         &tokenIsUIAccess
         )) || tokenIsUIAccess)
     {
-        return STATUS_UNSUCCESSFUL;
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
     }
 
     fileName = PhGetApplicationFileNameWin32();
 
     if (PhIsNullOrEmptyString(fileName))
-        return STATUS_UNSUCCESSFUL;
+    {
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
+    }
 
     // Query the process from the current desktop.
 
     status = PhGetWindowClientId(PhGetShellWindow(), &desktopId);
 
     if (!NT_SUCCESS(status))
-        return status;
+        goto CleanupExit;
 
     // Query the session from the current process.
 
     status = PhGetProcessSessionId(NtCurrentProcess(), &sessionId);
 
     if (!NT_SUCCESS(status))
-        return status;
+        goto CleanupExit;
 
     status = PhExecuteRunAsCommand3(
         NULL,
@@ -492,7 +507,11 @@ NTSTATUS PhRunAsAdminTaskUIAccess(
         TRUE
         );
 
-    PhDereferenceObject(fileName);
+CleanupExit:
+
+    PhClearReference(&fileName);
+
+    PhTraceFuncExit("Run as admin task UI access: %!STATUS!", status);
 
     return status;
 }

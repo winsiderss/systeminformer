@@ -53,6 +53,7 @@ BOOLEAN PhpCreateWorkQueueThread(
     _Inout_ PPH_WORK_QUEUE WorkQueue
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpWorkQueueThreadStart(
     _In_ PVOID Parameter
     );

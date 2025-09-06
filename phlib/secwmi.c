@@ -21,13 +21,13 @@
 DEFINE_GUID(CLSID_WbemLocator, 0x4590f811, 0x1d3a, 0x11d0, 0x89, 0x1f, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 DEFINE_GUID(IID_IWbemLocator, 0xdc12a687, 0x737f, 0x11cf, 0x88, 0x4d, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 
-__typeof__(&PowerGetActiveScheme) PowerGetActiveScheme_I = NULL;
-__typeof__(&PowerSetActiveScheme) PowerSetActiveScheme_I = NULL;
-__typeof__(&PowerRestoreDefaultPowerSchemes) PowerRestoreDefaultPowerSchemes_I = NULL;
+typeof(&PowerGetActiveScheme) PowerGetActiveScheme_I = NULL;
+typeof(&PowerSetActiveScheme) PowerSetActiveScheme_I = NULL;
+typeof(&PowerRestoreDefaultPowerSchemes) PowerRestoreDefaultPowerSchemes_I = NULL;
 _PowerReadSecurityDescriptor PowerReadSecurityDescriptor_I = NULL;
 _PowerWriteSecurityDescriptor PowerWriteSecurityDescriptor_I = NULL;
-__typeof__(&WTSGetListenerSecurityW) WTSGetListenerSecurity_I = NULL;
-__typeof__(&WTSSetListenerSecurityW) WTSSetListenerSecurity_I = NULL;
+typeof(&WTSGetListenerSecurityW) WTSGetListenerSecurity_I = NULL;
+typeof(&WTSSetListenerSecurityW) WTSSetListenerSecurity_I = NULL;
 
 HRESULT PhGetWbemLocatorClass(
     _Out_ struct IWbemLocator** WbemLocatorClass
@@ -129,6 +129,48 @@ HRESULT PhCoSetProxyBlanket(
             EOAC_NONE
             );
         IClientSecurity_Release(InterfacePtr);
+    }
+
+    return status;
+}
+
+HRESULT PhGetWbemClassObjectDependency(
+    _Out_ PVOID* WbemClassObjectDependency,
+    _In_ IWbemClassObject* WbemClassObject,
+    _In_ IWbemServices* WbemServices,
+    _In_ PCWSTR Name
+    )
+{
+    HRESULT status;
+    IWbemClassObject* dependency;
+    VARIANT variant = { 0 };
+
+    status = IWbemClassObject_Get(
+        WbemClassObject,
+        Name,
+        0,
+        &variant,
+        NULL,
+        NULL
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IWbemServices_GetObject(
+            WbemServices,
+            V_BSTR(&variant),
+            WBEM_FLAG_RETURN_WBEM_COMPLETE,
+            NULL,
+            &dependency,
+            NULL
+            );
+
+        if (SUCCEEDED(status))
+        {
+            *WbemClassObjectDependency = dependency;
+        }
+
+        SysFreeString(V_BSTR(&variant));
     }
 
     return status;
@@ -407,7 +449,6 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     HRESULT status;
     PVOID securityDescriptor = NULL;
     PVOID securityDescriptorData = NULL;
-    PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
     BSTR wbemObjectString = NULL;
     BSTR wbemMethodString = NULL;
@@ -536,8 +577,6 @@ CleanupExit:
         IWbemLocator_Release(wbemLocator);
 
     VariantClear(&variantArrayValue);
-    VariantClear(&variantReturnValue);
-    PhClearReference(&querySelectString);
 
     if (wbemMethodString)
         SysFreeString(wbemMethodString);
@@ -570,7 +609,6 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     )
 {
     HRESULT status;
-    PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
     BSTR wbemObjectString = NULL;
     BSTR wbemMethodString = NULL;
@@ -661,7 +699,8 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
 
         if (ntstatus != STATUS_BUFFER_TOO_SMALL)
         {
-            status = HRESULT_FROM_NT(ntstatus);
+            // Note: HR>WIN32>NT required for correct WMI error messages (dmex)
+            status = HRESULT_FROM_WIN32(PhNtStatusToDosError(ntstatus));
             goto CleanupExit;
         }
 
@@ -675,7 +714,8 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
         if (!NT_SUCCESS(ntstatus))
         {
             PhFree(relativeSecurityDescriptor);
-            status = HRESULT_FROM_NT(ntstatus);
+            // Note: HR>WIN32>NT required for correct WMI error messages (dmex)
+            status = HRESULT_FROM_WIN32(PhNtStatusToDosError(ntstatus));
             goto CleanupExit;
         }
 
@@ -766,7 +806,6 @@ CleanupExit:
     if (freeSecurityDescriptor && relativeSecurityDescriptor)
         PhFree(relativeSecurityDescriptor);
 
-    VariantClear(&variantReturnValue);
     VariantClear(&variantArrayValue);
     //if (safeArray) SafeArrayDestroy(safeArray);
 
@@ -776,8 +815,6 @@ CleanupExit:
         SysFreeString(wbemObjectString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
-    if (querySelectString)
-        PhDereferenceObject(querySelectString);
 
     if (HR_SUCCESS(status))
     {
@@ -792,12 +829,192 @@ CleanupExit:
     return STATUS_INVALID_SECURITY_DESCR;
 }
 
+static PH_STRINGREF OleKeyName = PH_STRINGREF_INIT(L"\\REGISTRY\\MACHINE\\SOFTWARE\\Microsoft\\Ole");
+static PH_STRINGREF OlePermissionValueName[] =
+{
+    PH_STRINGREF_INIT(L"DefaultLaunchPermission"),
+    PH_STRINGREF_INIT(L"DefaultAccessPermission"),
+    PH_STRINGREF_INIT(L"MachineLaunchRestriction"),
+    PH_STRINGREF_INIT(L"MachineAccessRestriction"),
+};
+
+/**
+ * Read a COM access/launch policy security descriptor override from the registry.
+ *
+ * \param ComSDType The type of a security descriptor to read.
+ * \param SecurityDescriptor A security descriptor buffer.
+ */
+NTSTATUS PhGetComSecurityDescriptorOverride(
+    _In_ COMSD ComSDType,
+    _Outptr_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle = NULL;
+    PKEY_VALUE_PARTIAL_INFORMATION value = NULL;
+
+    if (ComSDType >= RTL_NUMBER_OF(OlePermissionValueName))
+        return STATUS_INVALID_PARAMETER;
+
+    status = PhOpenKey(&keyHandle, KEY_QUERY_VALUE, NULL, &OleKeyName, OBJ_CASE_INSENSITIVE);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhQueryValueKey(keyHandle, &OlePermissionValueName[ComSDType], KeyValuePartialInformation, &value);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (!RtlValidRelativeSecurityDescriptor(
+        (PSECURITY_DESCRIPTOR)value->Data,
+        value->DataLength,
+        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION))
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+        goto CleanupExit;
+    }
+
+    *SecurityDescriptor = PhAllocateCopy(value->Data, value->DataLength);
+
+CleanupExit:
+    if (keyHandle)
+        NtClose(keyHandle);
+
+    if (value)
+        PhFree(value);
+
+    return status;
+}
+
+/**
+ * Query a COM access/launch policy security descriptor.
+ *
+ * \param ComSDType The type of a security descriptor to query.
+ * \param SecurityDescriptor A security descriptor buffer.
+ */
+NTSTATUS PhGetComSecurityDescriptor(
+    _In_ COMSD ComSDType,
+    _Outptr_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    HRESULT hresult;
+    PSECURITY_DESCRIPTOR securityDescriptor = NULL;
+
+    status = PhGetComSecurityDescriptorOverride(ComSDType, SecurityDescriptor);
+
+    if (NT_SUCCESS(status) || (status != STATUS_OBJECT_NAME_NOT_FOUND))
+        return status;
+
+    hresult = CoGetSystemSecurityPermissions(ComSDType, &securityDescriptor);
+
+    if (HR_FAILED(hresult))
+    {
+        switch (hresult)
+        {
+        case E_ACCESSDENIED:
+            return STATUS_ACCESS_DENIED;
+        case E_OUTOFMEMORY:
+            return STATUS_NO_MEMORY;
+        case E_INVALIDARG:
+            return STATUS_INVALID_PARAMETER;
+        }
+
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    if (!RtlValidSecurityDescriptor(securityDescriptor))
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+        goto CleanupExit;
+    }
+
+    *SecurityDescriptor = PhAllocateCopy(
+        securityDescriptor,
+        RtlLengthSecurityDescriptor(securityDescriptor)
+        );
+
+CleanupExit:
+    if (securityDescriptor)
+        LocalFree(securityDescriptor);
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Adjust a COM access/launch policy security descriptor.
+ *
+ * \param ComSDType The type of a security descriptor to read.
+ * \param SecurityInformation The security information to change.
+ * \param SecurityDescriptor A security descriptor buffer.
+ */
+NTSTATUS PhSetComSecurityDescriptor(
+    _In_ COMSD ComSDType,
+    _In_ ULONG SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle = NULL;
+    PSECURITY_DESCRIPTOR originalSecurityDescriptor = NULL;
+    PSECURITY_DESCRIPTOR mergedSecurityDescriptor = NULL;
+
+    if (ComSDType >= RTL_NUMBER_OF(OlePermissionValueName))
+        return STATUS_INVALID_PARAMETER;
+
+    status = PhOpenKey(&keyHandle, KEY_SET_VALUE, NULL, &OleKeyName, OBJ_CASE_INSENSITIVE);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetComSecurityDescriptor(ComSDType, &originalSecurityDescriptor);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhMergeSecurityDescriptors(
+        originalSecurityDescriptor,
+        SecurityDescriptor,
+        SecurityInformation,
+        &mergedSecurityDescriptor
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhSetValueKey(
+        keyHandle,
+        &OlePermissionValueName[ComSDType],
+        REG_BINARY,
+        mergedSecurityDescriptor,
+        RtlLengthSecurityDescriptor(mergedSecurityDescriptor)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        // Notify RPCSS about the change
+        UpdateDCOMSettings();        
+    }
+
+CleanupExit:
+    if (keyHandle)
+        NtClose(keyHandle);
+
+    if (originalSecurityDescriptor)
+        PhFree(originalSecurityDescriptor);
+
+    if (mergedSecurityDescriptor)
+        PhFree(mergedSecurityDescriptor);
+
+    return status;
+}
+
 HRESULT PhRestartDefenderOfflineScan(
     VOID
     )
 {
     HRESULT status;
-    PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
     BSTR wbemObjectString = NULL;
     BSTR wbemMethodString = NULL;
@@ -893,16 +1110,12 @@ CleanupExit:
     if (wbemLocator)
         IWbemLocator_Release(wbemLocator);
 
-    VariantClear(&variantReturnValue);
-
     if (wbemMethodString)
         SysFreeString(wbemMethodString);
     if (wbemObjectString)
         SysFreeString(wbemObjectString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
-    if (querySelectString)
-        PhDereferenceObject(querySelectString);
 
     return status;
 }

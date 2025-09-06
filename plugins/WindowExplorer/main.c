@@ -22,6 +22,7 @@ PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -30,6 +31,7 @@ VOID NTAPI LoadCallback(
     NOTHING;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -48,6 +50,7 @@ static BOOL CALLBACK WepEnumDesktopProc(
     return TRUE;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuItemCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -115,6 +118,7 @@ VOID NTAPI MenuItemCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -142,6 +146,7 @@ VOID NTAPI MainMenuInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessPropertiesInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -162,6 +167,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ThreadMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

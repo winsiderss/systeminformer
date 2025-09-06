@@ -295,7 +295,7 @@ BOOLEAN LookupSockInAddr6CountryCode(
     _Out_ PPH_STRING *CountryName
     );
 
-INT LookupCountryIcon(
+LONG LookupCountryIcon(
     _In_ ULONG Name
     );
 
@@ -363,6 +363,7 @@ typedef struct _RESOLVED_PORT
 
 extern CONST RESOLVED_PORT ResolvedPortsTable[6265];
 
+_Success_(return)
 BOOLEAN LookupPortServiceName(
     _In_ ULONG Port,
     _Out_ PPH_STRINGREF* ServiceName

@@ -65,7 +65,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhVerifyFileIsChainedToMicrosoft(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     );
 
@@ -98,7 +98,7 @@ PhGetSignerNameFromCertificate(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetSystemComponentFromCertificate(
     _In_ PCERT_CONTEXT Certificate

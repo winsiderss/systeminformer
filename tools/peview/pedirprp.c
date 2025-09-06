@@ -215,7 +215,7 @@ VOID PvpPeEnumerateImageDataDirectory(
 
             if (directorySection)
             {
-                directoryNode->RawStart = PTR_ADD_OFFSET(PTR_SUB_OFFSET(directoryAddress, directorySection->VirtualAddress), directorySection->PointerToRawData);
+                directoryNode->RawStart = PTR_ADD_OFFSET((directoryAddress - directorySection->VirtualAddress), directorySection->PointerToRawData);
                 PhPrintPointer(value, directoryNode->RawStart);
                 directoryNode->RawStartString = PhCreateString(value);
 
@@ -243,12 +243,7 @@ VOID PvpPeEnumerateImageDataDirectory(
         ULONG sectionNameLength = 0;
         WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
 
-        if (PhGetMappedImageSectionName(
-            directorySection,
-            sectionName,
-            RTL_NUMBER_OF(sectionName),
-            &sectionNameLength
-            ))
+        if (NT_SUCCESS(PhGetMappedImageSectionName(directorySection, sectionName, RTL_NUMBER_OF(sectionName), &sectionNameLength)))
         {
             directoryNode->SectionNameString = PhCreateStringEx(sectionName, sectionNameLength * sizeof(WCHAR));
         }

@@ -215,6 +215,12 @@
     <ClCompile Include="apistubs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="nativeprocess.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nativefile.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">

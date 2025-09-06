@@ -13,11 +13,13 @@
 #include "exttools.h"
 #include "etwmon.h"
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtEtwProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -253,6 +255,7 @@ VOID EtProcessNetworkEvent(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtEtwProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -410,6 +413,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

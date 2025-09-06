@@ -41,25 +41,30 @@ typedef struct _PH_MODULE_QUERY_DATA
     FLOAT ImageCoherency;
 } PH_MODULE_QUERY_DATA, *PPH_MODULE_QUERY_DATA;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpModuleProviderDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpModuleItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpModuleHashtableHashFunction(
     _In_ PVOID Entry
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhModuleEnclaveListInitialize(
     _In_ PVOID ThreadParameter
     );
@@ -213,6 +218,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     return moduleProvider;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpModuleProviderDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -280,6 +286,7 @@ PPH_MODULE_ITEM PhCreateModuleItem(
     return moduleItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpModuleItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -295,6 +302,7 @@ VOID PhpModuleItemDeleteProcedure(
     PhDeleteImageVersionInfo(&moduleItem->VersionInfo);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -316,6 +324,7 @@ BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     }
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpModuleHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -404,6 +413,7 @@ VOID PhpRemoveModuleItem(
     PhDereferenceObject(ModuleItem);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpModuleQueryWorker(
     _In_ PVOID Parameter
     )
@@ -688,6 +698,7 @@ static BOOLEAN NTAPI PhpEnumModulesCallback(
     return TRUE;
 }
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhModuleProviderUpdate(
     _In_ PVOID Object
     )
@@ -1190,6 +1201,7 @@ NTSTATUS PhEnumGenericEnclaveModules(
     return status;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhModuleEnclaveListInitialize(
     _In_ PVOID ThreadParameter
     )

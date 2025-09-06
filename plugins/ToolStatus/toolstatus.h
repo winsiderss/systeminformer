@@ -227,12 +227,12 @@ ULONG_PTR GetSearchMatchHandle(
     );
 
 VOID RegisterTabSearch(
-    _In_ INT TabIndex,
+    _In_ LONG TabIndex,
     _In_ PWSTR BannerText
     );
 
 PTOOLSTATUS_TAB_INFO RegisterTabInfo(
-    _In_ INT TabIndex
+    _In_ LONG TabIndex
     );
 
 HWND GetCurrentTreeNewHandle(
@@ -247,6 +247,7 @@ VOID InvalidateMainWindowLayout(
     VOID
     );
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI SearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -264,7 +265,7 @@ INT_PTR CALLBACK OptionsDlgProc(
 // filter.c
 
 BOOLEAN WordMatchStringRef(
-    _In_ PPH_STRINGREF Text
+    _In_ PCPH_STRINGREF Text
     );
 
 BOOLEAN ProcessTreeFilterCallback(
@@ -338,7 +339,7 @@ PPH_TOOLBAR_GRAPH ToolbarGraphFindById(
     );
 
 PPH_TOOLBAR_GRAPH ToolbarGraphFindByName(
-    _In_ PPH_STRINGREF PluginName,
+    _In_ PCPH_STRINGREF PluginName,
     _In_ ULONG GraphId
     );
 
@@ -526,28 +527,29 @@ VOID NTAPI TaskbarUpdateEvents(
     VOID
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS TaskbarIconUpdateThread(
     _In_opt_ PVOID Context
     );
 
 HICON PhUpdateIconCpuHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 HICON PhUpdateIconIoHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 HICON PhUpdateIconCommitHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 HICON PhUpdateIconPhysicalHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 HICON PhUpdateIconCpuUsage(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    _In_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 #endif

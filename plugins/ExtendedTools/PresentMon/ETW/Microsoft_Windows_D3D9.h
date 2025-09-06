@@ -32,7 +32,7 @@ enum class Channel : uint8_t {
     static uint8_t  const Level   = level_; \
     static uint8_t  const Opcode  = opcode_; \
     static uint16_t const Task    = task_; \
-    static Keyword  const Keyword = (Keyword) keyword_; \
+    static Keyword  const Keyword = (enum Keyword) keyword_; \
 };
 
 EVENT_DESCRIPTOR_DECL(Present_Start, 0x0001, 0x00, 0x10, 0x00, 0x01, 0x0001, 0x8000000000000002)

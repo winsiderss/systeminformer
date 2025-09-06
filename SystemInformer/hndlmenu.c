@@ -58,8 +58,9 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
     }
     else if (PhEqualString2(Info->TypeName, L"Process", TRUE))
     {
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Process propert&ies", EnableShortcut), NULL, NULL), indexInParent);
-        PhInsertEMenuItem(parentItem, PhCreateEMenuSeparator(), indexInParent + 1);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_GOTOOWNINGPROCESS, PhaAppendCtrlEnter(L"Go to process...", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Process propert&ies", EnableShortcut), NULL, NULL), indexInParent + 1);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuSeparator(), indexInParent + 2);
     }
     else if (PhEqualString2(Info->TypeName, L"Section", TRUE))
     {
@@ -68,7 +69,7 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
     }
     else if (PhEqualString2(Info->TypeName, L"Thread", TRUE))
     {
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Go to t&hread", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Go to t&hread...", EnableShortcut), NULL, NULL), indexInParent);
         PhInsertEMenuItem(parentItem, PhCreateEMenuSeparator(), indexInParent + 1);
     }
 }
@@ -269,11 +270,10 @@ VOID PhShowHandleObjectProperties1(
                 else
                     tooBig = TRUE;
 
-                status = NtMapViewOfSection(
+                status = PhMapViewOfSection(
                     handle,
                     NtCurrentProcess(),
                     &viewBase,
-                    0,
                     0,
                     NULL,
                     &viewSize,
@@ -284,11 +284,13 @@ VOID PhShowHandleObjectProperties1(
 
                 if (status == STATUS_SECTION_PROTECTION && !readOnly)
                 {
-                    status = NtMapViewOfSection(
+                    viewSize = PH_MAX_SECTION_EDIT_SIZE;
+                    viewBase = NULL;
+
+                    status = PhMapViewOfSection(
                         handle,
                         NtCurrentProcess(),
                         &viewBase,
-                        0,
                         0,
                         NULL,
                         &viewSize,

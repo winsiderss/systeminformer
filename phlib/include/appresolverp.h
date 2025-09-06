@@ -66,58 +66,85 @@ DEFINE_GUID(IID_IResourceContext_I, 0xE3C22B30, 0x8502, 0x4B2F, 0x91, 0x33, 0x55
 // "6E21E72B-B9B0-42AE-A686-983CF784EDCD"
 DEFINE_GUID(IID_IResourceMap_I, 0x6E21E72B, 0xB9B0, 0x42AE, 0xA6, 0x86, 0x98, 0x3C, 0xF7, 0x84, 0xED, 0xCD);
 
-static HRESULT (WINAPI* AppContainerDeriveSidFromMoniker_I)( // DeriveAppContainerSidFromAppContainerName
+NTSYSAPI
+HRESULT
+NTAPI
+AppContainerDeriveSidFromMoniker( // DeriveAppContainerSidFromAppContainerName
     _In_ PCWSTR AppContainerName,
     _Out_ PSID *AppContainerSid
-    ) = NULL;
+    );
 
 // Note: LookupAppContainerDisplayName (userenv.dll, ordinal 211) has the same prototype but returns 'PackageName/ContainerName'.
-static HRESULT (WINAPI* AppContainerLookupMoniker_I)(
+NTSYSAPI
+HRESULT
+NTAPI
+AppContainerLookupMoniker(
     _In_ PSID AppContainerSid,
     _Out_ PWSTR *PackageFamilyName
-    ) = NULL;
+    );
 
-static HRESULT (WINAPI* AppContainerRegisterSid_I)(
+NTSYSAPI
+HRESULT
+NTAPI
+AppContainerRegisterSid(
     _In_ PSID Sid,
     _In_ PCWSTR AppContainerName,
     _In_ PCWSTR DisplayName
-    ) = NULL;
+    );
 
-static HRESULT (WINAPI* AppContainerUnregisterSid_I)(
+NTSYSAPI
+HRESULT
+NTAPI
+AppContainerUnregisterSid(
     _In_ PSID Sid
-    ) = NULL;
+    );
 
-static BOOL (WINAPI* AppContainerFreeMemory_I)(
+NTSYSAPI
+BOOL
+NTAPI
+AppContainerFreeMemory(
     _Frees_ptr_opt_ PVOID Memory
-    ) = NULL;
+    );
 
 // rev
-static NTSTATUS (NTAPI* PsmGetKeyFromProcess_I)(
+NTSYSAPI
+NTSTATUS
+NTAPI
+PsmGetKeyFromProcess(
     _In_ HANDLE ProcessHandle,
     _Out_ PVOID KeyBuffer,
     _Inout_ PULONG KeyLength
-    ) = NULL;
+    );
 
 // rev
-static NTSTATUS (NTAPI* PsmGetKeyFromToken_I)(
+NTSYSAPI
+NTSTATUS
+NTAPI
+PsmGetKeyFromToken(
     _In_ HANDLE TokenHandle,
     _Out_ PVOID KeyBuffer,
     _Inout_ PULONG KeyLength
-    ) = NULL;
+    );
 
 // rev
-static NTSTATUS (NTAPI* PsmGetApplicationNameFromKey_I)(
+NTSYSAPI
+NTSTATUS
+NTAPI
+PsmGetApplicationNameFromKey(
     _In_ PVOID KeyBuffer,
     _Out_ PVOID NameBuffer,
     _Inout_ PULONG NameLength
-    ) = NULL;
+    );
 
 // rev
-static NTSTATUS (NTAPI* PsmGetPackageFullNameFromKey_I)(
+NTSYSAPI
+NTSTATUS
+NTAPI
+PsmGetPackageFullNameFromKey(
     _In_ PVOID KeyBuffer,
     _Out_ PVOID NameBuffer,
     _Inout_ PULONG NameLength
-    ) = NULL;
+    );
 
 // "168EB462-775F-42AE-9111-D714B2306C2E"
 DEFINE_GUID(CLSID_IDesktopAppXActivator_I, 0x168EB462, 0x775F, 0x42AE, 0x91, 0x11, 0xD7, 0x14, 0xB2, 0x30, 0x6C, 0x2E);
@@ -152,12 +179,19 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
     BEGIN_INTERFACE
 
     // IUnknown
+
+    DECLSPEC_XFGVIRT(IDesktopAppXActivator, QueryInterface)
     STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IDesktopAppXActivator, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IDesktopAppXActivator, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDesktopAppXActivator1
 
+    DECLSPEC_XFGVIRT(IDesktopAppXActivator, Activate)
     STDMETHOD(Activate)(THIS,
         _In_ PCWSTR ApplicationUserModelId,
         _In_ PCWSTR PackageRelativeExecutable,
@@ -165,6 +199,7 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
         _Out_ PHANDLE ProcessHandle
         ) PURE;
 
+    DECLSPEC_XFGVIRT(IDesktopAppXActivator, ActivateWithOptions)
     STDMETHOD(ActivateWithOptions)(THIS,
         _In_ PCWSTR ApplicationUserModelId,
         _In_ PCWSTR Executable,
@@ -176,6 +211,7 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
 
     // IDesktopAppXActivator2
 
+    DECLSPEC_XFGVIRT(IDesktopAppXActivator, ActivateWithOptionsAndArgs)
     STDMETHOD(ActivateWithOptionsAndArgs)(THIS,
         _In_ PCWSTR ApplicationUserModelId,
         _In_ PCWSTR Executable,
@@ -185,6 +221,7 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
         _Out_ PHANDLE ProcessHandle
         ) PURE;
 
+    DECLSPEC_XFGVIRT(IDesktopAppXActivator, ActivateWithOptionsArgsWorkingDirectoryShowWindow)
     STDMETHOD(ActivateWithOptionsArgsWorkingDirectoryShowWindow)(THIS,
         _In_ PCWSTR ApplicationUserModelId,
         _In_ PCWSTR Executable,
@@ -194,7 +231,8 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
         _In_opt_ PVOID ActivatedEventArgs,
         _In_ PCWSTR WorkingDirectory,
         _In_ ULONG ShowWindow,
-        _Out_ PHANDLE ProcessHandle) PURE;
+        _Out_ PHANDLE ProcessHandle
+        ) PURE;
 
     END_INTERFACE
 };
@@ -207,6 +245,10 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
     ((This)->lpVtbl->Release(This))
 #define IDesktopAppXActivator_ActivateWithOptions(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ProcessHandle) \
     ((This)->lpVtbl->ActivateWithOptions(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ProcessHandle))
+#define IDesktopAppXActivator_ActivateWithOptionsAndArgs(This, ApplicationUserModelId, Executable, Arguments, ParentProcessId, ActivatedEventArgs, ProcessHandle) \
+    ((This)->lpVtbl->ActivateWithOptionsAndArgs(This, ApplicationUserModelId, Executable, Arguments, ParentProcessId, ActivatedEventArgs, ProcessHandle))
+#define IDesktopAppXActivator_ActivateWithOptionsArgsWorkingDirectoryShowWindow(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ActivatedEventArgs, WorkingDirectory, ShowWindow, ProcessHandle) \
+    ((This)->lpVtbl->ActivateWithOptionsArgsWorkingDirectoryShowWindow(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ActivatedEventArgs, WorkingDirectory, ShowWindow, ProcessHandle))
 
 // "ba5a92ae-bfd7-4916-854f-6b3a402b84a8"
 DEFINE_GUID(IID_IStartMenuItemsCache, 0xba5a92ae, 0xbfd7, 0x4916, 0x85, 0x4f, 0x6b, 0x3a, 0x40, 0x2b, 0x84, 0xa8);
@@ -220,20 +262,45 @@ DECLARE_INTERFACE_IID(IStartMenuItemsCache, IUnknown)
     BEGIN_INTERFACE
 
     // IUnknown
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, QueryInterface)
     STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IStartMenuItemsCache
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, OnChangeNotify)
     STDMETHOD(OnChangeNotify)(THIS, _In_ ULONG, _In_ LONG, _In_ PCIDLIST_ABSOLUTE, _In_ PCIDLIST_ABSOLUTE);
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, RegisterForNotifications)
     STDMETHOD(RegisterForNotifications)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, UnregisterForNotifications)
     STDMETHOD(UnregisterForNotifications)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, PauseNotifications)
     STDMETHOD(PauseNotifications)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, ResumeNotifications)
     STDMETHOD(ResumeNotifications)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, RegisterARNotify)
     STDMETHOD(RegisterARNotify)(THIS, struct IAppResolverNotify*);
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, RefreshCache)
     STDMETHOD(RefreshCache)(THIS, enum START_MENU_REFRESH_CACHE_FLAGS Flags);
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, ReleaseGlobalCacheObject)
     STDMETHOD(ReleaseGlobalCacheObject)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, IsCacheMatchingLanguage)
     STDMETHOD(IsCacheMatchingLanguage)(THIS, PLONG);
+
+    DECLSPEC_XFGVIRT(IStartMenuItemsCache, EnableAppUsageData)
     STDMETHOD(EnableAppUsageData)(THIS) PURE;
 
     END_INTERFACE
@@ -253,15 +320,25 @@ DECLARE_INTERFACE_IID(IApplicationResolver, IUnknown)
     BEGIN_INTERFACE
 
     // IUnknown
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, QueryInterface)
     STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IApplicationResolver
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, GetAppIDForShortcut)
     STDMETHOD(GetAppIDForShortcut)(THIS,
         _In_ IShellItem *psi,
         _Outptr_ PWSTR *ppszAppID
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, GetAppIDForWindow)
     STDMETHOD(GetAppIDForWindow)(THIS,
         _In_ HWND hwnd,
         _Outptr_ PWSTR *ppszAppID,
@@ -269,6 +346,8 @@ DECLARE_INTERFACE_IID(IApplicationResolver, IUnknown)
         _Out_opt_ BOOL *pfExplicitAppID,
         _Out_opt_ BOOL *pfEmbeddedShortcutValid
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, GetAppIDForProcess)
     STDMETHOD(GetAppIDForProcess)(THIS,
         _In_ ULONG dwProcessID,
         _Outptr_ PWSTR *ppszAppID,
@@ -276,22 +355,32 @@ DECLARE_INTERFACE_IID(IApplicationResolver, IUnknown)
         _Out_opt_ BOOL *pfExplicitAppID,
         _Out_opt_ BOOL *pfEmbeddedShortcutValid
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, GetShortcutForProcess)
     STDMETHOD(GetShortcutForProcess)(THIS,
         _In_ ULONG dwProcessID,
         _Outptr_ IShellItem **ppsi
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, GetBestShortcutForAppID)
     STDMETHOD(GetBestShortcutForAppID)(THIS,
         _In_ PCWSTR pszAppID,
         _Outptr_ IShellItem **ppsi
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, GetBestShortcutAndAppIDForAppPath)
     STDMETHOD(GetBestShortcutAndAppIDForAppPath)(THIS,
         _In_ PCWSTR pszAppPath,
         _Outptr_opt_ IShellItem **ppsi,
         _Outptr_opt_ PWSTR *ppszAppID
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, CanPinApp)
     STDMETHOD(CanPinApp)(THIS,
         _In_ IShellItem *psi
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, GetRelaunchProperties)
     STDMETHOD(GetRelaunchProperties)(THIS,
         _In_ HWND hwnd,
         _Outptr_opt_result_maybenull_ PWSTR *ppszAppID,
@@ -300,10 +389,14 @@ DECLARE_INTERFACE_IID(IApplicationResolver, IUnknown)
         _Outptr_opt_result_maybenull_ PWSTR *ppszDisplayNameResource,
         _Out_opt_ BOOL *pfPinnable
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, GenerateShortcutFromWindowProperties)
     STDMETHOD(GenerateShortcutFromWindowProperties)(THIS,
         _In_ HWND hwnd,
         _Outptr_ IShellItem **ppsi
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver, GenerateShortcutFromItemProperties)
     STDMETHOD(GenerateShortcutFromItemProperties)(THIS,
         _In_ IShellItem2 *psi2,
         _Out_opt_ IShellItem **ppsi
@@ -353,20 +446,30 @@ DECLARE_INTERFACE_IID(IApplicationResolver2, IUnknown)
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IApplicationResolver2, QueryInterface)
     STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IApplicationResolver2
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GetAppIDForShortcut)
     STDMETHOD(GetAppIDForShortcut)(THIS,
         _In_ IShellItem *psi,
         _Outptr_ PWSTR *ppszAppID
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GetAppIDForShortcutObject)
     STDMETHOD(GetAppIDForShortcutObject)(THIS,
         _In_ IShellLinkW *psl,
         _In_ IShellItem *psi,
         _Outptr_ PWSTR *ppszAppID
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GetAppIDForWindow)
     STDMETHOD(GetAppIDForWindow)(THIS,
         _In_ HWND hwnd,
         _Outptr_ PWSTR *ppszAppID,
@@ -374,6 +477,8 @@ DECLARE_INTERFACE_IID(IApplicationResolver2, IUnknown)
         _Out_opt_ BOOL *pfExplicitAppID,
         _Out_opt_ BOOL *pfEmbeddedShortcutValid
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GetAppIDForProcess)
     STDMETHOD(GetAppIDForProcess)(THIS,
         _In_ ULONG dwProcessID,
         _Outptr_ PWSTR *ppszAppID,
@@ -381,26 +486,38 @@ DECLARE_INTERFACE_IID(IApplicationResolver2, IUnknown)
         _Out_opt_ BOOL *pfExplicitAppID,
         _Out_opt_ BOOL *pfEmbeddedShortcutValid
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GetShortcutForProcess)
     STDMETHOD(GetShortcutForProcess)(THIS,
         _In_ ULONG dwProcessID,
         _Outptr_ IShellItem **ppsi
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GetBestShortcutForAppID)
     STDMETHOD(GetBestShortcutForAppID)(THIS,
         _In_ PCWSTR pszAppID,
         _Outptr_ IShellItem **ppsi
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GetBestShortcutAndAppIDForAppPath)
     STDMETHOD(GetBestShortcutAndAppIDForAppPath)(THIS,
         _In_ PCWSTR pszAppPath,
         _Outptr_opt_ IShellItem **ppsi,
         _Outptr_opt_ PWSTR *ppszAppID
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, CanPinApp)
     STDMETHOD(CanPinApp)(THIS,
         _In_ IShellItem *psi
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, CanPinAppShortcut)
     STDMETHOD(CanPinAppShortcut)(THIS,
         _In_ IShellLinkW *psl,
         _In_ IShellItem *psi
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GetRelaunchProperties)
     STDMETHOD(GetRelaunchProperties)(THIS,
         _In_ HWND hwnd,
         _Outptr_opt_result_maybenull_ PWSTR *ppszAppID,
@@ -409,22 +526,32 @@ DECLARE_INTERFACE_IID(IApplicationResolver2, IUnknown)
         _Outptr_opt_result_maybenull_ PWSTR *ppszDisplayNameResource,
         _Out_opt_ BOOL *pfPinnable
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GenerateShortcutFromWindowProperties)
     STDMETHOD(GenerateShortcutFromWindowProperties)(THIS,
         _In_ HWND hwnd,
         _Outptr_ IShellItem **ppsi
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GenerateShortcutFromItemProperties)
     STDMETHOD(GenerateShortcutFromItemProperties)(THIS,
         _In_ IShellItem2 *psi2,
         _Out_opt_ IShellItem **ppsi
         ) PURE;
+        
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GetLauncherAppIDForItem)
     STDMETHOD(GetLauncherAppIDForItem)(THIS,
         _In_ IShellItem *psi,
         _Outptr_opt_ PWSTR *ppszAppID
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GetShortcutForAppID)
     STDMETHOD(GetShortcutForAppID)(THIS,
         _In_ PCWSTR ppszAppID,
         _Out_opt_ IShellItem **ppsi
         ) PURE;
+        
+    DECLSPEC_XFGVIRT(IApplicationResolver2, GetLauncherAppIDForItemEx)
     STDMETHOD(GetLauncherAppIDForItemEx)(THIS,
         _In_ IShellItem *psi,
         _In_ APP_RESOLVER_ITEM_FILTER_FLAGS Flags,
@@ -472,16 +599,24 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems, IUnknown)
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IStartMenuAppItems, QueryInterface)
     STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuAppItems, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuAppItems, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IStartMenuAppItems
+    DECLSPEC_XFGVIRT(IStartMenuAppItems, EnumItems)
     STDMETHOD(EnumItems)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ REFIID riid, // IID_IEnumObjects, IID_IObjectCollection
         _Outptr_ PVOID *ppvObject
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuAppItems, GetItem)
     STDMETHOD(GetItem)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ PCWSTR AppUserModelId,
@@ -510,27 +645,39 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems2, IUnknown)
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IStartMenuAppItems2, QueryInterface)
     STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuAppItems2, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuAppItems2, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IStartMenuAppItems2
+    DECLSPEC_XFGVIRT(IStartMenuAppItems2, EnumItems)
     STDMETHOD(EnumItems)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ REFIID riid, // IID_IEnumObjects, IID_IObjectCollection
         _Outptr_ PVOID *ppvObject
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuAppItems2, GetItem)
     STDMETHOD(GetItem)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ PCWSTR AppUserModelId,
         _In_ REFIID riid,
         _Outptr_ PVOID *ppvObject // ppvObject == IPropertyStore, IStartMenuAppItems
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuAppItems2, GetItemByAppPath)
     STDMETHOD(GetItemByAppPath)(THIS,
         _In_ PCWSTR AppPath,
         _In_ REFIID riid,
         _Outptr_ PVOID *ppvObject
         ) PURE;
+
+    DECLSPEC_XFGVIRT(IStartMenuAppItems2, EnumCachedItems)
     STDMETHOD(EnumCachedItems)(THIS,
         _In_ PCIDLIST_ABSOLUTE pidl,
         _In_ REFIID riid,
@@ -558,19 +705,41 @@ DECLARE_INTERFACE_IID(IMrtResourceManager, IUnknown)
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IMrtResourceManager, QueryInterface)
     STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IMrtResourceManager, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IMrtResourceManager, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IMrtResourceManager
+    DECLSPEC_XFGVIRT(IMrtResourceManager, Initialize)
     STDMETHOD(Initialize)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IMrtResourceManager, InitializeForCurrentApplication)
     STDMETHOD(InitializeForCurrentApplication)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IMrtResourceManager, InitializeForPackage)
     STDMETHOD(InitializeForPackage)(THIS, PCWSTR PackageName) PURE;
+
+    DECLSPEC_XFGVIRT(IMrtResourceManager, InitializeForFile)
     STDMETHOD(InitializeForFile)(THIS, PCWSTR) PURE;
+
+    DECLSPEC_XFGVIRT(IMrtResourceManager, GetMainResourceMap)
     STDMETHOD(GetMainResourceMap)(THIS, REFIID riid, PVOID *ppvObject) PURE; // IResourceMap
+
+    DECLSPEC_XFGVIRT(IMrtResourceManager, GetResourceMap)
     STDMETHOD(GetResourceMap)(THIS, PCWSTR, REFIID riid, PVOID *ppvObject) PURE; // IResourceMap
+
+    DECLSPEC_XFGVIRT(IMrtResourceManager, GetDefaultContext)
     STDMETHOD(GetDefaultContext)(THIS, REFIID riid, PVOID *ppvObject) PURE; // IResourceContext
+
+    DECLSPEC_XFGVIRT(IMrtResourceManager, GetReference)
     STDMETHOD(GetReference)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IMrtResourceManager, IsResourceReference)
     STDMETHOD(IsResourceReference)(THIS, PCWSTR, BOOL *IsReference) PURE;
 
     END_INTERFACE
@@ -608,31 +777,77 @@ DECLARE_INTERFACE_IID(IResourceContext, IUnknown)
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IResourceContext, QueryInterface)
     STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IResourceContext
+    DECLSPEC_XFGVIRT(IResourceContext, GetLanguage)
     STDMETHOD(GetLanguage)(THIS, PWSTR*) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, GetHomeRegion)
     STDMETHOD(GetHomeRegion)(THIS, PCWSTR*) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, GetLayoutDirection)
     STDMETHOD(GetLayoutDirection)(THIS, ULONG*) PURE; // RESOURCE_LAYOUT_DIRECTION
+
+    DECLSPEC_XFGVIRT(IResourceContext, GetTargetSize)
     STDMETHOD(GetTargetSize)(THIS, USHORT*) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, GetScale)
     STDMETHOD(GetScale)(THIS, ULONG*) PURE; // RESOURCE_SCALE
+
+    DECLSPEC_XFGVIRT(IResourceContext, GetContrast)
     STDMETHOD(GetContrast)(THIS, ULONG*) PURE; // RESOURCE_CONTRAST
+
+    DECLSPEC_XFGVIRT(IResourceContext, GetAlternateForm)
     STDMETHOD(GetAlternateForm)(THIS, PCWSTR*) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, GetQualifierValue)
     STDMETHOD(GetQualifierValue)(THIS, LPCWSTR, LPWSTR*) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, SetLanguage)
     STDMETHOD(SetLanguage)(THIS, LPCWSTR) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, SetHomeRegion)
     STDMETHOD(SetHomeRegion)(THIS, LPCWSTR) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, SetLayoutDirection)
     STDMETHOD(SetLayoutDirection)(THIS, ULONG) PURE; // RESOURCE_LAYOUT_DIRECTION
+
+    DECLSPEC_XFGVIRT(IResourceContext, SetTargetSize)
     STDMETHOD(SetTargetSize)(THIS, USHORT) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, SetScale)
     STDMETHOD(SetScale)(THIS, ULONG) PURE; // RESOURCE_SCALE
+
+    DECLSPEC_XFGVIRT(IResourceContext, SetContrast)
     STDMETHOD(SetContrast)(THIS, ULONG) PURE; // RESOURCE_CONTRAST
+
+    DECLSPEC_XFGVIRT(IResourceContext, SetAlternateForm)
     STDMETHOD(SetAlternateForm)(THIS, LPCWSTR) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, SetQualifierValue)
     STDMETHOD(SetQualifierValue)(THIS, LPCWSTR, LPCWSTR) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, TrySetQualifierValue)
     STDMETHOD(TrySetQualifierValue)(THIS, LPCWSTR, LPCWSTR, HRESULT*) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, Reset)
     STDMETHOD(Reset)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, ResetQualifierValue)
     STDMETHOD(ResetQualifierValue)(THIS, LPCWSTR) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, Clone)
     STDMETHOD(Clone)(THIS, IResourceContext**) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceContext, OverrideToMatch)
     STDMETHOD(OverrideToMatch)(THIS, struct IResourceCandidate*) PURE;
 
     END_INTERFACE
@@ -645,22 +860,50 @@ DECLARE_INTERFACE_IID(IResourceMap, IUnknown)
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IResourceMap, QueryInterface)
     STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IResourceMap
+    DECLSPEC_XFGVIRT(IResourceMap, GetUri)
     STDMETHOD(GetUri)(THIS, PWSTR *UriString) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, GetSubtree)
     STDMETHOD(GetSubtree)(THIS, PCWSTR *Name, IResourceMap** ResourceMap) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, GetString)
     STDMETHOD(GetString)(THIS, PCWSTR Key, PWSTR *Value) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, GetStringForContext)
     STDMETHOD(GetStringForContext)(THIS, IResourceContext* Context, PCWSTR Key, PWSTR *Value) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, GetFilePath)
     STDMETHOD(GetFilePath)(THIS, PCWSTR Key, PWSTR *Value) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, GetFilePathForContext)
     STDMETHOD(GetFilePathForContext)(THIS, IResourceContext*, PCWSTR, PWSTR*) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, GetNamedResourceCount)
     STDMETHOD(GetNamedResourceCount)(THIS, PULONG) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, GetNamedResourceUri)
     STDMETHOD(GetNamedResourceUri)(THIS, ULONG, PWSTR*) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, GetNamedResource)
     STDMETHOD(GetNamedResource)(THIS, PCWSTR, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, GetFullyQualifiedReference)
     STDMETHOD(GetFullyQualifiedReference)(THIS, LPCWSTR, LPCWSTR, LPWSTR*) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, GetFilePathByUri)
     STDMETHOD(GetFilePathByUri)(THIS, IUri*, LPWSTR*) PURE;
+
+    DECLSPEC_XFGVIRT(IResourceMap, GetFilePathForContextByUri)
     STDMETHOD(GetFilePathForContextByUri)(THIS, IResourceContext*, IUri*, LPWSTR*) PURE;
 
     END_INTERFACE
@@ -787,14 +1030,26 @@ DECLARE_INTERFACE_IID(IOSTaskCompletion, IUnknown)
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IOSTaskCompletion, QueryInterface)
     STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IOSTaskCompletion, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IOSTaskCompletion, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IOSTaskCompletion
+    DECLSPEC_XFGVIRT(IOSTaskCompletion, BeginTask)
     STDMETHOD(BeginTask)(THIS, ULONG ProcessId, PLM_TASKCOMPLETION_CATEGORY_FLAGS Flags) PURE;
+
+    DECLSPEC_XFGVIRT(IOSTaskCompletion, BeginTaskByHandle)
     STDMETHOD(BeginTaskByHandle)(THIS, HANDLE ProcessHandle, PLM_TASKCOMPLETION_CATEGORY_FLAGS Flags) PURE;
+
+    DECLSPEC_XFGVIRT(IOSTaskCompletion, EndTask)
     STDMETHOD(EndTask)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IOSTaskCompletion, ValidateStreamedFileTaskCompletionUsage)
     STDMETHOD_(ULONG, ValidateStreamedFileTaskCompletionUsage)(THIS, HANDLE ProcessHandle, ULONG ProcessId) PURE; // returns PsmKey
 
     END_INTERFACE
@@ -822,14 +1077,26 @@ DECLARE_INTERFACE_IID(IOSTaskCompletion2, IOSTaskCompletion)
     BEGIN_INTERFACE
 
     // IUnknown
+    DECLSPEC_XFGVIRT(IOSTaskCompletion2, QueryInterface)
     STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IOSTaskCompletion2, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IOSTaskCompletion2, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IOSTaskCompletion2
+    DECLSPEC_XFGVIRT(IOSTaskCompletion2, InternalGetTrustLevelStatic)
     STDMETHOD(InternalGetTrustLevelStatic)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IOSTaskCompletion2, InternalGetTrustLevelStatic2)
     STDMETHOD(InternalGetTrustLevelStatic2)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IOSTaskCompletion2, EndAllTasksAndWait)
     STDMETHOD(EndAllTasksAndWait)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IOSTaskCompletion2, BeginTaskByHandleEx)
     STDMETHOD(BeginTaskByHandleEx)(THIS, HANDLE ProcessHandle, PLM_TASKCOMPLETION_CATEGORY_FLAGS Flags, enum PLM_TASKCOMPLETION_BEGIN_TASK_FLAGS TaskFlags) PURE;
 
     END_INTERFACE

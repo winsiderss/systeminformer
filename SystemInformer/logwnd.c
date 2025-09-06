@@ -59,6 +59,7 @@ VOID PhShowLogDialog(
         SetForegroundWindow(PhLogWindowHandle);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI LoggedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -354,6 +355,12 @@ INT_PTR CALLBACK PhpLogDlgProc(
                 }
                 break;
             }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&WindowLayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&WindowLayoutManager);
         }
         break;
     case WM_SIZE:

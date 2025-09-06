@@ -29,6 +29,16 @@ PhCoSetProxyBlanket(
     );
 
 PHLIBAPI
+HRESULT
+NTAPI
+PhGetWbemClassObjectDependency(
+    _Out_ PVOID* WbemClassObjectDependency,
+    _In_ struct IWbemClassObject* WbemClassObject,
+    _In_ struct IWbemServices* WbemServices,
+    _In_ PCWSTR Name
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetWbemClassObjectString(
@@ -101,6 +111,19 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     );
 
 NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+// COM access and launch policy
+
+NTSTATUS PhGetComSecurityDescriptor(
+    _In_ COMSD comSDType,
+    _Outptr_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    );
+
+NTSTATUS PhSetComSecurityDescriptor(
+    _In_ COMSD comSDType,
+    _In_ ULONG SecurityInformation,
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 

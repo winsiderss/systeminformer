@@ -29,7 +29,7 @@ EXTERN_C_START
 /** The name of the system idle process. */
 #define SYSTEM_IDLE_PROCESS_NAME ((UNICODE_STRING)RTL_CONSTANT_STRING(L"System Idle Process"))
 
-#define PhNtPathSeperatorString ((PH_STRINGREF)PH_STRINGREF_INIT(L"\\")) // OBJ_NAME_PATH_SEPARATOR // RtlNtPathSeperatorString
+#define PhNtPathSeparatorString ((PH_STRINGREF)PH_STRINGREF_INIT(L"\\")) // OBJ_NAME_PATH_SEPARATOR // RtlNtPathSeperatorString
 #define PhNtDosDevicesPrefix ((PH_STRINGREF)PH_STRINGREF_INIT(L"\\??\\")) // RtlDosDevicesPrefix
 #define PhNtDevicePathPrefix ((PH_STRINGREF)PH_STRINGREF_INIT(L"\\Device\\"))
 #define PhWin32ExtendedPathPrefix ((PH_STRINGREF)PH_STRINGREF_INIT(L"\\\\?\\")) // extended-length paths, disable path normalization
@@ -43,31 +43,41 @@ PhIsNullOrInvalidHandle(
     return (((ULONG_PTR)Handle + 1) & 0xFFFFFFFFFFFFFFFEuLL) == 0;
 }
 
+//
 // General object-related function types
+//
 
-typedef NTSTATUS (NTAPI *PPH_OPEN_OBJECT)(
+typedef _Function_class_(PH_OPEN_OBJECT)
+NTSTATUS NTAPI PH_OPEN_OBJECT(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PVOID Context
     );
+typedef PH_OPEN_OBJECT* PPH_OPEN_OBJECT;
 
-typedef NTSTATUS (NTAPI *PPH_CLOSE_OBJECT)(
+typedef _Function_class_(PH_CLOSE_OBJECT)
+NTSTATUS NTAPI PH_CLOSE_OBJECT(
     _In_ HANDLE Handle,
     _In_ BOOLEAN Release,
     _In_opt_ PVOID Context
     );
+typedef PH_CLOSE_OBJECT* PPH_CLOSE_OBJECT;
 
-typedef NTSTATUS (NTAPI *PPH_GET_OBJECT_SECURITY)(
+typedef _Function_class_(PH_GET_OBJECT_SECURITY)
+NTSTATUS NTAPI PH_GET_OBJECT_SECURITY(
     _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_opt_ PVOID Context
     );
+typedef PH_GET_OBJECT_SECURITY* PPH_GET_OBJECT_SECURITY;
 
-typedef NTSTATUS (NTAPI *PPH_SET_OBJECT_SECURITY)(
+typedef _Function_class_(PH_SET_OBJECT_SECURITY)
+NTSTATUS NTAPI PH_SET_OBJECT_SECURITY(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_opt_ PVOID Context
     );
+typedef PH_SET_OBJECT_SECURITY* PPH_SET_OBJECT_SECURITY;
 
 typedef struct _PH_TOKEN_ATTRIBUTES
 {
@@ -76,9 +86,9 @@ typedef struct _PH_TOKEN_ATTRIBUTES
     {
         ULONG Elevated : 1;
         ULONG ElevationType : 2;
-        ULONG ReservedBits : 29;
+        ULONG SpareBits : 29;
     };
-    ULONG Reserved;
+    ULONG Spare;
     PSID TokenSid;
 } PH_TOKEN_ATTRIBUTES, *PPH_TOKEN_ATTRIBUTES;
 
@@ -247,12 +257,62 @@ PhSetObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+#define AUDIT_ALARM_ACE_TYPE_MASK ( \
+    (1 << SYSTEM_AUDIT_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_ACE_TYPE) | \
+    (1 << SYSTEM_AUDIT_OBJECT_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_OBJECT_ACE_TYPE) | \
+    (1 << SYSTEM_AUDIT_CALLBACK_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_CALLBACK_ACE_TYPE) | \
+    (1 << SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE) | \
+    (1 << SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE))
+
+#define MANDATORY_LABEL_ACE_TYPE_MASK (1 << SYSTEM_MANDATORY_LABEL_ACE_TYPE)
+#define RESOURCE_ATTRIBUTE_ACE_TYPE_MASK (1 << SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE)
+#define SCOPED_POLICY_ACE_TYPE_MASK (1 << SYSTEM_SCOPED_POLICY_ID_ACE_TYPE)
+#define PROCESS_TRUST_ACE_TYPE_MASK (1 << SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE)
+#define ACCESS_FILTER_ACE_TYPE_MASK (1 << SYSTEM_ACCESS_FILTER_ACE_TYPE)
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhMergeSystemAcls(
+    _In_opt_ PACL LowerSacl,
+    _In_opt_ PACL HigherSacl,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Outptr_result_maybenull_ PACL* MergedSacl
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhMergeSecurityDescriptors(
+    _In_ PSECURITY_DESCRIPTOR LowerSecurityDescriptor,
+    _In_ PSECURITY_DESCRIPTOR HigherSecurityDescriptor,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Outptr_ PSECURITY_DESCRIPTOR* MergedSecurityDescriptor
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhTerminateProcess(
     _In_ HANDLE ProcessHandle,
     _In_ NTSTATUS ExitStatus
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSuspendProcess(
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhResumeProcess(
+    _In_ HANDLE ProcessHandle
     );
 
 PHLIBAPI
@@ -331,6 +391,7 @@ PhGetProcessDeviceMap(
 /** Specifies a PEB string. */
 typedef enum _PH_PEB_OFFSET
 {
+    PhpoNone,
     PhpoCurrentDirectory,
     PhpoDllPath,
     PhpoImagePathName,
@@ -425,9 +486,8 @@ typedef struct _PH_ENVIRONMENT_VARIABLE
     PH_STRINGREF Value;
 } PH_ENVIRONMENT_VARIABLE, *PPH_ENVIRONMENT_VARIABLE;
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhEnumProcessEnvironmentVariables(
     _In_ PVOID Environment,
@@ -594,7 +654,15 @@ NTAPI
 PhLoadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
-    _In_ BOOLEAN LoadDllUsingApcThread,
+    _In_opt_ ULONG Timeout
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoadDllProcessApcThread(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_STRINGREF FileName,
     _In_opt_ ULONG Timeout
     );
 
@@ -671,7 +739,7 @@ NTSTATUS
 NTAPI
 PhInvokeWindowProcedureRemote(
     _In_ HWND WindowHandle,
-    _In_ PVOID ApcRoutine,
+    _In_ PPS_APC_ROUTINE ApcRoutine,
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
@@ -946,7 +1014,7 @@ PhInitializeSid(
     _In_ UCHAR SubAuthorityCount
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_INLINE)
     return NT_SUCCESS(RtlInitializeSid(Sid, IdentifierAuthority, SubAuthorityCount));
 #else
     ((PISID)Sid)->Revision = SID_REVISION;
@@ -967,11 +1035,11 @@ FORCEINLINE
 ULONG
 NTAPI
 PhLengthSid(
-    _In_ PSID Sid
+    _In_ PCSID Sid
     )
 {
-#if (PHNT_NATIVE_SID)
-    return RtlLengthSid(Sid);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlLengthSid((PSID)Sid);
 #else
     //return UFIELD_OFFSET(SID, SubAuthority) + (((PISID)Sid)->SubAuthorityCount * sizeof(ULONG));
     return UFIELD_OFFSET(SID, SubAuthority[((PISID)Sid)->SubAuthorityCount]);
@@ -986,7 +1054,7 @@ PhLengthRequiredSid(
     _In_ ULONG SubAuthorityCount
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_INLINE)
     return RtlLengthRequiredSid(SubAuthorityCount);
 #else
     return UFIELD_OFFSET(SID, SubAuthority[SubAuthorityCount]);
@@ -998,12 +1066,12 @@ FORCEINLINE
 BOOLEAN
 NTAPI
 PhEqualSid(
-    _In_ PSID Sid1,
-    _In_ PSID Sid2
+    _In_ PCSID Sid1,
+    _In_ PCSID Sid2
     )
 {
-#if (PHNT_NATIVE_SID)
-    return RtlEqualSid(Sid1, Sid2);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlEqualSid((PSID)Sid1, (PSID)Sid2);
 #else
     if (!(Sid1 && Sid2))
         return FALSE;
@@ -1031,11 +1099,11 @@ FORCEINLINE
 BOOLEAN
 NTAPI
 PhValidSid(
-    _In_ PSID Sid
+    _In_ PCSID Sid
     )
 {
-#if (PHNT_NATIVE_SID)
-    return RtlValidSid(Sid);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlValidSid((PSID)Sid);
 #else
     if (
         ((PISID)Sid) &&
@@ -1055,12 +1123,12 @@ FORCEINLINE
 PULONG
 NTAPI
 PhSubAuthoritySid(
-    _In_ PSID Sid,
+    _In_ PCSID Sid,
     _In_ ULONG SubAuthority
     )
 {
-#if (PHNT_NATIVE_SID)
-    return RtlSubAuthoritySid(Sid, SubAuthority);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlSubAuthoritySid((PSID)Sid, SubAuthority);
 #else
     return &((PISID)Sid)->SubAuthority[SubAuthority];
 #endif
@@ -1071,11 +1139,11 @@ FORCEINLINE
 PUCHAR
 NTAPI
 PhSubAuthorityCountSid(
-    _In_ PSID Sid
+    _In_ PCSID Sid
     )
 {
-#if (PHNT_NATIVE_SID)
-    return RtlSubAuthorityCountSid(Sid);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlSubAuthorityCountSid((PSID)Sid);
 #else
     return &((PISID)Sid)->SubAuthorityCount;
 #endif
@@ -1086,11 +1154,11 @@ FORCEINLINE
 PSID_IDENTIFIER_AUTHORITY
 NTAPI
 PhIdentifierAuthoritySid(
-    _In_ PSID Sid
+    _In_ PCSID Sid
     )
 {
-#if (PHNT_NATIVE_SID)
-    return RtlIdentifierAuthoritySid(Sid);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlIdentifierAuthoritySid((PSID)Sid);
 #else
     return &((PISID)Sid)->IdentifierAuthority;
 #endif
@@ -1104,13 +1172,14 @@ PhEqualIdentifierAuthoritySid(
     _In_ PSID_IDENTIFIER_AUTHORITY IdentifierAuthoritySid2
     )
 {
-#if (PHNT_NATIVE_SID)
+#if defined(PHNT_NATIVE_INLINE)
     return RtlEqualMemory(RtlIdentifierAuthoritySid(IdentifierAuthoritySid1), RtlIdentifierAuthoritySid(IdentifierAuthoritySid2), sizeof(SID_IDENTIFIER_AUTHORITY));
 #else
     return (BOOLEAN)RtlEqualMemory(IdentifierAuthoritySid1, IdentifierAuthoritySid2, sizeof(SID_IDENTIFIER_AUTHORITY));
 #endif
 }
 
+// rev from RtlCreateSecurityDescriptor (dmex)
 FORCEINLINE
 NTSTATUS
 NTAPI
@@ -1128,46 +1197,132 @@ PhCreateSecurityDescriptor(
 #endif
 }
 
+// rev from RtlValidAcl (dmex)
 FORCEINLINE
 BOOLEAN
 NTAPI
 PhValidAcl(
+    _In_opt_ PACL Acl
+    )
+{
+    if (!Acl || Acl->AclRevision < MIN_ACL_REVISION || Acl->AclRevision > MAX_ACL_REVISION)
+        return FALSE;
+    if (Acl->AclSize < sizeof(ACL) || ((Acl->AclSize & 3U) != 0)) // enforce alignment
+        return FALSE;
+
+    return RtlValidAcl(Acl);
+}
+
+FORCEINLINE
+PVOID
+NTAPI
+PhFirstAce(
     _In_ PACL Acl
     )
 {
-    return RtlValidAcl(Acl);
+    return RTL_PTR_ADD(Acl, sizeof(ACL));
+}
+
+FORCEINLINE
+PVOID
+NTAPI
+PhNextAce(
+    _In_ PACL Ace
+    )
+{
+    PACE_HEADER ace = (PACE_HEADER)Ace;
+
+    if (ace->AceSize < sizeof(ACE_HEADER) || (ace->AceSize & 3U) != 0) // enforce alignment
+        return NULL;
+
+    return RTL_PTR_ADD(Ace, ace->AceSize);
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhFirstFreeAce(
+    _In_ PACL Acl,
+    _Out_ PVOID* FirstFree
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlFirstFreeAce(Acl, FirstFree);
+#else
+    if (!PhValidAcl(Acl))
+    {
+        *FirstFree = NULL;
+        return FALSE;
+    }
+
+    ULONG_PTR current = (ULONG_PTR)PhFirstAce(Acl);
+    const ULONG_PTR last = (ULONG_PTR)RTL_PTR_ADD(Acl, Acl->AclSize);
+
+    for (USHORT i = 0; i < Acl->AceCount; i++)
+    {
+        if (current >= last)
+            goto InvalidAcl;
+
+        //ULONG_PTR headerEnd = (ULONG_PTR)RTL_PTR_ADD(current, sizeof(ACE_HEADER));
+        //if (headerEnd > last)
+        //    goto InvalidAcl;
+
+        ULONG_PTR next = (ULONG_PTR)PhNextAce((PACL)current);
+
+        if (next > last)
+            goto InvalidAcl;
+
+        current = next;
+    }
+
+    *FirstFree = (PVOID)current;
+    return TRUE;
+
+InvalidAcl:
+    *FirstFree = NULL;
+    return FALSE;
+#endif
 }
 
 FORCEINLINE
 NTSTATUS
 NTAPI
-PhFirstFreeAce(
+PhGetAce(
     _In_ PACL Acl,
-    _Out_ PULONG_PTR NextAce
+    _In_ ULONG AceIndex,
+    _Out_ PVOID* Ace
     )
 {
-    ULONG_PTR Current = (ULONG_PTR)PTR_ADD_OFFSET(Acl, sizeof(ACL));
-    ULONG_PTR AclEnd = (ULONG_PTR)PTR_ADD_OFFSET(Acl, Acl->AclSize);
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetAce(Acl, AceIndex, Ace);
+#else
+    PVOID current;
+    PVOID lastace;
 
-    for (USHORT i = 0; i < Acl->AceCount; i++)
+    if (Acl->AclRevision < MIN_ACL_REVISION ||
+        Acl->AclRevision > MAX_ACL_REVISION ||
+        AceIndex >= Acl->AceCount)
     {
-        if (Current >= AclEnd)
-        {
-            *NextAce = 0;
-            return STATUS_UNSUCCESSFUL;
-        }
-
-        Current += ((PACE_HEADER)Current)->AceSize;
+        return STATUS_INVALID_ACL;
     }
 
-    if (Current <= AclEnd)
+    current = PhFirstAce(Acl);
+    lastace = RTL_PTR_ADD(Acl, Acl->AclSize);
+
+    for (ULONG i = 0; i < AceIndex; i++)
     {
-        *NextAce = Current;
-        return STATUS_SUCCESS;
+        if ((ULONG_PTR)current >= (ULONG_PTR)lastace)
+            return STATUS_INVALID_ACL;
+
+        current = PhNextAce((PACL)current);
     }
 
-    *NextAce = 0;
-    return STATUS_UNSUCCESSFUL;
+    if (current >= lastace)
+        return STATUS_INVALID_ACL;
+
+    *Ace = current;
+    return STATUS_SUCCESS;
+#endif
 }
 
 FORCEINLINE
@@ -1199,40 +1354,48 @@ PhCreateAcl(
 FORCEINLINE
 NTSTATUS
 NTAPI
-PhGetDaclSecurityDescriptorNotNull(
+PhGetDaclSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _Out_ PBOOLEAN DaclPresent,
-    _Out_ PBOOLEAN DaclDefaulted,
-    _Outptr_result_maybenull_ PACL* Dacl
+    _Outptr_result_maybenull_ PACL* Dacl,
+    _Out_ PBOOLEAN DaclDefaulted
     )
 {
-    NTSTATUS status;
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetDaclSecurityDescriptor(SecurityDescriptor, DaclPresent, Dacl, DaclDefaulted);
+#else
+    PISECURITY_DESCRIPTOR securityDescriptor = (PISECURITY_DESCRIPTOR)SecurityDescriptor;
     BOOLEAN present = FALSE;
     BOOLEAN defaulted = FALSE;
     PACL dacl = NULL;
 
-    status = RtlGetDaclSecurityDescriptor(
-        SecurityDescriptor,
-        &present,
-        &dacl,
-        &defaulted
-        );
+    if (securityDescriptor->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
 
-    if (NT_SUCCESS(status))
+    if (present = BooleanFlagOn(securityDescriptor->Control, SE_DACL_PRESENT))
     {
-        if (dacl)
+        defaulted = BooleanFlagOn(securityDescriptor->Control, SE_DACL_DEFAULTED);
+
+        if (BooleanFlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
         {
-            *DaclPresent = present;
-            *DaclDefaulted = defaulted;
-            *Dacl = dacl;
+            PISECURITY_DESCRIPTOR_RELATIVE securityDescriptorRelative = (PISECURITY_DESCRIPTOR_RELATIVE)SecurityDescriptor;
+
+            if (securityDescriptorRelative->Dacl)
+            {
+                dacl = (PACL)RTL_PTR_ADD(SecurityDescriptor, securityDescriptorRelative->Dacl);
+            }
         }
         else
         {
-            status = STATUS_INVALID_SECURITY_DESCR;
+            dacl = securityDescriptor->Dacl;
         }
     }
 
-    return status;
+    *DaclPresent = present;
+    *DaclDefaulted = defaulted;
+    *Dacl = dacl;
+    return STATUS_SUCCESS;
+#endif
 }
 
 FORCEINLINE
@@ -1271,6 +1434,167 @@ PhSetDaclSecurityDescriptor(
 FORCEINLINE
 NTSTATUS
 NTAPI
+PhGetDaclSecurityDescriptorNotNull(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PBOOLEAN DaclPresent,
+    _Out_ PBOOLEAN DaclDefaulted,
+    _Outptr_result_maybenull_ PACL* Dacl
+    )
+{
+    NTSTATUS status;
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
+    PACL dacl = NULL;
+
+    status = PhGetDaclSecurityDescriptor(
+        SecurityDescriptor,
+        &present,
+        &dacl,
+        &defaulted
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (dacl)
+        {
+            *DaclPresent = present;
+            *DaclDefaulted = defaulted;
+            *Dacl = dacl;
+        }
+        else
+        {
+            status = STATUS_INVALID_SECURITY_DESCR;
+        }
+    }
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetSaclSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PBOOLEAN SaclPresent,
+    _Outptr_result_maybenull_ PACL* Sacl,
+    _Out_ PBOOLEAN SaclDefaulted
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetSaclSecurityDescriptor(SecurityDescriptor, SaclPresent, Sacl, SaclDefaulted);
+#else
+    PISECURITY_DESCRIPTOR securityDescriptor = (PISECURITY_DESCRIPTOR)SecurityDescriptor;
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
+    PACL sacl = NULL;
+
+    if (securityDescriptor->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+
+    if (present = BooleanFlagOn(securityDescriptor->Control, SE_SACL_PRESENT))
+    {
+        defaulted = BooleanFlagOn(securityDescriptor->Control, SE_SACL_DEFAULTED);
+
+        if (BooleanFlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+        {
+            PISECURITY_DESCRIPTOR_RELATIVE securityDescriptorRelative = (PISECURITY_DESCRIPTOR_RELATIVE)SecurityDescriptor;
+
+            if (securityDescriptorRelative->Sacl)
+            {
+                sacl = (PACL)RTL_PTR_ADD(SecurityDescriptor, securityDescriptorRelative->Sacl);
+            }
+        }
+        else
+        {
+            sacl = securityDescriptor->Sacl;
+        }
+    }
+
+    *SaclPresent = present;
+    *SaclDefaulted = defaulted;
+    *Sacl = sacl;
+    return STATUS_SUCCESS;
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetSaclSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ BOOLEAN SaclPresent,
+    _In_opt_ PACL Sacl,
+    _In_opt_ BOOLEAN SaclDefaulted
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlSetSaclSecurityDescriptor(SecurityDescriptor, SaclPresent, Sacl, SaclDefaulted);
+#else
+    if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+    if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
+        return STATUS_INVALID_SECURITY_DESCR;
+
+    if (SaclPresent)
+        SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SACL_PRESENT);
+    else
+        ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SACL_PRESENT);
+
+    if (SaclDefaulted)
+        SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SACL_DEFAULTED);
+    else
+        ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SACL_DEFAULTED);
+
+    ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Sacl = Sacl;
+    return STATUS_SUCCESS;
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetOwnerSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Outptr_result_maybenull_ PSID* Owner,
+    _Out_ PBOOLEAN OwnerDefaulted
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetOwnerSecurityDescriptor(SecurityDescriptor, Owner, OwnerDefaulted);
+#else
+    PISECURITY_DESCRIPTOR securityDescriptor = (PISECURITY_DESCRIPTOR)SecurityDescriptor;
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
+    PSID owner = NULL;
+
+    if (securityDescriptor->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+
+    defaulted = BooleanFlagOn(securityDescriptor->Control, SE_OWNER_DEFAULTED);
+
+    if (BooleanFlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+    {
+        PISECURITY_DESCRIPTOR_RELATIVE securityDescriptorRelative = (PISECURITY_DESCRIPTOR_RELATIVE)SecurityDescriptor;
+
+        if (securityDescriptorRelative->Owner)
+        {
+            owner = RTL_PTR_ADD(SecurityDescriptor, securityDescriptorRelative->Owner);
+        }
+    }
+    else
+    {
+        owner = securityDescriptor->Sacl;
+    }
+
+    *OwnerDefaulted = defaulted;
+    *Owner = owner;
+    return STATUS_SUCCESS;
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
 PhSetOwnerSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_opt_ PSID Owner,
@@ -1282,15 +1606,63 @@ PhSetOwnerSecurityDescriptor(
 #else
     if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
         return STATUS_UNKNOWN_REVISION;
+
     if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
+    {
         return STATUS_INVALID_SECURITY_DESCR;
-
-    if (OwnerDefaulted)
-        SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_OWNER_DEFAULTED);
+    }
     else
-        ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_OWNER_DEFAULTED);
+    {
+        if (OwnerDefaulted)
+            SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_OWNER_DEFAULTED);
+        else
+            ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_OWNER_DEFAULTED);
 
-    ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Owner = Owner;
+        ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Owner = Owner;
+
+        return STATUS_SUCCESS;
+    }
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetGroupSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Outptr_result_maybenull_ PSID* Group,
+    _Out_ PBOOLEAN GroupDefaulted
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetGroupSecurityDescriptor(SecurityDescriptor, Group, GroupDefaulted);
+#else
+    PISECURITY_DESCRIPTOR securityDescriptor = (PISECURITY_DESCRIPTOR)SecurityDescriptor;
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
+    PSID group = NULL;
+
+    if (securityDescriptor->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+
+    defaulted = BooleanFlagOn(securityDescriptor->Control, SE_GROUP_DEFAULTED);
+
+    if (BooleanFlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+    {
+        PISECURITY_DESCRIPTOR_RELATIVE securityDescriptorRelative = (PISECURITY_DESCRIPTOR_RELATIVE)SecurityDescriptor;
+
+        if (securityDescriptorRelative->Group)
+        {
+            group = RTL_PTR_ADD(SecurityDescriptor, securityDescriptorRelative->Group);
+        }
+    }
+    else
+    {
+        group = securityDescriptor->Group;
+    }
+
+    *GroupDefaulted = defaulted;
+    *Group = group;
     return STATUS_SUCCESS;
 #endif
 }
@@ -1309,17 +1681,181 @@ PhSetGroupSecurityDescriptor(
 #else
     if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
         return STATUS_UNKNOWN_REVISION;
+
     if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
+    {
         return STATUS_INVALID_SECURITY_DESCR;
-
-    if (GroupDefaulted)
-        SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_GROUP_DEFAULTED);
+    }
     else
-        ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_GROUP_DEFAULTED);
+    {
+        if (GroupDefaulted)
+            SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_GROUP_DEFAULTED);
+        else
+            ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_GROUP_DEFAULTED);
 
-    ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Group = Group;
+        ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Group = Group;
+
+        return STATUS_SUCCESS;
+    }
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetControlSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PSECURITY_DESCRIPTOR_CONTROL Control,
+    _Out_ PULONG Revision
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetControlSecurityDescriptor(SecurityDescriptor, Control, Revision);
+#else
+    if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+
+    if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
+    {
+        return STATUS_INVALID_SECURITY_DESCR;
+    }
+    else
+    {
+        *Control = ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control;
+        *Revision = ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision;
+        return STATUS_SUCCESS;
+    }
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetControlSecurityDescriptor(
+    _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ SECURITY_DESCRIPTOR_CONTROL ControlBitsOfInterest,
+    _In_ SECURITY_DESCRIPTOR_CONTROL ControlBitsToSet
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlSetControlSecurityDescriptor(SecurityDescriptor, ControlBitsOfInterest, ControlBitsToSet);
+#else
+    if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return STATUS_UNKNOWN_REVISION;
+
+    if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
+    {
+        return STATUS_INVALID_SECURITY_DESCR;
+    }
+    else
+    {
+        ClearFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, ControlBitsOfInterest);
+        SetFlag(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, ControlBitsToSet);
+        return STATUS_SUCCESS;
+    }
+#endif
+}
+
+FORCEINLINE
+UCHAR
+NTAPI
+PhRequiredAclRevision(
+    _In_ UCHAR AceType
+    )
+{
+    switch (AceType)
+    {
+    case ACCESS_ALLOWED_OBJECT_ACE_TYPE:
+    case ACCESS_DENIED_OBJECT_ACE_TYPE:
+    case SYSTEM_AUDIT_OBJECT_ACE_TYPE:
+    case SYSTEM_ALARM_OBJECT_ACE_TYPE:
+    case ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE:
+    case ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE:
+    case SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE:
+    case SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE:
+        return ACL_REVISION4;
+
+    case ACCESS_ALLOWED_COMPOUND_ACE_TYPE:
+        return ACL_REVISION3;
+
+    default:
+        return ACL_REVISION2;
+    }
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhEnsureAclRevision(
+    _Inout_ PUCHAR AclRevision,
+    _In_ UCHAR AceType
+    )
+{
+    UCHAR requiredRevision = PhRequiredAclRevision(AceType);
+
+    if (requiredRevision > *AclRevision)
+        *AclRevision = requiredRevision;
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhAddAccessAllowedAceEx(
+    _In_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ UCHAR AceFlags,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PCSID Sid
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlAddAccessAllowedAceEx(Acl, AceRevision, AceFlags, AccessMask, (PSID)Sid);
+#else
+    PVOID offset;
+
+    if (!PhValidSid(Sid))
+        return STATUS_INVALID_SID;
+    if (!PhValidAcl(Acl))
+        return STATUS_INVALID_ACL;
+
+    // Allow caller to pass any revision <= current ACL revision (matches RtlAddAce semantics). (dmex)
+    if (AceRevision > Acl->AclRevision)
+        return STATUS_REVISION_MISMATCH;
+    if (!PhFirstFreeAce(Acl, &offset))
+        return STATUS_INVALID_ACL;
+
+    ULONG sidLength = PhLengthSid(Sid);
+    ULONG_PTR aceSize = UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + sidLength;
+
+    // Ensure fits into USHORT and inside ACL buffer. (dmex)
+    if (aceSize >= USHRT_MAX)
+        return STATUS_INVALID_BUFFER_SIZE;
+    if ((ULONG_PTR)RTL_PTR_ADD(offset, aceSize) > (ULONG_PTR)RTL_PTR_ADD(Acl, Acl->AclSize))
+        return STATUS_ALLOTTED_SPACE_EXCEEDED;
+
+    PACCESS_ALLOWED_ACE ace = (PACCESS_ALLOWED_ACE)offset;
+    PACE_HEADER header = &ace->Header;
+    header->AceType = ACCESS_ALLOWED_ACE_TYPE;
+    header->AceFlags = AceFlags;
+    header->AceSize = (USHORT)aceSize;
+    ace->Mask = AccessMask;
+    RtlCopyMemory(&ace->SidStart, Sid, sidLength);
+    Acl->AceCount++;
     return STATUS_SUCCESS;
 #endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhAddAccessAllowedAce(
+    _In_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ CONST SID* Sid
+    )
+{
+    return PhAddAccessAllowedAceEx(Acl, AceRevision, 0, AccessMask, Sid);
 }
 
 FORCEINLINE
@@ -1348,6 +1884,26 @@ PhReleasePebLock(
 #else
     return RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
 #endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhAcquireLoaderLock(
+    VOID
+    )
+{
+    return RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhReleaseLoaderLock(
+    VOID
+    )
+{
+    return RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
 }
 
 FORCEINLINE
@@ -1439,11 +1995,11 @@ PhAreLongPathsEnabled(
     VOID
     )
 {
-#if defined(PHNT_NATIVE_INLINE)
-    return RtlAreLongPathsEnabled();
-#else
+//#if defined(PHNT_NATIVE_INLINE)
+//    return RtlAreLongPathsEnabled();
+//#else
     return NtCurrentPeb()->IsLongPathAwareProcess;
-#endif
+//#endif
 }
 
 FORCEINLINE
@@ -1472,7 +2028,7 @@ PhFreeAnsiString(
     )
 {
 #if defined(PHNT_NATIVE_INLINE)
-    RtlFreeAnsiString(UnicodeString);
+    RtlFreeAnsiString(AnsiString);
 #else
     if (AnsiString->Buffer)
     {
@@ -1489,11 +2045,15 @@ PhFreeUTF8String(
     _Inout_ _At_(Utf8String->Buffer, _Frees_ptr_opt_) PUTF8_STRING Utf8String
     )
 {
+#if defined(PHNT_NATIVE_INLINE)
+    RtlFreeUTF8String(Utf8String);
+#else
     if (Utf8String->Buffer)
     {
         RtlFreeHeap(RtlProcessHeap(), 0, Utf8String->Buffer);
         memset(Utf8String, 0, sizeof(UTF8_STRING));
     }
+#endif
 }
 
 FORCEINLINE
@@ -1617,7 +2177,7 @@ PhSetTokenSessionId(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhSetTokenPrivilege(
     _In_ HANDLE TokenHandle,
@@ -1627,7 +2187,7 @@ PhSetTokenPrivilege(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhSetTokenPrivilege2(
     _In_ HANDLE TokenHandle,
@@ -2051,7 +2611,7 @@ PhEnumProcessModulesLimited(
     _In_opt_ PVOID Context
     );
 
-typedef  _Function_class_(PH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK)
+typedef _Function_class_(PH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK)
 NTSTATUS NTAPI PH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK(
     _In_ PVOID ImageBase,
     _In_ SIZE_T ImageSize,
@@ -2064,7 +2624,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhEnumProcessModulesRundown(
-    _In_opt_ ULONG ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_ PPH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
@@ -2180,6 +2740,13 @@ PhSetProcessEmptyWorkingSet(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetProcessWorkingSetEmpty(
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetProcessEmptyPageWorkingSet(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
@@ -2279,6 +2846,41 @@ PhSetProcessPowerThrottlingState(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateSection(
+    _Out_ PHANDLE SectionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PLARGE_INTEGER MaximumSize,
+    _In_ ULONG SectionPageProtection,
+    _In_ ULONG AllocationAttributes,
+    _In_opt_ HANDLE FileHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhMapViewOfSection(
+    _In_ HANDLE SectionHandle,
+    _In_ HANDLE ProcessHandle,
+    _Inout_ _At_(*BaseAddress, _Readable_bytes_(*ViewSize) _Writable_bytes_(*ViewSize) _Post_readable_byte_size_(*ViewSize)) PVOID *BaseAddress,
+    _In_ SIZE_T CommitSize,
+    _In_opt_ PLARGE_INTEGER SectionOffset,
+    _Inout_ PSIZE_T ViewSize,
+    _In_ SECTION_INHERIT InheritDisposition,
+    _In_ ULONG AllocationType,
+    _In_ ULONG PageProtection
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhUnmapViewOfSection(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhEnumKernelModules(
     _Out_ PRTL_PROCESS_MODULES *Modules
     );
@@ -2373,10 +2975,12 @@ PhEnumProcessesEx(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass
     );
 
-typedef NTSTATUS (NTAPI *PPH_ENUM_NEXT_PROCESS)(
+typedef _Function_class_(PH_ENUM_NEXT_PROCESS)
+NTSTATUS NTAPI PH_ENUM_NEXT_PROCESS(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_NEXT_PROCESS* PPH_ENUM_NEXT_PROCESS;
 
 PHLIBAPI
 NTSTATUS
@@ -2388,10 +2992,12 @@ PhEnumNextProcess(
     _In_opt_ PVOID Context
     );
 
-typedef NTSTATUS (NTAPI *PPH_ENUM_NEXT_THREAD)(
+typedef _Function_class_(PH_ENUM_NEXT_THREAD)
+NTSTATUS NTAPI PH_ENUM_NEXT_THREAD(
     _In_ HANDLE ThreadHandle,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_NEXT_THREAD* PPH_ENUM_NEXT_THREAD;
 
 PHLIBAPI
 NTSTATUS
@@ -2568,8 +3174,8 @@ PhOpenDirectoryObject(
  *
  * \return TRUE to continue the enumeration, FALSE to stop.
  */
-typedef BOOLEAN _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-NTAPI PH_ENUM_DIRECTORY_OBJECTS(
+typedef _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
+BOOLEAN NTAPI PH_ENUM_DIRECTORY_OBJECTS(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
@@ -2599,10 +3205,32 @@ NTSTATUS
 NTAPI
 PhEnumDirectoryFile(
     _In_ HANDLE FileHandle,
-    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_opt_ PCPH_STRINGREF SearchPattern,
     _In_ PPH_ENUM_DIRECTORY_FILE Callback,
     _In_opt_ PVOID Context
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhEnumDirectoryFileZ(
+    _In_ HANDLE FileHandle,
+    _In_ PCWSTR SearchPattern,
+    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_STRINGREF searchPattern;
+
+    PhInitializeStringRef(&searchPattern, SearchPattern);
+
+    return PhEnumDirectoryFile(
+        FileHandle,
+        &searchPattern,
+        Callback,
+        Context
+        );
+}
 
 PHLIBAPI
 NTSTATUS
@@ -2611,17 +3239,45 @@ PhEnumDirectoryFileEx(
     _In_ HANDLE FileHandle,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
     _In_ BOOLEAN ReturnSingleEntry,
-    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_opt_ PCPH_STRINGREF SearchPattern,
     _In_ PPH_ENUM_DIRECTORY_FILE Callback,
     _In_opt_ PVOID Context
     );
 
-typedef NTSTATUS (NTAPI *PPH_ENUM_REPARSE_POINT)(
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhEnumDirectoryFileExZ(
+    _In_ HANDLE FileHandle,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _In_ BOOLEAN ReturnSingleEntry,
+    _In_ PCWSTR SearchPattern,
+    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_STRINGREF searchPattern;
+
+    PhInitializeStringRef(&searchPattern, SearchPattern);
+
+    return PhEnumDirectoryFileEx(
+        FileHandle,
+        FileInformationClass,
+        ReturnSingleEntry,
+        &searchPattern,
+        Callback,
+        Context
+        );
+}
+
+typedef _Function_class_(PH_ENUM_REPARSE_POINT)
+NTSTATUS NTAPI PH_ENUM_REPARSE_POINT(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
     _In_ SIZE_T InformationLength,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_REPARSE_POINT* PPH_ENUM_REPARSE_POINT;
 
 PHLIBAPI
 NTSTATUS
@@ -3063,6 +3719,79 @@ PhSetValueKeyZ(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetValueKeyStringZ(
+    _In_ HANDLE KeyHandle,
+    _In_ PCWSTR ValueName,
+    _In_ PCPH_STRINGREF String
+    )
+{
+    PH_STRINGREF valueName;
+
+    if (String->Length > ULONG_MAX)
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    PhInitializeStringRef(&valueName, ValueName);
+
+    return PhSetValueKey(
+        KeyHandle,
+        &valueName,
+        REG_SZ,
+        String->Buffer,
+        (ULONG)String->Length + sizeof(UNICODE_NULL)
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetValueKeyString2Z(
+    _In_ HANDLE KeyHandle,
+    _In_ PCWSTR ValueName,
+    _In_ PCWSTR String
+    )
+{
+    PH_STRINGREF valueName;
+    PH_STRINGREF valueString;
+
+    PhInitializeStringRef(&valueName, ValueName);
+    PhInitializeStringRef(&valueString, String);
+
+    return PhSetValueKey(
+        KeyHandle,
+        &valueName,
+        REG_SZ,
+        valueString.Buffer,
+        (ULONG)valueString.Length + sizeof(UNICODE_NULL)
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetValueKeyUlong(
+    _In_ HANDLE KeyHandle,
+    _In_ PCWSTR ValueName,
+    _In_ ULONG Value
+    )
+{
+    PH_STRINGREF valueName;
+
+    PhInitializeStringRef(&valueName, ValueName);
+
+    return PhSetValueKey(
+        KeyHandle,
+        &valueName,
+        REG_DWORD,
+        &Value,
+        sizeof(ULONG)
+        );
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -3459,16 +4188,46 @@ NTSTATUS
 NTAPI
 PhCreateNamedPipe(
     _Out_ PHANDLE PipeHandle,
-    _In_ PCWSTR PipeName
+    _In_ PCPH_STRINGREF PipeName
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhCreateNamedPipeZ(
+    _Out_ PHANDLE PipeHandle,
+    _In_ PCWSTR PipeName
+    )
+{
+    PH_STRINGREF pipeName;
+
+    PhInitializeStringRef(&pipeName, PipeName);
+
+    return PhCreateNamedPipe(PipeHandle, &pipeName);
+}
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhConnectPipe(
     _Out_ PHANDLE PipeHandle,
-    _In_ PCWSTR PipeName
+    _In_ PCPH_STRINGREF PipeName
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhConnectPipeZ(
+    _Out_ PHANDLE PipeHandle,
+    _In_ PCWSTR PipeName
+    )
+{
+    PH_STRINGREF pipeName;
+
+    PhInitializeStringRef(&pipeName, PipeName);
+
+    return PhConnectPipe(PipeHandle, &pipeName);
+}
 
 PHLIBAPI
 NTSTATUS
@@ -3558,7 +4317,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhEnumDirectoryNamedPipe(
-    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_opt_ PCPH_STRINGREF SearchPattern,
     _In_ PPH_ENUM_DIRECTORY_FILE Callback,
     _In_opt_ PVOID Context
     );
@@ -3746,6 +4505,18 @@ PhQueryProcessLockInformation(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhQueryVolumeInformationFile(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle,
+    _In_ FS_INFORMATION_CLASS FsInformationClass,
+    _Out_writes_bytes_(FsInformationLength) PVOID FsInformation,
+    _In_ ULONG FsInformationLength,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetMachineTypeAttributes(
     _In_ USHORT Machine,
     _Out_ MACHINE_ATTRIBUTES* Attributes
@@ -3854,10 +4625,47 @@ PhGetThreadLastStatusValue(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhGetThreadApartmentState(
+PhGetProcessMTAUsage(
+    _In_ HANDLE ProcessHandle,
+    _Out_opt_ PULONG MTAInits,
+    _Out_opt_ PULONG MTAIncInits
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadApartmentFlags(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
-    _Out_ POLETLSFLAGS ApartmentState
+    _Out_ PULONG ApartmentState,
+    _Out_opt_ PULONG ComInits
+    );
+
+typedef enum _PH_APARTMENT_TYPE
+{
+    PH_APARTMENT_TYPE_INVALID = 0,
+    PH_APARTMENT_TYPE_MAIN_STA,
+    PH_APARTMENT_TYPE_STA,
+    PH_APARTMENT_TYPE_APPLICATION_STA,
+    PH_APARTMENT_TYPE_MTA,
+    PH_APARTMENT_TYPE_IMPLICIT_MTA
+} PH_APARTMENT_TYPE;
+
+typedef struct _PH_APARTMENT_INFO
+{
+    PH_APARTMENT_TYPE Type;
+    BOOLEAN InNeutral;
+    ULONG ComInits;
+    ULONG Flags;
+} PH_APARTMENT_INFO, *PPH_APARTMENT_INFO;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadApartment(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_APARTMENT_INFO ApartmentInfo
     );
 
 typedef struct _PH_COM_CALLSTATE
@@ -3875,6 +4683,15 @@ PhGetThreadApartmentCallState(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
     _Out_ PPH_COM_CALLSTATE ApartmentCallState
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadRpcState(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN HasRpcState
     );
 
 PHLIBAPI
@@ -3899,7 +4716,7 @@ NTSTATUS
 NTAPI
 PhGetThreadSocketState(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PPH_THREAD_SOCKET_STATE ThreadSocketState
     );
 
@@ -3928,7 +4745,7 @@ NTSTATUS
 NTAPI
 PhGetThreadIsFiber(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN ThreadIsFiber
     );
 
@@ -4010,7 +4827,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhFreezeProcess(
-    _Out_ PHANDLE FreezeHandle,
+    _Out_ PHANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFreezeProcesById(
+    _Out_ PHANDLE ProcessStateChangeHandle,
     _In_ HANDLE ProcessId
     );
 
@@ -4018,7 +4843,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhThawProcess(
-    _In_ HANDLE FreezeHandle,
+    _In_ HANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhThawProcessById(
+    _In_ HANDLE ProcessStateChangeHandle,
     _In_ HANDLE ProcessId
     );
 
@@ -4026,7 +4859,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhFreezeThread(
-    _Out_ PHANDLE FreezeHandle,
+    _Out_ PHANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFreezeThreadById(
+    _Out_ PHANDLE ThreadStateChangeHandle,
     _In_ HANDLE ThreadId
     );
 
@@ -4034,7 +4875,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhThawThread(
-    _In_ HANDLE FreezeHandle,
+    _In_ HANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhThawThreadById(
+    _In_ HANDLE ThreadStateChangeHandle,
     _In_ HANDLE ThreadId
     );
 
@@ -4427,6 +5276,25 @@ PhIsEcCode(
     );
 #endif
 
+typedef enum _PH_MOTW_ZONE_ID
+{
+    PhMotwZoneIdLocalComputer,
+    PhMotwZoneIdLocalIntranet,
+    PhMotwZoneIdTrustedSites,
+    PhMotwZoneIdInternet,
+    PhMotwZoneIdRestrictedSites,
+    PhMotwZoneIdUnknown,
+} PH_MOTW_ZONE_ID, *PPH_MOTW_ZONE_ID;
+
+PHLIBAPI
+NTSTATUS
+PhGetFileMotw(
+    _In_ PCPH_STRINGREF FileName,
+    _Out_opt_ PPH_MOTW_ZONE_ID ZoneId,
+    _Out_opt_ PPH_STRING* ReferrerUrl,
+    _Out_opt_ PPH_STRING* HostUrl
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -4470,7 +5338,7 @@ typedef struct _FILTER_MESSAGE_HEADER
     //  OUT
     //
     //  Unique Id for this message.  This will be set when the kernel message
-    //  satifies this FilterGetMessage or FilterInstanceGetMessage request.
+    //  satisfies this FilterGetMessage or FilterInstanceGetMessage request.
     //  If replying to this message, this is the MessageId that should be used.
     //
 

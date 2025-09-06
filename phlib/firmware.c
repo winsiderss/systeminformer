@@ -14,6 +14,26 @@
 #include <phfirmware.h>
 #include <ntintsafe.h>
 
+// https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery
+// private
+typedef enum _HV_CPUID_FUNCTION
+{
+    HvCpuIdFunctionVersionAndFeatures = 0x00000001, // CPUID.01h.ECX:31 // if set, virtualization present
+    HvCpuIdFunctionHvVendorAndMaxFunction = 0x40000000, // HV_VENDOR_AND_MAX_FUNCTION
+    HvCpuIdFunctionHvInterface = 0x40000001, // HV_HYPERVISOR_INTERFACE_INFO
+    HvCpuIdFunctionMsHvVersion = 0x40000002, // HV_HYPERVISOR_VERSION_INFO
+    HvCpuIdFunctionMsHvFeatures = 0x40000003, // HV_HYPERVISOR_FEATURES/HV_X64_HYPERVISOR_FEATURES
+    HvCpuIdFunctionMsHvEnlightenmentInformation = 0x40000004, // HV_ENLIGHTENMENT_INFORMATION
+    HvCpuIdFunctionMsHvImplementationLimits = 0x40000005, // HV_IMPLEMENTATION_LIMITS
+    HvCpuIdFunctionMsHvHardwareFeatures = 0x40000006, // HV_X64_HYPERVISOR_HARDWARE_FEATURES
+    HvCpuIdFunctionMsHvCpuManagementFeatures = 0x40000007, // HV_X64_HYPERVISOR_CPU_MANAGEMENT_FEATURES
+    HvCpuIdFunctionMsHvSvmFeatures = 0x40000008, // HV_HYPERVISOR_SVM_FEATURES
+    HvCpuIdFunctionMsHvSkipLevelFeatures = 0x40000009, // HV_HYPERVISOR_SKIP_LEVEL_FEATURES // 1511+
+    HvCpuidFunctionMsHvNestedVirtFeatures = 0x4000000A, // HV_HYPERVISOR_NESTED_VIRT_FEATURES
+    HvCpuidFunctionMsHvIptFeatures = 0x4000000B, // HV_HYPERVISOR_IPT_FEATURES // 1903+
+    HvCpuIdFunctionMaxReserved
+} HV_CPUID_FUNCTION, *PHV_CPUID_FUNCTION;
+
 // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/datatypes/hv_partition_privilege_mask
 typedef union _HV_PARTITION_PRIVILEGE_MASK
 {
@@ -64,6 +84,519 @@ typedef union _HV_PARTITION_PRIVILEGE_MASK
     UINT32 LowPart;
     UINT32 HighPart;
 } HV_PARTITION_PRIVILEGE_MASK, *PHV_PARTITION_PRIVILEGE_MASK;
+
+// private
+typedef struct _HV_VENDOR_AND_MAX_FUNCTION
+{
+    //
+    // Eax
+    //
+    UINT32 MaxFunctions;
+
+    //
+    // Ebx, Ecx, and Edx
+    //
+    UINT8 VendorName[12];
+} HV_VENDOR_AND_MAX_FUNCTION, *PHV_VENDOR_AND_MAX_FUNCTION;
+static_assert(sizeof(HV_VENDOR_AND_MAX_FUNCTION) == 16);
+
+// private
+typedef enum _HV_HYPERVISOR_INTERFACE
+{
+    HvMicrosoftHypervisorInterface = 0x31237648, // '1#vH'
+    HvMicrosoftXboxNanovisor = 0x766E6258 ,      // 'vnbX'
+} HV_HYPERVISOR_INTERFACE, *PHV_HYPERVISOR_INTERFACE;
+
+// private
+typedef struct _HV_HYPERVISOR_INTERFACE_INFO
+{
+    //
+    // Eax
+    //
+    UINT32 Interface; // HV_HYPERVISOR_INTERFACE
+
+    //
+    // Ebx
+    //
+    UINT32 Reserved1;
+
+    //
+    // Ecx
+    //
+    UINT32 Reserved2;
+
+    //
+    // Edx
+    //
+    UINT32 Reserved3;
+} HV_HYPERVISOR_INTERFACE_INFO, *PHV_HYPERVISOR_INTERFACE_INFO;
+static_assert(sizeof(HV_HYPERVISOR_INTERFACE_INFO) == 16);
+
+// private
+typedef struct _HV_HYPERVISOR_VERSION_INFO
+{
+    //
+    // Eax
+    //
+    UINT32 BuildNumber;
+
+    //
+    // Ebx
+    //
+    UINT32 MinorVersion : 16;
+    UINT32 MajorVersion : 16;
+
+    //
+    // Ecx
+    //
+    UINT32 ServicePack;
+
+    //
+    // Edx
+    //
+    UINT32 ServiceNumber : 24;
+    UINT32 ServiceBranch : 8;
+} HV_HYPERVISOR_VERSION_INFO, *PHV_HYPERVISOR_VERSION_INFO;
+static_assert(sizeof(HV_HYPERVISOR_VERSION_INFO) == 16);
+
+// private
+typedef struct _HV_HYPERVISOR_FEATURES
+{
+    //
+    // Eax and Ebx
+    //
+    HV_PARTITION_PRIVILEGE_MASK PartitionPrivileges;
+
+    //
+    // Ecx
+    //
+    UINT32 MaxSupportedCState : 4;
+    UINT32 HpetNeededForC3PowerState_Deprecated : 1;
+    UINT32 Reserved : 27;
+
+    //
+    // Edx
+    //
+    UINT32 MwaitAvailable_Deprecated : 1;
+    UINT32 GuestDebuggingAvailable : 1;
+    UINT32 PerformanceMonitorsAvailable : 1;
+    UINT32 CpuDynamicPartitioningAvailable : 1;
+    UINT32 XmmRegistersForFastHypercallAvailable : 1;
+    UINT32 GuestIdleAvailable : 1;
+    UINT32 HypervisorSleepStateSupportAvailable : 1;
+    UINT32 NumaDistanceQueryAvailable : 1;
+    UINT32 FrequencyRegsAvailable : 1;
+    UINT32 SyntheticMachineCheckAvailable : 1;
+    UINT32 GuestCrashRegsAvailable : 1;
+    UINT32 DebugRegsAvailable : 1;
+    UINT32 Npiep1Available : 1;
+    UINT32 DisableHypervisorAvailable : 1;
+    UINT32 Reserved1 : 18;
+} HV_HYPERVISOR_FEATURES, *PHV_HYPERVISOR_FEATURES;
+static_assert(sizeof(HV_HYPERVISOR_FEATURES) == 16);
+
+// private
+typedef struct _HV_X64_HYPERVISOR_FEATURES
+{
+    //
+    // Eax and Ebx
+    //
+    HV_PARTITION_PRIVILEGE_MASK PartitionPrivileges;
+
+    //
+    // Ecx
+    //
+    UINT32 MaxSupportedCState : 4;
+    UINT32 HpetNeededForC3PowerState_Deprecated : 1;
+    UINT32 Reserved : 27;
+
+    //
+    // Edx
+    //
+    UINT32 MwaitAvailable_Deprecated : 1;
+    UINT32 GuestDebuggingAvailable : 1;
+    UINT32 PerformanceMonitorsAvailable : 1;
+    UINT32 CpuDynamicPartitioningAvailable : 1;
+    UINT32 XmmRegistersForFastHypercallAvailable : 1;
+    UINT32 GuestIdleAvailable : 1;
+    UINT32 HypervisorSleepStateSupportAvailable : 1;
+    UINT32 NumaDistanceQueryAvailable : 1;
+    UINT32 FrequencyRegsAvailable : 1;
+    UINT32 SyntheticMachineCheckAvailable : 1;
+    UINT32 GuestCrashRegsAvailable : 1;
+    UINT32 DebugRegsAvailable : 1;
+    UINT32 Npiep1Available : 1;
+    UINT32 DisableHypervisorAvailable : 1;
+    UINT32 ExtendedGvaRangesForFlushVirtualAddressListAvailable : 1;
+    UINT32 FastHypercallOutputAvailable : 1;
+    UINT32 SvmFeaturesAvailable : 1;
+    UINT32 SintPollingModeAvailable : 1;
+    UINT32 HypercallMsrLockAvailable : 1; // 1511+
+    UINT32 DirectSyntheticTimers : 1; // 1607+
+    UINT32 RegisterPatAvailable : 1; // 1703+
+    UINT32 RegisterBndcfgsAvailable : 1;
+    UINT32 WatchdogTimerAvailable : 1;
+    UINT32 SyntheticTimeUnhaltedTimerAvailable : 1; // 1709+
+    UINT32 DeviceDomainsAvailable : 1;
+    UINT32 S1DeviceDomainsAvailable : 1; // 1803+
+    UINT32 LbrAvailable : 1; // 1809+
+    UINT32 IptAvailable : 1; // 1903+
+    UINT32 CrossVtlFlushAvailable : 1;
+    UINT32 IdleSpecCtrlAvailable : 1; // 2004+
+    UINT32 Reserved1 : 2;
+} HV_X64_HYPERVISOR_FEATURES, *PHV_X64_HYPERVISOR_FEATURES;
+static_assert(sizeof(HV_X64_HYPERVISOR_FEATURES) == 16);
+
+// private
+typedef struct _HV_ENLIGHTENMENT_INFORMATION
+{
+    //
+    // Eax
+    //
+    UINT32 UseHypercallForAddressSpaceSwitch : 1;
+    UINT32 UseHypercallForLocalFlush : 1;
+    UINT32 UseHypercallForRemoteFlush : 1;
+    UINT32 UseApicMsrs : 1; // UseMsrForApicAccess
+    UINT32 UseMsrForReset : 1;
+    UINT32 UseRelaxedTiming : 1;
+    UINT32 UseDmaRemapping : 1;
+    UINT32 UseInterruptRemapping : 1;
+    UINT32 UseX2ApicMsrs : 1;
+    UINT32 DeprecateAutoEoi : 1;
+    UINT32 Reserved : 22;
+
+    //
+    // Ebx
+    //
+    UINT32 LongSpinWaitCount;
+
+    //
+    // Ecx
+    //
+    UINT32 ReservedEcx;
+
+    //
+    // Edx
+    //
+    UINT32 ReservedEdx;
+} HV_ENLIGHTENMENT_INFORMATION, *PHV_ENLIGHTENMENT_INFORMATION;
+static_assert(sizeof(HV_ENLIGHTENMENT_INFORMATION) == 16);
+
+// private
+typedef struct _HV_IMPLEMENTATION_LIMITS
+{
+    //
+    // Eax
+    //
+    UINT32 MaxVirtualProcessorCount;
+
+    //
+    // Ebx
+    //
+    UINT32 MaxLogicalProcessorCount;
+
+    //
+    // Ecx
+    //
+    UINT32 MaxInterruptMappingCount;
+
+    //
+    // Edx
+    //
+    UINT32 Reserved;
+} HV_IMPLEMENTATION_LIMITS, *PHV_IMPLEMENTATION_LIMITS;
+static_assert(sizeof(HV_IMPLEMENTATION_LIMITS) == 16);
+
+// private
+typedef struct _HV_X64_HYPERVISOR_HARDWARE_FEATURES
+{
+    //
+    // Eax
+    //
+    UINT32 ApicOverlayAssistInUse : 1;
+    UINT32 MsrBitmapsInUse : 1;
+    UINT32 ArchitecturalPerformanceCountersInUse : 1;
+    UINT32 SecondLevelAddressTranslationInUse : 1;
+    UINT32 DmaRemappingInUse : 1;
+    UINT32 InterruptRemappingInUse : 1;
+    UINT32 MemoryPatrolScrubberPresent : 1;
+    UINT32 DmaProtectionInUse : 1;
+    UINT32 HpetRequested : 1;
+    UINT32 SyntheticTimersVolatile : 1;
+    UINT32 HypervisorLevel : 4;
+    UINT32 PhysicalDestinationModeRequired : 1;
+    UINT32 UseVmfuncForAliasMapSwitch : 1;
+    UINT32 HvRegisterForMemoryZeroingSupported : 1;
+    UINT32 UnrestrictedGuestSupported : 1;
+    UINT32 RdtAFeaturesSupported : 1;
+    UINT32 RdtMFeaturesSupported : 1;
+    UINT32 ChildPerfmonPmuSupported : 1;
+    UINT32 ChildPerfmonLbrSupported : 1;
+    UINT32 ChildPerfmonIptSupported : 1;
+    UINT32 ApicEmulationSupported : 1;
+    UINT32 ChildX2ApicRecommended : 1;
+    UINT32 HardwareWatchdogReserved : 1;
+    UINT32 DeviceAccessTrackingSupported : 1;
+    UINT32 Reserved : 5;
+
+    //
+    // Ebx
+    //
+    UINT32 DeviceDomainInputWidth : 8;
+    UINT32 ReservedEbx : 24;
+
+    //
+    // Ecx
+    //
+    UINT32 ReservedEcx;
+
+    //
+    // Edx
+    //
+    UINT32 ReservedEdx;
+} HV_X64_HYPERVISOR_HARDWARE_FEATURES, *PHV_X64_HYPERVISOR_HARDWARE_FEATURES;
+static_assert(sizeof(HV_X64_HYPERVISOR_HARDWARE_FEATURES) == 16);
+
+#undef LogicalProcessorIdling
+// private
+typedef struct _HV_X64_HYPERVISOR_CPU_MANAGEMENT_FEATURES
+{
+    //
+    // Eax
+    //
+    UINT32 StartLogicalProcessor : 1;
+    UINT32 CreateRootVirtualProcessor : 1;
+    UINT32 PerformanceCounterSync : 1; // 1703+
+    UINT32 Reserved0 : 28;
+    UINT32 ReservedIdentityBit : 1;
+
+    //
+    // Ebx
+    //
+    UINT32 ProcessorPowerManagement : 1;
+    UINT32 MwaitIdleStates : 1;
+    UINT32 LogicalProcessorIdling : 1;
+    UINT32 Reserved1 : 29;
+
+    //
+    // Ecx
+    //
+    UINT32 RemapGuestUncached : 1; // 1803+
+    UINT32 ReservedZ2 : 31;
+
+    //
+    // Edx
+    //
+    UINT32 ReservedEdx;
+} HV_X64_HYPERVISOR_CPU_MANAGEMENT_FEATURES, *PHV_X64_HYPERVISOR_CPU_MANAGEMENT_FEATURES;
+static_assert(sizeof(HV_X64_HYPERVISOR_CPU_MANAGEMENT_FEATURES) == 16);
+
+// private
+typedef struct _HV_HYPERVISOR_SVM_FEATURES
+{
+    //
+    // Eax
+    //
+    UINT32 SvmSupported : 1;
+    UINT32 Reserved0 : 10;
+    UINT32 MaxPasidSpacePasidCount : 21;
+
+    //
+    // Ebx
+    //
+    UINT32 MaxPasidSpaceCount;
+
+    //
+    // Ecx
+    //
+    UINT32 MaxDevicePrqSize;
+
+    //
+    // Edx
+    //
+    UINT32 Reserved1;
+} HV_HYPERVISOR_SVM_FEATURES, *PHV_HYPERVISOR_SVM_FEATURES;
+static_assert(sizeof(HV_HYPERVISOR_SVM_FEATURES) == 16);
+
+// private
+typedef struct _HV_HYPERVISOR_SKIP_LEVEL_FEATURES
+{
+    //
+    // Eax
+    //
+    UINT32 Reserved0 : 2;
+    UINT32 AccessSynicRegs : 1;
+    UINT32 Reserved1 : 1;
+    UINT32 AccessIntrCtrlRegs : 1;
+    UINT32 AccessHypercallMsrs : 1;
+    UINT32 AccessVpIndex : 1;
+    UINT32 Reserved2 : 5;
+    UINT32 AccessReenlightenmentControls : 1;
+    UINT32 Reserved3 : 19;
+
+    //
+    // Ebx
+    //
+    UINT32 ReservedEbx;
+
+    //
+    // Ecx
+    //
+    UINT32 ReservedEcx;
+
+    //
+    // Edx
+    //
+    UINT32 Reserved4 : 4;
+    UINT32 XmmRegistersForFastHypercallAvailable : 1;
+    UINT32 Reserved5 : 10;
+    UINT32 FastHypercallOutputAvailable : 1;
+    UINT32 Reserved6 : 1;
+    UINT32 SintPollingModeAvailable : 1;
+    UINT32 Reserved7 : 14;
+} HV_HYPERVISOR_SKIP_LEVEL_FEATURES, *PHV_HYPERVISOR_SKIP_LEVEL_FEATURES;
+static_assert(sizeof(HV_HYPERVISOR_SKIP_LEVEL_FEATURES) == 16);
+
+// private
+typedef struct _HV_HYPERVISOR_NESTED_VIRT_FEATURES
+{
+    //
+    // Eax
+    //
+    UINT32 EnlightedVmcsVersionLow : 8;
+    UINT32 EnlightedVmcsVesionHigh : 8;
+    UINT32 FlushGuestPhysicalHypercall_Deprecated : 1; // 1607+
+    UINT32 NestedFlushVirtualHypercall : 1;
+    UINT32 FlushGuestPhysicalHypercall : 1;
+    UINT32 MsrBitmap : 1;
+    UINT32 VirtualizationException : 1; // 1709+
+    UINT32 DebugCtl : 1; // 2004+
+    UINT32 Reserved0 : 10;
+
+    //
+    // Ebx
+    //
+    UINT32 PerfGlobalCtrl : 1;
+    UINT32 Reserved1 : 31;
+
+    //
+    // Ecx
+    //
+    UINT32 ReservedEcx;
+
+    //
+    // Edx
+    //
+    UINT32 ReservedEdx;
+} HV_HYPERVISOR_NESTED_VIRT_FEATURES, *PHV_HYPERVISOR_NESTED_VIRT_FEATURES;
+static_assert(sizeof(HV_HYPERVISOR_NESTED_VIRT_FEATURES) == 16);
+
+// private
+typedef struct _HV_HYPERVISOR_IPT_FEATURES
+{
+    //
+    // Eax
+    //
+    UINT32 ChainedToPA : 1;
+    UINT32 Enlightened : 1;
+    UINT32 Reserved0 : 10;
+    UINT32 MaxTraceBufferSizePerVtl : 20;
+
+    //
+    // Ebx
+    //
+    UINT32 Reserved1;
+
+    //
+    // Ecx
+    //
+    UINT32 Reserved2;
+
+    //
+    // Ecx
+    //
+    UINT32 HypervisorIpt : 1; // 2004+
+    UINT32 Reserved3 : 31;
+} HV_HYPERVISOR_IPT_FEATURES, *PHV_HYPERVISOR_IPT_FEATURES;
+static_assert(sizeof(HV_HYPERVISOR_IPT_FEATURES) == 16);
+
+// private
+typedef struct _HV_X64_PLATFORM_CAPABILITIES
+{
+    UINT64 AsUINT64[2];
+
+    struct
+    {
+        //
+        // Eax
+        //
+        UINT AllowRedSignedCode : 1;
+        UINT AllowKernelModeDebugging : 1;
+        UINT AllowUserModeDebugging : 1;
+        UINT AllowTelnetServer : 1;
+        UINT AllowIOPorts : 1;
+        UINT AllowFullMsrSpace : 1;
+        UINT AllowPerfCounters : 1;
+        UINT AllowHost512MB : 1;
+        UINT AllowRemoteRecovery : 1;
+        UINT AllowStreaming : 1;
+        UINT AllowPushDeployment : 1;
+        UINT AllowPullDeployment : 1;
+        UINT AllowProfiling : 1;
+        UINT AllowJsProfiling : 1;
+        UINT AllowCrashDump : 1;
+        UINT AllowVsCrashDump : 1;
+        UINT AllowToolFileIO : 1;
+        UINT AllowConsoleMgmt : 1;
+        UINT AllowTracing : 1;
+        UINT AllowXStudio : 1;
+        UINT AllowGestureBuilder : 1;
+        UINT AllowSpeechLab : 1;
+        UINT AllowSmartglassStudio : 1;
+        UINT AllowNetworkTools : 1;
+        UINT AllowTcrTool : 1;
+        UINT AllowHostNetworkStack : 1;
+        UINT AllowSystemUpdateTest : 1;
+        UINT AllowOffChipPerfCtrStreaming : 1;
+        UINT AllowToolingMemory : 1;
+        UINT AllowSystemDowngrade : 1;
+        UINT AllowGreenDiskLicenses : 1;
+
+        //
+        // Ebx
+        //
+        UINT IsLiveConnected : 1;
+        UINT IsMteBoosted : 1;
+        UINT IsQaSlt : 1;
+        UINT IsStockImage : 1;
+        UINT IsMsTestLab : 1;
+        UINT IsRetailDebugger : 1;
+        UINT IsXvdSort : 1;
+        UINT IsGreenDebug : 1;
+        UINT IsHwDevTest : 1;
+        UINT AllowDiskLicenses : 1; // 1511+
+        UINT AllowInstrumentation : 1;
+        UINT AllowWifiTester : 1;
+        UINT AllowWifiTesterDFS : 1;
+        UINT IsHwTest : 1;
+        UINT AllowHostOddTest : 1;
+        UINT IsLiveUnrestricted : 1;
+        UINT AllowDiscLicensesWithoutMediaAuth : 1;
+        UINT ReservedEbx : 15;
+
+        //
+        // Ecx
+        //
+        UINT ReservedEcx;
+
+        //
+        // Edx
+        //
+        UINT ReservedEdx : 31;
+        UINT UseAlternateXvd : 1;
+    };
+} HV_X64_PLATFORM_CAPABILITIES, *PHV_X64_PLATFORM_CAPABILITIES;
+static_assert(sizeof(HV_HYPERVISOR_IPT_FEATURES) == 16);
 
 #if defined(_M_IX86) || defined(_M_AMD64)
 typedef union _PH_CPUID
@@ -133,7 +666,7 @@ BOOLEAN PhHypervisorIsPresent(
 
     PH_CPUID cpuid;
 
-    PhCpuId(&cpuid, 1, 0);
+    PhCpuId(&cpuid, HvCpuIdFunctionVersionAndFeatures, 0);
 
     // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery#hypervisor-discovery
     if (cpuid.ECX & 0x80000000)
@@ -148,8 +681,7 @@ BOOLEAN PhVCpuIsMicrosoftHyperV(
 {
     PH_CPUID cpuid;
 
-    // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery#hypervisor-cpuid-leaf-range---0x40000000
-    PhCpuId(&cpuid, 0x40000000, 0);
+    PhCpuId(&cpuid, HvCpuIdFunctionHvVendorAndMaxFunction, 0);
 
     // Microsoft Hv
     if (cpuid.EBX == 'rciM' && cpuid.ECX == 'foso' && cpuid.EDX == 'vH t')
@@ -164,8 +696,7 @@ VOID PhGetHvPartitionPrivilegeMask(
 {
     PH_CPUID cpuid;
 
-    // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery#hypervisor-feature-identification---0x40000003
-    PhCpuId(&cpuid, 0x40000003, 0);
+    PhCpuId(&cpuid, HvCpuIdFunctionMsHvFeatures, 0);
 
     Mask->LowPart = cpuid.EAX;
     Mask->HighPart = cpuid.EBX;
@@ -385,7 +916,6 @@ NTSTATUS PhpEnumSMBIOS(
     PSMBIOS_HEADER next;
 
     memset(&context, 0, sizeof(context));
-
     context.Data = Data;
     context.End = PTR_ADD_OFFSET(Data->SMBIOSTableData, Data->Length);
 
@@ -424,7 +954,8 @@ NTSTATUS PhEnumSMBIOS(
 
     length = (ULONG)ReadAcquire((volatile LONG*)&cachedLength);
 
-    info = PhAllocateZero(length);
+    if (!(info = PhAllocatePageZero(length)))
+        return STATUS_NO_MEMORY;
 
     info->ProviderSignature = 'RSMB';
     info->TableID = 0;
@@ -437,10 +968,13 @@ NTSTATUS PhEnumSMBIOS(
         length,
         &length
         );
+
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
-        PhFree(info);
-        info = PhAllocateZero(length);
+        PhFreePage(info);
+
+        if (!(info = PhAllocatePageZero(length)))
+            return STATUS_NO_MEMORY;
 
         info->ProviderSignature = 'RSMB';
         info->TableID = 0;
@@ -453,8 +987,11 @@ NTSTATUS PhEnumSMBIOS(
             length,
             &length
             );
+
         if (NT_SUCCESS(status))
+        {
             WriteRelease((volatile LONG*)&cachedLength, (LONG)length);
+        }
     }
 
     if (NT_SUCCESS(status))
@@ -466,7 +1003,7 @@ NTSTATUS PhEnumSMBIOS(
             );
     }
 
-    PhFree(info);
+    PhFreePage(info);
 
     return status;
 }

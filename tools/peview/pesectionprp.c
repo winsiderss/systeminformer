@@ -135,6 +135,7 @@ BOOLEAN PvSectionNodeHashtableCompareFunction(
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PvSectionNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -281,12 +282,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
         sectionNode->UniqueIdString = PhFormatUInt64(sectionNode->UniqueId, FALSE);
         sectionNode->SectionHeader = &PvMappedImage.Sections[i];
 
-        if (PhGetMappedImageSectionName(
-            &PvMappedImage.Sections[i],
-            sectionName,
-            RTL_NUMBER_OF(sectionName),
-            &sectionNameLength
-            ))
+        if (NT_SUCCESS(PhGetMappedImageSectionName(&PvMappedImage.Sections[i], sectionName, RTL_NUMBER_OF(sectionName), &sectionNameLength)))
         {
             sectionNode->SectionNameString = PhCreateStringEx(sectionName, sectionNameLength * sizeof(WCHAR) - sizeof(UNICODE_NULL));
         }
@@ -764,6 +760,7 @@ BOOLEAN PvSectionNodeHashtableCompareFunction(
     return sectionNode1->UniqueId == sectionNode2->UniqueId;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PvSectionNodeHashtableHashFunction(
     _In_ PVOID Entry
     )

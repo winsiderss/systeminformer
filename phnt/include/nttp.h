@@ -30,9 +30,15 @@ VOID NTAPI TP_ALPC_CALLBACK_EX(
     );
 typedef TP_ALPC_CALLBACK_EX *PTP_ALPC_CALLBACK_EX;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-
 // winbase:CreateThreadpool
+/**
+ * Allocates a new pool of threads to execute callbacks.
+ *
+ * \param[out] PoolReturn Pointer to a variable that receives the address of the newly allocated thread pool.
+ * \param[in] Reserved Reserved for future use. Must be NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-createthreadpool
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -42,6 +48,13 @@ TpAllocPool(
     );
 
 // winbase:CloseThreadpool
+/**
+ * Closes the specified thread pool.
+ *
+ * \param[in,out] Pool A pointer to a TP_POOL structure that defines the thread pool.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-closethreadpool
+ */
 NTSYSAPI
 VOID
 NTAPI
@@ -50,6 +63,14 @@ TpReleasePool(
     );
 
 // winbase:SetThreadpoolThreadMaximum
+/**
+ * Sets the maximum number of threads that the specified thread pool can allocate to process callbacks.
+ *
+ * \param[in,out] Pool A pointer to a TP_POOL structure that defines the thread pool.
+ * \param[in] MaxThreads The maximum number of threads.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-setthreadpoolthreadmaximum
+ */
 NTSYSAPI
 VOID
 NTAPI
@@ -59,6 +80,14 @@ TpSetPoolMaxThreads(
     );
 
 // winbase:SetThreadpoolThreadMinimum
+/**
+ * Sets the minimum number of threads that the specified thread pool must make available to process callbacks.
+ *
+ * \param[in,out] Pool A pointer to a TP_POOL structure that defines the thread pool.
+ * \param[in] MinThreads The minimum number of threads.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-setthreadpoolthreadminimum
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -67,8 +96,15 @@ TpSetPoolMinThreads(
     _In_ ULONG MinThreads
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // winbase:QueryThreadpoolStackInformation
+/**
+ * Retrieves the stack reserve and commit sizes for threads in the specified thread pool.
+ *
+ * \param[in] Pool A pointer to a TP_POOL structure that defines the thread pool.
+ * \param[out] PoolStackInformation A pointer to a TP_POOL_STACK_INFORMATION structure that receives the stack reserve and commit size.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-querythreadpoolstackinformation
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -94,14 +130,20 @@ TpSetPoolThreadBasePriority(
     _Inout_ PTP_POOL Pool,
     _In_ ULONG BasePriority
     );
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 // winbase:CreateThreadpoolCleanupGroup
+/**
+ * Creates a cleanup group that applications can use to track one or more thread pool callbacks.
+ *
+ * \param[out] CleanupGroup A pointer to a TP_CLEANUP_GROUP structure of the newly allocated cleanup group.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-createthreadpoolcleanupgroup
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 TpAllocCleanupGroup(
-    _Out_ PTP_CLEANUP_GROUP *CleanupGroupReturn
+    _Out_ PTP_CLEANUP_GROUP *CleanupGroup
     );
 
 // winbase:CloseThreadpoolCleanupGroup
@@ -169,6 +211,13 @@ TpCallbackUnloadDllOnCompletion(
     );
 
 // winbase:CallbackMayRunLong
+/**
+ * Indicates that the callback may not return quickly.
+ *
+ * \param[in,out] Instance A pointer to a TP_CALLBACK_INSTANCE structure that defines the callback instance.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-callbackmayrunlong
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -184,12 +233,28 @@ TpDisassociateCallback(
     _Inout_ PTP_CALLBACK_INSTANCE Instance
     );
 
+typedef _Function_class_(TP_CALLBACK_ROUTINE)
+VOID NTAPI TP_CALLBACK_ROUTINE(
+    _Inout_ PTP_CALLBACK_INSTANCE Instance,
+    _Inout_opt_ PVOID Context
+    );
+typedef TP_CALLBACK_ROUTINE* PTP_CALLBACK_ROUTINE;
+
 // winbase:TrySubmitThreadpoolCallback
+/**
+ * Requests that a thread pool worker thread call the specified callback function.
+ *
+ * \param[in] Callback The callback function.
+ * \param[in,out] Context Optional application-defined data to pass to the callback function.
+ * \param[in] CallbackEnviron A pointer to a TP_CALLBACK_ENVIRON structure that defines the environment in which to execute the callback function.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoolapiset/nf-threadpoolapiset-trysubmitthreadpoolcallback
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 TpSimpleTryPost(
-    _In_ PTP_SIMPLE_CALLBACK Callback,
+    _In_ PTP_CALLBACK_ROUTINE Callback,
     _Inout_opt_ PVOID Context,
     _In_opt_ PTP_CALLBACK_ENVIRON CallbackEnviron
     );
@@ -409,7 +474,6 @@ TpAllocAlpcCompletion(
     _In_opt_ PTP_CALLBACK_ENVIRON CallbackEnviron
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -421,7 +485,6 @@ TpAllocAlpcCompletionEx(
     _Inout_opt_ PVOID Context,
     _In_opt_ PTP_CALLBACK_ENVIRON CallbackEnviron
     );
-#endif
 
 // private
 NTSYSAPI
@@ -478,7 +541,5 @@ NTAPI
 TpCheckTerminateWorker(
     _In_ HANDLE Thread
     );
-
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 #endif // _NTTP_H

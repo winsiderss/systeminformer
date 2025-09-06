@@ -46,6 +46,7 @@
 #define SETTING_NAME_UPDATE_AVAILABLE (PLUGIN_NAME L".UpdateAvailable")
 #define SETTING_NAME_UPDATE_DATA (PLUGIN_NAME L".UpdateData")
 #define SETTING_NAME_AUTO_CHECK_PAGE (PLUGIN_NAME L".AutoCheckPage")
+#define SETTING_NAME_SHOW_NOTIFICATION (PLUGIN_NAME L".ShowNotification")
 #define SETTING_NAME_CHANGELOG_WINDOW_POSITION (PLUGIN_NAME L".ChangelogWindowPosition")
 #define SETTING_NAME_CHANGELOG_WINDOW_SIZE (PLUGIN_NAME L".ChangelogWindowSize")
 #define SETTING_NAME_CHANGELOG_COLUMNS (PLUGIN_NAME L".ChangelogListColumns")
@@ -93,7 +94,7 @@ typedef struct _PH_UPDATER_CONTEXT
         };
     };
 
-    ULONG ErrorCode;
+    ULONG UpdateStatus;
     ULONG64 CurrentVersion;
     ULONG64 LatestVersion;
     PPH_STRING SetupFilePath;
@@ -123,10 +124,12 @@ VOID TaskDialogLinkClicked(
     _In_ PPH_UPDATER_CONTEXT Context
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateCheckThread(
     _In_ PVOID Parameter
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateDownloadThread(
     _In_ PVOID Parameter
     );
@@ -235,9 +238,7 @@ typedef struct _UPDATER_SIGNING
     ULONG PaddingFlags;
     BCRYPT_ALG_HANDLE HashAlgHandle;
     BCRYPT_HASH_HANDLE HashHandle;
-    ULONG HashObjectSize;
     ULONG HashSize;
-    PVOID HashObject;
     PVOID Hash;
 } UPDATER_SIGNING, *PUPDATER_SIGNING;
 
@@ -245,35 +246,34 @@ typedef struct _UPDATER_HASH_CONTEXT
 {
     BCRYPT_ALG_HANDLE HashAlgHandle;
     BCRYPT_HASH_HANDLE HashHandle;
-    ULONG HashObjectSize;
     ULONG HashSize;
-    PVOID HashObject;
     PVOID Hash;
     UPDATER_SIGNING Sign[MaxUpdaterSigningGeneration];
 } UPDATER_HASH_CONTEXT, *PUPDATER_HASH_CONTEXT;
 
-PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
+NTSTATUS UpdaterInitializeHash(
+    _Out_ PUPDATER_HASH_CONTEXT* Context,
     _In_ PH_RELEASE_CHANNEL Channel
     );
 
-BOOLEAN UpdaterUpdateHash(
-    _Inout_ PUPDATER_HASH_CONTEXT Context,
+NTSTATUS UpdaterHashData(
+    _In_ PUPDATER_HASH_CONTEXT Context,
     _In_reads_bytes_(Length) PVOID Buffer,
     _In_ ULONG Length
     );
 
-BOOLEAN UpdaterVerifyHash(
-    _Inout_ PUPDATER_HASH_CONTEXT Context,
+NTSTATUS UpdaterVerifyHash(
+    _In_ PUPDATER_HASH_CONTEXT Context,
     _In_ PPH_STRING Sha2Hash
     );
 
-BOOLEAN UpdaterVerifySignature(
-    _Inout_ PUPDATER_HASH_CONTEXT Context,
+NTSTATUS UpdaterVerifySignature(
+    _In_ PUPDATER_HASH_CONTEXT Context,
     _In_ PPH_STRING HexSignature
     );
 
 VOID UpdaterDestroyHash(
-    _In_ PUPDATER_HASH_CONTEXT Context
+    _Frees_ptr_opt_ PUPDATER_HASH_CONTEXT Context
     );
 
 #endif

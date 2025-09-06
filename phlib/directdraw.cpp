@@ -321,7 +321,9 @@ LRESULT CALLBACK PhTransparentBackgroundWindowCallback(
             HDC hdc = reinterpret_cast<HDC>(wParam);
             RECT clientRect;
 
-            GetClientRect(WindowHandle, &clientRect);
+            if (!PhGetClientRect(WindowHandle, &clientRect))
+                break;
+
             FillRect(hdc, &clientRect, PhGetStockBrush(BLACK_BRUSH));
         }
         return TRUE;
@@ -359,7 +361,7 @@ HWND PhCreateBackgroundWindow(
     if (WindowsVersion < WINDOWS_8)
         return nullptr;
 
-    if (!GetClientRect(ParentWindowHandle, &windowRect))
+    if (!PhGetClientRect(ParentWindowHandle, &windowRect))
         return nullptr;
 
     {

@@ -1012,6 +1012,7 @@ typedef struct _DN_ENUM_CLR_RUNTIME_CONTEXT
     PPH_LIST RuntimeList;
 } DN_ENUM_CLR_RUNTIME_CONTEXT, *PDN_ENUM_CLR_RUNTIME_CONTEXT;
 
+_Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
 static BOOLEAN NTAPI DnGetClrRuntimeCallback(
     _In_ PPH_MODULE_INFO Module,
     _In_ PVOID Context
@@ -1119,6 +1120,7 @@ typedef struct _CLR_RUNTIME_INFO
     SYMBOL_INDEX DbiModuleIndex[24];
 } CLR_RUNTIME_INFO, *PCLR_RUNTIME_INFO;
 
+_Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
 static BOOLEAN NTAPI DnGetCoreClrPathCallback(
     _In_ PPH_MODULE_INFO Module,
     _In_ PVOID Context
@@ -1243,7 +1245,7 @@ static VOID DnCleanupDacAuxiliaryProvider(
 }
 
 static BOOLEAN DnClrVerifyFileIsChainedToMicrosoft(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -1255,6 +1257,7 @@ static BOOLEAN DnClrVerifyFileIsChainedToMicrosoft(
     return TRUE;
 }
 
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
 static BOOLEAN DnpMscordaccoreDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
@@ -1283,8 +1286,8 @@ PVOID DnLoadMscordaccore(
     )
 {
     // \dotnet\shared\Microsoft.NETCore.App\ is the same path used by the CLR for DAC detection. (dmex)
-    static PH_STRINGREF mscordaccorePath = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
-    static PH_STRINGREF mscordaccoreName = PH_STRINGREF_INIT(L"\\mscordaccore.dll");
+    static CONST PH_STRINGREF mscordaccorePath = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
+    static CONST PH_STRINGREF mscordaccoreName = PH_STRINGREF_INIT(L"\\mscordaccore.dll");
     DnCLRDataTarget* dataTarget = (DnCLRDataTarget*)DataTarget;
     PVOID mscordacBaseAddress = NULL;
     HANDLE directoryHandle;
@@ -1770,6 +1773,7 @@ typedef struct _DN_CLRDT_ENUM_IMAGE_BASE_CONTEXT
     PVOID BaseAddress;
 } DN_CLRDT_ENUM_IMAGE_BASE_CONTEXT, *PDN_CLRDT_ENUM_IMAGE_BASE_CONTEXT;
 
+_Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
 BOOLEAN NTAPI DnClrDataTarget_EnumImageBaseCallback(
     _In_ PPH_MODULE_INFO Module,
     _In_ PVOID Context

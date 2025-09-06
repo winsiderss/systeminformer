@@ -339,6 +339,7 @@ VOID EtpNpuDetailsEnumAdapters(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID EtpNpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -413,17 +414,15 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedCallbackRegistration);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            PostQuitMessage(0);
-        }
-        break;
-    case WM_NCDESTROY:
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
+
+            PostQuitMessage(0);
         }
         break;
     case WM_COMMAND:
@@ -439,6 +438,12 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
         break;
     case WM_SIZE:
         {
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
@@ -522,6 +527,7 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtNpuDetailsDialogThreadStart(
     _In_ PVOID Parameter
     )

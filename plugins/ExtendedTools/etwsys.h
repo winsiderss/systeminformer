@@ -15,6 +15,7 @@
 
 // Disk section
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN EtpDiskSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -82,6 +83,7 @@ PPH_STRING EtpGetMaxDiskString(
 
 // Network section
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN EtpNetworkSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,

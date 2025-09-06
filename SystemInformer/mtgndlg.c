@@ -75,7 +75,7 @@ VOID PhShowProcessMitigationPolicyDialog(
             context.SystemDllInitBlock = dllInitBlock;
         }
 
-        if (NT_SUCCESS(PhGetProcessMitigationPolicy(processHandle, &information)))
+        if (NT_SUCCESS(PhGetProcessMitigationPolicyAllInformation(processHandle, &information)))
         {
             for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)
             {

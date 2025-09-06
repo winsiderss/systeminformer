@@ -22,11 +22,13 @@
 #include <svcsup.h>
 #include <phsettings.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpModuleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpModuleNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -112,9 +114,9 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_SERVICE, FALSE, L"Service", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ENCLAVE_TYPE, FALSE, L"Enclave type", 40, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_BASE_ADDRESS, FALSE, L"Enclave base address", 80, PH_ALIGN_RIGHT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_BASE_ADDRESS, FALSE, L"Enclave base address", 80, PH_ALIGN_LEFT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_SIZE, FALSE, L"Enclave size", 80, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ARCHITECTURE, FALSE, L"Architecture", 80, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ARCHITECTURE, FALSE, L"Architecture", 80, PH_ALIGN_LEFT, ULONG_MAX, DT_RIGHT, TRUE);
 
     PhCmInitializeManager(&Context->Cm, Context->TreeNewHandle, PHMOTLC_MAXIMUM, PhpModuleTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
@@ -141,6 +143,7 @@ VOID PhDeleteModuleList(
     PhDereferenceObject(Context->NodeRootList);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpModuleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -152,6 +155,7 @@ BOOLEAN PhpModuleNodeHashtableEqualFunction(
     return moduleNode1->ModuleItem == moduleNode2->ModuleItem;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpModuleNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -415,7 +419,7 @@ VOID PhpDestroyModuleNode(
     if (ModuleNode->TimeStampText) PhDereferenceObject(ModuleNode->TimeStampText);
     if (ModuleNode->LoadTimeText) PhDereferenceObject(ModuleNode->LoadTimeText);
     if (ModuleNode->FileModifiedTimeText) PhDereferenceObject(ModuleNode->FileModifiedTimeText);
-    if (ModuleNode->FileSizeText) PhDereferenceObject(&ModuleNode->FileSizeText);
+    if (ModuleNode->FileSizeText) PhDereferenceObject(ModuleNode->FileSizeText);
     if (ModuleNode->ImageCoherencyText) PhDereferenceObject(ModuleNode->ImageCoherencyText);
     if (ModuleNode->ServiceText) PhDereferenceObject(ModuleNode->ServiceText);
     if (ModuleNode->EnclaveSizeText) PhDereferenceObject(ModuleNode->EnclaveSizeText);
@@ -554,7 +558,7 @@ VOID PhTickModuleNodes(
     if (sortResult == 0) \
         sortResult = uintptrcmp((ULONG_PTR)moduleItem1->EnclaveBaseAddress, (ULONG_PTR)moduleItem2->EnclaveBaseAddress); \
     if (sortResult == 0) \
-        sortResult = PhCompareStringWithNullSortOrder(moduleItem1->FileName, moduleItem2->FileName, context->TreeNewSortOrder, TRUE); \
+        sortResult = PhCompareStringWithNullSortOrder(moduleItem1->FileName, moduleItem2->FileName, context->TreeNewSortOrder, FALSE); \
     \
     return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
@@ -571,7 +575,7 @@ LONG PhpModuleTreeNewPostSortFunction(
     if (Result == 0)
         Result = uintptrcmp((ULONG_PTR)((PPH_MODULE_NODE)Node1)->ModuleItem->EnclaveBaseAddress, (ULONG_PTR)((PPH_MODULE_NODE)Node2)->ModuleItem->EnclaveBaseAddress);
     if (Result == 0)
-        Result = PhCompareStringWithNull(((PPH_MODULE_NODE)Node1)->ModuleItem->FileName, ((PPH_MODULE_NODE)Node2)->ModuleItem->FileName, TRUE);
+        Result = PhCompareStringWithNullSortOrder(((PPH_MODULE_NODE)Node1)->ModuleItem->FileName, ((PPH_MODULE_NODE)Node2)->ModuleItem->FileName, SortOrder, FALSE);
 
     return PhModifySort(Result, SortOrder);
 }
@@ -917,18 +921,18 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHMOTLC_NAME:
-                getCellText->Text = PhGetStringRef(moduleItem->Name);
+                {
+                    getCellText->Text = PhGetStringRef(moduleItem->Name);
+                }
                 break;
             case PHMOTLC_BASEADDRESS:
-                PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->BaseAddressString);
+                {
+                    PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->BaseAddressString);
+                }
                 break;
             case PHMOTLC_SIZE:
                 {
-                    if (PhIsNullOrEmptyString(node->SizeText))
-                    {
-                        PhMoveReference(&node->SizeText, PhFormatSize(moduleItem->Size, ULONG_MAX));
-                    }
-
+                    PhMoveReference(&node->SizeText, PhFormatSize(moduleItem->Size, ULONG_MAX));
                     getCellText->Text = PhGetStringRef(node->SizeText);
                 }
                 break;
@@ -1013,7 +1017,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             case PHMOTLC_ASLR:
                 {
                     if (FlagOn(moduleItem->ImageDllCharacteristics, IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE))
+                    {
                         PhInitializeStringRef(&getCellText->Text, L"ASLR");
+                    }
                 }
                 break;
             case PHMOTLC_TIMESTAMP:
@@ -1099,6 +1105,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         PhMoveReference(&node->FileModifiedTimeText, PhFormatDateTime(&systemTime));
                         getCellText->Text = node->FileModifiedTimeText->sr;
                     }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
                 }
                 break;
             case PHMOTLC_FILESIZE:
@@ -1106,7 +1116,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     if (moduleItem->FileEndOfFile.QuadPart != 0 && moduleItem->FileEndOfFile.QuadPart != -1)
                     {
                         PhMoveReference(&node->FileSizeText, PhFormatSize(moduleItem->FileEndOfFile.QuadPart, ULONG_MAX));
-                        getCellText->Text = node->FileSizeText->sr;
+                        getCellText->Text = PhGetStringRef(node->FileSizeText);
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                 }
                 break;
@@ -1129,7 +1143,13 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             case PHMOTLC_CET:
                 {
                     if (FlagOn(moduleItem->ImageDllCharacteristicsEx, IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT))
+                    {
                         PhInitializeStringRef(&getCellText->Text, L"CET");
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
                 }
                 break;
             case PHMOTLC_COHERENCY:
@@ -1253,7 +1273,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             case PHMOTLC_ARCHITECTURE:
                 {
                     // We read the remote process memory for ImageMachine when possible. For
-                    // ARM64X/CHPE the OS will fix up the image haeder in the process, this
+                    // ARM64X/CHPE the OS will fix up the image header in the process, this
                     // should generally reflect the module machine correctly (unless we can't
                     // read the remote process address space).
                     switch (node->ModuleItem->ImageMachine)
@@ -1400,7 +1420,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 
                     PhCustomDrawTreeTimeLine(
                         customDraw->Dc,
-                        customDraw->CellRect,
+                        &customDraw->CellRect,
                         PhEnableThemeSupport ? PH_DRAW_TIMELINE_DARKTHEME : 0,
                         &context->ProcessCreateTime,
                         &moduleItem->LoadTime

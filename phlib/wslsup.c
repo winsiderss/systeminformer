@@ -5,227 +5,310 @@
  *
  * Authors:
  *
- *     dmex    2019-2024
+ *     dmex    2019-2025
  *
  */
 
 #include <ph.h>
 #include <wslsup.h>
-#include <mapldr.h>
 
-BOOLEAN NTAPI PhpWslDistributionNamesCallback(
+typedef struct _PH_WSL_ENUM_CONTEXT
+{
+    BOOLEAN Found;
+    PPH_STRINGREF FileName;
+    PPH_STRING DistributionGuid;
+    PPH_STRING DistributionName;
+    PPH_STRING DistributionPath;
+    PPH_STRING TranslatedPath;
+} PH_WSL_ENUM_CONTEXT, *PPH_WSL_ENUM_CONTEXT;
+
+_Function_class_(PH_ENUM_KEY_CALLBACK)
+BOOLEAN NTAPI PhWslDistributionNamesCallback(
     _In_ HANDLE RootDirectory,
-    _In_ PKEY_BASIC_INFORMATION Information,
+    _In_ PVOID Information,
     _In_ PVOID Context
     )
 {
-    PhAddItemList(Context, PhCreateStringEx(Information->Name, Information->NameLength));
+    PKEY_BASIC_INFORMATION information = (PKEY_BASIC_INFORMATION)Information;
+    PPH_WSL_ENUM_CONTEXT context = (PPH_WSL_ENUM_CONTEXT)Context;
+    HANDLE keyHandle;
+    PH_STRINGREF keyName;
+
+    keyName.Buffer = information->Name;
+    keyName.Length = information->NameLength;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        RootDirectory,
+        &keyName,
+        0
+        )))
+    {
+        PPH_STRING lxssBasePathName;
+
+        if (lxssBasePathName = PhQueryRegistryStringZ(keyHandle, L"BasePath"))
+        {
+            PhMoveReference(&lxssBasePathName, PhDosPathNameToNtPathName(&lxssBasePathName->sr));
+
+            if (lxssBasePathName && PhStartsWithStringRef(context->FileName, &lxssBasePathName->sr, TRUE))
+            {
+                PPH_STRING lxssDistributionName;
+
+                if (lxssDistributionName = PhQueryRegistryStringZ(keyHandle, L"DistributionName"))
+                {
+                    context->Found = TRUE;
+                    context->DistributionGuid = PhCreateString2(&keyName);
+                    context->DistributionName = lxssDistributionName;
+                    context->DistributionPath = lxssBasePathName;
+
+                    if (context->TranslatedPath = PhCreateString2(context->FileName))
+                    {
+                        PhSkipStringRef(&context->TranslatedPath->sr, lxssBasePathName->Length);
+                        PhSkipStringRef(&context->TranslatedPath->sr, sizeof(L"rootfs"));
+                    }
+
+                    NtClose(keyHandle);
+                    return FALSE;
+                }
+            }
+
+            PhClearReference(&lxssBasePathName);
+        }
+
+        NtClose(keyHandle);
+    }
+
     return TRUE;
 }
 
-_Success_(return)
-BOOLEAN PhGetWslDistributionFromPath(
+NTSTATUS PhGetWslDistributionFromPath(
     _In_ PPH_STRINGREF FileName,
-    _Out_opt_ PPH_STRING *LxssDistroName,
-    _Out_opt_ PPH_STRING *LxssDistroPath,
-    _Out_opt_ PPH_STRING *LxssFileName
+    _Out_opt_ PPH_STRING *DistributionGuid,
+    _Out_opt_ PPH_STRING *DistributionName,
+    _Out_opt_ PPH_STRING *DistributionPath,
+    _Out_opt_ PPH_STRING *TranslatedPath
     )
 {
     static CONST PH_STRINGREF lxssKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Lxss");
-    PPH_STRING lxssDistributionName = NULL;
-    PPH_STRING lxssDistroPath = NULL;
-    PPH_STRING lxssFileName = NULL;
+    PH_WSL_ENUM_CONTEXT enumContext;
+    NTSTATUS status;
     HANDLE keyHandle;
-    ULONG i;
 
-    if (NT_SUCCESS(PhOpenKey(
+    memset(&enumContext, 0, sizeof(PH_WSL_ENUM_CONTEXT));
+    enumContext.Found = FALSE;
+    enumContext.FileName = FileName;
+
+    status = PhOpenKey(
         &keyHandle,
         KEY_READ,
         PH_KEY_CURRENT_USER,
         &lxssKeyPath,
         0
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
-        PPH_LIST distributionGuidList;
-
-        distributionGuidList = PhCreateList(1);
-        PhEnumerateKey(keyHandle, KeyBasicInformation, PhpWslDistributionNamesCallback, distributionGuidList);
-
-        for (i = 0; i < distributionGuidList->Count; i++)
-        {
-            HANDLE subKeyHandle;
-            PPH_STRING subKeyName;
-
-            subKeyName = distributionGuidList->Items[i];
-
-            if (NT_SUCCESS(PhOpenKey(
-                &subKeyHandle,
-                KEY_READ,
-                keyHandle,
-                &subKeyName->sr,
-                0
-                )))
-            {
-                PPH_STRING lxssBasePathName;
-
-                if (lxssBasePathName = PhQueryRegistryStringZ(subKeyHandle, L"BasePath"))
-                {
-                    PhMoveReference(&lxssBasePathName, PhDosPathNameToNtPathName(&lxssBasePathName->sr));
-                }
-
-                if (lxssBasePathName && PhStartsWithStringRef(FileName, &lxssBasePathName->sr, TRUE))
-                {
-                    lxssDistributionName = PhQueryRegistryStringZ(subKeyHandle, L"DistributionName");
-
-                    if (LxssDistroPath)
-                    {
-                        PhSetReference(&lxssDistroPath, lxssBasePathName);
-                    }
-
-                    if (LxssFileName)
-                    {
-                        lxssFileName = PhCreateString2(FileName);
-                        PhSkipStringRef(&lxssFileName->sr, lxssBasePathName->Length);
-                        PhSkipStringRef(&lxssFileName->sr, sizeof(L"rootfs"));
-                    }
-                }
-
-                PhClearReference(&lxssBasePathName);
-                NtClose(subKeyHandle);
-            }
-
-            if (lxssDistributionName)
-                break;
-        }
-
-        PhDereferenceObjects(distributionGuidList->Items, distributionGuidList->Count);
-        PhDereferenceObject(distributionGuidList);
+        status = PhEnumerateKey(
+            keyHandle,
+            KeyBasicInformation,
+            PhWslDistributionNamesCallback,
+            &enumContext
+            );
 
         NtClose(keyHandle);
     }
 
-    if (LxssDistroPath)
-        *LxssDistroPath = lxssDistroPath;
-    else
+    if (NT_SUCCESS(status))
     {
-        if (lxssDistroPath)
-            PhDereferenceObject(lxssDistroPath);
-    }
-
-    if (LxssFileName)
-    {
-        if (lxssFileName)
+        if (enumContext.Found)
         {
-            for (i = 0; i < lxssFileName->Length / sizeof(WCHAR); i++)
-            {
-                if (lxssFileName->Buffer[i] == OBJ_NAME_PATH_SEPARATOR) // RtlNtPathSeperatorString
-                    lxssFileName->Buffer[i] = OBJ_NAME_ALTPATH_SEPARATOR; // RtlAlternateDosPathSeperatorString
-            }
+            if (DistributionGuid)
+                *DistributionGuid = enumContext.DistributionGuid;
+            else
+                PhClearReference(&enumContext.DistributionGuid);
+
+            if (DistributionName)
+                *DistributionName = enumContext.DistributionName;
+            else
+                PhClearReference(&enumContext.DistributionName);
+
+            if (DistributionPath)
+                *DistributionPath = enumContext.DistributionPath;
+            else
+                PhClearReference(&enumContext.DistributionPath);
+
+            if (TranslatedPath)
+                *TranslatedPath = PhConvertNtPathSeperatorToAltSeperator(enumContext.TranslatedPath);
+            else
+                PhClearReference(&enumContext.TranslatedPath);
         }
-
-        *LxssFileName = lxssFileName;
-    }
-    else
-    {
-        if (lxssFileName)
-            PhDereferenceObject(lxssFileName);
+        else
+        {
+            status = STATUS_NOT_FOUND;
+        }
     }
 
-    if (LxssDistroName)
-    {
-        *LxssDistroName = lxssDistributionName;
-        return TRUE;
-    }
-    else
-    {
-        if (lxssDistributionName)
-            PhDereferenceObject(lxssDistributionName);
-    }
-
-    return FALSE;
+    return status;
 }
 
-_Success_(return)
-BOOLEAN PhDosPathNameToWslPathName(
+PPH_STRING PhGetWslDistributionCommandLine(
+    _In_ PPH_STRING DistributionGuid,
+    _In_ PPH_STRING DistributionName,
+    _In_ PPH_STRING CommandLine
+    )
+{
+    PH_FORMAT format[4];
+    PPH_STRING systemDirectory;
+    PPH_STRING commandLine;
+
+    // "wsl.exe -u root -d %s -e %s"
+    if (DistributionGuid)
+    {
+        PhInitFormatS(&format[0], L"wsl.exe --shell-type none --user root --distribution-id ");
+        PhInitFormatSR(&format[1], DistributionGuid->sr);
+    }
+    else
+    {
+        PhInitFormatS(&format[0], L"wsl.exe --shell-type none --user root --distribution ");
+        PhInitFormatSR(&format[1], DistributionName->sr);
+    }
+
+    PhInitFormatS(&format[2], L" -e ");
+    PhInitFormatSR(&format[3], CommandLine->sr);
+
+    if (commandLine = PhFormat(format, RTL_NUMBER_OF(format), 0))
+    {
+        if (systemDirectory = PhGetSystemDirectory())
+        {
+            PhMoveReference(&commandLine, PhConcatStringRef3(
+                &systemDirectory->sr,
+                &PhNtPathSeparatorString,
+                &commandLine->sr
+                ));
+            PhDereferenceObject(systemDirectory);
+        }
+
+        return commandLine;
+    }
+
+    return NULL;
+}
+
+PPH_STRING PhGetWslPathCommandLine(
+    _In_ PPH_STRING win32FileName
+    )
+{
+    PH_FORMAT format[3];
+
+    PhInitFormatS(&format[0], L"wslpath -a -u \"");
+    PhInitFormatSR(&format[1], win32FileName->sr);
+    PhInitFormatC(&format[2], L'\"');
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0x100);
+}
+
+NTSTATUS PhDosPathNameToWslPathName(
     _In_ PPH_STRINGREF FileName,
     _Out_ PPH_STRING* LxssFileName
     )
 {
-    BOOLEAN success = FALSE;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     PPH_STRING win32FileName = NULL;
-    PPH_STRING lxssDistroName = NULL;
-    PPH_STRING lxssCommandLine = NULL;
-    PPH_STRING lxssCommandResult = NULL;
-    PH_FORMAT format[3];
+    PPH_STRING distributionGuid = NULL;
+    PPH_STRING distributionName = NULL;
+    PPH_STRING commandLine = NULL;
+    PPH_STRING commandResult = NULL;
 
     win32FileName = PhCreateString2(FileName);
     PhMoveReference(&win32FileName, PhGetFileName(win32FileName));
 
     if (PhIsNullOrEmptyString(win32FileName))
-        return FALSE;
-
-    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, NULL))
         goto CleanupExit;
 
-    PhInitFormatS(&format[0], L"wslpath -a -u \"");
-    PhInitFormatSR(&format[1], win32FileName->sr);
-    PhInitFormatC(&format[2], L'\"');
-    lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
+    commandLine = PhGetWslPathCommandLine(win32FileName);
 
-    if (!PhCreateProcessLxss(lxssDistroName, lxssCommandLine, &lxssCommandResult))
+    if (PhIsNullOrEmptyString(win32FileName))
         goto CleanupExit;
 
-    if (PhIsNullOrEmptyString(lxssCommandResult))
+    status = PhGetWslDistributionFromPath(
+        FileName,
+        &distributionGuid,
+        &distributionName,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    if (PhEndsWithString2(lxssCommandResult, L"\n", FALSE))
+    status = PhCreateProcessLxss(
+        distributionGuid,
+        distributionName,
+        commandLine,
+        &commandResult
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (PhEndsWithString2(commandResult, L"\n", FALSE))
     {
-        lxssCommandResult->Length -= sizeof(WCHAR[1]);
-        lxssCommandResult->Buffer[lxssCommandResult->Length / sizeof(WCHAR)] = UNICODE_NULL;
+        commandResult->Length -= sizeof(WCHAR[1]);
+        commandResult->Buffer[commandResult->Length / sizeof(WCHAR)] = UNICODE_NULL;
     }
 
-    *LxssFileName = PhReferenceObject(lxssCommandResult);
-    success = TRUE;
+    *LxssFileName = PhReferenceObject(commandResult);
+    status = STATUS_SUCCESS;
 
 CleanupExit:
 
-    if (lxssCommandResult) PhDereferenceObject(lxssCommandResult);
-    if (lxssCommandLine) PhDereferenceObject(lxssCommandLine);
-    if (lxssDistroName) PhDereferenceObject(lxssDistroName);
-    if (win32FileName) PhDereferenceObject(win32FileName);
+    PhClearReference(&commandResult);
+    PhClearReference(&commandLine);
+    PhClearReference(&distributionName);
+    PhClearReference(&distributionGuid);
+    PhClearReference(&win32FileName);
 
-    return success;
+    return status;
 }
 
-_Success_(return)
-BOOLEAN PhWslQueryDistroProcessCommandLine(
+NTSTATUS PhWslQueryDistroProcessCommandLine(
     _In_ PPH_STRINGREF FileName,
     _In_ ULONG LxssProcessId,
     _Out_ PPH_STRING* Result
     )
 {
-    PPH_STRING lxssCommandResult = NULL;
-    PPH_STRING lxssCommandLine = NULL;
-    PPH_STRING lxssDistroName = NULL;
+    NTSTATUS status;
+    PPH_STRING distributionGuid = NULL;
+    PPH_STRING distributionName = NULL;
+    PPH_STRING distributionCommand = NULL;
+    PPH_STRING distributionResult = NULL;
     PH_FORMAT format[5];
 
-    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, NULL))
-        return FALSE;
+    status = PhGetWslDistributionFromPath(
+        FileName,
+        &distributionGuid,
+        &distributionName,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     PhInitFormatS(&format[0], L"\\Device\\Mup\\wsl.localhost\\");
-    PhInitFormatSR(&format[1], lxssDistroName->sr);
+    PhInitFormatSR(&format[1], distributionName->sr);
     PhInitFormatS(&format[2], L"\\proc\\");
     PhInitFormatIU(&format[3], LxssProcessId);
     PhInitFormatS(&format[4], L"\\cmdline");
 
-    if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
+    if (distributionCommand = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
     {
-        NTSTATUS status;
         HANDLE fileHandle;
 
         status = PhCreateFile(
             &fileHandle,
-            &lxssCommandLine->sr,
+            &distributionCommand->sr,
             FILE_GENERIC_READ,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -236,16 +319,17 @@ BOOLEAN PhWslQueryDistroProcessCommandLine(
         if (NT_SUCCESS(status))
         {
             status = PhGetFileText(
-                &lxssCommandResult,
+                &distributionResult,
                 fileHandle,
                 TRUE
                 );
             NtClose(fileHandle);
         }
-        else if (status == STATUS_ACCESS_DENIED)
+
+        if (status == STATUS_ACCESS_DENIED)
         {
-            PPH_STRING lxssRootCommandLine;
-            PPH_STRING lxssRootCommandResult;
+            PPH_STRING commandLine;
+            PPH_STRING commandResult;
 
             // Note: The WSL P9 Multiple UNC Provider (MUP) doesn't allow administrators to read /proc unless the distro wsl.conf default user is root.
             // Changing the default user to root fixes permission issues when accessing files from Windows but results in everything owned by root and inaccessible from WSL.
@@ -256,60 +340,76 @@ BOOLEAN PhWslQueryDistroProcessCommandLine(
             PhInitFormatIU(&format[1], LxssProcessId);
             PhInitFormatS(&format[2], L"/cmdline");
 
-            if (lxssRootCommandLine = PhFormat(format, 3, 0x100))
+            if (commandLine = PhFormat(format, 3, 0x100))
             {
-                if (PhCreateProcessLxss(lxssDistroName, lxssRootCommandLine, &lxssRootCommandResult))
+                status = PhCreateProcessLxss(
+                    distributionGuid,
+                    distributionName,
+                    commandLine,
+                    &commandResult
+                    );
+
+                if (NT_SUCCESS(status))
                 {
-                    lxssCommandResult = lxssRootCommandResult;
+                    distributionResult = commandResult;
                 }
 
-                PhDereferenceObject(lxssRootCommandLine);
+                PhDereferenceObject(commandLine);
             }
         }
 
-        PhDereferenceObject(lxssCommandLine);
+        PhDereferenceObject(distributionCommand);
     }
 
-    PhDereferenceObject(lxssDistroName);
+    PhDereferenceObject(distributionName);
+    PhDereferenceObject(distributionGuid);
 
-    if (lxssCommandResult)
+    if (distributionResult)
     {
-        *Result = lxssCommandResult;
-        return TRUE;
+        *Result = distributionResult;
+        return STATUS_SUCCESS;
     }
 
-    return FALSE;
+    return STATUS_UNSUCCESSFUL;
 }
 
-_Success_(return)
-BOOLEAN PhWslQueryDistroProcessEnvironment(
+NTSTATUS PhWslQueryDistroProcessEnvironment(
     _In_ PPH_STRINGREF FileName,
     _In_ ULONG LxssProcessId,
     _Out_ PPH_STRING* Result
     )
 {
-    PPH_STRING lxssCommandResult = NULL;
-    PPH_STRING lxssCommandLine = NULL;
-    PPH_STRING lxssDistroName = NULL;
+    NTSTATUS status;
+    PPH_STRING distributionGuid = NULL;
+    PPH_STRING distributionName = NULL;
+    PPH_STRING distributionCommand = NULL;
+    PPH_STRING distributionResult = NULL;
     PH_FORMAT format[5];
 
-    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, NULL))
-        return FALSE;
+    status = PhGetWslDistributionFromPath(
+        FileName,
+        &distributionGuid,
+        &distributionName,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     PhInitFormatS(&format[0], L"\\Device\\Mup\\wsl.localhost\\");
-    PhInitFormatSR(&format[1], lxssDistroName->sr);
+    PhInitFormatSR(&format[1], distributionName->sr);
     PhInitFormatS(&format[2], L"\\proc\\");
     PhInitFormatIU(&format[3], LxssProcessId);
     PhInitFormatS(&format[4], L"\\environ");
 
-    if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
+    if (distributionCommand = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
     {
-        NTSTATUS status;
         HANDLE fileHandle;
 
         status = PhCreateFile(
             &fileHandle,
-            &lxssCommandLine->sr,
+            &distributionCommand->sr,
             FILE_GENERIC_READ,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -320,16 +420,17 @@ BOOLEAN PhWslQueryDistroProcessEnvironment(
         if (NT_SUCCESS(status))
         {
             status = PhGetFileText(
-                &lxssCommandResult,
+                &distributionResult,
                 fileHandle,
                 TRUE
                 );
             NtClose(fileHandle);
         }
-        else if (status == STATUS_ACCESS_DENIED)
+
+        if (status == STATUS_ACCESS_DENIED)
         {
-            PPH_STRING lxssRootCommandLine;
-            PPH_STRING lxssRootCommandResult;
+            PPH_STRING commandLine;
+            PPH_STRING commandResult;
 
             // Note: The WSL P9 Multiple UNC Provider (MUP) doesn't allow administrators to read /proc unless the distro wsl.conf default user is root.
             // Changing the default user to root fixes permission issues when accessing files from Windows but results in everything owned by root and inaccessible from WSL.
@@ -340,68 +441,82 @@ BOOLEAN PhWslQueryDistroProcessEnvironment(
             PhInitFormatIU(&format[1], LxssProcessId);
             PhInitFormatS(&format[2], L"/environ");
 
-            if (lxssRootCommandLine = PhFormat(format, 3, 0x100))
+            if (commandLine = PhFormat(format, 3, 0x100))
             {
-                if (PhCreateProcessLxss(lxssDistroName, lxssRootCommandLine, &lxssRootCommandResult))
+                status = PhCreateProcessLxss(
+                    distributionGuid,
+                    distributionName,
+                    commandLine,
+                    &commandResult
+                    );
+
+                if (NT_SUCCESS(status))
                 {
-                    lxssCommandResult = lxssRootCommandResult;
+                    distributionResult = commandResult;
                 }
 
-                PhDereferenceObject(lxssRootCommandLine);
+                PhDereferenceObject(commandLine);
             }
         }
 
-        PhDereferenceObject(lxssCommandLine);
+        PhDereferenceObject(distributionCommand);
     }
 
-    PhDereferenceObject(lxssDistroName);
+    PhDereferenceObject(distributionName);
+    PhDereferenceObject(distributionGuid);
 
-    if (lxssCommandResult)
+    if (distributionResult)
     {
-        *Result = lxssCommandResult;
-        return TRUE;
+        *Result = distributionResult;
+        return STATUS_SUCCESS;
     }
 
-    return FALSE;
+    return STATUS_UNSUCCESSFUL;
 }
 
-_Success_(return)
-BOOLEAN PhWslQueryRpmPackageFromFileName(
-    _In_ PPH_STRING LxssDistribution,
+NTSTATUS PhWslQueryRpmPackageFromFileName(
+    _In_ PPH_STRING DistributionGuid,
+    _In_ PPH_STRING DistributionName,
     _In_ PPH_STRING LxssFileName,
     _Out_ PPH_STRING* Result
     )
 {
-    PPH_STRING lxssCommandLine;
-    PPH_STRING lxssCommandResult;
+    NTSTATUS status;
+    PPH_STRING commandLine;
+    PPH_STRING commandResult;
     PH_FORMAT format[3];
 
     // "rpm -qf %s --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\""
     PhInitFormatS(&format[0], L"rpm -qf \"");
     PhInitFormatSR(&format[1], LxssFileName->sr);
     PhInitFormatS(&format[2], L"\" --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\"");
-    lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
+    commandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
 
-    if (PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
+    status = PhCreateProcessLxss(
+        DistributionGuid,
+        DistributionName,
+        commandLine,
+        &commandResult
+        );
+
+    if (NT_SUCCESS(status))
     {
-        *Result = lxssCommandResult;
-        PhDereferenceObject(lxssCommandLine);
-        return TRUE;
+        *Result = commandResult;
     }
 
-    PhDereferenceObject(lxssCommandLine);
-    return FALSE;
+    PhDereferenceObject(commandLine);
+    return status;
 }
 
-_Success_(return)
-BOOLEAN PhWslQueryDebianPackageFromFileName(
-    _In_ PPH_STRING LxssDistribution,
+NTSTATUS PhWslQueryDebianPackageFromFileName(
+    _In_ PPH_STRING DistributionGuid,
+    _In_ PPH_STRING DistributionName,
     _In_ PPH_STRING LxssFileName,
     _Out_ PPH_STRING* Result
     )
 {
-    BOOLEAN success = FALSE;
-    PPH_STRING lxssCommandLine;
+    NTSTATUS status;
+    PPH_STRING commandLine;
     PPH_STRING lxssCommandResult = NULL;
     PPH_STRING lxssPackageName = NULL;
     PH_FORMAT format[3];
@@ -410,9 +525,16 @@ BOOLEAN PhWslQueryDebianPackageFromFileName(
     PhInitFormatS(&format[0], L"dpkg -S \"");
     PhInitFormatSR(&format[1], LxssFileName->sr);
     PhInitFormatS(&format[2], L"\"");
-    lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
+    commandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
 
-    if (!PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
+    status = PhCreateProcessLxss(
+        DistributionGuid,
+        DistributionName,
+        commandLine,
+        &lxssCommandResult
+        );
+
+    if (!NT_SUCCESS(status))
     {
         // The dpkg metadata doesn't contain information for symbolic links
         // from "/usr/bin -> /bin" so remove the /usr prefix and try again. (dmex)
@@ -425,9 +547,16 @@ BOOLEAN PhWslQueryDebianPackageFromFileName(
             PhInitFormatS(&format[0], L"dpkg -S \"");
             PhInitFormatSR(&format[1], LxssFileName->sr);
             PhInitFormatS(&format[2], L"\"");
-            PhMoveReference(&lxssCommandLine, PhFormat(format, RTL_NUMBER_OF(format), 0x100));
+            PhMoveReference(&commandLine, PhFormat(format, RTL_NUMBER_OF(format), 0x100));
 
-            if (!PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
+            status = PhCreateProcessLxss(
+                DistributionGuid,
+                DistributionName,
+                commandLine,
+                &lxssCommandResult
+                );
+
+            if (!NT_SUCCESS(status))
             {
                 goto CleanupExit;
             }
@@ -458,26 +587,29 @@ BOOLEAN PhWslQueryDebianPackageFromFileName(
     PhInitFormatS(&format[0], L"dpkg-query -W -f=${Version}|${Maintainer}|${binary:Summary} \"");
     PhInitFormatSR(&format[1], lxssPackageName->sr);
     PhInitFormatS(&format[2], L"\"");
-    PhMoveReference(&lxssCommandLine, PhFormat(format, RTL_NUMBER_OF(format), 0x100));
+    PhMoveReference(&commandLine, PhFormat(format, RTL_NUMBER_OF(format), 0x100));
 
-    if (!PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
-    {
+    status = PhCreateProcessLxss(
+        DistributionGuid,
+        DistributionName,
+        commandLine,
+        &lxssCommandResult
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
     *Result = PhReferenceObject(lxssCommandResult);
-    success = TRUE;
 
 CleanupExit:
     if (lxssPackageName) PhDereferenceObject(lxssPackageName);
     if (lxssCommandResult) PhDereferenceObject(lxssCommandResult);
-    if (lxssCommandLine) PhDereferenceObject(lxssCommandLine);
+    if (commandLine) PhDereferenceObject(commandLine);
 
-    return success;
+    return status;
 }
 
-_Success_(return)
-BOOLEAN PhWslParsePackageVersionInfo(
+NTSTATUS PhWslParsePackageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRING LxssCommandResult
     )
@@ -488,7 +620,7 @@ BOOLEAN PhWslParsePackageVersionInfo(
     PH_STRINGREF versionPart;
 
     if (PhIsNullOrEmptyString(LxssCommandResult))
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
 
     remainingPart = PhGetStringRef(LxssCommandResult);
     PhSplitStringRefAtChar(&remainingPart, L'|', &versionPart, &remainingPart);
@@ -510,84 +642,102 @@ BOOLEAN PhWslParsePackageVersionInfo(
         ImageVersionInfo->FileDescription = PhCreateString2(&descriptionPart);
     }
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
-BOOLEAN PhInitializeLxssImageVersionInfo(
+NTSTATUS PhInitializeLxssImageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRINGREF FileName
     )
 {
-    BOOLEAN success = FALSE;
-    PPH_STRING lxssCommandResult = NULL;
-    PPH_STRING lxssDistroName = NULL;
-    PPH_STRING lxssFileName = NULL;
+    NTSTATUS success;
+    PPH_STRING distributionGuid = NULL;
+    PPH_STRING distributionName = NULL;
+    PPH_STRING distributionCommand = NULL;
+    PPH_STRING translatedPath = NULL;
 
-    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, &lxssFileName))
-        return FALSE;
-    if (PhIsNullOrEmptyString(lxssFileName))
-        goto CleanupExit;
-    if (PhEqualString2(lxssFileName, L"/init", FALSE))
-        goto CleanupExit;
+    success = PhGetWslDistributionFromPath(
+        FileName,
+        &distributionGuid,
+        &distributionName,
+        NULL,
+        &translatedPath
+        );
 
-    if (PhWslQueryDebianPackageFromFileName(lxssDistroName, lxssFileName, &lxssCommandResult))
+    if (!NT_SUCCESS(success))
+        return success;
+
+    if (PhEqualString2(translatedPath, L"/init", FALSE))
     {
-        if (PhWslParsePackageVersionInfo(ImageVersionInfo, lxssCommandResult))
-        {
-            success = TRUE;
-            goto CleanupExit;
-        }
+        success = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
     }
 
-    if (PhWslQueryRpmPackageFromFileName(lxssDistroName, lxssFileName, &lxssCommandResult))
+    success = PhWslQueryDebianPackageFromFileName(
+        distributionGuid,
+        distributionName,
+        translatedPath,
+        &distributionCommand
+        );
+
+    if (NT_SUCCESS(success))
     {
-        if (PhWslParsePackageVersionInfo(ImageVersionInfo, lxssCommandResult))
-        {
-            success = TRUE;
+        success = PhWslParsePackageVersionInfo(ImageVersionInfo, distributionCommand);
+
+        if (NT_SUCCESS(success))
             goto CleanupExit;
-        }
+    }
+
+    success = PhWslQueryRpmPackageFromFileName(
+        distributionGuid,
+        distributionName,
+        translatedPath,
+        &distributionCommand
+        );
+
+    if (NT_SUCCESS(success))
+    {
+        success = PhWslParsePackageVersionInfo(ImageVersionInfo, distributionCommand);
+
+        if (NT_SUCCESS(success))
+            goto CleanupExit;
     }
 
 CleanupExit:
-    PhClearReference(&lxssCommandResult);
-    PhClearReference(&lxssDistroName);
-    PhClearReference(&lxssFileName);
+    PhClearReference(&distributionCommand);
+    PhClearReference(&distributionName);
+    PhClearReference(&distributionGuid);
+    PhClearReference(&translatedPath);
 
     return success;
 }
 
-BOOLEAN PhCreateProcessLxss(
-    _In_ PPH_STRING LxssDistribution,
-    _In_ PPH_STRING LxssCommandLine,
+NTSTATUS PhCreateProcessLxss(
+    _In_ PPH_STRING DistributionGuid,
+    _In_ PPH_STRING DistributionName,
+    _In_ PPH_STRING DistributionCommand,
     _Out_ PPH_STRING *Result
     )
 {
     static SECURITY_ATTRIBUTES securityAttributes = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
-    static HRESULT (WINAPI* CreatePseudoConsole_I)(
-    _In_ COORD size,
-    _In_ HANDLE hInput,
-    _In_ HANDLE hOutput,
-    _In_ DWORD dwFlags,
-    _Out_ HPCON* phPC
-    ) = NULL;
-    static VOID (WINAPI* ClosePseudoConsole_I)(_In_ HPCON hPC) = NULL;
+#if defined(PH_WSL_PSEUDOCONSOLE)
+    static typeof(&CreatePseudoConsole) CreatePseudoConsole_I = NULL;
+    static typeof(&ClosePseudoConsole) ClosePseudoConsole_I = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-
-    NTSTATUS status;
-    BOOLEAN result = FALSE;
-    PPH_STRING lxssOutputString = NULL;
-    PPH_STRING lxssCommandLine;
-    PPH_STRING systemDirectory;
-    HANDLE processHandle = NULL;
     HPCON pseudoConsoleHandle = NULL;
+#endif
+    NTSTATUS status;
+    PPH_STRING distributionCommand = NULL;
+    PPH_STRING distributionCommandLine;
+    HANDLE processHandle = NULL;
     HANDLE outputReadHandle = NULL, outputWriteHandle = NULL;
     HANDLE inputReadHandle = NULL, inputWriteHandle = NULL;
     PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
     HANDLE handleList[2];
     STARTUPINFOEX startupInfo = { 0 };
     PROCESS_BASIC_INFORMATION basicInfo;
-    PH_FORMAT format[4];
 
+#if defined(PH_WSL_PSEUDOCONSOLE)
     if (PhBeginInitOnce(&initOnce))
     {
         if (WindowsVersion >= WINDOWS_10_RS5)
@@ -604,32 +754,18 @@ BOOLEAN PhCreateProcessLxss(
         PhEndInitOnce(&initOnce);
     }
 
-    *Result = NULL;
-
     if (!CreatePseudoConsole_I || !ClosePseudoConsole_I)
-        return FALSE;
+        return STATUS_PROCEDURE_NOT_FOUND;
+#endif
 
-    // "wsl.exe -u root -d %s -e %s"
-    PhInitFormatS(&format[0], L"wsl.exe -u root -d ");
-    PhInitFormatSR(&format[1], LxssDistribution->sr);
-    PhInitFormatS(&format[2], L" -e ");
-    PhInitFormatSR(&format[3], LxssCommandLine->sr);
-
-    lxssCommandLine = PhFormat(
-        format,
-        RTL_NUMBER_OF(format),
-        0x100
+    distributionCommandLine = PhGetWslDistributionCommandLine(
+        DistributionGuid,
+        DistributionName,
+        DistributionCommand
         );
 
-    if (systemDirectory = PhGetSystemDirectory())
-    {
-        PhMoveReference(&lxssCommandLine, PhConcatStringRef3(
-            &systemDirectory->sr,
-            &PhNtPathSeperatorString,
-            &lxssCommandLine->sr
-            ));
-        PhDereferenceObject(systemDirectory);
-    }
+    if (PhIsNullOrEmptyString(distributionCommandLine))
+        return STATUS_OBJECT_NAME_NOT_FOUND;
 
     status = PhCreatePipeEx(
         &outputReadHandle,
@@ -651,12 +787,14 @@ BOOLEAN PhCreateProcessLxss(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+#if defined(PH_WSL_PSEUDOCONSOLE)
     COORD coord = { 80, 25 };
     if (HR_FAILED(CreatePseudoConsole_I(coord, inputReadHandle, outputWriteHandle, 0, &pseudoConsoleHandle)))
     {
         status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
     }
+#endif
 
     status = PhInitializeProcThreadAttributeList(&attributeList, 2);
 
@@ -676,6 +814,7 @@ BOOLEAN PhCreateProcessLxss(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+#if defined(PH_WSL_PSEUDOCONSOLE)
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
@@ -685,6 +824,7 @@ BOOLEAN PhCreateProcessLxss(
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
+#endif
 
     memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
     startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
@@ -697,7 +837,7 @@ BOOLEAN PhCreateProcessLxss(
 
     status = PhCreateProcessWin32Ex(
         NULL,
-        PhGetString(lxssCommandLine),
+        PhGetString(distributionCommandLine),
         NULL,
         NULL,
         &startupInfo,
@@ -717,7 +857,7 @@ BOOLEAN PhCreateProcessLxss(
     NtClose(outputWriteHandle); outputWriteHandle = NULL;
 
     // Read the pipe data. (dmex)
-    status = PhGetFileText(&lxssOutputString, outputReadHandle, TRUE);
+    status = PhGetFileText(&distributionCommand, outputReadHandle, TRUE);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -733,22 +873,17 @@ BOOLEAN PhCreateProcessLxss(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    if (PhIsNullOrEmptyString(lxssOutputString))
-    {
-        status = STATUS_UNSUCCESSFUL;
-        goto CleanupExit;
-    }
-
-    *Result = PhReferenceObject(lxssOutputString);
-    result = TRUE;
+    *Result = PhReferenceObject(distributionCommand);
 
 CleanupExit:
 
     if (processHandle)
         NtClose(processHandle);
 
+#if defined(PH_WSL_PSEUDOCONSOLE)
     if (pseudoConsoleHandle)
         ClosePseudoConsole_I(pseudoConsoleHandle);
+#endif
 
     if (outputWriteHandle)
         NtClose(outputWriteHandle);
@@ -762,10 +897,10 @@ CleanupExit:
     if (attributeList)
         PhDeleteProcThreadAttributeList(attributeList);
 
-    if (lxssOutputString)
-        PhDereferenceObject(lxssOutputString);
-    if (lxssCommandLine)
-        PhDereferenceObject(lxssCommandLine);
+    if (distributionCommand)
+        PhDereferenceObject(distributionCommand);
+    if (distributionCommandLine)
+        PhDereferenceObject(distributionCommandLine);
 
-    return result;
+    return status;
 }

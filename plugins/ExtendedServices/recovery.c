@@ -25,12 +25,13 @@ typedef struct _SERVICE_RECOVERY_CONTEXT
     BOOLEAN Dirty;
 } SERVICE_RECOVERY_CONTEXT, *PSERVICE_RECOVERY_CONTEXT;
 
-static PH_KEY_VALUE_PAIR ServiceActionPairs[] =
+static CONST PH_KEY_VALUE_PAIR ServiceActionPairs[] =
 {
     SIP(L"Take no action", SC_ACTION_NONE),
     SIP(L"Restart the service", SC_ACTION_RESTART),
+    SIP(L"Restart the computer", SC_ACTION_REBOOT),
     SIP(L"Run a program", SC_ACTION_RUN_COMMAND),
-    SIP(L"Restart the computer", SC_ACTION_REBOOT)
+    SIP(L"Own restart", SC_ACTION_OWN_RESTART),
 };
 
 INT_PTR CALLBACK RestartComputerDlgProc(
@@ -53,7 +54,7 @@ VOID EspAddServiceActionStrings(
 }
 
 SC_ACTION_TYPE EspStringToServiceAction(
-    _In_ PWSTR String
+    _In_ PCWSTR String
     )
 {
     ULONG integer;
@@ -64,13 +65,13 @@ SC_ACTION_TYPE EspStringToServiceAction(
         return 0;
 }
 
-PWSTR EspServiceActionToString(
+PCWSTR EspServiceActionToString(
     _In_ SC_ACTION_TYPE ActionType
     )
 {
-    PWSTR string;
+    PCWSTR string;
 
-    if (PhFindStringSiKeyValuePairs(ServiceActionPairs, sizeof(ServiceActionPairs), ActionType, &string))
+    if (PhIndexStringSiKeyValuePairs(ServiceActionPairs, sizeof(ServiceActionPairs), ActionType, &string))
         return string;
     else
         return NULL;
@@ -95,7 +96,7 @@ VOID ServiceActionToComboBox(
     _In_ SC_ACTION_TYPE ActionType
     )
 {
-    PWSTR string;
+    PCWSTR string;
 
     if (string = EspServiceActionToString(ActionType))
         PhSelectComboBoxString(ComboBoxHandle, string, FALSE);
@@ -110,6 +111,7 @@ VOID EspFixControls(
 {
     SC_ACTION_TYPE action1;
     SC_ACTION_TYPE action2;
+    SC_ACTION_TYPE action3;
     SC_ACTION_TYPE actionS;
     BOOLEAN enableRestart;
     BOOLEAN enableReboot;
@@ -117,13 +119,14 @@ VOID EspFixControls(
 
     action1 = ComboBoxToServiceAction(GetDlgItem(WindowHandle, IDC_FIRSTFAILURE));
     action2 = ComboBoxToServiceAction(GetDlgItem(WindowHandle, IDC_SECONDFAILURE));
+    action3 = ComboBoxToServiceAction(GetDlgItem(WindowHandle, IDC_THIRDFAILURE));
     actionS = ComboBoxToServiceAction(GetDlgItem(WindowHandle, IDC_SUBSEQUENTFAILURES));
 
     EnableWindow(GetDlgItem(WindowHandle, IDC_ENABLEFORERRORSTOPS), Context->EnableFlagCheckBox);
 
-    enableRestart = action1 == SC_ACTION_RESTART || action2 == SC_ACTION_RESTART || actionS == SC_ACTION_RESTART;
-    enableReboot = action1 == SC_ACTION_REBOOT || action2 == SC_ACTION_REBOOT || actionS == SC_ACTION_REBOOT;
-    enableCommand = action1 == SC_ACTION_RUN_COMMAND || action2 == SC_ACTION_RUN_COMMAND || actionS == SC_ACTION_RUN_COMMAND;
+    enableRestart = action1 == SC_ACTION_RESTART || action2 == SC_ACTION_RESTART || action3 == SC_ACTION_RESTART || actionS == SC_ACTION_RESTART;
+    enableReboot = action1 == SC_ACTION_REBOOT || action2 == SC_ACTION_REBOOT || action3 == SC_ACTION_REBOOT || actionS == SC_ACTION_REBOOT;
+    enableCommand = action1 == SC_ACTION_RUN_COMMAND || action2 == SC_ACTION_RUN_COMMAND || action3 == SC_ACTION_RUN_COMMAND || actionS == SC_ACTION_RUN_COMMAND;
 
     EnableWindow(GetDlgItem(WindowHandle, IDC_RESTARTSERVICEAFTER_LABEL), enableRestart);
     EnableWindow(GetDlgItem(WindowHandle, IDC_RESTARTSERVICEAFTER), enableRestart);
@@ -167,7 +170,7 @@ NTSTATUS EspLoadRecoveryInfo(
 
     Context->NumberOfActions = failureActions->cActions;
 
-    if (failureActions->cActions != 0 && failureActions->cActions != 3)
+    if (failureActions->cActions != 0 && failureActions->cActions != 4)
         status = STATUS_SOME_NOT_MAPPED;
 
     // If failure actions are not defined for a particular fail count, the
@@ -179,8 +182,10 @@ NTSTATUS EspLoadRecoveryInfo(
         failureActions->cActions >= 1 ? (lastType = failureActions->lpsaActions[0].Type) : lastType);
     ServiceActionToComboBox(GetDlgItem(WindowHandle, IDC_SECONDFAILURE),
         failureActions->cActions >= 2 ? (lastType = failureActions->lpsaActions[1].Type) : lastType);
+    ServiceActionToComboBox(GetDlgItem(WindowHandle, IDC_THIRDFAILURE),
+    failureActions->cActions >= 3 ? (lastType = failureActions->lpsaActions[2].Type) : lastType);
     ServiceActionToComboBox(GetDlgItem(WindowHandle, IDC_SUBSEQUENTFAILURES),
-        failureActions->cActions >= 3 ? (lastType = failureActions->lpsaActions[2].Type) : lastType);
+        failureActions->cActions >= 4 ? (lastType = failureActions->lpsaActions[3].Type) : lastType);
 
     // Reset fail count after
 
@@ -289,13 +294,14 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
 
             EspAddServiceActionStrings(GetDlgItem(WindowHandle, IDC_FIRSTFAILURE));
             EspAddServiceActionStrings(GetDlgItem(WindowHandle, IDC_SECONDFAILURE));
+            EspAddServiceActionStrings(GetDlgItem(WindowHandle, IDC_THIRDFAILURE));
             EspAddServiceActionStrings(GetDlgItem(WindowHandle, IDC_SUBSEQUENTFAILURES));
 
             status = EspLoadRecoveryInfo(WindowHandle, context);
 
             if (status == STATUS_SOME_NOT_MAPPED)
             {
-                if (context->NumberOfActions > 3)
+                if (context->NumberOfActions > 4)
                 {
                     PhShowWarning2(
                         WindowHandle,
@@ -345,6 +351,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
             {
             case IDC_FIRSTFAILURE:
             case IDC_SECONDFAILURE:
+            case IDC_THIRDFAILURE:
             case IDC_SUBSEQUENTFAILURES:
                 {
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
@@ -356,7 +363,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
             case IDC_RESTARTCOMPUTEROPTIONS:
                 {
                     PhDialogBox(
-                        PluginInstance->DllBase,
+                        NtCurrentImageBase(),
                         MAKEINTRESOURCE(IDD_RESTARTCOMP),
                         WindowHandle,
                         RestartComputerDlgProc,
@@ -426,7 +433,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                     SC_HANDLE serviceHandle;
                     ULONG restartServiceAfter;
                     SERVICE_FAILURE_ACTIONS failureActions;
-                    SC_ACTION actions[3];
+                    SC_ACTION actions[4];
                     ULONG i;
                     BOOLEAN enableRestart = FALSE;
 
@@ -442,16 +449,17 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                     failureActions.dwResetPeriod = PhGetDialogItemValue(WindowHandle, IDC_RESETFAILCOUNT) * 60 * 60 * 24;
                     failureActions.lpRebootMsg = (PWSTR)PhGetStringOrEmpty(context->RebootMessage);
                     failureActions.lpCommand = PhaGetDlgItemText(WindowHandle, IDC_RUNPROGRAM)->Buffer;
-                    failureActions.cActions = 3;
+                    failureActions.cActions = 4;
                     failureActions.lpsaActions = actions;
 
                     actions[0].Type = ComboBoxToServiceAction(GetDlgItem(WindowHandle, IDC_FIRSTFAILURE));
                     actions[1].Type = ComboBoxToServiceAction(GetDlgItem(WindowHandle, IDC_SECONDFAILURE));
-                    actions[2].Type = ComboBoxToServiceAction(GetDlgItem(WindowHandle, IDC_SUBSEQUENTFAILURES));
+                    actions[2].Type = ComboBoxToServiceAction(GetDlgItem(WindowHandle, IDC_THIRDFAILURE));
+                    actions[3].Type = ComboBoxToServiceAction(GetDlgItem(WindowHandle, IDC_SUBSEQUENTFAILURES));
 
                     restartServiceAfter = PhGetDialogItemValue(WindowHandle, IDC_RESTARTSERVICEAFTER) * 1000 * 60;
 
-                    for (i = 0; i < 3; i++)
+                    for (i = 0; i < 4; i++)
                     {
                         switch (actions[i].Type)
                         {

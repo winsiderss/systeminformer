@@ -56,10 +56,11 @@ given, they are written in binary. */
 #include <string.h>
 #include <locale.h>
 
+#define PCRE2_DFTABLES            /* for pcre2_internal.h, pcre2_maketables.c */
+
 #define PCRE2_CODE_UNIT_WIDTH 0   /* Must be set, but not relevant here */
 #include "pcre2_internal.h"
 
-#define PCRE2_DFTABLES            /* pcre2_maketables.c notices this */
 #include "pcre2_maketables.c"
 
 
@@ -98,8 +99,8 @@ int i;
 int nclass = 0;
 BOOL binary = FALSE;
 char *env = (char *)"C";
-const unsigned char *tables;
-const unsigned char *base_of_tables;
+const uint8_t *tables;
+const uint8_t *base_of_tables;
 
 /* Process options */
 
@@ -180,7 +181,8 @@ the very long string otherwise. */
   "/* This file was automatically written by the pcre2_dftables auxiliary\n"
   "program. It contains character tables that are used when no external\n"
   "tables are passed to PCRE2 by the application that calls it. The tables\n"
-  "are used only for characters whose code values are less than 256. */\n\n");
+  "are used only for characters whose code values are less than 256, and\n"
+  "only relevant if not in UCP mode. */\n\n");
 
 (void)fprintf(f,
   "/* This set of tables was written in the %s locale. */\n\n", env);
@@ -204,14 +206,6 @@ the very long string otherwise. */
   "#define HAVE_CONFIG_H 1\n"
   "#endif\n\n");
 #endif
-
-(void)fprintf(f,
-  "/* The following #include is present because without it gcc 4.x may remove\n"
-  "the array definition from the final binary if PCRE2 is built into a static\n"
-  "library and dead code stripping is activated. This leads to link errors.\n"
-  "Pulling in the header ensures that the array gets flagged as \"someone\n"
-  "outside this compilation unit might reference this\" and so it will always\n"
-  "be supplied to the linker. */\n\n");
 
 (void)fprintf(f,
   "#ifdef HAVE_CONFIG_H\n"
@@ -269,7 +263,7 @@ for (i = 0; i < cbit_length; i++)
   "  0x%02x   letter\n"
   "  0x%02x   lower case letter\n"
   "  0x%02x   decimal digit\n"
-  "  0x%02x   alphanumeric or '_'\n*/\n\n",
+  "  0x%02x   word (alphanumeric or '_')\n*/\n\n",
   ctype_space, ctype_letter, ctype_lcletter, ctype_digit, ctype_word);
 
 (void)fprintf(f, "  ");

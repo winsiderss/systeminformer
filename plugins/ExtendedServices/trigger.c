@@ -110,7 +110,7 @@ static SUBTYPE_ENTRY SubTypeEntries[] =
     { SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT, &SubTypeUnknownGuid, L"Network endpoint: Unknown" }
 };
 
-static PH_STRINGREF PublishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
+static CONST PH_STRINGREF PublishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
 
 PES_TRIGGER_DATA EspCreateTriggerData(
     _In_opt_ PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM DataItem
@@ -333,6 +333,7 @@ VOID EsDestroyServiceTriggerContext(
     PhFree(Context);
 }
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI EspEtwPublishersEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
@@ -422,7 +423,7 @@ NTSTATUS EspEnumerateEtwPublishers(
 
 _Success_(return)
 BOOLEAN EspLookupEtwPublisherGuid(
-    _In_ PPH_STRINGREF PublisherName,
+    _In_ PCPH_STRINGREF PublisherName,
     _Out_ PGUID Guid
     )
 {
@@ -778,7 +779,7 @@ VOID EsHandleEventServiceTrigger(
             Context->EditingInfo->Action = SERVICE_TRIGGER_ACTION_SERVICE_START;
 
             if (PhDialogBox(
-                PluginInstance->DllBase,
+                NtCurrentImageBase(),
                 MAKEINTRESOURCE(IDD_SRVTRIGGER),
                 Context->WindowHandle,
                 EspServiceTriggerDlgProc,
@@ -826,7 +827,7 @@ VOID EsHandleEventServiceTrigger(
                     Context->EditingInfo = EspCloneTriggerInfo(info);
 
                     if (PhDialogBox(
-                        PluginInstance->DllBase,
+                        NtCurrentImageBase(),
                         MAKEINTRESOURCE(IDD_SRVTRIGGER),
                         Context->WindowHandle,
                         EspServiceTriggerDlgProc,
@@ -897,7 +898,7 @@ VOID EsHandleEventServiceTrigger(
 }
 
 ULONG EspTriggerTypeStringToInteger(
-    _In_ PWSTR String
+    _In_ PCWSTR String
     )
 {
     ULONG i;
@@ -1286,7 +1287,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     context->EditingValue = PhReferenceEmptyString();
 
                     if (PhDialogBox(
-                        PluginInstance->DllBase,
+                        NtCurrentImageBase(),
                         MAKEINTRESOURCE(IDD_VALUE),
                         WindowHandle,
                         ValueDlgProc,
@@ -1336,7 +1337,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                             context->EditingValue = EspConvertNullsToNewLines(data->String);
 
                             if (PhDialogBox(
-                                PluginInstance->DllBase,
+                                NtCurrentImageBase(),
                                 MAKEINTRESOURCE(IDD_VALUE),
                                 WindowHandle,
                                 ValueDlgProc,
