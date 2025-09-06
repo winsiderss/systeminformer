@@ -1170,7 +1170,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_REPARSE_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_REPARSE_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_REPARSE_WINDOW_POSITION, SETTING_NAME_REPARSE_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
@@ -1214,7 +1214,15 @@ INT_PTR CALLBACK EtReparseDlgProc(
         }
         break;
     case WM_SIZE:
-        PhLayoutManagerLayout(&context->LayoutManager);
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
         break;
     case WM_DESTROY:
         {

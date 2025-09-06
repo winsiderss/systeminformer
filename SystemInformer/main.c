@@ -485,6 +485,7 @@ VOID PhInitializePreviousInstance(
     }
 }
 
+_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
 BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
@@ -1320,7 +1321,7 @@ typedef enum _PH_COMMAND_ARG
 } PH_COMMAND_ARG;
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
     )
@@ -1468,7 +1469,7 @@ VOID PhpProcessStartupParameters(
     VOID
     )
 {
-    PH_COMMAND_LINE_OPTION options[] =
+    CONST PH_COMMAND_LINE_OPTION options[] =
     {
         { PH_ARG_SETTINGS, L"settings", MandatoryArgumentType },
         { PH_ARG_NOSETTINGS, L"nosettings", NoArgumentType },

@@ -54,11 +54,14 @@ typedef enum _PH_TRAY_ICON_GUID
 // begin_phapppub
 typedef struct _PH_NF_ICON PH_NF_ICON, *PPH_NF_ICON;
 
-typedef VOID (NTAPI *PPH_NF_UPDATE_REGISTERED_ICON)(
+typedef _Function_class_(PH_NF_UPDATE_REGISTERED_ICON)
+VOID NTAPI PH_NF_UPDATE_REGISTERED_ICON(
     _In_ PPH_NF_ICON Icon
     );
+typedef PH_NF_UPDATE_REGISTERED_ICON* PPH_NF_UPDATE_REGISTERED_ICON;
 
-typedef VOID (NTAPI *PPH_NF_BEGIN_BITMAP)(
+typedef _Function_class_(PH_NF_BEGIN_BITMAP)
+VOID NTAPI PH_NF_BEGIN_BITMAP(
     _Out_ PULONG Width,
     _Out_ PULONG Height,
     _Out_ HBITMAP *Bitmap,
@@ -66,6 +69,7 @@ typedef VOID (NTAPI *PPH_NF_BEGIN_BITMAP)(
     _Out_ HDC *Hdc,
     _Out_ HBITMAP *OldBitmap
     );
+typedef PH_NF_BEGIN_BITMAP* PPH_NF_BEGIN_BITMAP;
 
 typedef struct _PH_NF_POINTERS
 {
@@ -75,20 +79,24 @@ typedef struct _PH_NF_POINTERS
 #define PH_NF_UPDATE_IS_BITMAP 0x1
 #define PH_NF_UPDATE_DESTROY_RESOURCE 0x2
 
-typedef VOID (NTAPI *PPH_NF_ICON_UPDATE_CALLBACK)(
+typedef _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
+VOID NTAPI PH_NF_ICON_UPDATE_CALLBACK(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
     _In_opt_ PVOID Context
     );
+typedef PH_NF_ICON_UPDATE_CALLBACK* PPH_NF_ICON_UPDATE_CALLBACK;
 
-typedef BOOLEAN (NTAPI *PPH_NF_ICON_MESSAGE_CALLBACK)(
+typedef _Function_class_(PH_NF_ICON_MESSAGE_CALLBACK)
+BOOLEAN NTAPI PH_NF_ICON_MESSAGE_CALLBACK(
     _In_ PPH_NF_ICON Icon,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam,
     _In_opt_ PVOID Context
     );
+typedef PH_NF_ICON_MESSAGE_CALLBACK* PPH_NF_ICON_MESSAGE_CALLBACK;
 
 // Special messages
 // The message type is stored in LOWORD(LParam), and the message data is in WParam.
@@ -165,6 +173,14 @@ BOOLEAN PhNfShowBalloonTip(
     _In_ PCWSTR Title,
     _In_ PCWSTR Text,
     _In_ ULONG Timeout
+    );
+
+HRESULT PhNfShowBalloonTipEx(
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Text,
+    _In_ ULONG Timeout,
+    _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
+    _In_opt_ PVOID Context
     );
 
 HICON PhNfBitmapToIcon(

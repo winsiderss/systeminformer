@@ -330,6 +330,9 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 
             CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 
+            PhLayoutManagerUpdate(&propSheetContext->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&propSheetContext->LayoutManager);
+
             {
                 SetWindowPos(
                     hwnd,
@@ -404,7 +407,7 @@ VOID PhpInitializePropSheetLayoutStage2(
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
     PhRectangleToRect(&rect, &windowRectangle);
-    dpiValue = PhGetMonitorDpi(&rect);
+    dpiValue = PhGetMonitorDpi(NULL, &rect);
     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"ProcPropSize", TRUE, dpiValue)->Pair;
 
     if (windowRectangle.Size.X < MinimumSize.right)
@@ -491,6 +494,7 @@ PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContextEx(
     return propPageContext;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -502,7 +506,7 @@ VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
         PhDereferenceObject(propPageContext->PropContext);
 }
 
-INT CALLBACK PhpStandardPropPageProc(
+UINT CALLBACK PhpStandardPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -520,6 +524,7 @@ INT CALLBACK PhpStandardPropPageProc(
     return 1;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessPropPageWaitContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -800,7 +805,7 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
         PhMapRect(&margin, &margin, &dialogRect);
         PhConvertRect(&margin, &dialogRect);
 
-        item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, margin);
+        item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, &margin);
     }
     else
     {

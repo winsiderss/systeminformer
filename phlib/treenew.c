@@ -36,7 +36,7 @@
 #include <treenewp.h>
 #include <vssym32.h>
 
-BOOLEAN PhTreeNewInitialization(
+RTL_ATOM PhTreeNewInitialization(
     VOID
     )
 {
@@ -44,18 +44,15 @@ BOOLEAN PhTreeNewInitialization(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = CS_DBLCLKS | CS_GLOBALCLASS | CS_PARENTDC;
+    wcex.style = CS_DBLCLKS | CS_GLOBALCLASS;
     wcex.lpfnWndProc = PhTnpWndProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = sizeof(PVOID);
-    wcex.hInstance = PhInstanceHandle;
+    wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     wcex.lpszClassName = PH_TREENEW_CLASSNAME;
 
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
-        return FALSE;
-
-    return TRUE;
+    return RegisterClassEx(&wcex);
 }
 
 LRESULT CALLBACK PhTnpWndProc(
@@ -179,7 +176,7 @@ LRESULT CALLBACK PhTnpWndProc(
         return 0;
     case WM_SETCURSOR:
         {
-            if (PhTnpOnSetCursor(hwnd, context, (HWND)wParam))
+            if (PhTnpOnSetCursor(hwnd, context, (HWND)wParam, LOWORD(lParam), HIWORD(lParam)))
                 return TRUE;
         }
         break;
@@ -476,7 +473,7 @@ BOOLEAN PhTnpOnCreate(
     if (Context->Style & TN_STYLE_CUSTOM_HEADERDRAW)
         Context->HeaderCustomDraw = TRUE;
 
-    if (!(Context->FixedHeaderHandle = CreateWindow(
+    if (!(Context->FixedHeaderHandle = PhCreateWindow(
         WC_HEADER,
         NULL,
         WS_CHILD | WS_CLIPSIBLINGS | headerStyle,
@@ -496,7 +493,7 @@ BOOLEAN PhTnpOnCreate(
     if (!(Context->Style & TN_STYLE_NO_COLUMN_REORDER))
         headerStyle |= HDS_DRAGDROP;
 
-    if (!(Context->HeaderHandle = CreateWindow(
+    if (!(Context->HeaderHandle = PhCreateWindow(
         WC_HEADER,
         NULL,
         WS_CHILD | WS_CLIPSIBLINGS | headerStyle,
@@ -513,7 +510,7 @@ BOOLEAN PhTnpOnCreate(
         return FALSE;
     }
 
-    if (!(Context->VScrollHandle = CreateWindow(
+    if (!(Context->VScrollHandle = PhCreateWindow(
         WC_SCROLLBAR,
         NULL,
         WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SBS_VERT,
@@ -530,7 +527,7 @@ BOOLEAN PhTnpOnCreate(
         return FALSE;
     }
 
-    if (!(Context->HScrollHandle = CreateWindow(
+    if (!(Context->HScrollHandle = PhCreateWindow(
         WC_SCROLLBAR,
         NULL,
         WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SBS_HORZ,
@@ -547,7 +544,7 @@ BOOLEAN PhTnpOnCreate(
         return FALSE;
     }
 
-    if (!(Context->FillerBoxHandle = CreateWindow(
+    if (!(Context->FillerBoxHandle = PhCreateWindow(
         WC_STATIC,
         NULL,
         WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE,
@@ -576,7 +573,8 @@ VOID PhTnpOnSize(
     _In_ PPH_TREENEW_CONTEXT Context
     )
 {
-    GetClientRect(hwnd, &Context->ClientRect);
+    if (!PhGetClientRect(hwnd, &Context->ClientRect))
+        return;
 
     if (Context->BufferedContext && (
         Context->BufferedContextRect.right < Context->ClientRect.right ||
@@ -797,7 +795,9 @@ BOOLEAN PhTnpOnNcPaint(
 BOOLEAN PhTnpOnSetCursor(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ HWND CursorWindowHandle
+    _In_ HWND CursorWindowHandle,
+    _In_ ULONG HitTest,
+    _In_ ULONG Source
     )
 {
     POINT point;
@@ -1372,7 +1372,7 @@ VOID PhTnpOnContextMenu(
             clientPoint.y = 0;
         }
 
-        GetWindowRect(hwnd, &windowRect);
+        PhGetWindowRect(hwnd, &windowRect);
         CursorScreenX = windowRect.left + clientPoint.x;
         CursorScreenY = windowRect.top + clientPoint.y;
     }
@@ -1894,7 +1894,7 @@ LRESULT PhTnpOnUserMessage(
             {
                 return TRUE; // Nothing to change (dmex)
             }
-     
+
             if (sortOrder != NoSortOrder)
             {
                 if (!(column = PhTnpLookupColumnById(Context, sortColumn)))
@@ -2536,13 +2536,21 @@ VOID PhTnpLayoutHeader(
         toolInfo.cbSize = sizeof(TOOLINFO);
         toolInfo.hwnd = Context->FixedHeaderHandle;
         toolInfo.uId = TNP_TOOLTIPS_FIXED_HEADER;
-        GetClientRect(Context->FixedHeaderHandle, &toolInfo.rect);
-        SendMessage(Context->TooltipsHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
 
+        if (PhGetClientRect(Context->FixedHeaderHandle, &toolInfo.rect))
+        {
+            SendMessage(Context->TooltipsHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+        }
+
+        memset(&toolInfo, 0, sizeof(TOOLINFO));
+        toolInfo.cbSize = sizeof(TOOLINFO);
         toolInfo.hwnd = Context->HeaderHandle;
         toolInfo.uId = TNP_TOOLTIPS_HEADER;
-        GetClientRect(Context->HeaderHandle, &toolInfo.rect);
-        SendMessage(Context->TooltipsHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+
+        if (PhGetClientRect(Context->HeaderHandle, &toolInfo.rect))
+        {
+            SendMessage(Context->TooltipsHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+        }
     }
 }
 
@@ -6374,15 +6382,15 @@ VOID PhTnpInitializeTooltips(
 {
     TOOLINFO toolInfo;
 
-    Context->TooltipsHandle = CreateWindowEx(
-        WS_EX_TRANSPARENT, // solves double-click problem
+    Context->TooltipsHandle = PhCreateWindowEx(
         TOOLTIPS_CLASS,
         NULL,
         WS_POPUP | TTS_NOANIMATE | TTS_NOFADE | TTS_NOPREFIX | TTS_ALWAYSTIP,
-        0,
-        0,
-        0,
-        0,
+        WS_EX_TOPMOST | WS_EX_TRANSPARENT, // solves double-click problem (wj32)
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
         NULL,
         NULL,
         NULL,
@@ -6417,6 +6425,13 @@ VOID PhTnpInitializeTooltips(
     toolInfo.lpszText = LPSTR_TEXTCALLBACK;
     toolInfo.lParam = TNP_TOOLTIPS_HEADER;
     SendMessage(Context->TooltipsHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+
+    SetWindowPos(
+        Context->TooltipsHandle,
+        HWND_TOPMOST,
+        0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
+        );
 
     if (Context->HeaderCustomDraw)
     {
@@ -6990,7 +7005,7 @@ BOOLEAN TnHeaderCustomPaint(
 VOID PhTnpHeaderCreateBufferedContext(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ HDC Hdc,
-    _In_ RECT BufferRect
+    _In_ PRECT BufferRect
     )
 {
     Context->HeaderBufferedDc = CreateCompatibleDC(Hdc);
@@ -6998,7 +7013,7 @@ VOID PhTnpHeaderCreateBufferedContext(
     if (!Context->HeaderBufferedDc)
         return;
 
-    Context->HeaderBufferedContextRect = BufferRect;
+    Context->HeaderBufferedContextRect = *BufferRect;
     Context->HeaderBufferedBitmap = CreateCompatibleBitmap(
         Hdc,
         Context->HeaderBufferedContextRect.right,
@@ -7807,16 +7822,28 @@ VOID PhTnpCreateBufferedContext(
 
 VOID PhTnpDestroyBufferedContext(
     _In_ PPH_TREENEW_CONTEXT Context
-    )
+)
 {
     // The original bitmap must be selected back into the context, otherwise the bitmap can't be
     // deleted.
-    SelectBitmap(Context->BufferedContext, Context->BufferedOldBitmap);
-    DeleteBitmap(Context->BufferedBitmap);
-    DeleteDC(Context->BufferedContext);
 
-    Context->BufferedContext = NULL;
-    Context->BufferedBitmap = NULL;
+    if (Context->BufferedOldBitmap)
+    {
+        SelectBitmap(Context->BufferedContext, Context->BufferedOldBitmap);
+        Context->BufferedOldBitmap = NULL;
+    }
+
+    if (Context->BufferedBitmap)
+    {
+        DeleteBitmap(Context->BufferedBitmap);
+        Context->BufferedBitmap = NULL;
+    }
+
+    if (Context->BufferedContext)
+    {
+        DeleteDC(Context->BufferedContext);
+        Context->BufferedContext = NULL;
+    }
 }
 
 _Success_(return)
@@ -7852,9 +7879,7 @@ LRESULT PhTnSendMessage(
     {
         PVOID context;
 
-#ifdef DEBUG
         RTL_ASSERT(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL));
-#endif
 
         if (context = PhGetWindowContextEx(WindowHandle))
         {

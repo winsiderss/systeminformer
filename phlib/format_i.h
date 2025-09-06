@@ -490,7 +490,7 @@ CommonInt64Format:
 
                 while (
                     s >= 1000 &&
-                    i < sizeof(PhpSizeUnitNamesCounted) / sizeof(PH_STRINGREF) &&
+                    i < sizeof(PhSizeUnitNamesCounted) / sizeof(PH_STRINGREF) &&
                     i < maxSizeUnit
                     )
                 {
@@ -507,13 +507,13 @@ CommonInt64Format:
                 flags = 0;
                 COMMON_DOUBLE_FORMAT(DOUBLE, &doubleFormat, Double, PhpFormatDoubleToUtf8Locale);
 
-                ENSURE_BUFFER(sizeof(WCHAR) + PhpSizeUnitNamesCounted[i].Length);
+                ENSURE_BUFFER(sizeof(WCHAR) + PhSizeUnitNamesCounted[i].Length);
                 if (OK_BUFFER)
                 {
                     *buffer = L' ';
-                    memcpy(buffer + 1, PhpSizeUnitNamesCounted[i].Buffer, PhpSizeUnitNamesCounted[i].Length);
+                    memcpy(buffer + 1, PhSizeUnitNamesCounted[i].Buffer, PhSizeUnitNamesCounted[i].Length);
                 }
-                ADVANCE_BUFFER(sizeof(WCHAR) + PhpSizeUnitNamesCounted[i].Length);
+                ADVANCE_BUFFER(sizeof(WCHAR) + PhSizeUnitNamesCounted[i].Length);
             }
             break;
         }

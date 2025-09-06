@@ -242,11 +242,42 @@ PhHashIpEndpoint(
 
 // DOH/HTTP/HTTP2 support (dmex)
 
+typedef enum _PHHTTP_EVENT_TYPE
+{
+    PHHTTP_EVENT_DEBUG,
+    PHHTTP_EVENT_INITIALIZING,
+    PHHTTP_EVENT_RESOLVING_NAME,
+    PHHTTP_EVENT_NAME_RESOLVED,
+    PHHTTP_EVENT_CONNECTING,
+    PHHTTP_EVENT_CONNECTED,
+    PHHTTP_EVENT_SENDING_REQUEST,
+    PHHTTP_EVENT_REQUEST_SENT,
+    PHHTTP_EVENT_RECEIVING_RESPONSE,
+    PHHTTP_EVENT_RESPONSE_RECEIVED,
+    PHHTTP_EVENT_CLOSING_CONNECTION,
+    PHHTTP_EVENT_CONNECTION_CLOSED,
+    PHHTTP_EVENT_HANDLE_CREATED,
+    PHHTTP_EVENT_HANDLE_CLOSING,
+    PHHTTP_EVENT_DETECTING_PROXY,
+    PHHTTP_EVENT_REDIRECT
+} PHHTTP_EVENT_TYPE;
+
+typedef _Function_class_(PH_HTTP_EVENT_CALLBACK)
+VOID NTAPI PH_HTTP_EVENT_CALLBACK(
+    _In_ PHHTTP_EVENT_TYPE Event,
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+typedef PH_HTTP_EVENT_CALLBACK* PPH_HTTP_EVENT_CALLBACK;
+
 typedef struct _PH_HTTP_CONTEXT
 {
     PVOID SessionHandle;
     PVOID ConnectionHandle;
     PVOID RequestHandle;
+    BOOL EventCallbackRegistered;
+    PPH_HTTP_EVENT_CALLBACK Callback;
+    PVOID Context;
 } PH_HTTP_CONTEXT, *PPH_HTTP_CONTEXT;
 
 PHLIBAPI
@@ -260,7 +291,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhHttpDestroy(
-    _In_ _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
+    _In_ _Maybenull_ _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
     );
 
 typedef enum _PH_HTTP_SOCKET_CLOSE_TYPE
@@ -304,14 +335,20 @@ PhHttpBeginRequest(
     _In_ ULONG Flags
     );
 
+#define PH_HTTP_IGNORE_REQUEST_TOTAL_LENGTH 0
+#define PH_HTTP_NO_ADDITIONAL_HEADERS NULL
+#define PH_HTTP_NO_REQUEST_DATA NULL
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhHttpSendRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_opt_ PCWSTR HeadersBuffer,
+    _In_ ULONG HeadersLength,
     _In_opt_ PVOID OptionalBuffer,
-    _In_opt_ ULONG OptionalLength,
-    _In_opt_ ULONG TotalLength
+    _In_ ULONG OptionalLength,
+    _In_ ULONG TotalLength
     );
 
 PHLIBAPI
@@ -596,9 +633,9 @@ NTSTATUS
 NTAPI
 PhHttpCrackUrl(
     _In_ PPH_STRING Url,
-    _Out_opt_ PPH_STRING *Host,
-    _Out_opt_ PPH_STRING *Path,
-    _Out_opt_ PUSHORT Port
+    _Out_ PPH_STRING *Host,
+    _Out_ PPH_STRING *Path,
+    _Out_ PUSHORT Port
     );
 
 PHLIBAPI
@@ -644,6 +681,15 @@ PhHttpSetCredentials(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ PCWSTR Name,
     _In_ PCWSTR Value
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpSetEventCallback(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ PPH_HTTP_EVENT_CALLBACK EventCallback,
+    _In_opt_ PVOID Context
     );
 
 //

@@ -127,13 +127,4 @@ RtlAssert(
     _In_opt_ PCSTR MutableMessage
     );
 
-#define RTL_ASSERT(exp) \
-    ((!(exp)) ? (RtlAssert((PVOID)#exp, (PVOID)__FILE__, __LINE__, NULL), FALSE) : TRUE)
-#define RTL_ASSERTMSG(msg, exp) \
-    ((!(exp)) ? (RtlAssert((PVOID)#exp, (PVOID)__FILE__, __LINE__, msg), FALSE) : TRUE)
-#define RTL_SOFT_ASSERT(_exp) \
-    ((!(_exp)) ? (DbgPrint("%s(%d): Soft assertion failed\n   Expression: %s\n", __FILE__, __LINE__, #_exp), FALSE) : TRUE)
-#define RTL_SOFT_ASSERTMSG(_msg, _exp) \
-    ((!(_exp)) ? (DbgPrint("%s(%d): Soft assertion failed\n   Expression: %s\n   Message: %s\n", __FILE__, __LINE__, #_exp, (_msg)), FALSE) : TRUE)
-
 #endif

@@ -236,9 +236,11 @@ typedef struct _PH_PROCESS_NODE
     // Start key
     ULONGLONG ProcessStartKey;
 
+    PPH_STRING FileNameWin32;
+    ULONG ServerSiloId;
+
     PPH_STRING TooltipText;
     ULONG64 TooltipTextValidToTickCount;
-    PPH_STRING FileNameWin32;
 
     // Text buffers
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1 + 3];
@@ -305,6 +307,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ProcessStartKeyText;
     PPH_STRING MitigationPoliciesText;
     PPH_STRING ServicesText;
+    PPH_STRING ServerSiloText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
@@ -399,6 +402,13 @@ NTAPI
 PhGetSelectedProcessItems(
     _Out_ PPH_PROCESS_ITEM **Processes,
     _Out_ PULONG NumberOfProcesses
+    );
+
+PHAPPAPI
+PPH_PROCESS_NODE
+NTAPI
+PhGetSelectedProcessNode(
+    VOID
     );
 
 _Success_(return)

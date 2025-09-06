@@ -54,36 +54,49 @@
     <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
     <MetadataUpdaterSupport>UpdateAndReset</MetadataUpdaterSupport>
     <Optimize>False</Optimize>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
     <MetadataUpdaterSupport>UpdateAndReset</MetadataUpdaterSupport>
     <Optimize>False</Optimize>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
     <MetadataUpdaterSupport>UpdateAndReset</MetadataUpdaterSupport>
     <Optimize>False</Optimize>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
     <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
     <Optimize>True</Optimize>
+    <ControlFlowGuard>Guard</ControlFlowGuard>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
     <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
     <Optimize>True</Optimize>
+    <ControlFlowGuard>Guard</ControlFlowGuard>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
     <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
     <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
     <Optimize>True</Optimize>
+    <ControlFlowGuard>Guard</ControlFlowGuard>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <AdditionalFiles Remove="NativeMethods.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <DirectPInvokeList Include="NativeImports.txt" />
+    <NativeLibrary Include="dbghelp.lib" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.manifest" />
@@ -92,7 +105,6 @@
     <Using Include="Azure.Core" />
     <Using Include="Azure.Security.KeyVault.Keys" />
     <Using Include="Azure.Security.KeyVault.Keys.Cryptography" />
-    <Using Include="AzureSign.Core.Interop" />
     <Using Include="Microsoft.Win32.SafeHandles" />
     <Using Include="System.Buffers" />
     <Using Include="System.Collections.Immutable" />
@@ -129,9 +141,9 @@
     <LinkerArg Include="/RELEASE /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.14.0" />
-    <PackageReference Include="Azure.Security.KeyVault.Certificates" Version="4.7.0" />
-    <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.7.0" />
+    <PackageReference Include="Azure.Identity" Version="1.15.0" />
+    <PackageReference Include="Azure.Security.KeyVault.Certificates" Version="4.8.0" />
+    <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.8.0" />
     <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

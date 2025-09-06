@@ -229,7 +229,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             }
 
             // Note: This dialog must be centered after all other graphs and controls have been added.
-            if (PhGetIntegerPairSetting(SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION, SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, NULL);
@@ -312,7 +312,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
 
             deferHandle = BeginDeferWindowPos(context->NumberOfNodes);
 
-            GetClientRect(hwndDlg, &clientRect);
+            PhGetClientRect(hwndDlg, &clientRect);
             cellHeight = (clientRect.bottom - context->LayoutMargin.top - context->LayoutMargin.bottom - GRAPH_PADDING * numberOfYPaddings) / numberOfRows;
             y = context->LayoutMargin.top;
             i = 0;

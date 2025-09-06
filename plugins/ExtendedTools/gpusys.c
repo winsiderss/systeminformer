@@ -50,6 +50,7 @@ VOID EtGpuSystemInformationInitializing(
     GpuSection = Pointers->CreateSection(&section);
 }
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN EtpGpuSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -364,7 +365,7 @@ INT_PTR CALLBACK EtpGpuDialogProc(
 
             GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_GPUPANEL), hwndDlg, EtpGpuPanelDialogProc, NULL);
             ShowWindow(GpuPanel, SW_SHOW);
-            PhAddLayoutItemEx(&GpuLayoutManager, GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+            PhAddLayoutItemEx(&GpuLayoutManager, GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             EtpCreateGpuGraphs();
             EtpUpdateGpuGraphs();
@@ -397,6 +398,8 @@ INT_PTR CALLBACK EtpGpuDialogProc(
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), GpuSection->Parameters->MediumFont, FALSE);
             }
 
+            PhLayoutManagerUpdate(&GpuLayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&GpuLayoutManager);
             EtpLayoutGpuGraphs(hwndDlg);
         }
         break;
@@ -620,8 +623,8 @@ VOID EtpLayoutGpuGraphs(
     PhGetSizeDpiValue(&marginRect, GpuDialogWindowDpi, TRUE);
     graphPadding = PhGetDpi(ET_GPU_PADDING, GpuDialogWindowDpi);
 
-    GetClientRect(GpuDialog, &clientRect);
-    GetClientRect(GetDlgItem(GpuDialog, IDC_GPU_L), &labelRect);
+    PhGetClientRect(GpuDialog, &clientRect);
+    PhGetClientRect(GetDlgItem(GpuDialog, IDC_GPU_L), &labelRect);
     graphWidth = clientRect.right - marginRect.left - marginRect.right;
 
     if (EtGpuSupported)

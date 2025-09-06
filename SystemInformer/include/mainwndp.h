@@ -59,7 +59,7 @@ VOID PhMwpInitializeProviders(
     );
 
 VOID PhMwpShowWindow(
-    _In_ INT ShowCommand
+    _In_ LONG ShowCommand
     );
 
 VOID PhMwpApplyUpdateInterval(
@@ -75,6 +75,7 @@ VOID PhMwpInitializeControls(
     _In_ HWND WindowHandle
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhMwpLoadStage1Worker(
     _In_ PVOID Parameter
     );

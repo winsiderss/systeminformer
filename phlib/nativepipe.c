@@ -82,14 +82,14 @@ NTSTATUS PhCreatePipeEx(
         return status;
 
     RtlInitEmptyUnicodeString(&pipeName, NULL, 0);
-    InitializeObjectAttributes(
+    InitializeObjectAttributesEx(
         &objectAttributes,
         &pipeName,
         OBJ_CASE_INSENSITIVE,
         pipeDirectoryHandle,
-        NULL
+        NULL,
+        &pipeSecurityQos
         );
-    objectAttributes.SecurityQualityOfService = &pipeSecurityQos;
 
     if (PipeReadAttributes)
     {
@@ -150,14 +150,14 @@ NTSTATUS PhCreatePipeEx(
         goto CleanupExit;
 
     RtlInitEmptyUnicodeString(&pipeName, NULL, 0);
-    InitializeObjectAttributes(
+    InitializeObjectAttributesEx(
         &objectAttributes,
         &pipeName,
         OBJ_CASE_INSENSITIVE,
         pipeReadHandle,
-        NULL
+        NULL,
+        &pipeSecurityQos
         );
-    objectAttributes.SecurityQualityOfService = &pipeSecurityQos;
 
     if (PipeWriteAttributes)
     {
@@ -234,14 +234,14 @@ NTSTATUS PhCreateNamedPipe(
         return STATUS_NAME_TOO_LONG;
     }
 
-    InitializeObjectAttributes(
+    InitializeObjectAttributesEx(
         &objectAttributes,
         &pipeNameUs,
         OBJ_CASE_INSENSITIVE,
         NULL,
-        NULL
+        NULL,
+        &pipeSecurityQos
         );
-    objectAttributes.SecurityQualityOfService = &pipeSecurityQos;
 
     if (NT_SUCCESS(PhDefaultNpAcl(&pipeAcl)))
     {
@@ -310,14 +310,14 @@ NTSTATUS PhConnectPipe(
         return STATUS_NAME_TOO_LONG;
     }
 
-    InitializeObjectAttributes(
+    InitializeObjectAttributesEx(
         &objectAttributes,
         &pipeNameUs,
         OBJ_CASE_INSENSITIVE,
         NULL,
-        NULL
+        NULL,
+        &pipeSecurityQos
         );
-    objectAttributes.SecurityQualityOfService = &pipeSecurityQos;
 
     status = NtCreateFile(
         &pipeHandle,
@@ -966,8 +966,8 @@ NTSTATUS PhDefaultNpAcl(
 
         pipeAcl = PhAllocateZero(defaultAclSize);
         PhCreateAcl(pipeAcl, defaultAclSize, ACL_REVISION);
-        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, (PSID)&PhSeLocalSystemSid);
-        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, (PSID)PhSeAdministratorsSid());
+        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, &PhSeLocalSystemSid);
+        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, PhSeAdministratorsSid());
 
         if (tokenAppContainer.AppContainer.Sid)
             PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, tokenAppContainer.AppContainer.Sid);
@@ -975,8 +975,8 @@ NTSTATUS PhDefaultNpAcl(
             PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, appContainerSidParent);
 
         PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, tokenQuery.TokenOwner.Owner);
-        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_READ, (PSID)&PhSeEveryoneSid);
-        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_READ, (PSID)&PhSeAnonymousLogonSid);
+        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_READ, &PhSeEveryoneSid);
+        PhAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_READ, &PhSeAnonymousLogonSid);
 
         *DefaultNpAc = pipeAcl;
 

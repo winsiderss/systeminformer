@@ -46,7 +46,7 @@ ULONG EtRunCount = 0;
 PPH_OBJECT_TYPE EtDiskItemType = NULL;
 PPH_HASHTABLE EtDiskHashtable = NULL;
 PH_QUEUED_LOCK EtDiskHashtableLock = PH_QUEUED_LOCK_INIT;
-LIST_ENTRY EtDiskAgeListHead = { &EtDiskAgeListHead, &EtDiskAgeListHead };
+RTL_STATIC_LIST_HEAD(EtDiskAgeListHead);
 PH_CALLBACK_DECLARE(EtDiskItemAddedEvent);
 PH_CALLBACK_DECLARE(EtDiskItemModifiedEvent);
 PH_CALLBACK_DECLARE(EtDiskItemRemovedEvent);

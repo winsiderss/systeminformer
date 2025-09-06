@@ -1286,7 +1286,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            if (PhGetIntegerPairSetting(L"RunAsWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"RunAsWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"RunAsWindowPosition", NULL, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -2965,6 +2965,7 @@ BEGIN_SORT_FUNCTION(Version)
 }
 END_SORT_FUNCTION
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhRunAsPackageNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -2976,6 +2977,7 @@ BOOLEAN PhRunAsPackageNodeHashtableEqualFunction(
     return PhEqualString(node1->AppUserModelId, node2->AppUserModelId, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhRunAsPackageNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -3440,6 +3442,7 @@ VOID PhRunAsPackageDeleteTree(
 
 #pragma endregion
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhEnumPackageThreadCallback(
     _In_ PVOID Context
     )
@@ -3502,6 +3505,7 @@ PPH_RUNAS_PACKAGE_CONTEXT PhCreatePackageWindowContext(
     return context;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpRunAsPackageSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -3561,7 +3565,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (PhGetIntegerPairSetting(L"RunAsPackageWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"RunAsPackageWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"RunAsPackageWindowPosition", L"RunAsPackageWindowSize", WindowHandle);
             else
                 PhCenterWindow(WindowHandle, GetParent(WindowHandle));
@@ -3615,7 +3619,9 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
         break;
     case WM_DPICHANGED:
         {
-            context->WindowDpi = PhGetWindowDpi(WindowHandle);
+            context->WindowDpi = LOWORD(wParam);
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_PH_UPDATE_DIALOG:

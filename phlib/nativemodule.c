@@ -18,6 +18,7 @@ BOOLEAN NTAPI PH_ENUM_MODULES_CALLBACK(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID Entry,
     _In_ PVOID AddressOfEntry,
+    _In_ ULONG SizeOfEntry,
     _In_opt_ PVOID Context1,
     _In_opt_ PVOID Context2
     );
@@ -368,7 +369,7 @@ NTSTATUS PhGetKernelFileNameEx(
         );
 
     if (status != STATUS_SUCCESS && status != STATUS_INFO_LENGTH_MISMATCH)
-        return status;
+        return STATUS_UNSUCCESSFUL;
     if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
         return STATUS_UNSUCCESSFUL;
 
@@ -437,11 +438,11 @@ NTSTATUS PhpEnumProcessModules(
 {
     NTSTATUS status;
     PPEB peb;
-    PPEB_LDR_DATA ldr;
+    PVOID ldr;
     PEB_LDR_DATA pebLdrData;
     PLIST_ENTRY startLink;
     PLIST_ENTRY currentLink;
-    ULONG dataTableEntrySize;
+    ULONG entrySize;
     LDR_DATA_TABLE_ENTRY currentEntry;
     ULONG i;
 
@@ -463,7 +464,6 @@ NTSTATUS PhpEnumProcessModules(
     if (!NT_SUCCESS(status))
         return status;
 
-    // Check the process has initialized (dmex)
     if (!ldr)
         return STATUS_UNSUCCESSFUL;
 
@@ -479,20 +479,21 @@ NTSTATUS PhpEnumProcessModules(
     if (!NT_SUCCESS(status))
         return status;
 
+    // Check the loader was initialized (dmex)
     if (!pebLdrData.Initialized)
         return STATUS_UNSUCCESSFUL;
 
     if (WindowsVersion >= WINDOWS_11)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN11;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN11;
     else if (WindowsVersion >= WINDOWS_8)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8;
     else
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
 
     // Traverse the linked list (in load order).
 
     i = 0;
-    startLink = PTR_ADD_OFFSET(ldr, FIELD_OFFSET(PEB_LDR_DATA, InLoadOrderModuleList));
+    startLink = PTR_ADD_OFFSET(ldr, UFIELD_OFFSET(PEB_LDR_DATA, InLoadOrderModuleList));
     currentLink = pebLdrData.InLoadOrderModuleList.Flink;
 
     while (
@@ -507,7 +508,7 @@ NTSTATUS PhpEnumProcessModules(
             ProcessHandle,
             addressOfEntry,
             &currentEntry,
-            dataTableEntrySize,
+            entrySize,
             NULL
             );
 
@@ -522,6 +523,7 @@ NTSTATUS PhpEnumProcessModules(
                 ProcessHandle,
                 &currentEntry,
                 addressOfEntry,
+                entrySize,
                 Context1,
                 Context2
                 ))
@@ -535,10 +537,12 @@ NTSTATUS PhpEnumProcessModules(
     return status;
 }
 
+_Function_class_(PH_ENUM_MODULES_CALLBACK)
 static BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY Entry,
     _In_ PVOID AddressOfEntry,
+    _In_ ULONG SizeOfEntry,
     _In_ PVOID Context1,
     _In_ PVOID Context2
     )
@@ -638,7 +642,7 @@ static BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         }
     }
 
-    if (WindowsVersion >= WINDOWS_8 && Entry->DdagNode)
+    if (WindowsVersion >= WINDOWS_8 && Entry->DdagNode && RTL_CONTAINS_FIELD(Entry, SizeOfEntry, DdagNode))
     {
         LDR_DDAG_NODE ldrDagNode;
 
@@ -727,10 +731,12 @@ typedef struct _SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT
     ULONG LoadCount;
 } SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT, *PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT;
 
+_Function_class_(PH_ENUM_MODULES_CALLBACK)
 BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY Entry,
     _In_ PVOID AddressOfEntry,
+    _In_ ULONG SizeOfEntry,
     _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
@@ -802,7 +808,7 @@ NTSTATUS PhpEnumProcessModules32(
     PEB_LDR_DATA32 pebLdrData;
     ULONG startLink; // LIST_ENTRY32 *32
     ULONG currentLink; // LIST_ENTRY32 *32
-    ULONG dataTableEntrySize;
+    ULONG entrySize;
     LDR_DATA_TABLE_ENTRY32 currentEntry;
     ULONG i;
 
@@ -824,7 +830,6 @@ NTSTATUS PhpEnumProcessModules32(
     if (!NT_SUCCESS(status))
         return status;
 
-    // Check the process has initialized (dmex)
     if (!ldr)
         return STATUS_UNSUCCESSFUL;
 
@@ -840,15 +845,16 @@ NTSTATUS PhpEnumProcessModules32(
     if (!NT_SUCCESS(status))
         return status;
 
+    // Check the loader was initialized (dmex)
     if (!pebLdrData.Initialized)
         return STATUS_UNSUCCESSFUL;
 
     if (WindowsVersion >= WINDOWS_11)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN11_32;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN11_32;
     else if (WindowsVersion >= WINDOWS_8)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8_32;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8_32;
     else
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32;
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32;
 
     // Traverse the linked list (in load order).
 
@@ -868,7 +874,7 @@ NTSTATUS PhpEnumProcessModules32(
             ProcessHandle,
             addressOfEntry,
             &currentEntry,
-            dataTableEntrySize,
+            entrySize,
             NULL
             );
 
@@ -883,6 +889,7 @@ NTSTATUS PhpEnumProcessModules32(
                 ProcessHandle,
                 &currentEntry,
                 addressOfEntry,
+                entrySize,
                 Context1,
                 Context2
                 ))
@@ -896,10 +903,12 @@ NTSTATUS PhpEnumProcessModules32(
     return status;
 }
 
+_Function_class_(PH_ENUM_MODULES_CALLBACK)
 BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
     _In_ PVOID AddressOfEntry,
+    _In_ ULONG SizeOfEntry,
     _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
@@ -1060,7 +1069,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
         nativeEntry.FullDllName.Buffer = fullDllNameBuffer;
     }
 
-    if (WindowsVersion >= WINDOWS_8 && Entry->DdagNode)
+    if (WindowsVersion >= WINDOWS_8 && Entry->DdagNode && RTL_CONTAINS_FIELD(Entry, SizeOfEntry, DdagNode))
     {
         LDR_DDAG_NODE32 ldrDagNode32 = { 0 };
 
@@ -1148,10 +1157,12 @@ NTSTATUS PhEnumProcessModules32Ex(
         );
 }
 
+_Function_class_(PH_ENUM_MODULES_CALLBACK)
 static BOOLEAN NTAPI PhSetProcessModuleLoadCount32Callback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
     _In_ PVOID AddressOfEntry,
+    _In_ ULONG SizeOfEntry,
     _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
@@ -1258,6 +1269,7 @@ BOOLEAN PhIsRtlModuleBase(
     return FALSE;
 }
 
+_Function_class_(PH_ENUM_PROCESS_MODULES_CALLBACK)
 static BOOLEAN EnumGenericProcessModulesCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
     _In_ PENUM_GENERIC_PROCESS_MODULES_CONTEXT Context
@@ -1854,6 +1866,7 @@ typedef struct _PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS
     PVOID Context;
 } PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS, *PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS;
 
+_Function_class_(PH_ENUM_MEMORY_PAGE_CALLBACK)
 static NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG_PTR NumberOfEntries,

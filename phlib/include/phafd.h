@@ -64,6 +64,18 @@ PhAfdQuerySimpleInfo(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhAfdQuerySocketOption(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG Level,
+    _In_ ULONG OptionName,
+    _Out_ PVOID OptionValue,
+    _In_ ULONG OptionLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhAfdQueryOption(
     _In_ HANDLE SocketHandle,
     _In_ ULONG Level,

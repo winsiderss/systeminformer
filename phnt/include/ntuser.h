@@ -998,8 +998,8 @@ NtUserSetInformationThread(
 NTSYSAPI
 BOOL
 NTAPI
-QuerySendMessage(
-    _Inout_ MSG* pMsg
+NtUserQuerySendMessage(
+    _Inout_ PMSG Message
     );
 
 NTSYSCALLAPI
@@ -1127,7 +1127,7 @@ BOOL
 NTAPI
 NtUserSetWindowPos(
     _In_ HWND WindowHandle,
-    _In_ HWND WindowHandleInsertAfter,
+    _In_opt_ HWND WindowHandleInsertAfter,
     _In_ LONG X,
     _In_ LONG Y,
     _In_ LONG cx,
@@ -1149,6 +1149,25 @@ NtUserBringWindowToTop(
         3
         );
 }
+// Send to the window registered with NtUserRegisterCloakedNotification
+// when cloak state of the window has changed
+// wParam - if window cloak state changed contains cloaking value
+//          which can be one/all of the below
+//          DWM_CLOAKED_APP(0x0000001).The window was cloaked by its owner application.
+//          DWM_CLOAKED_SHELL(0x0000002).The window was cloaked by the Shell.
+//          0 - window is not cloaked
+//
+// lParam - 0 (unused)
+//
+#define WM_CLOAKED_STATE_CHANGED 0x0347
+
+NTSYSCALLAPI
+BOOL
+NTAPI
+NtUserRegisterCloakedNotification(
+    _In_ HWND WindowHandle,
+    _In_ BOOL Register
+    );
 
 NTSYSCALLAPI
 USHORT
@@ -1299,7 +1318,10 @@ NtUserWindowFromPoint(
     _In_ POINT Point
     );
 
-typedef NTSTATUS FN_DISPATCH(PVOID);
+typedef _Function_class_(FN_DISPATCH)
+NTSTATUS NTAPI FN_DISPATCH(
+    _In_opt_ PVOID Context
+    );
 typedef FN_DISPATCH* PFN_DISPATCH;
 
 // Peb!KernelCallbackTable = user32.dll!apfnDispatch

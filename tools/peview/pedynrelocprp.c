@@ -42,7 +42,7 @@ VOID PvEnumerateDynamicRelocationEntries(
 
             if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64X)
             {
-                PhPrintPointer(value, PTR_ADD_OFFSET(entry->ARM64X.BlockRva, entry->ARM64X.RecordFixup.Offset));
+                PhPrintPointer(value, UlongToPtr(entry->ARM64X.BlockRva + entry->ARM64X.RecordFixup.Offset));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ARM64X");
 
@@ -98,7 +98,7 @@ VOID PvEnumerateDynamicRelocationEntries(
             else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER)
             {
                 ULONG iatIndex = entry->ImportControl.Record.IATIndex;
-                PhPrintPointer(value, PTR_ADD_OFFSET(entry->ImportControl.BlockRva, entry->ImportControl.Record.PageRelativeOffset));
+                PhPrintPointer(value, UlongToPtr(entry->ImportControl.BlockRva + entry->ImportControl.Record.PageRelativeOffset));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"IMPORT");
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3,
@@ -110,7 +110,7 @@ VOID PvEnumerateDynamicRelocationEntries(
             }
             else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER)
             {
-                PhPrintPointer(value, PTR_ADD_OFFSET(entry->IndirControl.BlockRva, entry->IndirControl.Record.PageRelativeOffset));
+                PhPrintPointer(value, UlongToPtr(entry->IndirControl.BlockRva + entry->IndirControl.Record.PageRelativeOffset));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"INDIRECT");
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3,
@@ -123,7 +123,7 @@ VOID PvEnumerateDynamicRelocationEntries(
             }
             else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH)
             {
-                PhPrintPointer(value, PTR_ADD_OFFSET(entry->SwitchBranch.BlockRva, entry->SwitchBranch.Record.PageRelativeOffset));
+                PhPrintPointer(value, UlongToPtr(entry->SwitchBranch.BlockRva + entry->SwitchBranch.Record.PageRelativeOffset));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"BRANCH");
                 // TODO(jxy-s) map register numbers to names
@@ -131,7 +131,7 @@ VOID PvEnumerateDynamicRelocationEntries(
             }
             else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
             {
-                PhPrintPointer(value, PTR_ADD_OFFSET(entry->FuncOverride.BlockRva, entry->FuncOverride.Record.Offset));
+                PhPrintPointer(value, UlongToPtr(entry->FuncOverride.BlockRva + entry->FuncOverride.Record.Offset));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"FUNCTION");
                 switch (entry->FuncOverride.Record.Type)
@@ -152,7 +152,7 @@ VOID PvEnumerateDynamicRelocationEntries(
             }
             else
             {
-                PhPrintPointer(value, PTR_ADD_OFFSET(entry->Other.BlockRva, entry->Other.Record.Offset));
+                PhPrintPointer(value, UlongToPtr(entry->Other.BlockRva + entry->Other.Record.Offset));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
                 switch (entry->Other.Record.Type)
                 {

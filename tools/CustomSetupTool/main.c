@@ -368,7 +368,7 @@ BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
 }
 
 BOOLEAN NTAPI MainPropSheetCommandLineCallback(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_ PVOID Context
     )
@@ -446,7 +446,7 @@ VOID SetupParseCommandLine(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    static PH_COMMAND_LINE_OPTION options[] =
+    static CONST PH_COMMAND_LINE_OPTION options[] =
     {
         { SETUP_CMD_INSTALL,   L"install",     NoArgumentType },
         { SETUP_CMD_UNINSTALL, L"uninstall",   NoArgumentType },

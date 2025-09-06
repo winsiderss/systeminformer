@@ -56,7 +56,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (PhGetIntegerPairSetting(L"InformationWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"InformationWindowPosition"))
                 PhLoadWindowPlacementFromSetting(NULL, L"InformationWindowSize", hwndDlg);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
@@ -172,6 +172,12 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                 }
                 break;
             }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:

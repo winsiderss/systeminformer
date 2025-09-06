@@ -317,7 +317,9 @@ BOOLEAN PhTnpOnNcPaint(
 BOOLEAN PhTnpOnSetCursor(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ HWND CursorWindowHandle
+    _In_ HWND CursorWindowHandle,
+    _In_ ULONG HitTest,
+    _In_ ULONG Source
     );
 
 VOID PhTnpOnTimer(
@@ -853,6 +855,7 @@ VOID PhTnpDestroyBufferedContext(
     );
 
 // Support functions
+
 
 _Success_(return)
 BOOLEAN PhTnpGetMessagePos(

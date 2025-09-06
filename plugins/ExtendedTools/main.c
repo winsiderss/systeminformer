@@ -12,14 +12,13 @@
 
 #include "exttools.h"
 #include "extension\plugin.h"
-
 #include <trace.h>
 
 PPH_PLUGIN PluginInstance = NULL;
 HWND ProcessTreeNewHandle = NULL;
 HWND NetworkTreeNewHandle = NULL;
-LIST_ENTRY EtProcessBlockListHead = { &EtProcessBlockListHead, &EtProcessBlockListHead };
-LIST_ENTRY EtNetworkBlockListHead = { &EtNetworkBlockListHead, &EtNetworkBlockListHead };
+RTL_STATIC_LIST_HEAD(EtProcessBlockListHead);
+RTL_STATIC_LIST_HEAD(EtNetworkBlockListHead);
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;

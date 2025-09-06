@@ -272,7 +272,7 @@ NTSTATUS PhpTokenDialogThread(
     propSheetPage->lParam = (LPARAM)Context;
 
     PhDialogBox(
-        PhInstanceHandle,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_OBJTOKEN),
         NULL,
         PhpTokenPageProc,
@@ -358,7 +358,7 @@ HPROPSHEETPAGE PhCreateTokenPage(
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.dwFlags = PSP_USECALLBACK;
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OBJTOKEN);
-    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.hInstance = NtCurrentImageBase();
     propSheetPage.pfnDlgProc = PhpTokenPageProc;
     propSheetPage.lParam = (LPARAM)tokenPageContext;
     propSheetPage.pfnCallback = PhpTokenPropPageProc;
@@ -1414,7 +1414,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 PhAddLayoutItem(&tokenPageContext->LayoutManager, GetDlgItem(hwndDlg, IDC_INTEGRITY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 PhAddLayoutItem(&tokenPageContext->LayoutManager, GetDlgItem(hwndDlg, IDC_ADVANCED), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-                if (PhGetIntegerPairSetting(L"TokenWindowPosition").X != 0)
+                if (PhValidWindowPlacementFromSetting(L"TokenWindowPosition"))
                     PhLoadWindowPlacementFromSetting(L"TokenWindowPosition", L"TokenWindowSize", hwndDlg);
                 else
                     PhCenterWindow(hwndDlg, NULL);
@@ -2305,7 +2305,7 @@ VOID PhpShowTokenAdvancedProperties(
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE;
-    propSheetHeader.hInstance = PhInstanceHandle;
+    propSheetHeader.hInstance = NtCurrentImageBase();
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = L"Token";
     propSheetHeader.nStartPage = 0;
@@ -2318,7 +2318,7 @@ VOID PhpShowTokenAdvancedProperties(
     memset(&page, 0, sizeof(PROPSHEETPAGE));
     page.dwSize = sizeof(PROPSHEETPAGE);
     page.pszTemplate = MAKEINTRESOURCE(IDD_TOKGENERAL);
-    page.hInstance = PhInstanceHandle;
+    page.hInstance = NtCurrentImageBase();
     page.pfnDlgProc = PhpTokenGeneralPageProc;
     page.lParam = (LPARAM)Context;
     pages[numberOfPages++] = CreatePropertySheetPage(&page);
@@ -2328,7 +2328,7 @@ VOID PhpShowTokenAdvancedProperties(
     memset(&page, 0, sizeof(PROPSHEETPAGE));
     page.dwSize = sizeof(PROPSHEETPAGE);
     page.pszTemplate = MAKEINTRESOURCE(IDD_TOKADVANCED);
-    page.hInstance = PhInstanceHandle;
+    page.hInstance = NtCurrentImageBase();
     page.pfnDlgProc = PhpTokenAdvancedPageProc;
     page.lParam = (LPARAM)Context;
     pages[numberOfPages++] = CreatePropertySheetPage(&page);
@@ -2341,7 +2341,7 @@ VOID PhpShowTokenAdvancedProperties(
             page.dwSize = sizeof(PROPSHEETPAGE);
             page.dwFlags = PSP_USETITLE;
             page.pszTemplate = MAKEINTRESOURCE(IDD_TOKADVANCED);
-            page.hInstance = PhInstanceHandle;
+            page.hInstance = NtCurrentImageBase();
             page.pszTitle = L"Container";
             page.pfnDlgProc = PhpTokenContainerPageProc;
             page.lParam = (LPARAM)Context;
@@ -2353,7 +2353,7 @@ VOID PhpShowTokenAdvancedProperties(
         memset(&page, 0, sizeof(PROPSHEETPAGE));
         page.dwSize = sizeof(PROPSHEETPAGE);
         page.pszTemplate = MAKEINTRESOURCE(IDD_TOKCAPABILITIES);
-        page.hInstance = PhInstanceHandle;
+        page.hInstance = NtCurrentImageBase();
         page.pfnDlgProc = PhpTokenCapabilitiesPageProc;
         page.lParam = (LPARAM)Context;
         pages[numberOfPages++] = CreatePropertySheetPage(&page);
@@ -2364,7 +2364,7 @@ VOID PhpShowTokenAdvancedProperties(
         page.dwSize = sizeof(PROPSHEETPAGE);
         page.dwFlags = PSP_USETITLE;
         page.pszTemplate = MAKEINTRESOURCE(IDD_TOKATTRIBUTES);
-        page.hInstance = PhInstanceHandle;
+        page.hInstance = NtCurrentImageBase();
         page.pszTitle = L"Claims";
         page.pfnDlgProc = PhpTokenClaimsPageProc;
         page.lParam = (LPARAM)Context;
@@ -2376,7 +2376,7 @@ VOID PhpShowTokenAdvancedProperties(
         page.dwSize = sizeof(PROPSHEETPAGE);
         page.dwFlags = PSP_USETITLE;
         page.pszTemplate = MAKEINTRESOURCE(IDD_TOKAPPPOLICY);
-        page.hInstance = PhInstanceHandle;
+        page.hInstance = NtCurrentImageBase();
         page.pszTitle = L"Policy";
         page.pfnDlgProc = PhpTokenAppPolicyPageProc;
         page.lParam = (LPARAM)Context;
@@ -2388,7 +2388,7 @@ VOID PhpShowTokenAdvancedProperties(
         page.dwSize = sizeof(PROPSHEETPAGE);
         page.dwFlags = PSP_USETITLE;
         page.pszTemplate = MAKEINTRESOURCE(IDD_TOKATTRIBUTES);
-        page.hInstance = PhInstanceHandle;
+        page.hInstance = NtCurrentImageBase();
         page.pszTitle = L"Attributes";
         page.pfnDlgProc = PhpTokenAttributesPageProc;
         page.lParam = (LPARAM)Context;
@@ -2399,18 +2399,18 @@ VOID PhpShowTokenAdvancedProperties(
     PhModalPropertySheet(&propSheetHeader);
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenLinkedToken(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PVOID Context
     )
 {
-    if (Context)
-        return PhGetTokenLinkedToken((HANDLE)Context, Handle);
-
+    if (Context) return PhGetTokenLinkedToken((HANDLE)Context, Handle);
     return STATUS_UNSUCCESSFUL;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseLinkedToken(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -4832,6 +4832,7 @@ NTSTATUS PhGetAppModelPolicy(
         _Out_ AppModelPolicy_PolicyValue* PolicyValue
         ) = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    NTSTATUS status = STATUS_SUCCESS;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -4852,7 +4853,20 @@ NTSTATUS PhGetAppModelPolicy(
 
         if (PhGetSymbolFromName(symbolProvider, L"GetAppModelPolicy", &symbolInfo))
         {
-            if (NT_SUCCESS(PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), symbolInfo.Address)))
+            PROCESS_MITIGATION_POLICY_INFORMATION mitigation;
+
+            if (
+                WindowsVersion >= WINDOWS_10_RS2 &&
+                NT_SUCCESS(status = PhGetProcessMitigationPolicy(NtCurrentProcess(), ProcessControlFlowGuardPolicy, &mitigation)) &&
+                mitigation.ControlFlowGuardPolicy.EnableExportSuppression
+                )
+            {
+                if (NT_SUCCESS(status = PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), symbolInfo.Address)))
+                {
+                    GetAppModelPolicy_I = symbolInfo.Address;
+                }
+            }
+            else
             {
                 GetAppModelPolicy_I = symbolInfo.Address;
             }
@@ -4878,10 +4892,14 @@ NTSTATUS PhGetAppModelPolicy(
             return STATUS_INVALID_INFO_CLASS;
         }
 
-        return GetAppModelPolicy_I(TokenHandle, PolicyType, PolicyValue);
+        status = GetAppModelPolicy_I(TokenHandle, PolicyType, PolicyValue);
+    }
+    else
+    {
+        status = STATUS_PROCEDURE_NOT_FOUND;
     }
 
-    return STATUS_PROCEDURE_NOT_FOUND;
+    return status;
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)

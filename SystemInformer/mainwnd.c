@@ -97,7 +97,7 @@ BOOLEAN PhMainWndInitialization(
     memset(&windowRectangle, 0, sizeof(PH_RECTANGLE));
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
     PhRectangleToRect(&windowRect, &windowRectangle);
-    windowDpi = PhGetMonitorDpi(&windowRect);
+    windowDpi = PhGetMonitorDpi(NULL, &windowRect);
     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, windowDpi)->Pair;
     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
@@ -358,7 +358,7 @@ VOID PhMwpInitializeProviders(
 }
 
 VOID PhMwpShowWindow(
-    _In_ INT ShowCommand
+    _In_ LONG ShowCommand
     )
 {
     if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && PhNfIconsEnabled())
@@ -410,6 +410,7 @@ VOID PhMwpShowWindow(
     {
         ShowWindow(PhMainWndHandle, ShowCommand);
         UpdateWindow(PhMainWndHandle);
+        PhBringWindowToTop(PhMainWndHandle);
         SetForegroundWindow(PhMainWndHandle);
     }
 
@@ -466,7 +467,7 @@ VOID PhMwpInitializeControls(
         treelistCreateParams.RowHeight = PhGetIntegerSetting(L"TreeListCustomRowSize");
     }
 
-    TabControlHandle = CreateWindow(
+    TabControlHandle = PhCreateWindow(
         WC_TABCONTROL,
         NULL,
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TCS_MULTILINE,
@@ -480,7 +481,7 @@ VOID PhMwpInitializeControls(
         NULL
         );
 
-    PhMwpProcessTreeNewHandle = CreateWindow(
+    PhMwpProcessTreeNewHandle = PhCreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER | thinRows | treelistBorder | treelistCustomColors | treelistCustomHeaderDraw,
@@ -494,7 +495,7 @@ VOID PhMwpInitializeControls(
         &treelistCreateParams
         );
 
-    PhMwpServiceTreeNewHandle = CreateWindow(
+    PhMwpServiceTreeNewHandle = PhCreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
@@ -508,7 +509,7 @@ VOID PhMwpInitializeControls(
         &treelistCreateParams
         );
 
-    PhMwpNetworkTreeNewHandle = CreateWindow(
+    PhMwpNetworkTreeNewHandle = PhCreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
@@ -578,7 +579,7 @@ NTSTATUS PhMwpLoadStage1Worker(
     // only the device notifications. (jxy-s).
     PhMwpInitializeDeviceNotifications();
 
-    // Delayed initialize window title (dmex)
+    // Initialize window title (dmex)
     {
         PPH_STRING windowTitle;
 
@@ -678,6 +679,7 @@ VOID PhMwpOnSettingChange(
     //}
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenServiceControlManager(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -695,6 +697,7 @@ static NTSTATUS PhpOpenServiceControlManager(
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseServiceControlManager(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -706,6 +709,7 @@ static NTSTATUS PhpCloseServiceControlManager(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenSecurityDummyHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -715,6 +719,7 @@ static NTSTATUS PhpOpenSecurityDummyHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyAccessPermissionsHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -725,6 +730,7 @@ static NTSTATUS PhpOpenComDummyAccessPermissionsHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyAccessRestrictionsHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -735,6 +741,7 @@ static NTSTATUS PhpOpenComDummyAccessRestrictionsHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyLaunchPermissionsHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -745,6 +752,7 @@ static NTSTATUS PhpOpenComDummyLaunchPermissionsHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyLaunchRestrictionsHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -755,6 +763,7 @@ static NTSTATUS PhpOpenComDummyLaunchRestrictionsHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenSecurityDesktopHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -777,6 +786,7 @@ static NTSTATUS PhpOpenSecurityDesktopHandle(
     return STATUS_UNSUCCESSFUL;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseSecurityDesktopHandle(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -788,6 +798,7 @@ static NTSTATUS PhpCloseSecurityDesktopHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenSecurityStationHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -809,6 +820,7 @@ static NTSTATUS PhpOpenSecurityStationHandle(
     return STATUS_UNSUCCESSFUL;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseSecurityStationHandle(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -2561,27 +2573,29 @@ VOID PhMwpOnSetFocus(
     _In_ HWND WindowHandle
     )
 {
-    // Update the window status.
-
-    KPH_LEVEL status;
-    PPH_STRING windowTitle;
-
-    if (DelayedLoadCompleted && PhMainWndLevel != (status = KphLevelEx(FALSE)))
-    {
-        PhMainWndLevel = status;
-
-        if (windowTitle = PhMwpInitializeWindowTitle(PhMainWndLevel))
-        {
-            PhSetWindowText(WindowHandle, PhGetString(windowTitle));
-            PhDereferenceObject(windowTitle);
-        }
-    }
-    
     // Update the window focus.
 
     if (CurrentPage->WindowHandle)
     {
         SetFocus(CurrentPage->WindowHandle);
+    }
+
+    // Update the window status.
+
+    {
+        KPH_LEVEL status;
+        PPH_STRING windowTitle;
+
+        if (DelayedLoadCompleted && PhMainWndLevel != (status = KphLevelEx(FALSE)))
+        {
+            PhMainWndLevel = status;
+
+            if (windowTitle = PhMwpInitializeWindowTitle(PhMainWndLevel))
+            {
+                PhSetWindowText(WindowHandle, PhGetString(windowTitle));
+                PhDereferenceObject(windowTitle);
+            }
+        }
     }
 }
 
@@ -3056,7 +3070,7 @@ BOOLEAN PhMwpIsWindowOverlapped(
     RECT rectIntersection = { 0 };
     HWND windowHandle = WindowHandle;
 
-    if (!GetWindowRect(WindowHandle, &rectThisWindow))
+    if (!PhGetWindowRect(WindowHandle, &rectThisWindow))
         return FALSE;
 
     while ((windowHandle = GetWindow(windowHandle, GW_HWNDPREV)) && windowHandle != WindowHandle)
@@ -3064,7 +3078,7 @@ BOOLEAN PhMwpIsWindowOverlapped(
         if (!(PhGetWindowStyle(windowHandle) & WS_VISIBLE))
             continue;
 
-        if (!GetWindowRect(windowHandle, &rectOtherWindow))
+        if (!PhGetWindowRect(windowHandle, &rectOtherWindow))
             continue;
 
         if (!(PhGetWindowStyleEx(windowHandle) & WS_EX_TOPMOST) &&
@@ -4498,6 +4512,17 @@ VOID PhShowIconNotification(
     )
 {
     PhNfShowBalloonTip(Title, Text, 10);
+}
+
+HRESULT PhShowIconNotificationEx(
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Text,
+    _In_ ULONG Timeout,
+    _In_opt_ PPH_TOAST_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    return PhNfShowBalloonTipEx(Title, Text, Timeout, Callback, Context);
 }
 
 VOID PhShowDetailsForIconNotification(

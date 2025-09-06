@@ -1822,8 +1822,13 @@ NTSTATUS PhSetFileIoPriorityHint(
     _In_ IO_PRIORITY_HINT IoPriorityHint
     )
 {
-    FILE_IO_PRIORITY_HINT_INFORMATION ioPriorityHint;
     IO_STATUS_BLOCK ioStatusBlock;
+#ifndef _WIN64
+    FILE_IO_PRIORITY_HINT_INFORMATION ioPriorityHint;
+#else
+    FILE_IO_PRIORITY_HINT_INFORMATION_EX ioPriorityHint;
+#endif
+    memset(&ioPriorityHint, 0, sizeof(ioPriorityHint));
 
     ioPriorityHint.PriorityHint = IoPriorityHint;
 
@@ -1831,7 +1836,7 @@ NTSTATUS PhSetFileIoPriorityHint(
         FileHandle,
         &ioStatusBlock,
         &ioPriorityHint,
-        sizeof(FILE_IO_PRIORITY_HINT_INFORMATION),
+        sizeof(ioPriorityHint),
         FileIoPriorityHintInformation
         );
 }
