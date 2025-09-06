@@ -7343,7 +7343,7 @@ typedef struct _MANAGE_HOT_PATCH_CREATE_PATCH_SECTION
     HANDLE SectionHandle;
 } MANAGE_HOT_PATCH_CREATE_PATCH_SECTION, *PMANAGE_HOT_PATCH_CREATE_PATCH_SECTION;
 
-#ifdef WIN64
+#if defined(_WIN64)
 static_assert(sizeof(MANAGE_HOT_PATCH_LOAD_PATCH) == 0x68, "Size of MANAGE_HOT_PATCH_LOAD_PATCH is incorrect");
 static_assert(sizeof(MANAGE_HOT_PATCH_UNLOAD_PATCH) == 0x50, "Size of MANAGE_HOT_PATCH_UNLOAD_PATCH is incorrect");
 static_assert(sizeof(MANAGE_HOT_PATCH_QUERY_PATCHES) == 0x60, "Size of MANAGE_HOT_PATCH_QUERY_PATCHES is incorrect");
