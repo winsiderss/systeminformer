@@ -215,38 +215,36 @@ typedef struct _LDR_DATA_TABLE_ENTRY
 
 typedef const LDR_DATA_TABLE_ENTRY* PCLDR_DATA_TABLE_ENTRY;
 
-#if defined(WIN64)
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InLoadOrderLinks) == 0x0);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks) == 0x10);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks) == 0x20);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DllBase) == 0x30);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, EntryPoint) == 0x38);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, SizeOfImage) == 0x40);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ObsoleteLoadCount) == 0x6c);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, TimeDateStamp) == 0x80);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DdagNode) == 0x98);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ParentDllBase) == 0xb8);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, OriginalBase) == 0xf8);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, BaseNameHashValue) == 0x108);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, LoadReason) == 0x10c);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, CheckSum) == 0x120);
-C_ASSERT(sizeof(LDR_DATA_TABLE_ENTRY) == 0x138);
+#if defined(_WIN64)
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks) == 0x10, "LDR_DATA_TABLE_ENTRY.InMemoryOrderLinks offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks) == 0x20, "LDR_DATA_TABLE_ENTRY.InInitializationOrderLinks offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DllBase) == 0x30, "LDR_DATA_TABLE_ENTRY.DllBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, EntryPoint) == 0x38, "LDR_DATA_TABLE_ENTRY.EntryPoint offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, SizeOfImage) == 0x40, "LDR_DATA_TABLE_ENTRY.SizeOfImage offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ObsoleteLoadCount) == 0x6c, "LDR_DATA_TABLE_ENTRY.ObsoleteLoadCount offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, TimeDateStamp) == 0x80, "LDR_DATA_TABLE_ENTRY.TimeDateStamp offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DdagNode) == 0x98, "LDR_DATA_TABLE_ENTRY.DdagNode offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ParentDllBase) == 0xb8, "LDR_DATA_TABLE_ENTRY.ParentDllBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, OriginalBase) == 0xf8, "LDR_DATA_TABLE_ENTRY.OriginalBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, BaseNameHashValue) == 0x108, "LDR_DATA_TABLE_ENTRY.BaseNameHashValue offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, LoadReason) == 0x10c, "LDR_DATA_TABLE_ENTRY.LoadReason offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, CheckSum) == 0x120, "LDR_DATA_TABLE_ENTRY.CheckSum offset incorrect");
+static_assert(sizeof(LDR_DATA_TABLE_ENTRY) == 0x138, "LDR_DATA_TABLE_ENTRY incorrect size");
 #else
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InLoadOrderLinks) == 0x0);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks) == 0x8);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks) == 0x10);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DllBase) == 0x18);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, EntryPoint) == 0x1c);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, SizeOfImage) == 0x20);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ObsoleteLoadCount) == 0x38);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, TimeDateStamp) == 0x44);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DdagNode) == 0x50);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ParentDllBase) == 0x60);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, OriginalBase) == 0x80);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, BaseNameHashValue) == 0x90);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, LoadReason) == 0x94);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, CheckSum) == 0xA8);
-C_ASSERT(sizeof(LDR_DATA_TABLE_ENTRY) == 0xB8);
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks) == 0x8, "LDR_DATA_TABLE_ENTRY.InMemoryOrderLinks offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks) == 0x10, "LDR_DATA_TABLE_ENTRY.InInitializationOrderLinks offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DllBase) == 0x18, "LDR_DATA_TABLE_ENTRY.DllBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, EntryPoint) == 0x1c, "LDR_DATA_TABLE_ENTRY.EntryPoint offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, SizeOfImage) == 0x20, "LDR_DATA_TABLE_ENTRY.SizeOfImage offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ObsoleteLoadCount) == 0x38, "LDR_DATA_TABLE_ENTRY.ObsoleteLoadCount offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, TimeDateStamp) == 0x44, "LDR_DATA_TABLE_ENTRY.TimeDateStamp offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DdagNode) == 0x50, "LDR_DATA_TABLE_ENTRY.DdagNode offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ParentDllBase) == 0x60, "LDR_DATA_TABLE_ENTRY.ParentDllBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, OriginalBase) == 0x80, "LDR_DATA_TABLE_ENTRY.OriginalBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, BaseNameHashValue) == 0x90, "LDR_DATA_TABLE_ENTRY.BaseNameHashValue offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, LoadReason) == 0x94, "LDR_DATA_TABLE_ENTRY.LoadReason offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, CheckSum) == 0xA8, "LDR_DATA_TABLE_ENTRY.CheckSum offset incorrect");
+static_assert(sizeof(LDR_DATA_TABLE_ENTRY) == 0xB8, "LDR_DATA_TABLE_ENTRY incorrect size");
 #endif
 
 #define LDR_IS_DATAFILE(DllHandle) (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)1)
