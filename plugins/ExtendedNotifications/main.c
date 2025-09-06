@@ -292,8 +292,8 @@ PPH_STRING SaveFilterList(
 
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_STRING settings;
@@ -781,6 +781,12 @@ INT_PTR CALLBACK ProcessesDlgProc(
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&LayoutManager);
@@ -848,6 +854,12 @@ INT_PTR CALLBACK ServicesDlgProc(
             EditingServiceFilterList = NULL;
 
             PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_SIZE:
@@ -919,6 +931,12 @@ INT_PTR CALLBACK DevicesDlgProc(
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&LayoutManager);
@@ -961,6 +979,12 @@ INT_PTR CALLBACK LoggingDlgProc(
             PhSetStringSetting2(SETTING_NAME_LOG_FILENAME, &PhaGetDlgItemText(hwndDlg, IDC_LOGFILENAME)->sr);
 
             PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_SIZE:

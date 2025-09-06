@@ -167,8 +167,8 @@ VOID PhEditSecurity(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
-    _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     )
 {
@@ -208,8 +208,8 @@ VOID PhEditSecurityEx(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
-    _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context
@@ -649,9 +649,9 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
     {
         static SI_INHERIT_TYPE inheritTypes[] =
         {
-            { 0, 0, L"This namespace only" },
-            { 0, CONTAINER_INHERIT_ACE, L"This namespace and subnamespaces" },
-            { 0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subnamespaces only" },
+            { NULL, 0, L"This namespace only" },
+            { NULL, CONTAINER_INHERIT_ACE, L"This namespace and subnamespaces" },
+            { NULL, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subnamespaces only" },
         };
 
         *InheritTypes = inheritTypes;
@@ -662,17 +662,15 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
     {
         static SI_INHERIT_TYPE inheritTypes[] =
         {
-            { 0, 0, L"This folder only" },
-            { 0, CONTAINER_INHERIT_ACE, L"This folder, subfolders and files" },
-            { 0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subfolders and files only" },
+            { NULL, 0, L"This folder only" },
+            { NULL, CONTAINER_INHERIT_ACE, L"This folder, subfolders and files" },
+            { NULL, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subfolders and files only" },
         };
 
         *InheritTypes = inheritTypes;
         *InheritTypesCount = RTL_NUMBER_OF(inheritTypes);
         return S_OK;
     }
-
-    return E_NOTIMPL;
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
@@ -833,7 +831,7 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation3_Release(
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
     _In_ ISecurityInformation3 *This,
-    _Outptr_ PCWSTR *ResourceName
+    _Outptr_ PWSTR *ResourceName
     )
 {
     PhSecurityInformation3 *this = (PhSecurityInformation3 *)This;
@@ -941,12 +939,15 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
             {
             case SidTypeUser:
             case SidTypeLogonSession:
+            case SidTypeDeletedAccount:
                 sidInfo.pwzClass = L"User";
                 break;
             case SidTypeAlias:
             case SidTypeGroup:
+            case SidTypeWellKnownGroup:
                 sidInfo.pwzClass = L"Group";
                 break;
+            case SidTypeDomain:
             case SidTypeComputer:
                 sidInfo.pwzClass = L"Computer";
                 break;
@@ -1246,8 +1247,8 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
     _Out_ PULONG GrantedAccessListLength
     )
 {
-    ULONG status;
-    OBJECT_TYPE_LIST defaultObjectTypeList[1] = { 0 };
+    static OBJECT_TYPE_LIST defaultObjectTypeList[1] = { 0 };
+    NTSTATUS status;
     BOOLEAN present = FALSE;
     BOOLEAN defaulted = FALSE;
     PACL dacl = NULL;
@@ -1261,26 +1262,33 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
         &dacl
         );
 
-    if (!NT_SUCCESS(status))
-        return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
-
-    if (!(accessRights = (PACCESS_MASK)LocalAlloc(LPTR, sizeof(PACCESS_MASK) + sizeof(ACCESS_MASK))))
-        return HRESULT_FROM_WIN32(ERROR_OUTOFMEMORY);
-
-    PhBuildTrusteeWithSid(&trustee, UserSid);
-    status = GetEffectiveRightsFromAcl(dacl, &trustee, accessRights);
-
-    if (status != ERROR_SUCCESS)
+    if (NT_SUCCESS(status))
     {
-        LocalFree(accessRights);
-        return HRESULT_FROM_WIN32(status);
+        if (dacl && (accessRights = (PACCESS_MASK)LocalAlloc(LPTR, sizeof(PACCESS_MASK) + sizeof(ACCESS_MASK))))
+        {
+            PhBuildTrusteeWithSid(&trustee, UserSid);
+
+            status = GetEffectiveRightsFromAcl(dacl, &trustee, accessRights);
+
+            if (status == ERROR_SUCCESS)
+            {
+                *ObjectTypeList = defaultObjectTypeList;
+                *ObjectTypeListLength = 1;
+                *GrantedAccessList = accessRights;
+                *GrantedAccessListLength = 1;
+                return S_OK;
+            }
+            else
+            {
+                LocalFree(accessRights);
+                return HRESULT_FROM_WIN32(status);
+            }
+        }
+
+        return HRESULT_FROM_WIN32(ERROR_OUTOFMEMORY);
     }
 
-    *ObjectTypeList = (POBJECT_TYPE_LIST)defaultObjectTypeList;
-    *ObjectTypeListLength = 1;
-    *GrantedAccessList = accessRights;
-    *GrantedAccessListLength = 1;
-    return S_OK;
+    return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
 }
 
 NTSTATUS PhpGetObjectSecurityWithTimeout(
@@ -1510,7 +1518,10 @@ NTSTATUS PhGetSeObjectSecurity(
         );
 
     if (win32Result != ERROR_SUCCESS)
+    {
+        *SecurityDescriptor = NULL;
         return PhDosErrorToNtStatus(win32Result);
+    }
 
     *SecurityDescriptor = PhAllocateCopy(securityDescriptor, RtlLengthSecurityDescriptor(securityDescriptor));
     LocalFree(securityDescriptor);
@@ -1536,25 +1547,25 @@ NTSTATUS PhSetSeObjectSecurity(
 
     if (FlagOn(SecurityInformation, OWNER_SECURITY_INFORMATION))
     {
-        if (NT_SUCCESS(RtlGetOwnerSecurityDescriptor(SecurityDescriptor, &owner, &defaulted)))
+        if (NT_SUCCESS(PhGetOwnerSecurityDescriptor(SecurityDescriptor, &owner, &defaulted)))
             SetFlag(securityInformation, OWNER_SECURITY_INFORMATION);
     }
 
     if (FlagOn(SecurityInformation, GROUP_SECURITY_INFORMATION))
     {
-        if (NT_SUCCESS(RtlGetGroupSecurityDescriptor(SecurityDescriptor, &group, &defaulted)))
+        if (NT_SUCCESS(PhGetGroupSecurityDescriptor(SecurityDescriptor, &group, &defaulted)))
             SetFlag(securityInformation, GROUP_SECURITY_INFORMATION);
     }
 
     if (FlagOn(SecurityInformation, DACL_SECURITY_INFORMATION))
     {
-        if (NT_SUCCESS(RtlGetDaclSecurityDescriptor(SecurityDescriptor, &present, &dacl, &defaulted)) && present)
+        if (NT_SUCCESS(PhGetDaclSecurityDescriptor(SecurityDescriptor, &present, &dacl, &defaulted)) && present)
             SetFlag(securityInformation, DACL_SECURITY_INFORMATION);
     }
 
     if (FlagOn(SecurityInformation, SACL_SECURITY_INFORMATION))
     {
-        if (NT_SUCCESS(RtlGetSaclSecurityDescriptor(SecurityDescriptor, &present, &sacl, &defaulted)) && present)
+        if (NT_SUCCESS(PhGetSaclSecurityDescriptor(SecurityDescriptor, &present, &sacl, &defaulted)) && present)
             SetFlag(securityInformation, SACL_SECURITY_INFORMATION);
     }
 
@@ -1563,7 +1574,7 @@ NTSTATUS PhSetSeObjectSecurity(
         SECURITY_DESCRIPTOR_CONTROL control;
         ULONG revision;
 
-        if (NT_SUCCESS(RtlGetControlSecurityDescriptor(SecurityDescriptor, &control, &revision)))
+        if (NT_SUCCESS(PhGetControlSecurityDescriptor(SecurityDescriptor, &control, &revision)))
         {
             if (FlagOn(SecurityInformation, DACL_SECURITY_INFORMATION))
             {
@@ -1673,7 +1684,7 @@ NTSTATUS PhGetSeObjectSecurityTokenDefault(
         ULONG allocationLength;
         ULONG allocationLengthRelative = 0;
         PSECURITY_DESCRIPTOR securityDescriptor;
-        PSECURITY_DESCRIPTOR securityRelative;
+        PSECURITY_DESCRIPTOR securityRelative = NULL;
 
         allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + defaultDacl->DefaultDacl->AclSize;
 
@@ -1699,9 +1710,8 @@ NTSTATUS PhGetSeObjectSecurityTokenDefault(
 
         assert(allocationLengthRelative == RtlLengthSecurityDescriptor(securityRelative));
 
-        *SecurityDescriptor = securityRelative;
-
 CleanupExit:
+        *SecurityDescriptor = securityRelative;
         assert(RtlValidSecurityDescriptor(securityDescriptor));
         PhFree(securityDescriptor);
         PhFree(defaultDacl);
@@ -1802,22 +1812,19 @@ NTSTATUS PhSetSeObjectSecurityPowerGuid(
     // 2) The group must always be NT AUTHORITY\SYSTEM.
     // 3) Remove the INHERIT_REQ flag (not required but makes the sddl consistent with powercfg).
 
-    RtlSetOwnerSecurityDescriptor(SecurityDescriptor, PhSeAdministratorsSid(), TRUE);
-    RtlSetGroupSecurityDescriptor(SecurityDescriptor, (PSID)&PhSeLocalSystemSid, TRUE);
-    RtlSetControlSecurityDescriptor(SecurityDescriptor, SE_DACL_PROTECTED | SE_DACL_AUTO_INHERIT_REQ, SE_DACL_PROTECTED);
+    PhSetOwnerSecurityDescriptor(SecurityDescriptor, PhSeAdministratorsSid(), TRUE);
+    PhSetGroupSecurityDescriptor(SecurityDescriptor, (PSID)&PhSeLocalSystemSid, TRUE);
+    PhSetControlSecurityDescriptor(SecurityDescriptor, SE_DACL_PROTECTED | SE_DACL_AUTO_INHERIT_REQ, SE_DACL_PROTECTED);
 
-    if (powerPolicySddl = PhGetSecurityDescriptorAsString(
+    if (NT_SUCCESS(status = PhGetSecurityDescriptorAsString(
+        SecurityDescriptor,
         OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
         DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION,
-        SecurityDescriptor
-        ))
+        &powerPolicySddl
+        )))
     {
         status = PhpSetPowerPolicySecurityDescriptor(powerPolicySddl);
         PhDereferenceObject(powerPolicySddl);
-    }
-    else
-    {
-        status = STATUS_INVALID_SECURITY_DESCR;
     }
 
     return status;

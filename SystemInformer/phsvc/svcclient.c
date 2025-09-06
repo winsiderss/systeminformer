@@ -12,6 +12,7 @@
 #include <phapp.h>
 #include <phsvc.h>
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhSvcpClientDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -48,6 +49,7 @@ PPHSVC_CLIENT PhSvcCreateClient(
     return client;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhSvcpClientDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

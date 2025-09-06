@@ -34,7 +34,7 @@ typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
     PPH_STRING ServiceName;
 } PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS, *PPHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS;
 
-CONST PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
+static CONST PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
 {
     PhSvcApiPlugin,
     PhSvcApiExecuteRunAsCommand,
@@ -56,7 +56,7 @@ CONST PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiWriteMiniDumpProcess,
     PhSvcApiQueryProcessHeapInformation
 };
-C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
+static_assert(RTL_NUMBER_OF(PhSvcApiCallTable) == PhSvcMaximumApiNumber - 1, "SvcApiCallTable must equal MaximumApiNumber");
 
 NTSTATUS PhSvcApiInitialization(
     VOID
@@ -115,6 +115,7 @@ PVOID PhSvcValidateString(
     return address;
 }
 
+_Function_class_(PHSVC_SERVER_PROBE_BUFFER)
 NTSTATUS PhSvcProbeBuffer(
     _In_ PPH_RELATIVE_STRINGREF String,
     _In_ ULONG Alignment,
@@ -144,6 +145,7 @@ NTSTATUS PhSvcProbeBuffer(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PHSVC_SERVER_CAPTURE_BUFFER)
 NTSTATUS PhSvcCaptureBuffer(
     _In_ PPH_RELATIVE_STRINGREF String,
     _In_ BOOLEAN AllowNull,
@@ -308,6 +310,7 @@ NTSTATUS PhSvcApiDefault(
     return STATUS_NOT_IMPLEMENTED;
 }
 
+_Function_class_(PHSVC_API_PROCEDURE)
 NTSTATUS PhSvcApiPlugin(
     _In_ PPHSVC_CLIENT Client,
     _Inout_ PPHSVC_API_PAYLOAD Payload
@@ -388,6 +391,7 @@ NTSTATUS PhSvcpCaptureRunAsServiceParameters(
     Parameters->ServiceName = PhGetString(CapturedParameters->ServiceName);
     Parameters->CreateSuspendedProcess = Payload->u.ExecuteRunAsCommand.i.CreateSuspendedProcess;
     Parameters->CreateUIAccessProcess = Payload->u.ExecuteRunAsCommand.i.CreateUIAccessProcess;
+    Parameters->WindowHandle = Payload->u.ExecuteRunAsCommand.i.WindowHandle;
 
     return status;
 }
@@ -1329,18 +1333,22 @@ NTSTATUS PhSvcApiSendMessage(
     _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
-    if (SendMessage(
+    ULONG_PTR result = 0;
+
+    if (PhSendMessageTimeout(
         Payload->u.PostMessage.i.hWnd,
         Payload->u.PostMessage.i.Msg,
         Payload->u.PostMessage.i.wParam,
-        Payload->u.PostMessage.i.lParam
-        ))
+        Payload->u.PostMessage.i.lParam,
+        5000,
+        &result
+        ) && result > 0)
     {
         return STATUS_SUCCESS;
     }
     else
     {
-        return PhGetLastWin32ErrorAsNtStatus();
+        return STATUS_UNSUCCESSFUL;
     }
 }
 

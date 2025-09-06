@@ -130,7 +130,7 @@ INT_PTR CALLBACK EtTpmEditorDlgProc(
                     LONG dpiValue;
 
                     PhRectangleToRect(&rect, &windowRectangle);
-                    dpiValue = PhGetMonitorDpi(&rect);
+                    dpiValue = PhGetMonitorDpi(NULL, &rect);
 
                     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue)->Pair;
                     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
@@ -283,6 +283,12 @@ INT_PTR CALLBACK EtTpmEditorDlgProc(
         break;
     case WM_SIZE:
         {
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;

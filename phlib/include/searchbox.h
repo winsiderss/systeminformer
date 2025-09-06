@@ -27,7 +27,7 @@ VOID
 NTAPI
 PhCreateSearchControlEx(
     _In_ HWND ParentWindowHandle,
-    _In_ HWND WindowHandle,
+    _In_ HWND SearchWindowHandle,
     _In_opt_ PCWSTR BannerText,
     _In_ PVOID ImageBaseAddress,
     _In_ PCWSTR SearchButtonResource,

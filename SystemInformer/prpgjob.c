@@ -13,6 +13,7 @@
 #include <procprp.h>
 #include <kphuser.h>
 
+_Function_class_(PH_OPEN_OBJECT)
 NTSTATUS NTAPI PhpOpenProcessJobForPage(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -45,6 +46,7 @@ NTSTATUS NTAPI PhpOpenProcessJobForPage(
     return status;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS NTAPI PhpCloseProcessJobForPage(
     _In_ HANDLE Handle,
     _In_ BOOLEAN Release,

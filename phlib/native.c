@@ -115,22 +115,6 @@ NTSTATUS PhSetObjectSecurity(
         );
 }
 
-#define AUDIT_ALARM_ACE_TYPE_MASK ( \
-    (1 << SYSTEM_AUDIT_ACE_TYPE) | \
-    (1 << SYSTEM_ALARM_ACE_TYPE) | \
-    (1 << SYSTEM_AUDIT_OBJECT_ACE_TYPE) | \
-    (1 << SYSTEM_ALARM_OBJECT_ACE_TYPE) | \
-    (1 << SYSTEM_AUDIT_CALLBACK_ACE_TYPE) | \
-    (1 << SYSTEM_ALARM_CALLBACK_ACE_TYPE) | \
-    (1 << SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE) | \
-    (1 << SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE))
-
-#define MANDATORY_LABEL_ACE_TYPE_MASK (1 << SYSTEM_MANDATORY_LABEL_ACE_TYPE)
-#define RESOURCE_ATTRIBUTE_ACE_TYPE_MASK (1 << SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE)
-#define SCOPED_POLICY_ACE_TYPE_MASK (1 << SYSTEM_SCOPED_POLICY_ID_ACE_TYPE)
-#define PROCESS_TRUST_ACE_TYPE_MASK (1 << SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE)
-#define ACCESS_FILTER_ACE_TYPE_MASK (1 << SYSTEM_ACCESS_FILTER_ACE_TYPE)
-
 /**
  * Merges two SACLs according to the provided security information.
  * The function preserves ACEs not covered by the change from the lower SACL and replaces other
@@ -203,7 +187,7 @@ NTSTATUS PhMergeSystemAcls(
 
         for (USHORT i = 0; i < LowerSacl->AceCount; i++)
         {
-            if ((PVOID)ace >= lowerSaclEnd)
+            if ((ULONG_PTR)ace >= (ULONG_PTR)lowerSaclEnd)
                 return STATUS_UNSUCCESSFUL;
 
             if (!((1 << ace->AceType) & aceTypesToReplace))
@@ -222,7 +206,7 @@ NTSTATUS PhMergeSystemAcls(
 
         for (USHORT i = 0; i < HigherSacl->AceCount; i++)
         {
-            if ((PVOID)ace >= higherSaclEnd)
+            if ((ULONG_PTR)ace >= (ULONG_PTR)higherSaclEnd)
                 return STATUS_UNSUCCESSFUL;
 
             if ((1 << ace->AceType) & aceTypesToReplace)
@@ -337,7 +321,7 @@ NTSTATUS PhMergeSecurityDescriptors(
 
     // Choose the DACL
 
-    status = RtlGetDaclSecurityDescriptor(
+    status = PhGetDaclSecurityDescriptor(
         (SecurityInformation & DACL_SECURITY_INFORMATION) ? HigherSecurityDescriptor : LowerSecurityDescriptor,
         &present,
         &acl,
@@ -347,7 +331,7 @@ NTSTATUS PhMergeSecurityDescriptors(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = RtlSetDaclSecurityDescriptor(
+    status = PhSetDaclSecurityDescriptor(
         &mergedSecurityDescriptor,
         present,
         acl,
@@ -359,7 +343,7 @@ NTSTATUS PhMergeSecurityDescriptors(
 
     // Choose the owner
 
-    status = RtlGetOwnerSecurityDescriptor(
+    status = PhGetOwnerSecurityDescriptor(
         (SecurityInformation & OWNER_SECURITY_INFORMATION) ? HigherSecurityDescriptor : LowerSecurityDescriptor,
         &sid,
         &defaulted
@@ -371,7 +355,7 @@ NTSTATUS PhMergeSecurityDescriptors(
     if (!sid)
         return STATUS_INVALID_OWNER;
 
-    status = RtlSetOwnerSecurityDescriptor(
+    status = PhSetOwnerSecurityDescriptor(
         &mergedSecurityDescriptor,
         sid,
         defaulted
@@ -382,7 +366,7 @@ NTSTATUS PhMergeSecurityDescriptors(
 
     // Choose the primary group
 
-    status = RtlGetGroupSecurityDescriptor(
+    status = PhGetGroupSecurityDescriptor(
         (SecurityInformation & GROUP_SECURITY_INFORMATION) ? HigherSecurityDescriptor : LowerSecurityDescriptor,
         &sid,
         &defaulted
@@ -394,7 +378,7 @@ NTSTATUS PhMergeSecurityDescriptors(
     if (!sid)
         return STATUS_INVALID_PRIMARY_GROUP;
 
-    status = RtlSetGroupSecurityDescriptor(
+    status = PhSetGroupSecurityDescriptor(
         &mergedSecurityDescriptor,
         sid,
         defaulted
@@ -405,7 +389,7 @@ NTSTATUS PhMergeSecurityDescriptors(
 
     // Collect both SACLs
 
-    status = RtlGetSaclSecurityDescriptor(
+    status = PhGetSaclSecurityDescriptor(
         LowerSecurityDescriptor,
         &present,
         &lowerSacl,
@@ -418,7 +402,7 @@ NTSTATUS PhMergeSecurityDescriptors(
     if (!present)
         lowerSacl = NULL;
 
-    status = RtlGetSaclSecurityDescriptor(
+    status = PhGetSaclSecurityDescriptor(
         HigherSecurityDescriptor,
         &present,
         &higherSacl,
@@ -443,7 +427,7 @@ NTSTATUS PhMergeSecurityDescriptors(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = RtlSetSaclSecurityDescriptor(
+    status = PhSetSaclSecurityDescriptor(
         &mergedSecurityDescriptor,
         !!mergedSacl,
         mergedSacl,
@@ -768,7 +752,7 @@ NTSTATUS PhGetProcessUnloadedDlls(
     PULONG elementCount;
     PVOID eventTrace;
     HANDLE processHandle = NULL;
-    ULONG eventTraceSize;
+    SIZE_T eventTraceSize;
     ULONG capturedElementSize = 0;
     ULONG capturedElementCount = 0;
     PVOID capturedEventTracePointer;
@@ -950,6 +934,47 @@ NTSTATUS PhGetWindowClientId(
 
     return STATUS_NOT_FOUND;
 }
+
+/*
+ * Opens a job object.
+ *
+ * \param JobHandle A variable which receives a handle to the job object.
+ * \param DesiredAccess The desired access to the job object.
+ * \param RootDirectory A handle to the object directory of the job.
+ * \param ObjectName The name of the job object.
+ * \return Returns the status of the operation.
+ */
+NTSTATUS PhOpenJobObject(
+    _Out_ PHANDLE JobHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_ PCPH_STRINGREF ObjectName
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    if (!PhStringRefToUnicodeString(ObjectName, &objectName))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        RootDirectory,
+        NULL
+        );
+
+    status = NtOpenJobObject(
+        JobHandle,
+        DesiredAccess,
+        &objectAttributes
+        );
+
+    return status;
+}
+
 
 NTSTATUS PhGetJobProcessIdList(
     _In_ HANDLE JobHandle,
@@ -2749,6 +2774,7 @@ NTSTATUS PhEnumBigPoolInformation(
     return status;
 }
 
+_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
 static BOOLEAN NTAPI PhIsContainerEnumCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
@@ -2756,14 +2782,13 @@ static BOOLEAN NTAPI PhIsContainerEnumCallback(
     _In_ PVOID Context
     )
 {
-    static CONST PH_STRINGREF typeName = PH_STRINGREF_INIT(L"Job");
     HANDLE objectHandle;
     UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
 
     if (!PhStringRefToUnicodeString(Name, &objectName))
         return TRUE;
-    if (!PhEqualStringRef(TypeName, &typeName, FALSE))
+    if (!PhEqualStringRef2(TypeName, L"Job", FALSE))
         return TRUE;
 
     InitializeObjectAttributes(
@@ -2782,6 +2807,89 @@ static BOOLEAN NTAPI PhIsContainerEnumCallback(
     return TRUE;
 }
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
+static BOOLEAN NTAPI ComputeSystemKeyCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_ PVOID Context
+    )
+{
+    static CONST PH_STRINGREF objectNamePrefix = PH_STRINGREF_INIT(L"Container_");
+    PKEY_BASIC_INFORMATION basicInfo = (PKEY_BASIC_INFORMATION)Information;
+    PH_STRINGREF keyName;
+    PPH_STRING string;
+
+    keyName.Buffer = basicInfo->Name;
+    keyName.Length = basicInfo->NameLength;
+
+    if (string = PhConcatStringRef2(&objectNamePrefix, &keyName))
+    {
+        HANDLE objectHandle;
+
+        if (NT_SUCCESS(PhOpenJobObject(
+            &objectHandle,
+            JOB_OBJECT_QUERY,
+            NULL,
+            &string->sr
+            )))
+        {
+            PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
+
+            if (NT_SUCCESS(PhGetJobProcessIdList(objectHandle, &processIdList)))
+            {
+                ULONG i;
+                CLIENT_ID clientId;
+
+                clientId.UniqueThread = NULL;
+
+                for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
+                {
+                    clientId.UniqueProcess = (HANDLE)processIdList->ProcessIdList[i];
+                }
+
+                PhFree(processIdList);
+            }
+
+            // JobObjectAssociateCompletionPortInformation for process start/stop notifications (dmex)
+
+            NtClose(objectHandle);
+        }
+    }
+
+    return TRUE;
+}
+
+NTSTATUS PhEnumHostComputeService(
+    _In_ HANDLE ProcessId
+    )
+{
+    static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem");
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhEnumerateKey(
+            keyHandle,
+            KeyBasicInformation,
+            ComputeSystemKeyCallback,
+            NULL
+            );
+
+        NtClose(keyHandle);
+    }
+
+    return status;
+}
+
 /**
  * Determines if a process is managed.
  *
@@ -2795,6 +2903,22 @@ NTSTATUS PhGetProcessIsContainer(
     _Out_opt_ PBOOLEAN IsContainer
     )
 {
+    static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem");
+    HANDLE keyHandle;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName,
+        0
+        )))
+    {
+        PhEnumerateKey(keyHandle, KeyBasicInformation, ComputeSystemKeyCallback, NULL);
+
+        NtClose(keyHandle);
+    }
+
     static CONST PH_STRINGREF directoryName = PH_STRINGREF_INIT(L"\\");
     NTSTATUS status;
     HANDLE directoryHandle;
@@ -3978,6 +4102,92 @@ CleanupExit:
     return status;
 }
 
+PPH_STRING PhResolveMountPrefix(
+    _In_ PCPH_STRINGREF Name
+    )
+{
+    NTSTATUS status;
+    HANDLE deviceHandle;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    PMOUNTMGR_MOUNT_POINTS deviceMountPoints;
+    PPH_STRING newName = NULL;
+
+    RtlInitUnicodeString(&objectName, MOUNTMGR_DEVICE_NAME);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateFile(
+        &deviceHandle,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        &objectAttributes,
+        &ioStatusBlock,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    status = PhGetVolumeMountPoints(
+        deviceHandle,
+        &deviceMountPoints
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    for (ULONG i = 0; i < deviceMountPoints->NumberOfMountPoints; i++)
+    {
+        PMOUNTMGR_MOUNT_POINT entry = &deviceMountPoints->MountPoints[i];
+        PH_STRINGREF linkPrefix = { entry->SymbolicLinkNameLength,
+            PTR_ADD_OFFSET(deviceMountPoints, entry->SymbolicLinkNameOffset)
+        };
+        PH_STRINGREF devicePrefix = { entry->DeviceNameLength,
+            PTR_ADD_OFFSET(deviceMountPoints, entry->DeviceNameOffset)
+        };
+
+        if (PhStartsWithStringRef(Name, &devicePrefix, TRUE))
+        {
+            if (PATH_IS_WIN32_DOSDEVICES_PREFIX(&linkPrefix) && linkPrefix.Buffer[1] == L'?')
+            {
+                // \??\Volume -> \\?\Volume
+                linkPrefix.Buffer[1] = OBJ_NAME_PATH_SEPARATOR;
+            }
+
+            // \\Device\\VhdHardDisk{12345678-abcd-1234-abcd-123456789abc} -> \\\\?\\Volume{12345678-abcd-1234-abcd-123456789abc}
+
+            newName = PhCreateStringEx(NULL, linkPrefix.Length + (Name->Length - devicePrefix.Length));
+            memcpy(newName->Buffer, linkPrefix.Buffer, linkPrefix.Length);
+            memcpy(
+                PTR_ADD_OFFSET(newName->Buffer, linkPrefix.Length),
+                &Name->Buffer[devicePrefix.Length / sizeof(WCHAR)],
+                Name->Length - devicePrefix.Length
+                );
+            PhTrimToNullTerminatorString(newName);
+            break;
+        }
+    }
+
+    PhFree(deviceMountPoints);
+
+CleanupExit:
+    NtClose(deviceHandle);
+
+    return newName;
+}
+
 /**
  * Resolves a NT path into a Win32 path.
  *
@@ -4088,6 +4298,12 @@ PPH_STRING PhResolveDevicePrefix(
         }
 
         PhReleaseQueuedLockShared(&PhDeviceMupPrefixesLock);
+    }
+
+    if (PhIsNullOrEmptyString(newName) && (Name->Length != 0 && Name->Buffer[0] == OBJ_NAME_PATH_SEPARATOR))
+    {
+        // We didn't find a match. Try the mount point prefixes.
+        newName = PhResolveMountPrefix(Name);
     }
 
     if (newName)
@@ -5377,6 +5593,12 @@ BOOLEAN PhDoesDirectoryExist(
 }
 
 // rev from RtlDetermineDosPathNameType_U (dmex)
+/**
+ * Determines the type of DOS path name.
+ *
+ * \param FileName A reference to the file name string.
+ * \return The type of the DOS path name.
+ */
 RTL_PATH_TYPE PhDetermineDosPathNameType(
     _In_ PCPH_STRINGREF FileName
     )

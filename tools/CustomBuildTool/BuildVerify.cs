@@ -11,7 +11,7 @@
 
 namespace CustomBuildTool
 {
-    public static class Verify
+    public static class BuildVerify
     {
         public static readonly SortedDictionary<string, KeyValuePair<string, string>> KeyName_Vars = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -116,8 +116,26 @@ namespace CustomBuildTool
 
         public static bool CreateSigFile(string KeyName, string FileName, bool StrictChecks)
         {
+            if (string.IsNullOrWhiteSpace(KeyName))
+            {
+                Program.PrintColorMessage($"[ERROR] CreateSigFile: KeyName is empty.", ConsoleColor.Red);
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(FileName))
+            {
+                Program.PrintColorMessage($"[ERROR] CreateSigFile: FileName is empty.", ConsoleColor.Red);
+                return false;
+            }
+
             try
             {
+                if (!File.Exists(FileName))
+                {
+                    Program.PrintColorMessage($"[ERROR] File missing: {FileName}", ConsoleColor.Red);
+                    return false;
+                }
+
                 string sigFileName = Path.ChangeExtension(FileName, ".sig");
 
                 if (!GetKeyMaterial(KeyName, out byte[] keyMaterial))
@@ -139,15 +157,9 @@ namespace CustomBuildTool
                     }
                 }
 
-                if (File.Exists(FileName))
-                {
-                    var signature = Sign(keyMaterial, FileName);
-                    Utils.WriteAllBytes(sigFileName, signature);
-                }
-                else
-                {
-                    Program.PrintColorMessage($"[Skipped] {FileName}", ConsoleColor.Yellow);
-                }
+                byte[] signature = SignFile(keyMaterial, FileName);
+
+                Utils.WriteAllBytes(sigFileName, signature);
             }
             catch (Exception e)
             {
@@ -158,22 +170,20 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool CreateSigString(string KeyName, string FileName, out string Signature)
+        public static string CreateSigString(string KeyName, string FileName)
         {
-            Signature = null;
+            if (File.Exists(FileName))
+                return null;
 
             try
             {
                 if (GetKeyMaterial(KeyName, out byte[] keyMaterial))
                 {
-                    if (File.Exists(FileName))
+                    byte[] signature = SignFile(keyMaterial, FileName);
+
+                    if (signature.Length != 0)
                     {
-                        var signature = Sign(keyMaterial, FileName);
-                        Signature = Convert.ToHexString(signature);
-                    }
-                    else
-                    {
-                        Program.PrintColorMessage($"[Skipped] {FileName}", ConsoleColor.Yellow);
+                        return Convert.ToHexString(signature);
                     }
                 }
             }
@@ -182,7 +192,7 @@ namespace CustomBuildTool
                 Program.PrintColorMessage($"Unable to create signature string {Path.GetFileName(FileName)}: {e}", ConsoleColor.Yellow);
             }
 
-            return !string.IsNullOrWhiteSpace(Signature);
+            return null;
         }
 
         private static byte[] Encrypt(Stream Stream, string Secret, string Salt)
@@ -316,7 +326,7 @@ namespace CustomBuildTool
             return buffer;
         }
 
-        private static byte[] Sign(byte[] KeyMaterial, string FileName)
+        private static byte[] SignFile(byte[] KeyMaterial, string FileName)
         {
             byte[] buffer;
 
@@ -344,6 +354,32 @@ namespace CustomBuildTool
             }
 
             return buffer;
+        }
+
+        public static void PrintCngPublicKeyInfo(byte[] KeyBlob, CngKeyBlobFormat KeyFormat)
+        {
+            using (CngKey cngkey = CngKey.Import(KeyBlob, KeyFormat))
+            {
+                if (cngkey.Algorithm == CngAlgorithm.ECDsaP256)
+                {
+                    using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
+                    {
+                        Program.PrintColorMessage($"{ecdsa.ExportSubjectPublicKeyInfoPem()}\n", ConsoleColor.White);
+                    }
+                }
+                else if (cngkey.Algorithm == CngAlgorithm.Rsa)
+                {
+                    using (RSACng rsa = new RSACng(cngkey))
+                    {
+                        Program.PrintColorMessage($"{rsa.ExportSubjectPublicKeyInfoPem()}\n", ConsoleColor.White);
+                        Program.PrintColorMessage($"{rsa.ExportRSAPublicKeyPem()}\n", ConsoleColor.White);
+                    }
+                }
+                else
+                {
+                    throw new NotSupportedException($"Unsupported algorithm: {cngkey.Algorithm}");
+                }
+            }
         }
 
         private static string GetPath(string FileName)

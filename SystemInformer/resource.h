@@ -46,6 +46,7 @@
 #define IDD_OBJSECTION                  148
 #define IDD_AFFINITY                    149
 #define IDD_SYSINFO                     150
+#define IDD_HNDLSECURITY                151
 #define IDD_EDITMESSAGE                 152
 #define IDD_SESSION                     153
 #define IDD_PROCMEMORY                  154
@@ -131,6 +132,8 @@
 #define IDD_CHOOSENEW                   275
 #define IDD_MEMSTRINGSMINLEN            276
 #define IDD_MEMSTRINGS                  277
+#define IDD_HNDLAUDITING                278
+#define IDD_HNDLSECAUDIT                278
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -843,6 +846,7 @@
 #define ID_MINIINFO_REFRESHAUTOMATICALLY 40289
 #define ID_TOOLS_STARTRESOURCEMONITOR   40290
 #define ID_TOOLS_SHUTDOWNWSLPROCESSES   40291
+#define ID_HANDLE_GOTOOWNINGPROCESS     40292
 #define IDC_MAXSCREEN                   40293
 #define ID_PRIVILEGE_RESET              40296
 #define ID_GROUP_ENABLE                 40297

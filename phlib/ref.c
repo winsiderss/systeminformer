@@ -391,7 +391,7 @@ PPH_OBJECT_TYPE PhCreateObjectTypeEx(
     objectType->DeleteProcedure = DeleteProcedure;
     objectType->Name = Name;
 
-    assert(InterlockedExchange(&PhObjectTypeCount, PhObjectTypeCount) < PH_OBJECT_TYPE_TABLE_SIZE);
+    assert(InterlockedCompareExchange(&PhObjectTypeCount, 0, 0) < PH_OBJECT_TYPE_TABLE_SIZE);
 
     PhObjectTypeTable[objectType->TypeIndex] = objectType;
 
@@ -536,6 +536,7 @@ PH_CLANG_DIAGNOSTIC_PUSH();
 PH_CLANG_DIAGNOSTIC_IGNORED("-Wsingle-bit-bitfield-constant-conversion");
     ObjectHeader->DeferDelete = 1;
 PH_CLANG_DIAGNOSTIC_POP();
+
     MemoryBarrier();
     ObjectHeader->SavedTypeIndex = ObjectHeader->TypeIndex;
     ObjectHeader->SavedFlags = ObjectHeader->Flags;
@@ -554,6 +555,7 @@ PH_CLANG_DIAGNOSTIC_POP();
 /**
  * Removes and frees objects from the to-free list.
  */
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpDeferDeleteObjectRoutine(
     _In_ PVOID Parameter
     )

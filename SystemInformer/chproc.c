@@ -280,6 +280,9 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+
             PhpChooseProcessSetImagelist(context);
 
             PhpRefreshProcessList(hwndDlg, context);

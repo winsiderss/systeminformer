@@ -21,13 +21,13 @@
 DEFINE_GUID(CLSID_WbemLocator, 0x4590f811, 0x1d3a, 0x11d0, 0x89, 0x1f, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 DEFINE_GUID(IID_IWbemLocator, 0xdc12a687, 0x737f, 0x11cf, 0x88, 0x4d, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 
-__typeof__(&PowerGetActiveScheme) PowerGetActiveScheme_I = NULL;
-__typeof__(&PowerSetActiveScheme) PowerSetActiveScheme_I = NULL;
-__typeof__(&PowerRestoreDefaultPowerSchemes) PowerRestoreDefaultPowerSchemes_I = NULL;
+typeof(&PowerGetActiveScheme) PowerGetActiveScheme_I = NULL;
+typeof(&PowerSetActiveScheme) PowerSetActiveScheme_I = NULL;
+typeof(&PowerRestoreDefaultPowerSchemes) PowerRestoreDefaultPowerSchemes_I = NULL;
 _PowerReadSecurityDescriptor PowerReadSecurityDescriptor_I = NULL;
 _PowerWriteSecurityDescriptor PowerWriteSecurityDescriptor_I = NULL;
-__typeof__(&WTSGetListenerSecurityW) WTSGetListenerSecurity_I = NULL;
-__typeof__(&WTSSetListenerSecurityW) WTSSetListenerSecurity_I = NULL;
+typeof(&WTSGetListenerSecurityW) WTSGetListenerSecurity_I = NULL;
+typeof(&WTSSetListenerSecurityW) WTSSetListenerSecurity_I = NULL;
 
 HRESULT PhGetWbemLocatorClass(
     _Out_ struct IWbemLocator** WbemLocatorClass
@@ -449,7 +449,6 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     HRESULT status;
     PVOID securityDescriptor = NULL;
     PVOID securityDescriptorData = NULL;
-    PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
     BSTR wbemObjectString = NULL;
     BSTR wbemMethodString = NULL;
@@ -578,7 +577,6 @@ CleanupExit:
         IWbemLocator_Release(wbemLocator);
 
     VariantClear(&variantArrayValue);
-    PhClearReference(&querySelectString);
 
     if (wbemMethodString)
         SysFreeString(wbemMethodString);
@@ -611,7 +609,6 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     )
 {
     HRESULT status;
-    PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
     BSTR wbemObjectString = NULL;
     BSTR wbemMethodString = NULL;
@@ -818,8 +815,6 @@ CleanupExit:
         SysFreeString(wbemObjectString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
-    if (querySelectString)
-        PhDereferenceObject(querySelectString);
 
     if (HR_SUCCESS(status))
     {
@@ -1020,7 +1015,6 @@ HRESULT PhRestartDefenderOfflineScan(
     )
 {
     HRESULT status;
-    PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
     BSTR wbemObjectString = NULL;
     BSTR wbemMethodString = NULL;
@@ -1122,8 +1116,6 @@ CleanupExit:
         SysFreeString(wbemObjectString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
-    if (querySelectString)
-        PhDereferenceObject(querySelectString);
 
     return status;
 }

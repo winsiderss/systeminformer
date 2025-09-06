@@ -295,7 +295,7 @@ BOOLEAN LookupSockInAddr6CountryCode(
     _Out_ PPH_STRING *CountryName
     );
 
-INT LookupCountryIcon(
+LONG LookupCountryIcon(
     _In_ ULONG Name
     );
 

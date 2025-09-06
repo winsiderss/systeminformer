@@ -11,6 +11,7 @@
 //
 #include "winres.h"
 #include "include/phappres.h"
+
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -76,6 +77,7 @@ BEGIN
             VALUE "OriginalFilename", "System Informer.exe"
             VALUE "ProductName", "System Informer"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
+            VALUE "Comments", PHAPP_VERSION_COMMIT
         END
     END
     BLOCK "VarFileInfo"

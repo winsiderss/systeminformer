@@ -1196,7 +1196,7 @@ INT_PTR CALLBACK PhpUserListDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            if (PhGetIntegerPairSetting(L"UserListWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"UserListWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"UserListWindowPosition", L"UserListWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
@@ -1237,6 +1237,12 @@ INT_PTR CALLBACK PhpUserListDlgProc(
                     DestroyWindow(hwndDlg);
                     break;
                 }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:

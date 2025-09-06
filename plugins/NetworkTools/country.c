@@ -505,7 +505,7 @@ BOOLEAN LookupSockInAddr6CountryCode(
     return LookupCountryCodeFromMmdb(remoteAddress, CountryCode, CountryName);
 }
 
-INT LookupCountryIcon(
+LONG LookupCountryIcon(
     _In_ ULONG Name
     )
 {

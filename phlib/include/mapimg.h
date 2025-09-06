@@ -263,13 +263,15 @@ PhLoadRemoteMappedImage(
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     );
 
-typedef NTSTATUS (NTAPI *PPH_READ_VIRTUAL_MEMORY_CALLBACK)(
+typedef _Function_class_(PH_READ_VIRTUAL_MEMORY_CALLBACK)
+NTSTATUS NTAPI PH_READ_VIRTUAL_MEMORY_CALLBACK(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
     _Out_writes_bytes_(BufferSize) PVOID Buffer,
     _In_ SIZE_T BufferSize,
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
+typedef PH_READ_VIRTUAL_MEMORY_CALLBACK* PPH_READ_VIRTUAL_MEMORY_CALLBACK;
 
 PHLIBAPI
 NTSTATUS
@@ -631,6 +633,18 @@ PhGetMappedImageResource(
     _In_ PCWSTR Type,
     _In_opt_ USHORT Language,
     _Out_opt_ PULONG ResourceLength,
+    _Out_opt_ PVOID* ResourceBuffer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageResourceIndex(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
+    _In_ LONG ResourceIndex,
+    _In_ PCWSTR ResourceType,
+    _Out_opt_ ULONG* ResourceLength,
     _Out_opt_ PVOID* ResourceBuffer
     );
 

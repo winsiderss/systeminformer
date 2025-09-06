@@ -635,6 +635,7 @@ EXPORTS
     PhQueryEnvironmentVariable
     PhQueryFullAttributesFileWin32
     PhQueryKey
+    PhQueryKeyLastWriteTime
     PhQuerySymbolicLinkObject
     PhQueryTokenVariableSize
     PhQueryValueKey
@@ -722,8 +723,6 @@ EXPORTS
     PhGetBaseName
     PhGetClassObject
     PhGetDllFileName
-    PhGetClientRect
-    PhGetDpi
     PhGetDpiValue
     PhGetFileDialogFileName
     PhGetFileDialogFilterIndex
@@ -741,7 +740,6 @@ EXPORTS
     PhGetMonitorDpi
     PhGetNtMessage
     PhGetNtSystemRoot
-    PhGetSizeDpiValue
     PhGetStatusMessage
     PhGetSystemDirectory
     PhGetSystemDpi
@@ -892,6 +890,7 @@ EXPORTS
     PhBitmapSetAlpha
     PhCreateCommonFont
     PhCreateDialog
+    PhCreateDIBSection
     PhCreateIconTitleFont
     PhCreateWindowEx
     PhDeleteLayoutManager
@@ -915,6 +914,7 @@ EXPORTS
     PhGetStockApplicationIcon
     PhGetStockObject
     PhGetWindowClientId
+    PhGetWindowCompositionAttribute
     PhGetWindowContext
     PhGetWindowText
     PhGetWindowTextEx
@@ -932,6 +932,7 @@ EXPORTS
     PhImageListSetIconSize
     PhImageListSetImageCount
     PhInitializeLayoutManager
+    PhLayoutManagerUpdate
     PhLayoutManagerLayout
     PhLoadIcon
     PhLoadImageFormatFromResource
@@ -962,6 +963,7 @@ EXPORTS
     PhThemeWindowDrawRebar
     PhThemeWindowDrawToolbar
     PhUnregisterWindowCallback
+    PhUserQueryWindow
     PhWindowThemeControlColor
 
 ; hndlinfo
@@ -1132,7 +1134,6 @@ EXPORTS
     PhCreateXmlOpaqueNode
     PhFindXmlObject
     PhFreeXmlObject
-    PhGetXmlInterface
     PhGetXmlNodeAttributeByIndex
     PhGetXmlNodeAttributeCount
     PhGetXmlNodeAttributeText

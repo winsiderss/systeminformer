@@ -14,25 +14,7 @@
 #ifndef PH_NOTIFTOAST_H
 #define PH_NOTIFTOAST_H
 
-#include <phapp.h>
-
 EXTERN_C_START
-
-typedef enum _PH_TOAST_REASON
-{
-    PhToastReasonUserCanceled,
-    PhToastReasonApplicationHidden,
-    PhToastReasonTimedOut,
-    PhToastReasonActivated,
-    PhToastReasonError,
-    PhToastReasonUnknown
-} PH_TOAST_REASON;
-
-typedef VOID (NTAPI* PPH_TOAST_CALLBACK)(
-    _In_ HRESULT Result,
-    _In_ PH_TOAST_REASON Reason,
-    _In_ PVOID Context
-    );
 
 _Must_inspect_result_
 HRESULT

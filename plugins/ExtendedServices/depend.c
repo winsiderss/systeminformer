@@ -25,7 +25,9 @@ VOID EspLayoutServiceListControl(
 {
     RECT rect;
 
-    GetWindowRect(GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT), &rect);
+    if (!PhGetWindowRect(GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT), &rect))
+        return;
+
     MapWindowRect(NULL, WindowHandle, &rect);
 
     MoveWindow(
@@ -155,6 +157,15 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
                 EspLayoutServiceListControl(WindowHandle, context->ServiceListHandle);
         }
         break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+
+            if (context->ServiceListHandle)
+                EspLayoutServiceListControl(WindowHandle, context->ServiceListHandle);
+        }
+        break;
     }
 
     return FALSE;
@@ -274,6 +285,15 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
         break;
     case WM_SIZE:
         {
+            PhLayoutManagerLayout(&context->LayoutManager);
+
+            if (context->ServiceListHandle)
+                EspLayoutServiceListControl(WindowHandle, context->ServiceListHandle);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
 
             if (context->ServiceListHandle)

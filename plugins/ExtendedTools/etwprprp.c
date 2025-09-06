@@ -70,6 +70,8 @@ VOID EtwDiskUpdateWindowDpi(
     )
 {
     Context->WindowDpi = PhGetWindowDpi(Context->WindowHandle);
+    PhLayoutManagerUpdate(&Context->LayoutManager, Context->WindowDpi);
+    PhLayoutManagerLayout(&Context->LayoutManager);
 }
 
 VOID EtwNetworkUpdateWindowDpi(
@@ -77,6 +79,8 @@ VOID EtwNetworkUpdateWindowDpi(
     )
 {
     Context->WindowDpi = PhGetWindowDpi(Context->WindowHandle);
+    PhLayoutManagerUpdate(&Context->LayoutManager, Context->WindowDpi);
+    PhLayoutManagerLayout(&Context->LayoutManager);
 }
 
 VOID EtwDiskCreateGraphs(
@@ -183,7 +187,7 @@ VOID EtwDiskCreatePanel(
         Context->PanelHandle,
         NULL,
         PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT,
-        margin
+        &margin
         );
 
     SendMessage(Context->WindowHandle, WM_SIZE, 0, 0);
@@ -223,7 +227,7 @@ VOID EtwNetworkCreatePanel(
         Context->PanelHandle,
         NULL,
         PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT,
-        margin
+        &margin
         );
 
     SendMessage(Context->WindowHandle, WM_SIZE, 0, 0);
@@ -256,10 +260,12 @@ VOID EtwDiskLayoutGraphs(
     Context->DiskWriteGraphState.Valid = FALSE;
     Context->DiskWriteGraphState.TooltipIndex = ULONG_MAX;
 
-    GetClientRect(Context->WindowHandle, &clientRect);
-
+    if (!PhGetClientRect(Context->WindowHandle, &clientRect))
+        return;
     // Limit the rectangle bottom to the top of the panel.
-    GetWindowRect(Context->PanelHandle, &panelRect);
+    if (!PhGetWindowRect(Context->PanelHandle, &panelRect))
+        return;
+
     MapWindowRect(NULL, Context->WindowHandle, &panelRect);
     clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
 
@@ -322,10 +328,12 @@ VOID EtwNetworkLayoutGraphs(
     Context->NetworkReceiveGraphState.Valid = FALSE;
     Context->NetworkReceiveGraphState.TooltipIndex = ULONG_MAX;
 
-    GetClientRect(Context->WindowHandle, &clientRect);
-
+    if (!PhGetClientRect(Context->WindowHandle, &clientRect))
+        return;
     // Limit the rectangle bottom to the top of the panel.
-    GetWindowRect(Context->PanelHandle, &panelRect);
+    if (!PhGetWindowRect(Context->PanelHandle, &panelRect))
+        return;
+
     MapWindowRect(NULL, Context->WindowHandle, &panelRect);
     clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
 
@@ -415,6 +423,7 @@ VOID EtwNetworkUpdatePanel(
     PhSetDialogItemText(Context->PanelHandle, IDC_ZSENDBYTESDELTA_V, PhaFormatSize(block->NetworkSendRawDelta.Delta, ULONG_MAX)->Buffer);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtwDiskUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -428,6 +437,7 @@ VOID NTAPI EtwDiskUpdateHandler(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtwNetworkUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

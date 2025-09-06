@@ -84,6 +84,7 @@ VOID KphpCommsCallbackUnhandled(
  * \param[in] IoSB Result of the asynchronous I/O operation.
  * \param[in,out] Io Unused
  */
+_Function_class_(TP_IO_CALLBACK)
 VOID WINAPI KphpCommsIoCallback(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID Context,

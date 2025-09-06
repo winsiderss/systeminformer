@@ -293,6 +293,7 @@ VOID PhpRemoveHandleItem(
     PhDereferenceObject(HandleItem);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpCreateHandleItemFunction(
     _In_ PVOID Parameter
     )

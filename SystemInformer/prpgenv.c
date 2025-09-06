@@ -85,7 +85,7 @@ PPHP_PROCESS_ENVIRONMENT_TREENODE PhpAddEnvironmentNode(
 
 PPHP_PROCESS_ENVIRONMENT_TREENODE PhpFindEnvironmentNode(
     _In_ PPH_ENVIRONMENT_CONTEXT Context,
-    _In_ PWSTR KeyPath
+    _In_ PPH_STRING Name
     );
 
 VOID PhpClearEnvironmentTree(
@@ -182,6 +182,7 @@ VOID PhpSetEnvironmentListStatusMessage(
     }
 }
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI PhEnumEnvironmentKeyValueCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_VALUE_FULL_INFORMATION Information,
@@ -816,6 +817,12 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
             }
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
@@ -981,6 +988,7 @@ VOID PhSetOptionsEnvironmentList(
     }
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpEnvironmentNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -992,6 +1000,7 @@ BOOLEAN PhpEnvironmentNodeHashtableEqualFunction(
     return PhEqualStringRef(&node1->NameText->sr, &node2->NameText->sr, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpEnvironmentNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -1063,14 +1072,14 @@ PPHP_PROCESS_ENVIRONMENT_TREENODE PhpAddEnvironmentNode(
 
 PPHP_PROCESS_ENVIRONMENT_TREENODE PhpFindEnvironmentNode(
     _In_ PPH_ENVIRONMENT_CONTEXT Context,
-    _In_ PWSTR KeyPath
+    _In_ PPH_STRING Name
     )
 {
     PHP_PROCESS_ENVIRONMENT_TREENODE lookupEnvironmentNode;
     PPHP_PROCESS_ENVIRONMENT_TREENODE lookupEnvironmentNodePtr = &lookupEnvironmentNode;
     PPHP_PROCESS_ENVIRONMENT_TREENODE *environmentNode;
 
-    PhInitializeStringRefLongHint(&lookupEnvironmentNode.NameText->sr, KeyPath);
+    lookupEnvironmentNode.NameText = Name;
 
     environmentNode = (PPHP_PROCESS_ENVIRONMENT_TREENODE*)PhFindEntryHashtable(
         Context->NodeHashtable,

@@ -130,6 +130,7 @@ NTSTATUS PhCreateFileStream2(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpFileStreamDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

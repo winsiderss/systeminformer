@@ -25,17 +25,17 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\0"
 END
 
-3 TEXTINCLUDE
+3 TEXTINCLUDE 
 BEGIN
     "\0"
 END
@@ -140,9 +140,7 @@ BEGIN
     IDD_STRINGSMINLEN, DIALOG
     BEGIN
         LEFTMARGIN, 3
-        RIGHTMARGIN, 298
         TOPMARGIN, 3
-        BOTTOMMARGIN, 277
     END
 
     IDD_ELFGENERAL, DIALOG
@@ -631,7 +629,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Preview"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    EDITTEXT        IDC_PREVIEW,3,3,295,274,ES_MULTILINE | ES_READONLY | WS_VSCROLL | WS_HSCROLL | NOT WS_TABSTOP
+    EDITTEXT        IDC_PREVIEW,3,3,295,274,ES_MULTILINE | ES_READONLY | WS_VSCROLL | NOT WS_TABSTOP
 END
 
 IDD_PEDIRECTORY DIALOGEX 0, 0, 300, 280
@@ -839,16 +837,25 @@ IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 // PNG
 //
 
-IDB_SEARCH_ACTIVE                PNG            "resources\\active_search.png"
-IDB_SEARCH_INACTIVE              PNG            "resources\\inactive_search.png"
-IDB_SEARCH_REGEX_MODERN_DARK     PNG            "resources\\regex_modern_dark.png"
-IDB_SEARCH_REGEX_MODERN_LIGHT    PNG            "resources\\regex_modern_light.png"
-IDB_SEARCH_CASE_MODERN_DARK      PNG            "resources\\case_sensitive_modern_dark.png"
-IDB_SEARCH_CASE_MODERN_LIGHT     PNG            "resources\\case_sensitive_modern_light.png"
-IDB_SEARCH_ACTIVE_MODERN_LIGHT   PNG            "resources\\search_stop_modern_light.png"
-IDB_SEARCH_ACTIVE_MODERN_DARK    PNG            "resources\\search_stop_modern_dark.png"
-IDB_SEARCH_INACTIVE_MODERN_LIGHT PNG            "resources\\search_modern_light.png"
-IDB_SEARCH_INACTIVE_MODERN_DARK  PNG            "resources\\search_modern_dark.png"
+IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
+
+IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
+
+IDB_SEARCH_REGEX_MODERN_DARK PNG                     "resources\\regex_modern_dark.png"
+
+IDB_SEARCH_REGEX_MODERN_LIGHT PNG                     "resources\\regex_modern_light.png"
+
+IDB_SEARCH_CASE_MODERN_DARK PNG                     "resources\\case_sensitive_modern_dark.png"
+
+IDB_SEARCH_CASE_MODERN_LIGHT PNG                     "resources\\case_sensitive_modern_light.png"
+
+IDB_SEARCH_ACTIVE_MODERN_LIGHT PNG                     "resources\\search_stop_modern_light.png"
+
+IDB_SEARCH_ACTIVE_MODERN_DARK PNG                     "resources\\search_stop_modern_dark.png"
+
+IDB_SEARCH_INACTIVE_MODERN_LIGHT PNG                     "resources\\search_modern_light.png"
+
+IDB_SEARCH_INACTIVE_MODERN_DARK PNG                     "resources\\search_modern_dark.png"
 
 
 /////////////////////////////////////////////////////////////////////////////

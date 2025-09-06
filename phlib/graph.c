@@ -69,7 +69,7 @@ LRESULT CALLBACK PhpGraphWndProc(
 RECT PhNormalGraphTextMargin = { 5, 5, 5, 5 };
 RECT PhNormalGraphTextPadding = { 3, 3, 3, 3 };
 
-BOOLEAN PhGraphControlInitialization(
+RTL_ATOM PhGraphControlInitialization(
     VOID
     )
 {
@@ -77,7 +77,7 @@ BOOLEAN PhGraphControlInitialization(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = CS_GLOBALCLASS | CS_DBLCLKS | CS_PARENTDC;
+    wcex.style = CS_GLOBALCLASS | CS_DBLCLKS;
     wcex.lpfnWndProc = PhpGraphWndProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = sizeof(PVOID);
@@ -85,10 +85,7 @@ BOOLEAN PhGraphControlInitialization(
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     wcex.lpszClassName = PH_GRAPH_CLASSNAME;
 
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
-        return FALSE;
-
-    return TRUE;
+    return RegisterClassEx(&wcex);
 }
 
 FORCEINLINE VOID PhpGetGraphPoint(
@@ -723,8 +720,25 @@ static VOID PhpCreateBufferedContext(
     bitmapInfo.bmiHeader.biBitCount = 32;
 
     Context->BufferedContext = CreateCompatibleDC(NULL);
-    Context->BufferedBitmap = CreateDIBSection(Context->BufferedContext, &bitmapInfo, DIB_RGB_COLORS, &Context->BufferedBits, NULL, 0);
-    Context->BufferedOldBitmap = SelectBitmap(Context->BufferedContext, Context->BufferedBitmap);
+
+    if (!Context->BufferedContext)
+        return;
+
+    Context->BufferedBitmap = PhCreateDIBSection(
+        Context->BufferedContext,
+        PHBF_DIB,
+        Context->BufferedContextRect.right,
+        Context->BufferedContextRect.bottom,
+        &Context->BufferedBits
+        );
+
+    if (!Context->BufferedBitmap)
+        return;
+
+    Context->BufferedOldBitmap = SelectBitmap(
+        Context->BufferedContext,
+        Context->BufferedBitmap
+        );
 }
 
 static VOID PhpDeleteFadeOutContext(
@@ -1102,9 +1116,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                         RECT clientRect;
                         PH_GRAPH_GETTOOLTIPTEXT getTooltipText;
 
-                        if (!GetCursorPos(&point))
-                            break;
-                        if (!ScreenToClient(hwnd, &point))
+                        if (!PhGetClientPos(hwnd, &point))
                             break;
                         if (!PhGetClientRect(hwnd, &clientRect))
                             break;
@@ -1296,13 +1308,13 @@ LRESULT CALLBACK PhpGraphWndProc(
         {
             if (wParam)
             {
-                TOOLINFO toolInfo = { sizeof(toolInfo) };
+                TOOLINFO toolInfo;
 
-                context->TooltipHandle = CreateWindowEx(
-                    WS_EX_TRANSPARENT,
+                context->TooltipHandle = PhCreateWindowEx(
                     TOOLTIPS_CLASS,
                     NULL,
                     WS_POPUP | TTS_NOPREFIX | TTS_NOANIMATE | TTS_NOFADE | TTS_ALWAYSTIP,
+                    WS_EX_TOPMOST | WS_EX_TRANSPARENT,
                     CW_USEDEFAULT,
                     CW_USEDEFAULT,
                     CW_USEDEFAULT,
@@ -1312,15 +1324,18 @@ LRESULT CALLBACK PhpGraphWndProc(
                     NULL,
                     NULL
                     );
-                SetWindowPos(context->TooltipHandle, HWND_TOPMOST, 0, 0, 0, 0,
-                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
+                SetWindowPos(context->TooltipHandle, HWND_TOPMOST, 0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOREDRAW);
+
+                memset(&toolInfo, 0, sizeof(TOOLINFO));
+                toolInfo.cbSize = sizeof(TOOLINFO);
                 toolInfo.uFlags = 0;
                 toolInfo.hwnd = hwnd;
                 toolInfo.uId = 1;
                 toolInfo.lpszText = LPSTR_TEXTCALLBACK;
-                SendMessage(context->TooltipHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
+                SendMessage(context->TooltipHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
                 SendMessage(context->TooltipHandle, TTM_SETDELAYTIME, TTDT_INITIAL, 0);
                 SendMessage(context->TooltipHandle, TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
                 // Allow newlines (-1 doesn't work)

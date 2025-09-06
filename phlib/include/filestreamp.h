@@ -12,6 +12,7 @@
 #ifndef _PH_FILESTREAMP_H
 #define _PH_FILESTREAMP_H
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpFileStreamDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

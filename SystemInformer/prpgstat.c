@@ -564,15 +564,34 @@ VOID PhpUpdateProcessStatistics(
     PhUpdateProcessStatisticsValue(ProcessItem, Context);
     PhUpdateProcessStatisticsMinMax(ProcessItem, Context);
 
-    if (!PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId))
+    if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
     {
+        PROCESS_HANDLE_INFORMATION handleInfo;
+        PROCESS_UPTIME_INFORMATION uptimeInfo;
+        ULONG objects;
+
+        if (NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS, &objects))) // GDI handles
+        {
+            PhMoveReference(&Context->GdiHandles, PhFormatUInt64(objects, TRUE));
+        }
+
+        if (NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS, &objects))) // USER handles
+        {
+            PhMoveReference(&Context->UserHandles, PhFormatUInt64(objects, TRUE));
+        }
+
+        if (NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS_PEAK, &objects))) // GDI handles (Peak)
+        {
+            PhMoveReference(&Context->PeakGdiHandles, PhFormatUInt64(objects, TRUE));
+        }
+
+        if (NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS_PEAK, &objects))) // USER handles (Peak)
+        {
+            PhMoveReference(&Context->PeakUserHandles, PhFormatUInt64(objects, TRUE));
+        }
+
         if (ProcessItem->QueryHandle)
         {
-            PROCESS_HANDLE_INFORMATION handleInfo;
-            PROCESS_UPTIME_INFORMATION uptimeInfo;
-            ULONG objects;
-            ULONG objectsTotal;
-
             if (NT_SUCCESS(PhGetProcessHandleCount(ProcessItem->QueryHandle, &handleInfo)))
             {
                 // The HighWatermark changed on Windows 10 and doesn't track the peak handle count,
@@ -582,46 +601,6 @@ VOID PhpUpdateProcessStatistics(
                     Context->PeakHandleCount = handleInfo.HandleCountHighWatermark;
 
                 PhMoveReference(&Context->PeakHandles, PhFormatUInt64(Context->PeakHandleCount, TRUE));
-            }
-
-            if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS, &objects))) // GDI handles
-            {
-                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS, &objectsTotal)))
-                    objectsTotal = 1;
-
-                PPH_STRING string = PhFormatUInt64(objects, TRUE);
-                PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
-                PhMoveReference(&Context->GdiHandles, string);
-            }
-
-            if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS, &objects))) // USER handles
-            {
-                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS, &objectsTotal)))
-                    objectsTotal = 1;
-
-                PPH_STRING string = PhFormatUInt64(objects, TRUE);
-                PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
-                PhMoveReference(&Context->UserHandles, string);
-            }
-
-            if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS_PEAK, &objects))) // GDI handles (Peak)
-            {
-                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS_PEAK, &objectsTotal)))
-                    objectsTotal = 1;
-
-                PPH_STRING string = PhFormatUInt64(objects, TRUE);
-                PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
-                PhMoveReference(&Context->PeakGdiHandles, string);
-            }
-
-            if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS_PEAK, &objects))) // USER handles (Peak)
-            {
-                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS_PEAK, &objectsTotal)))
-                    objectsTotal = 1;
-
-                PPH_STRING string = PhFormatUInt64(objects, TRUE);
-                PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
-                PhMoveReference(&Context->PeakUserHandles, string);
             }
 
             PhGetProcessPagePriority(ProcessItem->QueryHandle, &Context->PagePriority);
@@ -634,6 +613,75 @@ VOID PhpUpdateProcessStatistics(
                 Context->HangCount = uptimeInfo.HangCount;
                 Context->GhostCount = uptimeInfo.GhostCount;
             }
+        }
+    }
+    else if (ProcessItem->QueryHandle)
+    {
+        PROCESS_HANDLE_INFORMATION handleInfo;
+        PROCESS_UPTIME_INFORMATION uptimeInfo;
+        ULONG objects;
+        ULONG objectsTotal;
+
+        if (NT_SUCCESS(PhGetProcessHandleCount(ProcessItem->QueryHandle, &handleInfo)))
+        {
+            // The HighWatermark changed on Windows 10 and doesn't track the peak handle count,
+            // instead the value is now the maximum count of the handle freelist which decreases
+            // when deallocating. So we'll track and cache the highest value where possible. (dmex)
+            if (handleInfo.HandleCountHighWatermark > Context->PeakHandleCount)
+                Context->PeakHandleCount = handleInfo.HandleCountHighWatermark;
+
+            PhMoveReference(&Context->PeakHandles, PhFormatUInt64(Context->PeakHandleCount, TRUE));
+        }
+
+        if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS, &objects))) // GDI handles
+        {
+            if (!NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS, &objectsTotal)))
+                objectsTotal = 1;
+
+            PPH_STRING string = PhFormatUInt64(objects, TRUE);
+            PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
+            PhMoveReference(&Context->GdiHandles, string);
+        }
+
+        if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS, &objects))) // USER handles
+        {
+            if (!NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS, &objectsTotal)))
+                objectsTotal = 1;
+
+            PPH_STRING string = PhFormatUInt64(objects, TRUE);
+            PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
+            PhMoveReference(&Context->UserHandles, string);
+        }
+
+        if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS_PEAK, &objects))) // GDI handles (Peak)
+        {
+            if (!NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS_PEAK, &objectsTotal)))
+                objectsTotal = 1;
+
+            PPH_STRING string = PhFormatUInt64(objects, TRUE);
+            PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
+            PhMoveReference(&Context->PeakGdiHandles, string);
+        }
+
+        if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS_PEAK, &objects))) // USER handles (Peak)
+        {
+            if (!NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS_PEAK, &objectsTotal)))
+                objectsTotal = 1;
+
+            PPH_STRING string = PhFormatUInt64(objects, TRUE);
+            PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
+            PhMoveReference(&Context->PeakUserHandles, string);
+        }
+
+        PhGetProcessPagePriority(ProcessItem->QueryHandle, &Context->PagePriority);
+        PhGetProcessIoPriority(ProcessItem->QueryHandle, &Context->IoPriority);
+
+        if (WindowsVersion >= WINDOWS_10_RS3 && NT_SUCCESS(PhGetProcessUptime(ProcessItem->QueryHandle, &uptimeInfo)))
+        {
+            Context->RunningTime = uptimeInfo.Uptime;
+            Context->SuspendedTime = uptimeInfo.SuspendedTime;
+            Context->HangCount = uptimeInfo.HangCount;
+            Context->GhostCount = uptimeInfo.GhostCount;
         }
     }
 

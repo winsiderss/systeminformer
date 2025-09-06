@@ -202,6 +202,12 @@ INT_PTR CALLBACK EspServiceTriggersDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
     }
 
     return FALSE;

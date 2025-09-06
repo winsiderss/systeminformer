@@ -31,7 +31,7 @@
 #include <wslsup.h>
 #include <thirdparty.h>
 
-#if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
+#if defined(PH_BUILD_MSIX)
 #include <roapi.h>
 #include <winstring.h>
 #endif
@@ -106,7 +106,7 @@ VOID PhAdjustRectangleToWorkingArea(
     }
     else
     {
-        RECT rect;
+        RECT rect = { 0 };
 
         PhRectangleToRect(&rect, Rectangle);
         monitor = MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
@@ -117,7 +117,7 @@ VOID PhAdjustRectangleToWorkingArea(
 
     if (GetMonitorInfo(monitor, &monitorInfo))
     {
-        PH_RECTANGLE bounds;
+        PH_RECTANGLE bounds = { 0 };
 
         PhRectToRectangle(&bounds, &monitorInfo.rcWork);
         PhAdjustRectangleToBounds(Rectangle, &bounds);
@@ -139,19 +139,21 @@ VOID PhCenterWindow(
     if (ParentWindowHandle)
     {
         RECT rect, parentRect;
-        PH_RECTANGLE rectangle, parentRectangle;
+        PH_RECTANGLE rectangle = { 0 };
+        PH_RECTANGLE parentRectangle = { 0 };
 
         if (!IsWindowVisible(ParentWindowHandle) || IsMinimized(ParentWindowHandle))
             return;
-
-        GetWindowRect(WindowHandle, &rect);
-        GetWindowRect(ParentWindowHandle, &parentRect);
+        if (!PhGetWindowRect(WindowHandle, &rect))
+            return;
+        if (!PhGetWindowRect(ParentWindowHandle, &parentRect))
+            return;
 
         PhRectToRectangle(&rectangle, &rect);
         PhRectToRectangle(&parentRectangle, &parentRect);
-
         PhCenterRectangle(&rectangle, &parentRectangle);
         PhAdjustRectangleToWorkingArea(WindowHandle, &rectangle);
+
         MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
             rectangle.Width, rectangle.Height, FALSE);
     }
@@ -168,19 +170,81 @@ VOID PhCenterWindow(
             ))
         {
             RECT rect;
-            PH_RECTANGLE rectangle;
-            PH_RECTANGLE bounds;
+            PH_RECTANGLE rectangle = { 0 };;
+            PH_RECTANGLE bounds = { 0 };;
 
-            GetWindowRect(WindowHandle, &rect);
+            if (!PhGetWindowRect(WindowHandle, &rect))
+                return;
 
             PhRectToRectangle(&rectangle, &rect);
             PhRectToRectangle(&bounds, &monitorInfo.rcWork);
-
             PhCenterRectangle(&rectangle, &bounds);
+
             MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
                 rectangle.Width, rectangle.Height, FALSE);
         }
     }
+}
+
+NTSTATUS PhMoveWindowToMonitor(
+    _In_ HWND WindowHandle,
+    _In_ HMONITOR MonitorHandle
+    )
+{
+    MONITORINFO currentMonitorInfo;
+    MONITORINFO targetMonitorInfo;
+    PH_RECTANGLE rectangle = { 0 };
+    PH_RECTANGLE bounds = { 0 };
+    HMONITOR monitor;
+    RECT windowRect;
+    RECT targetRect;
+
+    // Get window position
+
+    if (!PhGetWindowRect(WindowHandle, &windowRect))
+        return PhGetLastWin32ErrorAsNtStatus();
+
+    // Get current monitor
+
+    memset(&currentMonitorInfo, 0, sizeof(MONITORINFO));
+    currentMonitorInfo.cbSize = sizeof(currentMonitorInfo);
+
+    monitor = MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST);
+
+    if (!GetMonitorInfo(monitor, &currentMonitorInfo))
+        return PhGetLastWin32ErrorAsNtStatus();
+
+    // Get target monitor
+
+    memset(&targetMonitorInfo, 0, sizeof(MONITORINFO));
+    targetMonitorInfo.cbSize = sizeof(targetMonitorInfo);
+
+    if (!GetMonitorInfo(MonitorHandle, &targetMonitorInfo))
+        return PhGetLastWin32ErrorAsNtStatus();
+
+    // Calculate relative position
+
+    RECT currentMonitorRect = currentMonitorInfo.rcMonitor;
+    LONG left = windowRect.left - currentMonitorRect.left;
+    LONG top = windowRect.top - currentMonitorRect.top;
+    LONG width = windowRect.right - windowRect.left;
+    LONG height = windowRect.bottom - windowRect.top;
+
+    targetRect.left = targetMonitorInfo.rcMonitor.left + left;
+    targetRect.top = targetMonitorInfo.rcMonitor.top + top;
+    targetRect.right = targetRect.left + width;
+    targetRect.bottom = targetRect.top + height;
+
+    // Adjust relative position
+
+    PhRectToRectangle(&rectangle, &targetRect);
+    PhRectToRectangle(&bounds, &targetMonitorInfo.rcWork);
+    PhAdjustRectangleToBounds(&rectangle, &bounds);
+
+    MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
+        rectangle.Width, rectangle.Height, TRUE);
+
+    return STATUS_SUCCESS;
 }
 
 // rev from GetSystemDefaultLCID
@@ -477,7 +541,7 @@ BOOLEAN PhSystemTimeToTzSpecificLocalTime(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&SystemTimeToTzSpecificLocalTimeEx) SystemTimeToTzSpecificLocalTimeEx_I = NULL;
+    static typeof(&SystemTimeToTzSpecificLocalTimeEx) SystemTimeToTzSpecificLocalTimeEx_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -2115,7 +2179,7 @@ PPH_STRING PhFormatUInt64Prefix(
 
     while (
         number >= 1000 &&
-        i < RTL_NUMBER_OF(PhPrefixUnitNamesCounted) &&
+        i + 1 < RTL_NUMBER_OF(PhPrefixUnitNamesCounted) &&
         i < PhMaxSizeUnit
         )
     {
@@ -2149,7 +2213,7 @@ PPH_STRING PhFormatUInt64BitratePrefix(
 
     while (
         number >= 1000 &&
-        i < RTL_NUMBER_OF(PhSiPrefixUnitNamesCounted) &&
+        i + 1 < RTL_NUMBER_OF(PhSiPrefixUnitNamesCounted) &&
         i < PhMaxSizeUnit
         )
     {
@@ -2311,7 +2375,7 @@ NTSTATUS PhFormatGuidToBuffer(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&RtlStringFromGUIDEx) RtlStringFromGUIDEx_I = NULL;
+    static typeof(&RtlStringFromGUIDEx) RtlStringFromGUIDEx_I = NULL;
     NTSTATUS status;
     UNICODE_STRING unicodeString;
 
@@ -3625,9 +3689,9 @@ PPH_STRING PhGetApplicationFileName(
     {
         if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
         {
-            if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
+            if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), NtCurrentImageBase(), &fileName)))
             {
-                if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
+                if (fileName = PhGetDllFileName(NtCurrentImageBase(), NULL))
                 {
                     PPH_STRING fullPath;
 
@@ -4297,7 +4361,7 @@ PPH_STRING PhGetTemporaryDirectory(
 
     if (
         PhGetOwnTokenAttributes().Elevated &&
-        PhEqualSid(PhGetOwnTokenAttributes().TokenSid, (PSID)&PhSeLocalSystemSid)
+        PhEqualSid(PhGetOwnTokenAttributes().TokenSid, &PhSeLocalSystemSid)
         )
     {
         static CONST PH_STRINGREF systemTemp = PH_STRINGREF_INIT(L"SystemTemp");
@@ -5361,7 +5425,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
     {
         if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &currentUser)))
         {
-            if (!NT_SUCCESS(RtlGetDaclSecurityDescriptor(
+            if (!NT_SUCCESS(PhGetDaclSecurityDescriptor(
                 currentSecurityDescriptor,
                 &currentDaclPresent,
                 &currentDacl,
@@ -5384,7 +5448,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
             {
                 for (i = 0; i < currentDacl->AceCount; i++)
                 {
-                    if (NT_SUCCESS(RtlGetAce(currentDacl, i, &currentAce)))
+                    if (NT_SUCCESS(PhGetAce(currentDacl, i, &currentAce)))
                         RtlAddAce(newDacl, ACL_REVISION, ULONG_MAX, currentAce, currentAce->AceSize);
                 }
             }
@@ -5420,17 +5484,17 @@ NTSTATUS PhFilterTokenForLimitedUser(
     return STATUS_SUCCESS;
 }
 
-PPH_STRING PhGetSecurityDescriptorAsString(
+NTSTATUS PhGetSecurityDescriptorAsString(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    _Out_ PPH_STRING* SecurityDescriptorString
     )
 {
-    PPH_STRING securityDescriptorString = NULL;
     ULONG stringSecurityDescriptorLength = 0;
     PWSTR stringSecurityDescriptor = NULL;
 
     if (!ConvertSecurityDescriptorToStringSecurityDescriptorW_Import())
-        return NULL;
+        return STATUS_PROCEDURE_NOT_FOUND;
 
     if (ConvertSecurityDescriptorToStringSecurityDescriptorW_Import()(
         SecurityDescriptor,
@@ -5440,20 +5504,21 @@ PPH_STRING PhGetSecurityDescriptorAsString(
         &stringSecurityDescriptorLength
         ))
     {
-        if (!(stringSecurityDescriptorLength & 1)) // validate the string length
+        if (stringSecurityDescriptorLength & 1) // validate the string length
         {
             LocalFree(stringSecurityDescriptor);
-            return NULL;
+            return STATUS_FAIL_CHECK;
         }
 
-        securityDescriptorString = PhCreateStringEx(
+        *SecurityDescriptorString = PhCreateStringEx(
             stringSecurityDescriptor,
             stringSecurityDescriptorLength * sizeof(WCHAR)
             );
         LocalFree(stringSecurityDescriptor);
+        return STATUS_SUCCESS;
     }
 
-    return securityDescriptorString;
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
@@ -5489,40 +5554,42 @@ PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
     return securityDescriptor;
 }
 
-_Success_(return)
-BOOLEAN PhGetObjectSecurityDescriptorAsString(
+NTSTATUS PhGetObjectSecurityDescriptorAsString(
     _In_ HANDLE Handle,
     _Out_ PPH_STRING* SecurityDescriptorString
     )
 {
+    NTSTATUS status;
     PSECURITY_DESCRIPTOR securityDescriptor;
     PPH_STRING securityDescriptorString;
 
-    if (NT_SUCCESS(PhGetObjectSecurity(
+    status = PhGetObjectSecurity(
         Handle,
         OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
         DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
         ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
         &securityDescriptor
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetSecurityDescriptorAsString(
+        securityDescriptor,
+        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+        DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
+        ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
+        &securityDescriptorString
+        );
+
+    PhFree(securityDescriptor);
+
+    if (NT_SUCCESS(status))
     {
-        if (securityDescriptorString = PhGetSecurityDescriptorAsString(
-            OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
-            DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
-            ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
-            securityDescriptor
-            ))
-        {
-            *SecurityDescriptorString = securityDescriptorString;
-
-            PhFree(securityDescriptor);
-            return TRUE;
-        }
-
-        PhFree(securityDescriptor);
+        *SecurityDescriptorString = securityDescriptorString;
     }
 
-    return FALSE;
+    return status;
 }
 
 /**
@@ -5537,7 +5604,7 @@ BOOLEAN PhShellExecuteWin32(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&ShellExecuteExW) ShellExecuteExW_I = NULL;
+    static typeof(&ShellExecuteExW) ShellExecuteExW_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5674,8 +5741,8 @@ VOID PhShellExploreFile(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&SHOpenFolderAndSelectItems) SHOpenFolderAndSelectItems_I = NULL;
-    static __typeof__(&SHParseDisplayName) SHParseDisplayName_I = NULL;
+    static typeof(&SHOpenFolderAndSelectItems) SHOpenFolderAndSelectItems_I = NULL;
+    static typeof(&SHParseDisplayName) SHParseDisplayName_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5755,7 +5822,7 @@ BOOLEAN PhShellNotifyIcon(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&Shell_NotifyIconW) Shell_NotifyIconW_I = NULL;
+    static typeof(&Shell_NotifyIconW) Shell_NotifyIconW_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5783,7 +5850,7 @@ HRESULT PhShellGetKnownFolderPath(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&SHGetKnownFolderPath) SHGetKnownFolderPath_I = NULL;
+    static typeof(&SHGetKnownFolderPath) SHGetKnownFolderPath_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5812,7 +5879,7 @@ HRESULT PhShellGetKnownFolderItem(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&SHGetKnownFolderItem) SHGetKnownFolderItem_I = NULL;
+    static typeof(&SHGetKnownFolderItem) SHGetKnownFolderItem_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -6569,8 +6636,8 @@ VOID PhSetFileDialogFileName(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&SHParseDisplayName) SHParseDisplayName_I = NULL;
-    static __typeof__(&SHCreateItemFromIDList) SHCreateItemFromIDList_I = NULL;
+    static typeof(&SHParseDisplayName) SHParseDisplayName_I = NULL;
+    static typeof(&SHCreateItemFromIDList) SHCreateItemFromIDList_I = NULL;
     PPHP_FILE_DIALOG fileDialog = FileDialog;
     PH_STRINGREF fileName;
 
@@ -6835,7 +6902,7 @@ ULONG PhCrc32C(
     _In_ SIZE_T Length
     )
 {
-#ifdef WIN64
+#if defined(_WIN64)
     SIZE_T u64_blocks = Length / sizeof(ULONG64);
     SIZE_T u64_remaining = Length % sizeof(ULONG64);
 #else
@@ -6848,7 +6915,7 @@ ULONG PhCrc32C(
 
     Crc ^= 0xffffffff;
 
-#ifdef WIN64
+#if defined(_WIN64)
     while (u64_blocks--)
     {
 #if defined(_M_ARM64)
@@ -7195,7 +7262,7 @@ PPH_STRING PhParseCommandLinePart(
  */
 BOOLEAN PhParseCommandLine(
     _In_ PCPH_STRINGREF CommandLine,
-    _In_opt_ PPH_COMMAND_LINE_OPTION Options,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Options,
     _In_ ULONG NumberOfOptions,
     _In_ ULONG Flags,
     _In_ PPH_COMMAND_LINE_CALLBACK Callback,
@@ -7209,7 +7276,7 @@ BOOLEAN PhParseCommandLine(
     BOOLEAN wasFirst = TRUE;
 
     PH_STRINGREF optionName;
-    PPH_COMMAND_LINE_OPTION option = NULL;
+    PCPH_COMMAND_LINE_OPTION option = NULL;
     PPH_STRING optionValue;
 
     if (CommandLine->Length == 0)
@@ -7352,10 +7419,10 @@ PPH_STRING PhEscapeCommandLinePart(
     static CONST PH_STRINGREF backslashAndQuote = PH_STRINGREF_INIT(L"\\\"");
     PH_STRING_BUILDER stringBuilder;
     ULONG numberOfBackslashes;
-    ULONG length;
+    SIZE_T length;
     ULONG i;
 
-    length = (ULONG)String->Length / sizeof(WCHAR);
+    length = String->Length / sizeof(WCHAR);
     PhInitializeStringBuilder(&stringBuilder, String->Length / sizeof(WCHAR) * 3);
     numberOfBackslashes = 0;
 
@@ -7573,7 +7640,7 @@ PWSTR* PhCommandLineToArgv(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&CommandLineToArgvW) CommandLineToArgvW_I = NULL;
+    static typeof(&CommandLineToArgvW) CommandLineToArgvW_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -7880,7 +7947,7 @@ HANDLE PhGetNamespaceHandle(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x80];
+        UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x70];
         PSID administratorsSid = PhSeAdministratorsSid();
         UNICODE_STRING objectName;
         OBJECT_ATTRIBUTES objectAttributes;
@@ -7893,20 +7960,20 @@ HANDLE PhGetNamespaceHandle(
         sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
             (ULONG)sizeof(ACL) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            PhLengthSid((PSID)&PhSeLocalSid) +
+            PhLengthSid(&PhSeLocalSid) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
             PhLengthSid(administratorsSid) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            PhLengthSid((PSID)&PhSeInteractiveSid);
+            PhLengthSid(&PhSeInteractiveSid);
 
         securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
-        dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
+        dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
         PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, (PSID)&PhSeLocalSid);
+        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, &PhSeLocalSid);
         PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid);
-        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, (PSID)&PhSeInteractiveSid);
+        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, &PhSeInteractiveSid);
         PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
         RtlInitUnicodeString(&objectName, L"\\BaseNamedObjects\\SystemInformer");
@@ -8221,7 +8288,7 @@ HRESULT PhGetClassObject(
     _Out_ PVOID* Ppv
     )
 {
-#if (PH_NATIVE_COM_CLASS_FACTORY)
+#if defined(PH_BUILD_MSIX)
     HRESULT status;
     IClassFactory* classFactory;
 
@@ -8314,10 +8381,10 @@ HRESULT PhGetActivationFactory(
     _Out_ PVOID* Ppv
     )
 {
-#if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
+#if defined(PH_BUILD_MSIX)
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
-    static __typeof__(&RoGetActivationFactory) RoGetActivationFactory_I = NULL;
+    static typeof(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
+    static typeof(&RoGetActivationFactory) RoGetActivationFactory_I = NULL;
     HRESULT status;
     HSTRING runtimeClassStringHandle = NULL;
     HSTRING_HEADER runtimeClassStringHeader;
@@ -8436,10 +8503,10 @@ HRESULT PhActivateInstance(
     _Out_ PVOID* Ppv
     )
 {
-#if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
+#if defined(PH_BUILD_MSIX)
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
-    static __typeof__(&RoActivateInstance) RoActivateInstance_I = NULL;
+    static typeof(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
+    static typeof(&RoActivateInstance) RoActivateInstance_I = NULL;
     HRESULT status;
     HSTRING runtimeClassStringHandle = NULL;
     HSTRING_HEADER runtimeClassStringHeader;
@@ -9890,7 +9957,7 @@ BOOLEAN PhIsDirectXRunningFullScreen(
     VOID
     )
 {
-    static __typeof__(&D3DKMTCheckExclusiveOwnership) D3DKMTCheckExclusiveOwnership_I = NULL;
+    static typeof(&D3DKMTCheckExclusiveOwnership) D3DKMTCheckExclusiveOwnership_I = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))
@@ -9915,7 +9982,7 @@ NTSTATUS PhRestoreFromDirectXRunningFullScreen(
     _In_ HANDLE ProcessHandle
     )
 {
-    static __typeof__(&D3DKMTReleaseProcessVidPnSourceOwners) D3DKMTReleaseProcessVidPnSourceOwners_I = NULL;
+    static typeof(&D3DKMTReleaseProcessVidPnSourceOwners) D3DKMTReleaseProcessVidPnSourceOwners_I = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))
@@ -9940,7 +10007,7 @@ NTSTATUS PhQueryDirectXExclusiveOwnership(
     _Inout_ PD3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP QueryExclusiveOwnership
     )
 {
-    static __typeof__(&D3DKMTQueryVidPnExclusiveOwnership) D3DKMTQueryVidPnExclusiveOwnership_I = NULL; // same typedef as NtGdiDdDDIQueryVidPnExclusiveOwnership
+    static typeof(&D3DKMTQueryVidPnExclusiveOwnership) D3DKMTQueryVidPnExclusiveOwnership_I = NULL; // same typedef as NtGdiDdDDIQueryVidPnExclusiveOwnership
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))

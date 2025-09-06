@@ -1106,9 +1106,9 @@ typedef struct _PHP_USERSMENU_ENTRY
 } PHP_USERSMENU_ENTRY, *PPHP_USERSMENU_ENTRY;
 
 static int __cdecl PhpUsersMainMenuNameCompare(
-    _In_ const void* Context,
-    _In_ const void *elem1,
-    _In_ const void *elem2
+    _In_ void* Context,
+    _In_ void const* elem1,
+    _In_ void const* elem2
     )
 {
     PPHP_USERSMENU_ENTRY item1 = *(PPHP_USERSMENU_ENTRY*)elem1;
@@ -1381,6 +1381,7 @@ typedef struct _PH_IS_SYSTEM_PROCESS_CONTEXT
     BOOLEAN Found;
 } PH_IS_SYSTEM_PROCESS_CONTEXT, *PPH_IS_SYSTEM_PROCESS_CONTEXT;
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 static BOOLEAN NTAPI PhIsSystemProcessCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_VALUE_FULL_INFORMATION Information,
@@ -3358,7 +3359,6 @@ BOOLEAN PhUiLoadDllProcess(
         status = PhLoadDllProcess(
             processHandle,
             &fileName->sr,
-            FALSE,
             5000
             );
 
@@ -4343,6 +4343,7 @@ static BOOLEAN PhpShowErrorService(
         );
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhUiServiceStartCallback(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -4548,6 +4549,7 @@ BOOLEAN PhUiStartService(
     return success;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhUiServiceContinueCallback(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -4755,6 +4757,7 @@ BOOLEAN PhUiContinueService(
     return success;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhUiServicePauseCallback(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -4962,6 +4965,7 @@ BOOLEAN PhUiPauseService(
     return success;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhUiServiceStopCallback(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -5230,6 +5234,7 @@ BOOLEAN PhUiDeleteService(
     return success;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhUiServiceRestartCallback(
     _In_ PPH_SERVICE_ITEM ServiceItem
 )
@@ -5406,6 +5411,7 @@ BOOLEAN PhUiCloseConnections(
     _In_ ULONG NumberOfConnections
     )
 {
+    extern NTSTATUS PhSetTcpEntry(_In_ PPH_NETWORK_ITEM NetworkItem);
     static ULONG (WINAPI* SetTcpEntry_I)(_In_ PMIB_TCPROW pTcpRow) = NULL;
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
@@ -5426,10 +5432,15 @@ BOOLEAN PhUiCloseConnections(
 
     for (i = 0; i < NumberOfConnections; i++)
     {
-        if (
-            Connections[i]->ProtocolType != PH_NETWORK_PROTOCOL_TCP4 ||
-            Connections[i]->State != MIB_TCP_STATE_ESTAB
-            )
+        if (Connections[i]->State != MIB_TCP_STATE_ESTAB)
+            continue;
+
+        result = PhSetTcpEntry(Connections[i]);
+
+        if (NT_SUCCESS(result))
+            continue;
+
+        if (Connections[i]->ProtocolType != PH_NETWORK_PROTOCOL_TCP4)
             continue;
 
         tcpRow.dwState = MIB_TCP_STATE_DELETE_TCB;

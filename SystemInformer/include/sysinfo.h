@@ -20,17 +20,21 @@ typedef enum _PH_SYSINFO_VIEW_TYPE
     SysInfoSectionView
 } PH_SYSINFO_VIEW_TYPE;
 
-typedef VOID (NTAPI *PPH_SYSINFO_COLOR_SETUP_FUNCTION)(
+typedef _Function_class_(PH_SYSINFO_COLOR_SETUP_FUNCTION)
+VOID NTAPI PH_SYSINFO_COLOR_SETUP_FUNCTION(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ COLORREF Color1,
     _In_ COLORREF Color2,
     _In_ LONG WindowDpi
     );
+typedef PH_SYSINFO_COLOR_SETUP_FUNCTION* PPH_SYSINFO_COLOR_SETUP_FUNCTION;
 
 typedef struct _PH_SYSINFO_PARAMETERS
 {
     HWND SysInfoWindowHandle;
     HWND ContainerWindowHandle;
+
+    PPH_SYSINFO_COLOR_SETUP_FUNCTION ColorSetupFunction;
 
     HFONT Font;
     HFONT MediumFont;
@@ -41,7 +45,6 @@ typedef struct _PH_SYSINFO_PARAMETERS
     ULONG MediumFontAverageWidth;
     COLORREF GraphBackColor;
     COLORREF PanelForeColor;
-    PPH_SYSINFO_COLOR_SETUP_FUNCTION ColorSetupFunction;
 
     ULONG MinimumGraphHeight;
     ULONG SectionViewGraphHeight;
@@ -76,12 +79,14 @@ typedef enum _PH_SYSINFO_SECTION_MESSAGE
 
 typedef struct _PH_SYSINFO_SECTION *PPH_SYSINFO_SECTION;
 
-typedef BOOLEAN (NTAPI *PPH_SYSINFO_SECTION_CALLBACK)(
+typedef _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
+BOOLEAN NTAPI PH_SYSINFO_SECTION_CALLBACK(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
     );
+typedef PH_SYSINFO_SECTION_CALLBACK* PPH_SYSINFO_SECTION_CALLBACK;
 
 typedef struct _PH_SYSINFO_CREATE_DIALOG
 {
@@ -123,13 +128,12 @@ typedef struct _PH_SYSINFO_SECTION
     ULONG Flags;
     PPH_SYSINFO_SECTION_CALLBACK Callback;
     PVOID Context;
-    PVOID Reserved[3];
 
     // State
     HWND GraphHandle;
     PH_GRAPH_STATE GraphState;
     PPH_SYSINFO_PARAMETERS Parameters;
-    PVOID Reserved2[3];
+
 // end_phapppub
 
     // Private
@@ -142,6 +146,7 @@ typedef struct _PH_SYSINFO_SECTION
         ULONG HideFocus : 1;
         ULONG SpareFlags : 28;
     };
+
     HWND DialogHandle;
     HWND PanelHandle;
     ULONG PanelId;
@@ -157,6 +162,7 @@ VOID PhSiNotifyChangeSettings(
     );
 
 // begin_phapppub
+_Function_class_(PH_SYSINFO_COLOR_SETUP_FUNCTION)
 PHAPPAPI
 VOID
 NTAPI

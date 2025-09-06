@@ -97,7 +97,7 @@ HPROPSHEETPAGE PhpCommonCreatePage(
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.dwFlags = PSP_USECALLBACK;
     propSheetPage.pszTemplate = Template;
-    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.hInstance = NtCurrentImageBase();
     propSheetPage.pfnDlgProc = DlgProc;
     propSheetPage.lParam = (LPARAM)pageContext;
     propSheetPage.pfnCallback = PhpCommonPropPageProc;
@@ -720,6 +720,8 @@ INT_PTR CALLBACK PhpMappingsPageProc(
         {
             if (context->SectionInfo)
                 PhFree(context->SectionInfo);
+
+            PhFree(context);
         }
         break;
     case WM_CONTEXTMENU:
@@ -789,28 +791,6 @@ INT_PTR CALLBACK PhpMappingsPageProc(
     return FALSE;
 }
 
-INT CALLBACK PhpMappingsPropPageProc(
-    _In_ HWND hwnd,
-    _In_ UINT uMsg,
-    _In_ LPPROPSHEETPAGE ppsp
-    )
-{
-    PMAPPINGS_PAGE_CONTEXT tokenPageContext;
-
-    tokenPageContext = (PMAPPINGS_PAGE_CONTEXT)ppsp->lParam;
-
-    if (uMsg == PSPCB_ADDREF)
-    {
-        PhReferenceObject(tokenPageContext);
-    }
-    else if (uMsg == PSPCB_RELEASE)
-    {
-        PhDereferenceObject(tokenPageContext);
-    }
-
-    return 1;
-}
-
 HPROPSHEETPAGE PhCreateMappingsPage(
     _In_ HANDLE ProcessId,
     _In_ HANDLE SectionHandle
@@ -820,25 +800,19 @@ HPROPSHEETPAGE PhCreateMappingsPage(
     PROPSHEETPAGE propSheetPage;
     PMAPPINGS_PAGE_CONTEXT mappingsPageContext;
 
-    mappingsPageContext = PhCreateAlloc(sizeof(MAPPINGS_PAGE_CONTEXT));
-    memset(mappingsPageContext, 0, sizeof(MAPPINGS_PAGE_CONTEXT));
+    mappingsPageContext = PhAllocateZero(sizeof(MAPPINGS_PAGE_CONTEXT));
     mappingsPageContext->ProcessId = ProcessId;
     mappingsPageContext->SectionHandle = SectionHandle;
-    mappingsPageContext->SectionInfo = NULL;
 
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.dwFlags = PSP_USECALLBACK;
+    propSheetPage.dwFlags = PSP_DEFAULT;
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OBJMAPPINGS);
-    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.hInstance = NtCurrentImageBase();
     propSheetPage.pfnDlgProc = PhpMappingsPageProc;
     propSheetPage.lParam = (LPARAM)mappingsPageContext;
-    propSheetPage.pfnCallback = PhpMappingsPropPageProc;
 
     propSheetPageHandle = CreatePropertySheetPage(&propSheetPage);
-    // CreatePropertySheetPage would have sent PSPCB_ADDREF (below),
-    // which would have added a reference.
-    PhDereferenceObject(mappingsPageContext);
 
     return propSheetPageHandle;
 }
@@ -1107,28 +1081,6 @@ VOID PhSetSocketListViewItemTimeAgo(
     PhDereferenceObject(itemString);
 }
 
-INT CALLBACK PhpAfdSocketPropPageProc(
-    _In_ HWND hwnd,
-    _In_ UINT uMsg,
-    _In_ LPPROPSHEETPAGE ppsp
-)
-{
-    PPHP_AFD_SOCKET_PAGE_CONTEXT socketPageContext;
-
-    socketPageContext = (PPHP_AFD_SOCKET_PAGE_CONTEXT)ppsp->lParam;
-
-    if (uMsg == PSPCB_ADDREF)
-    {
-        PhReferenceObject(socketPageContext);
-    }
-    else if (uMsg == PSPCB_RELEASE)
-    {
-        PhDereferenceObject(socketPageContext);
-    }
-
-    return 1;
-}
-
 HPROPSHEETPAGE PhCreateAfdSocketPage(
     _In_ HANDLE ProcessId,
     _In_ HANDLE HandleValue
@@ -1138,24 +1090,19 @@ HPROPSHEETPAGE PhCreateAfdSocketPage(
     PROPSHEETPAGE propSheetPage;
     PPHP_AFD_SOCKET_PAGE_CONTEXT socketPageContext;
 
-    socketPageContext = PhCreateAlloc(sizeof(PHP_AFD_SOCKET_PAGE_CONTEXT));
-    memset(socketPageContext, 0, sizeof(PHP_AFD_SOCKET_PAGE_CONTEXT));
+    socketPageContext = PhAllocateZero(sizeof(PHP_AFD_SOCKET_PAGE_CONTEXT));
     socketPageContext->ProcessId = ProcessId;
     socketPageContext->HandleValue = HandleValue;
 
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.dwFlags = PSP_USECALLBACK;
+    propSheetPage.dwFlags = PSP_DEFAULT;
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OBJAFDSOCKET);
-    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.hInstance = NtCurrentImageBase();
     propSheetPage.pfnDlgProc = PhpAfdSocketPageProc;
     propSheetPage.lParam = (LPARAM)socketPageContext;
-    propSheetPage.pfnCallback = PhpAfdSocketPropPageProc;
 
     propSheetPageHandle = CreatePropertySheetPage(&propSheetPage);
-    // CreatePropertySheetPage would have sent PSPCB_ADDREF,
-    // which would have added a reference.
-    PhDereferenceObject(socketPageContext);
 
     return propSheetPageHandle;
 }
@@ -2131,6 +2078,14 @@ INT_PTR CALLBACK PhpAfdSocketPageProc(
         {
             PhDeleteLayoutManager(&context->LayoutManager);
             PhDestroyListViewInterface(context->ListViewClass);
+
+            PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:

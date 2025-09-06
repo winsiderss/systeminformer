@@ -240,7 +240,7 @@ VOID FramesPropLayoutGraphs(
 
     between = PhGetDpi(3, Context->WindowDpi);
 
-    GetClientRect(Context->WindowHandle, &clientRect);
+    PhGetClientRect(Context->WindowHandle, &clientRect);
     graphWidth = clientRect.right - margin.left - margin.right;
     graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 6) / 7;
 

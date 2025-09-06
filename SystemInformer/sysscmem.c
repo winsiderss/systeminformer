@@ -175,6 +175,7 @@ BOOLEAN NTAPI PhpSipMemorySMBIOSCallback(
     return FALSE;
 }
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipMemorySectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -523,7 +524,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
 
             margin = panelItem->Margin;
             PhGetSizeDpiValue(&margin, MemorySection->Parameters->WindowDpi, TRUE);
-            PhAddLayoutItemEx(&MemoryLayoutManager, MemoryPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, margin);
+            PhAddLayoutItemEx(&MemoryLayoutManager, MemoryPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &margin);
 
             PhSipCreateMemoryGraphs();
             PhSipUpdateMemoryGraphs();
@@ -551,6 +552,8 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             CommitGraphState.TooltipIndex = ULONG_MAX;
             PhysicalGraphState.Valid = FALSE;
             PhysicalGraphState.TooltipIndex = ULONG_MAX;
+
+            PhLayoutManagerUpdate(&MemoryLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&MemoryLayoutManager);
             PhSipLayoutMemoryGraphs(hwndDlg);
         }
@@ -630,7 +633,7 @@ VOID PhSipCreateMemoryGraphs(
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
     graphCreateParams.Callback = PhSipNotifyCommitGraph;
 
-    CommitGraphHandle = CreateWindow(
+    CommitGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -649,7 +652,7 @@ VOID PhSipCreateMemoryGraphs(
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
     graphCreateParams.Callback = PhSipNotifyPhysicalGraph;
 
-    PhysicalGraphHandle = CreateWindow(
+    PhysicalGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -680,8 +683,11 @@ VOID PhSipLayoutMemoryGraphs(
     marginRect = MemoryGraphMargin;
     PhGetSizeDpiValue(&marginRect, MemorySection->Parameters->WindowDpi, TRUE);
 
-    GetClientRect(MemoryDialog, &clientRect);
-    GetClientRect(GetDlgItem(MemoryDialog, IDC_COMMIT_L), &labelRect);
+    if (!PhGetClientRect(MemoryDialog, &clientRect))
+        return;
+    if (!PhGetClientRect(GetDlgItem(MemoryDialog, IDC_COMMIT_L), &labelRect))
+        return;
+
     graphWidth = clientRect.right - marginRect.left - marginRect.right;
     graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - MemorySection->Parameters->MemoryPadding * 3) / 2;
 
