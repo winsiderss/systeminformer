@@ -5411,7 +5411,6 @@ BOOLEAN PhUiCloseConnections(
     _In_ ULONG NumberOfConnections
     )
 {
-    extern NTSTATUS PhSetTcpEntry(_In_ PPH_NETWORK_ITEM NetworkItem);
     static ULONG (WINAPI* SetTcpEntry_I)(_In_ PMIB_TCPROW pTcpRow) = NULL;
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
