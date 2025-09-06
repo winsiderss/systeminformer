@@ -360,10 +360,9 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     //PhInitializeCircularBuffer_SIZE_T(&processItem->WorkingSetHistory, PhStatisticsSampleCount);
 
     //
-    // Initialize ImageCoherencyStatus to STATUS_PENDING this notes that the
-    // image coherency hasn't been done yet. This prevents the process items
-    // from being noted as "Low Image Coherency" or being highlighted until
-    // the analysis runs. See: PhpShouldShowImageCoherency
+    // Initialize ImageCoherencyStatus to STATUS_PENDING and prevent items
+    // from being noted as "Low Image Coherency" or highlighted until the
+    // analysis runs. See: PhpShouldShowImageCoherency (jxy-s)
     //
     processItem->ImageCoherencyStatus = STATUS_PENDING;
 
