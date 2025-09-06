@@ -90,6 +90,7 @@ EXPORTS
     PhGetSelectedAndPropagateProcessItems
     PhGetSelectedProcessItem
     PhGetSelectedProcessItems
+    PhGetSelectedProcessNode
     PhGetSelectedProcessNodes
     PhGetSelectedServiceItem
     PhGetSelectedServiceItems
@@ -169,6 +170,7 @@ EXPORTS
     PhShowHandleObjectProperties2
     PhShowHandlePropertiesEx
     PhShowIconNotification
+    PhShowIconNotificationEx
     PhShowProcessAffinityDialog2
     PhShowProcessProperties
     PhShowProcessRecordDialog
