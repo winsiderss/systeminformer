@@ -306,7 +306,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     PROPSHEETHEADER propSheetHeader = { sizeof(PROPSHEETHEADER) };
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[16];
-    HANDLE_PROPERTIES_CONTEXT context;
+    PHANDLE_PROPERTIES_CONTEXT context;
     PH_AUTO_POOL autoPool;
 
     context = PhCreateHandlePropertiesContext();
