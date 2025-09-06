@@ -6902,7 +6902,7 @@ ULONG PhCrc32C(
     _In_ SIZE_T Length
     )
 {
-#ifdef WIN64
+#if defined(_WIN64)
     SIZE_T u64_blocks = Length / sizeof(ULONG64);
     SIZE_T u64_remaining = Length % sizeof(ULONG64);
 #else
@@ -6915,7 +6915,7 @@ ULONG PhCrc32C(
 
     Crc ^= 0xffffffff;
 
-#ifdef WIN64
+#if defined(_WIN64)
     while (u64_blocks--)
     {
 #if defined(_M_ARM64)

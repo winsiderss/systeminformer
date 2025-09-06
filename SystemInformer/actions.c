@@ -5411,6 +5411,7 @@ BOOLEAN PhUiCloseConnections(
     _In_ ULONG NumberOfConnections
     )
 {
+    extern NTSTATUS PhSetTcpEntry(_In_ PPH_NETWORK_ITEM NetworkItem);
     static ULONG (WINAPI* SetTcpEntry_I)(_In_ PMIB_TCPROW pTcpRow) = NULL;
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
@@ -5431,10 +5432,15 @@ BOOLEAN PhUiCloseConnections(
 
     for (i = 0; i < NumberOfConnections; i++)
     {
-        if (
-            Connections[i]->ProtocolType != PH_NETWORK_PROTOCOL_TCP4 ||
-            Connections[i]->State != MIB_TCP_STATE_ESTAB
-            )
+        if (Connections[i]->State != MIB_TCP_STATE_ESTAB)
+            continue;
+
+        result = PhSetTcpEntry(Connections[i]);
+
+        if (NT_SUCCESS(result))
+            continue;
+
+        if (Connections[i]->ProtocolType != PH_NETWORK_PROTOCOL_TCP4)
             continue;
 
         tcpRow.dwState = MIB_TCP_STATE_DELETE_TCB;
