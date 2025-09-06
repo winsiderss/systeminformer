@@ -853,20 +853,16 @@ NTSTATUS PhGetProcessPebString(
  */
 NTSTATUS PhGetProcessCommandLine(
     _In_ HANDLE ProcessHandle,
-    _Out_ PPH_STRING *CommandLine
+    _Out_ PPH_STRING *CommandLine,
+    PUNICODE_STRING buffer = NULL,
+    ULONG bufferlength = 0
     )
 {
     if (WindowsVersion >= WINDOWS_8_1)
     {
         NTSTATUS status;
-        PUNICODE_STRING buffer;
-        ULONG bufferLength;
         ULONG returnLength = 0;
-
-        bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
-        buffer = PhAllocateStack(bufferLength);
-        if (!buffer) return STATUS_NO_MEMORY;
-
+        
         status = NtQueryInformationProcess(
             ProcessHandle,
             ProcessCommandLineInformation,
@@ -877,32 +873,23 @@ NTSTATUS PhGetProcessCommandLine(
 
         if (status == STATUS_INFO_LENGTH_MISMATCH)
         {
-            PhFreeStack(buffer);
-            bufferLength = returnLength;
-            buffer = PhAllocateStack(bufferLength);
-            if (!buffer) return STATUS_NO_MEMORY;
-
-            status = NtQueryInformationProcess(
-                ProcessHandle,
-                ProcessCommandLineInformation,
-                buffer,
-                bufferLength,
-                &returnLength
-                );
+            return PhGetProcessCommandLine(ProcessHandle, CommandLine, (PUNICODE_STRING)calloc(1, returnLength), returnLength)
         }
 
-        if (NT_SUCCESS(status))
+        if (NT_SUCCESS(status) && CommandLine)
         {
-            *CommandLine = PhCreateStringFromUnicodeString(buffer);
+            *CommandLine = buffer;
+        } else if (buffer != NULL)
+        {
+            free(buffer);
         }
-
-        PhFreeStack(buffer);
 
         return status;
     }
 
     return PhGetProcessPebString(ProcessHandle, PhpoCommandLine, CommandLine);
 }
+
 
 NTSTATUS PhGetProcessCommandLineStringRef(
     _Out_ PPH_STRINGREF CommandLine
