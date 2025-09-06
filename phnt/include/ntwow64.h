@@ -194,21 +194,20 @@ typedef struct _LDR_DATA_TABLE_ENTRY32
 
 typedef const LDR_DATA_TABLE_ENTRY32* PCLDR_DATA_TABLE_ENTRY32;
 
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, InLoadOrderLinks) == 0x0);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, InMemoryOrderLinks) == 0x8);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, InInitializationOrderLinks) == 0x10);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, DllBase) == 0x18);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, EntryPoint) == 0x1c);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, SizeOfImage) == 0x20);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ObsoleteLoadCount) == 0x38);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, TimeDateStamp) == 0x44);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, DdagNode) == 0x50);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ParentDllBase) == 0x60);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, OriginalBase) == 0x80);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, BaseNameHashValue) == 0x90);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, LoadReason) == 0x94);
-C_ASSERT(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, CheckSum) == 0xA8);
-C_ASSERT(sizeof(LDR_DATA_TABLE_ENTRY32) == 0xB8);
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, InMemoryOrderLinks) == 0x8, "LDR_DATA_TABLE_ENTRY32.InMemoryOrderLinks offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, InInitializationOrderLinks) == 0x10, "LDR_DATA_TABLE_ENTRY32.InInitializationOrderLinks offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, DllBase) == 0x18, "LDR_DATA_TABLE_ENTRY32.DllBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, EntryPoint) == 0x1c, "LDR_DATA_TABLE_ENTRY32.EntryPoint offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, SizeOfImage) == 0x20, "LDR_DATA_TABLE_ENTRY32.SizeOfImage offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ObsoleteLoadCount) == 0x38, "LDR_DATA_TABLE_ENTRY32.ObsoleteLoadCount offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, TimeDateStamp) == 0x44, "LDR_DATA_TABLE_ENTRY32.TimeDateStamp offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, DdagNode) == 0x50, "LDR_DATA_TABLE_ENTRY32.DdagNode offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ParentDllBase) == 0x60, "LDR_DATA_TABLE_ENTRY32.ParentDllBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, OriginalBase) == 0x80, "LDR_DATA_TABLE_ENTRY32.OriginalBase offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, BaseNameHashValue) == 0x90, "LDR_DATA_TABLE_ENTRY32.BaseNameHashValue offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, LoadReason) == 0x94, "LDR_DATA_TABLE_ENTRY32.LoadReason offset incorrect");
+static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, CheckSum) == 0xA8, "LDR_DATA_TABLE_ENTRY32.CheckSum offset incorrect");
+static_assert(sizeof(LDR_DATA_TABLE_ENTRY32) == 0xB8, "LDR_DATA_TABLE_ENTRY32 incorrect size");
 
 typedef struct _CURDIR32
 {
