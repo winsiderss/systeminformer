@@ -619,12 +619,12 @@ typedef LDR_DLL_NOTIFICATION_FUNCTION* PLDR_DLL_NOTIFICATION_FUNCTION;
 /**
  * Registers for notification when a DLL is first loaded. This notification occurs before dynamic linking takes place.
  *
- * @param Flags This parameter must be zero.
- * @param NotificationFunction A pointer to an LdrDllNotification notification callback function to call when the DLL is loaded.
- * @param Context A pointer to context data for the callback function.
- * @param Cookie A pointer to a variable to receive an identifier for the callback function. This identifier is used to unregister the notification callback function.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/devnotes/ldrregisterdllnotification
+ * \param Flags This parameter must be zero.
+ * \param NotificationFunction A pointer to an LdrDllNotification notification callback function to call when the DLL is loaded.
+ * \param Context A pointer to context data for the callback function.
+ * \param Cookie A pointer to a variable to receive an identifier for the callback function. This identifier is used to unregister the notification callback function.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/devnotes/ldrregisterdllnotification
  */
 NTSYSAPI
 NTSTATUS
@@ -639,9 +639,9 @@ LdrRegisterDllNotification(
 /**
  * Cancels DLL load notification previously registered by calling the LdrRegisterDllNotification function.
  *
- * @param Cookie A pointer to the callback identifier received from the LdrRegisterDllNotification call that registered for notification.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/devnotes/ldrunregisterdllnotification
+ * \param Cookie A pointer to the callback identifier received from the LdrRegisterDllNotification call that registered for notification.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/devnotes/ldrunregisterdllnotification
  */
 NTSYSAPI
 NTSTATUS
@@ -792,8 +792,8 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK_V3
 } PS_SYSTEM_DLL_INIT_BLOCK_V3, *PPS_SYSTEM_DLL_INIT_BLOCK_V3,
     PS_SYSTEM_DLL_INIT_BLOCK, *PPS_SYSTEM_DLL_INIT_BLOCK;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // private
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSAPI PS_SYSTEM_DLL_INIT_BLOCK LdrSystemDllInitBlock;
 #endif
 
@@ -878,12 +878,12 @@ LdrDisableThreadCalloutsForDll(
 /**
  * The LdrAccessResource function returns a pointer to the first byte of the specified resource in memory.
  *
- * @param DllHandle A handle to the DLL.
- * @param ResourceDataEntry The resource information block.
- * @param ResourceBuffer The pointer to the specified resource in memory.
- * @param ResourceLength The size, in bytes, of the specified resource.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadresource
+ * \param DllHandle A handle to the DLL.
+ * \param ResourceDataEntry The resource information block.
+ * \param ResourceBuffer The pointer to the specified resource in memory.
+ * \param ResourceLength The size, in bytes, of the specified resource.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadresource
  */
 NTSYSAPI
 NTSTATUS
@@ -910,12 +910,12 @@ typedef struct _LDR_RESOURCE_INFO
 /**
  * The LdrFindResource_U function determines the location of a resource in a DLL.
  *
- * @param DllHandle A handle to the DLL.
- * @param ResourceInfo The type and name of the resource.
- * @param Level The level of resource information.
- * @param ResourceDataEntry The resource information block.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-findresourceexw
+ * \param DllHandle A handle to the DLL.
+ * \param ResourceInfo The type and name of the resource.
+ * \param Level The level of resource information.
+ * \param ResourceDataEntry The resource information block.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-findresourceexw
  */
 NTSYSAPI
 NTSTATUS
@@ -952,16 +952,16 @@ LdrFindResourceDirectory_U(
 /**
  * The LdrResFindResource function finds a resource in a DLL.
  *
- * @param DllHandle A handle to the DLL.
- * @param Type The type of the resource.
- * @param Name The name of the resource.
- * @param Language The language of the resource.
- * @param ResourceBuffer An optional pointer to receive the resource buffer.
- * @param ResourceLength An optional pointer to receive the resource length.
- * @param CultureName An optional buffer to receive the culture name.
- * @param CultureNameLength An optional pointer to receive the length of the culture name.
- * @param Flags Flags for the resource search.
- * @return NTSTATUS Successful or errant status.
+ * \param DllHandle A handle to the DLL.
+ * \param Type The type of the resource.
+ * \param Name The name of the resource.
+ * \param Language The language of the resource.
+ * \param ResourceBuffer An optional pointer to receive the resource buffer.
+ * \param ResourceLength An optional pointer to receive the resource length.
+ * \param CultureName An optional buffer to receive the culture name.
+ * \param CultureNameLength An optional pointer to receive the length of the culture name.
+ * \param Flags Flags for the resource search.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -981,14 +981,14 @@ LdrResFindResource(
 /**
  * The LdrResFindResourceDirectory function finds a resource directory in a DLL.
  *
- * @param DllHandle A handle to the DLL.
- * @param Type The type of the resource.
- * @param Name The name of the resource.
- * @param ResourceDirectory An optional pointer to receive the resource directory.
- * @param CultureName An optional buffer to receive the culture name.
- * @param CultureNameLength An optional pointer to receive the length of the culture name.
- * @param Flags Flags for the resource search.
- * @return NTSTATUS Successful or errant status.
+ * \param DllHandle A handle to the DLL.
+ * \param Type The type of the resource.
+ * \param Name The name of the resource.
+ * \param ResourceDirectory An optional pointer to receive the resource directory.
+ * \param CultureName An optional buffer to receive the culture name.
+ * \param CultureNameLength An optional pointer to receive the length of the culture name.
+ * \param Flags Flags for the resource search.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -1017,15 +1017,15 @@ LdrpResGetResourceDirectory(
 /**
 * The LdrResSearchResource function searches for a resource in a DLL.
 *
-* @param DllHandle A handle to the DLL.
-* @param ResourceInfo A pointer to the resource information.
-* @param Level The level of the resource.
-* @param Flags Flags for the resource search.
-* @param ResourceBuffer An optional pointer to receive the resource buffer.
-* @param ResourceLength An optional pointer to receive the resource length.
-* @param CultureName An optional buffer to receive the culture name.
-* @param CultureNameLength An optional pointer to receive the length of the culture name.
-* @return NTSTATUS Successful or errant status.
+* \param DllHandle A handle to the DLL.
+* \param ResourceInfo A pointer to the resource information.
+* \param Level The level of the resource.
+* \param Flags Flags for the resource search.
+* \param ResourceBuffer An optional pointer to receive the resource buffer.
+* \param ResourceLength An optional pointer to receive the resource length.
+* \param CultureName An optional buffer to receive the culture name.
+* \param CultureNameLength An optional pointer to receive the length of the culture name.
+* \return NTSTATUS Successful or errant status.
 */
 NTSYSAPI
 NTSTATUS
@@ -1044,12 +1044,12 @@ LdrResSearchResource(
 /**
  * The LdrResGetRCConfig function retrieves the RC configuration for a DLL.
  *
- * @param DllHandle A handle to the DLL.
- * @param Length The length of the configuration buffer.
- * @param Config A buffer to receive the configuration.
- * @param Flags Flags for the operation.
- * @param AlternateResource Indicates if an alternate resource should be loaded.
- * @return NTSTATUS Successful or errant status.
+ * \param DllHandle A handle to the DLL.
+ * \param Length The length of the configuration buffer.
+ * \param Config A buffer to receive the configuration.
+ * \param Flags Flags for the operation.
+ * \param AlternateResource Indicates if an alternate resource should be loaded.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -1065,10 +1065,10 @@ LdrResGetRCConfig(
 /**
  * The LdrResRelease function releases a resource in a DLL.
  *
- * @param DllHandle A handle to the DLL.
- * @param CultureNameOrId An optional culture name or ID.
- * @param Flags Flags for the operation.
- * @return NTSTATUS Successful or errant status.
+ * \param DllHandle A handle to the DLL.
+ * \param CultureNameOrId An optional culture name or ID.
+ * \param Flags Flags for the operation.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -1169,8 +1169,8 @@ LdrLoadAlternateResourceModuleEx(
 /**
  * Frees the language-specific dynamic-link library (DLL) resource module previously loaded by LdrLoadAlternateResourceModule function.
  *
- * @param DllHandle The base address of the mapped view.
- * @return Successful or errant status.
+ * \param DllHandle The base address of the mapped view.
+ * \return Successful or errant status.
  */
 NTSYSAPI
 BOOLEAN
@@ -1359,12 +1359,12 @@ typedef DELAYLOAD_FAILURE_SYSTEM_ROUTINE* PDELAYLOAD_FAILURE_SYSTEM_ROUTINE;
 /**
  * Determines whether the specified function in a delay-loaded DLL is available on the system.
  *
- * @param ParentModuleBase A handle to the calling module. (NtCurrentImageBase)
- * @param DllName The file name of the delay-loaded DLL that exports the specified function. This parameter is case-insensitive.
- * @param ProcedureName The address of a delay-load failure callback function for the specified DLL and process.
- * @param Flags Reserved; must be 0.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi2/nf-libloaderapi2-queryoptionaldelayloadedapi
+ * \param ParentModuleBase A handle to the calling module. (NtCurrentImageBase)
+ * \param DllName The file name of the delay-loaded DLL that exports the specified function. This parameter is case-insensitive.
+ * \param ProcedureName The address of a delay-load failure callback function for the specified DLL and process.
+ * \param Flags Reserved; must be 0.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi2/nf-libloaderapi2-queryoptionaldelayloadedapi
  */
 NTSYSAPI
 NTSTATUS
@@ -1382,14 +1382,14 @@ LdrQueryOptionalDelayLoadedAPI(
 /**
  * Locates the target function of the specified import and replaces the function pointer in the import thunk with the target of the function implementation.
  *
- * @param ParentModuleBase The address of the base of the module importing a delay-loaded function. (NtCurrentImageBase)
- * @param DelayloadDescriptor The address of the image delay import directory for the module to be loaded.
- * @param FailureDllHook The address of a delay-load failure callback function for the specified DLL and process.
- * @param FailureSystemHook The address of a delay-load failure callback function for the specified DLL and process.
- * @param ThunkAddress The thunk data for the target function. Used to find the specific name table entry of the function.
- * @param Flags Reserved; must be 0.
- * @return The address of the import, or the failure stub for it.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/devnotes/resolvedelayloadedapi
+ * \param ParentModuleBase The address of the base of the module importing a delay-loaded function. (NtCurrentImageBase)
+ * \param DelayloadDescriptor The address of the image delay import directory for the module to be loaded.
+ * \param FailureDllHook The address of a delay-load failure callback function for the specified DLL and process.
+ * \param FailureSystemHook The address of a delay-load failure callback function for the specified DLL and process.
+ * \param ThunkAddress The thunk data for the target function. Used to find the specific name table entry of the function.
+ * \param Flags Reserved; must be 0.
+ * \return The address of the import, or the failure stub for it.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/devnotes/resolvedelayloadedapi
  */
 NTSYSAPI
 PVOID
@@ -1407,11 +1407,11 @@ LdrResolveDelayLoadedAPI(
 /**
  * Forwards the work in resolving delay-loaded imports from the parent binary to a target binary.
  *
- * @param [in] ParentModuleBase The base address of the module that delay loads another binary.
- * @param [in] TargetDllName The name of the target DLL.
- * @param [in] Flags Reserved; must be 0.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/devnotes/resolvedelayloadsfromdll
+ * \param [in] ParentModuleBase The base address of the module that delay loads another binary.
+ * \param [in] TargetDllName The name of the target DLL.
+ * \param [in] Flags Reserved; must be 0.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/devnotes/resolvedelayloadsfromdll
  */
 NTSYSAPI
 NTSTATUS
@@ -1426,9 +1426,9 @@ LdrResolveDelayLoadsFromDll(
 /**
  * Specifies a default set of directories to search when the calling process loads a DLL.
  *
- * @param [in] DirectoryFlags The directories to search.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-setdefaultdlldirectories
+ * \param [in] DirectoryFlags The directories to search.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-setdefaultdlldirectories
  */
 NTSYSAPI
 NTSTATUS
@@ -1441,10 +1441,10 @@ LdrSetDefaultDllDirectories(
 /**
  * Adds a directory to the process DLL search path.
  *
- * @param [in] NewDirectory An absolute path to the directory to add to the search path. For example, to add the directory Dir2 to the process DLL search path, specify \Dir2.
- * @param [out] Cookie An opaque pointer that can be passed to RemoveDllDirectory to remove the DLL from the process DLL search path.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-adddlldirectory
+ * \param [in] NewDirectory An absolute path to the directory to add to the search path. For example, to add the directory Dir2 to the process DLL search path, specify \Dir2.
+ * \param [out] Cookie An opaque pointer that can be passed to RemoveDllDirectory to remove the DLL from the process DLL search path.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-adddlldirectory
  */
 NTSYSAPI
 NTSTATUS
@@ -1458,9 +1458,9 @@ LdrAddDllDirectory(
 /**
  * Removes a directory that was added to the process DLL search path by using LdrAddDllDirectory.
  *
- * @param [in] Cookie The cookie returned by LdrAddDllDirectory when the directory was added to the search path.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-removedlldirectory
+ * \param [in] Cookie The cookie returned by LdrAddDllDirectory when the directory was added to the search path.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-removedlldirectory
  */
 NTSYSAPI
 NTSTATUS
@@ -1505,7 +1505,7 @@ LdrSetImplicitPathOptions(
 /**
  * The LdrControlFlowGuardEnforced function checks if Control Flow Guard is enforced.
  *
- * @return TRUE if Control Flow Guard is enforced, FALSE otherwise.
+ * \return TRUE if Control Flow Guard is enforced, FALSE otherwise.
  */
 NTSYSAPI
 ULONG
@@ -1563,18 +1563,18 @@ typedef struct _LDR_SOFTWARE_ENCLAVE
 /**
  * Creates a new uninitialized enclave. An enclave is an isolated region of code and data within the address space for an application. Only code that runs within the enclave can access data within the same enclave.
  *
- * @param ProcessHandle A handle to the process for which you want to create an enclave.
- * @param BaseAddress The preferred base address of the enclave. Specify NULL to have the operating system assign the base address.
- * @param Reserved Reserved.
- * @param Size The size of the enclave that you want to create, including the size of the code that you will load into the enclave, in bytes.
- * @param InitialCommitment The amount of memory to commit for the enclave, in bytes. This parameter is not used for virtualization-based security (VBS) enclaves.
- * @param EnclaveType The architecture type of the enclave that you want to create. To verify that an enclave type is supported, call IsEnclaveTypeSupported.
- * @param EnclaveInformation A pointer to the architecture-specific information to use to create the enclave.
- * @param EnclaveInformationLength The length of the structure that the EnclaveInformation parameter points to, in bytes.
+ * \param ProcessHandle A handle to the process for which you want to create an enclave.
+ * \param BaseAddress The preferred base address of the enclave. Specify NULL to have the operating system assign the base address.
+ * \param Reserved Reserved.
+ * \param Size The size of the enclave that you want to create, including the size of the code that you will load into the enclave, in bytes.
+ * \param InitialCommitment The amount of memory to commit for the enclave, in bytes. This parameter is not used for virtualization-based security (VBS) enclaves.
+ * \param EnclaveType The architecture type of the enclave that you want to create. To verify that an enclave type is supported, call IsEnclaveTypeSupported.
+ * \param EnclaveInformation A pointer to the architecture-specific information to use to create the enclave.
+ * \param EnclaveInformationLength The length of the structure that the EnclaveInformation parameter points to, in bytes.
  * For the ENCLAVE_TYPE_SGX and ENCLAVE_TYPE_SGX2 enclave types, this value must be 4096. For the ENCLAVE_TYPE_VBS enclave type, this value must be sizeof(ENCLAVE_CREATE_INFO_VBS), which is 36 bytes.
- * @param EnclaveError An optional pointer to a variable that receives an enclave error code that is architecture-specific.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-createenclave
+ * \param EnclaveError An optional pointer to a variable that receives an enclave error code that is architecture-specific.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-createenclave
  */
 NTSYSAPI
 NTSTATUS
@@ -1595,14 +1595,14 @@ LdrCreateEnclave(
 /**
  * Initializes an enclave that you created and loaded with data.
  *
- * @param ProcessHandle A handle to the process for which the enclave was created.
- * @param BaseAddress Any address within the enclave.
- * @param EnclaveInformation A pointer to the architecture-specific information to use to initialize the enclave.
- * @param EnclaveInformationLength The length of the structure that the EnclaveInformation parameter points to, in bytes.
+ * \param ProcessHandle A handle to the process for which the enclave was created.
+ * \param BaseAddress Any address within the enclave.
+ * \param EnclaveInformation A pointer to the architecture-specific information to use to initialize the enclave.
+ * \param EnclaveInformationLength The length of the structure that the EnclaveInformation parameter points to, in bytes.
  * For the ENCLAVE_TYPE_SGX and ENCLAVE_TYPE_SGX2 enclave types, this value must be 4096. For the ENCLAVE_TYPE_VBS enclave type, this value must be sizeof(ENCLAVE_CREATE_INFO_VBS), which is 36 bytes.
- * @param EnclaveError An optional pointer to a variable that receives an enclave error code that is architecture-specific.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-initializeenclave
+ * \param EnclaveError An optional pointer to a variable that receives an enclave error code that is architecture-specific.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-initializeenclave
  */
 NTSYSAPI
 NTSTATUS
@@ -1619,9 +1619,9 @@ LdrInitializeEnclave(
 /**
  * Deletes the specified enclave.
  *
- * @param BaseAddress The base address of the enclave that you want to delete.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-deleteenclave
+ * \param BaseAddress The base address of the enclave that you want to delete.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-deleteenclave
  */
 NTSYSAPI
 NTSTATUS
@@ -1634,11 +1634,11 @@ LdrDeleteEnclave(
 /**
  * Calls a function within an enclave. LdrCallEnclave can also be called within an enclave to call a function outside of the enclave.
  *
- * @param Routine The address of the function that you want to call.
- * @param Flags The flags to modify the call function.
- * @param RoutineParamReturn The parameter than you want to pass to the function.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-callenclave
+ * \param Routine The address of the function that you want to call.
+ * \param Flags The flags to modify the call function.
+ * \param RoutineParamReturn The parameter than you want to pass to the function.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-callenclave
  */
 NTSYSAPI
 NTSTATUS
@@ -1653,11 +1653,11 @@ LdrCallEnclave(
 /**
  * Loads an image and all of its imports into an enclave.
  *
- * @param BaseAddress The base address of the image into which to load the image.
- * @param DllPath A NULL-terminated string that contains the path of the image to load.
- * @param DllName A NULL-terminated string that contains the name of the image to load.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-loadenclaveimagew
+ * \param BaseAddress The base address of the image into which to load the image.
+ * \param DllPath A NULL-terminated string that contains the path of the image to load.
+ * \param DllName A NULL-terminated string that contains the name of the image to load.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-loadenclaveimagew
  */
 NTSYSAPI
 NTSTATUS
@@ -1673,7 +1673,7 @@ LdrLoadEnclaveModule(
 /**
  * This function forcefully terminates the calling program if it is invoked inside a loader callout. Otherwise, it has no effect.
  *
- * @remarks This routine does not catch all potential deadlock cases; it is possible for a thread inside a loader callout
+ * \remarks This routine does not catch all potential deadlock cases; it is possible for a thread inside a loader callout
  * to acquire a lock while some thread outside a loader callout holds the same lock and makes a call into the loader.
  * In other words, there can be a lock order inversion between the loader lock and a client lock.
  * https://learn.microsoft.com/en-us/windows/win32/devnotes/ldrfastfailinloadercallout
