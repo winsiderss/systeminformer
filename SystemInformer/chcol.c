@@ -72,10 +72,10 @@ VOID PhShowChooseColumnsDialog(
     PhDereferenceObject(context.Columns);
 }
 
-static long __cdecl PhpColumnsCompareDisplayIndexTn(
-    _In_ const void* Context,
-    _In_ const void *elem1,
-    _In_ const void *elem2
+static int __cdecl PhpColumnsCompareDisplayIndexTn(
+    _In_ void* Context,
+    _In_ void const* elem1,
+    _In_ void const* elem2
     )
 {
     PPH_TREENEW_COLUMN column1 = *(PPH_TREENEW_COLUMN *)elem1;

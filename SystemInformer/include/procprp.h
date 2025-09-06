@@ -29,7 +29,7 @@ typedef struct _PH_PROCESS_PROPCONTEXT
     PPH_PROCESS_ITEM ProcessItem;
     PPH_STRING Title;
     PROPSHEETHEADER PropSheetHeader;
-    HPROPSHEETPAGE *PropSheetPages;
+    HPROPSHEETPAGE* PropSheetPages;
 
     HANDLE SelectThreadId;
 

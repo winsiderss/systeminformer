@@ -127,7 +127,7 @@ void GetPropertySize(
         case TDH_INTYPE_WBEMSID:
             {
                 ULONG sidoffset = (eventRecord.EventHeader.Flags & EVENT_HEADER_FLAG_64_BIT_HEADER) ? 8 : 4;
-                PSID sid = PTR_ADD_OFFSET(eventRecord.UserData, offset + sidoffset);
+                PCSID sid = (PCSID)RTL_PTR_ADD(eventRecord.UserData, offset + sidoffset);
 
                 size = sidoffset + PhLengthSid(sid); // dmex
 

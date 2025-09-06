@@ -14,8 +14,29 @@
 #define RtlOffsetToPointer(Base, Offset) ((PUCHAR)(((PUCHAR)(Base)) + ((ULONG_PTR)(Offset))))
 #define RtlPointerToOffset(Base, Pointer) ((ULONG)(((PUCHAR)(Pointer)) - ((PUCHAR)(Base))))
 
-#define RTL_PTR_ADD(Pointer, Value) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Value)))
-#define RTL_PTR_SUBTRACT(Pointer, Value) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Value)))
+#ifndef RTL_PTR_ADD
+#define RTL_PTR_ADD(Pointer, Value) ((PVOID)(((PUCHAR)(Pointer)) + ((ULONG_PTR)(Value))))
+#endif
+
+#ifndef RTL_PTR_SUBTRACT
+#define RTL_PTR_SUBTRACT(Pointer, Value) ((PVOID)(((PUCHAR)(Pointer)) - ((ULONG_PTR)(Value))))
+#endif
+
+#ifndef RTL_IS_POWER_OF_TWO
+#define RTL_IS_POWER_OF_TWO(Value) ((Value != 0) && !((Value) & ((Value) - 1)))
+#endif
+
+#ifndef RTL_IS_CLEAR_OR_SINGLE_FLAG
+#define RTL_IS_CLEAR_OR_SINGLE_FLAG(Flags, Mask) (((Flags) & (Mask)) == 0 || !(((Flags) & (Mask)) & (((Flags) & (Mask)) - 1)))
+#endif
+
+#ifndef RTL_NUM_ALIGN_DOWN
+#define RTL_NUM_ALIGN_DOWN(Number, Alignment) ((Number) - ((Number) & ((Alignment) - 1)))
+#endif
+
+#ifndef RTL_NUM_ALIGN_UP
+#define RTL_NUM_ALIGN_UP(Number, Alignment) RTL_NUM_ALIGN_DOWN((Number) + (Alignment) - 1, (Alignment))
+#endif
 
 //
 // Time unit constants (ordered by magnitude)
@@ -8804,6 +8825,15 @@ RtlSetGroupSecurityDescriptor(
     _In_ BOOLEAN GroupDefaulted
     );
 
+/**
+ * The RtlGetGroupSecurityDescriptor routine returns the primary group information for a given security descriptor.
+ *
+ * @param SecurityDescriptor Pointer to the security descriptor whose primary group information is to be returned.
+ * @param Group Pointer to a variable that receives a pointer to the security identifier (SID) for the primary group.
+ * @param GroupDefaulted Pointer to a Boolean variable that receives the value of the SE_GROUP_DEFAULTED flag.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlgetgroupsecuritydescriptor
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -11628,6 +11658,8 @@ typedef enum _RTL_BSD_ITEM_TYPE
     RtlBsdItemRevocationListInfo, // 24H2
     RtlBsdItemMax
 } RTL_BSD_ITEM_TYPE;
+
+#define BOOT_STATUS_FIELD_MAX RtlBsdItemMax
 
 // ros
 typedef struct _RTL_BSD_DATA_POWER_TRANSITION

@@ -11,12 +11,12 @@
 
 namespace CustomBuildTool
 {
-    internal static unsafe class VisualStudio
+    internal static unsafe class BuildVisualStudio
     {
         private static readonly List<VisualStudioInstance> VisualStudioInstanceList;
         private static VisualStudioInstance VisualStudioInstance = null;
 
-        static VisualStudio()
+        static BuildVisualStudio()
         {
             VisualStudioInstanceList = new List<VisualStudioInstance>();
 

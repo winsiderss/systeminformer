@@ -20,7 +20,7 @@ extern "C" {
 #define PH_COLORBOX_CLASSNAME L"PhColorBox"
 
 PHLIBAPI
-BOOLEAN
+RTL_ATOM
 NTAPI
 PhColorBoxInitialization(
     VOID

@@ -149,7 +149,7 @@ PhDeselectAllServiceNodes(
     );
 
 PHAPPAPI
-VOID
+BOOLEAN
 NTAPI
 PhSelectAndEnsureVisibleServiceNode(
     _In_ PPH_SERVICE_NODE ServiceNode

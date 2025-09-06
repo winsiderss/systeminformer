@@ -21,8 +21,6 @@
 #include <workqueue.h>
 #include <mapimg.h>
 
-#include <shlobj.h>
-
 #include "resource.h"
 
 #define PLUGIN_NAME L"ProcessHacker.OnlineChecks"
@@ -31,6 +29,7 @@
 #define SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION (PLUGIN_NAME L".VirusTotalDefautAction")
 #define SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT (PLUGIN_NAME L".VirusTotalDefautPAT")
 #define SETTING_NAME_HYBRIDANAL_DEFAULT_PAT (PLUGIN_NAME L".HybridAnalysisDefautPAT")
+#define SETTING_NAME_FILESCAN_DEFAULT_PAT (PLUGIN_NAME L".FileScanDefautPAT")
 
 #define UM_UPLOAD (WM_APP + 1)
 #define UM_EXISTS (WM_APP + 2)
@@ -105,6 +104,8 @@ typedef struct _UPLOAD_CONTEXT
     BOOLEAN VtApiUpload;
     BOOLEAN FileExists;
     BOOLEAN Cancel;
+    BOOLEAN ProgressMarquee;
+    BOOLEAN ProgressTimer;
 
     ULONG Service;
     ULONG ErrorCode;
@@ -113,10 +114,11 @@ typedef struct _UPLOAD_CONTEXT
     HWND DialogHandle;
     WNDPROC DialogWindowProc;
 
-    HANDLE TaskbarListClass;
+    //HANDLE TaskbarListClass;
 
     PPH_STRING HybridPat;
     PPH_STRING TotalPat;
+    PPH_STRING FileScanPat;
 
     PPH_STRING FileSize;
     PPH_STRING ErrorString;
@@ -132,7 +134,16 @@ typedef struct _UPLOAD_CONTEXT
     PPH_STRING FileHash;
     PPH_STRING FileUpload;
 
+    LONG64 ProgressTotal;
+    LONG64 ProgressUploaded;
+    LONG64 ProgressBitsPerSecond;
 } UPLOAD_CONTEXT, *PUPLOAD_CONTEXT;
+
+#ifdef FORCE_FAST_STATUS_TIMER
+#define SETTING_NAME_STATUS_TIMER_INTERVAL USER_TIMER_MINIMUM
+#else
+#define SETTING_NAME_STATUS_TIMER_INTERVAL 20
+#endif
 
 // options.c
 
@@ -163,7 +174,7 @@ NTSTATUS ViewReportThreadStart(
     _In_ PVOID Parameter
     );
 
-VOID ShowVirusTotalUploadDialog(
+VOID ShowFileUploadDialog(
     _In_ PUPLOAD_CONTEXT Context
     );
 
@@ -171,7 +182,7 @@ VOID ShowFileFoundDialog(
     _In_ PUPLOAD_CONTEXT Context
     );
 
-VOID ShowVirusTotalProgressDialog(
+VOID ShowFileUploadProgressDialog(
     _In_ PUPLOAD_CONTEXT Context
     );
 
@@ -203,6 +214,10 @@ VOID VirusTotalShowErrorDialog(
 #define MENUITEM_JOTTI_UPLOAD 120
 #define MENUITEM_JOTTI_UPLOAD_SERVICE 121
 #define MENUITEM_JOTTI_UPLOAD_FILE 122
+
+#define MENUITEM_FILESCANIO_UPLOAD 130
+#define MENUITEM_FILESCANIO_UPLOAD_SERVICE 131
+#define MENUITEM_FILESCANIO_UPLOAD_FILE 132
 
 VOID UploadToOnlineService(
     _In_ PPH_STRING FileName,

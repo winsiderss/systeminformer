@@ -227,12 +227,12 @@ ULONG_PTR GetSearchMatchHandle(
     );
 
 VOID RegisterTabSearch(
-    _In_ INT TabIndex,
+    _In_ LONG TabIndex,
     _In_ PWSTR BannerText
     );
 
 PTOOLSTATUS_TAB_INFO RegisterTabInfo(
-    _In_ INT TabIndex
+    _In_ LONG TabIndex
     );
 
 HWND GetCurrentTreeNewHandle(
@@ -247,6 +247,7 @@ VOID InvalidateMainWindowLayout(
     VOID
     );
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI SearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -526,6 +527,7 @@ VOID NTAPI TaskbarUpdateEvents(
     VOID
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS TaskbarIconUpdateThread(
     _In_opt_ PVOID Context
     );

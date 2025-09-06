@@ -168,7 +168,7 @@ namespace CustomBuildTool
             //this.SigningCallbackEx = (delegate* unmanaged[Stdcall]<CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, CERT_CONTEXT**, HCERTSTORE, HRESULT>)Marshal.GetFunctionPointerForDelegate(this.SignDigestCallbackExDelegate);
         }
 
-        internal bool IsAppxFile(ReadOnlySpan<char> FileName)
+        internal static bool IsAppxFile(ReadOnlySpan<char> FileName)
         {
             if (FileName.EndsWith(".appx", StringComparison.OrdinalIgnoreCase))
                 return true;

@@ -76,10 +76,10 @@ typedef struct _D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1
 #define PH_RECORD_MAX_USAGE 1
 
 EXTERN_C PPH_PLUGIN PluginInstance;
-extern LIST_ENTRY EtProcessBlockListHead;
-extern LIST_ENTRY EtNetworkBlockListHead;
-extern HWND ProcessTreeNewHandle;
-extern HWND NetworkTreeNewHandle;
+EXTERN_C LIST_ENTRY EtProcessBlockListHead;
+EXTERN_C LIST_ENTRY EtNetworkBlockListHead;
+EXTERN_C HWND ProcessTreeNewHandle;
+EXTERN_C HWND NetworkTreeNewHandle;
 
 EXTERN_C ULONG EtWindowsVersion;
 EXTERN_C BOOLEAN EtIsExecutingInWow64;
@@ -197,7 +197,7 @@ VOID DispatchPhSvcRequest(
 
 NTSTATUS CallGetProcessUnloadedDlls(
     _In_ HANDLE ProcessId,
-    _Out_ PPH_STRING *UnloadedDlls
+    _Out_ PPH_BYTES *UnloadedDlls
     );
 
 // Disk item

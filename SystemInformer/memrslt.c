@@ -299,7 +299,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
                 windowRectangle.Position = PhGetIntegerPairSetting(L"MemResultsPosition");
                 PhRectangleToRect(&rect, &windowRectangle);
-                dpiValue = PhGetMonitorDpi(&rect);
+                dpiValue = PhGetMonitorDpi(NULL, &rect);
                 windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemResultsSize", TRUE, dpiValue)->Pair;
                 PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
@@ -428,7 +428,9 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_FILTER_REGEX, L"Regex...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_FILTER_REGEX_CASEINSENSITIVE, L"Regex (case-insensitive)...", NULL, NULL), ULONG_MAX);
 
-                    GetClientRect(GetDlgItem(hwndDlg, IDC_FILTER), &buttonRect);
+                    if (!PhGetClientRect(GetDlgItem(hwndDlg, IDC_FILTER), &buttonRect))
+                        break;
+
                     point.x = 0;
                     point.y = buttonRect.bottom;
 
@@ -587,9 +589,12 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 {
                     if (header->hwndFrom == lvHandle)
                     {
-                        POINT point;
+                        POINT position;
                         PPH_EMENU menu;
                         PPH_EMENU_ITEM selectedItem;
+
+                        if (!PhGetMessagePos(&position))
+                            break;
 
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MEMORY_READWRITEMEMORY, L"Read/Write memory", NULL, NULL), ULONG_MAX);
@@ -597,15 +602,13 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
                         PhInsertCopyListViewEMenuItem(menu, IDC_COPY, lvHandle);
 
-                        GetCursorPos(&point);
-
                         selectedItem = PhShowEMenu(
                             menu,
                             hwndDlg,
                             PH_EMENU_SHOW_LEFTRIGHT,
                             PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                            point.x,
-                            point.y
+                            position.x,
+                            position.y
                             );
 
                         if (selectedItem)
@@ -692,6 +695,12 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 }
                 break;
             }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:

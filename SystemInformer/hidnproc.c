@@ -471,6 +471,12 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             REFLECT_MESSAGE_DLG(hwndDlg, PhZombieProcessesListViewHandle, uMsg, wParam, lParam);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&WindowLayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&WindowLayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&WindowLayoutManager);
@@ -620,8 +626,9 @@ BOOLEAN NTAPI PhpZombieProcessesCallback(
     )
 {
     PPH_ZOMBIE_PROCESS_ENTRY entry;
+    ULONG count = ((PPH_LIST)Context)->Count;
 
-    for (ULONG i = 0; i < ((PPH_LIST)Context)->Count; i++)
+    for (ULONG i = 0; i < count; i++)
     {
         PPH_ZOMBIE_PROCESS_ENTRY item = ((PPH_LIST)Context)->Items[i];
 

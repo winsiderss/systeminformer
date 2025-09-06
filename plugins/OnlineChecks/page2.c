@@ -11,13 +11,6 @@
 
 #include "onlnchk.h"
 
-static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
-{
-    { IDYES, L"View last analysis\nOpen the last VirusTotal analysis page" },
-    //{ IDRETRY, L"Reanalyze file\nRescan the existing sample on VirusTotal" },
-    { IDOK, L"Upload file\nUpload fresh sample to VirusTotal for analysis" },
-};
-
 HRESULT CALLBACK TaskDialogResultFoundProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -32,10 +25,10 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
     {
     case TDN_NAVIGATED:
         {
-            if (context->TaskbarListClass)
-            {
-                PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, TBPF_NOPROGRESS);
-            }
+            //if (context->TaskbarListClass)
+            //{
+            //    PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, PH_TBLF_NOPROGRESS);
+            //}
         }
         break;
     case TDN_BUTTON_CLICKED:
@@ -44,7 +37,7 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
 
             if (buttonID == IDOK)
             {
-                ShowVirusTotalProgressDialog(context);
+                ShowFileUploadProgressDialog(context);
                 return S_FALSE;
             }
             else if (buttonID == IDRETRY)
@@ -87,6 +80,13 @@ VOID ShowFileFoundDialog(
     _In_ PUPLOAD_CONTEXT Context
     )
 {
+    static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+    {
+        { IDYES, L"View last analysis\nView the last or outdated analysis page" },
+        //{ IDRETRY, L"Reanalyze file\nRescan the existing sample on VirusTotal" },
+        { IDOK, L"Upload file\nUpload fresh sample for updated analysis" },
+    };
+
     TASKDIALOGCONFIG config;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
@@ -99,15 +99,37 @@ VOID ShowFileFoundDialog(
         PhGetStringOrEmpty(Context->BaseFileName),
         PhGetStringOrEmpty(Context->LastAnalysisDate)
         )->Buffer;
-    // was last analyzed by VirusTotal on 2016-12-28 05:26:50 UTC (1 hour ago) it was first analyzed by VirusTotal on 2016-12-12 17:08:19 UTC.
-    config.pszContent = PhaFormatString(
-        L"Malicious detections: %s\r\nFirst analyzed: %s\r\nLast analyzed: %s\r\nUpload size: %s\r\n\r\nYou can take a look at the last analysis or upload it again now.",
-        PhGetStringOrEmpty(Context->Detected),
-        //PhGetStringOrEmpty(Context->MaxDetected),
-        PhGetStringOrEmpty(Context->FirstAnalysisDate),
-        PhGetStringOrEmpty(Context->LastAnalysisDate),
-        PhGetStringOrEmpty(Context->FileSize)
-        )->Buffer;
+
+    if (Context->Service == MENUITEM_VIRUSTOTAL_UPLOAD || Context->Service == MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE)
+    {
+        // was last analyzed by VirusTotal on 2016-12-28 05:26:50 UTC (1 hour ago) it was first analyzed by VirusTotal on 2016-12-12 17:08:19 UTC.
+        config.pszContent = PhaFormatString(
+            L"%s %s\r\n%s %s\r\n%s %s\r\n%s %s\r\n\r\n%s",
+            L"Detections:",
+            PhGetStringOrEmpty(Context->Detected),
+            L"First analyzed:",
+            PhGetStringOrEmpty(Context->FirstAnalysisDate),
+            L"Last analyzed:",
+            PhGetStringOrEmpty(Context->LastAnalysisDate),
+            L"Upload size:",
+            PhGetStringOrEmpty(Context->FileSize),
+            L"You can take a look at the last analysis or upload it again now."
+            )->Buffer;
+    }
+    else
+    {
+        config.pszContent = PhaFormatString(
+            L"%s %s\r\n%s %s\r\n\r\n%s",
+            L"Detections:",
+            PhGetStringOrEmpty(Context->Detected),
+            //L"Last analyzed:",
+            //PhGetStringOrEmpty(Context->LastAnalysisDate),
+            L"Upload size:",
+            PhGetStringOrEmpty(Context->FileSize),
+            L"You can take a look at the last analysis or upload it again now."
+            )->Buffer;
+    }
+
     //config.pszVerificationText = L"Remember this selection...";
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);

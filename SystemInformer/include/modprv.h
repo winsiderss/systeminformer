@@ -130,6 +130,7 @@ VOID PhDereferenceAllModuleItems(
     _In_ PPH_MODULE_PROVIDER ModuleProvider
     );
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhModuleProviderUpdate(
     _In_ PVOID Object
     );

@@ -721,8 +721,8 @@ NTSTATUS PhCreateProcessLxss(
 {
     static SECURITY_ATTRIBUTES securityAttributes = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
 #if defined(PH_WSL_PSEUDOCONSOLE)
-    static __typeof__(&CreatePseudoConsole) CreatePseudoConsole_I = NULL;
-    static __typeof__(&ClosePseudoConsole) ClosePseudoConsole_I = NULL;
+    static typeof(&CreatePseudoConsole) CreatePseudoConsole_I = NULL;
+    static typeof(&ClosePseudoConsole) ClosePseudoConsole_I = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     HPCON pseudoConsoleHandle = NULL;
 #endif

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -11,18 +11,18 @@
 
 namespace CustomBuildTool
 {
-    public static class GithubReleases
+    public static class BuildGithub
     {
-        private static readonly string BaseUrl;
         private static readonly string BaseToken;
+        private static readonly string BaseUrl;
 
-        static GithubReleases()
+        static BuildGithub()
         {
-            BaseUrl = Win32.GetEnvironmentVariable("GITHUB_MIRROR_API");
             BaseToken = Win32.GetEnvironmentVariable("GITHUB_MIRROR_KEY");
+            BaseUrl = Win32.GetEnvironmentVariable("GITHUB_MIRROR_API");
         }
 
-        public static GithubReleasesResponse CreateRelease(string Version)
+        public static GithubReleasesResponse CreateRelease(string Version, bool Draft = true, bool Prerelease = false, bool GenerateReleaseNotes = true)
         {
             if (string.IsNullOrWhiteSpace(BaseUrl))
                 return null;
@@ -31,29 +31,24 @@ namespace CustomBuildTool
 
             try
             {
-                var buildUpdateRequest = new GithubReleasesRequest
+                GithubReleasesRequest buildUpdateRequest = new GithubReleasesRequest
                 {
                     ReleaseTag = Version,
                     Name = Version,
-                    Draft = true,
-                    GenerateReleaseNotes = true,
-                    //Prerelease = true
+                    Draft = Draft,
+                    Prerelease = Prerelease,
+                    GenerateReleaseNotes = GenerateReleaseNotes,
                 };
-
-                byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, GithubReleasesRequestContext.Default.GithubReleasesRequest);
-
-                if (buildPostString.LongLength == 0)
-                    return null;
 
                 using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/releases"))
                 {
-                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    requestMessage.Content = new ByteArrayContent(buildPostString);
-                    requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                    requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
 
-                    var httpResult = HttpClient.SendMessage(requestMessage, GithubReleasesResponseContext.Default.GithubReleasesResponse);
+                    var httpResult = BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
 
                     if (httpResult == null)
                     {
@@ -92,10 +87,11 @@ namespace CustomBuildTool
 
                 using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/releases/tags/{Version}"))
                 {
-                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    responseMessage = HttpClient.SendMessageResponse(requestMessage);
+                    responseMessage = BuildHttpClient.SendMessageResponse(requestMessage);
 
                     if (!responseMessage.IsSuccessStatusCode)
                     {
@@ -120,7 +116,7 @@ namespace CustomBuildTool
                         return false;
                     }
 
-                    githubResponseMessage = JsonSerializer.Deserialize(result, GithubReleasesResponseContext.Default.GithubReleasesResponse);
+                    githubResponseMessage = JsonSerializer.Deserialize(result, GithubResponseContext.Default.GithubReleasesResponse);
 
                     if (githubResponseMessage == null)
                     {
@@ -138,10 +134,11 @@ namespace CustomBuildTool
                 // Delete the release (required)
                 using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"{BaseUrl}/releases/{githubResponseMessage.ReleaseId}"))
                 {
-                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    var response = HttpClient.SendMessage(requestMessage);
+                    var response = BuildHttpClient.SendMessage(requestMessage);
 
                     if (string.IsNullOrWhiteSpace(response))
                     {
@@ -153,10 +150,11 @@ namespace CustomBuildTool
                 // Delete the release tag (optional)
                 using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"{BaseUrl}/git/refs/tags/{Version}"))
                 {
-                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    var response = HttpClient.SendMessage(requestMessage);
+                    var response = BuildHttpClient.SendMessage(requestMessage);
 
                     if (string.IsNullOrWhiteSpace(response))
                     {
@@ -174,7 +172,7 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static GithubReleasesResponse UpdateRelease(string ReleaseId)
+        public static GithubReleasesResponse UpdateRelease(string ReleaseId, bool Draft = false, bool Prerelease = false)
         {
             if (string.IsNullOrWhiteSpace(BaseUrl))
                 return null;
@@ -183,26 +181,21 @@ namespace CustomBuildTool
 
             try
             {
-                var buildUpdateRequest = new GithubReleasesRequest
+                GithubReleasesRequest buildUpdateRequest = new GithubReleasesRequest
                 {
-                    Draft = false,
-                    //Prerelease = true
+                    Draft = Draft,
+                    Prerelease = Prerelease
                 };
-
-                byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, GithubReleasesRequestContext.Default.GithubReleasesRequest);
-
-                if (buildPostString.LongLength == 0)
-                    return null;
 
                 using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/releases/{ReleaseId}"))
                 {
-                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    requestMessage.Content = new ByteArrayContent(buildPostString);
-                    requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                    requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
 
-                    var response = HttpClient.SendMessage(requestMessage, GithubReleasesResponseContext.Default.GithubReleasesResponse);
+                    var response = BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
 
                     if (response == null)
                     {
@@ -227,60 +220,51 @@ namespace CustomBuildTool
             return null;
         }
 
-        public static GithubAssetsResponse UploadAssets(string Version, string FileName, string UploadUrl)
+        public static GithubAssetsResponse UploadAsset(string ReleaseAssetUrl, string FileName, string Name, string Label)
         {
-            string upload_name;
-            string upload_url;
+            string upload_url = null;
 
-            if (string.IsNullOrWhiteSpace(BaseUrl))
-                return null;
             if (string.IsNullOrWhiteSpace(BaseToken))
                 return null;
+            if (!ReleaseAssetUrl.Contains("{?name,label}", StringComparison.OrdinalIgnoreCase))
+                return null;
 
-            if (!UploadUrl.Contains("{?name,label}", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException();
-
-            upload_name = Path.GetFileName(FileName);
-            upload_name = upload_name.Replace("-build-", $"-{Version}-", StringComparison.OrdinalIgnoreCase);
-            upload_url = UploadUrl.Replace("{?name,label}", $"?name={upload_name}", StringComparison.OrdinalIgnoreCase);
+            upload_url = ReleaseAssetUrl.Replace(
+                "{?name,label}",
+                $"?name={Uri.EscapeDataString(Name)}&label={Uri.EscapeDataString(Label)}",
+                StringComparison.OrdinalIgnoreCase
+                );
 
             try
             {
-                using (FileStream fileStream = File.OpenRead(FileName))
-                using (BufferedStream bufferedStream = new BufferedStream(fileStream))
-                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, upload_url))
+                using var fileStream = File.OpenRead(FileName);
+                using var bufferedStream = new BufferedStream(fileStream);
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, upload_url);
+
+                requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
+
+                requestMessage.Content = new StreamContent(bufferedStream);
+                requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+                var response = BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubAssetsResponse);
+                if (response == null || !response.Uploaded || string.IsNullOrWhiteSpace(response.DownloadUrl))
                 {
-                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
-
-                    requestMessage.Content = new StreamContent(bufferedStream);
-                    requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-
-                    var response = HttpClient.SendMessage(requestMessage, GithubAssetsResponseContext.Default.GithubAssetsResponse);
-
-                    if (response == null)
-                    {
-                        Program.PrintColorMessage("[UploadAssets-GithubAssetsResponse]", ConsoleColor.Red);
-                        return null;
-                    }
-
-                    if (!response.Uploaded || string.IsNullOrWhiteSpace(response.DownloadUrl))
-                    {
-                        Program.PrintColorMessage("[UploadAssets-download_url]", ConsoleColor.Red);
-                        return null;
-                    }
-
-                    return response;
+                    Program.PrintColorMessage("[UploadAssets] upload failed", ConsoleColor.Red);
+                    return null;
                 }
+
+                return response;
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage("[UploadAssets] " + ex, ConsoleColor.Red);
+                return null;
             }
-
-            return null;
         }
     }
+
 
     public class GithubRelease : IComparable, IComparable<GithubRelease>, IEquatable<GithubRelease>
     {
@@ -318,6 +302,21 @@ namespace CustomBuildTool
             }
 
             return string.Empty;
+        }
+
+        public GithubReleaseAsset GetDeployInfo(string Name)
+        {
+            for (int i = 0; i < this.Files.Count; i++)
+            {
+                var entry = this.Files[i];
+
+                if (string.Equals(entry.DeployFile.Name, Name, StringComparison.OrdinalIgnoreCase))
+                {                      
+                    return entry;
+                }
+            }
+
+            return null;
         }
 
         public override string ToString()
@@ -360,11 +359,12 @@ namespace CustomBuildTool
         }
     }
 
-    public class GithubReleaseAsset(string Filename, string DownloadUrl)
+    public class GithubReleaseAsset(string Filename, string DownloadUrl, DeployFile DeployFile)
         : IComparable, IComparable<GithubReleaseAsset>, IEquatable<GithubReleaseAsset>
     {
         public string Filename { get; } = Filename;
         public string DownloadUrl { get; } = DownloadUrl;
+        public DeployFile DeployFile { get; } = DeployFile;
 
         public override string ToString()
         {

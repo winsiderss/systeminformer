@@ -347,7 +347,7 @@ typedef struct _KPH_DYN_CONFIG
                 File.Delete(configSigFileName);
                 Utils.WriteAllBytes(configFile, config);
 
-                bool configFileSig = Verify.CreateSigFile("kph", configFile, StrictChecks);
+                bool configFileSig = BuildVerify.CreateSigFile("kph", configFile, StrictChecks);
 
                 Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
 
@@ -357,7 +357,7 @@ typedef struct _KPH_DYN_CONFIG
             {
                 Utils.WriteAllBytes(configFile, config);
 
-                bool configFileSig = Verify.CreateSigFile("kph", configFile, StrictChecks);
+                bool configFileSig = BuildVerify.CreateSigFile("kph", configFile, StrictChecks);
 
                 Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
 
@@ -430,7 +430,7 @@ typedef struct _KPH_DYN_CONFIG
             {
                 var name = field.Attributes?.GetNamedItem("id")?.Value;
 
-                if (string.IsNullOrEmpty(name))
+                if (string.IsNullOrWhiteSpace(name))
                     continue;
 
                 fieldsMap.Add(UInt32.Parse(name), field);
@@ -445,9 +445,9 @@ typedef struct _KPH_DYN_CONFIG
                 var size = data.Attributes?.GetNamedItem("size")?.Value;
                 var dynClass = ClassFromString(file);
 
-                if (string.IsNullOrEmpty(timestamp))
+                if (string.IsNullOrWhiteSpace(timestamp))
                     continue;
-                if (string.IsNullOrEmpty(size))
+                if (string.IsNullOrWhiteSpace(size))
                     continue;
 
                 entry.Class = (UInt16)dynClass;
@@ -478,7 +478,7 @@ typedef struct _KPH_DYN_CONFIG
                                 var value = field.Attributes?.GetNamedItem("value")?.Value;
                                 var name = field.Attributes?.GetNamedItem("name")?.Value;
                                
-                                if (string.IsNullOrEmpty(name))
+                                if (string.IsNullOrWhiteSpace(name))
                                     continue;
 
                                 var member = typeof(DynFieldsKernel).GetField(name);
@@ -502,7 +502,7 @@ typedef struct _KPH_DYN_CONFIG
                                 var value = field.Attributes?.GetNamedItem("value")?.Value;
                                 var name = field.Attributes?.GetNamedItem("name")?.Value;
                                
-                                if (string.IsNullOrEmpty(name))
+                                if (string.IsNullOrWhiteSpace(name))
                                     continue;
 
                                 var member = typeof(DynFieldsLxcore).GetField(name);
@@ -577,6 +577,20 @@ typedef struct _KPH_DYN_CONFIG
 
                 return sb.ToString();
             }
+        }
+
+        public static bool IsValidSessionKey()
+        {
+            try
+            {
+                BuildVerify.PrintCngPublicKeyInfo(SessionTokenPublicKey, CngKeyBlobFormat.GenericPublicBlob);
+            }
+            catch (Exception) 
+            {
+                return false; 
+            }
+
+            return true;
         }
     }
 }

@@ -35,11 +35,13 @@
 #include <xmllite.h>
 #include <shlwapi.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpSettingsHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -61,6 +63,7 @@ VOID PhSettingsInitialization(
     PhIgnoredSettings = PhCreateList(4);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -72,6 +75,7 @@ BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     return PhEqualStringRef(&setting1->Name, &setting2->Name, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpSettingsHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -334,10 +338,12 @@ ULONG PhGetIntegerStringRefSetting(
     return value;
 }
 
-PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
-    _In_ PCPH_STRINGREF Name
+BOOLEAN PhGetIntegerPairStringRefSetting(
+    _In_ PCPH_STRINGREF Name,
+    _Out_ PPH_INTEGER_PAIR IntegerPair
     )
 {
+    BOOLEAN result;
     PPH_SETTING setting;
     PH_INTEGER_PAIR value;
 
@@ -349,23 +355,30 @@ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
     if (setting && setting->Type == IntegerPairSettingType)
     {
         value = setting->u.IntegerPair;
+        result = TRUE;
     }
     else
     {
         RtlZeroMemory(&value, sizeof(PH_INTEGER_PAIR));
+        result = FALSE;
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    return value;
+    RtlZeroMemory(IntegerPair, sizeof(PH_INTEGER_PAIR));
+    RtlCopyMemory(IntegerPair, &value, sizeof(PH_INTEGER_PAIR));
+
+    return result;
 }
 
-PPH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
+BOOLEAN PhGetScalableIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
-    _In_ BOOLEAN ScaleToCurrent,
-    _In_ LONG dpiValue
+    _In_ BOOLEAN ScaleToDpi,
+    _In_ LONG Dpi,
+    _Out_ PPH_SCALABLE_INTEGER_PAIR* ScalableIntegerPair
     )
 {
+    BOOLEAN result;
     PPH_SETTING setting;
     PPH_SCALABLE_INTEGER_PAIR value;
 
@@ -377,25 +390,29 @@ PPH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
     if (setting && setting->Type == ScalableIntegerPairSettingType)
     {
         value = setting->u.Pointer;
+        result = TRUE;
     }
     else
     {
         value = NULL;
+        result = FALSE;
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    if (ScaleToCurrent)
+    if (ScaleToDpi)
     {
-        if (value->Scale != dpiValue && value->Scale != 0)
+        if (value->Scale != Dpi && value->Scale != 0)
         {
-            value->X = PhMultiplyDivideSigned(value->X, dpiValue, value->Scale);
-            value->Y = PhMultiplyDivideSigned(value->Y, dpiValue, value->Scale);
-            value->Scale = dpiValue;
+            value->X = PhMultiplyDivideSigned(value->X, Dpi, value->Scale);
+            value->Y = PhMultiplyDivideSigned(value->Y, Dpi, value->Scale);
+            value->Scale = Dpi;
         }
     }
 
-    return value;
+    *ScalableIntegerPair = value;
+
+    return result;
 }
 
 PPH_STRING PhGetStringRefSetting(
@@ -2026,7 +2043,7 @@ VOID PhLoadWindowPlacementFromRectangle(
     WindowRectangle->Size = scalableIntegerPair->Pair;
 
     PhRectangleToRect(&windowRect, WindowRectangle);
-    windowDpi = PhGetMonitorDpi(&windowRect);
+    windowDpi = PhGetMonitorDpi(NULL, &windowRect);
 
     PhScalableIntegerPairToScale(scalableIntegerPair, windowDpi);
     PhAdjustRectangleToWorkingArea(NULL, WindowRectangle);
@@ -2086,7 +2103,7 @@ BOOLEAN PhLoadWindowPlacementFromSetting(
     else
     {
         PH_RECTANGLE windowRectangle = { 0 };
-        PH_INTEGER_PAIR position;
+        PH_INTEGER_PAIR position = { 0 };
         PH_INTEGER_PAIR size;
         ULONG flags;
         LONG dpi;
@@ -2121,7 +2138,10 @@ BOOLEAN PhLoadWindowPlacementFromSetting(
 
             //size.X = 16;
             //size.Y = 16;
-            GetWindowRect(WindowHandle, &windowRect);
+
+            if (!PhGetWindowRect(WindowHandle, &windowRect))
+                return FALSE;
+
             size.X = windowRect.right - windowRect.left;
             size.Y = windowRect.bottom - windowRect.top;
         }

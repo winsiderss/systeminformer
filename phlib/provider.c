@@ -86,6 +86,7 @@ VOID PhDeleteProviderThread(
 #endif
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI PhpProviderThreadStart(
     _In_ PVOID Parameter
     )

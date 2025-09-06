@@ -411,7 +411,7 @@ PH_CLANG_DIAGNOSTIC_IGNORED("-Winvalid-noreturn");
 #endif
 _Use_decl_annotations_
 VOID PhExitApplication(
-    _In_opt_ NTSTATUS Status
+    _In_ NTSTATUS Status
     )
 {
     PhTraceInfo("%ls exiting: %!STATUS!", PhApplicationName, Status);

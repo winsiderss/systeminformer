@@ -296,6 +296,35 @@ PhShowIconNotification(
     _In_ PCWSTR Title,
     _In_ PCWSTR Text
     );
+
+typedef enum _PH_TOAST_REASON
+{
+    PhToastReasonUserCanceled,
+    PhToastReasonApplicationHidden,
+    PhToastReasonTimedOut,
+    PhToastReasonActivated,
+    PhToastReasonError,
+    PhToastReasonUnknown
+} PH_TOAST_REASON;
+
+typedef _Function_class_(PH_TOAST_CALLBACK)
+VOID NTAPI PH_TOAST_CALLBACK(
+    _In_ HRESULT Result,
+    _In_ PH_TOAST_REASON Reason,
+    _In_ PVOID Context
+);
+typedef PH_TOAST_CALLBACK* PPH_TOAST_CALLBACK;
+
+PHAPPAPI
+HRESULT
+NTAPI
+PhShowIconNotificationEx(
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Text,
+    _In_ ULONG Timeout,
+    _In_opt_ PPH_TOAST_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
 // end_phapppub
 
 VOID PhShowDetailsForIconNotification(

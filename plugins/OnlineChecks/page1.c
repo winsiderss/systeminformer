@@ -27,10 +27,18 @@ HRESULT CALLBACK TaskDialogProcessingCallbackProc(
         {
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            context->ProgressMarquee = TRUE;
 
-            if (context->TaskbarListClass)
-                PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, TBPF_INDETERMINATE);
+            //if (context->TaskbarListClass)
+            //    PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, PH_TBLF_INDETERMINATE);
 
+#ifndef FORCE_NO_STATUS_TIMER
+            if (!context->ProgressTimer)
+            {
+                PhSetTimer(hwndDlg, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
+                context->ProgressTimer = TRUE;
+            }
+#endif
             PhReferenceObject(context);
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UploadCheckThreadStart, context);
         }
@@ -40,7 +48,7 @@ HRESULT CALLBACK TaskDialogProcessingCallbackProc(
     return S_OK;
 }
 
-VOID ShowVirusTotalUploadDialog(
+VOID ShowFileUploadDialog(
     _In_ PUPLOAD_CONTEXT Context
     )
 {
@@ -53,8 +61,8 @@ VOID ShowVirusTotalUploadDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
 
-    config.pszWindowTitle = PhaFormatString(L"Scanning %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
-    config.pszMainInstruction = PhaFormatString(L"Scanning %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
+    config.pszWindowTitle = PhaFormatString(L"Uploading %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
+    config.pszMainInstruction = PhaFormatString(L"Uploading %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
 
     config.cxWidth = 200;
     config.pfCallback = TaskDialogProcessingCallbackProc;

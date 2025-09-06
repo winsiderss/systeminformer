@@ -18,7 +18,7 @@ EXTERN_C_START
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
 extern PH_CALLBACK PhSymbolEventCallback;
 
-#define PH_MAX_SYMBOL_NAME_LEN 128
+#define PH_MAX_SYMBOL_NAME_LEN MAX_SYM_NAME
 
 typedef struct _PH_SYMBOL_PROVIDER
 {
@@ -318,14 +318,30 @@ typedef struct _PH_THREAD_STACK_FRAME
  *
  * \param StackFrame A structure providing information about the stack frame.
  * \param Context A user-defined value passed to PhWalkThreadStack().
- *
  * \return TRUE to continue the stack walk, FALSE to stop.
  */
-typedef BOOLEAN (NTAPI *PPH_WALK_THREAD_STACK_CALLBACK)(
+typedef _Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
+BOOLEAN NTAPI PH_WALK_THREAD_STACK_CALLBACK(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
     _In_opt_ PVOID Context
     );
+typedef PH_WALK_THREAD_STACK_CALLBACK* PPH_WALK_THREAD_STACK_CALLBACK;
 
+/**
+ * Walks the stack of a thread and invokes a callback for each stack frame.
+ *
+ * This function performs a stack walk for the specified thread, optionally using symbol information
+ * to resolve stack frames. For each frame encountered, the provided callback function is called.
+ *
+ * \param ThreadHandle Handle to the thread whose stack is to be walked.
+ * \param ProcessHandle Optional handle to the process containing the thread. May be NULL.
+ * \param ClientId Optional pointer to a CLIENT_ID structure identifying the thread. May be NULL.
+ * \param SymbolProvider Optional pointer to a symbol provider for resolving symbols. May be NULL.
+ * \param Flags Flags controlling the stack walk behavior (e.g., PH_WALK_USER_STACK, PH_WALK_KERNEL_STACK).
+ * \param Callback Pointer to a callback function to be called for each stack frame.
+ * \param Context Optional user-defined context value passed to the callback.
+ * \return Returns STATUS_SUCCESS on success, or an appropriate NTSTATUS error code on failure.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI

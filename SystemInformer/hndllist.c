@@ -21,11 +21,13 @@
 #include <hndlprv.h>
 #include <phsettings.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpHandleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpHandleNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -121,6 +123,7 @@ VOID PhDeleteHandleList(
     PhDereferenceObject(Context->NodeList);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpHandleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -132,6 +135,7 @@ BOOLEAN PhpHandleNodeHashtableEqualFunction(
     return handleNode1->Handle == handleNode2->Handle;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpHandleNodeHashtableHashFunction(
     _In_ PVOID Entry
     )

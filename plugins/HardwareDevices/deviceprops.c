@@ -274,7 +274,7 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
 
             DeviceInitializeGeneralPage(hwndDlg, context);
 
-            if (!PhGetIntegerPairSetting(SETTING_NAME_DEVICE_PROPERTIES_POSITION).X)
+            if (!PhValidWindowPlacementFromSetting(SETTING_NAME_DEVICE_PROPERTIES_POSITION))
             {
                 ExtendedListView_SetColumnWidth(context->GeneralListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
             }
@@ -380,6 +380,9 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
             RECT rect;
             PPH_EMENU_ITEM selectedItem;
 
+            if (!PhGetWindowRect(GetDlgItem(GetParent(hwndDlg), IDABORT), &rect))
+                break;
+
             menu = PhCreateEMenu();
             PhInsertEMenuItem(menu, enable = PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, disable = PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), ULONG_MAX);
@@ -394,7 +397,6 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
                 uninstall->Flags |= PH_EMENU_DISABLED;
             }
 
-            GetWindowRect(GetDlgItem(GetParent(hwndDlg), IDABORT), &rect);
             selectedItem = PhShowEMenu(
                 menu,
                 hwndDlg,
@@ -1072,6 +1074,7 @@ INT_PTR CALLBACK DevicePropResourcesDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS DevicePropertiesThreadStart(
     _In_ PVOID Parameter
     )

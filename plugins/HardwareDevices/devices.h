@@ -1464,6 +1464,7 @@ VOID GraphicsDeviceSysInfoInitializing(
     _In_ PDV_GPU_ENTRY DiskEntry
     );
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN GraphicsDeviceSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,

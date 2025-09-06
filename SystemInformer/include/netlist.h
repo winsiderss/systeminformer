@@ -122,7 +122,7 @@ VOID PhDeselectAllNetworkNodes(
     );
 // end_phapppub
 
-VOID PhSelectAndEnsureVisibleNetworkNode(
+BOOLEAN PhSelectAndEnsureVisibleNetworkNode(
     _In_ PPH_NETWORK_NODE NetworkNode
     );
 

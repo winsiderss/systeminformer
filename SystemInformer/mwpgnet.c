@@ -212,7 +212,7 @@ VOID PhMwpInitializeNetworkMenu(
     _In_ ULONG NumberOfNetworkItems
     )
 {
-    ULONG i;
+    //ULONG i;
     PPH_EMENU_ITEM item;
 
     if (NumberOfNetworkItems == 0)
@@ -239,25 +239,25 @@ VOID PhMwpInitializeNetworkMenu(
     }
 
     // Close
-    if (NumberOfNetworkItems != 0)
-    {
-        BOOLEAN closeOk = TRUE;
-
-        for (i = 0; i < NumberOfNetworkItems; i++)
-        {
-            if (
-                NetworkItems[i]->ProtocolType != PH_NETWORK_PROTOCOL_TCP4 ||
-                NetworkItems[i]->State != MIB_TCP_STATE_ESTAB
-                )
-            {
-                closeOk = FALSE;
-                break;
-            }
-        }
-
-        if (!closeOk)
-            PhEnableEMenuItem(Menu, ID_NETWORK_CLOSE, FALSE);
-    }
+    //if (NumberOfNetworkItems != 0)
+    //{
+    //    BOOLEAN closeOk = TRUE;
+    //
+    //    for (i = 0; i < NumberOfNetworkItems; i++)
+    //    {
+    //        if (
+    //            NetworkItems[i]->ProtocolType != PH_NETWORK_PROTOCOL_TCP4 ||
+    //            NetworkItems[i]->State != MIB_TCP_STATE_ESTAB
+    //            )
+    //        {
+    //            closeOk = FALSE;
+    //            break;
+    //        }
+    //    }
+    //
+    //    if (!closeOk)
+    //        PhEnableEMenuItem(Menu, ID_NETWORK_CLOSE, FALSE);
+    //}
 }
 
 VOID PhShowNetworkContextMenu(

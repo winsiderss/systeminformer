@@ -21,8 +21,11 @@ static PPH_SYSINFO_SECTION IoSection;
 static HWND IoDialog;
 static PH_LAYOUT_MANAGER IoLayoutManager;
 static RECT IoGraphMargin;
+static HWND IoReadLabelHandle;
 static HWND IoReadGraphHandle;
+static HWND IoWriteLabelHandle;
 static HWND IoWriteGraphHandle;
+static HWND IoOtherLabelHandle;
 static HWND IoOtherGraphHandle;
 static PH_GRAPH_STATE IoReadGraphState;
 static PH_GRAPH_STATE IoWriteGraphState;
@@ -45,6 +48,7 @@ static HWND IoPanelWriteBytesLabel;
 static HWND IoPanelOtherLabel;
 static HWND IoPanelOtherBytesLabel;
 
+_Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipIoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -270,6 +274,10 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             PhSipInitializeIoDialog();
 
             IoDialog = hwndDlg;
+            IoReadLabelHandle = GetDlgItem(hwndDlg, IDC_IOREAD_L);
+            IoWriteLabelHandle = GetDlgItem(hwndDlg, IDC_IOWRITE_L);
+            IoOtherLabelHandle = GetDlgItem(hwndDlg, IDC_IOOTHER_L);
+
             PhInitializeLayoutManager(&IoLayoutManager, hwndDlg);
             graphItem = PhAddLayoutItem(&IoLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&IoLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
@@ -282,7 +290,7 @@ INT_PTR CALLBACK PhSipIoDialogProc(
 
             margin = panelItem->Margin;
             PhGetSizeDpiValue(&margin, IoSection->Parameters->WindowDpi, TRUE);
-            PhAddLayoutItemEx(&IoLayoutManager, IoPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, margin);
+            PhAddLayoutItemEx(&IoLayoutManager, IoPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &margin);
 
             PhSipCreateIoGraph();
             PhSipUpdateIoGraph();
@@ -310,6 +318,7 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             IoOtherGraphState.Valid = FALSE;
             IoOtherGraphState.TooltipIndex = ULONG_MAX;
 
+            PhLayoutManagerUpdate(&IoLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&IoLayoutManager);
             PhSipLayoutIoGraphs(hwndDlg);
         }
@@ -386,7 +395,7 @@ VOID PhSipCreateIoGraph(
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
     graphCreateParams.Callback = PhSipNotifyIoReadGraph;
 
-    IoReadGraphHandle = CreateWindow(
+    IoReadGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -405,7 +414,7 @@ VOID PhSipCreateIoGraph(
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
     graphCreateParams.Callback = PhSipNotifyIoWriteGraph;
 
-    IoWriteGraphHandle = CreateWindow(
+    IoWriteGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -424,7 +433,7 @@ VOID PhSipCreateIoGraph(
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
     graphCreateParams.Callback = PhSipNotifyIoOtherGraph;
 
-    IoOtherGraphHandle = CreateWindow(
+    IoOtherGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -455,8 +464,11 @@ VOID PhSipLayoutIoGraphs(
     marginRect = IoGraphMargin;
     PhGetSizeDpiValue(&marginRect, IoSection->Parameters->WindowDpi, TRUE);
 
-    GetClientRect(IoDialog, &clientRect);
-    GetClientRect(GetDlgItem(IoDialog, IDC_IOREAD_L), &labelRect);
+    if (!PhGetClientRect(IoDialog, &clientRect))
+        return;
+    if (!PhGetClientRect(IoReadLabelHandle, &labelRect))
+        return;
+
     graphWidth = clientRect.right - marginRect.left - marginRect.right;
     graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 3 - IoSection->Parameters->MemoryPadding * 4) / 3;
 
@@ -465,7 +477,7 @@ VOID PhSipLayoutIoGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GetDlgItem(IoDialog, IDC_IOREAD_L),
+        IoReadLabelHandle,
         NULL,
         marginRect.left,
         y,
@@ -489,7 +501,7 @@ VOID PhSipLayoutIoGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GetDlgItem(IoDialog, IDC_IOWRITE_L),
+        IoWriteLabelHandle,
         NULL,
         marginRect.left,
         y,
@@ -513,7 +525,7 @@ VOID PhSipLayoutIoGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GetDlgItem(IoDialog, IDC_IOOTHER_L),
+        IoOtherLabelHandle,
         NULL,
         marginRect.left,
         y,

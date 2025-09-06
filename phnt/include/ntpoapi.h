@@ -9,6 +9,7 @@
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 // POWER_INFORMATION_LEVEL
+#define POWER_INFORMATION_LEVEL ULONG
 // Note: We don't use an enum for these values to minimize conflicts with the Windows SDK. (dmex)
 #define SystemPowerPolicyAc 0 // SYSTEM_POWER_POLICY // GET: InputBuffer NULL. SET: InputBuffer not NULL.
 #define SystemPowerPolicyDc 1 // SYSTEM_POWER_POLICY
@@ -102,12 +103,12 @@
 #define SystemHiberFileType 89 // ULONG // zero ? reduced : full // powercfg.exe /h /type
 #define PhysicalPowerButtonPress 90 // BOOLEAN
 #define QueryPotentialDripsConstraint 91 // (kernel-mode only)
-#define EnergyTrackerCreate 92
-#define EnergyTrackerQuery 93
-#define UpdateBlackBoxRecorder 94
+#define EnergyTrackerCreate 92 // in: POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT, out: POWER_INFORMATION_ENERGY_TRACKER_CREATE_OUTPUT
+#define EnergyTrackerQuery 93 // in: POWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT, out: POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT
+#define UpdateBlackBoxRecorder 94 // in: POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT
 #define SessionAllowExternalDmaDevices 95 // POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES
 #define SendSuspendResumeNotification 96 // since WIN11
-#define BlackBoxRecorderDirectAccessBuffer 97
+#define BlackBoxRecorderDirectAccessBuffer 97 // in: POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT, out: POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_OUTPUT // since WIN11
 #define SystemPowerSourceState 98 // since 25H2
 #define PowerInformationLevelMaximum 99
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -651,37 +652,37 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalTtmSetDisplayTimeouts, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
     PowerInternalBootSessionStandbyActivationInformation, // out: POWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO
     PowerInternalSessionPowerState, // in: POWER_SESSION_POWER_STATE
-    PowerInternalSessionTerminalInput, // 20
+    PowerInternalSessionTerminalInput, // in: POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT // 20
     PowerInternalSetWatchdog,
-    PowerInternalPhysicalPowerButtonPressInfoAtBoot,
-    PowerInternalExternalMonitorConnected,
-    PowerInternalHighPrecisionBrightnessSettings,
-    PowerInternalWinrtScreenToggle,
-    PowerInternalPpmQosDisable,
-    PowerInternalTransitionCheckpoint,
+    PowerInternalPhysicalPowerButtonPressInfoAtBoot, // in: POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT, out: POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_OUTPUT
+    PowerInternalExternalMonitorConnected, // in: POWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT
+    PowerInternalHighPrecisionBrightnessSettings, // in: POWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT
+    PowerInternalWinrtScreenToggle, // in: POWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT
+    PowerInternalPpmQosDisable, // in: POWER_INTERNAL_PPM_QOS_DISABLE_INPUT
+    PowerInternalTransitionCheckpoint, // in: POWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT
     PowerInternalInputControllerState,
-    PowerInternalFirmwareResetReason,
+    PowerInternalFirmwareResetReason, // in: POWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT, out: POWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT
     PowerInternalPpmSchedulerQosSupport, // out: POWER_INTERNAL_PROCESSOR_QOS_SUPPORT // 30
-    PowerInternalBootStatGet,
+    PowerInternalBootStatGet, // in: POWER_INTERNAL_BOOTSTAT_GET_INPUT, out: (optional) POWER_INTERNAL_BOOTSTAT_GET_OUTPUT[EntryCount] or ULONG[EntryCount]
     PowerInternalBootStatSet,
     PowerInternalCallHasNotReturnedWatchdog,
-    PowerInternalBootStatCheckIntegrity,
+    PowerInternalBootStatCheckIntegrity, // in: POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT, out: POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_OUTPUT
     PowerInternalBootStatRestoreDefaults, // in: void
     PowerInternalHostEsStateUpdate, // in: POWER_INTERNAL_HOST_ENERGY_SAVER_STATE
     PowerInternalGetPowerActionState, // out: ULONG
     PowerInternalBootStatUnlock,
-    PowerInternalWakeOnVoiceState,
-    PowerInternalDeepSleepBlock, // 40
+    PowerInternalWakeOnVoiceState, // in: POWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT
+    PowerInternalDeepSleepBlock, // in: POWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT // 40
     PowerInternalIsPoFxDevice,
     PowerInternalPowerTransitionExtensionAtBoot,
     PowerInternalProcessorBrandedFrequency, // in: POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT, out: POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT
     PowerInternalTimeBrokerExpirationReason,
-    PowerInternalNotifyUserShutdownStatus,
+    PowerInternalNotifyUserShutdownStatus, // in: POWER_INTERNAL_NOTIFY_USER_SHUTDOWN_STATUS_INPUT
     PowerInternalPowerRequestTerminalCoreWindow,
     PowerInternalProcessorIdleVeto, // PROCESSOR_IDLE_VETO
     PowerInternalPlatformIdleVeto, // PLATFORM_IDLE_VETO
-    PowerInternalIsLongPowerButtonBugcheckEnabled,
-    PowerInternalAutoChkCausedReboot, // 50
+    PowerInternalIsLongPowerButtonBugcheckEnabled, // out: BOOLEAN
+    PowerInternalAutoChkCausedReboot, // in: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT, out: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT // 50 
     PowerInternalSetWakeAlarmOverride,
 
     PowerInternalDirectedFxAddTestDevice = 53,
@@ -692,19 +693,19 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalSetDirectedDripsFlags,
     PowerInternalClearDirectedDripsFlags,
     PowerInternalRetrieveHiberFileResumeContext, // 60
-    PowerInternalReadHiberFilePage,
+    PowerInternalReadHiberFilePage, // in: POWER_INTERNAL_READ_HIBERFILE_PAGE_INPUT, out: POWER_INTERNAL_READ_HIBERFILE_PAGE_OUTPUT
     PowerInternalLastBootSucceeded, // out: BOOLEAN
     PowerInternalQuerySleepStudyHelperRoutineBlock,
     PowerInternalDirectedDripsQueryCapabilities,
     PowerInternalClearConstraints,
     PowerInternalSoftParkVelocityEnabled,
-    PowerInternalQueryIntelPepCapabilities,
-    PowerInternalGetSystemIdleLoopEnablement, // since WIN11
-    PowerInternalGetVmPerfControlSupport,
+    PowerInternalQueryIntelPepCapabilities, // in: POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT, out: POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT
+    PowerInternalGetSystemIdleLoopEnablement, // in: POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT, out: POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT // since WIN11
+    PowerInternalGetVmPerfControlSupport, // in: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT, out: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT
     PowerInternalGetVmPerfControlConfig, // 70
-    PowerInternalSleepDetailedDiagUpdate,
-    PowerInternalProcessorClassFrequencyBandsStats,
-    PowerInternalHostGlobalUserPresenceStateUpdate,
+    PowerInternalSleepDetailedDiagUpdate, // in: POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT
+    PowerInternalProcessorClassFrequencyBandsStats, // in: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT, out: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT[] * NumberOfProcessors
+    PowerInternalHostGlobalUserPresenceStateUpdate, // in: POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT
     PowerInternalCpuNodeIdleIntervalStats,
     PowerInternalClassIdleIntervalStats,
     PowerInternalCpuNodeConcurrencyStats,
@@ -712,15 +713,15 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalQueryProcMeasurementCapabilities, // PPROCESSOR_QUERY_MEASUREMENT_CAPABILITIES
     PowerInternalQueryProcMeasurementValues, // PROCESSOR_QUERY_MEASUREMENT_VALUES
     PowerInternalPrepareForSystemInitiatedReboot, // 80
-    PowerInternalGetAdaptiveSessionState,
-    PowerInternalSetConsoleLockedState,
+    PowerInternalGetAdaptiveSessionState, // in: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT, out: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT
+    PowerInternalSetConsoleLockedState, // in: POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT
     PowerInternalOverrideSystemInitiatedRebootState,
     PowerInternalFanImpactStats,
     PowerInternalFanRpmBuckets,
     PowerInternalPowerBootAppDiagInfo, // out: POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
     PowerInternalUnregisterShutdownNotification, // since 22H1
     PowerInternalManageTransitionStateRecord,
-    PowerInternalGetAcpiTimeAndAlarmCapabilities, // since 22H2
+    PowerInternalGetAcpiTimeAndAlarmCapabilities, // in: POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT, out: POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_OUTPUT // since 22H2
     PowerInternalSuspendResumeRequest, // 90
     PowerInternalEnergyEstimationInfo, // since 23H2
     PowerInternalProvSocIdentifierOperation, // since 24H2
@@ -821,6 +822,89 @@ typedef struct _POWER_SESSION_POWER_STATE
 } POWER_SESSION_POWER_STATE, *PPOWER_SESSION_POWER_STATE;
 
 // rev
+typedef struct _POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    ULONG SessionId;
+    ULONG TerminalId;
+    UCHAR InputType;
+} POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT, *PPOWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+} POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT, *PPOWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_OUTPUT
+{
+    UCHAR Buffer[64];
+} POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_OUTPUT, *PPOWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    BOOLEAN Connected; // 1 = connected, 0 = disconnected
+} POWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT, *PPOWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    ULONG SessionId;
+    ULONG BrightnessLevel;
+    ULONG Flags;
+    ULONG Reserved[5];
+} POWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT, *PPOWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    BOOLEAN Toggle; // 1 = turn screen on, 0 = turn screen off
+} POWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT, *PPOWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_PPM_QOS_DISABLE_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    BOOLEAN EnableDisable; // Non-zero to enable QoS disable, zero to disable
+} POWER_INTERNAL_PPM_QOS_DISABLE_INPUT, *PPOWER_INTERNAL_PPM_QOS_DISABLE_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    ULONG CheckpointId;
+    ULONG CheckpointType;
+} POWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT, *PPOWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+} POWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT, *PPOWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT
+{
+    ULONG ResetReasonCode;
+    UCHAR DiagnosticData1[16];
+    UCHAR DiagnosticData2[16];
+    UCHAR Reserved[12];
+} POWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT, *PPOWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT;
+
+// rev
 typedef struct _POWER_INTERNAL_PROCESSOR_QOS_SUPPORT
 {
     BOOLEAN QosSupportedAndConfigured;
@@ -828,12 +912,109 @@ typedef struct _POWER_INTERNAL_PROCESSOR_QOS_SUPPORT
     BOOLEAN QosGroupPolicyDisable;
 } POWER_INTERNAL_PROCESSOR_QOS_SUPPORT, *PPOWER_INTERNAL_PROCESSOR_QOS_SUPPORT;
 
+typedef struct _RTL_BSD_ITEM RTL_BSD_ITEM, *PRTL_BSD_ITEM;
+
+// rev
+typedef struct _POWER_INTERNAL_BOOTSTAT_GET_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    ULONG EntryCount;
+    ULONG Reserved;
+    PRTL_BSD_ITEM Entries;
+} POWER_INTERNAL_BOOTSTAT_GET_INPUT, *PPOWER_INTERNAL_BOOTSTAT_GET_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_BOOTSTAT_GET_OUTPUT
+{
+    // If present, it receives the actual sizes of the data copied into each DataBuffer.
+    ULONG Sizes[ANYSIZE_ARRAY]; // Array of sizes, one per entry
+} POWER_INTERNAL_BOOTSTAT_GET_OUTPUT, *PPOWER_INTERNAL_BOOTSTAT_GET_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    HANDLE BootStatHandle;
+} POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT, *PPOWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_OUTPUT
+{
+    BOOLEAN IntegrityOk;
+} POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_OUTPUT, *PPOWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_OUTPUT;
+
 // rev
 typedef struct _POWER_INTERNAL_HOST_ENERGY_SAVER_STATE
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
     BOOLEAN EsEnabledOnHost;
 } POWER_INTERNAL_HOST_ENERGY_SAVER_STATE, *PPOWER_INTERNAL_HOST_ENERGY_SAVER_STATE;
+
+// rev
+typedef struct _POWER_INTERNAL_NOTIFY_USER_SHUTDOWN_STATUS_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    BOOLEAN ShutdownInitiated; //  1 = initiated, 0 = cancelled
+} POWER_INTERNAL_NOTIFY_USER_SHUTDOWN_STATUS_INPUT, *PPOWER_INTERNAL_NOTIFY_USER_SHUTDOWN_STATUS_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+} POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT, *PPOWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_READ_HIBERFILE_PAGE_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    ULONG PageNumber;
+} POWER_INTERNAL_READ_HIBERFILE_PAGE_INPUT, *PPOWER_INTERNAL_READ_HIBERFILE_PAGE_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_READ_HIBERFILE_PAGE_OUTPUT
+{
+    UCHAR PageData[PAGE_SIZE];
+} POWER_INTERNAL_READ_HIBERFILE_PAGE_OUTPUT, *PPOWER_INTERNAL_READ_HIBERFILE_PAGE_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+} POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT, *PPOWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT
+{
+    ULONG Capabilities[4];
+} POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT, *PPOWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT
+{
+    BOOLEAN CausedReboot;
+} POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT, *PPOWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    BOOLEAN Enabled; // 1 = enable Wake on Voice, 0 = disable
+} POWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT, *PPOWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    BOOLEAN Block; // 1 = block deep sleep, 0 = unblock
+} POWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT, *PPOWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT;
 
 // rev
 typedef struct _POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT
@@ -871,11 +1052,142 @@ typedef struct _PLATFORM_IDLE_VETO
 } PLATFORM_IDLE_VETO, *PPLATFORM_IDLE_VETO;
 
 // rev
+typedef struct _POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+} POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT, *PPOWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT
+{
+    ULONG IdleLoopEnabled;
+} POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT, *PPOWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    ULONG Reserved1;
+} POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT, *PPOWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT
+{
+    // If OutputBuffer only 1 byte, just this flag returned for "VM perf-control supported".
+    UCHAR Supported;
+    // Reserved values (returned when OutputBuffer > 1 bytes).
+    UCHAR Reserved0;
+    UCHAR Reserved1;
+    UCHAR Reserved2;
+    // Extended details (returned when OutputBuffer >= 20 bytes).
+    ULONG MinPerfPercent; // (0..100)
+    ULONG MaxPerfPercent; // (0..100)
+    ULONG StepPerfPercent; // (>=1)
+    ULONG Capabilities; // Bitmask of feature flags
+} POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT, *PPOWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT;
+
+#define PPM_VMPCS_SUPPORTS_PERF_SET        0x00000001
+#define PPM_VMPCS_SUPPORTS_AUTONOMOUS      0x00000002
+#define PPM_VMPCS_SUPPORTS_EPP             0x00000004
+#define PPM_VMPCS_SUPPORTS_BOOST           0x00000008
+#define PPM_VMPCS_SUPPORTS_TIME_WINDOW     0x00000010
+
+// rev
+typedef struct _POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    BOOLEAN Enable;
+} POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT, *PPOWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+} POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT, *PPOWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    BOOLEAN UserPresent; // 1 if user is present, 0 otherwise
+} POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT, *PPOWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT;
+
+#define PPM_PERF_BANDS 48
+#define PPM_PERF_BANKS 2
+#define PPM_PERF_METRICS 3
+
+// rev
+typedef struct _POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK
+{
+    // Metric[0][0..47], Metric[1][0..47], Metric[2][0..47]
+    ULONGLONG Metric[PPM_PERF_METRICS][PPM_PERF_BANDS];
+} POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK, PPOWER_INTERNAL_PM_PERF_FREQUENCY_BAND_STATS_BANK;
+
+// rev
+typedef struct _POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_OUT
+{
+    POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK Bank[PPM_PERF_BANKS];
+} POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_OUT;
+
+// rev
+typedef struct _POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS
+{
+    ULONGLONG Counter[PPM_PERF_METRICS];
+} POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS, *PPOWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS;
+
+// rev
+typedef struct _POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT
+{
+    POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS Band[PPM_PERF_BANDS];
+} POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT, *PPOWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    ULONG SessionStateId;
+    UCHAR Reserved[28];
+} POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT, *PPOWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT
+{
+    UCHAR Reserved[16];
+} POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT, *PPOWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    BOOLEAN Locked; // 1 if console is locked, 0 if unlocked
+} POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT, *PPOWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT;
+
+// rev
 typedef struct _POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
 {
     ULONG BootAppErrorDiagCode; // bcdedit last status
     ULONG BootAppFailureStatus; // bcdedit last status
 } POWER_INTERNAL_BOOTAPP_DIAGNOSTIC, *PPOWER_INTERNAL_BOOTAPP_DIAGNOSTIC;
+
+// rev
+typedef struct _POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    UCHAR Reserved[12];
+} POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT, *PPOWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT;
+
+// rev
+typedef struct  _POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_OUTPUT
+{
+    UCHAR Capabilities[20];
+} POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_OUTPUT, *PPOWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_OUTPUT;
 
 // rev
 typedef struct _POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_INPUT
@@ -920,6 +1232,60 @@ typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT
     ULONG VmThrottlePriorityCount;
 } POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT, *PPOWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT;
 
+// rev
+typedef struct _POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT
+{
+    ULONG Version;
+    ULONG Flags;
+    ULONG Reserved;
+} POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT, *PPOWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT;
+
+// rev
+typedef struct _POWER_INFORMATION_ENERGY_TRACKER_CREATE_OUTPUT
+{
+    HANDLE QueryHandle;
+} POWER_INFORMATION_ENERGY_TRACKER_CREATE_OUTPUT, *PPOWER_INFORMATION_ENERGY_TRACKER_CREATE_OUTPUT;
+
+// rev
+typedef struct _POWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT
+{
+    HANDLE QueryHandle;
+} POWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT, *PPOWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT;
+
+// rev
+typedef struct _POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT
+{
+    ULONG Version;
+    ULONG DataType;
+    ULONG DataSize;
+    // BYTE Data[...];  // optional payload follows
+} POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT, *PPOWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT;
+
+// rev
+typedef struct _POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT
+{
+    ULONG Version;
+    ULONG Flags;
+    ULONGLONG Reserved0; // must be zero
+    ULONGLONG Reserved1; // must be zero
+    ULONGLONG Reserved2; // must be zero
+} POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT, *PPOWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT;
+
+// rev
+typedef struct _POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT
+{
+    ULONG Version;
+    ULONG Flags;
+    ULONGLONG Offset;
+    ULONGLONG Length;
+} POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT, *PPOWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT;
+
+// rev
+typedef struct _POWER_INFORMATION_BBR_DIRECT_ACCESS_RESPONSE_OUTPUT
+{
+    PVOID UserMappingBase;
+    ULONGLONG MappingSize;
+} POWER_INFORMATION_BBR_DIRECT_ACCESS_RESPONSE_OUTPUT, *PPOWER_INFORMATION_BBR_DIRECT_ACCESS_RESPONSE_OUTPUT;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 /**

@@ -171,6 +171,7 @@ typedef struct _PH_COPY_ITEM_CONTEXT
     PPH_STRING MenuItemText;
 } PH_COPY_ITEM_CONTEXT, *PPH_COPY_ITEM_CONTEXT;
 
+_Function_class_(PH_EMENU_ITEM_DELETE_FUNCTION)
 VOID NTAPI PhpCopyListViewEMenuItemDeleteFunction(
     _In_ struct _PH_EMENU_ITEM *Item
     )
@@ -200,9 +201,7 @@ BOOLEAN PvInsertCopyListViewEMenuItem(
     HDITEM headerItem;
     WCHAR headerText[MAX_PATH] = L"";
 
-    if (!GetCursorPos(&location))
-        return FALSE;
-    if (!ScreenToClient(ListViewHandle, &location))
+    if (!PhGetClientPos(ListViewHandle, &location))
         return FALSE;
 
     memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
@@ -457,8 +456,8 @@ VOID PhInitializeTreeNewColumnMenuEx(
 
     if (Flags & PH_TN_COLUMN_MENU_SHOW_RESET_SORT)
     {
-        ULONG sortColumn;
-        PH_SORT_ORDER sortOrder;
+        ULONG sortColumn = 0;
+        PH_SORT_ORDER sortOrder = NoSortOrder;
 
         TreeNew_GetSort(Data->TreeNewHandle, &sortColumn, &sortOrder);
 

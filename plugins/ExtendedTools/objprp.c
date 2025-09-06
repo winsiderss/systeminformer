@@ -2077,7 +2077,6 @@ static BOOL CALLBACK EtpEnumDesktopsCallback(
         {
             PPH_STRING sid = PH_AUTO(PhSidToStringSid(UserSid));
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_SID, PhGetString(sid));
-            PhFree(UserSid);
         }
 
         if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))

@@ -13,7 +13,7 @@
 
 NTSTATUS CallGetProcessUnloadedDlls(
     _In_ HANDLE ProcessId,
-    _Out_ PPH_STRING *UnloadedDlls
+    _Out_ PPH_BYTES *UnloadedDlls
     )
 {
     NTSTATUS status;
@@ -50,7 +50,9 @@ NTSTATUS CallGetProcessUnloadedDlls(
     if (NT_SUCCESS(status))
     {
         if (UnloadedDlls)
-            *UnloadedDlls = PhCreateStringEx(buffer, out.o.DataLength);
+        {
+            *UnloadedDlls = PhCreateBytesEx(buffer, out.o.DataLength);
+        }
     }
 
     client.FreeHeap(buffer);
@@ -70,6 +72,7 @@ NTSTATUS DispatchGetProcessUnloadedDlls(
     ULONG capturedElementCount;
     PVOID capturedEventTrace = NULL;
     PPH_STRING eventHexBufferText = NULL;
+    PPH_BYTES eventHexBufferUtf8Text = NULL;
 
     if (!NT_SUCCESS(status = Request->ProbeBuffer(&In->i.Data, sizeof(WCHAR), FALSE, &dataBuffer)))
         return status;
@@ -86,7 +89,7 @@ NTSTATUS DispatchGetProcessUnloadedDlls(
 
     eventHexBufferText = PhBufferToHexString(
         capturedEventTrace,
-        capturedElementSize * capturedElementCount
+        UInt32x32To64(capturedElementSize, capturedElementCount)
         );
 
     if (!eventHexBufferText)
@@ -95,18 +98,32 @@ NTSTATUS DispatchGetProcessUnloadedDlls(
         goto CleanupExit;
     }
 
-    if (In->i.Data.Length < eventHexBufferText->Length)
+    if (!(eventHexBufferUtf8Text = PhConvertStringToUtf8(eventHexBufferText)))
+    {
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
+    }
+
+    if (In->i.Data.Length < eventHexBufferUtf8Text->Length)
     {
         status = STATUS_BUFFER_OVERFLOW;
         goto CleanupExit;
     }
 
-    memcpy(dataBuffer, eventHexBufferText->Buffer, min(eventHexBufferText->Length, In->i.Data.Length));
-    Out->o.DataLength = (ULONG)eventHexBufferText->Length;
+    if (memcpy_s(dataBuffer, In->i.Data.Length, eventHexBufferUtf8Text->Buffer, eventHexBufferUtf8Text->Length) != 0)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
+    }
+
+    status = RtlSIZETToULong(eventHexBufferUtf8Text->Length, &Out->o.DataLength);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
 CleanupExit:
-    if (eventHexBufferText)
-        PhDereferenceObject(eventHexBufferText);
+    PhClearReference(&eventHexBufferUtf8Text);
+    PhClearReference(&eventHexBufferText);
 
     return status;
 }

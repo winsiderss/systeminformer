@@ -18,6 +18,7 @@
 
 typedef enum _PHSVC_API_NUMBER
 {
+    PhSvcInvalidApiNumber = 0,
     PhSvcPluginApiNumber = 1,
     PhSvcExecuteRunAsCommandApiNumber = 2,
     PhSvcUnloadDriverApiNumber = 3,
@@ -75,6 +76,7 @@ typedef union _PHSVC_API_EXECUTERUNASCOMMAND
         PH_RELATIVE_STRINGREF ServiceName;
         BOOLEAN CreateSuspendedProcess;
         BOOLEAN CreateUIAccessProcess;
+        HWND WindowHandle;
     } i;
 } PHSVC_API_EXECUTERUNASCOMMAND, *PPHSVC_API_EXECUTERUNASCOMMAND;
 

@@ -20,9 +20,9 @@
 #include <appresolverp.h>
 #include <appresolver.h>
 
-static __typeof__(&AppContainerDeriveSidFromMoniker) AppContainerDeriveSidFromMoniker_I = NULL;
-static __typeof__(&AppContainerLookupMoniker) AppContainerLookupMoniker_I = NULL;
-static __typeof__(&AppContainerFreeMemory) AppContainerFreeMemory_I = NULL;
+static typeof(&AppContainerDeriveSidFromMoniker) AppContainerDeriveSidFromMoniker_I = NULL;
+static typeof(&AppContainerLookupMoniker) AppContainerLookupMoniker_I = NULL;
+static typeof(&AppContainerFreeMemory) AppContainerFreeMemory_I = NULL;
 
 /**
  * Queries the AppResolver interface.
@@ -167,7 +167,7 @@ HRESULT PhAppResolverGetAppIdForProcess(
             appIdText
             );
 
-        if ((appIdTextLength & 1) && appIdTextLength > sizeof(UNICODE_NULL))
+        if ((appIdTextLength % sizeof(WCHAR)) == 0 && appIdTextLength > sizeof(UNICODE_NULL))
         {
             *ApplicationUserModelId = PhCreateStringEx(
                 appIdText,
@@ -243,7 +243,7 @@ HRESULT PhAppResolverGetAppIdForWindow(
             appIdText
             );
 
-        if ((appIdTextLength & 1) && appIdTextLength > sizeof(UNICODE_NULL))
+        if ((appIdTextLength % sizeof(WCHAR)) == 0 && appIdTextLength > sizeof(UNICODE_NULL))
         {
             *ApplicationUserModelId = PhCreateStringEx(
                 appIdText,

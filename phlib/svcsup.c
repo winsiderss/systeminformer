@@ -1040,23 +1040,23 @@ PPH_STRING PhGetServiceNameFromTag(
     _In_ PVOID ServiceTag
     )
 {
-    static PQUERY_TAG_INFORMATION I_QueryTagInformation = NULL;
+    static typeof(&I_QueryTagInformation) QueryTagInformation_I = NULL;
     PPH_STRING serviceName = NULL;
     TAG_INFO_NAME_FROM_TAG nameFromTag;
 
-    if (!I_QueryTagInformation)
+    if (!QueryTagInformation_I)
     {
-        I_QueryTagInformation = PhGetDllProcedureAddress(L"sechost.dll", "I_QueryTagInformation", 0);
+        QueryTagInformation_I = PhGetDllProcedureAddress(L"sechost.dll", "I_QueryTagInformation", 0);
     }
 
-    if (!I_QueryTagInformation)
+    if (!QueryTagInformation_I)
         return NULL;
 
     memset(&nameFromTag, 0, sizeof(TAG_INFO_NAME_FROM_TAG));
     nameFromTag.InParams.ProcessId = HandleToUlong(ProcessId);
     nameFromTag.InParams.ServiceTag = PtrToUlong(ServiceTag);
 
-    I_QueryTagInformation(NULL, eTagInfoLevelNameFromTag, &nameFromTag);
+    QueryTagInformation_I(NULL, eTagInfoLevelNameFromTag, &nameFromTag);
 
     if (nameFromTag.OutParams.Name)
     {
@@ -1072,29 +1072,29 @@ PPH_STRING PhGetServiceNameForModuleReference(
     _In_ PCWSTR ModuleName
     )
 {
-    static PQUERY_TAG_INFORMATION I_QueryTagInformation = NULL;
+    static typeof(&I_QueryTagInformation) QueryTagInformation_I = NULL;
     PPH_STRING serviceNames = NULL;
     TAG_INFO_NAMES_REFERENCING_MODULE moduleNameRef;
 
-    if (!I_QueryTagInformation)
+    if (!QueryTagInformation_I)
     {
         if (WindowsVersion >= WINDOWS_8_1)
         {
-            I_QueryTagInformation = PhGetDllProcedureAddress(L"sechost.dll", "I_QueryTagInformation", 0);
+            QueryTagInformation_I = PhGetDllProcedureAddress(L"sechost.dll", "I_QueryTagInformation", 0);
         }
 
-        if (!I_QueryTagInformation)
-            I_QueryTagInformation = PhGetDllProcedureAddress(L"advapi32.dll", "I_QueryTagInformation", 0);
+        if (!QueryTagInformation_I)
+            QueryTagInformation_I = PhGetDllProcedureAddress(L"advapi32.dll", "I_QueryTagInformation", 0);
     }
 
-    if (!I_QueryTagInformation)
+    if (!QueryTagInformation_I)
         return NULL;
 
     memset(&moduleNameRef, 0, sizeof(TAG_INFO_NAMES_REFERENCING_MODULE));
     moduleNameRef.InParams.ProcessId = HandleToUlong(ProcessId);
     moduleNameRef.InParams.ModuleName = ModuleName;
 
-    I_QueryTagInformation(NULL, eTagInfoLevelNamesReferencingModule, &moduleNameRef);
+    QueryTagInformation_I(NULL, eTagInfoLevelNamesReferencingModule, &moduleNameRef);
 
     if (moduleNameRef.OutParams.Names)
     {
@@ -1309,7 +1309,17 @@ NTSTATUS PhGetServiceFileName(
 
             if (expandedString = PhExpandEnvironmentStrings(&serviceDllString->sr))
             {
-                PhMoveReference(&serviceDllString, expandedString);
+                PH_STRINGREF fileName;
+                PH_STRINGREF arguments;
+
+                if (PhParseCommandLineFuzzy(&expandedString->sr, &fileName, &arguments, NULL))
+                {
+                    PhMoveReference(&serviceDllString, PhCreateString2(&fileName));
+                }
+                else
+                {
+                    PhMoveReference(&serviceDllString, expandedString);
+                }
             }
         }
         else

@@ -18,6 +18,7 @@ static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 PPH_OBJECT_TYPE PingContextType = NULL;
 PH_INITONCE PingContextTypeInitOnce = PH_INITONCE_INIT;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PingContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -289,6 +290,7 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI NetworkPingUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_ PVOID Context
@@ -411,10 +413,10 @@ INT_PTR CALLBACK NetworkPingWndProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BAD_HASH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ANON_ADDR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PING_LAYOUT), NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItemEx(&context->LayoutManager, context->PingGraphHandle, NULL, PH_ANCHOR_ALL, panelItem->Margin);
+            PhAddLayoutItemEx(&context->LayoutManager, context->PingGraphHandle, NULL, PH_ANCHOR_ALL, &panelItem->Margin);
             PhLayoutManagerLayout(&context->LayoutManager);
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_PING_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_PING_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_PING_WINDOW_POSITION, SETTING_NAME_PING_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);

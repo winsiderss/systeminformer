@@ -14,6 +14,7 @@
 #include <procprp.h>
 #include <procprv.h>
 
+_Function_class_(PH_OPEN_OBJECT)
 NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -58,6 +59,7 @@ NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     return status;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS PhpCloseProcessTokenForPage(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,

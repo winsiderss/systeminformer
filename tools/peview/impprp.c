@@ -385,6 +385,7 @@ VOID PvpProcessImports(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PvpPeImportsEnumerateThread(
     _In_ PPV_IMPORT_CONTEXT Context
     )

@@ -424,6 +424,7 @@ VOID PhFlushProcessQueryData(
     VOID
     );
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhProcessProviderUpdate(
     _In_ PVOID Object
     );
@@ -543,6 +544,7 @@ PhDuplicateProcessInformation(
 // end_phapppub
 
 PPH_PROCESS_ITEM
+NTAPI
 PhCreateProcessItemFromHandle(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ProcessHandle,

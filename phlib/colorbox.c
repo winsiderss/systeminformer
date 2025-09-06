@@ -38,7 +38,7 @@ LRESULT CALLBACK PhColorBoxWndProc(
     _In_ LPARAM lParam
     );
 
-BOOLEAN PhColorBoxInitialization(
+RTL_ATOM PhColorBoxInitialization(
     VOID
     )
 {
@@ -46,17 +46,15 @@ BOOLEAN PhColorBoxInitialization(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = CS_GLOBALCLASS | CS_PARENTDC;
+    wcex.style = CS_GLOBALCLASS;
     wcex.lpfnWndProc = PhColorBoxWndProc;
+    wcex.cbClsExtra = 0;
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     wcex.lpszClassName = PH_COLORBOX_CLASSNAME;
 
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
-        return FALSE;
-
-    return TRUE;
+    return RegisterClassEx(&wcex);
 }
 
 PPH_COLORBOX_CONTEXT PhCreateColorBoxContext(

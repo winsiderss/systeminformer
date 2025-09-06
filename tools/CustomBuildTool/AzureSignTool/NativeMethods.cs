@@ -9,8 +9,11 @@
  *
  */
 
-namespace AzureSign.Core.Interop
+namespace CustomBuildTool
 {
+    using unsafe AuthenticodeDigestSignDelegate = delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT>;
+    using unsafe AuthenticodeDigestSignExnDelegate = delegate* unmanaged[Stdcall]<CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, CERT_CONTEXT**, HCERTSTORE, HRESULT>;
+
     [Flags]
     internal enum SignerSignEx3Flags : uint
     {
@@ -130,7 +133,7 @@ namespace AzureSign.Core.Interop
         /// <summary>
         /// The pointer to a PFN_AUTHENTICODE_DIGEST_SIGN function.
         /// </summary>
-        internal delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT> AuthenticodeDigestSign;
+        internal AuthenticodeDigestSignDelegate AuthenticodeDigestSign;
         /// <summary>
         /// Optional pointer to CRYPT_DATA_BLOB specifying metadata (opaque to SignerSignEx3).
         /// </summary>
@@ -152,11 +155,11 @@ namespace AzureSign.Core.Interop
         /// <summary>
         /// Pointer to the PFN_AUTHENTICODE_DIGEST_SIGN callback function. Required if the caller of SignerSignEx3 specifies SPC_DIGEST_SIGN_FLAG in the dwFlags parameter.
         /// </summary>
-        internal delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT> AuthenticodeDigestSign;
+        internal AuthenticodeDigestSignDelegate AuthenticodeDigestSign;
         /// <summary>
         /// Pointer to the PFN_AUTHENTICODE_DIGEST_SIGN_EX callback function. Required if the caller of SignerSignEx3 specifies SPC_DIGEST_SIGN_EX_FLAG in the dwFlags parameter.
         /// </summary>
-        internal delegate* unmanaged[Stdcall]<CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, CERT_CONTEXT**, HCERTSTORE, HRESULT> AuthenticodeDigestSignEx;
+        internal AuthenticodeDigestSignExnDelegate AuthenticodeDigestSignEx;
         /// <summary>
         /// Optional pointer to CRYPT_DATA_BLOB specifying metadata.
         /// </summary>

@@ -117,6 +117,7 @@ VOID PhFlushNetworkItemResolveCache(
 //    _In_ PPH_IP_ADDRESS Address
 //    );
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhNetworkProviderUpdate(
     _In_ PVOID Object
     );

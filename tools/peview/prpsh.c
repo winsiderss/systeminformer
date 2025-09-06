@@ -19,11 +19,13 @@ PPH_OBJECT_TYPE PvpPropContextType;
 PPH_OBJECT_TYPE PvpPropPageContextType;
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -96,6 +98,7 @@ PPV_PROPCONTEXT PvCreatePropContext(
     return propContext;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -571,6 +574,7 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
     return propPageContext;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PvpPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -651,7 +655,7 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
         PhMapRect(&margin, &margin, &dialogRect);
         PhConvertRect(&margin, &dialogRect);
 
-        item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, margin);
+        item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, &margin);
     }
     else
     {

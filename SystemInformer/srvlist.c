@@ -33,6 +33,7 @@ BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpServiceNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -94,6 +95,7 @@ BOOLEAN PhpServiceNodeHashtableEqualFunction(
     return serviceNode1->ServiceItem == serviceNode2->ServiceItem;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpServiceNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -932,7 +934,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
                     PhCustomDrawTreeTimeLine(
                         customDraw->Dc,
-                        customDraw->CellRect,
+                        &customDraw->CellRect,
                         PhEnableThemeSupport ? PH_DRAW_TIMELINE_DARKTHEME : 0,
                         NULL,
                         &node->KeyLastWriteTime
@@ -1061,16 +1063,27 @@ VOID PhDeselectAllServiceNodes(
     TreeNew_DeselectRange(ServiceTreeListHandle, 0, -1);
 }
 
-VOID PhSelectAndEnsureVisibleServiceNode(
+BOOLEAN PhSelectAndEnsureVisibleServiceNode(
     _In_ PPH_SERVICE_NODE ServiceNode
     )
 {
     PhDeselectAllServiceNodes();
 
-    if (!ServiceNode->Node.Visible)
-        return;
-
-    TreeNew_FocusMarkSelectNode(ServiceTreeListHandle, &ServiceNode->Node);
+    if (ServiceNode->Node.Visible)
+    {
+        TreeNew_FocusMarkSelectNode(ServiceTreeListHandle, &ServiceNode->Node);
+        return TRUE;
+    }
+    else
+    {
+        PhShowInformation2(
+            PhMainWndHandle,
+            L"Unable to perform the operation.",
+            L"%s",
+            L"This node cannot be displayed because it is currently hidden by your active filter settings or preferences."
+            );
+        return FALSE;
+    }
 }
 
 VOID PhCopyServiceList(
