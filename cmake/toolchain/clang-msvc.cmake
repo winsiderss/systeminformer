@@ -71,6 +71,7 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-microsoft-anon-tag
     -Wno-microsoft-enum-forward-reference
     -Wno-microsoft-include
+    -Wno-microsoft-static-assert
     -Wno-overloaded-virtual
     -Wno-pragma-pack
     -Wno-unknown-pragmas
