@@ -71,7 +71,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-microsoft-anon-tag
     -Wno-microsoft-enum-forward-reference
     -Wno-microsoft-include
-    -Wno-microsoft-static-assert
     -Wno-overloaded-virtual
     -Wno-pragma-pack
     -Wno-unknown-pragmas
@@ -82,6 +81,11 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-int-to-void-pointer-cast
     -Wno-void-pointer-to-int-cast
 )
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+    list(APPEND SI_COMPILE_FLAGS_INIT
+        -Wno-implicit-function-declaration
+    )
+endif()
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
     list(APPEND SI_COMPILE_FLAGS_INIT
         -Wno-missing-prototype-for-cc

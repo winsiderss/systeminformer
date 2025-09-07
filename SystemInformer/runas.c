@@ -2057,7 +2057,7 @@ NTSTATUS PhRunAsServiceStart(
             { RtlConvertUlongToLuid(SE_RESTORE_PRIVILEGE), SE_PRIVILEGE_ENABLED },
             { RtlConvertUlongToLuid(SE_IMPERSONATE_PRIVILEGE), SE_PRIVILEGE_ENABLED },
         };
-        const UCHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(privileges)];
+        UCHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(privileges)];
         PTOKEN_PRIVILEGES tokenPrivileges;
 
         tokenPrivileges = (PTOKEN_PRIVILEGES)privilegesBuffer;
@@ -3714,7 +3714,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
                             {
                                 argumentsString = PhCreateString2(&arguments);
                             }
-         
+
                             directoryString = PhpQueryRunFileParentDirectory(!!PhGetOwnTokenAttributes().Elevated);
 
                             status = PhCreateProcessDesktopPackage(

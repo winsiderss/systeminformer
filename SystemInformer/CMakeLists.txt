@@ -140,6 +140,7 @@ set(SOURCES
     "mwpgsrv.c"
     "netlist.c"
     "netprv.c"
+    "netsup.c"
     "notifico.c"
     "notiftoast.cpp"
     "ntobjprp.c"

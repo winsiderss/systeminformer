@@ -32,6 +32,9 @@
 #define PH_CLANG_DIAGNOSTIC_PUSH()     _Pragma("clang diagnostic push")
 #define PH_CLANG_DIAGNOSTIC_IGNORED(x) _Pragma(PH_CLANG_STRINGIFY(clang diagnostic ignored x))
 #define PH_CLANG_DIAGNOSTIC_POP()      _Pragma("clang diagnostic pop")
+#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 202311L
+#define typeof __typeof__
+#endif
 #else
 #define PH_CLANG_DIAGNOSTIC_PUSH()
 #define PH_CLANG_DIAGNOSTIC_IGNORED(x)
