@@ -2926,6 +2926,14 @@ VOID PhProcessProviderUpdate(
 
                                 modified = TRUE;
                             }
+                            else
+                            {
+                                if (processItem->Sid && PhIsNullOrEmptyString(processItem->UserName))
+                                {
+                                    PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
+                                    modified = TRUE;
+                                }
+                            }
                         }
                     }
 
