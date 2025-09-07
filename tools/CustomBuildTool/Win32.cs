@@ -498,11 +498,14 @@ namespace CustomBuildTool
 
                 basicInfo.CreationTime = CreationDateTime == DateTime.MinValue ? DateTime.UtcNow.ToFileTimeUtc() : CreationDateTime.ToFileTimeUtc();
                 basicInfo.LastWriteTime = LastWriteDateTime == DateTime.MinValue ? DateTime.UtcNow.ToFileTimeUtc() : LastWriteDateTime.ToFileTimeUtc();
-
-                if (ReadOnly)
-                    basicInfo.FileAttributes |= (uint)FileAttributes.ReadOnly;
-                else
-                    basicInfo.FileAttributes &= ~(uint)FileAttributes.ReadOnly;
+                
+                if (!Build.BuildIntegration) // Skip read-only attribute during build integration (dmex)
+                {
+                    if (ReadOnly)
+                        basicInfo.FileAttributes |= (uint)FileAttributes.ReadOnly;
+                    else
+                        basicInfo.FileAttributes &= ~(uint)FileAttributes.ReadOnly;
+                }
 
                 PInvoke.SetFileInformationByHandle(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO));
             }

@@ -191,4 +191,12 @@ typedef ULONG (WINAPI *_InternalGetBoundTcp6EndpointTable)(
     _In_opt_ ULONG HeapFlags
     );
 
+// netsup
+
+NTSTATUS
+NTAPI
+PhSetTcpEntry(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    );
+
 #endif
