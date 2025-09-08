@@ -7871,8 +7871,8 @@ BOOLEAN PhTnpGetMessagePos(
 LRESULT PhTnSendMessage(
     _In_ HWND WindowHandle,
     _In_ ULONG WindowMessage,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _Pre_maybenull_ _Post_valid_ WPARAM wParam,
+    _Pre_maybenull_ _Post_valid_ LPARAM lParam
     )
 {
     if (WindowMessage >= TNM_FIRST && WindowMessage <= TNM_LAST)
