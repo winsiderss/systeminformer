@@ -4,6 +4,24 @@
 # This file is part of System Informer.
 #
 
+set(_clang_version)
+execute_process(
+    COMMAND clang-cl --version
+    OUTPUT_VARIABLE _clang_output
+    RESULT_VARIABLE _clang_result
+)
+if(_clang_result EQUAL 0)
+    if(_clang_output MATCHES "clang version ([0-9]+)\\.([0-9]+)\\.([0-9]+)")
+        set(_clang_major ${CMAKE_MATCH_1})
+        set(_clang_minor ${CMAKE_MATCH_2})
+        set(_clang_patch ${CMAKE_MATCH_3})
+        math(EXPR _clang_version "${_clang_major} * 10000 + ${_clang_minor} * 100 + ${_clang_patch}")
+    endif()
+endif()
+if(NOT _clang_version)
+    message(FATAL_ERROR "Failed to resolve clang version: ${_clang_result}\n${_clang_output}")
+endif()
+
 include(${CMAKE_CURRENT_LIST_DIR}/msvc.cmake)
 
 set(SI_C_STANDARD_FLAG   /std:c17)
@@ -75,7 +93,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-microsoft-anon-tag
     -Wno-microsoft-enum-forward-reference
     -Wno-microsoft-include
-    -Wno-microsoft-static-assert
     -Wno-overloaded-virtual
     -Wno-pragma-pack
     -Wno-unknown-pragmas
@@ -86,6 +103,11 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-int-to-void-pointer-cast
     -Wno-void-pointer-to-int-cast
 )
+if(_clang_version LESS 210100)
+    list(APPEND SI_COMPILE_FLAGS_INIT
+        -Wno-microsoft-static-assert
+    )
+endif()
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
     list(APPEND SI_COMPILE_FLAGS_INIT
         -Wno-implicit-function-declaration
