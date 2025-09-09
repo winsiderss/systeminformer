@@ -126,6 +126,7 @@ VOID InvalidateProcessAffinity(
     VOID
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID SearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

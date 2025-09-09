@@ -1311,6 +1311,7 @@ BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
     return FALSE;
 }
 
+_Function_class_(TOOLSTATUS_TAB_ACTIVATE_CONTENT)
 VOID NTAPI EtpToolStatusActivateContent(
     _In_ BOOLEAN Select
     )
@@ -1324,6 +1325,7 @@ VOID NTAPI EtpToolStatusActivateContent(
     }
 }
 
+_Function_class_(TOOLSTATUS_GET_TREENEW_HANDLE)
 HWND NTAPI EtpToolStatusGetTreeNewHandle(
     VOID
     )

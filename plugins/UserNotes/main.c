@@ -951,6 +951,7 @@ VOID ShowProcessD3DKMTPriorityDialog(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuItemCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2491,6 +2492,7 @@ static LONG NTAPI ProcessAffinitySortFunction(
     return PhCompareStringWithNull(extension1->Affinity, extension2->Affinity, TRUE);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ProcessTreeNewInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2516,6 +2518,7 @@ VOID ProcessTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &affinity, AFFINITY_COLUMN_ID, NULL, ProcessAffinitySortFunction);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID GetProcessHighlightingColorCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2542,6 +2545,7 @@ VOID GetProcessHighlightingColorCallback(
     UnlockDb();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ServicePropertiesInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2564,6 +2568,7 @@ VOID ServicePropertiesInitializingCallback(
     }
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG NTAPI ServiceCommentSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,

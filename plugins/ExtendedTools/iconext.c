@@ -1467,6 +1467,7 @@ VOID EtpGpuTemperatureTextIconUpdateCallback(
 
 // Toolbar graphs
 
+_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
 BOOLEAN EtpToolbarGpuHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
@@ -1566,6 +1567,7 @@ BOOLEAN EtpToolbarGpuHistoryGraphMessageCallback(
     return TRUE;
 }
 
+_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
 BOOLEAN EtpToolbarNpuHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
@@ -1665,6 +1667,7 @@ BOOLEAN EtpToolbarNpuHistoryGraphMessageCallback(
     return TRUE;
 }
 
+_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
 BOOLEAN EtpToolbarDiskHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
@@ -1819,6 +1822,7 @@ BOOLEAN EtpToolbarDiskHistoryGraphMessageCallback(
     return TRUE;
 }
 
+_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
 BOOLEAN EtpToolbarNetworkHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,

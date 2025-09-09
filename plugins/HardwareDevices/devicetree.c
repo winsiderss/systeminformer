@@ -1651,6 +1651,7 @@ VOID NTAPI DeviceTreeMenuItemCallback(
     }
 }
 
+_Function_class_(TOOLSTATUS_TAB_ACTIVATE_CONTENT)
 VOID NTAPI ToolStatusActivateContent(
     _In_ BOOLEAN Select
     )
@@ -1673,6 +1674,7 @@ VOID NTAPI ToolStatusActivateContent(
     }
 }
 
+_Function_class_(TOOLSTATUS_GET_TREENEW_HANDLE)
 HWND NTAPI ToolStatusGetTreeNewHandle(
     VOID
     )
