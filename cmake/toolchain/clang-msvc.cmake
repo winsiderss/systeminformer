@@ -44,6 +44,10 @@ foreach(_idx RANGE 0 ${_max_idx} 2)
     endif()
 endforeach()
 
+list(APPEND SI_COMPILE_FLAGS_INIT
+    -fcolor-diagnostics               # Quality of life compiler output
+    -fansi-escape-codes               # Quality of life compiler output
+)
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
     list(APPEND SI_COMPILE_FLAGS_INIT
         -mcrc                         # Enable ARM64 CRC32 instructions

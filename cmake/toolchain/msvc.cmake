@@ -11,6 +11,7 @@ set(SI_CXX_STANDARD_FLAG /std:c++latest)
 # Compiler flags
 #
 set(SI_COMPILE_FLAGS_INIT
+    /diagnostics:caret                  # Quality of life compiler output
     /W3                                 # Warning level 3
     /MP                                 # Multi-processor compilation
     /WX                                 # Treat warnings as errors
