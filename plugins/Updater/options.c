@@ -85,6 +85,11 @@ INT_PTR CALLBACK OptionsDlgProc(
             {
                 Button_SetCheck(GetDlgItem(WindowHandle, IDC_SKIPWELCOMEPAGECHECK), BST_CHECKED);
             }
+
+            if (PhGetIntegerSetting(SETTING_NAME_SHOW_NOTIFICATION))
+            {
+                Button_SetCheck(GetDlgItem(WindowHandle, IDC_SHOWUPDATENOTIFICATION), BST_CHECKED);
+            }
         }
         break;
     case WM_COMMAND:
@@ -106,6 +111,12 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDC_SKIPWELCOMEPAGECHECK:
                 {
                     PhSetIntegerSetting(SETTING_NAME_AUTO_CHECK_PAGE,
+                        Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
+                }
+                break;
+            case IDC_SHOWUPDATENOTIFICATION:
+                {
+                    PhSetIntegerSetting(SETTING_NAME_SHOW_NOTIFICATION,
                         Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
                 }
                 break;

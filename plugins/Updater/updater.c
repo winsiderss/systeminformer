@@ -1398,20 +1398,30 @@ VOID StartInitialCheck(
 }
 
 VOID ShowStartupUpdateDialog(
-    VOID
+    _In_ PPH_STRING CacheString
     )
 {
     PH_AUTO_POOL autoPool;
     PPH_UPDATER_CONTEXT context;
-    PPH_STRING jsonString;
+    PPH_BYTES jsonString;
+
+    if (PhIsNullOrEmptyString(CacheString))
+        return;
 
     PhInitializeAutoPool(&autoPool);
 
     context = CreateUpdateContext(TRUE);
 
-    jsonString = PhGetStringSetting(SETTING_NAME_UPDATE_DATA);
+    jsonString = PhCreateBytesEx(
+        NULL,
+        CacheString->Length / sizeof(WCHAR) / 2
+        );
 
-    if (jsonString && jsonString->Length)
+    if (PhHexStringToBufferEx(
+        &CacheString->sr,
+        jsonString->Length,
+        jsonString->Buffer
+        ))
     {
         PVOID jsonObject;
 
@@ -1455,13 +1465,29 @@ VOID ShowStartupUpdateDialog(
         goto CleanupExit;
     }
 
-    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-    config.hInstance = NtCurrentImageBase();
-    config.pszContent = L"Initializing...";
-    config.lpCallbackData = (LONG_PTR)context;
-    config.pfCallback = TaskDialogBootstrapCallback;
-    PhShowTaskDialog(&config, NULL, NULL, NULL);
+    if (PhGetIntegerSetting(SETTING_NAME_SHOW_NOTIFICATION))
+    {
+        if (HR_SUCCESS(PhShowIconNotificationEx(
+            L"New version of System Informer available",
+            L"Help menu > Check for updates",
+            5000,
+            NULL,
+            NULL
+            )))
+        {
+            goto CleanupExit;
+        }
+    }
+
+    {
+        TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+        config.hInstance = NtCurrentImageBase();
+        config.pszContent = L"Initializing...";
+        config.lpCallbackData = (LONG_PTR)context;
+        config.pfCallback = TaskDialogBootstrapCallback;
+        PhShowTaskDialog(&config, NULL, NULL, NULL);
+    }
 
 CleanupExit:
     PhDereferenceObject(context);
