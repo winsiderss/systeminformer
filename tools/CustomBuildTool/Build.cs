@@ -94,16 +94,6 @@ namespace CustomBuildTool
                 }
             }
 
-            if (!Win32.GetEnvironmentVariable("BUILD_SOURCEVERSION", out Build.BuildCommitHash))
-            {
-                Build.BuildCommitHash = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "rev-parse HEAD");
-            }
-
-            if (!Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out Build.BuildCommitBranch))
-            {
-                Build.BuildCommitBranch = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "branch --show-current");
-            }
-
             if (Win32.GetEnvironmentVariable("BUILD_REDIRECTOUTPUT", out string build_output))
             {
                 Build.BuildRedirectOutput = build_output.Equals("true", StringComparison.OrdinalIgnoreCase);
@@ -132,6 +122,28 @@ namespace CustomBuildTool
             {
                 Build.BuildIntegration = true;
                 Build.BuildIntegrationTF = true;
+            }
+
+            {
+                if (Win32.GetEnvironmentVariable("BUILD_SOURCEVERSION", out var build_source))
+                {
+                    Build.BuildCommitHash = build_source;
+                }
+
+                if (string.IsNullOrWhiteSpace(Build.BuildCommitHash) && !string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
+                {
+                    Build.BuildCommitHash = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "rev-parse HEAD");
+                }
+
+                if (Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out var build_branch))
+                {
+                    Build.BuildCommitBranch = build_branch;
+                }
+
+                if (string.IsNullOrWhiteSpace(Build.BuildCommitBranch) && !string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
+                {
+                    Build.BuildCommitBranch = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "branch --show-current");
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash) && !string.IsNullOrWhiteSpace(Build.BuildVersionMajor))
