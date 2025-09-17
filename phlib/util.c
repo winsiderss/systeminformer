@@ -5542,12 +5542,12 @@ PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
         securityDescriptorLength
         )
     {
-        assert(securityDescriptorLength == RtlLengthSecurityDescriptor(securityDescriptor));
-
         securityDescriptor = PhAllocateCopy(
             securityDescriptorBuffer,
             securityDescriptorLength
             );
+        assert(securityDescriptorLength == RtlLengthSecurityDescriptor(securityDescriptor));
+
         LocalFree(securityDescriptorBuffer);
     }
 
