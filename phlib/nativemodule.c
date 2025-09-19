@@ -27,13 +27,13 @@ typedef PH_ENUM_MODULES_CALLBACK* PPH_ENUM_MODULES_CALLBACK;
 /**
  * Creates a section object.
  *
- * @param SectionHandle Pointer to a variable that receives a handle to the section object.
- * @param DesiredAccess The access mask that specifies the requested access to the section object.
- * @param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file, or the maximum the file can be extended or mapped when backed by an ordinary file.
- * @param SectionPageProtection Specifies the protection to place on each page in the section.
- * @param AllocationAttributes A bitmask of SEC_XXX flags that determines the allocation attributes of the section.
- * @param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL, the section is backed by the paging file. Otherwise, the section is backed by the specified file.
- * @return NTSTATUS Successful or errant status.
+ * \param SectionHandle Pointer to a variable that receives a handle to the section object.
+ * \param DesiredAccess The access mask that specifies the requested access to the section object.
+ * \param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file, or the maximum the file can be extended or mapped when backed by an ordinary file.
+ * \param SectionPageProtection Specifies the protection to place on each page in the section.
+ * \param AllocationAttributes A bitmask of SEC_XXX flags that determines the allocation attributes of the section.
+ * \param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL, the section is backed by the paging file. Otherwise, the section is backed by the specified file.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhCreateSection(
     _Out_ PHANDLE SectionHandle,

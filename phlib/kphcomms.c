@@ -370,7 +370,7 @@ VOID KphCommsStop(
 /**
  * \brief Checks if communications is connected to the driver.
  *
- * @return TRUE if connected, FALSE otherwise.
+ * \return TRUE if connected, FALSE otherwise.
  */
 BOOLEAN KphCommsIsConnected(
     VOID

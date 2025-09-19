@@ -26,7 +26,7 @@
  /**
   * Opens a handle to the local LSA policy.
   *
-  * @return NTSTATUS Successful or errant status.
+  * \return NTSTATUS Successful or errant status.
   */
 NTSTATUS PhOpenLsaPolicy(
     _Out_ PLSA_HANDLE PolicyHandle,

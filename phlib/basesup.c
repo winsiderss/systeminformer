@@ -499,7 +499,7 @@ NTSTATUS PhQueueUserWorkItem(
  * This function reads the time stamp counter using the `__rdtscp` instruction,
  * which is a serializing variant of the `rdtsc` instruction. It also includes
  * a memory fence to ensure proper ordering of memory operations.
- * @return The current value of the time stamp counter.
+ * \return The current value of the time stamp counter.
  */
 ULONGLONG PhReadTimeStampCounter(
     VOID
@@ -1240,11 +1240,11 @@ NTSTATUS PhProtectVirtualMemory(
 /**
  * Reads virtual memory from a specified process.
  *
- * @param ProcessHandle Handle to the process from which the memory is to be read.
- * @param BaseAddress Optional pointer to the base address in the specified process from which to read.
- * @param Buffer Pointer to a buffer that receives the contents from the address space of the specified process.
- * @param BufferSize Size of the buffer, in bytes.
- * @param NumberOfBytesRead Optional pointer to a variable that receives the number of bytes read into the buffer.
+ * \param ProcessHandle Handle to the process from which the memory is to be read.
+ * \param BaseAddress Optional pointer to the base address in the specified process from which to read.
+ * \param Buffer Pointer to a buffer that receives the contents from the address space of the specified process.
+ * \param BufferSize Size of the buffer, in bytes.
+ * \param NumberOfBytesRead Optional pointer to a variable that receives the number of bytes read into the buffer.
  * \return Successful or errant status.
  */
 NTSTATUS PhReadVirtualMemory(

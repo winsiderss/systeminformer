@@ -915,7 +915,7 @@ LdrDisableThreadCalloutsForDll(
 typedef struct _LDR_RESLOADER_RET
 {
     PVOID Module;
-    PLDR_DATA_TABLE_ENTRY DataEntry;
+    PVOID DataEntry;
     PVOID TargetModule;
 } LDR_RESLOADER_RET, *PLDR_RESLOADER_RET;
 
@@ -996,39 +996,40 @@ LdrFindResourceDirectory_U(
 // rev // Flags for LdrResFindResource, LdrpResGetResourceDirectory, LdrResSearchResource
 #define LDR_RES_REQUIRE_FOUR_KEYS_A      0x00000001u  // Enables 4-key mode (variant A) (requires Count==4)
 #define LDR_RES_ALLOW_ANY                0x00000002u  // Permit Count < 3 (else Count must be 3 or 4)
-#define LDR_RES_OPTIMIZE_SMALL_A         0x00000008u  // Cannot combine with SMALL_OPT_B
-#define LDR_RES_OPTIMIZE_SMALL_B         0x00000010u  // Required when using SPECIAL_DEP with MODE_D
-#define LDR_RES_REQUIRE_FOUR_KEYS_B      0x00000040u  // Enables 4-key mode (variant B) (requires Count==4)
+#define LDR_RES_OPTIMIZE_SMALL_A         0x00000008u  // Cannot combine with LDR_RES_OPTIMIZE_SMALL_B
+#define LDR_RES_OPTIMIZE_SMALL_B         0x00000010u  // Required when using LDR_RES_SPECIAL_DEPENDENCY with LDR_RES_MODE_D_SEARCH
+#define LDR_RES_REQUIRE_FOUR_KEYS_B      0x00000040u  // Enables 4-key mode (Enable alternate module message) (requires Count==4)
 
 // Search mode flags (if not specified, LDR_RES_MODE_A_SEARCH is the default)
-#define LDR_RES_MODE_A_SEARCH            0x00000100u  // Default mode for typical resource lookup. // Exclusive with B/C/D
-#define LDR_RES_MODE_B_SEARCH            0x00000200u  // When the resource is loaded as a datafile // LDR_IS_DATAFILE(DllHandle) // Exclusive with A/C/D
+#define LDR_RES_MODE_A_SEARCH            0x00000100u  // Default mode for typical resource lookup. // Exclusive with B/C/D // LdrResRelease
+#define LDR_RES_MODE_B_SEARCH            0x00000200u  // When the resource is loaded as a datafile // LDR_IS_DATAFILE(DllHandle) // Exclusive with A/C/D // LdrResRelease
 #define LDR_RES_MODE_C_SEARCH            0x00000400u  // When precise control over mapping size is needed. // Exclusive with A/B/D // LdrResRelease
-#define LDR_RES_MODE_D_SEARCH            0x00000800u  // Specialized scenarios requiring dependency resolution or alternate resource handling. // Used with LDR_RES_SPECIAL_DEPENDENCY // Exclusive with A/B/C // LdrResRelease
+#define LDR_RES_MODE_D_SEARCH            0x00000800u  // When dependency resolution or alternate resources are needed. // Used with LDR_RES_SPECIAL_DEPENDENCY // Exclusive with A/B/C // LdrResRelease
 
-// Mapping behavior flags (only valid with MODE_C or MODE_D)
-#define LDR_RES_MAPPING_STRICT           0x00001000u  // Default; fail if mapping-size query fails // LdrResRelease
+// Mapping behavior flags (only valid with LDR_RES_MODE_C or LDR_RES_MODE_D)
+#define LDR_RES_MAPPING_STRICT           0x00001000u  // Default; Fail if mapping size query fails // LdrResRelease
 #define LDR_RES_MAPPING_LENIENT          0x00002000u  // Allow fallback if mapping size query fails // LdrResRelease
 #define LDR_RES_MAPPING_ALT_RESOURCE     0x00004000u  // When the primary resource search fails, try load and search the alternate resource // LdrResRelease
 
-// Small/fast lookup optimizations (only valid with MODE_A or MODE_B)
-#define LDR_RES_SPECIAL_DEPENDENCY       0x00008000u  // Only valid with (LDR_RES_MODE_D_SEARCH | SMALL_OPT_B)
+// Small/fast lookup optimizations (only valid with LDR_RES_MODE_A or LDR_RES_MODE_B)
+#define LDR_RES_SPECIAL_DEPENDENCY       0x00008000u  // Only valid with (LDR_RES_MODE_D_SEARCH | LDR_RES_OPTIMIZE_SMALL_B)
 
-#define LDR_RES_SIZE_FROM_LENGTH_C       0x00020000u  // Use *ResourceLength as mapping size; requires MODE_C
-#define LDR_RES_SIZE_FROM_LENGTH_AB      0x00080000u  // Use *ResourceLength as mapping size; requires MODE_A or MODE_B
+#define LDR_RES_SIZE_FROM_LENGTH_C       0x00020000u  // Use *ResourceLength as mapping size; requires LDR_RES_MODE_C
+#define LDR_RES_SIZE_FROM_LENGTH_AB      0x00080000u  // Use *ResourceLength as mapping size; requires LDR_RES_MODE_A or LDR_RES_MODE_B
 
 // Internal-only (set by loader on alternate resource retry; callers must not set)
 #define LDR_RES_INTERNAL_ALT_RETRY       0x01000000u
 
 // Group masks
-#define LDR_RES_MODE_MASK                0x00000F00u  // MODE_A|MODE_B|MODE_C|MODE_D
+#define LDR_RES_MODE_MASK                0x00000F00u  // LDR_RES_MODE_A|LDR_RES_MODE_B|LDR_RES_MODE_C|LDR_RES_MODE_D
 #define LDR_RES_BEHAVIOR_MASK            0x00003000u  // LDR_RES_MAPPING_STRICT/LDR_RES_MAPPING_LENIENT
-#define LDR_RES_SIZEOVERRIDE_MASK        0x000A0000u  // MAPSIZE_FROM_LENGTH_* (0x20000|0x80000)
+#define LDR_RES_SIZEOVERRIDE_MASK        0x000A0000u  // LDR_RES_SIZE_FROM_LENGTH_* (0x20000|0x80000)
 #define LDR_RES_KEY4_MASK                (LDR_RES_REQUIRE_FOUR_KEYS_A | LDR_RES_REQUIRE_FOUR_KEYS_B)
+
 // Public/caller-visible bit mask (high bits must be zero for callers)
 #define LDR_RES_PUBLIC_MASK              0x000FFFFFu
 // Common invalid combinations (useful for validation)
-#define LDR_RES_INVALID_SMALL_OPT_PAIR           0x00000018u  // SMALL_OPT_A|SMALL_OPT_B
+#define LDR_RES_INVALID_SMALL_OPT_PAIR           0x00000018u  // LDR_RES_OPTIMIZE_SMALL_A|LDR_RES_OPTIMIZE_SMALL_B
 #define LDR_RES_INVALID_MAPPING_BEHAVIOR_PAIR    0x00003000u  // LDR_RES_MAPPING_STRICT|LDR_RES_MAPPING_LENIENT?
 
 // rev
@@ -1063,7 +1064,7 @@ LdrResFindResource(
 
 // rev
 /**
- * The LdrResFindResourceDirectory function finds a resource directory in a DLL.
+ * The LdrResFindResourceDirectory function finds the resource directory containing the specified resource.
  *
  * \param DllHandle A handle to the DLL.
  * \param Type The type of the resource. This parameter can also be MAKEINTRESOURCE(ID), where ID is the integer identifier of the resource.
@@ -1088,6 +1089,18 @@ LdrResFindResourceDirectory(
     );
 
 // rev
+/**
+ * The LdrpResGetResourceDirectory function returns the resource directory for a DLL.
+ *
+ * \param DllHandle A handle to the DLL.
+ * \param Type The type of the resource. This parameter can also be MAKEINTRESOURCE(ID), where ID is the integer identifier of the resource.
+ * \param Name The name of the resource. This parameter can also be MAKEINTRESOURCE(ID), where ID is the integer identifier of the resource.
+ * \param ResourceDirectory An optional pointer to receive the resource directory.
+ * \param CultureName An optional buffer to receive the culture name.
+ * \param CultureNameLength An optional pointer to receive the length of the culture name.
+ * \param Flags Flags for the resource search.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1214,6 +1227,17 @@ LdrResRelease(
     _In_opt_ PCWSTR CultureNameOrId, // MAKEINTRESOURCE
     _In_ ULONG Flags
     );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+LdrpResGetMappingSize(
+    _In_ PVOID BaseAddress,
+    _Out_ PSIZE_T Size,
+    _In_ ULONG Flags,
+    _In_ BOOLEAN GetFileSizeFromLoadAsDataTable
+    );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 // private
@@ -1307,6 +1331,9 @@ LdrLoadAlternateResourceModule(
     _Out_opt_ SIZE_T *Size,
     _In_ ULONG Flags
     );
+
+// Flags for LdrLoadAlternateResourceModuleEx
+#define LDR_LOAD_ALT_RESOURCE_MUN_MODE 0x01000000u // Use .mun files instead of .mui files
 
 // rev
 NTSYSAPI
@@ -1873,17 +1900,6 @@ LdrSetDllManifestProber(
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSAPI BOOLEAN LdrpChildNtdll; // DATA export
 #endif
-
-// rev
-NTSYSAPI
-VOID
-NTAPI
-LdrpResGetMappingSize(
-    _In_ PVOID BaseAddress,
-    _Out_ PSIZE_T Size,
-    _In_ ULONG Flags,
-    _In_ BOOLEAN GetFileSizeFromLoadAsDataTable
-    );
 
 // rev
 NTSYSAPI
