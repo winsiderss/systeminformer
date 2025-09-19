@@ -172,7 +172,7 @@ namespace CustomBuildTool
 
         public static string CreateSigString(string KeyName, string FileName)
         {
-            if (File.Exists(FileName))
+            if (!File.Exists(FileName))
                 return null;
 
             try
