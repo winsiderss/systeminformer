@@ -1129,7 +1129,7 @@ NTSTATUS PhGetThreadServiceTag(
 
     if (NT_SUCCESS(status))
     {
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, FIELD_OFFSET(TEB, SubProcessTag)),
             ServiceTag,

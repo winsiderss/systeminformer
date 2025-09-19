@@ -767,7 +767,7 @@ NTSTATUS PhGetProcessUnloadedDlls(
     // Since ntdll is loaded at the same base address across all processes,
     // we can read the information in.
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
         processHandle,
         elementSize,
         &capturedElementSize,
@@ -776,7 +776,7 @@ NTSTATUS PhGetProcessUnloadedDlls(
         )))
         goto CleanupExit;
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
         processHandle,
         elementCount,
         &capturedElementCount,
@@ -785,7 +785,7 @@ NTSTATUS PhGetProcessUnloadedDlls(
         )))
         goto CleanupExit;
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
         processHandle,
         eventTrace,
         &capturedEventTracePointer,
@@ -812,7 +812,7 @@ NTSTATUS PhGetProcessUnloadedDlls(
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
         processHandle,
         capturedEventTracePointer,
         capturedEventTrace,
@@ -6677,7 +6677,7 @@ NTSTATUS PhGetProcessHeapSignature(
     if (WindowsVersion >= WINDOWS_7)
     {
         // dt _HEAP SegmentSignature
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x8 : 0x10),
             &heapSignature,
@@ -6708,7 +6708,7 @@ NTSTATUS PhGetProcessHeapFrontEndType(
     if (WindowsVersion >= WINDOWS_10)
     {
         // dt _HEAP FrontEndHeapType
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x0ea : 0x1a2),
             &heapFrontEndType,
@@ -6718,7 +6718,7 @@ NTSTATUS PhGetProcessHeapFrontEndType(
     }
     else if (WindowsVersion >= WINDOWS_8_1)
     {
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x0d6 : 0x17a),
             &heapFrontEndType,
@@ -6728,7 +6728,7 @@ NTSTATUS PhGetProcessHeapFrontEndType(
     }
     else if (WindowsVersion >= WINDOWS_7)
     {
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x0da : 0x182),
             &heapFrontEndType,
@@ -9421,7 +9421,7 @@ NTSTATUS PhEnumProcessEnclaves(
     LIST_ENTRY enclaveList;
     LDR_SOFTWARE_ENCLAVE enclave;
 
-    status = NtReadVirtualMemory(
+    status = PhReadVirtualMemory(
         ProcessHandle,
         LdrEnclaveList,
         &enclaveList,
@@ -9439,7 +9439,7 @@ NTSTATUS PhEnumProcessEnclaves(
 
         enclaveAddress = CONTAINING_RECORD(link, LDR_SOFTWARE_ENCLAVE, Links);
 
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             link,
             &enclave,
@@ -9755,7 +9755,7 @@ NTSTATUS PhIsEcCode(
     if (!NT_SUCCESS(status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress)))
         return status;
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
         ProcessHandle,
         PTR_ADD_OFFSET(pebBaseAddress, FIELD_OFFSET(PEB, EcCodeBitMap)),
         &ecCodeBitMap,
@@ -9770,7 +9770,7 @@ NTSTATUS PhIsEcCode(
     // each byte of bitmap indexes 8*4K = 2^15 byte span
     ecCodeBitMap = PTR_ADD_OFFSET(ecCodeBitMap, (ULONG_PTR)CodePointer >> 15);
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
         ProcessHandle,
         ecCodeBitMap,
         &bitmap,

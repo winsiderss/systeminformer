@@ -413,6 +413,40 @@ VOID PhpRemoveModuleItem(
     PhDereferenceObject(ModuleItem);
 }
 
+
+_Function_class_(PH_READ_VIRTUAL_MEMORY_CALLBACK)
+static NTSTATUS PhModuleItemReadVirtualMemoryCallback(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)Context;
+    NTSTATUS status;
+
+    if (moduleItem)
+    {
+        SIZE_T numberOfBytesRead = 0;
+
+        if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
+            status = KphReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, &numberOfBytesRead);
+        else
+            status = PhReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, &numberOfBytesRead);
+
+        if (NumberOfBytesRead)
+            *NumberOfBytesRead = numberOfBytesRead;
+    }
+    else
+    {
+        status = STATUS_INVALID_PARAMETER_6;
+    }
+
+    return status;
+}
+
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpModuleQueryWorker(
     _In_ PVOID Parameter
@@ -444,12 +478,12 @@ NTSTATUS PhpModuleQueryWorker(
             (KsiLevel() == KphLevelMax)))
         {
             PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
-            PPH_READ_VIRTUAL_MEMORY_CALLBACK readVirtualMemoryCallback;
 
-            if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
-                readVirtualMemoryCallback = KphReadVirtualMemory;
-            else
-                readVirtualMemoryCallback = NtReadVirtualMemory;
+            PhInitializeRemoteMappedImage(
+                &remoteMappedImage,
+                PhModuleItemReadVirtualMemoryCallback,
+                moduleItem
+                );
 
             // Note:
             // On Windows 7 the LDRP_IMAGE_NOT_AT_BASE flag doesn't appear to be used
@@ -459,12 +493,11 @@ NTSTATUS PhpModuleQueryWorker(
             // 1. It (should be) faster than opening the file and mapping it in, and
             // 2. It contains the correct original image base relocated by ASLR, if present.
 
-            if (NT_SUCCESS(PhLoadRemoteMappedImageEx(
+            if (NT_SUCCESS(PhLoadRemoteMappedImage(
+                &remoteMappedImage,
                 moduleProvider->ProcessHandle,
                 moduleItem->BaseAddress,
-                moduleItem->Size,
-                readVirtualMemoryCallback,
-                &remoteMappedImage
+                moduleItem->Size
                 )))
             {
                 PIMAGE_DATA_DIRECTORY dataDirectory;
@@ -473,76 +506,83 @@ NTSTATUS PhpModuleQueryWorker(
                 ULONG debugEntryLength;
                 PVOID debugEntry;
 
-                PhGetRemoteMappedImageCHPEVersionEx(
-                    &remoteMappedImage,
-                    readVirtualMemoryCallback,
-                    &moduleItem->ImageCHPEVersion
-                    );
-
-                if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                __try
                 {
-                    PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders32->OptionalHeader;
+                    if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                    {
+                        PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders32->OptionalHeader;
 
-                    imageBase = UlongToPtr(optionalHeader->ImageBase);
-                    entryPoint = optionalHeader->AddressOfEntryPoint;
-                    moduleItem->ImageDllCharacteristics = optionalHeader->DllCharacteristics;
-                    moduleItem->ImageMachine = remoteMappedImage.NtHeaders32->FileHeader.Machine;
-                    moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders32->FileHeader.TimeDateStamp;
-                    moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders32->FileHeader.Characteristics;
+                        imageBase = UlongToPtr(optionalHeader->ImageBase);
+                        entryPoint = optionalHeader->AddressOfEntryPoint;
+                        moduleItem->ImageDllCharacteristics = optionalHeader->DllCharacteristics;
+                        moduleItem->ImageMachine = remoteMappedImage.NtHeaders32->FileHeader.Machine;
+                        moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders32->FileHeader.TimeDateStamp;
+                        moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders32->FileHeader.Characteristics;
+                    }
+                    else if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                    {
+                        PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders64->OptionalHeader;
+
+                        imageBase = (PVOID)optionalHeader->ImageBase;
+                        entryPoint = optionalHeader->AddressOfEntryPoint;
+                        moduleItem->ImageDllCharacteristics = optionalHeader->DllCharacteristics;
+                        moduleItem->ImageMachine = remoteMappedImage.NtHeaders64->FileHeader.Machine;
+                        moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders64->FileHeader.TimeDateStamp;
+                        moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders64->FileHeader.Characteristics;
+                    }
+
+                    if (moduleItem->BaseAddress != imageBase)
+                        moduleItem->ImageNotAtBase = TRUE;
+
+                    if (entryPoint != 0)
+                        moduleItem->EntryPoint = PTR_ADD_OFFSET(moduleItem->BaseAddress, entryPoint);
+
+                    if (NT_SUCCESS(PhGetRemoteMappedImageDataEntry(
+                        &remoteMappedImage,
+                        IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR,
+                        &dataDirectory
+                        )))
+                    {
+                        SetFlag(data->ImageFlags, LDRP_COR_IMAGE);
+                    }
+
+                    if (moduleProvider->CetEnabled && NT_SUCCESS(PhGetRemoteMappedImageDebugEntryByType(
+                        &remoteMappedImage,
+                        IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS,
+                        &debugEntryLength,
+                        &debugEntry
+                        )))
+                    {
+                        ULONG characteristics = ULONG_MAX;
+
+                        if (debugEntryLength == sizeof(ULONG))
+                            characteristics = *(PULONG)debugEntry;
+
+                        if (characteristics != ULONG_MAX)
+                            moduleItem->ImageDllCharacteristicsEx = characteristics;
+
+                        PhFreePage(debugEntry);
+                    }
+
+                    if (!NT_SUCCESS(PhGetRemoteMappedImageCHPEVersion(
+                        &remoteMappedImage,
+                        &moduleItem->ImageCHPEVersion
+                        )))
+                    {
+                        moduleItem->ImageCHPEVersion = 0;
+                    }
+
+                    if (!NT_SUCCESS(PhGetRemoteMappedImageGuardFlags(
+                        &remoteMappedImage,
+                        &moduleItem->GuardFlags
+                        )))
+                    {
+                        moduleItem->GuardFlags = 0;
+                    }
                 }
-                else if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                __except (EXCEPTION_EXECUTE_HANDLER)
                 {
-                    PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders64->OptionalHeader;
-
-                    imageBase = (PVOID)optionalHeader->ImageBase;
-                    entryPoint = optionalHeader->AddressOfEntryPoint;
-                    moduleItem->ImageDllCharacteristics = optionalHeader->DllCharacteristics;
-                    moduleItem->ImageMachine = remoteMappedImage.NtHeaders64->FileHeader.Machine;
-                    moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders64->FileHeader.TimeDateStamp;
-                    moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders64->FileHeader.Characteristics;
-                }
-
-                if (moduleItem->BaseAddress != imageBase)
-                    moduleItem->ImageNotAtBase = TRUE;
-
-                if (entryPoint != 0)
-                    moduleItem->EntryPoint = PTR_ADD_OFFSET(moduleItem->BaseAddress, entryPoint);
-
-                if (NT_SUCCESS(PhGetRemoteMappedImageDataEntry(
-                    &remoteMappedImage,
-                    IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR,
-                    &dataDirectory
-                    )))
-                {
-                    SetFlag(data->ImageFlags, LDRP_COR_IMAGE);
-                }
-
-                if (moduleProvider->CetEnabled && NT_SUCCESS(PhGetRemoteMappedImageDebugEntryByTypeEx(
-                    &remoteMappedImage,
-                    IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS,
-                    readVirtualMemoryCallback,
-                    &debugEntryLength,
-                    &debugEntry
-                    )))
-                {
-                    ULONG characteristics = ULONG_MAX;
-
-                    if (debugEntryLength == sizeof(ULONG))
-                        characteristics = *(PULONG)debugEntry;
-
-                    if (characteristics != ULONG_MAX)
-                        moduleItem->ImageDllCharacteristicsEx = characteristics;
-
-                    PhFreePage(debugEntry);
-                }
-
-                if (!NT_SUCCESS(PhGetRemoteMappedImageGuardFlagsEx(
-                    &remoteMappedImage,
-                    readVirtualMemoryCallback,
-                    &moduleItem->GuardFlags
-                    )))
-                {
-                    moduleItem->GuardFlags = 0;
+                    NOTHING;
                 }
 
                 PhUnloadRemoteMappedImage(&remoteMappedImage);
@@ -560,42 +600,49 @@ NTSTATUS PhpModuleQueryWorker(
                     PIMAGE_DATA_DIRECTORY dataDirectory;
                     PH_MAPPED_IMAGE_CFG cfgConfig = { NULL };
 
-                    moduleItem->ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-                    moduleItem->ImageCHPEVersion = PhGetMappedImageCHPEVersion(&mappedImage);
-
-                    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                    __try
                     {
-                        PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders32->OptionalHeader;
+                        moduleItem->ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+                        moduleItem->ImageCHPEVersion = PhGetMappedImageCHPEVersion(&mappedImage);
 
-                        entryPoint = optionalHeader->AddressOfEntryPoint;
-                        characteristics = optionalHeader->DllCharacteristics;
+                        if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                        {
+                            PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders32->OptionalHeader;
+
+                            entryPoint = optionalHeader->AddressOfEntryPoint;
+                            characteristics = optionalHeader->DllCharacteristics;
+                        }
+                        else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                        {
+                            PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders64->OptionalHeader;
+
+                            entryPoint = optionalHeader->AddressOfEntryPoint;
+                            characteristics = optionalHeader->DllCharacteristics;
+                        }
+
+                        if (entryPoint != 0)
+                            moduleItem->EntryPoint = PTR_ADD_OFFSET(moduleItem->BaseAddress, entryPoint);
+
+                        if (characteristics != 0)
+                            moduleItem->ImageDllCharacteristics = characteristics;
+
+                        if (NT_SUCCESS(PhGetMappedImageDataDirectory(
+                            &mappedImage,
+                            IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR,
+                            &dataDirectory
+                            )))
+                        {
+                            SetFlag(data->ImageFlags, LDRP_COR_IMAGE);
+                        }
+
+                        if (NT_SUCCESS(PhGetMappedImageCfg(&cfgConfig, &mappedImage)))
+                        {
+                            data->GuardFlags = cfgConfig.GuardFlags;
+                        }
                     }
-                    else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                    __except (EXCEPTION_EXECUTE_HANDLER)
                     {
-                        PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders64->OptionalHeader;
-
-                        entryPoint = optionalHeader->AddressOfEntryPoint;
-                        characteristics = optionalHeader->DllCharacteristics;
-                    }
-
-                    if (entryPoint != 0)
-                        moduleItem->EntryPoint = PTR_ADD_OFFSET(moduleItem->BaseAddress, entryPoint);
-
-                    if (characteristics != 0)
-                        moduleItem->ImageDllCharacteristics = characteristics;
-
-                    if (NT_SUCCESS(PhGetMappedImageDataDirectory(
-                        &mappedImage,
-                        IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR,
-                        &dataDirectory
-                        )))
-                    {
-                        SetFlag(data->ImageFlags, LDRP_COR_IMAGE);
-                    }
-
-                    if (NT_SUCCESS(PhGetMappedImageCfg(&cfgConfig, &mappedImage)))
-                    {
-                        data->GuardFlags = cfgConfig.GuardFlags;
+                        NOTHING;
                     }
 
                     PhUnloadMappedImage(&mappedImage);

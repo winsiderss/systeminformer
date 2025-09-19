@@ -42,7 +42,7 @@ typedef struct _PH_IMAGE_COHERENCY_CONTEXT
 
     PVOID RemoteImageBase;                    /**< Remote image base address */
     SIZE_T RemoteImageSize;                   /**< Remote image size */
-    PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemory; /**< Read virtual memory callback */
+    BOOLEAN ImageIsKernelModule;
 } PH_IMAGE_COHERENCY_CONTEXT, *PPH_IMAGE_COHERENCY_CONTEXT;
 
 /**
@@ -206,6 +206,45 @@ static NTSTATUS NTAPI PhImageCoherencyRelocationCallback(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_READ_VIRTUAL_MEMORY_CALLBACK)
+static NTSTATUS PhImageCoherencyReadVirtualMemoryCallback(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_IMAGE_COHERENCY_CONTEXT context = (PPH_IMAGE_COHERENCY_CONTEXT)Context;
+    NTSTATUS status;
+
+    if (context)
+    {
+        SIZE_T numberOfBytesRead = 0;
+
+        if (context->ImageIsKernelModule)
+        {
+            status = KphReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, &numberOfBytesRead);
+        }
+        else
+        {
+            status = PhReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, &numberOfBytesRead);
+        }
+
+        if (NumberOfBytesRead)
+        {
+            *NumberOfBytesRead = numberOfBytesRead;
+        }
+    }
+    else
+    {
+        status = STATUS_INVALID_PARAMETER_6;
+    }
+
+    return status;
+}
+
 /**
 * Created the image coherency context. This is done best-effort and
 * the status is stored in the context.
@@ -231,7 +270,7 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
     _In_opt_ PVOID RemoteImageBase,
     _In_opt_ SIZE_T RemoteImageSize,
     _In_ NTSTATUS RemoteImageBaseStatus,
-    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback
+    _In_ BOOLEAN ImageIsKernelModule
     )
 {
     PPH_IMAGE_COHERENCY_CONTEXT context;
@@ -244,7 +283,7 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
 
     context = PhAllocateZero(sizeof(PH_IMAGE_COHERENCY_CONTEXT));
     context->Type = Type;
-    context->ReadVirtualMemory = ReadVirtualMemoryCallback;
+    context->ImageIsKernelModule = ImageIsKernelModule;
 
     if (NT_SUCCESS(RemoteImageBaseStatus))
     {
@@ -388,13 +427,22 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
         //
         // Map the remote image
         //
-        context->RemoteMappedImageStatus = PhLoadRemoteMappedImageEx(
-            ProcessHandle,
-            context->RemoteImageBase,
-            context->RemoteImageSize,
-            ReadVirtualMemoryCallback,
-            &context->RemoteMappedImage
+
+        context->RemoteMappedImageStatus = PhInitializeRemoteMappedImage(
+            &context->RemoteMappedImage,
+            PhImageCoherencyReadVirtualMemoryCallback,
+            context
             );
+
+        if (NT_SUCCESS(context->RemoteMappedImageStatus))
+        {
+            context->RemoteMappedImageStatus = PhLoadRemoteMappedImage(
+                &context->RemoteMappedImage,
+                ProcessHandle,
+                context->RemoteImageBase,
+                context->RemoteImageSize
+                );
+        }
     }
     else
     {
@@ -527,12 +575,13 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
         //
         // Try to read the remote process
         //
-        if (!NT_SUCCESS(Context->ReadVirtualMemory(
+        if (!NT_SUCCESS(PhImageCoherencyReadVirtualMemoryCallback(
             ProcessHandle,
             PTR_ADD_OFFSET(Context->RemoteImageBase, rva),
             buffer,
             chunk,
-            &bytesRead
+            &bytesRead,
+            Context
             )))
         {
             //
@@ -629,12 +678,13 @@ VOID PhpAnalyzeImageCoherencyCommonByRvaExpectBytes(
         //
         // Try to read the remote process
         //
-        if (NT_SUCCESS(Context->ReadVirtualMemory(
+        if (NT_SUCCESS(PhImageCoherencyReadVirtualMemoryCallback(
             ProcessHandle,
             PTR_ADD_OFFSET(Context->RemoteImageBase, rva),
             buffer,
             chunk,
-            &bytesRead
+            &bytesRead,
+            Context
             )))
         {
             assert(bytesRead <= PAGE_SIZE);
@@ -670,6 +720,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRvaExpectBytes(
 *
 * \return Number of bytes to skip, 0 otherwise.
 */
+_Function_class_(PH_IMGCOHERENCY_SKIP_BYTE_CALLBACK)
 ULONG CALLBACK PhpImgCoherencySkip(
     _In_ ULONG Rva,
     _In_ PVOID Context
@@ -1124,8 +1175,9 @@ NTSTATUS PhpAnalyzeImageCoherencyNt64(
         PhpImgCoherencySkip,
         Context
         );
+
     //
-    // And the optional header
+    // Inspect the optional header
     //
     PhpAnalyzeImageCoherencyInspect(
         (PBYTE)fileOptHeader,
@@ -1334,7 +1386,7 @@ NTSTATUS PhpGetModuleCoherency(
             RemoteImageBase,
             RemoteImageSize,
             RemoteImageBaseStatus,
-            IsKernelModule ? KphReadVirtualMemory : NtReadVirtualMemory
+            IsKernelModule
             );
 
         status = PhpInspectForImageCoherency(ProcessHandle, context, ImageCoherency);

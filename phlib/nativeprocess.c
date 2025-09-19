@@ -747,7 +747,7 @@ NTSTATUS PhGetProcessPebString(
             return status;
 
         // Read the address of the process parameters.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
             &processParameters,
@@ -757,7 +757,7 @@ NTSTATUS PhGetProcessPebString(
             return status;
 
         // Read the string structure.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters, offset),
             &unicodeString,
@@ -775,7 +775,7 @@ NTSTATUS PhGetProcessPebString(
         string = PhCreateStringEx(NULL, unicodeString.Length);
 
         // Read the string contents.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             unicodeString.Buffer,
             string->Buffer,
@@ -796,7 +796,7 @@ NTSTATUS PhGetProcessPebString(
         if (!NT_SUCCESS(status = PhGetProcessPeb32(ProcessHandle, &pebBaseAddress32)))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress32, FIELD_OFFSET(PEB32, ProcessParameters)),
             &processParameters32,
@@ -805,7 +805,7 @@ NTSTATUS PhGetProcessPebString(
             )))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters32, offset),
             &unicodeString32,
@@ -823,7 +823,7 @@ NTSTATUS PhGetProcessPebString(
         string = PhCreateStringEx(NULL, unicodeString32.Length);
 
         // Read the string contents.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             UlongToPtr(unicodeString32.Buffer),
             string->Buffer,
@@ -1004,7 +1004,7 @@ NTSTATUS PhGetProcessWindowTitle(
             return status;
 
         // Read the address of the process parameters.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
             &processParameters,
@@ -1014,7 +1014,7 @@ NTSTATUS PhGetProcessWindowTitle(
             return status;
 
         // Read the window flags.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, WindowFlags)),
             &windowFlags,
@@ -1032,7 +1032,7 @@ NTSTATUS PhGetProcessWindowTitle(
         if (!NT_SUCCESS(status = PhGetProcessPeb32(ProcessHandle, &pebBaseAddress32)))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress32, FIELD_OFFSET(PEB32, ProcessParameters)),
             &processParameters32,
@@ -1041,7 +1041,7 @@ NTSTATUS PhGetProcessWindowTitle(
             )))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters32, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, WindowFlags)),
             &windowFlags,
@@ -1142,7 +1142,7 @@ NTSTATUS PhGetProcessEnvironment(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress32, UFIELD_OFFSET(PEB32, ProcessParameters)),
             &processParameters32,
@@ -1151,7 +1151,7 @@ NTSTATUS PhGetProcessEnvironment(
             )))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters32, UFIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, Environment)),
             &environmentRemote32,
@@ -1172,7 +1172,7 @@ NTSTATUS PhGetProcessEnvironment(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ProcessParameters)),
             &processParameters,
@@ -1181,7 +1181,7 @@ NTSTATUS PhGetProcessEnvironment(
             )))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters, UFIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
             &environmentRemote,
@@ -1211,7 +1211,7 @@ NTSTATUS PhGetProcessEnvironment(
     if (!environment)
         return STATUS_NO_MEMORY;
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
         ProcessHandle,
         environmentRemote,
         environment,
@@ -2378,7 +2378,7 @@ NTSTATUS PhGetProcessImageBaseAddress(
         if (!NT_SUCCESS(status))
             return status;
 
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebAddress, UFIELD_OFFSET(PEB32, ImageBaseAddress)),
             &imageBaseAddress32,
@@ -2401,7 +2401,7 @@ NTSTATUS PhGetProcessImageBaseAddress(
         if (!NT_SUCCESS(status))
             return status;
 
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebAddress, UFIELD_OFFSET(PEB, ImageBaseAddress)),
             &imageBaseAddress,
@@ -2754,7 +2754,7 @@ NTSTATUS PhGetProcessTlsBitMapCounters(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, TlsBitmapBits)),
             bitmapBits,
@@ -2765,7 +2765,7 @@ NTSTATUS PhGetProcessTlsBitMapCounters(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, TlsExpansionBitmapBits)),
             bitmapExpansionBits,
@@ -2784,7 +2784,7 @@ NTSTATUS PhGetProcessTlsBitMapCounters(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, TlsBitmapBits)),
             bitmapBits,
@@ -2795,7 +2795,7 @@ NTSTATUS PhGetProcessTlsBitMapCounters(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, TlsExpansionBitmapBits)),
             bitmapExpansionBits,
@@ -2853,7 +2853,7 @@ NTSTATUS PhGetProcessIsPosix(
         if (!NT_SUCCESS(status))
             return status;
 
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, ImageSubsystem)),
             &imageSubsystem,
@@ -2869,7 +2869,7 @@ NTSTATUS PhGetProcessIsPosix(
         if (!NT_SUCCESS(status))
             return status;
 
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ImageSubsystem)),
             &imageSubsystem,

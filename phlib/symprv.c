@@ -406,7 +406,7 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
 //
 //            if (symbolProvider->IsRealHandle)
 //            {
-//                if (NT_SUCCESS(NtReadVirtualMemory(
+//                if (NT_SUCCESS(PhReadVirtualMemory(
 //                    ProcessHandle,
 //                    (PVOID)callbackData->addr,
 //                    callbackData->buf,
@@ -1550,7 +1550,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
 
     // Find the function table entry for this address.
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
         ProcessHandle,
         tableListHead,
         &tableListHeadEntry,
@@ -1566,7 +1566,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
     {
         functionTableAddress = CONTAINING_RECORD(tableListEntry, DYNAMIC_FUNCTION_TABLE, ListEntry);
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             functionTableAddress,
             &functionTable,
@@ -1585,7 +1585,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
                     // just have to read as much as possible.
 
                     memset(OutOfProcessCallbackDllBuffer, 0xff, OutOfProcessCallbackDllBufferSize);
-                    status = NtReadVirtualMemory(
+                    status = PhReadVirtualMemory(
                         ProcessHandle,
                         functionTable.OutOfProcessCallbackDll,
                         OutOfProcessCallbackDllBuffer,
@@ -1793,7 +1793,7 @@ NTSTATUS PhpAccessNormalFunctionTable(
     if (!functions)
         return STATUS_NO_MEMORY;
 
-    status = NtReadVirtualMemory(ProcessHandle, FunctionTable->FunctionTable, functions, bufferSize, NULL);
+    status = PhReadVirtualMemory(ProcessHandle, FunctionTable->FunctionTable, functions, bufferSize, NULL);
 
     if (NT_SUCCESS(status))
     {
