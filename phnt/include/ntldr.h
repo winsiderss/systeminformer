@@ -1028,6 +1028,7 @@ LdrFindResourceDirectory_U(
 
 // Public/caller-visible bit mask (high bits must be zero for callers)
 #define LDR_RES_PUBLIC_MASK              0x000FFFFFu
+
 // Common invalid combinations (useful for validation)
 #define LDR_RES_INVALID_SMALL_OPT_PAIR           0x00000018u  // LDR_RES_OPTIMIZE_SMALL_A|LDR_RES_OPTIMIZE_SMALL_B
 #define LDR_RES_INVALID_MAPPING_BEHAVIOR_PAIR    0x00003000u  // LDR_RES_MAPPING_STRICT|LDR_RES_MAPPING_LENIENT?
