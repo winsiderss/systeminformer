@@ -314,7 +314,7 @@ BOOLEAN PvGetCRTFunctionSegment(
     {
         PIMAGE_DEBUG_POGO_ENTRY debugPogoEntry;
 
-        if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU)
+        if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGI && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGO && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_SPGO)
         {
             if (!(debugEntry->Signature == 0 && debugEntryLength > sizeof(IMAGE_DEBUG_POGO_SIGNATURE)))
                 return FALSE;

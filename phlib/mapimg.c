@@ -3994,7 +3994,7 @@ BOOLEAN PhGetMappedImagePogoEntryByName(
         return FALSE;
     }
 
-    if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU)
+    if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGI && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGO && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_SPGO)
     {
         // The signature can be zero but still contain valid entries.
         if (!(debugEntry->Signature == 0 && debugEntryLength > sizeof(IMAGE_DEBUG_POGO_SIGNATURE)))
@@ -4068,7 +4068,7 @@ NTSTATUS PhGetMappedImagePogo(
         return GetExceptionCode();
     }
 
-    if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU)
+    if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGI && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGO && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_SPGO)
     {
         // The signature can be zero but still contain valid entries.
         if (!(debugEntry->Signature == 0 && debugEntryLength > sizeof(IMAGE_DEBUG_POGO_SIGNATURE)))
