@@ -89,6 +89,32 @@ typedef struct _PREFETCHER_INFORMATION
 // Superfetch
 //
 
+// rev
+typedef struct _PF_SYSTEM_SUPERFETCH_RETRIEVE_TRACE 
+{
+    union 
+    {
+        struct
+        {
+            ULONGLONG RequestType;     // Must be 2 for "get completed trace"
+            ULONGLONG Reserved;        // Ignored on input
+            HANDLE    PartitionHandle;
+        } Input;
+        struct
+        {
+            ULONGLONG TypeFlags;       // 0x0000000000180002 on success
+            ULONGLONG Timestamp;       // Scaled TSC value
+            HANDLE    PartitionHandle;
+        } Output;
+
+        //
+        // Raw view of the buffer for opaque access
+        //
+        UCHAR Buffer[ANYSIZE_ARRAY];
+    };
+} PF_SYSTEM_SUPERFETCH_RETRIEVE_TRACE, *PPF_SYSTEM_SUPERFETCH_RETRIEVE_TRACE;
+
+// rev
 typedef struct _PF_SYSTEM_SUPERFETCH_PARAMETERS
 {
     ULONG EnabledComponents;
@@ -139,14 +165,36 @@ typedef enum _PF_EVENT_TYPE
     PfEventTypeMax = 32
 } PF_EVENT_TYPE;
 
-// rev
-typedef struct _PF_LOG_EVENT_DATA
+#define PF_LOG_EVENT_DATA_VERSION 1
+
+typedef struct _PF_LOG_EVENT_DATA 
 {
-    ULONG EventType : 5; // PF_EVENT_TYPE
-    ULONG Flags : 2;
-    ULONG DataSize : 25;
+    ULONG Version; // PF_LOG_EVENT_DATA_VERSION
+    union 
+    {
+        ULONG Packed; // [31:7]=DataSize, [6:5]=Flags, [4:0]=EventType (PF_EVENT_TYPE)
+        struct 
+        {
+            ULONG DataSize : 25; // in bytes
+            ULONG Flags    : 2;
+            ULONG EventType: 5; // 2,3,5,27 accepted by the handler // PF_EVENT_TYPE
+        };
+    };
     PVOID EventData;
-} PF_LOG_EVENT_DATA, *PPF_LOG_EVENT_DATA;
+    HANDLE PartitionHandle;
+} PF_LOG_EVENT_DATA , *PPF_LOG_EVENT_DATA ;
+
+static_assert(sizeof(PF_LOG_EVENT_DATA) == 24, "size");
+
+// PFN operations (classes 0x06/0x07/0x16/0x1D/0x1D/0x29) — header 192 bytes, entries 24B each
+typedef struct _PFN_TRIPLET
+{
+    ULONGLONG MaskOrKey;        // Compared against identity with 0x1FFFFFFFFFFFE00 mask
+    ULONGLONG Pfn;              // Page frame number
+    ULONGLONG Flags;            // Request/result flags
+} PFN_TRIPLET, *PPFN_TRIPLET;
+
+static_assert(sizeof(PFN_TRIPLET) == 24, "size");
 
 #define PF_PFN_PRIO_REQUEST_VERSION 1
 #define PF_PFN_PRIO_REQUEST_QUERY_MEMORY_LIST 0x1
@@ -156,9 +204,16 @@ typedef struct _PF_PFN_PRIO_REQUEST
 {
     ULONG Version;
     ULONG RequestFlags;
-    ULONG_PTR PfnCount;
+    SIZE_T PfnCount;
     SYSTEM_MEMORY_LIST_INFORMATION MemInfo;
-    MMPFN_IDENTITY PageData[256];
+    union
+    {
+        // Input: (class 6/16) MmQueryPfnList fills identities here
+        MMPFN_IDENTITY PageIdentities[256]; // ANYSIZE_ARRAY
+        // Output: (class 7/29/1D) caller supplies PFN_TRIPLETs here
+        PFN_TRIPLET Entries[256]; // ANYSIZE_ARRAY
+    };
+
 } PF_PFN_PRIO_REQUEST, *PPF_PFN_PRIO_REQUEST;
 
 typedef enum _PFS_PRIVATE_PAGE_SOURCE_TYPE
@@ -190,11 +245,11 @@ typedef struct _PF_PRIVSOURCE_INFO
     ULONG SessionID;
     CHAR ImageName[16];
     union {
-        ULONG_PTR WsSwapPages;                 // process only PF_PRIVSOURCE_QUERY_WS_SWAP_PAGES.
-        ULONG_PTR SessionPagedPoolPages;       // session only.
-        ULONG_PTR StoreSizePages;              // process only PF_PRIVSOURCE_QUERY_STORE_INFO.
+        SIZE_T WsSwapPages;                 // process only PF_PRIVSOURCE_QUERY_WS_SWAP_PAGES.
+        SIZE_T SessionPagedPoolPages;       // session only.
+        SIZE_T StoreSizePages;              // process only PF_PRIVSOURCE_QUERY_STORE_INFO.
     };
-    ULONG_PTR WsTotalPages;         // process/session only.
+    SIZE_T WsTotalPages;            // process/session only.
     ULONG DeepFreezeTimeMs;         // process only.
     ULONG ModernApp : 1;            // process only.
     ULONG DeepFrozen : 1;           // process only. If set, DeepFreezeTimeMs contains the time at which the freeze occurred
@@ -240,7 +295,19 @@ typedef struct _PF_SCENARIO_PHASE_INFO
     ULONG SequenceNumber;
     ULONG Flags;
     ULONG FUSUserId;
+    ULONG Reserved0; // pad to 32 bytes (handler expects 32)
+    ULONG Reserved1;
 } PF_SCENARIO_PHASE_INFO, *PPF_SCENARIO_PHASE_INFO;
+
+// rev
+typedef struct _PF_WORKER_PRIORITY_CONTROL 
+{
+    ULONG Version;
+    KPRIORITY Priority; // 0..31 (STATUS_INVALID_PARAMETER if >31)
+    HANDLE PartitionHandle;
+} PF_WORKER_PRIORITY_CONTROL, *PPF_WORKER_PRIORITY_CONTROL;
+
+static_assert(sizeof(PF_WORKER_PRIORITY_CONTROL) == 16, "size");
 
 // rev
 typedef struct _PF_MEMORY_LIST_NODE
@@ -297,10 +364,45 @@ typedef struct _PF_ROBUSTNESS_CONTROL
 // rev
 typedef struct _PF_SCENARIO_PREFETCH_INFO
 {
-    USHORT Version;
-    USHORT PrefetchEnd : 1;
-    PF_PHASED_SCENARIO_TYPE ScenType;
+    ULONG Version;
+    ULONG State;
 } PF_SCENARIO_PREFETCH_INFO, *PPF_SCENARIO_PREFETCH_INFO;
+
+// rev
+#define PF_TRIM_WHILE_AGING_CONTROL_VERSION_1 1
+
+// rev
+typedef enum _PF_TRIM_WHILE_AGING_STATE
+{
+    PfTrimWhileAgingOff = 0,
+    PfTrimWhileAgingLowPriority = 1,
+    PfTrimWhileAgingPassive = 2,
+    PfTrimWhileAgingNormal = 3,
+    PfTrimWhileAgingAggressive = 4,
+    PfTrimWhileAgingMax = 5,
+} PF_TRIM_WHILE_AGING_STATE, *PPF_TRIM_WHILE_AGING_STATE;
+
+// rev
+typedef struct _PF_TRIM_WHILE_AGING_CONTROL_1
+{
+    ULONG Version;
+    PF_TRIM_WHILE_AGING_STATE TrimWhileAgingState;
+    BOOLEAN PrivatePageTrimAge;
+    BOOLEAN SharedPageTrimAge;
+    USHORT Spare;
+} PF_TRIM_WHILE_AGING_CONTROL_1, *PPF_TRIM_WHILE_AGING_CONTROLL_1;
+
+#define PF_TRIM_WHILE_AGING_CONTROL_VERSION_2 2
+
+// rev
+typedef struct _PF_TRIM_WHILE_AGING_CONTROL_2
+{
+    ULONG Version;
+    PF_TRIM_WHILE_AGING_STATE TrimWhileAgingState;
+    UCHAR PrivatePageTrimAge;      // 0..7
+    UCHAR SharedPageTrimAge;       // 0..7
+    USHORT Spare;                  // must be 0
+} PF_TRIM_WHILE_AGING_CONTROL_2, *PPF_TRIM_WHILE_AGING_CONTROL_2;
 
 // rev
 typedef struct _PF_TIME_CONTROL
@@ -344,6 +446,23 @@ typedef struct _PF_PHYSICAL_MEMORY_RANGE_INFO_V2
 } PF_PHYSICAL_MEMORY_RANGE_INFO_V2, *PPF_PHYSICAL_MEMORY_RANGE_INFO_V2;
 
 // rev
+typedef struct _PF_START_TRACE_CONTROL 
+{
+    struct 
+    {
+        ULONG Type;
+        ULONG Mode;
+        ULONG Flags;
+        ULONG Restart;
+    };
+    struct 
+    {
+        HANDLE PartitionHandle; // in
+        HANDLE TraceHandleOut;  // out when Restart == 0
+    };
+} PF_START_TRACE_CONTROL, *PPF_START_TRACE_CONTROL;
+
+// rev
 #define PF_ACCESS_TRACING_CONTROL_VERSION 1
 
 // rev
@@ -354,36 +473,14 @@ typedef struct _PF_ACCESS_TRACING_CONTROL
     ULONG ComponentMask;
 } PF_ACCESS_TRACING_CONTROL, *PPF_ACCESS_TRACING_CONTROL;
 
-typedef enum _PF_TRIM_WHILE_AGING_STATE
-{
-	PfTrimWhileAgingOff = 0,
-	PfTrimWhileAgingLowPriority = 1,
-	PfTrimWhileAgingPassive = 2,
-	PfTrimWhileAgingNormal = 3,
-	PfTrimWhileAgingAggressive = 4,
-	PfTrimWhileAgingMax = 5,
-} PF_TRIM_WHILE_AGING_STATE, *PPF_TRIM_WHILE_AGING_STATE;
-
-// rev
-#define PF_TRIM_WHILE_AGING_CONTROL_VERSION 1
-
-// rev
-typedef struct _PF_TRIM_WHILE_AGING_CONTROL
-{
-    ULONG Version;
-    PF_TRIM_WHILE_AGING_STATE TrimWhileAgingState;
-    BOOLEAN PrivatePageTrimAge;
-    BOOLEAN SharedPageTrimAge;
-    USHORT Spare;
-} PF_TRIM_WHILE_AGING_CONTROL, *PPF_TRIM_WHILE_AGING_CONTROL;
-
 // rev
 #define PF_REPURPOSED_BY_PREFETCH_INFO_VERSION 1
 
 // rev
 typedef struct _PF_REPURPOSED_BY_PREFETCH_INFO
 {
-    ULONG Version;
+    ULONG Version; // PF_REPURPOSED_BY_PREFETCH_INFO_VERSION
+    ULONG Reserved;
     SIZE_T RepurposedByPrefetch;
 } PF_REPURPOSED_BY_PREFETCH_INFO, *PPF_REPURPOSED_BY_PREFETCH_INFO;
 
@@ -428,7 +525,7 @@ typedef struct _PF_PAGECOMBINE_AGGREGATE_STAT
 typedef struct _PF_MIN_WS_AGE_RATE_CONTROL
 {
     ULONG Version;
-    ULONG SecondsToOldestAge;
+    ULONG SecondsToOldestAgeRate;
 } PF_MIN_WS_AGE_RATE_CONTROL, *PPF_MIN_WS_AGE_RATE_CONTROL;
 
 // rev
@@ -481,35 +578,35 @@ typedef struct _PF_GPU_UTILIZATION_INFO
 // rev
 typedef enum _SUPERFETCH_INFORMATION_CLASS
 {
-    SuperfetchRetrieveTrace = 1, // q: CHAR[]
-    SuperfetchSystemParameters, // q: PF_SYSTEM_SUPERFETCH_PARAMETERS
-    SuperfetchLogEvent, // s: PF_LOG_EVENT_DATA
-    SuperfetchGenerateTrace, // s: NULL
+    SuperfetchRetrieveTrace = 1,               // q: PF_SYSTEM_SUPERFETCH_RETRIEVE_TRACE // PfGetCompletedTrace
+    SuperfetchSystemParameters,                // q: PF_SYSTEM_SUPERFETCH_PARAMETERS
+    SuperfetchLogEvent,                        // s: PF_LOG_EVENT_DATA
+    SuperfetchGenerateTrace,                   // s: PF_GENERATE_TRACE_CONTROL
     SuperfetchPrefetch,
-    SuperfetchPfnQuery, // q: PF_PFN_PRIO_REQUEST
-    SuperfetchPfnSetPriority,
-    SuperfetchPrivSourceQuery, // q: PF_PRIVSOURCE_QUERY_REQUEST
-    SuperfetchSequenceNumberQuery, // q: ULONG
-    SuperfetchScenarioPhase,  // q: PF_SCENARIO_PHASE_INFO // 10
-    SuperfetchWorkerPriority, // s: KPRIORITY
+    SuperfetchPfnQuery,                        // q: PF_PFN_PRIO_REQUEST
+    SuperfetchPfnSetPriority,                  // s: PF_PFN_PRIO_REQUEST // MmSetPfnListInfo
+    SuperfetchPrivSourceQuery,                 // q: PF_PRIVSOURCE_QUERY_REQUEST
+    SuperfetchSequenceNumberQuery,             // q: ULONG
+    SuperfetchScenarioPhase,                   // s: PF_SCENARIO_PHASE_INFO // 10
+    SuperfetchWorkerPriority,                  // s: PF_WORKER_PRIORITY_CONTROL
     SuperfetchScenarioQuery,
-    SuperfetchScenarioPrefetch, // PF_SCENARIO_PREFETCH_INFO
-    SuperfetchRobustnessControl, // s: PF_ROBUSTNESS_CONTROL
-    SuperfetchTimeControl, // s: PF_TIME_CONTROL
-    SuperfetchMemoryListQuery, // q: PF_MEMORY_LIST_INFO
-    SuperfetchMemoryRangesQuery, // q: PF_PHYSICAL_MEMORY_RANGE_INFO
-    SuperfetchTracingControl, // PF_ACCESS_TRACING_CONTROL
-    SuperfetchTrimWhileAgingControl, // PF_TRIM_WHILE_AGING_CONTROL
-    SuperfetchRepurposedByPrefetch, // q: PF_REPURPOSED_BY_PREFETCH_INFO // 20
+    SuperfetchScenarioPrefetch,                // s: PF_SCENARIO_PREFETCH_INFO
+    SuperfetchRobustnessControl,               // s: PF_ROBUSTNESS_CONTROL
+    SuperfetchTimeControl,                     // s: PF_TIME_CONTROL
+    SuperfetchMemoryListQuery,                 // q: PF_MEMORY_LIST_INFO
+    SuperfetchMemoryRangesQuery,               // q: PF_PHYSICAL_MEMORY_RANGE_INFO_V1/V2
+    SuperfetchTracingControl,                  // s: PF_ACCESS_TRACING_CONTROL
+    SuperfetchTrimWhileAgingControl,           // s: PF_TRIM_WHILE_AGING_CONTROL
+    SuperfetchRepurposedByPrefetch,            // q: PF_REPURPOSED_BY_PREFETCH_INFO // 20
     SuperfetchChannelPowerRequest,
-    SuperfetchMovePages,
-    SuperfetchVirtualQuery, // q: PF_VIRTUAL_QUERY
-    SuperfetchCombineStatsQuery, // PF_PAGECOMBINE_AGGREGATE_STAT
-    SuperfetchSetMinWsAgeRate, // s: PF_MIN_WS_AGE_RATE_CONTROL
-    SuperfetchDeprioritizeOldPagesInWs, // s: PF_DEPRIORITIZE_OLD_PAGES
-    SuperfetchFileExtentsQuery, // q: PF_FILE_EXTENTS_INFO
-    SuperfetchGpuUtilizationQuery, // q: PF_GPU_UTILIZATION_INFO
-    SuperfetchPfnSet, // s: PF_PFN_PRIO_REQUEST // since WIN11
+    SuperfetchMovePages,                       // s: PF_PFN_PRIO_REQUEST // MmRelocatePfnList
+    SuperfetchVirtualQuery,                    // q: PF_VIRTUAL_QUERY
+    SuperfetchCombineStatsQuery,               // q: PF_PAGECOMBINE_AGGREGATE_STAT
+    SuperfetchSetMinWsAgeRate,                 // s: PF_MIN_WS_AGE_RATE_CONTROL
+    SuperfetchDeprioritizeOldPagesInWs,        // s: PF_DEPRIORITIZE_OLD_PAGES 
+    SuperfetchFileExtentsQuery,                // q: PF_FILE_EXTENTS_INFO
+    SuperfetchGpuUtilizationQuery,             // q: PF_GPU_UTILIZATION_INFO
+    SuperfetchPfnSet,                          // s: PF_PFN_PRIO_REQUEST // since WIN11
     SuperfetchInformationMax
 } SUPERFETCH_INFORMATION_CLASS;
 
