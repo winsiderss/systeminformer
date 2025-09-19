@@ -10922,7 +10922,6 @@ RtlDeleteGrowableFunctionTable(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
 #endif // _M_AMD64 && _M_ARM64EC
 
-
 #if defined(_M_ARM64EC)
 NTSYSAPI
 BOOLEAN
@@ -10940,14 +10939,14 @@ RtlIsEcCode(
  * \return The entry in the function table for the specified PC.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-rtllookupfunctionentry
  */
-NTSYSAPI
-PRUNTIME_FUNCTION
-NTAPI
-RtlLookupFunctionEntry(
-    _In_ ULONG_PTR ControlPc,
-    _Out_ PULONG_PTR ImageBase,
-    _Inout_opt_ PUNWIND_HISTORY_TABLE HistoryTable
-    );
+// NTSYSAPI
+// PRUNTIME_FUNCTION
+// NTAPI
+// RtlLookupFunctionEntry(
+//     _In_ ULONG_PTR ControlPc,
+//     _Out_ PULONG_PTR ImageBase,
+//     _Inout_opt_ PUNWIND_HISTORY_TABLE HistoryTable
+//     );
 
 /**
  * The RtlPcToFileHeader routine retrieves the base address of the image that contains the specified PC value.
