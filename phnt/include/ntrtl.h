@@ -1300,7 +1300,7 @@ RtlInitializeCriticalSectionAndSpinCount(
     );
 
 /**
- * The RtlInitializeCriticalSectionAndSpinCount routine initializes a critical section object and sets the spin count for the critical section.
+ * The RtlInitializeCriticalSectionEx routine initializes a critical section object and sets the spin count for the critical section with flags.
  *
  * \param CriticalSection A pointer to the critical section object.
  * \param SpinCount The spin count for the critical section object. On single-processor systems, the spin count is ignored.
@@ -10444,7 +10444,7 @@ RtlEncodePointer(
     );
 
 /**
- * The RtlEncodePointer routine decodes a pointer that was previously encoded with RtlEncodePointer.
+ * The RtlDecodePointer routine decodes a pointer that was previously encoded with RtlEncodePointer.
  *
  * \param Ptr The system pointer to be decoded.
  * \return The function returns the decoded pointer.
@@ -10769,7 +10769,7 @@ typedef struct _RTL_UNLOAD_EVENT_TRACE32
 } RTL_UNLOAD_EVENT_TRACE32, *PRTL_UNLOAD_EVENT_TRACE32;
 
 /**
- * The RtlGetUnloadEventTraceEx routine enables the dump code to get the unloaded module information from Ntdll.dll for storage in the minidump.
+ * The RtlGetUnloadEventTrace routine enables the dump code to get the unloaded module information from Ntdll.dll for storage in the minidump.
  *
  * \return A pointer to an array of unload events.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/rtlgetunloadeventtrace
