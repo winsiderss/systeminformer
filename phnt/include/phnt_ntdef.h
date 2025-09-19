@@ -532,7 +532,7 @@ typedef struct _KSYSTEM_TIME
 #define ADDRESS_AND_SIZE_TO_SPAN_PAGES(Address, Size) ((BYTE_OFFSET(Address) + ((SIZE_T)(Size)) + PAGE_MASK) >> PAGE_SHIFT)
 #endif
 #ifndef ROUND_TO_SIZE
-#define ROUND_TO_SIZE(Size, Alignment) ((((ULONG_PTR)(Size))+((Alignment)-1)) & ~(ULONG_PTR)((Alignment)-1))
+#define ROUND_TO_SIZE(Size, Alignment) ((((ULONG_PTR)(Size)) + ((Alignment) - 1)) & ~(ULONG_PTR)((Alignment) - 1))
 #endif
 #ifndef ROUND_TO_PAGES
 #define ROUND_TO_PAGES(Size) (((ULONG_PTR)(Size) + PAGE_MASK) & ~PAGE_MASK)
