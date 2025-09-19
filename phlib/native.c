@@ -2140,7 +2140,7 @@ NTSTATUS PhEnumProcessesForSession(
 
     while (TRUE)
     {
-        sessionProcessInfo.SizeOfBuf = bufferSize;
+        sessionProcessInfo.BufferSize = bufferSize;
         sessionProcessInfo.Buffer = buffer;
 
         status = NtQuerySystemInformation(
