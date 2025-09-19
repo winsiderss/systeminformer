@@ -9,110 +9,114 @@
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 // POWER_INFORMATION_LEVEL
-#define POWER_INFORMATION_LEVEL ULONG
 // Note: We don't use an enum for these values to minimize conflicts with the Windows SDK. (dmex)
-#define SystemPowerPolicyAc 0 // SYSTEM_POWER_POLICY // GET: InputBuffer NULL. SET: InputBuffer not NULL.
-#define SystemPowerPolicyDc 1 // SYSTEM_POWER_POLICY
-#define VerifySystemPolicyAc 2 // SYSTEM_POWER_POLICY
-#define VerifySystemPolicyDc 3 // SYSTEM_POWER_POLICY
-#define SystemPowerCapabilities 4 // SYSTEM_POWER_CAPABILITIES
-#define SystemBatteryState 5 // SYSTEM_BATTERY_STATE
-#define SystemPowerStateHandler 6 // POWER_STATE_HANDLER // (kernel-mode only)
-#define ProcessorStateHandler 7 // PROCESSOR_STATE_HANDLER // (kernel-mode only)
-#define SystemPowerPolicyCurrent 8 // SYSTEM_POWER_POLICY
-#define AdministratorPowerPolicy 9 // ADMINISTRATOR_POWER_POLICY
-#define SystemReserveHiberFile 10 // BOOLEAN // (requires SeCreatePagefilePrivilege) // TRUE: hibernation file created. FALSE: hibernation file deleted.
-#define ProcessorInformation 11 // PROCESSOR_POWER_INFORMATION
-#define SystemPowerInformation 12 // SYSTEM_POWER_INFORMATION
-#define ProcessorStateHandler2 13 // PROCESSOR_STATE_HANDLER2 // not implemented
-#define LastWakeTime 14 // ULONGLONG // InterruptTime
-#define LastSleepTime 15 // ULONGLONG // InterruptTime
-#define SystemExecutionState 16 // EXECUTION_STATE // NtSetThreadExecutionState
-#define SystemPowerStateNotifyHandler 17 // POWER_STATE_NOTIFY_HANDLER // (kernel-mode only)
-#define ProcessorPowerPolicyAc 18 // PROCESSOR_POWER_POLICY // not implemented
-#define ProcessorPowerPolicyDc 19 // PROCESSOR_POWER_POLICY // not implemented
-#define VerifyProcessorPowerPolicyAc 20 // PROCESSOR_POWER_POLICY // not implemented
-#define VerifyProcessorPowerPolicyDc 21 // PROCESSOR_POWER_POLICY // not implemented
-#define ProcessorPowerPolicyCurrent 22 // PROCESSOR_POWER_POLICY // not implemented
-#define SystemPowerStateLogging 23 // SYSTEM_POWER_STATE_DISABLE_REASON[]
-#define SystemPowerLoggingEntry 24 // SYSTEM_POWER_LOGGING_ENTRY[] // (kernel-mode only)
-#define SetPowerSettingValue 25 // (kernel-mode only)
-#define NotifyUserPowerSetting 26 // not implemented
-#define PowerInformationLevelUnused0 27 // not implemented
-#define SystemMonitorHiberBootPowerOff 28 // NULL (PowerMonitorOff)
-#define SystemVideoState 29 // MONITOR_DISPLAY_STATE
-#define TraceApplicationPowerMessage 30 // (kernel-mode only)
-#define TraceApplicationPowerMessageEnd 31 // (kernel-mode only)
-#define ProcessorPerfStates 32 // (kernel-mode only)
-#define ProcessorIdleStates 33 // PROCESSOR_IDLE_STATES // (kernel-mode only)
-#define ProcessorCap 34 // PROCESSOR_CAP // (kernel-mode only)
-#define SystemWakeSource 35 // out: POWER_WAKE_SOURCE_INFO
-#define SystemHiberFileInformation 36 // out: SYSTEM_HIBERFILE_INFORMATION
+#define POWER_INFORMATION_LEVEL ULONG
+#define SystemPowerPolicyAc 0                           // in: SYSTEM_POWER_POLICY, out: SYSTEM_POWER_POLICY // GET: InputBuffer NULL. SET: InputBuffer not NULL.
+#define SystemPowerPolicyDc 1                           // in: SYSTEM_POWER_POLICY, out: SYSTEM_POWER_POLICY
+#define VerifySystemPolicyAc 2                          // in: SYSTEM_POWER_POLICY, out: SYSTEM_POWER_POLICY
+#define VerifySystemPolicyDc 3                          // in: SYSTEM_POWER_POLICY, out: SYSTEM_POWER_POLICY
+#define SystemPowerCapabilities 4                       // out: SYSTEM_POWER_CAPABILITIES
+#define SystemBatteryState 5                            // out: SYSTEM_BATTERY_STATE
+#define SystemPowerStateHandler 6                       // in: POWER_STATE_HANDLER // (kernel-mode only)
+#define ProcessorStateHandler 7                         // in: PROCESSOR_STATE_HANDLER // (kernel-mode only)
+#define SystemPowerPolicyCurrent 8                      // in: SYSTEM_POWER_POLICY
+#define AdministratorPowerPolicy 9                      // in: ADMINISTRATOR_POWER_POLICY
+#define SystemReserveHiberFile 10                       // in: BOOLEAN // (requires SeCreatePagefilePrivilege) // TRUE: hibernation file created. FALSE: hibernation file deleted.
+#define ProcessorInformation 11                         // out: PROCESSOR_POWER_INFORMATION
+#define SystemPowerInformation 12                       // out: SYSTEM_POWER_INFORMATION
+#define ProcessorStateHandler2 13                       // in: PROCESSOR_STATE_HANDLER2 // not implemented
+#define LastWakeTime 14                                 // out: ULONGLONG // InterruptTime
+#define LastSleepTime 15                                // out: ULONGLONG // InterruptTime
+#define SystemExecutionState 16                         // out: EXECUTION_STATE // NtSetThreadExecutionState
+#define SystemPowerStateNotifyHandler 17                // in: POWER_STATE_NOTIFY_HANDLER // (kernel-mode only)
+#define ProcessorPowerPolicyAc 18                       // in: PROCESSOR_POWER_POLICY // not implemented
+#define ProcessorPowerPolicyDc 19                       // in: PROCESSOR_POWER_POLICY // not implemented
+#define VerifyProcessorPowerPolicyAc 20                 // in: PROCESSOR_POWER_POLICY // not implemented
+#define VerifyProcessorPowerPolicyDc 21                 // in: PROCESSOR_POWER_POLICY // not implemented
+#define ProcessorPowerPolicyCurrent 22                  // in: PROCESSOR_POWER_POLICY // not implemented
+#define SystemPowerStateLogging 23                      // in: SYSTEM_POWER_STATE_DISABLE_REASON[]
+#define SystemPowerLoggingEntry 24                      // in: SYSTEM_POWER_LOGGING_ENTRY[] // (kernel-mode only)
+#define SetPowerSettingValue 25                         // in: (kernel-mode only)
+#define NotifyUserPowerSetting 26                       // not implemented
+#define PowerInformationLevelUnused0 27                 // not implemented
+#define SystemMonitorHiberBootPowerOff 28               // in: NULL (PowerMonitorOff)
+#define SystemVideoState 29                             // out: MONITOR_DISPLAY_STATE
+#define TraceApplicationPowerMessage 30                 // in: (kernel-mode only)
+#define TraceApplicationPowerMessageEnd 31              // in: (kernel-mode only)
+#define ProcessorPerfStates 32                          // in: (kernel-mode only)
+#define ProcessorIdleStates 33                          // out: PROCESSOR_IDLE_STATES // (kernel-mode only)
+#define ProcessorCap 34                                 // out: PROCESSOR_CAP // (kernel-mode only)
+#define SystemWakeSource 35                             // out: POWER_WAKE_SOURCE_INFO
+#define SystemHiberFileInformation 36                   // out: SYSTEM_HIBERFILE_INFORMATION
 #define TraceServicePowerMessage 37
-#define ProcessorLoad 38 // in: PROCESSOR_LOAD (sets), in: PPROCESSOR_NUMBER (clears)
-#define PowerShutdownNotification 39 // (kernel-mode only)
-#define MonitorCapabilities 40 // (kernel-mode only)
-#define SessionPowerInit 41 // (kernel-mode only)
-#define SessionDisplayState 42 // (kernel-mode only)
-#define PowerRequestCreate 43 // in: COUNTED_REASON_CONTEXT, out: HANDLE
-#define PowerRequestAction 44 // in: POWER_REQUEST_ACTION
-#define GetPowerRequestList 45 // out: POWER_REQUEST_LIST
-#define ProcessorInformationEx 46 // in: USHORT ProcessorGroup, out: PROCESSOR_POWER_INFORMATION
-#define NotifyUserModeLegacyPowerEvent 47 // (kernel-mode only)
-#define GroupPark 48 // (debug-mode boot only)
-#define ProcessorIdleDomains 49 // (kernel-mode only)
-#define WakeTimerList 50 // out: WAKE_TIMER_INFO[]
-#define SystemHiberFileSize 51 // ULONG
-#define ProcessorIdleStatesHv 52 // (kernel-mode only)
-#define ProcessorPerfStatesHv 53 // (kernel-mode only)
-#define ProcessorPerfCapHv 54 // PROCESSOR_PERF_CAP_HV // (kernel-mode only)
-#define ProcessorSetIdle 55 // (debug-mode boot only)
-#define LogicalProcessorIdling 56 // (kernel-mode only)
-#define UserPresence 57 // POWER_USER_PRESENCE // not implemented
-#define PowerSettingNotificationName 58 // in: ? (optional) // out: PWNF_STATE_NAME (RtlSubscribeWnfStateChangeNotification)
-#define GetPowerSettingValue 59 // GUID
-#define IdleResiliency 60 // POWER_IDLE_RESILIENCY
-#define SessionRITState 61 // POWER_SESSION_RIT_STATE
-#define SessionConnectNotification 62 // POWER_SESSION_WINLOGON
+#define ProcessorLoad 38                                // in: PROCESSOR_LOAD (sets), in: PPROCESSOR_NUMBER (clears)
+#define PowerShutdownNotification 39                    // in: (kernel-mode only)
+#define MonitorCapabilities 40                          // in: (kernel-mode only)
+#define SessionPowerInit 41                             // in: (kernel-mode only)
+#define SessionDisplayState 42                          // in: (kernel-mode only)
+#define PowerRequestCreate 43                           // in: COUNTED_REASON_CONTEXT, out: HANDLE
+#define PowerRequestAction 44                           // in: POWER_REQUEST_ACTION
+#define GetPowerRequestList 45                          // out: POWER_REQUEST_LIST
+#define ProcessorInformationEx 46                       // in: USHORT ProcessorGroup, out: PROCESSOR_POWER_INFORMATION
+#define NotifyUserModeLegacyPowerEvent 47               // in: (kernel-mode only)
+#define GroupPark 48                                    // in: (debug-mode boot only)
+#define ProcessorIdleDomains 49                         // in: (kernel-mode only)
+#define WakeTimerList 50                                // out: WAKE_TIMER_INFO[]
+#define SystemHiberFileSize 51                          // out: ULONG
+#define ProcessorIdleStatesHv 52                        // in: (kernel-mode only)
+#define ProcessorPerfStatesHv 53                        // in: (kernel-mode only)
+#define ProcessorPerfCapHv 54                           // int: PROCESSOR_PERF_CAP_HV // (kernel-mode only)
+#define ProcessorSetIdle 55                             // in: (debug-mode boot only)
+#define LogicalProcessorIdling 56                       // in: (kernel-mode only)
+#define UserPresence 57                                 // out: POWER_USER_PRESENCE // not implemented
+#define PowerSettingNotificationName 58                 // in: ? (optional) // out: PWNF_STATE_NAME (RtlSubscribeWnfStateChangeNotification)
+#define GetPowerSettingValue 59                         // in: GUID
+#define IdleResiliency 60                               // out: POWER_IDLE_RESILIENCY
+#define SessionRITState 61                              // out: POWER_SESSION_RIT_STATE
+#define SessionConnectNotification 62                   // out: POWER_SESSION_WINLOGON
 #define SessionPowerCleanup 63
-#define SessionLockState 64 // POWER_SESSION_WINLOGON
-#define SystemHiberbootState 65 // BOOLEAN // fast startup supported
-#define PlatformInformation 66 // BOOLEAN // connected standby supported
-#define PdcInvocation 67 // (kernel-mode only)
-#define MonitorInvocation 68 // (kernel-mode only)
-#define FirmwareTableInformationRegistered 69 // (kernel-mode only)
-#define SetShutdownSelectedTime 70 // in: NULL
-#define SuspendResumeInvocation 71 // (kernel-mode only) // not implemented
-#define PlmPowerRequestCreate 72 // in: COUNTED_REASON_CONTEXT, out: HANDLE
-#define ScreenOff 73 // in: NULL (PowerMonitorOff)
-#define CsDeviceNotification 74 // (kernel-mode only)
-#define PlatformRole 75 // POWER_PLATFORM_ROLE
-#define LastResumePerformance 76 // RESUME_PERFORMANCE
-#define DisplayBurst 77 // in: NULL (PowerMonitorOn)
-#define ExitLatencySamplingPercentage 78 // in: NULL (ClearExitLatencySamplingPercentage), in: ULONG (SetExitLatencySamplingPercentage) (max 100)
-#define RegisterSpmPowerSettings 79 // (kernel-mode only)
-#define PlatformIdleStates 80 // (kernel-mode only)
-#define ProcessorIdleVeto 81 // (kernel-mode only) // deprecated
-#define PlatformIdleVeto 82 // (kernel-mode only) // deprecated
-#define SystemBatteryStatePrecise 83 // SYSTEM_BATTERY_STATE
-#define ThermalEvent 84  // THERMAL_EVENT // PowerReportThermalEvent
-#define PowerRequestActionInternal 85 // POWER_REQUEST_ACTION_INTERNAL
+#define SessionLockState 64                             // out: POWER_SESSION_WINLOGON
+#define SystemHiberbootState 65                         // out: BOOLEAN // fast startup supported
+#define PlatformInformation 66                          // out: BOOLEAN // connected standby supported
+#define PdcInvocation 67                                // in: (kernel-mode only)
+#define MonitorInvocation 68                            // in: (kernel-mode only)
+#define FirmwareTableInformationRegistered 69           // in: (kernel-mode only)
+#define SetShutdownSelectedTime 70                      // in: NULL
+#define SuspendResumeInvocation 71                      // in: (kernel-mode only) // not implemented
+#define PlmPowerRequestCreate 72                        // in: COUNTED_REASON_CONTEXT, out: HANDLE
+#define ScreenOff 73                                    // in: NULL (PowerMonitorOff)
+#define CsDeviceNotification 74                         // in: (kernel-mode only)
+#define PlatformRole 75                                 // out: POWER_PLATFORM_ROLE
+#define LastResumePerformance 76                        // out: RESUME_PERFORMANCE
+#define DisplayBurst 77                                 // in: NULL (PowerMonitorOn)
+#define ExitLatencySamplingPercentage 78                // in: NULL (ClearExitLatencySamplingPercentage), in: ULONG (SetExitLatencySamplingPercentage) (max 100)
+#define RegisterSpmPowerSettings 79                     // in: (kernel-mode only)
+#define PlatformIdleStates 80                           // in: (kernel-mode only)
+#define ProcessorIdleVeto 81                            // in: (kernel-mode only) // deprecated
+#define PlatformIdleVeto 82                             // in: (kernel-mode only) // deprecated
+#define SystemBatteryStatePrecise 83                    // out: SYSTEM_BATTERY_STATE
+#define ThermalEvent 84                                 // in: THERMAL_EVENT // PowerReportThermalEvent
+#define PowerRequestActionInternal 85                   // in: POWER_REQUEST_ACTION_INTERNAL
 #define BatteryDeviceState 86
-#define PowerInformationInternal 87 // POWER_INFORMATION_LEVEL_INTERNAL // PopPowerInformationInternal
-#define ThermalStandby 88 // NULL // shutdown with thermal standby as reason.
-#define SystemHiberFileType 89 // ULONG // zero ? reduced : full // powercfg.exe /h /type
-#define PhysicalPowerButtonPress 90 // BOOLEAN
-#define QueryPotentialDripsConstraint 91 // (kernel-mode only)
-#define EnergyTrackerCreate 92 // in: POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT, out: POWER_INFORMATION_ENERGY_TRACKER_CREATE_OUTPUT
-#define EnergyTrackerQuery 93 // in: POWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT, out: POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT
-#define UpdateBlackBoxRecorder 94 // in: POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT
-#define SessionAllowExternalDmaDevices 95 // POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES
-#define SendSuspendResumeNotification 96 // since WIN11
-#define BlackBoxRecorderDirectAccessBuffer 97 // in: POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT, out: POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_OUTPUT // since WIN11
-#define SystemPowerSourceState 98 // since 25H2
+#define PowerInformationInternal 87                     // in: POWER_INFORMATION_LEVEL_INTERNAL // PopPowerInformationInternal
+#define ThermalStandby 88                               // in: NULL // shutdown with thermal standby as reason.
+#define SystemHiberFileType 89                          // in: ULONG // zero ? reduced : full // powercfg.exe /h /type
+#define PhysicalPowerButtonPress 90                     // in: BOOLEAN
+#define QueryPotentialDripsConstraint 91                // in: (kernel-mode only)
+#define EnergyTrackerCreate 92                          // in: POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT, out: POWER_INFORMATION_ENERGY_TRACKER_CREATE_OUTPUT
+#define EnergyTrackerQuery 93                           // in: POWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT, out: POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT
+#define UpdateBlackBoxRecorder 94                       // in: POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT
+#define SessionAllowExternalDmaDevices 95               // in: POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES
+#define SendSuspendResumeNotification 96                // in: since WIN11
+#define BlackBoxRecorderDirectAccessBuffer 97           // in: POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT, out: POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_OUTPUT // since WIN11
+#define SystemPowerSourceState 98                       // in: since 25H2
 #define PowerInformationLevelMaximum 99
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
+/**
+ * The PROCESSOR_POWER_INFORMATION structure contains information about the power characteristics of a processor.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/power/processor-power-information-str
+ */
 typedef struct _PROCESSOR_POWER_INFORMATION
 {
     ULONG Number;
@@ -123,6 +127,15 @@ typedef struct _PROCESSOR_POWER_INFORMATION
     ULONG CurrentIdleState;
 } PROCESSOR_POWER_INFORMATION, *PPROCESSOR_POWER_INFORMATION;
 
+// CoolingMode flags
+#define PO_TZ_ACTIVE 0 // The system is currently in Active cooling mode.
+#define PO_TZ_PASSIVE 1 // The system does not support CPU throttling, or there is no thermal zone defined in the system.
+#define PO_TZ_INVALID_MODE 2 //The system is currently in Passive cooling mode.
+
+/**
+ * The SYSTEM_POWER_INFORMATION structure contains information about the idleness of the system.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/power/system-power-information-str
+ */
 typedef struct _SYSTEM_POWER_INFORMATION
 {
     ULONG MaxIdlenessAllowed;
@@ -590,17 +603,21 @@ typedef enum _POWER_STATE_HANDLER_TYPE
     PowerStateMaximum = 7
 } POWER_STATE_HANDLER_TYPE, *PPOWER_STATE_HANDLER_TYPE;
 
-typedef NTSTATUS (NTAPI *PENTER_STATE_SYSTEM_HANDLER)(
+typedef _Function_class_(ENTER_STATE_SYSTEM_HANDLER)
+NTSTATUS NTAPI ENTER_STATE_SYSTEM_HANDLER(
     _In_ PVOID SystemContext
     );
+typedef ENTER_STATE_SYSTEM_HANDLER* PENTER_STATE_SYSTEM_HANDLER;
 
-typedef NTSTATUS (NTAPI *PENTER_STATE_HANDLER)(
+typedef _Function_class_(ENTER_STATE_HANDLER)
+NTSTATUS NTAPI ENTER_STATE_HANDLER(
     _In_ PVOID Context,
     _In_opt_ PENTER_STATE_SYSTEM_HANDLER SystemHandler,
     _In_ PVOID SystemContext,
     _In_ LONG NumberProcessors,
-    _In_ LONG volatile *Number
+    _In_ LONG volatile* Number
     );
+typedef ENTER_STATE_HANDLER* PENTER_STATE_HANDLER;
 
 typedef struct _POWER_STATE_HANDLER
 {
@@ -611,11 +628,13 @@ typedef struct _POWER_STATE_HANDLER
     PVOID Context;
 } POWER_STATE_HANDLER, *PPOWER_STATE_HANDLER;
 
-typedef NTSTATUS (NTAPI *PENTER_STATE_NOTIFY_HANDLER)(
+typedef _Function_class_(ENTER_STATE_NOTIFY_HANDLER)
+NTSTATUS NTAPI ENTER_STATE_NOTIFY_HANDLER(
     _In_ POWER_STATE_HANDLER_TYPE State,
     _In_ PVOID Context,
     _In_ BOOLEAN Entering
     );
+typedef ENTER_STATE_NOTIFY_HANDLER* PENTER_STATE_NOTIFY_HANDLER;
 
 typedef struct _POWER_STATE_NOTIFY_HANDLER
 {
@@ -633,56 +652,56 @@ typedef struct _POWER_REQUEST_ACTION_INTERNAL
 typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
 {
     PowerInternalAcpiInterfaceRegister,
-    PowerInternalS0LowPowerIdleInfo, // POWER_S0_LOW_POWER_IDLE_INFO
+    PowerInternalS0LowPowerIdleInfo,                            // out: POWER_S0_LOW_POWER_IDLE_INFO
     PowerInternalReapplyBrightnessSettings,
-    PowerInternalUserAbsencePrediction, // POWER_USER_ABSENCE_PREDICTION
-    PowerInternalUserAbsencePredictionCapability, // POWER_USER_ABSENCE_PREDICTION_CAPABILITY
-    PowerInternalPoProcessorLatencyHint, // POWER_PROCESSOR_LATENCY_HINT
-    PowerInternalStandbyNetworkRequest, // POWER_STANDBY_NETWORK_REQUEST (requires PopNetBIServiceSid)
-    PowerInternalDirtyTransitionInformation, // out: BOOLEAN
-    PowerInternalSetBackgroundTaskState, // POWER_SET_BACKGROUND_TASK_STATE
-    PowerInternalTtmOpenTerminal, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmCreateTerminal, // (requires SeShutdownPrivilege and terminalPowerManagement capability) // 10
-    PowerInternalTtmEvacuateDevices, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmCreateTerminalEventQueue, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmGetTerminalEvent, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmSetDefaultDeviceAssignment, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmAssignDevice, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmSetDisplayState, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmSetDisplayTimeouts, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalBootSessionStandbyActivationInformation, // out: POWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO
-    PowerInternalSessionPowerState, // in: POWER_SESSION_POWER_STATE
-    PowerInternalSessionTerminalInput, // in: POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT // 20
+    PowerInternalUserAbsencePrediction,                         // out: POWER_USER_ABSENCE_PREDICTION
+    PowerInternalUserAbsencePredictionCapability,               // out: POWER_USER_ABSENCE_PREDICTION_CAPABILITY
+    PowerInternalPoProcessorLatencyHint,                        // out: POWER_PROCESSOR_LATENCY_HINT
+    PowerInternalStandbyNetworkRequest,                         // out: POWER_STANDBY_NETWORK_REQUEST (requires PopNetBIServiceSid)
+    PowerInternalDirtyTransitionInformation,                    // out: BOOLEAN
+    PowerInternalSetBackgroundTaskState,                        // out: POWER_SET_BACKGROUND_TASK_STATE
+    PowerInternalTtmOpenTerminal,                               // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmCreateTerminal,                             // in: (requires SeShutdownPrivilege and terminalPowerManagement capability) // 10
+    PowerInternalTtmEvacuateDevices,                            // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmCreateTerminalEventQueue,                   // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmGetTerminalEvent,                           // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmSetDefaultDeviceAssignment,                 // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmAssignDevice,                               // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmSetDisplayState,                            // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmSetDisplayTimeouts,                         // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalBootSessionStandbyActivationInformation,       // out: POWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO
+    PowerInternalSessionPowerState,                             // in: POWER_SESSION_POWER_STATE
+    PowerInternalSessionTerminalInput,                          // in: POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT // 20
     PowerInternalSetWatchdog,
-    PowerInternalPhysicalPowerButtonPressInfoAtBoot, // in: POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT, out: POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_OUTPUT
-    PowerInternalExternalMonitorConnected, // in: POWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT
-    PowerInternalHighPrecisionBrightnessSettings, // in: POWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT
-    PowerInternalWinrtScreenToggle, // in: POWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT
-    PowerInternalPpmQosDisable, // in: POWER_INTERNAL_PPM_QOS_DISABLE_INPUT
-    PowerInternalTransitionCheckpoint, // in: POWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT
+    PowerInternalPhysicalPowerButtonPressInfoAtBoot,            // in: POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT, out: POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_OUTPUT
+    PowerInternalExternalMonitorConnected,                      // in: POWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT
+    PowerInternalHighPrecisionBrightnessSettings,               // in: POWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT
+    PowerInternalWinrtScreenToggle,                             // in: POWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT
+    PowerInternalPpmQosDisable,                                 // in: POWER_INTERNAL_PPM_QOS_DISABLE_INPUT
+    PowerInternalTransitionCheckpoint,                          // in: POWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT
     PowerInternalInputControllerState,
-    PowerInternalFirmwareResetReason, // in: POWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT, out: POWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT
-    PowerInternalPpmSchedulerQosSupport, // out: POWER_INTERNAL_PROCESSOR_QOS_SUPPORT // 30
-    PowerInternalBootStatGet, // in: POWER_INTERNAL_BOOTSTAT_GET_INPUT, out: (optional) POWER_INTERNAL_BOOTSTAT_GET_OUTPUT[EntryCount] or ULONG[EntryCount]
+    PowerInternalFirmwareResetReason,                           // in: POWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT, out: POWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT
+    PowerInternalPpmSchedulerQosSupport,                        // out: POWER_INTERNAL_PROCESSOR_QOS_SUPPORT // 30
+    PowerInternalBootStatGet,                                   // in: POWER_INTERNAL_BOOTSTAT_GET_INPUT, out: (optional) POWER_INTERNAL_BOOTSTAT_GET_OUTPUT[EntryCount] or ULONG[EntryCount]
     PowerInternalBootStatSet,
     PowerInternalCallHasNotReturnedWatchdog,
-    PowerInternalBootStatCheckIntegrity, // in: POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT, out: POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_OUTPUT
-    PowerInternalBootStatRestoreDefaults, // in: void
-    PowerInternalHostEsStateUpdate, // in: POWER_INTERNAL_HOST_ENERGY_SAVER_STATE
-    PowerInternalGetPowerActionState, // out: ULONG
+    PowerInternalBootStatCheckIntegrity,                        // in: POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT, out: POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_OUTPUT
+    PowerInternalBootStatRestoreDefaults,                       // in: void
+    PowerInternalHostEsStateUpdate,                             // in: POWER_INTERNAL_HOST_ENERGY_SAVER_STATE
+    PowerInternalGetPowerActionState,                           // out: ULONG
     PowerInternalBootStatUnlock,
-    PowerInternalWakeOnVoiceState, // in: POWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT
-    PowerInternalDeepSleepBlock, // in: POWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT // 40
+    PowerInternalWakeOnVoiceState,                              // in: POWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT
+    PowerInternalDeepSleepBlock,                                // in: POWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT // 40
     PowerInternalIsPoFxDevice,
     PowerInternalPowerTransitionExtensionAtBoot,
-    PowerInternalProcessorBrandedFrequency, // in: POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT, out: POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT
+    PowerInternalProcessorBrandedFrequency,                     // in: POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT, out: POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT
     PowerInternalTimeBrokerExpirationReason,
-    PowerInternalNotifyUserShutdownStatus, // in: POWER_INTERNAL_NOTIFY_USER_SHUTDOWN_STATUS_INPUT
+    PowerInternalNotifyUserShutdownStatus,                      // in: POWER_INTERNAL_NOTIFY_USER_SHUTDOWN_STATUS_INPUT
     PowerInternalPowerRequestTerminalCoreWindow,
-    PowerInternalProcessorIdleVeto, // PROCESSOR_IDLE_VETO
-    PowerInternalPlatformIdleVeto, // PLATFORM_IDLE_VETO
-    PowerInternalIsLongPowerButtonBugcheckEnabled, // out: BOOLEAN
-    PowerInternalAutoChkCausedReboot, // in: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT, out: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT // 50 
+    PowerInternalProcessorIdleVeto,                             // out: PROCESSOR_IDLE_VETO
+    PowerInternalPlatformIdleVeto,                              // out: PLATFORM_IDLE_VETO
+    PowerInternalIsLongPowerButtonBugcheckEnabled,              // out: BOOLEAN
+    PowerInternalAutoChkCausedReboot,                           // in: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT, out: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT // 50 
     PowerInternalSetWakeAlarmOverride,
 
     PowerInternalDirectedFxAddTestDevice = 53,
@@ -692,41 +711,41 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalRegisterPowerPlane,
     PowerInternalSetDirectedDripsFlags,
     PowerInternalClearDirectedDripsFlags,
-    PowerInternalRetrieveHiberFileResumeContext, // 60
-    PowerInternalReadHiberFilePage, // in: POWER_INTERNAL_READ_HIBERFILE_PAGE_INPUT, out: POWER_INTERNAL_READ_HIBERFILE_PAGE_OUTPUT
-    PowerInternalLastBootSucceeded, // out: BOOLEAN
+    PowerInternalRetrieveHiberFileResumeContext,                // in: // 60
+    PowerInternalReadHiberFilePage,                             // in: POWER_INTERNAL_READ_HIBERFILE_PAGE_INPUT, out: POWER_INTERNAL_READ_HIBERFILE_PAGE_OUTPUT
+    PowerInternalLastBootSucceeded,                             // out: BOOLEAN
     PowerInternalQuerySleepStudyHelperRoutineBlock,
     PowerInternalDirectedDripsQueryCapabilities,
     PowerInternalClearConstraints,
     PowerInternalSoftParkVelocityEnabled,
-    PowerInternalQueryIntelPepCapabilities, // in: POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT, out: POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT
-    PowerInternalGetSystemIdleLoopEnablement, // in: POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT, out: POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT // since WIN11
-    PowerInternalGetVmPerfControlSupport, // in: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT, out: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT
-    PowerInternalGetVmPerfControlConfig, // 70
-    PowerInternalSleepDetailedDiagUpdate, // in: POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT
-    PowerInternalProcessorClassFrequencyBandsStats, // in: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT, out: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT[] * NumberOfProcessors
-    PowerInternalHostGlobalUserPresenceStateUpdate, // in: POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT
+    PowerInternalQueryIntelPepCapabilities,                     // in: POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT, out: POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT
+    PowerInternalGetSystemIdleLoopEnablement,                   // in: POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT, out: POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT // since WIN11
+    PowerInternalGetVmPerfControlSupport,                       // in: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT, out: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT
+    PowerInternalGetVmPerfControlConfig,                        // in: // 70
+    PowerInternalSleepDetailedDiagUpdate,                       // in: POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT
+    PowerInternalProcessorClassFrequencyBandsStats,             // in: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT, out: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT[] * NumberOfProcessors
+    PowerInternalHostGlobalUserPresenceStateUpdate,             // in: POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT
     PowerInternalCpuNodeIdleIntervalStats,
     PowerInternalClassIdleIntervalStats,
     PowerInternalCpuNodeConcurrencyStats,
     PowerInternalClassConcurrencyStats,
-    PowerInternalQueryProcMeasurementCapabilities, // PPROCESSOR_QUERY_MEASUREMENT_CAPABILITIES
-    PowerInternalQueryProcMeasurementValues, // PROCESSOR_QUERY_MEASUREMENT_VALUES
-    PowerInternalPrepareForSystemInitiatedReboot, // 80
-    PowerInternalGetAdaptiveSessionState, // in: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT, out: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT
-    PowerInternalSetConsoleLockedState, // in: POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT
+    PowerInternalQueryProcMeasurementCapabilities,              // in: PROCESSOR_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES
+    PowerInternalQueryProcMeasurementValues,                    // in: PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES
+    PowerInternalPrepareForSystemInitiatedReboot,               // in: // 80
+    PowerInternalGetAdaptiveSessionState,                       // in: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT, out: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT
+    PowerInternalSetConsoleLockedState,                         // in: POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT
     PowerInternalOverrideSystemInitiatedRebootState,
     PowerInternalFanImpactStats,
     PowerInternalFanRpmBuckets,
-    PowerInternalPowerBootAppDiagInfo, // out: POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
-    PowerInternalUnregisterShutdownNotification, // since 22H1
+    PowerInternalPowerBootAppDiagInfo,                          // out: POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
+    PowerInternalUnregisterShutdownNotification,                // in: // since 22H1
     PowerInternalManageTransitionStateRecord,
-    PowerInternalGetAcpiTimeAndAlarmCapabilities, // in: POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT, out: POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_OUTPUT // since 22H2
-    PowerInternalSuspendResumeRequest, // 90
-    PowerInternalEnergyEstimationInfo, // since 23H2
-    PowerInternalProvSocIdentifierOperation, // since 24H2
-    PowerInternalGetVmPerfPrioritySupport, // in: POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT, out: POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT
-    PowerInternalGetVmPerfPriorityConfig, // in: POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT, out: POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT
+    PowerInternalGetAcpiTimeAndAlarmCapabilities,               // in: POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT, out: POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_OUTPUT // since 22H2
+    PowerInternalSuspendResumeRequest,                          // in: // 90
+    PowerInternalEnergyEstimationInfo,                          // in: since 23H2
+    PowerInternalProvSocIdentifierOperation,                    // in: since 24H2
+    PowerInternalGetVmPerfPrioritySupport,                      // in: POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT, out: POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT
+    PowerInternalGetVmPerfPriorityConfig,                       // in: POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT, out: POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT
     PowerInternalNotifyWin32kPowerRequestQueued,
     PowerInternalNotifyWin32kPowerRequestCompleted,
     PowerInformationInternalMaximum
@@ -1073,6 +1092,13 @@ typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT
 } POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT, *PPOWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT;
 
 // rev
+#define PPM_VMPCS_SUPPORTS_PERF_SET        0x00000001 // Can set explicit performance levels
+#define PPM_VMPCS_SUPPORTS_AUTONOMOUS      0x00000002 // Supports autonomous (hardware-managed) mode
+#define PPM_VMPCS_SUPPORTS_EPP             0x00000004 // Supports Energy Performance Preference (EPP)
+#define PPM_VMPCS_SUPPORTS_BOOST           0x00000008 // Supports boost performance modes
+#define PPM_VMPCS_SUPPORTS_TIME_WINDOW     0x00000010 // Supports time-window based control
+
+// rev
 typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT
 {
     // If OutputBuffer only 1 byte, just this flag returned for "VM perf-control supported".
@@ -1082,17 +1108,11 @@ typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT
     UCHAR Reserved1;
     UCHAR Reserved2;
     // Extended details (returned when OutputBuffer >= 20 bytes).
-    ULONG MinPerfPercent; // (0..100)
-    ULONG MaxPerfPercent; // (0..100)
-    ULONG StepPerfPercent; // (>=1)
-    ULONG Capabilities; // Bitmask of feature flags
+    ULONG MinPerfPercent; // Minimum performance percentage (0..100)
+    ULONG MaxPerfPercent; // Maximum performance percentage (0..100)
+    ULONG StepPerfPercent; // Step size for performance percentage (>=1)
+    ULONG Capabilities; // Bitmask of PPM_VMPCS_SUPPORTS_* flags
 } POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT, *PPOWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT;
-
-#define PPM_VMPCS_SUPPORTS_PERF_SET        0x00000001
-#define PPM_VMPCS_SUPPORTS_AUTONOMOUS      0x00000002
-#define PPM_VMPCS_SUPPORTS_EPP             0x00000004
-#define PPM_VMPCS_SUPPORTS_BOOST           0x00000008
-#define PPM_VMPCS_SUPPORTS_TIME_WINDOW     0x00000010
 
 // rev
 typedef struct _POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT
@@ -1116,33 +1136,36 @@ typedef struct _POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT
     BOOLEAN UserPresent; // 1 if user is present, 0 otherwise
 } POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT, *PPOWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT;
 
-#define PPM_PERF_BANDS 48
-#define PPM_PERF_BANKS 2
-#define PPM_PERF_METRICS 3
+#define PPM_PERF_BANKS_COUNT 2
+#define PPM_PERF_BANDS_COUNT 48
+#define PPM_PERF_METRICS_COUNT 3
+#define PPM_PERF_BANDS_SIZE sizeof(PPM_PERF_BAND_ENTRY)
+#define PPM_PERF_STATS_SIZE (PPM_PERF_BANDS_COUNT * PPM_PERF_BANDS_SIZE)
+#define PPM_PERF_DELTA_OFFSET 0xF8 // 248 bytes
 
 // rev
 typedef struct _POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK
 {
     // Metric[0][0..47], Metric[1][0..47], Metric[2][0..47]
-    ULONGLONG Metric[PPM_PERF_METRICS][PPM_PERF_BANDS];
+    ULONGLONG Metric[PPM_PERF_METRICS_COUNT][PPM_PERF_BANDS_COUNT];
 } POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK, PPOWER_INTERNAL_PM_PERF_FREQUENCY_BAND_STATS_BANK;
 
 // rev
 typedef struct _POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_OUT
 {
-    POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK Bank[PPM_PERF_BANKS];
+    POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK Bank[PPM_PERF_BANKS_COUNT];
 } POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_OUT;
 
 // rev
 typedef struct _POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS
 {
-    ULONGLONG Counter[PPM_PERF_METRICS];
+    ULONGLONG Counter[PPM_PERF_METRICS_COUNT];
 } POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS, *PPOWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS;
 
 // rev
 typedef struct _POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT
 {
-    POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS Band[PPM_PERF_BANDS];
+    POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS Band[PPM_PERF_BANDS_COUNT];
 } POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT, *PPOWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT;
 
 // rev
@@ -1291,12 +1314,13 @@ typedef struct _POWER_INFORMATION_BBR_DIRECT_ACCESS_RESPONSE_OUTPUT
 /**
  * The NtPowerInformation routine sets or retrieves system power information.
  *
- * @param InformationLevel Specifies the requested information level, which indicates the specific power information to be set or retrieved.
- * @param InputBuffer Optional pointer to a caller-allocated input buffer.
- * @param InputBufferLength Size, in bytes, of the buffer at InputBuffer.
- * @param OutputBuffer Optional pointer to an output buffer. The type depends on the InformationLevel requested.
- * @param OutputBufferLength Size, in bytes, of the output buffer.
- * @return Successful or errant status.
+ * \param InformationLevel Specifies the requested information level, which indicates the specific power information to be set or retrieved.
+ * \param InputBuffer Optional pointer to a caller-allocated input buffer.
+ * \param InputBufferLength Size, in bytes, of the buffer at InputBuffer.
+ * \param OutputBuffer Optional pointer to an output buffer. The type depends on the InformationLevel requested.
+ * \param OutputBufferLength Size, in bytes, of the output buffer.
+ * \return Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-ntpowerinformation
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1308,15 +1332,15 @@ NtPowerInformation(
     _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
     _In_ ULONG OutputBufferLength
     );
-#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
- * Enables an application to inform the system that it is in use,
- * thereby preventing the system from entering sleep or turning off the display while the application is running.
+ * The NtSetThreadExecutionState routine informs the system of execution requirements,
  *
- * @param NewFlags New execution state flags.
- * @param PreviousFlags Pointer to receive the previous execution state flags.
- * @return Successful or errant status.
+ * in order to prevent the system from entering sleep or turning off the display while the application is running.
+ * \param NewFlags New execution state flags.
+ * \param PreviousFlags Pointer to receive the previous execution state flags.
+ * \return Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setthreadexecutionstate
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1325,13 +1349,14 @@ NtSetThreadExecutionState(
     _In_ EXECUTION_STATE NewFlags, // ES_* flags
     _Out_ EXECUTION_STATE *PreviousFlags
     );
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #if (PHNT_VERSION < PHNT_WINDOWS_7)
 /**
- * Requests the system resume latency.
+ * The NtSetThreadExecutionState routine Requests the system resume latency.
  *
- * @param latency The desired latency time.
- * @return Successful or errant status.
+ * \param latency The desired latency time.
+ * \return Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1342,13 +1367,14 @@ NtRequestWakeupLatency(
 #endif // (PHNT_VERSION < PHNT_WINDOWS_7)
 
 /**
- * Initiates a power action of the current system.
+ * The NtInitiatePowerAction routine initiates a shutdown and optional restart of the specified computer.
  *
- * @param SystemAction The system power action.
- * @param LightestSystemState The lightest system power state.
- * @param Flags Flags for the power action.
- * @param Asynchronous Whether the action is asynchronous.
- * @return Successful or errant status.
+ * \param SystemAction The system power action.
+ * \param LightestSystemState The lightest system power state.
+ * \param Flags Flags for the power action.
+ * \param Asynchronous Whether the action is asynchronous.
+ * \return Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-initiatesystemshutdownw
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1361,13 +1387,13 @@ NtInitiatePowerAction(
     );
 
 /**
- * Initiates a power action of the current system. Depending on the Flags parameter, the function either
- * suspends operation immediately or requests permission from all applications and device drivers before doing so.
+ * The NtSetSystemPowerState routine initiates a suspension and optional forced shutdown of the specified computer.
  *
- * @param SystemAction The system power action.
- * @param LightestSystemState The lightest system power state.
- * @param Flags Flags for the power action.
- * @return Successful or errant status.
+ * \param SystemAction The system power action.
+ * \param LightestSystemState The lightest system power state.
+ * \param Flags Flags for the power action.
+ * \return Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setsystempowerstate
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1379,12 +1405,12 @@ NtSetSystemPowerState(
     );
 
 /**
- * Retrieves the current power state of the specified device. This function cannot be used to query the power state of a display device.
+ * The NtSetSystemPowerState routine retrieves the current power state of the specified device.
  *
- * @param Device A handle to an object on the device, such as a file or socket, or a handle to the device itself.
- * @param State A pointer to the variable that receives the power state.
- * @return Successful or errant status.
- * @remarks An application can use NtGetDevicePowerState to determine whether a device is in the working state or a low-power state.
+ * \param Device A handle to an object on the device, such as a file or socket, or a handle to the device itself.
+ * \param State A pointer to the variable that receives the power state.
+ * \return Successful or errant status.
+ * \remarks An application can use NtGetDevicePowerState to determine whether a device is in the working state or a low-power state.
  * If the device is in a low-power state, accessing the device may cause it to either queue or fail any I/O requests, or transition the device into the working state.
  * The exact behavior depends on the implementation of the device.
  */
@@ -1397,9 +1423,9 @@ NtGetDevicePowerState(
     );
 
 /**
- * Checks if the system resume is automatic.
- *
- * @return BOOLEAN TRUE if the system resume is automatic, FALSE otherwise.
+ * The NtIsSystemResumeAutomatic routine Checks if the system resume is automatic.
+
+ * \return BOOLEAN TRUE if the system resume is automatic, FALSE otherwise.
  */
 NTSYSCALLAPI
 BOOLEAN
