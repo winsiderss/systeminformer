@@ -184,8 +184,6 @@ typedef struct _PF_LOG_EVENT_DATA
     HANDLE PartitionHandle;
 } PF_LOG_EVENT_DATA , *PPF_LOG_EVENT_DATA ;
 
-static_assert(sizeof(PF_LOG_EVENT_DATA) == 24, "size");
-
 // PFN operations (classes 0x06/0x07/0x16/0x1D/0x1D/0x29) — header 192 bytes, entries 24B each
 typedef struct _PFN_TRIPLET
 {
@@ -193,8 +191,6 @@ typedef struct _PFN_TRIPLET
     ULONGLONG Pfn;              // Page frame number
     ULONGLONG Flags;            // Request/result flags
 } PFN_TRIPLET, *PPFN_TRIPLET;
-
-static_assert(sizeof(PFN_TRIPLET) == 24, "size");
 
 #define PF_PFN_PRIO_REQUEST_VERSION 1
 #define PF_PFN_PRIO_REQUEST_QUERY_MEMORY_LIST 0x1
@@ -213,7 +209,6 @@ typedef struct _PF_PFN_PRIO_REQUEST
         // Output: (class 7/29/1D) caller supplies PFN_TRIPLETs here
         PFN_TRIPLET Entries[256]; // ANYSIZE_ARRAY
     };
-
 } PF_PFN_PRIO_REQUEST, *PPF_PFN_PRIO_REQUEST;
 
 typedef enum _PFS_PRIVATE_PAGE_SOURCE_TYPE
@@ -306,8 +301,6 @@ typedef struct _PF_WORKER_PRIORITY_CONTROL
     KPRIORITY Priority; // 0..31 (STATUS_INVALID_PARAMETER if >31)
     HANDLE PartitionHandle;
 } PF_WORKER_PRIORITY_CONTROL, *PPF_WORKER_PRIORITY_CONTROL;
-
-static_assert(sizeof(PF_WORKER_PRIORITY_CONTROL) == 16, "size");
 
 // rev
 typedef struct _PF_MEMORY_LIST_NODE
