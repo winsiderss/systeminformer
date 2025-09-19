@@ -14,25 +14,28 @@ typedef struct _LDRP_LOAD_CONTEXT *PLDRP_LOAD_CONTEXT;
 // DLLs
 //
 
-typedef _Function_class_(LDR_INIT_ROUTINE)
-BOOLEAN NTAPI LDR_INIT_ROUTINE(
+typedef _Function_class_(DLL_INIT_ROUTINE)
+BOOLEAN NTAPI DLL_INIT_ROUTINE(
     _In_ PVOID DllHandle,
     _In_ ULONG Reason,
     _In_opt_ PVOID Context
     );
-typedef LDR_INIT_ROUTINE* PLDR_INIT_ROUTINE;
+typedef DLL_INIT_ROUTINE* PDLL_INIT_ROUTINE;
 
+// private
 typedef struct _LDR_SERVICE_TAG_RECORD
 {
     struct _LDR_SERVICE_TAG_RECORD *Next;
     ULONG ServiceTag;
 } LDR_SERVICE_TAG_RECORD, *PLDR_SERVICE_TAG_RECORD;
 
+// private
 typedef struct _LDRP_CSLIST
 {
     PSINGLE_LIST_ENTRY Tail;
 } LDRP_CSLIST, *PLDRP_CSLIST;
 
+// private
 typedef enum _LDR_DDAG_STATE
 {
     LdrModulesMerged = -5,
@@ -52,13 +55,14 @@ typedef enum _LDR_DDAG_STATE
     LdrModulesReadyToRun = 9
 } LDR_DDAG_STATE;
 
+// private
 typedef struct _LDR_DDAG_NODE
 {
     LIST_ENTRY Modules;
     PLDR_SERVICE_TAG_RECORD ServiceTagList;
     ULONG LoadCount;
-    ULONG LoadWhileUnloadingCount;
-    ULONG LowestLink;
+    ULONG LoadWhileUnloadingCount; // ReferenceCount before WIN10
+    ULONG LowestLink; // DependencyCount before WIN10
     union
     {
         LDRP_CSLIST Dependencies;
@@ -70,29 +74,37 @@ typedef struct _LDR_DDAG_NODE
     ULONG PreorderNumber;
 } LDR_DDAG_NODE, *PLDR_DDAG_NODE;
 
-// rev
-typedef struct _LDR_DEPENDENCY_RECORD
+// private
+typedef struct _LDRP_DEPENDENCY
 {
-    SINGLE_LIST_ENTRY DependencyLink;
-    PLDR_DDAG_NODE DependencyNode;
-    SINGLE_LIST_ENTRY IncomingDependencyLink;
-    PLDR_DDAG_NODE IncomingDependencyNode;
-} LDR_DEPENDENCY_RECORD, *PLDR_DEPENDENCY_RECORD;
+    SINGLE_LIST_ENTRY Link;
+    PLDR_DDAG_NODE ChildNode;
+    SINGLE_LIST_ENTRY BackLink;
+    union
+    {
+        PLDR_DDAG_NODE ParentNode;
+        struct
+        {
+            ULONG ForwarderLink : 1;
+            ULONG SpareFlags : 2;
+        };
+    };
+} LDRP_DEPENDENCY, *PLDRP_DEPENDENCY;
 
 // LoadReason
 typedef enum _LDR_DLL_LOAD_REASON
 {
-    LoadReasonStaticDependency,
-    LoadReasonStaticForwarderDependency,
-    LoadReasonDynamicForwarderDependency,
-    LoadReasonDelayloadDependency,
-    LoadReasonDynamicLoad,
-    LoadReasonAsImageLoad,
-    LoadReasonAsDataLoad,
-    LoadReasonEnclavePrimary, // since REDSTONE3
-    LoadReasonEnclaveDependency,
-    LoadReasonPatchImage, // since WIN11
-    LoadReasonUnknown = -1
+    LoadReasonUnknown = -1,
+    LoadReasonStaticDependency = 0,
+    LoadReasonStaticForwarderDependency = 1,
+    LoadReasonDynamicForwarderDependency = 2,
+    LoadReasonDelayloadDependency = 3,
+    LoadReasonDynamicLoad = 4,
+    LoadReasonAsImageLoad = 5,
+    LoadReasonAsDataLoad = 6,
+    LoadReasonEnclavePrimary = 7, // since REDSTONE3
+    LoadReasonEnclaveDependency = 8,
+    LoadReasonPatchImage = 9, // since WIN11
 } LDR_DLL_LOAD_REASON, *PLDR_DLL_LOAD_REASON;
 
 // HotPatchState
@@ -117,19 +129,22 @@ typedef enum _LDR_HOT_PATCH_STATE
 #define LDRP_IN_INDEXES 0x00000080
 #define LDRP_SHIM_DLL 0x00000100
 #define LDRP_IN_EXCEPTION_TABLE 0x00000200
+#define LDRP_VERIFIER_PROVIDER 0x00000400 // reserved before WIN11 24H2
+#define LDRP_SHIM_ENGINE_CALLOUT_SENT 0x00000800 // reserved before WIN11 24H2
 #define LDRP_LOAD_IN_PROGRESS 0x00001000
-#define LDRP_LOAD_CONFIG_PROCESSED 0x00002000
+#define LDRP_LOAD_CONFIG_PROCESSED 0x00002000 // reserved before WIN10
 #define LDRP_ENTRY_PROCESSED 0x00004000
-#define LDRP_PROTECT_DELAY_LOAD 0x00008000
+#define LDRP_PROTECT_DELAY_LOAD 0x00008000 // reserved before WINBLUE
+#define LDRP_AUX_IAT_COPY_PRIVATE 0x00010000 // reserved before WIN11 24H2
 #define LDRP_DONT_CALL_FOR_THREADS 0x00040000
 #define LDRP_PROCESS_ATTACH_CALLED 0x00080000
 #define LDRP_PROCESS_ATTACH_FAILED 0x00100000
-#define LDRP_COR_DEFERRED_VALIDATE 0x00200000
+#define LDRP_SCP_IN_EXCEPTION_TABLE 0x00200000 // LDRP_COR_DEFERRED_VALIDATE before WIN11 24H2
 #define LDRP_COR_IMAGE 0x00400000
 #define LDRP_DONT_RELOCATE 0x00800000
 #define LDRP_COR_IL_ONLY 0x01000000
-#define LDRP_CHPE_IMAGE 0x02000000
-#define LDRP_CHPE_EMULATOR_IMAGE 0x04000000
+#define LDRP_CHPE_IMAGE 0x02000000 // reserved before REDSTONE4
+#define LDRP_CHPE_EMULATOR_IMAGE 0x04000000 // reserved before WIN11
 #define LDRP_REDIRECTED 0x10000000
 #define LDRP_COMPAT_DATABASE_PROCESSED 0x80000000
 
@@ -146,7 +161,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     LIST_ENTRY InMemoryOrderLinks;
     LIST_ENTRY InInitializationOrderLinks;
     PVOID DllBase;
-    PVOID EntryPoint; // PLDR_INIT_ROUTINE
+    PVOID EntryPoint; // PDLL_INIT_ROUTINE
     ULONG SizeOfImage;
     UNICODE_STRING FullDllName;
     UNICODE_STRING BaseDllName;
@@ -166,23 +181,23 @@ typedef struct _LDR_DATA_TABLE_ENTRY
             ULONG InIndexes : 1;
             ULONG ShimDll : 1;
             ULONG InExceptionTable : 1;
-            ULONG VerifierProvider : 1;
-            ULONG ShimEngineCalloutSent : 1;
+            ULONG VerifierProvider : 1; // 24H2
+            ULONG ShimEngineCalloutSent : 1; // 24H2
             ULONG LoadInProgress : 1;
-            ULONG LoadConfigProcessed : 1;
+            ULONG LoadConfigProcessed : 1; // WIN10
             ULONG EntryProcessed : 1;
-            ULONG ProtectDelayLoad : 1;
-            ULONG AuxIatCopyPrivate : 1;
+            ULONG ProtectDelayLoad : 1; // WINBLUE
+            ULONG AuxIatCopyPrivate : 1; // 24H2
             ULONG ReservedFlags3 : 1;
             ULONG DontCallForThreads : 1;
             ULONG ProcessAttachCalled : 1;
             ULONG ProcessAttachFailed : 1;
-            ULONG ScpInExceptionTable : 1;
+            ULONG ScpInExceptionTable : 1; // CorDeferredValidate before 24H2
             ULONG CorImage : 1;
             ULONG DontRelocate : 1;
             ULONG CorILOnly : 1;
-            ULONG ChpeImage : 1;
-            ULONG ChpeEmulatorImage : 1;
+            ULONG ChpeImage : 1; // RS4
+            ULONG ChpeEmulatorImage : 1; // WIN11
             ULONG ReservedFlags5 : 1;
             ULONG Redirected : 1;
             ULONG ReservedFlags6 : 2;
@@ -205,12 +220,12 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     PVOID OriginalBase;
     LARGE_INTEGER LoadTime;
     ULONG BaseNameHashValue;
-    LDR_DLL_LOAD_REASON LoadReason; // since WIN8
-    ULONG ImplicitPathOptions;
+    LDR_DLL_LOAD_REASON LoadReason;
+    ULONG ImplicitPathOptions; // since WINBLUE
     ULONG ReferenceCount; // since WIN10
-    ULONG DependentLoadFlags;
-    UCHAR SigningLevel; // since REDSTONE2
-    ULONG CheckSum; // since 22H1
+    ULONG DependentLoadFlags; // since RS1
+    UCHAR SigningLevel; // since RS2
+    ULONG CheckSum; // since WIN11
     PVOID ActivePatchImageBase;
     LDR_HOT_PATCH_STATE HotPatchState;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
@@ -298,6 +313,7 @@ LdrGetDllHandle(
     _Out_ PVOID *DllHandle
     );
 
+// LdrGetDllHandleEx Flags
 #define LDR_GET_DLL_HANDLE_EX_UNCHANGED_REFCOUNT 0x00000001
 #define LDR_GET_DLL_HANDLE_EX_PIN 0x00000002
 
@@ -365,7 +381,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrGetDllFullName(
-    _In_ PVOID DllHandle,
+    _In_opt_ PVOID DllHandle,
     _Out_ PUNICODE_STRING FullDllName
     );
 
@@ -409,7 +425,7 @@ NTAPI
 LdrSetDllDirectory(
     _In_ PCUNICODE_STRING PathName
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 #define LDR_ADDREF_DLL_PIN 0x00000001
 
@@ -443,7 +459,7 @@ LdrGetProcedureAddressEx(
     _In_opt_ PCANSI_STRING ProcedureName,
     _In_opt_ ULONG ProcedureNumber,
     _Out_ PVOID *ProcedureAddress,
-    _In_ ULONG Flags
+    _In_ ULONG Flags // LDR_GET_PROCEDURE_ADDRESS_*
     );
 
 NTSYSAPI
@@ -452,7 +468,7 @@ NTAPI
 LdrGetKnownDllSectionHandle(
     _In_ PCWSTR DllName,
     _In_ BOOLEAN KnownDlls32,
-    _Out_ PHANDLE Section
+    _Out_ PHANDLE SectionHandle
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
@@ -465,10 +481,10 @@ LdrGetProcedureAddressForCaller(
     _In_opt_ PCANSI_STRING ProcedureName,
     _In_opt_ ULONG ProcedureNumber,
     _Out_ PVOID *ProcedureAddress,
-    _In_ ULONG Flags,
-    _In_ PVOID *Callback
+    _In_ ULONG Flags, // LDR_GET_PROCEDURE_ADDRESS_*
+    _In_ PVOID CallerAddress
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 #define LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS 0x00000001
 #define LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY 0x00000002
@@ -482,7 +498,7 @@ NTSTATUS
 NTAPI
 LdrLockLoaderLock(
     _In_ ULONG Flags,
-    _Out_opt_ ULONG *Disposition,
+    _Out_opt_ PULONG Disposition,
     _Out_ PVOID *Cookie
     );
 
@@ -496,29 +512,9 @@ LdrUnlockLoaderLock(
     _In_ PVOID Cookie
     );
 
-NTSYSAPI
-NTSTATUS
-NTAPI
-LdrRelocateImage(
-    _In_ PVOID NewBase,
-    _In_opt_ PCSTR LoaderName,
-    _In_ NTSTATUS Success,
-    _In_ NTSTATUS Conflict,
-    _In_ NTSTATUS Invalid
-    );
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-LdrRelocateImageWithBias(
-    _In_ PVOID NewBase,
-    _In_opt_ LONGLONG Bias,
-    _In_opt_ PCSTR LoaderName,
-    _In_ NTSTATUS Success,
-    _In_ NTSTATUS Conflict,
-    _In_ NTSTATUS Invalid
-    );
-
+// private
+_Must_inspect_result_
+_Maybenull_
 NTSYSAPI
 PIMAGE_BASE_RELOCATION
 NTAPI
@@ -530,6 +526,9 @@ LdrProcessRelocationBlock(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
+// private
+_Must_inspect_result_
+_Maybenull_
 NTSYSAPI
 PIMAGE_BASE_RELOCATION
 NTAPI
@@ -540,16 +539,7 @@ LdrProcessRelocationBlockEx(
     _In_ PUSHORT NextOffset,
     _In_ LONG_PTR Diff
     );
-#endif
-
-NTSYSAPI
-BOOLEAN
-NTAPI
-LdrVerifyMappedImageMatchesChecksum(
-    _In_ PVOID BaseAddress,
-    _In_ SIZE_T NumberOfBytes,
-    _In_ ULONG FileLength
-    );
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 typedef _Function_class_(LDR_IMPORT_MODULE_CALLBACK)
 VOID NTAPI LDR_IMPORT_MODULE_CALLBACK(
@@ -558,6 +548,7 @@ VOID NTAPI LDR_IMPORT_MODULE_CALLBACK(
     );
 typedef LDR_IMPORT_MODULE_CALLBACK* PLDR_IMPORT_MODULE_CALLBACK;
 
+// private
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -585,11 +576,16 @@ typedef struct _LDR_SECTION_INFO
     ULONG AllocationAttributes;
 } LDR_SECTION_INFO, *PLDR_SECTION_INFO;
 
+// rev
+#define LDR_VERIFY_IMAGE_FLAG_USE_CALLBACK 0x01
+#define LDR_VERIFY_IMAGE_FLAG_USE_SECTION_INFO 0x02
+#define LDR_VERIFY_IMAGE_FLAG_RETURN_IMAGE_CHARACTERISTICS 0x04
+
 // private
 typedef struct _LDR_VERIFY_IMAGE_INFO
 {
     ULONG Size;
-    ULONG Flags;
+    ULONG Flags; // LDR_VERIFY_IMAGE_FLAG_* 
     LDR_IMPORT_CALLBACK_INFO CallbackInfo;
     LDR_SECTION_INFO SectionInfo;
     USHORT ImageCharacteristics;
@@ -689,13 +685,15 @@ LdrUnregisterDllNotification(
 
 // end_msdn
 
-// rev
+#if (PHNT_VERSION == PHNT_WINDOWS_10)
+// deprecated
 NTSYSAPI
 PUNICODE_STRING
 NTAPI
 LdrStandardizeSystemPath(
     _In_ PCUNICODE_STRING SystemPath
     );
+#endif
 
 typedef struct _LDR_FAILURE_DATA
 {
@@ -704,14 +702,14 @@ typedef struct _LDR_FAILURE_DATA
     WCHAR AdditionalInfo[0x20];
 } LDR_FAILURE_DATA, *PLDR_FAILURE_DATA;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSAPI
 PLDR_FAILURE_DATA
 NTAPI
 LdrGetFailureData(
     VOID
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // WIN8 to REDSTONE
 typedef struct _PS_MITIGATION_OPTIONS_MAP_V1
@@ -874,10 +872,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrAddLoadAsDataTable(
-    _In_ PVOID Module,
-    _In_ PCWSTR FilePath,
-    _In_ SIZE_T Size,
-    _In_ HANDLE Handle,
+    _In_ PVOID DllHandle,
+    _In_opt_ PCWSTR FilePath,
+    _In_ SIZE_T FileSize,
+    _In_ HANDLE FileHandle,
     _In_opt_ PACTIVATION_CONTEXT ActCtx
     );
 
@@ -886,9 +884,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrRemoveLoadAsDataTable(
-    _In_ PVOID InitModule,
-    _Out_opt_ PVOID *BaseModule,
-    _Out_opt_ PSIZE_T Size,
+    _In_ PVOID DllHandle,
+    _Out_ PVOID *BaseModule,
+    _Out_opt_ PSIZE_T FileSize,
     _In_ ULONG Flags
     );
 
@@ -897,15 +895,15 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrGetFileNameFromLoadAsDataTable(
-    _In_ PVOID Module,
-    _Out_ PVOID *pFileNamePrt
+    _In_ PVOID DllHandle,
+    _Out_ PWSTR *FileName
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrDisableThreadCalloutsForDll(
-    _In_ PVOID DllImageBase
+    _In_ PVOID DllHandle
     );
 
 //
