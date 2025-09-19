@@ -30,6 +30,7 @@
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
     <PackageProjectUrl>https://github.com/winsiderss/systeminformer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/winsiderss/systeminformer</RepositoryUrl>
+    <NuGetAuditMode>all</NuGetAuditMode>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
     <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
@@ -107,6 +108,7 @@
     <Using Include="Azure.Security.KeyVault.Keys.Cryptography" />
     <Using Include="Microsoft.Win32.SafeHandles" />
     <Using Include="System.Buffers" />
+    <Using Include="System.Collections.Concurrent" />
     <Using Include="System.Collections.Immutable" />
     <Using Include="System.ComponentModel" />
     <Using Include="System.Diagnostics" />
@@ -141,10 +143,10 @@
     <LinkerArg Include="/RELEASE /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.15.0" />
+    <PackageReference Include="Azure.Identity" Version="1.16.0" />
     <PackageReference Include="Azure.Security.KeyVault.Certificates" Version="4.8.0" />
     <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.8.0" />
-    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.205">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
