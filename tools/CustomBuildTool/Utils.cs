@@ -1001,7 +1001,7 @@ namespace CustomBuildTool
     public class GithubReleasesResponse
     {
         [JsonPropertyName("id")] 
-        public ulong ID { get; init; }
+        public ulong ReleaseId { get; init; }
 
         [JsonPropertyName("upload_url")] 
         public string UploadUrl { get; init; }
@@ -1012,12 +1012,55 @@ namespace CustomBuildTool
         [JsonPropertyName("assets")]
         public List<GithubAssetsResponse> Assets { get; init; }
 
-        [JsonIgnore] 
-        public string ReleaseId => this.ID.ToString();
+        public override string ToString()
+        {
+            return this.ReleaseId.ToString();
+        }
+
+        public string SerializeToJson()
+        {
+            return JsonSerializer.Serialize(this, GithubResponseContext.Default.GithubReleasesRequest);
+        }
+
+        public byte[] SerializeToBytes()
+        {
+            return JsonSerializer.SerializeToUtf8Bytes(this, GithubResponseContext.Default.GithubReleasesRequest);
+        }
+    }
+
+    public class GithubReleaseQueryResponse
+    {
+        [JsonPropertyName("id")]
+        public ulong ReleaseId { get; init; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; init; }
+        [JsonPropertyName("tag_name")]
+        public string TagName { get; init; }
+
+        [JsonPropertyName("upload_url")]
+        public string UploadUrl { get; init; }
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; init; }
+
+        [JsonPropertyName("created_at")]
+        public DateTimeOffset Created { get; init; }
+        [JsonPropertyName("updated_at")]
+        public DateTimeOffset Updated { get; init; }
+        [JsonPropertyName("published_at")]
+        public DateTimeOffset Published { get; init; }
+
+        [JsonPropertyName("draft")]
+        public bool Draft { get; init; }
+        [JsonPropertyName("prerelease")]
+        public bool Prerelease { get; init; }
+
+        [JsonPropertyName("assets")]
+        public List<GithubAssetsResponse> Assets { get; init; }
 
         public override string ToString()
         {
-            return this.ReleaseId;
+            return this.ReleaseId.ToString();
         }
 
         public string SerializeToJson()
@@ -1483,6 +1526,7 @@ namespace CustomBuildTool
     [JsonSerializable(typeof(GithubCommitResponse))]
     [JsonSerializable(typeof(GithubReleasesRequest))]
     [JsonSerializable(typeof(GithubReleasesResponse))]
+    [JsonSerializable(typeof(GithubReleaseQueryResponse))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class GithubResponseContext : JsonSerializerContext
     {

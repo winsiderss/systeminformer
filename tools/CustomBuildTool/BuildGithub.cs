@@ -22,6 +22,40 @@ namespace CustomBuildTool
             BaseUrl = Win32.GetEnvironmentVariable("GITHUB_MIRROR_API");
         }
 
+        public static GithubReleaseQueryResponse GetRelease(ulong ReleaseId)
+        {
+            if (string.IsNullOrWhiteSpace(BaseUrl))
+                return null;
+            if (string.IsNullOrWhiteSpace(BaseToken))
+                return null;
+
+            try
+            {
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/releases/{ReleaseId}"))
+                {
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
+
+                    var httpResult = BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleaseQueryResponse);
+
+                    if (httpResult == null)
+                    {
+                        Program.PrintColorMessage("[GetRelease-GithubReleaseQueryResponse]", ConsoleColor.Red);
+                        return null;
+                    }
+
+                    return httpResult;
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[GetRelease] {ex}", ConsoleColor.Red);
+            }
+
+            return null;
+        }
+
         public static GithubReleasesResponse CreateRelease(string Version, bool Draft = true, bool Prerelease = false, bool GenerateReleaseNotes = true)
         {
             if (string.IsNullOrWhiteSpace(BaseUrl))
@@ -125,7 +159,7 @@ namespace CustomBuildTool
                     }
                 }
 
-                if (string.IsNullOrWhiteSpace(githubResponseMessage.ReleaseId))
+                if (githubResponseMessage.ReleaseId == 0)
                 {
                     Program.PrintColorMessage("[DeleteRelease-ReleaseId]", ConsoleColor.Red);
                     return false;
@@ -172,7 +206,7 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static GithubReleasesResponse UpdateRelease(string ReleaseId, bool Draft = false, bool Prerelease = false)
+        public static GithubReleasesResponse UpdateRelease(ulong ReleaseId, bool Draft = false, bool Prerelease = false)
         {
             if (string.IsNullOrWhiteSpace(BaseUrl))
                 return null;
@@ -268,16 +302,16 @@ namespace CustomBuildTool
 
     public class GithubRelease : IComparable, IComparable<GithubRelease>, IEquatable<GithubRelease>
     {
-        public readonly string ReleaseId;
+        public readonly ulong ReleaseId;
         public List<GithubReleaseAsset> Files;
 
         public GithubRelease()
         {
-            this.ReleaseId = string.Empty;
+            this.ReleaseId = 0;
             this.Files = new List<GithubReleaseAsset>();
         }
 
-        public GithubRelease(string ReleaseId)
+        public GithubRelease(ulong ReleaseId)
         {
             this.ReleaseId = ReleaseId;
             this.Files = new List<GithubReleaseAsset>();
@@ -285,7 +319,7 @@ namespace CustomBuildTool
 
         public bool Valid
         {
-            get { return !string.IsNullOrWhiteSpace(this.ReleaseId) && this.Files.Count > 0; }
+            get { return this.ReleaseId != 0 && this.Files.Count > 0; }
         }
 
         public string GetFileUrl(string FileName)
@@ -321,22 +355,22 @@ namespace CustomBuildTool
 
         public override string ToString()
         {
-            return this.ReleaseId;
+            return this.ReleaseId.ToString();
         }
 
         public override int GetHashCode()
         {
-            return this.ReleaseId.GetHashCode(StringComparison.OrdinalIgnoreCase);
+            return this.ReleaseId.GetHashCode();
         }
 
         public override bool Equals(object obj)
         {
-            return obj is GithubRelease file && this.ReleaseId.Equals(file.ReleaseId, StringComparison.OrdinalIgnoreCase);
+            return obj is GithubRelease file && this.ReleaseId == file.ReleaseId;
         }
 
         public bool Equals(GithubRelease other)
         {
-            return other != null && this.ReleaseId.Equals(other.ReleaseId, StringComparison.OrdinalIgnoreCase);
+            return other != null && this.ReleaseId == other.ReleaseId;
         }
 
         public int CompareTo(object obj)
@@ -345,7 +379,7 @@ namespace CustomBuildTool
                 return 1;
 
             if (obj is GithubRelease package)
-                return string.Compare(this.ReleaseId, package.ReleaseId, StringComparison.OrdinalIgnoreCase);
+                return string.Compare(this.ReleaseId.ToString(), package.ReleaseId.ToString(), StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
         }
@@ -355,7 +389,7 @@ namespace CustomBuildTool
             if (obj == null)
                 return 1;
 
-            return string.Compare(this.ReleaseId, obj.ReleaseId, StringComparison.OrdinalIgnoreCase);
+            return string.Compare(this.ReleaseId.ToString(), obj.ReleaseId.ToString(), StringComparison.OrdinalIgnoreCase);
         }
     }
 
