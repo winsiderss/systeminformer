@@ -898,6 +898,14 @@ LdrDisableThreadCalloutsForDll(
 // Resources
 //
 
+// TEB->ResourceRetValue
+typedef struct _LDR_RESLOADER_RET
+{
+    PVOID Module;
+    PLDR_DATA_TABLE_ENTRY DataEntry;
+    PVOID TargetModule;
+} LDR_RESLOADER_RET, *PLDR_RESLOADER_RET;
+
 /**
  * The LdrAccessResource function returns a pointer to the first byte of the specified resource in memory.
  *
@@ -983,6 +991,7 @@ LdrFindResourceDirectory_U(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
+// rev
 /**
  * The LdrResFindResource function finds a resource in a DLL.
  *
