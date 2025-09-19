@@ -1274,7 +1274,7 @@ namespace CustomBuildTool
 
                 // Wait a few seconds for github to update...
                 {
-                    Thread.Sleep(3000);
+                    Thread.Sleep(5000);
                 }
 
                 var release = BuildGithub.GetRelease(update.ReleaseId);
