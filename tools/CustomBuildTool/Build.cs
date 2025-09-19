@@ -179,10 +179,18 @@ namespace CustomBuildTool
                 if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
                 {
                     Program.PrintColorMessage(" (", ConsoleColor.DarkGray, false);
-                    //Program.PrintColorMessage(Build.BuildCommitHash[..8], ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(Program.CreateConsoleHyperlink(
-                        $"https://github.com/winsiderss/systeminformer/commit/{Build.BuildCommitHash}", 
-                        Build.BuildCommitHash[..8]), ConsoleColor.Blue, false);
+
+                    if (Build.BuildIntegration)
+                    {
+                        Program.PrintColorMessage(Build.BuildCommitHash[..8], ConsoleColor.Blue, false);
+                    }
+                    else
+                    {
+                        Program.PrintColorMessage(Program.CreateConsoleHyperlink(
+                            $"https://github.com/winsiderss/systeminformer/commit/{Build.BuildCommitHash}",
+                            Build.BuildCommitHash[..8]), ConsoleColor.Blue, false);
+                    }
+
                     Program.PrintColorMessage(")", ConsoleColor.DarkGray, false);
                 }
 
