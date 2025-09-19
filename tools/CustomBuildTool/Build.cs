@@ -872,6 +872,14 @@ namespace CustomBuildTool
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building symsrv-package...", ConsoleColor.Cyan, false);
 
+            if (!Utils.SymStoreExists())
+            {
+                Program.PrintColorMessage("[ERROR] SymStore.exe not found.", ConsoleColor.Red);
+                if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS"))
+                    return true;
+                return false;
+            }
+
             try
             {
                 string zip_file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-symbols-package.zip"]);

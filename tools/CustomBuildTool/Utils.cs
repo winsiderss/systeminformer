@@ -541,23 +541,23 @@ namespace CustomBuildTool
             return outputString.Replace("\r\n\r\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
         }
 
-        public static string GetSignToolPath()
-        {
-            string windowsSdkPath = Utils.GetWindowsSdkPath();
-
-            if (string.IsNullOrWhiteSpace(windowsSdkPath))
-                return string.Empty;
-
-            string signToolPath = Path.Join([windowsSdkPath, "\\x64\\SignTool.exe"]);
-
-            if (string.IsNullOrWhiteSpace(signToolPath))
-                return string.Empty;
-
-            if (!File.Exists(signToolPath))
-                return string.Empty;
-
-            return signToolPath;
-        }
+        //public static string GetSignToolPath()
+        //{
+        //    string windowsSdkPath = Utils.GetWindowsSdkPath();
+        //
+        //    if (string.IsNullOrWhiteSpace(windowsSdkPath))
+        //        return string.Empty;
+        //
+        //    string signToolPath = Path.Join([windowsSdkPath, "\\x64\\SignTool.exe"]);
+        //
+        //    if (string.IsNullOrWhiteSpace(signToolPath))
+        //        return string.Empty;
+        //
+        //    if (!File.Exists(signToolPath))
+        //        return string.Empty;
+        //
+        //    return signToolPath;
+        //}
 
         public static string GetSymStorePath()
         {
@@ -576,13 +576,38 @@ namespace CustomBuildTool
             return symStorePath;
         }
 
+        public static bool SymStoreExists()
+        {
+            string file = GetSymStorePath();
+
+            if (string.IsNullOrWhiteSpace(file))
+            {
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe is invalid.", ConsoleColor.Red);
+                return false;
+            }
+
+            if (!File.Exists(file))
+            {
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe does not exist.", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
         public static int ExecuteSymStoreCommand(string Command)
         {
             string file = GetSymStorePath();
 
             if (string.IsNullOrWhiteSpace(file))
             {
-                Program.PrintColorMessage("[ExecuteSymStoreCommand] File is invalid.", ConsoleColor.Red);
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe is invalid.", ConsoleColor.Red);
+                return int.MaxValue;
+            }
+
+            if (!File.Exists(file))
+            {
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe does not exist.", ConsoleColor.Red);
                 return int.MaxValue;
             }
 
