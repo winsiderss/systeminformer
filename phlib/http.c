@@ -63,7 +63,7 @@ PPH_STRING PhWinHttpUserAgentString(
     VOID
     )
 {
-    PH_FORMAT format[8];
+    PH_FORMAT format[4];
     SIZE_T returnLength;
     WCHAR formatBuffer[260];
 
