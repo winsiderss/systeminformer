@@ -1576,7 +1576,7 @@ NtCreateWnfStateName(
     );
 
 /**
- * The NtCreateWnfStateName routine deletes an existing WNF state name.
+ * The NtDeleteWnfStateName routine deletes an existing WNF state name.
  *
  * \param StateName Pointer to the WNF_STATE_NAME to delete.
  * \return NTSTATUS Successful or errant status.
@@ -1589,7 +1589,7 @@ NtDeleteWnfStateName(
     );
 
 /**
- * The NtCreateWnfStateName routine updates the data associated with a WNF state name.
+ * The NtUpdateWnfStateData routine updates the data associated with a WNF state name.
  *
  * \param StateName Pointer to the WNF_STATE_NAME to update.
  * \param Buffer Pointer to the data buffer to write.
@@ -1614,7 +1614,7 @@ NtUpdateWnfStateData(
     );
 
 /**
- * The NtCreateWnfStateName routine Deletes the data associated with a WNF state name.
+ * The NtDeleteWnfStateData routine Deletes the data associated with a WNF state name.
  *
  * \param StateName Pointer to the WNF_STATE_NAME whose data is to be deleted.
  * \param ExplicitScope Optional pointer to a security identifier (SID) for explicit scope.
@@ -1629,7 +1629,7 @@ NtDeleteWnfStateData(
     );
 
 /**
- * The NtCreateWnfStateName routine Queries the data associated with a WNF state name.
+ * The NtQueryWnfStateData routine Queries the data associated with a WNF state name.
  *
  * \param StateName Pointer to the WNF_STATE_NAME to query.
  * \param TypeId Optional pointer to a WNF_TYPE_ID structure specifying the type of the state data.
@@ -1652,7 +1652,7 @@ NtQueryWnfStateData(
     );
 
 /**
- * The NtCreateWnfStateName routine queries information about a WNF state name.
+ * The NtQueryWnfStateNameInformation routine queries information about a WNF state name.
  *
  * \param StateName Pointer to the WNF_STATE_NAME to query.
  * \param NameInfoClass The information class to query (see WNF_STATE_NAME_INFORMATION).

@@ -1353,7 +1353,7 @@ NtSetThreadExecutionState(
 
 #if (PHNT_VERSION < PHNT_WINDOWS_7)
 /**
- * The NtSetThreadExecutionState routine Requests the system resume latency.
+ * The NtRequestWakeupLatency routine requests the system resume latency.
  *
  * \param latency The desired latency time.
  * \return Successful or errant status.
@@ -1405,7 +1405,7 @@ NtSetSystemPowerState(
     );
 
 /**
- * The NtSetSystemPowerState routine retrieves the current power state of the specified device.
+ * The NtGetDevicePowerState routine retrieves the current power state of the specified device.
  *
  * \param Device A handle to an object on the device, such as a file or socket, or a handle to the device itself.
  * \param State A pointer to the variable that receives the power state.
@@ -1423,7 +1423,7 @@ NtGetDevicePowerState(
     );
 
 /**
- * The NtIsSystemResumeAutomatic routine Checks if the system resume is automatic.
+ * The NtIsSystemResumeAutomatic routine checks if the system resume is automatic.
 
  * \return BOOLEAN TRUE if the system resume is automatic, FALSE otherwise.
  */
