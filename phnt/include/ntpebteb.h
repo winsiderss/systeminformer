@@ -12,6 +12,7 @@
 typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
 typedef struct _RTL_CRITICAL_SECTION *PRTL_CRITICAL_SECTION;
 typedef struct _SILO_USER_SHARED_DATA *PSILO_USER_SHARED_DATA;
+typedef struct _LDR_RESLOADER_RET LDR_RESLOADER_RET, *PLDR_RESLOADER_RET;
 typedef struct _LEAP_SECOND_DATA *PLEAP_SECOND_DATA;
 typedef struct _PEB_LDR_DATA PEB_LDR_DATA, *PPEB_LDR_DATA;
 typedef struct tagSOleTlsData SOleTlsData, *PSOleTlsData;
@@ -1003,10 +1004,18 @@ typedef struct _TEB
     PVOID CsrClientThread;
 
     //
-    // Reserved for GDI/USER (Win32k).
+    // Reserved for win32k.sys
     //
     PVOID Win32ThreadInfo;
+ 
+    //
+    // Reserved for user32.dll
+    //
     ULONG User32Reserved[26];
+
+    //
+    // Reserved for winsrv.dll
+    //
     ULONG UserReserved[5];
 
     //
@@ -1031,7 +1040,7 @@ typedef struct _TEB
 
 #ifdef _WIN64
     //
-    // Reserved.
+    // Reserved for floating-point emulation.
     //
     PVOID SystemReserved1[25];
 
@@ -1438,7 +1447,7 @@ typedef struct _TEB
     //
     // Reserved.
     //
-    PVOID ResourceRetValue;
+    PLDR_RESLOADER_RET ResourceRetValue;
 
     //
     // Reserved for Windows Driver Framework (WDF).

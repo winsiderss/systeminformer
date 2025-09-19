@@ -179,10 +179,18 @@ namespace CustomBuildTool
                 if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
                 {
                     Program.PrintColorMessage(" (", ConsoleColor.DarkGray, false);
-                    //Program.PrintColorMessage(Build.BuildCommitHash[..8], ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(Program.CreateConsoleHyperlink(
-                        $"https://github.com/winsiderss/systeminformer/commit/{Build.BuildCommitHash}", 
-                        Build.BuildCommitHash[..8]), ConsoleColor.Blue, false);
+
+                    if (Build.BuildIntegration)
+                    {
+                        Program.PrintColorMessage(Build.BuildCommitHash[..8], ConsoleColor.Blue, false);
+                    }
+                    else
+                    {
+                        Program.PrintColorMessage(Program.CreateConsoleHyperlink(
+                            $"https://github.com/winsiderss/systeminformer/commit/{Build.BuildCommitHash}",
+                            Build.BuildCommitHash[..8]), ConsoleColor.Blue, false);
+                    }
+
                     Program.PrintColorMessage(")", ConsoleColor.DarkGray, false);
                 }
 
@@ -864,6 +872,14 @@ namespace CustomBuildTool
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building symsrv-package...", ConsoleColor.Cyan, false);
 
+            if (!Utils.SymStoreExists())
+            {
+                Program.PrintColorMessage("[ERROR] SymStore.exe not found.", ConsoleColor.Red);
+                if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS"))
+                    return true;
+                return false;
+            }
+
             try
             {
                 string zip_file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-symbols-package.zip"]);
@@ -1222,17 +1238,17 @@ namespace CustomBuildTool
                         return null;
                     }
 
-                    var name = sourceName.Replace(
-                        "-build-",
-                        $"-{Build.BuildLongVersion}-",
-                        StringComparison.OrdinalIgnoreCase
-                        );
+                    //var name = sourceName.Replace(
+                    //    "-build-",
+                    //    $"-{Build.BuildLongVersion}-",
+                    //    StringComparison.OrdinalIgnoreCase
+                    //    );
 
                     var result = BuildGithub.UploadAsset(
                         newGithubRelease.UploadUrl,
                         deployfile.FileName,
                         sourceName,
-                        name
+                        sourceName
                         );
 
                     if (result == null)
@@ -1248,7 +1264,7 @@ namespace CustomBuildTool
 
                 // Update the release and make it public.
 
-                var update = BuildGithub.UpdateRelease(newGithubRelease.ReleaseId, false);
+                var update = BuildGithub.UpdateRelease(newGithubRelease.ReleaseId, false, false);
 
                 if (update == null)
                 {
@@ -1256,11 +1272,24 @@ namespace CustomBuildTool
                     return null;
                 }
 
-                var mirror = new GithubRelease(update.ReleaseId);
+                // Wait a few seconds for github to update...
+                {
+                    Thread.Sleep(3000);
+                }
+
+                var release = BuildGithub.GetRelease(update.ReleaseId);
+
+                if (release == null)
+                {
+                    Program.PrintColorMessage("[Github.GetRelease]", ConsoleColor.Red);
+                    return null;
+                }
+
+                var mirror = new GithubRelease(release.ReleaseId);
 
                 // Grab the download urls.
 
-                foreach (var file in update.Assets)
+                foreach (var file in release.Assets)
                 {
                     if (!file.Uploaded)
                     {

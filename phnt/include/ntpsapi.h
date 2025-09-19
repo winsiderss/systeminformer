@@ -165,16 +165,21 @@ typedef struct _PEB_LDR_DATA
     HANDLE ShutdownThreadId;
 } PEB_LDR_DATA, *PPEB_LDR_DATA;
 
+/**
+ * The INITIAL_TEB structure contains information about the initial stack for a thread.
+ * This structure is used when creating a new thread to specify the stack boundaries and allocation base.
+ * It also contains information about the previous stack if the thread is being recreated.
+ */
 typedef struct _INITIAL_TEB
 {
     struct
     {
-        PVOID OldStackBase;
-        PVOID OldStackLimit;
+        PVOID OldStackBase;     // Pointer to the base address of the previous stack.
+        PVOID OldStackLimit;    // Pointer to the limit address of the previous stack.
     } OldInitialTeb;
-    PVOID StackBase;
-    PVOID StackLimit;
-    PVOID StackAllocationBase;
+    PVOID StackBase;            // Pointer to the base address of the new stack.
+    PVOID StackLimit;           // Pointer to the limit address of the new stack.
+    PVOID StackAllocationBase;  // Pointer to the base address where the stack was allocated.
 } INITIAL_TEB, *PINITIAL_TEB;
 
 //
@@ -184,124 +189,124 @@ typedef struct _INITIAL_TEB
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _PROCESSINFOCLASS
 {
-    ProcessBasicInformation, // q: PROCESS_BASIC_INFORMATION, PROCESS_EXTENDED_BASIC_INFORMATION
-    ProcessQuotaLimits, // qs: QUOTA_LIMITS, QUOTA_LIMITS_EX
-    ProcessIoCounters, // q: IO_COUNTERS
-    ProcessVmCounters, // q: VM_COUNTERS, VM_COUNTERS_EX, VM_COUNTERS_EX2
-    ProcessTimes, // q: KERNEL_USER_TIMES
-    ProcessBasePriority, // s: KPRIORITY
-    ProcessRaisePriority, // s: ULONG
-    ProcessDebugPort, // q: HANDLE
-    ProcessExceptionPort, // s: PROCESS_EXCEPTION_PORT (requires SeTcbPrivilege)
-    ProcessAccessToken, // s: PROCESS_ACCESS_TOKEN
-    ProcessLdtInformation, // qs: PROCESS_LDT_INFORMATION // 10
-    ProcessLdtSize, // s: PROCESS_LDT_SIZE
-    ProcessDefaultHardErrorMode, // qs: ULONG
-    ProcessIoPortHandlers, // s: PROCESS_IO_PORT_HANDLER_INFORMATION // (kernel-mode only)
-    ProcessPooledUsageAndLimits, // q: POOLED_USAGE_AND_LIMITS
-    ProcessWorkingSetWatch, // q: PROCESS_WS_WATCH_INFORMATION[]; s: void
-    ProcessUserModeIOPL, // qs: ULONG (requires SeTcbPrivilege)
-    ProcessEnableAlignmentFaultFixup, // s: BOOLEAN
-    ProcessPriorityClass, // qs: PROCESS_PRIORITY_CLASS
-    ProcessWx86Information, // qs: ULONG (requires SeTcbPrivilege) (VdmAllowed)
-    ProcessHandleCount, // q: ULONG, PROCESS_HANDLE_INFORMATION // 20
-    ProcessAffinityMask, // (q >WIN7)s: KAFFINITY, qs: GROUP_AFFINITY
-    ProcessPriorityBoost, // qs: ULONG
-    ProcessDeviceMap, // qs: PROCESS_DEVICEMAP_INFORMATION, PROCESS_DEVICEMAP_INFORMATION_EX
-    ProcessSessionInformation, // q: PROCESS_SESSION_INFORMATION
-    ProcessForegroundInformation, // s: PROCESS_FOREGROUND_BACKGROUND
-    ProcessWow64Information, // q: ULONG_PTR
-    ProcessImageFileName, // q: UNICODE_STRING
-    ProcessLUIDDeviceMapsEnabled, // q: ULONG
-    ProcessBreakOnTermination, // qs: ULONG
-    ProcessDebugObjectHandle, // q: HANDLE // 30
-    ProcessDebugFlags, // qs: ULONG
-    ProcessHandleTracing, // q: PROCESS_HANDLE_TRACING_QUERY; s: PROCESS_HANDLE_TRACING_ENABLE[_EX] or void to disable
-    ProcessIoPriority, // qs: IO_PRIORITY_HINT
-    ProcessExecuteFlags, // qs: ULONG (MEM_EXECUTE_OPTION_*)
-    ProcessTlsInformation, // PROCESS_TLS_INFORMATION // ProcessResourceManagement
-    ProcessCookie, // q: ULONG
-    ProcessImageInformation, // q: SECTION_IMAGE_INFORMATION
-    ProcessCycleTime, // q: PROCESS_CYCLE_TIME_INFORMATION // since VISTA
-    ProcessPagePriority, // qs: PAGE_PRIORITY_INFORMATION
-    ProcessInstrumentationCallback, // s: PVOID or PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION // 40
-    ProcessThreadStackAllocation, // s: PROCESS_STACK_ALLOCATION_INFORMATION, PROCESS_STACK_ALLOCATION_INFORMATION_EX
-    ProcessWorkingSetWatchEx, // q: PROCESS_WS_WATCH_INFORMATION_EX[]; s: void
-    ProcessImageFileNameWin32, // q: UNICODE_STRING
-    ProcessImageFileMapping, // q: HANDLE (input)
-    ProcessAffinityUpdateMode, // qs: PROCESS_AFFINITY_UPDATE_MODE
-    ProcessMemoryAllocationMode, // qs: PROCESS_MEMORY_ALLOCATION_MODE
-    ProcessGroupInformation, // q: USHORT[]
-    ProcessTokenVirtualizationEnabled, // s: ULONG
-    ProcessConsoleHostProcess, // qs: ULONG_PTR // ProcessOwnerInformation
-    ProcessWindowInformation, // q: PROCESS_WINDOW_INFORMATION // 50
-    ProcessHandleInformation, // q: PROCESS_HANDLE_SNAPSHOT_INFORMATION // since WIN8
-    ProcessMitigationPolicy, // s: PROCESS_MITIGATION_POLICY_INFORMATION
-    ProcessDynamicFunctionTableInformation, // s: PROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION
-    ProcessHandleCheckingMode, // qs: ULONG; s: 0 disables, otherwise enables
-    ProcessKeepAliveCount, // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
-    ProcessRevokeFileHandles, // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
-    ProcessWorkingSetControl, // s: PROCESS_WORKING_SET_CONTROL
-    ProcessHandleTable, // q: ULONG[] // since WINBLUE
-    ProcessCheckStackExtentsMode, // qs: ULONG // KPROCESS->CheckStackExtents (CFG)
-    ProcessCommandLineInformation, // q: UNICODE_STRING // 60
-    ProcessProtectionInformation, // q: PS_PROTECTION
-    ProcessMemoryExhaustion, // s: PROCESS_MEMORY_EXHAUSTION_INFO // since THRESHOLD
-    ProcessFaultInformation, // s: PROCESS_FAULT_INFORMATION
-    ProcessTelemetryIdInformation, // q: PROCESS_TELEMETRY_ID_INFORMATION
-    ProcessCommitReleaseInformation, // qs: PROCESS_COMMIT_RELEASE_INFORMATION
-    ProcessDefaultCpuSetsInformation, // qs: SYSTEM_CPU_SET_INFORMATION[5]
-    ProcessAllowedCpuSetsInformation, // qs: SYSTEM_CPU_SET_INFORMATION[5]
-    ProcessSubsystemProcess, // s: void // EPROCESS->SubsystemProcess
-    ProcessJobMemoryInformation, // q: PROCESS_JOB_MEMORY_INFO
-    ProcessInPrivate, // q: BOOLEAN; s: void // ETW // since THRESHOLD2 // 70
-    ProcessRaiseUMExceptionOnInvalidHandleClose, // qs: ULONG; s: 0 disables, otherwise enables
+    ProcessBasicInformation,                        // q: PROCESS_BASIC_INFORMATION, PROCESS_EXTENDED_BASIC_INFORMATION
+    ProcessQuotaLimits,                             // qs: QUOTA_LIMITS, QUOTA_LIMITS_EX
+    ProcessIoCounters,                              // q: IO_COUNTERS
+    ProcessVmCounters,                              // q: VM_COUNTERS, VM_COUNTERS_EX, VM_COUNTERS_EX2
+    ProcessTimes,                                   // q: KERNEL_USER_TIMES
+    ProcessBasePriority,                            // s: KPRIORITY
+    ProcessRaisePriority,                           // s: ULONG
+    ProcessDebugPort,                               // q: HANDLE
+    ProcessExceptionPort,                           // s: PROCESS_EXCEPTION_PORT (requires SeTcbPrivilege)
+    ProcessAccessToken,                             // s: PROCESS_ACCESS_TOKEN
+    ProcessLdtInformation,                          // qs: PROCESS_LDT_INFORMATION // 10
+    ProcessLdtSize,                                 // s: PROCESS_LDT_SIZE
+    ProcessDefaultHardErrorMode,                    // qs: ULONG
+    ProcessIoPortHandlers,                          // s: PROCESS_IO_PORT_HANDLER_INFORMATION // (kernel-mode only)
+    ProcessPooledUsageAndLimits,                    // q: POOLED_USAGE_AND_LIMITS
+    ProcessWorkingSetWatch,                         // q: PROCESS_WS_WATCH_INFORMATION[]; s: void
+    ProcessUserModeIOPL,                            // qs: ULONG (requires SeTcbPrivilege)
+    ProcessEnableAlignmentFaultFixup,               // s: BOOLEAN
+    ProcessPriorityClass,                           // qs: PROCESS_PRIORITY_CLASS
+    ProcessWx86Information,                         // qs: ULONG (requires SeTcbPrivilege) (VdmAllowed)
+    ProcessHandleCount,                             // q: ULONG, PROCESS_HANDLE_INFORMATION // 20
+    ProcessAffinityMask,                            // qs: KAFFINITY, qs: GROUP_AFFINITY
+    ProcessPriorityBoost,                           // qs: ULONG
+    ProcessDeviceMap,                               // qs: PROCESS_DEVICEMAP_INFORMATION, PROCESS_DEVICEMAP_INFORMATION_EX
+    ProcessSessionInformation,                      // q: PROCESS_SESSION_INFORMATION
+    ProcessForegroundInformation,                   // s: PROCESS_FOREGROUND_BACKGROUND
+    ProcessWow64Information,                        // q: ULONG_PTR
+    ProcessImageFileName,                           // q: UNICODE_STRING
+    ProcessLUIDDeviceMapsEnabled,                   // q: ULONG
+    ProcessBreakOnTermination,                      // qs: ULONG
+    ProcessDebugObjectHandle,                       // q: HANDLE // 30
+    ProcessDebugFlags,                              // qs: ULONG
+    ProcessHandleTracing,                           // q: PROCESS_HANDLE_TRACING_QUERY; s: PROCESS_HANDLE_TRACING_ENABLE[_EX] or void to disable
+    ProcessIoPriority,                              // qs: IO_PRIORITY_HINT
+    ProcessExecuteFlags,                            // qs: ULONG (MEM_EXECUTE_OPTION_*)
+    ProcessTlsInformation,                          // qs: PROCESS_TLS_INFORMATION // ProcessResourceManagement
+    ProcessCookie,                                  // q: ULONG
+    ProcessImageInformation,                        // q: SECTION_IMAGE_INFORMATION
+    ProcessCycleTime,                               // q: PROCESS_CYCLE_TIME_INFORMATION // since VISTA
+    ProcessPagePriority,                            // qs: PAGE_PRIORITY_INFORMATION
+    ProcessInstrumentationCallback,                 // s: PVOID or PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION // 40
+    ProcessThreadStackAllocation,                   // s: PROCESS_STACK_ALLOCATION_INFORMATION, PROCESS_STACK_ALLOCATION_INFORMATION_EX
+    ProcessWorkingSetWatchEx,                       // q: PROCESS_WS_WATCH_INFORMATION_EX[]; s: void
+    ProcessImageFileNameWin32,                      // q: UNICODE_STRING
+    ProcessImageFileMapping,                        // q: HANDLE (input)
+    ProcessAffinityUpdateMode,                      // qs: PROCESS_AFFINITY_UPDATE_MODE
+    ProcessMemoryAllocationMode,                    // qs: PROCESS_MEMORY_ALLOCATION_MODE
+    ProcessGroupInformation,                        // q: USHORT[]
+    ProcessTokenVirtualizationEnabled,              // s: ULONG
+    ProcessConsoleHostProcess,                      // qs: ULONG_PTR // ProcessOwnerInformation
+    ProcessWindowInformation,                       // q: PROCESS_WINDOW_INFORMATION // 50
+    ProcessHandleInformation,                       // q: PROCESS_HANDLE_SNAPSHOT_INFORMATION // since WIN8
+    ProcessMitigationPolicy,                        // s: PROCESS_MITIGATION_POLICY_INFORMATION
+    ProcessDynamicFunctionTableInformation,         // s: PROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION
+    ProcessHandleCheckingMode,                      // qs: ULONG; s: 0 disables, otherwise enables
+    ProcessKeepAliveCount,                          // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
+    ProcessRevokeFileHandles,                       // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
+    ProcessWorkingSetControl,                       // s: PROCESS_WORKING_SET_CONTROL
+    ProcessHandleTable,                             // q: ULONG[] // since WINBLUE
+    ProcessCheckStackExtentsMode,                   // qs: ULONG // KPROCESS->CheckStackExtents (CFG)
+    ProcessCommandLineInformation,                  // q: UNICODE_STRING // 60
+    ProcessProtectionInformation,                   // q: PS_PROTECTION
+    ProcessMemoryExhaustion,                        // s: PROCESS_MEMORY_EXHAUSTION_INFO // since THRESHOLD
+    ProcessFaultInformation,                        // s: PROCESS_FAULT_INFORMATION
+    ProcessTelemetryIdInformation,                  // q: PROCESS_TELEMETRY_ID_INFORMATION
+    ProcessCommitReleaseInformation,                // qs: PROCESS_COMMIT_RELEASE_INFORMATION
+    ProcessDefaultCpuSetsInformation,               // qs: SYSTEM_CPU_SET_INFORMATION[5] // ProcessReserved1Information
+    ProcessAllowedCpuSetsInformation,               // qs: SYSTEM_CPU_SET_INFORMATION[5] // ProcessReserved2Information
+    ProcessSubsystemProcess,                        // s: void // EPROCESS->SubsystemProcess
+    ProcessJobMemoryInformation,                    // q: PROCESS_JOB_MEMORY_INFO
+    ProcessInPrivate,                               // q: BOOLEAN; s: void // ETW // since THRESHOLD2 // 70
+    ProcessRaiseUMExceptionOnInvalidHandleClose,    // qs: ULONG; s: 0 disables, otherwise enables
     ProcessIumChallengeResponse,
-    ProcessChildProcessInformation, // q: PROCESS_CHILD_PROCESS_INFORMATION
-    ProcessHighGraphicsPriorityInformation, // qs: BOOLEAN (requires SeTcbPrivilege)
-    ProcessSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
-    ProcessEnergyValues, // q: PROCESS_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES_V1
-    ProcessPowerThrottlingState, // qs: POWER_THROTTLING_PROCESS_STATE
-    ProcessReserved3Information, // ProcessActivityThrottlePolicy // PROCESS_ACTIVITY_THROTTLE_POLICY
-    ProcessWin32kSyscallFilterInformation, // q: WIN32K_SYSCALL_FILTER
-    ProcessDisableSystemAllowedCpuSets, // s: BOOLEAN // 80
-    ProcessWakeInformation, // q: PROCESS_WAKE_INFORMATION
-    ProcessEnergyTrackingState, // qs: PROCESS_ENERGY_TRACKING_STATE
-    ProcessManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
-    ProcessCaptureTrustletLiveDump, // q: ULONG
-    ProcessTelemetryCoverage, // q: TELEMETRY_COVERAGE_HEADER; s: TELEMETRY_COVERAGE_POINT
+    ProcessChildProcessInformation,                 // q: PROCESS_CHILD_PROCESS_INFORMATION
+    ProcessHighGraphicsPriorityInformation,         // q: BOOLEAN; s: BOOLEAN (requires SeTcbPrivilege)
+    ProcessSubsystemInformation,                    // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
+    ProcessEnergyValues,                            // q: PROCESS_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES_V1
+    ProcessPowerThrottlingState,                    // qs: POWER_THROTTLING_PROCESS_STATE
+    ProcessActivityThrottlePolicy,                  // q: PROCESS_ACTIVITY_THROTTLE_POLICY // ProcessReserved3Information
+    ProcessWin32kSyscallFilterInformation,          // q: WIN32K_SYSCALL_FILTER
+    ProcessDisableSystemAllowedCpuSets,             // s: BOOLEAN // 80
+    ProcessWakeInformation,                         // q: PROCESS_WAKE_INFORMATION // (kernel-mode only)
+    ProcessEnergyTrackingState,                     // qs: PROCESS_ENERGY_TRACKING_STATE
+    ProcessManageWritesToExecutableMemory,          // s: MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
+    ProcessCaptureTrustletLiveDump,                 // q: ULONG
+    ProcessTelemetryCoverage,                       // q: TELEMETRY_COVERAGE_HEADER; s: TELEMETRY_COVERAGE_POINT
     ProcessEnclaveInformation,
-    ProcessEnableReadWriteVmLogging, // qs: PROCESS_READWRITEVM_LOGGING_INFORMATION
-    ProcessUptimeInformation, // q: PROCESS_UPTIME_INFORMATION
-    ProcessImageSection, // q: HANDLE
-    ProcessDebugAuthInformation, // s: CiTool.exe --device-id // PplDebugAuthorization // since RS4 // 90
-    ProcessSystemResourceManagement, // s: PROCESS_SYSTEM_RESOURCE_MANAGEMENT
-    ProcessSequenceNumber, // q: ULONGLONG
-    ProcessLoaderDetour, // since RS5
-    ProcessSecurityDomainInformation, // q: PROCESS_SECURITY_DOMAIN_INFORMATION
-    ProcessCombineSecurityDomainsInformation, // s: PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
-    ProcessEnableLogging, // qs: PROCESS_LOGGING_INFORMATION
-    ProcessLeapSecondInformation, // qs: PROCESS_LEAP_SECOND_INFORMATION
-    ProcessFiberShadowStackAllocation, // s: PROCESS_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION // since 19H1
-    ProcessFreeFiberShadowStackAllocation, // s: PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION
-    ProcessAltSystemCallInformation, // s: PROCESS_SYSCALL_PROVIDER_INFORMATION // since 20H1 // 100
-    ProcessDynamicEHContinuationTargets, // s: PROCESS_DYNAMIC_EH_CONTINUATION_TARGETS_INFORMATION
-    ProcessDynamicEnforcedCetCompatibleRanges, // s: PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE_INFORMATION // since 20H2
-    ProcessCreateStateChange, // since WIN11
+    ProcessEnableReadWriteVmLogging,                // qs: PROCESS_READWRITEVM_LOGGING_INFORMATION
+    ProcessUptimeInformation,                       // q: PROCESS_UPTIME_INFORMATION
+    ProcessImageSection,                            // q: HANDLE
+    ProcessDebugAuthInformation,                    // s: CiTool.exe --device-id // PplDebugAuthorization // since RS4 // 90
+    ProcessSystemResourceManagement,                // s: PROCESS_SYSTEM_RESOURCE_MANAGEMENT
+    ProcessSequenceNumber,                          // q: ULONGLONG
+    ProcessLoaderDetour,                            // qs: // since RS5
+    ProcessSecurityDomainInformation,               // q: PROCESS_SECURITY_DOMAIN_INFORMATION
+    ProcessCombineSecurityDomainsInformation,       // s: PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
+    ProcessEnableLogging,                           // qs: PROCESS_LOGGING_INFORMATION
+    ProcessLeapSecondInformation,                   // qs: PROCESS_LEAP_SECOND_INFORMATION
+    ProcessFiberShadowStackAllocation,              // s: PROCESS_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION // since 19H1
+    ProcessFreeFiberShadowStackAllocation,          // s: PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION
+    ProcessAltSystemCallInformation,                // s: PROCESS_SYSCALL_PROVIDER_INFORMATION // since 20H1 // 100
+    ProcessDynamicEHContinuationTargets,            // s: PROCESS_DYNAMIC_EH_CONTINUATION_TARGETS_INFORMATION
+    ProcessDynamicEnforcedCetCompatibleRanges,      // s: PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE_INFORMATION // since 20H2
+    ProcessCreateStateChange,                       // qs: // since WIN11
     ProcessApplyStateChange,
-    ProcessEnableOptionalXStateFeatures, // s: ULONG64 // optional XState feature bitmask
-    ProcessAltPrefetchParam, // qs: OVERRIDE_PREFETCH_PARAMETER // App Launch Prefetch (ALPF) // since 22H1
-    ProcessAssignCpuPartitions, // HANDLE
-    ProcessPriorityClassEx, // s: PROCESS_PRIORITY_CLASS_EX
-    ProcessMembershipInformation, // q: PROCESS_MEMBERSHIP_INFORMATION
-    ProcessEffectiveIoPriority, // q: IO_PRIORITY_HINT // 110
-    ProcessEffectivePagePriority, // q: ULONG
-    ProcessSchedulerSharedData, // SCHEDULER_SHARED_DATA_SLOT_INFORMATION // since 24H2
+    ProcessEnableOptionalXStateFeatures,            // s: ULONG64 // optional XState feature bitmask
+    ProcessAltPrefetchParam,                        // qs: OVERRIDE_PREFETCH_PARAMETER // App Launch Prefetch (ALPF) // since 22H1
+    ProcessAssignCpuPartitions,                     // s: HANDLE
+    ProcessPriorityClassEx,                         // s: PROCESS_PRIORITY_CLASS_EX
+    ProcessMembershipInformation,                   // q: PROCESS_MEMBERSHIP_INFORMATION
+    ProcessEffectiveIoPriority,                     // q: IO_PRIORITY_HINT // 110
+    ProcessEffectivePagePriority,                   // q: ULONG
+    ProcessSchedulerSharedData,                     // q: SCHEDULER_SHARED_DATA_SLOT_INFORMATION // since 24H2
     ProcessSlistRollbackInformation,
-    ProcessNetworkIoCounters, // q: PROCESS_NETWORK_COUNTERS
-    ProcessFindFirstThreadByTebValue, // PROCESS_TEB_VALUE_INFORMATION
-    ProcessEnclaveAddressSpaceRestriction, // since 25H2
-    ProcessAvailableCpus, // PROCESS_AVAILABLE_CPUS_INFORMATION
+    ProcessNetworkIoCounters,                       // q: PROCESS_NETWORK_COUNTERS
+    ProcessFindFirstThreadByTebValue,               // q: PROCESS_TEB_VALUE_INFORMATION // NtCurrentProcess
+    ProcessEnclaveAddressSpaceRestriction,          // qs: // since 25H2
+    ProcessAvailableCpus,                           // q: PROCESS_AVAILABLE_CPUS_INFORMATION
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -313,66 +318,66 @@ typedef enum _PROCESSINFOCLASS
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _THREADINFOCLASS
 {
-    ThreadBasicInformation, // q: THREAD_BASIC_INFORMATION
-    ThreadTimes, // q: KERNEL_USER_TIMES
-    ThreadPriority, // s: KPRIORITY (requires SeIncreaseBasePriorityPrivilege)
-    ThreadBasePriority, // s: KPRIORITY
-    ThreadAffinityMask, // s: KAFFINITY
-    ThreadImpersonationToken, // s: HANDLE
-    ThreadDescriptorTableEntry, // q: DESCRIPTOR_TABLE_ENTRY (or WOW64_DESCRIPTOR_TABLE_ENTRY)
-    ThreadEnableAlignmentFaultFixup, // s: BOOLEAN
-    ThreadEventPair, // Obsolete
-    ThreadQuerySetWin32StartAddress, // qs: PVOID (requires THREAD_Set_LIMITED_INFORMATION)
-    ThreadZeroTlsCell, // s: ULONG // TlsIndex // 10
-    ThreadPerformanceCount, // q: LARGE_INTEGER
-    ThreadAmILastThread, // q: ULONG
-    ThreadIdealProcessor, // s: ULONG
-    ThreadPriorityBoost, // qs: ULONG
-    ThreadSetTlsArrayAddress, // s: ULONG_PTR
-    ThreadIsIoPending, // q: ULONG
-    ThreadHideFromDebugger, // q: BOOLEAN; s: void
-    ThreadBreakOnTermination, // qs: ULONG
-    ThreadSwitchLegacyState, // s: void // NtCurrentThread // NPX/FPU
-    ThreadIsTerminated, // q: ULONG // 20
-    ThreadLastSystemCall, // q: THREAD_LAST_SYSCALL_INFORMATION
-    ThreadIoPriority, // qs: IO_PRIORITY_HINT (requires SeIncreaseBasePriorityPrivilege)
-    ThreadCycleTime, // q: THREAD_CYCLE_TIME_INFORMATION (requires THREAD_QUERY_LIMITED_INFORMATION)
-    ThreadPagePriority, // qs: PAGE_PRIORITY_INFORMATION
-    ThreadActualBasePriority, // s: LONG (requires SeIncreaseBasePriorityPrivilege)
-    ThreadTebInformation, // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_SET_CONTEXT)
-    ThreadCSwitchMon, // Obsolete
-    ThreadCSwitchPmu, // Obsolete
-    ThreadWow64Context, // qs: WOW64_CONTEXT, ARM_NT_CONTEXT since 20H1
-    ThreadGroupInformation, // qs: GROUP_AFFINITY // 30
-    ThreadUmsInformation, // q: THREAD_UMS_INFORMATION // Obsolete
-    ThreadCounterProfiling, // q: BOOLEAN; s: THREAD_PROFILING_INFORMATION?
-    ThreadIdealProcessorEx, // qs: PROCESSOR_NUMBER; s: previous PROCESSOR_NUMBER on return
-    ThreadCpuAccountingInformation, // q: BOOLEAN; s: HANDLE (NtOpenSession) // NtCurrentThread // since WIN8
-    ThreadSuspendCount, // q: ULONG // since WINBLUE
-    ThreadHeterogeneousCpuPolicy, // q: KHETERO_CPU_POLICY // since THRESHOLD
-    ThreadContainerId, // q: GUID
-    ThreadNameInformation, // qs: THREAD_NAME_INFORMATION (requires THREAD_SET_LIMITED_INFORMATION)
-    ThreadSelectedCpuSets, // q: ULONG[]
-    ThreadSystemThreadInformation, // q: SYSTEM_THREAD_INFORMATION // 40
-    ThreadActualGroupAffinity, // q: GROUP_AFFINITY // since THRESHOLD2
-    ThreadDynamicCodePolicyInfo, // q: ULONG; s: ULONG (NtCurrentThread)
-    ThreadExplicitCaseSensitivity, // qs: ULONG; s: 0 disables, otherwise enables // (requires SeDebugPrivilege and PsProtectedSignerAntimalware)
-    ThreadWorkOnBehalfTicket, // ALPC_WORK_ON_BEHALF_TICKET // RTL_WORK_ON_BEHALF_TICKET_EX // NtCurrentThread
-    ThreadSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
-    ThreadDbgkWerReportActive, // s: ULONG; s: 0 disables, otherwise enables
-    ThreadAttachContainer, // s: HANDLE (job object) // NtCurrentThread
-    ThreadManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
-    ThreadPowerThrottlingState, // qs: POWER_THROTTLING_THREAD_STATE // since REDSTONE3 (set), WIN11 22H2 (query)
-    ThreadWorkloadClass, // THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
-    ThreadCreateStateChange, // since WIN11
+    ThreadBasicInformation,                         // q: THREAD_BASIC_INFORMATION
+    ThreadTimes,                                    // q: KERNEL_USER_TIMES
+    ThreadPriority,                                 // s: KPRIORITY (requires SeIncreaseBasePriorityPrivilege)
+    ThreadBasePriority,                             // s: KPRIORITY
+    ThreadAffinityMask,                             // s: KAFFINITY
+    ThreadImpersonationToken,                       // s: HANDLE
+    ThreadDescriptorTableEntry,                     // q: DESCRIPTOR_TABLE_ENTRY (or WOW64_DESCRIPTOR_TABLE_ENTRY)
+    ThreadEnableAlignmentFaultFixup,                // s: BOOLEAN
+    ThreadEventPair,                                // q: Obsolete
+    ThreadQuerySetWin32StartAddress,                // qs: PVOID (requires THREAD_Set_LIMITED_INFORMATION)
+    ThreadZeroTlsCell,                              // s: ULONG // TlsIndex // 10
+    ThreadPerformanceCount,                         // q: LARGE_INTEGER
+    ThreadAmILastThread,                            // q: ULONG
+    ThreadIdealProcessor,                           // s: ULONG
+    ThreadPriorityBoost,                            // qs: ULONG
+    ThreadSetTlsArrayAddress,                       // s: ULONG_PTR
+    ThreadIsIoPending,                              // q: ULONG
+    ThreadHideFromDebugger,                         // q: BOOLEAN; s: void
+    ThreadBreakOnTermination,                       // qs: ULONG
+    ThreadSwitchLegacyState,                        // s: void // NtCurrentThread // NPX/FPU
+    ThreadIsTerminated,                             // q: ULONG // 20
+    ThreadLastSystemCall,                           // q: THREAD_LAST_SYSCALL_INFORMATION
+    ThreadIoPriority,                               // qs: IO_PRIORITY_HINT (requires SeIncreaseBasePriorityPrivilege)
+    ThreadCycleTime,                                // q: THREAD_CYCLE_TIME_INFORMATION (requires THREAD_QUERY_LIMITED_INFORMATION)
+    ThreadPagePriority,                             // qs: PAGE_PRIORITY_INFORMATION
+    ThreadActualBasePriority,                       // s: LONG (requires SeIncreaseBasePriorityPrivilege)
+    ThreadTebInformation,                           // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_SET_CONTEXT)
+    ThreadCSwitchMon,                               // q: Obsolete
+    ThreadCSwitchPmu,                               // q: Obsolete
+    ThreadWow64Context,                             // qs: WOW64_CONTEXT, ARM_NT_CONTEXT since 20H1
+    ThreadGroupInformation,                         // qs: GROUP_AFFINITY // 30
+    ThreadUmsInformation,                           // q: THREAD_UMS_INFORMATION // Obsolete
+    ThreadCounterProfiling,                         // q: BOOLEAN; s: THREAD_PROFILING_INFORMATION?
+    ThreadIdealProcessorEx,                         // qs: PROCESSOR_NUMBER; s: previous PROCESSOR_NUMBER on return
+    ThreadCpuAccountingInformation,                 // q: BOOLEAN; s: HANDLE (NtOpenSession) // NtCurrentThread // since WIN8
+    ThreadSuspendCount,                             // q: ULONG // since WINBLUE
+    ThreadHeterogeneousCpuPolicy,                   // q: KHETERO_CPU_POLICY // since THRESHOLD
+    ThreadContainerId,                              // q: GUID
+    ThreadNameInformation,                          // qs: THREAD_NAME_INFORMATION (requires THREAD_SET_LIMITED_INFORMATION)
+    ThreadSelectedCpuSets,                          // q: ULONG[]
+    ThreadSystemThreadInformation,                  // q: SYSTEM_THREAD_INFORMATION // 40
+    ThreadActualGroupAffinity,                      // q: GROUP_AFFINITY // since THRESHOLD2
+    ThreadDynamicCodePolicyInfo,                    // q: ULONG; s: ULONG (NtCurrentThread)
+    ThreadExplicitCaseSensitivity,                  // qs: ULONG; s: 0 disables, otherwise enables // (requires SeDebugPrivilege and PsProtectedSignerAntimalware)
+    ThreadWorkOnBehalfTicket,                       // q: ALPC_WORK_ON_BEHALF_TICKET // RTL_WORK_ON_BEHALF_TICKET_EX // NtCurrentThread
+    ThreadSubsystemInformation,                     // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
+    ThreadDbgkWerReportActive,                      // s: ULONG; s: 0 disables, otherwise enables
+    ThreadAttachContainer,                          // s: HANDLE (job object) // NtCurrentThread
+    ThreadManageWritesToExecutableMemory,           // s: MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
+    ThreadPowerThrottlingState,                     // qs: POWER_THROTTLING_THREAD_STATE // since REDSTONE3 (set), WIN11 22H2 (query)
+    ThreadWorkloadClass,                            // q: THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
+    ThreadCreateStateChange,                        // q: // since WIN11
     ThreadApplyStateChange,
-    ThreadStrongerBadHandleChecks, // s: ULONG // NtCurrentThread // since 22H1
-    ThreadEffectiveIoPriority, // q: IO_PRIORITY_HINT
-    ThreadEffectivePagePriority, // q: ULONG
-    ThreadUpdateLockOwnership, // THREAD_LOCK_OWNERSHIP // since 24H2
-    ThreadSchedulerSharedDataSlot, // SCHEDULER_SHARED_DATA_SLOT_INFORMATION
-    ThreadTebInformationAtomic, // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_QUERY_INFORMATION)
-    ThreadIndexInformation, // THREAD_INDEX_INFORMATION
+    ThreadStrongerBadHandleChecks,                  // s: ULONG // NtCurrentThread // since 22H1
+    ThreadEffectiveIoPriority,                      // q: IO_PRIORITY_HINT
+    ThreadEffectivePagePriority,                    // q: ULONG
+    ThreadUpdateLockOwnership,                      // THREAD_LOCK_OWNERSHIP // since 24H2
+    ThreadSchedulerSharedDataSlot,                  // SCHEDULER_SHARED_DATA_SLOT_INFORMATION
+    ThreadTebInformationAtomic,                     // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_QUERY_INFORMATION)
+    ThreadIndexInformation,                         // THREAD_INDEX_INFORMATION
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -415,12 +420,12 @@ typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
         PROCESS_BASIC_INFORMATION BasicInfo;
         struct
         {
-            NTSTATUS ExitStatus;    // The exit status of the process. (GetExitCodeProcess)
-            PPEB PebBaseAddress;    // A pointer to the process environment block (PEB) of the process.
-            KAFFINITY AffinityMask; // The affinity mask of the process. (GetProcessAffinityMask) (deprecated)
-            KPRIORITY BasePriority; // The base priority of the process. (GetPriorityClass)
-            HANDLE UniqueProcessId; // The unique identifier of the process. (GetProcessId)
-            HANDLE InheritedFromUniqueProcessId; // The unique identifier of the parent process.
+            NTSTATUS ExitStatus;                    // The exit status of the process. (GetExitCodeProcess)
+            PPEB PebBaseAddress;                    // A pointer to the process environment block (PEB) of the process.
+            KAFFINITY AffinityMask;                 // The affinity mask of the process. (GetProcessAffinityMask) (deprecated)
+            KPRIORITY BasePriority;                 // The base priority of the process. (GetPriorityClass)
+            HANDLE UniqueProcessId;                 // The unique identifier of the process. (GetProcessId)
+            HANDLE InheritedFromUniqueProcessId;    // The unique identifier of the parent process.
         };
     };
     union
@@ -1948,26 +1953,26 @@ NtCreateProcess(
 
 // begin_rev
 #define PROCESS_CREATE_FLAGS_NONE 0x00000000
-#define PROCESS_CREATE_FLAGS_BREAKAWAY 0x00000001 // NtCreateProcessEx & NtCreateUserProcess
-#define PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT 0x00000002 // NtCreateProcessEx & NtCreateUserProcess
-#define PROCESS_CREATE_FLAGS_INHERIT_HANDLES 0x00000004 // NtCreateProcessEx & NtCreateUserProcess
-#define PROCESS_CREATE_FLAGS_OVERRIDE_ADDRESS_SPACE 0x00000008 // NtCreateProcessEx only
-#define PROCESS_CREATE_FLAGS_LARGE_PAGES 0x00000010 // NtCreateProcessEx only (requires SeLockMemoryPrivilege)
-#define PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL 0x00000020 // NtCreateProcessEx only (requires SeLockMemoryPrivilege)
-#define PROCESS_CREATE_FLAGS_PROTECTED_PROCESS 0x00000040 // NtCreateUserProcess only
-#define PROCESS_CREATE_FLAGS_CREATE_SESSION 0x00000080 // NtCreateProcessEx & NtCreateUserProcess (requires SeLoadDriverPrivilege)
-#define PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT 0x00000100 // NtCreateProcessEx & NtCreateUserProcess
-#define PROCESS_CREATE_FLAGS_CREATE_SUSPENDED 0x00000200 // NtCreateProcessEx & NtCreateUserProcess
-#define PROCESS_CREATE_FLAGS_FORCE_BREAKAWAY 0x00000400 // NtCreateProcessEx & NtCreateUserProcess (requires SeTcbPrivilege)
-#define PROCESS_CREATE_FLAGS_MINIMAL_PROCESS 0x00000800 // NtCreateProcessEx only
-#define PROCESS_CREATE_FLAGS_RELEASE_SECTION 0x00001000 // NtCreateProcessEx & NtCreateUserProcess
-#define PROCESS_CREATE_FLAGS_CLONE_MINIMAL 0x00002000 // NtCreateProcessEx only
+#define PROCESS_CREATE_FLAGS_BREAKAWAY 0x00000001                               // NtCreateProcessEx & NtCreateUserProcess
+#define PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT 0x00000002                        // NtCreateProcessEx & NtCreateUserProcess
+#define PROCESS_CREATE_FLAGS_INHERIT_HANDLES 0x00000004                         // NtCreateProcessEx & NtCreateUserProcess
+#define PROCESS_CREATE_FLAGS_OVERRIDE_ADDRESS_SPACE 0x00000008                  // NtCreateProcessEx only
+#define PROCESS_CREATE_FLAGS_LARGE_PAGES 0x00000010                             // NtCreateProcessEx only (requires SeLockMemoryPrivilege)
+#define PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL 0x00000020                   // NtCreateProcessEx only (requires SeLockMemoryPrivilege)
+#define PROCESS_CREATE_FLAGS_PROTECTED_PROCESS 0x00000040                       // NtCreateUserProcess only
+#define PROCESS_CREATE_FLAGS_CREATE_SESSION 0x00000080                          // NtCreateProcessEx & NtCreateUserProcess (requires SeLoadDriverPrivilege)
+#define PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT 0x00000100                     // NtCreateProcessEx & NtCreateUserProcess
+#define PROCESS_CREATE_FLAGS_CREATE_SUSPENDED 0x00000200                        // NtCreateProcessEx & NtCreateUserProcess
+#define PROCESS_CREATE_FLAGS_FORCE_BREAKAWAY 0x00000400                         // NtCreateProcessEx & NtCreateUserProcess (requires SeTcbPrivilege)
+#define PROCESS_CREATE_FLAGS_MINIMAL_PROCESS 0x00000800                         // NtCreateProcessEx only
+#define PROCESS_CREATE_FLAGS_RELEASE_SECTION 0x00001000                         // NtCreateProcessEx & NtCreateUserProcess
+#define PROCESS_CREATE_FLAGS_CLONE_MINIMAL 0x00002000                           // NtCreateProcessEx only
 #define PROCESS_CREATE_FLAGS_CLONE_MINIMAL_REDUCED_COMMIT 0x00004000
-#define PROCESS_CREATE_FLAGS_AUXILIARY_PROCESS 0x00008000 // NtCreateProcessEx & NtCreateUserProcess (requires SeTcbPrivilege)
-#define PROCESS_CREATE_FLAGS_CREATE_STORE 0x00020000 // NtCreateProcessEx & NtCreateUserProcess
-#define PROCESS_CREATE_FLAGS_USE_PROTECTED_ENVIRONMENT 0x00040000 // NtCreateProcessEx & NtCreateUserProcess
+#define PROCESS_CREATE_FLAGS_AUXILIARY_PROCESS 0x00008000                       // NtCreateProcessEx & NtCreateUserProcess (requires SeTcbPrivilege)
+#define PROCESS_CREATE_FLAGS_CREATE_STORE 0x00020000                            // NtCreateProcessEx & NtCreateUserProcess
+#define PROCESS_CREATE_FLAGS_USE_PROTECTED_ENVIRONMENT 0x00040000               // NtCreateProcessEx & NtCreateUserProcess
 #define PROCESS_CREATE_FLAGS_IMAGE_EXPANSION_MITIGATION_DISABLE 0x00080000
-#define PROCESS_CREATE_FLAGS_PARTITION_CREATE_SLAB_IDENTITY 0x00400000 // NtCreateProcessEx & NtCreateUserProcess (requires SeLockMemoryPrivilege)
+#define PROCESS_CREATE_FLAGS_PARTITION_CREATE_SLAB_IDENTITY 0x00400000          // NtCreateProcessEx & NtCreateUserProcess (requires SeLockMemoryPrivilege)
 // end_rev
 
 /**
@@ -2824,36 +2829,36 @@ NtQueueApcThreadEx2(
 // Attributes (Win32 CreateProcess)
 
 // PROC_THREAD_ATTRIBUTE_NUM (dmex)
-#define ProcThreadAttributeParentProcess 0 // in HANDLE
-#define ProcThreadAttributeExtendedFlags 1 // in ULONG (EXTENDED_PROCESS_CREATION_FLAG_*)
-#define ProcThreadAttributeHandleList 2 // in HANDLE[]
-#define ProcThreadAttributeGroupAffinity 3 // in GROUP_AFFINITY // since WIN7
-#define ProcThreadAttributePreferredNode 4 // in USHORT
-#define ProcThreadAttributeIdealProcessor 5 // in PROCESSOR_NUMBER
-#define ProcThreadAttributeUmsThread 6 // in UMS_CREATE_THREAD_ATTRIBUTES
-#define ProcThreadAttributeMitigationPolicy 7 // in ULONG, ULONG64, or ULONG64[2]
-#define ProcThreadAttributePackageFullName 8 // in WCHAR[] // since WIN8
-#define ProcThreadAttributeSecurityCapabilities 9 // in SECURITY_CAPABILITIES
-#define ProcThreadAttributeConsoleReference 10 // BaseGetConsoleReference (kernelbase.dll)
-#define ProcThreadAttributeProtectionLevel 11 // in ULONG (PROTECTION_LEVEL_*) // since WINBLUE
-#define ProcThreadAttributeOsMaxVersionTested 12 // in MAXVERSIONTESTED_INFO // since THRESHOLD // (from exe.manifest)
-#define ProcThreadAttributeJobList 13 // in HANDLE[]
-#define ProcThreadAttributeChildProcessPolicy 14 // in ULONG (PROCESS_CREATION_CHILD_PROCESS_*) // since THRESHOLD2
-#define ProcThreadAttributeAllApplicationPackagesPolicy 15 // in ULONG (PROCESS_CREATION_ALL_APPLICATION_PACKAGES_*) // since REDSTONE
-#define ProcThreadAttributeWin32kFilter 16 // in WIN32K_SYSCALL_FILTER
-#define ProcThreadAttributeSafeOpenPromptOriginClaim 17 // in SE_SAFE_OPEN_PROMPT_RESULTS
-#define ProcThreadAttributeDesktopAppPolicy 18 // in ULONG (PROCESS_CREATION_DESKTOP_APP_*) // since RS2
-#define ProcThreadAttributeBnoIsolation 19 // in PROC_THREAD_BNOISOLATION_ATTRIBUTE
-#define ProcThreadAttributePseudoConsole 22 // in HANDLE (HPCON) // since RS5
-#define ProcThreadAttributeIsolationManifest 23 // in ISOLATION_MANIFEST_PROPERTIES // rev (diversenok) // since 19H2+
-#define ProcThreadAttributeMitigationAuditPolicy 24 // in ULONG, ULONG64, or ULONG64[2] // since 21H1
-#define ProcThreadAttributeMachineType 25 // in USHORT // since 21H2
-#define ProcThreadAttributeComponentFilter 26 // in ULONG
-#define ProcThreadAttributeEnableOptionalXStateFeatures 27 // in ULONG64 // since WIN11
-#define ProcThreadAttributeCreateStore 28 // ULONG // rev (diversenok)
+#define ProcThreadAttributeParentProcess 0                      // in HANDLE
+#define ProcThreadAttributeExtendedFlags 1                      // in ULONG (EXTENDED_PROCESS_CREATION_FLAG_*)
+#define ProcThreadAttributeHandleList 2                         // in HANDLE[]
+#define ProcThreadAttributeGroupAffinity 3                      // in GROUP_AFFINITY // since WIN7
+#define ProcThreadAttributePreferredNode 4                      // in USHORT
+#define ProcThreadAttributeIdealProcessor 5                     // in PROCESSOR_NUMBER
+#define ProcThreadAttributeUmsThread 6                          // in UMS_CREATE_THREAD_ATTRIBUTES
+#define ProcThreadAttributeMitigationPolicy 7                   // in ULONG, ULONG64, or ULONG64[2]
+#define ProcThreadAttributePackageFullName 8                    // in WCHAR[] // since WIN8
+#define ProcThreadAttributeSecurityCapabilities 9               // in SECURITY_CAPABILITIES
+#define ProcThreadAttributeConsoleReference 10                  // BaseGetConsoleReference (kernelbase.dll)
+#define ProcThreadAttributeProtectionLevel 11                   // in ULONG (PROTECTION_LEVEL_*) // since WINBLUE
+#define ProcThreadAttributeOsMaxVersionTested 12                // in MAXVERSIONTESTED_INFO // since THRESHOLD // (from exe.manifest)
+#define ProcThreadAttributeJobList 13                           // in HANDLE[]
+#define ProcThreadAttributeChildProcessPolicy 14                // in ULONG (PROCESS_CREATION_CHILD_PROCESS_*) // since THRESHOLD2
+#define ProcThreadAttributeAllApplicationPackagesPolicy 15      // in ULONG (PROCESS_CREATION_ALL_APPLICATION_PACKAGES_*) // since REDSTONE
+#define ProcThreadAttributeWin32kFilter 16                      // in WIN32K_SYSCALL_FILTER
+#define ProcThreadAttributeSafeOpenPromptOriginClaim 17         // in SE_SAFE_OPEN_PROMPT_RESULTS
+#define ProcThreadAttributeDesktopAppPolicy 18                  // in ULONG (PROCESS_CREATION_DESKTOP_APP_*) // since RS2
+#define ProcThreadAttributeBnoIsolation 19                      // in PROC_THREAD_BNOISOLATION_ATTRIBUTE
+#define ProcThreadAttributePseudoConsole 22                     // in HANDLE (HPCON) // since RS5
+#define ProcThreadAttributeIsolationManifest 23                 // in ISOLATION_MANIFEST_PROPERTIES // rev (diversenok) // since 19H2+
+#define ProcThreadAttributeMitigationAuditPolicy 24             // in ULONG, ULONG64, or ULONG64[2] // since 21H1
+#define ProcThreadAttributeMachineType 25                       // in USHORT // since 21H2
+#define ProcThreadAttributeComponentFilter 26                   // in ULONG
+#define ProcThreadAttributeEnableOptionalXStateFeatures 27      // in ULONG64 // since WIN11
+#define ProcThreadAttributeCreateStore 28                       // ULONG // rev (diversenok)
 #define ProcThreadAttributeTrustedApp 29
 #define ProcThreadAttributeSveVectorLength 30
-#define ProcThreadAttributeSmeVectorLength 31 // since 25H2
+#define ProcThreadAttributeSmeVectorLength 31                   // since 25H2
 
 #ifndef PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS
 #define PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS \
@@ -3432,58 +3437,58 @@ NtCreateThreadEx(
 
 // JOBOBJECTINFOCLASS
 // Note: We don't use an enum since it conflicts with the Windows SDK.
-#define JobObjectBasicAccountingInformation 1 // q: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
-#define JobObjectBasicLimitInformation 2 // q; s: JOBOBJECT_BASIC_LIMIT_INFORMATION
-#define JobObjectBasicProcessIdList 3 // q: JOBOBJECT_BASIC_PROCESS_ID_LIST
-#define JobObjectBasicUIRestrictions 4 // q; s: JOBOBJECT_BASIC_UI_RESTRICTIONS
-#define JobObjectSecurityLimitInformation 5 // JOBOBJECT_SECURITY_LIMIT_INFORMATION
-#define JobObjectEndOfJobTimeInformation 6 // q; s: JOBOBJECT_END_OF_JOB_TIME_INFORMATION
-#define JobObjectAssociateCompletionPortInformation 7 // s: JOBOBJECT_ASSOCIATE_COMPLETION_PORT
-#define JobObjectBasicAndIoAccountingInformation 8 // q: JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION
-#define JobObjectExtendedLimitInformation 9 // q; s: JOBOBJECT_EXTENDED_LIMIT_INFORMATION[V2]
-#define JobObjectJobSetInformation 10 // JOBOBJECT_JOBSET_INFORMATION
-#define JobObjectGroupInformation 11 // USHORT
-#define JobObjectNotificationLimitInformation 12 // JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION
-#define JobObjectLimitViolationInformation 13 // JOBOBJECT_LIMIT_VIOLATION_INFORMATION
-#define JobObjectGroupInformationEx 14 // GROUP_AFFINITY (ARRAY)
-#define JobObjectCpuRateControlInformation 15 // JOBOBJECT_CPU_RATE_CONTROL_INFORMATION
-#define JobObjectCompletionFilter 16 // q; s: ULONG
-#define JobObjectCompletionCounter 17 // q; s: ULONG
-#define JobObjectFreezeInformation 18 // JOBOBJECT_FREEZE_INFORMATION
-#define JobObjectExtendedAccountingInformation 19 // JOBOBJECT_EXTENDED_ACCOUNTING_INFORMATION
-#define JobObjectWakeInformation 20 // JOBOBJECT_WAKE_INFORMATION
-#define JobObjectBackgroundInformation 21 // s: BOOLEAN
+#define JobObjectBasicAccountingInformation 1                       // q: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
+#define JobObjectBasicLimitInformation 2                            // q; s: JOBOBJECT_BASIC_LIMIT_INFORMATION
+#define JobObjectBasicProcessIdList 3                               // q: JOBOBJECT_BASIC_PROCESS_ID_LIST
+#define JobObjectBasicUIRestrictions 4                              // q; s: JOBOBJECT_BASIC_UI_RESTRICTIONS
+#define JobObjectSecurityLimitInformation 5                         // JOBOBJECT_SECURITY_LIMIT_INFORMATION
+#define JobObjectEndOfJobTimeInformation 6                          // q; s: JOBOBJECT_END_OF_JOB_TIME_INFORMATION
+#define JobObjectAssociateCompletionPortInformation 7               // s: JOBOBJECT_ASSOCIATE_COMPLETION_PORT
+#define JobObjectBasicAndIoAccountingInformation 8                  // q: JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION
+#define JobObjectExtendedLimitInformation 9                         // q; s: JOBOBJECT_EXTENDED_LIMIT_INFORMATION[V2]
+#define JobObjectJobSetInformation 10                               // JOBOBJECT_JOBSET_INFORMATION
+#define JobObjectGroupInformation 11                                // USHORT
+#define JobObjectNotificationLimitInformation 12                    // JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION
+#define JobObjectLimitViolationInformation 13                       // JOBOBJECT_LIMIT_VIOLATION_INFORMATION
+#define JobObjectGroupInformationEx 14                              // GROUP_AFFINITY (ARRAY)
+#define JobObjectCpuRateControlInformation 15                       // JOBOBJECT_CPU_RATE_CONTROL_INFORMATION
+#define JobObjectCompletionFilter 16                                // q; s: ULONG
+#define JobObjectCompletionCounter 17                               // q; s: ULONG
+#define JobObjectFreezeInformation 18                               // JOBOBJECT_FREEZE_INFORMATION
+#define JobObjectExtendedAccountingInformation 19                   // JOBOBJECT_EXTENDED_ACCOUNTING_INFORMATION
+#define JobObjectWakeInformation 20                                 // JOBOBJECT_WAKE_INFORMATION
+#define JobObjectBackgroundInformation 21                           // s: BOOLEAN
 #define JobObjectSchedulingRankBiasInformation 22
 #define JobObjectTimerVirtualizationInformation 23
 #define JobObjectCycleTimeNotification 24
 #define JobObjectClearEvent 25
-#define JobObjectInterferenceInformation 26 // JOBOBJECT_INTERFERENCE_INFORMATION
+#define JobObjectInterferenceInformation 26                         // JOBOBJECT_INTERFERENCE_INFORMATION
 #define JobObjectClearPeakJobMemoryUsed 27
-#define JobObjectMemoryUsageInformation 28 // JOBOBJECT_MEMORY_USAGE_INFORMATION // JOBOBJECT_MEMORY_USAGE_INFORMATION_V2
+#define JobObjectMemoryUsageInformation 28                          // JOBOBJECT_MEMORY_USAGE_INFORMATION // JOBOBJECT_MEMORY_USAGE_INFORMATION_V2
 #define JobObjectSharedCommit 29
-#define JobObjectContainerId 30 // JOBOBJECT_CONTAINER_IDENTIFIER_V2
-#define JobObjectIoRateControlInformation 31 // JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE, JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE_V2, JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE_V3
-#define JobObjectNetRateControlInformation 32 // JOBOBJECT_NET_RATE_CONTROL_INFORMATION
-#define JobObjectNotificationLimitInformation2 33 // JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION_2
-#define JobObjectLimitViolationInformation2 34 // JOBOBJECT_LIMIT_VIOLATION_INFORMATION_2
-#define JobObjectCreateSilo 35 // s: NULL
-#define JobObjectSiloBasicInformation 36 // SILOOBJECT_BASIC_INFORMATION
-#define JobObjectSiloRootDirectory 37 // SILOOBJECT_ROOT_DIRECTORY
-#define JobObjectServerSiloBasicInformation 38 // SERVERSILO_BASIC_INFORMATION
-#define JobObjectServerSiloUserSharedData 39 // SILO_USER_SHARED_DATA // NtQueryInformationJobObject(NULL, 39, Buffer, sizeof(SILO_USER_SHARED_DATA), 0);
-#define JobObjectServerSiloInitialize 40 // SERVERSILO_INIT_INFORMATION
+#define JobObjectContainerId 30                                     // JOBOBJECT_CONTAINER_IDENTIFIER_V2
+#define JobObjectIoRateControlInformation 31                        // JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE, JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE_V2, JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE_V3
+#define JobObjectNetRateControlInformation 32                       // JOBOBJECT_NET_RATE_CONTROL_INFORMATION
+#define JobObjectNotificationLimitInformation2 33                   // JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION_2
+#define JobObjectLimitViolationInformation2 34                      // JOBOBJECT_LIMIT_VIOLATION_INFORMATION_2
+#define JobObjectCreateSilo 35                                      // s: NULL
+#define JobObjectSiloBasicInformation 36                            // SILOOBJECT_BASIC_INFORMATION
+#define JobObjectSiloRootDirectory 37                               // SILOOBJECT_ROOT_DIRECTORY
+#define JobObjectServerSiloBasicInformation 38                      // SERVERSILO_BASIC_INFORMATION
+#define JobObjectServerSiloUserSharedData 39                        // SILO_USER_SHARED_DATA // NtQueryInformationJobObject(NULL, 39, Buffer, sizeof(SILO_USER_SHARED_DATA), 0);
+#define JobObjectServerSiloInitialize 40                            // SERVERSILO_INIT_INFORMATION
 #define JobObjectServerSiloRunningState 41
-#define JobObjectIoAttribution 42 // JOBOBJECT_IO_ATTRIBUTION_INFORMATION
+#define JobObjectIoAttribution 42                                   // JOBOBJECT_IO_ATTRIBUTION_INFORMATION
 #define JobObjectMemoryPartitionInformation 43
-#define JobObjectContainerTelemetryId 44 // s: GUID // NtSetInformationJobObject(_In_ PGUID, 44, _In_ PGUID, sizeof(GUID)); // daxexec
-#define JobObjectSiloSystemRoot 45 // s: UNICODE_STRING
-#define JobObjectEnergyTrackingState 46 // JOBOBJECT_ENERGY_TRACKING_STATE
-#define JobObjectThreadImpersonationInformation 47 // q; s: BOOLEAN
-#define JobObjectIoPriorityLimit 48 // JOBOBJECT_IO_PRIORITY_LIMIT
-#define JobObjectPagePriorityLimit 49 // JOBOBJECT_PAGE_PRIORITY_LIMIT
-#define JobObjectServerSiloDiagnosticInformation 50 // SERVERSILO_DIAGNOSTIC_INFORMATION // since 24H2
-#define JobObjectNetworkAccountingInformation 51 // JOBOBJECT_NETWORK_ACCOUNTING_INFORMATION
-#define JobObjectCpuPartition 52 // since 25H2
+#define JobObjectContainerTelemetryId 44                            // s: GUID // NtSetInformationJobObject(_In_ PGUID, 44, _In_ PGUID, sizeof(GUID)); // daxexec
+#define JobObjectSiloSystemRoot 45                                  // s: UNICODE_STRING
+#define JobObjectEnergyTrackingState 46                             // JOBOBJECT_ENERGY_TRACKING_STATE
+#define JobObjectThreadImpersonationInformation 47                  // q; s: BOOLEAN
+#define JobObjectIoPriorityLimit 48                                 // JOBOBJECT_IO_PRIORITY_LIMIT
+#define JobObjectPagePriorityLimit 49                               // JOBOBJECT_PAGE_PRIORITY_LIMIT
+#define JobObjectServerSiloDiagnosticInformation 50                 // SERVERSILO_DIAGNOSTIC_INFORMATION // since 24H2
+#define JobObjectNetworkAccountingInformation 51                    // JOBOBJECT_NETWORK_ACCOUNTING_INFORMATION
+#define JobObjectCpuPartition 52                                    // since 25H2
 #define MaxJobObjectInfoClass 53
 
 // rev // extended limit v2
