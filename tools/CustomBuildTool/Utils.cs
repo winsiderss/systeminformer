@@ -541,23 +541,23 @@ namespace CustomBuildTool
             return outputString.Replace("\r\n\r\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
         }
 
-        public static string GetSignToolPath()
-        {
-            string windowsSdkPath = Utils.GetWindowsSdkPath();
-
-            if (string.IsNullOrWhiteSpace(windowsSdkPath))
-                return string.Empty;
-
-            string signToolPath = Path.Join([windowsSdkPath, "\\x64\\SignTool.exe"]);
-
-            if (string.IsNullOrWhiteSpace(signToolPath))
-                return string.Empty;
-
-            if (!File.Exists(signToolPath))
-                return string.Empty;
-
-            return signToolPath;
-        }
+        //public static string GetSignToolPath()
+        //{
+        //    string windowsSdkPath = Utils.GetWindowsSdkPath();
+        //
+        //    if (string.IsNullOrWhiteSpace(windowsSdkPath))
+        //        return string.Empty;
+        //
+        //    string signToolPath = Path.Join([windowsSdkPath, "\\x64\\SignTool.exe"]);
+        //
+        //    if (string.IsNullOrWhiteSpace(signToolPath))
+        //        return string.Empty;
+        //
+        //    if (!File.Exists(signToolPath))
+        //        return string.Empty;
+        //
+        //    return signToolPath;
+        //}
 
         public static string GetSymStorePath()
         {
@@ -576,13 +576,38 @@ namespace CustomBuildTool
             return symStorePath;
         }
 
+        public static bool SymStoreExists()
+        {
+            string file = GetSymStorePath();
+
+            if (string.IsNullOrWhiteSpace(file))
+            {
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe is invalid.", ConsoleColor.Red);
+                return false;
+            }
+
+            if (!File.Exists(file))
+            {
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe does not exist.", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
         public static int ExecuteSymStoreCommand(string Command)
         {
             string file = GetSymStorePath();
 
             if (string.IsNullOrWhiteSpace(file))
             {
-                Program.PrintColorMessage("[ExecuteSymStoreCommand] File is invalid.", ConsoleColor.Red);
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe is invalid.", ConsoleColor.Red);
+                return int.MaxValue;
+            }
+
+            if (!File.Exists(file))
+            {
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe does not exist.", ConsoleColor.Red);
                 return int.MaxValue;
             }
 
@@ -976,7 +1001,7 @@ namespace CustomBuildTool
     public class GithubReleasesResponse
     {
         [JsonPropertyName("id")] 
-        public ulong ID { get; init; }
+        public ulong ReleaseId { get; init; }
 
         [JsonPropertyName("upload_url")] 
         public string UploadUrl { get; init; }
@@ -987,12 +1012,55 @@ namespace CustomBuildTool
         [JsonPropertyName("assets")]
         public List<GithubAssetsResponse> Assets { get; init; }
 
-        [JsonIgnore] 
-        public string ReleaseId => this.ID.ToString();
+        public override string ToString()
+        {
+            return this.ReleaseId.ToString();
+        }
+
+        public string SerializeToJson()
+        {
+            return JsonSerializer.Serialize(this, GithubResponseContext.Default.GithubReleasesRequest);
+        }
+
+        public byte[] SerializeToBytes()
+        {
+            return JsonSerializer.SerializeToUtf8Bytes(this, GithubResponseContext.Default.GithubReleasesRequest);
+        }
+    }
+
+    public class GithubReleaseQueryResponse
+    {
+        [JsonPropertyName("id")]
+        public ulong ReleaseId { get; init; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; init; }
+        [JsonPropertyName("tag_name")]
+        public string TagName { get; init; }
+
+        [JsonPropertyName("upload_url")]
+        public string UploadUrl { get; init; }
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; init; }
+
+        [JsonPropertyName("created_at")]
+        public DateTimeOffset Created { get; init; }
+        [JsonPropertyName("updated_at")]
+        public DateTimeOffset Updated { get; init; }
+        [JsonPropertyName("published_at")]
+        public DateTimeOffset Published { get; init; }
+
+        [JsonPropertyName("draft")]
+        public bool Draft { get; init; }
+        [JsonPropertyName("prerelease")]
+        public bool Prerelease { get; init; }
+
+        [JsonPropertyName("assets")]
+        public List<GithubAssetsResponse> Assets { get; init; }
 
         public override string ToString()
         {
-            return this.ReleaseId;
+            return this.ReleaseId.ToString();
         }
 
         public string SerializeToJson()
@@ -1458,6 +1526,7 @@ namespace CustomBuildTool
     [JsonSerializable(typeof(GithubCommitResponse))]
     [JsonSerializable(typeof(GithubReleasesRequest))]
     [JsonSerializable(typeof(GithubReleasesResponse))]
+    [JsonSerializable(typeof(GithubReleaseQueryResponse))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class GithubResponseContext : JsonSerializerContext
     {

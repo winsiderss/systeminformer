@@ -11,40 +11,25 @@
 
 namespace CustomBuildTool
 {
+    using unsafe PFN_AUTHENTICODE_DIGEST_SIGN = delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT>;
+    using unsafe PFN_AUTHENTICODE_DIGEST_SIGN_EX = delegate* unmanaged[Stdcall]<CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, CERT_CONTEXT**, HCERTSTORE, HRESULT>;
+    using unsafe PFN_AUTHENTICODE_DIGEST_SIGN_WITHFILEHANDLE = delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, HANDLE, CRYPT_INTEGER_BLOB*, HRESULT>;
+
     /// <summary>
     /// Signs a file with an Authenticode signature.
     /// </summary>
     public unsafe class AuthenticodeKeyVaultSigner : IDisposable
     {
+        private static readonly ConcurrentDictionary<IntPtr, GCHandle> SignCallbackInstanceMap = new();
         private readonly AsymmetricAlgorithm SigningAlgorithm;
         private readonly X509Certificate2 SigningCertificate;
         private readonly HashAlgorithmName FileDigestAlgorithm;
         private readonly TimeStampConfiguration TimeStampConfiguration;
         private readonly MemoryCertificateStore CertificateStore;
         private X509Chain CertificateChain;
+        private GCHandle InstanceHandle;
 
-        private GCHandle SignDigestCallbackGCHandle;
-        private _SignDigestCallbackDelegate SignDigestCallbackDelegate;
-        private delegate HRESULT _SignDigestCallbackDelegate(
-            CERT_CONTEXT* pSigningCert,
-            CRYPT_INTEGER_BLOB* pMetadataBlob,
-            ALG_ID digestAlgId,
-            byte* pbToBeSignedDigest,
-            uint cbToBeSignedDigest,
-            CRYPT_INTEGER_BLOB* SignedDigest
-            );
-        //private GCHandle SignDigestCallbackExGCHandle;
-        //private _SignDigestCallbackExDelegate SignDigestCallbackExDelegate;
-        //private delegate HRESULT _SignDigestCallbackExDelegate(
-        //    CRYPT_INTEGER_BLOB* pMetadataBlob,
-        //    ALG_ID digestAlgId,
-        //    byte* pbToBeSignedDigest,
-        //    uint cbToBeSignedDigest,
-        //    CRYPT_INTEGER_BLOB* SignedDigest,
-        //    CERT_CONTEXT** ppSignerCert,
-        //    HCERTSTORE hCertChainStore
-        //    );
-        internal const int CERT_STRONG_SIGN_OID_INFO_CHOICE = 2;
+        private const int CERT_STRONG_SIGN_OID_INFO_CHOICE = 2;
 
         /// <summary>
         /// The PFN_AUTHENTICODE_DIGEST_SIGN user supplied callback function implements digest signing.
@@ -68,7 +53,7 @@ namespace CustomBuildTool
         //    [In, Out] CRYPT_INTEGER_BLOB* pSignedDigest
         //    );
 
-        private readonly delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT> SigningCallback;
+        private PFN_AUTHENTICODE_DIGEST_SIGN SigningCallback;
 
         /// <summary>
         /// https://learn.microsoft.com/en-us/windows/win32/seccrypto/pfn-authenticode-digest-sign-withfilehandle
@@ -83,7 +68,7 @@ namespace CustomBuildTool
         //    [Out] CRYPT_INTEGER_BLOB* pSignedDigest
         //    );
         //
-        //private readonly delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, HANDLE, CRYPT_INTEGER_BLOB*, HRESULT> SigningCallbackWithFileHandle;
+        //private PFN_AUTHENTICODE_DIGEST_SIGN_WITHFILEHANDLE SigningCallbackWithFileHandle;
 
         /// <summary>
         /// https://learn.microsoft.com/en-us/windows/win32/seccrypto/pfn-authenticode-digest-sign-ex
@@ -99,7 +84,7 @@ namespace CustomBuildTool
         //    [In, Out] HCERTSTORE hCertChainStore
         //    );
         //
-        //private readonly delegate* unmanaged[Stdcall]<CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, CERT_CONTEXT**, HCERTSTORE, HRESULT> SigningCallbackEx;
+        //private PFN_AUTHENTICODE_DIGEST_SIGN_EX SigningCallbackEx;
 
         /// <summary>
         /// https://learn.microsoft.com/en-us/windows/win32/seccrypto/pfn-authenticode-digest-sign-ex-withfilehandle
@@ -129,27 +114,27 @@ namespace CustomBuildTool
         /// use <see cref="TimeStampConfiguration.None"/>.</param>
         /// <param name="additionalCertificates">Any additional certificates to assist in building a certificate chain.</param>
         public AuthenticodeKeyVaultSigner(
-            AsymmetricAlgorithm signingAlgorithm,
-            X509Certificate2 signingCertificate,
-            HashAlgorithmName fileDigestAlgorithm,
-            TimeStampConfiguration timeStampConfiguration,
-            X509Certificate2Collection additionalCertificates = null)
+            AsymmetricAlgorithm SigningAlgorithm,
+            X509Certificate2 SigningCertificate,
+            HashAlgorithmName FileDigestAlgorithm,
+            TimeStampConfiguration TimeStampConfiguration,
+            X509Certificate2Collection AadditionalCertificates = null)
         {
-            this.FileDigestAlgorithm = fileDigestAlgorithm;
-            this.SigningCertificate = signingCertificate;
-            this.TimeStampConfiguration = timeStampConfiguration;
-            this.SigningAlgorithm = signingAlgorithm;
+            this.SigningAlgorithm = SigningAlgorithm;
+            this.SigningCertificate = SigningCertificate;
+            this.FileDigestAlgorithm = FileDigestAlgorithm;
+            this.TimeStampConfiguration = TimeStampConfiguration;
             this.CertificateStore = MemoryCertificateStore.Create();
             this.CertificateChain = new X509Chain();
 
-            if (additionalCertificates is not null)
+            if (AadditionalCertificates is not null)
             {
-                this.CertificateChain.ChainPolicy.ExtraStore.AddRange(additionalCertificates);
+                this.CertificateChain.ChainPolicy.ExtraStore.AddRange(AadditionalCertificates);
             }
 
             this.CertificateChain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllFlags;
 
-            if (!this.CertificateChain.Build(signingCertificate))
+            if (!this.CertificateChain.Build(SigningCertificate))
             {
                 throw new InvalidOperationException("Failed to build chain for certificate.");
             }
@@ -159,13 +144,14 @@ namespace CustomBuildTool
                 this.CertificateStore.Add(this.CertificateChain.ChainElements[i].Certificate);
             }
 
-            this.SignDigestCallbackDelegate = this.SignDigestCallback;
-            this.SignDigestCallbackGCHandle = GCHandle.Alloc(this.SignDigestCallbackDelegate);
-            this.SigningCallback = (delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT>)Marshal.GetFunctionPointerForDelegate(this.SignDigestCallbackDelegate);
+            // Pin this instance in a static map keyed by the native CERT_CONTEXT* (cert handle).
+            IntPtr certPtr = SigningCertificate.Handle;
+            this.InstanceHandle = GCHandle.Alloc(this);
+            SignCallbackInstanceMap[certPtr] = this.InstanceHandle;
 
-            //this.SignDigestCallbackExDelegate = this.SignDigestExCallback;
-            //this.SignDigestCallbackExGCHandle = GCHandle.Alloc(this.SignDigestCallbackExDelegate);
-            //this.SigningCallbackEx = (delegate* unmanaged[Stdcall]<CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, CERT_CONTEXT**, HCERTSTORE, HRESULT>)Marshal.GetFunctionPointerForDelegate(this.SignDigestCallbackExDelegate);
+            // Use a static unmanaged callers only wrapper and take its address as a function pointer
+            // The static wrapper will look up the instance by the incoming pSigningCert pointer.
+            this.SigningCallback = &StaticNativeSignDigestCallback;
         }
 
         internal static bool IsAppxFile(ReadOnlySpan<char> FileName)
@@ -354,9 +340,18 @@ namespace CustomBuildTool
         /// </summary>
         public void Dispose()
         {
-            if (this.SignDigestCallbackGCHandle.IsAllocated)
-                this.SignDigestCallbackGCHandle.Free();
-            this.SignDigestCallbackDelegate = null;
+            // remove instance mapping and free the instance GCHandle
+            if (this.SigningCertificate?.Handle != IntPtr.Zero)
+            {
+                SignCallbackInstanceMap.TryRemove(this.SigningCertificate.Handle, out var handle);
+            }
+
+            if (this.InstanceHandle.IsAllocated)
+            {
+                this.InstanceHandle.Free();
+            }
+
+            this.SigningCallback = null;
 
             if (this.CertificateChain != null)
             {
@@ -367,97 +362,134 @@ namespace CustomBuildTool
             GC.SuppressFinalize(this);
         }
 
-        private HRESULT SignDigestCallback(
-            CERT_CONTEXT* SigningCert,
-            CRYPT_INTEGER_BLOB* MetadataBlob,
-            ALG_ID DigestAlgId,
-            byte* pbToBeSignedDigest,
-            uint cbToBeSignedDigest,
+        private static HRESULT SignDigestCallback(
+            AsymmetricAlgorithm SignAlgorithm,
+            HashAlgorithmName DigestAlgorithm,
+            byte* DigestBuffer,
+            uint DigestLength,
             CRYPT_INTEGER_BLOB* SignedDigest
             )
         {
-            //byte[] digest;
-            //X509Certificate2 cert = new X509Certificate2((IntPtr)pSigningCert);
-            //ECDsa dsa = cert.GetECDsaPublicKey(); dsa.SignHash()
-            //RSA sa = cert.GetRSAPublicKey(); sa.SignHash()
-            //ReadOnlySpan<byte> buffer = MemoryMarshal.CreateReadOnlySpan(ref *pbToBeSignedDigest, (int)cbToBeSignedDigest);
-            //byte[] buffer = new byte[cbToBeSignedDigest];
-            //fixed (void* ptr = &buffer[0])
-            //    Unsafe.CopyBlock(ptr, pbToBeSignedDigest, cbToBeSignedDigest);
-            //
-            //ReadOnlySpan<byte> buffer = new ReadOnlySpan<byte>(pbToBeSignedDigest, (int)cbToBeSignedDigest);
-            //
-            //switch (this.SigningAlgorithm)
-            //{
-            //    case RSA rsa:
-            //        digest = rsa.SignHash(buffer, this.FileDigestAlgorithm, RSASignaturePadding.Pkcs1);
-            //        break;
-            //    case ECDsa ecdsa:
-            //        digest = ecdsa.SignHash(buffer);
-            //        break;
-            //    default:
-            //        return HRESULT.E_INVALIDARG;
-            //}
-            //{
-            //    SignedDigest->pbData = (byte*)NativeMemory.AllocZeroed((nuint)digest.Length);
-            //    SignedDigest->cbData = (uint)digest.Length;
-            //
-            //    fixed (void* memory = &digest[0])
-            //    {
-            //        //Unsafe.CopyBlock(SignedDigest->pbData, memory, (uint)digest.Length);
-            //    }
-            //}
-
-            HCERTSTORE CertChainStore = SigningCert->hCertStore;
-
-            return SignDigestExCallback(
-                MetadataBlob,
-                DigestAlgId,
-                pbToBeSignedDigest,
-                cbToBeSignedDigest,
-                SignedDigest,
-                &SigningCert,
-                CertChainStore
-                );
-        }
-
-        private HRESULT SignDigestExCallback(
-            CRYPT_INTEGER_BLOB* MetadataBlob,
-            ALG_ID DigestAlgId,
-            byte* pbToBeSignedDigest,
-            uint cbToBeSignedDigest,
-            CRYPT_INTEGER_BLOB* SignedDigest,
-            CERT_CONTEXT** SignerCert,
-            HCERTSTORE CertChainStore
-            )
-        {
-            byte[] signature;
-            ReadOnlySpan<byte> buffer;
-
-            buffer = new ReadOnlySpan<byte>(pbToBeSignedDigest, (int)cbToBeSignedDigest);
-
-            switch (this.SigningAlgorithm)
+            try
             {
+                byte[] signature;
+                ReadOnlySpan<byte> buffer;
+
+                buffer = new ReadOnlySpan<byte>(DigestBuffer, (int)DigestLength);
+
+                switch (SignAlgorithm)
+                {
                 case RSA rsa:
-                    signature = rsa.SignHash(buffer, this.FileDigestAlgorithm, RSASignaturePadding.Pkcs1);
+                    signature = rsa.SignHash(buffer, DigestAlgorithm, RSASignaturePadding.Pkcs1);
                     break;
                 case ECDsa ecdsa:
                     signature = ecdsa.SignHash(buffer);
                     break;
                 default:
                     return HRESULT.E_INVALIDARG;
+                }
+
+                SignedDigest->pbData = (byte*)NativeMemory.AllocZeroed((nuint)signature.Length);
+                SignedDigest->cbData = (uint)signature.Length;
+
+                fixed (byte* sigPtr = signature)
+                {
+                    NativeMemory.Copy(sigPtr, SignedDigest->pbData, (nuint)signature.Length);
+                }
             }
-
-            SignedDigest->pbData = (byte*)NativeMemory.AllocZeroed((nuint)signature.Length);
-            SignedDigest->cbData = (uint)signature.Length;
-
-            fixed (byte* sigPtr = signature)
+            catch (Exception ex)
             {
-                NativeMemory.Copy(sigPtr, SignedDigest->pbData, (nuint)signature.Length);
+                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                return HRESULT.E_FAIL;
             }
 
             return HRESULT.S_OK;
         }
+
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+        private static HRESULT StaticNativeSignDigestCallback(
+            CERT_CONTEXT* SigningCert,
+            CRYPT_INTEGER_BLOB* MetadataBlob,
+            ALG_ID DigestAlgId,
+            byte* PbToBeSignedDigest,
+            uint CbToBeSignedDigest,
+            CRYPT_INTEGER_BLOB* SignedDigest)
+        {
+            if (SigningCert == null)
+            {
+                Program.PrintColorMessage($"[StaticNativeSignDigestCallback] SigningCert", ConsoleColor.Red);
+                return HRESULT.E_INVALIDARG;
+            }
+
+            try
+            {
+                IntPtr key = (IntPtr)SigningCert;
+
+                if (
+                    SignCallbackInstanceMap.TryGetValue(key, out var handle) &&
+                    handle.IsAllocated &&
+                    handle.Target is AuthenticodeKeyVaultSigner instance
+                    )
+                {
+                    return SignDigestCallback(
+                        instance.SigningAlgorithm,
+                        instance.FileDigestAlgorithm,
+                        PbToBeSignedDigest,
+                        CbToBeSignedDigest,
+                        SignedDigest
+                        );
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[StaticNativeSignDigestCallback] ERROR {ex}", ConsoleColor.Red);
+            }
+
+            Program.PrintColorMessage($"[StaticNativeSignDigestCallback] Failed", ConsoleColor.Red);
+            return HRESULT.E_FAIL;
+        }
+
+        //private HRESULT SignDigestCallback(
+        //    CERT_CONTEXT* SigningCert,
+        //    CRYPT_INTEGER_BLOB* MetadataBlob,
+        //    ALG_ID DigestAlgId,
+        //    byte* pbToBeSignedDigest,
+        //    uint cbToBeSignedDigest,
+        //    CRYPT_INTEGER_BLOB* SignedDigest
+        //    )
+        //{
+        //    byte[] digest;
+        //    X509Certificate2 cert = new X509Certificate2((IntPtr)pSigningCert);
+        //    ECDsa dsa = cert.GetECDsaPublicKey(); dsa.SignHash()
+        //    RSA sa = cert.GetRSAPublicKey(); sa.SignHash()
+        //    ReadOnlySpan<byte> buffer = MemoryMarshal.CreateReadOnlySpan(ref *pbToBeSignedDigest, (int)cbToBeSignedDigest);
+        //    byte[] buffer = new byte[cbToBeSignedDigest];
+        //    fixed (void* ptr = &buffer[0])
+        //        Unsafe.CopyBlock(ptr, pbToBeSignedDigest, cbToBeSignedDigest);
+        //    
+        //    ReadOnlySpan<byte> buffer = new ReadOnlySpan<byte>(pbToBeSignedDigest, (int)cbToBeSignedDigest);
+        //    
+        //    switch (this.SigningAlgorithm)
+        //    {
+        //        case RSA rsa:
+        //            digest = rsa.SignHash(buffer, this.FileDigestAlgorithm, RSASignaturePadding.Pkcs1);
+        //            break;
+        //        case ECDsa ecdsa:
+        //            digest = ecdsa.SignHash(buffer);
+        //            break;
+        //        default:
+        //            return HRESULT.E_INVALIDARG;
+        //    }
+        //    {
+        //        SignedDigest->pbData = (byte*)NativeMemory.AllocZeroed((nuint)digest.Length);
+        //        SignedDigest->cbData = (uint)digest.Length;
+        //    
+        //        fixed (void* memory = &digest[0])
+        //        {
+        //            Unsafe.CopyBlock(SignedDigest->pbData, memory, (uint)digest.Length);
+        //        }
+        //    }
+        //}
 
         internal static ALG_ID HashAlgorithmToAlgId(HashAlgorithmName hashAlgorithmName)
         {
