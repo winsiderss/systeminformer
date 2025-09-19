@@ -213,7 +213,7 @@ ReadMemory:
 
             assert(context->Buffer);
 
-            if (NT_SUCCESS(status = NtReadVirtualMemory(
+            if (NT_SUCCESS(status = PhReadVirtualMemory(
                 handle,
                 context->CurrentReadAddress,
                 context->Buffer,

@@ -110,7 +110,7 @@ VOID PhShowMemoryEditorDialog(
 
             if (NT_SUCCESS(status))
             {
-                status = NtReadVirtualMemory(
+                status = PhReadVirtualMemory(
                     processHandle,
                     BaseAddress,
                     buffer,
@@ -510,7 +510,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
                     if (NT_SUCCESS(status))
                     {
-                        status = NtReadVirtualMemory(
+                        status = PhReadVirtualMemory(
                             processHandle,
                             context->BaseAddress,
                             context->Buffer,

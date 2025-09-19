@@ -27,13 +27,13 @@ typedef PH_ENUM_MODULES_CALLBACK* PPH_ENUM_MODULES_CALLBACK;
 /**
  * Creates a section object.
  *
- * @param SectionHandle Pointer to a variable that receives a handle to the section object.
- * @param DesiredAccess The access mask that specifies the requested access to the section object.
- * @param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file, or the maximum the file can be extended or mapped when backed by an ordinary file.
- * @param SectionPageProtection Specifies the protection to place on each page in the section.
- * @param AllocationAttributes A bitmask of SEC_XXX flags that determines the allocation attributes of the section.
- * @param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL, the section is backed by the paging file. Otherwise, the section is backed by the specified file.
- * @return NTSTATUS Successful or errant status.
+ * \param SectionHandle Pointer to a variable that receives a handle to the section object.
+ * \param DesiredAccess The access mask that specifies the requested access to the section object.
+ * \param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file, or the maximum the file can be extended or mapped when backed by an ordinary file.
+ * \param SectionPageProtection Specifies the protection to place on each page in the section.
+ * \param AllocationAttributes A bitmask of SEC_XXX flags that determines the allocation attributes of the section.
+ * \param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL, the section is backed by the paging file. Otherwise, the section is backed by the specified file.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhCreateSection(
     _Out_ PHANDLE SectionHandle,
@@ -453,7 +453,7 @@ NTSTATUS PhpEnumProcessModules(
         return status;
 
     // Read the address of the loader data.
-    status = NtReadVirtualMemory(
+    status = PhReadVirtualMemory(
         ProcessHandle,
         PTR_ADD_OFFSET(peb, FIELD_OFFSET(PEB, Ldr)),
         &ldr,
@@ -468,7 +468,7 @@ NTSTATUS PhpEnumProcessModules(
         return STATUS_UNSUCCESSFUL;
 
     // Read the loader data.
-    status = NtReadVirtualMemory(
+    status = PhReadVirtualMemory(
         ProcessHandle,
         ldr,
         &pebLdrData,
@@ -504,7 +504,7 @@ NTSTATUS PhpEnumProcessModules(
         PVOID addressOfEntry;
 
         addressOfEntry = CONTAINING_RECORD(currentLink, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             addressOfEntry,
             &currentEntry,
@@ -587,7 +587,7 @@ static BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         fullDllNameBuffer = PhAllocate(Entry->FullDllName.Length + sizeof(UNICODE_NULL));
         Entry->FullDllName.Buffer = fullDllNameBuffer;
 
-        if (NT_SUCCESS(status = NtReadVirtualMemory(
+        if (NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
             fullDllNameOriginal,
             fullDllNameBuffer,
@@ -624,7 +624,7 @@ static BOOLEAN NTAPI PhpEnumProcessModulesCallback(
             baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + sizeof(UNICODE_NULL));
             Entry->BaseDllName.Buffer = baseDllNameBuffer;
 
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 baseDllNameOriginal,
                 baseDllNameBuffer,
@@ -648,7 +648,7 @@ static BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 
         memset(&ldrDagNode, 0, sizeof(LDR_DDAG_NODE));
 
-        if (NT_SUCCESS(NtReadVirtualMemory(
+        if (NT_SUCCESS(PhReadVirtualMemory(
             ProcessHandle,
             Entry->DdagNode,
             &ldrDagNode,
@@ -819,7 +819,7 @@ NTSTATUS PhpEnumProcessModules32(
         return status;
 
     // Read the address of the loader data.
-    status = NtReadVirtualMemory(
+    status = PhReadVirtualMemory(
         ProcessHandle,
         PTR_ADD_OFFSET(peb, FIELD_OFFSET(PEB32, Ldr)),
         &ldr,
@@ -834,7 +834,7 @@ NTSTATUS PhpEnumProcessModules32(
         return STATUS_UNSUCCESSFUL;
 
     // Read the loader data.
-    status = NtReadVirtualMemory(
+    status = PhReadVirtualMemory(
         ProcessHandle,
         UlongToPtr(ldr),
         &pebLdrData,
@@ -870,7 +870,7 @@ NTSTATUS PhpEnumProcessModules32(
         PVOID addressOfEntry;
 
         addressOfEntry = CONTAINING_RECORD(UlongToPtr(currentLink), LDR_DATA_TABLE_ENTRY32, InLoadOrderLinks);
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             addressOfEntry,
             &currentEntry,
@@ -972,7 +972,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
         baseDllNameBuffer = PhAllocate(nativeEntry.BaseDllName.Length + sizeof(UNICODE_NULL));
 
-        if (NT_SUCCESS(NtReadVirtualMemory(
+        if (NT_SUCCESS(PhReadVirtualMemory(
             ProcessHandle,
             nativeEntry.BaseDllName.Buffer,
             baseDllNameBuffer,
@@ -994,7 +994,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
         fullDllNameBuffer = PhAllocate(nativeEntry.FullDllName.Length + sizeof(UNICODE_NULL));
 
-        if (NT_SUCCESS(NtReadVirtualMemory(
+        if (NT_SUCCESS(PhReadVirtualMemory(
             ProcessHandle,
             nativeEntry.FullDllName.Buffer,
             fullDllNameBuffer,
@@ -1073,7 +1073,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     {
         LDR_DDAG_NODE32 ldrDagNode32 = { 0 };
 
-        if (NT_SUCCESS(NtReadVirtualMemory(
+        if (NT_SUCCESS(PhReadVirtualMemory(
             ProcessHandle,
             UlongToPtr(Entry->DdagNode),
             &ldrDagNode32,
@@ -2000,7 +2000,7 @@ NTSTATUS PhEnumProcessEnclaveModules(
 
         entryAddress = CONTAINING_RECORD(link, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
 
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             entryAddress,
             &entry,
@@ -2046,7 +2046,7 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
     {
         fullDllName = PhAllocate(Entry->FullDllName.Length);
 
-        status = NtReadVirtualMemory(
+        status = PhReadVirtualMemory(
             ProcessHandle,
             Entry->FullDllName.Buffer,
             fullDllName,

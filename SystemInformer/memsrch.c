@@ -265,7 +265,7 @@ ReadMemory:
             context->CurrentReadAddress = context->NextReadAddress;
             length = min(context->ReadRemaning, context->BufferSize);
 
-            if (NT_SUCCESS(status = NtReadVirtualMemory(
+            if (NT_SUCCESS(status = PhReadVirtualMemory(
                 context->ProcessHandle,
                 context->CurrentReadAddress,
                 context->Buffer,

@@ -14,25 +14,28 @@ typedef struct _LDRP_LOAD_CONTEXT *PLDRP_LOAD_CONTEXT;
 // DLLs
 //
 
-typedef _Function_class_(LDR_INIT_ROUTINE)
-BOOLEAN NTAPI LDR_INIT_ROUTINE(
+typedef _Function_class_(DLL_INIT_ROUTINE)
+BOOLEAN NTAPI DLL_INIT_ROUTINE(
     _In_ PVOID DllHandle,
     _In_ ULONG Reason,
     _In_opt_ PVOID Context
     );
-typedef LDR_INIT_ROUTINE* PLDR_INIT_ROUTINE;
+typedef DLL_INIT_ROUTINE* PDLL_INIT_ROUTINE;
 
+// private
 typedef struct _LDR_SERVICE_TAG_RECORD
 {
     struct _LDR_SERVICE_TAG_RECORD *Next;
     ULONG ServiceTag;
 } LDR_SERVICE_TAG_RECORD, *PLDR_SERVICE_TAG_RECORD;
 
+// private
 typedef struct _LDRP_CSLIST
 {
     PSINGLE_LIST_ENTRY Tail;
 } LDRP_CSLIST, *PLDRP_CSLIST;
 
+// private
 typedef enum _LDR_DDAG_STATE
 {
     LdrModulesMerged = -5,
@@ -52,13 +55,14 @@ typedef enum _LDR_DDAG_STATE
     LdrModulesReadyToRun = 9
 } LDR_DDAG_STATE;
 
+// private
 typedef struct _LDR_DDAG_NODE
 {
     LIST_ENTRY Modules;
     PLDR_SERVICE_TAG_RECORD ServiceTagList;
     ULONG LoadCount;
-    ULONG LoadWhileUnloadingCount;
-    ULONG LowestLink;
+    ULONG LoadWhileUnloadingCount; // ReferenceCount before WIN10
+    ULONG LowestLink; // DependencyCount before WIN10
     union
     {
         LDRP_CSLIST Dependencies;
@@ -70,29 +74,37 @@ typedef struct _LDR_DDAG_NODE
     ULONG PreorderNumber;
 } LDR_DDAG_NODE, *PLDR_DDAG_NODE;
 
-// rev
-typedef struct _LDR_DEPENDENCY_RECORD
+// private
+typedef struct _LDRP_DEPENDENCY
 {
-    SINGLE_LIST_ENTRY DependencyLink;
-    PLDR_DDAG_NODE DependencyNode;
-    SINGLE_LIST_ENTRY IncomingDependencyLink;
-    PLDR_DDAG_NODE IncomingDependencyNode;
-} LDR_DEPENDENCY_RECORD, *PLDR_DEPENDENCY_RECORD;
+    SINGLE_LIST_ENTRY Link;
+    PLDR_DDAG_NODE ChildNode;
+    SINGLE_LIST_ENTRY BackLink;
+    union
+    {
+        PLDR_DDAG_NODE ParentNode;
+        struct
+        {
+            ULONG ForwarderLink : 1;
+            ULONG SpareFlags : 2;
+        };
+    };
+} LDRP_DEPENDENCY, *PLDRP_DEPENDENCY;
 
 // LoadReason
 typedef enum _LDR_DLL_LOAD_REASON
 {
-    LoadReasonStaticDependency,
-    LoadReasonStaticForwarderDependency,
-    LoadReasonDynamicForwarderDependency,
-    LoadReasonDelayloadDependency,
-    LoadReasonDynamicLoad,
-    LoadReasonAsImageLoad,
-    LoadReasonAsDataLoad,
-    LoadReasonEnclavePrimary, // since REDSTONE3
-    LoadReasonEnclaveDependency,
-    LoadReasonPatchImage, // since WIN11
-    LoadReasonUnknown = -1
+    LoadReasonUnknown = -1,
+    LoadReasonStaticDependency = 0,
+    LoadReasonStaticForwarderDependency = 1,
+    LoadReasonDynamicForwarderDependency = 2,
+    LoadReasonDelayloadDependency = 3,
+    LoadReasonDynamicLoad = 4,
+    LoadReasonAsImageLoad = 5,
+    LoadReasonAsDataLoad = 6,
+    LoadReasonEnclavePrimary = 7, // since REDSTONE3
+    LoadReasonEnclaveDependency = 8,
+    LoadReasonPatchImage = 9, // since WIN11
 } LDR_DLL_LOAD_REASON, *PLDR_DLL_LOAD_REASON;
 
 // HotPatchState
@@ -117,19 +129,22 @@ typedef enum _LDR_HOT_PATCH_STATE
 #define LDRP_IN_INDEXES 0x00000080
 #define LDRP_SHIM_DLL 0x00000100
 #define LDRP_IN_EXCEPTION_TABLE 0x00000200
+#define LDRP_VERIFIER_PROVIDER 0x00000400 // reserved before WIN11 24H2
+#define LDRP_SHIM_ENGINE_CALLOUT_SENT 0x00000800 // reserved before WIN11 24H2
 #define LDRP_LOAD_IN_PROGRESS 0x00001000
-#define LDRP_LOAD_CONFIG_PROCESSED 0x00002000
+#define LDRP_LOAD_CONFIG_PROCESSED 0x00002000 // reserved before WIN10
 #define LDRP_ENTRY_PROCESSED 0x00004000
-#define LDRP_PROTECT_DELAY_LOAD 0x00008000
+#define LDRP_PROTECT_DELAY_LOAD 0x00008000 // reserved before WINBLUE
+#define LDRP_AUX_IAT_COPY_PRIVATE 0x00010000 // reserved before WIN11 24H2
 #define LDRP_DONT_CALL_FOR_THREADS 0x00040000
 #define LDRP_PROCESS_ATTACH_CALLED 0x00080000
 #define LDRP_PROCESS_ATTACH_FAILED 0x00100000
-#define LDRP_COR_DEFERRED_VALIDATE 0x00200000
+#define LDRP_SCP_IN_EXCEPTION_TABLE 0x00200000 // LDRP_COR_DEFERRED_VALIDATE before WIN11 24H2
 #define LDRP_COR_IMAGE 0x00400000
 #define LDRP_DONT_RELOCATE 0x00800000
 #define LDRP_COR_IL_ONLY 0x01000000
-#define LDRP_CHPE_IMAGE 0x02000000
-#define LDRP_CHPE_EMULATOR_IMAGE 0x04000000
+#define LDRP_CHPE_IMAGE 0x02000000 // reserved before REDSTONE4
+#define LDRP_CHPE_EMULATOR_IMAGE 0x04000000 // reserved before WIN11
 #define LDRP_REDIRECTED 0x10000000
 #define LDRP_COMPAT_DATABASE_PROCESSED 0x80000000
 
@@ -146,7 +161,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     LIST_ENTRY InMemoryOrderLinks;
     LIST_ENTRY InInitializationOrderLinks;
     PVOID DllBase;
-    PVOID EntryPoint; // PLDR_INIT_ROUTINE
+    PVOID EntryPoint; // PDLL_INIT_ROUTINE
     ULONG SizeOfImage;
     UNICODE_STRING FullDllName;
     UNICODE_STRING BaseDllName;
@@ -166,23 +181,23 @@ typedef struct _LDR_DATA_TABLE_ENTRY
             ULONG InIndexes : 1;
             ULONG ShimDll : 1;
             ULONG InExceptionTable : 1;
-            ULONG VerifierProvider : 1;
-            ULONG ShimEngineCalloutSent : 1;
+            ULONG VerifierProvider : 1; // 24H2
+            ULONG ShimEngineCalloutSent : 1; // 24H2
             ULONG LoadInProgress : 1;
-            ULONG LoadConfigProcessed : 1;
+            ULONG LoadConfigProcessed : 1; // WIN10
             ULONG EntryProcessed : 1;
-            ULONG ProtectDelayLoad : 1;
-            ULONG AuxIatCopyPrivate : 1;
+            ULONG ProtectDelayLoad : 1; // WINBLUE
+            ULONG AuxIatCopyPrivate : 1; // 24H2
             ULONG ReservedFlags3 : 1;
             ULONG DontCallForThreads : 1;
             ULONG ProcessAttachCalled : 1;
             ULONG ProcessAttachFailed : 1;
-            ULONG ScpInExceptionTable : 1;
+            ULONG ScpInExceptionTable : 1; // CorDeferredValidate before 24H2
             ULONG CorImage : 1;
             ULONG DontRelocate : 1;
             ULONG CorILOnly : 1;
-            ULONG ChpeImage : 1;
-            ULONG ChpeEmulatorImage : 1;
+            ULONG ChpeImage : 1; // RS4
+            ULONG ChpeEmulatorImage : 1; // WIN11
             ULONG ReservedFlags5 : 1;
             ULONG Redirected : 1;
             ULONG ReservedFlags6 : 2;
@@ -205,12 +220,12 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     PVOID OriginalBase;
     LARGE_INTEGER LoadTime;
     ULONG BaseNameHashValue;
-    LDR_DLL_LOAD_REASON LoadReason; // since WIN8
-    ULONG ImplicitPathOptions;
+    LDR_DLL_LOAD_REASON LoadReason;
+    ULONG ImplicitPathOptions; // since WINBLUE
     ULONG ReferenceCount; // since WIN10
-    ULONG DependentLoadFlags;
-    UCHAR SigningLevel; // since REDSTONE2
-    ULONG CheckSum; // since 22H1
+    ULONG DependentLoadFlags; // since RS1
+    UCHAR SigningLevel; // since RS2
+    ULONG CheckSum; // since WIN11
     PVOID ActivePatchImageBase;
     LDR_HOT_PATCH_STATE HotPatchState;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
@@ -298,6 +313,7 @@ LdrGetDllHandle(
     _Out_ PVOID *DllHandle
     );
 
+// LdrGetDllHandleEx Flags
 #define LDR_GET_DLL_HANDLE_EX_UNCHANGED_REFCOUNT 0x00000001
 #define LDR_GET_DLL_HANDLE_EX_PIN 0x00000002
 
@@ -365,7 +381,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrGetDllFullName(
-    _In_ PVOID DllHandle,
+    _In_opt_ PVOID DllHandle,
     _Out_ PUNICODE_STRING FullDllName
     );
 
@@ -381,21 +397,35 @@ LdrGetDllPath(
     );
 
 // rev
+/**
+ * The LdrSetDllDirectory routine retrieves the application-specific portion of the search path used to locate DLLs for the application.
+ *
+ * \param PathName A pointer to a buffer that receives the application-specific portion of the search path.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getdlldirectoryw
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrGetDllDirectory(
-    _Out_ PUNICODE_STRING DllDirectory
+    _Out_ PUNICODE_STRING PathName
     );
 
 // rev
+/**
+ * The LdrSetDllDirectory routine adds a directory to the search path used to locate DLLs for the application.
+ *
+ * \param PathName The directory to be added to the search path. If this parameter is NULL, the function restores the default search order.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setdlldirectoryw
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrSetDllDirectory(
-    _In_ PCUNICODE_STRING DllDirectory
+    _In_ PCUNICODE_STRING PathName
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 #define LDR_ADDREF_DLL_PIN 0x00000001
 
@@ -429,7 +459,7 @@ LdrGetProcedureAddressEx(
     _In_opt_ PCANSI_STRING ProcedureName,
     _In_opt_ ULONG ProcedureNumber,
     _Out_ PVOID *ProcedureAddress,
-    _In_ ULONG Flags
+    _In_ ULONG Flags // LDR_GET_PROCEDURE_ADDRESS_*
     );
 
 NTSYSAPI
@@ -438,7 +468,7 @@ NTAPI
 LdrGetKnownDllSectionHandle(
     _In_ PCWSTR DllName,
     _In_ BOOLEAN KnownDlls32,
-    _Out_ PHANDLE Section
+    _Out_ PHANDLE SectionHandle
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
@@ -451,10 +481,10 @@ LdrGetProcedureAddressForCaller(
     _In_opt_ PCANSI_STRING ProcedureName,
     _In_opt_ ULONG ProcedureNumber,
     _Out_ PVOID *ProcedureAddress,
-    _In_ ULONG Flags,
-    _In_ PVOID *Callback
+    _In_ ULONG Flags, // LDR_GET_PROCEDURE_ADDRESS_*
+    _In_ PVOID CallerAddress
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 #define LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS 0x00000001
 #define LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY 0x00000002
@@ -468,7 +498,7 @@ NTSTATUS
 NTAPI
 LdrLockLoaderLock(
     _In_ ULONG Flags,
-    _Out_opt_ ULONG *Disposition,
+    _Out_opt_ PULONG Disposition,
     _Out_ PVOID *Cookie
     );
 
@@ -482,29 +512,9 @@ LdrUnlockLoaderLock(
     _In_ PVOID Cookie
     );
 
-NTSYSAPI
-NTSTATUS
-NTAPI
-LdrRelocateImage(
-    _In_ PVOID NewBase,
-    _In_opt_ PCSTR LoaderName,
-    _In_ NTSTATUS Success,
-    _In_ NTSTATUS Conflict,
-    _In_ NTSTATUS Invalid
-    );
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-LdrRelocateImageWithBias(
-    _In_ PVOID NewBase,
-    _In_opt_ LONGLONG Bias,
-    _In_opt_ PCSTR LoaderName,
-    _In_ NTSTATUS Success,
-    _In_ NTSTATUS Conflict,
-    _In_ NTSTATUS Invalid
-    );
-
+// private
+_Must_inspect_result_
+_Maybenull_
 NTSYSAPI
 PIMAGE_BASE_RELOCATION
 NTAPI
@@ -516,6 +526,9 @@ LdrProcessRelocationBlock(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
+// private
+_Must_inspect_result_
+_Maybenull_
 NTSYSAPI
 PIMAGE_BASE_RELOCATION
 NTAPI
@@ -526,16 +539,7 @@ LdrProcessRelocationBlockEx(
     _In_ PUSHORT NextOffset,
     _In_ LONG_PTR Diff
     );
-#endif
-
-NTSYSAPI
-BOOLEAN
-NTAPI
-LdrVerifyMappedImageMatchesChecksum(
-    _In_ PVOID BaseAddress,
-    _In_ SIZE_T NumberOfBytes,
-    _In_ ULONG FileLength
-    );
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 typedef _Function_class_(LDR_IMPORT_MODULE_CALLBACK)
 VOID NTAPI LDR_IMPORT_MODULE_CALLBACK(
@@ -544,6 +548,7 @@ VOID NTAPI LDR_IMPORT_MODULE_CALLBACK(
     );
 typedef LDR_IMPORT_MODULE_CALLBACK* PLDR_IMPORT_MODULE_CALLBACK;
 
+// private
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -571,11 +576,16 @@ typedef struct _LDR_SECTION_INFO
     ULONG AllocationAttributes;
 } LDR_SECTION_INFO, *PLDR_SECTION_INFO;
 
+// rev
+#define LDR_VERIFY_IMAGE_FLAG_USE_CALLBACK 0x01
+#define LDR_VERIFY_IMAGE_FLAG_USE_SECTION_INFO 0x02
+#define LDR_VERIFY_IMAGE_FLAG_RETURN_IMAGE_CHARACTERISTICS 0x04
+
 // private
 typedef struct _LDR_VERIFY_IMAGE_INFO
 {
     ULONG Size;
-    ULONG Flags;
+    ULONG Flags; // LDR_VERIFY_IMAGE_FLAG_* 
     LDR_IMPORT_CALLBACK_INFO CallbackInfo;
     LDR_SECTION_INFO SectionInfo;
     USHORT ImageCharacteristics;
@@ -675,13 +685,15 @@ LdrUnregisterDllNotification(
 
 // end_msdn
 
-// rev
+#if (PHNT_VERSION == PHNT_WINDOWS_10)
+// deprecated
 NTSYSAPI
 PUNICODE_STRING
 NTAPI
 LdrStandardizeSystemPath(
     _In_ PCUNICODE_STRING SystemPath
     );
+#endif
 
 typedef struct _LDR_FAILURE_DATA
 {
@@ -690,14 +702,14 @@ typedef struct _LDR_FAILURE_DATA
     WCHAR AdditionalInfo[0x20];
 } LDR_FAILURE_DATA, *PLDR_FAILURE_DATA;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSAPI
 PLDR_FAILURE_DATA
 NTAPI
 LdrGetFailureData(
     VOID
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // WIN8 to REDSTONE
 typedef struct _PS_MITIGATION_OPTIONS_MAP_V1
@@ -860,10 +872,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrAddLoadAsDataTable(
-    _In_ PVOID Module,
-    _In_ PCWSTR FilePath,
-    _In_ SIZE_T Size,
-    _In_ HANDLE Handle,
+    _In_ PVOID DllHandle,
+    _In_opt_ PCWSTR FilePath,
+    _In_ SIZE_T FileSize,
+    _In_ HANDLE FileHandle,
     _In_opt_ PACTIVATION_CONTEXT ActCtx
     );
 
@@ -872,9 +884,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrRemoveLoadAsDataTable(
-    _In_ PVOID InitModule,
-    _Out_opt_ PVOID *BaseModule,
-    _Out_opt_ PSIZE_T Size,
+    _In_ PVOID DllHandle,
+    _Out_ PVOID *BaseModule,
+    _Out_opt_ PSIZE_T FileSize,
     _In_ ULONG Flags
     );
 
@@ -883,26 +895,27 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrGetFileNameFromLoadAsDataTable(
-    _In_ PVOID Module,
-    _Out_ PVOID *pFileNamePrt
+    _In_ PVOID DllHandle,
+    _Out_ PWSTR *FileName
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrDisableThreadCalloutsForDll(
-    _In_ PVOID DllImageBase
+    _In_ PVOID DllHandle
     );
 
 //
 // Resources
 //
 
-// TEB->ResourceRetValue
+// NtCurrentTeb()->ResourceRetValue
+// LdrFindResource* and LdrAccessResource
 typedef struct _LDR_RESLOADER_RET
 {
     PVOID Module;
-    PLDR_DATA_TABLE_ENTRY DataEntry;
+    PVOID DataEntry;
     PVOID TargetModule;
 } LDR_RESLOADER_RET, *PLDR_RESLOADER_RET;
 
@@ -926,24 +939,12 @@ LdrAccessResource(
     _Out_opt_ ULONG *ResourceLength
     );
 
-typedef struct _LDR_RESOURCE_INFO
-{
-    ULONG_PTR Type;
-    ULONG_PTR Name;
-    ULONG_PTR Language;
-} LDR_RESOURCE_INFO, *PLDR_RESOURCE_INFO;
-
-#define RESOURCE_TYPE_LEVEL 0
-#define RESOURCE_NAME_LEVEL 1
-#define RESOURCE_LANGUAGE_LEVEL 2
-#define RESOURCE_DATA_LEVEL 3
-
 /**
  * The LdrFindResource_U function determines the location of a resource in a DLL.
  *
  * \param DllHandle A handle to the DLL.
- * \param ResourceInfo The type and name of the resource.
- * \param Level The level of resource information.
+ * \param ResourcePath A pointer to an array of Type/Name/Language/(optional)AlternateType.
+ * \param Count The number of elements in the ResourcePath array.
  * \param ResourceDataEntry The resource information block.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-findresourceexw
@@ -953,8 +954,8 @@ NTSTATUS
 NTAPI
 LdrFindResource_U(
     _In_ PVOID DllHandle,
-    _In_ PLDR_RESOURCE_INFO ResourceInfo,
-    _In_ ULONG Level,
+    _In_ PULONG_PTR ResourcePath,
+    _In_ ULONG Count,
     _Out_ PIMAGE_RESOURCE_DATA_ENTRY *ResourceDataEntry
     );
 
@@ -963,8 +964,8 @@ LdrFindResource_U(
  *
  * \param Flags A handle to the DLL.
  * \param DllHandle A handle to the DLL.
- * \param ResourceInfo The type and name of the resource.
- * \param Count The number of resource  information.
+ * \param ResourcePath A pointer to an array of Type/Name/Language/(optional)AlternateType.
+ * \param Count The number of elements in the ResourcePath array.
  * \param ResourceDataEntry The resource information block.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-findresourceexw
@@ -975,8 +976,8 @@ NTAPI
 LdrFindResourceEx_U(
     _In_ ULONG Flags,
     _In_ PVOID DllHandle,
-    _In_ PLDR_RESOURCE_INFO ResourceInfo,
-    _In_ ULONG Level,
+    _In_ PULONG_PTR ResourcePath,
+    _In_ ULONG Count,
     _Out_ PIMAGE_RESOURCE_DATA_ENTRY *ResourceDataEntry
     );
 
@@ -985,12 +986,53 @@ NTSTATUS
 NTAPI
 LdrFindResourceDirectory_U(
     _In_ PVOID DllHandle,
-    _In_ PLDR_RESOURCE_INFO ResourceInfo,
-    _In_ ULONG Level,
+    _In_ PULONG_PTR ResourcePath,
+    _In_ ULONG Count,
     _Out_ PIMAGE_RESOURCE_DIRECTORY *ResourceDirectory
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
+
+// rev // Flags for LdrResFindResource, LdrpResGetResourceDirectory, LdrResSearchResource
+#define LDR_RES_REQUIRE_FOUR_KEYS_A      0x00000001u  // Enables 4-key mode (variant A) (requires Count==4)
+#define LDR_RES_ALLOW_ANY                0x00000002u  // Permit Count < 3 (else Count must be 3 or 4)
+#define LDR_RES_OPTIMIZE_SMALL_A         0x00000008u  // Cannot combine with LDR_RES_OPTIMIZE_SMALL_B
+#define LDR_RES_OPTIMIZE_SMALL_B         0x00000010u  // Required when using LDR_RES_SPECIAL_DEPENDENCY with LDR_RES_MODE_D_SEARCH
+#define LDR_RES_REQUIRE_FOUR_KEYS_B      0x00000040u  // Enables 4-key mode (Enable alternate module message) (requires Count==4)
+
+// Search mode flags (if not specified, LDR_RES_MODE_A_SEARCH is the default)
+#define LDR_RES_MODE_A_SEARCH            0x00000100u  // Default mode for typical resource lookup. // Exclusive with B/C/D // LdrResRelease
+#define LDR_RES_MODE_B_SEARCH            0x00000200u  // When the resource is loaded as a datafile // LDR_IS_DATAFILE(DllHandle) // Exclusive with A/C/D // LdrResRelease
+#define LDR_RES_MODE_C_SEARCH            0x00000400u  // When precise control over mapping size is needed. // Exclusive with A/B/D // LdrResRelease
+#define LDR_RES_MODE_D_SEARCH            0x00000800u  // When dependency resolution or alternate resources are needed. // Used with LDR_RES_SPECIAL_DEPENDENCY // Exclusive with A/B/C // LdrResRelease
+
+// Mapping behavior flags (only valid with LDR_RES_MODE_C or LDR_RES_MODE_D)
+#define LDR_RES_MAPPING_STRICT           0x00001000u  // Default; Fail if mapping size query fails // LdrResRelease
+#define LDR_RES_MAPPING_LENIENT          0x00002000u  // Allow fallback if mapping size query fails // LdrResRelease
+#define LDR_RES_MAPPING_ALT_RESOURCE     0x00004000u  // When the primary resource search fails, try load and search the alternate resource // LdrResRelease
+
+// Small/fast lookup optimizations (only valid with LDR_RES_MODE_A or LDR_RES_MODE_B)
+#define LDR_RES_SPECIAL_DEPENDENCY       0x00008000u  // Only valid with (LDR_RES_MODE_D_SEARCH | LDR_RES_OPTIMIZE_SMALL_B)
+
+#define LDR_RES_SIZE_FROM_LENGTH_C       0x00020000u  // Use *ResourceLength as mapping size; requires LDR_RES_MODE_C
+#define LDR_RES_SIZE_FROM_LENGTH_AB      0x00080000u  // Use *ResourceLength as mapping size; requires LDR_RES_MODE_A or LDR_RES_MODE_B
+
+// Internal-only (set by loader on alternate resource retry; callers must not set)
+#define LDR_RES_INTERNAL_ALT_RETRY       0x01000000u
+
+// Group masks
+#define LDR_RES_MODE_MASK                0x00000F00u  // LDR_RES_MODE_A|LDR_RES_MODE_B|LDR_RES_MODE_C|LDR_RES_MODE_D
+#define LDR_RES_BEHAVIOR_MASK            0x00003000u  // LDR_RES_MAPPING_STRICT/LDR_RES_MAPPING_LENIENT
+#define LDR_RES_SIZEOVERRIDE_MASK        0x000A0000u  // LDR_RES_SIZE_FROM_LENGTH_* (0x20000|0x80000)
+#define LDR_RES_KEY4_MASK                (LDR_RES_REQUIRE_FOUR_KEYS_A | LDR_RES_REQUIRE_FOUR_KEYS_B)
+
+// Public/caller-visible bit mask (high bits must be zero for callers)
+#define LDR_RES_PUBLIC_MASK              0x000FFFFFu
+
+// Common invalid combinations (useful for validation)
+#define LDR_RES_INVALID_SMALL_OPT_PAIR           0x00000018u  // LDR_RES_OPTIMIZE_SMALL_A|LDR_RES_OPTIMIZE_SMALL_B
+#define LDR_RES_INVALID_MAPPING_BEHAVIOR_PAIR    0x00003000u  // LDR_RES_MAPPING_STRICT|LDR_RES_MAPPING_LENIENT?
+
 // rev
 /**
  * The LdrResFindResource function finds a resource in a DLL.
@@ -1023,7 +1065,7 @@ LdrResFindResource(
 
 // rev
 /**
- * The LdrResFindResourceDirectory function finds a resource directory in a DLL.
+ * The LdrResFindResourceDirectory function finds the resource directory containing the specified resource.
  *
  * \param DllHandle A handle to the DLL.
  * \param Type The type of the resource. This parameter can also be MAKEINTRESOURCE(ID), where ID is the integer identifier of the resource.
@@ -1048,6 +1090,18 @@ LdrResFindResourceDirectory(
     );
 
 // rev
+/**
+ * The LdrpResGetResourceDirectory function returns the resource directory for a DLL.
+ *
+ * \param DllHandle A handle to the DLL.
+ * \param Type The type of the resource. This parameter can also be MAKEINTRESOURCE(ID), where ID is the integer identifier of the resource.
+ * \param Name The name of the resource. This parameter can also be MAKEINTRESOURCE(ID), where ID is the integer identifier of the resource.
+ * \param ResourceDirectory An optional pointer to receive the resource directory.
+ * \param CultureName An optional buffer to receive the culture name.
+ * \param CultureNameLength An optional pointer to receive the length of the culture name.
+ * \param Flags Flags for the resource search.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1064,8 +1118,8 @@ LdrpResGetResourceDirectory(
 * The LdrResSearchResource function searches for a resource in a DLL.
 *
 * \param DllHandle A handle to the DLL.
-* \param ResourceId A pointer to an array of resource names.
-* \param Count The number of resource names in the array.
+* \param ResourcePath A pointer to an array of Type/Name/Language/(optional)AlternateType.
+* \param Count The number of elements in the ResourcePath array.
 * \param Flags Flags for the resource search.
 * \param ResourceBuffer An optional pointer to receive the resource buffer.
 * \param ResourceLength An optional pointer to receive the resource length.
@@ -1078,8 +1132,8 @@ NTSTATUS
 NTAPI
 LdrResSearchResource(
     _In_ PVOID DllHandle,
-    _In_ PLDR_RESOURCE_INFO ResourceInfo,
-    _In_ ULONG Level,
+    _In_ PULONG_PTR ResourcePath,
+    _In_ ULONG Count,
     _In_ ULONG Flags,
     _Out_opt_ PVOID* ResourceBuffer,
     _Out_opt_ PSIZE_T ResourceLength,
@@ -1087,8 +1141,58 @@ LdrResSearchResource(
     _Out_opt_ PULONG CultureNameLength
     );
 
+// rev
+typedef struct _MUI_RC_CONFIG
+{
+    ULONG Signature;          // Magic signature 0xFEEDFACE (-20054323 signed)
+    ULONG Size;               // Total size of this structure
+    ULONG Version;            // Version (0x10000 = 1.0)
+    ULONG Flags1;             // Primary flags field (validated with & 0xFFFFFFF8)
+    ULONG Flags2;             // Secondary flags field (validated with & 0xFFFFFFCC)
+    ULONG ValidationField;    // Additional validation field
+    ULONG Flags3;             // Tertiary flags field (validated with & 0xFFFFFFFC)
+    ULONG Reserved1;          // Reserved field
+    ULONG Reserved2;          // Reserved field
+    ULONG Reserved3;          // Reserved field
+    ULONG Reserved4;          // Reserved field
+    ULONG Reserved5;          // Reserved field
+    ULONG Reserved6;          // Reserved field
+    ULONG Reserved7;          // Reserved field
+    ULONG Reserved8;          // Reserved field
+    ULONG Reserved9;          // Reserved field
+    ULONG Reserved10;         // Reserved field
+
+    // Data section offset/size pairs (validated for bounds checking)
+    ULONG Section1Offset;     // First data section offset
+    ULONG Section1Size;       // First data section size
+    ULONG Section2Offset;     // Second data section offset
+    ULONG Section2Size;       // Second data section size
+    ULONG Section3Offset;     // Third data section offset
+    ULONG Section3Size;       // Third data section size
+    ULONG Section4Offset;     // Fourth data section offset
+    ULONG Section4Size;       // Fourth data section size
+    ULONG Section5Offset;     // Fifth data section offset
+    ULONG Section5Size;       // Fifth data section size
+    ULONG Section6Offset;     // Sixth data section offset
+    ULONG Section6Size;       // Sixth data section size
+    ULONG Section7Offset;     // Seventh data section offset
+    ULONG Section7Size;       // Seventh data section size
+    ULONG Section8Offset;     // Eighth data section offset
+    ULONG Section8Size;       // Eighth data section size
+    // Variable length data follows...
+    // The actual data sections referenced by the offset/size pairs above
+} MUI_RC_CONFIG, *PMUI_RC_CONFIG;
+
+// Magic signature constant
+#define MUI_RC_CONFIG_SIGNATURE 0xFEEDFACE
+#define MUI_RC_CONFIG_VERSION_1_0 0x10000
+// Flag validation masks
+#define MUI_FLAGS1_VALID_MASK 0xFFFFFFF8  // Only lower 3 bits allowed
+#define MUI_FLAGS2_VALID_MASK 0xFFFFFFCC  // Specific bit pattern
+#define MUI_FLAGS3_VALID_MASK 0xFFFFFFFC  // Only lower 2 bits allowed
+    
 /**
- * The LdrResGetRCConfig function retrieves the RC configuration for a DLL.
+ * The LdrResGetRCConfig function retrieves the MUI configuration (resource type 3) for a DLL.
  *
  * \param DllHandle A handle to the DLL.
  * \param Length The length of the configuration buffer.
@@ -1103,13 +1207,13 @@ NTAPI
 LdrResGetRCConfig(
     _In_ PVOID DllHandle,
     _In_opt_ SIZE_T Length,
-    _Out_writes_bytes_opt_(Length) PVOID Config,
+    _Out_writes_bytes_opt_(Length) PMUI_RC_CONFIG* Config,
     _In_ ULONG Flags,
     _In_ BOOLEAN AlternateResource // LdrLoadAlternateResourceModule
     );
 
 /**
- * The LdrResRelease function releases a resource in a DLL.
+ * The LdrResRelease function releases the alternate resource module or section of an associated DLL.
  *
  * \param DllHandle A handle to the DLL.
  * \param CultureNameOrId An optional culture name or ID.
@@ -1123,6 +1227,17 @@ LdrResRelease(
     _In_ PVOID DllHandle,
     _In_opt_ PCWSTR CultureNameOrId, // MAKEINTRESOURCE
     _In_ ULONG Flags
+    );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+LdrpResGetMappingSize(
+    _In_ PVOID BaseAddress,
+    _Out_ PSIZE_T Size,
+    _In_ ULONG Flags,
+    _In_ BOOLEAN GetFileSizeFromLoadAsDataTable
     );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
@@ -1164,8 +1279,8 @@ LdrNameOrIdFromResourceEntry(
  * The LdrEnumResources routine enumerates resources of a specified DLL module.
  *
  * \param DllHandle Handle to the loaded DLL module whose resources are to be enumerated.
- * \param ResourceInfo Pointer to a LDR_RESOURCE_INFO structure that specifies the resource type, name, and language.
- * \param ResourceIdCount Specifies the level of enumeration (e.g., type, name, or language).
+ * \param ResourceId A pointer to an array of Type/Name/Language/(optional)AlternateType.
+ * \param Count Specifies the number of elements in the ResourceId array.
  * \param ResourceCount On input, specifies the maximum number of resources to enumerate. On output, receives the actual number of resources enumerated.
  * \param Resources Pointer to a buffer that receives an array of LDR_ENUM_RESOURCE_ENTRY structures describing the resources.
  * \return NTSTATUS Successful or errant status.
@@ -1175,8 +1290,8 @@ NTSTATUS
 NTAPI
 LdrEnumResources(
     _In_ PVOID DllHandle,
-    _In_ PLDR_RESOURCE_INFO ResourceInfo,
-    _In_ ULONG Level,
+    _In_ PULONG_PTR ResourceId,
+    _In_ ULONG Count,
     _Inout_ ULONG *ResourceCount,
     _Out_writes_to_opt_(*ResourceCount, *ResourceCount) PLDR_ENUM_RESOURCE_ENTRY Resources
     );
@@ -1217,6 +1332,9 @@ LdrLoadAlternateResourceModule(
     _Out_opt_ SIZE_T *Size,
     _In_ ULONG Flags
     );
+
+// Flags for LdrLoadAlternateResourceModuleEx
+#define LDR_LOAD_ALT_RESOURCE_MUN_MODE 0x01000000u // Use .mun files instead of .mui files
 
 // rev
 NTSYSAPI
@@ -1442,7 +1560,7 @@ LdrQueryOptionalDelayLoadedAPI(
     _In_ PCSTR ProcedureName,
     _Reserved_ ULONG Flags
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev from ResolveDelayLoadedAPI
@@ -1535,7 +1653,7 @@ NTAPI
 LdrRemoveDllDirectory(
     _In_ DLL_DIRECTORY_COOKIE Cookie
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 // rev
 _Analysis_noreturn_
@@ -1783,17 +1901,6 @@ LdrSetDllManifestProber(
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSAPI BOOLEAN LdrpChildNtdll; // DATA export
 #endif
-
-// rev
-NTSYSAPI
-VOID
-NTAPI
-LdrpResGetMappingSize(
-    _In_ PVOID BaseAddress,
-    _Out_ PSIZE_T Size,
-    _In_ ULONG Flags,
-    _In_ BOOLEAN GetFileSizeFromLoadAsDataTable
-    );
 
 // rev
 NTSYSAPI

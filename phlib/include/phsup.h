@@ -710,11 +710,11 @@ PhProbeAddress(
  * Probes a user address for read access and checks if the specified user address is readable
  * and within the bounds of the buffer.
  *
- * @param UserAddress The address to probe.
- * @param UserLength The length of the memory to probe.
- * @param BufferAddress The base address of the buffer.
- * @param BufferLength The length of the buffer.
- * @param Alignment The required alignment of the address.
+ * \param UserAddress The address to probe.
+ * \param UserLength The length of the memory to probe.
+ * \param BufferAddress The base address of the buffer.
+ * \param BufferLength The length of the buffer.
+ * \param Alignment The required alignment of the address.
  */
 FORCEINLINE
 VOID

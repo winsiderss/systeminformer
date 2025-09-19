@@ -2990,14 +2990,14 @@ VOID PhWindowNotifyTopMostEvent(
 /**
  * Retrieves the environment variables for the specified user.
  *
- * @param Environment A pointer to the new environment block. 
- * @param TokenHandle Token to query for user environment variables.
+ * \param Environment A pointer to the new environment block. 
+ * \param TokenHandle Token to query for user environment variables.
  * If this is a primary token, the token must have TOKEN_QUERY and TOKEN_DUPLICATE access.
  * If the token is an impersonation token, it must have TOKEN_QUERY access.
  * If this parameter is NULL, the returned environment block contains system variables only.
- * @param Inherit Specifies whether to inherit variables from the current process' environment. If this value is TRUE, the process inherits the current process' environment. 
- * @return A pointer to the imported procedure, or NULL if the procedure could not be imported.
- * @remarks User-specific environment variables such as %USERPROFILE% are set only when the user's profile is loaded. To load a user's profile, call the LoadUserProfile function.
+ * \param Inherit Specifies whether to inherit variables from the current process' environment. If this value is TRUE, the process inherits the current process' environment. 
+ * \return A pointer to the imported procedure, or NULL if the procedure could not be imported.
+ * \remarks User-specific environment variables such as %USERPROFILE% are set only when the user's profile is loaded. To load a user's profile, call the LoadUserProfile function.
  */
 NTSTATUS PhCreateEnvironmentBlock(
     _Out_ PVOID* Environment,
@@ -3033,7 +3033,7 @@ NTSTATUS PhCreateEnvironmentBlock(
 /**
  * Frees environment variables created by the CreateEnvironmentBlock function.
  *
- * @param Environment A pointer to the new environment block.
+ * \param Environment A pointer to the new environment block.
  */
 VOID PhDestroyEnvironmentBlock(
     _In_ _Post_invalid_ PVOID Environment
@@ -5076,10 +5076,10 @@ VOID PhEnumerateRecentList(
 /**
  * Forcibly closes the specified window.
  *
- * @param WindowHandle A handle to the window to be closed.
- * @param Force If TRUE, force the destruction of the window if an initial attempt to gently close the window using WM_CLOSE fails. If FALSE, only WM_CLOSE is attempted.
- * @return NTSTATUS Successful or errant status.
- * @remarks https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-endtask
+ * \param WindowHandle A handle to the window to be closed.
+ * \param Force If TRUE, force the destruction of the window if an initial attempt to gently close the window using WM_CLOSE fails. If FALSE, only WM_CLOSE is attempted.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-endtask
  */
 NTSTATUS PhTerminateWindow(
     _In_ HWND WindowHandle,
