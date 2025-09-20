@@ -217,32 +217,11 @@ static NTSTATUS PhImageCoherencyReadVirtualMemoryCallback(
     )
 {
     PPH_IMAGE_COHERENCY_CONTEXT context = (PPH_IMAGE_COHERENCY_CONTEXT)Context;
-    NTSTATUS status;
+    if (!context) return STATUS_INVALID_PARAMETER_6;
 
-    if (context)
-    {
-        SIZE_T numberOfBytesRead = 0;
-
-        if (context->ImageIsKernelModule)
-        {
-            status = KphReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, &numberOfBytesRead);
-        }
-        else
-        {
-            status = PhReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, &numberOfBytesRead);
-        }
-
-        if (NumberOfBytesRead)
-        {
-            *NumberOfBytesRead = numberOfBytesRead;
-        }
-    }
-    else
-    {
-        status = STATUS_INVALID_PARAMETER_6;
-    }
-
-    return status;
+    if (context->ImageIsKernelModule)
+        return KphReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesRead);
+    return PhReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesRead);
 }
 
 /**

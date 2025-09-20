@@ -169,7 +169,7 @@ KphReadVirtualMemory(
     _In_ PVOID BaseAddress,
     _Out_writes_bytes_(BufferSize) PVOID Buffer,
     _In_ SIZE_T BufferSize,
-    _Inout_opt_ PSIZE_T NumberOfBytesRead
+    _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
 PHLIBAPI

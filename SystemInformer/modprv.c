@@ -413,7 +413,6 @@ VOID PhpRemoveModuleItem(
     PhDereferenceObject(ModuleItem);
 }
 
-
 _Function_class_(PH_READ_VIRTUAL_MEMORY_CALLBACK)
 static NTSTATUS PhModuleItemReadVirtualMemoryCallback(
     _In_ HANDLE ProcessHandle,
@@ -425,26 +424,11 @@ static NTSTATUS PhModuleItemReadVirtualMemoryCallback(
     )
 {
     PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)Context;
-    NTSTATUS status;
+    if (!moduleItem) return STATUS_INVALID_PARAMETER_6;
 
-    if (moduleItem)
-    {
-        SIZE_T numberOfBytesRead = 0;
-
-        if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
-            status = KphReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, &numberOfBytesRead);
-        else
-            status = PhReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, &numberOfBytesRead);
-
-        if (NumberOfBytesRead)
-            *NumberOfBytesRead = numberOfBytesRead;
-    }
-    else
-    {
-        status = STATUS_INVALID_PARAMETER_6;
-    }
-
-    return status;
+    if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
+        return KphReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesRead);
+    return PhReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesRead);
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)
