@@ -1176,12 +1176,12 @@ namespace CustomBuildTool
                 return false;
 
             // Check assets uploaded to github
-
+            var github_release_id = githubMirrorUpload.ReleaseId.ToString();
             var binzipdownloadlink = githubMirrorUpload.GetFileUrl("systeminformer-build-bin.zip"); // $"systeminformer-{Build.BuildLongVersion}-bin.zip"
             var relzipdownloadlink = githubMirrorUpload.GetFileUrl("systeminformer-build-release-setup.exe");
             var canzipdownloadlink = githubMirrorUpload.GetFileUrl("systeminformer-build-canary-setup.exe");
 
-            if (string.IsNullOrWhiteSpace(binzipdownloadlink) || string.IsNullOrWhiteSpace(relzipdownloadlink) || string.IsNullOrWhiteSpace(canzipdownloadlink))
+            if (string.IsNullOrWhiteSpace(github_release_id) || string.IsNullOrWhiteSpace(binzipdownloadlink) || string.IsNullOrWhiteSpace(relzipdownloadlink) || string.IsNullOrWhiteSpace(canzipdownloadlink))
             {
                 Program.PrintColorMessage("[ERROR] GetDeployInfo failed.", ConsoleColor.Red);
                 return false;
@@ -1189,7 +1189,7 @@ namespace CustomBuildTool
 
             // Update the build information.
 
-            if (!BuildUploadServerConfig(portable_zip, release_exe, canary_exe))
+            if (!BuildUploadServerConfig(portable_zip, release_exe, canary_exe, github_release_id))
             {
                 Program.PrintColorMessage("[ERROR] BuildUploadServerConfig failed.", ConsoleColor.Red);
                 return false;
@@ -1333,7 +1333,8 @@ namespace CustomBuildTool
         private static bool BuildUploadServerConfig(
             DeployFile BinFile,
             DeployFile ReleaseFile,
-            DeployFile CanaryFile
+            DeployFile CanaryFile,
+            string GithubReleaseId
             )
         {
             if (!Build.BuildCanary)
@@ -1350,7 +1351,8 @@ namespace CustomBuildTool
 
             if (string.IsNullOrWhiteSpace(buildBuildId) ||
                 string.IsNullOrWhiteSpace(buildPostUrl) ||
-                string.IsNullOrWhiteSpace(buildPostKey))
+                string.IsNullOrWhiteSpace(buildPostKey) ||
+                string.IsNullOrWhiteSpace(GithubReleaseId))
             {
                 Program.PrintColorMessage("BuildUploadServerConfig invalid config.", ConsoleColor.Red);
                 return false;
@@ -1386,6 +1388,7 @@ namespace CustomBuildTool
                     BuildDisplay = Build.BuildShortVersion,
                     BuildVersion = Build.BuildLongVersion,
                     BuildCommit = Build.BuildCommitHash,
+                    BuildGithubId = GithubReleaseId,
                     BuildId = buildBuildId,
                     BinUrl = BinFile.DownloadLink,
                     BinLength = BinFile.FileLength,

@@ -33,7 +33,7 @@ namespace CustomBuildTool
                 string.IsNullOrWhiteSpace(BaseName) ||
                 string.IsNullOrWhiteSpace(BaseUrl))
             {
-                Console.WriteLine("One or more required environment variables are missing.");
+                Program.PrintColorMessage("One or more required environment variables are missing.", ConsoleColor.Red);
                 return DateTime.MinValue;
             }
 
@@ -61,9 +61,9 @@ namespace CustomBuildTool
 
                     var offset = new DateTimeOffset(DateTime.SpecifyKind(content.QueueTime, DateTimeKind.Utc));
 
-                    Console.WriteLine($"Build QueueTime: {content.QueueTime}");
-                    Console.WriteLine($"Build StartTime: {content.StartTime}");
-                    Console.WriteLine($"Build Elapsed: {(DateTimeOffset.UtcNow - offset)}");
+                    Program.PrintColorMessage($"Build QueueTime: {content.QueueTime}", ConsoleColor.Green);
+                    Program.PrintColorMessage($"Build StartTime: {content.StartTime}", ConsoleColor.Green);
+                    Program.PrintColorMessage($"Build Elapsed: {(DateTimeOffset.UtcNow - offset)}", ConsoleColor.Green);
 
                     return offset.DateTime;
                 }

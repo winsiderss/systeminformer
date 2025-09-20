@@ -927,6 +927,7 @@ namespace CustomBuildTool
         [JsonPropertyName("build_version")] public string BuildVersion { get; init; }
         [JsonPropertyName("build_commit")] public string BuildCommit { get; init; }
         [JsonPropertyName("build_updated")] public string BuildUpdated { get; init; }
+        [JsonPropertyName("build_github_id")] public string BuildGithubId { get; init; }
 
         [JsonPropertyName("bin_url")] public string BinUrl { get; init; }
         [JsonPropertyName("bin_length")] public string BinLength { get; init; }
