@@ -151,26 +151,27 @@ namespace CustomBuildTool
         public string DownloadHash { get; private set; }
         public string DownloadLink { get; private set; }
 
-        public void UpdateAssetsResponse(GithubAssetsResponse response)
+        public bool UpdateAssetsResponse(GithubAssetsResponse response)
         {
             if (response == null)
             {
                 Program.PrintColorMessage("[UpdateAssetsResponse] response null.", ConsoleColor.Red);
-                return;
+                return false;
             }
             if (string.IsNullOrWhiteSpace(response.HashValue))
             {
                 Program.PrintColorMessage("[UpdateAssetsResponse] HashValue null.", ConsoleColor.Red);
-                return;
+                return false;
             }
             if (string.IsNullOrWhiteSpace(response.DownloadUrl))
             {
                 Program.PrintColorMessage("[UpdateAssetsResponse] DownloadUrl null.", ConsoleColor.Red);
-                return;
+                return false;
             }
 
             this.DownloadHash = response.HashValue;
             this.DownloadLink = response.DownloadUrl;
+            return true;
         }
 
         public override string ToString()

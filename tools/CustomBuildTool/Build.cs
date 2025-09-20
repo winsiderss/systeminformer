@@ -1238,17 +1238,17 @@ namespace CustomBuildTool
                         return null;
                     }
 
-                    //var name = sourceName.Replace(
-                    //    "-build-",
-                    //    $"-{Build.BuildLongVersion}-",
-                    //    StringComparison.OrdinalIgnoreCase
-                    //    );
+                    var label = sourceName.Replace(
+                        "-build-",
+                        $"-{Build.BuildLongVersion}-",
+                        StringComparison.OrdinalIgnoreCase
+                        );
 
                     var result = BuildGithub.UploadAsset(
                         newGithubRelease.UploadUrl,
                         deployfile.FileName,
                         sourceName,
-                        sourceName
+                        label
                         );
 
                     if (result == null)
@@ -1259,7 +1259,18 @@ namespace CustomBuildTool
 
                     //mirror.Files.Add(new GithubReleaseAsset(file.FileName, result.Download_url));
 
-                    deployfile.UpdateAssetsResponse(result);
+                    if (string.IsNullOrWhiteSpace(result.HashValue))
+                    {
+                        Program.PrintColorMessage("[UpdateAssetsResponse] HashValue null.", ConsoleColor.Red);
+                        return null;
+                    }
+                    if (string.IsNullOrWhiteSpace(result.DownloadUrl))
+                    {
+                        Program.PrintColorMessage("[UpdateAssetsResponse] DownloadUrl null.", ConsoleColor.Red);
+                        return null;
+                    }
+
+                    //deployfile.UpdateAssetsResponse(result);
                 }
 
                 // Update the release and make it public.
@@ -1272,10 +1283,7 @@ namespace CustomBuildTool
                     return null;
                 }
 
-                // Wait a few seconds for github to update...
-                {
-                    Thread.Sleep(5000);
-                }
+                // Get the release information.
 
                 var release = BuildGithub.GetRelease(update.ReleaseId);
 
@@ -1301,6 +1309,12 @@ namespace CustomBuildTool
                     if (deployFile == null)
                     {
                         Program.PrintColorMessage($"[GithubReleaseAsset-MissingDeployFile] {file.Name}", ConsoleColor.Red);
+                        return null;
+                    }
+
+                    if (!deployFile.UpdateAssetsResponse(file))
+                    {
+                        Program.PrintColorMessage($"[GithubReleaseAsset-UpdateAssetsResponse] {file.Name}", ConsoleColor.Red);
                         return null;
                     }
 
