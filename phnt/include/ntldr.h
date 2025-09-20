@@ -398,7 +398,7 @@ LdrGetDllPath(
 
 // rev
 /**
- * The LdrSetDllDirectory routine retrieves the application-specific portion of the search path used to locate DLLs for the application.
+ * The LdrGetDllDirectory routine retrieves the application-specific portion of the search path used to locate DLLs for the application.
  *
  * \param PathName A pointer to a buffer that receives the application-specific portion of the search path.
  * \return NTSTATUS Successful or errant status.
@@ -685,7 +685,7 @@ LdrUnregisterDllNotification(
 
 // end_msdn
 
-#if (PHNT_VERSION == PHNT_WINDOWS_10)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // deprecated
 NTSYSAPI
 PUNICODE_STRING
@@ -954,7 +954,7 @@ NTSTATUS
 NTAPI
 LdrFindResource_U(
     _In_ PVOID DllHandle,
-    _In_ PULONG_PTR ResourcePath,
+    _In_reads_(Count) PULONG_PTR ResourcePath,
     _In_ ULONG Count,
     _Out_ PIMAGE_RESOURCE_DATA_ENTRY *ResourceDataEntry
     );
@@ -976,7 +976,7 @@ NTAPI
 LdrFindResourceEx_U(
     _In_ ULONG Flags,
     _In_ PVOID DllHandle,
-    _In_ PULONG_PTR ResourcePath,
+    _In_reads_(Count) PULONG_PTR ResourcePath,
     _In_ ULONG Count,
     _Out_ PIMAGE_RESOURCE_DATA_ENTRY *ResourceDataEntry
     );
@@ -986,7 +986,7 @@ NTSTATUS
 NTAPI
 LdrFindResourceDirectory_U(
     _In_ PVOID DllHandle,
-    _In_ PULONG_PTR ResourcePath,
+    _In_reads_(Count) PULONG_PTR ResourcePath,
     _In_ ULONG Count,
     _Out_ PIMAGE_RESOURCE_DIRECTORY *ResourceDirectory
     );
@@ -1132,7 +1132,7 @@ NTSTATUS
 NTAPI
 LdrResSearchResource(
     _In_ PVOID DllHandle,
-    _In_ PULONG_PTR ResourcePath,
+    _In_reads_(Count) PULONG_PTR ResourcePath,
     _In_ ULONG Count,
     _In_ ULONG Flags,
     _Out_opt_ PVOID* ResourceBuffer,
@@ -1190,7 +1190,7 @@ typedef struct _MUI_RC_CONFIG
 #define MUI_FLAGS1_VALID_MASK 0xFFFFFFF8  // Only lower 3 bits allowed
 #define MUI_FLAGS2_VALID_MASK 0xFFFFFFCC  // Specific bit pattern
 #define MUI_FLAGS3_VALID_MASK 0xFFFFFFFC  // Only lower 2 bits allowed
-    
+
 /**
  * The LdrResGetRCConfig function retrieves the MUI configuration (resource type 3) for a DLL.
  *
@@ -1290,7 +1290,7 @@ NTSTATUS
 NTAPI
 LdrEnumResources(
     _In_ PVOID DllHandle,
-    _In_ PULONG_PTR ResourceId,
+    _In_reads_(Count) PULONG_PTR ResourceId,
     _In_ ULONG Count,
     _Inout_ ULONG *ResourceCount,
     _Out_writes_to_opt_(*ResourceCount, *ResourceCount) PLDR_ENUM_RESOURCE_ENTRY Resources
