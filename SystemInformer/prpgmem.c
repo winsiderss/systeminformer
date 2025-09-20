@@ -198,6 +198,7 @@ VOID PhShowMemoryContextMenu(
     PhFree(memoryNodes);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpMemoryTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -524,6 +525,7 @@ PPH_MEMORY_CONTEXT PhCreateMemoryContext(
     return memoryContext;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpProcessMemorySearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
