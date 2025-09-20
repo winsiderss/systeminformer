@@ -1298,15 +1298,15 @@ PPH_STRING PhGetPhVersion(
     VOID
     )
 {
-    PH_FORMAT format[5];
+    PH_FORMAT format[7];
 
     PhInitFormatU(&format[0], PHAPP_VERSION_MAJOR);
     PhInitFormatC(&format[1], L'.');
     PhInitFormatU(&format[2], PHAPP_VERSION_MINOR);
     PhInitFormatC(&format[3], L'.');
     PhInitFormatU(&format[4], PHAPP_VERSION_BUILD);
-    PhInitFormatC(&format[3], L'.');
-    PhInitFormatU(&format[4], PHAPP_VERSION_REVISION);
+    PhInitFormatC(&format[5], L'.');
+    PhInitFormatU(&format[6], PHAPP_VERSION_REVISION);
 
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
