@@ -10,6 +10,7 @@
  */
 
 #include "toolstatus.h"
+#include <toolstatusintf.h>
 
 static PPH_LIST PhpToolbarGraphList = NULL;
 static PPH_HASHTABLE PhpToolbarGraphHashtable = NULL;
@@ -226,10 +227,14 @@ BOOLEAN ToolbarAddGraph(
             PhAddItemSimpleHashtable(PhpToolbarGraphHashtable, Graph->GraphHandle, Graph);
 
             if (!RebarBandExists(Graph->GraphId))
+            {
                 RebarBandInsert(Graph->GraphId, Graph->GraphHandle, Width, Height); // height: 85
+            }
 
             if (!IsWindowVisible(Graph->GraphHandle))
+            {
                 ShowWindow(Graph->GraphHandle, SW_SHOW);
+            }
         }
     }
 
@@ -285,6 +290,11 @@ VOID ToolbarUpdateGraphs(
     VOID
     )
 {
+    if (!ToolStatusConfig.ToolBarEnabled)
+        return;
+    if (!PhpToolbarGraphList)
+        return;
+
     for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
@@ -306,6 +316,8 @@ VOID ToolbarUpdateGraphVisualStates(
     )
 {
     if (!ToolStatusConfig.ToolBarEnabled)
+        return;
+    if (!PhpToolbarGraphList)
         return;
 
     for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
@@ -498,6 +510,23 @@ VOID ToolbarGraphCreatePluginMenu(
 
         PhInsertEMenuItem(ParentMenu, menuItem, ULONG_MAX);
     }
+}
+
+VOID ToolbarUpdateVisibleGraph(
+    _In_ PVOID Context
+    )
+{
+    PPH_TOOLBAR_GRAPH icon = (PPH_TOOLBAR_GRAPH)Context;
+
+    if (!icon)
+    {
+        return;
+    }
+
+    ToolbarSetVisibleGraph(icon, !(icon->Flags & PH_NF_ICON_ENABLED));
+
+    ToolbarGraphSaveSettings();
+    ReBarSaveLayoutSettings();
 }
 
 //

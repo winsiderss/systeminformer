@@ -21,10 +21,11 @@
 #include <settings.h>
 #include <searchbox.h>
 
-#include "resource.h"
 #include <toolstatusintf.h>
 
-#define PLUGIN_NAME TOOLSTATUS_PLUGIN_NAME
+#include "resource.h"
+
+#define PLUGIN_NAME L"ProcessHacker.ToolStatus"
 #define SETTING_NAME_TOOLSTATUS_CONFIG (PLUGIN_NAME L".Config")
 #define SETTING_NAME_REBAR_CONFIG (PLUGIN_NAME L".RebarConfig")
 #define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
@@ -149,25 +150,117 @@ extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
 extern PPH_TN_FILTER_ENTRY ServiceTreeFilterEntry;
 extern PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
 
-PTOOLSTATUS_TAB_INFO FindTabInfo(
-    _In_ INT TabIndex
+// plugin.cpp
+
+extern CONST TOOLSTATUS_INTERFACE PluginInterface;
+
+VOID PluginInterfaceInitialize(
+    VOID
+    );
+
+VOID PluginInterfaceInvokeSearchChangedEvent(
+    _In_ ULONG_PTR Context
+    );
+
+HWND GetTabIndexTreeNewHandle(
+    _In_ LONG TabIndex
+    );
+
+PPH_STRING GetTabIndexBannerText(
+    _In_ LONG TabIndex,
+    _In_opt_ PCPH_STRINGREF AppendString
     );
 
 // toolbar.c
 
-VOID RebarBandInsert(
-    _In_ UINT BandID,
-    _In_ HWND HwndChild,
-    _In_ UINT cyMinChild,
-    _In_ UINT cxMinChild
+BOOLEAN RebarBandInsert(
+    _In_ REBAR_BAND BandID,
+    _In_ HWND ChildWindowHandle,
+    _In_ ULONG ChildMinimumWidth,
+    _In_ ULONG ChildMinimumHeight
     );
 
 VOID RebarBandRemove(
-    _In_ UINT BandID
+    _In_ REBAR_BAND BandID
     );
 
-BOOLEAN RebarBandExists(
-    _In_ UINT BandID
+BOOLEAN RebarBandMove(
+    _In_ ULONG OldIndex,
+    _In_ ULONG NewIndex
+    );
+
+ULONG RebarBandToIndex(
+    _In_ REBAR_BAND BandID
+    );
+
+FORCEINLINE
+BOOLEAN
+RebarBandExists(
+    _In_ REBAR_BAND BandID
+    )
+{
+    return RebarBandToIndex(BandID) != ULONG_MAX;
+}
+
+_Success_(return)
+BOOLEAN RebarGetBandCount(
+    _Out_ PULONG Count
+    );
+
+LONG RebarGetRowHeight(
+    _In_ REBAR_BAND BandID
+    );
+
+VOID RebarSetBarInfo(
+    VOID
+    );
+
+_Success_(return)
+BOOLEAN RebarGetBandIndexStyle(
+    _In_ ULONG BandIndex,
+    _Out_ PULONG Style
+    );
+
+BOOLEAN RebarSetBandIndexStyle(
+    _In_ ULONG BandIndex,
+    _In_ ULONG Style
+    );
+
+typedef struct _BAND_CHILD_SIZE
+{
+    ULONG InitialChildHeight;
+    ULONG MaximumChildHeight;
+    ULONG MinChildWidth;
+    ULONG MinChildHeight;
+    ULONG ResizeStepValue;
+} BAND_CHILD_SIZE, * PBAND_CHILD_SIZE;
+
+_Success_(return)
+BOOLEAN RebarGetBandIndexChildSize(
+    _In_ ULONG BandIndex,
+    _Out_ PBAND_CHILD_SIZE BandSize
+    );
+
+BOOLEAN RebarSetBandIndexChildSize(
+    _In_ ULONG BandIndex,
+    _In_ PBAND_CHILD_SIZE BandSize
+    );
+
+typedef struct _BAND_STYLE_SIZE
+{
+    ULONG BandStyle;
+    ULONG BandWidth;
+} BAND_STYLE_SIZE, *PBAND_STYLE_SIZE;
+
+_Success_(return)
+BOOLEAN RebarGetBandIndexStyleSize(
+    _In_ ULONG BandIndex,
+    _Out_ PBAND_STYLE_SIZE BandStyleSize
+    );
+
+BOOLEAN RebarSetBandIndexStyleSize(
+    _In_ ULONG BandIndex,
+    _In_ PBAND_STYLE_SIZE RebarBandInfo
     );
 
 VOID ToolbarLoadSettings(
@@ -222,19 +315,6 @@ LONG ToolStatusGetWindowFontSize(
 
 // main.c
 
-ULONG_PTR GetSearchMatchHandle(
-    VOID
-    );
-
-VOID RegisterTabSearch(
-    _In_ LONG TabIndex,
-    _In_ PWSTR BannerText
-    );
-
-PTOOLSTATUS_TAB_INFO RegisterTabInfo(
-    _In_ LONG TabIndex
-    );
-
 HWND GetCurrentTreeNewHandle(
     VOID
     );
@@ -268,14 +348,19 @@ BOOLEAN WordMatchStringRef(
     _In_ PCPH_STRINGREF Text
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN ProcessTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
+
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN ServiceTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
+
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN NetworkTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -320,6 +405,12 @@ VOID ToolbarUpdateGraphVisualStates(
     VOID
     );
 
+VOID ToolbarUpdateVisibleGraph(
+    _In_ PVOID Context
+    );
+
+typedef struct _PH_TOOLBAR_GRAPH PH_TOOLBAR_GRAPH, *PPH_TOOLBAR_GRAPH;
+
 BOOLEAN ToolbarUpdateGraphsInfo(
     _In_ HWND WindowHandle,
     _In_ LPNMHDR Header
@@ -353,6 +444,7 @@ VOID ToolbarGraphCreatePluginMenu(
     _In_ ULONG MenuId
     );
 
+_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
 BOOLEAN CpuHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
@@ -361,6 +453,7 @@ BOOLEAN CpuHistoryGraphMessageCallback(
     _In_ PVOID Context
     );
 
+_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
 BOOLEAN PhysicalHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
@@ -369,6 +462,7 @@ BOOLEAN PhysicalHistoryGraphMessageCallback(
     _In_ PVOID Context
     );
 
+_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
 BOOLEAN CommitHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
@@ -377,6 +471,7 @@ BOOLEAN CommitHistoryGraphMessageCallback(
     _In_ PVOID Context
     );
 
+_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
 BOOLEAN IoHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,

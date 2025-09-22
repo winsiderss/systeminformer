@@ -91,11 +91,11 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (processNode->ProcessItem->ProtectionString)
-    {
-        if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->ProtectionString->sr))
-            return TRUE;
-    }
+    //if (processNode->ProcessItem->ProtectionString)
+    //{
+    //    if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->ProtectionString->sr))
+    //        return TRUE;
+    //}
 
     if (!PhIsNullOrEmptyString(processNode->ProcessItem->VerifySignerName))
     {

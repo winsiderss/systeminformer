@@ -15,6 +15,7 @@ SIZE ToolBarImageSize = { 16, 16 };
 HIMAGELIST ToolBarImageList = NULL;
 HFONT ToolbarWindowFont = NULL;
 BOOLEAN ToolbarInitialized = FALSE;
+ULONG ToolbarSearchRebarIndex = ULONG_MAX;
 TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS] =
 {
     // Default toolbar buttons (displayed)
@@ -34,63 +35,48 @@ TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS] =
     { I_IMAGECALLBACK, TIDC_POWERMENUDROPDOWN, TBSTATE_ENABLED, BTNS_WHOLEDROPDOWN | BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
 };
 
-VOID RebarBandInsert(
-    _In_ UINT BandID,
-    _In_ HWND HwndChild,
-    _In_ UINT cxMinChild,
-    _In_ UINT cyMinChild
+HWND ToolbarCreateWindow(
+    _In_ HWND ParentWindowHandle
     )
 {
-    UINT index;
-    REBARBANDINFO rebarBandInfo =
-    {
-        sizeof(REBARBANDINFO),
-        RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE,
-        RBBS_USECHEVRON | RBBS_VARIABLEHEIGHT // RBBS_NOGRIPPER | RBBS_HIDETITLE | RBBS_TOPALIGN
-    };
+    HWND toolbarHandle = PhCreateWindow(
+        TOOLBARCLASSNAME,
+        NULL,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NOPARENTALIGN | CCS_NODIVIDER |
+        TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
+        0, 0, 0, 0,
+        ParentWindowHandle,
+        NULL,
+        NULL,
+        NULL
+        );
 
-    rebarBandInfo.wID = BandID;
-    rebarBandInfo.hwndChild = HwndChild;
-    rebarBandInfo.cxMinChild = cxMinChild;
-    rebarBandInfo.cyMinChild = cyMinChild;
+    // Set the toolbar struct size.
+    SendMessage(toolbarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    // Set the toolbar extended toolbar styles.
+    SendMessage(toolbarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
 
-    if (ToolStatusConfig.ToolBarLocked)
-    {
-        SetFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
-    }
-
-    if ((index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, REBAR_BAND_ID_SEARCHBOX, 0)) != UINT_MAX)
-    {
-        SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)index, (LPARAM)&rebarBandInfo);
-    }
-    else
-    {
-        SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
-    }
+    return toolbarHandle;
 }
 
-VOID RebarBandRemove(
-    _In_ UINT BandID
+HWND RebarCreateWindow(
+    _In_ HWND ParentWindowHandle
     )
 {
-    UINT index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID, 0);
+    HWND rebarHandle = PhCreateWindow(
+        REBARCLASSNAME,
+        NULL,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT,
+        0, 0, 0, 0,
+        ParentWindowHandle,
+        NULL,
+        NULL,
+        NULL
+        );
 
-    if (index == UINT_MAX)
-        return;
+    RebarSetBarInfo();
 
-    SendMessage(RebarHandle, RB_DELETEBAND, (WPARAM)index, 0);
-}
-
-BOOLEAN RebarBandExists(
-    _In_ UINT BandID
-    )
-{
-    UINT index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID, 0);
-
-    if (index != UINT_MAX)
-        return TRUE;
-
-    return FALSE;
+    return rebarHandle;
 }
 
 VOID RebarCreateOrUpdateWindow(
@@ -148,48 +134,26 @@ VOID RebarCreateOrUpdateWindow(
         }
     }
 
-    if (ToolStatusConfig.ToolBarEnabled && !RebarHandle)
+    // Rebar/Toolbar
+
+    if (ToolStatusConfig.ToolBarEnabled && !RebarHandle && !ToolBarHandle)
     {
-        REBARINFO rebarInfo;
+        RebarHandle = RebarCreateWindow(MainWindowHandle);
+        ToolBarHandle = ToolbarCreateWindow(RebarHandle);
 
-        ToolbarWindowFont = SystemInformer_GetFont();
+        if (ToolBarImageList)
+        {
+            // Configure the toolbar imagelist.
+            SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+        }
 
-        RebarHandle = PhCreateWindow(
-            REBARCLASSNAME,
-            NULL,
-            WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT, // | RBS_AUTOSIZE  CCS_NOPARENTALIGN
-            0, 0, 0, 0,
-            MainWindowHandle,
-            NULL,
-            NULL,
-            NULL
-            );
+        if (ToolbarWindowFont = SystemInformer_GetFont())
+        {
+            // Configure the toolbar font.
+            SetWindowFont(ToolBarHandle, ToolbarWindowFont, FALSE);
+        }
 
-        ToolBarHandle = PhCreateWindow(
-            TOOLBARCLASSNAME,
-            NULL,
-            WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NOPARENTALIGN | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
-            0, 0, 0, 0,
-            RebarHandle,
-            NULL,
-            NULL,
-            NULL
-            );
-
-        memset(&rebarInfo, 0, sizeof(REBARINFO));
-        rebarInfo.cbSize = sizeof(REBARINFO);
-
-        // Set the rebar info with no imagelist.
-        SendMessage(RebarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
-        // Set the toolbar struct size.
-        SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-        // Set the toolbar extended toolbar styles.
-        SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
-        // Configure the toolbar imagelist.
-        SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
-        // Configure the toolbar font.
-        SetWindowFont(ToolBarHandle, ToolbarWindowFont, FALSE);
-        // Add the buttons to the toolbar.
+        // Configure the toolbar buttons.
         ToolbarLoadButtonSettings();
 
         if (EnableThemeSupport)
@@ -209,9 +173,6 @@ VOID RebarCreateOrUpdateWindow(
             ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
             LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
 
-            if (RebarBandExists(REBAR_BAND_ID_TOOLBAR))
-                RebarBandRemove(REBAR_BAND_ID_TOOLBAR);
-
             RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, LOWORD(toolbarButtonSize), __max(HIWORD(toolbarButtonSize), toolbarButtonHeight));
 
             if (HIWORD(toolbarButtonSize) < toolbarButtonHeight)
@@ -221,7 +182,9 @@ VOID RebarCreateOrUpdateWindow(
         }
     }
 
-    if (ToolStatusConfig.SearchBoxEnabled && !SearchboxHandle)
+    // Searchbar
+
+    if (ToolStatusConfig.SearchBoxEnabled && RebarHandle && !SearchboxHandle)
     {
         ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterCallback, NULL);
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
@@ -249,6 +212,8 @@ VOID RebarCreateOrUpdateWindow(
                 );
         }
     }
+
+    // Statusbar
 
     if (ToolStatusConfig.StatusBarEnabled && !StatusBarHandle)
     {
@@ -284,53 +249,100 @@ VOID RebarCreateOrUpdateWindow(
         }
     }
 
-    // Hide or show controls (Note: don't unload or remove at runtime).
+    // Update configuration of the controls based on settings.
+
     if (ToolStatusConfig.ToolBarEnabled)
     {
         if (RebarHandle && !IsWindowVisible(RebarHandle))
+        {
             ShowWindow(RebarHandle, SW_SHOW);
+        }
     }
     else
     {
-        if (RebarHandle && IsWindowVisible(RebarHandle))
-            ShowWindow(RebarHandle, SW_HIDE);
+        // Destroy toolbar/rebar when disabled. (dmex)
+
+        if (RebarHandle)
+        {
+            if (ToolBarHandle)
+            {
+                DestroyWindow(ToolBarHandle);
+                ToolBarHandle = NULL;
+            }
+
+            DestroyWindow(RebarHandle);
+            RebarHandle = NULL;
+        }
+
+        // Optionally free the toolbar imagelist when disabled
+        if (ToolBarImageList)
+        {
+            PhImageListDestroy(ToolBarImageList);
+            ToolBarImageList = NULL;
+        }
     }
 
     if (ToolStatusConfig.SearchBoxEnabled && RebarHandle && SearchboxHandle)
     {
-        UINT height = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, REBAR_BAND_ID_TOOLBAR, 0);
-
-        // Add the Searchbox band into the rebar control.
-        if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-        {
-            LONG dpiValue = SystemInformer_GetWindowDpi();
-
-            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(215, dpiValue), height);
-        }
-
-        if (!IsWindowVisible(SearchboxHandle))
-            ShowWindow(SearchboxHandle, SW_SHOW);
+        ShowWindow(SearchboxHandle, SW_SHOW);
 
         if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
         {
-            if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-                RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
+            RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
+        }
+        else
+        {
+            // Add the Searchbox band into the rebar control.
+
+            if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+            {
+                LONG height = RebarGetRowHeight(REBAR_BAND_ID_TOOLBAR);
+                LONG scale = SystemInformer_GetWindowDpi();
+
+                RebarBandInsert(
+                    REBAR_BAND_ID_SEARCHBOX,
+                    SearchboxHandle,
+                    PhScaleToDisplay(215, scale),
+                    height
+                    );
+            }
         }
     }
     else
     {
-        // Remove the Searchbox band from the rebar control.
-        if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-            RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
+        // Remove the Searchbox from the rebar control.
+
+        RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
 
         if (SearchboxHandle)
         {
             // Clear search text and reset search filters.
-            SetFocus(SearchboxHandle);
-            PhSetWindowText(SearchboxHandle, L"");
 
-            if (IsWindowVisible(SearchboxHandle))
-                ShowWindow(SearchboxHandle, SW_HIDE);
+            PhSearchControlClear(SearchboxHandle);
+            ShowWindow(SearchboxHandle, SW_HIDE);
+
+            if (!ToolStatusConfig.SearchBoxEnabled || !RebarHandle)
+            {
+                // Unregister filters
+                if (ProcessTreeFilterEntry)
+                {
+                    PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterEntry);
+                    ProcessTreeFilterEntry = NULL;
+                }
+                if (ServiceTreeFilterEntry)
+                {
+                    PhRemoveTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterEntry);
+                    ServiceTreeFilterEntry = NULL;
+                }
+                if (NetworkTreeFilterEntry)
+                {
+                    PhRemoveTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterEntry);
+                    NetworkTreeFilterEntry = NULL;
+                }
+
+                DestroyWindow(SearchboxHandle);
+                SearchboxHandle = NULL;
+            }
         }
     }
 
@@ -443,14 +455,14 @@ VOID ToolbarLoadSettings(
 
     if (ToolStatusConfig.ToolBarEnabled && RebarHandle && ToolBarHandle)
     {
-        UINT index;
+        ULONG index;
         REBARBANDINFO rebarBandInfo =
         {
             sizeof(REBARBANDINFO),
             RBBIM_IDEALSIZE
         };
 
-        if ((index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, REBAR_BAND_ID_TOOLBAR, 0)) != UINT_MAX)
+        if ((index = RebarBandToIndex(REBAR_BAND_ID_TOOLBAR)) != ULONG_MAX)
         {
             // Get settings for Rebar band.
             if (SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo))
@@ -870,14 +882,14 @@ VOID ToolbarSaveButtonSettings(
             TBIF_BYINDEX | TBIF_IMAGE | TBIF_STYLE | TBIF_COMMAND
         };
 
-        if ((INT)SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == INT_ERROR)
-            break;
-
-        PhAppendFormatStringBuilder(
-            &stringBuilder,
-            L"%d|",
-            buttonInfo.idCommand
-            );
+        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo))
+        {
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%d|",
+                buttonInfo.idCommand
+                );
+        }
     }
 
     if (stringBuilder.String->Length != 0)
@@ -892,8 +904,8 @@ VOID ReBarLoadLayoutSettings(
     VOID
     )
 {
-    UINT index;
-    UINT count;
+    ULONG index;
+    ULONG count;
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
@@ -903,7 +915,8 @@ VOID ReBarLoadLayoutSettings(
     if (remaining.Length == 0)
         return;
 
-    count = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+    if (!RebarGetBandCount(&count))
+        return;
 
     for (index = 0; index < count; index++)
     {
@@ -913,12 +926,11 @@ VOID ReBarLoadLayoutSettings(
         ULONG64 idInteger;
         ULONG64 cxInteger;
         ULONG64 styleInteger;
-        UINT oldBandIndex;
-        REBARBANDINFO rebarBandInfo =
-        {
-            sizeof(REBARBANDINFO),
-            RBBIM_STYLE | RBBIM_SIZE
-        };
+        ULONG oldBandIndex;
+        ULONG bandid;
+        ULONG bandstyle;
+        ULONG bandwidth;
+        BAND_STYLE_SIZE rebarBandInfo;
 
         if (remaining.Length == 0)
             break;
@@ -933,21 +945,23 @@ VOID ReBarLoadLayoutSettings(
             continue;
         if (!PhStringToUInt64(&stylePart, 10, &styleInteger))
             continue;
-
-        if ((oldBandIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (UINT)idInteger, 0)) == UINT_MAX)
+        if (!NT_SUCCESS(RtlULong64ToULong(idInteger, &bandid)))
+            continue;
+        if (!NT_SUCCESS(RtlULong64ToULong(cxInteger, &bandwidth)))
+            continue;
+        if (!NT_SUCCESS(RtlULong64ToULong(styleInteger, &bandstyle)))
             continue;
 
-        if (oldBandIndex != index)
+        if ((oldBandIndex = RebarBandToIndex(bandid)) != ULONG_MAX && oldBandIndex != index)
         {
-            SendMessage(RebarHandle, RB_MOVEBAND, oldBandIndex, index);
+            RebarBandMove(oldBandIndex, index);
         }
 
-        if (SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo))
+        if (RebarGetBandIndexStyleSize(index, &rebarBandInfo))
         {
-            rebarBandInfo.cx = (UINT)cxInteger;
-            rebarBandInfo.fStyle |= (UINT)styleInteger;
-
-            SendMessage(RebarHandle, RB_SETBANDINFO, index, (LPARAM)&rebarBandInfo);
+            SetFlag(rebarBandInfo.BandStyle, bandstyle);
+            rebarBandInfo.BandWidth = bandwidth;
+            RebarSetBandIndexStyleSize(index, &rebarBandInfo);
         }
     }
 }
@@ -956,51 +970,52 @@ VOID ReBarSaveLayoutSettings(
     VOID
     )
 {
-    UINT index;
-    UINT count;
+    ULONG index;
+    ULONG count;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    count = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
-
-    for (index = 0; index < count; index++)
+    if (RebarGetBandCount(&count))
     {
-        REBARBANDINFO rebarBandInfo =
+        for (index = 0; index < count; index++)
         {
-            sizeof(REBARBANDINFO),
-            RBBIM_STYLE | RBBIM_SIZE | RBBIM_ID
-        };
+            REBARBANDINFO rebarBandInfo =
+            {
+                sizeof(REBARBANDINFO),
+                RBBIM_STYLE | RBBIM_SIZE | RBBIM_ID
+            };
 
-        SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo);
+            SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo);
 
-        if (FlagOn(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS))
-        {
-            ClearFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
+            if (FlagOn(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS))
+            {
+                ClearFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
+            }
+
+            if (FlagOn(rebarBandInfo.fStyle, RBBS_NOGRIPPER))
+            {
+                ClearFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
+            }
+
+            if (FlagOn(rebarBandInfo.fStyle, RBBS_FIXEDSIZE))
+            {
+                ClearFlag(rebarBandInfo.fStyle, RBBS_FIXEDSIZE);
+            }
+
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%u|%u|%u|",
+                rebarBandInfo.wID,
+                rebarBandInfo.cx,
+                rebarBandInfo.fStyle
+                );
         }
 
-        if (FlagOn(rebarBandInfo.fStyle, RBBS_NOGRIPPER))
-        {
-            ClearFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
-        }
-
-        if (FlagOn(rebarBandInfo.fStyle, RBBS_FIXEDSIZE))
-        {
-            ClearFlag(rebarBandInfo.fStyle, RBBS_FIXEDSIZE);
-        }
-
-        PhAppendFormatStringBuilder(
-            &stringBuilder,
-            L"%u|%u|%u|",
-            rebarBandInfo.wID,
-            rebarBandInfo.cx,
-            rebarBandInfo.fStyle
-            );
+        if (stringBuilder.String->Length != 0)
+            PhRemoveEndStringBuilder(&stringBuilder, 1);
     }
-
-    if (stringBuilder.String->Length != 0)
-        PhRemoveEndStringBuilder(&stringBuilder, 1);
 
     settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_REBAR_CONFIG, &settingsString->sr);
@@ -1011,22 +1026,21 @@ VOID RebarAdjustBandHeightLayout(
     _In_ LONG Height
     )
 {
-    UINT index;
-    UINT count;
+    ULONG index;
+    ULONG count;
 
-    count = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+    if (!RebarGetBandCount(&count))
+        return;
 
     for (index = 0; index < count; index++)
     {
-        REBARBANDINFO rebarBandInfo =
-        {
-            sizeof(REBARBANDINFO),
-            RBBIM_CHILDSIZE
-        };
+        BAND_CHILD_SIZE rebarBandInfo;
 
-        SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo);
-        rebarBandInfo.cyMinChild = Height;
-        SendMessage(RebarHandle, RB_SETBANDINFO, index, (LPARAM)&rebarBandInfo);
+        if (RebarGetBandIndexChildSize(index, &rebarBandInfo))
+        {
+            rebarBandInfo.MinChildHeight = Height;
+            RebarSetBandIndexChildSize(index, &rebarBandInfo);
+        }
     }
 }
 
