@@ -1445,7 +1445,7 @@ typedef struct _TEB
     LONG WowTebOffset;
 
     //
-    // Reserved.
+    // Pointer to the DLL containing the resource (valid after LdrFindResource_U/LdrResFindResource/etc... returns).
     //
     PLDR_RESLOADER_RET ResourceRetValue;
 
