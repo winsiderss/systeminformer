@@ -221,6 +221,16 @@ typedef struct _PH_TREENEW_CONTEXT
     PVOID HeaderTextCache;
 
     ULONG64 ScrollTickCount;
+
+    // Drag-reorder support
+    BOOLEAN ReorderDragActive;
+    BOOLEAN ReorderJustStarted;
+    ULONG   ReorderSourceIndex;   // source row index in FlatList
+    ULONG   ReorderTargetIndex;   // target row index under caret
+    BOOLEAN ReorderDropAfter;     // caret drops after the target row
+    RECT    ReorderInsertRect;    // last drawn caret invalidation
+    HCURSOR ReorderCursor;        // optional cursor during reorder
+
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
@@ -329,7 +339,7 @@ VOID PhTnpOnTimer(
     );
 
 VOID PhTnpOnMouseMove(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG VirtualKeys,
     _In_ LONG CursorX,
@@ -843,6 +853,40 @@ VOID PhTnpProcessDragSelect(
     _In_ PRECT TotalRect
     );
 
+// Drag-reorder
+
+VOID PhTnpDrawInsertionCaret(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC Hdc
+    );
+
+VOID PhTnpReorderInvalidateCaret(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpReorderUpdateCaretRect(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpReorderBegin(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG SourceIndex
+    );
+
+VOID PhTnpReorderCancel(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpReorderCommit(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpReorderUpdate(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
+    );
+
 // Double buffering
 
 VOID PhTnpCreateBufferedContext(
@@ -855,7 +899,6 @@ VOID PhTnpDestroyBufferedContext(
     );
 
 // Support functions
-
 
 _Success_(return)
 BOOLEAN PhTnpGetMessagePos(

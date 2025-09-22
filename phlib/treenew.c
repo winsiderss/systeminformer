@@ -653,6 +653,16 @@ VOID PhTnpOnDpiChanged(
     PhTnpUpdateThemeData(Context);
     PhTnpUpdateColumnHeadersDpiChanged(Context, oldWindowDpi, Context->WindowDpi);
 
+    {
+        PH_TREENEW_DPICHANGED_EVENT dpiChangedEvent;
+
+        memset(&dpiChangedEvent, 0, sizeof(PH_TREENEW_DPICHANGED_EVENT));
+        dpiChangedEvent.OldWindowDpi = oldWindowDpi;
+        dpiChangedEvent.NewWindowDpi = Context->WindowDpi;
+
+        Context->Callback(Context->Handle, TreeNewDpiChanged, &dpiChangedEvent, NULL, Context->CallbackContext);
+    }
+
     PhTnpSetRedraw(Context, TRUE);
 
     PhTnpLayout(Context);
@@ -866,18 +876,39 @@ VOID PhTnpOnTimer(
 }
 
 VOID PhTnpOnMouseMove(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG VirtualKeys,
     _In_ LONG CursorX,
     _In_ LONG CursorY
     )
 {
+    if (FlagOn(Context->Style, TN_STYLE_DRAG_REORDER_ROWS))
+    {
+        // Reorder drag in progress: update target and caret, swallow normal processing (dmex)
+
+        if (Context->ReorderDragActive)
+        {
+            if (Context->ReorderJustStarted)
+            {
+                Context->ReorderJustStarted = FALSE;
+            }
+
+            if (Context->ReorderCursor)
+            {
+                PhSetCursor(Context->ReorderCursor);
+            }
+
+            PhTnpReorderUpdate(Context, CursorX, CursorY);
+            return;
+        }
+    }
+
     TRACKMOUSEEVENT trackMouseEvent;
 
     trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
     trackMouseEvent.dwFlags = TME_LEAVE;
-    trackMouseEvent.hwndTrack = hwnd;
+    trackMouseEvent.hwndTrack = WindowHandle;
     trackMouseEvent.dwHoverTime = 0;
     TrackMouseEvent(&trackMouseEvent);
 
@@ -1000,6 +1031,65 @@ VOID PhTnpOnXxxButtonXxx(
     hitTest.Point.y = CursorY;
     hitTest.InFlags = TN_TEST_COLUMN | TN_TEST_SUBITEM;
     PhTnpHitTest(Context, &hitTest);
+
+    if (FlagOn(Context->Style, TN_STYLE_DRAG_REORDER_ROWS))
+    {
+        // Begin reorder drag if:
+        // - TN_STYLE_DRAG_REORDER_ROWS flag enabled
+        // - Left button down on item content (not plus/minus, not divider)
+        // - Ctrl is held (to avoid conflict with drag selection)
+        if (Message == WM_LBUTTONDOWN &&
+            (VirtualKeys & MK_CONTROL) &&
+            (hitTest.Flags & TN_HIT_ITEM) &&
+            !(hitTest.Flags & (TN_HIT_ITEM_PLUSMINUS | TN_HIT_DIVIDER)))
+        {
+            PH_TREENEW_REORDER_EVENT reorderEvent = { 0 };
+
+            memset(&reorderEvent, 0, sizeof(PH_TREENEW_REORDER_EVENT));
+            reorderEvent.Source = hitTest.Node;
+            reorderEvent.Target = hitTest.Node;
+            reorderEvent.DropAfter = FALSE;
+            reorderEvent.Allow = TRUE;
+
+            Context->Callback(Context->Handle, TreeNewReorderBegin, &reorderEvent, NULL, Context->CallbackContext);
+
+            if (reorderEvent.Allow)
+            {
+                ULONG saveIndex = hitTest.Node ? hitTest.Node->Index : ULONG_MAX;
+                ULONG cancelledByMessage = 0;
+
+                if (PhTnpDetectDrag(Context, CursorX, CursorY, TRUE, &cancelledByMessage))
+                {
+                    // Begin drag-reorder
+                    if (saveIndex != ULONG_MAX && saveIndex < Context->FlatList->Count)
+                    {
+                        PhTnpReorderBegin(Context, saveIndex);
+                        PhTnpReorderUpdateCaretRect(Context);
+                        InvalidateRect(Context->Handle, &Context->ReorderInsertRect, FALSE);
+                        return; // swallow normal selection behavior
+                    }
+                }
+                else
+                {
+                    // If detection consumed up-event, don't duplicate
+                    if (cancelledByMessage == WM_LBUTTONUP)
+                        return;
+                }
+            }
+        }
+
+        // Commit/cancel on mouse up if in reorder mode
+        if (Message == WM_LBUTTONUP && Context->ReorderDragActive)
+        {
+            PhTnpReorderCommit(Context);
+            return;
+        }
+        if (Message == WM_RBUTTONDOWN && Context->ReorderDragActive)
+        {
+            PhTnpReorderCancel(Context);
+            return;
+        }
+    }
 
     controlKey = VirtualKeys & MK_CONTROL;
     shiftKey = VirtualKeys & MK_SHIFT;
@@ -1242,6 +1332,12 @@ VOID PhTnpOnCaptureChanged(
 {
     Context->Tracking = FALSE;
     PhKillTimer(hwnd, TNP_TIMER_NULL);
+
+    if (FlagOn(Context->Style, TN_STYLE_DRAG_REORDER_ROWS))
+    {
+        if (Context->ReorderDragActive && !Context->ReorderJustStarted)
+            PhTnpReorderCancel(Context);
+    }
 }
 
 VOID PhTnpOnKeyDown(
@@ -1252,6 +1348,16 @@ VOID PhTnpOnKeyDown(
     )
 {
     PH_TREENEW_KEY_EVENT keyEvent;
+
+    if (FlagOn(Context->Style, TN_STYLE_DRAG_REORDER_ROWS))
+    {
+        // Cancel reorder drag with ESC
+        if (Context->ReorderDragActive && VirtualKey == VK_ESCAPE)
+        {
+            PhTnpReorderCancel(Context);
+            return;
+        }
+    }
 
     keyEvent.Handled = FALSE;
     keyEvent.VirtualKey = VirtualKey;
@@ -5807,6 +5913,14 @@ VOID PhTnpPaint(
         PhTnpDrawSelectionRectangle(Context, hdc, &Context->DragRect);
     }
 
+    if (FlagOn(Context->Style, TN_STYLE_DRAG_REORDER_ROWS))
+    {
+        if (Context->ReorderDragActive)
+        {
+            PhTnpDrawInsertionCaret(Context, hdc);
+        }
+    }
+
     if (Context->HeaderCustomDraw)
     {
         //if (Context->FixedColumnVisible && Context->FixedHeaderHandle)
@@ -7920,4 +8034,205 @@ LRESULT PhTnSendMessage(
     }
 
     return SendMessage(WindowHandle, WindowMessage, wParam, lParam);
+}
+
+//
+// Drag-reorder
+//
+
+VOID PhTnpDrawInsertionCaret(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC Hdc
+    )
+{
+    RECT r;
+    HPEN old;
+    COLORREF prev;
+
+    r = Context->ReorderInsertRect;
+
+    if (r.right <= r.left || r.bottom <= r.top)
+        return;
+
+    old = SelectPen(Hdc, PhGetStockPen(DC_PEN));
+    prev = SetDCPenColor(Hdc, RGB(0, 120, 215)); // Windows accent blue-ish
+
+    POINT pts[2];
+    pts[0].x = r.left;
+    pts[0].y = (r.top + r.bottom) / 2;
+    pts[1].x = r.right;
+    pts[1].y = pts[0].y;
+    Polyline(Hdc, pts, 2);
+
+    SetDCPenColor(Hdc, prev);
+    if (old) SelectPen(Hdc, old);
+}
+
+VOID PhTnpReorderInvalidateCaret(
+    _In_ PPH_TREENEW_CONTEXT Context
+    )
+{
+    if (Context->ReorderInsertRect.right > Context->ReorderInsertRect.left &&
+        Context->ReorderInsertRect.bottom > Context->ReorderInsertRect.top)
+    {
+        InvalidateRect(Context->Handle, &Context->ReorderInsertRect, FALSE);
+    }
+}
+
+VOID PhTnpReorderUpdateCaretRect(
+    _In_ PPH_TREENEW_CONTEXT Context
+    )
+{
+    // Compute y position for insertion caret
+    LONG viewLeft = 0;
+    LONG viewRight = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+    LONG rowYTop = Context->HeaderHeight + ((LONG)Context->ReorderTargetIndex - Context->VScrollPosition) * Context->RowHeight;
+
+    if (Context->ReorderDropAfter)
+    {
+        rowYTop += Context->RowHeight;
+    }
+
+    RECT rect;
+    rect.left   = viewLeft;
+    rect.right  = viewRight;
+    rect.top    = rowYTop - 1;
+    rect.bottom = rowYTop + 1;
+
+    memcpy(&Context->ReorderInsertRect, &rect, sizeof(RECT));
+}
+
+VOID PhTnpReorderBegin(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG SourceIndex
+    )
+{
+    Context->ReorderDragActive  = TRUE;
+    Context->ReorderSourceIndex = SourceIndex;
+    Context->ReorderTargetIndex = SourceIndex;
+    Context->ReorderDropAfter   = FALSE;
+    Context->ReorderJustStarted = TRUE;
+
+    SetCapture(Context->Handle);
+
+    if (!Context->ReorderCursor)
+        Context->ReorderCursor = PhLoadCursor(NULL, IDC_SIZENS);
+}
+
+VOID PhTnpReorderCancel(
+    _In_ PPH_TREENEW_CONTEXT Context
+    )
+{
+    if (!Context->ReorderDragActive)
+        return;
+
+    {
+        PH_TREENEW_REORDER_EVENT reorderEvent;
+
+        memset(&reorderEvent, 0, sizeof(PH_TREENEW_REORDER_EVENT));
+        reorderEvent.Source = (Context->ReorderSourceIndex < Context->FlatList->Count) ? (PPH_TREENEW_NODE)Context->FlatList->Items[Context->ReorderSourceIndex] : NULL;
+        reorderEvent.Target = (Context->ReorderTargetIndex < Context->FlatList->Count) ? (PPH_TREENEW_NODE)Context->FlatList->Items[Context->ReorderTargetIndex] : NULL;
+        reorderEvent.DropAfter = Context->ReorderDropAfter;
+
+        Context->Callback(Context->Handle, TreeNewReorderCancel, &reorderEvent, NULL, Context->CallbackContext);
+    }
+
+    PhTnpReorderInvalidateCaret(Context);
+
+    memset(&Context->ReorderInsertRect, 0, sizeof(Context->ReorderInsertRect));
+
+    Context->ReorderDragActive = FALSE;
+
+    ReleaseCapture();
+
+    InvalidateRect(Context->Handle, NULL, FALSE);
+}
+
+VOID PhTnpReorderCommit(
+    _In_ PPH_TREENEW_CONTEXT Context
+    )
+{
+    PH_TREENEW_REORDER_EVENT reorderEvent;
+
+    if (!Context->ReorderDragActive)
+        return;
+
+    // No-op if same place
+    //if (Context->ReorderSourceIndex == Context->ReorderTargetIndex &&
+    //    !Context->ReorderDropAfter)
+    //{
+    //    PhTnpReorderCancel(Context);
+    //    return;
+    //}
+
+    memset(&reorderEvent, 0, sizeof(PH_TREENEW_REORDER_EVENT));
+    reorderEvent.Source = (Context->ReorderSourceIndex < Context->FlatList->Count) ? (PPH_TREENEW_NODE)Context->FlatList->Items[Context->ReorderSourceIndex] : NULL;
+    reorderEvent.Target = (Context->ReorderTargetIndex < Context->FlatList->Count) ? (PPH_TREENEW_NODE)Context->FlatList->Items[Context->ReorderTargetIndex] : NULL;
+    reorderEvent.DropAfter = Context->ReorderDropAfter;
+    reorderEvent.Allow = TRUE;
+
+    Context->Callback(Context->Handle, TreeNewReorderCommit, &reorderEvent, NULL, Context->CallbackContext);
+
+    PhTnpReorderInvalidateCaret(Context);
+
+    Context->ReorderInsertRect = (RECT){ 0 };
+    Context->ReorderDragActive = FALSE;
+
+    ReleaseCapture();
+
+    // Parent should reorder underlying data and then trigger TNM_NODESSTRUCTURED
+    InvalidateRect(Context->Handle, NULL, FALSE);
+}
+
+VOID PhTnpReorderUpdate(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
+    )
+{
+    LONG y;
+    ULONG idx;
+
+    if (Context->FlatList->Count == 0)
+        return;
+
+    // Update target index and caret based on cursor position
+
+    y = CursorY;
+    if (y < Context->HeaderHeight)
+        y = Context->HeaderHeight;
+
+    idx = (y - Context->HeaderHeight) / Context->RowHeight + Context->VScrollPosition;
+    if (idx >= Context->FlatList->Count)
+        idx = Context->FlatList->Count - 1;
+
+    BOOLEAN dropAfter = FALSE;
+    LONG localYTop = Context->HeaderHeight + ((LONG)idx - Context->VScrollPosition) * Context->RowHeight;
+    LONG mid = localYTop + (Context->RowHeight / 2);
+    if (CursorY >= mid)
+    {
+        dropAfter = TRUE;
+    }
+
+    if (idx != Context->ReorderTargetIndex || dropAfter != Context->ReorderDropAfter)
+    {
+        PH_TREENEW_REORDER_EVENT reorderEvent;
+
+        memset(&reorderEvent, 0, sizeof(PH_TREENEW_REORDER_EVENT));
+        reorderEvent.Source = (Context->ReorderSourceIndex < Context->FlatList->Count) ? (PPH_TREENEW_NODE)Context->FlatList->Items[Context->ReorderSourceIndex] : NULL;
+        reorderEvent.Target = (idx < Context->FlatList->Count) ? (PPH_TREENEW_NODE)Context->FlatList->Items[idx] : NULL;
+        reorderEvent.DropAfter = dropAfter;
+        reorderEvent.Allow = TRUE;
+
+        Context->Callback(Context->Handle, TreeNewReorderOver, &reorderEvent, NULL, Context->CallbackContext);
+
+        if (reorderEvent.Allow)
+        {
+            PhTnpReorderInvalidateCaret(Context);
+            Context->ReorderTargetIndex = idx;
+            Context->ReorderDropAfter   = dropAfter;
+            PhTnpReorderUpdateCaretRect(Context);
+            InvalidateRect(Context->Handle, &Context->ReorderInsertRect, FALSE);
+        }
+    }
 }

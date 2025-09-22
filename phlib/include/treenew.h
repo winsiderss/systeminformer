@@ -121,6 +121,7 @@ typedef struct _PH_TREENEW_NODE
 #define TN_STYLE_CUSTOM_COLORS 0x100
 #define TN_STYLE_ALWAYS_SHOW_SELECTION 0x200
 #define TN_STYLE_CUSTOM_HEADERDRAW 0x400
+#define TN_STYLE_DRAG_REORDER_ROWS 0x800
 
 // Extended flags
 #define TN_FLAG_ITEM_DRAG_SELECT 0x1
@@ -244,6 +245,13 @@ typedef enum _PH_TREENEW_MESSAGE
     TreeNewGetDialogCode, // ULONG Parameter1, PULONG Parameter2
 
     TreeNewGetHeaderText,
+
+    TreeNewDpiChanged, // PH_TREENEW_DPICHANGED_EVENT Parameter1
+
+    TreeNewReorderBegin,   // PH_TREENEW_REORDER_EVENT (in/out) Parameter1
+    TreeNewReorderOver,    // PH_TREENEW_REORDER_EVENT (in/out) Parameter1
+    TreeNewReorderCommit,  // PH_TREENEW_REORDER_EVENT (in) Parameter1
+    TreeNewReorderCancel,  // PH_TREENEW_REORDER_EVENT (best-effort notify) Parameter1
 
     MaxTreeNewMessage
 } PH_TREENEW_MESSAGE;
@@ -406,6 +414,20 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
     PVOID HeaderTreeColumnStringCache;
     PVOID HeaderTreeColumnTextCache;
 } PH_TREENEW_SET_HEADER_CACHE, *PPH_TREENEW_SET_HEADER_CACHE;
+
+typedef struct _PH_TREENEW_DPICHANGED_EVENT
+{
+    LONG OldWindowDpi;
+    LONG NewWindowDpi;
+} PH_TREENEW_DPICHANGED_EVENT, *PPH_TREENEW_DPICHANGED_EVENT;
+
+typedef struct _PH_TREENEW_REORDER_EVENT
+{
+    PPH_TREENEW_NODE Source; // node being dragged
+    PPH_TREENEW_NODE Target; // node at drop caret (may be NULL if empty area)
+    BOOLEAN DropAfter; // TRUE = insert after Target; FALSE = before Target
+    BOOLEAN Allow; // in Begin/Over: host sets to TRUE to allow; Commit ignores this field
+} PH_TREENEW_REORDER_EVENT, *PPH_TREENEW_REORDER_EVENT;
 
 #define TNM_FIRST (WM_USER + 1)
 #define TNM_SETCALLBACK (WM_USER + 1)
