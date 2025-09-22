@@ -41,6 +41,13 @@ PhCreateSearchControlEx(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhSearchControlClear(
+    _In_ HWND SearchWindowHandle
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhSearchControlMatch(

@@ -1375,6 +1375,14 @@ VOID PhCreateSearchControlEx(
     PhpSearchControlThemeChanged(context, SearchWindowHandle);
 }
 
+VOID PhSearchControlClear(
+    _In_ HWND SearchWindowHandle
+    )
+{
+    SetFocus(SearchWindowHandle);
+    PhSetWindowText(SearchWindowHandle, L"");
+}
+
 BOOLEAN PhSearchControlMatch(
     _In_ ULONG_PTR MatchHandle,
     _In_ PCPH_STRINGREF Text

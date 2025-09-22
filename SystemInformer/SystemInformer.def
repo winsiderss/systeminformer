@@ -142,6 +142,7 @@ EXPORTS
     PhRegisterDialog
     PhRegisterMessageLoopFilter
     PhRemoveTreeNewFilter
+    PhSearchControlClear
     PhSearchControlMatch
     PhSearchControlMatchLongHintZ
     PhSearchControlMatchPointer
