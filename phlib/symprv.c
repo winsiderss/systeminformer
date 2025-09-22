@@ -65,6 +65,7 @@ VOID PhpFreeSymbolModule(
     _In_ PPH_SYMBOL_MODULE SymbolModule
     );
 
+_Function_class_(PH_AVL_TREE_COMPARE_FUNCTION)
 LONG NTAPI PhpSymbolModuleCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2
@@ -670,6 +671,7 @@ VOID PhpFreeSymbolModule(
     PhFree(SymbolModule);
 }
 
+_Function_class_(PH_AVL_TREE_COMPARE_FUNCTION)
 LONG NTAPI PhpSymbolModuleCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2
@@ -1291,6 +1293,7 @@ typedef struct _PH_LOAD_SYMBOLS_CONTEXT
     HANDLE ProcessId;
 } PH_LOAD_SYMBOLS_CONTEXT, *PPH_LOAD_SYMBOLS_CONTEXT;
 
+_Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
 static BOOLEAN NTAPI PhpSymbolProviderEnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
     _In_ PVOID Context

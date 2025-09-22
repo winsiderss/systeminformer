@@ -712,6 +712,7 @@ VOID PhpQueueModuleQuery(
     PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpModuleQueryWorker, data, NULL, &environment);
 }
 
+_Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
 static BOOLEAN NTAPI PhpEnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
     _In_ PVOID Context

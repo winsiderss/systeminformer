@@ -725,6 +725,7 @@ CleanupExit:
     return status;
 }
 
+_Function_class_(PH_ENUM_NEXT_THREAD)
 static NTSTATUS NTAPI PhEnumNextThreadSystemIdentification(
     _In_ HANDLE ThreadHandle,
     _Inout_ HANDLE* Context

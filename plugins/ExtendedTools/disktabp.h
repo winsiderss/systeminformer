@@ -20,11 +20,13 @@ BOOLEAN EtpDiskPageCallback(
     _In_opt_ PVOID Parameter2
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN EtpDiskNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG EtpDiskNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -138,6 +140,7 @@ VOID NTAPI EtpSearchChangedHandler(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context

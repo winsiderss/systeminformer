@@ -132,6 +132,7 @@ VOID PluginsSaveSettingsTreeList(
     PhDereferenceObject(settings);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PluginsNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -143,6 +144,7 @@ BOOLEAN PluginsNodeHashtableEqualFunction(
     return PhEqualString(node1->InternalName, node2->InternalName, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PluginsNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -487,6 +489,7 @@ PPH_PLUGIN_TREE_ROOT_NODE GetSelectedPluginsNode(
     return NULL;
 }
 
+_Success_(return)
 BOOLEAN GetSelectedPluginsNodes(
     _In_ PPH_PLUGMAN_CONTEXT Context,
     _Out_ PPH_PLUGIN_TREE_ROOT_NODE **Nodes,
@@ -606,6 +609,7 @@ PPH_STRING PhpGetPluginBaseName(
     }
 }
 
+_Function_class_(PH_PLUGIN_ENUMERATE)
 NTSTATUS NTAPI PhpEnumeratePluginCallback(
     _In_ PPH_PLUGIN Information,
     _In_ PVOID Context

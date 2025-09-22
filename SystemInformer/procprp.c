@@ -96,6 +96,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     return propContext;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

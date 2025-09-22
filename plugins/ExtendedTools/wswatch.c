@@ -151,6 +151,7 @@ VOID EtpDereferenceWsWatchContext(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS EtpSymbolLookupFunction(
     _In_ PVOID Parameter
     )

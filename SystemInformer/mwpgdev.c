@@ -96,6 +96,7 @@ VOID PhpNotifyForDevice(
     PhDereferenceObject(classification);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhpDeviceProviderCallbackHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context

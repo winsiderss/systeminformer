@@ -1573,6 +1573,7 @@ VOID NTAPI OnFwItemsUpdated(
     _In_ ULONG RunId
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN NTAPI FwSearchFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -1584,10 +1585,12 @@ VOID NTAPI FwSearchChangedHandler(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(TOOLSTATUS_TAB_ACTIVATE_CONTENT)
 VOID NTAPI FwToolStatusActivateContent(
     _In_ BOOLEAN Select
     );
 
+_Function_class_(TOOLSTATUS_GET_TREENEW_HANDLE)
 HWND NTAPI FwToolStatusGetTreeNewHandle(
     VOID
     );

@@ -45,6 +45,7 @@ static PPH_TN_FILTER_ENTRY CurrentUserFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY MicrosoftSignedFilterEntry = NULL;
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpProcessesPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
@@ -259,6 +260,7 @@ VOID PhMwpToggleCurrentUserProcessTreeFilter(
     PhSetIntegerSetting(L"HideOtherUserProcesses", !!CurrentUserFilterEntry);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -332,6 +334,7 @@ VOID PhMwpToggleMicrosoftProcessTreeFilter(
     PhSetIntegerSetting(L"HideMicrosoftProcesses", !!MicrosoftSignedFilterEntry);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpSignedProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -345,6 +348,7 @@ BOOLEAN PhMwpSignedProcessTreeFilter(
     return TRUE;
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context

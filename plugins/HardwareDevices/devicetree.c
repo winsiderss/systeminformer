@@ -1392,6 +1392,7 @@ VOID DevicesTreeInitialize(
     DeviceTreeUpdateVisibleColumns();
 }
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN DevicesTabPageCallback(
     _In_ struct _PH_MAIN_TAB_PAGE* Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,

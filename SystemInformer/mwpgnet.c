@@ -35,6 +35,7 @@ static BOOLEAN NetworkFirstTime = TRUE;
 static BOOLEAN NetworkTreeListLoaded = FALSE;
 static PPH_TN_FILTER_ENTRY NetworkFilterEntry = NULL;
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpNetworkPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
@@ -191,6 +192,7 @@ VOID PhMwpToggleNetworkWaitingConnectionTreeFilter(
     PhSetIntegerSetting(L"HideWaitingConnections", !!NetworkFilterEntry);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpNetworkTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context

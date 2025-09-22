@@ -411,6 +411,7 @@ extern HWND PhMwpSelectedProcessWindowHandle;
 extern BOOLEAN PhMwpSelectedProcessVirtualizationEnabled;
 extern PH_PROVIDER_EVENT_QUEUE PhMwpProcessEventQueue;
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpProcessesPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
@@ -426,6 +427,7 @@ VOID PhMwpToggleCurrentUserProcessTreeFilter(
     VOID
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -439,11 +441,13 @@ VOID PhMwpToggleMicrosoftProcessTreeFilter(
     VOID
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpSignedProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -511,6 +515,7 @@ extern PPH_MAIN_TAB_PAGE PhMwpServicesPage;
 extern HWND PhMwpServiceTreeNewHandle;
 extern PH_PROVIDER_EVENT_QUEUE PhMwpServiceEventQueue;
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpServicesPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
@@ -530,11 +535,13 @@ VOID PhMwpToggleMicrosoftServiceTreeFilter(
     VOID
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpDriverServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpMicrosoftServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -580,6 +587,7 @@ extern PPH_MAIN_TAB_PAGE PhMwpNetworkPage;
 extern HWND PhMwpNetworkTreeNewHandle;
 extern PH_PROVIDER_EVENT_QUEUE PhMwpNetworkEventQueue;
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpNetworkPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
@@ -595,6 +603,7 @@ VOID PhMwpToggleNetworkWaitingConnectionTreeFilter(
     VOID
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpNetworkTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context

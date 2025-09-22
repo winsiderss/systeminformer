@@ -34,6 +34,7 @@ static BOOLEAN ServiceTreeListLoaded = FALSE;
 static PPH_TN_FILTER_ENTRY DriverFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY MicrosoftFilterEntry = NULL;
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpServicesPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
@@ -198,6 +199,7 @@ VOID PhMwpToggleMicrosoftServiceTreeFilter(
     PhSetIntegerSetting(L"HideDefaultServices", !!MicrosoftFilterEntry);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpDriverServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -211,6 +213,7 @@ BOOLEAN PhMwpDriverServiceTreeFilter(
     return TRUE;
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpMicrosoftServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context

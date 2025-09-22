@@ -64,6 +64,7 @@ typedef struct _PH_IMAGE_MAPPED_FAILURE_ENTRY
     };
 } PH_IMAGE_MAPPED_FAILURE_ENTRY, *PPH_IMAGE_MAPPED_FAILURE_ENTRY;
 
+_Function_class_(PH_ENUM_MEMORY_CALLBACK)
 NTSTATUS NTAPI PhEnumImagesForTamperingCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PMEMORY_BASIC_INFORMATION BasicInformation,
@@ -126,6 +127,7 @@ NTSTATUS NTAPI PhEnumImagesForTamperingCallback(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_ENUM_MEMORY_ATTRIBUTE_CALLBACK)
 NTSTATUS NTAPI PhpEnumVirtualMemoryAttributesCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
@@ -485,6 +487,7 @@ NTSTATUS PhCheckProcessImagesForTampering(
     return status;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhPageModifiedSymbolProviderEventCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

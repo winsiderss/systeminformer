@@ -139,6 +139,7 @@ PPH_STRING PhGetProcessItemImageTypeText(
     return PhConcatStrings2(arch, bits);
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 NTSTATUS PhpProcessGeneralOpenProcess(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -150,6 +151,7 @@ NTSTATUS PhpProcessGeneralOpenProcess(
     return STATUS_UNSUCCESSFUL;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS PhpProcessGeneralCloseHandle(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
