@@ -493,6 +493,102 @@ NTSTATUS PhQueueUserWorkItem(
     return status;
 }
 
+/**
+ *  Calibrate and return TSC frequency in Hz (cycles per second)
+ *
+ *  Example usage:
+ *  double tsc_freq = PhReadTimeStampFrequency();
+ *  dprintf("TSC frequency: %.3f MHz\n", tsc_freq / 1e6);
+ *  // Example: measure a code region
+ *  _mm_lfence();
+ *  uint64_t t0 = __rdtsc();
+ *  // ... code to measure ...
+ *  for (volatile int i = 0; i < 1000000; ++i) {}
+ *  _mm_lfence();
+ *  uint64_t t1 = __rdtsc();
+ *  uint64_t cycles = t1 - t0;
+ *  double seconds = (double)cycles / tsc_freq;
+ *  double nanoseconds = seconds * 1e9;
+ *  dprintf("Elapsed: %llu cycles, %.6f seconds, %.0f ns\n", cycles, seconds, nanoseconds);
+ **/
+DOUBLE PhReadTimeStampFrequency(
+    VOID
+    )
+{
+    LARGE_INTEGER qpc_freq;
+    LARGE_INTEGER qpc_start;
+    LARGE_INTEGER qpc_end;
+    ULONG_PTR old_affinity = 0;
+    DOUBLE elapsed_qpc;
+    ULONG64 elapsed_tsc;
+    DOUBLE tsc_freq;
+    ULONG64 tsc_start;
+    ULONG64 tsc_end;
+
+    PhQueryPerformanceFrequency(&qpc_freq);
+
+    // Wait interval (in QPC ticks)
+    const DOUBLE interval_sec = 0.1; // 100 ms
+    const LONGLONG interval_ticks = (LONGLONG)(qpc_freq.QuadPart * interval_sec);
+
+    // Warm up
+    for (volatile int i = 0; i < 1000000; ++i) {}
+
+    // Pin thread to one CPU (optional, for best accuracy)
+    PhGetThreadAffinityMask(NtCurrentThread(), &old_affinity);
+    PhSetThreadAffinityMask(NtCurrentThread(), 1);
+
+    PhQueryPerformanceCounter(&qpc_start);
+    SpeculationFence();
+    tsc_start = ReadTimeStampCounter();
+    SpeculationFence();
+
+    // Wait for interval
+    do
+    {
+        PhQueryPerformanceCounter(&qpc_end);
+    } while ((qpc_end.QuadPart - qpc_start.QuadPart) < interval_ticks);
+
+    SpeculationFence();
+    tsc_end = ReadTimeStampCounter();
+    SpeculationFence();
+
+    if (old_affinity)
+    {
+        PhSetThreadAffinityMask(NtCurrentThread(), old_affinity);
+    }
+
+    elapsed_qpc = (DOUBLE)(qpc_end.QuadPart - qpc_start.QuadPart) / qpc_freq.QuadPart;
+    elapsed_tsc = tsc_end - tsc_start;
+    tsc_freq = elapsed_tsc / elapsed_qpc;
+    return tsc_freq;
+}
+
+/**
+ * Reads the time stamp counter.
+ *
+ * This function reads the time stamp counter using the `__rdtscp` instruction,
+ * which is a serializing variant of the `rdtsc` instruction. It also includes
+ * a memory fence to ensure proper ordering of memory operations.
+ * \return The current value of the time stamp counter.
+ */
+ULONG64 PhReadTimeStampCounter(
+    VOID
+    )
+{
+#if defined(PH_NATIVE_RDTSC)
+    SpeculationFence();
+    ULONG64 value = ReadTimeStampCounter();
+    SpeculationFence();
+    return value;
+#else
+    unsigned int aux;
+    ULONG64 value = __rdtscp(&aux);
+    SpeculationFence();
+    return value;
+#endif
+}
+
 // rev from QueryPerformanceCounter (dmex)
 /**
  * Retrieves the current value of the performance counter, which is a high resolution (<1us) time stamp that can be used for time-interval measurements.
