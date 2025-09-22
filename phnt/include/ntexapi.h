@@ -1614,7 +1614,7 @@ NtUpdateWnfStateData(
     );
 
 /**
- * The NtDeleteWnfStateData routine Deletes the data associated with a WNF state name.
+ * The NtDeleteWnfStateData routine deletes the data associated with a WNF state name.
  *
  * \param StateName Pointer to the WNF_STATE_NAME whose data is to be deleted.
  * \param ExplicitScope Optional pointer to a security identifier (SID) for explicit scope.
@@ -1629,7 +1629,7 @@ NtDeleteWnfStateData(
     );
 
 /**
- * The NtQueryWnfStateData routine Queries the data associated with a WNF state name.
+ * The NtQueryWnfStateData routine queries the data associated with a WNF state name.
  *
  * \param StateName Pointer to the WNF_STATE_NAME to query.
  * \param TypeId Optional pointer to a WNF_TYPE_ID structure specifying the type of the state data.
@@ -1672,6 +1672,15 @@ NtQueryWnfStateNameInformation(
     _In_ ULONG BufferLength
     );
 
+/**
+ * The NtSubscribeWnfStateChange routine subscribes to state change notifications for a WNF state name.
+ *
+ * \param StateName Pointer to the WNF_STATE_NAME to subscribe to.
+ * \param ChangeStamp Optional change stamp to start receiving notifications from.
+ * \param EventMask Bitmask specifying which events to subscribe to.
+ * \param SubscriptionId Optional pointer to a variable that receives the subscription ID.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1682,6 +1691,12 @@ NtSubscribeWnfStateChange(
     _Out_opt_ PULONG64 SubscriptionId
     );
 
+/**
+ * The NtUnsubscribeWnfStateChange routine unsubscribes from state change notifications for a WNF state name.
+ *
+ * \param StateName Pointer to the WNF_STATE_NAME to unsubscribe from.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1693,6 +1708,17 @@ NtUnsubscribeWnfStateChange(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
+/**
+ * The NtGetCompleteWnfStateSubscription routine retrieves the complete WNF state subscription information.
+ *
+ * \param OldDescriptorStateName Optional pointer to the previous state name.
+ * \param OldSubscriptionId Optional pointer to the previous subscription ID.
+ * \param OldDescriptorEventMask Optional previous event mask.
+ * \param OldDescriptorStatus Optional previous descriptor status.
+ * \param NewDeliveryDescriptor Pointer to a buffer that receives the new delivery descriptor.
+ * \param DescriptorSize The size, in bytes, of the delivery descriptor buffer.
+ * \return NTSTATUS code indicating success or failure.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1705,6 +1731,12 @@ NtGetCompleteWnfStateSubscription(
     _In_ ULONG DescriptorSize
     );
 
+/**
+ * The NtSetWnfProcessNotificationEvent routine sets a process notification event for WNF state changes.
+ *
+ * \param NotificationEvent Handle to the event object to be signaled on state change.
+ * \return NTSTATUS code indicating success or failure.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3891,29 +3923,31 @@ typedef struct _SYSTEM_VA_LIST_INFORMATION
 // rev
 typedef enum _STORE_INFORMATION_CLASS
 {
-    StorePageRequest = 1,
-    StoreStatsRequest = 2, // q: SM_STATS_REQUEST // SmProcessStatsRequest
-    StoreCreateRequest = 3, // s: SM_CREATE_REQUEST (requires SeProfileSingleProcessPrivilege)
-    StoreDeleteRequest = 4, // s: SM_DELETE_REQUEST (requires SeProfileSingleProcessPrivilege)
-    StoreListRequest = 5, // q: SM_STORE_LIST_REQUEST / SM_STORE_LIST_REQUEST_EX // SmProcessListRequest
-    Available1 = 6,
-    StoreEmptyRequest = 7,
-    CacheListRequest = 8, // q: SMC_CACHE_LIST_REQUEST // SmcProcessListRequest
-    CacheCreateRequest = 9, // s: SMC_CACHE_CREATE_REQUEST (requires SeProfileSingleProcessPrivilege)
-    CacheDeleteRequest = 10, // s: SMC_CACHE_DELETE_REQUEST (requires SeProfileSingleProcessPrivilege)
-    CacheStoreCreateRequest = 11, // s: SMC_STORE_CREATE_REQUEST (requires SeProfileSingleProcessPrivilege)
-    CacheStoreDeleteRequest = 12, // s: SMC_STORE_DELETE_REQUEST (requires SeProfileSingleProcessPrivilege)
-    CacheStatsRequest = 13, // q: SMC_CACHE_STATS_REQUEST // SmcProcessStatsRequest
-    Available2 = 14,
-    RegistrationRequest = 15, // q: SM_REGISTRATION_REQUEST (requires SeProfileSingleProcessPrivilege) // SmProcessRegistrationRequest
-    GlobalCacheStatsRequest = 16,
-    StoreResizeRequest = 17, // s: SM_STORE_RESIZE_REQUEST (requires SeProfileSingleProcessPrivilege)
-    CacheStoreResizeRequest = 18, // s: SM_STORE_CACHE_RESIZE_REQUEST (requires SeProfileSingleProcessPrivilege)
-    SmConfigRequest = 19, // s: SM_CONFIG_REQUEST (requires SeProfileSingleProcessPrivilege)
-    StoreHighMemoryPriorityRequest = 20, // s: SM_STORE_HIGH_MEMORY_PRIORITY_REQUEST (requires SeProfileSingleProcessPrivilege)
-    SystemStoreTrimRequest = 21, // s: SM_SYSTEM_STORE_TRIM_REQUEST (requires SeProfileSingleProcessPrivilege) // SmProcessSystemStoreTrimRequest
-    MemCompressionInfoRequest = 22,  // q: SM_STORE_COMPRESSION_INFORMATION_REQUEST // SmProcessCompressionInfoRequest
-    ProcessStoreInfoRequest = 23, // SmProcessProcessStoreInfoRequest
+    StorePageRequest = 1,                       // q: Not implemented
+    StoreStatsRequest = 2,                      // q: SM_STATS_REQUEST // SmProcessStatsRequest
+    StoreCreateRequest = 3,                     // s: SM_CREATE_REQUEST (requires SeProfileSingleProcessPrivilege)
+    StoreDeleteRequest = 4,                     // s: SM_DELETE_REQUEST (requires SeProfileSingleProcessPrivilege)
+    StoreListRequest = 5,                       // q: SM_STORE_LIST_REQUEST // SM_STORE_LIST_REQUEST_EX // SmProcessListRequest
+
+    StoreEmptyRequest = 7,                      // q: Not implemented
+    CacheListRequest = 8,                       // q: SMC_CACHE_LIST_REQUEST // SmcProcessListRequest
+    CacheCreateRequest = 9,                     // s: SMC_CACHE_CREATE_REQUEST (requires SeProfileSingleProcessPrivilege) // SmcProcessCreateRequest
+    CacheDeleteRequest = 10,                    // s: SMC_CACHE_DELETE_REQUEST (requires SeProfileSingleProcessPrivilege) // SmcProcessDeleteRequest
+    CacheStoreCreateRequest = 11,               // s: SMC_STORE_CREATE_REQUEST (requires SeProfileSingleProcessPrivilege) // SmcProcessStoreCreateRequest
+    CacheStoreDeleteRequest = 12,               // s: SMC_STORE_DELETE_REQUEST (requires SeProfileSingleProcessPrivilege) // SmcProcessStoreDeleteRequest
+    CacheStatsRequest = 13,                     // q: SMC_CACHE_STATS_REQUEST // SmcProcessStatsRequest
+
+    RegistrationRequest = 15,                   // q: SM_REGISTRATION_REQUEST (requires SeProfileSingleProcessPrivilege) // SmProcessRegistrationRequest
+    GlobalCacheStatsRequest = 16,               // q: Not implemented
+    StoreResizeRequest = 17,                    // s: SM_STORE_RESIZE_REQUEST (requires SeProfileSingleProcessPrivilege) // SmProcessResizeRequest
+    CacheStoreResizeRequest = 18,               // s: SM_STORE_CACHE_RESIZE_REQUEST (requires SeProfileSingleProcessPrivilege) // SmcProcessResizeRequest
+    SmConfigRequest = 19,                       // s: SM_CONFIG_REQUEST (requires SeProfileSingleProcessPrivilege)
+    StoreHighMemoryPriorityRequest = 20,        // s: SM_STORE_HIGH_MEMORY_PRIORITY_REQUEST (requires SeProfileSingleProcessPrivilege)
+    SystemStoreTrimRequest = 21,                // s: SM_SYSTEM_STORE_TRIM_REQUEST (requires SeProfileSingleProcessPrivilege) // SmProcessSystemStoreTrimRequest
+    MemCompressionInfoRequest = 22,             // q: SM_STORE_COMPRESSION_INFORMATION_REQUEST // SmProcessCompressionInfoRequest
+    StoreExistsForProcess = 23,                 // q: SM_SYSTEM_STORE_EXISTS_FOR_PROCESS // SmProcessProcessStoreInfoRequest // 25H2
+    CompressionReadStatsRequest = 24,           // q: SM_COMPRESSION_READ_STATS_REQUEST // SmProcessCompressionReadStatsRequest
+    CompressionAcceleratorRequest = 25,         // q: SM_COMPRESSION_ACCELERATOR_REQUEST // SmProcessCompressionAcceleratorRequest
     StoreInformationMax
 } STORE_INFORMATION_CLASS;
 
@@ -4238,9 +4272,9 @@ typedef struct _SMC_CACHE_STATS
 typedef struct _SMC_CACHE_STATS_REQUEST
 {
     ULONG Version : 8; // SYSTEM_CACHE_STATS_INFORMATION_VERSION
-    ULONG NoFilePath : 1;
+    ULONG NoFilePath : 1; // Skip TemplateFilePath when set
     ULONG Spare : 23;
-    ULONG CacheId;
+    ULONG CacheId; // cache to query for statistics
     SMC_CACHE_STATS CacheStats;
 } SMC_CACHE_STATS_REQUEST, *PSMC_CACHE_STATS_REQUEST;
 
@@ -4293,6 +4327,7 @@ typedef enum _SM_CONFIG_TYPE
     SmConfigTypeMax = 3
 } SM_CONFIG_TYPE;
 
+// rev
 typedef struct _SM_CONFIG_REQUEST
 {
     ULONG Version : 8; // SYSTEM_STORE_CONFIG_INFORMATION_VERSION
@@ -4301,23 +4336,26 @@ typedef struct _SM_CONFIG_REQUEST
     ULONG ConfigValue;
 } SM_CONFIG_REQUEST, *PSM_CONFIG_REQUEST;
 
-#define SYSTEM_STORE_HIGH_MEM_PRIORITY_INFORMATION_VERSION 1
+// rev
+#define SYSTEM_STORE_PRIORITY_REQUEST_VERSION 1
+// rev
+#define SYSTEM_STORE_PRIORITY_FLAG_REQUIRE_HANDLE 0x00000100u // required
+#define SYSTEM_STORE_PRIORITY_FLAG_SET_PRIORITY 0x00000200u
 
 // rev
-typedef struct _SM_STORE_HIGH_MEMORY_PRIORITY_REQUEST
+typedef struct _SM_STORE_MEMORY_PRIORITY_REQUEST
 {
-    ULONG Version : 8; // SYSTEM_STORE_HIGH_MEMORY_PRIORITY_INFORMATION_VERSION
-    ULONG SetHighMemoryPriority : 1;
-    ULONG Spare : 23;
-    HANDLE ProcessHandle;
-} SM_STORE_HIGH_MEMORY_PRIORITY_REQUEST, *PSM_STORE_HIGH_MEMORY_PRIORITY_REQUEST;
+    ULONG Version : 8; // SYSTEM_STORE_PRIORITY_REQUEST_VERSION
+    ULONG Flags : 24;
+    HANDLE ProcessHandle; // in // PROCESS_SET_INFORMATION access required
+} SM_STORE_MEMORY_PRIORITY_REQUEST, *PSM_STORE_MEMORY_PRIORITY_REQUEST;
 
 // rev
 typedef struct _SM_SYSTEM_STORE_TRIM_REQUEST
 {
     ULONG Version : 8;  // SYSTEM_STORE_TRIM_INFORMATION_VERSION
     ULONG Spare : 24;
-    SIZE_T PagesToTrim;
+    SIZE_T PagesToTrim; // TrimFlags // must be non‑zero
     HANDLE PartitionHandle; // since 24H2
 } SM_SYSTEM_STORE_TRIM_REQUEST, *PSM_SYSTEM_STORE_TRIM_REQUEST;
 
@@ -4370,6 +4408,51 @@ static_assert(SYSTEM_STORE_COMPRESSION_INFORMATION_SIZE_V1 == 24, "SM_STORE_COMP
 static_assert(SYSTEM_STORE_COMPRESSION_INFORMATION_SIZE_V2 == 28, "SM_STORE_COMPRESSION_INFORMATION_REQUEST_V2 must equal 28");
 #endif
 
+// rev
+#define SYSTEM_STORE_EXISTS_FOR_PROCESS_VERSION 1
+
+// rev
+typedef struct _SM_SYSTEM_STORE_EXISTS_FOR_PROCESS
+{
+    ULONG Version : 8;
+    ULONG Spare : 24;
+    HANDLE ProcessHandle; // in // PROCESS_QUERY_INFORMATION access required
+    BOOLEAN StoreExists; // out
+} SM_SYSTEM_STORE_EXISTS_FOR_PROCESS, *PSM_SYSTEM_STORE_EXISTS_FOR_PROCESS;
+
+// rev
+typedef struct _SM_COMPRESSION_READ_STATS
+{
+    ULONGLONG Counters[17];
+    ULONGLONG TailValue;
+} SM_COMPRESSION_READ_STATS, * PSM_COMPRESSION_READ_STATS;
+
+// rev
+#define SYSTEM_STORE_COMPRESSION_READ_STATS_VERSION 1
+
+// rev
+typedef struct _SM_COMPRESSION_READ_STATS_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_STORE_COMPRESSION_READ_STATS_VERSION
+    ULONG Spare : 24;
+    ULONG Flags; // must be zero
+    HANDLE PartitionHandle; // optional
+    SM_COMPRESSION_READ_STATS Stats; // output
+} SM_COMPRESSION_READ_STATS_REQUEST, *PSM_COMPRESSION_READ_STATS_REQUEST;
+
+// rev
+#define SYSTEM_STORE_ACCELERATOR_REQUEST_VERSION 1
+
+// rev
+typedef struct _SM_COMPRESSION_ACCELERATOR_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_STORE_ACCELERATOR_REQUEST_VERSION
+    ULONG Spare : 24;
+    ULONG Flags; // must be zero
+    HANDLE PartitionHandle; // optional
+    ULONG AcceleratorValue; // output
+} SM_COMPRESSION_ACCELERATOR_REQUEST, *PSM_COMPRESSION_ACCELERATOR_REQUEST;
+
 // private
 typedef struct _SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS
 {
@@ -4417,14 +4500,14 @@ typedef struct _SYSTEM_ERROR_PORT_TIMEOUTS
 // private
 typedef struct _SYSTEM_LOW_PRIORITY_IO_INFORMATION
 {
-    ULONG LowPriReadOperations;
-    ULONG LowPriWriteOperations;
+    ULONG LowPriorityReadOperationCount;
+    ULONG LowPriorityWriteOperationCount;
     ULONG KernelBumpedToNormalOperations;
-    ULONG LowPriPagingReadOperations;
+    ULONG LowPriorityPagingReadOperations;
     ULONG KernelPagingReadsBumpedToNormal;
-    ULONG LowPriPagingWriteOperations;
+    ULONG LowPriorityPagingWriteOperations;
     ULONG KernelPagingWritesBumpedToNormal;
-    ULONG BoostedIrpCount;
+    ULONG BoostedThreadedIrpCount;
     ULONG BoostedPagingIrpCount;
     ULONG BlanketBoostCount;
 } SYSTEM_LOW_PRIORITY_IO_INFORMATION, *PSYSTEM_LOW_PRIORITY_IO_INFORMATION;
