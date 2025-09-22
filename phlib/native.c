@@ -2774,22 +2774,29 @@ NTSTATUS PhEnumBigPoolInformation(
     return status;
 }
 
+typedef struct _PH_IS_CONTAINER_CONTEXT
+{
+    HANDLE ProcessObject;
+    BOOLEAN Found;
+} PH_IS_CONTAINER_CONTEXT, *PPH_IS_CONTAINER_CONTEXT;
+
 _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-static BOOLEAN NTAPI PhIsContainerEnumCallback(
+static NTSTATUS NTAPI PhIsContainerEnumCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_ PVOID Context
     )
 {
+    PPH_IS_CONTAINER_CONTEXT context = (PPH_IS_CONTAINER_CONTEXT)Context;
     HANDLE objectHandle;
     UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
 
     if (!PhStringRefToUnicodeString(Name, &objectName))
-        return TRUE;
+        return STATUS_NAME_TOO_LONG;
     if (!PhEqualStringRef2(TypeName, L"Job", FALSE))
-        return TRUE;
+        return STATUS_NAME_TOO_LONG;
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -2801,10 +2808,17 @@ static BOOLEAN NTAPI PhIsContainerEnumCallback(
 
     if (NT_SUCCESS(NtOpenJobObject(&objectHandle, JOB_OBJECT_QUERY, &objectAttributes)))
     {
+        if (NT_SUCCESS(NtIsProcessInJob(context->ProcessObject, objectHandle)))
+        {
+            context->Found = TRUE;
+            NtClose(objectHandle);
+            return STATUS_NO_MORE_ENTRIES;
+        }
+
         NtClose(objectHandle);
     }
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 _Function_class_(PH_ENUM_KEY_CALLBACK)
@@ -2816,6 +2830,7 @@ static BOOLEAN NTAPI ComputeSystemKeyCallback(
 {
     static CONST PH_STRINGREF objectNamePrefix = PH_STRINGREF_INIT(L"Container_");
     PKEY_BASIC_INFORMATION basicInfo = (PKEY_BASIC_INFORMATION)Information;
+    PPH_IS_CONTAINER_CONTEXT context = (PPH_IS_CONTAINER_CONTEXT)Context;
     PH_STRINGREF keyName;
     PPH_STRING string;
 
@@ -2837,14 +2852,12 @@ static BOOLEAN NTAPI ComputeSystemKeyCallback(
 
             if (NT_SUCCESS(PhGetJobProcessIdList(objectHandle, &processIdList)))
             {
-                ULONG i;
-                CLIENT_ID clientId;
-
-                clientId.UniqueThread = NULL;
-
-                for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
+                for (ULONG i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
                 {
-                    clientId.UniqueProcess = (HANDLE)processIdList->ProcessIdList[i];
+                    if ((HANDLE)Context == (HANDLE)processIdList->ProcessIdList[i])
+                    {
+                        context->Found = TRUE;
+                    }
                 }
 
                 PhFree(processIdList);
@@ -2855,6 +2868,9 @@ static BOOLEAN NTAPI ComputeSystemKeyCallback(
             NtClose(objectHandle);
         }
     }
+
+    if (context->Found)
+        return FALSE;
 
     return TRUE;
 }
@@ -2877,11 +2893,16 @@ NTSTATUS PhEnumHostComputeService(
 
     if (NT_SUCCESS(status))
     {
+        PH_IS_CONTAINER_CONTEXT context;
+
+        context.ProcessObject = NULL;
+        context.Found = FALSE;
+
         status = PhEnumerateKey(
             keyHandle,
             KeyBasicInformation,
             ComputeSystemKeyCallback,
-            NULL
+            &context
             );
 
         NtClose(keyHandle);
@@ -2903,45 +2924,86 @@ NTSTATUS PhGetProcessIsContainer(
     _Out_opt_ PBOOLEAN IsContainer
     )
 {
-    static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem");
-    HANDLE keyHandle;
-
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyName,
-        0
-        )))
     {
-        PhEnumerateKey(keyHandle, KeyBasicInformation, ComputeSystemKeyCallback, NULL);
+        static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem");
+        HANDLE keyHandle;
+        PH_IS_CONTAINER_CONTEXT context;
 
-        NtClose(keyHandle);
+        context.ProcessObject = NULL;
+        context.Found = FALSE;
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_READ,
+            PH_KEY_LOCAL_MACHINE,
+            &keyName,
+            0
+            )))
+        {
+            PhEnumerateKey(
+                keyHandle,
+                KeyBasicInformation,
+                ComputeSystemKeyCallback,
+                &context
+                );
+
+            NtClose(keyHandle);
+        }
+
+        if (context.Found)
+        {
+            *IsContainer = TRUE;
+            return STATUS_SUCCESS;
+        }
     }
 
-    static CONST PH_STRINGREF directoryName = PH_STRINGREF_INIT(L"\\");
-    NTSTATUS status;
-    HANDLE directoryHandle;
+    {
+        static CONST PH_STRINGREF directoryName = PH_STRINGREF_INIT(L"\\");
+        NTSTATUS status;
+        HANDLE directoryHandle;
+        HANDLE processHandle;
+        PH_IS_CONTAINER_CONTEXT context;
 
-    status = PhOpenDirectoryObject(
-        &directoryHandle,
-        DIRECTORY_QUERY,
-        NULL,
-        &directoryName
-        );
+        context.ProcessObject = NULL;
+        context.Found = FALSE;
 
-    if (!NT_SUCCESS(status))
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            ProcessId
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            status = PhOpenDirectoryObject(
+                &directoryHandle,
+                DIRECTORY_QUERY,
+                NULL,
+                &directoryName
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                status = PhEnumDirectoryObjects(
+                    directoryHandle,
+                    PhIsContainerEnumCallback,
+                    NULL
+                    );
+
+                NtClose(directoryHandle);
+            }
+
+            NtClose(processHandle);
+        }
+
+        if (context.Found)
+        {
+            *IsContainer = TRUE;
+            return STATUS_SUCCESS;
+        }
+
         return status;
-
-    status = PhEnumDirectoryObjects(
-        directoryHandle,
-        PhIsContainerEnumCallback,
-        NULL
-        );
-
-    NtClose(directoryHandle);
-
-    return status;
+    }
 }
 
 /**
