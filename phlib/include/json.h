@@ -300,6 +300,13 @@ PhLoadXmlObjectFromString(
     );
 
 PHLIBAPI
+PVOID
+NTAPI
+PhLoadXmlObjectFromString2(
+    _In_ PCSTR String
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadXmlObjectFromFile(

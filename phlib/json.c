@@ -622,6 +622,20 @@ PVOID PhLoadXmlObjectFromString(
     return NULL;
 }
 
+PVOID PhLoadXmlObjectFromString2(
+    _In_ PCSTR String
+    )
+{
+    mxml_node_t* currentNode;
+
+    if (currentNode = PhXmlLoadString(String))
+    {
+        return currentNode;
+    }
+
+    return NULL;
+}
+
 NTSTATUS PhLoadXmlObjectFromFile(
     _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PVOID* XmlRootObject
