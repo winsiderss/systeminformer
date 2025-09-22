@@ -88,21 +88,21 @@ typedef struct _IO_STATUS_BLOCK* PIO_STATUS_BLOCK;
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _MEMORY_INFORMATION_CLASS
 {
-    MemoryBasicInformation, // q: MEMORY_BASIC_INFORMATION
-    MemoryWorkingSetInformation, // q: MEMORY_WORKING_SET_INFORMATION
-    MemoryMappedFilenameInformation, // q: UNICODE_STRING
-    MemoryRegionInformation, // q: MEMORY_REGION_INFORMATION
-    MemoryWorkingSetExInformation, // q: MEMORY_WORKING_SET_EX_INFORMATION // since VISTA
-    MemorySharedCommitInformation, // q: MEMORY_SHARED_COMMIT_INFORMATION // since WIN8
-    MemoryImageInformation, // q: MEMORY_IMAGE_INFORMATION
-    MemoryRegionInformationEx, // MEMORY_REGION_INFORMATION
-    MemoryPrivilegedBasicInformation, // MEMORY_BASIC_INFORMATION
-    MemoryEnclaveImageInformation, // MEMORY_ENCLAVE_IMAGE_INFORMATION // since REDSTONE3
-    MemoryBasicInformationCapped, // 10
-    MemoryPhysicalContiguityInformation, // MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // since 20H1
-    MemoryBadInformation, // since WIN11
-    MemoryBadInformationAllProcesses, // since 22H1
-    MemoryImageExtensionInformation, // MEMORY_IMAGE_EXTENSION_INFORMATION // since 24H2
+    MemoryBasicInformation,                     // q: MEMORY_BASIC_INFORMATION
+    MemoryWorkingSetInformation,                // q: MEMORY_WORKING_SET_INFORMATION
+    MemoryMappedFilenameInformation,            // q: UNICODE_STRING
+    MemoryRegionInformation,                    // q: MEMORY_REGION_INFORMATION
+    MemoryWorkingSetExInformation,              // q: MEMORY_WORKING_SET_EX_INFORMATION // since VISTA
+    MemorySharedCommitInformation,              // q: MEMORY_SHARED_COMMIT_INFORMATION // since WIN8
+    MemoryImageInformation,                     // q: MEMORY_IMAGE_INFORMATION
+    MemoryRegionInformationEx,                  // q: MEMORY_REGION_INFORMATION
+    MemoryPrivilegedBasicInformation,           // q: MEMORY_BASIC_INFORMATION
+    MemoryEnclaveImageInformation,              // q: MEMORY_ENCLAVE_IMAGE_INFORMATION // since REDSTONE3
+    MemoryBasicInformationCapped,               // q: 10
+    MemoryPhysicalContiguityInformation,        // q: MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // since 20H1
+    MemoryBadInformation,                       // q: since WIN11
+    MemoryBadInformationAllProcesses,           // qs: not implemented // since 22H1
+    MemoryImageExtensionInformation,            // q: MEMORY_IMAGE_EXTENSION_INFORMATION // since 24H2
     MaxMemoryInfoClass
 } MEMORY_INFORMATION_CLASS;
 #else
@@ -764,7 +764,7 @@ NtAllocateVirtualMemoryEx(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 
 /**
- * Frees virtual memory allocated for a process.
+ * The NtFreeVirtualMemory routine frees virtual memory allocated for a process.
  *
  * \param ProcessHandle A handle to the process whose virtual memory is to be freed.
  * \param BaseAddress A pointer to the base address of the region of pages to be freed.
@@ -782,8 +782,8 @@ NtFreeVirtualMemory(
     _In_ ULONG FreeType
     );
 
-/**
- * Reads virtual memory from a process.
+ /**
+ * The NtReadVirtualMemory routine reads virtual memory from a process.
  *
  * \param ProcessHandle A handle to the process whose memory is to be read.
  * \param BaseAddress A pointer to the base address in the specified process from which to read.
@@ -805,7 +805,7 @@ NtReadVirtualMemory(
 
 // rev
 /**
- * Reads virtual memory of a 64-bit process from a 32-bit process.
+ * The NtWow64ReadVirtualMemory64 routine reads virtual memory of a 64-bit process from a 32-bit process.
  *
  * \param ProcessHandle A handle to the process whose memory is to be read.
  * \param BaseAddress A pointer to the base address in the specified process from which to read.
@@ -827,7 +827,7 @@ NtWow64ReadVirtualMemory64(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * Reads virtual memory from a process with extended options.
+ * The NtReadVirtualMemoryEx routine reads virtual memory from a process with extended options.
  *
  * \param ProcessHandle A handle to the process whose memory is to be read.
  * \param BaseAddress A pointer to the base address in the specified process from which to read.
@@ -851,7 +851,7 @@ NtReadVirtualMemoryEx(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
 /**
- * Writes virtual memory to a process.
+ * The NtWriteVirtualMemory routine writes virtual memory to a process.
  *
  * \param ProcessHandle A handle to the process whose memory is to be written.
  * \param BaseAddress A pointer to the base address in the specified process to which to write.
@@ -873,7 +873,7 @@ NtWriteVirtualMemory(
 
 // rev
 /**
- * Writes virtual memory to a 64-bit process from a 32-bit process.
+ * The NtWow64WriteVirtualMemory64 routine writes virtual memory to a 64-bit process from a 32-bit process.
  *
  * \param ProcessHandle A handle to the process whose memory is to be written.
  * \param BaseAddress A pointer to the base address in the specified process to which to write.
@@ -894,7 +894,7 @@ NtWow64WriteVirtualMemory64(
     );
 
 /**
- * Changes the protection on a region of virtual memory.
+ * The NtProtectVirtualMemory routine changes the protection on a region of virtual memory.
  *
  * \param ProcessHandle A handle to the process whose memory protection is to be changed.
  * \param BaseAddress A pointer to the base address of the region of pages whose access protection attributes are to be changed.
@@ -915,7 +915,7 @@ NtProtectVirtualMemory(
     );
 
 /**
- * Queries information about a region of virtual memory in a process.
+ * The NtQueryVirtualMemory routine queries information about a region of virtual memory in a process.
  *
  * \param ProcessHandle A handle to the process whose memory information is to be queried.
  * \param BaseAddress A pointer to the base address of the region of pages to be queried.
@@ -939,7 +939,7 @@ NtQueryVirtualMemory(
 
 // rev
 /**
- * Queries information about a region of virtual memory in a 64-bit process from a 32-bit process.
+ * The NtWow64QueryVirtualMemory64 routine queries information about a region of virtual memory in a 64-bit process from a 32-bit process.
  *
  * \param ProcessHandle A handle to the process whose memory information is to be queried.
  * \param BaseAddress A pointer to the base address of the region of pages to be queried.
@@ -962,7 +962,7 @@ NtWow64QueryVirtualMemory64(
     );
 
 /**
- * Flushes the instruction cache for a specified process.
+ * The NtFlushVirtualMemory routine flushes the instruction cache for a specified process.
  *
  * \param ProcessHandle A handle to the process whose instruction cache is to be flushed.
  * \param BaseAddress A pointer to the base address of the region of memory to be flushed.
@@ -986,14 +986,14 @@ NtFlushVirtualMemory(
 // begin_private
 typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 {
-    VmPrefetchInformation, // MEMORY_PREFETCH_INFORMATION
-    VmPagePriorityInformation, // MEMORY_PAGE_PRIORITY_INFORMATION
-    VmCfgCallTargetInformation, // CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
-    VmPageDirtyStateInformation, // MEMORY_PAGE_DIRTY_STATE_INFORMATION // REDSTONE3
-    VmImageHotPatchInformation, // 19H1
-    VmPhysicalContiguityInformation, // MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // 20H1 // (requires SeLockMemoryPrivilege)
+    VmPrefetchInformation,                      // s: MEMORY_PREFETCH_INFORMATION
+    VmPagePriorityInformation,                  // s: MEMORY_PAGE_PRIORITY_INFORMATION
+    VmCfgCallTargetInformation,                 // s: CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
+    VmPageDirtyStateInformation,                // s: MEMORY_PAGE_DIRTY_STATE_INFORMATION // REDSTONE3
+    VmImageHotPatchInformation,                 // s: 19H1
+    VmPhysicalContiguityInformation,            // s: MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // 20H1 // (requires SeLockMemoryPrivilege)
     VmVirtualMachinePrepopulateInformation,
-    VmRemoveFromWorkingSetInformation, // MEMORY_REMOVE_WORKING_SET_INFORMATION
+    VmRemoveFromWorkingSetInformation,          // s: MEMORY_REMOVE_WORKING_SET_INFORMATION
     MaxVmInfoClass
 } VIRTUAL_MEMORY_INFORMATION_CLASS;
 // end_private
@@ -1091,7 +1091,7 @@ NtSetInformationVirtualMemory(
 #define MAP_SYSTEM 2 // Physical Memory // (requires SeLockMemoryPrivilege)
 
 /**
- * Locks the specified region of the process's virtual address space into physical memory, ensuring that subsequent access to the region will not incur a page fault.
+ * The NtLockVirtualMemory routine locks the specified region of the process's virtual address space into physical memory, ensuring that subsequent access to the region will not incur a page fault.
  *
  * \param ProcessHandle A handle to the process whose virtual address space is to be locked.
  * \param BaseAddress A pointer to the base address of the region of pages to be locked.
@@ -1111,7 +1111,7 @@ NtLockVirtualMemory(
     );
 
 /**
- * Unlocks a specified range of pages in the virtual address space of a process, enabling the system to swap the pages out to the paging file if necessary.
+ * The NtUnlockVirtualMemory routine unlocks a specified range of pages in the virtual address space of a process, enabling the system to swap the pages out to the paging file if necessary.
  *
  * \param ProcessHandle A handle to the process whose virtual address space is to be unlocked.
  * \param BaseAddress A pointer to the base address of the region of pages to be unlocked.
@@ -1214,7 +1214,7 @@ NtOpenSection(
     );
 
 /**
- * Maps a view of a section into the virtual address space of a subject process.
+ * The NtMapViewOfSection routine maps a view of a section into the virtual address space of a subject process.
  *
  * \param SectionHandle A handle to an existing section object.
  * \param ProcessHandle A handle to the object that represents the process that the view should be mapped into. The handle must have been opened with PROCESS_VM_OPERATION access.
@@ -1247,7 +1247,7 @@ NtMapViewOfSection(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 /**
- * Maps a view of a section into the virtual address space of a subject process.
+ * The NtMapViewOfSectionEx routine maps a view of a section into the virtual address space of a subject process.
  *
  * \param SectionHandle A handle to an existing section object.
  * \param ProcessHandle A handle to the object that represents the process that the view should be mapped into. The handle must have been opened with PROCESS_VM_OPERATION access.
@@ -1322,7 +1322,7 @@ NtExtendSection(
     );
 
 /**
- * Provides the capability to determine the base address, size, granted access, and allocation of an opened section object.
+ * The NtQuerySection routine provides the capability to determine the base address, size, granted access, and allocation of an opened section object.
  *
  * \param SectionHandle An open handle to a section object.
  * \param SectionInformationClass The section information class about which to retrieve information.
@@ -1344,7 +1344,7 @@ NtQuerySection(
     );
 
 /**
- * Determines whether two mapped files are the same.
+ * The NtAreMappedFilesTheSame routine determines whether two mapped files are the same.
  *
  * \param File1MappedAsAnImage A pointer to the base address of the first file mapped as an image.
  * \param File2MappedAsFile A pointer to the base address of the second file mapped as a file.
@@ -1890,4 +1890,4 @@ NtCallEnclave(
 
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
-#endif
+#endif // _NTMMAPI_H
