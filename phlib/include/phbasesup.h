@@ -425,6 +425,17 @@ PhReadVirtualMemory(
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWriteVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToWrite,
+    _Out_opt_ PSIZE_T NumberOfBytesWritten
+    );
+
 FORCEINLINE
 PVOID
 PhAllocateCopy(

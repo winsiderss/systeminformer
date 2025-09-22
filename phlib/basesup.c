@@ -1229,14 +1229,64 @@ NTSTATUS PhReadVirtualMemory(
             *NumberOfBytesRead = BufferSize;
         return STATUS_SUCCESS;
     }
+    NTSTATUS status;
+    SIZE_T numberOfBytesRead = 0;
 
-    return NtReadVirtualMemory(
+    status = NtReadVirtualMemory(
         ProcessHandle,
         BaseAddress,
         Buffer,
         BufferSize,
-        NumberOfBytesRead
+        &numberOfBytesRead
         );
+
+    assert(BufferSize == numberOfBytesRead);
+
+    if (NumberOfBytesRead)
+    {
+        *NumberOfBytesRead = numberOfBytesRead;
+    }
+
+    return status;
+}
+
+/**
+ * Writes virtual memory to the specified process.
+ *
+ * \param ProcessHandle Handle to the process from which the memory is to be read.
+ * \param BaseAddress Optional pointer to the base address in the specified process from which to read.
+ * \param Buffer Pointer to a buffer that receives the contents from the address space of the specified process.
+ * \param NumberOfBytesToWrite The number of bytes to be written to the specified process.
+ * \param NumberOfBytesWritten A pointer to a variable that receives the number of bytes transferred into the specified buffer.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhWriteVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToWrite,
+    _Out_opt_ PSIZE_T NumberOfBytesWritten
+    )
+{
+    NTSTATUS status;
+    SIZE_T numberOfBytesWritten = 0;
+
+    status = NtWriteVirtualMemory(
+        ProcessHandle,
+        BaseAddress,
+        Buffer,
+        NumberOfBytesToWrite,
+        &numberOfBytesWritten
+        );
+
+    assert(NumberOfBytesToWrite == numberOfBytesWritten);
+
+    if (NumberOfBytesWritten)
+    {
+        *NumberOfBytesWritten = numberOfBytesWritten;
+    }
+
+    return status;
 }
 
 /**
@@ -4852,7 +4902,6 @@ VOID PhDeleteBytesBuilder(
  * resources used by the object.
  *
  * \param BytesBuilder A byte string builder object.
- *
  * \return A pointer to a byte string. You must free the byte string using PhDereferenceObject()
  * when you no longer need it.
  */

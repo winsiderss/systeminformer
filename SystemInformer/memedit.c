@@ -475,7 +475,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
                         if (NT_SUCCESS(status))
                         {
-                            status = NtWriteVirtualMemory(
+                            status = PhWriteVirtualMemory(
                                 processHandle,
                                 context->BaseAddress,
                                 context->Buffer,

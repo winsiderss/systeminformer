@@ -745,7 +745,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
 
     if (Entry->DllBase == context->BaseAddress)
     {
-        context->Status = NtWriteVirtualMemory(
+        context->Status = PhWriteVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(AddressOfEntry, FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ObsoleteLoadCount)),
             &context->LoadCount,
@@ -1171,7 +1171,7 @@ static BOOLEAN NTAPI PhSetProcessModuleLoadCount32Callback(
 
     if (UlongToPtr(Entry->DllBase) == context->BaseAddress)
     {
-        context->Status = NtWriteVirtualMemory(
+        context->Status = PhWriteVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(AddressOfEntry, FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ObsoleteLoadCount)),
             &context->LoadCount,

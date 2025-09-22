@@ -2018,7 +2018,7 @@ NTSTATUS PhLoadDllProcess(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtWriteVirtualMemory(
+    status = PhWriteVirtualMemory(
         ProcessHandle,
         fileNameBaseAddress,
         FileName->Buffer,
@@ -2092,7 +2092,6 @@ NTSTATUS PhLoadDllProcessApcThread(
     )
 {
     NTSTATUS status;
-    SIZE_T fileNameAllocationSize;
     PVOID fileNameBaseAddress = NULL;
     PVOID loadLibraryW = NULL;
     PVOID rtlExitUserThread = NULL;
@@ -2136,12 +2135,10 @@ NTSTATUS PhLoadDllProcessApcThread(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    fileNameAllocationSize = FileName->Length + sizeof(UNICODE_NULL);
-    status = NtAllocateVirtualMemory(
+    status = PhAllocateVirtualMemory(
         ProcessHandle,
         &fileNameBaseAddress,
-        0,
-        &fileNameAllocationSize,
+        FileName->Length + sizeof(UNICODE_NULL),
         MEM_COMMIT,
         PAGE_READWRITE
         );
@@ -2149,7 +2146,7 @@ NTSTATUS PhLoadDllProcessApcThread(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtWriteVirtualMemory(
+    status = PhWriteVirtualMemory(
         ProcessHandle,
         fileNameBaseAddress,
         FileName->Buffer,
@@ -2402,11 +2399,10 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtAllocateVirtualMemory(
+    status = PhAllocateVirtualMemory(
         ProcessHandle,
         &nameBaseAddress,
-        0,
-        &nameAllocationSize,
+        nameAllocationSize,
         MEM_COMMIT,
         PAGE_READWRITE
         );
@@ -2414,7 +2410,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtWriteVirtualMemory(
+    status = PhWriteVirtualMemory(
         ProcessHandle,
         nameBaseAddress,
         Name->Buffer,
@@ -2427,11 +2423,10 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 
     if (Value)
     {
-        status = NtAllocateVirtualMemory(
+        status = PhAllocateVirtualMemory(
             ProcessHandle,
             &valueBaseAddress,
-            0,
-            &valueAllocationSize,
+            valueAllocationSize,
             MEM_COMMIT,
             PAGE_READWRITE
             );
@@ -2439,7 +2434,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = NtWriteVirtualMemory(
+        status = PhWriteVirtualMemory(
             ProcessHandle,
             valueBaseAddress,
             Value->Buffer,
