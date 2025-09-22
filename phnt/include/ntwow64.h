@@ -831,4 +831,4 @@ Wow64CurrentNativeTeb(
 #endif // _M_X64
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#endif
+#endif // _NTWOW64_H
