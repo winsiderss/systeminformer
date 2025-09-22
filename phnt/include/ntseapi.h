@@ -1277,4 +1277,4 @@ NtPrivilegedServiceAuditAlarm(
     _In_ BOOLEAN AccessGranted
     );
 
-#endif
+#endif // _NTSEAPI_H
