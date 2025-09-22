@@ -16,6 +16,7 @@
 #include <emenu.h>
 #include <procprv.h>
 #include <settings.h>
+#include <phsettings.h>
 
 typedef struct _PH_PROCESS_HEAPS_CONTEXT
 {
@@ -435,7 +436,7 @@ VOID PhpEnumerateProcessHeaps(
     {
         PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
 
-        if (PhGetIntegerSetting(L"EnableHeapReflection"))
+        if (PhGetIntegerSetting(SETTING_ENABLE_HEAP_REFLECTION))
         {
             // NOTE: RtlQueryProcessDebugInformation injects a thread into the process causing deadlocks and other issues in rare cases.
             // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
@@ -726,8 +727,8 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, PhpHeapEntriesCompareFunction);
             ExtendedListView_SetItemFontFunction(context->ListViewHandle, PhpHeapFontFunction);
 
-            PhLoadListViewColumnsFromSetting(L"SegmentHeapListViewColumns", context->ListViewHandle);
-            PhLoadListViewSortColumnsFromSetting(L"SegmentHeapListViewSort", context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_SEGMENT_HEAP_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhLoadListViewSortColumnsFromSetting(SETTING_SEGMENT_HEAP_LIST_VIEW_SORT, context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
@@ -735,8 +736,8 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (PhValidWindowPlacementFromSetting(L"SegmentHeapWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"SegmentHeapWindowPosition", L"SegmentHeapWindowSize", hwndDlg);
+            if (PhValidWindowPlacementFromSetting(SETTING_SEGMENT_HEAP_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_SEGMENT_HEAP_WINDOW_POSITION, SETTING_SEGMENT_HEAP_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
@@ -747,9 +748,9 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
-            PhSaveListViewSortColumnsToSetting(L"SegmentHeapListViewSort", context->ListViewHandle);
-            PhSaveListViewColumnsToSetting(L"SegmentHeapListViewColumns", context->ListViewHandle);
-            PhSaveWindowPlacementToSetting(L"SegmentHeapWindowPosition", L"SegmentHeapWindowSize", hwndDlg);
+            PhSaveListViewSortColumnsToSetting(SETTING_SEGMENT_HEAP_LIST_VIEW_SORT, context->ListViewHandle);
+            PhSaveListViewColumnsToSetting(SETTING_SEGMENT_HEAP_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhSaveWindowPlacementToSetting(SETTING_SEGMENT_HEAP_WINDOW_POSITION, SETTING_SEGMENT_HEAP_WINDOW_SIZE, hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -1173,7 +1174,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
 //    HANDLE processHandle;
 //    HANDLE threadHandle;
 //
-//    if (PhGetIntegerSetting(L"EnableWarnings"))
+//    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
 //    {
 //        cont = PhShowConfirmMessage(
 //            hWnd,
@@ -1293,7 +1294,6 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
 //    NtClose(snapshotHandle);
 //}
 
-
 typedef struct _PH_PROCESS_LOCKS_CONTEXT
 {
     HWND WindowHandle;
@@ -1344,41 +1344,30 @@ VOID PhShowProcessLocksDialog(
         );
 }
 
-VOID PhEnumerateProcessLocks(
-    _In_ PPH_PROCESS_LOCKS_CONTEXT Context
+_Function_class_(PH_ENUM_PROCESS_LOCKS)
+NTSTATUS NTAPI PhEnumProcessLocksCallback(
+    _In_ ULONG NumberOfLocks,
+    _In_ PRTL_PROCESS_LOCK_INFORMATION Locks,
+    _In_opt_ PVOID Context
     )
 {
+    if (!Context) return STATUS_INVALID_PARAMETER;
+    PPH_PROCESS_LOCKS_CONTEXT context = Context;
     NTSTATUS status;
-    ULONG numberOfLocks;
-    RTL_PROCESS_LOCK_INFORMATION* locks;
+    HANDLE processHandle = NULL;
 
-    ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
-    ListView_DeleteAllItems(Context->ListViewHandle);
-
-    status = PhQueryProcessLockInformation(
-        Context->ProcessItem->ProcessId,
-        &numberOfLocks,
-        &locks
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        context->ProcessItem->ProcessId
         );
 
     if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG i = 0; i < NumberOfLocks; i++)
     {
-        PhShowStatus(Context->WindowHandle, L"Unable to query lock information.", status, 0);
-        return;
-    }
-
-    HANDLE processHandle = NULL;
-
-    PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION,
-        Context->ProcessItem->ProcessId
-        );
-
-
-    for (ULONG i = 0; i < numberOfLocks; i++)
-    {
-        PRTL_PROCESS_LOCK_INFORMATION entry = &locks[i];
+        PRTL_PROCESS_LOCK_INFORMATION entry = &Locks[i];
         INT lvItemIndex;
         WCHAR value[PH_INT64_STR_LEN_1];
         CLIENT_ID clientId;
@@ -1396,18 +1385,54 @@ VOID PhEnumerateProcessLocks(
         }
 
         PhPrintUInt32(value, i + 1);
-        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, value, entry);
-        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, PhaFormatUInt64(entry->Type, TRUE)->Buffer);
+        lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, value, PhAllocateCopy(entry, sizeof(*entry)));
         PhPrintPointer(value, entry->Address);
-        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 2, value);
-        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, PhGetStringOrEmpty(fileName));
-        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, entry->OwningThread ? PH_AUTO_T(PH_STRING, PhGetClientIdName(&clientId))->Buffer : L"");
-        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 5, entry->LockCount != ULONG_MAX ? PhaFormatUInt64(entry->LockCount, TRUE)->Buffer : L"");
-        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 6, PhaFormatUInt64(entry->ContentionCount, TRUE)->Buffer);
-        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, PhaFormatUInt64(entry->EntryCount, TRUE)->Buffer);
-        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 8, PhaFormatUInt64(entry->RecursionCount, TRUE)->Buffer);
-        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 9, PhaFormatUInt64(entry->NumberOfWaitingShared, TRUE)->Buffer);
-        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 10, PhaFormatUInt64(entry->NumberOfWaitingExclusive, TRUE)->Buffer);
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, value);
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, PhGetStringOrEmpty(fileName));
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 4, entry->OwningThread ? PH_AUTO_T(PH_STRING, PhGetClientIdName(&clientId))->Buffer : L"");
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 5, entry->LockCount != ULONG_MAX ? PhaFormatUInt64(entry->LockCount, TRUE)->Buffer : L"");
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 6, PhaFormatUInt64(entry->ContentionCount, TRUE)->Buffer);
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 7, PhaFormatUInt64(entry->EntryCount, TRUE)->Buffer);
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 8, PhaFormatUInt64(entry->RecursionCount, TRUE)->Buffer);
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 9, PhaFormatUInt64(entry->NumberOfWaitingShared, TRUE)->Buffer);
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 10, PhaFormatUInt64(entry->NumberOfWaitingExclusive, TRUE)->Buffer);
+
+        switch (entry->Type)
+        {
+        case RTL_CRITSECT_TYPE:
+            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, L"Critical section");
+            break;
+        case RTL_RESOURCE_TYPE:
+            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, L"Resource");
+            break;
+        }
+
+    }
+
+    NtClose(processHandle);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhEnumerateProcessLocks(
+    _In_ PPH_PROCESS_LOCKS_CONTEXT Context
+    )
+{
+    NTSTATUS status;
+
+    ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
+    ListView_DeleteAllItems(Context->ListViewHandle);
+
+    status = PhQueryProcessLockInformation(
+        Context->ProcessItem->ProcessId,
+        PhEnumProcessLocksCallback,
+        Context
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(Context->WindowHandle, L"Unable to query lock information.", status, 0);
+        return;
     }
 
     ExtendedListView_SortItems(Context->ListViewHandle);
@@ -1450,7 +1475,7 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Type");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 50, L"Type");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Address");
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 120, L"Filename");
             PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 120, L"Thread");
@@ -1464,8 +1489,8 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
             ExtendedListView_SetContext(context->ListViewHandle, context);
             ExtendedListView_SetItemFontFunction(context->ListViewHandle, PhpHeapFontFunction);
 
-            //PhLoadListViewColumnsFromSetting(L"SegmentHeapListViewColumns", context->ListViewHandle);
-            //PhLoadListViewSortColumnsFromSetting(L"SegmentHeapListViewSort", context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_SEGMENT_LOCKS_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhLoadListViewSortColumnsFromSetting(SETTING_SEGMENT_LOCKS_LIST_VIEW_SORT, context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
@@ -1473,8 +1498,8 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REFRESH), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (PhValidWindowPlacementFromSetting(L"SegmentHeapWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"SegmentHeapWindowPosition", L"SegmentHeapWindowSize", WindowHandle);
+            if (PhValidWindowPlacementFromSetting(SETTING_SEGMENT_LOCKS_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_SEGMENT_LOCKS_WINDOW_POSITION, SETTING_SEGMENT_LOCKS_WINDOW_SIZE, WindowHandle);
             else
                 PhCenterWindow(WindowHandle, context->ParentWindowHandle);
 
@@ -1487,9 +1512,9 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
         {
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
-            //PhSaveListViewSortColumnsToSetting(L"SegmentHeapListViewSort", context->ListViewHandle);
-            //PhSaveListViewColumnsToSetting(L"SegmentHeapListViewColumns", context->ListViewHandle);
-            PhSaveWindowPlacementToSetting(L"SegmentHeapWindowPosition", L"SegmentHeapWindowSize", WindowHandle);
+            PhSaveListViewSortColumnsToSetting(SETTING_SEGMENT_LOCKS_LIST_VIEW_SORT, context->ListViewHandle);
+            PhSaveListViewColumnsToSetting(SETTING_SEGMENT_LOCKS_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhSaveWindowPlacementToSetting(SETTING_SEGMENT_LOCKS_WINDOW_POSITION, SETTING_SEGMENT_LOCKS_WINDOW_SIZE, WindowHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
