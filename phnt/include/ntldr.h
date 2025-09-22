@@ -998,6 +998,7 @@ LdrFindResourceDirectory_U(
 #define LDR_RES_ALLOW_ANY                0x00000002u  // Permit Count < 3 (else Count must be 3 or 4)
 #define LDR_RES_OPTIMIZE_SMALL_A         0x00000008u  // Cannot combine with LDR_RES_OPTIMIZE_SMALL_B
 #define LDR_RES_OPTIMIZE_SMALL_B         0x00000010u  // Required when using LDR_RES_SPECIAL_DEPENDENCY with LDR_RES_MODE_D_SEARCH
+#define LDR_RES_ALT_RETRY                0x00000030u
 #define LDR_RES_REQUIRE_FOUR_KEYS_B      0x00000040u  // Enables 4-key mode (Enable alternate module message) (requires Count==4)
 
 // Search mode flags (if not specified, LDR_RES_MODE_A_SEARCH is the default)
@@ -1057,7 +1058,7 @@ LdrResFindResource(
     _In_ PCWSTR Name,
     _In_ PCWSTR Language,
     _Out_opt_ PVOID* ResourceBuffer,
-    _Out_opt_ PULONG ResourceLength,
+    _Out_opt_ PSIZE_T ResourceLength,
     _Out_writes_bytes_opt_(CultureNameLength) PVOID CultureName, // WCHAR buffer[6]
     _Out_opt_ PULONG CultureNameLength,
     _In_opt_ ULONG Flags
@@ -1094,12 +1095,10 @@ LdrResFindResourceDirectory(
  * The LdrpResGetResourceDirectory function returns the resource directory for a DLL.
  *
  * \param DllHandle A handle to the DLL.
- * \param Type The type of the resource. This parameter can also be MAKEINTRESOURCE(ID), where ID is the integer identifier of the resource.
- * \param Name The name of the resource. This parameter can also be MAKEINTRESOURCE(ID), where ID is the integer identifier of the resource.
- * \param ResourceDirectory An optional pointer to receive the resource directory.
- * \param CultureName An optional buffer to receive the culture name.
- * \param CultureNameLength An optional pointer to receive the length of the culture name.
+ * \param Size The size of the image mapping.
  * \param Flags Flags for the resource search.
+ * \param ResourceDirectory An optional pointer to receive the resource directory.
+ * \param OutHeaders The NT headers of the image.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -1542,7 +1541,7 @@ typedef DELAYLOAD_FAILURE_SYSTEM_ROUTINE* PDELAYLOAD_FAILURE_SYSTEM_ROUTINE;
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // rev from QueryOptionalDelayLoadedAPI
 /**
- * Determines whether the specified function in a delay-loaded DLL is available on the system.
+ * The LdrQueryOptionalDelayLoadedAPI routine determines whether the specified function in a delay-loaded DLL is available on the system.
  *
  * \param ParentModuleBase A handle to the calling module. (NtCurrentImageBase)
  * \param DllName The file name of the delay-loaded DLL that exports the specified function. This parameter is case-insensitive.
@@ -1565,7 +1564,7 @@ LdrQueryOptionalDelayLoadedAPI(
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev from ResolveDelayLoadedAPI
 /**
- * Locates the target function of the specified import and replaces the function pointer in the import thunk with the target of the function implementation.
+ * The LdrResolveDelayLoadedAPI routine locates the target function of the specified import and replaces the function pointer in the import thunk with the target of the function implementation.
  *
  * \param ParentModuleBase The address of the base of the module importing a delay-loaded function. (NtCurrentImageBase)
  * \param DelayloadDescriptor The address of the image delay import directory for the module to be loaded.
@@ -1590,7 +1589,7 @@ LdrResolveDelayLoadedAPI(
 
 // rev from ResolveDelayLoadsFromDll
 /**
- * Forwards the work in resolving delay-loaded imports from the parent binary to a target binary.
+ * The LdrResolveDelayLoadsFromDll routine forwards the work in resolving delay-loaded imports from the parent binary to a target binary.
  *
  * \param [in] ParentModuleBase The base address of the module that delay loads another binary.
  * \param [in] TargetDllName The name of the target DLL.
@@ -1609,7 +1608,7 @@ LdrResolveDelayLoadsFromDll(
 
 // rev from SetDefaultDllDirectories
 /**
- * Specifies a default set of directories to search when the calling process loads a DLL.
+ * The LdrSetDefaultDllDirectories routine specifies a default set of directories to search when the calling process loads a DLL.
  *
  * \param [in] DirectoryFlags The directories to search.
  * \return NTSTATUS Successful or errant status.
@@ -1624,7 +1623,7 @@ LdrSetDefaultDllDirectories(
 
 // rev from AddDllDirectory
 /**
- * Adds a directory to the process DLL search path.
+ * The LdrAddDllDirectory routine adds a directory to the process DLL search path.
  *
  * \param [in] NewDirectory An absolute path to the directory to add to the search path. For example, to add the directory Dir2 to the process DLL search path, specify \Dir2.
  * \param [out] Cookie An opaque pointer that can be passed to RemoveDllDirectory to remove the DLL from the process DLL search path.
@@ -1641,7 +1640,7 @@ LdrAddDllDirectory(
 
 // rev from RemoveDllDirectory
 /**
- * Removes a directory that was added to the process DLL search path by using LdrAddDllDirectory.
+ * The LdrRemoveDllDirectory routine removes a directory that was added to the process DLL search path by using LdrAddDllDirectory.
  *
  * \param [in] Cookie The cookie returned by LdrAddDllDirectory when the directory was added to the search path.
  * \return NTSTATUS Successful or errant status.
@@ -1656,6 +1655,9 @@ LdrRemoveDllDirectory(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 // rev
+/**
+ * The LdrShutdownProcess routine forcefully terminates the calling program if it is invoked inside a loader callout. Otherwise, it has no effect.
+ */
 _Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
@@ -1666,6 +1668,9 @@ LdrShutdownProcess(
     );
 
 // rev
+/**
+ * The LdrShutdownThread routine forcefully terminates the calling thread if it is invoked inside a loader callout. Otherwise, it has no effect.
+ */
 _Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
@@ -1677,6 +1682,11 @@ LdrShutdownThread(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 // rev
+/**
+ * The LdrSetImplicitPathOptions routine sets implicit path options.
+ *
+ * \param [in] ImplicitPathOptions The implicit path options to set.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1688,7 +1698,7 @@ LdrSetImplicitPathOptions(
 #if (PHNT_VERSION >= PHNT_WINDOWS_10RS3)
 // private
 /**
- * The LdrControlFlowGuardEnforced function checks if Control Flow Guard is enforced.
+ * The LdrControlFlowGuardEnforced routine checks if Control Flow Guard is enforced.
  *
  * \return TRUE if Control Flow Guard is enforced, FALSE otherwise.
  */
@@ -1702,6 +1712,11 @@ LdrControlFlowGuardEnforced(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_19H1)
 // rev
+/**
+ * The LdrIsModuleSxsRedirected routine determines whether the specified module is SxS-redirected.
+ *
+ * \param [in] DllHandle A handle to the DLL
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1712,6 +1727,11 @@ LdrIsModuleSxsRedirected(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // rev
+/**
+ * The LdrUpdatePackageSearchPath routine updates the package search path used by the loader.
+ *
+ * \param [in] SearchPath The new search path.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1746,7 +1766,7 @@ typedef struct _LDR_SOFTWARE_ENCLAVE
 
 // rev from CreateEnclave
 /**
- * Creates a new uninitialized enclave. An enclave is an isolated region of code and data within the address space for an application. Only code that runs within the enclave can access data within the same enclave.
+ * The LdrCreateEnclave routine creates a new uninitialized enclave. An enclave is an isolated region of code and data within the address space for an application. Only code that runs within the enclave can access data within the same enclave.
  *
  * \param ProcessHandle A handle to the process for which you want to create an enclave.
  * \param BaseAddress The preferred base address of the enclave. Specify NULL to have the operating system assign the base address.
@@ -1778,7 +1798,7 @@ LdrCreateEnclave(
 
 // rev from InitializeEnclave
 /**
- * Initializes an enclave that you created and loaded with data.
+ * The LdrInitializeEnclave routine initializes an enclave that you created and loaded with data.
  *
  * \param ProcessHandle A handle to the process for which the enclave was created.
  * \param BaseAddress Any address within the enclave.
@@ -1802,7 +1822,7 @@ LdrInitializeEnclave(
 
 // rev from DeleteEnclave
 /**
- * Deletes the specified enclave.
+ * The LdrDeleteEnclave routine deletes the specified enclave.
  *
  * \param BaseAddress The base address of the enclave that you want to delete.
  * \return NTSTATUS Successful or errant status.
@@ -1817,7 +1837,7 @@ LdrDeleteEnclave(
 
 // rev from CallEnclave
 /**
- * Calls a function within an enclave. LdrCallEnclave can also be called within an enclave to call a function outside of the enclave.
+ * The LdrCallEnclave routine calls a function within an enclave. LdrCallEnclave can also be called within an enclave to call a function outside of the enclave.
  *
  * \param Routine The address of the function that you want to call.
  * \param Flags The flags to modify the call function.
@@ -1836,7 +1856,7 @@ LdrCallEnclave(
 
 // rev from LoadEnclaveImage
 /**
- * Loads an image and all of its imports into an enclave.
+ * The LdrLoadEnclaveModule routine loads an image and all of its imports into an enclave.
  *
  * \param BaseAddress The base address of the image into which to load the image.
  * \param DllPath A NULL-terminated string that contains the path of the image to load.
@@ -1856,7 +1876,7 @@ LdrLoadEnclaveModule(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 /**
- * This function forcefully terminates the calling program if it is invoked inside a loader callout. Otherwise, it has no effect.
+ * The LdrFastFailInLoaderCallout routine forcefully terminates the calling program if it is invoked inside a loader callout. Otherwise, it has no effect.
  *
  * \remarks This routine does not catch all potential deadlock cases; it is possible for a thread inside a loader callout
  * to acquire a lock while some thread outside a loader callout holds the same lock and makes a call into the loader.
@@ -1944,4 +1964,4 @@ static_assert(UFIELD_OFFSET(LDR_DATA_TABLE_ENTRY, LoadReason) == 0x94, "LDR_DATA
 static_assert(sizeof(LDR_DATA_TABLE_ENTRY) == 0xB8, "LDR_DATA_TABLE_ENTRY incorrect size");
 #endif
 
-#endif
+#endif // _NTLDR_H
