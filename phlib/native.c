@@ -160,63 +160,79 @@ NTSTATUS PhMergeSystemAcls(
     // Identify which types of ACEs we want to keep from the lower SACL and
     // which to replace with the ones from the higher SACL
 
-    if (SecurityInformation & SACL_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, SACL_SECURITY_INFORMATION))
         aceTypesToReplace |= AUDIT_ALARM_ACE_TYPE_MASK;
-
-    if (SecurityInformation & LABEL_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, LABEL_SECURITY_INFORMATION))
         aceTypesToReplace |= MANDATORY_LABEL_ACE_TYPE_MASK;
-
-    if (SecurityInformation & ATTRIBUTE_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, ATTRIBUTE_SECURITY_INFORMATION))
         aceTypesToReplace |= RESOURCE_ATTRIBUTE_ACE_TYPE_MASK;
-
-    if (SecurityInformation & SCOPE_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, SCOPE_SECURITY_INFORMATION))
         aceTypesToReplace |= SCOPED_POLICY_ACE_TYPE_MASK;
-
-    if (SecurityInformation & PROCESS_TRUST_LABEL_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, PROCESS_TRUST_LABEL_SECURITY_INFORMATION))
         aceTypesToReplace |= PROCESS_TRUST_ACE_TYPE_MASK;
-
-    if (SecurityInformation & ACCESS_FILTER_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, ACCESS_FILTER_SECURITY_INFORMATION))
         aceTypesToReplace |= ACCESS_FILTER_ACE_TYPE_MASK;
 
     // Calculate the size of ACEs to keep from the lower SACL
 
+    if (LowerSacl && !HigherSacl && aceTypesToReplace == 0)
+    {
+        if (LowerSacl->AclSize > USHORT_MAX)
+            return STATUS_INVALID_PARAMETER;
+
+        mergedSacl = (PACL)PhAllocate(LowerSacl->AclSize);
+        RtlCopyMemory(mergedSacl, LowerSacl, LowerSacl->AclSize);
+        *MergedSacl = mergedSacl;
+        return STATUS_SUCCESS;
+    }
+
+    // Helper macro to walk the ACL. (dmex)
+#define START_FOR_EACH_ACE(_ACL_, _ACE_) \
+    if (_ACL_) \
+    { \
+        PVOID _end = PTR_ADD_OFFSET((_ACL_), (_ACL_)->AclSize); \
+        PACE_HEADER _ACE_ = (PACE_HEADER)PTR_ADD_OFFSET((_ACL_), sizeof(ACL)); \
+        for (USHORT _i = 0; _i < (_ACL_)->AceCount; _i++, _ACE_ = (PACE_HEADER)PTR_ADD_OFFSET(_ACE_, _ACE_->AceSize)) \
+        { \
+            if ((ULONG_PTR)_ACE_ >= (ULONG_PTR)_end) \
+                return STATUS_UNSUCCESSFUL; /* malformed */ \
+            if (_ACE_->AceSize < sizeof(ACE_HEADER) || PTR_ADD_OFFSET(_ACE_, _ACE_->AceSize) > _end) \
+                return STATUS_UNSUCCESSFUL; /* malformed */
+#define END_FOR_EACH_ACE } }
+
+    // Calculate required payload size (sum of selected ACE sizes).
+
     if (LowerSacl)
     {
-        PVOID lowerSaclEnd = PTR_ADD_OFFSET(LowerSacl, LowerSacl->AclSize);
-        PACE_HEADER ace = (PACE_HEADER)PTR_ADD_OFFSET(LowerSacl, sizeof(ACL));
-
-        for (USHORT i = 0; i < LowerSacl->AceCount; i++)
+        START_FOR_EACH_ACE(LowerSacl, ace)
         {
-            if ((ULONG_PTR)ace >= (ULONG_PTR)lowerSaclEnd)
-                return STATUS_UNSUCCESSFUL;
+            ULONG bit = ace->AceType < 32 ? (1u << ace->AceType) : 0;
 
-            if (!((1 << ace->AceType) & aceTypesToReplace))
+            if (!FlagOn(bit, aceTypesToReplace))
+            {
                 requiredSize += ace->AceSize;
-
-            ace = (PACE_HEADER)PTR_ADD_OFFSET(ace, ace->AceSize);
+            }
         }
+        END_FOR_EACH_ACE
     }
 
     // Calculate the size of ACEs to use from the higher SACL
 
     if (HigherSacl)
     {
-        PVOID higherSaclEnd = PTR_ADD_OFFSET(HigherSacl, HigherSacl->AclSize);
-        PACE_HEADER ace = (PACE_HEADER)PTR_ADD_OFFSET(HigherSacl, sizeof(ACL));
-
-        for (USHORT i = 0; i < HigherSacl->AceCount; i++)
+        START_FOR_EACH_ACE(HigherSacl, ace)
         {
-            if ((ULONG_PTR)ace >= (ULONG_PTR)higherSaclEnd)
-                return STATUS_UNSUCCESSFUL;
+            ULONG bit = ace->AceType < 32 ? (1u << ace->AceType) : 0;
 
-            if ((1 << ace->AceType) & aceTypesToReplace)
+            if (FlagOn(bit, aceTypesToReplace))
+            {
                 requiredSize += ace->AceSize;
-
-            ace = (PACE_HEADER)PTR_ADD_OFFSET(ace, ace->AceSize);
+            }
         }
+        END_FOR_EACH_ACE
     }
 
-    // Allocate a new SACL
+    // Allocate new ACL (header + aligned payload).
 
     requiredSize = sizeof(ACL) + ALIGN_UP_BY(requiredSize, sizeof(ULONG));
 
@@ -230,7 +246,7 @@ NTSTATUS PhMergeSystemAcls(
 
     if (!NT_SUCCESS(status))
     {
-        PhFree(MergedSacl);
+        PhFree(mergedSacl);
         return status;
     }
 
@@ -238,41 +254,40 @@ NTSTATUS PhMergeSystemAcls(
 
     if (LowerSacl)
     {
-        PACE_HEADER ace = (PACE_HEADER)PTR_ADD_OFFSET(LowerSacl, sizeof(ACL));
-
-        for (USHORT i = 0; i < LowerSacl->AceCount; i++)
+        START_FOR_EACH_ACE(LowerSacl, ace)
         {
-            if (!((1 << ace->AceType) & aceTypesToReplace))
+            ULONG bit = ace->AceType < 32 ? (1u << ace->AceType) : 0;
+            if (!(bit & aceTypesToReplace))
             {
                 RtlCopyMemory(mergedAce, ace, ace->AceSize);
                 mergedSacl->AceCount++;
                 PhEnsureAclRevision(&mergedSacl->AclRevision, mergedAce->AceType);
                 mergedAce = (PACE_HEADER)PTR_ADD_OFFSET(mergedAce, mergedAce->AceSize);
             }
-
-            ace = (PACE_HEADER)PTR_ADD_OFFSET(ace, ace->AceSize);
         }
+        END_FOR_EACH_ACE
     }
 
     // Add the higher SACL ACEs
 
     if (HigherSacl)
     {
-        PACE_HEADER ace = (PACE_HEADER)PTR_ADD_OFFSET(HigherSacl, sizeof(ACL));
-
-        for (USHORT i = 0; i < HigherSacl->AceCount; i++)
+        START_FOR_EACH_ACE(HigherSacl, ace)
         {
-            if ((1 << ace->AceType) & aceTypesToReplace)
+            ULONG bit = ace->AceType < 32 ? (1u << ace->AceType) : 0;
+            if (bit & aceTypesToReplace)
             {
                 RtlCopyMemory(mergedAce, ace, ace->AceSize);
                 mergedSacl->AceCount++;
                 PhEnsureAclRevision(&mergedSacl->AclRevision, mergedAce->AceType);
                 mergedAce = (PACE_HEADER)PTR_ADD_OFFSET(mergedAce, mergedAce->AceSize);
             }
-
-            ace = (PACE_HEADER)PTR_ADD_OFFSET(ace, ace->AceSize);
         }
+        END_FOR_EACH_ACE
     }
+
+#undef START_FOR_EACH_ACE
+#undef END_FOR_EACH_ACE
 
     *MergedSacl = mergedSacl;
     return STATUS_SUCCESS;
@@ -3877,7 +3892,6 @@ NTSTATUS PhGetVolumeMountPoints(
  * \param VolumeName A volume GUID path for the volume.
  * \param VolumePathNames A pointer to a buffer that receives the list of drive letters and mounted folder paths.
  * \a The list is an array of null-terminated strings terminated by an additional NULL character.
- *
  * \return Successful or errant status.
  */
 NTSTATUS PhGetVolumePathNamesForVolumeName(
@@ -7093,9 +7107,9 @@ BOOLEAN PhIsFirmwareSupported(
     VOID
     )
 {
-    UNICODE_STRING variableName = RTL_CONSTANT_STRING(L" ");
+    static CONST UNICODE_STRING variableName = RTL_CONSTANT_STRING(L" ");
+    static CONST GUID vendorGuid = { 0 };
     ULONG variableValueLength = 0;
-    GUID vendorGuid = { 0 };
 
     if (NtQuerySystemEnvironmentValueEx(
         &variableName,
@@ -7455,7 +7469,7 @@ NTSTATUS PhFreezeProcess(
 {
     NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
-    HANDLE processStateChangeHandle;
+    HANDLE processStateChangeHandle = NULL;
 
     if (!(NtCreateProcessStateChange_Import() && NtChangeProcessState_Import()))
         return STATUS_PROCEDURE_NOT_FOUND;
@@ -8758,7 +8772,6 @@ NTSTATUS PhSystemCompressionStoreTrimRequest(
     memset(&trimRequestInfo, 0, sizeof(SM_SYSTEM_STORE_TRIM_REQUEST));
     trimRequestInfo.Version = SYSTEM_STORE_TRIM_INFORMATION_VERSION_V1;
     trimRequestInfo.PagesToTrim = BYTES_TO_PAGES(compressionInfo.WorkingSetSize);
-    //trimRequestInfo.PartitionHandle = MEMORY_CURRENT_PARTITION_HANDLE;
 
     memset(&storeInfo, 0, sizeof(SYSTEM_STORE_INFORMATION));
     storeInfo.Version = SYSTEM_STORE_INFORMATION_VERSION;
@@ -8783,12 +8796,17 @@ NTSTATUS PhSystemCompressionStoreHighMemoryPriorityRequest(
 {
     NTSTATUS status;
     SYSTEM_STORE_INFORMATION storeInfo;
-    SM_STORE_HIGH_MEMORY_PRIORITY_REQUEST memoryPriorityInfo;
+    SM_STORE_MEMORY_PRIORITY_REQUEST memoryPriorityInfo;
 
-    memset(&memoryPriorityInfo, 0, sizeof(SM_STORE_HIGH_MEMORY_PRIORITY_REQUEST));
-    memoryPriorityInfo.Version = SYSTEM_STORE_HIGH_MEM_PRIORITY_INFORMATION_VERSION;
-    memoryPriorityInfo.SetHighMemoryPriority = SetHighMemoryPriority;
+    memset(&memoryPriorityInfo, 0, sizeof(SM_STORE_MEMORY_PRIORITY_REQUEST));
+    memoryPriorityInfo.Version = SYSTEM_STORE_PRIORITY_REQUEST_VERSION;
+    memoryPriorityInfo.Flags = SYSTEM_STORE_PRIORITY_FLAG_REQUIRE_HANDLE;
     memoryPriorityInfo.ProcessHandle = ProcessHandle;
+
+    if (SetHighMemoryPriority)
+    {
+        SetFlag(memoryPriorityInfo.Flags, SYSTEM_STORE_PRIORITY_FLAG_SET_PRIORITY);
+    }
 
     memset(&storeInfo, 0, sizeof(SYSTEM_STORE_INFORMATION));
     storeInfo.Version = SYSTEM_STORE_INFORMATION_VERSION;
@@ -8806,6 +8824,12 @@ NTSTATUS PhSystemCompressionStoreHighMemoryPriorityRequest(
     return status;
 }
 
+/**
+ * Retrieves the current size limits for the working set of the virtual memory manager system cache.
+ *
+ * \param CacheInfo A pointer to a variable that receives the file cache information.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetSystemFileCacheSize(
     _Out_ PSYSTEM_FILECACHE_INFORMATION CacheInfo
     )
@@ -8819,6 +8843,16 @@ NTSTATUS PhGetSystemFileCacheSize(
 }
 
 // rev from SetSystemFileCacheSize (MSDN) (dmex)
+/**
+ * Limits the size of the working set of the virtual memory manager system cache.
+ *
+ * \param CacheInfo The minimum size of the file cache, in bytes. The virtual memory manager
+ * attempts to keep at least this much memory resident in the system file cache.
+ * \param CacheInfo The maximum size of the file cache, in bytes. The virtual memory manager
+ * enforces this limit only if this call or a previous call to SetSystemFileCacheSize
+ * specifies FILE_CACHE_MAX_HARD_ENABLE.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhSetSystemFileCacheSize(
     _In_ SIZE_T MinimumFileCacheSize,
     _In_ SIZE_T MaximumFileCacheSize,
@@ -8842,6 +8876,16 @@ NTSTATUS PhSetSystemFileCacheSize(
     return status;
 }
 
+/**
+ * Creates an event object, sets the initial state of the event to the specified value,
+ * and opens a handle to the object with the specified desired access.
+ *
+ * \param EventHandle A pointer to a variable that receives the event object handle.
+ * \param DesiredAccess The access mask that specifies the requested access to the event object.
+ * \param EventType The type of the event, which can be SynchronizationEvent or a NotificationEvent.
+ * \param InitialState The initial state of the event object.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCreateEvent(
     _Out_ PHANDLE EventHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -8877,7 +8921,18 @@ NTSTATUS PhCreateEvent(
     return status;
 }
 
-// rev from DeviceIoControl (dmex)
+/**
+ * Sends a control code directly to a specified device driver, causing the corresponding device to perform the corresponding operation.
+ *
+ * \param DeviceHandle A handle to the device on which the operation is to be performed.
+ * \param IoControlCode The control code for the operation. This value identifies the specific operation to be performed and the type of device on which to perform it.
+ * \param InputBuffer A pointer to the input buffer that contains the data required to perform the operation.
+ * \param InputBufferLength The size of the input buffer, in bytes.
+ * \param OutputBuffer A pointer to the output buffer that is to receive the data returned by the operation.
+ * \param OutputBufferLength The size of the output buffer, in bytes.
+ * \param ReturnLength A pointer to a variable that receives the size of the data stored in the output buffer, in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhDeviceIoControlFile(
     _In_ HANDLE DeviceHandle,
     _In_ ULONG IoControlCode,
@@ -9226,7 +9281,6 @@ NTSTATUS PhEnumVirtualMemoryPages(
  * \param Size The total number of pages to query from the base address.
  * \param Callback A callback function which is executed for each memory page.
  * \param Context A user-defined value to pass to the callback function.
- *
  * \return Successful or errant status.
  */
 NTSTATUS PhEnumVirtualMemoryAttributes(
