@@ -3993,4 +3993,4 @@ typedef struct _OPLOCK_KEY_CONTEXT
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#endif
+#endif // _NTIOAPI_H
