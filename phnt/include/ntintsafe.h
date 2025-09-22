@@ -7,6 +7,7 @@
 *  Copyright (c) Microsoft Corp.  All rights reserved.            *
 *                                                                 *
 ******************************************************************/
+
 #ifndef _NTINTSAFE_H_INCLUDED_
 #define _NTINTSAFE_H_INCLUDED_
 
