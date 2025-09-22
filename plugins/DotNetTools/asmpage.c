@@ -1136,27 +1136,66 @@ PPH_STRING DnCreateStringSafe(
     _In_ UNALIGNED PCWSTR UnalignedString
     )
 {
-    if (IS_ALIGNED(UnalignedString, MAX_NATURAL_ALIGNMENT))
+    if (IS_ALIGNED(UnalignedString, MEMORY_ALLOCATION_ALIGNMENT))
     {
         // Address is aligned, access directly
-
         return PhCreateString(UnalignedString);
     }
-    else // if (((ULONG_PTR)UnalignedString % sizeof(PWSTR)) != 0)
+    else
     {
+        WCHAR ch;
         SIZE_T alignedLength = 0;
-        WCHAR alignedBuffer[0x800];
+        const unsigned char *src = (const unsigned char *)UnalignedString;
+        const SIZE_T maxChars = 0x1000 - 1;
 
-        // Address is not aligned, use memcpy to access the string.
-        while (UnalignedString[alignedLength] != UNICODE_NULL && alignedLength < RTL_NUMBER_OF(alignedBuffer) - 1)
+        SIZE_T allocSize = 0x1000 * sizeof(WCHAR);
+        WCHAR *alignedBuffer = _aligned_malloc(allocSize, MEMORY_ALLOCATION_ALIGNMENT);
+
+        if (alignedBuffer)
         {
-            alignedLength++;
+            // Read one WCHAR at a time from the unaligned source using memcpy to avoid unaligned wide deref.
+            while (alignedLength < maxChars)
+            {
+                memcpy(&ch, src + alignedLength * sizeof(WCHAR), sizeof(WCHAR));
+                if (ch == UNICODE_NULL)
+                    break;
+                alignedLength++;
+            }
+
+            // Copy the measured characters into alignedBuffer (memcpy handles unaligned source).
+            if (alignedLength)
+            {
+                memcpy(alignedBuffer, UnalignedString, alignedLength * sizeof(WCHAR));
+            }
+            alignedBuffer[alignedLength] = UNICODE_NULL;
+
+            PPH_STRING result = PhCreateString(alignedBuffer);
+            _aligned_free(alignedBuffer);
+            return result;
         }
+        else
+        {
+            // Fallback to a small stack buffer if allocation fails.
+            WCHAR smallBuffer[256];
+            const SIZE_T smallMax = RTL_NUMBER_OF(smallBuffer) - 1;
+            alignedLength = 0;
 
-        memcpy(alignedBuffer, UnalignedString, alignedLength * sizeof(WCHAR));
-        alignedBuffer[alignedLength] = UNICODE_NULL;
+            while (alignedLength < smallMax)
+            {
+                memcpy(&ch, src + alignedLength * sizeof(WCHAR), sizeof(WCHAR));
+                if (ch == UNICODE_NULL)
+                    break;
+                alignedLength++;
+            }
 
-        return PhCreateString(alignedBuffer);
+            if (alignedLength)
+            {
+                memcpy(smallBuffer, UnalignedString, alignedLength * sizeof(WCHAR));
+            }
+            smallBuffer[alignedLength] = UNICODE_NULL;
+
+            return PhCreateString(smallBuffer);
+        }
     }
 }
 
