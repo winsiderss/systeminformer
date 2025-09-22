@@ -1031,6 +1031,13 @@ PhGetThreadPagePriority(
     return status;
 }
 
+/**
+ * Gets a thread's dynamic boosting.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
+ * access.
+ * \param PriorityBoostDisabled A variable which receives the dynamic boosting state.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetThreadPriorityBoost(
@@ -1052,6 +1059,39 @@ PhGetThreadPriorityBoost(
     if (NT_SUCCESS(status))
     {
         *PriorityBoostDisabled = !!priorityBoost;
+    }
+
+    return status;
+}
+
+/**
+ * Gets a thread's performance counter.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
+ * access.
+ * \param PerformanceCounter A variable which receives the 64-bit performance counter.
+ */
+FORCEINLINE
+NTSTATUS
+PhGetThreadPerformanceCounter(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PLARGE_INTEGER PerformanceCounter
+    )
+{
+    NTSTATUS status;
+    LARGE_INTEGER performanceCounter;
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadPerformanceCount,
+        &performanceCounter,
+        sizeof(LARGE_INTEGER),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PerformanceCounter = performanceCounter;
     }
 
     return status;
