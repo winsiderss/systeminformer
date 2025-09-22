@@ -3684,6 +3684,28 @@ PhQueryValueKey(
     _Out_ PVOID *Buffer
     );
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhQueryValueKeyZ(
+    _In_ HANDLE KeyHandle,
+    _In_ PCWSTR ValueName,
+    _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
+    _Out_ PVOID* Buffer
+    )
+{
+    PH_STRINGREF valueName;
+
+    PhInitializeStringRef(&valueName, ValueName);
+
+    return PhQueryValueKey(
+        KeyHandle,
+        &valueName,
+        KeyValueInformationClass,
+        Buffer
+        );
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
