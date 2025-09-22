@@ -4975,18 +4975,6 @@ CleanupExit:
     return status;
 }
 
-typedef struct _PH_USER_OBJECT_SID
-{
-    union
-    {
-        SID Sid;
-        BYTE Buffer[SECURITY_MAX_SID_SIZE];
-    };
-} PH_USER_OBJECT_SID, *PPH_USER_OBJECT_SID;
-
-C_ASSERT(sizeof(PH_USER_OBJECT_SID) == SECURITY_MAX_SID_SIZE);
-
-
 NTSTATUS PhGetUserObjectSidInformationToBuffer(
     _In_ HANDLE Handle,
     _Out_ PPH_USER_OBJECT_SID ObjectSid,
