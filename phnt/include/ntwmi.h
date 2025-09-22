@@ -6413,4 +6413,4 @@ WmiFreeBuffer(
     _In_ PVOID Buffer
     );
 
-#endif
+#endif // _NTWMI_H
