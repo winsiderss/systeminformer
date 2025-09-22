@@ -50,9 +50,19 @@ PhGetProcessPriorityClassString(
     );
 // end_phapppub
 
+PPH_STRING PhGetProcessProtectionString(
+    _In_ PS_PROTECTION Protection,
+    _In_ BOOLEAN IsSecureProcess
+    );
+
 NTSTATUS PhGetProcessSwitchContext(
     _In_ HANDLE ProcessHandle,
     _Out_ PGUID Guid
+    );
+
+NTSTATUS PhGetProcessDefaultHeap(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* Heap
     );
 
 // begin_phapppub
