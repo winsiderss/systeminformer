@@ -462,7 +462,8 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
 #define TNM_GETSELECTEDCOUNT (WM_USER + 52)
 #define TNM_GETSELECTEDNODE (WM_USER + 53)
 #define TNM_FOCUSMARKSELECT (WM_USER + 54)
-#define TNM_LAST (WM_USER + 55)
+#define TNM_FOCUSVISIBLENODE (WM_USER + 55)
+#define TNM_LAST (WM_USER + 56)
 
 #if defined(_PHLIB_)
 
@@ -623,8 +624,18 @@ EXTERN_C LRESULT PhTnSendMessage(
 #define TreeNew_GetSelectedNodeCount(hWnd) \
     ((ULONG)PhTnSendMessage((hWnd), TNM_GETSELECTEDCOUNT, 0, 0))
 
+#define TreeNew_GetSelectedNode(hWnd) \
+    ((PPH_TREENEW_NODE)PhTnSendMessage((hWnd), TNM_GETSELECTEDNODE, 0, 0))
+
+#define TreeNew_GetVisibleNode(hWnd) \
+    ((PPH_TREENEW_NODE)PhTnSendMessage((hWnd), TNM_GETSELECTEDNODE, 0, 0))
+
 #define TreeNew_FocusMarkSelectNode(hWnd, Node) \
     PhTnSendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, (LPARAM)(Node))
+
+#define TreeNew_SelectFirstVisibleNode(hWnd) \
+    PhTnSendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, 0)
+
 #else
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
@@ -783,6 +794,8 @@ EXTERN_C LRESULT PhTnSendMessage(
 #define TreeNew_FocusMarkSelectNode(hWnd, Node) \
     SendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, (LPARAM)(Node))
 
+#define TreeNew_SelectFirstVisibleNode(hWnd) \
+    SendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, 0)
 #endif
 
 typedef struct _PH_TREENEW_VIEW_PARTS

@@ -2240,6 +2240,38 @@ LRESULT PhTnpOnUserMessage(
             PhTnpOnUserMessage(hwnd, Context, TNM_INVALIDATENODES, node->Index, node->Index);
        }
        return TRUE;
+    case TNM_FOCUSVISIBLENODE:
+        {
+            ULONG i;
+            ULONG visibleCount;
+            PPH_TREENEW_NODE node;
+
+            if (Context->SuspendUpdateStructure)
+                visibleCount = 0;
+            else
+                visibleCount = Context->FlatList->Count;
+
+            for (i = 0; i < visibleCount; i++)
+            {
+                node = Context->FlatList->Items[i];
+
+                // Select the first visible node.
+                if (node->Visible)
+                {
+                    SetFocus(hwnd);
+
+                    Context->FocusNode = node; // TNM_SETFOCUSNODE
+                    Context->MarkNodeIndex = node->Index; // TNM_SETMARKNODE
+                    PhTnpOnUserMessage(hwnd, Context, TNM_DESELECTRANGE, 0, -1);
+                    PhTnpOnUserMessage(hwnd, Context, TNM_SELECTRANGE, node->Index, node->Index);
+                    PhTnpEnsureVisibleNode(Context, node->Index); // TNM_ENSUREVISIBLE
+                    PhTnpOnUserMessage(hwnd, Context, TNM_INVALIDATENODES, node->Index, node->Index);
+
+                    return TRUE;
+                }
+            }
+        }
+        break;
     }
 
     return 0;
