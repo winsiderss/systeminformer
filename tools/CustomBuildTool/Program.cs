@@ -67,6 +67,15 @@ namespace CustomBuildTool
 
                 Build.ShowBuildStats();
             }
+            else if (ProgramArgs.ContainsKey("-phnt_headers_gen"))
+            {
+                if (!Build.BuildSingleNativeHeader())
+                {
+                    Environment.Exit(1);
+                }
+
+                Build.ShowBuildStats();
+            }
             else if (ProgramArgs.TryGetValue("-kphsign", out string keyName))
             {
                 if (!BuildVerify.CreateSigFile("kph", keyName, Build.BuildCanary))

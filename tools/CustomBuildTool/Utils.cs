@@ -463,6 +463,42 @@ namespace CustomBuildTool
             return null;
         }
 
+        public static string GetWindowsSdkIncludePath()
+        {
+            List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
+            string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
+            string kitsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "\\Include"]));
+
+            if (Directory.Exists(kitsPath))
+            {
+                var windowsKitsDirectory = Directory.EnumerateDirectories(kitsPath);
+
+                foreach (string path in windowsKitsDirectory)
+                {
+                    var name = Path.GetFileName(path);
+
+                    if (Version.TryParse(name, out var version))
+                    {
+                        versionList.Add(new KeyValuePair<Version, string>(version, path));
+                    }
+                }
+
+                versionList.Sort((first, second) => first.Key.CompareTo(second.Key));
+
+                if (versionList.Count > 0)
+                {
+                    var result = versionList[^1];
+
+                    if (!string.IsNullOrWhiteSpace(result.Value))
+                    {
+                        return result.Value;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         public static string GetVisualStudioVersion(BuildFlags Flags, Architecture Architecture)
         {
             string msbuild = GetMsbuildFilePath(Flags, Architecture);
@@ -1106,7 +1142,7 @@ namespace CustomBuildTool
         {
             get
             {
-                if (string.IsNullOrEmpty(this.Digest))
+                if (string.IsNullOrWhiteSpace(this.Digest))
                     return string.Empty;
 
                 if (this.Digest.AsSpan().IndexOf(':') is int idx && idx >= 0)
@@ -1123,7 +1159,7 @@ namespace CustomBuildTool
         {
             get
             {
-                if (string.IsNullOrEmpty(this.Digest))
+                if (string.IsNullOrWhiteSpace(this.Digest))
                     return string.Empty;
 
                 if (this.Digest.AsSpan().IndexOf(':') is int idx && idx >= 0)

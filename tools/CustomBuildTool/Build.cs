@@ -535,6 +535,25 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static bool BuildSingleNativeHeader()
+        {
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage("Building single header file...", ConsoleColor.Cyan);
+
+            try
+            {
+                if (!SingleHeaderGen.Execute())
+                    return false;
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
         public static bool BuildDynamicData(string OutDir)
         {
             Program.PrintColorMessage("Building dynamic data...", ConsoleColor.Cyan);
