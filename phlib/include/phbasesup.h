@@ -99,12 +99,34 @@ PhQueueUserWorkItem(
 // Misc. system
 //
 
-PHLIBAPI
-ULONGLONG
-NTAPI
+/**
+ * Reads the time stamp counter.
+ *
+ * This function reads the time stamp counter using the `__rdtscp` instruction,
+ * which is a serializing variant of the `rdtsc` instruction. It also includes
+ * a memory fence to ensure proper ordering of memory operations.
+ * \return The current value of the time stamp counter.
+ */
+FORCEINLINE
+ULONG64
 PhReadTimeStampCounter(
     VOID
-    );
+    )
+{
+#if defined(PHNT_NATIVE_TIME)
+    ULONG64 value;
+
+    SpeculationFence();
+    value = ReadTimeStampCounter();
+    SpeculationFence();
+
+    return value;
+#else
+    unsigned int aux;
+
+    return __rdtscp(&aux);
+#endif
+}
 
 PHLIBAPI
 BOOLEAN

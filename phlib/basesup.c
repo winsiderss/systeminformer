@@ -493,39 +493,6 @@ NTSTATUS PhQueueUserWorkItem(
     return status;
 }
 
-/**
- * Reads the time stamp counter.
- *
- * This function reads the time stamp counter using the `__rdtscp` instruction,
- * which is a serializing variant of the `rdtsc` instruction. It also includes
- * a memory fence to ensure proper ordering of memory operations.
- * \return The current value of the time stamp counter.
- */
-ULONGLONG PhReadTimeStampCounter(
-    VOID
-    )
-{
-#if defined(PHNT_NATIVE_TIME)
-    ULONG64 value;
-
-    value = ReadTimeStampCounter();
-
-#if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
-    MemoryBarrier();
-#else
-    SpeculationFence();
-#endif
-
-#else
-    ULONG64 value;
-    ULONG index;
-
-    value = __rdtscp(&index);
-#endif
-
-    return value;
-}
-
 // rev from QueryPerformanceCounter (dmex)
 /**
  * Retrieves the current value of the performance counter, which is a high resolution (<1us) time stamp that can be used for time-interval measurements.

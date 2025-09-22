@@ -468,7 +468,6 @@ EXPORTS
     PhQueryTimeZoneBias
     PhReAllocate
     PhReAllocateSafe
-    PhReadTimeStampCounter
     PhReferenceEmptyString
     PhRegisterCallback
     PhRegisterCallbackEx
