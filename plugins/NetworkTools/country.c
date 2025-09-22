@@ -16,6 +16,7 @@ BOOLEAN GeoDbInitialized = FALSE;
 BOOLEAN GeoDbExpired = FALSE;
 ULONG GeoLiteDatabaseType = 0;
 HIMAGELIST GeoImageList = NULL;
+SIZE GeoCountryImageSize = { 16, 11 };
 MMDB_s GeoDbInstance = { 0 };
 CONST PH_STRINGREF GeoDbCityFileName = PH_STRINGREF_INIT(L"GeoLite2-City.mmdb");
 CONST PH_STRINGREF GeoDbCountryFileName = PH_STRINGREF_INIT(L"GeoLite2-Country.mmdb");
@@ -173,6 +174,36 @@ CONST GEODB_GEONAME_CACHE_TABLE GeoCountryResourceTable[] =
 
 GEODB_IMAGE_CACHE_TABLE GeoCountryImageTable[RTL_NUMBER_OF(GeoCountryResourceTable)];
 
+BOOLEAN NetToolsInitializeCountryImageList(
+    _In_ HWND WindowHandle
+    )
+{
+    LONG windowDpi;
+
+    if (!WindowHandle)
+        return FALSE;
+
+    windowDpi = PhGetWindowDpi(WindowHandle);
+    GeoCountryImageSize.cx = PhScaleToDisplay(16, windowDpi);
+    GeoCountryImageSize.cy = PhScaleToDisplay(11, windowDpi);
+
+    if (GeoImageList)
+    {
+        PhImageListDestroy(GeoImageList);
+        GeoImageList = NULL;
+    }
+
+    GeoImageList = PhImageListCreate(
+        GeoCountryImageSize.cx,
+        GeoCountryImageSize.cy,
+        ILC_MASK | ILC_COLOR32,
+        10,
+        1
+        );
+
+    return TRUE;
+}
+
 BOOLEAN NetToolsGeoLiteInitialized(
     VOID
     )
@@ -211,15 +242,9 @@ BOOLEAN NetToolsGeoLiteInitialized(
                     GeoDbExpired = TRUE;
                 }
 
-                GeoImageList = PhImageListCreate(
-                    16,
-                    11,
-                    ILC_MASK | ILC_COLOR32,
-                    20,
-                    20
-                    );
-
                 memset(GeoCountryImageTable, INT_ERROR, sizeof(GeoCountryImageTable));
+
+                NetToolsInitializeCountryImageList(NetworkTreeNewHandle);
 
                 GeoDbInitialized = TRUE;
             }
@@ -240,11 +265,13 @@ VOID FreeGeoLiteDb(
     if (GeoImageList)
     {
         PhImageListDestroy(GeoImageList);
+        GeoImageList = NULL;
     }
 
     if (GeoDbInitialized)
     {
         MMDB_close(&GeoDbInstance);
+        GeoDbInitialized = FALSE;
     }
 }
 
@@ -423,14 +450,13 @@ BOOLEAN LookupCountryCodeFromMmdb(
         }
 
         memset(&ipv4SockAddr, 0, sizeof(SOCKADDR_IN));
-        memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
-
         ipv4SockAddr.sin_family = AF_INET;
         ipv4SockAddr.sin_addr = RemoteAddress.InAddr;
 
+        memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
         mmdb_result = MMDB_lookup_sockaddr(
             &GeoDbInstance,
-            (struct sockaddr*)&ipv4SockAddr,
+            (const SOCKADDR*)&ipv4SockAddr,
             &mmdb_error
             );
     }
@@ -450,14 +476,13 @@ BOOLEAN LookupCountryCodeFromMmdb(
         }
 
         memset(&ipv6SockAddr, 0, sizeof(SOCKADDR_IN6));
-        memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
-
         ipv6SockAddr.sin6_family = AF_INET6;
         ipv6SockAddr.sin6_addr = RemoteAddress.In6Addr;
 
+        memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
         mmdb_result = MMDB_lookup_sockaddr(
             &GeoDbInstance,
-            (struct sockaddr*)&ipv6SockAddr,
+            (const SOCKADDR*)&ipv6SockAddr,
             &mmdb_error
             );
     }
@@ -525,8 +550,8 @@ LONG LookupCountryIcon(
                     MAKEINTRESOURCE(GeoCountryResourceTable[i].ResourceID),
                     L"PNG",
                     PH_IMAGE_FORMAT_TYPE_PNG,
-                    16,
-                    11
+                    GeoCountryImageSize.cx,
+                    GeoCountryImageSize.cy
                     ))
                 {
                     GeoCountryImageTable[i].IconIndex = PhImageListAddBitmap(

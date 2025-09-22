@@ -1327,7 +1327,7 @@ VOID LoadSettingsFwTreeList(
     );
 
 VOID SaveSettingsFwTreeList(
-    VOID
+     _In_ HWND TreeNewHandle
     );
 
 VOID EtFwFlushResolveCache(
@@ -1505,19 +1505,20 @@ BOOLEAN EtFwGetSelectedFwItems(
     );
 
 VOID EtFwDeselectAllFwNodes(
-    VOID
+    _In_ HWND TreeNewHandle
     );
 
 VOID EtFwSelectAndEnsureVisibleFwNode(
+    _In_ HWND TreeNewHandle,
     _In_ PFW_EVENT_ITEM FwNode
     );
 
 VOID EtFwInvalidateAllFwNodes(
-    VOID
+    _In_ HWND TreeNewHandle
     );
 
 VOID EtFwInvalidateAllFwNodesHostnames(
-    VOID
+    _In_ HWND TreeNewHandle
     );
 
 VOID EtFwCopyFwList(

@@ -391,8 +391,8 @@ NTSTATUS EtQueryAdapterAttributes(
     _Out_ PET_ADAPTER_ATTRIBUTES Attributes
     )
 {
-    static PH_STRINGREF dxCoreAttributes = PH_STRINGREF_INIT(L"DXCoreAttributes");
-    static PH_STRINGREF dxAttributes = PH_STRINGREF_INIT(L"DXAttributes");
+    static const PH_STRINGREF dxCoreAttributes = PH_STRINGREF_INIT(L"DXCoreAttributes");
+    static const PH_STRINGREF dxAttributes = PH_STRINGREF_INIT(L"DXAttributes");
     NTSTATUS status;
     D3DDDI_QUERYREGISTRY_INFO* adapterAttributes;
     PWSTR attributes;

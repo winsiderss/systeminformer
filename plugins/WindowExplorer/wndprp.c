@@ -2577,7 +2577,7 @@ VOID WepQueryWindowAttributes(
                 );
             PhSetListViewSubItem(Context->PropStoreListViewHandle, lvItemIndex, 2, PhGetStringOrEmpty(string));
         }
-        else if (i == WCA_ACCENT_POLICY || i == WCA_PART_COLOR)
+        else if (i == WCA_ACCENT_POLICY || i == WCA_PART_COLOR || i == WCA_SYSTEMBACKDROP_TYPE)
         {
             PhPrintUInt32IX(value, *(PULONG)buffer);
             PhSetListViewSubItem(Context->PropStoreListViewHandle, lvItemIndex, 2, value);

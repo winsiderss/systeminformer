@@ -45,15 +45,6 @@ PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessStatsEventCallbackRegistration;
 PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration;
 
-EXTENDEDTOOLS_INTERFACE PluginInterface =
-{
-    EXTENDEDTOOLS_INTERFACE_VERSION,
-    EtLookupTotalGpuAdapterUtilization,
-    EtLookupTotalGpuAdapterDedicated,
-    EtLookupTotalGpuAdapterShared,
-    EtLookupTotalGpuAdapterEngineUtilization
-};
-
 ULONG EtWindowsVersion = WINDOWS_ANCIENT;
 BOOLEAN EtIsExecutingInWow64 = FALSE;
 BOOLEAN EtGpuFahrenheitEnabled = FALSE;
@@ -68,6 +59,15 @@ BOOLEAN EtEnableScaleGraph = FALSE;
 BOOLEAN EtEnableScaleText = FALSE;
 BOOLEAN EtPropagateCpuUsage = FALSE;
 BOOLEAN EtEnableAvxSupport = FALSE;
+
+EXTENDEDTOOLS_INTERFACE PluginInterface =
+{
+    EXTENDEDTOOLS_INTERFACE_VERSION,
+    EtLookupTotalGpuAdapterUtilization,
+    EtLookupTotalGpuAdapterDedicated,
+    EtLookupTotalGpuAdapterShared,
+    EtLookupTotalGpuAdapterEngineUtilization
+};
 
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
@@ -299,10 +299,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (ProcessesUpdatedCount != 3)
-    {
-        ProcessesUpdatedCount++;
-    }
+    ProcessesUpdatedCount = PtrToUlong(Parameter);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)

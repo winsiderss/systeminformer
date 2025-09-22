@@ -28,7 +28,6 @@ PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 HWND NetworkTreeNewHandle = NULL;
 BOOLEAN NetworkExtensionEnabled = FALSE;
 RTL_STATIC_LIST_HEAD(NetworkExtensionListHead);
-PH_QUEUED_LOCK NetworkExtensionListLock = PH_QUEUED_LOCK_INIT;
 
 NETWORKTOOLS_INTERFACE PluginInterface =
 {
@@ -484,9 +483,7 @@ VOID NTAPI NetworkItemCreateCallback(
 
     if (NetworkExtensionEnabled)
     {
-        PhAcquireQueuedLockExclusive(&NetworkExtensionListLock);
         InsertTailList(&NetworkExtensionListHead, &extension->ListEntry);
-        PhReleaseQueuedLockExclusive(&NetworkExtensionListLock);
     }
 }
 
@@ -501,9 +498,7 @@ VOID NTAPI NetworkItemDeleteCallback(
 
     if (NetworkExtensionEnabled)
     {
-        PhAcquireQueuedLockExclusive(&NetworkExtensionListLock);
         RemoveEntryList(&extension->ListEntry);
-        PhReleaseQueuedLockExclusive(&NetworkExtensionListLock);
     }
 
     if (extension->RemoteCountryName)
@@ -520,11 +515,14 @@ VOID NTAPI NetworkItemDeleteCallback(
         PhDereferenceObject(extension->LatencyText);
 }
 
-VOID PhpNetworkItemToRow(
+FORCEINLINE
+VOID
+PhpNetworkItemToRow(
     _Out_ PMIB_TCPROW Row,
      _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
+    RtlZeroMemory(Row, sizeof(MIB_TCPROW));
     Row->State = NetworkItem->State;
     Row->dwLocalAddr = NetworkItem->LocalEndpoint.Address.InAddr.s_addr;
     Row->dwLocalPort = _byteswap_ushort((USHORT)NetworkItem->LocalEndpoint.Port);
@@ -532,11 +530,14 @@ VOID PhpNetworkItemToRow(
     Row->dwRemotePort = _byteswap_ushort((USHORT)NetworkItem->RemoteEndpoint.Port);
 }
 
-VOID PhpNetworkItemToRow6(
+FORCEINLINE
+VOID
+PhpNetworkItemToRow6(
     _Out_ PMIB_TCP6ROW Row,
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
+    RtlZeroMemory(Row, sizeof(MIB_TCP6ROW));
     Row->State = NetworkItem->State;
     memcpy_s(Row->LocalAddr.s6_addr, sizeof(Row->LocalAddr.s6_addr), NetworkItem->LocalEndpoint.Address.Ipv6, sizeof(NetworkItem->LocalEndpoint.Address.Ipv6));
     Row->dwLocalScopeId = NetworkItem->LocalScopeId;
@@ -796,7 +797,7 @@ VOID NTAPI TreeNewMessageCallback(
                 if (extension->CountryIconIndex != INT_ERROR)
                 {
                     DrawCountryIcon(hdc, rect, extension->CountryIconIndex);
-                    rect.left += 16 + 2;
+                    rect.left += GeoCountryImageSize.cx + 2;
                 }
 
                 DrawText(

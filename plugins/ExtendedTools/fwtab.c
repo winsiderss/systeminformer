@@ -14,11 +14,51 @@
 #include <fwpmu.h>
 #include <fwpsu.h>
 
+static CONST PH_KEY_VALUE_PAIR FwEventTypePairs[] =
+{
+    SIP(SREF(L"IKEEXT_MM_FAILURE"), FWPM_NET_EVENT_TYPE_IKEEXT_MM_FAILURE),
+    SIP(SREF(L"IKEEXT_QM_FAILURE"), FWPM_NET_EVENT_TYPE_IKEEXT_QM_FAILURE),
+    SIP(SREF(L"IKEEXT_EM_FAILURE"), FWPM_NET_EVENT_TYPE_IKEEXT_EM_FAILURE),
+    SIP(SREF(L"CLASSIFY_DROP"), FWPM_NET_EVENT_TYPE_CLASSIFY_DROP),
+    SIP(SREF(L"IPSEC_KERNEL_DROP"), FWPM_NET_EVENT_TYPE_IPSEC_KERNEL_DROP),
+    SIP(SREF(L"IPSEC_DOSP_DROP"), FWPM_NET_EVENT_TYPE_IPSEC_DOSP_DROP),
+    SIP(SREF(L"CLASSIFY_ALLOW"), FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW),
+    SIP(SREF(L"CAPABILITY_DROP"), FWPM_NET_EVENT_TYPE_CAPABILITY_DROP),
+    SIP(SREF(L"CAPABILITY_ALLOW"), FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW),
+    SIP(SREF(L"CLASSIFY_DROP_MAC"), FWPM_NET_EVENT_TYPE_CLASSIFY_DROP_MAC),
+    SIP(SREF(L"LPM_PACKET_ARRIVAL"), FWPM_NET_EVENT_TYPE_LPM_PACKET_ARRIVAL),
+    SIP(SREF(L"Unknown"), FWPM_NET_EVENT_TYPE_MAX),
+};
+
+static_assert(FWPM_NET_EVENT_TYPE_MAX == 11 && RTL_NUMBER_OF(FwEventTypePairs) == FWPM_NET_EVENT_TYPE_MAX + 1, "FwEventTypePairs size mismatch - Add missing enums to the FwEventTypePairs array.");
+
+static CONST PH_KEY_VALUE_PAIR FwEventDirectionPairs[] =
+{
+    SIP(SREF(L"Unknown"), FW_EVENT_DIRECTION_NONE),
+    SIP(SREF(L"IN"), FW_EVENT_DIRECTION_INBOUND),
+    SIP(SREF(L"OUT"), FW_EVENT_DIRECTION_OUTBOUND),
+    SIP(SREF(L"FWD"), FW_EVENT_DIRECTION_FORWARD),
+    SIP(SREF(L"BI"), FW_EVENT_DIRECTION_BIDIRECTIONAL),
+    SIP(SREF(L"Unknown"), FW_EVENT_DIRECTION_MAX),
+};
+
+static CONST PH_KEY_VALUE_PAIR FwEventDirectionLoopbackPairs[] =
+{
+    SIP(SREF(L"Unknown"), FW_EVENT_DIRECTION_NONE),
+    SIP(SREF(L"Loopback [In]"), FW_EVENT_DIRECTION_INBOUND),
+    SIP(SREF(L"Loopback [Out]"), FW_EVENT_DIRECTION_OUTBOUND),
+    SIP(SREF(L"Loopback [Fwd]"), FW_EVENT_DIRECTION_FORWARD),
+    SIP(SREF(L"Loopback [Bi]"), FW_EVENT_DIRECTION_BIDIRECTIONAL),
+    SIP(SREF(L"Unknown"), FW_EVENT_DIRECTION_MAX),
+};
+
 BOOLEAN FwTreeNewCreated = FALSE;
 HWND FwTreeNewHandle = NULL;
 ULONG FwTreeNewSortColumn = FW_COLUMN_NAME;
 PH_SORT_ORDER FwTreeNewSortOrder = NoSortOrder;
-PH_STRINGREF FwTreeEmptyText = PH_STRINGREF_INIT(L"Firewall monitoring requires System Informer to be restarted with administrative privileges.");
+CONST PH_STRINGREF FwTreeEmptyText = PH_STRINGREF_INIT(L"Firewall monitoring requires System Informer to be restarted with administrative privileges.");
+CONST PH_STRINGREF FwTreePageText = PH_STRINGREF_INIT(L"Firewall");
+CONST PH_STRINGREF FwTreeBannerText = PH_STRINGREF_INIT(L"Search Firewall");
 PPH_STRING FwTreeErrorText = NULL;
 LONG FwTreeIconHeightPadding = 0;
 LONG FwTreeLeftMarginPadding = 0;
@@ -47,7 +87,6 @@ BOOLEAN FwTabPageCallback(
     {
     case MainTabPageCreateWindow:
         {
-            HWND hwnd;
             ULONG thinRows;
             ULONG treelistBorder;
             ULONG treelistCustomColors;
@@ -64,7 +103,7 @@ BOOLEAN FwTabPageCallback(
                 treelistCreateParams.SelectionColor = PhGetIntegerSetting(L"TreeListCustomColorSelection");
             }
 
-            hwnd = CreateWindow(
+            FwTreeNewHandle = PhCreateWindow(
                 PH_TREENEW_CLASSNAME,
                 NULL,
                 WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
@@ -78,20 +117,20 @@ BOOLEAN FwTabPageCallback(
                 &treelistCreateParams
                 );
 
-            if (!hwnd)
+            if (!FwTreeNewHandle)
                 return FALSE;
 
             FwTreeNewCreated = TRUE;
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
-                PhInitializeWindowTheme(hwnd, TRUE); // HACK (dmex)
-                TreeNew_ThemeSupport(hwnd, TRUE);
+                PhInitializeWindowTheme(FwTreeNewHandle, TRUE); // HACK (dmex)
+                TreeNew_ThemeSupport(FwTreeNewHandle, TRUE);
             }
 
             PhInitializeProviderEventQueue(&FwNetworkEventQueue, 100);
 
-            InitializeFwTreeList(hwnd);
+            InitializeFwTreeList(FwTreeNewHandle);
 
             if (PhGetOwnTokenAttributes().Elevated)
             {
@@ -128,11 +167,11 @@ BOOLEAN FwTabPageCallback(
                             EtFwStatus);
                     }
 
-                    TreeNew_SetEmptyText(hwnd, &EtFwStatusText->sr, 0);
+                    TreeNew_SetEmptyText(FwTreeNewHandle, &EtFwStatusText->sr, 0);
                 }
                 else
                 {
-                    TreeNew_SetEmptyText(hwnd, &FwTreeEmptyText, 0);
+                    TreeNew_SetEmptyText(FwTreeNewHandle, &FwTreeEmptyText, 0);
                 }
             }
 
@@ -163,7 +202,7 @@ BOOLEAN FwTabPageCallback(
 
             if (Parameter1)
             {
-                *(HWND*)Parameter1 = hwnd;
+                *(HWND*)Parameter1 = FwTreeNewHandle;
             }
         }
         return TRUE;
@@ -174,7 +213,7 @@ BOOLEAN FwTabPageCallback(
         return TRUE;
     case MainTabPageSaveSettings:
         {
-            SaveSettingsFwTreeList();
+            SaveSettingsFwTreeList(FwTreeNewHandle);
         }
         return TRUE;
     case MainTabPageSelected:
@@ -229,16 +268,15 @@ VOID EtInitializeFirewallTab(
     PH_MAIN_TAB_PAGE page;
 
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
-    PhInitializeStringRef(&page.Name, L"Firewall");
+    page.Name = FwTreePageText;
     page.Callback = FwTabPageCallback;
     EtFwAddedTabPage = PhPluginCreateTabPage(&page);
 
-    if (EtFwToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_PLUGIN_NAME, TOOLSTATUS_INTERFACE_VERSION))
+    if (EtFwToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_INTERFACE_NAME, TOOLSTATUS_INTERFACE_VERSION))
     {
         PTOOLSTATUS_TAB_INFO tabInfo;
 
-        tabInfo = EtFwToolStatusInterface->RegisterTabInfo(EtFwAddedTabPage->Index);
-        tabInfo->BannerText = L"Search Firewall";
+        tabInfo = EtFwToolStatusInterface->RegisterTabInfo(EtFwAddedTabPage->Index, &FwTreeBannerText);
         tabInfo->ActivateContent = FwToolStatusActivateContent;
         tabInfo->GetTreeNewHandle = FwToolStatusGetTreeNewHandle;
     }
@@ -249,38 +287,37 @@ VOID InitializeFwTreeList(
     )
 {
     FwNodeList = PhCreateList(100);
-    FwTreeNewHandle = TreeNewHandle;
 
-    InitializeFwTreeListDpi(FwTreeNewHandle);
+    InitializeFwTreeListDpi(TreeNewHandle);
 
-    PhSetControlTheme(FwTreeNewHandle, !PhGetIntegerSetting(L"EnableThemeSupport") ? L"explorer" : L"DarkMode_Explorer");
-    TreeNew_SetRedraw(FwTreeNewHandle, FALSE);
-    TreeNew_SetCallback(FwTreeNewHandle, FwTreeNewCallback, NULL);
+    PhSetControlTheme(TreeNewHandle, !PhGetIntegerSetting(L"EnableThemeSupport") ? L"explorer" : L"DarkMode_Explorer");
+    TreeNew_SetRedraw(TreeNewHandle, FALSE);
+    TreeNew_SetCallback(TreeNewHandle, FwTreeNewCallback, NULL);
 
-    PhAddTreeNewColumnEx2(FwTreeNewHandle, FW_COLUMN_NAME, TRUE, L"Name", 140, PH_ALIGN_LEFT, FW_COLUMN_NAME, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_ACTION, TRUE, L"Action", 70, PH_ALIGN_LEFT, FW_COLUMN_ACTION, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_DIRECTION, TRUE, L"Direction", 40, PH_ALIGN_LEFT, FW_COLUMN_DIRECTION, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_RULENAME, TRUE, L"Rule", 240, PH_ALIGN_LEFT, FW_COLUMN_RULENAME, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_RULEDESCRIPTION, TRUE, L"Description", 180, PH_ALIGN_LEFT, FW_COLUMN_RULEDESCRIPTION, 0);
-    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_LOCALADDRESS, TRUE, L"Local address", 220, PH_ALIGN_RIGHT, FW_COLUMN_LOCALADDRESS, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_LOCALPORT, TRUE, L"Local port", 50, PH_ALIGN_LEFT, FW_COLUMN_LOCALPORT, DT_LEFT, TRUE);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALHOSTNAME, TRUE, L"Local hostname", 70, PH_ALIGN_LEFT, FW_COLUMN_LOCALHOSTNAME, 0);
-    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESS, TRUE, L"Remote address", 220, PH_ALIGN_RIGHT, FW_COLUMN_REMOTEADDRESS, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_REMOTEPORT, TRUE, L"Remote port", 50, PH_ALIGN_LEFT, FW_COLUMN_REMOTEPORT, DT_LEFT, TRUE);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEHOSTNAME, TRUE, L"Remote hostname", 70, PH_ALIGN_LEFT, FW_COLUMN_REMOTEHOSTNAME, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PROTOCOL, TRUE, L"Protocol", 60, PH_ALIGN_LEFT, FW_COLUMN_PROTOCOL, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, TRUE, L"Timestamp", 60, PH_ALIGN_LEFT, FW_COLUMN_TIMESTAMP, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PROCESSFILENAME, FALSE, L"File path", 100, PH_ALIGN_LEFT, FW_COLUMN_PROCESSFILENAME, DT_PATH_ELLIPSIS);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_USER, FALSE, L"Username", 100, PH_ALIGN_LEFT, FW_COLUMN_USER, 0);
-    //PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PACKAGE, FALSE, L"Package", 100, PH_ALIGN_LEFT, FW_COLUMN_PACKAGE, 0);
-    PhAddTreeNewColumnEx2(FwTreeNewHandle, FW_COLUMN_COUNTRY, FALSE, L"Country", 80, PH_ALIGN_LEFT, FW_COLUMN_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSCLASS, FALSE, L"Local address class", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSCLASS, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSCLASS, FALSE, L"Remote address class", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSCLASS, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSSSCOPE, FALSE, L"Local address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSSSCOPE, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSSCOPE, FALSE, L"Remote address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSSCOPE, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_ORIGINALNAME, FALSE, L"Original name", 100, PH_ALIGN_LEFT, FW_COLUMN_ORIGINALNAME, DT_PATH_ELLIPSIS);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALSERVICENAME, FALSE, L"Local port service", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALSERVICENAME, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTESERVICENAME, FALSE, L"Remote port service", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTESERVICENAME, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, FW_COLUMN_NAME, TRUE, L"Name", 140, PH_ALIGN_LEFT, FW_COLUMN_NAME, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_ACTION, TRUE, L"Action", 70, PH_ALIGN_LEFT, FW_COLUMN_ACTION, 0);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_DIRECTION, TRUE, L"Direction", 40, PH_ALIGN_LEFT, FW_COLUMN_DIRECTION, 0);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_RULENAME, TRUE, L"Rule", 240, PH_ALIGN_LEFT, FW_COLUMN_RULENAME, 0);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_RULEDESCRIPTION, TRUE, L"Description", 180, PH_ALIGN_LEFT, FW_COLUMN_RULEDESCRIPTION, 0);
+    PhAddTreeNewColumnEx(TreeNewHandle, FW_COLUMN_LOCALADDRESS, TRUE, L"Local address", 220, PH_ALIGN_RIGHT, FW_COLUMN_LOCALADDRESS, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(TreeNewHandle, FW_COLUMN_LOCALPORT, TRUE, L"Local port", 50, PH_ALIGN_LEFT, FW_COLUMN_LOCALPORT, DT_LEFT, TRUE);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_LOCALHOSTNAME, TRUE, L"Local hostname", 70, PH_ALIGN_LEFT, FW_COLUMN_LOCALHOSTNAME, 0);
+    PhAddTreeNewColumnEx(TreeNewHandle, FW_COLUMN_REMOTEADDRESS, TRUE, L"Remote address", 220, PH_ALIGN_RIGHT, FW_COLUMN_REMOTEADDRESS, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(TreeNewHandle, FW_COLUMN_REMOTEPORT, TRUE, L"Remote port", 50, PH_ALIGN_LEFT, FW_COLUMN_REMOTEPORT, DT_LEFT, TRUE);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_REMOTEHOSTNAME, TRUE, L"Remote hostname", 70, PH_ALIGN_LEFT, FW_COLUMN_REMOTEHOSTNAME, 0);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_PROTOCOL, TRUE, L"Protocol", 60, PH_ALIGN_LEFT, FW_COLUMN_PROTOCOL, 0);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_TIMESTAMP, TRUE, L"Timestamp", 60, PH_ALIGN_LEFT, FW_COLUMN_TIMESTAMP, 0);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_PROCESSFILENAME, FALSE, L"File path", 100, PH_ALIGN_LEFT, FW_COLUMN_PROCESSFILENAME, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_USER, FALSE, L"Username", 100, PH_ALIGN_LEFT, FW_COLUMN_USER, 0);
+    //PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_PACKAGE, FALSE, L"Package", 100, PH_ALIGN_LEFT, FW_COLUMN_PACKAGE, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, FW_COLUMN_COUNTRY, FALSE, L"Country", 80, PH_ALIGN_LEFT, FW_COLUMN_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_LOCALADDRESSCLASS, FALSE, L"Local address class", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSCLASS, 0);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_REMOTEADDRESSCLASS, FALSE, L"Remote address class", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSCLASS, 0);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_LOCALADDRESSSSCOPE, FALSE, L"Local address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSSSCOPE, 0);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_REMOTEADDRESSSCOPE, FALSE, L"Remote address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSSCOPE, 0);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_ORIGINALNAME, FALSE, L"Original name", 100, PH_ALIGN_LEFT, FW_COLUMN_ORIGINALNAME, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_LOCALSERVICENAME, FALSE, L"Local port service", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALSERVICENAME, 0);
+    PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_REMOTESERVICENAME, FALSE, L"Remote port service", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTESERVICENAME, 0);
 
     PhInitializeTreeNewFilterSupport(&EtFwFilterSupport, TreeNewHandle, FwNodeList);
 
@@ -290,9 +327,9 @@ VOID InitializeFwTreeList(
         PhAddTreeNewFilter(&EtFwFilterSupport, FwSearchFilterCallback, NULL);
     }
 
-    TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
-    TreeNew_SetTriState(FwTreeNewHandle, TRUE);
-    TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
+    TreeNew_SetSort(TreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
+    TreeNew_SetTriState(TreeNewHandle, TRUE);
+    TreeNew_SetRedraw(TreeNewHandle, TRUE);
 
     LoadSettingsFwTreeList(TreeNewHandle);
 }
@@ -307,12 +344,12 @@ VOID InitializeFwTreeListDpi(
 
     dpiValue = PhGetWindowDpi(TreeNewHandle);
     FwTreeIconHeightPadding = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
-    FwTreeLeftMarginPadding = PhGetDpi(TNP_CELL_LEFT_MARGIN, dpiValue);
-    FwTreeRightMarginPadding = PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(TNP_ICON_RIGHT_PADDING, dpiValue);
+    FwTreeLeftMarginPadding = PhScaleToDisplay(TNP_CELL_LEFT_MARGIN, dpiValue);
+    FwTreeRightMarginPadding = PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhScaleToDisplay(TNP_ICON_RIGHT_PADDING, dpiValue);
 }
 
 VOID LoadSettingsFwTreeUpdateMask(
-    VOID
+    _In_ HWND TreeNewHandle
     )
 {
     PH_TREENEW_COLUMN column;
@@ -321,8 +358,8 @@ VOID LoadSettingsFwTreeUpdateMask(
     current = BooleanFlagOn(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME);
 
     if (
-        (TreeNew_GetColumn(FwTreeNewHandle, FW_COLUMN_LOCALHOSTNAME, &column) && column.Visible) ||
-        (TreeNew_GetColumn(FwTreeNewHandle, FW_COLUMN_REMOTEHOSTNAME, &column) && column.Visible)
+        (TreeNew_GetColumn(TreeNewHandle, FW_COLUMN_LOCALHOSTNAME, &column) && column.Visible) ||
+        (TreeNew_GetColumn(TreeNewHandle, FW_COLUMN_REMOTEHOSTNAME, &column) && column.Visible)
         )
     {
         SetFlag(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME);
@@ -334,7 +371,7 @@ VOID LoadSettingsFwTreeUpdateMask(
 
     if (ProcessesUpdatedCount != 0 && current != BooleanFlagOn(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME))
     {
-        EtFwInvalidateAllFwNodesHostnames();
+        EtFwInvalidateAllFwNodesHostnames(TreeNewHandle);
     }
 }
 
@@ -361,11 +398,11 @@ VOID LoadSettingsFwTreeList(
         SendMessage(TreeNew_GetTooltips(TreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
     }
 
-    LoadSettingsFwTreeUpdateMask();
+    LoadSettingsFwTreeUpdateMask(TreeNewHandle);
 }
 
 VOID SaveSettingsFwTreeList(
-    VOID
+     _In_ HWND TreeNewHandle
     )
 {
     PPH_STRING settings;
@@ -376,11 +413,11 @@ VOID SaveSettingsFwTreeList(
     if (!FwTreeNewCreated)
         return;
 
-    settings = PhCmSaveSettings(FwTreeNewHandle);
+    settings = PhCmSaveSettings(TreeNewHandle);
     PhSetStringSetting2(SETTING_NAME_FW_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
 
-    TreeNew_GetSort(FwTreeNewHandle, &sortColumn, &sortOrder);
+    TreeNew_GetSort(TreeNewHandle, &sortColumn, &sortOrder);
     sortSettings.X = sortColumn;
     sortSettings.Y = sortOrder;
     PhSetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT, sortSettings);
@@ -877,34 +914,12 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
             case FW_COLUMN_ACTION:
                 {
-                    switch (node->Type)
+                    PCPH_STRINGREF string;
+
+                    if (PhIndexStringRefSiKeyValuePairs(FwEventTypePairs, sizeof(FwEventTypePairs), node->Type, &string))
                     {
-                    case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP:
-                    case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
-                        PhInitializeStringRef(&getCellText->Text, L"DROP");
-                        break;
-                    case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:
-                    case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
-                        PhInitializeStringRef(&getCellText->Text, L"ALLOW");
-                        break;
-                    case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP_MAC:
-                        PhInitializeStringRef(&getCellText->Text, L"DROP_MAC");
-                        break;
-                    case FWPM_NET_EVENT_TYPE_IPSEC_KERNEL_DROP:
-                        PhInitializeStringRef(&getCellText->Text, L"IPSEC_KERNEL_DROP");
-                        break;
-                    case FWPM_NET_EVENT_TYPE_IPSEC_DOSP_DROP:
-                        PhInitializeStringRef(&getCellText->Text, L"IPSEC_DOSP_DROP");
-                        break;
-                    case FWPM_NET_EVENT_TYPE_IKEEXT_MM_FAILURE:
-                        PhInitializeStringRef(&getCellText->Text, L"IKEEXT_MM_FAILURE");
-                        break;
-                    case FWPM_NET_EVENT_TYPE_IKEEXT_QM_FAILURE:
-                        PhInitializeStringRef(&getCellText->Text, L"QM_FAILURE");
-                        break;
-                    case FWPM_NET_EVENT_TYPE_IKEEXT_EM_FAILURE:
-                        PhInitializeStringRef(&getCellText->Text, L"EM_FAILURE");
-                        break;
+                        getCellText->Text.Buffer = string->Buffer;
+                        getCellText->Text.Length = string->Length;
                     }
                 }
                 break;
@@ -912,38 +927,22 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 {
                     if (node->Loopback)
                     {
-                        switch (node->Direction)
+                        PCPH_STRINGREF string;
+
+                        if (PhIndexStringRefSiKeyValuePairs(FwEventDirectionLoopbackPairs, sizeof(FwEventDirectionLoopbackPairs), node->Direction, &string))
                         {
-                        case FW_EVENT_DIRECTION_INBOUND:
-                            PhInitializeStringRef(&getCellText->Text, L"Loopback [In]");
-                            break;
-                        case FW_EVENT_DIRECTION_OUTBOUND:
-                            PhInitializeStringRef(&getCellText->Text, L"Loopback [Out]");
-                            break;
-                        case FW_EVENT_DIRECTION_FORWARD:
-                            PhInitializeStringRef(&getCellText->Text, L"Loopback [Fwd]");
-                            break;
-                        case FW_EVENT_DIRECTION_BIDIRECTIONAL:
-                            PhInitializeStringRef(&getCellText->Text, L"Loopback [Bi]");
-                            break;
+                            getCellText->Text.Buffer = string->Buffer;
+                            getCellText->Text.Length = string->Length;
                         }
                     }
                     else
                     {
-                        switch (node->Direction)
+                        PCPH_STRINGREF string;
+
+                        if (PhIndexStringRefSiKeyValuePairs(FwEventDirectionPairs, sizeof(FwEventDirectionPairs), node->Direction, &string))
                         {
-                        case FW_EVENT_DIRECTION_INBOUND:
-                            PhInitializeStringRef(&getCellText->Text, L"In");
-                            break;
-                        case FW_EVENT_DIRECTION_OUTBOUND:
-                            PhInitializeStringRef(&getCellText->Text, L"Out");
-                            break;
-                        case FW_EVENT_DIRECTION_FORWARD:
-                            PhInitializeStringRef(&getCellText->Text, L"Fwd");
-                            break;
-                        case FW_EVENT_DIRECTION_BIDIRECTIONAL:
-                            PhInitializeStringRef(&getCellText->Text, L"Bi");
-                            break;
+                            getCellText->Text.Buffer = string->Buffer;
+                            getCellText->Text.Length = string->Length;
                         }
                     }
                 }
@@ -1024,10 +1023,10 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     if (node->LocalHostnameResolved)
                     {
                         // Exclude empty hostnames from drawing (dmex)
-                        if (!PhIsNullOrEmptyString(node->LocalHostnameString))
-                            getCellText->Text = node->LocalHostnameString->sr;
-                        else
+                        if (PhIsNullOrEmptyString(node->LocalHostnameString))
                             PhInitializeEmptyStringRef(&getCellText->Text);
+                        else
+                            getCellText->Text = PhGetStringRef(node->LocalHostnameString);
                     }
                     else
                     {
@@ -1101,10 +1100,10 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     if (node->RemoteHostnameResolved)
                     {
                         // Exclude empty hostnames from drawing (dmex)
-                        if (!PhIsNullOrEmptyString(node->RemoteHostnameString))
-                            getCellText->Text = PhGetStringRef(node->RemoteHostnameString);
-                        else
+                        if (PhIsNullOrEmptyString(node->RemoteHostnameString))
                             PhInitializeEmptyStringRef(&getCellText->Text);
+                        else
+                            getCellText->Text = PhGetStringRef(node->RemoteHostnameString);
                     }
                     else
                     {
@@ -1421,7 +1420,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 if (data.Selection->Id == PH_TN_COLUMN_MENU_HIDE_COLUMN_ID ||
                     data.Selection->Id == PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID)
                 {
-                    LoadSettingsFwTreeUpdateMask();
+                    LoadSettingsFwTreeUpdateMask(WindowHandle);
                 }
             }
 
@@ -1567,17 +1566,18 @@ BOOLEAN EtFwGetSelectedFwItems(
 }
 
 VOID EtFwDeselectAllFwNodes(
-    VOID
+    _In_ HWND TreeNewHandle
     )
 {
-    TreeNew_DeselectRange(FwTreeNewHandle, 0, -1);
+    TreeNew_DeselectRange(TreeNewHandle, 0, -1);
 }
 
 VOID EtFwSelectAndEnsureVisibleFwNode(
+    _In_ HWND TreeNewHandle,
     _In_ PFW_EVENT_ITEM FwNode
     )
 {
-    EtFwDeselectAllFwNodes();
+    EtFwDeselectAllFwNodes(TreeNewHandle);
 
     if (!FwNode->Node.Visible)
         return;
@@ -1586,7 +1586,7 @@ VOID EtFwSelectAndEnsureVisibleFwNode(
 }
 
 VOID EtFwInvalidateAllFwNodes(
-    VOID
+    _In_ HWND TreeNewHandle
     )
 {
     for (ULONG i = 0; i < FwNodeList->Count; i++)
@@ -1597,11 +1597,11 @@ VOID EtFwInvalidateAllFwNodes(
         PhInvalidateTreeNewNode(&node->Node, TN_CACHE_COLOR);
     }
 
-    InvalidateRect(FwTreeNewHandle, NULL, FALSE);
+    InvalidateRect(TreeNewHandle, NULL, FALSE);
 }
 
 VOID EtFwInvalidateAllFwNodesHostnames(
-    VOID
+    _In_ HWND TreeNewHandle
     )
 {
     EtFwFlushResolveCache();
@@ -1971,6 +1971,7 @@ VOID NTAPI FwSearchChangedHandler(
     PhApplyTreeNewFilters(&EtFwFilterSupport);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN NTAPI FwSearchFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -2009,12 +2010,12 @@ BOOLEAN NTAPI FwSearchFilterCallback(
 
     if (fwNode->LocalAddressStringLength)
     {
-        PH_STRINGREF localAddressSr;
+        PH_STRINGREF string;
 
-        localAddressSr.Buffer = fwNode->LocalAddressString;
-        localAddressSr.Length = fwNode->LocalAddressStringLength * sizeof(WCHAR);
+        string.Buffer = fwNode->LocalAddressString;
+        string.Length = fwNode->LocalAddressStringLength * sizeof(WCHAR);
 
-        if (wordMatch(&localAddressSr))
+        if (wordMatch(&string))
             return TRUE;
     }
 
@@ -2026,23 +2027,23 @@ BOOLEAN NTAPI FwSearchFilterCallback(
 
     if (fwNode->LocalPortStringLength)
     {
-        PH_STRINGREF localPortSr;
+        PH_STRINGREF string;
 
-        localPortSr.Buffer = fwNode->LocalPortString;
-        localPortSr.Length = fwNode->LocalPortStringLength * sizeof(WCHAR);
+        string.Buffer = fwNode->LocalPortString;
+        string.Length = fwNode->LocalPortStringLength * sizeof(WCHAR);
 
-        if (wordMatch(&localPortSr))
+        if (wordMatch(&string))
             return TRUE;
     }
 
     if (fwNode->RemoteAddressStringLength)
     {
-        PH_STRINGREF remoteAddressSr;
+        PH_STRINGREF string;
 
-        remoteAddressSr.Buffer = fwNode->RemoteAddressString;
-        remoteAddressSr.Length = fwNode->RemoteAddressStringLength * sizeof(WCHAR);
+        string.Buffer = fwNode->RemoteAddressString;
+        string.Length = fwNode->RemoteAddressStringLength * sizeof(WCHAR);
 
-        if (wordMatch(&remoteAddressSr))
+        if (wordMatch(&string))
             return TRUE;
     }
 
@@ -2054,12 +2055,12 @@ BOOLEAN NTAPI FwSearchFilterCallback(
 
     if (fwNode->RemotePortStringLength)
     {
-        PH_STRINGREF remotePortSr;
+        PH_STRINGREF string;
 
-        remotePortSr.Buffer = fwNode->RemotePortString;
-        remotePortSr.Length = fwNode->RemotePortStringLength * sizeof(WCHAR);
+        string.Buffer = fwNode->RemotePortString;
+        string.Length = fwNode->RemotePortStringLength * sizeof(WCHAR);
 
-        if (wordMatch(&remotePortSr))
+        if (wordMatch(&string))
             return TRUE;
     }
 
@@ -2093,332 +2094,70 @@ BOOLEAN NTAPI FwSearchFilterCallback(
             return TRUE;
     }
 
-    switch (fwNode->Type)
     {
-    case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP:
-    case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"DROP");
+        PCPH_STRINGREF string;
 
-            if (wordMatch(&stringSr))
+        if (PhIndexStringRefSiKeyValuePairs(FwEventTypePairs, sizeof(FwEventTypePairs), fwNode->Type, &string))
+        {
+            if (wordMatch(string))
                 return TRUE;
         }
-        break;
-    case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:
-    case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"ALLOW");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP_MAC:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"DROP_MAC");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case FWPM_NET_EVENT_TYPE_IPSEC_KERNEL_DROP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IPSEC_KERNEL_DROP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case FWPM_NET_EVENT_TYPE_IPSEC_DOSP_DROP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IPSEC_DOSP_DROP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case FWPM_NET_EVENT_TYPE_IKEEXT_MM_FAILURE:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IKEEXT_MM_FAILURE");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case FWPM_NET_EVENT_TYPE_IKEEXT_QM_FAILURE:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"QM_FAILURE");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case FWPM_NET_EVENT_TYPE_IKEEXT_EM_FAILURE:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"EM_FAILURE");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
     }
 
-    switch (fwNode->IpProtocol)
+    // fwNode->IpProtocol
     {
-    case IPPROTO_HOPOPTS:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"HOPOPTS");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
+    #define FW_IPPROTO_CHECK(label, name) \
+    case (label): \
+        { \
+            static const PH_STRINGREF stringSr = PH_STRINGREF_INIT(name); \
+            if (wordMatch(&stringSr))   \
+                return TRUE;            \
+        } \
         break;
-    case IPPROTO_ICMP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"ICMP");
 
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_IGMP:
+        switch (fwNode->IpProtocol)
         {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IGMP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
+            FW_IPPROTO_CHECK(IPPROTO_HOPOPTS, L"HOPOPTS");
+            FW_IPPROTO_CHECK(IPPROTO_ICMP, L"ICMP");
+            FW_IPPROTO_CHECK(IPPROTO_IGMP, L"IGMP");
+            FW_IPPROTO_CHECK(IPPROTO_GGP, L"GGP");
+            FW_IPPROTO_CHECK(IPPROTO_IPV4, L"IPv4");
+            FW_IPPROTO_CHECK(IPPROTO_ST, L"ST");
+            FW_IPPROTO_CHECK(IPPROTO_TCP, L"TCP");
+            FW_IPPROTO_CHECK(IPPROTO_CBT, L"CBT");
+            FW_IPPROTO_CHECK(IPPROTO_EGP, L"EGP");
+            FW_IPPROTO_CHECK(IPPROTO_IGP, L"IGP");
+            FW_IPPROTO_CHECK(IPPROTO_PUP, L"PUP");
+            FW_IPPROTO_CHECK(IPPROTO_UDP, L"UDP");
+            FW_IPPROTO_CHECK(IPPROTO_IDP, L"IDP");
+            FW_IPPROTO_CHECK(IPPROTO_RDP, L"RDP");
+            FW_IPPROTO_CHECK(IPPROTO_IPV6, L"IPv6");
+            FW_IPPROTO_CHECK(IPPROTO_ROUTING, L"ROUTING");
+            FW_IPPROTO_CHECK(IPPROTO_FRAGMENT, L"FRAGMENT");
+            FW_IPPROTO_CHECK(IPPROTO_ESP, L"ESP");
+            FW_IPPROTO_CHECK(IPPROTO_AH, L"AH");
+            FW_IPPROTO_CHECK(IPPROTO_ICMPV6, L"ICMPv6");
+            FW_IPPROTO_CHECK(IPPROTO_DSTOPTS, L"DSTOPTS");
+            FW_IPPROTO_CHECK(IPPROTO_ND, L"ND");
+            FW_IPPROTO_CHECK(IPPROTO_ICLFXBM, L"ICLFXBM");
+            FW_IPPROTO_CHECK(IPPROTO_PIM, L"PIM");
+            FW_IPPROTO_CHECK(IPPROTO_PGM, L"PGM");
+            FW_IPPROTO_CHECK(IPPROTO_L2TP, L"L2TP");
+            FW_IPPROTO_CHECK(IPPROTO_SCTP, L"SCTP");
+            FW_IPPROTO_CHECK(IPPROTO_RESERVED_IPSEC, L"IPSEC");
+            FW_IPPROTO_CHECK(IPPROTO_RESERVED_IPSECOFFLOAD, L"IPSECOFFLOAD");
+            FW_IPPROTO_CHECK(IPPROTO_RESERVED_WNV, L"WNV");
+            FW_IPPROTO_CHECK(IPPROTO_RAW, L"RAW");
+            FW_IPPROTO_CHECK(IPPROTO_RESERVED_RAW, L"RAW");
         }
-        break;
-    case IPPROTO_GGP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"GGP");
 
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_IPV4:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IPv4");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_ST:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"ST");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_TCP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"TCP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_CBT:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"CBT");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_EGP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"EGP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_IGP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IGP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_PUP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"PUP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_UDP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"UDP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_IDP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IDP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_RDP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"RDP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_IPV6:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IPv6");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_ROUTING:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"ROUTING");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_FRAGMENT:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"FRAGMENT");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_ESP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"ESP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_AH:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"AH");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_ICMPV6:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"ICMPv6");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_DSTOPTS:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"DSTOPTS");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_ND:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"ND");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_ICLFXBM:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"ICLFXBM");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_PIM:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"PIM");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_PGM:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"PGM");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_L2TP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"L2TP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_SCTP:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"SCTP");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_RESERVED_IPSEC:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IPSEC");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_RESERVED_IPSECOFFLOAD:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"IPSECOFFLOAD");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_RESERVED_WNV:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"WNV");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
-    case IPPROTO_RAW:
-    case IPPROTO_RESERVED_RAW:
-        {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"RAW");
-
-            if (wordMatch(&stringSr))
-                return TRUE;
-        }
-        break;
+    #undef FW_IPPROTO_CHECK
     }
 
     return FALSE;
 }
 
+_Function_class_(TOOLSTATUS_TAB_ACTIVATE_CONTENT)
 VOID NTAPI FwToolStatusActivateContent(
     _In_ BOOLEAN Select
     )
@@ -2428,10 +2167,13 @@ VOID NTAPI FwToolStatusActivateContent(
     if (Select)
     {
         if (TreeNew_GetFlatNodeCount(FwTreeNewHandle) > 0)
-            EtFwSelectAndEnsureVisibleFwNode((PFW_EVENT_ITEM)TreeNew_GetFlatNode(FwTreeNewHandle, 0));
+        {
+            EtFwSelectAndEnsureVisibleFwNode(FwTreeNewHandle, (PFW_EVENT_ITEM)TreeNew_GetFlatNode(FwTreeNewHandle, 0));
+        }
     }
 }
 
+_Function_class_(TOOLSTATUS_GET_TREENEW_HANDLE)
 HWND NTAPI FwToolStatusGetTreeNewHandle(
     VOID
     )

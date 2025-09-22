@@ -19,6 +19,8 @@ static BOOLEAN DiskTreeNewCreated = FALSE;
 static HWND DiskTreeNewHandle = NULL;
 static ULONG DiskTreeNewSortColumn = 0;
 static PH_SORT_ORDER DiskTreeNewSortOrder = NoSortOrder;
+static CONST PH_STRINGREF DiskPageText = PH_STRINGREF_INIT(L"Disk");
+static CONST PH_STRINGREF DiskBannerText = PH_STRINGREF_INIT(L"Search Disk");
 static CONST PH_STRINGREF DiskTreeEmptyText = PH_STRINGREF_INIT(L"Disk monitoring requires System Informer to be restarted with administrative privileges.");
 static PPH_STRING DiskTreeErrorText = NULL;
 
@@ -42,16 +44,15 @@ VOID EtInitializeDiskTab(
     PH_MAIN_TAB_PAGE page;
 
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
-    PhInitializeStringRef(&page.Name, L"Disk");
+    page.Name = DiskPageText;
     page.Callback = EtpDiskPageCallback;
     DiskPage = PhPluginCreateTabPage(&page);
 
-    if (ToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_PLUGIN_NAME, TOOLSTATUS_INTERFACE_VERSION))
+    if (ToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_INTERFACE_NAME, TOOLSTATUS_INTERFACE_VERSION))
     {
         PTOOLSTATUS_TAB_INFO tabInfo;
 
-        tabInfo = ToolStatusInterface->RegisterTabInfo(DiskPage->Index);
-        tabInfo->BannerText = L"Search Disk";
+        tabInfo = ToolStatusInterface->RegisterTabInfo(DiskPage->Index, &DiskBannerText);
         tabInfo->ActivateContent = EtpToolStatusActivateContent;
         tabInfo->GetTreeNewHandle = EtpToolStatusGetTreeNewHandle;
     }
@@ -1324,7 +1325,9 @@ VOID NTAPI EtpToolStatusActivateContent(
     if (Select)
     {
         if (TreeNew_GetFlatNodeCount(DiskTreeNewHandle) > 0)
+        {
             EtSelectAndEnsureVisibleDiskNode((PET_DISK_NODE)TreeNew_GetFlatNode(DiskTreeNewHandle, 0));
+        }
     }
 }
 

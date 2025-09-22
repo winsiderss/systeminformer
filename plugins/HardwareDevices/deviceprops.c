@@ -1335,10 +1335,15 @@ VOID DeviceFreeAllocatedResourcesList(
 {
     for (ULONG i = 0; i < List->Count; i++)
     {
-        PDEVICE_RESOURCE resource = List->Items[i];
-        PhClearReference(&resource->Setting);
-        PhFree(List->Items[i]);
+        PDEVICE_RESOURCE resource;
+
+        if (resource = List->Items[i])
+        {
+            PhClearReference(&resource->Setting);
+            PhFree(List->Items[i]);
+        }
     }
 
+    PhClearList(List);
     PhDereferenceObject(List);
 }

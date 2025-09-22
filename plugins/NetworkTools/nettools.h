@@ -46,8 +46,10 @@
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN GeoDbInitialized;
 extern ULONG GeoLiteDatabaseType;
+extern SIZE GeoCountryImageSize;
 extern CONST PH_STRINGREF GeoDbCityFileName;
 extern CONST PH_STRINGREF GeoDbCountryFileName;
+extern HWND NetworkTreeNewHandle;
 extern PPH_STRING SearchboxText;
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
@@ -240,7 +242,7 @@ typedef struct _NETWORK_EXTENSION
     PPH_STRINGREF RemoteServiceName;
 
     PPH_STRING RemoteCountryName;
-    INT CountryIconIndex;
+    LONG CountryIconIndex;
 
     ULONG64 NumberOfBytesOut;
     ULONG64 NumberOfBytesIn;

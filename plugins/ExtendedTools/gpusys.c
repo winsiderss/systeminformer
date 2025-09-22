@@ -40,10 +40,11 @@ VOID EtGpuSystemInformationInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
     )
 {
+    static CONST PH_STRINGREF string = PH_STRINGREF_INIT(L"GPU");
     PH_SYSINFO_SECTION section;
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
-    PhInitializeStringRef(&section.Name, L"GPU");
+    section.Name = string;
     section.Flags = 0;
     section.Callback = EtpGpuSysInfoSectionCallback;
 
@@ -865,12 +866,19 @@ VOID EtpNotifyGpuGraph(
                 {
                     FLOAT max = 0;
 
-                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                     {
-                        FLOAT data = GpuGraphState.Data1[i]; // HACK
+                        max = PhMaxMemorySingles(GpuGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data = GpuGraphState.Data1[i];
 
-                        if (max < data)
-                            max = data;
+                            if (max < data)
+                                max = data;
+                        }
                     }
 
                     if (max != 0)

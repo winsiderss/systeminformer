@@ -1493,7 +1493,7 @@ BOOLEAN EtpToolbarGpuHistoryGraphMessageCallback(
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
             PhSiSetColorsGraphDrawInfo(drawInfo, graph->GraphColor1, 0, graph->GraphDpi);
 
-            if (ProcessesUpdatedCount != 3)
+            if (ProcessesUpdatedCount < 3)
                 break;
 
             PhGraphStateGetDrawInfo(&graph->GraphState, getDrawInfo, EtGpuNodeHistory.Count);
@@ -1593,7 +1593,7 @@ BOOLEAN EtpToolbarNpuHistoryGraphMessageCallback(
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
             PhSiSetColorsGraphDrawInfo(drawInfo, graph->GraphColor1, 0, graph->GraphDpi);
 
-            if (ProcessesUpdatedCount != 3)
+            if (ProcessesUpdatedCount < 3)
                 break;
 
             PhGraphStateGetDrawInfo(&graph->GraphState, getDrawInfo, EtNpuNodeHistory.Count);
@@ -1694,7 +1694,7 @@ BOOLEAN EtpToolbarDiskHistoryGraphMessageCallback(
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, graph->GraphColor1, graph->GraphColor2, graph->GraphDpi);
 
-            if (ProcessesUpdatedCount != 3)
+            if (ProcessesUpdatedCount < 3)
                 break;
 
             PhGraphStateGetDrawInfo(
@@ -1849,7 +1849,7 @@ BOOLEAN EtpToolbarNetworkHistoryGraphMessageCallback(
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, graph->GraphColor1, graph->GraphColor2, graph->GraphDpi);
 
-            if (ProcessesUpdatedCount != 3)
+            if (ProcessesUpdatedCount < 3)
                 break;
 
             PhGraphStateGetDrawInfo(
@@ -1983,7 +1983,7 @@ VOID EtRegisterToolbarGraphs(
 {
     PTOOLSTATUS_INTERFACE ToolStatusInterface;
 
-    if (ToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_PLUGIN_NAME, TOOLSTATUS_INTERFACE_VERSION))
+    if (ToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_INTERFACE_NAME, TOOLSTATUS_INTERFACE_VERSION))
     {
         ToolStatusInterface->RegisterToolbarGraph(
             PluginInstance,
