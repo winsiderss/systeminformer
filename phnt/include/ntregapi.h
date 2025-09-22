@@ -1531,4 +1531,4 @@ NtRollbackRegistryTransaction(
     );
 #endif
 
-#endif
+#endif // _NTREGAPI_H
