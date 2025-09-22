@@ -16,6 +16,7 @@
 #include <emenu.h>
 #include <symprv.h>
 #include <settings.h>
+#include <phsettings.h>
 
 #include <actions.h>
 #include <mainwnd.h>
@@ -668,6 +669,7 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
     return knownProcessType;
 }
 
+_Function_class_(PH_COMMAND_LINE_CALLBACK)
 static BOOLEAN NTAPI PhpSvchostCommandLineCallback(
     _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
@@ -960,7 +962,7 @@ VOID PhSearchOnlineString(
     _In_ PCWSTR String
     )
 {
-    PhShellExecuteUserString(WindowHandle, L"SearchEngine", String, TRUE, NULL);
+    PhShellExecuteUserString(WindowHandle, SETTING_SEARCH_ENGINE, String, TRUE, NULL);
 }
 
 VOID PhShellExecuteUserString(
@@ -1139,13 +1141,13 @@ VOID PhLoadSymbolProviderOptions(
 
     PhSetOptionsSymbolProvider(
         PH_SYMOPT_UNDNAME,
-        PhGetIntegerSetting(L"DbgHelpUndecorate") ? PH_SYMOPT_UNDNAME : 0
+        PhGetIntegerSetting(SETTING_DBGHELP_UNDECORATE) ? PH_SYMOPT_UNDNAME : 0
         );
 
     PhQueryEnvironmentVariable(NULL, &symbolPath, &searchPath);
 
     if (PhIsNullOrEmptyString(searchPath))
-        searchPath = PhGetStringSetting(L"DbgHelpSearchPath");
+        searchPath = PhGetStringSetting(SETTING_DBGHELP_SEARCH_PATH);
     if (!PhIsNullOrEmptyString(searchPath))
         PhSetSearchPathSymbolProvider(SymbolProvider, searchPath->Buffer);
     if (searchPath)
@@ -1417,14 +1419,14 @@ PH_RELEASE_CHANNEL PhGetPhReleaseChannel(
     VOID
     )
 {
-    return PhGetIntegerSetting(L"ReleaseChannel");
+    return PhGetIntegerSetting(SETTING_RELEASE_CHANNEL);
 }
 
 PCWSTR PhGetPhReleaseChannelString(
     VOID
     )
 {
-    switch (PhGetIntegerSetting(L"ReleaseChannel"))
+    switch (PhGetIntegerSetting(SETTING_RELEASE_CHANNEL))
     {
     case PhReleaseChannel:
         return L"Release";

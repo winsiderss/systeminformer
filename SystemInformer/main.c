@@ -99,10 +99,6 @@ INT WINAPI wWinMain(
     PhInitializeAutoPool(&BaseAutoPool);
 
     PhInitializeCommonControls();
-    PhTreeNewInitialization();
-    PhGraphControlInitialization();
-    PhHexEditInitialization();
-    PhColorBoxInitialization();
 
     PhInitializeAppSystem();
     PhInitializeCallbacks();
@@ -399,7 +395,7 @@ static VOID PhForegroundPreviousInstance(
 
     memset(&context, 0, sizeof(PHP_PREVIOUS_MAIN_WINDOW_CONTEXT));
     context.ProcessId = ProcessId;
-    context.WindowName = PhGetStringSetting(L"MainWindowClassName");
+    context.WindowName = PhGetStringSetting(SETTING_MAIN_WINDOW_CLASS_NAME);
 
     if (PhIsNullOrEmptyString(context.WindowName))
         goto CleanupExit;
@@ -448,7 +444,7 @@ VOID PhInitializePreviousInstance(
     VOID
     )
 {
-    if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
+    if (PhGetIntegerSetting(SETTING_ALLOW_ONLY_ONE_INSTANCE) &&
         !PhStartupParameters.NewInstance &&
         !PhStartupParameters.ShowOptions &&
         !PhStartupParameters.PhSvc &&
@@ -458,14 +454,14 @@ VOID PhInitializePreviousInstance(
         PhActivatePreviousInstance();
     }
 
-    if (PhGetIntegerSetting(L"EnableStartAsAdmin") &&
+    if (PhGetIntegerSetting(SETTING_ENABLE_START_AS_ADMIN) &&
         !PhStartupParameters.NewInstance &&
         !PhStartupParameters.ShowOptions &&
         !PhStartupParameters.PhSvc)
     {
         if (PhGetOwnTokenAttributes().Elevated)
         {
-            if (PhGetIntegerSetting(L"EnableStartAsAdminAlwaysOnTop"))
+            if (PhGetIntegerSetting(SETTING_ENABLE_START_AS_ADMIN_ALWAYS_ON_TOP))
             {
                 if (NT_SUCCESS(PhRunAsAdminTaskUIAccess()))
                 {
@@ -604,6 +600,11 @@ VOID PhInitializeCommonControls(
         ;
 
     InitCommonControlsEx(&icex);
+
+    PhTreeNewInitialization();
+    PhGraphControlInitialization();
+    PhHexEditInitialization();
+    PhColorBoxInitialization();
 }
 
 NTSTATUS PhInitializeDirectoryPolicy(
@@ -1238,33 +1239,34 @@ VOID PhInitializeAppSettings(
     PhUpdateCachedSettings();
 
     // Apply basic global settings.
-    PhPluginsEnabled = !!PhGetIntegerSetting(L"EnablePlugins");
-    PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
-    PhMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(L"MaxPrecisionUnit");
+    PhPluginsEnabled = !!PhGetIntegerSetting(SETTING_ENABLE_PLUGINS);
+    PhMaxSizeUnit = PhGetIntegerSetting(SETTING_MAX_SIZE_UNIT);
+    PhMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(SETTING_MAX_PRECISION_UNIT);
     PhMaxPrecisionLimit = 1.0f;
     for (ULONG i = 0; i < PhMaxPrecisionUnit; i++)
         PhMaxPrecisionLimit /= 10;
-    PhEnableWindowText = !!PhGetIntegerSetting(L"EnableWindowText");
-    PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
-    PhThemeWindowForegroundColor = PhGetIntegerSetting(L"ThemeWindowForegroundColor");
-    PhThemeWindowBackgroundColor = PhGetIntegerSetting(L"ThemeWindowBackgroundColor");
-    PhThemeWindowBackground2Color = PhGetIntegerSetting(L"ThemeWindowBackground2Color");
-    PhThemeWindowHighlightColor = PhGetIntegerSetting(L"ThemeWindowHighlightColor");
-    PhThemeWindowHighlight2Color = PhGetIntegerSetting(L"ThemeWindowHighlight2Color");
-    PhThemeWindowTextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
-    PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
-    PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
-    PhEnableThemeNativeButtons = !!PhGetIntegerSetting(L"EnableThemeNativeButtons");
-    PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
-    PhEnableDeferredLayout = !!PhGetIntegerSetting(L"EnableDeferredLayout");
-    PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
-    PhEnableServiceNonPollNotify = !!PhGetIntegerSetting(L"EnableServiceNonPollNotify");
-    PhServiceNonPollFlushInterval = PhGetIntegerSetting(L"NonPollFlushInterval");
-    PhEnableKsiSupport = !!PhGetIntegerSetting(L"KsiEnable") && !PhStartupParameters.NoKph && !PhIsExecutingInWow64();
-    PhEnableKsiWarnings = !!PhGetIntegerSetting(L"KsiEnableWarnings");
-    PhFontQuality = PhGetFontQualitySetting(PhGetIntegerSetting(L"FontQuality"));
+    PhEnableWindowText = !!PhGetIntegerSetting(SETTING_ENABLE_WINDOW_TEXT);
 
-    if (PhGetIntegerSetting(L"SampleCountAutomatic"))
+    PhEnableThemeSupport = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
+    PhThemeWindowForegroundColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_FOREGROUND_COLOR);
+    PhThemeWindowBackgroundColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND_COLOR);
+    PhThemeWindowBackground2Color = PhGetIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND2_COLOR);
+    PhThemeWindowHighlightColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT_COLOR);
+    PhThemeWindowHighlight2Color = PhGetIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT2_COLOR);
+    PhThemeWindowTextColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_TEXT_COLOR);
+    PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_SUPPORT);
+    PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_WINDOW_SUPPORT);
+    PhEnableThemeNativeButtons = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_NATIVE_BUTTONS);
+    PhEnableThemeListviewBorder = !!PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE);
+    PhEnableDeferredLayout = !!PhGetIntegerSetting(SETTING_ENABLE_DEFERRED_LAYOUT);
+    PhEnableServiceNonPoll = !!PhGetIntegerSetting(SETTING_ENABLE_SERVICE_NON_POLL);
+    PhEnableServiceNonPollNotify = !!PhGetIntegerSetting(SETTING_ENABLE_SERVICE_NON_POLL_NOTIFY);
+    PhServiceNonPollFlushInterval = PhGetIntegerSetting(SETTING_NON_POLL_FLUSH_INTERVAL);
+    PhEnableKsiSupport = !!PhGetIntegerSetting(SETTING_KSI_ENABLE) && !PhStartupParameters.NoKph && !PhIsExecutingInWow64();
+    PhEnableKsiWarnings = !!PhGetIntegerSetting(SETTING_KSI_ENABLE_WARNINGS);
+    PhFontQuality = PhGetFontQualitySetting(PhGetIntegerSetting(SETTING_FONT_QUALITY));
+
+    if (PhGetIntegerSetting(SETTING_SAMPLE_COUNT_AUTOMATIC))
     {
         ULONG sampleCount;
 
@@ -1273,12 +1275,12 @@ VOID PhInitializeAppSettings(
         if (sampleCount > 4096)
             sampleCount = 4096;
 
-        PhSetIntegerSetting(L"SampleCount", sampleCount);
+        PhSetIntegerSetting(SETTING_SAMPLE_COUNT, sampleCount);
     }
 
     if (PhStartupParameters.UpdateChannel != PhInvalidChannel)
     {
-        PhSetIntegerSetting(L"ReleaseChannel", PhStartupParameters.UpdateChannel);
+        PhSetIntegerSetting(SETTING_RELEASE_CHANNEL, PhStartupParameters.UpdateChannel);
     }
 
     if (PhStartupParameters.ShowHidden && !PhNfIconsEnabled())
@@ -1287,7 +1289,7 @@ VOID PhInitializeAppSettings(
         // old behavior for automation workflows. If the user specified "-hide" then they want to
         // start the program hidden to the system tray and not show any main window. If there are no
         // system tray icons enabled then we need to enable them so the behavior is consistent.
-        PhSetStringSetting(L"IconSettings", L"2|1");
+        PhSetStringSetting(SETTING_ICON_SETTINGS, L"2|1");
     }
 }
 
@@ -1320,6 +1322,7 @@ typedef enum _PH_COMMAND_ARG
     PH_ARG_CHANNEL,
 } PH_COMMAND_ARG;
 
+_Function_class_(PH_COMMAND_LINE_CALLBACK)
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
