@@ -39,4 +39,4 @@ NTSYSAPI BOOLEAN NlsMbCodePageTag;
 NTSYSAPI BOOLEAN NlsMbOemCodePageTag;
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#endif
+#endif // _NTNLS_H
