@@ -1469,4 +1469,4 @@ typedef struct _KERNEL_CALLBACK_TABLE
     PFN_DISPATCH __xxxClientTrackInit;
 } KERNEL_CALLBACK_TABLE, *PKERNEL_CALLBACK_TABLE;
 
-#endif
+#endif // _NTUSER_H
