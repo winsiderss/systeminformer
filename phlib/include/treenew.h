@@ -186,6 +186,21 @@ typedef struct _PH_TREENEW_NODE
 // Auto-size flags
 #define TN_AUTOSIZE_REMAINING_SPACE 0x1
 
+typedef struct _PH_TREENEW_VIEW_PARTS
+{
+    RECT ClientRect;
+    LONG HeaderHeight;
+    LONG RowHeight;
+    ULONG VScrollWidth;
+    ULONG HScrollHeight;
+    LONG VScrollPosition;
+    LONG HScrollPosition;
+    LONG FixedWidth;
+    LONG NormalLeft;
+    LONG NormalWidth;
+    ULONG64 ScrollTickCount;
+} PH_TREENEW_VIEW_PARTS, *PPH_TREENEW_VIEW_PARTS;
+
 typedef struct _PH_TREENEW_CELL_PARTS
 {
     ULONG Flags;
@@ -429,6 +444,14 @@ typedef struct _PH_TREENEW_REORDER_EVENT
     BOOLEAN Allow; // in Begin/Over: host sets to TRUE to allow; Commit ignores this field
 } PH_TREENEW_REORDER_EVENT, *PPH_TREENEW_REORDER_EVENT;
 
+typedef struct _PH_TREENEW_GET_CELL_PARTS
+{
+    ULONG Flags;
+    PPH_TREENEW_NODE Node;
+    PPH_TREENEW_COLUMN Column;
+    PH_TREENEW_CELL_PARTS Parts;
+} PH_TREENEW_GET_CELL_PARTS, *PPH_TREENEW_GET_CELL_PARTS;
+
 #define TNM_FIRST (WM_USER + 1)
 #define TNM_SETCALLBACK (WM_USER + 1)
 #define TNM_NODESADDED (WM_USER + 2) // unimplemented
@@ -485,7 +508,8 @@ typedef struct _PH_TREENEW_REORDER_EVENT
 #define TNM_GETSELECTEDNODE (WM_USER + 53)
 #define TNM_FOCUSMARKSELECT (WM_USER + 54)
 #define TNM_FOCUSVISIBLENODE (WM_USER + 55)
-#define TNM_LAST (WM_USER + 56)
+#define TNM_GETCELLPARTS (WM_USER + 56)
+#define TNM_LAST (WM_USER + 57)
 
 #if defined(_PHLIB_)
 
@@ -658,6 +682,9 @@ EXTERN_C LRESULT PhTnSendMessage(
 #define TreeNew_SelectFirstVisibleNode(hWnd) \
     PhTnSendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, 0)
 
+#define TreeNew_GetCellParts(hWnd, Parts) \
+    ((BOOLEAN)PhTnSendMessage((hWnd), TNM_GETCELLPARTS, 0, (LPARAM)(Parts)))
+
 #else
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
@@ -818,22 +845,10 @@ EXTERN_C LRESULT PhTnSendMessage(
 
 #define TreeNew_SelectFirstVisibleNode(hWnd) \
     SendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, 0)
-#endif
 
-typedef struct _PH_TREENEW_VIEW_PARTS
-{
-    RECT ClientRect;
-    LONG HeaderHeight;
-    LONG RowHeight;
-    ULONG VScrollWidth;
-    ULONG HScrollHeight;
-    LONG VScrollPosition;
-    LONG HScrollPosition;
-    LONG FixedWidth;
-    LONG NormalLeft;
-    LONG NormalWidth;
-    ULONG64 ScrollTickCount;
-} PH_TREENEW_VIEW_PARTS, *PPH_TREENEW_VIEW_PARTS;
+#define TreeNew_GetCellParts(hWnd, Parts) \
+    SendMessage((hWnd), TNM_GETCELLPARTS, 0, (LPARAM)(Parts))
+#endif
 
 PHLIBAPI
 RTL_ATOM

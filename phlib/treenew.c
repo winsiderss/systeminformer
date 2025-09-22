@@ -2378,6 +2378,36 @@ LRESULT PhTnpOnUserMessage(
             }
         }
         break;
+    case TNM_GETCELLPARTS:
+        {
+            PPH_TREENEW_GET_CELL_PARTS getCellParts = (PPH_TREENEW_GET_CELL_PARTS)LParam;
+
+            if (getCellParts->Node && getCellParts->Column)
+            {
+                ULONG measureFlags = 0;
+                PH_TREENEW_CELL_PARTS cellparts;
+
+                if (FlagOn(getCellParts->Flags, TN_MEASURE_TEXT))
+                {
+                    measureFlags |= TN_MEASURE_TEXT;
+                }
+
+                RtlZeroMemory(&cellparts, sizeof(PH_TREENEW_CELL_PARTS));
+
+                if (PhTnpGetCellParts(
+                    Context,
+                    getCellParts->Node->Index,
+                    getCellParts->Column,
+                    measureFlags,
+                    &cellparts
+                    ))
+                {
+                    RtlCopyMemory(&getCellParts->Parts, &cellparts, sizeof(PH_TREENEW_CELL_PARTS));
+                    return TRUE;
+                }
+            }
+        }
+        break;
     }
 
     return 0;
