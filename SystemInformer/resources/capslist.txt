@@ -911,6 +911,7 @@ settingSyncConfiguration
 sharedMachineKeysCapability
 sharedUserCertificates
 shellDisplayManagement
+shellexperience
 shellExperience
 shellExperienceComposer
 slapiQueryLicenseValue
