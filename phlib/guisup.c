@@ -642,7 +642,6 @@ BOOLEAN PhDrawThemeParentBackground(
     return HR_SUCCESS(DrawThemeParentBackground_I(WindowHandle, Hdc, Rect));
 }
 
-
 BOOLEAN PhAllowDarkModeForWindow(
     _In_ HWND WindowHandle,
     _In_ BOOL Enabled
@@ -4834,21 +4833,46 @@ HCURSOR PhLoadDividerCursor(
     return dividerCursorHandle;
 }
 
+NTSTATUS PhGetUserObjectInformation(
+    _In_ HANDLE Handle,
+    _In_ LONG Index,
+    _Out_writes_bytes_opt_(UserObjectInformationLength) PVOID UserObjectInformation,
+    _In_ ULONG UserObjectInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    if (GetUserObjectInformation(
+        Handle,
+        Index,
+        UserObjectInformation,
+        UserObjectInformationLength,
+        ReturnLength
+        ))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
 NTSTATUS PhIsInteractiveUserSession(
     VOID
     )
 {
+    NTSTATUS status;
     USEROBJECTFLAGS flags;
 
     memset(&flags, 0, sizeof(USEROBJECTFLAGS));
 
-    if (GetUserObjectInformation(
+    status = PhGetUserObjectInformation(
         GetProcessWindowStation(),
         UOI_FLAGS,
         &flags,
         sizeof(USEROBJECTFLAGS),
         NULL
-        ))
+        );
+
+    if (NT_SUCCESS(status))
     {
         if (BooleanFlagOn(flags.dwFlags, WSF_VISIBLE))
             return STATUS_SUCCESS;
@@ -4856,7 +4880,157 @@ NTSTATUS PhIsInteractiveUserSession(
         return STATUS_NOT_GUI_PROCESS;
     }
 
-    return PhGetLastWin32ErrorAsNtStatus();
+    return status;
+}
+
+NTSTATUS PhGetUserObjectNameInformation(
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* String
+    )
+{
+    NTSTATUS status;
+    PPH_STRING string;
+    ULONG returnLength;
+
+    status = PhGetUserObjectInformation(
+        Handle,
+        UOI_NAME,
+        NULL,
+        0,
+        &returnLength
+        );
+
+    if (status != STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INVALID_BUFFER_SIZE;
+    if (!(returnLength % sizeof(WCHAR)) == 0 && returnLength > sizeof(UNICODE_NULL))
+        return STATUS_INVALID_BUFFER_SIZE;
+
+    string = PhCreateStringEx(NULL, returnLength - sizeof(UNICODE_NULL));
+
+    status = PhGetUserObjectInformation(
+        Handle,
+        UOI_NAME,
+        string->Buffer,
+        (ULONG)string->Length + sizeof(UNICODE_NULL),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(string);
+        goto CleanupExit;
+    }
+
+    PhTrimToNullTerminatorString(string);
+    *String = string;
+    return STATUS_SUCCESS;
+
+CleanupExit:
+    return status;
+}
+
+NTSTATUS PhGetUserObjectTypeInformation(
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* String
+    )
+{
+    NTSTATUS status;
+    PPH_STRING string;
+    ULONG returnLength;
+
+    status = PhGetUserObjectInformation(
+        Handle,
+        UOI_TYPE,
+        NULL,
+        0,
+        &returnLength
+        );
+
+    if (status != STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INVALID_BUFFER_SIZE;
+    if (!(returnLength % sizeof(WCHAR)) == 0 && returnLength > sizeof(UNICODE_NULL))
+        return STATUS_INVALID_BUFFER_SIZE;
+
+    string = PhCreateStringEx(NULL, returnLength - sizeof(UNICODE_NULL));
+
+    status = PhGetUserObjectInformation(
+        Handle,
+        UOI_TYPE,
+        string->Buffer,
+        (ULONG)string->Length + sizeof(UNICODE_NULL),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(string);
+        goto CleanupExit;
+    }
+
+    PhTrimToNullTerminatorString(string);
+    *String = string;
+    return STATUS_SUCCESS;
+
+CleanupExit:
+    return status;
+}
+
+typedef struct _PH_USER_OBJECT_SID
+{
+    union
+    {
+        SID Sid;
+        BYTE Buffer[SECURITY_MAX_SID_SIZE];
+    };
+} PH_USER_OBJECT_SID, *PPH_USER_OBJECT_SID;
+
+C_ASSERT(sizeof(PH_USER_OBJECT_SID) == SECURITY_MAX_SID_SIZE);
+
+
+NTSTATUS PhGetUserObjectSidInformationToBuffer(
+    _In_ HANDLE Handle,
+    _Out_ PPH_USER_OBJECT_SID ObjectSid,
+    _In_ ULONG ObjectSidLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+
+    status = PhGetUserObjectInformation(
+        Handle,
+        UOI_USER_SID,
+        ObjectSid,
+        ObjectSidLength,
+        ReturnLength
+        );
+
+    return status;
+}
+
+NTSTATUS PhGetUserObjectSidInformationCopy(
+    _In_ HANDLE Handle,
+    _Out_ PSID* ObjectSid
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    UCHAR objectSidBuffer[SECURITY_MAX_SID_SIZE];
+    PSID objectSid = (PSID)objectSidBuffer;
+
+    status = PhGetUserObjectInformation(
+        Handle,
+        UOI_USER_SID,
+        objectSidBuffer,
+        sizeof(objectSidBuffer),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *ObjectSid = PhAllocateCopy(objectSid, PhLengthSid(objectSid));
+    }
+
+    return status;
 }
 
 PPH_STRING PhGetCurrentWindowStationName(
@@ -4865,53 +5039,38 @@ PPH_STRING PhGetCurrentWindowStationName(
 {
     PPH_STRING string;
 
-    string = PhCreateStringEx(NULL, 0x200);
-
-    if (GetUserObjectInformation(
+    if (NT_SUCCESS(PhGetUserObjectNameInformation(
         GetProcessWindowStation(),
-        UOI_NAME,
-        string->Buffer,
-        (ULONG)string->Length + sizeof(UNICODE_NULL),
-        NULL
-        ))
+        &string
+        )))
     {
-        PhTrimToNullTerminatorString(string);
         return string;
     }
-    else
-    {
-        PhDereferenceObject(string);
-        return PhCreateString(L"WinSta0"); // assume the current window station is WinSta0
-    }
+
+    return PhCreateString(L"WinSta0"); // assume the current window station is WinSta0
 }
 
 PPH_STRING PhGetCurrentThreadDesktopName(
     VOID
     )
 {
+    HDESK desktopHandle;
     PPH_STRING string;
 
-    string = PhCreateStringEx(NULL, 0x200);
+    if (desktopHandle = GetThreadDesktop(GetCurrentThreadId()))
+    {
+        if (NT_SUCCESS(PhGetUserObjectNameInformation(desktopHandle, &string)))
+        {
+            return string;
+        }
+    }
 
-    if (GetUserObjectInformation(
-        GetThreadDesktop(HandleToUlong(NtCurrentThreadId())),
-        UOI_NAME,
-        string->Buffer,
-        (ULONG)string->Length + sizeof(UNICODE_NULL),
-        NULL
-        ))
-    {
-        PhTrimToNullTerminatorString(string);
-        return string;
-    }
-    else
-    {
-        PhDereferenceObject(string);
-        return PhCreateString(L"Default");
-    }
+    return PhCreateString(L"Default"); // assume the current thread desktop is Default
 }
 
-BOOLEAN PhpInitializeMRUList(VOID)
+static BOOLEAN PhpInitializeMRUList(
+    VOID
+    )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static PVOID comctl32ModuleHandle = NULL;
@@ -4941,13 +5100,14 @@ BOOLEAN PhpInitializeMRUList(VOID)
     return FALSE;
 }
 
-_Success_(return)
-BOOLEAN PhRecentListCreate(
-    _Out_ PHANDLE RecentHandle
-    )
+BOOLEAN PhRecentListAddCommand(
+    _In_ PPH_STRINGREF Command
+)
 {
-    HANDLE handle;
+    static CONST PH_STRINGREF prefixSr = PH_STRINGREF_INIT(L"\\1");
+    BOOLEAN result = FALSE;
     MRUINFO info;
+    HANDLE listHandle;
 
     if (!PhpInitializeMRUList())
         return FALSE;
@@ -4958,62 +5118,21 @@ BOOLEAN PhRecentListCreate(
     info.hKey = HKEY_CURRENT_USER;
     info.lpszSubKey = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU";
 
-    if (handle = CreateMRUList_I(&info))
+    if (listHandle = CreateMRUList_I(&info))
     {
-        *RecentHandle = handle;
-        return TRUE;
+        PPH_STRING command = PhConcatStringRef2(Command, &prefixSr);
+
+        if (AddMRUString_I(listHandle, PhGetString(command)) != INT_ERROR)
+        {
+            result = TRUE;
+        }
+
+        PhDereferenceObject(command);
+
+        FreeMRUList_I(listHandle);
     }
 
-    return FALSE;
-}
-
-VOID PhRecentListDestroy(
-    _In_ HANDLE RecentHandle
-    )
-{
-    if (!PhpInitializeMRUList())
-        return;
-
-    if (RecentHandle)
-    {
-        FreeMRUList_I(RecentHandle);
-    }
-}
-
-BOOLEAN PhRecentListAddString(
-    _In_ HANDLE RecentHandle,
-    _In_ PCWSTR String
-    )
-{
-    if (!PhpInitializeMRUList())
-        return FALSE;
-
-    return AddMRUString_I(RecentHandle, String) != INT_ERROR;
-}
-
-BOOLEAN PhRecentListAddCommand(
-    _In_ PPH_STRINGREF Command
-    )
-{
-    static CONST PH_STRINGREF prefixSr = PH_STRINGREF_INIT(L"\\1");
-    BOOLEAN status;
-    HANDLE listHandle;
-    PPH_STRING command;
-
-    if (!PhpInitializeMRUList())
-        return FALSE;
-    if (!PhRecentListCreate(&listHandle))
-        return FALSE;
-
-    command = PhConcatStringRef2(Command, &prefixSr);
-
-    status = PhRecentListAddString(listHandle, PhGetString(command));
-
-    PhDereferenceObject(command);
-
-    PhRecentListDestroy(listHandle);
-
-    return status;
+    return result;
 }
 
 VOID PhEnumerateRecentList(
@@ -5021,12 +5140,20 @@ VOID PhEnumerateRecentList(
     _In_opt_ PVOID Context
     )
 {
+    MRUINFO info;
     HANDLE listHandle;
     LONG listCount;
 
     if (!PhpInitializeMRUList())
         return;
-    if (!PhRecentListCreate(&listHandle))
+
+    memset(&info, 0, sizeof(MRUINFO));
+    info.cbSize = sizeof(MRUINFO);
+    info.uMaxItems = UINT_MAX;
+    info.hKey = HKEY_CURRENT_USER;
+    info.lpszSubKey = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU";
+
+    if (!(listHandle = CreateMRUList_I(&info)))
         return;
 
     listCount = EnumMRUList_I(
