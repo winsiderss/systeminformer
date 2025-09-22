@@ -20,274 +20,277 @@ VOID PhAddDefaultSettings(
     VOID
     )
 {
-    PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"1");
-    PhpAddIntegerSetting(L"CloseOnEscape", L"0");
-    PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
-    PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
-    PhpAddStringSetting(L"DisabledPlugins", L"");
-    PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
-    PhpAddIntegerSetting(L"EnableAdvancedOptions", L"0");
-    PhpAddIntegerSetting(L"EnableAvxSupport", L"0");
-    PhpAddIntegerSetting(L"EnableBitmapSupport", L"1");
-    PhpAddIntegerSetting(L"EnableBreakOnTermination", L"0");
-    PhpAddIntegerSetting(L"EnableBootObjectsEnumerate", L"0");
-    PhpAddIntegerSetting(L"EnableCommandLineTooltips", L"0");
-    PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
-    PhpAddIntegerSetting(L"EnableDeferredLayout", L"1");
-    PhpAddIntegerSetting(L"EnableDeviceSupport", L"1");
-    PhpAddIntegerSetting(L"EnableDeviceNotifySupport", L"1");
-    PhpAddIntegerSetting(L"EnableImageCoherencySupport", L"0");
-    PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
-    PhpAddIntegerSetting(L"EnableHeapReflection", L"0");
-    PhpAddIntegerSetting(L"EnableHeapMemoryTagging", L"0");
-    PhpAddIntegerSetting(L"EnableLastProcessShutdown", L"0");
-    PhpAddIntegerSetting(L"EnableLinuxSubsystemSupport", L"0");
-    PhpAddIntegerSetting(L"EnableHandleSnapshot", L"1");
-    PhpAddIntegerSetting(L"EnableMinidumpKernelMinidump", L"0");
-    PhpAddIntegerSetting(L"EnableMinidumpSnapshot", L"0");
-    PhpAddIntegerSetting(L"EnableMonospaceFont", L"0");
-    PhpAddIntegerSetting(L"EnableNetworkBoundConnections", L"1");
-    PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
-    PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
-    PhpAddIntegerSetting(L"EnableMemStringsTreeDialog", L"0");
-    PhpAddIntegerSetting(L"EnablePackageIconSupport", L"0");
-    PhpAddIntegerSetting(L"EnableProcessHandlePnPDeviceNameSupport", L"0");
-    PhpAddIntegerSetting(L"EnablePlugins", L"1");
-    PhpAddIntegerSetting(L"EnablePluginsNative", L"0");
-    PhpAddIntegerSetting(L"EnableGraphMaxScale", L"0");
-    PhpAddIntegerSetting(L"EnableGraphMaxText", L"1");
-    PhpAddIntegerSetting(L"EnableServiceNonPoll", L"0");
-    PhpAddIntegerSetting(L"EnableServiceNonPollNotify", L"1");
-    PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
-    PhpAddIntegerSetting(L"EnableServiceProgressDialog", L"1");
-    PhpAddIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger", L"1");
-    PhpAddIntegerSetting(L"EnableStage2", L"1");
-    PhpAddIntegerSetting(L"EnableStreamerMode", L"0");
-    PhpAddIntegerSetting(L"EnableStartAsAdmin", L"0");
-    PhpAddIntegerSetting(L"EnableStartAsAdminAlwaysOnTop", L"0");
-    PhpAddIntegerSetting(L"EnableDefaultSafePlugins", L"1");
-    PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
-    PhpAddIntegerSetting(L"EnableShortRelativeStartTime", L"1");
-    PhpAddIntegerSetting(L"EnableShutdownCriticalMenu", L"0");
-    PhpAddIntegerSetting(L"EnableShutdownBootMenu", L"1");
-    PhpAddIntegerSetting(L"EnableSilentCrashNotify", L"0");
-    PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
-    PhpAddIntegerSetting(L"EnableThemeAcrylicSupport", L"0");
-    PhpAddIntegerSetting(L"EnableThemeAcrylicWindowSupport", L"0");
-    PhpAddIntegerSetting(L"EnableThemeAnimation", L"1");
-    PhpAddIntegerSetting(L"EnableThemeNativeButtons", L"0");
-    PhpAddIntegerSetting(L"EnableThreadStackInlineSymbols", L"1");
-    PhpAddIntegerSetting(L"EnableThreadStackLineInformation", L"1");
-    PhpAddIntegerSetting(L"EnableTokenRemovedPrivileges", L"0");
-    PhpAddIntegerSetting(L"EnableTooltipSupport", L"1");
-    PhpAddIntegerSetting(L"EnableUpdateDefaultFirmwareBootEntry", L"1");
-    PhpAddIntegerSetting(L"EnableVersionSupport", L"1");
-    PhpAddIntegerSetting(L"EnableWarnings", L"1");
-    PhpAddIntegerSetting(L"EnableWarningsRunas", L"1");
-    PhpAddIntegerSetting(L"EnableWindowText", L"1");
-    PhpAddStringSetting(L"EnvironmentTreeListColumns", L"");
-    PhpAddStringSetting(L"EnvironmentTreeListSort", L"0,0"); // 0, NoSortOrder
-    PhpAddIntegerSetting(L"EnvironmentTreeListFlags", L"0");
-    PhpAddIntegerSetting(L"SearchControlRegex", L"0");
-    PhpAddIntegerSetting(L"SearchControlCaseSensitive", L"0");
-    PhpAddStringSetting(L"FindObjTreeListColumns", L"");
-    PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"FindObjWindowSize", L"@96|550,420");
-    PhpAddStringSetting(L"ThreadStacksTreeListColumns", L"");
-    PhpAddIntegerPairSetting(L"ThreadStacksWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"ThreadStacksWindowSize", L"@96|550,420");
-    PhpAddStringSetting(L"FileBrowseExecutable", L"%SystemRoot%\\explorer.exe /select,\"%s\"");
-    PhpAddIntegerSetting(L"FirstRun", L"1");
-    PhpAddStringSetting(L"Font", L""); // null
-    PhpAddStringSetting(L"FontMonospace", L""); // null
-    PhpAddIntegerSetting(L"FontQuality", L"0");
-    PhpAddIntegerSetting(L"ForceNoParent", L"1");
-    PhpAddStringSetting(L"HandleTreeListColumns", L"");
-    PhpAddStringSetting(L"HandleTreeListSort", L"0,1"); // 0, AscendingSortOrder
-    PhpAddIntegerSetting(L"HandleTreeListFlags", L"3");
-    PhpAddIntegerPairSetting(L"HandlePropertiesWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"HandlePropertiesWindowSize", L"@96|260,260");
-    PhpAddStringSetting(L"HandleStatisticsListViewColumns", L"");
-    PhpAddStringSetting(L"HandleStatisticsListViewSort", L"0,1");
-    PhpAddIntegerPairSetting(L"HandleStatisticsWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"HandleStatisticsWindowSize", L"@96|0,0");
-    PhpAddIntegerSetting(L"HideDefaultServices", L"0");
-    PhpAddIntegerSetting(L"HideDriverServices", L"0");
-    PhpAddIntegerSetting(L"HideFreeRegions", L"1");
-    PhpAddIntegerSetting(L"HideOnClose", L"0");
-    PhpAddIntegerSetting(L"HideOnMinimize", L"0");
-    PhpAddIntegerSetting(L"HideOtherUserProcesses", L"0");
-    PhpAddIntegerSetting(L"HideSignedProcesses", L"0");
-    PhpAddIntegerSetting(L"HideMicrosoftProcesses", L"0");
-    PhpAddIntegerSetting(L"HideWaitingConnections", L"0");
-    PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
-    PhpAddIntegerSetting(L"IconBalloonShowIcon", L"0");
-    PhpAddIntegerSetting(L"IconBalloonMuteSound", L"0");
-    PhpAddIntegerSetting(L"ToastNotifyEnabled", L"0");
-    PhpAddStringSetting(L"IconTrayGuids", L"");
-    PhpAddIntegerSetting(L"IconTrayPersistGuidEnabled", L"0");
-    PhpAddIntegerSetting(L"IconTrayLazyStartDelay", L"1");
-    PhpAddIntegerSetting(L"IconIgnoreBalloonClick", L"0");
-    PhpAddStringSetting(L"IconSettings", L"");
-    PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
-    PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
-    PhpAddIntegerSetting(L"IconSingleClick", L"0");
-    PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
-    PhpAddIntegerSetting(L"IconTransparencyEnabled", L"0");
-    //PhpAddIntegerSetting(L"IconTransparency", L"255");
-    PhpAddIntegerPairSetting(L"InformationWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"InformationWindowSize", L"@96|140,190");
-    PhpAddIntegerSetting(L"ImageCoherencyScanLevel", L"1");
-    PhpAddStringSetting(L"JobListViewColumns", L"");
-    PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
-    PhpAddStringSetting(L"LogListViewColumns", L"");
-    PhpAddIntegerPairSetting(L"LogWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"LogWindowSize", L"@96|450,500");
-    PhpAddIntegerSetting(L"MainWindowAlwaysOnTop", L"0");
-    PhpAddStringSetting(L"MainWindowClassName", L"MainWindowClassName");
-    PhpAddIntegerSetting(L"MainWindowOpacity", L"0"); // means 100%
-    PhpAddIntegerPairSetting(L"MainWindowPosition", L"100,100");
-    PhpAddScalableIntegerPairSetting(L"MainWindowSize", L"@96|800,600");
-    PhpAddIntegerSetting(L"MainWindowState", L"1");
-    PhpAddIntegerSetting(L"MainWindowTabRestoreEnabled", L"0");
-    PhpAddIntegerSetting(L"MainWindowTabRestoreIndex", L"0");
-    PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
-    PhpAddIntegerSetting(L"MaxPrecisionUnit", L"2");
-    PhpAddIntegerSetting(L"MemEditBytesPerRow", L"10"); // 16
-    PhpAddStringSetting(L"MemEditGotoChoices", L"");
-    PhpAddIntegerPairSetting(L"MemEditPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"MemEditSize", L"@96|600,500");
-    PhpAddStringSetting(L"MemFilterChoices", L"");
-    PhpAddStringSetting(L"MemResultsListViewColumns", L"");
-    PhpAddIntegerPairSetting(L"MemResultsPosition", L"300,300");
-    PhpAddScalableIntegerPairSetting(L"MemResultsSize", L"@96|500,520");
-    PhpAddIntegerSetting(L"MemoryListFlags", L"3");
-    PhpAddStringSetting(L"MemoryTreeListColumns", L"");
-    PhpAddStringSetting(L"MemoryTreeListSort", L"0,0"); // 0, NoSortOrder
-    PhpAddIntegerPairSetting(L"MemoryListsWindowPosition", L"400,400");
-    PhpAddStringSetting(L"MemoryReadWriteAddressChoices", L"");
-    PhpAddIntegerPairSetting(L"MemoryModifiedWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"MemoryModifiedWindowSize", L"@96|450,500");
-    PhpAddStringSetting(L"MemoryModifiedListViewColumns", L"");
-    PhpAddStringSetting(L"MemoryModifiedListViewSort", L"0,0"); // 0, NoSortOrder
-    PhpAddStringSetting(L"MemStringsTreeListColumns", L"");
-    PhpAddStringSetting(L"MemStringsTreeListSort", L"0,1"); // 0, AscendingSortOrder
-    PhpAddIntegerSetting(L"MemStringsTreeListFlags", L"b"); // ANSI, Unicode, Private
-    PhpAddIntegerSetting(L"MemStringsMinimumLength", L"a"); // 10
-    PhpAddIntegerPairSetting(L"MemStringsWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"MemStringsWindowSize", L"@96|550,420");
-    PhpAddStringSetting(L"MiniInfoContainerClassName", L"MiniInfoContainerClassName");
-    PhpAddStringSetting(L"MiniInfoWindowClassName", L"MiniInfoWindowClassName");
-    PhpAddIntegerSetting(L"MiniInfoWindowEnabled", L"1");
-    PhpAddIntegerSetting(L"MiniInfoWindowOpacity", L"0"); // means 100%
-    PhpAddIntegerSetting(L"MiniInfoWindowPinned", L"0");
-    PhpAddIntegerPairSetting(L"MiniInfoWindowPosition", L"200,200");
-    PhpAddIntegerSetting(L"MiniInfoWindowRefreshAutomatically", L"3");
-    PhpAddScalableIntegerPairSetting(L"MiniInfoWindowSize", L"@96|10,200");
-    PhpAddIntegerSetting(L"ModuleTreeListFlags", L"1");
-    PhpAddStringSetting(L"ModuleTreeListColumns", L"");
-    PhpAddStringSetting(L"ModuleTreeListSort", L"0,0"); // 0, NoSortOrder
-    PhpAddStringSetting(L"NetworkTreeListColumns", L"");
-    PhpAddStringSetting(L"NetworkTreeListSort", L"0,1"); // 0, AscendingSortOrder
-    PhpAddIntegerSetting(L"NonPollFlushInterval", L"A"); // % 10
-    PhpAddIntegerSetting(L"NoPurgeProcessRecords", L"0");
-    PhpAddStringSetting(L"OptionsCustomColorList", L"");
-    PhpAddStringSetting(L"OptionsWindowAdvancedColumns", L"");
-    PhpAddIntegerSetting(L"OptionsWindowAdvancedFlags", L"0");
-    PhpAddIntegerPairSetting(L"OptionsWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"OptionsWindowSize", L"@96|900,590");
-    PhpAddIntegerPairSetting(L"PageFileWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"PageFileWindowSize", L"@96|500,300");
-    PhpAddStringSetting(L"PageFileListViewColumns", L"");
-    PhpAddStringSetting(L"PluginManagerTreeListColumns", L"");
-    PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
-    PhpAddStringSetting(L"ProcessTreeColumnSetConfig", L"");
-    PhpAddStringSetting(L"ProcessTreeListColumns", L"");
-    PhpAddStringSetting(L"ProcessTreeListSort", L"0,0"); // 0, NoSortOrder
-    PhpAddIntegerSetting(L"ProcessTreeListNameDefault", L"1");
-    PhpAddStringSetting(L"ProcPropPage", L"General");
-    PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
-    PhpAddScalableIntegerPairSetting(L"ProcPropSize", L"@96|460,580");
-    PhpAddStringSetting(L"ProcStatPropPageGroupListViewColumns", L"");
-    PhpAddStringSetting(L"ProcStatPropPageGroupListViewSort", L"0,0");
-    PhpAddStringSetting(L"ProcStatPropPageGroupStates", L"");
-    PhpAddStringSetting(L"ProgramInspectExecutables", L"peview.exe \"%s\"");
-    PhpAddIntegerSetting(L"PropagateCpuUsage", L"0");
-    PhpAddIntegerSetting(L"ReleaseChannel", L"0"); // PhReleaseChannel
-    PhpAddIntegerSetting(L"RunAsEnableAutoComplete", L"0");
-    PhpAddStringSetting(L"RunAsProgram", L"");
-    PhpAddStringSetting(L"RunAsUserName", L"");
-    PhpAddIntegerPairSetting(L"RunAsWindowPosition", L"0,0");
-    PhpAddIntegerPairSetting(L"RunAsPackageWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"RunAsPackageWindowSize", L"@96|500,300");
-    PhpAddIntegerSetting(L"RunFileDlgState", L"0");
-    PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
-    PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
-    PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
-    PhpAddIntegerSetting(L"ScrollToRemovedProcesses", L"0");
-    PhpAddStringSetting(L"SearchEngine", L"https://duckduckgo.com/?q=\"%s\"");
-    PhpAddStringSetting(L"SegmentHeapListViewColumns", L"");
-    PhpAddStringSetting(L"SegmentHeapListViewSort", L"0,1");
-    PhpAddIntegerPairSetting(L"SegmentHeapWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"SegmentHeapWindowSize", L"@96|450,500");
-    PhpAddIntegerPairSetting(L"ServiceWindowPosition", L"0,0");
-    PhpAddStringSetting(L"ServiceListViewColumns", L"");
-    PhpAddStringSetting(L"ServiceTreeListColumns", L"");
-    PhpAddStringSetting(L"ServiceTreeListSort", L"0,1"); // 0, AscendingSortOrder
-    PhpAddIntegerPairSetting(L"SessionShadowHotkey", L"106,2"); // VK_MULTIPLY,KBDCTRL
-    PhpAddIntegerSetting(L"ShowPluginLoadErrors", L"1");
-    PhpAddIntegerSetting(L"ShowCommitInSummary", L"1");
-    PhpAddIntegerSetting(L"ShowCpuBelow001", L"0");
-    PhpAddIntegerSetting(L"ShowHexId", L"0");
-    PhpAddIntegerSetting(L"SortChildProcesses", L"0");
-    PhpAddIntegerSetting(L"SortRootProcesses", L"0");
-    PhpAddIntegerSetting(L"StartHidden", L"0");
-    PhpAddIntegerSetting(L"SysInfoShowCpuSpeedMhz", L"0");
-    PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");
-    PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");
-    PhpAddIntegerPairSetting(L"SysInfoWindowPosition", L"200,200");
-    PhpAddStringSetting(L"SysInfoWindowSection", L"");
-    PhpAddScalableIntegerPairSetting(L"SysInfoWindowSize", L"@96|900,590");
-    PhpAddIntegerSetting(L"SysInfoWindowState", L"1");
-    PhpAddIntegerSetting(L"TaskmgrWindowState", L"0");
-    PhpAddIntegerSetting(L"ThemeWindowForegroundColor", L"1c1c1c"); // RGB(28, 28, 28)
-    PhpAddIntegerSetting(L"ThemeWindowBackgroundColor", L"2b2b2b"); // RGB(43, 43, 43)
-    PhpAddIntegerSetting(L"ThemeWindowBackground2Color", L"414141"); // RGB(65, 65, 65)
-    PhpAddIntegerSetting(L"ThemeWindowHighlightColor", L"808080"); // RGB(128, 128, 128)
-    PhpAddIntegerSetting(L"ThemeWindowHighlight2Color", L"8f8f8f"); // RGB(143, 143, 143)
-    PhpAddIntegerSetting(L"ThemeWindowTextColor", L"ffffff"); // RGB(255, 255, 255)
-    PhpAddIntegerSetting(L"ThinRows", L"0");
-    PhpAddStringSetting(L"ThreadTreeListColumns", L"");
-    PhpAddStringSetting(L"ThreadTreeListSort", L"1,2"); // 1, DescendingSortOrder
-    PhpAddIntegerSetting(L"ThreadTreeListFlags", L"60");
-    PhpAddStringSetting(L"ThreadStackTreeListColumns", L"");
-    PhpAddScalableIntegerPairSetting(L"ThreadStackWindowSize", L"@96|420,400");
-    PhpAddIntegerPairSetting(L"TokenWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"TokenWindowSize", L"@96|0,0");
-    PhpAddStringSetting(L"TokenGroupsListViewColumns", L"");
-    PhpAddStringSetting(L"TokenGroupsListViewStates", L"");
-    PhpAddStringSetting(L"TokenGroupsListViewSort", L"1,2");
-    PhpAddStringSetting(L"TokenPrivilegesListViewColumns", L"");
-    PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");
-    PhpAddIntegerSetting(L"TreeListCustomColorsEnable", L"0");
-    PhpAddIntegerSetting(L"TreeListCustomColorText", L"0");
-    PhpAddIntegerSetting(L"TreeListCustomColorFocus", L"0");
-    PhpAddIntegerSetting(L"TreeListCustomColorSelection", L"0");
-    PhpAddIntegerSetting(L"TreeListCustomRowSize", L"0");
-    PhpAddIntegerSetting(L"TreeListEnableHeaderTotals", L"1");
-    PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
-    PhpAddStringSetting(L"UserListTreeListColumns", L"");
-    PhpAddIntegerPairSetting(L"UserListWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"UserListWindowSize", L"@96|550,420");
-    PhpAddIntegerSetting(L"WmiProviderEnableHiddenMenu", L"0");
-    PhpAddIntegerSetting(L"WmiProviderEnableTooltipSupport", L"0");
-    PhpAddStringSetting(L"WmiProviderTreeListColumns", L"");
-    PhpAddStringSetting(L"WmiProviderTreeListSort", L"0,0"); // 0, NoSortOrder
-    PhpAddIntegerSetting(L"WmiProviderTreeListFlags", L"0");
-    PhpAddStringSetting(L"VdmHostListViewColumns", L"");
-    PhpAddStringSetting(L"ZombieProcessesListViewColumns", L"");
-    PhpAddIntegerPairSetting(L"ZombieProcessesWindowPosition", L"400,400");
-    PhpAddScalableIntegerPairSetting(L"ZombieProcessesWindowSize", L"@96|520,400");
+    PhpAddIntegerSetting(SETTING_ALLOW_ONLY_ONE_INSTANCE, L"1");
+    PhpAddIntegerSetting(SETTING_CLOSE_ON_ESCAPE, L"0");
+    PhpAddStringSetting(SETTING_DBGHELP_SEARCH_PATH, L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
+    PhpAddIntegerSetting(SETTING_DBGHELP_UNDECORATE, L"1");
+    PhpAddStringSetting(SETTING_DISABLED_PLUGINS, L"");
+    PhpAddIntegerSetting(SETTING_ELEVATION_LEVEL, L"1"); // PromptElevateAction
+    PhpAddIntegerSetting(SETTING_ENABLE_ADVANCED_OPTIONS, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_AVX_SUPPORT, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_BITMAP_SUPPORT, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_BREAK_ON_TERMINATION, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_BOOT_OBJECTS_ENUMERATE, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_COMMAND_LINE_TOOLTIPS, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_CYCLE_CPU_USAGE, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_DEFERRED_LAYOUT, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_DEVICE_SUPPORT, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_DEVICE_NOTIFY_SUPPORT, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_IMAGE_COHERENCY_SUPPORT, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_HEAP_REFLECTION, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_HEAP_MEMORY_TAGGING, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_LAST_PROCESS_SHUTDOWN, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_LINUX_SUBSYSTEM_SUPPORT, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_HANDLE_SNAPSHOT, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_MINIDUMP_KERNEL_MINIDUMP, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_MINIDUMP_SNAPSHOT, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_MONOSPACE_FONT, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_NETWORK_BOUND_CONNECTIONS, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_NETWORK_RESOLVE, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_NETWORK_RESOLVE_DOH, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_MEM_STRINGS_TREE_DIALOG, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_PACKAGE_ICON_SUPPORT, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_PROCESS_HANDLE_PNP_DEVICE_NAME_SUPPORT, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_PLUGINS, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_PLUGINS_NATIVE, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_GRAPH_MAX_SCALE, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_GRAPH_MAX_TEXT, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_SERVICE_NON_POLL, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_SERVICE_NON_POLL_NOTIFY, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_SERVICE_STAGE2, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_SERVICE_PROGRESS_DIALOG, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_SHELL_EXECUTE_SKIP_IFEO_DEBUGGER, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_STAGE2, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_STREAMER_MODE, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_START_AS_ADMIN, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_START_AS_ADMIN_ALWAYS_ON_TOP, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_DEFAULT_SAFE_PLUGINS, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_SECURITY_ADVANCED_DIALOG, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_SHORT_RELATIVE_START_TIME, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_SHUTDOWN_CRITICAL_MENU, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_SHUTDOWN_BOOT_MENU, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_SILENT_CRASH_NOTIFY, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_THEME_SUPPORT, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_SUPPORT, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_WINDOW_SUPPORT, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_THEME_ANIMATION, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_THEME_NATIVE_BUTTONS, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_THREAD_STACK_INLINE_SYMBOLS, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_THREAD_STACK_LINE_INFORMATION, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_TOKEN_REMOVED_PRIVILEGES, L"0");
+    PhpAddIntegerSetting(SETTING_ENABLE_TOOLTIP_SUPPORT, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_UPDATE_DEFAULT_FIRMWARE_BOOT_ENTRY, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_VERSION_SUPPORT, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_WARNINGS, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_WARNINGS_RUNAS, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_WINDOW_TEXT, L"1");
+    PhpAddStringSetting(SETTING_ENVIRONMENT_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_ENVIRONMENT_TREE_LIST_SORT, L"0,0"); // 0, NoSortOrder
+    PhpAddIntegerSetting(SETTING_ENVIRONMENT_TREE_LIST_FLAGS, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_CONTROL_REGEX, L"0");
+    PhpAddIntegerSetting(SETTING_SEARCH_CONTROL_CASE_SENSITIVE, L"0");
+    PhpAddStringSetting(SETTING_FIND_OBJ_TREE_LIST_COLUMNS, L"");
+    PhpAddIntegerPairSetting(SETTING_FIND_OBJ_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_FIND_OBJ_WINDOW_SIZE, L"@96|550,420");
+    PhpAddStringSetting(SETTING_THREAD_STACKS_TREE_LIST_COLUMNS, L"");
+    PhpAddIntegerPairSetting(SETTING_THREAD_STACKS_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_THREAD_STACKS_WINDOW_SIZE, L"@96|550,420");
+    PhpAddStringSetting(SETTING_FILE_BROWSE_EXECUTABLE, L"%SystemRoot%\\explorer.exe /select,\"%s\"");
+    PhpAddIntegerSetting(SETTING_FIRST_RUN, L"1");
+    PhpAddStringSetting(SETTING_FONT, L""); // null
+    PhpAddStringSetting(SETTING_FONT_MONOSPACE, L""); // null
+    PhpAddIntegerSetting(SETTING_FONT_QUALITY, L"0");
+    PhpAddIntegerSetting(SETTING_FORCE_NO_PARENT, L"1");
+    PhpAddStringSetting(SETTING_HANDLE_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_HANDLE_TREE_LIST_SORT, L"0,1"); // 0, AscendingSortOrder
+    PhpAddIntegerSetting(SETTING_HANDLE_TREE_LIST_FLAGS, L"3");
+    PhpAddIntegerPairSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_HANDLE_PROPERTIES_WINDOW_SIZE, L"@96|260,260");
+    PhpAddStringSetting(SETTING_HANDLE_STATISTICS_LIST_VIEW_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_HANDLE_STATISTICS_LIST_VIEW_SORT, L"0,1");
+    PhpAddIntegerPairSetting(SETTING_HANDLE_STATISTICS_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_HANDLE_STATISTICS_WINDOW_SIZE, L"@96|0,0");
+    PhpAddIntegerSetting(SETTING_HIDE_DEFAULT_SERVICES, L"0");
+    PhpAddIntegerSetting(SETTING_HIDE_DRIVER_SERVICES, L"0");
+    PhpAddIntegerSetting(SETTING_HIDE_FREE_REGIONS, L"1");
+    PhpAddIntegerSetting(SETTING_HIDE_ON_CLOSE, L"0");
+    PhpAddIntegerSetting(SETTING_HIDE_ON_MINIMIZE, L"0");
+    PhpAddIntegerSetting(SETTING_HIDE_OTHER_USER_PROCESSES, L"0");
+    PhpAddIntegerSetting(SETTING_HIDE_SIGNED_PROCESSES, L"0");
+    PhpAddIntegerSetting(SETTING_HIDE_MICROSOFT_PROCESSES, L"0");
+    PhpAddIntegerSetting(SETTING_HIDE_WAITING_CONNECTIONS, L"0");
+    PhpAddIntegerSetting(SETTING_HIGHLIGHTING_DURATION, L"3e8"); // 1000ms
+    PhpAddIntegerSetting(SETTING_ICON_BALLOON_SHOW_ICON, L"0");
+    PhpAddIntegerSetting(SETTING_ICON_BALLOON_MUTE_SOUND, L"0");
+    PhpAddIntegerSetting(SETTING_TOAST_NOTIFY_ENABLED, L"0");
+    PhpAddStringSetting(SETTING_ICON_TRAY_GUIDS, L"");
+    PhpAddIntegerSetting(SETTING_ICON_TRAY_PERSIST_GUID_ENABLED, L"0");
+    PhpAddIntegerSetting(SETTING_ICON_TRAY_LAZY_START_DELAY, L"1");
+    PhpAddIntegerSetting(SETTING_ICON_IGNORE_BALLOON_CLICK, L"0");
+    PhpAddStringSetting(SETTING_ICON_SETTINGS, L"");
+    PhpAddIntegerSetting(SETTING_ICON_NOTIFY_MASK, L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
+    PhpAddIntegerSetting(SETTING_ICON_PROCESSES, L"f"); // 15
+    PhpAddIntegerSetting(SETTING_ICON_SINGLE_CLICK, L"0");
+    PhpAddIntegerSetting(SETTING_ICON_TOGGLES_VISIBILITY, L"1");
+    PhpAddIntegerSetting(SETTING_ICON_TRANSPARENCY_ENABLED, L"0");
+    PhpAddIntegerPairSetting(SETTING_INFORMATION_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_INFORMATION_WINDOW_SIZE, L"@96|140,190");
+    PhpAddIntegerSetting(SETTING_IMAGE_COHERENCY_SCAN_LEVEL, L"1");
+    PhpAddStringSetting(SETTING_JOB_LIST_VIEW_COLUMNS, L"");
+    PhpAddIntegerSetting(SETTING_LOG_ENTRIES, L"200"); // 512
+    PhpAddStringSetting(SETTING_LOG_LIST_VIEW_COLUMNS, L"");
+    PhpAddIntegerPairSetting(SETTING_LOG_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_LOG_WINDOW_SIZE, L"@96|450,500");
+    PhpAddIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP, L"0");
+    PhpAddStringSetting(SETTING_MAIN_WINDOW_CLASS_NAME, L"MainWindowClassName");
+    PhpAddIntegerSetting(SETTING_MAIN_WINDOW_OPACITY, L"0"); // means 100%
+    PhpAddIntegerPairSetting(SETTING_MAIN_WINDOW_POSITION, L"100,100");
+    PhpAddScalableIntegerPairSetting(SETTING_MAIN_WINDOW_SIZE, L"@96|800,600");
+    PhpAddIntegerSetting(SETTING_MAIN_WINDOW_STATE, L"1");
+    PhpAddIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED, L"0");
+    PhpAddIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_INDEX, L"0");
+    PhpAddIntegerSetting(SETTING_MAX_SIZE_UNIT, L"6");
+    PhpAddIntegerSetting(SETTING_MAX_PRECISION_UNIT, L"2");
+    PhpAddIntegerSetting(SETTING_MEM_EDIT_BYTES_PER_ROW, L"10"); // 16
+    PhpAddStringSetting(SETTING_MEM_EDIT_GOTO_CHOICES, L"");
+    PhpAddIntegerPairSetting(SETTING_MEM_EDIT_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_MEM_EDIT_SIZE, L"@96|600,500");
+    PhpAddStringSetting(SETTING_MEM_FILTER_CHOICES, L"");
+    PhpAddStringSetting(SETTING_MEM_RESULTS_LIST_VIEW_COLUMNS, L"");
+    PhpAddIntegerPairSetting(SETTING_MEM_RESULTS_POSITION, L"300,300");
+    PhpAddScalableIntegerPairSetting(SETTING_MEM_RESULTS_SIZE, L"@96|500,520");
+    PhpAddIntegerSetting(SETTING_MEMORY_LIST_FLAGS, L"3");
+    PhpAddStringSetting(SETTING_MEMORY_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_MEMORY_TREE_LIST_SORT, L"0,0"); // 0, NoSortOrder
+    PhpAddIntegerPairSetting(SETTING_MEMORY_LISTS_WINDOW_POSITION, L"400,400");
+    PhpAddStringSetting(SETTING_MEMORY_READ_WRITE_ADDRESS_CHOICES, L"");
+    PhpAddIntegerPairSetting(SETTING_MEMORY_MODIFIED_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_MEMORY_MODIFIED_WINDOW_SIZE, L"@96|450,500");
+    PhpAddStringSetting(SETTING_MEMORY_MODIFIED_LIST_VIEW_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_MEMORY_MODIFIED_LIST_VIEW_SORT, L"0,0"); // 0, NoSortOrder
+    PhpAddStringSetting(SETTING_MEM_STRINGS_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_MEM_STRINGS_TREE_LIST_SORT, L"0,1"); // 0, AscendingSortOrder
+    PhpAddIntegerSetting(SETTING_MEM_STRINGS_TREE_LIST_FLAGS, L"b"); // ANSI, Unicode, Private
+    PhpAddIntegerSetting(SETTING_MEM_STRINGS_MINIMUM_LENGTH, L"a"); // 10
+    PhpAddIntegerPairSetting(SETTING_MEM_STRINGS_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_MEM_STRINGS_WINDOW_SIZE, L"@96|550,420");
+    PhpAddStringSetting(SETTING_MINI_INFO_CONTAINER_CLASS_NAME, L"MiniInfoContainerClassName");
+    PhpAddStringSetting(SETTING_MINI_INFO_WINDOW_CLASS_NAME, L"MiniInfoWindowClassName");
+    PhpAddIntegerSetting(SETTING_MINI_INFO_WINDOW_ENABLED, L"1");
+    PhpAddIntegerSetting(SETTING_MINI_INFO_WINDOW_OPACITY, L"0"); // means 100%
+    PhpAddIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED, L"0");
+    PhpAddIntegerPairSetting(SETTING_MINI_INFO_WINDOW_POSITION, L"200,200");
+    PhpAddIntegerSetting(SETTING_MINI_INFO_WINDOW_REFRESH_AUTOMATICALLY, L"3");
+    PhpAddScalableIntegerPairSetting(SETTING_MINI_INFO_WINDOW_SIZE, L"@96|10,200");
+    PhpAddIntegerSetting(SETTING_MODULE_TREE_LIST_FLAGS, L"1");
+    PhpAddStringSetting(SETTING_MODULE_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_MODULE_TREE_LIST_SORT, L"0,0"); // 0, NoSortOrder
+    PhpAddStringSetting(SETTING_NETWORK_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_NETWORK_TREE_LIST_SORT, L"0,1"); // 0, AscendingSortOrder
+    PhpAddIntegerSetting(SETTING_NON_POLL_FLUSH_INTERVAL, L"A"); // % 10
+    PhpAddIntegerSetting(SETTING_NO_PURGE_PROCESS_RECORDS, L"0");
+    PhpAddStringSetting(SETTING_OPTIONS_CUSTOM_COLOR_LIST, L"");
+    PhpAddStringSetting(SETTING_OPTIONS_WINDOW_ADVANCED_COLUMNS, L"");
+    PhpAddIntegerSetting(SETTING_OPTIONS_WINDOW_ADVANCED_FLAGS, L"0");
+    PhpAddIntegerPairSetting(SETTING_OPTIONS_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_OPTIONS_WINDOW_SIZE, L"@96|900,590");
+    PhpAddIntegerPairSetting(SETTING_PAGE_FILE_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_PAGE_FILE_WINDOW_SIZE, L"@96|500,300");
+    PhpAddStringSetting(SETTING_PAGE_FILE_LIST_VIEW_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_PLUGIN_MANAGER_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_PROCESS_SERVICE_LIST_VIEW_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_PROCESS_TREE_COLUMN_SET_CONFIG, L"");
+    PhpAddStringSetting(SETTING_PROCESS_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_PROCESS_TREE_LIST_SORT, L"0,0"); // 0, NoSortOrder
+    PhpAddIntegerSetting(SETTING_PROCESS_TREE_LIST_NAME_DEFAULT, L"1");
+    PhpAddStringSetting(SETTING_PROC_PROP_PAGE, L"General");
+    PhpAddIntegerPairSetting(SETTING_PROC_PROP_POSITION, L"200,200");
+    PhpAddScalableIntegerPairSetting(SETTING_PROC_PROP_SIZE, L"@96|460,580");
+    PhpAddStringSetting(SETTING_PROC_STAT_PROP_PAGE_GROUP_LIST_VIEW_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_PROC_STAT_PROP_PAGE_GROUP_LIST_VIEW_SORT, L"0,0");
+    PhpAddStringSetting(SETTING_PROC_STAT_PROP_PAGE_GROUP_STATES, L"");
+    PhpAddStringSetting(SETTING_PROGRAM_INSPECT_EXECUTABLES, L"peview.exe \"%s\"");
+    PhpAddIntegerSetting(SETTING_PROPAGATE_CPU_USAGE, L"0");
+    PhpAddIntegerSetting(SETTING_RELEASE_CHANNEL, L"0"); // PhReleaseChannel
+    PhpAddIntegerSetting(SETTING_RUN_AS_ENABLE_AUTO_COMPLETE, L"0");
+    PhpAddStringSetting(SETTING_RUN_AS_PROGRAM, L"");
+    PhpAddStringSetting(SETTING_RUN_AS_USER_NAME, L"");
+    PhpAddIntegerPairSetting(SETTING_RUN_AS_WINDOW_POSITION, L"0,0");
+    PhpAddIntegerPairSetting(SETTING_RUN_AS_PACKAGE_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_RUN_AS_PACKAGE_WINDOW_SIZE, L"@96|500,300");
+    PhpAddIntegerSetting(SETTING_RUN_FILE_DLG_STATE, L"0");
+    PhpAddIntegerSetting(SETTING_SAMPLE_COUNT, L"200"); // 512
+    PhpAddIntegerSetting(SETTING_SAMPLE_COUNT_AUTOMATIC, L"1");
+    PhpAddIntegerSetting(SETTING_SCROLL_TO_NEW_PROCESSES, L"0");
+    PhpAddIntegerSetting(SETTING_SCROLL_TO_REMOVED_PROCESSES, L"0");
+    PhpAddStringSetting(SETTING_SEARCH_ENGINE, L"https://duckduckgo.com/?q=\"%s\"");
+    PhpAddStringSetting(SETTING_SEGMENT_HEAP_LIST_VIEW_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_SEGMENT_HEAP_LIST_VIEW_SORT, L"0,1");
+    PhpAddIntegerPairSetting(SETTING_SEGMENT_HEAP_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_SEGMENT_HEAP_WINDOW_SIZE, L"@96|450,500");
+    PhpAddStringSetting(SETTING_SEGMENT_LOCKS_LIST_VIEW_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_SEGMENT_LOCKS_LIST_VIEW_SORT, L"0,1");
+    PhpAddIntegerPairSetting(SETTING_SEGMENT_LOCKS_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_SEGMENT_LOCKS_WINDOW_SIZE, L"@96|450,500");
+    PhpAddIntegerPairSetting(SETTING_SERVICE_WINDOW_POSITION, L"0,0");
+    PhpAddStringSetting(SETTING_SERVICE_LIST_VIEW_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_SERVICE_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_SERVICE_TREE_LIST_SORT, L"0,1"); // 0, AscendingSortOrder
+    PhpAddIntegerPairSetting(SETTING_SESSION_SHADOW_HOTKEY, L"106,2"); // VK_MULTIPLY,KBDCTRL
+    PhpAddIntegerSetting(SETTING_SHOW_PLUGIN_LOAD_ERRORS, L"1");
+    PhpAddIntegerSetting(SETTING_SHOW_COMMIT_IN_SUMMARY, L"1");
+    PhpAddIntegerSetting(SETTING_SHOW_CPU_BELOW_001, L"0");
+    PhpAddIntegerSetting(SETTING_SHOW_HEX_ID, L"0");
+    PhpAddIntegerSetting(SETTING_SORT_CHILD_PROCESSES, L"0");
+    PhpAddIntegerSetting(SETTING_SORT_ROOT_PROCESSES, L"0");
+    PhpAddIntegerSetting(SETTING_START_HIDDEN, L"0");
+    PhpAddIntegerSetting(SETTING_SYSINFO_SHOW_CPU_SPEED_MHZ, L"0");
+    PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_ALWAYS_ON_TOP, L"0");
+    PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_ONE_GRAPH_PER_CPU, L"0");
+    PhpAddIntegerPairSetting(SETTING_SYSINFO_WINDOW_POSITION, L"200,200");
+    PhpAddStringSetting(SETTING_SYSINFO_WINDOW_SECTION, L"");
+    PhpAddScalableIntegerPairSetting(SETTING_SYSINFO_WINDOW_SIZE, L"@96|900,590");
+    PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_STATE, L"1");
+    PhpAddIntegerSetting(SETTING_TASKMGR_WINDOW_STATE, L"0");
+    PhpAddIntegerSetting(SETTING_THEME_WINDOW_FOREGROUND_COLOR, L"1c1c1c"); // RGB(28, 28, 28)
+    PhpAddIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND_COLOR, L"2b2b2b"); // RGB(43, 43, 43)
+    PhpAddIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND2_COLOR, L"414141"); // RGB(65, 65, 65)
+    PhpAddIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT_COLOR, L"808080"); // RGB(128, 128, 128)
+    PhpAddIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT2_COLOR, L"8f8f8f"); // RGB(143, 143, 143)
+    PhpAddIntegerSetting(SETTING_THEME_WINDOW_TEXT_COLOR, L"ffffff"); // RGB(255, 255, 255)
+    PhpAddIntegerSetting(SETTING_THIN_ROWS, L"0");
+    PhpAddStringSetting(SETTING_THREAD_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_THREAD_TREE_LIST_SORT, L"1,2"); // 1, DescendingSortOrder
+    PhpAddIntegerSetting(SETTING_THREAD_TREE_LIST_FLAGS, L"60");
+    PhpAddStringSetting(SETTING_THREAD_STACK_TREE_LIST_COLUMNS, L"");
+    PhpAddScalableIntegerPairSetting(SETTING_THREAD_STACK_WINDOW_SIZE, L"@96|420,400");
+    PhpAddIntegerPairSetting(SETTING_TOKEN_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_TOKEN_WINDOW_SIZE, L"@96|0,0");
+    PhpAddStringSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_STATES, L"");
+    PhpAddStringSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_SORT, L"1,2");
+    PhpAddStringSetting(SETTING_TOKEN_PRIVILEGES_LIST_VIEW_COLUMNS, L"");
+    PhpAddIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE, L"0");
+    PhpAddIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLORS_ENABLE, L"0");
+    PhpAddIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_TEXT, L"0");
+    PhpAddIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_FOCUS, L"0");
+    PhpAddIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_SELECTION, L"0");
+    PhpAddIntegerSetting(SETTING_TREE_LIST_CUSTOM_ROW_SIZE, L"0");
+    PhpAddIntegerSetting(SETTING_TREE_LIST_ENABLE_HEADER_TOTALS, L"1");
+    PhpAddIntegerSetting(SETTING_UPDATE_INTERVAL, L"3e8"); // 1000ms
+    PhpAddStringSetting(SETTING_USER_LIST_TREE_LIST_COLUMNS, L"");
+    PhpAddIntegerPairSetting(SETTING_USER_LIST_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_USER_LIST_WINDOW_SIZE, L"@96|550,420");
+    PhpAddIntegerSetting(SETTING_WMI_PROVIDER_ENABLE_HIDDEN_MENU, L"0");
+    PhpAddIntegerSetting(SETTING_WMI_PROVIDER_ENABLE_TOOLTIP_SUPPORT, L"0");
+    PhpAddStringSetting(SETTING_WMI_PROVIDER_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_WMI_PROVIDER_TREE_LIST_SORT, L"0,0"); // 0, NoSortOrder
+    PhpAddIntegerSetting(SETTING_WMI_PROVIDER_TREE_LIST_FLAGS, L"0");
+    PhpAddStringSetting(SETTING_VDM_HOST_LIST_VIEW_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_ZOMBIE_PROCESSES_LIST_VIEW_COLUMNS, L"");
+    PhpAddIntegerPairSetting(SETTING_ZOMBIE_PROCESSES_WINDOW_POSITION, L"400,400");
+    PhpAddScalableIntegerPairSetting(SETTING_ZOMBIE_PROCESSES_WINDOW_SIZE, L"@96|520,400");
 
     // Colors are specified with R in the lowest byte, then G, then B. So: bbggrr.
     PhpAddIntegerSetting(L"ColorNew", L"00ff7f"); // Chartreuse
@@ -367,26 +370,26 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorTemperature", L"0000ff");
     PhpAddIntegerSetting(L"ColorFanRpm", L"ff0077");
 
-    PhpAddIntegerSetting(L"KsiEnable", L"0");
-    PhpAddIntegerSetting(L"KsiEnableWarnings", L"1");
-    PhpAddStringSetting(L"KsiServiceName", L"");
-    PhpAddStringSetting(L"KsiObjectName", L"");
-    PhpAddStringSetting(L"KsiPortName", L"");
-    PhpAddStringSetting(L"KsiAltitude", L"");
-    PhpAddIntegerSetting(L"KsiDisableImageLoadProtection", L"0");
-    PhpAddIntegerSetting(L"KsiEnableSplashScreen", L"0");
-    PhpAddIntegerSetting(L"KsiEnableLoadNative", L"0");
-    PhpAddIntegerSetting(L"KsiEnableLoadFilter", L"0");
-    PhpAddIntegerSetting(L"KsiUnloadOnExit", L"0");
-    PhpAddIntegerSetting(L"KsiRandomizedPoolTag", L"0");
-    PhpAddIntegerSetting(L"KsiEnableUnloadProtection", L"1");
-    PhpAddIntegerSetting(L"KsiDynDataNoEmbedded", L"0");
-    PhpAddIntegerSetting(L"KsiClientProcessProtectionLevel", L"0");
-    PhpAddStringSetting(L"KsiPreviousTemporaryDriverFile", L"");
-    PhpAddIntegerSetting(L"KsiEnableFsFeatureOffloadRead", L"1");  // SUPPORTED_FS_FEATURES_OFFLOAD_READ
-    PhpAddIntegerSetting(L"KsiEnableFsFeatureOffloadWrite", L"1"); // SUPPORTED_FS_FEATURES_OFFLOAD_WRITE
-    PhpAddIntegerSetting(L"KsiEnableFsFeatureQueryOpen", L"1");    // SUPPORTED_FS_FEATURES_QUERY_OPEN
-    PhpAddIntegerSetting(L"KsiEnableFsFeatureBypassIO", L"1");     // SUPPORTED_FS_FEATURES_BYPASS_IO
+    PhpAddIntegerSetting(SETTING_KSI_ENABLE, L"0");
+    PhpAddIntegerSetting(SETTING_KSI_ENABLE_WARNINGS, L"1");
+    PhpAddStringSetting(SETTING_KSI_SERVICE_NAME, L"");
+    PhpAddStringSetting(SETTING_KSI_OBJECT_NAME, L"");
+    PhpAddStringSetting(SETTING_KSI_PORT_NAME, L"");
+    PhpAddStringSetting(SETTING_KSI_ALTITUDE, L"");
+    PhpAddIntegerSetting(SETTING_KSI_DISABLE_IMAGE_LOAD_PROTECTION, L"0");
+    PhpAddIntegerSetting(SETTING_KSI_ENABLE_SPLASH_SCREEN, L"0");
+    PhpAddIntegerSetting(SETTING_KSI_ENABLE_LOAD_NATIVE, L"0");
+    PhpAddIntegerSetting(SETTING_KSI_ENABLE_LOAD_FILTER, L"0");
+    PhpAddIntegerSetting(SETTING_KSI_UNLOAD_ON_EXIT, L"0");
+    PhpAddIntegerSetting(SETTING_KSI_RANDOMIZED_POOL_TAG, L"0");
+    PhpAddIntegerSetting(SETTING_KSI_ENABLE_UNLOAD_PROTECTION, L"1");
+    PhpAddIntegerSetting(SETTING_KSI_DYN_DATA_NO_EMBEDDED, L"0");
+    PhpAddIntegerSetting(SETTING_KSI_CLIENT_PROCESS_PROTECTION_LEVEL, L"0");
+    PhpAddStringSetting(SETTING_KSI_PREVIOUS_TEMPORARY_DRIVER_FILE, L"");
+    PhpAddIntegerSetting(SETTING_KSI_ENABLE_FS_FEATURE_OFFLOAD_READ, L"1");  // SUPPORTED_FS_FEATURES_OFFLOAD_READ
+    PhpAddIntegerSetting(SETTING_KSI_ENABLE_FS_FEATURE_OFFLOAD_WRITE, L"1"); // SUPPORTED_FS_FEATURES_OFFLOAD_WRITE
+    PhpAddIntegerSetting(SETTING_KSI_ENABLE_FS_FEATURE_QUERY_OPEN, L"1");    // SUPPORTED_FS_FEATURES_QUERY_OPEN
+    PhpAddIntegerSetting(SETTING_KSI_ENABLE_FS_FEATURE_BYPASS_IO, L"1");     // SUPPORTED_FS_FEATURES_BYPASS_IO
 }
 
 VOID PhUpdateCachedSettings(
