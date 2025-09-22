@@ -830,7 +830,7 @@ CleanupExit:
     return volumeFileList;
 }
 
-BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
+NTSTATUS NTAPI EtEnumDirectoryObjectsCallback(
     _In_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF Name,
     _In_ PCPH_STRINGREF TypeName,

@@ -1437,7 +1437,7 @@ typedef struct _OPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT
 } OPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT, *POPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT;
 
 _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
+NTSTATUS NTAPI PhpOpenDriverByBaseAddressCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
@@ -1451,7 +1451,7 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
     KPH_DRIVER_BASIC_INFORMATION basicInfo;
 
     if (!PhStringRefToUnicodeString(Name, &driverName))
-        return TRUE;
+        return STATUS_NAME_TOO_LONG;
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -1468,7 +1468,7 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
         );
 
     if (!NT_SUCCESS(status))
-        return TRUE;
+        return status;
 
     status = KphQueryInformationDriver(
         driverHandle,
@@ -1484,14 +1484,13 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
         {
             Context->Status = STATUS_SUCCESS;
             Context->DriverHandle = driverHandle;
-
-            return FALSE;
+            return STATUS_SUCCESS;
         }
     }
 
     NtClose(driverHandle);
 
-    return TRUE;
+    return status;
 }
 
 /**
@@ -3456,7 +3455,6 @@ NTSTATUS PhEnumDirectoryObjects(
     ULONG bufferSize;
     POBJECT_DIRECTORY_INFORMATION buffer;
     ULONG i;
-    BOOLEAN result;
 
     bufferSize = 0x200;
     buffer = PhAllocate(bufferSize);
@@ -3501,7 +3499,6 @@ NTSTATUS PhEnumDirectoryObjects(
         // Read the batch and execute the callback function for each object.
 
         i = 0;
-        result = TRUE;
 
         while (TRUE)
         {
@@ -3517,16 +3514,18 @@ NTSTATUS PhEnumDirectoryObjects(
             PhUnicodeStringToStringRef(&info->Name, &name);
             PhUnicodeStringToStringRef(&info->TypeName, &typeName);
 
-            result = Callback(DirectoryHandle, &name, &typeName, Context);
+            status = Callback(
+                DirectoryHandle,
+                &name,
+                &typeName,
+                Context
+                );
 
-            if (!result)
+            if (!NT_SUCCESS(status))
                 break;
 
             i++;
         }
-
-        if (!result)
-            break;
 
         if (status != STATUS_MORE_ENTRIES)
             break;
@@ -6988,13 +6987,12 @@ NTSTATUS PhQueryProcessHeapInformation(
 
 NTSTATUS PhQueryProcessLockInformation(
     _In_ HANDLE ProcessId,
-    _Out_ PULONG NumberOfLocks,
-    _Out_ PRTL_PROCESS_LOCK_INFORMATION* Locks
+    _In_ PPH_ENUM_PROCESS_LOCKS Callback,
+    _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
     PRTL_DEBUG_INFORMATION debugBuffer = NULL;
-    PH_ARRAY array;
 
     for (ULONG i = 0x400000; ; i *= 2) // rev from Heap32First/Heap32Next (dmex)
     {
@@ -7040,19 +7038,18 @@ NTSTATUS PhQueryProcessLockInformation(
         return STATUS_UNSUCCESSFUL;
     }
 
-    PhInitializeArray(&array, sizeof(RTL_PROCESS_LOCK_INFORMATION), debugBuffer->Locks->NumberOfLocks);
+    status = Callback(
+        debugBuffer->Locks->NumberOfLocks,
+        debugBuffer->Locks->Locks,
+        Context
+        );
 
-    for (ULONG i = 0; i < debugBuffer->Locks->NumberOfLocks; i++)
+    if (debugBuffer)
     {
-        PhAddItemArray(&array, &debugBuffer->Locks->Locks[i]);
+        RtlDestroyQueryDebugBuffer(debugBuffer);
     }
 
-    *NumberOfLocks = (ULONG)PhFinalArrayCount(&array);
-    *Locks = PhFinalArrayItems(&array);
-
-    RtlDestroyQueryDebugBuffer(debugBuffer);
-
-    return STATUS_SUCCESS;
+    return status;
 }
 
 // Queries if the specified architecture is supported on the current system,
@@ -7902,7 +7899,7 @@ static ULONG NTAPI PhKnownDllsHashtableHashFunction(
 }
 
 _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
+static NTSTATUS NTAPI PhpKnownDllObjectsCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
@@ -7918,7 +7915,7 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
     PPH_STRING fileName;
 
     if (!PhStringRefToUnicodeString(Name, &objectName))
-        return TRUE;
+        return STATUS_NAME_TOO_LONG;
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -7935,7 +7932,7 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
         );
 
     if (!NT_SUCCESS(status))
-        return TRUE;
+        return status;
 
     baseAddress = NULL;
     viewSize = PAGE_SIZE;
@@ -7955,7 +7952,7 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
     NtClose(sectionHandle);
 
     if (!NT_SUCCESS(status))
-        return TRUE;
+        return status;
 
     status = PhGetProcessMappedFileName(
         NtCurrentProcess(),
@@ -7974,7 +7971,7 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
         PhAddEntryHashtable(PhKnownDllsHashtable, &entry);
     }
 
-    return TRUE;
+    return status;
 }
 
 VOID PhInitializeKnownDlls(

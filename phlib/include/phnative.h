@@ -3175,7 +3175,7 @@ PhOpenDirectoryObject(
  * \return TRUE to continue the enumeration, FALSE to stop.
  */
 typedef _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-BOOLEAN NTAPI PH_ENUM_DIRECTORY_OBJECTS(
+NTSTATUS NTAPI PH_ENUM_DIRECTORY_OBJECTS(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
@@ -4515,13 +4515,21 @@ PhQueryProcessHeapInformation(
     _Out_ PPH_PROCESS_DEBUG_HEAP_INFORMATION* HeapInformation
     );
 
+typedef _Function_class_(PH_ENUM_PROCESS_LOCKS)
+NTSTATUS NTAPI PH_ENUM_PROCESS_LOCKS(
+    _In_ ULONG NumberOfLocks,
+    _In_ PRTL_PROCESS_LOCK_INFORMATION Locks,
+    _In_opt_ PVOID Context
+    );
+typedef PH_ENUM_PROCESS_LOCKS* PPH_ENUM_PROCESS_LOCKS;
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhQueryProcessLockInformation(
     _In_ HANDLE ProcessId,
-    _Out_ PULONG NumberOfLocks,
-    _Out_ PRTL_PROCESS_LOCK_INFORMATION* Locks
+    _In_ PPH_ENUM_PROCESS_LOCKS Callback,
+    _In_opt_ PVOID Context
     );
 
 PHLIBAPI

@@ -539,7 +539,7 @@ VOID EtInitializeListImages(
     DestroyIcon(icon);
 }
 
-static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
+static NTSTATUS NTAPI EtEnumDirectoryObjectsCallback(
     _In_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF Name,
     _In_ PCPH_STRINGREF TypeName,
@@ -573,7 +573,7 @@ static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
 }
 
 _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
+static NTSTATUS NTAPI EtEnumCurrentDirectoryObjectsCallback(
     _In_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF Name,
     _In_ PCPH_STRINGREF TypeName,
@@ -723,7 +723,7 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         PhAddItemList(Context->CurrentDirectoryList, entry);
     }
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS EtTreeViewEnumDirectoryObjects(

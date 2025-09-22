@@ -448,12 +448,14 @@ VOID PhMwpInitializeControls(
     ULONG treelistBorder;
     ULONG treelistCustomColors;
     ULONG treelistCustomHeaderDraw;
+    ULONG treelistCustomDragReorder;
     PH_TREENEW_CREATEPARAMS treelistCreateParams = { sizeof(PH_TREENEW_CREATEPARAMS) };
 
     thinRows = PhGetIntegerSetting(SETTING_THIN_ROWS) ? TN_STYLE_THIN_ROWS : 0;
     treelistBorder = (PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE) && !PhEnableThemeSupport) ? WS_BORDER : 0;
     treelistCustomColors = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLORS_ENABLE) ? TN_STYLE_CUSTOM_COLORS : 0;
     treelistCustomHeaderDraw = PhGetIntegerSetting(SETTING_TREE_LIST_ENABLE_HEADER_TOTALS) ? TN_STYLE_CUSTOM_HEADERDRAW : 0;
+    treelistCustomDragReorder = PhGetIntegerSetting(SETTING_TREE_LIST_ENABLE_DRAG_REORDER) ? TN_STYLE_DRAG_REORDER_ROWS : 0;
 
     if (treelistCustomColors)
     {
@@ -484,7 +486,8 @@ VOID PhMwpInitializeControls(
     PhMwpProcessTreeNewHandle = PhCreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
-        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER | thinRows | treelistBorder | treelistCustomColors | treelistCustomHeaderDraw,
+        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER |
+        thinRows | treelistBorder | treelistCustomColors | treelistCustomHeaderDraw | treelistCustomDragReorder,
         0,
         0,
         0,
@@ -3434,7 +3437,7 @@ VOID PhMwpDispatchMenuCommand(
         break;
     case ID_VIEW_ORGANIZECOLUMNSETS:
         {
-            PhShowColumnSetEditorDialog(WindowHandle, L"ProcessTreeColumnSetConfig");
+            PhShowColumnSetEditorDialog(WindowHandle, SETTING_PROCESS_TREE_COLUMN_SET_CONFIG);
         }
         return;
     case ID_VIEW_SAVECOLUMNSET:
@@ -3469,7 +3472,7 @@ VOID PhMwpDispatchMenuCommand(
                 // Query the current column configuration.
                 PhSaveSettingsProcessTreeListEx(&treeSettings, &sortSettings);
                 // Create the column set for this column configuration.
-                PhSaveSettingsColumnSet(L"ProcessTreeColumnSetConfig", columnSetName, treeSettings, sortSettings);
+                PhSaveSettingsColumnSet(SETTING_PROCESS_TREE_COLUMN_SET_CONFIG, columnSetName, treeSettings, sortSettings);
 
                 PhDereferenceObject(treeSettings);
                 PhDereferenceObject(sortSettings);
@@ -3487,7 +3490,7 @@ VOID PhMwpDispatchMenuCommand(
             columnSetName = PhCreateString(menuItem->Text);
 
             // Query the selected column set.
-            if (PhLoadSettingsColumnSet(L"ProcessTreeColumnSetConfig", columnSetName, &treeSettings, &sortSettings))
+            if (PhLoadSettingsColumnSet(SETTING_PROCESS_TREE_COLUMN_SET_CONFIG, columnSetName, &treeSettings, &sortSettings))
             {
                 // Load the column configuration from the selected column set.
                 PhLoadSettingsProcessTreeListEx(treeSettings, sortSettings);

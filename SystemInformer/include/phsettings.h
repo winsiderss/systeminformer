@@ -404,6 +404,7 @@ EXT ULONG PhCsEnableHandleSnapshot;
 #define SETTING_TREE_LIST_CUSTOM_COLOR_SELECTION                    L"TreeListCustomColorSelection"
 #define SETTING_TREE_LIST_CUSTOM_ROW_SIZE                           L"TreeListCustomRowSize"
 #define SETTING_TREE_LIST_ENABLE_HEADER_TOTALS                      L"TreeListEnableHeaderTotals"
+#define SETTING_TREE_LIST_ENABLE_DRAG_REORDER                       L"TreeListEnableDragReorder"
 #define SETTING_UPDATE_INTERVAL                                     L"UpdateInterval"
 #define SETTING_USER_LIST_TREE_LIST_COLUMNS                         L"UserListTreeListColumns"
 #define SETTING_USER_LIST_WINDOW_POSITION                           L"UserListWindowPosition"

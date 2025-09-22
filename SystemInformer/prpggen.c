@@ -377,7 +377,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     }
                 }
 
-                inspectExecutables = PhaGetStringSetting(L"ProgramInspectExecutables");
+                inspectExecutables = PhaGetStringSetting(SETTING_PROGRAM_INSPECT_EXECUTABLES);
 
                 if (PhIsNullOrEmptyString(inspectExecutables))
                 {
@@ -550,7 +550,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Protection
 
-            PhSetDialogItemText(hwndDlg, IDC_PROTECTION, PhpGetStringOrNa(processItem->ProtectionString));
+            PPH_STRING string = PhGetProcessProtectionString(processItem->Protection, (BOOLEAN)processItem->IsSecureProcess);
+            PhSetDialogItemText(hwndDlg, IDC_PROTECTION, PhpGetStringOrNa(string));
+            PhClearReference(&string);
 
             // Image type
 
@@ -634,7 +636,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,
-                                L"ProgramInspectExecutables",
+                                SETTING_PROGRAM_INSPECT_EXECUTABLES,
                                 PhGetString(processItem->FileName),
                                 FALSE,
                                 L"Make sure the PE Viewer executable file is present."
@@ -659,7 +661,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,
-                                L"FileBrowseExecutable",
+                                SETTING_FILE_BROWSE_EXECUTABLE,
                                 PhGetString(processItem->FileName),
                                 FALSE,
                                 L"Make sure the Explorer executable file is present."

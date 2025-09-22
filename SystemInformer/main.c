@@ -80,8 +80,6 @@ INT WINAPI wWinMain(
 
     PhInitializePreviousInstance();
 
-    PhInitializeSuperclassControls();
-
     if (PhEnableKsiSupport &&
         !PhStartupParameters.ShowOptions)
     {
@@ -98,6 +96,7 @@ INT WINAPI wWinMain(
 
     PhInitializeAutoPool(&BaseAutoPool);
 
+    PhInitializeSuperclassControls();
     PhInitializeCommonControls();
 
     PhInitializeAppSystem();
@@ -482,7 +481,7 @@ VOID PhInitializePreviousInstance(
 }
 
 _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-BOOLEAN NTAPI PhpPreviousInstancesCallback(
+NTSTATUS NTAPI PhpPreviousInstancesCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
@@ -493,7 +492,7 @@ BOOLEAN NTAPI PhpPreviousInstancesCallback(
     HANDLE objectHandle;
 
     if (!PhStartsWithStringRef2(Name, L"SiMutant_", FALSE))
-        return TRUE;
+        return STATUS_NAME_TOO_LONG;
 
     if (NT_SUCCESS(PhOpenMutant(
         &objectHandle,
@@ -510,13 +509,14 @@ BOOLEAN NTAPI PhpPreviousInstancesCallback(
             if (objectInfo.ClientId.UniqueProcess != NtCurrentProcessId())
             {
                 PhForegroundPreviousInstance(objectInfo.ClientId.UniqueProcess);
+                return STATUS_NO_MORE_ENTRIES;
             }
         }
 
         NtClose(objectHandle);
     }
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 VOID PhActivatePreviousInstance(
@@ -1079,7 +1079,7 @@ VOID PhEnableTerminationPolicy(
     _In_ BOOLEAN Enabled
     )
 {
-    if (PhGetOwnTokenAttributes().Elevated && PhGetIntegerSetting(L"EnableBreakOnTermination"))
+    if (PhGetOwnTokenAttributes().Elevated && PhGetIntegerSetting(SETTING_ENABLE_BREAK_ON_TERMINATION))
     {
         NTSTATUS status;
 

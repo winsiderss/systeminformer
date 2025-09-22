@@ -1291,7 +1291,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            if (PhGetIntegerSetting(L"RunAsEnableAutoComplete"))
+            if (PhGetIntegerSetting(SETTING_RUN_AS_ENABLE_AUTO_COMPLETE))
             {
                 COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
 
@@ -1478,7 +1478,7 @@ NTSTATUS PhRunAsUpdateDesktop(
 
         if (NT_SUCCESS(status))
         {
-            if (!NT_SUCCESS(RtlGetDaclSecurityDescriptor(
+            if (!NT_SUCCESS(PhGetDaclSecurityDescriptor(
                 currentSecurityDescriptor,
                 &currentDaclPresent,
                 &currentDacl,
@@ -1503,8 +1503,10 @@ NTSTATUS PhRunAsUpdateDesktop(
             {
                 for (i = 0; i < currentDacl->AceCount; i++)
                 {
-                    if (NT_SUCCESS(RtlGetAce(currentDacl, i, &currentAce)))
+                    if (NT_SUCCESS(PhGetAce(currentDacl, i, &currentAce)))
+                    {
                         RtlAddAce(newDacl, ACL_REVISION, ULONG_MAX, currentAce, currentAce->AceSize);
+                    }
                 }
             }
 
@@ -1579,7 +1581,7 @@ NTSTATUS PhRunAsUpdateWindowStation(
 
         if (NT_SUCCESS(status))
         {
-            if (!NT_SUCCESS(RtlGetDaclSecurityDescriptor(
+            if (!NT_SUCCESS(PhGetDaclSecurityDescriptor(
                 currentSecurityDescriptor,
                 &currentDaclPresent,
                 &currentDacl,
@@ -1603,8 +1605,10 @@ NTSTATUS PhRunAsUpdateWindowStation(
             {
                 for (i = 0; i < currentDacl->AceCount; i++)
                 {
-                    if (NT_SUCCESS(RtlGetAce(currentDacl, i, &currentAce)))
+                    if (NT_SUCCESS(PhGetAce(currentDacl, i, &currentAce)))
+                    {
                         RtlAddAce(newDacl, ACL_REVISION, ULONG_MAX, currentAce, currentAce->AceSize);
+                    }
                 }
             }
 
@@ -1656,9 +1660,9 @@ NTSTATUS PhSetDesktopWinStaAccess(
     PSECURITY_DESCRIPTOR securityDescriptor;
     PACL dacl;
 
-    if (!PhStartupParameters.RunAsServiceMode && WindowHandle && PhGetIntegerSetting(L"EnableWarnings"))
+    if (!PhStartupParameters.RunAsServiceMode && WindowHandle && PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
-        if (PhGetIntegerSetting(L"EnableWarningsRunas") && PhShowMessageOneTime(
+        if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS_RUNAS) && PhShowMessageOneTime(
             WindowHandle,
             TD_YES_BUTTON | TD_NO_BUTTON,
             TD_WARNING_ICON,
@@ -1666,7 +1670,7 @@ NTSTATUS PhSetDesktopWinStaAccess(
             L"Are you sure you want to continue?"
             ) == IDNO)
         {
-            PhSetIntegerSetting(L"EnableWarningsRunas", 0);
+            PhSetIntegerSetting(SETTING_ENABLE_WARNINGS_RUNAS, 0);
             return STATUS_ACCESS_DENIED;
         }
     }
@@ -1678,7 +1682,7 @@ NTSTATUS PhSetDesktopWinStaAccess(
     allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid((PSID)&PhSeEveryoneSid) +
+        PhLengthSid(&PhSeEveryoneSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         PhLengthSid(allAppPackagesSid);
 
@@ -1687,7 +1691,7 @@ NTSTATUS PhSetDesktopWinStaAccess(
 
     PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     PhCreateAcl(dacl, allocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    PhAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, (PSID)&PhSeEveryoneSid);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, &PhSeEveryoneSid);
 
     if (WindowsVersion >= WINDOWS_8)
     {
@@ -1734,6 +1738,30 @@ NTSTATUS PhSetDesktopWinStaAccess(
     return STATUS_SUCCESS;
 }
 
+PPH_STRING PhFormatRunAsCommand(
+    _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    )
+{
+    PPH_STRING command;
+    PPH_STRING fileName;
+    PH_FORMAT format[8];
+
+    if (!(fileName = PhGetApplicationFileNameWin32()))
+        return NULL;
+
+    // L"\"%s\" -ras \"%s\""
+    PhInitFormatS(&format[0], L"\"");
+    PhInitFormatSR(&format[1], fileName->sr);
+    PhInitFormatS(&format[2], L"\" -ras \"");
+    PhInitFormatS(&format[3], Parameters->ServiceName);
+    PhInitFormatS(&format[4], L"\"");
+
+    command = PhFormat(format, RTL_NUMBER_OF(format), 0);
+
+    PhDereferenceObject(fileName);
+    return command;
+}
+
 /**
  * Executes the run-as service.
  *
@@ -1746,30 +1774,14 @@ NTSTATUS PhExecuteRunAsCommand(
     )
 {
     NTSTATUS status;
-    PPH_STRING fileName;
     PPH_STRING commandLine;
     SC_HANDLE serviceHandle;
     PPH_STRING portName;
     UNICODE_STRING portNameUs;
     ULONG attempts;
 
-    if (!(fileName = PhGetApplicationFileNameWin32()))
+    if (!(commandLine = PhFormatRunAsCommand(Parameters)))
         return STATUS_UNSUCCESSFUL;
-
-    //{
-    //    PH_FORMAT format[8];
-    //
-    //    // L"\"%s\" -ras \"%s\""
-    //    PhInitFormatS(&format[0], L"\"");
-    //    PhInitFormatSR(&format[1], fileName->sr);
-    //    PhInitFormatS(&format[2], L"\" -ras \"");
-    //    PhInitFormatS(&format[3], Parameters->ServiceName);
-    //    PhInitFormatS(&format[4], L"\"");
-    //
-    //    commandLine = PhFormat(format, RTL_NUMBER_OF(format), 0);
-    //}
-
-    commandLine = PhFormatString(L"\"%s\" -ras \"%s\"", fileName->Buffer, Parameters->ServiceName);
 
     status = PhCreateService(
         &serviceHandle,
@@ -1785,7 +1797,6 @@ NTSTATUS PhExecuteRunAsCommand(
         );
 
     PhDereferenceObject(commandLine);
-    PhDereferenceObject(fileName);
 
     if (!NT_SUCCESS(status))
         return status;
@@ -1856,7 +1867,19 @@ NTSTATUS PhExecuteRunAsCommand2(
     _In_ BOOLEAN UseLinkedToken
     )
 {
-    return PhExecuteRunAsCommand3(WindowHandle, CommandLine, UserName, Password, LogonType, ProcessIdWithToken, SessionId, DesktopName, UseLinkedToken, FALSE, FALSE);
+    return PhExecuteRunAsCommand3(
+        WindowHandle,
+        CommandLine,
+        UserName,
+        Password,
+        LogonType,
+        ProcessIdWithToken,
+        SessionId,
+        DesktopName,
+        UseLinkedToken,
+        FALSE,
+        FALSE
+        );
 }
 
 NTSTATUS PhExecuteRunAsCommand3(
@@ -1898,9 +1921,17 @@ NTSTATUS PhExecuteRunAsCommand3(
         PhAcquireQueuedLockExclusive(&RunAsOldServiceLock);
 
         portName = PhConcatStrings2(L"\\BaseNamedObjects\\", RunAsOldServiceName);
-        PhStringRefToUnicodeString(&portName->sr, &portNameUs);
 
-        if (NT_SUCCESS(PhSvcConnectToServer(&portNameUs, 0)))
+        if (!PhStringRefToUnicodeString(&portName->sr, &portNameUs))
+        {
+            PhDereferenceObject(portName);
+            PhReleaseQueuedLockExclusive(&RunAsOldServiceLock);
+            return STATUS_NAME_TOO_LONG;
+        }
+
+        status = PhSvcConnectToServer(&portNameUs, 0);
+
+        if (NT_SUCCESS(status))
         {
             parameters.ServiceName = RunAsOldServiceName;
             status = PhSvcCallInvokeRunAsService(&parameters);
@@ -1908,7 +1939,6 @@ NTSTATUS PhExecuteRunAsCommand3(
 
             PhDereferenceObject(portName);
             PhReleaseQueuedLockExclusive(&RunAsOldServiceLock);
-
             return status;
         }
 
@@ -2146,7 +2176,6 @@ NTSTATUS PhInvokeRunAsService(
 
     if (NT_SUCCESS(status))
     {
-        PROCESS_BASIC_INFORMATION basicInfo;
         //PSID userSid, logonSid;
         //
         //if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
@@ -2155,14 +2184,19 @@ NTSTATUS PhInvokeRunAsService(
         //    PhRunAsUpdateWindowStation(userSid, logonSid);
         //}
 
-        if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
+        if (!Parameters->CreateSuspendedProcess)
         {
-            AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
+            PROCESS_BASIC_INFORMATION basicInfo;
+
+            if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
+            {
+                AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
+            }
+
+            PhConsoleSetForeground(newProcessHandle, TRUE);
+
+            PhResumeProcess(newProcessHandle);
         }
-
-        PhConsoleSetForeground(newProcessHandle, TRUE);
-
-        NtResumeProcess(newProcessHandle);
 
         NtClose(newProcessHandle);
     }

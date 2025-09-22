@@ -45,6 +45,7 @@ VOID PhpRemoveProcessNode(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpProcessTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -1913,6 +1914,7 @@ static VOID PhpUpdateProcessNodeServices(
     return PhModifySort(sortResult, ProcessTreeListSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpProcessTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,

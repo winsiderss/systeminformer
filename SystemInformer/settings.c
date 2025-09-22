@@ -278,6 +278,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_SELECTION, L"0");
     PhpAddIntegerSetting(SETTING_TREE_LIST_CUSTOM_ROW_SIZE, L"0");
     PhpAddIntegerSetting(SETTING_TREE_LIST_ENABLE_HEADER_TOTALS, L"1");
+    PhpAddIntegerSetting(SETTING_TREE_LIST_ENABLE_DRAG_REORDER, L"0");
     PhpAddIntegerSetting(SETTING_UPDATE_INTERVAL, L"3e8"); // 1000ms
     PhpAddStringSetting(SETTING_USER_LIST_TREE_LIST_COLUMNS, L"");
     PhpAddIntegerPairSetting(SETTING_USER_LIST_WINDOW_POSITION, L"0,0");
