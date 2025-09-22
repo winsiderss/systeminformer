@@ -2514,6 +2514,28 @@ NTSTATUS PhGetFileVersionInfoEx(
     if (!NT_SUCCESS(status))
         return status;
 
+    if (LdrResFindResource_Import())
+    {
+        PVOID resourceBuffer = NULL;
+        SIZE_T resourceLength = 0;
+
+        if (NT_SUCCESS(LdrResFindResource_Import()(
+            imageBaseAddress,
+            VS_FILE_INFO,
+            MAKEINTRESOURCE(VS_VERSION_INFO),
+            MAKEINTRESOURCE(MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL)),
+            &resourceBuffer,
+            &resourceLength,
+            NULL,
+            NULL,
+            LDR_RES_ALT_RETRY
+            )))
+        {
+            *VersionInfo = PhAllocateCopy(resourceBuffer, resourceLength);
+            return STATUS_SUCCESS;
+        }
+    }
+
     // MUI version information
     if (PRIMARYLANGID(LANGIDFROMLCID(PhGetCurrentThreadLCID())) != LANG_ENGLISH)
     {

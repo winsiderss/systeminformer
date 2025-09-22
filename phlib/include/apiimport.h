@@ -38,6 +38,7 @@ PH_DECLARE_IMPORT(NtCompareObjects);
 
 PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
 PH_DECLARE_IMPORT(LdrSystemDllInitBlock);
+PH_DECLARE_IMPORT(LdrResFindResource);
 
 PH_DECLARE_IMPORT(RtlDefaultNpAcl);
 PH_DECLARE_IMPORT(RtlDelayExecution);
