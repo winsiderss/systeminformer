@@ -1917,7 +1917,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_ReadVirtual(
     }
     else
     {
-        return HRESULT_FROM_NT(status);
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
     }
 }
 
@@ -1992,7 +1992,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     }
     else
     {
-        return HRESULT_FROM_NT(status);
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
     }
 }
 
