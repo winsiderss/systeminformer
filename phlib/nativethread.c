@@ -332,6 +332,39 @@ NTSTATUS PhSetThreadName(
 }
 
 /**
+ * Gets a thread's affinity mask.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_SET_LIMITED_INFORMATION
+ * access.
+ * \param AffinityMask The new affinity mask.
+ */
+NTSTATUS PhGetThreadAffinityMask(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PKAFFINITY AffinityMask
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+
+    status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo);
+
+    if (NT_SUCCESS(status))
+    {
+        *AffinityMask = basicInfo.AffinityMask;
+    }
+
+    return status;
+
+    //return NtQueryInformationThread(
+    //    ThreadHandle,
+    //    ThreadAffinityMask,
+    //    &AffinityMask,
+    //    sizeof(KAFFINITY),
+    //    NULL
+    //    );
+}
+
+/**
  * Sets a thread's affinity mask.
  *
  * \param ThreadHandle A handle to a thread. The handle must have THREAD_SET_LIMITED_INFORMATION

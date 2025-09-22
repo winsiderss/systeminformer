@@ -4378,6 +4378,14 @@ PhSetThreadName(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetThreadAffinityMask(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PKAFFINITY AffinityMask
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetThreadAffinityMask(
     _In_ HANDLE ThreadHandle,
     _In_ KAFFINITY AffinityMask

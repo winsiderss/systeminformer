@@ -1364,34 +1364,6 @@ PhGetThreadIsTerminated2(
 
 FORCEINLINE
 NTSTATUS
-PhGetThreadAffinityMask(
-    _In_ HANDLE ThreadHandle,
-    _Out_ PKAFFINITY AffinityMask
-    )
-{
-    NTSTATUS status;
-    THREAD_BASIC_INFORMATION basicInfo;
-
-    status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo);
-
-    if (NT_SUCCESS(status))
-    {
-        *AffinityMask = basicInfo.AffinityMask;
-    }
-
-    return status;
-
-    //return NtQueryInformationThread(
-    //    ThreadHandle,
-    //    ThreadAffinityMask,
-    //    &AffinityMask,
-    //    sizeof(KAFFINITY),
-    //    NULL
-    //    );
-}
-
-FORCEINLINE
-NTSTATUS
 PhGetThreadGroupAffinity(
     _In_ HANDLE ThreadHandle,
     _Out_ PGROUP_AFFINITY GroupAffinity
