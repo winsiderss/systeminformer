@@ -127,4 +127,4 @@ RtlAssert(
     _In_opt_ PCSTR MutableMessage
     );
 
-#endif
+#endif // _NTXCAPI_H
