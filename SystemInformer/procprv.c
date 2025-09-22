@@ -412,7 +412,6 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->CommandLine) PhDereferenceObject(processItem->CommandLine);
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->Sid) PhFree(processItem->Sid);
-    if (processItem->ProtectionString) PhDereferenceObject(processItem->ProtectionString);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);

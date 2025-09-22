@@ -169,7 +169,6 @@ typedef struct _PH_PROCESS_ITEM
     PH_INTEGRITY_LEVEL IntegrityLevel;
     PPH_STRINGREF IntegrityString;
     PS_PROTECTION Protection;
-    PPH_STRING ProtectionString;
 
     // Other
 

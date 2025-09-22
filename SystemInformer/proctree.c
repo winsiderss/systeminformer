@@ -666,6 +666,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->FileSizeText);
     PhClearReference(&ProcessNode->SubprocessCountText);
     PhClearReference(&ProcessNode->JobObjectIdText);
+    PhClearReference(&ProcessNode->ProtectionText);
     PhClearReference(&ProcessNode->DesktopInfoText);
     PhClearReference(&ProcessNode->CpuCoreUsageText);
     PhClearReference(&ProcessNode->ImageCoherencyText);
@@ -4252,7 +4253,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         processItem->IsSecureProcess ||
                         processItem->IsProtectedProcess)
                     {
-                        getCellText->Text = PhGetStringRef(processItem->ProtectionString);
+                        PhMoveReference(&node->ProtectionText, PhGetProcessProtectionString(
+                            processItem->Protection,
+                            (BOOLEAN)processItem->IsSecureProcess
+                            ));
+                        getCellText->Text = PhGetStringRef(node->ProtectionText);
                     }
                 }
                 break;
