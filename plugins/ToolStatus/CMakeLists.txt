@@ -22,10 +22,12 @@ set(SOURCES
     "filter.c"
     "graph.c"
     "main.c"
+    "plugin.c"
     "options.c"
     "statusbar.c"
     "taskbar.c"
     "toolbar.c"
+    "toolbarsup.c"
 )
 source_group("Source Files" FILES ${SOURCES})
 

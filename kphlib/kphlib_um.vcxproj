@@ -32,6 +32,7 @@
     <ProjectGuid>{f1757430-8eee-49df-a5f1-0999a53bb4a0}</ProjectGuid>
     <RootNamespace>kphlib_um</RootNamespace>
     <ProjectName>kphlib</ProjectName>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">

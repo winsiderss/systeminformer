@@ -1336,7 +1336,10 @@ NTSTATUS PhReadVirtualMemory(
         &numberOfBytesRead
         );
 
-    assert(BufferSize == numberOfBytesRead);
+    if (NT_SUCCESS(status))
+    {
+        assert(BufferSize == numberOfBytesRead);
+    }
 
     if (NumberOfBytesRead)
     {
@@ -1375,7 +1378,10 @@ NTSTATUS PhWriteVirtualMemory(
         &numberOfBytesWritten
         );
 
-    assert(NumberOfBytesToWrite == numberOfBytesWritten);
+    if (NT_SUCCESS(status))
+    {
+        assert(NumberOfBytesToWrite == numberOfBytesWritten);
+    }
 
     if (NumberOfBytesWritten)
     {
