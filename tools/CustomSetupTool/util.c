@@ -1135,7 +1135,7 @@ BOOLEAN SetupLegacySetupInstalled(
 }
 
 _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-static BOOLEAN NTAPI PhpPreviousInstancesCallback(
+static NTSTATUS NTAPI PhpPreviousInstancesCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
@@ -1152,11 +1152,11 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         !(setupMutant = PhStartsWithStringRef2(Name, L"SiSetupMutant_", TRUE)) &&
         !PhStartsWithStringRef2(Name, L"SiViewerMutant_", TRUE))
     {
-        return TRUE;
+        return STATUS_SUCCESS;
     }
 
     if (!PhStringRefToUnicodeString(Name, &objectNameUs))
-        return TRUE;
+        return STATUS_SUCCESS;
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -1172,7 +1172,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         &objectAttributes
         )))
     {
-        return TRUE;
+        return STATUS_SUCCESS;
     }
 
     if (NT_SUCCESS(PhGetMutantOwnerInformation(
@@ -1232,7 +1232,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
 
     NtClose(objectHandle);
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 _Function_class_(PH_ENUM_DIRECTORY_FILE)
