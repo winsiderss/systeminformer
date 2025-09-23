@@ -345,6 +345,7 @@ HRESULT PhRunAsAdminTask(
     )
 {
     HRESULT status;
+    ULONG sessionId = ULONG_MAX;
     BSTR taskNameString = NULL;
     BSTR taskFolderString = NULL;
     VARIANT empty = { VT_EMPTY };
@@ -414,8 +415,8 @@ HRESULT PhRunAsAdminTask(
     status = IRegisteredTask_RunEx(
         taskRegisteredTask,
         params,
-        TASK_RUN_AS_SELF,
-        0,
+        TASK_RUN_AS_SELF | TASK_RUN_USE_SESSION_ID,
+        USER_SHARED_DATA->ActiveConsoleId,
         NULL,
         &taskRunningTask
         );
