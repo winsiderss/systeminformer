@@ -576,14 +576,14 @@ ULONG64 PhReadTimeStampCounter(
     VOID
     )
 {
-#if defined(PH_NATIVE_RDTSC)
-    SpeculationFence();
-    ULONG64 value = ReadTimeStampCounter();
+#if defined(_M_X64) || defined(_M_IX86)
+    unsigned int aux;
+    ULONG64 value = __rdtscp(&aux);
     SpeculationFence();
     return value;
 #else
-    unsigned int aux;
-    ULONG64 value = __rdtscp(&aux);
+    SpeculationFence();
+    ULONG64 value = ReadTimeStampCounter();
     SpeculationFence();
     return value;
 #endif
