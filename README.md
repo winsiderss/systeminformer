@@ -1,10 +1,12 @@
+
 <p align="center">
     <a href="https://systeminformer.com">
         <img src="https://github.com/winsiderss/systeminformer/raw/master/SystemInformer/resources/systeminformer-128x128.png"/>
     </a>
     <h1 align="center">System Informer</h1>
     <h5 align="center">A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware.</h5>
-    <h6 align="center">Brought to you by Winsider Seminars & Solutions, Inc.</h6>
+    <h6 align="center">Hi There! Brought to you by Winsider Seminars & Solutions, Inc.</h6>
+    
 </p>
 <p align="center">
     <a href="https://github.com/winsiderss/systeminformer/actions/workflows/msbuild.yml">
