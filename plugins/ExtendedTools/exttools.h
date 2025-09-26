@@ -1249,7 +1249,11 @@ typedef struct _FW_EVENT_ITEM
             ULONG RemotePortServiceResolved : 1;
             ULONG LocalHostnameResolved : 1;
             ULONG RemoteHostnameResolved : 1;
-            ULONG Spare : 27;
+            ULONG LocalAddressResolved : 1;
+            ULONG LocalPortResolved : 1;
+            ULONG RemoteAddressResolved : 1;
+            ULONG RemotePortResolved : 1;
+            ULONG Spare : 23;
         };
     };
 

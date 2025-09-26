@@ -566,6 +566,120 @@ VOID FwUpdateNodeRemotePortServiceName(
     }
 }
 
+VOID FwUpdateNodeLocalAddressString(
+    _In_ PFW_EVENT_ITEM FwNode
+    )
+{
+    if (!FwNode->LocalAddressResolved)
+    {
+        switch (FwNode->LocalEndpoint.Address.Type)
+        {
+        case PH_NETWORK_TYPE_IPV4:
+            {
+                ULONG ipv4AddressStringLength = RTL_NUMBER_OF(FwNode->LocalAddressString);
+
+                if (NT_SUCCESS(PhIpv4AddressToString(&FwNode->LocalEndpoint.Address.InAddr, 0, FwNode->LocalAddressString, &ipv4AddressStringLength)))
+                {
+                    FwNode->LocalAddressStringLength = (ipv4AddressStringLength - 1);
+                }
+            }
+            break;
+        case PH_NETWORK_TYPE_IPV6:
+            {
+                ULONG ipv6AddressStringLength = RTL_NUMBER_OF(FwNode->LocalAddressString);
+
+                if (NT_SUCCESS(PhIpv6AddressToString(&FwNode->LocalEndpoint.Address.In6Addr, FwNode->ScopeId, 0, FwNode->LocalAddressString, &ipv6AddressStringLength)))
+                {
+                    FwNode->LocalAddressStringLength = (ipv6AddressStringLength - 1);
+                }
+            }
+            break;
+        }
+
+        FwNode->LocalAddressResolved = TRUE;
+    }
+}
+
+VOID FwUpdateNodeLocalPortString(
+    _In_ PFW_EVENT_ITEM FwNode
+    )
+{
+    if (!FwNode->LocalPortResolved)
+    {
+        if (FwNode->LocalEndpoint.Port)
+        {
+            SIZE_T returnLength;
+            PH_FORMAT format[1];
+
+            PhInitFormatU(&format[0], FwNode->LocalEndpoint.Port);
+
+            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), FwNode->LocalPortString, sizeof(FwNode->LocalPortString), &returnLength))
+            {
+                FwNode->LocalPortStringLength = (ULONG)((returnLength - sizeof(UNICODE_NULL)) / sizeof(WCHAR));
+            }
+        }
+
+        FwNode->LocalPortResolved = TRUE;
+    }
+}
+
+VOID FwUpdateNodeRemoteAddressString(
+    _In_ PFW_EVENT_ITEM FwNode
+    )
+{
+    if (!FwNode->RemoteAddressResolved)
+    {
+        switch (FwNode->RemoteEndpoint.Address.Type)
+        {
+        case PH_NETWORK_TYPE_IPV4:
+            {
+                ULONG ipv4AddressStringLength = RTL_NUMBER_OF(FwNode->RemoteAddressString);
+
+                if (NT_SUCCESS(PhIpv4AddressToString(&FwNode->RemoteEndpoint.Address.InAddr, 0, FwNode->RemoteAddressString, &ipv4AddressStringLength)))
+                {
+                    FwNode->RemoteAddressStringLength = (ipv4AddressStringLength - 1);
+                }
+            }
+            break;
+        case PH_NETWORK_TYPE_IPV6:
+            {
+                ULONG ipv6AddressStringLength = RTL_NUMBER_OF(FwNode->RemoteAddressString);
+
+                if (NT_SUCCESS(PhIpv6AddressToString(&FwNode->RemoteEndpoint.Address.In6Addr, FwNode->ScopeId, 0, FwNode->RemoteAddressString, &ipv6AddressStringLength)))
+                {
+                    FwNode->RemoteAddressStringLength = (ipv6AddressStringLength - 1);
+                }
+            }
+            break;
+        }
+
+        FwNode->RemoteAddressResolved = TRUE;
+    }
+}
+
+VOID FwUpdateNodeRemotePortString(
+    _In_ PFW_EVENT_ITEM FwNode
+)
+{
+    if (!FwNode->RemotePortResolved)
+    {
+        if (FwNode->RemoteEndpoint.Port)
+        {
+            SIZE_T returnLength;
+            PH_FORMAT format[1];
+
+            PhInitFormatU(&format[0], FwNode->RemoteEndpoint.Port);
+
+            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), FwNode->RemotePortString, sizeof(FwNode->RemotePortString), &returnLength))
+            {
+                FwNode->RemotePortStringLength = (ULONG)((returnLength - sizeof(UNICODE_NULL)) / sizeof(WCHAR));
+            }
+        }
+
+        FwNode->RemotePortResolved = TRUE;
+    }
+}
+
 #define SORT_FUNCTION(Column) FwTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl FwTreeNewCompare##Column( \
     _In_ void const* _elem1, \
@@ -959,63 +1073,16 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
             case FW_COLUMN_LOCALADDRESS:
                 {
-                    switch (node->LocalEndpoint.Address.Type)
-                    {
-                    case PH_NETWORK_TYPE_IPV4:
-                        {
-                            ULONG ipv4AddressStringLength = RTL_NUMBER_OF(node->LocalAddressString);
-
-                            if (NT_SUCCESS(PhIpv4AddressToString(&node->LocalEndpoint.Address.InAddr, 0, node->LocalAddressString, &ipv4AddressStringLength)))
-                            {
-                                getCellText->Text.Buffer = node->LocalAddressString;
-                                getCellText->Text.Length = (node->LocalAddressStringLength = (ipv4AddressStringLength - 1)) * sizeof(WCHAR);
-                            }
-                            else
-                            {
-                                PhInitializeEmptyStringRef(&getCellText->Text);
-                                node->LocalAddressStringLength = 0;
-                            }
-                        }
-                        break;
-                    case PH_NETWORK_TYPE_IPV6:
-                        {
-                            ULONG ipv6AddressStringLength = RTL_NUMBER_OF(node->LocalAddressString);
-
-                            if (NT_SUCCESS(PhIpv6AddressToString(&node->LocalEndpoint.Address.In6Addr, node->ScopeId, 0, node->LocalAddressString, &ipv6AddressStringLength)))
-                            {
-                                getCellText->Text.Buffer = node->LocalAddressString;
-                                getCellText->Text.Length = (node->LocalAddressStringLength = (ipv6AddressStringLength - 1)) * sizeof(WCHAR);
-                            }
-                            else
-                            {
-                                PhInitializeEmptyStringRef(&getCellText->Text);
-                                node->LocalAddressStringLength = 0;
-                            }
-                        }
-                        break;
-                    }
+                    FwUpdateNodeLocalAddressString(node);
+                    getCellText->Text.Buffer = node->LocalAddressString;
+                    getCellText->Text.Length = (node->LocalAddressStringLength * sizeof(WCHAR));
                 }
                 break;
             case FW_COLUMN_LOCALPORT:
                 {
-                    if (node->LocalEndpoint.Port)
-                    {
-                        SIZE_T returnLength;
-                        PH_FORMAT format[1];
-
-                        PhInitFormatU(&format[0], node->LocalEndpoint.Port);
-
-                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->LocalPortString, sizeof(node->LocalPortString), &returnLength))
-                        {
-                            getCellText->Text.Buffer = node->LocalPortString;
-                            getCellText->Text.Length = (node->LocalPortStringLength = (ULONG)(returnLength - sizeof(UNICODE_NULL)));
-                        }
-                        else
-                        {
-                            PhInitializeEmptyStringRef(&getCellText->Text);
-                            node->LocalPortStringLength = 0;
-                        }
-                    }
+                    FwUpdateNodeLocalPortString(node);
+                    getCellText->Text.Buffer = node->LocalPortString;
+                    getCellText->Text.Length = (node->LocalPortStringLength * sizeof(WCHAR));
                 }
                 break;
             case FW_COLUMN_LOCALHOSTNAME:
@@ -1036,63 +1103,16 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
             case FW_COLUMN_REMOTEADDRESS:
                 {
-                    switch (node->RemoteEndpoint.Address.Type)
-                    {
-                    case PH_NETWORK_TYPE_IPV4:
-                        {
-                            ULONG ipv4AddressStringLength = RTL_NUMBER_OF(node->RemoteAddressString);
-
-                            if (NT_SUCCESS(PhIpv4AddressToString(&node->RemoteEndpoint.Address.InAddr, 0, node->RemoteAddressString, &ipv4AddressStringLength)))
-                            {
-                                getCellText->Text.Buffer = node->RemoteAddressString;
-                                getCellText->Text.Length = (node->RemoteAddressStringLength = (ipv4AddressStringLength - 1)) * sizeof(WCHAR);
-                            }
-                            else
-                            {
-                                PhInitializeEmptyStringRef(&getCellText->Text);
-                                node->RemoteAddressStringLength = 0;
-                            }
-                        }
-                        break;
-                    case PH_NETWORK_TYPE_IPV6:
-                        {
-                            ULONG ipv6AddressStringLength = RTL_NUMBER_OF(node->RemoteAddressString);
-
-                            if (NT_SUCCESS(PhIpv6AddressToString(&node->RemoteEndpoint.Address.In6Addr, node->ScopeId, 0, node->RemoteAddressString, &ipv6AddressStringLength)))
-                            {
-                                getCellText->Text.Buffer = node->RemoteAddressString;
-                                getCellText->Text.Length = (node->RemoteAddressStringLength = (ipv6AddressStringLength - 1)) * sizeof(WCHAR);
-                            }
-                            else
-                            {
-                                PhInitializeEmptyStringRef(&getCellText->Text);
-                                node->RemoteAddressStringLength = 0;
-                            }
-                        }
-                        break;
-                    }
+                    FwUpdateNodeRemoteAddressString(node);
+                    getCellText->Text.Buffer = node->RemoteAddressString;
+                    getCellText->Text.Length = (node->RemoteAddressStringLength * sizeof(WCHAR));
                 }
                 break;
             case FW_COLUMN_REMOTEPORT:
                 {
-                    if (node->RemoteEndpoint.Port)
-                    {
-                        SIZE_T returnLength;
-                        PH_FORMAT format[1];
-
-                        PhInitFormatU(&format[0], node->RemoteEndpoint.Port);
-
-                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->RemotePortString, sizeof(node->RemotePortString), &returnLength))
-                        {
-                            getCellText->Text.Buffer = node->RemotePortString;
-                            getCellText->Text.Length = (node->RemotePortStringLength = (ULONG)(returnLength - sizeof(UNICODE_NULL)));
-                        }
-                        else
-                        {
-                            PhInitializeEmptyStringRef(&getCellText->Text);
-                            node->RemotePortStringLength = 0;
-                        }
-                    }
+                    FwUpdateNodeRemotePortString(node);
+                    getCellText->Text.Buffer = node->RemotePortString;
+                    getCellText->Text.Length = (node->RemotePortStringLength * sizeof(WCHAR));
                 }
                 break;
             case FW_COLUMN_REMOTEHOSTNAME:
@@ -2002,12 +2022,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
             return TRUE;
     }
 
-    if (fwNode->ProcessFileName)
-    {
-        if (wordMatch(&fwNode->ProcessFileName->sr))
-            return TRUE;
-    }
-
+    FwUpdateNodeLocalAddressString(fwNode);
     if (fwNode->LocalAddressStringLength)
     {
         PH_STRINGREF string;
@@ -2025,6 +2040,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
             return TRUE;
     }
 
+    FwUpdateNodeLocalPortString(fwNode);
     if (fwNode->LocalPortStringLength)
     {
         PH_STRINGREF string;
@@ -2036,6 +2052,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
             return TRUE;
     }
 
+    FwUpdateNodeRemoteAddressString(fwNode);
     if (fwNode->RemoteAddressStringLength)
     {
         PH_STRINGREF string;
@@ -2053,6 +2070,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
             return TRUE;
     }
 
+    FwUpdateNodeRemotePortString(fwNode);
     if (fwNode->RemotePortStringLength)
     {
         PH_STRINGREF string;
