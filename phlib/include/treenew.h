@@ -680,7 +680,7 @@ EXTERN_C LRESULT PhTnSendMessage(
     PhTnSendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, (LPARAM)(Node))
 
 #define TreeNew_SelectFirstVisibleNode(hWnd) \
-    PhTnSendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, 0)
+    PhTnSendMessage((hWnd), TNM_FOCUSVISIBLENODE, 0, 0)
 
 #define TreeNew_GetCellParts(hWnd, Parts) \
     ((BOOLEAN)PhTnSendMessage((hWnd), TNM_GETCELLPARTS, 0, (LPARAM)(Parts)))
@@ -844,7 +844,7 @@ EXTERN_C LRESULT PhTnSendMessage(
     SendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, (LPARAM)(Node))
 
 #define TreeNew_SelectFirstVisibleNode(hWnd) \
-    SendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, 0)
+    SendMessage((hWnd), TNM_FOCUSVISIBLENODE, 0, 0)
 
 #define TreeNew_GetCellParts(hWnd, Parts) \
     SendMessage((hWnd), TNM_GETCELLPARTS, 0, (LPARAM)(Parts))
