@@ -29,8 +29,12 @@
 #define PHHNTLC_ORIGINALNAME 7
 #define PHHNTLC_FILESHAREACCESS 8
 #define PHHNTLC_HANDLEVALUE 9
+#define PHHNTLC_HANDLECOUNT 10
+#define PHHNTLC_POINTERCOUNT 11
+#define PHHNTLC_PAGEDSIZE 12
+#define PHHNTLC_NONPAGEDSIZE 13
 
-#define PHHNTLC_MAXIMUM 10
+#define PHHNTLC_MAXIMUM 14
 
 // begin_phapppub
 typedef enum _PH_HANDLE_TREE_MENUITEM
@@ -66,6 +70,10 @@ typedef struct _PH_HANDLE_NODE
     PPH_STRING GrantedAccessSymbolicText;
     WCHAR FileShareAccessText[4];
     PPH_STRING HandleValue;
+    PPH_STRING HandleCountText;
+    PPH_STRING PointerCountText;
+    PPH_STRING PageSizeText;
+    PPH_STRING NonPageSizeText;
 // begin_phapppub
 } PH_HANDLE_NODE, *PPH_HANDLE_NODE;
 // end_phapppub

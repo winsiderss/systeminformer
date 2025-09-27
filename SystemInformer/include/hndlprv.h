@@ -34,6 +34,11 @@ typedef struct _PH_HANDLE_ITEM
     ULONG TypeIndex;
     ULONG FileFlags;
 
+    ULONG HandleCount;
+    ULONG PointerCount;
+    ULONG PagedPoolCharge;
+    ULONG NonPagedPoolCharge;
+
     PPH_STRING TypeName;
     PPH_STRING ObjectName;
     PPH_STRING BestObjectName;

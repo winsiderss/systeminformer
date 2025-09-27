@@ -41,6 +41,7 @@ VOID PhpRemoveHandleNode(
     _In_ PPH_HANDLE_LIST_CONTEXT Context
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpHandleTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -96,6 +97,10 @@ VOID PhInitializeHandleList(
     PhAddTreeNewColumn(hwnd, PHHNTLC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx(hwnd, PHHNTLC_FILESHAREACCESS, FALSE, L"File share access", 50, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHHNTLC_HANDLEVALUE, FALSE, L"Handle value", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHHNTLC_HANDLECOUNT, FALSE, L"Handle count", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHHNTLC_POINTERCOUNT, FALSE, L"Reference count", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHHNTLC_PAGEDSIZE, FALSE, L"Paged size", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHHNTLC_NONPAGEDSIZE, FALSE, L"Nonpaged size", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -150,9 +155,9 @@ VOID PhLoadSettingsHandleList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"HandleTreeListColumns");
-    sortSettings = PhGetStringSetting(L"HandleTreeListSort");
-    Context->Flags = PhGetIntegerSetting(L"HandleTreeListFlags");
+    settings = PhGetStringSetting(SETTING_HANDLE_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_HANDLE_TREE_LIST_SORT);
+    Context->Flags = PhGetIntegerSetting(SETTING_HANDLE_TREE_LIST_FLAGS);
 
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
@@ -169,9 +174,9 @@ VOID PhSaveSettingsHandleList(
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
-    PhSetIntegerSetting(L"HandleTreeListFlags", Context->Flags);
-    PhSetStringSetting2(L"HandleTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"HandleTreeListSort", &sortSettings->sr);
+    PhSetIntegerSetting(SETTING_HANDLE_TREE_LIST_FLAGS, Context->Flags);
+    PhSetStringSetting2(SETTING_HANDLE_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_HANDLE_TREE_LIST_SORT, &sortSettings->sr);
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
@@ -299,6 +304,10 @@ VOID PhpDestroyHandleNode(
 
     if (HandleNode->GrantedAccessSymbolicText) PhDereferenceObject(HandleNode->GrantedAccessSymbolicText);
     if (HandleNode->HandleValue) PhDereferenceObject(HandleNode->HandleValue);
+    if (HandleNode->HandleCountText) PhDereferenceObject(HandleNode->HandleCountText);
+    if (HandleNode->PointerCountText) PhDereferenceObject(HandleNode->PointerCountText);
+    if (HandleNode->PageSizeText) PhDereferenceObject(HandleNode->PageSizeText);
+    if (HandleNode->NonPageSizeText) PhDereferenceObject(HandleNode->NonPageSizeText);
 
     PhDereferenceObject(HandleNode->HandleItem);
 
@@ -384,6 +393,7 @@ VOID PhTickHandleNodes(
     return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpHandleTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -449,6 +459,30 @@ BEGIN_SORT_FUNCTION(FileShareAccess)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(HandleCount)
+{
+    sortResult = uintcmp(handleItem1->HandleCount, handleItem2->HandleCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PointerCount)
+{
+    sortResult = uintcmp(handleItem1->PointerCount, handleItem2->PointerCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PagedPoolCharge)
+{
+    sortResult = uintcmp(handleItem1->PagedPoolCharge, handleItem2->PagedPoolCharge);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(NonPagedPoolCharge)
+{
+    sortResult = uintcmp(handleItem1->NonPagedPoolCharge, handleItem2->NonPagedPoolCharge);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpHandleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -483,6 +517,10 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                     SORT_FUNCTION(OriginalName),
                     SORT_FUNCTION(FileShareAccess),
                     SORT_FUNCTION(Handle),
+                    SORT_FUNCTION(HandleCount),
+                    SORT_FUNCTION(PointerCount),
+                    SORT_FUNCTION(PagedPoolCharge),
+                    SORT_FUNCTION(NonPagedPoolCharge),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -620,6 +658,30 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                 {
                     PhMoveReference(&node->HandleValue, PhFormatUInt64((HANDLE_PTR)handleItem->Handle, FALSE));
                     getCellText->Text = PhGetStringRef(node->HandleValue);
+                }
+                break;
+            case PHHNTLC_HANDLECOUNT:
+                {
+                    PhMoveReference(&node->HandleCountText, PhFormatUInt64(handleItem->HandleCount, FALSE));
+                    getCellText->Text = PhGetStringRef(node->HandleCountText);
+                }
+                break;
+            case PHHNTLC_POINTERCOUNT:
+                {
+                    PhMoveReference(&node->PointerCountText, PhFormatUInt64(handleItem->PointerCount, FALSE));
+                    getCellText->Text = PhGetStringRef(node->PointerCountText);
+                }
+                break;
+            case PHHNTLC_PAGEDSIZE:
+                {
+                    PhMoveReference(&node->PageSizeText, PhFormatSize(handleItem->PagedPoolCharge, ULONG_MAX));
+                    getCellText->Text = PhGetStringRef(node->PageSizeText);
+                }
+                break;
+            case PHHNTLC_NONPAGEDSIZE:
+                {
+                    PhMoveReference(&node->NonPageSizeText, PhFormatSize(handleItem->NonPagedPoolCharge, ULONG_MAX));
+                    getCellText->Text = PhGetStringRef(node->NonPageSizeText);
                 }
                 break;
             default:
