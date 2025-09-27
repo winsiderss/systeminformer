@@ -252,89 +252,89 @@ typedef IO_APC_ROUTINE* PIO_APC_ROUTINE;
 
 typedef enum _FILE_INFORMATION_CLASS
 {
-    FileDirectoryInformation = 1, // q: FILE_DIRECTORY_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
-    FileFullDirectoryInformation, // q: FILE_FULL_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
-    FileBothDirectoryInformation, // q: FILE_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
-    FileBasicInformation, // qs: FILE_BASIC_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
-    FileStandardInformation, // q: FILE_STANDARD_INFORMATION, FILE_STANDARD_INFORMATION_EX
-    FileInternalInformation, // q: FILE_INTERNAL_INFORMATION
-    FileEaInformation, // q: FILE_EA_INFORMATION
-    FileAccessInformation, // q: FILE_ACCESS_INFORMATION
-    FileNameInformation, // q: FILE_NAME_INFORMATION
-    FileRenameInformation, // s: FILE_RENAME_INFORMATION (requires DELETE) // 10
-    FileLinkInformation, // s: FILE_LINK_INFORMATION
-    FileNamesInformation, // q: FILE_NAMES_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
-    FileDispositionInformation, // s: FILE_DISPOSITION_INFORMATION (requires DELETE)
-    FilePositionInformation, // qs: FILE_POSITION_INFORMATION
-    FileFullEaInformation, // FILE_FULL_EA_INFORMATION
-    FileModeInformation, // qs: FILE_MODE_INFORMATION
-    FileAlignmentInformation, // q: FILE_ALIGNMENT_INFORMATION
-    FileAllInformation, // q: FILE_ALL_INFORMATION (requires FILE_READ_ATTRIBUTES)
-    FileAllocationInformation, // s: FILE_ALLOCATION_INFORMATION (requires FILE_WRITE_DATA)
-    FileEndOfFileInformation, // s: FILE_END_OF_FILE_INFORMATION (requires FILE_WRITE_DATA) // 20
-    FileAlternateNameInformation, // q: FILE_NAME_INFORMATION
-    FileStreamInformation, // q: FILE_STREAM_INFORMATION
-    FilePipeInformation, // qs: FILE_PIPE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
-    FilePipeLocalInformation, // q: FILE_PIPE_LOCAL_INFORMATION (requires FILE_READ_ATTRIBUTES)
-    FilePipeRemoteInformation, // qs: FILE_PIPE_REMOTE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
-    FileMailslotQueryInformation, // q: FILE_MAILSLOT_QUERY_INFORMATION
-    FileMailslotSetInformation, // s: FILE_MAILSLOT_SET_INFORMATION
-    FileCompressionInformation, // q: FILE_COMPRESSION_INFORMATION
-    FileObjectIdInformation, // q: FILE_OBJECTID_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
-    FileCompletionInformation, // s: FILE_COMPLETION_INFORMATION // 30
-    FileMoveClusterInformation, // s: FILE_MOVE_CLUSTER_INFORMATION (requires FILE_WRITE_DATA)
-    FileQuotaInformation, // q: FILE_QUOTA_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
-    FileReparsePointInformation, // q: FILE_REPARSE_POINT_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
-    FileNetworkOpenInformation, // q: FILE_NETWORK_OPEN_INFORMATION (requires FILE_READ_ATTRIBUTES)
-    FileAttributeTagInformation, // q: FILE_ATTRIBUTE_TAG_INFORMATION (requires FILE_READ_ATTRIBUTES)
-    FileTrackingInformation, // s: FILE_TRACKING_INFORMATION (requires FILE_WRITE_DATA)
-    FileIdBothDirectoryInformation, // q: FILE_ID_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
-    FileIdFullDirectoryInformation, // q: FILE_ID_FULL_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
-    FileValidDataLengthInformation, // s: FILE_VALID_DATA_LENGTH_INFORMATION (requires FILE_WRITE_DATA and/or SeManageVolumePrivilege)
-    FileShortNameInformation, // s: FILE_NAME_INFORMATION (requires DELETE) // 40
-    FileIoCompletionNotificationInformation, // qs: FILE_IO_COMPLETION_NOTIFICATION_INFORMATION (q: requires FILE_READ_ATTRIBUTES) // since VISTA
-    FileIoStatusBlockRangeInformation, // s: FILE_IOSTATUSBLOCK_RANGE_INFORMATION (requires SeLockMemoryPrivilege)
-    FileIoPriorityHintInformation, // qs: FILE_IO_PRIORITY_HINT_INFORMATION, FILE_IO_PRIORITY_HINT_INFORMATION_EX (q: requires FILE_READ_DATA)
-    FileSfioReserveInformation, // qs: FILE_SFIO_RESERVE_INFORMATION (q: requires FILE_READ_DATA)
-    FileSfioVolumeInformation, // q: FILE_SFIO_VOLUME_INFORMATION (requires FILE_READ_ATTRIBUTES)
-    FileHardLinkInformation, // q: FILE_LINKS_INFORMATION
-    FileProcessIdsUsingFileInformation, // q: FILE_PROCESS_IDS_USING_FILE_INFORMATION (requires FILE_READ_ATTRIBUTES)
-    FileNormalizedNameInformation, // q: FILE_NAME_INFORMATION
-    FileNetworkPhysicalNameInformation, // q: FILE_NETWORK_PHYSICAL_NAME_INFORMATION
-    FileIdGlobalTxDirectoryInformation, // q: FILE_ID_GLOBAL_TX_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex]) // since WIN7 // 50
-    FileIsRemoteDeviceInformation, // q: FILE_IS_REMOTE_DEVICE_INFORMATION (requires FILE_READ_ATTRIBUTES)
-    FileUnusedInformation,
-    FileNumaNodeInformation, // q: FILE_NUMA_NODE_INFORMATION
-    FileStandardLinkInformation, // q: FILE_STANDARD_LINK_INFORMATION
-    FileRemoteProtocolInformation, // q: FILE_REMOTE_PROTOCOL_INFORMATION
-    FileRenameInformationBypassAccessCheck, // s: FILE_RENAME_INFORMATION // (kernel-mode only) // since WIN8
-    FileLinkInformationBypassAccessCheck, // s: FILE_LINK_INFORMATION // (kernel-mode only)
-    FileVolumeNameInformation, // q: FILE_VOLUME_NAME_INFORMATION
-    FileIdInformation, // q: FILE_ID_INFORMATION
-    FileIdExtdDirectoryInformation, // q: FILE_ID_EXTD_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex]) // 60
-    FileReplaceCompletionInformation, // s: FILE_COMPLETION_INFORMATION // since WINBLUE
-    FileHardLinkFullIdInformation, // q: FILE_LINK_ENTRY_FULL_ID_INFORMATION // FILE_LINKS_FULL_ID_INFORMATION
-    FileIdExtdBothDirectoryInformation, // q: FILE_ID_EXTD_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex]) // since THRESHOLD
-    FileDispositionInformationEx, // s: FILE_DISPOSITION_INFO_EX (requires DELETE) // since REDSTONE
-    FileRenameInformationEx, // s: FILE_RENAME_INFORMATION_EX
-    FileRenameInformationExBypassAccessCheck, // s: FILE_RENAME_INFORMATION_EX // (kernel-mode only)
-    FileDesiredStorageClassInformation, // qs: FILE_DESIRED_STORAGE_CLASS_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // since REDSTONE2
-    FileStatInformation, // q: FILE_STAT_INFORMATION (requires FILE_READ_ATTRIBUTES)
-    FileMemoryPartitionInformation, // s: FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
-    FileStatLxInformation, // q: FILE_STAT_LX_INFORMATION (requires FILE_READ_ATTRIBUTES and FILE_READ_EA) // since REDSTONE4 // 70
-    FileCaseSensitiveInformation, // qs: FILE_CASE_SENSITIVE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
-    FileLinkInformationEx, // s: FILE_LINK_INFORMATION_EX // since REDSTONE5
-    FileLinkInformationExBypassAccessCheck, // s: FILE_LINK_INFORMATION_EX // (kernel-mode only)
-    FileStorageReserveIdInformation, // qs: FILE_STORAGE_RESERVE_ID_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
-    FileCaseSensitiveInformationForceAccessCheck, // qs: FILE_CASE_SENSITIVE_INFORMATION
-    FileKnownFolderInformation, // qs: FILE_KNOWN_FOLDER_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // since WIN11
-    FileStatBasicInformation, // qs: FILE_STAT_BASIC_INFORMATION // since 23H2
-    FileId64ExtdDirectoryInformation, // FILE_ID_64_EXTD_DIR_INFORMATION
-    FileId64ExtdBothDirectoryInformation, // FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
-    FileIdAllExtdDirectoryInformation, // FILE_ID_ALL_EXTD_DIR_INFORMATION
-    FileIdAllExtdBothDirectoryInformation, // FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
-    FileStreamReservationInformation, // FILE_STREAM_RESERVATION_INFORMATION // since 24H2
-    FileMupProviderInfo, // qs: MUP_PROVIDER_INFORMATION
+    FileDirectoryInformation = 1,                   // q: FILE_DIRECTORY_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileFullDirectoryInformation,                   // q: FILE_FULL_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileBothDirectoryInformation,                   // q: FILE_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileBasicInformation,                           // qs: FILE_BASIC_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
+    FileStandardInformation,                        // q: FILE_STANDARD_INFORMATION, FILE_STANDARD_INFORMATION_EX
+    FileInternalInformation,                        // q: FILE_INTERNAL_INFORMATION
+    FileEaInformation,                              // q: FILE_EA_INFORMATION (requires FILE_READ_EA)
+    FileAccessInformation,                          // q: FILE_ACCESS_INFORMATION
+    FileNameInformation,                            // q: FILE_NAME_INFORMATION
+    FileRenameInformation,                          // s: FILE_RENAME_INFORMATION (requires DELETE) // 10
+    FileLinkInformation,                            // s: FILE_LINK_INFORMATION
+    FileNamesInformation,                           // q: FILE_NAMES_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileDispositionInformation,                     // s: FILE_DISPOSITION_INFORMATION (requires DELETE)
+    FilePositionInformation,                        // qs: FILE_POSITION_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
+    FileFullEaInformation,                          // q: FILE_FULL_EA_INFORMATION (requires FILE_READ_EA)
+    FileModeInformation,                            // qs: FILE_MODE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
+    FileAlignmentInformation,                       // q: FILE_ALIGNMENT_INFORMATION
+    FileAllInformation,                             // q: FILE_ALL_INFORMATION
+    FileAllocationInformation,                      // s: FILE_ALLOCATION_INFORMATION (requires FILE_WRITE_DATA)
+    FileEndOfFileInformation,                       // s: FILE_END_OF_FILE_INFORMATION (requires FILE_WRITE_DATA) // 20
+    FileAlternateNameInformation,                   // q: FILE_NAME_INFORMATION
+    FileStreamInformation,                          // q: FILE_STREAM_INFORMATION
+    FilePipeInformation,                            // qs: FILE_PIPE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
+    FilePipeLocalInformation,                       // q: FILE_PIPE_LOCAL_INFORMATION
+    FilePipeRemoteInformation,                      // qs: FILE_PIPE_REMOTE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
+    FileMailslotQueryInformation,                   // q: FILE_MAILSLOT_QUERY_INFORMATION
+    FileMailslotSetInformation,                     // s: FILE_MAILSLOT_SET_INFORMATION
+    FileCompressionInformation,                     // q: FILE_COMPRESSION_INFORMATION
+    FileObjectIdInformation,                        // q: FILE_OBJECTID_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileCompletionInformation,                      // s: FILE_COMPLETION_INFORMATION // 30
+    FileMoveClusterInformation,                     // s: FILE_MOVE_CLUSTER_INFORMATION (requires FILE_WRITE_DATA)
+    FileQuotaInformation,                           // q: FILE_QUOTA_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileReparsePointInformation,                    // q: FILE_REPARSE_POINT_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileNetworkOpenInformation,                     // q: FILE_NETWORK_OPEN_INFORMATION
+    FileAttributeTagInformation,                    // q: FILE_ATTRIBUTE_TAG_INFORMATION
+    FileTrackingInformation,                        // s: FILE_TRACKING_INFORMATION (requires FILE_WRITE_DATA)
+    FileIdBothDirectoryInformation,                 // q: FILE_ID_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileIdFullDirectoryInformation,                 // q: FILE_ID_FULL_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
+    FileValidDataLengthInformation,                 // s: FILE_VALID_DATA_LENGTH_INFORMATION (requires FILE_WRITE_DATA and/or SeManageVolumePrivilege)
+    FileShortNameInformation,                       // s: FILE_NAME_INFORMATION (requires DELETE) // 40
+    FileIoCompletionNotificationInformation,        // qs: FILE_IO_COMPLETION_NOTIFICATION_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // since VISTA
+    FileIoStatusBlockRangeInformation,              // s: FILE_IOSTATUSBLOCK_RANGE_INFORMATION (requires SeLockMemoryPrivilege)
+    FileIoPriorityHintInformation,                  // qs: FILE_IO_PRIORITY_HINT_INFORMATION, FILE_IO_PRIORITY_HINT_INFORMATION_EX (q: requires FILE_READ_DATA)
+    FileSfioReserveInformation,                     // qs: FILE_SFIO_RESERVE_INFORMATION (q: requires FILE_READ_DATA)
+    FileSfioVolumeInformation,                      // q: FILE_SFIO_VOLUME_INFORMATION
+    FileHardLinkInformation,                        // q: FILE_LINKS_INFORMATION
+    FileProcessIdsUsingFileInformation,             // q: FILE_PROCESS_IDS_USING_FILE_INFORMATION
+    FileNormalizedNameInformation,                  // q: FILE_NAME_INFORMATION
+    FileNetworkPhysicalNameInformation,             // q: FILE_NETWORK_PHYSICAL_NAME_INFORMATION
+    FileIdGlobalTxDirectoryInformation,             // q: FILE_ID_GLOBAL_TX_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex]) // since WIN7 // 50
+    FileIsRemoteDeviceInformation,                  // q: FILE_IS_REMOTE_DEVICE_INFORMATION
+    FileUnusedInformation,                          // q: 
+    FileNumaNodeInformation,                        // q: FILE_NUMA_NODE_INFORMATION
+    FileStandardLinkInformation,                    // q: FILE_STANDARD_LINK_INFORMATION
+    FileRemoteProtocolInformation,                  // q: FILE_REMOTE_PROTOCOL_INFORMATION
+    FileRenameInformationBypassAccessCheck,         // s: FILE_RENAME_INFORMATION // (kernel-mode only) // since WIN8
+    FileLinkInformationBypassAccessCheck,           // s: FILE_LINK_INFORMATION // (kernel-mode only)
+    FileVolumeNameInformation,                      // q: FILE_VOLUME_NAME_INFORMATION
+    FileIdInformation,                              // q: FILE_ID_INFORMATION
+    FileIdExtdDirectoryInformation,                 // q: FILE_ID_EXTD_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex]) // 60
+    FileReplaceCompletionInformation,               // s: FILE_COMPLETION_INFORMATION // since WINBLUE
+    FileHardLinkFullIdInformation,                  // q: FILE_LINK_ENTRY_FULL_ID_INFORMATION // FILE_LINKS_FULL_ID_INFORMATION
+    FileIdExtdBothDirectoryInformation,             // q: FILE_ID_EXTD_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex]) // since THRESHOLD
+    FileDispositionInformationEx,                   // s: FILE_DISPOSITION_INFO_EX (requires DELETE) // since REDSTONE
+    FileRenameInformationEx,                        // s: FILE_RENAME_INFORMATION_EX
+    FileRenameInformationExBypassAccessCheck,       // s: FILE_RENAME_INFORMATION_EX // (kernel-mode only)
+    FileDesiredStorageClassInformation,             // qs: FILE_DESIRED_STORAGE_CLASS_INFORMATION // since REDSTONE2
+    FileStatInformation,                            // q: FILE_STAT_INFORMATION
+    FileMemoryPartitionInformation,                 // s: FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
+    FileStatLxInformation,                          // q: FILE_STAT_LX_INFORMATION (requires FILE_READ_ATTRIBUTES and FILE_READ_EA) // since REDSTONE4 // 70
+    FileCaseSensitiveInformation,                   // qs: FILE_CASE_SENSITIVE_INFORMATION
+    FileLinkInformationEx,                          // s: FILE_LINK_INFORMATION_EX // since REDSTONE5
+    FileLinkInformationExBypassAccessCheck,         // s: FILE_LINK_INFORMATION_EX // (kernel-mode only)
+    FileStorageReserveIdInformation,                // qs: FILE_STORAGE_RESERVE_ID_INFORMATION
+    FileCaseSensitiveInformationForceAccessCheck,   // qs: FILE_CASE_SENSITIVE_INFORMATION
+    FileKnownFolderInformation,                     // qs: FILE_KNOWN_FOLDER_INFORMATION // since WIN11
+    FileStatBasicInformation,                       // qs: FILE_STAT_BASIC_INFORMATION // since 23H2
+    FileId64ExtdDirectoryInformation,               // q: FILE_ID_64_EXTD_DIR_INFORMATION
+    FileId64ExtdBothDirectoryInformation,           // q: FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
+    FileIdAllExtdDirectoryInformation,              // q: FILE_ID_ALL_EXTD_DIR_INFORMATION
+    FileIdAllExtdBothDirectoryInformation,          // q: FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
+    FileStreamReservationInformation,               // q: FILE_STREAM_RESERVATION_INFORMATION // since 24H2
+    FileMupProviderInfo,                            // qs: MUP_PROVIDER_INFORMATION
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -1585,21 +1585,21 @@ typedef struct _FILE_QUOTA_INFORMATION
 
 typedef enum _FSINFOCLASS
 {
-    FileFsVolumeInformation = 1, // q: FILE_FS_VOLUME_INFORMATION
-    FileFsLabelInformation, // s: FILE_FS_LABEL_INFORMATION (requires FILE_WRITE_DATA to volume)
-    FileFsSizeInformation, // q: FILE_FS_SIZE_INFORMATION
-    FileFsDeviceInformation, // q: FILE_FS_DEVICE_INFORMATION
-    FileFsAttributeInformation, // q: FILE_FS_ATTRIBUTE_INFORMATION
-    FileFsControlInformation, // q, s: FILE_FS_CONTROL_INFORMATION  (q: requires FILE_READ_DATA; s: requires FILE_WRITE_DATA to volume)
-    FileFsFullSizeInformation, // q: FILE_FS_FULL_SIZE_INFORMATION
-    FileFsObjectIdInformation, // q; s: FILE_FS_OBJECTID_INFORMATION (s: requires FILE_WRITE_DATA to volume)
-    FileFsDriverPathInformation, // q: FILE_FS_DRIVER_PATH_INFORMATION
-    FileFsVolumeFlagsInformation, // q; s: FILE_FS_VOLUME_FLAGS_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES to volume) // 10
-    FileFsSectorSizeInformation, // q: FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
-    FileFsDataCopyInformation, // q: FILE_FS_DATA_COPY_INFORMATION
-    FileFsMetadataSizeInformation, // q: FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
-    FileFsFullSizeInformationEx, // q: FILE_FS_FULL_SIZE_INFORMATION_EX // since REDSTONE5
-    FileFsGuidInformation, // q: FILE_FS_GUID_INFORMATION // since 23H2
+    FileFsVolumeInformation = 1,            // q: FILE_FS_VOLUME_INFORMATION
+    FileFsLabelInformation,                 // s: FILE_FS_LABEL_INFORMATION // SeManageVolumePrivilege
+    FileFsSizeInformation,                  // q: FILE_FS_SIZE_INFORMATION
+    FileFsDeviceInformation,                // q: FILE_FS_DEVICE_INFORMATION
+    FileFsAttributeInformation,             // q: FILE_FS_ATTRIBUTE_INFORMATION
+    FileFsControlInformation,               // qs: FILE_FS_CONTROL_INFORMATION // SeManageVolumePrivilege
+    FileFsFullSizeInformation,              // q: FILE_FS_FULL_SIZE_INFORMATION
+    FileFsObjectIdInformation,              // qs: FILE_FS_OBJECTID_INFORMATION // SeRestorePrivilege
+    FileFsDriverPathInformation,            // q: FILE_FS_DRIVER_PATH_INFORMATION
+    FileFsVolumeFlagsInformation,           // qs: FILE_FS_VOLUME_FLAGS_INFORMATION // SeManageVolumePrivilege // 10
+    FileFsSectorSizeInformation,            // q: FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
+    FileFsDataCopyInformation,              // q: FILE_FS_DATA_COPY_INFORMATION
+    FileFsMetadataSizeInformation,          // q: FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
+    FileFsFullSizeInformationEx,            // q: FILE_FS_FULL_SIZE_INFORMATION_EX // since REDSTONE5
+    FileFsGuidInformation,                  // q: FILE_FS_GUID_INFORMATION // since 23H2
     FileFsMaximumInformation
 } FSINFOCLASS, *PFSINFOCLASS;
 typedef enum _FSINFOCLASS FS_INFORMATION_CLASS;
@@ -1925,8 +1925,13 @@ NtFlushBuffersFile(
 //        written data in the devices cache to persistent storage.
 //
 //  This is equivalent to how NtFlushBuffersFile has always worked.
-//
 
+
+// If set, File data and metadata in the file cache will be written, and the 
+// underlying storage is synchronized to flush its cache.
+// Windows file systems supported: NTFS, ReFS, FAT, exFAT.
+//
+#define FLUSH_FLAGS_FILE_NORMAL 0x00000000
 //  If set, this operation will write the data for the given file from the
 //  Windows in-memory cache.  This will NOT commit any associated metadata
 //  changes.  This will NOT send a SYNC to the storage device to flush its
@@ -1955,6 +1960,18 @@ NtFlushBuffersFile(
 #define FLUSH_FLAGS_FLUSH_AND_PURGE 0x00000008 // 24H2
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
+
+/**
+ * The NtFlushBuffersFileEx routine sends a flush request for a given file to the file system. An optional flush operation flag can be set to control how file data is written to storage.
+ *
+ * \param FileHandle A handle to the file object representing the file, directory, device or volume.
+ * \param Flags Flush operation flags.
+ * \param Parameters Pointer to a block with additional parameters. This parameter must currently be set to NULL.
+ * \param ParametersSize The size, in bytes, of the block that Parameters point to. This parameter must currently be set to 0.
+ * \param IoStatusBlock Address of the caller's I/O status block. This parameter is required and cannot be NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntflushbuffersfileex
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2072,13 +2089,54 @@ NtQueryDirectoryFile(
     );
 
 // QueryFlags values for NtQueryDirectoryFileEx
+/**
+ * The scan will start at the first entry in the directory. If this flag is not set, the scan will resume from where the last query ended.
+ */
 #define FILE_QUERY_RESTART_SCAN 0x00000001
+/**
+ * Normally the return buffer is packed with as many matching directory entries that fit.
+ * If this flag is set, the file system will return only one directory entry at a time.
+ * This does make the operation less efficient.
+ */
 #define FILE_QUERY_RETURN_SINGLE_ENTRY 0x00000002
+/**
+ * The scan should start at a specified indexed position in the directory.
+ * This flag can only be set if you generate your own IRP_MJ_DIRECTORY_CONTROL IRP; the index is specified in the IRP.
+ * How the position is specified varies from file system to file system.
+ */
 #define FILE_QUERY_INDEX_SPECIFIED 0x00000004
+/**
+ * Any file system filters that perform directory virtualization or just-in-time expansion should simply pass the request
+ * through to the file system and return entries that are currently on disk. Not all file systems support this flag.
+ */
 #define FILE_QUERY_RETURN_ON_DISK_ENTRIES_ONLY 0x00000008
+/**
+ * File systems maintain per-FileObject directory cursor information. When multiple threads do queries using the same FileObject,
+ * access to the per-FileObject structure is single threaded to prevent corruption of the cursor state.
+ * This flag tells the file system to not update per-FileObject cursor state information thus allowing multiple threads 
+ * to query in parallel using the same handle. It behaves as if SL_RESTART_SCAN is specified on each call. If a wild card pattern
+ * is given on the next call, the operation will not pick up where the last query ended. 
+ * This allows for true asynchronous directory query support. Not all file systems support this flag.
+ */
 #define FILE_QUERY_NO_CURSOR_UPDATE 0x00000010 // RS5
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
+/**
+ * The NtQueryDirectoryFileEx routine returns various kinds of information about files in the directory specified by a given file handle.
+ *
+ * \param[in] FileHandle A handle for the file object that represents the directory for which information is being requested.
+ * \param[in] Event An optional handle for a caller-created event. The event is set to the Signaled state the requested operation is completed.
+ * \param[in] ApcRoutine An address of an optional, caller-supplied APC routine to be called when the requested operation completes.
+ * \param[in] ApcContext An address of an optional, caller-supplied APC or I/O completion object associated with the file object.
+ * \param[out] IoStatusBlock A pointer to an IO_STATUS_BLOCK structure that receives the final completion status, and the number of bytes written to the buffer pointed to by FileInformation.
+ * \param[out] FileInformation A pointer to a buffer that receives the desired information about the file.
+ * \param[in] Length The size, in bytes, of the buffer pointed to by FileInformation.
+ * \param[in] FileInformationClass The type of information to be returned about files in the directory.
+ * \param[in] QueryFlags One or more of the flags contained in SL_QUERY_DIRECTORY_MASK
+ * \param[in] FileName An optional pointer to a Unicode string search expression containing the name of a file (or multiple files, if wildcards are used) within the directory.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntquerydirectoryfileex
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
