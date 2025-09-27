@@ -224,6 +224,7 @@
     <ClInclude Include="include\appresolver.h" />
     <ClInclude Include="include\appresolverp.h" />
     <ClInclude Include="include\bcd.h" />
+    <ClInclude Include="include\cpuset.h" />
     <ClInclude Include="include\phafd.h" />
     <ClInclude Include="include\phconsole.h" />
     <ClInclude Include="include\phfirmware.h" />

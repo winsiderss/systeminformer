@@ -445,5 +445,8 @@
     <ClInclude Include="include\trace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\cpuset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
