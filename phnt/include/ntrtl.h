@@ -12130,7 +12130,7 @@ typedef struct _RTL_FEATURE_CONFIGURATION_INTERNAL
 typedef struct _SYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION_ENTRY
 {
     RTL_FEATURE_CHANGE_STAMP ChangeStamp;
-    PVOID Section;
+    HANDLE SectionHandle;
     SIZE_T Size;
 } SYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION_ENTRY, *PSYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION_ENTRY;
 
@@ -12408,6 +12408,17 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryAllFeatureConfigurations(
+    _In_ RTL_FEATURE_CONFIGURATION_TYPE ConfigurationType,
+    _Out_opt_ PRTL_FEATURE_CHANGE_STAMP ChangeStamp,
+    _Out_writes_(*ConfigurationCount) PRTL_FEATURE_CONFIGURATION Configurations,
+    _Inout_ PSIZE_T ConfigurationCount
+    );
+
+// private
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryAllInternalFeatureConfigurations(
     _In_ RTL_FEATURE_CONFIGURATION_TYPE ConfigurationType,
     _Out_opt_ PRTL_FEATURE_CHANGE_STAMP ChangeStamp,
     _Out_writes_(*ConfigurationCount) PRTL_FEATURE_CONFIGURATION Configurations,
