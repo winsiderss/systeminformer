@@ -4340,6 +4340,16 @@ DECLSPEC_NOALIAS
 PHLIBAPI
 VOID
 NTAPI
+PhConvertCopyMemoryUlong64(
+    _Inout_updates_(Count) PULONG64 From,
+    _Inout_updates_(Count) PFLOAT To,
+    _In_ SIZE_T Count
+    );
+
+DECLSPEC_NOALIAS
+PHLIBAPI
+VOID
+NTAPI
 PhConvertCopyMemorySingles(
     _Inout_updates_(Count) PFLOAT From,
     _Inout_updates_(Count) PULONG To,
@@ -4347,6 +4357,7 @@ PhConvertCopyMemorySingles(
     );
 
 typedef struct _PH_CIRCULAR_BUFFER_ULONG* PPH_CIRCULAR_BUFFER_ULONG;
+typedef struct _PH_CIRCULAR_BUFFER_ULONG64* PPH_CIRCULAR_BUFFER_ULONG64;
 
 DECLSPEC_NOALIAS
 PHLIBAPI
@@ -4354,6 +4365,16 @@ VOID
 NTAPI
 PhCopyConvertCircularBufferULONG(
     _Inout_ PPH_CIRCULAR_BUFFER_ULONG Buffer,
+    _Out_writes_(Count) FLOAT* Destination,
+    _In_ ULONG Count
+    );
+
+DECLSPEC_NOALIAS
+PHLIBAPI
+VOID
+NTAPI
+PhCopyConvertCircularBufferULONG64(
+    _Inout_ PPH_CIRCULAR_BUFFER_ULONG64 Buffer,
     _Out_writes_(Count) FLOAT* Destination,
     _In_ ULONG Count
     );
