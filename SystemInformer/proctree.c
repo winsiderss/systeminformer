@@ -5649,6 +5649,119 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             }
         }
         return TRUE;
+    case TreeNewReorderBegin:
+        {
+            PPH_TREENEW_REORDER_EVENT reorderEvent = Parameter1;
+            node = (PPH_PROCESS_NODE)reorderEvent->Source;
+
+            reorderEvent->Allow = TRUE;
+        }
+        return TRUE;
+    case TreeNewReorderOver:
+        {
+            PPH_TREENEW_REORDER_EVENT reorderEvent = Parameter1;
+            node = (PPH_PROCESS_NODE)reorderEvent->Source;
+
+            reorderEvent->Allow = TRUE;
+        }
+        return TRUE;
+    case TreeNewReorderCommit:
+        {
+            PPH_TREENEW_REORDER_EVENT reorderEvent = Parameter1;
+            PPH_PROCESS_NODE sourceNode = (PPH_PROCESS_NODE)reorderEvent->Source;
+            PPH_PROCESS_NODE targetNode = (PPH_PROCESS_NODE)reorderEvent->Target;
+            BOOLEAN targetIsDescendant = FALSE;
+            ULONG oldIndex, newIndex;
+
+            if (sourceNode && targetNode)
+            {
+                PPH_PROCESS_NODE current = targetNode;
+                while (current)
+                {
+                    if (current == sourceNode)
+                    {
+                        targetIsDescendant = TRUE;
+                        break;
+                    }
+                    current = current->Parent;
+                }
+            }
+
+            // Remove sourceNode from its current parent or root list (dmex)
+            if (sourceNode->Parent)
+            {
+                oldIndex = PhFindItemList(sourceNode->Parent->Children, sourceNode);
+                if (oldIndex != ULONG_MAX)
+                    PhRemoveItemList(sourceNode->Parent->Children, oldIndex);
+            }
+            else
+            {
+                oldIndex = PhFindItemList(ProcessNodeRootList, sourceNode);
+                if (oldIndex != ULONG_MAX)
+                    PhRemoveItemList(ProcessNodeRootList, oldIndex);
+            }
+
+            if (targetNode && !targetIsDescendant)
+            {
+                BOOLEAN droppedIntoTargetAsChild = FALSE;
+
+                // If DropAfter is TRUE and the target is a parent (expanded or already has children),
+                // append as the last child of the target (instead of inserting after the parent). (dmex)
+                if (reorderEvent->DropAfter &&
+                    (targetNode->Node.Expanded || (targetNode->Children && targetNode->Children->Count > 0)))
+                {
+                    newIndex = targetNode->Children->Count;
+                    PhInsertItemList(targetNode->Children, newIndex, sourceNode);
+                    sourceNode->Parent = targetNode;
+                    droppedIntoTargetAsChild = TRUE;
+                }
+
+                if (!droppedIntoTargetAsChild)
+                {
+                    // Default behavior: insert as sibling before/after the target (dmex)
+                    if (targetNode->Parent)
+                    {
+                        // Insert as sibling in parent's children list
+                        PPH_PROCESS_NODE parent = targetNode->Parent;
+                        newIndex = PhFindItemList(parent->Children, targetNode);
+                        if (newIndex > parent->Children->Count)
+                            newIndex = parent->Children->Count;
+                        if (reorderEvent->DropAfter && newIndex < parent->Children->Count)
+                            newIndex++;
+                        PhInsertItemList(parent->Children, newIndex, sourceNode);
+                        sourceNode->Parent = parent;
+                    }
+                    else
+                    {
+                        // Insert as root node (sibling of target in root list) (dmex)
+                        newIndex = PhFindItemList(ProcessNodeRootList, targetNode);
+                        if (newIndex > ProcessNodeRootList->Count)
+                            newIndex = ProcessNodeRootList->Count;
+                        if (reorderEvent->DropAfter && newIndex < ProcessNodeRootList->Count)
+                            newIndex++;
+                        PhInsertItemList(ProcessNodeRootList, newIndex, sourceNode);
+                        sourceNode->Parent = NULL;
+                    }
+                }
+            }
+            else if (!targetNode)
+            {
+                // No target, insert at the end of the root list (dmex)
+                PhInsertItemList(ProcessNodeRootList, ProcessNodeRootList->Count, sourceNode);
+                sourceNode->Parent = NULL;
+            }
+            else
+            {
+                // Invalid move (would create a cycle) – restore original placement at end of root list. (dmex)
+                PhInsertItemList(ProcessNodeRootList, ProcessNodeRootList->Count, sourceNode);
+                sourceNode->Parent = NULL;
+            }
+
+            TreeNew_NodesStructured(hwnd);
+        }
+        return TRUE;
+    case TreeNewReorderCancel:
+        return TRUE;
     }
 
     return FALSE;
