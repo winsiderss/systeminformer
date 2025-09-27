@@ -2532,6 +2532,7 @@ NTSTATUS PhGetFileVersionInfoEx(
             )))
         {
             *VersionInfo = PhAllocateCopy(resourceBuffer, resourceLength);
+            PhFreeLibraryAsImageResource(imageBaseAddress);
             return STATUS_SUCCESS;
         }
     }
