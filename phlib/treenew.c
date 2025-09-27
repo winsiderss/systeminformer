@@ -8055,7 +8055,7 @@ LRESULT PhTnSendMessage(
     {
         PVOID context;
 
-        RTL_ASSERT(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL));
+        assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL));
 
         if (context = PhGetWindowContextEx(WindowHandle))
         {
