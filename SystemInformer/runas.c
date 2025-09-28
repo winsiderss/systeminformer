@@ -111,18 +111,17 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
     );
 
 NTSTATUS PhRunAsUpdateDesktop(
-    _In_ PSID UserSid,
-    _In_ PSID LogonSid
+    _In_ PSID UserSid
     );
 
 NTSTATUS PhRunAsUpdateWindowStation(
-    _In_ PSID UserSid,
-    _In_ PSID LogonSid
+    _In_opt_ PSID UserSid,
+    _In_opt_ PSID LogonSid
     );
 
-NTSTATUS PhSetDesktopWinStaAccess(
-    _In_ HWND WindowHandle
-    );
+//NTSTATUS PhSetDesktopWinStaAccess(
+//    _In_ HWND WindowHandle
+//    );
 
 BOOLEAN PhRunAsExecuteCommandPrompt(
     _In_ HWND WindowHandle
@@ -718,6 +717,7 @@ VOID SetDefaultDesktopEntry(
     PhClearReference(&desktopName);
 }
 
+_Success_(return)
 BOOLEAN PhRunAsGetLogonSid(
     _In_ HANDLE ProcessHandle,
     _Out_ PSID* UserSid,
@@ -828,7 +828,7 @@ NTSTATUS PhRunAsExecuteParentCommand(
 {
     NTSTATUS status;
     HANDLE processHandle = NULL;
-    HANDLE newProcessHandle;
+    HANDLE newProcessHandle = NULL;
     STARTUPINFOEX startupInfo = { 0 };
     PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
     PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
@@ -893,11 +893,6 @@ NTSTATUS PhRunAsExecuteParentCommand(
         NtClose(tokenHandle);
     }
 
-    status = PhSetDesktopWinStaAccess(WindowHandle);
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
     memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
     startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
     startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
@@ -920,13 +915,20 @@ NTSTATUS PhRunAsExecuteParentCommand(
     if (NT_SUCCESS(status))
     {
         PROCESS_BASIC_INFORMATION basicInfo;
-        //PSID userSid, logonSid;
-        //
-        //if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
-        //{
-        //    PhRunAsUpdateDesktop(userSid, logonSid);
-        //    PhRunAsUpdateWindowStation(userSid, logonSid);
-        //}
+        PSID userSid, logonSid;
+        
+        if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
+        {
+            status = PhRunAsUpdateDesktop(userSid);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
+            status = PhRunAsUpdateWindowStation(userSid, logonSid);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+        }
 
         if (PhGetOwnTokenAttributes().Elevated)
         {
@@ -959,22 +961,24 @@ NTSTATUS PhRunAsExecuteParentCommand(
             }
         }
 
-        if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
-        {
-            AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
-        }
-
         if (!CreateSuspendedProcess)
         {
+            if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
+            {
+                AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
+            }
+
             PhConsoleSetForeground(newProcessHandle, TRUE);
 
             NtResumeProcess(newProcessHandle);
         }
-
-        NtClose(newProcessHandle);
     }
 
 CleanupExit:
+    if (newProcessHandle)
+    {
+        NtClose(newProcessHandle);
+    }
 
     if (environment)
     {
@@ -1087,6 +1091,28 @@ VOID PhRunAsExecuteCommmand(
     //        );
     //}
 
+    {
+        PSID userSid;
+
+        if (NT_SUCCESS(PhLookupName(
+            &username->sr,
+            &userSid,
+            NULL,
+            NULL
+            )))
+        {
+            status = PhRunAsUpdateDesktop(userSid);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
+            status = PhRunAsUpdateWindowStation(userSid, NULL);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+        }
+    }
+
     if (!PhFindIntegerSiKeyValuePairs(
         PhpLogonTypePairs,
         sizeof(PhpLogonTypePairs),
@@ -1134,14 +1160,9 @@ VOID PhRunAsExecuteCommmand(
         if (!PhIsNullOrEmptyString(desktopName) && !PhEqualString2(desktopName, L"WinSta0\\Default", TRUE))
             createInfo.DesktopName = PhGetString(desktopName);
 
-        status = PhSetDesktopWinStaAccess(Context->WindowHandle);
-
-        if (!NT_SUCCESS(status))
-            goto CleanupAsUserExit;
-
         status = PhCreateProcessAsUser(
             &createInfo,
-            PH_CREATE_PROCESS_WITH_PROFILE | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | (createSuspended ? PH_CREATE_PROCESS_SUSPENDED : 0),
+            PH_CREATE_PROCESS_WITH_PROFILE | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_SUSPENDED,
             NULL,
             NULL,
             &newProcessHandle,
@@ -1151,29 +1172,38 @@ VOID PhRunAsExecuteCommmand(
         if (NT_SUCCESS(status))
         {
             PROCESS_BASIC_INFORMATION basicInfo;
-            //PSID userSid, logonSid;
-            //
-            //if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
-            //{
-            //    PhRunAsUpdateDesktop(userSid, logonSid);
-            //    PhRunAsUpdateWindowStation(userSid, logonSid);
-            //}
+            PSID userSid, logonSid;
 
-            if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
+            if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
             {
-                AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
+                status = PhRunAsUpdateDesktop(userSid);
+
+                if (!NT_SUCCESS(status))
+                    goto CleanupExit;
+
+                status = PhRunAsUpdateWindowStation(userSid, logonSid);
+
+                if (!NT_SUCCESS(status))
+                    goto CleanupExit;
             }
 
-            PhConsoleSetForeground(newProcessHandle, TRUE);
+            if (!createSuspended)
+            {
+                if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
+                {
+                    AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
+                }
 
-            NtResumeProcess(newProcessHandle);
+                PhConsoleSetForeground(newProcessHandle, TRUE);
+
+                NtResumeProcess(newProcessHandle);
+            }
 
             NtClose(newProcessHandle);
         }
 
-    CleanupAsUserExit:
-        if (domainPart) PhDereferenceObject(domainPart);
-        if (userPart) PhDereferenceObject(userPart);
+        PhClearReference(&domainPart);
+        PhClearReference(&userPart);
     }
     else
     {
@@ -1209,6 +1239,7 @@ VOID PhRunAsExecuteCommmand(
         }
     }
 
+CleanupExit:
     if (password)
     {
         RtlSecureZeroMemory(password->Buffer, password->Length);
@@ -1446,8 +1477,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 }
 
 NTSTATUS PhRunAsUpdateDesktop(
-    _In_ PSID UserSid,
-    _In_ PSID LogonSid
+    _In_ PSID UserSid
     )
 {
     NTSTATUS status;
@@ -1457,7 +1487,7 @@ NTSTATUS PhRunAsUpdateDesktop(
         L"Default",
         0,
         FALSE,
-        WRITE_DAC | DESKTOP_READOBJECTS | DESKTOP_WRITEOBJECTS
+        READ_CONTROL | WRITE_DAC | DESKTOP_READOBJECTS | DESKTOP_WRITEOBJECTS
         ))
     {
         ULONG i;
@@ -1488,23 +1518,45 @@ NTSTATUS PhRunAsUpdateDesktop(
                 currentDaclPresent = FALSE;
             }
 
-            newDaclLength = sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(LogonSid);
+            newDaclLength = sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(UserSid);
 
             if (currentDaclPresent && currentDacl)
                 newDaclLength += currentDacl->AclSize - sizeof(ACL);
 
             newDacl = PhAllocateStack(newDaclLength);
+
+            if (!newDacl)
+            {
+                status = STATUS_NO_MEMORY;
+                goto CleanupExit;
+            }
+
             RtlZeroMemory(newDacl, newDaclLength);
 
             status = PhCreateAcl(newDacl, newDaclLength, ACL_REVISION);
 
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
             // Add the existing DACL entries.
+
             if (currentDaclPresent && currentDacl)
             {
                 for (i = 0; i < currentDacl->AceCount; i++)
                 {
                     if (NT_SUCCESS(PhGetAce(currentDacl, i, &currentAce)))
                     {
+                        if (currentAce->AceType == ACCESS_ALLOWED_ACE_TYPE)
+                        {
+                            PSID aceSid = (PSID)&((PACCESS_ALLOWED_ACE)currentAce)->SidStart;
+
+                            if (PhEqualSid(aceSid, UserSid))
+                            {
+                                if (((PACCESS_ALLOWED_ACE)currentAce)->Mask == DESKTOP_ALL_ACCESS)
+                                    continue;
+                            }
+                        }
+
                         RtlAddAce(newDacl, ACL_REVISION, ULONG_MAX, currentAce, currentAce->AceSize);
                     }
                 }
@@ -1536,9 +1588,10 @@ NTSTATUS PhRunAsUpdateDesktop(
                 status = PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
             }
 
-            PhFree(newDacl);
+            PhFreeStack(newDacl);
         }
 
+    CleanupExit:
         CloseDesktop(desktopHandle);
     }
     else
@@ -1550,8 +1603,8 @@ NTSTATUS PhRunAsUpdateDesktop(
 }
 
 NTSTATUS PhRunAsUpdateWindowStation(
-    _In_ PSID UserSid,
-    _In_ PSID LogonSid
+    _In_opt_ PSID UserSid,
+    _In_opt_ PSID LogonSid
     )
 {
     NTSTATUS status;
@@ -1591,8 +1644,8 @@ NTSTATUS PhRunAsUpdateWindowStation(
                 currentDaclPresent = FALSE;
             }
 
-            newDaclLength = (sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) * 2) +
-                PhLengthSid(UserSid) + PhLengthSid(LogonSid);
+            newDaclLength = (sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) * 3) +
+                (UserSid ? PhLengthSid(UserSid) : 0) + (LogonSid ? PhLengthSid(LogonSid) : 0);
 
             if (currentDaclPresent && currentDacl)
                 newDaclLength += currentDacl->AclSize - sizeof(ACL);
@@ -1601,25 +1654,77 @@ NTSTATUS PhRunAsUpdateWindowStation(
             PhCreateAcl(newDacl, newDaclLength, ACL_REVISION);
 
             // Add the existing DACL entries.
+
             if (currentDaclPresent && currentDacl)
             {
                 for (i = 0; i < currentDacl->AceCount; i++)
                 {
                     if (NT_SUCCESS(PhGetAce(currentDacl, i, &currentAce)))
                     {
+                        if (currentAce->AceType == ACCESS_ALLOWED_ACE_TYPE)
+                        {
+                            PSID aceSid = (PSID)&((PACCESS_ALLOWED_ACE)currentAce)->SidStart;
+
+                            if (UserSid && PhEqualSid(aceSid, UserSid))
+                            {
+                                if (((PACCESS_ALLOWED_ACE)currentAce)->Mask == (WINSTA_ACCESSCLIPBOARD | WINSTA_ACCESSGLOBALATOMS))
+                                    continue;
+                            }
+
+                            if (LogonSid && PhEqualSid(aceSid, LogonSid))
+                            {
+                                if (((PACCESS_ALLOWED_ACE)currentAce)->Mask == WINSTA_ALL_ACCESS)
+                                    continue;
+                            }
+                        }
+
                         RtlAddAce(newDacl, ACL_REVISION, ULONG_MAX, currentAce, currentAce->AceSize);
                     }
                 }
             }
 
-            // Allow access for the user.
+            if (NT_SUCCESS(status))
+            {
+                if (UserSid)
+                {
+                    PhAddAccessAllowedAce(
+                        newDacl,
+                        ACL_REVISION,
+                        WINSTA_ACCESSCLIPBOARD | WINSTA_ACCESSGLOBALATOMS,
+                        UserSid
+                        );
 
-            PhAddAccessAllowedAce(newDacl, ACL_REVISION, WINSTA_ACCESSCLIPBOARD | WINSTA_ACCESSGLOBALATOMS, UserSid);
-            PhAddAccessAllowedAce(newDacl, ACL_REVISION, WINSTA_ALL_ACCESS, LogonSid);
+                    //PhAddAccessAllowedAce(
+                    //    newDacl,
+                    //    ACL_REVISION,
+                    //    WINSTA_ENUMDESKTOPS | WINSTA_READATTRIBUTES | WINSTA_ACCESSGLOBALATOMS |
+                    //    WINSTA_EXITWINDOWS | WINSTA_ENUMERATE | WINSTA_READSCREEN | READ_CONTROL,
+                    //    UserSid
+                    //    );
+                }
 
-            // Set the security descriptor of the new token.
+                if (UserSid)
+                {
+                    PhAddAccessAllowedAceEx(
+                        newDacl,
+                        ACL_REVISION,
+                        OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE | INHERIT_ONLY_ACE,
+                        GENERIC_ALL,
+                        LogonSid
+                        );
+                    PhAddAccessAllowedAceEx(
+                        newDacl,
+                        ACL_REVISION,
+                        NO_PROPAGATE_INHERIT_ACE,
+                        WINSTA_ALL_ACCESS,
+                        LogonSid
+                        );
+                }
 
-            status = PhCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+                // Set the security descriptor of the new token.
+
+                status = PhCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+            }
 
             if (NT_SUCCESS(status))
             {
@@ -1648,95 +1753,95 @@ NTSTATUS PhRunAsUpdateWindowStation(
  * Sets the access control lists of the current window station
  * and desktop to allow all access.
  */
-NTSTATUS PhSetDesktopWinStaAccess(
-    _In_ HWND WindowHandle
-    )
-{
-    HWINSTA wsHandle;
-    HDESK desktopHandle;
-    ULONG allocationLength;
-    PSID allAppPackagesSid = PhSeAnyPackageSid();
-    UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x50];
-    PSECURITY_DESCRIPTOR securityDescriptor;
-    PACL dacl;
-
-    if (!PhStartupParameters.RunAsServiceMode && WindowHandle && PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
-    {
-        if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS_RUNAS) && PhShowMessageOneTime(
-            WindowHandle,
-            TD_YES_BUTTON | TD_NO_BUTTON,
-            TD_WARNING_ICON,
-            L"WARNING: This will grant Everyone access to the current window station and desktop.",
-            L"Are you sure you want to continue?"
-            ) == IDNO)
-        {
-            PhSetIntegerSetting(SETTING_ENABLE_WARNINGS_RUNAS, 0);
-            return STATUS_ACCESS_DENIED;
-        }
-    }
-
-    // TODO: Set security on the correct window station and desktop.
-
-    // We create a DACL that allows everyone to access everything.
-
-    allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
-        (ULONG)sizeof(ACL) +
-        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid(&PhSeEveryoneSid) +
-        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid(allAppPackagesSid);
-
-    securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
-    dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
-
-    PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-    PhCreateAcl(dacl, allocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    PhAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, &PhSeEveryoneSid);
-
-    if (WindowsVersion >= WINDOWS_8)
-    {
-        PhAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, allAppPackagesSid);
-    }
-
-    PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
-
-    if (wsHandle = OpenWindowStation(
-        L"WinSta0",
-        FALSE,
-        WRITE_DAC
-        ))
-    {
-        PhSetObjectSecurity(wsHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
-        CloseWindowStation(wsHandle);
-    }
-    else
-    {
-        return PhGetLastWin32ErrorAsNtStatus();
-    }
-
-    if (desktopHandle = OpenDesktop(
-        L"Default",
-        0,
-        FALSE,
-        WRITE_DAC | DESKTOP_READOBJECTS | DESKTOP_WRITEOBJECTS
-        ))
-    {
-        PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
-        CloseDesktop(desktopHandle);
-    }
-    else
-    {
-        return PhGetLastWin32ErrorAsNtStatus();
-    }
-
-#ifdef DEBUG
-    assert(RtlValidSecurityDescriptor(securityDescriptor));
-    assert(allocationLength < sizeof(securityDescriptorBuffer));
-    assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
-#endif
-
-    return STATUS_SUCCESS;
-}
+//NTSTATUS PhSetDesktopWinStaAccess(
+//    _In_ HWND WindowHandle
+//    )
+//{
+//    HWINSTA wsHandle;
+//    HDESK desktopHandle;
+//    ULONG allocationLength;
+//    PSID allAppPackagesSid = PhSeAnyPackageSid();
+//    UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x50];
+//    PSECURITY_DESCRIPTOR securityDescriptor;
+//    PACL dacl;
+//
+//    if (!PhStartupParameters.RunAsServiceMode && WindowHandle && PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
+//    {
+//        if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS_RUNAS) && PhShowMessageOneTime(
+//            WindowHandle,
+//            TD_YES_BUTTON | TD_NO_BUTTON,
+//            TD_WARNING_ICON,
+//            L"WARNING: This will grant Everyone access to the current window station and desktop.",
+//            L"Are you sure you want to continue?"
+//            ) == IDNO)
+//        {
+//            PhSetIntegerSetting(SETTING_ENABLE_WARNINGS_RUNAS, 0);
+//            return STATUS_ACCESS_DENIED;
+//        }
+//    }
+//
+//    // TODO: Set security on the correct window station and desktop.
+//
+//    // We create a DACL that allows everyone to access everything.
+//
+//    allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
+//        (ULONG)sizeof(ACL) +
+//        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+//        PhLengthSid(&PhSeEveryoneSid) +
+//        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+//        PhLengthSid(allAppPackagesSid);
+//
+//    securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
+//    dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
+//
+//    PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+//    PhCreateAcl(dacl, allocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+//    PhAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, &PhSeEveryoneSid);
+//
+//    if (WindowsVersion >= WINDOWS_8)
+//    {
+//        PhAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, allAppPackagesSid);
+//    }
+//
+//    PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+//
+//    if (wsHandle = OpenWindowStation(
+//        L"WinSta0",
+//        FALSE,
+//        WRITE_DAC
+//        ))
+//    {
+//        PhSetObjectSecurity(wsHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
+//        CloseWindowStation(wsHandle);
+//    }
+//    else
+//    {
+//        return PhGetLastWin32ErrorAsNtStatus();
+//    }
+//
+//    if (desktopHandle = OpenDesktop(
+//        L"Default",
+//        0,
+//        FALSE,
+//        WRITE_DAC | DESKTOP_READOBJECTS | DESKTOP_WRITEOBJECTS
+//        ))
+//    {
+//        PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
+//        CloseDesktop(desktopHandle);
+//    }
+//    else
+//    {
+//        return PhGetLastWin32ErrorAsNtStatus();
+//    }
+//
+//#ifdef DEBUG
+//    assert(RtlValidSecurityDescriptor(securityDescriptor));
+//    assert(allocationLength < sizeof(securityDescriptorBuffer));
+//    assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+//#endif
+//
+//    return STATUS_SUCCESS;
+//}
 
 PPH_STRING PhFormatRunAsCommand(
     _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
@@ -1744,7 +1849,7 @@ PPH_STRING PhFormatRunAsCommand(
 {
     PPH_STRING command;
     PPH_STRING fileName;
-    PH_FORMAT format[8];
+    PH_FORMAT format[5];
 
     if (!(fileName = PhGetApplicationFileNameWin32()))
         return NULL;
@@ -2045,7 +2150,7 @@ static VOID WINAPI RunAsServiceMain(
 {
     PPH_STRING portName;
 
-    memset(&RunAsServiceStop, 0, sizeof(PHSVC_STOP));
+    memset(&RunAsServiceStop, 0, sizeof(RunAsServiceStop));
 
     RunAsServiceStatusHandle = RegisterServiceCtrlHandlerEx(RunAsServiceName->Buffer, RunAsServiceHandlerEx, NULL);
     SetRunAsServiceStatus(SERVICE_RUNNING);
@@ -2121,13 +2226,13 @@ NTSTATUS PhInvokeRunAsService(
     PPH_STRING domainName;
     PPH_STRING userName;
     PH_CREATE_PROCESS_AS_USER_INFO createInfo;
-    HANDLE newProcessHandle;
+    HANDLE newProcessHandle = NULL;
     ULONG flags;
 
-    status = PhSetDesktopWinStaAccess(Parameters->WindowHandle);
+    //status = PhSetDesktopWinStaAccess(Parameters->WindowHandle);
 
-    if (!NT_SUCCESS(status))
-        return status;
+    //if (!NT_SUCCESS(status))
+    //    return status;
 
     if (Parameters->UserName)
     {
@@ -2160,14 +2265,14 @@ NTSTATUS PhInvokeRunAsService(
 
     if (Parameters->UseLinkedToken)
         flags |= PH_CREATE_PROCESS_USE_LINKED_TOKEN;
-    if (Parameters->CreateSuspendedProcess)
-        flags |= PH_CREATE_PROCESS_SUSPENDED;
+    //if (Parameters->CreateSuspendedProcess)
+    //    flags |= PH_CREATE_PROCESS_SUSPENDED;
     if (Parameters->CreateUIAccessProcess)
         flags |= PH_CREATE_PROCESS_SET_UIACCESS;
 
     status = PhCreateProcessAsUser(
         &createInfo,
-        flags,
+        flags | PH_CREATE_PROCESS_SUSPENDED,
         NULL,
         NULL,
         &newProcessHandle,
@@ -2176,19 +2281,27 @@ NTSTATUS PhInvokeRunAsService(
 
     if (NT_SUCCESS(status))
     {
-        //PSID userSid, logonSid;
-        //
-        //if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
-        //{
-        //    PhRunAsUpdateDesktop(userSid, logonSid);
-        //    PhRunAsUpdateWindowStation(userSid, logonSid);
-        //}
+        PROCESS_BASIC_INFORMATION basicInfo;
+        PSID userSid, logonSid;
+
+        if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
+        {
+            status = PhRunAsUpdateDesktop(userSid);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
+            status = PhRunAsUpdateWindowStation(userSid, logonSid);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+        }
 
         if (!Parameters->CreateSuspendedProcess)
         {
-            PROCESS_BASIC_INFORMATION basicInfo;
+            status = PhGetProcessBasicInformation(newProcessHandle, &basicInfo);
 
-            if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
+            if (NT_SUCCESS(status))
             {
                 AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
             }
@@ -2197,10 +2310,10 @@ NTSTATUS PhInvokeRunAsService(
 
             PhResumeProcess(newProcessHandle);
         }
-
-        NtClose(newProcessHandle);
     }
 
+CleanupExit:
+    if (newProcessHandle) NtClose(newProcessHandle);
     if (domainName) PhDereferenceObject(domainName);
     if (userName) PhDereferenceObject(userName);
 
@@ -2685,7 +2798,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             PhpAddProgramsToComboBox(context->ComboBoxHandle);
             ComboBox_SetCurSel(context->ComboBoxHandle, 0);
 
-            if (PhGetIntegerSetting(L"RunAsEnableAutoComplete"))
+            if (PhGetIntegerSetting(SETTING_RUN_AS_ENABLE_AUTO_COMPLETE))
             {
                 COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
 
@@ -2696,7 +2809,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                 }
             }
 
-            Button_SetCheck(context->RunAsCheckboxHandle, PhGetIntegerSetting(L"RunFileDlgState") ? TRUE : FALSE);
+            Button_SetCheck(context->RunAsCheckboxHandle, PhGetIntegerSetting(SETTING_RUN_FILE_DLG_STATE) ? TRUE : FALSE);
 
             if (!PhGetOwnTokenAttributes().Elevated)
             {
@@ -2713,7 +2826,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
         {
             PhRemoveDialogContext(hwndDlg);
 
-            PhSetIntegerSetting(L"RunFileDlgState", Button_GetCheck(context->RunAsCheckboxHandle) == BST_CHECKED);
+            PhSetIntegerSetting(SETTING_RUN_FILE_DLG_STATE, Button_GetCheck(context->RunAsCheckboxHandle) == BST_CHECKED);
 
             PhImageListDestroy(context->ImageListHandle);
 
@@ -3395,6 +3508,7 @@ BOOLEAN PhRunAsPackageGetSelectedNodes(
     return FALSE;
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhRunAsPackageTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_ PVOID Context
