@@ -389,7 +389,7 @@ namespace CustomBuildTool
             if ((Flags & BuildFlags.BuildVerbose) == 0)
                 return;
 
-            if (Build.BuildIntegrationTF)
+            if (Build.BuildIntegration)
             {
                 var colour_ansi = ToAnsiCode(Color);
 
@@ -447,7 +447,7 @@ namespace CustomBuildTool
 
             var formattedText = builder.GetFormattedText();
 
-            if (Build.BuildIntegrationTF)
+            if (Build.BuildIntegration)
             {
                 var colour_ansi = ToAnsiCode(Color);
 

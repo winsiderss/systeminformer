@@ -19,7 +19,6 @@ namespace CustomBuildTool
         public static bool HaveArm64BuildTools = true;
         public static bool BuildRedirectOutput = false;
         public static bool BuildIntegration = false;
-        public static bool BuildIntegrationTF = false;
         public static string BuildOutputFolder = string.Empty;
         public static string BuildWorkingFolder = string.Empty;
         public static string BuildCommitBranch = "orphan";
@@ -54,23 +53,6 @@ namespace CustomBuildTool
                 return false;
             }
 
-            if (!InitializeBuildTimestamp())
-            {
-                Program.PrintColorMessage("Unable to initialize build timestamp.", ConsoleColor.Red);
-                return false;
-            }
-
-            return true;
-        }
-
-        public static bool InitializeBuildTimestamp()
-        {
-            // Ensures consistent time stamp across build invocations.
-            if (Build.BuildIntegration)
-                Build.TimeStart = BuildDevOps.BuildQueryQueueTime();
-            else
-                Build.TimeStart = DateTime.UtcNow;
-
             return true;
         }
 
@@ -94,6 +76,17 @@ namespace CustomBuildTool
                 }
             }
 
+            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS") || 
+                Win32.HasEnvironmentVariable("TF_BUILD"))
+            {
+                Build.BuildIntegration = true;
+                Build.TimeStart = BuildDevOps.BuildQueryQueueTime();
+            }
+            else
+            {
+                Build.TimeStart = DateTime.UtcNow;
+            }
+
             if (Win32.GetEnvironmentVariable("BUILD_REDIRECTOUTPUT", out string build_output))
             {
                 Build.BuildRedirectOutput = build_output.Equals("true", StringComparison.OrdinalIgnoreCase);
@@ -112,16 +105,6 @@ namespace CustomBuildTool
             if (Win32.GetEnvironmentVariable("BUILD_MINORVERSION", out string build_minor))
             {
                 Build.BuildVersionMinor = build_minor;
-            }
-
-            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS"))
-            {
-                Build.BuildIntegration = true;
-            }
-            else if (Win32.HasEnvironmentVariable("TF_BUILD"))
-            {
-                Build.BuildIntegration = true;
-                Build.BuildIntegrationTF = true;
             }
 
             {
@@ -148,8 +131,8 @@ namespace CustomBuildTool
 
             if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash) && !string.IsNullOrWhiteSpace(Build.BuildVersionMajor))
             {
-                Build.BuildShortVersion = $"{Build.BuildVersionMajor}.{Build.BuildVersionMinor}.{Build.BuildVersionBuild}";
-                Build.BuildLongVersion = $"{Build.BuildVersionMajor}.{Build.BuildVersionMinor}.{Build.BuildVersionBuild}.{Build.BuildVersionRevision}";
+                Build.BuildShortVersion = $"{Build.BuildVersionMajor}.{Build.BuildVersionMinor}.{Build.BuildVersionBuild()}";
+                Build.BuildLongVersion = $"{Build.BuildVersionMajor}.{Build.BuildVersionMinor}.{Build.BuildVersionBuild()}.{Build.BuildVersionRevision()}";
             }
 
             return true;
@@ -210,32 +193,26 @@ namespace CustomBuildTool
             return $"[{DateTime.UtcNow - Build.TimeStart:mm\\:ss}] ";
         }
 
-        public static string BuildVersionBuild
+        public static string BuildVersionBuild()
         {
-            get
-            {
-                // Extract the last two digits of the year. For example, if the year is 2023, (Year % 100) will result in 23.
-                var first = (TimeStart.Year % 100).ToString();
-                // Extract the day of the year (1 to 365 or 366 in a leap year). Padding with leading zeros if necessary.
-                // For example, if the day of the year is 5, it will be converted to "005".
-                var second = TimeStart.DayOfYear.ToString("D3");
-                // Format the strings: 23005
-                return string.Concat([first, second]);
-            }
+            // Extract the last two digits of the year. For example, if the year is 2023, (Year % 100) will result in 23.
+            var first = (TimeStart.Year % 100).ToString();
+            // Extract the day of the year (1 to 365 or 366 in a leap year). Padding with leading zeros if necessary.
+            // For example, if the day of the year is 5, it will be converted to "005".
+            var second = TimeStart.DayOfYear.ToString("D3");
+            // Format the strings: 23005
+            return string.Concat([first, second]);
         }
 
-        public static string BuildVersionRevision
+        public static string BuildVersionRevision()
         {
-            get
-            {
-                // Extract the hour of the day. For example, if the hour is 0|23, (Hour + 1) will result in 1|24.
-                var first = (TimeStart.Hour + 1).ToString();
-                // Extract the minute of the hour (0 to 59). Padding with leading zeros if necessary.
-                // For example, if the minute of the hour is 5, it will be converted to "005".
-                var second = TimeStart.Minute.ToString("D2");
-                // Format the strings: 1005|24005
-                return string.Concat([first, second]);
-            }
+            // Extract the hour of the day. For example, if the hour is 0|23, (Hour + 1) will result in 1|24.
+            var first = (TimeStart.Hour + 1).ToString();
+            // Extract the minute of the hour (0 to 59). Padding with leading zeros if necessary.
+            // For example, if the minute of the hour is 5, it will be converted to "005".
+            var second = TimeStart.Minute.ToString("D2");
+            // Format the strings: 1005|24005
+            return string.Concat([first, second]);
         }
 
         public static string BuildHash()
@@ -1012,10 +989,10 @@ namespace CustomBuildTool
                 compilerOptionsList.Add($"PHAPP_VERSION_MAJOR=\"{Build.BuildVersionMajor}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionMinor))
                 compilerOptionsList.Add($"PHAPP_VERSION_MINOR=\"{Build.BuildVersionMinor}\"");
-            if (!string.IsNullOrWhiteSpace(Build.BuildVersionBuild))
-                compilerOptionsList.Add($"PHAPP_VERSION_BUILD=\"{Build.BuildVersionBuild}\"");
-            if (!string.IsNullOrWhiteSpace(Build.BuildVersionRevision))
-                compilerOptionsList.Add($"PHAPP_VERSION_REVISION=\"{Build.BuildVersionRevision}\"");
+            if (!string.IsNullOrWhiteSpace(Build.BuildVersionBuild()))
+                compilerOptionsList.Add($"PHAPP_VERSION_BUILD=\"{Build.BuildVersionBuild()}\"");
+            if (!string.IsNullOrWhiteSpace(Build.BuildVersionRevision()))
+                compilerOptionsList.Add($"PHAPP_VERSION_REVISION=\"{Build.BuildVersionRevision()}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
                 linkerOptions.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\" ");
 
