@@ -2331,7 +2331,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     EtObjectManagerPropIcon = PhImageListGetIcon(context->ListImageList, Entry->EtObjectType, ILD_NORMAL | ILD_TRANSPARENT);
 
     // Object Manager plugin window
-    PhShowHandlePropertiesEx(context->WindowHandle, processId, handleItem, PluginInstance, PhGetString(Entry->TypeName));
+    //PhShowHandlePropertiesEx(context->WindowHandle, processId, handleItem, PluginInstance, PhGetString(Entry->TypeName));
 
     PhDereferenceObject(Entry);
     PhDereferenceObject(objectContext.CurrentPath);
