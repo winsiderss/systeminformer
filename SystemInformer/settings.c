@@ -246,6 +246,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_SORT_ROOT_PROCESSES, L"0");
     PhpAddIntegerSetting(SETTING_START_HIDDEN, L"0");
     PhpAddIntegerSetting(SETTING_SYSINFO_SHOW_CPU_SPEED_MHZ, L"0");
+    PhpAddIntegerSetting(SETTING_SYSINFO_SHOW_CPU_SPEED_PER_CPU, L"0");
     PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_ALWAYS_ON_TOP, L"0");
     PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_ONE_GRAPH_PER_CPU, L"0");
     PhpAddIntegerPairSetting(SETTING_SYSINFO_WINDOW_POSITION, L"200,200");

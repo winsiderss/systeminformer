@@ -4956,6 +4956,21 @@ PhIsKnownDllFileName(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetSystemProcessorPerformanceDistribution(
+    _Out_ PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION* Buffer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemProcessorPerformanceDistributionEx(
+    _In_ USHORT ProcessorGroup,
+    _Out_ PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION* Buffer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetSystemLogicalProcessorInformation(
     _In_ LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType,
     _Out_ PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,

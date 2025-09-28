@@ -422,55 +422,121 @@ PhGetMessagePos(
     return TRUE;
 }
 
+
 _Success_(return)
-PHLIBAPI
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhGetClientPos(
     _In_ HWND WindowHandle,
     _Out_ PPOINT ClientPoint
-    );
+    )
+{
+    ULONG position;
+    POINT point;
+
+    position = GetMessagePos();
+    point.x = GET_X_LPARAM(position);
+    point.y = GET_Y_LPARAM(position);
+
+    if (ScreenToClient(WindowHandle, &point))
+    {
+        memcpy(ClientPoint, &point, sizeof(POINT));
+        return TRUE;
+    }
+
+    return FALSE;
+}
 
 _Success_(return)
-PHLIBAPI
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhGetScreenPos(
     _In_ HWND WindowHandle,
     _Out_ PPOINT ClientPoint
-    );
+    )
+{
+    ULONG position;
+    POINT point;
 
-PHLIBAPI
+    position = GetMessagePos();
+    point.x = GET_X_LPARAM(position);
+    point.y = GET_Y_LPARAM(position);
+
+    if (ClientToScreen(WindowHandle, &point))
+    {
+        memcpy(ClientPoint, &point, sizeof(POINT));
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhClientToScreen(
     _In_ HWND WindowHandle,
     _Inout_ PPOINT Point
-    );
+    )
+{
+    if (ClientToScreen(WindowHandle, Point))
+        return TRUE;
+    return FALSE;
+}
 
-PHLIBAPI
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhScreenToClient(
     _In_ HWND WindowHandle,
     _Inout_ PPOINT Point
-    );
+    )
+{
+    if (ScreenToClient(WindowHandle, Point))
+        return TRUE;
+    return FALSE;
+}
 
-PHLIBAPI
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhClientToScreenRect(
     _In_ HWND WindowHandle,
     _Inout_ PRECT Rect
-    );
+    )
+{
+    //if (!ClientToScreen(WindowHandle, (PPOINT)Rect))
+    //    return FALSE;
+    //if (!ClientToScreen(WindowHandle, ((PPOINT)Rect) + 1))
+    //    return FALSE;
 
-PHLIBAPI
+    if (MapWindowRect(WindowHandle, HWND_DESKTOP, Rect) == 0)
+        return FALSE;
+
+    return TRUE;
+}
+
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhScreenToClientRect(
     _In_ HWND WindowHandle,
     _Inout_ PRECT Rect
-    );
+    )
+{
+    if (MapWindowRect(HWND_DESKTOP, WindowHandle, Rect) == 0)
+        return FALSE;
+
+    return TRUE;
+
+    //if (!ScreenToClient(WindowHandle, (PPOINT)Rect))
+    //    return FALSE;
+    //if (!ScreenToClient(WindowHandle, ((PPOINT)Rect) + 1))
+    //    return FALSE;
+    //return TRUE;
+}
 
 PHLIBAPI
 BOOLEAN
