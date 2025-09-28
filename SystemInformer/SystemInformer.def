@@ -33,6 +33,7 @@ EXPORTS
     PhCopyIListView
     PhCopyListViewInfoTip
     PhCreateKsiSettingsBlob
+    PhCreateHandleItem
     PhCreateProcessPropContext
     PhCreateProcessPropPageContext
     PhCreateProcessPropPageContextEx
