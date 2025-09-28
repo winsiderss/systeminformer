@@ -233,6 +233,19 @@ PhSetINT128by32(
 }
 
 FORCEINLINE
+PH_INT128
+PhSetUINT128by32(
+    _In_ ULONG Value
+    )
+{
+#ifdef _ARM64_
+    return vdupq_n_u32(Value);
+#else
+    return _mm_set1_epi32(Value);
+#endif
+}
+
+FORCEINLINE
 PH_FLOAT128
 PhSetFLOAT128by32(
     _In_ FLOAT Value

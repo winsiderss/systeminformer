@@ -48,15 +48,15 @@ namespace CustomBuildTool
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath("\\build\\output");
 
-            if (!InitializeBuildTimestamp())
-            {
-                Program.PrintColorMessage("Unable to initialize build timestamp.", ConsoleColor.Red);
-                return false;
-            }
-
             if (!InitializeBuildArguments())
             {
                 Program.PrintColorMessage("Unable to initialize build arguments.", ConsoleColor.Red);
+                return false;
+            }
+
+            if (!InitializeBuildTimestamp())
+            {
+                Program.PrintColorMessage("Unable to initialize build timestamp.", ConsoleColor.Red);
                 return false;
             }
 

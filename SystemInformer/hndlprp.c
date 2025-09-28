@@ -241,7 +241,6 @@ typedef struct _HANDLE_PROPERTIES_THREAD_CONTEXT
     HWND ParentWindowHandle;
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
-    PWSTR Caption;
 } HANDLE_PROPERTIES_THREAD_CONTEXT, *PHANDLE_PROPERTIES_THREAD_CONTEXT;
 
 BOOLEAN PhpIsVerboseBestObjectName(
@@ -323,7 +322,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
         PSH_PROPTITLE;
     propSheetHeader.hInstance = NtCurrentImageBase();
     propSheetHeader.hwndParent = PhCsForceNoParent ? NULL : handleContext->ParentWindowHandle;
-    propSheetHeader.pszCaption = handleContext->Caption ? handleContext->Caption : L"Handle";
+    propSheetHeader.pszCaption = L"Handle";
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
@@ -482,24 +481,12 @@ VOID PhShowHandleProperties(
     _In_ PPH_HANDLE_ITEM HandleItem
     )
 {
-    PhShowHandlePropertiesEx(ParentWindowHandle, ProcessId, HandleItem, NULL, NULL);
-}
-
-VOID PhShowHandlePropertiesEx(
-    _In_ HWND ParentWindowHandle,
-    _In_ HANDLE ProcessId,
-    _In_ PPH_HANDLE_ITEM HandleItem,
-    _In_opt_ PPH_PLUGIN OwnerPlugin,
-    _In_opt_ PWSTR Caption
-    )
-{
     PHANDLE_PROPERTIES_THREAD_CONTEXT context;
 
     context = PhAllocateZero(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
     context->ParentWindowHandle = ParentWindowHandle;
     context->ProcessId = ProcessId;
     context->HandleItem = HandleItem;
-    context->Caption = Caption;
     PhReferenceObject(HandleItem);
 
     PhCreateThread2(PhpShowHandlePropertiesThread, context);
@@ -644,7 +631,7 @@ VOID PhpUpdateHandleGeneral(
 
     // Name, FullName
 
-    if (PhpIsVerboseBestObjectName(Context->HandleItem) && Context->HandleItem->ObjectName)
+    if (PhpIsVerboseBestObjectName(Context->HandleItem) && !PhIsNullOrEmptyString(Context->HandleItem->ObjectName))
     {
         PPH_STRING objectName;
 
@@ -656,7 +643,7 @@ VOID PhpUpdateHandleGeneral(
         PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FULLNAME, 1, PhGetStringOrEmpty(objectName));
         PhClearReference(&objectName);
     }
-    else if (Context->HandleItem->BestObjectName)
+    else if (!PhIsNullOrEmptyString(Context->HandleItem->BestObjectName))
     {
         PPH_STRING objectName;
 
@@ -684,7 +671,7 @@ VOID PhpUpdateHandleGeneral(
     }
     else
     {
-        if (PhGetIntegerSetting(L"EnableHandleSnapshot"))
+        if (PhGetIntegerSetting(SETTING_ENABLE_HANDLE_SNAPSHOT))
             PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_OBJECT, 1, L"N/A (snapshot)");
         else
             PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_OBJECT, 1, L"N/A");

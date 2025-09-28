@@ -1488,7 +1488,7 @@ VOID EtpShowHandleProperties(
 {
     EtUpdateHandleItem(Entry->ProcessId, Entry->HandleItem);
 
-    PhShowHandlePropertiesEx(WindowHandle, Entry->ProcessId, Entry->HandleItem, NULL, NULL);
+    //PhShowHandlePropertiesEx(WindowHandle, Entry->ProcessId, Entry->HandleItem, NULL, NULL);
 }
 
 VOID EtpUpdateGeneralTab(

@@ -244,6 +244,14 @@ VOID PhSipUpdateProcessorFrequency(
     VOID
     );
 
+VOID PhSipUpdateTimerResolution(
+    VOID
+    );
+
+VOID PhSipUpdateProcessorPerformanceDistribution(
+    VOID
+    );
+
 VOID PhSipUpdateThemeData(
     VOID
     );
@@ -343,15 +351,6 @@ PPH_STRING PhSipGetCpuBrandString(
 _Success_(return)
 BOOLEAN PhSipGetCpuFrequencyFromDistribution(
     _Out_ DOUBLE *Frequency
-    );
-
-NTSTATUS PhSipQueryProcessorPerformanceDistribution(
-    _Out_ PVOID *Buffer
-    );
-
-NTSTATUS PhSipQueryProcessorPerformanceDistributionEx(
-    _In_ USHORT ProcessorGroup,
-    _Out_ PVOID* Buffer
     );
 
 NTSTATUS PhSipQueryCpuSetInformation(

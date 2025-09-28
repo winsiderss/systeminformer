@@ -112,7 +112,7 @@ VOID PhInitializeProcessTreeList(
     TreeNew_SetMaxId(hwnd, PHPRTLC_MAXIMUM - 1);
 
     // Default columns
-    PhAddTreeNewColumn(hwnd, PHPRTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, (PhGetIntegerSetting(L"ProcessTreeListNameDefault") ? TN_COLUMN_FIXED : 0), 0); // HACK (dmex)
+    PhAddTreeNewColumn(hwnd, PHPRTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, (PhGetIntegerSetting(SETTING_PROCESS_TREE_LIST_NAME_DEFAULT) ? TN_COLUMN_FIXED : 0), 0); // HACK (dmex)
     PhAddTreeNewColumn(hwnd, PHPRTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOTOTALRATE, TRUE, L"I/O total rate", 70, PH_ALIGN_RIGHT, 2, DT_RIGHT, TRUE);
@@ -321,13 +321,13 @@ VOID PhLoadSettingsProcessTreeList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"ProcessTreeListColumns");
-    sortSettings = PhGetStringSetting(L"ProcessTreeListSort");
+    settings = PhGetStringSetting(SETTING_PROCESS_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_PROCESS_TREE_LIST_SORT);
     PhCmLoadSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -343,8 +343,8 @@ VOID PhSaveSettingsProcessTreeList(
     PPH_STRING sortSettings;
 
     settings = PhCmSaveSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, 0, &sortSettings);
-    PhSetStringSetting2(L"ProcessTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"ProcessTreeListSort", &sortSettings->sr);
+    PhSetStringSetting2(SETTING_PROCESS_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_PROCESS_TREE_LIST_SORT, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
@@ -356,7 +356,7 @@ VOID PhLoadSettingsProcessTreeListEx(
 {
     PhCmLoadSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, 0, &TreeListSettings->sr, &TreeSortSettings->sr);
 
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -382,7 +382,7 @@ VOID PhReloadSettingsProcessTreeList(
     VOID
     )
 {
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -3697,7 +3697,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhQuerySystemTime(&currentTime);
 
-                        if (PhGetIntegerSetting(L"EnableShortRelativeStartTime"))
+                        if (PhGetIntegerSetting(SETTING_ENABLE_SHORT_RELATIVE_START_TIME))
                         {
                             if (processItem->CreateTime.QuadPart < currentTime.QuadPart)
                             {
@@ -5648,6 +5648,119 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     TreeNew_SelectRange(ProcessTreeListHandle, first, last);
             }
         }
+        return TRUE;
+    case TreeNewReorderBegin:
+        {
+            PPH_TREENEW_REORDER_EVENT reorderEvent = Parameter1;
+            node = (PPH_PROCESS_NODE)reorderEvent->Source;
+
+            reorderEvent->Allow = TRUE;
+        }
+        return TRUE;
+    case TreeNewReorderOver:
+        {
+            PPH_TREENEW_REORDER_EVENT reorderEvent = Parameter1;
+            node = (PPH_PROCESS_NODE)reorderEvent->Source;
+
+            reorderEvent->Allow = TRUE;
+        }
+        return TRUE;
+    case TreeNewReorderCommit:
+        {
+            PPH_TREENEW_REORDER_EVENT reorderEvent = Parameter1;
+            PPH_PROCESS_NODE sourceNode = (PPH_PROCESS_NODE)reorderEvent->Source;
+            PPH_PROCESS_NODE targetNode = (PPH_PROCESS_NODE)reorderEvent->Target;
+            BOOLEAN targetIsDescendant = FALSE;
+            ULONG oldIndex, newIndex;
+
+            if (sourceNode && targetNode)
+            {
+                PPH_PROCESS_NODE current = targetNode;
+                while (current)
+                {
+                    if (current == sourceNode)
+                    {
+                        targetIsDescendant = TRUE;
+                        break;
+                    }
+                    current = current->Parent;
+                }
+            }
+
+            // Remove sourceNode from its current parent or root list (dmex)
+            if (sourceNode->Parent)
+            {
+                oldIndex = PhFindItemList(sourceNode->Parent->Children, sourceNode);
+                if (oldIndex != ULONG_MAX)
+                    PhRemoveItemList(sourceNode->Parent->Children, oldIndex);
+            }
+            else
+            {
+                oldIndex = PhFindItemList(ProcessNodeRootList, sourceNode);
+                if (oldIndex != ULONG_MAX)
+                    PhRemoveItemList(ProcessNodeRootList, oldIndex);
+            }
+
+            if (targetNode && !targetIsDescendant)
+            {
+                BOOLEAN droppedIntoTargetAsChild = FALSE;
+
+                // If DropAfter is TRUE and the target is a parent (expanded or already has children),
+                // append as the last child of the target (instead of inserting after the parent). (dmex)
+                if (reorderEvent->DropAfter &&
+                    (targetNode->Node.Expanded || (targetNode->Children && targetNode->Children->Count > 0)))
+                {
+                    newIndex = targetNode->Children->Count;
+                    PhInsertItemList(targetNode->Children, newIndex, sourceNode);
+                    sourceNode->Parent = targetNode;
+                    droppedIntoTargetAsChild = TRUE;
+                }
+
+                if (!droppedIntoTargetAsChild)
+                {
+                    // Default behavior: insert as sibling before/after the target (dmex)
+                    if (targetNode->Parent)
+                    {
+                        // Insert as sibling in parent's children list
+                        PPH_PROCESS_NODE parent = targetNode->Parent;
+                        newIndex = PhFindItemList(parent->Children, targetNode);
+                        if (newIndex > parent->Children->Count)
+                            newIndex = parent->Children->Count;
+                        if (reorderEvent->DropAfter && newIndex < parent->Children->Count)
+                            newIndex++;
+                        PhInsertItemList(parent->Children, newIndex, sourceNode);
+                        sourceNode->Parent = parent;
+                    }
+                    else
+                    {
+                        // Insert as root node (sibling of target in root list) (dmex)
+                        newIndex = PhFindItemList(ProcessNodeRootList, targetNode);
+                        if (newIndex > ProcessNodeRootList->Count)
+                            newIndex = ProcessNodeRootList->Count;
+                        if (reorderEvent->DropAfter && newIndex < ProcessNodeRootList->Count)
+                            newIndex++;
+                        PhInsertItemList(ProcessNodeRootList, newIndex, sourceNode);
+                        sourceNode->Parent = NULL;
+                    }
+                }
+            }
+            else if (!targetNode)
+            {
+                // No target, insert at the end of the root list (dmex)
+                PhInsertItemList(ProcessNodeRootList, ProcessNodeRootList->Count, sourceNode);
+                sourceNode->Parent = NULL;
+            }
+            else
+            {
+                // Invalid move (would create a cycle) – restore original placement at end of root list. (dmex)
+                PhInsertItemList(ProcessNodeRootList, ProcessNodeRootList->Count, sourceNode);
+                sourceNode->Parent = NULL;
+            }
+
+            TreeNew_NodesStructured(hwnd);
+        }
+        return TRUE;
+    case TreeNewReorderCancel:
         return TRUE;
     }
 

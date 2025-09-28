@@ -644,8 +644,17 @@ PhPrintPointerPadZeros(
     *dest = UNICODE_NULL;
 }
 
+//
 // Misc.
+//
 
+/**
+ * Rounds the given value to the nearest multiple of the specified granularity.
+ *
+ * \param Value The value to round.
+ * \param Granularity The granularity to which the value should be rounded.
+ * \return The value rounded to the nearest multiple of granularity.
+ */
 FORCEINLINE
 ULONG64
 PhRoundNumber(
@@ -656,6 +665,17 @@ PhRoundNumber(
     return (Value + Granularity / 2) / Granularity * Granularity;
 }
 
+/**
+ * Multiplies a number by a numerator and divides by a denominator, with rounding.
+ *
+ * This function performs the operation: ((Number * Numerator) + (Denominator / 2)) / Denominator
+ * using 32-bit unsigned integers, avoiding overflow and providing rounding.
+ *
+ * \param Number The base number to multiply.
+ * \param Numerator The numerator for multiplication.
+ * \param Denominator The denominator for division.
+ * \return The result of the multiply-divide operation, rounded to the nearest integer.
+ */
 FORCEINLINE
 ULONG
 PhMultiplyDivide(
@@ -668,6 +688,17 @@ PhMultiplyDivide(
     return UInt32Div32To64(UInt32Add32To64(UInt32Mul32To64(Number, Numerator), UInt32Div32To64(Denominator, 2)), Denominator);
 }
 
+/**
+ * Multiplies a signed number by a numerator and divides by a denominator, with rounding.
+ *
+ * This function performs the operation: ((Number * Numerator) + (Denominator / 2)) / Denominator
+ * for signed numbers, preserving the sign and providing rounding.
+ *
+ * \param Number The signed base number to multiply.
+ * \param Numerator The numerator for multiplication.
+ * \param Denominator The denominator for division.
+ * \return The result of the signed multiply-divide operation, rounded to the nearest integer.
+ */
 FORCEINLINE
 LONG
 PhMultiplyDivideSigned(
@@ -682,6 +713,24 @@ PhMultiplyDivideSigned(
         return -(LONG)PhMultiplyDivide(-Number, Numerator, Denominator);
 }
 
+/**
+ * Probes a user-supplied address for validity and alignment within a specified buffer.
+ *
+ * This function checks that the given `UserAddress` is properly aligned to the specified `Alignment`,
+ * and that the memory region defined by `UserAddress` and `UserLength` is fully contained within
+ * the buffer defined by `BufferAddress` and `BufferLength`. If any of these checks fail, a software
+ * exception is raised.
+ *
+ * \param UserAddress    The starting address of the user-supplied memory region to probe.
+ * \param UserLength     The length, in bytes, of the memory region to probe.
+ * \param BufferAddress  The base address of the buffer within which the user region must reside.
+ * \param BufferLength   The length, in bytes, of the buffer.
+ * \param Alignment      The required alignment, in bytes, for the user address.
+ * \remarks
+ * This function does not actually access the memory at `UserAddress`; it only performs pointer arithmetic
+ * and alignment checks. Use this function before reading from or writing to user-supplied memory to ensure
+ * safety and prevent access violations.
+ */
 FORCEINLINE
 VOID
 PhProbeAddress(
@@ -791,6 +840,28 @@ PhTimeoutFromMilliseconds(
         Timeout->QuadPart = -(LONGLONG)UInt32x32To64(Milliseconds, PH_TIMEOUT_MS);
 
     return Timeout;
+}
+
+FORCEINLINE
+FLOAT
+PhClampSingle(
+    _In_ FLOAT Value,
+    _In_ FLOAT Min,
+    _In_ FLOAT Max
+    )
+{
+    return fminf(fmaxf(Value, Min), Max);
+}
+
+FORCEINLINE
+DOUBLE
+PhClampDouble(
+    _In_ DOUBLE Value,
+    _In_ DOUBLE Min,
+    _In_ DOUBLE Max
+    )
+{
+    return fmin(fmax(Value, Min), Max);
 }
 
 #endif

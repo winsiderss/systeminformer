@@ -191,7 +191,7 @@ VOID NTAPI MenuItemCallback(
         break;
     case ID_OBJMGR:
         {
-            EtShowObjectManagerDialog(menuItem->OwnerWindow);
+            //EtShowObjectManagerDialog(menuItem->OwnerWindow);
         }
         break;
     case ID_POOL_TABLE:
@@ -256,7 +256,7 @@ VOID NTAPI MainMenuInitializingCallback(
     }
 
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POOL_TABLE, L"Poo&l Table", NULL), ULONG_MAX);
-    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), ULONG_MAX);
+    //PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SMBIOS, L"SM&BIOS", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, bootMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_FIRMWARE, L"Firm&ware Table", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, tpmMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_TPM, L"&Trusted Platform Module", NULL), ULONG_MAX);
@@ -323,8 +323,8 @@ VOID NTAPI HandlePropertiesInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (Parameter)
-        EtHandlePropertiesInitializing(Parameter);
+    //if (Parameter)
+    //    EtHandlePropertiesInitializing(Parameter);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -333,8 +333,8 @@ VOID NTAPI HandlePropertiesWindowInitializedCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (Parameter)
-        EtHandlePropertiesWindowInitialized(Parameter);
+    //if (Parameter)
+    //    EtHandlePropertiesWindowInitialized(Parameter);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -343,8 +343,8 @@ VOID NTAPI HandlePropertiesWindowUninitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (Parameter)
-        EtHandlePropertiesWindowUninitializing(Parameter);
+    //if (Parameter)
+    //    EtHandlePropertiesWindowUninitializing(Parameter);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)

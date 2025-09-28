@@ -577,14 +577,29 @@ BOOLEAN NTAPI PhSipNotifyIoReadGraph(
             {
                 FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
 
-                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                if (PhCsEnableAvxSupport && drawInfo->LineDataCount > 1024)
                 {
-                    FLOAT value;
+                    PhCopyConvertCircularBufferULONG64(&PhIoReadHistory, IoReadGraphState.Data1, drawInfo->LineDataCount);
+                    max = PhMaxMemorySingles(IoReadGraphState.Data1, drawInfo->LineDataCount);
 
-                    IoReadGraphState.Data1[i] = value = (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i);
+#ifdef DEBUG
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        assert(IoReadGraphState.Data1[i] == (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i));
+                    }
+#endif
+                }
+                else
+                {
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        FLOAT value;
 
-                    if (max < value)
-                        max = value;
+                        IoReadGraphState.Data1[i] = value = (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i);
+
+                        if (max < value)
+                            max = value;
+                    }
                 }
 
                 if (max != 0)
@@ -684,14 +699,29 @@ BOOLEAN PhSipNotifyIoWriteGraph(
             {
                 FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
 
-                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                if (PhCsEnableAvxSupport && drawInfo->LineDataCount > 1024)
                 {
-                    FLOAT value;
+                    PhCopyConvertCircularBufferULONG64(&PhIoWriteHistory, IoWriteGraphState.Data1, drawInfo->LineDataCount);
+                    max = PhMaxMemorySingles(IoWriteGraphState.Data1, drawInfo->LineDataCount);
 
-                    IoWriteGraphState.Data1[i] = value = (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i);
+#ifdef DEBUG
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        assert(IoWriteGraphState.Data1[i] == (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i));
+                    }
+#endif
+                }
+                else
+                {
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        FLOAT value;
 
-                    if (max < value)
-                        max = value;
+                        IoWriteGraphState.Data1[i] = value = (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i);
+
+                        if (max < value)
+                            max = value;
+                    }
                 }
 
                 if (max != 0)
@@ -791,14 +821,29 @@ BOOLEAN PhSipNotifyIoOtherGraph(
             {
                 FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
 
-                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                if (PhCsEnableAvxSupport && drawInfo->LineDataCount > 1024)
                 {
-                    FLOAT value;
+                    PhCopyConvertCircularBufferULONG64(&PhIoOtherHistory, IoOtherGraphState.Data1, drawInfo->LineDataCount);
+                    max = PhMaxMemorySingles(IoOtherGraphState.Data1, drawInfo->LineDataCount);
 
-                    IoOtherGraphState.Data1[i] = value = (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i);
+#ifdef DEBUG
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        assert(IoOtherGraphState.Data1[i] == (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i));
+                    }
+#endif
+                }
+                else
+                {
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        FLOAT value;
 
-                    if (max < value)
-                        max = value;
+                        IoOtherGraphState.Data1[i] = value = (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i);
+
+                        if (max < value)
+                            max = value;
+                    }
                 }
 
                 if (max != 0)
