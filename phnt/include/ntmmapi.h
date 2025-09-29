@@ -1349,7 +1349,6 @@ NtQuerySection(
  * \param File1MappedAsAnImage A pointer to the base address of the first file mapped as an image.
  * \param File2MappedAsFile A pointer to the base address of the second file mapped as a file.
  * \return NTSTATUS Returns STATUS_SUCCESS if the files are the same; otherwise, an appropriate NTSTATUS error code.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntaremappedfilesthesame
  */
 NTSYSCALLAPI
 NTSTATUS
