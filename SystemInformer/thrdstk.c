@@ -1683,7 +1683,9 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
         break;
     case TDN_DESTROYED:
         {
-            PhUnregisterCallback(&PhSymbolEventCallback, &context->SymbolProviderEventRegistration);
+            // TDN_DESTROYED can occur without TDN_DIALOG_CONSTRUCTED
+            if (context->TaskDialogHandle)
+                PhUnregisterCallback(&PhSymbolEventCallback, &context->SymbolProviderEventRegistration);
         }
         break;
     case TDN_BUTTON_CLICKED:
