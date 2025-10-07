@@ -137,9 +137,9 @@ VOID KphpGetFileObjectInformation(
     Information->AttachedDevice.Characteristics = attachedDevice->Characteristics;
     Information->AttachedDevice.Flags = attachedDevice->Flags;
 
-    Information->RelatedDevice.Type = attachedDevice->DeviceType;
-    Information->RelatedDevice.Characteristics = attachedDevice->Characteristics;
-    Information->RelatedDevice.Flags = attachedDevice->Flags;
+    Information->RelatedDevice.Type = relatedDevice->DeviceType;
+    Information->RelatedDevice.Characteristics = relatedDevice->Characteristics;
+    Information->RelatedDevice.Flags = relatedDevice->Flags;
 
     C_ASSERT(ARRAYSIZE(Information->Vpb.VolumeLabel) == ARRAYSIZE(vpb->VolumeLabel));
 
