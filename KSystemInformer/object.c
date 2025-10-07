@@ -453,7 +453,7 @@ Exit:
 _Function_class_(KPH_ENUM_PROCESS_HANDLES_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-BOOLEAN KphpEnumerateProcessHandlesCallbck(
+BOOLEAN KphpEnumerateProcessHandlesCallback(
     _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
     _In_ HANDLE Handle,
     _In_ PVOID Context
@@ -601,7 +601,7 @@ NTSTATUS KphEnumerateProcessHandles(
     context.Status = STATUS_SUCCESS;
 
     status = KphEnumerateProcessHandlesEx(process,
-                                          KphpEnumerateProcessHandlesCallbck,
+                                          KphpEnumerateProcessHandlesCallback,
                                           &context);
     if (!NT_SUCCESS(status))
     {
