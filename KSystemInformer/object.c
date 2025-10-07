@@ -2142,7 +2142,7 @@ Exit:
 
     if (objectInformation && (objectInformation != ObjectInformation))
     {
-        KphFreeA(objectInformation, KPH_TAG_OBJECT_QUERY, stackBuffer);
+        KphFreeA(objectInformation, KPH_TAG_OBJECT_INFO, stackBuffer);
     }
 
     if (process)
