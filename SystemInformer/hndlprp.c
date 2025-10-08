@@ -1750,75 +1750,76 @@ VOID PhpUpdateHandleGeneral(
         KERNEL_USER_TIMES times;
         BOOLEAN haveTimes = FALSE;
 
-        if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
-                Context->ProcessId
-                )))
-        {
-            ULONG bufferSize;
-            ULONG returnLength;
-            PUNICODE_STRING buffer;
-            NTSTATUS status2;
+        // TODO(jxy-s): Uncomment following code after next driver release (commented out as workaround for KphObjectProcessImageFileName memory leak) (dmex)
+        //if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
+        //        &processHandle,
+        //        PROCESS_QUERY_LIMITED_INFORMATION,
+        //        Context->ProcessId
+        //        )))
+        //{
+        //    ULONG bufferSize;
+        //    ULONG returnLength;
+        //    PUNICODE_STRING buffer;
+        //    NTSTATUS status2;
 
-            returnLength = 0;
-            bufferSize = 0x100;
-            buffer = PhAllocate(bufferSize);
+        //    returnLength = 0;
+        //    bufferSize = 0x100;
+        //    buffer = PhAllocate(bufferSize);
 
-            if (NT_SUCCESS(KphQueryInformationObject(
-                processHandle,
-                Context->HandleItem->Handle,
-                KphObjectProcessBasicInformation,
-                &basicInfo,
-                sizeof(basicInfo),
-                NULL
-                )))
-            {
-                exitStatus = basicInfo.ExitStatus;
-            }
+        //    if (NT_SUCCESS(KphQueryInformationObject(
+        //        processHandle,
+        //        Context->HandleItem->Handle,
+        //        KphObjectProcessBasicInformation,
+        //        &basicInfo,
+        //        sizeof(basicInfo),
+        //        NULL
+        //        )))
+        //    {
+        //        exitStatus = basicInfo.ExitStatus;
+        //    }
 
-            haveTimes = NT_SUCCESS(KphQueryInformationObject(
-                processHandle,
-                Context->HandleItem->Handle,
-                KphObjectProcessTimes,
-                &times,
-                sizeof(times),
-                NULL
-                ));
+        //    haveTimes = NT_SUCCESS(KphQueryInformationObject(
+        //        processHandle,
+        //        Context->HandleItem->Handle,
+        //        KphObjectProcessTimes,
+        //        &times,
+        //        sizeof(times),
+        //        NULL
+        //        ));
 
-            status2 = KphQueryInformationObject(
-                processHandle,
-                Context->HandleItem->Handle,
-                KphObjectProcessImageFileName,
-                buffer,
-                bufferSize,
-                &returnLength
-                );
-            if (status2 == STATUS_BUFFER_TOO_SMALL && returnLength > 0)
-            {
-                PhFree(buffer);
-                bufferSize = returnLength;
-                buffer = PhAllocate(returnLength);
+        //    status2 = KphQueryInformationObject(
+        //        processHandle,
+        //        Context->HandleItem->Handle,
+        //        KphObjectProcessImageFileName,
+        //        buffer,
+        //        bufferSize,
+        //        &returnLength
+        //        );
+        //    if (status2 == STATUS_BUFFER_TOO_SMALL && returnLength > 0)
+        //    {
+        //        PhFree(buffer);
+        //        bufferSize = returnLength;
+        //        buffer = PhAllocate(returnLength);
 
-                status2 = KphQueryInformationObject(
-                    processHandle,
-                    Context->HandleItem->Handle,
-                    KphObjectProcessImageFileName,
-                    buffer,
-                    bufferSize,
-                    &returnLength
-                    );
-            }
+        //        status2 = KphQueryInformationObject(
+        //            processHandle,
+        //            Context->HandleItem->Handle,
+        //            KphObjectProcessImageFileName,
+        //            buffer,
+        //            bufferSize,
+        //            &returnLength
+        //            );
+        //    }
 
-            if (NT_SUCCESS(status2))
-            {
-                fileName = PhCreateStringFromUnicodeString(buffer);
-                PhMoveReference(&fileName, PhGetFileName(fileName));
-            }
+        //    if (NT_SUCCESS(status2))
+        //    {
+        //        fileName = PhCreateStringFromUnicodeString(buffer);
+        //        PhMoveReference(&fileName, PhGetFileName(fileName));
+        //    }
 
-            NtClose(processHandle);
-        }
-        else
+        //    NtClose(processHandle);
+        //}
+        //else
         {
             HANDLE dupHandle = NULL;
 
