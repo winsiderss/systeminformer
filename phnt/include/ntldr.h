@@ -998,7 +998,7 @@ LdrFindResourceDirectory_U(
 #define LDR_RES_ALLOW_ANY                0x00000002u  // Permit Count < 3 (else Count must be 3 or 4)
 #define LDR_RES_OPTIMIZE_SMALL_A         0x00000008u  // Cannot combine with LDR_RES_OPTIMIZE_SMALL_B
 #define LDR_RES_OPTIMIZE_SMALL_B         0x00000010u  // Required when using LDR_RES_SPECIAL_DEPENDENCY with LDR_RES_MODE_D_SEARCH
-#define LDR_RES_ALT_RETRY                0x00000030u
+//#define LDR_RES_ALT_RETRY                0x00000030u
 #define LDR_RES_REQUIRE_FOUR_KEYS_B      0x00000040u  // Enables 4-key mode (Enable alternate module message) (requires Count==4)
 
 // Search mode flags (if not specified, LDR_RES_MODE_A_SEARCH is the default)
