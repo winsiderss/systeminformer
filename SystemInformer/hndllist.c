@@ -662,26 +662,38 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                 break;
             case PHHNTLC_HANDLECOUNT:
                 {
-                    PhMoveReference(&node->HandleCountText, PhFormatUInt64(handleItem->HandleCount, FALSE));
-                    getCellText->Text = PhGetStringRef(node->HandleCountText);
+                    if (handleItem->HandleCount != 0)
+                    {
+                        PhMoveReference(&node->HandleCountText, PhFormatUInt64(handleItem->HandleCount, FALSE));
+                        getCellText->Text = PhGetStringRef(node->HandleCountText);
+                    }
                 }
                 break;
             case PHHNTLC_POINTERCOUNT:
                 {
-                    PhMoveReference(&node->PointerCountText, PhFormatUInt64(handleItem->PointerCount, FALSE));
-                    getCellText->Text = PhGetStringRef(node->PointerCountText);
+                    if (handleItem->PointerCount != 0)
+                    {
+                        PhMoveReference(&node->PointerCountText, PhFormatUInt64(handleItem->PointerCount, FALSE));
+                        getCellText->Text = PhGetStringRef(node->PointerCountText);
+                    }
                 }
                 break;
             case PHHNTLC_PAGEDSIZE:
                 {
-                    PhMoveReference(&node->PageSizeText, PhFormatSize(handleItem->PagedPoolCharge, ULONG_MAX));
-                    getCellText->Text = PhGetStringRef(node->PageSizeText);
+                    if (handleItem->PagedPoolCharge != 0)
+                    {
+                        PhMoveReference(&node->PageSizeText, PhFormatSize(handleItem->PagedPoolCharge, ULONG_MAX));
+                        getCellText->Text = PhGetStringRef(node->PageSizeText);
+                    }
                 }
                 break;
             case PHHNTLC_NONPAGEDSIZE:
                 {
-                    PhMoveReference(&node->NonPageSizeText, PhFormatSize(handleItem->NonPagedPoolCharge, ULONG_MAX));
-                    getCellText->Text = PhGetStringRef(node->NonPageSizeText);
+                    if (handleItem->NonPagedPoolCharge != 0)
+                    {
+                        PhMoveReference(&node->NonPageSizeText, PhFormatSize(handleItem->NonPagedPoolCharge, ULONG_MAX));
+                        getCellText->Text = PhGetStringRef(node->NonPageSizeText);
+                    }
                 }
                 break;
             default:
