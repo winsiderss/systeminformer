@@ -2154,6 +2154,83 @@ VOID PhpGetProcessThreadInformation(
         *ProcessorQueueLength = processorQueueLength;
 }
 
+/**
+ * Computes CPU utilization percentage from processor cycles during a measurement interval, normalized by a scaling factor using the number of logical processors.
+ *
+ * Cycles = ProcessorCycleCounterStop - ProcessorCycleCounterStart
+ * Cycles per Tick = Cycles /PerformanceCounterTickDelta
+ * Normalized Cycles per Tick = (Cycles / PerformanceCounterTickDelta) / LogicalProcessorCount
+ * CPU Usage % = DeltaCycles / (DeltaTicks × LogicalProcessorCount) × 100
+ * 
+ * \param ProcessorCycleCountStart The number of CPU cycles at the start of the measurement interval.
+ * \param ProcessorCycleCountStop The number of CPU cycles at the end of the measurement interval. Must be greater than ProcessorCycleCounterStart for a valid calculation.
+ * \param PerformanceCounterDelta The elapsed ticks from a high‑resolution performance counter (e.g., QueryPerformanceCounter) during the measurement interval, in performance counter ticks.
+ * \param NumberOfProcessors The number of logical processors in the system, used to normalize the usage percentage.
+ * \return The utilization percentage of processor cycles during the interval.
+ * \remarks This method is used by Windows Task Manager to estimate CPU usage from TSC deltas.
+ */
+DOUBLE PhComputeCpuUtilizationPercentFromCycles(
+    _In_ ULONGLONG ProcessorCycleCounterStart,
+    _In_ ULONGLONG ProcessorCycleCounterStop,
+    _In_ LONGLONG PerformanceCounterDelta,
+    _In_ ULONG LogicalProcessorCount
+    )
+{
+    if (ProcessorCycleCounterStop <= ProcessorCycleCounterStart ||
+        PerformanceCounterDelta == 0 || LogicalProcessorCount == 0)
+        return 0.0;
+
+    const DOUBLE DeltaCycles = (DOUBLE)(ProcessorCycleCounterStop - ProcessorCycleCounterStart);
+    const DOUBLE DeltaTicks = (DOUBLE)PerformanceCounterDelta;
+
+    const DOUBLE CyclesPerQpcTick = DeltaCycles / DeltaTicks;
+    const DOUBLE UtilizationPercent = (CyclesPerQpcTick / (DOUBLE)LogicalProcessorCount) * 100.0;
+
+    return UtilizationPercent;
+}
+
+/*
+ * Computes CPU utilization percentage from processor cycles during a measurement interval, normalized by logical processors and calibrated by counter frequencies.
+ *
+ * Utilization% = ObservedCycles / (ElapsedSeconds * CycleCounterFrequencyHz * LogicalProcessorCount) * 100
+ *
+ * \param ProcessorCycleCountStart The number of CPU cycles at the start of the measurement interval.
+ * \param ProcessorCycleCountStop The number of CPU cycles at the end of the measurement interval. Must be greater than ProcessorCycleCounterStart for a valid calculation.
+ * \param PerformanceCounterDelta The elapsed ticks from a high‑resolution performance counter (e.g., QueryPerformanceCounter) during the measurement interval, in performance counter ticks.
+ * \param NumberOfProcessors The number of logical processors in the system, used to normalize the usage percentage.
+ * \return The precise utilization percentage of processor cycles during the interval.
+ * \remarks This method produces a true CPU utilization percentage by incorporating counter frequencies.
+ * \remarks ProcessorCycleCounterFrequency must correspond to the SAME source as ProcessorCycleCounterStart/Stop.
+ * If cycles are from TSC, pass TSC frequency. If cycles are from a PMU (e.g., Unhalted Core Cycles), pass that
+ * counter's effective frequency at 100%, not the invariant TSC frequency.
+ */
+DOUBLE PhComputeCpuUtilizationPercentFromCyclesPrecise(
+    _In_ ULONGLONG ProcessorCycleCounterStart,
+    _In_ ULONGLONG ProcessorCycleCounterStop,
+    _In_ ULONGLONG ProcessorCycleCounterFrequency,
+    _In_ LONGLONG  PerformanceCounterDelta,
+    _In_ ULONGLONG PerformanceCounterFrequency,
+    _In_ ULONG LogicalProcessorCount
+    )
+{
+    if (ProcessorCycleCounterStop <= ProcessorCycleCounterStart || PerformanceCounterDelta <= 0 ||
+        PerformanceCounterFrequency == 0 || ProcessorCycleCounterFrequency == 0 || LogicalProcessorCount == 0)
+    {
+        return 0.0;
+    }
+
+    const DOUBLE ObservedCycles = (DOUBLE)(ProcessorCycleCounterStop - ProcessorCycleCounterStart);
+    const DOUBLE ElapsedSeconds = (DOUBLE)PerformanceCounterDelta / (DOUBLE)PerformanceCounterFrequency;
+    const DOUBLE CapacityCycles = ElapsedSeconds * (DOUBLE)ProcessorCycleCounterFrequency * (DOUBLE)LogicalProcessorCount;
+
+    if (!(CapacityCycles > 0.0))
+        return 0.0;
+
+    const DOUBLE UtilizationPercent = (ObservedCycles / CapacityCycles) * 100.0;
+
+    return UtilizationPercent;
+}
+
 #ifdef _ARM64_
 VOID PhpEstimateIdleCyclesForARM(
     _Inout_ PULONG64 TotalCycles,
