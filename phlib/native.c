@@ -1824,7 +1824,7 @@ NTSTATUS PhpUnloadDriver(
 NTSTATUS PhUnloadDriver(
     _In_opt_ PVOID BaseAddress,
     _In_opt_ PCPH_STRINGREF Name,
-    _In_opt_ PCPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -1843,7 +1843,7 @@ NTSTATUS PhUnloadDriver(
 
     if ((level == KphLevelMax) && BaseAddress)
     {
-        if (!PhIsRtlModuleBase(BaseAddress))
+        if (PhGetOwnTokenAttributes().Elevated)
         {
             if (NT_SUCCESS(PhOpenDriverByBaseAddress(
                 &driverHandle,

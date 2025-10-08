@@ -1825,7 +1825,7 @@ PhAddAccessAllowedAceEx(
         return STATUS_INVALID_ACL;
 
     ULONG sidLength = PhLengthSid(Sid);
-    ULONG_PTR aceSize = UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + sidLength;
+    ULONG aceSize = UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + sidLength;
 
     // Ensure fits into USHORT and inside ACL buffer. (dmex)
     if (aceSize >= USHRT_MAX)
@@ -2588,7 +2588,7 @@ NTAPI
 PhUnloadDriver(
     _In_opt_ PVOID BaseAddress,
     _In_opt_ PCPH_STRINGREF Name,
-    _In_opt_ PCPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 typedef _Function_class_(PH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK)
@@ -2696,13 +2696,6 @@ NTAPI
 PhEnumProcessModules32Ex(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_ENUM_PROCESS_MODULES_PARAMETERS Parameters
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhIsRtlModuleBase(
-    _In_ PVOID DllBase
     );
 
 PHLIBAPI
