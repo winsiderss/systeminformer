@@ -1111,7 +1111,7 @@ VOID PhpShowWmiProviderNodeContextMenu(
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
-                            L"ProgramInspectExecutables",
+                            SETTING_PROGRAM_INSPECT_EXECUTABLES,
                             PhGetString(nodes[0]->Provider->FileName),
                             FALSE,
                             L"Make sure the PE Viewer executable file is present."
@@ -1136,7 +1136,7 @@ VOID PhpShowWmiProviderNodeContextMenu(
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
-                            L"FileBrowseExecutable",
+                            SETTING_FILE_BROWSE_EXECUTABLE,
                             PhGetString(nodes[0]->Provider->FileName),
                             FALSE,
                             L"Make sure the Explorer executable file is present."
@@ -1367,6 +1367,7 @@ VOID PhpExpandAllWmiProviderNodes(
     return PhModifySort(sortResult, ((PPH_PROCESS_WMI_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpWmiProviderTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,

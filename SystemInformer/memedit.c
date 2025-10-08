@@ -14,6 +14,7 @@
 
 #include <procprv.h>
 #include <settings.h>
+#include <phsettings.h>
 
 #define WM_PH_SELECT_OFFSET (WM_APP + 300)
 
@@ -318,7 +319,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 }
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             context->LoadCompleted = TRUE;
         }
@@ -453,7 +454,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 {
                     NTSTATUS status;
 
-                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
                         hwndDlg,
                         L"write",
                         L"process memory",

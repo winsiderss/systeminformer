@@ -952,11 +952,12 @@ NTSTATUS PhEnumSMBIOS(
     ULONG length;
     PSYSTEM_FIRMWARE_TABLE_INFORMATION info;
 
-    length = (ULONG)ReadAcquire((volatile LONG*)&cachedLength);
+    length = ReadULongAcquire(&cachedLength);
 
-    if (!(info = PhAllocatePageZero(length)))
+    if (!(info = PhAllocateStack(length)))
         return STATUS_NO_MEMORY;
 
+    RtlZeroMemory(info, length);
     info->ProviderSignature = 'RSMB';
     info->TableID = 0;
     info->Action = SystemFirmwareTableGet;
@@ -971,11 +972,12 @@ NTSTATUS PhEnumSMBIOS(
 
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
-        PhFreePage(info);
+        PhFreeStack(info);
 
-        if (!(info = PhAllocatePageZero(length)))
+        if (!(info = PhAllocateStack(length)))
             return STATUS_NO_MEMORY;
 
+        RtlZeroMemory(info, length);
         info->ProviderSignature = 'RSMB';
         info->TableID = 0;
         info->Action = SystemFirmwareTableGet;
@@ -990,7 +992,7 @@ NTSTATUS PhEnumSMBIOS(
 
         if (NT_SUCCESS(status))
         {
-            WriteRelease((volatile LONG*)&cachedLength, (LONG)length);
+            WriteULongRelease(&cachedLength, length);
         }
     }
 
@@ -1003,7 +1005,7 @@ NTSTATUS PhEnumSMBIOS(
             );
     }
 
-    PhFreePage(info);
+    PhFreeStack(info);
 
     return status;
 }

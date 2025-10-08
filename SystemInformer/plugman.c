@@ -13,6 +13,7 @@
 #include <phapp.h>
 #include <emenu.h>
 #include <settings.h>
+#include <phsettings.h>
 #include <colmgr.h>
 #include <phplug.h>
 
@@ -116,7 +117,7 @@ VOID PluginsLoadSettingsTreeList(
 {
     PPH_STRING settings;
 
-    settings = PhGetStringSetting(L"PluginManagerTreeListColumns");
+    settings = PhGetStringSetting(SETTING_PLUGIN_MANAGER_TREE_LIST_COLUMNS);
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
 }
@@ -128,7 +129,7 @@ VOID PluginsSaveSettingsTreeList(
     PPH_STRING settings;
 
     settings = PhCmSaveSettings(Context->TreeNewHandle);
-    PhSetStringSetting2(L"PluginManagerTreeListColumns", &settings->sr);
+    PhSetStringSetting2(SETTING_PLUGIN_MANAGER_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
 }
 
@@ -1038,7 +1039,7 @@ VOID PhpAddDisabledPlugins(
     PPH_STRING displayText;
     INT lvItemIndex;
 
-    disabled = PhGetStringSetting(L"DisabledPlugins");
+    disabled = PhGetStringSetting(SETTING_DISABLED_PLUGINS);
     remainingPart = disabled->sr;
 
     while (remainingPart.Length)
@@ -1069,7 +1070,7 @@ ULONG PhpDisabledPluginsCount(
     PH_STRINGREF part;
     ULONG count = 0;
 
-    disabled = PhGetStringSetting(L"DisabledPlugins");
+    disabled = PhGetStringSetting(SETTING_DISABLED_PLUGINS);
     remainingPart = disabled->sr;
 
     while (remainingPart.Length)

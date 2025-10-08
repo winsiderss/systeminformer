@@ -42,6 +42,7 @@ VOID PhpRemoveNetworkNode(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpNetworkTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -198,7 +199,7 @@ VOID PhLoadSettingsNetworkTreeList(
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -224,7 +225,7 @@ VOID PhReloadSettingsNetworkTreeList(
     VOID
     )
 {
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -400,6 +401,7 @@ VOID PhTickNetworkNodes(
     return PhModifySort(sortResult, NetworkTreeListSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpNetworkTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,

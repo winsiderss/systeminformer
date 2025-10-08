@@ -62,63 +62,6 @@ static ULONG64 CpuL1CacheSize;
 static ULONG64 CpuL2CacheSize;
 static ULONG64 CpuL3CacheSize;
 
-_Function_class_(PH_ENUM_SMBIOS_CALLBACK)
-BOOLEAN NTAPI PhpSipCpuSMBIOSCallback(
-    _In_ ULONG_PTR EnumHandle,
-    _In_ UCHAR MajorVersion,
-    _In_ UCHAR MinorVersion,
-    _In_ PPH_SMBIOS_ENTRY Entry,
-    _In_opt_ PVOID Context
-    )
-{
-    ULONG64 size;
-
-    if (Entry->Header.Type != SMBIOS_CACHE_INFORMATION_TYPE)
-        return FALSE;
-
-    if (!PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, Configuration) ||
-        !Entry->Cache.Configuration.Enabled)
-    {
-        return FALSE;
-    }
-
-    size = 0;
-
-    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize))
-    {
-        if (Entry->Cache.InstalledSize.Value == MAXUSHORT &&
-            PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize2))
-        {
-            if (Entry->Cache.InstalledSize2.Granularity)
-                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x10000;
-            else
-                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x400;
-        }
-        else
-        {
-            if (Entry->Cache.InstalledSize.Granularity)
-                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x10000;
-            else
-                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x400;
-        }
-    }
-
-    switch (Entry->Cache.Configuration.Level)
-    {
-    case 0:
-        CpuL1CacheSize += size;
-        break;
-    case 1:
-        CpuL2CacheSize += size;
-        break;
-    case 2:
-        CpuL3CacheSize += size;
-        break;
-    }
-
-    return FALSE;
-}
-
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipCpuSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
@@ -132,10 +75,6 @@ BOOLEAN PhSipCpuSectionCallback(
     case SysInfoCreate:
         {
             CpuSection = Section;
-            CpuL1CacheSize = 0;
-            CpuL2CacheSize = 0;
-            CpuL3CacheSize = 0;
-            PhEnumSMBIOS(PhpSipCpuSMBIOSCallback, NULL);
         }
         return TRUE;
     case SysInfoDestroy:
@@ -529,6 +468,10 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            CpuL1CacheSize = 0;
+            CpuL2CacheSize = 0;
+            CpuL3CacheSize = 0;
+
             CpuPanelUtilizationLabel = GetDlgItem(hwndDlg, IDC_UTILIZATION);
             CpuPanelSpeedLabel = GetDlgItem(hwndDlg, IDC_SPEED);
             CpuVirtualizationLabel = GetDlgItem(hwndDlg, IDC_VIRTUALIZATION);
@@ -548,6 +491,8 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
             SetWindowFont(CpuPanelUtilizationLabel, CpuSection->Parameters->MediumFont, FALSE);
             SetWindowFont(CpuPanelSpeedLabel, CpuSection->Parameters->MediumFont, FALSE);
             SetWindowFont(CpuVirtualizationLabel, CpuSection->Parameters->MediumFont, FALSE);
+
+            PhQueueUserWorkItem(PhSipCpuSMBIOSWorkRoutine, NULL);
         }
         break;
     case WM_COMMAND:
@@ -757,6 +702,7 @@ VOID PhSipSetOneGraphPerCpu(
     }
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipCpuGraphCallback(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -2111,7 +2057,9 @@ BOOLEAN PhIsCoreParked(
     if (initialBufferSize)
     {
         returnLength = initialBufferSize;
-        cpuSetInfo = PhAllocateZero(returnLength);
+        cpuSetInfo = PhAllocateStack(returnLength);
+        if (!cpuSetInfo) return FALSE;
+        RtlZeroMemory(cpuSetInfo, returnLength);
     }
     else
     {
@@ -2132,8 +2080,10 @@ BOOLEAN PhIsCoreParked(
     {
         returnLength += RTL_SIZEOF_THROUGH_FIELD(SYSTEM_CPU_SET_INFORMATION, Size);
 
-        PhFree(cpuSetInfo);
-        cpuSetInfo = PhAllocateZero(returnLength);
+        PhFreeStack(cpuSetInfo);
+        cpuSetInfo = PhAllocateStack(returnLength);
+        if (!cpuSetInfo) return FALSE;
+        RtlZeroMemory(cpuSetInfo, returnLength);
 
         status = NtQuerySystemInformationEx(
             SystemCpuSetInformation,
@@ -2167,7 +2117,7 @@ BOOLEAN PhIsCoreParked(
         }
     }
 
-    PhFree(cpuSetInfo);
+    PhFreeStack(cpuSetInfo);
 
     return isParked;
 }
@@ -2329,4 +2279,70 @@ VOID PhSipUpdateTimerResolution(
     {
         CpuTimerResolution = 0.0f;
     }
+}
+
+_Function_class_(PH_ENUM_SMBIOS_CALLBACK)
+BOOLEAN NTAPI PhpSipCpuSMBIOSCallback(
+    _In_ ULONG_PTR EnumHandle,
+    _In_ UCHAR MajorVersion,
+    _In_ UCHAR MinorVersion,
+    _In_ PPH_SMBIOS_ENTRY Entry,
+    _In_opt_ PVOID Context
+    )
+{
+    ULONG64 size;
+
+    if (Entry->Header.Type != SMBIOS_CACHE_INFORMATION_TYPE)
+        return FALSE;
+
+    if (!PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, Configuration) ||
+        !Entry->Cache.Configuration.Enabled)
+    {
+        return FALSE;
+    }
+
+    size = 0;
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize))
+    {
+        if (Entry->Cache.InstalledSize.Value == MAXUSHORT &&
+            PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize2))
+        {
+            if (Entry->Cache.InstalledSize2.Granularity)
+                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x10000;
+            else
+                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x400;
+        }
+        else
+        {
+            if (Entry->Cache.InstalledSize.Granularity)
+                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x10000;
+            else
+                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x400;
+        }
+    }
+
+    switch (Entry->Cache.Configuration.Level)
+    {
+    case 0:
+        CpuL1CacheSize += size;
+        break;
+    case 1:
+        CpuL2CacheSize += size;
+        break;
+    case 2:
+        CpuL3CacheSize += size;
+        break;
+    }
+
+    return FALSE;
+}
+
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI PhSipCpuSMBIOSWorkRoutine(
+    _In_ PVOID ThreadParameter
+    )
+{
+    PhEnumSMBIOS(PhpSipCpuSMBIOSCallback, NULL);
+    return STATUS_SUCCESS;
 }

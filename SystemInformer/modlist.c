@@ -43,6 +43,7 @@ VOID PhpRemoveModuleNode(
     _In_ PPH_MODULE_LIST_CONTEXT Context
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpModuleTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -64,7 +65,7 @@ VOID PhInitializeModuleList(
     _Out_ PPH_MODULE_LIST_CONTEXT Context
     )
 {
-    BOOLEAN enableMonospaceFont = !!PhGetIntegerSetting(L"EnableMonospaceFont");
+    BOOLEAN enableMonospaceFont = !!PhGetIntegerSetting(SETTING_ENABLE_MONOSPACE_FONT);
 
     memset(Context, 0, sizeof(PH_MODULE_LIST_CONTEXT));
     Context->EnableStateHighlighting = TRUE;
@@ -563,6 +564,7 @@ VOID PhTickModuleNodes(
     return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpModuleTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,

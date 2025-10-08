@@ -14,6 +14,7 @@
 #include <memprv.h>
 #include <heapstruct.h>
 #include <settings.h>
+#include <phsettings.h>
 
 #define MAX_HEAPS 1000
 #define WS_REQUEST_COUNT (PAGE_SIZE / sizeof(MEMORY_WORKING_SET_EX_INFORMATION))
@@ -393,7 +394,7 @@ VOID PhpUpdateHeapRegions(
         if (WindowsVersion >= WINDOWS_10)
             PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
 
-        if (PhGetIntegerSetting(L"EnableHeapReflection"))
+        if (PhGetIntegerSetting(SETTING_ENABLE_HEAP_REFLECTION))
         {
             status = PhCreateProcessReflection(
                 &reflectionInfo,

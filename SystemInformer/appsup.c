@@ -1310,8 +1310,8 @@ BOOLEAN PhGetIListViewContextMenuPoint(
     )
 {
     LONG selectedIndex;
-    RECT bounds;
-    RECT clientRect;
+    RECT bounds = { 0 };
+    RECT clientRect = { 0 };
 
     // The user pressed a key to display the context menu.
     // Suggest where the context menu should display.
@@ -2055,6 +2055,7 @@ VOID PhApplyTreeNewFilters(
     }
 }
 
+_Function_class_(PH_EMENU_ITEM_DELETE_FUNCTION)
 VOID NTAPI PhpCopyCellEMenuItemDeleteFunction(
     _In_ PPH_EMENU_ITEM Item
     )

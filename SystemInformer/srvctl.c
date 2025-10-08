@@ -14,6 +14,7 @@
 #include <phplug.h>
 #include <svcsup.h>
 #include <settings.h>
+#include <phsettings.h>
 #include <emenu.h>
 
 #include <actions.h>
@@ -618,7 +619,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
                                             {
                                                 PhShellExecuteUserString(
                                                     hwndDlg,
-                                                    L"FileBrowseExecutable",
+                                                    SETTING_FILE_BROWSE_EXECUTABLE,
                                                     PhGetString(fileName),
                                                     FALSE,
                                                     L"Make sure the Explorer executable file is present."

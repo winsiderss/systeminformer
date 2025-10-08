@@ -28,6 +28,7 @@ VOID PhpDestroyMemoryNode(
     _In_ PPH_MEMORY_NODE MemoryNode
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpMemoryTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -49,7 +50,7 @@ VOID PhInitializeMemoryList(
     _Out_ PPH_MEMORY_LIST_CONTEXT Context
     )
 {
-    BOOLEAN enableMonospaceFont = !!PhGetIntegerSetting(L"EnableMonospaceFont");
+    BOOLEAN enableMonospaceFont = !!PhGetIntegerSetting(SETTING_ENABLE_MONOSPACE_FONT);
 
     memset(Context, 0, sizeof(PH_MEMORY_LIST_CONTEXT));
     Context->AllocationBaseNodeList = PhCreateList(100);
@@ -665,6 +666,7 @@ PPH_STRING PhpFormatSizeIfNonZero(
     return PhModifySort(sortResult, ((PPH_MEMORY_LIST_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpMemoryTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,

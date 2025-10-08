@@ -320,6 +320,7 @@ VOID PhSipSetOneGraphPerCpu(
     VOID
     );
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipCpuGraphCallback(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -353,16 +354,17 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
     _Out_ DOUBLE *Frequency
     );
 
-NTSTATUS PhSipQueryCpuSetInformation(
-    _Out_ PVOID* Buffer
-    );
-
 PCPH_STRINGREF PhGetHybridProcessorType(
     _In_ ULONG ProcessorIndex
     );
 
 BOOLEAN PhIsCoreParked(
     _In_ ULONG ProcessorIndex
+    );
+
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI PhSipCpuSMBIOSWorkRoutine(
+    _In_ PVOID ThreadParameter
     );
 
 // Memory section
@@ -409,6 +411,7 @@ VOID PhSipLayoutMemoryGraphs(
     _In_ HWND hwnd
     );
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipNotifyCommitGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -417,6 +420,7 @@ BOOLEAN NTAPI PhSipNotifyCommitGraph(
     _In_ PVOID Context
     );
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipNotifyPhysicalGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -433,6 +437,7 @@ VOID PhSipUpdateMemoryPanel(
     VOID
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhSipLoadMmAddresses(
     _In_ PVOID Parameter
     );
@@ -493,6 +498,7 @@ VOID PhSipLayoutIoGraphs(
     _In_ HWND WindowHandle
     );
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipNotifyIoReadGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -501,6 +507,7 @@ BOOLEAN NTAPI PhSipNotifyIoReadGraph(
     _In_ PVOID Context
     );
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipNotifyIoWriteGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -509,6 +516,7 @@ BOOLEAN NTAPI PhSipNotifyIoWriteGraph(
     _In_ PVOID Context
     );
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipNotifyIoOtherGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,

@@ -186,7 +186,7 @@ VOID PhpHandleObjectLoadSettingsTreeList(
 {
     PPH_STRING settings;
 
-    settings = PhGetStringSetting(L"FindObjTreeListColumns");
+    settings = PhGetStringSetting(SETTING_FIND_OBJ_TREE_LIST_COLUMNS);
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
 }
@@ -198,7 +198,7 @@ VOID PhpHandleObjectSaveSettingsTreeList(
     PPH_STRING settings;
 
     settings = PhCmSaveSettings(Context->TreeNewHandle);
-    PhSetStringSetting2(L"FindObjTreeListColumns", &settings->sr);
+    PhSetStringSetting2(SETTING_FIND_OBJ_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
 }
 
@@ -1242,8 +1242,8 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            if (PhValidWindowPlacementFromSetting(L"FindObjWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
+            if (PhValidWindowPlacementFromSetting(SETTING_FIND_OBJ_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_FIND_OBJ_WINDOW_POSITION, SETTING_FIND_OBJ_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, (HWND)lParam);
 
@@ -1274,7 +1274,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
                 context->SearchThreadHandle = NULL;
             }
 
-            PhSaveWindowPlacementToSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_FIND_OBJ_WINDOW_POSITION, SETTING_FIND_OBJ_WINDOW_SIZE, hwndDlg);
 
             PhUnregisterWindowCallback(hwndDlg);
 

@@ -703,7 +703,7 @@ static NTSTATUS PhpOpenServiceControlManager(
 _Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseServiceControlManager(
     _In_opt_ HANDLE Handle,
-    _In_opt_ BOOLEAN Release,
+    _In_ BOOLEAN Release,
     _In_opt_ PVOID Context
     )
 {
@@ -792,7 +792,7 @@ static NTSTATUS PhpOpenSecurityDesktopHandle(
 _Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseSecurityDesktopHandle(
     _In_opt_ HANDLE Handle,
-    _In_opt_ BOOLEAN Release,
+    _In_ BOOLEAN Release,
     _In_opt_ PVOID Context
     )
 {
@@ -826,7 +826,7 @@ static NTSTATUS PhpOpenSecurityStationHandle(
 _Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseSecurityStationHandle(
     _In_opt_ HANDLE Handle,
-    _In_opt_ BOOLEAN Release,
+    _In_ BOOLEAN Release,
     _In_opt_ PVOID Context
     )
 {

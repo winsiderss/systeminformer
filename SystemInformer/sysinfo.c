@@ -470,15 +470,15 @@ VOID PhSipOnInitDialog(
         //    MinimumSize.bottom = newMinimumHeight;
     }
 
-    PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
+    PhLoadWindowPlacementFromSetting(SETTING_SYSINFO_WINDOW_POSITION, SETTING_SYSINFO_WINDOW_SIZE, PhSipWindow);
 
-    if (PhGetIntegerSetting(L"SysInfoWindowState") == SW_MAXIMIZE)
+    if (PhGetIntegerSetting(SETTING_SYSINFO_WINDOW_STATE) == SW_MAXIMIZE)
         ShowWindow(PhSipWindow, SW_MAXIMIZE);
 
     if (InitialSectionName)
         PhInitializeStringRefLongHint(&sectionName, InitialSectionName);
     else
-        sectionName = PhaGetStringSetting(L"SysInfoWindowSection")->sr;
+        sectionName = PhaGetStringSetting(SETTING_SYSINFO_WINDOW_SECTION)->sr;
 
     if (sectionName.Length != 0 && (section = PhSipFindSection(&sectionName)))
     {
@@ -503,11 +503,11 @@ VOID PhSipOnDestroy(
     PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &ProcessesUpdatedRegistration);
 
     if (CurrentSection)
-        PhSetStringSetting2(L"SysInfoWindowSection", &CurrentSection->Name);
+        PhSetStringSetting2(SETTING_SYSINFO_WINDOW_SECTION, &CurrentSection->Name);
     else
-        PhSetStringSetting(L"SysInfoWindowSection", L"");
+        PhSetStringSetting(SETTING_SYSINFO_WINDOW_SECTION, L"");
 
-    PhSaveWindowPlacementToSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
+    PhSaveWindowPlacementToSetting(SETTING_SYSINFO_WINDOW_POSITION, SETTING_SYSINFO_WINDOW_SIZE, PhSipWindow);
     PhSipSaveWindowState();
 
     PostQuitMessage(0);
@@ -688,6 +688,7 @@ VOID PhSipOnCommand(
     }
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipGraphCallback(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -1083,6 +1084,7 @@ VOID PhSiSetColorsGraphDrawInfo(
     }
 }
 
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
 PPH_STRING PhSiSizeLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
@@ -1111,6 +1113,7 @@ PPH_STRING PhSiSizeLabelYFunction(
     }
 }
 
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
 PPH_STRING PhSiDoubleLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
@@ -1137,6 +1140,7 @@ PPH_STRING PhSiDoubleLabelYFunction(
     }
 }
 
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
 PPH_STRING PhSiUInt64LabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
@@ -2480,9 +2484,9 @@ VOID PhSipSaveWindowState(
     GetWindowPlacement(PhSipWindow, &placement);
 
     if (placement.showCmd == SW_NORMAL)
-        PhSetIntegerSetting(L"SysInfoWindowState", SW_NORMAL);
+        PhSetIntegerSetting(SETTING_SYSINFO_WINDOW_STATE, SW_NORMAL);
     else if (placement.showCmd == SW_MAXIMIZE)
-        PhSetIntegerSetting(L"SysInfoWindowState", SW_MAXIMIZE);
+        PhSetIntegerSetting(SETTING_SYSINFO_WINDOW_STATE, SW_MAXIMIZE);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)

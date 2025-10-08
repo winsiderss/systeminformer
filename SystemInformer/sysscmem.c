@@ -744,6 +744,7 @@ VOID PhSipLayoutMemoryGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipNotifyCommitGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -840,6 +841,7 @@ BOOLEAN NTAPI PhSipNotifyCommitGraph(
     return TRUE;
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipNotifyPhysicalGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -1216,6 +1218,7 @@ VOID PhSipUpdateMemoryPanel(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhSipLoadMmAddresses(
     _In_ PVOID Parameter
     )

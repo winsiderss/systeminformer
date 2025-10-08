@@ -43,6 +43,7 @@ VOID PhpRemoveServiceNode(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpServiceTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -162,7 +163,7 @@ VOID PhLoadSettingsServiceTreeList(
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -460,6 +461,7 @@ static VOID PhpUpdateServiceNodeKey(
     return PhModifySort(sortResult, ServiceTreeListSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpServiceTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,

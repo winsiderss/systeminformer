@@ -18,6 +18,7 @@
 #include <phsvccl.h>
 #include <procprv.h>
 #include <settings.h>
+#include <phsettings.h>
 #include <mapldr.h>
 
 #include <trace.h>
@@ -132,7 +133,7 @@ BOOLEAN PhIsPluginDisabled(
     BOOLEAN found;
     PPH_STRING disabled;
 
-    disabled = PhGetStringSetting(L"DisabledPlugins");
+    disabled = PhGetStringSetting(SETTING_DISABLED_PLUGINS);
     found = PhpLocateDisabledPlugin(disabled, BaseName, NULL);
     PhDereferenceObject(disabled);
 
@@ -149,7 +150,7 @@ VOID PhSetPluginDisabled(
     ULONG_PTR foundIndex;
     PPH_STRING newDisabled;
 
-    disabled = PhGetStringSetting(L"DisabledPlugins");
+    disabled = PhGetStringSetting(SETTING_DISABLED_PLUGINS);
     found = PhpLocateDisabledPlugin(disabled, BaseName, &foundIndex);
 
     if (Disable && !found)
@@ -163,13 +164,13 @@ VOID PhSetPluginDisabled(
             memcpy(newDisabled->Buffer, disabled->Buffer, disabled->Length);
             newDisabled->Buffer[disabled->Length / sizeof(WCHAR)] = L'|';
             memcpy(&newDisabled->Buffer[disabled->Length / sizeof(WCHAR) + 1], BaseName->Buffer, BaseName->Length);
-            PhSetStringSetting2(L"DisabledPlugins", &newDisabled->sr);
+            PhSetStringSetting2(SETTING_DISABLED_PLUGINS, &newDisabled->sr);
             PhDereferenceObject(newDisabled);
         }
         else
         {
             // This is the first disabled plugin.
-            PhSetStringSetting2(L"DisabledPlugins", BaseName);
+            PhSetStringSetting2(SETTING_DISABLED_PLUGINS, BaseName);
         }
     }
     else if (!Disable && found)
@@ -196,7 +197,7 @@ VOID PhSetPluginDisabled(
         memcpy(newDisabled->Buffer, disabled->Buffer, foundIndex * sizeof(WCHAR));
         memcpy(&newDisabled->Buffer[foundIndex], &disabled->Buffer[foundIndex + removeCount],
             disabled->Length - removeCount * sizeof(WCHAR) - foundIndex * sizeof(WCHAR));
-        PhSetStringSetting2(L"DisabledPlugins", &newDisabled->sr);
+        PhSetStringSetting2(SETTING_DISABLED_PLUGINS, &newDisabled->sr);
         PhDereferenceObject(newDisabled);
     }
 

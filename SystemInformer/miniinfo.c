@@ -23,6 +23,7 @@
 
 #include <emenu.h>
 #include <settings.h>
+#include <phsettings.h>
 
 static HWND PhMipContainerWindow = NULL;
 static POINT PhMipSourcePoint;
@@ -126,12 +127,12 @@ VOID PhPinMiniInformation(
                 );
             ShowWindow(PhMipWindow, SW_SHOW);
 
-            if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))
+            if (PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED))
                 PhMipSetPinned(TRUE, TRUE);
 
             PhMipRefreshAutomatically = PhGetIntegerSetting(L"MiniInfoWindowRefreshAutomatically");
 
-            opacity = PhGetIntegerSetting(L"MiniInfoWindowOpacity");
+            opacity = PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_OPACITY);
 
             if (opacity != 0)
                 PhSetWindowOpacity(PhMipContainerWindow, opacity);
@@ -357,7 +358,7 @@ VOID PhMipContainerOnShowWindow(
 
         Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW), BST_UNCHECKED);
         PhMipSetPinned(FALSE, TRUE);
-        PhSetIntegerSetting(L"MiniInfoWindowPinned", FALSE);
+        PhSetIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED, FALSE);
 
         PhUnregisterCallback(
             PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -469,7 +470,7 @@ VOID PhMipOnInitDialog(
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_OPTIONS), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PINWINDOW), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-    Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW), !!PhGetIntegerSetting(L"MiniInfoWindowPinned"));
+    Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW), !!PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED));
 
     // Subclass the window procedure.
     oldWndProc = PhGetWindowProcedure(sectionWindow);
@@ -536,7 +537,7 @@ VOID PhMipOnCommand(
             pinned = Button_GetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW)) == BST_CHECKED;
             PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
             PhMipSetPinned(pinned, TRUE);
-            PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
+            PhSetIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED, pinned);
         }
         break;
     }
@@ -1143,7 +1144,7 @@ VOID PhMipShowOptionsMenu(
 
     // Opacity
 
-    id = PH_OPACITY_TO_ID(PhGetIntegerSetting(L"MiniInfoWindowOpacity"));
+    id = PH_OPACITY_TO_ID(PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_OPACITY));
 
     if (menuItem = PhFindEMenuItem(menu, PH_EMENU_FIND_DESCEND, NULL, id))
         menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
@@ -1177,7 +1178,7 @@ VOID PhMipShowOptionsMenu(
                 ULONG opacity;
 
                 opacity = PH_ID_TO_OPACITY(menuItem->Id);
-                PhSetIntegerSetting(L"MiniInfoWindowOpacity", opacity);
+                PhSetIntegerSetting(SETTING_MINI_INFO_WINDOW_OPACITY, opacity);
                 PhSetWindowOpacity(PhMipContainerWindow, opacity);
             }
             break;
@@ -1802,7 +1803,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                         pinned = TRUE;
                         PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
                         PhMipSetPinned(pinned, FALSE);
-                        PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
+                        PhSetIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED, pinned);
                     }
 
                     if (node = PhMipGetSelectedGroupNode(listSection))
@@ -1822,7 +1823,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                         pinned = FALSE;
                         PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
                         PhMipSetPinned(pinned, FALSE);
-                        PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
+                        PhSetIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED, pinned);
                     }
                 }
                 break;
@@ -1836,7 +1837,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                         pinned = TRUE;
                         PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
                         PhMipSetPinned(pinned, FALSE);
-                        PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
+                        PhSetIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED, pinned);
                     }
 
                     if (node = PhMipGetSelectedGroupNode(listSection))
@@ -1851,7 +1852,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                             {
                                 PhShellExecuteUserString(
                                     listSection->DialogHandle,
-                                    L"FileBrowseExecutable",
+                                    SETTING_FILE_BROWSE_EXECUTABLE,
                                     node->ProcessGroup->Representative->FileName->Buffer,
                                     FALSE,
                                     L"Make sure the Explorer executable file is present."
@@ -1868,7 +1869,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                         pinned = FALSE;
                         PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
                         PhMipSetPinned(pinned, FALSE);
-                        PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
+                        PhSetIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED, pinned);
                     }
                 }
                 break;

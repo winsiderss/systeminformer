@@ -44,6 +44,7 @@ VOID PhpRemoveThreadNode(
     _In_ PPH_THREAD_LIST_CONTEXT Context
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpThreadTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -908,6 +909,7 @@ VOID PhpUpdateThreadNodeStackUsage(
     return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpThreadTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,

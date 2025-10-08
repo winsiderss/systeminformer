@@ -69,6 +69,7 @@ ULONG NTAPI PhpThreadHashtableHashFunction(
     _In_ PVOID Entry
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhpThreadProviderCallbackHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

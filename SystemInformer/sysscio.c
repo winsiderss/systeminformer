@@ -549,6 +549,7 @@ VOID PhSipLayoutIoGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipNotifyIoReadGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -671,6 +672,7 @@ BOOLEAN NTAPI PhSipNotifyIoReadGraph(
     return TRUE;
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN PhSipNotifyIoWriteGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -793,6 +795,7 @@ BOOLEAN PhSipNotifyIoWriteGraph(
     return TRUE;
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN PhSipNotifyIoOtherGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,

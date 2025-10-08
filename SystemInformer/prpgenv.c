@@ -762,7 +762,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                     PPH_STRING name;
                     PPH_STRING value;
 
-                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
                         hwndDlg,
                         L"edit",
                         L"the selected environment variable",
@@ -1164,6 +1164,7 @@ VOID PhpExpandAllEnvironmentNodes(
     return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpEnvironmentTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -1835,7 +1836,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     if (!item || item->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
                         break;
 
-                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
                         context->WindowHandle,
                         L"delete",
                         L"the selected environment variable",

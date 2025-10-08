@@ -3457,7 +3457,8 @@ NTSTATUS PhEnumDirectoryObjects(
     ULONG i;
 
     bufferSize = 0x200;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateStack(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -3481,18 +3482,22 @@ NTSTATUS PhEnumDirectoryObjects(
             // Make sure we don't use too much memory.
             if (bufferSize > PH_LARGE_BUFFER_SIZE)
             {
-                PhFree(buffer);
+                PhFreeStack(buffer);
                 return STATUS_INSUFFICIENT_RESOURCES;
             }
 
-            PhFree(buffer);
+            PhFreeStack(buffer);
             bufferSize *= 2;
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateStack(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
 
         if (!NT_SUCCESS(status))
         {
-            PhFree(buffer);
+            if (status == STATUS_NO_MORE_ENTRIES)
+                status = STATUS_SUCCESS;
+
+            PhFreeStack(buffer);
             return status;
         }
 
@@ -3521,21 +3526,24 @@ NTSTATUS PhEnumDirectoryObjects(
                 Context
                 );
 
-            if (!NT_SUCCESS(status))
+            if (status == STATUS_NO_MORE_ENTRIES)
                 break;
 
             i++;
         }
 
-        if (status != STATUS_MORE_ENTRIES)
+        if (status == STATUS_NO_MORE_ENTRIES)
             break;
 
         firstTime = FALSE;
     }
 
-    PhFree(buffer);
+    if (status == STATUS_NO_MORE_ENTRIES)
+        status = STATUS_SUCCESS;
 
-    return STATUS_SUCCESS;
+    PhFreeStack(buffer);
+
+    return status;
 }
 
 NTSTATUS PhCreateSymbolicLinkObject(
@@ -3817,12 +3825,11 @@ VOID PhUpdateDosDevicePrefixes(
 
 // rev from FindFirstVolumeW (dmex)
 /**
- * \brief Retrieves the mount points of volumes.
+ * Retrieves the mount points of volumes.
  *
  * \param DeviceHandle A handle to the MountPointManager.
  * \param MountPoints An array of mounts.
- *
- * \return Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetVolumeMountPoints(
     _In_ HANDLE DeviceHandle,
@@ -3862,6 +3869,10 @@ NTSTATUS PhGetVolumeMountPoints(
         {
             outputBufferLength = outputBuffer->Size;
             PhFree(outputBuffer);
+
+            if (outputBufferLength > PH_LARGE_BUFFER_SIZE)
+                return STATUS_INSUFFICIENT_RESOURCES;
+
             outputBuffer = PhAllocate(outputBufferLength);
         }
         else
@@ -3908,7 +3919,8 @@ NTSTATUS PhGetVolumePathNamesForVolumeName(
     ULONG attempts = 16;
 
     inputBufferLength = UFIELD_OFFSET(MOUNTMGR_TARGET_NAME, DeviceName[VolumeName->Length]) + sizeof(UNICODE_NULL);
-    inputBuffer = PhAllocate(inputBufferLength); // Volume{guid}, CM_Get_Device_Interface_List, SymbolicLinks, [??]
+    inputBuffer = PhAllocateStack(inputBufferLength); // Volume{guid}, CM_Get_Device_Interface_List, SymbolicLinks, [??]
+    if (!inputBuffer) return STATUS_NO_MEMORY;
     inputBuffer->DeviceNameLength = (USHORT)VolumeName->Length;
     RtlCopyMemory(inputBuffer->DeviceName, VolumeName->Buffer, VolumeName->Length);
 
@@ -3941,7 +3953,7 @@ NTSTATUS PhGetVolumePathNamesForVolumeName(
         }
         else
         {
-            PhFree(inputBuffer);
+            PhFreeStack(inputBuffer);
             PhFree(outputBuffer);
             return status;
         }
@@ -3956,7 +3968,7 @@ NTSTATUS PhGetVolumePathNamesForVolumeName(
         PhFree(outputBuffer);
     }
 
-    PhFree(inputBuffer);
+    PhFreeStack(inputBuffer);
 
     return status;
 }
@@ -5355,7 +5367,8 @@ NTSTATUS PhEnumerateKey(
     ULONG index = 0;
 
     bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateStack(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -5376,8 +5389,9 @@ NTSTATUS PhEnumerateKey(
 
         if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
         {
-            PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            PhFreeStack(buffer);
+            buffer = PhAllocateStack(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
 
             status = NtEnumerateKey(
                 KeyHandle,
@@ -5398,7 +5412,7 @@ NTSTATUS PhEnumerateKey(
         index++;
     }
 
-    PhFree(buffer);
+    PhFreeStack(buffer);
 
     return status;
 }
@@ -5416,7 +5430,8 @@ NTSTATUS PhEnumerateValueKey(
     ULONG index = 0;
 
     bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateStack(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -5437,8 +5452,9 @@ NTSTATUS PhEnumerateValueKey(
 
         if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
         {
-            PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            PhFreeStack(buffer);
+            buffer = PhAllocateStack(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
 
             status = NtEnumerateValueKey(
                 KeyHandle,
@@ -5459,7 +5475,7 @@ NTSTATUS PhEnumerateValueKey(
         index++;
     }
 
-    PhFree(buffer);
+    PhFreeStack(buffer);
 
     return status;
 }
@@ -6202,6 +6218,7 @@ NTSTATUS PhCopyFileWin32(
     FILE_BASIC_INFORMATION basicInfo;
     LARGE_INTEGER newFileSize;
     IO_STATUS_BLOCK isb;
+    ULONG bufferLength;
     PBYTE buffer;
 
     status = PhCreateFileWin32(
@@ -6242,7 +6259,8 @@ NTSTATUS PhCopyFileWin32(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    buffer = PhAllocatePage(PAGE_SIZE * 2, NULL);
+    bufferLength = PAGE_SIZE * 2;
+    buffer = PhAllocatePage(bufferLength, NULL);
 
     if (!buffer)
     {
@@ -6259,7 +6277,7 @@ NTSTATUS PhCopyFileWin32(
             NULL,
             &isb,
             buffer,
-            PAGE_SIZE * 2,
+            bufferLength,
             NULL,
             NULL
             );
@@ -6631,7 +6649,9 @@ NTSTATUS PhMoveFileWin32(
     }
 
     renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + newFileName.Length + sizeof(UNICODE_NULL);
-    renameInfo = PhAllocateZero(renameInfoLength);
+    renameInfo = PhAllocateStack(renameInfoLength);
+    if (!renameInfo) return STATUS_NO_MEMORY;
+    memset(renameInfo, 0, renameInfoLength);
     renameInfo->ReplaceIfExists = FailIfExists ? FALSE : TRUE;
     renameInfo->RootDirectory = NULL;
     renameInfo->FileNameLength = newFileName.Length;
@@ -6734,7 +6754,7 @@ NTSTATUS PhMoveFileWin32(
 
 CleanupExit:
     NtClose(fileHandle);
-    PhFree(renameInfo);
+    PhFreeStack(renameInfo);
 
     return status;
 }
@@ -7598,7 +7618,7 @@ NTSTATUS PhFreezeThread(
 {
     NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
-    HANDLE threadStateChangeHandle;
+    HANDLE threadStateChangeHandle = NULL;
 
     if (!(NtCreateThreadStateChange_Import() && NtChangeThreadState_Import()))
     {
@@ -7915,7 +7935,7 @@ static NTSTATUS NTAPI PhpKnownDllObjectsCallback(
     PPH_STRING fileName;
 
     if (!PhStringRefToUnicodeString(Name, &objectName))
-        return STATUS_NAME_TOO_LONG;
+        goto CleanupExit;
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -7932,7 +7952,7 @@ static NTSTATUS NTAPI PhpKnownDllObjectsCallback(
         );
 
     if (!NT_SUCCESS(status))
-        return status;
+        goto CleanupExit;
 
     baseAddress = NULL;
     viewSize = PAGE_SIZE;
@@ -7952,7 +7972,7 @@ static NTSTATUS NTAPI PhpKnownDllObjectsCallback(
     NtClose(sectionHandle);
 
     if (!NT_SUCCESS(status))
-        return status;
+        goto CleanupExit;
 
     status = PhGetProcessMappedFileName(
         NtCurrentProcess(),
@@ -7971,23 +7991,21 @@ static NTSTATUS NTAPI PhpKnownDllObjectsCallback(
         PhAddEntryHashtable(PhKnownDllsHashtable, &entry);
     }
 
-    return status;
+CleanupExit:
+    return STATUS_SUCCESS; // continue enumeration (dmex)
 }
 
 VOID PhInitializeKnownDlls(
-    _In_ PCWSTR ObjectName
+    _In_ PCPH_STRINGREF ObjectName
     )
 {
-    PH_STRINGREF directoryName;
     HANDLE directoryHandle;
-
-    PhInitializeStringRef(&directoryName, ObjectName);
 
     if (NT_SUCCESS(PhOpenDirectoryObject(
         &directoryHandle,
         DIRECTORY_QUERY,
         NULL,
-        &directoryName
+        ObjectName
         )))
     {
         PhEnumDirectoryObjects(
@@ -8005,6 +8023,13 @@ BOOLEAN PhInitializeKnownDllsTable(
 {
     if (PhBeginInitOnce(&PhKnownDllsInitOnce))
     {
+        static const PH_STRINGREF KnownDllsObjectName = PH_STRINGREF_INIT(L"\\KnownDlls");
+        static const PH_STRINGREF KnownDlls32ObjectName = PH_STRINGREF_INIT(L"\\KnownDlls32");
+#ifdef _ARM64_
+        static const PH_STRINGREF KnownDllsArm32ObjectName = PH_STRINGREF_INIT(L"\\KnownDllsArm32");
+        static const PH_STRINGREF KnownDllsChpe32ObjectName = PH_STRINGREF_INIT(L"\\KnownDllsChpe32");
+#endif
+
         PhKnownDllsHashtable = PhCreateHashtable(
             sizeof(PH_KNOWNDLL_CACHE_ENTRY),
             PhKnownDllsHashtableEqualFunction,
@@ -8012,11 +8037,11 @@ BOOLEAN PhInitializeKnownDllsTable(
             10
             );
 
-        PhInitializeKnownDlls(L"\\KnownDlls");
-        PhInitializeKnownDlls(L"\\KnownDlls32");
+        PhInitializeKnownDlls(&KnownDllsObjectName);
+        PhInitializeKnownDlls(&KnownDlls32ObjectName);
 #ifdef _ARM64_
-        PhInitializeKnownDlls(L"\\KnownDllsArm32");
-        PhInitializeKnownDlls(L"\\KnownDllsChpe32");
+        PhInitializeKnownDlls(&KnownDllsArm32ObjectName);
+        PhInitializeKnownDlls(&KnownDllsChpe32ObjectName);
 #endif
         PhEndInitOnce(&PhKnownDllsInitOnce);
     }

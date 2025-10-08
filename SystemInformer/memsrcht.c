@@ -650,6 +650,7 @@ VOID PhpSearchMemoryStrings(
     return PhModifySort(sortResult, ((PPH_MEMSTRINGS_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpMemoryStringsTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,

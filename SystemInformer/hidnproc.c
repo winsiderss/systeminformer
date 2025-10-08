@@ -99,7 +99,7 @@ VOID PhShowZombieProcessesDialog(
 }
 
 VOID PhZombieProcessesCleanupList(
-    _In_ PPH_LIST UpdateList
+    _In_opt_ PPH_LIST UpdateList
     )
 {
     if (UpdateList)
@@ -186,7 +186,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 60, L"PID");
 
             PhSetExtendedListView(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"ZombieProcessesListViewColumns", lvHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_ZOMBIE_PROCESSES_LIST_VIEW_COLUMNS, lvHandle);
             ExtendedListView_AddFallbackColumn(lvHandle, 0);
             ExtendedListView_AddFallbackColumn(lvHandle, 1);
             ExtendedListView_SetItemColorFunction(lvHandle, PhpZombieProcessesColorFunction);
@@ -205,8 +205,8 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             MinimumSize.bottom = 140;
             MapDialogRect(hwndDlg, &MinimumSize);
 
-            if (PhValidWindowPlacementFromSetting(L"ZombieProcessesWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"ZombieProcessesWindowPosition", L"ZombieProcessesWindowSize", hwndDlg);
+            if (PhValidWindowPlacementFromSetting(SETTING_ZOMBIE_PROCESSES_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_ZOMBIE_PROCESSES_WINDOW_POSITION, SETTING_ZOMBIE_PROCESSES_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
@@ -217,8 +217,8 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveWindowPlacementToSetting(L"ZombieProcessesWindowPosition", L"ZombieProcessesWindowSize", hwndDlg);
-            PhSaveListViewColumnsToSetting(L"ZombieProcessesListViewColumns", PhZombieProcessesListViewHandle);
+            PhSaveWindowPlacementToSetting(SETTING_ZOMBIE_PROCESSES_WINDOW_POSITION, SETTING_ZOMBIE_PROCESSES_WINDOW_SIZE, hwndDlg);
+            PhSaveListViewColumnsToSetting(SETTING_ZOMBIE_PROCESSES_LIST_VIEW_COLUMNS, PhZombieProcessesListViewHandle);
 
             PhZombieProcessesCleanupList(ProcessesList);
 
@@ -276,7 +276,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
 
                     if (numberOfEntries != 0)
                     {
-                        if (!PhGetIntegerSetting(L"EnableWarnings") ||
+                        if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) ||
                             PhShowConfirmMessage(
                             hwndDlg,
                             L"terminate",
