@@ -949,6 +949,7 @@ BOOLEAN PvpPeFillNodeCertificateInfo(
             ))
         {
             CertificateNode->Name = data;
+            PhTrimToNullTerminatorString(data);
         }
         else
         {
@@ -969,6 +970,7 @@ BOOLEAN PvpPeFillNodeCertificateInfo(
             ))
         {
             CertificateNode->Issuer = data;
+            PhTrimToNullTerminatorString(data);
         }
         else
         {
