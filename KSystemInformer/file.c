@@ -376,7 +376,8 @@ NTSTATUS KphCreateFile(
 
         if (Options & ~(IO_OPEN_TARGET_DIRECTORY |
                         IO_STOP_ON_SYMLINK |
-                        IO_IGNORE_SHARE_ACCESS_CHECK))
+                        IO_IGNORE_SHARE_ACCESS_CHECK |
+                        IO_OPEN_PAGING_FILE))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
