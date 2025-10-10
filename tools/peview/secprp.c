@@ -1035,9 +1035,14 @@ BOOLEAN PvpPeFillNodeCertificateInfo(
             PPH_STRING data = PhCreateStringEx(NULL, dataLength);
 
             if (CertGetCertificateContextProperty(CertificateContext, CERT_SIGN_HASH_CNG_ALG_PROP_ID, data->Buffer, &dataLength))
+            {
                 CertificateNode->Algorithm = data;
+                PhTrimToNullTerminatorString(data);
+            }
             else
+            {
                 PhDereferenceObject(data);
+            }
         }
     }
 
