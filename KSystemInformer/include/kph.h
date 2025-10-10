@@ -208,6 +208,14 @@ SSIZE_T InterlockedIncrementSSizeT(
 }
 
 FORCEINLINE
+SSIZE_T InterlockedIncrementSSizeTNoFence(
+    _Inout_ _Interlocked_operand_ volatile SSIZE_T* Target
+    )
+{
+    return (SSIZE_T)InterlockedIncrementSizeTNoFence((SIZE_T*)Target);
+}
+
+FORCEINLINE
 SSIZE_T InterlockedDecrementSSizeT(
     _Inout_ _Interlocked_operand_ volatile SSIZE_T* Target
     )
@@ -228,31 +236,26 @@ SIZE_T InterlockedCompareExchangeSizeT(
 }
 
 FORCEINLINE
-SIZE_T InterlockedExchangeIfGreaterSizeT(
+VOID InterlockedExchangeIfGreaterSizeT(
     _Inout_ _Interlocked_operand_ volatile SIZE_T* Target,
     _In_ SIZE_T Value
     )
 {
-    SIZE_T expected;
+    SIZE_T max;
 
-    for (;;)
+    max = ReadSizeTAcquire(Target);
+    while (Value > max)
     {
-        expected = ReadSizeTAcquire(Target);
+        SIZE_T expected;
 
-        if (Value <= expected)
-        {
-            break;
-        }
+        expected = max;
 
-        if (InterlockedCompareExchangeSizeT(Target,
-                                            Value,
-                                            expected) == expected)
+        max = InterlockedCompareExchangeSizeT(Target, Value, expected);
+        if (max == expected)
         {
             break;
         }
     }
-
-    return expected;
 }
 
 //
