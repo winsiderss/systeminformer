@@ -55,7 +55,7 @@ VOID KphpObjectDelete(
 
     type->TypeInfo.Free(Header);
 
-    InterlockedDecrementSizeT(&type->TotalNumberOfObjects);
+    InterlockedDecrementSizeTNoFence(&type->TotalNumberOfObjects);
 }
 
 /**
@@ -167,7 +167,7 @@ NTSTATUS KphCreateObject(
         }
     }
 
-    total = InterlockedIncrementSizeT(&ObjectType->TotalNumberOfObjects);
+    total = InterlockedIncrementSizeTNoFence(&ObjectType->TotalNumberOfObjects);
 
     InterlockedExchangeIfGreaterSizeT(&ObjectType->HighWaterNumberOfObjects,
                                       total);
@@ -189,7 +189,7 @@ VOID KphReferenceObject(
 
     header = KphObjectToObjectHeader(Object);
 
-    NT_VERIFY(InterlockedIncrementSSizeT(&header->PointerCount) > 0);
+    NT_VERIFY(InterlockedIncrementSSizeTNoFence(&header->PointerCount) > 0);
 }
 
 /**
@@ -299,23 +299,29 @@ VOID KphpAtomicAcquireObjectLockShared(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
 {
+    ULONG_PTR object;
+
+    object = ReadULongPtrAcquire(&ObjectRef->Object);
+
     for (;; YieldProcessor())
     {
-        ULONG_PTR object;
         ULONG_PTR lock;
-
-        object = ReadULongPtrAcquire(&ObjectRef->Object);
+        ULONG_PTR expected;
 
         lock = object & KPH_ATOMIC_OBJECT_REF_LOCK_MASK;
 
         if (lock >= KPH_ATOMIC_OBJECT_REF_SHARED_MAX)
         {
+            object = ReadULongPtrAcquire(&ObjectRef->Object);
             continue;
         }
 
-        if (InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
-                                               object + 1,
-                                               object) == object)
+        expected = object;
+
+        object = InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
+                                                    object + 1,
+                                                    expected);
+        if (object == expected)
         {
             break;
         }
@@ -359,22 +365,26 @@ VOID KphpAtomicAcquireObjectLockExclusive(
 {
     ULONG_PTR object;
 
+    object = ReadULongPtrAcquire(&ObjectRef->Object);
+
     for (;; YieldProcessor())
     {
         ULONG_PTR locked;
-
-        object = ReadULongPtrAcquire(&ObjectRef->Object);
+        ULONG_PTR expected;
 
         if (object & KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG)
         {
+            object = ReadULongPtrAcquire(&ObjectRef->Object);
             continue;
         }
 
         locked = object | KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG;
+        expected = object;
 
-        if (InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
-                                               locked,
-                                               object) == object)
+        object = InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
+                                                    locked,
+                                                    expected);
+        if (object == expected)
         {
             break;
         }
