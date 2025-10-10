@@ -602,13 +602,15 @@ NTSTATUS KphAcquireReference(
     _Out_opt_ PLONG PreviousCount
     )
 {
+    LONG count;
+
     KPH_PAGED_CODE();
+
+    count = ReadAcquire(&Reference->Count);
 
     for (;;)
     {
-        LONG count;
-
-        count = ReadAcquire(&Reference->Count);
+        LONG expected;
 
         if (count == LONG_MAX)
         {
@@ -620,19 +622,20 @@ NTSTATUS KphAcquireReference(
             return STATUS_INTEGER_OVERFLOW;
         }
 
-        if (InterlockedCompareExchange(&Reference->Count,
-                                       count + 1,
-                                       count) != count)
-        {
-            continue;
-        }
+        expected = count;
 
-        if (PreviousCount)
+        count = InterlockedCompareExchange(&Reference->Count,
+                                           count + 1,
+                                           expected);
+        if (count == expected)
         {
-            *PreviousCount = count;
-        }
+            if (PreviousCount)
+            {
+                *PreviousCount = count;
+            }
 
-        return STATUS_SUCCESS;
+            return STATUS_SUCCESS;
+        }
     }
 }
 
@@ -655,13 +658,15 @@ NTSTATUS KphReleaseReference(
     _Out_opt_ PLONG PreviousCount
     )
 {
+    LONG count;
+
     KPH_PAGED_CODE();
+
+    count = ReadAcquire(&Reference->Count);
 
     for (;;)
     {
-        LONG count;
-
-        count = ReadAcquire(&Reference->Count);
+        LONG expected;
 
         if (count == 0)
         {
@@ -673,19 +678,20 @@ NTSTATUS KphReleaseReference(
             return STATUS_INTEGER_OVERFLOW;
         }
 
-        if (InterlockedCompareExchange(&Reference->Count,
-                                       count - 1,
-                                       count) != count)
-        {
-            continue;
-        }
+        expected = count;
 
-        if (PreviousCount)
+        count = InterlockedCompareExchange(&Reference->Count,
+                                           count - 1,
+                                           count);
+        if (count == expected)
         {
-            *PreviousCount = count;
-        }
+            if (PreviousCount)
+            {
+                *PreviousCount = count;
+            }
 
-        return STATUS_SUCCESS;
+            return STATUS_SUCCESS;
+        }
     }
 }
 

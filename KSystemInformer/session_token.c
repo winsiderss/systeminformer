@@ -723,22 +723,25 @@ BOOLEAN KphpSessionTokenPrivilegeCheck(
 
     for (;;)
     {
+        LONG expected;
+
         if (useCount >= Token->AccessToken.Uses)
         {
             status = STATUS_QUOTA_EXCEEDED;
             goto Exit;
         }
 
-        if (InterlockedCompareExchange(&Token->UseCount,
-                                       useCount + 1,
-                                       useCount) == useCount)
+        expected = useCount;
+
+        useCount = InterlockedCompareExchange(&Token->UseCount,
+                                              useCount + 1,
+                                              expected);
+        if (useCount == expected)
         {
             useCount++;
             status = STATUS_SUCCESS;
             break;
         }
-
-        useCount = ReadAcquire(&Token->UseCount);
     }
 
 Exit:
