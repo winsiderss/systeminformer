@@ -2649,11 +2649,21 @@ PPH_STRING PhUndecorateSymbolName(
 
     PH_LOCK_SYMBOLS();
 
+    /** For the same function, using the difference between the parameters of UNDNAME_COMPLETE and UNDNAME_NO_MS_KEYWORDS, obviously, using UNDNAME_NO_MS_KEYWORDS is more practical.
+    The function is:
+    ?childMouseEventFilter@QQuickItem@@MEAA_NPEAV1@PEAVQEvent@@@Z
+
+    The result of using the UNDNAME_COMPLETE parameter:
+    protected: virtual bool __cdecl QQuickItem::childMouseEventFilter(class QQuickItem* __ptr64, class QEvent* __ptr64) __ptr64
+
+    The result of using the UNDNAME_NO_MS_KEYWORDS parameter:
+    protected: virtual bool QQuickItem::childMouseEventFilter(class QQuickItem*, class QEvent*);
+    */
     result = UnDecorateSymbolNameW_I(
         DecoratedName,
         undecoratedBuffer,
         PAGE_SIZE,
-        UNDNAME_COMPLETE
+        UNDNAME_NO_MS_KEYWORDS
         );
 
     PH_UNLOCK_SYMBOLS();

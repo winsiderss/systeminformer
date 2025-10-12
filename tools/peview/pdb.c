@@ -908,7 +908,7 @@ VOID PePdbPrintDiaSymbol(
     IDiaSymbol_get_length(IDiaSymbol, &symbolLength);
     IDiaSymbol_get_name(IDiaSymbol, &bstrName);
 
-    if (IDiaSymbol_get_undecoratedNameEx(IDiaSymbol, UNDNAME_COMPLETE, &bstrUndname) != S_OK)
+    if (IDiaSymbol_get_undecoratedNameEx(IDiaSymbol, UNDNAME_NO_MS_KEYWORDS, &bstrUndname) != S_OK)
     {
         IDiaSymbol_get_undecoratedName(IDiaSymbol, &bstrUndname);
     }
