@@ -1852,7 +1852,7 @@ NtCreateMailslotFile(
     );
 
 /**
- * The NtOpenFile routine deletes the specified file.
+ * The NtOpenFile routine opens an existing file, device, directory, or volume, and returns a handle for the file object.
  *
  * \param[out] FileHandle Pointer to a variable that receives a handle to the file.
  * \param[in] DesiredAccess The requested access to the object. 
