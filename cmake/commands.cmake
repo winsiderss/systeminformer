@@ -35,13 +35,7 @@ function(_si_set_target_defaults target)
         message(FATAL_ERROR "Invalid target type: ${arg_TYPE}")
     endif()
 
-    #
-    # Specifying /NATVIS on the linker options doesn't work, it gets omitted by
-    # the generators. Inject the dependency into the sources instead, which is
-    # supported by cmake.
-    #
-    source_group("Resource Files" FILES ${SI_ROOT}/SystemInformer.natvis)
-    target_sources(${target} PRIVATE ${SI_ROOT}/SystemInformer.natvis)
+    target_link_options(${target} PRIVATE /NATVIS:${SI_ROOT}/SystemInformer.natvis)
 
     if(NOT SI_OUTPUT_DIR STREQUAL "" AND NOT SI_OUTPUT_DIR STREQUAL "OFF")
         if(arg_PLUGIN)
