@@ -255,9 +255,6 @@ HICON PhGetBlackIcon(
         if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
             return NULL;
 
-        if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
-            return NULL;
-
         iconInfo.fIcon = TRUE;
         iconInfo.xHotspot = 0;
         iconInfo.yHotspot = 0;
