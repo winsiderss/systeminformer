@@ -576,9 +576,9 @@ ULONG64 PhReadTimeStampCounter(
     VOID
     )
 {
-#if defined(_M_X64) || defined(_M_IX86)
-    unsigned int aux;
-    ULONG64 value = __rdtscp(&aux);
+#if defined(_M_X64)
+    unsigned int processorIndex;
+    ULONG64 value = __rdtscp(&processorIndex);
     SpeculationFence();
     return value;
 #else
