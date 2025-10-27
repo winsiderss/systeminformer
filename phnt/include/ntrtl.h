@@ -5463,7 +5463,7 @@ RtlNtPathNameToDosPathName(
     _Reserved_ ULONG Flags,
     _Inout_ PRTL_UNICODE_STRING_BUFFER Path,
     _Out_opt_ PULONG Disposition, // RtlDetermineDosPathNameType_U
-    _Out_opt_ PWSTR* FilePart
+    _Inout_opt_ PWSTR* FilePart
     );
 
 NTSYSAPI
