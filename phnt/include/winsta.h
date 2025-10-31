@@ -953,8 +953,8 @@ WinStationEnumerateW(
  * @param WinStationInformation Pointer to a caller-allocated buffer that receives the requested information about the token.
  * @param WinStationInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
  * @param ReturnLength Pointer to a caller-allocated variable that receives the actual length, in bytes, of the information returned in the TokenInformation buffer.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationtoken
+ * @return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * @sa https://learn.microsoft.com/en-us/previous-versions/aa383827(v=vs.85)
  */
 NTSYSAPI
 BOOLEAN
@@ -1320,7 +1320,7 @@ WinStationGetLoggedOnCount(
  * \param[in] RenderHintType Specifies the type of hint represented by this call.
  * \param[in] HintDataLength The size in bytes, of the HintData buffer.
  * \param[in] HintData Additional data for the hint. The format of this data is dependent upon the value passed in the renderHintType parameter.
- * \return NTSTATUS Successful or errant status.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtshintapi/nf-wtshintapi-wtssetrenderhint
  */
 NTSYSAPI
