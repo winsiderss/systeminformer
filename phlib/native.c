@@ -119,7 +119,7 @@ NTSTATUS PhSetObjectSecurity(
  * Merges two SACLs according to the provided security information.
  * The function preserves ACEs not covered by the change from the lower SACL and replaces other
  * ACEs with the ones from the higher SACL.
- * 
+ *
  * Example:
  *  - A lower SACL containing two ACEs: a trust label and a mandatory label.
  *  - A higher SACL containing one ACE: a trust label.
@@ -297,7 +297,7 @@ NTSTATUS PhMergeSystemAcls(
  * Merges two security descriptors according to the provided security information.
  * The function preserves parts not covered by the change from the lower security descriptor and
  * replaces other parts with the ones from the higher security descriptor.
- * 
+ *
  * Example:
  *  - A lower security descriptor containing a DACL, an owner, and a SACL with a trust label.
  *  - A higher security descriptor containing a DACL, and a SACL with a mandatory label.
@@ -486,7 +486,7 @@ CleanupExit:
 
     if (relativeSecurityDescriptor)
         PhFree(relativeSecurityDescriptor);
-   
+
     return status;
 }
 
@@ -8521,9 +8521,8 @@ NTSTATUS PhGetNumaProximityNode(
     return status;
 }
 
-NTSTATUS
 DECLSPEC_GUARDNOCF
-PhpSetInformationVirtualMemory(
+NTSTATUS PhpSetInformationVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_ VIRTUAL_MEMORY_INFORMATION_CLASS VmInformationClass,
     _In_ ULONG_PTR NumberOfEntries,
@@ -8534,6 +8533,12 @@ PhpSetInformationVirtualMemory(
 {
     assert(NtSetInformationVirtualMemory_Import());
 
+    //
+    // Our custom loader logic creates chicken and egg problem. To register
+    // valid CFG call targets, we need access to NtSetInformationVirtualMemory,
+    // but that function itself cannot be marked as a valid target until it has
+    // been imported. Here we wrap the call in a routine that disables CFG.
+    //
     return NtSetInformationVirtualMemory_Import()(
         ProcessHandle,
         VmInformationClass,
