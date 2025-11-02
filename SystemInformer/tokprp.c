@@ -4820,17 +4820,35 @@ typedef enum _AppModelPolicy_PolicyValue
 
 #define WM_PH_APPMODEL_SYMBOL_RESULT (WM_APP + 101)
 
+static NTSTATUS (NTAPI* GetAppModelPolicy_I)(
+    _In_ HANDLE TokenHandle,
+    _In_ AppModelPolicy_Type PolicyType,
+    _Out_ AppModelPolicy_PolicyValue* PolicyValue
+    ) = NULL;
+
+DECLSPEC_GUARDNOCF
+NTSTATUS PhpGetAppModelPolicy(
+    _In_ HANDLE TokenHandle,
+    _In_ AppModelPolicy_Type PolicyType,
+    _Out_ AppModelPolicy_PolicyValue* PolicyValue
+    )
+{
+    assert(GetAppModelPolicy_I);
+
+    //
+    // GetAppModelPolicy is not in the KernelBase CFG bitmap so it can not be
+    // runtime marked as a valid indirect call target when CFG is enabled. Here
+    // we wrap the call in a routine that disables CFG.
+    //
+    return GetAppModelPolicy_I(TokenHandle, PolicyType, PolicyValue);
+}
+
 NTSTATUS PhGetAppModelPolicy(
     _In_ HANDLE TokenHandle,
     _In_ AppModelPolicy_Type PolicyType,
     _Out_ AppModelPolicy_PolicyValue* PolicyValue
     )
 {
-    static NTSTATUS (NTAPI* GetAppModelPolicy_I)(
-        _In_ HANDLE TokenHandle,
-        _In_ AppModelPolicy_Type PolicyType,
-        _Out_ AppModelPolicy_PolicyValue* PolicyValue
-        ) = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -4853,23 +4871,7 @@ NTSTATUS PhGetAppModelPolicy(
 
         if (PhGetSymbolFromName(symbolProvider, L"GetAppModelPolicy", &symbolInfo))
         {
-            PROCESS_MITIGATION_POLICY_INFORMATION mitigation;
-
-            if (
-                WindowsVersion >= WINDOWS_10_RS2 &&
-                NT_SUCCESS(status = PhGetProcessMitigationPolicy(NtCurrentProcess(), ProcessControlFlowGuardPolicy, &mitigation)) &&
-                mitigation.ControlFlowGuardPolicy.EnableExportSuppression
-                )
-            {
-                if (NT_SUCCESS(status = PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), symbolInfo.Address)))
-                {
-                    GetAppModelPolicy_I = symbolInfo.Address;
-                }
-            }
-            else
-            {
-                GetAppModelPolicy_I = symbolInfo.Address;
-            }
+            GetAppModelPolicy_I = symbolInfo.Address;
         }
 
         PhDereferenceObject(symbolProvider);
@@ -4892,7 +4894,7 @@ NTSTATUS PhGetAppModelPolicy(
             return STATUS_INVALID_INFO_CLASS;
         }
 
-        status = GetAppModelPolicy_I(TokenHandle, PolicyType, PolicyValue);
+        status = PhpGetAppModelPolicy(TokenHandle, PolicyType, PolicyValue);
     }
     else
     {
