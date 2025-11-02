@@ -23,6 +23,50 @@ typedef struct _PH_STRING_SEARCH_CONEXT
     WCHAR Buffer[PAGE_SIZE * 2];
 } PH_STRING_SEARCH_CONEXT, *PPH_STRING_SEARCH_CONEXT;
 
+typedef enum _PH_CHAR_TYPE
+{
+    PhCharTypeNone,
+    PhCharTypePrintable,
+    PhCharTypeNULL,
+    PhCharTypeUTF16High,
+} PH_CHAR_TYPE, *PPH_CHAR_TYPE;
+
+typedef enum _PH_CHAR_PATTERN
+{
+    PhCharPatternNone = 0,
+    PhCharPatternASCII,
+    PhCharPatternUnicode,
+} PH_CHAR_PATTERN, *PPH_CHAR_PATTERN;
+
+FORCEINLINE
+PH_CHAR_TYPE PhpClassifyByte(
+    _In_ BYTE Byte,
+    _In_ BOOLEAN ExtendedCharSet,
+    _In_ BOOLEAN CheckUTF16High
+    )
+{
+    if (Byte == 0)
+    {
+        return PhCharTypeNULL;
+    }
+    else if (ExtendedCharSet ? PhCharIsPrintableEx[Byte] : PhCharIsPrintable[Byte])
+    {
+        return PhCharTypePrintable;
+    }
+    else if (CheckUTF16High &&
+             !PhIsUTF16HighSurrogateHighByte[Byte] &&
+             !PhIsUTF16LowSurrogateHighByte[Byte] &&
+             PhIsUTF16StandaloneHighByte[Byte] &&
+             (ExtendedCharSet ? TRUE : PhIsUTF16PrintableHighByte[Byte]))
+    {
+        return PhCharTypeUTF16High;
+    }
+    else
+    {
+        return PhCharTypeNone;
+    }
+}
+
 BOOLEAN PhpSearchStrings(
     _In_ PPH_STRING_SEARCH_CONEXT Context,
     _In_reads_bytes_(Length) PBYTE Buffer,
@@ -30,133 +74,167 @@ BOOLEAN PhpSearchStrings(
     )
 {
     BYTE byte = 0; // current byte
-    BYTE byte1 = 0; // previous byte
-    BYTE byte2 = 0; // byte before previous byte
-    BOOLEAN printable = FALSE;
-    BOOLEAN printable1 = FALSE;
-    BOOLEAN printable2 = FALSE;
+    BYTE byte1 = 0; // byte at position i-1
+    BYTE byte2 = 0; // byte at position i-2
+    BYTE byte3 = 0; // byte at position i-3
+    PH_CHAR_TYPE charType = PhCharTypeNone;  // classification of byte
+    PH_CHAR_TYPE charType1 = PhCharTypeNone; // classification of byte1
+    PH_CHAR_TYPE charType2 = PhCharTypeNone; // classification of byte2
+    PH_CHAR_TYPE charType3 = PhCharTypeNone; // classification of byte3
+    PH_CHAR_PATTERN pattern = PhCharPatternNone;
     ULONG length = 0;
 
     for (SIZE_T i = 0; i < Length; i++)
     {
+        BOOLEAN checkUTF8High = FALSE;
+
         byte = Buffer[i];
 
-        if (Context->ExtendedCharSet)
-            printable = PhCharIsPrintableEx[byte];
-        else
-            printable = PhCharIsPrintable[byte];
+        // Classify the current byte.
+        // Only check for UTF-16 high bytes when extended character sets is
+        // enabled and NOT preceded by UTF-16 high or NULL. This prevents
+        // misclassifying low bytes in UTF-16 sequences as high bytes.
 
-        // To find strings System Informer uses a state table.
-        // * byte2 - byte before previous byte
-        // * byte1 - previous byte
-        // * byte - current byte
-        // * length - length of current string run
-        //
-        // The states are described below.
-        //
-        //    [byte2] [byte1] [byte] ...
-        //    [char] means printable, [oth] means non-printable.
-        //
-        // 1. [char] [char] [char] ...
-        //      (we're in a non-wide sequence)
-        //      -> append char.
-        if (printable2 && printable1 && printable)
+        if (Context->ExtendedCharSet &&
+            charType1 != PhCharTypeUTF16High &&
+            charType1 != PhCharTypeNULL)
         {
-            if (length < RTL_NUMBER_OF(Context->Buffer))
+            checkUTF8High = TRUE;
+        }
+
+        charType = PhpClassifyByte(byte, Context->ExtendedCharSet, checkUTF8High);
+
+        // Pattern: [Printable][Printable][Printable] - ANSI string detection
+        if (charType2 == PhCharTypePrintable &&
+            charType1 == PhCharTypePrintable &&
+            charType == PhCharTypePrintable)
+        {
+            if (pattern == PhCharPatternNone)
+            {
+                assert(length == 0);
+                pattern = PhCharPatternASCII;
+                Context->Buffer[length++] = byte2;
+                Context->Buffer[length++] = byte1;
                 Context->Buffer[length++] = byte;
-        }
-        // 2. [char] [char] [oth] ...
-        //      (we reached the end of a non-wide sequence, or we need to start a wide sequence)
-        //      -> if current string is big enough, create result (non-wide).
-        //         otherwise if byte = null, reset to new string with byte1 as first character.
-        //         otherwise if byte != null, reset to new string.
-        else if (printable2 && printable1 && !printable)
-        {
-            if (length >= Context->MinimumLength)
-            {
-                goto CreateResult;
             }
-            else if (byte == 0)
-            {
-                length = 1;
-                Context->Buffer[0] = byte1;
-            }
-            else
-            {
-                length = 0;
-            }
-        }
-        // 3. [char] [oth] [char] ...
-        //      (we're in a wide sequence, or could be starting one)
-        //      -> (byte1 should = null) append char.
-        else if (printable2 && !printable1 && printable)
-        {
-            if (length == 0 || byte1 == 0)
+            else if (pattern == PhCharPatternASCII)
             {
                 if (length < RTL_NUMBER_OF(Context->Buffer))
                     Context->Buffer[length++] = byte;
             }
-            else
+            else if (length >= Context->MinimumLength)
             {
-                length = 0;
-            }
-        }
-        // 4. [char] [oth] [oth] ...
-        //      (we reached the end of a wide sequence)
-        //      -> (byte1 should = null) if the current string is big enough, create result (wide).
-        //         otherwise, reset to new string.
-        else if (printable2 && !printable1 && !printable)
-        {
-            if (length >= Context->MinimumLength)
-                goto CreateResult;
-            else
-                length = 0;
-        }
-        // 5. [oth] [char] [char] ...
-        //      (we reached the end of a wide sequence, or we need to start a non-wide sequence)
-        //      -> (excluding byte1) if the current string is big enough, create result (wide).
-        //         otherwise, reset to new string with byte1 as first character and byte as
-        //         second character.
-        else if (!printable2 && printable1 && printable)
-        {
-            if (length >= Context->MinimumLength + 1) // length - 1 >= minimumLength but avoiding underflow
-            {
-                length--; // exclude byte1
                 goto CreateResult;
             }
             else
             {
-                length = 2;
-                Context->Buffer[0] = byte1;
-                Context->Buffer[1] = byte;
+                length = 0;
+                pattern = PhCharPatternNone;
             }
         }
-        // 6. [oth] [char] [oth] ...
-        //      (we're in a wide sequence, or could be starting one)
-        //      -> (byte2 and byte should = null) do nothing.
-        else if (!printable2 && printable1 && !printable)
+        // Pattern: [Printable][NULL][Printable] - ASCII-Unicode string detection
+        else if (charType2 == PhCharTypePrintable &&
+                 charType1 == PhCharTypeNULL &&
+                 charType == PhCharTypePrintable)
         {
-            if (byte2 == 0 && byte == 0)
-                NOTHING;
-            else if (length == 1 && byte == 0) // starting a wide string
-                NOTHING;
+            if (pattern == PhCharPatternNone)
+            {
+                assert(length == 0);
+                pattern = PhCharPatternUnicode;
+                Context->Buffer[length++] = byte2;
+                Context->Buffer[length++] = byte;
+            }
+            else if (pattern == PhCharPatternUnicode)
+            {
+                if (length < RTL_NUMBER_OF(Context->Buffer))
+                    Context->Buffer[length++] = byte;
+            }
+            else if (length >= Context->MinimumLength)
+            {
+                goto CreateResult;
+            }
             else
+            {
                 length = 0;
+                pattern = PhCharPatternNone;
+            }
         }
-        // 7. [oth] [oth] [char] ...
-        //      (we're starting a sequence, but we don't know if it's a wide or non-wide sequence)
-        //      -> append char.
-        else if (!printable2 && !printable1 && printable)
+        // Pattern: [NULL][Printable][NULL] - ASCII-Unicode continuation
+        // Handles the NULL between printable characters in ASCII-Unicode strings
+        else if (pattern == PhCharPatternUnicode &&
+                 charType2 == PhCharTypeNULL &&
+                 charType1 == PhCharTypePrintable &&
+                 charType == PhCharTypeNULL)
+        {
+            NOTHING; // Keep tracking, waiting for next printable or UTF-16 high byte
+        }
+        // Pattern: [NULL][Printable][NULL][None] - ASCII-Unicode to UTF-16 BMP transition
+        // Handles transition point where ASCII-Unicode meets UTF-16 BMP
+        else if (pattern == PhCharPatternUnicode &&
+                 charType3 == PhCharTypeNULL &&
+                 charType2 == PhCharTypePrintable &&
+                 charType1 == PhCharTypeNULL &&
+                 charType == PhCharTypeNone)
+        {
+            NOTHING; // Keep tracking, next byte should be UTF-16 high byte
+        }
+        // Pattern: [UTF16High|NULL][!UTF16High][UTF16High] - UTF-16 BMP character detection
+        // Detects UTF-16 characters: [low_byte][high_byte]
+        else if ((charType2 == PhCharTypeUTF16High || charType2 == PhCharTypeNULL) &&
+                 charType1 != PhCharTypeUTF16High &&
+                 charType == PhCharTypeUTF16High)
+        {
+            if (pattern == PhCharPatternNone)
+            {
+                assert(length == 0);
+                pattern = PhCharPatternUnicode;
+                Context->Buffer[length++] = MAKEWORD(byte1, byte);
+            }
+            else if (pattern == PhCharPatternUnicode)
+            {
+                if (length < RTL_NUMBER_OF(Context->Buffer))
+                    Context->Buffer[length++] = MAKEWORD(byte1, byte);
+            }
+            else if (length >= Context->MinimumLength)
+            {
+                goto CreateResult;
+            }
+            else
+            {
+                length = 0;
+                pattern = PhCharPatternNone;
+            }
+        }
+        // Pattern: [UTF16High|NULL][!UTF16High][UTF16High][!UTF16High] - UTF-16 BMP continuation
+        // Handles the low byte of the next character in a UTF-16 sequence
+        else if (pattern == PhCharPatternUnicode &&
+                 (charType3 == PhCharTypeUTF16High || charType3 == PhCharTypeNULL) &&
+                 charType2 != PhCharTypeUTF16High &&
+                 charType1 == PhCharTypeUTF16High &&
+                 charType != PhCharTypeUTF16High)
+        {
+            NOTHING; // Keep tracking, waiting for next UTF-16 high byte
+        }
+        // Pattern: [!UTF16High][UTF16High][Printable][NULL] - UTF-16 BMP to ASCII-Unicode transition
+        // Handles transition from UTF-16 BMP back to ASCII-Unicode
+        else if (pattern == PhCharPatternUnicode &&
+                 charType3 != PhCharTypeUTF16High &&
+                 charType2 == PhCharTypeUTF16High &&
+                 charType1 == PhCharTypePrintable &&
+                 charType == PhCharTypeNULL)
         {
             if (length < RTL_NUMBER_OF(Context->Buffer))
-                Context->Buffer[length++] = byte;
+                Context->Buffer[length++] = byte1;
         }
-        // 8. [oth] [oth] [oth] ...
-        //      (nothing)
-        //      -> do nothing.
-        else if (!printable2 && !printable1 && !printable)
+        else if (pattern != PhCharPatternNone &&
+                 length >= Context->MinimumLength)
         {
-            NOTHING;
+            goto CreateResult;
+        }
+        else
+        {
+            length = 0;
+            pattern = PhCharPatternNone;
         }
 
         goto AfterCreateResult;
@@ -170,18 +248,12 @@ CreateResult:
             BOOLEAN isFinished;
 
             lengthInBytes = length;
-            bias = 0;
-            isWide = FALSE;
+            bias = (charType == PhCharTypePrintable);
+            isWide = (pattern != PhCharPatternASCII);
 
-            if (printable1 == printable) // determine if string was wide (refer to state table, 4 and 5)
+            if (isWide)
             {
-                isWide = TRUE;
                 lengthInBytes *= 2;
-            }
-
-            if (printable) // byte1 excluded (refer to state table, 5)
-            {
-                bias = 1;
             }
 
             result.Unicode = isWide;
@@ -195,6 +267,7 @@ CreateResult:
             isFinished = Context->Callback(&result, Context->CallbackContext);
 
             PhClearReference(&result.String);
+            pattern = PhCharPatternNone;
             length = 0;
 
             if (isFinished)
@@ -202,10 +275,12 @@ CreateResult:
         }
 AfterCreateResult:
 
+        byte3 = byte2;
         byte2 = byte1;
         byte1 = byte;
-        printable2 = printable1;
-        printable1 = printable;
+        charType3 = charType2;
+        charType2 = charType1;
+        charType1 = charType;
     }
 
     return FALSE;

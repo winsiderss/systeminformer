@@ -75,6 +75,13 @@ extern CONST ULONG PhCharToInteger[256];
 extern CONST CHAR PhIntegerToChar[69];
 extern CONST CHAR PhIntegerToCharUpper[69];
 
+// UTF-16
+
+extern CONST BOOLEAN PhIsUTF16HighSurrogateHighByte[256];
+extern CONST BOOLEAN PhIsUTF16LowSurrogateHighByte[256];
+extern CONST BOOLEAN PhIsUTF16StandaloneHighByte[256];
+extern CONST BOOLEAN PhIsUTF16PrintableHighByte[256];
+
 // CRC32
 
 extern CONST ULONG PhCrc32Table[256];
