@@ -849,7 +849,7 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                     PhInitFormatS(&format[5], L"%) ");
 
                     PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-               
+
                     hdc = Graph_GetBufferedContext(CpusGraphHandle[index]);
                     PhSetGraphText(
                         hdc,
@@ -1453,6 +1453,8 @@ VOID PhSipUpdateProcessorPerformanceDistribution(
         goto CleanupExit;
     if (CurrentPerformanceDistribution->ProcessorCount != PreviousPerformanceDistribution->ProcessorCount)
         goto CleanupExit;
+    if (CurrentPerformanceDistribution->ProcessorCount != NumberOfProcessors)
+        goto CleanupExit;
 
     for (i = 0; i < NumberOfProcessors; i++)
     {
@@ -1570,7 +1572,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistributionLegacy(
         {
             PhFree(differences);
         return FALSE;
-    } 
+    }
 
         for (j = 0; j < stateDistribution->StateCount; j++)
         {
@@ -1668,6 +1670,8 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
     if (!CurrentPerformanceDistribution || !PreviousPerformanceDistribution)
         goto CleanupExit;
     if (CurrentPerformanceDistribution->ProcessorCount != PreviousPerformanceDistribution->ProcessorCount)
+        goto CleanupExit;
+    if (CurrentPerformanceDistribution->ProcessorCount != NumberOfProcessors)
         goto CleanupExit;
 
     for (i = 0; i < NumberOfProcessors; i++)
