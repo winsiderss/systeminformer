@@ -2839,6 +2839,16 @@ PhSetProcessPowerThrottlingState(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhOpenSection(
+    _Out_ PHANDLE SectionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE RootDirectory,
+    _In_ PCPH_STRINGREF SectionName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateSection(
     _Out_ PHANDLE SectionHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -2889,13 +2899,6 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetKernelFileName(
-    VOID
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhGetKernelFileName2(
     VOID
     );
 
