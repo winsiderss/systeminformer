@@ -3640,7 +3640,6 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
 #define RTL_USER_PROC_IMAGE_KEY_MISSING                 0x00004000
 #define RTL_USER_PROC_DEV_OVERRIDE_ENABLED              0x00008000
 #define RTL_USER_PROC_OPTIN_PROCESS                     0x00020000
-#define RTL_USER_PROC_OPTIN_PROCESS                     0x00020000
 #define RTL_USER_PROC_SESSION_OWNER                     0x00040000
 #define RTL_USER_PROC_HANDLE_USER_CALLBACK_EXCEPTIONS   0x00080000
 #define RTL_USER_PROC_PROTECTED_PROCESS                 0x00400000
@@ -10677,16 +10676,19 @@ RtlLocateSupervisorFeature(
 #define ELEVATION_FLAG_NO_SIGNATURE_CHECK 0x00000008
 
 // private
-typedef union _RTL_ELEVATION_FLAGS
+typedef struct _RTL_ELEVATION_FLAGS
 {
-    ULONG Flags;
-    struct
+    union
     {
-        ULONG ElevationEnabled : 1;
-        ULONG VirtualizationEnabled : 1;
-        ULONG InstallerDetectEnabled : 1;
-        ULONG AdminApprovalModeType : 2;
-        ULONG ReservedBits : 27;
+        ULONG Flags;
+        struct
+        {
+            ULONG ElevationEnabled : 1;
+            ULONG VirtualizationEnabled : 1;
+            ULONG InstallerDetectEnabled : 1;
+            ULONG AdminApprovalModeType : 2;
+            ULONG ReservedBits : 27;
+        };
     };
 } RTL_ELEVATION_FLAGS, *PRTL_ELEVATION_FLAGS;
 
@@ -12419,6 +12421,18 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryAllInternalFeatureConfigurations(
+    _In_ RTL_FEATURE_CONFIGURATION_TYPE ConfigurationType,
+    _Out_opt_ PRTL_FEATURE_CHANGE_STAMP ChangeStamp,
+    _Out_writes_(*ConfigurationCount) PRTL_FEATURE_CONFIGURATION Configurations,
+    _Inout_ PSIZE_T ConfigurationCount
+    );
+
+// private
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryAllInternalRuntimeFeatureConfigurations(
+    _In_ RTL_FEATURE_ID FeatureId,
     _In_ RTL_FEATURE_CONFIGURATION_TYPE ConfigurationType,
     _Out_opt_ PRTL_FEATURE_CHANGE_STAMP ChangeStamp,
     _Out_writes_(*ConfigurationCount) PRTL_FEATURE_CONFIGURATION Configurations,
