@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="Win32" />
+    <Platform Name="ARM64" />
+  </Configurations>
+  <Project Path="SystemInformer\SystemInformer.vcxproj" Id="0271dd27-6707-4290-8dfe-285702b7115d" />
+  <Project Path="phlib\phlib.vcxproj" Id="477D0215-F252-41A1-874B-F27E3EA1ED17" />
+  <Project Path="tools\peview\peview.vcxproj" Id="72C124A2-3C80-41C6-ABA1-C4948B713204" />
+  <Project Path="kphlib\kphlib_um.vcxproj" Id="F1757430-8EEE-49DF-A5F1-0999A53BB4A0" />
+</Solution>

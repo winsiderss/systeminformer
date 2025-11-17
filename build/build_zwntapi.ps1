@@ -10,7 +10,7 @@ function InitializeScriptEnvironment()
 function CheckSolutionDirectory()
 {
     # Check if the current directory contains the main solution
-    if (!(Test-Path "SystemInformer.sln"))
+    if (!(Test-Path "SystemInformer.slnx"))
     {
         # Change root directory to the \build\internal\ directory (where this script is located).
         Set-Location $PSScriptRoot;
@@ -19,7 +19,7 @@ function CheckSolutionDirectory()
         Set-Location "..\";
 
         # Re-check if the current directory
-        if (!(Test-Path "SystemInformer.sln"))
+        if (!(Test-Path "SystemInformer.slnx"))
         {
             Write-Host "Unable to find project directory... Exiting." -ForegroundColor Red
             exit 5

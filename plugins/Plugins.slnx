@@ -1,0 +1,18 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="Win32" />
+    <Platform Name="ARM64" />
+  </Configurations>
+<Project Name="ExtendedNotifications" Path="ExtendedNotifications\ExtendedNotifications.vcxproj" Id="{80E791B8-AC98-407E-8FF9-5154AF50E887}" />
+<Project Name="ToolStatus" Path="ToolStatus\ToolStatus.vcxproj" Id="{60B43533-C75E-4741-9E19-C4D581BEF51C}" />
+<Project Name="ExtendedServices" Path="ExtendedServices\ExtendedServices.vcxproj" Id="{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}" />
+<Project Name="NetworkTools" Path="NetworkTools\NetworkTools.vcxproj" Id="{B5E0DA09-EA01-4D5A-A9D6-5B22DB0C306E}" />
+<Project Name="OnlineChecks" Path="OnlineChecks\OnlineChecks.vcxproj" Id="{79D24223-1122-40A9-BC8F-46A2089FE089}" />
+<Project Name="ExtendedTools" Path="ExtendedTools\ExtendedTools.vcxproj" Id="{3437FD16-A3BF-4938-883A-EB0DF1584A2A}" />
+<Project Name="WindowExplorer" Path="WindowExplorer\WindowExplorer.vcxproj" Id="{37488DC1-E45F-4626-A87C-3A854A153D1A}" />
+<Project Name="DotNetTools" Path="DotNetTools\DotNetTools.vcxproj" Id="{2B3235B0-31E1-44DA-81A1-183F40517E47}" />
+<Project Name="Updater" Path="Updater\Updater.vcxproj" Id="{A0C1595C-FA3E-4B7A-936C-306BC6294C5E}" />
+<Project Name="UserNotes" Path="UserNotes\UserNotes.vcxproj" Id="{7C38D0AA-572C-4D75-8E4E-D68AF3C051AF}" />
+<Project Name="HardwareDevices" Path="HardwareDevices\HardwareDevices.vcxproj" Id="{5F0D72C4-8319-4B61-9E13-6084B680EB90}" />
+</Solution>

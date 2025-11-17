@@ -270,9 +270,15 @@
     <ClCompile Include="miniz\miniz_zip.c">
       <Filter>miniz</Filter>
     </ClCompile>
-    <ClCompile Include="pcre\pcre2_compile_class.c" />
-    <ClCompile Include="pcre\pcre2_ucptables.c" />
-    <ClCompile Include="pcre\pcre2_chkdint.c" />
+    <ClCompile Include="pcre\pcre2_chkdint.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_compile_class.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_ucptables.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mxml\config.h">
@@ -437,7 +443,11 @@
     <ClInclude Include="miniz\miniz_zip.h">
       <Filter>miniz</Filter>
     </ClInclude>
-    <ClInclude Include="pcre\pcre2_compile.h" />
-    <ClInclude Include="pcre\pcre2_util.h" />
+    <ClInclude Include="pcre\pcre2_compile.h">
+      <Filter>PCRE</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_util.h">
+      <Filter>PCRE</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

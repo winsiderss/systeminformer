@@ -4,8 +4,11 @@
   "public": true,
   "useSafeHandles": false,
   "wideCharOnly": true,
-  "friendlyOverloads": { "enabled": false },
-  "allowMarshaling": false,
-  "comInterop": { "preserveSigMethods": [ "*" ] },
+  "friendlyOverloads": { "enabled": true },
+  "allowMarshaling": true,
+  "comInterop": {
+    "preserveSigMethods": [ "*" ],
+    "useComSourceGenerators": true
+  },
   "className": "PInvoke"
 }

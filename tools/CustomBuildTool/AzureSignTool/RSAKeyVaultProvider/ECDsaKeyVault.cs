@@ -78,18 +78,15 @@ namespace CustomBuildTool
             // Use static method for hashing to avoid allocation of IncrementalHash
             if (hashAlgorithm == HashAlgorithmName.SHA256)
             {
-                using var sha256 = System.Security.Cryptography.SHA256.Create();
-                return sha256.ComputeHash(data, offset, count);
+                return SHA256.HashData(data.AsSpan(offset, count));
             }
             if (hashAlgorithm == HashAlgorithmName.SHA384)
             {
-                using var sha384 = System.Security.Cryptography.SHA384.Create();
-                return sha384.ComputeHash(data, offset, count);
+                return SHA384.HashData(data.AsSpan(offset, count));
             }
             if (hashAlgorithm == HashAlgorithmName.SHA512)
             {
-                using var sha512 = System.Security.Cryptography.SHA512.Create();
-                return sha512.ComputeHash(data, offset, count);
+                return SHA512.HashData(data.AsSpan(offset, count));
             }
             throw new NotSupportedException("The specified algorithm is not supported.");
         }

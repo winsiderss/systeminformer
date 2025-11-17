@@ -104,21 +104,21 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a new instance of <see cref="AuthenticodeKeyVaultSigner" />.
         /// </summary>
-        /// <param name="signingAlgorithm">
+        /// <param name="SigningAlgorithm">
         /// An instance of an asymmetric algorithm that will be used to sign. It must support signing with
         /// a private key.
         /// </param>
-        /// <param name="signingCertificate">The X509 public certificate for the <paramref name="signingAlgorithm"/>.</param>
-        /// <param name="fileDigestAlgorithm">The digest algorithm to sign the file.</param>
-        /// <param name="timeStampConfiguration">The timestamp configuration for timestamping the file. To omit timestamping,
+        /// <param name="SigningCertificate">The X509 public certificate for the <paramref name="signingAlgorithm"/>.</param>
+        /// <param name="FileDigestAlgorithm">The digest algorithm to sign the file.</param>
+        /// <param name="TimeStampConfiguration">The timestamp configuration for timestamping the file. To omit timestamping,
         /// use <see cref="TimeStampConfiguration.None"/>.</param>
-        /// <param name="additionalCertificates">Any additional certificates to assist in building a certificate chain.</param>
+        /// <param name="AdditionalCertificates">Any additional certificates to assist in building a certificate chain.</param>
         public AuthenticodeKeyVaultSigner(
             AsymmetricAlgorithm SigningAlgorithm,
             X509Certificate2 SigningCertificate,
             HashAlgorithmName FileDigestAlgorithm,
             TimeStampConfiguration TimeStampConfiguration,
-            X509Certificate2Collection AadditionalCertificates = null)
+            X509Certificate2Collection AdditionalCertificates = null)
         {
             this.SigningAlgorithm = SigningAlgorithm;
             this.SigningCertificate = SigningCertificate;
@@ -127,9 +127,9 @@ namespace CustomBuildTool
             this.CertificateStore = MemoryCertificateStore.Create();
             this.CertificateChain = new X509Chain();
 
-            if (AadditionalCertificates is not null)
+            if (AdditionalCertificates is not null)
             {
-                this.CertificateChain.ChainPolicy.ExtraStore.AddRange(AadditionalCertificates);
+                this.CertificateChain.ChainPolicy.ExtraStore.AddRange(AdditionalCertificates);
             }
 
             this.CertificateChain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllFlags;
@@ -343,7 +343,7 @@ namespace CustomBuildTool
             // remove instance mapping and free the instance GCHandle
             if (this.SigningCertificate?.Handle != IntPtr.Zero)
             {
-                SignCallbackInstanceMap.TryRemove(this.SigningCertificate.Handle, out var handle);
+                SignCallbackInstanceMap.TryRemove(this.SigningCertificate!.Handle, out _);
             }
 
             if (this.InstanceHandle.IsAllocated)
@@ -353,11 +353,8 @@ namespace CustomBuildTool
 
             this.SigningCallback = null;
 
-            if (this.CertificateChain != null)
-            {
-                this.CertificateChain.Dispose();
-                this.CertificateChain = null;
-            }
+            this.CertificateChain?.Dispose();
+            this.CertificateChain = null;
 
             GC.SuppressFinalize(this);
         }

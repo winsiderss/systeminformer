@@ -32,10 +32,10 @@ if exist "tools\CustomBuildTool\.vs" (
 if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
     if "%PROCESSOR_ARCHITECTURE%"=="ARM64" (
        call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" arm64
-       dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\arm64.pubxml /p:ContinuousIntegrationBuild=%TIB%
+       dotnet publish tools\CustomBuildTool\CustomBuildTool.slnx -c Release /p:PublishProfile=Properties\PublishProfiles\arm64.pubxml /p:ContinuousIntegrationBuild=%TIB%
     ) else (
        call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
-       dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\amd64.pubxml /p:ContinuousIntegrationBuild=%TIB%
+       dotnet publish tools\CustomBuildTool\CustomBuildTool.slnx -c Release /p:PublishProfile=Properties\PublishProfiles\amd64.pubxml /p:ContinuousIntegrationBuild=%TIB%
     )
 ) else (
    goto end

@@ -38,7 +38,7 @@ namespace CustomBuildTool
             Console.InputEncoding = Utils.UTF8NoBOM;
             Console.OutputEncoding = Utils.UTF8NoBOM;
 
-            if (!Utils.SetCurrentDirectoryParent("SystemInformer.sln"))
+            if (!Utils.SetCurrentDirectoryParent("SystemInformer.slnx"))
             {
                 Program.PrintColorMessage("Unable to find project solution.", ConsoleColor.Red);
                 return false;
@@ -707,7 +707,7 @@ namespace CustomBuildTool
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage($"Building build-{Channel}-setup.exe... ", ConsoleColor.Cyan, false);
 
-            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildApi, Channel))
+            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.slnx", BuildFlags.Build32bit | BuildFlags.BuildApi, Channel))
                 return false;
 
             try
@@ -754,7 +754,7 @@ namespace CustomBuildTool
                     Flags
                     );
 
-                Zip.CreateCompressedSdkFromFolder(
+                BuildZip.CreateCompressedSdkFromFolder(
                     "sdk",
                     zip_file,
                     Flags
@@ -791,7 +791,7 @@ namespace CustomBuildTool
 
                     Program.PrintColorMessage($"Building {file.Value}... ", ConsoleColor.Cyan, false);
                     Win32.DeleteFile(zip_file, Flags);
-                    Zip.CreateCompressedFolder(file.Key, zip_file, Flags);
+                    BuildZip.CreateCompressedFolder(file.Key, zip_file, Flags);
                     Program.PrintColorMessage(Win32.GetFileSize(zip_file).ToPrettySize(), ConsoleColor.Green);
                 }
             }
@@ -822,7 +822,7 @@ namespace CustomBuildTool
                         Flags
                         );
 
-                    Zip.CreateCompressedPdbFromFolder(
+                    BuildZip.CreateCompressedPdbFromFolder(
                         ".\\",
                         zip_file,
                         Flags
@@ -842,7 +842,7 @@ namespace CustomBuildTool
                         Flags
                         );
 
-                    Zip.CreateCompressedPdbFromFolder(
+                    BuildZip.CreateCompressedPdbFromFolder(
                         ".\\",
                         zip_file,
                         Flags
@@ -897,7 +897,7 @@ namespace CustomBuildTool
                
                 Program.PrintColorMessage("Building symbols-package.zip...", ConsoleColor.Cyan, false);
 
-                Zip.CreateCompressedSdkFromFolder(
+                BuildZip.CreateCompressedSdkFromFolder(
                     "build\\output\\symbols",
                     zip_file,
                     Flags

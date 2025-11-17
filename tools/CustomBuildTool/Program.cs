@@ -46,7 +46,7 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi;
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                if (!Build.BuildSolution("SystemInformer.slnx", flags))
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
@@ -134,9 +134,9 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(false);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                if (!Build.BuildSolution("SystemInformer.slnx", flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                if (!Build.BuildSolution("plugins\\Plugins.slnx", flags))
                     Environment.Exit(1);
 
                 //if (!Build.CopyDebugEngineFiles(flags))
@@ -162,9 +162,9 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                if (!Build.BuildSolution("SystemInformer.slnx", flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                if (!Build.BuildSolution("plugins\\Plugins.slnx", flags))
                     Environment.Exit(1);
 
                 Build.CopyWow64Files(flags); // required after plugin build (dmex)
@@ -240,9 +240,9 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                if (!Build.BuildSolution("SystemInformer.slnx", flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                if (!Build.BuildSolution("plugins\\Plugins.slnx", flags))
                     Environment.Exit(1);
 
                 //if (!Build.CopyDebugEngineFiles(flags))
@@ -329,9 +329,9 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                if (!Build.BuildSolution("SystemInformer.slnx", flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                if (!Build.BuildSolution("plugins\\Plugins.slnx", flags))
                     Environment.Exit(1);
 
                 //if (!Build.CopyDebugEngineFiles(flags))
@@ -350,9 +350,9 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                if (!Build.BuildSolution("SystemInformer.slnx", flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                if (!Build.BuildSolution("plugins\\Plugins.slnx", flags))
                     Environment.Exit(1);
 
                 //if (!Build.CopyDebugEngineFiles(flags))
