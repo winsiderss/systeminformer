@@ -7,6 +7,7 @@
 #ifndef _NTPEBTEB_H
 #define _NTPEBTEB_H
 
+#include <ntgdi.h>
 #include <ntsxs.h>
 
 typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
@@ -17,6 +18,7 @@ typedef struct _LEAP_SECOND_DATA *PLEAP_SECOND_DATA;
 typedef struct _PEB_LDR_DATA PEB_LDR_DATA, *PPEB_LDR_DATA;
 typedef struct tagSOleTlsData SOleTlsData, *PSOleTlsData;
 typedef struct _APPCOMPAT_EXE_DATA APPCOMPAT_EXE_DATA, *PAPPCOMPAT_EXE_DATA;
+typedef struct _KERNEL_CALLBACK_TABLE KERNEL_CALLBACK_TABLE, *PKERNEL_CALLBACK_TABLE;
 
 // PEB->AppCompatFlags
 #define KACF_OLDGETSHORTPATHNAME                      0x00000001
@@ -398,9 +400,9 @@ typedef struct _PEB
     PSLIST_HEADER AtlThunkSListPtr;
 
     //
-    // Pointer to the Image File Execution Options key.
+    // Handle to the Image File Execution Options key.
     //
-    PVOID IFEOKey;
+    HANDLE IFEOKey;
 
     //
     // Cross process flags.
@@ -427,7 +429,7 @@ typedef struct _PEB
     //
     union
     {
-        PVOID KernelCallbackTable;
+        PKERNEL_CALLBACK_TABLE KernelCallbackTable;
         PVOID UserSharedInfoPtr;
     };
 
@@ -477,19 +479,19 @@ typedef struct _PEB
     PVOID* ReadOnlyStaticServerData;
 
     //
-    // Pointer to the ANSI code page data. (PCPTABLEINFO)
+    // Pointer to the ANSI code page data.
     //
-    PVOID AnsiCodePageData;
+    PCPTABLEINFO AnsiCodePageData;
 
     //
-    // Pointer to the OEM code page data. (PCPTABLEINFO)
+    // Pointer to the OEM code page data.
     //
-    PVOID OemCodePageData;
+    PCPTABLEINFO OemCodePageData;
 
     //
-    // Pointer to the Unicode case table data. (PNLSTABLEINFO)
+    // Pointer to the Unicode case table data.
     //
-    PVOID UnicodeCaseTableData;
+    PNLSTABLEINFO UnicodeCaseTableData;
 
     //
     // The total number of system processors.
@@ -585,7 +587,7 @@ typedef struct _PEB
     //
     // Pointer to the system GDI shared handle table.
     //
-    PVOID GdiSharedHandleTable;
+    PGDI_HANDLE_ENTRY GdiSharedHandleTable;
 
     //
     // Pointer to the process starter helper.
@@ -789,7 +791,7 @@ typedef struct _PEB
     //
     // Reserved.
     //
-    PVOID pImageHeaderHash;
+    PVOID ImageHeaderHash;
 
     //
     // ETW tracing flags.
