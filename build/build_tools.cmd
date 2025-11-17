@@ -18,6 +18,30 @@ if not defined VSINSTALLPATH (
    goto end
 )
 
+:: Check for .NET 10 SDK
+set "DOTNET10="
+for /f "tokens=*" %%i in ('dotnet --list-sdks 2^>nul ^| findstr /b /c:"10."') do set "DOTNET10=1"
+
+if not defined DOTNET10 (
+  echo .NET 10 SDK not found. Installing...
+  where winget >nul 2>&1
+  if %ERRORLEVEL%==0 (
+    winget install --id Microsoft.DotNet.SDK.10 -e --accept-package-agreements --accept-source-agreements
+  ) else (
+    powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -Command ^
+      "Invoke-WebRequest https://dotnet.microsoft.com/download/dotnet/scripts/v1/dotnet-install.ps1 -OutFile $env:TEMP\dotnet-install.ps1; & $env:TEMP\dotnet-install.ps1 -Version latest -Quality ga -InstallDir $env:ProgramFiles\dotnet"
+  )
+
+  :: Re-check .NET 10 SDK
+  set "DOTNET10="
+  for /f "tokens=*" %%i in ('dotnet --list-sdks 2^>nul ^| findstr /b /c:"10."') do set "DOTNET10=1"
+  if not defined DOTNET10 (
+     echo Failed to install .NET 10 SDK.
+  ) else (
+     echo .NET 10 SDK installed.
+  )
+)
+
 :: Pre-cleanup (required since dotnet doesn't cleanup)
 if exist "tools\CustomBuildTool\bin\" (
    rmdir /S /Q "tools\CustomBuildTool\bin\"
