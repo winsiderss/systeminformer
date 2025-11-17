@@ -220,14 +220,14 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     _In_ ULONG32 threadID,
     _In_ ULONG32 contextFlags,
     _In_ ULONG32 contextSize,
-    _Out_ PVOID context
+    _Out_ PBYTE context
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_SetThreadContext(
     _In_ ICLRDataTarget *This,
     _In_ ULONG32 threadID,
     _In_ ULONG32 contextSize,
-    _In_ PVOID context
+    _In_ PBYTE context
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_Request(

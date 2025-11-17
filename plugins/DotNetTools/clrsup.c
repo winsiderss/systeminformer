@@ -366,7 +366,6 @@ PDN_DOTNET_ASSEMBLY_ENTRY DnGetDotNetAssemblyModuleDataFromAddress(
     PDN_DOTNET_ASSEMBLY_ENTRY entry;
     DacpModuleData moduleData = { 0 };
     IXCLRDataModule* xclrDataModule = NULL;
-    ULONG32 xclrDataModuleRequestVersion = 0;
     CLRDATA_ADDRESS pefileBaseAddress = 0;
     ULONG moduleFlags = 0;
     GUID moduleId;
@@ -1965,7 +1964,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     _In_ ULONG32 threadID,
     _In_ ULONG32 contextFlags,
     _In_ ULONG32 contextSize,
-    _Out_ PVOID context
+    _Out_ PBYTE context
     )
 {
     NTSTATUS status;
@@ -2000,7 +1999,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_SetThreadContext(
     _In_ ICLRDataTarget *This,
     _In_ ULONG32 threadID,
     _In_ ULONG32 contextSize,
-    _In_ PVOID context
+    _In_ PBYTE context
     )
 {
     return E_NOTIMPL;

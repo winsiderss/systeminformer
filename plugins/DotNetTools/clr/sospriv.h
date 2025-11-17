@@ -16,7 +16,7 @@
 */
 /* @@MIDL_FILE_HEADING(  ) */
 
-//#pragma warning( disable: 4049 )  /* more than 64k source lines */
+#pragma warning( disable: 4049 )  /* more than 64k source lines */
 
 
 /* verify that the <rpcndr.h> version is high enough to compile this file*/
@@ -71,6 +71,20 @@ typedef interface ISOSStackRefErrorEnum ISOSStackRefErrorEnum;
 typedef interface ISOSStackRefEnum ISOSStackRefEnum;
 
 #endif  /* __ISOSStackRefEnum_FWD_DEFINED__ */
+
+
+#ifndef __ISOSMemoryEnum_FWD_DEFINED__
+#define __ISOSMemoryEnum_FWD_DEFINED__
+typedef interface ISOSMemoryEnum ISOSMemoryEnum;
+
+#endif 	/* __ISOSMemoryEnum_FWD_DEFINED__ */
+
+
+#ifndef __ISOSMethodEnum_FWD_DEFINED__
+#define __ISOSMethodEnum_FWD_DEFINED__
+typedef interface ISOSMethodEnum ISOSMethodEnum;
+
+#endif 	/* __ISOSMethodEnum_FWD_DEFINED__ */
 
 
 #ifndef __ISOSDacInterface_FWD_DEFINED__
@@ -142,11 +156,49 @@ typedef interface ISOSDacInterface10 ISOSDacInterface10;
 
 #endif  /* __ISOSDacInterface10_FWD_DEFINED__ */
 
+
 #ifndef __ISOSDacInterface11_FWD_DEFINED__
 #define __ISOSDacInterface11_FWD_DEFINED__
 typedef interface ISOSDacInterface11 ISOSDacInterface11;
 
-#endif  /* __ISOSDacInterface10_FWD_DEFINED__ */
+#endif  /* __ISOSDacInterface11_FWD_DEFINED__ */
+
+
+#ifndef __ISOSDacInterface12_FWD_DEFINED__
+#define __ISOSDacInterface12_FWD_DEFINED__
+typedef interface ISOSDacInterface12 ISOSDacInterface12;
+
+#endif  /* __ISOSDacInterface12_FWD_DEFINED__ */
+
+
+#ifndef __ISOSDacInterface13_FWD_DEFINED__
+#define __ISOSDacInterface13_FWD_DEFINED__
+typedef interface ISOSDacInterface13 ISOSDacInterface13;
+
+#endif  /* __ISOSDacInterface13_FWD_DEFINED__ */
+
+
+#ifndef __ISOSDacInterface14_FWD_DEFINED__
+#define __ISOSDacInterface14_FWD_DEFINED__
+typedef interface ISOSDacInterface14 ISOSDacInterface14;
+
+#endif  /* __ISOSDacInterface14_FWD_DEFINED__ */
+
+
+#ifndef __ISOSDacInterface15_FWD_DEFINED__
+#define __ISOSDacInterface15_FWD_DEFINED__
+typedef interface ISOSDacInterface15 ISOSDacInterface15;
+
+#endif  /* __ISOSDacInterface15_FWD_DEFINED__ */
+
+
+#ifndef __ISOSDacInterface16_FWD_DEFINED__
+#define __ISOSDacInterface16_FWD_DEFINED__
+typedef interface ISOSDacInterface16 ISOSDacInterface16;
+
+#endif  /* __ISOSDacInterface16_FWD_DEFINED__ */
+
+
 
 /* header files for imported files */
 #include "unknwn.h"
@@ -160,24 +212,15 @@ extern "C"{
 /* interface __MIDL_itf_sospriv_0000_0000 */
 /* [local] */
 
-#if 0
 typedef ULONG64 CLRDATA_ADDRESS;
-
-typedef int CONTEXT;
-
 typedef int T_CONTEXT;
+//typedef int mdToken;
 
-typedef int mdToken;
-
-typedef unsigned int size_t;
-
-typedef int ModuleMapType;
-
-typedef int VCSHeapType;
-
-#endif
 typedef enum { TYPEDEFTOMETHODTABLE, TYPEREFTOMETHODTABLE } ModuleMapType;
-typedef enum {IndcellHeap, LookupHeap, ResolveHeap, DispatchHeap, CacheEntryHeap} VCSHeapType;
+typedef enum {IndcellHeap, LookupHeap, ResolveHeap, DispatchHeap, CacheEntryHeap, VtableHeap} VCSHeapType;
+typedef enum {LoaderHeapKindNormal = 0, LoaderHeapKindExplicitControl = 1} LoaderHeapKind;
+typedef enum {MethodTableInitialized = 1, MethodTableInitializationFailed = 2} MethodTableInitializationFlags;
+typedef enum {FreeUnknownRegion = 0, FreeGlobalHugeRegion = 1, FreeGlobalRegion = 2, FreeRegion = 3, FreeSohSegment = 4, FreeUohSegment = 5 } FreeRegionKind;
 typedef void ( *MODULEMAPTRAVERSE )(
     UINT index,
     CLRDATA_ADDRESS methodTable,
@@ -469,6 +512,17 @@ typedef struct _SOS_StackRefError
 extern RPC_IF_HANDLE __MIDL_itf_sospriv_0000_0002_v0_0_c_ifspec;
 extern RPC_IF_HANDLE __MIDL_itf_sospriv_0000_0002_v0_0_s_ifspec;
 
+#ifndef _SOS_MemoryRegion_
+#define _SOS_MemoryRegion_
+typedef struct _SOSMemoryRegion
+    {
+    CLRDATA_ADDRESS Start;
+    CLRDATA_ADDRESS Size;
+    CLRDATA_ADDRESS ExtraData;
+    int Heap;
+    } 	SOSMemoryRegion;
+#endif // _SOS_MemoryRegion_
+
 #ifndef __ISOSStackRefErrorEnum_INTERFACE_DEFINED__
 #define __ISOSStackRefErrorEnum_INTERFACE_DEFINED__
 
@@ -572,6 +626,112 @@ EXTERN_C const IID IID_ISOSStackRefErrorEnum;
 
 
 #endif  /* __ISOSStackRefErrorEnum_INTERFACE_DEFINED__ */
+
+
+
+#ifndef __ISOSMemoryEnum_INTERFACE_DEFINED__
+#define __ISOSMemoryEnum_INTERFACE_DEFINED__
+
+/* interface ISOSMemoryEnum */
+/* [uuid][local][object] */
+
+
+EXTERN_C const IID IID_ISOSMemoryEnum;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+    MIDL_INTERFACE("E4B860EC-337A-40C0-A591-F09A9680690F")
+    ISOSMemoryEnum : public ISOSEnum
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE Next(
+            /* [in] */ unsigned int count,
+            /* [length_is][size_is][out] */ SOSMemoryRegion memRegion[  ],
+            /* [out] */ unsigned int *pNeeded) = 0;
+
+    };
+
+
+#else 	/* C style interface */
+
+    typedef struct ISOSMemoryEnumVtbl
+    {
+        BEGIN_INTERFACE
+
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )(
+            ISOSMemoryEnum * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */
+            _COM_Outptr_  void **ppvObject);
+
+        ULONG ( STDMETHODCALLTYPE *AddRef )(
+            ISOSMemoryEnum * This);
+
+        ULONG ( STDMETHODCALLTYPE *Release )(
+            ISOSMemoryEnum * This);
+
+        HRESULT ( STDMETHODCALLTYPE *Skip )(
+            ISOSMemoryEnum * This,
+            /* [in] */ unsigned int count);
+
+        HRESULT ( STDMETHODCALLTYPE *Reset )(
+            ISOSMemoryEnum * This);
+
+        HRESULT ( STDMETHODCALLTYPE *GetCount )(
+            ISOSMemoryEnum * This,
+            /* [out] */ unsigned int *pCount);
+
+        HRESULT ( STDMETHODCALLTYPE *Next )(
+            ISOSMemoryEnum * This,
+            /* [in] */ unsigned int count,
+            /* [length_is][size_is][out] */ SOSMemoryRegion memRegion[  ],
+            /* [out] */ unsigned int *pNeeded);
+
+        END_INTERFACE
+    } ISOSMemoryEnumVtbl;
+
+    interface ISOSMemoryEnum
+    {
+        CONST_VTBL struct ISOSMemoryEnumVtbl *lpVtbl;
+    };
+
+
+
+#ifdef COBJMACROS
+
+
+#define ISOSMemoryEnum_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) )
+
+#define ISOSMemoryEnum_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) )
+
+#define ISOSMemoryEnum_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) )
+
+
+#define ISOSMemoryEnum_Skip(This,count)	\
+    ( (This)->lpVtbl -> Skip(This,count) )
+
+#define ISOSMemoryEnum_Reset(This)	\
+    ( (This)->lpVtbl -> Reset(This) )
+
+#define ISOSMemoryEnum_GetCount(This,pCount)	\
+    ( (This)->lpVtbl -> GetCount(This,pCount) )
+
+
+#define ISOSMemoryEnum_Next(This,count,memRegion,pNeeded)	\
+    ( (This)->lpVtbl -> Next(This,count,memRegion,pNeeded) )
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ISOSMemoryEnum_INTERFACE_DEFINED__ */
 
 
 #ifndef __ISOSStackRefEnum_INTERFACE_DEFINED__
@@ -696,7 +856,7 @@ EXTERN_C const IID IID_ISOSStackRefEnum;
 /* [uuid][local][object] */
 
 
-//EXTERN_C const IID IID_ISOSDacInterface;
+EXTERN_C const IID IID_ISOSDacInterface;
 
 #if defined(__cplusplus) && !defined(CINTERFACE)
 
@@ -832,7 +992,7 @@ EXTERN_C const IID IID_ISOSStackRefEnum;
             unsigned int *pNeeded) = 0;
 
         virtual HRESULT STDMETHODCALLTYPE GetJumpThunkTarget(
-            CONTEXT *ctx,
+            T_CONTEXT *ctx,
             CLRDATA_ADDRESS *targetIP,
             CLRDATA_ADDRESS *targetMD) = 0;
 
@@ -1289,7 +1449,7 @@ EXTERN_C const IID IID_ISOSStackRefEnum;
 
         HRESULT ( STDMETHODCALLTYPE *GetJumpThunkTarget )(
             ISOSDacInterface * This,
-            CONTEXT *ctx, // T_CONTEXT
+            T_CONTEXT *ctx,
             CLRDATA_ADDRESS *targetIP,
             CLRDATA_ADDRESS *targetMD);
 
@@ -2601,7 +2761,7 @@ EXTERN_C const IID IID_ISOSDacInterface8;
             ISOSDacInterface8 * This,
             CLRDATA_ADDRESS methodTable,
             CLRDATA_ADDRESS *assemblyLoadContext);
-           
+
         END_INTERFACE
     } ISOSDacInterface8Vtbl;
 
@@ -2654,9 +2814,9 @@ EXTERN_C const IID IID_ISOSDacInterface8;
 
 
 /* interface __MIDL_itf_sospriv_0000_0012 */
-/* [local] */ 
+/* [local] */
 
-#define SOS_BREAKING_CHANGE_VERSION 3
+#define SOS_BREAKING_CHANGE_VERSION 5
 
 
 extern RPC_IF_HANDLE __MIDL_itf_sospriv_0000_0012_v0_0_c_ifspec;
@@ -2666,45 +2826,45 @@ extern RPC_IF_HANDLE __MIDL_itf_sospriv_0000_0012_v0_0_s_ifspec;
 #define __ISOSDacInterface9_INTERFACE_DEFINED__
 
 /* interface ISOSDacInterface9 */
-/* [uuid][local][object] */ 
+/* [uuid][local][object] */
 
 
 EXTERN_C const IID IID_ISOSDacInterface9;
 
 #if defined(__cplusplus) && !defined(CINTERFACE)
-    
+
     MIDL_INTERFACE("4eca42d8-7e7b-4c8a-a116-7bfbf6929267")
     ISOSDacInterface9 : public IUnknown
     {
     public:
-        virtual HRESULT STDMETHODCALLTYPE GetBreakingChangeVersion( 
+        virtual HRESULT STDMETHODCALLTYPE GetBreakingChangeVersion(
             int *pVersion) = 0;
-        
+
     };
-    
-    
+
+
 #else  /* C style interface */
 
     typedef struct ISOSDacInterface9Vtbl
     {
         BEGIN_INTERFACE
-        
-        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )(
             ISOSDacInterface9 * This,
             /* [in] */ REFIID riid,
-            /* [annotation][iid_is][out] */ 
+            /* [annotation][iid_is][out] */
             _COM_Outptr_  void **ppvObject);
-        
-        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+
+        ULONG ( STDMETHODCALLTYPE *AddRef )(
             ISOSDacInterface9 * This);
-        
-        ULONG ( STDMETHODCALLTYPE *Release )( 
+
+        ULONG ( STDMETHODCALLTYPE *Release )(
             ISOSDacInterface9 * This);
-        
-        HRESULT ( STDMETHODCALLTYPE *GetBreakingChangeVersion )( 
+
+        HRESULT ( STDMETHODCALLTYPE *GetBreakingChangeVersion )(
             ISOSDacInterface9 * This,
             int *pVersion);
-        
+
         END_INTERFACE
     } ISOSDacInterface9Vtbl;
 
@@ -2713,23 +2873,23 @@ EXTERN_C const IID IID_ISOSDacInterface9;
         CONST_VTBL struct ISOSDacInterface9Vtbl *lpVtbl;
     };
 
-    
+
 
 #ifdef COBJMACROS
 
 
 #define ISOSDacInterface9_QueryInterface(This,riid,ppvObject) \
-    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) )
 
 #define ISOSDacInterface9_AddRef(This) \
-    ( (This)->lpVtbl -> AddRef(This) ) 
+    ( (This)->lpVtbl -> AddRef(This) )
 
 #define ISOSDacInterface9_Release(This) \
-    ( (This)->lpVtbl -> Release(This) ) 
+    ( (This)->lpVtbl -> Release(This) )
 
 
 #define ISOSDacInterface9_GetBreakingChangeVersion(This,pVersion) \
-    ( (This)->lpVtbl -> GetBreakingChangeVersion(This,pVersion) ) 
+    ( (This)->lpVtbl -> GetBreakingChangeVersion(This,pVersion) )
 
 #endif /* COBJMACROS */
 
@@ -2744,91 +2904,91 @@ EXTERN_C const IID IID_ISOSDacInterface9;
 #define __ISOSDacInterface10_INTERFACE_DEFINED__
 
 /* interface ISOSDacInterface10 */
-/* [uuid][local][object] */ 
+/* [uuid][local][object] */
 
 
 EXTERN_C const IID IID_ISOSDacInterface10;
 
 #if defined(__cplusplus) && !defined(CINTERFACE)
-    
+
     MIDL_INTERFACE("90B8FCC3-7251-4B0A-AE3D-5C13A67EC9AA")
     ISOSDacInterface10 : public IUnknown
     {
     public:
-        virtual HRESULT STDMETHODCALLTYPE GetObjectComWrappersData( 
+        virtual HRESULT STDMETHODCALLTYPE GetObjectComWrappersData(
             CLRDATA_ADDRESS objAddr,
             CLRDATA_ADDRESS *rcw,
             unsigned int count,
             CLRDATA_ADDRESS *mowList,
             unsigned int *pNeeded) = 0;
-        
-        virtual HRESULT STDMETHODCALLTYPE IsComWrappersCCW( 
+
+        virtual HRESULT STDMETHODCALLTYPE IsComWrappersCCW(
             CLRDATA_ADDRESS ccw,
             BOOL *isComWrappersCCW) = 0;
-        
-        virtual HRESULT STDMETHODCALLTYPE GetComWrappersCCWData( 
+
+        virtual HRESULT STDMETHODCALLTYPE GetComWrappersCCWData(
             CLRDATA_ADDRESS ccw,
             CLRDATA_ADDRESS *managedObject,
             int *refCount) = 0;
-        
-        virtual HRESULT STDMETHODCALLTYPE IsComWrappersRCW( 
+
+        virtual HRESULT STDMETHODCALLTYPE IsComWrappersRCW(
             CLRDATA_ADDRESS rcw,
             BOOL *isComWrappersRCW) = 0;
-        
-        virtual HRESULT STDMETHODCALLTYPE GetComWrappersRCWData( 
+
+        virtual HRESULT STDMETHODCALLTYPE GetComWrappersRCWData(
             CLRDATA_ADDRESS rcw,
             CLRDATA_ADDRESS *identity) = 0;
-        
+
     };
-    
-    
+
+
 #else   /* C style interface */
 
     typedef struct ISOSDacInterface10Vtbl
     {
         BEGIN_INTERFACE
-        
-        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )(
             ISOSDacInterface10 * This,
             /* [in] */ REFIID riid,
-            /* [annotation][iid_is][out] */ 
+            /* [annotation][iid_is][out] */
             _COM_Outptr_  void **ppvObject);
-        
-        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+
+        ULONG ( STDMETHODCALLTYPE *AddRef )(
             ISOSDacInterface10 * This);
-        
-        ULONG ( STDMETHODCALLTYPE *Release )( 
+
+        ULONG ( STDMETHODCALLTYPE *Release )(
             ISOSDacInterface10 * This);
-        
-        HRESULT ( STDMETHODCALLTYPE *GetObjectComWrappersData )( 
+
+        HRESULT ( STDMETHODCALLTYPE *GetObjectComWrappersData )(
             ISOSDacInterface10 * This,
             CLRDATA_ADDRESS objAddr,
             CLRDATA_ADDRESS *rcw,
             unsigned int count,
             CLRDATA_ADDRESS *mowList,
             unsigned int *pNeeded);
-        
-        HRESULT ( STDMETHODCALLTYPE *IsComWrappersCCW )( 
+
+        HRESULT ( STDMETHODCALLTYPE *IsComWrappersCCW )(
             ISOSDacInterface10 * This,
             CLRDATA_ADDRESS ccw,
             BOOL *isComWrappersCCW);
-        
-        HRESULT ( STDMETHODCALLTYPE *GetComWrappersCCWData )( 
+
+        HRESULT ( STDMETHODCALLTYPE *GetComWrappersCCWData )(
             ISOSDacInterface10 * This,
             CLRDATA_ADDRESS ccw,
             CLRDATA_ADDRESS *managedObject,
             int *refCount);
-        
-        HRESULT ( STDMETHODCALLTYPE *IsComWrappersRCW )( 
+
+        HRESULT ( STDMETHODCALLTYPE *IsComWrappersRCW )(
             ISOSDacInterface10 * This,
             CLRDATA_ADDRESS rcw,
             BOOL *isComWrappersRCW);
-        
-        HRESULT ( STDMETHODCALLTYPE *GetComWrappersRCWData )( 
+
+        HRESULT ( STDMETHODCALLTYPE *GetComWrappersRCWData )(
             ISOSDacInterface10 * This,
             CLRDATA_ADDRESS rcw,
             CLRDATA_ADDRESS *identity);
-        
+
         END_INTERFACE
     } ISOSDacInterface10Vtbl;
 
@@ -2837,35 +2997,35 @@ EXTERN_C const IID IID_ISOSDacInterface10;
         CONST_VTBL struct ISOSDacInterface10Vtbl *lpVtbl;
     };
 
-    
+
 
 #ifdef COBJMACROS
 
 
 #define ISOSDacInterface10_QueryInterface(This,riid,ppvObject)  \
-    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) )
 
 #define ISOSDacInterface10_AddRef(This) \
-    ( (This)->lpVtbl -> AddRef(This) ) 
+    ( (This)->lpVtbl -> AddRef(This) )
 
 #define ISOSDacInterface10_Release(This)    \
-    ( (This)->lpVtbl -> Release(This) ) 
+    ( (This)->lpVtbl -> Release(This) )
 
 
 #define ISOSDacInterface10_GetObjectComWrappersData(This,objAddr,rcw,count,mowList,pNeeded) \
-    ( (This)->lpVtbl -> GetObjectComWrappersData(This,objAddr,rcw,count,mowList,pNeeded) ) 
+    ( (This)->lpVtbl -> GetObjectComWrappersData(This,objAddr,rcw,count,mowList,pNeeded) )
 
 #define ISOSDacInterface10_IsComWrappersCCW(This,ccw,isComWrappersCCW)  \
-    ( (This)->lpVtbl -> IsComWrappersCCW(This,ccw,isComWrappersCCW) ) 
+    ( (This)->lpVtbl -> IsComWrappersCCW(This,ccw,isComWrappersCCW) )
 
 #define ISOSDacInterface10_GetComWrappersCCWData(This,ccw,managedObject,refCount)   \
-    ( (This)->lpVtbl -> GetComWrappersCCWData(This,ccw,managedObject,refCount) ) 
+    ( (This)->lpVtbl -> GetComWrappersCCWData(This,ccw,managedObject,refCount) )
 
 #define ISOSDacInterface10_IsComWrappersRCW(This,rcw,isComWrappersRCW)  \
-    ( (This)->lpVtbl -> IsComWrappersRCW(This,rcw,isComWrappersRCW) ) 
+    ( (This)->lpVtbl -> IsComWrappersRCW(This,rcw,isComWrappersRCW) )
 
 #define ISOSDacInterface10_GetComWrappersRCWData(This,rcw,identity) \
-    ( (This)->lpVtbl -> GetComWrappersRCWData(This,rcw,identity) ) 
+    ( (This)->lpVtbl -> GetComWrappersRCWData(This,rcw,identity) )
 
 #endif /* COBJMACROS */
 
@@ -2881,60 +3041,60 @@ EXTERN_C const IID IID_ISOSDacInterface10;
 #define __ISOSDacInterface11_INTERFACE_DEFINED__
 
 /* interface ISOSDacInterface11 */
-/* [uuid][local][object] */ 
+/* [uuid][local][object] */
 
 
 EXTERN_C const IID IID_ISOSDacInterface11;
 
 #if defined(__cplusplus) && !defined(CINTERFACE)
-    
+
     MIDL_INTERFACE("96BA1DB9-14CD-4492-8065-1CAAECF6E5CF")
     ISOSDacInterface11 : public IUnknown
     {
     public:
-        virtual HRESULT STDMETHODCALLTYPE IsTrackedType( 
+        virtual HRESULT STDMETHODCALLTYPE IsTrackedType(
             CLRDATA_ADDRESS objAddr,
             BOOL *isTrackedType,
             BOOL *hasTaggedMemory) = 0;
-        
-        virtual HRESULT STDMETHODCALLTYPE GetTaggedMemory( 
+
+        virtual HRESULT STDMETHODCALLTYPE GetTaggedMemory(
             CLRDATA_ADDRESS objAddr,
             CLRDATA_ADDRESS *taggedMemory,
             size_t *taggedMemorySizeInBytes) = 0;
-        
+
     };
-    
-    
+
+
 #else  /* C style interface */
 
     typedef struct ISOSDacInterface11Vtbl
     {
         BEGIN_INTERFACE
-        
-        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )(
             ISOSDacInterface11 * This,
             /* [in] */ REFIID riid,
-            /* [annotation][iid_is][out] */ 
+            /* [annotation][iid_is][out] */
             _COM_Outptr_  void **ppvObject);
-        
-        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+
+        ULONG ( STDMETHODCALLTYPE *AddRef )(
             ISOSDacInterface11 * This);
-        
-        ULONG ( STDMETHODCALLTYPE *Release )( 
+
+        ULONG ( STDMETHODCALLTYPE *Release )(
             ISOSDacInterface11 * This);
-        
-        HRESULT ( STDMETHODCALLTYPE *IsTrackedType )( 
+
+        HRESULT ( STDMETHODCALLTYPE *IsTrackedType )(
             ISOSDacInterface11 * This,
             CLRDATA_ADDRESS objAddr,
             BOOL *isTrackedType,
             BOOL *hasTaggedMemory);
-        
-        HRESULT ( STDMETHODCALLTYPE *GetTaggedMemory )( 
+
+        HRESULT ( STDMETHODCALLTYPE *GetTaggedMemory )(
             ISOSDacInterface11 * This,
             CLRDATA_ADDRESS objAddr,
             CLRDATA_ADDRESS *taggedMemory,
             size_t *taggedMemorySizeInBytes);
-        
+
         END_INTERFACE
     } ISOSDacInterface11Vtbl;
 
@@ -2943,36 +3103,681 @@ EXTERN_C const IID IID_ISOSDacInterface11;
         CONST_VTBL struct ISOSDacInterface11Vtbl *lpVtbl;
     };
 
-    
+
 
 #ifdef COBJMACROS
 
 
 #define ISOSDacInterface11_QueryInterface(This,riid,ppvObject) \
-    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) )
 
 #define ISOSDacInterface11_AddRef(This) \
-    ( (This)->lpVtbl -> AddRef(This) ) 
+    ( (This)->lpVtbl -> AddRef(This) )
 
 #define ISOSDacInterface11_Release(This) \
-    ( (This)->lpVtbl -> Release(This) ) 
+    ( (This)->lpVtbl -> Release(This) )
 
 
 #define ISOSDacInterface11_IsTrackedType(This,objAddr,isTrackedType,hasTaggedMemory) \
-    ( (This)->lpVtbl -> IsTrackedType(This,objAddr,isTrackedType,hasTaggedMemory) ) 
+    ( (This)->lpVtbl -> IsTrackedType(This,objAddr,isTrackedType,hasTaggedMemory) )
 
 #define ISOSDacInterface11_GetTaggedMemory(This,objAddr,taggedMemory,taggedMemorySizeInBytes) \
-    ( (This)->lpVtbl -> GetTaggedMemory(This,objAddr,taggedMemory,taggedMemorySizeInBytes) ) 
+    ( (This)->lpVtbl -> GetTaggedMemory(This,objAddr,taggedMemory,taggedMemorySizeInBytes) )
 
 #endif /* COBJMACROS */
 
 
 #endif  /* C style interface */
 
-
-
-
 #endif  /* __ISOSDacInterface11_INTERFACE_DEFINED__ */
+
+#ifndef __ISOSDacInterface12_INTERFACE_DEFINED__
+#define __ISOSDacInterface12_INTERFACE_DEFINED__
+
+/* interface ISOSDacInterface12 */
+/* [uuid][local][object] */
+
+
+EXTERN_C const IID IID_ISOSDacInterface12;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+    MIDL_INTERFACE("1b93bacc-8ca4-432d-943a-3e6e7ec0b0a3")
+    ISOSDacInterface12 : public IUnknown
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE GetGlobalAllocationContext(
+            CLRDATA_ADDRESS *allocPtr,
+            CLRDATA_ADDRESS *allocLimit) = 0;
+
+    };
+
+
+#else 	/* C style interface */
+
+    typedef struct ISOSDacInterface12Vtbl
+    {
+        BEGIN_INTERFACE
+
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )(
+            ISOSDacInterface12 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */
+            _COM_Outptr_  void **ppvObject);
+
+        ULONG ( STDMETHODCALLTYPE *AddRef )(
+            ISOSDacInterface12 * This);
+
+        ULONG ( STDMETHODCALLTYPE *Release )(
+            ISOSDacInterface12 * This);
+
+        HRESULT ( STDMETHODCALLTYPE *GetGlobalAllocationContext )(
+            ISOSDacInterface12 * This,
+            CLRDATA_ADDRESS *allocPtr,
+            CLRDATA_ADDRESS *allocLimit);
+
+        END_INTERFACE
+    } ISOSDacInterface12Vtbl;
+
+    interface ISOSDacInterface12
+    {
+        CONST_VTBL struct ISOSDacInterface12Vtbl *lpVtbl;
+    };
+
+
+
+#ifdef COBJMACROS
+
+
+#define ISOSDacInterface12_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) )
+
+#define ISOSDacInterface12_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) )
+
+#define ISOSDacInterface12_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) )
+
+
+#define ISOSDacInterface12_GetGlobalAllocationContext(This,allocPtr,allocLimit)	\
+    ( (This)->lpVtbl -> GetGlobalAllocationContext(This,allocPtr,allocLimit) )
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ISOSDacInterface12_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISOSDacInterface13_INTERFACE_DEFINED__
+#define __ISOSDacInterface13_INTERFACE_DEFINED__
+
+/* interface ISOSDacInterface13 */
+/* [uuid][local][object] */
+
+
+EXTERN_C const IID IID_ISOSDacInterface13;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+    MIDL_INTERFACE("3176a8ed-597b-4f54-a71f-83695c6a8c5e")
+    ISOSDacInterface13 : public IUnknown
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE TraverseLoaderHeap(
+            CLRDATA_ADDRESS loaderHeapAddr,
+            LoaderHeapKind kind,
+            VISITHEAP pCallback) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE GetDomainLoaderAllocator(
+            CLRDATA_ADDRESS domainAddress,
+            CLRDATA_ADDRESS *pLoaderAllocator) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE GetLoaderAllocatorHeapNames(
+            int count,
+            const char **ppNames,
+            int *pNeeded) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE GetLoaderAllocatorHeaps(
+            CLRDATA_ADDRESS loaderAllocator,
+            int count,
+            CLRDATA_ADDRESS *pLoaderHeaps,
+            LoaderHeapKind *pKinds,
+            int *pNeeded) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE GetHandleTableMemoryRegions(
+            ISOSMemoryEnum **ppEnum) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE GetGCBookkeepingMemoryRegions(
+            ISOSMemoryEnum **ppEnum) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE GetGCFreeRegions(
+            ISOSMemoryEnum **ppEnum) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE LockedFlush( void) = 0;
+    };
+
+
+#else 	/* C style interface */
+
+
+    typedef struct ISOSDacInterface13Vtbl
+    {
+        BEGIN_INTERFACE
+
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )(
+            ISOSDacInterface13 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */
+            _COM_Outptr_  void **ppvObject);
+
+        ULONG ( STDMETHODCALLTYPE *AddRef )(
+            ISOSDacInterface13 * This);
+
+        ULONG ( STDMETHODCALLTYPE *Release )(
+            ISOSDacInterface13 * This);
+
+        HRESULT ( STDMETHODCALLTYPE *TraverseLoaderHeap )(
+            ISOSDacInterface13 * This,
+            CLRDATA_ADDRESS loaderHeapAddr,
+            LoaderHeapKind kind,
+            VISITHEAP pCallback);
+
+        HRESULT ( STDMETHODCALLTYPE *GetDomainLoaderAllocator )(
+            ISOSDacInterface13 * This,
+            CLRDATA_ADDRESS domainAddress,
+            CLRDATA_ADDRESS *pLoaderAllocator);
+
+        HRESULT ( STDMETHODCALLTYPE *GetLoaderAllocatorHeapNames )(
+            ISOSDacInterface13 * This,
+            int count,
+            const unsigned char **ppNames,
+            int *pNeeded);
+
+        HRESULT ( STDMETHODCALLTYPE *GetLoaderAllocatorHeaps )(
+            ISOSDacInterface13 * This,
+            CLRDATA_ADDRESS loaderAllocator,
+            int count,
+            CLRDATA_ADDRESS *pLoaderHeaps,
+            LoaderHeapKind *pKinds,
+            int *pNeeded);
+
+        HRESULT ( STDMETHODCALLTYPE *GetHandleTableMemoryRegions )(
+            ISOSDacInterface13 * This,
+            ISOSMemoryEnum **ppEnum);
+
+        HRESULT ( STDMETHODCALLTYPE *GetGCBookkeepingMemoryRegions )(
+            ISOSDacInterface13 * This,
+            ISOSMemoryEnum **ppEnum);
+
+        HRESULT ( STDMETHODCALLTYPE *GetGCFreeRegions )(
+            ISOSDacInterface13 * This,
+            ISOSMemoryEnum **ppEnum);
+
+        HRESULT ( STDMETHODCALLTYPE *LockedFlush )(
+            ISOSDacInterface13 * This);
+
+        END_INTERFACE
+    } ISOSDacInterface13Vtbl;
+
+    interface ISOSDacInterface13
+    {
+        CONST_VTBL struct ISOSDacInterface13Vtbl *lpVtbl;
+    };
+
+
+
+#ifdef COBJMACROS
+
+
+#define ISOSDacInterface13_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) )
+
+#define ISOSDacInterface13_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) )
+
+#define ISOSDacInterface13_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) )
+
+
+#define ISOSDacInterface13_TraverseLoaderHeap(This,loaderHeapAddr,kind,pCallback)	\
+    ( (This)->lpVtbl -> TraverseLoaderHeap(This,loaderHeapAddr,kind,pCallback) )
+
+#define ISOSDacInterface13_GetDomainLoaderAllocator(This,domainAddress,pLoaderAllocator)	\
+    ( (This)->lpVtbl -> GetDomainLoaderAllocator(This,domainAddress,pLoaderAllocator) ) 
+
+#define ISOSDacInterface13_GetLoaderAllocatorHeapNames(This,count,ppNames,pNeeded)	\
+    ( (This)->lpVtbl -> GetLoaderAllocatorHeapNames(This,count,ppNames,pNeeded) ) 
+
+#define ISOSDacInterface13_GetLoaderAllocatorHeaps(This,loaderAllocator,count,pLoaderHeaps,pKinds,pNeeded)	\
+    ( (This)->lpVtbl -> GetLoaderAllocatorHeaps(This,loaderAllocator,count,pLoaderHeaps,pKinds,pNeeded) ) 
+
+#define ISOSDacInterface13_GetHandleTableMemoryRegions(This,ppEnum)	\
+    ( (This)->lpVtbl -> GetHandleTableMemoryRegions(This,ppEnum) ) 
+
+#define ISOSDacInterface13_GetGCBookkeepingMemoryRegions(This,ppEnum)	\
+    ( (This)->lpVtbl -> GetGCBookkeepingMemoryRegions(This,ppEnum) ) 
+
+#define ISOSDacInterface13_GetGCFreeRegions(This,ppEnum)	\
+    ( (This)->lpVtbl -> GetGCFreeRegions(This,ppEnum) ) 
+
+#define ISOSDacInterface13_LockedFlush(This)	\
+    ( (This)->lpVtbl -> LockedFlush(This) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ISOSDacInterface13_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISOSDacInterface14_INTERFACE_DEFINED__
+#define __ISOSDacInterface14_INTERFACE_DEFINED__
+
+/* interface ISOSDacInterface14 */
+/* [uuid][local][object] */ 
+
+
+EXTERN_C const IID IID_ISOSDacInterface14;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("9aa22aca-6dc6-4a0c-b4e0-70d2416b9837")
+    ISOSDacInterface14 : public IUnknown
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE GetStaticBaseAddress( 
+            CLRDATA_ADDRESS methodTable,
+            CLRDATA_ADDRESS *nonGCStaticsAddress,
+            CLRDATA_ADDRESS *GCStaticsAddress) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE GetThreadStaticBaseAddress( 
+            CLRDATA_ADDRESS methodTable,
+            CLRDATA_ADDRESS thread,
+            CLRDATA_ADDRESS *nonGCStaticsAddress,
+            CLRDATA_ADDRESS *GCStaticsAddress) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE GetMethodTableInitializationFlags( 
+            CLRDATA_ADDRESS methodTable,
+            MethodTableInitializationFlags *initializationStatus) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct ISOSDacInterface14Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            ISOSDacInterface14 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            ISOSDacInterface14 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            ISOSDacInterface14 * This);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetStaticBaseAddress )( 
+            ISOSDacInterface14 * This,
+            CLRDATA_ADDRESS methodTable,
+            CLRDATA_ADDRESS *nonGCStaticsAddress,
+            CLRDATA_ADDRESS *GCStaticsAddress);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetThreadStaticBaseAddress )( 
+            ISOSDacInterface14 * This,
+            CLRDATA_ADDRESS methodTable,
+            CLRDATA_ADDRESS thread,
+            CLRDATA_ADDRESS *nonGCStaticsAddress,
+            CLRDATA_ADDRESS *GCStaticsAddress);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetMethodTableInitializationFlags )( 
+            ISOSDacInterface14 * This,
+            CLRDATA_ADDRESS methodTable,
+            MethodTableInitializationFlags *initializationStatus);
+        
+        END_INTERFACE
+    } ISOSDacInterface14Vtbl;
+
+    interface ISOSDacInterface14
+    {
+        CONST_VTBL struct ISOSDacInterface14Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define ISOSDacInterface14_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define ISOSDacInterface14_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define ISOSDacInterface14_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define ISOSDacInterface14_GetStaticBaseAddress(This,methodTable,nonGCStaticsAddress,GCStaticsAddress)	\
+    ( (This)->lpVtbl -> GetStaticBaseAddress(This,methodTable,nonGCStaticsAddress,GCStaticsAddress) ) 
+
+#define ISOSDacInterface14_GetThreadStaticBaseAddress(This,methodTable,thread,nonGCStaticsAddress,GCStaticsAddress)	\
+    ( (This)->lpVtbl -> GetThreadStaticBaseAddress(This,methodTable,thread,nonGCStaticsAddress,GCStaticsAddress) ) 
+
+#define ISOSDacInterface14_GetMethodTableInitializationFlags(This,methodTable,initializationStatus)	\
+    ( (This)->lpVtbl -> GetMethodTableInitializationFlags(This,methodTable,initializationStatus) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ISOSDacInterface14_INTERFACE_DEFINED__ */
+
+
+/* interface __MIDL_itf_sospriv_0000_0019 */
+/* [local] */ 
+
+#ifndef _SOS_MethodData
+#define _SOS_MethodData
+typedef struct _SOSMethodData
+    {
+    CLRDATA_ADDRESS MethodDesc;
+    CLRDATA_ADDRESS Entrypoint;
+    CLRDATA_ADDRESS DefininingMethodTable;
+    CLRDATA_ADDRESS DefiningModule;
+    unsigned int Token;
+    unsigned int Slot;
+    } 	SOSMethodData;
+
+#endif //_SOS_MethodData
+
+
+extern RPC_IF_HANDLE __MIDL_itf_sospriv_0000_0019_v0_0_c_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_sospriv_0000_0019_v0_0_s_ifspec;
+
+#ifndef __ISOSMethodEnum_INTERFACE_DEFINED__
+#define __ISOSMethodEnum_INTERFACE_DEFINED__
+
+/* interface ISOSMethodEnum */
+/* [uuid][local][object] */ 
+
+
+EXTERN_C const IID IID_ISOSMethodEnum;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("3c0fe725-c324-4a4f-8100-d399588a662e")
+    ISOSMethodEnum : public ISOSEnum
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE Next( 
+            /* [in] */ unsigned int count,
+            /* [length_is][size_is][out] */ SOSMethodData handles[  ],
+            /* [out] */ unsigned int *pNeeded) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct ISOSMethodEnumVtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            ISOSMethodEnum * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            ISOSMethodEnum * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            ISOSMethodEnum * This);
+        
+        HRESULT ( STDMETHODCALLTYPE *Skip )( 
+            ISOSMethodEnum * This,
+            /* [in] */ unsigned int count);
+        
+        HRESULT ( STDMETHODCALLTYPE *Reset )( 
+            ISOSMethodEnum * This);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetCount )( 
+            ISOSMethodEnum * This,
+            /* [out] */ unsigned int *pCount);
+        
+        HRESULT ( STDMETHODCALLTYPE *Next )( 
+            ISOSMethodEnum * This,
+            /* [in] */ unsigned int count,
+            /* [length_is][size_is][out] */ SOSMethodData handles[  ],
+            /* [out] */ unsigned int *pNeeded);
+        
+        END_INTERFACE
+    } ISOSMethodEnumVtbl;
+
+    interface ISOSMethodEnum
+    {
+        CONST_VTBL struct ISOSMethodEnumVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define ISOSMethodEnum_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define ISOSMethodEnum_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define ISOSMethodEnum_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define ISOSMethodEnum_Skip(This,count)	\
+    ( (This)->lpVtbl -> Skip(This,count) ) 
+
+#define ISOSMethodEnum_Reset(This)	\
+    ( (This)->lpVtbl -> Reset(This) ) 
+
+#define ISOSMethodEnum_GetCount(This,pCount)	\
+    ( (This)->lpVtbl -> GetCount(This,pCount) ) 
+
+
+#define ISOSMethodEnum_Next(This,count,handles,pNeeded)	\
+    ( (This)->lpVtbl -> Next(This,count,handles,pNeeded) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ISOSMethodEnum_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISOSDacInterface15_INTERFACE_DEFINED__
+#define __ISOSDacInterface15_INTERFACE_DEFINED__
+
+/* interface ISOSDacInterface15 */
+/* [uuid][local][object] */ 
+
+
+EXTERN_C const IID IID_ISOSDacInterface15;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("7ed81261-52a9-4a23-a358-c3313dea30a8")
+    ISOSDacInterface15 : public IUnknown
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE GetMethodTableSlotEnumerator( 
+            CLRDATA_ADDRESS mt,
+            ISOSMethodEnum **enumerator) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct ISOSDacInterface15Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            ISOSDacInterface15 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            ISOSDacInterface15 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            ISOSDacInterface15 * This);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetMethodTableSlotEnumerator )( 
+            ISOSDacInterface15 * This,
+            CLRDATA_ADDRESS mt,
+            ISOSMethodEnum **enumerator);
+        
+        END_INTERFACE
+    } ISOSDacInterface15Vtbl;
+
+    interface ISOSDacInterface15
+    {
+        CONST_VTBL struct ISOSDacInterface15Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define ISOSDacInterface15_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define ISOSDacInterface15_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define ISOSDacInterface15_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define ISOSDacInterface15_GetMethodTableSlotEnumerator(This,mt,enumerator)	\
+    ( (This)->lpVtbl -> GetMethodTableSlotEnumerator(This,mt,enumerator) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ISOSDacInterface15_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISOSDacInterface16_INTERFACE_DEFINED__
+#define __ISOSDacInterface16_INTERFACE_DEFINED__
+
+/* interface ISOSDacInterface16 */
+/* [uuid][local][object] */ 
+
+
+EXTERN_C const IID IID_ISOSDacInterface16;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("4ba12ff8-daac-4e43-ac56-98cf8d5c595d")
+    ISOSDacInterface16 : public IUnknown
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE GetGCDynamicAdaptationMode( 
+            int *pDynamicAdaptationMode) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct ISOSDacInterface16Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            ISOSDacInterface16 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            ISOSDacInterface16 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            ISOSDacInterface16 * This);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetGCDynamicAdaptationMode )( 
+            ISOSDacInterface16 * This,
+            int *pDynamicAdaptationMode);
+        
+        END_INTERFACE
+    } ISOSDacInterface16Vtbl;
+
+    interface ISOSDacInterface16
+    {
+        CONST_VTBL struct ISOSDacInterface16Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define ISOSDacInterface16_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define ISOSDacInterface16_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define ISOSDacInterface16_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define ISOSDacInterface16_GetGCDynamicAdaptationMode(This,pDynamicAdaptationMode)	\
+    ( (This)->lpVtbl -> GetGCDynamicAdaptationMode(This,pDynamicAdaptationMode) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ISOSDacInterface16_INTERFACE_DEFINED__ */
+
 
 /* Additional Prototypes for ALL interfaces */
 
