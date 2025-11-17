@@ -1555,17 +1555,18 @@ NTSTATUS PhWaitForServiceStatus(
 {
     NTSTATUS status;
     SERVICE_STATUS_PROCESS serviceStatus;
-    ULONG64 serviceTicks;
+    ULONG64 startTick;
+    ULONG64 lastProgressTick;
     ULONG serviceCheck;
 
     status = PhQueryServiceStatus(ServiceHandle, &serviceStatus);
-
     if (!NT_SUCCESS(status))
         return status;
     if (serviceStatus.dwCurrentState == WaitForState)
         return STATUS_SUCCESS;
 
-    serviceTicks = NtGetTickCount64();
+    startTick = NtGetTickCount64();
+    lastProgressTick = startTick;
     serviceCheck = serviceStatus.dwCheckPoint;
 
     while (
@@ -1576,6 +1577,7 @@ NTSTATUS PhWaitForServiceStatus(
         )
     {
         ULONG statusWaitHint = serviceStatus.dwWaitHint / 10;
+        ULONG64 nowTick;
 
         if (statusWaitHint < 1000)
             statusWaitHint = 1000;
@@ -1602,22 +1604,23 @@ NTSTATUS PhWaitForServiceStatus(
             return STATUS_SUCCESS;
         }
 
-        serviceTicks = NtGetTickCount64();
+        nowTick = NtGetTickCount64();
 
         if (serviceStatus.dwCheckPoint > serviceCheck)
         {
             serviceCheck = serviceStatus.dwCheckPoint;
+            lastProgressTick = nowTick;
         }
-        else if ((NtGetTickCount64() - serviceTicks) > serviceStatus.dwWaitHint)
+        else if ((nowTick - lastProgressTick) > serviceStatus.dwWaitHint)
         {
             // Service doesn't report progress.
         }
 
-        if ((NtGetTickCount64() - serviceTicks) > Timeout)
+        if (Timeout && (nowTick - startTick) > Timeout)
         {
             return STATUS_TIMEOUT; // STATUS_IO_TIMEOUT
         }
     }
 
-    return status;
+    return STATUS_SUCCESS;
 }
