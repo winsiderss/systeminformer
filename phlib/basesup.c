@@ -238,7 +238,6 @@ NTSTATUS PhpBaseThreadStart(
  * \param Argument A pointer to a variable to be passed to the StartRoutine.
  * \param ThreadHandle A pointer to a variable that receives a handle to the new thread.
  * \param ClientId A pointer to a variable that receives the thread identifier.
- *
  * \return Successful or errant status.
  */
 NTSTATUS PhCreateUserThread(
@@ -576,7 +575,7 @@ ULONG64 PhReadTimeStampCounter(
     VOID
     )
 {
-#if defined(_M_X64)
+#if defined(PHNT_RDTSCP)
     unsigned int processorIndex;
     ULONG64 value = __rdtscp(&processorIndex);
     SpeculationFence();
@@ -8150,7 +8149,6 @@ VOID PhConvertCopyMemoryUlong64(
         *To++ = (FLOAT)*From++;
     }
 }
-
 
 /**
  * \brief Converts an array of floats to integers.
