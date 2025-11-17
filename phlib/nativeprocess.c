@@ -316,7 +316,7 @@ NTSTATUS PhGetProcessImageFileName(
     ULONG bufferLength;
     ULONG returnLength = 0;
 
-    bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
+    bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH * sizeof(WCHAR);
     fileName = PhAllocateStack(bufferLength);
     if (!fileName) return STATUS_NO_MEMORY;
 
@@ -380,7 +380,7 @@ NTSTATUS PhGetProcessImageFileNameWin32(
     ULONG bufferLength;
     ULONG returnLength = 0;
 
-    bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
+    bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH * sizeof(WCHAR);
     fileName = PhAllocateStack(bufferLength);
     if (!fileName) return STATUS_NO_MEMORY;
 
@@ -863,7 +863,7 @@ NTSTATUS PhGetProcessCommandLine(
         ULONG bufferLength;
         ULONG returnLength = 0;
 
-        bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
+        bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH * sizeof(WCHAR);
         buffer = PhAllocateStack(bufferLength);
         if (!buffer) return STATUS_NO_MEMORY;
 
@@ -2123,7 +2123,9 @@ NTSTATUS PhSetProcessActivityModerationState(
     RtlZeroMemory(&moderationInfo, sizeof(SYSTEM_ACTIVITY_MODERATION_INFO));
     moderationInfo.AppType = ModerationType;
     moderationInfo.ModerationState = ModerationState;
-    PhStringRefToUnicodeString(ModerationIdentifier, &moderationInfo.Identifier);
+
+    if (!PhStringRefToUnicodeString(ModerationIdentifier, &moderationInfo.Identifier))
+        return STATUS_NAME_TOO_LONG;
 
     status = NtSetSystemInformation(
         SystemActivityModerationExeState,
