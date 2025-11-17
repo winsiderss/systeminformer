@@ -587,108 +587,6 @@ typedef struct _MMPFN_MEMSNAP_INFORMATION
     ULONG_PTR Count;
 } MMPFN_MEMSNAP_INFORMATION, *PMMPFN_MEMSNAP_INFORMATION;
 
-typedef enum _SECTION_INFORMATION_CLASS
-{
-    SectionBasicInformation, // q; SECTION_BASIC_INFORMATION
-    SectionImageInformation, // q; SECTION_IMAGE_INFORMATION
-    SectionRelocationInformation, // q; ULONG_PTR RelocationDelta // name:wow64:whNtQuerySection_SectionRelocationInformation // since WIN7
-    SectionOriginalBaseInformation, // q; PVOID BaseAddress // since REDSTONE
-    SectionInternalImageInformation, // q; SECTION_INTERNAL_IMAGE_INFORMATION // since REDSTONE2
-    MaxSectionInfoClass
-} SECTION_INFORMATION_CLASS;
-
-/**
- * The SECTION_BASIC_INFORMATION structure contains information of an opened section object.
- * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntquerysection
- */
-typedef struct _SECTION_BASIC_INFORMATION
-{
-    PVOID BaseAddress;              // The base virtual address of the section if the section is based.
-    ULONG AllocationAttributes;     // The allocation attributes flags.
-    LARGE_INTEGER MaximumSize;      // The maximum size of the section in bytes.
-} SECTION_BASIC_INFORMATION, *PSECTION_BASIC_INFORMATION;
-
-// symbols
-typedef struct _SECTION_IMAGE_INFORMATION
-{
-    PVOID TransferAddress;
-    ULONG ZeroBits;
-    SIZE_T MaximumStackSize;
-    SIZE_T CommittedStackSize;
-    ULONG SubSystemType;
-    union
-    {
-        struct
-        {
-            USHORT SubSystemMinorVersion;
-            USHORT SubSystemMajorVersion;
-        };
-        ULONG SubSystemVersion;
-    };
-    union
-    {
-        struct
-        {
-            USHORT MajorOperatingSystemVersion;
-            USHORT MinorOperatingSystemVersion;
-        };
-        ULONG OperatingSystemVersion;
-    };
-    USHORT ImageCharacteristics;
-    USHORT DllCharacteristics;
-    USHORT Machine;
-    BOOLEAN ImageContainsCode;
-    union
-    {
-        UCHAR ImageFlags;
-        struct
-        {
-            UCHAR ComPlusNativeReady : 1;
-            UCHAR ComPlusILOnly : 1;
-            UCHAR ImageDynamicallyRelocated : 1;
-            UCHAR ImageMappedFlat : 1;
-            UCHAR BaseBelow4gb : 1;
-            UCHAR ComPlusPrefer32bit : 1;
-            UCHAR Reserved : 2;
-        };
-    };
-    ULONG LoaderFlags;
-    ULONG ImageFileSize;
-    ULONG CheckSum;
-} SECTION_IMAGE_INFORMATION, *PSECTION_IMAGE_INFORMATION;
-
-// symbols
-typedef struct _SECTION_INTERNAL_IMAGE_INFORMATION
-{
-    SECTION_IMAGE_INFORMATION SectionInformation;
-    union
-    {
-        ULONG ExtendedFlags;
-        struct
-        {
-            ULONG ImageExportSuppressionEnabled : 1;
-            ULONG ImageCetShadowStacksReady : 1; // 20H1
-            ULONG ImageXfgEnabled : 1; // 20H2
-            ULONG ImageCetShadowStacksStrictMode : 1;
-            ULONG ImageCetSetContextIpValidationRelaxedMode : 1;
-            ULONG ImageCetDynamicApisAllowInProc : 1;
-            ULONG ImageCetDowngradeReserved1 : 1;
-            ULONG ImageCetDowngradeReserved2 : 1;
-            ULONG ImageExportSuppressionInfoPresent : 1;
-            ULONG ImageCfgEnabled : 1;
-            ULONG Reserved : 22;
-        };
-    };
-} SECTION_INTERNAL_IMAGE_INFORMATION, *PSECTION_INTERNAL_IMAGE_INFORMATION;
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
-typedef enum _SECTION_INHERIT
-{
-    ViewShare = 1,
-    ViewUnmap = 2
-} SECTION_INHERIT;
-#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
-
 // Flags directly correspond to KPROCESS.Flags, of type KEXECUTE_OPTIONS (named bitfields available).
 // Flags adjust OS behavior for 32-bit processes only. They are effectively ignored for ARM64 and x64 processes.
 // [nt!Mi]canGrantExecute = KF_GLOBAL_32BIT_EXECUTE || MEM_EXECUTE_OPTION_ENABLE || (!KF_GLOBAL_32BIT_NOEXECUTE && !MEM_EXECUTE_OPTION_DISABLE)
@@ -1135,6 +1033,115 @@ NtUnlockVirtualMemory(
 //
 // Sections
 //
+
+typedef enum _SECTION_INFORMATION_CLASS
+{
+    SectionBasicInformation, // q; SECTION_BASIC_INFORMATION
+    SectionImageInformation, // q; SECTION_IMAGE_INFORMATION
+    SectionRelocationInformation, // q; ULONG_PTR RelocationDelta // name:wow64:whNtQuerySection_SectionRelocationInformation // since WIN7
+    SectionOriginalBaseInformation, // q; PVOID BaseAddress // since REDSTONE
+    SectionInternalImageInformation, // q; SECTION_INTERNAL_IMAGE_INFORMATION // since REDSTONE2
+    MaxSectionInfoClass
+} SECTION_INFORMATION_CLASS;
+
+/**
+ * The SECTION_BASIC_INFORMATION structure contains basic information about an image section.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntquerysection
+ */
+typedef struct _SECTION_BASIC_INFORMATION
+{
+    PVOID BaseAddress;              // The base virtual address of the section if the section is based.
+    ULONG AllocationAttributes;     // The allocation attributes flags.
+    LARGE_INTEGER MaximumSize;      // The maximum size of the section in bytes.
+} SECTION_BASIC_INFORMATION, * PSECTION_BASIC_INFORMATION;
+
+/**
+ * The SECTION_IMAGE_INFORMATION structure contains detailed information about an image section.
+ */
+typedef struct _SECTION_IMAGE_INFORMATION
+{
+    PVOID TransferAddress;          // The address of the image entry point function.
+    ULONG ZeroBits;                 // The number of high-order address bits that must be zero in the image base address.
+    SIZE_T MaximumStackSize;        // The maximum stack size of threads from the PE file header.
+    SIZE_T CommittedStackSize;      // The initial stack size of threads from the PE file header.
+    ULONG SubSystemType;            // The image subsystem from the PE file header (e.g., Windows GUI, Windows CUI, POSIX).
+    union
+    {
+        struct
+        {
+            USHORT SubSystemMinorVersion;
+            USHORT SubSystemMajorVersion;
+        };
+        ULONG SubSystemVersion;
+    };
+    union
+    {
+        struct
+        {
+            USHORT MajorOperatingSystemVersion;
+            USHORT MinorOperatingSystemVersion;
+        };
+        ULONG OperatingSystemVersion;
+    };
+    USHORT ImageCharacteristics;    // The image characteristics from the PE file header.
+    USHORT DllCharacteristics;      // The DLL characteristics flags (e.g., ASLR, NX compatibility).
+    USHORT Machine;                 // The image architecture (e.g., x86, x64, ARM).
+    BOOLEAN ImageContainsCode;      // The image contains native executable code.
+    union
+    {
+        UCHAR ImageFlags;
+        struct
+        {
+            UCHAR ComPlusNativeReady : 1;           // The image contains precompiled .NET assembly generated by NGEN (Native Image Generator).
+            UCHAR ComPlusILOnly : 1;                // the image contains only Microsoft Intermediate Language (IL) assembly.
+            UCHAR ImageDynamicallyRelocated : 1;    // The image was mapped using a random base address rather than the preferred base address.
+            UCHAR ImageMappedFlat : 1;              // The image was mapped using a single contiguous region, rather than separate regions for each section.
+            UCHAR BaseBelow4gb : 1;                 // The image was mapped using a base address below the 4 GB boundary.
+            UCHAR ComPlusPrefer32bit : 1;           // The image prefers to run as a 32-bit process, even on a 64-bit system.
+            UCHAR Reserved : 2;
+        };
+    };
+    ULONG LoaderFlags;               // Reserved by ntdll.dll for the Windows loader.
+    ULONG ImageFileSize;             // The size of the image, in bytes, including all headers.
+    ULONG CheckSum;                  // The image file checksum, from the PE optional header.
+} SECTION_IMAGE_INFORMATION, * PSECTION_IMAGE_INFORMATION;
+
+/**
+ * The SECTION_INTERNAL_IMAGE_INFORMATION structure contains information about Control Flow Guard (CFG) features required by the image section.
+ */
+typedef struct _SECTION_INTERNAL_IMAGE_INFORMATION
+{
+    SECTION_IMAGE_INFORMATION SectionInformation;
+    union
+    {
+        ULONG ExtendedFlags;
+        struct
+        {
+            ULONG ImageExportSuppressionEnabled : 1;
+            ULONG ImageCetShadowStacksReady : 1; // 20H1
+            ULONG ImageXfgEnabled : 1; // 20H2
+            ULONG ImageCetShadowStacksStrictMode : 1;
+            ULONG ImageCetSetContextIpValidationRelaxedMode : 1;
+            ULONG ImageCetDynamicApisAllowInProc : 1;
+            ULONG ImageCetDowngradeReserved1 : 1;
+            ULONG ImageCetDowngradeReserved2 : 1;
+            ULONG ImageExportSuppressionInfoPresent : 1;
+            ULONG ImageCfgEnabled : 1;
+            ULONG Reserved : 22;
+        };
+    };
+} SECTION_INTERNAL_IMAGE_INFORMATION, * PSECTION_INTERNAL_IMAGE_INFORMATION;
+
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+/**
+ * The SECTION_INHERIT structure specifies how the mapped view of the section is to be shared with child processes.
+ */
+typedef enum _SECTION_INHERIT
+{
+    ViewShare = 1, // The mapped view of the section will be mapped into any child processes created by the process.
+    ViewUnmap = 2  // The mapped view of the section will not be mapped into any child processes created by the process.
+} SECTION_INHERIT;
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 /**
