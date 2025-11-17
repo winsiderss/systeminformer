@@ -1491,7 +1491,7 @@ VOID PhpGetHvSocket(
     _Out_ PHVSOCKET_CONNECTIONS* Connections
 )
 {
-    static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem");
+    static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem");
     PH_ARRAY guidArray;
     HANDLE keyHandle;
 
