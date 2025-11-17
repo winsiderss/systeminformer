@@ -272,7 +272,7 @@ PPH_STRING PhHvSocketGetVmName(
     _In_ PGUID VmId
     )
 {
-    static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem\\");
+    static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem\\");
     static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
     PPH_STRING vmName = NULL;
     PPH_STRING guidString;
@@ -317,7 +317,7 @@ PPH_STRING PhHvSocketGetServiceName(
     _In_ PGUID ServiceId
     )
 {
-    static const PH_STRINGREF hvGuestServicesKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
+    static const PH_STRINGREF hvGuestServicesKey = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
     static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
     PPH_STRING serviceName = NULL;
     PPH_STRING guidString;
