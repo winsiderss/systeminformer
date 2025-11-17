@@ -267,7 +267,7 @@ VOID ToolbarLoadSettings(
     _In_ BOOLEAN DpiChanged
     );
 
-VOID ToolbarRemoveButons(
+VOID ToolbarRemoveButtons(
     VOID
     );
 
