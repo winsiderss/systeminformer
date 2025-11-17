@@ -127,7 +127,7 @@ static VOID PhpRefreshProcessList(
         }
 
         if (process->UniqueProcessId == SYSTEM_PROCESS_ID)
-            fileName = PhGetKernelFileName2();
+            fileName = PhGetKernelFileName();
         else if (PH_IS_REAL_PROCESS_ID(process->UniqueProcessId))
             PhGetProcessImageFileNameByProcessId(process->UniqueProcessId, &fileName);
 

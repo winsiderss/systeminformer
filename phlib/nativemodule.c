@@ -364,26 +364,6 @@ PPH_STRING PhGetKernelFileName(
 }
 
 /**
- * Gets the file name of the kernel image without the SystemModuleInformation and string conversion overhead.
- *
- * \return A pointer to a string containing the kernel image file name. You must free the string
- * using PhDereferenceObject() when you no longer need it.
- */
-PPH_STRING PhGetKernelFileName2(
-    VOID
-    )
-{
-    if (WindowsVersion >= WINDOWS_10)
-    {
-        static CONST PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
-
-        return PhCreateString2(&kernelFileName);
-    }
-
-    return PhGetKernelFileName();
-}
-
-/**
  * Gets the file name, base address and size of the kernel image.
  *
  * \return A pointer to a string containing the kernel image file name. You must free the string

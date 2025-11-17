@@ -58,7 +58,7 @@ VOID PvpPeEnumerateProcessIds(
                 processId = (HANDLE)processIds->ProcessIdList[i];
 
                 if (processId == SYSTEM_PROCESS_ID)
-                    fileName = PhGetKernelFileName2();
+                    fileName = PhGetKernelFileName();
                 else
                     PhGetProcessImageFileNameByProcessId(processId, &fileName);
 

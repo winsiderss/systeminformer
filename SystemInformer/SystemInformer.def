@@ -579,7 +579,6 @@ EXPORTS
     PhGetFirmwareEnvironmentVariable
     PhGetJobProcessIdList
     PhGetKernelFileName
-    PhGetKernelFileName2
     PhGetKernelFileNameEx
     PhGetModuleProcAddress
     PhGetNamedPipeClientComputerName

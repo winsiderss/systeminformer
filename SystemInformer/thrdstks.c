@@ -439,7 +439,7 @@ VOID PhpThreadStacksCreateProcessNode(
     node->Symbol = PhReferenceObject(node->Process.ProcessName);
 
     if (node->Process.ProcessId == SYSTEM_PROCESS_ID)
-        node->Process.FileName = PhGetKernelFileName2();
+        node->Process.FileName = PhGetKernelFileName();
 
     if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, node->Process.ProcessId)))
     {
