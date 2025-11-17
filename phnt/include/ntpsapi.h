@@ -1089,6 +1089,7 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
         PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY RedirectionTrustPolicy;
         PROCESS_MITIGATION_USER_POINTER_AUTH_POLICY UserPointerAuthPolicy;
         PROCESS_MITIGATION_SEHOP_POLICY SEHOPPolicy;
+        PROCESS_MITIGATION_ACTIVATION_CONTEXT_TRUST_POLICY2 ActivationContextTrustPolicy;
     };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 
@@ -2110,7 +2111,7 @@ NtResumeProcess(
 #define NtCurrentThreadEffectiveToken() ((HANDLE)(LONG_PTR)-6) // NtOpenThreadToken(NtCurrentThread()) + NtOpenProcessToken(NtCurrentProcess())
 #define NtCurrentSilo() ((HANDLE)(LONG_PTR)-1)
 
-EXTERN_C CONST IMAGE_DOS_HEADER __ImageBase;
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define NtCurrentImageBase() ((PVOID)((PIMAGE_DOS_HEADER)&__ImageBase))
 
 #define NtCurrentSessionId() (RtlGetActiveConsoleId()) // USER_SHARED_DATA->ActiveConsoleId
@@ -2556,7 +2557,8 @@ NtAlertResumeThread(
     );
 
 /**
- * Tests whether the current thread has an alert pending.
+ * The NtTestAlert routine indicates whether the current thread has an alert pending
+ * and executes asynchronous procedure calls (APCs) queued to the current thread.
  *
  * \return NTSTATUS Successful or errant status.
  */
@@ -2570,7 +2572,7 @@ NtTestAlert(
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
 /**
- * Sends an alert to the specified thread.
+ * The NtAlertThreadByThreadId routine sends an alert to the specified thread.
  *
  * \param ThreadId The thread ID of the thread to be alerted.
  * \return NTSTATUS Successful or errant status.
@@ -2585,7 +2587,7 @@ NtAlertThreadByThreadId(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
- * Sends an alert to the specified thread by its thread ID, with an optional lock.
+ * The NtAlertThreadByThreadIdEx routine sends an alert to the specified thread by its thread ID, with an optional lock.
  *
  * \param ThreadId The thread ID of the thread to be alerted.
  * \param Lock An optional pointer to an SRW lock to be used during the alert.
@@ -2600,7 +2602,7 @@ NtAlertThreadByThreadIdEx(
     );
 
 /**
- * Sends an alert to multiple threads by their thread IDs.
+ * The NtAlertMultipleThreadByThreadId routine sends an alert to multiple threads by their thread IDs.
  *
  * \param MultipleThreadId A pointer to an array of thread IDs to be alerted.
  * \param Count The number of thread IDs in the array.
@@ -2622,7 +2624,7 @@ NtAlertMultipleThreadByThreadId(
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
 /**
- * Waits for an alert to be delivered to the specified thread.
+ * The NtAlertThreadByThreadIdEx routine sWaits for an alert to be delivered to the specified thread.
  *
  * \param Address The address to wait for an alert on.
  * \param Timeout The timeout value for waiting, or NULL for no timeout.
@@ -3939,7 +3941,7 @@ typedef enum _PSSNT_QUERY_INFORMATION_CLASS
 #if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 // rev
 /**
- * Captures a snapshot of the specified process.
+ * The PssNtCaptureSnapshot routine captures a snapshot of the specified process.
  *
  * \param SnapshotHandle Pointer to a variable that receives the snapshot handle.
  * \param ProcessHandle Handle to the process.
@@ -3959,7 +3961,7 @@ PssNtCaptureSnapshot(
 
 // rev
 /**
- * Duplicates a process snapshot from one process to another.
+ * The PssNtDuplicateSnapshot routine duplicates a process snapshot from one process to another.
  *
  * \param SourceProcessHandle Handle to the source process.
  * \param SnapshotHandle Handle to the snapshot to duplicate.
@@ -3981,7 +3983,7 @@ PssNtDuplicateSnapshot(
 
 // rev
 /**
- * Frees a remote process snapshot.
+ * The PssNtFreeRemoteSnapshot routine frees a remote process snapshot.
  *
  * \param SnapshotHandle Handle to the snapshot to free.
  * \return NTSTATUS Successful or errant status.
@@ -3995,7 +3997,7 @@ PssNtFreeSnapshot(
 
 // rev
 /**
- * Frees a snapshot.
+ * The PssNtFreeRemoteSnapshot routine frees a snapshot.
  *
  * \param ProcessHandle A handle to the process that contains the snapshot. The handle must have PROCESS_VM_READ, PROCESS_VM_OPERATION, and PROCESS_DUP_HANDLE rights.
  * \param SnapshotHandle Handle to the snapshot to free.
@@ -4011,7 +4013,7 @@ PssNtFreeRemoteSnapshot(
 
 // rev
 /**
- * Queries information from a the specified snapshot.
+ * The PssNtQuerySnapshot routine queries information from the specified snapshot.
  *
  * \param SnapshotHandle Handle to the snapshot.
  * \param InformationClass The information class to query.
