@@ -53,9 +53,9 @@ NTSTATUS
 NTAPI
 NtUserBuildHwndList(
     _In_opt_ HANDLE DesktopHandle,
-    _In_opt_ HWND StartWindowHandle,
-    _In_opt_ LOGICAL IncludeChildren,
-    _In_opt_ LOGICAL ExcludeImmersive,
+    _In_opt_ HWND ParentWindowHandle,
+    _In_opt_ BOOL IncludeChildren,
+    _In_opt_ BOOL ExcludeImmersive,
     _In_opt_ ULONG ThreadId,
     _In_ ULONG HwndListInformationLength,
     _Out_writes_bytes_(HwndListInformationLength) PVOID HwndListInformation,
@@ -83,7 +83,7 @@ NtUserBuildPropList(
     );
 
 NTSYSCALLAPI
-LOGICAL
+BOOL
 NTAPI
 NtUserCanCurrentThreadChangeForeground(
     VOID
@@ -118,14 +118,14 @@ NtUserCheckProcessForClipboardAccess(
     );
 
 NTSYSCALLAPI
-LOGICAL
+BOOL
 NTAPI
 NtUserCloseWindowStation(
     _In_ HWINSTA WindowStationHandle
     );
 
 NTSYSCALLAPI
-LOGICAL
+BOOL
 NTAPI
 NtUserDisableProcessWindowsGhosting(
     VOID
@@ -249,7 +249,7 @@ NtUserGetForegroundWindow(
     );
 
 NTSYSCALLAPI
-LOGICAL
+BOOL
 NTAPI
 NtUserGetIconInfo(
     _In_ HICON IconOrCursorHandle,
@@ -261,7 +261,7 @@ NtUserGetIconInfo(
     );
 
 NTSYSCALLAPI
-LOGICAL
+BOOL
 NTAPI
 NtUserGetIconSize(
     _In_ HGDIOBJ IconOrCursorHandle,
@@ -405,7 +405,7 @@ NtUserSetFocus(
 
 // User32 ordinal 2005
 NTSYSAPI
-LOGICAL
+BOOL
 NTAPI
 SetChildWindowNoActivate(
     _In_ HWND WindowHandle
@@ -422,10 +422,90 @@ NtUserSetInformationThread(
     );
 
 NTSYSCALLAPI
-LOGICAL
+BOOL
 NTAPI
 NtUserSetProcessWindowStation(
     _In_ HWINSTA WindowStationHandle
+    );
+
+// rev // Valid bit masks enforced by NtUserSetProcessWin32Capabilities
+#define PROC_CAP_FLAGS1_VALID_MASK     0x00000007u    // bits 0-2
+#define PROC_CAP_FLAGS2_VALID_MASK     0x00000007u    // bits 0-2
+#define PROC_CAP_ENABLE_VALID_MASK     0x00000001u    // bit 0
+#define PROC_CAP_DISABLE_VALID_MASK    0x00000001u    // bit 0
+
+#define PROC_CAP_FLAGS1_BIT0           0x00000001u
+#define PROC_CAP_FLAGS1_BIT1           0x00000002u
+#define PROC_CAP_FLAGS1_BIT2           0x00000004u
+
+#define PROC_CAP_FLAGS2_BIT0           0x00000001u
+#define PROC_CAP_FLAGS2_BIT1           0x00000002u
+#define PROC_CAP_FLAGS2_BIT2           0x00000004u
+
+#define PROC_CAP_ENABLE_BIT0           0x00000001u
+#define PROC_CAP_DISABLE_BIT0          0x00000001u
+
+#define PROC_CAP_FLAGS1_INVALID(x)     (((x) & ~PROC_CAP_FLAGS1_VALID_MASK) != 0)
+#define PROC_CAP_FLAGS2_INVALID(x)     (((x) & ~PROC_CAP_FLAGS2_VALID_MASK) != 0)
+#define PROC_CAP_ENABLE_INVALID(x)     (((x) & ~PROC_CAP_ENABLE_VALID_MASK) != 0)
+#define PROC_CAP_DISABLE_INVALID(x)    (((x) & ~PROC_CAP_DISABLE_VALID_MASK) != 0)
+
+// rev
+typedef struct _USER_PROCESS_CAP_ENTRY
+{
+    HANDLE ProcessHandle;
+    ULONG Flags1;
+    ULONG Flags2;
+    ULONG EnableMask;
+    ULONG DisableMask;
+} USER_PROCESS_CAP_ENTRY, *PUSER_PROCESS_CAP_ENTRY;
+
+// rev
+typedef struct _USER_PROCESS_CAP_INTERNAL
+{
+    PVOID ProcessObject;
+    ULONG SessionId;
+    ULONG Reserved;
+    ULONGLONG FlagsPacked;
+    ULONGLONG CapabilityPacked;
+} USER_PROCESS_CAP_INTERNAL, *PUSER_PROCESS_CAP_INTERNAL;
+
+// rev
+NTSYSCALLAPI
+NTSTATUS 
+NTAPI 
+NtUserSetProcessWin32Capabilities(
+    _In_reads_(Count) const USER_PROCESS_CAP_ENTRY* Capabilities,
+    _In_ ULONG Count
+    );
+
+// rev
+/**
+ * The NtUserSetProcessRestrictionExemption routine marks the current process as exempt from certain win32k/user restrictions.
+ * Note: This requires a developer mode/license check.
+ *
+ * \param Enable Indicates whether to enable or disable the exemption.
+ * \return Successful or errant status.
+ */
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUserSetProcessRestrictionExemption(
+    _In_ BOOL EnableExemption
+    );
+
+// rev
+/**
+ * The NtUserSetProcessUIAccessZorder routine tweaks window z-order behavior for UIAccess scenarios.
+ * Note: Set only when the process is not elevated.
+ *
+ * \return Successful or errant status.
+ */
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUserSetProcessUIAccessZorder(
+    VOID
     );
 
 NTSYSCALLAPI
@@ -437,7 +517,7 @@ NtUserSetWindowPlacement(
     );
 
 NTSYSCALLAPI
-LOGICAL
+BOOL
 NTAPI
 NtUserSetWindowStationUser(
     _In_ HWINSTA WindowStationHandle,
@@ -447,7 +527,7 @@ NtUserSetWindowStationUser(
     );
 
 NTSYSAPI
-LOGICAL
+BOOL
 NTAPI
 SetWindowStationUser(
     _In_ HWINSTA WindowStationHandle,
@@ -464,7 +544,7 @@ NtUserTestForInteractiveUser(
     );
 
 NTSYSCALLAPI
-LOGICAL
+BOOL
 NTAPI
 NtUserSwitchDesktop(
     _In_ HDESK DesktopHandle,
@@ -473,7 +553,7 @@ NtUserSwitchDesktop(
     );
 
 NTSYSCALLAPI
-LOGICAL
+BOOL
 NTAPI
 NtUserSetThreadDesktop(
     _In_ HDESK DesktopHandle
@@ -870,6 +950,14 @@ NtUserGetWindowPlacement(
     );
 
 NTSYSCALLAPI
+HANDLE
+NTAPI
+NtUserGetWindowProcessHandle(
+    _In_ HWND WindowHandle,
+    _In_ ACCESS_MASK DesiredAccess
+    );
+
+NTSYSCALLAPI
 BOOL
 NTAPI
 NtUserHiliteMenuItem(
@@ -1118,13 +1206,6 @@ NtUserSetLayeredWindowAttributes(
 NTSYSCALLAPI
 BOOL
 NTAPI
-NtUserSetProcessRestrictionExemption(
-    _In_ BOOL EnableExemption
-    );
-
-NTSYSCALLAPI
-BOOL
-NTAPI
 NtUserSetWindowPos(
     _In_ HWND WindowHandle,
     _In_opt_ HWND WindowHandleInsertAfter,
@@ -1200,11 +1281,14 @@ NtUserSetAdditionalForegroundBoostProcesses(
     _In_ HWND WindowHandle
     );
 
+// rev
 NTSYSCALLAPI
 ULONG
 NTAPI
 NtUserSetAdditionalPowerThrottlingProcess(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ ULONG ProcessHandlesCount,
+    _In_reads_(ProcessHandlesCount) PHANDLE ProcessHandles
     );
 
 NTSYSCALLAPI
