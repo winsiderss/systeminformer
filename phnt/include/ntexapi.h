@@ -1481,6 +1481,14 @@ NtWaitForKeyedEvent(
 // UMS
 //
 
+/**
+ * The NtUmsThreadYield routine yields control to the user-mode scheduling (UMS) scheduler thread on which the calling UMS worker thread is running.
+ * Note: As of Windows 11, user-mode scheduling is not supported. All calls fail with the error STATUS_NOT_SUPPORTED.
+ *
+ * \param SchedulerParam Optional handle to the keyed event object. If NULL, the default keyed event is used.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-umsthreadyield
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -5406,19 +5414,65 @@ typedef struct _SYSTEM_MEMORY_USAGE_INFORMATION
     ULONGLONG PeakCommitmentBytes;
 } SYSTEM_MEMORY_USAGE_INFORMATION, *PSYSTEM_MEMORY_USAGE_INFORMATION;
 
-// private
+// rev
+typedef enum _SYSTEM_CODEINTEGRITY_IMAGE_TYPE
+{
+    SystemCodeIntegrityImageTypeUser,
+    SystemCodeIntegrityImageTypeKernel,
+    SystemCodeIntegrityImageTypeBoot
+} SYSTEM_CODEINTEGRITY_IMAGE_TYPE;
+
+/**
+ * @def SYSTEM_CODEINTEGRITY_IMAGE_TYPE_USER
+ * @brief Flag for validating user-mode images (EXE/DLL).
+ *
+ * Validation includes:
+ * - Digital signature
+ * - User-mode certificate chain validity.
+ * - Compliance policies for user-mode binaries.
+ */
+#define SYSTEM_CODEINTEGRITY_IMAGE_TYPE_USER     0
+
+/**
+ * @def SYSTEM_CODEINTEGRITY_IMAGE_TYPE_KERNEL
+ * @brief Flag for validating kernel-mode images (SYS/Native).
+ *
+ * Validation includes:
+ * - Signed by a trusted certificate authority (or cross-signed).
+ * - Compliance policies for kernel-mode binaries.
+ */
+#define SYSTEM_CODEINTEGRITY_IMAGE_TYPE_KERNEL   1
+
+/**
+ * @def SYSTEM_CODEINTEGRITY_IMAGE_TYPE_BOOT
+ * @brief Flag for validating boot-critical images (SYS/Native).
+ *
+ * Validation includes:
+ * - Signed only by Microsoft.
+ * - Compliance policies for boot-critical binaries (Strict WHQL, Secure Boot requirements).
+ */
+#define SYSTEM_CODEINTEGRITY_IMAGE_TYPE_BOOT
+
+/**
+ * The SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION structure contains information to validate the integrity of an image.
+ *
+ * \note The return status of NtQuerySystemInformation indicates the result of the code integrity validation as determined by the type specified.
+ */
 typedef struct _SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
 {
-    HANDLE ImageFile;
-    ULONG Type; // REDSTONE4
+    HANDLE ImageFile;   // in: Handle to a file or image to validate.
+    ULONG Type;         // in: The type of code integrity policy. // REDSTONE4
 } SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION, *PSYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION;
 
-// private
+/**
+ * The SYSTEM_PHYSICAL_MEMORY_INFORMATION structure retrieves the physical memory layout of the system.
+ * \remarks The addresses are physical, not virtual.
+ */
 typedef struct _SYSTEM_PHYSICAL_MEMORY_INFORMATION
 {
-    ULONGLONG TotalPhysicalBytes;
-    ULONGLONG LowestPhysicalAddress;
-    ULONGLONG HighestPhysicalAddress;
+    ULONGLONG TotalPhysicalBytes;           // Total amount of physical RAM present, in bytes.
+    ULONGLONG LowestPhysicalAddress;        // Lowest accessible physical address (byte address).
+    ULONGLONG HighestPhysicalAddress;       // Highest accessible physical address (byte address, inclusive).
 } SYSTEM_PHYSICAL_MEMORY_INFORMATION, *PSYSTEM_PHYSICAL_MEMORY_INFORMATION;
 
 // private
