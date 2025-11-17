@@ -2900,23 +2900,36 @@ VOID PhProcessProviderUpdate(
             {
                 ULONG affinityPopulationCount = 0;
 
-                for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+                if (PhSystemProcessorInformation.SingleProcessorGroup)
                 {
-                    GROUP_AFFINITY affinity;
+                    KAFFINITY affinityMask;
 
-                    affinity.Group = i;
-
-                    if (processItem->QueryHandle &&
-                        NT_SUCCESS(PhGetProcessGroupAffinity(processItem->QueryHandle, &affinity)))
+                    if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessAffinityMask(processItem->QueryHandle, &affinityMask)))
                     {
-                        processItem->AffinityMasks[i] = affinity.Mask;
+                        processItem->AffinityMasks = &affinityMask;
+                        affinityPopulationCount = PhCountBitsUlongPtr(processItem->AffinityMasks[0]);
                     }
-                    else
+                }
+                else
+                {
+                    for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
                     {
-                        processItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
-                    }
+                        GROUP_AFFINITY affinity;
 
-                    affinityPopulationCount = PhCountBitsUlongPtr(processItem->AffinityMasks[i]);
+                        affinity.Group = i;
+
+                        if (processItem->QueryHandle &&
+                            NT_SUCCESS(PhGetProcessGroupAffinity(processItem->QueryHandle, &affinity)))
+                        {
+                            processItem->AffinityMasks[i] = affinity.Mask;
+                        }
+                        else
+                        {
+                            processItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                        }
+
+                        affinityPopulationCount = PhCountBitsUlongPtr(processItem->AffinityMasks[i]);
+                    }
                 }
 
                 if (processItem->AffinityPopulationCount != affinityPopulationCount)
