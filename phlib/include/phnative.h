@@ -4865,7 +4865,7 @@ PhFreezeProcess(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhFreezeProcesById(
+PhFreezeProcessById(
     _Out_ PHANDLE ProcessStateChangeHandle,
     _In_ HANDLE ProcessId
     );

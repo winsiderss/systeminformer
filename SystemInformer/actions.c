@@ -2305,7 +2305,7 @@ BOOLEAN PhUiFreezeTreeProcess(
     if (!result)
         return FALSE;
 
-    status = PhFreezeProcess(
+    status = PhFreezeProcessById(
         &freezeHandle,
         Process->ProcessId
         );
@@ -2335,7 +2335,7 @@ BOOLEAN PhUiThawTreeProcess(
     if (!ReadPointerAcquire(&Process->FreezeHandle))
         return FALSE;
 
-    status = PhThawProcess(
+    status = PhThawProcessById(
         Process->FreezeHandle,
         Process->ProcessId
         );

@@ -3204,7 +3204,8 @@ NTSTATUS PhGetProcessIsDotNetEx(
             objectNameStringRef.Length = returnLength - sizeof(UNICODE_NULL);
             objectNameStringRef.Buffer = formatBuffer;
 
-            PhStringRefToUnicodeString(&objectNameStringRef, &objectName);
+            if (!PhStringRefToUnicodeString(&objectNameStringRef, &objectName))
+                return STATUS_NAME_TOO_LONG;
         }
         else
         {
@@ -3248,7 +3249,8 @@ NTSTATUS PhGetProcessIsDotNetEx(
             objectNameStringRef.Length = returnLength - sizeof(UNICODE_NULL);
             objectNameStringRef.Buffer = formatBuffer;
 
-            PhStringRefToUnicodeString(&objectNameStringRef, &objectName);
+            if (!PhStringRefToUnicodeString(&objectNameStringRef, &objectName))
+                return STATUS_NAME_TOO_LONG;
         }
         else
         {
@@ -3549,6 +3551,7 @@ NTSTATUS PhEnumDirectoryObjects(
 NTSTATUS PhCreateSymbolicLinkObject(
     _Out_ PHANDLE LinkHandle,
     _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF FileName,
     _In_ PCPH_STRINGREF LinkName
     )
@@ -3568,7 +3571,7 @@ NTSTATUS PhCreateSymbolicLinkObject(
         &objectAttributes,
         &objectName,
         OBJ_CASE_INSENSITIVE,
-        NULL,
+        RootDirectory,
         NULL
         );
 
@@ -3598,7 +3601,10 @@ NTSTATUS PhQuerySymbolicLinkObject(
     OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING objectName;
     UNICODE_STRING targetName;
-    WCHAR targetNameBuffer[DOS_MAX_PATH_LENGTH];
+    ULONG returnLength = 0;
+    WCHAR stackBuffer[DOS_MAX_PATH_LENGTH];
+    ULONG bufferLength = sizeof(stackBuffer);
+    PWCHAR buffer = stackBuffer;
 
     if (!PhStringRefToUnicodeString(ObjectName, &objectName))
         return STATUS_NAME_TOO_LONG;
@@ -3620,7 +3626,7 @@ NTSTATUS PhQuerySymbolicLinkObject(
     if (!NT_SUCCESS(status))
         return status;
 
-    RtlInitEmptyUnicodeString(&targetName, targetNameBuffer, sizeof(targetNameBuffer));
+    RtlInitEmptyUnicodeString(&targetName, buffer, (USHORT)bufferLength);
 
     status = NtQuerySymbolicLinkObject(
         linkHandle,
@@ -3628,9 +3634,28 @@ NTSTATUS PhQuerySymbolicLinkObject(
         NULL
         );
 
+    if (status == STATUS_BUFFER_TOO_SMALL)
+    {
+        bufferLength = returnLength;
+        buffer = PhAllocate(bufferLength);
+
+        RtlInitEmptyUnicodeString(&targetName, buffer, (USHORT)bufferLength);
+
+        status = NtQuerySymbolicLinkObject(
+            linkHandle,
+            &targetName,
+            &returnLength
+            );
+    }
+
     if (NT_SUCCESS(status))
     {
         *LinkTarget = PhCreateStringFromUnicodeString(&targetName);
+    }
+
+    if (buffer != stackBuffer)
+    {
+        PhFree(buffer);
     }
 
     NtClose(linkHandle);
@@ -4803,7 +4828,7 @@ VOID PhpInitializePredefineKeys(
     {
         RtlInitEmptyUnicodeString(&stringSid, stringSidBuffer, sizeof(stringSidBuffer));
 
-        if (PhEqualSid(tokenUser.User.Sid, (PSID)&PhSeLocalSystemSid))
+        if (PhEqualSid(tokenUser.User.Sid, &PhSeLocalSystemSid))
         {
             status = RtlInitUnicodeStringEx(&stringSid, L".DEFAULT");
         }
@@ -6057,7 +6082,7 @@ static BOOLEAN PhDeleteDirectoryCallback(
             NULL
             )))
         {
-            PhEnumDirectoryFile(fileHandle, NULL, PhDeleteDirectoryCallback, NULL);
+            PhEnumDirectoryFile(fileHandle, NULL, PhDeleteDirectoryCallback, Context);
 
             PhSetFileDelete(fileHandle);
 
@@ -7158,7 +7183,8 @@ NTSTATUS PhGetFirmwareEnvironmentVariable(
     ULONG valueLength = 0;
     ULONG valueAttributes = 0;
 
-    PhStringRefToUnicodeString(VariableName, &variableName);
+    if (!PhStringRefToUnicodeString(VariableName, &variableName))
+        return STATUS_NAME_TOO_LONG;
 
     status = PhStringToGuid(
         VendorGuid,
@@ -7223,7 +7249,8 @@ NTSTATUS PhSetFirmwareEnvironmentVariable(
     GUID vendorGuid;
     UNICODE_STRING variableName;
 
-    PhStringRefToUnicodeString(VariableName, &variableName);
+    if (!PhStringRefToUnicodeString(VariableName, &variableName))
+        return STATUS_NAME_TOO_LONG;
 
     status = PhStringToGuid(
         VendorGuid,
@@ -7527,7 +7554,7 @@ NTSTATUS PhFreezeProcess(
     return status;
 }
 
-NTSTATUS PhFreezeProcesById(
+NTSTATUS PhFreezeProcessById(
     _Out_ PHANDLE ProcessStateChangeHandle,
     _In_ HANDLE ProcessId
     )
