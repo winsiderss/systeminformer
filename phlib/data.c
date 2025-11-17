@@ -479,3 +479,65 @@ static_assert(ARRAYSIZE(PhIoPriorityHintNames) == MaxIoPriorityTypes, "PhIoPrior
 static_assert(ARRAYSIZE(PhPagePriorityNames) == MEMORY_PRIORITY_NORMAL + 1, "PhPagePriorityNames must equal MEMORY_PRIORITY");
 static_assert(ARRAYSIZE(PhKThreadStateNames) == MaximumThreadState, "PhKThreadStateNames must equal MaximumThreadState");
 static_assert(ARRAYSIZE(PhKWaitReasonNames) == MaximumWaitReason, "PhKWaitReasonNames must equal MaximumWaitReason");
+
+// File aliases (Windows 11 25H2)
+
+DECLSPEC_SELECTANY CONST
+PH_STRINGREF PhHalFileAliasList[] =
+{
+    PH_STRINGREF_INIT(L"hal.dll"),
+    PH_STRINGREF_INIT(L"halaacpi.dll"),
+    PH_STRINGREF_INIT(L"halacpi.dll"),
+    PH_STRINGREF_INIT(L"halapic.dll"),
+    PH_STRINGREF_INIT(L"halmacpi.dll"),
+    PH_STRINGREF_INIT(L"halmps.dll"),
+    PH_STRINGREF_INIT(L"hal486c.dll"),
+    PH_STRINGREF_INIT(L"halborg.dll"),
+    PH_STRINGREF_INIT(L"halsp.dll"),
+    PH_STRINGREF_INIT(L"halomap.dll"),
+    PH_STRINGREF_INIT(L"halomap4.dll"),
+    PH_STRINGREF_INIT(L"haltegra2.dll"),
+};
+
+DECLSPEC_SELECTANY CONST
+PH_STRINGREF PhKernelFileAliasList[] =
+{
+    PH_STRINGREF_INIT(L"ntkrnlmp.exe"),
+    PH_STRINGREF_INIT(L"ntoskrnl.exe"),
+    PH_STRINGREF_INIT(L"ntkrnlup.exe"),
+    PH_STRINGREF_INIT(L"ntkrnlpa.exe"),
+    PH_STRINGREF_INIT(L"ntkrpamp.exe"),
+    PH_STRINGREF_INIT(L"xboxkrnlc.exe"),
+};
+
+DECLSPEC_SELECTANY CONST
+PH_STRINGREF PhSecureKernelFileAliasList[] =
+{
+    PH_STRINGREF_INIT(L"securekernel.exe"),
+    PH_STRINGREF_INIT(L"securekernella57.exe"),
+};
+
+DECLSPEC_SELECTANY CONST
+PH_STRINGREF PhHypervisorFileAliasList[] =
+{
+    PH_STRINGREF_INIT(L"hvix64.exe"),
+    PH_STRINGREF_INIT(L"hvax64.exe"),
+    PH_STRINGREF_INIT(L"hvaa64.exe"),
+};
+
+DECLSPEC_SELECTANY CONST
+PH_STRINGREF PhOsLoaderFileAliasList[] =
+{
+    PH_STRINGREF_INIT(L"winload.efi"),
+    PH_STRINGREF_INIT(L"winload_prod.efi"),
+};
+
+DECLSPEC_SELECTANY CONST
+PH_STRINGREF PhOsBootFileAliasList[] =
+{
+    PH_STRINGREF_INIT(L"bootmgfw.efi"),
+    PH_STRINGREF_INIT(L"bootaa64.efi"),
+    PH_STRINGREF_INIT(L"bootarm.efi"),
+    PH_STRINGREF_INIT(L"bootmgr.efi"),
+    PH_STRINGREF_INIT(L"bootia32.efi"),
+};

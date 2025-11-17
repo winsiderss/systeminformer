@@ -93,6 +93,15 @@ extern CONST PH_STRINGREF PhPagePriorityNames[];
 extern CONST PH_STRINGREF PhKThreadStateNames[];
 extern CONST PH_STRINGREF PhKWaitReasonNames[];
 
+// Aliases
+
+extern CONST PH_STRINGREF PhHalFileAliasList[];
+extern CONST PH_STRINGREF PhKernelFileAliasList[];
+extern CONST PH_STRINGREF PhSecureKernelFileAliasList[];
+extern CONST PH_STRINGREF PhHypervisorFileAliasList[];
+extern CONST PH_STRINGREF PhOsLoaderFileAliasList[];
+extern CONST PH_STRINGREF PhOsBootFileAliasList[];
+
 #ifdef __cplusplus
 }
 #endif
