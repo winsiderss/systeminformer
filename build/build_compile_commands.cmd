@@ -9,12 +9,12 @@ for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual S
 if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
     if "%PROCESSOR_ARCHITECTURE%"=="ARM64" (
        call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" arm64
-       dotnet publish tools\CompileCommandsJson\CompileCommandsJson.slnx -c Release /p:PublishProfile=Properties\PublishProfiles\arm64.pubxml
+       dotnet publish tools\CompileCommandsJson\CompileCommandsJson.sln -c Release /p:PublishProfile=Properties\PublishProfiles\arm64.pubxml
        set COMPILE_COMMANDS_LOGGER=tools\CompileCommandsJson\bin\Release\arm64\CompileCommandsJson.dll
        set BUILD_PLATFORM=ARM64
     ) else (
        call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
-       dotnet publish tools\CompileCommandsJson\CompileCommandsJson.slnx -c Release /p:PublishProfile=Properties\PublishProfiles\amd64.pubxml
+       dotnet publish tools\CompileCommandsJson\CompileCommandsJson.sln -c Release /p:PublishProfile=Properties\PublishProfiles\amd64.pubxml
        set COMPILE_COMMANDS_LOGGER=tools\CompileCommandsJson\bin\Release\amd64\CompileCommandsJson.dll
        set BUILD_PLATFORM=x64
     )
@@ -29,15 +29,15 @@ if not exist %COMPILE_COMMANDS_LOGGER% (
 
 set BUILD_ARGS=-t:rebuild -p:Configuration=Debug;Platform=%BUILD_PLATFORM% -logger:%COMPILE_COMMANDS_LOGGER% -terminalLogger:auto
 
-msbuild /m KSystemInformer\KSystemInformer.slnx %BUILD_ARGS%
+msbuild /m KSystemInformer\KSystemInformer.sln %BUILD_ARGS%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m SystemInformer.slnx %BUILD_ARGS%
+msbuild /m SystemInformer.sln %BUILD_ARGS%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m Plugins\Plugins.slnx %BUILD_ARGS%
+msbuild /m Plugins\Plugins.sln %BUILD_ARGS%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 

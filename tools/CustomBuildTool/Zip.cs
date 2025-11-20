@@ -11,7 +11,7 @@
 
 namespace CustomBuildTool
 {
-    public static class BuildZip
+    public static class Zip
     {
         // https://github.com/phofman/zip/blob/master/src/ZipFile.cs
         private static string[] GetEntryNames(string[] names, string sourceFolder, bool includeBaseName)

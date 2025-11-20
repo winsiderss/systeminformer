@@ -4,7 +4,6 @@
 # Custom for Visual Studio
 *.cs            diff=csharp
 *.sln           merge=union
-*.slnx          merge=union
 *.csproj        merge=union
 *.vbproj        merge=union
 *.fsproj        merge=union
@@ -39,7 +38,6 @@
 *.resx          text
 *.rc            text
 *.sln           text
-*.slnx          text
 *.txt           text
 *.vsconfig      text
 *.vcxproj       text

@@ -1,8 +1,0 @@
-<Solution>
-  <Configurations>
-    <Platform Name="ARM64" />
-    <Platform Name="Win32" />
-    <Platform Name="x64" />
-  </Configurations>
-  <Project Path="CustomSetupTool.vcxproj" />
-</Solution>

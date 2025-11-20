@@ -493,9 +493,7 @@ namespace CustomBuildTool
                 FileOptions.None
                 ))
             {
-                var handle = new HANDLE(fs.SafeFileHandle.DangerousGetHandle());
-
-                if (!PInvoke.GetFileInformationByHandleEx(handle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
+                if (!PInvoke.GetFileInformationByHandleEx(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
                     throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
 
                 basicInfo.CreationTime = CreationDateTime == DateTime.MinValue ? DateTime.UtcNow.ToFileTimeUtc() : CreationDateTime.ToFileTimeUtc();
@@ -509,8 +507,7 @@ namespace CustomBuildTool
                         basicInfo.FileAttributes &= ~(uint)FileAttributes.ReadOnly;
                 }
 
-                if (!PInvoke.SetFileInformationByHandle(handle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
-                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+                PInvoke.SetFileInformationByHandle(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO));
             }
         }
 
@@ -534,9 +531,7 @@ namespace CustomBuildTool
 
             using (var fs = File.OpenRead(FileName))
             {
-                var handle = new HANDLE(fs.SafeFileHandle.DangerousGetHandle());
-
-                if (!PInvoke.GetFileInformationByHandleEx(handle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
+                if (!PInvoke.GetFileInformationByHandleEx(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
                     throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
 
                 CreationTime = DateTime.FromFileTimeUtc(basicInfo.CreationTime);

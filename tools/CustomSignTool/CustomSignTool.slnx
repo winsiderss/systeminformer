@@ -1,7 +1,0 @@
-<Solution>
-  <Configurations>
-    <Platform Name="x64" />
-    <Platform Name="x86" />
-  </Configurations>
-  <Project Path="CustomSignTool.vcxproj" Id="e8cd0a41-1537-4ea6-98ac-e80cd59c478e" />
-</Solution>
