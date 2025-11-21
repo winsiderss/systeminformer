@@ -268,7 +268,7 @@ NTSTATUS PhGetThreadName(
         &returnLength
         );
 
-    if (status == STATUS_BUFFER_OVERFLOW)
+    if (status == STATUS_BUFFER_TOO_SMALL)
     {
         PhFree(buffer);
         bufferSize = returnLength;
@@ -1161,7 +1161,7 @@ NTSTATUS PhGetThreadApartment(
         // N.B. The thread lacks an explicit apartment. A single MTA init, however, is
         // enough to put all apartmentless threads into implicit MTA. The existence of MTA
         // can be checked by reading the process-wide MTA usage counter. (diversenok)
-        // 
+        //
 
         if (!NT_SUCCESS(status = PhGetProcessMTAUsage(ProcessHandle, &info.ComInits, NULL)))
             return status;
@@ -1637,7 +1637,7 @@ NTSTATUS PhGetThreadSocketState(
                         *ThreadSocketState = PH_THREAD_SOCKET_STATE_NOT_TCPIP;
                     }
                 }
- 
+
 #if defined(PHLIB_SOCKET_STATE_WINSOCK)
                 if (LPFN_GETSOCKOPT((UINT_PTR)winsockTargetHandle, SOL_SOCKET, SO_BSP_STATE, (PCHAR)&winsockAddressInfo, &winsockAddressInfoLength) != SOCKET_ERROR)
                 {
