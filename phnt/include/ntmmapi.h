@@ -1053,7 +1053,7 @@ typedef struct _SECTION_BASIC_INFORMATION
     PVOID BaseAddress;              // The base virtual address of the section if the section is based.
     ULONG AllocationAttributes;     // The allocation attributes flags.
     LARGE_INTEGER MaximumSize;      // The maximum size of the section in bytes.
-} SECTION_BASIC_INFORMATION, * PSECTION_BASIC_INFORMATION;
+} SECTION_BASIC_INFORMATION, *PSECTION_BASIC_INFORMATION;
 
 /**
  * The SECTION_IMAGE_INFORMATION structure contains detailed information about an image section.
@@ -1104,7 +1104,7 @@ typedef struct _SECTION_IMAGE_INFORMATION
     ULONG LoaderFlags;               // Reserved by ntdll.dll for the Windows loader.
     ULONG ImageFileSize;             // The size of the image, in bytes, including all headers.
     ULONG CheckSum;                  // The image file checksum, from the PE optional header.
-} SECTION_IMAGE_INFORMATION, * PSECTION_IMAGE_INFORMATION;
+} SECTION_IMAGE_INFORMATION, *PSECTION_IMAGE_INFORMATION;
 
 /**
  * The SECTION_INTERNAL_IMAGE_INFORMATION structure contains information about Control Flow Guard (CFG) features required by the image section.
@@ -1130,7 +1130,7 @@ typedef struct _SECTION_INTERNAL_IMAGE_INFORMATION
             ULONG Reserved : 22;
         };
     };
-} SECTION_INTERNAL_IMAGE_INFORMATION, * PSECTION_INTERNAL_IMAGE_INFORMATION;
+} SECTION_INTERNAL_IMAGE_INFORMATION, *PSECTION_INTERNAL_IMAGE_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 /**
