@@ -23,8 +23,8 @@ typedef enum _PH_VIRTUAL_STATUS
     PhVirtualStatusEnabledHyperV = 2,
     PhVirtualStatusEnabledFirmware = 3,
     //PhVirtualStatusUnknown = 4,
-    PhVirtualStatusDiabledWithHyperV = 5,
-    PhVirtualStatusDiabled = 6,
+    PhVirtualStatusDisabledWithHyperV = 5,
+    PhVirtualStatusDisabled = 6,
 } PH_VIRTUAL_STATUS, *PPH_VIRTUAL_STATUS;
 
 PHLIBAPI
