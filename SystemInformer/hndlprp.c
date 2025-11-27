@@ -872,7 +872,7 @@ VOID PhpUpdateHandleGeneral(
                 PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT, 1, string);
             }
 
-            if (!NT_SUCCESS(KphAlpcQueryComminicationsNamesInfo(
+            if (!NT_SUCCESS(KphAlpcQueryCommunicationsNamesInfo(
                 processHandle,
                 Context->HandleItem->Handle,
                 &connectionNames)))
@@ -2311,7 +2311,7 @@ VOID PhAddHandlePermissionsTrustee(
             );
         PhSetListViewSubItem(ListViewHandle, index, 1, L"Allow");
     }
-  
+
 
     if (PhGetAccessEntries(
         PhGetStringOrEmpty(Context->HandleProperties->HandleItem->TypeName),
@@ -2685,7 +2685,7 @@ VOID PhUpdateHandlePermissionsDaclSecurity(
             &currentSacl,
             &currentSaclDefaulted
             );
-        
+
         if (NT_SUCCESS(status) && currentSaclPresent && currentSacl)
         {
             PACCESS_ALLOWED_ACE currentAce;

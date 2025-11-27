@@ -1690,7 +1690,7 @@ NTSTATUS PhpGetBestObjectName(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        if (!NT_SUCCESS(KphAlpcQueryComminicationsNamesInfo(ProcessHandle, Handle, &namesInfo)))
+        if (!NT_SUCCESS(KphAlpcQueryCommunicationsNamesInfo(ProcessHandle, Handle, &namesInfo)))
         {
             namesInfo = NULL;
         }

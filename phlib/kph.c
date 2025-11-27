@@ -1111,7 +1111,7 @@ NTSTATUS KphQueryInformationProcess(
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.QueryInformationDriver.Status;
+        status = msg->User.QueryInformationProcess.Status;
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
@@ -1317,7 +1317,7 @@ NTSTATUS KphAlpcQueryInformation(
     return status;
 }
 
-NTSTATUS KphAlpcQueryComminicationsNamesInfo(
+NTSTATUS KphAlpcQueryCommunicationsNamesInfo(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE PortHandle,
     _Out_ PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION* Names

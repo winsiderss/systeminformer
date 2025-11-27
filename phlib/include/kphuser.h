@@ -387,7 +387,7 @@ KphAlpcQueryInformation(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphAlpcQueryComminicationsNamesInfo(
+KphAlpcQueryCommunicationsNamesInfo(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE PortHandle,
     _Out_ PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION* Names
