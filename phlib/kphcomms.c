@@ -121,7 +121,16 @@ VOID WINAPI KphpCommsIoCallback(
     msg = CONTAINING_RECORD(ApcContext, KPH_UMESSAGE, Overlapped);
 
     if (IoSB->Status != STATUS_SUCCESS)
+    {
+        if (IoSB->Status == STATUS_PORT_DISCONNECTED)
+        {
+            KphpCommsPortDisconnected = TRUE;
+            PhReleaseRundownProtection(&KphpCommsRundown);
+            return;
+        }
+
         goto QueueIoOperation;
+    }
 
     assert(IoSB->Information >= UFIELD_OFFSET(KPH_UMESSAGE, Message));
 
@@ -194,13 +203,7 @@ QueueIoOperation:
         assert(status == STATUS_PORT_DISCONNECTED);
 
         if (status == STATUS_PORT_DISCONNECTED)
-        {
-            //
-            // Mark the port disconnected so KphCommsIsConnected returns false.
-            // This can happen if the driver goes away before the client.
-            //
             KphpCommsPortDisconnected = TRUE;
-        }
 
         TpCancelAsyncIoOperation(KphpCommsThreadPoolIo);
     }
@@ -584,13 +587,7 @@ NTSTATUS KphCommsReplyMessage(
         );
 
     if (status == STATUS_PORT_DISCONNECTED)
-    {
-        //
-        // Mark the port disconnected so KphCommsIsConnected returns false.
-        // This can happen if the driver goes away before the client.
-        //
         KphpCommsPortDisconnected = TRUE;
-    }
 
 CleanupExit:
 
@@ -632,13 +629,7 @@ NTSTATUS KphCommsSendMessage(
         );
 
     if (status == STATUS_PORT_DISCONNECTED)
-    {
-        //
-        // Mark the port disconnected so KphCommsIsConnected returns false.
-        // This can happen if the driver goes away before the client.
-        //
         KphpCommsPortDisconnected = TRUE;
-    }
 
     return status;
 }
