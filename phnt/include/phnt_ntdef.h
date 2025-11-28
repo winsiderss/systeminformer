@@ -493,16 +493,16 @@ typedef struct _KSYSTEM_TIME
 #define ALIGN_UP_POINTER_BY(Address, Alignment) (ALIGN_DOWN_POINTER_BY(((ULONG_PTR)(Address) + (Alignment) - 1), Alignment))
 #endif
 #ifndef ALIGN_DOWN
-#define ALIGN_DOWN(Length, type) ALIGN_DOWN_BY(Length, sizeof(type))
+#define ALIGN_DOWN(Length, Type) ALIGN_DOWN_BY(Length, sizeof(Type))
 #endif
 #ifndef ALIGN_UP
-#define ALIGN_UP(Length, type) ALIGN_UP_BY(Length, sizeof(type))
+#define ALIGN_UP(Length, Type) ALIGN_UP_BY(Length, sizeof(Type))
 #endif
 #ifndef ALIGN_DOWN_POINTER
-#define ALIGN_DOWN_POINTER(Address, type) ALIGN_DOWN_POINTER_BY(Address, sizeof(type))
+#define ALIGN_DOWN_POINTER(Address, Type) ALIGN_DOWN_POINTER_BY(Address, sizeof(Type))
 #endif
 #ifndef ALIGN_UP_POINTER
-#define ALIGN_UP_POINTER(Address, type) ALIGN_UP_POINTER_BY(Address, sizeof(type))
+#define ALIGN_UP_POINTER(Address, Type) ALIGN_UP_POINTER_BY(Address, sizeof(Type))
 #endif
 #ifndef IS_ALIGNED
 #define IS_ALIGNED(Address, Alignment) ((((ULONG_PTR)(Address)) & ((Alignment) - 1)) == 0)
