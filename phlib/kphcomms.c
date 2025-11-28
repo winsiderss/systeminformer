@@ -132,7 +132,7 @@ VOID WINAPI KphpCommsIoCallback(
 
 QueueIoOperation:
 
-    RtlZeroMemory(&msg->Overlapped, FIELD_OFFSET(OVERLAPPED, hEvent));
+    RtlZeroMemory(&msg->Overlapped, sizeof(OVERLAPPED));
 
     assert(Io == KphpCommsThreadPoolIo);
 
@@ -275,15 +275,7 @@ NTSTATUS KphCommsStart(
 
     for (ULONG i = 0; i < KphpCommsMessageCount; i++)
     {
-        if (!NT_SUCCESS(status = PhCreateEvent(
-            &KphpCommsMessages[i].Overlapped.hEvent,
-            EVENT_ALL_ACCESS,
-            NotificationEvent,
-            FALSE
-            )))
-            goto CleanupExit;
-
-        RtlZeroMemory(&KphpCommsMessages[i].Overlapped, FIELD_OFFSET(OVERLAPPED, hEvent));
+        RtlZeroMemory(&KphpCommsMessages[i].Overlapped, sizeof(OVERLAPPED));
 
         TpStartAsyncIoOperation(KphpCommsThreadPoolIo);
 
@@ -349,15 +341,6 @@ VOID KphCommsStop(
 
     if (KphpCommsMessages)
     {
-        for (ULONG i = 0; i < KphpCommsMessageCount; i++)
-        {
-            if (KphpCommsMessages[i].Overlapped.hEvent)
-            {
-                NtClose(KphpCommsMessages[i].Overlapped.hEvent);
-                KphpCommsMessages[i].Overlapped.hEvent = NULL;
-            }
-        }
-
         KphpCommsMessageCount = 0;
 
         PhFree(KphpCommsMessages);
