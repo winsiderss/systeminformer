@@ -480,32 +480,32 @@ typedef struct _KSYSTEM_TIME
 #define PtrOffset(B,O) ((ULONG)((ULONG_PTR)(O) - (ULONG_PTR)(B)))
 #endif
 
-#ifndef ALIGN_UP_BY
-#define ALIGN_UP_BY(Address, Align) (((ULONG_PTR)(Address) + (Align) - 1) & ~((Align) - 1))
-#endif
-#ifndef ALIGN_UP_POINTER_BY
-#define ALIGN_UP_POINTER_BY(Pointer, Align) ((PVOID)ALIGN_UP_BY(Pointer, Align))
-#endif
-#ifndef ALIGN_UP
-#define ALIGN_UP(Address, Type) ALIGN_UP_BY(Address, sizeof(Type))
-#endif
-#ifndef ALIGN_UP_POINTER
-#define ALIGN_UP_POINTER(Pointer, Type) ((PVOID)ALIGN_UP(Pointer, Type))
-#endif
 #ifndef ALIGN_DOWN_BY
-#define ALIGN_DOWN_BY(Address, Align) ((ULONG_PTR)(Address) & ~((ULONG_PTR)(Align) - 1))
+#define ALIGN_DOWN_BY(Length, Alignment) ((ULONG_PTR)(Length) & ~((ULONG_PTR)(Alignment) - 1))
+#endif
+#ifndef ALIGN_UP_BY
+#define ALIGN_UP_BY(Length, Alignment) (ALIGN_DOWN_BY(((ULONG_PTR)(Length) + (Alignment) - 1), Alignment))
 #endif
 #ifndef ALIGN_DOWN_POINTER_BY
-#define ALIGN_DOWN_POINTER_BY(Pointer, Align) ((PVOID)ALIGN_DOWN_BY(Pointer, Align))
+#define ALIGN_DOWN_POINTER_BY(Address, Alignment) ((PVOID)((ULONG_PTR)(Address) & ~((ULONG_PTR)(Alignment) - 1)))
+#endif
+#ifndef ALIGN_UP_POINTER_BY
+#define ALIGN_UP_POINTER_BY(Address, Alignment) (ALIGN_DOWN_POINTER_BY(((ULONG_PTR)(Address) + (Alignment) - 1), Alignment))
 #endif
 #ifndef ALIGN_DOWN
-#define ALIGN_DOWN(Address, Type) ALIGN_DOWN_BY(Address, sizeof(Type))
+#define ALIGN_DOWN(Length, type) ALIGN_DOWN_BY(Length, sizeof(type))
+#endif
+#ifndef ALIGN_UP
+#define ALIGN_UP(Length, type) ALIGN_UP_BY(Length, sizeof(type))
 #endif
 #ifndef ALIGN_DOWN_POINTER
-#define ALIGN_DOWN_POINTER(Pointer, Type) ((PVOID)ALIGN_DOWN(Pointer, Type))
+#define ALIGN_DOWN_POINTER(Address, type) ALIGN_DOWN_POINTER_BY(Address, sizeof(type))
+#endif
+#ifndef ALIGN_UP_POINTER
+#define ALIGN_UP_POINTER(Address, type) ALIGN_UP_POINTER_BY(Address, sizeof(type))
 #endif
 #ifndef IS_ALIGNED
-#define IS_ALIGNED(Pointer, Alignment) ((((ULONG_PTR)(Pointer)) & ((Alignment) - 1)) == 0)
+#define IS_ALIGNED(Address, Alignment) ((((ULONG_PTR)(Address)) & ((Alignment) - 1)) == 0)
 #endif
 
 #ifndef PAGE_SIZE
