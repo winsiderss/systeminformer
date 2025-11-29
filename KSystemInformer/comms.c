@@ -1523,6 +1523,78 @@ Exit:
 }
 
 /**
+ * \brief Gets message statistics for a client.
+ *
+ * \param[in] Client The client to get the message statistics for.
+ * \param[out] Stats Receives the message statistics.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetMessageStats(
+    _In_ PKPH_CLIENT Client,
+    _Out_ PKPH_INFORMER_STATS Stats
+    )
+{
+    NTSTATUS status;
+    PKPH_CLIENT_RATE_LIMITS limits;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    limits = NULL;
+
+    __try
+    {
+        ZeroUserMemory(Stats, sizeof(KPH_INFORMER_STATS));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
+    }
+
+    limits = KphAtomicReferenceObject(&Client->RateLimits.Atomic);
+    if (!limits)
+    {
+        status = STATUS_NOT_FOUND;
+        goto Exit;
+    }
+
+    for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+    {
+        __try
+        {
+            CopyToUser(&Stats->RateLimit[i].Policy,
+                       &limits->RateLimit[i].Policy,
+                       sizeof(KPH_RATE_LIMIT_POLICY));
+            WriteLong64ToUser(&Stats->RateLimit[i].Allowed,
+                              ReadNoFence64(&limits->RateLimit[i].Allowed));
+            WriteLong64ToUser(&Stats->RateLimit[i].Dropped,
+                              ReadNoFence64(&limits->RateLimit[i].Dropped));
+            WriteLong64ToUser(&Stats->RateLimit[i].CasMiss,
+                              ReadNoFence64(&limits->RateLimit[i].CasMiss));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (limits)
+    {
+        KphDereferenceObject(limits);
+    }
+
+    return status;
+}
+
+/**
  * \brief Retrieves the timeout for a message.
  *
  * \param[in] Client The client to get the timeout for.

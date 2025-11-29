@@ -2746,6 +2746,13 @@ NTSTATUS KphWriteULong64ToMode(
     );
 
 _IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteLong64ToMode(
+    _Out_ PLONG64 Destination,
+    _In_ LONG64 Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
 NTSTATUS KphWriteSizeTToMode(
     _Out_ PSIZE_T Destination,
     _In_ SIZE_T Source,

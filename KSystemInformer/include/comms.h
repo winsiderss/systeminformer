@@ -115,6 +115,13 @@ NTSTATUS KphSetMessageSettings(
     _In_ PKPH_MESSAGE_SETTINGS Settings
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetMessageStats(
+    _In_ PKPH_CLIENT Client,
+    _Out_ PKPH_INFORMER_STATS Stats
+    );
+
 _IRQL_requires_max_(APC_LEVEL)
 _Return_allocatesMem_
 PKPH_MESSAGE KphAllocateMessage(
