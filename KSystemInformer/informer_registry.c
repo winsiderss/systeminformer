@@ -94,7 +94,7 @@ static PAGED_LOOKASIDE_LIST KphpCmCallContextLookaside = { 0 };
 
 KPH_PAGED_FILE();
 
-static volatile ULONG64 KphpCmSequence = 0;
+static ULONG64 KphpCmSequence = 0;
 static BOOLEAN KphpCmRegistered = FALSE;
 static LARGE_INTEGER KphpCmCookie = { 0 };
 
