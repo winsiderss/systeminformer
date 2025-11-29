@@ -2207,11 +2207,8 @@ VOID KphpRegPreOpSend(
     }
 
     KphMsgInit(msg, KphpRegGetMessageId(RegClass));
-
     *TimeStamp = msg->Header.TimeStamp;
-
     msg->Kernel.Reg.Sequence = Sequence;
-
     KphpRegFillPreOpMessage(msg, RegClass, PreInfo, Options);
 
     if (Options->EnableStackTraces)
