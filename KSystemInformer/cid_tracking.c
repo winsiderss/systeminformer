@@ -403,9 +403,6 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 
     process->SequenceNumber = InterlockedIncrementU64(&KphpProcessSequence);
 
-    KphSetInformerSettings(&process->InformerFilter,
-                           &KphDefaultInformerProcessFilter);
-
     status = ObOpenObjectByPointer(processObject,
                                    OBJ_KERNEL_HANDLE,
                                    NULL,
@@ -670,6 +667,7 @@ VOID KSIAPI KphpDeleteProcessContext(
 
     process = Object;
 
+    KphAtomicAssignObjectReference(&process->InformerState.Atomic, NULL);
     KphAtomicAssignObjectReference(&process->SessionToken.Atomic, NULL);
 
     if (process->Protected)

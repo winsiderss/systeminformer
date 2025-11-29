@@ -495,15 +495,15 @@ KphCompareObjects(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphGetMessageTimeouts(
-    _Out_ PKPH_MESSAGE_TIMEOUTS Timeouts
+KphGetMessageSettings(
+    _Out_ PKPH_MESSAGE_SETTINGS Settings
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphSetMessageTimeouts(
-    _In_ PKPH_MESSAGE_TIMEOUTS Timeouts
+KphSetMessageSettings(
+    _In_ PKPH_MESSAGE_SETTINGS Settings
     );
 
 PHLIBAPI
@@ -570,17 +570,17 @@ KphAssignThreadSessionToken(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphGetInformerProcessFilter(
+KphGetInformerProcessSettings(
     _In_ HANDLE ProcessHandle,
-    _Out_ PKPH_INFORMER_SETTINGS Filter
+    _In_ PKPH_INFORMER_SETTINGS Settings
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphSetInformerProcessFilter(
+KphSetInformerProcessSettings(
     _In_opt_ HANDLE ProcessHandle,
-    _In_ PKPH_INFORMER_SETTINGS Filter
+    _In_ PKPH_INFORMER_SETTINGS Settings
     );
 
 PHLIBAPI

@@ -77,6 +77,7 @@
     <ClCompile Include="parameters.c" />
     <ClCompile Include="process.c" />
     <ClCompile Include="protection.c" />
+    <ClCompile Include="ratelmt.c" />
     <ClCompile Include="ringbuff.c" />
     <ClCompile Include="session_token.c" />
     <ClCompile Include="system.c" />

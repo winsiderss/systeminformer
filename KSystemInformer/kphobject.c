@@ -29,7 +29,7 @@
 //
 // N.B. If more object types are added the array must be expanded.
 //
-static KPH_OBJECT_TYPE KphpObjectTypes[14] = { 0 };
+static KPH_OBJECT_TYPE KphpObjectTypes[16] = { 0 };
 C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
 static LONG KphpObjectTypeCount = 0;
 static KSI_WORK_QUEUE_ITEM KphpDeferDeleteObjectWorkItem;

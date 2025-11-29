@@ -1792,6 +1792,12 @@ typedef union _KPH_SESSION_TOKEN_ATOMIC
     KPH_ATOMIC_OBJECT_REF Atomic;
 } KPH_SESSION_TOKEN_ATOMIC, *PKPH_SESSION_TOKEN_ATOMIC;
 
+typedef union _KPH_INFORMER_STATE_ATOMIC
+{
+    struct _KPH_INFORMER_STATE* State;
+    KPH_ATOMIC_OBJECT_REF Atomic;
+} KPH_INFORMER_STATE_ATOMIC, *PKPH_INFORMER_STATE_ATOMIC;
+
 typedef struct _KPH_PROCESS_CONTEXT
 {
     PEPROCESS EProcess;
@@ -1808,7 +1814,7 @@ typedef struct _KPH_PROCESS_CONTEXT
     SIZE_T NumberOfImageLoads;
 
     KPH_SESSION_TOKEN_ATOMIC SessionToken;
-    KPH_INFORMER_SETTINGS InformerFilter;
+    KPH_INFORMER_STATE_ATOMIC InformerState;
 
     union
     {
@@ -2775,4 +2781,39 @@ NTSTATUS KphReadLargeIntegerFromMode(
     _Out_ PLARGE_INTEGER Destination,
     _In_ PLARGE_INTEGER Source,
     _In_ KPROCESSOR_MODE AccessMode
+    );
+
+// ratelmt
+
+typedef union _KPH_RATE_BUCKET
+{
+    struct
+    {
+        ULONG CurrentTokens;
+        ULONG LastRefillTime;
+    };
+
+    LONG64 Quad;
+} KPH_RATE_BUCKET, *PKPH_RATE_BUCKET;
+
+typedef struct _KPH_RATE_LIMIT
+{
+    KPH_RATE_BUCKET Bucket;
+    KPH_RATE_LIMIT_POLICY Policy;
+    LONG64 Allowed;
+    LONG64 Dropped;
+    LONG64 CasMiss;
+} KPH_RATE_LIMIT, *PKPH_RATE_LIMIT;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphInitializeRateLimit(
+    _In_ PCKPH_RATE_LIMIT_POLICY Policy,
+    _In_ PLARGE_INTEGER TimeStamp,
+    _Out_ PKPH_RATE_LIMIT RateLimit
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN KphRateLimitConsumeToken(
+    _Inout_ PKPH_RATE_LIMIT RateLimit,
+    _In_ PLARGE_INTEGER TimeStamp
     );

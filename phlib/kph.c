@@ -585,14 +585,13 @@ NTSTATUS KphGetInformerSettings(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    RtlZeroMemory(Settings, sizeof(KPH_INFORMER_SETTINGS));
     msg = KphCreateUserMessage(KphMsgGetInformerSettings);
+    msg->User.GetInformerSettings.Settings = Settings;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
     {
         status = msg->User.GetInformerSettings.Status;
-        RtlCopyMemory(Settings, &msg->User.GetInformerSettings.Settings, sizeof(KPH_INFORMER_SETTINGS));
     }
 
     PhDereferenceObject(msg);
@@ -607,7 +606,7 @@ NTSTATUS KphSetInformerSettings(
     PKPH_MESSAGE msg;
 
     msg = KphCreateUserMessage(KphMsgSetInformerSettings);
-    RtlCopyMemory(&msg->User.SetInformerSettings.Settings, Settings, sizeof(KPH_INFORMER_SETTINGS));
+    msg->User.SetInformerSettings.Settings = Settings;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
@@ -1634,39 +1633,40 @@ NTSTATUS KphCompareObjects(
     return status;
 }
 
-NTSTATUS KphGetMessageTimeouts(
-    _Out_ PKPH_MESSAGE_TIMEOUTS Timeouts
+NTSTATUS KphGetMessageSettings(
+    _Out_ PKPH_MESSAGE_SETTINGS Settings
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    msg = KphCreateUserMessage(KphMsgGetMessageTimeouts);
+    msg = KphCreateUserMessage(KphMsgGetMessageSettings);
+    msg->User.GetMessageSettings.Settings = Settings;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
     {
-        RtlCopyMemory(Timeouts, &msg->User.GetMessageTimeouts.Timeouts, sizeof(*Timeouts));
+        status = msg->User.GetMessageSettings.Status;
     }
 
     PhDereferenceObject(msg);
     return status;
 }
 
-NTSTATUS KphSetMessageTimeouts(
-    _In_ PKPH_MESSAGE_TIMEOUTS Timeouts
+NTSTATUS KphSetMessageSettings(
+    _In_ PKPH_MESSAGE_SETTINGS Settings
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    msg = KphCreateUserMessage(KphMsgSetMessageTimeouts);
-    RtlCopyMemory(&msg->User.SetMessageTimeouts.Timeouts, Timeouts, sizeof(*Timeouts));
+    msg = KphCreateUserMessage(KphMsgSetMessageSettings);
+    msg->User.SetMessageSettings.Settings = Settings;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.SetMessageTimeouts.Status;
+        status = msg->User.SetMessageSettings.Status;
     }
 
     PhDereferenceObject(msg);
@@ -1859,44 +1859,44 @@ NTSTATUS KphAssignThreadSessionToken(
     return status;
 }
 
-NTSTATUS KphGetInformerProcessFilter(
+NTSTATUS KphGetInformerProcessSettings(
     _In_ HANDLE ProcessHandle,
-    _Out_ PKPH_INFORMER_SETTINGS Filter
+    _Out_ PKPH_INFORMER_SETTINGS Settings
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    msg = KphCreateUserMessage(KphMsgGetInformerProcessFilter);
-    msg->User.GetInformerProcessFilter.ProcessHandle = ProcessHandle;
-    msg->User.GetInformerProcessFilter.Filter = Filter;
+    msg = KphCreateUserMessage(KphMsgGetInformerProcessSettings);
+    msg->User.GetInformerProcessSettings.ProcessHandle = ProcessHandle;
+    msg->User.GetInformerProcessSettings.Settings = Settings;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.GetInformerProcessFilter.Status;
+        status = msg->User.GetInformerProcessSettings.Status;
     }
 
     PhDereferenceObject(msg);
     return status;
 }
 
-NTSTATUS KphSetInformerProcessFilter(
+NTSTATUS KphSetInformerProcessSettings(
     _In_opt_ HANDLE ProcessHandle,
-    _In_ PKPH_INFORMER_SETTINGS Filter
+    _In_ PKPH_INFORMER_SETTINGS Settings
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    msg = KphCreateUserMessage(KphMsgSetInformerProcessFilter);
-    msg->User.SetInformerProcessFilter.ProcessHandle = ProcessHandle;
-    msg->User.SetInformerProcessFilter.Filter = Filter;
+    msg = KphCreateUserMessage(KphMsgSetInformerProcessSettings);
+    msg->User.SetInformerProcessSettings.ProcessHandle = ProcessHandle;
+    msg->User.SetInformerProcessSettings.Settings = Settings;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.SetInformerProcessFilter.Status;
+        status = msg->User.SetInformerProcessSettings.Status;
     }
 
     PhDereferenceObject(msg);
