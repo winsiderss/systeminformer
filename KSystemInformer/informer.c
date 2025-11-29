@@ -731,6 +731,141 @@ Exit:
 }
 
 /**
+ * \brief Gets informer statistics.
+ *
+ * \param[in] ProcessHandle Optional handle to the process to get stats of. If
+ *  not provided the global stats are returned.
+ * \param[out] Stats Receives the informer statistics.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetInformerStats(
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PKPH_INFORMER_STATS Stats,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PKPH_INFORMER_STATE state;
+    PEPROCESS processObject;
+    PKPH_PROCESS_CONTEXT processContext;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    state = NULL;
+    processObject = NULL;
+    processContext = NULL;
+
+    status = KphZeroModeMemory(Stats, sizeof(KPH_INFORMER_STATS), AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    if (ProcessHandle)
+    {
+        status = ObReferenceObjectByHandle(ProcessHandle,
+                                           0,
+                                           *PsProcessType,
+                                           AccessMode,
+                                           &processObject,
+                                           NULL);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "ObReferenceObjectByHandle failed: %!STATUS!",
+                          status);
+
+            processObject = NULL;
+            goto Exit;
+        }
+
+        processContext = KphGetEProcessContext(processObject);
+        if (!processContext)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "KphGetEProcessContext return null.");
+
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Exit;
+        }
+
+        state = KphAtomicReferenceObject(&processContext->InformerState.Atomic);
+        if (!state)
+        {
+            status = STATUS_NOT_FOUND;
+            goto Exit;
+        }
+    }
+    else
+    {
+        state = KphAtomicReferenceObject(&KphpInformerState.Atomic);
+    }
+
+    NT_ASSERT(state);
+
+    for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+    {
+        status = KphCopyToMode(&Stats->RateLimit[i].Policy,
+                               &state->RateLimit[i].Policy,
+                               sizeof(KPH_RATE_LIMIT_POLICY),
+                               AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        status = KphWriteLong64ToMode(&Stats->RateLimit[i].Allowed,
+                                      ReadNoFence64(&state->RateLimit[i].Allowed),
+                                      AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        status = KphWriteLong64ToMode(&Stats->RateLimit[i].Dropped,
+                                      ReadNoFence64(&state->RateLimit[i].Dropped),
+                                      AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        status = KphWriteLong64ToMode(&Stats->RateLimit[i].CasMiss,
+                                      ReadNoFence64(&state->RateLimit[i].CasMiss),
+                                      AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+    }
+
+Exit:
+
+    if (processContext)
+    {
+        KphDereferenceObject(processContext);
+    }
+
+    if (processObject)
+    {
+        ObDereferenceObject(processObject);
+    }
+
+    if (state)
+    {
+        KphDereferenceObject(state);
+    }
+
+    return status;
+}
+
+/**
  * \brief Cleans up informer infrastructure.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)

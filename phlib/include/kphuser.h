@@ -641,6 +641,21 @@ KphOpenDeviceBaseDevice(
     _Out_ PHANDLE BaseDeviceHandle
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphGetInformerStats(
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PKPH_INFORMER_STATS Stats
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphGetMessageStats(
+    _Out_ PKPH_INFORMER_STATS Stats
+    );
+
 EXTERN_C_END
 
 #endif
