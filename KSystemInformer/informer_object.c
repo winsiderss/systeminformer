@@ -123,7 +123,7 @@ KPH_OB_OPTIONS KphpObGetOptions(
 
     if (options.PreEnabled || options.PostEnabled)
     {
-        options.EnableStackTraces = KphInformerEnabled(EnableStackTraces, process);
+        options.EnableStackTraces = !!KphInformerOpts(process).EnableStackTraces;
     }
 
     if (process)

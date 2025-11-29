@@ -134,7 +134,7 @@ VOID KphpLoadImageNotifyInformer(
         }
     }
 
-    if (KphInformerEnabled2(EnableStackTraces, actorProcess, targetProcess))
+    if (KphInformerOpts2(actorProcess, targetProcess).EnableStackTraces)
     {
         KphCaptureStackInMessage(msg);
     }
@@ -315,7 +315,7 @@ KphpImageVerificationCallback(
                       status);
     }
 
-    if (KphInformerEnabled(EnableStackTraces, actorProcess))
+    if (KphInformerOpts(actorProcess).EnableStackTraces)
     {
         KphCaptureStackInMessage(msg);
     }

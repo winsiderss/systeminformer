@@ -12,13 +12,24 @@
 #pragma once
 #include <kphmsg.h>
 
+typedef struct _KPH_CLIENT_RATE_LIMITS
+{
+    KPH_RATE_LIMIT RateLimit[KPH_INFORMER_COUNT];
+} KPH_CLIENT_RATE_LIMITS, *PKPH_CLIENT_RATE_LIMITS;
+
+typedef union _KPH_CLIENT_RATE_LIMITS_ATOMIC
+{
+    struct _KPH_CLIENT_RATE_LIMITS* Limits;
+    KPH_ATOMIC_OBJECT_REF Atomic;
+} KPH_CLIENT_RATE_LIMITS_ATOMIC, *PKPH_CLIENT_RATE_LIMITS_ATOMIC;
+
 typedef struct _KPH_CLIENT
 {
     PKPH_PROCESS_CONTEXT Process;
     PFLT_PORT Port;
     KPH_REFERENCE DriverUnloadProtectionRef;
     KPH_MESSAGE_TIMEOUTS MessageTimeouts;
-    KPH_INFORMER_SETTINGS InformerSettings;
+    KPH_CLIENT_RATE_LIMITS_ATOMIC RateLimits;
     PKPH_RING_BUFFER RingBuffer;
 } KPH_CLIENT, *PKPH_CLIENT;
 
@@ -86,26 +97,22 @@ VOID KphCommsStop(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Must_inspect_result_
-BOOLEAN KphCommsInformerEnabled(
-    _In_ PCKPH_INFORMER_SETTINGS Settings
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 ULONG KphGetConnectedClientCount(
     VOID
     );
 
-_IRQL_requires_max_(APC_LEVEL)
-VOID KphGetMessageTimeouts(
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetMessageSettings(
     _In_ PKPH_CLIENT Client,
-    _Out_ PKPH_MESSAGE_TIMEOUTS Timeouts
+    _Out_ PKPH_MESSAGE_SETTINGS Settings
     );
 
-_IRQL_requires_max_(APC_LEVEL)
-NTSTATUS KphSetMessageTimeouts(
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSetMessageSettings(
     _In_ PKPH_CLIENT Client,
-    _In_ PKPH_MESSAGE_TIMEOUTS Timeouts
+    _In_ PKPH_MESSAGE_SETTINGS Settings
     );
 
 _IRQL_requires_max_(APC_LEVEL)

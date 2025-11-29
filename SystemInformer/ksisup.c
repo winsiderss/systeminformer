@@ -1587,44 +1587,59 @@ NTSTATUS KsiConnect(
     if (PhEnableProcessMonitor)
     {
         KPH_INFORMER_SETTINGS settings;
+        KPH_RATE_LIMIT_POLICY unlimited = KPH_RATE_LIMIT_UNLIMITED;
+        KPH_RATE_LIMIT_POLICY disable = KPH_RATE_LIMIT_DENY_ALL;
 
-        settings.Flags = MAXULONG64;
-        settings.Flags2 = MAXULONG64;
-        settings.Flags3 = MAXULONG64;
+        settings.Options.Flags = ULONG_MAX;
+        for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+        {
+            settings.Policy[i] = unlimited;
+        }
 
         //
         // Conservative settings for now.
         //
 
-        settings.EnableStackTraces = FALSE;
+        settings.Options.EnableStackTraces = FALSE;
 
-        settings.DebugPrint = FALSE;
+        settings.Policy[KPH_INFORMER_INDEX(DebugPrint)] = disable;
 
-        settings.HandlePreCreateProcess = FALSE;
-        settings.HandlePostCreateProcess = FALSE;
-        settings.HandlePreDuplicateProcess = FALSE;
-        settings.HandlePostDuplicateProcess = FALSE;
-        settings.HandlePreCreateThread = FALSE;
-        settings.HandlePostCreateThread = FALSE;
-        settings.HandlePreDuplicateThread = FALSE;
-        settings.HandlePostDuplicateThread = FALSE;
-        settings.HandlePreCreateDesktop = FALSE;
-        settings.HandlePostCreateDesktop = FALSE;
-        settings.HandlePreDuplicateDesktop = FALSE;
-        settings.HandlePostDuplicateDesktop = FALSE;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreCreateProcess)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostCreateProcess)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreDuplicateProcess)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostDuplicateProcess)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreCreateThread)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostCreateThread)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreDuplicateThread)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostDuplicateThread)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreCreateDesktop)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostCreateDesktop)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreDuplicateDesktop)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostDuplicateDesktop)] = disable;
 
-        settings.EnableProcessCreateReply = FALSE;
-        settings.FileEnablePreCreateReply = FALSE;
-        settings.FileEnablePostCreateReply = FALSE;
+        settings.Options.EnableProcessCreateReply = FALSE;
+        settings.Options.FileEnablePreCreateReply = FALSE;
+        settings.Options.FileEnablePostCreateReply = FALSE;
 
-        settings.FileEnablePostFileNames = FALSE;
-        settings.FileEnableIoControlBuffers = FALSE;
-        settings.FileEnableFsControlBuffers = FALSE;
-        settings.FileEnableDirControlBuffers = FALSE;
+        settings.Options.FileEnablePostFileNames = FALSE;
+        settings.Options.FileEnableIoControlBuffers = FALSE;
+        settings.Options.FileEnableFsControlBuffers = FALSE;
+        settings.Options.FileEnableDirControlBuffers = FALSE;
 
-        settings.RegEnablePostObjectNames = FALSE;
-        settings.RegEnablePostValueNames = FALSE;
-        settings.RegEnableValueBuffers = FALSE;
+        settings.Options.RegEnablePostObjectNames = FALSE;
+        settings.Options.RegEnablePostValueNames = FALSE;
+        settings.Options.RegEnableValueBuffers = FALSE;
+
+        KphSetInformerSettings(&settings);
+    }
+    else
+    {
+        KPH_INFORMER_SETTINGS settings;
+        KPH_RATE_LIMIT_POLICY unlimited = KPH_RATE_LIMIT_UNLIMITED;
+
+        memset(&settings, 0, sizeof(settings));
+
+        settings.Policy[KPH_INFORMER_INDEX(RequiredStateFailure)] = unlimited;
 
         KphSetInformerSettings(&settings);
     }
