@@ -205,6 +205,7 @@ VOID KphpCreateProcessNotifyInformer(
     PKPH_MESSAGE reply;
     PEPROCESS parentProcess;
     PKPH_PROCESS_CONTEXT actorProcess;
+    KPH_INFORMER_OPTIONS opts;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -284,12 +285,14 @@ VOID KphpCreateProcessNotifyInformer(
             }
         }
 
-        if (KphInformerEnabled(EnableStackTraces, actorProcess))
+        opts = KphInformerOpts(actorProcess);
+
+        if (opts.EnableStackTraces)
         {
             KphCaptureStackInMessage(msg);
         }
 
-        if (!KphInformerEnabled(EnableProcessCreateReply, actorProcess))
+        if (!opts.EnableProcessCreateReply)
         {
             KphCommsSendMessageAsync(msg);
             msg = NULL;
@@ -347,7 +350,7 @@ VOID KphpCreateProcessNotifyInformer(
         msg->Kernel.ProcessExit.ProcessStartKey = KphGetProcessStartKey(Process->EProcess);
         msg->Kernel.ProcessExit.ExitStatus = PsGetProcessExitStatus(Process->EProcess);
 
-        if (KphInformerEnabled(EnableStackTraces, actorProcess))
+        if (KphInformerOpts(actorProcess).EnableStackTraces)
         {
             KphCaptureStackInMessage(msg);
         }

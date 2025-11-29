@@ -141,15 +141,19 @@ KPH_FLT_OPTIONS KphpFltGetOptions(
 
     if (options.PreEnabled || options.PostEnabled)
     {
-        options.EnableStackTraces = KphInformerEnabled(EnableStackTraces, process);
-        options.EnablePostFileNames = KphInformerEnabled(FileEnablePostFileNames, process);
-        options.EnablePagingIo = KphInformerEnabled(FileEnablePagingIo, process);
-        options.EnableSyncPagingIo = KphInformerEnabled(FileEnableSyncPagingIo, process);
-        options.EnableIoControlBuffers = KphInformerEnabled(FileEnableIoControlBuffers, process);
-        options.EnableFsControlBuffers = KphInformerEnabled(FileEnableFsControlBuffers, process);
-        options.EnableDirControlBuffers = KphInformerEnabled(FileEnableDirControlBuffers, process);
-        options.EnablePreCreateReply = KphInformerEnabled(FileEnablePreCreateReply, process);
-        options.EnablePostCreateReply = KphInformerEnabled(FileEnablePostCreateReply, process);
+        KPH_INFORMER_OPTIONS opts;
+
+        opts = KphInformerOpts(process);
+
+        options.EnableStackTraces = !!opts.EnableStackTraces;
+        options.EnablePostFileNames = !!opts.FileEnablePostFileNames;
+        options.EnablePagingIo = !!opts.FileEnablePagingIo;
+        options.EnableSyncPagingIo = !!opts.FileEnableSyncPagingIo;
+        options.EnableIoControlBuffers = !!opts.FileEnableIoControlBuffers;
+        options.EnableFsControlBuffers = !!opts.FileEnableFsControlBuffers;
+        options.EnableDirControlBuffers = !!opts.FileEnableDirControlBuffers;
+        options.EnablePreCreateReply = !!opts.FileEnablePreCreateReply;
+        options.EnablePostCreateReply = !!opts.FileEnablePostCreateReply;
     }
 
     if (process)

@@ -92,6 +92,7 @@ VOID KphpDriverCleanup(
     KphProcessInformerStop();
     KphFltUnregister();
     KphCidCleanup();
+    KphCleanupInformer();
     KphCleanupDynData();
     KphCleanupVerify();
     KphCleanupHashing();
@@ -277,6 +278,17 @@ NTSTATUS DriverEntry(
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "Failed to initialize stack back trace: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = KphInitializeInformer();
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Failed to initialize informer: %!STATUS!",
                       status);
 
         goto Exit;

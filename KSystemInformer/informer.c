@@ -11,309 +11,494 @@
 
 #include <kph.h>
 #include <comms.h>
-#define KPH_INFORMER_P
 #include <informer.h>
 
 #include <trace.h>
 
-typedef struct _KPH_INFORMER_MAP_ENTRY
+typedef struct _KPH_INFORMER_STATE
 {
-    KPH_MESSAGE_ID MessageId;
-    PCKPH_INFORMER_SETTINGS Setting;
-} KPH_INFORMER_MAP_ENTRY, *PKPH_INFORMER_MAP_ENTRY;
+    KPH_INFORMER_OPTIONS Options;
+    KPH_RATE_LIMIT RateLimit[KPH_INFORMER_COUNT];
+} KPH_INFORMER_STATE, *PKPH_INFORMER_STATE;
 
-#define KPH_INFORMER_MAP_SETTING(name) { KphMsg##name, &KphInformer##name }
-
+KPH_PROTECTED_DATA_SECTION_PUSH();
+static PKPH_OBJECT_TYPE KphpInformerStateType = NULL;
+static PKPH_NPAGED_LOOKASIDE_OBJECT KphpInformerStateLookaside = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-const KPH_INFORMER_MAP_ENTRY KphpInformerMap[] =
-{
-    //
-    // N.B. Order here matters for KphInformerForMessageId.
-    //
-
-    KPH_INFORMER_MAP_SETTING(ProcessCreate),
-    KPH_INFORMER_MAP_SETTING(ProcessExit),
-    KPH_INFORMER_MAP_SETTING(ThreadCreate),
-    KPH_INFORMER_MAP_SETTING(ThreadExecute),
-    KPH_INFORMER_MAP_SETTING(ThreadExit),
-    KPH_INFORMER_MAP_SETTING(ImageLoad),
-    KPH_INFORMER_MAP_SETTING(DebugPrint),
-    KPH_INFORMER_MAP_SETTING(HandlePreCreateProcess),
-    KPH_INFORMER_MAP_SETTING(HandlePostCreateProcess),
-    KPH_INFORMER_MAP_SETTING(HandlePreDuplicateProcess),
-    KPH_INFORMER_MAP_SETTING(HandlePostDuplicateProcess),
-    KPH_INFORMER_MAP_SETTING(HandlePreCreateThread),
-    KPH_INFORMER_MAP_SETTING(HandlePostCreateThread),
-    KPH_INFORMER_MAP_SETTING(HandlePreDuplicateThread),
-    KPH_INFORMER_MAP_SETTING(HandlePostDuplicateThread),
-    KPH_INFORMER_MAP_SETTING(HandlePreCreateDesktop),
-    KPH_INFORMER_MAP_SETTING(HandlePostCreateDesktop),
-    KPH_INFORMER_MAP_SETTING(HandlePreDuplicateDesktop),
-    KPH_INFORMER_MAP_SETTING(HandlePostDuplicateDesktop),
-    { KphMsgRequiredStateFailure, NULL },
-    KPH_INFORMER_MAP_SETTING(FilePreCreate),
-    KPH_INFORMER_MAP_SETTING(FilePostCreate),
-    KPH_INFORMER_MAP_SETTING(FilePreCreateNamedPipe),
-    KPH_INFORMER_MAP_SETTING(FilePostCreateNamedPipe),
-    KPH_INFORMER_MAP_SETTING(FilePreClose),
-    KPH_INFORMER_MAP_SETTING(FilePostClose),
-    KPH_INFORMER_MAP_SETTING(FilePreRead),
-    KPH_INFORMER_MAP_SETTING(FilePostRead),
-    KPH_INFORMER_MAP_SETTING(FilePreWrite),
-    KPH_INFORMER_MAP_SETTING(FilePostWrite),
-    KPH_INFORMER_MAP_SETTING(FilePreQueryInformation),
-    KPH_INFORMER_MAP_SETTING(FilePostQueryInformation),
-    KPH_INFORMER_MAP_SETTING(FilePreSetInformation),
-    KPH_INFORMER_MAP_SETTING(FilePostSetInformation),
-    KPH_INFORMER_MAP_SETTING(FilePreQueryEa),
-    KPH_INFORMER_MAP_SETTING(FilePostQueryEa),
-    KPH_INFORMER_MAP_SETTING(FilePreSetEa),
-    KPH_INFORMER_MAP_SETTING(FilePostSetEa),
-    KPH_INFORMER_MAP_SETTING(FilePreFlushBuffers),
-    KPH_INFORMER_MAP_SETTING(FilePostFlushBuffers),
-    KPH_INFORMER_MAP_SETTING(FilePreQueryVolumeInformation),
-    KPH_INFORMER_MAP_SETTING(FilePostQueryVolumeInformation),
-    KPH_INFORMER_MAP_SETTING(FilePreSetVolumeInformation),
-    KPH_INFORMER_MAP_SETTING(FilePostSetVolumeInformation),
-    KPH_INFORMER_MAP_SETTING(FilePreDirectoryControl),
-    KPH_INFORMER_MAP_SETTING(FilePostDirectoryControl),
-    KPH_INFORMER_MAP_SETTING(FilePreFileSystemControl),
-    KPH_INFORMER_MAP_SETTING(FilePostFileSystemControl),
-    KPH_INFORMER_MAP_SETTING(FilePreDeviceControl),
-    KPH_INFORMER_MAP_SETTING(FilePostDeviceControl),
-    KPH_INFORMER_MAP_SETTING(FilePreInternalDeviceControl),
-    KPH_INFORMER_MAP_SETTING(FilePostInternalDeviceControl),
-    KPH_INFORMER_MAP_SETTING(FilePreShutdown),
-    KPH_INFORMER_MAP_SETTING(FilePostShutdown),
-    KPH_INFORMER_MAP_SETTING(FilePreLockControl),
-    KPH_INFORMER_MAP_SETTING(FilePostLockControl),
-    KPH_INFORMER_MAP_SETTING(FilePreCleanup),
-    KPH_INFORMER_MAP_SETTING(FilePostCleanup),
-    KPH_INFORMER_MAP_SETTING(FilePreCreateMailslot),
-    KPH_INFORMER_MAP_SETTING(FilePostCreateMailslot),
-    KPH_INFORMER_MAP_SETTING(FilePreQuerySecurity),
-    KPH_INFORMER_MAP_SETTING(FilePostQuerySecurity),
-    KPH_INFORMER_MAP_SETTING(FilePreSetSecurity),
-    KPH_INFORMER_MAP_SETTING(FilePostSetSecurity),
-    KPH_INFORMER_MAP_SETTING(FilePrePower),
-    KPH_INFORMER_MAP_SETTING(FilePostPower),
-    KPH_INFORMER_MAP_SETTING(FilePreSystemControl),
-    KPH_INFORMER_MAP_SETTING(FilePostSystemControl),
-    KPH_INFORMER_MAP_SETTING(FilePreDeviceChange),
-    KPH_INFORMER_MAP_SETTING(FilePostDeviceChange),
-    KPH_INFORMER_MAP_SETTING(FilePreQueryQuota),
-    KPH_INFORMER_MAP_SETTING(FilePostQueryQuota),
-    KPH_INFORMER_MAP_SETTING(FilePreSetQuota),
-    KPH_INFORMER_MAP_SETTING(FilePostSetQuota),
-    KPH_INFORMER_MAP_SETTING(FilePrePnp),
-    KPH_INFORMER_MAP_SETTING(FilePostPnp),
-    KPH_INFORMER_MAP_SETTING(FilePreAcquireForSectionSync),
-    KPH_INFORMER_MAP_SETTING(FilePostAcquireForSectionSync),
-    KPH_INFORMER_MAP_SETTING(FilePreReleaseForSectionSync),
-    KPH_INFORMER_MAP_SETTING(FilePostReleaseForSectionSync),
-    KPH_INFORMER_MAP_SETTING(FilePreAcquireForModWrite),
-    KPH_INFORMER_MAP_SETTING(FilePostAcquireForModWrite),
-    KPH_INFORMER_MAP_SETTING(FilePreReleaseForModWrite),
-    KPH_INFORMER_MAP_SETTING(FilePostReleaseForModWrite),
-    KPH_INFORMER_MAP_SETTING(FilePreAcquireForCcFlush),
-    KPH_INFORMER_MAP_SETTING(FilePostAcquireForCcFlush),
-    KPH_INFORMER_MAP_SETTING(FilePreReleaseForCcFlush),
-    KPH_INFORMER_MAP_SETTING(FilePostReleaseForCcFlush),
-    KPH_INFORMER_MAP_SETTING(FilePreQueryOpen),
-    KPH_INFORMER_MAP_SETTING(FilePostQueryOpen),
-    KPH_INFORMER_MAP_SETTING(FilePreFastIoCheckIfPossible),
-    KPH_INFORMER_MAP_SETTING(FilePostFastIoCheckIfPossible),
-    KPH_INFORMER_MAP_SETTING(FilePreNetworkQueryOpen),
-    KPH_INFORMER_MAP_SETTING(FilePostNetworkQueryOpen),
-    KPH_INFORMER_MAP_SETTING(FilePreMdlRead),
-    KPH_INFORMER_MAP_SETTING(FilePostMdlRead),
-    KPH_INFORMER_MAP_SETTING(FilePreMdlReadComplete),
-    KPH_INFORMER_MAP_SETTING(FilePostMdlReadComplete),
-    KPH_INFORMER_MAP_SETTING(FilePrePrepareMdlWrite),
-    KPH_INFORMER_MAP_SETTING(FilePostPrepareMdlWrite),
-    KPH_INFORMER_MAP_SETTING(FilePreMdlWriteComplete),
-    KPH_INFORMER_MAP_SETTING(FilePostMdlWriteComplete),
-    KPH_INFORMER_MAP_SETTING(FilePreVolumeMount),
-    KPH_INFORMER_MAP_SETTING(FilePostVolumeMount),
-    KPH_INFORMER_MAP_SETTING(FilePreVolumeDismount),
-    KPH_INFORMER_MAP_SETTING(FilePostVolumeDismount),
-    KPH_INFORMER_MAP_SETTING(RegPreDeleteKey),
-    KPH_INFORMER_MAP_SETTING(RegPostDeleteKey),
-    KPH_INFORMER_MAP_SETTING(RegPreSetValueKey),
-    KPH_INFORMER_MAP_SETTING(RegPostSetValueKey),
-    KPH_INFORMER_MAP_SETTING(RegPreDeleteValueKey),
-    KPH_INFORMER_MAP_SETTING(RegPostDeleteValueKey),
-    KPH_INFORMER_MAP_SETTING(RegPreSetInformationKey),
-    KPH_INFORMER_MAP_SETTING(RegPostSetInformationKey),
-    KPH_INFORMER_MAP_SETTING(RegPreRenameKey),
-    KPH_INFORMER_MAP_SETTING(RegPostRenameKey),
-    KPH_INFORMER_MAP_SETTING(RegPreEnumerateKey),
-    KPH_INFORMER_MAP_SETTING(RegPostEnumerateKey),
-    KPH_INFORMER_MAP_SETTING(RegPreEnumerateValueKey),
-    KPH_INFORMER_MAP_SETTING(RegPostEnumerateValueKey),
-    KPH_INFORMER_MAP_SETTING(RegPreQueryKey),
-    KPH_INFORMER_MAP_SETTING(RegPostQueryKey),
-    KPH_INFORMER_MAP_SETTING(RegPreQueryValueKey),
-    KPH_INFORMER_MAP_SETTING(RegPostQueryValueKey),
-    KPH_INFORMER_MAP_SETTING(RegPreQueryMultipleValueKey),
-    KPH_INFORMER_MAP_SETTING(RegPostQueryMultipleValueKey),
-    KPH_INFORMER_MAP_SETTING(RegPreKeyHandleClose),
-    KPH_INFORMER_MAP_SETTING(RegPostKeyHandleClose),
-    KPH_INFORMER_MAP_SETTING(RegPreCreateKey),
-    KPH_INFORMER_MAP_SETTING(RegPostCreateKey),
-    KPH_INFORMER_MAP_SETTING(RegPreOpenKey),
-    KPH_INFORMER_MAP_SETTING(RegPostOpenKey),
-    KPH_INFORMER_MAP_SETTING(RegPreFlushKey),
-    KPH_INFORMER_MAP_SETTING(RegPostFlushKey),
-    KPH_INFORMER_MAP_SETTING(RegPreLoadKey),
-    KPH_INFORMER_MAP_SETTING(RegPostLoadKey),
-    KPH_INFORMER_MAP_SETTING(RegPreUnLoadKey),
-    KPH_INFORMER_MAP_SETTING(RegPostUnLoadKey),
-    KPH_INFORMER_MAP_SETTING(RegPreQueryKeySecurity),
-    KPH_INFORMER_MAP_SETTING(RegPostQueryKeySecurity),
-    KPH_INFORMER_MAP_SETTING(RegPreSetKeySecurity),
-    KPH_INFORMER_MAP_SETTING(RegPostSetKeySecurity),
-    KPH_INFORMER_MAP_SETTING(RegPreRestoreKey),
-    KPH_INFORMER_MAP_SETTING(RegPostRestoreKey),
-    KPH_INFORMER_MAP_SETTING(RegPreSaveKey),
-    KPH_INFORMER_MAP_SETTING(RegPostSaveKey),
-    KPH_INFORMER_MAP_SETTING(RegPreReplaceKey),
-    KPH_INFORMER_MAP_SETTING(RegPostReplaceKey),
-    KPH_INFORMER_MAP_SETTING(RegPreQueryKeyName),
-    KPH_INFORMER_MAP_SETTING(RegPostQueryKeyName),
-    KPH_INFORMER_MAP_SETTING(RegPreSaveMergedKey),
-    KPH_INFORMER_MAP_SETTING(RegPostSaveMergedKey),
-    KPH_INFORMER_MAP_SETTING(ImageVerify),
-};
-C_ASSERT((ARRAYSIZE(KphpInformerMap) + (MaxKphMsgClientAllowed + 1)) == MaxKphMsg);
+static const UNICODE_STRING KphpInformerStateTypeName = RTL_CONSTANT_STRING(L"KphInformerState");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
+static KPH_INFORMER_STATE_ATOMIC KphpInformerState = { .Atomic = KPH_ATOMIC_OBJECT_REF_INIT };
 
-KPH_INFORMER_SETTINGS KphDefaultInformerProcessFilter = { 0 };
-
-_Must_inspect_result_
-PCKPH_INFORMER_SETTINGS KphInformerForMessageId(
-    _In_ KPH_MESSAGE_ID MessageId
+/**
+ * \brief Allocates an informer state object.
+ *
+ * \return Pointer to informer state object, null on failure.
+ */
+_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Return_allocatesMem_size_(Size)
+PVOID KSIAPI KphpAllocateInformerState(
+    _In_ SIZE_T Size
     )
 {
-    if (NT_VERIFY(MessageId > MaxKphMsgClientAllowed) && (MessageId < MaxKphMsg))
+    PVOID object;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    NT_ASSERT(KphpInformerStateLookaside);
+    NT_ASSERT(Size <= KphpInformerStateLookaside->L.Size);
+    DBG_UNREFERENCED_PARAMETER(Size);
+
+    object = KphAllocateFromNPagedLookasideObject(KphpInformerStateLookaside);
+    if (object)
     {
-        return KphpInformerMap[MessageId - (MaxKphMsgClientAllowed + 1)].Setting;
+        KphReferenceObject(KphpInformerStateLookaside);
     }
 
-    return NULL;
+    return object;
 }
 
 /**
- * \brief Checks if the informer is filtered for a process.
+ * \brief Initializes an informer state object.
  *
- * \param[in] Settings The settings to check.
- * \param[in] Process The process to check.
+ * \param[in] Object The informer state object to initialize.
+ * \param[in] Parameter Optional settings to initialize with.
  *
- * \return TRUE if the informer is filtered, FALSE otherwise.
+ * \return STATUS_SUCCESS
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
 _Must_inspect_result_
-BOOLEAN KphpInformerProcessIsFiltered(
-    _In_ PCKPH_INFORMER_SETTINGS Settings,
-    _In_ PKPH_PROCESS_CONTEXT Process
+NTSTATUS
+KSIAPI
+KphpInitializeInformerState(
+    _Inout_ PVOID Object,
+    _In_opt_ PVOID Parameter
+    )
+{
+    PKPH_INFORMER_STATE state;
+    PKPH_INFORMER_SETTINGS settings;
+    LARGE_INTEGER timeStamp;
+
+    state = Object;
+    settings = Parameter;
+
+    KeQuerySystemTime(&timeStamp);
+
+    if (settings)
+    {
+        state->Options.Flags = settings->Options.Flags;
+
+        for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+        {
+            KphInitializeRateLimit(&settings->Policy[i],
+                                   &timeStamp,
+                                   &state->RateLimit[i]);
+        }
+    }
+    else
+    {
+        KPH_RATE_LIMIT_POLICY policy = KPH_RATE_LIMIT_DENY_ALL;
+
+        state->Options.Flags = 0;
+
+        for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+        {
+            KphInitializeRateLimit(&policy, &timeStamp, &state->RateLimit[i]);
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Frees an informer state object.
+ *
+ * \param[in] Object The informer state object to free.
+ */
+_Function_class_(KPH_TYPE_FREE_PROCEDURE)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KSIAPI KphpFreeInformerState(
+    _In_freesMem_ PVOID Object
     )
 {
     KPH_NPAGED_CODE_DISPATCH_MAX();
 
-    return KphCheckInformerSettings(&Process->InformerFilter, Settings);
+    NT_ASSERT(KphpInformerStateLookaside);
+
+    KphFreeToNPagedLookasideObject(KphpInformerStateLookaside, Object);
+    KphDereferenceObject(KphpInformerStateLookaside);
 }
 
 /**
- * \brief Checks if the informer is enabled.
+ * \brief Checks if an informer is allowed for a process.
  *
- * \param[in] Settings The settings to check.
- * \param[in] Process The process to check.
+ * \param[in] Index The informer index to check.
+ * \param[in] TimeStamp The current time stamp.
+ * \param[in] Process The process context to check.
  *
- * \return TRUE if the informer is enabled, FALSE otherwise.
+ * \return TRUE if the informer is allowed, FALSE otherwise.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN KphInformerIsEnabled(
-    _In_ PCKPH_INFORMER_SETTINGS Settings,
+BOOLEAN KphInformerProcessAllowed(
+    _In_ ULONG Index,
+    _In_ PLARGE_INTEGER TimeStamp,
     _In_opt_ PKPH_PROCESS_CONTEXT Process
     )
 {
+    BOOLEAN allowed;
+    PKPH_INFORMER_STATE state;
+
     KPH_NPAGED_CODE_DISPATCH_MAX();
 
-    if (!KphCommsInformerEnabled(Settings))
+    if (!Process)
+    {
+        return TRUE;
+    }
+
+    if (!NT_VERIFY(Index < KPH_INFORMER_COUNT))
     {
         return FALSE;
     }
 
-    if (Process && KphpInformerProcessIsFiltered(Settings, Process))
+    state = KphAtomicReferenceObject(&Process->InformerState.Atomic);
+    if (!state)
     {
-        return FALSE;
+        return TRUE;
     }
 
-    return TRUE;
+    allowed = KphRateLimitConsumeToken(&state->RateLimit[Index], TimeStamp);
+
+    KphDereferenceObject(state);
+
+    return allowed;
 }
 
 /**
- * \brief Checks if the informer is enabled.
+ * \brief Checks if an informer is globally allowed.
  *
- * \param[in] Settings The settings to check.
- * \param[in] ActorProcess The actor process check for filtering.
- * \param[in] TargetProcess The target process check for filtering.
+ * \param[in] Index The informer index to check.
+ * \param[in] TimeStamp The current time stamp.
  *
- * \return TRUE if the informer is enabled, FALSE otherwise.
+ * \return TRUE if the informer is allowed, FALSE otherwise.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN KphInformerIsEnabled2(
-    _In_ PCKPH_INFORMER_SETTINGS Settings,
+BOOLEAN KphInformerGlobalAllowed(
+    _In_ ULONG Index,
+    _In_ PLARGE_INTEGER TimeStamp
+    )
+{
+    BOOLEAN allowed;
+    PKPH_INFORMER_STATE state;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    if (!NT_VERIFY(Index < KPH_INFORMER_COUNT))
+    {
+        return FALSE;
+    }
+
+    state = KphAtomicReferenceObject(&KphpInformerState.Atomic);
+    NT_ASSERT(state);
+
+    allowed = KphRateLimitConsumeToken(&state->RateLimit[Index], TimeStamp);
+
+    KphDereferenceObject(state);
+
+    return allowed;
+}
+
+/**
+ * \brief Checks if an informer is allowed.
+ *
+ * \param[in] Index The informer index to check.
+ * \param[in] ActorProcess The actor process check.
+ * \param[in] TargetProcess The target process check.
+ *
+ * \return TRUE if the informer is allowed, FALSE otherwise.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN KphInformerAllowed(
+    _In_ ULONG Index,
     _In_opt_ PKPH_PROCESS_CONTEXT ActorProcess,
     _In_opt_ PKPH_PROCESS_CONTEXT TargetProcess
     )
 {
+    LARGE_INTEGER timeStamp;
+
     KPH_NPAGED_CODE_DISPATCH_MAX();
 
-    if (!KphCommsInformerEnabled(Settings))
+    if (!KphGetConnectedClientCount())
     {
         return FALSE;
     }
 
-    if ((ActorProcess && KphpInformerProcessIsFiltered(Settings, ActorProcess)) &&
-        (TargetProcess && KphpInformerProcessIsFiltered(Settings, TargetProcess)))
+    KeQuerySystemTime(&timeStamp);
+
+    if (!KphInformerProcessAllowed(Index, &timeStamp, ActorProcess))
+    {
+        if (ActorProcess == TargetProcess)
+        {
+            return FALSE;
+        }
+
+        if (!KphInformerProcessAllowed(Index, &timeStamp, TargetProcess))
+        {
+            return FALSE;
+        }
+    }
+
+    if (!KphInformerGlobalAllowed(Index, &timeStamp))
     {
         return FALSE;
     }
 
     return TRUE;
+}
+
+/**
+ * \brief Retrieves the active informer options.
+ *
+ * \param[in] ActorProcess The actor process check.
+ * \param[in] TargetProcess The target process check.
+ *
+ * \return Active informer options.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+KPH_INFORMER_OPTIONS KphInformerOptions(
+    _In_opt_ PKPH_PROCESS_CONTEXT ActorProcess,
+    _In_opt_ PKPH_PROCESS_CONTEXT TargetProcess
+    )
+{
+    PKPH_INFORMER_STATE state;
+    KPH_INFORMER_OPTIONS options;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    options.Flags = 0;
+
+    state = KphAtomicReferenceObject(&KphpInformerState.Atomic);
+    NT_ASSERT(state);
+
+    SetFlag(options.Flags, state->Options.Flags);
+
+    KphDereferenceObject(state);
+
+    if (ActorProcess)
+    {
+        state = KphAtomicReferenceObject(&ActorProcess->InformerState.Atomic);
+        if (state)
+        {
+            SetFlag(options.Flags, state->Options.Flags);
+            KphDereferenceObject(state);
+        }
+    }
+
+    if (TargetProcess)
+    {
+        state = KphAtomicReferenceObject(&TargetProcess->InformerState.Atomic);
+        if (state)
+        {
+            SetFlag(options.Flags, state->Options.Flags);
+            KphDereferenceObject(state);
+        }
+    }
+
+    return options;
 }
 
 KPH_PAGED_FILE();
 
 /**
- * \brief Gets informer filtering for a process.
+ * \brief Copies informer settings from state to mode.
  *
- * \param[in] ProcessHandle Handle to the process to get filtering for.
- * \param[in] Filter Populated with the filter settings.
+ * \param[out] Settings Receives the settings.
+ * \param[in] State The informer state to copy from.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetInformerProcessFilter(
+NTSTATUS KphpInformerCopySettingsToMode(
+    _Out_ PKPH_INFORMER_SETTINGS Settings,
+    _In_ PKPH_INFORMER_STATE State,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    status = KphCopyToMode(Settings,
+                           &State->Options,
+                           sizeof(KPH_INFORMER_OPTIONS),
+                           AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+    {
+        status = KphCopyToMode(&Settings->Policy[i],
+                               &State->RateLimit[i].Policy,
+                               sizeof(KPH_RATE_LIMIT_POLICY),
+                               AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            return status;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Gets informer settings.
+ *
+ * \param[out] Settings Receives the settings.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetInformerSettings(
+    _Out_ PKPH_INFORMER_SETTINGS Settings,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PKPH_INFORMER_STATE state;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    state = KphAtomicReferenceObject(&KphpInformerState.Atomic);
+    NT_ASSERT(state);
+
+    status = KphZeroModeMemory(Settings,
+                               sizeof(KPH_INFORMER_SETTINGS),
+                               AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    status = KphpInformerCopySettingsToMode(Settings, state, AccessMode);
+
+Exit:
+
+    KphDereferenceObject(state);
+
+    return status;
+}
+
+/**
+ * \brief Sets informer settings.
+ *
+ * \param[in] Settings The settings to apply.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSetInformerSettings(
+    _In_ PKPH_INFORMER_SETTINGS Settings,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PKPH_INFORMER_SETTINGS settings;
+    PKPH_INFORMER_STATE state;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    state = NULL;
+
+    settings = KphAllocatePaged(sizeof(KPH_INFORMER_SETTINGS),
+                                KPH_TAG_INFORMER_SETTINGS);
+    if (!settings)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Failed to allocate informer settings");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    status = KphCopyFromMode(settings,
+                             Settings,
+                             sizeof(KPH_INFORMER_SETTINGS),
+                             AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    status = KphCreateObject(KphpInformerStateType,
+                             sizeof(KPH_INFORMER_STATE),
+                             &state,
+                             settings);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphCreateObject failed: %!STATUS!",
+                      status);
+
+        state = NULL;
+        goto Exit;
+    }
+
+    KphAtomicAssignObjectReference(&KphpInformerState.Atomic, state);
+
+Exit:
+
+    if (state)
+    {
+        KphDereferenceObject(state);
+    }
+
+    if (settings)
+    {
+        KphFree(settings, KPH_TAG_INFORMER_SETTINGS);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Gets informer settings for a process.
+ *
+ * \param[in] ProcessHandle Handle to the process to get settings of.
+ * \param[out] Settings Receives the settings.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetInformerProcessSettings(
     _In_ HANDLE ProcessHandle,
-    _Out_ PKPH_INFORMER_SETTINGS Filter,
+    _Out_ PKPH_INFORMER_SETTINGS Settings,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
     PEPROCESS processObject;
     PKPH_PROCESS_CONTEXT processContext;
-    KPH_INFORMER_SETTINGS filter;
+    PKPH_INFORMER_STATE state;
 
     KPH_PAGED_CODE_PASSIVE();
 
     processObject = NULL;
     processContext = NULL;
+    state = NULL;
 
-    status = KphZeroModeMemory(Filter,
+    status = KphZeroModeMemory(Settings,
                                sizeof(KPH_INFORMER_SETTINGS),
                                AccessMode);
     if (!NT_SUCCESS(status))
@@ -349,12 +534,14 @@ NTSTATUS KphGetInformerProcessFilter(
         goto Exit;
     }
 
-    KphGetInformerSettings(&filter, &processContext->InformerFilter);
+    state = KphAtomicReferenceObject(&processContext->InformerState.Atomic);
+    if (!state)
+    {
+        status = STATUS_NOT_FOUND;
+        goto Exit;
+    }
 
-    status = KphCopyToMode(Filter,
-                           &filter,
-                           sizeof(KPH_INFORMER_SETTINGS),
-                           AccessMode);
+    status = KphpInformerCopySettingsToMode(Settings, state, AccessMode);
 
 Exit:
 
@@ -368,83 +555,107 @@ Exit:
         ObDereferenceObject(processObject);
     }
 
+    if (state)
+    {
+        KphDereferenceObject(state);
+    }
+
     return status;
 }
 
+typedef struct _KPH_SET_INFORMER_PROCESS_SETTINGS_CONTEXT
+{
+    NTSTATUS Status;
+    PKPH_INFORMER_SETTINGS Settings;
+} KPH_SET_INFORMER_PROCESS_SETTINGS_CONTEXT, *PKPH_SET_INFORMER_PROCESS_SETTINGS_CONTEXT;
+
 /**
- * \brief Callback for setting all process informer filters.
+ * \brief Callback for setting process informer settings.
  *
- * \param[in] Process The process to set the informer filter for.
- * \param[in] Parameter The filter settings to apply.
+ * \param[in] Process The process to set the informer settings for.
+ * \param[in] Parameter The settings to apply.
  *
  * \return FALSE
  */
 _Function_class_(KPH_ENUM_PROCESS_CONTEXTS_CALLBACK)
 _Must_inspect_result_
-BOOLEAN KSIAPI KphpSetInformerProcessFilter(
+BOOLEAN KSIAPI KphpSetInformerProcessSettings(
     _In_ PKPH_PROCESS_CONTEXT Process,
     _In_opt_ PVOID Parameter
     )
 {
-    PKPH_INFORMER_SETTINGS filter;
+    NTSTATUS status;
+    PKPH_SET_INFORMER_PROCESS_SETTINGS_CONTEXT context;
+    PKPH_PROCESS_STATE state;
 
     KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Parameter);
 
-    filter = Parameter;
+    context = Parameter;
 
-    KphSetInformerSettings(&Process->InformerFilter, filter);
+    status = KphCreateObject(KphpInformerStateType,
+                             sizeof(KPH_INFORMER_STATE),
+                             &state,
+                             context->Settings);
+    if (!NT_SUCCESS(status))
+    {
+        if (NT_SUCCESS(context->Status))
+        {
+            context->Status = status;
+        }
+
+        return FALSE;
+    }
+
+    KphAtomicAssignObjectReference(&Process->InformerState.Atomic, state);
 
     return FALSE;
 }
 
 /**
- * \brief Sets informer filtering for a process.
+ * \brief Sets informer settings for a process.
  *
- * \param[in] Filter The filter settings to apply.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpSetInformerProcessFilterAll(
-    _In_ PKPH_INFORMER_SETTINGS Filter
-    )
-{
-    KPH_PAGED_CODE_PASSIVE();
-
-    KphSetInformerSettings(&KphDefaultInformerProcessFilter, Filter);
-
-    KphEnumerateProcessContexts(KphpSetInformerProcessFilter, Filter);
-}
-
-/**
- * \brief Sets informer filtering for a process.
- *
- * \param[in] Process Handle to the process to set filtering for.
- * \param[in] Filter The filter settings to apply.
+ * \param[in] ProcessHandle Optional handle to the process to set settings of.
+ *  If not provided the settings are applied to all processes.
+ * \param[in] Settings The settings to apply.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphSetInformerProcessFilter(
+NTSTATUS KphSetInformerProcessSettings(
     _In_opt_ HANDLE ProcessHandle,
-    _In_ PKPH_INFORMER_SETTINGS Filter,
+    _In_ PKPH_INFORMER_SETTINGS Settings,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
     PEPROCESS processObject;
     PKPH_PROCESS_CONTEXT processContext;
-    KPH_INFORMER_SETTINGS filter;
+    PKPH_INFORMER_SETTINGS settings;
+    KPH_SET_INFORMER_PROCESS_SETTINGS_CONTEXT context;
 
     KPH_PAGED_CODE_PASSIVE();
 
     processObject = NULL;
     processContext = NULL;
 
-    status = KphCopyFromMode(&filter,
-                             Filter,
+    settings = KphAllocatePaged(sizeof(KPH_INFORMER_SETTINGS),
+                                KPH_TAG_INFORMER_SETTINGS);
+    if (!settings)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Failed to allocate informer settings");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    status = KphCopyFromMode(settings,
+                             Settings,
                              sizeof(KPH_INFORMER_SETTINGS),
                              AccessMode);
     if (!NT_SUCCESS(status))
@@ -482,13 +693,21 @@ NTSTATUS KphSetInformerProcessFilter(
             goto Exit;
         }
 
-        (VOID)KphpSetInformerProcessFilter(processContext, &filter);
-        status = STATUS_SUCCESS;
+        context.Status = STATUS_SUCCESS;
+        context.Settings = settings;
+
+        (VOID)KphpSetInformerProcessSettings(processContext, &context);
+
+        status = context.Status;
     }
     else
     {
-        KphpSetInformerProcessFilterAll(&filter);
-        status = STATUS_SUCCESS;
+        context.Status = STATUS_SUCCESS;
+        context.Settings = settings;
+
+        KphEnumerateProcessContexts(KphpSetInformerProcessSettings, &context);
+
+        status = context.Status;
     }
 
 Exit:
@@ -501,6 +720,96 @@ Exit:
     if (processObject)
     {
         ObDereferenceObject(processObject);
+    }
+
+    if (settings)
+    {
+        KphFree(settings, KPH_TAG_INFORMER_SETTINGS);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Cleans up informer infrastructure.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupInformer(
+    VOID
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphAtomicAssignObjectReference(&KphpInformerState.Atomic, NULL);
+
+    if (KphpInformerStateLookaside)
+    {
+        KphDereferenceObject(KphpInformerStateLookaside);
+    }
+}
+
+/**
+ * \brief Initialize the informer infrastructure.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphInitializeInformer(
+    VOID
+    )
+{
+    NTSTATUS status;
+    PKPH_INFORMER_STATE state;
+    KPH_OBJECT_TYPE_INFO typeInfo;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    state = NULL;
+
+    status = KphCreateNPagedLookasideObject(&KphpInformerStateLookaside,
+                                            KphAddObjectHeaderSize(sizeof(KPH_INFORMER_STATE)),
+                                            KPH_TAG_INFORMER_STATE);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "KphCreatePagedLookasideObject failed: %!STATUS!",
+                      status);
+
+        KphpInformerStateLookaside = NULL;
+        goto Exit;
+    }
+
+    typeInfo.Allocate = KphpAllocateInformerState;
+    typeInfo.Initialize = KphpInitializeInformerState;
+    typeInfo.Delete = NULL;
+    typeInfo.Free = KphpFreeInformerState;
+
+    KphCreateObjectType(&KphpInformerStateTypeName,
+                        &typeInfo,
+                        &KphpInformerStateType);
+
+    status = KphCreateObject(KphpInformerStateType,
+                             sizeof(KPH_INFORMER_STATE),
+                             &state,
+                             NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "KphCreateObject failed: %!STATUS!",
+                      status);
+
+        state = NULL;
+        goto Exit;
+    }
+
+    KphAtomicAssignObjectReference(&KphpInformerState.Atomic, state);
+
+Exit:
+
+    if (state)
+    {
+        KphDereferenceObject(state);
     }
 
     return status;

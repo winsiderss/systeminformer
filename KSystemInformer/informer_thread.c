@@ -215,7 +215,7 @@ VOID KphpCreateThreadNotifyInformer(
         msg->Kernel.ThreadExit.ThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
     }
 
-    if (KphInformerEnabled2(EnableStackTraces, actorProcess, Thread->ProcessContext))
+    if (KphInformerOpts2(actorProcess, Thread->ProcessContext).EnableStackTraces)
     {
         KphCaptureStackInMessage(msg);
     }

@@ -52,8 +52,8 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgQueryInformationThread,
     KphMsgQuerySection,
     KphMsgCompareObjects,
-    KphMsgGetMessageTimeouts,
-    KphMsgSetMessageTimeouts,
+    KphMsgGetMessageSettings,
+    KphMsgSetMessageSettings,
     KphMsgAcquireDriverUnloadProtection,
     KphMsgReleaseDriverUnloadProtection,
     KphMsgGetConnectedClientCount,
@@ -61,8 +61,8 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgRequestSessionAccessToken,
     KphMsgAssignProcessSessionToken,
     KphMsgAssignThreadSessionToken,
-    KphMsgGetInformerProcessFilter,
-    KphMsgSetInformerProcessFilter,
+    KphMsgGetInformerProcessSettings,
+    KphMsgSetInformerProcessSettings,
     KphMsgStripProtectedProcessMasks,
     KphMsgQueryVirtualMemory,
     KphMsgQueryHashInformationFile,
@@ -238,6 +238,7 @@ typedef enum _KPH_MESSAGE_ID
 
 C_ASSERT(sizeof(KPH_MESSAGE_ID) == 4);
 C_ASSERT(MaxKphMsg > 0);
+C_ASSERT(KPH_INFORMER_COUNT == (MaxKphMsg - (MaxKphMsgClientAllowed + 1)));
 
 typedef enum _KPH_MESSAGE_FIELD_ID
 {
@@ -341,8 +342,8 @@ typedef struct _KPH_MESSAGE
             KPHM_QUERY_INFORMATION_THREAD QueryInformationThread;
             KPHM_QUERY_SECTION QuerySection;
             KPHM_COMPARE_OBJECTS CompareObjects;
-            KPHM_GET_MESSAGE_TIMEOUTS GetMessageTimeouts;
-            KPHM_SET_MESSAGE_TIMEOUTS SetMessageTimeouts;
+            KPHM_GET_MESSAGE_SETTINGS GetMessageSettings;
+            KPHM_SET_MESSAGE_SETTINGS SetMessageSettings;
             KPHM_ACQUIRE_DRIVER_UNLOAD_PROTECTION AcquireDriverUnloadProtection;
             KPHM_RELEASE_DRIVER_UNLOAD_PROTECTION ReleaseDriverUnloadProtection;
             KPHM_GET_CONNECTED_CLIENT_COUNT GetConnectedClientCount;
@@ -350,8 +351,8 @@ typedef struct _KPH_MESSAGE
             KPHM_REQUEST_SESSION_ACCESS_TOKEN RequestSessionAccessToken;
             KPHM_ASSIGN_PROCESS_SESSION_TOKEN AssignProcessSessionToken;
             KPHM_ASSIGN_THREAD_SESSION_TOKEN AssignThreadSessionToken;
-            KPHM_GET_INFORMER_PROCESS_FILTER GetInformerProcessFilter;
-            KPHM_SET_INFORMER_PROCESS_FILTER SetInformerProcessFilter;
+            KPHM_GET_INFORMER_PROCESS_SETTINGS GetInformerProcessSettings;
+            KPHM_SET_INFORMER_PROCESS_SETTINGS SetInformerProcessSettings;
             KPHM_STRIP_PROTECTED_PROCESS_MASKS StripProtectedProcessMasks;
             KPHM_QUERY_VIRTUAL_MEMORY QueryVirtualMemory;
             KPHM_QUERY_HASH_INFORMATION_FILE QueryHashInformationFile;
