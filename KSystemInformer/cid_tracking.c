@@ -37,10 +37,10 @@ static const LARGE_INTEGER KphpCidApcTimeout = KPH_TIMEOUT(3 * 1000);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 static BOOLEAN KphpCidTrackingInitialized = FALSE;
 static KPH_CID_TABLE KphpCidTable;
-static volatile LONG KphpCidPopulated = 0;
+static LONG KphpCidPopulated = 0;
 static KEVENT KphpCidPopulatedEvent;
 static PKPH_PROCESS_CONTEXT KphpSystemProcessContext = NULL;
-static volatile ULONG64 KphpProcessSequence = 0;
+static ULONG64 KphpProcessSequence = 0;
 
 /**
  * \brief Looks up a context object in the CID tracking.
@@ -181,10 +181,7 @@ VOID KphCidMarkPopulated(
         return;
     }
 
-    if (InterlockedExchange(&KphpCidPopulated, 1))
-    {
-        return;
-    }
+    WriteRelease(&KphpCidPopulated, 1);
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   TRACKING,
@@ -203,7 +200,7 @@ VOID KphpCidWaitForPopulate(
 {
     KPH_PAGED_CODE();
 
-    if (KphpCidPopulated)
+    if (ReadAcquire(&KphpCidPopulated))
     {
         return;
     }
@@ -2311,7 +2308,7 @@ KPH_PROCESS_STATE KphGetProcessState(
         processState |= KPH_PROCESS_PROTECTED_PROCESS;
     }
 
-    if (Process->NumberOfUntrustedImageLoads == 0)
+    if (ReadSizeTAcquire(&Process->NumberOfUntrustedImageLoads) == 0)
     {
         processState |= KPH_PROCESS_NO_UNTRUSTED_IMAGES;
     }

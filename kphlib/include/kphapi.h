@@ -488,7 +488,7 @@ typedef struct _KPH_INFORMER_SETTINGS
 {
     union
     {
-        volatile ULONG64 Flags;
+        ULONG64 Flags;
         struct
         {
             ULONG64 ProcessCreate : 1;
@@ -559,7 +559,7 @@ typedef struct _KPH_INFORMER_SETTINGS
     };
     union
     {
-        volatile ULONG64 Flags2;
+        ULONG64 Flags2;
         struct
         {
             ULONG64 FilePostLockControl : 1;
@@ -630,7 +630,7 @@ typedef struct _KPH_INFORMER_SETTINGS
     };
     union
     {
-        volatile ULONG64 Flags3;
+        ULONG64 Flags3;
         struct
         {
             ULONG64 RegPreEnumerateKey : 1;

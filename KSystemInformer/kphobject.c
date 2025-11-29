@@ -31,7 +31,7 @@
 //
 static KPH_OBJECT_TYPE KphpObjectTypes[14] = { 0 };
 C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
-static volatile LONG KphpObjectTypeCount = 0;
+static LONG KphpObjectTypeCount = 0;
 static KSI_WORK_QUEUE_ITEM KphpDeferDeleteObjectWorkItem;
 static SLIST_HEADER KphpDeferDeleteObjectList;
 
@@ -113,8 +113,8 @@ VOID KphCreateObjectType(
     type->Name.Length = TypeName->Length;
 
     type->Index = (UCHAR)index;
-    type->TotalNumberOfObjects = 0;
-    type->HighWaterNumberOfObjects = 0;
+    WriteSizeTNoFence(&type->TotalNumberOfObjects, 0);
+    WriteSizeTNoFence(&type->HighWaterNumberOfObjects, 0);
 
     RtlCopyMemory(&type->TypeInfo, TypeInfo, sizeof(*TypeInfo));
 
@@ -152,7 +152,7 @@ NTSTATUS KphCreateObject(
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    header->PointerCount = 1;
+    WriteSSizeTNoFence(&header->PointerCount, 1);
     header->TypeIndex = ObjectType->Index;
 
     object = KphObjectHeaderToObject(header);
@@ -439,11 +439,13 @@ PVOID KphAtomicReferenceObject(
     _In_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
 {
+    ULONG_PTR value;
     PVOID object;
 
     KphpAtomicAcquireObjectLockShared(ObjectRef);
 
-    object = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_REF_OBJECT_MASK);
+    value = ReadULongPtrNoFence(&ObjectRef->Object);
+    object = (PVOID)(value & KPH_ATOMIC_OBJECT_REF_OBJECT_MASK);
     if (object)
     {
         KphReferenceObject(object);
@@ -469,13 +471,15 @@ PVOID KphpAtomicStoreObjectReference(
     )
 {
     PVOID previous;
+    ULONG_PTR value;
     ULONG_PTR object;
 
     NT_ASSERT(((ULONG_PTR)Object & KPH_ATOMIC_OBJECT_REF_LOCK_MASK) == 0);
 
     KphpAtomicAcquireObjectLockExclusive(ObjectRef);
 
-    previous = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_REF_OBJECT_MASK);
+    value = ReadULongPtrNoFence(&ObjectRef->Object);
+    previous = (PVOID)(value & KPH_ATOMIC_OBJECT_REF_OBJECT_MASK);
 
     object = (ULONG_PTR)Object | KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG;
 

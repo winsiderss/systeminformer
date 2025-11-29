@@ -208,6 +208,15 @@ SSIZE_T InterlockedIncrementSSizeT(
 }
 
 FORCEINLINE
+VOID WriteSSizeTNoFence(
+    _Out_ _Interlocked_operand_ volatile SSIZE_T* Target,
+    _In_ SSIZE_T Value
+    )
+{
+    WriteSizeTNoFence((SIZE_T*)Target, (SIZE_T)Value);
+}
+
+FORCEINLINE
 SSIZE_T InterlockedIncrementSSizeTNoFence(
     _Inout_ _Interlocked_operand_ volatile SSIZE_T* Target
     )
@@ -1219,7 +1228,7 @@ BOOLEAN KphIsSameFile(
 
 typedef struct _KPH_REFERENCE
 {
-    volatile LONG Count;
+    LONG Count;
 } KPH_REFERENCE, *PKPH_REFERENCE;
 
 _IRQL_requires_max_(APC_LEVEL)
@@ -1552,7 +1561,7 @@ NTSTATUS KphQueryHashInformationFileObject(
 
 typedef struct _KPH_OBJECT_HEADER
 {
-    volatile SSIZE_T PointerCount;
+    SSIZE_T PointerCount;
     UCHAR TypeIndex;
     SLIST_ENTRY ListEntry;
     QUAD Body;
@@ -1626,8 +1635,8 @@ typedef struct _KPH_OBJECT_TYPE
 {
     UNICODE_STRING Name;
     UCHAR Index;
-    volatile SIZE_T TotalNumberOfObjects;
-    volatile SIZE_T HighWaterNumberOfObjects;
+    SIZE_T TotalNumberOfObjects;
+    SIZE_T HighWaterNumberOfObjects;
     KPH_OBJECT_TYPE_INFO TypeInfo;
 } KPH_OBJECT_TYPE, *PKPH_OBJECT_TYPE;
 
@@ -1669,7 +1678,7 @@ PKPH_OBJECT_TYPE KphGetObjectType(
 
 typedef struct _KPH_ATOMIC_OBJECT_REF
 {
-    volatile ULONG_PTR Object;
+    ULONG_PTR Object;
 } KPH_ATOMIC_OBJECT_REF, *PKPH_ATOMIC_OBJECT_REF;
 
 #define KPH_ATOMIC_OBJECT_REF_INIT { .Object = 0 }
@@ -1700,7 +1709,7 @@ typedef struct _KPH_CID_TABLE_ENTRY
 typedef struct _KPH_CID_TABLE
 {
     KSPIN_LOCK Lock;
-    volatile ULONG_PTR Table;
+    ULONG_PTR Table;
 } KPH_CID_TABLE, *PKPH_CID_TABLE;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1796,14 +1805,14 @@ typedef struct _KPH_PROCESS_CONTEXT
     UNICODE_STRING ImageName;
     PFILE_OBJECT FileObject;
 
-    volatile SIZE_T NumberOfImageLoads;
+    SIZE_T NumberOfImageLoads;
 
     KPH_SESSION_TOKEN_ATOMIC SessionToken;
     KPH_INFORMER_SETTINGS InformerFilter;
 
     union
     {
-        volatile ULONG Flags;
+        ULONG Flags;
         struct
         {
             ULONG CreateNotification : 1;
@@ -1834,7 +1843,7 @@ typedef struct _KPH_PROCESS_CONTEXT
 
     union
     {
-        volatile ULONG Flags;
+        ULONG Flags;
         struct
         {
             ULONG Debugged : 1;
@@ -1848,10 +1857,10 @@ typedef struct _KPH_PROCESS_CONTEXT
     //
     // Only tracked for verified processes.
     //
-    volatile SIZE_T NumberOfMicrosoftImageLoads;
-    volatile SIZE_T NumberOfAntimalwareImageLoads;
-    volatile SIZE_T NumberOfVerifiedImageLoads;
-    volatile SIZE_T NumberOfUntrustedImageLoads;
+    SIZE_T NumberOfMicrosoftImageLoads;
+    SIZE_T NumberOfAntimalwareImageLoads;
+    SIZE_T NumberOfVerifiedImageLoads;
+    SIZE_T NumberOfUntrustedImageLoads;
 
     PKNORMAL_ROUTINE ApcNoopRoutine;
 
@@ -2539,7 +2548,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
 typedef struct _KPH_SESSION_TOKEN
 {
     KPH_SESSION_ACCESS_TOKEN AccessToken;
-    volatile LONG UseCount;
+    LONG UseCount;
 } KPH_SESSION_TOKEN, *PKPH_SESSION_TOKEN;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2593,8 +2602,8 @@ typedef struct _KPH_RING_SECTION
 typedef struct _KPH_RING_BUFFER
 {
     KSPIN_LOCK ProducerLock;
-    volatile ULONG* ProducerPos;
-    volatile ULONG* ConsumerPos;
+    PULONG ProducerPos;
+    PULONG ConsumerPos;
     ULONG Length;
     PVOID Buffer;
     PKEVENT Event;

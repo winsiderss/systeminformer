@@ -257,9 +257,6 @@ PKPH_CID_TABLE_ENTRY KphpCidLookupEntry(
 
     id = KphpCidToId(Cid);
 
-    //
-    // N.B. Capture the volatile table pointer. This is a lock-free lookup.
-    //
     table = ReadULongPtrAcquire(&Table->Table);
 
     switch (table & KPH_CID_TABLE_LEVEL_MASK)

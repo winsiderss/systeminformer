@@ -29,7 +29,7 @@ typedef struct _KPH_RING_HEADER
             ULONG64 Spare : 27;
         };
 
-        volatile ULONG64 Value;
+        ULONG64 Value;
     };
 
 #ifdef _WIN64
@@ -46,12 +46,12 @@ C_ASSERT(sizeof(KPH_RING_HEADER) == MEMORY_ALLOCATION_ALIGNMENT);
 
 typedef struct _KPH_RING_CONSUMER_BLOCK
 {
-    volatile ULONG Position;
+    ULONG Position;
 } KPH_RING_CONSUMER_BLOCK, *PKPH_RING_CONSUMER_BLOCK;
 
 typedef struct _KPH_RING_PRODUCER_BLOCK
 {
-    volatile ULONG Position;
+    ULONG Position;
     ULONG Length;
     DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) BYTE Buffer[ANYSIZE_ARRAY];
 } KPH_RING_PRODUCER_BLOCK, *PKPH_RING_PRODUCER_BLOCK;

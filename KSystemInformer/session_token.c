@@ -140,7 +140,7 @@ NTSTATUS KSIAPI KphpInitializeSessionToken(
     token->AccessToken.Privileges = init->Privileges;
     token->AccessToken.Uses = init->Uses;
 
-    token->UseCount = 0;
+    WriteNoFence(&token->UseCount, 0);
 
     return STATUS_SUCCESS;
 }
@@ -581,7 +581,8 @@ NTSTATUS KphpAssignThreadSessionToken(
         goto Exit;
     }
 
-    KphAtomicAssignObjectReference(&Thread->SessionToken.Atomic, token);
+    KphAtomicAssignObjectReference(&Thread->SessionToken.Atomic,
+                                   token);
 
     status = STATUS_SUCCESS;
 

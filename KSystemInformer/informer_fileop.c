@@ -45,7 +45,7 @@ typedef struct _KPH_FLT_COMPLETION_CONTEXT
     PFLT_FILE_NAME_INFORMATION DestFileNameInfo;
 } KPH_FLT_COMPLETION_CONTEXT, *PKPH_FLT_COMPLETION_CONTEXT;
 
-static volatile ULONG64 KphpFltSequence = 0;
+static ULONG64 KphpFltSequence = 0;
 static BOOLEAN KphpFltOpInitialized = FALSE;
 static NPAGED_LOOKASIDE_LIST KphpFltCompletionContextLookaside = { 0 };
 

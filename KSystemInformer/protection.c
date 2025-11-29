@@ -1120,7 +1120,7 @@ VOID KphpHandleUntrustedImageLoad(
         goto Exit;
     }
 
-    if ((Process->NumberOfImageLoads == 1) &&
+    if ((ReadSizeTAcquire(&Process->NumberOfImageLoads) == 1) &&
         (PsGetProcessSectionBaseAddress(Process->EProcess) == ImageBase))
     {
         //
@@ -1469,7 +1469,7 @@ VOID KphpApplyImageProtections(
     )
 {
     NTSTATUS status;
-    volatile SIZE_T* imageLoadCounter;
+    PSIZE_T imageLoadCounter;
     HANDLE fileHandle;
     PFILE_OBJECT fileObject;
     PUNICODE_STRING fileName;
@@ -1932,8 +1932,8 @@ NTSTATUS KphAcquireDriverUnloadProtection(
         NT_ASSERT(!KphpDriverUnloadPreviousRoutine);
 
         KphpDriverUnloadPreviousRoutine = InterlockedExchangePointer(
-                               (volatile PVOID*)&KphDriverObject->DriverUnload,
-                               NULL);
+                                         (PVOID*)&KphDriverObject->DriverUnload,
+                                         NULL);
 
         NT_ASSERT(!KphDriverObject->DriverUnload);
         NT_ASSERT(KphpDriverUnloadPreviousRoutine);
@@ -2001,8 +2001,8 @@ NTSTATUS KphReleaseDriverUnloadProtection(
         NT_ASSERT(KphpDriverUnloadPreviousRoutine);
 
         KphpDriverUnloadPreviousRoutine = InterlockedExchangePointer(
-                               (volatile PVOID*)&KphDriverObject->DriverUnload,
-                               KphpDriverUnloadPreviousRoutine);
+                                         (PVOID*)&KphDriverObject->DriverUnload,
+                                         KphpDriverUnloadPreviousRoutine);
 
         NT_ASSERT(KphDriverObject->DriverUnload);
         NT_ASSERT(!KphpDriverUnloadPreviousRoutine);
