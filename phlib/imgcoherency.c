@@ -463,17 +463,22 @@ NTSTATUS PhpAnalyzeImageCoherencyInspect(
     //
     if (LeftBuffer && RightBuffer)
     {
-        for (ULONG i = 0; i < min(LeftCount, RightCount); i++)
+        ULONG length = min(LeftCount, RightCount);
+
+        for (ULONG i = 0; i < length; i++)
         {
             if (SkipCallback)
             {
                 ULONG skip = SkipCallback(Rva + i, SkipCallbackContext);
                 if (skip != 0)
                 {
-                    Context->CoherentBytes += skip;
-                    Context->SkippedBytes += skip;
-                    Context->TotalBytes += skip;
-                    i += (skip - 1);
+                    ULONG remaining = length - i;
+                    ULONG effectiveSkip = (skip > remaining) ? remaining : skip;
+
+                    Context->CoherentBytes += effectiveSkip;
+                    Context->SkippedBytes += effectiveSkip;
+                    Context->TotalBytes += effectiveSkip;
+                    i += effectiveSkip;
                     continue;
                 }
             }
@@ -788,7 +793,7 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
             PIMAGE_SECTION_HEADER remoteMappedSection;
 
             mappedSection = &Context->MappedImage.Sections[i];
-            remoteMappedSection = &Context->MappedImage.Sections[i];
+            remoteMappedSection = &Context->RemoteMappedImage.Sections[i];
 
             if (PhpShouldScanSection(Context->Type, mappedSection) ||
                 PhpShouldScanSection(Context->Type, remoteMappedSection))
