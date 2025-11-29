@@ -546,7 +546,7 @@ NTSTATUS KphQueryInformationProcess(
             info.CreatorClientId.UniqueProcess = process->CreatorClientId.UniqueProcess;
             info.CreatorClientId.UniqueThread = process->CreatorClientId.UniqueThread;
 
-            info.NumberOfImageLoads = process->NumberOfImageLoads;
+            info.NumberOfImageLoads = ReadSizeTNoFence(&process->NumberOfImageLoads);
 
             info.Flags = process->Flags;
 
@@ -555,10 +555,10 @@ NTSTATUS KphQueryInformationProcess(
             info.ProcessAllowedMask = process->ProcessAllowedMask;
             info.ThreadAllowedMask = process->ThreadAllowedMask;
 
-            info.NumberOfMicrosoftImageLoads = process->NumberOfMicrosoftImageLoads;
-            info.NumberOfAntimalwareImageLoads = process->NumberOfAntimalwareImageLoads;
-            info.NumberOfVerifiedImageLoads = process->NumberOfVerifiedImageLoads;
-            info.NumberOfUntrustedImageLoads = process->NumberOfUntrustedImageLoads;
+            info.NumberOfMicrosoftImageLoads = ReadSizeTNoFence(&process->NumberOfMicrosoftImageLoads);
+            info.NumberOfAntimalwareImageLoads = ReadSizeTNoFence(&process->NumberOfAntimalwareImageLoads);
+            info.NumberOfVerifiedImageLoads = ReadSizeTNoFence(&process->NumberOfVerifiedImageLoads);
+            info.NumberOfUntrustedImageLoads = ReadSizeTNoFence(&process->NumberOfUntrustedImageLoads);
 
             info.UserWritableReferences = 0;
             if (process->FileObject &&
