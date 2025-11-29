@@ -79,6 +79,14 @@ NTSTATUS KphSetInformerProcessSettings(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetInformerStats(
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PKPH_INFORMER_STATS Stats,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
 // mini-filter informer
 
 extern PFLT_FILTER KphFltFilter;

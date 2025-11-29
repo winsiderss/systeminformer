@@ -291,6 +291,36 @@ NTSTATUS KphWriteULong64ToMode(
 }
 
 /**
+ * \brief Writes an signed 64-bit value to the specified mode.
+ *
+ * \param[out] Destination Address to write the signed 64-bit value to.
+ * \param[in] Source The signed 64-bit value to write.
+ * \param[in] AccessMode The access mode to use for the write.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteLong64ToMode(
+    _Out_ PLONG64 Destination,
+    _In_ LONG64 Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    KPH_PAGED_CODE();
+
+    __try
+    {
+        WriteLong64ToMode(Destination, Source, AccessMode);
+    }
+    __except (UmaExceptionFilter(AccessMode))
+    {
+        return GetExceptionCode();
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * \brief Writes an unsigned size width value to the specified mode.
  *
  * \param[out] Destination Address to write the unsigned sized width value to.

@@ -2052,3 +2052,45 @@ NTSTATUS KphOpenDeviceBaseDevice(
     PhDereferenceObject(msg);
     return status;
 }
+
+NTSTATUS KphGetInformerStats(
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PKPH_INFORMER_STATS Stats
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    msg = KphCreateUserMessage(KphMsgGetInformerStats);
+    msg->User.GetInformerStats.ProcessHandle = ProcessHandle;
+    msg->User.GetInformerStats.Stats = Stats;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.GetInformerStats.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
+NTSTATUS KphGetMessageStats(
+    _Out_ PKPH_INFORMER_STATS Stats
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    msg = KphCreateUserMessage(KphMsgGetMessageStats);
+    msg->User.GetMessageStats.Stats = Stats;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.GetMessageStats.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
