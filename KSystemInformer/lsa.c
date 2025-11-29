@@ -187,13 +187,10 @@ NTSTATUS KphProcessIsLsass(
     }
 
     SeCaptureSubjectContextEx(NULL, Process, &subjectContext);
-
     result = KphSinglePrivilegeCheckEx(SeCreateTokenPrivilege,
                                        &subjectContext,
                                        UserMode);
-
     SeReleaseSubjectContext(&subjectContext);
-
     if (result)
     {
         *IsLsass = TRUE;

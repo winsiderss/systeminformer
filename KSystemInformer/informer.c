@@ -695,18 +695,14 @@ NTSTATUS KphSetInformerProcessSettings(
 
         context.Status = STATUS_SUCCESS;
         context.Settings = settings;
-
         (VOID)KphpSetInformerProcessSettings(processContext, &context);
-
         status = context.Status;
     }
     else
     {
         context.Status = STATUS_SUCCESS;
         context.Settings = settings;
-
         KphEnumerateProcessContexts(KphpSetInformerProcessSettings, &context);
-
         status = context.Status;
     }
 

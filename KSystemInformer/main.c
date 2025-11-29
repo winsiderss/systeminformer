@@ -200,15 +200,10 @@ NTSTATUS DriverEntry(
     }
 
     KphDynamicImport();
-
     KphObjectInitialize();
-
     KphInitializeRingBuffer();
-
     KphInitializeParameters(RegistryPath);
-
     KphInitializeAlloc();
-
     KphInitializeThreading();
 
     status = KphInitializeKnownDll();
@@ -267,9 +262,7 @@ NTSTATUS DriverEntry(
     }
 
     KphInitializeDynData();
-
     KphInitializeProtection();
-
     KphInitializeSessionToken();
 
     status = KphInitializeStackBackTrace();

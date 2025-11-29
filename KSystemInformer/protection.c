@@ -93,9 +93,7 @@ NTSTATUS KSIAPI KphpInitializeImageLoadApc(
 
     apc->Process = init->Process;
     KphReferenceObject(apc->Process);
-
     apc->ImageBase = init->ImageBase;
-
     apc->FileObject = init->FileObject;
     if (apc->FileObject)
     {
@@ -435,11 +433,9 @@ VOID KphStopProtectingProcess(
     KPH_PAGED_CODE();
 
     KphAcquireRWLockExclusive(&Process->ProtectionLock);
-
     Process->Protected = FALSE;
     Process->ProcessAllowedMask = 0;
     Process->ThreadAllowedMask = 0;
-
     KphReleaseRWLock(&Process->ProtectionLock);
 
     KphTracePrint(TRACE_LEVEL_INFORMATION,
@@ -510,13 +506,10 @@ NTSTATUS KphStartProtectingProcess(
     }
 
     SeCaptureSubjectContextEx(NULL, Process->EProcess, &subjectContext);
-
     accessGranted = KphSinglePrivilegeCheckEx(SeDebugPrivilege,
                                               &subjectContext,
                                               UserMode);
-
     SeReleaseSubjectContext(&subjectContext);
-
     if (!accessGranted)
     {
         status = STATUS_PRIVILEGE_NOT_HELD;
@@ -551,9 +544,7 @@ NTSTATUS KphStartProtectingProcess(
     context.Dyn = dyn;
     context.Status = STATUS_SUCCESS;
     context.Process = Process;
-
     KphEnumerateProcessContexts(KphpEnumProcessContextsForProtection, &context);
-
     status = context.Status;
 
     if (!NT_SUCCESS(status))
@@ -1409,17 +1400,13 @@ NTSTATUS KphpReOpenImageFile(
 
     *FileHandle = fileHandle;
     fileHandle = NULL;
-
     *FileObject = fileObject;
     fileObject = NULL;
-
     *FileName = fileName;
     fileName = NULL;
-
     *ImageBase = imageBase;
     imageBase = NULL;
     *ImageSize = imageSize;
-
     *DataBase = dataBase;
     dataBase = NULL;
     *DataSize = dataSize;

@@ -541,20 +541,14 @@ NTSTATUS KphQueryInformationProcess(
             KphAcquireRWLockShared(&process->ProtectionLock);
 
             info.ProcessState = KphGetProcessState(process);
-
             info.ProcessStartKey = KphGetProcessStartKey(processObject);
             info.CreatorClientId.UniqueProcess = process->CreatorClientId.UniqueProcess;
             info.CreatorClientId.UniqueThread = process->CreatorClientId.UniqueThread;
-
             info.NumberOfImageLoads = ReadSizeTNoFence(&process->NumberOfImageLoads);
-
             info.Flags = process->Flags;
-
             info.NumberOfThreads = process->NumberOfThreads;
-
             info.ProcessAllowedMask = process->ProcessAllowedMask;
             info.ThreadAllowedMask = process->ThreadAllowedMask;
-
             info.NumberOfMicrosoftImageLoads = ReadSizeTNoFence(&process->NumberOfMicrosoftImageLoads);
             info.NumberOfAntimalwareImageLoads = ReadSizeTNoFence(&process->NumberOfAntimalwareImageLoads);
             info.NumberOfVerifiedImageLoads = ReadSizeTNoFence(&process->NumberOfVerifiedImageLoads);
