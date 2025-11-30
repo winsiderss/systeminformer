@@ -575,26 +575,30 @@ NTSTATUS KphStartProtectingProcess(
     Process->ProcessAllowedMask = ProcessAllowedMask;
     Process->ThreadAllowedMask = ThreadAllowedMask;
 
-    // if the process wasn't marked as accessed we are done
-    if (!Process->AccessedDuringCreation)
-    {
-#ifdef IS_KTE
-        DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphStartProtectingProcess: Skipping KphEnumerateProcessContexts, process wasn't accessed\n");
-#endif
-        status = STATUS_SUCCESS;
-        goto Exit;
-    }
-
-#ifdef IS_KTE
-    DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphStartProtectingProcess: Starting KphEnumerateProcessContexts, process was accessed durign creation\n");
-#endif
-
     dyn = KphReferenceDynData();
     if (!dyn)
     {
-        status = STATUS_NOINTERFACE;
+        // if the process wasn't marked as accessed we are done
+        if (!Process->AccessedDuringCreation)
+        {
+#ifdef IS_KTE
+            DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphStartProtectingProcess: Skipping KphEnumerateProcessContexts, no dyn data available and process wasn't accessed\n");
+#endif
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
+#ifdef IS_KTE
+            DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphStartProtectingProcess: Fail protection process was accessed, and there are no dyn data\n");
+#endif
+            status = STATUS_NOINTERFACE;
+        }
         goto Exit;
     }
+
+#ifdef IS_KTE
+    DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphStartProtectingProcess: KphpEnumProcessContextsForProtection\n");
+#endif
 
     context.Dyn = dyn;
     context.Status = STATUS_SUCCESS;
@@ -758,7 +762,7 @@ VOID KphApplyObProtections(
             if (!process && !hasTerminated)
             {
 #ifdef IS_KTE
-                DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphApplyObProtections Tracking: %s (%d)\n", PsGetProcessImageFileName(Info->Object), (ULONG)(UINT_PTR)PsGetProcessId(Info->Object));
+                //DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphApplyObProtections Tracking: %s (%d)\n", PsGetProcessImageFileName(Info->Object), (ULONG)(UINT_PTR)PsGetProcessId(Info->Object));
 #endif
                 process = KphTrackProcessContext(Info->Object);
 
@@ -777,7 +781,7 @@ VOID KphApplyObProtections(
                         KphDereferenceObject(process);
 
 #ifdef IS_KTE
-                        DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphApplyObProtections UnTracking: %s (%d)\n", PsGetProcessImageFileName(Info->Object), (ULONG)(UINT_PTR)PsGetProcessId(Info->Object));
+                        //DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphApplyObProtections UnTracking: %s (%d)\n", PsGetProcessImageFileName(Info->Object), (ULONG)(UINT_PTR)PsGetProcessId(Info->Object));
 #endif
                         process = KphUntrackProcessContext(PsGetProcessId(Info->Object));
                         if (process)

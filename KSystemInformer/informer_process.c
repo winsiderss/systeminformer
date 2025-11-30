@@ -101,7 +101,7 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     if (!CreateInfo)
     {
 #ifdef IS_KTE
-        DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphpPerformProcessTracking Exiting: %s (%d)\n", PsGetProcessImageFileName(Process), (ULONG)(UINT_PTR)PsGetProcessId(Process));
+        //DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphpPerformProcessTracking Exiting: %s (%d)\n", PsGetProcessImageFileName(Process), (ULONG)(UINT_PTR)PsGetProcessId(Process));
 #endif
 
         process = KphUntrackProcessContext(ProcessId);
@@ -127,7 +127,7 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     NT_ASSERT(CreateInfo);
 
 #ifdef IS_KTE
-    DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphpPerformProcessTracking Creating: %s (%d)\n", PsGetProcessImageFileName(Process), (ULONG)(UINT_PTR)PsGetProcessId(Process));
+    //DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphpPerformProcessTracking Creating: %s (%d)\n", PsGetProcessImageFileName(Process), (ULONG)(UINT_PTR)PsGetProcessId(Process));
 #endif
 
     process = KphTrackProcessContext(Process);
