@@ -100,6 +100,10 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
 
     if (!CreateInfo)
     {
+#ifdef IS_KTE
+        DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphpPerformProcessTracking Exiting: %s (%d)\n", PsGetProcessImageFileName(Process), (ULONG)(UINT_PTR)PsGetProcessId(Process));
+#endif
+
         process = KphUntrackProcessContext(ProcessId);
         if (!process)
         {
@@ -121,6 +125,10 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     }
 
     NT_ASSERT(CreateInfo);
+
+#ifdef IS_KTE
+    DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphpPerformProcessTracking Creating: %s (%d)\n", PsGetProcessImageFileName(Process), (ULONG)(UINT_PTR)PsGetProcessId(Process));
+#endif
 
     process = KphTrackProcessContext(Process);
     if (!process)
@@ -155,6 +163,14 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     if ((processState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH)
     {
         process->SecurelyCreated = TRUE;
+    }
+
+    // When startes as service by services.exe also count as securely created
+    // services.exe is signed by Microsoft and runs as WinTcb Protected Process
+    PS_PROTECTION Protection = PsGetProcessProtection(creatorProcess->EProcess);
+    if (Protection.Signer == PsProtectedSignerWinTcb)
+    {
+        process->SecurelyCreatedSvc = TRUE;
     }
 
     KphDereferenceObject(creatorProcess);

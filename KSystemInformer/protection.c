@@ -213,6 +213,14 @@ NTSTATUS KphpShouldSuppressObjectProtections(
                       &Actor->ImageName,
                       HandleToULong(Actor->ProcessId));
 
+#ifdef IS_KTE
+        DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM: Protected process %wZ (%lu) access granted to LSA process %wZ (%lu)\n",
+            &Target->ImageName,
+            HandleToULong(Target->ProcessId),
+            &Actor->ImageName,
+            HandleToULong(Actor->ProcessId));
+#endif
+
         *Suppress = TRUE;
     }
 
@@ -295,6 +303,18 @@ BOOLEAN KSIAPI KphpEnumProcessHandlesForProtection(
                           &parameter->Process->ImageName,
                           HandleToULong(parameter->Process->ProcessId));
 
+#ifdef IS_KTE
+            DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM: Modifying process handle (0x%04x, 0x%08x -> 0x%08x) "
+                "permissions in process %wZ (%lu) for process %wZ (%lu)",
+                HandleToULong(Handle),
+                grantedAccess,
+                (grantedAccess & allowedAccessMask),
+                &parameter->ProcessEnum->ImageName,
+                HandleToULong(parameter->ProcessEnum->ProcessId),
+                &parameter->Process->ImageName,
+                HandleToULong(parameter->Process->ProcessId));
+#endif
+
             ObpSetGrantedAccess(&HandleTableEntry->GrantedAccess,
                                 (grantedAccess & allowedAccessMask));
         }
@@ -329,6 +349,18 @@ BOOLEAN KSIAPI KphpEnumProcessHandlesForProtection(
                           HandleToULong(parameter->ProcessEnum->ProcessId),
                           &parameter->Process->ImageName,
                           HandleToULong(parameter->Process->ProcessId));
+
+#ifdef IS_KTE
+            DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM: Modifying thread handle (0x%04x, 0x%08x -> 0x%08x) "
+                "permissions in process %wZ (%lu) for process %wZ (%lu)",
+                HandleToULong(Handle),
+                grantedAccess,
+                (grantedAccess & allowedAccessMask),
+                &parameter->ProcessEnum->ImageName,
+                HandleToULong(parameter->ProcessEnum->ProcessId),
+                &parameter->Process->ImageName,
+                HandleToULong(parameter->Process->ProcessId));
+#endif
 
             ObpSetGrantedAccess(&HandleTableEntry->GrantedAccess,
                                 (grantedAccess & allowedAccessMask));
@@ -502,12 +534,7 @@ NTSTATUS KphStartProtectingProcess(
 
     releaseLock = FALSE;
 
-    dyn = KphReferenceDynData();
-    if (!dyn)
-    {
-        status = STATUS_NOINTERFACE;
-        goto Exit;
-    }
+    dyn = NULL;
 
     SeCaptureSubjectContextEx(NULL, Process->EProcess, &subjectContext);
 
@@ -548,6 +575,27 @@ NTSTATUS KphStartProtectingProcess(
     Process->ProcessAllowedMask = ProcessAllowedMask;
     Process->ThreadAllowedMask = ThreadAllowedMask;
 
+    // if the process wasn't marked as accessed we are done
+    if (!Process->AccessedDuringCreation)
+    {
+#ifdef IS_KTE
+        DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphStartProtectingProcess: Skipping KphEnumerateProcessContexts, process wasn't accessed\n");
+#endif
+        status = STATUS_SUCCESS;
+        goto Exit;
+    }
+
+#ifdef IS_KTE
+    DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphStartProtectingProcess: Starting KphEnumerateProcessContexts, process was accessed durign creation\n");
+#endif
+
+    dyn = KphReferenceDynData();
+    if (!dyn)
+    {
+        status = STATUS_NOINTERFACE;
+        goto Exit;
+    }
+
     context.Dyn = dyn;
     context.Status = STATUS_SUCCESS;
     context.Process = Process;
@@ -556,17 +604,19 @@ NTSTATUS KphStartProtectingProcess(
 
     status = context.Status;
 
-    if (!NT_SUCCESS(status))
-    {
-        Process->Protected = FALSE;
-        Process->ProcessAllowedMask = 0;
-        Process->ThreadAllowedMask = 0;
-    }
-
 Exit:
+
+    Process->DecidedOnProtection = TRUE;
 
     if (releaseLock)
     {
+        if (!NT_SUCCESS(status))
+        {
+            Process->Protected = FALSE;
+            Process->ProcessAllowedMask = 0;
+            Process->ThreadAllowedMask = 0;
+        }
+
         KphReleaseRWLock(&Process->ProtectionLock);
     }
 
@@ -666,6 +716,79 @@ VOID KphApplyObProtections(
     if (Info->ObjectType == *PsProcessType)
     {
         process = KphGetEProcessContext(Info->Object);
+
+        if (!process || !process->DecidedOnProtection)
+        {
+            LARGE_INTEGER timeout;
+            timeout.QuadPart = -10 * 1000; // 1 ms
+            BOOLEAN hasTerminated = FALSE;
+
+            int i = 0;
+            while (i++ < 1000) // 1 second max
+            {
+                status = KeWaitForSingleObject(Info->Object,
+                                               Executive,
+                                               KernelMode,
+                                               FALSE,
+                                               &timeout);
+                if (status == STATUS_SUCCESS)
+                {
+                    hasTerminated = TRUE;
+                    break; // woopsi the process exited
+                }
+
+                if (!process)
+                {
+                    process = KphGetEProcessContext(Info->Object);
+                }
+
+                if (process && process->DecidedOnProtection)
+                {
+                    break;
+                }
+            }
+
+#ifdef IS_KTE
+            DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphApplyObProtections - %s process (%d): %s (%d) -> %s (%d)\n", process ? (process->DecidedOnProtection ? "found decided" : "found UNdecided") : (hasTerminated ? "seen terminated" : "could NOT find"), i,
+                PsGetProcessImageFileName(IoGetCurrentProcess()), (ULONG)(UINT_PTR)PsGetProcessId(IoGetCurrentProcess()), PsGetProcessImageFileName(Info->Object), (ULONG)(UINT_PTR)PsGetProcessId(Info->Object));
+#endif
+
+            // If the create process callback still hasn't run we just start tracking the process ourselves
+            // unless ofcause that process has already exited
+            if (!process && !hasTerminated)
+            {
+#ifdef IS_KTE
+                DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphApplyObProtections Tracking: %s (%d)\n", PsGetProcessImageFileName(Info->Object), (ULONG)(UINT_PTR)PsGetProcessId(Info->Object));
+#endif
+                process = KphTrackProcessContext(Info->Object);
+
+                // final safety check - if the process exited in the meantime we untrack it again
+                if (process)
+                {
+                    LARGE_INTEGER zeroTimeout = { 0 };
+                    status = KeWaitForSingleObject(Info->Object,
+                        Executive,
+                        KernelMode,
+                        FALSE,
+                        &zeroTimeout);
+
+                    if (status == STATUS_SUCCESS)
+                    {
+                        KphDereferenceObject(process);
+
+#ifdef IS_KTE
+                        DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "BAM KphApplyObProtections UnTracking: %s (%d)\n", PsGetProcessImageFileName(Info->Object), (ULONG)(UINT_PTR)PsGetProcessId(Info->Object));
+#endif
+                        process = KphUntrackProcessContext(PsGetProcessId(Info->Object));
+                        if (process)
+                        {
+                            KphDereferenceObject(process);
+                            process = NULL;
+                        }
+                    }
+                }
+            }
+        }
     }
     else
     {
@@ -693,6 +816,13 @@ VOID KphApplyObProtections(
 
     KphAcquireRWLockShared(&process->ProtectionLock);
     releaseLock = TRUE;
+
+    // If the create process callback still hasn't decided if this will be a protected process, we just mark it as accessed
+    // when accessed KphStartProtectingProcess will fix the handles
+    if (!process->DecidedOnProtection)
+    {
+        process->AccessedDuringCreation = TRUE;
+    }
 
     if (!process->Protected)
     {

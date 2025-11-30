@@ -163,6 +163,14 @@ NTSTATUS KphProcessIsLsass(
 
     *IsLsass = FALSE;
 
+    // Quick check if LSA protection is present, we dont need dyn data 
+    PS_PROTECTION Protection = PsGetProcessProtection(Process);
+    if (Protection.Signer == PsProtectedSignerLsa)
+    {
+        *IsLsass = TRUE;
+        return STATUS_SUCCESS;
+    }
+
     status = KphpGetLsassProcessId(&processId);
     if (!NT_SUCCESS(status))
     {

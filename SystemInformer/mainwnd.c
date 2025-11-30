@@ -37,6 +37,7 @@
 #include <settings.h>
 #include <srvlist.h>
 #include <srvprv.h>
+#include <ksisup.h>
 
 #include <mainwndp.h>
 
@@ -308,10 +309,10 @@ PPH_STRING PhMwpInitializeWindowTitle(
     switch (KphLevel)
     {
     case KphLevelMax:
-        PhAppendStringBuilder2(&stringBuilder, L"++");
+        PhAppendStringBuilder2(&stringBuilder, !KsiDynDataValid ? L"÷÷" : L"++");
         break;
     case KphLevelHigh:
-        PhAppendStringBuilder2(&stringBuilder, L"+");
+        PhAppendStringBuilder2(&stringBuilder, !KsiDynDataValid ? L"÷" : L"+");
         break;
     case KphLevelMed:
         PhAppendStringBuilder2(&stringBuilder, L"~");

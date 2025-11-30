@@ -42,6 +42,7 @@ static BOOLEAN KsiEnableLoadFilter = FALSE;
 static PPH_STRING KsiServiceName = NULL;
 static PPH_STRING KsiFileName = NULL;
 static PPH_STRING KsiObjectName = NULL;
+BOOLEAN KsiDynDataValid = FALSE;
 
 #ifdef DEBUG
 //#define KSI_DEBUG_DELAY_SPLASHSCREEN 1
@@ -955,9 +956,43 @@ VOID KsiConnect(
         &signatureLength
         );
 
-    if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
+    if (NT_SUCCESS(status))
     {
-        if (PhGetPhReleaseChannel() < PhCanaryChannel)
+        KsiDynDataValid = TRUE;
+    }
+    else if (!PhStartupParameters.KphStartupMax && !PhStartupParameters.KphStartupHigh)
+    {
+        if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
+        {
+            if (PhGetPhReleaseChannel() < PhCanaryChannel)
+            {
+                PhShowKsiMessageEx(
+                    WindowHandle,
+                    TD_SHIELD_ERROR_ICON,
+                    0,
+                    FALSE,
+                    L"Unable to load kernel driver",
+                    L"The kernel driver is not yet supported on this kernel "
+                    L"version. For the latest kernel support switch to the Canary "
+                    L"update channel (Help > Check for updates > Canary > Check)."
+                );
+            }
+            else
+            {
+                PhShowKsiMessageEx(
+                    WindowHandle,
+                    TD_SHIELD_ERROR_ICON,
+                    0,
+                    FALSE,
+                    L"Unable to load kernel driver",
+                    L"The kernel driver is not yet supported on this kernel "
+                    L"version. Request support by submitting a GitHub issue with "
+                    L"the Windows Kernel version."
+                );
+            }
+        }
+
+        if (status == STATUS_NO_SUCH_FILE)
         {
             PhShowKsiMessageEx(
                 WindowHandle,
@@ -965,52 +1000,21 @@ VOID KsiConnect(
                 0,
                 FALSE,
                 L"Unable to load kernel driver",
-                L"The kernel driver is not yet supported on this kernel "
-                L"version. For the latest kernel support switch to the Canary "
-                L"update channel (Help > Check for updates > Canary > Check)."
-                );
+                L"The dynamic configuration was not found."
+            );
         }
-        else
+
+        if (!NT_SUCCESS(status))
         {
             PhShowKsiMessageEx(
                 WindowHandle,
                 TD_SHIELD_ERROR_ICON,
-                0,
+                status,
                 FALSE,
                 L"Unable to load kernel driver",
-                L"The kernel driver is not yet supported on this kernel "
-                L"version. Request support by submitting a GitHub issue with "
-                L"the Windows Kernel version."
-                );
+                L"Failed to access the dynamic configuration."
+            );
         }
-        goto CleanupExit;
-    }
-
-    if (status == STATUS_NO_SUCH_FILE)
-    {
-        PhShowKsiMessageEx(
-            WindowHandle,
-            TD_SHIELD_ERROR_ICON,
-            0,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"The dynamic configuration was not found."
-            );
-        goto CleanupExit;
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhShowKsiMessageEx(
-            WindowHandle,
-            TD_SHIELD_ERROR_ICON,
-            status,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"Failed to access the dynamic configuration."
-            );
-
-        goto CleanupExit;
     }
 
     if (!PhDoesFileExistWin32(PhGetString(KsiFileName)))
@@ -1047,6 +1051,9 @@ VOID KsiConnect(
         SetFlag(config.FsSupportedFeatures, SUPPORTED_FS_FEATURES_BYPASS_IO);
     config.Flags.Flags = 0;
     config.Flags.DisableImageLoadProtection = !!PhGetIntegerSetting(SETTING_KSI_DISABLE_IMAGE_LOAD_PROTECTION);
+#ifdef IS_KTE
+    config.Flags.AllowDebugging = TRUE;
+#endif
     config.Flags.RandomizedPoolTag = !!PhGetIntegerSetting(SETTING_KSI_RANDOMIZED_POOL_TAG);
     config.Flags.DynDataNoEmbedded = !!PhGetIntegerSetting(SETTING_KSI_DYN_DATA_NO_EMBEDDED);
     config.EnableNativeLoad = KsiEnableLoadNative;
@@ -1193,11 +1200,18 @@ VOID KsiConnect(
         goto CleanupExit;
     }
 
-    KphActivateDynData(dynData, dynDataLength, signature, signatureLength);
+    if (KsiDynDataValid)
+    {
+        KphActivateDynData(dynData, dynDataLength, signature, signatureLength);
+    }
 
     level = KphLevelEx(FALSE);
 
+#ifdef IS_KTE
+    if (level != KphLevelMax)
+#else
     if (!NtCurrentPeb()->BeingDebugged && (level != KphLevelMax))
+#endif
     {
         if ((level == KphLevelHigh) &&
             !PhStartupParameters.KphStartupMax)

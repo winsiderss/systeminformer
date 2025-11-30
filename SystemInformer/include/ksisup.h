@@ -13,6 +13,8 @@
 #ifndef PH_KSISUP_H
 #define PH_KSISUP_H
 
+extern BOOLEAN KsiDynDataValid;
+
 VOID
 PhShowKsiStatus(
     VOID

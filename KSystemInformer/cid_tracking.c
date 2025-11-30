@@ -2242,6 +2242,11 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
             NT_ASSERT(!Process->Protected);
         }
     }
+    else
+    {
+        // we don't care no lock needed here
+        Process->DecidedOnProtection = TRUE;
+    }
 }
 
 /**
@@ -2291,19 +2296,23 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     if (KphProtectionsSuppressed())
     {
+#ifndef IS_KTE
         //
         // This ultimately permits low state callers into the driver. But still
         // check for verification. We still want to exercise the code below,
         // regardless.
         //
         processState = ~KPH_PROCESS_VERIFIED_PROCESS;
+#else
+        processState = KPH_PROCESS_NOT_BEING_DEBUGGED;
+#endif
     }
     else
     {
         processState = 0;
     }
 
-    if (Process->SecurelyCreated)
+    if (Process->SecurelyCreated || Process->SecurelyCreatedSvc)
     {
         processState |= KPH_PROCESS_SECURELY_CREATED;
     }

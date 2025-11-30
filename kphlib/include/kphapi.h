@@ -11,6 +11,8 @@
 
 #pragma once
 
+#define IS_KTE // Is KernelTaskExplorer
+
 #ifdef _KERNEL_MODE
 #define PHNT_MODE PHNT_MODE_KERNEL
 #endif
@@ -139,7 +141,8 @@ typedef struct _KPH_PROCESS_BASIC_INFORMATION
             ULONG IsWow64 : 1;
             ULONG IsSubsystemProcess : 1;
             ULONG AllocatedImageName : 1;
-            ULONG Reserved : 24;
+            ULONG SecurelyCreatedSvc : 1;
+            ULONG Reserved : 23;
         };
     };
 
@@ -690,7 +693,12 @@ typedef union _KPH_PARAMETER_FLAGS
         ULONG DisableImageLoadProtection : 1;
         ULONG RandomizedPoolTag : 1;
         ULONG DynDataNoEmbedded : 1;
+#ifndef IS_KTE
         ULONG Reserved : 29;
+#else
+        ULONG Reserved : 28;
+        ULONG AllowDebugging : 1;
+#endif
     };
 } KPH_PARAMETER_FLAGS, *PKPH_PARAMETER_FLAGS;
 
