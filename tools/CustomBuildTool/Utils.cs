@@ -102,22 +102,9 @@ namespace CustomBuildTool
         {
             string file = null;
 
-            //if (Flags.HasFlag(BuildFlags.Build32bit))
-            //{
-            //    file = GetMsbuildFilePath(Flags, Architecture.X86);
-            //}
-            //else if (Flags.HasFlag(BuildFlags.Build64bit))
-            //{
-            //    file = GetMsbuildFilePath(Flags, Architecture.X64);
-            //}
-            //else if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-            //{
-            //    file = GetMsbuildFilePath(Flags, Architecture.Arm64);
-            //}
-
             if (string.IsNullOrWhiteSpace(file))
             {
-                file = GetMsbuildFilePath(Flags, Architecture.X64);
+                file = GetMsbuildFilePath(Flags, RuntimeInformation.ProcessArchitecture);
             }
 
             if (string.IsNullOrWhiteSpace(file))
