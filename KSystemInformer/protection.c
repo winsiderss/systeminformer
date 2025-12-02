@@ -147,47 +147,193 @@ VOID KSIAPI KphpFreeImageLoadApc(
 }
 
 /**
- * \brief Checks if object protections should be suppressed.
+ * \brief Checks if object protections should be allowed.
  *
- * \param[in] Actor The actor process.
- * \param[in] Target The target process.
- * \param[out] Suppress Receives TRUE if object protections should be
- * suppressed, FALSE otherwise.
+ * \param[in] Info Optional object pre operation information.
+ * \param[in] Actor The actor process requesting access.
+ * \param[in] Object The process context associated with the object.
+ * \param[out] Allow Receives TRUE if object protections should be allowed,
+ * FALSE otherwise.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(APC_LEVEL)
-NTSTATUS KphpShouldSuppressObjectProtections(
+_Must_inspect_result_
+NTSTATUS KphpShouldAllowObjectAccess(
+    _In_opt_ POB_PRE_OPERATION_INFORMATION Info,
     _In_ PKPH_PROCESS_CONTEXT Actor,
-    _In_ PKPH_PROCESS_CONTEXT Target,
-    _Out_ PBOOLEAN Suppress
+    _In_ PKPH_PROCESS_CONTEXT Object,
+    _Out_ PBOOLEAN Allow
     )
 {
     NTSTATUS status;
+    PKPH_PROCESS_CONTEXT source;
+    PKPH_PROCESS_CONTEXT target;
     BOOLEAN isLsass;
 
     KPH_PAGED_CODE();
 
-    *Suppress = FALSE;
+    *Allow = FALSE;
 
-    status = KphDominationCheck(Target->EProcess, Actor->EProcess, UserMode);
+    source = NULL;
+    target = NULL;
+
+    NT_ASSERT(Object->Protected);
+
+    if (!Info || (Info->Operation == OB_OPERATION_HANDLE_CREATE))
+    {
+        //
+        // Allow access to itself.
+        //
+        if (Actor->EProcess == Object->EProcess)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          PROTECTION,
+                          "Process %wZ (%lu) allowed to access itself",
+                          &Actor->ImageName,
+                          HandleToULong(Actor->ProcessId));
+
+            *Allow = TRUE;
+            status = STATUS_SUCCESS;
+            goto Exit;
+        }
+
+        //
+        // Allow maximum state processes access to one another.
+        //
+        if (KphTestProcessContextState(Actor, KPH_PROCESS_STATE_MAXIMUM) &&
+            KphTestProcessContextState(Object, KPH_PROCESS_STATE_MAXIMUM))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          PROTECTION,
+                          "Maximum state process %wZ (%lu) allowed to access "
+                          "maximum state process %wZ (%lu)",
+                          &Actor->ImageName,
+                          HandleToULong(Actor->ProcessId),
+                          &Object->ImageName,
+                          HandleToULong(Object->ProcessId));
+
+            *Allow = TRUE;
+            status = STATUS_SUCCESS;
+            goto Exit;
+        }
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "Process %wZ (%lu) possibly subject to limited access "
+                      "to process %wZ (%lu)",
+                      &Actor->ImageName,
+                      HandleToULong(Actor->ProcessId),
+                      &Object->ImageName,
+                      HandleToULong(Object->ProcessId));
+    }
+    else if (Info && (Info->Operation == OB_OPERATION_HANDLE_DUPLICATE))
+    {
+        PEPROCESS process;
+
+        //
+        // Allow duplication to itself into itself from itself.
+        //
+        if ((Object->EProcess == Actor->EProcess) &&
+            (Object->EProcess == Info->Parameters->DuplicateHandleInformation.SourceProcess) &&
+            (Object->EProcess == Info->Parameters->DuplicateHandleInformation.TargetProcess))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          PROTECTION,
+                          "Process %wZ (%lu) allowed to access itself",
+                          &Actor->ImageName,
+                          HandleToULong(Actor->ProcessId));
+
+            *Allow = TRUE;
+            status = STATUS_SUCCESS;
+            goto Exit;
+        }
+
+        process = Info->Parameters->DuplicateHandleInformation.SourceProcess;
+        source = KphGetEProcessContext(process);
+        if (!source)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          PROTECTION,
+                          "KphGetEProcessContext(%lu) returned NULL",
+                          HandleToULong(PsGetProcessId(process)));
+
+            status = STATUS_INVALID_CID;
+            goto Exit;
+        }
+
+        process = Info->Parameters->DuplicateHandleInformation.TargetProcess;
+        target = KphGetEProcessContext(process);
+        if (!target)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          PROTECTION,
+                          "KphGetEProcessContext(%lu) returned NULL",
+                          HandleToULong(PsGetProcessId(process)));
+
+            status = STATUS_INVALID_CID;
+            goto Exit;
+        }
+
+        //
+        // Allow duplication between maximum state processes.
+        //
+        if (KphTestProcessContextState(Actor, KPH_PROCESS_STATE_MAXIMUM) &&
+            KphTestProcessContextState(source, KPH_PROCESS_STATE_MAXIMUM) &&
+            KphTestProcessContextState(target, KPH_PROCESS_STATE_MAXIMUM))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          PROTECTION,
+                          "Maximum state process %wZ (%lu) allowed to duplicate "
+                          "object for process %wZ (%lu) from maximum state "
+                          "process %wZ (%lu) to maximum state process %wZ (%lu)",
+                          &Actor->ImageName,
+                          HandleToULong(Actor->ProcessId),
+                          &Object->ImageName,
+                          HandleToULong(Object->ProcessId),
+                          &source->ImageName,
+                          HandleToULong(source->ProcessId),
+                          &target->ImageName,
+                          HandleToULong(target->ProcessId));
+
+            *Allow = TRUE;
+            status = STATUS_SUCCESS;
+            goto Exit;
+        }
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "Process %wZ (%lu) possibly subject to limited access "
+                      "to object for process %wZ (%lu) when duplicating object "
+                      "from process %wZ (%lu) to process %wZ (%lu)",
+                      &Actor->ImageName,
+                      HandleToULong(Actor->ProcessId),
+                      &Object->ImageName,
+                      HandleToULong(Object->ProcessId),
+                      &source->ImageName,
+                      HandleToULong(source->ProcessId),
+                      &target->ImageName,
+                      HandleToULong(target->ProcessId));
+    }
+
+    status = KphDominationCheck(Object->EProcess, Actor->EProcess, UserMode);
     if (!NT_SUCCESS(status))
     {
         //
-        // Grant access when the actor is a protected process and the target is
+        // Allow access when the actor is a protected process and the target is
         // not protected at a higher level.
         //
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "Protected process %wZ (%lu) access granted to PPL process %wZ (%lu)",
-                      &Target->ImageName,
-                      HandleToULong(Target->ProcessId),
+                      "PPL process %wZ (%lu) allowed to access process %wZ (%lu)",
                       &Actor->ImageName,
-                      HandleToULong(Actor->ProcessId));
+                      HandleToULong(Actor->ProcessId),
+                      &Object->ImageName,
+                      HandleToULong(Object->ProcessId));
 
-        *Suppress = TRUE;
-
-        return STATUS_SUCCESS;
+        *Allow = TRUE;
+        status = STATUS_SUCCESS;
+        goto Exit;
     }
 
     status = KphProcessIsLsass(Actor->EProcess, &isLsass);
@@ -198,23 +344,36 @@ NTSTATUS KphpShouldSuppressObjectProtections(
                       "KphProcessIsLsass failed: %!STATUS!",
                       status);
 
-        return status;
+        goto Exit;
     }
 
     if (isLsass)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "Protected process %wZ (%lu) access granted to LSA process %wZ (%lu)",
-                      &Target->ImageName,
-                      HandleToULong(Target->ProcessId),
+                      "LSA process %wZ (%lu) allowed to access process %wZ (%lu)",
                       &Actor->ImageName,
-                      HandleToULong(Actor->ProcessId));
+                      HandleToULong(Actor->ProcessId),
+                      &Object->ImageName,
+                      HandleToULong(Object->ProcessId));
 
-        *Suppress = TRUE;
+        *Allow = TRUE;
+        goto Exit;
     }
 
-    return STATUS_SUCCESS;
+Exit:
+
+    if (target)
+    {
+        KphDereferenceObject(target);
+    }
+
+    if (source)
+    {
+        KphDereferenceObject(source);
+    }
+
+    return status;
 }
 
 /**
@@ -354,7 +513,7 @@ BOOLEAN KSIAPI KphpEnumProcessContextsForProtection(
 {
     NTSTATUS status;
     PKPH_ENUM_FOR_PROTECTION parameter;
-    BOOLEAN suppress;
+    BOOLEAN allow;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -362,20 +521,16 @@ BOOLEAN KSIAPI KphpEnumProcessContextsForProtection(
 
     parameter = Parameter;
 
-    if (Process->EProcess == parameter->Process->EProcess)
-    {
-        return FALSE;
-    }
-
-    suppress = FALSE;
-    status = KphpShouldSuppressObjectProtections(Process,
-                                                 parameter->Process,
-                                                 &suppress);
+    allow = FALSE;
+    status = KphpShouldAllowObjectAccess(NULL,
+                                         Process,
+                                         parameter->Process,
+                                         &allow);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "KphpShouldSuppressObjectProtections failed: %!STATUS!",
+                      "KphpShouldAllowObjectAccess failed: %!STATUS!",
                       status);
 
         //
@@ -387,7 +542,7 @@ BOOLEAN KSIAPI KphpEnumProcessContextsForProtection(
         return TRUE;
     }
 
-    if (suppress)
+    if (allow)
     {
         return FALSE;
     }
@@ -622,10 +777,10 @@ VOID KphApplyObProtections(
     PKPH_PROCESS_CONTEXT process;
     PKPH_THREAD_CONTEXT actor;
     BOOLEAN releaseLock;
-    BOOLEAN suppress;
     ACCESS_MASK allowedAccessMask;
     ACCESS_MASK desiredAccess;
     PACCESS_MASK access;
+    BOOLEAN allow;
 
     KPH_PAGED_CODE();
 
@@ -673,39 +828,7 @@ VOID KphApplyObProtections(
         }
     }
 
-    if (!process || (process->EProcess == actor->ProcessContext->EProcess))
-    {
-        goto Exit;
-    }
-
-    KphAcquireRWLockShared(&process->ProtectionLock);
-    releaseLock = TRUE;
-
-    if (!process->Protected)
-    {
-        goto Exit;
-    }
-
-    suppress = FALSE;
-    status = KphpShouldSuppressObjectProtections(actor->ProcessContext,
-                                                 process,
-                                                 &suppress);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_WARNING,
-                      PROTECTION,
-                      "KphpShouldSuppressObjectProtections failed: %!STATUS!",
-                      status);
-
-        //
-        // We shouldn't get here since we would have succeeded when starting to
-        // protect the process to begin with. So if we fail here we fail-safe
-        // and do not suppress.
-        //
-        suppress = FALSE;
-    }
-
-    if (suppress)
+    if (!process)
     {
         goto Exit;
     }
@@ -721,6 +844,49 @@ VOID KphApplyObProtections(
 
         access = &Info->Parameters->DuplicateHandleInformation.DesiredAccess;
         desiredAccess = *access;
+    }
+
+    KphAcquireRWLockShared(&process->ProtectionLock);
+    releaseLock = TRUE;
+
+    if (!process->Protected)
+    {
+        goto Exit;
+    }
+
+    allow = FALSE;
+    status = KphpShouldAllowObjectAccess(Info,
+                                         actor->ProcessContext,
+                                         process,
+                                         &allow);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_WARNING,
+                      PROTECTION,
+                      "KphpShouldAllowObjectAccess failed: %!STATUS!",
+                      status);
+
+        //
+        // We shouldn't get here since we would have succeeded when starting to
+        // protect the process to begin with. So if we fail here we fail-safe
+        // and do not allow.
+        //
+        allow = FALSE;
+    }
+
+    if (allow)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "Allowing process %wZ (%lu) access (0x%08x) to "
+                      "process %wZ (%lu)",
+                      &actor->ProcessContext->ImageName,
+                      HandleToULong(actor->ProcessContext->ProcessId),
+                      desiredAccess,
+                      &process->ImageName,
+                      HandleToULong(process->ProcessId));
+
+        goto Exit;
     }
 
     if (Info->ObjectType == *PsProcessType)
