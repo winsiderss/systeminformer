@@ -132,9 +132,6 @@ NTSTATUS KphpGetLsassProcessId(
         goto Exit;
     }
 
-    InterlockedExchangePointer(&KphpLsassProcessId,
-                               info.ConnectionPort.OwnerProcessId);
-
     *ProcessId = info.ConnectionPort.OwnerProcessId;
 
 Exit:
@@ -149,6 +146,50 @@ Exit:
     KphDereferenceObject(dyn);
 
     return status;
+}
+
+/**
+ * \brief Caches the lsass process ID if appropriate.
+ *
+ * \param[in] Process Optional lsass process object.
+ * \param[in] ProcessId The lsass process ID to cache.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphpCacheLsassProcessId(
+    _In_opt_ PEPROCESS Process,
+    _In_ HANDLE ProcessId
+    )
+{
+    PEPROCESS process;
+
+    KPH_PAGED_CODE();
+
+    if (ReadPointerAcquire(&KphpLsassProcessId) == ProcessId)
+    {
+        return;
+    }
+
+    if (Process)
+    {
+        process = Process;
+    }
+    else if (!NT_SUCCESS(PsLookupProcessByProcessId(ProcessId, &process)))
+    {
+        return;
+    }
+
+    NT_ASSERT(PsGetProcessId(process) == ProcessId);
+
+    if (NT_SUCCESS(PsAcquireProcessExitSynchronization(process)))
+    {
+        InterlockedExchangePointer(&KphpLsassProcessId, ProcessId);
+        PsReleaseProcessExitSynchronization(process);
+    }
+
+    if (process != Process)
+    {
+        ObDereferenceObject(process);
+    }
 }
 
 /**
@@ -167,6 +208,7 @@ NTSTATUS KphProcessIsLsass(
     )
 {
     NTSTATUS status;
+    PS_PROTECTION processProtection;
     HANDLE processId;
     SECURITY_SUBJECT_CONTEXT subjectContext;
     BOOLEAN result;
@@ -175,15 +217,29 @@ NTSTATUS KphProcessIsLsass(
 
     *IsLsass = FALSE;
 
-    status = KphpGetLsassProcessId(&processId);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
+    processProtection = PsGetProcessProtection(Process);
 
-    if (processId != PsGetProcessId(Process))
+    if ((processProtection.Type != PsProtectedTypeNone) &&
+        (processProtection.Signer == PsProtectedSignerLsa))
     {
-        return STATUS_SUCCESS;
+        processId = PsGetProcessId(Process);
+
+        KphpCacheLsassProcessId(Process, processId);
+    }
+    else
+    {
+        status = KphpGetLsassProcessId(&processId);
+        if (!NT_SUCCESS(status))
+        {
+            return status;
+        }
+
+        KphpCacheLsassProcessId(NULL, processId);
+
+        if (processId != PsGetProcessId(Process))
+        {
+            return STATUS_SUCCESS;
+        }
     }
 
     SeCaptureSubjectContextEx(NULL, Process, &subjectContext);
