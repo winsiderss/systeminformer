@@ -266,7 +266,7 @@ static VOID PvpSaveExclusions(
             PPH_STRING hexString;
             PPH_BYTES utf8Line;
 
-            // Encode the string buffer to hex (passing ex->Length for full byte buffer)
+            // Encode the string buffer to hex (passing exclusion->Length for full byte buffer)
             hexString = PhBufferToHexString((PUCHAR)exclusion->Buffer, exclusion->Length);
             if (hexString)
             {
@@ -305,7 +305,7 @@ static VOID PvpLoadExclusions(
     if (!filePath)
         return;
 
-    // Read the file content as UTF-8/ASCII text
+    // Read the file content (reads UTF-8, returns as UTF-16 string)
     status = PhFileReadAllTextWin32((PVOID*)&fileContent, PhGetString(filePath), TRUE);
     PhDereferenceObject(filePath);
 
