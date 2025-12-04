@@ -70,6 +70,8 @@ typedef struct _PV_STRINGS_CONTEXT
     PVOID EndPointer;
     ULONG SkipCounter;
     PPH_LIST RegionSkips;
+
+    PPH_LIST Exclusions;
 } PV_STRINGS_CONTEXT, *PPV_STRINGS_CONTEXT;
 
 typedef enum _PV_STRINGS_TREE_COLUMN_ITEM
@@ -198,6 +200,232 @@ static int __cdecl PvpStringsRegionSkipCompare(
     PPV_STRINGS_REGION_SKIP region2 = *(PVOID*)elem2;
 
     return uintptrcmp((ULONG_PTR)region1->Start, (ULONG_PTR)region2->Start);
+}
+
+static PPH_STRING PvpGetExclusionsFilePath(
+    VOID
+    )
+{
+    PPH_STRING directoryPath;
+    PPH_STRING filePath;
+
+    // Get the roaming appdata directory with SystemInformer subdirectory
+    directoryPath = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\", FALSE);
+    if (!directoryPath)
+        return NULL;
+
+    // Ensure the directory exists
+    PhCreateDirectoryWin32(&directoryPath->sr);
+
+    // Build the full file path
+    filePath = PhConcatStringRefZ(&directoryPath->sr, L"peview_strings_exclusions.txt");
+    PhDereferenceObject(directoryPath);
+
+    return filePath;
+}
+
+static VOID PvpSaveExclusions(
+    _In_ PPV_STRINGS_CONTEXT Context
+    )
+{
+    PPH_STRING filePath;
+    HANDLE fileHandle;
+    NTSTATUS status;
+
+    if (!Context->Exclusions || Context->Exclusions->Count == 0)
+    {
+        // If no exclusions, try to delete the file
+        filePath = PvpGetExclusionsFilePath();
+        if (filePath)
+        {
+            PhDeleteFileWin32(PhGetString(filePath));
+            PhDereferenceObject(filePath);
+        }
+        return;
+    }
+
+    filePath = PvpGetExclusionsFilePath();
+    if (!filePath)
+        return;
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(filePath),
+        FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        for (ULONG i = 0; i < Context->Exclusions->Count; i++)
+        {
+            PPH_STRING exclusion = Context->Exclusions->Items[i];
+            PPH_STRING hexString;
+            PPH_BYTES utf8Line;
+
+            // Encode the string buffer to hex (passing ex->Length for full byte buffer)
+            hexString = PhBufferToHexString((PUCHAR)exclusion->Buffer, exclusion->Length);
+            if (hexString)
+            {
+                // Convert hex string to UTF-8 for writing
+                utf8Line = PhConvertUtf16ToUtf8Ex(hexString->Buffer, hexString->Length);
+                if (utf8Line)
+                {
+                    // Write the hex line
+                    PhWriteFile(fileHandle, utf8Line->Buffer, (ULONG)utf8Line->Length, NULL, NULL);
+                    // Write newline
+                    PhWriteFile(fileHandle, "\n", 1, NULL, NULL);
+                    PhDereferenceObject(utf8Line);
+                }
+                PhDereferenceObject(hexString);
+            }
+        }
+
+        NtClose(fileHandle);
+    }
+
+    PhDereferenceObject(filePath);
+}
+
+static VOID PvpLoadExclusions(
+    _In_ PPV_STRINGS_CONTEXT Context
+    )
+{
+    PPH_STRING filePath;
+    PPH_STRING fileContent;
+    NTSTATUS status;
+
+    if (!Context->Exclusions)
+        return;
+
+    filePath = PvpGetExclusionsFilePath();
+    if (!filePath)
+        return;
+
+    // Read the file content as UTF-8/ASCII text
+    status = PhFileReadAllTextWin32((PVOID*)&fileContent, PhGetString(filePath), TRUE);
+    PhDereferenceObject(filePath);
+
+    if (!NT_SUCCESS(status) || !fileContent)
+        return;
+
+    // Parse each line
+    {
+        PH_STRINGREF remaining = fileContent->sr;
+        PH_STRINGREF line;
+
+        while (remaining.Length > 0)
+        {
+            // Split at newline
+            if (!PhSplitStringRefAtChar(&remaining, L'\n', &line, &remaining))
+            {
+                line = remaining;
+                remaining.Length = 0;
+                remaining.Buffer = NULL;
+            }
+
+            // Trim CR if present (for Windows-style line endings)
+            if (line.Length >= sizeof(WCHAR) && line.Buffer[line.Length / sizeof(WCHAR) - 1] == L'\r')
+            {
+                line.Length -= sizeof(WCHAR);
+            }
+
+            // Skip empty lines
+            if (line.Length == 0)
+                continue;
+
+            // Decode hex string to buffer
+            {
+                SIZE_T decodedSize = line.Length / sizeof(WCHAR) / 2;
+                PUCHAR decodedBuffer;
+                PPH_STRING decodedString;
+                BOOLEAN duplicate = FALSE;
+
+                if (decodedSize == 0)
+                    continue;
+
+                decodedBuffer = PhAllocate(decodedSize);
+                if (!decodedBuffer)
+                    continue;
+
+                if (PhHexStringToBuffer(&line, decodedBuffer))
+                {
+                    // Create string from decoded buffer (buffer is Unicode bytes)
+                    decodedString = PhCreateStringEx((PWCHAR)decodedBuffer, decodedSize);
+                    if (decodedString)
+                    {
+                        // Check for duplicates
+                        for (ULONG i = 0; i < Context->Exclusions->Count; i++)
+                        {
+                            PPH_STRING existing = Context->Exclusions->Items[i];
+                            if (PhCompareString(existing, decodedString, FALSE) == 0)
+                            {
+                                duplicate = TRUE;
+                                break;
+                            }
+                        }
+
+                        if (!duplicate)
+                        {
+                            PhAddItemList(Context->Exclusions, decodedString);
+                        }
+                        else
+                        {
+                            PhDereferenceObject(decodedString);
+                        }
+                    }
+                }
+
+                PhFree(decodedBuffer);
+            }
+        }
+    }
+
+    PhDereferenceObject(fileContent);
+}
+
+static VOID PvpExcludeSelectedStrings(
+    _In_ PPV_STRINGS_CONTEXT Context,
+    _In_ PPV_STRINGS_NODE* Nodes,
+    _In_ ULONG NumberOfNodes
+    )
+{
+    if (!Context->Exclusions)
+        Context->Exclusions = PhCreateList(4);
+
+    for (ULONG i = 0; i < NumberOfNodes; i++)
+    {
+        PPV_STRINGS_NODE node = Nodes[i];
+        BOOLEAN duplicate = FALSE;
+
+        if (!node->String)
+            continue;
+
+        // Check for duplicates
+        for (ULONG j = 0; j < Context->Exclusions->Count; j++)
+        {
+            PPH_STRING existing = Context->Exclusions->Items[j];
+            if (PhCompareString(existing, node->String, FALSE) == 0)
+            {
+                duplicate = TRUE;
+                break;
+            }
+        }
+
+        if (!duplicate)
+        {
+            PhAddItemList(Context->Exclusions, PhReferenceObject(node->String));
+        }
+    }
+
+    // Save exclusions immediately
+    PvpSaveExclusions(Context);
+
+    // Reapply filters to hide excluded strings
+    PhApplyTreeNewFilters(&Context->FilterSupport);
 }
 
 NTSTATUS PvpSearchStringsThread(
@@ -389,6 +617,17 @@ BOOLEAN PvpStringsTreeFilterCallback(
         return FALSE;
     if (!context->Settings.Unicode && node->Unicode)
         return FALSE;
+
+    // Check if the string is in the exclusions list
+    if (context->Exclusions && node->String)
+    {
+        for (ULONG i = 0; i < context->Exclusions->Count; i++)
+        {
+            PPH_STRING exclusion = context->Exclusions->Items[i];
+            if (PhCompareString(exclusion, node->String, FALSE) == 0)
+                return FALSE;
+        }
+    }
 
     if (!context->SearchMatchHandle)
         return TRUE;
@@ -664,6 +903,19 @@ VOID PvpDeleteStringsTree(
     PhClearReference(&Context->SearchResults);
     PhClearReference(&Context->RegionSkips);
 
+    // Save exclusions before clearing
+    PvpSaveExclusions(Context);
+
+    // Free exclusions list
+    if (Context->Exclusions)
+    {
+        for (ULONG i = 0; i < Context->Exclusions->Count; i++)
+        {
+            PhDereferenceObject(Context->Exclusions->Items[i]);
+        }
+        PhClearReference(&Context->Exclusions);
+    }
+
     Context->SearchResultsAddIndex = 0;
     Context->StringsCount = 0;
     Context->SkipCounter = 0;
@@ -681,6 +933,8 @@ VOID PvpSearchStrings(
     PvpDeleteStringsTree(Context);
     Context->NodeList = PhCreateList(100);
     Context->SearchResults = PhCreateList(100);
+    Context->Exclusions = PhCreateList(4);
+    PvpLoadExclusions(Context);
 
     Context->ReadPointer = PvMappedImage.ViewBase;
     Context->EndPointer = PTR_ADD_OFFSET(Context->ReadPointer, PvMappedImage.ViewSize);
@@ -707,6 +961,8 @@ VOID PvpInitializeStringsTree(
     Context->NodeList = PhCreateList(1);
     Context->SearchResults = PhCreateList(1);
     Context->RegionSkips = PhCreateList(1);
+    Context->Exclusions = PhCreateList(1);
+    PvpLoadExclusions(Context);
 
     PhSetControlTheme(TreeNewHandle, L"explorer");
 
@@ -953,6 +1209,8 @@ INT_PTR CALLBACK PvStringsDlgProc(
                 menu = PhCreateEMenu();
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Copy", NULL, NULL), ULONG_MAX);
                 PhInsertCopyCellEMenuItem(menu, 1, context->TreeNewHandle, contextMenuEvent->Column);
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Exclude", NULL, NULL), ULONG_MAX);
 
                 selectedItem = PhShowEMenu(
                     menu,
@@ -976,6 +1234,10 @@ INT_PTR CALLBACK PvStringsDlgProc(
                         text = PhGetTreeNewText(context->TreeNewHandle, 0);
                         PhSetClipboardString(context->TreeNewHandle, &text->sr);
                         PhDereferenceObject(text);
+                    }
+                    else if (!handled && selectedItem->Id == 2)
+                    {
+                        PvpExcludeSelectedStrings(context, stringsNodes, numberOfNodes);
                     }
                 }
 
