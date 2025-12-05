@@ -4139,6 +4139,15 @@ PhMoveFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhMoveFile(
+    _In_ PCPH_STRINGREF OldFileName,
+    _In_ PCPH_STRINGREF NewFileName,
+    _In_ BOOLEAN FailIfExists
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateDirectoryWin32(
     _In_ PCPH_STRINGREF DirectoryPath
     );
@@ -4427,6 +4436,14 @@ NTAPI
 PhSetThreadPriorityBoost(
     _In_ HANDLE ThreadHandle,
     _In_ BOOLEAN DisablePriorityBoost
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadPowerThrottlingState(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PPOWER_THROTTLING_THREAD_STATE PowerThrottlingState
     );
 
 PHLIBAPI
