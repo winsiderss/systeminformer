@@ -44,6 +44,7 @@ static HANDLE PhPredefineKeyHandles[PH_KEY_MAXIMUM_PREDEFINE] = { 0 };
  * \param Handle A handle to the object whose security descriptor is to be queried.
  * \param SecurityInformation The type of security information to be queried.
  * \param SecurityDescriptor A copy of the specified security descriptor in self-relative format.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetObjectSecurity(
     _In_ HANDLE Handle,
@@ -101,6 +102,7 @@ NTSTATUS PhGetObjectSecurity(
  * \param Handle A handle to the object whose security descriptor is to be set.
  * \param SecurityInformation The type of security information to be set.
  * \param SecurityDescriptor The security descriptor in self-relative format.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhSetObjectSecurity(
     _In_ HANDLE Handle,
@@ -130,6 +132,7 @@ NTSTATUS PhSetObjectSecurity(
  * \param HigherSacl An overlaying SACL for the specified security information.
  * \param SecurityInformation The type of security information to be set.
  * \param MergedSacl The new merged SACL.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhMergeSystemAcls(
     _In_opt_ PACL LowerSacl,
@@ -309,6 +312,7 @@ NTSTATUS PhMergeSystemAcls(
  * \param HigherSecurityDescriptor An overlaying security descriptor for the specified security information.
  * \param SecurityInformation The type of security information to be set.
  * \param MergedSecurityDescriptor The new merged security descriptor.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhMergeSecurityDescriptors(
     _In_ PSECURITY_DESCRIPTOR LowerSecurityDescriptor,
@@ -490,6 +494,15 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Retrieves the next environment variable from a process environment block.
+ *
+ * \param Environment The environment block.
+ * \param EnvironmentLength The length of the environment block, in bytes.
+ * \param EnumerationKey A pointer to an index variable used for enumeration.
+ * \param Variable A pointer to a structure that receives the variable.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhEnumProcessEnvironmentVariables(
     _In_ PVOID Environment,
     _In_ ULONG EnvironmentLength,
@@ -559,6 +572,14 @@ NTSTATUS PhEnumProcessEnvironmentVariables(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Queries an environment variable as a string reference.
+ *
+ * \param Environment The environment block.
+ * \param Name The name of the variable.
+ * \param Value A pointer to a string reference that receives the value.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhQueryEnvironmentVariableStringRef(
     _In_opt_ PVOID Environment,
     _In_ PCPH_STRINGREF Name,
@@ -585,6 +606,14 @@ NTSTATUS PhQueryEnvironmentVariableStringRef(
     return status;
 }
 
+/**
+ * Queries an environment variable.
+ *
+ * \param Environment The environment block.
+ * \param Name The name of the variable.
+ * \param Value A pointer to a string that receives the value.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhQueryEnvironmentVariable(
     _In_opt_ PVOID Environment,
     _In_ PCPH_STRINGREF Name,
@@ -596,7 +625,8 @@ NTSTATUS PhQueryEnvironmentVariable(
     UNICODE_STRING variableName;
     UNICODE_STRING variableValue;
 
-    PhStringRefToUnicodeString(Name, &variableName);
+    if (!PhStringRefToUnicodeString(Name, &variableName))
+        return STATUS_NAME_TOO_LONG;
 
     if (Value)
     {
@@ -690,6 +720,14 @@ NTSTATUS PhQueryEnvironmentVariable(
 #endif
 }
 
+/**
+ * Sets an environment variable.
+ *
+ * \param Environment The environment block.
+ * \param Name The name of the variable.
+ * \param Value The value to set, or NULL to delete the variable.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhSetEnvironmentVariable(
     _In_opt_ PVOID Environment,
     _In_ PCPH_STRINGREF Name,
@@ -700,12 +738,18 @@ NTSTATUS PhSetEnvironmentVariable(
     UNICODE_STRING variableName;
     UNICODE_STRING variableValue;
 
-    PhStringRefToUnicodeString(Name, &variableName);
+    if (!PhStringRefToUnicodeString(Name, &variableName))
+        return STATUS_NAME_TOO_LONG;
 
     if (Value)
-        PhStringRefToUnicodeString(Value, &variableValue);
+    {
+        if (!PhStringRefToUnicodeString(Value, &variableValue))
+            return STATUS_NAME_TOO_LONG;
+    }
     else
+    {
         RtlInitEmptyUnicodeString(&variableValue, NULL, 0);
+    }
 
     status = RtlSetEnvironmentVariable(
         Environment,
@@ -716,6 +760,14 @@ NTSTATUS PhSetEnvironmentVariable(
     return status;
 }
 
+/**
+ * Retrieves the file name for a mapped section in a process.
+ *
+ * \param SectionHandle The section handle.
+ * \param ProcessHandle The process handle.
+ * \param FileName A pointer to a string that receives the file name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetProcessSectionFileName(
     _In_ HANDLE SectionHandle,
     _In_ HANDLE ProcessHandle,
@@ -755,6 +807,14 @@ NTSTATUS PhGetProcessSectionFileName(
     return status;
 }
 
+/**
+ * Retrieves the list of unloaded DLLs for a process.
+ *
+ * \param ProcessId The process ID.
+ * \param EventTrace A pointer to the event trace buffer.
+ * \param EventTraceSize The size of each event trace element.
+ * \param EventTraceCount The number of event trace elements.
+ */
 NTSTATUS PhGetProcessUnloadedDlls(
     _In_ HANDLE ProcessId,
     _Out_ PVOID *EventTrace,
@@ -856,6 +916,17 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Sends a trace control request.
+ *
+ * \param TraceInformationClass The trace information class.
+ * \param InputBuffer The input buffer.
+ * \param InputBufferLength The length of the input buffer.
+ * \param OutputBuffer The output buffer.
+ * \param OutputBufferLength The length of the output buffer.
+ * \param ReturnLength A pointer to a variable that receives the return length.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhTraceControl(
     _In_ ETWTRACECONTROLCODE TraceInformationClass,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
@@ -879,6 +950,16 @@ NTSTATUS PhTraceControl(
     return status;
 }
 
+/**
+ * Sends a trace control request with variable output size.
+ *
+ * \param TraceInformationClass The trace information class.
+ * \param InputBuffer The input buffer.
+ * \param InputBufferLength The length of the input buffer.
+ * \param OutputBuffer A pointer to a buffer that receives the output.
+ * \param OutputBufferLength A pointer to a variable that receives the output buffer length.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhTraceControlVariableSize(
     _In_ ETWTRACECONTROLCODE TraceInformationClass,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
@@ -957,7 +1038,7 @@ NTSTATUS PhGetWindowClientId(
  * \param DesiredAccess The desired access to the job object.
  * \param RootDirectory A handle to the object directory of the job.
  * \param ObjectName The name of the job object.
- * \return Returns the status of the operation.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhOpenJobObject(
     _Out_ PHANDLE JobHandle,
@@ -1498,10 +1579,8 @@ NTSTATUS NTAPI PhpOpenDriverByBaseAddressCallback(
  *
  * \param DriverHandle A variable which receives a handle to the driver object.
  * \param BaseAddress The base address of the driver to open.
- *
- * \retval STATUS_OBJECT_NAME_NOT_FOUND The driver could not be found.
- *
- * \remarks This function requires a valid KSystemInformer handle.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks STATUS_OBJECT_NAME_NOT_FOUND is returned if the driver could not be found.
  */
 NTSTATUS PhOpenDriverByBaseAddress(
     _Out_ PHANDLE DriverHandle,
@@ -1599,10 +1678,8 @@ NTSTATUS PhOpenDriver(
  * \param DriverHandle A handle to a driver. The access required depends on the information class
  * specified.
  * \param DriverInformationClass The information class to retrieve.
- * \param Buffer A variable which receives a pointer to a buffer containing the information. You
- * must free the buffer using PhFree() when you no longer need it.
- *
- * \remarks This function requires a valid KSystemInformer handle.
+ * \param Buffer A variable which receives a pointer to a buffer containing the information.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhpQueryDriverVariableSize(
     _In_ HANDLE DriverHandle,
@@ -1666,10 +1743,8 @@ NTSTATUS PhpQueryDriverVariableSize(
  * Gets the object name of a driver.
  *
  * \param DriverHandle A handle to a driver.
- * \param Name A variable which receives a pointer to a string containing the object name. You must
- * free the string using PhDereferenceObject() when you no longer need it.
- *
- * \remarks This function requires a valid KSystemInformer handle.
+ * \param Name A variable which receives a pointer to a string containing the object name.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetDriverName(
     _In_ HANDLE DriverHandle,
@@ -1697,9 +1772,7 @@ NTSTATUS PhGetDriverName(
  *
  * \param DriverHandle A handle to a driver.
  * \param Name A variable which receives a pointer to a string containing the driver image file name.
- * You must free the string using PhDereferenceObject() when you no longer need it.
- *
- * \remarks This function requires a valid KSystemInformer handle.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetDriverImageFileName(
     _In_ HANDLE DriverHandle,
@@ -1726,10 +1799,8 @@ NTSTATUS PhGetDriverImageFileName(
  * Gets the service key name of a driver.
  *
  * \param DriverHandle A handle to a driver.
- * \param ServiceKeyName A variable which receives a pointer to a string containing the service key
- * name. You must free the string using PhDereferenceObject() when you no longer need it.
- *
- * \remarks This function requires a valid KSystemInformer handle.
+ * \param ServiceKeyName A string containing the service key name.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetDriverServiceKeyName(
     _In_ HANDLE DriverHandle,
@@ -1890,7 +1961,7 @@ NTSTATUS PhUnloadDriver(
  *
  * \param Processes A variable which receives a pointer to a buffer containing process information.
  * You must free the buffer using PhFree() when you no longer need it.
- *
+ * \return NTSTATUS Successful or errant status.
  * \remarks You can use the \ref PH_FIRST_PROCESS and \ref PH_NEXT_PROCESS macros to process the
  * information contained in the buffer.
  */
@@ -1907,7 +1978,7 @@ NTSTATUS PhEnumProcesses(
  * \param Processes A variable which receives a pointer to a buffer containing process information.
  * You must free the buffer using PhFree() when you no longer need it.
  * \param SystemInformationClass A variable which indicates the kind of system information to be retrieved.
- *
+ * \return NTSTATUS Successful or errant status.
  * \remarks You can use the \ref PH_FIRST_PROCESS and \ref PH_NEXT_PROCESS macros to process the
  * information contained in the buffer.
  */
@@ -1981,7 +2052,6 @@ NTSTATUS PhEnumProcessesEx(
  * \param DesiredAccess The desired access rights for the process handle.
  * \param Callback The callback function to be called for each enumerated process.
  * \param Context An optional context parameter to be passed to the callback function.
- *
  * \return Returns the status of the enumeration operation.
  *         If the enumeration is successful, it returns STATUS_SUCCESS.
  *         If there are no more processes to enumerate, it returns STATUS_NO_MORE_ENTRIES.
@@ -2056,7 +2126,6 @@ NTSTATUS PhEnumNextProcess(
  * \param DesiredAccess The desired access rights for the thread handle.
  * \param Callback The callback function to be called for each enumerated thread.
  * \param Context An optional context parameter to be passed to the callback function.
- *
  * \return Returns the status of the enumeration operation.
  *         If the enumeration is successful, it returns STATUS_SUCCESS.
  *         If there are no more threads to enumerate, it returns STATUS_NO_MORE_ENTRIES.
@@ -2132,7 +2201,7 @@ NTSTATUS PhEnumNextThread(
  * \param Processes A variable which receives a pointer to a buffer containing process information.
  * You must free the buffer using PhFree() when you no longer need it.
  * \param SessionId A session ID.
- *
+ * \return NTSTATUS Successful or errant status.
  * \remarks You can use the \ref PH_FIRST_PROCESS and \ref PH_NEXT_PROCESS macros to process the
  * information contained in the buffer.
  */
@@ -2192,7 +2261,6 @@ NTSTATUS PhEnumProcessesForSession(
  *
  * \param Processes A pointer to a buffer returned by PhEnumProcesses().
  * \param ProcessId The ID of the process.
- *
  * \return A pointer to the process information structure for the specified process, or NULL if the
  * structure could not be found.
  */
@@ -2219,7 +2287,6 @@ PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
  *
  * \param Processes A pointer to a buffer returned by PhEnumProcesses().
  * \param ImageName The image name to search for.
- *
  * \return A pointer to the process information structure for the specified process, or NULL if the
  * structure could not be found.
  */
@@ -2298,9 +2365,7 @@ NTSTATUS PhEnumHandles(
  *
  * \param Handles A variable which receives a pointer to a structure containing information about
  * all opened handles. You must free the structure using PhFree() when you no longer need it.
- *
  * \retval STATUS_INSUFFICIENT_RESOURCES The handle information returned by the kernel is too large.
- *
  * \remarks This function is only available starting with Windows XP.
  */
 NTSTATUS PhEnumHandlesEx(
@@ -2382,9 +2447,7 @@ NTSTATUS PhEnumHandlesEx(
  * \param ProcessHandle A handle to the process. The handle must have PROCESS_QUERY_INFORMATION access.
  * \param Handles A variable which receives a pointer to a structure containing information about
  * handles opened by the process. You must free the structure using PhFree() when you no longer need it.
- *
  * \retval STATUS_INSUFFICIENT_RESOURCES The handle information returned by the kernel is too large.
- *
  * \remarks This function is only available starting with Windows 8.
  */
 NTSTATUS PhEnumProcessHandles(
@@ -2462,6 +2525,7 @@ NTSTATUS PhEnumProcessHandles(
  * \param EnableHandleSnapshot TRUE to return a snapshot of the process handles.
  * \param Handles A variable which receives a pointer to a buffer containing
  * information about the handles.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhEnumHandlesGeneric(
     _In_ HANDLE ProcessId,
@@ -2613,8 +2677,7 @@ NTSTATUS PhEnumHandlesGeneric(
  *
  * \param Pagefiles A variable which receives a pointer to a buffer containing information about all
  * active pagefiles. You must free the structure using PhFree() when you no longer need it.
- *
- * \retval STATUS_INSUFFICIENT_RESOURCES The handle information returned by the kernel is too large.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhEnumPagefiles(
     _Out_ PVOID *Pagefiles
@@ -2696,7 +2759,7 @@ NTSTATUS PhEnumPagefilesEx(
  * Enumerates pool tag information.
  *
  * \param Buffer A pointer to a buffer that will receive the pool tag information.
- * \return The status of the operation.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhEnumPoolTagInformation(
     _Out_ PVOID* Buffer
@@ -2744,8 +2807,7 @@ NTSTATUS PhEnumPoolTagInformation(
  * Enumerates information about the big pool allocations in the system.
  *
  * \param Buffer A pointer to a variable that receives the buffer containing the big pool information.
- *
- * \return The status of the operation.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhEnumBigPoolInformation(
     _Out_ PVOID* Buffer
@@ -2836,7 +2898,7 @@ static NTSTATUS NTAPI PhIsContainerEnumCallback(
 }
 
 _Function_class_(PH_ENUM_KEY_CALLBACK)
-static BOOLEAN NTAPI ComputeSystemKeyCallback(
+static BOOLEAN NTAPI PhEnumHostComputeServiceKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
     _In_ PVOID Context
@@ -2871,6 +2933,7 @@ static BOOLEAN NTAPI ComputeSystemKeyCallback(
                     if ((HANDLE)Context == (HANDLE)processIdList->ProcessIdList[i])
                     {
                         context->Found = TRUE;
+                        break;
                     }
                 }
 
@@ -2915,7 +2978,7 @@ NTSTATUS PhEnumHostComputeService(
         status = PhEnumerateKey(
             keyHandle,
             KeyBasicInformation,
-            ComputeSystemKeyCallback,
+            PhEnumHostComputeServiceKeyCallback,
             &context
             );
 
@@ -2931,7 +2994,9 @@ NTSTATUS PhEnumHostComputeService(
  * \param ProcessId The ID of the process.
  * \param ProcessHandle A handle to the process.
  * \param IsContainer A variable which receives a boolean indicating whether the process is managed.
+ * \return NTSTATUS Successful or errant status.
  */
+_Use_decl_annotations_
 NTSTATUS PhGetProcessIsContainer(
     _In_ HANDLE ProcessId,
     _In_opt_ HANDLE ProcessHandle,
@@ -2957,7 +3022,7 @@ NTSTATUS PhGetProcessIsContainer(
             PhEnumerateKey(
                 keyHandle,
                 KeyBasicInformation,
-                ComputeSystemKeyCallback,
+                PhEnumHostComputeServiceKeyCallback,
                 &context
                 );
 
@@ -2966,7 +3031,8 @@ NTSTATUS PhGetProcessIsContainer(
 
         if (context.Found)
         {
-            *IsContainer = TRUE;
+            if (IsContainer)
+                *IsContainer = TRUE;
             return STATUS_SUCCESS;
         }
     }
@@ -3012,10 +3078,13 @@ NTSTATUS PhGetProcessIsContainer(
 
         if (context.Found)
         {
-            *IsContainer = TRUE;
+            if (IsContainer)
+                *IsContainer = TRUE;
             return STATUS_SUCCESS;
         }
 
+        if (IsContainer)
+            *IsContainer = FALSE;
         return status;
     }
 }
@@ -3631,7 +3700,7 @@ NTSTATUS PhQuerySymbolicLinkObject(
     status = NtQuerySymbolicLinkObject(
         linkHandle,
         &targetName,
-        NULL
+        &returnLength
         );
 
     if (status == STATUS_BUFFER_TOO_SMALL)
@@ -4001,7 +4070,7 @@ NTSTATUS PhGetVolumePathNamesForVolumeName(
 /**
  * Flush file caches on all volumes.
  *
- * \return Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhFlushVolumeCache(
     VOID
@@ -4044,6 +4113,8 @@ NTSTATUS PhFlushVolumeCache(
         deviceHandle,
         &objectMountPoints
         );
+
+    NtClose(deviceHandle);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -4100,7 +4171,6 @@ NTSTATUS PhFlushVolumeCache(
     PhFree(objectMountPoints);
 
 CleanupExit:
-    NtClose(deviceHandle);
 
     return status;
 }
@@ -7380,8 +7450,7 @@ NTSTATUS PhSetSystemEnvironmentBootToFirmware(
  *
  * \param ProcessHandle A handle to the process for which the power request is to be created.
  * \param PowerRequestHandle A pointer to a variable that receives a handle to the new power request.
- *
- * \return Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhCreateExecutionRequiredRequest(
     _In_ HANDLE ProcessHandle,
@@ -7955,7 +8024,6 @@ static NTSTATUS NTAPI PhpKnownDllObjectsCallback(
 {
     NTSTATUS status;
     HANDLE sectionHandle;
-    OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING objectName;
     PVOID baseAddress;
     SIZE_T viewSize;
@@ -7964,18 +8032,11 @@ static NTSTATUS NTAPI PhpKnownDllObjectsCallback(
     if (!PhStringRefToUnicodeString(Name, &objectName))
         goto CleanupExit;
 
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &objectName,
-        OBJ_CASE_INSENSITIVE,
-        RootDirectory,
-        NULL
-        );
-
-    status = NtOpenSection(
+    status = PhOpenSection(
         &sectionHandle,
         SECTION_MAP_READ,
-        &objectAttributes
+        RootDirectory,
+        Name
         );
 
     if (!NT_SUCCESS(status))
@@ -8584,12 +8645,11 @@ NTSTATUS PhpSetInformationVirtualMemory(
  * \param NumberOfEntries Number of entries in the array pointed to by the VirtualAddresses parameter.
  * \param VirtualAddresses A pointer to an array of MEMORY_RANGE_ENTRY structures which each specify a virtual address range
  * to be prefetched. The virtual address ranges may cover any part of the process address space accessible by the target process.
- *
- * \return Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhPrefetchVirtualMemory(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG_PTR NumberOfEntries,
+    _In_ SIZE_T NumberOfEntries,
     _In_ PMEMORY_RANGE_ENTRY VirtualAddresses
     )
 {
@@ -8971,7 +9031,7 @@ NTSTATUS PhSystemCompressionStoreHighMemoryPriorityRequest(
  * Retrieves the current size limits for the working set of the virtual memory manager system cache.
  *
  * \param CacheInfo A pointer to a variable that receives the file cache information.
- * \return Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetSystemFileCacheSize(
     _Out_ PSYSTEM_FILECACHE_INFORMATION CacheInfo
@@ -8994,7 +9054,7 @@ NTSTATUS PhGetSystemFileCacheSize(
  * \param CacheInfo The maximum size of the file cache, in bytes. The virtual memory manager
  * enforces this limit only if this call or a previous call to SetSystemFileCacheSize
  * specifies FILE_CACHE_MAX_HARD_ENABLE.
- * \return Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhSetSystemFileCacheSize(
     _In_ SIZE_T MinimumFileCacheSize,
@@ -9187,8 +9247,7 @@ CreateResult:
  * \param ProcessHandle A handle to a process.
  * \param Callback A callback function which is executed for each memory region.
  * \param Context A user-defined value to pass to the callback function.
- *
- * \return Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhEnumVirtualMemory(
     _In_ HANDLE ProcessHandle,
@@ -9378,8 +9437,7 @@ NTSTATUS PhEnumVirtualMemoryBulk(
  * \param ProcessHandle A handle to a process.
  * \param Callback A callback function which is executed for each memory page.
  * \param Context A user-defined value to pass to the callback function.
- *
- * \return Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhEnumVirtualMemoryPages(
     _In_ HANDLE ProcessHandle,
@@ -9417,14 +9475,15 @@ NTSTATUS PhEnumVirtualMemoryPages(
 }
 
 /**
- * Retrieves extended information about the pages currently added to the working set at specific virtual addresses in the address space of the specified process.
+ * Retrieves extended information about memory pages in the working set
+ * of the specified process, beginning at a given virtual address.
  *
- * \param ProcessHandle A handle to a process.
- * \param BaseAddress The base address at which to begin retrieving information.
- * \param Size The total number of pages to query from the base address.
- * \param Callback A callback function which is executed for each memory page.
- * \param Context A user-defined value to pass to the callback function.
- * \return Successful or errant status.
+ * \param[in] ProcessHandle A handle to the target process.
+ * \param[in] BaseAddress The starting virtual address from which page information should be queried.
+ * \param[in] Size The total size, in bytes, of the address range to examine.
+ * \param[in] Callback A user-supplied callback invoked once for each page in the range.
+ * \param[in] Context A user-defined value passed to the callback function.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhEnumVirtualMemoryAttributes(
     _In_ HANDLE ProcessHandle,
@@ -9558,8 +9617,7 @@ BOOLEAN PhIsDebuggerPresent(
  * \param ProcessHandle A handle to the process.
  * \param FileHandle A handle to the file.
  * \param DeviceType The type of the specified file
- *
- * \return Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetDeviceType(
     _In_opt_ HANDLE ProcessHandle,
@@ -10050,9 +10108,9 @@ NTSTATUS PhIsEcCode(
 #endif
 
 /**
- * \brief Retrieves the Mark of the Web (MOTW) information from a file.
+ * Retrieves the Mark of the Web (MOTW) information from a file.
  *
- * \details The MOTW information resides in the Zone.Identifier alternate data
+ * The MOTW information resides in the Zone.Identifier alternate data
  * stream on a file. This routine attempts to open and read this alternate data
  * stream and optionally returns the MOTW information.
  *
@@ -10062,9 +10120,7 @@ NTSTATUS PhIsEcCode(
  * Can be an empty string if no referrer URL is present.
  * \param[out] HostUrl - Optionally receives the host URL for the file. Can be
  * an empty string if no referrer URL is present.
- *
- * \return STATUS_SUCCESS if the zone identifier is present otherwise an errant
- * status is returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetFileMotw(
     _In_ PCPH_STRINGREF FileName,

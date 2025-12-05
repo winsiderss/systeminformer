@@ -1401,10 +1401,23 @@ VOID PhpFillProcessItem(
                 ProcessItem->PackageFullName = PhCreateStringEx(PackageNameBuffer, PackageNameLength - sizeof(UNICODE_NULL));
             }
 
-            //if (PhIsNullOrEmptyString(ProcessItem->CommandLine) && CommandLineLength > sizeof(UNICODE_NULL))
-            //{
-            //    ProcessItem->CommandLine = PhCreateString(CommandLineBuffer); // CommandLineLength - sizeof(UNICODE_NULL));
-            //}
+            if (PhIsNullOrEmptyString(ProcessItem->CommandLine) && CommandLineLength > sizeof(UNICODE_NULL))
+            {
+                PH_STRINGREF commandLine;
+
+                commandLine.Buffer = CommandLineBuffer;
+                commandLine.Length = CommandLineLength - sizeof(UNICODE_NULL);
+
+                // Some command lines (e.g. from taskeng.exe) have nulls in them. Since Windows
+                // can't display them, we'll replace them with spaces. (wj32)
+                for (SIZE_T i = 0; i < commandLine.Length / sizeof(WCHAR); i++)
+                {
+                    if (commandLine.Buffer[i] == UNICODE_NULL)
+                        commandLine.Buffer[i] = L' ';
+                }
+
+                ProcessItem->CommandLine = PhCreateString2(&commandLine);
+            }
         }
     }
 
@@ -1432,7 +1445,8 @@ VOID PhpFillProcessItem(
             }
             else
             {
-                if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID || ProcessItem->ProcessId == INTERRUPTS_PROCESS_ID || ProcessItem->ProcessId == DPCS_PROCESS_ID)
+                // System, DPCs, Interrupts and Idle processes are always protected. (dmex)
+                if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId) || PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId))
                 {
                     ProcessItem->Protection.Level = PsProtectedValue(PsProtectedSignerWinSystem, FALSE, PsProtectedTypeProtected);
                     ProcessItem->IsProtectedProcess = ProcessItem->IsSecureProcess = ProcessItem->IsSystemProcess = TRUE;

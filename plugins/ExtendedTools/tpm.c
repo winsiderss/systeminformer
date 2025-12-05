@@ -443,7 +443,7 @@ NTSTATUS TpmOpen(
     _Out_ PHANDLE FileHandle
     )
 {
-    static PH_STRINGREF deviceName = PH_STRINGREF_INIT(L"\\??\\TPM");
+    static CONST PH_STRINGREF deviceName = PH_STRINGREF_INIT(L"\\??\\TPM");
     NTSTATUS status;
 
     status = PhCreateFile(

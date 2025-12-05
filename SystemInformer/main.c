@@ -146,7 +146,7 @@ INT WINAPI wWinMain(
 
     // Set the default timer resolution.
     {
-        if (WindowsVersion > WINDOWS_11)
+        if (WindowsVersion >= WINDOWS_11_24H2)
         {
             PhSetProcessPowerThrottlingState(
                 NtCurrentProcess(),
@@ -368,9 +368,23 @@ static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
 
                 if (result == PH_ACTIVATE_REPLY)
                 {
-                    SetForegroundWindow(WindowHandle);
+                    if (!IsWindowVisible(WindowHandle))
+                    {
+                        ShowWindow(WindowHandle, SW_SHOW);
+                    }
+
+                    if (IsIconic(WindowHandle))
+                    {
+                        ShowWindow(WindowHandle, SW_RESTORE);
+                    }
+
+                    if (!SetForegroundWindow(WindowHandle))
+                    {
+                        PhBringWindowToTop(WindowHandle);
+                    }
 
                     PhExitApplication(STATUS_SUCCESS);
+                    return FALSE;
                 }
             }
         }
@@ -509,6 +523,8 @@ NTSTATUS NTAPI PhpPreviousInstancesCallback(
             if (objectInfo.ClientId.UniqueProcess != NtCurrentProcessId())
             {
                 PhForegroundPreviousInstance(objectInfo.ClientId.UniqueProcess);
+
+                NtClose(objectHandle);
                 return STATUS_NO_MORE_ENTRIES;
             }
         }
@@ -639,7 +655,7 @@ NTSTATUS PhInitializeDirectoryPolicy(
     }
 
     PhDereferenceObject(applicationDirectory);
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 #pragma region Error Reporting
@@ -921,7 +937,7 @@ NTSTATUS PhInitializeNamespacePolicy(
     SIZE_T returnLength;
     WCHAR formatBuffer[PH_INT64_STR_LEN_1];
     OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectNameUs;
+    UNICODE_STRING objectName;
     PH_STRINGREF objectNameSr;
     PH_FORMAT format[2];
 
@@ -942,12 +958,12 @@ NTSTATUS PhInitializeNamespacePolicy(
     objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
     objectNameSr.Buffer = formatBuffer;
 
-    if (!PhStringRefToUnicodeString(&objectNameSr, &objectNameUs))
+    if (!PhStringRefToUnicodeString(&objectNameSr, &objectName))
         return STATUS_NAME_TOO_LONG;
 
     InitializeObjectAttributes(
         &objectAttributes,
-        &objectNameUs,
+        &objectName,
         OBJ_CASE_INSENSITIVE,
         PhGetNamespaceHandle(),
         NULL
@@ -1145,19 +1161,25 @@ VOID PhInitializeAppSettings(
         // 1. File specified in command line
         if (PhStartupParameters.SettingsFileName)
         {
-            PPH_STRING settingsFileName;
-
             if (PhDetermineDosPathNameType(&PhStartupParameters.SettingsFileName->sr) == RtlPathTypeRooted)
             {
                 PhSetReference(&PhSettingsFileName, PhStartupParameters.SettingsFileName);
+                PhPortableEnabled = TRUE;
             }
             else
             {
+                PPH_STRING settingsFileName;
+
                 // Get an absolute path now.
                 if (NT_SUCCESS(PhGetFullPath(PhGetString(PhStartupParameters.SettingsFileName), &settingsFileName, NULL)))
                 {
-                    PhMoveReference(&PhSettingsFileName, PhDosPathNameToNtPathName(&settingsFileName->sr));
-                    PhDereferenceObject(settingsFileName);
+                    PhMoveReference(&settingsFileName, PhDosPathNameToNtPathName(&settingsFileName->sr));
+
+                    if (!PhIsNullOrEmptyString(settingsFileName))
+                    {
+                        PhMoveReference(&PhSettingsFileName, settingsFileName);
+                        PhPortableEnabled = TRUE;
+                    }
                 }
             }
         }

@@ -580,7 +580,7 @@ BOOLEAN PhUiRestartComputer(
             PPH_STRING messageText;
 
             messageText = PhaFormatString(
-                L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.",
+                L"This option %s %s in a disorderly manner and may cause file corruption or system instability.",
                 L"performs a hard",
                 L"restart");
 

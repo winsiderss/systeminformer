@@ -815,6 +815,7 @@ VOID FreeNetAdapterDetailsContext(
     PhFree(Context);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS ShowNetAdapterDetailsDialogThread(
     _In_ PVOID Parameter
     )

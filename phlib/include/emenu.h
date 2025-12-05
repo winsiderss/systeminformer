@@ -99,6 +99,7 @@ PhDestroyEMenuItem(
 #define PH_EMENU_FIND_STARTSWITH 0x2
 #define PH_EMENU_FIND_LITERAL 0x4
 
+_Success_(return != NULL)
 PHLIBAPI
 PPH_EMENU_ITEM
 NTAPI
@@ -106,18 +107,18 @@ PhFindEMenuItem(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
     _In_opt_ PCWSTR Text,
-    _In_opt_ ULONG Id
+    _In_ ULONG Id
     );
 
-PHLIBAPI
 _Success_(return != NULL)
+PHLIBAPI
 PPH_EMENU_ITEM
 NTAPI
 PhFindEMenuItemEx(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
     _In_opt_ PCWSTR Text,
-    _In_opt_ ULONG Id,
+    _In_ ULONG Id,
     _Out_opt_ PPH_EMENU_ITEM *FoundParent,
     _Out_opt_ PULONG FoundIndex
     );

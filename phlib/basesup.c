@@ -169,6 +169,17 @@ NTSTATUS PhBaseInitialization(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Entry point for a base thread in the system.
+ *
+ * This function serves as the start routine for a user thread. It initializes COM for the thread,
+ * sets up debugging information (in debug builds), and invokes the user-supplied thread function.
+ * After the user function returns, it performs necessary cleanup, including COM uninitialization
+ * and removal of debugging information.
+ * \param Parameter Pointer to a PHP_BASE_THREAD_CONTEXT structure containing the user-supplied
+ *        thread start address and parameter.
+ * \return NTSTATUS Status code returned by the user-supplied thread function.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpBaseThreadStart(
     _In_ PVOID Parameter
@@ -238,7 +249,7 @@ NTSTATUS PhpBaseThreadStart(
  * \param Argument A pointer to a variable to be passed to the StartRoutine.
  * \param ThreadHandle A pointer to a variable that receives a handle to the new thread.
  * \param ClientId A pointer to a variable that receives the thread identifier.
- * \return Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhCreateUserThread(
     _In_ HANDLE ProcessHandle,
@@ -323,6 +334,7 @@ NTSTATUS PhCreateUserThread(
  * \param StackSize The initial stack size of the thread.
  * \param StartAddress The function to execute in the thread.
  * \param Parameter A user-defined value to pass to the function.
+ * \return HANDLE A handle to the new thread.
  */
 HANDLE PhCreateThread(
     _In_opt_ SIZE_T StackSize,
@@ -446,6 +458,15 @@ NTSTATUS PhCreateThread2(
     return status;
 }
 
+/**
+ * Callback function that starts a queued base thread.
+ *
+ * This function is called by the thread pool when a work item is dequeued.
+ * It retrieves the thread context, frees the context structure, and invokes
+ * the user-supplied start address with the provided parameter.
+ * \param Instance Pointer to the thread pool callback instance.
+ * \param Context Pointer to a PHP_BASE_THREAD_CONTEXT structure, which will be freed.
+ */
 _Function_class_(TP_CALLBACK_ROUTINE)
 VOID PhpBaseThreadQueueStart(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
@@ -460,6 +481,17 @@ VOID PhpBaseThreadQueueStart(
     context.StartAddress(context.Parameter);
 }
 
+/**
+ * Queues a callback to be executed by a thread pool thread.
+ *
+ * This function allocates a thread context, initializes a callback environment,
+ * and posts the work item to a thread pool. If the operation succeeds, a statistic
+ * for created threads is incremented; otherwise, a failure statistic is incremented
+ * and the context is freed.
+ * \param StartRoutine Pointer to the user-defined thread start routine to execute.
+ * \param Parameter Optional parameter to pass to the start routine.
+ * \return   NTSTATUS code indicating success or failure of the operation.
+ */
 NTSTATUS PhQueueUserWorkItem(
     _In_ PUSER_THREAD_START_ROUTINE StartRoutine,
     _In_opt_ PVOID Parameter
@@ -637,17 +669,17 @@ BOOLEAN PhQueryPerformanceFrequency(
  * Gets the current interrupt-time count.
  */
 VOID PhQueryInterruptTime(
-    _Out_ PULARGE_INTEGER InterruptTime
+    _Out_ PLARGE_INTEGER InterruptTime
     )
 {
 #if defined(PHNT_NATIVE_TIME)
 
     while (TRUE)
     {
-        InterruptTime->HighPart = (ULONG)USER_SHARED_DATA->InterruptTime.High1Time;
+        InterruptTime->HighPart = USER_SHARED_DATA->InterruptTime.High1Time;
         InterruptTime->LowPart = USER_SHARED_DATA->InterruptTime.LowPart;
 
-        if (InterruptTime->HighPart == (ULONG)USER_SHARED_DATA->InterruptTime.High2Time)
+        if (InterruptTime->HighPart == USER_SHARED_DATA->InterruptTime.High2Time)
             break;
 
         YieldProcessor();
@@ -665,9 +697,9 @@ VOID PhQueryInterruptTime(
 
     do
     {
-        InterruptTime->HighPart = (ULONG)UUSER_SHARED_DATA->InterruptTime.High1Time;
+        InterruptTime->HighPart = UUSER_SHARED_DATA->InterruptTime.High1Time;
         InterruptTime->LowPart = USER_SHARED_DATA->InterruptTime.LowPart;
-    } while (InterruptTime->HighPart != (ULONG)UUSER_SHARED_DATA->InterruptTime.High2Time);
+    } while (InterruptTime->HighPart != UUSER_SHARED_DATA->InterruptTime.High2Time);
 
 #endif
 }
@@ -892,9 +924,7 @@ VOID PhSecondsSince1970ToTime(
  * Allocates a block of memory.
  *
  * \param Size The number of bytes to allocate.
- *
  * \return A pointer to the allocated block of memory.
- *
  * \remarks If the function fails to allocate the block of memory, it raises an exception. The block
  * is guaranteed to be aligned at MEMORY_ALLOCATION_ALIGNMENT bytes.
  */
@@ -903,7 +933,7 @@ PVOID PhAllocate(
     _In_ SIZE_T Size
     )
 {
-    assert(Size);
+    assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
 #if defined(PH_DEBUG_HEAP)
     return malloc(Size);
 #else
@@ -915,15 +945,15 @@ PVOID PhAllocate(
  * Allocates a block of memory.
  *
  * \param Size The number of bytes to allocate.
- *
- * \return A pointer to the allocated block of memory, or NULL if the block could not be allocated.
+ * \return A pointer to the allocated block of memory,
+ * or NULL if the block could not be allocated.
  */
 _Use_decl_annotations_
 PVOID PhAllocateSafe(
     _In_ SIZE_T Size
     )
 {
-    assert(Size);
+    assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
 #if defined(PH_DEBUG_HEAP)
     return malloc(Size);
 #else
@@ -936,8 +966,8 @@ PVOID PhAllocateSafe(
  *
  * \param Size The number of bytes to allocate.
  * \param Flags Flags controlling the allocation.
- *
- * \return A pointer to the allocated block of memory, or NULL if the block could not be allocated.
+ * \return A pointer to the allocated block of memory,
+ * or NULL if the block could not be allocated.
  */
 _Use_decl_annotations_
 PVOID PhAllocateExSafe(
@@ -945,7 +975,7 @@ PVOID PhAllocateExSafe(
     _In_ ULONG Flags
     )
 {
-    assert(Size);
+    assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
 #if defined(PH_DEBUG_HEAP)
     return malloc(Size);
 #else
@@ -975,10 +1005,8 @@ VOID PhFree(
  *
  * \param Memory A pointer to a block of memory.
  * \param Size The new size of the memory block, in bytes.
- *
  * \return A pointer to the new block of memory. The existing contents of the memory block are
  * copied to the new block.
- *
  * \remarks If the function fails to allocate the block of memory, it raises an exception.
  */
 _Use_decl_annotations_
@@ -987,7 +1015,7 @@ PVOID PhReAllocate(
     _In_ SIZE_T Size
     )
 {
-    assert(Size);
+    assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
 #if defined(PH_DEBUG_HEAP)
     return realloc(Memory, Size);
 #else
@@ -1011,7 +1039,6 @@ PVOID PhReAllocate(
  *
  * \param Memory A pointer to a block of memory.
  * \param Size The new size of the memory block, in bytes.
- *
  * \return A pointer to the new block of memory, or NULL if the block could not be allocated. The
  * existing contents of the memory block are copied to the new block.
  */
@@ -1021,7 +1048,7 @@ PVOID PhReAllocateSafe(
     _In_ SIZE_T Size
     )
 {
-    assert(Size);
+    assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
 #if defined(PH_DEBUG_HEAP)
     return realloc(Memory, Size);
 #else
@@ -1059,7 +1086,6 @@ SIZE_T PhSizeHeap(
  * to contain \a Size bytes.
  * \param NewSize The number of bytes actually allocated. This is \a Size rounded up to the next
  * multiple of PAGE_SIZE.
- *
  * \return A pointer to the allocated block of memory, or NULL if the block could not be allocated.
  */
 _Use_decl_annotations_
@@ -1618,7 +1644,7 @@ NTSTATUS PhCopyStringZ(
 
     // Copy the string if there is enough room.
 
-    if (OutputBuffer && OutputCount >= i + sizeof(UNICODE_NULL)) // need one character for null terminator
+    if (OutputBuffer && OutputCount >= i + 1) // need one character for null terminator
     {
         memcpy(OutputBuffer, InputBuffer, i * sizeof(WCHAR));
         OutputBuffer[i] = UNICODE_NULL;
@@ -1631,7 +1657,7 @@ NTSTATUS PhCopyStringZ(
 
     if (ReturnCount)
     {
-        *ReturnCount = i + sizeof(UNICODE_NULL);
+        *ReturnCount = i + 1;
     }
 
     return status;
@@ -1680,7 +1706,7 @@ NTSTATUS PhCopyStringZFromBytes(
 
     // Copy the string if there is enough room.
 
-    if (OutputBuffer && OutputCount >= i + sizeof(ANSI_NULL)) // need one character for null terminator
+    if (OutputBuffer && OutputCount >= i + 1) // need one character for null terminator
     {
         PhZeroExtendToUtf16Buffer(InputBuffer, i, OutputBuffer);
         OutputBuffer[i] = UNICODE_NULL;
@@ -1693,7 +1719,7 @@ NTSTATUS PhCopyStringZFromBytes(
 
     if (ReturnCount)
     {
-        *ReturnCount = i + sizeof(ANSI_NULL);
+        *ReturnCount = i + 1;
     }
 
     return status;
@@ -2051,6 +2077,8 @@ FORCEINLINE LONG PhpCompareStringZNatural(
  * \param String1 The first string.
  * \param String2 The second string.
  * \param IgnoreCase TRUE to perform a case-insensitive comparison, otherwise FALSE.
+ * \return A value less than zero if \a String1 is less than \a String2, a value greater than zero if
+ * \a String1 is greater than \a String2, or zero if the strings are equal.
  */
 LONG PhCompareStringZNatural(
     _In_ PCWSTR String1,
@@ -2067,6 +2095,8 @@ LONG PhCompareStringZNatural(
  * \param String1 The first string.
  * \param String2 The second string.
  * \param IgnoreCase TRUE to perform a case-insensitive comparison, otherwise FALSE.
+ * \return A value less than zero if \a String1 is less than \a String2, a value greater than zero if
+ * \a String1 is greater than \a String2, or zero if the strings are equal.
  */
 LONG PhCompareStringRef(
     _In_ PCPH_STRINGREF String1,
@@ -2138,6 +2168,7 @@ LONG PhCompareStringRef(
  * \param String1 The first string.
  * \param String2 The second string.
  * \param IgnoreCase TRUE to perform a case-insensitive comparison, otherwise FALSE.
+ * \return TRUE if the strings are equal, otherwise FALSE
  */
 BOOLEAN PhEqualStringRef(
     _In_ PCPH_STRINGREF String1,
@@ -2282,7 +2313,6 @@ CompareCharacters:
  * \param String The string to search.
  * \param Character The character to search for.
  * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise FALSE.
- *
  * \return The index, in characters, of the first occurrence of \a Character in \a String1. If
  * \a Character was not found, -1 is returned.
  */
@@ -2382,7 +2412,6 @@ ULONG_PTR PhFindCharInStringRef(
  * \param String The string to search.
  * \param Character The character to search for.
  * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise FALSE.
- *
  * \return The index, in characters, of the last occurrence of \a Character in \a String1. If
  * \a Character was not found, -1 is returned.
  */
@@ -2490,7 +2519,6 @@ ULONG_PTR PhFindLastCharInStringRef(
  * \param String The string to search.
  * \param SubString The string to search for.
  * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise FALSE.
- *
  * \return The index, in characters, of the first occurrence of \a SubString in \a String. If
  * \a SubString was not found, -1 is returned.
  */
@@ -2563,7 +2591,6 @@ FoundUString:
  * \param SecondPart A variable which receives the part of \a Input after the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * an empty string.
- *
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtChar(
@@ -2610,7 +2637,6 @@ BOOLEAN PhSplitStringRefAtChar(
  * \param SecondPart A variable which receives the part of \a Input after the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * an empty string.
- *
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtLastChar(
@@ -2658,7 +2684,6 @@ BOOLEAN PhSplitStringRefAtLastChar(
  * \param SecondPart A variable which receives the part of \a Input after the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * an empty string.
- *
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtString(
@@ -2722,7 +2747,6 @@ BOOLEAN PhSplitStringRefAtString(
  * an empty string.
  * \param SeparatorPart A variable which receives the part of \a Input that is the separator. If the
  * separator is not found in \a Input, this variable is set to an empty string.
- *
  * \return TRUE if a separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefEx(
@@ -4506,7 +4530,6 @@ NTSTATUS PhConvertUtf16ToUtf8Buffer(
     UCHAR codeUnits[4];
     ULONG numberOfCodeUnits;
 
-    result = TRUE;
     PhInitializeUnicodeDecoder(&decoder, PH_UNICODE_UTF16);
     in = Utf16String;
     inRemaining = BytesInUtf16String / sizeof(WCHAR);
@@ -8321,6 +8344,9 @@ ULONG PhCountBitsUlongPtr(
     _In_ ULONG_PTR Value
     )
 {
+#if defined(PH_NATIVE_COUNTBITS)
+    return RtlNumberOfSetBitsUlongPtr(Value);
+#else
 #ifdef _WIN64
     if (PhHasPopulationCount)
     {
@@ -8351,6 +8377,7 @@ ULONG PhCountBitsUlongPtr(
         //
         //return count;
     }
+#endif
 }
 
 #pragma region Thread Local Storage (TLS)

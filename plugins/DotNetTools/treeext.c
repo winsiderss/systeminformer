@@ -30,6 +30,7 @@ VOID ThreadTreeNewMessage(
     _In_ PVOID Parameter
     );
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG ThreadTreeNewSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -330,6 +331,7 @@ VOID ThreadTreeNewMessage(
     }
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG ThreadTreeNewSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,

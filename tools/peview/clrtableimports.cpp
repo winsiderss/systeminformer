@@ -171,6 +171,7 @@ static int __cdecl PvClrCoreNameCompare(
     return PhCompareStringWithNull(item1, item2, TRUE);
 }
 
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
 static BOOLEAN PvClrCoreDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,

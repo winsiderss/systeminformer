@@ -13,7 +13,7 @@
 #include "toolstatus.h"
 #include <verify.h>
 
-BOOLEAN WordMatchStringRef(
+BOOLEAN SearchWordMatchStringRefCallback(
     _In_ PCPH_STRINGREF Text
     )
 {

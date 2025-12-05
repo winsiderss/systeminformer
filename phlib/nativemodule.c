@@ -307,7 +307,10 @@ NTSTATUS PhEnumKernelModules(
     }
 
     if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
         return status;
+    }
 
     // Note: Windows 11 24H2 introduced breaking changes where, without SeDebugPrivilege, every module's reported base address is zero.
     // System Informer previously keyed modules by base address in a hash table; this causes enumeration collisions and prevents modules
@@ -376,7 +379,10 @@ NTSTATUS PhEnumKernelModulesEx(
     }
 
     if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
         return status;
+    }
 
     // Note: Windows 11 24H2 introduced breaking changes where, without SeDebugPrivilege, every module's reported base address is zero.
     // System Informer previously keyed modules by base address in a hash table; this causes enumeration collisions and prevents modules
@@ -499,16 +505,23 @@ PPH_STRING PhGetSecureKernelFileName(
 {
     static CONST PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32\\");
     static CONST PH_STRINGREF secureKernelPathPart = PH_STRINGREF_INIT(L"\\securekernel.exe");
+    static CONST PH_STRINGREF secureKernella57PathPart = PH_STRINGREF_INIT(L"\\securekernella57.exe");
     PPH_STRING fileName = NULL;
     PPH_STRING kernelFileName;
+    BOOLEAN isLa57 = FALSE;
 
     if (kernelFileName = PhGetKernelFileName())
     {
         PH_STRINGREF baseName;
 
+        if (PhEndsWithStringRef2(&kernelFileName->sr, L"la57.exe", TRUE))
+        {
+            isLa57 = TRUE;
+        }
+
         if (PhGetBasePath(&kernelFileName->sr, &baseName, NULL))
         {
-            fileName = PhConcatStringRef2(&baseName, &secureKernelPathPart);
+            fileName = PhConcatStringRef2(&baseName, isLa57 ? &PhSecureKernelFileAliasList[1] : &secureKernelPathPart);
         }
 
         PhDereferenceObject(kernelFileName);
@@ -523,7 +536,7 @@ PPH_STRING PhGetSecureKernelFileName(
         fileName = PhConcatStringRef3(
             &systemRootString,
             &system32String,
-            &secureKernelPathPart
+            isLa57 ? &secureKernella57PathPart : &secureKernelPathPart
             );
     }
 

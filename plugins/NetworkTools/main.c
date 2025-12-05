@@ -372,6 +372,7 @@ PNETWORK_EXTENSION GetNetworkItemExtension(
     return PhPluginGetObjectExtension(PluginInstance, NetworkItem, EmNetworkItemType);
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG NTAPI NetworkServiceSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,

@@ -678,9 +678,11 @@ VOID PhpPopulateObjectTypes(
     {
         LONG maxLength;
         HDC comboDc;
+        HFONT oldFont;
 
         maxLength = 0;
         comboDc = GetDC(Context->TypeWindowHandle);
+        oldFont = SelectFont(comboDc, Context->TypeWindowFont);
 
         SetWindowFont(Context->TypeWindowHandle, Context->TypeWindowFont, TRUE);
 
@@ -698,6 +700,9 @@ VOID PhpPopulateObjectTypes(
             ComboBox_AddString(Context->TypeWindowHandle, PhGetString(objectTypeList->Items[i]));
             PhDereferenceObject(objectTypeList->Items[i]);
         }
+
+        if (oldFont)
+            SelectFont(comboDc, oldFont);
 
         ReleaseDC(Context->TypeWindowHandle, comboDc);
 

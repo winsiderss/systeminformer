@@ -827,35 +827,6 @@ PhGetProcessNetworkIoCounters(
         );
 }
 
-FORCEINLINE
-NTSTATUS
-PhGetThreadPowerThrottlingState(
-    _In_ HANDLE ThreadHandle,
-    _Out_ PPOWER_THROTTLING_THREAD_STATE PowerThrottlingState
-    )
-{
-    NTSTATUS status;
-    POWER_THROTTLING_THREAD_STATE threadPowerThrottlingState;
-
-    memset(&threadPowerThrottlingState, 0, sizeof(POWER_THROTTLING_THREAD_STATE));
-    threadPowerThrottlingState.Version = POWER_THROTTLING_THREAD_CURRENT_VERSION;
-
-    status = NtQueryInformationThread(
-        ThreadHandle,
-        ThreadPowerThrottlingState,
-        &threadPowerThrottlingState,
-        sizeof(POWER_THROTTLING_THREAD_STATE),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        *PowerThrottlingState = threadPowerThrottlingState;
-    }
-
-    return status;
-}
-
 /**
  * Gets basic information for a thread.
  *

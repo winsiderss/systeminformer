@@ -887,14 +887,14 @@ VOID ToolbarSaveButtonSettings(
             TBIF_BYINDEX | TBIF_IMAGE | TBIF_STYLE | TBIF_COMMAND
         };
 
-        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo))
-        {
-            PhAppendFormatStringBuilder(
-                &stringBuilder,
-                L"%d|",
-                buttonInfo.idCommand
-                );
-        }
+        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == INT_ERROR)
+            break;
+
+        PhAppendFormatStringBuilder(
+            &stringBuilder,
+            L"%d|",
+            buttonInfo.idCommand
+            );
     }
 
     if (stringBuilder.String->Length != 0)

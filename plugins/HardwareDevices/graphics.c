@@ -857,14 +857,14 @@ PPH_STRING GraphicsGetNodeEngineTypeString(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PH_STRINGREF name3DString = PH_STRINGREF_INIT(L"3D");
-        PH_STRINGREF nameDecodeString = PH_STRINGREF_INIT(L"Video Decode");
-        PH_STRINGREF nameEncodeString = PH_STRINGREF_INIT(L"Video Encode");
-        PH_STRINGREF nameProcessingString = PH_STRINGREF_INIT(L"Video Processing");
-        PH_STRINGREF nameAssemblyString = PH_STRINGREF_INIT(L"Scene Assembly");
-        PH_STRINGREF nameCopyString = PH_STRINGREF_INIT(L"Copy");
-        PH_STRINGREF nameOverlayString = PH_STRINGREF_INIT(L"Overlay");
-        PH_STRINGREF nameCryptoString = PH_STRINGREF_INIT(L"Crypto");
+        static CONST PH_STRINGREF name3DString = PH_STRINGREF_INIT(L"3D");
+        static CONST PH_STRINGREF nameDecodeString = PH_STRINGREF_INIT(L"Video Decode");
+        static CONST PH_STRINGREF nameEncodeString = PH_STRINGREF_INIT(L"Video Encode");
+        static CONST PH_STRINGREF nameProcessingString = PH_STRINGREF_INIT(L"Video Processing");
+        static CONST PH_STRINGREF nameAssemblyString = PH_STRINGREF_INIT(L"Scene Assembly");
+        static CONST PH_STRINGREF nameCopyString = PH_STRINGREF_INIT(L"Copy");
+        static CONST PH_STRINGREF nameOverlayString = PH_STRINGREF_INIT(L"Overlay");
+        static CONST PH_STRINGREF nameCryptoString = PH_STRINGREF_INIT(L"Crypto");
 
         name3D = PhCreateString2(&name3DString);
         decode = PhCreateString2(&nameDecodeString);
@@ -998,8 +998,8 @@ NTSTATUS GraphicsQueryAdapterAttributes(
     _Out_ PGX_ADAPTER_ATTRIBUTES Attributes
     )
 {
-    static PH_STRINGREF dxCoreAttributes = PH_STRINGREF_INIT(L"DXCoreAttributes");
-    static PH_STRINGREF dxAttributes = PH_STRINGREF_INIT(L"DXAttributes");
+    static CONST PH_STRINGREF dxCoreAttributes = PH_STRINGREF_INIT(L"DXCoreAttributes");
+    static CONST PH_STRINGREF dxAttributes = PH_STRINGREF_INIT(L"DXAttributes");
     NTSTATUS status;
     PPH_STRING adapterAttributes;
 

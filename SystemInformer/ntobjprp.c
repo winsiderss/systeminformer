@@ -34,7 +34,7 @@ HPROPSHEETPAGE PhpCommonCreatePage(
     _In_ DLGPROC DlgProc
     );
 
-LONG CALLBACK PhpCommonPropPageProc(
+INT CALLBACK PhpCommonPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -110,7 +110,7 @@ HPROPSHEETPAGE PhpCommonCreatePage(
     return propSheetPageHandle;
 }
 
-LONG CALLBACK PhpCommonPropPageProc(
+INT CALLBACK PhpCommonPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp

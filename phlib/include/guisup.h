@@ -214,6 +214,28 @@ PhGetThemePartSize(
     _Out_ PSIZE Size
     );
 
+typedef struct _THEMEMARGINS
+{
+    LONG cxLeftWidth;      // width of left border that retains its size
+    LONG cxRightWidth;     // width of right border that retains its size
+    LONG cyTopHeight;      // height of top border that retains its size
+    LONG cyBottomHeight;   // height of bottom border that retains its size
+} THEMEMARGINS, *PTHEMEMARGINS;
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetThemeMargins(
+    _In_ HTHEME ThemeHandle,
+    _In_opt_ HDC hdc,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
+    _In_ LONG PropId,
+    _In_opt_ LPCRECT Rect,
+    _Out_ PTHEMEMARGINS Margins
+    );
+
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -1757,6 +1779,68 @@ PhRemoveDialogContext(
 #endif
 }
 
+FORCEINLINE
+VOID
+NTAPI
+PhSetWindowRedraw(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN Enable
+    )
+{
+    SendMessage(WindowHandle, WM_SETREDRAW, Enable, 0);
+}
+
+FORCEINLINE
+BOOL
+NTAPI
+PhInvalidateRect(
+    _In_ HWND WindowHandle,
+    _In_opt_ CONST RECT* Rect,
+    _In_ BOOL Erase
+    )
+{
+    return InvalidateRect(WindowHandle, Rect, Erase);
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhUpdateWindow(
+    _In_ HWND WindowHandle
+    )
+{
+    UpdateWindow(WindowHandle);
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhInvalidateUpdateWindow(
+    _In_ HWND WindowHandle
+    )
+{
+    PhInvalidateRect(WindowHandle, NULL, TRUE);
+    PhUpdateWindow(WindowHandle);
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhRedrawWindow(
+    _In_ HWND WindowHandle
+    )
+{
+    // You should use RedrawWindow with the specified flags, instead of InvalidateRect,
+    // because the former is necessary for some controls that have nonclient area of their own,
+    // or have window styles that cause them to be given a nonclient area (such as WS_THICKFRAME, WS_BORDER, or WS_EX_CLIENTEDGE).
+    // If the control does not have a nonclient area, then RedrawWindow with these flags
+    // will do only as much invalidation as InvalidateRect would.
+    // https://learn.microsoft.com/en-us/windows/win32/gdi/wm-setredraw
+
+    RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
+}
+
+
 typedef _Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN NTAPI PH_WINDOW_ENUM_CALLBACK(
     _In_ HWND WindowHandle,
@@ -2755,13 +2839,6 @@ PhIsInteractiveUserSession(
     VOID
     );
 
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhGetCurrentWindowStationName(
-    VOID
-    );
-
 typedef struct _PH_USER_OBJECT_SID
 {
     union
@@ -2789,6 +2866,13 @@ NTAPI
 PhGetUserObjectSidInformationCopy(
     _In_ HANDLE Handle,
     _Out_ PSID* ObjectSid
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetCurrentWindowStationName(
+    VOID
     );
 
 PHLIBAPI
