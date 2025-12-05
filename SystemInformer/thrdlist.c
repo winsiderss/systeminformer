@@ -2328,7 +2328,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             else if (context->HighlightSuspended && threadItem->WaitReason == Suspended)
                 getNodeColor->BackColor = PhCsColorSuspended;
             else if (context->HighlightSuspended && threadItem->WaitReason == DelayExecution) // NtDelayExecution
-                getNodeColor->BackColor = PhCsColorPartiallySuspended;
+                getNodeColor->BackColor = PhCsColorImmersiveProcesses;
             else if (context->HighlightSuspended && threadItem->WaitReason == UserRequest) // NtWaitForSingleObject
                 getNodeColor->BackColor = PhCsColorOwnProcesses;
             else if (context->HighlightSuspended && threadItem->WaitReason == WrAlertByThreadId)

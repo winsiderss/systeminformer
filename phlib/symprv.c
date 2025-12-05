@@ -127,7 +127,7 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
 
     if (ProcessId)
     {
-        static ACCESS_MASK accesses[] =
+        static const ACCESS_MASK accesses[] =
         {
             //STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff, // pre-Vista full access
             PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_DUP_HANDLE,

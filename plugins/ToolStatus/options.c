@@ -22,7 +22,7 @@ static PH_KEY_VALUE_PAIR GraphTypePairs[] =
     { L"Physical memory history", (PVOID)TASKBAR_ICON_PHYSICAL_HISTORY },
 };
 
-static PWSTR GraphTypeStrings[] =
+static CONST PCWSTR GraphTypeStrings[] =
 {
     L"None",
     L"CPU usage",
@@ -32,11 +32,11 @@ static PWSTR GraphTypeStrings[] =
     L"Physical memory history"
 };
 
-PWSTR GraphTypeGetTypeString(
+PCWSTR GraphTypeGetTypeString(
     _In_ ULONG SidType
     )
 {
-    PWSTR string;
+    PCWSTR string;
 
     if (PhFindStringSiKeyValuePairs(
         GraphTypePairs,
@@ -52,7 +52,7 @@ PWSTR GraphTypeGetTypeString(
 }
 
 ULONG GraphTypeGetTypeInteger(
-    _In_ PWSTR SidType
+    _In_ PCWSTR SidType
     )
 {
     ULONG integer;

@@ -1732,7 +1732,7 @@ NTSTATUS DiskDriveEnableStatistics(
     VOID
     )
 {
-    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\Partmgr");
+    static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\Partmgr");
     static ULONG keyValue = TRUE;
     NTSTATUS status;
     HANDLE keyHandle;

@@ -853,7 +853,7 @@ VOID DiskDeviceSysInfoInitializing(
     _In_ _Assume_refs_(1) PDV_DISK_ENTRY DiskEntry
     )
 {
-    static PH_STRINGREF text = PH_STRINGREF_INIT(L"Unknown");
+    static CONST PH_STRINGREF text = PH_STRINGREF_INIT(L"Unknown");
     PDV_DISK_SYSINFO_CONTEXT context;
     PH_SYSINFO_SECTION section;
 

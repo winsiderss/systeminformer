@@ -16,7 +16,7 @@ PPH_STRING TrimString(
     _In_ PPH_STRING String
     )
 {
-    static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" \t");
+    static CONST PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" \t");
     return PhCreateString3(&String->sr, 0, &whitespace);
 }
 
@@ -26,7 +26,7 @@ PPH_STRING FindPoolTagFilePath(
 {
     static struct
     {
-        PH_STRINGREF AppendPath;
+        CONST PH_STRINGREF AppendPath;
     } locations[] =
     {
 #ifdef _WIN64
@@ -70,6 +70,7 @@ PPH_STRING FindPoolTagFilePath(
     return NULL;
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN EtPoolTagListHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -81,6 +82,7 @@ BOOLEAN EtPoolTagListHashtableEqualFunction(
     return poolTagNode1->TagUlong == poolTagNode2->TagUlong;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG EtPoolTagListHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -114,8 +116,8 @@ VOID EtLoadPoolTagDatabase(
     _In_ PPOOLTAG_CONTEXT Context
     )
 {
-    static PH_STRINGREF skipPoolTagFileHeader = PH_STRINGREF_INIT(L"\r\n\r\n");
-    static PH_STRINGREF skipPoolTagFileLine = PH_STRINGREF_INIT(L"\r\n");
+    static CONST PH_STRINGREF skipPoolTagFileHeader = PH_STRINGREF_INIT(L"\r\n\r\n");
+    static CONST PH_STRINGREF skipPoolTagFileLine = PH_STRINGREF_INIT(L"\r\n");
     PPH_STRING poolTagFilePath;
     HANDLE fileHandle = NULL;
     LARGE_INTEGER fileSize;

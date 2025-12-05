@@ -3303,7 +3303,7 @@ VOID NTAPI PhpDevPropFillBinary(
 
 static const PH_STRINGREF UnknownString = PH_STRINGREF_INIT(L"Unk");
 
-PPH_STRINGREF PhpDevPowerStateString(
+PCPH_STRINGREF PhpDevPowerStateString(
     _In_ DEVICE_POWER_STATE PowerState
     )
 {
@@ -3319,12 +3319,12 @@ PPH_STRINGREF PhpDevPowerStateString(
     };
 
     if (PowerState >= 0 && PowerState < RTL_NUMBER_OF(states))
-        return (PPH_STRINGREF)&states[PowerState];
+        return &states[PowerState];
 
-    return (PPH_STRINGREF)&UnknownString;
+    return &UnknownString;
 }
 
-PPH_STRINGREF PhpDevSysPowerStateString(
+PCPH_STRINGREF PhpDevSysPowerStateString(
     _In_ SYSTEM_POWER_STATE PowerState
     )
 {
@@ -3341,9 +3341,9 @@ PPH_STRINGREF PhpDevSysPowerStateString(
     };
 
     if (PowerState >= 0 && PowerState < RTL_NUMBER_OF(states))
-        return (PPH_STRINGREF)&states[PowerState];
+        return &states[PowerState];
 
-    return (PPH_STRINGREF)&UnknownString;
+    return &UnknownString;
 }
 
 PPH_STRING PhpDevSysPowerPowerDataString(

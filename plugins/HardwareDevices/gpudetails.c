@@ -566,6 +566,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS GraphicsDeviceDetailsDialogThreadStart(
     _In_ PVOID Parameter
     )

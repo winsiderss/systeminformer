@@ -295,6 +295,7 @@ VOID WaitChainCheckThread(
     }
 }
 
+_Function_class_(PH_ENUM_NEXT_THREAD)
 NTSTATUS WaitChainEnumNextThread(
     _In_ HANDLE ThreadHandle,
     _In_ PWCT_CONTEXT Context
@@ -310,6 +311,7 @@ NTSTATUS WaitChainEnumNextThread(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS WaitChainCallbackThread(
     _In_ PWCT_CONTEXT Context
     )
@@ -861,6 +863,7 @@ BOOLEAN NTAPI WtcWaitTreeNewCallback(
     return FALSE;
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN WtcWaitNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -872,6 +875,7 @@ static BOOLEAN WtcWaitNodeHashtableEqualFunction(
     return node1->Index == node2->Index;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG WtcWaitNodeHashtableHashFunction(
     _In_ PVOID Entry
     )

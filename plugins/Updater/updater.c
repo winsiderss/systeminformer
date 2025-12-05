@@ -138,7 +138,7 @@ BOOLEAN UpdateCheckDirectoryElevationRequired(
     VOID
     )
 {
-    static PH_STRINGREF checkFileName = PH_STRINGREF_INIT(L"elevation_check");
+    static const PH_STRINGREF checkFileName = PH_STRINGREF_INIT(L"elevation_check");
     HANDLE fileHandle;
     PPH_STRING fileName;
 
@@ -250,7 +250,7 @@ PPH_STRING UpdateVersionString(
     VOID
     )
 {
-    static PH_STRINGREF versionHeader = PH_STRINGREF_INIT(L"SystemInformer-Build: ");
+    static const PH_STRINGREF versionHeader = PH_STRINGREF_INIT(L"SystemInformer-Build: ");
     ULONG majorVersion;
     ULONG minorVersion;
     ULONG buildVersion;
@@ -297,7 +297,7 @@ NTSTATUS UpdatePlatformSupportInformation(
     USHORT imageMachine;
     ULONG imageDateStamp;
     ULONG imageSizeOfImage;
-    PPH_STRING imageHashString;
+    PPH_STRING imageHashString = NULL;
     PH_MAPPED_IMAGE mappedImage;
     LARGE_INTEGER fileSize;
     PH_HASH_CONTEXT hashContext;
@@ -306,7 +306,7 @@ NTSTATUS UpdatePlatformSupportInformation(
     ULONG bufferLength;
     PBYTE buffer;
 
-    if (!NT_SUCCESS(status = PhCreateFile(
+    status = PhCreateFile(
         &fileHandle,
         FileName,
         FILE_GENERIC_READ,
@@ -314,12 +314,19 @@ NTSTATUS UpdatePlatformSupportInformation(
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
         return status;
 
-    if (!NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)))
+    status = PhGetFileSize(fileHandle, &fileSize);
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhInitializeHash(&hashContext, Sha256HashAlgorithm)))
+
+    status = PhInitializeHash(&hashContext, Sha256HashAlgorithm);
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
 
     bufferLength = PAGE_SIZE * 2;
@@ -368,27 +375,30 @@ NTSTATUS UpdatePlatformSupportInformation(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    status = PhLoadMappedImageHeaderPageSize(
+        NULL,
+        fileHandle,
+        &mappedImage
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
     __try
     {
-        status = PhLoadMappedImageHeaderPageSize(
-            NULL,
-            fileHandle,
-            &mappedImage
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-            imageDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-            imageSizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
-
-            PhUnloadMappedImage(&mappedImage);
-        }
+        imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+        imageDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+        imageSizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
         status = GetExceptionCode();
     }
+
+    PhUnloadMappedImage(&mappedImage);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
     if (NT_SUCCESS(status))
     {
@@ -412,7 +422,7 @@ PPH_STRING UpdatePlatformSupportString(
     )
 {
     static CONST PH_STRINGREF platformHeader = PH_STRINGREF_INIT(L"SystemInformer-PlatformSupport: ");
-    static UPDATER_PLATFORM_SUPPORT_ENTRY platformFiles[] =
+    static CONST UPDATER_PLATFORM_SUPPORT_ENTRY platformFiles[] =
     {
         { KPH_DYN_CLASS_NTOSKRNL, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe") },
         { KPH_DYN_CLASS_NTKRLA57, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrla57.exe") },
@@ -512,7 +522,7 @@ PPH_STRING UpdateWindowsString(
 }
 
 ULONG64 ParseVersionString(
-    _Inout_ PPH_STRING VersionString
+    _In_ PPH_STRING VersionString
     )
 {
     PH_STRINGREF remaining;
@@ -524,6 +534,9 @@ ULONG64 ParseVersionString(
     ULONG64 minorInteger = 0;
     ULONG64 buildInteger = 0;
     ULONG64 revisionInteger = 0;
+
+    if (PhIsNullOrEmptyString(VersionString))
+        return 0;
 
     remaining = PhGetStringRef(VersionString);
     PhSplitStringRefAtChar(&remaining, L'.', &majorPart, &remaining);
@@ -561,7 +574,7 @@ ULONG64 ParseVersionString(
 
 BOOLEAN QueryUpdateData(
     _Inout_ PPH_UPDATER_CONTEXT Context,
-    _In_ PWSTR ServerName
+    _In_ PCWSTR ServerName
     )
 {
     NTSTATUS status;
@@ -661,20 +674,6 @@ BOOLEAN QueryUpdateData(
     Context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
     Context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
 
-#if defined(FORCE_FUTURE_VERSION)
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
-    Context->CurrentVersion = MAKE_VERSION_ULONGLONG(USHRT_MAX, USHRT_MAX, USHRT_MAX, USHRT_MAX);
-    Context->LatestVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
-#elif defined(FORCE_LATEST_VERSION)
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
-    Context->CurrentVersion = MAKE_VERSION_ULONGLONG(0, 0, 0, 0);
-    Context->LatestVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
-#else
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
-    Context->CurrentVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
-    Context->LatestVersion = ParseVersionString(Context->Version);
-#endif
-
     PhFreeJsonObject(jsonObject);
 
     if (PhIsNullOrEmptyString(Context->Version))
@@ -691,6 +690,20 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->CommitHash))
         goto CleanupExit;
+
+#if defined(FORCE_FUTURE_VERSION)
+    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    Context->CurrentVersion = MAKE_VERSION_ULONGLONG(USHRT_MAX, USHRT_MAX, USHRT_MAX, USHRT_MAX);
+    Context->LatestVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
+#elif defined(FORCE_LATEST_VERSION)
+    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    Context->CurrentVersion = MAKE_VERSION_ULONGLONG(0, 0, 0, 0);
+    Context->LatestVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
+#else
+    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    Context->CurrentVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
+    Context->LatestVersion = ParseVersionString(Context->Version);
+#endif
 
     success = TRUE;
 
@@ -715,7 +728,7 @@ BOOLEAN QueryUpdateDataWithFailover(
     _Inout_ PPH_UPDATER_CONTEXT Context
     )
 {
-    static PWSTR Servers[] =
+    static CONST PCWSTR Servers[] =
     {
         L"system-informer.com",
         L"systeminformer.com",
@@ -859,16 +872,16 @@ PPH_STRING UpdateParseDownloadFileName(
     PH_STRINGREF pathPart;
     PH_STRINGREF namePart;
     PPH_STRING downloadFileName;
-    PPH_STRING localfileName;
+    PPH_STRING localFileName;
 
     if (!PhSplitStringRefAtLastChar(&DownloadUrlPath->sr, L'/', &pathPart, &namePart))
         return NULL;
 
     downloadFileName = PhCreateString2(&namePart);
-    localfileName = PhCreateCacheFile(Context->PortableMode, downloadFileName, FALSE);
+    localFileName = PhCreateCacheFile(Context->PortableMode, downloadFileName, FALSE);
     PhDereferenceObject(downloadFileName);
 
-    return localfileName;
+    return localFileName;
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)

@@ -830,6 +830,7 @@ CleanupExit:
     return volumeFileList;
 }
 
+_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
 NTSTATUS NTAPI EtEnumDirectoryObjectsCallback(
     _In_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF Name,
@@ -837,7 +838,7 @@ NTSTATUS NTAPI EtEnumDirectoryObjectsCallback(
     _In_ PREPARSE_WINDOW_CONTEXT Context
     )
 {
-    static PH_STRINGREF volumePath = PH_STRINGREF_INIT(L"HarddiskVolume");
+    static CONST PH_STRINGREF volumePath = PH_STRINGREF_INIT(L"HarddiskVolume");
     PH_STRINGREF stringBefore;
     PH_STRINGREF stringAfter;
     ULONG64 volumeIndex = ULLONG_MAX;
@@ -867,11 +868,12 @@ NTSTATUS NTAPI EtEnumDirectoryObjectsCallback(
     return TRUE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtEnumerateVolumeDirectoryObjects(
     _In_ PREPARSE_WINDOW_CONTEXT Context
     )
 {
-    static PH_STRINGREF name = PH_STRINGREF_INIT(L"\\Device");
+    static CONST PH_STRINGREF name = PH_STRINGREF_INIT(L"\\Device");
     NTSTATUS status;
     HANDLE directoryHandle;
 

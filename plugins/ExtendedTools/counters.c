@@ -163,6 +163,7 @@ PH_QUEUED_LOCK EtGpuRunningTimeHashTableLock = PH_QUEUED_LOCK_INIT;
 PPH_HASHTABLE EtGpuProcessCounterHashTable = NULL;
 PPH_HASHTABLE EtGpuAdapterDedicatedHashTable = NULL;
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN NTAPI EtGpuTotalEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -175,6 +176,7 @@ static BOOLEAN NTAPI EtGpuTotalEqualFunction(
         entry1->AdapterLuid == entry2->AdapterLuid;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG NTAPI EtGpuTotalHashFunction(
     _In_ PVOID Entry
     )
@@ -184,6 +186,7 @@ static ULONG NTAPI EtGpuTotalHashFunction(
     return entry->EngineId ^ entry->AdapterLuid;
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN NTAPI EtGpuRunningTimeEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -197,6 +200,7 @@ static BOOLEAN NTAPI EtGpuRunningTimeEqualFunction(
         entry1->AdapterLuid == entry2->AdapterLuid;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG NTAPI EtGpuRunningTimeHashFunction(
     _In_ PVOID Entry
     )
@@ -206,6 +210,7 @@ static ULONG NTAPI EtGpuRunningTimeHashFunction(
     return (entry->ProcessId / 4) ^ entry->EngineId ^ entry->AdapterLuid;
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN NTAPI EtGpuProcessEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -218,6 +223,7 @@ static BOOLEAN NTAPI EtGpuProcessEqualFunction(
         entry1->AdapterLuid == entry2->AdapterLuid;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG NTAPI EtGpuProcessHashFunction(
     _In_ PVOID Entry
     )
@@ -227,15 +233,7 @@ static ULONG NTAPI EtGpuProcessHashFunction(
     return (entry->ProcessId / 4) ^ entry->AdapterLuid;
 }
 
-static ULONG NTAPI EtGpuAdapterDedicatedHashFunction(
-    _In_ PVOID Entry
-    )
-{
-    PET_GPU_ADAPTER_COUNTER entry = Entry;
-
-    return entry->AdapterLuid;
-}
-
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN NTAPI EtGpuAdapterDedicatedEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -245,6 +243,16 @@ static BOOLEAN NTAPI EtGpuAdapterDedicatedEqualFunction(
     PET_GPU_ADAPTER_COUNTER entry2 = Entry2;
 
     return entry1->AdapterLuid == entry2->AdapterLuid;
+}
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
+static ULONG NTAPI EtGpuAdapterDedicatedHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PET_GPU_ADAPTER_COUNTER entry = Entry;
+
+    return entry->AdapterLuid;
 }
 
 VOID EtGpuCreatePerfCounterHashTables(
@@ -290,6 +298,7 @@ VOID EtGpuDeletePerfCounterHashTables(
     PhDereferenceObject(EtGpuAdapterDedicatedHashTable);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI EtPerfCounterInstanceEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2)
@@ -300,6 +309,7 @@ BOOLEAN NTAPI EtPerfCounterInstanceEqualFunction(
     return entry1->InstanceId == entry2->InstanceId;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI EtPerfCounterInstanceHashFunction(
     _In_ PVOID Entry)
 {
@@ -308,25 +318,8 @@ ULONG NTAPI EtPerfCounterInstanceHashFunction(
     return entry->InstanceId;
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI EtGpuPerfCounterProcessEqualFunction(
-    _In_ PVOID Entry1,
-    _In_ PVOID Entry2)
-{
-    PET_GPU_PROCESS_PERFCOUNTER entry1 = Entry1;
-    PET_GPU_ADAPTER_PERFCOUNTER entry2 = Entry2;
-
-    return entry1->InstanceId == entry2->InstanceId;
-}
-
-ULONG NTAPI EtGpuPerfCounterProcessHashFunction(
-    _In_ PVOID Entry)
-{
-    PET_GPU_ADAPTER_PERFCOUNTER entry = Entry;
-
-    return entry->InstanceId;
-}
-
-BOOLEAN NTAPI EtGpuPerfCounterAdapterEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2)
 {
@@ -336,10 +329,31 @@ BOOLEAN NTAPI EtGpuPerfCounterAdapterEqualFunction(
     return entry1->InstanceId == entry2->InstanceId;
 }
 
-ULONG NTAPI EtGpuPerfCounterAdapterHashFunction(
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
+ULONG NTAPI EtGpuPerfCounterProcessHashFunction(
     _In_ PVOID Entry)
 {
     PET_GPU_PROCESS_PERFCOUNTER entry = Entry;
+
+    return entry->InstanceId;
+}
+
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+BOOLEAN NTAPI EtGpuPerfCounterAdapterEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2)
+{
+    PET_GPU_ADAPTER_PERFCOUNTER entry1 = Entry1;
+    PET_GPU_ADAPTER_PERFCOUNTER entry2 = Entry2;
+
+    return entry1->InstanceId == entry2->InstanceId;
+}
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
+ULONG NTAPI EtGpuPerfCounterAdapterHashFunction(
+    _In_ PVOID Entry)
+{
+    PET_GPU_ADAPTER_PERFCOUNTER entry = Entry;
 
     return entry->InstanceId;
 }
@@ -1161,6 +1175,7 @@ BOOLEAN EtPerfCounterGetCounterData(
         return TRUE;
     }
 
+    PhFree(buffer);
     return FALSE;
 }
 
@@ -1287,7 +1302,7 @@ ULONG EtPerfCounterOpenHandle(
     )
 {
     ULONG status;
-    HANDLE perfQueryHandle;
+    HANDLE perfQueryHandle = NULL;
     ULONG counterIdentifierLength;
     PPERF_COUNTER_IDENTIFIER counterIdentifierBuffer;
     PPERF_COUNTER_IDENTIFIER counterIdentifierEngine;
@@ -1295,7 +1310,7 @@ ULONG EtPerfCounterOpenHandle(
     PPERF_COUNTER_IDENTIFIER counterIdentifierProcess;
 
     counterIdentifierLength = ALIGN_UP_BY(sizeof(PERF_COUNTER_IDENTIFIER) + sizeof(PERF_WILDCARD_INSTANCE), 8) * 3;
-    counterIdentifierBuffer = _malloca(counterIdentifierLength);
+    counterIdentifierBuffer = PhAllocateStack(counterIdentifierLength);
 
     if (!counterIdentifierBuffer)
         return ERROR_INSUFFICIENT_BUFFER;
@@ -1354,12 +1369,17 @@ ULONG EtPerfCounterOpenHandle(
     //EtPerfCounterDumpCounterInfo(GUID_GPU_PROCESSMEMORY);
 
     *PerfQueryHandle = perfQueryHandle;
-    _freea(counterIdentifierBuffer);
+
+    PhFreeStack(counterIdentifierBuffer);
     return status;
 
 CleanupExit:
-    PerfCloseQueryHandle(perfQueryHandle);
-    _freea(counterIdentifierBuffer);
+    if (perfQueryHandle)
+    {
+        PerfCloseQueryHandle(perfQueryHandle);
+    }
+
+    PhFreeStack(counterIdentifierBuffer);
     return status;
 }
 
@@ -1728,7 +1748,7 @@ BOOLEAN EtpLookupProcessGpuMemoryCounters(
     PET_GPU_PROCESS_COUNTER entry;
 
     if (!EtGpuProcessCounterHashTable)
-        return 0;
+        return FALSE;
 
     enumerationKey = 0;
 

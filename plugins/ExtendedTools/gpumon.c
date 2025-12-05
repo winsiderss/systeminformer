@@ -77,6 +77,8 @@ VOID EtGpuMonitorInitialization(
     {
         ULONG i;
 
+        PhQueryPerformanceFrequency(&EtGpuClockTotalRunningTimeFrequency);
+
         PhInitializeCircularBuffer_FLOAT(&EtGpuNodeHistory, EtSampleCount);
         PhInitializeCircularBuffer_ULONG(&EtMaxGpuNodeHistory, EtSampleCount);
         PhInitializeCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, EtSampleCount);
@@ -423,8 +425,6 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
 
     if (EtGpuTotalNodeCount == 0)
         return FALSE;
-
-    PhQueryPerformanceFrequency(&EtGpuClockTotalRunningTimeFrequency);
 
     return TRUE;
 }

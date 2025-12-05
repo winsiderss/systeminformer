@@ -410,8 +410,11 @@ VOID PhMwpShowWindow(
     {
         ShowWindow(PhMainWndHandle, ShowCommand);
         UpdateWindow(PhMainWndHandle);
-        PhBringWindowToTop(PhMainWndHandle);
-        SetForegroundWindow(PhMainWndHandle);
+
+        if (!SetForegroundWindow(PhMainWndHandle))
+        {
+            PhBringWindowToTop(PhMainWndHandle);
+        }
     }
 
     if (PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED))

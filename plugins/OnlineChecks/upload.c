@@ -430,6 +430,9 @@ NTSTATUS UploadFileThreadStart(
         case IMAGE_ELF_SIGNATURE:
             machineType = USHRT_MAX; // Windows only supports 64bit ELF. (mappedImage.Header->e_machine)
             break;
+        default:
+            machineType = 0;
+            break;
         }
 
         PhUnloadMappedImage(&mappedImage);
@@ -806,7 +809,7 @@ NTSTATUS UploadFileThreadStart(
             {
                 PPH_BYTES jsonString;
                 PVOID jsonRootObject;
-                INT64 errorCode;
+                ULONG64 errorCode;
 
                 if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
                 {
@@ -1107,17 +1110,17 @@ LONGLONG UploadFileScanStringToTime(
     if (!PhStringToUInt64(&ssPartSr, 10, &second))
         return LONG64_MAX;
 
-    if (!NT_SUCCESS(RtlULong64ToShort(year, &systemtime.wYear)))
+    if (!NT_SUCCESS(RtlULong64ToUShort(year, &systemtime.wYear)))
         return LONG64_MAX;
-    if (!NT_SUCCESS(RtlULong64ToShort(month, &systemtime.wYear)))
+    if (!NT_SUCCESS(RtlULong64ToUShort(month, &systemtime.wYear)))
         return LONG64_MAX;
-    if (!NT_SUCCESS(RtlULong64ToShort(day, &systemtime.wYear)))
+    if (!NT_SUCCESS(RtlULong64ToUShort(day, &systemtime.wYear)))
         return LONG64_MAX;
-    if (!NT_SUCCESS(RtlULong64ToShort(hour, &systemtime.wYear)))
+    if (!NT_SUCCESS(RtlULong64ToUShort(hour, &systemtime.wYear)))
         return LONG64_MAX;
-    if (!NT_SUCCESS(RtlULong64ToShort(minute, &systemtime.wYear)))
+    if (!NT_SUCCESS(RtlULong64ToUShort(minute, &systemtime.wYear)))
         return LONG64_MAX;
-    if (!NT_SUCCESS(RtlULong64ToShort(second, &systemtime.wYear)))
+    if (!NT_SUCCESS(RtlULong64ToUShort(second, &systemtime.wYear)))
         return LONG64_MAX;
     if (!PhSystemTimeToLargeInteger(&time, &systemtime))
         return LONG64_MAX;
@@ -1150,8 +1153,7 @@ NTSTATUS UploadCheckThreadStart(
     )
 {
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
-    NTSTATUS status = STATUS_SUCCESS;
-    BOOLEAN fileExists = FALSE;
+    NTSTATUS status;
     LARGE_INTEGER fileSize64;
     PPH_BYTES subRequestBuffer = NULL;
     CONST SERVICE_INFO* serviceInfo = NULL;
@@ -1232,8 +1234,6 @@ NTSTATUS UploadCheckThreadStart(
     case MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE:
         {
             PPH_STRING tempHashString = NULL;
-            PSTR uploadUrl = NULL;
-            PSTR quote = NULL;
             PVOID rootJsonObject;
 
             if (PhIsNullOrEmptyString(context->HybridPat))
@@ -1299,8 +1299,6 @@ NTSTATUS UploadCheckThreadStart(
         {
             BOOLEAN upload = FALSE;
             PPH_STRING tempHashString = NULL;
-            PSTR uploadUrl = NULL;
-            PSTR quote = NULL;
             PVOID rootJsonObject;
 
             if (PhIsNullOrEmptyString(context->TotalPat))
@@ -1896,25 +1894,19 @@ VOID UploadServiceToOnlineService(
     _In_ ULONG Service
     )
 {
-    NTSTATUS status;
-    PPH_STRING serviceFileName;
-
     if (PhBeginInitOnce(&UploadContextTypeInitOnce))
     {
         UploadContextType = PhCreateObjectType(L"OnlineChecksObjectType", 0, UploadContextDeleteProcedure);
         PhEndInitOnce(&UploadContextTypeInitOnce);
     }
 
-    if (NT_SUCCESS(status = PhGetServiceFileName(
-        &ServiceItem->Name->sr,
-        &serviceFileName
-        )))
+    if (ServiceItem->FileName)
     {
-        if (PhDetermineDosPathNameType(&serviceFileName->sr) == RtlPathTypeDriveAbsolute)
+        if (PhDetermineDosPathNameType(&ServiceItem->FileName->sr) == RtlPathTypeDriveAbsolute)
         {
             PPH_STRING fileNtPathName;
 
-            if (fileNtPathName = PhDosPathNameToNtPathName(&serviceFileName->sr))
+            if (fileNtPathName = PhDosPathNameToNtPathName(&ServiceItem->FileName->sr))
             {
                 PUPLOAD_CONTEXT context;
 
@@ -1932,7 +1924,7 @@ VOID UploadServiceToOnlineService(
 
             context = PhCreateObjectZero(sizeof(UPLOAD_CONTEXT), UploadContextType);
             context->Service = Service;
-            context->FileName = serviceFileName;
+            context->FileName = ServiceItem->FileName;
             context->BaseFileName = PhGetBaseName(context->FileName);
 
             PhCreateThread2(OnlineChecksUploadDialogThread, context);
@@ -1940,6 +1932,6 @@ VOID UploadServiceToOnlineService(
     }
     else
     {
-        PhShowStatus(WindowHandle, L"Unable to query the service.", status, 0);
+        PhShowStatus(WindowHandle, L"Unable to query the service.", STATUS_OBJECT_NAME_NOT_FOUND, 0);
     }
 }

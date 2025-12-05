@@ -816,7 +816,6 @@ VOID ShowProcessPagePriorityDialog(
     PhFree(context);
 }
 
-
 NTSTATUS PhD3DKMTGetProcessSchedulingPriorityClass(
     _In_ HANDLE ProcessHandle,
     _Out_ D3DKMT_SCHEDULINGPRIORITYCLASS* SchedulingPriorityClass
@@ -2454,6 +2453,7 @@ VOID ProcessMenuInitializingCallback(
     UnlockDb();
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 static LONG NTAPI ProcessCommentSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -2473,6 +2473,7 @@ static LONG NTAPI ProcessCommentSortFunction(
     return PhCompareStringWithNull(extension1->Comment, extension2->Comment, TRUE);
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 static LONG NTAPI ProcessAffinitySortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,

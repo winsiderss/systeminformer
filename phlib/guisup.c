@@ -82,6 +82,7 @@ static _GetThemeClass GetThemeClass_I = NULL;
 static typeof(&GetThemeColor) GetThemeColor_I = NULL;
 static typeof(&GetThemeInt) GetThemeInt_I = NULL;
 static typeof(&GetThemePartSize) GetThemePartSize_I = NULL;
+static typeof(&GetThemeMargins) GetThemeMargins_I = NULL;
 static typeof(&DrawThemeBackground) DrawThemeBackground_I = NULL;
 static _AllowDarkModeForWindow AllowDarkModeForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 133)
 static _IsDarkModeAllowedForWindow IsDarkModeAllowedForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 137)
@@ -121,6 +122,7 @@ VOID PhGuiSupportInitialization(
         GetThemeColor_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeColor", 0);
         GetThemeInt_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeInt", 0);
         GetThemePartSize_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemePartSize", 0);
+        GetThemeMargins_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeMargins", 0);
         DrawThemeBackground_I = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeBackground", 0);
 
         if (WindowsVersion >= WINDOWS_11)
@@ -546,6 +548,23 @@ BOOLEAN PhGetThemePartSize(
         return FALSE;
 
     return SUCCEEDED(GetThemePartSize_I(ThemeHandle, hdc, PartId, StateId, Rect, (enum THEMESIZE)Flags, Size));
+}
+
+_Success_(return)
+BOOLEAN PhGetThemeMargins(
+    _In_ HTHEME ThemeHandle,
+    _In_opt_ HDC hdc,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
+    _In_ LONG PropId,
+    _In_opt_ LPCRECT Rect,
+    _Out_ PTHEMEMARGINS Margins
+    )
+{
+    if (!GetThemeMargins_I)
+        return FALSE;
+
+    return SUCCEEDED(GetThemeMargins_I(ThemeHandle, hdc, PartId, StateId, PropId, Rect, (PMARGINS)Margins));
 }
 
 BOOLEAN PhDrawThemeBackground(
@@ -4948,7 +4967,7 @@ PPH_STRING PhGetCurrentThreadDesktopName(
     HDESK desktopHandle;
     PPH_STRING string;
 
-    if (desktopHandle = GetThreadDesktop(GetCurrentThreadId()))
+    if (desktopHandle = GetThreadDesktop(HandleToUlong(NtCurrentThreadId())))
     {
         if (NT_SUCCESS(PhGetUserObjectNameInformation(desktopHandle, &string)))
         {

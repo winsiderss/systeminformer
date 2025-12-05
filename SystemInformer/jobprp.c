@@ -30,7 +30,7 @@ typedef struct _JOB_PAGE_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 } JOB_PAGE_CONTEXT, *PJOB_PAGE_CONTEXT;
 
-LONG CALLBACK PhpJobPropPageProc(
+INT CALLBACK PhpJobPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -55,7 +55,7 @@ INT_PTR CALLBACK PhpJobStatisticsPageProc(
     _In_ LPARAM lParam
     );
 
-LONG CALLBACK PhpJobStatisticsSheetProc(
+INT CALLBACK PhpJobStatisticsSheetProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam
@@ -123,7 +123,7 @@ HPROPSHEETPAGE PhCreateJobPage(
     return propSheetPageHandle;
 }
 
-LONG CALLBACK PhpJobPropPageProc(
+INT CALLBACK PhpJobPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -304,7 +304,7 @@ INT_PTR CALLBACK PhpJobPageProc(
 
                     if (flags & JOB_OBJECT_LIMIT_JOB_MEMORY)
                     {
-                        PPH_STRING value = PhaFormatSize(extendedLimits.JobMemoryLimit, -1);
+                        PPH_STRING value = PhaFormatSize(extendedLimits.JobMemoryLimit, ULONG_MAX);
                         PhpAddLimit(limitsLv, L"Job memory", value->Buffer);
                     }
 
@@ -333,7 +333,7 @@ INT_PTR CALLBACK PhpJobPageProc(
 
                     if (flags & JOB_OBJECT_LIMIT_PROCESS_MEMORY)
                     {
-                        PPH_STRING value = PhaFormatSize(extendedLimits.ProcessMemoryLimit, -1);
+                        PPH_STRING value = PhaFormatSize(extendedLimits.ProcessMemoryLimit, ULONG_MAX);
                         PhpAddLimit(limitsLv, L"Process memory", value->Buffer);
                     }
 
@@ -361,10 +361,10 @@ INT_PTR CALLBACK PhpJobPageProc(
                     {
                         PPH_STRING value;
 
-                        value = PhaFormatSize(extendedLimits.BasicLimitInformation.MinimumWorkingSetSize, -1);
+                        value = PhaFormatSize(extendedLimits.BasicLimitInformation.MinimumWorkingSetSize, ULONG_MAX);
                         PhpAddLimit(limitsLv, L"Working set minimum", value->Buffer);
 
-                        value = PhaFormatSize(extendedLimits.BasicLimitInformation.MaximumWorkingSetSize, -1);
+                        value = PhaFormatSize(extendedLimits.BasicLimitInformation.MaximumWorkingSetSize, ULONG_MAX);
                         PhpAddLimit(limitsLv, L"Working set maximum", value->Buffer);
                     }
                 }
@@ -539,7 +539,6 @@ INT_PTR CALLBACK PhpJobPageProc(
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
-
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhInsertCopyListViewEMenuItem(menu, IDC_COPY, listViewHandle);
 
@@ -773,7 +772,7 @@ INT_PTR CALLBACK PhpJobStatisticsPageProc(
     return FALSE;
 }
 
-LONG CALLBACK PhpJobStatisticsSheetProc(
+INT CALLBACK PhpJobStatisticsSheetProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam

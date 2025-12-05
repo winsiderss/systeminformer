@@ -297,6 +297,7 @@ INT_PTR CALLBACK EtTpmEditorDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtTpmEditorDialogThreadStart(
     _In_ PVOID Parameter
     )

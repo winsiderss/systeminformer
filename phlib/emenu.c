@@ -158,11 +158,12 @@ VOID PhDestroyEMenuItem(
  *
  * \return The found menu item, or NULL if the menu item could not be found.
  */
+_Use_decl_annotations_
 PPH_EMENU_ITEM PhFindEMenuItem(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
     _In_opt_ PCWSTR Text,
-    _In_opt_ ULONG Id
+    _In_ ULONG Id
     )
 {
     return PhFindEMenuItemEx(Item, Flags, Text, Id, NULL, NULL);
@@ -184,12 +185,12 @@ PPH_EMENU_ITEM PhFindEMenuItem(
  *
  * \return The found menu item, or NULL if the menu item could not be found.
  */
-_Success_(return != NULL)
+_Use_decl_annotations_
 PPH_EMENU_ITEM PhFindEMenuItemEx(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
     _In_opt_ PCWSTR Text,
-    _In_opt_ ULONG Id,
+    _In_ ULONG Id,
     _Out_opt_ PPH_EMENU_ITEM *FoundParent,
     _Out_opt_ PULONG FoundIndex
     )
