@@ -126,11 +126,13 @@ PCWSTR KsiGetWindowsVersionString(
         return L"Windows 11 24H2";
     case WINDOWS_11_25H2:
         return L"Windows 11 25H2";
+    case WINDOWS_11_26H1:
+        return L"Windows 11 26H1";
     case WINDOWS_NEW:
         return L"Windows Insider Preview";
     }
 
-    static_assert(WINDOWS_MAX == WINDOWS_11_25H2, "KsiGetWindowsVersionString must include all versions");
+    static_assert(WINDOWS_MAX == WINDOWS_11_26H1, "KsiGetWindowsVersionString must include all versions");
 
     return L"Windows";
 }
