@@ -91,7 +91,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_LARGETOOLBARICON), ToolStatusConfig.ToolBarLargeIcons ? BST_CHECKED : BST_UNCHECKED);
 
             graphTypeHandle = GetDlgItem(WindowHandle, IDC_CURRENT);
-            PhAddComboBoxStrings(graphTypeHandle, GraphTypeStrings, RTL_NUMBER_OF(GraphTypeStrings));
+            PhAddComboBoxStrings(graphTypeHandle, (PCWSTR*)GraphTypeStrings, RTL_NUMBER_OF(GraphTypeStrings));
             PhSelectComboBoxString(graphTypeHandle, GraphTypeGetTypeString(PhGetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE)), FALSE);
         }
         break;

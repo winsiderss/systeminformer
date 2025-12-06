@@ -349,8 +349,8 @@ VOID CustomizeLoadToolbarSettings(
     HWND toolbarCombo = GetDlgItem(Context->WindowHandle, IDC_TEXTOPTIONS);
     HWND searchboxCombo = GetDlgItem(Context->WindowHandle, IDC_SEARCHOPTIONS);
 
-    PhAddComboBoxStrings(toolbarCombo, CustomizeTextOptionsStrings, RTL_NUMBER_OF(CustomizeTextOptionsStrings));
-    PhAddComboBoxStrings(searchboxCombo, CustomizeSearchDisplayStrings, RTL_NUMBER_OF(CustomizeSearchDisplayStrings));
+    PhAddComboBoxStrings(toolbarCombo, (PCWSTR*)CustomizeTextOptionsStrings, RTL_NUMBER_OF(CustomizeTextOptionsStrings));
+    PhAddComboBoxStrings(searchboxCombo, (PCWSTR*)CustomizeSearchDisplayStrings, RTL_NUMBER_OF(CustomizeSearchDisplayStrings));
 
     ComboBox_SetCurSel(toolbarCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE));
     ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE));
