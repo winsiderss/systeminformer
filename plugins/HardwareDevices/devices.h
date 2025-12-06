@@ -903,7 +903,7 @@ BOOLEAN DiskDriveQueryFileSystemInfoEx(
 typedef struct _NTFS_VOLUME_INFO
 {
     NTFS_VOLUME_DATA_BUFFER VolumeData;
-    NTFS_EXTENDED_VOLUME_DATA ExtendedVolumeData;
+    NTFS_EXTENDED_VOLUME_DATA VolumeDataEx;
 } NTFS_VOLUME_INFO, *PNTFS_VOLUME_INFO;
 
 _Success_(return)
