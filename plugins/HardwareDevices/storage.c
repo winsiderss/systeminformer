@@ -1066,7 +1066,7 @@ PCWSTR SmartAttributeGetText(
         return L"GMR head amplitude";
     case SMART_ATTRIBUTE_ID_DRIVE_TEMPERATURE:
         return L"Drive temperature";
-    case SMART_ATTRIBUTE_ID_ENDURACE_REMAINING:
+    case SMART_ATTRIBUTE_ID_ENDURANCE_REMAINING:
         return L"Endurance remaining";
     case SMART_ATTRIBUTE_ID_SSD_MEDIA_WEAROUT_INDICATOR:
         return L"SSD media wearout indicator";
