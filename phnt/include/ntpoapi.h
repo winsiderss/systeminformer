@@ -36,24 +36,24 @@
 #define ProcessorPowerPolicyCurrent 22                  // in: PROCESSOR_POWER_POLICY // not implemented
 #define SystemPowerStateLogging 23                      // in: SYSTEM_POWER_STATE_DISABLE_REASON[]
 #define SystemPowerLoggingEntry 24                      // in: SYSTEM_POWER_LOGGING_ENTRY[] // (kernel-mode only)
-#define SetPowerSettingValue 25                         // in: (kernel-mode only)
+#define SetPowerSettingValue 25                         // in: SYSTEM_POWER_SETTING_VALUE // (kernel-mode only)
 #define NotifyUserPowerSetting 26                       // not implemented
 #define PowerInformationLevelUnused0 27                 // not implemented
 #define SystemMonitorHiberBootPowerOff 28               // in: NULL (PowerMonitorOff)
 #define SystemVideoState 29                             // out: MONITOR_DISPLAY_STATE
 #define TraceApplicationPowerMessage 30                 // in: (kernel-mode only)
 #define TraceApplicationPowerMessageEnd 31              // in: (kernel-mode only)
-#define ProcessorPerfStates 32                          // in: (kernel-mode only)
+#define ProcessorPerfStates 32                          // not implemented
 #define ProcessorIdleStates 33                          // out: PROCESSOR_IDLE_STATES // (kernel-mode only)
 #define ProcessorCap 34                                 // out: PROCESSOR_CAP // (kernel-mode only)
 #define SystemWakeSource 35                             // out: POWER_WAKE_SOURCE_INFO
 #define SystemHiberFileInformation 36                   // out: SYSTEM_HIBERFILE_INFORMATION
-#define TraceServicePowerMessage 37
+#define TraceServicePowerMessage 37                     // in: SYSTEM_SERVICE_POWER_MESSAGE // (kernel-mode only)
 #define ProcessorLoad 38                                // in: PROCESSOR_LOAD (sets), in: PPROCESSOR_NUMBER (clears)
-#define PowerShutdownNotification 39                    // in: (kernel-mode only)
-#define MonitorCapabilities 40                          // in: (kernel-mode only)
-#define SessionPowerInit 41                             // in: (kernel-mode only)
-#define SessionDisplayState 42                          // in: (kernel-mode only)
+#define PowerShutdownNotification 39                    // in: POWER_SHUTDOWN_NOTIFICATION
+#define MonitorCapabilities 40                          // in: POWER_MONITOR_CAPABILITIES
+#define SessionPowerInit 41                             // in: POWER_SESSION_POWER_INIT
+#define SessionDisplayState 42                          // in: POWER_SESSION_DISPLAY_STATE
 #define PowerRequestCreate 43                           // in: COUNTED_REASON_CONTEXT, out: HANDLE
 #define PowerRequestAction 44                           // in: POWER_REQUEST_ACTION
 #define GetPowerRequestList 45                          // out: POWER_REQUEST_LIST
@@ -150,6 +150,13 @@ typedef struct _SYSTEM_HIBERFILE_INFORMATION
     LARGE_INTEGER Mcb[1];
 } SYSTEM_HIBERFILE_INFORMATION, *PSYSTEM_HIBERFILE_INFORMATION;
 
+typedef struct _SYSTEM_SERVICE_POWER_MESSAGE 
+{
+    ULONG MessageId;
+    ULONG SessionId;
+    ULONG Flags;
+} SYSTEM_SERVICE_POWER_MESSAGE, *PSYSTEM_SERVICE_POWER_MESSAGE;
+
 //typedef enum POWER_USER_PRESENCE_TYPE
 //{
 //    UserNotPresent = 0,
@@ -226,6 +233,13 @@ typedef struct _SYSTEM_POWER_LOGGING_ENTRY
     ULONG Reason;
     ULONG States;
 } SYSTEM_POWER_LOGGING_ENTRY, *PSYSTEM_POWER_LOGGING_ENTRY;
+
+typedef struct _SYSTEM_POWER_SETTING_VALUE 
+{
+    GUID SettingGuid;
+    ULONG ValueLength;
+    UCHAR Value[1];
+} SYSTEM_POWER_SETTING_VALUE, *PSYSTEM_POWER_SETTING_VALUE;
 
 typedef enum _POWER_STATE_DISABLED_TYPE
 {
@@ -466,6 +480,36 @@ typedef struct _PROCESSOR_LOAD
     UCHAR FrequencyPercentage;
     USHORT Padding;
 } PROCESSOR_LOAD, *PPROCESSOR_LOAD;
+
+// rev
+typedef struct _POWER_SHUTDOWN_NOTIFICATION
+{
+    PVOID CallbackRoutine;
+    PVOID Context;
+} POWER_SHUTDOWN_NOTIFICATION, *PPOWER_SHUTDOWN_NOTIFICATION;
+
+// rev
+typedef struct _POWER_MONITOR_CAPABILITIES
+{
+    ULONG Size;
+    ULONG Flags;   // e.g. brightness, color control
+    ULONG Reserved;
+} POWER_MONITOR_CAPABILITIES, *PPOWER_MONITOR_CAPABILITIES;
+
+// rev
+typedef struct _POWER_SESSION_POWER_INIT
+{
+    ULONG SessionId;
+    ULONG Flags;
+    ULONG Reserved;
+} POWER_SESSION_POWER_INIT, *PPOWER_SESSION_POWER_INIT;
+
+// rev
+typedef struct _POWER_SESSION_DISPLAY_STATE
+{
+    ULONG SessionId;
+    ULONG DisplayState; // e.g. on, off, dimmed
+} POWER_SESSION_DISPLAY_STATE, *PPOWER_SESSION_DISPLAY_STATE;
 
 // rev
 typedef struct _PROCESSOR_CAP
@@ -1285,29 +1329,113 @@ typedef struct _POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT
 } POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT, *PPOWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT;
 
 // rev
+DEFINE_GUID(PopBlackBoxScmGuid, 0x45F9D5A3, 0xE1D0, 0x8891, 0x07, 0x26, 0xFB, 0x1D, 0x71, 0xAD, 0x11, 0xB8);
+DEFINE_GUID(PopBlackBoxBsdGuid, 0x4E01CC45, 0xF573, 0x08DF, 0x0E, 0xC1, 0x0B, 0x0E, 0xBA, 0x42, 0x97, 0x6A);
+DEFINE_GUID(PopBlackBoxPnpGuid, 0x4CD6532A, 0xB763, 0x1941, 0x57, 0x45, 0x7D, 0x91, 0xB5, 0xED, 0xB1, 0xB1);
+DEFINE_GUID(PopBlackBoxAcpiGuid, 0x429FF755, 0x3B2E, 0xA98B, 0x8C, 0x52, 0x06, 0x81, 0xA1, 0x31, 0xC1, 0x80);
+DEFINE_GUID(PopBlackBoxPoIrpGuid, 0x4A654DDB, 0x2523, 0xDB46, 0x0C, 0x65, 0xC9, 0x83, 0xF0, 0xE9, 0x13, 0x9A);
+DEFINE_GUID(PopBlackBoxWinLogonNotifyGuid, 0x4E3EAA07, 0x6B2D, 0x3E93, 0x3B, 0xC6, 0x3C, 0x0E, 0x6D, 0x91, 0x1A, 0xA4);
+DEFINE_GUID(PopBlackBoxPdcLockGuid, 0x4E912A6E, 0x33DB, 0xDDBB, 0x84, 0x8A, 0x7B, 0x99, 0xE1, 0x5D, 0x42, 0x9E);
+DEFINE_GUID(PopBlackBoxPoPepWorkOrderGuid, 0x42750E88, 0xE0E8, 0x5A55, 0x0D, 0x03, 0x45, 0xAF, 0xB3, 0xF1, 0x33, 0xF9);
+DEFINE_GUID(PopBlackBoxPoPowerWatchdogGuid, 0x44675326, 0x5545, 0xF79E, 0x55, 0x31, 0xE3, 0x3A, 0x63, 0x81, 0x69, 0xAE);
+DEFINE_GUID(PopBlackBoxPnpEventWorkerGuid, 0x4131386C, 0x8BEF, 0xF310, 0x4A, 0x68, 0x1E, 0xFA, 0x44, 0x0A, 0xB1, 0xB1);
+DEFINE_GUID(PopBlackBoxPnpDeviceCompletionQueueGuid, 0x452E8590, 0xC129, 0x4D5E, 0x68, 0xCA, 0x00, 0xF7, 0x45, 0x7F, 0x71, 0xBC);
+DEFINE_GUID(PopBlackBoxPnpDelayedRemoveWorkerGuid, 0x4D9CFF3A, 0x7392, 0xA43B, 0x08, 0xED, 0xCD, 0x65, 0xAA, 0x50, 0x31, 0xBA);
+DEFINE_GUID(PopBlackBoxDxgDisplayGuid, 0x44D6ED00, 0xB3BE, 0xB7EE, 0x1C, 0x0F, 0xF8, 0x2D, 0xA9, 0xC1, 0x60, 0xAD);
+DEFINE_GUID(PopBlackBoxCrashedProcessGuid, 0x4367A550, 0xBE84, 0xD651, 0x94, 0x1F, 0x63, 0x2B, 0x79, 0xAB, 0x63, 0x8E);
+DEFINE_GUID(PopBlackBoxUsoCommitGuid, 0x4CDA57F3, 0x6DE4, 0xC85A, 0x0E, 0x4F, 0x85, 0x85, 0xA8, 0x5C, 0x8F, 0xE8);
+DEFINE_GUID(PopBlackBoxWheaGuid, 0x457D912A, 0x32D3, 0xEA49, 0x0F, 0xC5, 0x3E, 0xF2, 0x92, 0x9D, 0xDE, 0x6B);
+DEFINE_GUID(PopBlackBoxNtfsGuid, 0x4213940D, 0x00AF, 0xE9C4, 0x20, 0xBC, 0xB5, 0x19, 0x37, 0xCD, 0x16, 0x80);
+DEFINE_GUID(PopBlackBoxWinLogonGuid, 0x4AF1A719, 0x80CC, 0x79CF, 0x0C, 0x1E, 0xB7, 0x6F, 0xF2, 0x9F, 0xE9, 0x7B);
+DEFINE_GUID(PopBlackBoxExplorerLogonTasksGuid, 0x4D93B9AC, 0xAA9A, 0x6517, 0x0A, 0x03, 0x93, 0x6E, 0x66, 0x62, 0x6D, 0x08);
+DEFINE_GUID(PopBlackBoxExplorerCoreStartupGuid, 0x4E121623, 0xF5A6, 0xB2E1, 0x0F, 0xA8, 0x08, 0x29, 0xBA, 0x84, 0x83, 0x98);
+DEFINE_GUID(PopBlackBoxUserModeLKDReasonGuid, 0x44BEB1A5, 0xC1B9, 0x41DF, 0x22, 0x5E, 0xBC, 0x66, 0xF1, 0xDA, 0x5C, 0x9D);
+DEFINE_GUID(PopBlackBoxCodeIntegrityGuid, 0x44A03CF4, 0x4EE7, 0x6BD8, 0x0A, 0x33, 0x73, 0xE6, 0x43, 0x73, 0x9A, 0x0C);
+DEFINE_GUID(PoBlackBoxIdCsrGuid, 0x470BC061, 0x42C1, 0xADD0, 0x0C, 0xB1, 0x8E, 0x99, 0xF2, 0xEF, 0x68, 0xFB);
+DEFINE_GUID(PoBlackBoxIdSmGuid, 0x42D2AC4A, 0xD368, 0xF58F, 0x25, 0xA7, 0x6A, 0xC2, 0xDB, 0x76, 0x97, 0x8F);
+
+// rev
+typedef struct _POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY
+{
+    ULONG Index;
+    PCSTR Name;
+    GUID Guid;
+} POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY, *PPOWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY;
+
+// rev
+//CONST POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY BlackBoxCategories[24] =
+//{
+//    { 0, "SCM", PopBlackBoxScmGuid },
+//    { 1, "BSD", PopBlackBoxBsdGuid },
+//    { 2, "PNP", PopBlackBoxPnpGuid },
+//    { 3, "ACPI", PopBlackBoxAcpiGuid },
+//    { 4, "POIRP", PopBlackBoxPoIrpGuid },
+//    { 5, "WINLOGON-NOTIFY", PopBlackBoxWinLogonNotifyGuid },
+//    { 6, "PDCLOCK", PopBlackBoxPdcLockGuid },
+//    { 7, "PEPWORKORDER", PopBlackBoxPoPepWorkOrderGuid },
+//    { 8, "POWERWATCHDOG", PopBlackBoxPoPowerWatchdogGuid },
+//    { 9, "PNPEVENTWORKER", PopBlackBoxPnpEventWorkerGuid },
+//    { 10, "DEVICECOMPLETIONQUEUE", PopBlackBoxPnpDeviceCompletionQueueGuid },
+//    { 11, "PNPDELAYEDREMOVEWORKER", PopBlackBoxPnpDelayedRemoveWorkerGuid },
+//    { 12, "DXG-DISPLAY", PopBlackBoxDxgDisplayGuid },
+//    { 13, "CrashedProcess", PopBlackBoxCrashedProcessGuid },
+//    { 14, "UsoCommit", PopBlackBoxUsoCommitGuid },
+//    { 15, "WHEA", PopBlackBoxWheaGuid },
+//    { 16, "NTFS", PopBlackBoxNtfsGuid },
+//    { 17, "Winlogon", PopBlackBoxWinLogonGuid },
+//    { 18, "Explorer logon tasks", PopBlackBoxExplorerLogonTasksGuid },
+//    { 19, "Explorer core startup", PopBlackBoxExplorerCoreStartupGuid },
+//    { 20, "User mode LKD API caller data", PopBlackBoxUserModeLKDReasonGuid },
+//    { 21, "CI", PopBlackBoxCodeIntegrityGuid },
+//    { 22, "CSR", PoBlackBoxIdCsrGuid },
+//    { 23, "SM", PoBlackBoxIdSmGuid },
+//};
+
+// rev
 typedef struct _POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT
 {
     ULONG Version;
     ULONG Flags;
-    ULONGLONG Reserved0; // must be zero
-    ULONGLONG Reserved1; // must be zero
-    ULONGLONG Reserved2; // must be zero
+    ULONG_PTR Reserved0; // must be zero
+    ULONG_PTR Reserved1; // must be zero
+    ULONG_PTR Reserved2; // must be zero
 } POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT, *PPOWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT;
+
+// rev
+#define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_MAX_CATEGORY RTL_NUMBER_OF(BlackBoxCategories)
+#define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY_SHIFT 0
+#define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY_MASK_RAW  0x0000FFFF
+#define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY_MASK_DIRECT 0x0000001F
+#define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_MODIFIERS_MASK 0xFFFF0000
+
+// rev
+#define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_FLAGS(category, modifiers) \
+    ((ULONG)(((category) & POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY_MASK_RAW << POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY_SHIFT) | \
+    ((ULONG)(modifiers) & POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_MODIFIERS_MASK)))
 
 // rev
 typedef struct _POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT
 {
     ULONG Version;
-    ULONG Flags;
-    ULONGLONG Offset;
-    ULONGLONG Length;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Category : 5; // Index from POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY
+            ULONG Reserved : 11;
+            ULONG Modifiers : 16;
+        };
+    };
+    ULONG_PTR Offset;
+    ULONG_PTR Length;
 } POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT, *PPOWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT;
 
 // rev
 typedef struct _POWER_INFORMATION_BBR_DIRECT_ACCESS_RESPONSE_OUTPUT
 {
     PVOID UserMappingBase;
-    ULONGLONG MappingSize;
+    SIZE_T UserMappingSize;
 } POWER_INFORMATION_BBR_DIRECT_ACCESS_RESPONSE_OUTPUT, *PPOWER_INFORMATION_BBR_DIRECT_ACCESS_RESPONSE_OUTPUT;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
