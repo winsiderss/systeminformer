@@ -239,6 +239,7 @@ typedef struct _EFI_DRIVER_ENTRY
 } EFI_DRIVER_ENTRY, *PEFI_DRIVER_ENTRY;
 
 // private
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _EFI_DRIVER_ENTRY_LIST
 {
     ULONG NextEntryOffset;
@@ -1220,11 +1221,34 @@ NtSetIRTimer(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
+//
+// NtCreateTimer2 Attributes
+//
+#define TIMER2_ATTRIBUTE_HIGH_RESOLUTION 0x00000004UL
+#define TIMER2_ATTRIBUTE_NOTIFICATION    0x80000000UL
+#define TIMER2_ATTRIBUTE_KNOWN_MASK      (TIMER2_ATTRIBUTE_HIGH_RESOLUTION | TIMER2_ATTRIBUTE_NOTIFICATION)
+#define TIMER2_ATTRIBUTE_RESERVED_MASK   (~TIMER2_ATTRIBUTE_KNOWN_MASK)
+#define TIMER2_ATTRIBUTE_FOR_TYPE(T)     (((T) == NotificationTimer) ? TIMER2_ATTRIBUTE_NOTIFICATION : 0)
+#define TIMER2_BUILD_ATTRIBUTES(T, R)    (TIMER2_ATTRIBUTE_FOR_TYPE(T) | ((R) ? TIMER2_ATTRIBUTE_HIGH_RESOLUTION : 0))
+
+// rev
+typedef union _TIMER2_ATTRIBUTES
+{
+    ULONG Value;
+    struct
+    {
+        ULONG Reserved0 : 2;
+        ULONG HighResolution : 1;
+        ULONG Reserved1 : 28;
+        TIMER_TYPE NotificationType : 1;
+    };
+} TIMER2_ATTRIBUTES;
+
 /**
  * The NtCreateTimer2 routine creates a timer object.
  *
  * \param TimerHandle A pointer to a variable that receives the handle to the timer object.
- * \param Reserved1 Reserved parameter.
+ * \param Reserved Reserved parameter.
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \param Attributes Timer attributes (TIMER_TYPE).
  * \param DesiredAccess The access mask that specifies the requested access to the timer object.
@@ -1235,9 +1259,9 @@ NTSTATUS
 NTAPI
 NtCreateTimer2(
     _Out_ PHANDLE TimerHandle,
-    _In_opt_ PVOID Reserved1,
+    _In_opt_ PVOID Reserved,
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ ULONG Attributes, // TIMER_TYPE
+    _In_ ULONG Attributes, // TIMER2_ATTRIBUTES or TIMER2_BUILD_ATTRIBUTES
     _In_ ACCESS_MASK DesiredAccess
     );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
@@ -2200,7 +2224,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemNumaProximityNodeInformation,                     // qs: SYSTEM_NUMA_PROXIMITY_MAP
     SystemDynamicTimeZoneInformation,                       // qs: RTL_DYNAMIC_TIME_ZONE_INFORMATION (requires SeTimeZonePrivilege)
     SystemCodeIntegrityInformation,                         // q: SYSTEM_CODEINTEGRITY_INFORMATION // SeCodeIntegrityQueryInformation
-    SystemProcessorMicrocodeUpdateInformation,              // s: SYSTEM_PROCESSOR_MICROCODE_UPDATE_INFORMATION
+    SystemProcessorMicrocodeUpdateInformation,              // s: SYSTEM_PROCESSOR_MICROCODE_UPDATE_INFORMATION (requires SeLoadDriverPrivilege)
     SystemProcessorBrandString,                             // q: CHAR[] // HaliQuerySystemInformation -> HalpGetProcessorBrandString, info class 23
     SystemVirtualAddressInformation,                        // q: SYSTEM_VA_LIST_INFORMATION[]; s: SYSTEM_VA_LIST_INFORMATION[] (requires SeIncreaseQuotaPrivilege) // MmQuerySystemVaInformation
     SystemLogicalProcessorAndGroupInformation,              // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX (EX in: LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType) // since WIN7 // NtQuerySystemInformationEx // KeQueryLogicalProcessorRelationship
@@ -2367,7 +2391,7 @@ typedef struct _SYSTEM_BASIC_INFORMATION
     ULONG AllocationGranularity;                            // The granularity for the starting address at which virtual memory can be allocated.
     ULONG_PTR MinimumUserModeAddress;                       // A pointer to the lowest memory address accessible to applications and dynamic-link libraries (DLLs).
     ULONG_PTR MaximumUserModeAddress;                       // A pointer to the highest memory address accessible to applications and dynamic-link libraries (DLLs).
-    KAFFINITY ActiveProcessorsAffinityMask;                 // A mask representing the set of processors configured in the current processor group. // deprecated 
+    KAFFINITY ActiveProcessorsAffinityMask;                 // A mask representing the set of processors configured in the current processor group. // deprecated
     UCHAR NumberOfProcessors;                               // The number of logical processors in the current processor group. // deprecated
 } SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
 
@@ -2531,6 +2555,7 @@ typedef struct _SYSTEM_THREAD_INFORMATION
 /**
  * The SYSTEM_PROCESS_INFORMATION structure contains information about a process running on a system.
  */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_PROCESS_INFORMATION
 {
     ULONG NextEntryOffset;                      // The address of the previous item plus the value in the NextEntryOffset member. For the last item in the array, NextEntryOffset is 0.
@@ -2545,9 +2570,9 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     UNICODE_STRING ImageName;                   // The file name of the executable image.
     KPRIORITY BasePriority;                     // The starting priority of the process.
     HANDLE UniqueProcessId;                     // The identifier of the process.
-    HANDLE InheritedFromUniqueProcessId;        // The identifier of the process that created this process. Not updated and incorrectly refers to processes with recycled identifiers. 
+    HANDLE InheritedFromUniqueProcessId;        // The identifier of the process that created this process. Not updated and incorrectly refers to processes with recycled identifiers.
     ULONG HandleCount;                          // The current number of open handles used by the process.
-    ULONG SessionId;                            // The identifier of the Remote Desktop Services session under which the specified process is running. 
+    ULONG SessionId;                            // The identifier of the Remote Desktop Services session under which the specified process is running.
     ULONG_PTR UniqueProcessKey;                 // since VISTA (requires SystemExtendedProcessInformation)
     SIZE_T PeakVirtualSize;                     // The peak size, in bytes, of the virtual memory used by the process.
     SIZE_T VirtualSize;                         // The current size, in bytes, of virtual memory used by the process.
@@ -2600,6 +2625,11 @@ typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
     ULONG_PTR Reserved4;
 } SYSTEM_EXTENDED_THREAD_INFORMATION, *PSYSTEM_EXTENDED_THREAD_INFORMATION;
 
+/**
+ * The SYSTEM_EXTENDED_PROCESS_INFORMATION structure contains extended information about a process running on a system.
+ * https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-system_extended_process_information
+ */
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_EXTENDED_PROCESS_INFORMATION
 {
     ULONG NextEntryOffset;                  // The address of the previous item plus the value in the NextEntryOffset member. For the last item in the array, NextEntryOffset is 0.
@@ -2614,9 +2644,9 @@ typedef struct _SYSTEM_EXTENDED_PROCESS_INFORMATION
     UNICODE_STRING ImageName;               // The file name of the executable image.
     KPRIORITY BasePriority;                 // The starting priority of the process.
     HANDLE UniqueProcessId;                 // The identifier of the process.
-    HANDLE InheritedFromUniqueProcessId;    // The identifier of the process that created this process. Not updated and incorrectly refers to processes with recycled identifiers. 
+    HANDLE InheritedFromUniqueProcessId;    // The identifier of the process that created this process. Not updated and incorrectly refers to processes with recycled identifiers.
     ULONG HandleCount;                      // The current number of open handles used by the process.
-    ULONG SessionId;                        // The identifier of the Remote Desktop Services session under which the specified process is running. 
+    ULONG SessionId;                        // The identifier of the Remote Desktop Services session under which the specified process is running.
     HANDLE UniqueProcessKey;                // since VISTA (requires SystemExtendedProcessInformation)
     SIZE_T PeakVirtualSize;                 // The peak size, in bytes, of the virtual memory used by the process.
     SIZE_T VirtualSize;                     // The current size, in bytes, of virtual memory used by the process.
@@ -2785,6 +2815,7 @@ typedef struct _SYSTEM_HANDLE_INFORMATION
     _Field_size_(NumberOfHandles) SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } SYSTEM_HANDLE_INFORMATION, *PSYSTEM_HANDLE_INFORMATION;
 
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_OBJECTTYPE_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -2800,6 +2831,7 @@ typedef struct _SYSTEM_OBJECTTYPE_INFORMATION
     UNICODE_STRING TypeName;
 } SYSTEM_OBJECTTYPE_INFORMATION, *PSYSTEM_OBJECTTYPE_INFORMATION;
 
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_OBJECT_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -2816,6 +2848,7 @@ typedef struct _SYSTEM_OBJECT_INFORMATION
     UNICODE_STRING NameInfo;
 } SYSTEM_OBJECT_INFORMATION, *PSYSTEM_OBJECT_INFORMATION;
 
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_PAGEFILE_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -3079,6 +3112,7 @@ typedef struct _EVENT_TRACE_PROFILE_COUNTER_INFORMATION
 
 typedef EVENT_TRACE_PROFILE_COUNTER_INFORMATION EVENT_TRACE_PROFILE_CONFIG_INFORMATION, *PEVENT_TRACE_PROFILE_CONFIG_INFORMATION;
 
+//_Struct_size_bytes_(NextEntryOffset)
 //typedef struct _PROFILE_SOURCE_INFO
 //{
 //    ULONG NextEntryOffset;
@@ -3299,6 +3333,7 @@ typedef struct _SYSTEM_RANGE_START_INFORMATION
     ULONG_PTR SystemRangeStart;
 } SYSTEM_RANGE_START_INFORMATION, *PSYSTEM_RANGE_START_INFORMATION;
 
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_VERIFIER_INFORMATION_LEGACY // pre-19H1
 {
     ULONG NextEntryOffset;
@@ -3334,6 +3369,7 @@ typedef struct _SYSTEM_VERIFIER_INFORMATION_LEGACY // pre-19H1
     SIZE_T PeakNonPagedPoolUsageInBytes;
 } SYSTEM_VERIFIER_INFORMATION_LEGACY, *PSYSTEM_VERIFIER_INFORMATION_LEGACY;
 
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_VERIFIER_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -3504,6 +3540,7 @@ typedef struct _SYSTEM_POOL_INFORMATION
     _Field_size_(NumberOfEntries) SYSTEM_POOL_ENTRY Entries[1];
 } SYSTEM_POOL_INFORMATION, *PSYSTEM_POOL_INFORMATION;
 
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_SESSION_POOLTAG_INFORMATION
 {
     SIZE_T NextEntryOffset;
@@ -3512,6 +3549,7 @@ typedef struct _SYSTEM_SESSION_POOLTAG_INFORMATION
     _Field_size_(Count) SYSTEM_POOLTAG TagInfo[1];
 } SYSTEM_SESSION_POOLTAG_INFORMATION, *PSYSTEM_SESSION_POOLTAG_INFORMATION;
 
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_SESSION_MAPPED_VIEW_INFORMATION
 {
     SIZE_T NextEntryOffset;
@@ -3906,6 +3944,13 @@ typedef struct _SYSTEM_CODEINTEGRITY_INFORMATION
     };
 } SYSTEM_CODEINTEGRITY_INFORMATION, *PSYSTEM_CODEINTEGRITY_INFORMATION;
 
+// rev
+// Loads mcupdate.dll via ntosext.sys to perform microcode updates.
+#define PROCESSOR_MICROCODE_OPERATION_LOAD 0x01
+// rev
+// Unloads mcupdate.dll via ntosext.sys to preform microcode updates.
+#define PROCESSOR_MICROCODE_OPERATION_UNLOAD 0x02
+
 // private
 typedef struct _SYSTEM_PROCESSOR_MICROCODE_UPDATE_INFORMATION
 {
@@ -3932,6 +3977,112 @@ typedef struct _SYSTEM_VA_LIST_INFORMATION
     SIZE_T VirtualLimit;
     SIZE_T AllocationFailures;
 } SYSTEM_VA_LIST_INFORMATION, *PSYSTEM_VA_LIST_INFORMATION;
+
+// private
+//typedef enum _LOGICAL_PROCESSOR_RELATIONSHIP
+//{
+//    RelationProcessorCore,
+//    RelationNumaNode,
+//    RelationCache,
+//    RelationProcessorPackage,
+//    RelationGroup,
+//    RelationProcessorDie,
+//    RelationNumaNodeEx,
+//    RelationProcessorModule,
+//    RelationAll = 0xffff
+//} LOGICAL_PROCESSOR_RELATIONSHIP;
+//
+// private
+//typedef struct _SYSTEM_LOGICAL_PROCESSOR_INFORMATION
+//{
+//    ULONG_PTR ProcessorMask;
+//    LOGICAL_PROCESSOR_RELATIONSHIP Relationship;
+//    union
+//    {
+//        struct
+//        {
+//            UCHAR Flags;
+//        } ProcessorCore;
+//        struct
+//        {
+//            ULONG NodeNumber;
+//        } NumaNode;
+//        CACHE_DESCRIPTOR Cache;
+//        ULONGLONG Reserved[2];
+//    };
+//} SYSTEM_LOGICAL_PROCESSOR_INFORMATION, *PSYSTEM_LOGICAL_PROCESSOR_INFORMATION;
+//
+// private
+//typedef struct _PROCESSOR_RELATIONSHIP
+//{
+//    UCHAR Flags;
+//    UCHAR EfficiencyClass;
+//    UCHAR Reserved[20];
+//    USHORT GroupCount;
+//    _Field_size_(GroupCount) GROUP_AFFINITY GroupMask[ANYSIZE_ARRAY];
+//} PROCESSOR_RELATIONSHIP, *PPROCESSOR_RELATIONSHIP;
+//
+// private
+//typedef struct _NUMA_NODE_RELATIONSHIP
+//{
+//    ULONG NodeNumber;
+//    UCHAR Reserved[18];
+//    USHORT GroupCount;
+//    union
+//    {
+//        GROUP_AFFINITY GroupMask;
+//        _Field_size_(GroupCount) GROUP_AFFINITY GroupMasks[ANYSIZE_ARRAY];
+//    };
+//} NUMA_NODE_RELATIONSHIP, *PNUMA_NODE_RELATIONSHIP;
+//
+// private
+//typedef struct _CACHE_RELATIONSHIP
+//{
+//    UCHAR Level;
+//    UCHAR Associativity;
+//    USHORT LineSize;
+//    ULONG CacheSize;
+//    PROCESSOR_CACHE_TYPE Type;
+//    UCHAR Reserved[18];
+//    USHORT GroupCount;
+//    union
+//    {
+//        GROUP_AFFINITY GroupMask;
+//        _Field_size_(GroupCount) GROUP_AFFINITY GroupMasks[ANYSIZE_ARRAY];
+//    };
+//} CACHE_RELATIONSHIP, *PCACHE_RELATIONSHIP;
+//
+// private
+//typedef struct _PROCESSOR_GROUP_INFO
+//{
+//    UCHAR MaximumProcessorCount;
+//    UCHAR ActiveProcessorCount;
+//    UCHAR Reserved[38];
+//    KAFFINITY ActiveProcessorMask;
+//} PROCESSOR_GROUP_INFO, *PPROCESSOR_GROUP_INFO;
+//
+// private
+//typedef struct _GROUP_RELATIONSHIP
+//{
+//    USHORT MaximumGroupCount;
+//    USHORT ActiveGroupCount;
+//    UCHAR Reserved[20];
+//    _Field_size_(ActiveGroupCount) PROCESSOR_GROUP_INFO GroupInfo[ANYSIZE_ARRAY];
+//} GROUP_RELATIONSHIP, *PGROUP_RELATIONSHIP;
+//
+// private
+//typedef _Struct_size_bytes_(Size) struct _SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX
+//{
+//    LOGICAL_PROCESSOR_RELATIONSHIP Relationship;
+//    ULONG Size;
+//    _Field_size_bytes_(Size - (sizeof(LOGICAL_PROCESSOR_RELATIONSHIP) + sizeof(ULONG))) union
+//    {
+//        PROCESSOR_RELATIONSHIP Processor;
+//        NUMA_NODE_RELATIONSHIP NumaNode;
+//        CACHE_RELATIONSHIP Cache;
+//        GROUP_RELATIONSHIP Group;
+//    };
+//} SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, *PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX;
 
 // rev
 typedef enum _STORE_INFORMATION_CLASS
@@ -4898,6 +5049,7 @@ typedef struct _SYSTEM_SECUREBOOT_POLICY_INFORMATION
 } SYSTEM_SECUREBOOT_POLICY_INFORMATION, *PSYSTEM_SECUREBOOT_POLICY_INFORMATION;
 
 // private
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_PAGEFILE_INFORMATION_EX
 {
     union // HACK union declaration for convenience (dmex)
@@ -5423,8 +5575,7 @@ typedef enum _SYSTEM_CODEINTEGRITY_IMAGE_TYPE
 } SYSTEM_CODEINTEGRITY_IMAGE_TYPE;
 
 /**
- * @def SYSTEM_CODEINTEGRITY_IMAGE_TYPE_USER
- * @brief Flag for validating user-mode images (EXE/DLL).
+ * The SYSTEM_CODEINTEGRITY_IMAGE_TYPE_USER constant is used for validating user-mode images (EXE/DLL).
  *
  * Validation includes:
  * - Digital signature
@@ -5434,8 +5585,7 @@ typedef enum _SYSTEM_CODEINTEGRITY_IMAGE_TYPE
 #define SYSTEM_CODEINTEGRITY_IMAGE_TYPE_USER     0
 
 /**
- * @def SYSTEM_CODEINTEGRITY_IMAGE_TYPE_KERNEL
- * @brief Flag for validating kernel-mode images (SYS/Native).
+ * The SYSTEM_CODEINTEGRITY_IMAGE_TYPE_KERNEL constant is used for validating kernel-mode images (SYS/Native).
  *
  * Validation includes:
  * - Signed by a trusted certificate authority (or cross-signed).
@@ -5444,8 +5594,7 @@ typedef enum _SYSTEM_CODEINTEGRITY_IMAGE_TYPE
 #define SYSTEM_CODEINTEGRITY_IMAGE_TYPE_KERNEL   1
 
 /**
- * @def SYSTEM_CODEINTEGRITY_IMAGE_TYPE_BOOT
- * @brief Flag for validating boot-critical images (SYS/Native).
+ * The SYSTEM_CODEINTEGRITY_IMAGE_TYPE_BOOT constant is used for validating boot-critical images (SYS/Native).
  *
  * Validation includes:
  * - Signed only by Microsoft.
@@ -5455,7 +5604,7 @@ typedef enum _SYSTEM_CODEINTEGRITY_IMAGE_TYPE
 
 /**
  * The SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION structure contains information to validate the integrity of an image.
- *
+
  * \note The return status of NtQuerySystemInformation indicates the result of the code integrity validation as determined by the type specified.
  */
 typedef struct _SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
@@ -6023,7 +6172,7 @@ typedef struct _SYSTEM_OSL_RAMDISK_INFORMATION
 } SYSTEM_OSL_RAMDISK_INFORMATION, *PSYSTEM_OSL_RAMDISK_INFORMATION;
 
 // private
-typedef enum _CI_POLICY_MGMT_OPERATION 
+typedef enum _CI_POLICY_MGMT_OPERATION
 {
     CI_POLICY_MGMT_OPERATION_NONE = 0,
     CI_POLICY_MGMT_OPERATION_OPEN_TX = 1,
@@ -6037,10 +6186,10 @@ typedef enum _CI_POLICY_MGMT_OPERATION
 } CI_POLICY_MGMT_OPERATION;
 
 // private
-typedef struct _SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT 
+typedef struct _SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT
 {
     CI_POLICY_MGMT_OPERATION Operation;
-    UCHAR UseInProgressState; 
+    UCHAR UseInProgressState;
     ULONG Arg1Len;
     PUCHAR Arg1;
     ULONG Arg2Len;
@@ -6048,14 +6197,14 @@ typedef struct _SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT
 } SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT, *PSYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT;
 
 // private
-typedef struct _SYSTEM_REF_TRACE_INFORMATION_EX 
+typedef struct _SYSTEM_REF_TRACE_INFORMATION_EX
 {
     ULONG Version;
     ULONGLONG MemoryLimits;
-    union 
+    union
     {
         ULONG Flags;
-        struct 
+        struct
         {
             ULONG TraceEnable        : 1;
             ULONG TracePermanent     : 1;
@@ -6071,6 +6220,7 @@ typedef struct _SYSTEM_REF_TRACE_INFORMATION_EX
 } SYSTEM_REF_TRACE_INFORMATION_EX, *PSYSTEM_REF_TRACE_INFORMATION_EX;
 
 // private
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_BASICPROCESS_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -6081,7 +6231,7 @@ typedef struct _SYSTEM_BASICPROCESS_INFORMATION
 } SYSTEM_BASICPROCESS_INFORMATION, *PSYSTEM_BASICPROCESS_INFORMATION;
 
 // private
-typedef struct _SYSTEM_HANDLECOUNT_INFORMATION 
+typedef struct _SYSTEM_HANDLECOUNT_INFORMATION
 {
     ULONG ProcessCount;
     ULONG ThreadCount;
@@ -7447,20 +7597,36 @@ typedef enum _ATOM_INFORMATION_CLASS
     AtomTableInformation
 } ATOM_INFORMATION_CLASS;
 
+/**
+ * The ATOM_BASIC_INFORMATION structure contains basic information about an Atom.
+ */
 typedef struct _ATOM_BASIC_INFORMATION
 {
-    USHORT UsageCount;
-    USHORT Flags;
-    USHORT NameLength;
-    _Field_size_bytes_(NameLength) WCHAR Name[1];
+    USHORT UsageCount;   // The number of times the atom is referenced.
+    USHORT Flags;        // Flags associated with the atom. */
+    USHORT NameLength;   // Length, in bytes, of the atom's name.
+    _Field_size_bytes_(NameLength) WCHAR Name[1]; // The atom's name (not null-terminated).
 } ATOM_BASIC_INFORMATION, *PATOM_BASIC_INFORMATION;
 
+/**
+ * The ATOM_TABLE_INFORMATION structure contains information about all Atoms from the system atom table.
+ */
 typedef struct _ATOM_TABLE_INFORMATION
 {
-    ULONG NumberOfAtoms;
-    _Field_size_(NumberOfAtoms) RTL_ATOM Atoms[1];
+    ULONG NumberOfAtoms; // The number of atoms in the atom table.
+    _Field_size_(NumberOfAtoms) RTL_ATOM Atoms[1]; // Array of atom identifiers.
 } ATOM_TABLE_INFORMATION, *PATOM_TABLE_INFORMATION;
 
+/**
+ * The NtQueryInformationAtom routine retrieves information about a specified atom in the system atom table.
+ *
+ * \param Atom The atom identifier for which information is being queried.
+ * \param AtomInformationClass Specifies the type of information to retrieve. This is an ATOM_INFORMATION_CLASS value.
+ * \param AtomInformation A pointer to a buffer that receives the requested information.
+ * \param AtomInformationLength The size, in bytes, of the AtomInformation buffer.
+ * \param ReturnLength Optional pointer to a variable that receives the number of bytes written to the AtomInformation buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7626,100 +7792,143 @@ typedef enum _HOT_PATCH_INFORMATION_CLASS
     ManageHotPatchMax
 } HOT_PATCH_INFORMATION_CLASS;
 
+/**
+ * The HOT_PATCH_IMAGE_INFO structure contains identifying information about a hot patch image.
+ */
 typedef struct _HOT_PATCH_IMAGE_INFO
 {
-    ULONG CheckSum;
-    ULONG TimeDateStamp;
+    ULONG CheckSum;             // The checksum of the hot patch image.
+    ULONG TimeDateStamp;        // The time/date stamp of the hot patch image.
 } HOT_PATCH_IMAGE_INFO, *PHOT_PATCH_IMAGE_INFO;
 
+#define MANAGE_HOT_PATCH_LOAD_PATCH_VERSION 1
+
+/**
+ * The MANAGE_HOT_PATCH_LOAD_PATCH structure describes parameters for loading a hot patch.
+ */
 typedef struct _MANAGE_HOT_PATCH_LOAD_PATCH
 {
-    ULONG Version;
-    UNICODE_STRING PatchPath;
+    ULONG Version;                              // Structure version. Must be MANAGE_HOT_PATCH_LOAD_PATCH_VERSION.
+    UNICODE_STRING PatchPath;                   // The path to the hot patch file.
     union
     {
-        SID Sid;
-        UCHAR Buffer[SECURITY_MAX_SID_SIZE];
+        SID Sid;                                // The SID of the user for whom the patch is being loaded.
+        UCHAR Buffer[SECURITY_MAX_SID_SIZE];    // Buffer for the SID.
     } UserSid;
-    HOT_PATCH_IMAGE_INFO BaseInfo;
+    HOT_PATCH_IMAGE_INFO BaseInfo;              // Identifying information about the base image to patch.
 } MANAGE_HOT_PATCH_LOAD_PATCH, *PMANAGE_HOT_PATCH_LOAD_PATCH;
 
+#define MANAGE_HOT_PATCH_UNLOAD_PATCH_VERSION 1
+
+/**
+ * The MANAGE_HOT_PATCH_UNLOAD_PATCH structure describes parameters for unloading a hot patch.
+ */
 typedef struct _MANAGE_HOT_PATCH_UNLOAD_PATCH
 {
-    ULONG Version;
-    HOT_PATCH_IMAGE_INFO BaseInfo;
+    ULONG Version;                  // Structure version. Must be MANAGE_HOT_PATCH_UNLOAD_PATCH_VERSION.
+    HOT_PATCH_IMAGE_INFO BaseInfo;  // Identifying information about the base image to unpatch.
     union
     {
-        SID Sid;
-        UCHAR Buffer[SECURITY_MAX_SID_SIZE];
+        SID Sid;                    // The SID of the user for whom the patch is being unloaded.
+        UCHAR Buffer[SECURITY_MAX_SID_SIZE]; // Buffer for the SID.
     } UserSid;
 } MANAGE_HOT_PATCH_UNLOAD_PATCH, *PMANAGE_HOT_PATCH_UNLOAD_PATCH;
 
+#define MANAGE_HOT_PATCH_QUERY_PATCHES_VERSION 1
+
+/**
+ * The MANAGE_HOT_PATCH_QUERY_PATCHES structure is used to query information about loaded hot patches.
+ */
 typedef struct _MANAGE_HOT_PATCH_QUERY_PATCHES
 {
-    ULONG Version;
+    ULONG Version;                           // Structure version. Must be MANAGE_HOT_PATCH_QUERY_PATCHES_VERSION.
     union
     {
-        SID Sid;
-        UCHAR Buffer[SECURITY_MAX_SID_SIZE];
+        SID Sid;                             // The SID of the user whose patches are being queried.
+        UCHAR Buffer[SECURITY_MAX_SID_SIZE]; // Buffer for the SID.
     } UserSid;
-    ULONG PatchCount;
-    PUNICODE_STRING PatchPathStrings;
-    PHOT_PATCH_IMAGE_INFO BaseInfos;
+    ULONG PatchCount;                        // The number of patches found.
+    PUNICODE_STRING PatchPathStrings;        // Pointer to an array of patch path strings.
+    PHOT_PATCH_IMAGE_INFO BaseInfos;         // Pointer to an array of patch image info structures.
 } MANAGE_HOT_PATCH_QUERY_PATCHES, *PMANAGE_HOT_PATCH_QUERY_PATCHES;
 
+#define MANAGE_HOT_PATCH_QUERY_ACTIVE_PATCHES_VERSION 1
+
+/**
+ * The MANAGE_HOT_PATCH_QUERY_ACTIVE_PATCHES structure is used to query active hot patches for a process.
+ */
 typedef struct _MANAGE_HOT_PATCH_QUERY_ACTIVE_PATCHES
 {
-    ULONG Version;
-    HANDLE ProcessHandle;
-    ULONG PatchCount;
-    PUNICODE_STRING PatchPathStrings;
-    PHOT_PATCH_IMAGE_INFO BaseInfos;
-    PULONG PatchSequenceNumbers;
+    ULONG Version;                      // Structure version. Must be MANAGE_HOT_PATCH_QUERY_ACTIVE_PATCHES_VERSION.
+    HANDLE ProcessHandle;               // Handle to the process being queried.
+    ULONG PatchCount;                   // The number of active patches.
+    PUNICODE_STRING PatchPathStrings;   // Pointer to an array of patch path strings.
+    PHOT_PATCH_IMAGE_INFO BaseInfos;    // Pointer to an array of patch image info structures.
+    PULONG PatchSequenceNumbers;        // Pointer to an array of patch sequence numbers.
 } MANAGE_HOT_PATCH_QUERY_ACTIVE_PATCHES, *PMANAGE_HOT_PATCH_QUERY_ACTIVE_PATCHES;
 
+#define MANAGE_HOT_PATCH_APPLY_IMAGE_PATCH_VERSION 1
+
+/**
+ * The MANAGE_HOT_PATCH_APPLY_IMAGE_PATCH structure describes parameters for applying a hot patch to an image.
+ */
 typedef struct _MANAGE_HOT_PATCH_APPLY_IMAGE_PATCH
 {
-    ULONG Version;
+    ULONG Version;                              // Structure version. Must be MANAGE_HOT_PATCH_APPLY_IMAGE_PATCH_VERSION.
     union
     {
+        ULONG AllFlags;                         // All flags as a ULONG.
         struct
         {
-            ULONG ApplyReversePatches : 1;
-            ULONG ApplyForwardPatches : 1;
+            ULONG ApplyReversePatches : 1;      // If set, apply reverse patches.
+            ULONG ApplyForwardPatches : 1;      // If set, apply forward patches.
             ULONG Spare : 29;
         };
-        ULONG AllFlags;
     };
-    HANDLE ProcessHandle;
-    PVOID BaseImageAddress;
-    PVOID PatchImageAddress;
+    HANDLE ProcessHandle;                       // Handle to the process to patch.
+    PVOID BaseImageAddress;                     // Base address of the image to patch.
+    PVOID PatchImageAddress;                    // Address of the patch image.
 } MANAGE_HOT_PATCH_APPLY_IMAGE_PATCH, *PMANAGE_HOT_PATCH_APPLY_IMAGE_PATCH;
 
+#define MANAGE_HOT_PATCH_QUERY_SINGLE_PATCH_VERSION 1
+
+/**
+ * The MANAGE_HOT_PATCH_QUERY_SINGLE_PATCH structure is used to query a single hot patch.
+ */
 typedef struct _MANAGE_HOT_PATCH_QUERY_SINGLE_PATCH
 {
-    ULONG Version;
-    HANDLE ProcessHandle;
-    PVOID BaseAddress;
-    ULONG Flags;
-    UNICODE_STRING PatchPathString;
+    ULONG Version;                  // Structure version. Must be MANAGE_HOT_PATCH_QUERY_SINGLE_PATCH_VERSION.
+    HANDLE ProcessHandle;           // Handle to the process being queried.
+    PVOID BaseAddress;              // Base address of the image being queried.
+    ULONG Flags;                    // Query flags.
+    UNICODE_STRING PatchPathString; // The path to the patch being queried.
 } MANAGE_HOT_PATCH_QUERY_SINGLE_PATCH, *PMANAGE_HOT_PATCH_QUERY_SINGLE_PATCH;
 
+#define MANAGE_HOT_PATCH_CHECK_ENABLED_VERSION 1
+
+/**
+ * The MANAGE_HOT_PATCH_CHECK_ENABLED structure is used to check if hot patching is enabled.
+ */
 typedef struct _MANAGE_HOT_PATCH_CHECK_ENABLED
 {
-    ULONG Version;
-    ULONG Flags;
+    ULONG Version;          // Structure version. Must be MANAGE_HOT_PATCH_CHECK_ENABLED_VERSION.
+    ULONG Flags;            // Flags for the check operation.
 } MANAGE_HOT_PATCH_CHECK_ENABLED, *PMANAGE_HOT_PATCH_CHECK_ENABLED;
 
+#define MANAGE_HOT_PATCH_CREATE_PATCH_SECTION_VERSION 1
+
+/**
+ * The MANAGE_HOT_PATCH_CREATE_PATCH_SECTION structure describes parameters for creating a hot patch section.
+ */
 typedef struct _MANAGE_HOT_PATCH_CREATE_PATCH_SECTION
 {
-    ULONG Version;
-    ULONG Flags;
-    ACCESS_MASK DesiredAccess;
-    ULONG PageProtection;
-    ULONG AllocationAttributes;
-    PVOID BaseImageAddress;
-    HANDLE SectionHandle;
+    ULONG Version;                  // Structure version. Must be MANAGE_HOT_PATCH_CREATE_PATCH_SECTION_VERSION.
+    ULONG Flags;                    // Creation flags.
+    ACCESS_MASK DesiredAccess;      // Desired access mask for the section.
+    ULONG PageProtection;           // Page protection flags.
+    ULONG AllocationAttributes;     // Allocation attributes.
+    PVOID BaseImageAddress;         // Base address of the image for the patch section.
+    HANDLE SectionHandle;           // Handle to the created section.
 } MANAGE_HOT_PATCH_CREATE_PATCH_SECTION, *PMANAGE_HOT_PATCH_CREATE_PATCH_SECTION;
 
 #if defined(_WIN64)
@@ -7735,6 +7944,15 @@ static_assert(sizeof(MANAGE_HOT_PATCH_CREATE_PATCH_SECTION) == 0x28, "Size of MA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
+/**
+ * The NtManageHotPatch routine manages hot patching operations in the system.
+ *
+ * \param[in] HotPatchInformationClass Specifies the type of hot patch information being queried or set.
+ * \param[out] HotPatchInformation A pointer to a buffer that receives or contains the hot patch information, depending on the operation.
+ * \param[in] HotPatchInformationLength The size, in bytes, of the HotPatchInformation buffer.
+ * \param[out] ReturnLength Optional pointer to a variable that receives the number of bytes written to the HotPatchInformation buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
