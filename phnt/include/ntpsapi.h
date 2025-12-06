@@ -412,6 +412,7 @@ typedef struct _PROCESS_BASIC_INFORMATION
 /**
  * The PROCESS_EXTENDED_BASIC_INFORMATION structure contains extended basic information about a process.
  */
+_Struct_size_bytes_(Size)
 typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
 {
     _In_ SIZE_T Size; // The size of the structure, in bytes. This member must be set to sizeof(PROCESS_EXTENDED_BASIC_INFORMATION).
@@ -1236,17 +1237,62 @@ typedef struct _PS_PROTECTION
 } PS_PROTECTION, *PPS_PROTECTION;
 
 /**
+ * The PROCESS_MEMORY_EXHAUSTION_TYPE enumeration defines the different memory exhaustion typess.
+ * 
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ne-processthreadsapi-process_memory_exhaustion_type
+ */
+//typedef enum _PROCESS_MEMORY_EXHAUSTION_TYPE 
+//{
+//    // Anytime memory management fails an allocation due to an inability to commit memory, 
+//    // it will cause the process to trigger a Windows Error Reporting report and then terminate immediately with STATUS_COMMITMENT_LIMIT.
+//    // The failure cannot be caught and handled by the app.
+//    PMETypeFailFastOnCommitFailure,
+//    PMETypeMax
+//} PROCESS_MEMORY_EXHAUSTION_TYPE, *PPROCESS_MEMORY_EXHAUSTION_TYPE;
+
+/**
+ * The PROCESS_MEMORY_EXHAUSTION_INFO structure allows applications to configure 
+ * termination if an allocation fails to commit memory.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_memory_exhaustion_info
+ */
+//typedef struct _PROCESS_MEMORY_EXHAUSTION_INFO 
+//{
+//    USHORT Version; // Version should be set to PME_CURRENT_VERSION.
+//    USHORT Reserved; // Reserved
+//    PROCESS_MEMORY_EXHAUSTION_TYPE Type; // Type of failure.
+//    ULONG_PTR Value; // Used to turn the feature on or off.
+//} PROCESS_MEMORY_EXHAUSTION_INFO, *PPROCESS_MEMORY_EXHAUSTION_INFO;
+
+// rev PROCESS_FAULT_INFORMATION->FaultFlags
+#define PROCESS_FAULT_FLAG_MARK_CRASHED 0x00000001 // sets Flags3.Crashed (bit 2) via atomic OR
+#define PROCESS_FAULT_FLAG_SET_STATE_CRASHED 0x00000002 // sets HangCount to 0x7
+#define PROCESS_FAULT_FLAG_ESCALATE_SEVERITY 0x00000004 // sets GhostCount to 0x7 (mask 0x38)
+#define PROCESS_FAULT_FLAG_SET_TERMINAL_BIT 0x00000008 // sets PrefilterException (bit 6)
+
+/**
  * The PROCESS_FAULT_INFORMATION structure contains information about process faults.
  */
 typedef struct _PROCESS_FAULT_INFORMATION
 {
-    ULONG FaultFlags;       // Flags that provide additional information about the fault.
-    ULONG AdditionalInfo;   // Additional information about the fault.
+    union
+    {
+        ULONG FaultFlags;
+        struct
+        {
+            ULONG MarkCrashed : 1;         // PROCESS_FAULT_FLAG_MARK_CRASHED (0x00000001)
+            ULONG SetStateCrashed : 1;     // PROCESS_FAULT_FLAG_SET_STATE_CRASHED (0x00000002)
+            ULONG EscalateSeverity : 1;    // PROCESS_FAULT_FLAG_ESCALATE_SEVERITY (0x00000004)
+            ULONG SetTerminalBit : 1;      // PROCESS_FAULT_FLAG_SET_TERMINAL_BIT (0x00000008)
+            ULONG Reserved : 28;
+        };
+    };
+    ULONG AdditionalInfo; // Reserved for future use.
 } PROCESS_FAULT_INFORMATION, *PPROCESS_FAULT_INFORMATION;
 
 /**
  * The PROCESS_TELEMETRY_ID_INFORMATION structure contains telemetry information about a process.
  */
+_Struct_size_bytes_(HeaderSize)
 typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
 {
     ULONG HeaderSize;                       // The size of the structure, in bytes.
@@ -1310,12 +1356,38 @@ typedef struct _PROCESS_CHILD_PROCESS_INFORMATION
     BOOLEAN AuditProhibitChildProcesses;    // Child processes are audited.
 } PROCESS_CHILD_PROCESS_INFORMATION, *PPROCESS_CHILD_PROCESS_INFORMATION;
 
+/**
+ * Defines the current version of the power throttling structure.
+ */
 #define POWER_THROTTLING_PROCESS_CURRENT_VERSION 1
-
+/**
+ * Limits the CPU execution speed of the process to reduce power consumption.
+ */
 #define POWER_THROTTLING_PROCESS_EXECUTION_SPEED 0x1
+/**
+ * The POWER_THROTTLING_PROCESS_DELAYTIMERS flag delays the expiration of waits and timers for the process.
+ * When this flag is set, the process's wait and timer expiration events may be postponed,
+ * which can help reduce power consumption by allowing the system to remain in low-power states longer.
+ */
 #define POWER_THROTTLING_PROCESS_DELAYTIMERS 0x2
+/**
+ * The POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION flag controls whether calls made by the
+ * process to adjust the system timer resolution (such as timeBeginPeriod or NtSetTimerResolution)
+ * are honored. When this flag is enabled, such requests are ignored.
+ *
+ * This behavior is part of Windows’ power‑throttling mechanism introduced in Windows 11 and is
+ * enabled by default for all processes. Changes to the system timer resolution can alter the
+ * behavior of system timers, wait timeouts, and sleep durations, often causing unintended
+ * side effects in applications. Higher‑precision timer resolutions also negatively impact
+ * battery life and overall system performance.
+ *
+ * \note Enabled by default since Windows 11. This may cause performance issues for legacy
+ *       applications and games that rely on modifying the system tick resolution.
+ */
 #define POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION 0x4 // since WIN11
-
+/**
+ * Valid flags for power throttling process control and state masks.
+ */
 #define POWER_THROTTLING_PROCESS_VALID_FLAGS \
     ((POWER_THROTTLING_PROCESS_EXECUTION_SPEED | POWER_THROTTLING_PROCESS_DELAYTIMERS | POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION))
 
@@ -1478,9 +1550,16 @@ typedef struct _PROCESS_SECURITY_DOMAIN_INFORMATION
     ULONGLONG SecurityDomain; // The unique identifier of the process's security domain.
 } PROCESS_SECURITY_DOMAIN_INFORMATION, *PPROCESS_SECURITY_DOMAIN_INFORMATION;
 
+/**
+ * The PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION structure combines the security domain of a process.
+ *
+ * This structure contains information required to combine the security domains
+ * of a specified process. It is typically used in system-level or security-related
+ * operations where process security contexts need to be merged or managed.
+ */
 typedef struct _PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
 {
-    HANDLE ProcessHandle;
+    HANDLE ProcessHandle; // The Handle to the process whose security domains are to be combined.
 } PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION, *PPROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION;
 
 /**
@@ -1582,18 +1661,24 @@ typedef struct _PROCESS_MEMBERSHIP_INFORMATION
 } PROCESS_MEMBERSHIP_INFORMATION, *PPROCESS_MEMBERSHIP_INFORMATION;
 
 #if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+/**
+ * The PROCESS_NETWORK_COUNTERS structure contains network usage statistics for a process.
+ */
 typedef struct _PROCESS_NETWORK_COUNTERS
 {
-    ULONG64 BytesIn;
-    ULONG64 BytesOut;
+    ULONG64 BytesIn; // The total number of bytes received by the process.
+    ULONG64 BytesOut; // The total number of bytes sent by the process.
 } PROCESS_NETWORK_COUNTERS, *PPROCESS_NETWORK_COUNTERS;
 #endif
 
+/**
+ * The PROCESS_TEB_VALUE_INFORMATION structure contains information from the Thread Environment Block (TEB) for a specific thread.
+ */
 typedef struct _PROCESS_TEB_VALUE_INFORMATION
 {
-    ULONG ThreadId;
-    ULONG TebOffset;
-    ULONG_PTR Value;
+    ULONG ThreadId; // The identifier of the thread whose TEB is being queried or modified.
+    ULONG TebOffset; // The offset within the TEB where the value is located.
+    ULONG_PTR Value; // The value at the specified offset in the TEB.
 } PROCESS_TEB_VALUE_INFORMATION, *PPROCESS_TEB_VALUE_INFORMATION;
 
 // rev
@@ -1704,6 +1789,7 @@ typedef struct _COUNTER_READING
  *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-performance_data
  */
+_Struct_size_bytes_(Size)
 typedef struct _THREAD_PERFORMANCE_DATA
 {
     USHORT Size;                                    // The size of the structure.
@@ -2118,7 +2204,7 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 //#define NtCurrentLogonId() (NtCurrentPeb()->LogonId)
 
 /**
- * Retrieves information about the specified process.
+ * The NtQueryInformationProcess routine retrieves information about the specified process.
  *
  * \param ProcessHandle A handle to the process.
  * \param ProcessInformationClass The type of process information to be retrieved.
@@ -2139,6 +2225,16 @@ NtQueryInformationProcess(
     );
 
 // rev
+/**
+ * The NtWow64QueryInformationProcess64 routine retrieves information about the specified process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param ProcessInformationClass The type of process information to be retrieved.
+ * \param ProcessInformation A pointer to a buffer that receives the process information.
+ * \param ProcessInformationLength The size of the buffer pointed to by the ProcessInformation parameter.
+ * \param ReturnLength An optional pointer to a variable that receives the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2151,7 +2247,7 @@ NtWow64QueryInformationProcess64(
     );
 
 /**
- * Sets information for the specified process.
+ * The NtSetInformationProcess routine sets information for the specified process.
  *
  * \param ProcessHandle A handle to the process.
  * \param ProcessInformationClass The type of process information to be set.
@@ -3131,6 +3227,7 @@ typedef struct _PS_ATTRIBUTE
     PSIZE_T ReturnLength;
 } PS_ATTRIBUTE, *PPS_ATTRIBUTE;
 
+_Struct_size_bytes_(TotalLength)
 typedef struct _PS_ATTRIBUTE_LIST
 {
     SIZE_T TotalLength;
@@ -3284,6 +3381,7 @@ typedef enum _PS_CREATE_STATE
     PsCreateMaximumStates
 } PS_CREATE_STATE;
 
+_Struct_size_bytes_(Size)
 typedef struct _PS_CREATE_INFO
 {
     SIZE_T Size;
