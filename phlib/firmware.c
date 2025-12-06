@@ -887,9 +887,6 @@ NTSTATUS PhpParseSMBIOS(
         if (nulls++)
             break;
 
-        if (count >= RTL_NUMBER_OF(Context->Strings))
-            return STATUS_BUFFER_OVERFLOW;
-
         Context->Strings[count].Length = length;
         Context->Strings[count].Buffer = string;
 
