@@ -140,7 +140,7 @@ PCWSTR KsiGetWindowsVersionString(
         return L"Windows Insider Preview";
     }
 
-    static_assert(WINDOWS_MAX == WINDOWS_11_25H2, "KsiGetWindowsVersionString must include all versions");
+    static_assert(WINDOWS_MAX == WINDOWS_11_26H1, "KsiGetWindowsVersionString must include all versions");
 
     return L"Windows";
 }
