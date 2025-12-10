@@ -11,7 +11,6 @@
  */
 
 #include "toolstatus.h"
-
 #include <trace.h>
 
 TOOLSTATUS_CONFIG ToolStatusConfig = { 0 };
@@ -931,7 +930,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
                                 continue;
 
                             // Get extended button information.
-                            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == -1)
+                            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == INT_ERROR)
                                 break;
 
                             if (buttonInfo.fsStyle == BTNS_SEP)
@@ -1358,19 +1357,20 @@ LRESULT CALLBACK MainWindowCallbackProc(
                             TargetingCurrentWindow = hungWindow;
                     }
 
-                    PhGetWindowClientId(TargetingCurrentWindow, &clientId);
+                    if (!NT_SUCCESS(PhGetWindowClientId(TargetingCurrentWindow, &clientId)))
+                        break;
 
                     if (clientId.UniqueThread && clientId.UniqueProcess && clientId.UniqueProcess != NtCurrentProcessId())
                     {
-                        PPH_PROCESS_NODE processNode;
-
-                        processNode = PhFindProcessNode(clientId.UniqueProcess);
-
-                        if (processNode)
-                        {
-                            SystemInformer_SelectTabPage(0);
-                            SystemInformer_SelectProcessNode(processNode);
-                        }
+                        //PPH_PROCESS_NODE processNode;
+                        //
+                        //processNode = PhFindProcessNode(clientId.UniqueProcess);
+                        //
+                        //if (processNode)
+                        //{
+                        //    SystemInformer_SelectTabPage(0);
+                        //    SystemInformer_SelectProcessNode(processNode);
+                        //}
 
                         switch (TargetingMode)
                         {

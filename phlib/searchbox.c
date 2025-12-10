@@ -29,7 +29,7 @@ typedef struct _PH_SEARCHCONTROL_BUTTON
             ULONG Pushed : 1;
             ULONG Active : 1;
             ULONG Error : 1;
-            ULONG Spare : 29;
+            ULONG Spare : 28;
         };
     };
 

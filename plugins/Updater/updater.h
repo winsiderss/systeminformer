@@ -202,7 +202,7 @@ VOID ShowStartupUpdateDialog(
     );
 
 ULONG64 ParseVersionString(
-    _Inout_ PPH_STRING VersionString
+    _In_ PPH_STRING VersionString
     );
 
 // options.c

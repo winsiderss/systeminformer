@@ -75,7 +75,7 @@ PhOpenServiceKey(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhCloseServiceHandle(
     _In_ SC_HANDLE ServiceHandle
@@ -143,17 +143,6 @@ PhQueryServiceConfig2(
     _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength,
     _Out_opt_ PULONG ReturnLength
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhQueryServiceObjectSecurity(
-    _In_ SC_HANDLE ServiceHandle,
-    _In_ SECURITY_INFORMATION SecurityInformation,
-    _Out_writes_bytes_opt_(SecurityDescriptorLength) PSECURITY_DESCRIPTOR SecurityDescriptor,
-    _In_ ULONG SecurityDescriptorLength,
-    _Out_ PULONG ReturnLength
     );
 
 PHLIBAPI

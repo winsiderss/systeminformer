@@ -631,7 +631,7 @@ ULONG64 EtpQueryInstalledMemory(
         // Intel GPU devices incorrectly create the key with type REG_BINARY.
         if (installedMemory == ULLONG_MAX)
         {
-            static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"HardwareInformation.MemorySize");
+            static CONST PH_STRINGREF valueName = PH_STRINGREF_INIT(L"HardwareInformation.MemorySize");
             PKEY_VALUE_PARTIAL_INFORMATION buffer;
 
             if (NT_SUCCESS(PhQueryValueKey(keyHandle, &valueName, KeyValuePartialInformation, &buffer)))

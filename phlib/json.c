@@ -557,8 +557,6 @@ CleanupExit:
         NtClose(fileHandle);
     }
 
-    json_object_put((struct json_object*)json_string);
-
     return status;
 }
 

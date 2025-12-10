@@ -113,7 +113,14 @@ NTSTATUS PhOpenProcessToken(
     return status;
 }
 
-/** Limited API for untrusted/external code. */
+/**
+ * Public API to open a process token using only NtOpenProcessToken.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param DesiredAccess The desired access to the token.
+ * \param TokenHandle Receives a handle to the token on success.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhOpenProcessTokenPublic(
     _In_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -127,6 +134,15 @@ NTSTATUS PhOpenProcessTokenPublic(
         );
 }
 
+/**
+ * Opens a thread token by calling NtOpenThreadToken.
+ *
+ * \param ThreadHandle A handle to a thread.
+ * \param DesiredAccess The desired access to the token.
+ * \param OpenAsSelf Whether to open the token using the process security context.
+ * \param TokenHandle Receives a handle to the token on success.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhOpenThreadToken(
     _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -262,6 +278,13 @@ NTSTATUS PhGetTokenUserCopy(
     return status;
 }
 
+/**
+ * Gets a token's user information into a caller-provided PH_TOKEN_USER buffer.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param User Receives the token user information (PH_TOKEN_USER sized buffer).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenUser(
     _In_ HANDLE TokenHandle,
     _Out_ PPH_TOKEN_USER User
@@ -311,6 +334,13 @@ NTSTATUS PhGetTokenOwnerCopy(
     return status;
 }
 
+/**
+ * Gets a token's owner information into a caller-provided PH_TOKEN_OWNER buffer.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param Owner Receives the token owner information (PH_TOKEN_OWNER sized buffer).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenOwner(
     _In_ HANDLE TokenHandle,
     _Out_ PPH_TOKEN_OWNER Owner
@@ -509,6 +539,13 @@ NTSTATUS PhGetTokenAppContainerSidCopy(
     return status;
 }
 
+/**
+ * Retrieves token security attributes.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param SecurityAttributes Receives pointer to the allocated TOKEN_SECURITY_ATTRIBUTES_INFORMATION.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenSecurityAttributes(
     _In_ HANDLE TokenHandle,
     _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
@@ -521,6 +558,14 @@ NTSTATUS PhGetTokenSecurityAttributes(
         );
 }
 
+/**
+ * Retrieves specific security attribute values for a token by attribute name.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param AttributeName The attribute name to query (stringref).
+ * \param SecurityAttributes Receives pointer to the allocated TOKEN_SECURITY_ATTRIBUTES_INFORMATION.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenSecurityAttribute(
     _In_ HANDLE TokenHandle,
     _In_ PCPH_STRINGREF AttributeName,
@@ -551,6 +596,7 @@ NTSTATUS PhGetTokenSecurityAttribute(
 
     if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
     {
+        PhFree(buffer);
         bufferLength = returnLength;
         buffer = PhAllocate(bufferLength);
 
@@ -593,7 +639,7 @@ NTSTATUS PhDoesTokenSecurityAttributeExist(
     ULONG returnLength;
 
     if (!PhStringRefToUnicodeString(AttributeName, &attributeName))
-        return FALSE;
+        return STATUS_NAME_TOO_LONG;
 
     status = NtQuerySecurityAttributesToken(
         TokenHandle,
@@ -613,6 +659,13 @@ NTSTATUS PhDoesTokenSecurityAttributeExist(
     return status;
 }
 
+/**
+ * Finds a security attribute entry by name within a TOKEN_SECURITY_ATTRIBUTES_INFORMATION block.
+ *
+ * \param Attributes Pointer to TOKEN_SECURITY_ATTRIBUTES_INFORMATION to search.
+ * \param AttributeName The attribute name to find (stringref).
+ * \return PTOKEN_SECURITY_ATTRIBUTE_V1 Pointer to the attribute entry if found, NULL otherwise.
+ */
 PTOKEN_SECURITY_ATTRIBUTE_V1 PhFindTokenSecurityAttributeName(
     _In_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION Attributes,
     _In_ PCPH_STRINGREF AttributeName
@@ -674,6 +727,13 @@ NTSTATUS PhGetProcessIsStronglyNamed(
     return status;
 }
 
+/**
+ * Determines whether a token is strongly named by checking the WIN://SYSAPPID attribute.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param IsStronglyNamed Receives TRUE if token is strongly named.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenIsStronglyNamed(
     _In_ HANDLE TokenHandle,
     _Out_ PBOOLEAN IsStronglyNamed
@@ -739,6 +799,14 @@ PPH_STRING PhGetProcessPackageFullName(
     return packageName;
 }
 
+/**
+ * Determines whether a token is a less-privileged AppContainer by checking for
+ * the WIN://NOALLAPPPKG attribute.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param IsLessPrivilegedAppContainer Receives TRUE if the attribute indicates less-privileged AppContainer.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenIsLessPrivilegedAppContainer(
     _In_ HANDLE TokenHandle,
     _Out_ PBOOLEAN IsLessPrivilegedAppContainer
@@ -873,6 +941,14 @@ PPH_STRING PhGetTokenPackageFullName(
     return packageFullName;
 }
 
+/**
+ * Retrieves the named object path of a token.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param Sid Optional SID to query a named path for (may be NULL).
+ * \param ObjectPath Receives the created string object for the object path.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenNamedObjectPath(
     _In_ HANDLE TokenHandle,
     _In_opt_ PSID Sid,
@@ -902,6 +978,15 @@ NTSTATUS PhGetTokenNamedObjectPath(
     return status;
 }
 
+/**
+ * Retrieves an AppContainer named object path if available.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param AppContainerSid Optional AppContainer SID to query for (may be NULL to use token's AppContainer).
+ * \param RelativePath If TRUE, request a relative path.
+ * \param ObjectPath Receives the created string object for the object path.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetAppContainerNamedObjectPath(
     _In_ HANDLE TokenHandle,
     _In_opt_ PSID AppContainerSid,
@@ -976,14 +1061,13 @@ BOOLEAN PhPrivilegeCheckAny(
 }
 
 /**
- * Modifies a token privilege.
+ * Modifies a token privilege. Can specify privilege by name or by LUID.
  *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_ADJUST_PRIVILEGES access.
- * \param PrivilegeName The name of the privilege to modify. If this parameter is NULL, you must
- * specify a LUID in the \a PrivilegeLuid parameter.
- * \param PrivilegeLuid The LUID of the privilege to modify. If this parameter is NULL, you must
- * specify a name in the \a PrivilegeName parameter.
- * \param Attributes The new attributes of the privilege.
+ * \param TokenHandle A handle to a token with TOKEN_ADJUST_PRIVILEGES access.
+ * \param PrivilegeName Optional privilege name (NULL if PrivilegeLuid supplied).
+ * \param PrivilegeLuid Optional pointer to LUID (NULL if PrivilegeName supplied).
+ * \param Attributes New attributes for the privilege (e.g. SE_PRIVILEGE_ENABLED or 0).
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhSetTokenPrivilege(
     _In_ HANDLE TokenHandle,
@@ -1041,6 +1125,14 @@ NTSTATUS PhSetTokenPrivilege(
     return status;
 }
 
+/**
+ * Convenience wrapper to set a privilege by numeric constant.
+ *
+ * \param TokenHandle A handle to a token with TOKEN_ADJUST_PRIVILEGES access.
+ * \param Privilege The privilege constant to change (LONG).
+ * \param Attributes New attribute flags.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhSetTokenPrivilege2(
     _In_ HANDLE TokenHandle,
     _In_ LONG Privilege,
@@ -1125,15 +1217,14 @@ NTSTATUS PhAdjustPrivilege(
 }
 
 /**
-* Modifies a token group.
-*
-* \param TokenHandle A handle to a token. The handle must have TOKEN_ADJUST_GROUPS access.
-* \param GroupName The name of the group to modify. If this parameter is NULL, you must
-* specify a PSID in the \a GroupSid parameter.
-* \param GroupSid The PSID of the group to modify. If this parameter is NULL, you must
-* specify a group name in the \a GroupName parameter.
-* \param Attributes The new attributes of the group.
-*/
+ * Modifies a token group by name or SID.
+ *
+ * \param TokenHandle A handle to a token with TOKEN_ADJUST_GROUPS access.
+ * \param GroupName Optional group name to lookup (NULL if GroupSid supplied).
+ * \param GroupSid Optional group SID to set (NULL if GroupName supplied).
+ * \param Attributes New attributes for the group.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhSetTokenGroups(
     _In_ HANDLE TokenHandle,
     _In_opt_ PCWSTR GroupName,
@@ -1180,6 +1271,13 @@ NTSTATUS PhSetTokenGroups(
     return status;
 }
 
+/**
+ * Sets the session ID for a token.
+ *
+ * \param TokenHandle A handle to a token with appropriate access.
+ * \param SessionId The session id to set.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhSetTokenSessionId(
     _In_ HANDLE TokenHandle,
     _In_ ULONG SessionId

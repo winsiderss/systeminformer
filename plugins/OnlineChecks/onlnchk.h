@@ -84,7 +84,7 @@ typedef struct _VIRUSTOTAL_FILE_HASH_ENTRY
             BOOLEAN Processing : 1;
             BOOLEAN Processed : 1;
             BOOLEAN Found : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN Spare : 4;
         };
     };
 

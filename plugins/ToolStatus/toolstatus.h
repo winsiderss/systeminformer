@@ -344,7 +344,7 @@ INT_PTR CALLBACK OptionsDlgProc(
 
 // filter.c
 
-BOOLEAN WordMatchStringRef(
+BOOLEAN SearchWordMatchStringRefCallback(
     _In_ PCPH_STRINGREF Text
     );
 

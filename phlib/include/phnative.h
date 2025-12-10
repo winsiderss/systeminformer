@@ -1214,6 +1214,49 @@ PhValidAcl(
 }
 
 FORCEINLINE
+UCHAR
+NTAPI
+PhRequiredAclRevision(
+    _In_ UCHAR AceType
+    )
+{
+    switch (AceType)
+    {
+    case ACCESS_ALLOWED_OBJECT_ACE_TYPE:
+    case ACCESS_DENIED_OBJECT_ACE_TYPE:
+    case SYSTEM_AUDIT_OBJECT_ACE_TYPE:
+    case SYSTEM_ALARM_OBJECT_ACE_TYPE:
+    case ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE:
+    case ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE:
+    case SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE:
+    case SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE:
+        return ACL_REVISION4;
+
+    case ACCESS_ALLOWED_COMPOUND_ACE_TYPE:
+        return ACL_REVISION3;
+
+    default:
+        return MIN_ACL_REVISION;
+    }
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhEnsureAclRevision(
+    _Inout_ PUCHAR AclRevision,
+    _In_ UCHAR AceType
+    )
+{
+    UCHAR requiredRevision = PhRequiredAclRevision(AceType);
+
+    if (requiredRevision > *AclRevision)
+    {
+        *AclRevision = requiredRevision;
+    }
+}
+
+FORCEINLINE
 PVOID
 NTAPI
 PhFirstAce(
@@ -1754,47 +1797,6 @@ PhSetControlSecurityDescriptor(
         return STATUS_SUCCESS;
     }
 #endif
-}
-
-FORCEINLINE
-UCHAR
-NTAPI
-PhRequiredAclRevision(
-    _In_ UCHAR AceType
-    )
-{
-    switch (AceType)
-    {
-    case ACCESS_ALLOWED_OBJECT_ACE_TYPE:
-    case ACCESS_DENIED_OBJECT_ACE_TYPE:
-    case SYSTEM_AUDIT_OBJECT_ACE_TYPE:
-    case SYSTEM_ALARM_OBJECT_ACE_TYPE:
-    case ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE:
-    case ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE:
-    case SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE:
-    case SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE:
-        return ACL_REVISION4;
-
-    case ACCESS_ALLOWED_COMPOUND_ACE_TYPE:
-        return ACL_REVISION3;
-
-    default:
-        return ACL_REVISION2;
-    }
-}
-
-FORCEINLINE
-VOID
-NTAPI
-PhEnsureAclRevision(
-    _Inout_ PUCHAR AclRevision,
-    _In_ UCHAR AceType
-    )
-{
-    UCHAR requiredRevision = PhRequiredAclRevision(AceType);
-
-    if (requiredRevision > *AclRevision)
-        *AclRevision = requiredRevision;
 }
 
 FORCEINLINE
@@ -4137,6 +4139,15 @@ PhMoveFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhMoveFile(
+    _In_ PCPH_STRINGREF OldFileName,
+    _In_ PCPH_STRINGREF NewFileName,
+    _In_ BOOLEAN FailIfExists
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateDirectoryWin32(
     _In_ PCPH_STRINGREF DirectoryPath
     );
@@ -4425,6 +4436,14 @@ NTAPI
 PhSetThreadPriorityBoost(
     _In_ HANDLE ThreadHandle,
     _In_ BOOLEAN DisablePriorityBoost
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadPowerThrottlingState(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PPOWER_THROTTLING_THREAD_STATE PowerThrottlingState
     );
 
 PHLIBAPI
@@ -5058,7 +5077,7 @@ NTSTATUS
 NTAPI
 PhPrefetchVirtualMemory(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG_PTR NumberOfEntries,
+    _In_ SIZE_T NumberOfEntries,
     _In_ PMEMORY_RANGE_ENTRY VirtualAddresses
     );
 

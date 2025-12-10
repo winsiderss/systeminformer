@@ -746,6 +746,7 @@ typedef struct _PS_MITIGATION_AUDIT_OPTIONS_MAP_V3
     PS_MITIGATION_AUDIT_OPTIONS_MAP, *PPS_MITIGATION_AUDIT_OPTIONS_MAP;
 
 // private // WIN8 to REDSTONE
+_Struct_size_bytes_(Size)
 typedef struct _PS_SYSTEM_DLL_INIT_BLOCK_V1
 {
     ULONG Size;
@@ -770,6 +771,7 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK_V1
 } PS_SYSTEM_DLL_INIT_BLOCK_V1, *PPS_SYSTEM_DLL_INIT_BLOCK_V1;
 
 // RS2 - 19H2
+_Struct_size_bytes_(Size)
 typedef struct _PS_SYSTEM_DLL_INIT_BLOCK_V2
 {
     ULONG Size;
@@ -795,6 +797,7 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK_V2
 } PS_SYSTEM_DLL_INIT_BLOCK_V2, *PPS_SYSTEM_DLL_INIT_BLOCK_V2;
 
 // private // since 20H1
+_Struct_size_bytes_(Size)
 typedef struct _PS_SYSTEM_DLL_INIT_BLOCK_V3
 {
     ULONG Size;
@@ -1858,7 +1861,8 @@ LdrCallEnclave(
 /**
  * The LdrLoadEnclaveModule routine loads an image and all of its imports into an enclave.
  *
- * \param BaseAddress The base address of the image into which to load the image.
+ * \param BaseAddress The base address of the enclave in which the module will be loaded.
+ * This address must correspond to an enclave previously created by using LdrCreateEnclave.
  * \param DllPath A NULL-terminated string that contains the path of the image to load.
  * \param DllName A NULL-terminated string that contains the name of the image to load.
  * \return NTSTATUS Successful or errant status.

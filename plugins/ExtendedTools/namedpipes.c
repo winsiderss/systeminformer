@@ -38,7 +38,7 @@ VOID EtEnumerateNamedPipeDirectory(
     _In_ PPIPE_ENUM_DIALOG_CONTEXT Context
     )
 {
-    static PH_STRINGREF objectName = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE);
+    static CONST PH_STRINGREF objectName = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE);
     NTSTATUS status;
     HANDLE pipeDirectoryHandle;
     IO_STATUS_BLOCK isb;

@@ -12,14 +12,14 @@
 #include "toolstatus.h"
 #include "commonutil.h"
 
-static PWSTR CustomizeTextOptionsStrings[] =
+static CONST PCWSTR CustomizeTextOptionsStrings[] =
 {
     L"No text labels",
     L"Selective text",
     L"Show text labels"
 };
 
-static PWSTR CustomizeSearchDisplayStrings[] =
+static CONST PCWSTR CustomizeSearchDisplayStrings[] =
 {
     L"Always show",
     L"Hide when inactive (Ctrl+K)",
@@ -349,16 +349,9 @@ VOID CustomizeLoadToolbarSettings(
     HWND toolbarCombo = GetDlgItem(Context->WindowHandle, IDC_TEXTOPTIONS);
     HWND searchboxCombo = GetDlgItem(Context->WindowHandle, IDC_SEARCHOPTIONS);
 
-    PhAddComboBoxStrings(
-        toolbarCombo,
-        CustomizeTextOptionsStrings,
-        ARRAYSIZE(CustomizeTextOptionsStrings)
-        );
-    PhAddComboBoxStrings(
-        searchboxCombo,
-        CustomizeSearchDisplayStrings,
-        ARRAYSIZE(CustomizeSearchDisplayStrings)
-        );
+    PhAddComboBoxStrings(toolbarCombo, (PCWSTR*)CustomizeTextOptionsStrings, RTL_NUMBER_OF(CustomizeTextOptionsStrings));
+    PhAddComboBoxStrings(searchboxCombo, (PCWSTR*)CustomizeSearchDisplayStrings, RTL_NUMBER_OF(CustomizeSearchDisplayStrings));
+
     ComboBox_SetCurSel(toolbarCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE));
     ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE));
 

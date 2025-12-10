@@ -22,6 +22,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtpGpuNodesDialogThreadStart(
     _In_ PDV_GPU_SYSINFO_CONTEXT Context
     )

@@ -45,7 +45,7 @@ CONST TOOLSTATUS_INTERFACE PluginInterface =
 {
     TOOLSTATUS_INTERFACE_VERSION,
     PluginInterfaceGetSearchMatchHandle,
-    WordMatchStringRef,
+    SearchWordMatchStringRefCallback,
     PluginInterfaceRegisterTabSearch,
     &PluginInterfaceSearchChangedEvent,
     PluginInterfaceRegisterTabInfo,

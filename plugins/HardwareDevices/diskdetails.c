@@ -282,9 +282,9 @@ VOID DiskDeviceQueryVolumeInfo(
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_SERIAL_NUMBER, Column,
                 PhaFormatString(L"0x%s", PH_AUTO_T(PH_STRING, PhBufferToHexString((PUCHAR)&ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart, sizeof(ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart)))->Buffer)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_FS_VERSION, Column,
-                PhaFormatString(L"%lu.%lu", ntfsVolumeInfo.ExtendedVolumeData.MajorVersion, ntfsVolumeInfo.ExtendedVolumeData.MinorVersion)->Buffer);
+                PhaFormatString(L"%lu.%lu", ntfsVolumeInfo.VolumeDataEx.MajorVersion, ntfsVolumeInfo.VolumeDataEx.MinorVersion)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_LFS_VERSION, Column,
-                PhaFormatString(L"%lu.%lu", ntfsVolumeInfo.ExtendedVolumeData.LfsMajorVersion, ntfsVolumeInfo.ExtendedVolumeData.LfsMinorVersion)->Buffer);
+                PhaFormatString(L"%lu.%lu", ntfsVolumeInfo.VolumeDataEx.LfsMajorVersion, ntfsVolumeInfo.VolumeDataEx.LfsMinorVersion)->Buffer);
             //PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, Column,
             //    PhaFormatSize(ntfsVolumeInfo.ExtendedVolumeData.BytesPerPhysicalSector, ULONG_MAX)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_TOTAL_SIZE, Column,
@@ -953,6 +953,7 @@ VOID DiskDeviceFreeDetailsContext(
     PhFree(Context);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS ShowDiskDeviceDetailsDialogThread(
     _In_ PVOID Parameter
     )

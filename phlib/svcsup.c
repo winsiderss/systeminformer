@@ -96,6 +96,12 @@ CONST PPH_STRINGREF PhServiceErrorControlStrings[4] =
     SREF(L"Critical"),
 };
 
+/**
+ * Gets a cached service manager handle.
+ *
+ * \return Service manager handle, or NULL if failed.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-openscmanagerw
+ */
 SC_HANDLE PhGetServiceManagerHandle(
     VOID
     )
@@ -142,6 +148,14 @@ SC_HANDLE PhGetServiceManagerHandle(
     return serviceManagerHandle;
 }
 
+/**
+ * Enumerates all services.
+ *
+ * \param Services Receives a pointer to service status array. Caller must free with PhFree.
+ * \param NumberOfServices Receives the number of services enumerated.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-enumservicesstatusexw
+ */
 NTSTATUS PhEnumServices(
     _Out_ LPENUM_SERVICE_STATUS_PROCESS* Services,
     _Out_ PULONG NumberOfServices
@@ -238,6 +252,15 @@ NTSTATUS PhEnumServices(
     return status;
 }
 
+/**
+ * Enumerates services that depend on the specified service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param DependentServices Receives a pointer to dependent services array. Caller must free with PhFree.
+ * \param NumberOfDependentServices Receives the number of dependent services.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-enumdependentservicesw
+ */
 NTSTATUS PhEnumDependentServices(
     _In_ SC_HANDLE ServiceHandle,
     _Out_ LPENUM_SERVICE_STATUS* DependentServices,
@@ -304,6 +327,15 @@ NTSTATUS PhEnumDependentServices(
     return status;
 }
 
+/**
+ * Opens a handle to the service control manager.
+ *
+ * \param ServiceManagerHandle Receives the service manager handle.
+ * \param DatabaseName Name of the service control manager database, or NULL for the default.
+ * \param DesiredAccess Access rights for the handle.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-openscmanagerw
+ */
 NTSTATUS PhOpenServiceManager(
     _Out_ PSC_HANDLE ServiceManagerHandle,
     _In_opt_ PCWSTR DatabaseName,
@@ -323,6 +355,15 @@ NTSTATUS PhOpenServiceManager(
     }
 }
 
+/**
+ * Opens a handle to a service.
+ *
+ * \param ServiceHandle Receives the service handle.
+ * \param DesiredAccess Access rights for the handle.
+ * \param ServiceName Name of the service.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-openservicew
+ */
 NTSTATUS PhOpenService(
     _Out_ PSC_HANDLE ServiceHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -341,6 +382,14 @@ NTSTATUS PhOpenService(
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
+/**
+ * Opens a registry key for a service.
+ *
+ * \param KeyHandle Receives the key handle.
+ * \param DesiredAccess Access rights for the handle.
+ * \param ServiceName Name of the service.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhOpenServiceKey(
     _Out_ PHANDLE KeyHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -387,13 +436,39 @@ NTSTATUS PhOpenServiceKey(
     return status;
 }
 
-VOID PhCloseServiceHandle(
+/**
+ * Closes a service handle.
+ *
+ * \param ServiceHandle Handle to close.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-closeservicehandle
+ */
+NTSTATUS PhCloseServiceHandle(
     _In_ SC_HANDLE ServiceHandle
     )
 {
-    CloseServiceHandle(ServiceHandle);
+    if (CloseServiceHandle(ServiceHandle))
+        return STATUS_SUCCESS;
+
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
+/**
+ * Creates a service.
+ *
+ * \param ServiceHandle Receives the service handle.
+ * \param ServiceName Name of the service to create.
+ * \param DisplayName Display name of the service, or NULL.
+ * \param DesiredAccess Access rights for the handle.
+ * \param ServiceType Service type.
+ * \param StartType Service start type.
+ * \param ErrorControl Error control level.
+ * \param BinaryPathName Path to the service binary, or NULL.
+ * \param UserName User account for the service, or NULL.
+ * \param Password Password for the user account, or NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-createservicew
+ */
 NTSTATUS PhCreateService(
     _Out_ PSC_HANDLE ServiceHandle,
     _In_ PCWSTR ServiceName,
@@ -446,6 +521,23 @@ NTSTATUS PhCreateService(
     return status;
 }
 
+/**
+ * Changes the configuration of a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param ServiceType Service type, or SERVICE_NO_CHANGE.
+ * \param StartType Service start type, or SERVICE_NO_CHANGE.
+ * \param ErrorControl Error control level, or SERVICE_NO_CHANGE.
+ * \param BinaryPathName Path to the service binary, or NULL.
+ * \param LoadOrderGroup Load order group, or NULL.
+ * \param TagId Receives the tag identifier, or NULL.
+ * \param Dependencies List of dependencies, or NULL.
+ * \param ServiceStartName User account for the service, or NULL.
+ * \param Password Password for the user account, or NULL.
+ * \param DisplayName Display name of the service, or NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-changeserviceconfigw
+ */
 NTSTATUS PhChangeServiceConfig(
     _In_ SC_HANDLE ServiceHandle,
     _In_ ULONG ServiceType,
@@ -486,6 +578,15 @@ NTSTATUS PhChangeServiceConfig(
     return status;
 }
 
+/**
+ * Changes optional configuration parameters of a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param ServiceConfigLevel Configuration information level.
+ * \param Buffer Configuration data, or NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-changeserviceconfig2w
+ */
 NTSTATUS PhChangeServiceConfig2(
     _In_ SC_HANDLE ServiceHandle,
     _In_ ULONG ServiceConfigLevel,
@@ -502,6 +603,17 @@ NTSTATUS PhChangeServiceConfig2(
     return status;
 }
 
+/**
+ * Enumerates services that depend on the specified service (variant).
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param Buffer Buffer to receive dependent services, or NULL.
+ * \param BufferLength Size of the buffer in bytes.
+ * \param ReturnLength Receives the required buffer size.
+ * \param NumberOfServices Receives the number of dependent services.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-enumdependentservicesw
+ */
 NTSTATUS PhEnumDependentServices2(
     _In_ SC_HANDLE ServiceHandle,
     _Out_writes_bytes_opt_(BufferLength) LPENUM_SERVICE_STATUSW Buffer,
@@ -520,6 +632,16 @@ NTSTATUS PhEnumDependentServices2(
     return status;
 }
 
+/**
+ * Queries service configuration.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param Buffer Buffer to receive configuration, or NULL.
+ * \param BufferLength Size of the buffer in bytes.
+ * \param ReturnLength Receives the required buffer size, or NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-queryserviceconfigw
+ */
 NTSTATUS PhQueryServiceConfig(
     _In_ SC_HANDLE ServiceHandle,
     _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
@@ -541,6 +663,17 @@ NTSTATUS PhQueryServiceConfig(
     return status;
 }
 
+/**
+ * Queries optional service configuration parameters.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param ServiceConfigLevel Configuration information level.
+ * \param Buffer Buffer to receive configuration, or NULL.
+ * \param BufferLength Size of the buffer in bytes.
+ * \param ReturnLength Receives the required buffer size, or NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-queryserviceconfig2w
+ */
 NTSTATUS PhQueryServiceConfig2(
     _In_ SC_HANDLE ServiceHandle,
     _In_ ULONG ServiceConfigLevel,
@@ -563,6 +696,15 @@ NTSTATUS PhQueryServiceConfig2(
     return status;
 }
 
+/**
+ * Retrieves security descriptor for a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param SecurityInformation Security information to retrieve.
+ * \param SecurityDescriptor Receives a pointer to the security descriptor. Caller must free with PhFree.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-queryserviceobjectsecurity
+ */
 NTSTATUS PhGetServiceObjectSecurity(
     _In_ SC_HANDLE ServiceHandle,
     _In_ SECURITY_INFORMATION SecurityInformation,
@@ -1179,15 +1321,20 @@ PPH_STRING PhGetServiceConfigFileName(
 
             if (FlagOn(ServiceType, SERVICE_WIN32))
             {
-                PH_STRINGREF dummyFileName;
-                PH_STRINGREF dummyArguments;
+                PPH_STRING fileFullName = NULL;
+                PH_STRINGREF dummyFileName = { 0 };
+                PH_STRINGREF dummyArguments = { 0 };
 
-                PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
-
-                if (!PhIsNullOrEmptyString(fileName))
+                if (PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileFullName))
                 {
-                    PhSwapReference(&fileName, commandLine);
+                    PhSwapReference(&fileName, fileFullName);
                 }
+                else
+                {
+                    PhSwapReference(&fileName, PhGetFileName(commandLine));
+                }
+
+                PhClearReference(&fileFullName);
             }
             else
             {
@@ -1221,16 +1368,20 @@ NTSTATUS PhGetServiceConfigFileName2(
 
             if (FlagOn(ServiceType, SERVICE_WIN32))
             {
-                PH_STRINGREF dummyFileName;
-                PH_STRINGREF dummyArguments;
                 PPH_STRING fileFullName = NULL;
+                PH_STRINGREF dummyFileName = { 0 };
+                PH_STRINGREF dummyArguments = { 0 };
 
-                PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileFullName);
-
-                if (!PhIsNullOrEmptyString(fileFullName))
+                if (PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileFullName))
                 {
-                    PhMoveReference(&fileName, fileFullName);
+                    PhSwapReference(&fileName, fileFullName);
                 }
+                else
+                {
+                    PhSwapReference(&fileName, PhGetFileName(commandLine));
+                }
+
+                PhClearReference(&fileFullName);
             }
             else
             {
@@ -1318,8 +1469,10 @@ NTSTATUS PhGetServiceFileName(
                 }
                 else
                 {
-                    PhMoveReference(&serviceDllString, expandedString);
+                    PhSwapReference(&serviceDllString, expandedString);
                 }
+
+                PhDereferenceObject(expandedString);
             }
         }
         else

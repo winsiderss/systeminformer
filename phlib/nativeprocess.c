@@ -345,7 +345,10 @@ NTSTATUS PhGetProcessImageFileName(
     }
 
     if (!NT_SUCCESS(status))
+    {
+        PhFreeStack(fileName);
         return status;
+    }
 
     // Note: Some minimal/pico processes have UNICODE_NULL as their filename. (dmex)
     if (RtlIsNullOrEmptyUnicodeString(fileName))

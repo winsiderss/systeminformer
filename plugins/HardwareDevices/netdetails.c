@@ -531,7 +531,7 @@ VOID NetAdapterUpdateDetails(
     }
 
     interfaceRcvSpeed = interfaceStats.ifHCInOctets - Context->LastDetailsInboundValue;
-    interfaceXmitSpeed = interfaceStats.ifHCOutOctets - Context->LastDetailsIOutboundValue;
+    interfaceXmitSpeed = interfaceStats.ifHCOutOctets - Context->LastDetailsOutboundValue;
     //interfaceRcvUnicastSpeed = interfaceStats.ifHCInUcastOctets - Context->LastDetailsInboundUnicastValue;
     //interfaceXmitUnicastSpeed = interfaceStats.ifHCOutUcastOctets - Context->LastDetailsIOutboundUnicastValue;
 
@@ -613,7 +613,7 @@ VOID NetAdapterUpdateDetails(
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_ERRORS_TOTAL, 1, PhaFormatUInt64(interfaceStats.ifInDiscards + interfaceStats.ifOutDiscards, TRUE)->Buffer);
 
     Context->LastDetailsInboundValue = interfaceStats.ifHCInOctets;
-    Context->LastDetailsIOutboundValue = interfaceStats.ifHCOutOctets;
+    Context->LastDetailsOutboundValue = interfaceStats.ifHCOutOctets;
     //Context->LastDetailsInboundUnicastValue = interfaceStats.ifHCInUcastOctets;
     //Context->LastDetailsIOutboundUnicastValue = interfaceStats.ifHCOutUcastOctets;
 }
@@ -815,6 +815,7 @@ VOID FreeNetAdapterDetailsContext(
     PhFree(Context);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS ShowNetAdapterDetailsDialogThread(
     _In_ PVOID Parameter
     )

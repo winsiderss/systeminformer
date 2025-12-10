@@ -35,6 +35,7 @@ static HANDLE EtNpuNodesThreadHandle = NULL;
 static HWND EtNpuNodesWindowHandle = NULL;
 static PH_EVENT EtNpuNodesInitializedEvent = PH_EVENT_INIT;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtpNpuNodesDialogThreadStart(
     _In_ PVOID Parameter
     )

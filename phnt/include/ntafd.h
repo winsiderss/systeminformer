@@ -64,6 +64,7 @@ typedef struct _AFD_OPEN_PACKET
 } AFD_OPEN_PACKET, *PAFD_OPEN_PACKET;
 
 // rev (FILE_FULL_EA_INFORMATION + AfdOpenPacket + AFD_OPEN_PACKET)
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _AFD_OPEN_PACKET_FULL_EA
 {
     ULONG NextEntryOffset;

@@ -148,7 +148,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhQueryInterruptTime(
-    _Out_ PULARGE_INTEGER InterruptTime
+    _Out_ PLARGE_INTEGER InterruptTime
     );
 
 PHLIBAPI

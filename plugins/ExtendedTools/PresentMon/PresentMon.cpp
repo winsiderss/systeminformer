@@ -357,6 +357,7 @@ VOID PresentMonUpdateProcessStats(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PresentMonOutputThread(
     _In_ PVOID ThreadParameter
     )
@@ -441,6 +442,7 @@ VOID StopOutputThread(
     //NtWaitForSingleObject(OutputThreadHandle, FALSE, nullptr);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PresentMonTraceThread(
     _In_ PVOID ThreadParameter
     )
@@ -465,7 +467,9 @@ static NTSTATUS PresentMonTraceThread(
         }
 
         if (!QuitOutputThread)
+        {
             PhDelayExecution(1000);
+        }
     }
 
     return STATUS_SUCCESS;
