@@ -29,6 +29,7 @@ typedef struct _PV_STRINGS_SETTINGS
             ULONG SkipTextSection : 1;
             ULONG SkipHighEntropySections : 1;
             ULONG Spare : 28;
+            ULONG Spare : 27;
         };
 
         ULONG Flags;
@@ -225,6 +226,7 @@ NTSTATUS PvpSearchStringsThread(
 
         if (Context->Settings.SkipHighEntropySections &&
             PhCalculateEntropy(sectionData, section->SizeOfRawData, &entropy, NULL) &&
+            PhCalculateEntropy(sectionData, section->SizeOfRawData, &entropy, NULL, NULL) &&
             entropy > 7.5) // Likely encrypted or compressed data.
         {
             goto SkipSection;
