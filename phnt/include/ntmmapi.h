@@ -315,7 +315,9 @@ typedef struct _MEMORY_ENCLAVE_IMAGE_INFORMATION
     UCHAR AuthorID[32];
 } MEMORY_ENCLAVE_IMAGE_INFORMATION, *PMEMORY_ENCLAVE_IMAGE_INFORMATION;
 
-// private
+/**
+ * The MEMORY_PHYSICAL_CONTIGUITY_UNIT_STATE structure describes the eligibility state or contiguity unit.
+ */
 typedef enum _MEMORY_PHYSICAL_CONTIGUITY_UNIT_STATE
 {
     MemoryNotContiguous,
@@ -325,7 +327,9 @@ typedef enum _MEMORY_PHYSICAL_CONTIGUITY_UNIT_STATE
     MemoryContiguityStateMax,
 } MEMORY_PHYSICAL_CONTIGUITY_UNIT_STATE;
 
-// private
+/**
+ * The MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION structure describes the per-unit contiguity state.
+ */
 typedef struct _MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION
 {
     union
@@ -339,7 +343,9 @@ typedef struct _MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION
     };
 } MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION, *PMEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION;
 
-// private
+/**
+ * Thw MEMORY_PHYSICAL_CONTIGUITY_INFORMATION structure describes a virtual range and contiguity unit characteristics for physical contiguity queries.
+ */
 typedef struct _MEMORY_PHYSICAL_CONTIGUITY_INFORMATION
 {
     PVOID VirtualAddress;
@@ -352,103 +358,127 @@ typedef struct _MEMORY_PHYSICAL_CONTIGUITY_INFORMATION
 // private
 typedef struct _RTL_SCP_CFG_ARM64_HEADER
 {
-    ULONG EcInvalidCallHandlerRva;
-    ULONG EcCfgCheckRva;
-    ULONG EcCfgCheckESRva;
-    ULONG EcCallCheckRva;
-    ULONG CpuInitializationCompleteLoadRva;
-    ULONG LdrpValidateEcCallTargetInitRva;
-    ULONG SyscallFfsSizeRva;
-    ULONG SyscallFfsBaseRva;
+    ULONG EcInvalidCallHandlerRva;        // RVA to invalid EC call handler.
+    ULONG EcCfgCheckRva;                  // RVA to EC CFG check routine.
+    ULONG EcCfgCheckESRva;                // RVA to EC CFG check exception stub RVA.
+    ULONG EcCallCheckRva;                 // RVA to EC call-check routine.
+    ULONG CpuInitializationCompleteLoadRva; // RVA related to CPU init completion load.
+    ULONG LdrpValidateEcCallTargetInitRva; // RVA used by loader validation init.
+    ULONG SyscallFfsSizeRva;               // RVA describing syscall FFS size.
+    ULONG SyscallFfsBaseRva;               // RVA describing syscall FFS base.
 } RTL_SCP_CFG_ARM64_HEADER, *PRTL_SCP_CFG_ARM64_HEADER;
 
-// private
+/**
+ * The RTL_SCP_CFG_PAGE_TYPE enumeration describes page types used by SCP/CFG image extensions.
+ */
 typedef enum _RTL_SCP_CFG_PAGE_TYPE
 {
-    RtlScpCfgPageTypeNop,
-    RtlScpCfgPageTypeDefault,
-    RtlScpCfgPageTypeExportSuppression,
-    RtlScpCfgPageTypeFptr,
-    RtlScpCfgPageTypeMax,
-    RtlScpCfgPageTypeNone
+    RtlScpCfgPageTypeNop,                 // No-op / placeholder page.
+    RtlScpCfgPageTypeDefault,             // Default handling page.
+    RtlScpCfgPageTypeExportSuppression,   // Export-suppression descriptor page.
+    RtlScpCfgPageTypeFptr,                // Page that contains function pointers.
+    RtlScpCfgPageTypeMax,                 // Upper bound for the enum.
+    RtlScpCfgPageTypeNone                 // Explicit 'none' value.
 } RTL_SCP_CFG_PAGE_TYPE;
 
-// private
+/**
+ * The RTL_SCP_CFG_COMMON_HEADER structure contains RVAs to dispatch and check
+ * routines used by SCP/CFG configuration blocks.
+ */
 typedef struct _RTL_SCP_CFG_COMMON_HEADER
 {
-    ULONG CfgDispatchRva;
-    ULONG CfgDispatchESRva;
-    ULONG CfgCheckRva;
-    ULONG CfgCheckESRva;
-    ULONG InvalidCallHandlerRva;
-    ULONG FnTableRva;
+    ULONG CfgDispatchRva;         // RVA to CFG dispatch routine.
+    ULONG CfgDispatchESRva;       // RVA to CFG dispatch exception stub.
+    ULONG CfgCheckRva;            // RVA to CFG checking routine.
+    ULONG CfgCheckESRva;          // RVA to CFG checking exception stub.
+    ULONG InvalidCallHandlerRva;  // RVA to invalid-call handler.
+    ULONG FnTableRva;             // RVA to function-pointer table.
 } RTL_SCP_CFG_COMMON_HEADER, *PRTL_SCP_CFG_COMMON_HEADER;
 
-// private
+/**
+ * The RTL_SCP_CFG_HEADER structure contains the common SCP/CFG configuration header.
+ */
 typedef struct _RTL_SCP_CFG_HEADER
 {
     RTL_SCP_CFG_COMMON_HEADER Common;
 } RTL_SCP_CFG_HEADER, *PRTL_SCP_CFG_HEADER;
 
-// private
+/**
+ * The RTL_SCP_CFG_REGION_BOUNDS structure describes inclusive start/end
+ * addresses of an SCP/CFG-protected region.
+ */
 typedef struct _RTL_SCP_CFG_REGION_BOUNDS
 {
-    PVOID StartAddress;
-    PVOID EndAddress;
+    PVOID StartAddress; // Inclusive start address of the region.
+    PVOID EndAddress;   // Inclusive end address of the region.
 } RTL_SCP_CFG_REGION_BOUNDS, *PRTL_SCP_CFG_REGION_BOUNDS;
 
-// private
+/**
+ * The RTL_SCP_CFG_NTDLL_EXPORTS structure contains ntdll export descriptors and
+ * region bounds used to implement or validate CFG/SCP behavior at runtime.
+ */
 typedef struct _RTL_SCP_CFG_NTDLL_EXPORTS
 {
-    RTL_SCP_CFG_REGION_BOUNDS ScpRegions[4];
-    PVOID CfgDispatchFptr;
-    PVOID CfgDispatchESFptr;
-    PVOID CfgCheckFptr;
-    PVOID CfgCheckESFptr;
-    PVOID IllegalCallHandler;
+    RTL_SCP_CFG_REGION_BOUNDS ScpRegions[4]; // Array of SCP region bounds (max 4).
+    PVOID CfgDispatchFptr;                   // Pointer to CFG dispatch function.
+    PVOID CfgDispatchESFptr;                 // Pointer to CFG dispatch exception stub.
+    PVOID CfgCheckFptr;                      // Pointer to CFG check function.
+    PVOID CfgCheckESFptr;                    // Pointer to CFG check exception stub.
+    PVOID IllegalCallHandler;                // Pointer to handler invoked for illegal calls.
 } RTL_SCP_CFG_NTDLL_EXPORTS, *PRTL_SCP_CFG_NTDLL_EXPORTS;
 
-// private
+/**
+ * The RTL_SCP_CFG_NTDLL_EXPORTS_ARM64EC structure contains ARM64-specific ntdll
+ * export descriptors used for EC / ARM64EC handling.
+ */
 typedef struct _RTL_SCP_CFG_NTDLL_EXPORTS_ARM64EC
 {
-    PVOID EcInvalidCallHandler;
-    PVOID EcCfgCheckFptr;
-    PVOID EcCfgCheckESFptr;
-    PVOID EcCallCheckFptr;
-    PVOID CpuInitializationComplete;
-    PVOID LdrpValidateEcCallTargetInit;
+    PVOID EcInvalidCallHandler;           // Pointer to invalid EC call handler.
+    PVOID EcCfgCheckFptr;                 // Pointer to EC CFG check function.
+    PVOID EcCfgCheckESFptr;               // Pointer to EC CFG check exception stub.
+    PVOID EcCallCheckFptr;                // Pointer to EC call-check routine.
+    PVOID CpuInitializationComplete;      // Pointer to CPU initialization completion routine.
+    PVOID LdrpValidateEcCallTargetInit;   // Pointer to loader validation init routine.
     struct
     {
-        PVOID SyscallFfsSize;
+        PVOID SyscallFfsSize;             // Pointer to syscall FFS size descriptor.
         union
         {
-            PVOID Ptr;
-            ULONG Value;
+            PVOID Ptr;                    // Pointer form of FFS size descriptor.
+            ULONG Value;                  // Value form of FFS size descriptor.
         };
     };
-    PVOID SyscallFfsBase;
+    PVOID SyscallFfsBase;                 // Pointer to syscall FFS base.
 } RTL_SCP_CFG_NTDLL_EXPORTS_ARM64EC, *PRTL_SCP_CFG_NTDLL_EXPORTS_ARM64EC;
 
-// private
+/**
+ * The RTL_RETPOLINE_ROUTINES structure contains indices/offsets and jump-table
+ * descriptors used for retpoline/runtime patching.
+ */
 typedef struct _RTL_RETPOLINE_ROUTINES
 {
-    ULONG SwitchtableJump[16];
-    ULONG CfgIndirectRax;
-    ULONG NonCfgIndirectRax;
-    ULONG ImportR10;
-    ULONG JumpHpat;
+    ULONG SwitchtableJump[16]; // Jump offsets for switchtable entries.
+    ULONG CfgIndirectRax;      // Index/offset for indirect calls using RAX under CFG.
+    ULONG NonCfgIndirectRax;   // Index/offset for indirect calls not under CFG.
+    ULONG ImportR10;           // Import slot/index for R10-based imports.
+    ULONG JumpHpat;            // Hot-spot jump table offset.
 } RTL_RETPOLINE_ROUTINES, *PRTL_RETPOLINE_ROUTINES;
 
-// private
+/**
+ * The RTL_KSCP_ROUTINES structure contains the kernel-side
+ * SCP-related routine descriptors used for XFG/CFG/retpoline support.
+ */
 typedef struct _RTL_KSCP_ROUTINES
 {
-    ULONG UnwindDataOffset;
+    ULONG UnwindDataOffset;  // Offset to unwind data for the routines.
     RTL_RETPOLINE_ROUTINES RetpolineRoutines;
-    ULONG CfgDispatchSmep;
-    ULONG CfgDispatchNoSmep;
+    ULONG CfgDispatchSmep;   // CFG dispatch variant when SMEP is enabled.
+    ULONG CfgDispatchNoSmep; // CFG dispatch variant when SMEP is not enabled.
 } RTL_KSCP_ROUTINES, *PRTL_KSCP_ROUTINES;
 
-// private
+/**
+ * The MEMORY_IMAGE_EXTENSION_TYPE enumeration specifies the supported image extension types.
+ */
 typedef enum _MEMORY_IMAGE_EXTENSION_TYPE
 {
     MemoryImageExtensionCfgScp,
@@ -456,13 +486,16 @@ typedef enum _MEMORY_IMAGE_EXTENSION_TYPE
     MemoryImageExtensionTypeMax,
 } MEMORY_IMAGE_EXTENSION_TYPE;
 
-// private
+/**
+ * The MEMORY_IMAGE_EXTENSION_INFORMATION structure describes an optional image extension
+ * containing additional metadata or features (for example, CFG/SCP related extensions).
+ */
 typedef struct _MEMORY_IMAGE_EXTENSION_INFORMATION
 {
-    MEMORY_IMAGE_EXTENSION_TYPE ExtensionType;
-    ULONG Flags;
-    PVOID ExtensionImageBaseRva;
-    SIZE_T ExtensionSize;
+    MEMORY_IMAGE_EXTENSION_TYPE ExtensionType; // Type of the image extension (MEMORY_IMAGE_EXTENSION_TYPE).
+    ULONG Flags;                               // Extension-specific flags.
+    PVOID ExtensionImageBaseRva;               // Relative virtual address of the extension image base.
+    SIZE_T ExtensionSize;                      // Size, in bytes, of the extension region.
 } MEMORY_IMAGE_EXTENSION_INFORMATION, *PMEMORY_IMAGE_EXTENSION_INFORMATION;
 
 #define MMPFNLIST_ZERO 0
@@ -609,8 +642,10 @@ typedef struct _MMPFN_MEMSNAP_INFORMATION
  * The NtAllocateVirtualMemory routine reserves, commits, or both, a region of pages within the user-mode virtual address space of a specified process.
  *
  * \param ProcessHandle A handle for the process for which the mapping should be done.
- * \param BaseAddress A pointer to a variable that will receive the base address of the allocated region of pages. If the initial value is not zero, the region is allocated at the specified virtual address.
- * \param ZeroBits The number of high-order address bits that must be zero in the base address of the section view. This value must be less than 21 and the initial value of BaseAddress must be zero.
+ * \param BaseAddress A pointer to a variable that will receive the base address of the allocated region of pages.
+ * If the initial value is not zero, the region is allocated at the specified virtual address.
+ * \param ZeroBits The number of high-order address bits that must be zero in the base address of the section view.
+ * This value must be less than 21 and the initial value of BaseAddress must be zero.
  * \param RegionSize A pointer to a variable that will receive the actual size, in bytes, of the allocated region of pages.
  * \param AllocationType A bitmask containing flags that specify the type of allocation to be performed.
  * \param PageProtection A bitmask containing page protection flags that specify the protection desired for the committed region of pages.
@@ -863,7 +898,7 @@ NtWow64QueryVirtualMemory64(
  * The NtFlushVirtualMemory routine flushes the instruction cache for a specified process.
  *
  * \param ProcessHandle A handle to the process whose instruction cache is to be flushed.
- * \param BaseAddress A pointer to the base address of the region of memory to be flushed.
+ * \param BaseAddress A pointer to the base address of the memory region to be flushed.
  * \param RegionSize A pointer to a variable that specifies the size of the region to be flushed.
  * \param IoStatus A pointer to an IO_STATUS_BLOCK structure that receives the status of the flush operation.
  * \return NTSTATUS Successful or errant status.
@@ -909,9 +944,21 @@ typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+/**
+ * Attempt to populate specified single or multiple adddress ranges
+ * into the process working set (bring pages into physical memory).
+ */
 #define VM_PREFETCH_TO_WORKING_SET 0x1 // since 24H4
 
 // rev
+/**
+ * The MEMORY_PREFETCH_INFORMATION structure defines prefetch-control flags that
+ * determine how prefetch operations are executed on the supplied address ranges.
+ *
+ * \remarks The behavior and success of prefetch operations depend on OS policy,
+ * working set limits, privileges, and presence of backing storage.
+ * \sa NtSetInformationVirtualMemory, VIRTUAL_MEMORY_INFORMATION_CLASS, VmPrefetchInformation
+ */
 typedef struct _MEMORY_PREFETCH_INFORMATION
 {
     ULONG Flags;
@@ -948,6 +995,7 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 } CFG_CALL_TARGET_LIST_INFORMATION, *PCFG_CALL_TARGET_LIST_INFORMATION;
 
 // rev
+// VmPageDirtyStateInformation
 typedef struct _MEMORY_PAGE_DIRTY_STATE_INFORMATION
 {
     ULONG Flags;
@@ -959,18 +1007,31 @@ typedef struct _MEMORY_REMOVE_WORKING_SET_INFORMATION
     ULONG Flags;
 } MEMORY_REMOVE_WORKING_SET_INFORMATION, *PMEMORY_REMOVE_WORKING_SET_INFORMATION;
 
-#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
-
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
-
+/**
+ * The MEMORY_RANGE_ENTRY structure describes a contiguous region of virtual address space.
+ */
 typedef struct _MEMORY_RANGE_ENTRY
 {
     PVOID VirtualAddress;
     SIZE_T NumberOfBytes;
 } MEMORY_RANGE_ENTRY, *PMEMORY_RANGE_ENTRY;
 
+/**
+ * The NtSetInformationVirtualMemory routine performs an operation on a specified list of address ranges in the user address space of a process.
+ *
+ * \param ProcessHandle Specifies an open handle for the process in the context of which the operation is to be performed. This handle cannot be invalid.
+ * \param VmInformationClass Specifies the type of operation to perform.
+ * \param NumberOfEntries Number of entries in the array pointed to by the VirtualAddresses parameter. This parameter cannot be 0.
+ * \param VirtualAddresses Pointer to an array of MEMORY_RANGE_ENTRY structures in which each entry specifies a virtual address range to be processed.
+ * The virtual address ranges may cover any part of the process address space accessible by the target process.
+ * \param VmInformation A pointer to a buffer that contains memory information.
+ * Note: If VmInformationClass is VmPrefetchInformation, this parameter cannot be this parameter cannot be NULL and must point to a ULONG variable that is set to 0.
+ * \param VmInformationLength The size of the buffer pointed to by VmInformation.
+ * If VmInformationClass is VmPrefetchInformation, this must be sizeof (ULONG).
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwsetinformationvirtualmemory
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -989,7 +1050,8 @@ NtSetInformationVirtualMemory(
 #define MAP_SYSTEM 2 // Physical Memory // (requires SeLockMemoryPrivilege)
 
 /**
- * The NtLockVirtualMemory routine locks the specified region of the process's virtual address space into physical memory, ensuring that subsequent access to the region will not incur a page fault.
+ * The NtLockVirtualMemory routine locks the specified region of the process's virtual address space into physical memory,
+ * ensuring that subsequent access to the region will not incur a page fault.
  *
  * \param ProcessHandle A handle to the process whose virtual address space is to be locked.
  * \param BaseAddress A pointer to the base address of the region of pages to be locked.
@@ -1009,7 +1071,8 @@ NtLockVirtualMemory(
     );
 
 /**
- * The NtUnlockVirtualMemory routine unlocks a specified range of pages in the virtual address space of a process, enabling the system to swap the pages out to the paging file if necessary.
+ * The NtUnlockVirtualMemory routine unlocks a specified range of pages in the virtual address space of a process,
+ * enabling the system to swap the pages out to the paging file if necessary.
  *
  * \param ProcessHandle A handle to the process whose virtual address space is to be unlocked.
  * \param BaseAddress A pointer to the base address of the region of pages to be unlocked.
@@ -1150,10 +1213,12 @@ typedef enum _SECTION_INHERIT
  * \param SectionHandle Pointer to a variable that receives a handle to the section object.
  * \param DesiredAccess The access mask that specifies the requested access to the section object.
  * \param ObjectAttributes Pointer to the base virtual address of the view to unmap. This value can be any virtual address within the view.
- * \param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file, or the maximum the file can be extended or mapped when backed by an ordinary file.
+ * \param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file,
+ * or the maximum the file can be extended or mapped when backed by an ordinary file.
  * \param SectionPageProtection Specifies the protection to place on each page in the section.
  * \param AllocationAttributes A bitmask of SEC_XXX flags that determines the allocation attributes of the section.
- * \param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL, the section is backed by the paging file. Otherwise, the section is backed by the specified file.
+ * \param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL,
+ * the section is backed by the paging file. Otherwise, the section is backed by the specified file.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatesection
  */
@@ -1177,10 +1242,12 @@ NtCreateSection(
  * \param SectionHandle Pointer to a variable that receives a handle to the section object.
  * \param DesiredAccess The access mask that specifies the requested access to the section object.
  * \param ObjectAttributes Pointer to the base virtual address of the view to unmap. This value can be any virtual address within the view.
- * \param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file, or the maximum the file can be extended or mapped when backed by an ordinary file.
+ * \param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file,
+ * or the maximum the file can be extended or mapped when backed by an ordinary file.
  * \param SectionPageProtection Specifies the protection to place on each page in the section.
  * \param AllocationAttributes A bitmask of SEC_XXX flags that determines the allocation attributes of the section.
- * \param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL, the section is backed by the paging file. Otherwise, the section is backed by the specified file.
+ * \param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL,
+ * the section is backed by the paging file. Otherwise, the section is backed by the specified file.
  * \param ExtendedParameters An optional pointer to one or more extended parameters of type MEM_EXTENDED_PARAMETER.
  * \param ExtendedParameterCount Specifies the number of elements in the ExtendedParameters array.
  * \return NTSTATUS Successful or errant status.
@@ -1228,10 +1295,10 @@ NtOpenSection(
  * \param BaseAddress A pointer to a variable that receives the base address of the view. If the value is not NULL, the view is allocated starting at the specified virtual address rounded down to the next 64-kilobyte address boundary.
  * \param ZeroBits The number of high-order address bits that must be zero in the base address of the section view. The value of this parameter must be less than 21 and is used only if BaseAddress is NULL.
  * \param CommitSize Specifies the size, in bytes, of the initially committed region of the view. CommitSize is meaningful only for page-file backed sections and is rounded up to the nearest multiple of PAGE_SIZE.
- * \param SectionOffset A pointer to a variable that receives the offset, in bytes, from the beginning of the section to the view. 
- * \param ViewSize A pointer to a variable that specifies the size of the view in bytes. If the initial value is zero, NtMapViewOfSection maps a view of the section that starts at SectionOffset and continues to the end of the section. 
- * \param InheritDisposition A value that specifies how the view is to be shared with child processes. 
- * \param AllocationType Specifies the type of allocation to be performed for the specified region of pages. The valid flags are MEM_RESERVE, MEM_TOP_DOWN, MEM_LARGE_PAGES, MEM_DIFFERENT_IMAGE_BASE_OK and MEM_REPLACE_PLACEHOLDER. Although MEM_COMMIT is not allowed, it is implied unless MEM_RESERVE is specified. 
+ * \param SectionOffset A pointer to a variable that receives the offset, in bytes, from the beginning of the section to the view.
+ * \param ViewSize A pointer to a variable that specifies the size of the view in bytes. If the initial value is zero, NtMapViewOfSection maps a view of the section that starts at SectionOffset and continues to the end of the section.
+ * \param InheritDisposition A value that specifies how the view is to be shared with child processes.
+ * \param AllocationType Specifies the type of allocation to be performed for the specified region of pages. The valid flags are MEM_RESERVE, MEM_TOP_DOWN, MEM_LARGE_PAGES, MEM_DIFFERENT_IMAGE_BASE_OK and MEM_REPLACE_PLACEHOLDER. Although MEM_COMMIT is not allowed, it is implied unless MEM_RESERVE is specified.
  * \param PageProtection Specifies the page protection to be applied to the mapped view. Not used with SEC_IMAGE, must be set to PAGE_READONLY for SEC_IMAGE_NO_EXECUTE. For non-image sections, the value must be compatible with the section's page protection from NtCreateSection.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwmapviewofsection
@@ -1803,7 +1870,7 @@ NtCreateEnclave(
  * \param PageInformation A pointer to information that describes the pages that you want to add to the enclave.
  * \param PageInformationLength The length of the structure that the PageInformation parameter points to, in bytes.
  * \param NumberOfBytesWritten A pointer to a variable that receives the number of bytes that NtLoadEnclaveData copied into the enclave.
- * \param EnclaveError An optional pointer to a variable that receives an enclave error code that is architecture-specific. 
+ * \param EnclaveError An optional pointer to a variable that receives an enclave error code that is architecture-specific.
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-loadenclavedata
  */
