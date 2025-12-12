@@ -4456,15 +4456,13 @@ PPH_STRING PhGetTemporaryDirectory(
 /**
  * Waits on multiple objects while processing window messages.
  *
- * \param WindowHandle The window to process messages for, or NULL to process all messages for the current
- * thread.
- * \param NumberOfHandles The number of handles specified in \a Handles. This must not be greater
- * than MAXIMUM_WAIT_OBJECTS - 1.
+ * \param WindowHandle The window to process messages for, or NULL to process all messages for the current thread.
+ * \param NumberOfHandles The number of handles specified in \a Handles. This must not be greater than MAXIMUM_WAIT_OBJECTS - 1.
  * \param Handles An array of handles.
  * \param Timeout The number of milliseconds to wait on the objects, or INFINITE for no timeout.
  * \param WakeMask The input types for which an input event object handle will be added to the array of object handles.
- *
- * \remarks The wait is always in WaitAny mode.
+ * \remarks The wait is always in WaitAny mode. Passing a specific HWND to PeekMessage filters out thread messages 
+ * (e.g., WM_QUIT) and messages for other windows on the same thread. If you expect full pumping, the HWND must be NULL.
  */
 NTSTATUS PhWaitForMultipleObjectsAndPump(
     _In_opt_ HWND WindowHandle,
@@ -5325,7 +5323,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
     )
 {
     static SID_IDENTIFIER_AUTHORITY mandatoryLabelAuthority = SECURITY_MANDATORY_LABEL_AUTHORITY;
-    static LUID_AND_ATTRIBUTES defaultAllowedPrivileges[] =
+    static const LUID_AND_ATTRIBUTES defaultAllowedPrivileges[] =
     {
         { { SE_SHUTDOWN_PRIVILEGE, 0 }, 0 },
         { { SE_CHANGE_NOTIFY_PRIVILEGE, 0 }, 0 },
@@ -8301,7 +8299,6 @@ HRESULT PhGetClassObjectDllBase(
  * \param Riid Reference to the identifier of the interface to communicate with the class object.
  * \a Typically this value is IID_IClassFactory, although other values such as IID_IClassFactory2 which supports a form of licensing are allowed.
  * \param Ppv The address of pointer variable that contains the requested interface.
- *
  * \return Successful or errant status.
  */
 HRESULT PhGetClassObject(
@@ -8394,7 +8391,6 @@ HRESULT PhGetActivationFactoryDllBase(
  * \param RuntimeClass The class identifier string that is associated with the activatable runtime class.
  * \param Riid The reference ID of the interface.
  * \param Ppv The activation factory.
- *
  * \return Successful or errant status.
  */
 HRESULT PhGetActivationFactory(
@@ -8516,7 +8512,6 @@ HRESULT PhActivateInstanceDllBase(
  * \param RuntimeClass The class identifier string that is associated with the activatable runtime class.
  * \param Riid The reference ID of the interface.
  * \param Ppv A pointer to the activated instance of the runtime class.
- *
  * \return Successful or errant status.
  */
 HRESULT PhActivateInstance(
@@ -8799,7 +8794,9 @@ NTSTATUS PhDelayExecution(
     }
 }
 
-FORCEINLINE ULONG PhpApiSetHashString(
+FORCEINLINE
+ULONG
+PhpApiSetHashString(
     _In_ PCPH_STRINGREF String,
     _In_ ULONG HashFactor
     )

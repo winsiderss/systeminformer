@@ -159,14 +159,14 @@ PhQuerySystemTime(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhQueryTimeZoneBias(
     _Out_ PLARGE_INTEGER TimeZoneBias
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhSystemTimeToLocalTime(
     _In_ PLARGE_INTEGER SystemTime,
@@ -174,7 +174,7 @@ PhSystemTimeToLocalTime(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhLocalTimeToSystemTime(
     _In_ PLARGE_INTEGER LocalTime,
@@ -4017,7 +4017,7 @@ VOID
 NTAPI
 PhFreeToFreeList(
     _Inout_ PPH_FREE_LIST FreeList,
-    _In_ PVOID Memory
+    _In_ _Post_invalid_ PVOID Memory
     );
 
 //
@@ -4273,8 +4273,9 @@ NTAPI
 PhCalculateEntropy(
     _In_ PBYTE Buffer,
     _In_ ULONG64 BufferLength,
-    _Out_opt_ FLOAT *Entropy,
-    _Out_opt_ FLOAT *Variance
+    _Out_opt_ PFLOAT Entropy,
+    _Out_opt_ PFLOAT Mean,
+    _Out_opt_ PFLOAT Variance
     );
 
 PHLIBAPI
@@ -4283,6 +4284,8 @@ NTAPI
 PhFormatEntropy(
     _In_ FLOAT Entropy,
     _In_ USHORT EntropyPrecision,
+    _In_opt_ FLOAT Mean,
+    _In_opt_ USHORT MeanPrecision,
     _In_opt_ FLOAT Variance,
     _In_opt_ USHORT VariancePrecision
     );

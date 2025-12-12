@@ -1872,8 +1872,8 @@ PhIsExecutablePacked(
     );
 
 /**
-* Image Coherency Scan Type
-*/
+ * Image Coherency Scan Type
+ */
 typedef enum _PH_IMGCOHERENCY_SCAN_TYPE
 {
     /**
@@ -2322,7 +2322,7 @@ PhGetNanosecondsStopwatch(
 {
     DOUBLE elapsedNanoseconds;
 
-    // Convert to nanoseconds before dividing by ticks-per-second.  
+    // Convert to nanoseconds before dividing by ticks-per-second.
     elapsedNanoseconds = (DOUBLE)(Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart);
     elapsedNanoseconds *= 1000000000.0;
     elapsedNanoseconds /= (DOUBLE)Stopwatch->Frequency.QuadPart;

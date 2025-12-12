@@ -63,7 +63,7 @@ namespace CustomBuildTool
         /// </summary>
         SIG_SEAL = 0x2000,
         /// <summary>
-        /// Digest signing will be done. The caller’s digest signing function will select and return the code signing certificate which performed the signing operation.
+        /// Digest signing will be done. The callers digest signing function will select and return the code signing certificate which performed the signing operation.
         /// </summary>
         SPC_DIGEST_SIGN_EX_FLAG = 0x4000
     }
@@ -141,7 +141,7 @@ namespace CustomBuildTool
     }
 
     /// <summary>
-    /// The SIGNER_DIGEST_SIGN_INFO_V2 structure contains information about digest signing. 
+    /// The SIGNER_DIGEST_SIGN_INFO_V2 structure contains information about digest signing.
     /// It contains a pointer to a digest signing function implemented within the provided dll, specified by the dwDigestSignChoice.
     /// https://learn.microsoft.com/en-us/windows/win32/seccrypto/signer-digest-sign-info-v2
     /// </summary>

@@ -28,7 +28,7 @@ namespace CustomBuildTool
 
             foreach (string s in args)
             {
-                if (s.StartsWith("-", StringComparison.OrdinalIgnoreCase))
+                if (s.StartsWith('-'))
                 {
                     dict[s] = string.Empty;
                     argPending = s;
@@ -64,7 +64,7 @@ namespace CustomBuildTool
 
             foreach (string s in args)
             {
-                if (s.StartsWith("-", StringComparison.OrdinalIgnoreCase))
+                if (s.StartsWith('-'))
                 {
                     key = s;
 
@@ -547,6 +547,11 @@ namespace CustomBuildTool
             }
 
             return makeAppxPath;
+        }
+
+        public static int ExecuteCMakeCommand(string Command)
+        {
+            return int.MaxValue;
         }
 
         public static string ExecuteMsixCommand(string Command)

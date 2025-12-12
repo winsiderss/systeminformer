@@ -124,14 +124,14 @@ PHLIBAPI
 VOID
 NTAPI
 PhDereferenceObject(
-    _In_ PVOID Object
+    _In_ _Post_invalid_ PVOID Object
     );
 
 PHLIBAPI
 VOID
 NTAPI
 PhDereferenceObjectDeferDelete(
-    _In_ PVOID Object
+    _In_ _Post_invalid_ PVOID Object
     );
 
 _May_raise_
@@ -421,7 +421,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhDeleteAutoPool(
-    _Inout_ PPH_AUTO_POOL AutoPool
+    _In_ _Post_invalid_ PPH_AUTO_POOL AutoPool
     );
 
 PHLIBAPI

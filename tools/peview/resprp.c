@@ -448,11 +448,12 @@ VOID PvpPeEnumMappedImageResources(
                             resourceData,
                             entry.Size,
                             &imageResourceEntropy,
+                            NULL,
                             NULL
                             ))
                         {
                             resourceNode->ResourcesEntropy = imageResourceEntropy;
-                            resourceNode->EntropyString = PhFormatEntropy(imageResourceEntropy, 2, 0, 0);
+                            resourceNode->EntropyString = PhFormatEntropy(imageResourceEntropy, 2, 0, 0, 0, 0);
                         }
                     }
                     __except (EXCEPTION_EXECUTE_HANDLER)

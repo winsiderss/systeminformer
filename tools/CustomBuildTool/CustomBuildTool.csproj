@@ -25,7 +25,7 @@
     <TargetFramework>net9.0-windows</TargetFramework>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
-    <Version>4.0.0.0</Version>
+    <Version>5.0.0.0</Version>
     <Nullable>disable</Nullable>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
     <PackageProjectUrl>https://github.com/winsiderss/systeminformer</PackageProjectUrl>
@@ -143,13 +143,13 @@
     <LinkerArg Include="/RELEASE /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.16.0" />
+    <PackageReference Include="Azure.Identity" Version="1.17.1" />
     <PackageReference Include="Azure.Security.KeyVault.Certificates" Version="4.8.0" />
     <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.8.0" />
-    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.205">
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.257">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SharpCompress" Version="0.40.0" />
+    <PackageReference Include="SharpCompress" Version="0.41.0" />
   </ItemGroup>
 </Project>

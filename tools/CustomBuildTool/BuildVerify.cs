@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -197,33 +197,24 @@ namespace CustomBuildTool
 
         private static byte[] Encrypt(Stream Stream, string Secret, string Salt)
         {
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(0x4000);
-
             try
             {
-                using (MemoryStream memoryStream = new MemoryStream(buffer, 0, 0x4000, true, true))
+                using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
+                using (var cryptoEncrypt = rijndael.CreateEncryptor())
+                using (var cryptoStream = new CryptoStream(Stream.Null, cryptoEncrypt, CryptoStreamMode.Write))
+                using (var ms = new MemoryStream())
                 {
-                    using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
-                    using (var cryptoEncrypt = rijndael.CreateEncryptor())
-                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoEncrypt, CryptoStreamMode.Write, true))
+                    using (var cryptoStreamOut = new CryptoStream(ms, cryptoEncrypt, CryptoStreamMode.Write, leaveOpen: true))
                     {
-                        Stream.CopyTo(cryptoStream);
-                        cryptoStream.FlushFinalBlock();
+                        Stream.CopyTo(cryptoStreamOut);
+                        cryptoStreamOut.FlushFinalBlock();
                     }
-
-                    memoryStream.SetLength(memoryStream.Position);
-                    return memoryStream.ToArray();
+                    return ms.ToArray();
                 }
             }
             catch (Exception e)
             {
-                Program.PrintColorMessage($"[Encrypt-Exception]: {e.Message}", ConsoleColor.Red);
-            }
-            finally
-            {
-                // Zero the buffer (copied from System.Security.Cryptography)
-                CryptographicOperations.ZeroMemory(buffer.AsSpan(0, 0x4000));
-                ArrayPool<byte>.Shared.Return(buffer);
+                Program.PrintColorMessage($"[Decrypt-Exception]: {e.Message}", ConsoleColor.Red);
             }
 
             return null;
@@ -231,33 +222,23 @@ namespace CustomBuildTool
 
         private static byte[] Decrypt(Stream Stream, string Secret, string Salt)
         {
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(0x4000);
-
             try
             {
-                using (MemoryStream memoryStream = new MemoryStream(buffer, 0, 0x4000, true, true))
+                using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
+                using (var cryptoDecrypt = rijndael.CreateDecryptor())
+                using (var ms = new MemoryStream())
                 {
-                    using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
-                    using (var cryptoDecrypt = rijndael.CreateDecryptor())
-                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoDecrypt, CryptoStreamMode.Write, true))
+                    using (var cryptoStream = new CryptoStream(ms, cryptoDecrypt, CryptoStreamMode.Write, leaveOpen: true))
                     {
                         Stream.CopyTo(cryptoStream);
                         cryptoStream.FlushFinalBlock();
                     }
-
-                    memoryStream.SetLength(memoryStream.Position);
-                    return memoryStream.ToArray();
+                    return ms.ToArray();
                 }
             }
             catch (Exception e)
             {
                 Program.PrintColorMessage($"[Decrypt-Exception]: {e.Message}", ConsoleColor.Red);
-            }
-            finally
-            {
-                // Zero the buffer (copied from System.Security.Cryptography)
-                CryptographicOperations.ZeroMemory(buffer.AsSpan(0, 0x4000));
-                ArrayPool<byte>.Shared.Return(buffer);
             }
 
             return null;

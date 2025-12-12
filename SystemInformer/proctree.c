@@ -90,6 +90,12 @@ static HBITMAP GraphOldBitmap = NULL;
 static HBITMAP GraphBitmap = NULL;
 static PVOID GraphBits = NULL;
 
+/**
+ * Initializes the process tree list.
+ *
+ * This function sets up any necessary data structures or state required
+ * for displaying or managing the process tree within the application.
+ */
 VOID PhProcessTreeListInitialization(
     VOID
     )
@@ -6259,14 +6265,13 @@ PPH_LIST PhDuplicateProcessNodeList(
 }
 
 /**
-* Determines if the process item should show the image coherency in the UI.
-*
-* \param[in] ProcessItem - Process item to check.
-* \param[in] CheckThreshold - If TRUE the image low coherency threshold is
-* checked, see: LowImageCoherencyThreshold.
-*
-* \return TRUE if the image coherency should be shown, FALSE otherwise.
-*/
+ * Determines if the process item should show the image coherency in the UI.
+ *
+ * \param[in] ProcessItem - Process item to check.
+ * \param[in] CheckThreshold - If TRUE the image low coherency threshold is
+ * checked, see: LowImageCoherencyThreshold.
+ * \return TRUE if the image coherency should be shown, FALSE otherwise.
+ */
 BOOLEAN PhpShouldShowImageCoherency(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ BOOLEAN CheckThreshold
@@ -6363,6 +6368,13 @@ BOOLEAN PhpShouldShowImageCoherency(
     return FALSE;
 }
 
+/**
+ * Retrieves the Win32 file name of the process associated with the specified process item.
+ *
+ * \param ProcessItem A pointer to a PPH_PROCESS_ITEM structure representing the process.
+ * \param FileNameWin32 A pointer to a variable that receives a pointer to a PPH_STRING containing the Win32 file name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetProcessItemFileNameWin32(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _Out_ PPH_STRING* FileNameWin32

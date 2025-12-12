@@ -4,7 +4,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
 {
     NTSTATUS status;
 
-    status = PhInitializePhLib();
+    status = PhInitializePhLib(L"phlib-test");
     assert(NT_SUCCESS(status));
 
     Test_basesup();

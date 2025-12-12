@@ -782,7 +782,12 @@ BOOLEAN PhGetProcessIsFullTrustPackage(
     return FALSE;
 }
 
-// rev from PackageIdFromFullName (dmex)
+/**
+ * Retrieves the package full name for a process by opening its token and querying.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \return PPH_STRING The package full name string object, or NULL if not available.
+ */
 PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     )

@@ -555,6 +555,9 @@ NTSTATUS PhGetProcedureAddressRemote(
         case IMAGE_NT_OPTIONAL_HDR64_MAGIC:
             status = PhEnumProcessModulesEx(ProcessHandle, &parameters);
             break;
+        default:
+            status = STATUS_NOT_SUPPORTED;
+            break;
         }
 
         if (!NT_SUCCESS(status))
@@ -816,6 +819,9 @@ PPH_STRING PhLoadString(
         return NULL;
     }
 
+    if (!resourceBuffer)
+        return NULL;
+
     stringBuffer = resourceBuffer;
     stringIndex = ResourceId & 0x000F;
 
@@ -849,6 +855,9 @@ PPH_STRING PhLoadIndirectString(
     )
 {
     PPH_STRING indirectString = NULL;
+
+    if (!SourceString || !SourceString->Buffer)
+        return NULL;
 
     if (SourceString->Buffer[0] == L'@')
     {
@@ -1747,6 +1756,9 @@ NTSTATUS PhLoaderEntryDetourImportProcedure(
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_IMPORT_DESCRIPTOR importDirectory;
 
+    if (!BaseAddress || !ImportName || !ProcedureName)
+        return STATUS_INVALID_PARAMETER;
+
     status = PhGetLoaderEntryImageNtHeaders(
         BaseAddress,
         &imageNtHeaders
@@ -1842,6 +1854,9 @@ VOID PhLoaderEntrySnapShowErrorMessage(
 {
     PPH_STRING fileName;
 
+    if (!BaseAddress || !ImportName || !OriginalThunk)
+        return;
+
     if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
     {
         PhMoveReference(&fileName, PhGetFileName(fileName));
@@ -1885,6 +1900,9 @@ NTSTATUS PhLoaderEntrySnapImportThunk(
     _In_ PIMAGE_THUNK_DATA ImportThunk
     )
 {
+    if (!BaseAddress || !ImportBaseAddress || !OriginalThunk || !ImportThunk)
+        return STATUS_INVALID_PARAMETER;
+
     if (IMAGE_SNAP_BY_ORDINAL(OriginalThunk->u1.Ordinal))
     {
         USHORT procedureOrdinal;
@@ -1965,6 +1983,9 @@ NTSTATUS PhLoaderEntrySnapImportDirectory(
     PIMAGE_THUNK_DATA importThunk;
     PIMAGE_THUNK_DATA originalThunk;
     PVOID importBaseAddress;
+
+    if (!BaseAddress || !ImportDirectory || !ImportDllName)
+        return STATUS_INVALID_PARAMETER;
 
     importName = PTR_ADD_OFFSET(BaseAddress, ImportDirectory->Name);
     importThunk = PTR_ADD_OFFSET(BaseAddress, ImportDirectory->FirstThunk);

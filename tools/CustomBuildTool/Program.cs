@@ -14,6 +14,33 @@ namespace CustomBuildTool
     public static class Program
     {
         private static Dictionary<string, string> ProgramArgs;
+        private static readonly Dictionary<string, string> ProgramArgsHelp = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "-bin", "Builds the binary package." },
+            { "-cleanup", "Cleans up the build environment." },
+            { "-cleansdk", "Cleans SDK build artifacts (internal)." },
+            { "-debug", "Builds the debug configuration." },
+            { "-decrypt", "Decrypts a file." },
+            { "-devenv-build", "Runs devenv build." },
+            { "-dyndata", "Builds dynamic data." },
+            { "-encrypt", "Encrypts a file." },
+            { "-help", "Shows this help message." },
+            { "-msix-build", "Builds MSIX store package." },
+            { "-phapppub_gen", "Generates public header files." },
+            { "-phnt_headers_gen", "Builds single native header." },
+            { "-pipeline-build", "Performs pipeline build operations." },
+            { "-pipeline-deploy", "Deploys pipeline artifacts." },
+            { "-pipeline-package", "Packages pipeline artifacts." },
+            { "-azsign", "Creates signature files for build." },
+            { "-kphsign", "Creates signature files for build." },
+            { "-reflow", "Exports the current export definitions." },
+            { "-reflowrevert", "Revert export definitions to previous state." },
+            { "-reflowvalid", "Validates the current export definitions." },
+            { "-sdk", "Builds the SDK package." },
+            { "-verbose", "Enables verbose output." },
+            { "-vtscan", "Uploads a file to VirusTotal for scanning." },
+            { "-write-tools-id", "Writes the tools id file (internal)." },
+        };
 
         public static void Main(string[] args)
         {
@@ -56,6 +83,15 @@ namespace CustomBuildTool
                 if (!Build.BuildDynamicData(ArgDynData))
                 {
                     Environment.Exit(1);
+                }
+            }
+            else if (ProgramArgs.ContainsKey("-help") || ProgramArgs.ContainsKey("-h"))
+            {
+                Console.WriteLine("CustomBuildTool usage:\n");
+
+                foreach (var key in ProgramArgsHelp.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine($"  {key,-15} {ProgramArgsHelp[key]}");
                 }
             }
             else if (ProgramArgs.ContainsKey("-phapppub_gen"))
@@ -116,6 +152,50 @@ namespace CustomBuildTool
             else if (ProgramArgs.ContainsKey("-reflowrevert"))
             {
                 Build.ExportDefinitionsRevert();
+            }
+            else if (ProgramArgs.ContainsKey("-vtscan"))
+            {
+                BuildVirusTotal.UploadScanFile(ProgramArgs["-file"]);
+            }
+            else if (ProgramArgs.ContainsKey("-cmake-build"))
+            {
+                BuildFlags flags = BuildFlags.Release;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
+                Build.SetupBuildEnvironment(true);
+
+                string generator = ProgramArgs["-generator"];
+                string config = ProgramArgs["-config"];
+                string toolchain = ProgramArgs["-toolchain"];
+
+                if (string.IsNullOrWhiteSpace(generator))
+                {
+                    generator = "Ninja";
+                }
+
+                if (string.IsNullOrWhiteSpace(config))
+                {
+                    generator = "CONFIG";
+                }
+
+                if (string.IsNullOrWhiteSpace(toolchain))
+                {
+                    generator = "msvc-amd64";
+                }
+
+                // Build main project
+                if (!Build.BuildSolutionCMake("SystemInformer", generator, config, toolchain, flags))
+                    Environment.Exit(1);
+
+                // Build plugins
+                if (!Build.BuildSolutionCMake("Plugins", generator, config, toolchain, flags))
+                    Environment.Exit(1);
+
+                Build.ShowBuildStats();
             }
             else if (ProgramArgs.TryGetValue("-devenv-build", out string Command))
             {
@@ -339,7 +419,7 @@ namespace CustomBuildTool
 
                 Build.ShowBuildStats();
             }
-            else
+            else if (ProgramArgs.ContainsKey("-release"))
             {
                 BuildFlags flags = BuildFlags.Release;
 
@@ -381,6 +461,17 @@ namespace CustomBuildTool
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
+            }
+            else
+            {
+                Build.SetupBuildEnvironment(true);
+
+                Program.PrintColorMessage("Error: Missing required arguments. Valid commands:\r\n", ConsoleColor.Red,  true);
+
+                foreach (var item in Program.ProgramArgsHelp)
+                {
+                    Console.WriteLine($"  {item.Key,-25}{item.Value}");
+                }
             }
         }
 

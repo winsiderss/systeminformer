@@ -92,7 +92,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhDestroyEMenuItem(
-    _In_ PPH_EMENU_ITEM Item
+    _In_ _Post_invalid_ PPH_EMENU_ITEM Item
     );
 
 #define PH_EMENU_FIND_DESCEND 0x1

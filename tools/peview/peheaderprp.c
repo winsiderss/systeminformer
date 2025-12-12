@@ -208,16 +208,18 @@ VOID PvSetPeImageDosStubHeaderProperties(
         {
             FLOAT imageDosStubEntropy = 0;
             FLOAT imageDosStubMean = 0;
+            FLOAT imageDosStubVariance = 0;
             PPH_STRING entropyString;
 
             if (PhCalculateEntropy(
                 imageDosStubData,
                 imageDosStubActualDataLength,
                 &imageDosStubEntropy,
-                &imageDosStubMean
+                &imageDosStubMean,
+                &imageDosStubVariance
                 ))
             {
-                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4);
+                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4, imageDosStubVariance, 4);
                 PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_STUBENTROPY, 1, PhGetStringOrEmpty(entropyString));
                 PhDereferenceObject(entropyString);
             }
@@ -255,16 +257,18 @@ VOID PvSetPeImageDosStubHeaderProperties(
         {
             FLOAT imageDosStubEntropy = 0;
             FLOAT imageDosStubMean = 0;
+            FLOAT imageDosStubVariance = 0;
             PPH_STRING entropyString;
 
             if (PhCalculateEntropy(
                 imageDosStubRichData,
                 imageDosStubRichLength,
                 &imageDosStubEntropy,
-                &imageDosStubMean
+                &imageDosStubMean,
+                &imageDosStubVariance
                 ))
             {
-                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4);
+                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4, imageDosStubVariance, 4);
                 PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_RICHENTROPY, 1, PhGetStringOrEmpty(entropyString));
                 PhDereferenceObject(entropyString);
             }
@@ -302,16 +306,18 @@ VOID PvSetPeImageDosStubHeaderProperties(
         {
             FLOAT imageDosStubEntropy = 0;
             FLOAT imageDosStubMean = 0;
+            FLOAT imageDosStubVariance = 0;
             PPH_STRING entropyString;
 
             if (PhCalculateEntropy(
                 imageDosStubData,
                 imageDosStubDataLength,
                 &imageDosStubEntropy,
-                &imageDosStubMean
+                &imageDosStubMean,
+                &imageDosStubVariance
                 ))
             {
-                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4);
+                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4, imageDosStubVariance, 4);
                 PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_ENTROPY, 1, PhGetStringOrEmpty(entropyString));
                 PhDereferenceObject(entropyString);
             }
@@ -669,16 +675,18 @@ VOID PvSetPeImageOverlayHeaderProperties(
         {
             FLOAT imageDosStubEntropy = 0;
             FLOAT imageDosStubMean = 0;
+            FLOAT imageDosStubVariance = 0;
             PPH_STRING entropyString;
 
             if (PhCalculateEntropy(
                 imageOverlayData,
                 imageOverlayDataLength,
                 &imageDosStubEntropy,
-                &imageDosStubMean
+                &imageDosStubMean,
+                &imageDosStubVariance
                 ))
             {
-                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4);
+                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4, imageDosStubVariance, 4);
                 PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_PE_OVERLAY_ENTROPY, 1, PhGetStringOrEmpty(entropyString));
                 PhDereferenceObject(entropyString);
             }

@@ -377,6 +377,14 @@ HANDLE PhCreateThread(
     }
 }
 
+/**
+ * Creates a new thread in the current process.
+ *
+ * \param ThreadHandle Pointer to a variable that receives the handle of the newly created thread.
+ * \param StartAddress Pointer to the function to be executed by the thread.
+ * \param Parameter Optional parameter to be passed to the thread function.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCreateThreadEx(
     _Out_ PHANDLE ThreadHandle,
     _In_ PUSER_THREAD_START_ROUTINE StartAddress,
@@ -419,6 +427,13 @@ NTSTATUS PhCreateThreadEx(
     return status;
 }
 
+/**
+ * Creates a new thread and begins execution at the specified start address.
+ *
+ * \param StartAddress Pointer to the function to be executed by the new thread.
+ * \param Parameter Optional parameter to be passed to the thread function.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCreateThread2(
     _In_ PUSER_THREAD_START_ROUTINE StartAddress,
     _In_opt_ PVOID Parameter
@@ -490,7 +505,7 @@ VOID PhpBaseThreadQueueStart(
  * and the context is freed.
  * \param StartRoutine Pointer to the user-defined thread start routine to execute.
  * \param Parameter Optional parameter to pass to the start routine.
- * \return   NTSTATUS code indicating success or failure of the operation.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhQueueUserWorkItem(
     _In_ PUSER_THREAD_START_ROUTINE StartRoutine,
@@ -524,31 +539,13 @@ NTSTATUS PhQueueUserWorkItem(
     return status;
 }
 
-/**
- *  Calibrate and return TSC frequency in Hz (cycles per second)
- *
- *  Example usage:
- *  double tsc_freq = PhReadTimeStampFrequency();
- *  dprintf("TSC frequency: %.3f MHz\n", tsc_freq / 1e6);
- *  // Example: measure a code region
- *  _mm_lfence();
- *  uint64_t t0 = __rdtsc();
- *  // ... code to measure ...
- *  for (volatile int i = 0; i < 1000000; ++i) {}
- *  _mm_lfence();
- *  uint64_t t1 = __rdtsc();
- *  uint64_t cycles = t1 - t0;
- *  double seconds = (double)cycles / tsc_freq;
- *  double nanoseconds = seconds * 1e9;
- *  dprintf("Elapsed: %llu cycles, %.6f seconds, %.0f ns\n", cycles, seconds, nanoseconds);
- **/
 DOUBLE PhReadTimeStampFrequency(
     VOID
     )
 {
-    LARGE_INTEGER qpc_freq;
-    LARGE_INTEGER qpc_start;
-    LARGE_INTEGER qpc_end;
+    LARGE_INTEGER frequency;
+    LARGE_INTEGER start;
+    LARGE_INTEGER end;
     ULONG_PTR old_affinity = 0;
     DOUBLE elapsed_qpc;
     ULONG64 elapsed_tsc;
@@ -556,29 +553,33 @@ DOUBLE PhReadTimeStampFrequency(
     ULONG64 tsc_start;
     ULONG64 tsc_end;
 
-    PhQueryPerformanceFrequency(&qpc_freq);
-
     // Wait interval (in QPC ticks)
-    const DOUBLE interval_sec = 0.1; // 100 ms
-    const LONGLONG interval_ticks = (LONGLONG)(qpc_freq.QuadPart * interval_sec);
+    PhQueryPerformanceFrequency(&frequency);
+    const LONGLONG interval_ms = 100; // 100 ms
+    const LONGLONG interval_ticks = (frequency.QuadPart * interval_ms) / 1000;
 
     // Warm up
-    for (volatile int i = 0; i < 1000000; ++i) {}
+    for (volatile ULONG i = 0UL; i < 1000000UL; ++i) {}
 
     // Pin thread to one CPU (optional, for best accuracy)
     PhGetThreadAffinityMask(NtCurrentThread(), &old_affinity);
     PhSetThreadAffinityMask(NtCurrentThread(), 1);
 
-    PhQueryPerformanceCounter(&qpc_start);
+    PhQueryPerformanceCounter(&start);
     SpeculationFence();
     tsc_start = ReadTimeStampCounter();
     SpeculationFence();
 
     // Wait for interval
-    do
+    for (;;)
     {
-        PhQueryPerformanceCounter(&qpc_end);
-    } while ((qpc_end.QuadPart - qpc_start.QuadPart) < interval_ticks);
+        PhQueryPerformanceCounter(&end);
+
+        if ((end.QuadPart - start.QuadPart) >= interval_ticks)
+            break;
+
+        YieldProcessor();
+    }
 
     SpeculationFence();
     tsc_end = ReadTimeStampCounter();
@@ -589,7 +590,7 @@ DOUBLE PhReadTimeStampFrequency(
         PhSetThreadAffinityMask(NtCurrentThread(), old_affinity);
     }
 
-    elapsed_qpc = (DOUBLE)(qpc_end.QuadPart - qpc_start.QuadPart) / qpc_freq.QuadPart;
+    elapsed_qpc = (DOUBLE)(end.QuadPart - start.QuadPart) / frequency.QuadPart;
     elapsed_tsc = tsc_end - tsc_start;
     tsc_freq = elapsed_tsc / elapsed_qpc;
     return tsc_freq;
@@ -613,9 +614,9 @@ ULONG64 PhReadTimeStampCounter(
     SpeculationFence();
     return value;
 #else
-    SpeculationFence();
+    MemoryBarrier();
     ULONG64 value = ReadTimeStampCounter();
-    SpeculationFence();
+    MemoryBarrier();
     return value;
 #endif
 }
@@ -697,9 +698,9 @@ VOID PhQueryInterruptTime(
 
     do
     {
-        InterruptTime->HighPart = UUSER_SHARED_DATA->InterruptTime.High1Time;
+        InterruptTime->HighPart = USER_SHARED_DATA->InterruptTime.High1Time;
         InterruptTime->LowPart = USER_SHARED_DATA->InterruptTime.LowPart;
-    } while (InterruptTime->HighPart != UUSER_SHARED_DATA->InterruptTime.High2Time);
+    } while (InterruptTime->HighPart != USER_SHARED_DATA->InterruptTime.High2Time);
 
 #endif
 }
@@ -753,7 +754,7 @@ VOID PhQuerySystemTime(
  *
  * \remarks Use this function instead of GetTimeZoneInformation() because no system calls are involved.
  */
-VOID PhQueryTimeZoneBias(
+NTSTATUS PhQueryTimeZoneBias(
     _Out_ PLARGE_INTEGER TimeZoneBias
     )
 {
@@ -770,19 +771,24 @@ VOID PhQueryTimeZoneBias(
         YieldProcessor();
     }
 
+    return STATUS_SUCCESS;
 #elif defined(PHNT_SYSTEM_TIME)
-
+    NTSTATUS status;
     SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo = { 0 };
 
-    NtQuerySystemInformation(
+    status = NtQuerySystemInformation(
         SystemTimeOfDayInformation,
         &timeOfDayInfo,
         sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
         NULL
         );
 
-    TimeZoneBias->QuadPart = timeOfDayInfo.TimeZoneBias.QuadPart;
+    if (NT_SUCCESS(status))
+    {
+        TimeZoneBias->QuadPart = timeOfDayInfo.TimeZoneBias.QuadPart;
+    }
 
+    return status;
 #else
 
     do
@@ -791,6 +797,7 @@ VOID PhQueryTimeZoneBias(
         TimeZoneBias->LowPart = USER_SHARED_DATA->TimeZoneBias.LowPart;
     } while (TimeZoneBias->HighPart != USER_SHARED_DATA->TimeZoneBias.High2Time);
 
+    return STATUS_SUCCESS;
 #endif
 }
 
@@ -800,24 +807,29 @@ VOID PhQueryTimeZoneBias(
  * \param SystemTime A UTC time value.
  * \param LocalTime A variable which receives the local time value. This may be the same variable as
  * \a SystemTime.
- *
+ * \return NTSTATUS Successful or errant status.
  * \remarks Use this function instead of RtlSystemTimeToLocalTime() because no system calls are
  * involved.
  */
-VOID PhSystemTimeToLocalTime(
+NTSTATUS PhSystemTimeToLocalTime(
     _In_ PLARGE_INTEGER SystemTime,
     _Out_ PLARGE_INTEGER LocalTime
     )
 {
 #if defined(PHNT_NATIVE_TIME)
-
+    NTSTATUS status;
     LARGE_INTEGER timeZoneBias;
 
-    PhQueryTimeZoneBias(&timeZoneBias);
-    LocalTime->QuadPart = SystemTime->QuadPart - timeZoneBias.QuadPart;
+    status = PhQueryTimeZoneBias(&timeZoneBias);
 
+    if (NT_SUCCESS(status))
+    {
+        LocalTime->QuadPart = SystemTime->QuadPart - timeZoneBias.QuadPart;
+    }
+
+    return status;
 #else
-    RtlSystemTimeToLocalTime(SystemTime, LocalTime);
+    return RtlSystemTimeToLocalTime(SystemTime, LocalTime);
 #endif
 }
 
@@ -827,27 +839,39 @@ VOID PhSystemTimeToLocalTime(
  * \param LocalTime A local time value.
  * \param SystemTime A variable which receives the UTC time value. This may be the same variable as
  * \a LocalTime.
- *
+ * \return NTSTATUS Successful or errant status.
  * \remarks Use this function instead of RtlLocalTimeToSystemTime() because no system calls are
  * involved.
  */
-VOID PhLocalTimeToSystemTime(
+NTSTATUS PhLocalTimeToSystemTime(
     _In_ PLARGE_INTEGER LocalTime,
     _Out_ PLARGE_INTEGER SystemTime
     )
 {
 #if defined(PHNT_NATIVE_TIME)
-
+    NTSTATUS status;
     LARGE_INTEGER timeZoneBias;
 
-    PhQueryTimeZoneBias(&timeZoneBias);
-    SystemTime->QuadPart = LocalTime->QuadPart + timeZoneBias.QuadPart;
+    status = PhQueryTimeZoneBias(&timeZoneBias);
 
+    if (NT_SUCCESS(status))
+    {
+        SystemTime->QuadPart = LocalTime->QuadPart + timeZoneBias.QuadPart;
+    }
+
+    return status;
 #else
-    RtlLocalTimeToSystemTime(LocalTime, SystemTime);
+    return RtlLocalTimeToSystemTime(LocalTime, SystemTime);
 #endif
 }
 
+/**
+ * Converts a system time value to the number of seconds elapsed since January 1, 1980 (the DOS epoch).
+ *
+ * \param Time Pointer to a LARGE_INTEGER representing the system time (in 100-nanosecond intervals since January 1, 1601 UTC).
+ * \param ElapsedSeconds Pointer to a ULONG that receives the number of seconds since January 1, 1980.
+ * \return TRUE if the conversion was successful and the result fits in a ULONG; FALSE otherwise.
+ */
 BOOLEAN PhTimeToSecondsSince1980(
     _In_ PLARGE_INTEGER Time,
     _Out_ PULONG ElapsedSeconds
@@ -872,6 +896,13 @@ BOOLEAN PhTimeToSecondsSince1980(
 #endif
 }
 
+/**
+ * Converts a system time value to the number of seconds elapsed since January 1, 1970 (the Unix epoch).
+ *
+ * \param Time Pointer to a LARGE_INTEGER representing the system time (in 100-nanosecond intervals since January 1, 1601 UTC).
+ * \param ElapsedSeconds Pointer to a ULONG that receives the number of seconds since January 1, 1970.
+ * \return TRUE if the conversion was successful and the result fits in a ULONG; FALSE otherwise.
+ */
 BOOLEAN PhTimeToSecondsSince1970(
     _In_ PLARGE_INTEGER Time,
     _Out_ PULONG ElapsedSeconds
@@ -896,6 +927,12 @@ BOOLEAN PhTimeToSecondsSince1970(
 #endif
 }
 
+/**
+ * Converts the number of seconds elapsed since 1980 to a system time value.
+ *
+ * \param ElapsedSeconds The number of seconds since January 1, 1980.
+ * \param Time Pointer to a LARGE_INTEGER that receives the converted time value.
+ */
 VOID PhSecondsSince1980ToTime(
     _In_ ULONG ElapsedSeconds,
     _Out_ PLARGE_INTEGER Time
@@ -908,6 +945,13 @@ VOID PhSecondsSince1980ToTime(
 #endif
 }
 
+/**
+ * Converts the number of seconds elapsed since January 1, 1970 (the Unix epoch)
+ * to a Windows FILETIME-compatible 64-bit time value.
+ *
+ * \param ElapsedSeconds The number of seconds since January 1, 1970.
+ * \param Time Pointer to a LARGE_INTEGER that receives the converted time value.
+ */
 VOID PhSecondsSince1970ToTime(
     _In_ ULONG ElapsedSeconds,
     _Out_ PLARGE_INTEGER Time
@@ -1343,6 +1387,9 @@ NTSTATUS PhReadVirtualMemory(
     _Out_opt_ PSIZE_T NumberOfBytesRead
     )
 {
+    NTSTATUS status;
+    SIZE_T numberOfBytesRead;
+
     if (ProcessHandle == NtCurrentProcess())
     {
         RtlMoveMemory(Buffer, BaseAddress, BufferSize);
@@ -1350,9 +1397,8 @@ NTSTATUS PhReadVirtualMemory(
             *NumberOfBytesRead = BufferSize;
         return STATUS_SUCCESS;
     }
-    NTSTATUS status;
-    SIZE_T numberOfBytesRead = 0;
 
+    numberOfBytesRead = 0;
     status = NtReadVirtualMemory(
         ProcessHandle,
         BaseAddress,
@@ -1393,8 +1439,9 @@ NTSTATUS PhWriteVirtualMemory(
     )
 {
     NTSTATUS status;
-    SIZE_T numberOfBytesWritten = 0;
+    SIZE_T numberOfBytesWritten;
 
+    numberOfBytesWritten = 0;
     status = NtWriteVirtualMemory(
         ProcessHandle,
         BaseAddress,
@@ -1435,7 +1482,7 @@ SIZE_T PhCountStringZ(
         ULONG index;
 
         p = (PWSTR)((ULONG_PTR)String & ~0xe); // String should be 2 byte aligned
-        unaligned = PtrToUlong(String) & 0xf;
+        unaligned = (ULONG_PTR)String & 0xf;
         z = PhSetZeroINT128();
 
         if (unaligned != 0)
@@ -1825,6 +1872,17 @@ NTSTATUS PhCopyStringZFromMultiByte(
     return status;
 }
 
+/**
+ * Copies a UTF-8 encoded string to a wide-character (UTF-16) string buffer.
+ *
+ * \param InputBuffer Pointer to the input UTF-8 string buffer.
+ * \param InputCount Size, in bytes, of the input buffer.
+ * \param OutputBuffer Pointer to the output wide-character string buffer. Can be NULL if OutputCount is 0.
+ * \param OutputCount Size, in characters, of the output buffer.
+ * \param ReturnCount Optional pointer to receive the number of characters written to the output buffer (excluding the null terminator).
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The output buffer will be null-terminated if OutputCount is greater than zero.
+ */
 NTSTATUS PhCopyStringZFromUtf8(
     _In_ PCSTR InputBuffer,
     _In_ SIZE_T InputCount,
@@ -2966,6 +3024,15 @@ SeparatorNotFound:
     return FALSE;
 }
 
+/**
+ * Trims characters from the beginning and/or end of a string reference.
+ *
+ * \param String Pointer to a PH_STRINGREF structure representing the string to be trimmed. The string is modified in place.
+ * \param CharSet Pointer to a PH_STRINGREF structure containing the set of characters to trim from the string.
+ * \param Flags Specifies trimming options. Can be used to indicate whether to trim from the left, right, or both ends.
+ * \remarks This function removes all characters specified in CharSet from the start and/or end of the string referenced by String,
+ * depending on the Flags provided.
+ */
 VOID PhTrimStringRef(
     _Inout_ PPH_STRINGREF String,
     _In_ PCPH_STRINGREF CharSet,
@@ -3531,6 +3598,13 @@ PPH_BYTES PhCreateBytesEx(
     return bytes;
 }
 
+/**
+ * Formats a string using the specified format and argument list.
+ *
+ * \param Format A printf-style format string.
+ * \param ArgPtr A va_list containing the arguments to format.
+ * \return A pointer to a PPH_BYTES structure containing the formatted string.
+ */
 PPH_BYTES PhFormatBytes_V(
     _In_ _Printf_format_string_ PCSTR Format,
     _In_ va_list ArgPtr
@@ -3550,6 +3624,13 @@ PPH_BYTES PhFormatBytes_V(
     return string;
 }
 
+/**
+ * Formats a sequence of bytes according to a specified format string.
+ *
+ * \param Format A printf-style format string that specifies how the bytes should be formatted.
+ * \param ... Additional arguments required by the format string.
+ * \return A pointer to a PPH_BYTES structure containing the formatted bytes.
+ */
 PPH_BYTES PhFormatBytes(
     _In_ _Printf_format_string_ PCSTR Format,
     ...
@@ -4020,6 +4101,13 @@ VOID PhZeroExtendToUtf16Buffer(
     }
 }
 
+/**
+ * Converts a zero-terminated ANSI string to a UTF-16 string, extending the input as needed.
+ *
+ * \param Input Pointer to the input ANSI string.
+ * \param InputLength Length of the input string in bytes.
+ * \return A pointer to a PPH_STRING containing the UTF-16 representation of the input string.
+ */
 PPH_STRING PhZeroExtendToUtf16Ex(
     _In_reads_bytes_(InputLength) PCCH Input,
     _In_ SIZE_T InputLength
@@ -4033,6 +4121,14 @@ PPH_STRING PhZeroExtendToUtf16Ex(
     return string;
 }
 
+/**
+ * Converts a UTF-16 string to an ASCII byte array.
+ *
+ * \param Buffer Pointer to the UTF-16 string buffer to convert.
+ * \param Length Length of the UTF-16 string, in characters.
+ * \param Replacement Optional character to use when a UTF-16 character cannot be represented in ASCII.
+ * \return Pointer to a PPH_BYTES structure containing the converted ASCII bytes.
+ */
 PPH_BYTES PhConvertUtf16ToAsciiEx(
     _In_ PCWCH Buffer,
     _In_ SIZE_T Length,
@@ -4207,6 +4303,14 @@ PPH_BYTES PhConvertUtf16ToMultiByteEx(
     return bytes;
 }
 
+/**
+ * Converts a UTF-8 encoded string to its UTF-16 equivalent and calculates the size in bytes of the resulting UTF-16 string.
+ *
+ * \param BytesInUtf16String Pointer to a variable that receives the size in bytes of the UTF-16 string.
+ * \param Utf8String Pointer to the UTF-8 encoded input string.
+ * \param BytesInUtf8String The size in bytes of the UTF-8 input string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhConvertUtf8ToUtf16Size(
     _Out_ PSIZE_T BytesInUtf16String,
     _In_reads_bytes_(BytesInUtf8String) PCCH Utf8String,
@@ -4278,6 +4382,16 @@ NTSTATUS PhConvertUtf8ToUtf16Size(
 #endif
 }
 
+/**
+ * Converts a UTF-8 encoded string to a UTF-16 encoded buffer.
+ *
+ * \param Utf16String Pointer to the buffer that receives the converted UTF-16 string.
+ * \param MaxBytesInUtf16String The maximum number of bytes that can be written to Utf16String.
+ * \param BytesInUtf16String Optional pointer that receives the number of bytes written to Utf16String.
+ * \param Utf8String Pointer to the UTF-8 encoded input string.
+ * \param BytesInUtf8String The number of bytes in the input UTF-8 string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhConvertUtf8ToUtf16Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf16String, *BytesInUtf16String) PWCH Utf16String,
     _In_ SIZE_T MaxBytesInUtf16String,
@@ -4372,6 +4486,13 @@ NTSTATUS PhConvertUtf8ToUtf16Buffer(
 #endif
 }
 
+/**
+ * Converts a UTF-8 encoded string to a UTF-16 encoded string.
+ *
+ * \param Buffer A pointer to a null-terminated UTF-8 encoded string.
+ * \return A pointer to a PPH_STRING containing the converted UTF-16 string.
+ * \remarks Returns NULL if the conversion fails.
+ */
 PPH_STRING PhConvertUtf8ToUtf16(
     _In_ PCSTR Buffer
     )
@@ -4382,6 +4503,14 @@ PPH_STRING PhConvertUtf8ToUtf16(
         );
 }
 
+/**
+ * Converts a UTF-8 encoded string to a UTF-16 string.
+ *
+ * \param Buffer Pointer to the UTF-8 encoded input buffer.
+ * \param Length Length of the input buffer in bytes.
+ * \return A pointer to a PPH_STRING containing the converted UTF-16 string.
+ * \remarks Returns NULL if the conversion fails.
+ */
 PPH_STRING PhConvertUtf8ToUtf16Ex(
     _In_ PCCH Buffer,
     _In_ SIZE_T Length
@@ -4418,6 +4547,14 @@ PPH_STRING PhConvertUtf8ToUtf16Ex(
     return string;
 }
 
+/**
+ * Calculates the size in bytes required to store the UTF-8 encoded version of a given UTF-16 string.
+ *
+ * \param BytesInUtf8String Pointer to a variable that receives the required size in bytes for the UTF-8 string.
+ * \param Utf16String Pointer to the UTF-16 string to be converted.
+ * \param BytesInUtf16String The size in bytes of the input UTF-16 string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhConvertUtf16ToUtf8Size(
     _Out_ PSIZE_T BytesInUtf8String,
     _In_reads_bytes_(BytesInUtf16String) PCWCH Utf16String,
@@ -4489,6 +4626,16 @@ NTSTATUS PhConvertUtf16ToUtf8Size(
 #endif
 }
 
+/**
+ * Converts a UTF-16 encoded string to a UTF-8 encoded buffer.
+ *
+ * \param Utf8String A pointer to the buffer that receives the UTF-8 encoded string. *
+ * \param MaxBytesInUtf8String The maximum number of bytes that can be written to the Utf8String buffer.
+ * \param BytesInUtf8String Optional pointer to a variable that receives the number of bytes written to Utf8String.
+ * \param Utf16String A pointer to the UTF-16 encoded input string.
+ * \param BytesInUtf16String The number of bytes in the UTF-16 encoded input string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhConvertUtf16ToUtf8Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf8String, *BytesInUtf8String) PCH Utf8String,
     _In_ SIZE_T MaxBytesInUtf8String,
@@ -4588,6 +4735,13 @@ NTSTATUS PhConvertUtf16ToUtf8Buffer(
 #endif
 }
 
+/**
+ * Converts a UTF-16 encoded wide string to a UTF-8 encoded byte array.
+ *
+ * \param Buffer Pointer to a null-terminated UTF-16 string (PCWSTR) to be converted.
+ * \return A pointer to a PPH_BYTES structure containing the UTF-8 encoded result.
+ * \remarks Returns NULL if the conversion fails.
+ */
 PPH_BYTES PhConvertUtf16ToUtf8(
     _In_ PCWSTR Buffer
     )
@@ -4847,6 +5001,13 @@ VOID PhAppendFormatStringBuilder(
     va_end(argptr);
 }
 
+/**
+ * Appends a formatted string to the specified string builder using a variable argument list.
+ *
+ * \param StringBuilder A pointer to the string builder to which the formatted string will be appended.
+ * \param Format A printf-style format string that specifies how to format the arguments.
+ * \param ArgPtr A va_list containing the arguments to format according to the format string.
+ */
 VOID PhAppendFormatStringBuilder_V(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ _Printf_format_string_ PCWSTR Format,
@@ -5163,6 +5324,13 @@ Done:
     return BytesBuilder->Bytes->Buffer + currentLength;
 }
 
+/**
+ * Appends formatted data to a bytes builder using a variable argument list.
+ *
+ * \param BytesBuilder Pointer to the bytes builder structure to which the formatted data will be appended.
+ * \param Format A printf-style format string specifying how to format the data.
+ * \param ArgPtr A variable argument list containing the values to format according to the Format string.
+ */
 VOID PhAppendFormatBytesBuilder_V(
     _Inout_ PPH_BYTES_BUILDER BytesBuilder,
     _In_ _Printf_format_string_ PCSTR Format,
@@ -5193,6 +5361,16 @@ VOID PhAppendFormatBytesBuilder_V(
     PhpWriteNullTerminatorBytesBuilder(BytesBuilder);
 }
 
+/**
+ * Appends formatted data to a bytes builder.
+ *
+ * This function formats a string using the specified format and arguments,
+ * then appends the resulting bytes to the provided bytes builder.
+ *
+ * \param BytesBuilder A pointer to the bytes builder structure to which the formatted bytes will be appended.
+ * \param Format A printf-style format string specifying how to format the data.
+ * \param ... Additional arguments to be formatted according to the format string.
+ */
 VOID PhAppendFormatBytesBuilder(
     _Inout_ PPH_BYTES_BUILDER BytesBuilder,
     _In_ _Printf_format_string_ PCSTR Format,
@@ -5682,7 +5860,6 @@ FORCEINLINE ULONG PhpPointerListHandleToIndex(
  *
  * \param PointerList A pointer list object.
  * \param Pointer The pointer to add. The pointer must be at least 2 byte aligned.
- *
  * \return A handle to the pointer, valid until the pointer is removed from the pointer list.
  */
 HANDLE PhAddItemPointerList(
@@ -5722,6 +5899,16 @@ HANDLE PhAddItemPointerList(
     return PhpPointerListIndexToHandle(index);
 }
 
+/**
+ * Enumerates the next pointer in a pointer list.
+ *
+ * \param PointerList A pointer to the pointer list to enumerate.
+ * \param EnumerationKey A pointer to a variable that maintains the enumeration state.
+ * This should be initialized to zero before the first call.
+ * \param Pointer Receives the next pointer in the list.
+ * \param PointerHandle Receives the handle associated with the pointer, if any.
+ * \return TRUE if a pointer was successfully enumerated; FALSE if there are no more pointers.
+ */
 _Use_decl_annotations_
 BOOLEAN PhEnumPointerListEx(
     _In_ PPH_POINTER_LIST PointerList,
@@ -5755,7 +5942,6 @@ BOOLEAN PhEnumPointerListEx(
  *
  * \param PointerList A pointer list object.
  * \param Pointer The pointer to find. The pointer must be at least 2 byte aligned.
- *
  * \return A handle to the pointer, valid until the pointer is removed from the pointer list. If the
  * pointer is not contained in the pointer list, NULL is returned.
  */
@@ -5782,7 +5968,6 @@ HANDLE PhFindItemPointerList(
  *
  * \param PointerList A pointer list object.
  * \param PointerHandle A handle to the pointer to remove.
- *
  * \remarks No checking is performed on the pointer handle. Make sure the handle is valid before
  * calling the function.
  */
@@ -5846,8 +6031,7 @@ FORCEINLINE ULONG PhpGetNumberOfBuckets(
  *
  * \param EntrySize The size of each hashtable entry, in bytes.
  * \param EqualFunction A comparison function that is executed to compare two hashtable entries.
- * \param HashFunction A hash function that is executed to generate a hash code for a hashtable
- * entry.
+ * \param HashFunction A hash function that is executed to generate a hash code for a hashtable entry.
  * \param InitialCapacity The number of entries to allocate storage for initially.
  */
 PPH_HASHTABLE PhCreateHashtable(
@@ -6014,10 +6198,8 @@ FORCEINLINE PVOID PhpAddEntryHashtable(
  *
  * \param Hashtable A hashtable object.
  * \param Entry The entry to add.
- *
  * \return A pointer to the entry as stored in the hashtable. This pointer is valid until the
  * hashtable is modified. If the hashtable already contained an equal entry, NULL is returned.
- *
  * \remarks Entries are only guaranteed to be 8 byte aligned, even on 64-bit systems.
  */
 PVOID PhAddEntryHashtable(
@@ -6043,11 +6225,9 @@ PVOID PhAddEntryHashtable(
  * \param Entry The entry to add.
  * \param Added A variable which receives TRUE if a new entry was created, and FALSE if an existing
  * entry was returned.
- *
  * \return A pointer to the entry as stored in the hashtable. This pointer is valid until the
  * hashtable is modified. If the hashtable already contained an equal entry, the existing entry is
  * returned. Check the value of \a Added to determine whether the returned entry is new or existing.
- *
  * \remarks Entries are only guaranteed to be 8 byte aligned, even on 64-bit systems.
  */
 PVOID PhAddEntryHashtableEx(
@@ -6084,9 +6264,7 @@ VOID PhClearHashtable(
  * \param Entry A variable which receives a pointer to the hashtable entry. The pointer is valid
  * until the hashtable is modified.
  * \param EnumerationKey A variable which is initialized to 0 before first calling this function.
- *
  * \return TRUE if an entry pointer was stored in \a Entry, FALSE if there are no more entries.
- *
  * \remarks Do not modify the hashtable while the hashtable is being enumerated (between calls to
  * this function). Otherwise, the function may behave unexpectedly. You may reset the
  * \a EnumerationKey variable to 0 if you wish to restart the enumeration.
@@ -6119,10 +6297,8 @@ BOOLEAN PhEnumHashtable(
  *
  * \param Hashtable A hashtable object.
  * \param Entry An entry representing the entry to find.
- *
  * \return A pointer to the entry as stored in the hashtable. This pointer is valid until the
  * hashtable is modified. If the entry could not be found, NULL is returned.
- *
  * \remarks The entry specified in \a Entry can be a partial entry that is filled in enough so that
  * the comparison and hash functions can work with them.
  */
@@ -6157,9 +6333,7 @@ PVOID PhFindEntryHashtable(
  *
  * \param Hashtable A hashtable object.
  * \param Entry The entry to remove.
- *
  * \return TRUE if the entry was removed, FALSE if the entry could not be found.
- *
  * \remarks The entry specified in \a Entry can be an actual entry pointer returned by
  * PhFindEntryHashtable, or a partial entry.
  */
@@ -6273,6 +6447,14 @@ ULONG PhHashStringRef(
     return hash;
 }
 
+/**
+ * Computes a hash value for the specified string reference using the given hash algorithm.
+ *
+ * \param String Pointer to a PH_STRINGREF structure representing the string to hash.
+ * \param IgnoreCase If TRUE, the hash computation ignores case differences; otherwise, case is considered.
+ * \param HashAlgorithm The hash algorithm to use for computing the hash value.
+ * \return The computed hash value as an unsigned long.
+ */
 ULONG PhHashStringRefEx(
     _In_ PCPH_STRINGREF String,
     _In_ BOOLEAN IgnoreCase,
@@ -6375,6 +6557,12 @@ ULONG NTAPI PhpSimpleHashtableHashFunction(
     return PhHashIntPtr((ULONG_PTR)entry->Key);
 }
 
+/**
+ * Creates a simple hash table with the specified initial capacity.
+ *
+ * \param InitialCapacity The initial number of buckets to allocate for the hash table.
+ * \return A pointer to the newly created hash table (PPH_HASHTABLE), or NULL if allocation fails.
+ */
 PPH_HASHTABLE PhCreateSimpleHashtable(
     _In_ ULONG InitialCapacity
     )
@@ -6387,6 +6575,14 @@ PPH_HASHTABLE PhCreateSimpleHashtable(
         );
 }
 
+/**
+ * Adds an item to a simple hashtable.
+ *
+ * \param SimpleHashtable Pointer to the hashtable to which the item will be added.
+ * \param Key Optional pointer to the key for the item.
+ * \param Value Optional pointer to the value to associate with the key.
+ * \return Returns a pointer to the added item, or NULL if the operation fails.
+ */
 PVOID PhAddItemSimpleHashtable(
     _Inout_ PPH_HASHTABLE SimpleHashtable,
     _In_opt_ PVOID Key,
@@ -6404,6 +6600,13 @@ PVOID PhAddItemSimpleHashtable(
         return NULL;
 }
 
+/**
+ * Finds an item in a simple hashtable by its key.
+ *
+ * \param SimpleHashtable A pointer to the hashtable to search.
+ * \param Key An optional pointer to the key to search for. If NULL, the function may behave differently depending on implementation.
+ * \return A pointer to the found item, or NULL if the key is not present in the hashtable.
+ */
 PVOID *PhFindItemSimpleHashtable(
     _In_ PPH_HASHTABLE SimpleHashtable,
     _In_opt_ PVOID Key
@@ -6421,6 +6624,13 @@ PVOID *PhFindItemSimpleHashtable(
         return NULL;
 }
 
+/**
+ * Removes an item from a simple hashtable.
+ *
+ * \param SimpleHashtable Pointer to the hashtable from which the item will be removed.
+ * \param Key Optional pointer to the key of the item to remove. If NULL, no item is removed.
+ * \return TRUE if the item was successfully removed; FALSE otherwise.
+ */
 BOOLEAN PhRemoveItemSimpleHashtable(
     _Inout_ PPH_HASHTABLE SimpleHashtable,
     _In_opt_ PVOID Key
@@ -6512,7 +6722,7 @@ PVOID PhAllocateFromFreeList(
  */
 VOID PhFreeToFreeList(
     _Inout_ PPH_FREE_LIST FreeList,
-    _In_ PVOID Memory
+    _In_ _Post_invalid_ PVOID Memory
     )
 {
     PPH_FREE_LIST_ENTRY entry;
@@ -6802,7 +7012,6 @@ ULONG64 PhExponentiate64(
  * number of digits, because each pair of hexadecimal digits represents one byte. Example:
  * "129a2eff5c0b".
  * \param Buffer The output buffer.
- *
  * \return TRUE if the string was successfully converted, otherwise FALSE.
  */
 BOOLEAN PhHexStringToBuffer(
@@ -6828,6 +7037,15 @@ BOOLEAN PhHexStringToBuffer(
 
     return TRUE;
 }
+
+/**
+ * Converts a hexadecimal string to a binary buffer.
+ *
+ * \param String Pointer to a PH_STRINGREF structure containing the hexadecimal string to convert.
+ * \param BufferLength The length, in bytes, of the output buffer.
+ * \param Buffer Pointer to the buffer that receives the converted binary data. Must be at least BufferLength bytes.
+ * \return TRUE if the conversion was successful; FALSE otherwise.
+ */
 
 BOOLEAN PhHexStringToBufferEx(
     _In_ PCPH_STRINGREF String,
@@ -6861,7 +7079,6 @@ BOOLEAN PhHexStringToBufferEx(
  *
  * \param Buffer The input buffer.
  * \param Length The number of bytes to convert.
- *
  * \return A string containing a sequence of hexadecimal digits.
  */
 PPH_STRING PhBufferToHexString(
@@ -6878,7 +7095,6 @@ PPH_STRING PhBufferToHexString(
  * \param Buffer The input buffer.
  * \param Length The number of bytes to convert.
  * \param UpperCase TRUE to use uppercase characters, otherwise FALSE.
- *
  * \return A string containing a sequence of hexadecimal digits.
  */
 PPH_STRING PhBufferToHexStringEx(
@@ -6907,6 +7123,17 @@ PPH_STRING PhBufferToHexStringEx(
     return string;
 }
 
+/**
+ * Converts a binary buffer to a hexadecimal string representation.
+ *
+ * \param InputBuffer Pointer to the input buffer containing binary data.
+ * \param InputLength Length of the input buffer, in bytes.
+ * \param UpperCase If TRUE, output hex digits in uppercase; otherwise, lowercase.
+ * \param OutputBuffer Pointer to the buffer that receives the hexadecimal string.
+ * \param OutputLength Size of the output buffer, in bytes.
+ * \param ReturnLength Optional pointer to receive the number of bytes written to OutputBuffer.
+ * \return TRUE if the conversion was successful and the output buffer was large enough; FALSE otherwise.
+ */
 _Use_decl_annotations_
 BOOLEAN PhBufferToHexStringBuffer(
     _In_reads_bytes_(InputLength) PUCHAR InputBuffer,
@@ -7091,6 +7318,14 @@ BOOLEAN PhStringToInteger64(
     return valid;
 }
 
+/**
+ * Converts a string reference to an unsigned 64-bit integer.
+ *
+ * \param String Pointer to a PH_STRINGREF structure containing the string to convert.
+ * \param Base Optional base for conversion (e.g., 10 for decimal, 16 for hexadecimal).
+ * \param Integer Optional pointer to a ULONG64 variable that receives the converted value.
+ * \return TRUE if the conversion was successful; otherwise, FALSE.
+ */
 _Use_decl_annotations_
 BOOLEAN PhStringToUInt64(
     _In_ PCPH_STRINGREF String,
@@ -7291,6 +7526,13 @@ PPH_STRING PhIntegerToString64(
     return PhFormat(&format, 1, 0);
 }
 
+/**
+ * Formats a time span, specified in ticks, into a human-readable string.
+ *
+ * \param Destination A pointer to a buffer that receives the formatted time span string.
+ * \param Ticks The time span to format, in ticks.
+ * \param Mode Optional formatting mode. If specified, determines the output format.
+ */
 VOID PhPrintTimeSpan(
     _Out_writes_(PH_TIMESPAN_STR_LEN_1) PWSTR Destination,
     _In_ ULONG64 Ticks,
@@ -7306,6 +7548,16 @@ VOID PhPrintTimeSpan(
         );
 }
 
+/**
+ * Converts a time span specified in ticks to a human-readable string and writes it to the provided buffer.
+ *
+ * \param Ticks The time span to print, in ticks (typically 100-nanosecond intervals).
+ * \param Mode mode specifying the formatting style. Can be NULL for default formatting.
+ * \param Buffer Pointer to the buffer that receives the formatted time span string.
+ * \param BufferLength Size of the buffer, in bytes.
+ * \param ReturnLength Optional pointer that receives the number of characters written to the buffer (excluding the null terminator).
+ * \return TRUE if the time span was successfully formatted and written to the buffer; FALSE otherwise.
+ */
 BOOLEAN PhPrintTimeSpanToBuffer(
     _In_ ULONG64 Ticks,
     _In_opt_ ULONG Mode,
@@ -7385,15 +7637,27 @@ BOOLEAN PhPrintTimeSpanToBuffer(
     return FALSE;
 }
 
+/**
+ * Calculates the entropy, mean, and variance of a given buffer.
+ *
+ * \param Buffer Pointer to the buffer containing data to analyze.
+ * \param BufferLength Length of the buffer in bytes.
+ * \param Entropy Optional pointer to a FLOAT to receive the calculated entropy.
+ * \param Mean Optional pointer to a FLOAT to receive the calculated mean.
+ * \param Variance Optional pointer to a FLOAT to receive the calculated variance.
+ * \return TRUE if the calculation was successful, FALSE otherwise.
+ */
 BOOLEAN PhCalculateEntropy(
     _In_ PBYTE Buffer,
     _In_ ULONG64 BufferLength,
-    _Out_opt_ FLOAT* Entropy,
-    _Out_opt_ FLOAT* Variance
+    _Out_opt_ PFLOAT Entropy,
+    _Out_opt_ PFLOAT Mean,
+    _Out_opt_ PFLOAT Variance
     )
 {
     FLOAT bufferEntropy = 0.f;
     FLOAT bufferMeanValue = 0.f;
+    FLOAT bufferVarianceValue = 0.f;
     ULONG64 bufferOffset = 0;
     ULONG64 bufferSumValue = 0;
     ULONG64 counts[UCHAR_MAX + 1];
@@ -7408,7 +7672,8 @@ BOOLEAN PhCalculateEntropy(
         counts[value]++;
     }
 
-    for (ULONG i = 0; i < ARRAYSIZE(counts); i++)
+    // Calculate entropy
+    for (ULONG i = 0; i < RTL_NUMBER_OF(counts); i++)
     {
         FLOAT value = (FLOAT)counts[i] / (FLOAT)BufferLength;
 
@@ -7418,22 +7683,68 @@ BOOLEAN PhCalculateEntropy(
 
     bufferMeanValue = (FLOAT)bufferSumValue / (FLOAT)BufferLength;
 
+    // Calculate variance
+    if (BufferLength > 0)
+    {
+        for (ULONG i = 0; i < RTL_NUMBER_OF(counts); i++)
+        {
+            FLOAT diff = (FLOAT)i - bufferMeanValue;
+            bufferVarianceValue += counts[i] * diff * diff;
+        }
+        bufferVarianceValue /= (FLOAT)BufferLength;
+    }
+
     if (Entropy)
         *Entropy = bufferEntropy;
+    if (Mean)
+        *Mean = bufferMeanValue;
     if (Variance)
-        *Variance = bufferMeanValue;
+        *Variance = bufferVarianceValue;
 
     return TRUE;
 }
 
+/**
+ * Formats entropy, mean, and variance values into a string representation with specified precision.
+ *
+ * \param Entropy The entropy value to format.
+ * \param EntropyPrecision The number of decimal places for the entropy value.
+ * \param Mean (Optional) The mean value to format.
+ * \param MeanPrecision (Optional) The number of decimal places for the mean value.
+ * \param Variance (Optional) The variance value to format.
+ * \param VariancePrecision (Optional) The number of decimal places for the variance value.
+ * \return A pointer to a PPH_STRING containing the formatted string.
+ */
 PPH_STRING PhFormatEntropy(
     _In_ FLOAT Entropy,
     _In_ USHORT EntropyPrecision,
+    _In_opt_ FLOAT Mean,
+    _In_opt_ USHORT MeanPrecision,
     _In_opt_ FLOAT Variance,
     _In_opt_ USHORT VariancePrecision
     )
 {
-    if (Entropy && Variance)
+    if (Mean && Variance)
+    {
+        PH_FORMAT format[6];
+
+        // %s S (%s X)
+        format[0].Type = SingleFormatType | FormatUsePrecision | FormatCropZeros;
+        format[0].u.Single = Entropy;
+        format[0].Precision = EntropyPrecision;
+        PhInitFormatS(&format[1], L" S (");
+        format[2].Type = SingleFormatType | FormatUsePrecision | FormatCropZeros;
+        format[2].u.Single = Mean;
+        format[2].Precision = MeanPrecision;
+        PhInitFormatS(&format[3], L" M) (");
+        format[4].Type = SingleFormatType | FormatUsePrecision | FormatCropZeros;
+        format[4].u.Single = Variance;
+        format[4].Precision = VariancePrecision;
+        PhInitFormatS(&format[5], L" X)");
+
+        return PhFormat(format, ARRAYSIZE(format), 0);
+    }
+    else if (Variance)
     {
         PH_FORMAT format[4];
 
@@ -7544,6 +7855,13 @@ VOID PhFillMemoryUlongOriginal(
     }
 }
 
+/**
+ * Fills a memory block with a ULONG pattern.
+ *
+ * \param Memory The memory block. The block must be 4 byte aligned.
+ * \param Value The ULONG pattern.
+ * \param Count The number of elements.
+ */
 VOID PhFillMemoryUlong(
     _Inout_updates_(Count) _Needs_align_(4) PULONG Memory,
     _In_ ULONG Value,
@@ -7689,6 +8007,13 @@ VOID PhDivideSinglesBySingleOriginal(
     }
 }
 
+/**
+ * Divides an array of numbers by a number.
+ *
+ * \param A The destination array, divided by \a B.
+ * \param B The number.
+ * \param Count The number of elements.
+ */
 VOID PhDivideSinglesBySingle(
     _Inout_updates_(Count) PFLOAT A,
     _In_ FLOAT B,
@@ -7819,11 +8144,10 @@ VOID PhAddMemoryUlongOriginal(
 }
 
 /**
- * \brief Returns the maximum value of an array of floats.
+ * Returns the maximum value of an array of floats.
  *
  * \param A The array.
  * \param Count The total number of array elements.
- *
  * \return The maximum of any single element.
  */
 FLOAT PhMaxMemorySingles(
@@ -7915,12 +8239,11 @@ FLOAT PhMaxMemorySingles(
 }
 
 /**
- * \brief Adds one array of floats to another and returns the maximum.
+ * Adds one array of floats to another and returns the maximum.
  *
  * \param A The first array.
  * \param B The second array.
  * \param Count The total number of array elements.
- *
  * \return The maximum of any single element.
  */
 FLOAT PhAddPlusMaxMemorySingles(
@@ -8021,7 +8344,7 @@ FLOAT PhAddPlusMaxMemorySingles(
 }
 
 /**
- * \brief Converts an array of integers to floats.
+ * Converts an array of integers to floats.
  *
  * \param From The source integers.
  * \param To The destination floats.
@@ -8097,7 +8420,7 @@ VOID PhConvertCopyMemoryUlong(
 }
 
 /**
- * \brief Converts an array of 64-bit unsigned integers to floats.
+ * Converts an array of 64-bit unsigned integers to floats.
  *
  * \param From The source 64-bit integers.
  * \param To The destination floats.
@@ -8174,7 +8497,7 @@ VOID PhConvertCopyMemoryUlong64(
 }
 
 /**
- * \brief Converts an array of floats to integers.
+ * Converts an array of floats to integers.
  *
  * \param From The source floats.
  * \param To The destination integers.
@@ -8306,6 +8629,12 @@ VOID PhCopyConvertCircularBufferULONG64(
     }
 }
 
+/**
+ * Counts the number of set bits (1s) in the given 32-bit unsigned integer value.
+ *
+ * \param Value The 32-bit unsigned integer whose bits are to be counted.
+ * \return The number of bits set to 1 in the input value.
+ */
 ULONG PhCountBits(
     _In_ ULONG Value
     )
@@ -8340,6 +8669,12 @@ ULONG PhCountBits(
     }
 }
 
+/**
+ * Counts the number of set bits (1s) in the specified ULONG_PTR value.
+ *
+ * \param Value The ULONG_PTR value whose bits are to be counted.
+ * \return The number of bits set to 1 in the input value.
+ */
 ULONG PhCountBitsUlongPtr(
     _In_ ULONG_PTR Value
     )
@@ -8382,6 +8717,11 @@ ULONG PhCountBitsUlongPtr(
 
 #pragma region Thread Local Storage (TLS)
 
+/**
+ * Allocates a new TLS (Thread Local Storage) index.
+ *
+ * \return Returns the allocated TLS index as an ULONG value.
+ */
 ULONG PhTlsAlloc(
     VOID
     )
@@ -8434,6 +8774,12 @@ CleanupExit:
     return TlsAlloc();
 }
 
+/**
+ * Frees a thread-local storage (TLS) slot previously allocated.
+ *
+ * \param Index The index of the TLS slot to be freed.
+ * \return Returns an NTSTATUS code indicating success or failure of the operation.
+ */
 NTSTATUS PhTlsFree(
     _In_ ULONG Index
     )
@@ -8507,6 +8853,12 @@ NTSTATUS PhTlsFree(
     }
 }
 
+/**
+ * Retrieves the value stored in the thread-local storage (TLS) slot specified by the given index.
+ *
+ * \param Index The index of the TLS slot to retrieve the value from.
+ * \return A pointer to the value stored in the specified TLS slot, or NULL if no value is set.
+ */
 PVOID PhTlsGetValue(
     _In_ ULONG Index
     )
@@ -8519,6 +8871,13 @@ PVOID PhTlsGetValue(
     return TlsGetValue(Index);
 }
 
+/**
+ * Retrieves the value stored in the thread-local storage (TLS) slot specified by the given index.
+ *
+ * \param Index The index of the TLS slot to retrieve the value from.
+ * \param Value A pointer to a variable that receives the value stored in the specified TLS slot.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhTlsGetValueEx(
     _In_ ULONG Index,
     _Out_ PVOID* Value
@@ -8534,6 +8893,13 @@ NTSTATUS PhTlsGetValueEx(
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
+/**
+ * Sets the value for a thread-local storage (TLS) slot identified by the specified index.
+ *
+ * \param Index The index of the TLS slot to set the value for.
+ * \param Value The value to set for the TLS slot. Can be NULL.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhTlsSetValue(
     _In_ ULONG Index,
     _In_opt_ PVOID Value
@@ -8553,6 +8919,11 @@ NTSTATUS PhTlsSetValue(
 
 #pragma endregion
 
+/**
+ * Retrieves the last error code generated by the system or the current thread.
+ *
+ * \return The last error code as an unsigned long value.
+ */
 ULONG PhGetLastError(
     VOID
     )
@@ -8562,6 +8933,11 @@ ULONG PhGetLastError(
     return GetLastError();
 }
 
+/**
+ * Sets the last error value for the current thread.
+ *
+ * \param ErrorValue The error code to set as the last error.
+ */
 VOID PhSetLastError(
     _In_ ULONG ErrorValue
     )

@@ -6,6 +6,7 @@ typedef struct _NODE
     ULONG Value;
 } NODE, *PNODE;
 
+_Function_class_(PH_AVL_TREE_COMPARE_FUNCTION)
 static LONG CompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2

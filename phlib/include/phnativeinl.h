@@ -23,6 +23,7 @@
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param BasicInformation A variable which receives the information.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -46,6 +47,7 @@ PhGetProcessBasicInformation(
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param ExtendedBasicInformation A variable which receives the information.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -71,6 +73,7 @@ PhGetProcessExtendedBasicInformation(
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param Times A variable which receives the information.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -94,6 +97,7 @@ PhGetProcessTimes(
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param SessionId A variable which receives the process' session ID.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -127,6 +131,7 @@ PhGetProcessSessionId(
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param IsWow64Process A variable which receives a boolean indicating whether the process is 32-bit.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -161,6 +166,7 @@ PhGetProcessIsWow64(
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param Peb32 A variable which receives the base address of the process' WOW64 PEB. If the process
  * is 64-bit, the variable receives NULL.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -219,11 +225,10 @@ PhGetProcessPeb(
 /**
  * Gets a handle to a process' debug object.
  *
- * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
- * access.
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION access.
  * \param DebugObjectHandle A variable which receives a handle to the debug object associated with
  * the process. You must close the handle when you no longer need it.
- *
+ * \return Successful or errant status.
  * \retval STATUS_PORT_NOT_SET The process is not being debugged and has no associated debug object.
  */
 FORCEINLINE
@@ -301,6 +306,7 @@ PhSetProcessErrorMode(
  *
  * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION access.
  * \param ExecuteFlags A variable which receives the no-execute flags.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -324,6 +330,7 @@ PhGetProcessExecuteFlags(
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param IoPriority A variable which receives the I/O priority of the process.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -347,6 +354,7 @@ PhGetProcessIoPriority(
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param PagePriority A variable which receives the page priority of the process.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -406,6 +414,7 @@ PhGetProcessPriorityBoost(
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION access.
  * \param CycleTime A variable which receives the 64-bit cycle time.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -830,9 +839,9 @@ PhGetProcessNetworkIoCounters(
 /**
  * Gets basic information for a thread.
  *
- * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
- * access.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
  * \param BasicInformation A variable which receives the information.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -929,6 +938,7 @@ PhGetThreadTeb32(
  *
  * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
  * \param StartAddress A variable which receives the start address of the thread.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -949,9 +959,9 @@ PhGetThreadStartAddress(
 /**
  * Gets a thread's I/O priority.
  *
- * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
- * access.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
  * \param IoPriority A variable which receives the I/O priority of the thread.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -972,9 +982,9 @@ PhGetThreadIoPriority(
 /**
  * Gets a thread's page priority.
  *
- * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
- * access.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
  * \param PagePriority A variable which receives the page priority of the thread.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1005,9 +1015,9 @@ PhGetThreadPagePriority(
 /**
  * Gets a thread's dynamic boosting.
  *
- * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
- * access.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
  * \param PriorityBoostDisabled A variable which receives the dynamic boosting state.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1038,9 +1048,9 @@ PhGetThreadPriorityBoost(
 /**
  * Gets a thread's performance counter.
  *
- * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
- * access.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
  * \param PerformanceCounter A variable which receives the 64-bit performance counter.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1071,9 +1081,9 @@ PhGetThreadPerformanceCounter(
 /**
  * Gets a thread's cycle count.
  *
- * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
- * access.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
  * \param CycleTime A variable which receives the 64-bit cycle time.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1270,6 +1280,7 @@ PhGetThreadIsIoPending(
  * \param ThreadHandle A handle to a thread. The handle must have
  * THREAD_QUERY_LIMITED_INFORMATION access.
  * \param Times A variable which receives the information.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1392,6 +1403,7 @@ PhGetTokenType(
  *
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
  * \param SessionId A variable which receives the session ID.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1416,6 +1428,7 @@ PhGetTokenSessionId(
  *
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
  * \param ElevationType A variable which receives the elevation type.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1440,6 +1453,7 @@ PhGetTokenElevationType(
  *
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
  * \param TokenIsElevated A variable which receives a boolean indicating whether the token is elevated.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1473,6 +1487,7 @@ PhGetTokenElevation(
  *
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
  * \param Statistics A variable which receives the token's statistics.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1497,6 +1512,7 @@ PhGetTokenStatistics(
  *
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY_SOURCE access.
  * \param Source A variable which receives the token's source.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1522,6 +1538,7 @@ PhGetTokenSource(
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
  * \param LinkedTokenHandle A variable which receives a handle to the linked token. You must close
  * the handle using NtClose() when you no longer need it.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1583,6 +1600,7 @@ PhGetTokenIsRestricted(
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
  * \param IsVirtualizationAllowed A variable which receives a boolean indicating whether
  * virtualization is allowed for the token.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1617,6 +1635,7 @@ PhGetTokenIsVirtualizationAllowed(
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
  * \param IsVirtualizationEnabled A variable which receives a boolean indicating whether
  * virtualization is enabled for the token.
+ * \return Successful or errant status.
  */
 FORCEINLINE
 NTSTATUS
@@ -1646,12 +1665,13 @@ PhGetTokenIsVirtualizationEnabled(
 }
 
 /**
-* Gets UIAccess flag for a token.
-*
-* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
-* \param IsUIAccessEnabled A variable which receives a boolean indicating whether
-* UIAccess is enabled for the token.
-*/
+ * Gets UIAccess flag for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsUIAccessEnabled A variable which receives a boolean indicating whether
+ * UIAccess is enabled for the token.
+ * \return Successful or errant status.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetTokenUIAccess(
@@ -1680,12 +1700,13 @@ PhGetTokenUIAccess(
 }
 
 /**
-* Sets UIAccess flag for a token.
-*
-* \param TokenHandle A handle to a token. The handle must have TOKEN_ADJUST_DEFAULT access.
-* \param IsUIAccessEnabled The new flag state.
-* \remarks Enabling UIAccess requires SeTcbPrivilege.
-*/
+ * Sets UIAccess flag for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_ADJUST_DEFAULT access.
+ * \param IsUIAccessEnabled The new flag state.
+ * \remarks Enabling UIAccess requires SeTcbPrivilege.
+ * \return Successful or errant status.
+ */
 FORCEINLINE
 NTSTATUS
 PhSetTokenUIAccess(
@@ -1706,12 +1727,13 @@ PhSetTokenUIAccess(
 }
 
 /**
-* Gets SandBoxInert flag for a token.
-*
-* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
-* \param IsSandBoxInert A variable which receives a boolean indicating whether
-* AppLocker rules or Software Restriction Policies are enabled for the token.
-*/
+ * Gets SandBoxInert flag for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsSandBoxInert A variable which receives a boolean indicating whether
+ * AppLocker rules or Software Restriction Policies are enabled for the token.
+ * \return Successful or errant status.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetTokenIsSandBoxInert(
@@ -1740,12 +1762,13 @@ PhGetTokenIsSandBoxInert(
 }
 
 /**
-* Gets Mandatory Policy for a token.
-*
-* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
-* \param MandatoryPolicy A variable which receives a set of mandatory integrity
-* policies enforced for the token.
-*/
+ * Gets Mandatory Policy for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param MandatoryPolicy A variable which receives a set of mandatory integrity
+ * policies enforced for the token.
+ * \return Successful or errant status.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetTokenMandatoryPolicy(
@@ -1765,13 +1788,12 @@ PhGetTokenMandatoryPolicy(
 }
 
 /**
-* The TOKEN_ORIGIN structure contains information about the origin of the logon session.
-*
-* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
-* \param Origin A variable which receives the Locally unique identifier (LUID) for the logon session.
-*
-* \return Successful or errant status.
-*/
+ * The TOKEN_ORIGIN structure contains information about the origin of the logon session.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param Origin A variable which receives the Locally unique identifier (LUID) for the logon session.
+ * \return Successful or errant status.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetTokenOrigin(
@@ -1791,14 +1813,13 @@ PhGetTokenOrigin(
 }
 
 /**
-* Gets a value that is nonzero if the token is an app container token.
-*
-* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
-* \param IsAppContainer Any callers who check the TokenIsAppContainer and have it return 0 should
-* also verify that the caller token is not an identify level impersonation token.
-*
-* \return Successful or errant status.
-*/
+ * Gets a value that is nonzero if the token is an app container token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsAppContainer Any callers who check the TokenIsAppContainer and have it return 0 should
+ * also verify that the caller token is not an identify level impersonation token.
+ * \return Successful or errant status.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetTokenIsAppContainer(
@@ -1827,12 +1848,12 @@ PhGetTokenIsAppContainer(
 }
 
 /**
-* Gets a value that includes the app container number for the token.
-*
-* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
-* \param AppContainerNumber The app container number for the token.
-* \return Successful or errant status.
-*/
+ * Gets a value that includes the app container number for the token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param AppContainerNumber The app container number for the token.
+ * \return Successful or errant status.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetTokenAppContainerNumber(
@@ -1994,14 +2015,13 @@ PhGetTimerBasicInformation(
 }
 
 /**
-* The action to be performed when the calling thread exits.
-*
-* \param DebugObjectHandle A handle to a process' debug object.
-* \param KillProcessOnExit If this parameter is TRUE, the thread terminates all attached processes on exit
-* (note that this is the default). Otherwise, the thread detaches from all processes being debugged on exit.
-*
-* \return Successful or errant status.
-*/
+ * The action to be performed when the calling thread exits.
+ *
+ * \param DebugObjectHandle A handle to a process' debug object.
+ * \param KillProcessOnExit If this parameter is TRUE, the thread terminates all attached processes on exit
+ * (note that this is the default). Otherwise, the thread detaches from all processes being debugged on exit.
+ * \return Successful or errant status.
+ */
 FORCEINLINE
 NTSTATUS
 PhSetDebugKillProcessOnExit(
@@ -2100,7 +2120,6 @@ PhGetSystemShadowStackInformation(
 * The system boot time in Coordinated Universal Time (UTC) format.
 *
 * \param BootTime A pointer to a LARGE_INTEGER structure to receive the current system boot date and time.
-*
 * \return Successful or errant status.
 */
 FORCEINLINE
@@ -2128,11 +2147,11 @@ PhGetSystemBootTime(
 }
 
 /**
-* The system uptime in Coordinated Universal Time (UTC) format.
-*
-* \param Uptime A pointer to a LARGE_INTEGER structure to receive the current system uptime.
-* \return Successful or errant status.
-*/
+ * The system uptime in Coordinated Universal Time (UTC) format.
+ *
+ * \param Uptime A pointer to a LARGE_INTEGER structure to receive the current system uptime.
+ * \return Successful or errant status.
+ */
 FORCEINLINE
 NTSTATUS
 PhGetSystemUptime(
@@ -2189,15 +2208,16 @@ PhWaitForSingleObject(
 }
 
 /**
-* Provides a process-wide memory barrier that ensures that reads and writes from any CPU cannot move across the barrier.
-*
-* The process-wide memory barrier method differs from the "normal" MemoryBarrier method as follows:
-* The process-wide memory barrier ensures that any read or write from any CPU being used in the process can't move across the barrier.
-* The process-wide memory barrier forces other CPUs to synchronize with process memory (for example, to flush write buffers and synchronize read buffers).
-* The process-wide memory barrier is very expensive. It has to force every CPU in the process do to something, at a probable cost of thousands of cycles.
-* The process-wide memory barrier suffers from all the subtleties of lock-free programming.
-* \sa https://learn.microsoft.com/en-us/dotnet/api/system.threading.interlocked.memorybarrierprocesswid
-*/
+ * Provides a process-wide memory barrier that ensures that reads and writes from any CPU cannot move across the barrier.
+ *
+ * The process-wide memory barrier method differs from the "normal" MemoryBarrier method as follows:
+ * The process-wide memory barrier ensures that any read or write from any CPU being used in the process can't move across the barrier.
+ * The process-wide memory barrier forces other CPUs to synchronize with process memory (for example, to flush write buffers and synchronize read buffers).
+ * The process-wide memory barrier is very expensive. It has to force every CPU in the process do to something, at a probable cost of thousands of cycles.
+ * The process-wide memory barrier suffers from all the subtleties of lock-free programming.
+ * \sa https://learn.microsoft.com/en-us/dotnet/api/system.threading.interlocked.memorybarrierprocesswid
+ * \return Successful or errant status.
+ */
 FORCEINLINE
 NTSTATUS
 PhMemoryBarrierProcessWide(

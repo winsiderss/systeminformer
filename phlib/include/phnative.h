@@ -3118,6 +3118,16 @@ PhEnumBigPoolInformation(
     _Out_ PVOID* Buffer
     );
 
+_Must_inspect_result_
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessIsContainer(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_opt_ PBOOLEAN IsContainer
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -4130,18 +4140,18 @@ PhCopyFileChunkWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhMoveFileWin32(
-    _In_ PCWSTR OldFileName,
-    _In_ PCWSTR NewFileName,
+PhMoveFile(
+    _In_ PCPH_STRINGREF OldFileName,
+    _In_ PCPH_STRINGREF NewFileName,
     _In_ BOOLEAN FailIfExists
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhMoveFile(
-    _In_ PCPH_STRINGREF OldFileName,
-    _In_ PCPH_STRINGREF NewFileName,
+PhMoveFileWin32(
+    _In_ PCWSTR OldFileName,
+    _In_ PCWSTR NewFileName,
     _In_ BOOLEAN FailIfExists
     );
 

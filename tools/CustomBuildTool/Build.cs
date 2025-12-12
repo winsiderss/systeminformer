@@ -14,11 +14,11 @@ namespace CustomBuildTool
     public static class Build
     {
         private static DateTime TimeStart;
-        public static bool BuildCanary = false;
-        public static bool BuildToolsDebug = false;
+        public static bool BuildCanary;
+        public static bool BuildIntegration;
+        public static bool BuildRedirectOutput;
+        public static bool BuildToolsDebug;
         public static bool HaveArm64BuildTools = true;
-        public static bool BuildRedirectOutput = false;
-        public static bool BuildIntegration = false;
         public static string BuildOutputFolder = string.Empty;
         public static string BuildWorkingFolder = string.Empty;
         public static string BuildCommitBranch = "orphan";
@@ -76,7 +76,7 @@ namespace CustomBuildTool
                 }
             }
 
-            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS") || 
+            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS") ||
                 Win32.HasEnvironmentVariable("TF_BUILD"))
             {
                 Build.BuildIntegration = true;
@@ -695,7 +695,7 @@ namespace CustomBuildTool
                     Utils.WriteAllText("sdk\\include\\phappresource.h", targetContent);
                 }
 
-                Win32.SetFileBasicInfo("sdk\\include\\phappresource.h", sourceCreationTime, sourceWriteTime, true);           
+                Win32.SetFileBasicInfo("sdk\\include\\phappresource.h", sourceCreationTime, sourceWriteTime, true);
                 //Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h", Flags);
             }
 
@@ -718,12 +718,12 @@ namespace CustomBuildTool
                 Utils.CreateOutputDirectory();
 
                 Win32.DeleteFile(
-                    exe_file, 
+                    exe_file,
                     Flags
                     );
 
                 File.Move(
-                    out_file, 
+                    out_file,
                     exe_file
                     );
 
@@ -829,7 +829,7 @@ namespace CustomBuildTool
                         );
 
                     Program.PrintColorMessage(
-                        Win32.GetFileSize(zip_file).ToPrettySize(), 
+                        Win32.GetFileSize(zip_file).ToPrettySize(),
                         ConsoleColor.Green
                         );
                 }
@@ -849,7 +849,7 @@ namespace CustomBuildTool
                         );
 
                     Program.PrintColorMessage(
-                        Win32.GetFileSize(zip_file).ToPrettySize(), 
+                        Win32.GetFileSize(zip_file).ToPrettySize(),
                         ConsoleColor.Green
                         );
                 }
@@ -862,7 +862,7 @@ namespace CustomBuildTool
 
             return true;
         }
-        
+
         public static bool BuildSymStoreZip(BuildFlags Flags)
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
@@ -894,7 +894,7 @@ namespace CustomBuildTool
                 Utils.ExecuteSymStoreCommand(
                     @$"add -:REL /r /f ""bin\\ReleaseARM64\\*.*"" /s ""build\\output\\symbols"" /t SystemInformer /v ""{Build.BuildLongVersion}"" /c ""arm64-{Build.BuildCommitHash}"" /o"
                     );
-               
+
                 Program.PrintColorMessage("Building symbols-package.zip...", ConsoleColor.Cyan, false);
 
                 Zip.CreateCompressedSdkFromFolder(
@@ -903,7 +903,7 @@ namespace CustomBuildTool
                     Flags
                     );
                 Program.PrintColorMessage(
-                    Win32.GetFileSize(zip_file).ToPrettySize(), 
+                    Win32.GetFileSize(zip_file).ToPrettySize(),
                     ConsoleColor.Green
                     );
             }
@@ -1084,6 +1084,55 @@ namespace CustomBuildTool
 
             return true;
         }
+
+        public static bool BuildSolutionCMake(string Solution, string Generator, string Config, string Toolchain, BuildFlags Flags)
+        {
+            string buildCommand = null;
+            string buildPath = Config.Equals("Debug", StringComparison.OrdinalIgnoreCase)
+                ? "build-debug"
+                : "build-release";
+
+            string platformSuffix = Toolchain switch
+            {
+                "msvc-x86" => "-msvc-32",
+                "msvc-amd64" => "-msvc-64",
+                "msvc-arm64" => "-msvc-arm64",
+                "clang-msvc-x86" => "-clang-msvc-32",
+                "clang-msvc-amd64" => "-clang-msvc-64",
+                "clang-msvc-arm64" => "-clang-msvc-arm64",
+                _ => throw new ArgumentException("Unsupported toolchain")
+            };
+
+            buildPath = Path.Combine(Environment.CurrentDirectory, buildPath + platformSuffix);
+
+            if (Generator.Contains("Visual Studio", StringComparison.OrdinalIgnoreCase))
+            {
+                buildCommand = $"--build \"{buildPath}\" --config {Config} -- /m /p:Platform={CMakeGetPlatform(Toolchain)} -terminalLogger:auto";
+            }
+            else
+            {
+                buildCommand = $"--build \"{buildPath}\" --config {Config}";
+            }
+
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+            //Program.PrintColorMessage($"CMake build: cmake {buildCommand}", ConsoleColor.Cyan, true, Flags);
+
+            int errorcode = Utils.ExecuteCMakeCommand(buildCommand);
+            if (errorcode != 0)
+            {
+                Program.PrintColorMessage($"[ERROR] ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                return false;
+            }
+            return true;
+        }
+
+        private static string CMakeGetPlatform(string toolchain) => toolchain switch
+        {
+            "msvc-x86" or "clang-msvc-x86" => "Win32",
+            "msvc-amd64" or "clang-msvc-amd64" => "x64",
+            "msvc-arm64" or "clang-msvc-arm64" => "ARM64",
+            _ => throw new ArgumentException("Unsupported toolchain")
+        };
 
 #nullable enable
         private static DeployFile? CreateBuildDeployFile(string Channel, string Name, string FileName, bool CreateSignature = true)
@@ -1444,7 +1493,7 @@ namespace CustomBuildTool
 
                 msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x86");
                 msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
-                msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montréal, S=Quebec, C=CA");
+                msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montr&#233;al, S=Quebec, C=CA");
 
                 Utils.WriteAllText("tools\\msix\\MsixManifest32.xml", msixManifestString);
             }
@@ -1455,7 +1504,7 @@ namespace CustomBuildTool
 
                 msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x64");
                 msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
-                msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montréal, S=Quebec, C=CA");
+                msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montr&#233;al, S=Quebec, C=CA");
 
                 Utils.WriteAllText("tools\\msix\\MsixManifest64.xml", msixManifestString);
             }

@@ -351,6 +351,7 @@ NTSTATUS PhOpenServiceManager(
     }
     else
     {
+        *ServiceManagerHandle = NULL;
         return PhGetLastWin32ErrorAsNtStatus();
     }
 }
@@ -733,6 +734,7 @@ NTSTATUS PhGetServiceObjectSecurity(
         if (NT_SUCCESS(status))
         {
             *SecurityDescriptor = buffer;
+            return STATUS_SUCCESS;
         }
         else
         {
@@ -744,6 +746,8 @@ NTSTATUS PhGetServiceObjectSecurity(
     {
         status = STATUS_INVALID_SECURITY_DESCR;
     }
+
+    *SecurityDescriptor = NULL;
 
     return status;
 }

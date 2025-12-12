@@ -35,7 +35,7 @@ namespace CustomBuildTool
         /// <summary>
         /// A default timestamp configuration indicating no timestamp should be generated.
         /// </summary>
-        public static TimeStampConfiguration None { get; } = new TimeStampConfiguration();
+        public static TimeStampConfiguration None { get; }
 
         /// <summary>
         /// Creates a new instance of a <see cref="TimeStampConfiguration" />.

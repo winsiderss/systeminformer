@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -221,7 +221,7 @@ namespace CustomBuildTool
                     Prerelease = Prerelease
                 };
 
-                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/releases/{ReleaseId}"))
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Patch, $"{BaseUrl}/releases/{ReleaseId}"))
                 {
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
@@ -391,6 +391,41 @@ namespace CustomBuildTool
 
             return string.Compare(this.ReleaseId.ToString(), obj.ReleaseId.ToString(), StringComparison.OrdinalIgnoreCase);
         }
+
+        public static bool operator ==(GithubRelease left, GithubRelease right)
+        {
+            if (ReferenceEquals(left, null))
+            {
+                return ReferenceEquals(right, null);
+            }
+
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(GithubRelease left, GithubRelease right)
+        {
+            return !(left == right);
+        }
+
+        public static bool operator <(GithubRelease left, GithubRelease right)
+        {
+            return ReferenceEquals(left, null) ? !ReferenceEquals(right, null) : left.CompareTo(right) < 0;
+        }
+
+        public static bool operator <=(GithubRelease left, GithubRelease right)
+        {
+            return ReferenceEquals(left, null) || left.CompareTo(right) <= 0;
+        }
+
+        public static bool operator >(GithubRelease left, GithubRelease right)
+        {
+            return !ReferenceEquals(left, null) && left.CompareTo(right) > 0;
+        }
+
+        public static bool operator >=(GithubRelease left, GithubRelease right)
+        {
+            return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.CompareTo(right) >= 0;
+        }
     }
 
     public class GithubReleaseAsset(string Filename, string DownloadUrl, DeployFile DeployFile)
@@ -437,6 +472,41 @@ namespace CustomBuildTool
                 return 1;
 
             return string.Compare(this.Filename, obj.Filename, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static bool operator ==(GithubReleaseAsset left, GithubReleaseAsset right)
+        {
+            if (ReferenceEquals(left, null))
+            {
+                return ReferenceEquals(right, null);
+            }
+
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(GithubReleaseAsset left, GithubReleaseAsset right)
+        {
+            return !(left == right);
+        }
+
+        public static bool operator <(GithubReleaseAsset left, GithubReleaseAsset right)
+        {
+            return ReferenceEquals(left, null) ? !ReferenceEquals(right, null) : left.CompareTo(right) < 0;
+        }
+
+        public static bool operator <=(GithubReleaseAsset left, GithubReleaseAsset right)
+        {
+            return ReferenceEquals(left, null) || left.CompareTo(right) <= 0;
+        }
+
+        public static bool operator >(GithubReleaseAsset left, GithubReleaseAsset right)
+        {
+            return !ReferenceEquals(left, null) && left.CompareTo(right) > 0;
+        }
+
+        public static bool operator >=(GithubReleaseAsset left, GithubReleaseAsset right)
+        {
+            return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.CompareTo(right) >= 0;
         }
     }
 }

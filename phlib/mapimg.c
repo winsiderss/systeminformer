@@ -1589,6 +1589,7 @@ NTSTATUS PhRelocateMappedImageDataEntryARM64X(
 
                 record = (PIMAGE_DVRT_ARM64X_FIXUP_RECORD)base;
                 recordsEnd = PTR_ADD_OFFSET(base, base->SizeOfBlock);
+
                 if (!PhPtrAdvance(&record, recordsEnd, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock)))
                     break;
 
@@ -5948,8 +5949,9 @@ NTSTATUS PhGetMappedImageWdacHash(
 
 BOOLEAN PhGetMappedImageEntropy(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _Out_ FLOAT *ImageEntropy,
-    _Out_ FLOAT *ImageVariance
+    _Out_ PFLOAT ImageEntropy,
+    _Out_ PFLOAT ImageMean,
+    _Out_ PFLOAT ImageVariance
     )
 {
     BOOLEAN status = FALSE;
@@ -5960,6 +5962,7 @@ BOOLEAN PhGetMappedImageEntropy(
             MappedImage->ViewBase,
             MappedImage->ViewSize,
             ImageEntropy,
+            ImageMean,
             ImageVariance
             );
     }
@@ -6008,3 +6011,4 @@ ULONG PhGetMappedImageCHPEVersion(
 
     return 0;
 }
+

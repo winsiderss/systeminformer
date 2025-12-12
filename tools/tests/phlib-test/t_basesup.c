@@ -32,13 +32,13 @@ static VOID Test_stringz(
     VOID
     )
 {
-    BOOLEAN result;
+    NTSTATUS result;
     CHAR inputA[16] = "test";
     CHAR outputA[16];
     WCHAR inputW[16] = L"test";
     WCHAR outputW[16];
     SIZE_T returnCount;
-    PWSTR zero = L"\0\0\0\0\0\0\0\0";
+    PCWSTR zero = L"\0\0\0\0\0\0\0\0";
     PWSTR asdf = L"asdfasdfasdfasdf";
     ULONG i;
 
@@ -48,33 +48,33 @@ static VOID Test_stringz(
         assert(PhCountStringZ(asdf + i) == 16 - i);
 
     result = PhCopyBytesZ(inputA, 4, outputA, 4, &returnCount);
-    assert(!result && returnCount == 5);
+    assert(!NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyBytesZ(inputA, 100, outputA, 4, &returnCount);
-    assert(!result && returnCount == 5);
+    assert(!NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyBytesZ(inputA, 3, outputA, 4, &returnCount);
-    assert(result && returnCount == 4);
+    assert(NT_SUCCESS(result) && returnCount == 4);
     result = PhCopyBytesZ(inputA, 4, outputA, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyBytesZ(inputA, 100, outputA, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
 
     result = PhCopyStringZ(inputW, 100, outputW, 4, &returnCount);
-    assert(!result && returnCount == 5);
+    assert(!NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyStringZ(inputW, 4, outputW, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyStringZ(inputW, 100, outputW, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
 
     result = PhCopyStringZFromMultiByte(inputA, 4, outputW, 4, &returnCount);
-    assert(!result && returnCount == 5);
+    assert(!NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyStringZFromMultiByte(inputA, 100, outputW, 4, &returnCount);
-    assert(!result && returnCount == 5);
+    assert(!NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyStringZFromMultiByte(inputA, 3, outputW, 4, &returnCount);
-    assert(result && returnCount == 4);
+    assert(NT_SUCCESS(result) && returnCount == 4);
     result = PhCopyStringZFromMultiByte(inputA, 4, outputW, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyStringZFromMultiByte(inputA, 100, outputW, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
 
     assert(PhCompareStringZNatural(L"abc", L"abc", FALSE) == 0);
     assert(PhCompareStringZNatural(L"abc", L"abc", TRUE) == 0);

@@ -27,8 +27,9 @@ PPH_STRING CommandAction = NULL;
 PPH_STRING CommandValue = NULL;
 HWND CommandModeWindowHandle = NULL;
 
+_Function_class_(PH_COMMAND_LINE_CALLBACK)
 BOOLEAN NTAPI PhpCommandLineCallback(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
     )
@@ -82,7 +83,7 @@ UINT32 PhCommandModeStart(
     NTSTATUS status;
     PH_STRINGREF commandLine;
 
-    status = PhInitializePhLib(L"CustomCmdTool", NtCurrentImageBase());
+    status = PhInitializePhLib(L"CustomCmdTool");
 
     if (!NT_SUCCESS(status))
         return status;

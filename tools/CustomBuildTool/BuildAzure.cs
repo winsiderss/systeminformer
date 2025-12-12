@@ -25,7 +25,7 @@ namespace CustomBuildTool
         {
             //ENTRA_TIMESTAMP_ALGORITHM = Win32.GetEnvironmentVariable("BUILD_TIMESTAMP_ALGORITHM");
             ENTRA_TIMESTAMP_SERVER = Win32.GetEnvironmentVariable("BUILD_TIMESTAMP_SERVER");
-            ENTRA_CERIFICATE_NAME =  Win32.GetEnvironmentVariable("BUILD_ENTRA_CERT_ID");
+            ENTRA_CERIFICATE_NAME = Win32.GetEnvironmentVariable("BUILD_ENTRA_CERT_ID");
             ENTRA_CERIFICATE_VAULT = Win32.GetEnvironmentVariable("BUILD_ENTRA_VAULT_ID");
             ENTRA_TENANT_GUID = Win32.GetEnvironmentVariable("BUILD_ENTRA_TENANT_ID");
             ENTRA_CLIENT_GUID = Win32.GetEnvironmentVariable("BUILD_ENTRA_CLIENT_ID");
@@ -70,10 +70,10 @@ namespace CustomBuildTool
             return SignFiles(
                 Path,
                 ENTRA_TIMESTAMP_SERVER,
-                ENTRA_CERIFICATE_NAME, 
-                ENTRA_CERIFICATE_VAULT, 
+                ENTRA_CERIFICATE_NAME,
+                ENTRA_CERIFICATE_VAULT,
                 ENTRA_TENANT_GUID,
-                ENTRA_CLIENT_GUID, 
+                ENTRA_CLIENT_GUID,
                 ENTRA_CLIENT_SECRET
                 );
         }

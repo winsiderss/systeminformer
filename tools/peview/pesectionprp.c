@@ -328,11 +328,12 @@ NTSTATUS PvpPeSectionsEnumerateThread(
                         imageSectionData,
                         PvMappedImage.Sections[i].SizeOfRawData,
                         &imageSectionEntropy,
+                        NULL,
                         NULL
                         ))
                     {
                         sectionNode->SectionEntropy = imageSectionEntropy;
-                        sectionNode->EntropyString = PhFormatEntropy(imageSectionEntropy, 2, 0, 0);
+                        sectionNode->EntropyString = PhFormatEntropy(imageSectionEntropy, 2, 0, 0, 0, 0);
                     }
                 }
             }

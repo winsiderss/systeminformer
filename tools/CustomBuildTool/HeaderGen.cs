@@ -406,7 +406,7 @@ namespace CustomBuildTool
 
                                 if (!foundBlockEnd)
                                 {
-                                    startIndex = 0; // unexpected comment block, don’t skip anything
+                                    startIndex = 0; // unexpected comment block, dont skip anything
                                 }
                             }
                         }

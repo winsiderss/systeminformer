@@ -104,7 +104,7 @@ PPH_EMENU_ITEM PhCreateEMenuItemCallback(
  * function while enumerating menu items.
  */
 VOID PhpDestroyEMenuItem(
-    _In_ PPH_EMENU_ITEM Item
+    _In_ _Post_invalid_ PPH_EMENU_ITEM Item
     )
 {
     if (Item->DeleteFunction)
@@ -134,7 +134,7 @@ VOID PhpDestroyEMenuItem(
  * \remarks The menu item is automatically removed from its parent.
  */
 VOID PhDestroyEMenuItem(
-    _In_ PPH_EMENU_ITEM Item
+    _In_ _Post_invalid_ PPH_EMENU_ITEM Item
     )
 {
     // Remove the item from its parent, if it has one.

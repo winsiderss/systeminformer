@@ -4245,7 +4245,7 @@ HBITMAP PhLoadImageFormatFromResource(
     if (!NT_SUCCESS(PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer)))
         goto CleanupExit;
 
-    if (FAILED(PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicImagingFactory)))
+    if (FAILED(PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory, &IID_IWICImagingFactory, &wicImagingFactory)))
         goto CleanupExit;
     if (FAILED(IWICImagingFactory_CreateStream(wicImagingFactory, &wicBitmapStream)))
         goto CleanupExit;
