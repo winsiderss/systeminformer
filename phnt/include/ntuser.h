@@ -184,10 +184,10 @@ typedef struct _CONSOLEENDTASK
  * This includes reparenting the console window, allowing the console to pass foreground rights
  * on to launched console subsystem applications and terminating attached processes.
  *
- * @param Command One of the CONSOLECONTROL values indicating which console control function should be executed.
- * @param ConsoleInformation A pointer to one of the  structures specifying additional data for the requested console control function.
- * @param ConsoleInformationLength The size of the structure pointed to by the ConsoleInformation parameter.
- * @return Successful or errant status.
+ * \param Command One of the CONSOLECONTROL values indicating which console control function should be executed.
+ * \param ConsoleInformation A pointer to one of the  structures specifying additional data for the requested console control function.
+ * \param ConsoleInformationLength The size of the structure pointed to by the ConsoleInformation parameter.
+ * \return Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -218,10 +218,10 @@ NtUserCreateWindowStation(
  * This includes reparenting the console window, allowing the console to pass foreground rights
  * on to launched console subsystem applications and terminating attached processes.
  *
- * @param Command One of the CONSOLECONTROL values indicating which console control function should be executed.
- * @param ConsoleInformation A pointer to one of the  structures specifying additional data for the requested console control function.
- * @param ConsoleInformationLength The size of the structure pointed to by the ConsoleInformation parameter.
- * @return Successful or errant status.
+ * \param Command One of the CONSOLECONTROL values indicating which console control function should be executed.
+ * \param ConsoleInformation A pointer to one of the  structures specifying additional data for the requested console control function.
+ * \param ConsoleInformationLength The size of the structure pointed to by the ConsoleInformation parameter.
+ * \return Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -341,9 +341,9 @@ NtUserOpenDesktop(
 /**
  * Opens the specified window station.
  *
- * @param ObjectAttributes The name of the window station to be opened. Window station names are case-insensitive. This window station must belong to the current session.
- * @param DesiredAccess The access to the window station.
- * @return Successful or errant status.
+ * \param ObjectAttributes The name of the window station to be opened. Window station names are case-insensitive. This window station must belong to the current session.
+ * \param DesiredAccess The access to the window station.
+ * \return Successful or errant status.
  */
 NTSYSCALLAPI
 HWINSTA
@@ -472,8 +472,8 @@ typedef struct _USER_PROCESS_CAP_INTERNAL
 
 // rev
 NTSYSCALLAPI
-NTSTATUS 
-NTAPI 
+NTSTATUS
+NTAPI
 NtUserSetProcessWin32Capabilities(
     _In_reads_(Count) const USER_PROCESS_CAP_ENTRY* Capabilities,
     _In_ ULONG Count
