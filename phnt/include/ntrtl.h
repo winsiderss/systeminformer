@@ -7,6 +7,8 @@
 #ifndef _NTRTL_H
 #define _NTRTL_H
 
+typedef struct _CPTABLEINFO CPTABLEINFO, *PCPTABLEINFO;
+
 //
 // Pointer arithmetic macros (type safe)
 //
@@ -183,7 +185,7 @@ typedef struct _LIST_ENTRY LIST_ENTRY, *PLIST_ENTRY;
     LIST_ENTRY (x) = { &(x), &(x) }
 
 #define RTL_LIST_FOREACH(Entry, ListHead) \
-    for ((Entry) = &(ListHead); (Entry) != &(ListHead); (Entry) = (Entry)->Flink)
+    for ((Entry) = (&(ListHead))->Flink; (Entry) != &(ListHead); (Entry) = (Entry)->Flink)
 
 // #ifndef NO_LIST_ENTRY_CHECKS
 // #define NO_LIST_ENTRY_CHECKS
