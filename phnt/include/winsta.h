@@ -767,6 +767,7 @@ typedef struct _TS_PROCESS_INFORMATION_NT4
 #define SIZEOF_TS4_SYSTEM_THREAD_INFORMATION 64
 #define SIZEOF_TS4_SYSTEM_PROCESS_INFORMATION 136
 
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _TS_SYS_PROCESS_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -844,7 +845,19 @@ typedef struct _TS_COUNTER
 #define KBDALT 0x4
 
 // begin_rev
-// Flags for WinStationRegisterConsoleNotification
+// Flags for WinStationRegisterConsoleNotificatio
+/**
+ * WNOTIFY_THIS_SESSION
+ *
+ * Specifies that only session notifications involving the session attached
+ * to by the window identified by the WindowHandle are to be received.
+ */
+#define WNOTIFY_THIS_SESSION 0x0
+/**
+ * WNOTIFY_ALL_SESSIONS
+ *
+ * Specifies that all session notifications are to be received.
+ */
 #define WNOTIFY_ALL_SESSIONS 0x1
 // end_rev
 
@@ -861,6 +874,13 @@ WinStationFreeMemory(
     );
 
 // rev
+/**
+ * The WinStationOpenServerW routine opens a handle to the specified Remote Desktop Session Host (RD Session Host) server.
+ *
+ * \param ServerName Pointer to a null-terminated string specifying the NetBIOS name of the RD Session Host server.
+ * \return BOOLEAN If the function succeeds, the return value is a handle to the specified server.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsopenserverw
+ */
 NTSYSAPI
 HANDLE
 NTAPI
@@ -869,6 +889,13 @@ WinStationOpenServerW(
     );
 
 // rev
+/**
+ * The WinStationCloseServer routine closes an open handle to a Remote Desktop Session Host (RD Session Host) server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server opened by a call to the WinStationOpenServerW function.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtscloseserver
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -894,6 +921,16 @@ WinStationGetTermSrvCountersValue(
     _Inout_ PTS_COUNTER Counters // set counter IDs before calling
     );
 
+// rev
+/**
+ * The WinStationShutdownSystem routine shuts down (and optionally restarts) the specified Remote Desktop Session Host (RD Session Host) server.
+ *
+ * \param ServerHandle Handle to an RD Session Host server, or specify WINSTATION_CURRENT_SERVER to indicate the server on which your application is running.
+ * \param ShutdownFlags Indicates the type of shutdown. This parameter can be one of the WSD_* values.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \remarks To shut down or restart the system, the calling process must have the SE_SHUTDOWN_NAME privilege enabled.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsshutdownsystem
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -913,6 +950,16 @@ WinStationWaitSystemEvent(
     );
 
 // rev
+/**
+ * The WinStationRegisterConsoleNotification routine shuts down (and optionally restarts) the specified Remote Desktop Session Host (RD Session Host) server.
+ *
+ * \param ServerHandle Handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER .
+ * \param WindowHandle Handle of the window to receive session change notifications.
+ * \param Flags Specifies whether to receive notifications for all sessions (WNOTIFY_ALL_SESSIONS) or only for the console session.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \remarks To shut down or restart the system, the calling process must have the SE_SHUTDOWN_NAME privilege enabled.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsregistersessionnotificationex
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -944,17 +991,17 @@ WinStationEnumerateW(
 /**
  * The WinStationQueryInformationW routine retrieves information about a window station.
  *
- * @param ServerHandle A handle to an RD Session Host server. Specify a handle opened by the WinStationOpenServerW function, or specify WINSTATION_CURRENT_SERVER to indicate the server on which your application is running.
- * @param SessionId A Remote Desktop Services session identifier.
+ * \param ServerHandle A handle to an RD Session Host server. Specify a handle opened by the WinStationOpenServerW function, or specify WINSTATION_CURRENT_SERVER to indicate the server on which your application is running.
+ * \param SessionId A Remote Desktop Services session identifier.
  * To indicate the session in which the calling application is running (or the current session) specify WINSTATION_CURRENT_SESSION.
  * Only specify WINSTATION_CURRENT_SESSION when obtaining session information on the local server.
  * If WINSTATION_CURRENT_SESSION is specified when querying session information on a remote server, the returned session information will be inconsistent. Do not use the returned data.
- * @param WinStationInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be retrieved.
- * @param WinStationInformation Pointer to a caller-allocated buffer that receives the requested information about the token.
- * @param WinStationInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
- * @param ReturnLength Pointer to a caller-allocated variable that receives the actual length, in bytes, of the information returned in the TokenInformation buffer.
- * @return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
- * @sa https://learn.microsoft.com/en-us/previous-versions/aa383827(v=vs.85)
+ * \param WinStationInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be retrieved.
+ * \param WinStationInformation Pointer to a caller-allocated buffer that receives the requested information about the token.
+ * \param WinStationInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
+ * \param ReturnLength Pointer to a caller-allocated variable that receives the actual length, in bytes, of the information returned in the TokenInformation buffer.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \sa https://learn.microsoft.com/en-us/previous-versions/aa383827(v=vs.85)
  */
 NTSYSAPI
 BOOLEAN
