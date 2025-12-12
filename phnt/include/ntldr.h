@@ -585,7 +585,7 @@ typedef struct _LDR_SECTION_INFO
 typedef struct _LDR_VERIFY_IMAGE_INFO
 {
     ULONG Size;
-    ULONG Flags; // LDR_VERIFY_IMAGE_FLAG_* 
+    ULONG Flags; // LDR_VERIFY_IMAGE_FLAG_*
     LDR_IMPORT_CALLBACK_INFO CallbackInfo;
     LDR_SECTION_INFO SectionInfo;
     USHORT ImageCharacteristics;
@@ -1117,18 +1117,18 @@ LdrpResGetResourceDirectory(
 
 // rev
 /**
-* The LdrResSearchResource function searches for a resource in a DLL.
-*
-* \param DllHandle A handle to the DLL.
-* \param ResourcePath A pointer to an array of Type/Name/Language/(optional)AlternateType.
-* \param Count The number of elements in the ResourcePath array.
-* \param Flags Flags for the resource search.
-* \param ResourceBuffer An optional pointer to receive the resource buffer.
-* \param ResourceLength An optional pointer to receive the resource length.
-* \param CultureName An optional buffer to receive the culture name.
-* \param CultureNameLength An optional pointer to receive the length of the culture name.
-* \return NTSTATUS Successful or errant status.
-*/
+ * The LdrResSearchResource function searches for a resource in a DLL.
+ *
+ * \param DllHandle A handle to the DLL.
+ * \param ResourcePath A pointer to an array of Type/Name/Language/(optional)AlternateType.
+ * \param Count The number of elements in the ResourcePath array.
+ * \param Flags Flags for the resource search.
+ * \param ResourceBuffer An optional pointer to receive the resource buffer.
+ * \param ResourceLength An optional pointer to receive the resource length.
+ * \param CultureName An optional buffer to receive the culture name.
+ * \param CultureNameLength An optional pointer to receive the length of the culture name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
