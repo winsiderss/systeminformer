@@ -1238,12 +1238,12 @@ typedef struct _PS_PROTECTION
 
 /**
  * The PROCESS_MEMORY_EXHAUSTION_TYPE enumeration defines the different memory exhaustion typess.
- * 
+ *
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ne-processthreadsapi-process_memory_exhaustion_type
  */
-//typedef enum _PROCESS_MEMORY_EXHAUSTION_TYPE 
+//typedef enum _PROCESS_MEMORY_EXHAUSTION_TYPE
 //{
-//    // Anytime memory management fails an allocation due to an inability to commit memory, 
+//    // Anytime memory management fails an allocation due to an inability to commit memory,
 //    // it will cause the process to trigger a Windows Error Reporting report and then terminate immediately with STATUS_COMMITMENT_LIMIT.
 //    // The failure cannot be caught and handled by the app.
 //    PMETypeFailFastOnCommitFailure,
@@ -1251,11 +1251,11 @@ typedef struct _PS_PROTECTION
 //} PROCESS_MEMORY_EXHAUSTION_TYPE, *PPROCESS_MEMORY_EXHAUSTION_TYPE;
 
 /**
- * The PROCESS_MEMORY_EXHAUSTION_INFO structure allows applications to configure 
+ * The PROCESS_MEMORY_EXHAUSTION_INFO structure allows applications to configure
  * termination if an allocation fails to commit memory.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_memory_exhaustion_info
  */
-//typedef struct _PROCESS_MEMORY_EXHAUSTION_INFO 
+//typedef struct _PROCESS_MEMORY_EXHAUSTION_INFO
 //{
 //    USHORT Version; // Version should be set to PME_CURRENT_VERSION.
 //    USHORT Reserved; // Reserved
@@ -1375,10 +1375,10 @@ typedef struct _PROCESS_CHILD_PROCESS_INFORMATION
  * process to adjust the system timer resolution (such as timeBeginPeriod or NtSetTimerResolution)
  * are honored. When this flag is enabled, such requests are ignored.
  *
- * This behavior is part of Windows’ power‑throttling mechanism introduced in Windows 11 and is
+ * This behavior is part of Windows power-throttling mechanism introduced in Windows 11 and is
  * enabled by default for all processes. Changes to the system timer resolution can alter the
  * behavior of system timers, wait timeouts, and sleep durations, often causing unintended
- * side effects in applications. Higher‑precision timer resolutions also negatively impact
+ * side effects in applications. Higher-precision timer resolutions also negatively impact
  * battery life and overall system performance.
  *
  * \note Enabled by default since Windows 11. This may cause performance issues for legacy
