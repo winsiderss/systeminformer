@@ -219,7 +219,7 @@ typedef struct _BOOT_OPTIONS
     ULONG Timeout;
     ULONG CurrentBootEntryId;
     ULONG NextBootEntryId;
-    WCHAR HeadlessRedirection[1];
+    _Field_size_bytes_(Length) WCHAR HeadlessRedirection[1];
 } BOOT_OPTIONS, *PBOOT_OPTIONS;
 
 // private
@@ -1041,6 +1041,15 @@ typedef enum _TIMER_INFORMATION_CLASS
     TimerBasicInformation // TIMER_BASIC_INFORMATION
 } TIMER_INFORMATION_CLASS;
 
+typedef enum _TIMER_SET_INFORMATION_CLASS
+{
+    TimerSetCoalescableTimer, // TIMER_SET_COALESCABLE_TIMER_INFO
+    MaxTimerInfoClass
+} TIMER_SET_INFORMATION_CLASS;
+
+/**
+ * The TIMER_BASIC_INFORMATION structure contains basic information about a timer object.
+ */
 typedef struct _TIMER_BASIC_INFORMATION
 {
     LARGE_INTEGER RemainingTime;
@@ -1054,12 +1063,6 @@ VOID NTAPI TIMER_APC_ROUTINE(
     _In_ LONG TimerHighValue
     );
 typedef TIMER_APC_ROUTINE* PTIMER_APC_ROUTINE;
-
-typedef enum _TIMER_SET_INFORMATION_CLASS
-{
-    TimerSetCoalescableTimer, // TIMER_SET_COALESCABLE_TIMER_INFO
-    MaxTimerInfoClass
-} TIMER_SET_INFORMATION_CLASS;
 
 typedef struct _TIMER_SET_COALESCABLE_TIMER_INFO
 {
@@ -1210,7 +1213,8 @@ NtCreateIRTimer(
  * The NtSetIRTimer routine sets an IR timer object.
  *
  * \param TimerHandle A handle to the IR timer object.
- * \param DueTime An optional pointer to a LARGE_INTEGER that specifies the time at which the timer is to be set to the signaled state.
+ * \param DueTime An optional pointer to a LARGE_INTEGER that specifies
+ * the time at which the timer is to be set to the signaled state.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
@@ -2377,6 +2381,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemRefTraceInformationEx,                            // q: SYSTEM_REF_TRACE_INFORMATION_EX
     SystemBasicProcessInformation,                          // q: SYSTEM_BASICPROCESS_INFORMATION
     SystemHandleCountInformation,                           // q: SYSTEM_HANDLECOUNT_INFORMATION
+    SystemRuntimeAttestationReport,                         // q: // since 26H1
+    SystemPoolTagInformation2,                              // q: SYSTEM_POOLTAG_INFORMATION2
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -2794,13 +2800,14 @@ typedef struct _RTL_PROCESS_BACKTRACE_INFORMATION
 // private
 typedef struct _RTL_PROCESS_BACKTRACES
 {
-    ULONG CommittedMemory;
-    ULONG ReservedMemory;
+    SIZE_T CommittedMemory;
+    SIZE_T ReservedMemory;
     ULONG NumberOfBackTraceLookups;
     ULONG NumberOfBackTraces;
     _Field_size_(NumberOfBackTraces) RTL_PROCESS_BACKTRACE_INFORMATION BackTraces[1];
 } RTL_PROCESS_BACKTRACES, *PRTL_PROCESS_BACKTRACES;
 
+// Note: This information class is deprecatd since values are limitd to 65535. Use SystemExtendedHandleInformation instead.
 typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
 {
     USHORT UniqueProcessId;
@@ -4522,7 +4529,7 @@ typedef struct _SM_SYSTEM_STORE_TRIM_REQUEST
 {
     ULONG Version : 8;  // SYSTEM_STORE_TRIM_INFORMATION_VERSION
     ULONG Spare : 24;
-    SIZE_T PagesToTrim; // TrimFlags // must be non‑zero
+    SIZE_T PagesToTrim; // TrimFlags // must be non-zero
     HANDLE PartitionHandle; // since 24H2
 } SM_SYSTEM_STORE_TRIM_REQUEST, *PSM_SYSTEM_STORE_TRIM_REQUEST;
 
@@ -5429,7 +5436,8 @@ typedef struct _SYSTEM_ISOLATED_USER_MODE_INFORMATION
     BOOLEAN HardwareEnforcedHvpt : 1;
     BOOLEAN HardwareHvptAvailable : 1;
     BOOLEAN SpareFlags2 : 1;
-    BOOLEAN Spare0[6];
+    BOOLEAN EncryptionKeyTpmBound : 1;
+    BOOLEAN Spare0[5];
     ULONGLONG Spare1;
 } SYSTEM_ISOLATED_USER_MODE_INFORMATION, *PSYSTEM_ISOLATED_USER_MODE_INFORMATION;
 
@@ -6241,6 +6249,29 @@ typedef struct _SYSTEM_HANDLECOUNT_INFORMATION
     ULONG HandleCount;
 } SYSTEM_HANDLECOUNT_INFORMATION, *PSYSTEM_HANDLECOUNT_INFORMATION;
 
+// private
+typedef struct _SYSTEM_POOLTAG2
+{
+    union
+    {
+        UCHAR Tag[4];
+        ULONG TagUlong;
+    } DUMMYUNIONNAME;
+    SIZE_T PagedAllocs;
+    SIZE_T PagedFrees;
+    SIZE_T PagedUsed;
+    SIZE_T NonPagedAllocs;
+    SIZE_T NonPagedFrees;
+    SIZE_T NonPagedUsed;
+} SYSTEM_POOLTAG2, *PSYSTEM_POOLTAG2;
+
+// private
+typedef struct _SYSTEM_POOLTAG_INFORMATION2
+{
+    ULONG Count;
+    _Field_size_(Count) SYSTEM_POOLTAG2 TagInfo[1];
+} SYSTEM_POOLTAG_INFORMATION2, *PSYSTEM_POOLTAG_INFORMATION2;
+
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
@@ -6506,6 +6537,17 @@ typedef struct _SYSDBG_KD_PULL_REMOTE_FILE
     UNICODE_STRING ImageFileName;
 } SYSDBG_KD_PULL_REMOTE_FILE, *PSYSDBG_KD_PULL_REMOTE_FILE;
 
+/**
+ * The NtSystemDebugControl routine provides system debugging and diagnostic control of the system.
+ *
+ * \param[in] Command The debug control command to execute (of type SYSDBG_COMMAND).
+ * \param[in] InputBuffer Optional pointer to a buffer containing input data for the command.
+ * \param[in] InputBufferLength Length, in bytes, of the input buffer.
+ * \param[out] OutputBuffer Optional pointer to a buffer that receives output data from the command.
+ * \param[in] OutputBufferLength Length, in bytes, of the output buffer.
+ * \param[out] ReturnLength Optional pointer to a variable that receives the number of bytes returned in the output buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -6552,6 +6594,17 @@ typedef enum _HARDERROR_RESPONSE
 
 #define HARDERROR_OVERRIDE_ERRORMODE 0x10000000
 
+/**
+ * The NtRaiseHardError routine raises a hard error or serious error dialog box being displayed to the user.
+ *
+ * \param[in] ErrorStatus The NTSTATUS code that describes the error condition.
+ * \param[in] NumberOfParameters The number of parameters in the Parameters array.
+ * \param[in] UnicodeStringParameterMask A bitmask indicating which entries in the Parameters array are Unicode strings.
+ * \param[in] Parameters An array of parameters to be used in the error message.
+ * \param[in] ValidResponseOptions Specifies the valid responses that the user can select in the error dialog.
+ * \param[out] Response Receives the user's response to the error dialog.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSCALLAPI
