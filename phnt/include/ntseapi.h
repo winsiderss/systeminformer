@@ -19,7 +19,7 @@
 #define SE_MACHINE_ACCOUNT_PRIVILEGE (6L)           // Required to create a computer account.
 #define SE_TCB_PRIVILEGE (7L)                       // Required to act as part of the Trusted Computer Base.
 #define SE_SECURITY_PRIVILEGE (8L)                  // Required to perform a number of security-related functions, such as controlling and viewing audit messages. // Security operator.
-#define SE_TAKE_OWNERSHIP_PRIVILEGE (9L)            // Required to take ownership of an object without being granted discretionary access. 
+#define SE_TAKE_OWNERSHIP_PRIVILEGE (9L)            // Required to take ownership of an object without being granted discretionary access.
 #define SE_LOAD_DRIVER_PRIVILEGE (10L)              // Required to load or unload a device driver.
 #define SE_SYSTEM_PROFILE_PRIVILEGE (11L)           // Required to gather profiling information for the entire system.
 #define SE_SYSTEMTIME_PRIVILEGE (12L)               // Required to modify the system time.
@@ -36,7 +36,7 @@
 #define SE_CHANGE_NOTIFY_PRIVILEGE (23L)            // Required to receive notifications of changes to files or directories and skip all traversal access checks. It is enabled by default for all users.
 #define SE_REMOTE_SHUTDOWN_PRIVILEGE (24L)          // Required to shut down a system using a network request.
 #define SE_UNDOCK_PRIVILEGE (25L)                   // Required to undock a laptop.
-#define SE_SYNC_AGENT_PRIVILEGE (26L)               // Required for a domain controller to use the Lightweight Directory Access Protocol (LDAP) directory synchronization services. 
+#define SE_SYNC_AGENT_PRIVILEGE (26L)               // Required for a domain controller to use the Lightweight Directory Access Protocol (LDAP) directory synchronization services.
 #define SE_ENABLE_DELEGATION_PRIVILEGE (27L)        // Required to mark user and computer accounts as trusted for delegation.
 #define SE_MANAGE_VOLUME_PRIVILEGE (28L)            // Required to enable volume management privileges.
 #define SE_IMPERSONATE_PRIVILEGE (29L)              // Required to impersonate a client after authentication.
@@ -61,7 +61,7 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenUser = 1,                        // q: TOKEN_USER, SE_TOKEN_USER
     TokenGroups,                          // q: TOKEN_GROUPS
     TokenPrivileges,                      // q: TOKEN_PRIVILEGES
-    TokenOwner,                           // qs: TOKEN_OWNER          
+    TokenOwner,                           // qs: TOKEN_OWNER
     TokenPrimaryGroup,                    // qs: TOKEN_PRIMARY_GROUP
     TokenDefaultDacl,                     // qs: TOKEN_DEFAULT_DACL
     TokenSource,                          // q: TOKEN_SOURCE
@@ -328,20 +328,20 @@ typedef struct _TOKEN_LOGGING_INFORMATION
 /**
  * The NtCreateToken routine creates a new access token.
  *
- * @param TokenHandle Pointer to a variable that receives the handle to the newly created token.
- * @param DesiredAccess Specifies the requested access rights for the new token.
- * @param ObjectAttributes Optional pointer to an OBJECT_ATTRIBUTES structure specifying object attributes.
- * @param Type Specifies the type of token to be created (primary or impersonation).
- * @param AuthenticationId Pointer to a locally unique identifier (LUID) for the token.
- * @param ExpirationTime Pointer to a LARGE_INTEGER specifying the expiration time of the token.
- * @param User Pointer to a TOKEN_USER structure specifying the user account for the token.
- * @param Groups Pointer to a TOKEN_GROUPS structure specifying the group accounts for the token.
- * @param Privileges Pointer to a TOKEN_PRIVILEGES structure specifying the privileges for the token.
- * @param Owner Optional pointer to a TOKEN_OWNER structure specifying the owner SID for the token.
- * @param PrimaryGroup Pointer to a TOKEN_PRIMARY_GROUP structure specifying the primary group SID for the token.
- * @param DefaultDacl Optional pointer to a TOKEN_DEFAULT_DACL structure specifying the default DACL for the token.
- * @param Source Pointer to a TOKEN_SOURCE structure specifying the source of the token.
- * @return NTSTATUS code indicating success or failure.
+ * \param TokenHandle Pointer to a variable that receives the handle to the newly created token.
+ * \param DesiredAccess Specifies the requested access rights for the new token.
+ * \param ObjectAttributes Optional pointer to an OBJECT_ATTRIBUTES structure specifying object attributes.
+ * \param Type Specifies the type of token to be created (primary or impersonation).
+ * \param AuthenticationId Pointer to a locally unique identifier (LUID) for the token.
+ * \param ExpirationTime Pointer to a LARGE_INTEGER specifying the expiration time of the token.
+ * \param User Pointer to a TOKEN_USER structure specifying the user account for the token.
+ * \param Groups Pointer to a TOKEN_GROUPS structure specifying the group accounts for the token.
+ * \param Privileges Pointer to a TOKEN_PRIVILEGES structure specifying the privileges for the token.
+ * \param Owner Optional pointer to a TOKEN_OWNER structure specifying the owner SID for the token.
+ * \param PrimaryGroup Pointer to a TOKEN_PRIMARY_GROUP structure specifying the primary group SID for the token.
+ * \param DefaultDacl Optional pointer to a TOKEN_DEFAULT_DACL structure specifying the default DACL for the token.
+ * \param Source Pointer to a TOKEN_SOURCE structure specifying the source of the token.
+ * \return NTSTATUS code indicating success or failure.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -366,17 +366,17 @@ NtCreateToken(
 /**
  * The NtCreateLowBoxToken routine creates a new lowbox access token based on an existing token.
  *
- * @param TokenHandle Pointer to a variable that receives the handle to the newly created lowbox token.
- * @param ExistingTokenHandle Handle to an existing token to base the new token on.
- * @param DesiredAccess Specifies the requested access rights for the new token.
- * @param ObjectAttributes Optional pointer to an OBJECT_ATTRIBUTES structure specifying object attributes.
- * @param PackageSid Pointer to a SID structure specifying the package SID for the lowbox token.
- * @param CapabilityCount Number of capabilities in the Capabilities array.
- * @param Capabilities Optional pointer to an array of SID_AND_ATTRIBUTES structures specifying capabilities.
- * @param HandleCount Number of handles in the Handles array.
- * @param Handles Optional pointer to an array of handles to be associated with the token.
- * @return NTSTATUS code indicating success or failure.
- * @sa https://learn.microsoft.com/en-us/windows/win32/secauthz/ntcreatelowboxtoken
+ * \param TokenHandle Pointer to a variable that receives the handle to the newly created lowbox token.
+ * \param ExistingTokenHandle Handle to an existing token to base the new token on.
+ * \param DesiredAccess Specifies the requested access rights for the new token.
+ * \param ObjectAttributes Optional pointer to an OBJECT_ATTRIBUTES structure specifying object attributes.
+ * \param PackageSid Pointer to a SID structure specifying the package SID for the lowbox token.
+ * \param CapabilityCount Number of capabilities in the Capabilities array.
+ * \param Capabilities Optional pointer to an array of SID_AND_ATTRIBUTES structures specifying capabilities.
+ * \param HandleCount Number of handles in the Handles array.
+ * \param Handles Optional pointer to an array of handles to be associated with the token.
+ * \return NTSTATUS code indicating success or failure.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/secauthz/ntcreatelowboxtoken
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -398,24 +398,24 @@ NtCreateLowBoxToken(
 /**
  * The NtCreateTokenEx routine creates a new access token with extended attributes.
  *
- * @param TokenHandle Pointer to a variable that receives the handle to the newly created token.
- * @param DesiredAccess Specifies the requested access rights for the new token.
- * @param ObjectAttributes Optional pointer to an OBJECT_ATTRIBUTES structure specifying object attributes.
- * @param Type Specifies the type of token to be created (primary or impersonation).
- * @param AuthenticationId Pointer to a locally unique identifier (LUID) for the token.
- * @param ExpirationTime Pointer to a LARGE_INTEGER specifying the expiration time of the token.
- * @param User Pointer to a TOKEN_USER structure specifying the user account for the token.
- * @param Groups Pointer to a TOKEN_GROUPS structure specifying the group accounts for the token.
- * @param Privileges Pointer to a TOKEN_PRIVILEGES structure specifying the privileges for the token.
- * @param UserAttributes Optional pointer to a TOKEN_SECURITY_ATTRIBUTES_INFORMATION structure specifying user claims.
- * @param DeviceAttributes Optional pointer to a TOKEN_SECURITY_ATTRIBUTES_INFORMATION structure specifying device claims.
- * @param DeviceGroups Optional pointer to a TOKEN_GROUPS structure specifying device groups.
- * @param MandatoryPolicy Optional pointer to a TOKEN_MANDATORY_POLICY structure specifying the mandatory policy.
- * @param Owner Optional pointer to a TOKEN_OWNER structure specifying the owner SID for the token.
- * @param PrimaryGroup Pointer to a TOKEN_PRIMARY_GROUP structure specifying the primary group SID for the token.
- * @param DefaultDacl Optional pointer to a TOKEN_DEFAULT_DACL structure specifying the default DACL for the token.
- * @param Source Pointer to a TOKEN_SOURCE structure specifying the source of the token.
- * @return NTSTATUS code indicating success or failure.
+ * \param TokenHandle Pointer to a variable that receives the handle to the newly created token.
+ * \param DesiredAccess Specifies the requested access rights for the new token.
+ * \param ObjectAttributes Optional pointer to an OBJECT_ATTRIBUTES structure specifying object attributes.
+ * \param Type Specifies the type of token to be created (primary or impersonation).
+ * \param AuthenticationId Pointer to a locally unique identifier (LUID) for the token.
+ * \param ExpirationTime Pointer to a LARGE_INTEGER specifying the expiration time of the token.
+ * \param User Pointer to a TOKEN_USER structure specifying the user account for the token.
+ * \param Groups Pointer to a TOKEN_GROUPS structure specifying the group accounts for the token.
+ * \param Privileges Pointer to a TOKEN_PRIVILEGES structure specifying the privileges for the token.
+ * \param UserAttributes Optional pointer to a TOKEN_SECURITY_ATTRIBUTES_INFORMATION structure specifying user claims.
+ * \param DeviceAttributes Optional pointer to a TOKEN_SECURITY_ATTRIBUTES_INFORMATION structure specifying device claims.
+ * \param DeviceGroups Optional pointer to a TOKEN_GROUPS structure specifying device groups.
+ * \param MandatoryPolicy Optional pointer to a TOKEN_MANDATORY_POLICY structure specifying the mandatory policy.
+ * \param Owner Optional pointer to a TOKEN_OWNER structure specifying the owner SID for the token.
+ * \param PrimaryGroup Pointer to a TOKEN_PRIMARY_GROUP structure specifying the primary group SID for the token.
+ * \param DefaultDacl Optional pointer to a TOKEN_DEFAULT_DACL structure specifying the default DACL for the token.
+ * \param Source Pointer to a TOKEN_SOURCE structure specifying the source of the token.
+ * \return NTSTATUS code indicating success or failure.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -444,11 +444,11 @@ NtCreateTokenEx(
 /**
  * The NtOpenProcessToken routine opens the access token associated with a process, and returns a handle that can be used to access that token.
  *
- * @param ProcessHandle Handle to the process whose access token is to be opened. The handle must have PROCESS_QUERY_INFORMATION access.
- * @param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
- * @param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenprocesstoken
+ * \param ProcessHandle Handle to the process whose access token is to be opened. The handle must have PROCESS_QUERY_INFORMATION access.
+ * \param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
+ * \param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenprocesstoken
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -462,12 +462,12 @@ NtOpenProcessToken(
 /**
  * The NtOpenProcessTokenEx routine opens the access token associated with a process, and returns a handle that can be used to access that token.
  *
- * @param ProcessHandle Handle to the process whose access token is to be opened. The handle must have PROCESS_QUERY_INFORMATION access.
- * @param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
- * @param HandleAttributes Attributes for the created handle. Only OBJ_KERNEL_HANDLE is currently supported.
- * @param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenprocesstokenex
+ * \param ProcessHandle Handle to the process whose access token is to be opened. The handle must have PROCESS_QUERY_INFORMATION access.
+ * \param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
+ * \param HandleAttributes Attributes for the created handle. Only OBJ_KERNEL_HANDLE is currently supported.
+ * \param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenprocesstokenex
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -482,12 +482,12 @@ NtOpenProcessTokenEx(
 /**
  * The NtOpenThreadToken routine opens the access token associated with a thread, and returns a handle that can be used to access that token.
  *
- * @param ThreadHandle Handle to the thread whose access token is to be opened. The handle must have THREAD_QUERY_INFORMATION access.
- * @param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
- * @param OpenAsSelf Boolean value specifying whether the access check is to be made against the security context of the thread calling NtOpenThreadToken or against the security context of the process for the calling thread.
- * @param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenthreadtoken
+ * \param ThreadHandle Handle to the thread whose access token is to be opened. The handle must have THREAD_QUERY_INFORMATION access.
+ * \param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
+ * \param OpenAsSelf Boolean value specifying whether the access check is to be made against the security context of the thread calling NtOpenThreadToken or against the security context of the process for the calling thread.
+ * \param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenthreadtoken
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -502,13 +502,13 @@ NtOpenThreadToken(
 /**
  * The NtOpenThreadTokenEx routine opens the access token associated with a thread, and returns a handle that can be used to access that token.
  *
- * @param ThreadHandle Handle to the thread whose access token is to be opened. The handle must have THREAD_QUERY_INFORMATION access.
- * @param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
- * @param OpenAsSelf Boolean value specifying whether the access check is to be made against the security context of the thread calling NtOpenThreadToken or against the security context of the process for the calling thread.
- * @param HandleAttributes Attributes for the created handle. Only OBJ_KERNEL_HANDLE is currently supported.
- * @param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenthreadtokenex
+ * \param ThreadHandle Handle to the thread whose access token is to be opened. The handle must have THREAD_QUERY_INFORMATION access.
+ * \param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
+ * \param OpenAsSelf Boolean value specifying whether the access check is to be made against the security context of the thread calling NtOpenThreadToken or against the security context of the process for the calling thread.
+ * \param HandleAttributes Attributes for the created handle. Only OBJ_KERNEL_HANDLE is currently supported.
+ * \param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenthreadtokenex
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -524,14 +524,14 @@ NtOpenThreadTokenEx(
 /**
  * The NtDuplicateToken function creates a handle to a new access token that duplicates an existing token.
  *
- * @param ExistingTokenHandle A handle to an existing access token that was opened with the TOKEN_DUPLICATE access right.
- * @param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
- * @param ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that describes the requested properties for the new token.
- * @param EffectiveOnly A Boolean value that indicates whether the entire existing token should be duplicated into the new token or just the effective (currently enabled) part of the token.
- * @param Type Specifies the type of token to create either a primary token or an impersonation token.
- * @param NewTokenHandle Pointer to a caller-allocated variable that receives a handle to the newly duplicated token.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntduplicatetoken
+ * \param ExistingTokenHandle A handle to an existing access token that was opened with the TOKEN_DUPLICATE access right.
+ * \param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
+ * \param ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that describes the requested properties for the new token.
+ * \param EffectiveOnly A Boolean value that indicates whether the entire existing token should be duplicated into the new token or just the effective (currently enabled) part of the token.
+ * \param Type Specifies the type of token to create either a primary token or an impersonation token.
+ * \param NewTokenHandle Pointer to a caller-allocated variable that receives a handle to the newly duplicated token.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntduplicatetoken
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -548,14 +548,14 @@ NtDuplicateToken(
 /**
  * The NtQueryInformationToken routine retrieves a specified type of information about an access token. The calling process must have appropriate access rights to obtain the information.
  *
- * @param TokenHandle A handle to an existing access token from which information is to be retrieved. If TokenInformationClass is set to TokenSource, the handle must have TOKEN_QUERY_SOURCE access.
- * For all other TokenInformationClass values, the handle must have TOKEN_QUERY access. 
- * @param TokenInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be retrieved.
- * @param TokenInformation Pointer to a caller-allocated buffer that receives the requested information about the token.
- * @param TokenInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
- * @param ReturnLength Pointer to a caller-allocated variable that receives the actual length, in bytes, of the information returned in the TokenInformation buffer.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationtoken
+ * \param TokenHandle A handle to an existing access token from which information is to be retrieved. If TokenInformationClass is set to TokenSource, the handle must have TOKEN_QUERY_SOURCE access.
+ * For all other TokenInformationClass values, the handle must have TOKEN_QUERY access.
+ * \param TokenInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be retrieved.
+ * \param TokenInformation Pointer to a caller-allocated buffer that receives the requested information about the token.
+ * \param TokenInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
+ * \param ReturnLength Pointer to a caller-allocated variable that receives the actual length, in bytes, of the information returned in the TokenInformation buffer.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationtoken
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -571,12 +571,12 @@ NtQueryInformationToken(
 /**
  * The NtSetInformationToken routine modifies information in a specified token. The calling process must have appropriate access rights to set the information.
  *
- * @param TokenHandle A handle to an existing access token which information is to be modified.
- * @param TokenInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be modified.
- * @param TokenInformation Pointer to a caller-allocated buffer containing the information to be modified in the token.
- * @param TokenInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntsetinformationtoken
+ * \param TokenHandle A handle to an existing access token which information is to be modified.
+ * \param TokenInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be modified.
+ * \param TokenInformation Pointer to a caller-allocated buffer containing the information to be modified in the token.
+ * \param TokenInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntsetinformationtoken
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -591,15 +591,15 @@ NtSetInformationToken(
 /**
  * The NtAdjustPrivilegesToken routine enables or disables privileges in the specified access token.
  *
- * @param TokenHandle Handle to the token that contains the privileges to be modified. The handle must have TOKEN_ADJUST_PRIVILEGES access.
- * @param DisableAllPrivileges Specifies whether the function disables all of the token's privileges. If this value is TRUE, the function disables all privileges and ignores the NewState parameter.
+ * \param TokenHandle Handle to the token that contains the privileges to be modified. The handle must have TOKEN_ADJUST_PRIVILEGES access.
+ * \param DisableAllPrivileges Specifies whether the function disables all of the token's privileges. If this value is TRUE, the function disables all privileges and ignores the NewState parameter.
  * If it is FALSE, the function modifies privileges based on the information pointed to by the NewState parameter.
- * @param NewState A pointer to a TOKEN_PRIVILEGES structure that specifies an array of privileges and their attributes. If DisableAllPrivileges is TRUE, the function ignores this parameter.
- * @param BufferLength Specifies the size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be zero if the PreviousState parameter is NULL.
- * @param PreviousState A pointer to a buffer that the function fills with a TOKEN_PRIVILEGES structure that contains the previous state of any privileges that the function modifies.
- * @param ReturnLength A pointer to a variable that receives the required size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be NULL if PreviousState is NULL.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
+ * \param NewState A pointer to a TOKEN_PRIVILEGES structure that specifies an array of privileges and their attributes. If DisableAllPrivileges is TRUE, the function ignores this parameter.
+ * \param BufferLength Specifies the size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be zero if the PreviousState parameter is NULL.
+ * \param PreviousState A pointer to a buffer that the function fills with a TOKEN_PRIVILEGES structure that contains the previous state of any privileges that the function modifies.
+ * \param ReturnLength A pointer to a variable that receives the required size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be NULL if PreviousState is NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -616,14 +616,14 @@ NtAdjustPrivilegesToken(
 /**
  * The NtAdjustGroupsToken routine enables or disables groups in the specified access token.
  *
- * @param TokenHandle Handle to the token that contains the groups to be modified. The handle must have TOKEN_ADJUST_GROUPS access.
- * @param ResetToDefault Specifies whether the function resets the groups to the default state. If this value is TRUE, the function resets all groups to their default state and ignores the NewState parameter.
- * @param NewState A pointer to a TOKEN_GROUPS structure that specifies an array of groups and their attributes. If ResetToDefault is TRUE, the function ignores this parameter.
- * @param BufferLength Specifies the size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be zero if the PreviousState parameter is NULL.
- * @param PreviousState A pointer to a buffer that the function fills with a TOKEN_GROUPS structure that contains the previous state of any groups that the function modifies.
- * @param ReturnLength A pointer to a variable that receives the required size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be NULL if PreviousState is NULL.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokengroups
+ * \param TokenHandle Handle to the token that contains the groups to be modified. The handle must have TOKEN_ADJUST_GROUPS access.
+ * \param ResetToDefault Specifies whether the function resets the groups to the default state. If this value is TRUE, the function resets all groups to their default state and ignores the NewState parameter.
+ * \param NewState A pointer to a TOKEN_GROUPS structure that specifies an array of groups and their attributes. If ResetToDefault is TRUE, the function ignores this parameter.
+ * \param BufferLength Specifies the size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be zero if the PreviousState parameter is NULL.
+ * \param PreviousState A pointer to a buffer that the function fills with a TOKEN_GROUPS structure that contains the previous state of any groups that the function modifies.
+ * \param ReturnLength A pointer to a variable that receives the required size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be NULL if PreviousState is NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokengroups
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -664,8 +664,8 @@ NtAdjustTokenClaimsAndDeviceGroups(
 // NtFilterToken Flags
 #define DISABLE_MAX_PRIVILEGE   0x1 // Disables all privileges in the new token except SE_CHANGE_NOTIFY_PRIVILEGE.
 #define SANDBOX_INERT           0x2 // Stores the TOKEN_SANDBOX_INERT flag in the token.
-#define LUA_TOKEN               0x4 
-#define WRITE_RESTRICTED        0x8 
+#define LUA_TOKEN               0x4
+#define WRITE_RESTRICTED        0x8
 
 /**
  * The NtFilterToken routine creates a new access token that is a restricted version of an existing access token.
@@ -752,8 +752,8 @@ NtPrivilegeCheck(
 /**
  * The NtImpersonateAnonymousToken routine causes a thread to impersonate the anonymous token.
  *
- * @param ThreadHandle Handle to the thread that will impersonate the anonymous token. The handle must have THREAD_DIRECT_IMPERSONATION access.
- * @return NTSTATUS Successful or errant status.
+ * \param ThreadHandle Handle to the thread that will impersonate the anonymous token. The handle must have THREAD_DIRECT_IMPERSONATION access.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -765,13 +765,13 @@ NtImpersonateAnonymousToken(
 /**
  * The NtQuerySecurityAttributesToken routine retrieves security attribute information from an access token.
  *
- * @param TokenHandle Handle to the access token from which to retrieve security attributes. The handle must have TOKEN_QUERY access.
- * @param Attributes Pointer to an array of UNICODE_STRING structures specifying the names of the attributes to query. This parameter can be NULL if NumberOfAttributes is zero.
- * @param NumberOfAttributes The number of attributes specified in the Attributes array.
- * @param Buffer Pointer to a buffer that receives the security attribute information. The buffer receives a TOKEN_SECURITY_ATTRIBUTES_INFORMATION structure.
- * @param Length The size, in bytes, of the Buffer parameter.
- * @param ReturnLength Pointer to a variable that receives the number of bytes required to store the complete security attribute information.
- * @return NTSTATUS Successful or errant status.
+ * \param TokenHandle Handle to the access token from which to retrieve security attributes. The handle must have TOKEN_QUERY access.
+ * \param Attributes Pointer to an array of UNICODE_STRING structures specifying the names of the attributes to query. This parameter can be NULL if NumberOfAttributes is zero.
+ * \param NumberOfAttributes The number of attributes specified in the Attributes array.
+ * \param Buffer Pointer to a buffer that receives the security attribute information. The buffer receives a TOKEN_SECURITY_ATTRIBUTES_INFORMATION structure.
+ * \param Length The size, in bytes, of the Buffer parameter.
+ * \param ReturnLength Pointer to a variable that receives the number of bytes required to store the complete security attribute information.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -791,16 +791,16 @@ NtQuerySecurityAttributesToken(
 /**
  * The NtAccessCheck routine determines whether a security descriptor grants a specified set of access rights to the client represented by an access token.
  *
- * @param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
- * @param ClientToken Handle to the access token representing the client. The handle must have TOKEN_QUERY access.
- * @param DesiredAccess Access mask that specifies the access rights to check.
- * @param GenericMapping Pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
- * @param PrivilegeSet Pointer to a PRIVILEGE_SET structure that receives the privileges required to access the object. The buffer must be large enough to hold the privilege set.
- * @param PrivilegeSetLength Pointer to a variable that specifies the size, in bytes, of the PrivilegeSet buffer. On input, this is the size of the buffer; on output, it receives the number of bytes required.
- * @param GrantedAccess Pointer to an access mask that receives the granted access rights.
- * @param AccessStatus Pointer to a variable that receives the results of the access check.
- * @return NTSTATUS code indicating success or failure.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-accesscheck
+ * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
+ * \param ClientToken Handle to the access token representing the client. The handle must have TOKEN_QUERY access.
+ * \param DesiredAccess Access mask that specifies the access rights to check.
+ * \param GenericMapping Pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
+ * \param PrivilegeSet Pointer to a PRIVILEGE_SET structure that receives the privileges required to access the object. The buffer must be large enough to hold the privilege set.
+ * \param PrivilegeSetLength Pointer to a variable that specifies the size, in bytes, of the PrivilegeSet buffer. On input, this is the size of the buffer; on output, it receives the number of bytes required.
+ * \param GrantedAccess Pointer to an access mask that receives the granted access rights.
+ * \param AccessStatus Pointer to a variable that receives the results of the access check.
+ * \return NTSTATUS code indicating success or failure.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-accesscheck
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -819,19 +819,19 @@ NtAccessCheck(
 /**
  * The NtAccessCheckByType routine determines whether a security descriptor grants a specified set of access rights to the client represented by an access token, taking into account object type information.
  *
- * @param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
- * @param PrincipalSelfSid Optional pointer to a SID structure representing the principal self SID, or NULL.
- * @param ClientToken Handle to the access token representing the client. The handle must have TOKEN_QUERY access.
- * @param DesiredAccess Access mask that specifies the access rights to check.
- * @param ObjectTypeList Pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
- * @param ObjectTypeListLength The number of elements in the ObjectTypeList array.
- * @param GenericMapping Pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
- * @param PrivilegeSet Pointer to a PRIVILEGE_SET structure that receives the privileges required to access the object. The buffer must be large enough to hold the privilege set.
- * @param PrivilegeSetLength Pointer to a variable that specifies the size, in bytes, of the PrivilegeSet buffer. On input, this is the size of the buffer; on output, it receives the number of bytes required.
- * @param GrantedAccess Pointer to an access mask that receives the granted access rights.
- * @param AccessStatus Pointer to a variable that receives the results of the access check.
- * @return NTSTATUS code indicating success or failure.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-accesscheckbytype
+ * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
+ * \param PrincipalSelfSid Optional pointer to a SID structure representing the principal self SID, or NULL.
+ * \param ClientToken Handle to the access token representing the client. The handle must have TOKEN_QUERY access.
+ * \param DesiredAccess Access mask that specifies the access rights to check.
+ * \param ObjectTypeList Pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
+ * \param ObjectTypeListLength The number of elements in the ObjectTypeList array.
+ * \param GenericMapping Pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
+ * \param PrivilegeSet Pointer to a PRIVILEGE_SET structure that receives the privileges required to access the object. The buffer must be large enough to hold the privilege set.
+ * \param PrivilegeSetLength Pointer to a variable that specifies the size, in bytes, of the PrivilegeSet buffer. On input, this is the size of the buffer; on output, it receives the number of bytes required.
+ * \param GrantedAccess Pointer to an access mask that receives the granted access rights.
+ * \param AccessStatus Pointer to a variable that receives the results of the access check.
+ * \return NTSTATUS code indicating success or failure.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-accesscheckbytype
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -853,19 +853,19 @@ NtAccessCheckByType(
 /**
  * The NtAccessCheckByTypeResultList routine determines whether a security descriptor grants a specified set of access rights to the client represented by an access token, and returns the results for each object type in a list.
  *
- * @param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
- * @param PrincipalSelfSid Optional pointer to a SID structure representing the principal self SID, or NULL.
- * @param ClientToken Handle to the access token representing the client. The handle must have TOKEN_QUERY access.
- * @param DesiredAccess Access mask that specifies the access rights to check.
- * @param ObjectTypeList Pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
- * @param ObjectTypeListLength The number of elements in the ObjectTypeList array.
- * @param GenericMapping Pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
- * @param PrivilegeSet Pointer to a PRIVILEGE_SET structure that receives the privileges required to access the object. The buffer must be large enough to hold the privilege set.
- * @param PrivilegeSetLength Pointer to a variable that specifies the size, in bytes, of the PrivilegeSet buffer. On input, this is the size of the buffer; on output, it receives the number of bytes required.
- * @param GrantedAccess Pointer to an array of access masks that receive the granted access rights for each object type.
- * @param AccessStatus Pointer to an array of NTSTATUS values that receive the results of the access check for each object type.
- * @return NTSTATUS code indicating success or failure.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-accesscheckbytyperesultlist
+ * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
+ * \param PrincipalSelfSid Optional pointer to a SID structure representing the principal self SID, or NULL.
+ * \param ClientToken Handle to the access token representing the client. The handle must have TOKEN_QUERY access.
+ * \param DesiredAccess Access mask that specifies the access rights to check.
+ * \param ObjectTypeList Pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
+ * \param ObjectTypeListLength The number of elements in the ObjectTypeList array.
+ * \param GenericMapping Pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
+ * \param PrivilegeSet Pointer to a PRIVILEGE_SET structure that receives the privileges required to access the object. The buffer must be large enough to hold the privilege set.
+ * \param PrivilegeSetLength Pointer to a variable that specifies the size, in bytes, of the PrivilegeSet buffer. On input, this is the size of the buffer; on output, it receives the number of bytes required.
+ * \param GrantedAccess Pointer to an array of access masks that receive the granted access rights for each object type.
+ * \param AccessStatus Pointer to an array of NTSTATUS values that receive the results of the access check for each object type.
+ * \return NTSTATUS code indicating success or failure.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-accesscheckbytyperesultlist
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -894,7 +894,7 @@ NtAccessCheckByTypeResultList(
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 /**
  * The NtGetCachedSigningLevel routine retrieves the cached signing level of a file.
- * 
+ *
  * \param File Handle to a file.
  * \param Flags Pointer to the flags set on the file.
  * \param SigningLevel Pointer to the signing level.
@@ -918,7 +918,7 @@ NtGetCachedSigningLevel(
 
 /**
  * The NtSetCachedSigningLevel routine sets the cached signing level of a file.
- * 
+ *
  * \param Flags Pointer to the flags set on the file.
  * \param InputSigningLevel Pointer to the signing level.
  * \param SourceFiles Pointer to a set of source file handles.
@@ -988,19 +988,19 @@ NtCompareSigningLevels(
  * The NtAccessCheckAndAuditAlarm routine determines whether a security descriptor grants a specified set of access rights to the client being impersonated by the calling thread.
  * If the security descriptor has a SACL with ACEs that apply to the client, the function generates any necessary audit messages in the security event log.
  *
- * @param SubsystemName A pointer to a null-terminated string specifying the name of the subsystem calling the function.
- * @param HandleId A pointer to a unique value representing the client's handle to the object.
- * @param ObjectTypeName A pointer to a null-terminated string specifying the type of object being created or accessed.
- * @param ObjectName A pointer to a null-terminated string specifying the name of the object being created or accessed.
- * @param SecurityDescriptor A pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
- * @param DesiredAccess Access mask that specifies the access rights to check. This mask must have been mapped by the MapGenericMask function to contain no generic access rights.
- * @param GenericMapping A pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
- * @param ObjectCreation Specifies a flag that determines whether the calling application will create a new object when access is granted.
- * @param GrantedAccess A pointer to an access mask that receives the granted access rights.
- * @param AccessStatus A pointer to a variable that receives the results of the access check.
- * @param GenerateOnClose A pointer to a flag set by the audit-generation routine when the function returns.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-accesscheckandauditalarma
+ * \param SubsystemName A pointer to a null-terminated string specifying the name of the subsystem calling the function.
+ * \param HandleId A pointer to a unique value representing the client's handle to the object.
+ * \param ObjectTypeName A pointer to a null-terminated string specifying the type of object being created or accessed.
+ * \param ObjectName A pointer to a null-terminated string specifying the name of the object being created or accessed.
+ * \param SecurityDescriptor A pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
+ * \param DesiredAccess Access mask that specifies the access rights to check. This mask must have been mapped by the MapGenericMask function to contain no generic access rights.
+ * \param GenericMapping A pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
+ * \param ObjectCreation Specifies a flag that determines whether the calling application will create a new object when access is granted.
+ * \param GrantedAccess A pointer to an access mask that receives the granted access rights.
+ * \param AccessStatus A pointer to a variable that receives the results of the access check.
+ * \param GenerateOnClose A pointer to a flag set by the audit-generation routine when the function returns.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-accesscheckandauditalarma
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1023,24 +1023,24 @@ NtAccessCheckAndAuditAlarm(
  * The NtAccessCheckByTypeAndAuditAlarm routine determines whether a security descriptor grants a specified set of access rights to the client being impersonated by the calling thread.
  * If the security descriptor has a SACL with ACEs that apply to the client, the function generates any necessary audit messages in the security event log.
  *
- * @param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
- * @param HandleId A pointer to a unique value representing the client's handle to the object.
- * @param ObjectTypeName A pointer to a UNICODE_STRING specifying the type of object being created or accessed.
- * @param ObjectName A pointer to a UNICODE_STRING specifying the name of the object being created or accessed.
- * @param SecurityDescriptor A pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
- * @param PrincipalSelfSid A pointer to a SID structure representing the principal self SID, or NULL.
- * @param DesiredAccess Access mask that specifies the access rights to check. This mask must have been mapped by the MapGenericMask function to contain no generic access rights.
- * @param AuditType Specifies the type of audit event to be generated.
- * @param Flags Audit event flags.
- * @param ObjectTypeList A pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
- * @param ObjectTypeListLength The number of elements in the ObjectTypeList array.
- * @param GenericMapping A pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
- * @param ObjectCreation Specifies a flag that determines whether the calling application will create a new object when access is granted.
- * @param GrantedAccess A pointer to an access mask that receives the granted access rights.
- * @param AccessStatus A pointer to a variable that receives the results of the access check.
- * @param GenerateOnClose A pointer to a flag set by the audit-generation routine when the function returns.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-accesscheckbytypeandauditalarma
+ * \param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
+ * \param HandleId A pointer to a unique value representing the client's handle to the object.
+ * \param ObjectTypeName A pointer to a UNICODE_STRING specifying the type of object being created or accessed.
+ * \param ObjectName A pointer to a UNICODE_STRING specifying the name of the object being created or accessed.
+ * \param SecurityDescriptor A pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
+ * \param PrincipalSelfSid A pointer to a SID structure representing the principal self SID, or NULL.
+ * \param DesiredAccess Access mask that specifies the access rights to check. This mask must have been mapped by the MapGenericMask function to contain no generic access rights.
+ * \param AuditType Specifies the type of audit event to be generated.
+ * \param Flags Audit event flags.
+ * \param ObjectTypeList A pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
+ * \param ObjectTypeListLength The number of elements in the ObjectTypeList array.
+ * \param GenericMapping A pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
+ * \param ObjectCreation Specifies a flag that determines whether the calling application will create a new object when access is granted.
+ * \param GrantedAccess A pointer to an access mask that receives the granted access rights.
+ * \param AccessStatus A pointer to a variable that receives the results of the access check.
+ * \param GenerateOnClose A pointer to a flag set by the audit-generation routine when the function returns.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-accesscheckbytypeandauditalarma
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1068,24 +1068,24 @@ NtAccessCheckByTypeAndAuditAlarm(
  * The NtAccessCheckByTypeResultListAndAuditAlarm routine determines whether a security descriptor grants a specified set of access rights to the client being impersonated by the calling thread.
  * It also generates audit messages for each object type in the hierarchy, and returns the results for each object type in a list.
  *
- * @param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
- * @param HandleId A pointer to a unique value representing the client's handle to the object.
- * @param ObjectTypeName A pointer to a UNICODE_STRING specifying the type of object being created or accessed.
- * @param ObjectName A pointer to a UNICODE_STRING specifying the name of the object being created or accessed.
- * @param SecurityDescriptor A pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
- * @param PrincipalSelfSid A pointer to a SID structure representing the principal self SID, or NULL.
- * @param DesiredAccess Access mask that specifies the access rights to check.
- * @param AuditType Specifies the type of audit event to be generated.
- * @param Flags Audit event flags.
- * @param ObjectTypeList A pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
- * @param ObjectTypeListLength The number of elements in the ObjectTypeList array.
- * @param GenericMapping A pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
- * @param ObjectCreation Specifies a flag that determines whether the calling application will create a new object when access is granted.
- * @param GrantedAccess A pointer to an array of access masks that receive the granted access rights for each object type.
- * @param AccessStatus A pointer to an array of NTSTATUS values that receive the results of the access check for each object type.
- * @param GenerateOnClose A pointer to a flag set by the audit-generation routine when the function returns.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-accesscheckbytyperesultlistandauditalarma
+ * \param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
+ * \param HandleId A pointer to a unique value representing the client's handle to the object.
+ * \param ObjectTypeName A pointer to a UNICODE_STRING specifying the type of object being created or accessed.
+ * \param ObjectName A pointer to a UNICODE_STRING specifying the name of the object being created or accessed.
+ * \param SecurityDescriptor A pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
+ * \param PrincipalSelfSid A pointer to a SID structure representing the principal self SID, or NULL.
+ * \param DesiredAccess Access mask that specifies the access rights to check.
+ * \param AuditType Specifies the type of audit event to be generated.
+ * \param Flags Audit event flags.
+ * \param ObjectTypeList A pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
+ * \param ObjectTypeListLength The number of elements in the ObjectTypeList array.
+ * \param GenericMapping A pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
+ * \param ObjectCreation Specifies a flag that determines whether the calling application will create a new object when access is granted.
+ * \param GrantedAccess A pointer to an array of access masks that receive the granted access rights for each object type.
+ * \param AccessStatus A pointer to an array of NTSTATUS values that receive the results of the access check for each object type.
+ * \param GenerateOnClose A pointer to a flag set by the audit-generation routine when the function returns.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-accesscheckbytyperesultlistandauditalarma
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1113,25 +1113,25 @@ NtAccessCheckByTypeResultListAndAuditAlarm(
  * The NtAccessCheckByTypeResultListAndAuditAlarmByHandle routine determines whether a security descriptor grants a specified set of access rights to the client represented by a specified access token.
  * It also generates audit messages for each object type in the hierarchy, and returns the results for each object type in a list.
  *
- * @param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
- * @param HandleId A pointer to a unique value representing the client's handle to the object.
- * @param ClientToken Handle to the access token representing the client.
- * @param ObjectTypeName A pointer to a UNICODE_STRING specifying the type of object being created or accessed.
- * @param ObjectName A pointer to a UNICODE_STRING specifying the name of the object being created or accessed.
- * @param SecurityDescriptor A pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
- * @param PrincipalSelfSid A pointer to a SID structure representing the principal self SID, or NULL.
- * @param DesiredAccess Access mask that specifies the access rights to check.
- * @param AuditType Specifies the type of audit event to be generated.
- * @param Flags Audit event flags.
- * @param ObjectTypeList A pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
- * @param ObjectTypeListLength The number of elements in the ObjectTypeList array.
- * @param GenericMapping A pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
- * @param ObjectCreation Specifies a flag that determines whether the calling application will create a new object when access is granted.
- * @param GrantedAccess A pointer to an array of access masks that receive the granted access rights for each object type.
- * @param AccessStatus A pointer to an array of NTSTATUS values that receive the results of the access check for each object type.
- * @param GenerateOnClose A pointer to a flag set by the audit-generation routine when the function returns.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-accesscheckbytyperesultlistandauditalarmbyhandlea
+ * \param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
+ * \param HandleId A pointer to a unique value representing the client's handle to the object.
+ * \param ClientToken Handle to the access token representing the client.
+ * \param ObjectTypeName A pointer to a UNICODE_STRING specifying the type of object being created or accessed.
+ * \param ObjectName A pointer to a UNICODE_STRING specifying the name of the object being created or accessed.
+ * \param SecurityDescriptor A pointer to the SECURITY_DESCRIPTOR structure against which access is checked.
+ * \param PrincipalSelfSid A pointer to a SID structure representing the principal self SID, or NULL.
+ * \param DesiredAccess Access mask that specifies the access rights to check.
+ * \param AuditType Specifies the type of audit event to be generated.
+ * \param Flags Audit event flags.
+ * \param ObjectTypeList A pointer to an array of OBJECT_TYPE_LIST structures that specify the hierarchy of object types for the object being accessed.
+ * \param ObjectTypeListLength The number of elements in the ObjectTypeList array.
+ * \param GenericMapping A pointer to the GENERIC_MAPPING structure associated with the object for which access is being checked.
+ * \param ObjectCreation Specifies a flag that determines whether the calling application will create a new object when access is granted.
+ * \param GrantedAccess A pointer to an array of access masks that receive the granted access rights for each object type.
+ * \param AccessStatus A pointer to an array of NTSTATUS values that receive the results of the access check for each object type.
+ * \param GenerateOnClose A pointer to a flag set by the audit-generation routine when the function returns.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-accesscheckbytyperesultlistandauditalarmbyhandlea
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1159,19 +1159,19 @@ NtAccessCheckByTypeResultListAndAuditAlarmByHandle(
 /**
  * The NtOpenObjectAuditAlarm routine generates an audit message in the security event log when an object is opened.
  *
- * @param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
- * @param HandleId A pointer to a unique value representing the client's handle to the object.
- * @param ObjectTypeName A pointer to a UNICODE_STRING specifying the type of object being opened.
- * @param ObjectName A pointer to a UNICODE_STRING specifying the name of the object being opened.
- * @param SecurityDescriptor A pointer to the SECURITY_DESCRIPTOR structure for the object.
- * @param ClientToken Handle to the access token representing the client.
- * @param DesiredAccess Access mask that specifies the access rights requested.
- * @param GrantedAccess Access mask that specifies the access rights granted.
- * @param Privileges A pointer to a PRIVILEGE_SET structure that specifies the privileges used to gain access, or NULL.
- * @param ObjectCreation Specifies a flag that determines whether the object is being created.
- * @param AccessGranted Specifies a flag that determines whether access was granted.
- * @param GenerateOnClose A pointer to a flag set by the audit-generation routine when the function returns.
- * @return NTSTATUS Successful or errant status.
+ * \param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
+ * \param HandleId A pointer to a unique value representing the client's handle to the object.
+ * \param ObjectTypeName A pointer to a UNICODE_STRING specifying the type of object being opened.
+ * \param ObjectName A pointer to a UNICODE_STRING specifying the name of the object being opened.
+ * \param SecurityDescriptor A pointer to the SECURITY_DESCRIPTOR structure for the object.
+ * \param ClientToken Handle to the access token representing the client.
+ * \param DesiredAccess Access mask that specifies the access rights requested.
+ * \param GrantedAccess Access mask that specifies the access rights granted.
+ * \param Privileges A pointer to a PRIVILEGE_SET structure that specifies the privileges used to gain access, or NULL.
+ * \param ObjectCreation Specifies a flag that determines whether the object is being created.
+ * \param AccessGranted Specifies a flag that determines whether access was granted.
+ * \param GenerateOnClose A pointer to a flag set by the audit-generation routine when the function returns.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1194,13 +1194,13 @@ NtOpenObjectAuditAlarm(
 /**
  * The NtPrivilegeObjectAuditAlarm routine generates an audit message in the security event log when a privilege is used to access an object.
  *
- * @param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
- * @param HandleId A pointer to a unique value representing the client's handle to the object.
- * @param ClientToken Handle to the access token representing the client.
- * @param DesiredAccess Access mask that specifies the access rights requested.
- * @param Privileges A pointer to a PRIVILEGE_SET structure that specifies the privileges used to gain access.
- * @param AccessGranted Specifies a flag that determines whether access was granted.
- * @return NTSTATUS Successful or errant status.
+ * \param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
+ * \param HandleId A pointer to a unique value representing the client's handle to the object.
+ * \param ClientToken Handle to the access token representing the client.
+ * \param DesiredAccess Access mask that specifies the access rights requested.
+ * \param Privileges A pointer to a PRIVILEGE_SET structure that specifies the privileges used to gain access.
+ * \param AccessGranted Specifies a flag that determines whether access was granted.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1217,10 +1217,10 @@ NtPrivilegeObjectAuditAlarm(
 /**
  * The NtCloseObjectAuditAlarm routine generates an audit message in the security event log when an object handle is closed.
  *
- * @param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
- * @param HandleId A pointer to a unique value representing the client's handle to the object.
- * @param GenerateOnClose Specifies a flag that determines whether to generate an audit on close.
- * @return NTSTATUS Successful or errant status.
+ * \param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
+ * \param HandleId A pointer to a unique value representing the client's handle to the object.
+ * \param GenerateOnClose Specifies a flag that determines whether to generate an audit on close.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1234,10 +1234,10 @@ NtCloseObjectAuditAlarm(
 /**
  * The NtDeleteObjectAuditAlarm routine generates an audit message in the security event log when an object is deleted.
  *
- * @param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
- * @param HandleId A pointer to a unique value representing the client's handle to the object.
- * @param GenerateOnClose Specifies a flag that determines whether to generate an audit on close.
- * @return NTSTATUS Successful or errant status.
+ * \param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
+ * \param HandleId A pointer to a unique value representing the client's handle to the object.
+ * \param GenerateOnClose Specifies a flag that determines whether to generate an audit on close.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1251,13 +1251,13 @@ NtDeleteObjectAuditAlarm(
 /**
  * The NtPrivilegedServiceAuditAlarm routine generates an audit message in the security event log when a privileged service is accessed.
  *
- * @param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
- * @param ServiceName A pointer to a UNICODE_STRING specifying the name of the service being accessed.
- * @param ClientToken Handle to the access token representing the client.
- * @param Privileges A pointer to a PRIVILEGE_SET structure that specifies the privileges used to access the service.
- * @param AccessGranted Specifies a flag that determines whether access was granted.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-privilegedserviceauditalarma
+ * \param SubsystemName A pointer to a UNICODE_STRING specifying the name of the subsystem calling the function.
+ * \param ServiceName A pointer to a UNICODE_STRING specifying the name of the service being accessed.
+ * \param ClientToken Handle to the access token representing the client.
+ * \param Privileges A pointer to a PRIVILEGE_SET structure that specifies the privileges used to access the service.
+ * \param AccessGranted Specifies a flag that determines whether access was granted.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-privilegedserviceauditalarma
  */
 NTSYSCALLAPI
 NTSTATUS
