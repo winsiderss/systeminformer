@@ -150,7 +150,7 @@ typedef struct _SYSTEM_HIBERFILE_INFORMATION
     LARGE_INTEGER Mcb[1];
 } SYSTEM_HIBERFILE_INFORMATION, *PSYSTEM_HIBERFILE_INFORMATION;
 
-typedef struct _SYSTEM_SERVICE_POWER_MESSAGE 
+typedef struct _SYSTEM_SERVICE_POWER_MESSAGE
 {
     ULONG MessageId;
     ULONG SessionId;
@@ -234,7 +234,7 @@ typedef struct _SYSTEM_POWER_LOGGING_ENTRY
     ULONG States;
 } SYSTEM_POWER_LOGGING_ENTRY, *PSYSTEM_POWER_LOGGING_ENTRY;
 
-typedef struct _SYSTEM_POWER_SETTING_VALUE 
+typedef struct _SYSTEM_POWER_SETTING_VALUE
 {
     GUID SettingGuid;
     ULONG ValueLength;
@@ -745,7 +745,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalProcessorIdleVeto,                             // out: PROCESSOR_IDLE_VETO
     PowerInternalPlatformIdleVeto,                              // out: PLATFORM_IDLE_VETO
     PowerInternalIsLongPowerButtonBugcheckEnabled,              // out: BOOLEAN
-    PowerInternalAutoChkCausedReboot,                           // in: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT, out: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT // 50 
+    PowerInternalAutoChkCausedReboot,                           // in: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT, out: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT // 50
     PowerInternalSetWakeAlarmOverride,
 
     PowerInternalDirectedFxAddTestDevice = 53,
@@ -769,8 +769,8 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalSleepDetailedDiagUpdate,                       // in: POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT
     PowerInternalProcessorClassFrequencyBandsStats,             // in: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT, out: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT[] * NumberOfProcessors
     PowerInternalHostGlobalUserPresenceStateUpdate,             // in: POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT
-    PowerInternalCpuNodeIdleIntervalStats,
-    PowerInternalClassIdleIntervalStats,
+    PowerInternalCpuNodeIdleIntervalStats,                      // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT, out: POWER_INTERNAL_IDLE_INTERVAL_PACKAGE
+    PowerInternalClassIdleIntervalStats,                        // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT, out: POWER_INTERNAL_IDLE_INTERVAL_STATS_OUTPUT
     PowerInternalCpuNodeConcurrencyStats,
     PowerInternalClassConcurrencyStats,
     PowerInternalQueryProcMeasurementCapabilities,              // in: PROCESSOR_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES
@@ -779,8 +779,8 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalGetAdaptiveSessionState,                       // in: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT, out: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT
     PowerInternalSetConsoleLockedState,                         // in: POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT
     PowerInternalOverrideSystemInitiatedRebootState,
-    PowerInternalFanImpactStats,
-    PowerInternalFanRpmBuckets,
+    PowerInternalFanImpactStats,                                // in: POWER_INTERNAL_FAN_IMPACT_STATS_INPUT, out: POWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT
+    PowerInternalFanRpmBuckets,                                 // in: POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT, out: POWER_INTERNAL_FAN_RPM_BUCKETS_OUTPUT
     PowerInternalPowerBootAppDiagInfo,                          // out: POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
     PowerInternalUnregisterShutdownNotification,                // in: // since 22H1
     PowerInternalManageTransitionStateRecord,
@@ -1180,6 +1180,51 @@ typedef struct _POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT
     BOOLEAN UserPresent; // 1 if user is present, 0 otherwise
 } POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT, *PPOWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT;
 
+// rev
+/**
+ * The POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT structure is passed to internal power management routines
+ * to request idle interval statistics for a given processor package or node.
+ */
+typedef struct _POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+    ULONG Node;
+} POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT, *PPOWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT;
+
+// rev
+/**
+ * The POWER_INTERNAL_IDLE_INTERVAL_PACKAGE structure contains a histogram of idle intervals,
+ * each entry representing the total time spent in a given duration bucket.
+ * The 37 buckets are logarithmically spaced to capture idle durations from ms up to seconds.
+ * Approximate bucket ranges:
+ * - Indices [0-2] = Very long idle (10-50 seconds)
+ * - Indices [3-5] = Long idle (2-10 seconds)
+ * - Indices [6-10] = Medium idle (100 ms-1 second)
+ * - Indices [11-15] = Short idle (10-100 ms)
+ * - Indices [16-36] = Very short idle (<10 ms, down to microseconds)
+ */
+typedef struct _POWER_INTERNAL_IDLE_INTERVAL_PACKAGE
+{
+    /**
+     * Idle interval histogram buckets.
+     * Each entry is a ULONGLONG value in 100-nanosecond units.
+     * There are 37 buckets, covering idle durations from microseconds
+     * up to tens of seconds.
+     */
+    ULONGLONG IdleIntervals[37];
+} POWER_INTERNAL_IDLE_INTERVAL_PACKAGE, *PPOWER_INTERNAL_IDLE_INTERVAL_PACKAGE;
+
+// rev
+/**
+ * The POWER_INTERNAL_IDLE_INTERVAL_STATS_OUTPUT structure contains the idle interval statistics.
+ */
+typedef struct _POWER_INTERNAL_IDLE_INTERVAL_STATS_OUTPUT
+{
+    POWER_INTERNAL_IDLE_INTERVAL_PACKAGE Package[2];
+} POWER_INTERNAL_IDLE_INTERVAL_STATS_OUTPUT, *PPOWER_INTERNAL_IDLE_INTERVAL_STATS_OUTPUT;
+
+// rev
 #define PPM_PERF_BANKS_COUNT 2
 #define PPM_PERF_BANDS_COUNT 48
 #define PPM_PERF_METRICS_COUNT 3
@@ -1234,6 +1279,45 @@ typedef struct _POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT
     ULONG Version;
     BOOLEAN Locked; // 1 if console is locked, 0 if unlocked
 } POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT, *PPOWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_FAN_IMPACT_STATS_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+} POWER_INTERNAL_FAN_IMPACT_STATS_INPUT, *PPOWER_INTERNAL_FAN_IMPACT_STATS_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT
+{
+    ULONG BucketCountPlusTwo;
+    ULONGLONG Buckets[19];
+} POWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT, *PPOWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT
+{
+    POWER_INFORMATION_LEVEL_INTERNAL InternalType;
+    ULONG Version;
+} POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT, *PPOWER_INTERNAL_FAN_RPM_BUCKETS_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_FAN_RPM_BUCKETS_OUTPUT
+{
+    ULONG BucketCount;
+    ULONG BucketSize;
+    UCHAR Reserved1[0x18];
+    ULONG Bucket1Rpm;
+    UCHAR Reserved2[0x10];
+    ULONG Bucket2Rpm;
+    UCHAR Reserved3[0x10];
+    ULONG Bucket3Rpm;
+    UCHAR Reserved4[0x10];
+    ULONG Bucket4Rpm;
+    UCHAR Reserved5[0x10];
+    ULONG CurrentRpm;
+    UCHAR Reserved6[0x0C];
+} POWER_INTERNAL_FAN_RPM_BUCKETS_OUTPUT, *PPOWER_INTERNAL_FAN_RPM_BUCKETS_OUTPUT;
 
 // rev
 typedef struct _POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
