@@ -90,9 +90,9 @@ typedef struct _PREFETCHER_INFORMATION
 //
 
 // rev
-typedef struct _PF_SYSTEM_SUPERFETCH_RETRIEVE_TRACE 
+typedef struct _PF_SYSTEM_SUPERFETCH_RETRIEVE_TRACE
 {
-    union 
+    union
     {
         struct
         {
@@ -167,13 +167,13 @@ typedef enum _PF_EVENT_TYPE
 
 #define PF_LOG_EVENT_DATA_VERSION 1
 
-typedef struct _PF_LOG_EVENT_DATA 
+typedef struct _PF_LOG_EVENT_DATA
 {
     ULONG Version; // PF_LOG_EVENT_DATA_VERSION
-    union 
+    union
     {
         ULONG Packed; // [31:7]=DataSize, [6:5]=Flags, [4:0]=EventType (PF_EVENT_TYPE)
-        struct 
+        struct
         {
             ULONG DataSize : 25; // in bytes
             ULONG Flags    : 2;
@@ -184,7 +184,6 @@ typedef struct _PF_LOG_EVENT_DATA
     HANDLE PartitionHandle;
 } PF_LOG_EVENT_DATA , *PPF_LOG_EVENT_DATA ;
 
-// PFN operations (classes 0x06/0x07/0x16/0x1D/0x1D/0x29) — header 192 bytes, entries 24B each
 typedef struct _PFN_TRIPLET
 {
     ULONGLONG MaskOrKey;        // Compared against identity with 0x1FFFFFFFFFFFE00 mask
@@ -295,7 +294,7 @@ typedef struct _PF_SCENARIO_PHASE_INFO
 } PF_SCENARIO_PHASE_INFO, *PPF_SCENARIO_PHASE_INFO;
 
 // rev
-typedef struct _PF_WORKER_PRIORITY_CONTROL 
+typedef struct _PF_WORKER_PRIORITY_CONTROL
 {
     ULONG Version;
     KPRIORITY Priority; // 0..31 (STATUS_INVALID_PARAMETER if >31)
@@ -439,16 +438,16 @@ typedef struct _PF_PHYSICAL_MEMORY_RANGE_INFO_V2
 } PF_PHYSICAL_MEMORY_RANGE_INFO_V2, *PPF_PHYSICAL_MEMORY_RANGE_INFO_V2;
 
 // rev
-typedef struct _PF_START_TRACE_CONTROL 
+typedef struct _PF_START_TRACE_CONTROL
 {
-    struct 
+    struct
     {
         ULONG Type;
         ULONG Mode;
         ULONG Flags;
         ULONG Restart;
     };
-    struct 
+    struct
     {
         HANDLE PartitionHandle; // in
         HANDLE TraceHandleOut;  // out when Restart == 0
@@ -596,7 +595,7 @@ typedef enum _SUPERFETCH_INFORMATION_CLASS
     SuperfetchVirtualQuery,                    // q: PF_VIRTUAL_QUERY
     SuperfetchCombineStatsQuery,               // q: PF_PAGECOMBINE_AGGREGATE_STAT
     SuperfetchSetMinWsAgeRate,                 // s: PF_MIN_WS_AGE_RATE_CONTROL
-    SuperfetchDeprioritizeOldPagesInWs,        // s: PF_DEPRIORITIZE_OLD_PAGES 
+    SuperfetchDeprioritizeOldPagesInWs,        // s: PF_DEPRIORITIZE_OLD_PAGES
     SuperfetchFileExtentsQuery,                // q: PF_FILE_EXTENTS_INFO
     SuperfetchGpuUtilizationQuery,             // q: PF_GPU_UTILIZATION_INFO
     SuperfetchPfnSet,                          // s: PF_PFN_PRIO_REQUEST // since WIN11
