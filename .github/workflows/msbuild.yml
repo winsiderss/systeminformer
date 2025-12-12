@@ -18,10 +18,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # 6.0.1
 
     - name: NuGet Cache
-      uses: actions/cache@v4
+      uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # 5.0.0
       with:
         path: packages
         key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
@@ -49,10 +49,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # 6.0.1
 
     - name: NuGet Cache
-      uses: actions/cache@v4
+      uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # 5.0.0
       with:
         path: packages
         key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
@@ -80,10 +80,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # 6.0.1
 
     - name: NuGet Cache
-      uses: actions/cache@v4
+      uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # 5.0.0
       with:
         path: packages
         key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
@@ -111,10 +111,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # 6.0.1
 
     - name: NuGet Cache
-      uses: actions/cache@v4
+      uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # 5.0.0
       with:
         path: packages
         key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
