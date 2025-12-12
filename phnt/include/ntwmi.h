@@ -4382,16 +4382,17 @@ typedef struct _PERFINFO_PPM_IDLE_EXIT_LATENCY
 
 typedef struct _PERFINFO_PPM_PERF_STATE_CHANGE
 {
-  ULONG Type;
-  ULONG NewState;
-  ULONG OldState;
-  NTSTATUS Result;
-  ULONG64 Processors;
+    ULONG Type;
+    ULONG NewState;
+    ULONG OldState;
+    NTSTATUS Result;
+    ULONG64 Processors;
 } PERFINFO_PPM_PERF_STATE_CHANGE, *PPERFINFO_PPM_PERF_STATE_CHANGE;
 
-typedef struct _PERFINFO_PPM_THERMAL_CONSTRAINT{
-  ULONG Constraint;
-  ULONG64 Processors;
+typedef struct _PERFINFO_PPM_THERMAL_CONSTRAINT
+{
+    ULONG Constraint;
+    ULONG64 Processors;
 } PERFINFO_PPM_THERMAL_CONSTRAINT, *PPERFINFO_PPM_THERMAL_CONSTRAINT;
 
 //
