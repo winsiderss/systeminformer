@@ -77,6 +77,13 @@ namespace CustomBuildTool
             0x4A, 0x82, 0x8A, 0xF3, 0x67, 0x50, 0xFA, 0xB7, 0x3A, 0x25, 0x61
         ];
 
+        // typeof(T).GetField(N) and SetValueDirect inside loops is inefficient due to reflection overhead. 
+        // These types cache the FieldInfo objects and significantly improve performance, especially when processing many fields.
+        private static readonly Dictionary<string, FieldInfo> DynFieldsKernelFieldCache =
+            typeof(DynFieldsKernel).GetFields().ToDictionary(f => f.Name, f => f, StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, FieldInfo> DynFieldsLxcoreFieldCache =
+            typeof(DynFieldsLxcore).GetFields().ToDictionary(f => f.Name, f => f, StringComparer.OrdinalIgnoreCase);
+
         private enum ClassType : ushort
         {
             Ntoskrnl = 0,
@@ -409,12 +416,6 @@ typedef struct _KPH_DYN_CONFIG
         private static byte[] GenerateConfig(string ManifestFile)
         {
             var xml = new XmlDocument();
-            var fieldsMap = new Dictionary<UInt32, XmlNode>();
-            var fieldsOffsets = new Dictionary<UInt32, UInt32>();
-            var fieldsStream = new MemoryStream();
-            var fieldsWirter = new BinaryWriter(fieldsStream);
-            var entries = new List<DynDataEntry>(10);
-
             xml.Load(ManifestFile);
 
             var dyn = xml.SelectSingleNode("/dyn");
@@ -425,6 +426,12 @@ typedef struct _KPH_DYN_CONFIG
                 return null;
             if (fieldsNodes == null)
                 return null;
+
+            var fieldsMap = new Dictionary<UInt32, XmlNode>(fieldsNodes.Count);
+            var fieldsOffsets = new Dictionary<UInt32, UInt32>(fieldsNodes.Count);
+            var fieldsStream = new MemoryStream();
+            var fieldsWirter = new BinaryWriter(fieldsStream);
+            var entries = new List<DynDataEntry>(dataNodes.Count);
 
             foreach (XmlNode field in fieldsNodes)
             {
@@ -475,15 +482,16 @@ typedef struct _KPH_DYN_CONFIG
 
                             foreach (XmlNode field in fieldNodes)
                             {
-                                var value = field.Attributes?.GetNamedItem("value")?.Value;
-                                var name = field.Attributes?.GetNamedItem("name")?.Value;
+                                string value = field.Attributes?.GetNamedItem("value")?.Value;
+                                string name = field.Attributes?.GetNamedItem("name")?.Value;
                                
                                 if (string.IsNullOrWhiteSpace(name))
                                     continue;
 
-                                var member = typeof(DynFieldsKernel).GetField(name);
-
-                                member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
+                                if (DynFieldsKernelFieldCache.TryGetValue(name, out var member))
+                                {
+                                    member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
+                                }
                             }
 
                             fieldsWirter.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref fieldsData, 1)));
@@ -499,15 +507,16 @@ typedef struct _KPH_DYN_CONFIG
 
                             foreach (XmlNode field in fieldNodes)
                             {
-                                var value = field.Attributes?.GetNamedItem("value")?.Value;
-                                var name = field.Attributes?.GetNamedItem("name")?.Value;
+                                string value = field.Attributes?.GetNamedItem("value")?.Value;
+                                string name = field.Attributes?.GetNamedItem("name")?.Value;
                                
                                 if (string.IsNullOrWhiteSpace(name))
                                     continue;
 
-                                var member = typeof(DynFieldsLxcore).GetField(name);
-
-                                member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
+                                if (DynFieldsLxcoreFieldCache.TryGetValue(name, out var member))
+                                {
+                                    member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
+                                }
                             }
 
                             fieldsWirter.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref fieldsData, 1)));
