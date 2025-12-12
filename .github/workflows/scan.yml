@@ -17,12 +17,12 @@ jobs:
         language: ['cpp']
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # 6.0.1
         with:
           fetch-depth: 0
-        
+
       - name: Nuget Cache
-        uses: actions/cache@v4
+        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # 5.0.0
         with:
           path: packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
@@ -56,15 +56,15 @@ jobs:
           codeql database analyze ${{runner.temp}}\codeql-driver microsoft/windows-drivers --format=sarifv2.1.0 --output=${{ runner.temp }}\driver-analysis.sarif
 
       - name: Filter CodeQL Results
-        uses: advanced-security/filter-sarif@v1
+        uses: advanced-security/filter-sarif@f3b8118a9349d88f7b1c0c488476411145b6270d # 1.0.1
         with:
           input: ${{ runner.temp }}\driver-analysis.sarif
           output:  ${{ runner.temp }}\driver-filtered.sarif
           patterns: |
             -packages/**/*
-  
+
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
         with:
           sarif_file: ${{ runner.temp }}\driver-filtered.sarif
 
@@ -81,12 +81,12 @@ jobs:
         language: ['cpp']
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # 6.0.1
         with:
           fetch-depth: 0
 
       - name: Nuget Cache
-        uses: actions/cache@v4
+        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # 5.0.0
         with:
           path: packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
@@ -101,7 +101,7 @@ jobs:
         run: build\build_init.cmd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
         with:
           languages: ${{ matrix.language }}
 
@@ -114,14 +114,14 @@ jobs:
         run: build\build_release.cmd
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
         with:
           category: '/language:${{ matrix.language }}'
           output: sarif-results
           upload: never
 
       - name: Filter CodeQL Results
-        uses: advanced-security/filter-sarif@v1
+        uses: advanced-security/filter-sarif@f3b8118a9349d88f7b1c0c488476411145b6270d # 1.0.1
         with:
           input: sarif-results/cpp.sarif
           output: sarif-results/filtered.sarif
@@ -134,7 +134,7 @@ jobs:
             -tools/thirdpary/**/*
 
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
         with:
           sarif_file: sarif-results/filtered.sarif
 
@@ -151,12 +151,12 @@ jobs:
          language: ['csharp']
      steps:
        - name: Checkout repository
-         uses: actions/checkout@v5
+         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # 6.0.1
          with:
            fetch-depth: 0
-           
+
        - name: Nuget Cache
-         uses: actions/cache@v4
+         uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # 5.0.0
          with:
            path: packages
            key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
@@ -167,7 +167,7 @@ jobs:
          run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
        - name: Initialize CodeQL
-         uses: github/codeql-action/init@v4
+         uses: github/codeql-action/init@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
          with:
            languages: ${{ matrix.language }}
 
@@ -176,14 +176,14 @@ jobs:
          run: build\build_tools.cmd
 
        - name: Perform CodeQL analysis
-         uses: github/codeql-action/analyze@v4
+         uses: github/codeql-action/analyze@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
          with:
            category: '/language:${{ matrix.language }}'
            output: sarif-results
            upload: never
 
        - name: Filter CodeQL Results
-         uses: advanced-security/filter-sarif@v1
+         uses: advanced-security/filter-sarif@f3b8118a9349d88f7b1c0c488476411145b6270d # 1.0.1
          with:
            input: sarif-results/csharp.sarif
            output: sarif-results/filtered.sarif
@@ -197,6 +197,6 @@ jobs:
              -tools/thirdpary/**/*
 
        - name: Upload CodeQL Results
-         uses: github/codeql-action/upload-sarif@v4
+         uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
          with:
            sarif_file: sarif-results/filtered.sarif
