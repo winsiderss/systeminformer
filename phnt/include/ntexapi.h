@@ -1192,20 +1192,78 @@ NtQueryTimer(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
+
+// ExCheckValidIRTimerId
+typedef enum _IR_TIMER_PROVIDER_INDEX
+{
+    IR_TIMER_PROVIDER_TESTIDENTIFIER, // Token(Service SID)
+    IR_TIMER_PROVIDER_BROKERINFRASTRUCTURE, // Token(Service SID)
+    IR_TIMER_PROVIDER_TIMEBROKERSVC, // Token(Service SID)
+    IR_TIMER_PROVIDER_LFSVC,
+    IR_TIMER_PROVIDER_WINLOGON,
+    IR_TIMER_PROVIDER_POWER,
+    IR_TIMER_PROVIDER_SENSORSERVICE,
+    IR_TIMER_PROVIDER_NTOSPO,
+    IR_TIMER_PROVIDER_ACPI,
+    IR_TIMER_PROVIDER_BUTTON,
+    IR_TIMER_PROVIDER_MSGPIOCLX,
+    IR_TIMER_PROVIDER_BUTTONCONVERTER,
+    IR_TIMER_PROVIDER_MSGPIOWIN32,
+    IR_TIMER_PROVIDER_KNETPWRDEPBROKER,
+    IR_TIMER_PROVIDER_CMBATT,
+    IR_TIMER_PROVIDER_BTHPORT,
+    IR_TIMER_PROVIDER_AUDIOSRV, // TOKEN(SERVICE SID)
+    IR_TIMER_PROVIDER_ARTESTIDENTIFIER, // TOKEN(SERVICE SID)
+    IR_TIMER_PROVIDER_BATTC,
+    IR_TIMER_PROVIDER_MAXINDEX
+} IR_TIMER_PROVIDER_INDEX;
+
+//CONST USHORT IR_TIMER_PROVIDER_ID_MAX[] =
+//{
+//    1,  // IR_TIMER_PROVIDER_TESTIDENTIFIER
+//    1,  // IR_TIMER_PROVIDER_BROKERINFRASTRUCTURE
+//    1,  // IR_TIMER_PROVIDER_TIMEBROKERSVC
+//    11, // IR_TIMER_PROVIDER_LFSVC (0x0B)
+//    1,  // IR_TIMER_PROVIDER_WINLOGON
+//    2,  // IR_TIMER_PROVIDER_POWER
+//    1,  // IR_TIMER_PROVIDER_SENSORSERVICE
+//    6,  // IR_TIMER_PROVIDER_NTOSPO
+//    1,  // IR_TIMER_PROVIDER_ACPI
+//    1,  // IR_TIMER_PROVIDER_BUTTON
+//    2,  // MsGpioClx
+//    1,  // ButtonConverter
+//    2,  // MsGpioWin32
+//    2,  // KNetPwrDepBroker
+//    1,  // Cmbatt
+//    2,  // Bthport
+//    1,  // AudioSrv
+//    1,  // ArTestIdentifier
+//    1   // Battc
+//};
+
+// rev
+#define IR_TIMERID_PROVIDER(TimerId) ((USHORT)HIWORD((ULONG)(TimerId)))
+#define IR_TIMERID_ID(TimerId) ((USHORT)LOWORD((ULONG)(TimerId)))
+#define IR_TIMERID_IS_NONZERO(TimerId) (IR_TIMERID_ID(TimerId) != 0)
+#define IR_TIMERID_ATTRIBUTES(ProviderIndex, ProviderId) \
+    ((ULONG)MAKELONG((USHORT)(ProviderId), (USHORT)(ProviderIndex)))
+
 /**
  * The NtCreateIRTimer routine creates an IR timer object.
+ * IR timers are interruptdriven and designed for high-resolution timing in system components.
  *
  * \param TimerHandle A pointer to a variable that receives the handle to the IR timer object.
- * \param Reserved Reserved parameter.
+ * \param TimerId A pointer to a timer identifier that specifies the provider.
  * \param DesiredAccess The access mask that specifies the requested access to the timer object.
  * \return NTSTATUS Successful or errant status.
+ * \remarks The TimerId must be non-NULL and point to a valid timer identifier.
  */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateIRTimer(
     _Out_ PHANDLE TimerHandle,
-    _In_ PVOID Reserved,
+    _In_ PULONG TimerId,
     _In_ ACCESS_MASK DesiredAccess
     );
 
@@ -1231,12 +1289,28 @@ NtSetIRTimer(
 //
 // NtCreateTimer2 Attributes
 //
+#define TIMER2_ATTRIBUTE_IR_TIMER        0x00000002UL
 #define TIMER2_ATTRIBUTE_HIGH_RESOLUTION 0x00000004UL
 #define TIMER2_ATTRIBUTE_NOTIFICATION    0x80000000UL
-#define TIMER2_ATTRIBUTE_KNOWN_MASK      (TIMER2_ATTRIBUTE_HIGH_RESOLUTION | TIMER2_ATTRIBUTE_NOTIFICATION)
-#define TIMER2_ATTRIBUTE_RESERVED_MASK   (~TIMER2_ATTRIBUTE_KNOWN_MASK)
-#define TIMER2_ATTRIBUTE_FOR_TYPE(T)     (((T) == NotificationTimer) ? TIMER2_ATTRIBUTE_NOTIFICATION : 0)
-#define TIMER2_BUILD_ATTRIBUTES(T, R)    (TIMER2_ATTRIBUTE_FOR_TYPE(T) | ((R) ? TIMER2_ATTRIBUTE_HIGH_RESOLUTION : 0))
+// rev
+#define TIMER2_ATTRIBUTE_KNOWN_MASK (TIMER2_ATTRIBUTE_IR_TIMER | TIMER2_ATTRIBUTE_HIGH_RESOLUTION | TIMER2_ATTRIBUTE_NOTIFICATION)
+#define TIMER2_ATTRIBUTE_RESERVED_MASK (~TIMER2_ATTRIBUTE_KNOWN_MASK)
+
+#define TIMER2_ATTRIBUTE_FOR_TYPE(T) \
+    (((T) == NotificationTimer) ? TIMER2_ATTRIBUTE_NOTIFICATION : 0)
+
+// Build attributes for a *non-IR* timer
+//  - T: TIMER_TYPE (NotificationTimer/SynchronizationTimer)
+//  - R: bool for HighResolution
+//
+#define TIMER2_BUILD_ATTRIBUTES(T, R) \
+    (TIMER2_ATTRIBUTE_FOR_TYPE(T) | ((R) ? TIMER2_ATTRIBUTE_HIGH_RESOLUTION : 0))
+
+// Build attributes for an *IR* timer
+//  - R: bool for HighResolution
+//
+#define TIMER2_BUILD_IR_ATTRIBUTES(R) \
+    (TIMER2_ATTRIBUTE_IR_TIMER | ((R) ? TIMER2_ATTRIBUTE_HIGH_RESOLUTION : 0))
 
 // rev
 typedef union _TIMER2_ATTRIBUTES
@@ -1244,10 +1318,11 @@ typedef union _TIMER2_ATTRIBUTES
     ULONG Value;
     struct
     {
-        ULONG Reserved0 : 2;
-        ULONG HighResolution : 1;
-        ULONG Reserved1 : 28;
-        TIMER_TYPE NotificationType : 1;
+        ULONG Reserved0 : 1;      // bit 0 (reserved)
+        ULONG IrTimer : 1;        // bit 1 == TIMER2_ATTRIBUTE_IR_TIMER
+        ULONG HighResolution : 1; // bit 2 == TIMER2_ATTRIBUTE_HIGH_RESOLUTION
+        ULONG Reserved1 : 28;     // bits [3..30] (reserved)
+        TIMER_TYPE NotificationType : 1; // bit 31 == TIMER2_ATTRIBUTE_NOTIFICATION
     };
 } TIMER2_ATTRIBUTES;
 
@@ -1256,6 +1331,7 @@ typedef union _TIMER2_ATTRIBUTES
  *
  * \param TimerHandle A pointer to a variable that receives the handle to the timer object.
  * \param Reserved Reserved parameter.
+ * \param TimerId For IR timers: A pointer to ULONG TIMERID (non-NULL). For non-IR timers: must be NULL.
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \param Attributes Timer attributes (TIMER_TYPE).
  * \param DesiredAccess The access mask that specifies the requested access to the timer object.
@@ -1266,7 +1342,7 @@ NTSTATUS
 NTAPI
 NtCreateTimer2(
     _Out_ PHANDLE TimerHandle,
-    _In_opt_ PVOID Reserved,
+    _In_opt_ PULONG TimerId,
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG Attributes, // TIMER2_ATTRIBUTES or TIMER2_BUILD_ATTRIBUTES
     _In_ ACCESS_MASK DesiredAccess
@@ -2405,30 +2481,43 @@ typedef struct _SYSTEM_BASIC_INFORMATION
 } SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
 
 // SYSTEM_PROCESSOR_INFORMATION // ProcessorFeatureBits (see also SYSTEM_PROCESSOR_FEATURES_INFORMATION)
-#define KF_V86_VIS      0x00000001 // Virtual 8086 mode.
-#define KF_RDTSC        0x00000002 // RDTSC (Read Time-Stamp Counter) instruction.
-#define KF_CR4          0x00000004 // CR4 (Control Register 4) register.
-#define KF_CMOV         0x00000008 // CMOV (Conditional Move) instruction.
-#define KF_GLOBAL_PAGE  0x00000010 // Global memory pages.
-#define KF_LARGE_PAGE   0x00000020 // Large memory pages.
-#define KF_MTRR         0x00000040 // MTRR (Memory Type Range Registers).
-#define KF_CMPXCHG8B    0x00000080 // CMPXCHG8B (CompareExchange) instruction.
-#define KF_MMX          0x00000100 // MMX (MultiMedia eXtensions).
-#define KF_WORKING_PTE  0x00000200 // PTE (Page Table Entries).
-#define KF_PAT          0x00000400 // PAT (Page Attribute Table).
-#define KF_FXSR         0x00000800 // FXSR (Floating Point Extended Save and Restore).
-#define KF_FAST_SYSCALL 0x00001000 // Fast system calls.
-#define KF_XMMI         0x00002000 // XMMI (Streaming SIMD Extensions - 32-bit).
-#define KF_3DNOW        0x00004000 // AMD 3DNow! technology.
-#define KF_AMDK6MTRR    0x00008000 // AMD K6 MTRR.
-#define KF_XMMI64       0x00010000 // XMMI (Streaming SIMD Extensions - 64-bit).
-#define KF_DTS          0x00020000 // DTS (Digital Thermal Sensor).
-#define KF_NOEXECUTE    0x20000000 // No-Execute (NX) bit.
-#define KF_GLOBAL_32BIT_EXECUTE 0x40000000
-#define KF_GLOBAL_32BIT_NOEXECUTE 0x80000000
+#define KF32_V86_VIS      0x00000001 // Virtual 8086 mode.
+#define KF32_RDTSC        0x00000002 // RDTSC (Read Time-Stamp Counter) instruction.
+#define KF32_CR4          0x00000004 // CR4 (Control Register 4) register.
+#define KF32_CMOV         0x00000008 // CMOV (Conditional Move) instruction.
+#define KF32_GLOBAL_PAGE  0x00000010 // Global memory pages.
+#define KF32_LARGE_PAGE   0x00000020 // Large memory pages.
+#define KF32_MTRR         0x00000040 // MTRR (Memory Type Range Registers).
+#define KF32_CMPXCHG8B    0x00000080 // CMPXCHG8B (CompareExchange) instruction.
+#define KF32_MMX          0x00000100 // MMX (MultiMedia eXtensions).
+#define KF32_WORKING_PTE  0x00000200 // PTE (Page Table Entries).
+#define KF32_PAT          0x00000400 // PAT (Page Attribute Table).
+#define KF32_FXSR         0x00000800 // FXSR (Floating Point Extended Save and Restore).
+#define KF32_FAST_SYSCALL 0x00001000 // Fast system calls.
+#define KF32_XMMI         0x00002000 // XMMI (Streaming SIMD Extensions - 32-bit).
+#define KF32_3DNOW        0x00004000 // AMD 3DNow! technology.
+#define KF32_AMDK6MTRR    0x00008000 // AMD K6 MTRR.
+#define KF32_XMMI64       0x00010000 // XMMI (Streaming SIMD Extensions - 64-bit).
+#define KF32_DTS          0x00020000 // DTS (Digital Thermal Sensor).
+#define KF32_TM2          0x00040000 // TM2 (Thermal Monitor 2).
+#define KF32_EST          0x00080000 // EST (Enhanced SpeedStep Technology).
+#define KF32_IA64         0x00100000 // Intel Itanium architecture.
+#define KF32_3DNOW2       0x00200000 // AMD 3DNow! technology, version 2.
+#define KF32_VMX          0x00400000 // VMX (Virtual Machine Extensions).
+#define KF32_SMX          0x00800000 // SMX (Safer Mode Extensions).
+#define KF32_EST2         0x01000000 // EST (Enhanced SpeedStep Technology), version 2.
+#define KF32_SSSE3        0x02000000 // SSSE3 (Supplemental Streaming SIMD Extensions 3).
+#define KF32_CX16         0x04000000 // CMPXCHG16B instruction.
+#define KF32_ETPRD        0x08000000 // ETPRD (Enhanced Time-Stamp Counter Priority Rotation Disable).
+#define KF32_PDCM         0x10000000 // PDCM (Performance and Debug Capability MSR).
+#define KF32_NOEXECUTE    0x20000000 // No-Execute (NX) bit.
+#define KF32_GLOBAL_32BIT_EXECUTE 0x40000000
+#define KF32_GLOBAL_32BIT_NOEXECUTE 0x80000000
 
 /**
- * The SYSTEM_PROCESSOR_INFORMATION structure contains information about processor feature support.
+ * The SYSTEM_PROCESSOR_INFORMATION structure contains information about the current processor.
+ *
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-system_info
  */
 typedef struct _SYSTEM_PROCESSOR_INFORMATION
 {
@@ -5274,11 +5363,37 @@ typedef struct _OFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V1
 } OFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V1, *POFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V1;
 
 // SYSTEM_PROCESSOR_FEATURES_INFORMATION // ProcessorFeatureBits
-#define KF_BRANCH 0x0000000000020000
-#define KF_XSTATE 0x0000000000800000
-#define KF_RDTSCP 0x0000000400000000
-#define KF_CET_SS 0x0000400000000000
-#define KF_XFD 0x0080000000000000
+#define KF64_SMEP              0x0000000000000001ULL // Supervisor Mode Execution Protection
+#define KF64_RDTSC             0x0000000000000002ULL // Read Time-Stamp Counter
+#define KF64_CR4               0x0000000000000004ULL // CR4 Register Features
+#define KF64_CMOV              0x0000000000000008ULL // Conditional Move Instructions
+#define KF64_GLOBAL_PAGE       0x0000000000000010ULL // Global Pages Support
+#define KF64_LARGE_PAGE        0x0000000000000020ULL // Large Page Support
+#define KF64_MTRR              0x0000000000000040ULL // Memory Type Range Registers
+#define KF64_CMPXCHG8B         0x0000000000000080ULL // CMPXCHG8B Instruction
+#define KF64_MMX               0x0000000000000100ULL // MMX Instructions
+#define KF64_DTS               0x0000000000000200ULL // Debug Store
+#define KF64_PAT               0x0000000000000400ULL // Page Attribute Table
+#define KF64_FXSR              0x0000000000000800ULL // FXSAVE and FXRSTOR Instructions
+#define KF64_FAST_SYSCALL      0x0000000000001000ULL // Fast System Call
+#define KF64_XMMI              0x0000000000002000ULL // Streaming SIMD Extensions
+#define KF64_3DNOW             0x0000000000004000ULL // 3DNow! Instructions
+#define KF64_AMDK6MTRR         0x0000000000008000ULL // AMD K6 Memory Type Range Registers
+#define KF64_XMMI64            0x0000000000010000ULL // Streaming SIMD Extensions 2
+#define KF64_BRANCH            0x0000000000020000ULL // Branch Prediction
+#define KF64_XSTATE            0x0000000000800000ULL // Extended States
+#define KF64_RDRAND            0x0000000100000000ULL // RDRAND Instruction
+#define KF64_SMAP              0x0000000200000000ULL // Supervisor Mode Access Prevention
+#define KF64_RDTSCP            0x0000000400000000ULL // RDTSCP Instruction
+#define KF64_HUGEPAGE          0x0000002000000000ULL // Huge Page Support
+#define KF64_XSAVES            0x0000004000000000ULL // XSAVES and XRSTORS Instructions
+#define KF64_FPU_LEAKAGE       0x0000020000000000ULL // FPU Data Leakage Mitigations
+#define KF64_CAT               0x0000100000000000ULL // Cache Allocation Technology
+#define KF64_CET_SS            0x0000400000000000ULL // Control-flow Enforcement Technology - Shadow Stack
+#define KF64_SSSE3             0x0000800000000000ULL // Supplemental Streaming SIMD Extensions 3
+#define KF64_SSE4_1            0x0001000000000000ULL // Streaming SIMD Extensions 4.1
+#define KF64_SSE4_2            0x0002000000000000ULL // Streaming SIMD Extensions 4.2
+#define KF64_XFD               0x0080000000000000ULL // eXtended FPU Data
 
 // private
 typedef struct _SYSTEM_PROCESSOR_FEATURES_INFORMATION
@@ -5287,10 +5402,57 @@ typedef struct _SYSTEM_PROCESSOR_FEATURES_INFORMATION
     ULONGLONG Reserved[3];
 } SYSTEM_PROCESSOR_FEATURES_INFORMATION, *PSYSTEM_PROCESSOR_FEATURES_INFORMATION;
 
+// EDID v1.4 detailed timing descriptor (18 bytes)
+typedef struct _SYSTEM_EDID_DETAILED_TIMING_DESCRIPTOR
+{
+    USHORT PixelClock;           // Pixel clock in 10 kHz units
+    UCHAR HorizontalActiveLo;    // Horizontal active pixels (low 8 bits)
+    UCHAR HorizontalBlankLo;     // Horizontal blanking pixels (low 8 bits)
+    UCHAR HorizontalActiveBlankHi; // High bits for horizontal active/blanking
+    UCHAR VerticalActiveLo;      // Vertical active lines (low 8 bits)
+    UCHAR VerticalBlankLo;       // Vertical blanking lines (low 8 bits)
+    UCHAR VerticalActiveBlankHi; // High bits for vertical active/blanking
+    UCHAR HorizontalSyncOffsetLo;// Horizontal sync offset (low 8 bits)
+    UCHAR HorizontalSyncPulseWidthLo; // Horizontal sync pulse width (low 8 bits)
+    UCHAR VerticalSyncOffsetPulseWidthLo; // Vertical sync offset/pulse width (low 4 bits each)
+    UCHAR SyncOffsetPulseWidthHi; // High bits for sync offset/pulse width
+    UCHAR HorizontalImageSizeLo; // Horizontal image size in mm (low 8 bits)
+    UCHAR VerticalImageSizeLo;   // Vertical image size in mm (low 8 bits)
+    UCHAR ImageSizeHi;           // High bits for image size
+    UCHAR HorizontalBorder;      // Horizontal border in pixels
+    UCHAR VerticalBorder;        // Vertical border in lines
+    UCHAR Flags;                 // Flags (interlaced, stereo, sync, etc.)
+} SYSTEM_EDID_DETAILED_TIMING_DESCRIPTOR, *PSYSTEM_EDID_DETAILED_TIMING_DESCRIPTOR;
+
 // EDID v1.4 standard data format
 typedef struct _SYSTEM_EDID_INFORMATION
 {
-    UCHAR Edid[128];
+    union
+    {
+        UCHAR Edid[128];
+        struct
+        {
+            UCHAR Header[8];                 // 00h: EDID header (00 FF FF FF FF FF FF 00)
+            UCHAR ManufacturerId[2];         // 08h: Manufacturer ID (big endian)
+            UCHAR ProductCode[2];            // 0Ah: Product code (little endian)
+            UCHAR SerialNumber[4];           // 0Ch: Serial number
+            UCHAR WeekOfManufacture;         // 10h: Week of manufacture
+            UCHAR YearOfManufacture;         // 11h: Year of manufacture (offset from 1990)
+            UCHAR EdidVersion;               // 12h: EDID version (should be 1)
+            UCHAR EdidRevision;              // 13h: EDID revision (should be 4)
+            UCHAR VideoInputDefinition;      // 14h: Video input parameters
+            UCHAR MaxHorizontalImageSize;    // 15h: Max horizontal image size (cm)
+            UCHAR MaxVerticalImageSize;      // 16h: Max vertical image size (cm)
+            UCHAR DisplayGamma;              // 17h: Display gamma (gamma*100 - 100)
+            UCHAR FeatureSupport;            // 18h: DPMS features, color encoding, etc.
+            UCHAR Chromaticity[10];          // 19h: Chromaticity coordinates
+            UCHAR EstablishedTimings[3];     // 23h: Established timings
+            UCHAR StandardTimings[16];       // 26h: Standard timings (8x2 bytes)
+            SYSTEM_EDID_DETAILED_TIMING_DESCRIPTOR DetailedTiming[4]; // 36h: 4 detailed timing descriptors (18 bytes each)
+            UCHAR ExtensionFlag;             // 7Eh: Number of (optional) 128-byte extension blocks
+            UCHAR Checksum;                  // 7Fh: Checksum (sum of all 128 bytes = 0)
+        };
+    };
 } SYSTEM_EDID_INFORMATION, *PSYSTEM_EDID_INFORMATION;
 
 // private
