@@ -728,7 +728,10 @@ VOID PhTickProcessNodes(
 
     // Header text invalidation (dmex)
 
-    memset(PhProcessTreeColumnHeaderCache, 0, PhProcessTreeColumnHeaderCacheLength);
+    if (PhProcessTreeColumnHeaderCache)
+    {
+        memset(PhProcessTreeColumnHeaderCache, 0, PhProcessTreeColumnHeaderCacheLength);
+    }
 
     // Node text invalidation, node updates
 
@@ -5758,7 +5761,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             }
             else
             {
-                // Invalid move (would create a cycle) – restore original placement at end of root list. (dmex)
+                // Invalid move (would create a cycle) - restore original placement at end of root list. (dmex)
                 PhInsertItemList(ProcessNodeRootList, ProcessNodeRootList->Count, sourceNode);
                 sourceNode->Parent = NULL;
             }

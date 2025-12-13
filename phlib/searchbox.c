@@ -750,7 +750,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (updateRegion == HRGN_FULL)
                 updateRegion = NULL;
 
-            flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | DCX_USESTYLE;
+            flags = DCX_WINDOW | DCX_CACHE | DCX_USESTYLE;
 
             if (updateRegion)
                 flags |= DCX_INTERSECTRGN | DCX_NODELETERGN;
@@ -791,7 +791,10 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 }
 
                 if (!context->BufferedDc)
+                {
+                    ReleaseDC(WindowHandle, hdc);
                     break;
+                }
 
                 if (GetFocus() == WindowHandle)
                 {

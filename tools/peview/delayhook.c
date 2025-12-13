@@ -722,20 +722,21 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
             // The searchbox control does its own theme drawing.
             if (PhGetWindowContext(WindowHandle, SHRT_MAX))
                 break;
+            if (!PhGetWindowRect(WindowHandle, &windowRect))
+                break;
 
             updateRegion = (HRGN)wParam;
 
             if (updateRegion == HRGN_FULL)
                 updateRegion = NULL;
 
-            flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | DCX_USESTYLE;
+            flags = DCX_WINDOW | DCX_CACHE | DCX_USESTYLE;
 
             if (updateRegion)
                 flags |= DCX_INTERSECTRGN | DCX_NODELETERGN;
 
             if (hdc = GetDCEx(WindowHandle, updateRegion, flags))
             {
-                GetWindowRect(WindowHandle, &windowRect);
                 PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
 
                 if (GetFocus() == WindowHandle)

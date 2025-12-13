@@ -1446,7 +1446,7 @@ VOID PhpFillProcessItem(
             else
             {
                 // System, DPCs, Interrupts and Idle processes are always protected. (dmex)
-                if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId) || PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId))
+                if (PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId) || ProcessItem->IsSystemProcess)
                 {
                     ProcessItem->Protection.Level = PsProtectedValue(PsProtectedSignerWinSystem, FALSE, PsProtectedTypeProtected);
                     ProcessItem->IsProtectedProcess = ProcessItem->IsSecureProcess = ProcessItem->IsSystemProcess = TRUE;

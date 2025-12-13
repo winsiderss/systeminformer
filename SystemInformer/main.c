@@ -756,6 +756,8 @@ VOID PhpCreateUnhandledExceptionCrashDump(
     PhDereferenceObject(directory);
 }
 
+static LPTOP_LEVEL_EXCEPTION_FILTER PhpPreviousUnhandledExceptionFilter = NULL;
+
 LONG CALLBACK PhpUnhandledExceptionCallback(
     _In_ PEXCEPTION_POINTERS ExceptionInfo
     )
@@ -924,7 +926,7 @@ NTSTATUS PhInitializeExceptionPolicy(
 #else
     PhSetProcessErrorMode(NtCurrentProcess(), 0);
 #endif
-    SetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
+    PhpPreviousUnhandledExceptionFilter = SetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
 
     return STATUS_SUCCESS;
 }
@@ -1164,7 +1166,6 @@ VOID PhInitializeAppSettings(
             if (PhDetermineDosPathNameType(&PhStartupParameters.SettingsFileName->sr) == RtlPathTypeRooted)
             {
                 PhSetReference(&PhSettingsFileName, PhStartupParameters.SettingsFileName);
-                PhPortableEnabled = TRUE;
             }
             else
             {
@@ -1178,7 +1179,6 @@ VOID PhInitializeAppSettings(
                     if (!PhIsNullOrEmptyString(settingsFileName))
                     {
                         PhMoveReference(&PhSettingsFileName, settingsFileName);
-                        PhPortableEnabled = TRUE;
                     }
                 }
             }
@@ -1206,7 +1206,7 @@ VOID PhInitializeAppSettings(
         // 3. Default location
         if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
-            PhSettingsFileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml", TRUE);
+            PhSettingsFileName = PhGetRoamingAppDataDirectoryZ(L".settings.xml", TRUE);
         }
 
         if (!PhIsNullOrEmptyString(PhSettingsFileName))

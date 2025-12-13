@@ -850,9 +850,16 @@ BOOLEAN PhysicalHistoryGraphMessageCallback(
 
             if (!graph->GraphState.Valid)
             {
-                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                if (EnableAvxSupport && drawInfo->LineDataCount > 128)
                 {
-                    graph->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(SystemStatistics.PhysicalHistory, i);
+                    PhCopyConvertCircularBufferULONG(SystemStatistics.PhysicalHistory, graph->GraphState.Data1, drawInfo->LineDataCount);
+                }
+                else
+                {
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        graph->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(SystemStatistics.PhysicalHistory, i);
+                    }
                 }
 
                 PhDivideSinglesBySingle(
@@ -946,9 +953,16 @@ BOOLEAN CommitHistoryGraphMessageCallback(
 
             if (!graph->GraphState.Valid)
             {
-                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                if (EnableAvxSupport && drawInfo->LineDataCount > 128)
                 {
-                    graph->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(SystemStatistics.CommitHistory, i);
+                    PhCopyConvertCircularBufferULONG(SystemStatistics.CommitHistory, graph->GraphState.Data1, drawInfo->LineDataCount);
+                }
+                else
+                {
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        graph->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(SystemStatistics.CommitHistory, i);
+                    }
                 }
 
                 PhDivideSinglesBySingle(

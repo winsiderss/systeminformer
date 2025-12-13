@@ -1362,15 +1362,20 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
                     if (clientId.UniqueThread && clientId.UniqueProcess && clientId.UniqueProcess != NtCurrentProcessId())
                     {
-                        //PPH_PROCESS_NODE processNode;
-                        //
-                        //processNode = PhFindProcessNode(clientId.UniqueProcess);
-                        //
-                        //if (processNode)
-                        //{
-                        //    SystemInformer_SelectTabPage(0);
-                        //    SystemInformer_SelectProcessNode(processNode);
-                        //}
+                        PPH_PROCESS_NODE processNode;
+
+                        if (SearchboxHandle)
+                        {
+                            // Clear search filters before selecting the process or the
+                            // selected node won't be visible if it's filtered out. (dmex)
+                            PhSearchControlClear(SearchboxHandle);
+                        }
+
+                        if (processNode = PhFindProcessNode(clientId.UniqueProcess))
+                        {
+                            SystemInformer_SelectTabPage(0);
+                            SystemInformer_SelectProcessNode(processNode);
+                        }
 
                         switch (TargetingMode)
                         {

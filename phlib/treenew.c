@@ -786,10 +786,10 @@ BOOLEAN PhTnpOnNcPaint(
 
         // Note the use of undocumented flags below. GetDCEx doesn't work without these.
 
-        flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000;
+        flags = DCX_WINDOW | DCX_CACHE | DCX_USESTYLE;
 
         if (UpdateRegion)
-            flags |= DCX_INTERSECTRGN | 0x40000;
+            flags |= DCX_INTERSECTRGN | DCX_NODELETERGN;
 
         if (hdc = GetDCEx(hwnd, UpdateRegion, flags))
         {
