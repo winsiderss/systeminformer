@@ -813,8 +813,8 @@ VOID InitializeThreadStackTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER4, FALSE, L"Stack parameter #4", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_CONTROLADDRESS, FALSE, L"Control address", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_RETURNADDRESS, FALSE, L"Return address", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_LINETEXT, FALSE, L"Line number", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_LINETEXT, FALSE, L"Line number", 100, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_ARCHITECTURE, FALSE, L"Architecture", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FRAMEDISTANCE, FALSE, L"Frame distance", 100, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
 
