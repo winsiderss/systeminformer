@@ -1206,7 +1206,7 @@ VOID PhInitializeAppSettings(
         // 3. Default location
         if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
-            PhSettingsFileName = PhGetRoamingAppDataDirectoryZ(L".settings.xml", TRUE);
+            PhSettingsFileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml", TRUE);
         }
 
         if (!PhIsNullOrEmptyString(PhSettingsFileName))
