@@ -284,9 +284,6 @@ VOID PhShowHandleObjectProperties1(
 
                 if (status == STATUS_SECTION_PROTECTION && !readOnly)
                 {
-                    viewSize = PH_MAX_SECTION_EDIT_SIZE;
-                    viewBase = NULL;
-
                     status = PhMapViewOfSection(
                         handle,
                         NtCurrentProcess(),
@@ -324,15 +321,14 @@ VOID PhShowHandleObjectProperties1(
                     PhShowStatus(hWnd, L"Unable to map a view of the section.", status, 0);
                 }
             }
+            else
+            {
+                PhShowStatus(hWnd, L"Unable to query the section.", status, 0);
+            }
 
             PhClearReference(&sectionName);
 
             NtClose(handle);
-        }
-
-        if (!NT_SUCCESS(status))
-        {
-            PhShowStatus(hWnd, L"Unable to query the section.", status, 0);
         }
     }
     else if (PhEqualString2(Info->TypeName, L"Thread", TRUE))
