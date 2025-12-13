@@ -119,7 +119,7 @@ EXTERN_C_START
  */
 #define RTL_IMAGE_MAX_DOS_HEADER (256UL * (1024UL * 1024UL)) // 256 MB
 
-/** 
+/**
  * Meta characters for wildcard processing.
  * \remarks NtQueryDirectoryFile(Ex), RtlDoesNameContainWildCards and file system drivers (FAT, NTFS, REFS).
  */
@@ -136,7 +136,7 @@ EXTERN_C_START
 
 /**
  * The RtlFailFast routine brings down the caller immediately in the event that critical corruption has been detected. No exception handlers are invoked.
- * 
+ *
  * \param Code A FAST_FAIL_<description> symbolic constant from winnt.h or wdm.h that indicates the reason for process termination.
  * \return None. There is no return from this routine.
  * \remarks The routine is shared with user mode and kernel mode. In user mode, the process is terminated, whereas in kernel mode, a KERNEL_SECURITY_CHECK_FAILURE bug check is raised.
@@ -167,7 +167,7 @@ RtlFatalListEntryError(
     //    wrapper around RtlFailFast so that alternative reporting mechanisms (such
     //    as simply logging and trying to continue) can be easily switched in.
     //--
-    
+
     UNREFERENCED_PARAMETER(p1);
     UNREFERENCED_PARAMETER(p2);
     UNREFERENCED_PARAMETER(p3);
@@ -198,11 +198,11 @@ RtlCheckListEntry(
     _In_ PLIST_ENTRY Entry
     )
 {
-    if ((((Entry->Flink)->Blink) != Entry) || (((Entry->Blink)->Flink) != Entry)) 
+    if ((((Entry->Flink)->Blink) != Entry) || (((Entry->Blink)->Flink) != Entry))
     {
         RtlFatalListEntryError(
-            (PVOID)(Entry), 
-            (PVOID)((Entry->Flink)->Blink), 
+            (PVOID)(Entry),
+            (PVOID)((Entry->Flink)->Blink),
             (PVOID)((Entry->Blink)->Flink)
             );
     }
@@ -296,7 +296,7 @@ RemoveHeadList(
     NextEntry = Entry->Flink;
 
 #if !defined(NO_LIST_ENTRY_CHECKS)
-    if ((Entry->Blink != ListHead) || (NextEntry->Blink != Entry)) 
+    if ((Entry->Blink != ListHead) || (NextEntry->Blink != Entry))
     {
         RtlFatalListEntryError((PVOID)ListHead, (PVOID)Entry, (PVOID)NextEntry);
     }
@@ -322,7 +322,7 @@ RemoveTailList(
     PrevEntry = Entry->Blink;
 
 #if !defined(NO_LIST_ENTRY_CHECKS)
-    if ((Entry->Flink != ListHead) || (PrevEntry->Flink != Entry)) 
+    if ((Entry->Flink != ListHead) || (PrevEntry->Flink != Entry))
     {
         RtlFatalListEntryError((PVOID)PrevEntry, (PVOID)Entry, (PVOID)ListHead);
     }
@@ -347,7 +347,7 @@ InsertTailList(
     PrevEntry = ListHead->Blink;
 
 #if !defined(NO_LIST_ENTRY_CHECKS)
-    if (PrevEntry->Flink != ListHead) 
+    if (PrevEntry->Flink != ListHead)
     {
         RtlFatalListEntryError((PVOID)PrevEntry, (PVOID)ListHead, (PVOID)PrevEntry->Flink);
     }
@@ -374,7 +374,7 @@ InsertHeadList(
 #if !defined(NO_LIST_ENTRY_CHECKS)
     RtlCheckListEntry(ListHead);
 
-    if (NextEntry->Blink != ListHead) 
+    if (NextEntry->Blink != ListHead)
     {
         RtlFatalListEntryError((PVOID)ListHead, (PVOID)NextEntry, (PVOID)NextEntry->Blink);
     }
@@ -1501,7 +1501,7 @@ RtlDumpResource(
 // winbase:InitializeSRWLock
 /**
  * The RtlInitializeSRWLock routine initializes a slim reader/writer (SRW) lock.
- * 
+ *
  * \param SRWLock A pointer to the SRW lock.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-initializesrwlock
  */
@@ -2162,7 +2162,7 @@ RtlDowncaseUnicodeChar(
 
 /**
  * The RtlCompareUnicodeString routine compares two Unicode strings.
- * 
+ *
  * \param[in] String1 Pointer to the first string.
  * \param[in] String2 Pointer to the second string.
  * \param[in] CaseInSensitive If TRUE, case should be ignored when doing the comparison.
@@ -2181,7 +2181,7 @@ RtlCompareUnicodeString(
 
 /**
  * The RtlCompareUnicodeStrings routine compares two Unicode strings.
- * 
+ *
  * \param[in] String1 Pointer to the first string.
  * \param[in] String1Length The length, in bytes, of the first string.
  * \param[in] String2 Pointer to the second string.
@@ -3934,7 +3934,7 @@ RtlCreateProcessReflection(
  */
 NTSYSAPI
 NTSTATUS
-STDAPIVCALLTYPE
+NTAPI
 RtlSetProcessIsCritical(
     _In_ BOOLEAN NewValue,
     _Out_opt_ PBOOLEAN OldValue,
@@ -3952,7 +3952,7 @@ RtlSetProcessIsCritical(
  */
 NTSYSAPI
 NTSTATUS
-STDAPIVCALLTYPE
+NTAPI
 RtlSetThreadIsCritical(
     _In_ BOOLEAN NewValue,
     _Out_opt_ PBOOLEAN OldValue,
@@ -4965,7 +4965,7 @@ RtlFillMemoryNonTemporal(
 #define RtlCopyMemoryNonTemporal RtlCopyMemory
 #define RtlFillMemoryNonTemporal RtlFillMemory
 #endif
-    
+
 #if defined(_M_AMD64)
 FORCEINLINE
 VOID
@@ -5086,7 +5086,7 @@ RtlCrc64(
 #define GlobalDataIdSafeBootMode 12                 // KUSER_SHARED_DATA->SafeBootMode
 #define GlobalDataIdLastSystemRITEventTickCount 13  // KUSER_SHARED_DATA->LastSystemRITEventTickCount
 #define GlobalDataIdConsoleSharedDataFlags 14       // KUSER_SHARED_DATA->ConsoleSharedDataFlags
-#define GlobalDataIdNtSystemRootDrive 15            // KUSER_SHARED_DATA->NtSystemRoot // RtlGetNtSystemRoot 
+#define GlobalDataIdNtSystemRootDrive 15            // KUSER_SHARED_DATA->NtSystemRoot // RtlGetNtSystemRoot
 #define GlobalDataIdQpcBypassEnabled 16             // KUSER_SHARED_DATA->QpcBypassEnabled
 #define GlobalDataIdQpcData 17                      // KUSER_SHARED_DATA->QpcData
 #define GlobalDataIdQpcBias 18                      // KUSER_SHARED_DATA->QpcBias
@@ -9704,9 +9704,9 @@ NTAPI
 RtlNewSecurityGrantedAccess(
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PPRIVILEGE_SET NewPrivileges,
-    _Inout_ PULONG Length, 
+    _Inout_ PULONG Length,
     _In_opt_ HANDLE TokenHandle,
-    _In_ PGENERIC_MAPPING GenericMapping,   
+    _In_ PGENERIC_MAPPING GenericMapping,
     _Out_ PACCESS_MASK RemainingDesiredAccess
     );
 
@@ -9986,6 +9986,16 @@ VOID NTAPI RTL_OVERLAPPED_COMPLETION_ROUTINE(
     );
 typedef RTL_OVERLAPPED_COMPLETION_ROUTINE* PRTL_OVERLAPPED_COMPLETION_ROUTINE;
 
+/**
+ * Associates the I/O completion port owned by the thread pool with the specified file handle.
+ * On completion of an I/O request involving this file, a non-I/O worker thread will execute the specified callback function.
+ *
+ * \param FileHandle A handle to the file or device for which to set the I/O completion callback.
+ * \param Function A pointer to the callback function to be executed when an I/O operation completes.
+ * \param Flags Reserved; must be zero.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-bindiocompletioncallback
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -10170,7 +10180,7 @@ RtlCheckRegistryKey(
     _In_ PCWSTR Path
     );
 
-typedef _Function_class_(RTL_QUERY_REGISTRY_ROUTINE) 
+typedef _Function_class_(RTL_QUERY_REGISTRY_ROUTINE)
 NTSTATUS NTAPI RTL_QUERY_REGISTRY_ROUTINE(
     _In_z_ PCWSTR ValueName,
     _In_ ULONG ValueType,
@@ -10513,7 +10523,7 @@ RtlEncodeRemotePointer(
 
 // rev
 /**
- * The RtlDecodeRemotePointer routine decodes a pointer in a specified process that was previously 
+ * The RtlDecodeRemotePointer routine decodes a pointer in a specified process that was previously
  * encoded with RtlEncodePointer or RtlEncodeRemotePointer.
  *
  * \param ProcessHandle Handle to the remote process that owns the pointer.
@@ -10551,7 +10561,7 @@ RtlIsProcessorFeaturePresent(
 
 // rev
 /**
- * The RtlGetCurrentProcessorNumber routine retrieves the number of the processor the current thread was running 
+ * The RtlGetCurrentProcessorNumber routine retrieves the number of the processor the current thread was running
  * on during the call to this function.
  *
  * \return The function returns the current processor number.
@@ -10566,10 +10576,10 @@ RtlGetCurrentProcessorNumber(
 
 // rev
 /**
- * The RtlGetCurrentProcessorNumberEx routine retrieves the processor group and number of the logical processor 
+ * The RtlGetCurrentProcessorNumberEx routine retrieves the processor group and number of the logical processor
  * in which the calling thread is running.
  *
- * \param ProcessorNumber A pointer to a PROCESSOR_NUMBER structure that receives the processor group and number 
+ * \param ProcessorNumber A pointer to a PROCESSOR_NUMBER structure that receives the processor group and number
  * of the logical processor the calling thread is running.
  * \return This function does not return a value.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getcurrentprocessornumberex
@@ -10635,9 +10645,9 @@ RtlGetCallersAddress( // Use the intrinsic _ReturnAddress instead.
 /**
  * The RtlGetEnabledExtendedFeatures routine returns a mask of extended processor features that are enabled by the system.
  *
- * \param FeatureMask A 64-bit feature mask. This parameter indicates a set of extended processor features for which the caller 
+ * \param FeatureMask A 64-bit feature mask. This parameter indicates a set of extended processor features for which the caller
  * requests information about whether the features are enabled.
- * \return A 64-bitmask of enabled extended processor features. The routine calculates this mask as the intersection (bitwise AND) 
+ * \return A 64-bitmask of enabled extended processor features. The routine calculates this mask as the intersection (bitwise AND)
  * between all enabled features and the value of the FeatureMask parameter.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlgetenabledextendedfeatures
  */
@@ -10988,7 +10998,7 @@ RtlQueryPerformanceCounter(
  * The RtlQueryPerformanceFrequency routine retrieves the frequency of the performance counter. The frequency of the performance counter is fixed at system boot and is consistent across all processors.
  * Therefore, the frequency need only be queried upon application initialization, and the result can be cached.
  *
- * \param PerformanceFrequency A pointer to a variable that receives the current performance-counter frequency, in counts per second. 
+ * \param PerformanceFrequency A pointer to a variable that receives the current performance-counter frequency, in counts per second.
  * \return Returns TRUE if the function succeeds, otherwise FALSE. On systems that run Windows XP or later, the function will always succeed and will thus never return zero.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancefrequency
  */
@@ -12237,10 +12247,10 @@ typedef struct _RTL_FEATURE_CONFIGURATION_UPDATE
     RTL_FEATURE_ENABLED_STATE EnabledState;
     RTL_FEATURE_ENABLED_STATE_OPTIONS EnabledStateOptions;
 
-    union 
+    union
     {
         ULONG VariantFlags;
-        struct 
+        struct
         {
             ULONG Variant : 8;
             ULONG ChangeTimeUpgrade : 1;
@@ -12249,7 +12259,7 @@ typedef struct _RTL_FEATURE_CONFIGURATION_UPDATE
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
 
-    UCHAR Reserved[3]; 
+    UCHAR Reserved[3];
     RTL_FEATURE_VARIANT_PAYLOAD_KIND VariantPayloadKind;
     RTL_FEATURE_VARIANT_PAYLOAD VariantPayload;
     RTL_FEATURE_CONFIGURATION_OPERATION Operation;
