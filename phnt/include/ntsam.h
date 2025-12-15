@@ -41,7 +41,9 @@ typedef struct _SAM_BYTE_ARRAY_32K
 
 typedef SAM_BYTE_ARRAY_32K SAM_SHELL_OBJECT_PROPERTIES, *PSAM_SHELL_OBJECT_PROPERTIES;
 
+//
 // Basic
+//
 
 NTSYSAPI
 NTSTATUS
@@ -84,7 +86,17 @@ SamRidToSid(
     _Outptr_ PSID *Sid
     );
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamQueryLapsManagedAccount(
+    _In_ SAM_HANDLE ObjectHandle,
+    _Outptr_ PSID *AccountSid
+    );
+
+//
 // Server
+//
 
 #define SAM_SERVER_CONNECT 0x0001
 #define SAM_SERVER_SHUTDOWN 0x0002
@@ -115,7 +127,9 @@ SamRidToSid(
 
 typedef struct _RPC_AUTH_IDENTITY_HANDLE *PRPC_AUTH_IDENTITY_HANDLE;
 
+//
 // Functions
+//
 
 NTSYSAPI
 NTSTATUS
@@ -147,7 +161,9 @@ SamShutdownSamServer(
     _In_ SAM_HANDLE ServerHandle
     );
 
+//
 // Domain
+//
 
 #define DOMAIN_READ_PASSWORD_PARAMETERS 0x0001
 #define DOMAIN_WRITE_PASSWORD_PARAMS 0x0002
@@ -411,7 +427,9 @@ typedef union _DOMAIN_LOCALIZABLE_INFO_BUFFER
     DOMAIN_LOCALIZABLE_ACCOUNTS_BASIC Basic;
 } DOMAIN_LOCALIZABLE_ACCOUNTS_INFO_BUFFER, *PDOMAIN_LOCALIZABLE_ACCOUNTS_INFO_BUFFER;
 
+//
 // Functions
+//
 
 NTSYSAPI
 NTSTATUS
@@ -513,7 +531,9 @@ SamQueryLocalizableAccountsInDomain(
     _Outptr_ PVOID *Buffer
     );
 
+//
 // Group
+//
 
 #define GROUP_READ_INFORMATION 0x0001
 #define GROUP_WRITE_ACCOUNT 0x0002
@@ -579,7 +599,9 @@ typedef struct _GROUP_ADM_COMMENT_INFORMATION
     UNICODE_STRING AdminComment;
 } GROUP_ADM_COMMENT_INFORMATION, *PGROUP_ADM_COMMENT_INFORMATION;
 
+//
 // Functions
+//
 
 NTSYSAPI
 NTSTATUS
@@ -674,7 +696,9 @@ SamSetMemberAttributesOfGroup(
     _In_ ULONG Attributes
     );
 
+//
 // Alias
+//
 
 #define ALIAS_ADD_MEMBER 0x0001
 #define ALIAS_REMOVE_MEMBER 0x0002
@@ -739,7 +763,9 @@ typedef struct _ALIAS_EXTENDED_INFORMATION
     SAM_SHELL_OBJECT_PROPERTIES ShellAdminObjectProperties;
 } ALIAS_EXTENDED_INFORMATION, *PALIAS_EXTENDED_INFORMATION;
 
+//
 // Functions
+//
 
 NTSYSAPI
 NTSTATUS
@@ -851,8 +877,9 @@ SamGetAliasMembership(
     _Out_ PULONG MembershipCount,
     _Out_ _Deref_post_count_(*MembershipCount) PULONG *Aliases
     );
-
+//
 // Group types
+//
 
 #define GROUP_TYPE_BUILTIN_LOCAL_GROUP 0x00000001
 #define GROUP_TYPE_ACCOUNT_GROUP 0x00000002
@@ -866,7 +893,9 @@ SamGetAliasMembership(
     GROUP_TYPE_APP_BASIC_GROUP | \
     GROUP_TYPE_APP_QUERY_GROUP)
 
+//
 // User
+//
 
 #define USER_READ_GENERAL 0x0001
 #define USER_READ_PREFERENCES 0x0002
@@ -977,10 +1006,15 @@ typedef struct _LOGON_HOURS
     PUCHAR LogonHours;
 } LOGON_HOURS, *PLOGON_HOURS;
 
+/**
+ * The SR_SECURITY_DESCRIPTOR structure contains information about the security privileges of the user.
+ *
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/subauth/ns-subauth-sr_security_descriptor
+ */
 typedef struct _SR_SECURITY_DESCRIPTOR
 {
-    ULONG Length;
-    PUCHAR SecurityDescriptor;
+    ULONG Length;                   // Indicates the size in bytes of the structure.
+    PUCHAR SecurityDescriptor;      // Indicates the user's security privileges.
 } SR_SECURITY_DESCRIPTOR, *PSR_SECURITY_DESCRIPTOR;
 
 // SamQueryInformationUser/SamSetInformationUser types
@@ -1503,7 +1537,9 @@ typedef struct _USER_PWD_CHANGE_FAILURE_INFORMATION
 #define SAM_PWD_CHANGE_PASSWORD_TOO_LONG 8
 #define SAM_PWD_CHANGE_FAILURE_REASON_MAX 8
 
+//
 // Functions
+//
 
 NTSYSAPI
 NTSTATUS
@@ -1512,6 +1548,20 @@ SamEnumerateUsersInDomain(
     _In_ SAM_HANDLE DomainHandle,
     _Inout_ PSAM_ENUMERATE_HANDLE EnumerationContext,
     _In_ ULONG UserAccountControl,
+    _Outptr_ PVOID *Buffer, // PSAM_RID_ENUMERATION *
+    _In_ ULONG PreferedMaximumLength,
+    _Out_ PULONG CountReturned
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamEnumerateUsersInDomain2(
+    _In_ SAM_HANDLE DomainHandle,
+    _Inout_ PSAM_ENUMERATE_HANDLE EnumerationContext,
+    _In_ ULONG UserAccountControl,
+    _In_ ULONG Flags,
     _Outptr_ PVOID *Buffer, // PSAM_RID_ENUMERATION *
     _In_ ULONG PreferedMaximumLength,
     _Out_ PULONG CountReturned
@@ -1641,7 +1691,9 @@ SamGetDisplayEnumerationIndex(
     _Out_ PULONG Index
     );
 
+//
 // Database replication
+//
 
 typedef enum _SECURITY_DB_DELTA_TYPE
 {
@@ -1725,7 +1777,9 @@ SamUnregisterObjectChangeNotification(
     _In_ HANDLE NotificationEventHandle
     );
 
+//
 // Compatibility mode
+//
 
 #define SAM_SID_COMPATIBILITY_ALL 0
 #define SAM_SID_COMPATIBILITY_LAX 1
@@ -1739,7 +1793,9 @@ SamGetCompatibilityMode(
     _Out_ ULONG *Mode
     );
 
+//
 // Password validation
+//
 
 typedef enum _PASSWORD_POLICY_VALIDATION_TYPE
 {
@@ -1844,7 +1900,9 @@ SamValidatePassword(
     _Out_ PSAM_VALIDATE_OUTPUT_ARG *OutputArg
     );
 
+//
 // Generic operation
+//
 
 typedef enum _SAM_GENERIC_OPERATION_TYPE
 {
