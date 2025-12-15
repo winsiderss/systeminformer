@@ -100,7 +100,7 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryEnclaveImageInformation,              // q: MEMORY_ENCLAVE_IMAGE_INFORMATION // since REDSTONE3
     MemoryBasicInformationCapped,               // q: 10
     MemoryPhysicalContiguityInformation,        // q: MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // since 20H1
-    MemoryBadInformation,                       // q: since WIN11
+    MemoryBadInformation,                       // q: MEMORY_BAD_INFORMATION // since WIN11
     MemoryBadInformationAllProcesses,           // qs: not implemented // since 22H1
     MemoryImageExtensionInformation,            // q: MEMORY_IMAGE_EXTENSION_INFORMATION // since 24H2
     MaxMemoryInfoClass
@@ -334,12 +334,12 @@ typedef struct _MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION
 {
     union
     {
+        ULONG AllInformation;
         struct
         {
             ULONG State : 2;
             ULONG Reserved : 30;
         };
-        ULONG AllInformation;
     };
 } MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION, *PMEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION;
 
@@ -355,7 +355,22 @@ typedef struct _MEMORY_PHYSICAL_CONTIGUITY_INFORMATION
     PMEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION ContiguityUnitInformation;
 } MEMORY_PHYSICAL_CONTIGUITY_INFORMATION, *PMEMORY_PHYSICAL_CONTIGUITY_INFORMATION;
 
-// private
+// rev
+/**
+ * The MEMORY_BAD_INFORMATION structure reports a range of memory that has been marked bad or otherwise problematic.
+ */
+typedef struct _MEMORY_BAD_INFORMATION
+{
+    PVOID BadAddress; // Starting address of the bad memory range.
+    ULONG_PTR Length; // Length in bytes of the bad range.
+    ULONG Flags;      // Flags describing the nature of the bad memory.
+    ULONG Reserved;
+} MEMORY_BAD_INFORMATION, *PMEMORY_BAD_INFORMATION;
+
+/**
+ * The RTL_SCP_CFG_ARM64_HEADER structure contains ARM64 SCP/CFG descriptors; RVAs to handlers
+ * and helper routines used when configuring CFG/SCP emulation on ARM64.
+ */
 typedef struct _RTL_SCP_CFG_ARM64_HEADER
 {
     ULONG EcInvalidCallHandlerRva;        // RVA to invalid EC call handler.
@@ -1013,8 +1028,8 @@ typedef struct _MEMORY_REMOVE_WORKING_SET_INFORMATION
  */
 typedef struct _MEMORY_RANGE_ENTRY
 {
-    PVOID VirtualAddress;
-    SIZE_T NumberOfBytes;
+    PVOID VirtualAddress;        // A pointer to the starting virtual address of the region.
+    SIZE_T NumberOfBytes;        // The size, in bytes, of the region.
 } MEMORY_RANGE_ENTRY, *PMEMORY_RANGE_ENTRY;
 
 /**
