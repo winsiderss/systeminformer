@@ -327,7 +327,7 @@ typedef enum _THREADINFOCLASS
     ThreadDescriptorTableEntry,                     // q: DESCRIPTOR_TABLE_ENTRY (or WOW64_DESCRIPTOR_TABLE_ENTRY)
     ThreadEnableAlignmentFaultFixup,                // s: BOOLEAN
     ThreadEventPair,                                // q: Obsolete
-    ThreadQuerySetWin32StartAddress,                // qs: PVOID (requires THREAD_SET_LIMITED_INFORMATION)
+    ThreadQuerySetWin32StartAddress,                // q: PVOID
     ThreadZeroTlsCell,                              // s: ULONG // TlsIndex // 10
     ThreadPerformanceCount,                         // q: LARGE_INTEGER
     ThreadAmILastThread,                            // q: ULONG
