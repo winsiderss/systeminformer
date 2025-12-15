@@ -1237,7 +1237,7 @@ typedef struct _PS_PROTECTION
 } PS_PROTECTION, *PPS_PROTECTION;
 
 /**
- * The PROCESS_MEMORY_EXHAUSTION_TYPE enumeration defines the different memory exhaustion typess.
+ * The PROCESS_MEMORY_EXHAUSTION_TYPE enumeration defines the different memory exhaustion types.
  *
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ne-processthreadsapi-process_memory_exhaustion_type
  */
