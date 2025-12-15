@@ -201,7 +201,6 @@ namespace CustomBuildTool
             {
                 using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
                 using (var cryptoEncrypt = rijndael.CreateEncryptor())
-                using (var cryptoStream = new CryptoStream(Stream.Null, cryptoEncrypt, CryptoStreamMode.Write))
                 using (var ms = new MemoryStream())
                 {
                     using (var cryptoStreamOut = new CryptoStream(ms, cryptoEncrypt, CryptoStreamMode.Write, leaveOpen: true))
