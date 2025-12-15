@@ -303,7 +303,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileNetworkPhysicalNameInformation,             // q: FILE_NETWORK_PHYSICAL_NAME_INFORMATION
     FileIdGlobalTxDirectoryInformation,             // q: FILE_ID_GLOBAL_TX_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex]) // since WIN7 // 50
     FileIsRemoteDeviceInformation,                  // q: FILE_IS_REMOTE_DEVICE_INFORMATION
-    FileUnusedInformation,                          // q: 
+    FileUnusedInformation,                          // q:
     FileNumaNodeInformation,                        // q: FILE_NUMA_NODE_INFORMATION
     FileStandardLinkInformation,                    // q: FILE_STANDARD_LINK_INFORMATION
     FileRemoteProtocolInformation,                  // q: FILE_REMOTE_PROTOCOL_INFORMATION
