@@ -344,7 +344,7 @@ typedef struct _MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION
 } MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION, *PMEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION;
 
 /**
- * Thw MEMORY_PHYSICAL_CONTIGUITY_INFORMATION structure describes a virtual range and contiguity unit characteristics for physical contiguity queries.
+ * The MEMORY_PHYSICAL_CONTIGUITY_INFORMATION structure describes a virtual range and contiguity unit characteristics for physical contiguity queries.
  */
 typedef struct _MEMORY_PHYSICAL_CONTIGUITY_INFORMATION
 {
@@ -960,7 +960,7 @@ typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
- * Attempt to populate specified single or multiple adddress ranges
+ * Attempt to populate specified single or multiple address ranges
  * into the process working set (bring pages into physical memory).
  */
 #define VM_PREFETCH_TO_WORKING_SET 0x1 // since 24H4

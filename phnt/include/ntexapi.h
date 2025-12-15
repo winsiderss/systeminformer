@@ -2895,7 +2895,7 @@ typedef struct _RTL_PROCESS_BACKTRACES
     _Field_size_(NumberOfBackTraces) RTL_PROCESS_BACKTRACE_INFORMATION BackTraces[1];
 } RTL_PROCESS_BACKTRACES, *PRTL_PROCESS_BACKTRACES;
 
-// Note: This information class is deprecatd since values are limitd to 65535. Use SystemExtendedHandleInformation instead.
+// Note: This information class is deprecated since values are limited to 65535. Use SystemExtendedHandleInformation instead.
 typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
 {
     USHORT UniqueProcessId;

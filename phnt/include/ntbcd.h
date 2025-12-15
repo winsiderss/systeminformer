@@ -1575,7 +1575,7 @@ typedef enum _BcdLibraryElementTypes
     /// <remarks>0x16000041</remarks>
     BcdLibraryBoolean_DisplayOptionsEdit = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 65),
     /// <summary>
-    /// Represents a refernce to the address of the FVE (Full Volume Encryption) Key Ring as an integer.
+    /// Represents a reference to the address of the FVE (Full Volume Encryption) Key Ring as an integer.
     /// </summary>
     /// <remarks>0x15000042</remarks>
     BcdLibraryInteger_FVEKeyRingAddress = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 66),

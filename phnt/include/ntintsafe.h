@@ -6915,7 +6915,7 @@ RtlUShortAdd(
 #define RtlUInt16Add   RtlUShortAdd
 
 //
-// WORD addtition
+// WORD addition
 //
 #define RtlWordAdd     RtlUShortAdd
 
