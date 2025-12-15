@@ -262,20 +262,29 @@ namespace CustomBuildTool
 
         private static Aes GetRijndael(string Secret, string Salt)
         {
-            using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(
+            byte[] saltBytes = Convert.FromBase64String(Salt);
+
+            byte[] key = Rfc2898DeriveBytes.Pbkdf2(
                 Secret,
-                Convert.FromBase64String(GetSalt(Salt)),
+                saltBytes,
                 10000,
-                HashAlgorithmName.SHA512
-                ))
-            {
-                Aes rijndael = Aes.Create();
+                HashAlgorithmName.SHA512,
+                32
+                );
 
-                rijndael.Key = rfc2898DeriveBytes.GetBytes(32);
-                rijndael.IV = rfc2898DeriveBytes.GetBytes(16);
+            byte[] iv = Rfc2898DeriveBytes.Pbkdf2(
+                Secret,
+                saltBytes,
+                10000,
+                HashAlgorithmName.SHA512,
+                16
+                );
 
-                return rijndael;
-            }
+            Aes rijndael = Aes.Create();
+            rijndael.Key = key;
+            rijndael.IV = iv;
+
+            return rijndael;
         }
 
         private static byte[] Sign(byte[] KeyMaterial, byte[] Bytes)
