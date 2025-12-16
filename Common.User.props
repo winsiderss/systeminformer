@@ -13,6 +13,7 @@
           <LanguageStandard_C>stdclatest</LanguageStandard_C>
           <StringPooling>true</StringPooling>
           <SupportJustMyCode>false</SupportJustMyCode>
+          <UseFullPaths>false</UseFullPaths>
           <UseStandardPreprocessor>true</UseStandardPreprocessor>
           <ConformanceMode>true</ConformanceMode>
           <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
@@ -145,6 +146,7 @@
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
+          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
@@ -173,6 +175,7 @@
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX64</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
+          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
@@ -202,6 +205,7 @@
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
+          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
@@ -236,6 +240,7 @@
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
+          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
@@ -272,6 +277,7 @@
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
+          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
@@ -306,6 +312,7 @@
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
+          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
