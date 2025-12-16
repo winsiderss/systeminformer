@@ -37,7 +37,7 @@ typedef PH_ENUM_MODULES_CALLBACK* PPH_ENUM_MODULES_CALLBACK;
 NTSTATUS PhOpenSection(
     _Out_ PHANDLE SectionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE RootDirectory,
+    _In_opt_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF SectionName
     )
 {
@@ -52,7 +52,7 @@ NTSTATUS PhOpenSection(
     InitializeObjectAttributes(
         &objectAttributes,
         &objectName,
-        OBJ_CASE_INSENSITIVE | OBJ_EXCLUSIVE,
+        OBJ_CASE_INSENSITIVE,
         RootDirectory,
         NULL
         );
