@@ -49,7 +49,7 @@ namespace CustomBuildTool
             throw new ArgumentException("Digest length is not valid for the key size.", nameof(hash));
         }
 
-        public override byte[] HashData(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
+        protected override byte[] HashData(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
         {
             ValidateKeyDigestCombination(KeySize, hashAlgorithm);
 
@@ -184,7 +184,7 @@ namespace CustomBuildTool
             ObjectDisposedException.ThrowIf(this.Disposed, this);
         }
 
-        public override void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (this.Disposed)
                 return;

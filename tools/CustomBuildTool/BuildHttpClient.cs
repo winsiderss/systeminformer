@@ -165,7 +165,7 @@ namespace CustomBuildTool
     // EventSource-based runtime logging from System.Net.Http
     public sealed class HttpEventListener : System.Diagnostics.Tracing.EventListener
     {
-        private override void OnEventSourceCreated(System.Diagnostics.Tracing.EventSource eventSource)
+        protected override void OnEventSourceCreated(System.Diagnostics.Tracing.EventSource eventSource)
         {
             // System.Net providers: System.Net.Http, System.Net.Sockets, System.Net.NameResolution
             if (eventSource.Name == "System.Net.Http" || eventSource.Name == "System.Net.Sockets" || eventSource.Name == "System.Net.NameResolution")
@@ -174,8 +174,9 @@ namespace CustomBuildTool
             }
 
             base.OnEventSourceCreated(eventSource);
-        }
-        private override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData)
+        } 
+
+        protected override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData)
         {
             try
             {
