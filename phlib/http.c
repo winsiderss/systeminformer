@@ -945,6 +945,7 @@ NTSTATUS PhHttpDownloadToFile(
     _In_opt_ PVOID Context
     )
 {
+    PH_HTTPDOWNLOAD_CONTEXT context = { 0 };
     NTSTATUS status;
     HANDLE fileHandle;
     LARGE_INTEGER fileSize;
@@ -955,7 +956,6 @@ NTSTATUS PhHttpDownloadToFile(
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
     PPH_STRING fileName;
-    PH_HTTPDOWNLOAD_CONTEXT context;
     IO_STATUS_BLOCK isb;
     BYTE buffer[PAGE_SIZE];
 
@@ -1026,6 +1026,8 @@ NTSTATUS PhHttpDownloadToFile(
             );
 
         if (!NT_SUCCESS(status))
+            break;
+        if (isb.Information == 0)
             break;
 
         if (numberOfBytesRead != isb.Information)
@@ -1248,7 +1250,7 @@ NTSTATUS PhHttpSetProtocol(
 
         if (!NT_SUCCESS(status))
             return status;
-        
+
         if (FlagOn(Protocol, PH_HTTP_PROTOCOL_FLAG_HTTP3))
         {
             status = PhHttpSetOption(HttpContext->RequestHandle, WINHTTP_OPTION_HTTP3_HANDSHAKE_TIMEOUT, Timeout);
@@ -2336,7 +2338,7 @@ NTSTATUS PhHttpDnsQuery(
     {
         ULONG option = 0;
         ULONG optionLength = sizeof(ULONG);
-    
+
         if (WinHttpQueryOption(
             httpRequestHandle,
             WINHTTP_OPTION_HTTP_PROTOCOL_USED,
@@ -2348,7 +2350,7 @@ NTSTATUS PhHttpDnsQuery(
             {
                 dprintf("[DOH] %s", "HTTP3 socket\n");
             }
-    
+
             if (option & WINHTTP_PROTOCOL_FLAG_HTTP2)
             {
                 dprintf("[DOH] %s", "HTTP2 socket\n");
@@ -2411,7 +2413,7 @@ PDNS_RECORD PhDnsQuery(
         &dnsRecordList
         );
 
-    if (NT_SUCCESS(status))
+    if (!NT_SUCCESS(status))
     {
         if (DnsServerAddress)
         {
