@@ -43,6 +43,8 @@ jobs:
       run: build\build_debug.cmd
 
   build-release:
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: ['windows-latest']
@@ -74,6 +76,8 @@ jobs:
       run: build\build_release.cmd
 
   build-driver:
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: ['windows-latest']
@@ -105,6 +109,8 @@ jobs:
       run: build\build_zdriver.cmd prefast
 
   build-driver-release:
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: ['windows-latest']
