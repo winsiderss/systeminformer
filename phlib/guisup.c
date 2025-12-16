@@ -3448,9 +3448,7 @@ NTSTATUS PhCreateIconFromResourceDirectory(
  * \param NativeFileName The type of name format.
  * \param FilePathType
  * \param ResourceFileName A pointer to the MUN filename.
- *
  * \return Successful or errant status.
- *
  * \remarks LdrLoadAlternateResourceModuleEx and GetMunResourceModuleForEnumIfExist always search the parent directory
  * and this function has the same logic and semantics. For example: C:\Windows\explorer.exe -> C:\SystemResources\explorer.exe.mun
  */
@@ -3511,7 +3509,7 @@ NTSTATUS PhGetSystemResourcesFileName(
 }
 
 /**
- * \brief Extracts icons from the specified executable file.
+ * Extracts icons from the specified executable file.
  *
  * \param FileName A string containing a file name.
  * \param NativeFileName The type of name format.
@@ -3522,9 +3520,7 @@ NTSTATUS PhGetSystemResourcesFileName(
  * \param IconSmallHeight
  * \param IconLarge A handle to the large icon within the group or handle to the an icon from the resource identifier.
  * \param IconSmall A handle to the small icon within the group or handle to the an icon from the resource identifier.
- *
  * \return Successful or errant status.
- *
  * \remarks Use this function instead of PrivateExtractIconExW() because images are mapped with SEC_COMMIT and READONLY
  * while PrivateExtractIconExW loads images with EXECUTE and SEC_IMAGE (section allocations and relocation processing).
  */
