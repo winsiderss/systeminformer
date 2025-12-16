@@ -30,6 +30,10 @@ namespace CustomBuildTool
         public static string BuildVersionMajor = "0";
         public static string BuildVersionMinor = "0";
 
+        /// <summary>
+        /// Initializes the build environment, project solution and build arguments.
+        /// </summary>
+        /// <returns>True if the build environment is successfully initialized; otherwise, false.</returns>
         public static bool InitializeBuildEnvironment()
         {
             Win32.SetErrorMode();
@@ -56,6 +60,18 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Initializes build arguments by reading environment variables and setting build configuration flags.
+        /// </summary>
+        /// <remarks>
+        /// This method configures build flags such as canary, debug, integration, and output redirection
+        /// based on environment variables. It also sets versioning information, commit hash, branch name,
+        /// and SIMD extensions if available. The method updates <see cref="BuildWorkingFolder"/> and
+        /// <see cref="BuildOutputFolder"/> as needed, and computes short and long version strings.
+        /// </remarks>
+        /// <returns>
+        /// <c>true</c> if build arguments are successfully initialized; otherwise, <c>false</c>.
+        /// </returns>
         public static bool InitializeBuildArguments()
         {
             if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition))
@@ -138,6 +154,10 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Sets up the build environment and prints build information if requested.
+        /// </summary>
+        /// <param name="ShowBuildInfo">If true, prints build and environment information to the console.</param>
         public static void SetupBuildEnvironment(bool ShowBuildInfo)
         {
             if (ShowBuildInfo)
@@ -188,11 +208,23 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Gets the elapsed time since the build started, formatted as [mm:ss].
+        /// </summary>
+        /// <returns>
+        /// A string representing the elapsed time since <see cref="TimeStart"/> in the format [mm:ss].
+        /// </returns>
         public static string BuildTimeSpan()
         {
             return $"[{DateTime.UtcNow - Build.TimeStart:mm\\:ss}] ";
         }
 
+        /// <summary>
+        /// Gets the build version build number, formatted as YYDDD, where YY is the last two digits of the year and DDD is the day of the year.
+        /// </summary>
+        /// <returns>
+        /// A string representing the build number in the format YYDDD.
+        /// </returns>
         public static string BuildVersionBuild()
         {
             // Extract the last two digits of the year. For example, if the year is 2023, (Year % 100) will result in 23.
@@ -204,6 +236,12 @@ namespace CustomBuildTool
             return string.Concat([first, second]);
         }
 
+        /// <summary>
+        /// Gets the build version revision number, formatted as HHMM, where HH is the hour (1-based) and MM is the minute.
+        /// </summary>
+        /// <returns>
+        /// A string representing the revision number in the format HHMM.
+        /// </returns>
         public static string BuildVersionRevision()
         {
             // Extract the hour of the day. For example, if the hour is 0|23, (Hour + 1) will result in 1|24.
@@ -215,21 +253,40 @@ namespace CustomBuildTool
             return string.Concat([first, second]);
         }
 
+        /// <summary>
+        /// Gets the short hash of the current build commit.
+        /// </summary>
+        /// <returns>
+        /// The first 8 characters of <see cref="BuildCommitHash"/>, or "00000000" if not available.
+        /// </returns>
         public static string BuildHash()
         {
             return string.IsNullOrWhiteSpace(Build.BuildCommitHash) ? "00000000" : Build.BuildCommitHash[..8];
         }
 
+        /// <summary>
+        /// Gets the build updated timestamp in ISO 8601 format, rounded to the hour.
+        /// </summary>
         public static string BuildUpdated
         {
             get { return new DateTime(TimeStart.Year, TimeStart.Month, TimeStart.Day, TimeStart.Hour, 0, 0).ToString("o"); }
         }
 
+        /// <summary>
+        /// Gets the build date and time, rounded to the hour.
+        /// </summary>
         public static DateTime BuildDateTime
         {
             get { return new DateTime(TimeStart.Year, TimeStart.Month, TimeStart.Day, TimeStart.Hour, 0, 0); }
         }
 
+        /// <summary>
+        /// Displays the total build time in minutes and seconds to the console.
+        /// </summary>
+        /// <remarks>
+        /// This method calculates the elapsed time since the build started, formats it as minutes and seconds,
+        /// and prints the result to the console using color-coded messages.
+        /// </remarks>
         public static void ShowBuildStats()
         {
             TimeSpan buildTime = DateTime.UtcNow - Build.TimeStart;
@@ -241,6 +298,12 @@ namespace CustomBuildTool
             Program.PrintColorMessage($" second(s) {Environment.NewLine + Environment.NewLine}", ConsoleColor.DarkGray, false);
         }
 
+        /// <summary>
+        /// Copies or deletes text files (README, COPYRIGHT, LICENSE) to or from build output folders based on flags.
+        /// </summary>
+        /// <param name="Update">If true, copies files; if false, deletes them.</param>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if operation succeeds.</returns>
         public static bool CopyTextFiles(bool Update, BuildFlags Flags)
         {
             string[] Build_Text_Files =
@@ -284,6 +347,11 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Copies Wow64-related files to appropriate output folders based on build flags.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if operation succeeds.</returns>
         public static bool CopyWow64Files(BuildFlags Flags)
         {
             string[] Build_Wow64_Files =
@@ -321,6 +389,11 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Copies resource files to output folders for each build configuration.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if operation succeeds.</returns>
         public static bool CopyResourceFiles(BuildFlags Flags)
         {
             var Build_Resource_Files = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase)
@@ -391,6 +464,11 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Copies Windows Debug Engine files from the SDK to output folders for each build configuration.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if operation succeeds.</returns>
         public static bool CopyDebugEngineFiles(BuildFlags Flags)
         {
             //
@@ -456,6 +534,11 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Validates export definitions for SystemInformer executables in output folders.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to validate.</param>
+        /// <returns>True if all validations succeed.</returns>
         public static bool BuildValidateExportDefinitions(BuildFlags Flags)
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
@@ -494,6 +577,10 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds public SDK header files by invoking the header generator.
+        /// </summary>
+        /// <returns>True if headers are built successfully; otherwise, false.</returns>
         public static bool BuildPublicHeaderFiles()
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
@@ -512,6 +599,10 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds a single native header file by invoking the single header generator.
+        /// </summary>
+        /// <returns>True if the header is built successfully; otherwise, false.</returns>
         public static bool BuildSingleNativeHeader()
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
@@ -531,6 +622,11 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds dynamic data files for the specified output directory.
+        /// </summary>
+        /// <param name="OutDir">Output directory for dynamic data.</param>
+        /// <returns>True if dynamic data is built successfully; otherwise, false.</returns>
         public static bool BuildDynamicData(string OutDir)
         {
             Program.PrintColorMessage("Building dynamic data...", ConsoleColor.Cyan);
@@ -546,6 +642,11 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Copies kernel driver files to output folders for each build configuration.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if operation succeeds.</returns>
         public static bool CopyKernelDriver(BuildFlags Flags)
         {
             string[] Build_Driver_Files =
@@ -584,6 +685,10 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Resigns files in the output directory by deleting old signature files and creating new ones.
+        /// </summary>
+        /// <returns>True if all files are resigned successfully; otherwise, false.</returns>
         public static bool ResignFiles()
         {
             var files = new List<string>();
@@ -620,6 +725,11 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds the SDK by copying headers, libraries, and generating additional files.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if the SDK is built successfully; otherwise, false.</returns>
         public static bool BuildSdk(BuildFlags Flags)
         {
             string[] Build_Sdk_Files =
@@ -702,6 +812,12 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds the setup executable for the specified channel.
+        /// </summary>
+        /// <param name="Channel">The release channel (e.g., "release", "canary").</param>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if the setup executable is built successfully; otherwise, false.</returns>
         public static bool BuildSetupExe(string Channel, BuildFlags Flags)
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
@@ -738,6 +854,11 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds a zip archive containing the SDK files.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if the SDK zip is built successfully; otherwise, false.</returns>
         public static bool BuildSdkZip(BuildFlags Flags)
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
@@ -771,6 +892,11 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds zip archives containing binary files for each platform and a combined archive.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if all zip archives are built successfully; otherwise, false.</returns>
         public static bool BuildBinZip(BuildFlags Flags)
         {
             var Build_Zip_Files = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase)
@@ -804,6 +930,12 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds a zip archive containing PDB files, optionally for MSIX package builds.
+        /// </summary>
+        /// <param name="MsixPackageBuild">If true, builds for MSIX package; otherwise, for standard build.</param>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if the PDB zip is built successfully; otherwise, false.</returns>
         public static bool BuildPdbZip(bool MsixPackageBuild, BuildFlags Flags)
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
@@ -863,6 +995,11 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds a zip archive containing symbol files using SymStore.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if the symbol package is built successfully; otherwise, false.</returns>
         public static bool BuildSymStoreZip(BuildFlags Flags)
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
@@ -916,6 +1053,10 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds a checksums file for release artifacts.
+        /// </summary>
+        /// <returns>True if the checksums file is built successfully; otherwise, false.</returns>
         public static bool BuildChecksumsFile()
         {
             string[] Build_Upload_Files =
@@ -970,6 +1111,14 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Constructs the MSBuild command line string for building a solution with the specified platform, flags, and channel.
+        /// </summary>
+        /// <param name="Solution">The solution file to build.</param>
+        /// <param name="Platform">The target platform (e.g., Win32, x64, ARM64).</param>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <param name="Channel">Optional release channel.</param>
+        /// <returns>The constructed MSBuild command line string.</returns>
         private static string MsbuildCommandString(string Solution, string Platform, BuildFlags Flags, string Channel = null)
         {
             List<string> compilerOptionsList = new List<string>();
@@ -1055,6 +1204,13 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds the specified solution using MSBuild for the given build flags and channel.
+        /// </summary>
+        /// <param name="Solution">The solution file to build.</param>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <param name="Channel">Optional release channel.</param>
+        /// <returns>True if the solution is built successfully; otherwise, false.</returns>
         public static bool BuildSolution(string Solution, BuildFlags Flags, string Channel = null)
         {
             if (Flags.HasFlag(BuildFlags.Build32bit))
@@ -1085,6 +1241,15 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Builds the specified solution using CMake for the given generator, configuration, and toolchain.
+        /// </summary>
+        /// <param name="Solution">The solution file to build.</param>
+        /// <param name="Generator">The CMake generator to use.</param>
+        /// <param name="Config">The build configuration (e.g., Debug, Release).</param>
+        /// <param name="Toolchain">The toolchain identifier.</param>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if the solution is built successfully; otherwise, false.</returns>
         public static bool BuildSolutionCMake(string Solution, string Generator, string Config, string Toolchain, BuildFlags Flags)
         {
             string buildCommand = null;
@@ -1103,7 +1268,7 @@ namespace CustomBuildTool
                 _ => throw new ArgumentException("Unsupported toolchain")
             };
 
-            buildPath = Path.Combine(Environment.CurrentDirectory, buildPath + platformSuffix);
+            buildPath = Path.Join([Build.BuildWorkingFolder, buildPath + platformSuffix]);
 
             if (Generator.Contains("Visual Studio", StringComparison.OrdinalIgnoreCase))
             {
@@ -1126,6 +1291,12 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Returns the CMake platform string for the specified toolchain.
+        /// </summary>
+        /// <param name="toolchain">The toolchain identifier.</param>
+        /// <returns>The platform string (e.g., Win32, x64, ARM64).</returns>
+        /// <exception cref="ArgumentException">Thrown if the toolchain is unsupported.</exception>
         private static string CMakeGetPlatform(string toolchain) => toolchain switch
         {
             "msvc-x86" or "clang-msvc-x86" => "Win32",
@@ -1135,6 +1306,14 @@ namespace CustomBuildTool
         };
 
 #nullable enable
+        /// <summary>
+        /// Creates a DeployFile object for a build artifact, optionally generating a signature and hash.
+        /// </summary>
+        /// <param name="Channel">The release channel (e.g., "release", "canary").</param>
+        /// <param name="Name">The display name of the file.</param>
+        /// <param name="FileName">The path to the file.</param>
+        /// <param name="CreateSignature">If true, generates a signature and hash for the file.</param>
+        /// <returns>A DeployFile object if successful; otherwise, null.</returns>
         private static DeployFile? CreateBuildDeployFile(string Channel, string Name, string FileName, bool CreateSignature = true)
         {
             if (CreateSignature)
@@ -1167,6 +1346,11 @@ namespace CustomBuildTool
         }
 #nullable disable
 
+        /// <summary>
+        /// Updates the server configuration with build information and asset links after a canary build.
+        /// Uploads a list of build artifacts to GitHub as release assets and returns the release information.
+        /// </summary>
+        /// <returns>True if the server configuration is updated successfully; otherwise, false.</returns>
         public static bool BuildUpdateServerConfig()
         {
             if (!Build.BuildCanary)
@@ -1243,6 +1427,11 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Uploads a list of build artifacts to GitHub as release assets and returns the release information.
+        /// </summary>
+        /// <param name="Files">The list of DeployFile objects to upload.</param>
+        /// <returns>A GithubRelease object with asset information if successful; otherwise, null.</returns>
         private static GithubRelease BuildUploadFilesToGithub(List<DeployFile> Files)
         {
             //if (!GithubReleases.DeleteRelease(Build.BuildLongVersion))
@@ -1375,6 +1564,14 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Updates the server configuration with build and asset information after uploading to GitHub.
+        /// </summary>
+        /// <param name="BinFile">The DeployFile for the binary zip.</param>
+        /// <param name="ReleaseFile">The DeployFile for the release setup executable.</param>
+        /// <param name="CanaryFile">The DeployFile for the canary setup executable.</param>
+        /// <param name="GithubReleaseId">The GitHub release ID.</param>
+        /// <returns>True if the server configuration is updated successfully; otherwise, false.</returns>
         private static bool BuildUploadServerConfig(
             DeployFile BinFile,
             DeployFile ReleaseFile,
@@ -1483,6 +1680,16 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Generates MSIX package manifest files for the specified build architectures based on the provided build
+        /// flags.
+        /// </summary>
+        /// <remarks>This method creates separate manifest files for each architecture indicated in the
+        /// <paramref name="Flags"/> parameter. The generated files are written to the tools\msix directory and are
+        /// based on a template manifest file. Existing manifest files with the same names will be
+        /// overwritten.</remarks>
+        /// <param name="Flags">A set of flags that specify which architectures (such as 32-bit or 64-bit) to generate MSIX package
+        /// manifests for.</param>
         private static void BuildMsixPackageManifest(BuildFlags Flags)
         {
             // Create the package manifest.
@@ -1510,6 +1717,10 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Creates the MSIX package mapping files for 32-bit and 64-bit builds, listing files to include in the package.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
         private static void BuildMsixPackageMapping(BuildFlags Flags)
         {
             // Create the package mapping file.
@@ -1576,6 +1787,11 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Builds the MSIX package.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if the MSIX package is built successfully; otherwise, false.</returns>
         public static bool BuildStorePackage(BuildFlags Flags)
         {
             // Cleanup package manifests.
@@ -1676,6 +1892,10 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Copies or deletes the source link file for the build, depending on the parameter.
+        /// </summary>
+        /// <param name="CreateSourceLink">If true, creates the source link file; if false, deletes it.</param>
         public static void CopySourceLink(bool CreateSourceLink)
         {
             if (CreateSourceLink)
@@ -1702,6 +1922,15 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Cleans up the build environment by removing generated files, build output directories, and temporary folders
+        /// related to the build process.
+        /// </summary>
+        /// <remarks>This method attempts to delete common build artifacts such as output folders, SDK
+        /// directories, '.vs' and 'obj' folders, and files with the '.aps' extension. Any errors encountered during
+        /// deletion are logged, but the method continues processing remaining items. This method is intended to be used
+        /// before or after a build to ensure a clean working state.</remarks>
+        /// <returns>true if the cleanup process completes; otherwise, false.</returns>
         public static bool CleanupBuildEnvironment()
         {
             try
@@ -1833,6 +2062,17 @@ namespace CustomBuildTool
 #endif _PH_EXPORT_DEF_H
 ";
 
+        /// <summary>
+        /// Exports the current function and data definitions to the SystemInformer module definition (.def) and header
+        /// (.def.h) files, updating them if changes are detected.
+        /// </summary>
+        /// <remarks>This method reads the existing SystemInformer.def file, processes its contents, and
+        /// writes updated .def and .def.h files only if changes are detected. The original .def file is backed up as
+        /// SystemInformer.def.bak before being overwritten. Use the ReleaseBuild parameter to control whether export
+        /// ordinals are randomized (for release builds) or assigned sequentially (for development or
+        /// debugging).</remarks>
+        /// <param name="ReleaseBuild">true to generate randomized export ordinals for a release build; false to assign sequential ordinals
+        /// starting from 1001.</param>
         public static void ExportDefinitions(bool ReleaseBuild)
         {
             List<int> ordinals = [];
@@ -1913,6 +2153,9 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Reverts the export definitions to the previous backup if available.
+        /// </summary>
         public static void ExportDefinitionsRevert()
         {
             try

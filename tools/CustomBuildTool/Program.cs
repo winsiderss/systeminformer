@@ -475,6 +475,17 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Prints a message to the console in the specified color, with optional newline and verbosity control.
+        /// </summary>
+        /// <param name="Message">The message to print.</param>
+        /// <param name="Color">The <see cref="ConsoleColor"/> to use for the message text.</param>
+        /// <param name="Newline">
+        /// If <c>true</c>, appends a newline after the message; otherwise, prints without a newline. Default is <c>true</c>.
+        /// </param>
+        /// <param name="Flags">
+        /// The <see cref="BuildFlags"/> controlling verbosity. The message is printed only if <see cref="BuildFlags.BuildVerbose"/> is set. Default is <see cref="BuildFlags.BuildVerbose"/>.
+        /// </param>
         public static void PrintColorMessage(string Message, ConsoleColor Color, bool Newline = true, BuildFlags Flags = BuildFlags.BuildVerbose)
         {
             if ((Flags & BuildFlags.BuildVerbose) == 0)
@@ -484,32 +495,30 @@ namespace CustomBuildTool
             {
                 var colour_ansi = ToAnsiCode(Color);
 
-                // Avoid repeated string allocations by using StringBuilder if multiple newlines are expected
-
                 if (Message.Contains('\n', StringComparison.OrdinalIgnoreCase))
                 {
-                    var sb = new StringBuilder(Message.Length + 16);
+                    var text = new StringBuilder(Message.Length + 16);
                     int start = 0;
 
                     for (int i = 0; i < Message.Length; i++)
                     {
                         if (Message[i] == '\n')
                         {
-                            sb.Append(colour_ansi);
-                            sb.Append(Message, start, i - start + 1);
+                            text.Append(colour_ansi);
+                            text.Append(Message, start, i - start + 1);
                             start = i + 1;
                         }
                     }
 
                     if (start < Message.Length)
-                        sb.Append(colour_ansi).Append(Message, start, Message.Length - start);
+                        text.Append(colour_ansi).Append(Message, start, Message.Length - start);
 
-                    sb.Append("\e[0m");
+                    text.Append("\e[0m");
 
                     if (Newline)
-                        Console.WriteLine(sb.ToString());
+                        Console.WriteLine(text.ToString());
                     else
-                        Console.Write(sb.ToString());
+                        Console.Write(text.ToString());
                 }
                 else
                 {
@@ -531,6 +540,14 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Prints a colorized message to the console, supporting both ANSI color codes and native console coloring,
+        /// with optional newline and verbosity control.
+        /// </summary>
+        /// <param name="builder">The <see cref="LogInterpolatedStringHandler"/> used to build the formatted message text.</param>
+        /// <param name="Color">The <see cref="ConsoleColor"/> to use for the message output.</param>
+        /// <param name="Newline">If <c>true</c>, appends a newline after the message; otherwise, writes without a newline. Default is <c>true</c>.</param>
+        /// <param name="Flags">The <see cref="BuildFlags"/> controlling verbosity and output behavior. Default is <see cref="BuildFlags.BuildVerbose"/>.</param>
         public static void PrintColorMessage(LogInterpolatedStringHandler builder, ConsoleColor Color, bool Newline = true, BuildFlags Flags = BuildFlags.BuildVerbose)
         {
             if ((Flags & BuildFlags.BuildVerbose) == 0)

@@ -32,6 +32,14 @@ namespace CustomBuildTool
             ENTRA_CLIENT_SECRET = Win32.GetEnvironmentVariable("BUILD_ENTRA_SECRET_ID");
         }
 
+        /// <summary>
+        /// Signs the files located at the specified path using configured certificate and timestamp server settings.
+        /// </summary>
+        /// <remarks>This method requires several configuration settings to be present, including the
+        /// timestamp server, certificate name, certificate vault, tenant GUID, client GUID, and client secret. If any
+        /// required configuration is missing, the method returns false and displays an error message.</remarks>
+        /// <param name="Path">The path to the file or directory containing the files to be signed. Must not be null, empty, or whitespace.</param>
+        /// <returns>true if the files are successfully signed; otherwise, false.</returns>
         public static bool SignFiles(string Path)
         {
             //if (string.IsNullOrWhiteSpace(ENTRA_TIMESTAMP_ALGORITHM))
@@ -78,6 +86,20 @@ namespace CustomBuildTool
                 );
         }
 
+        /// <summary>
+        /// Signs files at the specified path using Azure Key Vault certificate and a timestamp server.
+        /// </summary>
+        /// <param name="Path">The path to the file or directory containing files to be signed.</param>
+        /// <param name="TimeStampServer">The URL of the timestamp server to use for signing.</param>
+        /// <param name="AzureCertName">The name of the Azure Key Vault certificate to use for signing.</param>
+        /// <param name="AzureVaultName">The Azure Key Vault URI where the certificate is stored.</param>
+        /// <param name="TenantGuid">The Azure Active Directory tenant GUID.</param>
+        /// <param name="ClientGuid">The Azure Active Directory client (application) GUID.</param>
+        /// <param name="ClientSecret">The client secret for the Azure application.</param>
+        /// <returns>
+        /// True if the files are successfully signed; otherwise, false. 
+        /// The method retries up to three times in case of transient Azure connectivity issues.
+        /// </returns>
         public static bool SignFiles(
             string Path,
             string TimeStampServer,
@@ -102,6 +124,20 @@ namespace CustomBuildTool
             return false;
         }
 
+        /// <summary>
+        /// Signs files at the specified path using an Azure Key Vault certificate and a timestamp server.
+        /// </summary>
+        /// <param name="Path">The path to the file or directory containing files to be signed.</param>
+        /// <param name="TimeStampServer">The URL of the timestamp server to use for signing.</param>
+        /// <param name="AzureCertName">The name of the Azure Key Vault certificate to use for signing.</param>
+        /// <param name="AzureVaultName">The Azure Key Vault URI where the certificate is stored.</param>
+        /// <param name="TenantGuid">The Azure Active Directory tenant GUID.</param>
+        /// <param name="ClientGuid">The Azure Active Directory client (application) GUID.</param>
+        /// <param name="ClientSecret">The client secret for the Azure application.</param>
+        /// <returns>
+        /// True if all files are successfully signed; otherwise, false. 
+        /// Displays error messages for missing certificates, unsupported file types, or signing failures.
+        /// </returns>
         public static bool KeyVaultDigestSignFiles(
             string Path,
             string TimeStampServer,
