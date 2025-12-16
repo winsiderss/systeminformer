@@ -77,7 +77,7 @@ namespace CustomBuildTool
             0x4A, 0x82, 0x8A, 0xF3, 0x67, 0x50, 0xFA, 0xB7, 0x3A, 0x25, 0x61
         ];
 
-        // typeof(T).GetField(N) and SetValueDirect inside loops is inefficient due to reflection overhead. 
+        // typeof(T).GetField(N) and SetValueDirect inside loops is inefficient due to reflection overhead.
         // These types cache the FieldInfo objects and significantly improve performance, especially when processing many fields.
         private static readonly Dictionary<string, FieldInfo> DynFieldsKernelFieldCache =
             typeof(DynFieldsKernel).GetFields().ToDictionary(f => f.Name, f => f, StringComparer.OrdinalIgnoreCase);
@@ -484,7 +484,7 @@ typedef struct _KPH_DYN_CONFIG
                             {
                                 string value = field.Attributes?.GetNamedItem("value")?.Value;
                                 string name = field.Attributes?.GetNamedItem("name")?.Value;
-                               
+
                                 if (string.IsNullOrWhiteSpace(name))
                                     continue;
 
@@ -499,7 +499,7 @@ typedef struct _KPH_DYN_CONFIG
                         break;
                     case ClassType.Lxcore:
                         {
-                            var fieldsData = new DynFieldsLxcore();   
+                            var fieldsData = new DynFieldsLxcore();
                             var fieldNodes = fieldsMap[fieldId].SelectNodes("field");
 
                             if (fieldNodes == null)
@@ -509,7 +509,7 @@ typedef struct _KPH_DYN_CONFIG
                             {
                                 string value = field.Attributes?.GetNamedItem("value")?.Value;
                                 string name = field.Attributes?.GetNamedItem("name")?.Value;
-                               
+
                                 if (string.IsNullOrWhiteSpace(name))
                                     continue;
 
@@ -524,7 +524,7 @@ typedef struct _KPH_DYN_CONFIG
                         break;
                     default:
                         {
-                            throw new Exception($"invalid class {dynClass}");
+                            throw new InvalidOperationException($"invalid class {dynClass}");
                         }
                     }
                 }
@@ -594,9 +594,9 @@ typedef struct _KPH_DYN_CONFIG
             {
                 BuildVerify.PrintCngPublicKeyInfo(SessionTokenPublicKey, CngKeyBlobFormat.GenericPublicBlob);
             }
-            catch (Exception) 
+            catch (Exception)
             {
-                return false; 
+                return false;
             }
 
             return true;
