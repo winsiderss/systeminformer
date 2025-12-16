@@ -62,7 +62,7 @@ namespace CustomBuildTool
         }
 
         /// <inheritdoc/>
-        protected override byte[] HashData(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
+        public override byte[] HashData(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
         {
             CheckDisposed();
 
@@ -73,7 +73,7 @@ namespace CustomBuildTool
         }
 
         /// <inheritdoc/>
-        protected override byte[] HashData(Stream data, HashAlgorithmName hashAlgorithm)
+        public override byte[] HashData(Stream data, HashAlgorithmName hashAlgorithm)
         {
             CheckDisposed();
 
@@ -140,7 +140,7 @@ namespace CustomBuildTool
         }
 
         /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
+        public override void Dispose(bool disposing)
         {
             if (this.Disposed)
                 return;
