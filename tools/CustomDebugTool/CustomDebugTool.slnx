@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="CustomDebugTool.vcxproj" Id="a8118162-fafa-432a-a2d3-3c8079c828c9" />
+</Solution>

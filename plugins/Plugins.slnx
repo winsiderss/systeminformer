@@ -1,0 +1,23 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="Win32" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="include/commonutil.h" />
+    <File Path="include/toolstatusintf.h" />
+    <File Path="Plugins.props" />
+  </Folder>
+  <Project Path="DotNetTools/DotNetTools.vcxproj" Id="2b3235b0-31e1-44da-81a1-183f40517e47" />
+  <Project Path="ExtendedNotifications/ExtendedNotifications.vcxproj" Id="80e791b8-ac98-407e-8ff9-5154af50e887" />
+  <Project Path="ExtendedServices/ExtendedServices.vcxproj" Id="ac547368-d861-4b88-b5d4-e3b1f1aeeedd" />
+  <Project Path="ExtendedTools/ExtendedTools.vcxproj" Id="3437fd16-a3bf-4938-883a-eb0df1584a2a" />
+  <Project Path="HardwareDevices/HardwareDevices.vcxproj" Id="5f0d72c4-8319-4b61-9e13-6084b680eb90" />
+  <Project Path="NetworkTools/NetworkTools.vcxproj" Id="b5e0da09-ea01-4d5a-a9d6-5b22db0c306e" />
+  <Project Path="OnlineChecks/OnlineChecks.vcxproj" Id="79d24223-1122-40a9-bc8f-46a2089fe089" />
+  <Project Path="ToolStatus/ToolStatus.vcxproj" Id="60b43533-c75e-4741-9e19-c4d581bef51c" />
+  <Project Path="Updater/Updater.vcxproj" Id="a0c1595c-fa3e-4b7a-936c-306bc6294c5e" />
+  <Project Path="UserNotes/UserNotes.vcxproj" Id="7c38d0aa-572c-4d75-8e4e-d68af3c051af" />
+  <Project Path="WindowExplorer/WindowExplorer.vcxproj" Id="37488dc1-e45f-4626-a87c-3a854a153d1a" />
+</Solution>

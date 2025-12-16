@@ -1,0 +1,15 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="../kphlib/kphlib_km.vcxproj">
+  </Project>
+  <Project Path="ksidll.vcxproj">
+    <BuildDependency Project="../kphlib/kphlib_km.vcxproj" />
+  </Project>
+  <Project Path="KSystemInformer.vcxproj">
+    <BuildDependency Project="../kphlib/kphlib_km.vcxproj" />
+    <BuildDependency Project="ksidll.vcxproj" />
+  </Project>
+</Solution>
