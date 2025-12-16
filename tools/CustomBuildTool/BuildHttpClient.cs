@@ -89,7 +89,7 @@ namespace CustomBuildTool
 
                 if (string.IsNullOrWhiteSpace(response))
                     return null;
-                   
+
                 result = JsonSerializer.Deserialize(response, jsonTypeInfo);
             }
             catch (Exception ex)
@@ -162,12 +162,12 @@ namespace CustomBuildTool
         }
     }
 
-    // EventSource-based runtime logging from System.Net.Http 
+    // EventSource-based runtime logging from System.Net.Http
     public sealed class HttpEventListener : System.Diagnostics.Tracing.EventListener
     {
-        protected override void OnEventSourceCreated(System.Diagnostics.Tracing.EventSource eventSource)
+        private override void OnEventSourceCreated(System.Diagnostics.Tracing.EventSource eventSource)
         {
-            // System.Net providers: System.Net.Http, System.Net.Sockets, System.Net.NameResolution 
+            // System.Net providers: System.Net.Http, System.Net.Sockets, System.Net.NameResolution
             if (eventSource.Name == "System.Net.Http" || eventSource.Name == "System.Net.Sockets" || eventSource.Name == "System.Net.NameResolution")
             {
                 this.EnableEvents(eventSource, System.Diagnostics.Tracing.EventLevel.Informational);
@@ -175,7 +175,7 @@ namespace CustomBuildTool
 
             base.OnEventSourceCreated(eventSource);
         }
-        protected override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData)
+        private override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData)
         {
             try
             {
@@ -183,8 +183,8 @@ namespace CustomBuildTool
 
                 Console.WriteLine($"[NET] {eventData.EventSource.Name}:{eventData.Level} {eventData.EventName} | {payload}");
             }
-            catch 
-            { 
+            catch
+            {
                 /* avoid throwing from listener */
             }
         }
