@@ -49,7 +49,7 @@ namespace CustomBuildTool
             throw new ArgumentException("Digest length is not valid for the key size.", nameof(hash));
         }
 
-        protected override byte[] HashData(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
+        public override byte[] HashData(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
         {
             ValidateKeyDigestCombination(KeySize, hashAlgorithm);
 
@@ -101,17 +101,19 @@ namespace CustomBuildTool
             ValidateKeyDigestCombination(KeySize, hash.Length);
 
             // Avoid null check every call
-            var pk = this.PublicKey;
-            ObjectDisposedException.ThrowIf(pk is null, this);
+            var key = this.PublicKey;
+            ObjectDisposedException.ThrowIf(key is null, this);
 
-            return pk.VerifyHash(hash, signature);
+            return key.VerifyHash(hash, signature);
         }
 
         ///<inheritdoc/>
         public override ECParameters ExportParameters(bool includePrivateParameters)
         {
             if (includePrivateParameters)
-                throw new Exception("Private keys cannot be exported by this provider");
+            {
+                throw new NotSupportedException("Private keys cannot be exported by this provider");
+            }
 
             return this.PublicKey.ExportParameters(false);
         }
@@ -120,7 +122,9 @@ namespace CustomBuildTool
         public override ECParameters ExportExplicitParameters(bool includePrivateParameters)
         {
             if (includePrivateParameters)
-                throw new Exception("Private keys cannot be exported by this provider");
+            {
+                throw new NotSupportedException("Private keys cannot be exported by this provider");
+            }
 
             return this.PublicKey.ExportExplicitParameters(false);
         }
@@ -134,22 +138,22 @@ namespace CustomBuildTool
         /// <summary>
         /// Key generation is not supported.
         /// </summary>
-        public override void GenerateKey(ECCurve curve) =>
-            throw new NotSupportedException();
+        public override void GenerateKey(ECCurve curve) => throw new NotSupportedException();
 
         /// <inheritdoc/>
         public override string ToXmlString(bool includePrivateParameters)
         {
             if (includePrivateParameters)
-                throw new Exception("Private keys cannot be exported by this provider");
+            {
+                throw new NotSupportedException("Private keys cannot be exported by this provider");
+            }
 
             return this.PublicKey.ToXmlString(false);
         }
 
         /// <summary>
         /// Importing parameters from XML is not supported.
-        public override void FromXmlString(string xmlString) =>
-            throw new NotSupportedException();
+        public override void FromXmlString(string xmlString) => throw new NotSupportedException();
 
         private static void ValidateKeyDigestCombination(int keySizeBits, int digestSizeBytes)
         {
@@ -180,7 +184,7 @@ namespace CustomBuildTool
             ObjectDisposedException.ThrowIf(this.Disposed, this);
         }
 
-        protected override void Dispose(bool disposing)
+        public override void Dispose(bool disposing)
         {
             if (this.Disposed)
                 return;
