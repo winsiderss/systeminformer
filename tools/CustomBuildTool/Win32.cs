@@ -440,7 +440,7 @@ namespace CustomBuildTool
                 &sourceFile
                 ))
             {
-                return (ulong)sourceFile.nFileSizeHigh << 32 | (ulong)sourceFile.nFileSizeLow;
+                return ((ulong)sourceFile.nFileSizeHigh << 32) | (uint)sourceFile.nFileSizeLow;
             }
 
             return 0;
@@ -500,7 +500,7 @@ namespace CustomBuildTool
 
                 basicInfo.CreationTime = CreationDateTime == DateTime.MinValue ? DateTime.UtcNow.ToFileTimeUtc() : CreationDateTime.ToFileTimeUtc();
                 basicInfo.LastWriteTime = LastWriteDateTime == DateTime.MinValue ? DateTime.UtcNow.ToFileTimeUtc() : LastWriteDateTime.ToFileTimeUtc();
-                
+
                 if (!Build.BuildIntegration) // Skip read-only attribute during build integration (dmex)
                 {
                     if (ReadOnly)
