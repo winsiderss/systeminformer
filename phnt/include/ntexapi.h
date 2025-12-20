@@ -5776,7 +5776,7 @@ typedef enum _SYSTEM_CODEINTEGRITY_IMAGE_TYPE
 
 /**
  * The SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION structure contains information to validate the integrity of an image.
-
+ *
  * \note The return status of NtQuerySystemInformation indicates the result of the code integrity validation as determined by the type specified.
  */
 typedef struct _SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
