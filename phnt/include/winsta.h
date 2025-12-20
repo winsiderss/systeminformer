@@ -845,7 +845,7 @@ typedef struct _TS_COUNTER
 #define KBDALT 0x4
 
 // begin_rev
-// Flags for WinStationRegisterConsoleNotificatio
+// Flags for WinStationRegisterConsoleNotification
 /**
  * WNOTIFY_THIS_SESSION
  *
