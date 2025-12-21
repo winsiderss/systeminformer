@@ -177,6 +177,14 @@ typedef struct _VARIABLE_NAME_AND_VALUE
     //BYTE Value[ANYSIZE_ARRAY];
 } VARIABLE_NAME_AND_VALUE, *PVARIABLE_NAME_AND_VALUE;
 
+/**
+ * The NtEnumerateSystemEnvironmentValuesEx routine enumerates system environment values with extended information.
+ * 
+ * \param InformationClass The class of system environment information to retrieve.
+ * \param Buffer Pointer to a buffer that receives the system environment values data.
+ * \param BufferLength Pointer to a ULONG variable that specifies the size of the Buffer on input.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1335,19 +1343,21 @@ typedef union _TIMER2_ATTRIBUTES
  * \param Attributes Timer attributes (TIMER_TYPE).
  * \param DesiredAccess The access mask that specifies the requested access to the timer object.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createwaitabletimerexw
  */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateTimer2(
     _Out_ PHANDLE TimerHandle,
-    _In_opt_ PULONG TimerId,
+    _In_opt_ PVOID Reserved,
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG Attributes, // TIMER2_ATTRIBUTES or TIMER2_BUILD_ATTRIBUTES
     _In_ ACCESS_MASK DesiredAccess
     );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
+// rev
 typedef struct _T2_SET_PARAMETERS_V0
 {
     ULONG Version;
@@ -1358,6 +1368,16 @@ typedef struct _T2_SET_PARAMETERS_V0
 typedef PVOID PT2_CANCEL_PARAMETERS;
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
+/**
+ * The NtSetTimer2 routine activates the timer object for a specified interval with optional periodic behavior.
+ *
+ * \param TimerHandle A handle to the timer object to set.
+ * \param DueTime A pointer to a LARGE_INTEGER specifying the absolute or relative time when the timer should expire.
+ * \param Period An optional pointer to a LARGE_INTEGER specifying the period for periodic timer notifications, in 100-nanosecond intervals. If NULL, the timer is non-periodic.
+ * \param Parameters A pointer to a T2_SET_PARAMETERS structure containing additional timer configuration parameters.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setwaitabletimer
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1368,6 +1388,14 @@ NtSetTimer2(
     _In_ PT2_SET_PARAMETERS Parameters
     );
 
+/**
+ * The NtCancelTimer2 routine sets the specified waitable timer to the inactive state.
+ *
+ * \param TimerHandle A handle to the timer object to set.
+ * \param Parameters A pointer to a PT2_CANCEL_PARAMETERS structure containing additional parameters.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-cancelwaitabletimer
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2442,7 +2470,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSecureKernelDebuggerInformation,                  // qs: NtQuerySystemInformationEx
     SystemOriginalImageFeatureInformation,                  // q: in: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT, out: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT // NtQuerySystemInformationEx
     SystemMemoryNumaInformation,                            // q: SYSTEM_MEMORY_NUMA_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_INFORMATION_OUTPUT // NtQuerySystemInformationEx
-    SystemMemoryNumaPerformanceInformation,                 // q: SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_INPUTSYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_OUTPUT // since 24H2 // 240
+    SystemMemoryNumaPerformanceInformation,                 // q: SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_OUTPUT // since 24H2 // 240
     SystemCodeIntegritySignedPoliciesFullInformation,       // qs: NtQuerySystemInformationEx
     SystemSecureCoreInformation,                            // qs: SystemSecureSecretsInformation
     SystemTrustedAppsRuntimeInformation,                    // q: SYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION
@@ -4021,22 +4049,22 @@ typedef struct _SYSTEM_CODEINTEGRITY_INFORMATION
         ULONG CodeIntegrityOptions;
         struct
         {
-            ULONG Enabled : 1;
-            ULONG TestSign : 1;
-            ULONG UmciEnabled : 1;
-            ULONG UmciAuditModeEnabled : 1;
-            ULONG UmciExclusionPathsEnabled : 1;
-            ULONG TestBuild : 1;
-            ULONG PreproductionBuild : 1;
-            ULONG DebugModeEnabled : 1;
-            ULONG FlightBuild : 1;
-            ULONG FlightingEnabled : 1;
-            ULONG HvciKmciEnabled : 1;
-            ULONG HvciKmciAuditModeEnabled : 1;
-            ULONG HvciKmciStrictModeEnabled : 1;
-            ULONG HvciIumEnabled : 1;
-            ULONG WhqlEnforcementEnabled : 1;
-            ULONG WhqlAuditModeEnabled : 1;
+            ULONG Enabled : 1;                          // CODEINTEGRITY_OPTION_ENABLED
+            ULONG TestSign : 1;                         // CODEINTEGRITY_OPTION_TESTSIGN
+            ULONG UmciEnabled : 1;                      // CODEINTEGRITY_OPTION_UMCI_ENABLED
+            ULONG UmciAuditModeEnabled : 1;             // CODEINTEGRITY_OPTION_UMCI_AUDITMODE_ENABLED
+            ULONG UmciExclusionPathsEnabled : 1;        // CODEINTEGRITY_OPTION_UMCI_EXCLUSIONPATHS_ENABLED
+            ULONG TestBuild : 1;                        // CODEINTEGRITY_OPTION_TEST_BUILD
+            ULONG PreproductionBuild : 1;               // CODEINTEGRITY_OPTION_PREPRODUCTION_BUILD
+            ULONG DebugModeEnabled : 1;                 // CODEINTEGRITY_OPTION_DEBUGMODE_ENABLE
+            ULONG FlightBuild : 1;                      // CODEINTEGRITY_OPTION_FLIGHT_BUILD
+            ULONG FlightingEnabled : 1;                 // CODEINTEGRITY_OPTION_FLIGHTING_ENABLED
+            ULONG HvciKmciEnabled : 1;                  // CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED
+            ULONG HvciKmciAuditModeEnabled : 1;         // CODEINTEGRITY_OPTION_HVCI_KMCI_AUDITMODE_ENABLED
+            ULONG HvciKmciStrictModeEnabled : 1;        // CODEINTEGRITY_OPTION_HVCI_KMCI_STRICTMODE_ENABLED
+            ULONG HvciIumEnabled : 1;                   // CODEINTEGRITY_OPTION_HVCI_IUM_ENABLED
+            ULONG WhqlEnforcementEnabled : 1;           // CODEINTEGRITY_OPTION_WHQL_ENFORCEMENT_ENABLED
+            ULONG WhqlAuditModeEnabled : 1;             // CODEINTEGRITY_OPTION_WHQL_AUDITMODE_ENABLED
             ULONG Spare : 16;
         };
     };
@@ -5901,6 +5929,10 @@ typedef struct _SYSTEM_KERNEL_VA_SHADOW_INFORMATION
 } SYSTEM_KERNEL_VA_SHADOW_INFORMATION, *PSYSTEM_KERNEL_VA_SHADOW_INFORMATION;
 
 // private
+/**
+ * The SYSTEM_CODEINTEGRITYVERIFICATION_INFORMATION structure contains information
+ * required for code integrity verification of an image.
+ */
 typedef struct _SYSTEM_CODEINTEGRITYVERIFICATION_INFORMATION
 {
     HANDLE FileHandle;
@@ -7469,108 +7501,108 @@ typedef struct _KUSER_SHARED_DATA
 #endif
 } KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
 
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountLowDeprecated) == 0x0);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountMultiplier) == 0x4);
-static_assert(__alignof(KSYSTEM_TIME) == 4);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, InterruptTime) == 0x08);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemTime) == 0x014);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBias) == 0x020);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ImageNumberLow) == 0x02c);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ImageNumberHigh) == 0x02e);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtSystemRoot) == 0x030);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, MaxStackTraceDepth) == 0x238);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, CryptoExponent) == 0x23c);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneId) == 0x240);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, LargePageMinimum) == 0x244);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, AitSamplingValue) == 0x248);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, AppCompatFlag) == 0x24c);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, RNGSeedVersion) == 0x250);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, GlobalValidationRunlevel) == 0x258);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasStamp) == 0x25c);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtBuildNumber) == 0x260);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtProductType) == 0x264);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ProductTypeIsValid) == 0x268);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NativeProcessorArchitecture) == 0x26a);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtMajorVersion) == 0x26c);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtMinorVersion) == 0x270);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ProcessorFeatures) == 0x274);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, MaximumUserModeAddressDeprecated) == 0x2b4);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemRangeStartDeprecated) == 0x2b8);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeSlip) == 0x2bc);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, AlternativeArchitecture) == 0x2c0);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemExpirationDate) == 0x2c8);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SuiteMask) == 0x2d0);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, KdDebuggerEnabled) == 0x2d4);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, MitigationPolicies) == 0x2d5);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, CyclesPerYield) == 0x2d6);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveConsoleId) == 0x2d8);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, DismountCount) == 0x2dc);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ComPlusPackage) == 0x2e0);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, LastSystemRITEventTickCount) == 0x2e4);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NumberOfPhysicalPages) == 0x2e8);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SafeBootMode) == 0x2ec);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, VirtualizationFlags) == 0x2ed);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved12) == 0x2ee);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountLowDeprecated)               == 0x000, "KUSER_SHARED_DATA.TickCountLowDeprecated offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountMultiplier)                  == 0x004, "KUSER_SHARED_DATA.TickCountMultiplier offset is incorrect");
+static_assert(__alignof(KSYSTEM_TIME)                                               == 0X004, "KSYSTEM_TIME alignment is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, InterruptTime)                        == 0x008, "KUSER_SHARED_DATA.InterruptTime offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemTime)                           == 0x014, "KUSER_SHARED_DATA.SystemTime offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBias)                         == 0x020, "KUSER_SHARED_DATA.TimeZoneBias offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ImageNumberLow)                       == 0x02c, "KUSER_SHARED_DATA.ImageNumberLow offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ImageNumberHigh)                      == 0x02e, "KUSER_SHARED_DATA.ImageNumberHigh offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtSystemRoot)                         == 0x030, "KUSER_SHARED_DATA.NtSystemRoot offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, MaxStackTraceDepth)                   == 0x238, "KUSER_SHARED_DATA.MaxStackTraceDepth offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, CryptoExponent)                       == 0x23c, "KUSER_SHARED_DATA.CryptoExponent offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneId)                           == 0x240, "KUSER_SHARED_DATA.TimeZoneId offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, LargePageMinimum)                     == 0x244, "KUSER_SHARED_DATA.LargePageMinimum offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, AitSamplingValue)                     == 0x248, "KUSER_SHARED_DATA.AitSamplingValue offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, AppCompatFlag)                        == 0x24c, "KUSER_SHARED_DATA.AppCompatFlag offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, RNGSeedVersion)                       == 0x250, "KUSER_SHARED_DATA.RNGSeedVersion offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, GlobalValidationRunlevel)             == 0x258, "KUSER_SHARED_DATA.GlobalValidationRunlevel offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasStamp)                    == 0x25c, "KUSER_SHARED_DATA.TimeZoneBiasStamp offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtBuildNumber)                        == 0x260, "KUSER_SHARED_DATA.NtBuildNumber offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtProductType)                        == 0x264, "KUSER_SHARED_DATA.NtProductType offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ProductTypeIsValid)                   == 0x268, "KUSER_SHARED_DATA.ProductTypeIsValid offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NativeProcessorArchitecture)          == 0x26a, "KUSER_SHARED_DATA.NativeProcessorArchitecture offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtMajorVersion)                       == 0x26c, "KUSER_SHARED_DATA.NtMajorVersion offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NtMinorVersion)                       == 0x270, "KUSER_SHARED_DATA.NtMinorVersion offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ProcessorFeatures)                    == 0x274, "KUSER_SHARED_DATA.ProcessorFeatures offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, MaximumUserModeAddressDeprecated)     == 0x2b4, "KUSER_SHARED_DATA.MaximumUserModeAddressDeprecated offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemRangeStartDeprecated)           == 0x2b8, "KUSER_SHARED_DATA.SystemRangeStartDeprecated offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeSlip)                             == 0x2bc, "KUSER_SHARED_DATA.TimeSlip offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, AlternativeArchitecture)              == 0x2c0, "KUSER_SHARED_DATA.AlternativeArchitecture offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemExpirationDate)                 == 0x2c8, "KUSER_SHARED_DATA.SystemExpirationDate offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SuiteMask)                            == 0x2d0, "KUSER_SHARED_DATA.SuiteMask offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, KdDebuggerEnabled)                    == 0x2d4, "KUSER_SHARED_DATA.KdDebuggerEnabled offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, MitigationPolicies)                   == 0x2d5, "KUSER_SHARED_DATA.MitigationPolicies offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, CyclesPerYield)                       == 0x2d6, "KUSER_SHARED_DATA.CyclesPerYield offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveConsoleId)                      == 0x2d8, "KUSER_SHARED_DATA.ActiveConsoleId offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, DismountCount)                        == 0x2dc, "KUSER_SHARED_DATA.DismountCount offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ComPlusPackage)                       == 0x2e0, "KUSER_SHARED_DATA.ComPlusPackage offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, LastSystemRITEventTickCount)          == 0x2e4, "KUSER_SHARED_DATA.LastSystemRITEventTickCount offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, NumberOfPhysicalPages)                == 0x2e8, "KUSER_SHARED_DATA.NumberOfPhysicalPages offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SafeBootMode)                         == 0x2ec, "KUSER_SHARED_DATA.SafeBootMode offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, VirtualizationFlags)                  == 0x2ed, "KUSER_SHARED_DATA.VirtualizationFlags offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved12)                           == 0x2ee, "KUSER_SHARED_DATA.Reserved12 offset is incorrect");
 #if defined(_MSC_EXTENSIONS)
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SharedDataFlags) == 0x2f0);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SharedDataFlags)                      == 0x2f0, "KUSER_SHARED_DATA.SharedDataFlags offset is incorrect");
 #endif
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TestRetInstruction) == 0x2f8);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcFrequency) == 0x300);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCall) == 0x308);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved2) == 0x30c);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x318); // previously 0x310
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TestRetInstruction)                   == 0x2f8, "KUSER_SHARED_DATA.TestRetInstruction offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcFrequency)                         == 0x300, "KUSER_SHARED_DATA.QpcFrequency offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCall)                           == 0x308, "KUSER_SHARED_DATA.SystemCall offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved2)                            == 0x30c, "KUSER_SHARED_DATA.Reserved2 offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad)                        == 0x318, "KUSER_SHARED_DATA.SystemCallPad offset is incorrect (previously 0x310)");
 #if defined(_MSC_EXTENSIONS)
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount) == 0x320);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad) == 0x320);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount)                            == 0x320, "KUSER_SHARED_DATA.TickCount offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad)                        == 0x320, "KUSER_SHARED_DATA.TickCountQuad offset is incorrect");
 #endif
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Cookie) == 0x330);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ConsoleSessionForegroundProcessId) == 0x338);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeUpdateLock) == 0x340);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineSystemTimeQpc) == 0x348);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineInterruptTimeQpc) == 0x350);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrement) == 0x358);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrement) == 0x360);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrementShift) == 0x368);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrementShift) == 0x369);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UnparkedProcessorCount) == 0x36a);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, EnclaveFeatureMask) == 0x36c);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TelemetryCoverageRound) == 0x37c);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserModeGlobalLogger) == 0x380);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ImageFileExecutionOptions) == 0x3a0);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, LangGenerationCount) == 0x3a4);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved4) == 0x3a8);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, InterruptTimeBias) == 0x3b0);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcBias) == 0x3b8);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveProcessorCount) == 0x3c0);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveGroupCount) == 0x3c4);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved9) == 0x3c5);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcData) == 0x3c6);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcBypassEnabled) == 0x3c6);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcReserved) == 0x3c7);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveStart) == 0x3c8);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveEnd) == 0x3d0);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Cookie)                               == 0x330, "KUSER_SHARED_DATA.Cookie offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ConsoleSessionForegroundProcessId)    == 0x338, "KUSER_SHARED_DATA.ConsoleSessionForegroundProcessId offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeUpdateLock)                       == 0x340, "KUSER_SHARED_DATA.TimeUpdateLock offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineSystemTimeQpc)                == 0x348, "KUSER_SHARED_DATA.BaselineSystemTimeQpc offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineInterruptTimeQpc)             == 0x350, "KUSER_SHARED_DATA.BaselineInterruptTimeQpc offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrement)               == 0x358, "KUSER_SHARED_DATA.QpcSystemTimeIncrement offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrement)            == 0x360, "KUSER_SHARED_DATA.QpcInterruptTimeIncrement offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrementShift)          == 0x368, "KUSER_SHARED_DATA.QpcSystemTimeIncrementShift offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrementShift)       == 0x369, "KUSER_SHARED_DATA.QpcInterruptTimeIncrementShift offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UnparkedProcessorCount)               == 0x36a, "KUSER_SHARED_DATA.UnparkedProcessorCount offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, EnclaveFeatureMask)                   == 0x36c, "KUSER_SHARED_DATA.EnclaveFeatureMask offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TelemetryCoverageRound)               == 0x37c, "KUSER_SHARED_DATA.TelemetryCoverageRound offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserModeGlobalLogger)                 == 0x380, "KUSER_SHARED_DATA.UserModeGlobalLogger offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ImageFileExecutionOptions)            == 0x3a0, "KUSER_SHARED_DATA.ImageFileExecutionOptions offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, LangGenerationCount)                  == 0x3a4, "KUSER_SHARED_DATA.LangGenerationCount offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved4)                            == 0x3a8, "KUSER_SHARED_DATA.Reserved4 offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, InterruptTimeBias)                    == 0x3b0, "KUSER_SHARED_DATA.InterruptTimeBias offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcBias)                              == 0x3b8, "KUSER_SHARED_DATA.QpcBias offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveProcessorCount)                 == 0x3c0, "KUSER_SHARED_DATA.ActiveProcessorCount offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveGroupCount)                     == 0x3c4, "KUSER_SHARED_DATA.ActiveGroupCount offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved9)                            == 0x3c5, "KUSER_SHARED_DATA.Reserved9 offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcData)                              == 0x3c6, "KUSER_SHARED_DATA.QpcData offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcBypassEnabled)                     == 0x3c6, "KUSER_SHARED_DATA.QpcBypassEnabled offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcReserved)                          == 0x3c7, "KUSER_SHARED_DATA.QpcReserved offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveStart)           == 0x3c8, "KUSER_SHARED_DATA.TimeZoneBiasEffectiveStart offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveEnd)             == 0x3d0, "KUSER_SHARED_DATA.TimeZoneBiasEffectiveEnd offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XState)                               == 0x3d8, "KUSER_SHARED_DATA.XState offset is incorrect");
 #if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x710);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x720);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp)      == 0x710, "KUSER_SHARED_DATA.FeatureConfigurationChangeStamp offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask)                  == 0x720, "KUSER_SHARED_DATA.UserPointerAuthMask offset is incorrect");
 #if defined(_ARM64_)
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64) == 0x728);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64)                          == 0x728, "KUSER_SHARED_DATA.XStateArm64 offset is incorrect");
 #else
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved10) == 0x728);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved10)                           == 0x728, "KUSER_SHARED_DATA.Reserved10 offset is incorrect");
 #endif
 #if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
-static_assert(sizeof(KUSER_SHARED_DATA) == 0xa70);
+static_assert(sizeof(KUSER_SHARED_DATA)                                             == 0xa70, "KUSER_SHARED_DATA size is incorrect (expected 0xa70)");
 #endif
 #else
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x720);
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x730);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp)      == 0x720, "KUSER_SHARED_DATA.FeatureConfigurationChangeStamp offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask)                  == 0x730, "KUSER_SHARED_DATA.UserPointerAuthMask offset is incorrect");
 #if defined(_ARM64_)
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64) == 0x738);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64)                          == 0x738, "KUSER_SHARED_DATA.XStateArm64 offset is incorrect");
 #else
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved10) == 0x738);
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved10)                           == 0x738, "KUSER_SHARED_DATA.Reserved10 offset is incorrect");
 #endif
 #if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
-static_assert(sizeof(KUSER_SHARED_DATA) == 0xa80);
+static_assert(sizeof(KUSER_SHARED_DATA)                                             == 0xa80, "KUSER_SHARED_DATA size is incorrect (expected 0xa80)");
 #endif
 #endif
 
