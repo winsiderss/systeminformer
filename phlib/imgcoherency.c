@@ -50,7 +50,6 @@ typedef struct _PH_IMAGE_COHERENCY_CONTEXT
 *
 * \param[in] Rva - Current rva in the range being inspected.
 * \param[in] Context - Context supplied to this callback.
-*
 * \return Number of bytes to skip, 0 does not skip bytes.
 */
 typedef _Function_class_(PH_IMGCOHERENCY_SKIP_BYTE_CALLBACK)
@@ -65,7 +64,6 @@ typedef PH_IMGCOHERENCY_SKIP_BYTE_CALLBACK *PPH_IMGCOHERENCY_SKIP_BYTE_CALLBACK;
 *
 * \param[in] Type - Image coherency scan type.
 * \param[in] SectionHeader - Image section header.
-*
 * \return Amount of the section to scan given the scan type.
 */
 ULONG PhpGetSectionScanSize(
@@ -108,7 +106,6 @@ ULONG PhpGetSectionScanSize(
 *
 * \param[in] Type - Image coherency scan type.
 * \param[in] SectionHeader - Section header to inspect.
-*
 * \return TRUE if the section should be scanned for the given scan type, FALSE otherwise.
 */
 BOOLEAN PhpShouldScanSection(
@@ -237,7 +234,6 @@ static NTSTATUS PhImageCoherencyReadVirtualMemoryCallback(
 * \param[in] RemoteImageBaseStatus - If RemoteImageBase is null, this is stored
 * in the context instead of attempting to map the image.
 * \param[in] ReadVirtualMemoryCallback - Callback to use to read virtual memory.
-*
 * \return Pointer to newly allocated image coherency context, or NULL on
 * allocation failure. The created context must be passed to
 * PhpFreeImageCoherencyContext to free.
@@ -701,7 +697,6 @@ VOID PhpAnalyzeImageCoherencyCommonByRvaExpectBytes(
 *
 * \param[in] Rva - Current rva in the range being inspected.
 * \param[in] Context - Relocation skip context.
-*
 * \return Number of bytes to skip, 0 otherwise.
 */
 _Function_class_(PH_IMGCOHERENCY_SKIP_BYTE_CALLBACK)
