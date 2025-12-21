@@ -11,10 +11,27 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides methods for interacting with the VirusTotal API for file scanning.
+    /// </summary>
     public static class BuildVirusTotal
     {
+        /// <summary>
+        /// Stores the VirusTotal API token used for authentication.
+        /// </summary>
         private static string VirusTotalApiToken = null;
 
+        /// <summary>
+        /// Uploads a file to VirusTotal for scanning and retrieves the analysis result.
+        /// </summary>
+        /// <param name="FileName">The path to the file to be scanned.</param>
+        /// <returns>
+        /// The analysis result from VirusTotal as a string, or <c>null</c> if the operation fails.
+        /// </returns>
+        /// <remarks>
+        /// The API token is loaded from the path specified by the "VIRUSTOTAL_BASE_API" environment variable.
+        /// If the file size exceeds 32MB, a large file upload URL is requested.
+        /// </remarks>
         public static string UploadScanFile(string FileName)
         {
             if (string.IsNullOrWhiteSpace(VirusTotalApiToken))
@@ -36,7 +53,7 @@ namespace CustomBuildTool
             try
             {
                 var fileInfo = new FileInfo(FileName);
-                var upload_url = "https://www.virustotal.com/api/v3/files";
+                var uploadInfo = "https://www.virustotal.com/api/v3/files";
 
                 if (!fileInfo.Exists)
                 {
@@ -53,11 +70,11 @@ namespace CustomBuildTool
 
                         var response = BuildHttpClient.SendMessage(requestMessage, VirusTotalResponseContext.Default.VirusTotalLargeUploadResponse);
 
-                        upload_url = response.data;
+                        uploadInfo = response.data;
                     }
                 }
 
-                if (string.IsNullOrWhiteSpace(upload_url))
+                if (string.IsNullOrWhiteSpace(uploadInfo))
                 {
                     Program.PrintColorMessage($"[BuildVirusTotal] UploadScanFile", ConsoleColor.Red);
                     return null;
@@ -67,7 +84,7 @@ namespace CustomBuildTool
 
                 using (FileStream fileStream = File.OpenRead(FileName))
                 using (BufferedStream bufferedStream = new BufferedStream(fileStream))
-                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, upload_url))
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, uploadInfo))
                 {
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                     requestMessage.Headers.Add("x-apikey", VirusTotalApiToken);

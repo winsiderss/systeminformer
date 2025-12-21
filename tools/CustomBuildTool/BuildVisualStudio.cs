@@ -11,11 +11,24 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides methods for discovering and managing installed Visual Studio instances using native setup configuration APIs.
+    /// </summary>
     internal static unsafe class BuildVisualStudio
     {
+        /// <summary>
+        /// List of discovered Visual Studio instances on the system.
+        /// </summary>
         private static readonly List<VisualStudioInstance> VisualStudioInstanceList;
+
+        /// <summary>
+        /// The selected Visual Studio instance, typically the latest version with required dependencies.
+        /// </summary>
         private static VisualStudioInstance VisualStudioInstance = null;
 
+        /// <summary>
+        /// Static constructor. Discovers all Visual Studio instances using the native setup configuration API and populates <see cref="VisualStudioInstanceList"/>.
+        /// </summary>
         static BuildVisualStudio()
         {
             VisualStudioInstanceList = new List<VisualStudioInstance>();
@@ -106,6 +119,12 @@ namespace CustomBuildTool
             });
         }
 
+        /// <summary>
+        /// Gets the preferred Visual Studio instance, typically the latest version with required dependencies.
+        /// </summary>
+        /// <returns>
+        /// The selected <see cref="VisualStudioInstance"/> or <c>null</c> if none are available.
+        /// </returns>
         public static VisualStudioInstance GetVisualStudioInstance()
         {
             if (VisualStudioInstance == null && VisualStudioInstanceList != null)
@@ -127,14 +146,28 @@ namespace CustomBuildTool
             return VisualStudioInstance;
         }
 
-        //private static readonly Guid IID_ISetupConfiguration = new Guid("42843719-DB4C-46C2-8E7C-64F1816EFD5B");
+        /// <summary>
+        /// GUID for the ISetupConfiguration2 COM interface.
+        /// </summary>
         private static readonly Guid IID_ISetupConfiguration2 = new Guid("26AAB78C-4A60-49D6-AF3B-3C35BC93365D");
+
+        /// <summary>
+        /// GUID for the ISetupInstance2 COM interface.
+        /// </summary>
+        private static readonly Guid IID_ISetupInstance2 = new Guid("89143C9A-05AF-49B0-B717-72E218A2185C");
+
+        //private static readonly Guid IID_ISetupConfiguration = new Guid("42843719-DB4C-46C2-8E7C-64F1816EFD5B");
         //private static readonly Guid IID_IEnumSetupInstances = new Guid("6380BCFF-41D3-4B2E-8B2E-BF8A6810C848");
         //private static readonly Guid IID_ISetupInstance = new Guid("B41463C3-8866-43B5-BC33-2B0676F7F42E");
-        private static readonly Guid IID_ISetupInstance2 = new Guid("89143C9A-05AF-49B0-B717-72E218A2185C");
         //private static readonly Guid IID_ISetupPackageReference = new Guid("DA8D8A16-B2B6-4487-A2F1-594CCCCD6BF5");
         //private static readonly Guid IID_ISetupHelper = new Guid("42B21B78-6192-463E-87BF-D577838F1D5C");
 
+        /// <summary>
+        /// Gets the path to the native Visual Studio setup configuration library based on process architecture.
+        /// </summary>
+        /// <returns>
+        /// The full path to the setup configuration native DLL.
+        /// </returns>
         private static string GetLibraryPath()
         {
             string path;
@@ -157,22 +190,64 @@ namespace CustomBuildTool
         }
     }
 
+    /// <summary>
+    /// Represents a single Visual Studio instance and its installed packages.
+    /// </summary>
     internal unsafe class VisualStudioInstance : IComparable, IComparable<VisualStudioInstance>
     {
+        /// <summary>
+        /// Gets the display name of the Visual Studio instance.
+        /// </summary>
         public string DisplayName { get; }
+
+        /// <summary>
+        /// Gets the internal name of the Visual Studio instance.
+        /// </summary>
         public string Name { get; }
+
+        /// <summary>
+        /// Gets the installation path of the Visual Studio instance.
+        /// </summary>
         public string Path { get; }
+
+        /// <summary>
+        /// Gets the installation version string of the Visual Studio instance.
+        /// </summary>
         public string InstallationVersion { get; }
-        //public string InstanceId { get; }
+
+        /// <summary>
+        /// Gets the instance identifier of the Visual Studio instance.
+        /// </summary>
+        public string InstanceId { get; }
+
+        /// <summary>
+        /// Gets the state flags of the Visual Studio instance.
+        /// </summary>
         public uint State { get; }
+
+        /// <summary>
+        /// Gets the list of installed packages for this Visual Studio instance.
+        /// </summary>
         public List<VisualStudioPackage> Packages { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the instance has ARM64 build tools components installed.
+        /// </summary>
         public bool HasARM64BuildToolsComponents { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VisualStudioInstance"/> class.
+        /// </summary>
         public VisualStudioInstance()
         {
             this.Packages = new List<VisualStudioPackage>();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VisualStudioInstance"/> class from a native setup instance pointer.
+        /// </summary>
+        /// <param name="FromInstance">Pointer to the native ISetupInstance2 vtable.</param>
+        /// <param name="SetupInstancePtr">Pointer to the native setup instance.</param>
         public VisualStudioInstance(ISetupInstance2VTable* FromInstance, IntPtr SetupInstancePtr)
         {
             IntPtr NamePtr;
@@ -249,6 +324,12 @@ namespace CustomBuildTool
             this.HasARM64BuildToolsComponents = found.Count >= 2;
         }
 
+        /// <summary>
+        /// Gets the latest installed Windows SDK package for this Visual Studio instance.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="VisualStudioPackage"/> representing the latest Windows SDK, or <c>null</c> if none found.
+        /// </returns>
         private VisualStudioPackage GetLatestSdkPackage()
         {
             var found = this.Packages.FindAll(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
@@ -267,7 +348,7 @@ namespace CustomBuildTool
         
             return found[^1];
         }
-        
+
         //public string GetWindowsSdkVersion()
         //{
         //    List<string> versions = new List<string>();
@@ -314,6 +395,13 @@ namespace CustomBuildTool
         //    }
         //}
         //
+
+        /// <summary>
+        /// Gets the full version string of the latest installed Windows SDK package.
+        /// </summary>
+        /// <returns>
+        /// The version string of the latest Windows SDK package, or <c>string.Empty</c> if none found.
+        /// </returns>
         public string GetWindowsSdkFullVersion()
         {
             VisualStudioPackage package = GetLatestSdkPackage();
@@ -370,11 +458,22 @@ namespace CustomBuildTool
         //    }
         //}
 
+        /// <summary>
+        /// Returns the internal name of the Visual Studio instance.
+        /// </summary>
+        /// <returns>The internal name.</returns>
         public override string ToString()
         {
             return this.Name;
         }
 
+        /// <summary>
+        /// Compares this instance to another object by name.
+        /// </summary>
+        /// <param name="obj">The object to compare to.</param>
+        /// <returns>
+        /// A value indicating the relative order of the instances.
+        /// </returns>
         public int CompareTo(object obj)
         {
             if (obj == null)
@@ -386,6 +485,13 @@ namespace CustomBuildTool
                 return 1;
         }
 
+        /// <summary>
+        /// Compares this instance to another <see cref="VisualStudioInstance"/> by name.
+        /// </summary>
+        /// <param name="obj">The instance to compare to.</param>
+        /// <returns>
+        /// A value indicating the relative order of the instances.
+        /// </returns>
         public int CompareTo(VisualStudioInstance obj)
         {
             if (obj == null)
@@ -395,11 +501,26 @@ namespace CustomBuildTool
         }
     }
 
+    /// <summary>
+    /// Represents a Visual Studio package/component installed in an instance.
+    /// </summary>
     internal unsafe class VisualStudioPackage : IComparable, IComparable<VisualStudioPackage>
     {
+        /// <summary>
+        /// Gets the package/component ID.
+        /// </summary>
         public string Id { get; }
+
+        /// <summary>
+        /// Gets the version string of the package/component.
+        /// </summary>
         public string Version { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VisualStudioPackage"/> class from a native package reference pointer.
+        /// </summary>
+        /// <param name="FromInstance">Pointer to the native ISetupPackageReference vtable.</param>
+        /// <param name="SetupInstancePtr">Pointer to the native package reference.</param>
         public VisualStudioPackage(ISetupPackageReferenceVTable* FromInstance, IntPtr SetupInstancePtr)
         {
             IntPtr IdPtr;
@@ -416,11 +537,22 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Returns the package/component ID.
+        /// </summary>
+        /// <returns>The package/component ID.</returns>
         public override string ToString()
         {
             return this.Id;
         }
 
+        /// <summary>
+        /// Compares this package to another object by ID.
+        /// </summary>
+        /// <param name="obj">The object to compare to.</param>
+        /// <returns>
+        /// A value indicating the relative order of the packages.
+        /// </returns>
         public int CompareTo(object obj)
         {
             if (obj == null)
@@ -432,6 +564,13 @@ namespace CustomBuildTool
                 return 1;
         }
 
+        /// <summary>
+        /// Compares this package to another <see cref="VisualStudioPackage"/> by ID.
+        /// </summary>
+        /// <param name="obj">The package to compare to.</param>
+        /// <returns>
+        /// A value indicating the relative order of the packages.
+        /// </returns>
         public int CompareTo(VisualStudioPackage obj)
         {
             if (obj == null)

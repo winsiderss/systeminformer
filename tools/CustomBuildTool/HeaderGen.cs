@@ -12,16 +12,44 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides functionality to generate a merged public header file from a set of input headers.
+    /// </summary>
     public static class HeaderGen
     {
+        /// <summary>
+        /// The copyright and license notice to prepend to the generated header.
+        /// </summary>
         private static readonly string Notice = "/*\r\n * Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved.\r\n *\r\n * This file is part of System Informer.\r\n *\r\n */\r\n\r\n";
+
+        /// <summary>
+        /// The header guard and C++ extern block for the generated header.
+        /// </summary>
         private static readonly string Header = "#ifndef _PH_PHAPPPUB_H\r\n#define _PH_PHAPPPUB_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n#ifdef __cplusplus\r\nextern \"C\" {\r\n#endif\r\n";
+
+        /// <summary>
+        /// The footer for the generated header, closing extern and guard.
+        /// </summary>
         private const string Footer = "\r\n#ifdef __cplusplus\r\n}\r\n#endif\r\n\r\n#endif\r\n";
 
+        /// <summary>
+        /// The base directory containing the input header files.
+        /// </summary>
         private const string BaseDirectory = "SystemInformer\\include";
+
+        /// <summary>
+        /// The relative output path for the generated header file.
+        /// </summary>
         private const string OutputFile = "..\\sdk\\phapppub.h";
 
+        /// <summary>
+        /// The set of modes used to filter header content.
+        /// </summary>
         private static readonly string[] Modes = ["phapppub"];
+
+        /// <summary>
+        /// The list of header files to merge, in order.
+        /// </summary>
         private static readonly string[] Files =
         [
             "phapp.h",
@@ -58,6 +86,11 @@ namespace CustomBuildTool
             "hndlmenu.h"
         ];
 
+        /// <summary>
+        /// Orders header files based on their dependencies.
+        /// </summary>
+        /// <param name="headerFiles">The list of header files to order.</param>
+        /// <returns>A list of header files in dependency order.</returns>
         private static List<HeaderFile> OrderHeaderFiles(List<HeaderFile> headerFiles)
         {
             var result = new List<HeaderFile>();
@@ -69,6 +102,12 @@ namespace CustomBuildTool
             return result;
         }
 
+        /// <summary>
+        /// Recursively orders header files by dependencies.
+        /// </summary>
+        /// <param name="result">The result list to populate.</param>
+        /// <param name="done">A set of already processed headers.</param>
+        /// <param name="headerFile">The header file to process.</param>
         private static void OrderHeaderFiles(List<HeaderFile> result, HashSet<HeaderFile> done, HeaderFile headerFile)
         {
             if (!done.Add(headerFile))
@@ -80,6 +119,11 @@ namespace CustomBuildTool
             result.Add(headerFile);
         }
 
+        /// <summary>
+        /// Processes header lines, filtering by mode and removing irrelevant content.
+        /// </summary>
+        /// <param name="lines">The lines of the header file.</param>
+        /// <returns>A filtered list of lines relevant to the current mode.</returns>
         private static List<string> ProcessHeaderLines(List<string> lines)
         {
             var result = new List<string>();
@@ -128,6 +172,9 @@ namespace CustomBuildTool
             return result;
         }
 
+        /// <summary>
+        /// Executes the header generation process, merging and filtering headers, and writing the output file if needed.
+        /// </summary>
         public static void Execute()
         {
             // Read in all header files.
@@ -250,28 +297,50 @@ namespace CustomBuildTool
         }
     }
 
+    /// <summary>
+    /// Represents a header file and its dependencies for merging.
+    /// </summary>
     public class HeaderFile : IEquatable<HeaderFile>
     {
+        /// <summary>
+        /// The name of the header file.
+        /// </summary>
         public readonly string Name;
+
+        /// <summary>
+        /// The lines of the header file.
+        /// </summary>
         public List<string> Lines;
+
+        /// <summary>
+        /// The list of dependent header files.
+        /// </summary>
         public List<HeaderFile> Dependencies;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HeaderFile"/> class.
+        /// </summary>
+        /// <param name="Name">The name of the header file.</param>
+        /// <param name="Lines">The lines of the header file.</param>
         public HeaderFile(string Name, List<string> Lines)
         {
             this.Name = Name;
             this.Lines = Lines;
         }
 
+        /// <inheritdoc/>
         public override string ToString()
         {
             return this.Name;
         }
 
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return this.Name.GetHashCode(StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             if (obj is not HeaderFile file)
@@ -280,14 +349,21 @@ namespace CustomBuildTool
             return string.Equals(this.Name, file.Name, StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <inheritdoc/>
         public bool Equals(HeaderFile other)
         {
             return other != null && string.Equals(this.Name, other.Name, StringComparison.OrdinalIgnoreCase);
         }
     }
 
+    /// <summary>
+    /// Provides functionality to generate a single merged NT header from multiple input headers.
+    /// </summary>
     public static class SingleHeaderGen
     {
+        /// <summary>
+        /// The list of NT header files to merge into a single header.
+        /// </summary>
         private static readonly string[] Headers =
         {
             "phnt_ntdef.h",
@@ -321,6 +397,10 @@ namespace CustomBuildTool
             "ntxcapi.h",
         };
 
+        /// <summary>
+        /// Executes the single header generation process, merging NT headers into a single file.
+        /// </summary>
+        /// <returns>True if the operation succeeded; otherwise, false.</returns>
         public static bool Execute()
         {
             try

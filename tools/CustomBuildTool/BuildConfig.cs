@@ -11,9 +11,26 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Defines build configuration constants for the System Informer custom build tool.
+    /// </summary>
+    /// <remarks>
+    /// This class contains static read-only collections that configure various aspects of the build process,
+    /// including supported build channels, SDK directory structure, and header file collections.
+    /// </remarks>
     public static class BuildConfig
     {
-        // N.B. Order is important, SortedDictionary is used on purpose.
+        /// <summary>
+        /// A sorted dictionary that maps build channel names to their corresponding channel identifiers.
+        /// </summary>
+        /// <remarks>
+        /// The dictionary uses case-insensitive string comparison for channel name lookups.
+        /// Currently active channels are:
+        /// - "release" (0): Stable release channel
+        /// - "canary" (2): Canary/testing channel
+        /// 
+        /// N.B. Order is important, SortedDictionary is used on purpose.
+        /// 
         public static readonly SortedDictionary<string, int> Build_Channels = new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase)
         {
             ["release"] = 0, // PhReleaseChannel
@@ -22,6 +39,14 @@ namespace CustomBuildTool
             //["developer"] = 3, // PhDeveloperChannel
         };
 
+        /// <summary>
+        /// Gets an immutable array of SDK directory paths to be included in the build output.
+        /// </summary>
+        /// <remarks>
+        /// Includes the main SDK directory and subdirectories for headers, debugger symbols, and libraries
+        /// across multiple processor architectures (amd64, i386, arm64).
+        /// Additional sample directories are available but currently commented out.
+        /// </remarks>
         public static readonly ImmutableArray<string> Build_Sdk_Directories =
         [
             "sdk",
@@ -36,6 +61,13 @@ namespace CustomBuildTool
             //"sdk\\samples\\SamplePlugin\\bin\\Release32"
         ];
 
+        /// <summary>
+        /// Gets an immutable array of PHNT (Platform Header Native Types) header file names.
+        /// </summary>
+        /// <remarks>
+        /// Contains native Windows API headers required for low-level system integration and type definitions,
+        /// and required for the SDK used by plugins and extensions.
+        /// </remarks>
         public static readonly ImmutableArray<string> Build_Phnt_Headers =
         [
             "ntafd.h",
@@ -81,6 +113,12 @@ namespace CustomBuildTool
             "winsta.h"
         ];
 
+        /// <summary>
+        /// An immutable array containing the header filenames for the phlib library build.
+        /// This collection includes header files for various system information, UI components,
+        /// and utility functions used throughout the System Informer project and are merged into
+        /// the SDK for plugins and extensions.
+        /// </summary>
         public static readonly ImmutableArray<string> Build_Phlib_Headers =
         [
             "appresolver.h",
@@ -132,6 +170,10 @@ namespace CustomBuildTool
             "workqueue.h"
         ];
 
+        /// <summary>
+        /// An immutable array containing the header filenames for the kphlib (Kernel System Informer) library build.
+        /// </summary>
+        /// <remarks>
         public static readonly ImmutableArray<string> Build_Kphlib_Headers =
         [
             "kphapi.h",
@@ -139,50 +181,4 @@ namespace CustomBuildTool
             "kphmsgdefs.h"
         ];
     }
-
-    public class DeployFile(string Name, string Filename, string FileHash, string FileSignature, string FileLength)
-    {
-        public readonly string Name = Name;
-        public readonly string FileName = Filename;
-        public readonly string FileHash = FileHash;
-        public readonly string FileSignature = FileSignature;
-        public readonly string FileLength = FileLength;
-
-        public string DownloadHash { get; private set; }
-        public string DownloadLink { get; private set; }
-
-        public bool UpdateAssetsResponse(GithubAssetsResponse response)
-        {
-            if (response == null)
-            {
-                Program.PrintColorMessage("[UpdateAssetsResponse] response null.", ConsoleColor.Red);
-                return false;
-            }
-            if (string.IsNullOrWhiteSpace(response.HashValue))
-            {
-                Program.PrintColorMessage("[UpdateAssetsResponse] HashValue null.", ConsoleColor.Red);
-                return false;
-            }
-            if (string.IsNullOrWhiteSpace(response.DownloadUrl))
-            {
-                Program.PrintColorMessage("[UpdateAssetsResponse] DownloadUrl null.", ConsoleColor.Red);
-                return false;
-            }
-
-            this.DownloadHash = response.HashValue;
-            this.DownloadLink = response.DownloadUrl;
-            return true;
-        }
-
-        public override string ToString()
-        {
-            return this.Name;
-        }
-
-        public override int GetHashCode()
-        {
-            return this.Name.GetHashCode();
-        }
-    }
-
 }

@@ -11,8 +11,14 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides cryptographic and signature verification utilities for build artifacts.
+    /// </summary>
     public static class BuildVerify
     {
+        /// <summary>
+        /// Maps build key names to their corresponding environment variable names for key and salt.
+        /// </summary>
         public static readonly SortedDictionary<string, KeyValuePair<string, string>> KeyName_Vars = new(StringComparer.OrdinalIgnoreCase)
         {
             { "canary",    new("CANARY_BUILD_KEY", "CANARY_BUILD_S") },
@@ -22,6 +28,14 @@ namespace CustomBuildTool
             { "release",   new("RELEASE_BUILD_KEY", "RELEASE_BUILD_S")},
         };
 
+        /// <summary>
+        /// Encrypts the specified file using the provided secret and salt, and writes the result to the output file.
+        /// </summary>
+        /// <param name="FileName">The path to the input file to encrypt.</param>
+        /// <param name="OutFileName">The path to the output encrypted file.</param>
+        /// <param name="Secret">The secret used for encryption.</param>
+        /// <param name="Salt">The salt value or key name for encryption.</param>
+        /// <returns>True if encryption succeeds; otherwise, false.</returns>
         public static bool EncryptFile(string FileName, string OutFileName, string Secret, string Salt)
         {
             if (string.IsNullOrWhiteSpace(FileName) || string.IsNullOrWhiteSpace(OutFileName) || string.IsNullOrWhiteSpace(Secret) || string.IsNullOrWhiteSpace(Salt))
@@ -48,6 +62,14 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Decrypts the specified file using the provided secret and salt, and writes the result to the output file.
+        /// </summary>
+        /// <param name="FileName">The path to the input encrypted file.</param>
+        /// <param name="OutFileName">The path to the output decrypted file.</param>
+        /// <param name="Secret">The secret used for decryption.</param>
+        /// <param name="Salt">The salt value or key name for decryption.</param>
+        /// <returns>True if decryption succeeds; otherwise, false.</returns>
         public static bool DecryptFile(string FileName, string OutFileName, string Secret, string Salt)
         {
             if (string.IsNullOrWhiteSpace(FileName) || string.IsNullOrWhiteSpace(OutFileName) || string.IsNullOrWhiteSpace(Secret) || string.IsNullOrWhiteSpace(Salt))
@@ -96,6 +118,11 @@ namespace CustomBuildTool
         //    }
         //}
 
+        /// <summary>
+        /// Computes the SHA256 hash of the specified file and returns it as a hexadecimal string.
+        /// </summary>
+        /// <param name="FileName">The path to the file to hash.</param>
+        /// <returns>The hexadecimal string of the file's hash, or an empty string if hashing fails.</returns>
         public static string HashFile(string FileName)
         {
             try
@@ -114,6 +141,13 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Creates a signature file for the specified file using the given key name.
+        /// </summary>
+        /// <param name="KeyName">The key name to use for signing.</param>
+        /// <param name="FileName">The path to the file to sign.</param>
+        /// <param name="StrictChecks">If true, performs strict checks before creating the signature file.</param>
+        /// <returns>True if the signature file is created; otherwise, false.</returns>
         public static bool CreateSigFile(string KeyName, string FileName, bool StrictChecks)
         {
             if (string.IsNullOrWhiteSpace(KeyName))
@@ -170,6 +204,12 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Creates a signature string for the specified file using the given key name.
+        /// </summary>
+        /// <param name="KeyName">The key name to use for signing.</param>
+        /// <param name="FileName">The path to the file to sign.</param>
+        /// <returns>The hexadecimal string of the signature, or null if signing fails.</returns>
         public static string CreateSigString(string KeyName, string FileName)
         {
             if (!File.Exists(FileName))
@@ -219,6 +259,13 @@ namespace CustomBuildTool
             return null;
         }
 
+        /// <summary>
+        /// Decrypts the provided stream using the specified secret and salt.
+        /// </summary>
+        /// <param name="Stream">The input stream to decrypt.</param>
+        /// <param name="Secret">The secret used for decryption.</param>
+        /// <param name="Salt">The salt value for decryption.</param>
+        /// <returns>The decrypted byte array, or null if decryption fails.</returns>
         private static byte[] Decrypt(Stream Stream, string Secret, string Salt)
         {
             try
@@ -243,6 +290,13 @@ namespace CustomBuildTool
             return null;
         }
 
+        /// <summary>
+        /// Decrypts the provided byte array using the specified secret and salt.
+        /// </summary>
+        /// <param name="Bytes">The encrypted byte array.</param>
+        /// <param name="Secret">The secret used for decryption.</param>
+        /// <param name="Salt">The salt value for decryption.</param>
+        /// <returns>The decrypted byte array.</returns>
         private static byte[] Decrypt(byte[] Bytes, string Secret, string Salt)
         {
             using (var blobStream = new MemoryStream(Bytes))
@@ -251,6 +305,13 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Encrypts the provided byte array using the specified secret and salt.
+        /// </summary>
+        /// <param name="Bytes">The input byte array to encrypt.</param>
+        /// <param name="Secret">The secret used for encryption.</param>
+        /// <param name="Salt">The salt value for encryption.</param>
+        /// <returns>The encrypted byte array.</returns>
         private static byte[] Encrypt(byte[] Bytes, string Secret, string Salt)
         {
             using (var blobStream = new MemoryStream(Bytes))
@@ -259,6 +320,12 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Creates and configures an AES instance using the provided secret and salt.
+        /// </summary>
+        /// <param name="Secret">The secret used for key derivation.</param>
+        /// <param name="Salt">The salt value for key derivation.</param>
+        /// <returns>An AES instance configured with the derived key and IV.</returns>
         private static Aes GetRijndael(string Secret, string Salt)
         {
             byte[] saltBytes = Convert.FromBase64String(Salt);
@@ -286,6 +353,12 @@ namespace CustomBuildTool
             return rijndael;
         }
 
+        /// <summary>
+        /// Signs the provided byte array using the specified key material.
+        /// </summary>
+        /// <param name="KeyMaterial">The private key material for signing.</param>
+        /// <param name="Bytes">The data to sign.</param>
+        /// <returns>The signature byte array.</returns>
         private static byte[] Sign(byte[] KeyMaterial, byte[] Bytes)
         {
             byte[] buffer;
@@ -315,6 +388,12 @@ namespace CustomBuildTool
             return buffer;
         }
 
+        /// <summary>
+        /// Signs the contents of the specified file using the provided key material.
+        /// </summary>
+        /// <param name="KeyMaterial">The private key material for signing.</param>
+        /// <param name="FileName">The path to the file to sign.</param>
+        /// <returns>The signature byte array.</returns>
         private static byte[] SignFile(byte[] KeyMaterial, string FileName)
         {
             byte[] buffer;
@@ -345,6 +424,11 @@ namespace CustomBuildTool
             return buffer;
         }
 
+        /// <summary>
+        /// Prints public key information for the provided key blob and format.
+        /// </summary>
+        /// <param name="KeyBlob">The key blob containing the public key.</param>
+        /// <param name="KeyFormat">The format of the key blob.</param>
         public static void PrintCngPublicKeyInfo(byte[] KeyBlob, CngKeyBlobFormat KeyFormat)
         {
             using (CngKey cngkey = CngKey.Import(KeyBlob, KeyFormat))
@@ -371,6 +455,11 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Gets the full path for the specified file, using environment variables or default locations.
+        /// </summary>
+        /// <param name="FileName">The file name to resolve.</param>
+        /// <returns>The resolved file path.</returns>
         private static string GetPath(string FileName)
         {
             if (Win32.GetEnvironmentVariable("BUILD_DRM", out string value))
@@ -382,6 +471,11 @@ namespace CustomBuildTool
             return Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSignTool\\Resources\\", FileName]);
         }
 
+        /// <summary>
+        /// Gets the salt value for the specified key name or returns the input if not found.
+        /// </summary>
+        /// <param name="KeyNameOrSalt">The key name or salt value.</param>
+        /// <returns>The salt value.</returns>
         private static string GetSalt(string KeyNameOrSalt)
         {
             if (KeyName_Vars.TryGetValue(KeyNameOrSalt, out var vars) &&
@@ -394,6 +488,12 @@ namespace CustomBuildTool
             return KeyNameOrSalt;
         }
 
+        /// <summary>
+        /// Retrieves the key material for the specified key name.
+        /// </summary>
+        /// <param name="KeyName">The key name to retrieve material for.</param>
+        /// <param name="KeyMaterial">The output key material byte array.</param>
+        /// <returns>True if key material is found; otherwise, false.</returns>
         private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
         {
             if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret))
