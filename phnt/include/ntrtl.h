@@ -10059,6 +10059,14 @@ RtlDelayExecution(
 // Timer support
 //
 
+/**
+ * Creates a queue for timers.
+ *
+ * \param TimerQueueHandle A pointer to a variable that receives the handle to the newly created timer queue.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks Timer-queue timers are lightweight objects that enable you to specify a callback function to be called at a specified time.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoollegacyapiset/nf-threadpoollegacyapiset-createtimerqueue
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -10073,6 +10081,20 @@ VOID NTAPI RTL_TIMER_CALLBACK(
     );
 typedef RTL_TIMER_CALLBACK *PRTL_TIMER_CALLBACK;
 
+/**
+ * Creates a timer-queue timer.
+ *
+ * \param TimerQueueHandle A handle to the timer queue. This handle is returned by a previous call to RtlCreateTimerQueue.
+ * \param Handle A pointer to a variable that receives the handle to the newly created timer-queue timer.
+ * \param Function A pointer to the callback function to be executed when the timer expires.
+ * \param Context A pointer to a variable to be passed to the callback function.
+ * \param DueTime The amount of time in milliseconds relative to the current time that must elapse before the timer is signaled for the first time.
+ * \param Period The period of the timer in milliseconds. If this value is zero, the timer is signaled once; otherwise, it is signaled periodically.
+ * \param Flags The flags that control the behavior of the timer. This parameter can be zero or one of the following values:
+ * WT_EXECUTEDEFAULT, WT_EXECUTEONLYONCE, WT_EXECUTELONGFUNCTION, WT_EXECUTEINTIMERTHREAD, WT_EXECUTEINPERSISTENTTHREAD, WT_TRANSFER_IMPERSONATION.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/threadpoollegacyapiset/nf-threadpoollegacyapiset-createtimerqueuetimer
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
