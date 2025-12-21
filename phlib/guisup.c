@@ -170,6 +170,12 @@ VOID PhGuiSupportUpdateSystemMetrics(
     PhLargeIconSize.Y = PhGetSystemMetrics(SM_CYICON, PhSystemDpi);
 }
 
+/**
+ * Maps a font quality setting to the corresponding GDI constant.
+ * 
+ * \param FontQuality The font quality setting (0-6).
+ * \return The corresponding GDI font quality constant.
+ */
 LONG PhGetFontQualitySetting(
     _In_ LONG FontQuality
     )
@@ -188,6 +194,16 @@ LONG PhGetFontQualitySetting(
     return DEFAULT_QUALITY;
 }
 
+/**
+ * Creates a font with specified properties.
+ * 
+ * \param Name Optional pointer to the font name (typeface).
+ * \param Size The desired font size in points.
+ * \param Weight The font weight (e.g., FW_NORMAL, FW_BOLD). 
+ * \param PitchAndFamily The pitch and family of the font.
+ * \param Dpi The dots per inch (DPI) value for scaling.
+ * \return Handle to the created font, or NULL if creation fails.
+ */
 HFONT PhCreateFont(
     _In_opt_ PCWSTR Name,
     _In_ LONG Size,
@@ -214,6 +230,15 @@ HFONT PhCreateFont(
         );
 }
 
+/**
+ * Creates a common font with the specified size and weight.
+ *
+ * \param Size The font size in logical units.
+ * \param Weight The font weight (e.g., FW_NORMAL, FW_BOLD).
+ * \param WindowHandle Optional handle to a window for DPI awareness. If NULL, uses system DPI.
+ * \param WindowDpi The DPI of the target window for scaling calculations.
+ * \return A handle to the created font object, or NULL if the operation fails.
+ */
 HFONT PhCreateCommonFont(
     _In_ LONG Size,
     _In_ LONG Weight,
@@ -2799,10 +2824,10 @@ VOID PhSetWindowAlwaysOnTop(
 _Success_(return)
 BOOLEAN PhSendMessageTimeout(
     _In_ HWND WindowHandle,
-    _In_ UINT WindowMessage,
+    _In_ ULONG WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ UINT Timeout,
+    _In_ ULONG Timeout,
     _Out_opt_ PULONG_PTR Result
     )
 {
@@ -3374,6 +3399,18 @@ typedef struct _NEWHEADER
     USHORT ResourceCount;
 } NEWHEADER, *PNEWHEADER;
 
+/**
+ * Creates an icon handle from a resource directory within a mapped image.
+ *
+ * \param MappedImage Pointer to a mapped image structure containing the resource data.
+ * \param ResourceDirectory Pointer to the resource directory within the mapped image.
+ * \param IconDirectory Pointer to the icon directory structure.
+ * \param Width The desired width of the icon in pixels.
+ * \param Height The desired height of the icon in pixels.
+ * \param Flags Flags that control the icon creation behavior.
+ * \param IconHandle Pointer to an HICON variable that receives the handle to the created icon.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCreateIconFromResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PVOID ResourceDirectory,
@@ -5171,4 +5208,82 @@ ULONG_PTR PhUserQueryWindow(
     }
 
     return 0;
+}
+
+/**
+ * Retrieves the source of the input message.
+ *
+ * \param InputMessageSource The INPUT_MESSAGE_SOURCE that holds the device type and the ID of the input message source.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getcurrentinputmessagesource
+ */
+NTSTATUS PhGetInputMessageSource(
+    _Out_ INPUT_MESSAGE_SOURCE* InputMessageSource
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(&GetCurrentInputMessageSource) GetCurrentInputMessageSource_I = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhGetDllHandle(L"user32.dll"))
+        {
+            GetCurrentInputMessageSource_I = PhGetDllBaseProcedureAddress(baseAddress, "GetCurrentInputMessageSource", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (GetCurrentInputMessageSource_I)
+    {
+        if (GetCurrentInputMessageSource_I(InputMessageSource))
+        {
+            return STATUS_SUCCESS;
+        }
+
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
+
+    return STATUS_PROCEDURE_NOT_FOUND;
+}
+
+/**
+ * Retrieves the source of the input message (GetCurrentInputMessageSourceInSendMessage).
+ *
+ * \param InputMessageSource The INPUT_MESSAGE_SOURCE that holds the device type and the ID of the input message source.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getcimssm
+ */
+NTSTATUS PhGetInputMessageSourceSM(
+    _Out_ INPUT_MESSAGE_SOURCE* InputMessageSource
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(&GetCIMSSM) GetCIMSSM_I = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhGetDllHandle(L"user32.dll"))
+        {
+            GetCIMSSM_I = PhGetDllBaseProcedureAddress(baseAddress, "GetCIMSSM", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (GetCIMSSM_I)
+    {
+        if (GetCIMSSM_I(InputMessageSource))
+        {
+            return STATUS_SUCCESS;
+        }
+
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
+
+    return STATUS_PROCEDURE_NOT_FOUND;
 }
