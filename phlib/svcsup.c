@@ -752,6 +752,15 @@ NTSTATUS PhGetServiceObjectSecurity(
     return status;
 }
 
+/**
+ * Sets the security descriptor for a service object.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param SecurityInformation Specifies the type of security information to set.
+ * \param SecurityDescriptor Pointer to a SECURITY_DESCRIPTOR structure containing the new security descriptor.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-setserviceobjectsecurity
+ */
 NTSTATUS PhSetServiceObjectSecurity(
     _In_ SC_HANDLE ServiceHandle,
     _In_ SECURITY_INFORMATION SecurityInformation,
@@ -768,6 +777,14 @@ NTSTATUS PhSetServiceObjectSecurity(
     return status;
 }
 
+/**
+ * Queries the current status of a specified service.
+ *
+ * \param ServiceHandle A handle to the service. This handle must have the SERVICE_QUERY_STATUS access right.
+ * \param ServiceStatus A pointer to a SERVICE_STATUS_PROCESS structure that receives the status information for the service.
+ * \return Returns an NTSTATUS code indicating success or failure of the operation.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-queryservicestatusex
+ */
 NTSTATUS PhQueryServiceStatus(
     _In_ SC_HANDLE ServiceHandle,
     _Out_ LPSERVICE_STATUS_PROCESS ServiceStatus
@@ -778,14 +795,33 @@ NTSTATUS PhQueryServiceStatus(
 
     memset(ServiceStatus, 0, sizeof(SERVICE_STATUS_PROCESS));
 
-    if (QueryServiceStatusEx(ServiceHandle, SC_STATUS_PROCESS_INFO, (PBYTE)ServiceStatus, sizeof(SERVICE_STATUS_PROCESS), &returnLength))
+    if (QueryServiceStatusEx(
+        ServiceHandle,
+        SC_STATUS_PROCESS_INFO,
+        (PBYTE)ServiceStatus,
+        sizeof(SERVICE_STATUS_PROCESS),
+        &returnLength
+        ))
+    {
         status = STATUS_SUCCESS;
+    }
     else
+    {
         status = PhGetLastWin32ErrorAsNtStatus();
+    }
 
     return status;
 }
 
+/**
+ * Queries variable-sized information about a service.
+ *
+ * \param ServiceHandle Handle to the service to query.
+ * \param InfoLevel The information level specifying the type of service information to retrieve.
+ * \param ServiceConfig Pointer to a variable containing the requested service information.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-queryserviceconfig2w
+ */
 NTSTATUS PhQueryServiceVariableSize(
     _In_ SC_HANDLE ServiceHandle,
     _In_ ULONG InfoLevel,
@@ -832,6 +868,12 @@ NTSTATUS PhQueryServiceVariableSize(
     return status;
 }
 
+/**
+ * Sends a continue control code to a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhContinueService(
     _In_ SC_HANDLE ServiceHandle
     )
@@ -847,6 +889,12 @@ NTSTATUS PhContinueService(
     return status;
 }
 
+/**
+ * Sends a pause control code to a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhPauseService(
     _In_ SC_HANDLE ServiceHandle
     )
@@ -862,6 +910,13 @@ NTSTATUS PhPauseService(
     return status;
 }
 
+/**
+ * Deletes a service from the service control manager database.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-deleteservice
+ */
 NTSTATUS PhDeleteService(
     _In_ SC_HANDLE ServiceHandle
     )
@@ -876,6 +931,15 @@ NTSTATUS PhDeleteService(
     return status;
 }
 
+/**
+ * Starts a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param NumberOfServiceArgs Number of arguments in the ServiceArgVectors array.
+ * \param ServiceArgVectors Array of arguments to pass to the service, or NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-startservicew
+ */
 NTSTATUS PhStartService(
     _In_ SC_HANDLE ServiceHandle,
     _In_ ULONG NumberOfServiceArgs,
@@ -892,6 +956,12 @@ NTSTATUS PhStartService(
     return status;
 }
 
+/**
+ * Sends a stop control code to a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhStopService(
     _In_ SC_HANDLE ServiceHandle
     )
@@ -907,6 +977,13 @@ NTSTATUS PhStopService(
     return status;
 }
 
+/**
+ * Retrieves the configuration of a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param ServiceConfig Receives a pointer to the service configuration. Caller must free with PhFree.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetServiceConfig(
     _In_ SC_HANDLE ServiceHandle,
     _Out_ LPQUERY_SERVICE_CONFIG* ServiceConfig
@@ -950,6 +1027,12 @@ NTSTATUS PhGetServiceConfig(
     return status;
 }
 
+/**
+ * Retrieves the description string for a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \return A PPH_STRING containing the service description, or NULL if not found.
+ */
 PPH_STRING PhGetServiceDescription(
     _In_ SC_HANDLE ServiceHandle
     )
@@ -972,6 +1055,13 @@ PPH_STRING PhGetServiceDescription(
     }
 }
 
+/**
+ * Retrieves the delayed auto-start setting for a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param DelayedAutoStart Receives TRUE if delayed auto-start is enabled.
+ * \return TRUE if successful, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhGetServiceDelayedAutoStart(
     _In_ SC_HANDLE ServiceHandle,
@@ -997,6 +1087,13 @@ BOOLEAN PhGetServiceDelayedAutoStart(
     }
 }
 
+/**
+ * Sets the delayed auto-start setting for a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param DelayedAutoStart TRUE to enable delayed auto-start, FALSE to disable.
+ * \return TRUE if successful, FALSE otherwise.
+ */
 BOOLEAN PhSetServiceDelayedAutoStart(
     _In_ SC_HANDLE ServiceHandle,
     _In_ BOOLEAN DelayedAutoStart
@@ -1054,6 +1151,12 @@ BOOLEAN PhGetServiceTriggerInfo(
     return FALSE;
 }
 
+/**
+ * Retrieves the service state.
+ *
+ * \param ServiceState The service state value (e.g., SERVICE_RUNNING, SERVICE_STOPPED).
+ * \return A pointer to a string reference describing the service state, or "Unknown" if not found.
+ */
 PCPH_STRINGREF PhGetServiceStateString(
     _In_ ULONG ServiceState
     )
@@ -1073,6 +1176,12 @@ PCPH_STRINGREF PhGetServiceStateString(
     return &PhpServiceUnknownString;
 }
 
+/**
+ * Retrieves the display type.
+ *
+ * \param ServiceType The service type value (e.g., SERVICE_WIN32_OWN_PROCESS).
+ * \return A pointer to a string reference describing the service type, or "Unknown" if not found.
+ */
 PCPH_STRINGREF PhGetServiceTypeString(
     _In_ ULONG ServiceType
     )
@@ -1092,6 +1201,12 @@ PCPH_STRINGREF PhGetServiceTypeString(
     return &PhpServiceUnknownString;
 }
 
+/**
+ * Converts a service type string to its corresponding integer value.
+ *
+ * \param ServiceType A pointer to a string reference containing the service type name.
+ * \return The integer value of the service type, or ULONG_MAX if not found.
+ */
 ULONG PhGetServiceTypeInteger(
     _In_ PPH_STRINGREF ServiceType
     )
@@ -1109,6 +1224,12 @@ ULONG PhGetServiceTypeInteger(
         return ULONG_MAX;
 }
 
+/**
+ * Retrieves the display string for a service start type value.
+ *
+ * \param ServiceStartType The service start type value (e.g., SERVICE_AUTO_START).
+ * \return A pointer to a string reference describing the start type, or "Unknown" if not found.
+ */
 PCPH_STRINGREF PhGetServiceStartTypeString(
     _In_ ULONG ServiceStartType
     )
@@ -1128,6 +1249,12 @@ PCPH_STRINGREF PhGetServiceStartTypeString(
     return &PhpServiceUnknownString;
 }
 
+/**
+ * Converts a service start type string to its corresponding integer value.
+ *
+ * \param ServiceStartType A pointer to a string reference containing the start type name.
+ * \return The integer value of the start type, or ULONG_MAX if not found.
+ */
 ULONG PhGetServiceStartTypeInteger(
     _In_ PPH_STRINGREF ServiceStartType
     )
@@ -1145,6 +1272,12 @@ ULONG PhGetServiceStartTypeInteger(
         return ULONG_MAX;
 }
 
+/**
+ * Retrieves the display string for a service error control value.
+ *
+ * \param ServiceErrorControl The service error control value (e.g., SERVICE_ERROR_NORMAL).
+ * \return A pointer to a string reference describing the error control, or "Unknown" if not found.
+ */
 PCPH_STRINGREF PhGetServiceErrorControlString(
     _In_ ULONG ServiceErrorControl
     )
@@ -1164,6 +1297,12 @@ PCPH_STRINGREF PhGetServiceErrorControlString(
     return &PhpServiceUnknownString;
 }
 
+/**
+ * Converts a service error control string to its corresponding integer value.
+ *
+ * \param ServiceErrorControl A pointer to a string reference containing the error control name.
+ * \return The integer value of the error control, or ULONG_MAX if not found.
+ */
 ULONG PhGetServiceErrorControlInteger(
     _In_ PPH_STRINGREF ServiceErrorControl
     )
@@ -1181,6 +1320,13 @@ ULONG PhGetServiceErrorControlInteger(
         return ULONG_MAX;
 }
 
+/**
+ * Retrieves the service name associated with a service tag in a process.
+ *
+ * \param ProcessId The process ID to query.
+ * \param ServiceTag The service tag value.
+ * \return A newly allocated PPH_STRING containing the service name, or NULL if not found.
+ */
 PPH_STRING PhGetServiceNameFromTag(
     _In_ HANDLE ProcessId,
     _In_ PVOID ServiceTag
@@ -1213,6 +1359,13 @@ PPH_STRING PhGetServiceNameFromTag(
     return serviceName;
 }
 
+/**
+ * Retrieves a comma-separated list of service names referencing a module in a process.
+ *
+ * \param ProcessId The process ID to query.
+ * \param ModuleName The name of the module to check for service references.
+ * \return A newly allocated PPH_STRING containing the service names, or NULL if not found.
+ */
 PPH_STRING PhGetServiceNameForModuleReference(
     _In_ HANDLE ProcessId,
     _In_ PCWSTR ModuleName
@@ -1262,6 +1415,14 @@ PPH_STRING PhGetServiceNameForModuleReference(
     return serviceNames;
 }
 
+/**
+ * Retrieves the service tag value for a thread in a process.
+ *
+ * \param ThreadHandle Handle to the thread.
+ * \param ProcessHandle Handle to the process containing the thread.
+ * \param ServiceTag Receives the service tag value.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetThreadServiceTag(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
@@ -1287,6 +1448,12 @@ NTSTATUS PhGetThreadServiceTag(
     return status;
 }
 
+/**
+ * Builds the full registry key name for a service.
+ *
+ * \param ServiceName The service name as a string reference.
+ * \return A newly allocated PPH_STRING containing the full registry key name.
+ */
 PPH_STRING PhGetServiceKeyName(
     _In_ PPH_STRINGREF ServiceName
     )
@@ -1296,6 +1463,12 @@ PPH_STRING PhGetServiceKeyName(
     return PhConcatStringRef2(&servicesKeyName, ServiceName);
 }
 
+/**
+ * Builds the full registry key name for a service's Parameters subkey.
+ *
+ * \param ServiceName The service name as a string reference.
+ * \return A newly allocated PPH_STRING containing the full Parameters subkey name.
+ */
 PPH_STRING PhGetServiceParametersKeyName(
     _In_ PPH_STRINGREF ServiceName
     )
@@ -1306,6 +1479,14 @@ PPH_STRING PhGetServiceParametersKeyName(
     return PhConcatStringRef3(&servicesKeyName, ServiceName, &parametersKeyName);
 }
 
+/**
+ * Attempts to determine the file name of a service's binary or DLL.
+ *
+ * \param ServiceType The service type flags.
+ * \param ServicePathName The service's binary path name.
+ * \param ServiceName The service name as a string reference.
+ * \return A newly allocated PPH_STRING containing the file name, or NULL if not found.
+ */
 PPH_STRING PhGetServiceConfigFileName(
     _In_ ULONG ServiceType,
     _In_ PCWSTR ServicePathName,
@@ -1352,6 +1533,15 @@ PPH_STRING PhGetServiceConfigFileName(
     return fileName;
 }
 
+/**
+ * Attempts to determine the file name of a service's binary or DLL (variant).
+ *
+ * \param ServiceType The service type flags.
+ * \param ServicePathName The service's binary path name.
+ * \param ServiceName The service name as a string reference.
+ * \param ServiceFileName Receives a pointer to the file name string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetServiceConfigFileName2(
     _In_ ULONG ServiceType,
     _In_ PCWSTR ServicePathName,
@@ -1409,6 +1599,14 @@ NTSTATUS PhGetServiceConfigFileName2(
     return status;
 }
 
+/**
+ * Retrieves the file name of a service's binary or DLL using a service handle.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param ServiceName The service name as a string reference.
+ * \param ServiceFileName Receives a pointer to the file name string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetServiceHandleFileName(
     _In_ SC_HANDLE ServiceHandle,
     _In_ PPH_STRINGREF ServiceName,
@@ -1441,6 +1639,13 @@ NTSTATUS PhGetServiceHandleFileName(
     return status;
 }
 
+/**
+ * Retrieves the file name of a service's binary or DLL from the registry.
+ *
+ * \param ServiceName The service name as a string reference.
+ * \param ServiceFileName Receives a pointer to the file name string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetServiceFileName(
     _In_ PPH_STRINGREF ServiceName,
     _Out_ PPH_STRING* ServiceFileName
@@ -1499,6 +1704,13 @@ NTSTATUS PhGetServiceFileName(
     return status;
 }
 
+/**
+ * Retrieves the ServiceDll value for a service from the registry.
+ *
+ * \param ServiceKeyName The full registry key name for the service.
+ * \param ServiceDll Receives a pointer to the ServiceDll string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpGetServiceDllName(
     _In_ PPH_STRING ServiceKeyName,
     _Out_ PPH_STRING* ServiceDll
@@ -1547,6 +1759,14 @@ NTSTATUS PhpGetServiceDllName(
     return status;
 }
 
+/**
+ * Retrieves the ServiceDll parameter for a service, handling user service instances.
+ *
+ * \param ServiceType The service type flags.
+ * \param ServiceName The service name as a string reference.
+ * \param ServiceDll Receives a pointer to the ServiceDll string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetServiceDllParameter(
     _In_ ULONG ServiceType,
     _In_ PPH_STRINGREF ServiceName,
@@ -1619,6 +1839,12 @@ NTSTATUS PhGetServiceDllParameter(
     return status;
 }
 
+/**
+ * Retrieves the AppUserModelId value for a service from the registry.
+ *
+ * \param ServiceName The service name as a string reference.
+ * \return A PPH_STRING containing the AppUserModelId, or NULL if not found.
+ */
 PPH_STRING PhGetServiceAppUserModelId(
     _In_ PPH_STRINGREF ServiceName
     )
@@ -1640,6 +1866,12 @@ PPH_STRING PhGetServiceAppUserModelId(
     return serviceAppUserModelId;
 }
 
+/**
+ * Retrieves the BootFlags value for a service from the registry.
+ *
+ * \param ServiceName The service name as a string reference.
+ * \return The BootFlags value, or 0 if not found.
+ */
 ULONG PhGetServiceBootFlags(
     _In_ PPH_STRINGREF ServiceName
     )
@@ -1683,6 +1915,12 @@ ULONG PhGetServiceBootFlags(
     return serviceBootFlags;
 }
 
+/**
+ * Retrieves the PackageFullName value for a service.
+ *
+ * \param ServiceName Name of the service.
+ * \return A PPH_STRING containing the PackageFullName, or NULL if not found.
+ */
 PPH_STRING PhGetServicePackageFullName(
     _In_ PPH_STRINGREF ServiceName
     )
