@@ -332,8 +332,8 @@ typedef struct _OBJECT_ATTRIBUTES
     HANDLE RootDirectory;
     PCUNICODE_STRING ObjectName;
     ULONG Attributes;
-    PVOID SecurityDescriptor; // PSECURITY_DESCRIPTOR;
-    PVOID SecurityQualityOfService; // PSECURITY_QUALITY_OF_SERVICE
+    PSECURITY_DESCRIPTOR SecurityDescriptor;
+    PSECURITY_QUALITY_OF_SERVICE SecurityQualityOfService;
 } OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
 
 typedef const OBJECT_ATTRIBUTES *PCOBJECT_ATTRIBUTES;
