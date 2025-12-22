@@ -1840,7 +1840,6 @@ PhRedrawWindow(
     RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
-
 typedef _Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN NTAPI PH_WINDOW_ENUM_CALLBACK(
     _In_ HWND WindowHandle,
@@ -1938,10 +1937,10 @@ BOOLEAN
 NTAPI
 PhSendMessageTimeout(
     _In_ HWND WindowHandle,
-    _In_ UINT WindowMessage,
+    _In_ ULONG WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ UINT Timeout,
+    _In_ ULONG Timeout,
     _Out_opt_ PULONG_PTR Result
     );
 
@@ -2699,7 +2698,7 @@ typedef enum _WINDOWCOMPOSITIONATTRIB
     WCA_HAS_ICONIC_BITMAP = 9,                  // q: BOOL
     WCA_THEME_ATTRIBUTES = 10,                  // s: ULONG
     WCA_NCRENDERING_EXILED = 11,                // q: BOOL
-    WCA_NCADORNMENTINFO = 12,                   // q: 
+    WCA_NCADORNMENTINFO = 12,                   // q:
     WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,         // s: BOOL
     WCA_VIDEO_OVERLAY_ACTIVE = 14,              // q: BOOL
     WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,     // s: BOOL
@@ -2848,7 +2847,7 @@ typedef struct _PH_USER_OBJECT_SID
     };
 } PH_USER_OBJECT_SID, *PPH_USER_OBJECT_SID;
 
-C_ASSERT(sizeof(PH_USER_OBJECT_SID) == SECURITY_MAX_SID_SIZE);
+static_assert(sizeof(PH_USER_OBJECT_SID) == SECURITY_MAX_SID_SIZE, "sizeof(PH_USER_OBJECT_SID) is invalid.");
 
 PHLIBAPI
 NTSTATUS
