@@ -1037,7 +1037,7 @@ VOID PhpShowWmiProviderNodeContextMenu(
 
     menu = PhCreateEMenu();
 
-    if (PhGetIntegerSetting(L"WmiProviderEnableHiddenMenu"))
+    if (PhGetIntegerSetting(SETTING_WMI_PROVIDER_ENABLE_HIDDEN_MENU))
     {
         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Suspend", NULL, NULL), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Res&ume", NULL, NULL), ULONG_MAX);
@@ -1167,9 +1167,9 @@ VOID PhLoadSettingsWmiProviderList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"WmiProviderTreeListColumns");
-    sortSettings = PhGetStringSetting(L"WmiProviderTreeListSort");
-    Context->Flags = PhGetIntegerSetting(L"WmiProviderTreeListFlags");
+    settings = PhGetStringSetting(SETTING_WMI_PROVIDER_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_WMI_PROVIDER_TREE_LIST_SORT);
+    Context->Flags = PhGetIntegerSetting(SETTING_WMI_PROVIDER_TREE_LIST_FLAGS);
 
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
@@ -1186,9 +1186,9 @@ VOID PhSaveSettingsWmiProviderList(
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
-    PhSetIntegerSetting(L"WmiProviderTreeListFlags", Context->Flags);
-    PhSetStringSetting2(L"WmiProviderTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"WmiProviderTreeListSort", &sortSettings->sr);
+    PhSetIntegerSetting(SETTING_WMI_PROVIDER_TREE_LIST_FLAGS, Context->Flags);
+    PhSetStringSetting2(SETTING_WMI_PROVIDER_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_WMI_PROVIDER_TREE_LIST_SORT, &sortSettings->sr);
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
