@@ -82,132 +82,346 @@ DEFINE_GUID(CLSID_CStaticPropertyControl, 0x527C9A9B, 0xB9A2, 0x44B0, 0x84, 0xF9
 
 #undef INTERFACE
 #define INTERFACE IOwnerDataCallback
+/**
+ * IOwnerDataCallback
+ *
+ * Callback interface used by owner-data list views to query and set
+ * positions and grouping relations of items, and to receive cache hints.
+ */
 DECLARE_INTERFACE_(IOwnerDataCallback, IUnknown)
 {
+    BEGIN_INTERFACE
+
+    //
+    // IUnknown
+    //
+
+    DECLSPEC_XFGVIRT(IOwnerDataCallback, QueryInterface)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IOwnerDataCallback, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IOwnerDataCallback, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     //
     // IOwnerDataCallback
     //
 
-    //STDMETHOD(OnDataAvailable)(THIS_ LPARAM lParam, ULONG dwItemCount) PURE;
-    //STDMETHOD(OnDataUnavailable)(THIS_ LPARAM lParam) PURE;
-    //STDMETHOD(OnDataChanged)(THIS_ LPARAM lParam, ULONG dwItemCount) PURE;
-    //STDMETHOD(OnDataReset)(THIS_ LPARAM lParam) PURE;
-
+    /**
+     * Retrieves the current position of an item.
+     *
+     * \param itemIndex The zero-based index of the item.
+     * \param pPosition Receives the item's position in view coordinates.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IOwnerDataCallback, GetItemPosition)
     STDMETHOD(GetItemPosition)(THIS_ LONG itemIndex, LPPOINT pPosition) PURE;
+
+    /**
+     * Sets the position of an item.
+     *
+     * \param itemIndex The zero-based index of the item.
+     * \param position The desired item position in view coordinates.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IOwnerDataCallback, SetItemPosition)
     STDMETHOD(SetItemPosition)(THIS_ LONG itemIndex, POINT position) PURE;
 
-    /// \brief <em>Will be called to retrieve an item's zero-based control-wide index</em>
-    ///
-    /// This method is called by the listview control to retrieve an item's zero-based control-wide index.
-    /// The item is identified by a zero-based group index, which identifies the listview group in which
-    /// the item is displayed, and a zero-based group-wide item index, which identifies the item within its
-    /// group.
-    ///
-    /// \param[in] groupIndex The zero-based index of the listview group containing the item.
-    /// \param[in] groupWideItemIndex The item's zero-based group-wide index within the listview group specified by \c groupIndex.
-    /// \param[out] pTotalItemIndex Receives the item's zero-based control-wide index.
-    ///
-    /// \return An \c HRESULT error code.
+    /**
+     * Maps a group-wide index to the control-wide item index.
+     *
+     * \param groupIndex Zero-based list view group index.
+     * \param groupWideItemIndex Zero-based index of the item within the group.
+     * \param pTotalItemIndex Receives the control-wide item index.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IOwnerDataCallback, GetItemInGroup)
     STDMETHOD(GetItemInGroup)(THIS_ LONG groupIndex, LONG groupWideItemIndex, PLONG pTotalItemIndex) PURE;
 
-    /// \brief <em>Will be called to retrieve the group containing a specific occurrence of an item</em>
-    ///
-    /// This method is called by the listview control to retrieve the listview group in which the specified
-    /// occurrence of the specified item is displayed.
-    ///
-    /// \param[in] itemIndex The item's zero-based (control-wide) index.
-    /// \param[in] occurenceIndex The zero-based index of the item's copy for which the group membership is retrieved.
-    /// \param[out] pGroupIndex Receives the zero-based index of the listview group that shall contain the specified copy of the specified item.
-    ///
-    /// \return An \c HRESULT error code.
+    /**
+     * Retrieves the group for a specific occurrence of an item.
+     *
+     * \param itemIndex Control-wide zero-based item index.
+     * \param occurenceIndex Zero-based occurrence index of the item.
+     * \param pGroupIndex Receives the group's zero-based index.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IOwnerDataCallback, GetItemGroup)
     STDMETHOD(GetItemGroup)(THIS_ LONG itemIndex, LONG occurenceIndex, PLONG pGroupIndex) PURE;
 
-    /// \brief <em>Will be called to determine how often an item occurs in the listview control</em>
-    ///
-    /// This method is called by the listview control to determine how often the specified item occurs in the
-    /// listview control.
-    ///
-    /// \param[in] itemIndex The item's zero-based (control-wide) index.
-    /// \param[out] pOccurenceCount Receives the number of occurrences of the item in the listview control.
-    ///
-    /// \return An \c HRESULT error code.
+    /**
+     * Retrieves how often an item occurs in the control.
+     *
+     * \param itemIndex Control-wide zero-based item index.
+     * \param pOccurenceCount Receives the number of occurrences.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IOwnerDataCallback, GetItemGroupCount)
     STDMETHOD(GetItemGroupCount)(THIS_ LONG itemIndex, PLONG pOccurenceCount) PURE;
 
-    /// \brief <em>Will be called to prepare the client app that the data for a certain range of items will be required very soon</em>
-    ///
-    /// This method is similar to the \c LVN_ODCACHEHINT notification. It tells the client application that
-    /// it should preload the details for a certain range of items because the listview control is about to
-    /// request these details. The difference to \c LVN_ODCACHEHINT is that this method identifies the items
-    /// by their zero-based group-wide index and the zero-based index of the listview group containing the
-    /// item.
-    ///
-    /// \param[in] firstItem The first item to cache.
-    /// \param[in] lastItem The last item to cache.
-    ///
-    /// \return An \c HRESULT error code.
+    /**
+     * Provides a cache hint for a range of items.
+     *
+     * \param firstItem First item to cache (group-wide index).
+     * \param lastItem Last item to cache (group-wide index).
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IOwnerDataCallback, OnCacheHint)
     STDMETHOD(OnCacheHint)(THIS_ LVITEMINDEX firstItem, LVITEMINDEX lastItem) PURE;
+
+    END_INTERFACE
 };
 
 #undef INTERFACE
 #define INTERFACE ISubItemCallback
+/**
+ * ISubItemCallback
+ *
+ * Callback interface for subitem operations in a custom list view. Allows
+ * retrieving subitem titles, providing editing/controls per subitem or group,
+ * and invoking custom verbs.
+ */
 DECLARE_INTERFACE_(ISubItemCallback, IUnknown)
 {
+    BEGIN_INTERFACE
+
+    //
+    // IUnknown
+    //
+
+    DECLSPEC_XFGVIRT(ISubItemCallback, QueryInterface)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(ISubItemCallback, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(ISubItemCallback, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     //
     // ISubItemCallback
     //
 
+    /**
+     * Retrieves the title of a subitem.
+     *
+     * \param subItemIndex Zero-based subitem index.
+     * \param pBuffer Wide-character buffer to receive the title.
+     * \param bufferSize Buffer size in characters.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(ISubItemCallback, GetSubItemTitle)
     STDMETHOD(GetSubItemTitle)(THIS_ LONG subItemIndex, PWSTR pBuffer, LONG bufferSize) PURE;
-    STDMETHOD(GetSubItemControl)(THIS_ LONG itemIndex, LONG subItemIndex, REFIID requiredInterface, PPVOID ppObject) PURE;
-    STDMETHOD(BeginSubItemEdit)(THIS_ LONG itemIndex, LONG subItemIndex, LONG mode, REFIID requiredInterface, PPVOID ppObject) PURE;
-    STDMETHOD(EndSubItemEdit)(THIS_ LONG itemIndex, LONG subItemIndex, LONG mode, struct IPropertyControl* pPropertyControl) PURE;
-    STDMETHOD(BeginGroupEdit)(THIS_ LONG groupIndex, REFIID LONG, PPVOID ppObject) PURE;
-    STDMETHOD(EndGroupEdit)(THIS_ LONG groupIndex, LONG mode, struct IPropertyControl* pPropertyControl) PURE;
+
+    /**
+     * Retrieves a control interface for a specific subitem.
+     *
+     * \param itemIndex Zero-based item index.
+     * \param subItemIndex Zero-based subitem index.
+     * \param requiredInterface IID of the required control interface.
+     * \param ppObject Receives the interface pointer for the subitem control.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(ISubItemCallback, GetSubItemControl)
+    STDMETHOD(GetSubItemControl)(THIS_ LONG itemIndex, LONG subItemIndex, REFIID requiredInterface, void** ppObject) PURE; // IPropertyControl
+
+    /**
+     * Begins editing a subitem.
+     *
+     * \param itemIndex Zero-based item index.
+     * \param subItemIndex Zero-based subitem index.
+     * \param mode Edit mode flags.
+     * \param requiredInterface IID of the required editing control interface.
+     * \param ppObject Receives the interface pointer for the editing control.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(ISubItemCallback, BeginSubItemEdit)
+    STDMETHOD(BeginSubItemEdit)(THIS_ LONG itemIndex, LONG subItemIndex, LONG mode, REFIID requiredInterface, void** ppObject) PURE; // IPropertyControl
+
+    /**
+     * Ends editing of a subitem.
+     *
+     * \param itemIndex Zero-based item index.
+     * \param subItemIndex Zero-based subitem index.
+     * \param mode Edit mode flags.
+     * \param pPropertyControl The property control used during editing.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(ISubItemCallback, EndSubItemEdit)
+    STDMETHOD(EndSubItemEdit)(THIS_ LONG itemIndex, LONG subItemIndex, LONG mode, void** ppObject) PURE; // IPropertyControl
+
+    /**
+     * Begins editing a group.
+     *
+     * \param groupIndex Zero-based group index.
+     * \param requiredInterface IID of the required editing control interface.
+     * \param ppObject Receives the interface pointer for the editing control.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(ISubItemCallback, BeginGroupEdit)
+    STDMETHOD(BeginGroupEdit)(THIS_ LONG groupIndex, REFIID iid, void** ppObject) PURE; // IPropertyControl
+
+    /**
+     * Ends editing of a group.
+     *
+     * \param groupIndex Zero-based group index.
+     * \param mode Edit mode flags.
+     * \param pPropertyControl The property control used during editing.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(ISubItemCallback, EndGroupEdit)
+    STDMETHOD(EndGroupEdit)(THIS_ LONG groupIndex, LONG mode, void** ppObject) PURE; // IPropertyControl
+
+    /**
+     * Invokes a custom verb on a subitem.
+     *
+     * \param itemIndex Zero-based item index.
+     * \param pVerb The verb to invoke (wide string).
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(ISubItemCallback, OnInvokeVerb)
     STDMETHOD(OnInvokeVerb)(THIS_ LONG itemIndex, LPCWSTR pVerb) PURE;
+
+    END_INTERFACE
 };
 
 #undef INTERFACE
 #define INTERFACE IDrawPropertyControl
+/**
+ * IDrawPropertyControl
+ *
+ * This interface defines methods for custom drawing of property controls within the application's
+ * graphical user interface. Implementers provide the logic necessary to render the visuals.
+ */
 DECLARE_INTERFACE_(IDrawPropertyControl, IUnknown)
 {
+    BEGIN_INTERFACE
+
+    //
+    // IUnknown
+    //
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, QueryInterface)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     //
     // IPropertyControlBase
     //
 
-    STDMETHOD(Initialize)(IUnknown*, ULONG) PURE; // 2/calendar, 3/textbox
-    STDMETHOD(GetSize)(enum PROPCTL_RECT_TYPE, HDC, SIZE const*, SIZE*) PURE;
-    STDMETHOD(SetWindowTheme)(PCWSTR, PCWSTR) PURE;
-    STDMETHOD(SetFont)(HFONT) PURE;
-    STDMETHOD(SetTextColor)(ULONG) PURE;
-    STDMETHOD(GetFlags)(LONG*) PURE;
-    STDMETHOD(SetFlags)(LONG, LONG) PURE;
-    STDMETHOD(AdjustWindowRectPCB)(HWND, RECT*, RECT const*, LONG) PURE;
-    STDMETHOD(SetValue)(IUnknown*) PURE;
-    STDMETHOD(InvokeDefaultAction)(VOID) PURE;
-    STDMETHOD(Destroy)(VOID) PURE;
-    STDMETHOD(SetFormatFlags)(LONG) PURE;
-    STDMETHOD(GetFormatFlags)(LONG*) PURE;
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, Initialize)
+    STDMETHOD(Initialize)(THIS_ IUnknown*, ULONG) PURE; // 2/calendar, 3/textbox
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, GetSize)
+    STDMETHOD(GetSize)(THIS_ enum PROPCTL_RECT_TYPE, HDC, SIZE const*, SIZE*) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, SetWindowTheme)
+    STDMETHOD(SetWindowTheme)(THIS_ PCWSTR, PCWSTR) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, SetFont)
+    STDMETHOD(SetFont)(THIS_ HFONT) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, SetForeColor)
+    STDMETHOD(SetForeColor)(THIS_ ULONG) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, GetFlags)
+    STDMETHOD(GetFlags)(THIS_ LONG*) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, SetFlags)
+    STDMETHOD(SetFlags)(THIS_ LONG, LONG) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, AdjustWindowRectPCB)
+    STDMETHOD(AdjustWindowRectPCB)(THIS_ HWND, RECT*, RECT const*, LONG) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, SetValue)
+    STDMETHOD(SetValue)(THIS_ IUnknown*) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, InvokeDefaultAction)
+    STDMETHOD(InvokeDefaultAction)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, Destroy)
+    STDMETHOD(Destroy)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, SetFormatFlags)
+    STDMETHOD(SetFormatFlags)(THIS_ LONG) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, GetFormatFlags)
+    STDMETHOD(GetFormatFlags)(THIS_ LONG*) PURE;
 
     //
     // IDrawPropertyControl
     //
 
-    STDMETHOD(GetDrawFlags)(PLONG Flags) PURE;
-    STDMETHOD(WindowlessDraw)(HDC hDC, RECT pDrawingRectangle, LONG a) PURE;
-    STDMETHOD(HasVisibleContent)(VOID) PURE;
-    STDMETHOD(GetDisplayText)(LPWSTR * Text) PURE;
-    STDMETHOD(GetTooltipInfo)(HDC, SIZE const*, PLONG) PURE;
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, GetDrawFlags)
+    STDMETHOD(GetDrawFlags)(THIS_ PLONG Flags) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, WindowlessDraw)
+    STDMETHOD(WindowlessDraw)(THIS_ HDC hDC, RECT pDrawingRectangle, LONG a) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, HasVisibleContent)
+    STDMETHOD(HasVisibleContent)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, GetDisplayText)
+    STDMETHOD(GetDisplayText)(THIS_ PWSTR *Text) PURE;
+
+    DECLSPEC_XFGVIRT(IDrawPropertyControl, GetTooltipInfo)
+    STDMETHOD(GetTooltipInfo)(THIS_ HDC, SIZE const*, PLONG) PURE;
+
+    END_INTERFACE
+};
+
+#undef INTERFACE
+#define INTERFACE IPropertyControl
+DECLARE_INTERFACE_(IPropertyControl, IUnknown)
+{
+    BEGIN_INTERFACE
+
+    //
+    // IUnknown
+    //
+
+    DECLSPEC_XFGVIRT(IPropertyControl, QueryInterface)
+    STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IPropertyControl, AddRef)
+    STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IPropertyControl, Release)
+    STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    //
+    // IPropertyControl
+    //
+
+    DECLSPEC_XFGVIRT(IPropertyControl, GetValue)
+    STDMETHOD(GetValue)(THIS_ REFIID riid, void** ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IPropertyControl, Create)
+    STDMETHOD(Create)(THIS_ HWND Parent, RECT const* ItemRectangle, RECT const* Unknown1, int Unknown2) PURE;
+
+    DECLSPEC_XFGVIRT(IPropertyControl, SetPosition)
+    STDMETHOD(SetPosition)(THIS_ RECT const*, RECT const*) PURE;
+
+    DECLSPEC_XFGVIRT(IPropertyControl, IsModified)
+    STDMETHOD(IsModified)(THIS_ PBOOL Modified) PURE;
+
+    DECLSPEC_XFGVIRT(IPropertyControl, SetModified)
+    STDMETHOD(SetModified)(THIS_ BOOL Modified) PURE;
+
+    DECLSPEC_XFGVIRT(IPropertyControl, ValidationFailed)
+    STDMETHOD(ValidationFailed)(THIS_ PCWSTR) PURE;
+
+    DECLSPEC_XFGVIRT(IPropertyControl, GetState)
+    STDMETHOD(GetState)(THIS_ PULONG State) PURE;
+
+    END_INTERFACE
 };
 
 #undef INTERFACE
@@ -220,167 +434,561 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     // IUnknown
     //
 
+    DECLSPEC_XFGVIRT(IListView, QueryInterface)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObject) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, AddRef)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, Release)
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     //
     // IOleWindow
     //
 
+    DECLSPEC_XFGVIRT(IListView, GetWindow)
     STDMETHOD(GetWindow)(THIS_ __RPC__in IOleWindow* window, __RPC__deref_out_opt HWND* WindowHandle) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, ContextSensitiveHelp)
     STDMETHOD(ContextSensitiveHelp)(THIS_ __RPC__in IOleWindow* window, _In_ BOOL fEnterMode) PURE;
 
     //
     // IListView
     //
 
-    STDMETHOD(GetImageList)(THIS_ LONG imageList, HIMAGELIST* pHImageList) PURE;
-    STDMETHOD(SetImageList)(THIS_ LONG imageList, HIMAGELIST hNewImageList, HIMAGELIST* pHOldImageList) PURE;
-    STDMETHOD(GetBackgroundColor)(THIS_ COLORREF* pColor) PURE;
-    STDMETHOD(SetBackgroundColor)(THIS_ COLORREF color) PURE;
-    STDMETHOD(GetTextColor)(THIS_ COLORREF* pColor) PURE;
-    STDMETHOD(SetTextColor)(THIS_ COLORREF color) PURE;
-    STDMETHOD(GetTextBackgroundColor)(THIS_ COLORREF* pColor) PURE;
-    STDMETHOD(SetTextBackgroundColor)(THIS_ COLORREF color) PURE;
-    STDMETHOD(GetHotLightColor)(THIS_ COLORREF* pColor) PURE;
-    STDMETHOD(SetHotLightColor)(THIS_ COLORREF color) PURE;
-    STDMETHOD(GetItemCount)(THIS_ PLONG pItemCount) PURE;
-    STDMETHOD(SetItemCount)(THIS_ LONG itemCount, ULONG flags) PURE;
-    STDMETHOD(GetItem)(THIS_ LVITEMW* pItem) PURE;
-    STDMETHOD(SetItem)(THIS_ LVITEMW* const pItem) PURE;
-    STDMETHOD(GetItemState)(THIS_ LONG itemIndex, LONG subItemIndex, ULONG mask, ULONG* pState) PURE;
-    STDMETHOD(SetItemState)(THIS_ LONG itemIndex, LONG subItemIndex, ULONG mask, ULONG state) PURE;
-    STDMETHOD(GetItemText)(THIS_ LONG itemIndex, LONG subItemIndex, LPWSTR pBuffer, LONG bufferSize) PURE;
-    STDMETHOD(SetItemText)(THIS_ LONG itemIndex, LONG subItemIndex, LPCWSTR pText) PURE;
+    /**
+     * Retrieves the handle to the image list used by the list view.
+     *
+     * \param ImageListType The type of image list to retrieve (e.g., normal, small, state).
+     * \param ImageList Pointer to a variable that receives the handle to the image list.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IListView, GetImageList)
+    STDMETHOD(GetImageList)(THIS_ LONG ImageListType, HIMAGELIST* ImageList) PURE;
+
+    /**
+     * Sets a new image list for the list view and optionally retrieves the handle to the previous image list.
+     *
+     * \param ImageListType The type of image list to set (e.g., normal, small, state).
+     * \param NewImageList Handle to the new image list to associate with the list view.
+     * \param OldImageList Pointer to a variable that receives the handle to the previous image list.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IListView, SetImageList)
+    STDMETHOD(SetImageList)(THIS_ LONG ImageListType, HIMAGELIST NewImageList, HIMAGELIST* OldImageList) PURE;
+
+    /**
+     * Retrieves the current background color of the list view.
+     *
+     * \param Color Pointer to a variable that receives the background color (COLORREF).
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IListView, GetBackgroundColor)
+    STDMETHOD(GetBackgroundColor)(THIS_ COLORREF* Color) PURE;
+
+    /**
+     * Sets the background color of the list view.
+     *
+     * \param color The new background color (COLORREF) to set.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IListView, SetBackgroundColor)
+    STDMETHOD(SetBackgroundColor)(THIS_ COLORREF Color) PURE;
+
+    /**
+     * \brief Retrieves the current text color used by the list view.
+     *
+     * \param[out] Color Pointer to a COLORREF variable that receives the current text color.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IListView, GetTextColor)
+    STDMETHOD(GetTextColor)(THIS_ COLORREF* Color) PURE;
+
+    /**
+     * \brief Sets the foreground (text) color for the list view.
+     *
+     * \param[in] Color The COLORREF value specifying the new text color.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IListView, SetForeColor)
+    STDMETHOD(SetForeColor)(THIS_ COLORREF Color) PURE;
+
+    /**
+     * \brief Retrieves the current background color used for the text in the list view.
+     *
+     * \param[out] Color Pointer to a COLORREF variable that receives the current text background color.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IListView, GetTextBackgroundColor)
+    STDMETHOD(GetTextBackgroundColor)(THIS_ COLORREF* Color) PURE;
+
+    /**
+     * \brief Sets the background color for the text in the list view.
+     *
+     * \param[in] color The COLORREF value specifying the new text background color.
+     * \return HRESULT indicating success or failure.
+     */
+    DECLSPEC_XFGVIRT(IListView, SetTextBackgroundColor)
+    STDMETHOD(SetTextBackgroundColor)(THIS_ COLORREF Color) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetHotLightColor)
+    STDMETHOD(GetHotLightColor)(THIS_ COLORREF* Color) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetHotLightColor)
+    STDMETHOD(SetHotLightColor)(THIS_ COLORREF Color) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetItemCount)
+    STDMETHOD(GetItemCount)(THIS_ PLONG ItemCount) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetItemCount)
+    STDMETHOD(SetItemCount)(THIS_ LONG ItemCount, ULONG Flags) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetItem)
+    STDMETHOD(GetItem)(THIS_ LVITEMW* Item) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetItem)
+    STDMETHOD(SetItem)(THIS_ LVITEMW* const Item) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetItemState)
+    STDMETHOD(GetItemState)(THIS_ LONG ItemIndex, LONG SubItemIndex, ULONG Mask, PULONG State) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetItemState)
+    STDMETHOD(SetItemState)(THIS_ LONG ItemIndex, LONG SubItemIndex, ULONG Mask, ULONG State) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetItemText)
+    STDMETHOD(GetItemText)(THIS_ LONG ItemIndex, LONG SubItemIndex, PWSTR Buffer, LONG BufferSize) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetItemText)
+    STDMETHOD(SetItemText)(THIS_ LONG ItemIndex, LONG SubItemIndex, PCWSTR Text) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetBackgroundImage)
     STDMETHOD(GetBackgroundImage)(THIS_ LVBKIMAGEW* pBkImage) PURE;
-    STDMETHOD(SetBackgroundImage)(THIS_ LVBKIMAGEW* const pBkImage) PURE;
-    STDMETHOD(GetFocusedColumn)(THIS_ PLONG pColumnIndex) PURE;
-    STDMETHOD(SetSelectionFlags)(THIS_ ULONG mask, ULONG flags) PURE; // HRESULT SetSelectionFlags (SELECTION_FLAGS, SELECTION_FLAGS);
-    STDMETHOD(GetSelectedColumn)(THIS_ PULONG pColumnIndex) PURE;
-    STDMETHOD(SetSelectedColumn)(THIS_ ULONG columnIndex) PURE;
-    STDMETHOD(GetView)(THIS_ ULONG* pView) PURE;
-    STDMETHOD(SetView)(THIS_ ULONG view) PURE;
-    STDMETHOD(InsertItem)(THIS_ LVITEMW* const pItem, PLONG pItemIndex) PURE;
-    STDMETHOD(DeleteItem)(THIS_ LONG itemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetBackgroundImage)
+    STDMETHOD(SetBackgroundImage)(THIS_ LVBKIMAGEW* const BkImage) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetFocusedColumn)
+    STDMETHOD(GetFocusedColumn)(THIS_ PLONG ColumnIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetSelectionFlags)
+    STDMETHOD(SetSelectionFlags)(THIS_ LONG Mask, LONG Flags) PURE; // HRESULT SetSelectionFlags (SELECTION_FLAGS, SELECTION_FLAGS);
+
+    DECLSPEC_XFGVIRT(IListView, GetSelectedColumn)
+    STDMETHOD(GetSelectedColumn)(THIS_ PLONG ColumnIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetSelectedColumn)
+    STDMETHOD(SetSelectedColumn)(THIS_ LONG ColumnIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetView)
+    STDMETHOD(GetView)(THIS_ PULONG View) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetView)
+    STDMETHOD(SetView)(THIS_ ULONG View) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, InsertItem)
+    STDMETHOD(InsertItem)(THIS_ LVITEMW* const Item, PLONG ItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, DeleteItem)
+    STDMETHOD(DeleteItem)(THIS_ LONG ItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, DeleteAllItems)
     STDMETHOD(DeleteAllItems)(THIS) PURE;
-    STDMETHOD(UpdateItem)(THIS_ LONG itemIndex) PURE;
-    STDMETHOD(GetItemRect)(THIS_ LVITEMINDEX itemIndex, LONG rectangleType, LPRECT pRectangle) PURE;
-    STDMETHOD(GetSubItemRect)(THIS_ LVITEMINDEX itemIndex, LONG subItemIndex, LONG rectangleType, LPRECT pRectangle) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, UpdateItem)
+    STDMETHOD(UpdateItem)(THIS_ LONG ItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetItemRect)
+    STDMETHOD(GetItemRect)(THIS_ LVITEMINDEX ItemIndex, LONG RectangleType, PRECT Rectangle) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetSubItemRect)
+    STDMETHOD(GetSubItemRect)(THIS_ LVITEMINDEX ItemIndex, LONG SubItemIndex, LONG RectangleType, PRECT Rectangle) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, HitTestSubItem)
     STDMETHOD(HitTestSubItem)(THIS_ LVHITTESTINFO* pHitTestData) PURE;
-    STDMETHOD(GetIncrSearchString)(THIS_ PWSTR pBuffer, LONG bufferSize, PLONG pCopiedChars) PURE;
-    STDMETHOD(GetItemSpacing)(THIS_ BOOL smallIconView, PLONG pHorizontalSpacing, PLONG pVerticalSpacing) PURE;
-    STDMETHOD(SetIconSpacing)(THIS_ LONG horizontalSpacing, LONG verticalSpacing, PLONG pHorizontalSpacing, PLONG pVerticalSpacing) PURE;
-    STDMETHOD(GetNextItem)(THIS_ LVITEMINDEX itemIndex, ULONG flags, LVITEMINDEX* pNextItemIndex) PURE;
-    STDMETHOD(FindItem)(THIS_ LVITEMINDEX startItemIndex, LVFINDINFOW const* pFindInfo, LVITEMINDEX* pFoundItemIndex) PURE;
-    STDMETHOD(GetSelectionMark)(THIS_ LVITEMINDEX* pSelectionMark) PURE;
-    STDMETHOD(SetSelectionMark)(THIS_ LVITEMINDEX newSelectionMark, LVITEMINDEX* pOldSelectionMark) PURE;
-    STDMETHOD(GetItemPosition)(THIS_ LVITEMINDEX itemIndex, POINT* pPosition) PURE;
-    STDMETHOD(SetItemPosition)(THIS_ LONG itemIndex, POINT const* pPosition) PURE;
-    STDMETHOD(ScrollView)(THIS_ ULONG horizontalScrollDistance, ULONG verticalScrollDistance) PURE;
-    STDMETHOD(EnsureItemVisible)(THIS_ LVITEMINDEX itemIndex, BOOL partialOk) PURE;
-    STDMETHOD(EnsureSubItemVisible)(THIS_ LVITEMINDEX itemIndex, LONG subItemIndex) PURE;
-    STDMETHOD(EditSubItem)(THIS_ LVITEMINDEX itemIndex, LONG subItemIndex) PURE;
-    STDMETHOD(RedrawItems)(THIS_ LONG firstItemIndex, LONG lastItemIndex) PURE;
-    STDMETHOD(ArrangeItems)(THIS_ ULONG mode) PURE;
-    STDMETHOD(RecomputeItems)(THIS_ LONG unknown) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetIncrSearchString)
+    STDMETHOD(GetIncrSearchString)(THIS_ PWSTR Buffer, LONG BufferSize, PLONG CopiedChars) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetItemSpacing)
+    STDMETHOD(GetItemSpacing)(THIS_ BOOL SmallIconView, PLONG HorizontalSpacing, PLONG VerticalSpacing) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetIconSpacing)
+    STDMETHOD(SetIconSpacing)(THIS_ LONG HorizontalSpacing, LONG VerticalSpacing, PLONG OldHorizontalSpacing, PLONG OldVerticalSpacing) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetNextItem)
+    STDMETHOD(GetNextItem)(THIS_ LVITEMINDEX ItemIndex, ULONG Flags, LVITEMINDEX* NextItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, FindItem)
+    STDMETHOD(FindItem)(THIS_ LVITEMINDEX startItemIndex, LVFINDINFOW const* FindInfo, LVITEMINDEX* FoundItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetSelectionMark)
+    STDMETHOD(GetSelectionMark)(THIS_ LVITEMINDEX* SelectionMark) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetSelectionMark)
+    STDMETHOD(SetSelectionMark)(THIS_ LVITEMINDEX NewSelectionMark, LVITEMINDEX* OldSelectionMark) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetItemPosition)
+    STDMETHOD(GetItemPosition)(THIS_ LVITEMINDEX ItemIndex, POINT* Position) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetItemPosition)
+    STDMETHOD(SetItemPosition)(THIS_ LONG ItemIndex, POINT const* Position) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, ScrollView)
+    STDMETHOD(ScrollView)(THIS_ ULONG HorizontalScrollDistance, ULONG VerticalScrollDistance) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, EnsureItemVisible)
+    STDMETHOD(EnsureItemVisible)(THIS_ LVITEMINDEX ItemIndex, BOOL PartialOk) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, EnsureSubItemVisible)
+    STDMETHOD(EnsureSubItemVisible)(THIS_ LVITEMINDEX ItemIndex, LONG SubItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, EditSubItem)
+    STDMETHOD(EditSubItem)(THIS_ LVITEMINDEX ItemIndex, LONG SubItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, RedrawItems)
+    STDMETHOD(RedrawItems)(THIS_ LONG FirstItemIndex, LONG LastItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, ArrangeItems)
+    STDMETHOD(ArrangeItems)(THIS_ LONG Mode) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, RecomputeItems)
+    STDMETHOD(RecomputeItems)(THIS_ LONG Mode) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetEditControl)
     STDMETHOD(GetEditControl)(THIS_ HWND* EditWindowHandle) PURE;
-    STDMETHOD(EditLabel)(THIS_ LVITEMINDEX itemIndex, LPCWSTR initialEditText, HWND* EditWindowHandle) PURE;
-    STDMETHOD(EditGroupLabel)(THIS_ ULONG groupIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, EditLabel)
+    STDMETHOD(EditLabel)(THIS_ LVITEMINDEX ItemIndex, PCWSTR InitialEditText, HWND* EditWindowHandle) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, EditGroupLabel)
+    STDMETHOD(EditGroupLabel)(THIS_ LONG GroupIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, CancelEditLabel)
     STDMETHOD(CancelEditLabel)(THIS) PURE;
-    STDMETHOD(GetEditItem)(THIS_ LVITEMINDEX* itemIndex, PLONG subItemIndex) PURE;
-    STDMETHOD(HitTest)(THIS_ LVHITTESTINFO* pHitTestData) PURE;
-    STDMETHOD(GetStringWidth)(THIS_ PCWSTR pString, PLONG pWidth) PURE;
-    STDMETHOD(GetColumn)(THIS_ ULONG columnIndex, LVCOLUMNW* pColumn) PURE;
-    STDMETHOD(SetColumn)(THIS_ ULONG columnIndex, LVCOLUMNW* const pColumn) PURE;
-    STDMETHOD(GetColumnOrderArray)(THIS_ ULONG numberOfColumns, _Out_ PVOID* pColumns) PURE;
-    STDMETHOD(SetColumnOrderArray)(THIS_ ULONG numberOfColumns, _In_ PVOID pColumns) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetEditItem)
+    STDMETHOD(GetEditItem)(THIS_ LVITEMINDEX* ItemIndex, PLONG SubItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, HitTest)
+    STDMETHOD(HitTest)(THIS_ LVHITTESTINFO* HitTestData) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetStringWidth)
+    STDMETHOD(GetStringWidth)(THIS_ PCWSTR String, PLONG Width) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetColumn)
+    STDMETHOD(GetColumn)(THIS_ LONG ColumnIndex, LVCOLUMNW* Column) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetColumn)
+    STDMETHOD(SetColumn)(THIS_ LONG ColumnIndex, LVCOLUMNW* const Column) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetColumnOrderArray)
+    STDMETHOD(GetColumnOrderArray)(THIS_ LONG NumberOfColumns, _Out_ PVOID* Columns) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetColumnOrderArray)
+    STDMETHOD(SetColumnOrderArray)(THIS_ LONG NumberOfColumns, _In_ PVOID Columns) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetHeaderControl)
     STDMETHOD(GetHeaderControl)(THIS_ HWND* HeaderWindowHandle) PURE;
-    STDMETHOD(InsertColumn)(THIS_ ULONG insertAt, LVCOLUMNW* const pColumn, PLONG pColumnIndex) PURE;
-    STDMETHOD(DeleteColumn)(THIS_ ULONG columnIndex) PURE;
-    STDMETHOD(CreateDragImage)(THIS_ LONG itemIndex, POINT const* pUpperLeft, HIMAGELIST* pHImageList) PURE;
-    STDMETHOD(GetViewRect)(THIS_ RECT* pRectangle) PURE;
-    STDMETHOD(GetClientRect)(THIS_ BOOL StyleAndClientRect, RECT* pClientRectangle) PURE;
-    STDMETHOD(GetColumnWidth)(THIS_ ULONG columnIndex, PLONG pWidth) PURE;
-    STDMETHOD(SetColumnWidth)(THIS_ ULONG columnIndex, ULONG width) PURE;
-    STDMETHOD(GetCallbackMask)(THIS_ ULONG* pMask) PURE;
-    STDMETHOD(SetCallbackMask)(THIS_ ULONG mask) PURE;
-    STDMETHOD(GetTopIndex)(THIS_ PULONG pTopIndex) PURE;
-    STDMETHOD(GetCountPerPage)(THIS_ PULONG pCountPerPage) PURE;
-    STDMETHOD(GetOrigin)(THIS_ POINT* pOrigin) PURE;
-    STDMETHOD(GetSelectedCount)(THIS_ PULONG pSelectedCount) PURE;
-    STDMETHOD(SortItems)(THIS_ BOOL SortingByIndex, LPARAM lParam, PFNLVCOMPARE pComparisonFunction) PURE;
-    STDMETHOD(GetExtendedStyle)(THIS_ ULONG* pStyle) PURE;
-    STDMETHOD(SetExtendedStyle)(THIS_ ULONG mask, ULONG style, ULONG* pOldStyle) PURE;
-    STDMETHOD(GetHoverTime)(THIS_ PULONG pTime) PURE;
-    STDMETHOD(SetHoverTime)(THIS_ ULONG time, PULONG pOldSetting) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, InsertColumn)
+    STDMETHOD(InsertColumn)(THIS_ LONG InsertAt, LVCOLUMNW* const Column, PLONG ColumnIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, DeleteColumn)
+    STDMETHOD(DeleteColumn)(THIS_ LONG ColumnIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, CreateDragImage)
+    STDMETHOD(CreateDragImage)(THIS_ LONG ItemIndex, POINT const* UpperLeft, HIMAGELIST* ImageList) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetViewRect)
+    STDMETHOD(GetViewRect)(THIS_ RECT* Rectangle) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetClientRect)
+    STDMETHOD(GetClientRect)(THIS_ BOOL StyleAndClientRect, RECT* ClientRectangle) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetColumnWidth)
+    STDMETHOD(GetColumnWidth)(THIS_ LONG ColumnIndex, PLONG Width) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetColumnWidth)
+    STDMETHOD(SetColumnWidth)(THIS_ LONG ColumnIndex, LONG Width) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetCallbackMask)
+    STDMETHOD(GetCallbackMask)(THIS_ PULONG Mask) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetCallbackMask)
+    STDMETHOD(SetCallbackMask)(THIS_ ULONG Mask) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetTopIndex)
+    STDMETHOD(GetTopIndex)(THIS_ PLONG TopIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetCountPerPage)
+    STDMETHOD(GetCountPerPage)(THIS_ PLONG CountPerPage) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetOrigin)
+    STDMETHOD(GetOrigin)(THIS_ POINT* Origin) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetSelectedCount)
+    STDMETHOD(GetSelectedCount)(THIS_ PLONG SelectedCount) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SortItems)
+    STDMETHOD(SortItems)(THIS_ BOOL SortingByIndex, LPARAM lParam, PFNLVCOMPARE ComparisonFunction) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetExtendedStyle)
+    STDMETHOD(GetExtendedStyle)(THIS_ PULONG Style) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetExtendedStyle)
+    STDMETHOD(SetExtendedStyle)(THIS_ ULONG Mask, ULONG Style, PULONG OldStyle) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetHoverTime)
+    STDMETHOD(GetHoverTime)(THIS_ PULONG Time) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetHoverTime)
+    STDMETHOD(SetHoverTime)(THIS_ ULONG Time, PULONG OldSetting) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetToolTip)
     STDMETHOD(GetToolTip)(THIS_ HWND* ToolTipWindowHandle) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetToolTip)
     STDMETHOD(SetToolTip)(THIS_ HWND ToolTipWindowHandle, HWND* OldToolTipWindowHandle) PURE;
-    STDMETHOD(GetHotItem)(THIS_ LVITEMINDEX* pHotItem) PURE;
-    STDMETHOD(SetHotItem)(THIS_ LVITEMINDEX newHotItem, LVITEMINDEX* pOldHotItem) PURE;
-    STDMETHOD(GetHotCursor)(THIS_ HCURSOR* pHCursor) PURE;
-    STDMETHOD(SetHotCursor)(THIS_ HCURSOR hCursor, HCURSOR* pHOldCursor) PURE;
-    STDMETHOD(ApproximateViewRect)(THIS_ LONG itemCount, PLONG pWidth, PLONG pHeight) PURE;
-    STDMETHOD(SetRangeObject)(THIS_ LONG unknown, LPVOID pObject) PURE;
-    STDMETHOD(GetWorkAreas)(THIS_ LONG numberOfWorkAreas, RECT* pWorkAreas) PURE;
-    STDMETHOD(SetWorkAreas)(THIS_ LONG numberOfWorkAreas, RECT const* pWorkAreas) PURE;
-    STDMETHOD(GetWorkAreaCount)(THIS_ PLONG pNumberOfWorkAreas) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetHotItem)
+    STDMETHOD(GetHotItem)(THIS_ LVITEMINDEX* HotItem) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetHotItem)
+    STDMETHOD(SetHotItem)(THIS_ LVITEMINDEX NewHotItem, LVITEMINDEX* OldHotItem) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetHotCursor)
+    STDMETHOD(GetHotCursor)(THIS_ HCURSOR* Cursor) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetHotCursor)
+    STDMETHOD(SetHotCursor)(THIS_ HCURSOR Cursor, HCURSOR* OldCursor) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, ApproximateViewRect)
+    STDMETHOD(ApproximateViewRect)(THIS_ LONG ItemCount, PLONG Width, PLONG Height) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetRangeObject)
+    STDMETHOD(SetRangeObject)(THIS_ LONG unknown, void** Object) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetWorkAreas)
+    STDMETHOD(GetWorkAreas)(THIS_ LONG NumberOfWorkAreas, RECT* WorkAreas) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetWorkAreas)
+    STDMETHOD(SetWorkAreas)(THIS_ LONG NumberOfWorkAreas, RECT const* WorkAreas) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetWorkAreaCount)
+    STDMETHOD(GetWorkAreaCount)(THIS_ PLONG NumberOfWorkAreas) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, ResetEmptyText)
     STDMETHOD(ResetEmptyText)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, EnableGroupView)
     STDMETHOD(EnableGroupView)(THIS_ BOOL Enable) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, IsGroupViewEnabled)
     STDMETHOD(IsGroupViewEnabled)(THIS_ PBOOL IsEnabled) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SortGroups)
     STDMETHOD(SortGroups)(THIS_ PFNLVGROUPCOMPARE pComparisonFunction, PVOID lParam) PURE;
-    STDMETHOD(GetGroupInfo)(THIS_ BOOL GetGroupInfoByIndex, LONG GroupIDOrIndex, LVGROUP* pGroup) PURE;
-    STDMETHOD(SetGroupInfo)(THIS_ BOOL SetGroupInfoByIndex, LONG GroupIDOrIndex, LVGROUP* const pGroup) PURE;
-    STDMETHOD(GetGroupRect)(THIS_ BOOL GetGroupRectByIndex, LONG GroupIDOrIndex, ULONG rectangleType, RECT* pRectangle) PURE;
-    STDMETHOD(GetGroupState)(THIS_ LONG groupID, ULONG mask, ULONG* pState) PURE;
-    STDMETHOD(HasGroup)(THIS_ LONG groupID, BOOL* pHasGroup) PURE;
-    STDMETHOD(InsertGroup)(THIS_ LONG insertAt, LVGROUP* const pGroup, PLONG pGroupID) PURE;
-    STDMETHOD(RemoveGroup)(THIS_ LONG groupID) PURE;
-    STDMETHOD(InsertGroupSorted)(THIS_ LVINSERTGROUPSORTED const* pGroup, PLONG pGroupID) PURE;
-    STDMETHOD(GetGroupMetrics)(THIS_ LVGROUPMETRICS* pMetrics) PURE;
-    STDMETHOD(SetGroupMetrics)(THIS_ LVGROUPMETRICS* const pMetrics) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetGroupInfo)
+    STDMETHOD(GetGroupInfo)(THIS_ BOOL GetGroupInfoByIndex, LONG GroupIDOrIndex, LVGROUP* Group) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetGroupInfo)
+    STDMETHOD(SetGroupInfo)(THIS_ BOOL SetGroupInfoByIndex, LONG GroupIDOrIndex, LVGROUP* const Group) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetGroupRect)
+    STDMETHOD(GetGroupRect)(THIS_ BOOL GetGroupRectByIndex, LONG GroupIDOrIndex, LONG RectangleType, RECT* pRectangle) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetGroupState)
+    STDMETHOD(GetGroupState)(THIS_ LONG GroupID, ULONG Mask, PULONG State) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, HasGroup)
+    STDMETHOD(HasGroup)(THIS_ LONG GroupID, BOOL* HasGroup) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, InsertGroup)
+    STDMETHOD(InsertGroup)(THIS_ LONG InsertAt, LVGROUP* const Group, PLONG GroupID) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, RemoveGroup)
+    STDMETHOD(RemoveGroup)(THIS_ LONG GroupID) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, InsertGroupSorted)
+    STDMETHOD(InsertGroupSorted)(THIS_ LVINSERTGROUPSORTED const* Group, PLONG GroupID) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetGroupMetrics)
+    STDMETHOD(GetGroupMetrics)(THIS_ LVGROUPMETRICS* Metrics) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetGroupMetrics)
+    STDMETHOD(SetGroupMetrics)(THIS_ LVGROUPMETRICS* const Metrics) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, RemoveAllGroups)
     STDMETHOD(RemoveAllGroups)(THIS) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetFocusedGroup)
     STDMETHOD(GetFocusedGroup)(THIS_ PLONG pGroupID) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetGroupCount)
     STDMETHOD(GetGroupCount)(THIS_ PLONG pCount) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetOwnerDataCallback)
     STDMETHOD(SetOwnerDataCallback)(THIS_ IOwnerDataCallback* pCallback) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetTileViewInfo)
     STDMETHOD(GetTileViewInfo)(THIS_ LVTILEVIEWINFO* pInfo) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetTileViewInfo)
     STDMETHOD(SetTileViewInfo)(THIS_ LVTILEVIEWINFO* const pInfo) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetTileInfo)
     STDMETHOD(GetTileInfo)(THIS_ LVTILEINFO* pTileInfo) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetTileInfo)
     STDMETHOD(SetTileInfo)(THIS_ LVTILEINFO* const pTileInfo) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetInsertMark)
     STDMETHOD(GetInsertMark)(THIS_ LVINSERTMARK* pInsertMarkDetails) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetInsertMark)
     STDMETHOD(SetInsertMark)(THIS_ LVINSERTMARK const* pInsertMarkDetails) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetInsertMarkRect)
     STDMETHOD(GetInsertMarkRect)(THIS_ LPRECT pInsertMarkRectangle) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetInsertMarkColor)
     STDMETHOD(GetInsertMarkColor)(THIS_ COLORREF* pColor) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetInsertMarkColor)
     STDMETHOD(SetInsertMarkColor)(THIS_ COLORREF color, COLORREF* pOldColor) PURE;
-    STDMETHOD(HitTestInsertMark)(THIS_ POINT const* pPoint, LVINSERTMARK* pInsertMarkDetails) PURE;
-    STDMETHOD(SetInfoTip)(THIS_ LVSETINFOTIP* const pInfoTip) PURE;
-    STDMETHOD(GetOutlineColor)(THIS_ COLORREF* pColor) PURE;
-    STDMETHOD(SetOutlineColor)(THIS_ COLORREF color, COLORREF* pOldColor) PURE;
-    STDMETHOD(GetFrozenItem)(THIS_ PLONG pItemIndex) PURE;
-    STDMETHOD(SetFrozenItem)(THIS_ LONG unknown1, LONG unknown2) PURE;
-    STDMETHOD(GetFrozenSlot)(THIS_ RECT* pUnknown) PURE;
-    STDMETHOD(SetFrozenSlot)(THIS_ LONG unknown1, POINT const* pUnknown2) PURE;
-    STDMETHOD(GetViewMargin)(THIS_ RECT* pMargin) PURE;
-    STDMETHOD(SetViewMargin)(THIS_ RECT const* pMargin) PURE;
-    STDMETHOD(SetKeyboardSelected)(THIS_ LVITEMINDEX itemIndex) PURE;
-    STDMETHOD(MapIndexToId)(THIS_ LONG itemIndex, PLONG pItemID) PURE;
-    STDMETHOD(MapIdToIndex)(THIS_ LONG itemID, PLONG pItemIndex) PURE;
-    STDMETHOD(IsItemVisible)(THIS_ LVITEMINDEX itemIndex, BOOL* pVisible) PURE;
-    STDMETHOD(EnableAlphaShadow)(THIS_ BOOL enable) PURE;
-    STDMETHOD(GetGroupSubsetCount)(THIS_ PLONG pNumberOfRowsDisplayed) PURE;
-    STDMETHOD(SetGroupSubsetCount)(THIS_ LONG numberOfRowsToDisplay) PURE;
-    STDMETHOD(GetVisibleSlotCount)(THIS_ PLONG pCount) PURE;
-    STDMETHOD(GetColumnMargin)(THIS_ RECT* pMargin) PURE;
-    STDMETHOD(SetSubItemCallback)(THIS_ LPVOID pCallback) PURE;
-    STDMETHOD(GetVisibleItemRange)(THIS_ LVITEMINDEX* pFirstItem, LVITEMINDEX* pLastItem) PURE;
-    STDMETHOD(SetTypeAheadFlags)(THIS_ ULONG mask, ULONG flags) PURE; // HRESULT SetTypeAheadFlags (TYPEAHEAD_FLAGS, TYPEAHEAD_FLAGS);
+
+    DECLSPEC_XFGVIRT(IListView, HitTestInsertMark)
+    STDMETHOD(HitTestInsertMark)(THIS_ POINT const* Point, LVINSERTMARK* pInsertMarkDetails) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetInfoTip)
+    STDMETHOD(SetInfoTip)(THIS_ LVSETINFOTIP* const InfoTip) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetOutlineColor)
+    STDMETHOD(GetOutlineColor)(THIS_ COLORREF* Color) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetOutlineColor)
+    STDMETHOD(SetOutlineColor)(THIS_ COLORREF Color, COLORREF* OldColor) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetFrozenItem)
+    STDMETHOD(GetFrozenItem)(THIS_ PLONG ItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetFrozenItem)
+    STDMETHOD(SetFrozenItem)(THIS_ LONG ItemIndexStart, LONG ItemIndexEnd) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetFrozenSlot)
+    STDMETHOD(GetFrozenSlot)(THIS_ RECT* Rect) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetFrozenSlot)
+    STDMETHOD(SetFrozenSlot)(THIS_ LONG Slot, POINT const* Rect) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetViewMargin)
+    STDMETHOD(GetViewMargin)(THIS_ RECT* Margin) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetViewMargin)
+    STDMETHOD(SetViewMargin)(THIS_ RECT const* Margin) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetKeyboardSelected)
+    STDMETHOD(SetKeyboardSelected)(THIS_ LVITEMINDEX ItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, MapIndexToId)
+    STDMETHOD(MapIndexToId)(THIS_ LONG ItemIndex, PLONG ItemID) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, MapIdToIndex)
+    STDMETHOD(MapIdToIndex)(THIS_ LONG ItemID, PLONG ItemIndex) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, IsItemVisible)
+    STDMETHOD(IsItemVisible)(THIS_ LVITEMINDEX ItemIndex, BOOL* Visible) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, EnableAlphaShadow)
+    STDMETHOD(EnableAlphaShadow)(THIS_ BOOL Enable) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetGroupSubsetCount)
+    STDMETHOD(GetGroupSubsetCount)(THIS_ PLONG NumberOfRowsDisplayed) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetGroupSubsetCount)
+    STDMETHOD(SetGroupSubsetCount)(THIS_ LONG NumberOfRowsToDisplay) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetVisibleSlotCount)
+    STDMETHOD(GetVisibleSlotCount)(THIS_ PLONG Count) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetColumnMargin)
+    STDMETHOD(GetColumnMargin)(THIS_ RECT* Margin) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetSubItemCallback)
+    STDMETHOD(SetSubItemCallback)(THIS_ LPVOID Callback) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, GetVisibleItemRange)
+    STDMETHOD(GetVisibleItemRange)(THIS_ LVITEMINDEX* FirstItem, LVITEMINDEX* LastItem) PURE;
+
+    DECLSPEC_XFGVIRT(IListView, SetTypeAheadFlags)
+    STDMETHOD(SetTypeAheadFlags)(THIS_ ULONG Mask, ULONG Flags) PURE; // HRESULT SetTypeAheadFlags (TYPEAHEAD_FLAGS, TYPEAHEAD_FLAGS);
 
     // Windows 10
-    STDMETHOD(SetWorkAreasWithDpi)(THIS_ LONG, struct tagLVWORKAREAWITHDPI const*) PURE;
-    STDMETHOD(GetWorkAreasWithDpi)(THIS_ LONG, struct tagLVWORKAREAWITHDPI*) PURE;
-    STDMETHOD(SetWorkAreaImageList)(THIS_ LONG, LONG, HIMAGELIST, HIMAGELIST*) PURE;
-    STDMETHOD(GetWorkAreaImageList)(THIS_ LONG, LONG, HIMAGELIST*) PURE;
+
+    /**
+     * \brief Sets the work areas with DPI awareness for the view.
+     *
+     * \param [in] LONG The number of work areas to set.
+     * \param [in] struct tagLVWORKAREAWITHDPI const* Pointer to an array of LVWORKAREAWITHDPI structures that define the work areas and their associated DPI settings.
+     * \return HRESULT Returns S_OK if successful, or an error code otherwise.
+     */
+    DECLSPEC_XFGVIRT(IListView, SetWorkAreasWithDpi)
+    STDMETHOD(SetWorkAreasWithDpi)(THIS_ LONG index, struct tagLVWORKAREAWITHDPI const*) PURE;
+
+    /**
+     * \brief Retrieves the work areas along with their associated DPI settings.
+     *
+     * \param [in] LONG The index or identifier for the work area.
+     * \param [out] tagLVWORKAREAWITHDPI* Pointer to a structure that receives the work area information and its DPI.
+     *
+     * \return HRESULT indicating success or failure of the operation.
+     */
+    DECLSPEC_XFGVIRT(IListView, GetWorkAreasWithDpi)
+    STDMETHOD(GetWorkAreasWithDpi)(THIS_ LONG index, struct tagLVWORKAREAWITHDPI*) PURE;
+
+    /**
+     * Sets the image list for the work area.
+     *
+     * \param [in] param1 The first LONG parameter (purpose depends on implementation).
+     * \param [in] param2 The second LONG parameter (purpose depends on implementation).
+     * \param [in] hImageList Handle to the image list to be set.
+     * \param [out] phOldImageList Pointer to a variable that receives the handle to the previous image list.
+     * \return HRESULT Returns S_OK on success, or an error code otherwise.
+     */
+    DECLSPEC_XFGVIRT(IListView, SetWorkAreaImageList)
+    STDMETHOD(SetWorkAreaImageList)(THIS_ LONG param1, LONG param2, HIMAGELIST hImageList, HIMAGELIST* phOldImageList) PURE;
+
+    /**
+     * Retrieves the image list associated with a specified work area.
+     *
+     * \param [in] param1 The first LONG parameter, typically representing the work area index or identifier.
+     * \param [in] param2 The second LONG parameter, usage depends on implementation context.
+     * \param [out] phImageList Pointer to a HIMAGELIST that receives the handle to the image list.
+     * \return HRESULT Returns S_OK on success, or an error code otherwise.
+     */
+    DECLSPEC_XFGVIRT(IListView, GetWorkAreaImageList)
+    STDMETHOD(GetWorkAreaImageList)(THIS_ LONG param1, LONG param2, HIMAGELIST* phImageList) PURE;
+
+    /**
+     * Enables or disables the "Icon Bullying" feature.
+     *
+     * This method controls the behavior of icon manipulation within the interface.
+     *
+     * \param Mode Specifies the mode for icon bullying.
+     * \return HRESULT indicating success or failure of the operation.
+     */
+    DECLSPEC_XFGVIRT(IListView, EnableIconBullying)
     STDMETHOD(EnableIconBullying)(THIS_ LONG Mode) PURE;
+
+    /**
+     * \brief Enables or configures specific quirks or compatibility modes.
+     *
+     * \param Flags A bitmask of flags specifying which quirks to enable.
+     * \return HRESULT indicating success or failure of the operation.
+     */
+    DECLSPEC_XFGVIRT(IListView, EnableQuirks)
     STDMETHOD(EnableQuirks)(THIS_ ULONG Flags) PURE;
 
     END_INTERFACE
