@@ -193,8 +193,8 @@ VOID PhLoadSettingsNetworkTreeList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"NetworkTreeListColumns");
-    sortSettings = PhGetStringSetting(L"NetworkTreeListSort");
+    settings = PhGetStringSetting(SETTING_NETWORK_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_NETWORK_TREE_LIST_SORT);
     PhCmLoadSettingsEx(NetworkTreeListHandle, &NetworkTreeListCm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
@@ -215,8 +215,8 @@ VOID PhSaveSettingsNetworkTreeList(
     PPH_STRING sortSettings;
 
     settings = PhCmSaveSettingsEx(NetworkTreeListHandle, &NetworkTreeListCm, 0, &sortSettings);
-    PhSetStringSetting2(L"NetworkTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"NetworkTreeListSort", &sortSettings->sr);
+    PhSetStringSetting2(SETTING_NETWORK_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_NETWORK_TREE_LIST_SORT, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
