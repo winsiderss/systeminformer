@@ -593,7 +593,7 @@ VOID SetDefaultProgramEntry(
     _In_ HWND ComboBoxHandle
     )
 {
-    //Edit_SetText(ComboBoxHandle, PhaGetStringSetting(L"RunAsProgram")->Buffer);
+    //Edit_SetText(ComboBoxHandle, PhaGetStringSetting(SETTING_RUN_AS_PROGRAM)->Buffer);
     ComboBox_SetCurSel(ComboBoxHandle, 0);
 }
 
@@ -605,7 +605,7 @@ VOID SetDefaultUserEntry(
 {
     if (!Context->ProcessId)
     {
-        PPH_STRING runAsUserName = PhaGetStringSetting(L"RunAsUserName");
+        PPH_STRING runAsUserName = PhaGetStringSetting(SETTING_RUN_AS_USER_NAME);
         INT runAsUserNameIndex = CB_ERR;
 
         // Fire the user name changed event so we can fix the logon type.
@@ -1273,8 +1273,8 @@ CleanupExit:
     else if (status != STATUS_TIMEOUT)
     {
         PhRecentListAddCommand(&program->sr);
-        //PhSetStringSetting2(L"RunAsProgram", &program->sr);
-        PhSetStringSetting2(L"RunAsUserName", &username->sr);
+        //PhSetStringSetting2(SETTING_RUN_AS_PROGRAM, &program->sr);
+        PhSetStringSetting2(SETTING_RUN_AS_USER_NAME, &username->sr);
         EndDialog(Context->WindowHandle, IDOK);
     }
 }
@@ -1317,8 +1317,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            if (PhValidWindowPlacementFromSetting(L"RunAsWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"RunAsWindowPosition", NULL, hwndDlg);
+            if (PhValidWindowPlacementFromSetting(SETTING_RUN_AS_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_RUN_AS_WINDOW_POSITION, NULL, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
@@ -1361,7 +1361,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveWindowPlacementToSetting(L"RunAsWindowPosition", NULL, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_RUN_AS_WINDOW_POSITION, NULL, hwndDlg);
 
             PhpFreeDesktopsComboBox(context->DesktopEditWindowHandle);
             PhpFreeSessionsComboBox(context->SessionEditWindowHandle);
@@ -3713,8 +3713,8 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (PhValidWindowPlacementFromSetting(L"RunAsPackageWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"RunAsPackageWindowPosition", L"RunAsPackageWindowSize", WindowHandle);
+            if (PhValidWindowPlacementFromSetting(SETTING_RUN_AS_PACKAGE_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_RUN_AS_PACKAGE_WINDOW_POSITION, SETTING_RUN_AS_PACKAGE_WINDOW_SIZE, WindowHandle);
             else
                 PhCenterWindow(WindowHandle, GetParent(WindowHandle));
 
@@ -3747,7 +3747,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
         {
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
-            PhSaveWindowPlacementToSetting(L"RunAsPackageWindowPosition", L"RunAsPackageWindowSize", WindowHandle);
+            PhSaveWindowPlacementToSetting(SETTING_RUN_AS_PACKAGE_WINDOW_POSITION, SETTING_RUN_AS_PACKAGE_WINDOW_SIZE, WindowHandle);
 
             PhRunAsPackageDeleteTree(context);
 
