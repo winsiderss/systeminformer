@@ -73,7 +73,7 @@ VOID PhNfLoadSettings(
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
-    settingsString = PhGetStringSetting(L"IconSettings");
+    settingsString = PhGetStringSetting(SETTING_ICON_SETTINGS);
 
     if (PhIsNullOrEmptyString(settingsString))
         return;
@@ -172,7 +172,7 @@ VOID PhNfSaveSettings(
         PhRemoveEndStringBuilder(&iconListBuilder, 1);
 
     settingsString = PhFinalStringBuilderString(&iconListBuilder);
-    PhSetStringSetting2(L"IconSettings", &settingsString->sr);
+    PhSetStringSetting2(SETTING_ICON_SETTINGS, &settingsString->sr);
     PhDereferenceObject(settingsString);
 }
 
@@ -184,7 +184,7 @@ VOID PhNfLoadGuids(
     PH_STRINGREF remaining;
     ULONG i;
 
-    settingsString = PhGetStringSetting(L"IconTrayGuids");
+    settingsString = PhGetStringSetting(SETTING_ICON_TRAY_GUIDS);
 
     if (PhIsNullOrEmptyString(settingsString))
     {
@@ -212,7 +212,7 @@ VOID PhNfLoadGuids(
             PhRemoveEndStringBuilder(&iconListBuilder, 1);
 
         PhMoveReference(&settingsString, PhFinalStringBuilderString(&iconListBuilder));
-        PhSetStringSetting2(L"IconTrayGuids", &settingsString->sr);
+        PhSetStringSetting2(SETTING_ICON_TRAY_GUIDS, &settingsString->sr);
         PhDereferenceObject(settingsString);
     }
     else
@@ -269,7 +269,7 @@ VOID PhNfCreateIconThreadDelayed(
             &PhpTrayIconEventHandle,
             EVENT_ALL_ACCESS,
             SynchronizationEvent,
-            !PhGetIntegerSetting(L"IconTrayLazyStartDelay")
+            !PhGetIntegerSetting(SETTING_ICON_TRAY_LAZY_START_DELAY)
             )))
         {
             // Set the event when the only icon is the static icon. (dmex)
@@ -348,9 +348,9 @@ VOID PhNfLoadStage2(
     VOID
     )
 {
-    PhNfMiniInfoEnabled = !!PhGetIntegerSetting(L"MiniInfoWindowEnabled");
-    PhNfTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
-    PhNfPersistTrayIconPositionEnabled = !!PhGetIntegerSetting(L"IconTrayPersistGuidEnabled");
+    PhNfMiniInfoEnabled = !!PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_ENABLED);
+    PhNfTransparencyEnabled = !!PhGetIntegerSetting(SETTING_ICON_TRANSPARENCY_ENABLED);
+    PhNfPersistTrayIconPositionEnabled = !!PhGetIntegerSetting(SETTING_ICON_TRAY_PERSIST_GUID_ENABLED);
 
     if (PhNfPersistTrayIconPositionEnabled)
     {
@@ -474,7 +474,7 @@ VOID PhNfForwardMessage(
     {
     case WM_LBUTTONDOWN:
         {
-            if (PhGetIntegerSetting(L"IconSingleClick"))
+            if (PhGetIntegerSetting(SETTING_ICON_SINGLE_CLICK))
             {
                 SystemInformer_IconClick();
                 PhNfpDisableHover();
@@ -487,7 +487,7 @@ VOID PhNfForwardMessage(
         break;
     case WM_LBUTTONUP:
         {
-            if (!PhGetIntegerSetting(L"IconSingleClick") && PhNfMiniInfoEnabled && IconClickUpDueToDown)
+            if (!PhGetIntegerSetting(SETTING_ICON_SINGLE_CLICK) && PhNfMiniInfoEnabled && IconClickUpDueToDown)
             {
                 PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
 
@@ -517,7 +517,7 @@ VOID PhNfForwardMessage(
         break;
     case WM_LBUTTONDBLCLK:
         {
-            if (!PhGetIntegerSetting(L"IconSingleClick"))
+            if (!PhGetIntegerSetting(SETTING_ICON_SINGLE_CLICK))
             {
                 if (PhNfMiniInfoEnabled)
                 {
@@ -537,7 +537,7 @@ VOID PhNfForwardMessage(
         {
             POINT location;
 
-            if (!PhGetIntegerSetting(L"IconSingleClick") && PhNfMiniInfoEnabled)
+            if (!PhGetIntegerSetting(SETTING_ICON_SINGLE_CLICK) && PhNfMiniInfoEnabled)
                 PhKillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
 
             PhNfpIconDisablePopupHoverWin11Workaround();
@@ -556,7 +556,7 @@ VOID PhNfForwardMessage(
         break;
     case NIN_BALLOONUSERCLICK:
         {
-            if (!PhGetIntegerSetting(L"IconIgnoreBalloonClick"))
+            if (!PhGetIntegerSetting(SETTING_ICON_IGNORE_BALLOON_CLICK))
                 PhShowDetailsForIconNotification();
         }
         break;
@@ -672,7 +672,7 @@ HRESULT PhpShowToastNotification(
     PPH_STRING toastXml;
     PH_FORMAT format[7];
 
-    if (!Force && !PhGetIntegerSetting(L"ToastNotifyEnabled"))
+    if (!Force && !PhGetIntegerSetting(SETTING_TOAST_NOTIFY_ENABLED))
         return E_FAIL;
 
     if (PhBeginInitOnce(&initOnce))
@@ -782,9 +782,9 @@ BOOLEAN PhNfpShowBalloonTip(
     wcsncpy_s(notifyIcon.szInfo, RTL_NUMBER_OF(notifyIcon.szInfo), Text, _TRUNCATE);
     notifyIcon.uTimeout = Timeout;
 
-    if (PhGetIntegerSetting(L"IconBalloonShowIcon") || WindowsVersion < WINDOWS_11)
+    if (PhGetIntegerSetting(SETTING_ICON_BALLOON_SHOW_ICON) || WindowsVersion < WINDOWS_11)
         SetFlag(notifyIcon.dwInfoFlags, NIIF_INFO);
-    if (PhGetIntegerSetting(L"IconBalloonMuteSound"))
+    if (PhGetIntegerSetting(SETTING_ICON_BALLOON_MUTE_SOUND))
         SetFlag(notifyIcon.dwInfoFlags, NIIF_NOSOUND);
 
     PhShellNotifyIcon(NIM_MODIFY, &notifyIcon);
@@ -936,7 +936,7 @@ BOOLEAN PhNfIconsEnabled(
 
     PPH_STRING settingsString;
 
-    settingsString = PhGetStringSetting(L"IconSettings");
+    settingsString = PhGetStringSetting(SETTING_ICON_SETTINGS);
 
     if (PhIsNullOrEmptyString(settingsString))
     {
