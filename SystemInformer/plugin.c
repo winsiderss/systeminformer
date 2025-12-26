@@ -473,8 +473,8 @@ VOID PhLoadPlugins(
     PPH_STRING pluginDirectoryPath;
     PH_LOADPLUGIN_CONTEXT pluginLoadContext;
 
-    pluginLoadNative = !!PhGetIntegerSetting(L"EnablePluginsNative");
-    pluginLoadDefault = !!PhGetIntegerSetting(L"EnableDefaultSafePlugins");
+    pluginLoadNative = !!PhGetIntegerSetting(SETTING_ENABLE_PLUGINS_NATIVE);
+    pluginLoadDefault = !!PhGetIntegerSetting(SETTING_ENABLE_DEFAULT_SAFE_PLUGINS);
     pluginDirectoryPath = PhGetApplicationDirectoryFileName(&pluginsDirectory, pluginLoadNative);
 
     if (PhIsNullOrEmptyString(pluginDirectoryPath))
@@ -519,7 +519,7 @@ VOID PhLoadPlugins(
     if (
         pluginLoadContext.LoadErrors &&
         pluginLoadContext.LoadErrors->Count != 0 &&
-        PhGetIntegerSetting(L"ShowPluginLoadErrors") &&
+        PhGetIntegerSetting(SETTING_SHOW_PLUGIN_LOAD_ERRORS) &&
         !PhStartupParameters.PhSvc
         )
     {
