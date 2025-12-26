@@ -805,14 +805,14 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                         if (selectedItem->Id == PH_HANDLE_TREE_MENUITEM_HIGHLIGHT_PROTECTED_HANDLES)
                         {
                             // HACK (dmex)
-                            PhSetIntegerSetting(L"UseColorProtectedHandles", !PhCsUseColorProtectedHandles);
+                            PhSetIntegerSetting(SETTING_USE_COLOR_PROTECTED_HANDLES, !PhCsUseColorProtectedHandles);
                             PhCsUseColorProtectedHandles = !PhCsUseColorProtectedHandles;
                             TreeNew_NodesStructured(handlesContext->TreeNewHandle);
                         }
                         else if (selectedItem->Id == PH_HANDLE_TREE_MENUITEM_HIGHLIGHT_INHERIT_HANDLES)
                         {
                             // HACK (dmex)
-                            PhSetIntegerSetting(L"UseColorInheritHandles", !PhCsUseColorInheritHandles);
+                            PhSetIntegerSetting(SETTING_USE_COLOR_INHERIT_HANDLES, !PhCsUseColorInheritHandles);
                             PhCsUseColorInheritHandles = !PhCsUseColorInheritHandles;
                             TreeNew_NodesStructured(handlesContext->TreeNewHandle);
                         }
