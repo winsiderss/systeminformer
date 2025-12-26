@@ -927,9 +927,9 @@ VOID PhLoadSettingsEnvironmentList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"EnvironmentTreeListColumns");
-    sortSettings = PhGetStringSetting(L"EnvironmentTreeListSort");
-    Context->Flags = PhGetIntegerSetting(L"EnvironmentTreeListFlags");
+    settings = PhGetStringSetting(SETTING_ENVIRONMENT_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_ENVIRONMENT_TREE_LIST_SORT);
+    Context->Flags = PhGetIntegerSetting(SETTING_ENVIRONMENT_TREE_LIST_FLAGS);
 
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
@@ -946,9 +946,9 @@ VOID PhSaveSettingsEnvironmentList(
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
-    PhSetIntegerSetting(L"EnvironmentTreeListFlags", Context->Flags);
-    PhSetStringSetting2(L"EnvironmentTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"EnvironmentTreeListSort", &sortSettings->sr);
+    PhSetIntegerSetting(SETTING_ENVIRONMENT_TREE_LIST_FLAGS, Context->Flags);
+    PhSetStringSetting2(SETTING_ENVIRONMENT_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_ENVIRONMENT_TREE_LIST_SORT, &sortSettings->sr);
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
