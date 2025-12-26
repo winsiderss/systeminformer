@@ -11,6 +11,10 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides utility methods for interacting with the Windows file system, environment variables, processes, and
+    /// registry, as well as other Win32-related operations.
+    /// </summary>
     public static unsafe class Win32
     {
         private static readonly char[] PathSeparator = [';'];
@@ -173,6 +177,14 @@ namespace CustomBuildTool
             return null;
         }
 
+        /// <summary>
+        /// Copies the source file to the destination file if the source is newer or the destination does not exist.
+        /// Preserves creation and last write times, and optionally sets the read-only attribute.
+        /// </summary>
+        /// <param name="SourceFile">The path to the source file.</param>
+        /// <param name="DestinationFile">The path to the destination file.</param>
+        /// <param name="Flags">Build flags controlling output verbosity and behavior.</param>
+        /// <param name="ReadOnly">If true, sets the destination file as read-only after copying.</param>
         public static void CopyIfNewer(string SourceFile, string DestinationFile, BuildFlags Flags = BuildFlags.None, bool ReadOnly = false)
         {
             bool updated = false;
@@ -234,6 +246,12 @@ namespace CustomBuildTool
             //    Program.PrintColorMessage($"[SDK] Skipped: {SourceFile} same as {DestinationFile}", ConsoleColor.DarkGray, true, Flags);
         }
 
+        /// <summary>
+        /// Copies the source file to the destination file if the source has a newer last write time or a higher file version.
+        /// </summary>
+        /// <param name="SourceFile">The path to the source file.</param>
+        /// <param name="DestinationFile">The path to the destination file.</param>
+        /// <param name="Flags">Build flags controlling output verbosity and behavior.</param>
         public static void CopyVersionIfNewer(string SourceFile, string DestinationFile, BuildFlags Flags = BuildFlags.None)
         {
             bool updated = false;
@@ -376,6 +394,14 @@ namespace CustomBuildTool
             return null;
         }
 
+        /// <summary>
+        /// Retrieves a string value from the Windows registry.
+        /// </summary>
+        /// <param name="LocalMachine">If true, queries HKEY_LOCAL_MACHINE; otherwise, HKEY_CURRENT_USER.</param>
+        /// <param name="KeyName">The registry key path.</param>
+        /// <param name="ValueName">The name of the value to retrieve. (Note: This parameter is not used in the current implementation.)</param>
+        /// <param name="DefaultValue">The value to return if the registry value is not found or is empty.</param>
+        /// <returns>The string value from the registry, or <paramref name="DefaultValue"/> if not found.</returns>
         public static string GetKeyValue(bool LocalMachine, string KeyName, string ValueName, string DefaultValue)
         {
             string value = string.Empty;
@@ -430,6 +456,11 @@ namespace CustomBuildTool
             return string.IsNullOrWhiteSpace(value) ? DefaultValue : value;
         }
 
+        /// <summary>
+        /// Gets the size of a file in bytes.
+        /// </summary>
+        /// <param name="FileName">The path to the file.</param>
+        /// <returns>The size of the file in bytes, or 0 if the file does not exist or cannot be accessed.</returns>
         public static ulong GetFileSize(string FileName)
         {
             WIN32_FILE_ATTRIBUTE_DATA sourceFile = new WIN32_FILE_ATTRIBUTE_DATA();
@@ -446,6 +477,11 @@ namespace CustomBuildTool
             return 0;
         }
 
+        /// <summary>
+        /// Retrieves the version information of a file.
+        /// </summary>
+        /// <param name="FileName">The path to the file.</param>
+        /// <returns>The <see cref="Version"/> of the file, or 0.0.0.0 if not found.</returns>
         public static Version GetFileVersion(string FileName)
         {
             FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(FileName);
@@ -458,6 +494,9 @@ namespace CustomBuildTool
             return Version.Parse(versionInfo.FileVersion);
         }
 
+        /// <summary>
+        /// Sets the current process priority class to high.
+        /// </summary>
         public static void SetErrorMode()
         {
             PInvoke.SetPriorityClass(
@@ -466,6 +505,9 @@ namespace CustomBuildTool
                 );
         }
 
+        /// <summary>
+        /// Sets the current process priority class to high.
+        /// </summary>
         public static void SetBasePriority()
         {
             //Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
@@ -475,6 +517,14 @@ namespace CustomBuildTool
                 );
         }
 
+        /// <summary>
+        /// Sets the basic file information, including creation and last write times, and optionally the read-only attribute.
+        /// </summary>
+        /// <param name="FileName">The path to the file.</param>
+        /// <param name="CreationDateTime">The creation time to set. If <see cref="DateTime.MinValue"/>, uses current UTC time.</param>
+        /// <param name="LastWriteDateTime">The last write time to set. If <see cref="DateTime.MinValue"/>, uses current UTC time.</param>
+        /// <param name="ReadOnly">Whether to set the file as read-only.</param>
+        /// <exception cref="System.ComponentModel.Win32Exception">Thrown if the file information cannot be set.</exception>
         public static void SetFileBasicInfo(
             string FileName,
             DateTime CreationDateTime,
@@ -513,6 +563,15 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Retrieves basic file information, including creation time, last write time, and attributes.
+        /// </summary>
+        /// <param name="FileName">The path to the file.</param>
+        /// <param name="CreationTime">When this method returns, contains the creation time of the file.</param>
+        /// <param name="LastWriteDateTime">When this method returns, contains the last write time of the file.</param>
+        /// <param name="Attributes">When this method returns, contains the file attributes.</param>
+        /// <returns>True if the file exists and information was retrieved; otherwise, false.</returns>
+        /// <exception cref="System.ComponentModel.Win32Exception">Thrown if the file information cannot be retrieved.</exception>
         public static bool GetFileBasicInfo(
             string FileName,
             out DateTime CreationTime,
@@ -527,7 +586,7 @@ namespace CustomBuildTool
 
             if (!File.Exists(FileName))
             {
-                Attributes =  FileAttributes.None;
+                Attributes = FileAttributes.None;
                 return false;
             }
 
