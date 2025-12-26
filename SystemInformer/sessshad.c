@@ -11,6 +11,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <phsettings.h>
 #include <winsta.h>
 
 static CONST PH_KEY_VALUE_PAIR VirtualKeyPairs[] =
@@ -133,7 +134,7 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            hotkey = PhGetIntegerPairSetting(L"SessionShadowHotkey");
+            hotkey = PhGetIntegerPairSetting(SETTING_SESSION_SHADOW_HOTKEY);
 
             // Set up the hotkeys.
 
@@ -205,7 +206,7 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
 
                             hotkey.X = virtualKey;
                             hotkey.Y = modifiers;
-                            PhSetIntegerPairSetting(L"SessionShadowHotkey", hotkey);
+                            PhSetIntegerPairSetting(SETTING_SESSION_SHADOW_HOTKEY, hotkey);
 
                             EndDialog(hwndDlg, IDOK);
                         }
