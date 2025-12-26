@@ -14,6 +14,7 @@
 #include <procprp.h>
 #include <procprpp.h>
 #include <settings.h>
+#include <phsettings.h>
 
 #include <cpysave.h>
 #include <emenu.h>
@@ -139,7 +140,7 @@ VOID PhShowMemoryContextMenu(
 
     PhGetSelectedMemoryNodes(&Context->ListContext, &memoryNodes, &numberOfMemoryNodes);
 
-    //if (numberOfMemoryNodes != 0)
+    if (numberOfMemoryNodes != 0)
     {
         PPH_EMENU menu;
         PPH_EMENU_ITEM item;
@@ -988,7 +989,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         }
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_STRINGS)
                         {
-                            if (PhGetIntegerSetting(L"EnableMemStringsTreeDialog"))
+                            if (PhGetIntegerSetting(SETTING_ENABLE_MEM_STRINGS_TREE_DIALOG))
                                 PhShowMemoryStringTreeDialog(hwndDlg, processItem);
                             else
                                 PhShowMemoryStringDialog(hwndDlg, processItem);
@@ -1014,7 +1015,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                                 PH_CHOICE_DIALOG_USER_CHOICE,
                                 &selectedChoice,
                                 NULL,
-                                L"MemoryReadWriteAddressChoices"
+                                SETTING_MEMORY_READ_WRITE_ADDRESS_CHOICES
                                 ))
                             {
                                 ULONG64 address64;
