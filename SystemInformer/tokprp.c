@@ -989,7 +989,7 @@ BOOLEAN PhpUpdateTokenPrivileges(
 
     TokenPageContext->Privileges = privileges;
 
-    if (PhGetIntegerSetting(L"EnableTokenRemovedPrivileges"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_TOKEN_REMOVED_PRIVILEGES))
     {
         PhEnumeratePrivileges(PhpEnumeratePrivilegesCallback, TokenPageContext);
     }
@@ -1273,9 +1273,9 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, L"Privileges");
             PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_GROUPS, L"Groups");
             PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_RESTRICTED, L"Restricting SIDs");
-            PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
-            PhLoadListViewGroupStatesFromSetting(L"TokenGroupsListViewStates", tokenPageContext->ListViewHandle);
-            PhLoadListViewSortColumnsFromSetting(L"TokenGroupsListViewSort", tokenPageContext->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_COLUMNS, tokenPageContext->ListViewHandle);
+            PhLoadListViewGroupStatesFromSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_STATES, tokenPageContext->ListViewHandle);
+            PhLoadListViewSortColumnsFromSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_SORT, tokenPageContext->ListViewHandle);
             PhpTokenSetImageList(hwndDlg, tokenPageContext);
 
             PhSetDialogItemText(hwndDlg, IDC_USER, L"Unknown");
@@ -1414,8 +1414,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 PhAddLayoutItem(&tokenPageContext->LayoutManager, GetDlgItem(hwndDlg, IDC_INTEGRITY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 PhAddLayoutItem(&tokenPageContext->LayoutManager, GetDlgItem(hwndDlg, IDC_ADVANCED), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-                if (PhValidWindowPlacementFromSetting(L"TokenWindowPosition"))
-                    PhLoadWindowPlacementFromSetting(L"TokenWindowPosition", L"TokenWindowSize", hwndDlg);
+                if (PhValidWindowPlacementFromSetting(SETTING_TOKEN_WINDOW_POSITION))
+                    PhLoadWindowPlacementFromSetting(SETTING_TOKEN_WINDOW_POSITION, SETTING_TOKEN_WINDOW_SIZE, hwndDlg);
                 else
                     PhCenterWindow(hwndDlg, NULL);
 
@@ -1427,13 +1427,13 @@ INT_PTR CALLBACK PhpTokenPageProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewSortColumnsToSetting(L"TokenGroupsListViewSort", tokenPageContext->ListViewHandle);
-            PhSaveListViewGroupStatesToSetting(L"TokenGroupsListViewStates", tokenPageContext->ListViewHandle);
-            PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
+            PhSaveListViewSortColumnsToSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_SORT, tokenPageContext->ListViewHandle);
+            PhSaveListViewGroupStatesToSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_STATES, tokenPageContext->ListViewHandle);
+            PhSaveListViewColumnsToSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_COLUMNS, tokenPageContext->ListViewHandle);
 
             if (tokenPageContext->SinglePageContext)
             {
-                PhSaveWindowPlacementToSetting(L"TokenWindowPosition", L"TokenWindowSize", hwndDlg);
+                PhSaveWindowPlacementToSetting(SETTING_TOKEN_WINDOW_POSITION, SETTING_TOKEN_WINDOW_SIZE, hwndDlg);
                 PhDeleteLayoutManager(&tokenPageContext->LayoutManager);
 
                 if (tokenPageContext->Context)
