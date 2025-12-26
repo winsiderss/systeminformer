@@ -17,6 +17,7 @@
 #include <mapldr.h>
 #include <secedit.h>
 #include <settings.h>
+#include <phsettings.h>
 
 static NTSTATUS (NTAPI* LsaFreeReturnBuffer_I)(
     _In_ PVOID Buffer
@@ -285,6 +286,7 @@ PPH_USER_NODE PhpCreateUserNode(
     return user;
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpUserListTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -1065,7 +1067,7 @@ VOID PhpUserListLoadSettingsTreeList(
 {
     PPH_STRING settings;
 
-    settings = PhGetStringSetting(L"UserListTreeListColumns");
+    settings = PhGetStringSetting(SETTING_USER_LIST_TREE_LIST_COLUMNS);
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
 }
@@ -1077,7 +1079,7 @@ VOID PhpUserListSaveSettingsTreeList(
     PPH_STRING settings;
 
     settings = PhCmSaveSettings(Context->TreeNewHandle);
-    PhSetStringSetting2(L"UserListTreeListColumns", &settings->sr);
+    PhSetStringSetting2(SETTING_USER_LIST_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
 }
 
@@ -1196,8 +1198,8 @@ INT_PTR CALLBACK PhpUserListDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            if (PhValidWindowPlacementFromSetting(L"UserListWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"UserListWindowPosition", L"UserListWindowSize", hwndDlg);
+            if (PhValidWindowPlacementFromSetting(SETTING_USER_LIST_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_USER_LIST_WINDOW_POSITION, SETTING_USER_LIST_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
@@ -1212,7 +1214,7 @@ INT_PTR CALLBACK PhpUserListDlgProc(
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
-            PhSaveWindowPlacementToSetting(L"UserListWindowPosition", L"UserListWindowSize", hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_USER_LIST_WINDOW_POSITION, SETTING_USER_LIST_WINDOW_SIZE, hwndDlg);
 
             PhUnregisterWindowCallback(hwndDlg);
 
