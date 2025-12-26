@@ -55,6 +55,7 @@ namespace CustomBuildTool
             "phapp.h",
             "appsup.h",
             "phfwddef.h",
+            "phsettings.h",
             "procprv.h",
             "srvprv.h",
             "netprv.h",
