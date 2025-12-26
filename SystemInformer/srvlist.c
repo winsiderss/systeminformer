@@ -28,6 +28,7 @@
 #include <procprv.h>
 #include <srvprv.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -66,7 +67,6 @@ static PH_CM_MANAGER ServiceTreeListCm;
 
 static PPH_HASHTABLE ServiceNodeHashtable; // hashtable of all nodes
 static PPH_LIST ServiceNodeList; // list of all nodes
-
 static PH_TN_FILTER_SUPPORT FilterSupport;
 
 BOOLEAN PhServiceTreeListStateHighlighting = TRUE;
@@ -85,6 +85,7 @@ VOID PhServiceTreeListInitialization(
     ServiceNodeList = PhCreateList(100);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -157,8 +158,8 @@ VOID PhLoadSettingsServiceTreeList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"ServiceTreeListColumns");
-    sortSettings = PhGetStringSetting(L"ServiceTreeListSort");
+    settings = PhGetStringSetting(SETTING_SERVICE_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_SERVICE_TREE_LIST_SORT);
     PhCmLoadSettingsEx(ServiceTreeListHandle, &ServiceTreeListCm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
@@ -177,8 +178,8 @@ VOID PhSaveSettingsServiceTreeList(
     PPH_STRING sortSettings;
 
     settings = PhCmSaveSettingsEx(ServiceTreeListHandle, &ServiceTreeListCm, 0, &sortSettings);
-    PhSetStringSetting2(L"ServiceTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"ServiceTreeListSort", &sortSettings->sr);
+    PhSetStringSetting2(SETTING_SERVICE_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_SERVICE_TREE_LIST_SORT, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
