@@ -12,6 +12,7 @@
 #include <phapp.h>
 #include <procprv.h>
 #include <settings.h>
+#include <phsettings.h>
 #include <emenu.h>
 #include <symprv.h>
 #include <workqueue.h>
@@ -559,8 +560,8 @@ INT_PTR CALLBACK PhPageModifiedDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Address");
             PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Symbol");
             PhSetExtendedListView(context->ListViewHandle);
-            PhLoadListViewColumnsFromSetting(L"MemoryModifiedListViewColumns", context->ListViewHandle);
-            PhLoadListViewSortColumnsFromSetting(L"MemoryModifiedListViewSort", context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_MEMORY_MODIFIED_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhLoadListViewSortColumnsFromSetting(SETTING_MEMORY_MODIFIED_LIST_VIEW_SORT, context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
@@ -568,8 +569,8 @@ INT_PTR CALLBACK PhPageModifiedDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            if (PhValidWindowPlacementFromSetting(L"MemoryModifiedWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"MemoryModifiedWindowPosition", L"MemoryModifiedWindowSize", WindowHandle);
+            if (PhValidWindowPlacementFromSetting(SETTING_MEMORY_MODIFIED_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_MEMORY_MODIFIED_WINDOW_POSITION, SETTING_MEMORY_MODIFIED_WINDOW_SIZE, WindowHandle);
             else
                 PhCenterWindow(WindowHandle, context->ParentWindowHandle);
 
@@ -615,9 +616,9 @@ INT_PTR CALLBACK PhPageModifiedDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewSortColumnsToSetting(L"MemoryModifiedListViewSort", context->ListViewHandle);
-            PhSaveListViewColumnsToSetting(L"MemoryModifiedListViewColumns", context->ListViewHandle);
-            PhSaveWindowPlacementToSetting(L"MemoryModifiedWindowPosition", L"MemoryModifiedWindowSize", WindowHandle);
+            PhSaveListViewSortColumnsToSetting(SETTING_MEMORY_MODIFIED_LIST_VIEW_SORT, context->ListViewHandle);
+            PhSaveListViewColumnsToSetting(SETTING_MEMORY_MODIFIED_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhSaveWindowPlacementToSetting(SETTING_MEMORY_MODIFIED_WINDOW_POSITION, SETTING_MEMORY_MODIFIED_WINDOW_SIZE, WindowHandle);
 
             context->Destroying = TRUE;
 

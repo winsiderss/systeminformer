@@ -2455,7 +2455,7 @@ start_scan:
             {
                 PhShellExecuteUserString(
                     Context->WindowHandle,
-                    L"FileBrowseExecutable",
+                    SETTING_FILE_BROWSE_EXECUTABLE,
                     PhGetString(Target),
                     FALSE,
                     L"Make sure the Explorer executable file is present."
@@ -2588,7 +2588,7 @@ VOID NTAPI EtpObjectManagerOpenSecurity(
     }
 
     PhEditSecurity(
-        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->WindowHandle,
+        !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : context->WindowHandle,
         PhGetString(objectContext->FullName),
         PhGetString(objectContext->Object->TypeName),
         EtObjectManagerHandleOpenCallback,
@@ -2987,7 +2987,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                 context->CurrentPath
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             {
                 PPH_STRING Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
@@ -3483,7 +3483,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                                     {
                                         PhShellExecuteUserString(
                                             hwndDlg,
-                                            L"FileBrowseExecutable",
+                                            SETTING_FILE_BROWSE_EXECUTABLE,
                                             PhGetString(target),
                                             FALSE,
                                             L"Make sure the Explorer executable file is present."

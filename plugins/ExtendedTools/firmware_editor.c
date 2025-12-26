@@ -126,7 +126,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
             {
                 PH_RECTANGLE windowRectangle = { 0 };
 
-                windowRectangle.Position = PhGetIntegerPairSetting(L"MemEditPosition");
+                windowRectangle.Position = PhGetIntegerPairSetting(SETTING_MEM_EDIT_POSITION);
 
                 if (windowRectangle.Position.X == 0)
                 {
@@ -140,7 +140,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                     PhRectangleToRect(&rect, &windowRectangle);
                     dpiValue = PhGetMonitorDpi(NULL, &rect);
 
-                    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue)->Pair;
+                    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_MEM_EDIT_SIZE, TRUE, dpiValue)->Pair;
                     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                     MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
@@ -150,8 +150,8 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                     windowRectangle.Left += 20;
                     windowRectangle.Top += 20;
 
-                    PhSetIntegerPairSetting(L"MemEditPosition", windowRectangle.Position);
-                    PhSetScalableIntegerPairSetting2(L"MemEditSize", windowRectangle.Size, dpiValue);
+                    PhSetIntegerPairSetting(SETTING_MEM_EDIT_POSITION, windowRectangle.Position);
+                    PhSetScalableIntegerPairSetting2(SETTING_MEM_EDIT_SIZE, windowRectangle.Size, dpiValue);
                 }
             }
 
@@ -164,7 +164,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
 
                 PhAddComboBoxStrings(context->BytesPerRowHandle, bytesPerRowStrings, ARRAYSIZE(bytesPerRowStrings));
 
-                bytesPerRow = PhGetIntegerSetting(L"MemEditBytesPerRow");
+                bytesPerRow = PhGetIntegerSetting(SETTING_MEM_EDIT_BYTES_PER_ROW);
 
                 if (bytesPerRow >= 4)
                 {
@@ -174,7 +174,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                 }
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
         }
@@ -183,7 +183,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
-            PhSaveWindowPlacementToSetting(L"MemEditPosition", L"MemEditSize", hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_MEM_EDIT_POSITION, SETTING_MEM_EDIT_SIZE, hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -313,7 +313,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                         {
                             if (PhStringToInteger64(&firstPart, 10, &bytesPerRow64))
                             {
-                                PhSetIntegerSetting(L"MemEditBytesPerRow", (ULONG)bytesPerRow64);
+                                PhSetIntegerSetting(SETTING_MEM_EDIT_BYTES_PER_ROW, (ULONG)bytesPerRow64);
                                 HexEdit_SetBytesPerRow(context->HexEditHandle, (ULONG)bytesPerRow64);
                                 SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
                             }
@@ -357,7 +357,7 @@ NTSTATUS EtFirmwareEditorDialogThreadStart(
     windowHandle = PhCreateDialog(
         NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_FIRMWARE_EDITVAR),
-        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->ParentWindowHandle,
+        !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : context->ParentWindowHandle,
         EtFirmwareEditorDlgProc,
         context
         );

@@ -194,6 +194,14 @@ INT WINAPI wWinMain(
     return result;
 }
 
+/**
+ * The main message loop for System Informer.
+ *
+ * Processes Windows messages for the main window, dialogs, and registered message loop filters.
+ * Handles accelerator keys, dialog messages, and dispatches messages to the appropriate handlers.
+ * Drains the auto pool after each message to manage memory efficiently.
+ * \return The exit code of the application, typically the wParam of the WM_QUIT message.
+ */
 LONG PhMainMessageLoop(
     VOID
     )
@@ -262,6 +270,16 @@ LONG PhMainMessageLoop(
     return (LONG)message.wParam;
 }
 
+/**
+ * Registers a dialog window handle with the application's dialog list.
+ *
+ * This function adds the specified dialog window handle to the internal list of dialogs
+ * managed by the application. This allows the main message loop to recognize and process
+ * messages for the dialog, enabling features such as keyboard navigation and message routing.
+ *
+ * \param DialogWindowHandle The handle to the dialog window to register.
+ * \remarks Registered dialogs are processed in the main message loop for dialog-specific messages.
+ */
 VOID PhRegisterDialog(
     _In_ HWND DialogWindowHandle
     )
@@ -272,6 +290,17 @@ VOID PhRegisterDialog(
     PhAddItemList(DialogList, (PVOID)DialogWindowHandle);
 }
 
+/**
+ * Unregisters a dialog window handle from the application's dialog list.
+ *
+ * This function removes the specified dialog window handle from the internal list of dialogs
+ * managed by the application. This ensures that the main message loop no longer processes
+ * messages for the dialog, disabling features such as keyboard navigation and message routing
+ * for the unregistered dialog.
+ *
+ * \param DialogWindowHandle The handle to the dialog window to unregister.
+ * \remarks Unregistered dialogs are no longer processed in the main message loop for dialog-specific messages.
+ */
 VOID PhUnregisterDialog(
     _In_ HWND DialogWindowHandle
     )
@@ -287,6 +316,19 @@ VOID PhUnregisterDialog(
         PhRemoveItemList(DialogList, indexOfDialog);
 }
 
+/**
+ * Registers a message loop filter with the application's message loop.
+ *
+ * This function adds a custom filter to the internal list of message loop filters.
+ * Each filter is a callback that can intercept and process Windows messages before
+ * they are handled by the main window or dialogs. Filters are useful for implementing
+ * global hotkeys, custom message handling, or preprocessing messages.
+ *
+ * \param Filter The filter callback function to register.
+ * \param Context Optional context pointer passed to the filter callback.
+ * \return A pointer to the filter entry, which can be used to unregister the filter later.
+ * \remarks The filter will be called for each message in the main message loop.
+ */
 PPH_MESSAGE_LOOP_FILTER_ENTRY PhRegisterMessageLoopFilter(
     _In_ PPH_MESSAGE_LOOP_FILTER Filter,
     _In_opt_ PVOID Context
@@ -305,6 +347,15 @@ PPH_MESSAGE_LOOP_FILTER_ENTRY PhRegisterMessageLoopFilter(
     return entry;
 }
 
+/**
+ * Unregisters a message loop filter from the application's message loop.
+ *
+ * This function removes a previously registered message loop filter, ensuring
+ * it no longer receives messages from the main message loop.
+ *
+ * \param FilterEntry The filter entry returned by PhRegisterMessageLoopFilter.
+ * \remarks The filter entry is freed after removal.
+ */
 VOID PhUnregisterMessageLoopFilter(
     _In_ PPH_MESSAGE_LOOP_FILTER_ENTRY FilterEntry
     )
@@ -322,12 +373,29 @@ VOID PhUnregisterMessageLoopFilter(
     PhFree(FilterEntry);
 }
 
+/**
+ * Context structure for tracking a previous main window instance.
+ *
+ * Used during enumeration of windows to identify and interact with a previous
+ * instance of the application, based on process ID and window class name.
+ */
 typedef struct _PHP_PREVIOUS_MAIN_WINDOW_CONTEXT
 {
     HANDLE ProcessId;
     PPH_STRING WindowName;
 } PHP_PREVIOUS_MAIN_WINDOW_CONTEXT, *PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT;
 
+/**
+ * Callback function for enumerating windows to find a previous instance.
+ *
+ * Checks if the given window belongs to the specified process and matches the
+ * expected window class name. If found, attempts to activate and bring the window
+ * to the foreground.
+ *
+ * \param WindowHandle The handle to the window being enumerated.
+ * \param Context Pointer to a PHP_PREVIOUS_MAIN_WINDOW_CONTEXT structure.
+ * \return FALSE if the previous instance window was found and activated; TRUE to continue enumeration.
+ */
 _Function_class_(PH_WINDOW_ENUM_CALLBACK)
 static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
     _In_ HWND WindowHandle,
@@ -393,6 +461,15 @@ static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
     return TRUE;
 }
 
+/**
+ * Brings a previous instance of the application to the foreground.
+ *
+ * This function attempts to locate the main window of a previous instance of the
+ * application (by process ID and window class name), and brings it to the foreground.
+ * It performs several checks to ensure the process is in the same session and owned
+ * by the same user. The search is retried multiple times to handle race conditions.
+ * \param ProcessId The process ID of the previous instance.
+ */
 static VOID PhForegroundPreviousInstance(
     _In_ HANDLE ProcessId
     )
@@ -453,6 +530,14 @@ CleanupExit:
         );
 }
 
+/**
+ * Initializes previous instance detection and activation logic.
+ *
+ * This function enforces single-instance behavior and handles elevation scenarios.
+ * If only one instance is allowed, it attempts to activate a previous instance.
+ * If elevation is required, it runs the application as administrator and activates
+ * the previous instance if necessary.
+ */
 VOID PhInitializePreviousInstance(
     VOID
     )
@@ -494,6 +579,20 @@ VOID PhInitializePreviousInstance(
     }
 }
 
+/**
+ * Callback for enumerating namespace objects to find previous instances.
+ *
+ * This function is called for each object in the namespace directory. It looks for
+ * mutant objects and, if found, checks if they belong to a different process.
+ * If so, it attempts to bring the previous instance to the foreground.
+ *
+ * \param RootDirectory The root directory handle.
+ * \param Name The name of the object.
+ * \param TypeName The type name of the object.
+ * \param Context Optional context pointer.
+ * \return STATUS_NO_MORE_ENTRIES if a previous instance
+ * was found and activated; otherwise STATUS_SUCCESS.
+ */
 _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
 NTSTATUS NTAPI PhpPreviousInstancesCallback(
     _In_ HANDLE RootDirectory,
@@ -535,6 +634,13 @@ NTSTATUS NTAPI PhpPreviousInstancesCallback(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Activates a previous instance of the application if one exists.
+ *
+ * This function enumerates namespace objects to find a mutant object representing
+ * a previous instance. If found, it brings the previous instance's window to the
+ * foreground and exits the current process.
+ */
 VOID PhActivatePreviousInstance(
     VOID
     )
@@ -558,45 +664,54 @@ VOID PhActivatePreviousInstance(
     //        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
     //        NULL
     //        )))
+    //
     //    {
     //        PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
-
+    //
     //        if (NT_SUCCESS(status = PhGetProcessIdsUsingFile(
     //            fileHandle,
     //            &processIds
     //            )))
+    //
     //        {
     //            for (ULONG i = 0; i < processIds->NumberOfProcessIdsInList; i++)
     //            {
     //                HANDLE processId = processIds->ProcessIdList[i];
     //                PPH_STRING fileName;
-
+    //
     //                if (processId == NtCurrentProcessId())
     //                    continue;
-
+    //
     //                if (NT_SUCCESS(status = PhGetProcessImageFileNameByProcessId(processId, &fileName)))
     //                {
     //                    if (PhEqualString(applicationFileName, fileName, TRUE))
     //                    {
     //                        PhForegroundPreviousInstance(processId);
     //                    }
-
+    //
     //                    PhDereferenceObject(fileName);
     //                }
     //            }
-
+    //
     //            PhFree(processIds);
     //        }
-
+    //
     //        NtClose(fileHandle);
     //    }
-
+    //
     //    PhDereferenceObject(applicationFileName);
     //}
 
     PhTraceFuncExit("Activate previous instance: %!STATUS!", status);
 }
 
+/**
+ * Initializes common controls and custom controls used by the application.
+ *
+ * This function registers standard Windows common controls and initializes
+ * custom controls such as tree views, graphs, hex editors, and color boxes.
+ * It must be called before creating windows that use these controls.
+ */
 VOID PhInitializeCommonControls(
     VOID
     )
@@ -623,6 +738,12 @@ VOID PhInitializeCommonControls(
     PhColorBoxInitialization();
 }
 
+/**
+ * Ensures the current working directory is set to the application's directory.
+ *
+ * This function checks if the process's current directory matches the application's
+ * directory. If not, it sets the current directory to the application's directory.
+ */
 NTSTATUS PhInitializeDirectoryPolicy(
     VOID
     )
@@ -669,6 +790,12 @@ typedef enum _PH_TRIAGE_DUMP_TYPE
     PhTriageDumpTypeFull,
 } PH_TRIAGE_DUMP_TYPE;
 
+/**
+ * Creates a crash dump file for an unhandled exception.
+ *
+ * \param ExceptionInfo Pointer to the exception information.
+ * \param DumpType The type of dump to create (minimal, normal, or full).
+ */
 VOID PhpCreateUnhandledExceptionCrashDump(
     _In_ PEXCEPTION_POINTERS ExceptionInfo,
     _In_ PH_TRIAGE_DUMP_TYPE DumpType
@@ -758,6 +885,15 @@ VOID PhpCreateUnhandledExceptionCrashDump(
 
 static LPTOP_LEVEL_EXCEPTION_FILTER PhpPreviousUnhandledExceptionFilter = NULL;
 
+/**
+ * Unhandled exception filter callback for System Informer.
+ *
+ * This function is called when an unhandled exception occurs. It presents the user
+ * with options to create a crash dump, restart, ignore, or exit. It also generates
+ * a crash dump file on the desktop if requested.
+ * \param ExceptionInfo Pointer to the exception information.
+ * \return An exception disposition value.
+ */
 LONG CALLBACK PhpUnhandledExceptionCallback(
     _In_ PEXCEPTION_POINTERS ExceptionInfo
     )
@@ -905,12 +1041,18 @@ LONG CALLBACK PhpUnhandledExceptionCallback(
         }
     }
 
-    PhExitApplication(ExceptionInfo->ExceptionRecord->ExceptionCode);
-
-    return EXCEPTION_EXECUTE_HANDLER;
+    return PhpPreviousUnhandledExceptionFilter(ExceptionInfo);
 }
 #pragma endregion
 
+/**
+ * Initializes the exception policy for the current process.
+ *
+ * This function configures the process error mode to suppress critical error dialogs
+ * and disables the Windows error reporting dialog for unhandled exceptions. It also
+ * installs a custom unhandled exception filter to handle application crashes, generate
+ * crash dumps, and present user-friendly dialogs or messages.
+ */
 NTSTATUS PhInitializeExceptionPolicy(
     VOID
     )
@@ -931,6 +1073,13 @@ NTSTATUS PhInitializeExceptionPolicy(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Initializes the namespace policy for the current process.
+ *
+ * This function creates a named mutant object in the process's namespace to enforce
+ * single-instance behavior and activate previous instances of System Informer.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhInitializeNamespacePolicy(
     VOID
     )
@@ -981,39 +1130,13 @@ NTSTATUS PhInitializeNamespacePolicy(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhInitializeMitigationPolicy(
-    VOID
-    )
-{
-#if defined(PH_BUILD_API)
-    if (WindowsVersion >= WINDOWS_10)
-    {
-        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
-
-        //policyInfo.Policy = ProcessDynamicCodePolicy;
-        //policyInfo.DynamicCodePolicy.Flags = 0;
-        //policyInfo.DynamicCodePolicy.ProhibitDynamicCode = TRUE;
-        //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
-
-        //policyInfo.Policy = ProcessExtensionPointDisablePolicy;
-        //policyInfo.ExtensionPointDisablePolicy.Flags = 0;
-        //policyInfo.ExtensionPointDisablePolicy.DisableExtensionPoints = TRUE;
-        //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
-
-        policyInfo.Policy = ProcessSignaturePolicy;
-        policyInfo.SignaturePolicy.Flags = 0;
-        policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
-        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
-
-        //policyInfo.Policy = ProcessRedirectionTrustPolicy;
-        //policyInfo.RedirectionTrustPolicy.Flags = 0;
-        //policyInfo.RedirectionTrustPolicy.EnforceRedirectionTrust = TRUE;
-        //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
-    }
-#endif
-    return STATUS_SUCCESS;
-}
-
+/**
+ * Initializes the default COM options for the current process.
+ *
+ * If PH_COM_SVC is defined, it configures global COM options and sets a custom security descriptor
+ * that allows access to authenticated users, local system, and administrators. Otherwise, it simply
+ * initializes COM with apartment threading and disables OLE1 DDE.
+ */
 NTSTATUS PhInitializeComPolicy(
     VOID
     )
@@ -1093,6 +1216,132 @@ NTSTATUS PhInitializeComPolicy(
 #endif
 }
 
+/**
+ * Initializes the mitigation policies for the current process.
+ *
+ * This function configures process-level mitigations to prevent crashes by third party software. *
+ * The function uses the Native API to set the mitigation policy. If the operating system does not
+ * support the required mitigation policies, the function performs no action and returns success.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code on failure.
+ */
+NTSTATUS PhInitializeMitigationPolicy(
+    VOID
+    )
+{
+#if defined(PH_BUILD_API)
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+        //policyInfo.Policy = ProcessDynamicCodePolicy;
+        //policyInfo.DynamicCodePolicy.Flags = 0;
+        //policyInfo.DynamicCodePolicy.ProhibitDynamicCode = TRUE;
+        //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+
+        //policyInfo.Policy = ProcessExtensionPointDisablePolicy;
+        //policyInfo.ExtensionPointDisablePolicy.Flags = 0;
+        //policyInfo.ExtensionPointDisablePolicy.DisableExtensionPoints = TRUE;
+        //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+
+        policyInfo.Policy = ProcessSignaturePolicy;
+        policyInfo.SignaturePolicy.Flags = 0;
+        policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
+        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+
+        //policyInfo.Policy = ProcessRedirectionTrustPolicy;
+        //policyInfo.RedirectionTrustPolicy.Flags = 0;
+        //policyInfo.RedirectionTrustPolicy.EnforceRedirectionTrust = TRUE;
+        //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+    }
+#endif
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Initializes a temporary desktop policy for process isolation or UI testing.
+ *
+ * This function creates a new random desktop, switches the current thread and input
+ * to that desktop, and launches a new instance of System Informer on it. After the
+ * child process exits, it restores the original desktop and cleans up resources.
+ *
+ * \remarks The function is typically used for scenarios where process isolation or UI testing
+ * is required on a separate desktop, such as security testing or debugging.
+ */
+VOID PhInitializeDesktopPolicy(
+    VOID
+    )
+{
+    NTSTATUS status;
+    HDESK desktopHandle;
+    WCHAR alphastring[16] = L"";
+
+    PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
+
+    if (desktopHandle = CreateDesktop(
+        alphastring,
+        NULL,
+        NULL,
+        0,
+        DESKTOP_CREATEWINDOW,
+        NULL
+        ))
+    {
+        status = STATUS_SUCCESS;
+    }
+    else
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        HANDLE processHandle;
+        HDESK processDesktop;
+
+        processDesktop = GetThreadDesktop(HandleToUlong(NtCurrentThreadId()));
+
+        SetThreadDesktop(desktopHandle);
+        SwitchDesktop(desktopHandle);
+
+        if (NT_SUCCESS(PhShellProcessHacker(
+            NULL,
+            NULL,
+            SW_SHOW,
+            PH_SHELL_EXECUTE_DEFAULT,
+            PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+            0,
+            &processHandle
+            )))
+        {
+            PhWaitForSingleObject(processHandle, INFINITE);
+            NtClose(processHandle);
+        }
+
+        SwitchDesktop(processDesktop);
+        SetThreadDesktop(processDesktop);
+
+        CloseDesktop(desktopHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(NULL, L"Unable to initialize desktop policy.", status, 0);
+    }
+
+    PhExitApplication(status);
+}
+
+/**
+ * Enables or disables the process break-on-termination policy.
+ *
+ * This function configures the process to trigger a system critical break if it is terminated,
+ * based on the specified flag. When enabled, the process is protected from termination by
+ * non-privileged users, and the system will generate a critical error if the process is killed.
+ * This is typically used to prevent accidental or unauthorized termination of critical processes.
+ * The function only applies the policy if the current process is running with elevated privileges
+ * and the "Enable Break On Termination" setting is enabled.
+ * \param Enabled TRUE to enable the break-on-termination policy; FALSE to disable it.
+ */
 VOID PhEnableTerminationPolicy(
     _In_ BOOLEAN Enabled
     )
@@ -1118,6 +1367,12 @@ VOID PhEnableTerminationPolicy(
     }
 }
 
+/**
+ * Initializes the timer policy for the system.
+ *
+ * This function sets up and configures the timer policy that will be used
+ * throughout the System Informer application for timing operations and measurements.
+ */
 NTSTATUS PhInitializeTimerPolicy(
     VOID
     )
@@ -1129,6 +1384,13 @@ NTSTATUS PhInitializeTimerPolicy(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Initializes the application system.
+ * 
+ * This function performs the necessary initialization of the System Informer
+ * application system, setting up core components and resources required for
+ * the application to function properly.
+ */
 NTSTATUS PhInitializeAppSystem(
     VOID
     )
@@ -1145,6 +1407,13 @@ NTSTATUS PhInitializeAppSystem(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Initializes the application settings.
+ *
+ * This function sets up and initializes all application-level settings,
+ * including user preferences, configuration values, and default parameters
+ * required for the System Informer application to function properly.
+ */
 VOID PhInitializeAppSettings(
     VOID
     )
@@ -1344,6 +1613,19 @@ typedef enum _PH_COMMAND_ARG
     PH_ARG_CHANNEL,
 } PH_COMMAND_ARG;
 
+/**
+ * Callback function for processing command line options.
+ *
+ * This function is invoked for each parsed command line option during application startup.
+ * It updates the global PhStartupParameters structure and related state based on the provided
+ * option and value. Supported options include settings file path, visibility, debug mode,
+ * privilege elevation, plugin parameters, process priority, and more.
+ *
+ * \param Option Pointer to the command line option structure, or NULL for non-option arguments.
+ * \param Value Optional value associated with the option, or NULL if not applicable.
+ * \param Context Optional context pointer (unused).
+ * \return TRUE to continue processing further options, or FALSE to stop.
+ */
 _Function_class_(PH_COMMAND_LINE_CALLBACK)
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
@@ -1490,6 +1772,13 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
     return TRUE;
 }
 
+/**
+ * Parses and processes the application's startup parameters from the command line.
+ *
+ * This function defines and processes all supported command line options for System Informer.
+ * It updates the global PhStartupParameters structure based on the parsed arguments, enabling
+ * or disabling features, setting file paths, and configuring application behavior.
+ */
 VOID PhpProcessStartupParameters(
     VOID
     )
@@ -1573,14 +1862,16 @@ VOID PhpProcessStartupParameters(
             );
         PhExitApplication(STATUS_SUCCESS);
     }
-
-    if (PhStartupParameters.Debug)
-    {
-        // The symbol provider won't work if this is chosen.
-        PhShowDebugConsole();
-    }
 }
 
+/**
+ * Enables a set of privileges for the current process token.
+ *
+ * \remarks This function is called during application startup to ensure
+ * the process has the necessary rights for system-level operations.
+ * If the process lacks sufficient rights to adjust privileges, the function
+ * will silently fail and continue.
+ */
 VOID PhpEnablePrivileges(
     VOID
     )

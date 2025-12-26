@@ -92,15 +92,15 @@ BOOLEAN FwTabPageCallback(
             ULONG treelistCustomColors;
             PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
 
-            thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
-            treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhGetIntegerSetting(L"EnableThemeSupport")) ? WS_BORDER : 0;
-            treelistCustomColors = PhGetIntegerSetting(L"TreeListCustomColorsEnable") ? TN_STYLE_CUSTOM_COLORS : 0;
+            thinRows = PhGetIntegerSetting(SETTING_THIN_ROWS) ? TN_STYLE_THIN_ROWS : 0;
+            treelistBorder = (PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE) && !PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)) ? WS_BORDER : 0;
+            treelistCustomColors = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLORS_ENABLE) ? TN_STYLE_CUSTOM_COLORS : 0;
 
             if (treelistCustomColors)
             {
-                treelistCreateParams.TextColor = PhGetIntegerSetting(L"TreeListCustomColorText");
-                treelistCreateParams.FocusColor = PhGetIntegerSetting(L"TreeListCustomColorFocus");
-                treelistCreateParams.SelectionColor = PhGetIntegerSetting(L"TreeListCustomColorSelection");
+                treelistCreateParams.TextColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_TEXT);
+                treelistCreateParams.FocusColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_FOCUS);
+                treelistCreateParams.SelectionColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_SELECTION);
             }
 
             FwTreeNewHandle = PhCreateWindow(
@@ -122,7 +122,7 @@ BOOLEAN FwTabPageCallback(
 
             FwTreeNewCreated = TRUE;
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
             {
                 PhInitializeWindowTheme(FwTreeNewHandle, TRUE); // HACK (dmex)
                 TreeNew_ThemeSupport(FwTreeNewHandle, TRUE);
@@ -290,7 +290,7 @@ VOID InitializeFwTreeList(
 
     InitializeFwTreeListDpi(TreeNewHandle);
 
-    PhSetControlTheme(TreeNewHandle, !PhGetIntegerSetting(L"EnableThemeSupport") ? L"explorer" : L"DarkMode_Explorer");
+    PhSetControlTheme(TreeNewHandle, !PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT) ? L"explorer" : L"DarkMode_Explorer");
     TreeNew_SetRedraw(TreeNewHandle, FALSE);
     TreeNew_SetCallback(TreeNewHandle, FwTreeNewCallback, NULL);
 
@@ -389,7 +389,7 @@ VOID LoadSettingsFwTreeList(
     sortSettings = PhGetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT);
     TreeNew_SetSort(TreeNewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
 
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
     {
         SendMessage(TreeNew_GetTooltips(TreeNewHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     }
@@ -1759,7 +1759,7 @@ VOID EtFwHandleFwCommand(
                 {
                     PhShellExecuteUserString(
                         TreeWindowHandle,
-                        L"ProgramInspectExecutables",
+                        SETTING_PROGRAM_INSPECT_EXECUTABLES,
                         PhGetString(entry->ProcessFileName),
                         FALSE,
                         L"Make sure the PE Viewer executable file is present."

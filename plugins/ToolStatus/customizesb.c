@@ -290,12 +290,12 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             context->WindowDpi = PhGetWindowDpi(hwndDlg);
             context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
             {
-                context->BrushNormal = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowBackgroundColor"));
-                context->BrushHot = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlightColor"));
-                context->BrushPushed = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlight2Color"));
-                context->TextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
+                context->BrushNormal = CreateSolidBrush(PhGetIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND_COLOR));
+                context->BrushHot = CreateSolidBrush(PhGetIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT_COLOR));
+                context->BrushPushed = CreateSolidBrush(PhGetIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT2_COLOR));
+                context->TextColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_TEXT_COLOR);
             }
             else
             {
@@ -311,7 +311,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
 
             CustomizeLoadStatusBarItems(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             PhSetDialogFocus(context->WindowHandle, context->CurrentListHandle);
         }

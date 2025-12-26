@@ -776,13 +776,13 @@ VOID DnDestroyProcessDotNetAppDomainList(
 
     for (ULONG i = 0; i < ProcessAppdomainList->Count; i++)
     {
-        appdomain = ProcessAppdomainList->Items[i];
+        appdomain = PhItemList(ProcessAppdomainList, i);
 
         if (appdomain->AssemblyList)
         {
             for (ULONG j = 0; j < appdomain->AssemblyList->Count; j++)
             {
-                assembly = appdomain->AssemblyList->Items[j];
+                assembly = PhItemList(appdomain->AssemblyList, j);
 
                 if (assembly->AssemblyName)
                     PhDereferenceObject(assembly->AssemblyName);
@@ -822,7 +822,7 @@ PPH_BYTES DnProcessAppDomainListSerialize(
 
     for (i = 0; i < ProcessAppdomainList->Count; i++)
     {
-        PDN_PROCESS_APPDOMAIN_ENTRY appdomain = ProcessAppdomainList->Items[i];
+        PDN_PROCESS_APPDOMAIN_ENTRY appdomain = PhItemList(ProcessAppdomainList, i);
         PVOID appdomainEntry;
         PPH_BYTES valueUtf8;
 
@@ -845,7 +845,7 @@ PPH_BYTES DnProcessAppDomainListSerialize(
 
             for (ULONG j = 0; j < appdomain->AssemblyList->Count; j++)
             {
-                PDN_DOTNET_ASSEMBLY_ENTRY assembly = appdomain->AssemblyList->Items[j];
+                PDN_DOTNET_ASSEMBLY_ENTRY assembly = PhItemList(appdomain->AssemblyList, i);
                 PVOID assemblyEntry;
 
                 assemblyEntry = PhCreateJsonObject();
@@ -1072,7 +1072,7 @@ VOID DnGetProcessDotNetRuntimes(
 
     for (ULONG i = 0; i < context.RuntimeList->Count; i++)
     {
-        PDN_PROCESS_CLR_RUNTIME_ENTRY entry = context.RuntimeList->Items[i];
+        PDN_PROCESS_CLR_RUNTIME_ENTRY entry = PhItemList(context.RuntimeList, i);
 
         dprintf(
             "Runtime version: %S @ 0x%I64x [%S]\n",
@@ -1350,7 +1350,7 @@ PVOID DnLoadMscordaccore(
 
     for (ULONG i = 0; i < directoryList->Count; i++)
     {
-        PPH_STRING directoryName = directoryList->Items[i];
+        PPH_STRING directoryName = PhItemList(directoryList, i);
         PPH_STRING fileName;
         PPH_STRING nativeName;
 

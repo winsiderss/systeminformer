@@ -13,6 +13,7 @@
 #include <phapp.h>
 #include <phplug.h>
 #include <settings.h>
+#include <phsettings.h>
 
 PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
 
@@ -22,7 +23,7 @@ VOID PhLogInitialization(
 {
     ULONG entries;
 
-    entries = PhGetIntegerSetting(L"LogEntries");
+    entries = PhGetIntegerSetting(SETTING_LOG_ENTRIES);
     if (entries > 0x1000) entries = 0x1000;
     PhInitializeCircularBuffer_PVOID(&PhLogBuffer, entries);
     memset(PhLogBuffer.Data, 0, sizeof(PVOID) * PhLogBuffer.Size);

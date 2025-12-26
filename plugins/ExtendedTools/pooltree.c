@@ -430,7 +430,7 @@ PPH_STRING EtPoolFormatDeltaSize(
     }
 
     format[1].Type = SizeFormatType | FormatUseRadix;
-    format[1].Radix = (UCHAR)PhGetIntegerSetting(L"MaxSizeUnit");
+    format[1].Radix = (UCHAR)PhGetIntegerSetting(SETTING_MAX_SIZE_UNIT);
     format[1].u.Size = delta;
 
     return PhFormat(format, 2, 0);

@@ -18,6 +18,7 @@
 #include <Vssym32.h>
 
 #include "settings.h"
+#include <phsettings.h>
 
 // https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-procedures#window-procedure-superclassing
 static WNDPROC PhDefaultMenuWindowProcedure = NULL;
@@ -2077,7 +2078,7 @@ VOID PhInitializeSuperclassControls(
     VOID
     )
 {
-    PhDefaultEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
+    PhDefaultEnableStreamerMode = !!PhGetIntegerSetting(SETTING_ENABLE_STREAMER_MODE);
 
     if (PhEnableThemeAcrylicSupport && !PhEnableThemeSupport)
         PhEnableThemeAcrylicSupport = FALSE;
@@ -2088,10 +2089,10 @@ VOID PhInitializeSuperclassControls(
     {
         if (WindowsVersion >= WINDOWS_11)
         {
-            PhDefaultEnableThemeAcrylicWindowSupport = !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+            PhDefaultEnableThemeAcrylicWindowSupport = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_WINDOW_SUPPORT);
         }
 
-        PhDefaultEnableThemeAnimation = !!PhGetIntegerSetting(L"EnableThemeAnimation");
+        PhDefaultEnableThemeAnimation = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ANIMATION);
 
         PhRegisterDialogSuperClass();
         PhRegisterMenuSuperClass();

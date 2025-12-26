@@ -111,7 +111,7 @@ PPH_STRING PhGetProcessTooltipText(
 
     // Command line
 
-    if (PhGetIntegerSetting(L"EnableCommandLineTooltips") && Process->CommandLine)
+    if (PhGetIntegerSetting(SETTING_ENABLE_COMMAND_LINE_TOOLTIPS) && Process->CommandLine)
     {
         tempString = PhEllipsisString(Process->CommandLine, 100 * 10);
 
@@ -813,7 +813,7 @@ VOID PhpFillWmiProviderHost(
     _Inout_ PPH_STRING_BUILDER Providers
     )
 {
-    if (PhGetIntegerSetting(L"WmiProviderEnableTooltipSupport"))
+    if (PhGetIntegerSetting(SETTING_WMI_PROVIDER_ENABLE_TOOLTIP_SUPPORT))
     {
         PhQueryWmiHostProcessString(Process, Providers);
     }

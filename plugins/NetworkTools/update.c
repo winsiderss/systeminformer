@@ -514,6 +514,7 @@ CleanupExit:
     return success;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS GeoLiteUpdateThread(
     _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     )

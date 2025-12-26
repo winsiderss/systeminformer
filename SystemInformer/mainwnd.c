@@ -1931,7 +1931,7 @@ VOID PhMwpOnCommand(
                 //
                 //if (!PhIsNullOrEmptyString(fileNameWin32))
                 //{
-                //    PhSetStringSetting2(L"RunAsProgram", &fileNameWin32->sr);
+                //    PhSetStringSetting2(SETTING_RUN_AS_PROGRAM, &fileNameWin32->sr);
                 //    PhDereferenceObject(fileNameWin32);
                 //
                 //    PhShowRunAsDialog(WindowHandle, NULL);
@@ -4647,7 +4647,7 @@ VOID PhMwpInvokeUpdateWindowFont(
     PPH_STRING fontHexString;
     LOGFONT font;
 
-    fontHexString = PhaGetStringSetting(L"Font");
+    fontHexString = PhaGetStringSetting(SETTING_FONT);
 
     if (
         fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
@@ -4680,7 +4680,7 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
     PPH_STRING fontHexString;
     LOGFONT font;
 
-    fontHexString = PhaGetStringSetting(L"FontMonospace");
+    fontHexString = PhaGetStringSetting(SETTING_FONT_MONOSPACE);
 
     if (
         fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&

@@ -13,13 +13,12 @@
 #include <phapp.h>
 #include <phplug.h>
 #include <mainwnd.h>
-
 #include <emenu.h>
 
 #include <netlist.h>
 #include <netprv.h>
 #include <settings.h>
-
+#include <phsettings.h>
 #include <mainwndp.h>
 
 PPH_MAIN_TAB_PAGE PhMwpNetworkPage;
@@ -124,7 +123,7 @@ BOOLEAN PhMwpNetworkPageCallback(
         return TRUE;
     case MainTabPageLoadSettings:
         {
-            if (PhGetIntegerSetting(L"HideWaitingConnections"))
+            if (PhGetIntegerSetting(SETTING_HIDE_WAITING_CONNECTIONS))
                 NetworkFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), PhMwpNetworkTreeFilter, NULL);
         }
         return TRUE;
@@ -189,7 +188,7 @@ VOID PhMwpToggleNetworkWaitingConnectionTreeFilter(
 
     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
 
-    PhSetIntegerSetting(L"HideWaitingConnections", !!NetworkFilterEntry);
+    PhSetIntegerSetting(SETTING_HIDE_WAITING_CONNECTIONS, !!NetworkFilterEntry);
 }
 
 _Function_class_(PH_TN_FILTER_FUNCTION)

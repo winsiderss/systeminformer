@@ -14,6 +14,7 @@
 #include <phplug.h>
 #include <emenu.h>
 #include <settings.h>
+#include <phsettings.h>
 #include <actions.h>
 #include <phsvccl.h>
 #include <kphuser.h>
@@ -744,7 +745,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
             PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), ProcessesUpdatedCallback, NULL, &ProcessesUpdatedRegistration);
             PhpUpdateMemoryListInfo(hwndDlg);
 
-            PhLoadWindowPlacementFromSetting(L"MemoryListsWindowPosition", NULL, hwndDlg);
+            PhLoadWindowPlacementFromSetting(SETTING_MEMORY_LISTS_WINDOW_POSITION, NULL, hwndDlg);
             PhRegisterDialog(hwndDlg);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
@@ -753,7 +754,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
     case WM_DESTROY:
         {
             PhUnregisterDialog(hwndDlg);
-            PhSaveWindowPlacementToSetting(L"MemoryListsWindowPosition", NULL, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_MEMORY_LISTS_WINDOW_POSITION, NULL, hwndDlg);
 
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &ProcessesUpdatedRegistration);
 

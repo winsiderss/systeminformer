@@ -69,7 +69,7 @@ VOID EtShowUnloadedDllsDialog(
     PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_UNLOADEDDLLS),
-        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : ParentWindowHandle,
+        !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : ParentWindowHandle,
         EtpUnloadedDllsDlgProc,
         context
         );
@@ -521,7 +521,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
                 return FALSE;
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:

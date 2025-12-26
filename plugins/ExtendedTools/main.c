@@ -77,7 +77,7 @@ VOID NTAPI LoadCallback(
 {
     EtWindowsVersion = PhWindowsVersion;
     EtIsExecutingInWow64 = PhIsExecutingInWow64();
-    EtSampleCount = PhGetIntegerSetting(L"SampleCount");
+    EtSampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
 
     EtLoadSettings();
 
@@ -1103,14 +1103,14 @@ VOID EtLoadSettings(
 {
     EtLoadSettingsFirstRun();
 
-    EtUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
-    EtMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(L"MaxPrecisionUnit");
-    EtGraphShowText = !!PhGetIntegerSetting(L"GraphShowText");
-    EtEnableScaleGraph = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
-    EtEnableScaleText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
-    EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
-    EtEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
-    EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
+    EtUpdateInterval = PhGetIntegerSetting(SETTING_UPDATE_INTERVAL);
+    EtMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(SETTING_MAX_PRECISION_UNIT);
+    EtGraphShowText = !!PhGetIntegerSetting(SETTING_GRAPH_SHOW_TEXT);
+    EtEnableScaleGraph = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_SCALE);
+    EtEnableScaleText = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_TEXT);
+    EtPropagateCpuUsage = !!PhGetIntegerSetting(SETTING_PROPAGATE_CPU_USAGE);
+    EtEnableAvxSupport = !!PhGetIntegerSetting(SETTING_ENABLE_AVX_SUPPORT);
+    EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(SETTING_ICON_TRANSPARENCY_ENABLED);
     EtGpuFahrenheitEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT);
     EtNpuFahrenheitEnabled = EtGpuFahrenheitEnabled;
 }

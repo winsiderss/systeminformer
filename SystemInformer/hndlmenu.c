@@ -15,7 +15,7 @@
 #include <emenu.h>
 #include <hndlinfo.h>
 #include <kphuser.h>
-
+#include <phsettings.h>
 #include <mainwnd.h>
 #include <procprp.h>
 #include <procprv.h>
@@ -128,7 +128,7 @@ VOID PhShowHandleObjectProperties1(
         {
             PhShellExecuteUserString(
                 hWnd,
-                L"FileBrowseExecutable",
+                SETTING_FILE_BROWSE_EXECUTABLE,
                 Info->BestObjectName->Buffer,
                 FALSE,
                 L"Make sure the Explorer executable file is present."

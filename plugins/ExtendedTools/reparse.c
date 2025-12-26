@@ -1009,7 +1009,7 @@ INT_PTR CALLBACK EtFindSecurityIdsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Filename");
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             if (context->FileList)
             {
@@ -1207,7 +1207,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
                 break;
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             EnableWindow(GetDlgItem(hwndDlg, IDRETRY), FALSE);
 
@@ -1445,7 +1445,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
                                     {
                                     case ID_REPARSE_POINTS:
                                         {
-                                            if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                                            if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
                                                 hwndDlg,
                                                 L"remove",
                                                 L"the repase point",
@@ -1460,7 +1460,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
                                         break;
                                     case ID_REPARSE_OBJID:
                                         {
-                                            if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                                            if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
                                                 hwndDlg,
                                                 L"remove",
                                                 L"the object identifier",

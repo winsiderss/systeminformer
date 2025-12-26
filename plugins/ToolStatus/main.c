@@ -848,7 +848,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
                     LRESULT result = MainWindowHookProc(WindowHandle, WindowMessage, wParam, lParam);
 
                     // Query the settings.
-                    BOOLEAN isAlwaysOnTopEnabled = !!PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
+                    BOOLEAN isAlwaysOnTopEnabled = !!PhGetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP);
 
                     // Set the pressed button state.
                     SendMessage(ToolBarHandle, TB_PRESSBUTTON, (WPARAM)PHAPP_ID_VIEW_ALWAYSONTOP, (LPARAM)(MAKELONG(isAlwaysOnTopEnabled, 0)));
@@ -965,7 +965,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
                                 case PHAPP_ID_VIEW_ALWAYSONTOP:
                                     {
                                         // Set the pressed state.
-                                        if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
+                                        if (PhGetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP))
                                             menuItem->Flags |= PH_EMENU_CHECKED;
                                     }
                                     break;
@@ -1289,7 +1289,9 @@ LRESULT CALLBACK MainWindowCallbackProc(
                 HWND windowOverMouse;
                 CLIENT_ID clientId;
 
-                GetCursorPos(&cursorPos);
+                if (!PhGetCursorPos(&cursorPos))
+                    break;
+
                 windowOverMouse = WindowFromPoint(cursorPos);
 
                 if (TargetingCurrentWindow != windowOverMouse)
@@ -1302,10 +1304,11 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
                     if (windowOverMouse)
                     {
-                        PhGetWindowClientId(windowOverMouse, &clientId);
-
                         // Draw a rectangle over the current window (but not if it's one of our own).
-                        if (clientId.UniqueProcess != NtCurrentProcessId())
+                        if (
+                            NT_SUCCESS(PhGetWindowClientId(windowOverMouse, &clientId)) &&
+                            clientId.UniqueProcess != NtCurrentProcessId()
+                            )
                         {
                             DrawWindowBorderForTargeting(windowOverMouse);
                             TargetingCurrentWindowDraw = TRUE;
@@ -1335,7 +1338,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
                 PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 // Bring the window back to the top, and preserve the Always on Top setting.
-                SetWindowPos(WindowHandle, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,
+                SetWindowPos(WindowHandle, PhGetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP) ? HWND_TOPMOST : HWND_TOP,
                     0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 
                 TargetingWindow = FALSE;
@@ -1357,10 +1360,10 @@ LRESULT CALLBACK MainWindowCallbackProc(
                             TargetingCurrentWindow = hungWindow;
                     }
 
-                    if (!NT_SUCCESS(PhGetWindowClientId(TargetingCurrentWindow, &clientId)))
-                        break;
-
-                    if (clientId.UniqueThread && clientId.UniqueProcess && clientId.UniqueProcess != NtCurrentProcessId())
+                    if (
+                        NT_SUCCESS(PhGetWindowClientId(TargetingCurrentWindow, &clientId)) &&
+                        clientId.UniqueProcess != NtCurrentProcessId()
+                        )
                     {
                         PPH_PROCESS_NODE processNode;
 
@@ -1442,7 +1445,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
                     }
                 }
 
-                SetWindowPos(WindowHandle, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,
+                SetWindowPos(WindowHandle, PhGetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP) ? HWND_TOPMOST : HWND_TOP,
                     0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 
                 TargetingWindow = FALSE;
@@ -1725,9 +1728,9 @@ VOID UpdateCachedSettings(
     VOID
     )
 {
-    IconSingleClick = !!PhGetIntegerSetting(L"IconSingleClick");
-    EnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
-    EnableGraphMaxScale = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
+    IconSingleClick = !!PhGetIntegerSetting(SETTING_ICON_SINGLE_CLICK);
+    EnableAvxSupport = !!PhGetIntegerSetting(SETTING_ENABLE_AVX_SUPPORT);
+    EnableGraphMaxScale = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_SCALE);
 
     if (ToolbarInitialized)
     {
@@ -1746,8 +1749,8 @@ VOID NTAPI LoadCallback(
     SearchBoxDisplayMode = PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
     TaskbarListIconType = PhGetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE);
     RestoreRowAfterSearch = !!PhGetIntegerSetting(SETTING_NAME_RESTOREROWAFTERSEARCH);
-    EnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
-    UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
+    EnableThemeSupport = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
+    UpdateGraphs = !PhGetIntegerSetting(SETTING_START_HIDDEN);
 
     // Note: The initialization delay improves performance during application
     // launch and was made configurable per feature request. (dmex)

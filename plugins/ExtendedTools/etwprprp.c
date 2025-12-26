@@ -508,7 +508,7 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -574,7 +574,7 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
                     if (header->hwndFrom == context->DiskReadGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), 0, context->WindowDpi);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER), 0, context->WindowDpi);
                         PhGraphStateGetDrawInfo(&context->DiskReadGraphState, getDrawInfo, context->Block->DiskReadHistory.Count);
 
                         if (!context->DiskReadGraphState.Valid)
@@ -641,7 +641,7 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
                     else if (header->hwndFrom == context->DiskWriteGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, context->WindowDpi);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), 0, context->WindowDpi);
                         PhGraphStateGetDrawInfo(&context->DiskWriteGraphState, getDrawInfo, context->Block->DiskWriteHistory.Count);
 
                         if (!context->DiskWriteGraphState.Valid)
@@ -841,7 +841,7 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -907,7 +907,7 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
                     if (header->hwndFrom == context->NetworkReceiveGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), 0, context->WindowDpi);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER), 0, context->WindowDpi);
                         PhGraphStateGetDrawInfo(&context->NetworkReceiveGraphState, getDrawInfo, context->Block->NetworkReceiveHistory.Count);
 
                         if (!context->NetworkReceiveGraphState.Valid)
@@ -974,7 +974,7 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
                     else if (header->hwndFrom == context->NetworkSendGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, context->WindowDpi);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), 0, context->WindowDpi);
                         PhGraphStateGetDrawInfo(&context->NetworkSendGraphState, getDrawInfo, context->Block->NetworkSendHistory.Count);
 
                         if (!context->NetworkSendGraphState.Valid)

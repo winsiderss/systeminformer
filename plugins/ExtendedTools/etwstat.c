@@ -73,7 +73,7 @@ VOID EtEtwStatisticsInitialization(
 {
     ULONG sampleCount;
 
-    sampleCount = PhGetIntegerSetting(L"SampleCount");
+    sampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
     PhInitializeCircularBuffer_ULONG(&EtDiskReadHistory, sampleCount);
     PhInitializeCircularBuffer_ULONG(&EtDiskWriteHistory, sampleCount);
     PhInitializeCircularBuffer_ULONG(&EtNetworkReceiveHistory, sampleCount);

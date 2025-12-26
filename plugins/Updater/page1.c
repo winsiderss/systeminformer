@@ -54,7 +54,7 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
             {
                 context->Channel = channel;
                 context->SwitchingChannel = TRUE;
-                PhSetIntegerSetting(L"ReleaseChannel", channel);
+                PhSetIntegerSetting(SETTING_RELEASE_CHANNEL, channel);
             }
         }
         break;

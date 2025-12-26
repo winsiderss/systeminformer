@@ -394,7 +394,7 @@ VOID RaplDeviceNotifyProcessorGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->ProcessorGraphState, getDrawInfo, Context->DeviceEntry->PackageBuffer.Count);
 
             if (!Context->ProcessorGraphState.Valid)
@@ -464,7 +464,7 @@ VOID RaplDeviceNotifyPackageGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PHYSICAL), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->CoreGraphState, getDrawInfo, Context->DeviceEntry->CoreBuffer.Count);
 
             if (!Context->CoreGraphState.Valid)
@@ -532,7 +532,7 @@ VOID RaplDeviceNotifyDimmGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->DimmGraphState, getDrawInfo, Context->DeviceEntry->DimmBuffer.Count);
 
             if (!Context->DimmGraphState.Valid)
@@ -602,7 +602,7 @@ VOID RaplDeviceNotifyTotalGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PRIVATE), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->TotalGraphState, getDrawInfo, Context->DeviceEntry->TotalBuffer.Count);
 
             if (!Context->TotalGraphState.Valid)
@@ -895,7 +895,7 @@ BOOLEAN RaplDeviceSectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, context->SysinfoSection->Parameters->WindowDpi);
+            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PRIVATE), 0, context->SysinfoSection->Parameters->WindowDpi);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->DeviceEntry->TotalBuffer.Count);
 
             if (!Section->GraphState.Valid)

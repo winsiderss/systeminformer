@@ -50,7 +50,7 @@ VOID NTAPI LoadSettings(
 {
     NetAdapterEnableNdis = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS);
     NetWindowsVersion = PhWindowsVersion;
-    NetUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
+    NetUpdateInterval = PhGetIntegerSetting(SETTING_UPDATE_INTERVAL);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)

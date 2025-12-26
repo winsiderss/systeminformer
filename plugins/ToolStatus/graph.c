@@ -733,8 +733,8 @@ BOOLEAN CpuHistoryGraphMessageCallback(
             if (graph->GraphDpi == 0)
             {
                 graph->GraphDpi = SystemInformer_GetWindowDpi();
-                graph->GraphColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
-                graph->GraphColor2 = PhGetIntegerSetting(L"ColorCpuUser");
+                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL);
+                graph->GraphColor2 = PhGetIntegerSetting(SETTING_COLOR_CPU_USER);
             }
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
@@ -837,7 +837,7 @@ BOOLEAN PhysicalHistoryGraphMessageCallback(
             if (graph->GraphDpi == 0)
             {
                 graph->GraphDpi = SystemInformer_GetWindowDpi();
-                graph->GraphColor1 = PhGetIntegerSetting(L"ColorPhysical");
+                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_PHYSICAL);
             }
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
@@ -940,7 +940,7 @@ BOOLEAN CommitHistoryGraphMessageCallback(
             if (graph->GraphDpi == 0)
             {
                 graph->GraphDpi = SystemInformer_GetWindowDpi();
-                graph->GraphColor1 = PhGetIntegerSetting(L"ColorPrivate");
+                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_PRIVATE);
             }
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
@@ -1043,8 +1043,8 @@ BOOLEAN IoHistoryGraphMessageCallback(
             if (graph->GraphDpi == 0)
             {
                 graph->GraphDpi = SystemInformer_GetWindowDpi();
-                graph->GraphColor1 = PhGetIntegerSetting(L"ColorIoReadOther");
-                graph->GraphColor2 = PhGetIntegerSetting(L"ColorIoWrite");
+                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER);
+                graph->GraphColor2 = PhGetIntegerSetting(SETTING_COLOR_IO_WRITE);
             }
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;

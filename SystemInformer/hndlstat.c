@@ -44,54 +44,70 @@ VOID PhShowHandleStatisticsDialog(
     )
 {
     NTSTATUS status;
-    HANDLE_STATISTICS_CONTEXT context;
-    ULONG i;
+    PHANDLE_STATISTICS_CONTEXT context;
+    PSYSTEM_HANDLE_INFORMATION_EX handleInfo;
+    HANDLE processHandle;
 
-    memset(&context, 0, sizeof(HANDLE_STATISTICS_CONTEXT));
-    context.ProcessId = ProcessId;
-
-    if (!NT_SUCCESS(status = PhOpenProcess(
-        &context.ProcessHandle,
+    status = PhOpenProcess(
+        &processHandle,
         PROCESS_DUP_HANDLE,
         ProcessId
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
     {
         PhShowStatus(ParentWindowHandle, L"Unable to open the process", status, 0);
         return;
     }
 
     status = PhEnumHandlesGeneric(
-        context.ProcessId,
-        context.ProcessHandle,
+        ProcessId,
+        processHandle,
         !!PhCsEnableHandleSnapshot,
-        &context.Handles
+        &handleInfo
         );
 
     if (!NT_SUCCESS(status))
     {
-        NtClose(context.ProcessHandle);
+        NtClose(processHandle);
         PhShowStatus(ParentWindowHandle, L"Unable to enumerate process handles", status, 0);
         return;
     }
 
-    memset(&context.Entries, 0, sizeof(context.Entries));
+    context = PhAllocateZero(sizeof(HANDLE_STATISTICS_CONTEXT));
+    context->ProcessId = ProcessId;
+    context->ProcessHandle = processHandle;
+    context->Handles = handleInfo;
 
     PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_HANDLESTATS),
         ParentWindowHandle,
         PhpHandleStatisticsDlgProc,
-        &context
+        context
         );
+}
 
-    for (i = 0; i < MAX_OBJECT_TYPE_NUMBER; i++)
+void PhDestroyHandleStatistics(
+    _In_ PHANDLE_STATISTICS_CONTEXT Context)
+{
+    for (ULONG i = 0; i < MAX_OBJECT_TYPE_NUMBER; i++)
     {
-        if (context.Entries[i].Name)
-            PhDereferenceObject(context.Entries[i].Name);
+        if (Context->Entries[i].Name)
+        {
+            PhDereferenceObject(Context->Entries[i].Name);
+        }
     }
 
-    PhFree(context.Handles);
-    NtClose(context.ProcessHandle);
+    if (Context->Handles)
+    {
+        PhFree(Context->Handles);
+    }
+
+    if (Context->ProcessHandle)
+    {
+        NtClose(Context->ProcessHandle);
+    }
 }
 
 static LONG NTAPI PhpTypeCountCompareFunction(
@@ -146,15 +162,15 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
 
             PhSetExtendedListView(context->ListViewHandle);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, PhpTypeCountCompareFunction);
-            PhLoadListViewColumnsFromSetting(L"HandleStatisticsListViewColumns", context->ListViewHandle);
-            PhLoadListViewSortColumnsFromSetting(L"HandleStatisticsListViewSort", context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_HANDLE_STATISTICS_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhLoadListViewSortColumnsFromSetting(SETTING_HANDLE_STATISTICS_LIST_VIEW_SORT, context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            if (PhValidWindowPlacementFromSetting(L"HandleStatisticsWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"HandleStatisticsWindowPosition", L"HandleStatisticsWindowSize", hwndDlg);
+            if (PhValidWindowPlacementFromSetting(SETTING_HANDLE_STATISTICS_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_HANDLE_STATISTICS_WINDOW_POSITION, SETTING_HANDLE_STATISTICS_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
@@ -242,9 +258,11 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewSortColumnsToSetting(L"HandleStatisticsListViewSort", context->ListViewHandle);
-            PhSaveListViewColumnsToSetting(L"HandleStatisticsListViewColumns", context->ListViewHandle);
-            PhSaveWindowPlacementToSetting(L"HandleStatisticsWindowPosition", L"HandleStatisticsWindowSize", hwndDlg);
+            PhDestroyHandleStatistics(context);
+
+            PhSaveListViewSortColumnsToSetting(SETTING_HANDLE_STATISTICS_LIST_VIEW_SORT, context->ListViewHandle);
+            PhSaveListViewColumnsToSetting(SETTING_HANDLE_STATISTICS_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhSaveWindowPlacementToSetting(SETTING_HANDLE_STATISTICS_WINDOW_POSITION, SETTING_HANDLE_STATISTICS_WINDOW_SIZE, hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 

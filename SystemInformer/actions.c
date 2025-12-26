@@ -125,7 +125,6 @@ BOOLEAN PhpShowElevatePrompt(
  * \param WindowHandle The window to display user interface components on.
  * \param Connected A variable which receives TRUE if the elevated
  * action succeeded or FALSE if the action failed.
- *
  * \return TRUE if the user was prompted for elevation, otherwise
  * FALSE, in which case you need to show your own error message.
  */
@@ -1474,7 +1473,6 @@ BOOLEAN PhIsTerminalServerSystemProcess(
  * FALSE to always show the confirmation dialog.
  * \param Processes An array of pointers to process items.
  * \param NumberOfProcesses The number of process items.
- *
  * \return TRUE if the user wants to proceed with the operation,
  * otherwise FALSE.
  */

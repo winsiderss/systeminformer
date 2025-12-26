@@ -2058,8 +2058,8 @@ ULONG EtFwMonitorInitialize(
     FWPM_NET_EVENT_ENUM_TEMPLATE enumTemplate;
     FWPM_NET_EVENT_SUBSCRIPTION subscription;
 
-    EtFwEnableResolveCache = !!PhGetIntegerSetting(L"EnableNetworkResolve");
-    EtFwEnableResolveDoH = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
+    EtFwEnableResolveCache = !!PhGetIntegerSetting(SETTING_ENABLE_NETWORK_RESOLVE);
+    EtFwEnableResolveDoH = !!PhGetIntegerSetting(SETTING_ENABLE_NETWORK_RESOLVE_DOH);
     EtFwIgnorePortScan = !!PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_PORTSCAN);
     EtFwIgnoreLoopback = !!PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_LOOPBACK);
     EtFwIgnoreAllow = !!PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_ALLOW);

@@ -351,7 +351,7 @@ VOID DiskDeviceNotifyReadGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER), 0, Context->SysinfoSection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &Context->GraphWriteState,
@@ -437,7 +437,7 @@ VOID DiskDeviceNotifyWriteGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), 0, Context->SysinfoSection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &Context->GraphReadState,
@@ -657,7 +657,7 @@ NTSTATUS DiskDeviceQueryNameWorkQueueItem(
     PhDelayExecution(4000);
 #endif
 
-    InterlockedExchange(&DiskEntry->JustProcessed, TRUE);
+    InterlockedExchange((volatile LONG*)&DiskEntry->JustProcessed, TRUE);
     DiskEntry->PendingQuery = FALSE;
 
     PhDereferenceObject(DiskEntry);
@@ -704,7 +704,7 @@ BOOLEAN DiskDeviceSectionCallback(
                 if (context->DiskEntry->JustProcessed)
                 {
                     DiskDeviceUpdateTitle(context);
-                    InterlockedExchange(&context->DiskEntry->JustProcessed, FALSE);
+                    InterlockedExchange((volatile LONG*)&context->DiskEntry->JustProcessed, FALSE);
                 }
 
                 DiskDeviceTickDialog(context);
@@ -749,7 +749,7 @@ BOOLEAN DiskDeviceSectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), context->SysinfoSection->Parameters->WindowDpi);
+            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER), PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), context->SysinfoSection->Parameters->WindowDpi);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->DiskEntry->ReadBuffer.Count);
 
             if (!Section->GraphState.Valid)

@@ -130,7 +130,7 @@ VOID PhPinMiniInformation(
             if (PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_PINNED))
                 PhMipSetPinned(TRUE, TRUE);
 
-            PhMipRefreshAutomatically = PhGetIntegerSetting(L"MiniInfoWindowRefreshAutomatically");
+            PhMipRefreshAutomatically = PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_REFRESH_AUTOMATICALLY);
 
             opacity = PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_OPACITY);
 
@@ -159,7 +159,7 @@ VOID PhPinMiniInformation(
         }
         else
         {
-            PhLoadWindowPlacementFromSetting(L"MiniInfoWindowPosition", L"MiniInfoWindowSize", PhMipContainerWindow);
+            PhLoadWindowPlacementFromSetting(SETTING_MINI_INFO_WINDOW_POSITION, SETTING_MINI_INFO_WINDOW_SIZE, PhMipContainerWindow);
             SetWindowPos(PhMipContainerWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
         }
 
@@ -323,8 +323,8 @@ RTL_ATOM PhMipContainerInitializeWindowClass(
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.lpfnWndProc = PhMipContainerWndProc;
     wcex.hInstance = PhInstanceHandle;
-    name = PhaGetStringSetting(L"MiniInfoContainerClassName");
-    wcex.lpszClassName = PhGetStringOrDefault(name, L"MiniInfoContainerClassName");
+    name = PhaGetStringSetting(SETTING_MINI_INFO_CONTAINER_CLASS_NAME);
+    wcex.lpszClassName = PhGetStringOrDefault(name, SETTING_MINI_INFO_CONTAINER_CLASS_NAME);
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
 
     return RegisterClassEx(&wcex);
@@ -371,7 +371,7 @@ VOID PhMipContainerOnShowWindow(
             PhMipMessageLoopFilterEntry = NULL;
         }
 
-        PhSaveWindowPlacementToSetting(L"MiniInfoWindowPosition", L"MiniInfoWindowSize", PhMipContainerWindow);
+        PhSaveWindowPlacementToSetting(SETTING_MINI_INFO_WINDOW_POSITION, SETTING_MINI_INFO_WINDOW_SIZE, PhMipContainerWindow);
     }
 
     if (SectionList)
@@ -422,7 +422,7 @@ VOID PhMipContainerOnExitSizeMove(
     VOID
     )
 {
-    PhSaveWindowPlacementToSetting(L"MiniInfoWindowPosition", L"MiniInfoWindowSize", PhMipContainerWindow);
+    PhSaveWindowPlacementToSetting(SETTING_MINI_INFO_WINDOW_POSITION, SETTING_MINI_INFO_WINDOW_SIZE, PhMipContainerWindow);
 }
 
 BOOLEAN PhMipContainerOnEraseBkgnd(
@@ -695,7 +695,7 @@ VOID PhMipCalculateWindowRectangle(
     PH_RECTANGLE point;
     MONITORINFO monitorInfo = { sizeof(monitorInfo) };
 
-    PhLoadWindowPlacementFromSetting(NULL, L"MiniInfoWindowSize", PhMipContainerWindow);
+    PhLoadWindowPlacementFromSetting(NULL, SETTING_MINI_INFO_WINDOW_SIZE, PhMipContainerWindow);
     PhGetWindowRect(PhMipContainerWindow, &windowRect);
     SendMessage(PhMipContainerWindow, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&windowRect); // Adjust for the minimum size.
     PhRectToRectangle(&windowRectangle, &windowRect);
@@ -1042,7 +1042,7 @@ VOID PhMipToggleRefreshAutomatically(
     )
 {
     PhMipRefreshAutomatically ^= MIP_REFRESH_AUTOMATICALLY_FLAG(PhMipPinned);
-    PhSetIntegerSetting(L"MiniInfoWindowRefreshAutomatically", PhMipRefreshAutomatically);
+    PhSetIntegerSetting(SETTING_MINI_INFO_WINDOW_REFRESH_AUTOMATICALLY, PhMipRefreshAutomatically);
 }
 
 VOID PhMipSetPinned(

@@ -550,7 +550,7 @@ VOID StatusBarUpdate(
 
                 if (UpdateAutomatically)
                 {
-                    switch (PhGetIntegerSetting(L"UpdateInterval"))
+                    switch (PhGetIntegerSetting(SETTING_UPDATE_INTERVAL))
                     {
                     case 500:
                         PhInitFormatS(&format[0], L"Interval: Fast");

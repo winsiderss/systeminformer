@@ -533,7 +533,7 @@ INT_PTR CALLBACK TextDlgProc(
             //PhSetWindowText(GetDlgItem(hwndDlg, IDC_TEXT), PhGetString(context->BuildMessage));
             PhCreateThread2(PhpUpdaterQueryCommitHistoryThread, hwndDlg);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -667,7 +667,7 @@ INT_PTR CALLBACK TextDlgProc(
                                         if (PhEqualString(commitHash, shortCommitHash, TRUE))
                                         {
                                             newFont = context->ListViewBoldFont;
-                                            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                                            if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
                                                 customDraw->clrText = RGB(125, 125, 125);
                                             else
                                                 customDraw->clrText = GetSysColor(COLOR_WINDOWTEXT);

@@ -21,7 +21,7 @@ BOOLEAN EtUiCancelIoThread(
     HANDLE threadHandle;
     IO_STATUS_BLOCK isb;
 
-    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+    if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
         hWnd,
         L"end",
         L"I/O for the selected thread",

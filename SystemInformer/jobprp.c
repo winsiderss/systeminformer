@@ -18,6 +18,7 @@
 #include <hndlinfo.h>
 #include <secedit.h>
 #include <settings.h>
+#include <phsettings.h>
 
 #define MSG_UPDATE (WM_APP + 1)
 
@@ -237,7 +238,7 @@ INT_PTR CALLBACK PhpJobPageProc(
             PhAddListViewColumn(processesLv, 0, 0, 0, LVCFMT_LEFT, 240, L"Name");
             PhAddListViewColumn(limitsLv, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(limitsLv, 1, 1, 1, LVCFMT_LEFT, 160, L"Value");
-            PhLoadListViewColumnsFromSetting(L"JobListViewColumns", limitsLv);
+            PhLoadListViewColumnsFromSetting(SETTING_JOB_LIST_VIEW_COLUMNS, limitsLv);
 
             PhSetDialogItemText(hwndDlg, IDC_NAME, L"Unknown");
 
@@ -398,7 +399,7 @@ INT_PTR CALLBACK PhpJobPageProc(
         }
         break;
     case WM_DESTROY:
-        PhSaveListViewColumnsToSetting(L"JobListViewColumns", GetDlgItem(hwndDlg, IDC_LIMITS));
+        PhSaveListViewColumnsToSetting(SETTING_JOB_LIST_VIEW_COLUMNS, GetDlgItem(hwndDlg, IDC_LIMITS));
         break;
     case WM_SHOWWINDOW:
         {

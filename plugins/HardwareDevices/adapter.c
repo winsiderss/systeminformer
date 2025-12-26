@@ -94,8 +94,6 @@ VOID NetworkDevicesUpdate(
             NDIS_STATISTICS_INFO interfaceStats;
             NDIS_LINK_STATE interfaceState;
 
-            memset(&interfaceStats, 0, sizeof(NDIS_STATISTICS_INFO));
-
             if (NT_SUCCESS(NetworkAdapterQueryStatistics(deviceHandle, &interfaceStats)))
             {
                 if (FlagOn(interfaceStats.SupportedStatistics, NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
@@ -348,7 +346,7 @@ PDV_NETADAPTER_ENTRY CreateNetAdapterEntry(
     entry = PhCreateObjectZero(sizeof(DV_NETADAPTER_ENTRY), NetworkDeviceEntryType);
     CopyNetAdapterId(&entry->AdapterId, Id);
 
-    sampleCount = PhGetIntegerSetting(L"SampleCount");
+    sampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
     PhInitializeCircularBuffer_ULONG64(&entry->InboundBuffer, sampleCount);
     PhInitializeCircularBuffer_ULONG64(&entry->OutboundBuffer, sampleCount);
 

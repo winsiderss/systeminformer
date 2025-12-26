@@ -75,15 +75,15 @@ BOOLEAN EtpDiskPageCallback(
             ULONG treelistCustomColors;
             PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
 
-            thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
-            treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !!PhGetIntegerSetting(L"TreeListBorderEnable")) ? WS_BORDER : 0;
-            treelistCustomColors =  PhGetIntegerSetting(L"TreeListCustomColorsEnable") ? TN_STYLE_CUSTOM_COLORS : 0;
+            thinRows = PhGetIntegerSetting(SETTING_THIN_ROWS) ? TN_STYLE_THIN_ROWS : 0;
+            treelistBorder = (PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE) && !!PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE)) ? WS_BORDER : 0;
+            treelistCustomColors =  PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLORS_ENABLE) ? TN_STYLE_CUSTOM_COLORS : 0;
 
             if (treelistCustomColors)
             {
-                treelistCreateParams.TextColor = PhGetIntegerSetting(L"TreeListCustomColorText");
-                treelistCreateParams.FocusColor = PhGetIntegerSetting(L"TreeListCustomColorFocus");
-                treelistCreateParams.SelectionColor = PhGetIntegerSetting(L"TreeListCustomColorSelection");
+                treelistCreateParams.TextColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_TEXT);
+                treelistCreateParams.FocusColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_FOCUS);
+                treelistCreateParams.SelectionColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_SELECTION);
             }
 
             hwnd = CreateWindow(
@@ -103,7 +103,7 @@ BOOLEAN EtpDiskPageCallback(
             if (!hwnd)
                 return FALSE;
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
             {
                 PhInitializeWindowTheme(hwnd, TRUE); // HACK (dmex)
                 TreeNew_ThemeSupport(hwnd, TRUE);
@@ -265,7 +265,7 @@ VOID EtInitializeDiskTreeList(
 {
     DiskTreeNewHandle = WindowHandle;
 
-    PhSetControlTheme(DiskTreeNewHandle, !PhGetIntegerSetting(L"EnableThemeSupport") ? L"explorer" : L"DarkMode_Explorer");
+    PhSetControlTheme(DiskTreeNewHandle, !PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT) ? L"explorer" : L"DarkMode_Explorer");
     TreeNew_SetRedraw(WindowHandle, FALSE);
     SendMessage(TreeNew_GetTooltips(DiskTreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
     TreeNew_SetCallback(WindowHandle, EtpDiskTreeNewCallback, NULL);
@@ -1063,7 +1063,7 @@ VOID EtHandleDiskCommand(
                 {
                     PhShellExecuteUserString(
                         WindowHandle,
-                        L"ProgramInspectExecutables",
+                        SETTING_PROGRAM_INSPECT_EXECUTABLES,
                         fileName->Buffer,
                         FALSE,
                         L"Make sure the PE Viewer executable file is present."
@@ -1360,7 +1360,7 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
 //                ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
 //            }
 //
-//            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+//            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 //        }
 //        break;
 //    case WM_COMMAND:

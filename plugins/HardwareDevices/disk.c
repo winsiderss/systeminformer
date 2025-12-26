@@ -278,7 +278,7 @@ PDV_DISK_ENTRY CreateDiskEntry(
     entry->DiskIndex = ULONG_MAX;
     CopyDiskId(&entry->Id, Id);
 
-    sampleCount = PhGetIntegerSetting(L"SampleCount");
+    sampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
     PhInitializeCircularBuffer_ULONG64(&entry->ReadBuffer, sampleCount);
     PhInitializeCircularBuffer_ULONG64(&entry->WriteBuffer, sampleCount);
 

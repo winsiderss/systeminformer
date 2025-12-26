@@ -279,8 +279,8 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
                 ExtendedListView_SetColumnWidth(context->GeneralListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
             }
 
-            if (!!PhGetIntegerSetting(L"EnableThemeSupport")) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            if (!!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)) // TODO: Required for compat (dmex)
+                PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
             else
                 PhInitializeWindowTheme(hwndDlg, FALSE);
         }
@@ -685,7 +685,7 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
 
             DeviceInitializePropsPage(hwndDlg, context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -859,7 +859,7 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
 
             DeviceInitializeInterfacesPage(hwndDlg, context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -987,7 +987,7 @@ INT_PTR CALLBACK DevicePropResourcesDlgProc(
                 PhSetListViewSubItem(context->ResourcesListViewHandle, lvItemIndex, 1, PhGetString(resource->Setting));
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:

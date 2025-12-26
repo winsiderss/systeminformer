@@ -127,9 +127,9 @@ VOID PhLoadSettingsMemoryList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    flags = PhGetIntegerSetting(L"MemoryListFlags");
-    settings = PhGetStringSetting(L"MemoryTreeListColumns");
-    sortSettings = PhGetStringSetting(L"MemoryTreeListSort");
+    flags = PhGetIntegerSetting(SETTING_MEMORY_LIST_FLAGS);
+    settings = PhGetStringSetting(SETTING_MEMORY_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_MEMORY_TREE_LIST_SORT);
 
     Context->Flags = flags;
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
@@ -147,9 +147,9 @@ VOID PhSaveSettingsMemoryList(
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
-    PhSetIntegerSetting(L"MemoryListFlags", Context->Flags);
-    PhSetStringSetting2(L"MemoryTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"MemoryTreeListSort", &sortSettings->sr);
+    PhSetIntegerSetting(SETTING_MEMORY_LIST_FLAGS, Context->Flags);
+    PhSetStringSetting2(SETTING_MEMORY_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_MEMORY_TREE_LIST_SORT, &sortSettings->sr);
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);

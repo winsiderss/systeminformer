@@ -4274,7 +4274,7 @@ INT_PTR CALLBACK EtSMBIOSDlgProc(
 
             EtEnumerateSMBIOSEntries(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:

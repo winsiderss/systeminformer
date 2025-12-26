@@ -594,7 +594,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         ULONG telemetryCoverageData32;
         ULONG leapSecondData32;
 #endif
-        if (PhGetIntegerSetting(L"EnableHeapMemoryTagging"))
+        if (PhGetIntegerSetting(SETTING_ENABLE_HEAP_MEMORY_TAGGING))
         {
             PhpUpdateHeapRegions(List);
         }

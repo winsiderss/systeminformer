@@ -432,7 +432,7 @@ VOID ToolbarLoadSettings(
             case PHAPP_ID_VIEW_ALWAYSONTOP:
                 {
                     // Set the pressed state
-                    if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
+                    if (PhGetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP))
                     {
                         SetFlag(buttonInfo.fsState, TBSTATE_PRESSED);
                     }

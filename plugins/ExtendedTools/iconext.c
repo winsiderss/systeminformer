@@ -172,7 +172,7 @@ VOID EtLoadTrayIconGuids(
     VOID
     )
 {
-    if (PhGetIntegerSetting(L"IconTrayPersistGuidEnabled"))
+    if (PhGetIntegerSetting(SETTING_ICON_TRAY_PERSIST_GUID_ENABLED))
     {
         PPH_STRING settingsString = NULL;
         PH_STRINGREF remaining;
@@ -435,7 +435,7 @@ VOID EtpGpuIconUpdateCallback(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL);
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
@@ -555,7 +555,7 @@ VOID EtpNpuIconUpdateCallback(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL);
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
@@ -692,8 +692,8 @@ VOID EtpDiskIconUpdateCallback(
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineData2 = lineData2;
-    drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorIoReadOther");
-    drawInfo.LineColor2 = PhGetIntegerSetting(L"ColorIoWrite");
+    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER);
+    drawInfo.LineColor2 = PhGetIntegerSetting(SETTING_COLOR_IO_WRITE);
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
@@ -847,8 +847,8 @@ VOID EtpNetworkIconUpdateCallback(
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineData2 = lineData2;
-    drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorIoReadOther");
-    drawInfo.LineColor2 = PhGetIntegerSetting(L"ColorIoWrite");
+    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER);
+    drawInfo.LineColor2 = PhGetIntegerSetting(SETTING_COLOR_IO_WRITE);
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
@@ -955,7 +955,7 @@ VOID EtpGpuTextIconUpdateCallback(
     text = PhFormat(format, 1, 0);
 
     drawInfo.TextFont = PhNfGetTrayIconFont(0);
-    drawInfo.TextColor = PhGetIntegerSetting(L"ColorCpuKernel");
+    drawInfo.TextColor = PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL);
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
@@ -1041,7 +1041,7 @@ VOID EtpDiskTextIconUpdateCallback(
     text = PhFormat(format, 1, 0);
 
     drawInfo.TextFont = PhNfGetTrayIconFont(0);
-    drawInfo.TextColor = PhGetIntegerSetting(L"ColorIoReadOther"); // ColorIoWrite
+    drawInfo.TextColor = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER); // ColorIoWrite
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
@@ -1125,7 +1125,7 @@ VOID EtpNetworkTextIconUpdateCallback(
     text = PhFormat(format, 1, 0);
 
     drawInfo.TextFont = PhNfGetTrayIconFont(0);
-    drawInfo.TextColor = PhGetIntegerSetting(L"ColorIoReadOther"); // ColorIoWrite
+    drawInfo.TextColor = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER); // ColorIoWrite
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
@@ -1224,7 +1224,7 @@ VOID EtpGpuMemoryIconUpdateCallback(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorPrivate");
+    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_PRIVATE);
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
@@ -1285,7 +1285,7 @@ VOID EtpGpuMemoryTextIconUpdateCallback(
     text = PhFormat(format, 1, 0);
 
     drawInfo.TextFont = PhNfGetTrayIconFont(0);
-    drawInfo.TextColor = PhGetIntegerSetting(L"ColorPrivate");
+    drawInfo.TextColor = PhGetIntegerSetting(SETTING_COLOR_PRIVATE);
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
@@ -1362,7 +1362,7 @@ VOID EtpGpuTemperatureIconUpdateCallback(
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorTemperature");
+    drawInfo.LineColor1 = PhGetIntegerSetting(SETTING_COLOR_TEMPERATURE);
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
@@ -1435,7 +1435,7 @@ VOID EtpGpuTemperatureTextIconUpdateCallback(
     text = PhFormat(format, 1, 0);
 
     drawInfo.TextFont = PhNfGetTrayIconFont(0);
-    drawInfo.TextColor = PhGetIntegerSetting(L"ColorTemperature");
+    drawInfo.TextColor = PhGetIntegerSetting(SETTING_COLOR_TEMPERATURE);
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
@@ -1487,7 +1487,7 @@ BOOLEAN EtpToolbarGpuHistoryGraphMessageCallback(
             if (graph->GraphDpi == 0)
             {
                 graph->GraphDpi = PhGetWindowDpi(WindowHandle);
-                graph->GraphColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL);
             }
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
@@ -1587,7 +1587,7 @@ BOOLEAN EtpToolbarNpuHistoryGraphMessageCallback(
             if (graph->GraphDpi == 0)
             {
                 graph->GraphDpi = PhGetWindowDpi(WindowHandle);
-                graph->GraphColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL);
             }
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
@@ -1687,8 +1687,8 @@ BOOLEAN EtpToolbarDiskHistoryGraphMessageCallback(
             if (graph->GraphDpi == 0)
             {
                 graph->GraphDpi = PhGetWindowDpi(WindowHandle);
-                graph->GraphColor1 = PhGetIntegerSetting(L"ColorIoReadOther");
-                graph->GraphColor2 = PhGetIntegerSetting(L"ColorIoWrite");
+                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER);
+                graph->GraphColor2 = PhGetIntegerSetting(SETTING_COLOR_IO_WRITE);
             }
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
@@ -1842,8 +1842,8 @@ BOOLEAN EtpToolbarNetworkHistoryGraphMessageCallback(
             if (graph->GraphDpi == 0)
             {
                 graph->GraphDpi = PhGetWindowDpi(WindowHandle);
-                graph->GraphColor1 = PhGetIntegerSetting(L"ColorIoReadOther");
-                graph->GraphColor2 = PhGetIntegerSetting(L"ColorIoWrite");
+                graph->GraphColor1 = PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER);
+                graph->GraphColor2 = PhGetIntegerSetting(SETTING_COLOR_IO_WRITE);
             }
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;

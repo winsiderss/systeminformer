@@ -862,7 +862,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
             PhSetDialogFocus(hwndDlg, context->TreeNewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -1273,7 +1273,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,
-                                L"ProgramInspectExecutables",
+                                SETTING_PROGRAM_INSPECT_EXECUTABLES,
                                 PhGetString(selectedNode->FileNameWin32),
                                 FALSE,
                                 L"Make sure the PE Viewer executable file is present."
@@ -1295,7 +1295,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,
-                                L"FileBrowseExecutable",
+                                SETTING_FILE_BROWSE_EXECUTABLE,
                                 PhGetString(selectedNode->FileNameWin32),
                                 FALSE,
                                 L"Make sure the Explorer executable file is present."
@@ -1633,7 +1633,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
             WepRefreshWindows(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -1988,7 +1988,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,
-                                L"ProgramInspectExecutables",
+                                SETTING_PROGRAM_INSPECT_EXECUTABLES,
                                 PhGetString(selectedNode->FileNameWin32),
                                 FALSE,
                                 L"Make sure the PE Viewer executable file is present."
@@ -2010,7 +2010,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,
-                                L"FileBrowseExecutable",
+                                SETTING_FILE_BROWSE_EXECUTABLE,
                                 PhGetString(selectedNode->FileNameWin32),
                                 FALSE,
                                 L"Make sure the Explorer executable file is present."
