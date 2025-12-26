@@ -990,10 +990,10 @@ namespace CustomBuildTool
 
     public class GithubReleasesRequest
     {
-        [JsonPropertyName("tag_name")] 
+        [JsonPropertyName("tag_name")]
         public string ReleaseTag { get; init; }
 
-        [JsonPropertyName("target_commitish")] 
+        [JsonPropertyName("target_commitish")]
         public string Branch { get; init; }
 
         [JsonPropertyName("name")]
@@ -1002,13 +1002,13 @@ namespace CustomBuildTool
         [JsonPropertyName("body")]
         public string Description { get; init; }
 
-        [JsonPropertyName("draft")] 
+        [JsonPropertyName("draft")]
         public bool Draft { get; init; }
 
-        [JsonPropertyName("prerelease")] 
+        [JsonPropertyName("prerelease")]
         public bool Prerelease { get; init; }
 
-        [JsonPropertyName("generate_release_notes")] 
+        [JsonPropertyName("generate_release_notes")]
         public bool GenerateReleaseNotes { get; init; }
 
         public override string ToString()
@@ -1029,10 +1029,10 @@ namespace CustomBuildTool
 
     public class GithubReleasesResponse
     {
-        [JsonPropertyName("id")] 
+        [JsonPropertyName("id")]
         public ulong ReleaseId { get; init; }
 
-        [JsonPropertyName("upload_url")] 
+        [JsonPropertyName("upload_url")]
         public string UploadUrl { get; init; }
 
         [JsonPropertyName("html_url")]
@@ -1108,22 +1108,22 @@ namespace CustomBuildTool
         [JsonPropertyName("id")]
         public ulong Id { get; init; }
 
-        [JsonPropertyName("name")] 
+        [JsonPropertyName("name")]
         public string Name { get; init; }
 
-        [JsonPropertyName("label")] 
+        [JsonPropertyName("label")]
         public string Label { get; init; }
 
-        [JsonPropertyName("size")] 
+        [JsonPropertyName("size")]
         public ulong Size { get; init; }
 
-        [JsonPropertyName("state")] 
+        [JsonPropertyName("state")]
         public string State { get; init; }
 
         [JsonPropertyName("browser_download_url")]
         public string DownloadUrl { get; init; }
 
-        [JsonPropertyName("digest")] 
+        [JsonPropertyName("digest")]
         public string Digest { get; init; }
 
         [JsonIgnore]
@@ -1452,19 +1452,19 @@ namespace CustomBuildTool
 
         [JsonPropertyName("id")]
         public string id { get; init; }
-       
+
         [JsonPropertyName("size")]
         public string size { get; init; }
-       
+
         [JsonPropertyName("x_stage")]
         public string x_stage { get; init; }
-       
+
         [JsonPropertyName("downloadable")]
         public string downloadable { get; init; }
-       
+
         [JsonPropertyName("stage")]
         public string stage { get; init; }
-       
+
         [JsonPropertyName("type")]
         public string type { get; init; }
 
@@ -1659,5 +1659,18 @@ namespace CustomBuildTool
         {
             return builder.ToString();
         }
+    }
+
+    public static class TextColor
+    {
+        public const string Reset      = "\x1b[0m";
+        public const string Black      = "\x1b[30m";
+        public const string Red        = "\x1b[31m";
+        public const string Green      = "\x1b[32m";
+        public const string Yellow     = "\x1b[33m";
+        public const string Blue       = "\x1b[34m";
+        public const string MAGENTA    = "\x1b[35m";
+        public const string CYAN       = "\x1b[36m";
+        public const string WHITE      = "\x1b[37m";
     }
 }
