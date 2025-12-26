@@ -99,7 +99,6 @@ PPH_EMENU_ITEM PhCreateEMenuItemCallback(
  * Frees resources used by a menu item and its children.
  *
  * \param Item The menu item.
- *
  * \remarks The menu item is NOT automatically removed from its parent. It is safe to call this
  * function while enumerating menu items.
  */
@@ -118,7 +117,7 @@ VOID PhpDestroyEMenuItem(
     if (Item->Items)
     {
         for (ULONG i = 0; i < Item->Items->Count; i++)
-            PhpDestroyEMenuItem(Item->Items->Items[i]);
+            PhpDestroyEMenuItem(PhItemList(Item->Items, i));
 
         PhDereferenceObject(Item->Items);
     }
@@ -130,7 +129,6 @@ VOID PhpDestroyEMenuItem(
  * Frees resources used by a menu item and its children.
  *
  * \param Item The menu item.
- *
  * \remarks The menu item is automatically removed from its parent.
  */
 VOID PhDestroyEMenuItem(
@@ -155,7 +153,6 @@ VOID PhDestroyEMenuItem(
  * (ampersands).
  * \param Text The text of the menu item to find. If NULL, the text is ignored.
  * \param Id The identifier of the menu item to find. If 0, the identifier is ignored.
- *
  * \return The found menu item, or NULL if the menu item could not be found.
  */
 _Use_decl_annotations_
@@ -182,7 +179,6 @@ PPH_EMENU_ITEM PhFindEMenuItem(
  * \param Id The identifier of the menu item to find. If 0, the identifier is ignored.
  * \param FoundParent A variable which receives the parent of the found menu item.
  * \param FoundIndex A variable which receives the index of the found menu item.
- *
  * \return The found menu item, or NULL if the menu item could not be found.
  */
 _Use_decl_annotations_
@@ -207,7 +203,7 @@ PPH_EMENU_ITEM PhFindEMenuItemEx(
 
     for (i = 0; i < Item->Items->Count; i++)
     {
-        item = Item->Items->Items[i];
+        item = PhItemList(Item->Items, i);
 
         if (Text)
         {
@@ -230,9 +226,15 @@ PPH_EMENU_ITEM PhFindEMenuItemEx(
             }
             else
             {
-                if (PhCompareUnicodeStringZIgnoreMenuPrefix(Text, item->Text,
-                    TRUE, !!(Flags & PH_EMENU_FIND_STARTSWITH)) == 0)
+                if (PhCompareUnicodeStringZIgnoreMenuPrefix(
+                    Text,
+                    item->Text,
+                    TRUE,
+                    !!(Flags & PH_EMENU_FIND_STARTSWITH
+                    )) == 0)
+                {
                     goto FoundItemHere;
+                }
             }
         }
 
@@ -355,7 +357,7 @@ BOOLEAN PhRemoveEMenuItem(
             return FALSE;
     }
 
-    Item = Parent->Items->Items[Index];
+    Item = PhItemList(Parent->Items, Index);
     PhRemoveItemList(Parent->Items, Index);
     Item->Parent = NULL;
 
@@ -378,7 +380,7 @@ VOID PhRemoveAllEMenuItems(
 
     for (i = 0; i < Parent->Items->Count; i++)
     {
-        PhpDestroyEMenuItem(Parent->Items->Items[i]);
+        PhpDestroyEMenuItem(PhItemList(Parent->Items, i));
     }
 
     PhClearList(Parent->Items);
@@ -413,7 +415,7 @@ VOID PhDestroyEMenu(
 
     for (i = 0; i < Menu->Items->Count; i++)
     {
-        PhpDestroyEMenuItem(Menu->Items->Items[i]);
+        PhpDestroyEMenuItem(PhItemList(Menu->Items, i));
     }
 
     PhDereferenceObject(Menu->Items);
@@ -520,7 +522,7 @@ VOID PhEMenuToHMenu2(
 
     for (i = 0; i < Menu->Items->Count; i++)
     {
-        item = Menu->Items->Items[i];
+        item = PhItemList(Menu->Items, i);
 
         memset(&menuItemInfo, 0, sizeof(MENUITEMINFO));
         menuItemInfo.cbSize = sizeof(MENUITEMINFO);
@@ -750,7 +752,6 @@ VOID PhLoadResourceEMenuItem(
  * \param Align The alignment of the menu.
  * \param X The horizontal location of the menu.
  * \param Y The vertical location of the menu.
- *
  * \return The selected menu item, or NULL if the menu was cancelled.
  */
 PPH_EMENU_ITEM PhShowEMenu(
@@ -810,7 +811,7 @@ PPH_EMENU_ITEM PhShowEMenu(
 
         if (result != 0)
         {
-            selectedItem = data.IdToItem->Items[result - 1];
+            selectedItem = PhItemList(data.IdToItem, result - 1);
         }
 
         DestroyMenu(popupMenu);
@@ -873,7 +874,7 @@ VOID PhSetFlagsAllEMenuItems(
 
     for (i = 0; i < Item->Items->Count; i++)
     {
-        PPH_EMENU_ITEM item = Item->Items->Items[i];
+        PPH_EMENU_ITEM item = PhItemList(Item->Items, i);
 
         item->Flags &= ~Mask;
         item->Flags |= Value;
