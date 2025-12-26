@@ -83,7 +83,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
                 services,
                 numberOfServices
                 );
-            SendMessage(serviceListHandle, WM_PH_SET_LIST_VIEW_SETTINGS, 0, (LPARAM)L"ProcessServiceListViewColumns");
+            SendMessage(serviceListHandle, WM_PH_SET_LIST_VIEW_SETTINGS, 0, (LPARAM)SETTING_PROCESS_SERVICE_LIST_VIEW_COLUMNS);
             ShowWindow(serviceListHandle, SW_SHOW);
 
             propPageContext->Context = serviceListHandle;
