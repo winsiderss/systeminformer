@@ -16,33 +16,12 @@
 
 static CONST PH_KEY_VALUE_PAIR PhpMessageBoxIconPairs[] =
 {
-    SIP(L"None", 0),
+    SIP(L"None", MB_OK),
     SIP(L"Information", MB_ICONINFORMATION),
     SIP(L"Warning", MB_ICONWARNING),
     SIP(L"Error", MB_ICONERROR),
     SIP(L"Question", MB_ICONQUESTION)
 };
-
-INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-VOID PhShowSessionSendMessageDialog(
-    _In_ HWND ParentWindowHandle,
-    _In_ ULONG SessionId
-    )
-{
-    PhDialogBox(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_EDITMESSAGE),
-        ParentWindowHandle,
-        PhpSessionSendMessageDlgProc,
-        UlongToPtr(SessionId)
-        );
-}
 
 INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
     _In_ HWND hwndDlg,
@@ -63,7 +42,6 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             iconComboBox = GetDlgItem(hwndDlg, IDC_TYPE);
-
             ComboBox_AddString(iconComboBox, L"None");
             ComboBox_AddString(iconComboBox, L"Information");
             ComboBox_AddString(iconComboBox, L"Warning");
@@ -93,7 +71,7 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 EndDialog(hwndDlg, IDCANCEL);
@@ -155,4 +133,18 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
     }
 
     return FALSE;
+}
+
+VOID PhShowSessionSendMessageDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ ULONG SessionId
+    )
+{
+    PhDialogBox(
+        NtCurrentImageBase(),
+        MAKEINTRESOURCE(IDD_EDITMESSAGE),
+        ParentWindowHandle,
+        PhpSessionSendMessageDlgProc,
+        UlongToPtr(SessionId)
+        );
 }
