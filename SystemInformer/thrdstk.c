@@ -275,7 +275,7 @@ VOID ThreadStackLoadSettingsTreeList(
 {
     PPH_STRING settings;
 
-    settings = PhGetStringSetting(L"ThreadStackTreeListColumns");
+    settings = PhGetStringSetting(SETTING_THREAD_STACK_TREE_LIST_COLUMNS);
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
 }
@@ -287,7 +287,7 @@ VOID ThreadStackSaveSettingsTreeList(
     PPH_STRING settings;
 
     settings = PhCmSaveSettings(Context->TreeNewHandle);
-    PhSetStringSetting2(L"ThreadStackTreeListColumns", &settings->sr);
+    PhSetStringSetting2(SETTING_THREAD_STACK_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
 }
 
@@ -535,15 +535,16 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
 
             if (context->HighlightInlineFrames && PhIsStackFrameTypeInline(node->StackFrame.InlineFrameContext))
             {
-                getNodeColor->BackColor = PhGetIntegerSetting(L"ColorInlineThreadStack");
+                getNodeColor->BackColor = PhGetIntegerSetting(SETTING_COLOR_INLINE_THREAD_STACK);
             }
             else if (context->HighlightSystemPages && (ULONG_PTR)node->StackFrame.PcAddress > PhSystemBasicInformation.MaximumUserModeAddress)
             {
-                getNodeColor->BackColor = PhGetIntegerSetting(L"ColorSystemThreadStack");
+                getNodeColor->BackColor = PhGetIntegerSetting(SETTING_COLOR_SYSTEM_THREAD_STACK);
             }
             else if (context->HighlightUserPages && (ULONG_PTR)node->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
             {
                 getNodeColor->BackColor = PhGetIntegerSetting(L"ColorUserThreadStack");
+                getNodeColor->BackColor = PhGetIntegerSetting(SETTING_COLOR_USER_THREAD_STACK);
             }
 
             getNodeColor->Flags = TN_AUTO_FORECOLOR;
@@ -769,6 +770,7 @@ BOOLEAN GetSelectedThreadStackNodes(
     return FALSE;
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpThreadStackTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_ PVOID Context
@@ -970,9 +972,9 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
 
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
-            context->HighlightUserPages = !!PhGetIntegerSetting(L"UseColorUserThreadStack");
-            context->HighlightSystemPages = !!PhGetIntegerSetting(L"UseColorSystemThreadStack");
-            context->HighlightInlineFrames = !!PhGetIntegerSetting(L"UseColorInlineThreadStack");
+            context->HighlightUserPages = !!PhGetIntegerSetting(SETTING_USE_COLOR_USER_THREAD_STACK);
+            context->HighlightSystemPages = !!PhGetIntegerSetting(SETTING_USE_COLOR_SYSTEM_THREAD_STACK);
+            context->HighlightInlineFrames = !!PhGetIntegerSetting(SETTING_USE_COLOR_INLINE_THREAD_STACK);
             PhSetWindowExStyle(context->TreeNewHandle, WS_EX_CLIENTEDGE, 0);
 
             PhSetApplicationWindowIcon(hwndDlg);
@@ -1001,7 +1003,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                 MinimumSize.left = 0;
             }
 
-            PhLoadWindowPlacementFromSetting(NULL, L"ThreadStackWindowSize", hwndDlg);
+            PhLoadWindowPlacementFromSetting(NULL, SETTING_THREAD_STACK_WINDOW_SIZE, hwndDlg);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             PhSetDialogFocus(hwndDlg, context->TreeNewHandle);
 
@@ -1122,7 +1124,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                                     {
                                         PhShellExecuteUserString(
                                             hwndDlg,
-                                            L"ProgramInspectExecutables",
+                                            SETTING_PROGRAM_INSPECT_EXECUTABLES,
                                             PhGetString(selectedNode->FileNameString),
                                             FALSE,
                                             L"Make sure the PE Viewer executable file is present."
@@ -1136,7 +1138,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                                     {
                                         PhShellExecuteUserString(
                                             hwndDlg,
-                                            L"FileBrowseExecutable",
+                                            SETTING_FILE_BROWSE_EXECUTABLE,
                                             PhGetString(selectedNode->FileNameString),
                                             FALSE,
                                             L"Make sure the Explorer executable file is present."
@@ -1170,7 +1172,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,
-                                L"ProgramInspectExecutables",
+                                SETTING_PROGRAM_INSPECT_EXECUTABLES,
                                 PhGetString(selectedNode->FileNameString),
                                 FALSE,
                                 L"Make sure the PE Viewer executable file is present."
@@ -1191,7 +1193,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                     PPH_EMENU_ITEM inlineItem;
                     PPH_EMENU_ITEM selectedItem;
 
-                    if (!GetWindowRect(GET_WM_COMMAND_HWND(wParam, lParam), &rect))
+                    if (!PhGetWindowRect(GET_WM_COMMAND_HWND(wParam, lParam), &rect))
                         break;
 
                     menu = PhCreateEMenu();
@@ -1242,17 +1244,17 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                         else if (selectedItem->Id == 4)
                         {
                             context->HighlightUserPages = !context->HighlightUserPages;
-                            PhSetIntegerSetting(L"UseColorUserThreadStack", context->HighlightUserPages);
+                            PhSetIntegerSetting(SETTING_USE_COLOR_USER_THREAD_STACK, context->HighlightUserPages);
                         }
                         else if (selectedItem->Id == 5)
                         {
                             context->HighlightSystemPages = !context->HighlightSystemPages;
-                            PhSetIntegerSetting(L"UseColorSystemThreadStack", context->HighlightSystemPages);
+                            PhSetIntegerSetting(SETTING_USE_COLOR_SYSTEM_THREAD_STACK, context->HighlightSystemPages);
                         }
                         else if (selectedItem->Id == 6)
                         {
                             context->HighlightInlineFrames = !context->HighlightInlineFrames;
-                            PhSetIntegerSetting(L"UseColorInlineThreadStack", context->HighlightInlineFrames);
+                            PhSetIntegerSetting(SETTING_USE_COLOR_INLINE_THREAD_STACK, context->HighlightInlineFrames);
                         }
 
                         PhApplyTreeNewFilters(&context->TreeFilterSupport);
@@ -1319,8 +1321,8 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
     if (threadStackContext->StopWalk)
         return FALSE;
 
-    enableStackFrameInlineInfo = !!PhGetIntegerSetting(L"EnableThreadStackInlineSymbols");
-    enableStackFrameLineInfo = !!PhGetIntegerSetting(L"EnableThreadStackLineInformation");
+    enableStackFrameInlineInfo = !!PhGetIntegerSetting(SETTING_ENABLE_THREAD_STACK_INLINE_SYMBOLS);
+    enableStackFrameLineInfo = !!PhGetIntegerSetting(SETTING_ENABLE_THREAD_STACK_LINE_INFORMATION);
 
     PhAcquireQueuedLockExclusive(&threadStackContext->StatusLock);
     {
