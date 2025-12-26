@@ -66,6 +66,7 @@ VOID PhOptionsDestroySection(
     _In_ PPH_OPTIONS_SECTION Section
     );
 
+_Function_class_(PH_OPTIONS_ENTER_SECTION_VIEW)
 VOID PhOptionsEnterSectionView(
     _In_ PPH_OPTIONS_SECTION NewSection
     );
@@ -83,6 +84,7 @@ VOID PhOptionsCreateSectionDialog(
     _In_ PPH_OPTIONS_SECTION Section
     );
 
+_Function_class_(PH_OPTIONS_FIND_SECTION)
 PPH_OPTIONS_SECTION PhOptionsFindSection(
     _In_ PCPH_STRINGREF Name
     );
@@ -91,6 +93,7 @@ VOID PhOptionsOnSize(
     VOID
     );
 
+_Function_class_(PH_OPTIONS_CREATE_SECTION)
 PPH_OPTIONS_SECTION PhOptionsCreateSection(
     _In_ PCWSTR Name,
     _In_ PVOID Instance,
@@ -353,8 +356,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 PhOptionsOnSize();
             }
 
-            if (PhValidWindowPlacementFromSetting(L"OptionsWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"OptionsWindowPosition", L"OptionsWindowSize", hwndDlg);
+            if (PhValidWindowPlacementFromSetting(SETTING_OPTIONS_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_OPTIONS_WINDOW_POSITION, SETTING_OPTIONS_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
         }
@@ -364,7 +367,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             ULONG i;
             PPH_OPTIONS_SECTION section;
 
-            PhSaveWindowPlacementToSetting(L"OptionsWindowPosition", L"OptionsWindowSize", hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_OPTIONS_WINDOW_POSITION, SETTING_OPTIONS_WINDOW_SIZE, hwndDlg);
 
             PhDeleteLayoutManager(&WindowLayoutManager);
 
@@ -551,6 +554,7 @@ VOID PhOptionsOnSize(
     }
 }
 
+_Function_class_(PH_OPTIONS_CREATE_SECTION)
 PPH_OPTIONS_SECTION PhOptionsCreateSection(
     _In_ PCWSTR Name,
     _In_ PVOID Instance,
@@ -603,6 +607,7 @@ VOID PhOptionsDestroySection(
     PhFree(Section);
 }
 
+_Function_class_(PH_OPTIONS_FIND_SECTION)
 PPH_OPTIONS_SECTION PhOptionsFindSection(
     _In_ PCPH_STRINGREF Name
     )
@@ -644,6 +649,7 @@ VOID PhOptionsLayoutSectionView(
     }
 }
 
+_Function_class_(PH_OPTIONS_ENTER_SECTION_VIEW)
 VOID PhOptionsEnterSectionView(
     _In_ PPH_OPTIONS_SECTION NewSection
     )
@@ -748,7 +754,7 @@ static BOOLEAN GetCurrentFont(
     if (NewFontSelection)
         fontHexString = NewFontSelection;
     else
-        fontHexString = PhaGetStringSetting(L"Font");
+        fontHexString = PhaGetStringSetting(SETTING_FONT);
 
     if (fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT))
         result = PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)Font);
@@ -769,7 +775,7 @@ static BOOLEAN GetCurrentFontMonospace(
     if (NewFontMonospaceSelection)
         fontHexString = NewFontMonospaceSelection;
     else
-        fontHexString = PhaGetStringSetting(L"FontMonospace");
+        fontHexString = PhaGetStringSetting(SETTING_FONT_MONOSPACE);
 
     if (fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT))
         result = PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)Font);
@@ -1437,10 +1443,10 @@ static VOID PhpAdvancedPageLoad(
 
     listViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
 
-    PhSetDialogItemValue(hwndDlg, IDC_SAMPLECOUNT, PhGetIntegerSetting(L"SampleCount"), FALSE);
-    SetDlgItemCheckForSetting(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
+    PhSetDialogItemValue(hwndDlg, IDC_SAMPLECOUNT, PhGetIntegerSetting(SETTING_SAMPLE_COUNT), FALSE);
+    SetDlgItemCheckForSetting(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, SETTING_SAMPLE_COUNT_AUTOMATIC);
 
-    if (PhGetIntegerSetting(L"SampleCountAutomatic"))
+    if (PhGetIntegerSetting(SETTING_SAMPLE_COUNT_AUTOMATIC))
         EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), FALSE);
 
     if (!ReloadOnly)
@@ -1478,40 +1484,40 @@ static VOID PhpAdvancedPageLoad(
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"Show advanced options", NULL);
     }
 
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"AllowOnlyOneInstance");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, L"HideOnClose");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, L"HideOnMinimize");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, L"StartHidden");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"MiniInfoWindowEnabled");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE, L"EnableMemStringsTreeDialog");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"MainWindowTabRestoreEnabled");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"KsiEnable");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"EnablePlugins");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"DbgHelpUndecorate");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_AVX_EXTENSIONS, L"EnableAvxSupport");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"TreeListEnableHeaderTotals");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"EnableGraphMaxScale");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"EnableMonospaceFont");
-    //SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"EnableNetworkResolveDoH");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, L"EnableInstantTooltips");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_IMAGE_COHERENCY, L"EnableImageCoherencySupport");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, L"EnableStage2");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2, L"EnableServiceStage2");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"EnableAdvancedOptions");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, SETTING_ALLOW_ONLY_ONE_INSTANCE);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, SETTING_HIDE_ON_CLOSE);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, SETTING_HIDE_ON_MINIMIZE);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, SETTING_START_HIDDEN);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, SETTING_MINI_INFO_WINDOW_ENABLED);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE, SETTING_ENABLE_MEM_STRINGS_TREE_DIALOG);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, SETTING_KSI_ENABLE);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, SETTING_ENABLE_WARNINGS);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, SETTING_ENABLE_PLUGINS);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, SETTING_DBGHELP_UNDECORATE);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_AVX_EXTENSIONS, SETTING_ENABLE_AVX_SUPPORT);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, SETTING_TREE_LIST_ENABLE_HEADER_TOTALS);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, SETTING_ENABLE_GRAPH_MAX_SCALE);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, SETTING_ENABLE_CYCLE_CPU_USAGE);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, SETTING_ENABLE_THEME_SUPPORT);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, SETTING_ENABLE_START_AS_ADMIN);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, SETTING_ENABLE_STREAMER_MODE);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, SETTING_ENABLE_MONOSPACE_FONT);
+    //SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, SETTING_ENABLE_LINUX_SUBSYSTEM_SUPPORT);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, SETTING_ENABLE_NETWORK_RESOLVE);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, SETTING_ENABLE_NETWORK_RESOLVE_DOH);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, SETTING_ENABLE_INSTANT_TOOLTIPS);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_IMAGE_COHERENCY, SETTING_ENABLE_IMAGE_COHERENCY_SUPPORT);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, SETTING_ENABLE_STAGE2);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2, SETTING_ENABLE_SERVICE_STAGE2);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, SETTING_ICON_SINGLE_CLICK);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, SETTING_ICON_TOGGLES_VISIBILITY);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, SETTING_PROPAGATE_CPU_USAGE);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, SETTING_ENABLE_ADVANCED_OPTIONS);
 
     if (CurrentUserRunPresent)
         ListView_SetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON, TRUE);
-    if (PhGetIntegerSetting(L"EnableAdvancedOptions"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_ADVANCED_OPTIONS))
         PhpOptionsShowHideTreeViewItem(FALSE);
 }
 
@@ -1648,23 +1654,23 @@ static VOID PhpAdvancedPageSave(
     listViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
     sampleCount = PhGetDialogItemValue(hwndDlg, IDC_SAMPLECOUNT);
 
-    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
+    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, SETTING_SAMPLE_COUNT_AUTOMATIC);
 
     if (sampleCount == 0)
         sampleCount = 1;
 
-    if (sampleCount != PhGetIntegerSetting(L"SampleCount"))
+    if (sampleCount != PhGetIntegerSetting(SETTING_SAMPLE_COUNT))
         RestartRequired = TRUE;
 
-    PhSetIntegerSetting(L"SampleCount", sampleCount);
-    PhSetStringSetting2(L"SearchEngine", &PhaGetDlgItemText(hwndDlg, IDC_SEARCHENGINE)->sr);
-    PhSetStringSetting2(L"ProgramInspectExecutables", &PhaGetDlgItemText(hwndDlg, IDC_PEVIEWER)->sr);
-    PhSetIntegerSetting(L"MaxSizeUnit", PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
-    PhSetIntegerSetting(L"IconProcesses", PhGetDialogItemValue(hwndDlg, IDC_ICONPROCESSES));
+    PhSetIntegerSetting(SETTING_SAMPLE_COUNT, sampleCount);
+    PhSetStringSetting2(SETTING_SEARCH_ENGINE, &PhaGetDlgItemText(hwndDlg, IDC_SEARCHENGINE)->sr);
+    PhSetStringSetting2(SETTING_PROGRAM_INSPECT_EXECUTABLES, &PhaGetDlgItemText(hwndDlg, IDC_PEVIEWER)->sr);
+    PhSetIntegerSetting(SETTING_MAX_SIZE_UNIT, PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
+    PhSetIntegerSetting(SETTING_ICON_PROCESSES, PhGetDialogItemValue(hwndDlg, IDC_ICONPROCESSES));
 
-    if (!PhEqualString(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(L"DbgHelpSearchPath"), TRUE))
+    if (!PhEqualString(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(SETTING_DBGHELP_SEARCH_PATH), TRUE))
     {
-        PhSetStringSetting2(L"DbgHelpSearchPath", &PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr);
+        PhSetStringSetting2(SETTING_DBGHELP_SEARCH_PATH, &PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr);
         RestartRequired = TRUE;
     }
 
@@ -1673,46 +1679,46 @@ static VOID PhpAdvancedPageSave(
     // driver and the user has to elevate (restart) again anyway. (jxy-s)
     if (PhGetOwnTokenAttributes().Elevated)
     {
-        SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"KsiEnable");
+        SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, SETTING_KSI_ENABLE);
     }
     else
     {
-        SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"KsiEnable");
+        SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, SETTING_KSI_ENABLE);
     }
 
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"AllowOnlyOneInstance");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, L"HideOnClose");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, L"HideOnMinimize");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, L"StartHidden");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"MiniInfoWindowEnabled");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE, L"EnableMemStringsTreeDialog");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"MainWindowTabRestoreEnabled");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"EnablePlugins");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"DbgHelpUndecorate");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_AVX_EXTENSIONS, L"EnableAvxSupport");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"TreeListEnableHeaderTotals");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"EnableGraphMaxScale");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"EnableMonospaceFont");
-    //SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"EnableNetworkResolveDoH");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, L"EnableInstantTooltips");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_IMAGE_COHERENCY, L"EnableImageCoherencySupport");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, L"EnableStage2");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2, L"EnableServiceStage2");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"EnableAdvancedOptions");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, SETTING_ALLOW_ONLY_ONE_INSTANCE);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, SETTING_HIDE_ON_CLOSE);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, SETTING_HIDE_ON_MINIMIZE);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, SETTING_START_HIDDEN);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, SETTING_MINI_INFO_WINDOW_ENABLED);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE, SETTING_ENABLE_MEM_STRINGS_TREE_DIALOG);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, SETTING_ENABLE_WARNINGS);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, SETTING_ENABLE_PLUGINS);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, SETTING_DBGHELP_UNDECORATE);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_AVX_EXTENSIONS, SETTING_ENABLE_AVX_SUPPORT);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, SETTING_TREE_LIST_ENABLE_HEADER_TOTALS);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, SETTING_ENABLE_GRAPH_MAX_SCALE);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, SETTING_ENABLE_CYCLE_CPU_USAGE);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, SETTING_ENABLE_THEME_SUPPORT);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, SETTING_ENABLE_START_AS_ADMIN);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, SETTING_ENABLE_STREAMER_MODE);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, SETTING_ENABLE_MONOSPACE_FONT);
+    //SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, SETTING_ENABLE_LINUX_SUBSYSTEM_SUPPORT);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, SETTING_ENABLE_NETWORK_RESOLVE);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, SETTING_ENABLE_NETWORK_RESOLVE_DOH);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, SETTING_ENABLE_INSTANT_TOOLTIPS);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_IMAGE_COHERENCY, SETTING_ENABLE_IMAGE_COHERENCY_SUPPORT);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, SETTING_ENABLE_STAGE2);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SERVICE_STAGE2, SETTING_ENABLE_SERVICE_STAGE2);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, SETTING_ICON_SINGLE_CLICK);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, SETTING_ICON_TOGGLES_VISIBILITY);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, SETTING_PROPAGATE_CPU_USAGE);
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, SETTING_ENABLE_ADVANCED_OPTIONS);
 
-    if (PhGetIntegerSetting(L"EnableThemeSupport")) // PhGetIntegerSetting required (dmex)
+    if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)) // PhGetIntegerSetting required (dmex)
     {
-        PhSetIntegerSetting(L"GraphColorMode", 1); // HACK switch to dark theme. (dmex)
+        PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 1); // HACK switch to dark theme. (dmex)
     }
 
     WriteCurrentUserRun(
@@ -1817,10 +1823,10 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             else
                 ComboBox_SetCurSel(comboBoxHandle, RTL_NUMBER_OF(PhSizeUnitNames) - 1);
 
-            PhSetDialogItemText(hwndDlg, IDC_SEARCHENGINE, PhaGetStringSetting(L"SearchEngine")->Buffer);
-            PhSetDialogItemText(hwndDlg, IDC_PEVIEWER, PhaGetStringSetting(L"ProgramInspectExecutables")->Buffer);
-            PhSetDialogItemValue(hwndDlg, IDC_ICONPROCESSES, PhGetIntegerSetting(L"IconProcesses"), FALSE);
-            PhSetDialogItemText(hwndDlg, IDC_DBGHELPSEARCHPATH, PhaGetStringSetting(L"DbgHelpSearchPath")->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_SEARCHENGINE, PhaGetStringSetting(SETTING_SEARCH_ENGINE)->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_PEVIEWER, PhaGetStringSetting(SETTING_PROGRAM_INSPECT_EXECUTABLES)->Buffer);
+            PhSetDialogItemValue(hwndDlg, IDC_ICONPROCESSES, PhGetIntegerSetting(SETTING_ICON_PROCESSES), FALSE);
+            PhSetDialogItemText(hwndDlg, IDC_DBGHELPSEARCHPATH, PhaGetStringSetting(SETTING_DBGHELP_SEARCH_PATH)->Buffer);
 
             ReadCurrentUserRun();
 
@@ -1857,12 +1863,12 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
         {
             if (NewFontSelection)
             {
-                PhSetStringSetting2(L"Font", &NewFontSelection->sr);
+                PhSetStringSetting2(SETTING_FONT, &NewFontSelection->sr);
             }
 
             if (NewFontMonospaceSelection)
             {
-                PhSetStringSetting2(L"FontMonospace", &NewFontMonospaceSelection->sr);
+                PhSetStringSetting2(SETTING_FONT_MONOSPACE, &NewFontMonospaceSelection->sr);
             }
 
             if (NewFontSelection || NewFontMonospaceSelection)
@@ -2152,6 +2158,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                 {
                                 case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
                                     {
+                                        PhSetIntegerSetting(SETTING_ENABLE_ADVANCED_OPTIONS, TRUE);
                                         PhpOptionsShowHideTreeViewItem(FALSE);
                                     }
                                     break;
@@ -2166,12 +2173,13 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                 {
                                 case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
                                     {
+                                        PhSetIntegerSetting(SETTING_ENABLE_ADVANCED_OPTIONS, FALSE);
                                         PhpOptionsShowHideTreeViewItem(TRUE);
                                     }
                                     break;
                                 case PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN:
                                     {
-                                        if (!!PhGetIntegerSetting(L"EnableStartAsAdmin"))
+                                        if (PhGetIntegerSetting(SETTING_ENABLE_START_AS_ADMIN))
                                         {
                                             PhDeleteAdminTask(&SI_RUNAS_ADMIN_TASK_NAME);
                                         }
@@ -2433,8 +2441,8 @@ VOID OptionsAdvancedLoadSettingsTreeList(
 {
     PPH_STRING settings;
 
-    settings = PhGetStringSetting(L"OptionsWindowAdvancedColumns");
-    Context->Flags = PhGetIntegerSetting(L"OptionsWindowAdvancedFlags");
+    settings = PhGetStringSetting(SETTING_OPTIONS_WINDOW_ADVANCED_COLUMNS);
+    Context->Flags = PhGetIntegerSetting(SETTING_OPTIONS_WINDOW_ADVANCED_FLAGS);
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
 }
@@ -2446,8 +2454,8 @@ VOID OptionsAdvancedSaveSettingsTreeList(
     PPH_STRING settings;
 
     settings = PhCmSaveSettings(Context->TreeNewHandle);
-    PhSetStringSetting2(L"OptionsWindowAdvancedColumns", &settings->sr);
-    PhSetIntegerSetting(L"OptionsWindowAdvancedFlags", Context->Flags);
+    PhSetStringSetting2(SETTING_OPTIONS_WINDOW_ADVANCED_COLUMNS, &settings->sr);
+    PhSetIntegerSetting(SETTING_OPTIONS_WINDOW_ADVANCED_FLAGS, Context->Flags);
     PhDereferenceObject(settings);
 }
 
@@ -3326,34 +3334,34 @@ typedef struct _COLOR_ITEM
 
 static COLOR_ITEM ColorItems[] =
 {
-    COLOR_ITEM(L"ColorOwnProcesses", L"Own processes", L"Processes running under the same user account as System Informer."),
-    COLOR_ITEM(L"ColorSystemProcesses", L"System processes", L"Processes running under the NT AUTHORITY\\SYSTEM user account."),
-    COLOR_ITEM(L"ColorServiceProcesses", L"Service processes", L"Processes which host one or more services."),
-    COLOR_ITEM(L"ColorBackgroundProcesses", L"Background processes", L"Processes with a background scheduling priority."),
-    COLOR_ITEM(L"ColorJobProcesses", L"Job processes", L"Processes associated with a job."),
+    COLOR_ITEM(SETTING_COLOR_OWN_PROCESSES, L"Own processes", L"Processes running under the same user account as System Informer."),
+    COLOR_ITEM(SETTING_COLOR_SYSTEM_PROCESSES, L"System processes", L"Processes running under the NT AUTHORITY\\SYSTEM user account."),
+    COLOR_ITEM(SETTING_COLOR_SERVICE_PROCESSES, L"Service processes", L"Processes which host one or more services."),
+    COLOR_ITEM(SETTING_COLOR_BACKGROUND_PROCESSES, L"Background processes", L"Processes with a background scheduling priority."),
+    COLOR_ITEM(SETTING_COLOR_JOB_PROCESSES, L"Job processes", L"Processes associated with a job."),
 #ifdef _WIN64
-    COLOR_ITEM(L"ColorWow64Processes", L"32-bit processes", L"Processes running under WOW64, i.e. 32-bit."),
+    COLOR_ITEM(SETTING_COLOR_WOW64_PROCESSES, L"32-bit processes", L"Processes running under WOW64, i.e. 32-bit."),
 #endif
-    COLOR_ITEM(L"ColorDebuggedProcesses", L"Debugged processes", L"Processes that are currently being debugged."),
-    COLOR_ITEM(L"ColorElevatedProcesses", L"Elevated processes", L"Processes with full privileges on a system with UAC enabled."),
-    COLOR_ITEM(L"ColorUIAccessProcesses", L"UIAccess processes", L"Processes with UIAccess privileges."),
-    COLOR_ITEM(L"ColorPicoProcesses", L"Pico processes", L"Processes that belong to the Windows subsystem for Linux."),
-    COLOR_ITEM(L"ColorImmersiveProcesses", L"Immersive processes and DLLs", L"Processes and DLLs that belong to a Modern UI app."),
-    COLOR_ITEM(L"ColorSuspended", L"Suspended processes and threads", L"Processes and threads that are suspended from execution."),
-    COLOR_ITEM(L"ColorPartiallySuspended", L"Partially suspended processes and threads", L"Processes and threads that are partially suspended from execution."),
-    COLOR_ITEM(L"ColorDotNet", L".NET processes and DLLs", L".NET (i.e. managed) processes and DLLs."),
-    COLOR_ITEM(L"ColorPacked", L"Packed processes", L"Executables are sometimes \"packed\" to reduce their size."),
-    COLOR_ITEM(L"ColorLowImageCoherency", L"Low process image coherency", L"The image file backing the process has low coherency when compared to the mapped image."),
-    COLOR_ITEM(L"ColorGuiThreads", L"GUI threads", L"Threads that have made at least one GUI-related system call."),
-    COLOR_ITEM(L"ColorRelocatedModules", L"Relocated DLLs", L"DLLs that were not loaded at their preferred image bases."),
-    COLOR_ITEM(L"ColorProtectedHandles", L"Protected handles", L"Handles that are protected from being closed."),
-    COLOR_ITEM(L"ColorProtectedProcess", L"Protected processes", L"Processes with built-in protection levels."),
-    COLOR_ITEM(L"ColorInheritHandles", L"Inheritable handles", L"Handles that can be inherited by child processes."),
-    COLOR_ITEM(L"ColorHandleFiltered", L"Filtered processes", L"Processes that are protected by handle object callbacks."),
-    COLOR_ITEM(L"ColorUnknown", L"Untrusted DLLs and Services", L"Services and DLLs which are not digitally signed."),
-    COLOR_ITEM(L"ColorServiceDisabled", L"Disabled Services", L"Services which have been disabled."),
-    //COLOR_ITEM(L"ColorServiceStop", L"Stopped Services", L"Services that are not running.")
-    COLOR_ITEM(L"ColorEfficiencyMode", L"Power efficiency", L"Processes and threads with power efficiency."),
+    COLOR_ITEM(SETTING_COLOR_DEBUGGED_PROCESSES, L"Debugged processes", L"Processes that are currently being debugged."),
+    COLOR_ITEM(SETTING_COLOR_ELEVATED_PROCESSES, L"Elevated processes", L"Processes with full privileges on a system with UAC enabled."),
+    COLOR_ITEM(SETTING_COLOR_UI_ACCESS_PROCESSES, L"UIAccess processes", L"Processes with UIAccess privileges."),
+    COLOR_ITEM(SETTING_COLOR_PICO_PROCESSES, L"Pico processes", L"Processes that belong to the Windows subsystem for Linux."),
+    COLOR_ITEM(SETTING_COLOR_IMMERSIVE_PROCESSES, L"Immersive processes and DLLs", L"Processes and DLLs that belong to a Modern UI app."),
+    COLOR_ITEM(SETTING_COLOR_SUSPENDED, L"Suspended processes and threads", L"Processes and threads that are suspended from execution."),
+    COLOR_ITEM(SETTING_COLOR_PARTIALLY_SUSPENDED, L"Partially suspended processes and threads", L"Processes and threads that are partially suspended from execution."),
+    COLOR_ITEM(SETTING_COLOR_DOT_NET, L".NET processes and DLLs", L".NET (i.e. managed) processes and DLLs."),
+    COLOR_ITEM(SETTING_COLOR_PACKED, L"Packed processes", L"Executables are sometimes \"packed\" to reduce their size."),
+    COLOR_ITEM(SETTING_COLOR_LOW_IMAGE_COHERENCY, L"Low process image coherency", L"The image file backing the process has low coherency when compared to the mapped image."),
+    COLOR_ITEM(SETTING_COLOR_GUI_THREADS, L"GUI threads", L"Threads that have made at least one GUI-related system call."),
+    COLOR_ITEM(SETTING_COLOR_RELOCATED_MODULES, L"Relocated DLLs", L"DLLs that were not loaded at their preferred image bases."),
+    COLOR_ITEM(SETTING_COLOR_PROTECTED_HANDLES, L"Protected handles", L"Handles that are protected from being closed."),
+    COLOR_ITEM(SETTING_COLOR_PROTECTED_PROCESS, L"Protected processes", L"Processes with built-in protection levels."),
+    COLOR_ITEM(SETTING_COLOR_INHERIT_HANDLES, L"Inheritable handles", L"Handles that can be inherited by child processes."),
+    COLOR_ITEM(SETTING_COLOR_HANDLE_FILTERED, L"Filtered processes", L"Processes that are protected by handle object callbacks."),
+    COLOR_ITEM(SETTING_COLOR_UNKNOWN, L"Untrusted DLLs and Services", L"Services and DLLs which are not digitally signed."),
+    COLOR_ITEM(SETTING_COLOR_SERVICE_DISABLED, L"Disabled Services", L"Services which have been disabled."),
+    //COLOR_ITEM(SETTING_COLOR_SERVICE_STOP, L"Stopped Services", L"Services that are not running.")
+    COLOR_ITEM(SETTING_COLOR_EFFICIENCY_MODE, L"Power efficiency", L"Processes and threads with power efficiency."),
 };
 
 COLORREF NTAPI PhpColorItemColorFunction(
@@ -3508,7 +3516,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                             CHOOSECOLOR chooseColor;
                             COLORREF customColors[16] = { 0 };
 
-                            PhLoadCustomColorList(L"OptionsCustomColorList", customColors, RTL_NUMBER_OF(customColors));
+                            PhLoadCustomColorList(SETTING_OPTIONS_CUSTOM_COLOR_LIST, customColors, RTL_NUMBER_OF(customColors));
 
                             memset(&chooseColor, 0, sizeof(CHOOSECOLOR));
                             chooseColor.lStructSize = sizeof(CHOOSECOLOR);
@@ -3524,7 +3532,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                                 InvalidateRect(HighlightingListViewHandle, NULL, TRUE);
                             }
 
-                            PhSaveCustomColorList(L"OptionsCustomColorList", customColors, RTL_NUMBER_OF(customColors));
+                            PhSaveCustomColorList(SETTING_OPTIONS_CUSTOM_COLOR_LIST, customColors, RTL_NUMBER_OF(customColors));
 
                             ListView_SetItemState(HighlightingListViewHandle, -1, 0, LVIS_SELECTED);
                         }
@@ -3630,7 +3638,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                     PPH_SETTING Color;
                     BOOLEAN setNew = (HWND)wParam == GetDlgItem(hwndDlg, IDC_NEWOBJECTS);
 
-                    PhInitializeStringRef(&SettingName, setNew ? L"ColorNew" : L"ColorRemoved");
+                    PhInitializeStringRef(&SettingName, setNew ? SETTING_COLOR_NEW : SETTING_COLOR_REMOVED);
                     Color = PhGetSetting(&SettingName);
 
                     PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, Color);
@@ -3656,15 +3664,15 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
 
 static COLOR_ITEM PhpOptionsGraphColorItems[] =
 {
-    COLOR_ITEM(L"ColorCpuKernel", L"CPU kernel", L"CPU kernel"),
-    COLOR_ITEM(L"ColorCpuUser", L"CPU user", L"CPU user"),
-    COLOR_ITEM(L"ColorIoReadOther", L"I/O R+O", L"I/O R+O"),
-    COLOR_ITEM(L"ColorIoWrite", L"I/O W", L"I/O W"),
-    COLOR_ITEM(L"ColorPrivate", L"Private bytes", L"Private bytes"),
-    COLOR_ITEM(L"ColorPhysical", L"Physical memory", L"Physical memory"),
-    COLOR_ITEM(L"ColorPowerUsage", L"Power usage", L"Power usage"),
-    COLOR_ITEM(L"ColorTemperature", L"Temperature", L"Temperature"),
-    COLOR_ITEM(L"ColorFanRpm", L"Fan RPM", L"Fan RPM"),
+    COLOR_ITEM(SETTING_COLOR_CPU_KERNEL, L"CPU kernel", L"CPU kernel"),
+    COLOR_ITEM(SETTING_COLOR_CPU_USER, L"CPU user", L"CPU user"),
+    COLOR_ITEM(SETTING_COLOR_IO_READ_OTHER, L"I/O R+O", L"I/O R+O"),
+    COLOR_ITEM(SETTING_COLOR_IO_WRITE, L"I/O W", L"I/O W"),
+    COLOR_ITEM(SETTING_COLOR_PRIVATE, L"Private bytes", L"Private bytes"),
+    COLOR_ITEM(SETTING_COLOR_PHYSICAL, L"Physical memory", L"Physical memory"),
+    COLOR_ITEM(SETTING_COLOR_POWER_USAGE, L"Power usage", L"Power usage"),
+    COLOR_ITEM(SETTING_COLOR_TEMPERATURE, L"Temperature", L"Temperature"),
+    COLOR_ITEM(SETTING_COLOR_FAN_RPM, L"Fan RPM", L"Fan RPM"),
 };
 static HWND PhpGraphListViewHandle = NULL;
 
@@ -3682,9 +3690,9 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
     case WM_INITDIALOG:
         {
             // Show Text
-            SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWTEXT, L"GraphShowText");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_USEOLDCOLORS, L"GraphColorMode");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWCOMMITINSUMMARY, L"ShowCommitInSummary");
+            SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWTEXT, SETTING_GRAPH_SHOW_TEXT);
+            SetDlgItemCheckForSetting(hwndDlg, IDC_USEOLDCOLORS, SETTING_GRAPH_COLOR_MODE);
+            SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWCOMMITINSUMMARY, SETTING_SHOW_COMMIT_IN_SUMMARY);
 
             // Highlighting
             PhpGraphListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -3702,7 +3710,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, PhpGraphListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (PhGetIntegerSetting(L"GraphColorMode"))
+            if (PhGetIntegerSetting(SETTING_GRAPH_COLOR_MODE))
                 EnableWindow(PhpGraphListViewHandle, TRUE);
             else if (PhEnableThemeSupport)
             {
@@ -3713,9 +3721,9 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
         break;
     case WM_DESTROY:
         {
-            SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWTEXT, L"GraphShowText");
-            SetSettingForDlgItemCheck(hwndDlg, IDC_USEOLDCOLORS, L"GraphColorMode");
-            SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWCOMMITINSUMMARY, L"ShowCommitInSummary");
+            SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWTEXT, SETTING_GRAPH_SHOW_TEXT);
+            SetSettingForDlgItemCheck(hwndDlg, IDC_USEOLDCOLORS, SETTING_GRAPH_COLOR_MODE);
+            SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWCOMMITINSUMMARY, SETTING_SHOW_COMMIT_IN_SUMMARY);
 
             for (ULONG i = 0; i < RTL_NUMBER_OF(PhpOptionsGraphColorItems); i++)
             {
@@ -3772,7 +3780,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
                             CHOOSECOLOR chooseColor;
                             COLORREF customColors[16] = { 0 };
 
-                            PhLoadCustomColorList(L"OptionsCustomColorList", customColors, RTL_NUMBER_OF(customColors));
+                            PhLoadCustomColorList(SETTING_OPTIONS_CUSTOM_COLOR_LIST, customColors, RTL_NUMBER_OF(customColors));
 
                             memset(&chooseColor, 0, sizeof(CHOOSECOLOR));
                             chooseColor.lStructSize = sizeof(CHOOSECOLOR);
@@ -3788,7 +3796,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
                                 InvalidateRect(PhpGraphListViewHandle, NULL, TRUE);
                             }
 
-                            PhSaveCustomColorList(L"OptionsCustomColorList", customColors, RTL_NUMBER_OF(customColors));
+                            PhSaveCustomColorList(SETTING_OPTIONS_CUSTOM_COLOR_LIST, customColors, RTL_NUMBER_OF(customColors));
 
                             ListView_SetItemState(PhpGraphListViewHandle, -1, 0, LVIS_SELECTED);
                         }
