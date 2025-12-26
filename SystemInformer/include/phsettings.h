@@ -146,6 +146,7 @@ EXT ULONG PhCsEnableHandleSnapshot;
 #define PH_GET_INTEGER_CACHED_SETTING(Name) ((PhCs##Name) = PhGetIntegerSetting(TEXT(#Name)))
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), (PhCs##Name) = (Value)))
 
+// begin_phapppub
 #define SETTING_ALLOW_ONLY_ONE_INSTANCE                             L"AllowOnlyOneInstance"
 #define SETTING_CLOSE_ON_ESCAPE                                     L"CloseOnEscape"
 #define SETTING_DBGHELP_SEARCH_PATH                                 L"DbgHelpSearchPath"
@@ -513,5 +514,6 @@ EXT ULONG PhCsEnableHandleSnapshot;
 #define SETTING_KSI_ENABLE_FS_FEATURE_OFFLOAD_WRITE                 L"KsiEnableFsFeatureOffloadWrite"
 #define SETTING_KSI_ENABLE_FS_FEATURE_QUERY_OPEN                    L"KsiEnableFsFeatureQueryOpen"
 #define SETTING_KSI_ENABLE_FS_FEATURE_BYPASS_IO                     L"KsiEnableFsFeatureBypassIO"
+// end_phapppub
 
 #endif
