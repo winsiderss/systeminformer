@@ -1299,7 +1299,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                             if (NT_SUCCESS(status))
                             {
-                                if (!breakOnTermination && (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                                if (!breakOnTermination && (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                                     hwndDlg,
                                     L"enable",
                                     L"critical status on the thread",
@@ -1309,7 +1309,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                                 {
                                     status = PhSetThreadBreakOnTermination(threadHandle, TRUE);
                                 }
-                                else if (breakOnTermination && (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                                else if (breakOnTermination && (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                                     hwndDlg,
                                     L"disable",
                                     L"critical status on the thread",
@@ -1542,7 +1542,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             //        {
             //            PhShellExecuteUserString(
             //                hwndDlg,
-            //                L"FileBrowseExecutable",
+            //                SETTING_FILE_BROWSE_EXECUTABLE,
             //                threadItem->StartAddressWin32FileName->Buffer,
             //                FALSE,
             //                L"Make sure the Explorer executable file is present."
