@@ -388,10 +388,10 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             context->ServiceDllWindowHandle = GetDlgItem(hwndDlg, IDC_SERVICEDLL);
 
             // HACK
-            if (PhValidWindowPlacementFromSetting(L"ServiceWindowPosition"))
+            if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
                 PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
             else
-                PhLoadWindowPlacementFromSetting(L"ServiceWindowPosition", NULL, GetParent(hwndDlg));
+                PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
 
             PhAddComboBoxStringRefs(context->TypeWindowHandle, PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
             PhAddComboBoxStringRefs(context->StartTypeWindowHandle, PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
@@ -471,7 +471,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveWindowPlacementToSetting(L"ServiceWindowPosition", NULL, GetParent(hwndDlg));
+            PhSaveWindowPlacementToSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
