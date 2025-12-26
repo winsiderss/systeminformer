@@ -2745,13 +2745,75 @@ NtAlertThreadByThreadIdEx(
     );
 
 /**
- * The NtAlertMultipleThreadByThreadId routine sends an alert to multiple threads by their thread IDs.
+ * Identifies the interpretation of a PS_ALERT_THREAD_EXTENDED_PARAMETER record.
+ *
+ * The current kernel implementation for NtAlertMultipleThreadByThreadId accepts only
+ * PsAlertMultipleExtendedParameterAutoBoostContext (0). Other values are rejected with
+ * STATUS_INVALID_PARAMETER.
+ */
+typedef enum _PS_ALERT_THREAD_EXTENDED_PARAMETER_TYPE
+{
+    /**
+     * AutoBoost context token passed into the kernel's AutoBoost (Ab) bookkeeping.
+     *
+     * The payload (ULong64/Pointer/etc.) is forwarded to internal routines and may be used to
+     * associate the wakeup with a particular synchronization/ownership handoff context.
+     */
+    PsAlertMultipleExtendedParameterAutoBoostContext = 0,
+    /**
+     * Sentinel / upper bound (not a usable type).
+     */
+    PsAlertMultipleExtendedParameterMax = 1,
+} PS_ALERT_THREAD_EXTENDED_PARAMETER_TYPE, *PPS_ALERT_THREAD_EXTENDED_PARAMETER_TYPE;
+
+/**
+ * Extended parameter record for NtAlertMultipleThreadByThreadId.
+ *
+ * In the analyzed NtAlertMultipleThreadByThreadId implementation:
+ * - Type must be 0 (PsAlertMultipleExtendedParameterAutoBoostContext).
+ * - The union payload at offset +0x8 is forwarded as an opaque 64-bit context value.
+ */
+typedef struct _PS_ALERT_THREAD_EXTENDED_PARAMETER
+{
+    /**
+     * Parameter type (8-bit)
+     */
+    ULONGLONG Type : 8;
+    /**
+     * Reserved bits; should be zero.
+     */
+    ULONGLONG Reserved : 56;
+    /**
+     * Payload value whose meaning depends on Type.
+     *
+     * For Type == PsAlertMultipleExtendedParameterAutoBoostContext, this is treated as an
+     * opaque "AutoBoostContext" token. It may be pointer-like and may use low-bit tagging.
+     */
+    union
+    {
+        ULONGLONG ULong64;
+        PVOID Pointer;
+        SIZE_T Size;
+        HANDLE Handle;
+        ULONG ULong;
+        UCHAR Boolean;
+    };
+} PS_ALERT_THREAD_EXTENDED_PARAMETER, *PPS_ALERT_THREAD_EXTENDED_PARAMETER;
+
+/**
+ * The NtAlertMultipleThreadByThreadId routine alerts each target thread specified by thread ID.
+ * Target threads must belong to the caller's current process (cross-process targets fail STATUS_ACCESS_DENIED).
  *
  * \param MultipleThreadId A pointer to an array of thread IDs to be alerted.
  * \param Count The number of thread IDs in the array.
- * \param Boost A pointer to a boost value to be applied to the threads.
- * \param BoostCount The number of boost values in the array.
+ * \param ExtendedParameters An optional pointer to one or more extended parameters of type PS_ALERT_THREAD_EXTENDED_PARAMETER.
+ * \param ExtendedParameterCount Specifies the number of elements in the ExtendedParameters array.
  * \return NTSTATUS Successful or errant status.
+ * \remarks STATUS_ACCESS_DENIED may be returned when the thread belongs to another process.
+ * \note
+ * - Only PS_ALERT_THREAD_EXTENDED_PARAMETER.Type == 0 is currently accepted.
+ * - If multiple extended parameters are provided, the implementation consumes them in order and
+ *   the *last* parameter's payload is the one forwarded to the internal alert logic.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2759,15 +2821,14 @@ NTAPI
 NtAlertMultipleThreadByThreadId(
     _In_ PHANDLE MultipleThreadId,
     _In_ ULONG Count,
-    _In_ PVOID Boost,
-    _In_ ULONG BoostCount
+    _Inout_updates_opt_(ExtendedParameterCount) PPS_ALERT_THREAD_EXTENDED_PARAMETER ExtendedParameters,
+    _In_ ULONG ExtendedParameterCount
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
 /**
- * The NtAlertThreadByThreadIdEx routine sWaits for an alert to be delivered to the specified thread.
  *
  * \param Address The address to wait for an alert on.
  * \param Timeout The timeout value for waiting, or NULL for no timeout.
