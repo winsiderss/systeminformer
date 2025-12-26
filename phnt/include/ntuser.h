@@ -131,6 +131,20 @@ NtUserDisableProcessWindowsGhosting(
     VOID
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUserCreateWindowStation(
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE KeyboardLayoutHandle,
+    _In_opt_ PVOID KeyboardLayoutOffset,
+    _In_opt_ PVOID NlsTableOffset,
+    _In_opt_ PVOID KeyboardDescriptor,
+    _In_opt_ PCUNICODE_STRING LanguageIdString,
+    _In_opt_ ULONG KeyboardLocale
+    );
+
 typedef enum _CONSOLECONTROL
 {
     ConsoleSetVDMCursorBounds = 0, // RECT
@@ -196,20 +210,6 @@ NtUserConsoleControl(
     _In_ CONSOLECONTROL Command,
     _In_reads_bytes_(ConsoleInformationLength) PVOID ConsoleInformation,
     _In_ ULONG ConsoleInformationLength
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtUserCreateWindowStation(
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ HANDLE KeyboardLayoutHandle,
-    _In_opt_ PVOID KeyboardLayoutOffset,
-    _In_opt_ PVOID NlsTableOffset,
-    _In_opt_ PVOID KeyboardDescriptor,
-    _In_opt_ PCUNICODE_STRING LanguageIdString,
-    _In_opt_ ULONG KeyboardLocale
     );
 
 /**
