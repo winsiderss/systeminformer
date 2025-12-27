@@ -240,6 +240,12 @@ VOID PhMwpOnSetFocus(
     _In_ HWND WindowHandle
     );
 
+VOID PhMwpOnTimer(
+    _In_ HWND WindowHandle,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 _Success_(return)
 BOOLEAN PhMwpOnNotify(
     _In_ NMHDR *Header,
