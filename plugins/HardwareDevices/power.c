@@ -256,7 +256,7 @@ PDV_RAPL_ENTRY CreateRaplDeviceEntry(
 
     CopyRaplDeviceId(&entry->Id, Id);
 
-    sampleCount = PhGetIntegerSetting(L"SampleCount");
+    sampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
     PhInitializeCircularBuffer_FLOAT(&entry->PackageBuffer, sampleCount);
     PhInitializeCircularBuffer_FLOAT(&entry->CoreBuffer, sampleCount);
     PhInitializeCircularBuffer_FLOAT(&entry->DimmBuffer, sampleCount);
