@@ -236,7 +236,7 @@ VOID FreeListViewRaplDeviceEntries(
 
 _Success_(return)
 BOOLEAN QueryRaplDeviceInterfaceDescription(
-    _In_ PWSTR DeviceInterface,
+    _In_ PCWSTR DeviceInterface,
     _Out_ PPH_STRING *DeviceDescription
     )
 {
