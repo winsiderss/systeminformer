@@ -47,11 +47,11 @@ VOID GraphicsDeviceInitialize(
 {
     GraphicsDevicesList = PhCreateList(1);
     GraphicsDeviceEntryType = PhCreateObjectType(L"GraphicsDeviceEntry", 0, GraphicsDeviceEntryDeleteProcedure);
-    GraphicsGraphShowText = !!PhGetIntegerSetting(L"GraphShowText");
-    GraphicsEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
-    GraphicsEnableScaleGraph = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
-    GraphicsEnableScaleText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
-    GraphicsPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
+    GraphicsGraphShowText = !!PhGetIntegerSetting(SETTING_GRAPH_SHOW_TEXT);
+    GraphicsEnableAvxSupport = !!PhGetIntegerSetting(SETTING_ENABLE_AVX_SUPPORT);
+    GraphicsEnableScaleGraph = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_SCALE);
+    GraphicsEnableScaleText = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_TEXT);
+    GraphicsPropagateCpuUsage = !!PhGetIntegerSetting(SETTING_PROPAGATE_CPU_USAGE);
     PhQueryPerformanceFrequency(&GraphicsTotalRunningTimeFrequency);
 }
 
@@ -117,7 +117,7 @@ VOID GraphicsDevicesUpdate(
                         entry->GpuNodesHistory = PhAllocateZero(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * numberOfNodes);
 
                         {
-                            ULONG sampleCount = PhGetIntegerSetting(L"SampleCount");
+                            ULONG sampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
 
                             for (ULONG node = 0; node < entry->NumberOfNodes; node++)
                             {
@@ -367,7 +367,7 @@ PDV_GPU_ENTRY CreateGraphicsDeviceEntry(
 
     CopyGraphicsDeviceId(&entry->Id, Id);
 
-    sampleCount = PhGetIntegerSetting(L"SampleCount");
+    sampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
     PhInitializeCircularBuffer_FLOAT(&entry->GpuUsageHistory, sampleCount);
     PhInitializeCircularBuffer_ULONG64(&entry->DedicatedHistory, sampleCount);
     PhInitializeCircularBuffer_ULONG64(&entry->SharedHistory, sampleCount);

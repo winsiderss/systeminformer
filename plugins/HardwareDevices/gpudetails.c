@@ -426,7 +426,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             GraphicsDeviceQueryAdapterDetails(context);
 
@@ -582,7 +582,7 @@ NTSTATUS GraphicsDeviceDetailsDialogThreadStart(
     windowHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_GPUDEVICE_DETAILS),
-        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->ParentWindowHandle,
+        !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : context->ParentWindowHandle,
         GraphicsDeviceDetailsDlgProc,
         context
         );

@@ -207,7 +207,7 @@ typedef struct _DV_NETADAPTER_ENTRY
     PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
 
-    volatile LONG JustProcessed;
+    LONG JustProcessed;
 } DV_NETADAPTER_ENTRY, *PDV_NETADAPTER_ENTRY;
 
 typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
@@ -418,15 +418,63 @@ VOID ShowNetAdapterDetailsDialog(
 #define BITS_IN_ONE_BYTE 8
 #define NDIS_UNIT_OF_MEASUREMENT 100
 
+// rev
+WINBASEAPI
+ULONG
+WINAPI
+NhGetInterfaceDescriptionFromGuid(
+    _In_ const GUID *InterfaceGuid,
+    _Out_writes_opt_(*InterfaceDescriptionLength) PWSTR InterfaceDescription,
+    _Inout_ PSIZE_T InterfaceDescriptionLength,
+    _In_ BOOL Cache,
+    _In_ BOOL Refresh
+    );
+
+// rev
+WINBASEAPI
+ULONG
+WINAPI
+NhGetInterfaceNameFromDeviceGuid(
+    _In_ PGUID DeviceGuid,
+    _Out_writes_(InterfaceDescriptionLength) PWCHAR InterfaceDescription,
+    _Inout_ PULONG InterfaceDescriptionLength,
+    _In_ BOOL Cache,
+    _In_ BOOL Refresh
+    );
+
+// rev
+WINBASEAPI
+ULONG
+WINAPI
+NhGetInterfaceNameFromGuid(
+    _In_ PGUID InterfaceGuid,
+    _Out_writes_(InterfaceNameLength) PWSTR InterfaceName,
+    _Inout_ PSIZE_T InterfaceNameLength,
+    _In_ BOOL Cache,
+    _In_ BOOL Refresh
+    );
+
+// rev
+WINBASEAPI
+ULONG
+WINAPI
+NhGetGuidFromInterfaceName(
+    _In_ PCWSTR InterfaceName,
+    _Out_ PGUID InterfaceGuid,
+    _In_ BOOL Cache,
+    _In_ BOOL Refresh
+    );
+
+// Query functions
+
 BOOLEAN NetworkAdapterQuerySupported(
     _In_ HANDLE DeviceHandle
     );
 
-_Success_(return)
-BOOLEAN NetworkAdapterQueryNdisVersion(
+NTSTATUS NetworkAdapterQueryNdisVersion(
     _In_ HANDLE DeviceHandle,
-    _Out_opt_ PUINT MajorVersion,
-    _Out_opt_ PUINT MinorVersion
+    _Out_opt_ PULONG MajorVersion,
+    _Out_opt_ PULONG MinorVersion
     );
 
 PPH_STRING NetworkAdapterQueryNameFromInterfaceGuid(
@@ -455,8 +503,7 @@ NTSTATUS NetworkAdapterQueryLinkState(
     _Out_ PNDIS_LINK_STATE State
     );
 
-_Success_(return)
-BOOLEAN NetworkAdapterQueryMediaType(
+NTSTATUS NetworkAdapterQueryMediaType(
     _In_ HANDLE DeviceHandle,
     _Out_ PNDIS_PHYSICAL_MEDIUM Medium
     );
@@ -549,7 +596,7 @@ typedef struct _DV_DISK_ENTRY
     ULONG QueueDepth;
     ULONG SplitCount;
 
-    volatile LONG JustProcessed;
+    LONG JustProcessed;
 } DV_DISK_ENTRY, *PDV_DISK_ENTRY;
 
 typedef struct _DV_DISK_SYSINFO_CONTEXT
@@ -816,8 +863,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
     _In_ ULONG DeviceNumber
     );
 
-_Success_(return)
-BOOLEAN DiskDriveQueryDeviceInformation(
+NTSTATUS DiskDriveQueryDeviceInformation(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PPH_STRING* DiskVendor,
     _Out_opt_ PPH_STRING* DiskModel,
@@ -1244,7 +1290,7 @@ VOID RaplDeviceSampleData(
 
 _Success_(return)
 BOOLEAN QueryRaplDeviceInterfaceDescription(
-    _In_ PWSTR DeviceInterface,
+    _In_ PCWSTR DeviceInterface,
     _Out_ PPH_STRING* DeviceDescription
     );
 

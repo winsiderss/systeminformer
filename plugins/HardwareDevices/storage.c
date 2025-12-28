@@ -186,8 +186,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
     return deviceList;
 }
 
-_Success_(return)
-BOOLEAN DiskDriveQueryDeviceInformation(
+NTSTATUS DiskDriveQueryDeviceInformation(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PPH_STRING* DiskVendor,
     _Out_opt_ PPH_STRING* DiskModel,
@@ -195,6 +194,7 @@ BOOLEAN DiskDriveQueryDeviceInformation(
     _Out_opt_ PPH_STRING* DiskSerial
     )
 {
+    NTSTATUS status;
     ULONG bufferLength;
     STORAGE_PROPERTY_QUERY query;
     PSTORAGE_DESCRIPTOR_HEADER buffer;
@@ -206,7 +206,7 @@ BOOLEAN DiskDriveQueryDeviceInformation(
     buffer = PhAllocate(bufferLength);
     memset(buffer, 0, bufferLength);
 
-    if (!NT_SUCCESS(PhDeviceIoControlFile(
+    status = PhDeviceIoControlFile(
         DeviceHandle,
         IOCTL_STORAGE_QUERY_PROPERTY,
         &query,
@@ -214,17 +214,20 @@ BOOLEAN DiskDriveQueryDeviceInformation(
         buffer,
         bufferLength,
         NULL
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
     {
         PhFree(buffer);
-        return FALSE;
+        return status;
     }
 
     bufferLength = buffer->Size;
-    buffer = PhReAllocate(buffer, bufferLength);
+    PhFree(buffer);
+    buffer = PhAllocate(bufferLength);
     memset(buffer, 0, bufferLength);
 
-    if (!NT_SUCCESS(PhDeviceIoControlFile(
+    status = PhDeviceIoControlFile(
         DeviceHandle,
         IOCTL_STORAGE_QUERY_PROPERTY,
         &query,
@@ -232,10 +235,12 @@ BOOLEAN DiskDriveQueryDeviceInformation(
         buffer,
         bufferLength,
         NULL
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
     {
         PhFree(buffer);
-        return FALSE;
+        return status;
     }
 
     PSTORAGE_DEVICE_DESCRIPTOR deviceDescriptor = (PSTORAGE_DEVICE_DESCRIPTOR)buffer;
@@ -306,7 +311,7 @@ BOOLEAN DiskDriveQueryDeviceInformation(
 
     PhFree(buffer);
 
-    return TRUE;
+    return status;
 }
 
 NTSTATUS DiskDriveQueryDeviceTypeAndNumber(

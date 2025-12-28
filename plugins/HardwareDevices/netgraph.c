@@ -355,7 +355,7 @@ VOID NetworkDeviceNotifyProcessorGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), 0, Context->SysinfoSection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &Context->GraphSendState,
@@ -441,7 +441,7 @@ VOID NetworkDeviceNotifyPackageGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER), 0, Context->SysinfoSection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &Context->GraphReceiveState,
@@ -561,7 +561,7 @@ NTSTATUS NetworkDeviceQueryNameWorkQueueItem(
     PhDelayExecution(4000);
 #endif
 
-    InterlockedExchange(&AdapterEntry->JustProcessed, TRUE);
+    InterlockedExchange((volatile LONG*)&AdapterEntry->JustProcessed, TRUE);
     AdapterEntry->PendingQuery = FALSE;
 
     PhDereferenceObject(AdapterEntry);
@@ -734,7 +734,7 @@ BOOLEAN NetworkDeviceSectionCallback(
                 if (context->AdapterEntry->JustProcessed)
                 {
                     NetworkDeviceUpdateTitle(context);
-                    InterlockedExchange(&context->AdapterEntry->JustProcessed, FALSE);
+                    InterlockedExchange((volatile LONG*)&context->AdapterEntry->JustProcessed, FALSE);
                 }
 
                 NetworkDeviceTickDialog(context);
@@ -779,7 +779,7 @@ BOOLEAN NetworkDeviceSectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), Section->Parameters->WindowDpi);
+            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_READ_OTHER), PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), Section->Parameters->WindowDpi);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->AdapterEntry->InboundBuffer.Count);
 
             if (!Section->GraphState.Valid)
