@@ -183,7 +183,8 @@ PPH_STRING NetworkAdapterGetInterfaceAliasNameFromGuid(
         TRUE
         )))
     {
-        PVOID iphlpHandle;
+        return PhCreateString(adapterAlias);
+    }
 
     return NULL;
 }
