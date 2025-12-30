@@ -7459,7 +7459,49 @@ typedef struct _KUSER_SHARED_DATA
             // read the counter directly (bypassing the system call) and flags.
             //
 
-            volatile UCHAR QpcBypassEnabled;
+            union
+            {
+
+                volatile UCHAR QpcBypassEnabled;
+
+                struct
+                {
+                    //
+                    // QPC may bypass the syscall and use a fast user-mode path.
+                    //
+                    volatile UCHAR BypassAllowed : 1;
+
+                    //
+                    // Hypervisor-assisted QPC conversion.
+                    //
+                    volatile UCHAR HypervisorAssist : 1;
+
+                    //
+                    // Reserved/unused
+                    //
+                    volatile UCHAR Reserved_2_3 : 2;
+
+                    //
+                    // MFENCE before RDTSC in relevant paths.
+                    //
+                    volatile UCHAR UseMfence : 1;
+
+                    //
+                    // LFENCE before RDTSC in relevant paths.
+                    //
+                    volatile UCHAR UseLfence : 1;
+
+                    //
+                    // Reserved/unused
+                    //
+                    volatile UCHAR Reserved_6 : 1;
+
+                    //
+                    // RDTSCP instead of RDTSC in the fast path.
+                    //
+                    volatile UCHAR UseRdtscp : 1;
+                };
+            };
 
             //
             // Reserved, leave as zero for backward compatibility. Was shift
