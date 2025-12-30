@@ -187,31 +187,31 @@ typedef struct _MEMORY_WORKING_SET_INFORMATION
 // private
 typedef struct _MEMORY_REGION_INFORMATION
 {
-    PVOID AllocationBase;
-    ULONG AllocationProtect;
+    PVOID AllocationBase;                             // Base address of the allocation.
+    ULONG AllocationProtect;                          // Page protection when the allocation was created (individual pages can be different from this value).
     union
     {
         ULONG RegionType;
         struct
         {
-            ULONG Private : 1;
-            ULONG MappedDataFile : 1;
-            ULONG MappedImage : 1;
-            ULONG MappedPageFile : 1;
-            ULONG MappedPhysical : 1;
-            ULONG DirectMapped : 1;
-            ULONG SoftwareEnclave : 1; // REDSTONE3
-            ULONG PageSize64K : 1;
-            ULONG PlaceholderReservation : 1; // REDSTONE4
-            ULONG MappedAwe : 1; // 21H1
-            ULONG MappedWriteWatch : 1;
-            ULONG PageSizeLarge : 1;
-            ULONG PageSizeHuge : 1;
+            ULONG Private : 1;                        // Region is private to the process (not shared).
+            ULONG MappedDataFile : 1;                 // Region is a mapped view of a data file (read/write data mapping).
+            ULONG MappedImage : 1;                    // Region is a mapped view of an image file (executable/DLL mapping).
+            ULONG MappedPageFile : 1;                 // Region is a mapped view of a pagefile-backed section.
+            ULONG MappedPhysical : 1;                 // Region is a mapped view of the \Device\PhysicalMemory section.
+            ULONG DirectMapped : 1;                   // Region is a mapped view of a direct-mapped file.
+            ULONG SoftwareEnclave : 1;                // Region is a mapped view of a software enclave. // since REDSTONE3
+            ULONG PageSize64K : 1;                    // Region uses 64 KB page size.
+            ULONG PlaceholderReservation : 1;         // Region uses placeholder reservations. // since REDSTONE4
+            ULONG MappedAwe : 1; // 21H1              // Region uses Address Windowing Extensions (AWE).
+            ULONG MappedWriteWatch : 1;               // Region uses write-watch protection.
+            ULONG PageSizeLarge : 1;                  // Region uses large page size.
+            ULONG PageSizeHuge : 1;                   // Region uses huge page size.
             ULONG Reserved : 19;
         };
     };
-    SIZE_T RegionSize;
-    SIZE_T CommitSize;
+    SIZE_T RegionSize;                                // The combined size of pages in the region.
+    SIZE_T CommitSize;                                // The commit charge associated with the allocation.
     ULONG_PTR PartitionId; // 19H1
     ULONG_PTR NodePreference; // 20H1
 } MEMORY_REGION_INFORMATION, *PMEMORY_REGION_INFORMATION;
@@ -258,10 +258,10 @@ typedef union _MEMORY_WORKING_SET_EX_BLOCK
             ULONG_PTR Reserved0 : 14;
             ULONG_PTR Shared : 1;                   // If this bit is 1, the page can be shared.
             ULONG_PTR Reserved1 : 5;
-            ULONG_PTR PageTable : 1;
+            ULONG_PTR PageTable : 1;                // If this bit is 1, the page is a page table entry.
             ULONG_PTR Location : 2;                 // The memory location of the page.  MEMORY_WORKING_SET_EX_LOCATION
             ULONG_PTR Priority : 3;                 // The memory priority of the page.
-            ULONG_PTR ModifiedList : 1;
+            ULONG_PTR ModifiedList : 1;             // If this bit is 1, the page is on the modified standby list.
             ULONG_PTR Reserved2 : 2;
             ULONG_PTR SharedOriginal : 1;           // If this bit is 1, the page was not modified.
             ULONG_PTR Bad : 1;                      // If this bit is 1, the page is has been reported as bad.
@@ -282,7 +282,10 @@ typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
     MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;    // The attributes of the page at VirtualAddress.
 } MEMORY_WORKING_SET_EX_INFORMATION, *PMEMORY_WORKING_SET_EX_INFORMATION;
 
-// private
+/**
+ * The MEMORY_SHARED_COMMIT_INFORMATION structure contains the total commit size
+ * for a region of memory that is shared between processes.
+ */
 typedef struct _MEMORY_SHARED_COMMIT_INFORMATION
 {
     SIZE_T CommitSize;
@@ -311,8 +314,8 @@ typedef struct _MEMORY_IMAGE_INFORMATION
 typedef struct _MEMORY_ENCLAVE_IMAGE_INFORMATION
 {
     MEMORY_IMAGE_INFORMATION ImageInfo;
-    UCHAR UniqueID[32];
-    UCHAR AuthorID[32];
+    UCHAR UniqueID[32]; // 32-byte unique identifier for the enclave image.
+    UCHAR AuthorID[32]; // 32-byte identifier for the author/creator of the enclave image.
 } MEMORY_ENCLAVE_IMAGE_INFORMATION, *PMEMORY_ENCLAVE_IMAGE_INFORMATION;
 
 /**
