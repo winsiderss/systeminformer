@@ -1638,7 +1638,19 @@ NtUmsThreadYield(
 
 typedef struct _WNF_STATE_NAME
 {
-    ULONG Data[2];
+    union
+    {   
+        ULONGLONG Value;
+        ULONG Data[2];
+        struct
+        {
+            ULONG64 Version : 4;
+            ULONG64 NameLifetime : 2;
+            ULONG64 DataScope : 4;
+            ULONG64 PermanentData : 1;
+            ULONG64 Unique : 53;
+        };
+    };
 } WNF_STATE_NAME, *PWNF_STATE_NAME;
 
 typedef const WNF_STATE_NAME *PCWNF_STATE_NAME;
