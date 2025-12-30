@@ -56,6 +56,12 @@
 // begin_rev
 
 #if (PHNT_MODE == PHNT_MODE_KERNEL)
+/**
+ * The TOKEN_INFORMATION_CLASS enumeration contains values that specify the type of information
+ * being assigned to or retrieved from an access token.
+ *
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ne-winnt-token_information_class
+ */
 typedef enum _TOKEN_INFORMATION_CLASS
 {
     TokenUser = 1,                        // q: TOKEN_USER, SE_TOKEN_USER
@@ -69,22 +75,22 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenImpersonationLevel,              // q: SECURITY_IMPERSONATION_LEVEL
     TokenStatistics,                      // q: TOKEN_STATISTICS // 10
     TokenRestrictedSids,                  // q: TOKEN_GROUPS
-    TokenSessionId,                       // q; s: ULONG (requires SeTcbPrivilege)
+    TokenSessionId,                       // qs: ULONG (requires SeTcbPrivilege)
     TokenGroupsAndPrivileges,             // q: TOKEN_GROUPS_AND_PRIVILEGES
     TokenSessionReference,                // s: ULONG (requires SeTcbPrivilege)
     TokenSandBoxInert,                    // q: ULONG
-    TokenAuditPolicy,                     // q; s: TOKEN_AUDIT_POLICY (requires SeSecurityPrivilege/SeTcbPrivilege)
-    TokenOrigin,                          // q; s: TOKEN_ORIGIN (requires SeTcbPrivilege)
+    TokenAuditPolicy,                     // qs: TOKEN_AUDIT_POLICY (requires SeSecurityPrivilege/SeTcbPrivilege)
+    TokenOrigin,                          // qs: TOKEN_ORIGIN (requires SeTcbPrivilege)
     TokenElevationType,                   // q: TOKEN_ELEVATION_TYPE
-    TokenLinkedToken,                     // q; s: TOKEN_LINKED_TOKEN (requires SeCreateTokenPrivilege)
+    TokenLinkedToken,                     // qs: TOKEN_LINKED_TOKEN (requires SeCreateTokenPrivilege)
     TokenElevation,                       // q: TOKEN_ELEVATION // 20
     TokenHasRestrictions,                 // q: ULONG
     TokenAccessInformation,               // q: TOKEN_ACCESS_INFORMATION
-    TokenVirtualizationAllowed,           // q; s: ULONG (requires SeCreateTokenPrivilege)
-    TokenVirtualizationEnabled,           // q; s: ULONG
-    TokenIntegrityLevel,                  // q; s: TOKEN_MANDATORY_LABEL
-    TokenUIAccess,                        // q; s: ULONG (requires SeTcbPrivilege)
-    TokenMandatoryPolicy,                 // q; s: TOKEN_MANDATORY_POLICY (requires SeTcbPrivilege)
+    TokenVirtualizationAllowed,           // qs: ULONG (requires SeCreateTokenPrivilege)
+    TokenVirtualizationEnabled,           // qs: ULONG
+    TokenIntegrityLevel,                  // qs: TOKEN_MANDATORY_LABEL
+    TokenUIAccess,                        // qs: ULONG (requires SeTcbPrivilege)
+    TokenMandatoryPolicy,                 // qs: TOKEN_MANDATORY_POLICY (requires SeTcbPrivilege)
     TokenLogonSid,                        // q: TOKEN_GROUPS
     TokenIsAppContainer,                  // q: ULONG // since WIN8
     TokenCapabilities,                    // q: TOKEN_GROUPS // 30
@@ -99,7 +105,7 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenSecurityAttributes,              // qs: TOKEN_SECURITY_ATTRIBUTES_[AND_OPERATION_]INFORMATION (requires SeTcbPrivilege)
     TokenIsRestricted,                    // q: ULONG // 40
     TokenProcessTrustLevel,               // q: TOKEN_PROCESS_TRUST_LEVEL // since WINBLUE
-    TokenPrivateNameSpace,                // q; s: ULONG (requires SeTcbPrivilege) // since THRESHOLD
+    TokenPrivateNameSpace,                // qs: ULONG (requires SeTcbPrivilege) // since THRESHOLD
     TokenSingletonAttributes,             // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION // since REDSTONE
     TokenBnoIsolation,                    // q: TOKEN_BNO_ISOLATION_INFORMATION // since REDSTONE2
     TokenChildProcessFlags,               // s: ULONG  (requires SeTcbPrivilege) // since REDSTONE3
@@ -110,58 +116,200 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenLearningMode,                    // q: // since 25H2
     MaxTokenInfoClass
 } TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
-#else
-#define TOKEN_INFORMATION_CLASS ULONG
-//#define TokenUser 1 // q: TOKEN_USER, SE_TOKEN_USER
-//#define TokenGroups 2 // q: TOKEN_GROUPS
-//#define TokenPrivileges 3 // q: TOKEN_PRIVILEGES
-//#define TokenOwner 4 // q; s: TOKEN_OWNER
-#define TokenPrimaryGroup 5 // q; s: TOKEN_PRIMARY_GROUP
-#define TokenDefaultDacl 6 // q; s: TOKEN_DEFAULT_DACL
-#define TokenSource 7 // q: TOKEN_SOURCE
-//#define TokenType 8 // q: TOKEN_TYPE
-#define TokenImpersonationLevel 9 // q: SECURITY_IMPERSONATION_LEVEL
-#define TokenStatistics 10 // q: TOKEN_STATISTICS // 10
-#define TokenRestrictedSids 11 // q: TOKEN_GROUPS
-#define TokenSessionId 12 // q; s: ULONG (requires SeTcbPrivilege)
-#define TokenGroupsAndPrivileges 13 // q: TOKEN_GROUPS_AND_PRIVILEGES
-#define TokenSessionReference 14 // s: ULONG (requires SeTcbPrivilege)
-#define TokenSandBoxInert 15 // q: ULONG
-#define TokenAuditPolicy 16 // q; s: TOKEN_AUDIT_POLICY (requires SeSecurityPrivilege/SeTcbPrivilege)
-#define TokenOrigin 17 // q; s: TOKEN_ORIGIN (requires SeTcbPrivilege)
-//#define TokenElevationType 18 // q: TOKEN_ELEVATION_TYPE
-#define TokenLinkedToken 19 // q; s: TOKEN_LINKED_TOKEN (requires SeCreateTokenPrivilege)
-//#define TokenElevation 20 // q: TOKEN_ELEVATION // 20
-#define TokenHasRestrictions 21 // q: ULONG
-#define TokenAccessInformation 22 // q: TOKEN_ACCESS_INFORMATION
-#define TokenVirtualizationAllowed 23 // q; s: ULONG (requires SeCreateTokenPrivilege)
-#define TokenVirtualizationEnabled 24 // q; s: ULONG
-#define TokenIntegrityLevel 25 // q; s: TOKEN_MANDATORY_LABEL
-#define TokenUIAccess 26 // q; s: ULONG (requires SeTcbPrivilege)
-#define TokenMandatoryPolicy 27 // q; s: TOKEN_MANDATORY_POLICY (requires SeTcbPrivilege)
-#define TokenLogonSid 28 // q: TOKEN_GROUPS
-#define TokenIsAppContainer 29 // q: ULONG // since WIN8
-#define TokenCapabilities 30 // q: TOKEN_GROUPS // 30
-//#define TokenAppContainerSid 31 // q: TOKEN_APPCONTAINER_INFORMATION
-#define TokenAppContainerNumber 32 // q: ULONG
-#define TokenUserClaimAttributes 33 // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
-#define TokenDeviceClaimAttributes 34 // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
-#define TokenRestrictedUserClaimAttributes 35 // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
-#define TokenRestrictedDeviceClaimAttributes 36 // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
-#define TokenDeviceGroups 37 // q: TOKEN_GROUPS
-#define TokenRestrictedDeviceGroups 38 // q: TOKEN_GROUPS
-#define TokenSecurityAttributes 39 // q; s: TOKEN_SECURITY_ATTRIBUTES_[AND_OPERATION_]INFORMATION (requires SeTcbPrivilege)
-#define TokenIsRestricted 40 // q: ULONG // 40
-#define TokenProcessTrustLevel 41 // q: TOKEN_PROCESS_TRUST_LEVEL // since WINBLUE
-#define TokenPrivateNameSpace 42// q; s: ULONG (requires SeTcbPrivilege) // since THRESHOLD
-#define TokenSingletonAttributes 43 // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION // since REDSTONE
-#define TokenBnoIsolation 44 // q: TOKEN_BNO_ISOLATION_INFORMATION // since REDSTONE2
-#define TokenChildProcessFlags 45 // s: ULONG  (requires SeTcbPrivilege) // since REDSTONE3
-#define TokenIsLessPrivilegedAppContainer 46 // q: ULONG // since REDSTONE5
-#define TokenIsSandboxed 47 // q: ULONG // since 19H1
-#define TokenIsAppSilo 48 // q: ULONG // since 22H2 // previously TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
-#define TokenLoggingInformation 49 // TOKEN_LOGGING_INFORMATION // since 24H2
-#define MaxTokenInfoClass 50
+
+//
+// Token information structures
+//
+
+/**
+ * The TOKEN_USER structure identifies the user associated with an access token.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_user
+ */
+typedef struct _TOKEN_USER
+{
+    SID_AND_ATTRIBUTES User;
+} TOKEN_USER, *PTOKEN_USER;
+
+typedef struct _SE_TOKEN_USER
+{
+    union
+    {
+        TOKEN_USER TokenUser;
+        SID_AND_ATTRIBUTES User;
+    } DUMMYUNIONNAME;
+    union
+    {
+        SID Sid;
+        BYTE Buffer[SECURITY_MAX_SID_SIZE];
+    } DUMMYUNIONNAME2;
+} SE_TOKEN_USER, PSE_TOKEN_USER;
+
+#define TOKEN_USER_MAX_SIZE (sizeof(TOKEN_USER) + SECURITY_MAX_SID_SIZE)
+
+/**
+ * The TOKEN_GROUPS structure contains information about the group security identifiers (SIDs) in an access token.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_groups
+ */
+typedef struct _TOKEN_GROUPS
+{
+    ULONG GroupCount;
+    SID_AND_ATTRIBUTES Groups[ANYSIZE_ARRAY];
+} TOKEN_GROUPS, *PTOKEN_GROUPS;
+
+/**
+ * The TOKEN_PRIVILEGES structure contains information about a set of privileges for an access token.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_privileges
+ */
+typedef struct _TOKEN_PRIVILEGES
+{
+    ULONG PrivilegeCount;
+    LUID_AND_ATTRIBUTES Privileges[ANYSIZE_ARRAY];
+} TOKEN_PRIVILEGES, *PTOKEN_PRIVILEGES;
+
+/**
+ * The TOKEN_OWNER structure contains the default owner security identifier (SID) that will be applied to newly created objects.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_owner
+ */
+typedef struct _TOKEN_OWNER
+{
+    PSID Owner;
+} TOKEN_OWNER, *PTOKEN_OWNER;
+
+#define TOKEN_OWNER_MAX_SIZE (sizeof(TOKEN_OWNER) + SECURITY_MAX_SID_SIZE)
+
+/**
+ * The TOKEN_PRIMARY_GROUP structure specifies a group security identifier (SID) for an access token.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_primary_group
+ */
+typedef struct _TOKEN_PRIMARY_GROUP
+{
+    PSID PrimaryGroup;
+} TOKEN_PRIMARY_GROUP, *PTOKEN_PRIMARY_GROUP;
+
+/**
+ * The TOKEN_DEFAULT_DACL structure specifies a discretionary access control list (DACL).
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_default_dacl
+ */
+typedef struct _TOKEN_DEFAULT_DACL
+{
+    PACL DefaultDacl;
+} TOKEN_DEFAULT_DACL, *PTOKEN_DEFAULT_DACL;
+
+#define TOKEN_SOURCE_LENGTH 8
+
+/**
+ * The TOKEN_SOURCE structure identifies the source of an access token.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_source
+ */
+typedef struct _TOKEN_SOURCE
+{
+    CHAR SourceName[TOKEN_SOURCE_LENGTH];
+    LUID SourceIdentifier;
+} TOKEN_SOURCE, *PTOKEN_SOURCE;
+
+/**
+ * The TOKEN_TYPE enumeration contains values that differentiate between a primary token and an impersonation token.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ne-winnt-token_type
+ */
+typedef enum _TOKEN_TYPE
+{
+    TokenPrimary = 1,
+    TokenImpersonation
+} TOKEN_TYPE;
+
+typedef struct _TOKEN_USER_CLAIMS
+{
+    PCLAIMS_BLOB UserClaims;
+} TOKEN_USER_CLAIMS, *PTOKEN_USER_CLAIMS;
+
+typedef struct _TOKEN_DEVICE_CLAIMS
+{
+    PCLAIMS_BLOB DeviceClaims;
+} TOKEN_DEVICE_CLAIMS, *PTOKEN_DEVICE_CLAIMS;
+
+typedef struct _TOKEN_GROUPS_AND_PRIVILEGES
+{
+    ULONG SidCount;
+    ULONG SidLength;
+    PSID_AND_ATTRIBUTES Sids;
+    ULONG RestrictedSidCount;
+    ULONG RestrictedSidLength;
+    PSID_AND_ATTRIBUTES RestrictedSids;
+    ULONG PrivilegeCount;
+    ULONG PrivilegeLength;
+    PLUID_AND_ATTRIBUTES Privileges;
+    LUID AuthenticationId;
+} TOKEN_GROUPS_AND_PRIVILEGES, *PTOKEN_GROUPS_AND_PRIVILEGES;
+
+typedef struct _TOKEN_LINKED_TOKEN
+{
+    HANDLE LinkedToken;
+} TOKEN_LINKED_TOKEN, *PTOKEN_LINKED_TOKEN;
+
+typedef struct _TOKEN_ELEVATION
+{
+    ULONG TokenIsElevated;
+} TOKEN_ELEVATION, *PTOKEN_ELEVATION;
+
+/**
+ * The TOKEN_MANDATORY_POLICY structure specifies the mandatory integrity policy for a token.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-token_mandatory_policy
+ */
+typedef struct _TOKEN_MANDATORY_LABEL
+{
+    SID_AND_ATTRIBUTES Label;
+} TOKEN_MANDATORY_LABEL, *PTOKEN_MANDATORY_LABEL;
+
+#define TOKEN_MANDATORY_POLICY_OFF             0x0
+#define TOKEN_MANDATORY_POLICY_NO_WRITE_UP     0x1
+#define TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN 0x2
+#define TOKEN_MANDATORY_POLICY_VALID_MASK      (TOKEN_MANDATORY_POLICY_NO_WRITE_UP | \
+                                                TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN)
+
+#define TOKEN_INTEGRITY_LEVEL_MAX_SIZE \
+    ((((ULONG)(sizeof(TOKEN_MANDATORY_LABEL)) + sizeof(PVOID) - 1) & ~(sizeof(PVOID)-1)) + SECURITY_MAX_SID_SIZE)
+
+typedef struct _TOKEN_MANDATORY_POLICY
+{
+    ULONG Policy;
+} TOKEN_MANDATORY_POLICY, *PTOKEN_MANDATORY_POLICY;
+
+typedef PVOID PSECURITY_ATTRIBUTES_OPAQUE;
+
+typedef struct _TOKEN_ACCESS_INFORMATION
+{
+    PSID_AND_ATTRIBUTES_HASH SidHash;
+    PSID_AND_ATTRIBUTES_HASH RestrictedSidHash;
+    PTOKEN_PRIVILEGES Privileges;
+    LUID AuthenticationId;
+    TOKEN_TYPE TokenType;
+    SECURITY_IMPERSONATION_LEVEL ImpersonationLevel;
+    TOKEN_MANDATORY_POLICY MandatoryPolicy;
+    ULONG Flags;
+    ULONG AppContainerNumber;
+    PSID PackageSid;
+    PSID_AND_ATTRIBUTES_HASH CapabilitiesHash;
+    PSID TrustLevelSid;
+    PSECURITY_ATTRIBUTES_OPAQUE SecurityAttributes;
+} TOKEN_ACCESS_INFORMATION, *PTOKEN_ACCESS_INFORMATION;
+
+typedef struct _TOKEN_LOGGING_INFORMATION
+{
+    TOKEN_TYPE TokenType;
+    TOKEN_ELEVATION TokenElevation;
+    TOKEN_ELEVATION_TYPE TokenElevationType;
+    SECURITY_IMPERSONATION_LEVEL ImpersonationLevel;
+    ULONG IntegrityLevel;
+    SID_AND_ATTRIBUTES User;
+    PSID TrustLevelSid;
+    ULONG SessionId;
+    ULONG AppContainerNumber;
+    LUID AuthenticationId;
+    ULONG GroupCount;
+    ULONG GroupsLength;
+    PSID_AND_ATTRIBUTES Groups;
+} TOKEN_LOGGING_INFORMATION, *PTOKEN_LOGGING_INFORMATION;
+
 #endif // (PHNT_MODE == PHNT_MODE_KERNEL)
 
 //
