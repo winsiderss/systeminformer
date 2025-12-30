@@ -55,6 +55,7 @@ typedef struct _PH_PROVIDER_REGISTRATION
             ULONG Spare : 29;
         };
     };
+    PH_RUNDOWN_PROTECT RundownProtect;
 } PH_PROVIDER_REGISTRATION, *PPH_PROVIDER_REGISTRATION;
 
 typedef struct _PH_PROVIDER_THREAD
@@ -85,7 +86,7 @@ PhDeleteProviderThread(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhStartProviderThread(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread
@@ -123,6 +124,7 @@ PhUnregisterProvider(
     _Inout_ PPH_PROVIDER_REGISTRATION Registration
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
