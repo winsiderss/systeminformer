@@ -2983,6 +2983,20 @@ PhEnumProcessesEx(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass
     );
 
+typedef _Function_class_(PH_ENUM_PROCESS_THREADS)
+NTSTATUS NTAPI PH_ENUM_PROCESS_THREADS(
+    _In_ ULONG NumberOfThreads,
+    _In_ PSYSTEM_THREAD_INFORMATION Threads,
+    _In_opt_ PVOID Context
+    );
+typedef PH_ENUM_PROCESS_THREADS* PPH_ENUM_PROCESS_THREADS;
+
+NTSTATUS PhEnumProcessThreads(
+    _In_ HANDLE ProcessId,
+    _In_ PPH_ENUM_PROCESS_THREADS Callback,
+    _In_opt_ PVOID Context
+    );
+
 typedef _Function_class_(PH_ENUM_NEXT_PROCESS)
 NTSTATUS NTAPI PH_ENUM_NEXT_PROCESS(
     _In_ HANDLE ProcessHandle,
