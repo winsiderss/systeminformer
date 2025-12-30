@@ -95,6 +95,8 @@ extern long __isa_enabled;
     FlagOn(__isa_enabled, ISA_ENABLED_SSE42)
 #define PhHasAVX \
     FlagOn(__isa_enabled, ISA_ENABLED_AVX2)
+#define PhHasAVX512 \
+    FlagOn(__isa_enabled, ISA_ENABLED_AVX512)
 #endif
 
 /**
@@ -631,6 +633,53 @@ PhShuffleFLOAT128_2103(
 #endif
 }
 
+/**
+ * Shuffle/combine lanes from two 128-bit float vectors in the 2,3,0,1 order.
+ *
+ * \param[in] A First input vector.
+ * \param[in] B Second input vector.
+ * \return A shuffled PH_FLOAT128 composed of selected lanes from A and B.
+ */
+FORCEINLINE
+PH_FLOAT128
+PhShuffleFLOAT128_2301(
+    _In_ PH_FLOAT128 A,
+    _In_ PH_FLOAT128 B
+    )
+{
+#ifdef _ARM64_
+    // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
+    float32x2_t a03 = vget_low_f32(vextq_f32(A, A, 3));
+    float32x2_t b21 = vget_high_f32(vextq_f32(B, B, 3));
+    return vcombine_f32(a03, b21);
+#else
+    return _mm_shuffle_ps(A, B, _MM_SHUFFLE(2, 3, 0, 1));
+#endif
+}
+
+/**
+ * Shuffle/combine lanes from two 128-bit float vectors in the 1,0,3,2 order.
+ *
+ * \param[in] A First input vector.
+ * \param[in] B Second input vector.
+ * \return A shuffled PH_FLOAT128 composed of selected lanes from A and B.
+ */
+FORCEINLINE
+PH_FLOAT128
+PhShuffleFLOAT128_1032(
+    _In_ PH_FLOAT128 A,
+    _In_ PH_FLOAT128 B
+    )
+{
+#ifdef _ARM64_
+    // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
+    float32x2_t a03 = vget_low_f32(vextq_f32(A, A, 3));
+    float32x2_t b21 = vget_high_f32(vextq_f32(B, B, 3));
+    return vcombine_f32(a03, b21);
+#else
+    return _mm_shuffle_ps(A, B, _MM_SHUFFLE(1, 0, 3, 2));
+#endif
+}
 /**
  * Shift each 32-bit lane left by a constant count.
  *
