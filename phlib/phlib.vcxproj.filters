@@ -212,13 +212,22 @@
     <ClCompile Include="nativesocket.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="apistubs.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="nativeprocess.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="nativefile.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="apistubs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nativejob.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nativetxn.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nativekey.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

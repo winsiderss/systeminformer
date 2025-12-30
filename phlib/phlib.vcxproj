@@ -191,6 +191,8 @@
     <ClCompile Include="maplib.c" />
     <ClCompile Include="native.c" />
     <ClCompile Include="nativefile.c" />
+    <ClCompile Include="nativejob.c" />
+    <ClCompile Include="nativekey.c" />
     <ClCompile Include="nativeprocess.c" />
     <ClCompile Include="nativesocket.c" />
     <ClCompile Include="nativeflt.c" />
@@ -198,6 +200,7 @@
     <ClCompile Include="nativemodule.c" />
     <ClCompile Include="nativethread.c" />
     <ClCompile Include="nativetoken.c" />
+    <ClCompile Include="nativetxn.c" />
     <ClCompile Include="nativeuser.c" />
     <ClCompile Include="provider.c" />
     <ClCompile Include="queuedlock.c" />

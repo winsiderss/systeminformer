@@ -68,6 +68,14 @@ NTSTATUS PhOpenProcess(
     return status;
 }
 
+/**
+ * Opens a process handle using a CLIENT_ID structure.
+ *
+ * \param ProcessHandle A variable which receives a handle to the process.
+ * \param DesiredAccess The desired access rights for the process handle.
+ * \param ClientId A pointer to a CLIENT_ID structure that specifies the process and (optionally) thread.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhOpenProcessClientId(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -112,6 +120,14 @@ NTSTATUS PhOpenProcessClientId(
 }
 
 /** Limited API for untrusted/external code. */
+/**
+ * Opens a process with limited access for untrusted or external code.
+ *
+ * \param ProcessHandle A variable which receives a handle to the process.
+ * \param DesiredAccess The desired access rights for the process handle.
+ * \param ProcessId The unique identifier (PID) of the process to open.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhOpenProcessPublic(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -906,6 +922,11 @@ NTSTATUS PhGetProcessCommandLine(
     return PhGetProcessPebString(ProcessHandle, PhpoCommandLine, CommandLine);
 }
 
+/**
+ * Retrieves the command line string reference for the current process.
+ *
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetProcessCommandLineStringRef(
     _Out_ PPH_STRINGREF CommandLine
     )
@@ -914,18 +935,33 @@ NTSTATUS PhGetProcessCommandLineStringRef(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Retrieves the current directory of a specified process.
+ *
+ * \param ProcessHandle A handle to the process. The handle must have PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param IsWow64 Specifies whether to retrieve the current directory from the WOW64 PEB (TRUE) or the native PEB (FALSE).
+ * \param CurrentDirectory A variable which receives a pointer to a string containing the current directory.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetProcessCurrentDirectory(
     _In_ HANDLE ProcessHandle,
     _In_ BOOLEAN IsWow64,
-    _Out_ PPH_STRING *CurrentDirectory
+    _Out_ PPH_STRING* CurrentDirectory
     )
 {
     return PhGetProcessPebString(ProcessHandle, PhpoCurrentDirectory | (IsWow64 ? PhpoWow64 : PhpoNone), CurrentDirectory);
 }
 
+/**
+ * Retrieves the desktop information string for a specified process.
+ *
+ * \param ProcessHandle A handle to the process. The handle must have PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param DesktopInfo A variable which receives a pointer to a string containing the desktop information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetProcessDesktopInfo(
     _In_ HANDLE ProcessHandle,
-    _Out_ PPH_STRING *DesktopInfo
+    _Out_ PPH_STRING* DesktopInfo
     )
 {
     return PhGetProcessPebString(ProcessHandle, PhpoDesktopInfo, DesktopInfo);

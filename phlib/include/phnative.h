@@ -758,6 +758,16 @@ PhSetHandleInformationRemote(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhOpenJobObject(
+    _Out_ PHANDLE JobHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_ PCPH_STRINGREF ObjectName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetJobProcessIdList(
     _In_ HANDLE JobHandle,
     _Out_ PJOBOBJECT_BASIC_PROCESS_ID_LIST *ProcessIdList
@@ -2844,7 +2854,7 @@ NTAPI
 PhOpenSection(
     _Out_ PHANDLE SectionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE RootDirectory,
+    _In_opt_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF SectionName
     );
 
@@ -3179,7 +3189,6 @@ PhOpenDirectoryObject(
  * \param Name The name of the object.
  * \param TypeName The name of the object's type.
  * \param Context A user-defined value passed to PhEnumDirectoryObjects().
- *
  * \return TRUE to continue the enumeration, FALSE to stop.
  */
 typedef _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
@@ -3550,7 +3559,6 @@ typedef struct _PH_MODULE_INFO
  *
  * \param Module A structure providing information about the module.
  * \param Context A user-defined value passed to PhEnumGenericModules().
- *
  * \return TRUE to continue the enumeration, FALSE to stop.
  */
 typedef _Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
