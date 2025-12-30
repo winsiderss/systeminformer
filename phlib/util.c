@@ -3463,6 +3463,17 @@ PPH_STRING PhGetBaseName(
     return PhCreateString2(&baseNamePart);
 }
 
+/**
+ * Changes the extension of the base name in a file path.
+ *
+ * This function locates the last path separator and the last dot in the file name.
+ * If both are found and the dot is after the last path separator, it replaces the extension
+ * with the specified new extension. Otherwise, it appends the new extension to the file name.
+ *
+ * \param FileName The input file name as a string reference.
+ * \param FileExtension The new file extension as a string reference.
+ * \return A new string with the base name's extension changed, or the original file name with the extension appended if no dot is found.
+ */
 PPH_STRING PhGetBaseNameChangeExtension(
     _In_ PCPH_STRINGREF FileName,
     _In_ PCPH_STRINGREF FileExtension
@@ -3488,6 +3499,18 @@ PPH_STRING PhGetBaseNameChangeExtension(
     return PhConcatStringRef3(&baseFilePath, &baseFileName, FileExtension);
 }
 
+/**
+ * Splits a file path into its base path and base file name components.
+ *
+ * This function separates the input file name into the directory path and the file name.
+ * If both output pointers are provided, both components are set if available.
+ * If only one output pointer is provided, only that component is set.
+ *
+ * \param FileName The input file name as a string reference.
+ * \param BasePathName Optional pointer to receive the base path component.
+ * \param BaseFileName Optional pointer to receive the base file name component.
+ * \return TRUE if the split was successful and the requested components are available, otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN PhGetBasePath(
     _In_ PCPH_STRINGREF FileName,
@@ -9457,6 +9480,17 @@ NTSTATUS PhApiSetResolveToHost(
     return STATUS_UNKNOWN_REVISION;
 }
 
+/**
+ * Creates a process as the interactive user using the Windows Desktop Controller (WDC) API.
+ *
+ * This function attempts to launch a process in the context of the currently active interactive user session.
+ * It uses the undocumented WdcRunTaskAsInteractiveUser function from wdc.dll, if available, to perform the operation.
+ *
+ * \param CommandLine The command line to execute. This should include the full path to the executable and any arguments.
+ * \param CurrentDirectory The working directory for the new process. May be NULL to use the default.
+ * \return HRESULT Returns S_OK on success, or an error HRESULT code on failure.
+ * \remarks This function is only available on Windows 10 and later, and requires wdc.dll to be present.
+ */
 HRESULT PhCreateProcessAsInteractiveUser(
     _In_ PCWSTR CommandLine,
     _In_ PCWSTR CurrentDirectory
