@@ -1250,7 +1250,7 @@ VERIFY_RESULT PhVerifyFileCached(
         }
     }
 
-    NTSTATUS status = PhSetFileIoPriorityHint(fileHandle, IoPriorityVeryLow);
+    PhSetFileIoPriorityHint(fileHandle, IoPriorityVeryLow);
 
     {
         PPH_VERIFY_CACHE_ENTRY entry;
