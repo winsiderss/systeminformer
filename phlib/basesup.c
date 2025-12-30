@@ -2255,41 +2255,77 @@ BOOLEAN PhEqualStringRef(
 
     if (PhHasIntrinsics)
     {
-        length = l1 / 16;
-
-        if (length != 0)
+        if (IgnoreCase)
         {
-            PH_INT128 b1;
-            PH_INT128 b2;
+            length = l1 / 16;
 
-            do
+            if (length != 0)
             {
-                b1 = PhLoadINT128U((PLONG)s1);
-                b2 = PhLoadINT128U((PLONG)s2);
-                b1 = PhCompareEqINT128by32(b1, b2);
-
-                if (PhMoveMaskINT128by8(b1) != 0xffff)
+                do
                 {
-                    if (!IgnoreCase)
+                    PH_INT128 b1 = PhLoadINT128U((PLONG)s1);
+                    PH_INT128 b2 = PhLoadINT128U((PLONG)s2);
+
+                    // SIMD uppercase conversion
+                    b1 = PhUppercaseASCIIINT128by16(b1);
+                    b2 = PhUppercaseASCIIINT128by16(b2);
+
+                    // Compare uppercased values
+                    PH_INT128 cmp = PhCompareEqINT128by16(b1, b2);
+                    if (PhMoveMaskINT128by8(cmp) != 0xffff)
                     {
-                        return FALSE;
-                    }
-                    else
-                    {
-                        // Compare character-by-character to ignore case.
+                        // Mismatch - fall back to scalar
                         l1 = length * 16 + (l1 & 15);
                         l1 /= sizeof(WCHAR);
                         goto CompareCharacters;
                     }
-                }
 
-                s1 += 16 / sizeof(WCHAR);
-                s2 += 16 / sizeof(WCHAR);
-            } while (--length != 0);
+                    s1 += 16 / sizeof(WCHAR);
+                    s2 += 16 / sizeof(WCHAR);
+                } while (--length != 0);
+            }
+
+            // Compare character-by-character because we have no more 16-byte blocks to compare.
+            l1 = (l1 & 15) / sizeof(WCHAR);
         }
+        else
+        {
+            length = l1 / 16;
 
-        // Compare character-by-character because we have no more 16-byte blocks to compare.
-        l1 = (l1 & 15) / sizeof(WCHAR);
+            if (length != 0)
+            {
+                PH_INT128 b1;
+                PH_INT128 b2;
+
+                do
+                {
+                    b1 = PhLoadINT128U((PLONG)s1);
+                    b2 = PhLoadINT128U((PLONG)s2);
+                    b1 = PhCompareEqINT128by32(b1, b2);
+
+                    if (PhMoveMaskINT128by8(b1) != 0xffff)
+                    {
+                        if (!IgnoreCase)
+                        {
+                            return FALSE;
+                        }
+                        else
+                        {
+                            // Compare character-by-character to ignore case.
+                            l1 = length * 16 + (l1 & 15);
+                            l1 /= sizeof(WCHAR);
+                            goto CompareCharacters;
+                        }
+                    }
+
+                    s1 += 16 / sizeof(WCHAR);
+                    s2 += 16 / sizeof(WCHAR);
+                } while (--length != 0);
+            }
+
+            // Compare character-by-character because we have no more 16-byte blocks to compare.
+            l1 = (l1 & 15) / sizeof(WCHAR);
+        }
     }
     else
     {
@@ -6416,6 +6452,43 @@ ULONG PhHashBytes(
  * \param String The string to hash.
  * \param IgnoreCase TRUE for a case-insensitive hash function, otherwise FALSE.
  */
+ULONG PhHashStringRefOriginal(
+    _In_ PCPH_STRINGREF String,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    ULONG hash = 0;
+    SIZE_T count;
+    PWCHAR p;
+
+    if (String->Length == 0)
+        return 0;
+
+    count = String->Length / sizeof(WCHAR);
+    p = String->Buffer;
+
+    if (IgnoreCase)
+    {
+        while (count-- != 0)
+        {
+            hash ^= (USHORT)PhUpcaseUnicodeChar(*p++);
+            hash *= 0x01000193;
+        }
+    }
+    else
+    {
+        return PhHashBytes((PUCHAR)String->Buffer, String->Length);
+    }
+
+    return hash;
+}
+
+/**
+ * Generates a hash code for a string.
+ *
+ * \param String The string to hash.
+ * \param IgnoreCase TRUE for a case-insensitive hash function, otherwise FALSE.
+ */
 ULONG PhHashStringRef(
     _In_ PCPH_STRINGREF String,
     _In_ BOOLEAN IgnoreCase
@@ -6433,6 +6506,33 @@ ULONG PhHashStringRef(
 
     if (IgnoreCase)
     {
+        if (PhHasIntrinsics && count >= 8)
+        {
+            // SIMD hash path for case-insensitive
+            SIZE_T length16 = count / 8;
+            WCHAR uppercased[8];
+
+            for (SIZE_T i = 0; i < length16; i++)
+            {
+                PH_INT128 chunk;
+
+                chunk = PhLoadINT128((PLONG)p);
+                chunk = PhUppercaseASCIIINT128by16(chunk);
+                PhStoreINT128((PLONG)uppercased, chunk);
+
+                // Hash 8 uppercased characters
+                for (ULONG j = 0; j < 8; j++)
+                {
+                    hash ^= (USHORT)uppercased[j];
+                    hash *= 0x01000193;
+                }
+
+                p += 8;
+            }
+
+            count &= 7;
+        }
+
         while (count-- != 0)
         {
             hash ^= (USHORT)PhUpcaseUnicodeChar(*p++);
@@ -7872,7 +7972,7 @@ VOID PhFillMemoryUlong(
         return;
 
 #ifndef _ARM64_
-    if (PhHasAVX)
+    if (PhHasAVX && ((ULONG_PTR)Memory & 0x1F) == 0)
     {
         SIZE_T count = Count & ~0x7;
 
@@ -7895,7 +7995,7 @@ VOID PhFillMemoryUlong(
     }
 #endif
 
-    if (PhHasIntrinsics)
+    if (PhHasIntrinsics && ((ULONG_PTR)Memory & 0x0F) == 0)
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8057,7 +8157,7 @@ VOID PhDivideSinglesBySingle(
     }
 #endif
 
-    if (PhHasIntrinsics)
+    if (PhHasIntrinsics && ((ULONG_PTR)A | (ULONG_PTR)B) & 0x0F)
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8170,6 +8270,9 @@ FLOAT PhMaxMemorySingles(
             PFLOAT end;
             __m256 a;
             __m256 c;
+            __m128 hi;
+            __m128 lo;
+            __m128 d;
 
             end = (PFLOAT)(ULONG_PTR)(A + count);
             c = _mm256_setzero_ps();
@@ -8182,11 +8285,16 @@ FLOAT PhMaxMemorySingles(
                 A += 8;
             }
 
-            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
-            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
-            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
-            c = _mm256_max_ps(c, _mm256_permute2f128_ps(c, c, 1));
-            maximum = _mm256_cvtss_f32(c);
+            c = _mm256_max_ps(c, _mm256_permute_ps(c, _MM_SHUFFLE(2, 3, 0, 1)));  // swap neighbors
+            c = _mm256_max_ps(c, _mm256_permute_ps(c, _MM_SHUFFLE(1, 0, 3, 2)));  // swap pairs
+
+            lo = _mm256_castps256_ps128(c);
+            hi = _mm256_extractf128_ps(c, 1);
+            d = _mm_max_ps(lo, hi);
+
+            d = _mm_max_ps(d, _mm_shuffle_ps(d, d, _MM_SHUFFLE(2, 3, 0, 1)));
+            d = _mm_max_ps(d, _mm_shuffle_ps(d, d, _MM_SHUFFLE(1, 0, 3, 2)));
+            maximum = _mm_cvtss_f32(d);
 
             Count &= 0x7;
         }
@@ -8215,9 +8323,10 @@ FLOAT PhMaxMemorySingles(
                 A += 4;
             }
 
-            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
-            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
-            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            // Compare adjacent pairs (swap elements within pairs)
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2301(c, c));
+            // Compare results (swap pairs themselves)
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_1032(c, c));
             PhStoreFLOAT128LowSingle(&value, c);
 
             if (maximum < value)
@@ -8268,6 +8377,9 @@ FLOAT PhAddPlusMaxMemorySingles(
             __m256 a;
             __m256 b;
             __m256 c;
+            __m128 lo;
+            __m128 hi;
+            __m128 d;
 
             end = (PFLOAT)(ULONG_PTR)(A + count);
             c = _mm256_setzero_ps();
@@ -8283,18 +8395,23 @@ FLOAT PhAddPlusMaxMemorySingles(
                 B += 8;
             }
 
-            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
-            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
-            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
-            c = _mm256_max_ps(c, _mm256_permute2f128_ps(c, c, 1));
-            maximum = _mm256_cvtss_f32(c);
+            c = _mm256_max_ps(c, _mm256_permute_ps(c, _MM_SHUFFLE(2, 3, 0, 1)));
+            c = _mm256_max_ps(c, _mm256_permute_ps(c, _MM_SHUFFLE(1, 0, 3, 2)));
+
+            lo = _mm256_castps256_ps128(c);
+            hi = _mm256_extractf128_ps(c, 1);
+            d = _mm_max_ps(lo, hi);
+
+            d = _mm_max_ps(d, _mm_shuffle_ps(d, d, _MM_SHUFFLE(2, 3, 0, 1)));
+            d = _mm_max_ps(d, _mm_shuffle_ps(d, d, _MM_SHUFFLE(1, 0, 3, 2)));
+            maximum = _mm_cvtss_f32(d);
 
             Count &= 0x7;
         }
     }
 #endif
 
-    if (PhHasIntrinsics)
+    if (PhHasIntrinsics && ((ULONG_PTR)A | (ULONG_PTR)B) & 0x0F)
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8320,9 +8437,8 @@ FLOAT PhAddPlusMaxMemorySingles(
                 B += 4;
             }
 
-            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
-            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
-            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2301(c, c));  // swap neighbors
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_1032(c, c));  // swap pairs
             PhStoreFLOAT128LowSingle(&value, c);
 
             if (maximum < value)
@@ -8436,53 +8552,192 @@ VOID PhConvertCopyMemoryUlong64(
         return;
 
 #ifndef _ARM64_
-    if(PhHasAVX)
+    if (PhHasAVX512)
     {
-        SIZE_T count = Count & ~0x3;
+        SIZE_T count = Count & ~0xF;
+    
+        if (count)
+        {
+            PULONG64 end = From + count;
+    
+            // Convert 16 × uint64 → 16 × float in single iteration
+            while (From != end)
+            {
+                // Load 16 × uint64 (2 × 512-bit loads = 128 bytes)
+                __m512i v0 = _mm512_load_si512((__m512i const*)From);       // 8 × uint64
+                __m512i v1 = _mm512_load_si512((__m512i const*)(From + 8)); // 8 × uint64
+    
+                // Direct uint64 → double conversion (AVX-512 DQ)
+                __m512d d0 = _mm512_cvtepu64_pd(v0);  // 8 × double
+                __m512d d1 = _mm512_cvtepu64_pd(v1);  // 8 × double
+    
+                // Double → float conversion with rounding
+                __m256 f0 = _mm512_cvtpd_ps(d0);  // 8 × float
+                __m256 f1 = _mm512_cvtpd_ps(d1);  // 8 × float
+    
+                // Combine into single 512-bit register
+                __m512 result = _mm512_insertf32x8(_mm512_castps256_ps512(f0), f1, 1);
+    
+                // Store 16 floats
+                _mm512_storeu_ps(To, result);
+    
+                From += 16;
+                To += 16;
+            }
+    
+            Count &= 0xF;
+        }
+    }
+
+    if (PhHasAVX)
+    {
+        SIZE_T count = Count & ~0x7;
 
         if (count)
         {
             PULONG64 end = From + count;
-            const __m256i MaskLo32_64 = _mm256_set1_epi64x(0xFFFFFFFFULL); // for AND on 64-bit lanes
-            const __m256i PackIdx = _mm256_setr_epi32(0, 2, 4, 6, 0, 0, 0, 0);  // take elements 0,2,4,6 into lower 128
-            const __m128  Ps2p31 = _mm_set1_ps(2147483648.0f); // 2^31
-            const __m128  Ps2p32 = _mm_set1_ps(4294967296.0f); // 2^32 (exact power of two)
-            const __m128i Mask7fffffff = _mm_set1_epi32(0x7FFFFFFF);
+            // Constant for reconstructing float from high/low 32-bit parts.
+            const __m256 ps2p32 = _mm256_set1_ps(4294967296.0f); // 2^32
+            // Mask to de-interleave low and high 32-bit words from 64-bit lanes.
+            const __m256i deinterleave_mask = _mm256_setr_epi32(0, 2, 4, 6, 1, 3, 5, 7);
 
             while (From != end)
             {
-                // Load 4x uint64_t (256 bits)
-                __m256i v = _mm256_loadu_si256((__m256i const*)From);
+                // Load 8 uint64_t values into two 256-bit registers.
+                __m256i v0 = _mm256_load_si256((__m256i const*)From);       // u0, u1, u2, u3
+                __m256i v1 = _mm256_load_si256((__m256i const*)(From + 4)); // u4, u5, u6, u7
 
-                // Split each 64-bit lane into its low/high 32-bit halves (still in 64-bit lanes)
-                __m256i lo32_64 = _mm256_and_si256(v, MaskLo32_64);   // [u0_lo,0, u1_lo,0, u2_lo,0, u3_lo,0]
-                __m256i hi32_64 = _mm256_srli_epi64(v, 32);           // [u0_hi,0, u1_hi,0, u2_hi,0, u3_hi,0]
+                // Within each register, shuffle to group low 32-bit parts and high 32-bit parts.
+                // shuf0 becomes [u0_lo, u1_lo, u2_lo, u3_lo, u0_hi, u1_hi, u2_hi, u3_hi]
+                __m256i shuf0 = _mm256_permutevar8x32_epi32(v0, deinterleave_mask);
+                // shuf1 becomes [u4_lo, u5_lo, u6_lo, u7_lo, u4_hi, u5_hi, u6_hi, u7_hi]
+                __m256i shuf1 = _mm256_permutevar8x32_epi32(v1, deinterleave_mask);
 
-                // Pack 32-bit elements (indices 0,2,4,6) into lower 128 as contiguous 4x int32
-                __m256i loPacked = _mm256_permutevar8x32_epi32(lo32_64, PackIdx);
-                __m256i hiPacked = _mm256_permutevar8x32_epi32(hi32_64, PackIdx);
+                // Combine the parts from both registers to get two vectors:
+                // one with all 8 low parts, and one with all 8 high parts.
+                __m256i all_los = _mm256_permute2x128_si256(shuf0, shuf1, 0x20); // combines low(shuf0), low(shuf1)
+                __m256i all_his = _mm256_permute2x128_si256(shuf0, shuf1, 0x31); // combines high(shuf0), high(shuf1)
 
-                __m128i lo128 = _mm256_castsi256_si128(loPacked); // [u0_lo, u1_lo, u2_lo, u3_lo]
-                __m128i hi128 = _mm256_castsi256_si128(hiPacked); // [u0_hi, u1_hi, u2_hi, u3_hi]
+                // Convert the two vectors of 8 unsigned 32-bit integers to floats
+                // using the helper from phintrin.h.
+                __m256 los_ps = _mm256_cvtf_epu32(all_los);
+                __m256 his_ps = _mm256_cvtf_epu32(all_his);
 
-                // Convert unsigned 32 -> float:
-                //   f = float(x & 0x7fffffff) + float(x >> 31) * 2^31
-                __m128i loCarryI = _mm_srli_epi32(lo128, 31);
-                __m128  loPs = _mm_cvtepi32_ps(_mm_and_si128(lo128, Mask7fffffff));
-                loPs = _mm_add_ps(loPs, _mm_mul_ps(_mm_cvtepi32_ps(loCarryI), Ps2p31));
+                // Reconstruct the float representation of the original uint64_t values.
+                // float(u64) approx= float(low32) + float(high32) * 2^32
+                // FMA (fused multiply-add) is used for better performance.
+                __m256 val = _mm256_fmadd_ps(his_ps, ps2p32, los_ps);
 
-                __m128i hiCarryI = _mm_srli_epi32(hi128, 31);
-                __m128  hiPs = _mm_cvtepi32_ps(_mm_and_si128(hi128, Mask7fffffff));
-                hiPs = _mm_add_ps(hiPs, _mm_mul_ps(_mm_cvtepi32_ps(hiCarryI), Ps2p31));
+                // Store the 8 resulting floats.
+                _mm256_storeu_ps(To, val);
 
-                // Reconstruct: float(u64) = float(low32) + float(high32) * 2^32
-                // (Use FMA if you dispatch it)
-                __m128 val = _mm_add_ps(loPs, _mm_mul_ps(hiPs, Ps2p32));
+                From += 8;
+                To += 8;
+            }
 
-                _mm_storeu_ps(To, val); // store exactly 4 floats
+            Count &= 0x7;
+        }
+    }
+
+//#ifndef _ARM64_
+//    if(PhHasAVX)
+//    {
+//        SIZE_T count = Count & ~0x3;
+//
+//        if (count)
+//        {
+//            PULONG64 end = From + count;
+//            const __m256i MaskLo32_64 = _mm256_set1_epi64x(0xFFFFFFFFULL); // for AND on 64-bit lanes
+//            const __m256i PackIdx = _mm256_setr_epi32(0, 2, 4, 6, 0, 0, 0, 0);  // take elements 0,2,4,6 into lower 128
+//            const __m128  Ps2p31 = _mm_set1_ps(2147483648.0f); // 2^31
+//            const __m128  Ps2p32 = _mm_set1_ps(4294967296.0f); // 2^32 (exact power of two)
+//            const __m128i Mask7fffffff = _mm_set1_epi32(0x7FFFFFFF);
+//
+//            while (From != end)
+//            {
+//                // Load 4x uint64_t (256 bits)
+//                __m256i v = _mm256_loadu_si256((__m256i const*)From);
+//
+//                // Split each 64-bit lane into its low/high 32-bit halves (still in 64-bit lanes)
+//                __m256i lo32_64 = _mm256_and_si256(v, MaskLo32_64);   // [u0_lo,0, u1_lo,0, u2_lo,0, u3_lo,0]
+//                __m256i hi32_64 = _mm256_srli_epi64(v, 32);           // [u0_hi,0, u1_hi,0, u2_hi,0, u3_hi,0]
+//
+//                // Pack 32-bit elements (indices 0,2,4,6) into lower 128 as contiguous 4x int32
+//                __m256i loPacked = _mm256_permutevar8x32_epi32(lo32_64, PackIdx);
+//                __m256i hiPacked = _mm256_permutevar8x32_epi32(hi32_64, PackIdx);
+//
+//                __m128i lo128 = _mm256_castsi256_si128(loPacked); // [u0_lo, u1_lo, u2_lo, u3_lo]
+//                __m128i hi128 = _mm256_castsi256_si128(hiPacked); // [u0_hi, u1_hi, u2_hi, u3_hi]
+//
+//                // Convert unsigned 32 -> float:
+//                //   f = float(x & 0x7fffffff) + float(x >> 31) * 2^31
+//                __m128i loCarryI = _mm_srli_epi32(lo128, 31);
+//                __m128  loPs = _mm_cvtepi32_ps(_mm_and_si128(lo128, Mask7fffffff));
+//                loPs = _mm_add_ps(loPs, _mm_mul_ps(_mm_cvtepi32_ps(loCarryI), Ps2p31));
+//
+//                __m128i hiCarryI = _mm_srli_epi32(hi128, 31);
+//                __m128  hiPs = _mm_cvtepi32_ps(_mm_and_si128(hi128, Mask7fffffff));
+//                hiPs = _mm_add_ps(hiPs, _mm_mul_ps(_mm_cvtepi32_ps(hiCarryI), Ps2p31));
+//
+//                // Reconstruct: float(u64) = float(low32) + float(high32) * 2^32
+//                // (Use FMA if you dispatch it)
+//                __m128 val = _mm_add_ps(loPs, _mm_mul_ps(hiPs, Ps2p32));
+//
+//                _mm_storeu_ps(To, val); // store exactly 4 floats
+//
+//                From += 4;
+//                To   += 4;
+//            }
+//
+//            Count &= 0x3;
+//        }
+//    }
+//#endif
+
+    if (PhHasIntrinsics)
+    {
+        SIZE_T count = Count & ~0x3;  // Process 4 at a time
+
+        if (count)
+        {
+            PULONG64 end = From + count;
+            const __m128d scale = _mm_set1_pd(4294967296.0);
+
+            while (From != end)
+            {
+                // Load 4 × uint64 as 2 × __m128i
+                __m128i v0 = _mm_load_si128((__m128i const*)From);       // 2 × uint64
+                __m128i v1 = _mm_load_si128((__m128i const*)(From + 2)); // 2 × uint64
+
+                // Split low/high 32-bit
+                __m128i mask = _mm_set1_epi64x(0xFFFFFFFFULL);
+                __m128i v0_lo = _mm_and_si128(v0, mask);
+                __m128i v0_hi = _mm_srli_epi64(v0, 32);
+                __m128i v1_lo = _mm_and_si128(v1, mask);
+                __m128i v1_hi = _mm_srli_epi64(v1, 32);
+
+                // Convert uint32 → double (exact)
+                __m128d d0_lo = _mm_cvtepi32_pd(_mm_shuffle_epi32(v0_lo, 0x08));
+                __m128d d0_hi = _mm_cvtepi32_pd(_mm_shuffle_epi32(v0_hi, 0x08));
+                __m128d d1_lo = _mm_cvtepi32_pd(_mm_shuffle_epi32(v1_lo, 0x08));
+                __m128d d1_hi = _mm_cvtepi32_pd(_mm_shuffle_epi32(v1_hi, 0x08));
+
+                // Reconstruct
+                __m128d d0 = _mm_add_pd(d0_lo, _mm_mul_pd(d0_hi, scale));
+                __m128d d1 = _mm_add_pd(d1_lo, _mm_mul_pd(d1_hi, scale));
+
+                // Double → float
+                __m128 f0 = _mm_cvtpd_ps(d0);  // 2 floats in low 64 bits
+                __m128 f1 = _mm_cvtpd_ps(d1);  // 2 floats in low 64 bits
+
+                // Combine into 4 floats
+                __m128 result = _mm_movelh_ps(f0, f1);
+
+                // Store 4 floats
+                _mm_storeu_ps(To, result);
 
                 From += 4;
-                To   += 4;
+                To += 4;
             }
 
             Count &= 0x3;
