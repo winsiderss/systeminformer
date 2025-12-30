@@ -5211,6 +5211,50 @@ ULONG_PTR PhUserQueryWindow(
 }
 
 /**
+ * Opens a handle to the process associated with the specified window.
+ *
+ * \param ProcessHandle Pointer to a variable that receives the process handle.
+ * \param DesiredAccess The access rights requested for the process handle.
+ * \param WindowHandle Handle to the window whose associated process is to be opened.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhOpenWindowProcess(
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HWND WindowHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(&NtUserGetWindowProcessHandle) NtUserGetWindowProcessHandle_I = NULL;
+    HANDLE processHandle;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhGetDllHandle(L"win32u.dll"))
+        {
+            NtUserGetWindowProcessHandle_I = PhGetDllBaseProcedureAddress(baseAddress, "NtUserGetWindowProcessHandle", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!NtUserGetWindowProcessHandle_I)
+    {
+        return STATUS_PROCEDURE_NOT_FOUND;
+    }
+
+    if (processHandle = NtUserGetWindowProcessHandle_I(WindowHandle, DesiredAccess))
+    {
+        *ProcessHandle = processHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
+/**
  * Retrieves the source of the input message.
  *
  * \param InputMessageSource The INPUT_MESSAGE_SOURCE that holds the device type and the ID of the input message source.

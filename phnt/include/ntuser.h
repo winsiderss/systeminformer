@@ -973,6 +973,14 @@ NtUserGetWindowPlacement(
 NTSYSCALLAPI
 HANDLE
 NTAPI
+GetWindowProcessHandle(
+    _In_ HWND WindowHandle,
+    _In_ ACCESS_MASK DesiredAccess
+    );
+
+NTSYSCALLAPI
+HANDLE
+NTAPI
 NtUserGetWindowProcessHandle(
     _In_ HWND WindowHandle,
     _In_ ACCESS_MASK DesiredAccess

@@ -2936,6 +2936,15 @@ PhTerminateWindow(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhOpenWindowProcess(
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
 ULONG_PTR
 NTAPI
 PhUserQueryWindow(
