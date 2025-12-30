@@ -185,6 +185,7 @@ PH_DEFINE_IMPORT(L"ntdll.dll", PssNtQuerySnapshot);
 PH_DEFINE_IMPORT(L"ntdll.dll", PssNtFreeSnapshot);
 PH_DEFINE_IMPORT(L"ntdll.dll", PssNtFreeRemoteSnapshot);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtPssCaptureVaSpaceBulk);
+PH_DEFINE_IMPORT(L"ntdll.dll", TpSetPoolThreadBasePriority);
 
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertSecurityDescriptorToStringSecurityDescriptorW);
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertStringSecurityDescriptorToSecurityDescriptorW);
@@ -205,6 +206,8 @@ PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 
 PH_DEFINE_IMPORT(L"user32.dll", ConsoleControl);
+PH_DEFINE_IMPORT(L"user32.dll", GetCurrentInputMessageSource);
+PH_DEFINE_IMPORT(L"user32.dll", GetCIMSSM);
 
 PH_DEFINE_IMPORT(L"xmllite.dll", CreateXmlReader);
 PH_DEFINE_IMPORT(L"xmllite.dll", CreateXmlWriter);
