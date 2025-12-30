@@ -14,6 +14,7 @@
 #include <kphcomms.h>
 #include <kphuser.h>
 #include <mapldr.h>
+#include <apiimport.h>
 
 typedef struct _KPH_UMESSAGE
 {
@@ -164,35 +165,6 @@ QueueIoOperation:
     PhReleaseRundownProtection(&KphpCommsRundown);
 }
 
-static VOID KphpTpSetPoolThreadBasePriority(
-    _Inout_ PTP_POOL Pool,
-    _In_ ULONG BasePriority
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static NTSTATUS (NTAPI* TpSetPoolThreadBasePriority_I)(
-        _Inout_ PTP_POOL Pool,
-        _In_ ULONG BasePriority
-        ) = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID baseAddress;
-
-        if (baseAddress = PhGetLoaderEntryDllBaseZ(RtlNtdllName))
-        {
-            TpSetPoolThreadBasePriority_I = PhGetDllBaseProcedureAddress(baseAddress, "TpSetPoolThreadBasePriority", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (TpSetPoolThreadBasePriority_I)
-    {
-        TpSetPoolThreadBasePriority_I(Pool, BasePriority);
-    }
-}
-
 /**
  * \brief Starts the communications infrastructure.
  *
@@ -247,7 +219,9 @@ NTSTATUS KphCommsStart(
 
     TpSetPoolMinThreads(KphpCommsThreadPool, KPH_COMMS_MIN_THREADS);
     TpSetPoolMaxThreads(KphpCommsThreadPool, numberOfThreads);
-    KphpTpSetPoolThreadBasePriority(KphpCommsThreadPool, THREAD_PRIORITY_HIGHEST);
+
+    if (TpSetPoolThreadBasePriority_Import())
+        TpSetPoolThreadBasePriority_Import()(KphpCommsThreadPool, THREAD_PRIORITY_HIGHEST);
 
     TpInitializeCallbackEnviron(&KphpCommsThreadPoolEnv);
     TpSetCallbackNoActivationContext(&KphpCommsThreadPoolEnv);
