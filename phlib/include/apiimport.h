@@ -54,6 +54,7 @@ PH_DECLARE_IMPORT(PssNtQuerySnapshot);
 PH_DECLARE_IMPORT(PssNtFreeSnapshot);
 PH_DECLARE_IMPORT(PssNtFreeRemoteSnapshot);
 PH_DECLARE_IMPORT(NtPssCaptureVaSpaceBulk);
+PH_DECLARE_IMPORT(TpSetPoolThreadBasePriority);
 
 // Advapi32
 
@@ -84,6 +85,8 @@ PH_DECLARE_IMPORT(GetAppContainerFolderPath);
 // User32
 
 PH_DECLARE_IMPORT(ConsoleControl);
+PH_DECLARE_IMPORT(GetCurrentInputMessageSource);
+PH_DECLARE_IMPORT(GetCIMSSM);
 
 // Xmllite
 
