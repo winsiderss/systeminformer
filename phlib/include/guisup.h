@@ -1690,6 +1690,12 @@ PhRemoveWindowContext(
     _In_ ULONG PropertyHash
     );
 
+/**
+ * Retrieves the window context pointer associated with a window handle.
+ *
+ * \param[in] WindowHandle A handle to the window from which to retrieve the context.
+ * \return A pointer to the window context, or NULL if no context has been set. * *
+ */
 FORCEINLINE
 PVOID
 NTAPI
@@ -1705,6 +1711,15 @@ PhGetWindowContextEx(
 #endif
 }
 
+/**
+ * Sets the extended window context for a window handle.
+ * 
+ * \param[in] WindowHandle The handle to the window for which to set the context.
+ * \param[in] Context A pointer to the context data to associate with the window.
+ * \return This function does not return a value.
+ * \remarks The window must have sufficient extra bytes allocated to store a PVOID
+ * if PHNT_WINDOW_CLASS_CONTEXT is not defined.
+ */
 FORCEINLINE
 VOID
 NTAPI
@@ -1721,6 +1736,15 @@ PhSetWindowContextEx(
 #endif
 }
 
+/**
+ * Removes the window context from a window handle.
+ *
+ * \param[in] WindowHandle The handle to the window from which to remove the context.
+ * \remarks
+ * If PHNT_WINDOW_CLASS_CONTEXT is defined, this function delegates to PhRemoveWindowContext
+ * with MAXCHAR as the context identifier. Otherwise, it clears the window's extra data by
+ * setting the window long pointer at offset 0 to NULL.
+ */
 FORCEINLINE
 VOID
 NTAPI
