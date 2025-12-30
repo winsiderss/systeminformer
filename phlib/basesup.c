@@ -8552,6 +8552,7 @@ VOID PhConvertCopyMemoryUlong64(
         return;
 
 #ifndef _ARM64_
+#if defined(PH_NATIVE_AVX512)
     if (PhHasAVX512)
     {
         SIZE_T count = Count & ~0xF;
@@ -8588,6 +8589,7 @@ VOID PhConvertCopyMemoryUlong64(
             Count &= 0xF;
         }
     }
+#endif
 
     if (PhHasAVX)
     {
