@@ -187,7 +187,7 @@ BOOLEAN PhSipMemorySectionCallback(
     {
     case SysInfoCreate:
         {
-            ShowCommitInSummary = !!PhGetIntegerSetting(L"ShowCommitInSummary");
+            ShowCommitInSummary = !!PhGetIntegerSetting(SETTING_SHOW_COMMIT_IN_SUMMARY);
             MemorySection = Section;
             MemorySlotsTotal = 0;
             MemorySlotsUsed = 0;
