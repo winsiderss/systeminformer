@@ -2829,6 +2829,7 @@ NtAlertMultipleThreadByThreadId(
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
 /**
+ * The NtAlertThreadByThreadIdEx routine waits for an alert to be delivered to the specified thread.
  *
  * \param Address The address to wait for an alert on.
  * \param Timeout The timeout value for waiting, or NULL for no timeout.
