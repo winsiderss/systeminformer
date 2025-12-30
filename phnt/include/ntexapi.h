@@ -5955,9 +5955,10 @@ typedef struct _SYSTEM_CODEINTEGRITYVERIFICATION_INFORMATION
 // rev
 typedef struct _SYSTEM_HYPERVISOR_USER_SHARED_DATA
 {
-    ULONGLONG TimeUpdateLock; // QpcSystemTimeIncrement?
-    volatile ULONGLONG QpcMultiplier;
-    volatile ULONGLONG QpcBias; // HvlGetQpcBias
+    volatile ULONG TimeUpdateLock;
+    ULONG Reserved0;
+    ULONGLONG QpcMultiplier;
+    ULONGLONG QpcBias;
 } SYSTEM_HYPERVISOR_USER_SHARED_DATA, *PSYSTEM_HYPERVISOR_USER_SHARED_DATA;
 
 // private
