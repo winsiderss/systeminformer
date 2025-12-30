@@ -724,12 +724,12 @@ VOID PhUpdateServiceItemConfig(
         PhFree(config);
     }
 
-    if (PhGetServiceDelayedAutoStart(serviceHandle, &delayedAutoStartInfo))
+    if (NT_SUCCESS(PhGetServiceDelayedAutoStart(serviceHandle, &delayedAutoStartInfo)))
         ServiceItem->DelayedStart = delayedAutoStartInfo;
     else
         ServiceItem->DelayedStart = FALSE;
 
-    if (PhGetServiceTriggerInfo(serviceHandle, NULL))
+    if (NT_SUCCESS(PhGetServiceTriggerInfo(serviceHandle, NULL)))
         ServiceItem->HasTriggers = TRUE;
     else
         ServiceItem->HasTriggers = FALSE;

@@ -367,36 +367,10 @@ static VOID PhpUpdateServiceNodeDescription(
 {
     if (!FlagOn(ServiceNode->ValidMask, PHSN_DESCRIPTION))
     {
-        NTSTATUS status;
-        HANDLE keyHandle;
-
-        status = PhOpenServiceKey(
-            &keyHandle,
-            KEY_QUERY_VALUE,
-            &ServiceNode->ServiceItem->Name->sr
+        PhSwapReference(
+            &ServiceNode->Description,
+            PhGetServiceDescriptionKey(&ServiceNode->ServiceItem->Name->sr)
             );
-
-        if (NT_SUCCESS(status))
-        {
-            PPH_STRING descriptionString;
-            PPH_STRING serviceDescriptionString;
-
-            if (descriptionString = PhQueryRegistryStringZ(keyHandle, L"Description"))
-            {
-                if (serviceDescriptionString = PhLoadIndirectString(&descriptionString->sr))
-                    PhMoveReference(&ServiceNode->Description, serviceDescriptionString);
-                else
-                    PhSwapReference(&ServiceNode->Description, descriptionString);
-
-                PhDereferenceObject(descriptionString);
-            }
-
-            NtClose(keyHandle);
-        }
-        else
-        {
-            PhMoveReference(&ServiceNode->Description, PhGetStatusMessage(status, 0));
-        }
 
         SetFlag(ServiceNode->ValidMask, PHSN_DESCRIPTION);
     }

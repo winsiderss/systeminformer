@@ -13,9 +13,7 @@
 #ifndef _PH_SVCSUP_H
 #define _PH_SVCSUP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 extern CONST PPH_STRINGREF PhServiceTypeStrings[12];
 extern CONST PPH_STRINGREF PhServiceStartTypeStrings[5];
@@ -232,9 +230,15 @@ PhGetServiceDescription(
     _In_ SC_HANDLE ServiceHandle
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+PPH_STRING
+NTAPI
+PhGetServiceDescriptionKey(
+    _In_ PPH_STRINGREF ServiceName
+    );
+
+PHLIBAPI
+NTSTATUS
 NTAPI
 PhGetServiceDelayedAutoStart(
     _In_ SC_HANDLE ServiceHandle,
@@ -242,16 +246,15 @@ PhGetServiceDelayedAutoStart(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhSetServiceDelayedAutoStart(
     _In_ SC_HANDLE ServiceHandle,
     _In_ BOOLEAN DelayedAutoStart
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetServiceTriggerInfo(
     _In_ SC_HANDLE ServiceHandle,
@@ -425,8 +428,6 @@ PhServiceWorkaroundWindowsServiceTypeBug(
         ServiceEntry->ServiceStatusProcess.dwServiceType = SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE;
 }
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

@@ -1055,6 +1055,45 @@ PPH_STRING PhGetServiceDescription(
     }
 }
 
+PPH_STRING PhGetServiceDescriptionKey(
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle;
+    PPH_STRING description = NULL;
+
+    status = PhOpenServiceKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        ServiceName
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PPH_STRING descriptionString;
+        PPH_STRING serviceDescriptionString;
+
+        if (descriptionString = PhQueryRegistryStringZ(keyHandle, L"Description"))
+        {
+            if (serviceDescriptionString = PhLoadIndirectString(&descriptionString->sr))
+                PhMoveReference(&description, serviceDescriptionString);
+            else
+                PhSwapReference(&description, descriptionString);
+
+            PhDereferenceObject(descriptionString);
+        }
+
+        NtClose(keyHandle);
+    }
+    else
+    {
+        PhMoveReference(&description, PhGetStatusMessage(status, 0));
+    }
+
+    return description;
+}
+
 /**
  * Retrieves the delayed auto-start setting for a service.
  *
@@ -1068,23 +1107,23 @@ BOOLEAN PhGetServiceDelayedAutoStart(
     _Out_ PBOOLEAN DelayedAutoStart
     )
 {
+    NTSTATUS status;
     SERVICE_DELAYED_AUTO_START_INFO delayedAutoStartInfo;
 
-    if (NT_SUCCESS(PhQueryServiceConfig2(
+    status = PhQueryServiceConfig2(
         ServiceHandle,
         SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
         &delayedAutoStartInfo,
         sizeof(SERVICE_DELAYED_AUTO_START_INFO),
         NULL
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
         *DelayedAutoStart = !!delayedAutoStartInfo.fDelayedAutostart;
-        return TRUE;
     }
-    else
-    {
-        return FALSE;
-    }
+
+    return status;
 }
 
 /**
@@ -1094,7 +1133,7 @@ BOOLEAN PhGetServiceDelayedAutoStart(
  * \param DelayedAutoStart TRUE to enable delayed auto-start, FALSE to disable.
  * \return TRUE if successful, FALSE otherwise.
  */
-BOOLEAN PhSetServiceDelayedAutoStart(
+NTSTATUS PhSetServiceDelayedAutoStart(
     _In_ SC_HANDLE ServiceHandle,
     _In_ BOOLEAN DelayedAutoStart
     )
@@ -1103,52 +1142,91 @@ BOOLEAN PhSetServiceDelayedAutoStart(
 
     delayedAutoStartInfo.fDelayedAutostart = DelayedAutoStart;
 
-    return NT_SUCCESS(PhChangeServiceConfig2(
+    return PhChangeServiceConfig2(
         ServiceHandle,
         SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
         &delayedAutoStartInfo
-        ));
+        );
 }
 
-_Success_(return)
-BOOLEAN PhGetServiceTriggerInfo(
+/**
+ * Retrieves the trigger information for a service.
+ *
+ * \param ServiceHandle Handle to the service.
+ * \param ServiceTriggerInfo Receives a pointer to the trigger information. Caller must free with PhFree.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetServiceTriggerInfo(
     _In_ SC_HANDLE ServiceHandle,
     _Out_opt_ PSERVICE_TRIGGER_INFO* ServiceTriggerInfo
     )
 {
-    PVOID buffer;
-    ULONG bufferSize;
+    NTSTATUS status;
+    PVOID buffer = NULL;
+    ULONG bufferSize = 0;
     SERVICE_TRIGGER_INFO triggerInfo;
 
-    if (PhQueryServiceConfig2(
+    if (ServiceTriggerInfo)
+        *ServiceTriggerInfo = NULL;
+
+    status = PhQueryServiceConfig2(
         ServiceHandle,
         SERVICE_CONFIG_TRIGGER_INFO,
         &triggerInfo,
         sizeof(SERVICE_TRIGGER_INFO),
         &bufferSize
-        ) == STATUS_BUFFER_TOO_SMALL)
+        );
+
+    if (NT_SUCCESS(status))
     {
+        // The fixed-size struct was sufficient (e.g., no triggers or no variable list).
+        if (ServiceTriggerInfo)
+        {
+            buffer = PhAllocate(sizeof(SERVICE_TRIGGER_INFO));
+            if (!buffer)
+                return STATUS_NO_MEMORY;
+
+            memcpy(buffer, &triggerInfo, sizeof(SERVICE_TRIGGER_INFO));
+            *ServiceTriggerInfo = buffer;
+        }
+
+        return STATUS_SUCCESS;
+    }
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+    {
+        if (bufferSize == 0)
+            return STATUS_INVALID_BUFFER_SIZE;
+
+        // If the caller does not want it, just report success.
         if (!ServiceTriggerInfo)
-            return TRUE;
+            return STATUS_SUCCESS;
 
         buffer = PhAllocate(bufferSize);
+        if (!buffer)
+            return STATUS_NO_MEMORY;
 
-        if (NT_SUCCESS(PhQueryServiceConfig2(
+        status = PhQueryServiceConfig2(
             ServiceHandle,
             SERVICE_CONFIG_TRIGGER_INFO,
             buffer,
             bufferSize,
             &bufferSize
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             *ServiceTriggerInfo = buffer;
-            return TRUE;
+            return STATUS_SUCCESS;
         }
+    }
 
+    if (buffer)
+    {
         PhFree(buffer);
     }
 
-    return FALSE;
+    return status;
 }
 
 /**
@@ -1458,9 +1536,9 @@ PPH_STRING PhGetServiceKeyName(
     _In_ PPH_STRINGREF ServiceName
     )
 {
-    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services");
 
-    return PhConcatStringRef2(&servicesKeyName, ServiceName);
+    return PhConcatStringRef3(&servicesKeyName, &PhNtPathSeparatorString, ServiceName);
 }
 
 /**
@@ -1473,10 +1551,10 @@ PPH_STRING PhGetServiceParametersKeyName(
     _In_ PPH_STRINGREF ServiceName
     )
 {
-    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services");
     static CONST PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"\\Parameters");
 
-    return PhConcatStringRef3(&servicesKeyName, ServiceName, &parametersKeyName);
+    return PhConcatStringRef4(&servicesKeyName, &PhNtPathSeparatorString, ServiceName, &parametersKeyName);
 }
 
 /**

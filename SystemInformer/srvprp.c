@@ -431,7 +431,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     PhDereferenceObject(description);
                 }
 
-                if (PhGetServiceDelayedAutoStart(serviceHandle, &delayedStart))
+                if (NT_SUCCESS(PhGetServiceDelayedAutoStart(serviceHandle, &delayedStart)))
                 {
                     context->OldDelayedStart = delayedStart;
 
