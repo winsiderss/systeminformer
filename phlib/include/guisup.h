@@ -2952,6 +2952,30 @@ PhUserQueryWindow(
     _In_ WINDOWINFOCLASS WindowInfo
     );
 
+FORCEINLINE
+ULONG
+PhQueryWindowRealProcess(
+    _In_ HWND WindowHandle
+    )
+{
+    return (ULONG)PhUserQueryWindow(
+        WindowHandle,
+        WindowRealProcess
+        );
+}
+
+FORCEINLINE
+BOOLEAN
+PhWindowIsHung(
+    _In_ HWND WindowHandle
+    )
+{
+    return (BOOLEAN)(ULONG_PTR)PhUserQueryWindow(
+        WindowHandle,
+        WindowIsHung
+        );
+}
+
 #ifndef DBT_DEVICEARRIVAL
 #define DBT_DEVICEARRIVAL        0x8000  // system detected a new device
 #define DBT_DEVICEREMOVECOMPLETE 0x8004  // device is gone
