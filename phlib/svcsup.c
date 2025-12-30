@@ -1101,8 +1101,7 @@ PPH_STRING PhGetServiceDescriptionKey(
  * \param DelayedAutoStart Receives TRUE if delayed auto-start is enabled.
  * \return TRUE if successful, FALSE otherwise.
  */
-_Success_(return)
-BOOLEAN PhGetServiceDelayedAutoStart(
+NTSTATUS PhGetServiceDelayedAutoStart(
     _In_ SC_HANDLE ServiceHandle,
     _Out_ PBOOLEAN DelayedAutoStart
     )
@@ -2097,3 +2096,261 @@ NTSTATUS PhWaitForServiceStatus(
 
     return STATUS_SUCCESS;
 }
+
+/**
+ * Queries whether a service is configured for SafeBoot (Safe Mode or Safe Mode with Networking).
+ *
+ * \param ServiceName Name of the service.
+ * \param DriverName Name of the service.
+ * \param SafeModeNormal Receives TRUE if the service is configured to start in Safe Mode.
+ * \param SafeModeNetwork Receives TRUE if the service is configured to start in Safe Mode with Network.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetServiceSafeBootStart(
+    _In_opt_ PPH_STRINGREF ServiceName,
+    _In_opt_ PPH_STRINGREF DriverName,
+    _Out_ PBOOLEAN SafeModeNormal,
+    _Out_ PBOOLEAN SafeModeNetwork
+    )
+{
+    static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\SafeBoot");
+    static CONST PH_STRINGREF keyNameSafeBoot[] = { PH_STRINGREF_INIT(L"Minimal"), PH_STRINGREF_INIT(L"Network") };
+    NTSTATUS status;
+    HANDLE safeBootKeyHandle = NULL;
+    HANDLE groupKeyHandle = NULL;
+    HANDLE serviceKeyHandle = NULL;
+    BOOLEAN safeModeNormalFound = FALSE;
+    BOOLEAN safeModeNetworkFound = FALSE;
+
+    *SafeModeNormal = FALSE;
+    *SafeModeNetwork = FALSE;
+
+    status = PhOpenKey(
+        &safeBootKeyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(keyNameSafeBoot); i++)
+    {
+        if (NT_SUCCESS(PhOpenKey(
+            &groupKeyHandle,
+            KEY_READ,
+            safeBootKeyHandle,
+            &keyNameSafeBoot[i],
+            0
+            )))
+        {
+            if (ServiceName && PhOpenKey(
+                &serviceKeyHandle,
+                KEY_READ,
+                groupKeyHandle,
+                ServiceName,
+                0
+                ))
+            {
+                if (i == 0)
+                    safeModeNormalFound = TRUE;
+                else if (i == 1)
+                    safeModeNetworkFound = TRUE;
+
+                NtClose(serviceKeyHandle);
+            }
+
+            if (DriverName && PhOpenKey(
+                &serviceKeyHandle,
+                KEY_READ,
+                groupKeyHandle,
+                DriverName,
+                0
+                ))
+            {
+                if (i == 0)
+                    safeModeNormalFound = TRUE;
+                else if (i == 1)
+                    safeModeNetworkFound = TRUE;
+
+                NtClose(serviceKeyHandle);
+            }
+
+            NtClose(groupKeyHandle);
+        }
+    }
+
+    NtClose(safeBootKeyHandle);
+
+    *SafeModeNormal = safeModeNormalFound;
+    *SafeModeNetwork = safeModeNetworkFound;
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Retrieves the security descriptor for a service directly from the registry.
+ *
+ * \param ServiceName Name of the service.
+ * \param SecurityDescriptor Receives a pointer to the security descriptor. Caller must free with PhFree.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetServiceRegistrySecurityDescriptor(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    static const PH_STRINGREF securityKeyName = PH_STRINGREF_INIT(L"Security");
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HANDLE keyHandle = NULL;
+    PKEY_VALUE_PARTIAL_INFORMATION keyValueInfo;
+    PPH_STRING serviceKeyName = NULL;
+    PVOID buffer = NULL;
+    ULONG bufferSize = 0;
+    ULONG resultLength = 0;
+
+    *SecurityDescriptor = NULL;
+
+    // Build the full registry path: System\CurrentControlSet\Services\<ServiceName>\Security
+    serviceKeyName = PhGetServiceKeyName(ServiceName);
+
+    if (!serviceKeyName)
+    {
+        return STATUS_NO_MEMORY;
+    }
+
+    // Append "\Security" to the service key name
+    PhSwapReference(&serviceKeyName, PhConcatStringRef3(
+        &serviceKeyName->sr, 
+        &PhNtPathSeparatorString,
+        &securityKeyName
+        ));
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &serviceKeyName->sr,
+        0
+        );
+
+    PhDereferenceObject(serviceKeyName);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhQueryValueKey(
+        keyHandle,
+        &securityKeyName,
+        KeyValuePartialInformation,
+        &keyValueInfo
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (keyValueInfo->Type == REG_BINARY)
+        {
+            RtlMoveMemory(SecurityDescriptor, keyValueInfo->Data, keyValueInfo->DataLength);
+            return STATUS_SUCCESS;
+        }
+        else
+        {
+            status = STATUS_INVALID_SECURITY_DESCR;
+        }
+
+        NtClose(keyHandle);
+    }
+    else if (NT_SUCCESS(status) && bufferSize == 0)
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+    }
+
+    PhFree(buffer);
+
+    return status;
+}
+
+/**
+ * Builds the full registry key name for a service into a caller-supplied buffer.
+ *
+ * \param ServiceName Name of the service.
+ * \param Buffer Buffer to receive the key name.
+ * \param BufferLength Length of the buffer in characters.
+ * \param RequiredLength Receives the required length in characters (including null terminator).
+ * \return TRUE if successful, FALSE if the buffer is too small.
+ */
+_Success_(return)
+BOOLEAN PhGetServiceKeyNameToBuffer(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_writes_to_opt_(BufferLength, *RequiredLength) PWSTR Buffer,
+    _In_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T RequiredLength
+    )
+{
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services");
+    SIZE_T totalLength = servicesKeyName.Length / sizeof(WCHAR) + ServiceName->Length / sizeof(WCHAR);
+    SIZE_T requiredLength = totalLength + 1;
+
+    if (RequiredLength)
+    {
+        *RequiredLength = requiredLength;
+    }
+
+    if (BufferLength < requiredLength)
+        return FALSE;
+
+    memcpy(Buffer, servicesKeyName.Buffer, servicesKeyName.Length);
+    memcpy(Buffer + (servicesKeyName.Length / sizeof(WCHAR)), ServiceName->Buffer, ServiceName->Length);
+    Buffer[totalLength] = 0;
+
+    return TRUE;
+}
+
+/**
+ * Builds the full registry key name for a service's Parameters subkey into a caller-supplied buffer.
+ *
+ * \param ServiceName Name of the service.
+ * \param Buffer Buffer to receive the key name.
+ * \param BufferLength Length of the buffer in characters.
+ * \param RequiredLength Receives the required length in characters (including null terminator).
+ * \return TRUE if successful, FALSE if the buffer is too small.
+ */
+_Success_(return)
+BOOLEAN PhGetServiceParametersKeyNameToBuffer(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_writes_to_opt_(BufferLength, *RequiredLength) PWSTR Buffer,
+    _In_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T RequiredLength
+    )
+{
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services");
+    static CONST PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"\\Parameters");
+    SIZE_T totalLength;
+    SIZE_T requiredLength;
+
+    totalLength =
+        servicesKeyName.Length / sizeof(WCHAR) +
+        ServiceName->Length / sizeof(WCHAR) +
+        parametersKeyName.Length / sizeof(WCHAR);
+
+    requiredLength = totalLength + 1;
+
+    if (RequiredLength)
+    {
+        *RequiredLength = requiredLength;
+    }
+
+    if (BufferLength < requiredLength)
+    {
+        return FALSE;
+    }
+
+    memcpy(Buffer, servicesKeyName.Buffer, servicesKeyName.Length);
+    memcpy(Buffer + (servicesKeyName.Length / sizeof(WCHAR)), ServiceName->Buffer, ServiceName->Length);
+    memcpy(Buffer + (servicesKeyName.Length / sizeof(WCHAR)) + (ServiceName->Length / sizeof(WCHAR)), parametersKeyName.Buffer, parametersKeyName.Length);
+    Buffer[totalLength] = 0;
+
+    return TRUE;
+}
+
