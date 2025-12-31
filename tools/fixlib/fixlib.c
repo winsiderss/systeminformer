@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2025
+ *
+ */
+
 #include <ph.h>
 #include <mapimg.h>
 
@@ -32,7 +44,7 @@ BOOLEAN NTAPI CommandLineCallback(
     return TRUE;
 }
 
-int __cdecl main(int argc, char *argv[])
+int __cdecl wmain(int argc, wchar_t *argv[])
 {
     static PH_COMMAND_LINE_OPTION options[] =
     {
