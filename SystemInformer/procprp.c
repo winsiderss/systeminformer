@@ -225,7 +225,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 
             // Save the window position and size.
 
-            PhSaveWindowPlacementToSetting(L"ProcPropPosition", L"ProcPropSize", hwnd);
+            PhSaveWindowPlacementToSetting(SETTING_PROC_PROP_POSITION, SETTING_PROC_PROP_SIZE, hwnd);
 
             // Save the selected tab.
 
@@ -237,7 +237,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 
             if (TabCtrl_GetItem(tabControl, TabCtrl_GetCurSel(tabControl), &tabItem))
             {
-                PhSetStringSetting(L"ProcPropPage", text);
+                PhSetStringSetting(SETTING_PROC_PROP_PAGE, text);
             }
         }
         break;
@@ -404,12 +404,12 @@ VOID PhpInitializePropSheetLayoutStage2(
     RECT rect;
     LONG dpiValue;
 
-    PhLoadWindowPlacementFromSetting(L"ProcPropPosition", L"ProcPropSize", hwnd);
+    PhLoadWindowPlacementFromSetting(SETTING_PROC_PROP_POSITION, SETTING_PROC_PROP_SIZE, hwnd);
 
-    windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
+    windowRectangle.Position = PhGetIntegerPairSetting(SETTING_PROC_PROP_POSITION);
     PhRectangleToRect(&rect, &windowRectangle);
     dpiValue = PhGetMonitorDpi(NULL, &rect);
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"ProcPropSize", TRUE, dpiValue)->Pair;
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_PROC_PROP_SIZE, TRUE, dpiValue)->Pair;
 
     if (windowRectangle.Size.X < MinimumSize.right)
         windowRectangle.Size.X = MinimumSize.right;
@@ -421,7 +421,7 @@ VOID PhpInitializePropSheetLayoutStage2(
     // Implement cascading by saving an offsetted rectangle.
     windowRectangle.Left += 20;
     windowRectangle.Top += 20;
-    PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
+    PhSetIntegerPairSetting(SETTING_PROC_PROP_POSITION, windowRectangle.Position);
 }
 
 BOOLEAN PhAddProcessPropPage(
@@ -797,12 +797,12 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
         MapDialogRect(hwnd, &dialogSize);
 
         // Get the original dialog rectangle.
-        GetWindowRect(hwnd, &dialogRect);
+        PhGetWindowRect(hwnd, &dialogRect);
         dialogRect.right = dialogRect.left + dialogSize.right;
         dialogRect.bottom = dialogRect.top + dialogSize.bottom;
 
         // Calculate the margin from the original rectangle.
-        GetWindowRect(Handle, &margin);
+        PhGetWindowRect(Handle, &margin);
         PhMapRect(&margin, &margin, &dialogRect);
         PhConvertRect(&margin, &dialogRect);
 
@@ -987,11 +987,13 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     // Create the property sheet
 
     if (PropContext->SelectThreadId)
-        PhSetStringSetting(L"ProcPropPage", L"Threads");
+    {
+        PhSetStringSetting(SETTING_PROC_PROP_PAGE, L"Threads");
+    }
 
-    startPage = PhGetStringSetting(L"ProcPropPage");
+    startPage = PhGetStringSetting(SETTING_PROC_PROP_PAGE);
     PropContext->PropSheetHeader.dwFlags |= PSH_USEPSTARTPAGE;
-    PropContext->PropSheetHeader.pStartPage = startPage->Buffer;
+    PropContext->PropSheetHeader.pStartPage = PhGetString(startPage);
 
     PhModalPropertySheet(&PropContext->PropSheetHeader);
 
