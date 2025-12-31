@@ -411,6 +411,10 @@ VOID PhResetSettings(
     _In_ HWND hwnd
     );
 
+NTSTATUS PhResetSettingsFile(
+    _In_ PCPH_STRINGREF FileName
+    );
+
 // begin_phapppub
 // High-level settings creation
 
@@ -570,6 +574,14 @@ PhSaveCustomColorList(
     _In_ PCWSTR Name,
     _In_ PULONG CustomColorList,
     _In_ ULONG CustomColorCount
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhConvertSettingsXmlToJson(
+    _In_ PCPH_STRINGREF XmlFileName,
+    _In_ PCPH_STRINGREF JsonFileName
     );
 
 // end_phapppub

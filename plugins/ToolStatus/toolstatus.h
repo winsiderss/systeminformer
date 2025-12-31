@@ -25,7 +25,7 @@
 
 #include "resource.h"
 
-#define PLUGIN_NAME L"ProcessHacker.ToolStatus"
+#define PLUGIN_NAME L"ToolStatus"
 #define SETTING_NAME_TOOLSTATUS_CONFIG (PLUGIN_NAME L".Config")
 #define SETTING_NAME_REBAR_CONFIG (PLUGIN_NAME L".RebarConfig")
 #define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarButtonConfig")

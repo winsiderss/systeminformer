@@ -95,7 +95,7 @@ extern BOOLEAN EtEnableScaleText;
 extern BOOLEAN EtPropagateCpuUsage;
 extern BOOLEAN EtEnableAvxSupport;
 
-#define PLUGIN_NAME L"ProcessHacker.ExtendedTools"
+#define PLUGIN_NAME L"ExtendedTools"
 #define SETTING_NAME_FIRST_RUN (PLUGIN_NAME L".FirstRun")
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")
 #define SETTING_NAME_DISK_TREE_LIST_SORT (PLUGIN_NAME L".DiskTreeListSort")

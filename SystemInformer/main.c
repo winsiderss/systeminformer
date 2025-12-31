@@ -1425,7 +1425,7 @@ VOID PhInitializeAppSettings(
     {
         // There are three possible locations for the settings file:
         // 1. The file name given in the command line.
-        // 2. A file named SystemInformer.exe.settings.xml in the program directory. (This changes
+        // 2. A file named SystemInformer.exe.settings.json in the program directory. (This changes
         //    based on the executable file name.)
         // 3. The default location.
 
@@ -1458,7 +1458,8 @@ VOID PhInitializeAppSettings(
         {
             PPH_STRING settingsFileName;
 
-            if (settingsFileName = PhGetApplicationFileNameZ(L".settings.xml"))
+            // Try .settings.json first
+            if (settingsFileName = PhGetApplicationFileNameZ(L".settings.json"))
             {
                 if (PhDoesFileExist(&settingsFileName->sr))
                 {
@@ -1468,6 +1469,35 @@ VOID PhInitializeAppSettings(
                 else
                 {
                     PhDereferenceObject(settingsFileName);
+
+                    // Try .settings.xml (legacy)
+                    if (settingsFileName = PhGetApplicationFileNameZ(L".settings.xml"))
+                    {
+                        if (PhDoesFileExist(&settingsFileName->sr))
+                        {
+                            PPH_STRING jsonFileName = PhGetBaseNameChangeExtensionZ(&settingsFileName->sr, L".json");
+
+                            // Convert XML to JSON
+                            NTSTATUS convertStatus = PhConvertSettingsXmlToJson(
+                                &settingsFileName->sr,
+                                &jsonFileName->sr
+                                );
+
+                            if (NT_SUCCESS(convertStatus))
+                            {
+                                PhMoveReference(&PhSettingsFileName, jsonFileName);
+                                PhPortableEnabled = TRUE;
+                            }
+                            else
+                            {
+                                PhDereferenceObject(jsonFileName);
+                            }
+                        }
+                        else
+                        {
+                            PhDereferenceObject(settingsFileName);
+                        }
+                    }
                 }
             }
         }
@@ -1475,7 +1505,7 @@ VOID PhInitializeAppSettings(
         // 3. Default location
         if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
-            PhSettingsFileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml", TRUE);
+            PhSettingsFileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.json", TRUE);
         }
 
         if (!PhIsNullOrEmptyString(PhSettingsFileName))
@@ -1483,6 +1513,32 @@ VOID PhInitializeAppSettings(
             NTSTATUS status;
 
             status = PhLoadSettings(&PhSettingsFileName->sr);
+
+            // If JSON file not found, try to convert from XML
+            if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+            {
+                PPH_STRING xmlFileName = PhGetBaseNameChangeExtensionZ(&PhSettingsFileName->sr, L".xml");
+
+                if (!PhIsNullOrEmptyString(xmlFileName))
+                {
+                    if (PhDoesFileExist(&xmlFileName->sr))
+                    {
+                        // Convert XML to JSON
+                        NTSTATUS convertStatus = PhConvertSettingsXmlToJson(
+                            &xmlFileName->sr,
+                            &PhSettingsFileName->sr
+                            );
+
+                        if (NT_SUCCESS(convertStatus))
+                        {
+                            // Retry loading from newly created JSON file
+                            status = PhLoadSettings(&PhSettingsFileName->sr);
+                        }
+                    }
+
+                    PhDereferenceObject(xmlFileName);
+                }
+            }
 
             // If we didn't find the file, it will be created. Otherwise,
             // there was probably a parsing error and we don't want to
@@ -1497,24 +1553,7 @@ VOID PhInitializeAppSettings(
                     L"If you select No, the settings system will not function properly."
                     ) == IDYES)
                 {
-                    HANDLE fileHandle;
-
-                    // This used to delete the file. But it's better to keep the file there
-                    // and overwrite it with some valid XML, especially with case (2) above.
-                    if (NT_SUCCESS(PhCreateFile(
-                        &fileHandle,
-                        &PhSettingsFileName->sr,
-                        FILE_GENERIC_WRITE,
-                        FILE_ATTRIBUTE_NORMAL,
-                        FILE_SHARE_READ | FILE_SHARE_DELETE,
-                        FILE_OVERWRITE,
-                        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                        )))
-                    {
-                        static CHAR dataXml[] = "<settings></settings>";
-                        PhWriteFile(fileHandle, dataXml, sizeof(dataXml) - 1, NULL, NULL);
-                        NtClose(fileHandle);
-                    }
+                    PhResetSettingsFile(&PhSettingsFileName->sr);
                 }
                 else
                 {

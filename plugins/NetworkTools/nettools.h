@@ -23,7 +23,7 @@
 
 #include "resource.h"
 
-#define PLUGIN_NAME L"ProcessHacker.NetworkTools"
+#define PLUGIN_NAME L"NetworkTools"
 #define SETTING_NAME_ADDRESS_HISTORY (PLUGIN_NAME L".AddressHistory")
 #define SETTING_NAME_PING_WINDOW_POSITION (PLUGIN_NAME L".PingWindowPosition")
 #define SETTING_NAME_PING_WINDOW_SIZE (PLUGIN_NAME L".PingWindowSize")

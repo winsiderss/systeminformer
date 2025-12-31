@@ -39,7 +39,7 @@
 #define PH_SHOWINSTALL (WM_APP + 505)
 #define PH_SHOWERROR   (WM_APP + 506)
 
-#define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
+#define PLUGIN_NAME L"UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
 #define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".UpdateCheck")
 #define SETTING_NAME_UPDATE_MODE (PLUGIN_NAME L".UpdateMode")

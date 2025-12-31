@@ -14,7 +14,7 @@
 #ifndef _DEVICES_H_
 #define _DEVICES_H_
 
-#define PLUGIN_NAME L"ProcessHacker.HardwareDevices"
+#define PLUGIN_NAME L"HardwareDevices"
 #define SETTING_NAME_ENABLE_NDIS (PLUGIN_NAME L".EnableNDIS")
 #define SETTING_NAME_INTERFACE_LIST (PLUGIN_NAME L".NetworkList")
 #define SETTING_NAME_NETWORK_POSITION (PLUGIN_NAME L".NetworkWindowPosition")

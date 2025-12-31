@@ -23,7 +23,7 @@
 
 #include "resource.h"
 
-#define PLUGIN_NAME L"ProcessHacker.OnlineChecks"
+#define PLUGIN_NAME L"OnlineChecks"
 #define SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED (PLUGIN_NAME L".EnableVirusTotalScanning")
 #define SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS (PLUGIN_NAME L".VirusTotalHighlightDetection")
 #define SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION (PLUGIN_NAME L".VirusTotalDefautAction")

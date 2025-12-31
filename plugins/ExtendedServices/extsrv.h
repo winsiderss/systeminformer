@@ -25,7 +25,7 @@
 
 extern PPH_PLUGIN PluginInstance;
 
-#define PLUGIN_NAME L"ProcessHacker.ExtendedServices"
+#define PLUGIN_NAME L"ExtendedServices"
 #define SETTING_NAME_ENABLE_SERVICES_MENU (PLUGIN_NAME L".EnableServicesMenu")
 
 // depend
