@@ -79,6 +79,10 @@
 #endif // !PHNT_INLINE_TYPEDEFS
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
+//
+// Headers
+//
+
 EXTERN_C_START
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
