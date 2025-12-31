@@ -345,6 +345,69 @@ PPH_MEMORY_ITEM PhLookupMemoryItemList(
     return NULL;
 }
 
+// Split an existing memory item at the specified address and return the new item starting at Address.
+// The original item is shrunk to end just before Address. The new item inherits metadata and will be
+// inserted directly after the original in both the list and AVL tree. (dmex)
+static PPH_MEMORY_ITEM PhpSplitMemoryItem(
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _Inout_ PPH_MEMORY_ITEM MemoryItem,
+    _In_ PVOID Address
+    )
+{
+    PPH_MEMORY_ITEM newItem;
+    ULONG_PTR addr = (ULONG_PTR)Address;
+    ULONG_PTR start = (ULONG_PTR)MemoryItem->BaseAddress;
+    ULONG_PTR end = start + MemoryItem->RegionSize;
+
+    if (addr <= start || addr >= end)
+        return NULL;
+
+    // Copy region info
+    newItem = PhCreateMemoryItem();
+    newItem->BasicInfo = MemoryItem->BasicInfo;
+    newItem->BaseAddress = (PVOID)addr;
+    newItem->BasicInfo.BaseAddress = (PVOID)addr;
+    newItem->RegionSize = end - addr;
+    newItem->BasicInfo.RegionSize = newItem->RegionSize;
+    PhPrintPointer(newItem->BaseAddressString, newItem->BaseAddress);
+
+    // Adjust current region size.
+    SIZE_T originalRegionSize = MemoryItem->RegionSize;
+    MemoryItem->RegionSize = addr - start;
+    MemoryItem->BasicInfo.RegionSize = MemoryItem->RegionSize;
+
+    if (MemoryItem->CommittedSize == originalRegionSize)
+    {
+        newItem->CommittedSize = newItem->RegionSize;
+        MemoryItem->CommittedSize = MemoryItem->RegionSize;
+    }
+    if (MemoryItem->PrivateSize == originalRegionSize && (MemoryItem->Type & MEM_PRIVATE))
+    {
+        newItem->PrivateSize = newItem->RegionSize;
+        MemoryItem->PrivateSize = MemoryItem->RegionSize;
+    }
+
+    newItem->AllocationBase = MemoryItem->AllocationBase;
+    newItem->AllocationBaseItem = MemoryItem->AllocationBaseItem;
+
+    newItem->Type = MemoryItem->Type;
+    newItem->State = MemoryItem->State;
+    newItem->AllocationProtect = MemoryItem->AllocationProtect;
+    newItem->Protect = MemoryItem->Protect;
+    newItem->Valid = FALSE;
+    newItem->Bad = FALSE;
+    newItem->RegionTypeEx = MemoryItem->RegionTypeEx;
+
+    PhAddElementAvlTree(&List->Set, &newItem->Links);
+
+    newItem->ListEntry.Flink = MemoryItem->ListEntry.Flink;
+    newItem->ListEntry.Blink = &MemoryItem->ListEntry;
+    MemoryItem->ListEntry.Flink->Blink = &newItem->ListEntry;
+    MemoryItem->ListEntry.Flink = &newItem->ListEntry;
+
+    return newItem;
+}
+
 PPH_MEMORY_ITEM PhpSetMemoryRegionType(
     _In_ PPH_MEMORY_ITEM_LIST List,
     _In_ PVOID Address,
@@ -361,6 +424,26 @@ PPH_MEMORY_ITEM PhpSetMemoryRegionType(
 
     if (GoToAllocationBase && memoryItem->AllocationBaseItem)
         memoryItem = memoryItem->AllocationBaseItem;
+
+    // If we are tagging a sub-region inside an already tagged region, split it first.
+    if (!GoToAllocationBase && memoryItem->RegionType != UnknownRegion && memoryItem->BaseAddress != Address)
+    {
+        PPH_MEMORY_ITEM newItem = PhpSplitMemoryItem(List, memoryItem, Address);
+        if (newItem)
+        {
+            newItem->RegionType = RegionType;
+            return newItem;
+        }
+        return NULL; // Could not split; don't overwrite existing tag.
+    }
+
+    // If region is Unknown but the address is interior and we don't want allocation base, split so the tag is precise.
+    if (!GoToAllocationBase && memoryItem->RegionType == UnknownRegion && memoryItem->BaseAddress != Address)
+    {
+        PPH_MEMORY_ITEM newItem = PhpSplitMemoryItem(List, memoryItem, Address);
+        if (newItem)
+            memoryItem = newItem; // Tag the new split item below.
+    }
 
     if (memoryItem->RegionType != UnknownRegion)
         return NULL;
@@ -601,7 +684,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
         if (NT_SUCCESS(PhGetProcessPeb(ProcessHandle, &processPeb)))
         {
-            // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections. (dmex)
+            // Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' (dmex)
             PhpSetMemoryRegionType(List, processPeb, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, PebRegion);
 
             if (NT_SUCCESS(PhReadVirtualMemory(
