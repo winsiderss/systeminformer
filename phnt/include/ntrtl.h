@@ -880,7 +880,11 @@ RtlIsGenericTableEmpty(
 typedef struct _RTL_RB_TREE
 {
     PRTL_BALANCED_NODE Root;
-    PRTL_BALANCED_NODE Min;
+    union
+    {
+        UCHAR Encoded : 1;
+        PRTL_BALANCED_NODE Min;
+    };
 } RTL_RB_TREE, *PRTL_RB_TREE;
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
@@ -962,7 +966,11 @@ typedef struct _RTL_DYNAMIC_HASH_TABLE_CONTEXT
 
 typedef struct _RTL_DYNAMIC_HASH_TABLE_ENUMERATOR
 {
-    RTL_DYNAMIC_HASH_TABLE_ENTRY HashEntry;
+    union
+    {
+        RTL_DYNAMIC_HASH_TABLE_ENTRY HashEntry;
+        PLIST_ENTRY CurEntry;
+    };
     PLIST_ENTRY ChainHead;
     ULONG BucketIndex;
 } RTL_DYNAMIC_HASH_TABLE_ENUMERATOR, *PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR;
