@@ -197,7 +197,7 @@ namespace CustomBuildTool
             }
             catch (Exception e)
             {
-                Program.PrintColorMessage($"Unable to create signature file {Path.GetFileName(FileName)}: {e.Message}", ConsoleColor.Yellow);
+                Program.PrintColorMessage($"Unable to create signature file {Path.GetFileName(FileName)}: {e}", ConsoleColor.Yellow);
                 return false;
             }
 
@@ -301,7 +301,7 @@ namespace CustomBuildTool
         {
             using (var blobStream = new MemoryStream(Bytes))
             {
-                return Decrypt(blobStream, Secret, GetSalt(Salt));
+                return Decrypt(blobStream, Secret, Salt);
             }
         }
 
@@ -316,7 +316,7 @@ namespace CustomBuildTool
         {
             using (var blobStream = new MemoryStream(Bytes))
             {
-                return Encrypt(blobStream, Secret, GetSalt(Salt));
+                return Encrypt(blobStream, Secret, Salt);
             }
         }
 
