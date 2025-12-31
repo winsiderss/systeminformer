@@ -314,7 +314,10 @@ typedef struct _PEB32
             ULONG ProcessUsingVEH : 1;
             ULONG ProcessUsingVCH : 1;
             ULONG ProcessUsingFTH : 1;
-            ULONG ReservedBits0 : 27;
+            ULONG ProcessPreviouslyThrottled : 1;   // The process was previously throttled.
+            ULONG ProcessCurrentlyThrottled : 1;    // The process is currently throttled.
+            ULONG ProcessImagesHotPatched : 1;      // The process images are hot patched. // RS5
+            ULONG ReservedBits0 : 24;
         };
     };
     union
