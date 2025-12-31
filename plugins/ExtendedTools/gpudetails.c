@@ -402,7 +402,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             else
                 PhCenterWindow(hwndDlg, (HWND)lParam);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             EtpGpuDetailsEnumAdapters(context->ListViewHandle);
 
@@ -545,7 +545,7 @@ NTSTATUS EtGpuDetailsDialogThreadStart(
     EtGpuDetailsDialogHandle = PhCreateDialog(
         NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_SYSINFO_GPUDETAILS),
-        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : Parameter,
+        !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : Parameter,
         EtpGpuDetailsDlgProc,
         NULL
         );
