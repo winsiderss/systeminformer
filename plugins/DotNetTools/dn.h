@@ -19,7 +19,7 @@
 
 #include "resource.h"
 
-#define PLUGIN_NAME L"ProcessHacker.DotNetTools"
+#define PLUGIN_NAME L"DotNetTools"
 #define SETTING_NAME_ASM_TREE_LIST_COLUMNS (PLUGIN_NAME L".AsmTreeListColumns")
 #define SETTING_NAME_ASM_TREE_LIST_FLAGS (PLUGIN_NAME L".AsmTreeListFlags")
 #define SETTING_NAME_ASM_TREE_LIST_SORT (PLUGIN_NAME L".AsmTreeListSort")
