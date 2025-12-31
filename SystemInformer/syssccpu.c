@@ -17,6 +17,7 @@
 #include <procprv.h>
 #include <phsettings.h>
 #include <phfirmware.h>
+#include <devguid.h>
 
 static PPH_SYSINFO_SECTION CpuSection;
 static HWND CpuDialog;
@@ -1406,14 +1407,66 @@ PPH_STRING PhSipGetCpuBrandString(
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
         brand = PhZeroExtendToUtf16Ex((PCSTR)cpubrand, brandLength);
 #else
-        static CONST PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"Hardware\\Description\\System\\CentralProcessor\\0");
-        HANDLE keyHandle;
+        ULONG deviceCount = 0;
+        PDEV_OBJECT deviceObjects = NULL;
 
-        if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &processorKeyName, 0)))
+        const DEVPROPCOMPKEY deviceProperties[] =
         {
-            brand = PhQueryRegistryStringZ(keyHandle, L"ProcessorNameString");
-            NtClose(keyHandle);
+            { DEVPKEY_NAME, DEVPROP_STORE_SYSTEM, NULL },
+            { DEVPKEY_Device_FriendlyName, DEVPROP_STORE_SYSTEM, NULL },
+        };
+
+        const DEVPROP_FILTER_EXPRESSION deviceFilter[] =
+        {
+            { DEVPROP_OPERATOR_EQUALS,
+            { { DEVPKEY_Device_ClassGuid, DEVPROP_STORE_SYSTEM, NULL },
+                DEVPROP_TYPE_GUID, sizeof(GUID), (PVOID)&GUID_DEVCLASS_PROCESSOR
+            } }
+        };
+
+        if (SUCCEEDED(PhDevGetObjects(
+            DevObjectTypeDevice,
+            DevQueryFlagNone,
+            RTL_NUMBER_OF(deviceProperties),
+            deviceProperties,
+            RTL_NUMBER_OF(deviceFilter),
+            deviceFilter,
+            &deviceCount,
+            &deviceObjects
+            )))
+        {
+            if (deviceCount > 0)
+            {
+                DEV_OBJECT device = deviceObjects[0];
+                PH_STRINGREF string;
+
+                string.Buffer = device.pProperties[0].Buffer;
+                string.Length = device.pProperties[0].BufferSize ?
+                    device.pProperties[0].BufferSize - sizeof(UNICODE_NULL) : 0;
+
+                if (string.Length > 0)
+                {
+                    brand = PhCreateString2(&string);
+                }
+                else if (device.pProperties[1].BufferSize > 0)
+                {
+                    string.Buffer = device.pProperties[1].Buffer;
+                    string.Length = device.pProperties[1].BufferSize - sizeof(UNICODE_NULL);
+                    brand = PhCreateString2(&string);
+                }
+            }
+
+            PhDevFreeObjects(deviceCount, deviceObjects);
         }
+
+        //static CONST PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"Hardware\\Description\\System\\CentralProcessor\\0");
+        //HANDLE keyHandle;
+        //
+        //if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &processorKeyName, 0)))
+        //{
+        //    brand = PhQueryRegistryStringZ(keyHandle, L"ProcessorNameString");
+        //    NtClose(keyHandle);
+        //}
 
         if (PhIsNullOrEmptyString(brand))
             PhMoveReference(&brand, PhCreateString(L"N/A"));
