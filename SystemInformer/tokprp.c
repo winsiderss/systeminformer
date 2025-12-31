@@ -28,7 +28,7 @@
 
 typedef enum _PH_PROCESS_TOKEN_CATEGORY
 {
-    PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS,
+    PH_PROCESS_TOKEN_CATEGORY_FLAGS,
     PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES,
     PH_PROCESS_TOKEN_CATEGORY_GROUPS,
     PH_PROCESS_TOKEN_CATEGORY_RESTRICTED
@@ -565,7 +565,7 @@ static COLORREF NTAPI PhpTokenGroupColorFunction(
 
     if (PhEnableThemeSupport)
     {
-        if (entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
+        if (entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_FLAGS)
             return PhGetDangerousFlagColorDark(entry->ItemFlagState);
         else if (entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
             return PhGetPrivilegeAttributesColorDark(entry->TokenPrivilege->Attributes);
@@ -574,7 +574,7 @@ static COLORREF NTAPI PhpTokenGroupColorFunction(
     }
     else
     {
-        if (entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
+        if (entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_FLAGS)
             return PhGetDangerousFlagColor(entry->ItemFlagState);
         else if (entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
             return PhGetPrivilegeAttributesColor(entry->TokenPrivilege->Attributes);
@@ -1009,7 +1009,7 @@ VOID PhpUpdateTokenDangerousFlagItem(
     LONG itemIndex;
 
     lvitem = PhAllocateZero(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
-    lvitem->GroupId = PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS;
+    lvitem->GroupId = PH_PROCESS_TOKEN_CATEGORY_FLAGS;
     lvitem->ItemFlag = Flag;
     lvitem->ItemFlagState = State;
 
@@ -1269,7 +1269,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             ExtendedListView_SetCompareFunction(tokenPageContext->ListViewHandle, 1, PhpTokenStatusColumnCompareFunction);
             ExtendedListView_SetItemColorFunction(tokenPageContext->ListViewHandle, PhpTokenGroupColorFunction);
             ListView_EnableGroupView(tokenPageContext->ListViewHandle, TRUE);
-            PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS, L"Dangerous Flags");
+            PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_FLAGS, L"Flags");
             PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, L"Privileges");
             PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_GROUPS, L"Groups");
             PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_RESTRICTED, L"Restricting SIDs");
@@ -1805,7 +1805,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         break;
                     }
 
-                    if ((listViewItems[0]->GroupId != PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS) ||
+                    if ((listViewItems[0]->GroupId != PH_PROCESS_TOKEN_CATEGORY_FLAGS) ||
                         (listViewItems[0]->ItemFlag != PH_PROCESS_TOKEN_FLAG_UIACCESS))
                     {
                         PhFree(listViewItems);
@@ -2217,7 +2217,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                             }
                             break;
-                        case PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS:
+                        case PH_PROCESS_TOKEN_CATEGORY_FLAGS:
                             {
                                 if ((numberOfItems == 1) && (listviewItems[0]->ItemFlag == PH_PROCESS_TOKEN_FLAG_UIACCESS))
                                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_UIACCESS_REMOVE, L"&Remove", NULL, NULL), ULONG_MAX);
