@@ -1518,6 +1518,7 @@ VOID PhpDeleteEnvironmentTree(
     PhDereferenceObject(Context->NodeList);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpProcessEnvironmentTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_ PVOID Context
@@ -1558,7 +1559,8 @@ BOOLEAN PhpProcessEnvironmentTreeFilterCallback(
     return FALSE;
 }
 
-VOID NTAPI PhpProcessEnvironmentSearchControlCallback(
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
+static VOID NTAPI PhpProcessEnvironmentSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
     )
