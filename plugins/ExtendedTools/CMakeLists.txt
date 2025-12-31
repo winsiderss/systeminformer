@@ -57,8 +57,6 @@ set(SOURCES
     "main.c"
     "modsrv.c"
     "namedpipes.c"
-    "objmgr.c"
-    "objprp.c"
     "options.c"
     "pooldb.c"
     "pooldialog.c"
