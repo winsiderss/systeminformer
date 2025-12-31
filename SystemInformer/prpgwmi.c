@@ -1210,6 +1210,7 @@ VOID PhSetOptionsWmiProviderList(
     }
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpWmiProviderNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -1221,6 +1222,7 @@ BOOLEAN PhpWmiProviderNodeHashtableEqualFunction(
     return PhEqualStringRef(&node1->Provider->RelativePath->sr, &node2->Provider->RelativePath->sr, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpWmiProviderNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -1689,6 +1691,7 @@ VOID PhpDeleteWmiProviderTree(
     PhDereferenceObject(Context->NodeList);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpProcessWmiProviderTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -1740,10 +1743,11 @@ BOOLEAN PhpProcessWmiProviderTreeFilterCallback(
     return FALSE;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpProcessWmiProvidersSearchControlCallback(
     _In_ ULONG_PTR MatcHandle,
     _In_opt_ PVOID Context
-)
+    )
 {
     PPH_PROCESS_WMI_CONTEXT context = Context;
 
