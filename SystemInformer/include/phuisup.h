@@ -97,9 +97,9 @@ FORCEINLINE VOID PhChangeShStateTn(
 \
         if (TreeNewHandleForUpdate) \
         { \
-            if (needsFullInvalidate) \
+            if (needsFullInvalidate && (FullyInvalidated && !(*(PBOOLEAN)FullyInvalidated))) \
             { \
-                InvalidateRect((TreeNewHandleForUpdate), NULL, FALSE); \
+                PhInvalidateRect((TreeNewHandleForUpdate), NULL, FALSE); \
                 if (FullyInvalidated) \
                     *((PBOOLEAN)FullyInvalidated) = TRUE; \
             } \
