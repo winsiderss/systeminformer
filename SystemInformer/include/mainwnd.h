@@ -117,8 +117,8 @@ PhPluginInvokeWindowCallback(
     ((HFONT)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT, 0, 0))
 #define SystemInformer_Invoke(Function, Parameter) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_INVOKE, (PVOID)(ULONG_PTR)(Parameter), (PVOID)(ULONG_PTR)(Function))
-#define SystemInformer_Post(Function, Parameter) \
-    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_POST, (PVOID)(ULONG_PTR)(Parameter), (PVOID)(ULONG_PTR)(Function))
+//#define SystemInformer_Post(Function, Parameter) \
+//    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_POST, (PVOID)(ULONG_PTR)(Parameter), (PVOID)(ULONG_PTR)(Function))
 //#define SystemInformer_CreateTabPage(Template) \
 //    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_CREATE_TAB_PAGE, 0, (PVOID)(ULONG_PTR)(Template))
 #define SystemInformer_Refresh() \
@@ -328,6 +328,10 @@ PhShowIconNotificationEx(
     _In_opt_ PVOID Context
     );
 // end_phapppub
+
+VOID PhProcessInvokeQueue(
+    VOID
+    );
 
 VOID PhShowDetailsForIconNotification(
     VOID

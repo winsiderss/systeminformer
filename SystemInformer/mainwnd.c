@@ -3039,10 +3039,7 @@ LRESULT PhMwpOnUserMessage(
         break;
     case WM_PH_INVOKE:
         {
-            VOID (NTAPI *function)(PVOID);
-
-            function = (PVOID)LParam;
-            function((PVOID)WParam);
+            PhProcessInvokeQueue();
         }
         break;
     }
@@ -5201,6 +5198,82 @@ BOOLEAN PhMwpPluginNotifyEvent(
     return notifyEvent.Handled;
 }
 
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) _PH_INVOKE_ENTRY
+{
+    SLIST_ENTRY ListEntry;
+    PVOID Command;
+    PVOID Parameter;
+    //HANDLE ThreadId;
+    //ULONG64 SubmitTime;
+} PH_INVOKE_ENTRY, * PPH_INVOKE_ENTRY;
+
+SLIST_HEADER PhMainThreadInvokeQueue;
+PH_FREE_LIST PhMainThreadInvokeQueueFreeList;
+
+NTSTATUS PhInvokeOnMainThread(
+    _In_opt_ PVOID Command,
+    _In_opt_ PVOID Parameter
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    PPH_INVOKE_ENTRY entry;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeSListHead(&PhMainThreadInvokeQueue);
+        PhInitializeFreeList(&PhMainThreadInvokeQueueFreeList, sizeof(PH_INVOKE_ENTRY), 5);
+        PhEndInitOnce(&initOnce);
+    }
+
+    entry = PhAllocateFromFreeList(&PhMainThreadInvokeQueueFreeList);
+    entry->Command = Command;
+    entry->Parameter = Parameter;
+    //entry->ThreadId = NtCurrentThreadId();
+    //entry->SubmitTime = NtGetTickCount64();
+
+    RtlInterlockedPushEntrySList(&PhMainThreadInvokeQueue, &entry->ListEntry);
+
+    //static ULONG64 LastInvokeTicks = 0;
+    //ULONG64 currentTicks;
+    //currentTicks = NtGetTickCount64();
+    //if ((currentTicks - LastInvokeTicks) < 100)
+    //    dprintf("Coalesced invoke message (%llu)\n", (currentTicks - LastInvokeTicks));
+    //else LastInvokeTicks = currentTicks;
+    PostMessage(PhMainWndHandle, WM_PH_INVOKE, 0, 0);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhProcessInvokeQueue(
+    VOID
+    )
+{
+    PSLIST_ENTRY listEntry;
+    PPH_INVOKE_ENTRY entry;
+
+    while ((listEntry = RtlInterlockedPopEntrySList(&PhMainThreadInvokeQueue)) != NULL)
+    {
+        entry = CONTAINING_RECORD(listEntry, PH_INVOKE_ENTRY, ListEntry);
+
+        {
+            VOID (NTAPI* function)(PVOID);
+
+            function = entry->Command;
+            function(entry->Parameter);
+        }
+
+        //PH_PLUGIN_INVOKE_EVENT event;
+        //
+        //memset(&event, 0, sizeof(PH_PLUGIN_INVOKE_EVENT));
+        //event.Id = entry->Command;
+        //event.Parameter = entry->Parameter;
+        //
+        //PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowThread), &event);
+
+        PhFreeToFreeList(&PhMainThreadInvokeQueueFreeList, entry);
+    }
+}
+
 // Exports for plugin support (dmex)
 
 PVOID PhPluginInvokeWindowCallback(
@@ -5306,7 +5379,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_INVOKE:
         {
-            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)wparam, (LPARAM)lparam);
+            PhInvokeOnMainThread((PVOID)(ULONG_PTR)lparam, (PVOID)wparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_REFRESH:
