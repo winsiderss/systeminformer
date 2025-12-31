@@ -328,8 +328,9 @@ typedef struct _PF_PRIVSOURCE_INFO
     SIZE_T WsPrivatePages;
     SIZE_T TotalPrivatePages;
     ULONG SessionID;
-    CHAR ImageName[16];
-    union {
+    UCHAR ImageName[16];
+    union
+    {
         SIZE_T WsSwapPages;                 // process only PF_PRIVSOURCE_QUERY_WS_SWAP_PAGES.
         SIZE_T SessionPagedPoolPages;       // session only.
         SIZE_T StoreSizePages;              // process only PF_PRIVSOURCE_QUERY_STORE_INFO.
