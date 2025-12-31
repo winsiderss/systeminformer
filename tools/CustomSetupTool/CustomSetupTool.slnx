@@ -1,0 +1,6 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Win32" />
+  </Configurations>
+  <Project Path="CustomSetupTool.vcxproj" />
+</Solution>
