@@ -10,6 +10,7 @@
  */
 
 #include <peview.h>
+#include <json.h>
 
 typedef struct _PV_PE_VERSIONINFO_CONTEXT
 {
@@ -189,6 +190,120 @@ static PCWSTR PvVersionInfoFileOSGuestToString(
     case 3:  return L"32-bit Presentation Manager";
     case 4:  return L"32-bit Windows";
     default: return L"Unknown";
+    }
+}
+
+VOID PvLoadVersionBuildMetadata(
+     _In_ HWND ListViewHandle,
+    _Inout_ PULONG Count
+    )
+{
+    static CONST PH_STRINGREF string = PH_STRINGREF_INIT(L"\\AppxManifest.xml");
+    NTSTATUS status;
+    HANDLE fileHandle;
+    LARGE_INTEGER fileSize;
+    PPH_BYTES fileContent;
+    PVOID topNode;
+    PPH_STRING fileName;
+    PH_STRINGREF BasePathName;
+
+    if (!PhGetBasePath(&PvFileName->sr, &BasePathName, NULL))
+        return;
+
+    fileName = PhConcatStringRef2(&BasePathName, &string);
+    fileName = PhDosPathNameToNtPathName(&fileName->sr);
+
+    status = PhCreateFile(
+        &fileHandle,
+        &fileName->sr,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return;
+
+    if (NT_SUCCESS(PhGetFileSize(fileHandle, &fileSize)) && fileSize.QuadPart == 0)
+    {
+        NtClose(fileHandle);
+        return;
+    }
+
+    if (NT_SUCCESS(status = PhGetFileText(&fileContent, fileHandle, FALSE)))
+    {
+        if (topNode = PhLoadXmlObjectFromString2(fileContent->Buffer))
+        {
+            PVOID propertiesNode;
+            PVOID buildMetadata;
+
+            if (propertiesNode = PhFindXmlObject(topNode, topNode, "Properties", NULL, NULL))
+            {
+                for (PVOID child = PhGetXmlNodeFirstChild(propertiesNode); child; child = PhGetXmlNodeNextChild(child))
+                {
+                    PCSTR name = PhGetXmlNodeElementText(child);
+                    PPH_STRING value = PhGetXmlNodeOpaqueText(child);
+
+                    if (name && value && (
+                        PhEqualBytesZ(name, "DisplayName", TRUE) ||
+                        PhEqualBytesZ(name, "PublisherDisplayName", TRUE) ||
+                        PhEqualBytesZ(name, "Logo", TRUE)
+                        ))
+                    {
+                        PPH_STRING nameUtf16 = PhZeroExtendToUtf16(name);
+
+                        PvAddVersionInfoItem(
+                            ListViewHandle,
+                            Count,
+                            3,
+                            PhGetString(nameUtf16),
+                            PhGetString(value)
+                            );
+
+                        PhClearReference(&nameUtf16);
+                    }
+
+                    PhClearReference(&value);
+                }
+            }
+
+            if (buildMetadata = PhFindXmlObject(topNode, topNode, "build:Metadata", NULL, NULL))
+            {
+                for (PVOID child = PhGetXmlNodeFirstChild(buildMetadata); child; child = PhGetXmlNodeNextChild(child))
+                {
+                    SIZE_T attributeCount = PhGetXmlNodeAttributeCount(child);
+                    const char* name = PhGetXmlNodeElementText(child);
+                    PPH_STRING value = PhGetXmlNodeOpaqueText(child);
+
+                    if (name && value)
+                    {
+                        PPH_STRING attributeName = PhGetXmlNodeAttributeText(child, "Name");
+                        PPH_STRING attributeValue = PhGetXmlNodeAttributeText(child, "Value");
+                        PPH_STRING attributeVersion = PhGetXmlNodeAttributeText(child, "Version");
+
+                        PvAddVersionInfoItem(
+                            ListViewHandle,
+                            Count,
+                            3,
+                            PhGetString(attributeName),
+                            attributeValue ? PhGetString(attributeValue) : PhGetString(attributeVersion)
+                            );
+
+                        PhClearReference(&attributeVersion);
+                        PhClearReference(&attributeValue);
+                        PhClearReference(&attributeName);
+                    }
+
+                    PhClearReference(&value);
+                }
+            }
+
+            PhDereferenceObject(fileContent);
+
+            PhFreeXmlObject(topNode);
+        }
     }
 }
 
@@ -395,6 +510,8 @@ VOID PvEnumVersionInfo(
     }
 
     PhFree(versionInfo);
+
+    PvLoadVersionBuildMetadata(ListViewHandle, &count);
 }
 
 INT_PTR CALLBACK PvpPeVersionInfoDlgProc(
@@ -448,6 +565,7 @@ INT_PTR CALLBACK PvpPeVersionInfoDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 0, L"FixedFileInfo");
             PhAddListViewGroup(context->ListViewHandle, 1, L"StringFileInfo");
             PhAddListViewGroup(context->ListViewHandle, 2, L"VarFileInfo");
+            PhAddListViewGroup(context->ListViewHandle, 3, L"AppxManifest");
 
             PvEnumVersionInfo(context->ListViewHandle);
 
