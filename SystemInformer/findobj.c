@@ -643,6 +643,50 @@ static int __cdecl PhpStringObjectTypeCompare(
     return PhCompareString(entry1, entry2, TRUE);
 }
 
+VOID PhpUpdateDropdownThemeMetrics(
+    _In_ PPH_HANDLE_SEARCH_CONTEXT Context,
+    _In_ LONG WindowDpi
+    )
+{
+    LONG maxLength;
+    HDC comboDc;
+    HFONT oldFont;
+    INT count;
+
+    maxLength = 0;
+    comboDc = GetDC(Context->TypeWindowHandle);
+    oldFont = SelectFont(comboDc, Context->TypeWindowFont);
+
+    count = ComboBox_GetCount(Context->TypeWindowHandle);
+
+    for (INT i = 0; i < count; i++)
+    {
+        PPH_STRING entry = PhGetComboBoxString(Context->TypeWindowHandle, i);
+        SIZE textSize;
+
+        if (GetTextExtentPoint32(comboDc, entry->Buffer, (ULONG)entry->Length / sizeof(WCHAR), &textSize))
+        {
+            if (textSize.cx > maxLength)
+                maxLength = textSize.cx;
+        }
+
+        PhDereferenceObject(entry);
+    }
+
+    if (oldFont)
+        SelectFont(comboDc, oldFont);
+
+    ReleaseDC(Context->TypeWindowHandle, comboDc);
+
+    // Add some padding for the vertical scroll bar and margins.
+    maxLength += PhGetSystemMetrics(SM_CXVSCROLL, WindowDpi) * 2;
+
+    if (maxLength)
+    {
+        SendMessage(Context->TypeWindowHandle, CB_SETDROPPEDWIDTH, maxLength, 0);
+    }
+}
+
 VOID PhpPopulateObjectTypes(
     _In_ PPH_HANDLE_SEARCH_CONTEXT Context
     )
@@ -1656,6 +1700,8 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
+
+            PhpUpdateDropdownThemeMetrics(context, LOWORD(wParam));
         }
         break;
     case WM_SIZE:
