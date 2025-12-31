@@ -980,17 +980,25 @@ VOID PhShellExecuteUserString(
     PH_STRINGREF stringAfter;
     PPH_STRING ntMessage;
 
+    // Get the execute command. (dmex)
+    executeString = PhGetStringSetting(Setting);
+
+    if (PhEqualString2(executeString, L"%SystemRoot%\\explorer.exe /select,\"%s\"", TRUE))
+    {
+        // Special case: Use PhShowFileInExplorer for this specific setting. (dmex)
+        PhShellExploreFile(WindowHandle, String);
+        PhDereferenceObject(executeString);
+        return;
+    }
+
+    // Expand environment strings. (dmex)
+    PhMoveReference(&executeString, PhExpandEnvironmentStrings(&executeString->sr));
+    
     if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
     {
         PhShowStatus(WindowHandle, L"Unable to locate the application directory.", STATUS_NOT_FOUND, 0);
         return;
     }
-
-    // Get the execute command. (dmex)
-    executeString = PhGetStringSetting(Setting);
-
-    // Expand environment strings. (dmex)
-    PhMoveReference(&executeString, PhExpandEnvironmentStrings(&executeString->sr));
 
     // Make sure the user executable string is absolute. We can't use PhDetermineDosPathNameType
     // here because the string may be a URL. (dmex)
