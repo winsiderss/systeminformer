@@ -126,6 +126,7 @@ VOID PvDeleteLayoutTree(
     PhDereferenceObject(Context->NodeRootList);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PvLayoutNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -137,6 +138,7 @@ BOOLEAN PvLayoutNodeHashtableEqualFunction(
     return layoutNode1->UniqueId == layoutNode2->UniqueId;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PvLayoutNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -1246,6 +1248,7 @@ CleanupExit:
     return status;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PvpPeLayoutSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
