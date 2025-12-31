@@ -523,7 +523,7 @@ VOID ToolbarUpdateVisibleGraph(
         return;
     }
 
-    ToolbarSetVisibleGraph(icon, !(icon->Flags & PH_NF_ICON_ENABLED));
+    ToolbarSetVisibleGraph(icon, !(icon->Flags & TOOLSTATUS_GRAPH_ENABLED));
 
     ToolbarGraphSaveSettings();
     ReBarSaveLayoutSettings();
