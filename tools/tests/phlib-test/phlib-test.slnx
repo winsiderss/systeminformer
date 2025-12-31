@@ -4,5 +4,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="phlib-test.vcxproj" />
+  <Project Path="phlib-test.vcxproj" Id="0c21014e-bc90-4ae5-aa32-398445c13b28" />
 </Solution>
