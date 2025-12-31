@@ -266,6 +266,7 @@ PPH_STRING PvGetSectionCharacteristics(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PvpPeSectionsEnumerateThread(
     _In_ PPV_SECTION_CONTEXT Context
     )
