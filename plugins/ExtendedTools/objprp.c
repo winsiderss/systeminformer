@@ -1052,7 +1052,7 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                 NtClose(workerFactoryHandle);
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     }
@@ -1177,10 +1177,10 @@ VOID EtpEnumObjectHandles(
 {
     PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
 
-    COLORREF colorOwnObject = PhGetIntegerSetting(L"ColorOwnProcesses");
-    COLORREF colorInherit = PhGetIntegerSetting(L"ColorInheritHandles");
-    COLORREF colorProtected = PhGetIntegerSetting(L"ColorProtectedHandles");
-    COLORREF colorProtectedInherit = PhGetIntegerSetting(L"ColorPartiallySuspended");
+    COLORREF colorOwnObject = PhGetIntegerSetting(SETTING_COLOR_OWN_PROCESSES);
+    COLORREF colorInherit = PhGetIntegerSetting(SETTING_COLOR_INHERIT_HANDLES);
+    COLORREF colorProtected = PhGetIntegerSetting(SETTING_COLOR_PROTECTED_HANDLES);
+    COLORREF colorProtectedInherit = PhGetIntegerSetting(SETTING_COLOR_PARTIALLY_SUSPENDED);
 
     WCHAR string[PH_INT64_STR_LEN_1];
     PSYSTEM_HANDLE_INFORMATION_EX handles;
@@ -1573,7 +1573,7 @@ static COLORREF NTAPI EtpColorItemColorFunction(
     PET_HANDLE_ENTRY entry = Param;
     COLORREF color = entry->UseCustomColor ?
         entry->Color :
-        !!PhGetIntegerSetting(L"EnableThemeSupport") ? PhGetIntegerSetting(L"ThemeWindowBackgroundColor") : GetSysColor(COLOR_WINDOW);
+        !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT) ? PhGetIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND_COLOR) : GetSysColor(COLOR_WINDOW);
 
     return color;
 }
@@ -1684,7 +1684,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             EtpEnumObjectHandles(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_SIZE:
@@ -1945,15 +1945,15 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                                 {
                                 case OBJ_PROTECT_CLOSE:
                                     PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Protected");
-                                    listviewItems[0]->Color = PhGetIntegerSetting(L"ColorProtectedHandles"), listviewItems[0]->UseCustomColor = TRUE;
+                                    listviewItems[0]->Color = PhGetIntegerSetting(SETTING_COLOR_PROTECTED_HANDLES), listviewItems[0]->UseCustomColor = TRUE;
                                     break;
                                 case OBJ_INHERIT:
                                     PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Inherit");
-                                    listviewItems[0]->Color = PhGetIntegerSetting(L"ColorInheritHandles"), listviewItems[0]->UseCustomColor = TRUE;
+                                    listviewItems[0]->Color = PhGetIntegerSetting(SETTING_COLOR_INHERIT_HANDLES), listviewItems[0]->UseCustomColor = TRUE;
                                     break;
                                 case OBJ_PROTECT_CLOSE | OBJ_INHERIT:
                                     PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Protected, Inherit");
-                                    listviewItems[0]->Color = PhGetIntegerSetting(L"ColorPartiallySuspended"), listviewItems[0]->UseCustomColor = TRUE;
+                                    listviewItems[0]->Color = PhGetIntegerSetting(SETTING_COLOR_PARTIALLY_SUSPENDED), listviewItems[0]->UseCustomColor = TRUE;
                                     break;
                                 default:
                                     PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"");
@@ -1961,7 +1961,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                                 }
 
                                 if (listviewItems[0]->OwnHandle)
-                                    listviewItems[0]->Color = PhGetIntegerSetting(L"ColorOwnProcesses");
+                                    listviewItems[0]->Color = PhGetIntegerSetting(SETTING_COLOR_OWN_PROCESSES);
 
                                 ListView_SetItemState(context->ListViewHandle, -1, 0, LVIS_SELECTED);
                             }
@@ -2003,7 +2003,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                             EtUpdateHandleItem(handleContext->ProcessId, handleContext->HandleItem);
 
                             PhEditSecurity(
-                                !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : hwndDlg,
+                                !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : hwndDlg,
                                 PhGetString(handleContext->HandleItem->ObjectName),
                                 PhGetString(handleContext->HandleItem->TypeName),
                                 EtpProcessHandleOpenCallback,
@@ -2183,7 +2183,7 @@ VOID EtpOpenDesktopSecurity(
     }
 
     PhEditSecurity(
-        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->WindowHandle,
+        !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : context->WindowHandle,
         PhGetString(deskName),
         L"Desktop",
         EtpOpenSecurityDesktopHandle,
@@ -2257,7 +2257,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
 
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_SIZE:
