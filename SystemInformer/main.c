@@ -61,6 +61,8 @@ INT WINAPI wWinMain(
         return 1;
     if (!NT_SUCCESS(PhInitializeExceptionPolicy()))
         return 1;
+    if (!NT_SUCCESS(PhInitializeExecutionPolicy()))
+        return 1;
     if (!NT_SUCCESS(PhInitializeNamespacePolicy()))
         return 1;
     if (!NT_SUCCESS(PhInitializeComPolicy()))
@@ -1214,6 +1216,35 @@ NTSTATUS PhInitializeComPolicy(
 
     return STATUS_SUCCESS;
 #endif
+}
+
+/**
+ * Initializes the execution policy for System Informer.
+ *
+ * This function checks if the Shift key is held down during startup. If so, it attempts
+ * to launch Task Manager (`taskmgr.exe`) instead of System Informer.
+ * This provides a quick way for users to access Task Manager if needed, for example,
+ * if System Informer is set as the default Task Manager replacement and the user
+ * wants to access the original Task Manager without changing settings.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhInitializeExecutionPolicy(
+    VOID
+    )
+{
+    // Note: GetAsyncKeyState queries the global keyboard bitmask without kernel transitions, blocking,
+    // handles, events or messages etc... The bitmask is also independent of any message loop or window.
+    // We can call it extremely early but only the high bit (0x8000) of the key state is valid without a message loop.
+
+    if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+    {
+        if (NT_SUCCESS(PhShellExecuteEx(NULL, L"taskmgr.exe", NULL, NULL, SW_SHOW, 0, 0, NULL)))
+        {
+            PhExitApplication(STATUS_SUCCESS);
+        }
+    }
+
+    return STATUS_SUCCESS;
 }
 
 /**
