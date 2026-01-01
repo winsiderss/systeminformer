@@ -3,12 +3,12 @@
     <Platform Name="ARM64" />
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="../kphlib/kphlib_km.vcxproj">
+  <Project Path="../kphlib/kphlib_km.vcxproj" Id="b1863396-a667-42db-97ac-c5e033cee321">
   </Project>
-  <Project Path="ksidll.vcxproj">
+  <Project Path="ksidll.vcxproj" Id="b385d394-19cc-48bc-827e-af9adce559e0">
     <BuildDependency Project="../kphlib/kphlib_km.vcxproj" />
   </Project>
-  <Project Path="KSystemInformer.vcxproj">
+  <Project Path="KSystemInformer.vcxproj" Id="f4853009-c5d2-4a25-be4d-bb0d9f84e2ff">
     <BuildDependency Project="../kphlib/kphlib_km.vcxproj" />
     <BuildDependency Project="ksidll.vcxproj" />
   </Project>
