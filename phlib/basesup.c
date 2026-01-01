@@ -9204,3 +9204,242 @@ VOID PhSetLastError(
     else
         SetLastError(ErrorValue);
 }
+
+
+// PhDoesNameContainWildCards and PhIsNameInExpression compared to
+// RtlDoesNameContainWildCards and RtlIsNameInExpression (dmex)
+// - Full wildcard support:
+// - * -Standard wildcard - zero or more any chars
+// - ? -Single character wildcard
+// - < (ANSI_DOS_STAR) - Zero or more chars until dot
+// - > (ANSI_DOS_QM) - Zero or one char (not dot)
+// - " (ANSI_DOS_DOT) - Zero or one dot
+// - DOS semantics:
+// -  -DOS_STAR(<) stops matching at dots (for filename matching like file<.txt)
+// -  -DOS_QM(>) matches 0 or 1 non-dot character.
+// -  -DOS_DOT(") matches optional dot character.
+//
+// Example patterns:
+// - *chrome* - matches anything with "chrome"
+// - chrome.??? - matches chrome.exe, chrome.dll(3 - char extension)
+// - file<.txt - matches file.txt, fileabc.txt(< stops at dot)
+// - test>" - matches test, testa, test. (> is 0-1 char, " is optional dot)
+
+// replacement RtlDoesNameContainWildCards (dmex)
+/**
+ * Determines whether a string contains wildcard characters.
+ *
+ * \param Expression A pointer to the string to be checked.
+ * \return TRUE if one or more wildcard characters were found, FALSE otherwise.
+ * \remarks The following are wildcard characters: *, ?, ANSI_DOS_STAR (<), ANSI_DOS_DOT ("), and ANSI_DOS_QM (>).
+ */
+BOOLEAN PhDoesNameContainWildCards(
+    _In_ PCPH_STRINGREF Expression
+    )
+{
+    for (SIZE_T i = 0; i < Expression->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = Expression->Buffer[i];
+        
+        if (c == L'*' ||
+            c == L'?' || 
+            c == ANSI_DOS_STAR_W ||
+            c == ANSI_DOS_DOT_W ||
+            c == ANSI_DOS_QM_W
+            )
+        {
+            return TRUE;
+        }
+    }
+    
+    return FALSE;
+}
+
+// replacement RtlIsNameInExpression (dmex)
+/**
+ * Determines whether a string matches the specified wildcard pattern.
+ *
+ * \param Expression A pointer to the pattern string. Can contain wildcards: *, ?, < (DOS_STAR), > (DOS_QM), " (DOS_DOT).
+ * \param Name A pointer to the string to match against the pattern.
+ * \param IgnoreCase TRUE for case-insensitive matching, FALSE for case-sensitive matching.
+ * \return TRUE if the string matches the pattern, FALSE otherwise.
+ * \remarks Wildcard semantics:
+ *   * - Matches zero or more characters
+ *   ? - Matches exactly one character
+ *   < (ANSI_DOS_STAR) - Matches zero or more characters until dot or end
+ *   > (ANSI_DOS_QM) - Matches zero or one character (not dot)
+ *   " (ANSI_DOS_DOT) - Matches zero or one dot
+ */
+BOOLEAN PhIsNameInExpression(
+    _In_ PCPH_STRINGREF Expression,
+    _In_ PCPH_STRINGREF Name,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    SIZE_T exprLen = Expression->Length / sizeof(WCHAR);
+    SIZE_T nameLen = Name->Length / sizeof(WCHAR);
+    SIZE_T e = 0; // expression index
+    SIZE_T n = 0; // name index
+    SIZE_T starE = SIZE_MAX; // last * or < position in expression
+    SIZE_T starN = SIZE_MAX; // name position when * or < was encountered
+    BOOLEAN dosStarMode = FALSE; // TRUE if last star was DOS_STAR (<)
+
+    while (n < nameLen)
+    {
+        if (e < exprLen)
+        {
+            WCHAR exprChar = Expression->Buffer[e];
+            WCHAR nameChar = Name->Buffer[n];
+            WCHAR exprCharUpper = IgnoreCase ? PhUpcaseUnicodeChar(exprChar) : exprChar;
+            WCHAR nameCharUpper = IgnoreCase ? PhUpcaseUnicodeChar(nameChar) : nameChar;
+
+            // * - matches zero or more of any character
+            if (exprChar == L'*')
+            {
+                starE = e++;
+                starN = n;
+                dosStarMode = FALSE;
+                continue;
+            }
+            // < (ANSI_DOS_STAR) - matches zero or more characters until dot or end
+            else if (exprChar == ANSI_DOS_STAR_W)
+            {
+                starE = e++;
+                starN = n;
+                dosStarMode = TRUE;
+                continue;
+            }
+            // " (ANSI_DOS_DOT) - matches zero or one dot
+            else if (exprChar == ANSI_DOS_DOT_W)
+            {
+                if (nameChar == L'.')
+                {
+                    e++;
+                    n++;
+                }
+                else
+                {
+                    e++; // skip the DOS_DOT, match zero dots
+                }
+                continue;
+            }
+            // > (ANSI_DOS_QM) - matches zero or one character (not dot)
+            else if (exprChar == ANSI_DOS_QM_W)
+            {
+                if (nameChar != L'.')
+                {
+                    e++;
+                    n++; // consume one character
+                }
+                else
+                {
+                    e++; // skip DOS_QM, match zero characters
+                }
+                continue;
+            }
+            // ? - matches exactly one character
+            else if (exprChar == L'?')
+            {
+                e++;
+                n++;
+                continue;
+            }
+            // Exact character match
+            else if (exprCharUpper == nameCharUpper)
+            {
+                e++;
+                n++;
+                continue;
+            }
+        }
+
+        // Mismatch - backtrack if we saw a * or <
+        if (starE != SIZE_MAX)
+        {
+            e = starE + 1;
+            n = ++starN;
+
+            // If in DOS_STAR mode, stop backtracking at dot
+            if (dosStarMode && starN < nameLen && Name->Buffer[starN] == L'.')
+            {
+                dosStarMode = FALSE;
+                starE = SIZE_MAX; // can't backtrack past dot
+            }
+            continue;
+        }
+
+        return FALSE;
+    }
+
+    // Consume remaining wildcards in expression
+    while (e < exprLen)
+    {
+        WCHAR c = Expression->Buffer[e];
+        
+        if (
+            c == L'*' ||
+            c == ANSI_DOS_STAR_W ||
+            c == ANSI_DOS_DOT_W ||
+            c == ANSI_DOS_QM_W
+            )
+        {
+            e++;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    return e == exprLen;
+}
+
+/**
+ * Performs fuzzy matching between a pattern and a text string.
+ *
+ * \param Pattern A pointer to the search pattern.
+ * \param Text A pointer to the text to match against.
+ * \param IgnoreCase TRUE for case-insensitive matching, FALSE for case-sensitive matching.
+ * \return TRUE if the text fuzzy-matches the pattern, FALSE otherwise.
+ * \remarks Fuzzy matching allows characters from the pattern to appear in order
+ * in the text, but not necessarily consecutively. his is useful for quick
+ * filtering where users type a few key characters.
+ */
+BOOLEAN PhStringFuzzyMatch(
+    _In_ PCPH_STRINGREF Pattern,
+    _In_ PCPH_STRINGREF Text,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    SIZE_T patternLength = Pattern->Length / sizeof(WCHAR);
+    SIZE_T textLength = Text->Length / sizeof(WCHAR);
+    SIZE_T p = 0; // pattern index
+    SIZE_T t = 0; // text index
+
+    if (patternLength == 0)
+        return TRUE;
+    if (textLength == 0)
+        return FALSE;
+
+    while (t < textLength && p < patternLength)
+    {
+        WCHAR pattern = Pattern->Buffer[p];
+        WCHAR text = Text->Buffer[t];
+
+        if (IgnoreCase)
+        {
+            pattern = PhUpcaseUnicodeChar(pattern);
+            text = PhUpcaseUnicodeChar(text);
+        }
+
+        if (pattern == text)
+        {
+            p++; // advance on match
+        }
+
+        t++; // always advance text
+    }
+
+    // Match succeeds if entire pattern was consumed
+    return (p == patternLength);
+}

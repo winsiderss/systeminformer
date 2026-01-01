@@ -4451,7 +4451,34 @@ PhSetLastError(
     _In_ ULONG ErrorValue
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhDoesNameContainWildCards(
+    _In_ PCPH_STRINGREF Expression
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsNameInExpression(
+    _In_ PCPH_STRINGREF Expression,
+    _In_ PCPH_STRINGREF Name,
+    _In_ BOOLEAN IgnoreCase
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhStringFuzzyMatch(
+    _In_ PCPH_STRINGREF Pattern,
+    _In_ PCPH_STRINGREF Text,
+    _In_ BOOLEAN IgnoreCase
+    );
+
+//
 // Auto-dereference convenience functions
+//
 
 FORCEINLINE
 PPH_STRING
@@ -4583,7 +4610,9 @@ PhaSubstring(
     return PH_AUTO_T(PH_STRING, PhSubstring(String, StartIndex, Count));
 }
 
+//
 // Format
+//
 
 typedef enum _PH_FORMAT_TYPE
 {

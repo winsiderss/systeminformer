@@ -399,6 +399,7 @@ EXPORTS
     PhDeleteFreeList
     PhDeleteStringBuilder
     PhDivideSinglesBySingle
+    PhDoesNameContainWildCards
     PhDosErrorToNtStatus
     PhDuplicateBytesZ
     PhDuplicateBytesZSafe
@@ -453,6 +454,7 @@ EXPORTS
     PhInsertStringBuilderEx
     PhIntegerToString64
     PhInvokeCallback
+    PhIsNameInExpression
     PhLoadIndirectString
     PhLoadResource
     PhLocalTimeToSystemTime
@@ -491,6 +493,7 @@ EXPORTS
     PhSplitStringRefAtLastChar
     PhSplitStringRefAtString
     PhSplitStringRefEx
+    PhStringFuzzyMatch
     PhStringToDouble
     PhStringToInteger64
     PhStringToUInt64
