@@ -57,7 +57,7 @@
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <WarningLevel>Level4</WarningLevel>
     </ClCompile>
-    <ClCompile Condition="'$Configuration)'=='Release'">
+    <ClCompile Condition="'$(Configuration)'=='Release'">
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
