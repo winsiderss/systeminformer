@@ -39,6 +39,10 @@ PH_STARTUP_PARAMETERS PhStartupParameters = { .UpdateChannel = PhInvalidChannel 
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
 PH_PROVIDER_THREAD PhSecondaryProviderThread;
 PH_PROVIDER_THREAD PhTertiaryProviderThread;
+RTL_ATOM PhTreeWindowAtom = RTL_ATOM_INVALID_ATOM;
+RTL_ATOM PhGraphWindowAtom = RTL_ATOM_INVALID_ATOM;
+RTL_ATOM PhHexEditWindowAtom = RTL_ATOM_INVALID_ATOM;
+RTL_ATOM PhColorBoxWindowAtom = RTL_ATOM_INVALID_ATOM;
 static PPH_LIST DialogList = NULL;
 static PPH_LIST FilterList = NULL;
 static PH_AUTO_POOL BaseAutoPool;
@@ -79,6 +83,11 @@ INT WINAPI wWinMain(
     PhGuiSupportInitialization();
 
     PhInitializeAppSettings();
+
+    if (PhStartupParameters.Debug)
+    {
+        PhShowDebugConsole();
+    }
 
     PhInitializePreviousInstance();
 
@@ -734,10 +743,10 @@ VOID PhInitializeCommonControls(
 
     InitCommonControlsEx(&icex);
 
-    PhTreeNewInitialization();
-    PhGraphControlInitialization();
-    PhHexEditInitialization();
-    PhColorBoxInitialization();
+    PhTreeWindowAtom = PhTreeNewInitialization();
+    PhGraphWindowAtom = PhGraphControlInitialization();
+    PhHexEditWindowAtom = PhHexEditInitialization();
+    PhColorBoxWindowAtom = PhColorBoxInitialization();
 }
 
 /**
@@ -1253,7 +1262,7 @@ NTSTATUS PhInitializeExecutionPolicy(
  * This function configures process-level mitigations to prevent crashes by third party software. *
  * The function uses the Native API to set the mitigation policy. If the operating system does not
  * support the required mitigation policies, the function performs no action and returns success.
- * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code on failure.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhInitializeMitigationPolicy(
     VOID
@@ -1269,10 +1278,10 @@ NTSTATUS PhInitializeMitigationPolicy(
         //policyInfo.DynamicCodePolicy.ProhibitDynamicCode = TRUE;
         //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
 
-        //policyInfo.Policy = ProcessExtensionPointDisablePolicy;
-        //policyInfo.ExtensionPointDisablePolicy.Flags = 0;
-        //policyInfo.ExtensionPointDisablePolicy.DisableExtensionPoints = TRUE;
-        //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+        policyInfo.Policy = ProcessExtensionPointDisablePolicy;
+        policyInfo.ExtensionPointDisablePolicy.Flags = 0;
+        policyInfo.ExtensionPointDisablePolicy.DisableExtensionPoints = TRUE;
+        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
 
         policyInfo.Policy = ProcessSignaturePolicy;
         policyInfo.SignaturePolicy.Flags = 0;
