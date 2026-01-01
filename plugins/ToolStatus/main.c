@@ -573,6 +573,12 @@ BOOLEAN NTAPI MessageLoopFilter(
                 return TRUE;
             }
         }
+
+        if (Message->message == WM_KEYDOWN && Message->wParam == 'D' && (GetKeyState(VK_CONTROL) & 0x8000))
+        {
+            ShowFindDialog(MainWindowHandle);
+            return TRUE;
+        }
     }
 
     return FALSE;
@@ -1222,15 +1228,15 @@ LRESULT CALLBACK MainWindowCallbackProc(
                         LPNMITEMACTIVATE nmItem = (LPNMITEMACTIVATE)lParam;
                         LONG parts[MAX_STATUSBAR_ITEMS];
                         LONG count;
+                        POINT cursorPos;
 
                         if (nmItem->iItem < 0)
                             break;
 
-                        count = (LONG)SendMessage(StatusBarHandle, SB_GETPARTS, (WPARAM)RTL_NUMBER_OF(parts), (LPARAM)parts);
+                        if (!PhGetMessagePos(&cursorPos))
+                            break;
 
-                        POINT cursorPos;
-                        GetCursorPos(&cursorPos);
-                        ScreenToClient(StatusBarHandle, &cursorPos);
+                        count = (LONG)SendMessage(StatusBarHandle, SB_GETPARTS, (WPARAM)RTL_NUMBER_OF(parts), (LPARAM)parts);
 
                         for (LONG i = 0; i < count; ++i)
                         {
@@ -1289,7 +1295,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
                 HWND windowOverMouse;
                 CLIENT_ID clientId;
 
-                if (!PhGetCursorPos(&cursorPos))
+                if (!PhGetMessagePos(&cursorPos))
                     break;
 
                 windowOverMouse = WindowFromPoint(cursorPos);
@@ -1357,7 +1363,9 @@ LRESULT CALLBACK MainWindowCallbackProc(
                         HWND hungWindow = PhHungWindowFromGhostWindow(TargetingCurrentWindow);
 
                         if (hungWindow)
+                        {
                             TargetingCurrentWindow = hungWindow;
+                        }
                     }
 
                     if (
@@ -1640,6 +1648,12 @@ LRESULT CALLBACK MainWindowCallbackProc(
             }
 
             return result;
+        }
+        break;
+    default:
+        if (FindDialogMessage != ULONG_MAX && WindowMessage == FindDialogMessage)
+        {
+            FindDialogHandleFindMessage(lParam);
         }
         break;
     }

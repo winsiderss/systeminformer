@@ -54,6 +54,9 @@
     <ClCompile Include="toolbarsup.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="find.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

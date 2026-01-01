@@ -61,6 +61,7 @@
   <ItemGroup>
     <ClCompile Include="customizesb.c" />
     <ClCompile Include="customizetb.c" />
+    <ClCompile Include="find.c" />
     <ClCompile Include="graph.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="options.c" />

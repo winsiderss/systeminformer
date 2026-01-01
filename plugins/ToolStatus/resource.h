@@ -54,6 +54,7 @@
 #define IDC_ENABLE_AUTOHIDE_MENU        1015
 #define IDC_ENABLE_AUTOCOMPLETE         1016
 #define IDC_ENABLE_AUTOFOCUS_SEARCH     1017
+#define ID_FIND                         40010
 #define ID_SEARCH                       40011
 #define ID_SEARCH_TAB                   40012
 

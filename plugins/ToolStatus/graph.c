@@ -713,7 +713,7 @@ static PPH_STRING PhSipGetMaxIoString(
 // END copied from ProcessHacker/sysinfo.c
 //
 
-_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN CpuHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
@@ -817,7 +817,7 @@ BOOLEAN CpuHistoryGraphMessageCallback(
     return TRUE;
 }
 
-_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN PhysicalHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
@@ -920,7 +920,7 @@ BOOLEAN PhysicalHistoryGraphMessageCallback(
     return TRUE;
 }
 
-_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN CommitHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
@@ -1023,7 +1023,7 @@ BOOLEAN CommitHistoryGraphMessageCallback(
     return TRUE;
 }
 
-_Function_class_(TOOLSTATUS_GRAPH_CALLBACK)
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN IoHistoryGraphMessageCallback(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
