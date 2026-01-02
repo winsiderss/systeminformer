@@ -455,9 +455,30 @@ VOID ShowFindDialog(
     _In_ HWND OwnerWindow
     )
 {
-    if (FindDialogMessage == ULONG_MAX)
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(&FindTextW) FindText_I = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
     {
-        FindDialogMessage = RegisterWindowMessage(FINDMSGSTRING);
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"comdlg32.dll"))
+        {
+            FindText_I = PhGetProcedureAddress(baseAddress, "FindTextW", 0);
+        }
+
+        if (FindDialogMessage == ULONG_MAX)
+        {
+            FindDialogMessage = RegisterWindowMessage(FINDMSGSTRING);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!FindText_I)
+    {
+        PhShowStatus(OwnerWindow, L"Unable to display Find dialog.", 0, ERROR_PROC_NOT_FOUND);
+        return;
     }
 
     if (FindDialogHandle) // already open – bring to front
@@ -472,6 +493,6 @@ VOID ShowFindDialog(
     FindDialogData.lpstrFindWhat = FindDialogText;
     FindDialogData.wFindWhatLen = (WORD)RTL_NUMBER_OF(FindDialogText);
 
-    FindDialogHandle = FindTextW(&FindDialogData);
+    FindDialogHandle = FindText_I(&FindDialogData);
 }
 
