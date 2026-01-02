@@ -20,6 +20,7 @@ set(SOURCES
     "customizesb.c"
     "customizetb.c"
     "filter.c"
+    "find.c"
     "graph.c"
     "main.c"
     "plugin.c"
