@@ -146,7 +146,7 @@ BOOLEAN FindMatchInNode(
     ULONG i;
     PH_TREENEW_COLUMN column;
 
-    if (!TreeHandle || !Node || !String || !String->Buffer[0])
+    if (!TreeHandle || !Node || !String || !String->Buffer || !String->Buffer[0])
         return FALSE;
 
     // Enumerate visible columns
@@ -398,15 +398,19 @@ VOID FindDialogHandleFindMessage(
         BOOLEAN searchDown = !!FlagOn(fr->Flags, FR_DOWN);
         BOOLEAN searchParamsChanged = FALSE;
 
-        if (!(fr->Flags & FR_FINDNEXT))
+        if (!FlagOn(fr->Flags, FR_FINDNEXT))
             return;
 
         // If search text changed, reset index so we start fresh
-        if (_wcsicmp(FindDialogText, fr->lpstrFindWhat) != 0)
+        if (!PhEqualStringZ(FindDialogText, fr->lpstrFindWhat, FALSE))
         {
             wcsncpy_s(FindDialogText, RTL_NUMBER_OF(FindDialogText), fr->lpstrFindWhat, _TRUNCATE);
             PhInitializeStringRefLongHint(&FindDialogExpression, FindDialogText);
             searchParamsChanged = TRUE;
+        }
+        else
+        {
+            PhInitializeStringRefLongHint(&FindDialogExpression, FindDialogText);
         }
 
         // If match case changed, reset index
@@ -489,6 +493,7 @@ VOID ShowFindDialog(
 
     ZeroMemory(&FindDialogData, sizeof(FindDialogData));
     FindDialogData.lStructSize = sizeof(FindDialogData);
+    FindDialogData.Flags = FR_DOWN;
     FindDialogData.hwndOwner = OwnerWindow;
     FindDialogData.lpstrFindWhat = FindDialogText;
     FindDialogData.wFindWhatLen = (WORD)RTL_NUMBER_OF(FindDialogText);
