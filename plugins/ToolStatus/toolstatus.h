@@ -17,6 +17,7 @@
 #include <phapppub.h>
 #include <phappresource.h>
 #include <phconsole.h>
+#include <mapldr.h>
 #include <hndlinfo.h>
 #include <settings.h>
 #include <searchbox.h>
