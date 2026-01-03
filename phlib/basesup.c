@@ -7880,7 +7880,7 @@ PPH_STRING PhFormatEntropy(
  * \param Count The number of elements.
  */
 VOID PhFillMemoryUlongOriginal(
-    _Inout_updates_(Count) _Needs_align_(4) PULONG Memory,
+    _Inout_updates_(Count) PULONG Memory,
     _In_ ULONG Value,
     _In_ SIZE_T Count
     )
@@ -7963,7 +7963,7 @@ VOID PhFillMemoryUlongOriginal(
  * \param Count The number of elements.
  */
 VOID PhFillMemoryUlong(
-    _Inout_updates_(Count) _Needs_align_(4) PULONG Memory,
+    _Inout_updates_(Count) PULONG Memory,
     _In_ ULONG Value,
     _In_ SIZE_T Count
     )
@@ -7972,7 +7972,7 @@ VOID PhFillMemoryUlong(
         return;
 
 #ifndef _ARM64_
-    if (PhHasAVX && ((ULONG_PTR)Memory & 0x1F) == 0)
+    if (PhHasAVX && IS_ALIGNED(Memory, 32))
     {
         SIZE_T count = Count & ~0x7;
 
@@ -7995,7 +7995,7 @@ VOID PhFillMemoryUlong(
     }
 #endif
 
-    if (PhHasIntrinsics && ((ULONG_PTR)Memory & 0x0F) == 0)
+    if (PhHasIntrinsics && IS_ALIGNED(Memory, 16))
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8130,7 +8130,7 @@ VOID PhDivideSinglesBySingle(
     const FLOAT invB = 1.0f / B;
 
 #ifndef _ARM64_
-    if (PhHasAVX)
+    if (PhHasAVX && IS_ALIGNED(A, 32))
     {
         SIZE_T count = Count & ~0x7;
 
@@ -8157,7 +8157,7 @@ VOID PhDivideSinglesBySingle(
     }
 #endif
 
-    if (PhHasIntrinsics && ((ULONG_PTR)A | (ULONG_PTR)B) & 0x0F)
+    if (PhHasIntrinsics && (IS_ALIGNED(A, 16) && IS_ALIGNED(B, 16)))
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8199,8 +8199,8 @@ VOID PhDivideSinglesBySingle(
  * \param Count The number of elements.
  */
 VOID PhAddMemoryUlongOriginal(
-    _Inout_ _Needs_align_(16) PULONG A,
-    _In_ _Needs_align_(16) PULONG B,
+    _Inout_ PULONG A,
+    _In_ PULONG B,
     _In_ ULONG Count
     )
 {
@@ -8261,7 +8261,7 @@ FLOAT PhMaxMemorySingles(
         return maximum;
 
 #ifndef _ARM64_
-    if (PhHasAVX)
+    if (PhHasAVX && (IS_ALIGNED(A, 32) && IS_ALIGNED(B, 32)))
     {
         SIZE_T count = Count & ~0x7;
 
@@ -8301,7 +8301,7 @@ FLOAT PhMaxMemorySingles(
     }
 #endif
 
-    if (PhHasIntrinsics)
+    if (PhHasIntrinsics && IS_ALIGNED(From, 16) && IS_ALIGNED(To, 16))
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8367,7 +8367,7 @@ FLOAT PhAddPlusMaxMemorySingles(
         return maximum;
 
 #ifndef _ARM64_
-    if (PhHasAVX)
+    if (PhHasAVX && IS_ALIGNED(A, 32))
     {
         SIZE_T count = Count & ~0x7;
 
@@ -8411,7 +8411,7 @@ FLOAT PhAddPlusMaxMemorySingles(
     }
 #endif
 
-    if (PhHasIntrinsics && ((ULONG_PTR)A | (ULONG_PTR)B) & 0x0F)
+    if (PhHasIntrinsics && IS_ALIGNED(A, 16))
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8476,7 +8476,7 @@ VOID PhConvertCopyMemoryUlong(
         return;
 
 #ifndef _ARM64_
-    if (PhHasAVX)
+    if (PhHasAVX && IS_ALIGNED(From, 32) && IS_ALIGNED(To, 32))
     {
         SIZE_T count = Count & ~0x7;
 
@@ -8503,7 +8503,7 @@ VOID PhConvertCopyMemoryUlong(
     }
 #endif
 
-    if (PhHasIntrinsics)
+    if (PhHasIntrinsics && IS_ALIGNED(A, 16))
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8591,7 +8591,7 @@ VOID PhConvertCopyMemoryUlong64(
     }
 #endif
 
-    if (PhHasAVX)
+    if (PhHasAVX && IS_ALIGNED(From, 32) && IS_ALIGNED(To, 32))
     {
         SIZE_T count = Count & ~0x7;
 
@@ -8696,7 +8696,7 @@ VOID PhConvertCopyMemoryUlong64(
 //    }
 //#endif
 
-    if (PhHasIntrinsics)
+    if (PhHasIntrinsics && IS_ALIGNED(From, 16) && IS_ALIGNED(To, 16))
     {
         SIZE_T count = Count & ~0x3;  // Process 4 at a time
 
@@ -8770,7 +8770,7 @@ VOID PhConvertCopyMemorySingles(
         return;
 
 #ifndef _ARM64_
-    if (PhHasAVX)
+    if (PhHasAVX && IS_ALIGNED(From, 32) && IS_ALIGNED(To, 32))
     {
         SIZE_T count = Count & ~0x7;
 
@@ -8797,7 +8797,7 @@ VOID PhConvertCopyMemorySingles(
     }
 #endif
 
-    if (PhHasIntrinsics)
+    if (PhHasIntrinsics && IS_ALIGNED(From, 16) && IS_ALIGNED(To, 16))
     {
         SIZE_T count = Count & ~0x3;
 
