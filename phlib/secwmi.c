@@ -861,7 +861,12 @@ NTSTATUS PhGetComSecurityDescriptorOverride(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhQueryValueKey(keyHandle, &OlePermissionValueName[ComSDType], KeyValuePartialInformation, &value);
+    status = PhQueryValueKey(
+        keyHandle,
+        &OlePermissionValueName[ComSDType],
+        KeyValuePartialInformation,
+        &value
+    );
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -869,7 +874,8 @@ NTSTATUS PhGetComSecurityDescriptorOverride(
     if (!RtlValidRelativeSecurityDescriptor(
         (PSECURITY_DESCRIPTOR)value->Data,
         value->DataLength,
-        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION))
+        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION
+        ))
     {
         status = STATUS_INVALID_SECURITY_DESCR;
         goto CleanupExit;
@@ -878,6 +884,7 @@ NTSTATUS PhGetComSecurityDescriptorOverride(
     *SecurityDescriptor = PhAllocateCopy(value->Data, value->DataLength);
 
 CleanupExit:
+
     if (keyHandle)
         NtClose(keyHandle);
 

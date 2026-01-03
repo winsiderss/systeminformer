@@ -135,7 +135,7 @@ VOID
 NTAPI
 PhSetIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
-    _In_ PH_INTEGER_PAIR Value
+    _In_ PPH_INTEGER_PAIR Value
     );
 
 PHLIBAPI
@@ -151,7 +151,7 @@ VOID
 NTAPI
 PhSetScalableIntegerPairStringRefSetting2(
     _In_ PCPH_STRINGREF Name,
-    _In_ PH_INTEGER_PAIR Value,
+    _In_ PPH_INTEGER_PAIR Value,
     _In_ LONG dpiValue
     );
 
@@ -327,7 +327,7 @@ PhSetIntegerPairSetting(
 
     PhInitializeStringRef(&name, Name);
 
-    PhSetIntegerPairStringRefSetting(&name, Value);
+    PhSetIntegerPairStringRefSetting(&name, &Value);
 }
 
 FORCEINLINE
@@ -358,7 +358,7 @@ PhSetScalableIntegerPairSetting2(
 
     PhInitializeStringRef(&name, Name);
 
-    PhSetScalableIntegerPairStringRefSetting2(&name, Value, dpiValue);
+    PhSetScalableIntegerPairStringRefSetting2(&name, &Value, dpiValue);
 }
 
 // end_phapppub

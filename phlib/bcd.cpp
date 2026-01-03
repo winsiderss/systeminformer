@@ -451,7 +451,7 @@ CleanupExit:
 }
 
 NTSTATUS PhBcdSetBootApplicationOneTime(
-    _In_ GUID Identifier,
+    _In_ PCGUID Identifier,
     _In_opt_ BOOLEAN UpdateOneTimeFirmware
     )
 {
@@ -527,7 +527,7 @@ NTSTATUS PhBcdSetBootApplicationOneTime(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    objectElementList->ObjectList[0] = Identifier;
+    memcpy(&objectElementList->ObjectList[0], Identifier, sizeof(GUID));
 
     status = PhBcdSetElementData(
         objectHandle,
@@ -546,7 +546,7 @@ CleanupExit:
 }
 
 NTSTATUS PhBcdSetFirmwareBootApplicationOneTime(
-    _In_ GUID Identifier
+    _In_ PCGUID Identifier
     )
 {
     NTSTATUS status;
@@ -568,7 +568,7 @@ NTSTATUS PhBcdSetFirmwareBootApplicationOneTime(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    objectElementList->ObjectList[0] = Identifier;
+    memcpy(&objectElementList->ObjectList[0], Identifier, sizeof(GUID));
 
     status = PhBcdSetElementData(
         objectHandle,

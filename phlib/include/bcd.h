@@ -39,12 +39,12 @@ NTSTATUS PhBcdSetAdvancedOptionsOneTime(
     );
 
 NTSTATUS PhBcdSetBootApplicationOneTime(
-    _In_ GUID Identifier,
+    _In_ PCGUID Identifier,
     _In_opt_ BOOLEAN UpdateOneTimeFirmware
     );
 
 NTSTATUS PhBcdSetFirmwareBootApplicationOneTime(
-    _In_ GUID Identifier
+    _In_ PCGUID Identifier
     );
 
 typedef struct _PH_BCD_OBJECT_LIST

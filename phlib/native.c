@@ -5316,7 +5316,7 @@ NTSTATUS PhDestroyExecutionRequiredRequest(
  * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetProcessorNominalFrequency(
-    _In_ PH_PROCESSOR_NUMBER ProcessorNumber,
+    _In_ PPH_PROCESSOR_NUMBER ProcessorNumber,
     _Out_ PULONG NominalFrequency
     )
 {
@@ -5326,8 +5326,8 @@ NTSTATUS PhGetProcessorNominalFrequency(
 
     memset(&frequencyInput, 0, sizeof(frequencyInput));
     frequencyInput.InternalType = PowerInternalProcessorBrandedFrequency;
-    frequencyInput.ProcessorNumber.Group = ProcessorNumber.Group; // USHRT_MAX for max
-    frequencyInput.ProcessorNumber.Number = (BYTE)ProcessorNumber.Number; // UCHAR_MAX for max
+    frequencyInput.ProcessorNumber.Group = ProcessorNumber->Group; // USHRT_MAX for max
+    frequencyInput.ProcessorNumber.Number = (BYTE)ProcessorNumber->Number; // UCHAR_MAX for max
     frequencyInput.ProcessorNumber.Reserved = 0; // UCHAR_MAX
 
     memset(&frequencyOutput, 0, sizeof(frequencyOutput));

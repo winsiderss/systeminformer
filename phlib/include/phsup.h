@@ -202,12 +202,6 @@ FORCEINLINE T* PTR_SUB_OFFSET(
  */
 #define _May_raise_
 
-/**
- * Indicates that a function requires the specified value to be aligned at the specified number of
- * bytes.
- */
-#define _Needs_align_(align)
-
 //
 // Casts
 //
@@ -743,15 +737,19 @@ PhProbeAddress(
 {
     if (UserLength != 0)
     {
-        if (((ULONG_PTR)UserAddress & (Alignment - 1)) != 0)
+        if (!IS_ALIGNED(UserAddress, Alignment))
+        {
             PhRaiseStatus(STATUS_DATATYPE_MISALIGNMENT);
+        }
 
         if (
             ((ULONG_PTR)UserAddress + UserLength < (ULONG_PTR)UserAddress) ||
             ((ULONG_PTR)UserAddress < (ULONG_PTR)BufferAddress) ||
             ((ULONG_PTR)UserAddress + UserLength > (ULONG_PTR)BufferAddress + BufferLength)
             )
+        {
             PhRaiseStatus(STATUS_ACCESS_VIOLATION);
+        }
     }
 }
 

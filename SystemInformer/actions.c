@@ -1032,7 +1032,7 @@ VOID PhUiHandleComputerBootApplicationMenu(
         {
             PPH_BCD_OBJECT_LIST entry = bootApplicationList->Items[MenuIndex];
 
-            status = PhBcdSetBootApplicationOneTime(entry->ObjectGuid, bootUpdateFwBootObjects);
+            status = PhBcdSetBootApplicationOneTime(&entry->ObjectGuid, bootUpdateFwBootObjects);
         }
 
         PhBcdDestroyBootApplicationList(bootApplicationList);
@@ -1078,7 +1078,7 @@ VOID PhUiHandleComputerFirmwareApplicationMenu(
         {
             PPH_BCD_OBJECT_LIST entry = firmwareApplicationList->Items[MenuIndex];
 
-            status = PhBcdSetFirmwareBootApplicationOneTime(entry->ObjectGuid);
+            status = PhBcdSetFirmwareBootApplicationOneTime(&entry->ObjectGuid);
         }
 
         PhBcdDestroyBootApplicationList(firmwareApplicationList);

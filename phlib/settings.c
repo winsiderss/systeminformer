@@ -482,7 +482,7 @@ VOID PhSetIntegerStringRefSetting(
 
 VOID PhSetIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
-    _In_ PH_INTEGER_PAIR Value
+    _In_ PPH_INTEGER_PAIR Value
     )
 {
     PPH_SETTING setting;
@@ -493,7 +493,7 @@ VOID PhSetIntegerPairStringRefSetting(
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
-        setting->u.IntegerPair = Value;
+        memcpy(&setting->u.IntegerPair, Value, sizeof(PH_INTEGER_PAIR));
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
@@ -522,14 +522,14 @@ VOID PhSetScalableIntegerPairStringRefSetting(
 
 VOID PhSetScalableIntegerPairStringRefSetting2(
     _In_ PCPH_STRINGREF Name,
-    _In_ PH_INTEGER_PAIR Value,
+    _In_ PPH_INTEGER_PAIR Value,
     _In_ LONG dpiValue
     )
 {
     PH_SCALABLE_INTEGER_PAIR scalableIntegerPair;
 
     ZeroMemory(&scalableIntegerPair, sizeof(PH_SCALABLE_INTEGER_PAIR));
-    scalableIntegerPair.Pair = Value;
+    memcpy(&scalableIntegerPair.Pair, Value, sizeof(PH_INTEGER_PAIR));
     scalableIntegerPair.Scale = dpiValue;
 
     PhSetScalableIntegerPairStringRefSetting(Name, &scalableIntegerPair);
