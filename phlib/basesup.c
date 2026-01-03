@@ -8157,7 +8157,7 @@ VOID PhDivideSinglesBySingle(
     }
 #endif
 
-    if (PhHasIntrinsics && (IS_ALIGNED(A, 16) && IS_ALIGNED(B, 16)))
+    if (PhHasIntrinsics && IS_ALIGNED(A, 16))
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8261,7 +8261,7 @@ FLOAT PhMaxMemorySingles(
         return maximum;
 
 #ifndef _ARM64_
-    if (PhHasAVX && (IS_ALIGNED(A, 32) && IS_ALIGNED(B, 32)))
+    if (PhHasAVX && IS_ALIGNED(A, 32))
     {
         SIZE_T count = Count & ~0x7;
 
@@ -8301,7 +8301,7 @@ FLOAT PhMaxMemorySingles(
     }
 #endif
 
-    if (PhHasIntrinsics && IS_ALIGNED(From, 16) && IS_ALIGNED(To, 16))
+    if (PhHasIntrinsics && IS_ALIGNED(A, 16))
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8367,7 +8367,7 @@ FLOAT PhAddPlusMaxMemorySingles(
         return maximum;
 
 #ifndef _ARM64_
-    if (PhHasAVX && IS_ALIGNED(A, 32))
+    if (PhHasAVX && (IS_ALIGNED(A, 32) && IS_ALIGNED(B, 32)))
     {
         SIZE_T count = Count & ~0x7;
 
@@ -8411,7 +8411,7 @@ FLOAT PhAddPlusMaxMemorySingles(
     }
 #endif
 
-    if (PhHasIntrinsics && IS_ALIGNED(A, 16))
+    if (PhHasIntrinsics && IS_ALIGNED(From, 16) && IS_ALIGNED(To, 16))
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8503,7 +8503,7 @@ VOID PhConvertCopyMemoryUlong(
     }
 #endif
 
-    if (PhHasIntrinsics && IS_ALIGNED(A, 16))
+    if (PhHasIntrinsics && (IS_ALIGNED(A, 16) && IS_ALIGNED(B, 16)))
     {
         SIZE_T count = Count & ~0x3;
 
