@@ -150,11 +150,12 @@ NTSTATUS KphpSetParametersService(
     ULONG disposition;
     SIZE_T returnLength;
     PH_STRINGREF servicesKeyName;
-    PH_FORMAT format[2];
+    PH_FORMAT format[3];
     WCHAR servicesKeyNameBuffer[MAX_PATH];
 
-    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
-    PhInitFormatSR(&format[1], *Config->ServiceName);
+    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services");
+    PhInitFormatSR(&format[1], PhNtPathSeparatorString);
+    PhInitFormatSR(&format[2], *Config->ServiceName);
 
     if (!PhFormatToBuffer(
         format,
@@ -215,7 +216,7 @@ NTSTATUS KphSetParameters(
     ULONG disposition;
     SIZE_T returnLength;
     PH_STRINGREF parametersKeyName;
-    PH_FORMAT format[3];
+    PH_FORMAT format[4];
     WCHAR parametersKeyNameBuffer[MAX_PATH];
 
     // Services key parameters.
@@ -229,9 +230,10 @@ NTSTATUS KphSetParameters(
         return STATUS_SUCCESS;
     }
 
-    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
-    PhInitFormatSR(&format[1], *Config->ServiceName);
-    PhInitFormatS(&format[2], L"\\Parameters");
+    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services");
+    PhInitFormatSR(&format[1], PhNtPathSeparatorString);
+    PhInitFormatSR(&format[2], *Config->ServiceName);
+    PhInitFormatS(&format[3], L"\\Parameters");
 
     if (!PhFormatToBuffer(
         format,

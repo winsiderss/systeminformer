@@ -287,7 +287,7 @@ NTSTATUS PhLookupSid(
  * domain\\user. If not applicable to a particular SID, the function returns its SDDL representation.
  * You must free each item using PhDereferenceObject(), and then free the array by calling PhFree().
  */
-VOID PhLookupSids(
+NTSTATUS PhLookupSids(
     _In_ ULONG Count,
     _In_ PSID *Sids,
     _Out_ PPH_STRING **FullNames
@@ -396,6 +396,7 @@ VOID PhLookupSids(
     }
 
     *FullNames = translatedNames;
+    return status;
 }
 
 /**

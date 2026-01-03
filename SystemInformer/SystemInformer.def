@@ -614,6 +614,9 @@ EXPORTS
     PhGetProcessWorkingSetInformation
     PhGetProcessWsCounters
     PhGetSectionFileName
+    PhGetThreadBasePriority
+    PhGetThreadBasicInformation
+    PhGetThreadIoPriority
     PhGetTokenGroups
     PhGetTokenIntegrityLevel
     PhGetTokenIntegrityLevelRID
@@ -894,6 +897,7 @@ EXPORTS
     PhAddIListViewItem
     PhAddTabControlTab
     PhBitmapSetAlpha
+    PhCloseThemeData
     PhCreateCommonFont
     PhCreateDialog
     PhCreateDIBSection
@@ -919,6 +923,8 @@ EXPORTS
     PhGetSelectedIListViewItemParams
     PhGetStockApplicationIcon
     PhGetStockObject
+    PhGetThemeMargins
+    PhGetThemePartSize
     PhGetWindowClientId
     PhGetWindowCompositionAttribute
     PhGetWindowContext
@@ -938,11 +944,13 @@ EXPORTS
     PhImageListSetIconSize
     PhImageListSetImageCount
     PhInitializeLayoutManager
+    PhIsThemeActive
     PhLayoutManagerUpdate
     PhLayoutManagerLayout
     PhLoadIcon
     PhLoadImageFormatFromResource
     PhModalPropertySheet
+    PhOpenThemeData
     PhQueryDirectXExclusiveOwnership
     PhInitializeWindowTheme
     PhReInitializeWindowTheme

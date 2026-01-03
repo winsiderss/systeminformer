@@ -119,6 +119,22 @@ PhOpenProcess(
     _In_ HANDLE ProcessId
     );
 
+/**
+ * Opens a process handle with the best available query access.
+ *
+ * The function tries the following access combinations in order:
+ *   1. PROCESS_QUERY_INFORMATION | DesiredAccess
+ *   2. PROCESS_QUERY_LIMITED_INFORMATION | DesiredAccess
+ *   3. PROCESS_QUERY_LIMITED_INFORMATION
+ *
+ * The first successful attempt is returned to the caller. If all attempts
+ * fail, the final NTSTATUS code is returned.
+ *
+ * \param ProcessHandle Receives the resulting process handle on success.
+ * \param DesiredAccess Additional access rights the caller wishes to request.
+ * \param ProcessId The process identifier of the target process.
+ * \return NTSTATUS Successful or errant status.
+ */
 FORCEINLINE
 NTSTATUS
 NTAPI
@@ -209,6 +225,191 @@ PhOpenThreadProcess(
     _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadBasicInformation(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PTHREAD_BASIC_INFORMATION BasicInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadBasePriority(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PKPRIORITY Increment
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadTeb(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG_PTR TebBaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadTeb32(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG_PTR TebBaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadStartAddress(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG_PTR StartAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadIoPriority(
+    _In_ HANDLE ThreadHandle,
+    _Out_ IO_PRIORITY_HINT* IoPriority
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadPagePriority(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG PagePriority
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadPriorityBoost(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PBOOLEAN PriorityBoostDisabled
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadPerformanceCounter(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PLARGE_INTEGER PerformanceCounter
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadCycleTime(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG64 CycleTime
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadIdealProcessor(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PPROCESSOR_NUMBER ProcessorNumber
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadSuspendCount(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG SuspendCount
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadWow64Context(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PWOW64_CONTEXT Context
+    );
+
+#if defined(_ARM64_)
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadArm32Context(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PARM_NT_CONTEXT Context
+    );
+#endif
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadBreakOnTermination(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PBOOLEAN BreakOnTermination
+);
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetThreadBreakOnTermination(
+    _In_ HANDLE ThreadHandle,
+    _In_ BOOLEAN BreakOnTermination
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadContainerId(
+    _In_ HANDLE ThreadHandle,
+    _In_ PGUID ContainerId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadIsIoPending(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PBOOLEAN IsIoPending
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadTimes(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PKERNEL_USER_TIMES Times
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadIsTerminated(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PBOOLEAN IsTerminated
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetThreadIsTerminated2(
+    _In_ HANDLE ThreadHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadGroupAffinity(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PGROUP_AFFINITY GroupAffinity
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadIndexInformation(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PTHREAD_INDEX_INFORMATION ThreadIndex
     );
 
 PHLIBAPI
@@ -814,6 +1015,142 @@ PhQueryTokenVariableSize(
     _Out_ PVOID *Buffer
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenType(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_TYPE Type
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenSessionId(
+    _In_ HANDLE TokenHandle,
+    _Out_ PULONG SessionId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenElevationType(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_ELEVATION_TYPE ElevationType
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenElevation(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN TokenIsElevated
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenStatistics(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_STATISTICS Statistics
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenSource(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_SOURCE Source
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenLinkedToken(
+    _In_ HANDLE TokenHandle,
+    _Out_ PHANDLE LinkedTokenHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenIsRestricted(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsRestricted
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenIsVirtualizationAllowed(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsVirtualizationAllowed
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenIsVirtualizationEnabled(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsVirtualizationEnabled
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenUIAccess(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsUIAccessEnabled
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetTokenUIAccess(
+    _In_ HANDLE TokenHandle,
+    _In_ BOOLEAN IsUIAccessEnabled
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenIsSandBoxInert(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsSandBoxInert
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenMandatoryPolicy(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_MANDATORY_POLICY MandatoryPolicy
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenOrigin(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_ORIGIN Origin
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenIsAppContainer(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsAppContainer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenAppContainerNumber(
+    _In_ HANDLE TokenHandle,
+    _Out_ PULONG AppContainerNumber
+    );
+
 // rev from SE_TOKEN_USER (dmex)
 typedef struct _PH_TOKEN_USER
 {
@@ -1254,7 +1591,7 @@ FORCEINLINE
 VOID
 NTAPI
 PhEnsureAclRevision(
-    _Inout_ PUCHAR AclRevision,
+    _Inout_ PULONG_PTR AclRevision,
     _In_ UCHAR AceType
     )
 {
@@ -1376,6 +1713,106 @@ PhGetAce(
     *Ace = current;
     return STATUS_SUCCESS;
 #endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhAddAce(
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG StartingAceIndex,
+    _In_reads_bytes_opt_(AceListLength) PVOID AceList,
+    _In_ ULONG AceListLength
+    )
+{
+    PVOID firstFree = NULL;
+
+    if (!PhValidAcl(Acl))
+        return STATUS_INVALID_PARAMETER;
+    if (AceListLength == 0)
+        return STATUS_SUCCESS;
+
+    if (!PhFirstFreeAce(Acl, &firstFree) || !firstFree)
+        return STATUS_INVALID_ACL;
+
+    // Determine final revision (max of current ACL revision and requested).
+    ULONG_PTR finalRevision = Acl->AclRevision;
+
+    if ((ULONG_PTR)AceRevision > finalRevision)
+    {
+        finalRevision = (ULONG_PTR)AceRevision;
+    }
+
+    // Validate the incoming ACE list and compute newAceCount, while checking
+    // the ACL revision supports the ACE types to be inserted.
+    ULONG_PTR src = (ULONG_PTR)AceList;
+    ULONG_PTR const srcEnd = src + AceListLength;
+    USHORT newAceCount = 0;
+
+    while (src < srcEnd)
+    {
+        if (src + sizeof(ACE_HEADER) > srcEnd)
+            return STATUS_INVALID_PARAMETER;
+
+        PACE_HEADER aceHdr = (PACE_HEADER)src;
+        USHORT inSize = aceHdr->AceSize;
+
+        if (inSize == 0 || src + inSize > srcEnd)
+            return STATUS_INVALID_PARAMETER;
+
+        // Ensure the ACL revision can host this ACE type.
+        PhEnsureAclRevision(&finalRevision, aceHdr->AceType);
+
+        src += inSize;
+        ++newAceCount;
+    }
+
+    if (src != srcEnd)
+        return STATUS_INVALID_PARAMETER;
+
+    // Determine insertion point.
+    PVOID insertAce = firstFree;
+    ULONG existingAceCount = Acl->AceCount;
+
+    if (StartingAceIndex < existingAceCount)
+    {
+        NTSTATUS status;
+
+        status = PhGetAce(
+            Acl,
+            StartingAceIndex,
+            &insertAce
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+    // else insert at end (firstFree)
+
+    // Ensure AceListLength bytes free between end of ACL buffer and current firstFree.
+    ULONG_PTR const aclStart = (ULONG_PTR)Acl;
+    ULONG_PTR const aclEnd = aclStart + Acl->AclSize;
+
+    if ((ULONG_PTR)PTR_ADD_OFFSET(firstFree, AceListLength) > (ULONG_PTR)aclEnd)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    // Shift tail [insertPtr, firstFree) forward to make room.
+    ULONG_PTR tailBytes = (ULONG_PTR)PTR_SUB_OFFSET(firstFree, insertAce);
+
+    if (tailBytes > 0)
+    {
+        RtlMoveMemory(PTR_ADD_OFFSET(insertAce, AceListLength), insertAce, tailBytes);
+    }
+
+    // Copy new ACEs.
+    RtlCopyMemory(insertAce, AceList, AceListLength);
+
+    // Update counts and revision.
+    Acl->AceCount = (USHORT)(Acl->AceCount + newAceCount);
+    Acl->AclRevision = (UCHAR)finalRevision;
+
+    return STATUS_SUCCESS;
 }
 
 FORCEINLINE
@@ -5135,7 +5572,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetProcessorNominalFrequency(
-    _In_ PH_PROCESSOR_NUMBER ProcessorNumber,
+    _In_ PPH_PROCESSOR_NUMBER ProcessorNumber,
     _Out_ PULONG NominalFrequency
     );
 

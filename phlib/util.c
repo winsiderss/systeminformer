@@ -5318,13 +5318,7 @@ NTSTATUS PhCreateProcessAsUser(
 
         if (NT_SUCCESS(PhGetTokenLinkedToken(tokenHandle, &linkedTokenHandle)))
         {
-            if (NT_SUCCESS(NtQueryInformationToken(
-                linkedTokenHandle,
-                TokenType,
-                &tokenType,
-                sizeof(TOKEN_TYPE),
-                &returnLength
-                )) && tokenType == TokenPrimary)
+            if (NT_SUCCESS(PhGetTokenType(linkedTokenHandle, &tokenType)) && tokenType == TokenPrimary)
             {
                 NtClose(tokenHandle);
                 tokenHandle = linkedTokenHandle;
@@ -5407,7 +5401,7 @@ NTSTATUS PhCreateProcessAsUser(
         Information->CommandLine,
         Information->Environment ? Information->Environment : defaultEnvironment,
         Information->CurrentDirectory,
-        &startupInfo,
+        StartupInfo ? StartupInfo : &startupInfo,
         Flags,
         tokenHandle,
         ClientId,
@@ -5586,7 +5580,12 @@ NTSTATUS PhFilterTokenForLimitedUser(
                 for (i = 0; i < currentDacl->AceCount; i++)
                 {
                     if (NT_SUCCESS(PhGetAce(currentDacl, i, &currentAce)))
-                        RtlAddAce(newDacl, ACL_REVISION, ULONG_MAX, currentAce, currentAce->AceSize);
+                    {
+                        status = PhAddAce(newDacl, ACL_REVISION, ULONG_MAX, currentAce, currentAce->AceSize);
+
+                        if (!NT_SUCCESS(status))
+                            break;
+                    }
                 }
             }
 
@@ -9739,7 +9738,8 @@ VOID PhFreeProcessSnapshot(
  * \return NTSTATUS code indicating the process exit status or error.
  */
 NTSTATUS PhCreateProcessRedirection(
-    _In_ PPH_STRING CommandLine,
+    _In_opt_ PCPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF CommandLine,
     _In_opt_ PCPH_STRINGREF CommandInput,
     _Out_opt_ PPH_STRING *CommandOutput
     )
@@ -9840,8 +9840,8 @@ NTSTATUS PhCreateProcessRedirection(
     startupInfo.lpAttributeList = attributeList;
 
     status = PhCreateProcessWin32Ex(
-        NULL,
-        PhGetString(CommandLine),
+        PhGetStringRefZ(FileName),
+        PhGetStringRefZ(CommandLine),
         NULL,
         NULL,
         &startupInfo,
@@ -10443,6 +10443,13 @@ NTSTATUS PhQueryDirectXExclusiveOwnership(
     return D3DKMTQueryVidPnExclusiveOwnership_I(QueryExclusiveOwnership);
 }
 
+typedef struct _PH_ENDSESSION_CONTEXT
+{
+    CLIENT_ID ClientId;
+    ULONG_PTR Result; // Result from the last successful PhSendMessageTimeout
+    BOOLEAN Valid; // TRUE if FinalResult contains a valid value
+} PH_ENDSESSION_CONTEXT, * PPH_ENDSESSION_CONTEXT;
+
 /**
  * Callback used to send WM_QUERYENDSESSION/WM_ENDSESSION to windows of a specific process.
  *
@@ -10453,24 +10460,28 @@ NTSTATUS PhQueryDirectXExclusiveOwnership(
  * \param Context Pointer to the process ID (as CLIENT_ID) to match against window's process.
  * \return TRUE to continue enumeration, FALSE to stop.
  */
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 static BOOLEAN CALLBACK PhQueryEndSessionCallback(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
     )
 {
-    PCLIENT_ID clientId = (PCLIENT_ID)Context;
+    PPH_ENDSESSION_CONTEXT context = (PPH_ENDSESSION_CONTEXT)Context;
     CLIENT_ID processId;
 
+    // Skip invisible windows; they do not respond to session‑end queries.
     if (!IsWindowVisible(WindowHandle))
         return TRUE;
 
+    // Check whether this window belongs to the target process.
     if (
         NT_SUCCESS(PhGetWindowClientId(WindowHandle, &processId)) &&
-        processId.UniqueProcess == clientId->UniqueProcess
-        )
+        processId.UniqueProcess == context->ClientId.UniqueProcess
+    )
     {
         ULONG_PTR result = 0;
 
+        // Ask the window whether it consents to session termination.
         if (PhSendMessageTimeout(
             WindowHandle,
             WM_QUERYENDSESSION,
@@ -10480,16 +10491,21 @@ static BOOLEAN CALLBACK PhQueryEndSessionCallback(
             &result
             ))
         {
+            // If the window agrees, notify it that the session is ending.
             if (result)
             {
-                PhSendMessageTimeout(
+                if (PhSendMessageTimeout(
                     WindowHandle,
                     WM_ENDSESSION,
                     TRUE,
                     ENDSESSION_LOGOFF,
                     5000,
                     &result
-                    );
+                    ))
+                {
+                    context->Result = result;
+                    context->Valid = TRUE;
+                }
             }
 
             return FALSE;
@@ -10511,13 +10527,73 @@ NTSTATUS PhEndWindowSession(
 {
     NTSTATUS status;
     CLIENT_ID clientId;
+    PH_ENDSESSION_CONTEXT context;
 
     status = PhGetWindowClientId(WindowHandle, &clientId);
 
     if (!NT_SUCCESS(status))
         return status;
 
+    RtlZeroMemory(&context, sizeof(PH_ENDSESSION_CONTEXT));
+    context.ClientId = clientId;
+
     status = PhEnumWindows(PhQueryEndSessionCallback, &clientId);
 
-    return status;
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (context.Valid && context.Result != 0)
+        return STATUS_SUCCESS;
+
+    return STATUS_FAIL_CHECK;
 }
+
+static CONST PPH_STRINGREF PhLuidKnownTypeStrings[] =
+{
+    SREF(L"SYSTEM"),
+    SREF(L"PROTECTED_TO_SYSTEM"),
+    SREF(L"NETWORKSERVICE"),
+    SREF(L"LOCALSERVICE"),
+    SREF(L"ANONYMOUS_LOGON"),
+    SREF(L"IUSER"),
+};
+
+/**
+ * Returns a string representation for well‑known authentication LUIDs.
+ *
+ * \param Luid Pointer to the LUID to classify.
+ * \return A PCPH_STRINGREF containing the name of the known LUID, or NULL if the
+ * LUID is not one of the recognized well‑known identifiers.
+ */
+PCPH_STRINGREF PhGetLuidKnownTypeToString(
+    _In_ PLUID Luid
+    )
+{
+    if (RtlIsEqualLuid(Luid, &((LUID)SYSTEM_LUID)))
+    {
+        return (PCPH_STRINGREF)&PhLuidKnownTypeStrings[0];
+    }
+    else if (RtlIsEqualLuid(Luid, &((LUID)PROTECTED_TO_SYSTEM_LUID)))
+    {
+        return (PCPH_STRINGREF)&PhLuidKnownTypeStrings[1];
+    }
+    else if (RtlIsEqualLuid(Luid, &((LUID)NETWORKSERVICE_LUID)))
+    {
+        return (PCPH_STRINGREF)&PhLuidKnownTypeStrings[2];
+    }
+    else if (RtlIsEqualLuid(Luid, &((LUID)LOCALSERVICE_LUID)))
+    {
+        return (PCPH_STRINGREF)&PhLuidKnownTypeStrings[3];
+    }
+    else if (RtlIsEqualLuid(Luid, &((LUID)ANONYMOUS_LOGON_LUID)))
+    {
+        return (PCPH_STRINGREF)&PhLuidKnownTypeStrings[4];
+    }
+    else if (RtlIsEqualLuid(Luid, &((LUID)IUSER_LUID)))
+    {
+        return (PCPH_STRINGREF)&PhLuidKnownTypeStrings[5];
+    }
+
+    return NULL;
+}
+

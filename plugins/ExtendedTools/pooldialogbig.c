@@ -188,6 +188,9 @@ INT_PTR CALLBACK EtBigPoolMonDlgProc(
                         PVOID* listviewItems;
                         PPH_EMENU_ITEM selectedItem;
 
+                        if (!PhGetCursorPos(&point))
+                            break;
+
                         PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
                         if (numberOfItems == 0)
@@ -197,7 +200,6 @@ INT_PTR CALLBACK EtBigPoolMonDlgProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, USHRT_MAX, L"&Copy", NULL, NULL), ULONG_MAX);
                         PhInsertCopyListViewEMenuItem(menu, USHRT_MAX, context->ListViewHandle);
 
-                        GetCursorPos(&point);
                         selectedItem = PhShowEMenu(
                             menu,
                             context->ListViewHandle,

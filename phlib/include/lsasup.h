@@ -68,7 +68,7 @@ PhLookupSid(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhLookupSids(
     _In_ ULONG Count,

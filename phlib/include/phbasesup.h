@@ -4295,7 +4295,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFillMemoryUlong(
-    _Inout_updates_(Count) _Needs_align_(4) PULONG Memory,
+    _Inout_updates_(Count) PULONG Memory,
     _In_ ULONG Value,
     _In_ SIZE_T Count
     );

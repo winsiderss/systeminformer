@@ -1557,7 +1557,16 @@ NTSTATUS PhRunAsUpdateDesktop(
                             }
                         }
 
-                        RtlAddAce(newDacl, ACL_REVISION, ULONG_MAX, currentAce, currentAce->AceSize);
+                        status = PhAddAce(
+                            newDacl,
+                            ACL_REVISION,
+                            ULONG_MAX,
+                            currentAce,
+                            currentAce->AceSize
+                            );
+
+                        if (!NT_SUCCESS(status))
+                            break;
                     }
                 }
             }
@@ -1678,7 +1687,16 @@ NTSTATUS PhRunAsUpdateWindowStation(
                             }
                         }
 
-                        RtlAddAce(newDacl, ACL_REVISION, ULONG_MAX, currentAce, currentAce->AceSize);
+                        status = PhAddAce(
+                            newDacl,
+                            ACL_REVISION,
+                            ULONG_MAX,
+                            currentAce,
+                            currentAce->AceSize
+                            );
+
+                        if (!NT_SUCCESS(status))
+                            break;
                     }
                 }
             }

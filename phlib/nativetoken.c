@@ -243,6 +243,471 @@ NTSTATUS PhQueryTokenVariableSize(
 }
 
 /**
+ * Retrieves the type of a token (primary or impersonation).
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param Type A variable which receives the token type (primary or impersonation).
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetTokenType(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_TYPE Type
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenType,
+        Type,
+        sizeof(TOKEN_TYPE),
+        &returnLength
+        );
+}
+
+/**
+ * Gets a token's session ID.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param SessionId A variable which receives the session ID.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenSessionId(
+    _In_ HANDLE TokenHandle,
+    _Out_ PULONG SessionId
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenSessionId,
+        SessionId,
+        sizeof(ULONG),
+        &returnLength
+        );
+}
+
+/**
+ * Gets a token's elevation type.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param ElevationType A variable which receives the elevation type.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenElevationType(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_ELEVATION_TYPE ElevationType
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenElevationType,
+        ElevationType,
+        sizeof(TOKEN_ELEVATION_TYPE),
+        &returnLength
+        );
+}
+
+/**
+ * Gets whether a token is elevated.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param TokenIsElevated A variable which receives a boolean indicating whether the token is elevated.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenElevation(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN TokenIsElevated
+    )
+{
+    NTSTATUS status;
+    TOKEN_ELEVATION elevation;
+    ULONG returnLength;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenElevation,
+        &elevation,
+        sizeof(TOKEN_ELEVATION),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *TokenIsElevated = !!elevation.TokenIsElevated;
+    }
+
+    return status;
+}
+
+/**
+ * Gets a token's statistics.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param Statistics A variable which receives the token's statistics.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenStatistics(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_STATISTICS Statistics
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenStatistics,
+        Statistics,
+        sizeof(TOKEN_STATISTICS),
+        &returnLength
+        );
+}
+
+/**
+ * Gets a token's source.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY_SOURCE access.
+ * \param Source A variable which receives the token's source.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenSource(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_SOURCE Source
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenSource,
+        Source,
+        sizeof(TOKEN_SOURCE),
+        &returnLength
+        );
+}
+
+/**
+ * Gets a handle to a token's linked token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param LinkedTokenHandle A variable which receives a handle to the linked token. You must close
+ * the handle using NtClose() when you no longer need it.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenLinkedToken(
+    _In_ HANDLE TokenHandle,
+    _Out_ PHANDLE LinkedTokenHandle
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    TOKEN_LINKED_TOKEN linkedToken;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenLinkedToken,
+        &linkedToken,
+        sizeof(TOKEN_LINKED_TOKEN),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *LinkedTokenHandle = linkedToken.LinkedToken;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetTokenIsRestricted(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsRestricted
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG restricted;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenIsRestricted,
+        &restricted,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsRestricted = !!restricted;
+    }
+
+    return status;
+}
+
+/**
+ * Gets whether virtualization is allowed for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsVirtualizationAllowed A variable which receives a boolean indicating whether
+ * virtualization is allowed for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenIsVirtualizationAllowed(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsVirtualizationAllowed
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG virtualizationAllowed;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenVirtualizationAllowed,
+        &virtualizationAllowed,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsVirtualizationAllowed = !!virtualizationAllowed;
+    }
+
+    return status;
+}
+
+/**
+ * Gets whether virtualization is enabled for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsVirtualizationEnabled A variable which receives a boolean indicating whether
+ * virtualization is enabled for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenIsVirtualizationEnabled(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsVirtualizationEnabled
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG virtualizationEnabled;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenVirtualizationEnabled,
+        &virtualizationEnabled,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsVirtualizationEnabled = !!virtualizationEnabled;
+
+    return status;
+}
+
+/**
+ * Gets UIAccess flag for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsUIAccessEnabled A variable which receives a boolean indicating whether
+ * UIAccess is enabled for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenUIAccess(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsUIAccessEnabled
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG uiAccess;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenUIAccess,
+        &uiAccess,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsUIAccessEnabled = !!uiAccess;
+
+    return status;
+}
+
+/**
+ * Sets UIAccess flag for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_ADJUST_DEFAULT access.
+ * \param IsUIAccessEnabled The new flag state.
+ * \remarks Enabling UIAccess requires SeTcbPrivilege.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhSetTokenUIAccess(
+    _In_ HANDLE TokenHandle,
+    _In_ BOOLEAN IsUIAccessEnabled
+    )
+{
+    ULONG uiAccess;
+
+    uiAccess = IsUIAccessEnabled ? 1 : 0;
+
+    return NtSetInformationToken(
+        TokenHandle,
+        TokenUIAccess,
+        &uiAccess,
+        sizeof(ULONG)
+        );
+}
+
+/**
+ * Gets SandBoxInert flag for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsSandBoxInert A variable which receives a boolean indicating whether
+ * AppLocker rules or Software Restriction Policies are enabled for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenIsSandBoxInert(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsSandBoxInert
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG sandBoxInert;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenSandBoxInert,
+        &sandBoxInert,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsSandBoxInert = !!sandBoxInert;
+
+    return status;
+}
+
+/**
+ * Gets Mandatory Policy for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param MandatoryPolicy A variable which receives a set of mandatory integrity
+ * policies enforced for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenMandatoryPolicy(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_MANDATORY_POLICY MandatoryPolicy
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenMandatoryPolicy,
+        MandatoryPolicy,
+        sizeof(TOKEN_MANDATORY_POLICY),
+        &returnLength
+        );
+}
+
+/**
+ * The TOKEN_ORIGIN structure contains information about the origin of the logon session.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param Origin A variable which receives the Locally unique identifier (LUID) for the logon session.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenOrigin(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_ORIGIN Origin
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenOrigin,
+        Origin,
+        sizeof(TOKEN_ORIGIN),
+        &returnLength
+        );
+}
+
+/**
+ * Gets a value that is nonzero if the token is an app container token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsAppContainer Any callers who check the TokenIsAppContainer and have it return 0 should
+ * also verify that the caller token is not an identify level impersonation token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenIsAppContainer(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsAppContainer
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG isAppContainer;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenIsAppContainer,
+        &isAppContainer,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsAppContainer = !!isAppContainer;
+
+    return status;
+}
+
+/**
+ * Gets a value that includes the app container number for the token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param AppContainerNumber The app container number for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenAppContainerNumber(
+    _In_ HANDLE TokenHandle,
+    _Out_ PULONG AppContainerNumber
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenAppContainerNumber,
+        AppContainerNumber,
+        sizeof(ULONG),
+        &returnLength
+        );
+}
+
+/**
  * Gets a token's user SID and returns a copy of the SID.
  *
  * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.

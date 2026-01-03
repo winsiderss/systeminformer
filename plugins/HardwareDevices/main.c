@@ -575,7 +575,8 @@ VOID ShowDeviceMenu(
     PPH_EMENU subMenu;
     PPH_EMENU_ITEM selectedItem;
 
-    GetCursorPos(&cursorPos);
+    if (!PhGetClientPos(ParentWindow, &cursorPos))
+        return;
 
     menu = PhCreateEMenu();
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);

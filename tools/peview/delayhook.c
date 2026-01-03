@@ -1131,7 +1131,7 @@ VOID PhRegisterDialogSuperClass(
 
     PhDefaultDialogWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhDialogWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(L"#32770", NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1151,7 +1151,7 @@ VOID PhRegisterMenuSuperClass(
 
     PhDefaultMenuWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhMenuWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(L"#32768", NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1171,7 +1171,7 @@ VOID PhRegisterRebarSuperClass(
 
     PhDefaultRebarWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhRebarWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(REBARCLASSNAME, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1191,7 +1191,7 @@ VOID PhRegisterComboBoxSuperClass(
 
     PhDefaultComboBoxWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhComboBoxWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(WC_COMBOBOX, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1211,7 +1211,7 @@ VOID PhRegisterStaticSuperClass(
 
     PhDefaultStaticWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhStaticWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(WC_STATIC, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1231,7 +1231,7 @@ VOID PhRegisterStatusBarSuperClass(
 
     PhDefaultStatusbarWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhStatusBarWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(STATUSCLASSNAME, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1251,7 +1251,7 @@ VOID PhRegisterEditSuperClass(
 
     PhDefaultEditWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhEditWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(WC_EDIT, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1271,7 +1271,7 @@ VOID PhRegisterHeaderSuperClass(
 
     PhDefaultHeaderWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhHeaderWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
+    wcex.style = wcex.style | CS_GLOBALCLASS;
 
     UnregisterClass(WC_HEADER, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)

@@ -78,7 +78,7 @@ static BOOLEAN StringContains(
     _In_ BOOLEAN MatchWholeWord
     )
 {
-    if (!Haystack || !SubString || !SubString)
+    if (!Haystack || !SubString)
         return FALSE;
 
     // Check if the pattern contains wildcards
