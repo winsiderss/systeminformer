@@ -80,7 +80,12 @@ ipch/
 .vs/
 
 # VS Code files
-.vscode/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+!.vscode/extensions.json
+
 *.code-workspace
 
 # NuGet Packages
