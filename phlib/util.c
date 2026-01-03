@@ -5309,7 +5309,6 @@ NTSTATUS PhCreateProcessAsUser(
     {
         HANDLE linkedTokenHandle;
         TOKEN_TYPE tokenType;
-        ULONG returnLength;
 
         // NtQueryInformationToken normally returns an impersonation token with
         // SecurityIdentification, but if the process is running with SeTcbPrivilege, it returns a
