@@ -8411,7 +8411,7 @@ FLOAT PhAddPlusMaxMemorySingles(
     }
 #endif
 
-    if (PhHasIntrinsics && IS_ALIGNED(From, 16) && IS_ALIGNED(To, 16))
+    if (PhHasIntrinsics && (IS_ALIGNED(A, 16) && IS_ALIGNED(B, 16)))
     {
         SIZE_T count = Count & ~0x3;
 
@@ -8503,7 +8503,7 @@ VOID PhConvertCopyMemoryUlong(
     }
 #endif
 
-    if (PhHasIntrinsics && (IS_ALIGNED(A, 16) && IS_ALIGNED(B, 16)))
+    if (PhHasIntrinsics && IS_ALIGNED(From, 16) && IS_ALIGNED(To, 16))
     {
         SIZE_T count = Count & ~0x3;
 
