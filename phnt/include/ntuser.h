@@ -132,6 +132,22 @@ NtUserDisableProcessWindowsGhosting(
     );
 
 NTSYSCALLAPI
+HANDLE
+NTAPI
+NtUserGetProp(
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR String
+    );
+
+NTSYSCALLAPI
+HANDLE
+NTAPI
+NtUserGetProp2(
+    _In_ HWND WindowHandle,
+    _In_ PCUNICODE_STRING String
+    );
+
+NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUserCreateWindowStation(
