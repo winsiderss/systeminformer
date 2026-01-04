@@ -120,6 +120,12 @@ typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
     PPH_STRING FullName;
 } PH_SID_FULL_NAME_CACHE_ENTRY, *PPH_SID_FULL_NAME_CACHE_ENTRY;
 
+typedef struct _PH_SID_RESOLVE_QUEUE_ENTRY
+{
+    PSID Sid;
+    ULONG SidLength;
+} PH_SID_RESOLVE_QUEUE_ENTRY, *PPH_SID_RESOLVE_QUEUE_ENTRY;
+
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessItemDeleteProcedure(
     _In_ PVOID Object,
@@ -146,6 +152,31 @@ VOID PhpRemoveProcessRecord(
     _Inout_ PPH_PROCESS_RECORD ProcessRecord
     );
 
+PPH_STRING PhpGetSidFullNameCached(
+    _In_ PCSID Sid
+    );
+
+PPH_STRING PhpGetSidFullNameCachedSlow(
+    _In_ PSID Sid
+    );
+
+VOID PhpQueueSidForBulkResolution(
+    _In_ PSID Sid
+    );
+
+VOID PhpBulkResolveSidsToCache(
+    _In_ PSID* Sids,
+    _In_ ULONG Count
+    );
+
+VOID PhpProcessBulkSidResolution(
+    VOID
+    );
+
+VOID PhpRemoveProcessRecord(
+    _Inout_ PPH_PROCESS_RECORD ProcessRecord
+    );
+
 PPH_OBJECT_TYPE PhProcessItemType = NULL;
 
 PPH_HASH_ENTRY PhProcessHashSet[256] = PH_HASH_SET_INIT;
@@ -156,6 +187,10 @@ SLIST_HEADER PhProcessQueryDataListHead;
 
 PPH_LIST PhProcessRecordList = NULL;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
+
+static PPH_HASHTABLE PhpSidFullNameCacheHashtable = NULL;
+static PPH_HASHTABLE PhpSidResolveQueue = NULL;
+static PH_QUEUED_LOCK PhpSidResolveQueueLock = PH_QUEUED_LOCK_INIT;
 
 ULONG PhStatisticsSampleCount = 512;
 BOOLEAN PhEnableProcessExtension = TRUE;
@@ -229,8 +264,6 @@ PH_CIRCULAR_BUFFER_FLOAT PhMaxCpuUsageHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoReadOtherHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 #endif
-
-static PPH_HASHTABLE PhpSidFullNameCacheHashtable = NULL;
 
 BOOLEAN PhProcessProviderInitialization(
     VOID
@@ -605,6 +638,154 @@ static ULONG PhpSidFullNameCacheHashtableHashFunction(
     return PhHashBytes((PUCHAR)entry->Sid, PhLengthSid(entry->Sid));
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+static BOOLEAN PhpSidResolveQueueHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPH_SID_RESOLVE_QUEUE_ENTRY entry1 = Entry1;
+    PPH_SID_RESOLVE_QUEUE_ENTRY entry2 = Entry2;
+
+    return PhEqualSid(entry1->Sid, entry2->Sid);
+}
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
+static ULONG PhpSidResolveQueueHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PPH_SID_RESOLVE_QUEUE_ENTRY entry = Entry;
+
+    return PhHashBytes((PUCHAR)entry->Sid, PhLengthSid(entry->Sid));
+}
+
+VOID PhpQueueSidForBulkResolution(
+    _In_ PSID Sid
+    )
+{
+    PH_SID_RESOLVE_QUEUE_ENTRY lookupEntry;
+    PPH_SID_RESOLVE_QUEUE_ENTRY entry;
+
+    PhAcquireQueuedLockExclusive(&PhpSidResolveQueueLock);
+
+    if (!PhpSidResolveQueue)
+    {
+        PhpSidResolveQueue = PhCreateHashtable(
+            sizeof(PH_SID_RESOLVE_QUEUE_ENTRY),
+            PhpSidResolveQueueHashtableEqualFunction,
+            PhpSidResolveQueueHashtableHashFunction,
+            64
+            );
+    }
+
+    lookupEntry.Sid = Sid;
+    entry = PhFindEntryHashtable(PhpSidResolveQueue, &lookupEntry);
+
+    if (!entry)
+    {
+        PH_SID_RESOLVE_QUEUE_ENTRY newEntry;
+
+        newEntry.SidLength = PhLengthSid(Sid);
+        newEntry.Sid = PhAllocateCopy(Sid, newEntry.SidLength);
+
+        PhAddEntryHashtable(PhpSidResolveQueue, &newEntry);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpSidResolveQueueLock);
+}
+
+VOID PhpBulkResolveSidsToCache(
+    _In_ PSID* Sids,
+    _In_ ULONG Count
+    )
+{
+    NTSTATUS status;
+    PPH_STRING* fullNames = NULL;
+
+    if (Count == 0)
+        return;
+
+    status = PhLookupSids(
+        Count,
+        Sids,
+        &fullNames
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (!PhpSidFullNameCacheHashtable)
+        {
+            PhpSidFullNameCacheHashtable = PhCreateHashtable(
+                sizeof(PH_SID_FULL_NAME_CACHE_ENTRY),
+                PhpSidFullNameCacheHashtableEqualFunction,
+                PhpSidFullNameCacheHashtableHashFunction,
+                128
+                );
+        }
+
+        for (ULONG i = 0; i < Count; i++)
+        {
+            if (fullNames[i])
+            {
+                PH_SID_FULL_NAME_CACHE_ENTRY newEntry;
+
+                newEntry.Sid = PhAllocateCopy(Sids[i], PhLengthSid(Sids[i]));
+                newEntry.FullName = fullNames[i];
+                PhAddEntryHashtable(PhpSidFullNameCacheHashtable, &newEntry);
+            }
+        }
+
+        PhFree(fullNames);
+    }
+}
+
+VOID PhpProcessBulkSidResolution(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_SID_RESOLVE_QUEUE_ENTRY entry;
+    PPH_LIST sidArray = NULL;
+    ULONG sidCount = 0;
+
+    PhAcquireQueuedLockExclusive(&PhpSidResolveQueueLock);
+
+    if (!PhpSidResolveQueue || PhpSidResolveQueue->Count == 0)
+    {
+        PhReleaseQueuedLockExclusive(&PhpSidResolveQueueLock);
+        return;
+    }
+
+    sidCount = PhpSidResolveQueue->Count;
+    sidArray = PhCreateList(sidCount);
+
+    PhBeginEnumHashtable(PhpSidResolveQueue, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        PhAddItemList(sidArray, entry->Sid);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpSidResolveQueueLock);
+
+    PhpBulkResolveSidsToCache(sidArray->Items, sidCount);
+
+    PhAcquireQueuedLockExclusive(&PhpSidResolveQueueLock);
+
+    PhBeginEnumHashtable(PhpSidResolveQueue, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        PhFree(entry->Sid);
+    }
+
+    PhClearHashtable(PhpSidResolveQueue);
+    PhReleaseQueuedLockExclusive(&PhpSidResolveQueueLock);
+
+    PhDereferenceObject(sidArray);
+}
+
 PPH_STRING PhpGetSidFullNameCachedSlow(
     _In_ PSID Sid
     )
@@ -903,15 +1084,6 @@ VOID PhpProcessQueryStage1(
                 }
             }
         }
-    }
-
-    if (processItem->Sid && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME))
-    {
-        // Note: We delay resolving the SID name because the local LSA cache might still be
-        // initializing for users on domain networks with slow links (e.g. VPNs). This can block
-        // for a very long time depending on server/network conditions. (dmex)
-        // TODO: This might need to be moved to Stage2...
-        PhMoveReference(&Data->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
     }
 }
 
@@ -2383,6 +2555,11 @@ VOID PhProcessProviderUpdate(
 
     PhTraceFuncEnter("Process provider run count: %lu", runCount);
 
+    if (runCount > 0)
+    {
+        PhpProcessBulkSidResolution();
+    }
+
     if (runCount % 512 == 0) // yes, a very long time
     {
         if (PhEnablePurgeProcessRecords)
@@ -3026,7 +3203,18 @@ VOID PhProcessProviderUpdate(
 
                                 if (processItem->Sid)
                                 {
-                                    PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
+                                    PPH_STRING resolvedName;
+
+                                    // Try cache
+                                    if (resolvedName = PhpGetSidFullNameCached(processItem->Sid))
+                                    {
+                                        PhMoveReference(&processItem->UserName, resolvedName);
+                                    }
+                                    else
+                                    {
+                                        // Queue for bulk resolution
+                                        PhpQueueSidForBulkResolution(processItem->Sid);
+                                    }
                                 }
 
                                 modified = TRUE;
@@ -3035,8 +3223,19 @@ VOID PhProcessProviderUpdate(
                             {
                                 if (processItem->Sid && PhIsNullOrEmptyString(processItem->UserName))
                                 {
-                                    PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
-                                    modified = TRUE;
+                                    PPH_STRING resolvedName;
+
+                                    // Try cache
+                                    if (resolvedName = PhpGetSidFullNameCached(processItem->Sid))
+                                    {
+                                        PhMoveReference(&processItem->UserName, resolvedName);
+                                        modified = TRUE;
+                                    }
+                                    else
+                                    {
+                                        // Queue for bulk resolution
+                                        PhpQueueSidForBulkResolution(processItem->Sid);
+                                    }
                                 }
                             }
                         }
@@ -3085,7 +3284,18 @@ VOID PhProcessProviderUpdate(
                     {
                         if (PhIsNullOrEmptyString(processItem->UserName))
                         {
-                            PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow((PSID)&PhSeLocalSystemSid));
+                            PPH_STRING resolvedName;
+
+                            // Try cache or fallback to slow lookup
+                            if (resolvedName = PhpGetSidFullNameCached((PSID)&PhSeLocalSystemSid))
+                            {
+                                PhMoveReference(&processItem->UserName, resolvedName);
+                            }
+                            else
+                            {
+                                PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow((PSID)&PhSeLocalSystemSid));
+                            }
+
                             modified = TRUE;
                         }
                     }
