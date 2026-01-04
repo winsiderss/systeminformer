@@ -1220,9 +1220,12 @@ NTSTATUS PhLoadSettingsJson(
 
     if (NT_SUCCESS(status))
     {
-        PhAcquireQueuedLockExclusive(&PhSettingsLock);
-        PhEnumJsonArrayObject(object, PhLoadSettingsEnumJsonCallback, NULL);
-        PhReleaseQueuedLockExclusive(&PhSettingsLock);
+        if (PhGetJsonObjectType(object) == PH_JSON_OBJECT_TYPE_OBJECT)
+        {
+            PhAcquireQueuedLockExclusive(&PhSettingsLock);
+            PhEnumJsonArrayObject(object, PhLoadSettingsEnumJsonCallback, NULL);
+            PhReleaseQueuedLockExclusive(&PhSettingsLock);
+        }
 
         PhFreeJsonObject(object);
     }

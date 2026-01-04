@@ -404,10 +404,15 @@ VOID PhEnumJsonArrayObject(
     _In_opt_ PVOID Context
     )
 {
-    json_object_object_foreach(Object, key, value)
+    if (PhGetJsonObjectType(Object) == PH_JSON_OBJECT_TYPE_OBJECT)
     {
-        if (!Callback(Object, key, value, Context))
-            break;
+        json_object_iter iter;
+
+        json_object_object_foreachC(Object, iter)
+        {
+            if (!Callback(Object, iter.key, iter.val, Context))
+                break;
+        }
     }
 }
 
@@ -415,19 +420,24 @@ PVOID PhGetJsonObjectAsArrayList(
     _In_ PVOID Object
     )
 {
-    PPH_LIST listArray;
+    PPH_LIST listArray = NULL;
 
-    listArray = PhCreateList(1);
-
-    json_object_object_foreach(Object, key, value)
+    if (PhGetJsonObjectType(Object) == PH_JSON_OBJECT_TYPE_OBJECT)
     {
-        PJSON_ARRAY_LIST_OBJECT object;
+        json_object_iter iter;
 
-        object = PhAllocateZero(sizeof(JSON_ARRAY_LIST_OBJECT));
-        object->Key = key;
-        object->Entry = value;
+        listArray = PhCreateList(1);
 
-        PhAddItemList(listArray, object);
+        json_object_object_foreachC(Object, iter)
+        {
+            PJSON_ARRAY_LIST_OBJECT object;
+
+            object = PhAllocateZero(sizeof(JSON_ARRAY_LIST_OBJECT));
+            object->Key = iter.key;
+            object->Entry = iter.val;
+
+            PhAddItemList(listArray, object);
+        }
     }
 
     return listArray;
