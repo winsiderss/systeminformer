@@ -8,6 +8,7 @@
 #define _NTRTL_H
 
 typedef struct _CPTABLEINFO CPTABLEINFO, *PCPTABLEINFO;
+typedef enum _FILE_INFORMATION_CLASS FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
 //
 // Pointer arithmetic macros (type safe)
