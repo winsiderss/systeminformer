@@ -321,11 +321,14 @@ RTL_ATOM PhMipContainerInitializeWindowClass(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.style = CS_DBLCLKS | CS_GLOBALCLASS;
     wcex.lpfnWndProc = PhMipContainerWndProc;
-    wcex.hInstance = PhInstanceHandle;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = sizeof(PVOID);
+    wcex.hInstance = NtCurrentImageBase();
+    wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     name = PhaGetStringSetting(SETTING_MINI_INFO_CONTAINER_CLASS_NAME);
     wcex.lpszClassName = PhGetStringOrDefault(name, SETTING_MINI_INFO_CONTAINER_CLASS_NAME);
-    wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
 
     return RegisterClassEx(&wcex);
 }
