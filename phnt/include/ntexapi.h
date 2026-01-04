@@ -1350,9 +1350,9 @@ NTSTATUS
 NTAPI
 NtCreateTimer2(
     _Out_ PHANDLE TimerHandle,
-    _In_opt_ PVOID Reserved,
+    _In_opt_ PULONG TimerId,
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ ULONG Attributes, // TIMER2_ATTRIBUTES or TIMER2_BUILD_ATTRIBUTES
+    _In_ ULONG Attributes,
     _In_ ACCESS_MASK DesiredAccess
     );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
