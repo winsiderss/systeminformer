@@ -6,13 +6,14 @@
  * Authors:
  *
  *     wj32    2010-2012
- *     dmex    2017-2023
+ *     dmex    2017-2026
  *
  */
 
 #include <phapp.h>
 #include <apiimport.h>
 #include <appresolver.h>
+#include <appmodel.h>
 #include <cpysave.h>
 #include <emenu.h>
 #include <hndlinfo.h>
@@ -24,14 +25,14 @@
 #include <workqueue.h>
 #include <phsettings.h>
 
-#include <appmodel.h>
-
 typedef enum _PH_PROCESS_TOKEN_CATEGORY
 {
     PH_PROCESS_TOKEN_CATEGORY_FLAGS,
     PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES,
+    PH_PROCESS_TOKEN_CATEGORY_RESTRICTED,
     PH_PROCESS_TOKEN_CATEGORY_GROUPS,
-    PH_PROCESS_TOKEN_CATEGORY_RESTRICTED
+    PH_PROCESS_TOKEN_CATEGORY_LOGON,
+    PH_PROCESS_TOKEN_CATEGORY_INTEGRITY,
 } PH_PROCESS_TOKEN_CATEGORY;
 
 typedef enum _PH_PROCESS_TOKEN_FLAG
@@ -811,6 +812,15 @@ VOID PhpUpdateSidsFromTokenGroups(
         lvitem->GroupId = Restricted ? PH_PROCESS_TOKEN_CATEGORY_RESTRICTED : PH_PROCESS_TOKEN_CATEGORY_GROUPS;
         lvitem->TokenGroup = &Groups->Groups[i];
 
+        if (FlagOn(Groups->Groups[i].Attributes, SE_GROUP_LOGON_ID))
+        {
+            lvitem->GroupId = PH_PROCESS_TOKEN_CATEGORY_LOGON;
+        }
+        else if (FlagOn(Groups->Groups[i].Attributes, SE_GROUP_INTEGRITY))
+        {
+            lvitem->GroupId = PH_PROCESS_TOKEN_CATEGORY_INTEGRITY;
+        }
+
         ItemIndex = PhAddIListViewGroupItem(
             TokenPageContext->ListViewClass,
             lvitem->GroupId,
@@ -1211,18 +1221,38 @@ LONG NTAPI PhpTokenStatusColumnCompareFunction(
     ULONG value2;
 
     if (item1->GroupId == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+    {
         value1 = PhpGetTokenPrivilegeSortingIndex(item1->TokenPrivilege->Attributes);
-    else if (item1->GroupId == PH_PROCESS_TOKEN_CATEGORY_GROUPS)
+    }
+    else if (
+        item1->GroupId == PH_PROCESS_TOKEN_CATEGORY_GROUPS ||
+        item1->GroupId == PH_PROCESS_TOKEN_CATEGORY_LOGON ||
+        item1->GroupId == PH_PROCESS_TOKEN_CATEGORY_INTEGRITY
+        )
+    {
         value1 = PhpGetTokenGroupSortingIndex(item1->TokenGroup->Attributes);
+    }
     else
+    {
         value1 = 0;
+    }
 
     if (item2->GroupId == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+    {
         value2 = PhpGetTokenPrivilegeSortingIndex(item2->TokenPrivilege->Attributes);
-    else if (item2->GroupId == PH_PROCESS_TOKEN_CATEGORY_GROUPS)
+    }
+    else if (
+        item2->GroupId == PH_PROCESS_TOKEN_CATEGORY_GROUPS ||
+        item2->GroupId == PH_PROCESS_TOKEN_CATEGORY_LOGON ||
+        item2->GroupId == PH_PROCESS_TOKEN_CATEGORY_INTEGRITY
+        )
+    {
         value2 = PhpGetTokenGroupSortingIndex(item2->TokenGroup->Attributes);
+    }
     else
+    {
         value2 = 0;
+    }
 
     return uintcmp(value1, value2);
 }
@@ -1269,10 +1299,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
             ExtendedListView_SetCompareFunction(tokenPageContext->ListViewHandle, 1, PhpTokenStatusColumnCompareFunction);
             ExtendedListView_SetItemColorFunction(tokenPageContext->ListViewHandle, PhpTokenGroupColorFunction);
             ListView_EnableGroupView(tokenPageContext->ListViewHandle, TRUE);
-            PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_FLAGS, L"Flags");
-            PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, L"Privileges");
-            PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_GROUPS, L"Groups");
-            PhAddIListViewGroup(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_RESTRICTED, L"Restricting SIDs");
+            PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_FLAGS, L"Flags");
+            PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, L"Privileges");
+            PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_RESTRICTED, L"Restricting SIDs");
+            PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_GROUPS, L"Groups");
+            PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_LOGON, L"Groups (Logon SID)");
+            PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_INTEGRITY, L"Groups (Mandatory label)");
             PhLoadListViewColumnsFromSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_COLUMNS, tokenPageContext->ListViewHandle);
             PhLoadListViewGroupStatesFromSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_STATES, tokenPageContext->ListViewHandle);
             PhLoadListViewSortColumnsFromSetting(SETTING_TOKEN_GROUPS_LIST_VIEW_SORT, tokenPageContext->ListViewHandle);
@@ -1667,7 +1699,9 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                     for (i = 0; i < numberOfItems; i++)
                     {
-                        if (listViewItems[i]->GroupId != PH_PROCESS_TOKEN_CATEGORY_GROUPS)
+                        if (!(listViewItems[i]->GroupId == PH_PROCESS_TOKEN_CATEGORY_GROUPS ||
+                            listViewItems[i]->GroupId == PH_PROCESS_TOKEN_CATEGORY_LOGON ||
+                            listViewItems[i]->GroupId == PH_PROCESS_TOKEN_CATEGORY_INTEGRITY))
                         {
                             listViewGroupItemsValid = FALSE;
                             break;
@@ -2210,6 +2244,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             }
                             break;
                         case PH_PROCESS_TOKEN_CATEGORY_GROUPS:
+                        case PH_PROCESS_TOKEN_CATEGORY_LOGON:
+                        case PH_PROCESS_TOKEN_CATEGORY_INTEGRITY:
                             {
                                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_GROUP_ENABLE, L"&Enable", NULL, NULL), ULONG_MAX);
                                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_GROUP_DISABLE, L"&Disable", NULL, NULL), ULONG_MAX);
@@ -2452,7 +2488,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             PWSTR tokenVirtualization = L"N/A";
             PWSTR tokenUIAccess = L"Unknown";
             WCHAR tokenSourceName[TOKEN_SOURCE_LENGTH + 1] = { L"Unknown" };
-            WCHAR tokenSourceLuid[PH_PTR_STR_LEN_1] = { L"Unknown" };
+            WCHAR tokenSourceLuid[PH_INT64_STR_LEN_1] = { L"Unknown" };
 
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
@@ -2525,6 +2561,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 )))
             {
                 TOKEN_SOURCE tokenSource;
+                PCPH_STRINGREF tokenSourceTypeString;
 
                 if (NT_SUCCESS(PhGetTokenSource(tokenHandle, &tokenSource)))
                 {
@@ -2537,6 +2574,13 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                         );
 
                     PhPrintPointer(tokenSourceLuid, UlongToPtr(tokenSource.SourceIdentifier.LowPart));
+
+                    if (tokenSourceTypeString = PhGetLuidKnownTypeToString(&tokenSource.SourceIdentifier))
+                    {
+                        wcscat_s(tokenSourceLuid, RTL_NUMBER_OF(tokenSourceLuid), L" (");
+                        wcscat_s(tokenSourceLuid, RTL_NUMBER_OF(tokenSourceLuid), PhGetStringRefZ(tokenSourceTypeString));
+                        wcscat_s(tokenSourceLuid, RTL_NUMBER_OF(tokenSourceLuid), L")");
+                    }
                 }
 
                 tokenPageContext->CloseObject(tokenHandle, FALSE, tokenPageContext->Context);
