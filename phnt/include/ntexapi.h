@@ -1358,10 +1358,35 @@ NtCreateTimer2(
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 // rev
+#define TIMER2_SET_PARAMETERS_CURRENT_VERSION 0
+
+// rev
+/**
+ * The T2_SET_PARAMETERS structure configures the high‑resolution or coalescable timers,
+ * and specify a "no‑wake tolerance" value, which controls how much the kernel
+ * may delay the timers for coalescing or power efficiency.
+ * \remarks Setting NoWakeTolerance to 0 requests **no coalescing** and the most precise
+ * wake‑up behavior the system can provide.
+ */
 typedef struct _T2_SET_PARAMETERS_V0
 {
+    /**
+     * Structure version. Must be set to zero.
+     */
     ULONG Version;
+    /**
+     * Reserved.
+     */
     ULONG Reserved;
+    /**
+     * Maximum tolerable delay (in 100‑ns units) for timer coalescing.
+     * - Set to 0 for **no coalescing** (strict wake‑up).
+     * - Set to a positive value to allow the kernel to delay the timer
+     *   by up to this amount for power efficiency.
+     * Example:
+     *   NoWakeTolerance = 0 -> precise timer, no coalescing.
+     *   NoWakeTolerance = 1e6 -> allow up to 100 ms delay.
+     */
     LONGLONG NoWakeTolerance;
 } T2_SET_PARAMETERS, *PT2_SET_PARAMETERS;
 
@@ -1385,7 +1410,7 @@ NtSetTimer2(
     _In_ HANDLE TimerHandle,
     _In_ PLARGE_INTEGER DueTime,
     _In_opt_ PLARGE_INTEGER Period,
-    _In_ PT2_SET_PARAMETERS Parameters
+    _In_opt_ PT2_SET_PARAMETERS Parameters
     );
 
 /**
@@ -3816,11 +3841,10 @@ typedef struct _SYSTEM_THREAD_CID_PRIORITY_INFORMATION
     KPRIORITY Priority;
 } SYSTEM_THREAD_CID_PRIORITY_INFORMATION, *PSYSTEM_THREAD_CID_PRIORITY_INFORMATION;
 
-// private
 /**
  * The SYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION structure contains the cumulative number of clock cycles a logical processor
  * has spent running its idle thread, deferred procedure calls (DPCs) and interrupt service routines (ISRs) since it became active.
- * https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryidleprocessorcycletimeex
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryidleprocessorcycletimeex
  */
 typedef struct _SYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION
 {
@@ -3862,7 +3886,11 @@ typedef struct _SYSTEM_SPECIAL_POOL_INFORMATION
     ULONG Flags;
 } SYSTEM_SPECIAL_POOL_INFORMATION, *PSYSTEM_SPECIAL_POOL_INFORMATION;
 
-// private
+/**
+ * The SYSTEM_PROCESS_ID_INFORMATION structure retrieves the executable image
+ * name associated with a specific process ID. The caller supplies a process ID,
+ * and on return the system fills the UNICODE_STRING with the corresponding image path.
+ */
 typedef struct _SYSTEM_PROCESS_ID_INFORMATION
 {
     HANDLE ProcessId;
@@ -5779,6 +5807,9 @@ typedef struct _SYSTEM_MEMORY_USAGE_INFORMATION
 } SYSTEM_MEMORY_USAGE_INFORMATION, *PSYSTEM_MEMORY_USAGE_INFORMATION;
 
 // rev
+/**
+ * The SYSTEM_CODEINTEGRITY_IMAGE_TYPE_USER constant is used for validating user-mode images (EXE/DLL).
+ */
 typedef enum _SYSTEM_CODEINTEGRITY_IMAGE_TYPE
 {
     SystemCodeIntegrityImageTypeUser,
@@ -5827,6 +5858,7 @@ typedef struct _SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
 
 /**
  * The SYSTEM_PHYSICAL_MEMORY_INFORMATION structure retrieves the physical memory layout of the system.
+ *
  * \remarks The addresses are physical, not virtual.
  */
 typedef struct _SYSTEM_PHYSICAL_MEMORY_INFORMATION
@@ -5836,13 +5868,18 @@ typedef struct _SYSTEM_PHYSICAL_MEMORY_INFORMATION
     ULONGLONG HighestPhysicalAddress;       // Highest accessible physical address (byte address, inclusive).
 } SYSTEM_PHYSICAL_MEMORY_INFORMATION, *PSYSTEM_PHYSICAL_MEMORY_INFORMATION;
 
-// private
+/**
+ * The SYSTEM_ACTIVITY_MODERATION_STATE type contains the moderation state applied to an application,
+ * with respect to background throttling, resource reduction, and related heuristics.
+ *
+ * \remarks The state may be assigned automatically by the system or explicitly overridden by the user.
+ */
 typedef enum _SYSTEM_ACTIVITY_MODERATION_STATE
 {
-    SystemActivityModerationStateSystemManaged,
-    SystemActivityModerationStateUserManagedAllowThrottling,
-    SystemActivityModerationStateUserManagedDisableThrottling,
-    MaxSystemActivityModerationState
+    SystemActivityModerationStateSystemManaged, // The system applies heuristics based on the appropriate moderation behavior.
+    SystemActivityModerationStateUserManagedAllowThrottling, // User allows the system to throttle the application.
+    SystemActivityModerationStateUserManagedDisableThrottling, // User disables throttling for the application.
+    MaxSystemActivityModerationState // Upper bound for validation; not a real state.
 } SYSTEM_ACTIVITY_MODERATION_STATE;
 
 // private - REDSTONE2
@@ -5868,21 +5905,32 @@ typedef struct _SYSTEM_ACTIVITY_MODERATION_INFO
 } SYSTEM_ACTIVITY_MODERATION_INFO, *PSYSTEM_ACTIVITY_MODERATION_INFO;
 
 // rev
-#include <pshpack1.h>
+/**
+ * The SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS structure describes the moderation state
+ * and classification of an application as used by the system’s activity moderation framework.
+ * These settings influence how aggressively the system may throttle, defer, or
+ * suppress certain background activities for the application.
+ *
+ * The structure maintains a stable binary layout because it is stored in
+ * serialized policy blobs and consumed by system components that expect
+ * fixed field offsets.
+ */
 typedef struct _SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS
 {
-    LARGE_INTEGER LastUpdatedTime; // QuerySystemTime
-    SYSTEM_ACTIVITY_MODERATION_STATE ModerationState;
-    UCHAR Reserved[4];
-    SYSTEM_ACTIVITY_MODERATION_APP_TYPE AppType;
-    UCHAR Flags[4];
+    LARGE_INTEGER LastUpdatedTime; // Timestamp of the last update to this settings block.
+    SYSTEM_ACTIVITY_MODERATION_STATE ModerationState; // Current moderation state assigned to the application.
+    UCHAR Reserved[4]; // Reserved for future expansion
+    SYSTEM_ACTIVITY_MODERATION_APP_TYPE AppType; // Current application type for moderation purposes.
+    ULONG Flags; // Additional moderation flags.
 } SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS, *PSYSTEM_ACTIVITY_MODERATION_APP_SETTINGS;
-#include <poppack.h>
 
-// private
+/**
+ * The SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS structure provides the activity‑moderation
+ * registry location where moderation policies or overrides may be stored.
+ */
 typedef struct _SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
 {
-    HANDLE UserKeyHandle;
+    HANDLE UserKeyHandle; // Handle to the user registry key for activity moderation settings.
 } SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS, *PSYSTEM_ACTIVITY_MODERATION_USER_SETTINGS;
 
 // private
@@ -5953,17 +6001,69 @@ typedef struct _SYSTEM_CODEINTEGRITYVERIFICATION_INFORMATION
 } SYSTEM_CODEINTEGRITYVERIFICATION_INFORMATION, *PSYSTEM_CODEINTEGRITYVERIFICATION_INFORMATION;
 
 // rev
+/**
+ * The SYSTEM_HYPERVISOR_USER_SHARED_DATA structure contains information shared with the hypervisor and user-mode.
+ *
+ * This structure is populated by the hypervisor (when present) to allow user‑mode components to perform
+ * high‑resolution time calculations without requiring a hypercall or kernel transition.
+ */
 typedef struct _SYSTEM_HYPERVISOR_USER_SHARED_DATA
 {
+    /**
+     * Lock used to synchronize updates to the timing fields.
+     *
+     * The hypervisor increments this value before and after updating the
+     * QPC multiplier and bias. User‑mode callers can sample this value
+     * before and after reading the timing fields to detect whether an
+     * update occurred mid‑read and retry if necessary.
+     */
     volatile ULONG TimeUpdateLock;
+
+    /**
+     *  Reserved field - The hypervisor does not assign this field.
+     */
     ULONG Reserved0;
+
+    /**
+     * Multiplier used to convert hypervisor QPC ticks to host time.
+     *
+     * This value is applied to the hypervisor’s virtualized performance
+     * counter to compute a stable, high‑resolution timebase. The multiplier
+     * is chosen by the hypervisor based on the underlying hardware timer
+     * source and virtualization mode.
+     */
     ULONGLONG QpcMultiplier;
+
+    /**
+     * Bias applied after QPC multiplication to produce final time.
+     *
+     * The hypervisor uses this bias to align the virtualized QPC value with
+     * the host’s notion of system time. Combined with QpcMultiplier, this
+     * allows user‑mode components to compute consistent time values even
+     * under virtualization.
+     */
     ULONGLONG QpcBias;
 } SYSTEM_HYPERVISOR_USER_SHARED_DATA, *PSYSTEM_HYPERVISOR_USER_SHARED_DATA;
 
-// private
+/**
+ * The SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION structure describes
+ * the user‑mode mapping of the hypervisor shared page.
+ *
+ * This structure provides the virtual address at which the hypervisor's
+ * user‑accessible shared data page is mapped. When a hypervisor is present,
+ * the kernel maps a read‑only page into user mode containing timing and
+ * virtualization‑related information (see SYSTEM_HYPERVISOR_USER_SHARED_DATA).
+ *
+ * User‑mode components can read this page directly to obtain high‑resolution
+ * time conversion parameters or other hypervisor‑provided data without
+ * requiring a hypercall or kernel transition.
+ */
 typedef struct _SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION
 {
+    /**
+     * User‑mode virtual address of the hypervisor shared data page.
+     * If no hypervisor is present, this pointer is NULL.
+     */
     PSYSTEM_HYPERVISOR_USER_SHARED_DATA HypervisorSharedUserVa;
 } SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION, *PSYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION;
 
@@ -6357,7 +6457,10 @@ typedef struct _SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_OUTPUT
     SYSTEM_MEMORY_NUMA_PERFORMANCE_ENTRY PerformanceEntries[1];
 } SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_OUTPUT, *PSYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_OUTPUT;
 
-// private
+/**
+ * The SYSTEM_OSL_RAMDISK_ENTRY structure describes a single RAM disk region
+ * used by the operating system loader.
+ */
 typedef struct _SYSTEM_OSL_RAMDISK_ENTRY
 {
     ULONG BlockSize;
@@ -6365,7 +6468,10 @@ typedef struct _SYSTEM_OSL_RAMDISK_ENTRY
     SIZE_T Size;
 } SYSTEM_OSL_RAMDISK_ENTRY, *PSYSTEM_OSL_RAMDISK_ENTRY;
 
-// private
+/**
+ * The SYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION structure describes runtime
+ * information related to Trusted Apps support.
+ */
 typedef struct _SYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION
 {
     union
@@ -6380,7 +6486,10 @@ typedef struct _SYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION
     PVOID RemoteBreakingRoutine;
 } SYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION, *PSYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION;
 
-// private
+/**
+ * The SYSTEM_OSL_RAMDISK_INFORMATION structure describes a variable‑length
+ * array of RAM disk entries used by the operating system loader.
+ */
 typedef struct _SYSTEM_OSL_RAMDISK_INFORMATION
 {
     ULONG Version;
@@ -6388,7 +6497,10 @@ typedef struct _SYSTEM_OSL_RAMDISK_INFORMATION
     SYSTEM_OSL_RAMDISK_ENTRY Entries[1];
 } SYSTEM_OSL_RAMDISK_INFORMATION, *PSYSTEM_OSL_RAMDISK_INFORMATION;
 
-// private
+/**
+ * The CI_POLICY_MGMT_OPERATION enumeration specifies the type of Code Integrity
+ * policy management operation requested.
+ */
 typedef enum _CI_POLICY_MGMT_OPERATION
 {
     CI_POLICY_MGMT_OPERATION_NONE = 0,
@@ -6402,7 +6514,11 @@ typedef enum _CI_POLICY_MGMT_OPERATION
     CI_POLICY_MGMT_OPERATION_MAX = 8
 } CI_POLICY_MGMT_OPERATION;
 
-// private
+/**
+ * The SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT structure describes parameters
+ * used to manage Code Integrity policies through the system information
+ * interface.
+ */
 typedef struct _SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT
 {
     CI_POLICY_MGMT_OPERATION Operation;
@@ -6413,7 +6529,10 @@ typedef struct _SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT
     PUCHAR Arg2;
 } SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT, *PSYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT;
 
-// private
+/**
+ * The SYSTEM_REF_TRACE_INFORMATION_EX structure describes configuration
+ * parameters for object reference tracing.
+ */
 typedef struct _SYSTEM_REF_TRACE_INFORMATION_EX
 {
     ULONG Version;
@@ -6436,7 +6555,10 @@ typedef struct _SYSTEM_REF_TRACE_INFORMATION_EX
     ULONG TracedObjectLimit;
 } SYSTEM_REF_TRACE_INFORMATION_EX, *PSYSTEM_REF_TRACE_INFORMATION_EX;
 
-// private
+/**
+ * The SYSTEM_BASICPROCESS_INFORMATION structure describes basic process
+ * information returned when enumerating processes.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _SYSTEM_BASICPROCESS_INFORMATION
 {
@@ -6447,7 +6569,10 @@ typedef struct _SYSTEM_BASICPROCESS_INFORMATION
     UNICODE_STRING ImageName;
 } SYSTEM_BASICPROCESS_INFORMATION, *PSYSTEM_BASICPROCESS_INFORMATION;
 
-// private
+/**
+ * The SYSTEM_HANDLECOUNT_INFORMATION structure provides global counts of
+ * processes, threads, and handles in the system.
+ */
 typedef struct _SYSTEM_HANDLECOUNT_INFORMATION
 {
     ULONG ProcessCount;
@@ -6455,7 +6580,10 @@ typedef struct _SYSTEM_HANDLECOUNT_INFORMATION
     ULONG HandleCount;
 } SYSTEM_HANDLECOUNT_INFORMATION, *PSYSTEM_HANDLECOUNT_INFORMATION;
 
-// private
+/**
+ * The SYSTEM_POOLTAG2 structure describes allocation statistics for a single
+ * pool tag, including paged and nonpaged usage.
+ */
 typedef struct _SYSTEM_POOLTAG2
 {
     union
@@ -6471,7 +6599,10 @@ typedef struct _SYSTEM_POOLTAG2
     SIZE_T NonPagedUsed;
 } SYSTEM_POOLTAG2, *PSYSTEM_POOLTAG2;
 
-// private
+/**
+ * The SYSTEM_POOLTAG_INFORMATION2 structure describes a variable‑length array
+ * of SYSTEM_POOLTAG2 entries representing pool tag usage statistics.
+ */
 typedef struct _SYSTEM_POOLTAG_INFORMATION2
 {
     ULONG Count;
@@ -6545,51 +6676,58 @@ NtSetSystemInformation(
 // SysDbg APIs
 //
 
-// private
+/**
+ * The SYSDBG_COMMAND enumeration specifies the type of system debugger
+ * operation requested through NtSystemDebugControl.
+ */
 typedef enum _SYSDBG_COMMAND
 {
-    SysDbgQueryModuleInformation,
-    SysDbgQueryTraceInformation,
-    SysDbgSetTracepoint,
-    SysDbgSetSpecialCall, // PVOID
-    SysDbgClearSpecialCalls, // void
-    SysDbgQuerySpecialCalls,
-    SysDbgBreakPoint,
-    SysDbgQueryVersion, // DBGKD_GET_VERSION64
-    SysDbgReadVirtual, // SYSDBG_VIRTUAL
-    SysDbgWriteVirtual, // SYSDBG_VIRTUAL
-    SysDbgReadPhysical, // SYSDBG_PHYSICAL // 10
-    SysDbgWritePhysical, // SYSDBG_PHYSICAL
-    SysDbgReadControlSpace, // SYSDBG_CONTROL_SPACE
-    SysDbgWriteControlSpace, // SYSDBG_CONTROL_SPACE
-    SysDbgReadIoSpace, // SYSDBG_IO_SPACE
-    SysDbgWriteIoSpace, // SYSDBG_IO_SPACE
-    SysDbgReadMsr, // SYSDBG_MSR
-    SysDbgWriteMsr, // SYSDBG_MSR
-    SysDbgReadBusData, // SYSDBG_BUS_DATA
-    SysDbgWriteBusData, // SYSDBG_BUS_DATA
-    SysDbgCheckLowMemory, // 20
-    SysDbgEnableKernelDebugger,
-    SysDbgDisableKernelDebugger,
-    SysDbgGetAutoKdEnable,
-    SysDbgSetAutoKdEnable,
-    SysDbgGetPrintBufferSize,
-    SysDbgSetPrintBufferSize,
-    SysDbgGetKdUmExceptionEnable,
-    SysDbgSetKdUmExceptionEnable,
-    SysDbgGetTriageDump, // SYSDBG_TRIAGE_DUMP
-    SysDbgGetKdBlockEnable, // 30
-    SysDbgSetKdBlockEnable,
-    SysDbgRegisterForUmBreakInfo,
-    SysDbgGetUmBreakPid,
-    SysDbgClearUmBreakPid,
-    SysDbgGetUmAttachPid,
-    SysDbgClearUmAttachPid,
-    SysDbgGetLiveKernelDump, // SYSDBG_LIVEDUMP_CONTROL
-    SysDbgKdPullRemoteFile, // SYSDBG_KD_PULL_REMOTE_FILE
+    SysDbgQueryModuleInformation,       // q: DBGKD_DEBUG_DATA_HEADER64
+    SysDbgQueryTraceInformation,        // q: DBGKD_TRACE_DATA
+    SysDbgSetTracepoint,                // s: PVOID
+    SysDbgSetSpecialCall,               // s: PVOID
+    SysDbgClearSpecialCalls,            // s: void
+    SysDbgQuerySpecialCalls,            // q: PVOID[]
+    SysDbgBreakPoint,                   // s: void
+    SysDbgQueryVersion,                 // q: DBGKD_GET_VERSION64
+    SysDbgReadVirtual,                  // q: SYSDBG_VIRTUAL
+    SysDbgWriteVirtual,                 // s: SYSDBG_VIRTUAL
+    SysDbgReadPhysical,                 // q: SYSDBG_PHYSICAL // 10
+    SysDbgWritePhysical,                // s: SYSDBG_PHYSICAL
+    SysDbgReadControlSpace,             // q: SYSDBG_CONTROL_SPACE
+    SysDbgWriteControlSpace,            // s: SYSDBG_CONTROL_SPACE
+    SysDbgReadIoSpace,                  // q: SYSDBG_IO_SPACE
+    SysDbgWriteIoSpace,                 // s: SYSDBG_IO_SPACE
+    SysDbgReadMsr,                      // q: SYSDBG_MSR
+    SysDbgWriteMsr,                     // s: SYSDBG_MSR
+    SysDbgReadBusData,                  // q: SYSDBG_BUS_DATA
+    SysDbgWriteBusData,                 // s: SYSDBG_BUS_DATA
+    SysDbgCheckLowMemory,               // q: ULONG // 20
+    SysDbgEnableKernelDebugger,         // s: void
+    SysDbgDisableKernelDebugger,        // s: void
+    SysDbgGetAutoKdEnable,              // q: ULONG
+    SysDbgSetAutoKdEnable,              // s: ULONG
+    SysDbgGetPrintBufferSize,           // q: ULONG
+    SysDbgSetPrintBufferSize,           // s: ULONG
+    SysDbgGetKdUmExceptionEnable,       // q: ULONG
+    SysDbgSetKdUmExceptionEnable,       // s: ULONG
+    SysDbgGetTriageDump,                // q: SYSDBG_TRIAGE_DUMP
+    SysDbgGetKdBlockEnable,             // q: ULONG // 30
+    SysDbgSetKdBlockEnable,             // s: ULONG
+    SysDbgRegisterForUmBreakInfo,       // s: HANDLE
+    SysDbgGetUmBreakPid,                // q: ULONG
+    SysDbgClearUmBreakPid,              // s: void
+    SysDbgGetUmAttachPid,               // q: ULONG
+    SysDbgClearUmAttachPid,             // s: void
+    SysDbgGetLiveKernelDump,            // q: SYSDBG_LIVEDUMP_CONTROL
+    SysDbgKdPullRemoteFile,             // q: SYSDBG_KD_PULL_REMOTE_FILE
     SysDbgMaxInfoClass
 } SYSDBG_COMMAND, *PSYSDBG_COMMAND;
 
+/**
+ * The SYSDBG_VIRTUAL structure describes a request to read or write virtual
+ * memory through the system debugger interface.
+ */
 typedef struct _SYSDBG_VIRTUAL
 {
     PVOID Address;
@@ -6597,6 +6735,10 @@ typedef struct _SYSDBG_VIRTUAL
     ULONG Request;
 } SYSDBG_VIRTUAL, *PSYSDBG_VIRTUAL;
 
+/**
+ * The SYSDBG_PHYSICAL structure describes a request to read or write physical
+ * memory through the system debugger interface.
+ */
 typedef struct _SYSDBG_PHYSICAL
 {
     PHYSICAL_ADDRESS Address;
@@ -6604,6 +6746,10 @@ typedef struct _SYSDBG_PHYSICAL
     ULONG Request;
 } SYSDBG_PHYSICAL, *PSYSDBG_PHYSICAL;
 
+/**
+ * The SYSDBG_CONTROL_SPACE structure describes a request to access processor
+ * control space through the system debugger interface.
+ */
 typedef struct _SYSDBG_CONTROL_SPACE
 {
     ULONG64 Address;
@@ -6614,6 +6760,10 @@ typedef struct _SYSDBG_CONTROL_SPACE
 
 typedef enum _INTERFACE_TYPE INTERFACE_TYPE;
 
+/**
+ * The SYSDBG_IO_SPACE structure describes a request to access I/O space
+ * through the system debugger interface.
+ */
 typedef struct _SYSDBG_IO_SPACE
 {
     ULONG64 Address;
@@ -6624,6 +6774,10 @@ typedef struct _SYSDBG_IO_SPACE
     ULONG AddressSpace;
 } SYSDBG_IO_SPACE, *PSYSDBG_IO_SPACE;
 
+/**
+ * The SYSDBG_MSR structure describes a request to read or write a model‑specific
+ * register (MSR) through the system debugger interface.
+ */
 typedef struct _SYSDBG_MSR
 {
     ULONG Msr;
@@ -6632,6 +6786,10 @@ typedef struct _SYSDBG_MSR
 
 typedef enum _BUS_DATA_TYPE BUS_DATA_TYPE;
 
+/**
+ * The SYSDBG_BUS_DATA structure describes a request to access bus‑specific
+ * configuration data through the system debugger interface.
+ */
 typedef struct _SYSDBG_BUS_DATA
 {
     ULONG Address;
@@ -6642,7 +6800,10 @@ typedef struct _SYSDBG_BUS_DATA
     ULONG SlotNumber;
 } SYSDBG_BUS_DATA, *PSYSDBG_BUS_DATA;
 
-// private
+/**
+ * The SYSDBG_TRIAGE_DUMP structure describes parameters used when generating
+ * a triage dump through the system debugger interface.
+ */
 typedef struct _SYSDBG_TRIAGE_DUMP
 {
     ULONG Flags;
@@ -6656,7 +6817,10 @@ typedef struct _SYSDBG_TRIAGE_DUMP
     PHANDLE Handles;
 } SYSDBG_TRIAGE_DUMP, *PSYSDBG_TRIAGE_DUMP;
 
-// private
+/**
+ * The SYSDBG_LIVEDUMP_CONTROL_FLAGS union specifies control flags used when
+ * generating a live kernel dump.
+ */
 typedef union _SYSDBG_LIVEDUMP_CONTROL_FLAGS
 {
     struct
@@ -6671,7 +6835,10 @@ typedef union _SYSDBG_LIVEDUMP_CONTROL_FLAGS
     ULONG AsUlong;
 } SYSDBG_LIVEDUMP_CONTROL_FLAGS, *PSYSDBG_LIVEDUMP_CONTROL_FLAGS;
 
-// private
+/**
+ * The SYSDBG_LIVEDUMP_CONTROL_ADDPAGES union specifies additional page
+ * categories to include when generating a live kernel dump.
+ */
 typedef union _SYSDBG_LIVEDUMP_CONTROL_ADDPAGES
 {
     struct
@@ -6686,6 +6853,10 @@ typedef union _SYSDBG_LIVEDUMP_CONTROL_ADDPAGES
 #define SYSDBG_LIVEDUMP_SELECTIVE_CONTROL_VERSION 1
 
 // rev
+/**
+ * The SYSDBG_LIVEDUMP_SELECTIVE_CONTROL structure specifies selective dump
+ * options for live kernel dump generation.
+ */
 typedef struct _SYSDBG_LIVEDUMP_SELECTIVE_CONTROL
 {
     ULONG Version;
@@ -6706,7 +6877,10 @@ typedef struct _SYSDBG_LIVEDUMP_SELECTIVE_CONTROL
 #define SYSDBG_LIVEDUMP_CONTROL_VERSION_2 2
 #define SYSDBG_LIVEDUMP_CONTROL_VERSION SYSDBG_LIVEDUMP_CONTROL_VERSION_2
 
-// private
+/**
+ * The SYSDBG_LIVEDUMP_CONTROL_V1 structure describes parameters used when
+ * generating a live kernel dump (version 1).
+ */
 typedef struct _SYSDBG_LIVEDUMP_CONTROL_V1
 {
     ULONG Version;
@@ -6721,7 +6895,10 @@ typedef struct _SYSDBG_LIVEDUMP_CONTROL_V1
     SYSDBG_LIVEDUMP_CONTROL_ADDPAGES AddPagesControl;
 } SYSDBG_LIVEDUMP_CONTROL_V1, *PSYSDBG_LIVEDUMP_CONTROL_V1;
 
-// private
+/**
+ * The SYSDBG_LIVEDUMP_CONTROL structure describes parameters used when
+ * generating a live kernel dump (current version).
+ */
 typedef struct _SYSDBG_LIVEDUMP_CONTROL
 {
     ULONG Version;
@@ -6737,7 +6914,10 @@ typedef struct _SYSDBG_LIVEDUMP_CONTROL
     PSYSDBG_LIVEDUMP_SELECTIVE_CONTROL SelectiveControl; // since WIN11
 } SYSDBG_LIVEDUMP_CONTROL, *PSYSDBG_LIVEDUMP_CONTROL;
 
-// private
+/**
+ * The SYSDBG_KD_PULL_REMOTE_FILE structure describes a request to retrieve
+ * a remote file through the kernel debugger transport.
+ */
 typedef struct _SYSDBG_KD_PULL_REMOTE_FILE
 {
     UNICODE_STRING ImageFileName;
@@ -6770,6 +6950,10 @@ NtSystemDebugControl(
 // Hard errors
 //
 
+/**
+ * The HARDERROR_RESPONSE_OPTION enumeration specifies the type of user
+ * interface prompt that may be displayed when a hard error occurs.
+ */
 typedef enum _HARDERROR_RESPONSE_OPTION
 {
     OptionAbortRetryIgnore,
@@ -6783,6 +6967,10 @@ typedef enum _HARDERROR_RESPONSE_OPTION
     OptionCancelTryContinue
 } HARDERROR_RESPONSE_OPTION;
 
+/**
+ * The HARDERROR_RESPONSE enumeration specifies the response returned by the
+ * caller or user when handling a hard error condition.
+ */
 typedef enum _HARDERROR_RESPONSE
 {
     ResponseReturnToCaller,
@@ -6798,6 +6986,10 @@ typedef enum _HARDERROR_RESPONSE
     ResponseContinue
 } HARDERROR_RESPONSE;
 
+/**
+ * HARDERROR_OVERRIDE_ERRORMODE indicates that the system should ignore the
+ * calling process's error mode when processing a hard error.
+ */
 #define HARDERROR_OVERRIDE_ERRORMODE 0x10000000
 
 /**
@@ -6829,6 +7021,13 @@ NtRaiseHardError(
 // Kernel-user shared data
 //
 
+/**
+ * The ALTERNATIVE_ARCHITECTURE_TYPE enumeration specifies the hardware
+ * architecture variant used by the system.
+ *
+ * \remarks NEC98x86 represents the NEC PC‑98 architecture,
+ * supported only on very early Windows releases.
+ */
 typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
 {
     StandardDesign,
@@ -6836,8 +7035,16 @@ typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
     EndAlternatives
 } ALTERNATIVE_ARCHITECTURE_TYPE;
 
+/**
+ * PROCESSOR_FEATURE_MAX defines the maximum number of processor feature flags
+ * that may be reported by the system.
+ */
 #define PROCESSOR_FEATURE_MAX 64
 
+/**
+ * MAX_WOW64_SHARED_ENTRIES defines the number of shared entries available to
+ * the WOW64 (Windows‑on‑Windows 64‑bit) subsystem.
+ */
 #define MAX_WOW64_SHARED_ENTRIES 16
 
 //
@@ -7000,19 +7207,44 @@ typedef struct _KUSER_SHARED_DATA
 
     ULONG TimeZoneId;
 
+    //
+    // Minimum size of a large page on the system, in bytes.
+    //
+    // N.B. Returned by GetLargePageMinimum() function.
+    //
+
     ULONG LargePageMinimum;
 
     //
-    // This value controls the AIT Sampling rate.
+    // This value controls the Application Impact Telemetry (AIT) Sampling rate.
+    //
+    // This value determines how frequently the system records AIT events,
+    // which are used by the Application Experience and compatibility
+    // subsystems to evaluate application behavior, performance, and
+    // potential compatibility issues.
+    // 
+    // Lower values increase sampling frequency, while higher values reduce it.
+    // The kernel updates this field as part of its internal telemetry and
+    // heuristics logic.
     //
 
     ULONG AitSamplingValue;
 
     //
-    // This value controls switchback processing.
+    // This value controls Application Compatibility (AppCompat) switchback processing.
     //
 
-    ULONG AppCompatFlag;
+    union
+    {
+        ULONG AppCompatFlag;
+        struct
+        {
+            ULONG SwitchbackEnabled : 1;    // Basic switchback processing
+            ULONG ExtendedHeuristics : 1;   // Extended switchback heuristics
+            ULONG TelemetryFallback : 1;    // Telemetry-driven fallback
+            ULONG Reserved : 29;
+        } AppCompatFlags;
+    };
 
     //
     // Current Kernel Root RNG state seed version
@@ -7023,8 +7255,27 @@ typedef struct _KUSER_SHARED_DATA
     //
     // This value controls assertion failure handling.
     //
+    // Historically (prior to Windows 10), this value was also used by
+    // Code Integrity (CI), AppLocker, and related security components to
+    // determine the minimum validation requirements for executable images,
+    // drivers, and privileged operations.
+    // 
+    // In modern Windows versions, this field is used primarily by the kernel's
+    // diagnostic and validation infrastructure to decide how assertion failures
+    // should be handled (e.g., logging, debugger break-in, or bugcheck).
 
     ULONG GlobalValidationRunlevel;
+
+    //
+    // Monotonic stamp incremented by the kernel whenever the system's
+    // time zone bias value changes.
+    //
+    // N.B. This field must be accessed via the RtlGetSystemTimeAndBias API for
+    //      an accurate result.
+    // This value is read before and after accessing the bias fields to determine
+    // whether the time zone data changed during the read. If the stamp differs,
+    // the caller must re-read the bias values to ensure consistency.
+    //
 
     volatile LONG TimeZoneBiasStamp;
 
@@ -7045,6 +7296,15 @@ typedef struct _KUSER_SHARED_DATA
     NT_PRODUCT_TYPE NtProductType;
     BOOLEAN ProductTypeIsValid;
     BOOLEAN Reserved0[1];
+
+    //
+    // Native hardware processor architecture of the running system.
+    //
+    // N.B. User‑mode components read this field to determine the true system
+    // architecture, especially in WOW64 scenarios where the process architecture
+    // differs from the native one.
+    //
+
     USHORT NativeProcessorArchitecture;
 
     //
@@ -7254,6 +7514,10 @@ typedef struct _KUSER_SHARED_DATA
         } DUMMYSTRUCTNAME2;
     } DUMMYUNIONNAME2;
 
+    //
+    // Reserved padding field to preserve structure alignment and compatibility.
+    //
+
     ULONG DataFlagsPad[1];
 
     //
@@ -7264,6 +7528,16 @@ typedef struct _KUSER_SHARED_DATA
     //
 
     ULONGLONG TestRetInstruction;
+
+    //
+    // Query‑performance counter (QPC) frequency, in counts per second.
+    //
+    // N.B. This value represents the fixed frequency of the system's high‑resolution
+    // performance counter. It is used by user‑mode time routines to convert QPC
+    // ticks into elapsed time without requiring a system call. The frequency is
+    // constant for the lifetime of the system and reflects the hardware or
+    // virtualized timer source selected by the kernel.
+    //
 
     LONGLONG QpcFrequency;
 
@@ -7437,10 +7711,19 @@ typedef struct _KUSER_SHARED_DATA
     volatile ULONGLONG QpcBias;
 
     //
-    // Number of active processors and groups.
+    // Number of active logical processors.
     //
 
     ULONG ActiveProcessorCount;
+
+    //
+    // Number of active processor groups.
+    //
+    // N.B. This value is volatile because group membership and processor
+    // availability may change dynamically due to hot‑add, hot‑remove,
+    // or power management events.
+    //
+
     volatile UCHAR ActiveGroupCount;
 
     //
@@ -7661,8 +7944,27 @@ static_assert(sizeof(KUSER_SHARED_DATA)                                         
 #endif
 #endif
 
+/**
+ * USER_SHARED_DATA pointer to the Windows KUSER_SHARED_DATA structure at its fixed
+ * user‑mode mapping address (0x7FFE0000).
+ *
+ * The Windows kernel exposes a read‑only data structure, mapped into every user‑mode
+ * process at the fixed virtual address `0x7FFE0000`. This region contains frequently
+ * accessed system information and avoids the overhead of system calls for data that
+ * the kernel updates frequently. The mapping is always present and identical across
+ * all user processes, it provides a fast and efficient way to retrieve system state.
+ */
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
 
+/**
+ * The NtGetTickCount64 routine retrieves the number of milliseconds that have elapsed since the system was started.
+ *
+ * \return ULONGLONG The return value is the number of milliseconds that have elapsed since the system was started.
+ * \remarks The resolution of the NtGetTickCount64 function is limited to the resolution of the system timer,
+ * which is typically in the range of 10 milliseconds to 16 milliseconds. The resolution of the NtGetTickCount64
+ * function is not affected by adjustments made by the GetSystemTimeAdjustment function.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64
+ */
 FORCEINLINE
 ULONGLONG
 NtGetTickCount64(
@@ -7694,6 +7996,17 @@ NtGetTickCount64(
         (UInt32x32To64(tickCount.HighPart, USER_SHARED_DATA->TickCountMultiplier) << 8);
 }
 
+/**
+ * The NtGetTickCount64 routine retrieves the number of milliseconds that have elapsed since the system was started, up to 49.7 days.
+ *
+ * \return ULONG The return value is the number of milliseconds that have elapsed since the system was started.
+ * \remarks The elapsed time is stored as a ULONG value. Therefore, the time will wrap around to zero if the system
+ * is run continuously for 49.7 days. To avoid this problem, use the NtGetTickCount64 function. Otherwise, check
+ * for an overflow condition when comparing times. The resolution of the NtGetTickCount function is limited to
+ * the resolution of the system timer, which is typically in the range of 10 milliseconds to 16 milliseconds.
+ * The resolution of the NtGetTickCount64 function is not affected by adjustments made by the GetSystemTimeAdjustment function.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount
+ */
 FORCEINLINE
 ULONG
 NtGetTickCount(
@@ -7729,6 +8042,15 @@ NtGetTickCount(
 // Locale
 //
 
+/**
+ * The NtQueryDefaultLocale routine retrieves the default locale identifier for either the user profile or the system.
+ *
+ * \param UserProfile If TRUE, retrieves the user default locale; otherwise, retrieves the system default locale.
+ * \param DefaultLocaleId A pointer that receives the resulting locale identifier (LCID).
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getsystemdefaultlocale
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getuserdefaultlocale
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7737,6 +8059,15 @@ NtQueryDefaultLocale(
     _Out_ PLCID DefaultLocaleId
     );
 
+/**
+ * The NtSetDefaultLocale routine sets the default locale identifier for either
+ * the user profile or the system.
+ *
+ * \param UserProfile If TRUE, sets the user default locale; otherwise, sets the system default locale.
+ * \param DefaultLocaleId The locale identifier (LCID) to set.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-setthreadlocale
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7745,6 +8076,13 @@ NtSetDefaultLocale(
     _In_ LCID DefaultLocaleId
     );
 
+/**
+ * The NtQueryInstallUILanguage routine retrieves the system's installed UI language identifier.
+ *
+ * \param InstallUILanguageId A pointer that receives the installed UI language identifier (LANGID).
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getsystemdefaultuilanguage
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7752,6 +8090,14 @@ NtQueryInstallUILanguage(
     _Out_ LANGID *InstallUILanguageId
     );
 
+/**
+ * The NtFlushInstallUILanguage routine updates the system's installed UI
+ * language and optionally commits the change.
+ *
+ * \param InstallUILanguage The UI language identifier (LANGID) to set.
+ * \param SetComittedFlag If nonzero, commits the language change.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7760,6 +8106,13 @@ NtFlushInstallUILanguage(
     _In_ ULONG SetComittedFlag
     );
 
+/**
+ * The NtQueryDefaultUILanguage routine retrieves the system's default UI language identifier.
+ *
+ * \param DefaultUILanguageId A pointer that receives the default UI language identifier (LANGID).
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getsystemdefaultuilanguage
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7767,6 +8120,12 @@ NtQueryDefaultUILanguage(
     _Out_ LANGID *DefaultUILanguageId
     );
 
+/**
+ * The NtSetDefaultUILanguage routine sets the system's default UI language identifier.
+ *
+ * \param DefaultUILanguageId The UI language identifier (LANGID) to set.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7774,6 +8133,10 @@ NtSetDefaultUILanguage(
     _In_ LANGID DefaultUILanguageId
     );
 
+/**
+ * The NtIsUILanguageComitted routine determines whether the system UI language has been committed.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7809,6 +8172,17 @@ NtGetNlsSectionPtr(
     );
 
 #if (PHNT_VERSION < PHNT_WINDOWS_7)
+/**
+ * The NtAcquireCMFViewOwnership routine acquires ownership of the Code Map
+ * File (CMF) view and optionally replaces an existing ownership token.
+ *
+ * \param TimeStamp A pointer that receives the timestamp associated with the
+ * CMF view ownership.
+ * \param tokenTaken A pointer that receives TRUE if the caller successfully
+ * acquired the ownership token, or FALSE if another owner already held it.
+ * \param replaceExisting If TRUE, replaces any existing ownership token.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7818,6 +8192,11 @@ NtAcquireCMFViewOwnership(
     _In_ BOOLEAN replaceExisting
     );
 
+/**
+ * The NtReleaseCMFViewOwnership routine releases ownership of the Code Map
+ * File (CMF) view previously acquired by NtAcquireCMFViewOwnership.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7826,6 +8205,87 @@ NtReleaseCMFViewOwnership(
     );
 #endif // PHNT_VERSION < PHNT_WINDOWS_7
 
+/**
+ * The `What` flags for NtMapCMFModule.
+ * The `What` parameter is a bitfield controlling:
+ *   - Which CMF section to map
+ *   - Access rights for CMFCheckAccess()
+ *   - Whether to update CMF global flags
+ *   - Page protection mode
+ *   - CMF cache mode bits (propagate into CMFFlagsCache)
+ *
+ * These determine what access rights are checked and influence whether the mapping is allowed.
+ */
+#define CMF_ACCESS_DIRECTORY 0x00000002     // Access check for directory section.
+#define CMF_ACCESS_SEGMENT 0x00000004       // Access check for segment section.
+#define CMF_ACCESS_HITS 0x00000008          // Access check for hits section.
+/**
+ * The `What` flags for NtMapCMFModule.
+ * These determine which CMF section is mapped and directly control the BaseAddress and ViewSizeOut outputs.
+ */
+#define CMF_OP_DIRECTORY 0x00000010 // Map directory section (Index ignored) // Affects: BaseAddress, ViewSizeOut
+#define CMF_OP_SEGMENT 0x00000020   // Map segment section at Index // Affects: BaseAddress, ViewSizeOut
+#define CMF_OP_HITS 0x00000100      // Map hits section (Index ignored) // Affects: BaseAddress, ViewSizeOut
+/**
+ * The `What` flags for NtMapCMFModule.
+ * This affects the protection flags passed to MmMapViewOfSection,
+ * which ultimately influences the memory protections of the BaseAddress parameter.
+ */
+#define CMF_PROTECT_SPECIAL 0x00000040      // Changes protection from PAGE_READONLY to PAGE_WRITECOPY
+/**
+ * The `What` flags for NtMapCMFModule.
+ * When this bit is set, the function does not map anything.
+ * Instead, it updates CMFFlagsCache and optionally modifies the directory header.
+ */
+#define CMF_UPDATE_FLAGS 0x00020000      // Enter flag-update mode // CacheFlagsOut parameter
+/**
+ * The `What` flags for NtMapCMFModule.
+ * These bits are extracted from What and written into CMFFlagsCache.
+ * They determine global CMF behavior, including which modules are valid.
+ */
+#define CMF_FLAG_A 0x00040000 // May trigger directory header update
+#define CMF_FLAG_B 0x00080000 // Enables directory update path
+#define CMF_FLAG_C 0x00100000 // Enables segment unmap path
+/**
+ * Flags for NtMapCMFModule.
+ * These bits strip all bits outside this mask:
+ */
+#define CMF_ALLOWED_MASK 0xFFFFFECF // All valid bits for What
+/**
+ * Flags for NtMapCMFModule.
+ */
+typedef enum _CMF_WHAT_FLAGS
+{
+    // ---- Access rights (used by CMFCheckAccess) ----
+    CmfAccessDirectory = 0x00000002, // Access check for directory
+    CmfAccessSegment = 0x00000004, // Access check for segment[Index]
+    CmfAccessHits = 0x00000008, // Access check for hits
+    // ---- Operation selection (controls BaseAddress + ViewSizeOut) ----
+    CmfDirectoryOp = 0x00000010, // Map directory section
+    CmfSegmentOp = 0x00000020, // Map segment section at Index
+    CmfHitsOp = 0x00000100, // Map hits section
+    // ---- Memory protection modifier ----
+    CmfSpecialProtect = 0x00000040, // Changes protection for MmMapViewOfSection
+    // ---- Flag update mode (affects CacheFlagsOut only) ----
+    CmfUpdateFlags = 0x00020000, // Update CMFFlagsCache instead of mapping
+    // ---- CMF cache mode bits (propagate into CMFFlagsCache) ----
+    CmfFlagA = 0x00040000, // May trigger directory header update
+    CmfFlagB = 0x00080000, // Enables directory update path
+    CmfFlagC = 0x00100000, // Enables segment unmap path
+} CMF_WHAT_FLAGS;
+
+/**
+ * The NtMapCMFModule routine maps a Code Map File (CMF) module into memory
+ * and returns information about the cached view.
+ *
+ * \param What Specifies the CMF operation to perform.
+ * \param Index The module index to map. Only valid for CmfSegmentOp operations.
+ * \param CacheIndexOut Optional pointer that receives the cache index.
+ * \param CacheFlagsOut Optional pointer that receives cache flags.
+ * \param ViewSizeOut Optional pointer that receives the size of the mapped view.
+ * \param BaseAddress Optional pointer that receives the base address of the mapped module.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7838,6 +8298,36 @@ NtMapCMFModule(
     _Out_opt_ PVOID *BaseAddress
     );
 
+/**
+ * Flags for NtGetMUIRegistryInfo.
+ * Only the values below are supported. Any other bit results in STATUS_INVALID_PARAMETER.
+ */
+typedef enum _MUI_REGISTRY_INFO_FLAGS
+{
+    MUIRegInfoQuery = 0x1,      // Query or load the MUI registry info.
+    MUIRegInfoClear = 0x2,      // Clear the cached MUI registry info.
+    MUIRegInfoCommit = 0x8      // Commit/update state (increments counter).
+} MUI_REGISTRY_INFO_FLAGS;
+
+/**
+ * Flags for NtGetMUIRegistryInfo.
+ * Only the values below are supported. Any other bit results in STATUS_INVALID_PARAMETER.
+ */
+#define MUI_REGINFO_QUERY 0x1   // Query or load the MUI registry info.
+#define MUI_REGINFO_CLEAR 0x2   // Clear the cached MUI registry info.
+#define MUI_REGINFO_COMMIT 0x8  // Commit/update state (increments counter).
+
+/**
+ * The NtGetMUIRegistryInfo routine retrieves Multilingual User Interface (MUI)
+ * configuration data from the system registry.
+ *
+ * \param Flags Flags that control the type of MUI information returned.
+ * \param DataSize On input, the size of the buffer pointed to by Data.
+ * On output, the required or actual size of the data returned.
+ * \param Data A pointer to the MUI registry information.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This routine is private and subject to change.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7853,6 +8343,18 @@ NtGetMUIRegistryInfo(
 // Global atoms
 //
 
+/**
+ * The NtAddAtom routine adds a Unicode string to the system atom table and
+ * returns the corresponding atom identifier.
+ *
+ * \param AtomName A pointer to a Unicode string containing the atom name.
+ * \param Length The length, in bytes, of the string pointed to by AtomName.
+ * \param Atom An optional pointer that receives the resulting atom identifier.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks If the atom already exists, its reference count is incremented and
+ * the existing atom identifier is returned.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-addatomw
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7864,9 +8366,33 @@ NtAddAtom(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
+/**
+ * ATOM_FLAG_NONE indicates that the atom being created should be placed in
+ * the session‑local atom table rather than the global atom table.
+ */
+#define ATOM_FLAG_NONE 0x0
+/**
+ * ATOM_FLAG_GLOBAL indicates that the atom being created should be placed in
+ * the global atom table rather than the session‑local table.
+ * \remarks This flag is only valid starting with Windows 8 and later.
+ */
 #define ATOM_FLAG_GLOBAL 0x2
 
 // rev
+/**
+ * The NtAddAtomEx routine adds a Unicode string to the system atom table with
+ * additional creation flags.
+ *
+ * \param AtomName A pointer to a Unicode string containing the atom name.
+ * \param Length The length, in bytes, of the string pointed to by AtomName.
+ * \param Atom An optional pointer that receives the resulting atom identifier.
+ * \param Flags A set of flags that control atom creation behavior.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks ATOM_FLAG_GLOBAL may be used to create a global atom.
+ * Only ATOM_FLAG_GLOBAL and ATOM_FLAG_NONE are currently supported.
+ * Any other flag value results in STATUS_INVALID_PARAMETER.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-addatomw
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7879,6 +8405,16 @@ NtAddAtomEx(
 
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
+/**
+ * The NtFindAtom routine retrieves the atom identifier associated with a
+ * Unicode string in the system atom table.
+ *
+ * \param AtomName A pointer to a Unicode string containing the atom name.
+ * \param Length The length, in bytes, of the string pointed to by AtomName.
+ * \param Atom An optional pointer that receives the atom identifier if found.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-findatomw
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7888,6 +8424,16 @@ NtFindAtom(
     _Out_opt_ PRTL_ATOM Atom
     );
 
+/**
+ * The NtDeleteAtom routine decrements the reference count of an atom and
+ * removes it from the system atom table when the count reaches zero.
+ *
+ * \param Atom The atom identifier to delete.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks If the atom is still referenced elsewhere, it is not removed until
+ * its reference count reaches zero.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-deleteatom
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7895,6 +8441,10 @@ NtDeleteAtom(
     _In_ RTL_ATOM Atom
     );
 
+/**
+ * The ATOM_INFORMATION_CLASS enumeration specifies the type of information
+ * returned when querying atom table data.
+ */
 typedef enum _ATOM_INFORMATION_CLASS
 {
     AtomBasicInformation,
@@ -8020,6 +8570,18 @@ NtQueryInformationAtom(
 // Licensing
 //
 
+/**
+ * The NtQueryLicenseValue routine retrieves a licensing-related value from the
+ * system licensing database.
+ *
+ * \param ValueName A pointer to a UNICODE_STRING structure that contains the name of the license value to query.
+ * \param Type An optional pointer that receives the type of the returned data.
+ * \param Data An optional buffer that receives the value data.
+ * \param DataSize The size, in bytes, of the buffer pointed to by Data.
+ * \param ResultDataSize A pointer that receives the number of bytes required to store the complete value data.
+ * \return NTSTATUS Successful or errant status.
+ * \see https://learn.microsoft.com/en-us/windows/win32/api/slpublic/nf-slpublic-slquerylicensevaluefromapp
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -8035,6 +8597,15 @@ NtQueryLicenseValue(
 // Misc.
 //
 
+/**
+ * The NtSetDefaultHardErrorPort routine sets the system's default hard error
+ * port, which is used by the kernel to deliver hard error notifications to a
+ * user‑mode process.
+ *
+ * \param DefaultHardErrorPort A handle to a port object that will receive
+ * hard error messages generated by the system.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -8042,6 +8613,9 @@ NtSetDefaultHardErrorPort(
     _In_ HANDLE DefaultHardErrorPort
     );
 
+/**
+ * The SHUTDOWN_ACTION enumeration specifies the type of system shutdown to perform.
+ */
 typedef enum _SHUTDOWN_ACTION
 {
     ShutdownNoReboot,
@@ -8050,6 +8624,15 @@ typedef enum _SHUTDOWN_ACTION
     ShutdownRebootForRecovery // since WIN11
 } SHUTDOWN_ACTION;
 
+/**
+ * The NtShutdownSystem routine initiates a system shutdown using the specified
+ * shutdown action.
+ *
+ * \param Action A SHUTDOWN_ACTION value that specifies whether the system
+ * should halt, reboot, power off, or reboot for recovery.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The calling process must have the SE_SHUTDOWN_NAME privilege.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -8057,6 +8640,13 @@ NtShutdownSystem(
     _In_ SHUTDOWN_ACTION Action
     );
 
+/**
+ * The NtDisplayString routine displays a Unicode string on the system display
+ * during early boot or in environments where a console is not yet available.
+ *
+ * \param String A pointer to a UNICODE_STRING structure that contains the text to display.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -8069,6 +8659,13 @@ NtDisplayString(
 //
 
 // rev
+/**
+ * The NtDrawText routine displays a Unicode string on the system display during
+ * early boot or in environments where a standard console is not yet available.
+ *
+ * \param Text A pointer to a UNICODE_STRING structure that contains the text to draw on the screen.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
