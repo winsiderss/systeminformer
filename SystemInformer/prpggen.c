@@ -760,7 +760,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     PPH_EMENU menu;
                     RECT rect;
 
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_INTEGRITY), &rect);
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_INTEGRITY), &rect))
+                        break;
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"No-Write-Up", NULL, NULL), ULONG_MAX);
