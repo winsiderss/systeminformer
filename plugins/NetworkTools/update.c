@@ -111,34 +111,36 @@ NTSTATUS ExtractUpdateToFile(
     )
 {
     NTSTATUS status;
+    PPH_STRING fileName;
     PPH_STRING commandLine;
     PPH_STRING systemDirectory;
     PPH_STRING databaseName;
-    PH_FORMAT format[6];
+    PH_FORMAT format[5];
 
     if (!(systemDirectory = PhGetSystemDirectory()))
         return STATUS_UNSUCCESSFUL;
 
     // tar --extract --file="GeoLite2-Country.tar.gz" --directory="%temp%\\guid" --strip-components=1 */GeoLite2-Country.mmdb
-
+    fileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\tar.exe");
+    PhInitFormatS(&format[0], L" --extract --file=\"");
+    PhInitFormatSR(&format[1], CompressedFileName->sr);
+    PhInitFormatS(&format[2], L"\" --directory=\"");
+    PhInitFormatSR(&format[3], WorkingDirectory->sr);
     databaseName = GeoLiteDatabaseNameFormatString(L"\" --strip-components=1 */GeoLite2-%s.mmdb");
-    PhInitFormatSR(&format[0], systemDirectory->sr);
-    PhInitFormatS(&format[1], L"\\tar.exe --extract --file=\"");
-    PhInitFormatSR(&format[2], CompressedFileName->sr);
-    PhInitFormatS(&format[3], L"\" --directory=\"");
-    PhInitFormatSR(&format[4], WorkingDirectory->sr);
-    PhInitFormatSR(&format[5], databaseName->sr);
-    commandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
+    PhInitFormatSR(&format[4], databaseName->sr);
+    commandLine = PhFormat(format, RTL_NUMBER_OF(format), 0);
 
     status = PhCreateProcessRedirection(
-        commandLine,
+        &fileName->sr,
+        &commandLine->sr,
         NULL,
         NULL
         );
 
     PhDereferenceObject(commandLine);
-    PhDereferenceObject(systemDirectory);
     PhDereferenceObject(databaseName);
+    PhDereferenceObject(fileName);
+    PhDereferenceObject(systemDirectory);
 
     return status;
 }
