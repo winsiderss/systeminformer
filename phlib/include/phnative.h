@@ -1722,7 +1722,7 @@ PhAddAce(
     _Inout_ PACL Acl,
     _In_ ULONG AceRevision,
     _In_ ULONG StartingAceIndex,
-    _In_reads_bytes_opt_(AceListLength) PVOID AceList,
+    _In_reads_bytes_(AceListLength) PVOID AceList,
     _In_ ULONG AceListLength
     )
 {
