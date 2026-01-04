@@ -7,8 +7,16 @@
 #ifndef _NTLPCAPI_H
 #define _NTLPCAPI_H
 
+ //
+ // ALPC Object Specific Access Rights
+ //
+
 #define PORT_CONNECT 0x0001
 #define PORT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1)
+
+//
+// ALPC information structures
+//
 
 typedef struct _PORT_MESSAGE
 {
@@ -69,6 +77,9 @@ typedef struct _PORT_DATA_INFORMATION
 #define LPC_CONTINUATION_REQUIRED       0x2000
 #define LPC_NO_IMPERSONATE              0x4000
 #define LPC_KERNELMODE_MESSAGE          0x8000
+
+#define ALPC_REQUEST                (LPC_CONTINUATION_REQUIRED | LPC_REQUEST)
+#define ALPC_CONNECTION_REQUEST     (LPC_CONTINUATION_REQUIRED | LPC_CONNECTION_REQUEST)
 
 #define PORT_VALID_OBJECT_ATTRIBUTES OBJ_CASE_INSENSITIVE
 
@@ -426,6 +437,13 @@ typedef struct _ALPC_PORT_ATTRIBUTES
 #define ALPC_MESSAGE_CONTEXT_ATTRIBUTE 0x20000000
 #define ALPC_MESSAGE_VIEW_ATTRIBUTE 0x40000000
 #define ALPC_MESSAGE_SECURITY_ATTRIBUTE 0x80000000
+
+// Convenience macro for all message attributes
+#define ALPC_MESSAGE_ATTRIBUTES_ALL \
+    (ALPC_MESSAGE_HANDLE_ATTRIBUTE | \
+     ALPC_MESSAGE_CONTEXT_ATTRIBUTE | \
+     ALPC_MESSAGE_VIEW_ATTRIBUTE | \
+     ALPC_MESSAGE_SECURITY_ATTRIBUTE)
 // end_rev
 
 // symbols
@@ -943,9 +961,10 @@ AlpcMaxAllowedMessageLength(
     VOID
     );
 
-#define ALPC_ATTRFLG_ALLOCATEDATTR 0x20000000
-#define ALPC_ATTRFLG_VALIDATTR 0x40000000
-#define ALPC_ATTRFLG_KEEPRUNNINGATTR 0x60000000
+// ALPC message attribute flags (internal state)
+#define ALPC_ATTRFLG_ALLOCATEDATTR   0x20000000  // Attribute buffer was allocated
+#define ALPC_ATTRFLG_VALIDATTR       0x40000000  // Attribute buffer is valid
+#define ALPC_ATTRFLG_KEEPRUNNINGATTR 0x60000000  // Keep running attribute
 
 NTSYSAPI
 ULONG
