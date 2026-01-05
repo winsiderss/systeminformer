@@ -261,7 +261,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessJobMemoryInformation,                    // q: PROCESS_JOB_MEMORY_INFO
     ProcessInPrivate,                               // q: BOOLEAN; s: void // ETW // since THRESHOLD2 // 70
     ProcessRaiseUMExceptionOnInvalidHandleClose,    // qs: ULONG; s: 0 disables, otherwise enables
-    ProcessIumChallengeResponse,
+    ProcessIumChallengeResponse,                    // q: PROCESS_IUM_CHALLENGE_RESPONSE
     ProcessChildProcessInformation,                 // q: PROCESS_CHILD_PROCESS_INFORMATION
     ProcessHighGraphicsPriorityInformation,         // q: BOOLEAN; s: BOOLEAN (requires SeTcbPrivilege)
     ProcessSubsystemInformation,                    // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
@@ -1345,6 +1345,12 @@ typedef struct _PROCESS_JOB_MEMORY_INFO
     ULONG64 PrivateCommitLimit;       // The private commit limit, in bytes.
     ULONG64 TotalCommitLimit;         // The total commit limit, in bytes.
 } PROCESS_JOB_MEMORY_INFO, *PPROCESS_JOB_MEMORY_INFO;
+
+// rev
+typedef struct _PROCESS_IUM_CHALLENGE_RESPONSE
+{
+    BYTE Buffer[0x1000]; // Challenge response buffer.
+} PROCESS_IUM_CHALLENGE_RESPONSE, *PPROCESS_IUM_CHALLENGE_RESPONSE;
 
 /**
  * The PROCESS_CHILD_PROCESS_INFORMATION structure contains information about child process policies.
