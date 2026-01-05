@@ -3734,6 +3734,10 @@ DEFINE_GUID(  /* e46eead8-0c54-4489-9898-8fa79d059e0e */
 //    0xae, 0xfc, 0xdc, 0x0f, 0x1d, 0x2f, 0xd2, 0x35
 //    );
 
+/**
+ * The ETW class GUID for file I/O events.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/etw/fileio
+ */
 DEFINE_GUID( /* 90cbdc39-4a3e-11d1-84f4-0000f80464e3 */
     FileIoGuid,
     0x90cbdc39,
@@ -3742,6 +3746,10 @@ DEFINE_GUID( /* 90cbdc39-4a3e-11d1-84f4-0000f80464e3 */
     0x84, 0xf4, 0x00, 0x00, 0xf8, 0x04, 0x64, 0xe3
     );
 
+/**
+ * The ETW class GUID for image load events.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/etw/image
+ */
 DEFINE_GUID( /* 2cb15d1d-5fc1-11d2-abe1-00a0c911f518 */
     ImageLoadGuid,
     0x2cb15d1d,
@@ -3750,6 +3758,10 @@ DEFINE_GUID( /* 2cb15d1d-5fc1-11d2-abe1-00a0c911f518 */
     0xab, 0xe1, 0x00, 0xa0, 0xc9, 0x11, 0xf5, 0x18
     );
 
+/**
+ * The ETW class GUID for page fault events.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/etw/pagefault-v2
+ */
 DEFINE_GUID( /* 3d6fa8d3-fe05-11d0-9dda-00c04fd7ba7c */
     PageFaultGuid,
     0x3d6fa8d3,
@@ -3758,6 +3770,10 @@ DEFINE_GUID( /* 3d6fa8d3-fe05-11d0-9dda-00c04fd7ba7c */
     0x9d, 0xda, 0x00, 0xc0, 0x4f, 0xd7, 0xba, 0x7c
     );
 
+/**
+ * The ETW class GUID for registry events.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/etw/registry
+ */
 DEFINE_GUID( /* AE53722E-C863-11d2-8659-00C04FA321A1 */
     RegistryGuid,
     0xae53722e,
@@ -3766,6 +3782,10 @@ DEFINE_GUID( /* AE53722E-C863-11d2-8659-00C04FA321A1 */
     0x86, 0x59, 0x0, 0xc0, 0x4f, 0xa3, 0x21, 0xa1
     );
 
+/**
+ * The ETW class GUID for TCP/IP events.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/etw/tcpip
+ */
 DEFINE_GUID( /* 9a280ac0-c8e0-11d1-84e2-00c04fb998a2 */
     TcpIpGuid,
     0x9a280ac0,
@@ -3774,6 +3794,10 @@ DEFINE_GUID( /* 9a280ac0-c8e0-11d1-84e2-00c04fb998a2 */
     0x84, 0xe2, 0x00, 0xc0, 0x4f, 0xb9, 0x98, 0xa2
     );
 
+/**
+ * The ETW class GUID for thread events.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/etw/thread
+ */
 DEFINE_GUID( /* 3d6fa8d1-fe05-11d0-9dda-00c04fd7ba7c */
     ThreadGuid,
     0x3d6fa8d1,
@@ -3782,12 +3806,27 @@ DEFINE_GUID( /* 3d6fa8d1-fe05-11d0-9dda-00c04fd7ba7c */
     0x9d, 0xda, 0x00, 0xc0, 0x4f, 0xd7, 0xba, 0x7c
     );
 
+/**
+ * The ETW class GUID for UDP/IP events.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/etw/udpip
+ */
 DEFINE_GUID( /* bf3a50c5-a9c9-4988-a005-2df0b7c80f80 */
     UdpIpGuid,
     0xbf3a50c5,
     0xa9c9,
     0x4988,
     0xa0, 0x05, 0x2d, 0xf0, 0xb7, 0xc8, 0x0f, 0x80
+    );
+
+/**
+ * The ETW class GUID for Intel Processor Trace (IPT) events.
+ */
+DEFINE_GUID( /* ff1fd2fd-6008-42bb-9e75-00a20051f3be */
+    IptGuid,
+    0xff1fd2fd,
+    0x6008,
+    0x42bb,
+    0x9e, 0x75, 0x00, 0xa2, 0x00, 0x51, 0xf3, 0xbe
     );
 
 //
