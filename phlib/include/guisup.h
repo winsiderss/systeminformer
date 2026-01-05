@@ -361,14 +361,14 @@ BOOLEAN
 NTAPI
 PhPtInRect(
     _In_ PRECT Rect,
-    _In_ POINT Point
+    _In_ PPOINT Point
     )
 {
 #if defined(PHNT_NATIVE_RECT)
     return !!PtInRect(Rect, Point);
 #else
-    return Point.x >= Rect->left && Point.x < Rect->right &&
-        Point.y >= Rect->top && Point.y < Rect->bottom;
+    return Point->x >= Rect->left && Point->x < Rect->right &&
+        Point->y >= Rect->top && Point->y < Rect->bottom;
 #endif
 }
 

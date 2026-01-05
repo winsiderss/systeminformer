@@ -2593,7 +2593,7 @@ VOID ThemeWindowRenderTabControl(
         itemRect.bottom += itemRect.bottom + 1 < headerBottom ? 1 : -1;
         itemRect.right += itemRect.right + 1 < clientRect->right;
 
-        if (PhPtInRect(&itemRect, Context->CursorPos))
+        if (PhPtInRect(&itemRect, &Context->CursorPos))
         {
             //switch (PhpThemeColorMode)
             //{
@@ -2674,7 +2674,7 @@ VOID ThemeWindowRenderTabControl(
         itemRect.right += itemRect.right + 1 < clientRect->right;
         PhInflateRect(&itemRect, 1, 1);     // draw selected tab slightly bigger
         itemRect.bottom -= 1;
-        SetDCBrushColor(bufferDc, PhPtInRect(&itemRect, Context->CursorPos) ? PhThemeWindowHighlightColor : RGB(0x50, 0x50, 0x50));
+        SetDCBrushColor(bufferDc, PhPtInRect(&itemRect, &Context->CursorPos) ? PhThemeWindowHighlightColor : RGB(0x50, 0x50, 0x50));
         FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
 
         if (TabCtrl_GetItem(WindowHandle, currentSelection, &tabItem))
@@ -3058,7 +3058,7 @@ VOID ThemeWindowRenderComboBox(
     SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
     FillRect(bufferDc, clientRect, PhGetStockBrush(DC_BRUSH));
 
-    if (PhPtInRect(clientRect, Context->CursorPos))
+    if (PhPtInRect(clientRect, &Context->CursorPos))
     {
         SetDCBrushColor(bufferDc, PhThemeWindowHighlight2Color); // RGB(0, 120, 212) : RGB(68, 68, 68));
     }

@@ -279,7 +279,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                     {
                                         RECT headerRect;
 
-                                        if (Header_GetItemRect(headerHandle, i, &headerRect) && PhPtInRect(&headerRect, position))
+                                        if (Header_GetItemRect(headerHandle, i, &headerRect) && PhPtInRect(&headerRect, &position))
                                         {
                                             CallWindowProc(oldWndProc, WindowHandle, LVM_SETCOLUMNWIDTH, i, LVSCW_AUTOSIZE);
                                             break;

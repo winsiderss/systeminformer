@@ -864,15 +864,15 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 
             // Get the position of the inserted buttons.
             PhpSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, &windowPoint))
                 return HTBORDER;
 
             PhpSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, &windowPoint))
                 return HTBORDER;
 
             PhpSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, &windowPoint))
                 return HTBORDER;
         }
         break;
@@ -894,13 +894,13 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 break;
 
             PhpSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
-            context->SearchButton.Pushed = PhPtInRect(&buttonRect, windowPoint);
+            context->SearchButton.Pushed = PhPtInRect(&buttonRect, &windowPoint);
 
             PhpSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
-            context->RegexButton.Pushed = PhPtInRect(&buttonRect, windowPoint);
+            context->RegexButton.Pushed = PhPtInRect(&buttonRect, &windowPoint);
 
             PhpSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
-            context->CaseButton.Pushed = PhPtInRect(&buttonRect, windowPoint);
+            context->CaseButton.Pushed = PhPtInRect(&buttonRect, &windowPoint);
 
             SetCapture(WindowHandle);
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
@@ -921,7 +921,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 break;
 
             PhpSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, &windowPoint))
             {
                 SetFocus(WindowHandle);
                 PhSetWindowText(WindowHandle, L"");
@@ -929,7 +929,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             }
 
             PhpSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, &windowPoint))
             {
                 context->RegexButton.Active = !context->RegexButton.Active;
                 PhSetIntegerSetting(context->RegexSetting, context->RegexButton.Active);
@@ -937,7 +937,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             }
 
             PhpSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, &windowPoint))
             {
                 context->CaseButton.Active = !context->CaseButton.Active;
                 PhSetIntegerSetting(context->CaseSetting, context->CaseButton.Active);
@@ -1112,18 +1112,18 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (!PhGetWindowRect(WindowHandle, &windowRect))
                 break;
 
-            context->Hot = PhPtInRect(&windowRect, windowPoint);
+            context->Hot = PhPtInRect(&windowRect, &windowPoint);
 
             PhpSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
-            context->RegexButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            context->RegexButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
             if (context->RegexButton.Hot)
             {
-                PhpSearchControlCreateTooltip(context, &context->RegexButton, WindowHandle, &buttonRect, L"Use Regular Expression");
+                PhpSearchControlCreateTooltip(context, &context->RegexButton, WindowHandle, &buttonRect, L"Regular Expression");
             }
 
             PhpSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
-            context->CaseButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            context->CaseButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
             if (context->CaseButton.Hot)
             {
@@ -1131,7 +1131,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             }
 
             PhpSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
-            context->SearchButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            context->SearchButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
             if (context->SearchButton.Hot)
             {
@@ -1169,16 +1169,17 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (!PhGetWindowRect(WindowHandle, &windowRect))
                 break;
 
-            context->Hot = PhPtInRect(&windowRect, windowPoint);
+            context->Hot = PhPtInRect(&windowRect, &windowPoint);
 
             PhpSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
-            context->SearchButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            context->SearchButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
             PhpSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
-            context->RegexButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            context->RegexButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
             PhpSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
             context->CaseButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            context->CaseButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }

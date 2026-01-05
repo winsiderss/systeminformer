@@ -461,7 +461,7 @@ VOID ThemeWindowStatusBarDrawPart(
     if (!CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETTEXT, (WPARAM)Index, (LPARAM)text))
         return;
 
-    if (PhPtInRect(&blockRect, Context->CursorPos))
+    if (PhPtInRect(&blockRect, &Context->CursorPos))
     {
         SetTextColor(bufferDc, PhThemeWindowTextColor);
         SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
@@ -809,7 +809,7 @@ VOID ThemeWindowRenderHeaderControl(
             continue;
         }
 
-        if (PhPtInRect(&headerRect, Context->CursorPos))
+        if (PhPtInRect(&headerRect, &Context->CursorPos))
         {
             SetTextColor(bufferDc, PhThemeWindowTextColor);
             SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color); // PhThemeWindowHighlightColor);
