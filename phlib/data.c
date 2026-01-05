@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2023
+ *     dmex    2017-2026
  *
  */
 
@@ -152,6 +152,23 @@ PSID PhSeCloudActiveDirectorySid( // S-1-12-1 (dmex)
 
     return activeDirectorySid;
 }
+
+PSID PhSeLogonIdSid(
+    _In_ ULONG LogonId
+    )
+{
+    static UCHAR logonSessionSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[SECURITY_LOGON_IDS_RID_COUNT])];
+    static SID_IDENTIFIER_AUTHORITY authority = SECURITY_NT_AUTHORITY;
+    PSID logonSessionSid = (PSID)logonSessionSidBuffer;
+
+    PhInitializeSid(logonSessionSid, &authority, SECURITY_LOGON_IDS_RID_COUNT);
+    *PhSubAuthoritySid(logonSessionSid, 0) = SECURITY_LOGON_IDS_RID;
+    *PhSubAuthoritySid(logonSessionSid, 1) = 0;
+    *PhSubAuthoritySid(logonSessionSid, 2) = LogonId;
+
+    return logonSessionSid;
+}
+
 
 // Unicode
 
