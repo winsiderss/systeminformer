@@ -87,7 +87,7 @@ VOID PhNfpUpdateRegisteredIcon(
     _In_ PPH_NF_ICON Icon
     );
 
-_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
+_Function_class_(PH_NF_BEGIN_BITMAP)
 VOID PhNfpBeginBitmap(
     _Out_ PULONG Width,
     _Out_ PULONG Height,

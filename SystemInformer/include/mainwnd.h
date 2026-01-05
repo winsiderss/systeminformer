@@ -287,7 +287,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
 
 VOID PhShowIconContextMenu(
     _In_ HWND WindowHandle,
-    _In_ POINT Location
+    _In_ PPOINT Location
     );
 
 // begin_phapppub

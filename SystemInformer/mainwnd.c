@@ -4856,7 +4856,7 @@ VOID PhMwpAddIconProcesses(
  */
 VOID PhShowIconContextMenu(
     _In_ HWND WindowHandle,
-    _In_ POINT Location
+    _In_ PPOINT Location
     )
 {
     PPH_EMENU menu;
@@ -4897,8 +4897,8 @@ VOID PhShowIconContextMenu(
         WindowHandle,
         PH_EMENU_SHOW_LEFTRIGHT,
         PH_ALIGN_LEFT | PH_ALIGN_TOP,
-        Location.x,
-        Location.y
+        Location->x,
+        Location->y
         );
 
     if (item)

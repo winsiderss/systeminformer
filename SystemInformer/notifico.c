@@ -544,7 +544,7 @@ VOID PhNfForwardMessage(
 
             PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
             GetCursorPos(&location);
-            PhShowIconContextMenu(WindowHandle, location);
+            PhShowIconContextMenu(WindowHandle, &location);
         }
         break;
     case NIN_KEYSELECT:
@@ -1466,7 +1466,7 @@ VOID PhNfpUpdateRegisteredIcon(
         PhDereferenceObject(newText);
 }
 
-_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
+_Function_class_(PH_NF_BEGIN_BITMAP)
 VOID PhNfpBeginBitmap(
     _Out_ PULONG Width,
     _Out_ PULONG Height,
