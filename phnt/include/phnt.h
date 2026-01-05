@@ -59,7 +59,12 @@
 #define PHNT_WINDOWS_NEW ULONG_MAX
 
 #ifndef PHNT_MODE
-#define PHNT_MODE PHNT_MODE_USER
+// Auto-detect kernel mode when building with WDK or kernel headers.
+#if defined(_NTDDK_) || defined(_NTIFS_) || defined(_NTDRIVER_)
+    #define PHNT_MODE PHNT_MODE_KERNEL
+#else
+    #define PHNT_MODE PHNT_MODE_USER
+#endif
 #endif
 
 #ifndef PHNT_VERSION
