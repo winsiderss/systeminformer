@@ -1178,7 +1178,6 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             context->RegexButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
             PhpSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
-            context->CaseButton.Hot = PhPtInRect(&buttonRect, windowPoint);
             context->CaseButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
