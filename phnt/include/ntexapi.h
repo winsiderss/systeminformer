@@ -1384,8 +1384,9 @@ typedef struct _T2_SET_PARAMETERS_V0
      * - Set to a positive value to allow the kernel to delay the timer
      *   by up to this amount for power efficiency.
      * Example:
-     *   NoWakeTolerance = 0 -> precise timer, no coalescing.
-     *   NoWakeTolerance = 1e6 -> allow up to 100 ms delay.
+     *   If NoWakeTolerance = 0 --> High‑resolution, best precision, min jitter, zero coalescing, low power savings.
+     *   If NoWakeTolerance > 0 --> Normal-resoluion, allow up to this value of coalescing, normal power savings.
+     *   If NoWakeTolerance = -1 --> Low-resolution, worst precision, max jitter, max coalescing, max power savings.
      */
     LONGLONG NoWakeTolerance;
 } T2_SET_PARAMETERS, *PT2_SET_PARAMETERS;
