@@ -282,6 +282,24 @@ PhLoadJsonObjectFromFile(
 #define PH_JSON_TO_STRING_PRETTY 0x0004
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhJsonObjectToString(
+    _In_ PPH_BYTES_BUILDER StringBuilder,
+    _In_ PVOID Object,
+    _In_ ULONG Level,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
+PPH_BYTES
+NTAPI
+PhJsonObjectToJsonString(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhSaveJsonObjectToFile(

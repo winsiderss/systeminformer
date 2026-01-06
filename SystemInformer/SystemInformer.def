@@ -339,7 +339,6 @@ EXPORTS
     PhAllocatePage
     PhAllocateSafe
     PhAppendBytesBuilder
-    PhAppendBytesBuilder2
     PhAppendBytesBuilderEx
     PhAppendCharStringBuilder
     PhAppendCharStringBuilder2
@@ -380,7 +379,6 @@ EXPORTS
     PhCopyStringZFromBytes
     PhCopyStringZFromMultiByte
     PhCountStringZ
-    PhCreateBytes
     PhCreateBytesEx
     PhCreateHashtable
     PhCreateList
