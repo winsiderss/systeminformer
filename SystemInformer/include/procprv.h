@@ -242,7 +242,11 @@ typedef struct _PH_PROCESS_ITEM
     // Dynamic
 
     KPRIORITY BasePriority;
-    PKAFFINITY AffinityMasks; // PhSystemProcessorInformation.NumberOfProcessorGroups
+    union
+    {
+        KAFFINITY AffinityMaskSingle; // Single processor group
+        PKAFFINITY AffinityMaskGroups; // Multiple processor groups * PhSystemProcessorInformation.NumberOfProcessorGroups
+    };
     ULONG AffinityPopulationCount;
     ULONG PriorityClass;
     LARGE_INTEGER KernelTime;
