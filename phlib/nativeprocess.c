@@ -221,6 +221,763 @@ NTSTATUS PhResumeProcess(
 }
 
 /**
+ * Gets basic information for a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param BasicInformation A variable which receives the information.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetProcessBasicInformation(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_BASIC_INFORMATION BasicInformation
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessBasicInformation,
+        BasicInformation,
+        sizeof(PROCESS_BASIC_INFORMATION),
+        NULL
+        );
+}
+
+/**
+ * Gets extended basic information for a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param ExtendedBasicInformation A variable which receives the information.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetProcessExtendedBasicInformation(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_EXTENDED_BASIC_INFORMATION ExtendedBasicInformation
+    )
+{
+    ExtendedBasicInformation->Size = sizeof(PROCESS_EXTENDED_BASIC_INFORMATION);
+
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessBasicInformation,
+        ExtendedBasicInformation,
+        sizeof(PROCESS_EXTENDED_BASIC_INFORMATION),
+        NULL
+        );
+}
+
+/**
+ * Gets time information for a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param Times A variable which receives the information.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetProcessTimes(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKERNEL_USER_TIMES Times
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessTimes,
+        Times,
+        sizeof(KERNEL_USER_TIMES),
+        NULL
+        );
+}
+
+/**
+ * Gets a process' session ID.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param SessionId A variable which receives the process' session ID.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetProcessSessionId(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG SessionId
+    )
+{
+    NTSTATUS status;
+    PROCESS_SESSION_INFORMATION sessionInfo;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessSessionInformation,
+        &sessionInfo,
+        sizeof(PROCESS_SESSION_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *SessionId = sessionInfo.SessionId;
+    }
+
+    return status;
+}
+
+/**
+ * Gets whether a process is running under 32-bit emulation.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param IsWow64Process A variable which receives a boolean indicating whether the process is 32-bit.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetProcessIsWow64(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsWow64Process
+    )
+{
+    NTSTATUS status;
+    ULONG_PTR wow64;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessWow64Information,
+        &wow64,
+        sizeof(ULONG_PTR),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsWow64Process = !!wow64;
+    }
+
+    return status;
+}
+
+/**
+ * Gets a process' WOW64 PEB address.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param Peb32 A variable which receives the base address of the process' WOW64 PEB. If the process
+ * is 64-bit, the variable receives NULL.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetProcessPeb32(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* Peb32
+    )
+{
+    NTSTATUS status;
+    ULONG_PTR wow64;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessWow64Information,
+        &wow64,
+        sizeof(ULONG_PTR),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        // No PEB for System, Minimal or Pico processes. (dmex)
+        if (!wow64)
+            return STATUS_UNSUCCESSFUL;
+
+        *Peb32 = (PVOID)wow64;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessPeb(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* PebBaseAddress
+    )
+{
+    NTSTATUS status;
+    PROCESS_BASIC_INFORMATION basicInfo;
+
+    status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+
+    if (NT_SUCCESS(status))
+    {
+        // No PEB for System, Minimal or Pico processes. (dmex)
+        if (!basicInfo.PebBaseAddress)
+            return STATUS_UNSUCCESSFUL;
+
+        *PebBaseAddress = (PVOID)basicInfo.PebBaseAddress;
+    }
+
+    return status;
+}
+
+/**
+ * Gets a handle to a process' debug object.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION access.
+ * \param DebugObjectHandle A variable which receives a handle to the debug object associated with
+ * the process. You must close the handle when you no longer need it.
+ * \return Successful or errant status.
+ * \retval STATUS_PORT_NOT_SET The process is not being debugged and has no associated debug object.
+ */
+NTSTATUS PhGetProcessDebugObject(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PHANDLE DebugObjectHandle
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessDebugObjectHandle,
+        DebugObjectHandle,
+        sizeof(HANDLE),
+        NULL
+        );
+}
+
+NTSTATUS PhGetProcessEnergyValues(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_EXTENDED_ENERGY_VALUES EnergyValues
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessEnergyValues,
+        EnergyValues,
+        sizeof(PROCESS_EXTENDED_ENERGY_VALUES),
+        NULL
+        );
+}
+
+NTSTATUS PhGetProcessErrorMode(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ErrorMode
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessDefaultHardErrorMode,
+        ErrorMode,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
+/**
+ * Sets the error mode for a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_INFORMATION access.
+ * \param ErrorMode The error mode to set for the process.
+ * \return STATUS_SUCCESS if the error mode was successfully set, otherwise an appropriate NTSTATUS error code.
+ */
+NTSTATUS PhSetProcessErrorMode(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG ErrorMode
+    )
+{
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessDefaultHardErrorMode,
+        &ErrorMode,
+        sizeof(ULONG)
+        );
+}
+
+/**
+ * Gets a process' no-execute status.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION access.
+ * \param ExecuteFlags A variable which receives the no-execute flags.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetProcessExecuteFlags(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ExecuteFlags
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessExecuteFlags,
+        ExecuteFlags,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
+/**
+ * Gets a process' I/O priority.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param IoPriority A variable which receives the I/O priority of the process.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetProcessIoPriority(
+    _In_ HANDLE ProcessHandle,
+    _Out_ IO_PRIORITY_HINT *IoPriority
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessIoPriority,
+        IoPriority,
+        sizeof(IO_PRIORITY_HINT),
+        NULL
+        );
+}
+
+/**
+ * Gets a process' page priority.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param PagePriority A variable which receives the page priority of the process.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetProcessPagePriority(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG PagePriority
+    )
+{
+    NTSTATUS status;
+    PAGE_PRIORITY_INFORMATION pagePriorityInfo;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessPagePriority,
+        &pagePriorityInfo,
+        sizeof(PAGE_PRIORITY_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PagePriority = pagePriorityInfo.PagePriority;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessPriorityBoost(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN PriorityBoostDisabled
+    )
+{
+    NTSTATUS status;
+    ULONG priorityBoostDisabled;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessPriorityBoost,
+        &priorityBoostDisabled,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PriorityBoostDisabled = !!priorityBoostDisabled;
+    }
+
+    return status;
+}
+
+/**
+ * Gets a process' cycle count.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param CycleTime A variable which receives the 64-bit cycle time.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetProcessCycleTime(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG64 CycleTime
+    )
+{
+    NTSTATUS status;
+    PROCESS_CYCLE_TIME_INFORMATION cycleTimeInfo;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessCycleTime,
+        &cycleTimeInfo,
+        sizeof(PROCESS_CYCLE_TIME_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *CycleTime = cycleTimeInfo.AccumulatedCycles;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessUptime(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_UPTIME_INFORMATION Uptime
+    )
+{
+    NTSTATUS status;
+    PROCESS_UPTIME_INFORMATION uptimeInfo;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessUptimeInformation,
+        &uptimeInfo,
+        sizeof(PROCESS_UPTIME_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *Uptime = uptimeInfo;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessConsoleHostProcessId(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PHANDLE ConsoleHostProcessId
+    )
+{
+    NTSTATUS status;
+    ULONG_PTR consoleHostProcess;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessConsoleHostProcess,
+        &consoleHostProcess,
+        sizeof(ULONG_PTR),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *ConsoleHostProcessId = (HANDLE)consoleHostProcess;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessConsoleHostProcess(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PHANDLE ConsoleHostProcessId,
+    _Out_opt_ PBOOLEAN ConsoleApplication
+    )
+{
+    NTSTATUS status;
+    ULONG_PTR consoleHostProcess;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessConsoleHostProcess,
+        &consoleHostProcess,
+        sizeof(ULONG_PTR),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *ConsoleHostProcessId = (HANDLE)(consoleHostProcess & ~3);
+    }
+
+    if (ConsoleApplication)
+    {
+        *ConsoleApplication = !!(ULONG_PTR)(consoleHostProcess & 2);
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessProtection(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPS_PROTECTION Protection
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessProtectionInformation,
+        Protection,
+        sizeof(PS_PROTECTION),
+        NULL
+        );
+}
+
+NTSTATUS PhGetProcessAffinityMask(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKAFFINITY AffinityMask
+    )
+{
+    NTSTATUS status;
+    KAFFINITY affinityMask;
+
+    memset(&affinityMask, 0, sizeof(KAFFINITY));
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        &affinityMask,
+        sizeof(KAFFINITY),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *AffinityMask = affinityMask;
+    }
+    else // Windows 7 (dmex)
+    {
+        PROCESS_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
+        {
+            *AffinityMask = basicInfo.AffinityMask;
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessGroupInformation(
+    _In_ HANDLE ProcessHandle,
+    _Inout_ PUSHORT GroupCount,
+    _Out_ PUSHORT GroupArray
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+
+    // rev from GetProcessGroupAffinity (dmex)
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessGroupInformation,
+        GroupArray,
+        sizeof(USHORT) * *GroupCount,
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status) || status == STATUS_BUFFER_TOO_SMALL)
+    {
+        *GroupCount = (USHORT)returnLength / sizeof(USHORT); // (USHORT)returnLength >> 1
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessGroupAffinity(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PGROUP_AFFINITY GroupAffinity
+    )
+{
+    NTSTATUS status;
+    GROUP_AFFINITY groupAffinity;
+
+    memset(&groupAffinity, 0, sizeof(GROUP_AFFINITY));
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        &groupAffinity,
+        sizeof(GROUP_AFFINITY),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        memcpy(GroupAffinity, &groupAffinity, sizeof(GROUP_AFFINITY));
+    }
+    else // Windows 7 (dmex)
+    {
+        KAFFINITY affinityMask;
+
+        if (NT_SUCCESS(PhGetProcessAffinityMask(ProcessHandle, &affinityMask)))
+        {
+            groupAffinity.Mask = affinityMask;
+            memcpy(GroupAffinity, &groupAffinity, sizeof(GROUP_AFFINITY));
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessIsCFGuardEnabled(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsControlFlowGuardEnabled
+    )
+{
+    NTSTATUS status;
+    PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+    policyInfo.Policy = ProcessControlFlowGuardPolicy;
+    policyInfo.ControlFlowGuardPolicy.Flags = 0;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessMitigationPolicy,
+        &policyInfo,
+        sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsControlFlowGuardEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableControlFlowGuard;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessIsXFGuardEnabled(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsXFGuardEnabled,
+    _Out_ PBOOLEAN IsXFGuardAuditEnabled
+    )
+{
+    NTSTATUS status;
+    PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+    policyInfo.Policy = ProcessControlFlowGuardPolicy;
+    policyInfo.ControlFlowGuardPolicy.Flags = 0;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessMitigationPolicy,
+        &policyInfo,
+        sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+#if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
+        *IsXFGuardEnabled = _bittest((const PLONG)&policyInfo.ControlFlowGuardPolicy.Flags, 3);
+        *IsXFGuardAuditEnabled = _bittest((const PLONG)&policyInfo.ControlFlowGuardPolicy.Flags, 4);
+#else
+        *IsXFGuardEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableXfg;
+        *IsXFGuardAuditEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableXfgAuditMode;
+#endif
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessHandleCount(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_HANDLE_INFORMATION HandleInfo
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessHandleCount,
+        HandleInfo,
+        sizeof(PROCESS_HANDLE_INFORMATION),
+        NULL
+        );
+}
+
+NTSTATUS PhGetProcessBreakOnTermination(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN BreakOnTermination
+    )
+{
+    NTSTATUS status;
+    ULONG breakOnTermination;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessBreakOnTermination,
+        &breakOnTermination,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *BreakOnTermination = !!breakOnTermination;
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetProcessBreakOnTermination(
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN BreakOnTermination
+    )
+{
+    ULONG breakOnTermination;
+
+    breakOnTermination = BreakOnTermination ? 1 : 0;
+
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessBreakOnTermination,
+        &breakOnTermination,
+        sizeof(ULONG)
+        );
+}
+
+NTSTATUS PhGetProcessAppMemoryInformation(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_JOB_MEMORY_INFO JobMemoryInfo
+    )
+{
+    NTSTATUS status;
+    PROCESS_JOB_MEMORY_INFO jobMemoryInfo;
+
+    // Win32 called this ProcessAppMemoryInfo with APP_MEMORY_INFORMATION struct (dmex)
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessJobMemoryInformation,
+        &jobMemoryInfo,
+        sizeof(PROCESS_JOB_MEMORY_INFO),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *JobMemoryInfo = jobMemoryInfo;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessMitigationPolicy(
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESS_MITIGATION_POLICY Policy,
+    _Out_ PPROCESS_MITIGATION_POLICY_INFORMATION MitigationPolicy
+    )
+{
+    memset(MitigationPolicy, 0, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+    MitigationPolicy->Policy = Policy;
+
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessMitigationPolicy,
+        MitigationPolicy,
+        sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+        NULL
+        );
+}
+
+NTSTATUS PhGetProcessNetworkIoCounters(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_NETWORK_COUNTERS NetworkIoCounters
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessNetworkIoCounters,
+        NetworkIoCounters,
+        sizeof(PROCESS_NETWORK_COUNTERS),
+        NULL
+        );
+}
+
+/**
  * Queries variable-sized information for a process. The function allocates a buffer to contain the
  * information.
  *
@@ -674,6 +1431,56 @@ NTSTATUS PhGetProcessIsBeingDebugged(
     }
 
     return status;
+}
+
+/**
+ * Retrieves the termination state for a process.
+ *
+ * \param[in] ProcessHandle A handle to the process whose termination state is to be retrieved.
+ * \param[out] IsTerminated A pointer to a variable that receives the termination state (TRUE if terminated).
+ * \return Successful or errant status.
+ * \remarks The handle must have PROCESS_QUERY_LIMITED_INFORMATION access.
+ */
+NTSTATUS PhGetProcessIsTerminated(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsTerminated
+    )
+{
+    NTSTATUS status;
+    PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+    status = PhGetProcessExtendedBasicInformation(ProcessHandle, &basicInfo);
+
+    if (NT_SUCCESS(status))
+    {
+        *IsTerminated = !!basicInfo.IsProcessDeleting;
+    }
+
+    return status;
+}
+
+/**
+ * Determines if a process is terminated by waiting with zero timeout.
+ *
+ * \param[in] ProcessHandle A handle to the process.
+ * \return TRUE if the process is terminated, FALSE otherwise.
+ */
+BOOLEAN PhGetProcessIsTerminated2(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    NTSTATUS status;
+    LARGE_INTEGER timeout;
+
+    memset(&timeout, 0, sizeof(LARGE_INTEGER));
+
+    status = NtWaitForSingleObject(
+        ProcessHandle,
+        FALSE,
+        &timeout
+        );
+
+    return status == STATUS_WAIT_0;
 }
 
 /**

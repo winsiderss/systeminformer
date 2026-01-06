@@ -524,6 +524,258 @@ PhTerminateThread(
     _In_ NTSTATUS ExitStatus
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessBasicInformation(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_BASIC_INFORMATION BasicInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessExtendedBasicInformation(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_EXTENDED_BASIC_INFORMATION ExtendedBasicInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessTimes(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKERNEL_USER_TIMES Times
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessSessionId(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG SessionId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessIsWow64(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsWow64Process
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessPeb32(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* Peb32
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessPeb(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* PebBaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessDebugObject(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PHANDLE DebugObjectHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessEnergyValues(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_EXTENDED_ENERGY_VALUES EnergyValues
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessErrorMode(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ErrorMode
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessErrorMode(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG ErrorMode
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessExecuteFlags(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ExecuteFlags
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessIoPriority(
+    _In_ HANDLE ProcessHandle,
+    _Out_ IO_PRIORITY_HINT *IoPriority
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessPagePriority(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG PagePriority
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessPriorityBoost(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN PriorityBoostDisabled
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessCycleTime(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG64 CycleTime
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessUptime(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_UPTIME_INFORMATION Uptime
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessConsoleHostProcessId(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PHANDLE ConsoleHostProcessId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessConsoleHostProcess(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PHANDLE ConsoleHostProcessId,
+    _Out_opt_ PBOOLEAN ConsoleApplication
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessProtection(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPS_PROTECTION Protection
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessAffinityMask(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKAFFINITY AffinityMask
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessGroupInformation(
+    _In_ HANDLE ProcessHandle,
+    _Inout_ PUSHORT GroupCount,
+    _Out_ PUSHORT GroupArray
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessGroupAffinity(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PGROUP_AFFINITY GroupAffinity
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessIsCFGuardEnabled(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsControlFlowGuardEnabled
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessIsXFGuardEnabled(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsXFGuardEnabled,
+    _Out_ PBOOLEAN IsXFGuardAuditEnabled
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessHandleCount(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_HANDLE_INFORMATION HandleInfo
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessBreakOnTermination(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN BreakOnTermination
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessBreakOnTermination(
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN BreakOnTermination
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessAppMemoryInformation(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_JOB_MEMORY_INFO JobMemoryInfo
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessMitigationPolicy(
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESS_MITIGATION_POLICY Policy,
+    _Out_ PPROCESS_MITIGATION_POLICY_INFORMATION MitigationPolicy
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessNetworkIoCounters(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_NETWORK_COUNTERS NetworkIoCounters
+    );
+
 typedef struct _PH_PROCESS_RUNTIME_LIBRARY
 {
     PH_STRINGREF NtdllFileName;
@@ -579,6 +831,21 @@ NTAPI
 PhGetProcessIsBeingDebugged(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsBeingDebugged
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessIsTerminated(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsTerminated
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetProcessIsTerminated2(
+    _In_ HANDLE ProcessHandle
     );
 
 PHLIBAPI
