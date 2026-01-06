@@ -2465,6 +2465,21 @@ PhCreateBytesEx(
     _In_ SIZE_T Length
     );
 
+/**
+ * Creates a bytes object from an existing null-terminated string of bytes.
+ *
+ * \param Buffer A null-terminated byte string.
+ */
+FORCEINLINE
+PPH_BYTES
+NTAPI
+PhCreateBytes(
+    _In_ PCSTR Buffer
+    )
+{
+    return PhCreateBytesEx(Buffer, strlen(Buffer) * sizeof(CHAR));
+}
+
 FORCEINLINE
 PPH_BYTES
 NTAPI
@@ -3014,13 +3029,25 @@ PhAppendBytesBuilder(
     _In_ PPH_BYTESREF Bytes
     );
 
-PHLIBAPI
+/**
+ * Appends a byte string to the end of a byte string builder string.
+ *
+ * \param BytesBuilder A byte string builder object.
+ * \param Bytes The byte string to append.
+ */
+FORCEINLINE
 VOID
 NTAPI
 PhAppendBytesBuilder2(
     _Inout_ PPH_BYTES_BUILDER BytesBuilder,
-    _In_ PCHAR Bytes
-    );
+    _In_ PCSTR Bytes
+    )
+{
+    PH_BYTESREF string;
+
+    PhInitializeBytesRef(&string, Bytes);
+    PhAppendBytesBuilder(BytesBuilder, &string);
+}
 
 PHLIBAPI
 PVOID
@@ -5072,7 +5099,21 @@ PhFormatDoubleToUtf8(
     _Out_opt_ PSIZE_T ReturnLength
     );
 
-// error
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhIntegerToUtf8Buffer(
+    _In_ LONG64 Integer,
+    _In_opt_ ULONG Base,
+    _In_ BOOLEAN Signed,
+    _Out_writes_bytes_(BufferLength) PSTR Buffer,
+    _In_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    );
+
+//
+// Errors
+//
 
 #define HRESULT_CUSTOMER(hr) (((ULONG)(hr) >> 29) & 0x1)
 #define HRESULT_NTSTATUS(hr) (((ULONG)(hr) >> 28) & 0x1)

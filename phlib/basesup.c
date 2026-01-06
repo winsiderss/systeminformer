@@ -3586,22 +3586,11 @@ PPH_STRING PhFormatString_V(
     if (length == INT_ERROR)
         return NULL;
 
+    length = length + 1;
     string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
     _vsnwprintf(string->Buffer, length, Format, ArgPtr);
 
     return string;
-}
-
-/**
- * Creates a bytes object from an existing null-terminated string of bytes.
- *
- * \param Buffer A null-terminated byte string.
- */
-PPH_BYTES PhCreateBytes(
-    _In_ PCSTR Buffer
-    )
-{
-    return PhCreateBytesEx(Buffer, strlen(Buffer) * sizeof(CHAR));
 }
 
 /**
@@ -3654,6 +3643,7 @@ PPH_BYTES PhFormatBytes_V(
     if (length == INT_ERROR)
         return NULL;
 
+    length = length + 1;
     string = PhCreateBytesEx(NULL, length * sizeof(CHAR));
     _vsnprintf(string->Buffer, length, Format, ArgPtr);
 
@@ -5058,6 +5048,7 @@ VOID PhAppendFormatStringBuilder_V(
     if (length == INT_ERROR || length == 0)
         return;
 
+    length = length + 1;
     lengthInBytes = length * sizeof(WCHAR);
 
     if (StringBuilder->AllocatedLength < StringBuilder->String->Length + lengthInBytes)
@@ -5295,26 +5286,6 @@ VOID PhAppendBytesBuilder(
  * Appends a byte string to the end of a byte string builder string.
  *
  * \param BytesBuilder A byte string builder object.
- * \param Bytes The byte string to append.
- */
-VOID PhAppendBytesBuilder2(
-    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
-    _In_ PCHAR Bytes
-    )
-{
-    PhAppendBytesBuilderEx(
-        BytesBuilder,
-        Bytes,
-        strlen(Bytes),
-        0,
-        NULL
-        );
-}
-
-/**
- * Appends a byte string to the end of a byte string builder string.
- *
- * \param BytesBuilder A byte string builder object.
  * \param Buffer The byte string to append. Specify NULL to simply reserve \a Length bytes.
  * \param Length The number of bytes to append.
  * \param Alignment The required alignment. This should not be greater than 8.
@@ -5381,6 +5352,7 @@ VOID PhAppendFormatBytesBuilder_V(
     if (length == INT_ERROR || length == 0)
         return;
 
+    length = length + 1;
     lengthInBytes = length * sizeof(CHAR);
 
     if (BytesBuilder->AllocatedLength < BytesBuilder->Bytes->Length + lengthInBytes)

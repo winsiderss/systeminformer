@@ -12,8 +12,6 @@
 #include <phbase.h>
 #include <charconv>
 
-using namespace std;
-
 extern NTSTATUS PhErrcToNtStatus(
     _In_ std::errc ec
     );
@@ -38,9 +36,9 @@ NTSTATUS PhFormatSingleToUtf8(
     else if (Type & FormatHexadecimalForm)
         format = chars_format::hex;
 
-    result = to_chars(
+    result = std::to_chars(
         buffer,
-        end(buffer),
+        Buffer + BufferLength - sizeof(ANSI_NULL), // Reserve space for null terminator // end(buffer)
         Value,
         format,
         Precision
@@ -64,24 +62,37 @@ NTSTATUS PhFormatSingleToUtf8(
 
     return STATUS_SUCCESS;
 #else
-    chars_format format;
-    to_chars_result result;
+    std::chars_format format;
+    std::to_chars_result result;
     SIZE_T returnLength;
 
-    if (FlagOn(Type, FormatStandardForm))
-        format = chars_format::general;
-    else if (FlagOn(Type, FormatHexadecimalForm))
-        format = chars_format::hex;
+    if (Precision < 0)
+    {
+        // This overload finds the shortest string that converts back to the exact same double.
+        // It is roughly 2x faster than the version with explicit precision.
+        result = std::to_chars(
+            Buffer,
+            Buffer + BufferLength - sizeof(ANSI_NULL),
+            Value
+            );
+    }
     else
-        format = chars_format::fixed;
+    {
+        if (FlagOn(Type, FormatStandardForm))
+            format = std::chars_format::general;
+        else if (FlagOn(Type, FormatHexadecimalForm))
+            format = std::chars_format::hex;
+        else
+            format = std::chars_format::fixed;
 
-    result = to_chars(
-        Buffer,
-        Buffer + BufferLength - sizeof(ANSI_NULL), // Reserve space for null terminator
-        Value,
-        format,
-        Precision
-        );
+        result = std::to_chars(
+            Buffer,
+            Buffer + BufferLength - sizeof(ANSI_NULL), // Reserve space for null terminator // end(buffer)
+            Value,
+            format,
+            Precision
+            );
+    }
 
     if (result.ec != static_cast<std::errc>(0))
         return PhErrcToNtStatus(result.ec);
@@ -114,18 +125,33 @@ NTSTATUS PhFormatDoubleToUtf8(
     SIZE_T returnLength;
     CHAR buffer[_CVTBUFSIZE + 1];
 
-    if (Type & FormatStandardForm)
-        format = chars_format::general;
-    else if (Type & FormatHexadecimalForm)
-        format = chars_format::hex;
+    if (Precision < 0)
+    {
+        // This overload finds the shortest string that converts back to the exact same double.
+        // It is roughly 2x faster than the version with explicit precision.
+        result = std::to_chars(
+            Buffer,
+            Buffer + BufferLength - sizeof(ANSI_NULL),
+            Value
+            );
+    }
+    else
+    {
+        if (FlagOn(Type, FormatStandardForm))
+            format = std::chars_format::general;
+        else if (FlagOn(Type, FormatHexadecimalForm))
+            format = std::chars_format::hex;
+        else
+            format = std::chars_format::fixed;
 
-    result = to_chars(
-        buffer,
-        end(buffer),
-        Value,
-        format,
-        Precision
-        );
+        result = to_chars(
+            buffer,
+            Buffer + BufferLength - sizeof(ANSI_NULL), // end(buffer)
+            Value,
+            format,
+            Precision
+            );
+    }
 
     if (result.ec != static_cast<std::errc>(0))
         return STATUS_UNSUCCESSFUL;
@@ -145,24 +171,37 @@ NTSTATUS PhFormatDoubleToUtf8(
 
     return STATUS_SUCCESS;
 #else
-    chars_format format;
-    to_chars_result result;
+    std::chars_format format;
+    std::to_chars_result result;
     SIZE_T returnLength;
 
-    if (FlagOn(Type, FormatStandardForm))
-        format = chars_format::general;
-    else if (FlagOn(Type, FormatHexadecimalForm))
-        format = chars_format::hex;
+    if (Precision < 0)
+    {
+        // This overload finds the shortest string that converts back to the exact same double.
+        // It is roughly 2x faster than the version with explicit precision.
+        result = std::to_chars(
+            Buffer,
+            Buffer + BufferLength - sizeof(ANSI_NULL),
+            Value
+            );
+    }
     else
-        format = chars_format::fixed;
+    {
+        if (FlagOn(Type, FormatStandardForm))
+            format = std::chars_format::general;
+        else if (FlagOn(Type, FormatHexadecimalForm))
+            format = std::chars_format::hex;
+        else
+            format = std::chars_format::fixed;
 
-    result = to_chars(
-        Buffer,
-        Buffer + BufferLength - sizeof(ANSI_NULL), // Reserve space for null terminator
-        Value,
-        format,
-        Precision
-        );
+        result = std::to_chars(
+            Buffer,
+            Buffer + BufferLength - sizeof(ANSI_NULL), // Reserve space for null terminator
+            Value,
+            format,
+            Precision
+            );
+    }
 
     if (result.ec != static_cast<std::errc>(0))
         return PhErrcToNtStatus(result.ec);
@@ -178,6 +217,75 @@ NTSTATUS PhFormatDoubleToUtf8(
 
     return STATUS_SUCCESS;
 #endif
+}
+
+/**
+ * Converts an integer to a UTF-8 string buffer (Replicates PhIntegerToString64).
+ * 
+ * \param Integer The integer to convert.
+ * \param Base The radix (e.g., 10, 16, 8). If 0, defaults to 10.
+ * \param Signed TRUE to treat as signed int64, FALSE for unsigned int64.
+ * \param Buffer The output buffer.
+ * \param BufferLength The size of the buffer in bytes.
+ * \param ReturnLength Contains the number of bytes written (excluding null terminator).
+ */
+NTSTATUS PhIntegerToUtf8Buffer(
+    _In_ LONG64 Integer,
+    _In_opt_ ULONG Base,
+    _In_ BOOLEAN Signed,
+    _Out_writes_bytes_(BufferLength) PSTR Buffer,
+    _In_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    )
+{
+    std::to_chars_result result;
+    INT radix = (Base == 0) ? 10 : (INT)Base;
+
+    if (!Buffer || BufferLength == 0)
+        return STATUS_BUFFER_TOO_SMALL;
+    if (radix < 2 || radix > 36)
+        return STATUS_INVALID_PARAMETER;
+
+    // Reserve 1 byte for null terminator
+    PSTR endBuffer = Buffer + BufferLength - sizeof(ANSI_NULL);
+
+    if (Signed)
+    {
+        result = std::to_chars(
+            Buffer, 
+            endBuffer, 
+            (long long)Integer, 
+            radix
+            );
+    }
+    else
+    {
+        result = std::to_chars(
+            Buffer, 
+            endBuffer, 
+            (unsigned long long)Integer, 
+            radix
+            );
+    }
+
+    if (result.ec != std::errc())
+    {
+        if (result.ec == std::errc::value_too_large)
+            return STATUS_BUFFER_OVERFLOW;
+        
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    *result.ptr = ANSI_NULL; //Null-terminate
+
+    if (ReturnLength)
+    {
+        SIZE_T length = result.ptr - Buffer; // Calculate written length
+
+        *ReturnLength = length;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS PhErrcToNtStatus(

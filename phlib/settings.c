@@ -1241,11 +1241,14 @@ NTSTATUS PhSaveSettingsJson(
     PVOID object;
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_SETTING setting;
+    PPH_LIST strings = NULL;
 
     object = PhCreateJsonObject();
 
     if (!object)
         return STATUS_FILE_CORRUPT_ERROR;
+
+    strings = PhCreateList(1);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -1270,9 +1273,9 @@ NTSTATUS PhSaveSettingsJson(
 
                 PhAddJsonObject2(object, stringName->Buffer, stringValue->Buffer, stringValue->Length);
 
-                //PhDereferenceObject(stringValue);
-                //PhDereferenceObject(stringSetting);
-                //PhDereferenceObject(stringName);
+                PhAddItemList(strings, stringValue);
+                PhAddItemList(strings, stringSetting);
+                PhAddItemList(strings, stringName);
             }
             break;
         }
@@ -1292,8 +1295,8 @@ NTSTATUS PhSaveSettingsJson(
 
         PhAddJsonObject2(object, stringName->Buffer, stringValue->Buffer, stringValue->Length);
 
-        //PhDereferenceObject(stringValue);
-        //PhDereferenceObject(stringName);
+        PhAddItemList(strings, stringValue);
+        PhAddItemList(strings, stringName);
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
@@ -1301,10 +1304,13 @@ NTSTATUS PhSaveSettingsJson(
     status = PhSaveJsonObjectToFile(
         FileName,
         object,
-        PH_JSON_TO_STRING_PLAIN | PH_JSON_TO_STRING_PRETTY
+        PH_JSON_TO_STRING_PRETTY
         );
 
     PhFreeJsonObject(object);
+
+    PhDereferenceObjects(strings->Items, strings->Count);
+    PhDereferenceObject(strings);
 
     return status;
 }
@@ -2803,7 +2809,7 @@ VOID PhSaveCustomColorList(
     PhDeleteStringBuilder(&stringBuilder);
 }
 
-static VOID PhConvertSettingsStripSubstring(
+static VOID PhBytesStripSubstringZ(
     _In_ PSTR String,
     _In_ PCSTR SubString
     )
@@ -2817,8 +2823,112 @@ static VOID PhConvertSettingsStripSubstring(
 
     while (offset)
     {
+        // Calculate the size of the remaining string (including null terminator) in bytes
+        // and shift it over the substring to be removed.
         memmove(offset, offset + length, (PhCountBytesZ(offset + length) + 1) * sizeof(CHAR));
+
+        // Rescan from the beginning of the string to handle nested occurrences
         offset = strstr(String, SubString);
+    }
+}
+
+static VOID PhStringStripSubstringZ(
+    _In_ PWSTR String,
+    _In_ PCWSTR SubString
+    )
+{
+    SIZE_T length = PhCountStringZ(SubString);
+    
+    if (length == 0)
+        return;
+
+    PWSTR offset = wcsstr(String, SubString);
+
+    while (offset)
+    {
+        // Calculate the size of the remaining string (including null terminator) in bytes
+        // and shift it over the substring to be removed.
+        memmove(offset, offset + length, (PhCountStringZ(offset + length) + 1) * sizeof(WCHAR));
+
+        // Rescan from the beginning of the string to handle nested occurrences
+        offset = wcsstr(String, SubString);
+    }
+}
+
+static PPH_STRING PhRemoveSubstringFromString(
+    _In_ PPH_STRING String,
+    _In_ PCPH_STRINGREF Substring,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    PH_STRINGREF remainingPart;
+    PH_STRINGREF stringPart;
+
+    remainingPart = PhGetStringRef(String);
+
+    PhInitializeStringBuilder(&stringBuilder, String->Length);
+
+    while (PhSplitStringRefAtString(&remainingPart, Substring, IgnoreCase, &stringPart, &remainingPart))
+    {
+        PhAppendStringBuilder(&stringBuilder, &stringPart);
+    }
+
+    // If 'remainingPart' still has the same length as the original string,
+    // it means the Substring was never found. Return the original to save memory.
+    //if (remainingPart.Length == String->Length)
+    //{
+    //    PhDeleteStringBuilder(&stringBuilder);
+    //    return PhReferenceObject(String);
+    //}
+
+    // Append the final chunk (or the whole string if no Substring was found)
+    if (remainingPart.Length)
+    {
+        PhAppendStringBuilder(&stringBuilder, &remainingPart);
+    }
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+static VOID PhRemoveSubstringFromStringUnsafe(
+    _In_ PPH_STRING String,
+    _In_ PCPH_STRINGREF Separator,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    PH_STRINGREF firstPart;
+    PH_STRINGREF secondPart;
+    PH_STRINGREF remainingPart;
+    PH_STRING_BUILDER stringBuilder;
+
+    remainingPart = PhGetStringRef(String);
+
+    PhInitializeStringBuilder(&stringBuilder, 0x1000);
+
+    while (remainingPart.Length != 0)
+    {
+        if (!PhSplitStringRefAtString(&remainingPart, Separator, TRUE, &firstPart, &secondPart))
+            break;
+
+        // Calculate the destination pointer (end of the first part)
+        PWSTR destination = (PWSTR)PTR_ADD_OFFSET(firstPart.Buffer, firstPart.Length);
+        // Calculate the source pointer (start of the second part)
+        PWSTR source = secondPart.Buffer;
+
+        // Move the remaining part of the string (including the null terminator)
+        // over the substring we want to remove.
+        memmove(destination, source, secondPart.Length + sizeof(UNICODE_NULL));
+
+        // Update the Length field.
+        String->Length -= Separator->Length;
+
+        // Re-initialize the stringRef to the modified string to continue searching.
+        // This is necessary because the string length has changed.
+        // Since we modified the buffer in-place, the 'STRINGREF' view is now stale.
+        // Re-initialize it to the new string state to find subsequent occurrences.
+        remainingPart.Buffer = String->Buffer;
+        remainingPart.Length = String->Length;
     }
 }
 
@@ -2864,7 +2974,7 @@ NTSTATUS PhConvertSettingsXmlToJson(
     {
         PPH_STRING string = PhConcatStrings(8, L"Process", L"H", L"a", L"c", L"k", L"e", L"r", L".");
         PPH_BYTES bytes = PhConvertStringRefToUtf8(&string->sr);
-        PhConvertSettingsStripSubstring(fileContent->Buffer, bytes->Buffer);
+        PhBytesStripSubstringZ(fileContent->Buffer, bytes->Buffer);
         PhDereferenceObject(bytes);
         PhDereferenceObject(string);
     }
