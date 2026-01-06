@@ -3586,7 +3586,6 @@ PPH_STRING PhFormatString_V(
     if (length == INT_ERROR)
         return NULL;
 
-    length = length + 1;
     string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
     _vsnwprintf(string->Buffer, length, Format, ArgPtr);
 
@@ -3643,7 +3642,6 @@ PPH_BYTES PhFormatBytes_V(
     if (length == INT_ERROR)
         return NULL;
 
-    length = length + 1;
     string = PhCreateBytesEx(NULL, length * sizeof(CHAR));
     _vsnprintf(string->Buffer, length, Format, ArgPtr);
 
@@ -5048,7 +5046,6 @@ VOID PhAppendFormatStringBuilder_V(
     if (length == INT_ERROR || length == 0)
         return;
 
-    length = length + 1;
     lengthInBytes = length * sizeof(WCHAR);
 
     if (StringBuilder->AllocatedLength < StringBuilder->String->Length + lengthInBytes)
@@ -5352,7 +5349,6 @@ VOID PhAppendFormatBytesBuilder_V(
     if (length == INT_ERROR || length == 0)
         return;
 
-    length = length + 1;
     lengthInBytes = length * sizeof(CHAR);
 
     if (BytesBuilder->AllocatedLength < BytesBuilder->Bytes->Length + lengthInBytes)
