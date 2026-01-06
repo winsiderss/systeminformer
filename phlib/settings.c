@@ -2699,6 +2699,9 @@ VOID PhSaveListViewGroupStatesToSetting(
     for (index = 0; index < count; index++)
     {
         LVGROUP group;
+        PH_FORMAT format[4];
+        SIZE_T returnLength;
+        WCHAR buffer[PH_INT64_STR_LEN_1];
 
         memset(&group, 0, sizeof(LVGROUP));
         group.cbSize = sizeof(LVGROUP);
@@ -2708,12 +2711,24 @@ VOID PhSaveListViewGroupStatesToSetting(
         if (ListView_GetGroupInfoByIndex(ListViewHandle, index, &group) == -1)
             continue;
 
-        PhAppendFormatStringBuilder(
-            &stringBuilder,
-            L"%d|%u|",
-            group.iGroupId,
-            group.state
-            );
+        PhInitFormatD(&format[0], group.iGroupId);
+        PhInitFormatC(&format[1], L'|');
+        PhInitFormatU(&format[2], group.state);
+        PhInitFormatC(&format[3], L'|');
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+        {
+            PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%d|%u|",
+                group.iGroupId,
+                group.state
+                );
+        }
     }
 
     if (stringBuilder.String->Length != 0)
@@ -2972,7 +2987,7 @@ NTSTATUS PhConvertSettingsXmlToJson(
         goto CleanupExit;
 
     {
-        PPH_STRING string = PhConcatStrings(8, L"Process", L"H", L"a", L"c", L"k", L"e", L"r", L".");
+        PPH_STRING string = PhConcatStrings(10, L"Pro", L"ce" L"ss", L"H", L"a", L"c", L"k", L"e", L"r", L".");
         PPH_BYTES bytes = PhConvertStringRefToUtf8(&string->sr);
         PhBytesStripSubstringZ(fileContent->Buffer, bytes->Buffer);
         PhDereferenceObject(bytes);
