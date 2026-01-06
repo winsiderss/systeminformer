@@ -17,6 +17,7 @@
 #pragma comment(lib, "ntdll.lib")
 #pragma comment(lib, "bcrypt.lib")
 #pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "winsta.lib")
 #endif
 
 #if !defined(_PHLIB_)
