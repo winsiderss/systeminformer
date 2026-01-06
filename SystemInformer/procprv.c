@@ -3121,7 +3121,7 @@ VOID PhProcessProviderUpdate(
                             processItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
                         }
 
-                        affinityPopulationCount = PhCountBitsUlongPtr(processItem->AffinityMasks[i]);
+                        affinityPopulationCount += PhCountBitsUlongPtr(processItem->AffinityMasks[i]);
                     }
                 }
 
