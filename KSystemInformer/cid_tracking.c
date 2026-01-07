@@ -2306,7 +2306,8 @@ KPH_PROCESS_STATE KphGetProcessState(
         processState |= KPH_PROCESS_PROTECTED_PROCESS;
     }
 
-    if (ReadSizeTAcquire(&Process->NumberOfUntrustedImageLoads) == 0)
+    if (Process->CreateNotification &&
+        ReadSizeTAcquire(&Process->NumberOfUntrustedImageLoads) == 0)
     {
         processState |= KPH_PROCESS_NO_UNTRUSTED_IMAGES;
     }
