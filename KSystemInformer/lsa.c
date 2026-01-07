@@ -265,18 +265,83 @@ NTSTATUS KphProcessIsLsass(
 }
 
 /**
+ * \brief Validates if a process is lsass and caches it.
+ *
+ * \details This should be called whenever a new process is identified.
+ *
+ * \param[in] Process The process to validate.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphValidateLsass(
+    _In_ PEPROCESS Process
+    )
+{
+    NTSTATUS status;
+    BOOLEAN isLsass;
+
+    KPH_PAGED_CODE();
+
+    status = KphProcessIsLsass(Process, &isLsass);
+    if (NT_SUCCESS(status) && isLsass)
+    {
+        KphTracePrint(TRACE_LEVEL_INFORMATION,
+                      GENERAL,
+                      "Validated LSA process (%lu)",
+                      HandleToULong(PsGetProcessId(Process)));
+    }
+}
+
+/**
  * \brief Invalidates the cached lsass process ID if it matches.
  *
- * \details This should be called whenever a process exits.
+ * \details This should be called whenever a process ID could be recycled.
  *
- * \param[in] ProcessId The process ID to invalidate.
+ * \param[in] Process The process to invalidate.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphInvalidateLsass(
-    _In_ HANDLE ProcessId
+    _In_ PEPROCESS Process
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    HANDLE processId;
 
-    InterlockedCompareExchangePointer(&KphpLsassProcessId, NULL, ProcessId);
+    KPH_PAGED_CODE();
+
+    processId = PsGetProcessId(Process);
+
+    if (InterlockedCompareExchangePointer(&KphpLsassProcessId,
+                                          NULL,
+                                          processId) == processId)
+    {
+        KphTracePrint(TRACE_LEVEL_INFORMATION,
+                      GENERAL,
+                      "Invalidated LSA process (%lu)",
+                      HandleToULong(processId));
+    }
+}
+
+/**
+ * \brief Checks if lsass can be identified.
+ *
+ * \return TRUE if lsass can be identified, FALSE otherwise.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphCanIdentifyLsass(
+    VOID
+    )
+{
+    NTSTATUS status;
+    BOOLEAN isLsass;
+
+    KPH_PAGED_CODE();
+
+    //
+    // N.B. It does not matter what process we use here and we intentionally
+    // ignore the output boolean. What matters is the return succeeds which
+    // indicates that we can identify lsass.
+    //
+    status = KphProcessIsLsass(PsInitialSystemProcess, &isLsass);
+
+    return NT_SUCCESS(status);
 }

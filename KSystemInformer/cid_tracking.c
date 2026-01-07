@@ -638,6 +638,8 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         KphpSystemProcessContext = process;
     }
 
+    KphValidateLsass(process->EProcess);
+
     status = STATUS_SUCCESS;
 
 Exit:
@@ -702,6 +704,8 @@ VOID KSIAPI KphpDeleteProcessContext(
     NT_ASSERT(IsListEmpty(&process->ThreadListHead));
     NT_ASSERT(process->NumberOfThreads == 0);
     KphDeleteRWLock(&process->ThreadListLock);
+
+    KphInvalidateLsass(process->EProcess);
 
     NT_ASSERT(process->EProcess);
     ObDereferenceObject(process->EProcess);

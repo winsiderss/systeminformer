@@ -609,11 +609,6 @@ VOID KphpCreateProcessNotifyRoutine(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    if (!CreateInfo)
-    {
-        KphInvalidateLsass(ProcessId);
-    }
-
     process = KphpPerformProcessTracking(Process, ProcessId, CreateInfo);
     if (process)
     {

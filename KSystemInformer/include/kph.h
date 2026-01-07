@@ -1459,9 +1459,20 @@ NTSTATUS KphProcessIsLsass(
     _Out_ PBOOLEAN IsLsass
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphValidateLsass(
+    _In_ PEPROCESS Process
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphInvalidateLsass(
-    _In_ HANDLE ProcessId
+    _In_ PEPROCESS Process
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphCanIdentifyLsass(
+    VOID
     );
 
 // vm

@@ -643,19 +643,33 @@ NTSTATUS KphStartProtectingProcess(
     )
 {
     NTSTATUS status;
-    PKPH_DYN dyn;
     BOOLEAN releaseLock;
     SECURITY_SUBJECT_CONTEXT subjectContext;
     BOOLEAN accessGranted;
-    KPH_ENUM_FOR_PROTECTION context;
 
     KPH_PAGED_CODE_PASSIVE();
 
     releaseLock = FALSE;
 
-    dyn = KphReferenceDynData();
-    if (!dyn)
+    //
+    // N.B. We must be able to identify lsass before applying protections.
+    // Without the ability to identify lsass, a process may fail to start.
+    // Normally, lsass runs as a protected process; however, if it is not,
+    // we rely on dynamic data to identify it. If a system configuration
+    // does not run lsass as a protected process and also lacks dynamic data
+    // support, we cannot guarantee application compatibility or protection.
+    // In that case, access to the driver will be restricted.
+    //
+    // This distinction is important later within the object callbacks.
+    // Note that the KphpShouldAllowObjectAccess call in KphApplyObProtections
+    // depends on KphProcessIsLsass.
+    //
+    if (!KphCanIdentifyLsass())
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "KphCanIdentifyLsass failed");
+
         status = STATUS_NOINTERFACE;
         goto Exit;
     }
@@ -696,29 +710,13 @@ NTSTATUS KphStartProtectingProcess(
     Process->ProcessAllowedMask = ProcessAllowedMask;
     Process->ThreadAllowedMask = ThreadAllowedMask;
 
-    context.Dyn = dyn;
-    context.Status = STATUS_SUCCESS;
-    context.Process = Process;
-    KphEnumerateProcessContexts(KphpEnumProcessContextsForProtection, &context);
-    status = context.Status;
-
-    if (!NT_SUCCESS(status))
-    {
-        Process->Protected = FALSE;
-        Process->ProcessAllowedMask = 0;
-        Process->ThreadAllowedMask = 0;
-    }
+    status = STATUS_SUCCESS;
 
 Exit:
 
     if (releaseLock)
     {
         KphReleaseRWLock(&Process->ProtectionLock);
-    }
-
-    if (dyn)
-    {
-        KphDereferenceObject(dyn);
     }
 
     return status;
@@ -2288,6 +2286,7 @@ Exit:
 
     return status;
 }
+
 /**
  * \brief Strips the process and thread allowed masks from a protected process.
  *
