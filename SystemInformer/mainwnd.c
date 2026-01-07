@@ -40,11 +40,17 @@
 
 #include <mainwndp.h>
 
+typedef struct _PH_MWP_KPH
+{
+    KPH_LEVEL Level;
+    BOOLEAN DynDataActive;
+} PH_MWP_KPH, *PPH_MWP_KPH;
+
 HWND PhMainWndHandle = NULL;
 BOOLEAN PhMainWndExiting = FALSE;
 BOOLEAN PhMainWndEarlyExit = FALSE;
 WNDPROC PhMainWndProc = PhMwpWndProc;
-KPH_LEVEL PhMainWndLevel = KphLevelNone;
+PH_MWP_KPH PhMainWndKph = { KphLevelNone, FALSE };
 
 PH_PROVIDER_REGISTRATION PhMwpProcessProviderRegistration;
 PH_PROVIDER_REGISTRATION PhMwpServiceProviderRegistration;
@@ -310,11 +316,10 @@ RTL_ATOM PhMwpInitializeWindowClass(
 /**
  * Builds the main window title based on application name, user, privilege level, and elevation.
  *
- * \param KphLevel The current privilege level.
  * \return A string containing the window title, or NULL if window text is disabled.
  */
 PPH_STRING PhMwpInitializeWindowTitle(
-    _In_ ULONG KphLevel
+    VOID
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -337,7 +342,7 @@ PPH_STRING PhMwpInitializeWindowTitle(
         PhDereferenceObject(currentUserName);
     }
 
-    switch (KphLevel)
+    switch (PhMainWndKph.Level)
     {
     case KphLevelMax:
         PhAppendStringBuilder2(&stringBuilder, L"++");
@@ -355,6 +360,9 @@ PPH_STRING PhMwpInitializeWindowTitle(
         PhAppendStringBuilder2(&stringBuilder, L"--");
         break;
     }
+
+    if (PhMainWndKph.Level && !PhMainWndKph.DynDataActive)
+        PhAppendStringBuilder2(&stringBuilder, L" (RF)"); // RF = Reduced Functionality
 
     if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
         PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
@@ -619,9 +627,11 @@ NTSTATUS PhMwpLoadStage1Worker(
     {
         PPH_STRING windowTitle;
 
-        PhMainWndLevel = KphLevelEx(FALSE);
+        PhMainWndKph.Level = KphLevelEx(FALSE);
+        if (!NT_SUCCESS(KphIsDynDataActive(&PhMainWndKph.DynDataActive)))
+            PhMainWndKph.DynDataActive = FALSE;
 
-        if (windowTitle = PhMwpInitializeWindowTitle(PhMainWndLevel))
+        if (windowTitle = PhMwpInitializeWindowTitle())
         {
             PhSetWindowText((HWND)Parameter, PhGetString(windowTitle));
             PhDereferenceObject(windowTitle);
@@ -2758,14 +2768,20 @@ VOID PhMwpOnSetFocus(
     // Update the window status.
 
     {
-        KPH_LEVEL status;
+        PH_MWP_KPH kph;
         PPH_STRING windowTitle;
 
-        if (DelayedLoadCompleted && PhMainWndLevel != (status = KphLevelEx(FALSE)))
-        {
-            PhMainWndLevel = status;
+        kph.Level = KphLevelEx(FALSE);
+        if (!NT_SUCCESS(KphIsDynDataActive(&kph.DynDataActive)))
+            kph.DynDataActive = FALSE;
 
-            if (windowTitle = PhMwpInitializeWindowTitle(PhMainWndLevel))
+        if (DelayedLoadCompleted &&
+            (PhMainWndKph.Level != kph.Level ||
+             PhMainWndKph.DynDataActive != kph.DynDataActive))
+        {
+            PhMainWndKph = kph;
+
+            if (windowTitle = PhMwpInitializeWindowTitle())
             {
                 PhSetWindowText(WindowHandle, PhGetString(windowTitle));
                 PhDereferenceObject(windowTitle);

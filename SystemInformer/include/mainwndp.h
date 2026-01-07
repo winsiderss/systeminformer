@@ -53,7 +53,7 @@ RTL_ATOM PhMwpInitializeWindowClass(
     );
 
 PPH_STRING PhMwpInitializeWindowTitle(
-    _In_ ULONG KphLevel
+    VOID
     );
 
 VOID PhMwpInitializeProviders(

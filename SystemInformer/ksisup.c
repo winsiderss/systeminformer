@@ -359,18 +359,15 @@ VOID PhShowKsiStatus(
         PhAppendStringBuilder2(&stringBuilder, L"You will be unable to use more advanced features, view details about system processes or terminate malicious software.");
         infoString = PhFinalStringBuilderString(&stringBuilder);
 
-        if (PhShowMessageOneTime(
+        PhShowKsiMessageEx(
             NULL,
-            TD_OK_BUTTON,
             TD_SHIELD_ERROR_ICON,
+            0,
+            FALSE,
             L"Access to the kernel driver is restricted.",
             L"%s",
             PhGetString(infoString)
-            ))
-        {
-            PhEnableKsiWarnings = FALSE;
-            PhSetIntegerSetting(SETTING_KSI_ENABLE_WARNINGS, FALSE);
-        }
+            );
 
         PhDereferenceObject(infoString);
     }
@@ -1251,6 +1248,118 @@ CleanupExit:
 }
 
 /**
+ * Retrieves and activates dynamic configuration data.
+ *
+ * \param[in] WindowHandle Optional parent window for UI prompts.
+ * \param[in] Level Current KPH level.
+ */
+VOID KsiActivateDynData(
+    _In_opt_ HWND WindowHandle,
+    _In_ KPH_LEVEL Level
+    )
+{
+    NTSTATUS status;
+    BOOLEAN showMessage;
+    PBYTE dynData = NULL;
+    ULONG dynDataLength;
+    PBYTE signature = NULL;
+    ULONG signatureLength;
+
+    showMessage = (Level < KphLevelHigh);
+
+    status = KsiGetDynData(
+        &dynData,
+        &dynDataLength,
+        &signature,
+        &signatureLength
+        );
+
+    if (!showMessage)
+    {
+        NOTHING;
+    }
+    else if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
+    {
+#if defined(KSI_ONLINE_PLATFORM_SUPPORT)
+        KsiShowKernelSupportCheckDialog(WindowHandle);
+#else
+        if (PhGetPhReleaseChannel() < PhCanaryChannel)
+        {
+            PhShowKsiMessageEx(
+                WindowHandle,
+                TD_WARNING_ICON,
+                0,
+                FALSE,
+                L"Reduced driver functionality",
+                L"The kernel driver is not yet supported on this kernel "
+                L"version. For the latest kernel support switch to the Canary "
+                L"update channel (Help > Check for updates > Canary > Check)."
+                );
+        }
+        else
+        {
+            PhShowKsiMessageEx(
+                WindowHandle,
+                TD_WARNING_ICON,
+                0,
+                FALSE,
+                L"Reduced driver functionality",
+                L"The kernel driver is not yet supported on this kernel "
+                L"version. Request support by submitting a GitHub issue with "
+                L"the Windows Kernel version."
+                );
+        }
+#endif
+    }
+    else if (status == STATUS_NO_SUCH_FILE)
+    {
+        PhShowKsiMessageEx(
+            WindowHandle,
+            TD_WARNING_ICON,
+            0,
+            FALSE,
+            L"Reduced driver functionality",
+            L"The dynamic configuration was not found."
+            );
+    }
+    else if (!NT_SUCCESS(status))
+    {
+        PhShowKsiMessageEx(
+            WindowHandle,
+            TD_WARNING_ICON,
+            status,
+            FALSE,
+            L"Reduced driver functionality",
+            L"Failed to access the dynamic configuration."
+            );
+    }
+
+    if (dynData && signature)
+    {
+        status = KphActivateDynData(dynData,
+                                    dynDataLength,
+                                    signature,
+                                    signatureLength);
+        if (showMessage && !NT_SUCCESS(status))
+        {
+            PhShowKsiMessageEx(
+                WindowHandle,
+                TD_WARNING_ICON,
+                status,
+                FALSE,
+                L"Reduced driver functionality",
+                L"Failed to activate the dynamic configuration."
+                );
+        }
+    }
+
+    if (signature)
+        PhFree(signature);
+    if (dynData)
+        PhFree(dynData);
+}
+
+/**
  * Determine the on-disk kernel driver filename for the current application context.
  *
  * \return Referenced `PPH_STRING` containing the full driver filename.
@@ -1364,10 +1473,6 @@ NTSTATUS KsiConnect(
     )
 {
     NTSTATUS status;
-    PBYTE dynData = NULL;
-    ULONG dynDataLength;
-    PBYTE signature = NULL;
-    ULONG signatureLength;
     PPH_STRING ksiFileName = NULL;
     KPH_CONFIG_PARAMETERS config = { 0 };
     PPH_STRING objectName = NULL;
@@ -1380,79 +1485,6 @@ NTSTATUS KsiConnect(
     if (tempDriverDir = PhGetTemporaryKsiDirectory())
     {
         PhDeleteDirectoryWin32(&tempDriverDir->sr);
-    }
-
-    status = KsiGetDynData(
-        &dynData,
-        &dynDataLength,
-        &signature,
-        &signatureLength
-        );
-
-#if defined(KSI_ONLINE_PLATFORM_SUPPORT)
-    if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
-    {
-        KsiShowKernelSupportCheckDialog(WindowHandle);
-        goto CleanupExit;
-    }
-#else
-    if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
-    {
-        if (PhGetPhReleaseChannel() < PhCanaryChannel)
-        {
-            PhShowKsiMessageEx(
-                WindowHandle,
-                TD_SHIELD_ERROR_ICON,
-                0,
-                FALSE,
-                L"Unable to load kernel driver",
-                L"The kernel driver is not yet supported on this kernel "
-                L"version. For the latest kernel support switch to the Canary "
-                L"update channel (Help > Check for updates > Canary > Check)."
-                );
-        }
-        else
-        {
-            PhShowKsiMessageEx(
-                WindowHandle,
-                TD_SHIELD_ERROR_ICON,
-                0,
-                FALSE,
-                L"Unable to load kernel driver",
-                L"The kernel driver is not yet supported on this kernel "
-                L"version. Request support by submitting a GitHub issue with "
-                L"the Windows Kernel version."
-                );
-        }
-        goto CleanupExit;
-    }
-#endif
-
-    if (status == STATUS_NO_SUCH_FILE)
-    {
-        PhShowKsiMessageEx(
-            WindowHandle,
-            TD_SHIELD_ERROR_ICON,
-            0,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"The dynamic configuration was not found."
-            );
-        goto CleanupExit;
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhShowKsiMessageEx(
-            WindowHandle,
-            TD_SHIELD_ERROR_ICON,
-            status,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"Failed to access the dynamic configuration."
-            );
-
-        goto CleanupExit;
     }
 
     if (!PhDoesFileExistWin32(PhGetString(KsiFileName)))
@@ -1646,9 +1678,9 @@ NTSTATUS KsiConnect(
         goto CleanupExit;
     }
 
-    KphActivateDynData(dynData, dynDataLength, signature, signatureLength);
-
     level = KphLevelEx(FALSE);
+
+    KsiActivateDynData(WindowHandle, level);
 
     if (!NtCurrentPeb()->BeingDebugged && (level != KphLevelMax))
     {
@@ -1768,6 +1800,8 @@ NTSTATUS KsiConnect(
         KphSetInformerSettings(&settings);
     }
 
+    status = STATUS_SUCCESS;
+
 CleanupExit:
 
     PhClearReference(&objectName);
@@ -1775,11 +1809,6 @@ CleanupExit:
     PhClearReference(&altitude);
     PhClearReference(&ksiFileName);
     PhClearReference(&tempDriverDir);
-
-    if (signature)
-        PhFree(signature);
-    if (dynData)
-        PhFree(dynData);
 
 #ifdef DEBUG
     KsiDebugLogInitialize();
