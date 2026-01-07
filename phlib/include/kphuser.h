@@ -315,7 +315,6 @@ typedef enum _KPH_LEVEL
     KphLevelMed,
     KphLevelHigh,
     KphLevelMax
-
 } KPH_LEVEL;
 
 PHLIBAPI
@@ -537,6 +536,13 @@ KphActivateDynData(
     _In_ ULONG DynDataLength,
     _In_ PBYTE Signature,
     _In_ ULONG SignatureLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphIsDynDataActive(
+    _Out_ PBOOLEAN IsActive
     );
 
 PHLIBAPI

@@ -49,6 +49,7 @@ KPHM_DEFINE_HANDLER(KphpCommsAcquireDriverUnloadProtection);
 KPHM_DEFINE_HANDLER(KphpCommsReleaseDriverUnloadProtection);
 KPHM_DEFINE_HANDLER(KphpCommsGetConnectedClientCount);
 KPHM_DEFINE_HANDLER(KphpCommsActivateDynData);
+KPHM_DEFINE_HANDLER(KphpCommsIsDynDataActive);
 KPHM_DEFINE_HANDLER(KphpCommsRequestSessionAccessToken);
 KPHM_DEFINE_HANDLER(KphpCommsAssignProcessSessionToken);
 KPHM_DEFINE_HANDLER(KphpCommsAssignThreadSessionToken);
@@ -114,6 +115,7 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgReleaseDriverUnloadProtection, KphpCommsReleaseDriverUnloadProtection, KphpCommsRequireMaximum },
 { KphMsgGetConnectedClientCount,       KphpCommsGetConnectedClientCount,       KphpCommsRequireLow },
 { KphMsgActivateDynData,               KphpCommsActivateDynData,               KphpCommsRequireLow },
+{ KphMsgIsDynDataActive,               KphpCommsIsDynDataActive,               KphpCommsRequireLow },
 { KphMsgRequestSessionAccessToken,     KphpCommsRequestSessionAccessToken,     KphpCommsRequireMaximum },
 { KphMsgAssignProcessSessionToken,     KphpCommsAssignProcessSessionToken,     KphpCommsRequireMaximum },
 { KphMsgAssignThreadSessionToken,      KphpCommsAssignThreadSessionToken,      KphpCommsRequireMaximum },
@@ -1346,6 +1348,29 @@ NTSTATUS KSIAPI KphpCommsActivateDynData(
                                      msg->Signature,
                                      msg->SignatureLength,
                                      UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsIsDynDataActive(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_IS_DYNDATA_ACTIVE msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgIsDynDataActive);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.IsDynDataActive;
+
+    msg->Status = KphIsDynDataActive(msg->IsActive, UserMode);
 
     return STATUS_SUCCESS;
 }

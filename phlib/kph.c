@@ -1784,6 +1784,31 @@ NTSTATUS KphActivateDynData(
     return status;
 }
 
+NTSTATUS KphIsDynDataActive(
+    _Out_ PBOOLEAN IsActive
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    *IsActive = FALSE;
+
+    if (!KphCommsIsConnected())
+        return STATUS_PORT_DISCONNECTED;
+
+    msg = KphCreateUserMessage(KphMsgIsDynDataActive);
+    msg->User.IsDynDataActive.IsActive = IsActive;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.IsDynDataActive.Status;
+    }
+
+    PhDereferenceObject(msg);
+    return status;
+}
+
 NTSTATUS KphRequestSessionAccessToken(
     _Out_ PKPH_SESSION_ACCESS_TOKEN AccessToken,
     _In_ PLARGE_INTEGER Expiry,

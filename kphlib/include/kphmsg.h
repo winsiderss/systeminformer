@@ -58,6 +58,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgReleaseDriverUnloadProtection,
     KphMsgGetConnectedClientCount,
     KphMsgActivateDynData,
+    KphMsgIsDynDataActive,
     KphMsgRequestSessionAccessToken,
     KphMsgAssignProcessSessionToken,
     KphMsgAssignThreadSessionToken,
@@ -350,6 +351,7 @@ typedef struct _KPH_MESSAGE
             KPHM_RELEASE_DRIVER_UNLOAD_PROTECTION ReleaseDriverUnloadProtection;
             KPHM_GET_CONNECTED_CLIENT_COUNT GetConnectedClientCount;
             KPHM_ACTIVATE_DYNDATA ActivateDynData;
+            KPHM_IS_DYNDATA_ACTIVE IsDynDataActive;
             KPHM_REQUEST_SESSION_ACCESS_TOKEN RequestSessionAccessToken;
             KPHM_ASSIGN_PROCESS_SESSION_TOKEN AssignProcessSessionToken;
             KPHM_ASSIGN_THREAD_SESSION_TOKEN AssignThreadSessionToken;

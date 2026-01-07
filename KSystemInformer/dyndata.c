@@ -474,6 +474,40 @@ Exit:
 }
 
 /**
+ * \brief Checks if dynamic data is active.
+ *
+ * \param[out] IsActive Receives TRUE if active, FALSE otherwise.
+ * \param[in] AccessMode The access mode of the caller.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphIsDynDataActive(
+    _Out_ PBOOLEAN IsActive,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    PKPH_DYN dyn;
+    BOOLEAN isActive;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    dyn = KphReferenceDynData();
+    if (dyn)
+    {
+        isActive = TRUE;
+        KphDereferenceObject(dyn);
+    }
+    else
+    {
+        isActive = FALSE;
+    }
+
+    return KphWriteUCharToMode(IsActive, isActive, AccessMode);
+}
+
+/**
  * \brief Initializes the dynamic modules.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
