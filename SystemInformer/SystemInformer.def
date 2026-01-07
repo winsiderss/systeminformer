@@ -594,20 +594,26 @@ EXPORTS
     PhGetPnPDeviceName
     PhGetProcedureAddress
     PhGetProcedureAddressRemote
+    PhGetProcessAffinityMask
     PhGetProcessCommandLine
     PhGetProcessDepStatus
     PhGetProcessDeviceMap
     PhGetProcessEnvironment
     PhGetProcessExtendedBasicInformation
+    PhGetProcessGroupAffinity
+    PhGetProcessGroupInformation
     PhGetProcessImageFileName
     PhGetProcessImageFileNameByProcessId
     PhGetProcessImageFileNameWin32
+    PhGetProcessIoPriority
     PhGetProcessIsDotNet
     PhGetProcessIsDotNetEx
     PhGetProcessIsWow64
     PhGetProcessMappedFileName
+    PhGetProcessPagePriority
     PhGetProcessPebString
     PhGetProcessPowerThrottlingState
+    PhGetProcessPriorityBoost
     PhGetProcessPriorityClass
     PhGetProcessUnloadedDlls
     PhGetProcessWindowTitle
