@@ -765,6 +765,8 @@ VOID KphpObPerformProcessTracking(
                       "Tracking process %wZ (%lu)",
                       &process->ImageName,
                       HandleToULong(process->ProcessId));
+
+        KphVerifyProcessAndProtectIfAppropriate(process);
     }
     else
     {
