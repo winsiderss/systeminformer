@@ -598,11 +598,13 @@ EXPORTS
     PhGetProcessDepStatus
     PhGetProcessDeviceMap
     PhGetProcessEnvironment
+    PhGetProcessExtendedBasicInformation
     PhGetProcessImageFileName
     PhGetProcessImageFileNameByProcessId
     PhGetProcessImageFileNameWin32
     PhGetProcessIsDotNet
     PhGetProcessIsDotNetEx
+    PhGetProcessIsWow64
     PhGetProcessMappedFileName
     PhGetProcessPebString
     PhGetProcessPowerThrottlingState
