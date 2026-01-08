@@ -218,6 +218,7 @@
     <ClCompile Include="tlsh\tlsh_util.cpp" />
     <ClCompile Include="tlsh\tlsh_wrapper.cpp" />
     <ClCompile Include="xxhash\xxhashwrapper.c" />
+    <ClCompile Include="zydis\Zydis.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="detours\detours.h" />
@@ -264,6 +265,9 @@
     <ClInclude Include="pcre\pcre2_compile.h" />
     <ClInclude Include="pcre\pcre2_internal.h" />
     <ClInclude Include="pcre\pcre2_intmodedep.h" />
+    <ClInclude Include="pcre\pcre2_jit_char_inc.h" />
+    <ClInclude Include="pcre\pcre2_jit_neon_inc.h" />
+    <ClInclude Include="pcre\pcre2_jit_simd_inc.h" />
     <ClInclude Include="pcre\pcre2_ucp.h" />
     <ClInclude Include="pcre\pcre2_util.h" />
     <ClInclude Include="sha256\sha256.h" />
@@ -276,6 +280,7 @@
     <ClInclude Include="tlsh\tlsh_wrapper.h" />
     <ClInclude Include="xxhash\xxhashwrapper.h" />
     <ClInclude Include="xxhash\xxhash.h" />
+    <ClInclude Include="zydis\Zydis.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

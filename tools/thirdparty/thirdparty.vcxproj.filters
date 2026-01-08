@@ -46,6 +46,9 @@
     <Filter Include="xxhash">
       <UniqueIdentifier>{065de9df-0b97-4a3d-a7dc-b90b332859a8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="zydis">
+      <UniqueIdentifier>{fb0d4aa9-8b28-431c-a1b5-11e4578142b9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="jsonc\arraylist.c">
@@ -270,9 +273,18 @@
     <ClCompile Include="miniz\miniz_zip.c">
       <Filter>miniz</Filter>
     </ClCompile>
-    <ClCompile Include="pcre\pcre2_compile_class.c" />
-    <ClCompile Include="pcre\pcre2_ucptables.c" />
-    <ClCompile Include="pcre\pcre2_chkdint.c" />
+    <ClCompile Include="pcre\pcre2_chkdint.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_compile_class.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_ucptables.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="zydis\Zydis.c">
+      <Filter>zydis</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mxml\config.h">
@@ -437,7 +449,23 @@
     <ClInclude Include="miniz\miniz_zip.h">
       <Filter>miniz</Filter>
     </ClInclude>
-    <ClInclude Include="pcre\pcre2_compile.h" />
-    <ClInclude Include="pcre\pcre2_util.h" />
+    <ClInclude Include="pcre\pcre2_compile.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_jit_char_inc.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_jit_neon_inc.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_jit_simd_inc.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_util.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="zydis\Zydis.h">
+      <Filter>zydis</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
