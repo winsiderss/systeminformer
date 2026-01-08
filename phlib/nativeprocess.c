@@ -1464,9 +1464,11 @@ NTSTATUS PhGetProcessIsTerminated(
  *
  * \param[in] ProcessHandle A handle to the process.
  * \return TRUE if the process is terminated, FALSE otherwise.
+ * \remarks The handle must have SYNCRONIZE access.
  */
-BOOLEAN PhGetProcessIsTerminated2(
-    _In_ HANDLE ProcessHandle
+NTSTATUS PhGetProcessIsTerminated2(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsTerminated
     )
 {
     NTSTATUS status;
@@ -1480,7 +1482,9 @@ BOOLEAN PhGetProcessIsTerminated2(
         &timeout
         );
 
-    return status == STATUS_WAIT_0;
+    *IsTerminated = status == STATUS_WAIT_0;
+
+    return status;
 }
 
 /**

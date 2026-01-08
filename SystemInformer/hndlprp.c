@@ -2086,8 +2086,8 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (PhValidWindowPlacementFromSetting(L"HandlePropertiesWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
+            if (PhValidWindowPlacementFromSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
             else
                 PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
 
@@ -2114,7 +2114,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         {
             PhUnregisterWindowCallback(context->ParentWindow);
 
-            PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
+            PhSaveWindowPlacementToSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -2972,32 +2972,11 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
 
             PhUpdateHandlePermissionSecurity(context);
 
-
-               // index = PhAddListViewGroupItem(GetDlgItem(hwndDlg, IDC_LIST2), 0, MAXINT, L"Integrity level", NULL);
-              //  PhSetListViewSubItem(GetDlgItem(hwndDlg, IDC_LIST2), index, 1, L"Unable to disable the integrity level.");
-
-
-
-            //// Plugins can load window position in GeneralCallbackHandlePropertiesWindowInitialized, ex. Object Manager (Dart Vanya)
-            //if (!PhPluginsEnabled || !context->OwnerPlugin)
-            //{
-            //    // HACK
-            //    if (PhValidWindowPlacementFromSetting(L"HandlePropertiesWindowPosition"))
-            //        PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
-            //    else
-            //        PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
-            //}
-
-            //PhpUpdateHandleGeneralListViewGroups(context);
-            //PhpUpdateHandleGeneral(context);
-
-            //PhRegisterWindowCallback(context->ParentWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
-
             //if (PhPluginsEnabled)
             //{
             //    PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT Context;
             //    Context = (PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT)context;
-
+            //
             //    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowInitialized), Context);
             //}
 
@@ -3011,7 +2990,7 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
         {
             //PhUnregisterWindowCallback(context->ParentWindow);
 
-            //PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
+            //PhSaveWindowPlacementToSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -3182,9 +3161,7 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
         break;
     case WM_DESTROY:
         {
-            //PhUnregisterWindowCallback(context->ParentWindow);
-
-            //PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
+            //PhSaveWindowPlacementToSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
