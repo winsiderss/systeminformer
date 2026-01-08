@@ -565,6 +565,7 @@ EXPORTS
     PhEnumReparsePointInformation
     PhEnumerateKey
     PhEnumerateValueKey
+    PhEnumerateValueKeyEx
     PhFilterConnectCommunicationPort
     PhFindProcessInformation
     PhFindProcessInformationByImageName

@@ -842,10 +842,11 @@ PhGetProcessIsTerminated(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetProcessIsTerminated2(
-    _In_ HANDLE ProcessHandle
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsTerminated
     );
 
 PHLIBAPI
@@ -4597,6 +4598,16 @@ PhEnumerateValueKey(
     _In_ KEY_VALUE_INFORMATION_CLASS InformationClass,
     _In_ PPH_ENUM_KEY_CALLBACK Callback,
     _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumerateValueKeyEx(
+    _In_ HANDLE KeyHandle,
+    _In_ ULONG Index,
+    _In_ KEY_VALUE_INFORMATION_CLASS InformationClass,
+    _Out_ PVOID* Buffer
     );
 
 PHLIBAPI

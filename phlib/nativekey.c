@@ -760,3 +760,66 @@ NTSTATUS PhEnumerateValueKey(
 
     return status;
 }
+
+/**
+ * Enumerates the values of a registry key and returns a buffer for each enumerated value entry.
+ *
+ * \param[in] KeyHandle Handle to an open registry key to enumerate values from.
+ * \param[in] Index Zero-based index of the value entry to retrieve.
+ * \param[in] InformationClass KEY_VALUE_INFORMATION_CLASS value specifying the format of the returned record.
+ * \param[out] Buffer Receives a pointer to a buffer containing the value entry information.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhEnumerateValueKeyEx(
+    _In_ HANDLE KeyHandle,
+    _In_ ULONG Index,
+    _In_ KEY_VALUE_INFORMATION_CLASS InformationClass,
+    _Out_ PVOID* Buffer
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG returnLength;
+
+    bufferSize = 256;
+    buffer = PhAllocate(bufferSize);
+
+    status = NtEnumerateValueKey(
+        KeyHandle,
+        Index,
+        InformationClass,
+        buffer,
+        bufferSize,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(bufferSize);
+
+        status = NtEnumerateValueKey(
+            KeyHandle,
+            Index,
+            InformationClass,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *Buffer = buffer;
+    }
+    else
+    {
+        PhFree(buffer);
+        *Buffer = NULL;
+    }
+
+    return status;
+}
+
