@@ -2245,7 +2245,7 @@ NTSTATUS PhGetMappedImageImportEntry(
 
     if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-        IMAGE_THUNK_DATA32 entry= ((PIMAGE_THUNK_DATA32)ImportDll->LookupTable)[Index];
+        IMAGE_THUNK_DATA32 entry = ((PIMAGE_THUNK_DATA32)ImportDll->LookupTable)[Index];
 
         if (IMAGE_SNAP_BY_ORDINAL32(entry.u1.Ordinal))
         {
