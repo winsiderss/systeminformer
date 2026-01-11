@@ -52,7 +52,7 @@ namespace CustomBuildTool
         /// <returns>
         /// The <see cref="DateTime"/> representing the queue time of the build, or <see cref="DateTime.MinValue"/> if an error occurs.
         /// </returns>
-        public static DateTime BuildQueryQueueTime()
+        public static bool BuildQueryQueueTime(out DateTime DateTime)
         {
             if (string.IsNullOrWhiteSpace(BaseBuild) ||
                 string.IsNullOrWhiteSpace(BaseToken) ||
@@ -60,7 +60,8 @@ namespace CustomBuildTool
                 string.IsNullOrWhiteSpace(BaseUrl))
             {
                 Program.PrintColorMessage("One or more required environment variables are missing.", ConsoleColor.Red);
-                return DateTime.MinValue;
+                DateTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
+                return true;
             }
 
             try
@@ -75,14 +76,14 @@ namespace CustomBuildTool
                     if (string.IsNullOrWhiteSpace(httpResult))
                     {
                         Program.PrintColorMessage($"[ERROR] Received empty response.", ConsoleColor.Red);
-                        return DateTime.MinValue;
+                        ArgumentNullException.ThrowIfNull(httpResult);
                     }
 
                     var content = JsonSerializer.Deserialize(httpResult, BuildInfoResponseContext.Default.BuildInfo);
                     if (content == null)
                     {
                         Program.PrintColorMessage($"[ERROR] Failed to deserialize the response.", ConsoleColor.Red);
-                        return DateTime.MinValue;
+                        ArgumentNullException.ThrowIfNull(content);
                     }
 
                     var offset = new DateTimeOffset(DateTime.SpecifyKind(content.QueueTime, DateTimeKind.Utc));
@@ -91,13 +92,15 @@ namespace CustomBuildTool
                     Program.PrintColorMessage($"Build StartTime: {content.StartTime}", ConsoleColor.Green);
                     Program.PrintColorMessage($"Build Elapsed: {(DateTimeOffset.UtcNow - offset)}", ConsoleColor.Green);
 
-                    return offset.DateTime;
+                    DateTime = offset.DateTime;
+                    return true;
                 }
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-                return DateTime.MinValue;
+                DateTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
+                return false;
             }
         }
     }

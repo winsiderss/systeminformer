@@ -92,11 +92,14 @@ namespace CustomBuildTool
                 }
             }
 
-            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS") ||
+            if (Console.IsOutputRedirected ||
+                Win32.HasEnvironmentVariable("GITHUB_ACTIONS") ||
                 Win32.HasEnvironmentVariable("TF_BUILD"))
             {
                 Build.BuildIntegration = true;
-                Build.TimeStart = BuildDevOps.BuildQueryQueueTime();
+
+                if (!BuildDevOps.BuildQueryQueueTime(out Build.TimeStart))
+                    return false;
             }
             else
             {
