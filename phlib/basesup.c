@@ -6873,7 +6873,12 @@ VOID PhDeleteCallback(
     _Inout_ PPH_CALLBACK Callback
     )
 {
-    // Nothing for now
+    PhAcquireQueuedLockExclusive(&Callback->ListLock);
+    
+    // Assert that all callbacks have been unregistered
+    assert(IsListEmpty(&Callback->ListHead));
+    
+    PhReleaseQueuedLockExclusive(&Callback->ListLock);
 }
 
 /**
