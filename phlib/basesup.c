@@ -1472,6 +1472,46 @@ SIZE_T PhCountStringZ(
     _In_ PCWSTR String
     )
 {
+#ifndef _ARM64_
+    if (PhHasAVX)
+    {
+        PWSTR p;
+        ULONG unaligned;
+        __m256i b;
+        __m256i z;
+        ULONG mask;
+        ULONG index;
+
+        p = (PWSTR)((ULONG_PTR)String & ~0x1e); // String should be 2 byte aligned
+        unaligned = (ULONG_PTR)String & 0x1f;
+        z = _mm256_setzero_si256();
+
+        if (unaligned != 0)
+        {
+            b = _mm256_loadu_si256((__m256i const*)p);
+            b = _mm256_cmpeq_epi16(b, z);
+            mask = _mm256_movemask_epi8(b) >> unaligned;
+
+            if (_BitScanForward(&index, mask))
+                return index / sizeof(WCHAR);
+
+            p += 32 / sizeof(WCHAR);
+        }
+
+        while (TRUE)
+        {
+            b = _mm256_load_si256((__m256i const*)p);
+            b = _mm256_cmpeq_epi16(b, z);
+            mask = _mm256_movemask_epi8(b);
+
+            if (_BitScanForward(&index, mask))
+                return (SIZE_T)(p - String) + index / sizeof(WCHAR);
+
+            p += 32 / sizeof(WCHAR);
+        }
+    }
+    else
+#endif
     if (PhHasIntrinsics)
     {
         PWSTR p;
@@ -1487,7 +1527,7 @@ SIZE_T PhCountStringZ(
 
         if (unaligned != 0)
         {
-            b = PhLoadINT128((PLONG)p);
+            b = PhLoadINT128U((PLONG)p);
             b = PhCompareEqINT128by16(b, z);
             mask = PhMoveMaskINT128by8(b) >> unaligned;
 
