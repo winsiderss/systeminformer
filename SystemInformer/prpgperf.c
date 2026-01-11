@@ -58,13 +58,6 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             performanceContext->Enabled = TRUE;
             performanceContext->WindowDpi = PhGetWindowDpi(hwndDlg);
 
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
-                PerformanceUpdateHandler,
-                performanceContext,
-                &performanceContext->ProcessesUpdatedRegistration
-                );
-
             // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
             // the drawing issue that arises when using WS_CLIPCHILDREN. However
             // in removing the flicker from the graphs the group boxes will now flicker.
@@ -94,19 +87,27 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             Graph_SetTooltip(performanceContext->IoGraphHandle, TRUE);
             BringWindowToTop(performanceContext->IoGraphHandle);
 
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
+                PhProcessPerformanceUpdateHandler,
+                performanceContext,
+                &performanceContext->ProcessesUpdatedRegistration
+                );
+
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            PhDeleteGraphState(&performanceContext->CpuGraphState);
-            PhDeleteGraphState(&performanceContext->PrivateGraphState);
-            PhDeleteGraphState(&performanceContext->IoGraphState);
-
             PhUnregisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 &performanceContext->ProcessesUpdatedRegistration
                 );
+
+            PhDeleteGraphState(&performanceContext->CpuGraphState);
+            PhDeleteGraphState(&performanceContext->PrivateGraphState);
+            PhDeleteGraphState(&performanceContext->IoGraphState);
+
             PhFree(performanceContext);
         }
         break;

@@ -765,7 +765,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     PPH_EMENU_ITEM inheritHighlightMenuItem;
                     PPH_EMENU_ITEM selectedItem;
 
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect);
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect))
+                        break;
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, protectedMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDE_PROTECTED_HANDLES, L"Hide protected handles", NULL, NULL), ULONG_MAX);

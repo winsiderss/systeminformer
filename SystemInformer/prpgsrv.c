@@ -21,7 +21,9 @@ static VOID PhpLayoutServiceListControl(
 {
     RECT rect;
 
-    GetWindowRect(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), &rect);
+    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), &rect))
+        return;
+
     MapWindowRect(NULL, hwndDlg, &rect);
 
     MoveWindow(

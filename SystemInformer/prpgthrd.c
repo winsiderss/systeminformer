@@ -1561,7 +1561,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PPH_EMENU_ITEM saveMenuItem;
                     PPH_EMENU_ITEM selectedItem;
 
-                    if (!GetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect))
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect))
                         break;
 
                     hideSuspendedMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIDE_SUSPENDED, L"Hide suspended", NULL, NULL);
