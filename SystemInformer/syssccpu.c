@@ -836,7 +836,7 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                     HDC hdc;
                     FLOAT cpuKernel;
                     FLOAT cpuUser;
-                    PH_FORMAT format[6];
+                    PH_FORMAT format[11];
 
                     cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[index], 0);
                     cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[index], 0);
@@ -847,34 +847,37 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                     PhInitFormatF(&format[2], cpuKernel * 100, PhMaxPrecisionUnit);
                     PhInitFormatS(&format[3], L"%, U: ");
                     PhInitFormatF(&format[4], cpuUser * 100, PhMaxPrecisionUnit);
-                    PhInitFormatS(&format[5], L"%) ");
-
-                    PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-
-                    hdc = Graph_GetBufferedContext(CpusGraphHandle[index]);
-                    PhSetGraphText(
-                        hdc,
-                        drawInfo,
-                        &CpusGraphState[index].Text->sr,
-                        &PhNormalGraphTextMargin,
-                        &PhNormalGraphTextPadding,
-                        PH_ALIGN_TOP | PH_ALIGN_LEFT
-                        );
 
                     if (CpuFrequencyInformation)
                     {
-                        PhInitFormatF(&format[0], CpuFrequencyInformation[index] / 1000, PhMaxPrecisionUnit);
-                        PhInitFormatS(&format[1], L" GHz");
-                        PhInitFormatS(&format[2], L" (");
-                        PhInitFormatFD(&format[3], 1000 / CpuFrequencyInformation[index], 3); // ns per cycle
-                        PhInitFormatS(&format[4], L" \u00B5s)");
+                        PhInitFormatS(&format[5], L"%)\r\n");
+                        PhInitFormatF(&format[6], CpuFrequencyInformation[index] / 1000, PhMaxPrecisionUnit);
+                        PhInitFormatS(&format[7], L" GHz");
+                        PhInitFormatS(&format[8], L" (");
+                        PhInitFormatFD(&format[9], 1000 / CpuFrequencyInformation[index], 3); // ns per cycle
+                        PhInitFormatS(&format[10], L" \u00B5s)");
+                        PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
 
-                        PhMoveReference(&CpusGraphState[index].TextLine2, PhFormat(format, 5, 0));
-
+                        hdc = Graph_GetBufferedContext(CpusGraphHandle[index]);
                         PhSetGraphText2(
                             hdc,
                             drawInfo,
-                            &CpusGraphState[index].TextLine2->sr,
+                            &CpusGraphState[index].Text->sr,
+                            &PhNormalGraphTextMargin,
+                            &PhNormalGraphTextPadding,
+                            PH_ALIGN_TOP | PH_ALIGN_LEFT
+                            );
+                    }
+                    else
+                    {
+                        PhInitFormatS(&format[5], L"%) ");
+                        PhMoveReference(&CpusGraphState[index].Text, PhFormat(format, 6, 0));
+
+                        hdc = Graph_GetBufferedContext(CpusGraphHandle[index]);
+                        PhSetGraphText(
+                            hdc,
+                            drawInfo,
+                            &CpusGraphState[index].Text->sr,
                             &PhNormalGraphTextMargin,
                             &PhNormalGraphTextPadding,
                             PH_ALIGN_TOP | PH_ALIGN_LEFT

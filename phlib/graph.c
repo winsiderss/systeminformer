@@ -70,7 +70,6 @@ RECT PhNormalGraphTextMargin = { 5, 5, 5, 5 };
 RECT PhNormalGraphTextPadding = { 3, 3, 3, 3 };
 
 RTL_ATOM PhGraphControlInitialization(
-    VOID
     )
 {
     WNDCLASSEX wcex;
@@ -546,6 +545,7 @@ VOID PhDrawGraphDirect(
     if (DrawInfo->Text.Buffer)
     {
         HFONT oldFont = NULL;
+        HBRUSH brush;
 
         if (DrawInfo->TextFont)
             oldFont = SelectFont(hdc, DrawInfo->TextFont);
@@ -553,8 +553,10 @@ VOID PhDrawGraphDirect(
         SetBkMode(hdc, TRANSPARENT);
 
         // Fill in the text box.
+        brush = PhGetStockBrush(DC_BRUSH);
+        SelectBrush(hdc, brush);
         SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
-        FillRect(hdc, &DrawInfo->TextBoxRect, PhGetStockBrush(DC_BRUSH));
+        FillRect(hdc, &DrawInfo->TextBoxRect, brush);
 
         // Draw the text.
         SetTextColor(hdc, DrawInfo->TextColor);
@@ -630,14 +632,14 @@ VOID PhSetGraphText(
     else if (Align & PH_ALIGN_RIGHT)
         boxRectangle.Left = DrawInfo->Width - boxRectangle.Width - Margin->right;
     else
-        boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / (LONG)sizeof(WCHAR);
+        boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / 2;
 
     if (Align & PH_ALIGN_TOP)
         boxRectangle.Top = Margin->top;
     else if (Align & PH_ALIGN_BOTTOM)
         boxRectangle.Top = DrawInfo->Height - boxRectangle.Height - Margin->bottom;
     else
-        boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / (LONG)sizeof(WCHAR);
+        boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / 2;
 
     // Calculate the text rectangle.
 
@@ -661,48 +663,72 @@ VOID PhSetGraphText2(
     )
 {
     HFONT oldFont = NULL;
-    SIZE textSize;
+    RECT calcRect = { 0, 0, DrawInfo->Width, DrawInfo->Height };
+    UINT flags = DT_NOPREFIX | DT_WORDBREAK | DT_EDITCONTROL;
     PH_RECTANGLE boxRectangle;
     PH_RECTANGLE textRectangle;
 
+    // Horizontal alignment
+    if (FlagOn(Align, PH_ALIGN_LEFT))
+        flags |= DT_LEFT;
+    else if (FlagOn(Align, PH_ALIGN_RIGHT))
+        flags |= DT_RIGHT;
+    else
+        flags |= DT_CENTER;
+
+    // Vertical alignment (handled manually after measuring)
+    // DT_TOP is default; DT_VCENTER/DT_BOTTOM don't work with CALCRECT
+    flags |= DT_TOP;
+
+    // Select font for measurement
     if (DrawInfo->TextFont)
         oldFont = SelectFont(hdc, DrawInfo->TextFont);
 
-    DrawInfo->Text2 = *Text;
-    GetTextExtentPoint32(hdc, Text->Buffer, (ULONG)Text->Length / sizeof(WCHAR), &textSize);
+    // Measure multi-line text
+    DrawInfo->Text = *Text;
+    DrawText(
+        hdc,
+        Text->Buffer,
+        (LONG)(Text->Length / sizeof(WCHAR)),
+        &calcRect,
+        flags | DT_CALCRECT
+        );
 
     if (oldFont)
         SelectFont(hdc, oldFont);
 
-    // Calculate the box rectangle.
+    // Compute box size
+    LONG textWidth = calcRect.right - calcRect.left;
+    LONG textHeight = calcRect.bottom - calcRect.top;
 
-    boxRectangle.Width = textSize.cx + Padding->left + Padding->right;
-    boxRectangle.Height = textSize.cy + Padding->top + Padding->bottom;
+    boxRectangle.Width = textWidth + Padding->left + Padding->right;
+    boxRectangle.Height = textHeight + Padding->top + Padding->bottom;
 
-    if (Align & PH_ALIGN_LEFT)
+    // Horizontal positioning
+    if (FlagOn(Align, PH_ALIGN_LEFT))
         boxRectangle.Left = Margin->left;
-    else if (Align & PH_ALIGN_RIGHT)
+    else if (FlagOn(Align, PH_ALIGN_RIGHT))
         boxRectangle.Left = DrawInfo->Width - boxRectangle.Width - Margin->right;
     else
-        boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / (LONG)sizeof(WCHAR);
+        boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / 2;
 
-    if (Align & PH_ALIGN_TOP)
-        boxRectangle.Top = DrawInfo->TextBoxRect.bottom + Margin->top;
-    else if (Align & PH_ALIGN_BOTTOM)
+    // Vertical positioning
+    if (FlagOn(Align, PH_ALIGN_TOP))
+        boxRectangle.Top = Margin->top;
+    else if (FlagOn(Align, PH_ALIGN_BOTTOM))
         boxRectangle.Top = DrawInfo->Height - boxRectangle.Height - Margin->bottom;
     else
-        boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / (LONG)sizeof(WCHAR);
+        boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / 2;
 
-    // Calculate the text rectangle.
-
+    // Compute final text rectangle
     textRectangle.Left = boxRectangle.Left + Padding->left;
     textRectangle.Top = boxRectangle.Top + Padding->top;
-    textRectangle.Width = textSize.cx;
-    textRectangle.Height = textSize.cy;
+    textRectangle.Width = textWidth;
+    textRectangle.Height = textHeight;
 
-    // Save the rectangles.
-    PhRectangleToRect(&DrawInfo->TextRect2, &textRectangle);
-    PhRectangleToRect(&DrawInfo->TextBoxRect2, &boxRectangle);
+    // Save rectangles
+    PhRectangleToRect(&DrawInfo->TextRect, &textRectangle);
+    PhRectangleToRect(&DrawInfo->TextBoxRect, &boxRectangle);
 }
 
 PPHP_GRAPH_CONTEXT PhCreateGraphContext(
