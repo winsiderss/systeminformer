@@ -17,7 +17,8 @@
 #include <procprv.h>
 #include <phsettings.h>
 
-static VOID NTAPI PerformanceUpdateHandler(
+_Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI PhProcessPerformanceUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -25,7 +26,9 @@ static VOID NTAPI PerformanceUpdateHandler(
     PPH_PERFORMANCE_CONTEXT performanceContext = (PPH_PERFORMANCE_CONTEXT)Context;
 
     if (performanceContext && performanceContext->Enabled)
+    {
         PostMessage(performanceContext->WindowHandle, WM_PH_PERFORMANCE_UPDATE, 0, 0);
+    }
 }
 
 INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
@@ -167,10 +170,8 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                         if (!performanceContext->CpuGraphState.Valid)
                         {
-                            PhCopyCircularBuffer_FLOAT(&processItem->CpuKernelHistory,
-                                performanceContext->CpuGraphState.Data1, drawInfo->LineDataCount);
-                            PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory,
-                                performanceContext->CpuGraphState.Data2, drawInfo->LineDataCount);
+                            PhCopyCircularBuffer_FLOAT(&processItem->CpuKernelHistory, performanceContext->CpuGraphState.Data1, drawInfo->LineDataCount);
+                            PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory, performanceContext->CpuGraphState.Data2, drawInfo->LineDataCount);
 
                             if (PhCsEnableGraphMaxScale)
                             {
@@ -293,8 +294,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             PhInitFormatSize(&format[0], processItem->VmCounters.PagefileUsage);
 
-                            PhMoveReference(&performanceContext->PrivateGraphState.Text,
-                                PhFormat(format, RTL_NUMBER_OF(format), 0));
+                            PhMoveReference(&performanceContext->PrivateGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
 
                             hdc = Graph_GetBufferedContext(performanceContext->PrivateGraphHandle);
                             PhSetGraphText(hdc, drawInfo, &performanceContext->PrivateGraphState.Text->sr,
@@ -369,8 +369,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PhInitFormatS(&format[2], L", W: ");
                             PhInitFormatSize(&format[3], processItem->IoWriteDelta.Delta);
 
-                            PhMoveReference(&performanceContext->IoGraphState.Text,
-                                PhFormat(format, RTL_NUMBER_OF(format), 64));
+                            PhMoveReference(&performanceContext->IoGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 64));
 
                             hdc = Graph_GetBufferedContext(performanceContext->IoGraphHandle);
                             PhSetGraphText(hdc, drawInfo, &performanceContext->IoGraphState.Text->sr,
@@ -432,8 +431,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PhInitFormatC(&format[1], L'\n');
                             PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->sr);
 
-                            PhMoveReference(&performanceContext->PrivateGraphState.TooltipText,
-                                PhFormat(format, RTL_NUMBER_OF(format), 64));
+                            PhMoveReference(&performanceContext->PrivateGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 64));
                         }
 
                         getTooltipText->Text = performanceContext->PrivateGraphState.TooltipText->sr;
@@ -464,8 +462,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PhInitFormatC(&format[6], L'\n');
                             PhInitFormatSR(&format[7], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->sr);
 
-                            PhMoveReference(&performanceContext->IoGraphState.TooltipText,
-                                PhFormat(format, RTL_NUMBER_OF(format), 64));
+                            PhMoveReference(&performanceContext->IoGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 64));
                         }
 
                         getTooltipText->Text = performanceContext->IoGraphState.TooltipText->sr;
