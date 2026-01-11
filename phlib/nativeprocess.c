@@ -1434,14 +1434,13 @@ NTSTATUS PhGetProcessIsBeingDebugged(
 }
 
 /**
- * Retrieves the termination state for a process.
+ * Determines if a process has started termination.
  *
  * \param[in] ProcessHandle A handle to the process whose termination state is to be retrieved.
  * \param[out] IsTerminated A pointer to a variable that receives the termination state (TRUE if terminated).
  * \return Successful or errant status.
  * \remarks The handle must have PROCESS_QUERY_LIMITED_INFORMATION access.
  */
-NTSTATUS PhGetProcessIsTerminated(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsTerminated
     )
@@ -1460,13 +1459,13 @@ NTSTATUS PhGetProcessIsTerminated(
 }
 
 /**
- * Determines if a process is terminated by waiting with zero timeout.
+ * Determines if a process has terminated by waiting with zero timeout.
  *
  * \param[in] ProcessHandle A handle to the process.
  * \return TRUE if the process is terminated, FALSE otherwise.
  * \remarks The handle must have SYNCRONIZE access.
  */
-NTSTATUS PhGetProcessIsTerminated2(
+NTSTATUS PhGetProcessIsTerminated(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsTerminated
     )

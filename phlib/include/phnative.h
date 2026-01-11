@@ -836,7 +836,7 @@ PhGetProcessIsBeingDebugged(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhGetProcessIsTerminated(
+PhGetProcessIsTerminating(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsTerminated
     );
@@ -844,7 +844,7 @@ PhGetProcessIsTerminated(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhGetProcessIsTerminated2(
+PhGetProcessIsTerminated(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsTerminated
     );

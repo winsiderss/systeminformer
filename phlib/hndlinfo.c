@@ -960,7 +960,7 @@ PPH_STRING PhStdGetClientIdNameEx(
             )))
         {
             // Check if the process is alive
-            PhGetProcessIsTerminated2(processHandle, &processIsTerminated);
+            PhGetProcessIsTerminated(processHandle, &processIsTerminated);
 
             // Use the name of the process if available
             //if (PhIsNullOrEmptyString(ProcessName) && NT_SUCCESS(PhGetProcessImageFileName(processHandle, &processName)))

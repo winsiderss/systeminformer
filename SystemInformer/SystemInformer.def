@@ -604,11 +604,13 @@ EXPORTS
     PhGetProcessGroupAffinity
     PhGetProcessGroupInformation
     PhGetProcessImageFileName
+    PhGetProcessImageFileNameById
     PhGetProcessImageFileNameByProcessId
     PhGetProcessImageFileNameWin32
     PhGetProcessIoPriority
     PhGetProcessIsDotNet
     PhGetProcessIsDotNetEx
+    PhGetProcessIsTerminated
     PhGetProcessIsWow64
     PhGetProcessMappedFileName
     PhGetProcessPagePriority
@@ -623,7 +625,9 @@ EXPORTS
     PhGetSectionFileName
     PhGetThreadBasePriority
     PhGetThreadBasicInformation
+    PhGetThreadIsTerminated
     PhGetThreadIoPriority
+    PhGetThreadName
     PhGetTokenGroups
     PhGetTokenIntegrityLevel
     PhGetTokenIntegrityLevelRID
@@ -646,6 +650,7 @@ EXPORTS
     PhOpenProcessClientId
     PhOpenProcessToken
     PhOpenThread
+    PhOpenThreadClientId
     PhOpenThreadProcess
     PhPeekNamedPipe
     PhQueryEnvironmentVariable
