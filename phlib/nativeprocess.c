@@ -1441,6 +1441,7 @@ NTSTATUS PhGetProcessIsBeingDebugged(
  * \return Successful or errant status.
  * \remarks The handle must have PROCESS_QUERY_LIMITED_INFORMATION access.
  */
+NTSTATUS PhGetProcessIsTerminating(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsTerminated
     )
