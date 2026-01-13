@@ -194,8 +194,8 @@ VOID PhSetPluginDisabled(
         }
 
         newDisabled = PhCreateStringEx(NULL, disabled->Length - removeCount * sizeof(WCHAR));
-        memcpy(newDisabled->Buffer, disabled->Buffer, foundIndex * sizeof(WCHAR));
-        memcpy(&newDisabled->Buffer[foundIndex], &disabled->Buffer[foundIndex + removeCount],
+        memmove(newDisabled->Buffer, disabled->Buffer, foundIndex * sizeof(WCHAR));
+        memmove(&newDisabled->Buffer[foundIndex], &disabled->Buffer[foundIndex + removeCount],
             disabled->Length - removeCount * sizeof(WCHAR) - foundIndex * sizeof(WCHAR));
         PhSetStringSetting2(SETTING_DISABLED_PLUGINS, &newDisabled->sr);
         PhDereferenceObject(newDisabled);
