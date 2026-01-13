@@ -1215,18 +1215,6 @@ VOID PhCopyListView(
     PhDereferenceObject(text);
 }
 
-VOID PhCopyIListView(
-    _In_ HWND ListViewHandle,
-    _In_ IListView* ListView
-    )
-{
-    PPH_STRING text;
-
-    text = PhGetIListViewText(ListView);
-    PhSetClipboardString(ListViewHandle, &text->sr);
-    PhDereferenceObject(text);
-}
-
 VOID PhHandleListViewNotifyForCopy(
     _In_ LPARAM lParam,
     _In_ HWND ListViewHandle
@@ -1308,49 +1296,6 @@ BOOLEAN PhGetListViewContextMenuPoint(
     Point->x = 0;
     Point->y = 0;
     ClientToScreen(ListViewHandle, Point);
-
-    return FALSE;
-}
-
-BOOLEAN PhGetIListViewContextMenuPoint(
-    _In_ IListView* ListView,
-    _Out_ PPOINT Point
-    )
-{
-    LONG selectedIndex;
-    RECT bounds = { 0 };
-    RECT clientRect = { 0 };
-
-    // The user pressed a key to display the context menu.
-    // Suggest where the context menu should display.
-
-    if ((selectedIndex = PhFindIListViewItemByFlags(ListView, INT_ERROR, LVNI_SELECTED)) != INT_ERROR)
-    {
-        if (PhGetIListViewItemRect(ListView, selectedIndex, LVIR_BOUNDS, &bounds))
-        {
-            //LONG dpiValue = PhGetWindowDpi(ListViewHandle);
-
-            //Point->x = bounds.left + PhGetSystemMetrics(SM_CXSMICON, dpiValue) / 2;
-            //Point->y = bounds.top + PhGetSystemMetrics(SM_CYSMICON, dpiValue) / 2;
-
-            PhGetIListViewClientRect(ListView, &clientRect);
-
-            if (Point->x < 0 || Point->y < 0 || Point->x >= clientRect.right || Point->y >= clientRect.bottom)
-            {
-                // The menu is going to be outside of the control. Just put it at the top-left.
-                Point->x = 0;
-                Point->y = 0;
-            }
-
-            //ClientToScreen(ListViewHandle, Point);
-
-            return TRUE;
-        }
-    }
-
-    Point->x = 0;
-    Point->y = 0;
-    //ClientToScreen(ListViewHandle, Point);
 
     return FALSE;
 }
@@ -2243,79 +2188,6 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
 
     context = PhAllocate(sizeof(PH_COPY_ITEM_CONTEXT));
     context->ListViewHandle = ListViewHandle;
-    context->ListViewClass = NULL;
-    context->Id = lvHitInfo.iItem;
-    context->SubId = lvHitInfo.iSubItem;
-    context->MenuItemText = menuItemText;
-
-    copyMenuItem = PhCreateEMenuItem(0, ID_COPY_CELL, menuItemText->Buffer, NULL, context);
-    copyMenuItem->DeleteFunction = PhpCopyListViewEMenuItemDeleteFunction;
-
-    PhInsertEMenuItem(parentItem, copyMenuItem, indexInParent);
-
-    return TRUE;
-}
-
-BOOLEAN PhInsertCopyIListViewEMenuItem(
-    _In_ PPH_EMENU_ITEM Menu,
-    _In_ ULONG InsertAfterId,
-    _In_ HWND ListViewHandle,
-    _In_ IListView* ListView
-    )
-{
-    PPH_EMENU_ITEM parentItem = NULL;
-    ULONG indexInParent = 0;
-    PPH_COPY_ITEM_CONTEXT context;
-    PH_STRINGREF columnText;
-    PPH_STRING escapedText;
-    PPH_STRING menuItemText;
-    PPH_EMENU_ITEM copyMenuItem;
-    POINT location;
-    LVHITTESTINFO lvHitInfo;
-    HDITEM headerItem;
-    HWND headerHandle;
-    PH_FORMAT format[3];
-    WCHAR headerText[MAX_PATH] = L"";
-
-    if (!PhGetClientPos(ListViewHandle, &location))
-        return FALSE;
-
-    memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
-    lvHitInfo.pt = location;
-
-    if (IListView_HitTestSubItem(ListView, &lvHitInfo) != S_OK)
-        return FALSE;
-    if (IListView_GetHeaderControl(ListView, &headerHandle) != S_OK)
-        return FALSE;
-
-    memset(&headerItem, 0, sizeof(HDITEM));
-    headerItem.mask = HDI_TEXT;
-    headerItem.cchTextMax = RTL_NUMBER_OF(headerText);
-    headerItem.pszText = headerText;
-
-    if (!Header_GetItem(headerHandle, lvHitInfo.iSubItem, &headerItem))
-        return FALSE;
-
-    PhInitializeStringRefLongHint(&columnText, headerText);
-
-    if (PhIsNullOrEmptyStringRef(&columnText))
-        return FALSE;
-
-    if (!PhFindEMenuItemEx(Menu, 0, NULL, InsertAfterId, &parentItem, &indexInParent))
-        return FALSE;
-
-    indexInParent++;
-
-    escapedText = PhEscapeStringForMenuPrefix(&columnText);
-    PhInitFormatS(&format[0], L"Copy \""); // Copy \"%s\"
-    PhInitFormatSR(&format[1], escapedText->sr);
-    PhInitFormatS(&format[2], L"\"");
-    menuItemText = PhFormat(format, RTL_NUMBER_OF(format), 0);
-    PhDereferenceObject(escapedText);
-
-    context = PhAllocate(sizeof(PH_COPY_ITEM_CONTEXT));
-    context->ListViewHandle = ListViewHandle;
-    context->ListViewClass = ListView;
     context->Id = lvHitInfo.iItem;
     context->SubId = lvHitInfo.iSubItem;
     context->MenuItemText = menuItemText;
@@ -2349,31 +2221,19 @@ BOOLEAN PhHandleCopyListViewEMenuItem(
 
     PhInitializeStringBuilder(&stringBuilder, 0x100);
 
-    if (context->ListViewClass)
-        IListView_GetItemCount(context->ListViewClass, &count);
-    else
-        count = ListView_GetItemCount(context->ListViewHandle);
-
+    count = ListView_GetItemCount(context->ListViewHandle);
     selectedCount = 0;
 
     for (i = 0; i < count; i++)
     {
-        if (context->ListViewClass)
-            IListView_GetItemState(context->ListViewClass, i, 0, LVIS_SELECTED, &state);
-        else
-            state = ListView_GetItemState(context->ListViewHandle, i, LVIS_SELECTED);
+        ListView_GetItemState(context->ListViewHandle, i, LVIS_SELECTED);
 
         if (!FlagOn(state, LVIS_SELECTED))
             continue;
 
-        if (context->ListViewClass)
-            getItemText = PhGetIListViewItemText(context->ListViewClass, i, context->SubId);
-        else
-            getItemText = PhaGetListViewItemText(context->ListViewHandle, i, context->SubId);
-
-        PhAppendStringBuilder(&stringBuilder, &getItemText->sr);
+        if (getItemText = PhaGetListViewItemText(context->ListViewHandle, i, context->SubId))
+            PhAppendStringBuilder(&stringBuilder, &getItemText->sr);
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
-
         selectedCount++;
     }
 

@@ -70,7 +70,6 @@ typedef struct _PHP_TOKEN_USER_RESOLVE_CONTEXT
 typedef struct _PHP_TOKEN_GROUP_RESOLVE_CONTEXT
 {
     HWND ListViewHandle;
-    IListView* ListViewClass;
     PPHP_TOKEN_PAGE_LISTVIEW_ITEM LvItem;
     LONG GroupId;
     PSID TokenGroupSid;
@@ -102,7 +101,6 @@ typedef struct _TOKEN_PAGE_CONTEXT
     HANDLE ProcessId;
 
     HWND ListViewHandle;
-    IListView* ListViewClass;
     HIMAGELIST ListViewImageList;
     PH_LAYOUT_MANAGER LayoutManager;
     BOOLEAN SinglePageContext;
@@ -676,15 +674,15 @@ VOID PhpTokenPageFreeListViewEntries(
 {
     LONG index = INT_ERROR;
 
-    while ((index = PhFindIListViewItemByFlags(
-        TokenPageContext->ListViewClass,
+    while ((index = PhFindListViewItemByFlags(
+        TokenPageContext->ListViewHandle,
         index,
         LVNI_ALL
         )) != INT_ERROR)
     {
         PPHP_TOKEN_PAGE_LISTVIEW_ITEM entry;
 
-        if (PhGetIListViewItemParam(TokenPageContext->ListViewClass, index, &entry))
+        if (PhGetListViewItemParam(TokenPageContext->ListViewHandle, index, &entry))
         {
             PhFree(entry);
         }
@@ -768,8 +766,8 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
             }
         }
 
-        PhSetIListViewSubItem(context->ListViewClass, ItemIndex, PH_PROCESS_TOKEN_INDEX_NAME, PhGetStringOrDefault(sidString, L"[Unknown SID]"));
-        PhSetIListViewSubItem(context->ListViewClass, ItemIndex, PH_PROCESS_TOKEN_INDEX_TYPE, PhGetSidAccountTypeString(context->TokenGroupSid));
+        PhSetListViewSubItem(context->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_NAME, PhGetStringOrDefault(sidString, L"[Unknown SID]"));
+        PhSetListViewSubItem(context->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_TYPE, PhGetSidAccountTypeString(context->TokenGroupSid));
 
         PhClearReference(&sidString);
     }
@@ -779,13 +777,13 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
         PWSTR tokenSidType;
 
         if (PhGetTokenSidTypeString(sidUse, &tokenSidType))
-            PhSetIListViewSubItem(context->ListViewClass, ItemIndex, PH_PROCESS_TOKEN_INDEX_USE, tokenSidType);
+            PhSetListViewSubItem(context->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_USE, tokenSidType);
         else
-            PhSetIListViewSubItem(context->ListViewClass, ItemIndex, PH_PROCESS_TOKEN_INDEX_USE, L"N/A");
+            PhSetListViewSubItem(context->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_USE, L"N/A");
     }
     else
     {
-        PhSetIListViewSubItem(context->ListViewClass, ItemIndex, PH_PROCESS_TOKEN_INDEX_USE, L"N/A");
+        PhSetListViewSubItem(context->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_USE, L"N/A");
     }
 
     PhFree(context->TokenGroupSid);
@@ -821,8 +819,8 @@ VOID PhpUpdateSidsFromTokenGroups(
             lvitem->GroupId = PH_PROCESS_TOKEN_CATEGORY_INTEGRITY;
         }
 
-        ItemIndex = PhAddIListViewGroupItem(
-            TokenPageContext->ListViewClass,
+        ItemIndex = PhAddListViewGroupItem(
+            TokenPageContext->ListViewHandle,
             lvitem->GroupId,
             MAXINT,
             L"Resolving...",
@@ -831,7 +829,7 @@ VOID PhpUpdateSidsFromTokenGroups(
 
         if (attributesString = PhGetGroupAttributesString(Groups->Groups[i].Attributes, Restricted))
         {
-            PhSetIListViewSubItem(TokenPageContext->ListViewClass, ItemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, PhGetString(attributesString));
+            PhSetListViewSubItem(TokenPageContext->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, PhGetString(attributesString));
             PhDereferenceObject(attributesString);
         }
 
@@ -843,13 +841,13 @@ VOID PhpUpdateSidsFromTokenGroups(
 
         if (descriptionString)
         {
-            PhSetIListViewSubItem(TokenPageContext->ListViewClass, ItemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetString(descriptionString));
+            PhSetListViewSubItem(TokenPageContext->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetString(descriptionString));
             PhDereferenceObject(descriptionString);
         }
 
         if (stringUserSid = PhSidToStringSid(Groups->Groups[i].Sid))
         {
-            PhSetIListViewSubItem(TokenPageContext->ListViewClass, ItemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhGetString(stringUserSid));
+            PhSetListViewSubItem(TokenPageContext->ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhGetString(stringUserSid));
             PhDereferenceObject(stringUserSid);
         }
 
@@ -858,7 +856,6 @@ VOID PhpUpdateSidsFromTokenGroups(
 
             tokenGroupResolve = PhAllocateZero(sizeof(PHP_TOKEN_GROUP_RESOLVE_CONTEXT));
             tokenGroupResolve->ListViewHandle = TokenPageContext->ListViewHandle;
-            tokenGroupResolve->ListViewClass = TokenPageContext->ListViewClass;
             tokenGroupResolve->LvItem = lvitem;
             tokenGroupResolve->GroupId = lvitem->GroupId;
             tokenGroupResolve->TokenGroupSid = PhAllocateCopy(Groups->Groups[i].Sid, PhLengthSid(Groups->Groups[i].Sid));
@@ -934,13 +931,13 @@ NTSTATUS NTAPI PhpEnumeratePrivilegesCallback(
         lvitem->TokenPrivilege->Attributes = SE_PRIVILEGE_REMOVED;
 
         // Name
-        itemIndex = PhAddIListViewGroupItem(tokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, MAXINT, PhGetString(privilegeName), lvitem);
+        itemIndex = PhAddListViewGroupItem(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, MAXINT, PhGetString(privilegeName), lvitem);
         // Status
-        PhSetIListViewSubItem(tokenPageContext->ListViewClass, itemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, PhGetPrivilegeAttributesString(lvitem->TokenPrivilege->Attributes));
+        PhSetListViewSubItem(tokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, PhGetPrivilegeAttributesString(lvitem->TokenPrivilege->Attributes));
         // Description
-        PhSetIListViewSubItem(tokenPageContext->ListViewClass, itemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetStringOrEmpty(privilegeDisplayName));
+        PhSetListViewSubItem(tokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetStringOrEmpty(privilegeDisplayName));
         // Privilege value
-        PhSetIListViewSubItem(tokenPageContext->ListViewClass, itemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhaFormatUInt64(Privileges[i].LocalValue.LowPart, FALSE)->Buffer);
+        PhSetListViewSubItem(tokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhaFormatUInt64(Privileges[i].LocalValue.LowPart, FALSE)->Buffer);
 
         PhClearReference(&privilegeDisplayName);
         PhClearReference(&privilegeName);
@@ -981,13 +978,13 @@ BOOLEAN PhpUpdateTokenPrivileges(
             PhLookupPrivilegeDisplayName(&privilegeName->sr, &privilegeDisplayName);
 
             // Name
-            itemIndex = PhAddIListViewGroupItem(TokenPageContext->ListViewClass, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, MAXINT, privilegeName->Buffer, lvitem);
+            itemIndex = PhAddListViewGroupItem(TokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, MAXINT, privilegeName->Buffer, lvitem);
             // Status
-            PhSetIListViewSubItem(TokenPageContext->ListViewClass, itemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, PhGetPrivilegeAttributesString(privileges->Privileges[i].Attributes));
+            PhSetListViewSubItem(TokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, PhGetPrivilegeAttributesString(privileges->Privileges[i].Attributes));
             // Description
-            PhSetIListViewSubItem(TokenPageContext->ListViewClass, itemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetStringOrEmpty(privilegeDisplayName));
+            PhSetListViewSubItem(TokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetStringOrEmpty(privilegeDisplayName));
             // Value
-            PhSetIListViewSubItem(TokenPageContext->ListViewClass, itemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhaFormatUInt64(privileges->Privileges[i].Luid.LowPart, FALSE)->Buffer);
+            PhSetListViewSubItem(TokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhaFormatUInt64(privileges->Privileges[i].Luid.LowPart, FALSE)->Buffer);
 
             PhClearReference(&privilegeDisplayName);
             PhClearReference(&privilegeName);
@@ -1008,7 +1005,7 @@ BOOLEAN PhpUpdateTokenPrivileges(
 }
 
 VOID PhpUpdateTokenDangerousFlagItem(
-    _In_ IListView* ListView,
+    _In_ HWND ListViewHandle,
     _In_ PH_PROCESS_TOKEN_FLAG Flag,
     _In_ BOOLEAN State,
     _In_ PWSTR Name,
@@ -1024,13 +1021,13 @@ VOID PhpUpdateTokenDangerousFlagItem(
     lvitem->ItemFlagState = State;
 
     // Name
-    itemIndex = PhAddIListViewGroupItem(ListView, lvitem->GroupId, MAXINT, Name, lvitem);
+    itemIndex = PhAddListViewGroupItem(ListViewHandle, lvitem->GroupId, MAXINT, Name, lvitem);
     // Status
-    PhSetIListViewSubItem(ListView, itemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, State ? L"Enabled (modified)" : L"Disabled (modified)");
+    PhSetListViewSubItem(ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, State ? L"Enabled (modified)" : L"Disabled (modified)");
     // Description
-    PhSetIListViewSubItem(ListView, itemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, Description);
+    PhSetListViewSubItem(ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, Description);
     // Value
-    PhSetIListViewSubItem(ListView, itemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhaFormatUInt64(Flag, FALSE)->Buffer);
+    PhSetListViewSubItem(ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhaFormatUInt64(Flag, FALSE)->Buffer);
 }
 
 BOOLEAN PhpUpdateTokenDangerousFlags(
@@ -1048,7 +1045,7 @@ BOOLEAN PhpUpdateTokenDangerousFlags(
         if ((mandatoryPolicy.Policy & TOKEN_MANDATORY_POLICY_NO_WRITE_UP) == 0)
         {
             PhpUpdateTokenDangerousFlagItem(
-                TokenPageContext->ListViewClass,
+                TokenPageContext->ListViewHandle,
                 PH_PROCESS_TOKEN_FLAG_NO_WRITE_UP,
                 FALSE,
                 L"No-Write-Up Policy",
@@ -1063,7 +1060,7 @@ BOOLEAN PhpUpdateTokenDangerousFlags(
         if (isSandboxInert)
         {
             PhpUpdateTokenDangerousFlagItem(
-                TokenPageContext->ListViewClass,
+                TokenPageContext->ListViewHandle,
                 PH_PROCESS_TOKEN_FLAG_SANDBOX_INERT,
                 TRUE,
                 L"Sandbox Inert",
@@ -1078,7 +1075,7 @@ BOOLEAN PhpUpdateTokenDangerousFlags(
         if (isUIAccess)
         {
             PhpUpdateTokenDangerousFlagItem(
-                TokenPageContext->ListViewClass,
+                TokenPageContext->ListViewHandle,
                 PH_PROCESS_TOKEN_FLAG_UIACCESS,
                 TRUE,
                 L"UIAccess",
@@ -1284,16 +1281,15 @@ INT_PTR CALLBACK PhpTokenPageProc(
             HANDLE tokenHandle;
 
             tokenPageContext->ListViewHandle = GetDlgItem(hwndDlg, IDC_GROUPS);
-            tokenPageContext->ListViewClass = PhGetListViewInterface(tokenPageContext->ListViewHandle);
 
             PhSetListViewStyle(tokenPageContext->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(tokenPageContext->ListViewHandle, L"explorer");
-            PhAddIListViewColumn(tokenPageContext->ListViewClass, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
-            PhAddIListViewColumn(tokenPageContext->ListViewClass, 1, 1, 1, LVCFMT_LEFT, 100, L"Status");
-            PhAddIListViewColumn(tokenPageContext->ListViewClass, 2, 2, 2, LVCFMT_LEFT, 170, L"Description");
-            PhAddIListViewColumn(tokenPageContext->ListViewClass, 3, 3, 3, LVCFMT_LEFT, 100, L"SID");
-            PhAddIListViewColumn(tokenPageContext->ListViewClass, 4, 4, 4, LVCFMT_LEFT, 100, L"Type");
-            PhAddIListViewColumn(tokenPageContext->ListViewClass, 5, 5, 5, LVCFMT_LEFT, 100, L"Use");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Status");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 170, L"Description");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"SID");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Type");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Use");
 
             PhSetExtendedListView(tokenPageContext->ListViewHandle);
             ExtendedListView_SetCompareFunction(tokenPageContext->ListViewHandle, 1, PhpTokenStatusColumnCompareFunction);
@@ -1481,7 +1477,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
             if (tokenPageContext->RestrictedSids) PhFree(tokenPageContext->RestrictedSids);
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
-            if (tokenPageContext->ListViewClass) IListView_Release(tokenPageContext->ListViewClass);
         }
         break;
     case WM_SIZE:
@@ -1523,7 +1518,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     HANDLE tokenHandle;
                     ULONG i;
 
-                    PhGetSelectedIListViewItemParams(tokenPageContext->ListViewClass, &listViewItems, &numberOfItems);
+                    PhGetSelectedListViewItemParams(tokenPageContext->ListViewHandle, &listViewItems, &numberOfItems);
 
                     for (i = 0; i < numberOfItems; i++)
                     {
@@ -1624,8 +1619,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                     {
                                         // Refresh the status text (and background color).
                                         listViewItems[i]->TokenPrivilege->Attributes = newAttributes;
-                                        PhSetIListViewSubItem(
-                                            tokenPageContext->ListViewClass,
+                                        PhSetListViewSubItem(
+                                            tokenPageContext->ListViewHandle,
                                             itemIndex,
                                             PH_PROCESS_TOKEN_INDEX_STATUS,
                                             PhGetPrivilegeAttributesString(newAttributes)
@@ -1633,7 +1628,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                     }
                                     else
                                     {
-                                        IListView_DeleteItem(tokenPageContext->ListViewClass, itemIndex);
+                                        ListView_DeleteItem(tokenPageContext->ListViewHandle, itemIndex);
                                     }
                                 }
                             }
@@ -1691,8 +1686,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     HANDLE tokenHandle;
                     ULONG i;
 
-                    PhGetSelectedIListViewItemParams(
-                        tokenPageContext->ListViewClass,
+                    PhGetSelectedListViewItemParams(
+                        tokenPageContext->ListViewHandle,
                         &listViewItems,
                         &numberOfItems
                         );
@@ -1770,7 +1765,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                         // Refresh the status text (and background color).
                                         listViewItems[i]->TokenGroup->Attributes = newAttributes;
 
-                                        PhSetIListViewSubItem(tokenPageContext->ListViewClass, itemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, attributesString->Buffer);
+                                        PhSetListViewSubItem(tokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, attributesString->Buffer);
                                     }
 
                                     PhDereferenceObject(attributesString);
@@ -1827,8 +1822,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     ULONG numberOfItems;
                     HANDLE tokenHandle;
 
-                    PhGetSelectedIListViewItemParams(
-                        tokenPageContext->ListViewClass,
+                    PhGetSelectedListViewItemParams(
+                        tokenPageContext->ListViewHandle,
                         &listViewItems,
                         &numberOfItems
                         );
@@ -1883,7 +1878,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                             if (itemIndex != INT_ERROR)
                             {
-                                IListView_DeleteItem(tokenPageContext->ListViewClass, itemIndex);
+                                ListView_DeleteItem(tokenPageContext->ListViewHandle, itemIndex);
                             }
                         }
                         else
@@ -2191,9 +2186,9 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetIListViewContextMenuPoint(tokenPageContext->ListViewClass, &point);
+                    PhGetListViewContextMenuPoint(tokenPageContext->ListViewHandle, &point);
 
-                PhGetSelectedIListViewItemParams(tokenPageContext->ListViewClass, &listviewItems, &numberOfItems);
+                PhGetSelectedListViewItemParams(tokenPageContext->ListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {
@@ -2264,7 +2259,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     }
 
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyIListViewEMenuItem(menu, IDC_COPY, tokenPageContext->ListViewHandle, tokenPageContext->ListViewClass);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, tokenPageContext->ListViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -2290,7 +2285,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             {
                             case IDC_COPY:
                                 {
-                                    PhCopyIListView(tokenPageContext->ListViewHandle, tokenPageContext->ListViewClass);
+                                    PhCopyListView(tokenPageContext->ListViewHandle);
                                 }
                                 break;
                             }
@@ -2674,7 +2669,6 @@ typedef struct _PHP_TOKEN_ADVANCED_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
-    IListView* ListView;
     PH_LAYOUT_MANAGER LayoutManager;
 } PHP_TOKEN_ADVANCED_CONTEXT, *PPHP_TOKEN_ADVANCED_CONTEXT;
 
@@ -2729,32 +2723,31 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             PPH_STRING tokenSystemIdForUser = NULL;
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            context->ListView = PhGetListViewInterface(context->ListViewHandle);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddIListViewColumn(context->ListView, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
-            PhAddIListViewColumn(context->ListView, 1, 1, 1, LVCFMT_LEFT, 280, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 280, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            IListView_EnableGroupView(context->ListView, TRUE);
-            PhAddIListViewGroup(context->ListView, listViewGroupIndex++, L"General");
-            PhAddIListViewGroup(context->ListView, listViewGroupIndex++, L"LUIDs");
-            PhAddIListViewGroup(context->ListView, listViewGroupIndex++, L"Memory");
-            PhAddIListViewGroup(context->ListView, listViewGroupIndex++, L"Properties");
-            PhAddIListViewGroupItem(context->ListView, 0, MAXINT, L"Type", NULL);
-            PhAddIListViewGroupItem(context->ListView, 0, MAXINT, L"Impersonation level", NULL);
-            PhAddIListViewGroupItem(context->ListView, 1, MAXINT, L"Token LUID", NULL);
-            PhAddIListViewGroupItem(context->ListView, 1, MAXINT, L"Authentication LUID", NULL);
-            PhAddIListViewGroupItem(context->ListView, 1, MAXINT, L"ModifiedId LUID", NULL);
-            PhAddIListViewGroupItem(context->ListView, 1, MAXINT, L"Origin LUID", NULL);
-            PhAddIListViewGroupItem(context->ListView, 2, MAXINT, L"Memory used", NULL);
-            PhAddIListViewGroupItem(context->ListView, 2, MAXINT, L"Memory available", NULL);
-            PhAddIListViewGroupItem(context->ListView, 3, MAXINT, L"Token object path", NULL);
-            PhAddIListViewGroupItem(context->ListView, 3, MAXINT, L"Token SDDL", NULL);
+            ListView_EnableGroupView(context->ListViewHandle, TRUE);
+            PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"General");
+            PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"LUIDs");
+            PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"Memory");
+            PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"Properties");
+            PhAddListViewGroupItem(context->ListViewHandle, 0, MAXINT, L"Type", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, MAXINT, L"Impersonation level", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 1, MAXINT, L"Token LUID", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 1, MAXINT, L"Authentication LUID", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 1, MAXINT, L"ModifiedId LUID", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 1, MAXINT, L"Origin LUID", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 2, MAXINT, L"Memory used", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 2, MAXINT, L"Memory available", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 3, MAXINT, L"Token object path", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 3, MAXINT, L"Token SDDL", NULL);
 
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
@@ -2798,11 +2791,11 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                     LONG trustLevelSidIndex;
                     LONG trustLevelNameIndex;
 
-                    trustLevelGroupIndex = PhAddIListViewGroup(context->ListView, listViewGroupIndex++, L"TrustLevel");
-                    trustLevelSidIndex = PhAddIListViewGroupItem(context->ListView, trustLevelGroupIndex, MAXINT, L"TrustLevel Sid", NULL);
-                    trustLevelNameIndex = PhAddIListViewGroupItem(context->ListView, trustLevelGroupIndex, MAXINT, L"TrustLevel Name", NULL);
-                    PhSetIListViewSubItem(context->ListView, trustLevelSidIndex, 1, PhGetStringOrDefault(tokenTrustLevelSidString, L"N/A"));
-                    PhSetIListViewSubItem(context->ListView, trustLevelNameIndex, 1, PhGetStringOrDefault(tokenTrustLevelNameString, L"N/A"));
+                    trustLevelGroupIndex = PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"TrustLevel");
+                    trustLevelSidIndex = PhAddListViewGroupItem(context->ListViewHandle, trustLevelGroupIndex, MAXINT, L"TrustLevel Sid", NULL);
+                    trustLevelNameIndex = PhAddListViewGroupItem(context->ListViewHandle, trustLevelGroupIndex, MAXINT, L"TrustLevel Name", NULL);
+                    PhSetListViewSubItem(context->ListViewHandle, trustLevelSidIndex, 1, PhGetStringOrDefault(tokenTrustLevelSidString, L"N/A"));
+                    PhSetListViewSubItem(context->ListViewHandle, trustLevelNameIndex, 1, PhGetStringOrDefault(tokenTrustLevelNameString, L"N/A"));
 
                     PhClearReference(&tokenTrustLevelNameString);
                     PhClearReference(&tokenTrustLevelSidString);
@@ -2827,15 +2820,15 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                     LONG profileFolderIndex;
                     LONG profileRegistryIndex;
 
-                    profileGroupIndex = PhAddIListViewGroup(context->ListView, listViewGroupIndex++, L"Profile");
-                    profileFolderIndex = PhAddIListViewGroupItem(context->ListView, profileGroupIndex, MAXINT, L"Folder path", NULL);
-                    profileRegistryIndex = PhAddIListViewGroupItem(context->ListView, profileGroupIndex, MAXINT, L"Registry path", NULL);
+                    profileGroupIndex = PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"Profile");
+                    profileFolderIndex = PhAddListViewGroupItem(context->ListViewHandle, profileGroupIndex, MAXINT, L"Folder path", NULL);
+                    profileRegistryIndex = PhAddListViewGroupItem(context->ListViewHandle, profileGroupIndex, MAXINT, L"Registry path", NULL);
 
-                    PhSetIListViewSubItem(context->ListView, profileFolderIndex, 1, PhGetStringOrDefault(tokenProfilePathString, L"N/A"));
+                    PhSetListViewSubItem(context->ListViewHandle, profileFolderIndex, 1, PhGetStringOrDefault(tokenProfilePathString, L"N/A"));
 
                     if (tokenProfileRegistryString = PhpGetTokenRegistryPath(tokenHandle))
                     {
-                        PhSetIListViewSubItem(context->ListView, profileRegistryIndex, 1, PhGetStringOrDefault(tokenProfileRegistryString, L"N/A"));
+                        PhSetListViewSubItem(context->ListViewHandle, profileRegistryIndex, 1, PhGetStringOrDefault(tokenProfileRegistryString, L"N/A"));
                         PhDereferenceObject(tokenProfileRegistryString);
                     }
 
@@ -2855,27 +2848,27 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 LONG systemIdPublisherIndex;
                 LONG systemIdUserIndex;
 
-                systemIdGroupIndex = PhAddIListViewGroup(context->ListView, listViewGroupIndex++, L"System ID");
-                systemIdPublisherIndex = PhAddIListViewGroupItem(context->ListView, systemIdGroupIndex, MAXINT, L"HWID (Publisher)", NULL);
-                systemIdUserIndex = PhAddIListViewGroupItem(context->ListView, systemIdGroupIndex, MAXINT, L"HWID (User)", NULL);
+                systemIdGroupIndex = PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"System ID");
+                systemIdPublisherIndex = PhAddListViewGroupItem(context->ListViewHandle, systemIdGroupIndex, MAXINT, L"HWID (Publisher)", NULL);
+                systemIdUserIndex = PhAddListViewGroupItem(context->ListViewHandle, systemIdGroupIndex, MAXINT, L"HWID (User)", NULL);
 
-                PhSetIListViewSubItem(context->ListView, systemIdPublisherIndex, 1, PhGetStringOrDefault(tokenSystemIdForPublisher, L"N/A"));
-                PhSetIListViewSubItem(context->ListView, systemIdUserIndex, 1, PhGetStringOrDefault(tokenSystemIdForUser, L"N/A"));
+                PhSetListViewSubItem(context->ListViewHandle, systemIdPublisherIndex, 1, PhGetStringOrDefault(tokenSystemIdForPublisher, L"N/A"));
+                PhSetListViewSubItem(context->ListViewHandle, systemIdUserIndex, 1, PhGetStringOrDefault(tokenSystemIdForUser, L"N/A"));
 
                 PhClearReference(&tokenSystemIdForPublisher);
                 PhClearReference(&tokenSystemIdForUser);
             }
 
-            PhSetIListViewSubItem(context->ListView, 0, 1, tokenType);
-            PhSetIListViewSubItem(context->ListView, 1, 1, tokenImpersonationLevel);
-            PhSetIListViewSubItem(context->ListView, 2, 1, tokenLuid);
-            PhSetIListViewSubItem(context->ListView, 3, 1, authenticationLuid);
-            PhSetIListViewSubItem(context->ListView, 4, 1, tokenModifiedLuid);
-            PhSetIListViewSubItem(context->ListView, 5, 1, tokenOriginLogonSession);
-            PhSetIListViewSubItem(context->ListView, 6, 1, PhGetStringOrDefault(memoryUsed, L"Unknown"));
-            PhSetIListViewSubItem(context->ListView, 7, 1, PhGetStringOrDefault(memoryAvailable, L"Unknown"));
-            PhSetIListViewSubItem(context->ListView, 8, 1, PhGetStringOrDefault(tokenNamedObjectPathString, L"Unknown"));
-            PhSetIListViewSubItem(context->ListView, 9, 1, PhGetStringOrDefault(tokenSecurityDescriptorString, L"Unknown"));
+            PhSetListViewSubItem(context->ListViewHandle, 0, 1, tokenType);
+            PhSetListViewSubItem(context->ListViewHandle, 1, 1, tokenImpersonationLevel);
+            PhSetListViewSubItem(context->ListViewHandle, 2, 1, tokenLuid);
+            PhSetListViewSubItem(context->ListViewHandle, 3, 1, authenticationLuid);
+            PhSetListViewSubItem(context->ListViewHandle, 4, 1, tokenModifiedLuid);
+            PhSetListViewSubItem(context->ListViewHandle, 5, 1, tokenOriginLogonSession);
+            PhSetListViewSubItem(context->ListViewHandle, 6, 1, PhGetStringOrDefault(memoryUsed, L"Unknown"));
+            PhSetListViewSubItem(context->ListViewHandle, 7, 1, PhGetStringOrDefault(memoryAvailable, L"Unknown"));
+            PhSetListViewSubItem(context->ListViewHandle, 8, 1, PhGetStringOrDefault(tokenNamedObjectPathString, L"Unknown"));
+            PhSetListViewSubItem(context->ListViewHandle, 9, 1, PhGetStringOrDefault(tokenSecurityDescriptorString, L"Unknown"));
 
             PhClearReference(&memoryUsed);
             PhClearReference(&memoryAvailable);
@@ -2914,15 +2907,15 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetIListViewContextMenuPoint(context->ListView, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedIListViewItemParams(context->ListView, &listviewItems, &numberOfItems);
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyIListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle, context->ListView);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -2948,7 +2941,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                             {
                             case IDC_COPY:
                                 {
-                                    PhCopyIListView(context->ListViewHandle, context->ListView);
+                                    PhCopyListView(context->ListViewHandle);
                                 }
                                 break;
                             }
@@ -4399,7 +4392,6 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
             PPH_STRING tokenNamedObjectPathString = NULL;
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            context->ListView = PhGetListViewInterface(context->ListViewHandle);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -4410,25 +4402,25 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            IListView_EnableGroupView(context->ListView, TRUE);
-            PhAddIListViewGroup(context->ListView, 0, L"General");
-            PhAddIListViewGroup(context->ListView, 1, L"Properties");
-            PhAddIListViewGroup(context->ListView, 2, L"Parent");
-            PhAddIListViewGroup(context->ListView, 3, L"Package");
-            PhAddIListViewGroup(context->ListView, 4, L"Profile");
+            ListView_EnableGroupView(context->ListViewHandle, TRUE);
+            PhAddListViewGroup(context->ListViewHandle, 0, L"General");
+            PhAddListViewGroup(context->ListViewHandle, 1, L"Properties");
+            PhAddListViewGroup(context->ListViewHandle, 2, L"Parent");
+            PhAddListViewGroup(context->ListViewHandle, 3, L"Package");
+            PhAddListViewGroup(context->ListViewHandle, 4, L"Profile");
 
-            PhAddIListViewGroupItem(context->ListView, 0, MAXINT, L"Name", NULL);
-            PhAddIListViewGroupItem(context->ListView, 0, MAXINT, L"Type", NULL);
-            PhAddIListViewGroupItem(context->ListView, 0, MAXINT, L"SID", NULL);
-            PhAddIListViewGroupItem(context->ListView, 1, MAXINT, L"Number", NULL);
-            PhAddIListViewGroupItem(context->ListView, 1, MAXINT, L"LPAC", NULL);
-            PhAddIListViewGroupItem(context->ListView, 1, MAXINT, L"Token object path", NULL);
-            PhAddIListViewGroupItem(context->ListView, 2, MAXINT, L"Name", NULL);
-            PhAddIListViewGroupItem(context->ListView, 2, MAXINT, L"SID", NULL);
-            PhAddIListViewGroupItem(context->ListView, 3, MAXINT, L"Name", NULL);
-            PhAddIListViewGroupItem(context->ListView, 3, MAXINT, L"Path", NULL);
-            PhAddIListViewGroupItem(context->ListView, 4, MAXINT, L"Folder path", NULL);
-            PhAddIListViewGroupItem(context->ListView, 4, MAXINT, L"Registry path", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, MAXINT, L"Name", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, MAXINT, L"Type", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, MAXINT, L"SID", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 1, MAXINT, L"Number", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 1, MAXINT, L"LPAC", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 1, MAXINT, L"Token object path", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 2, MAXINT, L"Name", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 2, MAXINT, L"SID", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 3, MAXINT, L"Name", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 3, MAXINT, L"Path", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 4, MAXINT, L"Folder path", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 4, MAXINT, L"Registry path", NULL);
 
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
@@ -4458,23 +4450,23 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
 
                 if (appContainerName)
                 {
-                    PhSetIListViewSubItem(context->ListView, 0, 1, appContainerName->Buffer);
+                    PhSetListViewSubItem(context->ListViewHandle, 0, 1, appContainerName->Buffer);
                     PhDereferenceObject(appContainerName);
                 }
 
                 switch (appContainerSidType)
                 {
                 case ChildAppContainerSidType:
-                    PhSetIListViewSubItem(context->ListView, 1, 1, L"Child");
+                    PhSetListViewSubItem(context->ListViewHandle, 1, 1, L"Child");
                     break;
                 case ParentAppContainerSidType:
-                    PhSetIListViewSubItem(context->ListView, 1, 1, L"Parent");
+                    PhSetListViewSubItem(context->ListViewHandle, 1, 1, L"Parent");
                     break;
                 }
 
                 if (appContainerSidString)
                 {
-                    PhSetIListViewSubItem(context->ListView, 2, 1, appContainerSidString->Buffer);
+                    PhSetListViewSubItem(context->ListViewHandle, 2, 1, appContainerSidString->Buffer);
                     PhDereferenceObject(appContainerSidString);
                 }
 
@@ -4485,16 +4477,16 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                         WCHAR string[PH_INT64_STR_LEN_1] = L"Unknown";
 
                         PhPrintUInt32(string, appContainerNumber);
-                        PhSetIListViewSubItem(context->ListView, 3, 1, string);
+                        PhSetListViewSubItem(context->ListViewHandle, 3, 1, string);
                     }
 
                     PhGetTokenIsLessPrivilegedAppContainer(tokenHandle, &isLessPrivilegedAppContainer);
-                    PhSetIListViewSubItem(context->ListView, 4, 1, isLessPrivilegedAppContainer ? L"True" : L"False");
+                    PhSetListViewSubItem(context->ListViewHandle, 4, 1, isLessPrivilegedAppContainer ? L"True" : L"False");
                 }
 
                 if (NT_SUCCESS(PhGetAppContainerNamedObjectPath(tokenHandle, NULL, FALSE, &tokenNamedObjectPathString)))
                 {
-                    PhSetIListViewSubItem(context->ListView, 5, 1, PhGetStringOrDefault(tokenNamedObjectPathString, L"Unknown"));
+                    PhSetListViewSubItem(context->ListViewHandle, 5, 1, PhGetStringOrDefault(tokenNamedObjectPathString, L"Unknown"));
                     PhDereferenceObject(tokenNamedObjectPathString);
                 }
 
@@ -4502,13 +4494,13 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 {
                     if (appContainerName = PhGetAppContainerName(appContainerSidParent))
                     {
-                        PhSetIListViewSubItem(context->ListView, 6, 1, appContainerName->Buffer);
+                        PhSetListViewSubItem(context->ListViewHandle, 6, 1, appContainerName->Buffer);
                         PhDereferenceObject(appContainerName);
                     }
 
                     if (appContainerSidString = PhSidToStringSid(appContainerSidParent))
                     {
-                        PhSetIListViewSubItem(context->ListView, 7, 1, appContainerSidString->Buffer);
+                        PhSetListViewSubItem(context->ListViewHandle, 7, 1, appContainerSidString->Buffer);
                         PhDereferenceObject(appContainerSidString);
                     }
 
@@ -4517,11 +4509,11 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
 
                 if (packageFullName = PhGetTokenPackageFullName(tokenHandle))
                 {
-                    PhSetIListViewSubItem(context->ListView, 8, 1, packageFullName->Buffer);
+                    PhSetListViewSubItem(context->ListViewHandle, 8, 1, packageFullName->Buffer);
 
                     if (packagePath = PhGetPackagePath(packageFullName))
                     {
-                        PhSetIListViewSubItem(context->ListView, 9, 1, packagePath->Buffer);
+                        PhSetListViewSubItem(context->ListViewHandle, 9, 1, packagePath->Buffer);
                         PhDereferenceObject(packagePath);
                     }
 
@@ -4566,13 +4558,13 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
 
                 if (appContainerFolderPath)
                 {
-                    PhSetIListViewSubItem(context->ListView, 10, 1, appContainerFolderPath->Buffer);
+                    PhSetListViewSubItem(context->ListViewHandle, 10, 1, appContainerFolderPath->Buffer);
                     PhDereferenceObject(appContainerFolderPath);
                 }
 
                 if (appContainerRegistryPath = PhpGetTokenAppContainerRegistryPath(tokenHandle))
                 {
-                    PhSetIListViewSubItem(context->ListView, 11, 1, appContainerRegistryPath->Buffer);
+                    PhSetListViewSubItem(context->ListViewHandle, 11, 1, appContainerRegistryPath->Buffer);
                     PhDereferenceObject(appContainerRegistryPath);
                 }
 
@@ -4611,15 +4603,15 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetIListViewContextMenuPoint(context->ListView, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedIListViewItemParams(context->ListView, &listviewItems, &numberOfItems);
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyIListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle, context->ListView);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -4645,7 +4637,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                             {
                             case IDC_COPY:
                                 {
-                                    PhCopyIListView(context->ListViewHandle, context->ListView);
+                                    PhCopyListView(context->ListViewHandle);
                                 }
                                 break;
                             }

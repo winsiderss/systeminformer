@@ -982,35 +982,8 @@ PhAddListViewColumnDpi(
 PHLIBAPI
 LONG
 NTAPI
-PhAddIListViewColumnDpi(
-    _In_ IListView* ListView,
-    _In_ LONG ListViewDpi,
-    _In_ LONG Index,
-    _In_ LONG DisplayIndex,
-    _In_ LONG SubItemIndex,
-    _In_ LONG Format,
-    _In_ LONG Width,
-    _In_ PCWSTR Text
-    );
-
-PHLIBAPI
-LONG
-NTAPI
 PhAddListViewColumn(
     _In_ HWND ListViewHandle,
-    _In_ LONG Index,
-    _In_ LONG DisplayIndex,
-    _In_ LONG SubItemIndex,
-    _In_ LONG Format,
-    _In_ LONG Width,
-    _In_ PCWSTR Text
-    );
-
-PHLIBAPI
-LONG
-NTAPI
-PhAddIListViewColumn(
-    _In_ IListView* ListView,
     _In_ LONG Index,
     _In_ LONG DisplayIndex,
     _In_ LONG SubItemIndex,
@@ -1032,27 +1005,8 @@ PhAddListViewItem(
 PHLIBAPI
 LONG
 NTAPI
-PhAddIListViewItem(
-    _In_ IListView* ListView,
-    _In_ LONG Index,
-    _In_ PCWSTR Text,
-    _In_opt_ PVOID Param
-    );
-
-PHLIBAPI
-LONG
-NTAPI
 PhFindListViewItemByFlags(
     _In_ HWND ListViewHandle,
-    _In_ LONG StartIndex,
-    _In_ ULONG Flags
-    );
-
-PHLIBAPI
-LONG
-NTAPI
-PhFindIListViewItemByFlags(
-    _In_ IListView* ListView,
     _In_ LONG StartIndex,
     _In_ ULONG Flags
     );
@@ -1084,16 +1038,6 @@ PhGetListViewItemParam(
     _In_ HWND ListViewHandle,
     _In_ LONG Index,
     _Outptr_ PVOID *Param
-    );
-
-_Success_(return)
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhGetIListViewItemParam(
-    _In_ IListView* ListView,
-    _In_ LONG Index,
-    _Outptr_ PVOID * Param
     );
 
 PHLIBAPI
@@ -1135,25 +1079,7 @@ PhSetListViewSubItem(
 PHLIBAPI
 VOID
 NTAPI
-PhSetIListViewSubItem(
-    _In_ IListView* ListView,
-    _In_ LONG Index,
-    _In_ LONG SubItemIndex,
-    _In_ PCWSTR Text
-    );
-
-PHLIBAPI
-VOID
-NTAPI
 PhRedrawListViewItems(
-    _In_ HWND ListViewHandle
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhRedrawIListViewItems(
-    _In_ IListView* ListView,
     _In_ HWND ListViewHandle
     );
 
@@ -1169,28 +1095,8 @@ PhAddListViewGroup(
 PHLIBAPI
 LONG
 NTAPI
-PhAddIListViewGroup(
-    _In_ IListView* ListView,
-    _In_ LONG GroupId,
-    _In_ PCWSTR Text
-    );
-
-PHLIBAPI
-LONG
-NTAPI
 PhAddListViewGroupItem(
     _In_ HWND ListViewHandle,
-    _In_ LONG GroupId,
-    _In_ LONG Index,
-    _In_ PCWSTR Text,
-    _In_opt_ PVOID Param
-    );
-
-PHLIBAPI
-LONG
-NTAPI
-PhAddIListViewGroupItem(
-    _In_ IListView* ListView,
     _In_ LONG GroupId,
     _In_ LONG Index,
     _In_ PCWSTR Text,
@@ -1311,26 +1217,10 @@ PhSetStateAllListViewItems(
     );
 
 PHLIBAPI
-VOID
-NTAPI
-PhSetStateAllIListViewItems(
-    _In_ IListView* ListView,
-    _In_ ULONG State,
-    _In_ ULONG Mask
-    );
-
-PHLIBAPI
 PVOID
 NTAPI
 PhGetSelectedListViewItemParam(
     _In_ HWND WindowHandle
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetSelectedIListViewItemParam(
-    _In_ IListView* ListView
     );
 
 PHLIBAPI
@@ -1340,33 +1230,6 @@ PhGetSelectedListViewItemParams(
     _In_ HWND WindowHandle,
     _Out_ PVOID **Items,
     _Out_ PULONG NumberOfItems
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhGetSelectedIListViewItemParams(
-    _In_ IListView* ListView,
-    _Out_ PVOID** Items,
-    _Out_ PULONG NumberOfItems
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhGetIListViewClientRect(
-    _In_ IListView* ListView,
-    _Inout_ PRECT ClientRect
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhGetIListViewItemRect(
-    _In_ IListView* ListView,
-    _In_ LONG StartIndex,
-    _In_ ULONG Flags,
-    _Inout_ PRECT ItemRect
     );
 
 FORCEINLINE
@@ -1911,7 +1774,6 @@ NTSTATUS
 NTAPI
 PhEnumChildWindows(
     _In_opt_ HWND WindowHandle,
-    _In_ ULONG Limit,
     _In_ PH_WINDOW_ENUM_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
@@ -2216,6 +2078,371 @@ PhSetHeaderSortIcon(
 #define ELVSCW_AUTOSIZE (-1)
 #define ELVSCW_AUTOSIZE_USEHEADER (-2)
 #define ELVSCW_AUTOSIZE_REMAININGSPACE (-3)
+
+//
+// Listview Wrappers
+//
+
+typedef struct _PH_LISTVIEW_CONTEXT
+{
+    HWND ListViewHandle;
+    IListView* ListViewInterface;
+    HANDLE ThreadId;
+} PH_LISTVIEW_CONTEXT, *PPH_LISTVIEW_CONTEXT;
+
+PHLIBAPI
+PPH_LISTVIEW_CONTEXT
+NTAPI
+PhListView_Initialize(
+    _In_ HWND ListViewHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhListView_Destroy(
+    _In_ PPH_LISTVIEW_CONTEXT Context
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_GetItemCount(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _Out_ PLONG ItemCount
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_SetItemCount(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG ItemCount,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_GetItem(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _Inout_ LVITEM* Item
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_SetItem(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LVITEM* Item
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_GetItemText(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG ItemIndex,
+    _In_ LONG SubItemIndex,
+    _Out_writes_(BufferSize) PWSTR Buffer,
+    _In_ LONG BufferSize
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_SetItemText(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG ItemIndex,
+    _In_ LONG SubItemIndex,
+    _In_ PWSTR Text
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_DeleteItem(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG ItemIndex
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_DeleteAllItems(
+    _In_ PPH_LISTVIEW_CONTEXT Context
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_InsertItem(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LVITEMW* Item,
+    _Out_opt_ PLONG ItemIndex
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_InsertGroup(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG InsertAt,
+    _In_ LVGROUP* Group,
+    _Out_opt_ PLONG GroupId
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_GetItemState(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG ItemIndex,
+    _In_ ULONG Mask,
+    _Out_ PULONG State
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_SetItemState(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG ItemIndex,
+    _In_ ULONG State,
+    _In_ ULONG Mask
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_SortItems(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ BOOL SortingByIndex,
+    _In_ PFNLVCOMPARE Compare,
+    _In_ PVOID CompareContext
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_GetColumn(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ ULONG ColumnIndex,
+    _Inout_ LV_COLUMN* Column
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_SetColumn(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ ULONG ColumnIndex,
+    _In_ LV_COLUMN* Column
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_SetColumnWidth(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ ULONG ColumnIndex,
+    _In_ ULONG Width
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_GetHeader(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _Out_ HWND* WindowHandle
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_GetToolTip(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _Out_ HWND* WindowHandle
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhListView_AddColumn(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG Index,
+    _In_ LONG DisplayIndex,
+    _In_ LONG SubItemIndex,
+    _In_ LONG Format,
+    _In_ LONG Width,
+    _In_ PCWSTR Text
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhListView_AddItem(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG Index,
+    _In_ PCWSTR Text,
+    _In_opt_ PVOID Param
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhListView_FindItemByFlags(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG StartIndex,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhListView_FindItemByParam(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG StartIndex,
+    _In_opt_ PVOID Param
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_GetItemParam(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG Index,
+    _Outptr_ PVOID* Param
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhListView_SetSubItem(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG Index,
+    _In_ LONG SubItemIndex,
+    _In_ PCWSTR Text
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhListView_RedrawItems(
+    _In_ PPH_LISTVIEW_CONTEXT Context
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhListView_AddGroup(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG GroupId,
+    _In_ PCWSTR Text
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhListView_AddGroupItem(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG GroupId,
+    _In_ LONG Index,
+    _In_ PCWSTR Text,
+    _In_opt_ PVOID Param
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhListView_SetStateAllItems(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ ULONG State,
+    _In_ ULONG Mask
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhListView_GetSelectedItemParam(
+    _In_ PPH_LISTVIEW_CONTEXT Context
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_GetSelectedCount(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _Out_ PLONG SelectedCount
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhListView_GetSelectedItemParams(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _Out_ PVOID** Items,
+    _Out_ PULONG NumberOfItems
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_GetClientRect(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _Inout_ PRECT ClientRect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_GetItemRect(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG StartIndex,
+    _In_ ULONG Flags,
+    _Inout_ PRECT ItemRect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_EnableGroupView(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ BOOLEAN Enable
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_EnsureItemVisible(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG ItemIndex,
+    _In_ BOOLEAN PartialOk
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_IsItemVisible(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _In_ LONG ItemIndex,
+    _Out_ PBOOLEAN Visible
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhListView_HitTestSubItem(
+    _In_ PPH_LISTVIEW_CONTEXT Context,
+    _Inout_ LVHITTESTINFO * HitTestInfo
+    );
 
 /**
  * Gets the brightness of a color.

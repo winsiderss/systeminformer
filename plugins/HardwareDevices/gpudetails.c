@@ -41,37 +41,36 @@ typedef struct _GPU_DETAILS_CONTEXT
 {
     HWND DialogHandle;
     HWND ListViewHandle;
-    IListView* ListViewClass;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
     PH_LAYOUT_MANAGER LayoutManager;
     PGPU_DEVICE_DETAILS_DIALOG_CONTEXT DetailsContext;
 } GPU_DETAILS_CONTEXT, *PGPU_DETAILS_CONTEXT;
 
 VOID EtpGpuDetailsAddListViewItemGroups(
-    _In_ IListView* ListViewClass)
+    _In_ HWND ListView)
 {
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, L"Physical Location", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_DRIVERDATE, L"Driver Date", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_DRIVERVERSION, L"Driver Version", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, L"WDDM Version", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_VENDORID, L"Vendor ID", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_DEVICEID, L"Device ID", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, L"Total Memory", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, L"Reserved Memory", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUFREQUENCY, L"GPU Frequency", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUMAXFREQUENCY, L"Max GPU Frequency", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, L"Memory Frequency", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, L"Memory Bandwidth", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, L"PCIE Bandwidth", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_FANRPM, L"Fan RPM", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, L"Power Usage", NULL);
-    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, L"Temperature", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, L"Physical Location", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_DRIVERDATE, L"Driver Date", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_DRIVERVERSION, L"Driver Version", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, L"WDDM Version", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_VENDORID, L"Vendor ID", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_DEVICEID, L"Device ID", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, L"Total Memory", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, L"Reserved Memory", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_GPUFREQUENCY, L"GPU Frequency", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_GPUMAXFREQUENCY, L"Max GPU Frequency", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, L"Memory Frequency", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, L"Memory Bandwidth", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, L"PCIE Bandwidth", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_FANRPM, L"Fan RPM", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, L"Power Usage", NULL);
+    PhAddListViewItem(ListView, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, L"Temperature", NULL);
 }
 
 VOID EtpQueryAdapterDeviceProperties(
     _In_ PGPU_DETAILS_CONTEXT Context,
     _In_ PCWSTR DeviceName,
-    _In_ IListView* ListViewClass)
+    _In_ HWND ListViewClass)
 {
     PPH_STRING driverDate;
     PPH_STRING driverVersion;
@@ -80,18 +79,18 @@ VOID EtpQueryAdapterDeviceProperties(
 
     if (GraphicsQueryDeviceProperties(DeviceName, NULL, &driverDate, &driverVersion, &locationInfo, &installedMemory, NULL))
     {
-        PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_DRIVERDATE, 1, PhGetStringOrEmpty(driverDate));
-        PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_DRIVERVERSION, 1, PhGetStringOrEmpty(driverVersion));
-        PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, 1, PhGetStringOrEmpty(locationInfo));
+        PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_DRIVERDATE, 1, PhGetStringOrEmpty(driverDate));
+        PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_DRIVERVERSION, 1, PhGetStringOrEmpty(driverVersion));
+        PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, 1, PhGetStringOrEmpty(locationInfo));
 
         if (installedMemory != ULLONG_MAX)
         {
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, 1, PhaFormatSize(installedMemory, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, 1, PhaFormatSize(installedMemory, ULONG_MAX)->Buffer);
 
             if (Context->DetailsContext->DeviceEntry->DedicatedLimit != 0)
-                PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, 1, PhaFormatSize(installedMemory - Context->DetailsContext->DeviceEntry->DedicatedLimit, ULONG_MAX)->Buffer);
+                PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, 1, PhaFormatSize(installedMemory - Context->DetailsContext->DeviceEntry->DedicatedLimit, ULONG_MAX)->Buffer);
             else
-                PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, 1, PhaFormatSize(installedMemory - Context->DetailsContext->DeviceEntry->SharedLimit, ULONG_MAX)->Buffer);
+                PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, 1, PhaFormatSize(installedMemory - Context->DetailsContext->DeviceEntry->SharedLimit, ULONG_MAX)->Buffer);
         }
 
         PhClearReference(&locationInfo);
@@ -102,7 +101,7 @@ VOID EtpQueryAdapterDeviceProperties(
 
 VOID EtpQueryAdapterRegistryInfo(
     _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ IListView* ListViewClass)
+    _In_ HWND ListViewClass)
 {
     D3DKMT_ADAPTERREGISTRYINFO adapterInfo;
 
@@ -121,7 +120,7 @@ VOID EtpQueryAdapterRegistryInfo(
 
 VOID EtpQueryAdapterDriverModel(
     _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ IListView* ListViewClass)
+    _In_ HWND ListViewClass)
 {
     D3DKMT_DRIVERVERSION d3dkmtDriverVersion;
 
@@ -137,14 +136,14 @@ VOID EtpQueryAdapterDriverModel(
         ULONG majorVersion = d3dkmtDriverVersion / 1000;
         ULONG minorVersion = (d3dkmtDriverVersion - majorVersion * 1000) / 100;
 
-        PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1,
+        PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1,
             PhaFormatString(L"WDDM %lu.%lu", majorVersion, minorVersion)->Buffer);
     }
 }
 
 VOID EtpQueryAdapterDriverVersion(
     _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ IListView* ListViewClass)
+    _In_ HWND ListViewClass)
 {
     D3DKMT_UMD_DRIVER_VERSION driverUserVersion;
     D3DKMT_KMD_DRIVER_VERSION driverKernelVersion;
@@ -189,7 +188,7 @@ VOID EtpQueryAdapterDriverVersion(
 
 VOID EtpQueryAdapterDeviceIds(
     _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ IListView* ListViewClass)
+    _In_ HWND ListViewClass)
 {
     D3DKMT_QUERY_DEVICE_IDS adapterDeviceId;
 
@@ -205,10 +204,10 @@ VOID EtpQueryAdapterDeviceIds(
         WCHAR value[PH_PTR_STR_LEN_1];
 
         PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.VendorID));
-        PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_VENDORID, 1, value);
+        PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_VENDORID, 1, value);
 
         PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.DeviceID));
-        PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_DEVICEID, 1, value);
+        PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_DEVICEID, 1, value);
 
         //PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.SubVendorID));
         //PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.SubSystemID));
@@ -219,7 +218,7 @@ VOID EtpQueryAdapterDeviceIds(
 
 VOID EtpQueryAdapterPerfInfo(
     _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ IListView* ListViewClass)
+    _In_ HWND ListViewClass)
 {
     D3DKMT_NODE_PERFDATA nodePerfData;
     D3DKMT_ADAPTER_PERFDATA adapterPerfData;
@@ -241,17 +240,17 @@ VOID EtpQueryAdapterPerfInfo(
         PhInitFormatS(&format[1], L" MHz");
 
         if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUFREQUENCY, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUFREQUENCY, 1, formatBuffer);
         else
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUFREQUENCY, 1, PhaFormatString(L"%I64u MHz", nodePerfData.Frequency / 1000 / 1000)->Buffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUFREQUENCY, 1, PhaFormatString(L"%I64u MHz", nodePerfData.Frequency / 1000 / 1000)->Buffer);
 
         PhInitFormatI64U(&format[0], nodePerfData.MaxFrequency / 1000 / 1000);
         PhInitFormatS(&format[1], L" MHz");
 
         if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUMAXFREQUENCY, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUMAXFREQUENCY, 1, formatBuffer);
         else
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUMAXFREQUENCY, 1, PhaFormatString(L"%I64u MHz", nodePerfData.MaxFrequency / 1000 / 1000)->Buffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUMAXFREQUENCY, 1, PhaFormatString(L"%I64u MHz", nodePerfData.MaxFrequency / 1000 / 1000)->Buffer);
     }
 
     memset(&adapterPerfData, 0, sizeof(D3DKMT_ADAPTER_PERFDATA));
@@ -270,38 +269,38 @@ VOID EtpQueryAdapterPerfInfo(
         PhInitFormatS(&format[1], L" MHz");
 
         if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, formatBuffer);
         else
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, PhaFormatString(L"%I64u MHz", adapterPerfData.MemoryFrequency / 1000 / 1000)->Buffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, PhaFormatString(L"%I64u MHz", adapterPerfData.MemoryFrequency / 1000 / 1000)->Buffer);
 
         PhInitFormatSize(&format[0], adapterPerfData.MemoryBandwidth);
 
         if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, formatBuffer);
         else
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, PhaFormatSize(adapterPerfData.MemoryBandwidth, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, PhaFormatSize(adapterPerfData.MemoryBandwidth, ULONG_MAX)->Buffer);
 
         PhInitFormatSize(&format[0], adapterPerfData.PCIEBandwidth);
 
         if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, formatBuffer);
         else
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, PhaFormatSize(adapterPerfData.PCIEBandwidth, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, PhaFormatSize(adapterPerfData.PCIEBandwidth, ULONG_MAX)->Buffer);
 
         PhInitFormatI64U(&format[0], adapterPerfData.FanRPM);
 
         if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_FANRPM, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_FANRPM, 1, formatBuffer);
         else
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_FANRPM, 1, PhaFormatUInt64(adapterPerfData.FanRPM, FALSE)->Buffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_FANRPM, 1, PhaFormatUInt64(adapterPerfData.FanRPM, FALSE)->Buffer);
 
         PhInitFormatI64U(&format[0], adapterPerfData.Power * 100 / 1000);
         PhInitFormatS(&format[1], L"%");
 
         if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, formatBuffer);
         else
-            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", adapterPerfData.Power * 100 / 1000)->Buffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", adapterPerfData.Power * 100 / 1000)->Buffer);
 
         //if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
         //{
@@ -333,11 +332,11 @@ VOID EtpQueryAdapterPerfInfo(
 
             if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
             {
-                PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, formatBuffer);
+                PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, formatBuffer);
             }
             else
             {
-                PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, PhaFormatString(
+                PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, PhaFormatString(
                     L"%lu\u00b0C",
                     gpuCurrentTemp
                     )->Buffer);
@@ -356,19 +355,20 @@ VOID GraphicsDeviceQueryAdapterDetails(
     if (!NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, &adapterLuid, PhGetString(Context->DetailsContext->DeviceEntry->Id.DevicePath))))
         return;
 
-    EtpGpuDetailsAddListViewItemGroups(Context->ListViewClass);
+    EtpGpuDetailsAddListViewItemGroups(Context->ListViewHandle);
 
-    EtpQueryAdapterDeviceProperties(Context, PhGetString(Context->DetailsContext->DeviceEntry->Id.DevicePath), Context->ListViewClass);
+    EtpQueryAdapterDeviceProperties(Context, PhGetString(Context->DetailsContext->DeviceEntry->Id.DevicePath), Context->ListViewHandle);
     //EtpQueryAdapterRegistryInfo(adapterHandle, Context->ListViewHandle);
-    EtpQueryAdapterDriverModel(adapterHandle, Context->ListViewClass);
+    EtpQueryAdapterDriverModel(adapterHandle, Context->ListViewHandle);
     //EtpQueryAdapterDriverVersion(adapterHandle, Context->ListViewHandle);
-    EtpQueryAdapterDeviceIds(adapterHandle, Context->ListViewClass);
+    EtpQueryAdapterDeviceIds(adapterHandle, Context->ListViewHandle);
     //EtQueryAdapterFeatureLevel(adapterLuid);
-    EtpQueryAdapterPerfInfo(adapterHandle, Context->ListViewClass);
+    EtpQueryAdapterPerfInfo(adapterHandle, Context->ListViewHandle);
 
     GraphicsCloseAdapterHandle(adapterHandle);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -408,14 +408,13 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
         {
             context->DialogHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_GPULIST);
-            context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
 
             PhSetApplicationWindowIconEx(hwndDlg, PhGetWindowDpi(hwndDlg));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddIListViewColumn(context->ListViewClass, 0, 0, 0, LVCFMT_LEFT, 230, L"Property");
-            PhAddIListViewColumn(context->ListViewClass, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 230, L"Property");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -445,11 +444,6 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             PhSaveWindowPlacementToSetting(SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION, SETTING_NAME_GRAPHICS_DETAILS_WINDOW_SIZE, hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
-
-            if (context->ListViewClass)
-            {
-                IListView_Release(context->ListViewClass);
-            }
 
             PostQuitMessage(0);
         }
@@ -517,7 +511,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {

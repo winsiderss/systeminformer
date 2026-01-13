@@ -30,7 +30,6 @@ EXPORTS
     PhCmLoadSettings
     PhCmSaveSettings
     PhCopyListView
-    PhCopyIListView
     PhCopyListViewInfoTip
     PhCreateKsiSettingsBlob
     PhCreateHandleItem
@@ -75,7 +74,6 @@ EXPORTS
     PhGetFilterSupportServiceTreeList
     PhGetGeneralCallback
     PhGetImageListIcon
-    PhGetIListViewContextMenuPoint
     PhGetListViewContextMenuPoint
     PhGetPhReleaseChannel
     PhGetPhReleaseChannelString
@@ -112,7 +110,6 @@ EXPORTS
     PhInitializeTreeNewFilterSupport
     PhInsertCopyCellEMenuItem
     PhInsertCopyListViewEMenuItem
-    PhInsertCopyIListViewEMenuItem
     PhInsertHandleObjectPropertiesEMenuItems
     PhInvalidateAllProcessNodes
     PhIsProcessBackground
@@ -740,6 +737,7 @@ EXPORTS
     PhGetApplicationDirectoryFileName
     PhGetApplicationDirectoryWin32
     PhGetApplicationFileNameWin32
+    PhGetApplicationFileName
     PhGetBaseDirectory
     PhGetBaseName
     PhGetClassObject
@@ -761,6 +759,7 @@ EXPORTS
     PhGetMonitorDpi
     PhGetNtMessage
     PhGetNtSystemRoot
+    PhGetRoamingAppDataDirectory
     PhGetStatusMessage
     PhGetSystemDirectory
     PhGetSystemDpi
@@ -900,13 +899,9 @@ EXPORTS
     PhAddLayoutItem
     PhAddLayoutItemEx
     PhAddListViewColumn
-    PhAddIListViewColumn
-    PhAddIListViewGroup
-    PhAddIListViewGroupItem
     PhAddListViewGroup
     PhAddListViewGroupItem
     PhAddListViewItem
-    PhAddIListViewItem
     PhAddTabControlTab
     PhBitmapSetAlpha
     PhCloseThemeData
@@ -921,18 +916,16 @@ EXPORTS
     PhDuplicateFontWithNewWeight
     PhEnumChildWindows
     PhEnumWindows
-    PhFindIListViewItemByFlags
+    PhEnumWindowsEx
     PhFindListViewItemByFlags
     PhFindListViewItemByParam
     PhGetComboBoxString
     PhGetDialogItemValue
-    PhGetIListViewItemParam
     PhGetListBoxString
     PhGetListViewItemImageIndex
     PhGetListViewItemParam
     PhGetSelectedListViewItemParam
     PhGetSelectedListViewItemParams
-    PhGetSelectedIListViewItemParams
     PhGetStockApplicationIcon
     PhGetStockObject
     PhGetThemeMargins
@@ -981,7 +974,6 @@ EXPORTS
     PhSetListViewItemImageIndex
     PhSetListViewItemParam
     PhSetListViewSubItem
-    PhSetIListViewSubItem
     PhSetStateAllListViewItems
     PhSetWindowContext
     PhSetWindowText
@@ -1133,6 +1125,7 @@ EXPORTS
     PhAddJsonArrayObject
     PhAddJsonObject
     PhAddJsonObject2
+    PhAddJsonObjectUtf8
     PhAddJsonObjectInt64
     PhAddJsonObjectUInt64
     PhAddJsonObjectValue
@@ -1153,6 +1146,8 @@ EXPORTS
     PhGetJsonValueAsInt64
     PhGetJsonValueAsString
     PhGetJsonValueAsUInt64
+    PhLoadJsonObjectFromFile
+    PhSaveJsonObjectToFile
 
 ; xml
     PhCreateXmlNode

@@ -105,7 +105,7 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
     HWND ListViewHandle;
     HWND ParentWindow;
     HANDLE ProcessId;
-    IListView* ListViewClass;
+    PPH_LISTVIEW_CONTEXT ListViewClass;
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
 } HANDLE_PROPERTIES_CONTEXT, *PHANDLE_PROPERTIES_CONTEXT;
@@ -117,7 +117,7 @@ typedef struct _HANDLE_PERMISSIONS_CONTEXT
     HWND ListViewHandle;
     HWND ParentWindow;
     HANDLE ProcessId;
-    IListView* ListViewClass;
+    PPH_LISTVIEW_CONTEXT ListViewClass;
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
 } HANDLE_PERMISSIONS_CONTEXT, *PHANDLE_PERMISSIONS_CONTEXT;
@@ -493,13 +493,13 @@ VOID PhShowHandleProperties(
 }
 
 VOID PhAddHandleListViewItem(
-    _In_ IListView* ListViewClass,
+    _In_ PPH_LISTVIEW_CONTEXT ListViewClass,
     _In_ LONG GroupId,
     _In_ LONG Index,
     _In_ PCWSTR Text
     )
 {
-    PhAddIListViewGroupItem(ListViewClass, GroupId, Index, Text, UlongToPtr(Index));
+    PhListView_AddGroupItem(ListViewClass, GroupId, Index, Text, UlongToPtr(Index));
 }
 
 VOID PhSetHandleListViewItem(
@@ -513,7 +513,7 @@ VOID PhSetHandleListViewItem(
 
     if (index != INT_ERROR)
     {
-        PhSetIListViewSubItem(Context->ListViewClass, index, SubItemIndex, Text);
+        PhListView_SetSubItem(Context->ListViewClass, index, SubItemIndex, Text);
     }
 }
 
@@ -521,11 +521,11 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     _In_ PHANDLE_PROPERTIES_CONTEXT Context
     )
 {
-    IListView_EnableGroupView(Context->ListViewClass, TRUE);
-    PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, L"Basic information");
-    PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECURITY, L"Security information");
-    PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_REFERENCES, L"References");
-    PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_QUOTA, L"Quota charges");
+    PhListView_EnableGroupView(Context->ListViewClass, TRUE);
+    PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, L"Basic information");
+    PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECURITY, L"Security information");
+    PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_REFERENCES, L"References");
+    PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_QUOTA, L"Quota charges");
 
     PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_NAME, L"Name");
     PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_TYPE, L"Type");
@@ -548,7 +548,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, L"ALPC Port");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, L"ALPC Port");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, PH_HANDLE_GENERAL_INDEX_FLAGS, L"Flags");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER, L"Sequence Number");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT, L"Port Context");
@@ -567,13 +567,13 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ETW, L"Event trace information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ETW, L"Event trace information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ETW, PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME, L"GUID");
         //PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ETW, PH_HANDLE_GENERAL_INDEX_ETWGROUPNAME, L"Group GUID");
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"File", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, L"File information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, L"File information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, PH_HANDLE_GENERAL_INDEX_FILETYPE, L"Type");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, PH_HANDLE_GENERAL_INDEX_FILEMODE, L"Mode");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, PH_HANDLE_GENERAL_INDEX_FILEPOSITION, L"Position");
@@ -588,21 +588,21 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Section", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECTION, L"Section information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECTION, L"Section information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECTION, PH_HANDLE_GENERAL_INDEX_SECTIONTYPE, L"Type");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECTION, PH_HANDLE_GENERAL_INDEX_SECTIONFILE, L"File");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECTION, PH_HANDLE_GENERAL_INDEX_SECTIONSIZE, L"Size");
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Mutant", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_MUTANT, L"Mutant information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_MUTANT, L"Mutant information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_MUTANT, PH_HANDLE_GENERAL_INDEX_MUTANTCOUNT, L"Count");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_MUTANT, PH_HANDLE_GENERAL_INDEX_MUTANTABANDONED, L"Abandoned");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_MUTANT, PH_HANDLE_GENERAL_INDEX_MUTANTOWNER, L"Owner");
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Process", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, L"Process information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, L"Process information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME, L"Name");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME, L"Created");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME, L"Exited");
@@ -610,7 +610,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Thread", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, L"Thread information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, L"Thread information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME, L"Name");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME, L"Created");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME, L"Exited");
@@ -618,7 +618,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"SymbolicLink", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK, L"Symbolic Link information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK, L"Symbolic Link information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK, PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK, L"Link target");
     }
 }
@@ -2075,7 +2075,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ParentWindow = GetParent(hwndDlg);
-            context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
+            context->ListViewClass = PhListView_Initialize(context->ListViewHandle);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -2118,7 +2118,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            PhDestroyListViewInterface(context->ListViewClass);
+            PhListView_Destroy(context->ListViewClass);
 
             PhRemoveDialogContext(hwndDlg);
         }
@@ -2165,15 +2165,15 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetIListViewContextMenuPoint(context->ListViewClass, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyIListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle, context->ListViewClass);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -2199,7 +2199,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                             {
                             case IDC_COPY:
                                 {
-                                    PhCopyIListView(context->ListViewHandle, context->ListViewClass);
+                                    PhCopyListView(context->ListViewHandle);
                                 }
                                 break;
                             }
@@ -3214,15 +3214,15 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetIListViewContextMenuPoint(context->ListViewClass, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyIListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle, context->ListViewClass);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -3248,7 +3248,7 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
                             {
                             case IDC_COPY:
                                 {
-                                    PhCopyIListView(context->ListViewHandle, context->ListViewClass);
+                                    PhCopyListView(context->ListViewHandle);
                                 }
                                 break;
                             }

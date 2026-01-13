@@ -605,7 +605,7 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     STDMETHOD(GetSubItemRect)(THIS_ LVITEMINDEX ItemIndex, LONG SubItemIndex, LONG RectangleType, PRECT Rectangle) PURE;
 
     DECLSPEC_XFGVIRT(IListView, HitTestSubItem)
-    STDMETHOD(HitTestSubItem)(THIS_ LVHITTESTINFO* pHitTestData) PURE;
+    STDMETHOD(HitTestSubItem)(THIS_ LVHITTESTINFO* HitTestData) PURE;
 
     DECLSPEC_XFGVIRT(IListView, GetIncrSearchString)
     STDMETHOD(GetIncrSearchString)(THIS_ PWSTR Buffer, LONG BufferSize, PLONG CopiedChars) PURE;
