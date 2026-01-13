@@ -575,12 +575,13 @@ HICON PhUpdateIconCpuUsage(
         HPEN dcPen;
         POINT points[2];
 
-        dcBrush = GetStockBrush(DC_BRUSH);
-        dcPen = GetStockPen(DC_PEN);
+        dcBrush = PhGetStockBrush(DC_BRUSH);
+        dcPen = PhGetStockPen(DC_PEN);
         rect.left = 0;
         rect.top = 0;
         rect.right = width;
         rect.bottom = height;
+        SelectBrush(hdc, dcBrush);
         SetDCBrushColor(hdc, RGB(0x00, 0x00, 0x00));
         FillRect(hdc, &rect, dcBrush);
 
@@ -601,6 +602,7 @@ HICON PhUpdateIconCpuUsage(
             rect.top = height - ul - kl;
             rect.right = width;
             rect.bottom = height - kl;
+            SelectBrush(hdc, dcBrush);
             SetDCBrushColor(hdc, ubColor);
             FillRect(hdc, &rect, dcBrush);
 
@@ -619,6 +621,7 @@ HICON PhUpdateIconCpuUsage(
                 rect.top = height - kl;
                 rect.right = width;
                 rect.bottom = height;
+                SelectBrush(hdc, dcBrush);
                 SetDCBrushColor(hdc, kbColor);
                 FillRect(hdc, &rect, dcBrush);
 
