@@ -108,6 +108,7 @@ static PPH_STRING PhpGetStringForSelectedLogEntries(
     {
         PPH_LOG_ENTRY entry;
         SYSTEMTIME systemTime;
+        PCPH_STRINGREF string;
         PPH_STRING temp;
         ULONG itemState;
 
@@ -131,6 +132,9 @@ static PPH_STRING PhpGetStringForSelectedLogEntries(
         PhDereferenceObject(temp);
         PhAppendStringBuilder2(&stringBuilder, L": ");
 
+        string = PhFormatLogType(entry);
+        PhAppendStringBuilder(&stringBuilder, string);
+        PhAppendStringBuilder2(&stringBuilder, L" ");
         temp = PhFormatLogEntry(entry);
         PhAppendStringBuilder(&stringBuilder, &temp->sr);
         PhDereferenceObject(temp);

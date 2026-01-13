@@ -246,21 +246,21 @@ PPH_STRING PhFormatLogEntry(
     {
     case PH_LOG_ENTRY_PROCESS_CREATE:
         {
-            PH_FORMAT format[9];
+            PH_FORMAT format[8];
 
             // Process created: %s (%lu) started by %s (%lu)
-            PhInitFormatS(&format[0], L"Process created: ");
-            PhInitFormatSR(&format[1], Entry->Process.Name->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatU(&format[3], HandleToUlong(Entry->Process.ProcessId));
-            PhInitFormatS(&format[4], L") started by ");
+            //PhInitFormatS(&format[0], L"Process created: ");
+            PhInitFormatSR(&format[0], Entry->Process.Name->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatU(&format[2], HandleToUlong(Entry->Process.ProcessId));
+            PhInitFormatS(&format[3], L") started by ");
             if (Entry->Process.ParentName)
-                PhInitFormatSR(&format[5], Entry->Process.ParentName->sr);
+                PhInitFormatSR(&format[4], Entry->Process.ParentName->sr);
             else
-                PhInitFormatS(&format[5], L"Unknown process");
-            PhInitFormatS(&format[6], L" (");
-            PhInitFormatU(&format[7], HandleToUlong(Entry->Process.ParentProcessId));
-            PhInitFormatC(&format[8], L')');
+                PhInitFormatS(&format[4], L"Unknown process");
+            PhInitFormatS(&format[5], L" (");
+            PhInitFormatU(&format[6], HandleToUlong(Entry->Process.ParentProcessId));
+            PhInitFormatC(&format[7], L')');
 
             //return PhFormatString(
             //    L"Process created: %s (%lu) started by %s (%lu)",
@@ -273,15 +273,15 @@ PPH_STRING PhFormatLogEntry(
         }
     case PH_LOG_ENTRY_PROCESS_DELETE:
         {
-            PH_FORMAT format[6];
+            PH_FORMAT format[5];
 
             // Process terminated: %s (%lu); exit status 0x%x
-            PhInitFormatS(&format[0], L"Process terminated: ");
-            PhInitFormatSR(&format[1], Entry->Process.Name->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatU(&format[3], HandleToUlong(Entry->Process.ProcessId));
-            PhInitFormatS(&format[4], L"); exit status ");
-            PhInitFormatX(&format[5], Entry->Process.ExitStatus);
+            //PhInitFormatS(&format[0], L"Process terminated: ");
+            PhInitFormatSR(&format[0], Entry->Process.Name->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatU(&format[2], HandleToUlong(Entry->Process.ProcessId));
+            PhInitFormatS(&format[3], L"); exit status ");
+            PhInitFormatX(&format[4], Entry->Process.ExitStatus);
 
             //return PhFormatString(
             //    L"Process terminated: %s (%lu); exit status 0x%x",
@@ -293,14 +293,14 @@ PPH_STRING PhFormatLogEntry(
         }
     case PH_LOG_ENTRY_SERVICE_CREATE:
         {
-            PH_FORMAT format[5];
+            PH_FORMAT format[4];
 
             // Service created: %s (%s)
-            PhInitFormatS(&format[0], L"Service created: ");
-            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[4], L')');
+            //PhInitFormatS(&format[0], L"Service created: ");
+            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[3], L')');
 
             //return PhFormatString(
             //    L"Service created: %s (%s)",
@@ -311,14 +311,14 @@ PPH_STRING PhFormatLogEntry(
         }
     case PH_LOG_ENTRY_SERVICE_DELETE:
         {
-            PH_FORMAT format[5];
+            PH_FORMAT format[4];
 
             // Service deleted: %s (%s)
-            PhInitFormatS(&format[0], L"Service deleted: ");
-            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[4], L')');
+            //PhInitFormatS(&format[0], L"Service deleted: ");
+            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[3], L')');
 
             //return PhFormatString(
             //    L"Service deleted: %s (%s)",
@@ -329,14 +329,14 @@ PPH_STRING PhFormatLogEntry(
         }
     case PH_LOG_ENTRY_SERVICE_START:
         {
-            PH_FORMAT format[5];
+            PH_FORMAT format[4];
 
             // Service started: %s (%s)
-            PhInitFormatS(&format[0], L"Service started: ");
-            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[4], L')');
+            //PhInitFormatS(&format[0], L"Service started: ");
+            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[3], L')');
 
             //return PhFormatString(
             //    L"Service started: %s (%s)",
@@ -347,14 +347,14 @@ PPH_STRING PhFormatLogEntry(
         }
     case PH_LOG_ENTRY_SERVICE_STOP:
         {
-            PH_FORMAT format[5];
+            PH_FORMAT format[4];
 
             // Service stopped: %s (%s)
-            PhInitFormatS(&format[0], L"Service stopped: ");
-            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[4], L')');
+            //PhInitFormatS(&format[0], L"Service stopped: ");
+            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[3], L')');
 
             //return PhFormatString(
             //    L"Service stopped: %s (%s)",
@@ -365,14 +365,14 @@ PPH_STRING PhFormatLogEntry(
         }
     case PH_LOG_ENTRY_SERVICE_CONTINUE:
         {
-            PH_FORMAT format[5];
+            PH_FORMAT format[4];
 
             // Service continued: %s (%s)
-            PhInitFormatS(&format[0], L"Service continued: ");
-            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[4], L')');
+            //PhInitFormatS(&format[0], L"Service continued: ");
+            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[3], L')');
 
             //return PhFormatString(
             //    L"Service continued: %s (%s)",
@@ -383,14 +383,14 @@ PPH_STRING PhFormatLogEntry(
         }
     case PH_LOG_ENTRY_SERVICE_PAUSE:
         {
-            PH_FORMAT format[5];
+            PH_FORMAT format[4];
 
             // Service paused: %s (%s)
-            PhInitFormatS(&format[0], L"Service paused: ");
-            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[4], L')');
+            //PhInitFormatS(&format[0], L"Service paused: ");
+            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[3], L')');
 
             //return PhFormatString(
             //    L"Service paused: %s (%s)",
@@ -401,14 +401,14 @@ PPH_STRING PhFormatLogEntry(
         }
     case PH_LOG_ENTRY_SERVICE_MODIFIED:
         {
-            PH_FORMAT format[5];
+            PH_FORMAT format[4];
 
             // Service modified: %s (%s)
-            PhInitFormatS(&format[0], L"Service modified: ");
-            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[4], L')');
+            //PhInitFormatS(&format[0], L"Service modified: ");
+            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[3], L')');
 
             //return PhFormatString(
             //    L"Service modified: %s (%s)",
@@ -419,25 +419,25 @@ PPH_STRING PhFormatLogEntry(
         }
     case PH_LOG_ENTRY_DEVICE_REMOVED:
         {
-            PH_FORMAT format[5];
+            PH_FORMAT format[4];
 
-            PhInitFormatS(&format[0], L"Device removed: ");
-            PhInitFormatSR(&format[1], Entry->Device.Classification->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatSR(&format[3], Entry->Device.Name->sr);
-            PhInitFormatC(&format[4], L')');
+            //PhInitFormatS(&format[0], L"Device removed: ");
+            PhInitFormatSR(&format[0], Entry->Device.Classification->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatSR(&format[2], Entry->Device.Name->sr);
+            PhInitFormatC(&format[3], L')');
 
             return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
         }
     case PH_LOG_ENTRY_DEVICE_ARRIVED:
         {
-            PH_FORMAT format[5];
+            PH_FORMAT format[4];
 
-            PhInitFormatS(&format[0], L"Device arrived: ");
-            PhInitFormatSR(&format[1], Entry->Device.Classification->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatSR(&format[3], Entry->Device.Name->sr);
-            PhInitFormatC(&format[4], L')');
+            //PhInitFormatS(&format[0], L"Device arrived: ");
+            PhInitFormatSR(&format[0], Entry->Device.Classification->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatSR(&format[2], Entry->Device.Name->sr);
+            PhInitFormatC(&format[3], L')');
 
             return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
         }
@@ -447,4 +447,39 @@ PPH_STRING PhFormatLogEntry(
     default:
         return PhReferenceEmptyString();
     }
+}
+
+static CONST PH_KEY_VALUE_PAIR PhpLogEntryTypePairs[] =
+{
+    SIP(SREF(L"Unknown"), 0),
+    SIP(SREF(L"Process created"), PH_LOG_ENTRY_PROCESS_CREATE),
+    SIP(SREF(L"Process terminated"), PH_LOG_ENTRY_PROCESS_DELETE),
+    SIP(SREF(L"Service created"), PH_LOG_ENTRY_SERVICE_CREATE),
+    SIP(SREF(L"Service terminated"), PH_LOG_ENTRY_SERVICE_DELETE),
+    SIP(SREF(L"Service started"), PH_LOG_ENTRY_SERVICE_START),
+    SIP(SREF(L"Service terminated"), PH_LOG_ENTRY_SERVICE_STOP),
+    SIP(SREF(L"Service continued"), PH_LOG_ENTRY_SERVICE_CONTINUE),
+    SIP(SREF(L"Service paused"), PH_LOG_ENTRY_SERVICE_PAUSE),
+    SIP(SREF(L"Service modified"), PH_LOG_ENTRY_SERVICE_MODIFIED),
+    SIP(SREF(L"Device removed"), PH_LOG_ENTRY_DEVICE_REMOVED),
+    SIP(SREF(L"Device arrived"), PH_LOG_ENTRY_DEVICE_ARRIVED)
+};
+
+PCPH_STRINGREF PhFormatLogType(
+    _In_ PPH_LOG_ENTRY Entry
+    )
+{
+    PCPH_STRINGREF string;
+
+    if (PhIndexStringRefSiKeyValuePairs(
+        PhpLogEntryTypePairs,
+        sizeof(PhpLogEntryTypePairs),
+        Entry->Type,
+        &string
+        ))
+    {
+        return string;
+    }
+
+    return NULL;
 }

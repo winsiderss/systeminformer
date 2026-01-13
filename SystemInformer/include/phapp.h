@@ -260,6 +260,13 @@ NTAPI
 PhFormatLogEntry(
     _In_ PPH_LOG_ENTRY Entry
     );
+
+PHAPPAPI
+PCPH_STRINGREF
+NTAPI
+PhFormatLogType(
+    _In_ PPH_LOG_ENTRY Entry
+    );
 // end_phapppub
 
 // dbgcon
