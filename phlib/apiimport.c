@@ -208,6 +208,7 @@ PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 PH_DEFINE_IMPORT(L"user32.dll", ConsoleControl);
 PH_DEFINE_IMPORT(L"user32.dll", GetCurrentInputMessageSource);
 PH_DEFINE_IMPORT(L"user32.dll", GetCIMSSM);
+PH_DEFINE_IMPORT(L"win32u.dll", NtUserBuildHwndList);
 
 PH_DEFINE_IMPORT(L"xmllite.dll", CreateXmlReader);
 PH_DEFINE_IMPORT(L"xmllite.dll", CreateXmlWriter);

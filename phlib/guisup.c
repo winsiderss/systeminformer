@@ -2550,6 +2550,146 @@ NTSTATUS PhEnumWindows(
 }
 
 /**
+ * Enumerates windows using FindWindowEx.
+ * This function enumerates windows that EnumWindows may miss, such as UWP/Metro apps.
+ *
+ * \param ParentWindow The parent window to enumerate children of. If NULL, enumerates all top-level windows.
+ * \param Callback The callback function to be called for each window.
+ * \param Context An optional context parameter to be passed to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhEnumWindowsEx(
+    _In_opt_ HWND ParentWindow,
+    _In_ PH_WINDOW_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    HWND windowHandle = NULL;
+    ULONG i = 0;
+
+    while (i < 0x8000 && (windowHandle = FindWindowEx(ParentWindow, windowHandle, NULL, NULL)))
+    {
+        if (!Callback(windowHandle, Context))
+            return STATUS_SUCCESS;
+
+        i++;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Walks the window chain using GetWindow, enumerating windows in their exact Z-order.
+ * This is a flexible function that can enumerate windows using any command:
+ *
+ * - GW_HWNDFIRST - First sibling
+ * - GW_HWNDLAST - Last sibling
+ * - GW_HWNDNEXT - Next sibling
+ * - GW_HWNDPREV - Previous sibling
+ * - GW_OWNER - Owner window
+ * - GW_CHILD - First child
+ *
+ * Usage example:
+ *
+ * // Enumerate all siblings of a window
+ * PhEnumGetWindow(hwnd, GW_HWNDNEXT, 1000, MyCallback, context);
+ * 
+ * // Enumerate children
+ * PhEnumGetWindow(hwnd, GW_CHILD, 1000, MyCallback, context);
+ *
+ * \param StartWindow The window to start enumeration from. If NULL, starts with the first top-level window.
+ * \param Command The GetWindow command (GW_HWNDFIRST, GW_HWNDLAST, GW_HWNDNEXT, GW_HWNDPREV, GW_OWNER, GW_CHILD).
+ * \param Callback The callback function to be called for each window.
+ * \param Context An optional context parameter to be passed to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhEnumGetWindow(
+    _In_opt_ HWND StartWindow,
+    _In_ ULONG Command,
+    _In_ PH_WINDOW_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    HWND windowHandle;
+    ULONG i = 0;
+
+    if (StartWindow)
+    {
+        windowHandle = StartWindow;
+    }
+    else
+    {
+        // Get the first window if StartWindow is NULL
+        windowHandle = GetWindow(GetDesktopWindow(), GW_CHILD);
+    }
+
+    if (!windowHandle)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    while (i < 0x8000 && windowHandle)
+    {
+        HWND nextWindow;
+
+        if (!Callback(windowHandle, Context))
+            break;
+
+        // Get the next window before incrementing, in case callback modifies window
+        nextWindow = GetWindow(windowHandle, Command);
+        
+        // Break if we've looped back to the start (shouldn't happen but safety check)
+        if (nextWindow == StartWindow || (i > 0 && nextWindow == windowHandle))
+            break;
+
+        windowHandle = nextWindow;
+        i++;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Enumerates all top-level windows in Z-order (top to bottom).
+ * This is a convenience wrapper around PhEnumGetWindow that enumerates top-level windows.
+ *
+ * \param Callback The callback function to be called for each window.
+ * \param Context An optional context parameter to be passed to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhEnumWindowsZOrder(
+    _In_ PH_WINDOW_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    HWND windowHandle;
+    ULONG i = 0;
+
+    // Get the first top-level window
+    windowHandle = GetWindow(GetDesktopWindow(), GW_CHILD);
+
+    if (!windowHandle)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    // Enumerate all top-level windows in Z-order
+    while (i < 0x8000 && windowHandle)
+    {
+        HWND nextWindow;
+
+        if (!Callback(windowHandle, Context))
+            return STATUS_SUCCESS;
+
+        nextWindow = GetWindow(windowHandle, GW_HWNDNEXT);
+        windowHandle = nextWindow;
+        i++;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * Enumerates the child windows of the specified window handle.
  *
  * \param WindowHandle The handle of the parent window.
@@ -2587,6 +2727,80 @@ NTSTATUS PhEnumChildWindows(
    
     // Note: EnumChildWindows doesn't support GetLastError. (dmex)
     return STATUS_UNSUCCESSFUL;
+}
+
+/**
+ * Builds a list of window handles and returns a pointer to a contiguous array of HWND values.
+ *
+ * \param DesktopHandle Optional desktop handle. If NULL, the current desktop is used.
+ * \param ParentWindowHandle Optional parent window handle. If NULL, enumerates top-level windows.
+ * \param IncludeChildren When TRUE, includes child windows in the result list.
+ * \param ExcludeImmersive When TRUE, excludes immersive (UWP/Metro) windows.
+ * \param ThreadId Optional GUI thread identifier to filter results. If NULL, windows from all threads are returned.
+ * \param NumberOfHandles Receives the number of HWND entries in \a Handles.
+ * \param Handles Receives a pointer to an array of HWND values. The caller must free the returned buffer using PhFree().
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhBuildHwndList(
+    _In_opt_ HANDLE DesktopHandle,
+    _In_opt_ HWND ParentWindowHandle,
+    _In_ BOOLEAN IncludeChildren,
+    _In_ BOOLEAN ExcludeImmersive,
+    _In_opt_ HANDLE ThreadId,
+    _Out_ PULONG NumberOfHandles,
+    _Outptr_result_buffer_(*NumberOfHandles) HWND** Handles
+    )
+{
+    NTSTATUS status;
+    PVOID buffer = NULL;
+    ULONG bufferSize = 0x1000;
+    ULONG returnLength = 0;
+
+    if (!NtUserBuildHwndList_Import())
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = NtUserBuildHwndList_Import()(
+            DesktopHandle,
+            ParentWindowHandle,
+            IncludeChildren,
+            ExcludeImmersive,
+            HandleToUlong(ThreadId),
+            bufferSize,
+            buffer,
+            &returnLength
+            );
+
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            bufferSize = returnLength;
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status) && status != STATUS_INVALID_HANDLE)
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    //if (returnLength < sizeof(HWND) || (returnLength % sizeof(HWND)) != 0)
+    //{
+    //    PhFree(buffer);
+    //    return STATUS_INVALID_THREAD;
+    //}
+
+    *NumberOfHandles = returnLength / sizeof(HWND);
+    *Handles = PTR_ADD_OFFSET(buffer, 0);
+    return STATUS_SUCCESS;
 }
 
 typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
@@ -3092,10 +3306,7 @@ BOOLEAN PhGetProcessUIContextInformation(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI* GetProcessUIContextInformation_I)(
-        _In_ HANDLE ProcessHandle,
-        _Out_ PPROCESS_UICONTEXT_INFORMATION UIContext
-        ) = NULL;
+    static typeof(&GetProcessUIContextInformation) GetProcessUIContextInformation_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
