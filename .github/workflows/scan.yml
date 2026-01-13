@@ -145,7 +145,7 @@ jobs:
             packages/**/*
             tools/CustomBuildTool/generated/**/*
             tools/CustomBuildTool/obj/**/*
-            tools/thirdpary/**/*
+            tools/thirdparty/**/*
 
       - name: Upload CodeQL Results
         uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
@@ -205,7 +205,7 @@ jobs:
              packages/**/*
              tools/CustomBuildTool/generated/**/*
              tools/CustomBuildTool/obj/**/*
-             tools/thirdpary/**/*
+             tools/thirdparty/**/*
 
        - name: Upload CodeQL Results
          uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
