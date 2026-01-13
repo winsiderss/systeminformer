@@ -431,10 +431,16 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLORLISTBOX:
         {
+            HBRUSH brush;
+
             SetBkMode((HDC)wParam, TRANSPARENT);
             SetTextColor((HDC)wParam, RGB(0, 0, 0));
+
+            brush = PhGetStockBrush(DC_BRUSH);
+            SelectBrush((HDC)wParam, brush);
             SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
-            return (INT_PTR)GetStockBrush(DC_BRUSH);
+
+            return (INT_PTR)brush;
         }
         break;
     }

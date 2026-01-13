@@ -186,6 +186,26 @@ PPH_LIST DiskDriveQueryMountPointHandles(
     return deviceList;
 }
 
+VOID DiskDriveCloseMountPointHandles(
+    _In_ PPH_LIST MountPointHandles
+    )
+{
+    for (ULONG i = 0; i < MountPointHandles->Count; i++)
+    {
+        PDISK_HANDLE_ENTRY entry = MountPointHandles->Items[i];
+
+        if (entry->DeviceHandle)
+        {
+            NtClose(entry->DeviceHandle);
+            entry->DeviceHandle = NULL;
+        }
+
+        PhFree(entry);
+    }
+
+    PhDereferenceObject(MountPointHandles);
+}
+
 NTSTATUS DiskDriveQueryDeviceInformation(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PPH_STRING* DiskVendor,
@@ -1166,6 +1186,53 @@ NTSTATUS DiskDriveQueryUniqueId(
             PhRemoveEndStringBuilder(&stringBuilder, 2);
 
         *PartitionId = PhFinalStringBuilderString(&stringBuilder);
+    }
+
+    PhFree(buffer);
+
+    return status;
+}
+
+NTSTATUS DiskDriveQueryPartitionList(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PPH_LIST *Partitions
+    )
+{
+    NTSTATUS status;
+    ULONG bufferLength;
+    PDRIVE_LAYOUT_INFORMATION_EX buffer;
+
+    bufferLength = sizeof(DRIVE_LAYOUT_INFORMATION_EX[10]);
+    buffer = PhAllocate(bufferLength);
+    memset(buffer, 0, bufferLength);
+
+    status = PhDeviceIoControlFile(
+        DeviceHandle,
+        IOCTL_DISK_GET_DRIVE_LAYOUT_EX,
+        NULL,
+        0,
+        buffer,
+        bufferLength,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PPH_LIST guidArray;
+
+        guidArray = PhCreateList(1);
+
+        for (ULONG i = 0; i < buffer->PartitionCount; i++)
+        {
+            PARTITION_INFORMATION_EX entry = buffer->PartitionEntry[i];
+
+            if (entry.PartitionStyle == PARTITION_STYLE_GPT)
+            {
+                PhAddItemList(guidArray, PhFormatGuid(&entry.Gpt.PartitionId));
+            }
+        }
+
+        *Partitions = guidArray;
     }
 
     PhFree(buffer);

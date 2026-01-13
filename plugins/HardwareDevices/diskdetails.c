@@ -596,10 +596,9 @@ VOID DiskDeviceQueryFileSystem(
                 PhFree(fsInfoBuffer);
             }
         }
-
-        NtClose(entry->DeviceHandle);
-        PhFree(entry);
     }
+
+    DiskDriveCloseMountPointHandles(deviceMountHandles);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)

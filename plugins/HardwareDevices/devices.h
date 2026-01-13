@@ -863,6 +863,10 @@ PPH_LIST DiskDriveQueryMountPointHandles(
     _In_ ULONG DeviceNumber
     );
 
+VOID DiskDriveCloseMountPointHandles(
+    _In_ PPH_LIST MountPointHandles
+    );
+
 NTSTATUS DiskDriveQueryDeviceInformation(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PPH_STRING* DiskVendor,
@@ -973,6 +977,11 @@ NTSTATUS DiskDriveQueryUniqueId(
     _In_ HANDLE DeviceHandle,
     _Out_ PPH_STRING* UniqueId,
     _Out_ PPH_STRING* PartitionId
+    );
+
+NTSTATUS DiskDriveQueryPartitionList(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PPH_LIST *Partitions
     );
 
 // https://en.wikipedia.org/wiki/Self-Monitoring,_Analysis_and_Reporting_Technology#Known_ATA_S.M.A.R.T._attributes
