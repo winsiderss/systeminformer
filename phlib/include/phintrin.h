@@ -807,6 +807,27 @@ PhAndINT128(
 }
 
 /**
+ * Bitwise OR of two 128-bit integer vectors.
+ *
+ * \param[in] A First operand.
+ * \param[in] B Second operand.
+ * \return Result of A | B.
+ */
+FORCEINLINE
+PH_INT128
+PhOrINT128(
+    _In_ PH_INT128 A,
+    _In_ PH_INT128 B
+    )
+{
+#ifdef _ARM64_
+    return vorrq_s32(A, B);
+#else
+    return _mm_or_si128(A, B);
+#endif
+}
+
+/**
  * Convert 128-bit float vector to unsigned 32-bit integers per lane.
  *
  * \param[in] A Float vector to convert.
@@ -850,6 +871,66 @@ PhConvertINT128ToFLOAT128(
  * \param[in] Input Vector containing UTF-16 characters in 16-bit lanes.
  * \return Vector with ASCII letters converted to upper-case; other values unchanged.
  */
+FORCEINLINE
+PH_INT128
+PhUppercaseLatin1INT128by16(
+    _In_ PH_INT128 Input
+    )
+{
+#ifdef _ARM64_
+    // NEON: convert a-z (0x61-0x7A) and à-þ (0xE0-0xFE) excluding ÷ (0xF7)
+    uint16x8_t ge_a = vcgeq_u16(Input, vdupq_n_u16(0x0061));
+    uint16x8_t le_z = vcleq_u16(Input, vdupq_n_u16(0x007A));
+    uint16x8_t mask1 = vandq_u16(ge_a, le_z);
+    uint16x8_t ge_lat = vcgeq_u16(Input, vdupq_n_u16(0x00E0));
+    uint16x8_t le_lat = vcleq_u16(Input, vdupq_n_u16(0x00FE));
+    uint16x8_t mask2 = vandq_u16(ge_lat, le_lat);
+    uint16x8_t not_div = vceqq_u16(Input, vdupq_n_u16(0x00F7));
+    mask2 = vbicq_u16(mask2, not_div);
+    uint16x8_t final_mask = vorrq_u16(mask1, mask2);
+    return vsubq_u16(Input, vandq_u16(final_mask, vdupq_n_u16(0x0020)));
+#else
+    // SSE2: convert a-z (0x61-0x7A) and à-þ (0xE0-0xFE) excluding ÷ (0xF7)
+    __m128i ge_a = _mm_cmpgt_epi16(Input, _mm_set1_epi16(0x0060));
+    __m128i le_z = _mm_cmpgt_epi16(_mm_set1_epi16(0x007B), Input);
+    __m128i mask1 = _mm_and_si128(ge_a, le_z);
+    __m128i ge_lat = _mm_cmpgt_epi16(Input, _mm_set1_epi16(0x00DF));
+    __m128i le_lat = _mm_cmpgt_epi16(_mm_set1_epi16(0x00FF), Input);
+    __m128i mask2 = _mm_and_si128(ge_lat, le_lat);
+    __m128i is_div = _mm_cmpeq_epi16(Input, _mm_set1_epi16(0x00F7));
+    mask2 = _mm_andnot_si128(is_div, mask2);
+    __m128i final_mask = _mm_or_si128(mask1, mask2);
+    return _mm_sub_epi16(Input, _mm_and_si128(final_mask, _mm_set1_epi16(0x0020)));
+#endif
+}
+
+#ifndef _ARM64_
+/**
+ * Convert Latin-1 lowercase letters to upper-case (AVX2).
+ *
+ * \param[in] Input 256-bit vector containing UTF-16 characters in 16-bit lanes.
+ * \return Vector with letters converted to upper-case; other values unchanged.
+ */
+FORCEINLINE
+__m256i
+PhUppercaseLatin1INT256by16(
+    _In_ __m256i Input
+    )
+{
+    // convert a-z (0x61-0x7A) and à-þ (0xE0-0xFE) excluding ÷ (0xF7)
+    __m256i ge_a = _mm256_cmpgt_epi16(Input, _mm256_set1_epi16(0x0060));
+    __m256i le_z = _mm256_cmpgt_epi16(_mm256_set1_epi16(0x007B), Input);
+    __m256i mask1 = _mm256_and_si256(ge_a, le_z);
+    __m256i ge_lat = _mm256_cmpgt_epi16(Input, _mm256_set1_epi16(0x00DF));
+    __m256i le_lat = _mm256_cmpgt_epi16(_mm256_set1_epi16(0x00FF), Input);
+    __m256i mask2 = _mm256_and_si256(ge_lat, le_lat);
+    __m256i is_div = _mm256_cmpeq_epi16(Input, _mm256_set1_epi16(0x00F7));
+    mask2 = _mm256_andnot_si256(is_div, mask2);
+    __m256i final_mask = _mm256_or_si256(mask1, mask2);
+    return _mm256_sub_epi16(Input, _mm256_and_si256(final_mask, _mm256_set1_epi16(0x0020)));
+}
+#endif
+
 FORCEINLINE
 PH_INT128
 PhUppercaseASCIIINT128by16(
