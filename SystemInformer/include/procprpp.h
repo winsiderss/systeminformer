@@ -29,6 +29,11 @@ typedef struct _PH_PROCESS_PROPSHEETCONTEXT
     PPH_LAYOUT_ITEM TabPageItem;
     BOOLEAN LayoutInitialized;
     HFONT PropSheetWindowFont;
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+    HWND OptionsButtonWindowHandle;
+    WNDPROC OldOptionsButtonWndProc;
+    //HWND PermissionsButtonWindowHandle;
+    HWND ButtonsLabelWindowHandle;
 } PH_PROCESS_PROPSHEETCONTEXT, *PPH_PROCESS_PROPSHEETCONTEXT;
 
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)

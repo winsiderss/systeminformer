@@ -87,6 +87,11 @@ extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
 extern PH_PROVIDER_THREAD PhSecondaryProviderThread;
 extern PH_PROVIDER_THREAD PhTertiaryProviderThread;
 
+extern RTL_ATOM PhTreeWindowAtom;
+extern RTL_ATOM PhGraphWindowAtom;
+extern RTL_ATOM PhHexEditWindowAtom;
+extern RTL_ATOM PhColorBoxWindowAtom;
+
 // begin_phapppub
 PHAPPAPI
 VOID
