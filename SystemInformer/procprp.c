@@ -747,7 +747,8 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
         {
             if (propSheetContext->ButtonsLabelWindowHandle)
             {
-                static CONST PH_STRINGREF text = PH_STRINGREF_INIT(L"Protection: ");
+                static CONST PH_STRINGREF text = PH_STRINGREF_INIT(L"Protection");
+                static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L": ");
                 HWND pageWindow;
                 LPPROPSHEETPAGE propSheetPage;
                 PPH_PROCESS_PROPPAGECONTEXT propPageContext;
@@ -766,11 +767,11 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
 
                 if (string)
                 {
-                    PhMoveReference(&string, PhConcatStringRef2(&text, &string->sr));
+                    PhMoveReference(&string, PhConcatStringRef3(&text, &seperator, &string->sr));
                 }
                 else
                 {
-                    PhMoveReference(&string, PhConcatStringRefZ(&text, L"N/A"));
+                    PhMoveReference(&string, PhConcatStringRefZ(&text, &seperator, L"N/A"));
                 }
 
                 PhSetWindowText(propSheetContext->ButtonsLabelWindowHandle, string->Buffer);
@@ -849,7 +850,7 @@ VOID PhpCreateProcessPropButtons(
         PropSheetContext->ButtonsLabelWindowHandle = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
             WC_STATIC,
-            L"Quick Access:",
+            L"Protection",
             WS_CHILD | WS_VISIBLE | SS_LEFT,
             clientRect.right - rect.right + (buttonWidth + buttonSpacing) + 5,
             rect.top + 7,
