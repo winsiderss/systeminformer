@@ -18,6 +18,11 @@ if not defined VSINSTALLPATH (
    goto end
 )
 
+set "VS_ARM64_SUPPORT=false"
+for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do (
+   set "VS_ARM64_SUPPORT=true"
+)
+
 :: Pre-cleanup (required since dotnet doesn't cleanup)
 if exist "tools\CustomBuildTool\bin\" (
    rmdir /S /Q "tools\CustomBuildTool\bin\"
@@ -30,13 +35,15 @@ if exist "tools\CustomBuildTool\.vs" (
 )
 
 if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
-    if "%PROCESSOR_ARCHITECTURE%"=="ARM64" (
-       call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" arm64
-       dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\arm64.pubxml /p:ContinuousIntegrationBuild=%TIB%
-    ) else (
-       call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
-       dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\amd64.pubxml /p:ContinuousIntegrationBuild=%TIB%
-    )
+   echo Building CustomBuildTool [AMD64]
+   call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
+   dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\amd64.pubxml /p:ContinuousIntegrationBuild=%TIB%
+
+   if "%VS_ARM64_SUPPORT%"=="true" (
+      echo Building CustomBuildTool [ARM64]
+      call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" arm64
+      dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\arm64.pubxml /p:ContinuousIntegrationBuild=%TIB%
+   )
 ) else (
    goto end
 )
