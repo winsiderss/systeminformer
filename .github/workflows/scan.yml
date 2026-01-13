@@ -125,12 +125,10 @@ jobs:
         with:
           input: sarif-results/cpp.sarif
           output: sarif-results/filtered.sarif
-          severities: |
-            - warning
-            - error
           patterns: |
             -packages/**/*
             -tools/CustomBuildTool/generated/**/*
+            -tools/CustomBuildTool/obj/**/*
             -tools/thirdpary/**/*
 
       - name: Upload CodeQL Results
@@ -187,9 +185,6 @@ jobs:
          with:
            input: sarif-results/csharp.sarif
            output: sarif-results/filtered.sarif
-           severities: |
-             - warning
-             - error
            patterns: |
              -packages/**/*
              -tools/CustomBuildTool/generated/**/*
