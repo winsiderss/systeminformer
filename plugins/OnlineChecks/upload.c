@@ -1136,6 +1136,7 @@ typedef struct _PFILESCANIO_REPORT
     PPH_STRING flow_id;
 } FILESCANIO_REPORT, *PFILESCANIO_REPORT;
 
+#if defined(FILESCANIO_PROMPT)
 static int __cdecl OnlineChecksFileScanIoCompareFunction(
     _In_ const void* elem1,
     _In_ const void* elem2
@@ -1146,6 +1147,7 @@ static int __cdecl OnlineChecksFileScanIoCompareFunction(
 
     return int64cmp(node1->report_time, node2->report_time);
 }
+#endif
 
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UploadCheckThreadStart(
