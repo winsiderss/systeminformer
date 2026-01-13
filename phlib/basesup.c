@@ -65,6 +65,10 @@
 #define PH_NATIVE_STRING_CONVERSION 1
 #endif
 
+#ifndef PH_NATIVE_STRING_IN_STRING
+#define PH_NATIVE_STRING_IN_STRING 1
+#endif
+
 #ifndef PH_NATIVE_THREAD_CREATE
 #define PH_NATIVE_THREAD_CREATE 1
 #endif
@@ -2222,21 +2226,7 @@ LONG PhCompareStringRef(
 
     end = PTR_ADD_OFFSET(s1, l1 <= l2 ? l1 : l2);
 
-    if (!IgnoreCase)
-    {
-        while (s1 != end)
-        {
-            c1 = *s1;
-            c2 = *s2;
-
-            if (c1 != c2)
-                return (LONG)c1 - (LONG)c2;
-
-            s1++;
-            s2++;
-        }
-    }
-    else
+    if (IgnoreCase)
     {
         while (s1 != end)
         {
@@ -2251,6 +2241,20 @@ LONG PhCompareStringRef(
                 if (c1 != c2)
                     return (LONG)c1 - (LONG)c2;
             }
+
+            s1++;
+            s2++;
+        }
+    }
+    else
+    {
+        while (s1 != end)
+        {
+            c1 = *s1;
+            c2 = *s2;
+
+            if (c1 != c2)
+                return (LONG)c1 - (LONG)c2;
 
             s1++;
             s2++;
@@ -2295,6 +2299,73 @@ BOOLEAN PhEqualStringRef(
 
     if (PhHasIntrinsics)
     {
+#ifndef _ARM64_
+        if (PhHasAVX)
+        {
+            if (IgnoreCase)
+            {
+                length = l1 / 32;
+
+                if (length != 0)
+                {
+                    do
+                    {
+                        __m256i b1 = _mm256_loadu_si256((__m256i const*)s1);
+                        __m256i b2 = _mm256_loadu_si256((__m256i const*)s2);
+
+                        // SIMD uppercase conversion
+                        b1 = PhUppercaseASCIIINT256by16(b1);
+                        b2 = PhUppercaseASCIIINT256by16(b2);
+
+                        // Compare uppercased values
+                        __m256i cmp = _mm256_cmpeq_epi16(b1, b2);
+                        if ((ULONG)_mm256_movemask_epi8(cmp) != 0xffffffff)
+                        {
+                            _mm256_zeroupper();
+                            l1 = length * 32 + (l1 & 31);
+                            l1 /= sizeof(WCHAR);
+                            goto CompareCharacters;
+                        }
+
+                        s1 += 32 / sizeof(WCHAR);
+                        s2 += 32 / sizeof(WCHAR);
+                    } while (--length != 0);
+
+                    _mm256_zeroupper();
+                }
+
+                l1 = (l1 & 31) / sizeof(WCHAR);
+            }
+            else
+            {
+                length = l1 / 32;
+
+                if (length != 0)
+                {
+                    do
+                    {
+                        __m256i b1 = _mm256_loadu_si256((__m256i const*)s1);
+                        __m256i b2 = _mm256_loadu_si256((__m256i const*)s2);
+                        __m256i cmp = _mm256_cmpeq_epi16(b1, b2);
+
+                        if ((ULONG)_mm256_movemask_epi8(cmp) != 0xffffffff)
+                        {
+                            _mm256_zeroupper();
+                            return FALSE;
+                        }
+
+                        s1 += 32 / sizeof(WCHAR);
+                        s2 += 32 / sizeof(WCHAR);
+                    } while (--length != 0);
+
+                    _mm256_zeroupper();
+                }
+
+                l1 = (l1 & 31) / sizeof(WCHAR);
+            }
+        }
+        else
+#endif
         if (IgnoreCase)
         {
             length = l1 / 16;
@@ -2402,21 +2473,7 @@ BOOLEAN PhEqualStringRef(
 CompareCharacters:
     if (l1 != 0)
     {
-        if (!IgnoreCase)
-        {
-            do
-            {
-                c1 = *s1;
-                c2 = *s2;
-
-                if (c1 != c2)
-                    return FALSE;
-
-                s1++;
-                s2++;
-            } while (--l1 != 0);
-        }
-        else
+        if (IgnoreCase)
         {
             do
             {
@@ -2431,6 +2488,20 @@ CompareCharacters:
                     if (c1 != c2)
                         return FALSE;
                 }
+
+                s1++;
+                s2++;
+            } while (--l1 != 0);
+        }
+        else
+        {
+            do
+            {
+                c1 = *s1;
+                c2 = *s2;
+
+                if (c1 != c2)
+                    return FALSE;
 
                 s1++;
                 s2++;
@@ -2462,8 +2533,139 @@ ULONG_PTR PhFindCharInStringRef(
     buffer = String->Buffer;
     length = String->Length / sizeof(WCHAR);
 
-    if (!IgnoreCase)
+    if (IgnoreCase)
     {
+#ifndef _ARM64_
+        if (PhHasAVX)
+        {
+            SIZE_T length32;
+
+            length32 = String->Length / 32;
+            length &= 15;
+
+            if (length32 != 0)
+            {
+                __m256i pattern;
+                __m256i block;
+                ULONG mask;
+                ULONG index;
+                WCHAR upC = PhUpcaseUnicodeChar(Character);
+
+                pattern = _mm256_set1_epi16(upC);
+
+                do
+                {
+                    block = _mm256_loadu_si256((__m256i*)buffer);
+                    block = PhUppercaseASCIIINT256by16(block);
+                    block = _mm256_cmpeq_epi16(block, pattern);
+                    mask = _mm256_movemask_epi8(block);
+
+                    if (mask != 0)
+                    {
+                        if (_BitScanForward(&index, mask))
+                        {
+                            _mm256_zeroupper();
+                            return (String->Length - length32 * 32) / sizeof(WCHAR) - length + index / 2;
+                        }
+                    }
+
+                    buffer += 16;
+                } while (--length32 != 0);
+
+                _mm256_zeroupper();
+            }
+        }
+        else
+#endif
+        if (PhHasIntrinsics)
+        {
+            SIZE_T length16;
+
+            length16 = String->Length / 16;
+            length &= 7;
+
+            if (length16 != 0)
+            {
+                PH_INT128 pattern;
+                PH_INT128 block;
+                ULONG mask;
+                ULONG index;
+                WCHAR upC = PhUpcaseUnicodeChar(Character);
+
+                pattern = PhSetINT128by16(upC);
+
+                do
+                {
+                    block = PhLoadINT128U((PLONG)buffer);
+                    block = PhUppercaseASCIIINT128by16(block);
+                    block = PhCompareEqINT128by16(block, pattern);
+                    mask = PhMoveMaskINT128by8(block);
+
+                    if (_BitScanForward(&index, mask))
+                        return (String->Length - length16 * 16) / sizeof(WCHAR) - length + index / 2;
+
+                    buffer += 8;
+                } while (--length16 != 0);
+            }
+        }
+
+        if (length != 0)
+        {
+            WCHAR c;
+
+            c = PhUpcaseUnicodeChar(Character);
+
+            do
+            {
+                if (PhUpcaseUnicodeChar(*buffer) == c)
+                    return String->Length / sizeof(WCHAR) - length;
+
+                buffer++;
+            } while (--length != 0);
+        }
+    }
+    else
+    {
+#ifndef _ARM64_
+        if (PhHasAVX)
+        {
+            SIZE_T length32;
+
+            length32 = String->Length / 32;
+            length &= 15;
+
+            if (length32 != 0)
+            {
+                __m256i pattern;
+                __m256i block;
+                ULONG mask;
+                ULONG index;
+
+                pattern = _mm256_set1_epi16(Character);
+
+                do
+                {
+                    block = _mm256_loadu_si256((__m256i*)buffer);
+                    block = _mm256_cmpeq_epi16(block, pattern);
+                    mask = _mm256_movemask_epi8(block);
+
+                    if (mask != 0)
+                    {
+                        if (_BitScanForward(&index, mask))
+                        {
+                            _mm256_zeroupper();
+                            return (String->Length - length32 * 32) / sizeof(WCHAR) - length + index / 2;
+                        }
+                    }
+
+                    buffer += 16;
+                } while (--length32 != 0);
+
+                _mm256_zeroupper();
+            }
+        }
+        else
+#endif
         if (PhHasIntrinsics)
         {
             SIZE_T length16;
@@ -2519,23 +2721,6 @@ ULONG_PTR PhFindCharInStringRef(
             } while (--length != 0);
         }
     }
-    else
-    {
-        if (length != 0)
-        {
-            WCHAR c;
-
-            c = PhUpcaseUnicodeChar(Character);
-
-            do
-            {
-                if (PhUpcaseUnicodeChar(*buffer) == c)
-                    return String->Length / sizeof(WCHAR) - length;
-
-                buffer++;
-            } while (--length != 0);
-        }
-    }
 
     return SIZE_MAX;
 }
@@ -2561,8 +2746,140 @@ ULONG_PTR PhFindLastCharInStringRef(
     buffer = PTR_ADD_OFFSET(String->Buffer, String->Length);
     length = String->Length / sizeof(WCHAR);
 
-    if (!IgnoreCase)
+    if (IgnoreCase)
     {
+#ifndef _ARM64_
+        if (PhHasAVX)
+        {
+            SIZE_T length32;
+
+            length32 = String->Length / 32;
+            length &= 15;
+
+            if (length32 != 0)
+            {
+                __m256i pattern;
+                __m256i block;
+                ULONG mask;
+                ULONG index;
+                WCHAR upC = PhUpcaseUnicodeChar(Character);
+
+                pattern = _mm256_set1_epi16(upC);
+
+                do
+                {
+                    buffer -= 16;
+                    block = _mm256_loadu_si256((__m256i*)buffer);
+                    block = PhUppercaseASCIIINT256by16(block);
+                    block = _mm256_cmpeq_epi16(block, pattern);
+                    mask = _mm256_movemask_epi8(block);
+
+                    if (mask != 0)
+                    {
+                        if (_BitScanReverse(&index, mask))
+                        {
+                            _mm256_zeroupper();
+                            return (buffer - String->Buffer) + index / 2;
+                        }
+                    }
+                } while (--length32 != 0);
+
+                _mm256_zeroupper();
+            }
+        }
+#endif
+        if (PhHasIntrinsics)
+        {
+            SIZE_T length16;
+
+            length16 = String->Length / 16;
+            length &= 7;
+
+            if (length16 != 0)
+            {
+                PH_INT128 pattern;
+                PH_INT128 block;
+                ULONG mask;
+                ULONG index;
+                WCHAR upC = PhUpcaseUnicodeChar(Character);
+
+                pattern = PhSetINT128by16(upC);
+
+                do
+                {
+                    buffer -= 8;
+                    block = PhLoadINT128U((PLONG)buffer);
+                    block = PhUppercaseASCIIINT128by16(block);
+                    block = PhCompareEqINT128by16(block, pattern);
+                    mask = PhMoveMaskINT128by8(block);
+
+                    if (mask != 0)
+                    {
+                        if (_BitScanReverse(&index, mask))
+                        {
+                            return (buffer - String->Buffer) + index / 2;
+                        }
+                    }
+                } while (--length16 != 0);
+            }
+        }
+
+        if (length != 0)
+        {
+            WCHAR c;
+
+            c = PhUpcaseUnicodeChar(Character);
+            buffer--;
+
+            do
+            {
+                if (PhUpcaseUnicodeChar(*buffer) == c)
+                    return length - 1;
+
+                buffer--;
+            } while (--length != 0);
+        }
+    }
+    else
+    {
+#ifndef _ARM64_
+        if (PhHasAVX)
+        {
+            SIZE_T length32;
+
+            length32 = String->Length / 32;
+            length &= 15;
+
+            if (length32 != 0)
+            {
+                __m256i pattern;
+                __m256i block;
+                ULONG mask;
+                ULONG index;
+
+                pattern = _mm256_set1_epi16(Character);
+
+                do
+                {
+                    buffer -= 16;
+                    block = _mm256_loadu_si256((__m256i*)buffer);
+                    block = _mm256_cmpeq_epi16(block, pattern);
+                    mask = _mm256_movemask_epi8(block);
+
+                    if (mask != 0)
+                    {
+                        if (_BitScanReverse(&index, mask))
+                        {
+                            _mm256_zeroupper();
+                            return (buffer - String->Buffer) + index / 2;
+                        }
+                    }
+                } while (--length32 != 0);
+
+                _mm256_zeroupper();
+            }
+        }
+#endif
         if (PhHasIntrinsics)
         {
             SIZE_T length16;
@@ -2625,24 +2942,6 @@ ULONG_PTR PhFindLastCharInStringRef(
             } while (--length != 0);
         }
     }
-    else
-    {
-        if (length != 0)
-        {
-            WCHAR c;
-
-            c = PhUpcaseUnicodeChar(Character);
-            buffer--;
-
-            do
-            {
-                if (PhUpcaseUnicodeChar(*buffer) == c)
-                    return length - 1;
-
-                buffer--;
-            } while (--length != 0);
-        }
-    }
 
     return SIZE_MAX;
 }
@@ -2664,10 +2963,6 @@ ULONG_PTR PhFindStringInStringRef(
 {
     SIZE_T length1;
     SIZE_T length2;
-    PH_STRINGREF sr1;
-    PH_STRINGREF sr2;
-    WCHAR c;
-    SIZE_T i;
 
     length1 = String->Length / sizeof(WCHAR);
     length2 = SubString->Length / sizeof(WCHAR);
@@ -2679,39 +2974,117 @@ ULONG_PTR PhFindStringInStringRef(
     if (length2 == 0)
         return 0;
 
-    sr1.Buffer = String->Buffer;
-    sr1.Length = SubString->Length - sizeof(WCHAR);
-    sr2.Buffer = SubString->Buffer;
-    sr2.Length = SubString->Length - sizeof(WCHAR);
-
-    if (!IgnoreCase)
+#if defined(PH_NATIVE_STRING_IN_STRING)
     {
-        c = *sr2.Buffer++;
+        PH_STRINGREF haystackRef;
+        PH_STRINGREF sr1;
+        PH_STRINGREF sr2;
+        WCHAR c;
+        PWSTR haystack;
+        SIZE_T haystackCount;
 
-        for (i = length1 - length2 + 1; i != 0; i--)
+        if (length2 == 1)
+            return PhFindCharInStringRef(String, SubString->Buffer[0], IgnoreCase);
+
+        haystack = String->Buffer;
+        haystackCount = length1 - length2 + 1;
+
+        sr2.Buffer = SubString->Buffer + 1;
+        sr2.Length = SubString->Length - sizeof(WCHAR);
+        sr1.Length = sr2.Length;
+
+        if (IgnoreCase)
         {
-            if (*sr1.Buffer++ == c && PhEqualStringRef(&sr1, &sr2, FALSE))
+            c = PhUpcaseUnicodeChar(SubString->Buffer[0]);
+
+            while (haystackCount > 0)
             {
-                goto FoundUString;
+                haystackRef.Buffer = haystack;
+                haystackRef.Length = haystackCount * sizeof(WCHAR);
+
+                ULONG_PTR offset = PhFindCharInStringRef(&haystackRef, c, TRUE);
+                if (offset == SIZE_MAX)
+                    break;
+
+                haystack += offset;
+                haystackCount -= offset;
+
+                sr1.Buffer = haystack + 1;
+                if (PhEqualStringRef(&sr1, &sr2, TRUE))
+                    return (ULONG_PTR)(haystack - String->Buffer);
+
+                haystack++;
+                haystackCount--;
+            }
+        }
+        else
+        {
+            c = SubString->Buffer[0];
+
+            while (haystackCount > 0)
+            {
+                haystackRef.Buffer = haystack;
+                haystackRef.Length = haystackCount * sizeof(WCHAR);
+
+                ULONG_PTR offset = PhFindCharInStringRef(&haystackRef, c, FALSE);
+                if (offset == SIZE_MAX)
+                    break;
+
+                haystack += offset;
+                haystackCount -= offset;
+
+                sr1.Buffer = haystack + 1;
+                if (PhEqualStringRef(&sr1, &sr2, FALSE))
+                    return (ULONG_PTR)(haystack - String->Buffer);
+
+                haystack++;
+                haystackCount--;
             }
         }
     }
-    else
+#else
     {
-        c = PhUpcaseUnicodeChar(*sr2.Buffer++);
+        PH_STRINGREF sr1;
+        PH_STRINGREF sr2;
+        WCHAR c;
+        SIZE_T i;
 
-        for (i = length1 - length2 + 1; i != 0; i--)
+        sr1.Buffer = String->Buffer;
+        sr1.Length = SubString->Length - sizeof(WCHAR);
+        sr2.Buffer = SubString->Buffer;
+        sr2.Length = SubString->Length - sizeof(WCHAR);
+
+        if (IgnoreCase)
         {
-            if (PhUpcaseUnicodeChar(*sr1.Buffer++) == c && PhEqualStringRef(&sr1, &sr2, TRUE))
+            c = PhUpcaseUnicodeChar(*sr2.Buffer++);
+
+            for (i = length1 - length2 + 1; i != 0; i--)
             {
-                goto FoundUString;
+                if (PhUpcaseUnicodeChar(*sr1.Buffer++) == c && PhEqualStringRef(&sr1, &sr2, TRUE))
+                {
+                    goto FoundUString;
+                }
             }
         }
+        else
+        {
+            c = *sr2.Buffer++;
+
+            for (i = length1 - length2 + 1; i != 0; i--)
+            {
+                if (*sr1.Buffer++ == c && PhEqualStringRef(&sr1, &sr2, FALSE))
+                {
+                    goto FoundUString;
+                }
+            }
+        }
+
+        return SIZE_MAX;
+FoundUString:
+        return (ULONG_PTR)(sr1.Buffer - String->Buffer - 1);
     }
 
     return SIZE_MAX;
-FoundUString:
-    return (ULONG_PTR)(sr1.Buffer - String->Buffer - 1);
 }
 
 /**
@@ -3498,6 +3871,7 @@ PPH_STRING PhConcatStringRef2(
     assert(!(String2->Length & 1));
 
     string = PhCreateStringEx(NULL, String1->Length + String2->Length);
+
     memcpy(
         string->Buffer,
         String1->Buffer,
@@ -8003,6 +8377,8 @@ VOID PhFillMemoryUlong(
                 Memory += 8;
             }
 
+            _mm256_zeroupper();
+
             Count &= 0x7;
         }
     }
@@ -8309,6 +8685,8 @@ FLOAT PhMaxMemorySingles(
             d = _mm_max_ps(d, _mm_shuffle_ps(d, d, _MM_SHUFFLE(1, 0, 3, 2)));
             maximum = _mm_cvtss_f32(d);
 
+            _mm256_zeroupper();
+
             Count &= 0x7;
         }
     }
@@ -8419,6 +8797,8 @@ FLOAT PhAddPlusMaxMemorySingles(
             d = _mm_max_ps(d, _mm_shuffle_ps(d, d, _MM_SHUFFLE(1, 0, 3, 2)));
             maximum = _mm_cvtss_f32(d);
 
+            _mm256_zeroupper();
+
             Count &= 0x7;
         }
     }
@@ -8510,6 +8890,8 @@ VOID PhConvertCopyMemoryUlong(
                 From += 8;
                 To += 8;
             }
+
+            _mm256_zeroupper();
 
             Count &= 0x7;
         }
@@ -8649,6 +9031,8 @@ VOID PhConvertCopyMemoryUlong64(
                 From += 8;
                 To += 8;
             }
+
+            _mm256_zeroupper();
 
             Count &= 0x7;
         }
@@ -8804,6 +9188,8 @@ VOID PhConvertCopyMemorySingles(
                 From += 8;
                 To += 8;
             }
+
+            _mm256_zeroupper();
 
             Count &= 0x7;
         }

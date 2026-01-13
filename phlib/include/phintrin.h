@@ -873,13 +873,32 @@ PhUppercaseASCIIINT128by16(
 
 #ifndef _ARM64_
 /**
+ * Convert ASCII lower-case letters (a-z) to upper-case (A-Z) for 16-bit lanes (AVX2).
+ *
+ * \param[in] Input 256-bit vector containing UTF-16 characters in 16-bit lanes.
+ * \return Vector with ASCII letters converted to upper-case; other values unchanged.
+ */
+FORCEINLINE
+__m256i
+PhUppercaseASCIIINT256by16(
+    _In_ __m256i Input
+    )
+{
+    __m256i ge_a = _mm256_cmpgt_epi16(Input, _mm256_set1_epi16(L'a' - 1));
+    __m256i le_z = _mm256_cmpgt_epi16(_mm256_set1_epi16(L'z' + 1), Input);
+    __m256i mask = _mm256_and_si256(ge_a, le_z);
+    return _mm256_sub_epi16(Input, _mm256_and_si256(mask, _mm256_set1_epi16(0x20)));
+}
+
+/**
  * Convert 8 unsigned 32-bit integers in a 256-bit vector to floats.
  *
  * \param[in] Value 256-bit integer vector containing 8 uint32 values.
  * \return A __m256 of floats representing the unsigned conversion of Value.
  */
 FORCEINLINE
-__m256 _mm256_cvtf_epu32(
+__m256
+_mm256_cvtf_epu32(
     _In_ __m256i Value
     )
 {
@@ -899,7 +918,9 @@ __m256 _mm256_cvtf_epu32(
  * \param[in] Value Integer vector to convert.
  * \return Float vector with converted values.
  */
-FORCEINLINE PH_FLOAT128 PhConvertUINT128ToFLOAT128(
+FORCEINLINE
+PH_FLOAT128
+PhConvertUINT128ToFLOAT128(
     _In_ PH_INT128 Value
     )
 {
