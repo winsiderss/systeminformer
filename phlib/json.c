@@ -314,6 +314,17 @@ VOID PhAddJsonObject2(
     json_object_object_add_ex(Object, Key, string, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
+VOID PhAddJsonObjectUtf8(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ PPH_BYTES String
+    )
+{
+    PVOID string = json_object_new_string_len(String->Buffer, (UINT32)String->Length);
+
+    json_object_object_add_ex(Object, Key, string, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
+}
+
 VOID PhAddJsonObjectInt64(
     _In_ PVOID Object,
     _In_ PCSTR Key,
