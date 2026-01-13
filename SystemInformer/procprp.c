@@ -749,6 +749,7 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
             {
                 static CONST PH_STRINGREF text = PH_STRINGREF_INIT(L"Protection");
                 static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L": ");
+                static CONST PH_STRINGREF natext = PH_STRINGREF_INIT(L"N/A");
                 HWND pageWindow;
                 LPPROPSHEETPAGE propSheetPage;
                 PPH_PROCESS_PROPPAGECONTEXT propPageContext;
@@ -771,7 +772,7 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
                 }
                 else
                 {
-                    PhMoveReference(&string, PhConcatStringRef3(&text, &seperator, L"N/A"));
+                    PhMoveReference(&string, PhConcatStringRef3(&text, &seperator, &natext));
                 }
 
                 PhSetWindowText(propSheetContext->ButtonsLabelWindowHandle, string->Buffer);
