@@ -54,7 +54,7 @@
           <TraceWppCmd>$(TraceWppCmd) -um</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -ext:.c.cpp.h.hpp</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -preserveext:.c.cpp.h.hpp</TraceWppCmd>
-          <TraceWppCmd>$(TraceWppCmd) -cfgdir:"$(WindowsSdkDir)bin\$(TargetPlatformVersion)\WppConfig\Rev1"</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -I"$(WindowsSdkDir)bin\$(TargetPlatformVersion)\WppConfig\Rev1"</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -odir:"$(IntDir)tmh"</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -scan:"$(SystemInformerRoot)phlib\include\trace.h"</TraceWppCmd>
       </PropertyGroup>

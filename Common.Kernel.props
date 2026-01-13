@@ -100,7 +100,7 @@
           <TraceWppCmd>$(TraceWppCmd) -km</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -ext:.c.cpp.h.hpp</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -preserveext:.c.cpp.h.hpp</TraceWppCmd>
-          <TraceWppCmd>$(TraceWppCmd) -cfgdir:"$(WPP_CONFIG_PATH)\$(WPP_REVISION)"</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -I"$(WindowsSdkDir)bin\$(TargetPlatformVersion)\WppConfig\Rev1"</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -odir:"$(IntDir)tmh"</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -scan:"$(SystemInformerRoot)KSystemInformer\include\trace.h"</TraceWppCmd>
       </PropertyGroup>
