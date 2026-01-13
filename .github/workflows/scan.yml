@@ -37,23 +37,48 @@ jobs:
         run: build\build_tools.cmd
 
       - name: Download CodeQL
+        shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $latest_release = Invoke-RestMethod -Uri "https://api.github.com/repos/github/codeql-cli-binaries/releases/latest"
           $latest_asset = $latest_release.assets | Where-Object { $_.name -eq "codeql-win64.zip" }
-          Invoke-WebRequest -Uri "$($latest_asset.browser_download_url)" -OutFile "codeql-win64.zip"
-          $latest_hash = Get-FileHash -Algorithm SHA256 -Path "codeql-win64.zip"
-          if ($latest_hash.Hash -eq "$($latest_asset.digest.Substring(7, 64))") { Write-Output "Digest matches. File integrity verified."; }
-          else { Write-Output "Digest does not match. File integrity check failed."; exit 1; }
-          Expand-Archive -Path "codeql-win64.zip" -DestinationPath ${{ runner.temp }}
+          if (-not $latest_asset) { Write-Error "Could not find codeql-win64.zip in latest release"; exit 1 }
+          Invoke-WebRequest -Uri $latest_asset.browser_download_url -OutFile "codeql-win64.zip"
+          $latest_zip = Get-FileHash -Algorithm SHA256 -Path "codeql-win64.zip"
+          $expected = $latest_asset.digest.Substring(7,64)
+          if ($latest_zip.Hash -ne $expected) { Write-Error "Digest does not match. File integrity check failed."; exit 1 }
+          Write-Output "Digest matches. File integrity verified."
+          Expand-Archive -Path "codeql-win64.zip" -DestinationPath "${{ runner.temp }}"
+
+      - name: Add CodeQL to PATH
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $codeql_directory = Join-Path "${{ runner.temp }}" "codeql"
+          if (-not (Test-Path $codeql_directory)) { Write-Error "CodeQL directory not found: $codeql_directory"; exit 1 }
+          Write-Output "Adding CodeQL to PATH: $codeql_directory"
+          echo "::add-path::$codeql_directory"
 
       - name: Run CodeQL Analysis
-        shell: cmd
-        working-directory: ${{ runner.temp }}/codeql
+        shell: pwsh
+        working-directory: "${{ runner.temp }}\\codeql"
         run: |
-          codeql pack download microsoft/windows-drivers
-          codeql pack download microsoft/cpp-queries
-          codeql database create ${{runner.temp}}\codeql-driver --language=cpp --source-root=${{github.workspace}} --command="build\build_zdriver.cmd" --overwrite
-          codeql database analyze ${{runner.temp}}\codeql-driver microsoft/windows-drivers --format=sarifv2.1.0 --output=${{ runner.temp }}\driver-analysis.sarif
+          $ErrorActionPreference = 'Stop'
+          # ensure codeql is available
+          $codeqlExe = Join-Path "${{ runner.temp }}" "codeql\codeql.exe"
+          if (-not (Test-Path $codeqlExe)) { Write-Error "codeql executable not found at $codeqlExe"; exit 1 }
+
+          # download packs
+          & $codeqlExe pack download microsoft/windows-drivers
+          & $codeqlExe pack download microsoft/cpp-queries
+
+          # create database (adjust build command if needed)
+          $dbPath = Join-Path "${{ runner.temp }}" "codeql-driver"
+          & $codeqlExe database create $dbPath --language=cpp --source-root="${{ github.workspace }}" --command="build\build_zdriver.cmd" --overwrite
+
+          # analyze
+          $sarifOut = Join-Path "${{ runner.temp }}" "driver-analysis.sarif"
+          & $codeqlExe database analyze $dbPath microsoft/windows-drivers --format=sarifv2.1.0 --output=$sarifOut
 
       - name: Filter CodeQL Results
         uses: advanced-security/filter-sarif@f3b8118a9349d88f7b1c0c488476411145b6270d # 1.0.1
@@ -61,7 +86,7 @@ jobs:
           input: ${{ runner.temp }}\driver-analysis.sarif
           output:  ${{ runner.temp }}\driver-filtered.sarif
           patterns: |
-            -packages/**/*
+            packages/**/*
 
       - name: Upload CodeQL Results
         uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
@@ -126,10 +151,10 @@ jobs:
           input: sarif-results/cpp.sarif
           output: sarif-results/filtered.sarif
           patterns: |
-            -packages/**/*
-            -tools/CustomBuildTool/generated/**/*
-            -tools/CustomBuildTool/obj/**/*
-            -tools/thirdpary/**/*
+            packages/**/*
+            tools/CustomBuildTool/generated/**/*
+            tools/CustomBuildTool/obj/**/*
+            tools/thirdpary/**/*
 
       - name: Upload CodeQL Results
         uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
@@ -186,10 +211,10 @@ jobs:
            input: sarif-results/csharp.sarif
            output: sarif-results/filtered.sarif
            patterns: |
-             -packages/**/*
-             -tools/CustomBuildTool/generated/**/*
-             -tools/CustomBuildTool/obj/**/*
-             -tools/thirdpary/**/*
+             packages/**/*
+             tools/CustomBuildTool/generated/**/*
+             tools/CustomBuildTool/obj/**/*
+             tools/thirdpary/**/*
 
        - name: Upload CodeQL Results
          uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
