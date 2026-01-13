@@ -771,7 +771,7 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
                 }
                 else
                 {
-                    PhMoveReference(&string, PhConcatStringRefZ(&text, &seperator, L"N/A"));
+                    PhMoveReference(&string, PhConcatStringRef3(&text, &seperator, L"N/A"));
                 }
 
                 PhSetWindowText(propSheetContext->ButtonsLabelWindowHandle, string->Buffer);
