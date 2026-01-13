@@ -50,15 +50,6 @@ jobs:
           Write-Output "Digest matches. File integrity verified."
           Expand-Archive -Path "codeql-win64.zip" -DestinationPath "${{ runner.temp }}"
 
-      - name: Add CodeQL to PATH
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $codeql_directory = Join-Path "${{ runner.temp }}" "codeql"
-          if (-not (Test-Path $codeql_directory)) { Write-Error "CodeQL directory not found: $codeql_directory"; exit 1 }
-          Write-Output "Adding CodeQL to PATH: $codeql_directory"
-          echo "::add-path::$codeql_directory"
-
       - name: Run CodeQL Analysis
         shell: pwsh
         working-directory: "${{ runner.temp }}\\codeql"
