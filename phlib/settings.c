@@ -29,6 +29,7 @@
 #include <guisup.h>
 #include <guisupview.h>
 #include <mapldr.h>
+#include <thirdparty.h>
 #include <settings.h>
 #include <json.h>
 
@@ -1763,10 +1764,6 @@ PCSTR PhpSettingsSaveCallback(
     _In_ LONG when
     )
 {
-#define MXML_WS_BEFORE_OPEN 0
-#define MXML_WS_AFTER_OPEN 1
-#define MXML_WS_AFTER_CLOSE 3
-
     PCSTR elementName;
 
     if (!(elementName = PhGetXmlNodeElementText(node)))
