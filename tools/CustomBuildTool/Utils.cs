@@ -84,6 +84,67 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Parses arguments from a file. Each line should contain a key-value pair in the format: key=value
+        /// Lines starting with # are treated as comments and ignored.
+        /// </summary>
+        public static void ParseArgumentsFromFile(Dictionary<string, string> Kvp, string FileName)
+        {
+            if (!File.Exists(FileName))
+            {
+                Program.PrintColorMessage($"Arguments file not found: {FileName}", ConsoleColor.Red);
+                return;
+            }
+
+            var args = File.ReadAllLines(FileName);
+            var key = string.Empty;
+
+            foreach (string s in args)
+            {
+                if (s.StartsWith('-'))
+                {
+                    key = s;
+
+                    if (!Kvp.ContainsKey(key))
+                    {
+                        Kvp[key] = string.Empty;
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(key))
+                {
+                    Kvp[key] += s;
+                }
+                // else: ignore values before any key
+            }
+        }
+
+        public static Dictionary<string, string> ParseArgumentsFromFile(string filePath)
+        {
+            var kvp = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                string jsonContent = File.ReadAllText(filePath);
+                var args = JsonSerializer.Deserialize(jsonContent, DictionarySerializerContext.Default.DictionaryStringString);
+
+                foreach (var s in args)
+                {
+                    string key = s.Key;
+
+                    if (!key.StartsWith('-'))
+                        key = "-" + key;
+
+                    kvp[key] = s.Value;
+                }
+            }
+            catch (JsonException ex)
+            {
+                Program.PrintColorMessage($"Failed to parse JSON arguments file: {ex.Message}", ConsoleColor.Red);
+            }
+
+            return kvp;
+        }
+
+        /// <summary>
         /// Splits a string into a dictionary.
         /// </summary>
         public static Dictionary<string, string> ParseInput(string[] args)
@@ -1169,7 +1230,7 @@ namespace CustomBuildTool
         }
     }
 
-    public class GithubAuthor
+    public class GithubUser
     {
         [JsonPropertyName("name")]
         public string Name { get; init; }
@@ -1226,7 +1287,7 @@ namespace CustomBuildTool
         public string EventsUrl { get; init; }
 
         [JsonPropertyName("received_events_url")]
-        public string Received_events_url { get; init; }
+        public string ReceivedEventsUrl { get; init; }
 
         [JsonPropertyName("type")]
         public string Type { get; init; }
@@ -1235,10 +1296,10 @@ namespace CustomBuildTool
     public class GithubCommit
     {
         [JsonPropertyName("author")]
-        public GithubAuthor Author { get; init; }
+        public GithubUser Author { get; init; }
 
         [JsonPropertyName("committer")]
-        public GithubCommitAuthor Committer { get; init; }
+        public GithubUser Committer { get; init; }
 
         [JsonPropertyName("message")]
         public string Message { get; init; }
@@ -1254,69 +1315,6 @@ namespace CustomBuildTool
 
         [JsonPropertyName("verification")]
         public GithubCommitVerification Verification { get; init; }
-    }
-
-    public class GithubCommitAuthor
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; init; }
-
-        [JsonPropertyName("email")]
-        public string Email { get; init; }
-
-        [JsonPropertyName("date")]
-        public DateTime Date { get; init; }
-
-        [JsonPropertyName("login")]
-        public string Login { get; init; }
-
-        [JsonPropertyName("id")]
-        public ulong Id { get; init; }
-
-        [JsonPropertyName("node_id")]
-        public string NodeId { get; init; }
-
-        [JsonPropertyName("avatar_url")]
-        public string AvatarUrl { get; init; }
-
-        [JsonPropertyName("gravatar_id")]
-        public string Gravatar_id { get; init; }
-
-        [JsonPropertyName("url")]
-        public string Url { get; init; }
-
-        [JsonPropertyName("html_url")]
-        public string HtmlUrl { get; init; }
-
-        [JsonPropertyName("followers_url")]
-        public string FollowersUrl { get; init; }
-
-        [JsonPropertyName("following_url")]
-        public string FollowingUrl { get; init; }
-
-        [JsonPropertyName("gists_url")]
-        public string GistsUrl { get; init; }
-
-        [JsonPropertyName("starred_url")]
-        public string StarredUrl { get; init; }
-
-        [JsonPropertyName("subscriptions_url")]
-        public string SubscriptionsUrl { get; init; }
-
-        [JsonPropertyName("organizations_url")]
-        public string OrganizationsUrl { get; init; }
-
-        [JsonPropertyName("repos_url")]
-        public string ReposUrl { get; init; }
-
-        [JsonPropertyName("events_url")]
-        public string EventsUrl { get; init; }
-
-        [JsonPropertyName("received_events_url")]
-        public string ReceivedEventsUrl { get; init; }
-
-        [JsonPropertyName("type")]
-        public string Type { get; init; }
     }
 
     //public class GithubFile
@@ -1385,10 +1383,10 @@ namespace CustomBuildTool
         public string CommentsUrl { get; init; }
 
         [JsonPropertyName("author")]
-        public GithubAuthor Author { get; init; }
+        public GithubUser Author { get; init; }
 
         [JsonPropertyName("committer")]
-        public GithubCommitAuthor Committer { get; init; }
+        public GithubUser Committer { get; init; }
 
         //[JsonPropertyName("parents")]
         //public List<GithubParent> parents { get; init; }
@@ -1434,6 +1432,435 @@ namespace CustomBuildTool
 
         [JsonPropertyName("payload")]
         public string Payload { get; init; }
+    }
+
+    public class GithubHeadCommit
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("tree_id")]
+        public string TreeId { get; set; }
+
+        [JsonPropertyName("message")]
+        public string Message { get; set; }
+
+        [JsonPropertyName("timestamp")]
+        public DateTime Timestamp { get; set; }
+
+        [JsonPropertyName("author")]
+        public GithubUser Author { get; set; }
+
+        [JsonPropertyName("committer")]
+        public GithubUser Committer { get; set; }
+    }
+
+    public class GithubHeadRepository
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("node_id")]
+        public string NodeId { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("full_name")]
+        public string FullName { get; set; }
+
+        [JsonPropertyName("private")]
+        public bool PrivateRepo { get; set; }
+
+        [JsonPropertyName("owner")]
+        public GithubUser Owner { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; }
+
+        //[JsonPropertyName("description")]
+        //public object description { get; set; }
+
+        [JsonPropertyName("fork")]
+        public bool Fork { get; set; }
+
+        [JsonPropertyName("url")]
+        public string Url { get; set; }
+
+        [JsonPropertyName("forks_url")]
+        public string ForksUrl { get; set; }
+
+        [JsonPropertyName("keys_url")]
+        public string KeysUrl { get; set; }
+
+        [JsonPropertyName("collaborators_url")]
+        public string CollaboratorsUrl { get; set; }
+
+        [JsonPropertyName("teams_url")]
+        public string TeamsUrl { get; set; }
+
+        [JsonPropertyName("hooks_url")]
+        public string HooksUrl { get; set; }
+
+        [JsonPropertyName("issue_events_url")]
+        public string IssueEventsUrl { get; set; }
+
+        [JsonPropertyName("events_url")]
+        public string EventsUrl { get; set; }
+
+        [JsonPropertyName("assignees_url")]
+        public string AssigneesUrl { get; set; }
+
+        [JsonPropertyName("branches_url")]
+        public string BranchesUrl { get; set; }
+
+        [JsonPropertyName("tags_url")]
+        public string TagsUrl { get; set; }
+
+        [JsonPropertyName("blobs_url")]
+        public string BlobsUrl { get; set; }
+
+        [JsonPropertyName("git_tags_url")]
+        public string GitTagsUrl { get; set; }
+
+        [JsonPropertyName("git_refs_url")]
+        public string GitRefsUrl { get; set; }
+
+        [JsonPropertyName("trees_url")]
+        public string TreesUrl { get; set; }
+
+        [JsonPropertyName("statuses_url")]
+        public string StatusesUrl { get; set; }
+
+        //[JsonPropertyName("languages_url")]
+        //public string languages_url { get; set; }
+
+        //[JsonPropertyName("stargazers_url")]
+        //public string stargazers_url { get; set; }
+
+        //[JsonPropertyName("contributors_url")]
+        //public string contributors_url { get; set; }
+
+        //[JsonPropertyName("subscribers_url")]
+        //public string subscribers_url { get; set; }
+
+        //[JsonPropertyName("subscription_url")]
+        //public string subscription_url { get; set; }
+
+        [JsonPropertyName("commits_url")]
+        public string CommitsUrl { get; set; }
+
+        [JsonPropertyName("git_commits_url")]
+        public string GitCommitsUrl { get; set; }
+
+        [JsonPropertyName("comments_url")]
+        public string CommentsUrl { get; set; }
+
+        [JsonPropertyName("issue_comment_url")]
+        public string IssueCommentUrl { get; set; }
+
+        [JsonPropertyName("contents_url")]
+        public string ContentsUrl { get; set; }
+
+        [JsonPropertyName("compare_url")]
+        public string CompareUrl { get; set; }
+
+        [JsonPropertyName("merges_url")]
+        public string MergesUrl { get; set; }
+
+        [JsonPropertyName("archive_url")]
+        public string ArchiveUrl { get; set; }
+
+        [JsonPropertyName("downloads_url")]
+        public string DownloadsUrl { get; set; }
+
+        [JsonPropertyName("issues_url")]
+        public string IssuesUrl { get; set; }
+
+        [JsonPropertyName("pulls_url")]
+        public string PullsUrl { get; set; }
+
+        [JsonPropertyName("milestones_url")]
+        public string MilestonesUrl { get; set; }
+
+        [JsonPropertyName("notifications_url")]
+        public string NotificationsUrl { get; set; }
+
+        [JsonPropertyName("labels_url")]
+        public string LabelsUrl { get; set; }
+
+        [JsonPropertyName("releases_url")]
+        public string ReleasesUrl { get; set; }
+
+        [JsonPropertyName("deployments_url")]
+        public string DeploymentsUrl { get; set; }
+    }
+
+    public class GithubReferencedWorkflow
+    {
+        [JsonPropertyName("path")]
+        public string Path { get; set; }
+
+        [JsonPropertyName("sha")]
+        public string Sha { get; set; }
+
+        //[JsonPropertyName("ref")]
+        //public string @ref { get; set; }
+    }
+
+    public class GithubRepository
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("node_id")]
+        public string NodeId { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("full_name")]
+        public string FullName { get; set; }
+
+        [JsonPropertyName("owner")]
+        public GithubUser Owner { get; set; }
+
+        [JsonPropertyName("private")]
+        public bool PrivateRepo { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; }
+
+        [JsonPropertyName("description")]
+        public string Description { get; set; }
+
+        [JsonPropertyName("fork")]
+        public bool Fork { get; set; }
+
+        [JsonPropertyName("url")]
+        public string Url { get; set; }
+
+        [JsonPropertyName("archive_url")]
+        public string ArchiveUrl { get; set; }
+
+        [JsonPropertyName("assignees_url")]
+        public string AssigneesUrl { get; set; }
+
+        [JsonPropertyName("blobs_url")]
+        public string BlobsUrl { get; set; }
+
+        [JsonPropertyName("branches_url")]
+        public string BranchesUrl { get; set; }
+
+        [JsonPropertyName("collaborators_url")]
+        public string CollaboratorsUrl { get; set; }
+
+        [JsonPropertyName("comments_url")]
+        public string CommentsUrl { get; set; }
+
+        [JsonPropertyName("commits_url")]
+        public string CommitsUrl { get; set; }
+
+        [JsonPropertyName("compare_url")]
+        public string CompareUrl { get; set; }
+
+        [JsonPropertyName("contents_url")]
+        public string ContentsUrl { get; set; }
+
+        [JsonPropertyName("contributors_url")]
+        public string ContributorsUrl { get; set; }
+
+        [JsonPropertyName("deployments_url")]
+        public string DeploymentsUrl { get; set; }
+
+        [JsonPropertyName("downloads_url")]
+        public string DownloadsUrl { get; set; }
+
+        [JsonPropertyName("events_url")]
+        public string EventsUrl { get; set; }
+
+        [JsonPropertyName("forks_url")]
+        public string ForksUrl { get; set; }
+
+        [JsonPropertyName("git_commits_url")]
+        public string GitCommitsUrl { get; set; }
+
+        [JsonPropertyName("git_refs_url")]
+        public string GitRefsUrl { get; set; }
+
+        [JsonPropertyName("git_tags_url")]
+        public string GitTagsUrl { get; set; }
+
+        [JsonPropertyName("git_url")]
+        public string GitUrl { get; set; }
+
+        [JsonPropertyName("issue_comment_url")]
+        public string IssueCommentUrl { get; set; }
+
+        [JsonPropertyName("issue_events_url")]
+        public string IssueEventsUrl { get; set; }
+
+        [JsonPropertyName("issues_url")]
+        public string IssuesUrl { get; set; }
+
+        [JsonPropertyName("keys_url")]
+        public string KeysUrl { get; set; }
+
+        [JsonPropertyName("labels_url")]
+        public string LabelsUrl { get; set; }
+
+        [JsonPropertyName("languages_url")]
+        public string LanguagesUrl { get; set; }
+
+        [JsonPropertyName("merges_url")]
+        public string MergesUrl { get; set; }
+
+        [JsonPropertyName("milestones_url")]
+        public string MilestonesUrl { get; set; }
+
+        [JsonPropertyName("notifications_url")]
+        public string NotificationsUrl { get; set; }
+
+        [JsonPropertyName("pulls_url")]
+        public string PullsUrl { get; set; }
+
+        [JsonPropertyName("releases_url")]
+        public string ReleasesUrl { get; set; }
+
+        [JsonPropertyName("ssh_url")]
+        public string SshUrl { get; set; }
+
+        [JsonPropertyName("stargazers_url")]
+        public string StargazersUrl { get; set; }
+
+        [JsonPropertyName("statuses_url")]
+        public string StatusesUrl { get; set; }
+
+        [JsonPropertyName("subscribers_url")]
+        public string SubscribersUrl { get; set; }
+
+        [JsonPropertyName("subscription_url")]
+        public string SubscriptionUrl { get; set; }
+
+        [JsonPropertyName("tags_url")]
+        public string TagsUrl { get; set; }
+
+        [JsonPropertyName("teams_url")]
+        public string TeamsUrl { get; set; }
+
+        [JsonPropertyName("trees_url")]
+        public string TreesUrl { get; set; }
+
+        [JsonPropertyName("hooks_url")]
+        public string HooksUrl { get; set; }
+    }
+
+    public class GithubActionRun
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("node_id")]
+        public string NodeId { get; set; }
+
+        [JsonPropertyName("check_suite_id")]
+        public ulong CheckSuiteId { get; set; }
+
+        [JsonPropertyName("check_suite_node_id")]
+        public string CheckSuiteNodeId { get; set; }
+
+        [JsonPropertyName("head_branch")]
+        public string HeadBranch { get; set; }
+
+        [JsonPropertyName("head_sha")]
+        public string HeadSha { get; set; }
+
+        [JsonPropertyName("path")]
+        public string Path { get; set; }
+
+        [JsonPropertyName("run_number")]
+        public ulong RunNumber { get; set; }
+
+        [JsonPropertyName("event")]
+        public string EventName { get; set; }
+
+        [JsonPropertyName("display_title")]
+        public string DisplayTitle { get; set; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; }
+
+        //[JsonPropertyName("conclusion")]
+        //public object conclusion { get; set; }
+
+        [JsonPropertyName("workflow_id")]
+        public string WorkflowId { get; set; }
+
+        [JsonPropertyName("url")]
+        public string Url { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; }
+
+        //[JsonPropertyName("pull_requests")]
+        //public List<object> pull_requests { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("updated_at")]
+        public DateTime UpdatedAt { get; set; }
+
+        [JsonPropertyName("actor")]
+        public GithubUser Actor { get; set; }
+
+        [JsonPropertyName("run_attempt")]
+        public string RunAttempt { get; set; }
+
+        [JsonPropertyName("referenced_workflows")]
+        public List<GithubReferencedWorkflow> ReferencedWorkflows { get; set; }
+
+        [JsonPropertyName("run_started_at")]
+        public DateTime RunStartedAt { get; set; }
+
+        [JsonPropertyName("triggering_actor")]
+        public GithubUser TriggeringActor { get; set; }
+
+        [JsonPropertyName("jobs_url")]
+        public string JobsUrl { get; set; }
+
+        [JsonPropertyName("logs_url")]
+        public string LogsUrl { get; set; }
+
+        [JsonPropertyName("check_suite_url")]
+        public string CheckSuiteUrl { get; set; }
+
+        [JsonPropertyName("artifacts_url")]
+        public string ArtifactsUrl { get; set; }
+
+        [JsonPropertyName("cancel_url")]
+        public string CancelUrl { get; set; }
+
+        [JsonPropertyName("rerun_url")]
+        public string RerunUrl { get; set; }
+
+        [JsonPropertyName("previous_attempt_url")]
+        public string PreviousAttemptUrl { get; set; }
+
+        [JsonPropertyName("workflow_url")]
+        public string WorkflowUrl { get; set; }
+
+        [JsonPropertyName("head_commit")]
+        public GithubHeadCommit HeadCommit { get; set; }
+
+        [JsonPropertyName("repository")]
+        public GithubRepository Repository { get; set; }
+
+        [JsonPropertyName("head_repository")]
+        public GithubHeadRepository HeadRepository { get; set; }
     }
 
     public class SourceForgeResponseData
@@ -1551,6 +1978,7 @@ namespace CustomBuildTool
 
     }
 
+    [JsonSerializable(typeof(GithubActionRun))]
     [JsonSerializable(typeof(GithubAssetsResponse))]
     [JsonSerializable(typeof(GithubCommitResponse))]
     [JsonSerializable(typeof(GithubReleasesRequest))]
@@ -1575,6 +2003,12 @@ namespace CustomBuildTool
     public partial class VirusTotalResponseContext : JsonSerializerContext
     {
 
+    }
+
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonSerializable(typeof(Dictionary<string, string>))]
+    public partial class DictionarySerializerContext : JsonSerializerContext
+    {
     }
 
     public static class Extextensions
@@ -1661,16 +2095,59 @@ namespace CustomBuildTool
         }
     }
 
-    public static class TextColor
+    public static class VT
     {
-        public const string Reset      = "\x1b[0m";
-        public const string Black      = "\x1b[30m";
-        public const string Red        = "\x1b[31m";
-        public const string Green      = "\x1b[32m";
-        public const string Yellow     = "\x1b[33m";
-        public const string Blue       = "\x1b[34m";
-        public const string MAGENTA    = "\x1b[35m";
-        public const string CYAN       = "\x1b[36m";
-        public const string WHITE      = "\x1b[37m";
+        // Reset
+        public const string RESET       = "\x1b[0m";
+
+        // Standard foreground colors
+        public const string BLACK       = "\x1b[30m";
+        public const string RED         = "\x1b[31m";
+        public const string GREEN       = "\x1b[32m";
+        public const string YELLOW      = "\x1b[33m";
+        public const string BLUE        = "\x1b[34m";
+        public const string MAGENTA     = "\x1b[35m";
+        public const string CYAN        = "\x1b[36m";
+        public const string WHITE       = "\x1b[37m";
+
+        // Bright foreground colors
+        public const string BRIGHT_BLACK    = "\x1b[90m";
+        public const string BRIGHT_RED      = "\x1b[91m";
+        public const string BRIGHT_GREEN    = "\x1b[92m";
+        public const string BRIGHT_YELLOW   = "\x1b[93m";
+        public const string BRIGHT_BLUE     = "\x1b[94m";
+        public const string BRIGHT_MAGENTA  = "\x1b[95m";
+        public const string BRIGHT_CYAN     = "\x1b[96m";
+        public const string BRIGHT_WHITE    = "\x1b[97m";
+
+        // Background colors
+        public const string BG_BLACK    = "\x1b[40m";
+        public const string BG_RED      = "\x1b[41m";
+        public const string BG_GREEN    = "\x1b[42m";
+        public const string BG_YELLOW   = "\x1b[43m";
+        public const string BG_BLUE     = "\x1b[44m";
+        public const string BG_MAGENTA  = "\x1b[45m";
+        public const string BG_CYAN     = "\x1b[46m";
+        public const string BG_WHITE    = "\x1b[47m";
+
+        // Bright background colors
+        public const string BG_BRIGHT_BLACK     = "\x1b[100m";
+        public const string BG_BRIGHT_RED       = "\x1b[101m";
+        public const string BG_BRIGHT_GREEN     = "\x1b[102m";
+        public const string BG_BRIGHT_YELLOW    = "\x1b[103m";
+        public const string BG_BRIGHT_BLUE      = "\x1b[104m";
+        public const string BG_BRIGHT_MAGENTA   = "\x1b[105m";
+        public const string BG_BRIGHT_CYAN      = "\x1b[106m";
+        public const string BG_BRIGHT_WHITE     = "\x1b[107m";
+
+        // 256-color foreground
+        public static string FROM256(int n) => $"\x1b[38;5;{n}m";
+
+        // 256-color background
+        public static string BGFROM256(int n) => $"\x1b[48;5;{n}m";
+
+        // True-color (RGB)
+        public static string RGB(int r, int g, int b) => $"\x1b[38;2;{r};{g};{b}m";
+        public static string BGRGB(int r, int g, int b) => $"\x1b[48;2;{r};{g};{b}m";
     }
 }

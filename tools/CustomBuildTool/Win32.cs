@@ -194,13 +194,13 @@ namespace CustomBuildTool
                 if (!Build.BuildIntegration && SourceFile.EndsWith(".sig", StringComparison.OrdinalIgnoreCase))
                     return;
 
-                Program.PrintColorMessage($"[CopyIfNewer-FileNotFound] {SourceFile}", ConsoleColor.Yellow);
+                Program.PrintColorMessage($"[SDK] [CopyIfNewer-FileNotFound] {SourceFile}", ConsoleColor.Yellow);
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(DestinationFile))
             {
-                Program.PrintColorMessage($"[CopyIfNewer-DestinationFile-null]", ConsoleColor.Yellow);
+                Program.PrintColorMessage($"[SDK] [CopyIfNewer-DestinationFile-null]", ConsoleColor.Yellow);
                 return;
             }
 
@@ -209,7 +209,7 @@ namespace CustomBuildTool
 
                 if (string.IsNullOrWhiteSpace(directory))
                 {
-                    Program.PrintColorMessage($"[CopyIfNewer-DestinationFile-null]", ConsoleColor.Yellow);
+                    Program.PrintColorMessage($"[SDK] [CopyIfNewer-DestinationFile-null]", ConsoleColor.Yellow);
                     return;
                 }
 

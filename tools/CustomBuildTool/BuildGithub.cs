@@ -37,6 +37,70 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Queries the Github Action Run API for the current build's queue time.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="DateTime"/> representing the queue time of the build, or <see cref="DateTime.MinValue"/> if an error occurs.
+        /// </returns>
+        public static bool BuildQueryQueueTime(out DateTime DateTime)
+        {
+            string repo = Win32.GetEnvironmentVariable("GITHUB_REPOSITORY");
+            string runId = Win32.GetEnvironmentVariable("GITHUB_RUN_ID");
+            string token = Win32.GetEnvironmentVariable("GITHUB_TOKEN");
+
+            if (string.IsNullOrWhiteSpace(repo) ||
+                string.IsNullOrWhiteSpace(runId) ||
+                string.IsNullOrWhiteSpace(token))
+            {
+                DateTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
+
+                Console.WriteLine($"Build StartTime: {VT.YELLOW}{DateTime}{VT.RESET} (Failed)");
+                Console.WriteLine($"Build Elapsed: {VT.YELLOW}{(DateTimeOffset.UtcNow - DateTime)}{VT.RESET} (Failed)");
+                return true;
+            }
+
+            try
+            {
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{repo}/actions/runs/{runId}"))
+                {
+                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+                    requestMessage.Headers.TryAddWithoutValidation("X-GitHub-Api-Version", "2022-11-28");
+
+                    var httpResult = BuildHttpClient.SendMessage(requestMessage);
+
+                    if (string.IsNullOrWhiteSpace(httpResult))
+                    {
+                        Console.WriteLine($"{VT.RED}[ERROR] Received empty response.{VT.RESET}");
+                        ArgumentNullException.ThrowIfNull(httpResult);
+                    }
+
+                    var content = JsonSerializer.Deserialize(httpResult, GithubResponseContext.Default.GithubActionRun);
+                    if (content == null)
+                    {
+                        Console.WriteLine($"{VT.RED}[ERROR] Failed to deserialize the response.{VT.RESET}");
+                        ArgumentNullException.ThrowIfNull(content);
+                    }
+
+                    var offset = new DateTimeOffset(DateTime.SpecifyKind(content.CreatedAt, DateTimeKind.Utc));
+
+                    Console.WriteLine($"Build Created: {VT.GREEN}{content.CreatedAt}{VT.RESET}");
+                    Console.WriteLine($"Build Started: {VT.GREEN}{content.RunStartedAt}{VT.RESET}");
+                    Console.WriteLine($"Build Elapsed: {VT.GREEN}{(DateTimeOffset.UtcNow - offset)}{VT.RESET}");
+
+                    DateTime = offset.DateTime;
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"{VT.RED}[ERROR] {ex}{VT.RESET}");
+                DateTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Retrieves a GitHub release by its release ID.
         /// </summary>
         /// <param name="ReleaseId">The unique identifier of the release.</param>

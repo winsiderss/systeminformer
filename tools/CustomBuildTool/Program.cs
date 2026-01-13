@@ -16,6 +16,7 @@ namespace CustomBuildTool
         private static Dictionary<string, string> ProgramArgs;
         private static readonly Dictionary<string, string> ProgramArgsHelp = new(StringComparer.OrdinalIgnoreCase)
         {
+            { "-argsfile", "Read arguments from a file instead of the command line." },
             { "-bin", "Builds the binary package." },
             { "-cleanup", "Cleans up the build environment." },
             { "-cleansdk", "Cleans SDK build artifacts (internal)." },
@@ -48,6 +49,12 @@ namespace CustomBuildTool
                 return;
 
             ProgramArgs = Utils.ParseArguments(args);
+
+            // If -argsfile is specified, merge arguments from file
+            if (ProgramArgs.TryGetValue("-argsfile", out string argsFilePath))
+            {
+                Utils.ParseArgumentsFromFile(ProgramArgs, argsFilePath);
+            }
 
             if (ProgramArgs.ContainsKey("-write-tools-id"))
             {
@@ -121,17 +128,17 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-decrypt"))
             {
-                if (!BuildVerify.DecryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
-                {
+                var vargs = Utils.ParseArgumentsFromFile(ProgramArgs["-config"]);
+
+                if (!BuildVerify.DecryptFile(vargs["-input"], vargs["-output"], vargs["-secret"], vargs["-salt"], vargs["-Iterations"]))
                     Environment.Exit(1);
-                }
             }
             else if (ProgramArgs.ContainsKey("-encrypt"))
             {
-                if (!BuildVerify.EncryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
-                {
+                var vargs = Utils.ParseArgumentsFromFile(ProgramArgs["-config"]);
+
+                if (!BuildVerify.EncryptFile(vargs["-input"], vargs["-output"], vargs["-secret"], vargs["-salt"], vargs["-Iterations"]))
                     Environment.Exit(1);
-                }
             }
             else if (ProgramArgs.ContainsKey("-reflow"))
             {

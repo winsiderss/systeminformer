@@ -44,16 +44,16 @@ namespace CustomBuildTool
 
             if (!Utils.SetCurrentDirectoryParent("SystemInformer.sln"))
             {
-                Program.PrintColorMessage("Unable to find project solution.", ConsoleColor.Red);
+                Console.WriteLine($"{VT.RED}Unable to find project solution.{VT.RESET}");
                 return false;
             }
 
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath("\\build\\output");
 
-            if (!InitializeBuildArguments())
+            if (!Build.InitializeBuildArguments())
             {
-                Program.PrintColorMessage("Unable to initialize build arguments.", ConsoleColor.Red);
+                Console.WriteLine($"{VT.RED}Unable to initialize build arguments.{VT.RESET}");
                 return false;
             }
 
@@ -92,14 +92,19 @@ namespace CustomBuildTool
                 }
             }
 
-            if (Console.IsOutputRedirected ||
-                Win32.HasEnvironmentVariable("GITHUB_ACTIONS") ||
-                Win32.HasEnvironmentVariable("TF_BUILD"))
+            if (Win32.HasEnvironmentVariable("TF_BUILD")) // Console.IsOutputRedirected
             {
-                Build.BuildIntegration = true;
-
                 if (!BuildDevOps.BuildQueryQueueTime(out Build.TimeStart))
                     return false;
+
+                Build.BuildIntegration = true;
+            }
+            else if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS")) // Console.IsOutputRedirected
+            {
+                if (!BuildGithub.BuildQueryQueueTime(out Build.TimeStart))
+                    return false;
+
+                Build.BuildIntegration = true;
             }
             else
             {

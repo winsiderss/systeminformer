@@ -59,8 +59,10 @@ namespace CustomBuildTool
                 string.IsNullOrWhiteSpace(BaseName) ||
                 string.IsNullOrWhiteSpace(BaseUrl))
             {
-                Program.PrintColorMessage("One or more required environment variables are missing.", ConsoleColor.Red);
                 DateTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
+
+                Console.WriteLine($"Build StartTime: {VT.YELLOW}{DateTime}{VT.RESET} (Failed)");
+                Console.WriteLine($"Build Elapsed: {VT.YELLOW}{(DateTimeOffset.UtcNow - DateTime)}{VT.RESET} (Failed)");
                 return true;
             }
 
@@ -75,22 +77,22 @@ namespace CustomBuildTool
 
                     if (string.IsNullOrWhiteSpace(httpResult))
                     {
-                        Program.PrintColorMessage($"[ERROR] Received empty response.", ConsoleColor.Red);
+                        Console.WriteLine($"{VT.RED}[ERROR] Received empty response.{VT.RESET}");
                         ArgumentNullException.ThrowIfNull(httpResult);
                     }
 
                     var content = JsonSerializer.Deserialize(httpResult, BuildInfoResponseContext.Default.BuildInfo);
                     if (content == null)
                     {
-                        Program.PrintColorMessage($"[ERROR] Failed to deserialize the response.", ConsoleColor.Red);
+                        Console.WriteLine($"{VT.RED}[ERROR] Failed to deserialize the response.{VT.RESET}");
                         ArgumentNullException.ThrowIfNull(content);
                     }
 
                     var offset = new DateTimeOffset(DateTime.SpecifyKind(content.QueueTime, DateTimeKind.Utc));
 
-                    Program.PrintColorMessage($"Build QueueTime: {content.QueueTime}", ConsoleColor.Green);
-                    Program.PrintColorMessage($"Build StartTime: {content.StartTime}", ConsoleColor.Green);
-                    Program.PrintColorMessage($"Build Elapsed: {(DateTimeOffset.UtcNow - offset)}", ConsoleColor.Green);
+                    Console.WriteLine($"Build QueueTime: {VT.GREEN}{content.QueueTime}{VT.RESET}");
+                    Console.WriteLine($"Build StartTime: {VT.GREEN}{content.StartTime}{VT.RESET}");
+                    Console.WriteLine($"Build Elapsed: {VT.GREEN}{(DateTimeOffset.UtcNow - offset)}{VT.RESET}");
 
                     DateTime = offset.DateTime;
                     return true;
@@ -98,7 +100,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                Console.WriteLine($"{VT.RED}[ERROR] {ex}{VT.RESET}");
                 DateTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
                 return false;
             }
