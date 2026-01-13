@@ -247,7 +247,6 @@ VOID PhInitializeWindowTheme(
 
         PhEnumChildWindows(
             WindowHandle,
-            0x1000,
             PhpThemeWindowEnumChildWindows,
             NULL
             );
@@ -303,7 +302,6 @@ VOID PhReInitializeWindowTheme(
 
     PhEnumChildWindows(
         WindowHandle,
-        0x1000,
         PhpReInitializeThemeWindowEnumChildWindows,
         NULL
         );
@@ -331,7 +329,6 @@ VOID PhReInitializeWindowTheme(
                     {
                         PhEnumChildWindows(
                             currentWindow,
-                            0x1000,
                             PhpReInitializeThemeWindowEnumChildWindows,
                             NULL
                             );
@@ -718,7 +715,6 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
 
     PhEnumChildWindows(
         WindowHandle,
-        0x1000,
         PhpThemeWindowEnumChildWindows,
         NULL
         );
@@ -960,7 +956,6 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
 
     PhEnumChildWindows(
         WindowHandle,
-        0x1000,
         PhpReInitializeThemeWindowEnumChildWindows,
         NULL
         );

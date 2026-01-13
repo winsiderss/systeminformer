@@ -248,7 +248,7 @@ VOID PvUpdateChildWindows(
 
     if (propSheetHandle = GetAncestor(WindowHandle, GA_ROOT))
     {
-        PhEnumChildWindows(propSheetHandle, ULONG_MAX, PvUpdateButtonWindowEnumCallback, NULL);
+        PhEnumChildWindows(propSheetHandle, PvUpdateButtonWindowEnumCallback, NULL);
     }
 }
 

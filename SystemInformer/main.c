@@ -516,7 +516,7 @@ static VOID PhForegroundPreviousInstance(
     // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
     do
     {
-        PhEnumWindows(PhPreviousInstanceWindowEnumProc, &context);
+        PhEnumWindowsEx(NULL, PhPreviousInstanceWindowEnumProc, &context);
         PhDelayExecution(500);
     } while (++attempts < 10);
 

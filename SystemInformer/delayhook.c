@@ -1811,7 +1811,6 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 
     PhEnumChildWindows(
         WindowHandle,
-        0x1000,
         PhInitializeTaskDialogTheme,
         NULL
         );
