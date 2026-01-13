@@ -179,6 +179,15 @@ PhAddJsonObject2(
 PHLIBAPI
 VOID
 NTAPI
+PhAddJsonObjectUtf8(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ PPH_BYTES String
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhAddJsonObjectInt64(
     _In_ PVOID Object,
     _In_ PCSTR Key,
