@@ -40,6 +40,7 @@
 *.pubxml        text
 *.resx          text
 *.rc            text
+*.sh            text eol=lf
 *.sln           text
 *.slnx          text
 *.txt           text
