@@ -750,7 +750,7 @@ BOOLEAN PhGetClientRectOffsetScroll(
     if (!(ClientRect->right && ClientRect->bottom))
         return FALSE;
 
-    LONG_PTR windowStyle = PhGetWindowStyle(WindowHandle);
+    ULONG windowStyle = PhGetWindowStyle(WindowHandle);
 
     if (FlagOn(windowStyle, WS_HSCROLL))
     {

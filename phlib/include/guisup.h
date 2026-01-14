@@ -737,69 +737,69 @@ PhGetSystemParametersInfo(
     );
 
 FORCEINLINE
-LONG_PTR
+ULONG
 PhGetClassStyle(
     _In_ HWND WindowHandle
     )
 {
-    return GetClassLongPtr(WindowHandle, GCL_STYLE);
+    return (ULONG)GetClassLongPtr(WindowHandle, GCL_STYLE);
 }
 
 FORCEINLINE
 VOID
 PhSetClassStyle(
     _In_ HWND Handle,
-    _In_ LONG_PTR Mask,
-    _In_ LONG_PTR Value
+    _In_ ULONG Mask,
+    _In_ ULONG Value
     )
 {
-    LONG_PTR style;
+    ULONG style;
 
-    style = GetClassLongPtr(Handle, GCL_STYLE);
+    style = (ULONG)GetClassLongPtr(Handle, GCL_STYLE);
     style = (style & ~Mask) | (Value & Mask);
     SetClassLongPtr(Handle, GCL_STYLE, style);
 }
 
 FORCEINLINE
-LONG_PTR
+ULONG
 PhGetWindowStyle(
     _In_ HWND WindowHandle
     )
 {
-    return GetWindowLongPtr(WindowHandle, GWL_STYLE);
+    return (ULONG)GetWindowLongPtr(WindowHandle, GWL_STYLE);
 }
 
 FORCEINLINE
-LONG_PTR
+ULONG
 PhGetWindowStyleEx(
     _In_ HWND WindowHandle
     )
 {
-    return GetWindowLongPtr(WindowHandle, GWL_EXSTYLE);
+    return (ULONG)GetWindowLongPtr(WindowHandle, GWL_EXSTYLE);
 }
 
 FORCEINLINE VOID PhSetWindowStyle(
     _In_ HWND Handle,
-    _In_ LONG_PTR Mask,
-    _In_ LONG_PTR Value
+    _In_ ULONG Mask,
+    _In_ ULONG Value
     )
 {
-    LONG_PTR style;
+    ULONG style;
 
-    style = GetWindowLongPtr(Handle, GWL_STYLE);
+    style = (ULONG)GetWindowLongPtr(Handle, GWL_STYLE);
     style = (style & ~Mask) | (Value & Mask);
     SetWindowLongPtr(Handle, GWL_STYLE, style);
 }
 
 FORCEINLINE VOID PhSetWindowExStyle(
     _In_ HWND Handle,
-    _In_ LONG_PTR Mask,
-    _In_ LONG_PTR Value
+    _In_ ULONG Mask,
+    _In_ ULONG Value
     )
 {
-    LONG_PTR style;
+    ULONG style;
 
-    style = GetWindowLongPtr(Handle, GWL_EXSTYLE);
+    style = (ULONG)GetWindowLongPtr(Handle, GWL_EXSTYLE);
     style = (style & ~Mask) | (Value & Mask);
     SetWindowLongPtr(Handle, GWL_EXSTYLE, style);
 }

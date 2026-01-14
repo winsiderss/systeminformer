@@ -195,7 +195,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
 {
     if (WindowMessage == WM_NCCREATE)
     {
-        LONG_PTR style = PhGetWindowStyle(WindowHandle);
+        ULONG style = PhGetWindowStyle(WindowHandle);
 
         if ((style & SS_ICON) == SS_ICON)
         {
@@ -955,7 +955,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
 
             if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
             {
-                LONG_PTR windowStyle = PhGetWindowStyle(createStruct->hwndParent);
+                ULONG windowStyle = PhGetWindowStyle(createStruct->hwndParent);
 
                 if (BooleanFlagOn(windowStyle, TN_STYLE_CUSTOM_HEADERDRAW))
                 {

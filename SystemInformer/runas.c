@@ -2990,7 +2990,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                     if (PhEqualStringZ(className, L"Button", FALSE))
                     {
-                        ULONG_PTR buttonStyle = PhGetWindowStyle(customDraw->hdr.hwndFrom);
+                        ULONG buttonStyle = PhGetWindowStyle(customDraw->hdr.hwndFrom);
 
                         if (FlagOn(buttonStyle, BS_CHECKBOX) == BS_CHECKBOX)
                         {

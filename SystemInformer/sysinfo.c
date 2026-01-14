@@ -619,7 +619,7 @@ VOID PhSipOnCommand(
     case IDC_MAXSCREEN:
         {
             static WINDOWPLACEMENT windowLayout = { sizeof(WINDOWPLACEMENT) };
-            LONG_PTR windowStyle = PhGetWindowStyle(PhSipWindow);
+            ULONG windowStyle = PhGetWindowStyle(PhSipWindow);
 
             if (windowStyle & WS_OVERLAPPEDWINDOW)
             {
