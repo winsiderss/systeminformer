@@ -53,8 +53,8 @@ typedef struct _GDI_HANDLE_ENTRY GDI_HANDLE_ENTRY, *PGDI_HANDLE_ENTRY;
 #define KACF_ALLOWMAXIMIZEDWINDOWGAMMA                0x01000000
 #define KACF_DONOTADDTOCACHE                          0x80000000
 #define KACF_DISABLEPOSIXDELETEFILE                   0x100000000 // rev KernelBase!InternalDeleteFileW
-#define KACF_ENABLE_PROCESS_SYSTEMDPIAWARENESS        0x20000000000000 // rev // Enable Per-Process System DPI Awareness and Opt‑in to Per‑Process System DPI mode.
-#define KACF_DISABLE_PROCESS_SYSTEMDPIAWARENESS       0x40000000000000 // rev // Disable Per‑Process System DPI Awareness and force legacy DPI behavior.
+#define KACF_ENABLE_PROCESS_SYSTEMDPIAWARENESS        0x20000000000000 // rev // Enable Per-Process System DPI Awareness and Opt-in to Per-Process System DPI mode.
+#define KACF_DISABLE_PROCESS_SYSTEMDPIAWARENESS       0x40000000000000 // rev // Disable Per-Process System DPI Awareness and force legacy DPI behavior.
 #define KACF_ENABLE_GDI_DPI_SCALING                   0x800000000000000
 #define KACF_FORCE_DISABLE_GDI_SCALING                0x4000000000000000
 
