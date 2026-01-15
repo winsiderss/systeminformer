@@ -400,7 +400,15 @@ PhTaskDialogNavigatePage(
     SendMessage(WindowHandle, WM_TDM_NAVIGATE_PAGE, 0, (LPARAM)(Config));
 }
 
-#define TD_SHIELD_ERROR_ICON    MAKEINTRESOURCEW(-7)
+#define TD_WARN_ICON             MAKEINTRESOURCEW(-1) // Warning icon
+#define TD_ERROR_ICON            MAKEINTRESOURCEW(-2) // Error icon
+#define TD_INFO_ICON             MAKEINTRESOURCEW(-3) // Information icon
+#define TD_SHIELD_ICON           MAKEINTRESOURCEW(-4) // Shield icon
+#define TD_SHIELD_INFO_ICON      MAKEINTRESOURCEW(-5) // Shield icon + Blue background
+#define TD_SHIELD_WARNING_ICON   MAKEINTRESOURCEW(-6) // Shield icon + Yellow background
+#define TD_SHIELD_ERROR_ICON     MAKEINTRESOURCEW(-7) // Shield icon + Red background
+#define TD_SHIELD_SUCCESS_ICON   MAKEINTRESOURCEW(-8) // Shield icon + Green background
+#define TD_SHIELD_INACTIVE_ICON  MAKEINTRESOURCEW(-9) // Shield icon + Gray background
 
 _Success_(return)
 PHLIBAPI
