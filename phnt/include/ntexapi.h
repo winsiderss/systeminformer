@@ -1362,11 +1362,11 @@ NtCreateTimer2(
 
 // rev
 /**
- * The T2_SET_PARAMETERS structure configures the high‑resolution or coalescable timers,
- * and specify a "no‑wake tolerance" value, which controls how much the kernel
+ * The T2_SET_PARAMETERS structure configures the high-resolution or coalescable timers,
+ * and specify a "no-wake tolerance" value, which controls how much the kernel
  * may delay the timers for coalescing or power efficiency.
  * \remarks Setting NoWakeTolerance to 0 requests **no coalescing** and the most precise
- * wake‑up behavior the system can provide.
+ * wake-up behavior the system can provide.
  */
 typedef struct _T2_SET_PARAMETERS_V0
 {
@@ -1379,13 +1379,13 @@ typedef struct _T2_SET_PARAMETERS_V0
      */
     ULONG Reserved;
     /**
-     * Maximum tolerable delay (in 100‑ns units) for timer coalescing.
-     * - Set to 0 for **no coalescing** (strict wake‑up).
+     * Maximum tolerable delay (in 100-ns units) for timer coalescing.
+     * - Set to 0 for **no coalescing** (strict wake-up).
      * - Set to a positive value to allow the kernel to delay the timer
      *   by up to this amount for power efficiency.
      * Example:
-     *   If NoWakeTolerance = 0 --> High‑resolution, best precision, min jitter, zero coalescing, low power savings.
-     *   If NoWakeTolerance > 0 --> Normal-resoluion, allow up to this value of coalescing, normal power savings.
+     *   If NoWakeTolerance = 0 --> High-resolution, best precision, min jitter, zero coalescing, low power savings.
+     *   If NoWakeTolerance > 0 --> Normal-resolution, allow up to this value of coalescing, normal power savings.
      *   If NoWakeTolerance = -1 --> Low-resolution, worst precision, max jitter, max coalescing, max power savings.
      */
     LONGLONG NoWakeTolerance;
@@ -5809,7 +5809,7 @@ typedef struct _SYSTEM_MEMORY_USAGE_INFORMATION
 
 // rev
 /**
- * The SYSTEM_CODEINTEGRITY_IMAGE_TYPE_USER constant is used for validating user-mode images (EXE/DLL).
+ * The SYSTEM_CODEINTEGRITY_IMAGE_TYPE constant is used for validating user-mode images (EXE/DLL).
  */
 typedef enum _SYSTEM_CODEINTEGRITY_IMAGE_TYPE
 {
@@ -5908,7 +5908,7 @@ typedef struct _SYSTEM_ACTIVITY_MODERATION_INFO
 // rev
 /**
  * The SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS structure describes the moderation state
- * and classification of an application as used by the system’s activity moderation framework.
+ * and classification of an application as used by the system's activity moderation framework.
  * These settings influence how aggressively the system may throttle, defer, or
  * suppress certain background activities for the application.
  *
@@ -5926,7 +5926,7 @@ typedef struct _SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS
 } SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS, *PSYSTEM_ACTIVITY_MODERATION_APP_SETTINGS;
 
 /**
- * The SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS structure provides the activity‑moderation
+ * The SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS structure provides the activity-moderation
  * registry location where moderation policies or overrides may be stored.
  */
 typedef struct _SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
@@ -6005,8 +6005,8 @@ typedef struct _SYSTEM_CODEINTEGRITYVERIFICATION_INFORMATION
 /**
  * The SYSTEM_HYPERVISOR_USER_SHARED_DATA structure contains information shared with the hypervisor and user-mode.
  *
- * This structure is populated by the hypervisor (when present) to allow user‑mode components to perform
- * high‑resolution time calculations without requiring a hypercall or kernel transition.
+ * This structure is populated by the hypervisor (when present) to allow user-mode components to perform
+ * high-resolution time calculations without requiring a hypercall or kernel transition.
  */
 typedef struct _SYSTEM_HYPERVISOR_USER_SHARED_DATA
 {
@@ -6014,22 +6014,22 @@ typedef struct _SYSTEM_HYPERVISOR_USER_SHARED_DATA
      * Lock used to synchronize updates to the timing fields.
      *
      * The hypervisor increments this value before and after updating the
-     * QPC multiplier and bias. User‑mode callers can sample this value
+     * QPC multiplier and bias. User-mode callers can sample this value
      * before and after reading the timing fields to detect whether an
-     * update occurred mid‑read and retry if necessary.
+     * update occurred mid-read and retry if necessary.
      */
     volatile ULONG TimeUpdateLock;
 
     /**
-     *  Reserved field - The hypervisor does not assign this field.
+     * Reserved field - The hypervisor does not assign this field.
      */
     ULONG Reserved0;
 
     /**
      * Multiplier used to convert hypervisor QPC ticks to host time.
      *
-     * This value is applied to the hypervisor’s virtualized performance
-     * counter to compute a stable, high‑resolution timebase. The multiplier
+     * This value is applied to the hypervisor's virtualized performance
+     * counter to compute a stable, high-resolution timebase. The multiplier
      * is chosen by the hypervisor based on the underlying hardware timer
      * source and virtualization mode.
      */
@@ -6039,8 +6039,8 @@ typedef struct _SYSTEM_HYPERVISOR_USER_SHARED_DATA
      * Bias applied after QPC multiplication to produce final time.
      *
      * The hypervisor uses this bias to align the virtualized QPC value with
-     * the host’s notion of system time. Combined with QpcMultiplier, this
-     * allows user‑mode components to compute consistent time values even
+     * the host's notion of system time. Combined with QpcMultiplier, this
+     * allows user-mode components to compute consistent time values even
      * under virtualization.
      */
     ULONGLONG QpcBias;
@@ -6048,21 +6048,21 @@ typedef struct _SYSTEM_HYPERVISOR_USER_SHARED_DATA
 
 /**
  * The SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION structure describes
- * the user‑mode mapping of the hypervisor shared page.
+ * the user-mode mapping of the hypervisor shared page.
  *
  * This structure provides the virtual address at which the hypervisor's
- * user‑accessible shared data page is mapped. When a hypervisor is present,
- * the kernel maps a read‑only page into user mode containing timing and
- * virtualization‑related information (see SYSTEM_HYPERVISOR_USER_SHARED_DATA).
+ * user-accessible shared data page is mapped. When a hypervisor is present,
+ * the kernel maps a read-only page into user mode containing timing and
+ * virtualization-related information (see SYSTEM_HYPERVISOR_USER_SHARED_DATA).
  *
- * User‑mode components can read this page directly to obtain high‑resolution
- * time conversion parameters or other hypervisor‑provided data without
+ * User-mode components can read this page directly to obtain high-resolution
+ * time conversion parameters or other hypervisor-provided data without
  * requiring a hypercall or kernel transition.
  */
 typedef struct _SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION
 {
     /**
-     * User‑mode virtual address of the hypervisor shared data page.
+     * User-mode virtual address of the hypervisor shared data page.
      * If no hypervisor is present, this pointer is NULL.
      */
     PSYSTEM_HYPERVISOR_USER_SHARED_DATA HypervisorSharedUserVa;
@@ -6488,7 +6488,7 @@ typedef struct _SYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION
 } SYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION, *PSYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION;
 
 /**
- * The SYSTEM_OSL_RAMDISK_INFORMATION structure describes a variable‑length
+ * The SYSTEM_OSL_RAMDISK_INFORMATION structure describes a variable-length
  * array of RAM disk entries used by the operating system loader.
  */
 typedef struct _SYSTEM_OSL_RAMDISK_INFORMATION
@@ -6601,7 +6601,7 @@ typedef struct _SYSTEM_POOLTAG2
 } SYSTEM_POOLTAG2, *PSYSTEM_POOLTAG2;
 
 /**
- * The SYSTEM_POOLTAG_INFORMATION2 structure describes a variable‑length array
+ * The SYSTEM_POOLTAG_INFORMATION2 structure describes a variable-length array
  * of SYSTEM_POOLTAG2 entries representing pool tag usage statistics.
  */
 typedef struct _SYSTEM_POOLTAG_INFORMATION2
@@ -6776,7 +6776,7 @@ typedef struct _SYSDBG_IO_SPACE
 } SYSDBG_IO_SPACE, *PSYSDBG_IO_SPACE;
 
 /**
- * The SYSDBG_MSR structure describes a request to read or write a model‑specific
+ * The SYSDBG_MSR structure describes a request to read or write a model-specific
  * register (MSR) through the system debugger interface.
  */
 typedef struct _SYSDBG_MSR
@@ -6788,7 +6788,7 @@ typedef struct _SYSDBG_MSR
 typedef enum _BUS_DATA_TYPE BUS_DATA_TYPE;
 
 /**
- * The SYSDBG_BUS_DATA structure describes a request to access bus‑specific
+ * The SYSDBG_BUS_DATA structure describes a request to access bus-specific
  * configuration data through the system debugger interface.
  */
 typedef struct _SYSDBG_BUS_DATA
@@ -7026,7 +7026,7 @@ NtRaiseHardError(
  * The ALTERNATIVE_ARCHITECTURE_TYPE enumeration specifies the hardware
  * architecture variant used by the system.
  *
- * \remarks NEC98x86 represents the NEC PC‑98 architecture,
+ * \remarks NEC98x86 represents the NEC PC-98 architecture,
  * supported only on very early Windows releases.
  */
 typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
@@ -7044,7 +7044,7 @@ typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
 
 /**
  * MAX_WOW64_SHARED_ENTRIES defines the number of shared entries available to
- * the WOW64 (Windows‑on‑Windows 64‑bit) subsystem.
+ * the WOW64 (Windows-on-Windows 64-bit) subsystem.
  */
 #define MAX_WOW64_SHARED_ENTRIES 16
 
@@ -7223,7 +7223,7 @@ typedef struct _KUSER_SHARED_DATA
     // which are used by the Application Experience and compatibility
     // subsystems to evaluate application behavior, performance, and
     // potential compatibility issues.
-    // 
+    //
     // Lower values increase sampling frequency, while higher values reduce it.
     // The kernel updates this field as part of its internal telemetry and
     // heuristics logic.
@@ -7260,7 +7260,7 @@ typedef struct _KUSER_SHARED_DATA
     // Code Integrity (CI), AppLocker, and related security components to
     // determine the minimum validation requirements for executable images,
     // drivers, and privileged operations.
-    // 
+    //
     // In modern Windows versions, this field is used primarily by the kernel's
     // diagnostic and validation infrastructure to decide how assertion failures
     // should be handled (e.g., logging, debugger break-in, or bugcheck).
@@ -7301,7 +7301,7 @@ typedef struct _KUSER_SHARED_DATA
     //
     // Native hardware processor architecture of the running system.
     //
-    // N.B. User‑mode components read this field to determine the true system
+    // N.B. User-mode components read this field to determine the true system
     // architecture, especially in WOW64 scenarios where the process architecture
     // differs from the native one.
     //
@@ -7531,10 +7531,10 @@ typedef struct _KUSER_SHARED_DATA
     ULONGLONG TestRetInstruction;
 
     //
-    // Query‑performance counter (QPC) frequency, in counts per second.
+    // Query-performance counter (QPC) frequency, in counts per second.
     //
-    // N.B. This value represents the fixed frequency of the system's high‑resolution
-    // performance counter. It is used by user‑mode time routines to convert QPC
+    // N.B. This value represents the fixed frequency of the system's high-resolution
+    // performance counter. It is used by user-mode time routines to convert QPC
     // ticks into elapsed time without requiring a system call. The frequency is
     // constant for the lifetime of the system and reflects the hardware or
     // virtualized timer source selected by the kernel.
@@ -7721,7 +7721,7 @@ typedef struct _KUSER_SHARED_DATA
     // Number of active processor groups.
     //
     // N.B. This value is volatile because group membership and processor
-    // availability may change dynamically due to hot‑add, hot‑remove,
+    // availability may change dynamically due to hot-add, hot-remove,
     // or power management events.
     //
 
@@ -7947,9 +7947,9 @@ static_assert(sizeof(KUSER_SHARED_DATA)                                         
 
 /**
  * USER_SHARED_DATA pointer to the Windows KUSER_SHARED_DATA structure at its fixed
- * user‑mode mapping address (0x7FFE0000).
+ * user-mode mapping address (0x7FFE0000).
  *
- * The Windows kernel exposes a read‑only data structure, mapped into every user‑mode
+ * The Windows kernel exposes a read-only data structure, mapped into every user-mode
  * process at the fixed virtual address `0x7FFE0000`. This region contains frequently
  * accessed system information and avoids the overhead of system calls for data that
  * the kernel updates frequently. The mapping is always present and identical across
@@ -7998,14 +7998,14 @@ NtGetTickCount64(
 }
 
 /**
- * The NtGetTickCount64 routine retrieves the number of milliseconds that have elapsed since the system was started, up to 49.7 days.
+ * The NtGetTickCount routine retrieves the number of milliseconds that have elapsed since the system was started, up to 49.7 days.
  *
  * \return ULONG The return value is the number of milliseconds that have elapsed since the system was started.
  * \remarks The elapsed time is stored as a ULONG value. Therefore, the time will wrap around to zero if the system
  * is run continuously for 49.7 days. To avoid this problem, use the NtGetTickCount64 function. Otherwise, check
  * for an overflow condition when comparing times. The resolution of the NtGetTickCount function is limited to
  * the resolution of the system timer, which is typically in the range of 10 milliseconds to 16 milliseconds.
- * The resolution of the NtGetTickCount64 function is not affected by adjustments made by the GetSystemTimeAdjustment function.
+ * The resolution of the NtGetTickCount function is not affected by adjustments made by the GetSystemTimeAdjustment function.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount
  */
 FORCEINLINE
@@ -8369,12 +8369,12 @@ NtAddAtom(
 
 /**
  * ATOM_FLAG_NONE indicates that the atom being created should be placed in
- * the session‑local atom table rather than the global atom table.
+ * the session-local atom table rather than the global atom table.
  */
 #define ATOM_FLAG_NONE 0x0
 /**
  * ATOM_FLAG_GLOBAL indicates that the atom being created should be placed in
- * the global atom table rather than the session‑local table.
+ * the global atom table rather than the session-local table.
  * \remarks This flag is only valid starting with Windows 8 and later.
  */
 #define ATOM_FLAG_GLOBAL 0x2
@@ -8601,7 +8601,7 @@ NtQueryLicenseValue(
 /**
  * The NtSetDefaultHardErrorPort routine sets the system's default hard error
  * port, which is used by the kernel to deliver hard error notifications to a
- * user‑mode process.
+ * user-mode process.
  *
  * \param DefaultHardErrorPort A handle to a port object that will receive
  * hard error messages generated by the system.
