@@ -1385,7 +1385,7 @@ typedef struct _T2_SET_PARAMETERS_V0
      *   by up to this amount for power efficiency.
      * Example:
      *   If NoWakeTolerance = 0 --> High-resolution, best precision, min jitter, zero coalescing, low power savings.
-     *   If NoWakeTolerance > 0 --> Normal-resoluion, allow up to this value of coalescing, normal power savings.
+     *   If NoWakeTolerance > 0 --> Normal-resolution, allow up to this value of coalescing, normal power savings.
      *   If NoWakeTolerance = -1 --> Low-resolution, worst precision, max jitter, max coalescing, max power savings.
      */
     LONGLONG NoWakeTolerance;
