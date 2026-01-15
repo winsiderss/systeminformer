@@ -97,6 +97,14 @@ static _AddMRUString AddMRUString_I = NULL;
 static _EnumMRUList EnumMRUList_I = NULL;
 static _FreeMRUList FreeMRUList_I = NULL;
 
+/**
+ * Initializes the GUI support layer used by the support library.
+ *
+ * Loads optional GUI-related DLLs (uxtheme, shcore, user32 variants) and
+ * resolves optional function pointers used for theme/DPI operations.
+ * Also initializes internal structures such as the WindowCallback FLS slot
+ * and the shared icon cache.
+ */
 VOID PhGuiSupportInitialization(
     VOID
     )
@@ -158,6 +166,12 @@ VOID PhGuiSupportInitialization(
     PhGuiSupportUpdateSystemMetrics(NULL, 0);
 }
 
+/**
+ * Updates system metrics cached by the GUI support layer.
+ *
+ * \param WindowHandle Optional window handle used to determine DPI for metrics update.
+ * \param WindowDpi Optional DPI override; if non-zero it is used instead of querying the window/system DPI.
+ */
 VOID PhGuiSupportUpdateSystemMetrics(
     _In_opt_ HWND WindowHandle,
     _In_opt_ LONG WindowDpi
@@ -424,6 +438,12 @@ HDC PhGetDC(
     return GetDC(WindowHandle);
 }
 
+/**
+ * Releases a device context previously obtained via PhGetDC.
+ *
+ * \param WindowHandle The window handle associated with the DC; may be NULL to indicate the desktop.
+ * \param Hdc The HDC to release. After this call the handle is no longer valid for the caller.
+ */
 VOID PhReleaseDC(
     _In_opt_ HWND WindowHandle,
     _In_ _Frees_ptr_ HDC Hdc
@@ -472,6 +492,11 @@ HTHEME PhOpenThemeData(
     return NULL;
 }
 
+/**
+ * Closes theme data opened with PhOpenThemeData.
+ *
+ * \param ThemeHandle Theme handle previously returned by PhOpenThemeData.
+ */
 VOID PhCloseThemeData(
     _In_ HTHEME ThemeHandle
     )
@@ -482,6 +507,12 @@ VOID PhCloseThemeData(
     }
 }
 
+/**
+ * Applies a theme class to a control (wrapper around SetWindowTheme).
+ *
+ * \param Handle Handle to the control window.
+ * \param Theme Optional class list string to apply, or NULL to remove theme.
+ */
 VOID PhSetControlTheme(
     _In_ HWND Handle,
     _In_opt_ PCWSTR Theme
@@ -493,6 +524,11 @@ VOID PhSetControlTheme(
     }
 }
 
+/**
+ * Queries whether visual themes are active on the system.
+ *
+ * \return TRUE if themes are active, otherwise FALSE.
+ */
 BOOLEAN PhIsThemeActive(
     VOID
     )
@@ -503,6 +539,14 @@ BOOLEAN PhIsThemeActive(
     return !!IsThemeActive_I();
 }
 
+/**
+ * Determines whether a theme part/state is defined for the given theme data.
+ *
+ * \param ThemeHandle Theme handle returned by PhOpenThemeData.
+ * \param PartId Part identifier.
+ * \param StateId State identifier.
+ * \return TRUE if the part/state is defined, otherwise FALSE.
+ */
 BOOLEAN PhIsThemePartDefined(
     _In_ HTHEME ThemeHandle,
     _In_ LONG PartId,
@@ -515,6 +559,14 @@ BOOLEAN PhIsThemePartDefined(
     return !!IsThemePartDefined_I(ThemeHandle, PartId, StateId);
 }
 
+/**
+ * Retrieves the class name associated with theme data.
+ *
+ * \param ThemeHandle Theme handle.
+ * \param Class Buffer that receives the class name (null-terminated).
+ * \param ClassLength Length of the Class buffer in characters.
+ * \return TRUE on success, FALSE on failure or if API not present.
+ */
 _Success_(return)
 BOOLEAN PhGetThemeClass(
     _In_ HTHEME ThemeHandle,
@@ -528,6 +580,16 @@ BOOLEAN PhGetThemeClass(
     return SUCCEEDED(GetThemeClass_I(ThemeHandle, Class, ClassLength));
 }
 
+/**
+ * Retrieves a color value from theme data.
+ *
+ * \param ThemeHandle Theme handle.
+ * \param PartId Part identifier.
+ * \param StateId State identifier.
+ * \param PropId Property identifier to query.
+ * \param Color Receives the COLORREF value on success.
+ * \return TRUE on success, FALSE on failure or if API not present.
+ */
 _Success_(return)
 BOOLEAN PhGetThemeColor(
     _In_ HTHEME ThemeHandle,
@@ -543,6 +605,16 @@ BOOLEAN PhGetThemeColor(
     return SUCCEEDED(GetThemeColor_I(ThemeHandle, PartId, StateId, PropId, Color));
 }
 
+/**
+ * Retrieves an integer property from theme data.
+ *
+ * \param ThemeHandle Theme handle.
+ * \param PartId Part identifier.
+ * \param StateId State identifier.
+ * \param PropId Property identifier to query.
+ * \param Value Receives the integer value on success.
+ * \return TRUE on success, FALSE on failure or if API not present.
+ */
 _Success_(return)
 BOOLEAN PhGetThemeInt(
     _In_ HTHEME ThemeHandle,
@@ -558,6 +630,18 @@ BOOLEAN PhGetThemeInt(
     return SUCCEEDED(GetThemeInt_I(ThemeHandle, PartId, StateId, PropId, (PLONG)Value));
 }
 
+/**
+ * Retrieves the size of a theme part.
+ *
+ * \param ThemeHandle Theme handle.
+ * \param hdc Optional device context for size calculation.
+ * \param PartId Part identifier.
+ * \param StateId State identifier.
+ * \param Rect Optional bounding rect used by some parts.
+ * \param Flags THEMEPARTSIZE selector (min/actual/true).
+ * \param Size Receives the part size on success.
+ * \return TRUE on success, FALSE on failure or if API not present.
+ */
 _Success_(return)
 BOOLEAN PhGetThemePartSize(
     _In_ HTHEME ThemeHandle,
@@ -575,6 +659,18 @@ BOOLEAN PhGetThemePartSize(
     return SUCCEEDED(GetThemePartSize_I(ThemeHandle, hdc, PartId, StateId, Rect, (enum THEMESIZE)Flags, Size));
 }
 
+/**
+ * Retrieves theme margins for a part/property.
+ *
+ * \param ThemeHandle Theme handle.
+ * \param hdc Optional device context.
+ * \param PartId Part identifier.
+ * \param StateId State identifier.
+ * \param PropId Margin property identifier.
+ * \param Rect Optional bounding rect used by some margin queries.
+ * \param Margins Receives the THEMEMARGINS on success.
+ * \return TRUE on success, FALSE on failure or if API not present.
+ */
 _Success_(return)
 BOOLEAN PhGetThemeMargins(
     _In_ HTHEME ThemeHandle,
@@ -592,6 +688,17 @@ BOOLEAN PhGetThemeMargins(
     return SUCCEEDED(GetThemeMargins_I(ThemeHandle, hdc, PartId, StateId, PropId, Rect, (PMARGINS)Margins));
 }
 
+/**
+ * Draws a themed background for a part/state into the specified DC.
+ *
+ * \param ThemeHandle Theme handle.
+ * \param hdc Destination device context.
+ * \param PartId Part identifier.
+ * \param StateId State identifier.
+ * \param Rect Destination rectangle.
+ * \param ClipRect Optional clip rectangle.
+ * \return TRUE on success, FALSE on failure or if API not present.
+ */
 BOOLEAN PhDrawThemeBackground(
     _In_ HTHEME ThemeHandle,
     _In_ HDC hdc,
@@ -607,6 +714,19 @@ BOOLEAN PhDrawThemeBackground(
     return SUCCEEDED(DrawThemeBackground_I(ThemeHandle, hdc, PartId, StateId, Rect, ClipRect));
 }
 
+/**
+ * Draws themed text for a part/state.
+ *
+ * \param ThemeHandle Theme handle.
+ * \param hdc Destination device context.
+ * \param PartId Part identifier.
+ * \param StateId State identifier.
+ * \param Text Pointer to the text buffer.
+ * \param cchText Number of characters in Text.
+ * \param TextFlags Text drawing flags for DrawThemeText.
+ * \param Rect Destination rectangle.
+ * \return TRUE on success, FALSE on failure or if API not present.
+ */
 BOOLEAN PhDrawThemeText(
     _In_ HTHEME ThemeHandle,
     _In_ HDC hdc,
@@ -629,6 +749,20 @@ BOOLEAN PhDrawThemeText(
     return HR_SUCCESS(DrawThemeText_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, 0, Rect));
 }
 
+/**
+ * Draws themed text for a part/state with extended options (DrawThemeTextEx).
+ *
+ * \param ThemeHandle Theme handle.
+ * \param hdc Destination device context.
+ * \param PartId Part identifier.
+ * \param StateId State identifier.
+ * \param Text Pointer to the text buffer.
+ * \param cchText Number of characters in Text.
+ * \param TextFlags Text drawing flags.
+ * \param Rect In/out destination rectangle; may be modified by the call.
+ * \param Options Optional pointer to DTTOPTS structure.
+ * \return TRUE on success, FALSE on failure or if API not present.
+ */
 BOOLEAN PhDrawThemeTextEx(
     _In_ HTHEME ThemeHandle,
     _In_ HDC hdc,
@@ -652,6 +786,14 @@ BOOLEAN PhDrawThemeTextEx(
     return HR_SUCCESS(DrawThemeTextEx_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, Rect, Options));
 }
 
+/**
+ * Tests whether a theme background is partially transparent for a given part/state.
+ *
+ * \param ThemeHandle Theme handle.
+ * \param PartId Part identifier.
+ * \param StateId State identifier.
+ * \return TRUE if the theme background is partially transparent, otherwise FALSE.
+ */
 BOOLEAN PhIsThemeBackgroundPartiallyTransparent(
     _In_ HTHEME ThemeHandle,
     _In_ LONG PartId,
@@ -669,6 +811,14 @@ BOOLEAN PhIsThemeBackgroundPartiallyTransparent(
     return !!IsThemeBackgroundPartiallyTransparent_I(ThemeHandle, PartId, StateId);
 }
 
+/**
+ * Draws the parent background for a window using theme APIs.
+ *
+ * \param WindowHandle Window handle whose parent background will be drawn.
+ * \param Hdc Destination device context.
+ * \param Rect Optional rectangle within the window to draw.
+ * \return TRUE on success, FALSE on failure or if API not present.
+ */
 BOOLEAN PhDrawThemeParentBackground(
     _In_ HWND WindowHandle,
     _In_ HDC Hdc,
@@ -686,6 +836,13 @@ BOOLEAN PhDrawThemeParentBackground(
     return HR_SUCCESS(DrawThemeParentBackground_I(WindowHandle, Hdc, Rect));
 }
 
+/**
+ * Enables or disables dark mode for a window (when supported).
+ *
+ * \param WindowHandle Handle of the window.
+ * \param Enabled TRUE to enable dark mode, FALSE to disable.
+ * \return TRUE on success, FALSE if API not present or call failed.
+ */
 BOOLEAN PhAllowDarkModeForWindow(
     _In_ HWND WindowHandle,
     _In_ BOOL Enabled
@@ -697,6 +854,12 @@ BOOLEAN PhAllowDarkModeForWindow(
     return !!AllowDarkModeForWindow_I(WindowHandle, Enabled);
 }
 
+/**
+ * Queries whether dark mode is allowed for a given window.
+ *
+ * \param WindowHandle Handle of the window to test.
+ * \return TRUE if dark mode is allowed, otherwise FALSE.
+ */
 BOOLEAN PhIsDarkModeAllowedForWindow(
     _In_ HWND WindowHandle
     )
@@ -735,6 +898,13 @@ BOOLEAN PhIsDarkModeAllowedForWindow(
 //    return dpi;
 //}
 
+/**
+ * Retrieves the client rectangle adjusted for scroll range/position.
+ *
+ * \param WindowHandle The window whose client rectangle is queried.
+ * \param ClientRect Receives the adjusted client rectangle.
+ * \return TRUE on success, FALSE on failure or empty client rect.
+ */
 BOOLEAN PhGetClientRectOffsetScroll(
     _In_ HWND WindowHandle,
     _Out_ PRECT ClientRect
@@ -775,6 +945,12 @@ BOOLEAN PhGetClientRectOffsetScroll(
     return TRUE;
 }
 
+/**
+ * Determines whether a window belongs to a hung (non-responsive) application.
+ *
+ * \param WindowHandle Handle to the window to test. May be NULL (result will be FALSE).
+ * \return TRUE if the system reports the window is hung (not responding), otherwise FALSE.
+ */
 BOOLEAN PhIsHungAppWindow(
     _In_ HWND WindowHandle
     )
@@ -782,6 +958,11 @@ BOOLEAN PhIsHungAppWindow(
     return !!IsHungAppWindow(WindowHandle);
 }
 
+/**
+ * Returns the shell (desktop) window handle.
+ *
+ * \return HWND of the shell window (may be NULL).
+ */
 HWND PhGetShellWindow(
     VOID
     )
@@ -789,6 +970,13 @@ HWND PhGetShellWindow(
     return GetShellWindow();
 }
 
+/**
+ * Marks a child window so it doesn't activate when created.
+ *
+ * \param WindowHandle Child window handle.
+ * \param ThreadId Currently ignored; retained for compatibility.
+ * \return TRUE on success, FALSE if API not present or call fails.
+ */
 BOOLEAN PhSetChildWindowNoActivate(
     _In_ HWND WindowHandle,
     _In_ HANDLE ThreadId
@@ -818,6 +1006,13 @@ BOOLEAN PhSetChildWindowNoActivate(
     return !!SetChildWindowNoActivate_I(WindowHandle);
 }
 
+/**
+ * Checks whether the given window belongs to the specified thread's desktop.
+ *
+ * \param WindowHandle The window to check.
+ * \param ThreadId Thread id owning the desktop to check.
+ * \return TRUE if the window belongs to the thread's desktop, otherwise FALSE.
+ */
 BOOLEAN PhCheckWindowThreadDesktop(
     _In_ HWND WindowHandle,
     _In_ HANDLE ThreadId
@@ -848,6 +1043,13 @@ BOOLEAN PhCheckWindowThreadDesktop(
     return !!CheckWindowThreadDesktop_I(WindowHandle, HandleToUlong(ThreadId));
 }
 
+/**
+ * Gets an effective DPI for a monitor/window rectangle.
+ *
+ * \param WindowHandle Optional window handle used to locate a monitor.
+ * \param WindowRect Optional rectangle used to locate a monitor.
+ * \return DPI (horizontal) for the monitor or USER_DEFAULT_SCREEN_DPI on failure.
+ */
 LONG PhGetMonitorDpi(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PRECT WindowRect
@@ -877,6 +1079,11 @@ LONG PhGetMonitorDpi(
     return USER_DEFAULT_SCREEN_DPI;
 }
 
+/**
+ * Attempts to discover the system DPI using a sequence of fallbacks.
+ *
+ * \return Effective system DPI (pixels per inch) or USER_DEFAULT_SCREEN_DPI on failure.
+ */
 LONG PhGetSystemDpi(
     VOID
     )
@@ -928,6 +1135,14 @@ LONG PhGetSystemDpi(
 //    return dpi;
 //}
 
+/**
+ * Retrieves an effective DPI for the taskbar area (used as a reasonable
+ * approximation for shell UI DPI). The function attempts several fallbacks
+ * shell window bounds -> monitor DPI, then DpiValue from other sources,
+ * and finally USER_DEFAULT_SCREEN_DPI.
+ *
+ * \return Effective taskbar DPI (pixels per inch) or USER_DEFAULT_SCREEN_DPI on failure.
+ */
 LONG PhGetTaskbarDpi(
     VOID
     )
@@ -982,6 +1197,16 @@ LONG PhGetTaskbarDpi(
     return dpi;
 }
 
+/**
+ * Retrieves the DPI for the specified window.
+ *
+ * Uses multiple strategies depending on OS version:
+ * - On Windows 10+: queries per-window/per-monitor values.
+ * - On older systems: queries device context LOGPIXELSX.
+ *
+ * \param WindowHandle Window handle to query DPI for.
+ * \return DPI (horizontal) for the window or USER_DEFAULT_SCREEN_DPI on failure.
+ */
 LONG PhGetWindowDpi(
     _In_ HWND WindowHandle
     )
@@ -1016,6 +1241,13 @@ LONG PhGetWindowDpi(
     return USER_DEFAULT_SCREEN_DPI;
 }
 
+/**
+ * Attempts to determine DPI using modern APIs and fallbacks.
+ *
+ * \param WindowHandle Optional window handle to query.
+ * \param WindowRect Optional rectangle used to locate a monitor.
+ * \return Determined DPI or USER_DEFAULT_SCREEN_DPI on failure.
+ */
 LONG PhGetDpiValue(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PRECT WindowRect
@@ -1086,6 +1318,11 @@ LONG PhGetSystemMetrics(
     return GetSystemMetrics(Index);
 }
 
+/**
+ * Queries whether the system is running in Safe Boot (clean boot) mode.
+ *
+ * \return TRUE if the system is in Safe Boot mode, otherwise FALSE.
+ */
 BOOLEAN PhGetSystemSafeBootMode(
     VOID
     )
@@ -1098,6 +1335,15 @@ BOOLEAN PhGetSystemSafeBootMode(
     return !!PhGetSystemMetrics(SM_CLEANBOOT, 0);
 }
 
+/**
+ * Wrapper for SystemParametersInfo that supports a DPI-aware variant when available.
+ *
+ * \param Action The SPI_* action to perform.
+ * \param Param1 Additional parameter for the action (see SystemParametersInfo docs).
+ * \param Param2 Pointer to or buffer for action-specific data.
+ * \param DpiValue Optional DPI to pass to SystemParametersInfoForDpi when supported (>0).
+ * \return BOOL nonzero on success, zero on failure.
+ */
 BOOL PhGetSystemParametersInfo(
     _In_ LONG Action,
     _In_ ULONG Param1,
@@ -1113,6 +1359,14 @@ BOOL PhGetSystemParametersInfo(
     return SystemParametersInfo(Action, Param1, Param2, 0);
 }
 
+/**
+ * Inserts a tab into a tab control at the specified index with given text.
+ *
+ * \param TabControlHandle Handle to the tab control.
+ * \param Index Zero-based index to insert the new tab at.
+ * \param Text Text label for the new tab.
+ * \return Index of the inserted item on success, or an error value on failure.
+ */
 LONG PhAddTabControlTab(
     _In_ HWND TabControlHandle,
     _In_ LONG Index,
@@ -1127,6 +1381,15 @@ LONG PhAddTabControlTab(
     return TabCtrl_InsertItem(TabControlHandle, Index, &item);
 }
 
+/**
+ * Retrieves the window text as a referenced PPH_STRING object.
+ *
+ * This is a convenience wrapper around PhGetWindowTextEx that requests
+ * the default behavior (no special flags).
+ *
+ * \param WindowHandle Window handle whose text is requested.
+ * \return A reference to a PPH_STRING. Caller should PhDereferenceObject when done.
+ */
 PPH_STRING PhGetWindowText(
     _In_ HWND WindowHandle
     )
@@ -1137,6 +1400,17 @@ PPH_STRING PhGetWindowText(
     return text;
 }
 
+/**
+ * Retrieves window text with extended options.
+ *
+ * If PH_GET_WINDOW_TEXT_INTERNAL is specified the function uses InternalGetWindowText.
+ * If PH_GET_WINDOW_TEXT_LENGTH_ONLY is specified only the length is retrieved.
+ *
+ * \param WindowHandle Window handle to query.
+ * \param Flags Combination of PH_GET_WINDOW_TEXT_* flags that control behavior.
+ * \param Text Optional out parameter that receives a referenced PPH_STRING when provided.
+ * \return Number of characters in the retrieved text (not including terminating NULL).
+ */
 ULONG PhGetWindowTextEx(
     _In_ HWND WindowHandle,
     _In_ ULONG Flags,
@@ -1204,6 +1478,16 @@ ULONG PhGetWindowTextEx(
     }
 }
 
+/**
+ * Retrieves window text into a caller-supplied buffer.
+ *
+ * \param WindowHandle Window handle to query.
+ * \param Flags PH_GET_WINDOW_TEXT_INTERNAL to use internal API; otherwise uses GetWindowText.
+ * \param Buffer Buffer that receives the text (may be NULL if BufferLength is 0).
+ * \param BufferLength Size of Buffer in characters.
+ * \param ReturnLength Optional receives the number of characters written (not including NULL).
+ * \return STATUS_SUCCESS on success or an appropriate NTSTATUS error code.
+ */
 NTSTATUS PhGetWindowTextToBuffer(
     _In_ HWND WindowHandle,
     _In_ ULONG Flags,
@@ -1231,6 +1515,46 @@ NTSTATUS PhGetWindowTextToBuffer(
     return status;
 }
 
+/**
+ * Retrieves the class name of a window.
+ *
+ * \param WindowHandle Window handle to query.
+ * \param Buffer Buffer that receives the class name (wide string).
+ * \param BufferLength Length of Buffer in characters.
+ * \param ReturnLength Optional receives the number of characters written (not including NULL).
+ * \return STATUS_SUCCESS on success or an NTSTATUS error on failure.
+ */
+NTSTATUS PhGetClassName(
+    _In_ HWND WindowHandle,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _In_ ULONG BufferLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    LONG length;
+
+    length = GetClassName(WindowHandle, Buffer, BufferLength);
+
+    if (length == 0)
+        status = PhGetLastWin32ErrorAsNtStatus();
+    else
+        status = STATUS_SUCCESS;
+
+    if (ReturnLength)
+        *ReturnLength = length;
+
+    return status;
+}
+
+/**
+ * Retrieves the string for a combobox item.
+ *
+ * \param WindowHandle Handle of the combobox control.
+ * \param Index Zero-based item index or INT_ERROR to use current selection.
+ * \return A referenced PPH_STRING on success, PhReferenceEmptyString() for empty string, or NULL on error.
+ * \remarks If Index is INT_ERROR the current selection is used.
+ */
 PPH_STRING PhGetComboBoxString(
     _In_ HWND WindowHandle,
     _In_ LONG Index
@@ -1267,6 +1591,14 @@ PPH_STRING PhGetComboBoxString(
     }
 }
 
+/**
+ * Selects a string in a combobox.
+ *
+ * \param WindowHandle Handle of the combobox control.
+ * \param String String to select.
+ * \param Partial If TRUE, selects the first item that matches partially; otherwise performs exact match.
+ * \return Index of the selected item, or CB_ERR if not found.
+ */
 LONG PhSelectComboBoxString(
     _In_ HWND WindowHandle,
     _In_ PCWSTR String,
@@ -1294,6 +1626,12 @@ LONG PhSelectComboBoxString(
     }
 }
 
+/**
+ * Deletes all strings from a combobox.
+ *
+ * \param ComboBoxHandle Handle to the combobox control.
+ * \param ResetContent If TRUE, calls ComboBox_ResetContent after deleting individual strings.
+ */
 VOID PhDeleteComboBoxStrings(
     _In_ HWND ComboBoxHandle,
     _In_ BOOLEAN ResetContent
@@ -1315,7 +1653,14 @@ VOID PhDeleteComboBoxStrings(
     }
 }
 
-
+/**
+ * Retrieves the string for a listbox item.
+ *
+ * \param WindowHandle Handle of the listbox control.
+ * \param Index Zero-based item index or INT_ERROR to use current selection.
+ * \return A newly created PPH_STRING on success, or NULL on error/empty. Caller must PhDereferenceObject when done.
+ * \remarks If Index is INT_ERROR the current selection is used.
+ */
 PPH_STRING PhGetListBoxString(
     _In_ HWND WindowHandle,
     _In_ LONG Index
@@ -1352,6 +1697,14 @@ PPH_STRING PhGetListBoxString(
     }
 }
 
+/**
+ * Loads a bitmap resource and replaces the specified imagelist entry with it.
+ *
+ * \param ImageList HIMAGELIST to update.
+ * \param Index Index of the image to replace.
+ * \param InstanceHandle Module instance handle containing the bitmap.
+ * \param BitmapName Resource name of the bitmap.
+ */
 VOID PhSetImageListBitmap(
     _In_ HIMAGELIST ImageList,
     _In_ LONG Index,
@@ -1370,6 +1723,16 @@ VOID PhSetImageListBitmap(
     }
 }
 
+/**
+ * Hashtable equality function used for shared icon cache.
+ *
+ * Compares two icon cache entries by instance handle, dimensions, DPI and
+ * resource/name. Handles both string and integer resource identifiers.
+ *
+ * \param Entry1 Pointer to first PHP_ICON_ENTRY.
+ * \param Entry2 Pointer to second PHP_ICON_ENTRY.
+ * \return TRUE if entries represent the same icon lookup key, otherwise FALSE.
+ */
 _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN SharedIconCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -1403,6 +1766,15 @@ static BOOLEAN SharedIconCacheHashtableEqualFunction(
     }
 }
 
+/**
+ * Hashtable hash function used for shared icon cache.
+ *
+ * Computes a hash for a PHP_ICON_ENTRY by mixing the name (or resource id),
+ * instance handle, dimensions and DPI value.
+ *
+ * \param Entry Pointer to PHP_ICON_ENTRY.
+ * \return Computed hash value.
+ */
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG SharedIconCacheHashtableHashFunction(
     _In_ PVOID Entry
@@ -1419,6 +1791,21 @@ static ULONG SharedIconCacheHashtableHashFunction(
     return nameHash ^ (PtrToUlong(entry->InstanceHandle) >> 5) ^ (entry->Width << 3) ^ entry->Height ^ entry->DpiValue;
 }
 
+/**
+ * Loads or returns a shared icon from cache.
+ *
+ * If PH_LOAD_ICON_SHARED is specified the function will attempt to return
+ * a cached shared icon handle. If not found it will load, possibly scale,
+ * and optionally insert the icon into the shared cache.
+ *
+ * \param ImageBaseAddress Optional module base to load the icon from.
+ * \param Name The resource name or identifier.
+ * \param Flags Flags controlling loading behavior (size, shared, strict, ...).
+ * \param Width Desired width (or 0 to use defaults).
+ * \param Height Desired height (or 0 to use defaults).
+ * \param SystemDpi DPI value for scaling.
+ * \return Handle to an HICON on success, otherwise NULL.
+ */
 HICON PhLoadIcon(
     _In_opt_ PVOID ImageBaseAddress,
     _In_ PCWSTR Name,
@@ -1676,6 +2063,13 @@ VOID PhGetStockApplicationIcon(
 //    return icon;
 //}
 
+/**
+ * Sets clipboard data for the specified format.
+ *
+ * \param WindowHandle Owner window for OpenClipboard (may be NULL).
+ * \param Format Clipboard format identifier (e.g. CF_UNICODETEXT).
+ * \param Data Handle to  the data to place on the clipboard.
+ */
 VOID PhpSetClipboardData(
     _In_ HWND WindowHandle,
     _In_ ULONG Format,
@@ -1699,6 +2093,12 @@ Fail:
     GlobalFree(Data);
 }
 
+/**
+ * Copies a unicode string into the clipboard as CF_UNICODETEXT.
+ *
+ * \param WindowHandle Owner window used for OpenClipboard (may be NULL).
+ * \param String Pointer to a PH_STRINGREF describing the unicode buffer and length in bytes.
+ */
 VOID PhSetClipboardString(
     _In_ HWND WindowHandle,
     _In_ PCPH_STRINGREF String
@@ -1718,6 +2118,13 @@ VOID PhSetClipboardString(
     PhpSetClipboardData(WindowHandle, CF_UNICODETEXT, data);
 }
 
+/**
+ * Retrieves a unicode string from the clipboard (CF_UNICODETEXT). If the clipboard does not
+ * contain CF_UNICODETEXT, or it cannot be opened, a reference to the empty string is returned.
+ *
+ * \param WindowHandle Owner window used for OpenClipboard (may be NULL).
+ * \return Referenced PPH_STRING containing the clipboard text.
+ */
 PPH_STRING PhGetClipboardString(
     _In_ HWND WindowHandle
     )
@@ -1751,6 +2158,21 @@ PPH_STRING PhGetClipboardString(
     return string;
 }
 
+/**
+ * Creates a dialog from a dialog-template resource copying the template.
+ *
+ * This allows modifying the copied template (style) prior to creating the
+ * dialog. The allocated template copy is freed after CreateDialogIndirectParam
+ * returns.
+ *
+ * \param Parent Parent window handle for the dialog.
+ * \param Style Style bits to apply to the dialog template.
+ * \param Instance Module instance whose resources contain the template.
+ * \param Template Resource name of the dialog template.
+ * \param DialogProc Dialog procedure for the new dialog.
+ * \param Parameter Optional parameter passed to DialogProc via lParam.
+ * \return HWND of the created dialog on success, or NULL on failure.
+ */
 HWND PhCreateDialogFromTemplate(
     _In_ HWND Parent,
     _In_ ULONG Style,
@@ -1788,6 +2210,16 @@ HWND PhCreateDialogFromTemplate(
     return dialogHandle;
 }
 
+/**
+ * Creates a dialog from a dialog-template resource.
+ *
+ * \param Instance Module instance whose resources contain the dialog template.
+ * \param Template Resource name of the dialog template.
+ * \param ParentWindow Optional parent window handle.
+ * \param DialogProc Dialog procedure for the dialog.
+ * \param Parameter Optional parameter passed to DialogProc via lParam.
+ * \return HWND of the created dialog on success, or NULL on failure.
+ */
 HWND PhCreateDialog(
     _In_ PVOID Instance,
     _In_ PCWSTR Template,
@@ -1813,6 +2245,23 @@ HWND PhCreateDialog(
     return dialogHandle;
 }
 
+/**
+ * Creates a window with extended styles.
+ *
+ * \param ClassName Window class name.
+ * \param WindowName Window title (may be NULL).
+ * \param Style Window style flags.
+ * \param ExStyle Extended window style flags.
+ * \param X Initial x position.
+ * \param Y Initial y position.
+ * \param Width Initial width.
+ * \param Height Initial height.
+ * \param ParentWindow Optional parent or owner window handle.
+ * \param MenuHandle Optional menu or child-control identifier.
+ * \param InstanceHandle Optional module instance handle.
+ * \param Parameter Optional creation parameter passed to WM_CREATE.
+ * \return HWND of the created window, or NULL on failure.
+ */
 HWND PhCreateWindowEx(
     _In_ PCWSTR ClassName,
     _In_opt_ PCWSTR WindowName,
@@ -1848,6 +2297,11 @@ HWND PhCreateWindowEx(
     return windowHandle;
 }
 
+/**
+ * Creates a message-only window.
+ *
+ * \return HWND of the created message window or NULL on failure.
+ */
 HWND PhCreateMessageWindow(
     VOID
     )
@@ -1869,6 +2323,16 @@ HWND PhCreateMessageWindow(
     return windowHandle;
 }
 
+/**
+ * Displays a modal dialog box from a dialog-template resource.
+ *
+ * \param Instance Module instance whose resources contain the dialog template.
+ * \param Template Resource name of the dialog template.
+ * \param ParentWindow Optional parent window handle.
+ * \param DialogProc Dialog procedure for the dialog.
+ * \param Parameter Optional parameter passed to DialogProc via lParam.
+ * \return Dialog result (as returned by DialogBoxIndirectParam) or INT_ERROR on failure.
+ */
 INT_PTR PhDialogBox(
     _In_ PVOID Instance,
     _In_ PCWSTR Template,
@@ -1894,7 +2358,13 @@ INT_PTR PhDialogBox(
     return dialogResult;
 }
 
-// rev from LoadMenuW
+/**
+ * Loads a menu resource by name from a module.
+ *
+ * \param DllBase Module base (mapped image or HMODULE) containing the menu resource.
+ * \param MenuName Resource name of the menu to load.
+ * \return HMENU created from the menu template, or NULL on failure.
+ */
 HMENU PhLoadMenu(
     _In_ PVOID DllBase,
     _In_ PCWSTR MenuName
@@ -1916,7 +2386,22 @@ HMENU PhLoadMenu(
     return NULL;
 }
 
-LRESULT CALLBACK PhpGeneralPropSheetWndProc(
+/**
+ * Property-sheet window procedure used to provide consistent behaviour across
+ * property-sheets created by the library.
+ *
+ * This procedure is installed as a wrapper that:
+ * - Restores the previous window procedure on WM_NCDESTROY.
+ * - Forwards WM_KEYDOWN messages to the current page to allow page-level key handling.
+ * - Prevents the hidden OK button from closing the dialog when activated.
+ *
+ * \param hwnd Property sheet window handle.
+ * \param uMsg Window message.
+ * \param wParam WPARAM.
+ * \param lParam LPARAM.
+ * \return Result from the original window procedure or message-specific result.
+ */
+LRESULT CALLBACK PhDefaultPropSheetWindowProcedure(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1945,6 +2430,7 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
             case SC_CLOSE:
                 {
                     PostMessage(hwnd, WM_CLOSE, 0, 0);
+                    return 0;
                 }
                 break;
             }
@@ -1980,7 +2466,16 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
-INT CALLBACK PhpGeneralPropSheetProc(
+/**
+ * Property-sheet callback used to initialise property-sheets created by the
+ * library. Sets up the wrapper window procedure and hides the OK button.
+ *
+ * \param hwndDlg Property sheet window handle.
+ * \param uMsg Callback message (PSCB_INITIALIZED expected).
+ * \param lParam Additional parameter (unused).
+ * \return 0 always.
+ */
+INT CALLBACK PhModalPropSheetWindowProcedure(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam
@@ -1991,7 +2486,7 @@ INT CALLBACK PhpGeneralPropSheetProc(
     case PSCB_INITIALIZED:
         {
             PhSetWindowContext(hwndDlg, 0xF, (PVOID)PhGetWindowProcedure(hwndDlg));
-            PhSetWindowProcedure(hwndDlg, PhpGeneralPropSheetWndProc);
+            PhSetWindowProcedure(hwndDlg, PhDefaultPropSheetWindowProcedure);
 
             // Hide the OK button.
             ShowWindow(GetDlgItem(hwndDlg, IDOK), SW_HIDE);
@@ -2004,6 +2499,17 @@ INT CALLBACK PhpGeneralPropSheetProc(
     return 0;
 }
 
+/**
+ * Displays a property sheet using a custom message loop to avoid a known
+ * PropertySheet bug which may discard WM_QUIT in rare cases.
+ *
+ * The function temporarily disables/enables the top level owner window and
+ * pumps messages until the sheet closes. An automatic pool is created and
+ * drained on each loop iteration to manage transient allocations.
+ *
+ * \param Header Pointer to a PROPSHEETHEADER structure describing the property sheet.
+ * \return TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhModalPropertySheet(
     _Inout_ PROPSHEETHEADER *Header
     )
@@ -2028,7 +2534,7 @@ BOOLEAN PhModalPropertySheet(
     oldFocus = GetFocus();
     topLevelOwner = Header->hwndParent;
 
-    while (topLevelOwner && (GetWindowLongPtr(topLevelOwner, GWL_STYLE) & WS_CHILD))
+    while (topLevelOwner && (PhGetWindowStyle(topLevelOwner) & WS_CHILD))
         topLevelOwner = GetParent(topLevelOwner);
 
     if (topLevelOwner && (topLevelOwner == GetDesktopWindow() || EnableWindow(topLevelOwner, FALSE)))
@@ -2040,7 +2546,7 @@ BOOLEAN PhModalPropertySheet(
     if (!Header->pfnCallback)
     {
         Header->dwFlags |= PSH_USECALLBACK;
-        Header->pfnCallback = PhpGeneralPropSheetProc;
+        Header->pfnCallback = PhModalPropSheetWindowProcedure;
     }
     hwnd = (HWND)PropertySheet(Header);
 
@@ -2090,6 +2596,13 @@ BOOLEAN PhModalPropertySheet(
     return TRUE;
 }
 
+/**
+ * Initializes a the root layout item instance for the specified window.
+ *
+ * \param Manager Pointer to the PH_LAYOUT_MANAGER to initialize.
+ * \param RootWindowHandle Handle of the root window for layout operations.
+ * \return TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhInitializeLayoutManager(
     _Out_ PPH_LAYOUT_MANAGER Manager,
     _In_ HWND RootWindowHandle
@@ -2098,6 +2611,9 @@ BOOLEAN PhInitializeLayoutManager(
     memset(Manager, 0, sizeof(PH_LAYOUT_MANAGER));
 
     Manager->List = PhCreateList(4);
+    if (!Manager->List)
+        return FALSE;
+
     Manager->WindowDpi = PhGetWindowDpi(RootWindowHandle);
 
     Manager->RootItem.Handle = RootWindowHandle;
@@ -2116,6 +2632,10 @@ BOOLEAN PhInitializeLayoutManager(
     return FALSE;
 }
 
+/**
+ * Destroys a layout manager created by PhInitializeLayoutManager.
+ * \param Manager Pointer to the PH_LAYOUT_MANAGER to delete.
+ */
 VOID PhDeleteLayoutManager(
     _Inout_ PPH_LAYOUT_MANAGER Manager
     )
@@ -2130,6 +2650,17 @@ VOID PhDeleteLayoutManager(
 
 // HACK: The math below is all horribly broken, especially the HACK for multiline tab controls.
 
+/**
+ * Adds a layout item for a window using default margin (zero).
+ *
+ * Convenience wrapper around PhAddLayoutItemEx which passes a zero margin.
+ *
+ * \param Manager Pointer to the layout manager.
+ * \param Handle Window handle to manage.
+ * \param ParentItem Optional parent layout item; if NULL the root item is used.
+ * \param Anchor Anchor flags controlling layout behaviour.
+ * \return Pointer to the newly created PPH_LAYOUT_ITEM.
+ */
 PPH_LAYOUT_ITEM PhAddLayoutItem(
     _Inout_ PPH_LAYOUT_MANAGER Manager,
     _In_ HWND Handle,
@@ -2164,6 +2695,16 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
     return layoutItem;
 }
 
+/**
+ * Adds a layout item with explicit margin values.
+ *
+ * \param Manager Pointer to the layout manager.
+ * \param Handle Window handle to manage.
+ * \param ParentItem Optional parent layout item; if NULL the root item is used.
+ * \param Anchor Anchor flags controlling layout behaviour.
+ * \param Margin Pointer to a RECT that specifies the margin for the item.
+ * \return Pointer to the newly created PPH_LAYOUT_ITEM.
+ */
 PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     _Inout_ PPH_LAYOUT_MANAGER Manager,
     _In_ HWND Handle,
@@ -2184,6 +2725,8 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     item->NumberOfChildren = 0;
     item->DeferHandle = NULL;
     item->Anchor = Anchor;
+
+    item->Rect = (RECT){ 0 };
 
     item->LayoutParentItem = item->ParentItem;
 
@@ -2213,6 +2756,12 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     return item;
 }
 
+/**
+ * Performs layout calculations for a single layout item and its parents.
+ *
+ * \param Manager Pointer to the layout manager.
+ * \param Item Pointer to the layout item to layout.
+ */
 VOID PhpLayoutItemLayout(
     _Inout_ PPH_LAYOUT_MANAGER Manager,
     _Inout_ PPH_LAYOUT_ITEM Item
@@ -2340,6 +2889,11 @@ VOID PhpLayoutItemLayout(
     Item->LayoutNumber = Manager->LayoutNumber;
 }
 
+/**
+ * Performs a layout pass for all items managed by the layout manager.
+ *
+ * \param Manager Pointer to the layout manager.
+ */
 VOID PhLayoutManagerLayout(
     _Inout_ PPH_LAYOUT_MANAGER Manager
     )
@@ -2384,6 +2938,15 @@ VOID PhLayoutManagerLayout(
     }
 }
 
+/**
+ * Updates the layout manager's DPI value.
+ *
+ * If WindowDpi is non-zero it is used directly; otherwise the DPI for the
+ * manager's root window is queried.
+ *
+ * \param Manager Pointer to the layout manager.
+ * \param WindowDpi New DPI value or 0 to query the root window DPI.
+ */
 VOID PhLayoutManagerUpdate(
     _Inout_ PPH_LAYOUT_MANAGER Manager,
     _In_ LONG WindowDpi
@@ -2395,6 +2958,16 @@ VOID PhLayoutManagerUpdate(
         Manager->WindowDpi = PhGetWindowDpi(Manager->RootItem.Handle);
 }
 
+/**
+ * Window property context hashtable equality function.
+ *
+ * Compares two PH_WINDOW_PROPERTY_CONTEXT entries for equality by
+ * comparing the window handle and property hash.
+ *
+ * \param Entry1 First entry pointer.
+ * \param Entry2 Second entry pointer.
+ * \return TRUE if the entries are equal, otherwise FALSE.
+ */
 _Use_decl_annotations_
 BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -2409,6 +2982,15 @@ BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
         entry1->PropertyHash == entry2->PropertyHash;
 }
 
+/**
+ * Window property context hashtable hash function.
+ *
+ * Produces a hash for a PH_WINDOW_PROPERTY_CONTEXT entry by combining
+ * the window handle and the property hash to produce an unsigned value.
+ *
+ * \param Entry Entry pointer.
+ * \return Computed hash value.
+ */
 _Use_decl_annotations_
 ULONG NTAPI PhpWindowContextHashtableHashFunction(
     _In_ PVOID Entry
@@ -2428,6 +3010,14 @@ VOID NTAPI PhWindowFlsCallback(
     PhClearReference(&hashtable);
 }
 
+/**
+ * Returns or creates the per-thread window-context hashtable stored in FLS.
+ *
+ * If the hashtable does not exist for the current thread it is created and
+ * stored in the thread's FLS slot. On failure the function will fail-fast.
+ *
+ * \return Pointer to the per-thread PPH_HASHTABLE.
+ */
 static PPH_HASHTABLE PhGetWindowContextHashTable(
     VOID
     )
@@ -2453,6 +3043,13 @@ static PPH_HASHTABLE PhGetWindowContextHashTable(
     return hashtable;
 }
 
+/**
+ * Retrieves a stored context pointer for a window and property hash.
+ *
+ * \param WindowHandle The window handle.
+ * \param PropertyHash The property hash key.
+ * \return The stored context pointer, or NULL if not found.
+ */
 PVOID PhGetWindowContext(
     _In_ HWND WindowHandle,
     _In_ ULONG PropertyHash
@@ -2472,6 +3069,16 @@ PVOID PhGetWindowContext(
         return NULL;
 }
 
+/**
+ * Stores a window context value associated with a property hash.
+ *
+ * If an entry for the given window/property pair already exists it will be
+ * updated by PhAddEntryHashtable semantics.
+ *
+ * \param WindowHandle The window handle.
+ * \param PropertyHash The property hash key.
+ * \param Context The context pointer to store.
+ */
 VOID PhSetWindowContext(
     _In_ HWND WindowHandle,
     _In_ ULONG PropertyHash,
@@ -2488,6 +3095,12 @@ VOID PhSetWindowContext(
     PhAddEntryHashtable(PhGetWindowContextHashTable(), &entry);
 }
 
+/**
+ * Removes a stored window context entry.
+ *
+ * \param WindowHandle The window handle.
+ * \param PropertyHash The property hash key to remove.
+ */
 VOID PhRemoveWindowContext(
     _In_ HWND WindowHandle,
     _In_ ULONG PropertyHash
@@ -3066,6 +3679,15 @@ BOOLEAN PhSendMessageTimeout(
     return FALSE;
 }
 
+/**
+ * Window-callback registration equality function.
+ *
+ * Compares two  window-callback registration entries by window handle.
+ *
+ * \param Entry1 First entry pointer.
+ * \param Entry2 Second entry pointer.
+ * \return TRUE if the window handles match, otherwise FALSE.
+ */
 _Use_decl_annotations_
 BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -3077,6 +3699,14 @@ BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
         ((PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION)Entry2)->WindowHandle;
 }
 
+/**
+ * Window-callback registration hash function.
+ *
+ * Returns a hash derived from the window handle member of the registration.
+ *
+ * \param Entry Entry pointer.
+ * \return Computed hash value.
+ */
 _Use_decl_annotations_
 ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
     _In_ PVOID Entry
