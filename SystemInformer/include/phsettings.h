@@ -147,6 +147,8 @@ EXT ULONG PhCsEnableHandleSnapshot;
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), (PhCs##Name) = (Value)))
 
 // begin_phapppub
+
+#define SETTING_SCHEMA_FILE                                         L"$schema"
 #define SETTING_ALLOW_ONLY_ONE_INSTANCE                             L"AllowOnlyOneInstance"
 #define SETTING_CLOSE_ON_ESCAPE                                     L"CloseOnEscape"
 #define SETTING_DBGHELP_SEARCH_PATH                                 L"DbgHelpSearchPath"
