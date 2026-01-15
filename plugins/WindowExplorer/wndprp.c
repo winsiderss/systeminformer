@@ -31,7 +31,6 @@ typedef struct _WINDOW_PROPERTIES_CONTEXT
     HWND ListViewHandle;
     HWND PropsListViewHandle;
     HWND PropStoreListViewHandle;
-    IListView* ListViewClass;
 
     HICON WindowIcon;
     ULONG PropsListCount;
@@ -1511,14 +1510,13 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
     case WM_INITDIALOG:
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_WINDOWINFO);
-            context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
 
             PhSetApplicationWindowIcon(GetParent(hwndDlg));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddIListViewColumn(context->ListViewClass, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
-            PhAddIListViewColumn(context->ListViewClass, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_WINDOWS_PROPERTY_COLUMNS, context->ListViewHandle);
 
@@ -1544,11 +1542,6 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             if (context->WindowIcon)
             {
                 DestroyIcon(context->WindowIcon);
-            }
-
-            if (context->ListViewClass)
-            {
-                IListView_Release(context->ListViewClass);
             }
         }
         break;
