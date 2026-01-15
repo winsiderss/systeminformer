@@ -7,8 +7,6 @@
 #ifndef _NTIMAGE_H
 #define _NTIMAGE_H
 
-#include <pshpack4.h>
-
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define IMAGE_FILE_MACHINE_CHPE_X86          0x3A64
 #define IMAGE_FILE_MACHINE_ARM64EC           0xA641
@@ -153,8 +151,6 @@ typedef struct _IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD
     // USHORT Value; // Delta = Value * Scale * Sign
 } IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD, *PIMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD;
 
-#include <poppack.h>
-
 #define IMAGE_DYNAMIC_RELOCATION_ARM64X                         0x00000006
 #define IMAGE_DYNAMIC_RELOCATION_MM_SHARED_USER_DATA_VA         0x7FFE0000
 #define IMAGE_DYNAMIC_RELOCATION_KI_USER_SHARED_DATA64          0xFFFFF78000000000UI64
@@ -175,20 +171,23 @@ typedef IMAGE_THUNK_DATA64 UNALIGNED* UNALIGNED_PIMAGE_THUNK_DATA64;
 #define IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH       0x00000005
 #define IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE              0x00000007
 
-typedef struct _IMAGE_FUNCTION_OVERRIDE_HEADER {
+typedef struct _IMAGE_FUNCTION_OVERRIDE_HEADER 
+{
     ULONG FuncOverrideSize;
     // IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION  FuncOverrideInfo[ANYSIZE_ARRAY]; // FuncOverrideSize bytes in size
     // IMAGE_BDD_INFO BDDInfo; // BDD region, size in bytes: DVRTEntrySize - sizeof(IMAGE_FUNCTION_OVERRIDE_HEADER) - FuncOverrideSize
 } IMAGE_FUNCTION_OVERRIDE_HEADER;
 typedef IMAGE_FUNCTION_OVERRIDE_HEADER UNALIGNED *PIMAGE_FUNCTION_OVERRIDE_HEADER;
 
-typedef struct _IMAGE_BDD_INFO {
+typedef struct _IMAGE_BDD_INFO 
+{
     ULONG Version; // decides the semantics of serialized BDD
     ULONG BDDSize;
     // IMAGE_BDD_DYNAMIC_RELOCATION BDDNodes[ANYSIZE_ARRAY]; // BDDSize size in bytes.
 } IMAGE_BDD_INFO, *PIMAGE_BDD_INFO;
 
-typedef struct _IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION {
+typedef struct _IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION 
+{
     ULONG OriginalRva;          // RVA of original function
     ULONG BDDOffset;            // Offset into the BDD region
     ULONG RvaSize;              // Size in bytes taken by RVAs. Must be multiple of sizeof(ULONG).
@@ -200,7 +199,8 @@ typedef struct _IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION {
     // ^BaseRelocSize size in bytes
 } IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION, *PIMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION;
 
-typedef struct _IMAGE_BDD_DYNAMIC_RELOCATION {
+typedef struct _IMAGE_BDD_DYNAMIC_RELOCATION 
+{
     USHORT Left;  // Index of FALSE edge in BDD array
     USHORT Right; // Index of TRUE edge in BDD array
     ULONG  Value; // Either FeatureNumber or Index into RVAs array
