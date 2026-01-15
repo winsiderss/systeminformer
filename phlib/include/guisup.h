@@ -1175,6 +1175,16 @@ PhAddComboBoxStringRefs(
 }
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetClassName(
+    _In_ HWND WindowHandle,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _In_ ULONG BufferLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetComboBoxString(
