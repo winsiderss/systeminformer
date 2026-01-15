@@ -932,7 +932,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     else if (PhEqualStringZ(windowClassName, WC_EDIT, FALSE))
     {
         // Fix scrollbar on multiline edit (Dart Vanya)
-        if (GetWindowLongPtr(WindowHandle, GWL_STYLE) & ES_MULTILINE)
+        if (PhGetWindowStyle(WindowHandle) & ES_MULTILINE)
         {
             PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
@@ -1613,7 +1613,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
     _In_ LPNMCUSTOMDRAW DrawInfo
     )
 {
-    LONG_PTR buttonStyle;
+    ULONG buttonStyle;
 
     buttonStyle = PhGetWindowStyle(DrawInfo->hdr.hwndFrom);
     // COMMANDLINK unsupported
@@ -3045,7 +3045,7 @@ VOID ThemeWindowRenderComboBox(
        clientRect->right - clientRect->left,
        clientRect->bottom - clientRect->top
     };
-    LONG_PTR windowStyle = PhGetWindowStyle(WindowHandle);
+    ULONG windowStyle = PhGetWindowStyle(WindowHandle);
     //BOOLEAN isFocused = GetFocus() == WindowHandle;
 
     SetBkMode(bufferDc, TRANSPARENT);
@@ -3137,7 +3137,7 @@ VOID ThemeWindowComboBoxExcludeRect(
     _In_ WNDPROC WindowProcedure
     )
 {
-    LONG_PTR windowStyle = PhGetWindowStyle(WindowHandle);
+    ULONG windowStyle = PhGetWindowStyle(WindowHandle);
 
     if ((windowStyle & CBS_DROPDOWNLIST) != CBS_DROPDOWNLIST || (windowStyle & CBS_DROPDOWN) != CBS_DROPDOWN)
     {
