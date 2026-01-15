@@ -47,6 +47,17 @@ static volatile LONG PhSvcReferenceCount = 0;
 static PH_PHSVC_MODE PhSvcCurrentMode;
 static PH_QUEUED_LOCK PhSvcStartLock = PH_QUEUED_LOCK_INIT;
 
+/**
+ * Callback used by elevation Task Dialogs to mark the primary action button
+ * as requiring elevation when the dialog is constructed.
+ *
+ * \param WindowHandle The handle to the task dialog window.
+ * \param Notification The Task Dialog notification code (e.g. TDN_DIALOG_CONSTRUCTED).
+ * \param wParam Notification-specific word parameter.
+ * \param lParam Notification-specific long parameter.
+ * \param Context Callback context (passed through lpCallbackData).
+ * \return HRESULT S_OK.
+ */
 HRESULT CALLBACK PhpElevateActionCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT Notification,
@@ -65,6 +76,15 @@ HRESULT CALLBACK PhpElevateActionCallbackProc(
     return S_OK;
 }
 
+/**
+ * Display a Task Dialog asking the user to continue with an elevated action.
+ *
+ * \param WindowHandle Parent window for the dialog.
+ * \param Message Main instruction text describing the operation requiring elevation.
+ * \param Context Optional callback context passed to the dialog callback.
+ * \param Button Receives the ID of the button pressed by the user when the dialog returns.
+ * \return BOOLEAN TRUE if the dialog was shown and a button value was returned, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhpShowElevatePrompt(
     _In_ HWND WindowHandle,
@@ -250,6 +270,13 @@ BOOLEAN PhUiConnectToPhSvc(
     return PhUiConnectToPhSvcEx(WindowHandle, ElevatedPhSvcMode, ConnectOnly);
 }
 
+/**
+ * Get the LPC/ALPC port name for the phsvc instance corresponding to the requested mode.
+ *
+ * \param Mode The phsvc mode for which the port name is required.
+ * \param PortName Receives the UNICODE_STRING for the port name.
+ * \note Raises STATUS_INVALID_PARAMETER for unknown modes.
+ */
 VOID PhpGetPhSvcPortName(
     _In_ PH_PHSVC_MODE Mode,
     _Out_ PUNICODE_STRING PortName
@@ -272,6 +299,13 @@ VOID PhpGetPhSvcPortName(
     }
 }
 
+/**
+ * Attempt to start the phsvc helper process for the specified mode.
+ *
+ * \param WindowHandle Optional parent window for elevation UI created by ShellExecute.
+ * \param Mode The phsvc mode to start (ElevatedPhSvcMode or Wow64PhSvcMode).
+ * \return BOOLEAN TRUE on success (an attempt to start phsvc was made and succeeded), FALSE otherwise.
+ */
 BOOLEAN PhpStartPhSvcProcess(
     _In_opt_ HWND WindowHandle,
     _In_ PH_PHSVC_MODE Mode
@@ -480,6 +514,12 @@ VOID PhUiDisconnectFromPhSvc(
     PhReleaseQueuedLockExclusive(&PhSvcStartLock);
 }
 
+/**
+ * Locks the current workstation.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \return BOOLEAN TRUE on success, FALSE on failure (and an error UI is shown).
+ */
 BOOLEAN PhUiLockComputer(
     _In_ HWND WindowHandle
     )
@@ -492,6 +532,12 @@ BOOLEAN PhUiLockComputer(
     return FALSE;
 }
 
+/**
+ * Log the current user off.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \return BOOLEAN TRUE on success, FALSE on failure (and an error UI is shown).
+ */
 BOOLEAN PhUiLogoffComputer(
     _In_ HWND WindowHandle
     )
@@ -504,6 +550,12 @@ BOOLEAN PhUiLogoffComputer(
     return FALSE;
 }
 
+/**
+ * Put the system into sleep (standby) state.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \return BOOLEAN TRUE on success, FALSE on failure (and an error UI is shown).
+ */
 BOOLEAN PhUiSleepComputer(
     _In_ HWND WindowHandle
     )
@@ -523,6 +575,12 @@ BOOLEAN PhUiSleepComputer(
     return FALSE;
 }
 
+/**
+ * Put the system into hibernate state.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \return BOOLEAN TRUE on success, FALSE on failure (and an error UI is shown).
+ */
 BOOLEAN PhUiHibernateComputer(
     _In_ HWND WindowHandle
     )
@@ -542,6 +600,14 @@ BOOLEAN PhUiHibernateComputer(
     return FALSE;
 }
 
+/**
+ * Restart the computer using the specified power action type.
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Action The type of restart to perform (PH_POWERACTION_TYPE_*).
+ * \param Flags Additional flags passed to PhInitiateShutdown for Win32 restart.
+ * \return BOOLEAN TRUE if the restart action was initiated, FALSE otherwise.
+ */
 BOOLEAN PhUiRestartComputer(
     _In_ HWND WindowHandle,
     _In_ PH_POWERACTION_TYPE Action,
@@ -790,6 +856,14 @@ BOOLEAN PhUiRestartComputer(
     return FALSE;
 }
 
+/**
+ * Shutdown the computer using the specified power action type.
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Action The type of shutdown to perform (PH_POWERACTION_TYPE_*).
+ * \param Flags Additional flags passed to PhInitiateShutdown for Win32 shutdown.
+ * \return BOOLEAN TRUE if the shutdown action was initiated, FALSE otherwise.
+ */
 BOOLEAN PhUiShutdownComputer(
     _In_ HWND WindowHandle,
     _In_ PH_POWERACTION_TYPE Action,
@@ -916,6 +990,13 @@ BOOLEAN PhUiShutdownComputer(
     return FALSE;
 }
 
+/**
+ * Build a dynamic menu listing boot applications (one-time boot entries).
+ *
+ * \param DelayLoadMenu If TRUE, the function will create a placeholder menu item
+ * and delay enumerating boot applications until the menu is opened.
+ * \return PVOID A menu item object (owner-managed); may be disabled if the caller lacks privileges.
+ */
 PVOID PhUiCreateComputerBootDeviceMenu(
     _In_ BOOLEAN DelayLoadMenu
     )
@@ -960,6 +1041,13 @@ PVOID PhUiCreateComputerBootDeviceMenu(
     return menuItem;
 }
 
+/**
+ * Build a dynamic menu listing firmware boot applications (UEFI).
+ *
+ * \param DelayLoadMenu If TRUE, the function will create a placeholder menu item
+ * and delay enumerating firmware applications until the menu is opened.
+ * \return PVOID A menu item object (owner-managed); may be disabled if the caller lacks privileges.
+ */
 PVOID PhUiCreateComputerFirmwareDeviceMenu(
     _In_ BOOLEAN DelayLoadMenu
     )
@@ -1002,6 +1090,13 @@ PVOID PhUiCreateComputerFirmwareDeviceMenu(
     return menuItem;
 }
 
+/**
+ * Handle selection of a boot application menu entry by configuring a one-time boot entry
+ * and initiating a restart if the operation succeeded.
+ *
+ * \param WindowHandle Parent window for confirmation and error dialogs.
+ * \param MenuIndex Index of the selected boot application as returned from the created menu.
+ */
 VOID PhUiHandleComputerBootApplicationMenu(
     _In_ HWND WindowHandle,
     _In_ ULONG MenuIndex
@@ -1053,6 +1148,13 @@ VOID PhUiHandleComputerBootApplicationMenu(
     }
 }
 
+/**
+ * Handle selection of a firmware boot application menu entry by configuring a one-time firmware boot
+ * entry and initiating a restart if the operation succeeded.
+ *
+ * \param WindowHandle Parent window for confirmation and error dialogs.
+ * \param MenuIndex Index of the selected firmware application as returned from the created menu.
+ */
 VOID PhUiHandleComputerFirmwareApplicationMenu(
     _In_ HWND WindowHandle,
     _In_ ULONG MenuIndex
@@ -1105,6 +1207,14 @@ typedef struct _PHP_USERSMENU_ENTRY
     PPH_STRING UserName;
 } PHP_USERSMENU_ENTRY, *PPHP_USERSMENU_ENTRY;
 
+/**
+ * Comparison callback used to sort user session menu entries.
+ *
+ * \param Context Unused callback context.
+ * \param elem1 Pointer to the first element to compare.
+ * \param elem2 Pointer to the second element to compare.
+ * \return int <0 if elem1 < elem2, 0 if equal, >0 if elem1 > elem2.
+ */
 static int __cdecl PhpUsersMainMenuNameCompare(
     _In_ void* Context,
     _In_ void const* elem1,
@@ -1117,6 +1227,11 @@ static int __cdecl PhpUsersMainMenuNameCompare(
     return PhCompareString(item1->UserName, item2->UserName, TRUE);
 }
 
+/**
+ * Populate the provided users menu item with entries for each active WinStation session.
+ *
+ * \param UsersMenuItem Menu object to populate with per-session submenus.
+ */
 VOID PhUiCreateSessionMenu(
     _In_ PVOID UsersMenuItem
     )
@@ -1228,6 +1343,14 @@ VOID PhUiCreateSessionMenu(
     PhDereferenceObject(userSessionList);
 }
 
+/**
+ * Connect the current console to a remote/non-current WinStation session. Prompts for a password
+ * if an initial attempt without credentials fails.
+ *
+ * \param WindowHandle Parent window for password prompts and error UI.
+ * \param SessionId The WinStation session id to connect to.
+ * \return BOOLEAN TRUE on success, FALSE on failure or user cancel.
+ */
 BOOLEAN PhUiConnectSession(
     _In_ HWND WindowHandle,
     _In_ ULONG SessionId
@@ -1283,6 +1406,13 @@ BOOLEAN PhUiConnectSession(
     return success;
 }
 
+/**
+ * Disconnect a WinStation session.
+ *
+ * \param WindowHandle Parent window for error reporting.
+ * \param SessionId The WinStation session id to disconnect.
+ * \return BOOLEAN TRUE on success, FALSE on failure (and an error UI is shown).
+ */
 BOOLEAN PhUiDisconnectSession(
     _In_ HWND WindowHandle,
     _In_ ULONG SessionId
@@ -1296,6 +1426,13 @@ BOOLEAN PhUiDisconnectSession(
     return FALSE;
 }
 
+/**
+ * Log off a specific WinStation session after optional confirmation.
+ *
+ * \param WindowHandle Parent window for confirmation and error UI.
+ * \param SessionId The WinStation session id to log off.
+ * \return BOOLEAN TRUE on success, FALSE on failure or if the user cancelled.
+ */
 BOOLEAN PhUiLogoffSession(
     _In_ HWND WindowHandle,
     _In_ ULONG SessionId
@@ -2813,6 +2950,14 @@ BOOLEAN PhUiDebugProcess(
     return TRUE;
 }
 
+/**
+ * Reduce the working set of a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \return BOOLEAN TRUE if the operation succeeded for all processes, FALSE if one or more failed.
+ */
 BOOLEAN PhUiReduceWorkingSetProcesses(
     _In_ HWND WindowHandle,
     _In_ CONST PPH_PROCESS_ITEM *Processes,
@@ -2860,6 +3005,14 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
     return success;
 }
 
+/**
+ * Empty the working set of a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \return BOOLEAN TRUE if the operation succeeded for all processes, FALSE if one or more failed.
+ */
 BOOLEAN PhUiSetEmptyWorkingSetProcesses(
     _In_ HWND WindowHandle,
     _In_ CONST PPH_PROCESS_ITEM* Processes,
@@ -2898,6 +3051,13 @@ BOOLEAN PhUiSetEmptyWorkingSetProcesses(
     return success;
 }
 
+/**
+ * Configure activity moderation (Eco/foreground throttling) for a process.
+ *
+ * \param WindowHandle Parent window for dialogs.
+ * \param Process The process item to configure.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetActivityModeration(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3012,6 +3172,14 @@ BOOLEAN PhUiSetActivityModeration(
     return TRUE;
 }
 
+/**
+ * Enable or disable token virtualization for the specified process.
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Process The process item to operate on.
+ * \param Enable TRUE to enable virtualization, FALSE to disable.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetVirtualizationProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
@@ -3070,6 +3238,13 @@ BOOLEAN PhUiSetVirtualizationProcess(
     return TRUE;
 }
 
+/**
+ * Toggle break-on-termination (critical process) for a process.
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Process The process item to operate on.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetCriticalProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3128,6 +3303,13 @@ BOOLEAN PhUiSetCriticalProcess(
     return TRUE;
 }
 
+/**
+ * Enable or disable Eco mode for a process (power throttling).
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Process The process item to operate on.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetEcoModeProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3213,6 +3395,13 @@ BOOLEAN PhUiSetEcoModeProcess(
     return TRUE;
 }
 
+/**
+ * Toggle the "execution required" state for a process (prevent PLM suspension/termination).
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Process The process item to operate on.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetExecutionRequiredProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3252,6 +3441,13 @@ BOOLEAN PhUiSetExecutionRequiredProcess(
     return TRUE;
 }
 
+/**
+ * Detach the debugger from a process.
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Process The process item to operate on.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiDetachFromDebuggerProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3302,6 +3498,13 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
     return TRUE;
 }
 
+/**
+ * Load a DLL into the target process.
+ *
+ * \param WindowHandle Parent window for dialogs.
+ * \param Process The process item to load the DLL into.
+ * \return BOOLEAN TRUE on success, FALSE on failure or cancel.
+ */
 BOOLEAN PhUiLoadDllProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3373,6 +3576,15 @@ BOOLEAN PhUiLoadDllProcess(
     return TRUE;
 }
 
+/**
+ * Set I/O priority for a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \param IoPriority The IO priority hint to set.
+ * \return BOOLEAN TRUE if the operation succeeded for all processes, FALSE otherwise.
+ */
 BOOLEAN PhUiSetIoPriorityProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -3451,6 +3663,14 @@ BOOLEAN PhUiSetIoPriorityProcesses(
     return success;
 }
 
+/**
+ * Set page priority for a process.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Process The process item to operate on.
+ * \param PagePriority Page priority value to set.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetPagePriorityProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
@@ -3488,6 +3708,15 @@ BOOLEAN PhUiSetPagePriorityProcess(
     return TRUE;
 }
 
+/**
+ * Set the priority class for a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \param PriorityClass Priority class value to set.
+ * \return BOOLEAN TRUE if the operation succeeded for all processes, FALSE otherwise.
+ */
 BOOLEAN PhUiSetPriorityClassProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -3567,6 +3796,15 @@ BOOLEAN PhUiSetPriorityClassProcesses(
     return success;
 }
 
+/**
+ * Set or clear priority boost for a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \param PriorityBoost TRUE to enable boost, FALSE to disable.
+ * \return BOOLEAN TRUE if the operation succeeded for all processes, FALSE otherwise.
+ */
 BOOLEAN PhUiSetBoostPriorityProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM* Processes,
@@ -3604,6 +3842,14 @@ BOOLEAN PhUiSetBoostPriorityProcesses(
     return success;
 }
 
+/**
+ * Set or clear priority boost for a single process.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Process The process item to operate on.
+ * \param PriorityBoost TRUE to enable boost, FALSE to disable.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetBoostPriorityProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
@@ -6591,6 +6837,14 @@ BOOLEAN PhUiSetAttributesHandle(
     return TRUE;
 }
 
+/**
+ * Flush process heap(s) remotely for a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \return BOOLEAN TRUE if all flush operations succeeded, FALSE if any failed.
+ */
 BOOLEAN PhUiFlushHeapProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
