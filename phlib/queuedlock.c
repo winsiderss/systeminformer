@@ -1037,15 +1037,18 @@ VOID FASTCALL PhfWaitForConditionEx(
             switch (Flags & PH_CONDITION_WAIT_LOCK_TYPE_MASK)
             {
             case PH_CONDITION_WAIT_QUEUED_LOCK:
+                __analysis_assume_lock_acquired(*(PPH_QUEUED_LOCK)Lock);
                 if (!(Flags & PH_CONDITION_WAIT_SHARED))
                     PhReleaseQueuedLockExclusive((PPH_QUEUED_LOCK)Lock);
                 else
                     PhReleaseQueuedLockShared((PPH_QUEUED_LOCK)Lock);
                 break;
             case PH_CONDITION_WAIT_CRITICAL_SECTION:
+                __analysis_assume_lock_acquired(*(PRTL_CRITICAL_SECTION)Lock);
                 RtlLeaveCriticalSection((PRTL_CRITICAL_SECTION)Lock);
                 break;
             case PH_CONDITION_WAIT_FAST_LOCK:
+                __analysis_assume_lock_acquired(*(PPH_FAST_LOCK)Lock);
                 if (!(Flags & PH_CONDITION_WAIT_SHARED))
                     PhReleaseFastLockExclusive((PPH_FAST_LOCK)Lock);
                 else
