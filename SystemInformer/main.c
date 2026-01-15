@@ -83,6 +83,7 @@ INT WINAPI wWinMain(
     PhGuiSupportInitialization();
 
     PhInitializeAppSettings();
+    PhInitializeCallbacks();
 
     if (PhStartupParameters.Debug)
     {
@@ -111,7 +112,6 @@ INT WINAPI wWinMain(
     PhInitializeCommonControls();
 
     PhInitializeAppSystem();
-    PhInitializeCallbacks();
     PhEmInitialization();
 
     if (PhStartupParameters.ShowOptions)
