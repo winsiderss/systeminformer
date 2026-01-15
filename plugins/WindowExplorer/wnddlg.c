@@ -321,7 +321,7 @@ VOID WepAddEnumChildWindows(
         enumContext.FilterProcessId = FilterProcessId;
         enumContext.FilterThreadId = FilterThreadId;
 
-        PhEnumChildWindows(WindowHandle, ULONG_MAX, WepEnumChildWindowsProc, &enumContext);
+        PhEnumChildWindows(WindowHandle, WepEnumChildWindowsProc, &enumContext);
     }
     else
     {
