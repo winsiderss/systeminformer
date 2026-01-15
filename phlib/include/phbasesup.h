@@ -999,6 +999,96 @@ PhIsDigitCharacter(
 }
 
 FORCEINLINE
+WCHAR
+NTAPI_INLINE
+PhUpcaseUnicodeChar(
+    _In_ WCHAR SourceCharacter
+    )
+{
+    WCHAR c;
+
+    //c = towupper(c);
+    //c = __ascii_towupper(c);
+    c = RtlUpcaseUnicodeChar(SourceCharacter);
+
+    return c;
+}
+
+FORCEINLINE
+WCHAR
+NTAPI_INLINE
+PhDowncaseUnicodeChar(
+    _In_ WCHAR SourceCharacter
+    )
+{
+    WCHAR c;
+
+    c = RtlDowncaseUnicodeChar(SourceCharacter);
+
+    return c;
+}
+
+/**
+ * Tests if a character is whitespace.
+ *
+ * \param c The character to test.
+ * \return TRUE if the character is whitespace (space, tab, CR, LF, etc.); otherwise, FALSE.
+ */
+FORCEINLINE
+BOOLEAN
+PhIsWhiteSpaceUnicodeChar(
+    _In_ WCHAR SourceCharacter
+    )
+{
+    return (
+        SourceCharacter == L' ' ||
+        SourceCharacter == L'\t' ||
+        SourceCharacter == L'\r' ||
+        SourceCharacter == L'\n' ||
+        SourceCharacter == L'\v' ||
+        SourceCharacter == L'\f'
+        );
+}
+
+/**
+ * Tests if a character is a unicode control or formatting character.
+ *
+ * Detects bidirectional overrides (RTLO, etc.), zero-width characters, and
+ * control characters (including tab, CR, LF).
+ *
+ * \param c The character to test.
+ * \return TRUE if the character is a control/formatting character; otherwise, FALSE.
+ */
+FORCEINLINE
+BOOLEAN
+PhIsControlOrFormattingUnicodeChar(
+    _In_ WCHAR c
+    )
+{
+    // C0 and C1 control characters
+    if (c < 0x20 || (c >= 0x7F && c <= 0x9F)) // TAB, CR, LF
+        return TRUE;
+    
+    // Bidirectional format characters
+    if (c >= 0x202A && c <= 0x202E)
+        return TRUE;
+    
+    // Direction mark characters
+    if (c == 0x200E || c == 0x200F)
+        return TRUE;
+    
+    // Zero-width and invisible characters
+    if (c >= 0x200B && c <= 0x200D) // ZWSP, ZWNJ, ZWJ
+        return TRUE;
+
+    // Zero-width no-break space (BOM)
+    if (c == 0xFEFF) 
+        return TRUE;
+    
+    return FALSE;
+}
+
+FORCEINLINE
 LONG
 PhCompareBytesZ(
     _In_ PCSTR String1,
@@ -1612,36 +1702,6 @@ PhTrimStringZ(
     PhInitializeStringRef(&string, TrimCharSet);
 
     return PhCreateString3(String, Flags, &string);
-}
-
-FORCEINLINE
-WCHAR
-NTAPI_INLINE
-PhUpcaseUnicodeChar(
-    _In_ WCHAR SourceCharacter
-    )
-{
-    WCHAR c;
-
-    //c = towupper(c);
-    //c = __ascii_towupper(c);
-    c = RtlUpcaseUnicodeChar(SourceCharacter);
-
-    return c;
-}
-
-FORCEINLINE
-WCHAR
-NTAPI_INLINE
-PhDowncaseUnicodeChar(
-    _In_ WCHAR SourceCharacter
-    )
-{
-    WCHAR c;
-
-    c = RtlDowncaseUnicodeChar(SourceCharacter);
-
-    return c;
 }
 
 FORCEINLINE
@@ -2510,6 +2570,7 @@ PhFormatBytes(
 
 #define PH_UNICODE_BYTE_ORDER_MARK 0xfeff
 #define PH_UNICODE_MAX_CODE_POINT 0x10ffff
+#define PH_UNICODE_REPLACEMENT_CHARACTER 0xfffd
 
 #define PH_UNICODE_UTF16_TO_HIGH_SURROGATE(CodePoint) ((USHORT)((CodePoint) >> 10) + 0xd7c0)
 #define PH_UNICODE_UTF16_TO_LOW_SURROGATE(CodePoint) ((USHORT)((CodePoint) & 0x3ff) + 0xdc00)
@@ -2648,8 +2709,10 @@ PhConvertUtf16ToAscii(
     return PhConvertUtf16ToAsciiEx(Buffer, PhCountStringZ(Buffer) * sizeof(WCHAR), Replacement);
 }
 
+//
 // Multi-byte to UTF-16
 // In-place: RtlMultiByteToUnicodeN, RtlMultiByteToUnicodeSize
+//
 
 PHLIBAPI
 PPH_STRING
@@ -2666,8 +2729,10 @@ PhConvertMultiByteToUtf16Ex(
     _In_ SIZE_T Length
     );
 
+//
 // UTF-16 to multi-byte
 // In-place: RtlUnicodeToMultiByteN, RtlUnicodeToMultiByteSize
+//
 
 PHLIBAPI
 PPH_BYTES
@@ -2684,8 +2749,10 @@ PhConvertUtf16ToMultiByteEx(
     _In_ SIZE_T Length
     );
 
+//
 // UTF-8 to UTF-16
 // In-place: RtlUTF8ToUnicodeN
+//
 
 PHLIBAPI
 NTSTATUS
@@ -2722,8 +2789,10 @@ PhConvertUtf8ToUtf16Ex(
     _In_ SIZE_T Length
     );
 
+//
 // UTF-16 to UTF-8
 // In-place: RtlUnicodeToUTF8N
+//
 
 PHLIBAPI
 NTSTATUS
@@ -3188,7 +3257,9 @@ PhRemoveItemsArray(
     _In_ SIZE_T Count
     );
 
+//
 // List
+//
 
 extern PPH_OBJECT_TYPE PhListType;
 
@@ -3317,7 +3388,9 @@ LONG NTAPI PH_COMPARE_FUNCTION(
     );
 typedef PH_COMPARE_FUNCTION* PPH_COMPARE_FUNCTION;
 
+//
 // Pointer list
+//
 
 extern PPH_OBJECT_TYPE PhPointerListType;
 
