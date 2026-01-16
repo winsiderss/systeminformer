@@ -198,6 +198,12 @@ set(SOURCES_XXHASH
 )
 source_group("xxhash" FILES ${SOURCES_XXHASH})
 
+set(SOURCES_ZYDIS
+    "zydis/Zydis.h"
+    "zydis/Zydis.c"
+)
+source_group("zydis" FILES ${SOURCES_ZYDIS})
+
 set(ALL_FILES
     ${SOURCES_JSON_C}
     ${HEADERS_JSON_C}
@@ -214,6 +220,7 @@ set(ALL_FILES
     ${SOURCES_SSDEEP}
     ${SOURCES_TLSH}
     ${SOURCES_XXHASH}
+    ${SOURCES_ZYDIS}
 )
 
 si_add_library(thirdparty STATIC ${ALL_FILES})
