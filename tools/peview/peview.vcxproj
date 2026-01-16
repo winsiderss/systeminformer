@@ -215,6 +215,7 @@
     <ClCompile Include="cfgprp.c" />
     <ClCompile Include="chcol.c" />
     <ClCompile Include="delayhook.c" />
+    <ClCompile Include="disimp.c" />
     <ClCompile Include="mappings.c" />
     <ClCompile Include="pechpeprp.c" />
     <ClCompile Include="clrtableimports.cpp" />

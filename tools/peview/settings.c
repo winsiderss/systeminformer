@@ -187,25 +187,7 @@ VOID PvInitializeSettings(
                 L"If you select No, the settings system will not function properly."
                 ) == IDYES)
             {
-                HANDLE fileHandle;
-                IO_STATUS_BLOCK isb;
-                CHAR data[] = "<settings></settings>";
-
-                // This used to delete the file. But it's better to keep the file there
-                // and overwrite it with some valid XML, especially with case (2) above.
-                if (NT_SUCCESS(PhCreateFile(
-                    &fileHandle,
-                    &PvSettingsFileName->sr,
-                    FILE_GENERIC_WRITE,
-                    FILE_ATTRIBUTE_NORMAL,
-                    FILE_SHARE_READ | FILE_SHARE_DELETE,
-                    FILE_OVERWRITE,
-                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                    )))
-                {
-                    NtWriteFile(fileHandle, NULL, NULL, NULL, &isb, data, sizeof(data) - 1, NULL, NULL);
-                    NtClose(fileHandle);
-                }
+                PhResetSettingsFile(&PvSettingsFileName->sr);
             }
             else
             {

@@ -50,6 +50,8 @@
 #define IDD_PEVOLATILE                  171
 #define IDD_PECLRTABLES                 172
 #define IDD_PEVERSIONINFO               173
+#define IDD_GETPROCADDR                 174
+#define IDD_GETLOADLIBRARY              175
 #define IDD_CONTAINER                   205
 #define IDB_SEARCH_REGEX_MODERN_DARK    206
 #define IDB_SEARCH_REGEX_MODERN_LIGHT   207

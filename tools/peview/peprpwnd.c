@@ -725,6 +725,24 @@ VOID PvAddTreeViewSections(
         PvpPeMuiResourceDlgProc,
         NULL
         );
+        
+    // LoadLibrary page
+    PvCreateTabSection(
+        L"GetLoadLibrary",
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_GETLOADLIBRARY),
+        PvGetLoadLibraryDlgProc,
+        NULL
+        );
+
+    // ProcAddress page
+    PvCreateTabSection(
+        L"GetProcAddress",
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_GETPROCADDR),
+        PvGetProcAddressDlgProc,
+        NULL
+        );
 
     if (PhGetIntegerSetting(L"MainWindowPageRestoreEnabled"))
     {
