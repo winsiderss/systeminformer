@@ -462,9 +462,9 @@ PV_VAL PvBackSliceResolveReg(
     _In_ PPV_IAT_MAP IatMap
     )
 {
-    INT scanned = 0;
+    ULONG scanned = 0;
 
-    for (INT i = (INT)CallIndex - 1; i >= 0 && scanned < 160; i--, scanned++)
+    for (ULONG i = CallIndex - 1; i >= 0 && scanned < PV_BACKSLICE_WINDOW_SIZE; i--, scanned++)
     {
         const ZydisDecodedInstruction* instruction = &Instructions[i];
         const ZydisDecodedOperand* operands = &Operands[i * ZYDIS_MAX_OPERAND_COUNT];
@@ -540,6 +540,92 @@ VOID PvAddInstructionToWindow(
     
     if (Window->Count < PV_BACKSLICE_WINDOW_SIZE)
         Window->Count++;
+}
+
+//
+// Helpers to read UNICODE_STRING / ANSI_STRING structures that loader APIs use.
+// The functions map the structure at VA within the mapped image and then read
+// the string buffer pointer contained inside the structure, finally reading
+// the pointed string via existing helpers.
+//
+
+static BOOLEAN PvReadAnsiStringStructAtVa(
+    _In_ ULONG64 Va,
+    _Out_writes_(BufferCount) PWSTR Buffer,
+    _In_ ULONG BufferCount
+    )
+{
+    ULONG64 imageBase;
+    ULONG rva;
+    PUCHAR structPtr;
+    imageBase = PvGetImageBase();
+
+    if (Va < imageBase)
+        return FALSE;
+
+    rva = (ULONG)(Va - imageBase);
+    structPtr = PhMappedImageRvaToVa(&PvMappedImage, rva, NULL);
+
+    if (!structPtr)
+        return FALSE;
+
+    // ANSI_STRING: USHORT Length; USHORT MaximumLength; PCHAR Buffer;
+    USHORT length = *(USHORT*)(structPtr + 0);
+    // buffer pointer offset differs between x86 and x64
+    ULONG64 bufferVa = 0;
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        bufferVa = *(ULONG64*)(structPtr + 8);
+    }
+    else
+    {
+        bufferVa = *(ULONG*)(structPtr + 4);
+    }
+
+    if (!bufferVa)
+        return FALSE;
+
+    // Use existing ascii reader which will validate and convert.
+    return PvReadAsciiStringAtVa(bufferVa, Buffer, BufferCount);
+}
+
+static BOOLEAN PvReadUnicodeStringStructAtVa(
+    _In_ ULONG64 Va,
+    _Out_writes_(BufferCount) PWSTR Buffer,
+    _In_ ULONG BufferCount
+    )
+{
+    ULONG64 imageBase;
+    ULONG rva;
+    PUCHAR structPtr;
+    imageBase = PvGetImageBase();
+
+    if (Va < imageBase)
+        return FALSE;
+
+    rva = (ULONG)(Va - imageBase);
+    structPtr = PhMappedImageRvaToVa(&PvMappedImage, rva, NULL);
+
+    if (!structPtr)
+        return FALSE;
+
+    // UNICODE_STRING: USHORT Length; USHORT MaximumLength; PWSTR Buffer;
+    USHORT length = *(USHORT*)(structPtr + 0);
+    ULONG64 bufferVa = 0;
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        bufferVa = *(ULONG64*)(structPtr + 8);
+    }
+    else
+    {
+        bufferVa = *(ULONG*)(structPtr + 4);
+    }
+
+    if (!bufferVa)
+        return FALSE;
+
+    // Use UTF-16 reader to avoid mis-detection.
+    return PvReadUtf16StringAtVa(bufferVa, Buffer, BufferCount);
 }
 
 // Stack-slot tracking for resolving common compiler patterns
@@ -855,50 +941,125 @@ VOID PvScanImageForPage(
 
                     if (Context->IsGetProcAddressPage)
                     {
-                        // GetProcAddress: RDX contains procedure name pointer or ordinal
-                        PV_VAL value = PvBackSliceResolveRegWindow(
-                            &window,
-                            currentWindowIndex,
-                            (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) ? ZYDIS_REGISTER_RDX : ZYDIS_REGISTER_EDX,
-                            &Context->IatMap
-                            );
+                        // RDX contains procedure name pointer or ordinal
+                        ZydisRegister regToResolve = (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) ? ZYDIS_REGISTER_RDX : ZYDIS_REGISTER_EDX;
 
-                        if (value.Kind == PvValConst && value.U <= 0xFFFF)
+                        // Special-case ntdll loader helpers which accept an ANSI_STRING*
+                        if (wcsstr(targetName, L"LdrGetProcedureAddress") != NULL)
                         {
-                            _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<ordinal:%llu>", value.U);
-                        }
-                        else if ((value.Kind == PvValAddr || value.Kind == PvValConst) && value.U)
-                        {
-                            PvReadStringAtVa(value.U, argument, RTL_NUMBER_OF(argument));
+                            PV_VAL value = PvBackSliceResolveRegWindow(
+                                &window,
+                                currentWindowIndex,
+                                regToResolve,
+                                &Context->IatMap
+                                );
 
-                            if (argument[0] == UNICODE_NULL)
+                            if (value.Kind == PvValConst && value.U <= 0xFFFF)
+                            {
+                                _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<ordinal:%llu>", value.U);
+                            }
+                            else if ((value.Kind == PvValAddr || value.Kind == PvValConst) && value.U)
+                            {
+                                // value.U points to an ANSI_STRING structure (not directly to a char buffer)
+                                if (!PvReadAnsiStringStructAtVa(value.U, argument, RTL_NUMBER_OF(argument)))
+                                {
+                                    wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                                }
+                            }
+                            else
+                            {
                                 wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                            }
                         }
                         else
                         {
-                            wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                            // RDX points to name or ordinal
+                            PV_VAL value = PvBackSliceResolveRegWindow(
+                                &window,
+                                currentWindowIndex,
+                                regToResolve,
+                                &Context->IatMap
+                                );
+
+                            if (value.Kind == PvValConst && value.U <= 0xFFFF)
+                            {
+                                _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<ordinal:%llu>", value.U);
+                            }
+                            else if ((value.Kind == PvValAddr || value.Kind == PvValConst) && value.U)
+                            {
+                                PvReadStringAtVa(value.U, argument, RTL_NUMBER_OF(argument));
+
+                                if (argument[0] == UNICODE_NULL)
+                                    wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                            }
+                            else
+                            {
+                                wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                            }
                         }
                     }
                     else
                     {
-                        // LoadLibrary*: RCX contains DLL name string (ANSI/Unicode)
-                        PV_VAL value = PvBackSliceResolveRegWindow(
-                            &window,
-                            currentWindowIndex,
-                            (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) ? ZYDIS_REGISTER_RCX : ZYDIS_REGISTER_ECX,
-                            &Context->IatMap
-                            );
+                        // RCX contains DLL name string (ANSI/Unicode) on Win32/x64 for kernel32 APIs.
+                        ZydisRegister regToResolveDefault = (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) ? ZYDIS_REGISTER_RCX : ZYDIS_REGISTER_ECX;
 
-                        if ((value.Kind == PvValAddr || value.Kind == PvValConst) && value.U)
+                        // Special-case ntdll loader helper LdrLoadDll which receives a PCUNICODE_STRING in R8 on x64.
+                        if (wcsstr(targetName, L"LdrLoadDll") != NULL)
                         {
-                            PvReadStringAtVa(value.U, argument, RTL_NUMBER_OF(argument));
+                            ZydisRegister regToResolve = regToResolveDefault;
 
-                            if (argument[0] == UNICODE_NULL)
+                            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                            {
+                                // On x64 LdrLoadDll's DllName is the 3rd parameter -> R8
+                                regToResolve = ZYDIS_REGISTER_R8;
+                            }
+                            else
+                            {
+                                // On x86 LdrLoadDll parameters are on stack; fall back to ECX behavior already in use elsewhere.
+                                regToResolve = regToResolveDefault;
+                            }
+
+                            PV_VAL value = PvBackSliceResolveRegWindow(
+                                &window,
+                                currentWindowIndex,
+                                regToResolve,
+                                &Context->IatMap
+                                );
+
+                            if ((value.Kind == PvValAddr || value.Kind == PvValConst) && value.U)
+                            {
+                                // value.U points to a UNICODE_STRING structure (not directly to wchar buffer)
+                                if (!PvReadUnicodeStringStructAtVa(value.U, argument, RTL_NUMBER_OF(argument)))
+                                {
+                                    wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                                }
+                            }
+                            else
+                            {
                                 wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                            }
                         }
                         else
                         {
-                            wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                            // kernel32 LoadLibrary* behavior
+                            PV_VAL value = PvBackSliceResolveRegWindow(
+                                &window,
+                                currentWindowIndex,
+                                regToResolveDefault,
+                                &Context->IatMap
+                                );
+
+                            if ((value.Kind == PvValAddr || value.Kind == PvValConst) && value.U)
+                            {
+                                PvReadStringAtVa(value.U, argument, RTL_NUMBER_OF(argument));
+
+                                if (argument[0] == UNICODE_NULL)
+                                    wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                            }
+                            else
+                            {
+                                wcscpy_s(argument, RTL_NUMBER_OF(argument), L"<unknown>");
+                            }
                         }
                     }
 
