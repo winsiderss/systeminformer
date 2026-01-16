@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="CustomStartTool.vcxproj" />
+  <Project Path="CustomStartTool.vcxproj" Id="72176b92-9169-4bb7-a3e9-3d136d1d3f14" />
 </Solution>
