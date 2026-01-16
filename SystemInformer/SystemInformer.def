@@ -63,6 +63,7 @@ EXPORTS
     PhFindProcessRecord
     PhFindServiceNode
     PhFormatLogEntry
+    PhFormatLogType
     PhGetApplicationIcon
     PhGetApplicationIconEx
     PhGetClientIdName
@@ -919,6 +920,7 @@ EXPORTS
     PhEnumWindowsEx
     PhFindListViewItemByFlags
     PhFindListViewItemByParam
+    PhGetClassName
     PhGetComboBoxString
     PhGetDialogItemValue
     PhGetListBoxString
@@ -935,6 +937,7 @@ EXPORTS
     PhGetWindowContext
     PhGetWindowText
     PhGetWindowTextEx
+    PhGetWindowTextToBuffer
     PhIconToBitmap
     PhImageListAddBitmap
     PhImageListAddIcon
