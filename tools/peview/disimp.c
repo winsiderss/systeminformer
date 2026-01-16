@@ -934,13 +934,13 @@ VOID PvPopulateListView(
         WCHAR bufferVa[64];
         _snwprintf_s(bufferVa, ARRAYSIZE(bufferVa), _TRUNCATE, L"0x%I64X", ctx->Rows.Items[i].CallVa);
 
-        INT index = PhAddListViewItem(ctx->ListViewHandle, MAXINT, bufVa, NULL);
+        INT index = PhAddListViewItem(ctx->ListViewHandle, MAXINT, bufferVa, NULL);
         PhSetListViewSubItem(ctx->ListViewHandle, index, 1, ctx->Rows.Items[i].Target);
         PhSetListViewSubItem(ctx->ListViewHandle, index, 2, ctx->Rows.Items[i].Argument);
 
         WCHAR bufferSlot[64];
         _snwprintf_s(bufferSlot, ARRAYSIZE(bufferSlot), _TRUNCATE, L"0x%I64X", ctx->Rows.Items[i].IatSlotVa);
-        PhSetListViewSubItem(ctx->ListViewHandle, index, 3, bufSlot);
+        PhSetListViewSubItem(ctx->ListViewHandle, index, 3, bufferSlot);
     }
 
     ExtendedListView_SetRedraw(ctx->ListViewHandle, TRUE);
