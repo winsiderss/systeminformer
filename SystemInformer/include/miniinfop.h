@@ -165,6 +165,7 @@ VOID PhMipInitializeParameters(
     VOID
     );
 
+_Function_class_(PH_MINIINFO_CREATE_SECTION)
 PPH_MINIINFO_SECTION PhMipCreateSection(
     _In_ PPH_MINIINFO_SECTION Template
     );
@@ -173,6 +174,7 @@ VOID PhMipDestroySection(
     _In_ PPH_MINIINFO_SECTION Section
     );
 
+_Function_class_(PH_MINIINFO_FIND_SECTION)
 PPH_MINIINFO_SECTION PhMipFindSection(
     _In_ PPH_STRINGREF Name
     );
