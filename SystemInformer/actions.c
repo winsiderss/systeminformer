@@ -2850,7 +2850,129 @@ CleanupExit:
     return TRUE;
 }
 
-// Contributed by evilpie (#2981421)
+static PPH_STRING PhFindDebuggerPath(
+    _In_ PCWSTR DebuggerName
+    )
+{
+    static PH_STRINGREF windowsKitsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows Kits\\Installed Roots");
+    PPH_STRING debuggerPath = NULL;
+    HANDLE keyHandle;
+    PPH_STRING kitsRoot;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &windowsKitsKeyName,
+        0
+        )))
+    {
+        if (kitsRoot = PhQueryRegistryStringZ(keyHandle, L"KitsRoot10"))
+        {
+            PPH_STRING testPath;
+
+#ifdef _WIN64
+            testPath = PhConcatStringRefZ(&kitsRoot->sr, L"Debuggers\\x64\\");
+#else
+            testPath = PhConcatStringRefZ(&kitsRoot->sr, L"Debuggers\\x86\\");
+#endif
+            PhMoveReference(&testPath, PhConcatStringRefZ(&testPath->sr, DebuggerName));
+
+            if (PhDoesFileExistWin32(PhGetString(testPath)))
+            {
+                debuggerPath = testPath;
+            }
+            else
+            {
+                PhDereferenceObject(testPath);
+            }
+
+            PhDereferenceObject(kitsRoot);
+        }
+
+        NtClose(keyHandle);
+    }
+
+    if (PhIsNullOrEmptyString(debuggerPath))
+    {
+        PhMoveReference(&debuggerPath, PhSearchFilePath(DebuggerName, L".exe"));
+    }
+
+    return debuggerPath;
+}
+
+//static PPH_STRING PhFindVisualStudioDebugger(
+//    _In_ PCPH_STRINGREF VersionRange
+//    )
+//{
+//    static const PH_STRINGREF vswhere = PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
+//    static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"\r\n");
+//    static const PH_STRINGREF args01 = PH_STRINGREF_INIT(L" -prerelease -version ");
+//    static const PH_STRINGREF args02 = PH_STRINGREF_INIT(L" -property installationPath ");
+//    NTSTATUS status;
+//    PPH_STRING expandedfileName = NULL;
+//    PPH_STRING expandedCommand = NULL;
+//    PPH_STRING devenvPath = NULL;
+//    PPH_STRING output = NULL;
+//
+//    if (!(expandedfileName = PhExpandEnvironmentStrings(&vswhere)))
+//        return NULL;
+//
+//    if (!PhDoesFileExistWin32(PhGetString(expandedfileName)))
+//    {
+//        PhDereferenceObject(expandedfileName);
+//        return NULL;
+//    }
+//
+//    // vswhere.exe -prerelease -version %s -property installationPath
+//    expandedCommand = PhConcatStringRef3(
+//        &args01,
+//        VersionRange,
+//        &args02
+//        );
+//
+//    status = PhCreateProcessRedirection(
+//        &expandedfileName->sr,
+//        &expandedCommand->sr,
+//        NULL,
+//        &output
+//        );
+//
+//    if (!NT_SUCCESS(status) || PhIsNullOrEmptyString(output))
+//        goto CleanupExit;
+//
+//    PhTrimStringRef(
+//        &output->sr,
+//        &trimSet,
+//        PH_TRIM_END_ONLY
+//        );
+//
+//    devenvPath = PhConcatStringRefZ(&output->sr, L"\\Common7\\IDE\\devenv.exe");
+//
+//    if (PhDoesFileExistWin32(devenvPath->Buffer))
+//    {
+//        PhClearReference(&output);
+//        PhClearReference(&expandedCommand);
+//        PhClearReference(&expandedfileName);
+//
+//        return devenvPath;
+//    }
+//
+//CleanupExit:
+//    PhClearReference(&output);
+//    PhClearReference(&devenvPath);
+//    PhClearReference(&expandedCommand);
+//    PhClearReference(&expandedfileName);
+//    return NULL;
+//}
+
+/**
+ * Launch a system debugger attached to the specified process.
+ *
+ * \param WindowHandle: The parent HWND for dialogs (Task Dialogs, errors, etc.).
+ * \param Process A pointer to a `PPH_PROCESS_ITEM` describing the target process.
+ * \return BOOLEAN: TRUE on success (debugger launched), FALSE on cancel or failure.
+ */
 BOOLEAN PhUiDebugProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -2861,31 +2983,34 @@ BOOLEAN PhUiDebugProcess(
     static CONST PH_STRINGREF aeDebugWow64KeyName = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
 #endif
     NTSTATUS status;
-    BOOLEAN result;
+    PPH_STRING commandLine = NULL;
     PPH_STRING debuggerCommand = NULL;
     PH_STRING_BUILDER commandLineBuilder;
     HANDLE keyHandle;
     PPH_STRING debugger;
     PH_STRINGREF commandPart;
     PH_STRINGREF dummy;
+    LONG debuggerChoice = 0;
+    PPH_STRING registryDebuggerPath = NULL;
+    PPH_STRING registryDebuggerName = NULL;
 
-    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
-    {
-        result = PhShowConfirmMessage(
-            WindowHandle,
-            L"debug",
-            Process->ProcessName->Buffer,
-            L"Debugging a process may result in loss of data.",
-            FALSE
-            );
-    }
-    else
-    {
-        result = TRUE;
-    }
-
-    if (!result)
-        return FALSE;
+    //if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
+    //{
+    //    result = PhShowConfirmMessage(
+    //        WindowHandle,
+    //        L"debug",
+    //        Process->ProcessName->Buffer,
+    //        L"Debugging a process may result in loss of data.",
+    //        FALSE
+    //        );
+    //}
+    //else
+    //{
+    //    result = TRUE;
+    //}
+    //
+    //if (!result)
+    //    return FALSE;
 
     status = PhOpenKey(
         &keyHandle,
@@ -2906,7 +3031,8 @@ BOOLEAN PhUiDebugProcess(
             if (PhSplitStringRefAtChar(&debugger->sr, L'"', &dummy, &commandPart) &&
                 PhSplitStringRefAtChar(&commandPart, L'"', &commandPart, &dummy))
             {
-                debuggerCommand = PhCreateString2(&commandPart);
+                registryDebuggerPath = PhCreateString2(&commandPart);
+                registryDebuggerName = PhGetFileName(registryDebuggerPath);
             }
 
             PhDereferenceObject(debugger);
@@ -2915,9 +3041,117 @@ BOOLEAN PhUiDebugProcess(
         NtClose(keyHandle);
     }
 
-    if (PhIsNullOrEmptyString(debuggerCommand))
+    // Check for available debuggers and show selection dialog
     {
-        PhShowStatus(WindowHandle, L"Unable to locate the debugger.", STATUS_OBJECT_NAME_NOT_FOUND, 0);
+        PPH_STRING windbgPath = NULL;
+        PPH_STRING windbgPreviewPath = NULL;
+        //PPH_STRING vs2026Path = NULL;
+        //PPH_STRING vs2022Path = NULL;
+        PPH_STRING cdbPath = NULL;
+        PPH_STRING kdPath = NULL;
+        PPH_STRING ntsdPath = NULL;
+        TASKDIALOGCONFIG config;
+        TASKDIALOG_BUTTON buttons[11];
+        ULONG buttonCount = 0;
+        PPH_STRING registryButtonText = NULL;
+
+        if (windbgPath = PhFindDebuggerPath(L"windbg.exe"))
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 101, L"\U0001FA9F WinDbg\nGraphical debugger for both user-mode and kernel-mode debugging." };
+        if (windbgPreviewPath = PhFindDebuggerPath(L"windbgx.exe"))
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 102, L"\U0001FA9F WinDbg (Preview)\nModern graphical debugger for both user-mode and kernel-mode debugging." };
+        //if (vs2026Path = PhFindVisualStudioDebugger(SREF(L"[18.0,19.0)")))
+        //    buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 107, L"\U0001F4D8 Visual Studio 2026\nFull-featured IDE with integrated debugging." };
+        //if (vs2022Path = PhFindVisualStudioDebugger(SREF(L"[16.0,17.0)")))
+        //    buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 108, L"\U0001F4D8 Visual Studio 2022\nFull-featured IDE with integrated debugging." };
+        if (cdbPath = PhFindDebuggerPath(L"cdb.exe"))
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 103, L"\U0001F4FA CDB\nCommand-line debugger for user-mode applications." };
+        if (kdPath = PhFindDebuggerPath(L"kd.exe"))
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 104, L"\U0001F4FA KD\nKernel debugger for low-level system debugging." };
+        if (ntsdPath = PhFindDebuggerPath(L"ntsd.exe"))
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 105, L"\U0001F4FA NTSD\nLegacy command-line debugger similar to CDB." };
+
+        // Always add registry debugger option
+        if (registryDebuggerPath && registryDebuggerName)
+        {
+            registryButtonText = PhFormatString(
+                L"\U00002699 (System Default)\n%s",
+                registryDebuggerName->Buffer,
+                registryDebuggerPath->Buffer
+                );
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 106, registryButtonText->Buffer };
+        }
+        else
+        {
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 106, L"\U00002699 System Default\nNo debugger configured in AeDebug registry key." };
+        }
+
+        memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+        config.cbSize = sizeof(TASKDIALOGCONFIG);
+        config.hwndParent = WindowHandle;
+        config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_USE_COMMAND_LINKS;
+        config.hMainIcon = PhGetApplicationIcon(FALSE);
+        config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+        config.pszWindowTitle = PhApplicationName;
+        config.pszMainInstruction = L"Select a system debugger to use for this process:";
+        config.pszContent = L"You can choose from the installed debugging tools below.";
+        config.cButtons = buttonCount;
+        config.pButtons = buttons;
+
+        if (PhShowTaskDialog(&config, &debuggerChoice, NULL, NULL) && debuggerChoice != 0)
+        {
+            switch (debuggerChoice)
+            {
+            case 101:
+                debuggerCommand = windbgPath;
+                windbgPath = NULL;
+                break;
+            case 102:
+                debuggerCommand = windbgPreviewPath;
+                windbgPreviewPath = NULL;
+                break;
+            case 103:
+                debuggerCommand = cdbPath;
+                cdbPath = NULL;
+                break;
+            case 104:
+                debuggerCommand = kdPath;
+                kdPath = NULL;
+                break;
+            case 105:
+                debuggerCommand = ntsdPath;
+                ntsdPath = NULL;
+                break;
+            case 106:
+                debuggerCommand = registryDebuggerPath;
+                registryDebuggerPath = NULL;
+                break;
+            //case 107:
+            //    debuggerCommand = vs2026Path;
+            //    vs2026Path = NULL;
+            //    break;
+            //case 108:
+            //    debuggerCommand = vs2022Path;
+            //    vs2022Path = NULL;
+            //    break;
+            }
+        }
+
+        PhClearReference(&windbgPath);
+        PhClearReference(&windbgPreviewPath);
+        //PhClearReference(&vs2026Path);
+        //PhClearReference(&vs2022Path);
+        PhClearReference(&cdbPath);
+        PhClearReference(&kdPath);
+        PhClearReference(&ntsdPath);
+        PhClearReference(&registryButtonText);
+    }
+
+    PhClearReference(&registryDebuggerName);
+    PhClearReference(&registryDebuggerPath);
+
+    if (!debuggerCommand || debuggerChoice == 0)
+    {
+        // User cancelled
         return FALSE;
     }
 
@@ -2925,11 +3159,28 @@ BOOLEAN PhUiDebugProcess(
     PhAppendCharStringBuilder(&commandLineBuilder, L'"');
     PhAppendStringBuilder(&commandLineBuilder, &debuggerCommand->sr);
     PhAppendCharStringBuilder(&commandLineBuilder, L'"');
-    PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %lu", HandleToUlong(Process->ProcessId));
+
+    switch (debuggerChoice)
+    {
+    case 101:
+    case 102:
+    case 103:
+    case 104:
+    case 105:
+    case 106:
+        PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %lu", HandleToUlong(Process->ProcessId));
+        break;
+    case 107:
+    case 108:
+        PhAppendFormatStringBuilder(&commandLineBuilder, L" /JITDebug /JITDebugParam %lx", HandleToUlong(Process->ProcessId));
+        break;
+    }
+
+    commandLine = PhFinalStringBuilderString(&commandLineBuilder);
 
     status = PhCreateProcessWin32(
         NULL,
-        PhGetString(PhFinalStringBuilderString(&commandLineBuilder)),
+        PhGetString(commandLine),
         NULL,
         NULL,
         0,
