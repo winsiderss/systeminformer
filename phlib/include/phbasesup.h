@@ -1586,6 +1586,8 @@ typedef struct _PH_STRING
     };
 } PH_STRING, *PPH_STRING;
 
+extern PPH_STRING PhSharedEmptyString;
+
 PHLIBAPI
 PPH_STRING
 NTAPI
