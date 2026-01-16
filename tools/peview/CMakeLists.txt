@@ -66,6 +66,7 @@ set(SOURCES_PAGES_WINDOWS
     "clrtableimportprp.c"
     "clrtableimports.cpp"
     "debugprp.c"
+    "disimp.c"
     "ehcontprp.c"
     "expprp.c"
     "hashprp.c"
