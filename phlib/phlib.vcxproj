@@ -152,6 +152,7 @@
     <ClCompile Include="appresolver.c" />
     <ClCompile Include="appruntime.c" />
     <ClCompile Include="avltree.c" />
+    <ClCompile Include="basestring.c" />
     <ClCompile Include="basesup.c" />
     <ClCompile Include="bcd.cpp" />
     <ClCompile Include="circbuf.c" />

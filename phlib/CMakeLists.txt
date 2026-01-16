@@ -88,6 +88,7 @@ set(SOURCES
     "appresolver.c"
     "appruntime.c"
     "avltree.c"
+    "basestring.c"
     "basesup.c"
     "bcd.cpp"
     "circbuf.c"

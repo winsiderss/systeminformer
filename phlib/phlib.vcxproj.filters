@@ -230,6 +230,9 @@
     <ClCompile Include="nativekey.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="basestring.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">

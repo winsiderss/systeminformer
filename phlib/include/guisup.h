@@ -251,12 +251,26 @@ PhDrawThemeBackground(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhDrawThemeText(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
+    _In_reads_(cchText) PCWSTR Text,
+    _In_ LONG cchText,
+    _In_ ULONG TextFlags,
+    _In_ LPCRECT Rect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhDrawThemeTextEx(
     _In_ HTHEME ThemeHandle,
     _In_ HDC hdc,
     _In_ LONG PartId,
     _In_ LONG StateId,
-    _In_reads_(cchText) LPCWSTR Text,
+    _In_reads_(cchText) PCWSTR Text,
     _In_ LONG cchText,
     _In_ ULONG TextFlags,
     _Inout_ LPRECT Rect,
