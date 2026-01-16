@@ -209,7 +209,9 @@ typedef enum _CALLBACKCLASS
     Callback_Fixed
 } CALLBACKCLASS;
 
-// The SHADOWCLASS enumeration is used to indicate the shadow-related settings for a session running on a terminal server.
+/**
+ * The SHADOWCLASS enumeration is used to indicate the shadow-related settings for a session running on a terminal server.
+ */
 typedef enum _SHADOWCLASS
 {
     Shadow_Disable, // Shadowing is disabled.
@@ -219,8 +221,11 @@ typedef enum _SHADOWCLASS
     Shadow_EnableNoInputNoNotify // Permission is not asked first from the session being shadowed. The shadower is not permitted keyboard and mouse input and MUST observe the shadowed session.
 } SHADOWCLASS;
 
-// For a specific terminal server session, the USERCONFIG structure indicates the user and session configuration.
-// https://msdn.microsoft.com/en-us/library/cc248610.aspx
+/**
+ * The USERCONFIG structure indicates the user and session configuration for a specific terminal server session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/dba750b8-cb35-4e88-9811-e2a1f8a10701
+ */
 typedef struct _USERCONFIG
 {
     ULONG fInheritAutoLogon : 1;
@@ -550,25 +555,35 @@ typedef struct _TSHARE_CACHE
     ULONG Reserved;
 } TSHARE_CACHE, *PTSHARE_CACHE;
 
+/**
+ * The CACHE_STATISTICS structure represents the cache statistics on the protocol.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/81203ca2-e58b-4681-affa-924e59671b5c
+ */
 typedef struct CACHE_STATISTICS
 {
-    USHORT ProtocolType;
-    USHORT Length;
+    USHORT ProtocolType;                        // Protocol type.
+    USHORT Length;                              // Length of data in the protocol-specific area. Can be up to 20 * sizeof(ULONG) in size.
     union
     {
-        RESERVED_CACHE ReservedCacheStats;
-        TSHARE_CACHE TShareCacheStats;
-        ULONG Reserved[20];
+        RESERVED_CACHE ReservedCacheStats;      // Not used.
+        TSHARE_CACHE TShareCacheStats;          // Protocol cache statistics.
+        ULONG Reserved[20];                     // Reserved for future use.
     } Specific;
 } CACHE_STATISTICS, *PCACHE_STATISTICS;
 
+/**
+ * The WINSTATIONINFORMATION structure represents the status of the protocol used by the session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/c9066753-acbd-4678-9a72-8fb1b080bd09
+ */
 typedef struct _PROTOCOLSTATUS
 {
-    PROTOCOLCOUNTERS Output;
-    PROTOCOLCOUNTERS Input;
-    CACHE_STATISTICS Cache;
-    ULONG AsyncSignal;
-    ULONG AsyncSignalMask;
+    PROTOCOLCOUNTERS Output;    // A PROTOCOLCOUNTERS structure containing the output protocol counters.
+    PROTOCOLCOUNTERS Input;     // A PROTOCOLCOUNTERS structure containing the input protocol counters.
+    CACHE_STATISTICS Cache;     // A CACHE_STATISTICS structure containing statistics for the cache.
+    ULONG AsyncSignal;          // Indicator of async signal, such as MS_CTS_ON, for async protocols.
+    ULONG AsyncSignalMask;      // Mask of async signal events, such as EV_CTS, for async protocols.
 } PROTOCOLSTATUS, *PPROTOCOLSTATUS;
 
 /**
@@ -672,7 +687,7 @@ typedef CHAR* PCLIENTDATANAME;
 
 typedef struct _WINSTATIONCLIENTDATA
 {
-    CLIENTDATANAME DataName; // Identifies the type of data sent in this WINSTATIONCLIENTDATA structure. The definition is dependent on the caller and on the client receiving it. This MUST be a data name following a format similar to that of the CLIENTDATANAME data type.
+    CLIENTDATANAME DataName; // Identifies the type of data sent in this WINSTATIONCLIENTDATA structure.
     BOOLEAN fUnicodeData; // TRUE indicates data is in Unicode format; FALSE otherwise.
 } WINSTATIONCLIENTDATA, *PWINSTATIONCLIENTDATA;
 
@@ -686,19 +701,28 @@ typedef enum _LOADFACTORTYPE
     CPUConstraint // CPU usage is the constraint.
 } LOADFACTORTYPE;
 
-// The WINSTATIONLOADINDICATORDATA structure defines data used for the load balancing of a server.
+/**
+ * The WINSTATIONLOADINDICATORDATA structure defines data used for the load balancing of a server.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/91459fa1-77e8-4987-a6f0-fe7dd3e62bfc
+ */
 typedef struct _WINSTATIONLOADINDICATORDATA
 {
-    ULONG RemainingSessionCapacity; // The estimated number of additional sessions that can be supported given the CPU constraint.
-    LOADFACTORTYPE LoadFactor; // Indicates the most constrained current resource.
-    ULONG TotalSessions; // The total number of sessions.
-    ULONG DisconnectedSessions; // The number of disconnected sessions.
-    LARGE_INTEGER IdleCPU; // This is always set to 0.
-    LARGE_INTEGER TotalCPU; // This is always set to 0.
-    ULONG RawSessionCapacity; // The raw number of sessions capacity.
-    ULONG reserved[9]; // Reserved.
+    ULONG RemainingSessionCapacity;     // The estimated number of additional sessions that can be supported given the CPU constraint.
+    LOADFACTORTYPE LoadFactor;          // Indicates the most constrained current resource.
+    ULONG TotalSessions;                // The total number of sessions.
+    ULONG DisconnectedSessions;         // The number of disconnected sessions.
+    LARGE_INTEGER IdleCPU;              // This is always set to 0.
+    LARGE_INTEGER TotalCPU;             // This is always set to 0.
+    ULONG RawSessionCapacity;           // The raw number of sessions capacity.
+    ULONG reserved[9];                  // Reserved.
 } WINSTATIONLOADINDICATORDATA, *PWINSTATIONLOADINDICATORDATA;
 
+/**
+ * The SHADOWSTATECLASS enumeration specifies WinStation shadow states.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/c55fbd8f-d7e3-4efe-9ca6-d0985dab9602
+ */
 typedef enum _SHADOWSTATECLASS
 {
     State_NoShadow, // No shadow operations are currently being performed on this session.
@@ -918,6 +942,12 @@ typedef struct _TS_COUNTER
 // current session ID.
 
 // rev
+/**
+ * The WinStationFreeMemory routine frees memory allocated by a Remote Desktop Services function.
+ *
+ * \param Buffer Pointer to the memory to free.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsfreememory
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
