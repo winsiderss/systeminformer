@@ -2522,8 +2522,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemRefTraceInformationEx,                            // q: SYSTEM_REF_TRACE_INFORMATION_EX
     SystemBasicProcessInformation,                          // q: SYSTEM_BASICPROCESS_INFORMATION
     SystemHandleCountInformation,                           // q: SYSTEM_HANDLECOUNT_INFORMATION
-    SystemRuntimeAttestationReport,                         // q: // since 26H1
-    SystemPoolTagInformation2,                              // q: SYSTEM_POOLTAG_INFORMATION2
+    SystemRuntimeAttestationReport,                         // q:
+    SystemPoolTagInformation2,                              // q: SYSTEM_POOLTAG_INFORMATION2 // since 26H1
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -3503,30 +3503,24 @@ typedef struct _SYSTEM_VERIFIER_INFORMATION_LEGACY // pre-19H1
     ULONG NextEntryOffset;
     ULONG Level;
     UNICODE_STRING DriverName;
-
     ULONG RaiseIrqls;
     ULONG AcquireSpinLocks;
     ULONG SynchronizeExecutions;
     ULONG AllocationsAttempted;
-
     ULONG AllocationsSucceeded;
     ULONG AllocationsSucceededSpecialPool;
     ULONG AllocationsWithNoTag;
     ULONG TrimRequests;
-
     ULONG Trims;
     ULONG AllocationsFailed;
     ULONG AllocationsFailedDeliberately;
     ULONG Loads;
-
     ULONG Unloads;
     ULONG UnTrackedPool;
     ULONG CurrentPagedPoolAllocations;
     ULONG CurrentNonPagedPoolAllocations;
-
     ULONG PeakPagedPoolAllocations;
     ULONG PeakNonPagedPoolAllocations;
-
     SIZE_T PagedPoolUsageInBytes;
     SIZE_T NonPagedPoolUsageInBytes;
     SIZE_T PeakPagedPoolUsageInBytes;
@@ -3541,32 +3535,25 @@ typedef struct _SYSTEM_VERIFIER_INFORMATION
     ULONG RuleClasses[2];
     ULONG TriageContext;
     ULONG AreAllDriversBeingVerified;
-
     UNICODE_STRING DriverName;
-
     ULONG RaiseIrqls;
     ULONG AcquireSpinLocks;
     ULONG SynchronizeExecutions;
     ULONG AllocationsAttempted;
-
     ULONG AllocationsSucceeded;
     ULONG AllocationsSucceededSpecialPool;
     ULONG AllocationsWithNoTag;
     ULONG TrimRequests;
-
     ULONG Trims;
     ULONG AllocationsFailed;
     ULONG AllocationsFailedDeliberately;
     ULONG Loads;
-
     ULONG Unloads;
     ULONG UnTrackedPool;
     ULONG CurrentPagedPoolAllocations;
     ULONG CurrentNonPagedPoolAllocations;
-
     ULONG PeakPagedPoolAllocations;
     ULONG PeakNonPagedPoolAllocations;
-
     SIZE_T PagedPoolUsageInBytes;
     SIZE_T NonPagedPoolUsageInBytes;
     SIZE_T PeakPagedPoolUsageInBytes;
@@ -8274,6 +8261,7 @@ typedef enum _CMF_WHAT_FLAGS
     CmfFlagB = 0x00080000, // Enables directory update path
     CmfFlagC = 0x00100000, // Enables segment unmap path
 } CMF_WHAT_FLAGS;
+DEFINE_ENUM_FLAG_OPERATORS(CMF_WHAT_FLAGS);
 
 /**
  * The NtMapCMFModule routine maps a Code Map File (CMF) module into memory
@@ -8309,6 +8297,7 @@ typedef enum _MUI_REGISTRY_INFO_FLAGS
     MUIRegInfoClear = 0x2,      // Clear the cached MUI registry info.
     MUIRegInfoCommit = 0x8      // Commit/update state (increments counter).
 } MUI_REGISTRY_INFO_FLAGS;
+DEFINE_ENUM_FLAG_OPERATORS(MUI_REGISTRY_INFO_FLAGS);
 
 /**
  * Flags for NtGetMUIRegistryInfo.
