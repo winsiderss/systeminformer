@@ -647,6 +647,7 @@ BcdCloseObject(
  * The BCD_COPY_FLAGS specify the behavior of Boot Configuration Data (BCD) copy operations,
  * controlling how objects and elements are handled during BCD copy procedures.
  */
+_Enum_is_bitflag_
 typedef enum _BCD_COPY_FLAGS
 {
     BCD_COPY_NONE = 0x0,
@@ -657,6 +658,7 @@ typedef enum _BCD_COPY_FLAGS
     BCD_COPY_RETAIN_ELEMENT_DATA = 0x10,
     BCD_COPY_MIGRATE_ELEMENT_DATA = 0x20
 } BCD_COPY_FLAGS;
+DEFINE_ENUM_FLAG_OPERATORS(BCD_COPY_FLAGS);
 
 /**
  * The BcdCopyObject function copies a BCD object from one store to another.
