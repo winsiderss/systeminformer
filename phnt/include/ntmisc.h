@@ -11,6 +11,7 @@
 // Apphelp
 //
 
+_Enum_is_bitflag_
 typedef enum _AHC_INFO_CLASS
 {
     AhcInfoClassSdbQueryResult          = 0x00000001,
@@ -511,7 +512,6 @@ NtAcquireProcessActivityReference(
     _In_ HANDLE ParentProcessHandle,
     _In_ ULONG ProcessActivityType // PROCESS_ACTIVITY_TYPE
     );
-
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)
 
 //
@@ -919,6 +919,7 @@ GetPackageGlobalizationProperty(
 //
 
 // private
+_Enum_is_bitflag_
 typedef enum _MTA_HOST_USAGE_FLAGS
 {
     MTA_HOST_USAGE_NONE = 0x0,
@@ -926,6 +927,7 @@ typedef enum _MTA_HOST_USAGE_FLAGS
     MTA_HOST_USAGE_ACTIVATORINITIALIZED = 0x2,
     MTA_HOST_USAGE_UNLOADCALLED = 0x4,
 } MTA_HOST_USAGE_FLAGS, *PMTA_HOST_USAGE_FLAGS;
+DEFINE_ENUM_FLAG_OPERATORS(MTA_HOST_USAGE_FLAGS);
 
 // private
 typedef struct _MTA_USAGE_GLOBALS
