@@ -1479,6 +1479,7 @@ VOID PhpFillProcessItem(
             BOOLEAN tokenIsUIAccessEnabled;
             PH_INTEGRITY_LEVEL integrityLevel;
             PPH_STRINGREF integrityString;
+            PPH_STRING packageFullName;
 
             // User
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
