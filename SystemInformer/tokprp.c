@@ -2133,11 +2133,13 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                         if (!tokenIsAppContainer)
                         {
-                            PPH_STRING packageName = PhGetTokenPackageFullName(tokenHandle);
+                            PPH_STRING packageName;
 
-                            tokenIsAppContainer = !PhIsNullOrEmptyString(packageName);
-
-                            PhClearReference(&packageName);
+                            if (NT_SUCCESS(PhGetTokenPackageFullName(tokenHandle, &packageName)))
+                            {
+                                tokenIsAppContainer = !PhIsNullOrEmptyString(packageName);
+                                PhDereferenceObject(packageName);
+                            }
                         }
 
                         tokenPageContext->CloseObject(
@@ -3229,7 +3231,7 @@ BOOLEAN PhpAddTokenCapabilities(
                             {
                                 static CONST PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
 
-                                if (name = PhGetTokenPackageFullName(tokenHandle))
+                                if (NT_SUCCESS(PhGetTokenPackageFullName(tokenHandle, &name)))
                                 {
                                     PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&packageNameStringRef, &name->sr));
                                     PhDereferenceObject(name);
@@ -4507,7 +4509,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                     RtlFreeSid(appContainerSidParent);
                 }
 
-                if (packageFullName = PhGetTokenPackageFullName(tokenHandle))
+                if (NT_SUCCESS(PhGetTokenPackageFullName(tokenHandle, &packageFullName)))
                 {
                     PhSetListViewSubItem(context->ListViewHandle, 8, 1, packageFullName->Buffer);
 

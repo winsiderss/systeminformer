@@ -1512,9 +1512,12 @@ VOID PhpFillProcessItem(
             }
 
             // Package name
-            if (WindowsVersion >= WINDOWS_8 && ProcessItem->IsPackagedProcess)
+            if (
+                WindowsVersion >= WINDOWS_8 && ProcessItem->IsPackagedProcess &&
+                NT_SUCCESS(PhGetTokenPackageFullName(tokenHandle, &packageFullName))
+                )
             {
-                ProcessItem->PackageFullName = PhGetTokenPackageFullName(tokenHandle);
+                ProcessItem->PackageFullName = packageFullName;
             }
 
             NtClose(tokenHandle);
