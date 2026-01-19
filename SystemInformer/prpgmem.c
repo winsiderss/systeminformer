@@ -580,6 +580,13 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
             // Initialize the list.
             PhInitializeMemoryList(hwndDlg, memoryContext->TreeNewHandle, &memoryContext->ListContext);
+
+            if (PhTreeWindowFont)
+            {
+                memoryContext->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(memoryContext->TreeNewHandle, memoryContext->TreeNewFont, FALSE);
+            }
+
             TreeNew_SetEmptyText(memoryContext->TreeNewHandle, &PhProcessPropPageLoadingText, 0);
 
             memoryContext->AllocationFilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.AllocationTreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
@@ -629,6 +636,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             }
 
             PhSaveSettingsMemoryList(&memoryContext->ListContext);
+
+            if (memoryContext->TreeNewFont)
+                DeleteFont(memoryContext->TreeNewFont);
 
             PhDereferenceObject(memoryContext);
         }

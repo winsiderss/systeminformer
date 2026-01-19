@@ -210,6 +210,7 @@ VOID PhShowHandleContextMenu(
     PhFree(handles);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpHandleTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -317,6 +318,7 @@ typedef struct _HANDLE_OPEN_CONTEXT
     PPH_HANDLE_ITEM HandleItem;
 } HANDLE_OPEN_CONTEXT, *PHANDLE_OPEN_CONTEXT;
 
+_Function_class_(PH_OPEN_OBJECT)
 NTSTATUS PhpProcessHandleOpenCallback(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -328,6 +330,31 @@ NTSTATUS PhpProcessHandleOpenCallback(
     HANDLE processHandle;
 
     *Handle = NULL;
+
+    if (KsiLevel() >= KphLevelMax)
+    {
+        // Try limited-information first when allowed by KSI.
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            context->ProcessId
+            )))
+        {
+            status = NtDuplicateObject(
+                processHandle,
+                context->HandleItem->Handle,
+                NtCurrentProcess(),
+                Handle,
+                DesiredAccess,
+                0,
+                0
+                );
+            NtClose(processHandle);
+
+            if (NT_SUCCESS(status))
+                return status;
+        }
+    }
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
@@ -347,30 +374,10 @@ NTSTATUS PhpProcessHandleOpenCallback(
         NtClose(processHandle);
     }
 
-    if (!NT_SUCCESS(status) && KsiLevel() >= KphLevelMax)
-    {
-        if (NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            context->ProcessId
-            )))
-        {
-            status = NtDuplicateObject(
-                processHandle,
-                context->HandleItem->Handle,
-                NtCurrentProcess(),
-                Handle,
-                DesiredAccess,
-                0,
-                0
-            );
-            NtClose(processHandle);
-        }
-    }
-
     return status;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS PhpProcessHandleCloseCallback(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -393,6 +400,7 @@ NTSTATUS PhpProcessHandleCloseCallback(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpProcessHandlessSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -480,6 +488,13 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             // Initialize the list.
             PhInitializeHandleList(hwndDlg, handlesContext->TreeNewHandle, &handlesContext->ListContext);
+
+            if (PhTreeWindowFont)
+            {
+                handlesContext->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(handlesContext->TreeNewHandle, handlesContext->TreeNewFont, FALSE);
+            }
+
             TreeNew_SetEmptyText(handlesContext->TreeNewHandle, &PhProcessPropPageLoadingText, 0);
             PhInitializeProviderEventQueue(&handlesContext->EventQueue, 100);
             handlesContext->LastRunStatus = -1;
@@ -551,6 +566,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhUnregisterProvider(&handlesContext->ProviderRegistration);
             PhDereferenceObject(handlesContext->Provider);
             PhDeleteProviderEventQueue(&handlesContext->EventQueue);
+
+            if (handlesContext->TreeNewFont)
+                DeleteFont(handlesContext->TreeNewFont);
 
             if (PhPluginsEnabled)
             {

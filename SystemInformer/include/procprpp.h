@@ -237,6 +237,7 @@ typedef struct _PH_THREADS_CONTEXT
     HWND TreeNewHandle;
     HWND StatusHandle;
     HWND SearchboxHandle;
+    HFONT TreeNewFont;
     ULONG_PTR SearchMatchHandle;
     PPH_TN_FILTER_ENTRY FilterEntry;
     union
@@ -272,6 +273,7 @@ typedef struct _PH_MODULES_CONTEXT
 // end_phapppub
     HWND SearchboxHandle;
     HWND TreeNewHandle;
+    HFONT TreeNewFont;
     union
     {
         PH_MODULE_LIST_CONTEXT ListContext;
@@ -307,6 +309,7 @@ typedef struct _PH_HANDLES_CONTEXT
 // end_phapppub
     HWND TreeNewHandle;
     HWND SearchWindowHandle;
+    HFONT TreeNewFont;
 
     union
     {
@@ -337,6 +340,7 @@ typedef struct _PH_MEMORY_CONTEXT
 // end_phapppub
     HWND TreeNewHandle;
     HWND SearchboxHandle;
+    HFONT TreeNewFont;
 
     union
     {
@@ -366,6 +370,7 @@ typedef struct _PH_STATISTICS_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
     HWND WindowHandle;
     HWND ListViewHandle;
+    HFONT TreeNewFont;
 
     PPH_LISTVIEW_CONTEXT ListViewContext;
 
@@ -489,6 +494,7 @@ typedef struct _PH_ENVIRONMENT_CONTEXT
     HWND WindowHandle;
     HWND TreeNewHandle;
     HWND SearchWindowHandle;
+    HFONT TreeNewFont;
 
     BOOLEAN EnableStateHighlighting;
 

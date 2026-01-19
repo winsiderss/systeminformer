@@ -996,6 +996,13 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             // Initialize the list. (wj32)
             PhInitializeThreadList(hwndDlg, threadsContext->TreeNewHandle, &threadsContext->ListContext);
+
+            if (PhTreeWindowFont)
+            {
+                threadsContext->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(threadsContext->TreeNewHandle, threadsContext->TreeNewFont, FALSE);
+            }
+
             TreeNew_SetEmptyText(threadsContext->TreeNewHandle, &EmptyThreadsText, 0);
             PhInitializeProviderEventQueue(&threadsContext->EventQueue, 100);
             threadsContext->FilterEntry = PhAddTreeNewFilter(&threadsContext->ListContext.TreeFilterSupport, PhpThreadTreeFilterCallback, threadsContext);
@@ -1119,6 +1126,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhSetTerminatingThreadProvider(threadsContext->Provider);
             PhDereferenceObject(threadsContext->Provider);
             PhDeleteProviderEventQueue(&threadsContext->EventQueue);
+
+            if (threadsContext->TreeNewFont)
+                DeleteFont(threadsContext->TreeNewFont);
 
             if (PhPluginsEnabled)
             {

@@ -28,6 +28,7 @@ typedef struct _PH_PROCESS_WMI_CONTEXT
     HWND WindowHandle;
     HWND TreeNewHandle;
     HWND SearchWindowHandle;
+    HFONT TreeNewFont;
 
     PPH_PROCESS_ITEM ProcessItem;
     PPH_STRING DefaultNamespace;
@@ -1801,6 +1802,13 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                 );
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             PhpInitializeWmiProviderTree(context);
+
+            if (PhTreeWindowFont)
+            {
+                context->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(context->TreeNewHandle, context->TreeNewFont, FALSE);
+            }
+
             context->TreeFilterEntry = PhAddTreeNewFilter(&context->TreeFilterSupport, PhpProcessWmiProviderTreeFilterCallback, context);
 
             PhMoveReference(&context->StatusMessage, PhCreateString(L"There are no providers to display."));
@@ -1823,6 +1831,9 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                 PhDereferenceObject(context->StatusMessage);
             if (context->DefaultNamespace)
                 PhDereferenceObject(context->DefaultNamespace);
+
+            if (context->TreeNewFont)
+                DeleteFont(context->TreeNewFont);
 
             PhFree(context);
         }
