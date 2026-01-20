@@ -3628,13 +3628,13 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
 
     PVOID PackageDependencyData;
     ULONG ProcessGroupId;
-    ULONG LoaderThreads;
-    UNICODE_STRING RedirectionDllName; // REDSTONE4
+    ULONG LoaderThreads; // THRESHOLD
+    UNICODE_STRING RedirectionDllName; // REDSTONE5
     UNICODE_STRING HeapPartitionName; // 19H1
     PULONGLONG DefaultThreadpoolCpuSetMasks;
     ULONG DefaultThreadpoolCpuSetMaskCount;
-    ULONG DefaultThreadpoolThreadMaximum;
-    ULONG HeapMemoryTypeMask; // WIN11
+    ULONG DefaultThreadpoolThreadMaximum; // 20H1
+    ULONG HeapMemoryTypeMask; // WIN11 22H2
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
 
 // RTL_USER_PROCESS_PARAMETERS Flags
