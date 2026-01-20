@@ -36,6 +36,7 @@ typedef struct _PH_SERVICES_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     HWND WindowHandle;
     HWND ListViewHandle;
+    HFONT TreeNewFont;
 } PH_SERVICES_CONTEXT, *PPH_SERVICES_CONTEXT;
 
 #define WM_PH_SERVICE_PAGE_MODIFIED (WM_APP + 106)
@@ -211,6 +212,12 @@ INT_PTR CALLBACK PhpServicesPageProc(
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
+            if (PhTreeWindowFont)
+            {
+                context->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(context->ListViewHandle, context->TreeNewFont, FALSE);
+            }
+
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
@@ -282,6 +289,9 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 );
 
             PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->TreeNewFont)
+                DeleteFont(context->TreeNewFont);
 
             if (context->ListViewSettingName)
                 PhSaveListViewColumnsToSetting(context->ListViewSettingName, context->ListViewHandle);

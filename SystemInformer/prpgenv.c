@@ -1618,6 +1618,12 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             PhpInitializeEnvironmentTree(context);
 
+            if (PhTreeWindowFont)
+            {
+                context->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(context->TreeNewHandle, context->TreeNewFont, FALSE);
+            }
+
             PhInitializeArray(&context->Items, sizeof(PH_ENVIRONMENT_ITEM), 100);
             context->TreeFilterEntry = PhAddTreeNewFilter(&context->TreeFilterSupport, PhpProcessEnvironmentTreeFilterCallback, context);
 
@@ -1649,6 +1655,9 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             PhpClearEnvironmentItems(context);
             PhDeleteArray(&context->Items);
             PhClearReference(&context->StatusMessage);
+
+            if (context->TreeNewFont)
+                DeleteFont(context->TreeNewFont);
 
             PhFree(context);
         }

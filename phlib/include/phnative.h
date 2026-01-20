@@ -1591,10 +1591,11 @@ PhGetTokenSecurityAttributeValueUlong64(
     );
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhGetTokenPackageFullName(
-    _In_ HANDLE TokenHandle
+    _In_ HANDLE TokenHandle,
+    _Out_ PPH_STRING* PackageFullName
     );
 
 PHLIBAPI

@@ -750,6 +750,13 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             statisticsContext = propPageContext->Context = PhAllocateZero(sizeof(PH_STATISTICS_CONTEXT));
             statisticsContext->WindowHandle = hwndDlg;
             statisticsContext->ListViewHandle = GetDlgItem(hwndDlg, IDC_STATISTICS_LIST);
+
+            if (PhTreeWindowFont)
+            {
+                statisticsContext->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(statisticsContext->ListViewHandle, statisticsContext->TreeNewFont, FALSE);
+            }
+
             statisticsContext->ListViewContext = PhListView_Initialize(statisticsContext->ListViewHandle);
             statisticsContext->ProcessItem = processItem;
             statisticsContext->Enabled = TRUE;
@@ -808,6 +815,9 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                 PhListView_Destroy(statisticsContext->ListViewContext);
                 statisticsContext->ListViewContext = NULL;
             }
+
+            if (statisticsContext->TreeNewFont)
+                DeleteFont(statisticsContext->TreeNewFont);
         }
         break;
     case WM_NCDESTROY:
