@@ -129,6 +129,14 @@ PhLoadResourceCopy(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhLoadString(
+    _In_ PVOID DllBase,
+    _In_ ULONG ResourceId
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhLoadIndirectString(
     _In_ PCPH_STRINGREF SourceString
     );

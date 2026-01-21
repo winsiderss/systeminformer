@@ -1479,6 +1479,7 @@ VOID PhpFillProcessItem(
             BOOLEAN tokenIsUIAccessEnabled;
             PH_INTEGRITY_LEVEL integrityLevel;
             PPH_STRINGREF integrityString;
+            PPH_STRING packageFullName;
 
             // User
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
@@ -1512,9 +1513,12 @@ VOID PhpFillProcessItem(
             }
 
             // Package name
-            if (WindowsVersion >= WINDOWS_8 && ProcessItem->IsPackagedProcess)
+            if (
+                WindowsVersion >= WINDOWS_8 && ProcessItem->IsPackagedProcess &&
+                NT_SUCCESS(PhGetTokenPackageFullName(tokenHandle, &packageFullName))
+                )
             {
-                ProcessItem->PackageFullName = PhGetTokenPackageFullName(tokenHandle);
+                ProcessItem->PackageFullName = packageFullName;
             }
 
             NtClose(tokenHandle);

@@ -1335,7 +1335,7 @@ PPH_STRING PhGetProcessPackageFullName(
 
     if (NT_SUCCESS(PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
     {
-        packageName = PhGetTokenPackageFullName(tokenHandle);
+        PhGetTokenPackageFullName(tokenHandle, &packageName);
         NtClose(tokenHandle);
     }
 
@@ -1490,15 +1490,23 @@ PPH_STRING PhGetTokenPackageApplicationUserModelId(
  * \param TokenHandle A handle to a token.
  * \return PPH_STRING The package full name string object, or NULL if not available.
  */
-PPH_STRING PhGetTokenPackageFullName(
-    _In_ HANDLE TokenHandle
+NTSTATUS PhGetTokenPackageFullName(
+    _In_ HANDLE TokenHandle,
+    _Out_ PPH_STRING* PackageFullName
     )
 {
     static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     PPH_STRING packageFullName = NULL;
+    NTSTATUS status;
 
-    if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, &attributeName, &info)))
+    status = PhGetTokenSecurityAttribute(
+        TokenHandle,
+        &attributeName,
+        &info
+        );
+
+    if (NT_SUCCESS(status))
     {
         PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
 
@@ -1506,11 +1514,17 @@ PPH_STRING PhGetTokenPackageFullName(
         {
             packageFullName = PhCreateStringFromUnicodeString(&attribute->Values.String[0]);
         }
+        else
+        {
+            status = STATUS_OBJECT_TYPE_MISMATCH;
+        }
 
         PhFree(info);
     }
 
-    return packageFullName;
+    *PackageFullName = packageFullName;
+
+    return status;
 }
 
 /**

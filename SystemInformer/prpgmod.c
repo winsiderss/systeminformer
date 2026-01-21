@@ -745,6 +745,13 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             // Initialize the list.
             PhInitializeModuleList(hwndDlg, modulesContext->TreeNewHandle, &modulesContext->ListContext);
+
+            if (PhTreeWindowFont)
+            {
+                modulesContext->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(modulesContext->TreeNewHandle, modulesContext->TreeNewFont, FALSE);
+            }
+
             TreeNew_SetEmptyText(modulesContext->TreeNewHandle, &PhProcessPropPageLoadingText, 0);
             PhInitializeProviderEventQueue(&modulesContext->EventQueue, 100);
             modulesContext->LastRunStatus = -1;
@@ -825,6 +832,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhUnregisterProvider(&modulesContext->ProviderRegistration);
             PhDereferenceObject(modulesContext->Provider);
             PhDeleteProviderEventQueue(&modulesContext->EventQueue);
+
+            if (modulesContext->TreeNewFont)
+                DeleteFont(modulesContext->TreeNewFont);
 
             if (PhPluginsEnabled)
             {
