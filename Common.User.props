@@ -141,7 +141,7 @@
           <IntrinsicFunctions>true</IntrinsicFunctions>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NOOPTIDATA /BASERELOCCLUSTERING /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEBUGTYPE:CV,PDATA /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NOOPTIDATA /BASERELOCCLUSTERING /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
@@ -170,7 +170,7 @@
           <IntrinsicFunctions>true</IntrinsicFunctions>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NOOPTIDATA /BASERELOCCLUSTERING /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEBUGTYPE:CV,PDATA /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NOOPTIDATA /BASERELOCCLUSTERING /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX64</TargetMachine>
@@ -200,7 +200,7 @@
           <GuardSignedReturns>true</GuardSignedReturns>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NOOPTIDATA /BASERELOCCLUSTERING /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEBUGTYPE:CV,PDATA /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /NOOPTIDATA /BASERELOCCLUSTERING /NATVIS:$(MSBuildThisFileDirectory)\SystemInformer.natvis %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
@@ -231,7 +231,7 @@
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOOPTIDATA /NOVCFEATURE /NOCOFFGRPINFO /BASERELOCCLUSTERING %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEBUGTYPE:CV,PDATA /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOOPTIDATA /NOVCFEATURE /NOCOFFGRPINFO /BASERELOCCLUSTERING %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <CETCompat>true</CETCompat>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
@@ -268,7 +268,7 @@
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /LTCG /GUARD:XFG /NOOPTIDATA /NOVCFEATURE /NOCOFFGRPINFO /BASERELOCCLUSTERING %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEBUGTYPE:CV,PDATA /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /LTCG /GUARD:XFG /NOOPTIDATA /NOVCFEATURE /NOCOFFGRPINFO /BASERELOCCLUSTERING %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <CETCompat>true</CETCompat>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
@@ -304,7 +304,7 @@
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /LTCG /NOOPTIDATA /NOVCFEATURE /NOCOFFGRPINFO /BASERELOCCLUSTERING %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalOptions>/BREPRO /DEBUGTYPE:CV,PDATA /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /LTCG /NOOPTIDATA /NOVCFEATURE /NOCOFFGRPINFO /BASERELOCCLUSTERING %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
