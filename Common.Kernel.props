@@ -41,6 +41,7 @@
       <CallingConvention>StdCall</CallingConvention>
       <ConformanceMode>true</ConformanceMode>
       <ControlFlowGuard>Guard</ControlFlowGuard>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <GuardSignedReturns Condition="'$(Platform)'=='ARM64'">true</GuardSignedReturns>
