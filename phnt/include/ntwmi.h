@@ -2669,6 +2669,7 @@ typedef struct _ETW_OBJECT_TYPE_EVENT
     WCHAR Name[ANYSIZE_ARRAY];
 } ETW_OBJECT_TYPE_EVENT, *PETW_OBJECT_TYPE_EVENT;
 
+#include <pshpack1.h>
 typedef struct _ETW_OBJECT_HANDLE_EVENT
 {
     PVOID Object;
@@ -2677,6 +2678,7 @@ typedef struct _ETW_OBJECT_HANDLE_EVENT
     USHORT ObjectType;
     WCHAR ObjectName[ANYSIZE_ARRAY];
 } ETW_OBJECT_HANDLE_EVENT, *PETW_OBJECT_HANDLE_EVENT;
+#include <poppack.h>
 
 typedef struct _ETW_REFDEREF_OBJECT_EVENT
 {
