@@ -533,23 +533,26 @@ NtQueryDirectoryObject(
 // private
 typedef enum _BOUNDARY_ENTRY_TYPE
 {
-    OBNS_Invalid,
-    OBNS_Name,
-    OBNS_SID,
-    OBNS_IL
+    BOUNDARY_ENTRY_TYPE_INVALID,
+    BOUNDARY_ENTRY_TYPE_NAME,
+    BOUNDARY_ENTRY_TYPE_SID,
+    BOUNDARY_ENTRY_TYPE_IL
 } BOUNDARY_ENTRY_TYPE;
+
+// private
+typedef union _OBJECT_BOUNDARY_VALUE
+{
+    WCHAR Name[1];
+    PSID Sid;
+    PSID IntegrityLabel;
+} OBJECT_BOUNDARY_VALUE, *POBJECT_BOUNDARY_VALUE;
 
 // private
 typedef struct _OBJECT_BOUNDARY_ENTRY
 {
-    BOUNDARY_ENTRY_TYPE EntryType;
-    ULONG EntrySize;
-    //union
-    //{
-    //    WCHAR Name[1];
-    //    PSID Sid;
-    //    PSID IntegrityLabel;
-    //};
+    BOUNDARY_ENTRY_TYPE Type;
+    ULONG Size;
+    // OBJECT_BOUNDARY_VALUE Value;
 } OBJECT_BOUNDARY_ENTRY, *POBJECT_BOUNDARY_ENTRY;
 
 // rev
