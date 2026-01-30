@@ -1121,7 +1121,7 @@ LdrpResGetResourceDirectory(
  *
  * \param DllHandle A handle to the DLL.
  * \param ResourcePath A pointer to an array of Type/Name/Language/(optional)AlternateType.
- * \param Count The number of elements in the ResourcePath array.
+ * \param ResourcePath The number of elements in the ResourcePath array.
  * \param Flags Flags for the resource search.
  * \param ResourceBuffer An optional pointer to receive the resource buffer.
  * \param ResourceLength An optional pointer to receive the resource length.
@@ -1134,12 +1134,12 @@ NTSTATUS
 NTAPI
 LdrResSearchResource(
     _In_ PVOID DllHandle,
-    _In_reads_(Count) PULONG_PTR ResourcePath,
-    _In_ ULONG Count,
+    _In_ PULONG_PTR ResourcePath,
+    _In_ ULONG ResourcePathCount,
     _In_ ULONG Flags,
     _Out_opt_ PVOID* ResourceBuffer,
     _Out_opt_ PSIZE_T ResourceLength,
-    _Out_writes_bytes_opt_(*CultureNameLength) PVOID CultureName, // WCHAR buffer[6]
+    _Out_writes_bytes_opt_(*CultureNameLength) PWSTR CultureName, // WCHAR buffer[6]
     _Out_opt_ PULONG CultureNameLength
     );
 
