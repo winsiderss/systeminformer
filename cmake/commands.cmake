@@ -20,6 +20,10 @@ set(SI_UM_CLANG_NO_DIAGNOSTICS
     -Wno-unused-function
     -Wno-unused-variable
     -Wno-visibility
+    -Wno-defaulted-function-deleted
+    -Wno-nontrivial-memcall
+    -Wno-class-conversion
+    -Wno-microsoft-explicit-constructor-call
 )
 
 #
