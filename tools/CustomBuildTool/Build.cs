@@ -1261,7 +1261,7 @@ namespace CustomBuildTool
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
                 linkerOptions.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\" ");
 
-            preprocessorOptions.AppendJoin(";", preprocessorOptions);
+            preprocessorOptions.AppendJoin(";", preprocessorOptionsList);
 
             commandLine.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
