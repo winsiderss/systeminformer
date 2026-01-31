@@ -98,7 +98,6 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-unused-local-typedef
     -Wno-unused-value
     -Wno-defaulted-function-deleted
-    -Wno-nontrivial-memcall
     -Wno-class-conversion
     -Wno-microsoft-explicit-constructor-call
 
