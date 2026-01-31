@@ -137,6 +137,7 @@ SIZE_T PhCountStringZ(
  *
  * \return The new string, which can be freed using PhFree().
  */
+_Use_decl_annotations_
 PSTR PhDuplicateBytesZ(
     _In_ PCSTR String
     )
@@ -160,6 +161,7 @@ PSTR PhDuplicateBytesZ(
  * \return The new string, which can be freed using PhFree(), or NULL if storage could not be
  * allocated.
  */
+_Use_decl_annotations_
 PSTR PhDuplicateBytesZSafe(
     _In_ PCSTR String
     )
@@ -186,6 +188,7 @@ PSTR PhDuplicateBytesZSafe(
  *
  * \return The new string, which can be freed using PhFree().
  */
+_Use_decl_annotations_
 PWSTR PhDuplicateStringZ(
     _In_ PCWSTR String
     )
@@ -2500,8 +2503,9 @@ CharFound2:
  * \param Buffer A null-terminated Unicode string.
  * \param Length The length, in bytes, of the string.
  */
+_Use_decl_annotations_
 PPH_STRING PhCreateStringEx(
-    _In_opt_ PCWCHAR Buffer,
+    _In_reads_bytes_opt_(Length) PCWCHAR Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -2532,6 +2536,7 @@ PPH_STRING PhCreateStringEx(
  * \param Flags A combination of PH_STRING flags.
  * \param TrimCharSet A string containing characters to trim. If NULL, no trimming is performed.
  */
+_Use_decl_annotations_
 PPH_STRING PhCreateString3(
     _In_ PCPH_STRINGREF String,
     _In_ ULONG Flags,
@@ -2615,6 +2620,7 @@ PPH_STRING PhReferenceEmptyString(
  * \param Count The number of strings to concatenate.
  * \param ... The list of strings.
  */
+_Use_decl_annotations_
 PPH_STRING PhConcatStrings(
     _In_ ULONG Count,
     ...
@@ -2636,6 +2642,7 @@ PPH_STRING PhConcatStrings(
  * \param Count The number of strings to concatenate.
  * \param ArgPtr A pointer to an array of strings.
  */
+_Use_decl_annotations_
 PPH_STRING PhConcatStrings_V(
     _In_ ULONG Count,
     _In_ va_list ArgPtr
@@ -2698,6 +2705,7 @@ PPH_STRING PhConcatStrings_V(
  * \param String1 The first string.
  * \param String2 The second string.
  */
+_Use_decl_annotations_
 PPH_STRING PhConcatStrings2(
     _In_ PCWSTR String1,
     _In_ PCWSTR String2
@@ -2730,6 +2738,7 @@ PPH_STRING PhConcatStrings2(
  * \param String1 The first string.
  * \param String2 The second string.
  */
+_Use_decl_annotations_
 PPH_STRING PhConcatStringRef2(
     _In_ PCPH_STRINGREF String1,
     _In_ PCPH_STRINGREF String2
@@ -2763,6 +2772,7 @@ PPH_STRING PhConcatStringRef2(
  * \param String2 The second string.
  * \param String3 The third string.
  */
+_Use_decl_annotations_
 PPH_STRING PhConcatStringRef3(
     _In_ PCPH_STRINGREF String1,
     _In_ PCPH_STRINGREF String2,
@@ -2798,6 +2808,7 @@ PPH_STRING PhConcatStringRef3(
  * \param String3 The third string.
  * \param String4 The forth string.
  */
+_Use_decl_annotations_
 PPH_STRING PhConcatStringRef4(
     _In_ PCPH_STRINGREF String1,
     _In_ PCPH_STRINGREF String2,
@@ -2836,6 +2847,7 @@ PPH_STRING PhConcatStringRef4(
  * \param Format The format-control string.
  * \param ... The list of arguments.
  */
+_Use_decl_annotations_
 PPH_STRING PhFormatString(
     _In_ _Printf_format_string_ PCWSTR Format,
     ...
@@ -2857,6 +2869,7 @@ PPH_STRING PhFormatString(
  * \param Format The format-control string.
  * \param ArgPtr A pointer to the list of arguments.
  */
+_Use_decl_annotations_
 PPH_STRING PhFormatString_V(
     _In_ _Printf_format_string_ PCWSTR Format,
     _In_ va_list ArgPtr
@@ -3801,6 +3814,7 @@ NTSTATUS PhConvertUtf8ToUtf16Buffer(
  * \return A pointer to a PPH_STRING containing the converted UTF-16 string.
  * \remarks Returns NULL if the conversion fails.
  */
+_Use_decl_annotations_
 PPH_STRING PhConvertUtf8ToUtf16(
     _In_ PCSTR Buffer
     )
@@ -3819,6 +3833,7 @@ PPH_STRING PhConvertUtf8ToUtf16(
  * \return A pointer to a PPH_STRING containing the converted UTF-16 string.
  * \remarks Returns NULL if the conversion fails.
  */
+_Use_decl_annotations_
 PPH_STRING PhConvertUtf8ToUtf16Ex(
     _In_ PCCH Buffer,
     _In_ SIZE_T Length
@@ -4050,6 +4065,7 @@ NTSTATUS PhConvertUtf16ToUtf8Buffer(
  * \return A pointer to a PPH_BYTES structure containing the UTF-8 encoded result.
  * \remarks Returns NULL if the conversion fails.
  */
+ _Use_decl_annotations_
 PPH_BYTES PhConvertUtf16ToUtf8(
     _In_ PCWSTR Buffer
     )
@@ -4060,6 +4076,7 @@ PPH_BYTES PhConvertUtf16ToUtf8(
         );
 }
 
+_Use_decl_annotations_
 PPH_BYTES PhConvertUtf16ToUtf8Ex(
     _In_ PCWCH Buffer,
     _In_ SIZE_T Length
@@ -5009,6 +5026,7 @@ BOOLEAN PhHexStringToBufferEx(
  * \param Length The number of bytes to convert.
  * \return A string containing a sequence of hexadecimal digits.
  */
+_Use_decl_annotations_
 PPH_STRING PhBufferToHexString(
     _In_reads_bytes_(Length) PUCHAR Buffer,
     _In_ SIZE_T Length
@@ -5025,6 +5043,7 @@ PPH_STRING PhBufferToHexString(
  * \param UpperCase TRUE to use uppercase characters, otherwise FALSE.
  * \return A string containing a sequence of hexadecimal digits.
  */
+_Use_decl_annotations_
 PPH_STRING PhBufferToHexStringEx(
     _In_reads_bytes_(Length) PUCHAR Buffer,
     _In_ SIZE_T Length,
@@ -5429,6 +5448,7 @@ BOOLEAN PhStringToDouble(
  *
  * \return The resulting string, or NULL if an error occurred.
  */
+_Use_decl_annotations_
 PPH_STRING PhIntegerToString64(
     _In_ LONG64 Integer,
     _In_opt_ ULONG Base,
