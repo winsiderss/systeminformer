@@ -3112,16 +3112,14 @@ VOID PhMwpSaveSettings(
     PhSaveWindowPlacementToSetting(SETTING_MAIN_WINDOW_POSITION, SETTING_MAIN_WINDOW_SIZE, WindowHandle);
     PhMwpSaveWindowState(WindowHandle);
 
-    if (!PhIsNullOrEmptyString(PhSettingsFileName))
-    {
-        NTSTATUS status;
-
+    if (PhIsNullOrEmptyString(PhSettingsFileName))
+        status = PhSaveSettings(NULL);
+    else
         status = PhSaveSettings(&PhSettingsFileName->sr);
 
-        if (!NT_SUCCESS(status))
-        {
-            PhShowStatus(NULL, L"Unable to save application settings.", status, 0);
-        }
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(NULL, L"Unable to save application settings.", status, 0);
     }
 }
 
