@@ -2049,6 +2049,149 @@ PPH_STRING PhGetServicePackageFullName(
     return servicePackageName;
 }
 
+/**
+ * Queries the Group value for a service.
+ *
+ * \param ServiceName Name of the service.
+ * \return A PPH_STRING containing the GroupName, or NULL if not found.
+ */
+PPH_STRING PhGetServiceGroupName(
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    PPH_STRING groupName = NULL;
+    HANDLE keyHandle;
+
+    if (NT_SUCCESS(PhOpenServiceKey(
+        &keyHandle,
+        KEY_READ,
+        ServiceName
+        )))
+    {
+        groupName = PhQueryRegistryStringZ(keyHandle, L"Group");
+        NtClose(keyHandle);
+    }
+
+    return groupName;
+}
+
+PPH_STRING PhGetEarlyStartServices(
+    VOID
+    )
+{
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control");
+    PPH_STRING earlyStartServices = NULL;
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &servicesKeyName,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        earlyStartServices = PhQueryRegistryStringZ(keyHandle, L"EarlyStartServices");
+
+        NtClose(keyHandle);
+    }
+
+    return earlyStartServices;
+}
+
+PPH_STRING PhGetSvchostGroup(
+    _In_ PPH_STRINGREF GroupName
+    )
+{
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Svchost");
+    PPH_STRING string = NULL;
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &servicesKeyName,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        string = PhQueryRegistryString(keyHandle, GroupName);
+
+        NtClose(keyHandle);
+    }
+
+    return string;
+}
+
+PPH_STRING PhGetSvchostGroupKeyName(
+    _In_ PPH_STRINGREF GroupName
+    )
+{
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Svchost");
+    static CONST PH_STRINGREF servicesKeySeperatorName = PH_STRINGREF_INIT(L"\\");
+
+    return PhConcatStringRef3(&servicesKeyName, &servicesKeySeperatorName, GroupName);
+}
+
+PPH_SVC_HOST_POLICY_INFO PhGetSvchostGroupPolicy(
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    PPH_SVC_HOST_POLICY_INFO policyInfo = NULL;
+    PPH_STRING keyName;
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    keyName = PhGetServiceKeyName(ServiceName);
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        policyInfo = PhAllocateZero(sizeof(PH_SVC_HOST_POLICY_INFO));
+
+        policyInfo->AuthenticationCapabilities = PhQueryRegistryUlongZ(keyHandle, L"AuthenticationCapabilities");
+        policyInfo->AuthenticationLevel = PhQueryRegistryUlongZ(keyHandle, L"AuthenticationLevel");
+        policyInfo->BinarySignaturePolicy = PhQueryRegistryUlongZ(keyHandle, L"BinarySignaturePolicy");
+        policyInfo->CoInitializeSecurityAllowComCapability = PhQueryRegistryUlongZ(keyHandle, L"CoInitializeSecurityAllowComCapability");
+        policyInfo->CoInitializeSecurityAllowCrossContainer = PhQueryRegistryUlongZ(keyHandle, L"CoInitializeSecurityAllowInteractiveUsers");
+        policyInfo->CoInitializeSecurityAllowLowBox = PhQueryRegistryUlongZ(keyHandle, L"CoInitializeSecurityAllowLowBox");
+        policyInfo->CoInitializeSecurityParam = PhQueryRegistryUlongZ(keyHandle, L"CoInitializeSecurityParam");
+        policyInfo->COM_UnmarshalingPolicy = PhQueryRegistryUlongZ(keyHandle, L"COM_UnmarshalingPolicy");
+        policyInfo->DefaultRpcStackSize = PhQueryRegistryUlongZ(keyHandle, L"DefaultRpcStackSize");
+        policyInfo->DynamicCodePolicy = PhQueryRegistryUlongZ(keyHandle, L"DynamicCodePolicy");
+        policyInfo->ImpersonationLevel = PhQueryRegistryUlongZ(keyHandle, L"ImpersonationLevel");
+        policyInfo->RedirectionTrustPolicy = PhQueryRegistryUlongZ(keyHandle, L"RedirectionTrustPolicy");
+        policyInfo->RpcExceptionFilterMode = PhQueryRegistryUlongZ(keyHandle, L"RpcExceptionFilterMode");
+
+        //KEY_VALUE_PARTIAL_INFORMATION keyValueInfo;
+        //status = PhQueryValueKeyZ(
+        //    keyHandle,
+        //    L"COMAccessPermissionsSD",
+        //    KeyValuePartialInformation,
+        //    &keyValueInfo
+        //    );
+
+        NtClose(keyHandle);
+    }
+
+    PhDereferenceObject(keyName);
+
+    return policyInfo;
+}
+
 NTSTATUS PhWaitForServiceStatus(
     _In_ SC_HANDLE ServiceHandle,
     _In_ ULONG WaitForState,
