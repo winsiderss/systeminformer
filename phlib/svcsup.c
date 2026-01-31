@@ -1993,6 +1993,36 @@ ULONG PhGetServiceBootFlags(
 }
 
 /**
+ * Retrieves the UserServiceFlags value for a service from the registry.
+ *
+ * \param ServiceName The service name as a string reference.
+ * \return The UserServiceFlags value, or 0 if not found.
+ */
+ULONG PhGetServiceUserFlags(
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    ULONG userServiceFlags = 0;
+    HANDLE keyHandle;
+
+    if (NT_SUCCESS(PhOpenServiceKey(
+        &keyHandle,
+        KEY_READ,
+        ServiceName
+        )))
+    {
+        userServiceFlags = PhQueryRegistryUlongZ(keyHandle, L"UserServiceFlags");
+
+        NtClose(keyHandle);
+    }
+
+    if (userServiceFlags == ULONG_MAX)
+        userServiceFlags = 0;
+
+    return userServiceFlags;
+}
+
+/**
  * Retrieves the PackageFullName value for a service.
  *
  * \param ServiceName Name of the service.
