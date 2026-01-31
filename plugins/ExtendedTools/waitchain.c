@@ -137,6 +137,7 @@ VOID WtcInitializeWaitTree(
     _Out_ PWCT_TREE_CONTEXT Context
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI EtWaitChainContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
