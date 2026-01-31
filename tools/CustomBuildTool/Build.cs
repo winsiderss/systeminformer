@@ -205,7 +205,7 @@ namespace CustomBuildTool
                     Program.PrintColorMessage(")", ConsoleColor.DarkGray, false);
                 }
 
-                if (!string.IsNullOrWhiteSpace(Build.BuildCommitBranch) && !Build.BuildCommitBranch.Equals("master"))
+                if (!string.IsNullOrWhiteSpace(Build.BuildCommitBranch) && !Build.BuildCommitBranch.Equals("master", StringComparison.OrdinalIgnoreCase))
                 {
                     Program.PrintColorMessage(" [", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage(Build.BuildCommitBranch, ConsoleColor.Blue, false);
@@ -273,6 +273,47 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Gets the base directory for toolchain aware outputs based on the build flags.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating whether to use CMake paths.</param>
+        /// <returns>"bin-cmake" if BuildCMake flag is set; otherwise, "bin".</returns>
+        public static string GetBuildBaseDirectory(BuildFlags Flags)
+        {
+            if (Flags.HasFlag(BuildFlags.BuildCMake))
+            {
+                return Path.Join([Build.BuildWorkingFolder, "\\bin-cmake"]);
+            }
+            else
+            {
+                return Path.Join([Build.BuildWorkingFolder, "\\bin"]);
+            }
+        }
+
+        /// <summary>
+        /// Gets the toolchain suffix for output filenames.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which toolchain to use.</param>
+        /// <returns>"-clang" if BuildCMake flag is set; otherwise, empty string.</returns>
+        public static string GetToolchainSuffix(BuildFlags Flags)
+        {
+            return Flags.HasFlag(BuildFlags.BuildCMake) ? "-clang" : string.Empty;
+        }
+
+        /// <summary>
+        /// Gets the platform-specific output directory path.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which platform and build type to use.</param>
+        /// <param name="platform">Platform identifier ("32", "64", or "ARM64").</param>
+        /// <returns>Full path to the platform-specific output directory.</returns>
+        public static string GetBuildOutputPath(BuildFlags Flags, string platform)
+        {
+            string basePath = GetBuildBaseDirectory(Flags);
+            string config = Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release";
+
+            return Path.Join([basePath, config + platform]);
+        }
+
+        /// <summary>
         /// Gets the build updated timestamp in ISO 8601 format, rounded to the hour.
         /// </summary>
         public static string BuildUpdated
@@ -314,6 +355,13 @@ namespace CustomBuildTool
         /// <returns>True if operation succeeds.</returns>
         public static bool CopyTextFiles(bool Update, BuildFlags Flags)
         {
+            var architectures = new Dictionary<BuildFlags, string>
+            {
+                { BuildFlags.Build32bit, "Release32" },
+                { BuildFlags.Build64bit, "Release64" },
+                { BuildFlags.BuildArm64bit, "ReleaseARM64" }
+            };
+
             string[] Build_Text_Files =
             [
                 "README.txt",
@@ -321,33 +369,23 @@ namespace CustomBuildTool
                 "LICENSE.txt",
             ];
 
-            if (Update)
+            string binPath = GetBuildBaseDirectory(Flags);
+
+            if (!Flags.HasFlag(BuildFlags.BuildRelease))
+                return true;
+
+            foreach (string file in Build_Text_Files)
             {
-                foreach (string file in Build_Text_Files)
+                foreach (var kvp in architectures)
                 {
-                    if (Flags.HasFlag(BuildFlags.BuildRelease))
+                    if (Flags.HasFlag(kvp.Key))
                     {
-                        if (Flags.HasFlag(BuildFlags.Build32bit))
-                            Win32.CopyIfNewer(file, $"bin\\Release32\\{file}", Flags);
-                        if (Flags.HasFlag(BuildFlags.Build64bit))
-                            Win32.CopyIfNewer(file, $"bin\\Release64\\{file}", Flags);
-                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                            Win32.CopyIfNewer(file, $"bin\\ReleaseARM64\\{file}", Flags);
-                    }
-                }
-            }
-            else
-            {
-                foreach (string file in Build_Text_Files)
-                {
-                    if (Flags.HasFlag(BuildFlags.BuildRelease))
-                    {
-                        if (Flags.HasFlag(BuildFlags.Build32bit))
-                            Win32.DeleteFile($"bin\\Release32\\{file}", Flags);
-                        if (Flags.HasFlag(BuildFlags.Build64bit))
-                            Win32.DeleteFile($"bin\\Release64\\{file}", Flags);
-                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                            Win32.DeleteFile($"bin\\ReleaseARM64\\{file}", Flags);
+                        string targetPath = Path.Join([binPath, $"\\{kvp.Value}\\", file]);
+                        
+                        if (Update)
+                            Win32.CopyIfNewer(file, targetPath, Flags);
+                        else
+                            Win32.DeleteFile(targetPath, Flags);
                     }
                 }
             }
@@ -362,6 +400,14 @@ namespace CustomBuildTool
         /// <returns>True if operation succeeds.</returns>
         public static bool CopyWow64Files(BuildFlags Flags)
         {
+            var configurations = new Dictionary<(BuildFlags config, BuildFlags arch), (string source, string target)>
+            {
+                { (BuildFlags.BuildDebug, BuildFlags.Build64bit), ("Debug32", "Debug64\\x86") },
+                { (BuildFlags.BuildDebug, BuildFlags.BuildArm64bit), ("Debug32", "DebugARM64\\x86") },
+                { (BuildFlags.BuildRelease, BuildFlags.Build64bit), ("Release32", "Release64\\x86") },
+                { (BuildFlags.BuildRelease, BuildFlags.BuildArm64bit), ("Release32", "ReleaseARM64\\x86") }
+            };
+
             string[] Build_Wow64_Files =
             [
                 "SystemInformer.exe",
@@ -375,22 +421,18 @@ namespace CustomBuildTool
                 "plugins\\ExtendedTools.sig",
             ];
 
+            string binPath = GetBuildBaseDirectory(Flags);
+
             foreach (string file in Build_Wow64_Files)
             {
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                foreach (var kvp in configurations)
                 {
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"bin\\Debug32\\{file}", $"bin\\Debug64\\x86\\{file}", Flags);
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"bin\\Debug32\\{file}", $"bin\\DebugARM64\\x86\\{file}", Flags);
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"bin\\Release32\\{file}", $"bin\\Release64\\x86\\{file}", Flags);
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"bin\\Release32\\{file}", $"bin\\ReleaseARM64\\x86\\{file}", Flags);
+                    if (Flags.HasFlag(kvp.Key.config) && Flags.HasFlag(kvp.Key.arch))
+                    {
+                        string sourcePath = Path.Join([binPath, $"\\{kvp.Value.source}\\", file]);
+                        string targetPath = Path.Join([binPath, $"\\{kvp.Value.target}\\", file]);
+                        Win32.CopyIfNewer(sourcePath, targetPath, Flags);
+                    }
                 }
             }
 
@@ -404,6 +446,16 @@ namespace CustomBuildTool
         /// <returns>True if operation succeeds.</returns>
         public static bool CopyResourceFiles(BuildFlags Flags)
         {
+            var configurations = new Dictionary<(BuildFlags config, BuildFlags arch), string>
+            {
+                { (BuildFlags.BuildDebug, BuildFlags.Build32bit), "Debug32\\Resources" },
+                { (BuildFlags.BuildDebug, BuildFlags.Build64bit), "Debug64\\Resources" },
+                { (BuildFlags.BuildDebug, BuildFlags.BuildArm64bit), "DebugARM64\\Resources" },
+                { (BuildFlags.BuildRelease, BuildFlags.Build32bit), "Release32\\Resources" },
+                { (BuildFlags.BuildRelease, BuildFlags.Build64bit), "Release64\\Resources" },
+                { (BuildFlags.BuildRelease, BuildFlags.BuildArm64bit), "ReleaseARM64\\Resources" }
+            };
+
             var Build_Resource_Files = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase)
             {
                 ["SystemInformer.png"] = "icon.png",
@@ -412,58 +464,17 @@ namespace CustomBuildTool
                 ["PoolTag.txt"] = "PoolTag.txt",
             };
 
+            string binPath = GetBuildBaseDirectory(Flags);
+
             foreach (var file in Build_Resource_Files)
             {
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                foreach (var kvp in configurations)
                 {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
+                    if (Flags.HasFlag(kvp.Key.config) && Flags.HasFlag(kvp.Key.arch))
                     {
                         Win32.CopyIfNewer(
-                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
-                            $"{BuildWorkingFolder}\\bin\\Debug32\\Resources\\{file.Value}",
-                            Flags);
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        Win32.CopyIfNewer(
-                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
-                            $"{BuildWorkingFolder}\\bin\\Debug64\\Resources\\{file.Value}",
-                            Flags);
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        Win32.CopyIfNewer(
-                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
-                            $"{BuildWorkingFolder}\\bin\\DebugARM64\\Resources\\{file.Value}",
-                            Flags);
-                    }
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                    {
-                        Win32.CopyIfNewer(
-                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
-                            $"{BuildWorkingFolder}\\bin\\Release32\\Resources\\{file.Value}",
-                            Flags);
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        Win32.CopyIfNewer(
-                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
-                            $"{BuildWorkingFolder}\\bin\\Release64\\Resources\\{file.Value}",
-                            Flags);
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        Win32.CopyIfNewer(
-                            $"{BuildWorkingFolder}\\SystemInformer\\resources\\{file.Key}",
-                            $"{BuildWorkingFolder}\\bin\\ReleaseARM64\\Resources\\{file.Value}",
+                            Path.Join([BuildWorkingFolder, "\\SystemInformer\\resources\\", file.Key]),
+                            Path.Join([binPath, $"\\{kvp.Value}\\", file.Value]),
                             Flags);
                     }
                 }
@@ -498,6 +509,21 @@ namespace CustomBuildTool
             // - Program Files\Windows Kits\10\Debuggers\Redist\X64 Debuggers and Tools-x64_en-us.msi
             // - App Verifier
             //
+
+            var debugArchitectures = new Dictionary<BuildFlags, (string sdkArch, string debugDir)>
+            {
+                { BuildFlags.Build32bit, ("x86", "Debug32") },
+                { BuildFlags.Build64bit, ("x64", "Debug64") },
+                { BuildFlags.BuildArm64bit, ("arm64", "DebugARM64") }
+            };
+
+            var releaseArchitectures = new Dictionary<BuildFlags, (string sdkArch, string releaseDir)>
+            {
+                { BuildFlags.Build32bit, ("x86", "Release32") },
+                { BuildFlags.Build64bit, ("x64", "Release64") },
+                { BuildFlags.BuildArm64bit, ("arm64", "ReleaseARM64") }
+            };
+
             string[] Build_DebugCore_Files =
             [
                 "dbgcore.dll",
@@ -505,6 +531,9 @@ namespace CustomBuildTool
                 "symsrv.dll"
             ];
 
+            string binPath = GetBuildBaseDirectory(Flags);
+
+            // Required for the ESDK
             string windowsSdkPath = Path.GetFullPath(Path.Join([Utils.GetWindowsSdkPath(), "..\\..\\Debuggers\\"]));
 
             if (string.IsNullOrWhiteSpace(windowsSdkPath))
@@ -520,22 +549,30 @@ namespace CustomBuildTool
             {
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"{windowsSdkPath}\\x86\\{file}", $"bin\\Debug32\\{file}", Flags);
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"{windowsSdkPath}\\x64\\{file}", $"bin\\Debug64\\{file}", Flags);
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"{windowsSdkPath}\\arm64\\{file}", $"bin\\DebugARM64\\{file}", Flags);
+                    foreach (var kvp in debugArchitectures)
+                    {
+                        if (Flags.HasFlag(kvp.Key))
+                        {
+                            Win32.CopyIfNewer(
+                                Path.Join([windowsSdkPath, $"\\{kvp.Value.sdkArch}\\", file]),
+                                Path.Join([binPath, $"\\{kvp.Value.debugDir}\\", file]),
+                                Flags);
+                        }
+                    }
                 }
 
                 if (Flags.HasFlag(BuildFlags.BuildRelease))
                 {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"{windowsSdkPath}\\x86\\{file}", $"bin\\Release32\\{file}", Flags);
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"{windowsSdkPath}\\x64\\{file}", $"bin\\Release64\\{file}", Flags);
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"{windowsSdkPath}\\arm64\\{file}", $"bin\\ReleaseARM64\\{file}", Flags);
+                    foreach (var kvp in releaseArchitectures)
+                    {
+                        if (Flags.HasFlag(kvp.Key))
+                        {
+                            Win32.CopyIfNewer(
+                                Path.Join([windowsSdkPath, $"\\{kvp.Value.sdkArch}\\", file]),
+                                Path.Join([binPath, $"\\{kvp.Value.releaseDir}\\", file]),
+                                Flags);
+                        }
+                    }
                 }
             }
 
@@ -552,32 +589,21 @@ namespace CustomBuildTool
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Validating exports...", ConsoleColor.Cyan);
 
-            if (Flags.HasFlag(BuildFlags.BuildDebug))
+            var validationPaths = new Dictionary<(BuildFlags config, BuildFlags arch), string>
             {
-                if (Flags.HasFlag(BuildFlags.Build64bit))
-                {
-                    if (!Utils.ValidateImageExports($"bin\\Debug32\\SystemInformer.exe"))
-                        return false;
-                }
+                { (BuildFlags.BuildDebug, BuildFlags.Build64bit), "Debug32\\SystemInformer.exe" },
+                { (BuildFlags.BuildDebug, BuildFlags.BuildArm64bit), "Debug32\\SystemInformer.exe" },
+                { (BuildFlags.BuildRelease, BuildFlags.Build64bit), "Release32\\SystemInformer.exe" },
+                { (BuildFlags.BuildRelease, BuildFlags.BuildArm64bit), "Release32\\SystemInformer.exe" }
+            };
 
-                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                {
-                    if (!Utils.ValidateImageExports($"bin\\Debug32\\SystemInformer.exe"))
-                        return false;
-                }
-            }
+            string binPath = GetBuildBaseDirectory(Flags);
 
-            if (Flags.HasFlag(BuildFlags.BuildRelease))
+            foreach (var kvp in validationPaths)
             {
-                if (Flags.HasFlag(BuildFlags.Build64bit))
+                if (Flags.HasFlag(kvp.Key.config) && Flags.HasFlag(kvp.Key.arch))
                 {
-                    if (!Utils.ValidateImageExports($"bin\\Release32\\SystemInformer.exe"))
-                        return false;
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                {
-                    if (!Utils.ValidateImageExports($"bin\\Release32\\SystemInformer.exe"))
+                    if (!Utils.ValidateImageExports(Path.Join([binPath, $"\\{kvp.Value}"])) )
                         return false;
                 }
             }
@@ -657,30 +683,34 @@ namespace CustomBuildTool
         /// <returns>True if operation succeeds.</returns>
         public static bool CopyKernelDriver(BuildFlags Flags)
         {
+            var configurations = new Dictionary<(BuildFlags config, BuildFlags arch), (string sourceArch, string targetDir)>
+            {
+                { (BuildFlags.BuildDebug, BuildFlags.Build64bit), ("amd64", "Debug64") },
+                { (BuildFlags.BuildDebug, BuildFlags.BuildArm64bit), ("arm64", "DebugARM64") },
+                { (BuildFlags.BuildRelease, BuildFlags.Build64bit), ("amd64", "Release64") },
+                { (BuildFlags.BuildRelease, BuildFlags.BuildArm64bit), ("arm64", "ReleaseARM64") }
+            };
             string[] Build_Driver_Files =
             [
                 "SystemInformer.sys",
                 "ksi.dll"
             ];
 
+            string binPath = GetBuildBaseDirectory(Flags);
+
             try
             {
                 foreach (string file in Build_Driver_Files)
                 {
-                    if (Flags.HasFlag(BuildFlags.BuildDebug))
+                    foreach (var kvp in configurations)
                     {
-                        if (Flags.HasFlag(BuildFlags.Build64bit))
-                            Win32.CopyVersionIfNewer($"KSystemInformer\\bin-signed\\amd64\\{file}", $"bin\\Debug64\\{file}", Flags);
-                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                            Win32.CopyVersionIfNewer($"KSystemInformer\\bin-signed\\arm64\\{file}", $"bin\\DebugARM64\\{file}", Flags);
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildRelease))
-                    {
-                        if (Flags.HasFlag(BuildFlags.Build64bit))
-                            Win32.CopyVersionIfNewer($"KSystemInformer\\bin-signed\\amd64\\{file}", $"bin\\Release64\\{file}", Flags);
-                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                            Win32.CopyVersionIfNewer($"KSystemInformer\\bin-signed\\arm64\\{file}", $"bin\\ReleaseARM64\\{file}", Flags);
+                        if (Flags.HasFlag(kvp.Key.config) && Flags.HasFlag(kvp.Key.arch))
+                        {
+                            Win32.CopyVersionIfNewer(
+                                Path.Join([Build.BuildWorkingFolder, $"\\KSystemInformer\\bin-signed\\{kvp.Value.sourceArch}\\", file]),
+                                Path.Join([binPath, $"\\{kvp.Value.targetDir}\\", file]),
+                                Flags);
+                        }
                     }
                 }
             }
@@ -740,80 +770,141 @@ namespace CustomBuildTool
         /// <returns>True if the SDK is built successfully; otherwise, false.</returns>
         public static bool BuildSdk(BuildFlags Flags)
         {
+            var configurations = new Dictionary<(BuildFlags config, BuildFlags arch), (string sourceDir, string targetArch)>
+            {
+                { (BuildFlags.BuildDebug, BuildFlags.Build32bit), ("Debug32", "i386") },
+                { (BuildFlags.BuildDebug, BuildFlags.Build64bit), ("Debug64", "amd64") },
+                { (BuildFlags.BuildDebug, BuildFlags.BuildArm64bit), ("DebugARM64", "arm64") },
+                { (BuildFlags.BuildRelease, BuildFlags.Build32bit), ("Release32", "i386") },
+                { (BuildFlags.BuildRelease, BuildFlags.Build64bit), ("Release64", "amd64") },
+                { (BuildFlags.BuildRelease, BuildFlags.BuildArm64bit), ("ReleaseARM64", "arm64") }
+            };
+
             string[] Build_Sdk_Files =
             [
                 "SystemInformer.lib",
                 "SystemInformer.pdb"
             ];
 
+            string binPath = GetBuildBaseDirectory(Flags);
+
             foreach (string folder in BuildConfig.Build_Sdk_Directories)
             {
                 Win32.CreateDirectory(folder);
             }
 
+            //
             // Copy headers
+            //
+
             foreach (string file in BuildConfig.Build_Phnt_Headers)
-                Win32.CopyIfNewer($"phnt\\include\\{file}", $"sdk\\include\\{file}", Flags, true);
+            {
+                Win32.CopyIfNewer(
+                    Path.Join([Build.BuildWorkingFolder, "\\phnt\\include\\", file]),
+                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", file]), 
+                    Flags, true);
+            }
+
             foreach (string file in BuildConfig.Build_Phlib_Headers)
-                Win32.CopyIfNewer($"phlib\\include\\{file}", $"sdk\\include\\{file}", Flags, true);
+            {
+                Win32.CopyIfNewer(
+                    Path.Join([Build.BuildWorkingFolder, "\\phlib\\include\\", file]),
+                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", file]), 
+                    Flags, true);
+            }
             foreach (string file in BuildConfig.Build_Kphlib_Headers)
-                Win32.CopyIfNewer($"kphlib\\include\\{file}", $"sdk\\include\\{file}", Flags, true);
+            {
+                Win32.CopyIfNewer(
+                    Path.Join([Build.BuildWorkingFolder, "\\kphlib\\include\\", file]), 
+                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", file]), 
+                    Flags, true);
+            }
 
+            //
             // Copy readme
-            Win32.CopyIfNewer("SystemInformer\\sdk\\readme.txt", "sdk\\readme.txt", Flags, true);
+            //
 
+            Win32.CopyIfNewer(
+                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\readme.txt"]), 
+                Path.Join([Build.BuildWorkingFolder, "\\sdk\\readme.txt"]), 
+                Flags, true);
+
+            //
             // Copy files
+            //
+
             foreach (string file in Build_Sdk_Files)
             {
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                foreach (var kvp in configurations)
                 {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"bin\\Debug32\\{file}", $"sdk\\lib\\i386\\{file}", Flags, true);
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"bin\\Debug64\\{file}", $"sdk\\lib\\amd64\\{file}", Flags, true);
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"bin\\DebugARM64\\{file}", $"sdk\\lib\\arm64\\{file}", Flags, true);
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"bin\\Release32\\{file}", $"sdk\\lib\\i386\\{file}", Flags, true);
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"bin\\Release64\\{file}", $"sdk\\lib\\amd64\\{file}", Flags, true);
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"bin\\ReleaseARM64\\{file}", $"sdk\\lib\\arm64\\{file}", Flags, true);
+                    if (Flags.HasFlag(kvp.Key.config) && Flags.HasFlag(kvp.Key.arch))
+                    {
+                        Win32.CopyIfNewer(
+                            Path.Join([binPath, $"\\{kvp.Value.sourceDir}\\", file]),
+                            Path.Join([Build.BuildWorkingFolder, $"\\sdk\\lib\\{kvp.Value.targetArch}\\", file]),
+                            Flags,
+                            true
+                            );
+                    }
                 }
             }
 
+            //
             // Build the SDK
+            //
+
             HeaderGen.Execute();
 
+            //
             // Copy the SDK headers
-            Win32.CopyIfNewer("SystemInformer\\include\\phappres.h", "sdk\\include\\phappres.h", Flags, true);
-            Win32.CopyIfNewer("SystemInformer\\sdk\\phapppub.h", "sdk\\include\\phapppub.h", Flags, true);
-            Win32.CopyIfNewer("SystemInformer\\sdk\\phdk.h", "sdk\\include\\phdk.h", Flags, true);
+            //
+
+            Win32.CopyIfNewer(
+                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\include\\phappres.h"]), 
+                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappres.h"]), 
+                Flags, true);
+
+            Win32.CopyIfNewer(
+                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\phapppub.h"]), 
+                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phapppub.h"]), 
+                Flags, true);
+
+            Win32.CopyIfNewer(
+                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\phdk.h"]), 
+                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phdk.h"]),
+                Flags, true);
 
             //
             // Copy the resource header and prefix types with PHAPP for the SDK
             //
 
-            Win32.GetFileBasicInfo("SystemInformer\\resource.h", out var sourceCreationTime, out var sourceWriteTime, out _);
-            Win32.GetFileBasicInfo("sdk\\include\\phappresource.h", out var targetCreationTime, out var targetWriteTime, out var targetAttributes);
+            Win32.GetFileBasicInfo(
+                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\resource.h"]), 
+                out var sourceCreationTime, 
+                out var sourceWriteTime, 
+                out _
+                );
+
+            Win32.GetFileBasicInfo(
+                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappresource.h"]),
+                out var targetCreationTime, 
+                out var targetWriteTime, 
+                out var targetAttributes
+                );
 
             if (sourceCreationTime != targetCreationTime || sourceWriteTime != targetWriteTime)
             {
-                string resourceContent = Utils.ReadAllText("SystemInformer\\resource.h");
+                string resourceContent = Utils.ReadAllText(Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\resource.h"]));
                 string targetContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
 
                 if (!resourceContent.Equals(targetContent, StringComparison.OrdinalIgnoreCase))
                 {
                     if ((targetAttributes & FileAttributes.ReadOnly) != 0)
-                        File.SetAttributes("sdk\\include\\phappresource.h", FileAttributes.Normal);
-                    Utils.WriteAllText("sdk\\include\\phappresource.h", targetContent);
+                        File.SetAttributes(Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappresource.h"]), FileAttributes.Normal);
+                    Utils.WriteAllText(Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappresource.h"]), targetContent);
                 }
 
-                Win32.SetFileBasicInfo("sdk\\include\\phappresource.h", sourceCreationTime, sourceWriteTime, true);
+                Win32.SetFileBasicInfo(Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappresource.h"]), sourceCreationTime, sourceWriteTime, true);
                 //Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h", Flags);
             }
 
@@ -831,13 +922,22 @@ namespace CustomBuildTool
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage($"Building build-{Channel}-setup.exe... ", ConsoleColor.Cyan, false);
 
-            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildApi, Channel))
+            if (!BuildSolution(
+                Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSetupTool\\CustomSetupTool.sln"]),
+                BuildFlags.Build32bit | BuildFlags.BuildApi,
+                Channel
+                ))
+            {
                 return false;
+            }
 
             try
             {
-                string out_file = Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe"]);
-                string exe_file = Path.Join([Build.BuildOutputFolder, $"\\systeminformer-build-{Channel}-setup.exe"]);
+                string binPath = GetBuildBaseDirectory(Flags);
+                string suffix = GetToolchainSuffix(Flags);
+                string config = Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release";
+                string out_file = Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSetupTool\\", binPath, $"\\{config}32\\CustomSetupTool.exe"]);
+                string exe_file = Path.Join([Build.BuildOutputFolder, $"\\systeminformer-build{suffix}-{Channel}-setup.exe"]);
 
                 Utils.CreateOutputDirectory();
 
@@ -874,7 +974,8 @@ namespace CustomBuildTool
 
             try
             {
-                string zip_file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-sdk.zip"]);
+                string suffix = GetToolchainSuffix(Flags);
+                string zip_file = Path.Join([Build.BuildOutputFolder, $"\\systeminformer-build{suffix}-sdk.zip"]);
 
                 Utils.CreateOutputDirectory();
 
@@ -907,12 +1008,16 @@ namespace CustomBuildTool
         /// <returns>True if all zip archives are built successfully; otherwise, false.</returns>
         public static bool BuildBinZip(BuildFlags Flags)
         {
+            string binPath = GetBuildBaseDirectory(Flags);
+            string config = Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release";
+            string suffix = GetToolchainSuffix(Flags);
+
             var Build_Zip_Files = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase)
             {
-                ["bin\\Release32"] = "systeminformer-build-win32-bin.zip",
-                ["bin\\Release64"] = "systeminformer-build-win64-bin.zip",
-                ["bin\\ReleaseARM64"] = "systeminformer-build-arm64-bin.zip",
-                ["bin"] = "systeminformer-build-bin.zip",
+                [Path.Join([binPath, $"\\{config}32"])] = $"systeminformer-build{suffix}-win32-bin.zip",
+                [Path.Join([binPath, $"\\{config}64"])] = $"systeminformer-build{suffix}-win64-bin.zip",
+                [Path.Join([binPath, $"\\{config}ARM64"])] = $"systeminformer-build{suffix}-arm64-bin.zip",
+                [binPath] = $"systeminformer-build{suffix}-bin.zip",
             };
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
@@ -952,10 +1057,11 @@ namespace CustomBuildTool
             try
             {
                 Utils.CreateOutputDirectory();
+                string suffix = GetToolchainSuffix(Flags);
 
                 if (MsixPackageBuild)
                 {
-                    string zip_file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-setup-package-pdb.zip"]);
+                    string zip_file = Path.Join([Build.BuildOutputFolder, $"\\systeminformer-setup{suffix}-package-pdb.zip"]);
 
                     Win32.DeleteFile(
                         zip_file,
@@ -975,7 +1081,7 @@ namespace CustomBuildTool
                 }
                 else
                 {
-                    string zip_file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-pdb.zip"]);
+                    string zip_file = Path.Join([Build.BuildOutputFolder, $"\\systeminformer-build{suffix}-pdb.zip"]);
 
                     Win32.DeleteFile(
                         zip_file,
@@ -1023,7 +1129,8 @@ namespace CustomBuildTool
 
             try
             {
-                string zip_file = Path.Join([Build.BuildOutputFolder, "\\systeminformer-symbols-package.zip"]);
+                string suffix = GetToolchainSuffix(Flags);
+                string zip_file = Path.Join([Build.BuildOutputFolder, $"\\systeminformer{suffix}-symbols-package.zip"]);
 
                 Win32.DeleteFile(
                     zip_file
@@ -1129,37 +1236,38 @@ namespace CustomBuildTool
         /// <returns>The constructed MSBuild command line string.</returns>
         private static string MsbuildCommandString(string Solution, string Platform, BuildFlags Flags, string Channel = null)
         {
-            List<string> compilerOptionsList = new List<string>();
+            List<string> preprocessorOptionsList = new List<string>();
             StringBuilder commandLine = new StringBuilder(0x100);
-            StringBuilder compilerOptions = new StringBuilder(0x100);
+            StringBuilder preprocessorOptions = new StringBuilder(0x100);
             StringBuilder linkerOptions = new StringBuilder(0x100);
 
             if (Flags.HasFlag(BuildFlags.BuildApi))
-                compilerOptionsList.Add("PH_BUILD_API");
+                preprocessorOptionsList.Add("PH_BUILD_API");
             if (Flags.HasFlag(BuildFlags.BuildMsix))
-                compilerOptionsList.Add("PH_BUILD_MSIX");
+                preprocessorOptionsList.Add("PH_BUILD_MSIX");
             if (!string.IsNullOrWhiteSpace(Channel))
-                compilerOptionsList.Add($"PH_RELEASE_CHANNEL_ID=\"{BuildConfig.Build_Channels[Channel]}\"");
+                preprocessorOptionsList.Add($"PH_RELEASE_CHANNEL_ID=\"{BuildConfig.Build_Channels[Channel]}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
-                compilerOptionsList.Add($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildHash()}\"");
+                preprocessorOptionsList.Add($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildHash()}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionMajor))
-                compilerOptionsList.Add($"PHAPP_VERSION_MAJOR=\"{Build.BuildVersionMajor}\"");
+                preprocessorOptionsList.Add($"PHAPP_VERSION_MAJOR=\"{Build.BuildVersionMajor}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionMinor))
-                compilerOptionsList.Add($"PHAPP_VERSION_MINOR=\"{Build.BuildVersionMinor}\"");
+                preprocessorOptionsList.Add($"PHAPP_VERSION_MINOR=\"{Build.BuildVersionMinor}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionBuild()))
-                compilerOptionsList.Add($"PHAPP_VERSION_BUILD=\"{Build.BuildVersionBuild()}\"");
+                preprocessorOptionsList.Add($"PHAPP_VERSION_BUILD=\"{Build.BuildVersionBuild()}\"");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionRevision()))
-                compilerOptionsList.Add($"PHAPP_VERSION_REVISION=\"{Build.BuildVersionRevision()}\"");
+                preprocessorOptionsList.Add($"PHAPP_VERSION_REVISION=\"{Build.BuildVersionRevision()}\"");
+
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
                 linkerOptions.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\" ");
 
-            compilerOptions.AppendJoin(";", compilerOptionsList);
+            preprocessorOptions.AppendJoin(";", preprocessorOptions);
 
             commandLine.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
 
-            if (compilerOptions.Length > 0)
-                commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
+            if (preprocessorOptions.Length > 0)
+                commandLine.Append($"/p:ExternalPreprocessorOptions=\"{preprocessorOptions.ToString()}\" ");
             if (linkerOptions.Length > 0)
                 commandLine.Append($"/p:ExternalLinkerOptions=\"{linkerOptions.ToString()}\" ");
             if (!string.IsNullOrWhiteSpace(Build.BuildSimdExtensions))
@@ -1221,6 +1329,7 @@ namespace CustomBuildTool
         /// <returns>True if the solution is built successfully; otherwise, false.</returns>
         public static bool BuildSolution(string Solution, BuildFlags Flags, string Channel = null)
         {
+            // Default/MSBuild path (existing behavior).
             if (Flags.HasFlag(BuildFlags.Build32bit))
             {
                 if (!MsbuildCommand(Solution, "Win32", Flags, Channel))
@@ -1258,60 +1367,158 @@ namespace CustomBuildTool
         /// <param name="Toolchain">The toolchain identifier.</param>
         /// <param name="Flags">Build flags indicating which configurations to process.</param>
         /// <returns>True if the solution is built successfully; otherwise, false.</returns>
-        public static bool BuildSolutionCMake(string Solution, string Generator, string Config, string Toolchain, BuildFlags Flags)
+        public static bool BuildSolutionCMake(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags)
         {
-            string buildCommand = null;
-            string buildPath = Config.Equals("Debug", StringComparison.OrdinalIgnoreCase)
-                ? "build-debug"
-                : "build-release";
+            // If CMake build is requested, route to BuildSolutionCMake for each requested arch.
+            if (Flags.HasFlag(BuildFlags.BuildCMake))
+            {
+                // 32-bit
+                if (Flags.HasFlag(BuildFlags.Build32bit))
+                {
+                    if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags))
+                        return false;
+                }
+
+                // 64-bit
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                {
+                    if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags))
+                        return false;
+                }
+
+                // ARM64
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                {
+                    if (HaveArm64BuildTools)
+                    {
+                        if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags))
+                            return false;
+                    }
+                    else
+                    {
+                        Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool ExecuteBuildSolutionCMake(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags)
+        {
+            string buildConfig = Flags.HasFlag(BuildFlags.Debug) ? "Debug" : "Release";
+            string buildFolder = Flags.HasFlag(BuildFlags.Debug) ? "build\\debug" : "build\\release";
 
             string platformSuffix = Toolchain switch
             {
-                "msvc-x86" => "-msvc-32",
-                "msvc-amd64" => "-msvc-64",
-                "msvc-arm64" => "-msvc-arm64",
-                "clang-msvc-x86" => "-clang-msvc-32",
-                "clang-msvc-amd64" => "-clang-msvc-64",
-                "clang-msvc-arm64" => "-clang-msvc-arm64",
+                BuildToolchain.MsvcX86 => "-msvc-32",
+                BuildToolchain.MsvcAmd64 => "-msvc-64",
+                BuildToolchain.MsvcArm64 => "-msvc-arm64",
+                BuildToolchain.ClangMsvcX86 => "-clang-msvc-32",
+                BuildToolchain.ClangMsvcAmd64 => "-clang-msvc-64",
+                BuildToolchain.ClangMsvcArm64 => "-clang-msvc-arm64",
                 _ => throw new ArgumentException("Unsupported toolchain")
             };
 
-            buildPath = Path.Join([Build.BuildWorkingFolder, buildPath + platformSuffix]);
+            string toolchainFile = Toolchain switch
+            {
+                BuildToolchain.MsvcX86 => "cmake/toolchain/msvc-x86.cmake",
+                BuildToolchain.MsvcAmd64 => "cmake/toolchain/msvc-amd64.cmake",
+                BuildToolchain.MsvcArm64 => "cmake/toolchain/msvc-arm64.cmake",
+                BuildToolchain.ClangMsvcX86 => "cmake/toolchain/clang-msvc-x86.cmake",
+                BuildToolchain.ClangMsvcAmd64 => "cmake/toolchain/clang-msvc-amd64.cmake",
+                BuildToolchain.ClangMsvcArm64 => "cmake/toolchain/clang-msvc-arm64.cmake",
+                _ => throw new ArgumentException("Unsupported toolchain")
+            };
 
-            if (Generator.Contains("Visual Studio", StringComparison.OrdinalIgnoreCase))
+            buildFolder = Path.Join([Build.BuildWorkingFolder, buildFolder + platformSuffix]);
+            toolchainFile = Path.Join([Build.BuildWorkingFolder, toolchainFile]);
+
+            //
+            // Clean
+            //
+
+            if (Directory.Exists(buildFolder))
             {
-                buildCommand = $"--build \"{buildPath}\" --config {Config} -- /m /p:Platform={CMakeGetPlatform(Toolchain)} -terminalLogger:auto";
-            }
-            else
-            {
-                buildCommand = $"--build \"{buildPath}\" --config {Config}";
+                try
+                { Directory.Delete(buildFolder, true); }
+                catch { }
             }
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
-            //Program.PrintColorMessage($"CMake build: cmake {buildCommand}", ConsoleColor.Cyan, true, Flags);
+            Program.PrintColorMessage($"Generating {Path.GetFileNameWithoutExtension(Solution)} [", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(Utils.GetToolchainString(Toolchain), ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(buildConfig, ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
 
-            int errorcode = Utils.ExecuteCMakeCommand(buildCommand);
+            //
+            // Generate
+            //
+
+            string cmakeGenOpts = string.Empty;
+            if (Generator == BuildGenerator.Ninja)
+            {
+                cmakeGenOpts = $"-DCMAKE_BUILD_TYPE={buildConfig}";
+            }
+
+            string generateArgs = $"-G \"{Utils.GetGeneratorString(Generator)}\" -S \"{Build.BuildWorkingFolder}\" -B \"{buildFolder}\" " +
+                                  $"--toolchain \"{toolchainFile}\" " +
+                                  $"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON " +
+                                  $"-DSI_WITH_CORE=ON " +
+                                  $"-DSI_WITH_PLUGINS=ON " +
+                                  $"{cmakeGenOpts}";
+
+            int errorcode = Utils.ExecuteCMakeCommand(generateArgs);
             if (errorcode != 0)
             {
-                Program.PrintColorMessage($"[ERROR] ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                Program.PrintColorMessage($"[ERROR] CMake generate failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
                 return false;
             }
+
+            Console.WriteLine();
+
+            //
+            // Build
+            //
+
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+            Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} [", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(Utils.GetToolchainString(Toolchain), ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(buildConfig, ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
+
+            string cmakeBuildOpts = string.Empty;
+            if (Generator == BuildGenerator.VisualStudio)
+            {
+                cmakeBuildOpts = $"-- /m /p:Platform={Utils.CMakeGetPlatform(Toolchain)} -terminalLogger:auto";
+            }
+
+            errorcode = Utils.ExecuteCMakeCommand($"--build \"{buildFolder}\" --config {buildConfig} {cmakeBuildOpts}");
+            if (errorcode != 0)
+            {
+                Program.PrintColorMessage($"[ERROR] CMake build failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                return false;
+            }
+
+            Console.WriteLine();
+
+            //
+            // Clean
+            //
+
+            if (Directory.Exists(buildFolder))
+            {
+                try
+                { Directory.Delete(buildFolder, true); }
+                catch { }
+            }
+
             return true;
         }
-
-        /// <summary>
-        /// Returns the CMake platform string for the specified toolchain.
-        /// </summary>
-        /// <param name="toolchain">The toolchain identifier.</param>
-        /// <returns>The platform string (e.g., Win32, x64, ARM64).</returns>
-        /// <exception cref="ArgumentException">Thrown if the toolchain is unsupported.</exception>
-        private static string CMakeGetPlatform(string toolchain) => toolchain switch
-        {
-            "msvc-x86" or "clang-msvc-x86" => "Win32",
-            "msvc-amd64" or "clang-msvc-amd64" => "x64",
-            "msvc-arm64" or "clang-msvc-arm64" => "ARM64",
-            _ => throw new ArgumentException("Unsupported toolchain")
-        };
 
 #nullable enable
         /// <summary>
@@ -1732,8 +1939,11 @@ namespace CustomBuildTool
         private static void BuildMsixPackageMapping(BuildFlags Flags)
         {
             // Create the package mapping file.
+            string Build_Base_Path = GetBuildBaseDirectory(Flags);
+            string release32Path = Path.Join([Build_Base_Path, "\\Release32"]);
+            string release64Path = Path.Join([Build_Base_Path, "\\Release64"]);
 
-            if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
+            if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists(release32Path))
             {
                 StringBuilder packageMap32 = new StringBuilder(0x100);
                 packageMap32.AppendLine("[Files]");
@@ -1742,7 +1952,7 @@ namespace CustomBuildTool
                 packageMap32.AppendLine("\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
                 packageMap32.AppendLine("\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
 
-                foreach (string filePath in Directory.EnumerateFiles("bin\\Release32", "*", SearchOption.AllDirectories))
+                foreach (string filePath in Directory.EnumerateFiles(release32Path, "*", SearchOption.AllDirectories))
                 {
                     if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
                         filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
@@ -1756,7 +1966,7 @@ namespace CustomBuildTool
                         continue;
                     }
 
-                    packageMap32.AppendLine($"\"{filePath}\" \"{filePath.AsSpan("bin\\Release32\\".Length)}\"");
+                    packageMap32.AppendLine($"\"{filePath}\" \"{filePath.AsSpan((release32Path + "\\").Length)}\"");
                 }
 
                 Utils.WriteAllText("tools\\msix\\MsixPackage32.map", packageMap32.ToString());
@@ -1764,7 +1974,7 @@ namespace CustomBuildTool
 
             // Create the package mapping file.
 
-            if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Release64"))
+            if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists(release64Path))
             {
                 StringBuilder packageMap64 = new StringBuilder(0x100);
                 packageMap64.AppendLine("[Files]");
@@ -1773,7 +1983,7 @@ namespace CustomBuildTool
                 packageMap64.AppendLine("\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
                 packageMap64.AppendLine("\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
 
-                foreach (string filePath in Directory.EnumerateFiles("bin\\Release64", "*", SearchOption.AllDirectories))
+                foreach (string filePath in Directory.EnumerateFiles(release64Path, "*", SearchOption.AllDirectories))
                 {
                     // Ignore junk files
                     if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
@@ -1788,7 +1998,7 @@ namespace CustomBuildTool
                         continue;
                     }
 
-                    packageMap64.AppendLine($"\"{filePath}\" \"{filePath.AsSpan("bin\\Release64\\".Length)}\"");
+                    packageMap64.AppendLine($"\"{filePath}\" \"{filePath.AsSpan((release64Path + "\\").Length)}\"");
                 }
 
                 Utils.WriteAllText("tools\\msix\\MsixPackage64.map", packageMap64.ToString());

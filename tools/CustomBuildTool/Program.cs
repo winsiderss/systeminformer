@@ -164,46 +164,6 @@ namespace CustomBuildTool
             {
                 BuildVirusTotal.UploadScanFile(ProgramArgs["-file"]);
             }
-            else if (ProgramArgs.ContainsKey("-cmake-build"))
-            {
-                BuildFlags flags = BuildFlags.Release;
-
-                if (ProgramArgs.ContainsKey("-verbose"))
-                {
-                    flags |= BuildFlags.BuildVerbose;
-                }
-
-                Build.SetupBuildEnvironment(true);
-
-                string generator = ProgramArgs["-generator"];
-                string config = ProgramArgs["-config"];
-                string toolchain = ProgramArgs["-toolchain"];
-
-                if (string.IsNullOrWhiteSpace(generator))
-                {
-                    generator = "Ninja";
-                }
-
-                if (string.IsNullOrWhiteSpace(config))
-                {
-                    generator = "CONFIG";
-                }
-
-                if (string.IsNullOrWhiteSpace(toolchain))
-                {
-                    generator = "msvc-amd64";
-                }
-
-                // Build main project
-                if (!Build.BuildSolutionCMake("SystemInformer", generator, config, toolchain, flags))
-                    Environment.Exit(1);
-
-                // Build plugins
-                if (!Build.BuildSolutionCMake("Plugins", generator, config, toolchain, flags))
-                    Environment.Exit(1);
-
-                Build.ShowBuildStats();
-            }
             else if (ProgramArgs.TryGetValue("-devenv-build", out string Command))
             {
                 Utils.ExecuteDevEnvCommand(Command);
@@ -469,6 +429,175 @@ namespace CustomBuildTool
 
                 Build.ShowBuildStats();
             }
+            else if (ProgramArgs.ContainsKey("-cmake-build"))
+            {
+                BuildFlags flags = BuildFlags.Release;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
+                Build.SetupBuildEnvironment(true);
+
+                var generator = Utils.GetGeneratorFromString(ProgramArgs["-generator"]);
+                var toolchain = Utils.GetToolchainFromString(ProgramArgs["-toolchain"]);
+                var config = ProgramArgs["-config"];
+
+                if (!Build.BuildSolutionCMake("SystemInformer", generator, toolchain, flags))
+                    Environment.Exit(1);
+                if (!Build.BuildSolutionCMake("Plugins", generator, toolchain, flags))
+                    Environment.Exit(1);
+
+                Build.ShowBuildStats();
+            }
+            else if (ProgramArgs.ContainsKey("-cmake-bin"))
+            {
+                BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
+                Build.SetupBuildEnvironment(false);
+
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                    Environment.Exit(1);
+                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                    Environment.Exit(1);
+
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
+                    Environment.Exit(1);
+                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
+                    Environment.Exit(1);
+
+                if (!Build.CopyTextFiles(true, flags))
+                    Environment.Exit(1);
+                if (!Build.BuildBinZip(flags))
+                    Environment.Exit(1);
+                if (!Build.CopyTextFiles(false, flags))
+                    Environment.Exit(1);
+
+                Build.ShowBuildStats();
+            }
+            else if (ProgramArgs.ContainsKey("-cmake-release"))
+            {
+                BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
+                Build.SetupBuildEnvironment(true);
+
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                    Environment.Exit(1);
+                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                    Environment.Exit(1);
+
+                if (!Build.CopyWow64Files(flags))
+                    Environment.Exit(1);
+                if (!Build.CopyTextFiles(true, flags))
+                    Environment.Exit(1);
+                if (!Build.BuildBinZip(flags))
+                    Environment.Exit(1);
+
+                foreach (var (channel, _) in BuildConfig.Build_Channels)
+                {
+                    if (!Build.BuildSetupExe(channel, flags))
+                        Environment.Exit(1);
+                }
+
+                if (!Build.CopyTextFiles(false, flags))
+                    Environment.Exit(1);
+
+                if (!Build.BuildPdbZip(false, flags))
+                    Environment.Exit(1);
+                //if (!Build.BuildSymStoreZip(flags))
+                //    Environment.Exit(1);
+                if (!Build.BuildChecksumsFile())
+                    Environment.Exit(1);
+
+                Build.ShowBuildStats();
+            }
+            else if (ProgramArgs.ContainsKey("-cmake-pipeline-build"))
+            {
+                BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
+                Build.SetupBuildEnvironment(true);
+                Build.CopySourceLink(true);
+
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                    Environment.Exit(1);
+                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                    Environment.Exit(1);
+
+                Build.CopyWow64Files(flags);
+
+                Build.ShowBuildStats();
+            }
+            else if (ProgramArgs.ContainsKey("-cmake-pipeline-package"))
+            {
+                BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
+                Build.SetupBuildEnvironment(true);
+
+                if (!Build.ResignFiles())
+                    Environment.Exit(1);
+                if (!Build.CopyTextFiles(true, flags))
+                    Environment.Exit(1);
+                if (!Build.BuildBinZip(flags))
+                    Environment.Exit(1);
+
+                foreach (var (channel, _) in BuildConfig.Build_Channels)
+                {
+                    if (!Build.BuildSetupExe(channel, flags))
+                        Environment.Exit(1);
+                }
+
+                if (!Build.CopyTextFiles(false, flags))
+                    Environment.Exit(1);
+
+                Build.ShowBuildStats();
+            }
+            else if (ProgramArgs.ContainsKey("-cmake-pipeline-deploy"))
+            {
+                BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake;
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    flags |= BuildFlags.BuildVerbose;
+                }
+
+                Build.SetupBuildEnvironment(true);
+
+                if (!Build.BuildPdbZip(false, flags))
+                    Environment.Exit(1);
+                //if (!Build.BuildSymStoreZip(flags))
+                //    Environment.Exit(1);
+                //if (!Build.BuildSdkZip())
+                //    Environment.Exit(1);
+                //if (!Build.BuildSrcZip())
+                //    Environment.Exit(1);
+                //if (!Build.BuildChecksumsFile())
+                //    Environment.Exit(1);
+                if (!Build.BuildUpdateServerConfig())
+                    Environment.Exit(1);
+
+                Build.ShowBuildStats();
+            }
             else
             {
                 Build.SetupBuildEnvironment(true);
@@ -566,9 +695,9 @@ namespace CustomBuildTool
             {
                 var colour_ansi = ToAnsiCode(Color);
 
-                if (formattedText.Contains('\n'))
+                if (formattedText.Contains('\n', StringComparison.OrdinalIgnoreCase))
                 {
-                    var sb = new System.Text.StringBuilder(formattedText.Length + 16);
+                    var sb = new StringBuilder(formattedText.Length + 16);
                     int start = 0;
 
                     for (int i = 0; i < formattedText.Length; i++)
