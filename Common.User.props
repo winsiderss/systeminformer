@@ -32,7 +32,7 @@
       <ResourceCompile>
           <Culture>0x0009</Culture>
           <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-          <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+          <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
       </ResourceCompile>
   </ItemDefinitionGroup>
 
@@ -127,7 +127,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       <ClCompile>
           <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
-          <PreprocessorDefinitions>WIN32;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+          <PreprocessorDefinitions>WIN32;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
           <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
           <Optimization>Disabled</Optimization>
@@ -155,8 +155,8 @@
   <!-- Debug|x64 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       <ClCompile>
-          <AdditionalOptions>/utf-8 /d1nodatetime /jumptablerdata %(AdditionalOptions)</AdditionalOptions>
-          <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+          <AdditionalOptions>/utf-8 /d1nodatetime /jumptablerdata %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
+          <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
           <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
           <Optimization>Disabled</Optimization>
@@ -185,7 +185,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
       <ClCompile>
           <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
-          <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+          <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
           <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
           <Optimization>Disabled</Optimization>
@@ -215,7 +215,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       <ClCompile>
           <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
-          <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+          <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
           <Optimization>MaxSpeed</Optimization>
           <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -250,7 +250,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       <ClCompile>
           <AdditionalOptions>/utf-8 /d1nodatetime /guard:xfg /jumptablerdata /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
-          <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+          <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
           <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
           <Optimization>MaxSpeed</Optimization>
@@ -287,7 +287,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
       <ClCompile>
           <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
-          <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+          <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
           <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
           <Optimization>MaxSpeed</Optimization>
