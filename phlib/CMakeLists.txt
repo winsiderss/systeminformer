@@ -85,7 +85,6 @@ source_group("Header Files" FILES ${HEADERS})
 
 set(SOURCES
     "apiimport.c"
-    "apistubs.cpp"
     "appresolver.c"
     "appruntime.c"
     "avltree.c"
