@@ -129,6 +129,7 @@ static BOOL WINAPI SetEndOfFile_Stub(
     return NT_SUCCESS(status);
 }
 
+DECLSPEC_NORETURN
 static VOID WINAPI ExitProcess_Stub(
     _In_ UINT uExitCode
     )
