@@ -20,16 +20,19 @@ typedef struct _ETP_DISK_PACKET
     PPH_STRING FileName;
 } ETP_DISK_PACKET, *PETP_DISK_PACKET;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI EtpDiskItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI EtpDiskHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI EtpDiskHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -103,6 +106,7 @@ PET_DISK_ITEM EtCreateDiskItem(
     return diskItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI EtpDiskItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -119,6 +123,7 @@ VOID NTAPI EtpDiskItemDeleteProcedure(
     if (diskItem->ProcessItem) PhDereferenceObject(diskItem->ProcessItem);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI EtpDiskHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -130,6 +135,7 @@ BOOLEAN NTAPI EtpDiskHashtableEqualFunction(
     return diskItem1->ProcessId == diskItem2->ProcessId && diskItem1->FileObject == diskItem2->FileObject;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI EtpDiskHashtableHashFunction(
     _In_ PVOID Entry
     )
