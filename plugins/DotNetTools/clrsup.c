@@ -29,7 +29,7 @@
 #include "clr/corsym.h"
 #endif
 
-static ICLRDataTargetVtbl DnCLRDataTarget_VTable =
+static CONST ICLRDataTargetVtbl DnCLRDataTarget_VTable =
 {
     DnCLRDataTarget_QueryInterface,
     DnCLRDataTarget_AddRef,
