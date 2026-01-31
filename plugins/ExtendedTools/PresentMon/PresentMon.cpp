@@ -12,7 +12,7 @@ static std::unordered_map<ULONG, ProcessInfo> ProcessesHashTable;
 
 static ProcessInfo* GetProcessInfo(
     _In_ ULONG ProcessId
-    )
+    ) noexcept
 {
     auto result = ProcessesHashTable.emplace(ProcessId, ProcessInfo());
     ProcessInfo* processInfo = &result.first->second;
@@ -35,7 +35,7 @@ static ProcessInfo* GetProcessInfo(
 // as long as we're still holding a handle to it.
 static void CheckForTerminatedRealtimeProcesses(
     std::vector<std::pair<ULONG, uint64_t>>* terminatedProcesses
-    )
+    ) noexcept
 {
     for (auto& pair : ProcessesHashTable)
     {
@@ -56,7 +56,7 @@ static void CheckForTerminatedRealtimeProcesses(
     }
 }
 
-static void HandleTerminatedProcess(ULONG processId)
+static void HandleTerminatedProcess(ULONG processId) noexcept
 {
     auto iter = ProcessesHashTable.find(processId);
     if (iter == ProcessesHashTable.end())
@@ -73,7 +73,7 @@ static void AddPresents(
     bool checkStopQpc,
     ULONGLONG stopQpc,
     bool* hitStopQpc
-    )
+    ) noexcept
 {
     size_t i = *presentEventIndex;
 
@@ -124,7 +124,7 @@ static void AddPresents(
 // Limit the present history stored in SwapChainData to 2 seconds.
 static void PruneHistory(
     std::vector<std::shared_ptr<PresentEvent>> const& presentEvents
-    )
+    ) noexcept
 {
     ULONGLONG latestQpc = presentEvents.empty() ? 0ull : presentEvents.back()->PresentStartTime;
     ULONGLONG minQpc = latestQpc - SecondsDeltaToQpc(2.0);
@@ -238,7 +238,7 @@ done:
 VOID PresentMonUpdateProcessStats(
     _In_ ULONG ProcessId,
     _In_ ProcessInfo const& ProcessInfo
-    )
+    ) noexcept
 {
     // Don't display non-target or empty processes
     if (ProcessInfo.mSwapChain.empty())
@@ -360,8 +360,11 @@ VOID PresentMonUpdateProcessStats(
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PresentMonOutputThread(
     _In_ PVOID ThreadParameter
-    )
+    ) noexcept
 {
+    PhSetThreadName(NtCurrentThread(), L"EtPresentMonThread");
+    PhSetThreadBasePriority(NtCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+
     std::vector<std::shared_ptr<PresentEvent>> presentEvents;
     //std::vector<std::shared_ptr<PresentEvent>> lostPresentEvents;
     std::vector<std::pair<ULONG, ULONGLONG>> terminatedProcesses;
@@ -418,7 +421,7 @@ NTSTATUS PresentMonOutputThread(
 
 VOID StartOutputThread(
     VOID
-    )
+    ) noexcept
 {
     if (!OutputThreadCreated)
     {
@@ -436,7 +439,7 @@ VOID StartOutputThread(
 
 VOID StopOutputThread(
     VOID
-    )
+    ) noexcept
 {
     InterlockedExchange(&QuitOutputThread, 1);
     //NtWaitForSingleObject(OutputThreadHandle, FALSE, nullptr);
@@ -445,7 +448,7 @@ VOID StopOutputThread(
 _Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PresentMonTraceThread(
     _In_ PVOID ThreadParameter
-    )
+    ) noexcept
 {
     ULONG result = 0;
     TRACEHANDLE traceHandle = reinterpret_cast<TRACEHANDLE>(ThreadParameter);
