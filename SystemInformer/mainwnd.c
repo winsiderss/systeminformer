@@ -3107,6 +3107,8 @@ VOID PhMwpSaveSettings(
     _In_ HWND WindowHandle
     )
 {
+    NTSTATUS status;
+
     PhMwpNotifyAllPages(MainTabPageSaveSettings, NULL, NULL);
 
     PhSaveWindowPlacementToSetting(SETTING_MAIN_WINDOW_POSITION, SETTING_MAIN_WINDOW_SIZE, WindowHandle);
