@@ -222,6 +222,13 @@ ULONGLONG PhGetJsonUInt64Object(
     return json_object_get_uint64(Object);
 }
 
+LONGLONG PhGetJsonInt64Object(
+    _In_ PVOID Object
+    )
+{
+    return json_object_get_int64(Object);
+}
+
 PVOID PhCreateJsonObject(
     VOID
     )
