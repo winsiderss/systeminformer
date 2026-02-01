@@ -23,6 +23,7 @@ set(SI_UM_CLANG_NO_DIAGNOSTICS
     -Wno-defaulted-function-deleted
     -Wno-class-conversion
     -Wno-microsoft-explicit-constructor-call
+    -Wno-nontrivial-memcall
 )
 
 #
