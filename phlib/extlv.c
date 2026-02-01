@@ -557,13 +557,13 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         break;
     case ELVM_SETCOMPAREFUNCTION:
         {
+            PPH_EXTLV_SETCOMPAREFUNCTION compare = (PPH_EXTLV_SETCOMPAREFUNCTION)lParam;
             ULONG column = (ULONG)wParam;
-            PPH_COMPARE_FUNCTION compareFunction = (PPH_COMPARE_FUNCTION)lParam;
 
             if (column >= PH_MAX_COMPARE_FUNCTIONS)
                 return FALSE;
 
-            context->CompareFunctions[column] = compareFunction;
+            context->CompareFunctions[column] = compare->CompareFunction;
         }
         return TRUE;
     case ELVM_SETCONTEXT:
@@ -578,12 +578,16 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_SETITEMCOLORFUNCTION:
         {
-            context->ItemColorFunction = (PPH_EXTLV_GET_ITEM_COLOR)lParam;
+            PPH_EXTLV_SETITEMCOLORFUNCTION color = (PPH_EXTLV_SETITEMCOLORFUNCTION)lParam;
+
+            context->ItemColorFunction = color->ColorFunction;
         }
         return TRUE;
     case ELVM_SETITEMFONTFUNCTION:
         {
-            context->ItemFontFunction = (PPH_EXTLV_GET_ITEM_FONT)lParam;
+            PPH_EXTLV_SETITEMFONTFUNCTION font = (PPH_EXTLV_SETITEMFONTFUNCTION)lParam;
+
+            context->ItemFontFunction = font->FontFunction;
         }
         return TRUE;
     case ELVM_SETREDRAW:
@@ -595,12 +599,12 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
 
             if (context->EnableRedraw == 1)
             {
-                SendMessage(WindowHandle, WM_SETREDRAW, TRUE, 0);
+                CallWindowProc(oldWndProc, WindowHandle, WM_SETREDRAW, TRUE, 0);
                 InvalidateRect(WindowHandle, NULL, FALSE);
             }
             else if (context->EnableRedraw == 0)
             {
-                SendMessage(WindowHandle, WM_SETREDRAW, FALSE, 0);
+                CallWindowProc(oldWndProc, WindowHandle, WM_SETREDRAW, FALSE, 0);
             }
         }
         return TRUE;
@@ -640,7 +644,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_SETTRISTATECOMPAREFUNCTION:
         {
-            context->TriStateCompareFunction = (PPH_COMPARE_FUNCTION)lParam;
+            PPH_EXTLV_SETCOMPAREFUNCTION compare = (PPH_EXTLV_SETCOMPAREFUNCTION)lParam;
+
+            context->TriStateCompareFunction = compare->CompareFunction;
         }
         return TRUE;
     case ELVM_SORTITEMS:
