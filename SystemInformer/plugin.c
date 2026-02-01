@@ -530,8 +530,7 @@ VOID PhLoadPlugins(
     // went into the ignored settings list. Now that they've had a chance to add
     // settings, we should scan the ignored settings list and move the settings to
     // the right places.
-    if (PhSettingsFileName)
-        PhConvertIgnoredSettings();
+    PhConvertIgnoredSettings();
 
     PhpExecuteCallbackForAllPlugins(PluginCallbackLoad, TRUE);
 

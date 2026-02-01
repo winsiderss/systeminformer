@@ -18,8 +18,15 @@ namespace CustomBuildTool
         {
             { "-argsfile", "Read arguments from a file instead of the command line." },
             { "-bin", "Builds the binary package." },
+            { "-check_msvc", "Check required build dependancies are installed." },
+            { "-install_msvc", "Installs any missing build dependancies." },
             { "-cleanup", "Cleans up the build environment." },
             { "-cleansdk", "Cleans SDK build artifacts (internal)." },
+            { "-cmake-bin", "Builds the binary package using CMake (clang)." },
+            { "-cmake-pipeline-build", "Performs pipeline build operations using CMake (clang)." },
+            { "-cmake-pipeline-deploy", "Deploys pipeline artifacts using CMake (clang)." },
+            { "-cmake-pipeline-package", "Packages pipeline artifacts using CMake (clang)." },
+            { "-cmake-release", "Builds release configuration using CMake (clang)." },
             { "-debug", "Builds the debug configuration." },
             { "-decrypt", "Decrypts a file." },
             { "-devenv-build", "Runs devenv build." },
@@ -81,6 +88,20 @@ namespace CustomBuildTool
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi;
 
                 if (!Build.BuildSolution("SystemInformer.sln", flags))
+                    Environment.Exit(1);
+
+                Build.ShowBuildStats();
+            }
+            else if (ProgramArgs.ContainsKey("-check_msvc"))
+            {
+                if (!BuildVisualStudio.CheckBuildDependencies())
+                    Environment.Exit(1);
+
+                Build.ShowBuildStats();
+            }
+            else if (ProgramArgs.ContainsKey("-install_msvc"))
+            {
+                if (!BuildVisualStudio.InstallBuildDependencies())
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
@@ -467,10 +488,10 @@ namespace CustomBuildTool
                 if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
                     Environment.Exit(1);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
-                    Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
-                    Environment.Exit(1);
+                //if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
+                //    Environment.Exit(1);
+                //if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
+                //    Environment.Exit(1);
 
                 if (!Build.CopyTextFiles(true, flags))
                     Environment.Exit(1);
