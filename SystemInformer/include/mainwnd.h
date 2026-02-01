@@ -71,6 +71,9 @@ typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
     PH_MAINWINDOW_CALLBACK_TYPE_PAGEINDEX,
     PH_MAINWINDOW_CALLBACK_TYPE_WINDOWDPI,
     PH_MAINWINDOW_CALLBACK_TYPE_WINDOWNAME,
+    PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_MENU,
+    PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_SUBMENU,
+    PH_MAINWINDOW_CALLBACK_TYPE_SET_MAIN_SUBCMD,
     PH_MAINWINDOW_CALLBACK_TYPE_MAXIMUM
 } PH_MAINWINDOW_CALLBACK_TYPE;
 
@@ -147,6 +150,12 @@ PhPluginInvokeWindowCallback(
     (PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOWDPI, 0, 0)))
 #define SystemInformer_GetWindowName() \
     (PWSTR)(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOWNAME, 0, 0))
+#define SystemInformer_GetMainMenu() \
+    ((PPH_EMENU)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_MENU, 0, 0))
+#define SystemInformer_GetMainSubMenu(Index) \
+    ((PPH_EMENU)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_SUBMENU, (PVOID)(ULONG_PTR)(Index), 0))
+#define SystemInformer_SetMainSubCmd(Index, Context) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SET_MAIN_SUBCMD, (PVOID)(ULONG_PTR)(Index), (PVOID)Context)
 
 #define PhWindowsVersion SystemInformer_GetWindowsVersion() // Temporary backwards compat (dmex)
 // end_phapppub

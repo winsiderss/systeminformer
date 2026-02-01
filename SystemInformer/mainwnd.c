@@ -163,65 +163,65 @@ BOOLEAN PhMainWndInitialization(
 /**
  * Window procedure for the main window.
  *
- * \param hWnd Handle to the window.
+ * \param WindowHandle Handle to the window.
  * \param uMsg Message identifier.
  * \param wParam First message parameter.
  * \param lParam Second message parameter.
  * \return LRESULT Message result.
  */
 LRESULT CALLBACK PhMwpWndProc(
-    _In_ HWND hWnd,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_DESTROY:
         {
-            PhMwpOnDestroy(hWnd);
+            PhMwpOnDestroy(WindowHandle);
         }
         break;
     case WM_ENDSESSION:
         {
-            PhMwpOnEndSession(hWnd, !!wParam, (ULONG)lParam);
+            PhMwpOnEndSession(WindowHandle, !!wParam, (ULONG)lParam);
         }
         break;
     case WM_SETTINGCHANGE:
         {
-            PhMwpOnSettingChange(hWnd, (ULONG)wParam, (PWSTR)lParam);
+            PhMwpOnSettingChange(WindowHandle, (ULONG)wParam, (PWSTR)lParam);
         }
         break;
     case WM_COMMAND:
         {
-            PhMwpOnCommand(hWnd, GET_WM_COMMAND_ID(wParam, lParam));
+            PhMwpOnCommand(WindowHandle, GET_WM_COMMAND_ID(wParam, lParam));
         }
         break;
     case WM_SHOWWINDOW:
         {
-            PhMwpOnShowWindow(hWnd, !!wParam, (ULONG)lParam);
+            PhMwpOnShowWindow(WindowHandle, !!wParam, (ULONG)lParam);
         }
         break;
     case WM_SYSCOMMAND:
         {
-            if (PhMwpOnSysCommand(hWnd, (ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)))
+            if (PhMwpOnSysCommand(WindowHandle, (ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)))
                 return 0;
         }
         break;
     case WM_MENUCOMMAND:
         {
-            PhMwpOnMenuCommand(hWnd, (ULONG)wParam, (HMENU)lParam);
+            PhMwpOnMenuCommand(WindowHandle, (ULONG)wParam, (HMENU)lParam);
         }
         break;
     case WM_INITMENUPOPUP:
         {
-            PhMwpOnInitMenuPopup(hWnd, (HMENU)wParam, LOWORD(lParam), !!HIWORD(lParam));
+            PhMwpOnInitMenuPopup(WindowHandle, (HMENU)wParam, LOWORD(lParam), !!HIWORD(lParam));
         }
         break;
     case WM_SIZE:
         {
-            PhMwpOnSize(hWnd, (UINT)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            PhMwpOnSize(WindowHandle, (UINT)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         }
         break;
     case WM_SIZING:
@@ -231,12 +231,12 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_SETFOCUS:
         {
-            PhMwpOnSetFocus(hWnd);
+            PhMwpOnSetFocus(WindowHandle);
         }
         break;
     case WM_TIMER:
         {
-            PhMwpOnTimer(hWnd, wParam, lParam);
+            PhMwpOnTimer(WindowHandle, wParam, lParam);
         }
         break;
     case WM_NOTIFY:
@@ -249,12 +249,12 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_DEVICECHANGE:
         {
-            PhMwpOnDeviceChanged(hWnd, wParam, lParam);
+            PhMwpOnDeviceChanged(WindowHandle, wParam, lParam);
         }
         break;
     case WM_DPICHANGED:
         {
-            PhMwpOnDpiChanged(hWnd, LOWORD(wParam));
+            PhMwpOnDpiChanged(WindowHandle, LOWORD(wParam));
         }
         break;
     case WM_NCPAINT:
@@ -262,20 +262,20 @@ LRESULT CALLBACK PhMwpWndProc(
         {
             if (WindowsVersion >= WINDOWS_10 && !PhEnableThemeSupport)
             {
-                LRESULT result = DefWindowProc(hWnd, uMsg, wParam, lParam);
-                PhWindowThemeMainMenuBorder(hWnd);
+                LRESULT result = DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
+                PhWindowThemeMainMenuBorder(WindowHandle);
                 return result;
             }
         }
         break;
     }
 
-    if (uMsg >= WM_PH_FIRST && uMsg <= WM_PH_LAST)
+    if (WindowMessage >= WM_PH_FIRST && WindowMessage <= WM_PH_LAST)
     {
-        return PhMwpOnUserMessage(hWnd, uMsg, wParam, lParam);
+        return PhMwpOnUserMessage(WindowHandle, WindowMessage, wParam, lParam);
     }
 
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
 }
 
 /**
@@ -543,7 +543,7 @@ VOID PhMwpInitializeControls(
         );
 
     PhMwpProcessTreeNewHandle = PhCreateWindow(
-        PH_TREENEW_CLASSNAME,
+        MAKEINTATOM(PhTreeWindowAtom),
         NULL,
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER |
         thinRows | treelistBorder | treelistCustomColors | treelistCustomHeaderDraw | treelistCustomDragReorder,
@@ -558,7 +558,7 @@ VOID PhMwpInitializeControls(
         );
 
     PhMwpServiceTreeNewHandle = PhCreateWindow(
-        PH_TREENEW_CLASSNAME,
+        MAKEINTATOM(PhTreeWindowAtom),
         NULL,
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
         0,
@@ -572,7 +572,7 @@ VOID PhMwpInitializeControls(
         );
 
     PhMwpNetworkTreeNewHandle = PhCreateWindow(
-        PH_TREENEW_CLASSNAME,
+        MAKEINTATOM(PhTreeWindowAtom),
         NULL,
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
         0,
@@ -2626,8 +2626,6 @@ VOID PhMwpOnMenuCommand(
     {
         PhMwpDispatchMenuCommand(
             WindowHandle,
-            Menu,
-            Index,
             menuItemInfo.wID,
             menuItemInfo.dwItemData
             );
@@ -2997,9 +2995,6 @@ LRESULT PhMwpOnUserMessage(
             case 4:
                 PhMwpInvokeSelectNetworkItem((PVOID)LParam);
                 break;
-            case 5:
-                PhMwpInvokeUpdateWindowFont((PVOID)LParam);
-                break;
             }
         }
         break;
@@ -3040,6 +3035,11 @@ LRESULT PhMwpOnUserMessage(
     case WM_PH_INVOKE:
         {
             PhProcessInvokeQueue();
+        }
+        break;
+    case WM_PH_UPDATE_FONT:
+        {
+            PhMwpInvokeUpdateWindowFont((PVOID)LParam);
         }
         break;
     }
@@ -3706,15 +3706,11 @@ VOID PhMwpInitializeMainMenu(
  * Dispatches a menu command based on the provided parameters.
  *
  * \param WindowHandle Handle to the window receiving the menu command.
- * \param MenuHandle Handle to the menu containing the command.
- * \param ItemIndex Zero-based index of the menu item.
  * \param ItemId Identifier of the menu item.
  * \param ItemData Additional data associated with the menu item.
  */
 VOID PhMwpDispatchMenuCommand(
     _In_ HWND WindowHandle,
-    _In_ HMENU MenuHandle,
-    _In_ ULONG ItemIndex,
     _In_ ULONG ItemId,
     _In_ ULONG_PTR ItemData
     )
@@ -5369,7 +5365,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_UPDATE_FONT:
         {
-            SendMessage(PhMainWndHandle, WM_PH_SELECT_NODE, (WPARAM)5, (LPARAM)lparam);
+            SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, (LPARAM)lparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT:
@@ -5445,6 +5441,35 @@ PVOID PhPluginInvokeWindowCallback(
     case PH_MAINWINDOW_CALLBACK_TYPE_WINDOWNAME:
         {
             return (PVOID)PhApplicationName;
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_MENU:
+        {
+            return (PVOID)PhpCreateMainMenu(ULONG_MAX);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_SUBMENU:
+        {
+            PPH_EMENU menu;
+
+            menu = PhpCreateMainMenu(PtrToUlong(wparam));
+            PhMwpInitializeSubMenu(PhMainWndHandle, menu, PtrToUlong(wparam));
+
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_MENU_INFORMATION pluginMenuInfo;
+
+                PhPluginInitializeMenuInfo(&pluginMenuInfo, menu, PhMainWndHandle, PH_PLUGIN_MENU_DISALLOW_HOOKS);
+                pluginMenuInfo.u.MainMenu.SubMenuIndex = PtrToUlong(wparam);
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainMenuInitializing), &pluginMenuInfo);
+            }
+
+            return (PVOID)menu;
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SET_MAIN_SUBCMD:
+        {
+            PhMwpDispatchMenuCommand(PhMainWndHandle, PtrToUlong(wparam), (ULONG_PTR)lparam);
         }
         break;
     }
