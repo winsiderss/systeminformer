@@ -179,7 +179,7 @@ typedef struct _VARIABLE_NAME_AND_VALUE
 
 /**
  * The NtEnumerateSystemEnvironmentValuesEx routine enumerates system environment values with extended information.
- * 
+ *
  * \param InformationClass The class of system environment information to retrieve.
  * \param Buffer Pointer to a buffer that receives the system environment values data.
  * \param BufferLength Pointer to a ULONG variable that specifies the size of the Buffer on input.
@@ -1665,7 +1665,7 @@ NtUmsThreadYield(
 typedef struct _WNF_STATE_NAME
 {
     union
-    {   
+    {
         ULONGLONG Value;
         ULONG Data[2];
         struct
@@ -6582,7 +6582,7 @@ typedef struct _SYSTEM_RUNTIME_REPORT_INPUT
     UCHAR Nonce[32];
 } SYSTEM_RUNTIME_REPORT_INPUT, *PSYSTEM_RUNTIME_REPORT_INPUT;
 
-#if !defined(NTDDI_WIN11_DT) || (NTDDI_VERSION < NTDDI_WIN11_DT)
+#if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
 //
 // ===============================================
 // Runtime Report Package Format:
@@ -6626,7 +6626,7 @@ typedef struct _SYSTEM_RUNTIME_REPORT_INPUT
 // Runtime Report Type Enumeration
 //
 
-typedef enum _RUNTIME_REPORT_TYPE 
+typedef enum _RUNTIME_REPORT_TYPE
 {
     RuntimeReportTypeDriver = 0,
     RuntimeReportTypeCodeIntegrity = 1,
@@ -6645,7 +6645,7 @@ typedef enum _RUNTIME_REPORT_TYPE
 
 #define RUNTIME_REPORT_TYPE_MASK_ALL ((1ULL << RuntimeReportTypeMax) - 1)
 
-typedef struct _RUNTIME_REPORT_PACKAGE_HEADER 
+typedef struct _RUNTIME_REPORT_PACKAGE_HEADER
 {
     //
     // Set to RUNTIME_REPORT_PACKAGE_MAGIC = 0x52545250 ("RTRP")
@@ -6729,7 +6729,7 @@ typedef struct _RUNTIME_REPORT_PACKAGE_HEADER
 
 } RUNTIME_REPORT_PACKAGE_HEADER, *PRUNTIME_REPORT_PACKAGE_HEADER;
 
-typedef struct _RUNTIME_REPORT_DIGEST_HEADER 
+typedef struct _RUNTIME_REPORT_DIGEST_HEADER
 {
     //
     // Indicates the type of report that was hashed.
@@ -6756,7 +6756,7 @@ typedef struct _RUNTIME_REPORT_DIGEST_HEADER
 
 } RUNTIME_REPORT_DIGEST_HEADER, *PRUNTIME_REPORT_DIGEST_HEADER;
 
-typedef struct _RUNTIME_REPORT_HEADER 
+typedef struct _RUNTIME_REPORT_HEADER
 {
     //
     // Indicates the type of report.
@@ -6789,7 +6789,7 @@ typedef struct _RUNTIME_REPORT_HEADER
 #define DRIVER_REPORT_DIGEST_MAX_SIZE   RUNTIME_REPORT_DIGEST_MAX_SIZE
 #define DRIVER_REPORT_NAME_MAX_LENGTH   32
 
-typedef struct _DRIVER_INFO_ENTRY 
+typedef struct _DRIVER_INFO_ENTRY
 {
     //
     // Internal name of the driver from the resource section.
@@ -6852,9 +6852,9 @@ typedef struct _DRIVER_INFO_ENTRY
     //      - Reserved - Reserved flags bits.
     //
 
-    union 
+    union
     {
-        struct 
+        struct
         {
             USHORT Unloaded : 1;
             USHORT BootDriver : 1;
@@ -6867,7 +6867,7 @@ typedef struct _DRIVER_INFO_ENTRY
     USHORT Padding;
 } DRIVER_INFO_ENTRY, *PDRIVER_INFO_ENTRY;
 
-typedef struct _DRIVER_RUNTIME_REPORT 
+typedef struct _DRIVER_RUNTIME_REPORT
 {
     //
     // The driver runtime report header.
@@ -6897,9 +6897,9 @@ typedef struct _DRIVER_RUNTIME_REPORT
     //      - Reserved - Reserved flags bits.
     //
 
-    union 
+    union
     {
-        struct 
+        struct
         {
             USHORT ReportOverflowed : 1;
             USHORT PartialReport : 1;
@@ -6932,7 +6932,7 @@ typedef struct _DRIVER_RUNTIME_REPORT
 // Code Integrity Report Definitions.
 //
 
-typedef struct _CODE_INTEGRITY_RUNTIME_REPORT 
+typedef struct _CODE_INTEGRITY_RUNTIME_REPORT
 {
     //
     // The Code Integrity runtime report header.
@@ -6959,7 +6959,7 @@ typedef struct _CODE_INTEGRITY_RUNTIME_REPORT
 
 #define CODE_INTEGRITY_REPORT_GENERATION_VERSION_CURRENT    (1)
 
-typedef struct _CODE_INTEGRITY_REPORT_GENERATION_HEADER 
+typedef struct _CODE_INTEGRITY_REPORT_GENERATION_HEADER
 {
     //
     // Version of this structure.
@@ -6991,7 +6991,7 @@ typedef struct _CODE_INTEGRITY_REPORT_GENERATION_HEADER
 
 #define CODE_INTEGRITY_REPORT_RECORD_VERSION_CURRENT    (1)
 
-typedef struct _CODE_INTEGRITY_REPORT_RECORD_HEADER 
+typedef struct _CODE_INTEGRITY_REPORT_RECORD_HEADER
 {
     //
     // Version of this structure.
@@ -7021,7 +7021,7 @@ typedef struct _CODE_INTEGRITY_REPORT_RECORD_HEADER
 	ULONG SipaEventCode;
 
 } CODE_INTEGRITY_REPORT_RECORD_HEADER;
-#endif // #if !defined(NTDDI_WIN11_DT) || (NTDDI_VERSION < NTDDI_WIN11_DT)
+#endif // #if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
 
 /**
  * The SYSTEM_POOLTAG2 structure describes allocation statistics for a single
