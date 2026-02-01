@@ -1284,3 +1284,31 @@ NTSTATUS PhSvcCallQueryProcessHeapInformation(
 
     return status;
 }
+
+NTSTATUS PhSvcCallCreateProcessForKsi(
+    _In_ PCWSTR CommandLine,
+    _In_ ULONG64 MitigationFlags[2]
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    PVOID commandLine;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    memset(&m, 0, sizeof(PHSVC_API_MSG));
+    m.p.ApiNumber = PhSvcCreateProcessForKsi;
+
+    if (!(commandLine = PhSvcpCreateString(CommandLine, SIZE_MAX, &m.p.u.CreateProcessForKsi.i.CommandLine)))
+        return STATUS_NO_MEMORY;
+
+    m.p.u.CreateProcessForKsi.i.MitigationFlags[0] = MitigationFlags[0];
+    m.p.u.CreateProcessForKsi.i.MitigationFlags[1] = MitigationFlags[1];
+
+    status = PhSvcpCallServer(&m);
+
+    PhSvcpFreeHeap(commandLine);
+
+    return status;
+}

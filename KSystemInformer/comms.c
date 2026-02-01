@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -16,19 +16,22 @@
 
 #include <trace.h>
 
+#define KPH_COMMS_MIN_QUEUE_THREADS 2
+#define KPH_COMMS_MAX_QUEUE_THREADS 64
+#define KPH_COMMS_MAX_CLIENTS       32
+
 typedef struct _KPHM_QUEUE_ITEM
 {
     LIST_ENTRY Entry;
     BOOLEAN NonPaged;
-    PEPROCESS TargetClientProcess;
     PKPH_MESSAGE Message;
+    ULONG TargetClientCount;
+    PKPH_CLIENT TargetClients[KPH_COMMS_MAX_CLIENTS];
 } KPHM_QUEUE_ITEM, *PKPHM_QUEUE_ITEM;
 
-#define KPH_COMMS_MIN_QUEUE_THREADS 2
-#define KPH_COMMS_MAX_QUEUE_THREADS 64
-
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const UNICODE_STRING KphpClientObjectName = RTL_CONSTANT_STRING(L"KphClient");
+static const UNICODE_STRING KphpClientTypeName = RTL_CONSTANT_STRING(L"KphClient");
+static const UNICODE_STRING KphpClientRateLimitTypeName = RTL_CONSTANT_STRING(L"KphClientRateLimit");
 static const LARGE_INTEGER KphpMessageMinTimeout = KPH_TIMEOUT(300);
 static const KPH_MESSAGE_TIMEOUTS KphpDefaultMessageTimeouts =
 {
@@ -38,21 +41,161 @@ static const KPH_MESSAGE_TIMEOUTS KphpDefaultMessageTimeouts =
     .FilePreCreateTimeout = KPH_TIMEOUT(3000),
     .FilePostCreateTimeout = KPH_TIMEOUT(3000),
 };
+static const UNICODE_STRING KphpMessageQueueThreadName = RTL_CONSTANT_STRING(L"System Informer Message Queue");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PFLT_PORT KphpFltServerPort = NULL;
-static PKPH_OBJECT_TYPE KphpClientObjectType = NULL;
+static PKPH_OBJECT_TYPE KphpClientType = NULL;
+static PKPH_OBJECT_TYPE KphpClientRateLimitType = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 static KPH_RUNDOWN KphpCommsRundown;
 static PAGED_LOOKASIDE_LIST KphpMessageLookaside;
 static NPAGED_LOOKASIDE_LIST KphpNPagedMessageLookaside;
-static KPH_RWLOCK KphpConnectedClientLock;
-static LIST_ENTRY KphpConnectedClientList;
-static ULONG KphpConnectedClientCount = 0;
 static NPAGED_LOOKASIDE_LIST KphpMessageQueueItemLookaside;
+static ALIGNED_EX_SPINLOCK KphpConnectedClientsLock = 0;
+static ULONG KphpConnectedClientsCount = 0;
+static PKPH_CLIENT KphpConnectedClients[KPH_COMMS_MAX_CLIENTS] = { NULL };
 static KQUEUE KphpMessageQueue;
-static PKTHREAD* KphpMessageQueueThreads = NULL;
+static PETHREAD* KphpMessageQueueThreads = NULL;
 static ULONG KphpMessageQueueThreadsCount = 0;
+
+/**
+ * \brief Gets the number of connected clients.
+ *
+ * \return Number of connected clients.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG KphGetConnectedClientCount(
+    VOID
+    )
+{
+    ULONG count;
+    KIRQL oldIrql;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    oldIrql = ExAcquireSpinLockShared(&KphpConnectedClientsLock);
+
+    count = KphpConnectedClientsCount;
+
+    ExReleaseSpinLockShared(&KphpConnectedClientsLock, oldIrql);
+
+    return count;
+}
+
+/**
+ * \brief Retrieves the connected clients. The caller is responsible for
+ * dereferencing the clients after use.
+ *
+ * \param[out] Clients Receives the connected clients.
+ *
+ * \return Number of connected clients.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG KphpGetConnectedClients(
+    _Out_writes_to_(KPH_COMMS_MAX_CLIENTS, return) PKPH_CLIENT* Clients
+    )
+{
+    ULONG count;
+    KIRQL oldIrql;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    oldIrql = ExAcquireSpinLockShared(&KphpConnectedClientsLock);
+
+    count = KphpConnectedClientsCount;
+
+    for (ULONG i = 0; i < KphpConnectedClientsCount; i++)
+    {
+        KphReferenceObject(KphpConnectedClients[i]);
+        Clients[i] = KphpConnectedClients[i];
+    }
+
+    ExReleaseSpinLockShared(&KphpConnectedClientsLock, oldIrql);
+
+    return count;
+}
+
+/**
+ * \brief Adds a client to the connected clients list.
+ *
+ * \param[in] Client The client to add.
+ *
+ * \return TRUE if the client was added successfully, FALSE otherwise.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphpAddConnectedClient(
+    _In_ PKPH_CLIENT Client
+    )
+{
+    BOOLEAN result;
+    KIRQL oldIrql;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    result = FALSE;
+
+    oldIrql = ExAcquireSpinLockExclusive(&KphpConnectedClientsLock);
+
+    if (KphpConnectedClientsCount < KPH_COMMS_MAX_CLIENTS)
+    {
+        KphpConnectedClients[KphpConnectedClientsCount++] = Client;
+        KphReferenceObject(Client);
+        result = TRUE;
+    }
+
+    ExReleaseSpinLockExclusive(&KphpConnectedClientsLock, oldIrql);
+
+    return result;
+}
+
+/**
+ * \brief Removes a client from the connected clients list. The caller is
+ * responsible for dereferencing any return client.
+ *
+ * \param[in] Client The client to remove.
+ *
+ * \return The removed client if it was found, NULL otherwise.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PKPH_CLIENT KphpRemoveConnectedClient(
+    _In_ PKPH_CLIENT Client
+    )
+{
+    PKPH_CLIENT client;
+    KIRQL oldIrql;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    client = NULL;
+
+    oldIrql = ExAcquireSpinLockExclusive(&KphpConnectedClientsLock);
+
+    for (ULONG i = 0; i < KphpConnectedClientsCount; i++)
+    {
+        if (KphpConnectedClients[i] != Client)
+        {
+            continue;
+        }
+
+        client = KphpConnectedClients[i];
+        KphpConnectedClientsCount--;
+
+        RtlMoveMemory(&KphpConnectedClients[i],
+                      &KphpConnectedClients[i + 1],
+                      sizeof(PKPH_CLIENT) * ((KPH_COMMS_MAX_CLIENTS - i) - 1));
+
+        KphpConnectedClients[KPH_COMMS_MAX_CLIENTS - 1] = NULL;
+
+        break;
+    }
+
+    ExReleaseSpinLockExclusive(&KphpConnectedClientsLock, oldIrql);
+
+    return client;
+}
 
 /**
  * \brief Allocates a message queue item.
@@ -101,6 +244,196 @@ VOID KphFreeNPagedMessage(
 }
 
 /**
+ * \brief Determines whether a message is rate limited for a client.
+ *
+ * \param[in] Client The client to check the rate limit for.
+ * \param[in] Message The message to check the rate limit for.
+ *
+ * \return TRUE if the message is rate limited, FALSE otherwise.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN KphpCommsMessageIsRateLimited(
+    _In_ PKPH_CLIENT Client,
+    _In_ PKPH_MESSAGE Message
+    )
+{
+    PKPH_CLIENT_RATE_LIMITS limits;
+    BOOLEAN limited;
+    ULONG index;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    limited = FALSE;
+
+    limits = KphAtomicReferenceObject(&Client->RateLimits.Atomic);
+    if (!limits)
+    {
+        goto Exit;
+    }
+
+    index = (Message->Header.MessageId - (MaxKphMsgClientAllowed + 1));
+    if (!NT_VERIFY(index < KPH_INFORMER_COUNT))
+    {
+        goto Exit;
+    }
+
+    if (KphRateLimitConsumeToken(&limits->RateLimit[index],
+                                 &Message->Header.TimeStamp))
+    {
+        goto Exit;
+    }
+
+    limited = TRUE;
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  COMMS,
+                  "Message rate limited (%lu - %!TIME!) to client: "
+                  "%wZ (%lu)",
+                  (ULONG)Message->Header.MessageId,
+                  Message->Header.TimeStamp.QuadPart,
+                  &Client->Process->ImageName,
+                  HandleToULong(Client->Process->ProcessId));
+
+Exit:
+
+    if (limits)
+    {
+        KphDereferenceObject(limits);
+    }
+
+    return limited;
+}
+
+/**
+ * \brief Retrieves the non-rate-limited clients for a message. The caller is
+ * responsible for dereferencing the clients after use.
+ *
+ * \param[in] Message The message to check the rate limits for.
+ * \param[out] Clients Receives the non-rate-limited clients.
+ *
+ * \return Number of non-rate-limited clients.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG KphpGetNonRateLimitedClients(
+    _Out_writes_to_(KPH_COMMS_MAX_CLIENTS, return) PKPH_CLIENT* Clients,
+    _In_ PKPH_MESSAGE Message
+    )
+{
+    ULONG count;
+    ULONG clientsCount;
+    PKPH_CLIENT clients[KPH_COMMS_MAX_CLIENTS];
+
+    count = 0;
+    clientsCount = KphpGetConnectedClients(clients);
+
+    for (ULONG i = 0; i < clientsCount; i++)
+    {
+        if (KphpCommsMessageIsRateLimited(clients[i], Message))
+        {
+            KphDereferenceObjectDeferDelete(clients[i]);
+            continue;
+        }
+
+        Clients[count++] = clients[i];
+    }
+
+    return count;
+}
+
+/**
+ * \brief Copies a message to a client ring buffer.
+ *
+ * \param[in] Client The client to copy the message to.
+ * \param[in] Message The message to copy to the ring buffer.
+ *
+ * \return TRUE if the message was copied successfully, FALSE otherwise.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN KphpCommsCopyMessageToRingBuffer(
+    _In_ PKPH_CLIENT Client,
+    _In_ PKPH_MESSAGE Message
+    )
+{
+    PVOID buffer;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    if (!Client->RingBuffer)
+    {
+        return FALSE;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  COMMS,
+                  "Sending message (%lu - %!TIME!) to client: %wZ (%lu)",
+                  (ULONG)Message->Header.MessageId,
+                  Message->Header.TimeStamp.QuadPart,
+                  &Client->Process->ImageName,
+                  HandleToULong(Client->Process->ProcessId));
+
+    buffer = KphReserveRingBuffer(Client->RingBuffer,
+                                  Message->Header.Size);
+    if (!buffer)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "Ring buffer exhausted (%lu - %!TIME!) %wZ (%lu)",
+                      (ULONG)Message->Header.MessageId,
+                      Message->Header.TimeStamp.QuadPart,
+                      &Client->Process->ImageName,
+                      HandleToULong(Client->Process->ProcessId));
+
+        return FALSE;
+    }
+
+    RtlCopyMemory(buffer, Message, Message->Header.Size);
+    KphCommitRingBuffer(Client->RingBuffer, buffer);
+
+    return TRUE;
+}
+
+/**
+ * \brief Sends a message to all connected client ring buffers. If a client can
+ * not receive the message in its ring buffer, it is added to the output. The
+ * caller is responsible for dereferencing the clients that could not receive
+ * the message.
+ *
+ * \param[out] Clients Receives the clients that could not receive the message.
+ * \param[in] Message The message to send to the clients.
+ *
+ * \return Number of clients that could not receive the message.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG KphpCommsSendMessageToRingBuffers(
+    _Out_writes_to_(KPH_COMMS_MAX_CLIENTS, return) PKPH_CLIENT* Clients,
+    _In_ PKPH_MESSAGE Message
+    )
+{
+    ULONG count;
+    ULONG clientsCount;
+    PKPH_CLIENT clients[KPH_COMMS_MAX_CLIENTS];
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    count = 0;
+
+    clientsCount = KphpGetNonRateLimitedClients(clients, Message);
+
+    for (ULONG i = 0; i < clientsCount; i++)
+    {
+        if (KphpCommsCopyMessageToRingBuffer(clients[i], Message))
+        {
+            KphDereferenceObjectDeferDelete(clients[i]);
+            continue;
+        }
+
+        Clients[count++] = clients[i];
+    }
+
+    return count;
+}
+
+/**
  * \brief Sends a non-paged message asynchronously.
  *
  * \param[in] Message The message to send asynchronously. The call assumes
@@ -113,6 +446,8 @@ VOID KphCommsSendNPagedMessageAsync(
     )
 {
     PKPHM_QUEUE_ITEM item;
+    ULONG targetClientCount;
+    PKPH_CLIENT targetClients[KPH_COMMS_MAX_CLIENTS];
 
     KPH_NPAGED_CODE_DISPATCH_MAX();
 
@@ -120,12 +455,20 @@ VOID KphCommsSendNPagedMessageAsync(
     {
         KphTracePrint(TRACE_LEVEL_WARNING,
                       COMMS,
-                      "Failed to acquire rundown, dropping message (%lu - %!TIME!)",
+                      "Failed to acquire rundown, dropping message "
+                      "(%lu - %!TIME!)",
                       (ULONG)Message->Header.MessageId,
                       Message->Header.TimeStamp.QuadPart);
 
         KphFreeNPagedMessage(Message);
         return;
+    }
+
+    targetClientCount = KphpCommsSendMessageToRingBuffers(targetClients,
+                                                          Message);
+    if (!targetClientCount)
+    {
+        goto Exit;
     }
 
     item = KphpAllocateMessageQueueItem();
@@ -133,20 +476,37 @@ VOID KphCommsSendNPagedMessageAsync(
     {
         KphTracePrint(TRACE_LEVEL_WARNING,
                       COMMS,
-                      "Failed to allocate queue item, dropping message (%lu - %!TIME!)",
+                      "Failed to allocate queue item, dropping message "
+                      "(%lu - %!TIME!)",
                       (ULONG)Message->Header.MessageId,
                       Message->Header.TimeStamp.QuadPart);
 
-        KphFreeNPagedMessage(Message);
-        KphReleaseRundown(&KphpCommsRundown);
-        return;
+        goto Exit;
     }
 
     item->Message = Message;
     item->NonPaged = TRUE;
-    item->TargetClientProcess = NULL;
+    Message = NULL;
+
+    item->TargetClientCount = targetClientCount;
+    RtlCopyMemory(item->TargetClients,
+                  targetClients,
+                  sizeof(PKPH_CLIENT) * targetClientCount);
+    targetClientCount = 0;
 
     KeInsertQueue(&KphpMessageQueue, &item->Entry);
+
+Exit:
+
+    for (ULONG i = 0; i < targetClientCount; i++)
+    {
+        KphDereferenceObjectDeferDelete(targetClients[i]);
+    }
+
+    if (Message)
+    {
+        KphFreeNPagedMessage(Message);
+    }
 
     KphReleaseRundown(&KphpCommsRundown);
 }
@@ -192,71 +552,6 @@ VOID KphCaptureStackInMessage(
     }
 }
 
-/**
- * \brief Checks if the informer is enabled for a given client.
- *
- * \param[in] Client The client to check.
- * \param[in] Settings The settings to check.
- *
- * \return TRUE if the informer is enabled, FALSE otherwise.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-BOOLEAN KphpCommsInformerEnabled(
-    _In_ PKPH_CLIENT Client,
-    _In_ PCKPH_INFORMER_SETTINGS Settings
-    )
-{
-    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
-
-    return KphCheckInformerSettings(&Client->InformerSettings, Settings);
-}
-
-/**
- * \brief Checks if the informer is enabled for client communications.
- *
- * \details Checks if any of the connected clients have any of the passed
- * informer settings enabled. This is usually used as a upstream check to
- * avoid downstream work.
- *
- * \param[in] Settings The settings to check.
- *
- * \return TRUE if the informer is enabled, FALSE otherwise.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-BOOLEAN KphCommsInformerEnabled(
-    _In_ PCKPH_INFORMER_SETTINGS Settings
-    )
-{
-    BOOLEAN enabled;
-
-    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
-
-    enabled = FALSE;
-
-    KphAcquireRWLockShared(&KphpConnectedClientLock);
-
-    for (PLIST_ENTRY entry = KphpConnectedClientList.Flink;
-         entry != &KphpConnectedClientList;
-         entry = entry->Flink)
-    {
-        PKPH_CLIENT client;
-
-        client = CONTAINING_RECORD(entry, KPH_CLIENT, Entry);
-
-        if (KphpCommsInformerEnabled(client, Settings))
-        {
-            enabled = TRUE;
-            break;
-        }
-    }
-
-    KphReleaseRWLock(&KphpConnectedClientLock);
-
-    return enabled;
-}
-
 KPH_PAGED_FILE();
 
 /**
@@ -264,10 +559,15 @@ KPH_PAGED_FILE();
  *
  * \param[in] Item Message queue item to free.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpFreeMessageQueueItem(_In_freesMem_ PKPHM_QUEUE_ITEM Item)
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
+
+    for (ULONG i = 0; i < Item->TargetClientCount; i++)
+    {
+        KphDereferenceObject(Item->TargetClients[i]);
+    }
 
     if (Item->NonPaged)
     {
@@ -291,16 +591,11 @@ VOID KphpFreeMessageQueueItem(_In_freesMem_ PKPHM_QUEUE_ITEM Item)
 _Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Return_allocatesMem_size_(Size)
-PVOID KSIAPI KphpAllocateClientObject(
+PVOID KSIAPI KphpAllocateClient(
     _In_ SIZE_T Size
     )
 {
     KPH_PAGED_CODE_PASSIVE();
-
-    //
-    // N.B. Clients are allocated from non-paged pool to support paging I/O.
-    // KphCommsInformerEnabled supports paging I/O paths.
-    //
 
     return KphAllocateNPaged(Size, KPH_TAG_CLIENT);
 }
@@ -316,7 +611,7 @@ PVOID KSIAPI KphpAllocateClientObject(
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
-NTSTATUS KSIAPI KphpInitializeClientObject(
+NTSTATUS KSIAPI KphpInitializeClient(
     _Inout_ PVOID Object,
     _In_opt_ PVOID Parameter
     )
@@ -324,6 +619,8 @@ NTSTATUS KSIAPI KphpInitializeClientObject(
     PKPH_CLIENT client;
 
     KPH_PAGED_CODE();
+
+    NT_ASSERT(Parameter);
 
     client = Object;
 
@@ -344,7 +641,7 @@ NTSTATUS KSIAPI KphpInitializeClientObject(
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KSIAPI KphpDeleteClientObject(
+VOID KSIAPI KphpDeleteClient(
     _Inout_ PVOID Object
     )
 {
@@ -379,6 +676,13 @@ VOID KSIAPI KphpDeleteClientObject(
     {
         FltCloseClientPort(KphFltFilter, &client->Port);
     }
+
+    if (client->RingBuffer)
+    {
+        KphDereferenceObject(client->RingBuffer);
+    }
+
+    KphAtomicAssignObjectReference(&client->RateLimits.Atomic, NULL);
 }
 
 /**
@@ -386,15 +690,177 @@ VOID KSIAPI KphpDeleteClientObject(
  *
  * \param[in] Object The client object to free.
  */
-_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_Function_class_(KPH_TYPE_FREE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KSIAPI KphpFreeClientObject(
+VOID KSIAPI KphpFreeClient(
     _In_freesMem_ PVOID Object
     )
 {
     KPH_PAGED_CODE_PASSIVE();
 
     KphFree(Object, KPH_TAG_CLIENT);
+}
+
+/**
+ * \brief Allocates a client rate limit object.
+ *
+ * \param[in] Size The size requested from the object infrastructure.
+ *
+ * \return Allocated client rate limit object, null on allocation failure.
+ */
+_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Return_allocatesMem_size_(Size)
+PVOID KSIAPI KphpAllocateClientRateLimit(
+    _In_ SIZE_T Size
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    return KphAllocateNPaged(Size, KPH_TAG_CLIENT_RATE_LIMITS);
+}
+
+/**
+ * \brief Initializes a client rate limit object.
+ *
+ * \param[in] Object The client rate limit object to initialize.
+ * \param[in] Parameter The client message settings.
+ *
+ * \return STATUS_SUCCESS
+ */
+_Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpInitializeClientRateLimit(
+    _Inout_ PVOID Object,
+    _In_opt_ PVOID Parameter
+    )
+{
+    PKPH_CLIENT_RATE_LIMITS limits;
+    PKPH_MESSAGE_SETTINGS settings;
+    LARGE_INTEGER timeStamp;
+
+    KPH_PAGED_CODE();
+
+    NT_ASSERT(Parameter);
+
+    limits = Object;
+    settings = Parameter;
+
+    KeQuerySystemTime(&timeStamp);
+
+    for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+    {
+        KphInitializeRateLimit(&settings->Policy[i],
+                               &timeStamp,
+                               &limits->RateLimit[i]);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Frees a client rate limit object.
+ *
+ * \param[in] Object The client rate limit object to free.
+ */
+_Function_class_(KPH_TYPE_FREE_PROCEDURE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpFreeClientRateLimit(
+    _In_freesMem_ PVOID Object
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphFree(Object, KPH_TAG_CLIENT);
+}
+
+/**
+ * \brief Initializes the client ring buffer.
+ *
+ * \param[in] Client The client to initialize the ring buffer for.
+ * \param[in,out] Connection Pointer to the ring buffer connection context.
+ *
+ * \return Successful status or an errant one.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSTATUS KphpCommsInitializeRingBuffer(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_RING_BUFFER_CONNECT Connection
+    )
+{
+    NTSTATUS status;
+    PKPH_RING_BUFFER ring;
+    KPH_RING_BUFFER_CONNECT connection;
+    PKEVENT event;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    ring = NULL;
+    event = NULL;
+
+    __try
+    {
+        CopyFromUser(&connection, Connection, sizeof(KPH_RING_BUFFER_CONNECT));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
+    }
+
+    if (connection.EventHandle)
+    {
+        status = ObReferenceObjectByHandle(connection.EventHandle,
+                                           EVENT_MODIFY_STATE,
+                                           *ExEventObjectType,
+                                           UserMode,
+                                           &event,
+                                           NULL);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          COMMS,
+                          "ObReferenceObjectByHandle failed: %!STATUS!",
+                          status);
+
+            event = NULL;
+            goto Exit;
+        }
+    }
+
+    status = KphCreateRingBuffer(&ring,
+                                 &Connection->Ring,
+                                 connection.Length,
+                                 event,
+                                 UserMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "KphCreateRingBuffer failed: %!STATUS!",
+                      status);
+
+        ring = NULL;
+        goto Exit;
+    }
+
+    Client->RingBuffer = ring;
+    KphReferenceObject(ring);
+
+Exit:
+
+    if (ring)
+    {
+        KphDereferenceObject(ring);
+    }
+
+    if (event)
+    {
+        ObDereferenceObject(event);
+    }
+
+    return status;
 }
 
 /**
@@ -426,8 +892,6 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
     KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(ServerPortCookie);
-    UNREFERENCED_PARAMETER(ConnectionContext);
-    UNREFERENCED_PARAMETER(SizeOfContext);
 
     *ConnectionPortCookie = NULL;
 
@@ -458,7 +922,7 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
     }
 
     processState = KphGetProcessState(process);
-    if ((processState & KPH_PROCESS_STATE_LOW) != KPH_PROCESS_STATE_LOW)
+    if (!KphTestProcessState(processState, KPH_PROCESS_STATE_LOW))
     {
         KphTracePrint(TRACE_LEVEL_CRITICAL,
                       COMMS,
@@ -471,7 +935,7 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
         goto Exit;
     }
 
-    status = KphCreateObject(KphpClientObjectType,
+    status = KphCreateObject(KphpClientType,
                              sizeof(KPH_CLIENT),
                              &client,
                              process);
@@ -485,13 +949,40 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
         goto Exit;
     }
 
+    if (ConnectionContext && (SizeOfContext >= sizeof(PVOID)))
+    {
+        PKPH_RING_BUFFER_CONNECT connection;
+
+        NT_ASSERT(ConnectionContext > MmHighestUserAddress);
+
+        connection = *(PVOID*)ConnectionContext;
+
+        status = KphpCommsInitializeRingBuffer(client, connection);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          COMMS,
+                          "KphpCommsInitializeRingBuffer failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+    }
+
     client->Port = ClientPort;
 
-    KphReferenceObject(client);
-    KphAcquireRWLockExclusive(&KphpConnectedClientLock);
-    InsertTailList(&KphpConnectedClientList, &client->Entry);
-    KphpConnectedClientCount++;
-    KphReleaseRWLock(&KphpConnectedClientLock);
+    if (!KphpAddConnectedClient(client))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      COMMS,
+                      "Clients at maximum: %wZ (%lu) (0x%08x)",
+                      &client->Process->ImageName,
+                      HandleToULong(client->Process->ProcessId),
+                      processState);
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
 
     KphTracePrint(TRACE_LEVEL_INFORMATION,
                   COMMS,
@@ -535,20 +1026,17 @@ VOID FLTAPI KphpCommsDisconnectNotifyCallback(
 
     NT_ASSERT(ConnectionCookie);
 
-    client = (PKPH_CLIENT)ConnectionCookie;
+    client = KphpRemoveConnectedClient(ConnectionCookie);
+    if (client)
+    {
+        KphTracePrint(TRACE_LEVEL_INFORMATION,
+                      COMMS,
+                      "Client disconnected: %wZ (%lu)",
+                      &client->Process->ImageName,
+                      HandleToULong(client->Process->ProcessId));
 
-    KphAcquireRWLockExclusive(&KphpConnectedClientLock);
-    RemoveEntryList(&client->Entry);
-    KphpConnectedClientCount--;
-    KphReleaseRWLock(&KphpConnectedClientLock);
-
-    KphTracePrint(TRACE_LEVEL_INFORMATION,
-                  COMMS,
-                  "Client disconnected: %wZ (%lu)",
-                  &client->Process->ImageName,
-                  HandleToULong(client->Process->ProcessId));
-
-    KphDereferenceObject(client);
+        KphDereferenceObject(client);
+    }
 }
 
 /**
@@ -573,7 +1061,7 @@ VOID KphpSendRequiredStateFailure(
     if (!msg)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      INFORMER,
+                      COMMS,
                       "Failed to allocate message");
         return;
     }
@@ -585,7 +1073,7 @@ VOID KphpSendRequiredStateFailure(
     msg->Kernel.RequiredStateFailure.ClientState = ClientState;
     msg->Kernel.RequiredStateFailure.RequiredState = RequiredState;
 
-    if (KphInformerEnabled(EnableStackTraces, NULL))
+    if (KphInformerOpts(NULL).EnableStackTraces)
     {
         KphCaptureStackInMessage(msg);
     }
@@ -601,8 +1089,7 @@ VOID KphpSendRequiredStateFailure(
  * \param[in] InputBufferLength Length of the input buffer.
  * \param[out] OutputBuffer Output buffer from client.
  * \param[in] OutputBufferLength Length of the output buffer.
- * \param[out] ReturnOutputBufferLength Set to the number of bytes written to
- * the output buffer.
+ * \param[out] ReturnOutputBufferLength Receives the number of bytes written.
  *
  * \return Successful or errant status.
  */
@@ -670,8 +1157,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
 
     __try
     {
-        ProbeInputBytes(InputBuffer, KPH_MESSAGE_MIN_SIZE);
-        RtlCopyVolatileMemory(msg, InputBuffer, KPH_MESSAGE_MIN_SIZE);
+        CopyFromUser(msg, InputBuffer, KPH_MESSAGE_MIN_SIZE);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -694,11 +1180,9 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     {
         __try
         {
-            ProbeInputBytes(Add2Ptr(InputBuffer, KPH_MESSAGE_MIN_SIZE),
-                            (msg->Header.Size - KPH_MESSAGE_MIN_SIZE));
-            RtlCopyVolatileMemory(&msg->_Dyn.Buffer[0],
-                                  Add2Ptr(InputBuffer, KPH_MESSAGE_MIN_SIZE),
-                                  (msg->Header.Size - KPH_MESSAGE_MIN_SIZE));
+            CopyFromUser(msg->_Dyn.Buffer,
+                         Add2Ptr(InputBuffer, KPH_MESSAGE_MIN_SIZE),
+                         (msg->Header.Size - KPH_MESSAGE_MIN_SIZE));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -737,7 +1221,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     processState = KphGetProcessState(client->Process);
     requiredState = handler->RequiredState(client, msg);
 
-    if ((processState & requiredState) != requiredState)
+    if (!KphTestProcessState(processState, requiredState))
     {
         KphTracePrint(TRACE_LEVEL_CRITICAL,
                       COMMS,
@@ -775,8 +1259,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
 
     __try
     {
-        ProbeOutputBytes(InputBuffer, msg->Header.Size);
-        RtlCopyMemory(InputBuffer, msg, msg->Header.Size);
+        CopyToUser(InputBuffer, msg, msg->Header.Size);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -857,72 +1340,134 @@ Exit:
 }
 
 /**
- * \brief Gets the number of connected clients.
+ * \brief Gets the settings for messages.
  *
- * \return Number of connected clients.
+ * \param[in] Client The client to get the settings from.
+ * \param[out] Settings Receives the message settings.
  */
-_IRQL_requires_max_(APC_LEVEL)
-ULONG KphGetConnectedClientCount(
-    VOID
-    )
-{
-    ULONG count;
-
-    KPH_PAGED_CODE();
-
-    KphAcquireRWLockShared(&KphpConnectedClientLock);
-    count = KphpConnectedClientCount;
-    KphReleaseRWLock(&KphpConnectedClientLock);
-
-    return count;
-}
-
-/**
- * \brief Gets the timeouts for messages.
- *
- * \param[in] Client The client to get the timeouts from.
- * \param[out] Timeouts Receives the timeouts for messages.
- */
-_IRQL_requires_max_(APC_LEVEL)
-VOID KphGetMessageTimeouts(
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetMessageSettings(
     _In_ PKPH_CLIENT Client,
-    _Out_ PKPH_MESSAGE_TIMEOUTS Timeouts
+    _Out_ PKPH_MESSAGE_SETTINGS Settings
     )
 {
-    KPH_PAGED_CODE();
+    NTSTATUS status;
+    PKPH_CLIENT_RATE_LIMITS limits;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    limits = NULL;
+
+    __try
+    {
+        ZeroUserMemory(Settings, sizeof(KPH_MESSAGE_SETTINGS));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
+    }
+
+    limits = KphAtomicReferenceObject(&Client->RateLimits.Atomic);
+    if (limits)
+    {
+        for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+        {
+            __try
+            {
+                CopyToUser(&Settings->Policy[i],
+                           &limits->RateLimit[i].Policy,
+                           sizeof(KPH_RATE_LIMIT_POLICY));
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+        }
+    }
 
 #define KPH_GET_MESSAGE_TIMEOUT(t) \
-    Timeouts->t.QuadPart = Client->MessageTimeouts.t.QuadPart
+    WriteLong64ToUser(&Settings->Timeouts.t.QuadPart, Client->MessageTimeouts.t.QuadPart)
 
-    KPH_GET_MESSAGE_TIMEOUT(AsyncTimeout);
-    KPH_GET_MESSAGE_TIMEOUT(DefaultTimeout);
-    KPH_GET_MESSAGE_TIMEOUT(ProcessCreateTimeout);
-    KPH_GET_MESSAGE_TIMEOUT(FilePreCreateTimeout);
-    KPH_GET_MESSAGE_TIMEOUT(FilePostCreateTimeout);
+    __try
+    {
+        KPH_GET_MESSAGE_TIMEOUT(AsyncTimeout);
+        KPH_GET_MESSAGE_TIMEOUT(DefaultTimeout);
+        KPH_GET_MESSAGE_TIMEOUT(ProcessCreateTimeout);
+        KPH_GET_MESSAGE_TIMEOUT(FilePreCreateTimeout);
+        KPH_GET_MESSAGE_TIMEOUT(FilePostCreateTimeout);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
+    }
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (limits)
+    {
+        KphDereferenceObject(limits);
+    }
+
+    return status;
 }
 
 /**
- * \brief Sets the timeouts for messages.
+ * \brief Sets the settings for messages.
  *
- * \param[in] Client The client to set the timeouts for.
- * \param[in] Timeouts The timeouts to apply.
+ * \param[in] Client The client to set the settings for.
+ * \param[in] Settings The settings to apply.
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(APC_LEVEL)
-NTSTATUS KphSetMessageTimeouts(
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSetMessageSettings(
     _In_ PKPH_CLIENT Client,
-    _In_ PKPH_MESSAGE_TIMEOUTS Timeouts
+    _In_ PKPH_MESSAGE_SETTINGS Settings
     )
 {
-    KPH_PAGED_CODE();
+    NTSTATUS status;
+    PKPH_MESSAGE_SETTINGS settings;
+    PKPH_CLIENT_RATE_LIMITS limits;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    limits = NULL;
+
+    settings = KphAllocatePaged(sizeof(KPH_MESSAGE_SETTINGS),
+                                KPH_TAG_MESSAGE_SETTINGS);
+    if (!settings)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "Failed to allocate message settings");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    __try
+    {
+        CopyFromUser(settings, Settings, sizeof(KPH_MESSAGE_SETTINGS));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
+    }
 
     //
     // Timeouts must be relative. Thus the timeout must be _less_ than or equal
     // to the minimum timeout.
     //
 #define KPH_VALIDATE_MESSAGE_TIMEOUT(t) \
-    (Timeouts->t.QuadPart <= KphpMessageMinTimeout.QuadPart)
+    (settings->Timeouts.t.QuadPart <= KphpMessageMinTimeout.QuadPart)
 
     if (!KPH_VALIDATE_MESSAGE_TIMEOUT(AsyncTimeout) ||
         !KPH_VALIDATE_MESSAGE_TIMEOUT(DefaultTimeout) ||
@@ -930,11 +1475,27 @@ NTSTATUS KphSetMessageTimeouts(
         !KPH_VALIDATE_MESSAGE_TIMEOUT(FilePreCreateTimeout) ||
         !KPH_VALIDATE_MESSAGE_TIMEOUT(FilePostCreateTimeout))
     {
-        return STATUS_INVALID_PARAMETER;
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    status = KphCreateObject(KphpClientRateLimitType,
+                             sizeof(KPH_CLIENT_RATE_LIMITS),
+                             &limits,
+                             settings);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "KphCreateObject failed: %!STATUS!",
+                      status);
+
+        limits = NULL;
+        goto Exit;
     }
 
 #define KPH_SET_MESSAGE_TIMEOUT(t) \
-    Client->MessageTimeouts.t.QuadPart = Timeouts->t.QuadPart
+    Client->MessageTimeouts.t.QuadPart = settings->Timeouts.t.QuadPart
 
     KPH_SET_MESSAGE_TIMEOUT(AsyncTimeout);
     KPH_SET_MESSAGE_TIMEOUT(DefaultTimeout);
@@ -942,7 +1503,95 @@ NTSTATUS KphSetMessageTimeouts(
     KPH_SET_MESSAGE_TIMEOUT(FilePreCreateTimeout);
     KPH_SET_MESSAGE_TIMEOUT(FilePostCreateTimeout);
 
-    return STATUS_SUCCESS;
+    KphAtomicAssignObjectReference(&Client->RateLimits.Atomic, limits);
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (limits)
+    {
+        KphDereferenceObject(limits);
+    }
+
+    if (settings)
+    {
+        KphFree(settings, KPH_TAG_MESSAGE_SETTINGS);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Gets message statistics for a client.
+ *
+ * \param[in] Client The client to get the message statistics for.
+ * \param[out] Stats Receives the message statistics.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetMessageStats(
+    _In_ PKPH_CLIENT Client,
+    _Out_ PKPH_INFORMER_STATS Stats
+    )
+{
+    NTSTATUS status;
+    PKPH_CLIENT_RATE_LIMITS limits;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    limits = NULL;
+
+    __try
+    {
+        ZeroUserMemory(Stats, sizeof(KPH_INFORMER_STATS));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
+    }
+
+    limits = KphAtomicReferenceObject(&Client->RateLimits.Atomic);
+    if (!limits)
+    {
+        status = STATUS_NOT_FOUND;
+        goto Exit;
+    }
+
+    for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+    {
+        __try
+        {
+            CopyToUser(&Stats->RateLimit[i].Policy,
+                       &limits->RateLimit[i].Policy,
+                       sizeof(KPH_RATE_LIMIT_POLICY));
+            WriteLong64ToUser(&Stats->RateLimit[i].Allowed,
+                              ReadNoFence64(&limits->RateLimit[i].Allowed));
+            WriteLong64ToUser(&Stats->RateLimit[i].Dropped,
+                              ReadNoFence64(&limits->RateLimit[i].Dropped));
+            WriteLong64ToUser(&Stats->RateLimit[i].CasMiss,
+                              ReadNoFence64(&limits->RateLimit[i].CasMiss));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (limits)
+    {
+        KphDereferenceObject(limits);
+    }
+
+    return status;
 }
 
 /**
@@ -1000,7 +1649,7 @@ LARGE_INTEGER KphpGetTimeoutForMessage(
  * \param[in,out] ReplyBufferLength Length of reply buffer on input, set to
  * number of bytes written to reply buffer on output.
  * \param[in] Timeout Time allotted for message to be received. If a reply is
- * expected this waits for a a reply to be received too. If not provided the
+ * expected this waits for a reply to be received too. If not provided the
  * call waits indefinitely.
  *
  * \return Successful or errant status.
@@ -1059,18 +1708,19 @@ NTSTATUS KphpFltSendMessage(
  * \param[in] Message The message to send asynchronously. This function assumes
  * ownership over the message. The caller should *not* free the message after
  * it is passed to this function.
- * \param[in] TargetClientProcess Optional target client process to send the
- * message to. If provided the message will only be sent to the target client
- * from the queue processing. Otherwise, the message will be sent to all
- * clients.
+ * \param[in] TargetClient Optional target client to send the message to. If
+ * provided the message will only be sent to the target client from the queue
+ * processing. Otherwise, the message will be sent to all clients.
  */
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphpCommsSendMessageAsync(
     _In_aliasesMem_ PKPH_MESSAGE Message,
-    _In_opt_ PEPROCESS TargetClientProcess
+    _In_opt_ PKPH_CLIENT TargetClient
     )
 {
     PKPHM_QUEUE_ITEM item;
+    ULONG targetClientCount;
+    PKPH_CLIENT targetClients[KPH_COMMS_MAX_CLIENTS];
 
     KPH_PAGED_CODE();
 
@@ -1078,12 +1728,29 @@ VOID KphpCommsSendMessageAsync(
     {
         KphTracePrint(TRACE_LEVEL_WARNING,
                       COMMS,
-                      "Failed to acquire rundown, dropping message (%lu - %!TIME!)",
+                      "Failed to acquire rundown, dropping message "
+                      "(%lu - %!TIME!)",
                       (ULONG)Message->Header.MessageId,
                       Message->Header.TimeStamp.QuadPart);
 
         KphFreeMessage(Message);
         return;
+    }
+
+    if (TargetClient)
+    {
+        targetClientCount = 1;
+        targetClients[0] = TargetClient;
+        KphReferenceObject(TargetClient);
+    }
+    else
+    {
+        targetClientCount = KphpCommsSendMessageToRingBuffers(targetClients,
+                                                              Message);
+        if (!targetClientCount)
+        {
+            goto Exit;
+        }
     }
 
     item = KphpAllocateMessageQueueItem();
@@ -1091,257 +1758,301 @@ VOID KphpCommsSendMessageAsync(
     {
         KphTracePrint(TRACE_LEVEL_WARNING,
                       COMMS,
-                      "Failed to allocate queue item, dropping message (%lu - %!TIME!)",
+                      "Failed to allocate queue item, dropping message "
+                      "(%lu - %!TIME!)",
                       (ULONG)Message->Header.MessageId,
                       Message->Header.TimeStamp.QuadPart);
 
-        KphFreeMessage(Message);
-        KphReleaseRundown(&KphpCommsRundown);
-        return;
+        goto Exit;
     }
 
     item->Message = Message;
     item->NonPaged = FALSE;
-    item->TargetClientProcess = TargetClientProcess;
+    Message = NULL;
+
+    item->TargetClientCount = targetClientCount;
+    RtlCopyMemory(item->TargetClients,
+                  targetClients,
+                  sizeof(PKPH_CLIENT) * targetClientCount);
+    targetClientCount = 0;
 
     KeInsertQueue(&KphpMessageQueue, &item->Entry);
+
+Exit:
+
+    for (ULONG i = 0; i < targetClientCount; i++)
+    {
+        KphDereferenceObject(targetClients[i]);
+    }
+
+    if (Message)
+    {
+        KphFreeMessage(Message);
+    }
 
     KphReleaseRundown(&KphpCommsRundown);
 }
 
 /**
- * \brief Sends a message to all connected clients. The last client to connect
- * is given authority for any reply.
+ * \brief Sends a message to a specific client.
  *
- * \details Callers expecting a specific reply should check for the reply
- * message identifier even on success. This function will return success with
- * KphMsgUnhandled when no client handles the message.
- *
- * \param[in] Message The message to send.
+ * \param[in] Client The client to send the message to.
+ * \param[in] Message The message to send. May contain multiple messages if
+ * the send is originating from the asynchronous message queue and the
+ * asynchronous message queue has coalesced multiple messages into one.
+ * \param[in] Length The length of the message to send. May constitute multiple
+ * messages if the send is originating from the asynchronous message queue and
+ * the asynchronous message queue has coalesced multiple messages into one.
  * \param[out] Reply The reply from last client.
- * \param[in] FromAsyncQueue If TRUE the call is from the asynchronous message
- * queue, otherwise FALSE.
- * \param[in] TargetClientProcess Optional target client process to send the
- * message to. If provided the message will only be sent to the target client
- * from the queue processing. Otherwise, the message will be sent to all
- * clients. If TargetClientProcess is provided Reply must be null.
- *
- * \return Successful or errant status.
+ * \param[in] FromAsyncQueue If TRUE the message is being sent from the
+ * asynchronous message queue, otherwise FALSE.
  */
 _IRQL_requires_max_(APC_LEVEL)
-NTSTATUS KphpCommsSendMessage(
+VOID KphpCommsSendMessage(
+    _In_ PKPH_CLIENT Client,
     _In_ PKPH_MESSAGE Message,
-    _Out_opt_ PKPH_MESSAGE Reply,
-    _In_ BOOLEAN FromAsyncQueue,
-    _In_opt_ PEPROCESS TargetClientProcess
+    _In_ ULONG Length,
+    _Inout_opt_ PKPH_MESSAGE Reply,
+    _In_ BOOLEAN FromAsyncQueue
     )
 {
+    NTSTATUS status;
+    PKPH_MESSAGE reply;
+    ULONG replyLength;
+    KPH_PROCESS_STATE processState;
+    LARGE_INTEGER timeout;
+
     KPH_PAGED_CODE();
 
-    NT_ASSERT(!TargetClientProcess || !Reply);
-
-    NT_ASSERT(NT_SUCCESS(KphMsgValidate(Message)));
-
-    if (Reply)
+    //
+    // Since we support multiple clients and only one client may be the
+    // authoritative reply. We choose to honor the first client to reply.
+    //
+    if (Reply && (Reply->Header.MessageId == KphMsgUnhandled))
     {
-        KphMsgInit(Reply, KphMsgUnhandled);
+        reply = Reply;
+        replyLength = sizeof(KPH_MESSAGE);
+    }
+    else
+    {
+        reply = NULL;
+        replyLength = 0;
     }
 
-    KphAcquireRWLockShared(&KphpConnectedClientLock);
-
-    if (IsListEmpty(&KphpConnectedClientList))
+    if (reply && (PsGetCurrentProcess() == Client->Process->EProcess))
     {
-        KphReleaseRWLock(&KphpConnectedClientLock);
+        PKPH_MESSAGE async;
 
-        return STATUS_CONNECTION_DISCONNECTED;
-    }
-
-    for (PLIST_ENTRY entry = KphpConnectedClientList.Flink;
-         entry != &KphpConnectedClientList;
-         entry = entry->Flink)
-    {
-        PKPH_CLIENT client;
-        PCKPH_INFORMER_SETTINGS informer;
-        PKPH_MESSAGE reply;
-        ULONG replyLength;
-        NTSTATUS status;
-        KPH_PROCESS_STATE processState;
-        LARGE_INTEGER timeout;
-
-        client = CONTAINING_RECORD(entry, KPH_CLIENT, Entry);
-
-        if (TargetClientProcess &&
-            (TargetClientProcess != client->Process->EProcess))
-        {
-            continue;
-        }
-
-        informer = KphInformerForMessageId(Message->Header.MessageId);
-        if (informer && !KphpCommsInformerEnabled(client, informer))
-        {
-            //
-            // In some cases we can't check if the informer is enabled
-            // beforehand or the settings could have changed while draining
-            // the queue. Regardless, the client isn't interested in this
-            // message, so skip it.
-            //
-            continue;
-        }
+        NT_ASSERT(!FromAsyncQueue);
+        NT_ASSERT(Message->Header.Size == Length);
 
         //
-        // Since we support multiple clients and only one client may be the
-        // authoritative reply. We choose to honor the first client to reply.
+        // This is a precaution to prevent a bottleneck. In this case the kernel
+        // will block for the client to fully reply. If the client generates
+        // more activity that too ends up fully synchronous it could exhaust
+        // the client thread pool. This may introduce a bottleneck into the
+        // system. To avoid this we force this one message to be sent to the
+        // target client asynchronously. The client will not be permitted to
+        // reply but will still have visibility.
         //
-        if (Reply && (Reply->Header.MessageId == KphMsgUnhandled))
-        {
-            reply = Reply;
-            replyLength = sizeof(KPH_MESSAGE);
-        }
-        else
-        {
-            reply = NULL;
-            replyLength = 0;
-        }
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "Bottleneck protection, forcing asynchronous send "
+                      "(%lu - %!TIME!) to client: %wZ (%lu)",
+                      (ULONG)Message->Header.MessageId,
+                      Message->Header.TimeStamp.QuadPart,
+                      &Client->Process->ImageName,
+                      HandleToULong(Client->Process->ProcessId));
 
-        if (reply && (PsGetCurrentProcess() == client->Process->EProcess))
+        //
+        // We must make a copy of this message to send asynchronously.
+        //
+        async = KphAllocateMessage();
+        if (!async)
         {
-            PKPH_MESSAGE async;
-
-            NT_ASSERT(!TargetClientProcess);
-            NT_ASSERT(!FromAsyncQueue);
-
-            //
-            // This is a precaution to prevent a bottleneck. In this case the
-            // kernel will block for the client to fully reply. If the client
-            // generates more activity that too ends up fully synchronous it
-            // could exhaust the client thread pool. This may introduce a
-            // bottleneck into the system. To avoid this we force this one
-            // message to be sent to the target client asynchronously. The
-            // client will not be permitted to reply but will still have
-            // visibility.
-            //
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           COMMS,
-                          "Bottleneck protection, forcing asynchronous send "
-                          "(%lu - %!TIME!) to client: %wZ (%lu)",
-                          (ULONG)Message->Header.MessageId,
-                          Message->Header.TimeStamp.QuadPart,
-                          &client->Process->ImageName,
-                          HandleToULong(client->Process->ProcessId));
+                          "Failed to allocate message");
 
-            //
-            // We must make a copy of this message to send asynchronously.
-            //
-            async = KphAllocateMessage();
-            if (!async)
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              COMMS,
-                              "Failed to allocate message");
-
-                continue;
-            }
-
-            RtlCopyMemory(async, Message, Message->Header.Size);
-
-            KphpCommsSendMessageAsync(async, client->Process->EProcess);
-
-            continue;
+            return;
         }
+
+        RtlCopyMemory(async, Message, Message->Header.Size);
+
+        KphpCommsSendMessageAsync(async, Client);
+
+        status = STATUS_POSSIBLE_DEADLOCK;
+        goto Exit;
+    }
+
+    for (ULONG offset = 0; offset < Length; NOTHING)
+    {
+        PKPH_MESSAGE message;
+
+        NT_ASSERT(offset < sizeof(KPH_MESSAGE));
+
+        message = Add2Ptr(Message, offset);
 
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "Sending message (%lu - %!TIME!) to client: %wZ (%lu)",
-                      (ULONG)Message->Header.MessageId,
-                      Message->Header.TimeStamp.QuadPart,
-                      &client->Process->ImageName,
-                      HandleToULong(client->Process->ProcessId));
+                      (ULONG)message->Header.MessageId,
+                      message->Header.TimeStamp.QuadPart,
+                      &Client->Process->ImageName,
+                      HandleToULong(Client->Process->ProcessId));
 
-        timeout = KphpGetTimeoutForMessage(client, Message, FromAsyncQueue);
-
-        status = KphpFltSendMessage(&client->Port,
-                                    Message,
-                                    Message->Header.Size,
-                                    reply,
-                                    (reply ? &replyLength : NULL),
-                                    &timeout);
-        if (!reply)
-        {
-            continue;
-        }
-
-        if (NT_SUCCESS(status))
-        {
-            processState = KphGetProcessState(client->Process);
-            if ((processState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM)
-            {
-                KphTracePrint(TRACE_LEVEL_CRITICAL,
-                              COMMS,
-                              "Untrusted client %wZ (%lu) (0x%08x)",
-                              &client->Process->ImageName,
-                              HandleToULong(client->Process->ProcessId),
-                              processState);
-
-                status = STATUS_REPLY_MESSAGE_MISMATCH;
-            }
-            else
-            {
-                status = KphMsgValidate(reply);
-                if (!NT_SUCCESS(status))
-                {
-                    KphTracePrint(TRACE_LEVEL_WARNING,
-                                  COMMS,
-                                  "Received invalid reply from client: %wZ (%lu)",
-                                  &client->Process->ImageName,
-                                  HandleToULong(client->Process->ProcessId));
-                }
-                else
-                {
-                    KphTracePrint(TRACE_LEVEL_VERBOSE,
-                                  COMMS,
-                                  "Received reply (%lu - %!TIME!) from client: %wZ (%lu)",
-                                  (ULONG)reply->Header.MessageId,
-                                  reply->Header.TimeStamp.QuadPart,
-                                  &client->Process->ImageName,
-                                  HandleToULong(client->Process->ProcessId));
-                }
-            }
-        }
-
-        if (!NT_SUCCESS(status))
-        {
-            KphMsgInit(reply, KphMsgUnhandled);
-        }
+        offset += message->Header.Size;
     }
 
-    KphReleaseRWLock(&KphpConnectedClientLock);
+    timeout = KphpGetTimeoutForMessage(Client, Message, FromAsyncQueue);
 
-    return STATUS_SUCCESS;
+    status = KphpFltSendMessage(&Client->Port,
+                                Message,
+                                Length,
+                                reply,
+                                (reply ? &replyLength : NULL),
+                                &timeout);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "KphpFltSendMessage failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (!reply)
+    {
+        goto Exit;
+    }
+
+    processState = KphGetProcessState(Client->Process);
+    if (!KphTestProcessState(processState, KPH_PROCESS_STATE_MAXIMUM))
+    {
+        KphTracePrint(TRACE_LEVEL_CRITICAL,
+                      COMMS,
+                      "Untrusted client %wZ (%lu) (0x%08x)",
+                      &Client->Process->ImageName,
+                      HandleToULong(Client->Process->ProcessId),
+                      processState);
+
+        status = STATUS_REPLY_MESSAGE_MISMATCH;
+        goto Exit;
+    }
+
+    status = KphMsgValidate(reply);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_WARNING,
+                      COMMS,
+                      "Received invalid reply from client: %wZ (%lu)",
+                      &Client->Process->ImageName,
+                      HandleToULong(Client->Process->ProcessId));
+
+        goto Exit;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  COMMS,
+                  "Received reply (%lu - %!TIME!) from client: %wZ (%lu)",
+                  (ULONG)reply->Header.MessageId,
+                  reply->Header.TimeStamp.QuadPart,
+                  &Client->Process->ImageName,
+                  HandleToULong(Client->Process->ProcessId));
+
+Exit:
+
+    if (!NT_SUCCESS(status) && reply)
+    {
+        KphMsgInit(reply, KphMsgUnhandled);
+    }
 }
 
 /**
- * \brief Async message queue thread.
+ * \brief Attempts to coalesce consecutive items in a message queue to minimize
+ * the number of individual message transactions.
  *
- * \param[in] StartContext Unused
+ * \details This function optimizes message transmission by combining compatible
+ * items from the queue into a single message. If coalescing is not possible,
+ * it simply returns the next item to be sent as-is.
+ *
+ * \param[in] Items The items to process.
+ * \param[in] Count The number of items to process.
+ * \param[in,out] Index The index of the first item to consider for coalescing.
+ * Incremented for each coalesced item.
+ * \param[out] Length Receives the length (in bytes) of the message to send,
+ * including any coalesced items.
+ * \param[out] Rundown Set to TRUE if rundown is active, FALSE otherwise.
+ *
+ * \return The next item to send, NULL otherwise.
  */
-_Function_class_(KSTART_ROUTINE)
-VOID KphpMessageQueueThread (
-    _In_ PVOID StartContext
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+PKPHM_QUEUE_ITEM KphpMessageQueueCoalesceItems(
+    _In_reads_(Count) PLIST_ENTRY* Items,
+    _In_ ULONG Count,
+    _Inout_ PULONG Index,
+    _Out_ PULONG Length,
+    _Out_ PBOOLEAN Rundown
     )
 {
+    NTSTATUS status;
+    PKPHM_QUEUE_ITEM first;
+    ULONG coalescedCount;
+    ULONG remainingLength;
+    PVOID messagePointer;
+
     KPH_PAGED_CODE_PASSIVE();
 
-    UNREFERENCED_PARAMETER(StartContext);
+    NT_ASSERT(*Index < Count);
 
-    for (;;)
+    *Rundown = FALSE;
+
+    first = NULL;
+    remainingLength = sizeof(KPH_MESSAGE);
+    coalescedCount = 0;
+
+    status = (NTSTATUS)(LONG_PTR)Items[*Index];
+
+    if ((status == STATUS_TIMEOUT) ||
+        (status == STATUS_USER_APC))
     {
-        NTSTATUS status;
-        PLIST_ENTRY entry;
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      COMMS,
+                      "Unexpected queue status: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (status == STATUS_ABANDONED)
+    {
+        //
+        // The rundown logic is responsible for draining/servicing the
+        // remaining queue items.
+        //
+        KphTracePrint(TRACE_LEVEL_INFORMATION,
+                      COMMS,
+                      "Message queue running down");
+
+        *Rundown = TRUE;
+        goto Exit;
+    }
+
+    first = CONTAINING_RECORD(Items[*Index], KPHM_QUEUE_ITEM, Entry);
+
+    NT_ASSERT(first);
+
+    messagePointer = Add2Ptr(first->Message, first->Message->Header.Size);
+    remainingLength = (sizeof(KPH_MESSAGE) - first->Message->Header.Size);
+
+    for (ULONG i = (*Index + 1); i < Count; i++)
+    {
         PKPHM_QUEUE_ITEM item;
+        BOOLEAN clientsMatch;
 
-        entry = KeRemoveQueue(&KphpMessageQueue, KernelMode, NULL);
-
-        status = (NTSTATUS)(LONG_PTR)entry;
+        status = (NTSTATUS)(LONG_PTR)Items[i];
 
         if ((status == STATUS_TIMEOUT) ||
             (status == STATUS_USER_APC))
@@ -1364,29 +2075,166 @@ VOID KphpMessageQueueThread (
                           COMMS,
                           "Message queue running down");
 
+            *Rundown = TRUE;
+            goto Exit;
+        }
+
+        item = CONTAINING_RECORD(Items[i], KPHM_QUEUE_ITEM, Entry);
+
+        NT_ASSERT(item);
+
+        //
+        // Verify that the client list matches and there is sufficient room to
+        // coalesce this message into the first.
+        //
+
+        if (first->TargetClientCount != item->TargetClientCount)
+        {
             break;
         }
 
-        item = CONTAINING_RECORD(entry, KPHM_QUEUE_ITEM, Entry);
+        clientsMatch = TRUE;
 
-        status = KphpCommsSendMessage(item->Message,
-                                      NULL,
-                                      TRUE,
-                                      item->TargetClientProcess);
-        if (!NT_SUCCESS(status))
+        for (ULONG j = 0; j < first->TargetClientCount; j++)
         {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          COMMS,
-                          "Failed to send message (%lu - %!TIME!): %!STATUS!",
-                          (ULONG)item->Message->Header.MessageId,
-                          item->Message->Header.TimeStamp.QuadPart,
-                          status);
+            if (first->TargetClients[j] != item->TargetClients[j])
+            {
+                clientsMatch = FALSE;
+                break;
+            }
         }
+
+        if (!clientsMatch)
+        {
+            break;
+        }
+
+        if (remainingLength < item->Message->Header.Size)
+        {
+            break;
+        }
+
+        RtlCopyMemory(messagePointer,
+                      item->Message,
+                      item->Message->Header.Size);
+
+        messagePointer = Add2Ptr(messagePointer, item->Message->Header.Size);
+        remainingLength -= item->Message->Header.Size;
+
+        (*Index)++;
+        coalescedCount++;
 
         KphpFreeMessageQueueItem(item);
     }
 
-    PsTerminateSystemThread(STATUS_SUCCESS);
+Exit:
+
+    *Length = (sizeof(KPH_MESSAGE) - remainingLength);
+
+    if (coalescedCount)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "Coalesced %lu messages (%lu bytes)",
+                      coalescedCount + 1,
+                      *Length);
+    }
+
+    return first;
+}
+
+/**
+ * \brief Processes message queue items.
+ *
+ * \param[in] Items The items to process.
+ * \param[in] Count The number of items to process.
+ *
+ * \return TRUE if rundown is active, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphpMessageQueueProcessItems(
+    _In_reads_(Count) PLIST_ENTRY* Items,
+    _In_ ULONG Count
+    )
+{
+    BOOLEAN rundown;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    rundown = FALSE;
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        PKPHM_QUEUE_ITEM item;
+        ULONG length;
+
+        item = KphpMessageQueueCoalesceItems(Items,
+                                             Count,
+                                             &i,
+                                             &length,
+                                             &rundown);
+        if (item)
+        {
+            for (ULONG j = 0; j < item->TargetClientCount; j++)
+            {
+                KphpCommsSendMessage(item->TargetClients[j],
+                                     item->Message,
+                                     length,
+                                     NULL,
+                                     TRUE);
+            }
+
+            KphpFreeMessageQueueItem(item);
+        }
+
+        if (rundown)
+        {
+            break;
+        }
+    }
+
+    return rundown;
+}
+
+/**
+ * \brief Asynchronous message queue thread.
+ *
+ * \param[in] Parameter Unused
+ */
+_Function_class_(KPH_THREAD_START_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_same_
+NTSTATUS KphpMessageQueueThread(
+    _In_opt_ PVOID Parameter
+    )
+{
+    PLIST_ENTRY items[32];
+    ULONG count;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    UNREFERENCED_PARAMETER(Parameter);
+
+    count = ARRAYSIZE(items);
+
+    for (;;)
+    {
+        RtlZeroMemory(items, count * sizeof(PLIST_ENTRY));
+
+        count = KeRemoveQueueEx(&KphpMessageQueue,
+                                KernelMode,
+                                FALSE,
+                                NULL,
+                                items,
+                                ARRAYSIZE(items));
+
+        if (KphpMessageQueueProcessItems(items, count))
+        {
+            break;
+        }
+    }
+
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -1417,18 +2265,23 @@ NTSTATUS KphCommsStart(
 
     threadCount = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
 
-    typeInfo.Allocate = KphpAllocateClientObject;
-    typeInfo.Initialize = KphpInitializeClientObject;
-    typeInfo.Delete = KphpDeleteClientObject;
-    typeInfo.Free = KphpFreeClientObject;
+    typeInfo.Allocate = KphpAllocateClient;
+    typeInfo.Initialize = KphpInitializeClient;
+    typeInfo.Delete = KphpDeleteClient;
+    typeInfo.Free = KphpFreeClient;
     typeInfo.Flags = 0;
 
-    KphCreateObjectType(&KphpClientObjectName,
-                        &typeInfo,
-                        &KphpClientObjectType);
+    KphCreateObjectType(&KphpClientTypeName, &typeInfo, &KphpClientType);
 
-    KphInitializeRWLock(&KphpConnectedClientLock);
-    InitializeListHead(&KphpConnectedClientList);
+    typeInfo.Allocate = KphpAllocateClientRateLimit;
+    typeInfo.Initialize = KphpInitializeClientRateLimit;
+    typeInfo.Delete = NULL;
+    typeInfo.Free = KphpFreeClientRateLimit;
+    typeInfo.Flags = 0;
+
+    KphCreateObjectType(&KphpClientRateLimitTypeName,
+                        &typeInfo,
+                        &KphpClientRateLimitType);
 
     KphInitializePagedLookaside(&KphpMessageLookaside,
                                 sizeof(KPH_MESSAGE),
@@ -1468,39 +2321,22 @@ NTSTATUS KphCommsStart(
     NT_ASSERT(KphpMessageQueueThreadsCount == 0);
     for (ULONG i = 0; i < threadCount; i++)
     {
-        HANDLE threadHandle;
-
-        InitializeObjectAttributes(&objectAttributes,
-                                   NULL,
-                                   OBJ_KERNEL_HANDLE,
-                                   NULL,
-                                   NULL);
-
-        status = PsCreateSystemThread(&threadHandle,
-                                      THREAD_ALL_ACCESS,
-                                      &objectAttributes,
-                                      NULL,
-                                      NULL,
-                                      KphpMessageQueueThread,
-                                      NULL);
+        status = KphCreateSystemThread(NULL,
+                                       &KphpMessageQueueThreads[i],
+                                       KphpMessageQueueThread,
+                                       NULL,
+                                       &KphpMessageQueueThreadName,
+                                       KPH_CREATE_SYSTEM_THREAD_IN_KSI_PROCESS);
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           COMMS,
-                          "PsCreateSystemThread failed: %!STATUS!",
+                          "KphCreateSystemThread failed: %!STATUS!",
                           status);
 
+            KphpMessageQueueThreads[i] = NULL;
             goto Exit;
         }
-
-        status = ObReferenceObjectByHandle(threadHandle,
-                                           THREAD_ALL_ACCESS,
-                                           *PsThreadType,
-                                           KernelMode,
-                                           &KphpMessageQueueThreads[i],
-                                           NULL);
-        NT_ASSERT(NT_SUCCESS(status));
-        ObCloseHandle(threadHandle, KernelMode);
 
         ++KphpMessageQueueThreadsCount;
     }
@@ -1529,7 +2365,7 @@ NTSTATUS KphCommsStart(
                                         KphpCommsConnectNotifyCallback,
                                         KphpCommsDisconnectNotifyCallback,
                                         KphpCommsMessageNotifyCallback,
-                                        LONG_MAX);
+                                        KPH_COMMS_MAX_CLIENTS);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1552,8 +2388,6 @@ Exit:
         KphDeleteNPagedLookaside(&KphpMessageQueueItemLookaside);
         KphDeleteNPagedLookaside(&KphpNPagedMessageLookaside);
         KphDeletePagedLookaside(&KphpMessageLookaside);
-
-        KphDeleteRWLock(&KphpConnectedClientLock);
 
         NT_VERIFY(KeRundownQueue(&KphpMessageQueue) == NULL);
 
@@ -1622,34 +2456,19 @@ VOID KphCommsStop(
     //
     if (entry != NULL)
     {
-        NTSTATUS status;
         PLIST_ENTRY first;
 
         first = entry;
 
         do
         {
-            PKPHM_QUEUE_ITEM item;
+            PLIST_ENTRY item;
 
-            item = CONTAINING_RECORD(entry, KPHM_QUEUE_ITEM, Entry);
+            item = entry;
 
             entry = entry->Flink;
 
-            status = KphpCommsSendMessage(item->Message,
-                                          NULL,
-                                          TRUE,
-                                          item->TargetClientProcess);
-            if (!NT_SUCCESS(status))
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              COMMS,
-                              "Failed to send message (%lu - %!TIME!): %!STATUS!",
-                              (ULONG)item->Message->Header.MessageId,
-                              item->Message->Header.TimeStamp.QuadPart,
-                              status);
-            }
-
-            KphpFreeMessageQueueItem(item);
+            KphpMessageQueueProcessItems(&item, 1);
 
         } while (entry != first);
     }
@@ -1659,8 +2478,6 @@ VOID KphCommsStop(
     KphDeleteNPagedLookaside(&KphpMessageQueueItemLookaside);
     KphDeleteNPagedLookaside(&KphpNPagedMessageLookaside);
     KphDeletePagedLookaside(&KphpMessageLookaside);
-
-    KphDeleteRWLock(&KphpConnectedClientLock);
 }
 
 /**
@@ -1715,7 +2532,7 @@ VOID KphCommsSendMessageAsync(
 }
 
 /**
- * \brief Sends a message to all connected clients. The last client to connect
+ * \brief Sends a message to all connected clients. The first client to respond
  * is given authority for any reply.
  *
  * \details Callers expecting a specific reply should check for the reply
@@ -1735,15 +2552,39 @@ NTSTATUS KphCommsSendMessage(
     )
 {
     NTSTATUS status;
+    ULONG clientCount;
+    PKPH_CLIENT clients[KPH_COMMS_MAX_CLIENTS];
 
     KPH_PAGED_CODE();
+
+    NT_ASSERT(NT_SUCCESS(KphMsgValidate(Message)));
 
     if (!KphAcquireRundown(&KphpCommsRundown))
     {
         return STATUS_TOO_LATE;
     }
 
-    status = KphpCommsSendMessage(Message, Reply, FALSE, NULL);
+    if (Reply)
+    {
+        KphMsgInit(Reply, KphMsgUnhandled);
+    }
+
+    status = STATUS_PORT_DISCONNECTED;
+
+    clientCount = KphpGetNonRateLimitedClients(clients, Message);
+
+    for (ULONG i = 0; i < clientCount; i++)
+    {
+        KphpCommsSendMessage(clients[i],
+                             Message,
+                             Message->Header.Size,
+                             Reply,
+                             FALSE);
+
+        KphDereferenceObject(clients[i]);
+
+        status = STATUS_SUCCESS;
+    }
 
     KphReleaseRundown(&KphpCommsRundown);
 

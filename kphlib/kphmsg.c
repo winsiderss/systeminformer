@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2026
  *     dmex    2022
  *
  */
@@ -13,7 +13,7 @@
 #include <kphlibbase.h>
 #include <kphmsg.h>
 
-#define KPH_MESSAGE_VERSION 4
+#define KPH_MESSAGE_VERSION 5
 
 /**
  * Gets the current system time (UTC).

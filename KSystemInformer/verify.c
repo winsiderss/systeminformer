@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     jxy-s   2020-2024
+ *     jxy-s   2020-2026
  *
  */
 
@@ -399,7 +399,7 @@ NTSTATUS KphVerifyBuffer(
 
 #define KphpVerifyValidFileName(FileName)                                      \
     (((FileName)->Length > KphpSigExtension.Length) &&                         \
-     ((FileName)->Buffer[0] == L'\\'))
+     ((FileName)->Buffer[0] == OBJ_NAME_PATH_SEPARATOR))
 
 /**
  * \brief Verifies a file object.
@@ -431,7 +431,7 @@ NTSTATUS KphVerifyFileObject(
     KPH_PAGED_CODE_PASSIVE();
 
     localFileName = NULL;
-    RtlZeroMemory(&signatureFileName, sizeof(signatureFileName));
+    RtlZeroMemory(&signatureFileName, sizeof(UNICODE_STRING));
     signatureFileHandle = NULL;
     signature = NULL;
 
@@ -474,7 +474,7 @@ NTSTATUS KphVerifyFileObject(
                       "RtlDuplicateUnicodeString failed: %!STATUS!",
                       status);
 
-        RtlZeroMemory(&signatureFileName, sizeof(signatureFileName));
+        RtlZeroMemory(&signatureFileName, sizeof(UNICODE_STRING));
         goto Exit;
     }
 
@@ -589,7 +589,7 @@ NTSTATUS KphVerifyFileObject(
 
     status = KphQueryHashInformationFileObject(FileObject,
                                                &hashInfo,
-                                               sizeof(hashInfo));
+                                               sizeof(KPH_HASH_INFORMATION));
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -698,7 +698,7 @@ NTSTATUS KphVerifyFile(
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
+                      VERIFY,
                       "KphCreateFile failed: %!STATUS!",
                       status);
 
@@ -708,7 +708,7 @@ NTSTATUS KphVerifyFile(
     else if (status == STATUS_OPLOCK_BREAK_IN_PROGRESS)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
+                      VERIFY,
                       "KphCreateFile failed: %!STATUS!",
                       status);
 

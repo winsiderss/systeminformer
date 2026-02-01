@@ -141,6 +141,10 @@ EXT ULONG PhCsEnableGraphMaxText;
 EXT ULONG PhCsEnableAvxSupport;
 EXT ULONG PhCsEnableHandleSnapshot;
 
+EXT BOOLEAN PhEnableProcessMonitor;
+EXT ULONG PhProcessMonitorLookback;
+EXT ULONG PhProcessMonitorCacheLimit;
+
 #pragma pop_macro("EXT")
 
 #define PH_GET_INTEGER_CACHED_SETTING(Name) ((PhCs##Name) = PhGetIntegerSetting(TEXT(#Name)))
@@ -502,6 +506,7 @@ EXT ULONG PhCsEnableHandleSnapshot;
 #define SETTING_KSI_OBJECT_NAME                                     L"KsiObjectName"
 #define SETTING_KSI_PORT_NAME                                       L"KsiPortName"
 #define SETTING_KSI_ALTITUDE                                        L"KsiAltitude"
+#define SETTING_KSI_SYSTEM_PROCESS_NAME                             L"KsiSystemProcessName"
 #define SETTING_KSI_DISABLE_IMAGE_LOAD_PROTECTION                   L"KsiDisableImageLoadProtection"
 #define SETTING_KSI_ENABLE_SPLASH_SCREEN                            L"KsiEnableSplashScreen"
 #define SETTING_KSI_ENABLE_LOAD_NATIVE                              L"KsiEnableLoadNative"
@@ -510,12 +515,18 @@ EXT ULONG PhCsEnableHandleSnapshot;
 #define SETTING_KSI_RANDOMIZED_POOL_TAG                             L"KsiRandomizedPoolTag"
 #define SETTING_KSI_ENABLE_UNLOAD_PROTECTION                        L"KsiEnableUnloadProtection"
 #define SETTING_KSI_DYN_DATA_NO_EMBEDDED                            L"KsiDynDataNoEmbedded"
+#define SETTING_KSI_DISABLE_SYSTEM_PROCESS                          L"KsiDisableSystemProcess"
+#define SETTING_KSI_DISABLE_THREAD_NAMES                            L"KsiDisableThreadNames"
 #define SETTING_KSI_CLIENT_PROCESS_PROTECTION_LEVEL                 L"KsiClientProcessProtectionLevel"
 #define SETTING_KSI_PREVIOUS_TEMPORARY_DRIVER_FILE                  L"KsiPreviousTemporaryDriverFile"
 #define SETTING_KSI_ENABLE_FS_FEATURE_OFFLOAD_READ                  L"KsiEnableFsFeatureOffloadRead"
 #define SETTING_KSI_ENABLE_FS_FEATURE_OFFLOAD_WRITE                 L"KsiEnableFsFeatureOffloadWrite"
 #define SETTING_KSI_ENABLE_FS_FEATURE_QUERY_OPEN                    L"KsiEnableFsFeatureQueryOpen"
 #define SETTING_KSI_ENABLE_FS_FEATURE_BYPASS_IO                     L"KsiEnableFsFeatureBypassIO"
+#define SETTING_KSI_RING_BUFFER_LENGTH                              L"KsiRingBufferLength"
+#define SETTING_ENABLE_PROCESS_MONITOR                              L"EnableProcessMonitor"
+#define SETTING_PROCESS_MONITOR_LOOKBACK                            L"ProcessMonitorLookback"
+#define SETTING_PROCESS_MONITOR_CACHE_LIMIT                         L"ProcessMonitorCacheLimit"
 // end_phapppub
 
 #endif

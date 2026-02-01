@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -35,18 +35,18 @@ KPH_PAGED_FILE();
  * \return Pointer to the thread context, may be null, the caller should
  * dereference this object if it is non-null.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
     _In_ BOOLEAN Create,
-    _In_ PETHREAD Thread
+    _In_opt_ PETHREAD Thread
     )
 {
     PKPH_THREAD_CONTEXT thread;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (!Create)
     {
@@ -68,7 +68,16 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
         return thread;
     }
 
-    NT_ASSERT(Create);
+    if (!Thread)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "Failed to track thread %lu in process %lu",
+                      HandleToULong(ThreadId),
+                      HandleToULong(ProcessId));
+
+        return NULL;
+    }
 
     thread = KphTrackThreadContext(Thread);
     if (!thread)
@@ -107,7 +116,7 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
  * is being destroyed.
  */
 _Function_class_(PCREATE_THREAD_NOTIFY_ROUTINE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpCreateThreadNotifyInformer(
     _In_ PKPH_THREAD_CONTEXT Thread,
     _In_ HANDLE ProcessId,
@@ -118,7 +127,7 @@ VOID KphpCreateThreadNotifyInformer(
     PKPH_MESSAGE msg;
     PKPH_PROCESS_CONTEXT actorProcess;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     msg = NULL;
     actorProcess = KphGetCurrentProcessContext();
@@ -206,7 +215,7 @@ VOID KphpCreateThreadNotifyInformer(
         msg->Kernel.ThreadExit.ThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
     }
 
-    if (KphInformerEnabled2(EnableStackTraces, actorProcess, Thread->ProcessContext))
+    if (KphInformerOpts2(actorProcess, Thread->ProcessContext).EnableStackTraces)
     {
         KphCaptureStackInMessage(msg);
     }
@@ -236,7 +245,7 @@ Exit:
  * \param[in] Create Unused
  */
 _Function_class_(PCREATE_THREAD_NOTIFY_ROUTINE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpExecuteThreadNotifyRoutine(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
@@ -245,7 +254,7 @@ VOID KphpExecuteThreadNotifyRoutine(
 {
     PKPH_THREAD_CONTEXT thread;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     UNREFERENCED_PARAMETER(Create);
 
@@ -273,20 +282,29 @@ VOID KphpExecuteThreadNotifyRoutine(
  * is being destroyed.
  */
 _Function_class_(PCREATE_THREAD_NOTIFY_ROUTINE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpCreateThreadNotifyRoutine(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
     _In_ BOOLEAN Create
     )
 {
+    NTSTATUS status;
     PKPH_THREAD_CONTEXT thread;
     PETHREAD threadObject;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
-    NT_VERIFY(NT_SUCCESS(PsLookupThreadByThreadId(ThreadId, &threadObject)));
-    NT_ASSERT(threadObject);
+    status = PsLookupThreadByThreadId(ThreadId, &threadObject);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "PsLookupThreadByThreadId failed: %!STATUS!",
+                      status);
+
+        threadObject = NULL;
+    }
 
     if (Create)
     {
@@ -326,7 +344,10 @@ VOID KphpCreateThreadNotifyRoutine(
         KphDereferenceObject(thread);
     }
 
-    ObDereferenceObject(threadObject);
+    if (threadObject)
+    {
+        ObDereferenceObject(threadObject);
+    }
 }
 
 /**

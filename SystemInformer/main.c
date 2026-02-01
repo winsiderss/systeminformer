@@ -92,6 +92,8 @@ INT WINAPI wWinMain(
 
     PhInitializePreviousInstance();
 
+    PhInitializeCallbacks();
+
     if (PhEnableKsiSupport &&
         !PhStartupParameters.ShowOptions)
     {

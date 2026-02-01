@@ -21,6 +21,8 @@
 #include <phappres.h>
 #include <sistatus.h>
 #include <informer.h>
+#include <phsvccl.h>
+#include <svcsup.h>
 
 #include <ksisup.h>
 
@@ -357,18 +359,15 @@ VOID PhShowKsiStatus(
         PhAppendStringBuilder2(&stringBuilder, L"You will be unable to use more advanced features, view details about system processes or terminate malicious software.");
         infoString = PhFinalStringBuilderString(&stringBuilder);
 
-        if (PhShowMessageOneTime(
+        PhShowKsiMessageEx(
             NULL,
-            TD_OK_BUTTON,
             TD_SHIELD_ERROR_ICON,
+            0,
+            FALSE,
             L"Access to the kernel driver is restricted.",
             L"%s",
             PhGetString(infoString)
-            ))
-        {
-            PhEnableKsiWarnings = FALSE;
-            PhSetIntegerSetting(SETTING_KSI_ENABLE_WARNINGS, FALSE);
-        }
+            );
 
         PhDereferenceObject(infoString);
     }
@@ -766,6 +765,109 @@ VOID PhShowKsiMessage(
 }
 
 /**
+ * Create a randomized alphanumeric name with the given prefix.
+ *
+ * Generates an 8-12 character random alpha string and concatenates it to the
+ * provided prefix producing a new referenced `PPH_STRING` returned via `Name`.
+ *
+ * \param[in] Prefix Wide string prefix to prepend.
+ * \param[out] Name Receives referenced `PPH_STRING` containing the new name.
+ */
+VOID KsiCreateRandomizedName(
+    _In_ PCWSTR Prefix,
+    _Out_ PPH_STRING* Name,
+    _In_ BOOLEAN Numeric
+    )
+{
+    ULONG length;
+    WCHAR buffer[13];
+
+    length = (PhGenerateRandomNumber64() % 6) + 8; // 8-12 characters
+
+    if (Numeric)
+        PhGenerateRandomNumericString(buffer, length);
+    else
+        PhGenerateRandomAlphaString(buffer, length);
+
+    *Name = PhConcatStrings2(Prefix, buffer);
+}
+
+/**
+ * Creates and connects to the System Informer service.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS KsiSvcConnectToServer(
+    VOID
+    )
+{
+    NTSTATUS status;
+    PPH_STRING serviceName;
+    PPH_STRING fileName;
+    PPH_STRING commandLine;
+    SC_HANDLE serviceHandle;
+    PPH_STRING portName;
+    UNICODE_STRING portNameUs;
+    ULONG attempts;
+
+    if (!(fileName = PhGetApplicationFileNameWin32()))
+        return STATUS_UNSUCCESSFUL;
+
+    KsiCreateRandomizedName(L"SystemInformer_", &serviceName, FALSE);
+
+    commandLine = PhFormatString(
+        L"\"%s\" -ras \"%s\"",
+        fileName->Buffer,
+        PhGetString(serviceName)
+        );
+
+    status = PhCreateService(
+        &serviceHandle,
+        PhGetString(serviceName),
+        PhGetString(serviceName),
+        SERVICE_ALL_ACCESS,
+        SERVICE_WIN32_OWN_PROCESS,
+        SERVICE_DEMAND_START,
+        SERVICE_ERROR_IGNORE,
+        PhGetString(commandLine),
+        L"LocalSystem",
+        L""
+        );
+
+    PhDereferenceObject(commandLine);
+    PhDereferenceObject(fileName);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    PhStartService(serviceHandle, 0, NULL);
+    PhDeleteService(serviceHandle);
+
+    portName = PhConcatStrings2(L"\\BaseNamedObjects\\", PhGetString(serviceName));
+    PhStringRefToUnicodeString(&portName->sr, &portNameUs);
+    attempts = 50;
+
+    // Try to connect several times because the server may take
+    // a while to initialize.
+    do
+    {
+        status = PhSvcConnectToServer(&portNameUs, 0);
+
+        if (NT_SUCCESS(status))
+            break;
+
+        PhDelayExecution(100);
+
+    } while (--attempts != 0);
+
+    PhDereferenceObject(portName);
+
+    PhCloseServiceHandle(serviceHandle);
+
+    return status;
+}
+
+/**
  * Restart the current process with optional additional command-line parameters
  * and process mitigation attributes set.
  *
@@ -781,9 +883,11 @@ NTSTATUS PhRestartSelf(
     _In_ PCPH_STRINGREF AdditionalCommandLine
     )
 {
-#ifndef DEBUG
     static ULONG64 mitigationFlags[] =
     {
+#ifdef DEBUG
+        0, 0
+#else
         (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
          PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
          PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
@@ -795,8 +899,8 @@ NTSTATUS PhRestartSelf(
          // PROCESS_CREATION_MITIGATION_POLICY2_BLOCK_NON_CET_BINARIES_ALWAYS_ON |
          // PROCESS_CREATION_MITIGATION_POLICY2_XTENDED_CONTROL_FLOW_GUARD_ALWAYS_ON |
          PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON)
-    };
 #endif
+    };
     NTSTATUS status;
     PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
     PH_STRINGREF commandlineSr;
@@ -812,6 +916,18 @@ NTSTATUS PhRestartSelf(
         &commandlineSr,
         AdditionalCommandLine
         );
+
+    status = KsiSvcConnectToServer();
+    if (NT_SUCCESS(status))
+    {
+        status = PhSvcCallCreateProcessForKsi(PhGetString(commandline), mitigationFlags);
+        PhSvcDisconnectFromServer();
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        PhExitApplication(STATUS_SUCCESS);
+    }
 
 #ifndef DEBUG
     status = PhInitializeProcThreadAttributeList(&attributeList, 1);
@@ -1132,6 +1248,118 @@ CleanupExit:
 }
 
 /**
+ * Retrieves and activates dynamic configuration data.
+ *
+ * \param[in] WindowHandle Optional parent window for UI prompts.
+ * \param[in] Level Current KPH level.
+ */
+VOID KsiActivateDynData(
+    _In_opt_ HWND WindowHandle,
+    _In_ KPH_LEVEL Level
+    )
+{
+    NTSTATUS status;
+    BOOLEAN showMessage;
+    PBYTE dynData = NULL;
+    ULONG dynDataLength;
+    PBYTE signature = NULL;
+    ULONG signatureLength;
+
+    showMessage = (Level < KphLevelHigh);
+
+    status = KsiGetDynData(
+        &dynData,
+        &dynDataLength,
+        &signature,
+        &signatureLength
+        );
+
+    if (!showMessage)
+    {
+        NOTHING;
+    }
+    else if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
+    {
+#if defined(KSI_ONLINE_PLATFORM_SUPPORT)
+        KsiShowKernelSupportCheckDialog(WindowHandle);
+#else
+        if (PhGetPhReleaseChannel() < PhCanaryChannel)
+        {
+            PhShowKsiMessageEx(
+                WindowHandle,
+                TD_WARNING_ICON,
+                0,
+                FALSE,
+                L"Reduced driver functionality",
+                L"The kernel driver is not yet supported on this kernel "
+                L"version. For the latest kernel support switch to the Canary "
+                L"update channel (Help > Check for updates > Canary > Check)."
+                );
+        }
+        else
+        {
+            PhShowKsiMessageEx(
+                WindowHandle,
+                TD_WARNING_ICON,
+                0,
+                FALSE,
+                L"Reduced driver functionality",
+                L"The kernel driver is not yet supported on this kernel "
+                L"version. Request support by submitting a GitHub issue with "
+                L"the Windows Kernel version."
+                );
+        }
+#endif
+    }
+    else if (status == STATUS_NO_SUCH_FILE)
+    {
+        PhShowKsiMessageEx(
+            WindowHandle,
+            TD_WARNING_ICON,
+            0,
+            FALSE,
+            L"Reduced driver functionality",
+            L"The dynamic configuration was not found."
+            );
+    }
+    else if (!NT_SUCCESS(status))
+    {
+        PhShowKsiMessageEx(
+            WindowHandle,
+            TD_WARNING_ICON,
+            status,
+            FALSE,
+            L"Reduced driver functionality",
+            L"Failed to access the dynamic configuration."
+            );
+    }
+
+    if (dynData && signature)
+    {
+        status = KphActivateDynData(dynData,
+                                    dynDataLength,
+                                    signature,
+                                    signatureLength);
+        if (showMessage && !NT_SUCCESS(status))
+        {
+            PhShowKsiMessageEx(
+                WindowHandle,
+                TD_WARNING_ICON,
+                status,
+                FALSE,
+                L"Reduced driver functionality",
+                L"Failed to activate the dynamic configuration."
+                );
+        }
+    }
+
+    if (signature)
+        PhFree(signature);
+    if (dynData)
+        PhFree(dynData);
+}
+
+/**
  * Determine the on-disk kernel driver filename for the current application context.
  *
  * \return Referenced `PPH_STRING` containing the full driver filename.
@@ -1231,31 +1459,6 @@ NTSTATUS KsiCreateTemporaryDriverFile(
 }
 
 /**
- * Create a randomized alphanumeric name with the given prefix.
- *
- * Generates an 8-12 character random alpha string and concatenates it to the
- * provided prefix producing a new referenced `PPH_STRING` returned via `Name`.
- *
- * \param[in] Prefix Wide string prefix to prepend.
- * \param[out] Name Receives referenced `PPH_STRING` containing the new name.
- * \return BOOLEAN TRUE on success, FALSE on failure.
- */
-BOOLEAN KsiCreateRandomizedName(
-    _In_ PCWSTR Prefix,
-    _Out_ PPH_STRING* Name
-    )
-{
-    ULONG length;
-    WCHAR buffer[13];
-
-    length = (PhGenerateRandomNumber64() % 6) + 8; // 8-12 characters
-    PhGenerateRandomAlphaString(buffer, length);
-
-    *Name = PhConcatStrings2(Prefix, buffer);
-    return TRUE;
-}
-
-/**
  * Connect to the kernel driver using the configured dynamic configuration.
  *
  * This function orchestrates reading dynamic configuration, validating it,
@@ -1270,94 +1473,18 @@ NTSTATUS KsiConnect(
     )
 {
     NTSTATUS status;
-    PBYTE dynData = NULL;
-    ULONG dynDataLength;
-    PBYTE signature = NULL;
-    ULONG signatureLength;
     PPH_STRING ksiFileName = NULL;
     KPH_CONFIG_PARAMETERS config = { 0 };
     PPH_STRING objectName = NULL;
     PPH_STRING portName = NULL;
     PPH_STRING altitude = NULL;
+    PPH_STRING systemProcessName = NULL;
     PPH_STRING tempDriverDir = NULL;
     KPH_LEVEL level;
 
     if (tempDriverDir = PhGetTemporaryKsiDirectory())
     {
         PhDeleteDirectoryWin32(&tempDriverDir->sr);
-    }
-
-    status = KsiGetDynData(
-        &dynData,
-        &dynDataLength,
-        &signature,
-        &signatureLength
-        );
-
-#if defined(KSI_ONLINE_PLATFORM_SUPPORT)
-    if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
-    {
-        KsiShowKernelSupportCheckDialog(WindowHandle);
-        goto CleanupExit;
-    }
-#else
-    if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
-    {
-        if (PhGetPhReleaseChannel() < PhCanaryChannel)
-        {
-            PhShowKsiMessageEx(
-                WindowHandle,
-                TD_SHIELD_ERROR_ICON,
-                0,
-                FALSE,
-                L"Unable to load kernel driver",
-                L"The kernel driver is not yet supported on this kernel "
-                L"version. For the latest kernel support switch to the Canary "
-                L"update channel (Help > Check for updates > Canary > Check)."
-                );
-        }
-        else
-        {
-            PhShowKsiMessageEx(
-                WindowHandle,
-                TD_SHIELD_ERROR_ICON,
-                0,
-                FALSE,
-                L"Unable to load kernel driver",
-                L"The kernel driver is not yet supported on this kernel "
-                L"version. Request support by submitting a GitHub issue with "
-                L"the Windows Kernel version."
-                );
-        }
-        goto CleanupExit;
-    }
-#endif
-
-    if (status == STATUS_NO_SUCH_FILE)
-    {
-        PhShowKsiMessageEx(
-            WindowHandle,
-            TD_SHIELD_ERROR_ICON,
-            0,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"The dynamic configuration was not found."
-            );
-        goto CleanupExit;
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhShowKsiMessageEx(
-            WindowHandle,
-            TD_SHIELD_ERROR_ICON,
-            status,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"Failed to access the dynamic configuration."
-            );
-
-        goto CleanupExit;
     }
 
     if (!PhDoesFileExistWin32(PhGetString(KsiFileName)))
@@ -1377,12 +1504,15 @@ NTSTATUS KsiConnect(
         PhClearReference(&portName);
     if (PhIsNullOrEmptyString(altitude = PhGetStringSetting(SETTING_KSI_ALTITUDE)))
         PhClearReference(&altitude);
+    if (PhIsNullOrEmptyString(systemProcessName = PhGetStringSetting(SETTING_KSI_SYSTEM_PROCESS_NAME)))
+        PhClearReference(&systemProcessName);
 
     config.FileName = &KsiFileName->sr;
     config.ServiceName = &KsiServiceName->sr;
     config.ObjectName = &KsiObjectName->sr;
     config.PortName = (portName ? &portName->sr : NULL);
     config.Altitude = (altitude ? &altitude->sr : NULL);
+    config.SystemProcessName = (systemProcessName ? &systemProcessName->sr : NULL);
     config.FsSupportedFeatures = 0;
     if (!!PhGetIntegerSetting(SETTING_KSI_ENABLE_FS_FEATURE_OFFLOAD_READ))
         SetFlag(config.FsSupportedFeatures, SUPPORTED_FS_FEATURES_OFFLOAD_READ);
@@ -1396,8 +1526,11 @@ NTSTATUS KsiConnect(
     config.Flags.DisableImageLoadProtection = !!PhGetIntegerSetting(SETTING_KSI_DISABLE_IMAGE_LOAD_PROTECTION);
     config.Flags.RandomizedPoolTag = !!PhGetIntegerSetting(SETTING_KSI_RANDOMIZED_POOL_TAG);
     config.Flags.DynDataNoEmbedded = !!PhGetIntegerSetting(SETTING_KSI_DYN_DATA_NO_EMBEDDED);
+    config.Flags.DisableSystemProcess = !!PhGetIntegerSetting(SETTING_KSI_DISABLE_SYSTEM_PROCESS);
+    config.Flags.DisableThreadNames = !!PhGetIntegerSetting(SETTING_KSI_DISABLE_THREAD_NAMES);
     config.EnableNativeLoad = KsiEnableLoadNative;
     config.EnableFilterLoad = KsiEnableLoadFilter;
+    config.RingBufferLength = PhGetIntegerSetting(SETTING_KSI_RING_BUFFER_LENGTH);
     config.Callback = KsiCommsCallback;
 
     status = KphConnect(&config);
@@ -1462,6 +1595,7 @@ NTSTATUS KsiConnect(
         PPH_STRING randomServiceName;
         PPH_STRING randomPortName;
         PPH_STRING randomObjectName;
+        PPH_STRING randomAltitude;
 
         //
         // Malware might be blocking the driver load. Offer the user a chance
@@ -1480,15 +1614,17 @@ NTSTATUS KsiConnect(
             goto CleanupExit;
         }
 
-        KsiCreateRandomizedName(L"", &randomServiceName);
-        KsiCreateRandomizedName(L"\\", &randomPortName);
-        KsiCreateRandomizedName(L"\\Driver\\", &randomObjectName);
+        KsiCreateRandomizedName(L"", &randomServiceName, FALSE);
+        KsiCreateRandomizedName(L"\\", &randomPortName, FALSE);
+        KsiCreateRandomizedName(L"\\Driver\\", &randomObjectName, FALSE);
+        KsiCreateRandomizedName(L"385210.5", &randomAltitude, TRUE);
 
         config.EnableNativeLoad = TRUE;
         config.EnableFilterLoad = FALSE;
         config.ServiceName = &randomServiceName->sr;
         config.PortName = &randomPortName->sr;
         config.ObjectName = &randomObjectName->sr;
+        config.Altitude = &randomAltitude->sr;
 
         PhMoveReference(&KsiServiceName, PhReferenceObject(randomServiceName));
         PhMoveReference(&KsiObjectName, PhReferenceObject(randomObjectName));
@@ -1509,6 +1645,7 @@ NTSTATUS KsiConnect(
             PhSetStringSetting2(SETTING_KSI_SERVICE_NAME, &randomServiceName->sr);
             PhSetStringSetting2(SETTING_KSI_PORT_NAME, &randomPortName->sr);
             PhSetStringSetting2(SETTING_KSI_OBJECT_NAME, &randomObjectName->sr);
+            PhSetStringSetting2(SETTING_KSI_ALTITUDE, &randomAltitude->sr);
 
             PhSaveSettings2(PhSettingsFileName);
 
@@ -1525,6 +1662,7 @@ NTSTATUS KsiConnect(
         PhDereferenceObject(randomServiceName);
         PhDereferenceObject(randomPortName);
         PhDereferenceObject(randomObjectName);
+        PhDereferenceObject(randomAltitude);
     }
 
     if (!NT_SUCCESS(status))
@@ -1540,9 +1678,9 @@ NTSTATUS KsiConnect(
         goto CleanupExit;
     }
 
-    KphActivateDynData(dynData, dynDataLength, signature, signatureLength);
-
     level = KphLevelEx(FALSE);
+
+    KsiActivateDynData(WindowHandle, level);
 
     if (!NtCurrentPeb()->BeingDebugged && (level != KphLevelMax))
     {
@@ -1602,6 +1740,68 @@ NTSTATUS KsiConnect(
             KphStripProtectedProcessMasks(NtCurrentProcess(), process, thread);
     }
 
+    if (PhEnableProcessMonitor)
+    {
+        KPH_INFORMER_SETTINGS settings;
+        KPH_RATE_LIMIT_POLICY unlimited = KPH_RATE_LIMIT_UNLIMITED;
+        KPH_RATE_LIMIT_POLICY disable = KPH_RATE_LIMIT_DENY_ALL;
+
+        settings.Options.Flags = ULONG_MAX;
+        for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+        {
+            settings.Policy[i] = unlimited;
+        }
+
+        //
+        // Conservative settings for now.
+        //
+
+        settings.Options.EnableStackTraces = FALSE;
+
+        settings.Policy[KPH_INFORMER_INDEX(DebugPrint)] = disable;
+
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreCreateProcess)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostCreateProcess)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreDuplicateProcess)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostDuplicateProcess)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreCreateThread)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostCreateThread)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreDuplicateThread)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostDuplicateThread)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreCreateDesktop)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostCreateDesktop)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePreDuplicateDesktop)] = disable;
+        settings.Policy[KPH_INFORMER_INDEX(HandlePostDuplicateDesktop)] = disable;
+
+        settings.Options.EnableProcessCreateReply = FALSE;
+        settings.Options.FileEnablePreCreateReply = FALSE;
+        settings.Options.FileEnablePostCreateReply = FALSE;
+
+        settings.Options.FileEnablePostFileNames = FALSE;
+        settings.Options.FileEnableIoControlBuffers = FALSE;
+        settings.Options.FileEnableFsControlBuffers = FALSE;
+        settings.Options.FileEnableDirControlBuffers = FALSE;
+
+        settings.Options.RegEnablePostObjectNames = FALSE;
+        settings.Options.RegEnablePostValueNames = FALSE;
+        settings.Options.RegEnableValueBuffers = FALSE;
+
+        KphSetInformerSettings(&settings);
+    }
+    else
+    {
+        KPH_INFORMER_SETTINGS settings;
+        KPH_RATE_LIMIT_POLICY unlimited = KPH_RATE_LIMIT_UNLIMITED;
+
+        memset(&settings, 0, sizeof(settings));
+
+        settings.Policy[KPH_INFORMER_INDEX(RequiredStateFailure)] = unlimited;
+
+        KphSetInformerSettings(&settings);
+    }
+
+    status = STATUS_SUCCESS;
+
 CleanupExit:
 
     PhClearReference(&objectName);
@@ -1609,11 +1809,6 @@ CleanupExit:
     PhClearReference(&altitude);
     PhClearReference(&ksiFileName);
     PhClearReference(&tempDriverDir);
-
-    if (signature)
-        PhFree(signature);
-    if (dynData)
-        PhFree(dynData);
 
 #ifdef DEBUG
     KsiDebugLogInitialize();
