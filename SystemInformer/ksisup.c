@@ -1497,6 +1497,7 @@ NTSTATUS KsiConnect(
             L"Unable to load kernel driver",
             L"The kernel driver was not found."
             );
+        status = STATUS_NOT_FOUND;
         goto CleanupExit;
     }
 
