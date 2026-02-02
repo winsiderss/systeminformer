@@ -381,7 +381,7 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(kvp.Key))
                     {
                         string targetPath = Path.Join([binPath, $"\\{kvp.Value}\\", file]);
-                        
+
                         if (Update)
                             Win32.CopyIfNewer(file, targetPath, Flags);
                         else
@@ -801,7 +801,7 @@ namespace CustomBuildTool
             {
                 Win32.CopyIfNewer(
                     Path.Join([Build.BuildWorkingFolder, "\\phnt\\include\\", file]),
-                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", file]), 
+                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", file]),
                     Flags, true);
             }
 
@@ -809,14 +809,14 @@ namespace CustomBuildTool
             {
                 Win32.CopyIfNewer(
                     Path.Join([Build.BuildWorkingFolder, "\\phlib\\include\\", file]),
-                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", file]), 
+                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", file]),
                     Flags, true);
             }
             foreach (string file in BuildConfig.Build_Kphlib_Headers)
             {
                 Win32.CopyIfNewer(
-                    Path.Join([Build.BuildWorkingFolder, "\\kphlib\\include\\", file]), 
-                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", file]), 
+                    Path.Join([Build.BuildWorkingFolder, "\\kphlib\\include\\", file]),
+                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", file]),
                     Flags, true);
             }
 
@@ -825,8 +825,8 @@ namespace CustomBuildTool
             //
 
             Win32.CopyIfNewer(
-                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\readme.txt"]), 
-                Path.Join([Build.BuildWorkingFolder, "\\sdk\\readme.txt"]), 
+                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\readme.txt"]),
+                Path.Join([Build.BuildWorkingFolder, "\\sdk\\readme.txt"]),
                 Flags, true);
 
             //
@@ -860,17 +860,17 @@ namespace CustomBuildTool
             //
 
             Win32.CopyIfNewer(
-                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\include\\phappres.h"]), 
-                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappres.h"]), 
+                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\include\\phappres.h"]),
+                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappres.h"]),
                 Flags, true);
 
             Win32.CopyIfNewer(
-                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\phapppub.h"]), 
-                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phapppub.h"]), 
+                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\phapppub.h"]),
+                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phapppub.h"]),
                 Flags, true);
 
             Win32.CopyIfNewer(
-                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\phdk.h"]), 
+                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\phdk.h"]),
                 Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phdk.h"]),
                 Flags, true);
 
@@ -879,16 +879,16 @@ namespace CustomBuildTool
             //
 
             Win32.GetFileBasicInfo(
-                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\resource.h"]), 
-                out var sourceCreationTime, 
-                out var sourceWriteTime, 
+                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\resource.h"]),
+                out var sourceCreationTime,
+                out var sourceWriteTime,
                 out _
                 );
 
             Win32.GetFileBasicInfo(
                 Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappresource.h"]),
-                out var targetCreationTime, 
-                out var targetWriteTime, 
+                out var targetCreationTime,
+                out var targetWriteTime,
                 out var targetAttributes
                 );
 
@@ -933,10 +933,9 @@ namespace CustomBuildTool
 
             try
             {
-                string binPath = GetBuildBaseDirectory(Flags);
                 string suffix = GetToolchainSuffix(Flags);
                 string config = Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release";
-                string out_file = Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSetupTool\\", binPath, $"\\{config}32\\CustomSetupTool.exe"]);
+                string out_file = Path.Join([Build.BuildWorkingFolder, $"\\tools\\CustomSetupTool\\bin\\{config}32\\CustomSetupTool.exe"]);
                 string exe_file = Path.Join([Build.BuildOutputFolder, $"\\systeminformer-build{suffix}-{Channel}-setup.exe"]);
 
                 Utils.CreateOutputDirectory();
