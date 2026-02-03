@@ -2,25 +2,7 @@ project(
     'phnt',
     'c',
     meson_version: '>=0.63.0',
-    version: run_command(
-        '../tools/versioning/meson_version.py',
-        'version',
-        capture: true,
-        check: true,
-    ).stdout().strip(),
 )
-
-versioning_tool = find_program(
-    '../tools/versioning/meson_version.py',
-    required: false,
-)
-if versioning_tool.found()
-    meson.add_dist_script(
-        versioning_tool,
-        'rewrite',
-        meson.project_version()
-    )
-endif
 
 cc = meson.get_compiler('c')
 ntdll_dep = cc.find_library('ntdll')
