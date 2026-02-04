@@ -1142,11 +1142,10 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 #endif
             }
 
-            // TEB->Win32ClientInfo.DesktopBase (which nowadays is a pointer) used to be called ClientDelta
-            // before RS2 and used to store a difference between the kernel and the user mappings of the
-            // desktop heap. TEB->Win32ClientInfo.DeskInfo, on the other hand, has always been a pointer
-            // to a structure (describing the desktop) near the start of the heap. Round it down to the
-            // allocation granularity to locate the the desktop heap on all OS versions. (diversenok)
+            // TEB->Win32ClientInfo.DesktopBase (which nowadays is a pointer to the start of the desktop heap)
+            // used to be called ClientDelta before RS2 and used to store the difference between the kernel and
+            // the user mappings of the desktop heap. TEB->Win32ClientInfo.DeskInfo, on the other hand, has
+            // always been a pointer to a structure on the desktop heap. (diversenok)
 
             // Desktop heap
             if (NT_SUCCESS(PhReadVirtualMemory(
@@ -1157,12 +1156,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 NULL
                 )) && desktopInfo)
             {
-                PhpSetMemoryRegionType(
-                    List,
-                    (PVOID)ALIGN_DOWN_BY(desktopInfo, PhSystemBasicInformation.AllocationGranularity),
-                    TRUE,
-                    DesktopHeapRegion
-                    );
+                PhpSetMemoryRegionType(List, desktopInfo, TRUE, DesktopHeapRegion);
             }
         }
     }
