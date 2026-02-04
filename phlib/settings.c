@@ -2294,17 +2294,32 @@ NTSTATUS PhLoadSettingsAutoDetect(
 
     if (foundCount == 0)
     {
-        if (ActualPath && BasePath)
+        if (ActualPath)
         {
-            for (ULONG i = 0; i < PH_SETTINGS_STORE_COUNT; i++)
+            PPH_STRING searchPath = NULL;
+
+            if (BasePath)
             {
-                if (PhSettingsStores[i].IsPreferred && PhSettingsStores[i].IsFileBased)
+                searchPath = PhReferenceObject(BasePath);
+            }
+            else if (DefaultName)
+            {
+                searchPath = PhGetRoamingAppDataDirectoryZ(DefaultName, FALSE);
+            }
+
+            if (searchPath)
+            {
+                for (ULONG i = 0; i < PH_SETTINGS_STORE_COUNT; i++)
                 {
-                    *ActualPath = PhConcatStringRefZ(&BasePath->sr, PhSettingsStores[i].Extension);
-                    if (ActualFormat)
-                        *ActualFormat = PhSettingsStores[i].Format;
-                    break;
+                    if (PhSettingsStores[i].IsPreferred && PhSettingsStores[i].IsFileBased)
+                    {
+                        *ActualPath = PhConcatStringRefZ(&searchPath->sr, PhSettingsStores[i].Extension);
+                        if (ActualFormat)
+                            *ActualFormat = PhSettingsStores[i].Format;
+                        break;
+                    }
                 }
+                PhDereferenceObject(searchPath);
             }
         }
         return STATUS_OBJECT_NAME_NOT_FOUND;

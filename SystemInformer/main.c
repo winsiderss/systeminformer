@@ -1508,7 +1508,7 @@ VOID PhInitializeAppSettings(
         {
             status = PhLoadSettingsAutoDetect(NULL, L"settings", &settingsPath, NULL, &PhPortableEnabled);
 
-            if (NT_SUCCESS(status))
+            if (NT_SUCCESS(status) || status == STATUS_OBJECT_NAME_NOT_FOUND)
             {
                 PhMoveReference(&PhSettingsFileName, settingsPath);
             }
