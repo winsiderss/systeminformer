@@ -557,13 +557,13 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         break;
     case ELVM_SETCOMPAREFUNCTION:
         {
-            PPH_EXTLV_SETCOMPAREFUNCTION compare = (PPH_EXTLV_SETCOMPAREFUNCTION)lParam;
+            PPH_COMPARE_FUNCTION compareFunction = (PPH_COMPARE_FUNCTION)lParam;
             ULONG column = (ULONG)wParam;
 
             if (column >= PH_MAX_COMPARE_FUNCTIONS)
                 return FALSE;
 
-            context->CompareFunctions[column] = compare->CompareFunction;
+            context->CompareFunctions[column] = compareFunction;
         }
         return TRUE;
     case ELVM_SETCONTEXT:
@@ -578,16 +578,12 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_SETITEMCOLORFUNCTION:
         {
-            PPH_EXTLV_SETITEMCOLORFUNCTION color = (PPH_EXTLV_SETITEMCOLORFUNCTION)lParam;
-
-            context->ItemColorFunction = color->ColorFunction;
+            context->ItemColorFunction = (PPH_EXTLV_GET_ITEM_COLOR)lParam;
         }
         return TRUE;
     case ELVM_SETITEMFONTFUNCTION:
         {
-            PPH_EXTLV_SETITEMFONTFUNCTION font = (PPH_EXTLV_SETITEMFONTFUNCTION)lParam;
-
-            context->ItemFontFunction = font->FontFunction;
+            context->ItemFontFunction = (PPH_EXTLV_GET_ITEM_FONT)lParam;
         }
         return TRUE;
     case ELVM_SETREDRAW:
