@@ -1096,7 +1096,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 #endif
     }
 
-    // TEB, stack
+    // TEB, stack, desktop heap
     for (i = 0; i < process->NumberOfThreads; i++)
     {
         PSYSTEM_EXTENDED_THREAD_INFORMATION thread = (PSYSTEM_EXTENDED_THREAD_INFORMATION)process->Threads + i;
@@ -1104,6 +1104,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         if (thread->TebBaseAddress)
         {
             NT_TIB ntTib;
+            PVOID desktopInfo;
             SIZE_T bytesRead;
 
             // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections.
@@ -1139,6 +1140,29 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                     }
                 }
 #endif
+            }
+
+            // TEB->Win32ClientInfo.DesktopBase (which nowadays is a pointer) used to be called ClientDelta
+            // before RS2 and used to store a difference between the kernel and the user mappings of the
+            // desktop heap. TEB->Win32ClientInfo.DeskInfo, on the other hand, has always been a pointer
+            // to a structure (describing the desktop) near the start of the heap. Round it down to the
+            // allocation granularity to locate the the desktop heap on all OS versions. (diversenok)
+
+            // Desktop heap
+            if (NT_SUCCESS(PhReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(thread->TebBaseAddress, FIELD_OFFSET(TEB, Win32ClientInfo.DeskInfo)),
+                &desktopInfo,
+                sizeof(PVOID),
+                NULL
+                )) && desktopInfo)
+            {
+                PhpSetMemoryRegionType(
+                    List,
+                    (PVOID)ALIGN_DOWN_BY(desktopInfo, PhSystemBasicInformation.AllocationGranularity),
+                    TRUE,
+                    DesktopHeapRegion
+                    );
             }
         }
     }
