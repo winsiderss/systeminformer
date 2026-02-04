@@ -967,6 +967,7 @@ typedef struct _TEB_ACTIVE_FRAME_EX
 #define STATIC_UNICODE_BUFFER_LENGTH 261
 #define WIN32_CLIENT_INFO_LENGTH 62
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
 typedef struct _CALLBACKWND
 {
@@ -1015,6 +1016,7 @@ typedef struct tagCLIENTINFO
     ULONG_PTR CI_exflags;
     DPICONTEXTINFO dci;
 } CLIENTINFO, *PCLIENTINFO;
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // rev - xor key for ReservedForNtRpc
 #ifdef _WIN64
@@ -1228,6 +1230,7 @@ typedef struct _TEB
     ULONG GdiClientTID;
     PVOID GdiThreadLocalInfo;
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
     union
     {
         //
@@ -1236,6 +1239,9 @@ typedef struct _TEB
         CLIENTINFO Win32ClientInfo;
         ULONG_PTR Win32ClientInfoArea[WIN32_CLIENT_INFO_LENGTH];
     };
+#else
+    ULONG_PTR Win32ClientInfo[WIN32_CLIENT_INFO_LENGTH];
+#endif
 
     //
     // Reserved for opengl32.dll
