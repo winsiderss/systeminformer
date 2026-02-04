@@ -1121,7 +1121,7 @@ LdrpResGetResourceDirectory(
  *
  * \param DllHandle A handle to the DLL.
  * \param ResourcePath A pointer to an array of Type/Name/Language/(optional)AlternateType.
- * \param ResourcePath The number of elements in the ResourcePath array.
+ * \param ResourcePathCount The number of elements in the ResourcePath array.
  * \param Flags Flags for the resource search.
  * \param ResourceBuffer An optional pointer to receive the resource buffer.
  * \param ResourceLength An optional pointer to receive the resource length.

@@ -573,7 +573,7 @@ typedef struct CACHE_STATISTICS
 } CACHE_STATISTICS, *PCACHE_STATISTICS;
 
 /**
- * The WINSTATIONINFORMATION structure represents the status of the protocol used by the session.
+ * The PROTOCOLSTATUS structure represents the status of the protocol used by the session.
  *
  * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/c9066753-acbd-4678-9a72-8fb1b080bd09
  */
@@ -960,7 +960,7 @@ WinStationFreeMemory(
  * The WinStationOpenServerW routine opens a handle to the specified Remote Desktop Session Host (RD Session Host) server.
  *
  * \param ServerName Pointer to a null-terminated string specifying the NetBIOS name of the RD Session Host server.
- * \return BOOLEAN If the function succeeds, the return value is a handle to the specified server.
+ * \return HANDLE If the function succeeds, the return value is a handle to the specified server.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsopenserverw
  */
 NTSYSAPI
@@ -971,13 +971,12 @@ WinStationOpenServerW(
     );
 
 // rev
-
 /**
- * The WinStationOpenServerW routine opens a handle to the specified Remote Desktop Session Host (RD Session Host) server
+ * The WinStationOpenServerExW routine opens a handle to the specified Remote Desktop Session Host (RD Session Host) server
  * or Remote Desktop Virtualization Host (RD Virtualization Host) server.
  *
  * \param ServerName Pointer to a null-terminated string specifying the NetBIOS name of the RD Session Host server.
- * \return BOOLEAN If the function succeeds, the return value is a handle to the specified server.
+ * \return HANDLE If the function succeeds, the return value is a handle to the specified server.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsopenserverexw
  */
 NTSYSAPI
@@ -986,7 +985,7 @@ NTAPI
 WinStationOpenServerExW(
     _In_opt_ PCWSTR ServerName
     );
-    
+
 // rev
 /**
  * The WinStationCloseServer routine closes an open handle to a Remote Desktop Session Host (RD Session Host) server.
@@ -1436,7 +1435,6 @@ WinStationFreeEXECENVDATAEX(
     _In_opt_ PEXECENVDATAEX SessionData,
     _In_ ULONG Count
     );
-
 
 typedef enum _SessionType
 {
