@@ -62,7 +62,7 @@ NTSTATUS PhCreateFileStream(
 
         zero.QuadPart = 0;
 
-        if (!NT_SUCCESS(PhSeekFileStream(
+        if (!NT_SUCCESS(status = PhSeekFileStream(
             fileStream,
             &zero,
             SeekEnd
