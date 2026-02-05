@@ -2304,7 +2304,7 @@ NTSTATUS PhLoadSettingsAutoDetect(
             }
             else if (DefaultName)
             {
-                searchPath = PhGetRoamingAppDataDirectoryZ(DefaultName, FALSE);
+                searchPath = PhGetRoamingAppDataDirectoryZ(DefaultName, TRUE);
             }
 
             if (searchPath)
