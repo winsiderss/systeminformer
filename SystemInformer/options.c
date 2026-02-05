@@ -1415,6 +1415,7 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS,
     PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS,
     PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE,
+    PHP_OPTIONS_INDEX_ENABLE_LOW_LATENCY_MODE,
     PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING,
     PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW,
     PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE,
@@ -1465,6 +1466,7 @@ static VOID PhpAdvancedPageLoad(
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_AVX_EXTENSIONS, L"Enable AVX extensions (experimental)", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"Enable column header totals (experimental)", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"Enable cycle-based CPU usage", NULL);
+        PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LOW_LATENCY_MODE, L"Enable low-latency mode (experimental)", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"Enable fixed graph scaling (experimental)", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"Enable tray information window", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE, L"Enable new memory strings dialog", NULL);
@@ -1502,6 +1504,7 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, SETTING_TREE_LIST_ENABLE_HEADER_TOTALS);
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, SETTING_ENABLE_GRAPH_MAX_SCALE);
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, SETTING_ENABLE_CYCLE_CPU_USAGE);
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LOW_LATENCY_MODE, SETTING_ENABLE_HIGH_RESOLUTION_PROVIDER_TIMER);
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, SETTING_ENABLE_THEME_SUPPORT);
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, SETTING_ENABLE_START_AS_ADMIN);
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, SETTING_ENABLE_STREAMER_MODE);
@@ -1705,6 +1708,7 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, SETTING_TREE_LIST_ENABLE_HEADER_TOTALS);
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, SETTING_ENABLE_GRAPH_MAX_SCALE);
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, SETTING_ENABLE_CYCLE_CPU_USAGE);
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LOW_LATENCY_MODE, SETTING_ENABLE_HIGH_RESOLUTION_PROVIDER_TIMER);
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, SETTING_ENABLE_THEME_SUPPORT);
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, SETTING_ENABLE_START_AS_ADMIN);
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, SETTING_ENABLE_STREAMER_MODE);
@@ -2621,14 +2625,14 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Name),
                     SORT_FUNCTION(Type),
                     SORT_FUNCTION(Value),
                     SORT_FUNCTION(Default),
                 };
-                long (__cdecl* sortFunction)(void*, const void*, const void*);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 if (context->TreeNewSortColumn < PH_OPTIONS_ADVANCED_COLUMN_ITEM_MAXIMUM)
                     sortFunction = sortFunctions[context->TreeNewSortColumn];
@@ -2917,6 +2921,7 @@ VOID DeleteOptionsAdvancedTree(
 
 #pragma endregion
 
+_Function_class_(PH_SETTINGS_ENUM_CALLBACK)
 static BOOLEAN PhpOptionsSettingsCallback(
     _In_ PPH_SETTING Setting,
     _In_ PVOID Context
@@ -2928,6 +2933,7 @@ static BOOLEAN PhpOptionsSettingsCallback(
     return TRUE;
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpOptionsAdvancedTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_ PVOID Context
@@ -3049,6 +3055,7 @@ BOOLEAN PhpOptionsAdvancedTreeFilterCallback(
     return FALSE;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpOptionsAdvancedSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context

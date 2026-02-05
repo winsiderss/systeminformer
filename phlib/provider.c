@@ -28,6 +28,7 @@
  */
 
 #include <ph.h>
+#include <apiimport.h>
 #include <provider.h>
 
 #ifdef DEBUG
@@ -54,6 +55,7 @@ VOID PhInitializeProviderThread(
     PhInitializeQueuedLock(&ProviderThread->Lock);
     InitializeListHead(&ProviderThread->ListHead);
     ProviderThread->BoostCount = 0;
+    ProviderThread->Flags = 0;
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgProviderListLock);
@@ -86,6 +88,12 @@ VOID PhDeleteProviderThread(
 #endif
 }
 
+/**
+ * The start routine for the provider thread.
+ *
+ * \param Parameter A pointer to user-defined data passed to the thread.
+ * \return NTSTATUS status code indicating success or failure of the thread routine.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI PhpProviderThreadStart(
     _In_ PVOID Parameter
@@ -99,6 +107,8 @@ NTSTATUS NTAPI PhpProviderThreadStart(
     PPH_PROVIDER_FUNCTION providerFunction;
     PVOID object;
     LIST_ENTRY tempListHead;
+
+    PhSetThreadName(NtCurrentThread(), L"ProviderThread");
 
     PhInitializeAutoPool(&autoPool);
 
@@ -237,27 +247,49 @@ NTSTATUS PhStartProviderThread(
     )
 {
     NTSTATUS status;
-    OBJECT_ATTRIBUTES objectAttributes;
 
     if (ProviderThread->State != ProviderThreadStopped)
         return STATUS_PENDING;
 
+    //
     // Create the synchronization timer.
+    //
+     
+    if (ProviderThread->UseHighResolution && NtCreateTimer2_Import())
+    {
+        status = NtCreateTimer2_Import()(
+            &ProviderThread->TimerHandle,
+            NULL,
+            NULL,
+            TIMER2_BUILD_ATTRIBUTES(SynchronizationTimer, TRUE),
+            TIMER_ALL_ACCESS
+            );
+    }
+    else
+    {
+        status = STATUS_UNSUCCESSFUL;
+    }
 
-    InitializeObjectAttributes(
-        &objectAttributes,
-        NULL,
-        OBJ_EXCLUSIVE,
-        NULL,
-        NULL
-        );
+    if (!NT_SUCCESS(status))
+    {
+        OBJECT_ATTRIBUTES objectAttributes;
 
-    status = NtCreateTimer(
-        &ProviderThread->TimerHandle,
-        TIMER_ALL_ACCESS,
-        &objectAttributes,
-        SynchronizationTimer
-        );
+        InitializeObjectAttributes(
+            &objectAttributes,
+            NULL,
+            OBJ_EXCLUSIVE,
+            NULL,
+            NULL
+            );
+
+        status = NtCreateTimer(
+            &ProviderThread->TimerHandle,
+            TIMER_ALL_ACCESS,
+            &objectAttributes,
+            SynchronizationTimer
+            );
+    }
+
     assert(ProviderThread->TimerHandle);
 
     if (!NT_SUCCESS(status))
@@ -265,7 +297,13 @@ NTSTATUS PhStartProviderThread(
 
     // Set the run interval for the timer.
 
-    PhSetIntervalProviderThread(ProviderThread, ProviderThread->Interval);
+    status = PhSetIntervalProviderThread(
+        ProviderThread,
+        ProviderThread->Interval
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     // Create and start the thread.
 
@@ -274,6 +312,7 @@ NTSTATUS PhStartProviderThread(
         PhpProviderThreadStart, 
         ProviderThread
         );
+
     assert(ProviderThread->ThreadHandle);
 
     if (!NT_SUCCESS(status))
@@ -316,20 +355,48 @@ VOID PhStopProviderThread(
  * \param ProviderThread A pointer to a provider thread object.
  * \param Interval The interval between each run, in milliseconds.
  */
-VOID PhSetIntervalProviderThread(
+NTSTATUS PhSetIntervalProviderThread(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread,
     _In_ LONG Interval
     )
 {
+    LARGE_INTEGER interval;
+
     ProviderThread->Interval = Interval;
 
-    if (ProviderThread->TimerHandle)
-    {
-        LARGE_INTEGER interval;
+    if (!ProviderThread->TimerHandle)
+        return STATUS_INVALID_HANDLE;
 
-        interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
-        NtSetTimer(ProviderThread->TimerHandle, &interval, NULL, NULL, FALSE, Interval, NULL);
+    interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
+
+    if (ProviderThread->UseHighResolution && NtSetTimer2_Import())
+    {
+        LARGE_INTEGER period;
+        T2_SET_PARAMETERS timerParameters;
+
+        period.QuadPart = UInt32x32To64(Interval, PH_TIMEOUT_MS);
+
+        memset(&timerParameters, 0, sizeof(T2_SET_PARAMETERS));
+        timerParameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
+        timerParameters.NoWakeTolerance = 0;
+
+        return NtSetTimer2_Import()(
+            ProviderThread->TimerHandle,
+            &interval,
+            &period,
+            &timerParameters
+            );
     }
+
+    return NtSetTimer(
+        ProviderThread->TimerHandle,
+        &interval,
+        NULL,
+        NULL,
+        FALSE,
+        Interval,
+        NULL
+        );
 }
 
 /**
@@ -496,4 +563,18 @@ VOID PhSetEnabledProvider(
     )
 {
     Registration->Enabled = Enabled;
+}
+
+/**
+ * Sets whether a provider thread uses a high-resolution timer.
+ *
+ * \param ProviderThread A pointer to the provider thread object.
+ * \param UseHighResolutionTimer TRUE to use a high-resolution timer, otherwise FALSE.
+ */
+VOID PhSetHighResolutionProvider(
+    _Inout_ PPH_PROVIDER_THREAD ProviderThread,
+    _In_ BOOLEAN UseHighResolution
+    )
+{
+    ProviderThread->UseHighResolution = !!UseHighResolution;
 }

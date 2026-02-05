@@ -388,6 +388,13 @@ VOID PhMwpInitializeProviders(
     PhInitializeProviderThread(&PhSecondaryProviderThread, PhCsUpdateInterval);
     PhInitializeProviderThread(&PhTertiaryProviderThread, PhCsUpdateInterval);
 
+    if (PhGetIntegerSetting(SETTING_ENABLE_HIGH_RESOLUTION_PROVIDER_TIMER))
+    {
+        PhSetHighResolutionProvider(&PhPrimaryProviderThread, TRUE);
+        PhSetHighResolutionProvider(&PhSecondaryProviderThread, TRUE);
+        PhSetHighResolutionProvider(&PhTertiaryProviderThread, TRUE);
+    }
+
     PhRegisterProvider(&PhPrimaryProviderThread, PhProcessProviderUpdate, NULL, &PhMwpProcessProviderRegistration);
     PhRegisterProvider(&PhSecondaryProviderThread, PhServiceProviderUpdate, NULL, &PhMwpServiceProviderRegistration);
     PhRegisterProvider(&PhSecondaryProviderThread, PhNetworkProviderUpdate, NULL, &PhMwpNetworkProviderRegistration);

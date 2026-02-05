@@ -189,6 +189,7 @@ EXT ULONG PhProcessMonitorCacheLimit;
 #define SETTING_ENABLE_PLUGINS_NATIVE                               L"EnablePluginsNative"
 #define SETTING_ENABLE_GRAPH_MAX_SCALE                              L"EnableGraphMaxScale"
 #define SETTING_ENABLE_GRAPH_MAX_TEXT                               L"EnableGraphMaxText"
+#define SETTING_ENABLE_HIGH_RESOLUTION_PROVIDER_TIMER               L"EnableHighResolutionProviderTimer"
 #define SETTING_ENABLE_SERVICE_NON_POLL                             L"EnableServiceNonPoll"
 #define SETTING_ENABLE_SERVICE_NON_POLL_NOTIFY                      L"EnableServiceNonPollNotify"
 #define SETTING_ENABLE_SERVICE_STAGE2                               L"EnableServiceStage2"

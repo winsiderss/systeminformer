@@ -282,6 +282,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_TREE_LIST_ENABLE_HEADER_TOTALS, L"1");
     PhpAddIntegerSetting(SETTING_TREE_LIST_ENABLE_DRAG_REORDER, L"0");
     PhpAddIntegerSetting(SETTING_UPDATE_INTERVAL, L"3e8"); // 1000ms
+    PhpAddIntegerSetting(SETTING_ENABLE_HIGH_RESOLUTION_PROVIDER_TIMER, L"1");
     PhpAddStringSetting(SETTING_USER_LIST_TREE_LIST_COLUMNS, L"");
     PhpAddIntegerPairSetting(SETTING_USER_LIST_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_USER_LIST_WINDOW_SIZE, L"@96|550,420");
