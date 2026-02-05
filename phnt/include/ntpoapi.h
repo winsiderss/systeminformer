@@ -780,7 +780,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalSetConsoleLockedState,                         // in: POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT
     PowerInternalOverrideSystemInitiatedRebootState,
     PowerInternalFanImpactStats,                                // in: POWER_INTERNAL_FAN_IMPACT_STATS_INPUT, out: POWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT
-    PowerInternalFanRpmBuckets,                                 // in: POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT, out: POWER_INTERNAL_FAN_RPM_BUCKETS_OUTPUT
+    PowerInternalFanRpmBuckets,                                 // in: POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT, out: POWER_INTERNAL_FAN_RPM_OUTPUT
     PowerInternalPowerBootAppDiagInfo,                          // out: POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
     PowerInternalUnregisterShutdownNotification,                // in: // since 22H1
     PowerInternalManageTransitionStateRecord,
@@ -1302,22 +1302,14 @@ typedef struct _POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT
 } POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT, *PPOWER_INTERNAL_FAN_RPM_BUCKETS_INPUT;
 
 // rev
-typedef struct _POWER_INTERNAL_FAN_RPM_BUCKETS_OUTPUT
+typedef struct _POWER_INTERNAL_FAN_RPM_OUTPUT
 {
-    ULONG BucketCount;
-    ULONG BucketSize;
-    UCHAR Reserved1[0x18];
-    ULONG Bucket1Rpm;
-    UCHAR Reserved2[0x10];
-    ULONG Bucket2Rpm;
-    UCHAR Reserved3[0x10];
-    ULONG Bucket3Rpm;
-    UCHAR Reserved4[0x10];
-    ULONG Bucket4Rpm;
-    UCHAR Reserved5[0x10];
-    ULONG CurrentRpm;
-    UCHAR Reserved6[0x0C];
-} POWER_INTERNAL_FAN_RPM_BUCKETS_OUTPUT, *PPOWER_INTERNAL_FAN_RPM_BUCKETS_OUTPUT;
+    ULONG NumberOfFanRpmBuckets;
+    ULONG BucketMaxRpm[17];
+    ULONG NoiseZoneMaxRpm[4];
+} POWER_INTERNAL_FAN_RPM_OUTPUT, *PPOWER_INTERNAL_FAN_RPM_OUTPUT;
+
+C_ASSERT(sizeof(POWER_INTERNAL_FAN_RPM_OUTPUT) == 0x58);
 
 // rev
 typedef struct _POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
