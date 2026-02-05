@@ -166,6 +166,8 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateThreadStateChange);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtChangeThreadState);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCopyFileChunk);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCompareObjects);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateTimer2);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtSetTimer2);
 
 PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", NtSetInformationVirtualMemory);
 PH_DEFINE_IMPORT(L"ntdll.dll", LdrSystemDllInitBlock);
