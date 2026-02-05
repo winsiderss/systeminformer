@@ -1409,6 +1409,8 @@ namespace CustomBuildTool
         {
             string buildConfig = Flags.HasFlag(BuildFlags.Debug) ? "Debug" : "Release";
             string buildFolder = Flags.HasFlag(BuildFlags.Debug) ? "build\\debug" : "build\\release";
+            string cmakeGenOpts = string.Empty;
+            string cmakeBuildOpts = string.Empty;
 
             string platformSuffix = Toolchain switch
             {
@@ -1441,9 +1443,7 @@ namespace CustomBuildTool
 
             if (Directory.Exists(buildFolder))
             {
-                try
-                { Directory.Delete(buildFolder, true); }
-                catch { }
+                try { Directory.Delete(buildFolder, true); } catch { }
             }
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
@@ -1457,7 +1457,6 @@ namespace CustomBuildTool
             // Generate
             //
 
-            string cmakeGenOpts = string.Empty;
             if (Generator == BuildGenerator.Ninja)
             {
                 cmakeGenOpts = $"-DCMAKE_BUILD_TYPE={buildConfig}";
@@ -1473,6 +1472,11 @@ namespace CustomBuildTool
             int errorcode = Utils.ExecuteCMakeCommand(generateArgs);
             if (errorcode != 0)
             {
+                if (Directory.Exists(buildFolder))
+                {
+                    try { Directory.Delete(buildFolder, true); } catch { }
+                }
+
                 Program.PrintColorMessage($"[ERROR] CMake generate failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
                 return false;
             }
@@ -1490,7 +1494,6 @@ namespace CustomBuildTool
             Program.PrintColorMessage(buildConfig, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
 
-            string cmakeBuildOpts = string.Empty;
             if (Generator == BuildGenerator.VisualStudio)
             {
                 cmakeBuildOpts = $"-- /m /p:Platform={Utils.CMakeGetPlatform(Toolchain)} -terminalLogger:auto";
@@ -1499,6 +1502,11 @@ namespace CustomBuildTool
             errorcode = Utils.ExecuteCMakeCommand($"--build \"{buildFolder}\" --config {buildConfig} {cmakeBuildOpts}");
             if (errorcode != 0)
             {
+                if (Directory.Exists(buildFolder))
+                {
+                    try { Directory.Delete(buildFolder, true); } catch { }
+                }
+
                 Program.PrintColorMessage($"[ERROR] CMake build failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
                 return false;
             }
