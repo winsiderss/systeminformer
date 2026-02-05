@@ -15,6 +15,17 @@
 
 PPH_OBJECT_TYPE PhFileStreamType = NULL;
 
+/**
+ * Creates a file stream from a file path.
+ *
+ * \param FileStream Receives the new file stream object.
+ * \param FileName Path to the file to open.
+ * \param DesiredAccess Requested access mask.
+ * \param ShareAccess Share access flags.
+ * \param CreateDisposition Create/open disposition for the file.
+ * \param Flags Stream creation flags (buffering, append, asynchronous, etc.)
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCreateFileStream(
     _Out_ PPH_FILE_STREAM *FileStream,
     _In_ PCWSTR FileName,
@@ -78,6 +89,15 @@ NTSTATUS PhCreateFileStream(
     return status;
 }
 
+/**
+ * Creates a file stream from an existing file handle.
+ *
+ * \param FileStream Receives the new file stream object.
+ * \param FileHandle Open file handle (ownership depends on flags).
+ * \param Flags Stream flags (buffering, unowned handle, etc.)
+ * \param BufferLength Buffer size used for buffered operations.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCreateFileStream2(
     _Out_ PPH_FILE_STREAM *FileStream,
     _In_ HANDLE FileHandle,
@@ -130,6 +150,13 @@ NTSTATUS PhCreateFileStream2(
     return STATUS_SUCCESS;
 }
 
+/**
+ * The object delete procedure for file stream objects ensures
+ * buffers are flushed, closes the handle if owned, and frees the buffer.
+ *
+ * \param Object The file stream object being deleted.
+ * \param Flags Delete flags (unused).
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpFileStreamDeleteProcedure(
     _In_ PVOID Object,
@@ -179,6 +206,12 @@ VOID PhVerifyFileStream(
     }
 }
 
+/**
+ * Allocates the page-aligned buffer for a buffered file stream.
+ *
+ * \param FileStream Stream requiring a buffer.
+ * \return STATUS_SUCCESS on success or STATUS_NO_MEMORY.
+ */
 NTSTATUS PhpAllocateBufferFileStream(
     _Inout_ PPH_FILE_STREAM FileStream
     )
@@ -191,6 +224,15 @@ NTSTATUS PhpAllocateBufferFileStream(
         return STATUS_NO_MEMORY;
 }
 
+/**
+ * Performs a raw read from the underlying file object (unbuffered).
+ *
+ * \param FileStream Stream to read from.
+ * \param Buffer Destination buffer.
+ * \param Length Number of bytes to read.
+ * \param ReadLength Receives number of bytes actually read (optional).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpReadFileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _Out_writes_bytes_(Length) PVOID Buffer,
@@ -240,6 +282,17 @@ NTSTATUS PhpReadFileStream(
     return status;
 }
 
+/**
+ * Reads from a file stream with optional buffering. If the stream is unbuffered
+ * this forwards to the raw read routine. For buffered streams it satisfies
+ * reads from the internal buffer where possible and fills it as needed.
+ *
+ * \param FileStream Stream to read from.
+ * \param Buffer Destination buffer.
+ * \param Length Number of bytes to read.
+ * \param ReadLength Receives number of bytes read (optional).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhReadFileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _Out_writes_bytes_(Length) PVOID Buffer,
@@ -363,6 +416,14 @@ NTSTATUS PhReadFileStream(
     return status;
 }
 
+/**
+ * Performs a raw write to the underlying file object (unbuffered).
+ *
+ * \param FileStream Stream to write to.
+ * \param Buffer Source buffer.
+ * \param Length Number of bytes to write.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpWriteFileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_reads_bytes_(Length) PVOID Buffer,
@@ -409,6 +470,16 @@ NTSTATUS PhpWriteFileStream(
     return status;
 }
 
+/**
+ * Writes to a file stream with optional buffering. For buffered streams
+ * this will append to the internal buffer and flush as needed. For
+ * unbuffered streams this forwards to the raw write routine.
+ *
+ * \param FileStream Stream to write to.
+ * \param Buffer Source buffer.
+ * \param Length Number of bytes to write.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhWriteFileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_reads_bytes_(Length) PVOID Buffer,
@@ -505,6 +576,14 @@ NTSTATUS PhWriteFileStream(
     return status;
 }
 
+/**
+ * Flushes any buffered read state back to the file position. If there is unread
+ * buffered data the stream position is moved backward to the first unread byte
+ * and subsequent reads align with the file object.
+ *
+ * \param FileStream Stream to flush read buffer from.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpFlushReadFileStream(
     _Inout_ PPH_FILE_STREAM FileStream
     )
@@ -533,6 +612,12 @@ NTSTATUS PhpFlushReadFileStream(
     return status;
 }
 
+/**
+ * Flushes any buffered write data to the underlying file.
+ *
+ * \param FileStream Stream to flush.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpFlushWriteFileStream(
     _Inout_ PPH_FILE_STREAM FileStream
     )
@@ -552,7 +637,7 @@ NTSTATUS PhpFlushWriteFileStream(
 }
 
 /**
- * Flushes the file stream.
+ * Flushes the file stream buffers and optionally flushes the file through the OS.
  *
  * \param FileStream A file stream object.
  * \param Full TRUE to flush the file object through the operating system, otherwise FALSE to only
@@ -591,6 +676,12 @@ NTSTATUS PhFlushFileStream(
     return status;
 }
 
+/**
+ * Retrieves the logical position within the stream (taking buffered state into account).
+ *
+ * \param FileStream Stream to query.
+ * \param Position Receives the calculated position.
+ */
 VOID PhGetPositionFileStream(
     _In_ PPH_FILE_STREAM FileStream,
     _Out_ PLARGE_INTEGER Position
@@ -602,6 +693,16 @@ VOID PhGetPositionFileStream(
         FileStream->WritePosition;
 }
 
+/**
+ * Performs a seek operation that updates the internal position variable and, if required,
+ * writes the position to the underlying file object. This does not account for buffered
+ * read/write state; use PhSeekFileStream to handle buffers.
+ *
+ * \param FileStream Stream to seek.
+ * \param Offset Offset value (interpretation per Origin).
+ * \param Origin Seek origin (SeekStart, SeekCurrent, SeekEnd).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpSeekFileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PLARGE_INTEGER Offset,
@@ -655,6 +756,14 @@ NTSTATUS PhpSeekFileStream(
     return status;
 }
 
+/**
+ * Public seek that handles buffered state (flushes writes, adjusts for buffered reads).
+ *
+ * \param FileStream Stream to seek.
+ * \param Offset Offset value (interpretation per Origin).
+ * \param Origin Seek origin (SeekStart, SeekCurrent, SeekEnd).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhSeekFileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PLARGE_INTEGER Offset,
@@ -695,6 +804,16 @@ NTSTATUS PhSeekFileStream(
     return status;
 }
 
+/**
+ * Locks a byte range in the file.
+ *
+ * \param FileStream Stream containing the file handle.
+ * \param Position Starting byte offset to lock.
+ * \param Length Length of the region to lock.
+ * \param Wait If TRUE, wait for the lock; otherwise return immediately if unavailable.
+ * \param Shared If TRUE, acquire a shared lock; otherwise exclusive.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhLockFileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PLARGE_INTEGER Position,
@@ -730,6 +849,14 @@ NTSTATUS PhLockFileStream(
     return status;
 }
 
+/**
+ * Unlocks a previously locked byte range.
+ *
+ * \param FileStream Stream containing the file handle.
+ * \param Position Starting byte offset of the locked region.
+ * \param Length Length of the region to unlock.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhUnlockFileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PLARGE_INTEGER Position,
@@ -747,6 +874,13 @@ NTSTATUS PhUnlockFileStream(
         );
 }
 
+/**
+ * Sets the allocation and end-of-file size for the file.
+ *
+ * \param FileStream Stream containing the file handle.
+ * \param AllocationSize Desired allocation / end-of-file size.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhSetAllocationSizeFileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PLARGE_INTEGER AllocationSize
@@ -784,6 +918,13 @@ NTSTATUS PhSetAllocationSizeFileStream(
     return status;
 }
 
+/**
+ * Writes a Unicode string as UTF-8 to the stream.
+ *
+ * \param FileStream Stream to write to.
+ * \param String String reference to write.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhWriteStringAsUtf8FileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PPH_STRINGREF String
@@ -792,6 +933,14 @@ NTSTATUS PhWriteStringAsUtf8FileStream(
     return PhWriteStringAsUtf8FileStreamEx(FileStream, String->Buffer, String->Length);
 }
 
+/**
+ * Writes a UTF-16 buffer as UTF-8 to the stream, handling large buffers in chunks.
+ *
+ * \param FileStream Stream to write to.
+ * \param Buffer UTF-16 buffer to convert and write.
+ * \param Length The length of Buffer in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhWriteStringAsUtf8FileStreamEx(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PCWSTR Buffer,
@@ -864,6 +1013,14 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Formats a Unicode string (va_list) and writes it as UTF-8 to the stream.
+ *
+ * \param FileStream Stream to write to.
+ * \param Format printf-style format string.
+ * \param ArgPtr Variadic arguments (va_list).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhWriteStringFormatAsUtf8FileStream_V(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ _Printf_format_string_ PCWSTR Format,
@@ -880,6 +1037,13 @@ NTSTATUS PhWriteStringFormatAsUtf8FileStream_V(
     return status;
 }
 
+/**
+ * Formats a Unicode string and writes it as UTF-8 to the stream.
+ *
+ * \param FileStream Stream to write to.
+ * \param Format printf-style format string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhWriteStringFormatAsUtf8FileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ _Printf_format_string_ PCWSTR Format,
