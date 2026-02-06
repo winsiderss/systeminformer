@@ -915,8 +915,8 @@ PPH_STRING PhStdGetClientIdNameEx(
     BOOLEAN processIsTerminated = FALSE;
     BOOLEAN threadIsTerminated = FALSE;
 
-    PhInitializeStringRef(&processNameStringRef, L"terminated process");
-    PhInitializeStringRef(&threadNameStringRef, L"terminated thread");
+    PhInitializeStringRef(&processNameStringRef, L"unknown process");
+    PhInitializeStringRef(&threadNameStringRef, L"unnamed thread");
 
     if (PhIsNullOrEmptyString(ProcessName))
     {
