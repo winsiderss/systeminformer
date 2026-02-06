@@ -626,10 +626,12 @@ EXPORTS
     PhGetThreadIsTerminated
     PhGetThreadIoPriority
     PhGetThreadName
+    PhGetTokenAppContainerSid
     PhGetTokenGroups
     PhGetTokenIntegrityLevel
     PhGetTokenIntegrityLevelRID
     PhGetTokenOwner
+    PhGetTokenPackageFullName
     PhGetTokenPrimaryGroup
     PhGetTokenPrivileges
     PhGetTokenUser

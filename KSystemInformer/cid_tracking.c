@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -37,10 +37,10 @@ static const LARGE_INTEGER KphpCidApcTimeout = KPH_TIMEOUT(3 * 1000);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 static BOOLEAN KphpCidTrackingInitialized = FALSE;
 static KPH_CID_TABLE KphpCidTable;
-static volatile LONG KphpCidPopulated = 0;
+static LONG KphpCidPopulated = 0;
 static KEVENT KphpCidPopulatedEvent;
 static PKPH_PROCESS_CONTEXT KphpSystemProcessContext = NULL;
-static volatile ULONG64 KphpProcessSequence = 0;
+static ULONG64 KphpProcessSequence = 0;
 
 /**
  * \brief Looks up a context object in the CID tracking.
@@ -181,10 +181,7 @@ VOID KphCidMarkPopulated(
         return;
     }
 
-    if (InterlockedExchange(&KphpCidPopulated, 1))
-    {
-        return;
-    }
+    WriteRelease(&KphpCidPopulated, 1);
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   TRACKING,
@@ -196,14 +193,14 @@ VOID KphCidMarkPopulated(
 /**
  * \brief Waits for the CID tracking to be marked as populated.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpCidWaitForPopulate(
     VOID
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
-    if (KphpCidPopulated)
+    if (ReadAcquire(&KphpCidPopulated))
     {
         return;
     }
@@ -405,9 +402,6 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
     processObject = Parameter;
 
     process->SequenceNumber = InterlockedIncrementU64(&KphpProcessSequence);
-
-    KphSetInformerSettings(&process->InformerFilter,
-                           &KphDefaultInformerProcessFilter);
 
     status = ObOpenObjectByPointer(processObject,
                                    OBJ_KERNEL_HANDLE,
@@ -644,6 +638,8 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         KphpSystemProcessContext = process;
     }
 
+    KphValidateLsass(process->EProcess);
+
     status = STATUS_SUCCESS;
 
 Exit:
@@ -673,6 +669,7 @@ VOID KSIAPI KphpDeleteProcessContext(
 
     process = Object;
 
+    KphAtomicAssignObjectReference(&process->InformerState.Atomic, NULL);
     KphAtomicAssignObjectReference(&process->SessionToken.Atomic, NULL);
 
     if (process->Protected)
@@ -708,6 +705,8 @@ VOID KSIAPI KphpDeleteProcessContext(
     NT_ASSERT(process->NumberOfThreads == 0);
     KphDeleteRWLock(&process->ThreadListLock);
 
+    KphInvalidateLsass(process->EProcess);
+
     NT_ASSERT(process->EProcess);
     ObDereferenceObject(process->EProcess);
 }
@@ -739,7 +738,7 @@ VOID KSIAPI KphpFreeProcessContext(
  * \return Allocated thread context object, null on allocation failure.
  */
 _Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Return_allocatesMem_size_(Size)
 PVOID KSIAPI KphpAllocateThreadContext(
     _In_ SIZE_T Size
@@ -747,7 +746,7 @@ PVOID KSIAPI KphpAllocateThreadContext(
 {
     PVOID object;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     DBG_UNREFERENCED_PARAMETER(Size);
     NT_ASSERT(KphpThreadContextLookaside);
@@ -777,7 +776,7 @@ VOID KphpInitializeWSLThreadContext(
     PVOID picoContext;
     PVOID value;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     //
     // We use an APC here to reach into the thread pico context. We could
@@ -852,7 +851,7 @@ VOID KSIAPI KphpInitializeThreadContextSpecialApc(
     PKPH_DYN dyn;
     PTEB teb;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     UNREFERENCED_PARAMETER(NormalRoutine);
     UNREFERENCED_PARAMETER(NormalContext);
@@ -862,13 +861,16 @@ VOID KSIAPI KphpInitializeThreadContextSpecialApc(
     apc = CONTAINING_RECORD(Apc, KPH_CID_APC, Apc);
 
     NT_ASSERT(apc->Thread->EThread == KeGetCurrentThread());
+#ifdef _WIN64
+    C_ASSERT(FIELD_OFFSET(TEB, SubProcessTag) == 0x1720);
+#endif
 
     teb = PsGetCurrentThreadTeb();
     if (teb)
     {
         __try
         {
-            apc->Thread->SubProcessTag = teb->SubProcessTag;
+            apc->Thread->SubProcessTag = ReadPointerFromUser(&teb->SubProcessTag);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -998,7 +1000,7 @@ Exit:
  * \return STATUS_SUCCESS
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpInitializeThreadContext(
     _Inout_ PVOID Object,
@@ -1010,7 +1012,9 @@ NTSTATUS KSIAPI KphpInitializeThreadContext(
     PETHREAD threadObject;
     HANDLE threadHandle;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
+
+    NT_ASSERT(Parameter);
 
     thread = Object;
     threadObject = Parameter;
@@ -1324,7 +1328,7 @@ VOID KphpUnlinkProcessContextThreadContexts(
  */
 _Function_class_(KPH_CID_RUNDOWN_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN KSIAPI KphpCidCleanupCallback(
+VOID KSIAPI KphpCidCleanupCallback(
     _In_ PVOID Object,
     _In_opt_ PVOID Parameter
     )
@@ -1341,8 +1345,6 @@ BOOLEAN KSIAPI KphpCidCleanupCallback(
 
         KphpUnlinkProcessContextThreadContexts(process);
     }
-
-    return FALSE;
 }
 
 /**
@@ -1387,7 +1389,7 @@ VOID KphCidCleanup(
  * object is already being tracked and is not of the expected type. The caller
  * *must* dereference the object when they are through with it.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 PVOID KphpTrackContext(
     _In_ HANDLE Cid,
@@ -1400,7 +1402,7 @@ PVOID KphpTrackContext(
     PKPH_CID_TABLE_ENTRY entry;
     PVOID object;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     entry = KphCidGetEntry(Cid, &KphpCidTable);
     if (!entry)
@@ -1641,8 +1643,6 @@ NTSTATUS KphCidPopulate(
         }
         else
         {
-            LARGE_INTEGER timeout;
-
             //
             // Check if we should track this process during population.
             // Ultimately here we're ensuring the process isn't already exited.
@@ -1661,19 +1661,13 @@ NTSTATUS KphCidPopulate(
                 continue;
             }
 
-            timeout.QuadPart = 0;
-            status = KeWaitForSingleObject(processObject,
-                                           Executive,
-                                           KernelMode,
-                                           FALSE,
-                                           &timeout);
-            if (status != STATUS_TIMEOUT)
+            if (PsGetProcessExitProcessCalled(processObject))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               TRACKING,
-                              "KeWaitForSingleObject(processObject) "
-                              "reported: %!STATUS!",
-                              status);
+                              "PsGetProcessExitProcessCalled reported TRUE "
+                              "(process %lu)",
+                              HandleToULong(info->UniqueProcessId));
 
                 ObDereferenceObject(processObject);
                 continue;
@@ -1862,13 +1856,13 @@ PKPH_PROCESS_CONTEXT KphUntrackProcessContext(
  * return an existing thread context if the thread is already tracked. The
  * caller *must* dereference the object when they are through with it.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 PKPH_THREAD_CONTEXT KphTrackThreadContext(
     _In_ PETHREAD Thread
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     KphpCidWaitForPopulate();
 
@@ -1886,7 +1880,7 @@ PKPH_THREAD_CONTEXT KphTrackThreadContext(
  * \return Pointer to the thread context, null if not found. The caller *must*
  * dereference the object when they are through with it.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 PKPH_THREAD_CONTEXT KphUntrackThreadContext(
     _In_ HANDLE ThreadId
@@ -1894,7 +1888,7 @@ PKPH_THREAD_CONTEXT KphUntrackThreadContext(
 {
     PKPH_THREAD_CONTEXT thread;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     KphpCidWaitForPopulate();
 
@@ -1945,7 +1939,7 @@ typedef struct _KPH_ENUM_CONTEXT
  * \return FALSE to keep enumerating if the object type is not what was asked
  * for or the return value from callers callback.
  */
-_Function_class_(CID_ENUMERATE_CALLBACK)
+_Function_class_(KPH_CID_ENUMERATE_CALLBACK)
 BOOLEAN KSIAPI KphpEnumerateContexts(
     _In_ PVOID Object,
     _In_opt_ PVOID Parameter
@@ -2118,7 +2112,7 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
     status = ZwQueryInformationProcess(processHandle,
                                        ProcessMitigationPolicy,
                                        &policyInfo,
-                                       sizeof(policyInfo),
+                                       sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
                                        NULL);
     if (!NT_SUCCESS(status))
     {
@@ -2186,7 +2180,6 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
     )
 {
     NTSTATUS status;
-    KPH_PROCESS_STATE processState;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -2209,8 +2202,7 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
         }
     }
 
-    processState = KphGetProcessState(Process);
-    if ((processState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)
+    if (KphTestProcessContextState(Process, KPH_PROCESS_STATE_LOW))
     {
         ACCESS_MASK processAllowedMask;
         ACCESS_MASK threadAllowedMask;
@@ -2318,14 +2310,22 @@ KPH_PROCESS_STATE KphGetProcessState(
         processState |= KPH_PROCESS_PROTECTED_PROCESS;
     }
 
-    if (Process->NumberOfUntrustedImageLoads == 0)
+    if (Process->CreateNotification &&
+        ReadSizeTAcquire(&Process->NumberOfUntrustedImageLoads) == 0)
     {
         processState |= KPH_PROCESS_NO_UNTRUSTED_IMAGES;
     }
 
-    if (!PsIsProcessBeingDebugged(Process->EProcess))
+    if (!Process->StateTracking.Debugged)
     {
-        processState |= KPH_PROCESS_NOT_BEING_DEBUGGED;
+        if (!PsIsProcessBeingDebugged(Process->EProcess))
+        {
+            processState |= KPH_PROCESS_NOT_BEING_DEBUGGED;
+        }
+        else
+        {
+            Process->StateTracking.Debugged = TRUE;
+        }
     }
 
     if (!Process->FileObject)
@@ -2335,14 +2335,28 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     processState |= KPH_PROCESS_HAS_FILE_OBJECT;
 
-    if (!Process->FileObject->WriteAccess || !Process->FileObject->SharedWrite)
+    if (!Process->StateTracking.FileObjectWritable)
     {
-        processState |= KPH_PROCESS_NO_WRITABLE_FILE_OBJECT;
+        if (!Process->FileObject->WriteAccess || !Process->FileObject->SharedWrite)
+        {
+            processState |= KPH_PROCESS_NO_WRITABLE_FILE_OBJECT;
+        }
+        else
+        {
+            Process->StateTracking.FileObjectWritable = TRUE;
+        }
     }
 
-    if (!IoGetTransactionParameterBlock(Process->FileObject))
+    if (!Process->StateTracking.FileObjectTransaction)
     {
-        processState |= KPH_PROCESS_NO_FILE_TRANSACTION;
+        if (!IoGetTransactionParameterBlock(Process->FileObject))
+        {
+            processState |= KPH_PROCESS_NO_FILE_TRANSACTION;
+        }
+        else
+        {
+            Process->StateTracking.FileObjectTransaction = TRUE;
+        }
     }
 
     if (!Process->FileObject->SectionObjectPointer)
@@ -2352,9 +2366,16 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     processState |= KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS;
 
-    if (!MmDoesFileHaveUserWritableReferences(Process->FileObject->SectionObjectPointer))
+    if (!Process->StateTracking.UserWritableReferences)
     {
-        processState |= KPH_PROCESS_NO_USER_WRITABLE_REFERENCES;
+        if (!MmDoesFileHaveUserWritableReferences(Process->FileObject->SectionObjectPointer))
+        {
+            processState |= KPH_PROCESS_NO_USER_WRITABLE_REFERENCES;
+        }
+        else
+        {
+            Process->StateTracking.UserWritableReferences = TRUE;
+        }
     }
 
     return processState;
@@ -2372,7 +2393,7 @@ KPH_PROCESS_STATE KphGetProcessState(
  * \param[in] InformationClass The information class to query.
  * \param[out] Information Optional buffer to receive the information.
  * \param[in] InformationLength The size of the information buffer.
- * \param[out] ReturnLength Optionally receives the length of the information.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  *
  * \return Successful or errant status.
  */
@@ -2480,7 +2501,7 @@ Exit:
  * \param[in] InformationClass The information class to query.
  * \param[out] Information Optional buffer to receive the information.
  * \param[in] InformationLength The size of the information buffer.
- * \param[out] ReturnLength Optionally receives the length of the information.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  *
  * \return Successful or errant status.
  */

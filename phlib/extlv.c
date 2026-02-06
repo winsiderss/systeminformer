@@ -557,8 +557,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         break;
     case ELVM_SETCOMPAREFUNCTION:
         {
-            ULONG column = (ULONG)wParam;
             PPH_COMPARE_FUNCTION compareFunction = (PPH_COMPARE_FUNCTION)lParam;
+            ULONG column = (ULONG)wParam;
 
             if (column >= PH_MAX_COMPARE_FUNCTIONS)
                 return FALSE;
@@ -595,12 +595,12 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
 
             if (context->EnableRedraw == 1)
             {
-                SendMessage(WindowHandle, WM_SETREDRAW, TRUE, 0);
+                CallWindowProc(oldWndProc, WindowHandle, WM_SETREDRAW, TRUE, 0);
                 InvalidateRect(WindowHandle, NULL, FALSE);
             }
             else if (context->EnableRedraw == 0)
             {
-                SendMessage(WindowHandle, WM_SETREDRAW, FALSE, 0);
+                CallWindowProc(oldWndProc, WindowHandle, WM_SETREDRAW, FALSE, 0);
             }
         }
         return TRUE;
@@ -640,7 +640,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_SETTRISTATECOMPAREFUNCTION:
         {
-            context->TriStateCompareFunction = (PPH_COMPARE_FUNCTION)lParam;
+            PPH_EXTLV_SETCOMPAREFUNCTION compare = (PPH_EXTLV_SETCOMPAREFUNCTION)lParam;
+
+            context->TriStateCompareFunction = compare->CompareFunction;
         }
         return TRUE;
     case ELVM_SORTITEMS:

@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -94,16 +94,17 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
 {
     PKPH_PROCESS_CONTEXT process;
     PKPH_PROCESS_CONTEXT creatorProcess;
-    KPH_PROCESS_STATE processState;
 
     KPH_PAGED_CODE_PASSIVE();
+
+    creatorProcess = NULL;
 
     if (!CreateInfo)
     {
         process = KphUntrackProcessContext(ProcessId);
         if (!process)
         {
-            return NULL;
+            goto Exit;
         }
 
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -117,7 +118,7 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
         NT_ASSERT(process->NumberOfThreads == 0);
         NT_ASSERT(IsListEmpty(&process->ThreadListHead));
 
-        return process;
+        goto Exit;
     }
 
     NT_ASSERT(CreateInfo);
@@ -130,7 +131,7 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
                       "Failed to track process %lu",
                       HandleToULong(ProcessId));
 
-        return NULL;
+        goto Exit;
     }
 
     process->CreateNotification = TRUE;
@@ -148,16 +149,38 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     creatorProcess = KphGetCurrentProcessContext();
     if (!creatorProcess)
     {
-        return process;
+        goto Exit;
     }
 
-    processState = KphGetProcessState(creatorProcess);
-    if ((processState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH)
+    if (!KphTestProcessContextState(process, KPH_PROCESS_STATE_HIGH))
+    {
+        goto Exit;
+    }
+
+    if (KphTestProcessContextState(creatorProcess, KPH_PROCESS_STATE_MAXIMUM))
     {
         process->SecurelyCreated = TRUE;
     }
+    else
+    {
+        PS_PROTECTION processProtection;
 
-    KphDereferenceObject(creatorProcess);
+        processProtection = PsGetProcessProtection(creatorProcess->EProcess);
+
+        if ((processProtection.Type != PsProtectedTypeNone) &&
+            ((processProtection.Signer == PsProtectedSignerWinTcb) ||
+             (processProtection.Signer == PsProtectedSignerWinSystem)))
+        {
+            process->SecurelyCreated = TRUE;
+        }
+    }
+
+Exit:
+
+    if (creatorProcess)
+    {
+        KphDereferenceObject(creatorProcess);
+    }
 
     return process;
 }
@@ -182,6 +205,7 @@ VOID KphpCreateProcessNotifyInformer(
     PKPH_MESSAGE reply;
     PEPROCESS parentProcess;
     PKPH_PROCESS_CONTEXT actorProcess;
+    KPH_INFORMER_OPTIONS opts;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -261,12 +285,14 @@ VOID KphpCreateProcessNotifyInformer(
             }
         }
 
-        if (KphInformerEnabled(EnableStackTraces, actorProcess))
+        opts = KphInformerOpts(actorProcess);
+
+        if (opts.EnableStackTraces)
         {
             KphCaptureStackInMessage(msg);
         }
 
-        if (!KphInformerEnabled(EnableProcessCreateReply, actorProcess))
+        if (!opts.EnableProcessCreateReply)
         {
             KphCommsSendMessageAsync(msg);
             msg = NULL;
@@ -324,7 +350,7 @@ VOID KphpCreateProcessNotifyInformer(
         msg->Kernel.ProcessExit.ProcessStartKey = KphGetProcessStartKey(Process->EProcess);
         msg->Kernel.ProcessExit.ExitStatus = PsGetProcessExitStatus(Process->EProcess);
 
-        if (KphInformerEnabled(EnableStackTraces, actorProcess))
+        if (KphInformerOpts(actorProcess).EnableStackTraces)
         {
             KphCaptureStackInMessage(msg);
         }
@@ -411,7 +437,7 @@ VOID KSIAPI KphpProcessCreateKernelRoutine(
 {
     PKPH_PROCESS_CREATE_APC apc;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     apc = CONTAINING_RECORD(Apc, KPH_PROCESS_CREATE_APC, Apc);
 
@@ -582,11 +608,6 @@ VOID KphpCreateProcessNotifyRoutine(
     PKPH_PROCESS_CONTEXT process;
 
     KPH_PAGED_CODE_PASSIVE();
-
-    if (!CreateInfo)
-    {
-        KphInvalidateLsass(ProcessId);
-    }
 
     process = KphpPerformProcessTracking(Process, ProcessId, CreateInfo);
     if (process)

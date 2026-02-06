@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2024
+ *     jxy-s   2024-2026
  *
  */
 
@@ -54,11 +54,7 @@ NTSTATUS KphOpenDevice(
 
         __try
         {
-            ProbeOutputType(DeviceHandle, HANDLE);
-            ProbeInputType(ObjectAttributes, OBJECT_ATTRIBUTES);
-            RtlCopyVolatileMemory(&capturedAttributes,
-                                  ObjectAttributes,
-                                  sizeof(OBJECT_ATTRIBUTES));
+            ReadStructFromUser(&capturedAttributes, ObjectAttributes);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -153,22 +149,7 @@ NTSTATUS KphOpenDevice(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            *DeviceHandle = deviceHandle;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            ObCloseHandle(deviceHandle, UserMode);
-        }
-    }
-    else
-    {
-        *DeviceHandle = deviceHandle;
-    }
+    status = KphWriteHandleToMode(DeviceHandle, deviceHandle, AccessMode);
 
 Exit:
 
@@ -213,20 +194,6 @@ NTSTATUS KphOpenDeviceDriver(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    deviceObject = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputType(DriverHandle, HANDLE);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(DeviceHandle,
                                        DesiredAccess,
@@ -263,22 +230,7 @@ NTSTATUS KphOpenDeviceDriver(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            *DriverHandle = driverHandle;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            ObCloseHandle(driverHandle, UserMode);
-        }
-    }
-    else
-    {
-        *DriverHandle = driverHandle;
-    }
+    status = KphWriteHandleToMode(DriverHandle, driverHandle, AccessMode);
 
 Exit:
 
@@ -316,21 +268,7 @@ NTSTATUS KphOpenDeviceBaseDevice(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    deviceObject = NULL;
     baseDeviceObject = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputType(BaseDeviceHandle, HANDLE);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(DeviceHandle,
                                        DesiredAccess,
@@ -369,22 +307,9 @@ NTSTATUS KphOpenDeviceBaseDevice(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            *BaseDeviceHandle = baseDeviceHandle;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            ObCloseHandle(baseDeviceHandle, UserMode);
-        }
-    }
-    else
-    {
-        *BaseDeviceHandle = baseDeviceHandle;
-    }
+    status = KphWriteHandleToMode(BaseDeviceHandle,
+                                  baseDeviceHandle,
+                                  AccessMode);
 
 Exit:
 

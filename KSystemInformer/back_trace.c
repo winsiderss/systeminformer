@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2023-2024
+ *     jxy-s   2023-2026
  *
  */
 
@@ -276,7 +276,7 @@ VOID KphpCaptureStackBackTraceIntoObject(
     PULONG backTraceHash;
     ULONG capturedFrames;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     if (BackTrace->DoHash)
     {
@@ -321,7 +321,7 @@ VOID KSIAPI KphpCaptureStackBackTraceThreadSpecialApc(
 {
     PKPH_STACK_BACK_TRACE_OBJECT backTrace;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_APC();
 
     UNREFERENCED_PARAMETER(NormalRoutine);
     UNREFERENCED_PARAMETER(NormalContext);
@@ -630,12 +630,12 @@ NTSTATUS KphInitializeStackBackTrace(
                         &typeInfo,
                         &KphpStackBackTraceType);
 
-    RtlZeroMemory(&info, sizeof(info));
+    RtlZeroMemory(&info, sizeof(SYSTEM_SINGLE_MODULE_INFORMATION));
 
     info.TargetModuleAddress = (PVOID)KphInitializeStackBackTrace;
     status = ZwQuerySystemInformation(SystemSingleModuleInformation,
                                       &info,
-                                      sizeof(info),
+                                      sizeof(SYSTEM_SINGLE_MODULE_INFORMATION),
                                       NULL);
     if (!NT_SUCCESS(status))
     {
@@ -650,12 +650,12 @@ NTSTATUS KphInitializeStackBackTrace(
     KphpSelfImageBase = info.ExInfo.BaseInfo.ImageBase;
     KphpSelfImageEnd = Add2Ptr(KphpSelfImageBase, info.ExInfo.BaseInfo.ImageSize);
 
-    RtlZeroMemory(&info, sizeof(info));
+    RtlZeroMemory(&info, sizeof(SYSTEM_SINGLE_MODULE_INFORMATION));
 
     info.TargetModuleAddress = (PVOID)KsiInitializeApc;
     status = ZwQuerySystemInformation(SystemSingleModuleInformation,
                                       &info,
-                                      sizeof(info),
+                                      sizeof(SYSTEM_SINGLE_MODULE_INFORMATION),
                                       NULL);
     if (!NT_SUCCESS(status))
     {

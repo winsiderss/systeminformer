@@ -15,6 +15,26 @@
 
 EXTERN_C_START
 
+typedef enum _PH_SETTINGS_FORMAT
+{
+    SettingsFormatJson = 1,
+    SettingsFormatXml = 2,
+    SettingsFormatKey = 3,
+    SettingsFormatReg = 4,
+    SettingsFormatBin = 5,
+    SettingsFormatMax
+} PH_SETTINGS_FORMAT;
+
+typedef struct _PH_SETTINGS_STORE_DESCRIPTOR
+{
+    PH_SETTINGS_FORMAT Format;
+    PCWSTR Extension;
+    BOOLEAN IsFileBased;
+    BOOLEAN IsPreferred;
+    BOOLEAN IsLegacy;
+    INT Priority;
+} PH_SETTINGS_STORE_DESCRIPTOR, *PPH_SETTINGS_STORE_DESCRIPTOR;
+
 // begin_phapppub
 
 // These macros make sure the C strings can be seamlessly converted into
@@ -379,8 +399,19 @@ NTSTATUS PhLoadSettings(
     _In_ PCPH_STRINGREF FileName
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoadSettingsAutoDetect(
+    _In_opt_ PPH_STRING BasePath,
+    _In_opt_ PCWSTR DefaultName,
+    _Out_opt_ PPH_STRING* ActualPath,
+    _Out_opt_ PH_SETTINGS_FORMAT* ActualFormat,
+    _Out_opt_ PBOOLEAN IsPortable
+    );
+
 NTSTATUS PhSaveSettings(
-    _In_ PCPH_STRINGREF FileName
+    _In_opt_ PCPH_STRINGREF FileName
     );
 
 FORCEINLINE

@@ -967,6 +967,57 @@ typedef struct _TEB_ACTIVE_FRAME_EX
 #define STATIC_UNICODE_BUFFER_LENGTH 261
 #define WIN32_CLIENT_INFO_LENGTH 62
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+// private
+typedef struct _CALLBACKWND
+{
+    HWND hwnd;
+    ULONG_PTR pwnd;
+    PACTIVATION_CONTEXT ActCtx;
+} CALLBACKWND, *PCALLBACKWND;
+
+// private
+typedef struct tagDPICONTEXTINFO
+{
+    ULONG dpiContext;
+    LOGICAL Dirty;
+} DPICONTEXTINFO, *PDPICONTEXTINFO;
+
+// private + rev
+typedef struct tagCLIENTINFO
+{
+    ULONG_PTR CI_flags;
+    ULONG_PTR Spins;
+    ULONG ExpWinVer;
+    ULONG CompatFlags;
+    ULONG CompatFlags2;
+    ULONG TIFlags;
+    struct tagDESKTOPINFO* DeskInfo;
+    PVOID DesktopBase; // ClientDelta before RS2
+    HHOOK hkCurrent;
+    ULONG Hooks;
+    CALLBACKWND CallbackWnd;
+    ULONG HookCurrent;
+    LONG InDDEMLCallback;
+    struct tagCLIENTTHREADINFO* ClientThreadInfo;
+    ULONG_PTR HookData;
+    ULONG KeyCache;
+    UCHAR KeyState[8];
+    ULONG AsyncKeyCache;
+    UCHAR AsyncKeyState[8];
+    UCHAR AsyncKeyStateRecentDown[8];
+    HKL hKL;
+    USHORT CodePage;
+    UCHAR DbcsCFOld[2];
+    UCHAR DbcsCFNew[2];
+    MSG msgDbcsCB;
+    PULONG RegisteredClasses;
+    HANDLE mmcssHandle;
+    ULONG_PTR CI_exflags;
+    DPICONTEXTINFO dci;
+} CLIENTINFO, *PCLIENTINFO;
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
+
 // rev - xor key for ReservedForNtRpc
 #ifdef _WIN64
 #define RPC_THREAD_POINTER_KEY 0xABABABABDEDEDEDEui64
@@ -1179,10 +1230,18 @@ typedef struct _TEB
     ULONG GdiClientTID;
     PVOID GdiThreadLocalInfo;
 
-    //
-    // Reserved for User32 (Win32k).
-    //
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+    union
+    {
+        //
+        // User32 (Win32k) thread information.
+        //
+        CLIENTINFO Win32ClientInfo;
+        ULONG_PTR Win32ClientInfoArea[WIN32_CLIENT_INFO_LENGTH];
+    };
+#else
     ULONG_PTR Win32ClientInfo[WIN32_CLIENT_INFO_LENGTH];
+#endif
 
     //
     // Reserved for opengl32.dll

@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -23,6 +23,8 @@
 #define KPH_TAG_NPAGED_MESSAGE                  '2CpK'
 #define KPH_TAG_QUEUE_ITEM                      '3CpK'
 #define KPH_TAG_THREAD_POOL                     '4CpK'
+#define KPH_TAG_CLIENT_RATE_LIMITS              '5CpK'
+#define KPH_TAG_MESSAGE_SETTINGS                '6CpK'
 
 // dyndata
 
@@ -81,6 +83,8 @@
 #define KPH_TAG_REG_OBJECT_NAME                 '7IpK'
 #define KPH_TAG_REG_VALUE_NAMES                 '8IpK'
 #define KPH_TAG_OB_CALL_CONTEXT                 '9IpK'
+#define KPH_TAG_INFORMER_STATE                  'SIpK'
+#define KPH_TAG_INFORMER_SETTINGS               'sIpK'
 
 // cid_tracking
 
@@ -113,3 +117,11 @@
 
 #define KPH_TAG_SESSION_TOKEN_OBJECT            '0tpK'
 #define KPH_TAG_SESSION_TOKEN_SIGNATURE         '1tpK'
+
+// ringbuff
+
+#define KPH_TAG_RING_BUFFER                     '0RpK'
+
+// kphthread
+
+#define KPH_TAG_THREAD_START_CONTEXT             '0rpK'

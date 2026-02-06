@@ -134,7 +134,7 @@ PPH_LIST DnProcessAppDomainListDeserialize(
 
 typedef struct _DnCLRDataTarget
 {
-    ICLRDataTargetVtbl* VTable;
+    const ICLRDataTargetVtbl* VTable;
     ULONG RefCount;
     HANDLE ProcessId;
     HANDLE ProcessHandle;

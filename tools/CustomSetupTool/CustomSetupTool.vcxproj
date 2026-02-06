@@ -46,7 +46,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\phnt\include;$(SolutionDir)..\..\phlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>thirdparty.lib;comctl32.lib;crypt32.lib;winhttp.lib;ntdll.lib;phlib.lib;shlwapi.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -54,7 +54,7 @@
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\phnt\include;$(SolutionDir)..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Manifest>
@@ -64,7 +64,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\phnt\include;$(SolutionDir)..\..\phlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;NDEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>comctl32.lib;crypt32.lib;winhttp.lib;ntdll.lib;phlib.lib;shlwapi.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -72,7 +72,7 @@
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\phnt\include;$(SolutionDir)..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Manifest>

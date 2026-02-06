@@ -97,6 +97,9 @@ list(APPEND SI_COMPILE_FLAGS_INIT
     -Wno-unknown-pragmas
     -Wno-unused-local-typedef
     -Wno-unused-value
+    -Wno-defaulted-function-deleted
+    -Wno-class-conversion
+    -Wno-microsoft-explicit-constructor-call
 
     # TODO(jxy-s) Needs investigation. Works locally, but fails on CI.
     -Wno-int-to-void-pointer-cast

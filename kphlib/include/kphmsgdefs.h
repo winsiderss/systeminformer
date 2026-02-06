@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2026
  *
  */
 
@@ -23,13 +23,13 @@
 typedef struct _KPHM_SET_INFORMER_SETTINGS
 {
     NTSTATUS Status;
-    KPH_INFORMER_SETTINGS Settings;
+    PKPH_INFORMER_SETTINGS Settings;
 } KPHM_SET_INFORMER_SETTINGS, *PKPHM_SET_INFORMER_SETTINGS;
 
 typedef struct _KPHM_GET_INFORMER_SETTINGS
 {
     NTSTATUS Status;
-    KPH_INFORMER_SETTINGS Settings;
+    PKPH_INFORMER_SETTINGS Settings;
 } KPHM_GET_INFORMER_SETTINGS, *PKPHM_GET_INFORMER_SETTINGS;
 
 typedef struct _KPHM_OPEN_PROCESS
@@ -279,16 +279,17 @@ typedef struct _KPHM_COMPARE_OBJECTS
     HANDLE SecondObjectHandle;
 } KPHM_COMPARE_OBJECTS, *PKPHM_COMPARE_OBJECTS;
 
-typedef struct _KPHM_GET_MESSAGE_TIMEOUTS
-{
-    KPH_MESSAGE_TIMEOUTS Timeouts;
-} KPHM_GET_MESSAGE_TIMEOUTS, *PKPHM_GET_MESSAGE_TIMEOUTS;
-
-typedef struct _KPHM_SET_MESSAGE_TIMEOUTS
+typedef struct _KPHM_GET_MESSAGE_SETTINGS
 {
     NTSTATUS Status;
-    KPH_MESSAGE_TIMEOUTS Timeouts;
-} KPHM_SET_MESSAGE_TIMEOUTS, *PKPHM_SET_MESSAGE_TIMEOUTS;
+    PKPH_MESSAGE_SETTINGS Settings;
+} KPHM_GET_MESSAGE_SETTINGS, *PKPHM_GET_MESSAGE_SETTINGS;
+
+typedef struct _KPHM_SET_MESSAGE_SETTINGS
+{
+    NTSTATUS Status;
+    PKPH_MESSAGE_SETTINGS Settings;
+} KPHM_SET_MESSAGE_SETTINGS, *PKPHM_SET_MESSAGE_SETTINGS;
 
 typedef struct _KPHM_ACQUIRE_DRIVER_UNLOAD_PROTECTION
 {
@@ -318,6 +319,12 @@ typedef struct _KPHM_ACTIVATE_DYNDATA
     ULONG SignatureLength;
 } KPHM_ACTIVATE_DYNDATA, *PKPHM_ACTIVATE_DYNDATA;
 
+typedef struct _KPHM_IS_DYNDATA_ACTIVE
+{
+    NTSTATUS Status;
+    PBOOLEAN IsActive;
+} KPHM_IS_DYNDATA_ACTIVE, *PKPHM_IS_DYNDATA_ACTIVE;
+
 typedef struct _KPHM_REQUEST_SESSION_ACCESS_TOKEN
 {
     NTSTATUS Status;
@@ -343,19 +350,19 @@ typedef struct _KPHM_ASSIGN_THREAD_SESSION_TOKEN
     ULONG SignatureLength;
 } KPHM_ASSIGN_THREAD_SESSION_TOKEN, *PKPHM_ASSIGN_THREAD_SESSION_TOKEN;
 
-typedef struct _KPHM_GET_INFORMER_PROCESS_FILTER
+typedef struct _KPHM_GET_INFORMER_PROCESS_SETTINGS
 {
     NTSTATUS Status;
     HANDLE ProcessHandle;
-    PKPH_INFORMER_SETTINGS Filter;
-} KPHM_GET_INFORMER_PROCESS_FILTER, *PKPHM_GET_INFORMER_PROCESS_FILTER;
+    PKPH_INFORMER_SETTINGS Settings;
+} KPHM_GET_INFORMER_PROCESS_SETTINGS, *PKPHM_GET_INFORMER_PROCESS_SETTINGS;
 
-typedef struct _KPHM_SET_INFORMER_PROCESS_FILTER
+typedef struct _KPHM_SET_INFORMER_PROCESS_SETTINGS
 {
     NTSTATUS Status;
     HANDLE ProcessHandle;
-    PKPH_INFORMER_SETTINGS Filter;
-} KPHM_SET_INFORMER_PROCESS_FILTER, *PKPHM_SET_INFORMER_PROCESS_FILTER;
+    PKPH_INFORMER_SETTINGS Settings;
+} KPHM_SET_INFORMER_PROCESS_SETTINGS, *PKPHM_SET_INFORMER_PROCESS_SETTINGS;
 
 typedef struct _KPHM_STRIP_PROTECTED_PROCESS_MASKS
 {
@@ -407,6 +414,19 @@ typedef struct _KPHM_OPEN_DEVICE_BASE_DEVICE
     ACCESS_MASK DesiredAccess;
     PHANDLE BaseDeviceHandle;
 } KPHM_OPEN_DEVICE_BASE_DEVICE, *PKPHM_OPEN_DEVICE_BASE_DEVICE;
+
+typedef struct _KPHM_GET_INFORMER_STATS
+{
+    NTSTATUS Status;
+    HANDLE ProcessHandle;
+    PKPH_INFORMER_STATS Stats;
+} KPHM_GET_INFORMER_STATS, *PKPHM_GET_INFORMER_STATS;
+
+typedef struct _KPHM_GET_MESSAGE_STATS
+{
+    NTSTATUS Status;
+    PKPH_INFORMER_STATS Stats;
+} KPHM_GET_MESSAGE_STATS, *PKPHM_GET_MESSAGE_STATS;
 
 //
 // KPH -> PH
@@ -1147,6 +1167,15 @@ typedef union _KPHM_FILE_PARAMETERS
 } KPHM_FILE_PARAMETERS, *PKPHM_FILE_PARAMETERS;
 #pragma warning(pop)
 
+//
+// COPY_INFORMATION
+//
+typedef struct _KPHM_COPY_INFORMATION
+{
+    PVOID SourceFileObject;
+    ULONG64 SourceFileOffset;
+} KPHM_COPY_INFORMATION, *PKPHM_COPY_INFORMATION;
+
 typedef struct _KPHM_FILE
 {
     CLIENT_ID ClientId;
@@ -1186,9 +1215,21 @@ typedef struct _KPHM_FILE
         };
     };
 
-    ULONG Waiters;                       // FILE_OBJECT.Waiters
-    LARGE_INTEGER CurrentByteOffset;     // FILE_OBJECT.CurrentByteOffset
-    OPLOCK_KEY_CONTEXT OplockKeyContext; // IoGetOplockKeyContextEx
+    ULONG Waiters;                         // FILE_OBJECT.Waiters
+    LARGE_INTEGER CurrentByteOffset;       // FILE_OBJECT.CurrentByteOffset
+    OPLOCK_KEY_CONTEXT OplockKeyContext;   // IoGetOplockKeyContextEx
+    KPHM_COPY_INFORMATION CopyInformation; // FltGetCopyInformationFromCallbackData
+
+    union
+    {
+        ULONG64 Information2;
+        struct
+        {
+            ULONG64 OpenedAsCopySource : 1;      // IoCheckFileObjectOpenedAsCopySource
+            ULONG64 OpenedAsCopyDestination : 1; // IoCheckFileObjectOpenedAsCopyDestination
+            ULONG64 Spare2 : 62;
+        };
+    };
 
     PVOID Volume;             // FLT_RELATED_OBJECTS.Volume
     PVOID FileObject;         // FLT_RELATED_OBJECTS.FileObject
@@ -1219,7 +1260,6 @@ typedef struct _KPHM_FILE
                 {
                     BOOLEAN MaybeTunneledFileName;
                     BOOLEAN MaybeTunneledDestinationFileName;
-
                 } SetInformation;
 
                 struct
@@ -1236,6 +1276,11 @@ typedef struct _KPHM_FILE
                 {
                     LARGE_INTEGER EndingOffset;
                 } AcquireForModWrite;
+
+                struct
+                {
+                    ULONG Length;
+                } QueryOpen;
             };
         } Pre;
 

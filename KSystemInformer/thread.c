@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -21,9 +21,9 @@ KPH_PAGED_FILE();
  *
  * \param[out] ThreadHandle A variable which receives the thread handle.
  * \param[in] DesiredAccess The desired access to the thread.
- * \param[in] ClientId The identifier of a thread. \a UniqueThread must be
- * present. If \a UniqueProcess is present, the process of the referenced
- * thread will be checked against this identifier.
+ * \param[in] ClientId The identifier of a client. UniqueThread must be present.
+ * If UniqueProcess is present, the process of the referenced thread will be
+ * checked against this identifier.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -46,22 +46,13 @@ NTSTATUS KphOpenThread(
 
     thread = NULL;
 
-    if (AccessMode != KernelMode)
+    status = KphCopyFromMode(&clientId,
+                             ClientId,
+                             sizeof(CLIENT_ID),
+                             AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        __try
-        {
-            ProbeOutputType(ThreadHandle, HANDLE);
-            ProbeInputType(ClientId, CLIENT_ID);
-            RtlCopyVolatileMemory(&clientId, ClientId, sizeof(CLIENT_ID));
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
-        }
-    }
-    else
-    {
-        clientId = *ClientId;
+        goto Exit;
     }
 
     //
@@ -133,22 +124,7 @@ NTSTATUS KphOpenThread(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            *ThreadHandle = threadHandle;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            ObCloseHandle(threadHandle, UserMode);
-            status = GetExceptionCode();
-        }
-    }
-    else
-    {
-        *ThreadHandle = threadHandle;
-    }
+    status = KphWriteHandleToMode(ThreadHandle, threadHandle, AccessMode);
 
 Exit:
     if (thread)
@@ -183,20 +159,6 @@ NTSTATUS KphOpenThreadProcess(
     HANDLE processHandle;
 
     KPH_PAGED_CODE_PASSIVE();
-
-    thread = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputType(ProcessHandle, HANDLE);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
-        }
-    }
 
     status = ObReferenceObjectByHandle(ThreadHandle,
                                        0,
@@ -252,22 +214,7 @@ NTSTATUS KphOpenThreadProcess(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            *ProcessHandle = processHandle;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            ObCloseHandle(processHandle, UserMode);
-            status = GetExceptionCode();
-        }
-    }
-    else
-    {
-        *ProcessHandle = processHandle;
-    }
+    status = KphWriteHandleToMode(ProcessHandle, processHandle, AccessMode);
 
 Exit:
     if (thread)
@@ -325,33 +272,32 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
+    status = KphWriteULongToMode(CapturedFrames, 0, AccessMode);
+    if (!NT_SUCCESS(status))
     {
-        __try
+        goto Exit;
+    }
+
+    if (BackTraceHash)
+    {
+        status = KphWriteULongToMode(BackTraceHash, 0, AccessMode);
+        if (!NT_SUCCESS(status))
         {
-            ProbeOutputBytes(BackTrace, FramesToCapture * sizeof(PVOID));
-
-            ProbeOutputType(CapturedFrames, ULONG);
-            *CapturedFrames = 0;
-
-            if (BackTraceHash)
-            {
-                ProbeOutputType(BackTraceHash, ULONG);
-                *BackTraceHash = 0;
-            }
-
-            if (Timeout)
-            {
-                ProbeInputType(Timeout, LARGE_INTEGER);
-                RtlCopyVolatileMemory(&timeout, Timeout, sizeof(LARGE_INTEGER));
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
             goto Exit;
         }
+    }
 
+    if (Timeout)
+    {
+        status = KphReadLargeIntegerFromMode(&timeout, Timeout, AccessMode);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+    }
+
+    if (AccessMode != KernelMode)
+    {
         backTrace = KphAllocatePaged(FramesToCapture * sizeof(PVOID),
                                      KPH_TAG_THREAD_BACK_TRACE);
         if (!backTrace)
@@ -366,18 +312,6 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
     }
     else
     {
-        *CapturedFrames = 0;
-
-        if (BackTraceHash)
-        {
-            *BackTraceHash = 0;
-        }
-
-        if (Timeout)
-        {
-            timeout.QuadPart = Timeout->QuadPart;
-        }
-
         backTrace = BackTrace;
     }
 
@@ -420,13 +354,13 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
     {
         __try
         {
-            RtlCopyMemory(BackTrace, backTrace, capturedFrames * sizeof(PVOID));
+            CopyToUser(BackTrace, backTrace, capturedFrames * sizeof(PVOID));
 
-            *CapturedFrames = capturedFrames;
+            WriteULongToUser(CapturedFrames, capturedFrames);
 
             if (BackTraceHash)
             {
-                *BackTraceHash = backTraceHash;
+                WriteULongToUser(BackTraceHash, backTraceHash);
             }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -516,10 +450,9 @@ NTSTATUS KphSetInformationThread(
 
         __try
         {
-            ProbeInputBytes(ThreadInformation, ThreadInformationLength);
-            RtlCopyVolatileMemory(threadInformation,
-                                  ThreadInformation,
-                                  ThreadInformationLength);
+            CopyFromUser(threadInformation,
+                         ThreadInformation,
+                         ThreadInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -686,8 +619,7 @@ Exit:
  * \param[in] ThreadInformationClass Information class to query.
  * \param[out] ThreadInformation Populated with thread information by class.
  * \param[in] ThreadInformationLength Length of the thread information buffer.
- * \param[out] ReturnLength Number of bytes written or necessary for the
- * information.
+ * \param[out] ReturnLength Received the number of bytes written or required.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -712,30 +644,8 @@ NTSTATUS KphQueryInformationThread(
     KPH_PAGED_CODE_PASSIVE();
 
     dyn = NULL;
-    threadObject = NULL;
     thread = NULL;
     returnLength = 0;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            if (ThreadInformation)
-            {
-                ProbeOutputBytes(ThreadInformation, ThreadInformationLength);
-            }
-
-            if (ReturnLength)
-            {
-                ProbeOutputType(ReturnLength, ULONG);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(ThreadHandle,
                                        0,
@@ -769,8 +679,8 @@ NTSTATUS KphQueryInformationThread(
     {
         case KphThreadIoCounters:
         {
-            PIO_COUNTERS counters;
-            PULONGLONG value;
+            IO_COUNTERS counters;
+            PULONG64 value;
 
             dyn = KphReferenceDynData();
 
@@ -794,35 +704,28 @@ NTSTATUS KphQueryInformationThread(
                 goto Exit;
             }
 
-            counters = ThreadInformation;
+            RtlZeroMemory(&counters, sizeof(IO_COUNTERS));
 
-            __try
+            value = Add2Ptr(threadObject, dyn->KtReadOperationCount);
+            counters.ReadOperationCount = *value;
+            value = Add2Ptr(threadObject, dyn->KtWriteOperationCount);
+            counters.WriteOperationCount = *value;
+            value = Add2Ptr(threadObject, dyn->KtOtherOperationCount);
+            counters.OtherOperationCount = *value;
+            value = Add2Ptr(threadObject, dyn->KtReadTransferCount);
+            counters.ReadTransferCount = *value;
+            value = Add2Ptr(threadObject, dyn->KtWriteTransferCount);
+            counters.WriteTransferCount = *value;
+            value = Add2Ptr(threadObject, dyn->KtOtherTransferCount);
+            counters.OtherTransferCount = *value;
+
+            status = KphCopyToMode(ThreadInformation,
+                                   &counters,
+                                   sizeof(IO_COUNTERS),
+                                   AccessMode);
+            if (NT_SUCCESS(status))
             {
-                value = Add2Ptr(threadObject, dyn->KtReadOperationCount);
-                counters->ReadOperationCount = *value;
-
-                value = Add2Ptr(threadObject, dyn->KtWriteOperationCount);
-                counters->WriteOperationCount = *value;
-
-                value = Add2Ptr(threadObject, dyn->KtOtherOperationCount);
-                counters->OtherOperationCount = *value;
-
-                value = Add2Ptr(threadObject, dyn->KtReadTransferCount);
-                counters->ReadTransferCount = *value;
-
-                value = Add2Ptr(threadObject, dyn->KtWriteTransferCount);
-                counters->WriteTransferCount = *value;
-
-                value = Add2Ptr(threadObject, dyn->KtOtherTransferCount);
-                counters->OtherTransferCount = *value;
-
                 returnLength = sizeof(IO_COUNTERS);
-                status = STATUS_SUCCESS;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
             }
 
             break;
@@ -852,23 +755,61 @@ NTSTATUS KphQueryInformationThread(
             status = KphQueryInformationThreadContext(thread,
                                                       KphThreadContextWSLThreadId,
                                                       &threadId,
-                                                      sizeof(threadId),
+                                                      sizeof(ULONG),
                                                       NULL);
             if (!NT_SUCCESS(status))
             {
                 goto Exit;
             }
 
-            __try
+            status = KphWriteULongToMode(ThreadInformation,
+                                         threadId,
+                                         AccessMode);
+            if (NT_SUCCESS(status))
             {
-                *(PULONG)ThreadInformation = threadId;
                 returnLength = sizeof(ULONG);
-                status = STATUS_SUCCESS;
             }
-            __except (EXCEPTION_EXECUTE_HANDLER)
+
+            break;
+        }
+        case KphThreadKernelStackInformation:
+        {
+            KPH_KERNEL_STACK_INFORMATION info;
+
+            dyn = KphReferenceDynData();
+
+            if (!dyn ||
+                (dyn->KtInitialStack == ULONG_MAX) ||
+                (dyn->KtStackLimit == ULONG_MAX) ||
+                (dyn->KtStackBase == ULONG_MAX) ||
+                (dyn->KtKernelStack == ULONG_MAX))
             {
-                status = GetExceptionCode();
+                status = STATUS_NOINTERFACE;
                 goto Exit;
+            }
+
+            if (!ThreadInformation ||
+                (ThreadInformationLength < sizeof(KPH_KERNEL_STACK_INFORMATION)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(KPH_KERNEL_STACK_INFORMATION);
+                goto Exit;
+            }
+
+            RtlZeroMemory(&info, sizeof(KPH_KERNEL_STACK_INFORMATION));
+
+            info.InitialStack = *(PVOID*)Add2Ptr(threadObject, dyn->KtInitialStack);
+            info.StackLimit = *(PVOID*)Add2Ptr(threadObject, dyn->KtStackLimit);
+            info.StackBase = *(PVOID*)Add2Ptr(threadObject, dyn->KtStackBase);
+            info.KernelStack = *(PVOID*)Add2Ptr(threadObject, dyn->KtKernelStack);
+
+            status = KphCopyToMode(ThreadInformation,
+                                   &info,
+                                   sizeof(KPH_KERNEL_STACK_INFORMATION),
+                                   AccessMode);
+            if (NT_SUCCESS(status))
+            {
+                returnLength = sizeof(KPH_KERNEL_STACK_INFORMATION);
             }
 
             break;
@@ -884,21 +825,7 @@ Exit:
 
     if (ReturnLength)
     {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                *ReturnLength = returnLength;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                NOTHING;
-            }
-        }
-        else
-        {
-            *ReturnLength = returnLength;
-        }
+        KphWriteULongToMode(ReturnLength, returnLength, AccessMode);
     }
 
     if (thread)

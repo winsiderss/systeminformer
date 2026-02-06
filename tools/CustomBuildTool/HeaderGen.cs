@@ -145,7 +145,7 @@ namespace CustomBuildTool
                 }
                 else
                 {
-                    bool blockMode = Modes.Any(mode => modes.Contains(mode));
+                    bool blockMode = Modes.Any(mode => modes.Contains(mode, StringComparer.OrdinalIgnoreCase));
                     bool lineMode = Modes.Any(mode =>
                     {
                         int indexOfMarker = text.LastIndexOf($"// {mode}", StringComparison.OrdinalIgnoreCase);
@@ -447,6 +447,7 @@ namespace CustomBuildTool
                         }
                         else
                         {
+                            // required for the ESDK
                             var sdk_include_path = Utils.GetWindowsSdkIncludePath();
                             if (string.IsNullOrWhiteSpace(sdk_include_path))
                             {

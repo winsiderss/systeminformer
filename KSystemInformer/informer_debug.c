@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -36,19 +36,39 @@ static PKPH_DBG_PRINT_SLOT KphpDbgPrintSlots = NULL;
 /**
  * \brief Flushes the debug print slots to the communication port.
  */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_min_(DISPATCH_LEVEL)
+_IRQL_requires_(DISPATCH_LEVEL)
+_Requires_lock_held_(KphpDbgPrintLock)
 VOID KphpDebugPrintFlush(
     VOID
     )
 {
+    KPH_NPAGED_CODE_DISPATCH();
+
     for (ULONG i = 0; i < KphpDbgPrintSlotNext; i++)
     {
         NTSTATUS status;
+        PKPH_PROCESS_CONTEXT process;
+        BOOLEAN enabled;
         USHORT remaining;
         ANSI_STRING output;
         PKPH_MESSAGE msg;
         PKPH_DBG_PRINT_SLOT slot;
 
         slot = &KphpDbgPrintSlots[i];
+
+        process = KphGetProcessContext(slot->ContextClientId.UniqueProcess);
+        enabled = KphInformerEnabled(DebugPrint, process);
+        if (process)
+        {
+            KphDereferenceObjectDeferDelete(process);
+        }
+
+        if (!enabled)
+        {
+            continue;
+        }
 
         msg = KphAllocateNPagedMessage();
         if (!msg)
@@ -125,9 +145,9 @@ VOID KphpDebugPrintDpc(
     // We use threaded DPCs so we could be invoked at passive or dispatch.
     //
 
-    KeAcquireSpinLock(&KphpDbgPrintLock, &oldIrql);
+    oldIrql = KeAcquireSpinLockForDpc(&KphpDbgPrintLock);
     KphpDebugPrintFlush();
-    KeReleaseSpinLock(&KphpDbgPrintLock, oldIrql);
+    KeReleaseSpinLockForDpc(&KphpDbgPrintLock, oldIrql);
 }
 
 /**

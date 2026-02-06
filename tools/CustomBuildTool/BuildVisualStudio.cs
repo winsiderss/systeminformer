@@ -188,6 +188,227 @@ namespace CustomBuildTool
 
             return path;
         }
+
+        /// <summary>
+        /// Required workloads for Visual Studio.
+        /// </summary>
+        private static readonly string[] RequiredWorkloads =
+        [
+            "Microsoft.VisualStudio.Workload.NativeDesktop"
+        ];
+
+        /// <summary>
+        /// Required components for Visual Studio.
+        /// </summary>
+        private static readonly string[] RequiredComponents =
+        [
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+            "Microsoft.VisualStudio.Component.VC.Tools.ARM64",
+            "Microsoft.VisualStudio.Component.Windows11SDK.26100",
+            "Microsoft.VisualStudio.Component.Windows10SDK",
+            "Component.Microsoft.Windows.DriverKit",
+            "Microsoft.Component.MSBuild",
+            "Microsoft.VisualStudio.Component.VC.ATL",
+            "Microsoft.VisualStudio.Component.VC.ATLMFC",
+            "Microsoft.VisualStudio.Component.VC.Redist.14.Latest",
+            "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre",
+            "Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre",
+            "Microsoft.VisualStudio.Component.VC.Runtimes.ARM64EC.Spectre",
+            "Microsoft.VisualStudio.Component.NuGet",
+            "Microsoft.VisualStudio.Component.Git"
+        ];
+
+        /// <summary>
+        /// Recommended components for Visual Studio.
+        /// </summary>
+        private static readonly string[] RecommendedComponents =
+        [
+            "Microsoft.VisualStudio.Component.VC.CMake.Project",
+            "Microsoft.VisualStudio.Component.VC.14.45.17.12.CLI.Support"
+        ];
+
+        public static bool CheckBuildDependencies(bool quiet = false)
+        {
+            var result = true;
+            var instance = BuildVisualStudio.GetVisualStudioInstance();
+
+            if (!quiet)
+            {
+                Program.PrintColorMessage("Checking Build Dependencies...\n", ConsoleColor.Cyan);
+            }
+
+            if (instance == null)
+            {
+                if (!quiet)
+                {
+                    Program.PrintColorMessage("\u274C - Visual Studio 2022/2026 - Not found", ConsoleColor.Red);
+                }
+                result = false;
+            }
+            else
+            {
+                if (!quiet)
+                {
+                    Program.PrintColorMessage($"\u2705 - {instance.DisplayName} ({instance.InstallationVersion})", ConsoleColor.Green);
+                }
+
+                var missingWorkloads = RequiredWorkloads.Where(w => !instance.Packages.Any(p => p.Id.Equals(w, StringComparison.OrdinalIgnoreCase))).ToList();
+                var missingComponents = RequiredComponents.Where(c => !instance.Packages.Any(p => p.Id.Equals(c, StringComparison.OrdinalIgnoreCase))).ToList();
+
+                if (missingWorkloads.Count > 0 || missingComponents.Count > 0)
+                {
+                    result = false;
+                    if (!quiet)
+                    {
+                        Program.PrintColorMessage("Visual Studio missing components:", ConsoleColor.Yellow);
+                        foreach (var w in missingWorkloads)
+                            Program.PrintColorMessage($"   - Workload: {w}", ConsoleColor.Gray);
+                        foreach (var c in missingComponents)
+                            Program.PrintColorMessage($"   - Component: {c}", ConsoleColor.Gray);
+                    }
+                }
+            }
+
+            // Windows SDK check
+            string sdkVersion = Utils.GetWindowsSdkVersion();
+            if (string.IsNullOrWhiteSpace(sdkVersion))
+            {
+                if (!quiet)
+                    Program.PrintColorMessage("\u274C - Windows SDK - Not found", ConsoleColor.Red);
+                result = false;
+            }
+            else
+            {
+                if (!quiet)
+                    Program.PrintColorMessage($"\u2705 - Windows SDK - {sdkVersion}", ConsoleColor.Green);
+            }
+
+            // Git check
+            string gitPath = Utils.GetGitFilePath();
+            if (string.IsNullOrWhiteSpace(gitPath))
+            {
+                if (!quiet)
+                    Program.PrintColorMessage("\u274C - Git - Not found", ConsoleColor.Yellow);
+            }
+            else
+            {
+                if (!quiet)
+                    Program.PrintColorMessage("\u2705 - Git", ConsoleColor.Green);
+            }
+
+            // .NET check
+            try
+            {
+                Win32.CreateProcess("dotnet.exe", "--version", out string dotnetVersion, false, true);
+                if (!string.IsNullOrWhiteSpace(dotnetVersion))
+                {
+                    if (!quiet)
+                        Program.PrintColorMessage($"\u2705 - DotNET - {dotnetVersion.Trim()}", ConsoleColor.Green);
+                }
+                else
+                {
+                    if (!quiet)
+                        Program.PrintColorMessage("\u274C - DotNET - Not found", ConsoleColor.Yellow);
+                }
+            }
+            catch
+            {
+                if (!quiet)
+                    Program.PrintColorMessage("\u274C - DotNET - Not found", ConsoleColor.Yellow);
+            }
+
+            return result;
+        }
+
+        public static bool InstallBuildDependencies(bool minimal = false)
+        {
+            string installerPath = Path.Combine(Path.GetTempPath(), "vs_community.exe");
+
+            try
+            {
+                if (!File.Exists(installerPath))
+                {
+                    Program.PrintColorMessage("Downloading Visual Studio 2022 Community installer...", ConsoleColor.Cyan);
+
+                    var request = new HttpRequestMessage(HttpMethod.Get, "https://aka.ms/vs/17/release/vs_community.exe");
+                    var response = BuildHttpClient.SendMessageResponse(request);
+                    if (response != null && response.IsSuccessStatusCode)
+                    {
+                        using (var fs = new FileStream(installerPath, FileMode.Create))
+                        {
+                            response.Content.CopyToAsync(fs).GetAwaiter().GetResult();
+                        }
+                    }
+                }
+
+                if (!File.Exists(installerPath))
+                {
+                    Program.PrintColorMessage("Failed to download Visual Studio installer.", ConsoleColor.Red);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"Failed to download Visual Studio installer: {ex}", ConsoleColor.Red);
+                return false;
+            }
+
+            var args = new List<string>
+            {
+                "--passive",
+                "--wait",
+                "--norestart"
+            };
+
+            foreach (var w in RequiredWorkloads)
+            {
+                args.Add("--add");
+                args.Add(w);
+            }
+
+            foreach (var c in RequiredComponents)
+            {
+                args.Add("--add");
+                args.Add(c);
+            }
+
+            if (!minimal)
+            {
+                foreach (var c in RecommendedComponents)
+                {
+                    args.Add("--add");
+                    args.Add(c);
+                }
+            }
+
+            args.Add("--add");
+            args.Add("Microsoft.NetCore.Component.Runtime.10.0");
+
+            string commandLine = string.Join(" ", args.Select(a => a.Contains(' ', StringComparison.OrdinalIgnoreCase) ? $"\"{a}\"" : a));
+            Program.PrintColorMessage($"Installing Visual Studio components... {commandLine}", ConsoleColor.Cyan);
+
+            int exitCode = Win32.CreateProcess(installerPath, commandLine, out _, false, false);
+
+            if (exitCode == 0 || exitCode == 3010)
+            {
+                Program.PrintColorMessage("Visual Studio installation completed successfully.", ConsoleColor.Green);
+                if (exitCode == 3010)
+                    Program.PrintColorMessage("A restart is required to complete installation.", ConsoleColor.Yellow);
+                return true;
+            }
+            else
+            {
+                if (exitCode == 8006)
+                {
+                    Program.PrintColorMessage($"The Visual Studio installation failed because it attempted to install or modify workloads while Visual Studio (or related processes) are open.", ConsoleColor.Red);
+                }
+                else
+                {
+                    Program.PrintColorMessage($"Visual Studio installation failed with exit code: {exitCode}", ConsoleColor.Red);
+                }
+                return false;
+            }
+        }
     }
 
     /// <summary>

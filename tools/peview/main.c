@@ -44,7 +44,7 @@ NTSTATUS PvpConnectKph(
     //if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KsiPortName")))
         PhMoveReference(&portName, PhCreateString(KPH_PORT_NAME));
 
-    status = KphCommsStart(&portName->sr, NULL);
+    status = KphCommsStart(&portName->sr, NULL, 0);
 
     PhDereferenceObject(portName);
 

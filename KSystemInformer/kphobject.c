@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -29,9 +29,9 @@
 //
 // N.B. If more object types are added the array must be expanded.
 //
-static KPH_OBJECT_TYPE KphpObjectTypes[13] = { 0 };
+static KPH_OBJECT_TYPE KphpObjectTypes[16] = { 0 };
 C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
-static volatile LONG KphpObjectTypeCount = 0;
+static LONG KphpObjectTypeCount = 0;
 static KSI_WORK_QUEUE_ITEM KphpDeferDeleteObjectWorkItem;
 static SLIST_HEADER KphpDeferDeleteObjectList;
 
@@ -55,7 +55,7 @@ VOID KphpObjectDelete(
 
     type->TypeInfo.Free(Header);
 
-    InterlockedDecrementSizeT(&type->TotalNumberOfObjects);
+    InterlockedDecrementSizeTNoFence(&type->TotalNumberOfObjects);
 }
 
 /**
@@ -113,8 +113,8 @@ VOID KphCreateObjectType(
     type->Name.Length = TypeName->Length;
 
     type->Index = (UCHAR)index;
-    type->TotalNumberOfObjects = 0;
-    type->HighWaterNumberOfObjects = 0;
+    WriteSizeTNoFence(&type->TotalNumberOfObjects, 0);
+    WriteSizeTNoFence(&type->HighWaterNumberOfObjects, 0);
 
     RtlCopyMemory(&type->TypeInfo, TypeInfo, sizeof(*TypeInfo));
 
@@ -152,7 +152,7 @@ NTSTATUS KphCreateObject(
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    header->PointerCount = 1;
+    WriteSSizeTNoFence(&header->PointerCount, 1);
     header->TypeIndex = ObjectType->Index;
 
     object = KphObjectHeaderToObject(header);
@@ -167,7 +167,7 @@ NTSTATUS KphCreateObject(
         }
     }
 
-    total = InterlockedIncrementSizeT(&ObjectType->TotalNumberOfObjects);
+    total = InterlockedIncrementSizeTNoFence(&ObjectType->TotalNumberOfObjects);
 
     InterlockedExchangeIfGreaterSizeT(&ObjectType->HighWaterNumberOfObjects,
                                       total);
@@ -189,7 +189,7 @@ VOID KphReferenceObject(
 
     header = KphObjectToObjectHeader(Object);
 
-    NT_VERIFY(InterlockedIncrementSSizeT(&header->PointerCount) > 0);
+    NT_VERIFY(InterlockedIncrementSSizeTNoFence(&header->PointerCount) > 0);
 }
 
 /**
@@ -280,6 +280,13 @@ PKPH_OBJECT_TYPE KphGetObjectType(
     return &KphpObjectTypes[index];
 }
 
+//
+// Custom locking routines follow, disable pedantic prefast locking checks.
+//
+#pragma prefast(push)
+#pragma prefast(disable: 26165) // possibly failing to release lock
+#pragma prefast(disable: 26166) // possibly failing to acquire lock
+
 /**
  * \brief Acquires the atomic object reference lock shared.
  *
@@ -292,23 +299,29 @@ VOID KphpAtomicAcquireObjectLockShared(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
 {
+    ULONG_PTR object;
+
+    object = ReadULongPtrAcquire(&ObjectRef->Object);
+
     for (;; YieldProcessor())
     {
-        ULONG_PTR object;
         ULONG_PTR lock;
-
-        object = ReadULongPtrAcquire(&ObjectRef->Object);
+        ULONG_PTR expected;
 
         lock = object & KPH_ATOMIC_OBJECT_REF_LOCK_MASK;
 
         if (lock >= KPH_ATOMIC_OBJECT_REF_SHARED_MAX)
         {
+            object = ReadULongPtrAcquire(&ObjectRef->Object);
             continue;
         }
 
-        if (InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
-                                               object + 1,
-                                               object) == object)
+        expected = object;
+
+        object = InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
+                                                    object + 1,
+                                                    expected);
+        if (object == expected)
         {
             break;
         }
@@ -327,6 +340,7 @@ VOID KphpAtomicReleaseObjectLockShared(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
 {
+
     ULONG_PTR object;
 
     object = InterlockedDecrementULongPtr(&ObjectRef->Object);
@@ -334,6 +348,7 @@ VOID KphpAtomicReleaseObjectLockShared(
     object = object & KPH_ATOMIC_OBJECT_REF_SHARED_MAX;
 
     NT_ASSERT(object < KPH_ATOMIC_OBJECT_REF_SHARED_MAX);
+
 }
 
 /**
@@ -350,22 +365,26 @@ VOID KphpAtomicAcquireObjectLockExclusive(
 {
     ULONG_PTR object;
 
+    object = ReadULongPtrAcquire(&ObjectRef->Object);
+
     for (;; YieldProcessor())
     {
         ULONG_PTR locked;
-
-        object = ReadULongPtrAcquire(&ObjectRef->Object);
+        ULONG_PTR expected;
 
         if (object & KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG)
         {
+            object = ReadULongPtrAcquire(&ObjectRef->Object);
             continue;
         }
 
         locked = object | KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG;
+        expected = object;
 
-        if (InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
-                                               locked,
-                                               object) == object)
+        object = InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
+                                                    locked,
+                                                    expected);
+        if (object == expected)
         {
             break;
         }
@@ -397,6 +416,11 @@ VOID KphpAtomicReleaseObjectLockExclusive(
     NT_ASSERT(result);
 }
 
+#pragma prefast(pop)
+//
+// End of custom locking routines.
+//
+
 /**
  * \brief Retrieves an addition object reference to an atomically managed
  * object reference.
@@ -415,11 +439,13 @@ PVOID KphAtomicReferenceObject(
     _In_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
 {
+    ULONG_PTR value;
     PVOID object;
 
     KphpAtomicAcquireObjectLockShared(ObjectRef);
 
-    object = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_REF_OBJECT_MASK);
+    value = ReadULongPtrNoFence(&ObjectRef->Object);
+    object = (PVOID)(value & KPH_ATOMIC_OBJECT_REF_OBJECT_MASK);
     if (object)
     {
         KphReferenceObject(object);
@@ -445,13 +471,15 @@ PVOID KphpAtomicStoreObjectReference(
     )
 {
     PVOID previous;
+    ULONG_PTR value;
     ULONG_PTR object;
 
     NT_ASSERT(((ULONG_PTR)Object & KPH_ATOMIC_OBJECT_REF_LOCK_MASK) == 0);
 
     KphpAtomicAcquireObjectLockExclusive(ObjectRef);
 
-    previous = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_REF_OBJECT_MASK);
+    value = ReadULongPtrNoFence(&ObjectRef->Object);
+    previous = (PVOID)(value & KPH_ATOMIC_OBJECT_REF_OBJECT_MASK);
 
     object = (ULONG_PTR)Object | KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG;
 
@@ -524,9 +552,9 @@ KPH_PAGED_FILE();
  *
  * \param[in] Parameter Unused parameter.
  */
+_Function_class_(KSI_WORK_QUEUE_ROUTINE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _IRQL_requires_same_
-_Function_class_(KSI_WORK_QUEUE_ROUTINE)
 VOID KSIAPI KphpDeferDeleteObjectWorker(
     _In_opt_ PVOID Parameter
     )
@@ -553,8 +581,6 @@ VOID KSIAPI KphpDeferDeleteObjectWorker(
 
 /**
  * \brief Initializes the object subsystem.
- *
- * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphObjectInitialize(

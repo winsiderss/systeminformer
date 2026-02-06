@@ -278,6 +278,23 @@ namespace CustomBuildTool
 
         private static string GetMsbuildFilePath(BuildFlags Flags, Architecture Architecture)
         {
+            // ESDK Begin
+            if (Win32.GetEnvironmentVariable("MSBuild", out string msbuildPath))
+            {
+                if (File.Exists(msbuildPath))
+                    return msbuildPath;
+            }
+
+            {
+                string file = Win32.SearchPath("MSBuild.exe");
+
+                if (File.Exists(file))
+                {
+                    return file;
+                }
+            }
+            //ESDK End
+
             var MsBuildPath = new Dictionary<string, Architecture>(3, StringComparer.OrdinalIgnoreCase)
             {
                 ["\\MSBuild\\Current\\Bin\\arm64\\MSBuild.exe"] = Architecture.Arm64,
@@ -440,6 +457,18 @@ namespace CustomBuildTool
 
         public static string GetWindowsSdkPath()
         {
+            // ESDK Begin
+            if (
+                Win32.GetEnvironmentVariable("WindowsSdkDir", out string windowsSdkDir) &&
+                Win32.GetEnvironmentVariable("WindowsSDKVersion", out string windowsSdkVersion)
+                )
+            {
+                string path = Path.Join([windowsSdkDir, "bin", windowsSdkVersion.TrimEnd('\\')]);
+                if (Directory.Exists(path))
+                    return path;
+            }
+            //ESDK End
+
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
             string kitsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "\\bin"]));
@@ -476,6 +505,13 @@ namespace CustomBuildTool
 
         public static string GetWindowsSdkVersion()
         {
+            // ESDK Begin
+            if (Win32.GetEnvironmentVariable("WindowsSDKVersion", out string windowsSdkVersion)) 
+            {
+                return windowsSdkVersion.TrimEnd('\\');
+            }
+            //ESDK End
+
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
             string kitsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "\\bin"]));
@@ -513,6 +549,18 @@ namespace CustomBuildTool
 
         public static string GetWindowsSdkIncludePath()
         {
+            // ESDK Begin
+            if (
+                Win32.GetEnvironmentVariable("WindowsSdkDir", out string windowsSdkDir) &&
+                Win32.GetEnvironmentVariable("WindowsSDKVersion", out string windowsSdkVersion)
+                )
+            {
+                string path = Path.Join([windowsSdkDir, "Include", windowsSdkVersion.TrimEnd('\\')]);
+                if (Directory.Exists(path))
+                    return path;
+            }
+            //ESDK End
+
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
             string kitsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "\\Include"]));
@@ -610,9 +658,70 @@ namespace CustomBuildTool
             return makeAppxPath;
         }
 
+        public static string GetCMakeFilePath()
+        {
+            // Try searching in the PATH first
+            string file = Win32.SearchPath("cmake.exe");
+
+            if (File.Exists(file))
+            {
+                return file;
+            }
+
+            // Try bundled with Visual Studio
+            VisualStudioInstance instance = BuildVisualStudio.GetVisualStudioInstance();
+
+            if (instance != null)
+            {
+                string[] cmakePathArray =
+                [
+                    "\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+                ];
+
+                foreach (string path in cmakePathArray)
+                {
+                    file = Path.Join([instance.Path, path]);
+
+                    if (File.Exists(file))
+                    {
+                        return file;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         public static int ExecuteCMakeCommand(string Command)
         {
-            return int.MaxValue;
+            string cmakeFile = GetCMakeFilePath();
+
+            if (string.IsNullOrWhiteSpace(cmakeFile))
+            {
+                Program.PrintColorMessage("[ExecuteCMakeCommand] cmake.exe is invalid.", ConsoleColor.Red);
+                return int.MaxValue;
+            }
+
+            var instance = BuildVisualStudio.GetVisualStudioInstance();
+            string vcvarsall = Path.Join([instance.Path, "VC\\Auxiliary\\Build\\vcvarsall.bat"]);
+
+            if (!File.Exists(vcvarsall))
+            {
+                Program.PrintColorMessage("[ExecuteCMakeCommand] vcvarsall.bat not found.", ConsoleColor.Red);
+                return int.MaxValue;
+            }
+
+            string arch = "amd64"; // Default
+            if (Command.Contains("msvc-x86", StringComparison.OrdinalIgnoreCase) || Command.Contains("Win32", StringComparison.OrdinalIgnoreCase))
+                arch = "amd64_x86";
+            else if (Command.Contains("msvc-arm64", StringComparison.OrdinalIgnoreCase) || Command.Contains("ARM64", StringComparison.OrdinalIgnoreCase))
+                arch = "amd64_arm64";
+
+            // We need to run vcvarsall.bat and then cmake in the same session.
+            // Using cmd /c "call vcvarsall.bat arch && cmake ..."
+            string fullCommand = $"/c \"call \"{vcvarsall}\" {arch} && \"{cmakeFile}\" {Command}\"";
+
+            return Win32.CreateProcess("cmd.exe", fullCommand, out _, false, false);
         }
 
         public static string ExecuteMsixCommand(string Command)
@@ -650,6 +759,14 @@ namespace CustomBuildTool
 
         public static string GetSymStorePath()
         {
+            // Required for the ESDK
+            if (Win32.GetEnvironmentVariable("WindowsSdkDir", out string windowsSdkDir))
+            {
+                string path = Path.Join([windowsSdkDir, "Debuggers\\x64\\symstore.exe"]);
+                if (File.Exists(path))
+                    return path;
+            }
+
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
             if (string.IsNullOrWhiteSpace(kitsRoot))
                 return null;
@@ -1006,6 +1123,105 @@ namespace CustomBuildTool
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Returns the CMake platform string for the specified toolchain.
+        /// </summary>
+        /// <param name="toolchain">The toolchain identifier.</param>
+        /// <returns>The platform string (e.g., Win32, x64, ARM64).</returns>
+        /// <exception cref="ArgumentException">Thrown if the toolchain is unsupported.</exception>
+        public static string CMakeGetPlatform(string toolchain) => toolchain switch
+        {
+            "msvc-x86" or "clang-msvc-x86" => "Win32",
+            "msvc-amd64" or "clang-msvc-amd64" => "x64",
+            "msvc-arm64" or "clang-msvc-arm64" => "ARM64",
+            _ => throw new ArgumentException("Unsupported toolchain")
+        };
+
+        public static string CMakeGetPlatform(BuildToolchain toolchain) => toolchain switch
+        {
+            BuildToolchain.MsvcX86 or BuildToolchain.ClangMsvcX86 => "Win32",
+            BuildToolchain.MsvcAmd64 or BuildToolchain.ClangMsvcAmd64 => "x64",
+            BuildToolchain.MsvcArm64 or BuildToolchain.ClangMsvcArm64 => "ARM64",
+            _ => throw new ArgumentException("Unsupported toolchain")
+        };
+
+        public static string GetToolchainString(BuildToolchain toolchain)
+        {
+            switch (toolchain)
+            {
+            case BuildToolchain.MsvcX86:         
+                return "msvc-x86";
+            case BuildToolchain.MsvcAmd64:
+                return "msvc-amd64";
+            case BuildToolchain.MsvcArm64:
+                return "msvc-arm64";
+            case BuildToolchain.ClangMsvcX86:
+                return "clang-msvc-x86";
+            case BuildToolchain.ClangMsvcAmd64:
+                return "clang-msvc-amd64";
+            case BuildToolchain.ClangMsvcArm64:
+                return "clang-msvc-arm64";
+            }
+
+            throw new ArgumentException("Unsupported toolchain");
+        }
+
+        public static BuildToolchain GetToolchainFromString(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return BuildToolchain.ClangMsvcAmd64;
+
+            if (s.Equals("msvc-x86", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.MsvcX86;
+
+            if (s.Equals("msvc-amd64", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.MsvcAmd64;
+
+            if (s.Equals("msvc-arm64", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.MsvcArm64;
+
+            if (s.Equals("clang-msvc-x86", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.ClangMsvcX86;
+
+            if (s.Equals("clang-msvc-amd64", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.ClangMsvcAmd64;
+
+            if (s.Equals("clang-msvc-arm64", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.ClangMsvcArm64;
+
+            return BuildToolchain.ClangMsvcAmd64;
+        }
+
+        public static BuildGenerator GetGeneratorFromString(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return BuildGenerator.Ninja;
+
+            if (s.Contains("ninja", StringComparison.OrdinalIgnoreCase))
+                return BuildGenerator.Ninja;
+
+            if (
+                s.Contains("visual studio", StringComparison.OrdinalIgnoreCase) ||
+                s.Contains("visualstudio", StringComparison.OrdinalIgnoreCase)
+                )
+            {
+                return BuildGenerator.VisualStudio;
+            }
+
+            return BuildGenerator.Ninja;
+        }
+
+        public static string GetGeneratorString(BuildGenerator gen, string original = null)
+        {
+            return gen switch
+            {
+                BuildGenerator.Ninja => "Ninja",
+                BuildGenerator.VisualStudio => "Visual Studio",
+                BuildGenerator.Other => original ?? string.Empty,
+                _ => original ?? string.Empty
+            };
         }
     }
 
@@ -2055,10 +2271,29 @@ namespace CustomBuildTool
         BuildVerbose = 32,
         BuildApi = 64,
         BuildMsix = 128,
+        BuildCMake = 256,
 
         Debug = Build32bit | Build64bit | BuildArm64bit | BuildDebug | BuildApi | BuildVerbose,
         Release = Build32bit | Build64bit | BuildArm64bit | BuildRelease | BuildApi | BuildVerbose,
         All = Build32bit | Build64bit | BuildArm64bit | BuildDebug | BuildRelease | BuildApi | BuildVerbose,
+    }
+
+    public enum BuildToolchain
+    {
+        None,
+        MsvcX86 = 1,
+        MsvcAmd64 = 2,
+        MsvcArm64 = 3,
+        ClangMsvcX86 = 4,
+        ClangMsvcAmd64 = 5,
+        ClangMsvcArm64 = 6
+    }
+
+    public enum BuildGenerator
+    {
+        Ninja,
+        VisualStudio,
+        Other
     }
 
     /// <summary>

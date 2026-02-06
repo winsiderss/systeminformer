@@ -515,7 +515,6 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     UNICODE_STRING boundaryNameUs;
     OBJECT_ATTRIBUTES namespaceObjectAttributes;
     OBJECT_ATTRIBUTES sectionObjectAttributes;
-    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo = NULL;
     SID_IDENTIFIER_AUTHORITY SIDWorldAuth = SECURITY_WORLD_SID_AUTHORITY;
 
     legacyBoundaryDescriptorName = PhFormatString(
@@ -536,10 +535,12 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     {
         if (NT_SUCCESS(PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
         {
-            if (!NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+            PH_TOKEN_APPCONTAINER tokenAppContainer;
+
+            if (!NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &tokenAppContainer)))
                 goto CleanupExit;
 
-            if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, appContainerInfo->TokenAppContainer)))
+            if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, tokenAppContainer.AppContainer.Sid)))
                 goto CleanupExit;
         }
     }
@@ -621,11 +622,6 @@ CleanupExit:
     if (tokenHandle)
     {
         NtClose(tokenHandle);
-    }
-
-    if (appContainerInfo)
-    {
-        PhFree(appContainerInfo);
     }
 
     if (privateNamespaceHandle)

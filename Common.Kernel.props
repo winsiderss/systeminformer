@@ -27,6 +27,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup>
+    <CodeAnalysisRuleSet>$(SystemInformerRoot)\Common.Kernel.ruleset</CodeAnalysisRuleSet>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <EnableInf2cat>false</EnableInf2cat>
   </PropertyGroup>
@@ -41,6 +42,7 @@
       <CallingConvention>StdCall</CallingConvention>
       <ConformanceMode>true</ConformanceMode>
       <ControlFlowGuard>Guard</ControlFlowGuard>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <GuardSignedReturns Condition="'$(Platform)'=='ARM64'">true</GuardSignedReturns>

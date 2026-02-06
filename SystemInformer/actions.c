@@ -3088,7 +3088,7 @@ BOOLEAN PhUiDebugProcess(
         memset(&config, 0, sizeof(TASKDIALOGCONFIG));
         config.cbSize = sizeof(TASKDIALOGCONFIG);
         config.hwndParent = WindowHandle;
-        config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_USE_COMMAND_LINKS;
+        config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_CAN_BE_MINIMIZED;
         config.hMainIcon = PhGetApplicationIcon(FALSE);
         config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
         config.pszWindowTitle = PhApplicationName;

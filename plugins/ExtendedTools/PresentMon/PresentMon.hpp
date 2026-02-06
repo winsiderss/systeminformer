@@ -52,8 +52,8 @@ VOID StartConsumerThread(_In_ TRACEHANDLE TraceHandle);
 VOID WaitForConsumerThreadToExit(VOID);
 
 // OutputThread.cpp:
-VOID StartOutputThread(VOID);
-VOID StopOutputThread(VOID);
+VOID StartOutputThread(VOID) noexcept;
+VOID StopOutputThread(VOID) noexcept;
 
 // TraceSession.cpp:
 VOID DequeueAnalyzedInfo(std::vector<std::shared_ptr<PresentEvent>>* presentEvents); // std::vector<std::shared_ptr<PresentEvent>>* lostPresentEvents

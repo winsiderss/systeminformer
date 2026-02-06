@@ -2226,7 +2226,7 @@ BOOLEAN PhHandleCopyListViewEMenuItem(
 
     for (i = 0; i < count; i++)
     {
-        ListView_GetItemState(context->ListViewHandle, i, LVIS_SELECTED);
+        state = ListView_GetItemState(context->ListViewHandle, i, LVIS_SELECTED);
 
         if (!FlagOn(state, LVIS_SELECTED))
             continue;

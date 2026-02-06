@@ -404,15 +404,17 @@ namespace CustomBuildTool
         /// <returns>The string value from the registry, or <paramref name="DefaultValue"/> if not found.</returns>
         public static string GetKeyValue(bool LocalMachine, string KeyName, string ValueName, string DefaultValue)
         {
+            // required for the ESDK
             string value = string.Empty;
             byte* valueBuffer;
             HKEY keyHandle;
 
-            fixed (char* p = KeyName)
+            fixed (char* pKey = KeyName)
+            fixed (char* pValue = ValueName)
             {
                 if (PInvoke.RegOpenKeyEx(
                     LocalMachine ? HKEY.HKEY_LOCAL_MACHINE : HKEY.HKEY_CURRENT_USER,
-                    p,
+                    pKey,
                     0,
                     REG_SAM_FLAGS.KEY_READ,
                     &keyHandle
@@ -423,7 +425,7 @@ namespace CustomBuildTool
 
                     PInvoke.RegQueryValueEx(
                         keyHandle,
-                        p,
+                        pValue,
                         null,
                         &valueType,
                         null,
@@ -436,7 +438,7 @@ namespace CustomBuildTool
 
                         if (PInvoke.RegQueryValueEx(
                             keyHandle,
-                            p,
+                            pValue,
                             null,
                             null,
                             valueBuffer,

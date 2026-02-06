@@ -168,4 +168,9 @@ NTSTATUS PhSvcCallQueryProcessHeapInformation(
     _Out_ PPH_STRING* HeapInformation
     );
 
+NTSTATUS PhSvcCallCreateProcessForKsi(
+    _In_ PCWSTR CommandLine,
+    _In_ ULONG64 MitigationFlags[2]
+    );
+
 #endif

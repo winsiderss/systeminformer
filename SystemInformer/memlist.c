@@ -612,6 +612,8 @@ PPH_STRING PhGetMemoryRegionUseText(
         return PhFormatString(L"USER_PROCESS_PARAMETERS");
     case LeapSecondDataRegion:
         return PhFormatString(L"LEAP_SECOND_DATA");
+    case DesktopHeapRegion:
+        return PhFormatString(L"Desktop heap");
     default:
         return NULL;
     }
