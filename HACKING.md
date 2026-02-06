@@ -102,7 +102,7 @@ The queued lock should be used for all synchronization, due to its small size an
 - Custom locking with low overhead can be built using the wake event, built on the queued lock. Test one or more conditions in a loop and use `PhQueueWakeEvent`/`PhWaitForWakeEvent` to block. When a condition is modified use `PhSetWakeEvent` to wake waiters. If after calling `PhQueueWakeEvent` it is determined that no blocking should occur, use `PhSetWakeEvent`.
 
 ### Exceptions (SEH)
-The only method of error handling used in Process Hacker is the return value (`NTSTATUS`, `BOOLEAN`, etc.). Exceptions are used for exceptional situations which cannot easily be recovered from (e.g. a lock acquire function fails to block, or an object has a negative reference count.
+The only method of error handling used in System Informer is the return value (`NTSTATUS`, `BOOLEAN`, etc.). Exceptions are used for exceptional situations which cannot easily be recovered from (e.g. a lock acquire function fails to block, or an object has a negative reference count.
 
 Exceptions to this rule include:
 

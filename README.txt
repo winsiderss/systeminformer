@@ -10,7 +10,7 @@ type". You cannot run the 32-bit version of System Informer on a
 
 ## System requirements
 
-Windows 7 or higher, 32-bit or 64-bit.
+Windows 10 or higher, 32-bit or 64-bit.
 
 ## Settings
 
@@ -25,14 +25,18 @@ directory as SystemInformer.exe. You can do this using Windows Explorer:
 3. Rename the file to SystemInformer.exe.settings.xml (delete the ".txt"
    extension).
 
+System Informer now supports automatic detection of the settings
+filename, so portable settings files are loaded automatically when
+placed alongside the executable.
+
 ## Plugins
 
-Plugins can be configured from Hacker > Plugins.
+Plugins can be configured from Tools > Plugins.
 
 If you experience any crashes involving plugins, make sure they
 are up to date.
 
-The ExtendedTools plugin is only available for Windows Vista and
+The ExtendedTools plugin is only available for Windows 10 and
 above. Disk and Network information provided by this plugin is
-only available when running Process Hacker with administrative
+only available when running System Informer with administrative
 rights.
