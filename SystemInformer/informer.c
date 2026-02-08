@@ -580,6 +580,7 @@ VOID NTAPI PhpInformerProcessUpdatedHandler(
 
     reap->ProcessStartKey = 0;
     reap->MaxCount = PhProcessMonitorCacheLimit;
+    reap->Seconds = 0;
 
     if (PhProcessMonitorLookback && runCount % PhProcessMonitorLookback == 0)
         reap->Seconds = PhProcessMonitorLookback;
@@ -628,22 +629,74 @@ VOID PhInformerInitialize(
 {
     PhInitializeFreeList(&PhpInformerReapFreeList, sizeof(PH_INFORMER_DB_REAP), 16);
 
-    if (PhEnableProcessMonitor)
+    if (!PhEnableProcessMonitor)
+        return;
+
+    PhpInitializeInformerDatabase();
+
+    PhRegisterCallback(
+        PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
+        PhpInformerProcessUpdatedHandler,
+        NULL,
+        &PhpInformerProcessesUpdatedRegistration
+        );
+
+    PhRegisterCallback(
+        PhGetGeneralCallback(GeneralCallbackProcessProviderRemovedEvent),
+        PhpInformerProcessRemovedHandler,
+        NULL,
+        &PhpInformerProcessesRemovedRegistration
+        );
+}
+
+VOID PhInformerActivate(
+    VOID
+    )
+{
+    KPH_INFORMER_SETTINGS settings;
+    KPH_INFORMER_CLIENT_SETTINGS client;
+
+    memset(&settings, 0, sizeof(settings));
+    settings.Policy[KPH_INFORMER_INDEX(RequiredStateFailure)] = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_UNLIMITED;
+    KphSetInformerProcessSettings(NtCurrentProcess(), &settings);
+
+    if (!PhEnableProcessMonitor)
     {
-        PhpInitializeInformerDatabase();
-
-        PhRegisterCallback(
-            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
-            PhpInformerProcessUpdatedHandler,
-            NULL,
-            &PhpInformerProcessesUpdatedRegistration
-            );
-
-        PhRegisterCallback(
-            PhGetGeneralCallback(GeneralCallbackProcessProviderRemovedEvent),
-            PhpInformerProcessRemovedHandler,
-            NULL,
-            &PhpInformerProcessesRemovedRegistration
-            );
+        KphSetInformerSettings(&settings);
+        return;
     }
+
+    memset(&settings, 0, sizeof(settings));
+    settings.Options.Flags = ULONG_MAX;
+    settings.Options.EnableStackTraces = FALSE;
+    settings.Options.EnableProcessCreateReply = FALSE;
+    settings.Options.FileEnablePreCreateReply = FALSE;
+    settings.Options.FileEnablePostCreateReply = FALSE;
+    settings.Options.FileEnablePostFileNames = FALSE;
+    settings.Options.FileEnableIoControlBuffers = FALSE;
+    settings.Options.FileEnableFsControlBuffers = FALSE;
+    settings.Options.FileEnableDirControlBuffers = FALSE;
+    settings.Options.RegEnablePostObjectNames = FALSE;
+    settings.Options.RegEnablePostValueNames = FALSE;
+    settings.Options.RegEnableValueBuffers = FALSE;
+
+    for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+        settings.Policy[i] = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_UNLIMITED;
+
+    settings.Policy[KPH_INFORMER_INDEX(DebugPrint)] = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_DENY_ALL;
+
+    KphSetInformerSettings(&settings);
+
+    memset(&client, 0, sizeof(client));
+    PhTimeoutFromMilliseconds(&client.MessageTimeouts.AsyncTimeout, 3000);
+    PhTimeoutFromMilliseconds(&client.MessageTimeouts.DefaultTimeout, 3000);
+    PhTimeoutFromMilliseconds(&client.MessageTimeouts.ProcessCreateTimeout, 3000);
+    PhTimeoutFromMilliseconds(&client.MessageTimeouts.FilePreCreateTimeout, 3000);
+    PhTimeoutFromMilliseconds(&client.MessageTimeouts.FilePostCreateTimeout, 3000);
+    //client.AsyncQueuePolicy = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_PER_SEC(1000, 30000);
+    client.AsyncQueuePolicy = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_DENY_ALL;
+    for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+        client.InformerPolicy[i] = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_UNLIMITED;
+
+    KphSetInformerClientSettings(&client);
 }
