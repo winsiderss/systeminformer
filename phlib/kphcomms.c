@@ -58,6 +58,8 @@ VOID KphpCommsSetThreadProperties(
     if (PhTlsGetValue(KphpCommsTlsSlot) != KPH_COMMS_THREAD_PROPERTIES_SET)
     {
         PhSetThreadName(NtCurrentThread(), ThreadName);
+        if (Priority >= THREAD_PRIORITY_TIME_CRITICAL)
+            Priority = LOW_REALTIME_PRIORITY;
         PhSetThreadBasePriority(NtCurrentThread(), Priority);
         PhTlsSetValue(KphpCommsTlsSlot, KPH_COMMS_THREAD_PROPERTIES_SET);
     }
@@ -117,7 +119,7 @@ VOID WINAPI KphpCommsIoCallback(
     if (!PhAcquireRundownProtection(&KphpCommsRundown))
         return;
 
-    KphpCommsSetThreadProperties(L"Message Processor", THREAD_PRIORITY_HIGHEST);
+    KphpCommsSetThreadProperties(L"Message Processor", THREAD_PRIORITY_TIME_CRITICAL);
 
     msg = CONTAINING_RECORD(ApcContext, KPH_UMESSAGE, Overlapped);
 
@@ -240,7 +242,7 @@ NTSTATUS NTAPI KphpRingBufferProcessor(
     _In_ PVOID Context
     )
 {
-    KphpCommsSetThreadProperties(L"Message Ring Processor", THREAD_PRIORITY_ABOVE_NORMAL);
+    KphpCommsSetThreadProperties(L"Message Ring Processor", THREAD_PRIORITY_HIGHEST);
 
     while (PhAcquireRundownProtection(&KphpCommsRundown))
     {
