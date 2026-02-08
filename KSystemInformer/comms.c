@@ -31,22 +31,14 @@ typedef struct _KPHM_QUEUE_ITEM
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const UNICODE_STRING KphpClientTypeName = RTL_CONSTANT_STRING(L"KphClient");
-static const UNICODE_STRING KphpClientRateLimitTypeName = RTL_CONSTANT_STRING(L"KphClientRateLimit");
+static const UNICODE_STRING KphpClientInformerStateTypeName = RTL_CONSTANT_STRING(L"KphClientInformerState");
 static const LARGE_INTEGER KphpMessageMinTimeout = KPH_TIMEOUT(300);
-static const KPH_MESSAGE_TIMEOUTS KphpDefaultMessageTimeouts =
-{
-    .AsyncTimeout = KPH_TIMEOUT(3000),
-    .DefaultTimeout = KPH_TIMEOUT(3000),
-    .ProcessCreateTimeout = KPH_TIMEOUT(3000),
-    .FilePreCreateTimeout = KPH_TIMEOUT(3000),
-    .FilePostCreateTimeout = KPH_TIMEOUT(3000),
-};
 static const UNICODE_STRING KphpMessageQueueThreadName = RTL_CONSTANT_STRING(L"System Informer Message Queue");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PFLT_PORT KphpFltServerPort = NULL;
 static PKPH_OBJECT_TYPE KphpClientType = NULL;
-static PKPH_OBJECT_TYPE KphpClientRateLimitType = NULL;
+static PKPH_OBJECT_TYPE KphpClientInformerStateType = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 static KPH_RUNDOWN KphpCommsRundown;
 static PAGED_LOOKASIDE_LIST KphpMessageLookaside;
@@ -84,6 +76,44 @@ ULONG KphGetConnectedClientCount(
 }
 
 /**
+ * \brief Gets the number of active informer clients.
+ *
+ * \return Number of active informer clients.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG KphGetInformerClientCount(
+    VOID
+    )
+{
+    ULONG count;
+    KIRQL oldIrql;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    count = 0;
+
+    oldIrql = ExAcquireSpinLockShared(&KphpConnectedClientsLock);
+
+    for (ULONG i = 0; i < KphpConnectedClientsCount; i++)
+    {
+        PKPH_CLIENT client;
+        PKPH_CLIENT_INFORMER_STATE state;
+
+        client = KphpConnectedClients[i];
+        state = KphAtomicReferenceObject(&client->InformerState.Atomic);
+        if (state)
+        {
+            count++;
+            KphDereferenceObject(state);
+        }
+    }
+
+    ExReleaseSpinLockShared(&KphpConnectedClientsLock, oldIrql);
+
+    return count;
+}
+
+/**
  * \brief Retrieves the connected clients. The caller is responsible for
  * dereferencing the clients after use.
  *
@@ -92,7 +122,7 @@ ULONG KphGetConnectedClientCount(
  * \return Number of connected clients.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
-ULONG KphpGetConnectedClients(
+ULONG KphpGetInformerClients(
     _Out_writes_to_(KPH_COMMS_MAX_CLIENTS, return) PKPH_CLIENT* Clients
     )
 {
@@ -101,14 +131,23 @@ ULONG KphpGetConnectedClients(
 
     KPH_NPAGED_CODE_DISPATCH_MAX();
 
-    oldIrql = ExAcquireSpinLockShared(&KphpConnectedClientsLock);
+    count = 0;
 
-    count = KphpConnectedClientsCount;
+    oldIrql = ExAcquireSpinLockShared(&KphpConnectedClientsLock);
 
     for (ULONG i = 0; i < KphpConnectedClientsCount; i++)
     {
-        KphReferenceObject(KphpConnectedClients[i]);
-        Clients[i] = KphpConnectedClients[i];
+        PKPH_CLIENT client;
+        PKPH_CLIENT_INFORMER_STATE state;
+
+        client = KphpConnectedClients[i];
+        state = KphAtomicReferenceObject(&client->InformerState.Atomic);
+        if (state)
+        {
+            KphReferenceObject(client);
+            Clients[count++] = client;
+            KphDereferenceObject(state);
+        }
     }
 
     ExReleaseSpinLockShared(&KphpConnectedClientsLock, oldIrql);
@@ -257,7 +296,7 @@ BOOLEAN KphpCommsMessageIsRateLimited(
     _In_ PKPH_MESSAGE Message
     )
 {
-    PKPH_CLIENT_RATE_LIMITS limits;
+    PKPH_CLIENT_INFORMER_STATE state;
     BOOLEAN limited;
     ULONG index;
 
@@ -265,8 +304,8 @@ BOOLEAN KphpCommsMessageIsRateLimited(
 
     limited = FALSE;
 
-    limits = KphAtomicReferenceObject(&Client->RateLimits.Atomic);
-    if (!limits)
+    state = KphAtomicReferenceObject(&Client->InformerState.Atomic);
+    if (!state)
     {
         goto Exit;
     }
@@ -277,7 +316,7 @@ BOOLEAN KphpCommsMessageIsRateLimited(
         goto Exit;
     }
 
-    if (KphRateLimitConsumeToken(&limits->RateLimit[index],
+    if (KphRateLimitConsumeToken(&state->InformerRateLimit[index],
                                  &Message->Header.TimeStamp))
     {
         goto Exit;
@@ -296,9 +335,63 @@ BOOLEAN KphpCommsMessageIsRateLimited(
 
 Exit:
 
-    if (limits)
+    if (state)
     {
-        KphDereferenceObject(limits);
+        KphDereferenceObject(state);
+    }
+
+    return limited;
+}
+
+/**
+ * \brief Determines whether a queue is rate limited for a client.
+ *
+ * \param[in] Client The client to check the rate limit for.
+ * \param[in] Message The message to check the rate limit for.
+ *
+ * \return TRUE if the queue is rate limited, FALSE otherwise.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN KphpCommsQueueIsRateLimited(
+    _In_ PKPH_CLIENT Client,
+    _In_ PKPH_MESSAGE Message
+    )
+{
+    PKPH_CLIENT_INFORMER_STATE state;
+    BOOLEAN limited;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    limited = FALSE;
+
+    state = KphAtomicReferenceObject(&Client->InformerState.Atomic);
+    if (!state)
+    {
+        goto Exit;
+    }
+
+    if (KphRateLimitConsumeToken(&state->AsyncQueueRateLimit,
+                                 &Message->Header.TimeStamp))
+    {
+        goto Exit;
+    }
+
+    limited = TRUE;
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  COMMS,
+                  "Message rate limited (%lu - %!TIME!) to client: "
+                  "%wZ (%lu)",
+                  (ULONG)Message->Header.MessageId,
+                  Message->Header.TimeStamp.QuadPart,
+                  &Client->Process->ImageName,
+                  HandleToULong(Client->Process->ProcessId));
+
+Exit:
+
+    if (state)
+    {
+        KphDereferenceObject(state);
     }
 
     return limited;
@@ -324,7 +417,7 @@ ULONG KphpGetNonRateLimitedClients(
     PKPH_CLIENT clients[KPH_COMMS_MAX_CLIENTS];
 
     count = 0;
-    clientsCount = KphpGetConnectedClients(clients);
+    clientsCount = KphpGetInformerClients(clients);
 
     for (ULONG i = 0; i < clientsCount; i++)
     {
@@ -393,10 +486,14 @@ BOOLEAN KphpCommsCopyMessageToRingBuffer(
 }
 
 /**
- * \brief Sends a message to all connected client ring buffers. If a client can
- * not receive the message in its ring buffer, it is added to the output. The
- * caller is responsible for dereferencing the clients that could not receive
- * the message.
+ * \brief Sends a message to all connected client ring buffers.
+ *
+ * \details If a client can not receive the message in its ring buffer, it is
+ * added to the output. The caller is responsible for dereferencing the clients
+ * that could not receive the message. The output clients are destined to have
+ * the message send to them using the asynchronous queue. Client rate limits
+ * are checked for the message by this routine. If the client is rate limited
+ * then the client is not added to the output.
  *
  * \param[out] Clients Receives the clients that could not receive the message.
  * \param[in] Message The message to send to the clients.
@@ -421,7 +518,8 @@ ULONG KphpCommsSendMessageToRingBuffers(
 
     for (ULONG i = 0; i < clientsCount; i++)
     {
-        if (KphpCommsCopyMessageToRingBuffer(clients[i], Message))
+        if (KphpCommsCopyMessageToRingBuffer(clients[i], Message) ||
+            KphpCommsQueueIsRateLimited(clients[i], Message))
         {
             KphDereferenceObjectDeferDelete(clients[i]);
             continue;
@@ -627,10 +725,6 @@ NTSTATUS KSIAPI KphpInitializeClient(
     client->Process = Parameter;
     KphReferenceObject(client->Process);
 
-    RtlCopyMemory(&client->MessageTimeouts,
-                  &KphpDefaultMessageTimeouts,
-                  sizeof(KPH_MESSAGE_TIMEOUTS));
-
     return STATUS_SUCCESS;
 }
 
@@ -682,7 +776,7 @@ VOID KSIAPI KphpDeleteClient(
         KphDereferenceObject(client->RingBuffer);
     }
 
-    KphAtomicAssignObjectReference(&client->RateLimits.Atomic, NULL);
+    KphAtomicAssignObjectReference(&client->InformerState.Atomic, NULL);
 }
 
 /**
@@ -702,77 +796,85 @@ VOID KSIAPI KphpFreeClient(
 }
 
 /**
- * \brief Allocates a client rate limit object.
+ * \brief Allocates a client informer state object.
  *
  * \param[in] Size The size requested from the object infrastructure.
  *
- * \return Allocated client rate limit object, null on allocation failure.
+ * \return Allocated client informer state object, null on allocation failure.
  */
 _Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Return_allocatesMem_size_(Size)
-PVOID KSIAPI KphpAllocateClientRateLimit(
+PVOID KSIAPI KphpAllocateClientInformerState(
     _In_ SIZE_T Size
     )
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    return KphAllocateNPaged(Size, KPH_TAG_CLIENT_RATE_LIMITS);
+    return KphAllocateNPaged(Size, KPH_TAG_CLIENT_INFORMER_STATE);
 }
 
 /**
- * \brief Initializes a client rate limit object.
+ * \brief Initializes a client informer state object.
  *
- * \param[in] Object The client rate limit object to initialize.
- * \param[in] Parameter The client message settings.
+ * \param[in] Object The client informer state object to initialize.
+ * \param[in] Parameter The client informer settings.
  *
  * \return STATUS_SUCCESS
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
-NTSTATUS KSIAPI KphpInitializeClientRateLimit(
+NTSTATUS KSIAPI KphpInitializeClientInformerState(
     _Inout_ PVOID Object,
     _In_opt_ PVOID Parameter
     )
 {
-    PKPH_CLIENT_RATE_LIMITS limits;
-    PKPH_MESSAGE_SETTINGS settings;
+    PKPH_CLIENT_INFORMER_STATE state;
+    PKPH_INFORMER_CLIENT_SETTINGS settings;
     LARGE_INTEGER timeStamp;
 
     KPH_PAGED_CODE();
 
     NT_ASSERT(Parameter);
 
-    limits = Object;
+    state = Object;
     settings = Parameter;
 
     KeQuerySystemTime(&timeStamp);
 
+    RtlCopyMemory(&state->MessageTimeouts,
+                  &settings->MessageTimeouts,
+                  sizeof(KPH_MESSAGE_TIMEOUTS));
+
+    KphInitializeRateLimit(&settings->AsyncQueuePolicy,
+                           &timeStamp,
+                           &state->AsyncQueueRateLimit);
+
     for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
     {
-        KphInitializeRateLimit(&settings->Policy[i],
+        KphInitializeRateLimit(&settings->InformerPolicy[i],
                                &timeStamp,
-                               &limits->RateLimit[i]);
+                               &state->InformerRateLimit[i]);
     }
 
     return STATUS_SUCCESS;
 }
 
 /**
- * \brief Frees a client rate limit object.
+ * \brief Frees a client informer state object.
  *
- * \param[in] Object The client rate limit object to free.
+ * \param[in] Object The client informer state object to free.
  */
 _Function_class_(KPH_TYPE_FREE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KSIAPI KphpFreeClientRateLimit(
+VOID KSIAPI KphpFreeClientInformerState(
     _In_freesMem_ PVOID Object
     )
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    KphFree(Object, KPH_TAG_CLIENT);
+    KphFree(Object, KPH_TAG_CLIENT_INFORMER_STATE);
 }
 
 /**
@@ -1340,28 +1442,30 @@ Exit:
 }
 
 /**
- * \brief Gets the settings for messages.
+ * \brief Gets the client informer settings.
  *
  * \param[in] Client The client to get the settings from.
- * \param[out] Settings Receives the message settings.
+ * \param[out] Settings Receives the informer settings.
+ *
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetMessageSettings(
+NTSTATUS KphGetInformerClientSettings(
     _In_ PKPH_CLIENT Client,
-    _Out_ PKPH_MESSAGE_SETTINGS Settings
+    _Out_ PKPH_INFORMER_CLIENT_SETTINGS Settings
     )
 {
     NTSTATUS status;
-    PKPH_CLIENT_RATE_LIMITS limits;
+    PKPH_CLIENT_INFORMER_STATE state;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    limits = NULL;
+    state = NULL;
 
     __try
     {
-        ZeroUserMemory(Settings, sizeof(KPH_MESSAGE_SETTINGS));
+        ZeroUserMemory(Settings, sizeof(KPH_INFORMER_CLIENT_SETTINGS));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -1369,35 +1473,29 @@ NTSTATUS KphGetMessageSettings(
         goto Exit;
     }
 
-    limits = KphAtomicReferenceObject(&Client->RateLimits.Atomic);
-    if (limits)
+    state = KphAtomicReferenceObject(&Client->InformerState.Atomic);
+    if (!state)
     {
-        for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
-        {
-            __try
-            {
-                CopyToUser(&Settings->Policy[i],
-                           &limits->RateLimit[i].Policy,
-                           sizeof(KPH_RATE_LIMIT_POLICY));
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
-            }
-        }
+        status = STATUS_NOT_FOUND;
+        goto Exit;
     }
-
-#define KPH_GET_MESSAGE_TIMEOUT(t) \
-    WriteLong64ToUser(&Settings->Timeouts.t.QuadPart, Client->MessageTimeouts.t.QuadPart)
 
     __try
     {
-        KPH_GET_MESSAGE_TIMEOUT(AsyncTimeout);
-        KPH_GET_MESSAGE_TIMEOUT(DefaultTimeout);
-        KPH_GET_MESSAGE_TIMEOUT(ProcessCreateTimeout);
-        KPH_GET_MESSAGE_TIMEOUT(FilePreCreateTimeout);
-        KPH_GET_MESSAGE_TIMEOUT(FilePostCreateTimeout);
+        CopyToUser(&Settings->MessageTimeouts,
+                   &state->MessageTimeouts,
+                   sizeof(KPH_MESSAGE_TIMEOUTS));
+
+        CopyToUser(&Settings->AsyncQueuePolicy,
+                   &state->AsyncQueueRateLimit.Policy,
+                   sizeof(KPH_RATE_LIMIT_POLICY));
+
+        for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+        {
+            CopyToUser(&Settings->InformerPolicy[i],
+                       &state->InformerRateLimit[i].Policy,
+                       sizeof(KPH_RATE_LIMIT_POLICY));
+        }
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -1409,39 +1507,39 @@ NTSTATUS KphGetMessageSettings(
 
 Exit:
 
-    if (limits)
+    if (state)
     {
-        KphDereferenceObject(limits);
+        KphDereferenceObject(state);
     }
 
     return status;
 }
 
 /**
- * \brief Sets the settings for messages.
+ * \brief Sets the client informer settings.
  *
- * \param[in] Client The client to set the settings for.
+ * \param[in] Client The client to get the settings for.
  * \param[in] Settings The settings to apply.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphSetMessageSettings(
+NTSTATUS KphSetInformerClientSettings(
     _In_ PKPH_CLIENT Client,
-    _In_ PKPH_MESSAGE_SETTINGS Settings
+    _In_ PKPH_INFORMER_CLIENT_SETTINGS Settings
     )
 {
     NTSTATUS status;
-    PKPH_MESSAGE_SETTINGS settings;
-    PKPH_CLIENT_RATE_LIMITS limits;
+    PKPH_INFORMER_CLIENT_SETTINGS settings;
+    PKPH_CLIENT_INFORMER_STATE state;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    limits = NULL;
+    state = NULL;
 
-    settings = KphAllocatePaged(sizeof(KPH_MESSAGE_SETTINGS),
-                                KPH_TAG_MESSAGE_SETTINGS);
+    settings = KphAllocatePaged(sizeof(KPH_INFORMER_CLIENT_SETTINGS),
+                                KPH_TAG_CLIENT_INFORMER_SETTINGS);
     if (!settings)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1454,7 +1552,7 @@ NTSTATUS KphSetMessageSettings(
 
     __try
     {
-        CopyFromUser(settings, Settings, sizeof(KPH_MESSAGE_SETTINGS));
+        CopyFromUser(settings, Settings, sizeof(KPH_INFORMER_CLIENT_SETTINGS));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -1462,26 +1560,9 @@ NTSTATUS KphSetMessageSettings(
         goto Exit;
     }
 
-    //
-    // Timeouts must be relative. Thus the timeout must be _less_ than or equal
-    // to the minimum timeout.
-    //
-#define KPH_VALIDATE_MESSAGE_TIMEOUT(t) \
-    (settings->Timeouts.t.QuadPart <= KphpMessageMinTimeout.QuadPart)
-
-    if (!KPH_VALIDATE_MESSAGE_TIMEOUT(AsyncTimeout) ||
-        !KPH_VALIDATE_MESSAGE_TIMEOUT(DefaultTimeout) ||
-        !KPH_VALIDATE_MESSAGE_TIMEOUT(ProcessCreateTimeout) ||
-        !KPH_VALIDATE_MESSAGE_TIMEOUT(FilePreCreateTimeout) ||
-        !KPH_VALIDATE_MESSAGE_TIMEOUT(FilePostCreateTimeout))
-    {
-        status = STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    status = KphCreateObject(KphpClientRateLimitType,
-                             sizeof(KPH_CLIENT_RATE_LIMITS),
-                             &limits,
+    status = KphCreateObject(KphpClientInformerStateType,
+                             sizeof(KPH_CLIENT_INFORMER_STATE),
+                             &state,
                              settings);
     if (!NT_SUCCESS(status))
     {
@@ -1490,59 +1571,50 @@ NTSTATUS KphSetMessageSettings(
                       "KphCreateObject failed: %!STATUS!",
                       status);
 
-        limits = NULL;
+        state = NULL;
         goto Exit;
     }
 
-#define KPH_SET_MESSAGE_TIMEOUT(t) \
-    Client->MessageTimeouts.t.QuadPart = settings->Timeouts.t.QuadPart
-
-    KPH_SET_MESSAGE_TIMEOUT(AsyncTimeout);
-    KPH_SET_MESSAGE_TIMEOUT(DefaultTimeout);
-    KPH_SET_MESSAGE_TIMEOUT(ProcessCreateTimeout);
-    KPH_SET_MESSAGE_TIMEOUT(FilePreCreateTimeout);
-    KPH_SET_MESSAGE_TIMEOUT(FilePostCreateTimeout);
-
-    KphAtomicAssignObjectReference(&Client->RateLimits.Atomic, limits);
+    KphAtomicAssignObjectReference(&Client->InformerState.Atomic, state);
 
     status = STATUS_SUCCESS;
 
 Exit:
 
-    if (limits)
+    if (state)
     {
-        KphDereferenceObject(limits);
+        KphDereferenceObject(state);
     }
 
     if (settings)
     {
-        KphFree(settings, KPH_TAG_MESSAGE_SETTINGS);
+        KphFree(settings, KPH_TAG_CLIENT_INFORMER_SETTINGS);
     }
 
     return status;
 }
 
 /**
- * \brief Gets message statistics for a client.
+ * \brief Gets informer statistics for a client.
  *
- * \param[in] Client The client to get the message statistics for.
- * \param[out] Stats Receives the message statistics.
+ * \param[in] Client The client to get the informer statistics for.
+ * \param[out] Stats Receives the informer statistics.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetMessageStats(
+NTSTATUS KphGetInformerClientStats(
     _In_ PKPH_CLIENT Client,
-    _Out_ PKPH_INFORMER_STATS Stats
+    _Out_ PKPH_INFORMER_CLIENT_STATS Stats
     )
 {
     NTSTATUS status;
-    PKPH_CLIENT_RATE_LIMITS limits;
+    PKPH_CLIENT_INFORMER_STATE state;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    limits = NULL;
+    state = NULL;
 
     __try
     {
@@ -1554,41 +1626,51 @@ NTSTATUS KphGetMessageStats(
         goto Exit;
     }
 
-    limits = KphAtomicReferenceObject(&Client->RateLimits.Atomic);
-    if (!limits)
+    state = KphAtomicReferenceObject(&Client->InformerState.Atomic);
+    if (!state)
     {
         status = STATUS_NOT_FOUND;
         goto Exit;
     }
 
-    for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+    __try
     {
-        __try
+        CopyToUser(&Stats->AsyncQueueRateLimit.Policy,
+                   &state->AsyncQueueRateLimit.Policy,
+                   sizeof(KPH_RATE_LIMIT_POLICY));
+        WriteLong64ToUser(&Stats->AsyncQueueRateLimit.Allowed,
+                          ReadNoFence64(&state->AsyncQueueRateLimit.Allowed));
+        WriteLong64ToUser(&Stats->AsyncQueueRateLimit.Dropped,
+                          ReadNoFence64(&state->AsyncQueueRateLimit.Dropped));
+        WriteLong64ToUser(&Stats->AsyncQueueRateLimit.CasMiss,
+                          ReadNoFence64(&state->AsyncQueueRateLimit.CasMiss));
+
+        for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
         {
-            CopyToUser(&Stats->RateLimit[i].Policy,
-                       &limits->RateLimit[i].Policy,
+            CopyToUser(&Stats->InformerRateLimit[i].Policy,
+                       &state->InformerRateLimit[i].Policy,
                        sizeof(KPH_RATE_LIMIT_POLICY));
-            WriteLong64ToUser(&Stats->RateLimit[i].Allowed,
-                              ReadNoFence64(&limits->RateLimit[i].Allowed));
-            WriteLong64ToUser(&Stats->RateLimit[i].Dropped,
-                              ReadNoFence64(&limits->RateLimit[i].Dropped));
-            WriteLong64ToUser(&Stats->RateLimit[i].CasMiss,
-                              ReadNoFence64(&limits->RateLimit[i].CasMiss));
+            WriteLong64ToUser(&Stats->InformerRateLimit[i].Allowed,
+                              ReadNoFence64(&state->InformerRateLimit[i].Allowed));
+            WriteLong64ToUser(&Stats->InformerRateLimit[i].Dropped,
+                              ReadNoFence64(&state->InformerRateLimit[i].Dropped));
+            WriteLong64ToUser(&Stats->InformerRateLimit[i].CasMiss,
+                              ReadNoFence64(&state->InformerRateLimit[i].CasMiss));
         }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
     }
 
     status = STATUS_SUCCESS;
 
 Exit:
 
-    if (limits)
+    if (state)
     {
-        KphDereferenceObject(limits);
+        KphDereferenceObject(state);
     }
 
     return status;
@@ -1601,42 +1683,65 @@ Exit:
  * \param[in] Message The message to retrieve the timeout for.
  * \param[in] AsyncTimeout If TRUE the asynchronous timeout is returned, else
  * the timeout appropriate for the message is returned.
+ * \param[out] Timeout Receives the timeout for the message.
  *
- * \return Timeout for the message.
+ * \return TRUE if a timeout was retrieved, FALSE otherwise.
  */
 _IRQL_requires_max_(APC_LEVEL)
-LARGE_INTEGER KphpGetTimeoutForMessage(
+_Must_inspect_result_
+BOOLEAN KphpGetTimeoutForMessage(
     _In_ PKPH_CLIENT Client,
     _In_ PKPH_MESSAGE Message,
-    _In_ BOOLEAN AsyncTimeout
+    _In_ BOOLEAN AsyncTimeout,
+    _Out_ PLARGE_INTEGER Timeout
     )
 {
+    PKPH_CLIENT_INFORMER_STATE state;
+
     KPH_PAGED_CODE();
+
+    state = KphAtomicReferenceObject(&Client->InformerState.Atomic);
+    if (!state)
+    {
+        RtlZeroMemory(Timeout, sizeof(LARGE_INTEGER));
+
+        return FALSE;
+    }
 
     if (AsyncTimeout)
     {
-        return Client->MessageTimeouts.AsyncTimeout;
+        *Timeout = state->MessageTimeouts.AsyncTimeout;
+    }
+    else
+    {
+        switch (Message->Header.MessageId)
+        {
+            case KphMsgProcessCreate:
+            {
+                *Timeout = state->MessageTimeouts.ProcessCreateTimeout;
+                break;
+            }
+            case KphMsgFilePreCreate:
+            {
+                *Timeout = state->MessageTimeouts.FilePreCreateTimeout;
+                break;
+            }
+            case KphMsgFilePostCreate:
+            {
+                *Timeout = state->MessageTimeouts.FilePostCreateTimeout;
+                break;
+            }
+            default:
+            {
+                *Timeout = state->MessageTimeouts.DefaultTimeout;
+                break;
+            }
+        }
     }
 
-    switch (Message->Header.MessageId)
-    {
-        case KphMsgProcessCreate:
-        {
-            return Client->MessageTimeouts.ProcessCreateTimeout;
-        }
-        case KphMsgFilePreCreate:
-        {
-            return Client->MessageTimeouts.FilePreCreateTimeout;
-        }
-        case KphMsgFilePostCreate:
-        {
-            return Client->MessageTimeouts.FilePostCreateTimeout;
-        }
-        default:
-        {
-            return Client->MessageTimeouts.DefaultTimeout;
-        }
-    }
+    KphDereferenceObject(state);
+
+    return TRUE;
 }
 
 /**
@@ -1904,7 +2009,15 @@ VOID KphpCommsSendMessage(
         offset += message->Header.Size;
     }
 
-    timeout = KphpGetTimeoutForMessage(Client, Message, FromAsyncQueue);
+    if (!KphpGetTimeoutForMessage(Client, Message, FromAsyncQueue, &timeout))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "KphpGetTimeoutForMessage failed");
+
+        status = STATUS_NOT_FOUND;
+        goto Exit;
+    }
 
     status = KphpFltSendMessage(&Client->Port,
                                 Message,
@@ -2273,15 +2386,15 @@ NTSTATUS KphCommsStart(
 
     KphCreateObjectType(&KphpClientTypeName, &typeInfo, &KphpClientType);
 
-    typeInfo.Allocate = KphpAllocateClientRateLimit;
-    typeInfo.Initialize = KphpInitializeClientRateLimit;
+    typeInfo.Allocate = KphpAllocateClientInformerState;
+    typeInfo.Initialize = KphpInitializeClientInformerState;
     typeInfo.Delete = NULL;
-    typeInfo.Free = KphpFreeClientRateLimit;
+    typeInfo.Free = KphpFreeClientInformerState;
     typeInfo.Flags = 0;
 
-    KphCreateObjectType(&KphpClientRateLimitTypeName,
+    KphCreateObjectType(&KphpClientInformerStateTypeName,
                         &typeInfo,
-                        &KphpClientRateLimitType);
+                        &KphpClientInformerStateType);
 
     KphInitializePagedLookaside(&KphpMessageLookaside,
                                 sizeof(KPH_MESSAGE),

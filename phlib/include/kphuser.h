@@ -494,15 +494,15 @@ KphCompareObjects(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphGetMessageSettings(
-    _Out_ PKPH_MESSAGE_SETTINGS Settings
+KphGetInformerClientSettings(
+    _Out_ PKPH_INFORMER_CLIENT_SETTINGS Settings
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphSetMessageSettings(
-    _In_ PKPH_MESSAGE_SETTINGS Settings
+KphSetInformerClientSettings(
+    _Out_ PKPH_INFORMER_CLIENT_SETTINGS Settings
     );
 
 PHLIBAPI
@@ -658,8 +658,8 @@ KphGetInformerStats(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphGetMessageStats(
-    _Out_ PKPH_INFORMER_STATS Stats
+KphGetInformerClientStats(
+    _Out_ PKPH_INFORMER_CLIENT_STATS Stats
     );
 
 EXTERN_C_END

@@ -23,8 +23,8 @@
 #define KPH_TAG_NPAGED_MESSAGE                  '2CpK'
 #define KPH_TAG_QUEUE_ITEM                      '3CpK'
 #define KPH_TAG_THREAD_POOL                     '4CpK'
-#define KPH_TAG_CLIENT_RATE_LIMITS              '5CpK'
-#define KPH_TAG_MESSAGE_SETTINGS                '6CpK'
+#define KPH_TAG_CLIENT_INFORMER_STATE           '5CpK'
+#define KPH_TAG_CLIENT_INFORMER_SETTINGS        '6CpK'
 
 // dyndata
 
