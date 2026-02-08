@@ -140,11 +140,6 @@ PVOID KphReserveRingBuffer(
 
         WriteULong64Release(&headerPointer->Value, header.Value);
 
-        if (Ring->Event)
-        {
-            KeSetEvent(Ring->Event, EVENT_INCREMENT, FALSE);
-        }
-
         producerPos = 0;
     }
 
@@ -179,13 +174,13 @@ Exit:
 }
 
 /**
- * \brief Helper routine to commit a previously reserved ring buffer entry.
+ * \brief Helper routine to submits a previously reserved ring buffer entry.
  *
  * \param[in] Ring Pointer to a ring buffer object.
- * \param[in] Buffer Pointer to the buffer to commit.
+ * \param[in] Buffer Pointer to the buffer to submit.
  * \param[in] Discard If TRUE the buffer is discarded, if FALSE is it committed.
  */
-VOID KphpCommitRingBuffer(
+VOID KphpSubmitRingBuffer(
     _In_ PKPH_RING_BUFFER Ring,
     _In_aliasesMem_ PVOID Buffer,
     _In_ BOOLEAN Discard
@@ -202,15 +197,9 @@ VOID KphpCommitRingBuffer(
 
     WriteULong64Release(&headerPointer->Value, header.Value);
 
-    if (Ring->Event)
+    if (Ring->Event && !ReadULongAcquire(Ring->ConsumerProcessing))
     {
-        ULONG consumerPos;
-
-        consumerPos = ReadULongAcquire(Ring->ConsumerPos);
-        if (Add2Ptr(Ring->Buffer, consumerPos) == headerPointer)
-        {
-            KeSetEvent(Ring->Event, EVENT_INCREMENT, FALSE);
-        }
+        KeSetEvent(Ring->Event, EVENT_INCREMENT, FALSE);
     }
 }
 
@@ -229,7 +218,7 @@ VOID KphCommitRingBuffer(
     _In_freesMem_ PVOID Buffer
     )
 {
-    KphpCommitRingBuffer(Ring, Buffer, FALSE);
+    KphpSubmitRingBuffer(Ring, Buffer, FALSE);
 }
 
 /**
@@ -247,7 +236,7 @@ VOID KphDiscardRingBuffer(
     _In_freesMem_ PVOID Buffer
     )
 {
-    KphpCommitRingBuffer(Ring, Buffer, TRUE);
+    KphpSubmitRingBuffer(Ring, Buffer, TRUE);
 }
 
 KPH_PAGED_FILE();
@@ -629,6 +618,7 @@ NTSTATUS KphCreateRingBuffer(
 
     ring->ProducerPos = &producer->Position;
     ring->ConsumerPos = &consumer->Position;
+    ring->ConsumerProcessing = &consumer->Processing;
     ring->Length = bufferLength;
     ring->Buffer = producer->Buffer;
 

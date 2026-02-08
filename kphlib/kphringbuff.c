@@ -42,6 +42,8 @@ BOOLEAN KphProcessRingBuffer(
 {
     ULONG consumerPos;
 
+    WriteULongRelease(&Ring->Consumer->Processing, TRUE);
+
     consumerPos = ReadULongAcquire(&Ring->Consumer->Position);
 
     for (BOOLEAN done = FALSE; !done; NOTHING)
@@ -55,6 +57,7 @@ BOOLEAN KphProcessRingBuffer(
 
         if (consumerPos == producerPos)
         {
+            WriteULongRelease(&Ring->Consumer->Processing, FALSE);
             return FALSE;
         }
 
@@ -78,6 +81,7 @@ BOOLEAN KphProcessRingBuffer(
         //
         if (header.Busy)
         {
+            WriteULongRelease(&Ring->Consumer->Processing, FALSE);
             return FALSE;
         }
 
