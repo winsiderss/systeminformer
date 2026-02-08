@@ -11,6 +11,8 @@ jobs:
     runs-on: windows-2025
     permissions:
       security-events: write
+      actions: read
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -36,48 +38,41 @@ jobs:
         shell: cmd
         run: build\build_tools.cmd
 
-      - name: Download CodeQL
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Build Driver
+        shell: cmd
+        run: build\build_zdriver.cmd
+
+      - name: Finalize CodeQL Database
+        run: |
+          $codeqlPath = (Get-ChildItem -Path "$env:RUNNER_TOOL_CACHE\CodeQL" -Recurse -Filter "codeql.exe" | Select-Object -First 1).FullName
+          & $codeqlPath database finalize "${{ runner.temp }}\codeql_databases\cpp"
+
+      - name: Download Windows Driver Query Packs
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          $latest_release = Invoke-RestMethod -Uri "https://api.github.com/repos/github/codeql-cli-binaries/releases/latest"
-          $latest_asset = $latest_release.assets | Where-Object { $_.name -eq "codeql-win64.zip" }
-          if (-not $latest_asset) { Write-Error "Could not find codeql-win64.zip in latest release"; exit 1 }
-          Invoke-WebRequest -Uri $latest_asset.browser_download_url -OutFile "codeql-win64.zip"
-          $latest_zip = Get-FileHash -Algorithm SHA256 -Path "codeql-win64.zip"
-          $expected = $latest_asset.digest.Substring(7,64)
-          if ($latest_zip.Hash -ne $expected) { Write-Error "Digest does not match. File integrity check failed."; exit 1 }
-          Write-Output "Digest matches. File integrity verified."
-          Expand-Archive -Path "codeql-win64.zip" -DestinationPath "${{ runner.temp }}"
+          $codeqlPath = (Get-ChildItem -Path "$env:RUNNER_TOOL_CACHE\CodeQL" -Recurse -Filter "codeql.exe" | Select-Object -First 1).FullName
+          & $codeqlPath pack download microsoft/windows-drivers@1.8.2
+          & $codeqlPath pack download microsoft/cpp-queries@0.0.4
 
-      - name: Run CodeQL Analysis
+      - name: Run Windows Driver Analysis
         shell: pwsh
-        working-directory: "${{ runner.temp }}\\codeql"
         run: |
-          $ErrorActionPreference = 'Stop'
-          # ensure codeql is available
-          $codeqlExe = Join-Path "${{ runner.temp }}" "codeql\codeql.exe"
-          if (-not (Test-Path $codeqlExe)) { Write-Error "codeql executable not found at $codeqlExe"; exit 1 }
-
-          # download packs
-          & $codeqlExe pack download microsoft/windows-drivers
-          & $codeqlExe pack download microsoft/cpp-queries
-
-          # create database (adjust build command if needed)
-          $dbPath = Join-Path "${{ runner.temp }}" "codeql-driver"
-          & $codeqlExe database create $dbPath --language=cpp --source-root="${{ github.workspace }}" --command="build\build_zdriver.cmd" --overwrite
-
-          # analyze
+          $codeqlPath = (Get-ChildItem -Path "$env:RUNNER_TOOL_CACHE\CodeQL" -Recurse -Filter "codeql.exe" | Select-Object -First 1).FullName
           $sarifOut = Join-Path "${{ runner.temp }}" "driver-analysis.sarif"
-          & $codeqlExe database analyze $dbPath microsoft/windows-drivers --format=sarifv2.1.0 --output=$sarifOut
+          & $codeqlPath database analyze "${{ runner.temp }}\codeql_databases\cpp" microsoft/windows-drivers --format=sarifv2.1.0 --output=$sarifOut
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Filter CodeQL Results
         uses: advanced-security/filter-sarif@f3b8118a9349d88f7b1c0c488476411145b6270d # 1.0.1
         with:
           input: ${{ runner.temp }}\driver-analysis.sarif
-          output:  ${{ runner.temp }}\driver-filtered.sarif
-          patterns: |
-            packages/**/*
+          output: ${{ runner.temp }}\driver-filtered.sarif
+          patterns: packages/**
 
       - name: Upload CodeQL Results
         uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # 4.31.7
