@@ -635,26 +635,41 @@ LONG PhpShowKsiMessage(
     else
     {
         BOOLEAN checked;
-        LONG bufferLength;
-        WCHAR buffer[0x100];
 
-        bufferLength = _snwprintf(
-            buffer,
-            ARRAYSIZE(buffer) - sizeof(UNICODE_NULL),
-            L"%s (0x%08x)",
-            Title,
-            Status
-            );
-        buffer[bufferLength] = UNICODE_NULL;
+        if (Status != STATUS_SUCCESS)
+        {
+            LONG bufferLength;
+            WCHAR buffer[0x100];
 
-        result = PhShowMessageOneTime2(
-            WindowHandle,
-            Buttons,
-            Icon,
-            buffer,
-            &checked,
-            PhGetString(errorMessage)
-            );
+            bufferLength = _snwprintf(
+                buffer,
+                ARRAYSIZE(buffer) - sizeof(UNICODE_NULL),
+                L"%s (0x%08x)",
+                Title,
+                Status
+                );
+            buffer[bufferLength] = UNICODE_NULL;
+
+            result = PhShowMessageOneTime2(
+                WindowHandle,
+                Buttons,
+                Icon,
+                buffer,
+                &checked,
+                PhGetString(errorMessage)
+                );
+        }
+        else
+        {
+            result = PhShowMessageOneTime2(
+                WindowHandle,
+                Buttons,
+                Icon,
+                Title,
+                &checked,
+                PhGetString(errorMessage)
+                );
+        }
 
         if (checked)
         {
