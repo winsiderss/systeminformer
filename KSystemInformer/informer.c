@@ -228,7 +228,7 @@ BOOLEAN KphInformerAllowed(
 
     KPH_NPAGED_CODE_DISPATCH_MAX();
 
-    if (!KphGetConnectedClientCount())
+    if (!KphGetInformerClientCount())
     {
         return FALSE;
     }

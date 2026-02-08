@@ -43,8 +43,8 @@ KPHM_DEFINE_HANDLER(KphpCommsCreateFile);
 KPHM_DEFINE_HANDLER(KphpCommsQueryInformationThread);
 KPHM_DEFINE_HANDLER(KphpCommsQuerySection);
 KPHM_DEFINE_HANDLER(KphpCommsCompareObjects);
-KPHM_DEFINE_HANDLER(KphpCommsGetMessageSettings);
-KPHM_DEFINE_HANDLER(KphpCommsSetMessageSettings);
+KPHM_DEFINE_HANDLER(KphpCommsGetInformerClientSettings);
+KPHM_DEFINE_HANDLER(KphpCommsSetInformerClientSettings);
 KPHM_DEFINE_HANDLER(KphpCommsAcquireDriverUnloadProtection);
 KPHM_DEFINE_HANDLER(KphpCommsReleaseDriverUnloadProtection);
 KPHM_DEFINE_HANDLER(KphpCommsGetConnectedClientCount);
@@ -62,7 +62,7 @@ KPHM_DEFINE_HANDLER(KphpCommsOpenDevice);
 KPHM_DEFINE_HANDLER(KphpCommsOpenDeviceDriver);
 KPHM_DEFINE_HANDLER(KphpCommsOpenDeviceBaseDevice);
 KPHM_DEFINE_HANDLER(KphpCommsGetInformerStats);
-KPHM_DEFINE_HANDLER(KphpCommsGetMessageStats);
+KPHM_DEFINE_HANDLER(KphpCommsGetInformerClientStats);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -109,8 +109,8 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgQueryInformationThread,        KphpCommsQueryInformationThread,        KphpCommsQueryInformationThreadRequires },
 { KphMsgQuerySection,                  KphpCommsQuerySection,                  KphpCommsRequireMedium },
 { KphMsgCompareObjects,                KphpCommsCompareObjects,                KphpCommsRequireMedium },
-{ KphMsgGetMessageSettings,            KphpCommsGetMessageSettings,            KphpCommsRequireLow },
-{ KphMsgSetMessageSettings,            KphpCommsSetMessageSettings,            KphpCommsRequireLow },
+{ KphMsgGetInformerClientSettings,     KphpCommsGetInformerClientSettings,     KphpCommsRequireLow },
+{ KphMsgSetInformerClientSettings,     KphpCommsSetInformerClientSettings,     KphpCommsRequireLow },
 { KphMsgAcquireDriverUnloadProtection, KphpCommsAcquireDriverUnloadProtection, KphpCommsRequireMaximum },
 { KphMsgReleaseDriverUnloadProtection, KphpCommsReleaseDriverUnloadProtection, KphpCommsRequireMaximum },
 { KphMsgGetConnectedClientCount,       KphpCommsGetConnectedClientCount,       KphpCommsRequireLow },
@@ -128,7 +128,7 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgOpenDeviceDriver,              KphpCommsOpenDeviceDriver,              KphpCommsRequireMaximum },
 { KphMsgOpenDeviceBaseDevice,          KphpCommsOpenDeviceBaseDevice,          KphpCommsRequireMaximum },
 { KphMsgGetInformerStats,              KphpCommsGetInformerStats,              KphpCommsRequireLow },
-{ KphMsgGetMessageStats,               KphpCommsGetMessageStats,               KphpCommsRequireLow },
+{ KphMsgGetInformerClientStats,        KphpCommsGetInformerClientStats,        KphpCommsRequireLow },
 };
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
 C_ASSERT(ARRAYSIZE(KphCommsMessageHandlers) == MaxKphMsgClient);
@@ -1181,20 +1181,20 @@ NTSTATUS KSIAPI KphpCommsCompareObjects(
 _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KSIAPI KphpCommsGetMessageSettings(
+NTSTATUS KSIAPI KphpCommsGetInformerClientSettings(
     _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
-    PKPHM_GET_MESSAGE_SETTINGS msg;
+    PKPHM_GET_INFORMER_CLIENT_SETTINGS msg;
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
-    NT_ASSERT(Message->Header.MessageId == KphMsgGetMessageSettings);
+    NT_ASSERT(Message->Header.MessageId == KphMsgGetInformerClientSettings);
 
-    msg = &Message->User.GetMessageSettings;
+    msg = &Message->User.GetInformerClientSettings;
 
-    msg->Status = KphGetMessageSettings(Client, msg->Settings);
+    msg->Status = KphGetInformerClientSettings(Client, msg->Settings);
 
     return STATUS_SUCCESS;
 }
@@ -1202,20 +1202,20 @@ NTSTATUS KSIAPI KphpCommsGetMessageSettings(
 _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KSIAPI KphpCommsSetMessageSettings(
+NTSTATUS KSIAPI KphpCommsSetInformerClientSettings(
     _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
-    PKPHM_SET_MESSAGE_SETTINGS msg;
+    PKPHM_SET_INFORMER_CLIENT_SETTINGS msg;
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
-    NT_ASSERT(Message->Header.MessageId == KphMsgSetMessageSettings);
+    NT_ASSERT(Message->Header.MessageId == KphMsgSetInformerClientSettings);
 
-    msg = &Message->User.SetMessageSettings;
+    msg = &Message->User.SetInformerClientSettings;
 
-    msg->Status = KphSetMessageSettings(Client, msg->Settings);
+    msg->Status = KphSetInformerClientSettings(Client, msg->Settings);
 
     return STATUS_SUCCESS;
 }
@@ -1717,20 +1717,20 @@ NTSTATUS KSIAPI KphpCommsGetInformerStats(
 _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KSIAPI KphpCommsGetMessageStats(
+NTSTATUS KSIAPI KphpCommsGetInformerClientStats(
     _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
-    PKPHM_GET_MESSAGE_STATS msg;
+    PKPHM_GET_INFORMER_CLIENT_STATS msg;
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
-    NT_ASSERT(Message->Header.MessageId == KphMsgGetMessageStats);
+    NT_ASSERT(Message->Header.MessageId == KphMsgGetInformerClientStats);
 
-    msg = &Message->User.GetMessageStats;
+    msg = &Message->User.GetInformerClientStats;
 
-    msg->Status = KphGetMessageStats(Client, msg->Stats);
+    msg->Status = KphGetInformerClientStats(Client, msg->Stats);
 
     return STATUS_SUCCESS;
 }

@@ -12,24 +12,25 @@
 #pragma once
 #include <kphmsg.h>
 
-typedef struct _KPH_CLIENT_RATE_LIMITS
+typedef struct _KPH_CLIENT_INFORMER_STATE
 {
-    KPH_RATE_LIMIT RateLimit[KPH_INFORMER_COUNT];
-} KPH_CLIENT_RATE_LIMITS, *PKPH_CLIENT_RATE_LIMITS;
+    KPH_MESSAGE_TIMEOUTS MessageTimeouts;
+    KPH_RATE_LIMIT AsyncQueueRateLimit;
+    KPH_RATE_LIMIT InformerRateLimit[KPH_INFORMER_COUNT];
+} KPH_CLIENT_INFORMER_STATE, *PKPH_CLIENT_INFORMER_STATE;
 
-typedef union _KPH_CLIENT_RATE_LIMITS_ATOMIC
+typedef union _KPH_CLIENT_INFORMER_STATE_ATOMIC
 {
     struct _KPH_CLIENT_RATE_LIMITS* Limits;
     KPH_ATOMIC_OBJECT_REF Atomic;
-} KPH_CLIENT_RATE_LIMITS_ATOMIC, *PKPH_CLIENT_RATE_LIMITS_ATOMIC;
+} KPH_CLIENT_INFORMER_STATE_ATOMIC, *PKPH_CLIENT_INFORMER_STATE_ATOMIC;
 
 typedef struct _KPH_CLIENT
 {
     PKPH_PROCESS_CONTEXT Process;
     PFLT_PORT Port;
     KPH_REFERENCE DriverUnloadProtectionRef;
-    KPH_MESSAGE_TIMEOUTS MessageTimeouts;
-    KPH_CLIENT_RATE_LIMITS_ATOMIC RateLimits;
+    KPH_CLIENT_INFORMER_STATE_ATOMIC InformerState;
     PKPH_RING_BUFFER RingBuffer;
 } KPH_CLIENT, *PKPH_CLIENT;
 
@@ -101,25 +102,30 @@ ULONG KphGetConnectedClientCount(
     VOID
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetMessageSettings(
-    _In_ PKPH_CLIENT Client,
-    _Out_ PKPH_MESSAGE_SETTINGS Settings
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG KphGetInformerClientCount(
+    VOID
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphSetMessageSettings(
+NTSTATUS KphGetInformerClientSettings(
     _In_ PKPH_CLIENT Client,
-    _In_ PKPH_MESSAGE_SETTINGS Settings
+    _Out_ PKPH_INFORMER_CLIENT_SETTINGS Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetMessageStats(
+NTSTATUS KphSetInformerClientSettings(
     _In_ PKPH_CLIENT Client,
-    _Out_ PKPH_INFORMER_STATS Stats
+    _In_ PKPH_INFORMER_CLIENT_SETTINGS Settings
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetInformerClientStats(
+    _In_ PKPH_CLIENT Client,
+    _Out_ PKPH_INFORMER_CLIENT_STATS Stats
     );
 
 _IRQL_requires_max_(APC_LEVEL)
