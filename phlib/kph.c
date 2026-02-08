@@ -24,7 +24,7 @@ VOID KphInitialize(
 {
     PH_OBJECT_TYPE_PARAMETERS parameters;
 
-    parameters.FreeListSize = sizeof(KPH_MESSAGE) / 8;
+    parameters.FreeListSize = ALIGN_UP_BY(KPH_MESSAGE_MIN_SIZE, 1024);
     parameters.FreeListCount = 65536;
 
     KphMessageObjectType = PhCreateObjectTypeEx(
