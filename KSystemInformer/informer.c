@@ -610,6 +610,8 @@ BOOLEAN KSIAPI KphpSetInformerProcessSettings(
 
     KphAtomicAssignObjectReference(&Process->InformerState.Atomic, state);
 
+    KphDereferenceObject(state);
+
     return FALSE;
 }
 
