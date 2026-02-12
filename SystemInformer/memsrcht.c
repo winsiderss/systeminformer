@@ -214,7 +214,7 @@ ReadMemory:
 
             assert(context->Buffer);
 
-            if (NT_SUCCESS(status = PhReadVirtualMemory(
+            if (NT_SUCCESS(status = PhReadVirtualMemorySafe(
                 handle,
                 context->CurrentReadAddress,
                 context->Buffer,
@@ -735,7 +735,7 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Index),
                     SORT_FUNCTION(BaseAddress),
@@ -746,7 +746,7 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
                     SORT_FUNCTION(Protection),
                     SORT_FUNCTION(MemoryType),
                 };
-                int (__cdecl *sortFunction)(void *, const void *, const void *);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 
