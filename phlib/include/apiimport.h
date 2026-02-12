@@ -13,6 +13,7 @@
 #ifndef _PH_APIIMPORT_H
 #define _PH_APIIMPORT_H
 
+#include <devquery.h>
 #include <sddl.h>
 #include <shlwapi.h>
 #include <userenv.h>
