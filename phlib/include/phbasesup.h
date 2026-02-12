@@ -217,9 +217,9 @@ PhSecondsSince1970ToTime(
 // Heap
 //
 
-PHLIBAPI
 _May_raise_
 _Post_writable_byte_size_(Size)
+PHLIBAPI
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -229,11 +229,11 @@ PhAllocate(
     _In_ SIZE_T Size
     );
 
-PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
-_Post_writable_byte_size_(Size)
+_When_(return != NULL, _Post_writable_byte_size_(Size))
 _Success_(return != NULL)
+PHLIBAPI
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -243,11 +243,11 @@ PhAllocateSafe(
     _In_ SIZE_T Size
     );
 
-PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
-_Post_writable_byte_size_(Size)
+_When_(return != NULL, _Post_writable_byte_size_(Size))
 _Success_(return != NULL)
+PHLIBAPI
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -262,34 +262,37 @@ PHLIBAPI
 VOID
 NTAPI
 PhFree(
-    _Frees_ptr_opt_ PVOID Memory
+    _In_opt_ _Frees_ptr_opt_ _Post_invalid_ PVOID Memory
     );
 
-PHLIBAPI
 _May_raise_
-_Post_writable_byte_size_(Size)
+_Ret_maybenull_
+_When_(Size == 0, _Post_null_)
+_When_(return != NULL, _Post_writable_byte_size_(Size))
+_Success_(return != NULL)
+PHLIBAPI
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
 PVOID
 NTAPI
 PhReAllocate(
-    _Frees_ptr_opt_ PVOID Memory,
+    _In_opt_ _Frees_ptr_opt_ PVOID Memory,
     _In_ SIZE_T Size
     );
 
-PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
-_Post_writable_byte_size_(Size)
+_When_(return != NULL, _Post_writable_byte_size_(Size))
 _Success_(return != NULL)
+PHLIBAPI
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
 PVOID
 NTAPI
 PhReAllocateSafe(
-    _In_opt_ PVOID Memory,
+    _In_opt_ _Frees_ptr_opt_ PVOID Memory,
     _In_ SIZE_T Size
     );
 
@@ -300,11 +303,11 @@ PhSizeHeap(
     _In_ PVOID Memory
     );
 
-PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
-_Post_writable_byte_size_(Size)
+_When_(return != NULL, _Post_writable_byte_size_(Size))
 _Success_(return != NULL)
+PHLIBAPI
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -319,7 +322,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreePage(
-    _In_ _Frees_ptr_ PVOID Memory
+    _In_opt_ _Frees_ptr_opt_ _Post_invalid_ PVOID Memory
     );
 
 FORCEINLINE
@@ -339,11 +342,11 @@ PhAllocatePageZero(
     return NULL;
 }
 
-PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
-_Post_writable_byte_size_(Size)
+_When_(return != NULL, _Post_writable_byte_size_(Size))
 _Success_(return != NULL)
+PHLIBAPI
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -358,7 +361,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreePageAligned(
-    _In_ _Frees_ptr_ PVOID Memory
+    _In_opt_ _Frees_ptr_opt_ PVOID Memory
     );
 
 PHLIBAPI
@@ -366,7 +369,7 @@ NTSTATUS
 NTAPI
 PhAllocateVirtualMemory(
     _In_ HANDLE ProcessHandle,
-    _Out_ PVOID* BaseAddress,
+    _Outptr_result_bytebuffer_(AllocationSize) PVOID* BaseAddress,
     _In_ SIZE_T AllocationSize,
     _In_ ULONG AllocationType,
     _In_ ULONG Protection
@@ -876,7 +879,9 @@ PhTestInitOnce(
     return (BOOLEAN)InitOnce->Event.Set;
 }
 
+//
 // String
+//
 
 PHLIBAPI
 SIZE_T
@@ -894,6 +899,8 @@ PhCountBytesZ(
     return (SIZE_T)strlen(String);
 }
 
+_Ret_notnull_
+_Post_z_
 PHLIBAPI
 PSTR
 NTAPI
@@ -901,6 +908,8 @@ PhDuplicateBytesZ(
     _In_ PCSTR String
     );
 
+_Ret_maybenull_
+_Post_z_
 PHLIBAPI
 PSTR
 NTAPI
@@ -908,6 +917,8 @@ PhDuplicateBytesZSafe(
     _In_ PCSTR String
     );
 
+_Ret_notnull_
+_Post_z_
 PHLIBAPI
 PWSTR
 NTAPI
@@ -1588,11 +1599,12 @@ typedef struct _PH_STRING
 
 extern PPH_STRING PhSharedEmptyString;
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
 PhCreateStringEx(
-    _In_opt_ PCWCHAR Buffer,
+    _In_reads_bytes_opt_(Length) PCWCHAR Buffer,
     _In_ SIZE_T Length
     );
 
@@ -1681,6 +1693,7 @@ PhCreateStringZ2(
 #define PH_STRING_LOWER_CASE      0x8
 #define PH_STRING_CASE_MASK       (PH_STRING_UPPER_CASE | PH_STRING_LOWER_CASE)
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1798,6 +1811,7 @@ PhCreateStringFromUnicodeString(
     return PhCreateStringEx(UnicodeString->Buffer, UnicodeString->Length);
 }
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1808,6 +1822,7 @@ PhConcatStrings(
 
 #define PH_CONCAT_STRINGS_LENGTH_CACHE_SIZE 16
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1816,6 +1831,7 @@ PhConcatStrings_V(
     _In_ va_list ArgPtr
     );
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1824,6 +1840,7 @@ PhConcatStrings2(
     _In_ PCWSTR String2
     );
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1832,6 +1849,7 @@ PhConcatStringRef2(
     _In_ PCPH_STRINGREF String2
     );
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1841,6 +1859,7 @@ PhConcatStringRef3(
     _In_ PCPH_STRINGREF String3
     );
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1865,6 +1884,7 @@ PhConcatStringRefZ(
     return PhConcatStringRef2(String1, &string);
 }
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1873,6 +1893,7 @@ PhFormatString(
     ...
     );
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -2023,6 +2044,39 @@ PhIsNullOrEmptyStringRef(
 {
     return !(String && String->Length);
 }
+
+/**
+ * Tests if a string is null, empty, or starts with whitespace.
+ *
+ * \param String The string to test.
+ * \return TRUE if the string is null, empty, or starts with whitespace; otherwise, FALSE.
+ */
+#undef PhIsNullOrWhitespaceString
+#define PhIsNullOrWhitespaceString(string) \
+    ((!(string)) || ((string)->Length == 0) || PhIsWhiteSpaceUnicodeChar((string)->Buffer[0]))
+
+// FORCEINLINE
+// BOOLEAN
+// PhIsNullOrWhitespaceString(
+//     _In_opt_ PPH_STRING String
+//     )
+// {
+//     SIZE_T length;
+//     
+//     if (!String || String->Length == 0)
+//         return TRUE;
+//     
+//     length = String->Length / sizeof(WCHAR);
+//     
+//     // Check first and last character (leading/trailing whitespace)
+//     if (PhIsWhiteSpaceUnicodeChar(String->Buffer[0]) ||
+//         PhIsWhiteSpaceUnicodeChar(String->Buffer[length - 1]))
+//     {
+//         return TRUE;
+//     }
+//     
+//     return FALSE;
+// }
 
 // The MSVC static analyzer can misinterpret the _In_opt_ SAL for String on PhIsNullOrEmptyString and raise C6387.
 // Provide a macro override during analysis to avoid the false positive while preserving semantics.
@@ -2776,6 +2830,7 @@ PhConvertUtf8ToUtf16Buffer(
     _In_ SIZE_T BytesInUtf8String
     );
 
+_Ret_maybenull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -2783,11 +2838,12 @@ PhConvertUtf8ToUtf16(
     _In_ PCSTR Buffer
     );
 
+_Ret_maybenull_
 PHLIBAPI
 PPH_STRING
 NTAPI
 PhConvertUtf8ToUtf16Ex(
-    _In_ PCCH Buffer,
+    _In_reads_bytes_(Length) PCCH Buffer,
     _In_ SIZE_T Length
     );
 
@@ -2816,6 +2872,7 @@ PhConvertUtf16ToUtf8Buffer(
     _In_ SIZE_T BytesInUtf16String
     );
 
+_Ret_notnull_
 PHLIBAPI
 PPH_BYTES
 NTAPI
@@ -2823,11 +2880,12 @@ PhConvertUtf16ToUtf8(
     _In_ PCWSTR Buffer
     );
 
+_Ret_notnull_
 PHLIBAPI
 PPH_BYTES
 NTAPI
 PhConvertUtf16ToUtf8Ex(
-    _In_ PCWCH Buffer,
+    _In_reads_bytes_(Length) PCWCH Buffer,
     _In_ SIZE_T Length
     );
 
@@ -4273,6 +4331,7 @@ PhHexStringToBufferEx(
     _Out_writes_bytes_(BufferLength) PVOID Buffer
     );
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -4281,6 +4340,7 @@ PhBufferToHexString(
     _In_ SIZE_T Length
     );
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -4332,6 +4392,7 @@ PhStringToDouble(
     _Out_opt_ DOUBLE *Double
     );
 
+_Ret_notnull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -4539,6 +4600,10 @@ PhTlsSetValue(
     _In_opt_ PVOID Value
     );
 
+//
+// Errors
+//
+
 PHLIBAPI
 ULONG
 NTAPI
@@ -4552,6 +4617,10 @@ NTAPI
 PhSetLastError(
     _In_ ULONG ErrorValue
     );
+
+//
+// Wildcards
+//
 
 PHLIBAPI
 BOOLEAN
@@ -4577,6 +4646,26 @@ PhStringFuzzyMatch(
     _In_ PCPH_STRINGREF Text,
     _In_ BOOLEAN IgnoreCase
     );
+
+FORCEINLINE
+BOOLEAN
+PhIsLegacyPrefix(
+    _In_ PCPH_STRINGREF Name
+    )
+{
+    static const WCHAR prefix[] = { L'P',L'r',L'o',L'c',L'e',L's',L's',L'H',L'a',L'c',L'k',L'e',L'r',L'.' };
+
+    if (Name->Length < sizeof(prefix))
+        return FALSE;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(prefix); i++)
+    {
+        if (PhUpcaseUnicodeChar(Name->Buffer[i]) != PhUpcaseUnicodeChar(prefix[i]))
+            return FALSE;
+    }
+
+    return TRUE;
+}
 
 //
 // Auto-dereference convenience functions

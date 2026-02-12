@@ -1030,7 +1030,7 @@ PVOID PhAllocateExSafe(
  */
 _Use_decl_annotations_
 VOID PhFree(
-    _Frees_ptr_opt_ PVOID Memory
+    _In_opt_ _Frees_ptr_opt_ _Post_invalid_ PVOID Memory
     )
 {
 #if defined(PH_DEBUG_HEAP)
@@ -1051,7 +1051,7 @@ VOID PhFree(
  */
 _Use_decl_annotations_
 PVOID PhReAllocate(
-    _Frees_ptr_opt_ PVOID Memory,
+    _In_opt_ _Frees_ptr_opt_ PVOID Memory,
     _In_ SIZE_T Size
     )
 {
@@ -1084,7 +1084,7 @@ PVOID PhReAllocate(
  */
 _Use_decl_annotations_
 PVOID PhReAllocateSafe(
-    _In_opt_ PVOID Memory,
+    _In_opt_ _Frees_ptr_opt_ PVOID Memory,
     _In_ SIZE_T Size
     )
 {
@@ -1166,7 +1166,7 @@ PVOID PhAllocatePage(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePage(
-    _In_ _Frees_ptr_ PVOID Memory
+    _In_ _Frees_ptr_opt_ _Post_invalid_ PVOID Memory
     )
 {
     PhFreeVirtualMemory(NtCurrentProcess(), Memory, MEM_RELEASE);
