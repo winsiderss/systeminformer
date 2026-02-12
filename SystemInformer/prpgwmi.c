@@ -1428,14 +1428,14 @@ BOOLEAN NTAPI PhpWmiProviderTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(ProviderName),
                     SORT_FUNCTION(ProviderNamespace),
                     SORT_FUNCTION(FileName),
                     SORT_FUNCTION(UserName),
                 };
-                int (__cdecl* sortFunction)(void*, const void*, const void*);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PROCESS_WMI_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 
