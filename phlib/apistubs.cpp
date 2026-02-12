@@ -185,7 +185,7 @@ static BOOL WINAPI SetFilePointerEx_Stub(
     {
         if (NewFilePointer)
         {
-            *NewFilePointer = newPos;
+            *NewFilePointer = position;
         }
 
         return TRUE;
