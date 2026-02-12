@@ -835,7 +835,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             {
                 if (!node)
                 {
-                    static PVOID sortFunctions[] =
+                    static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                     {
                         SORT_FUNCTION(BaseAddress),
                         SORT_FUNCTION(Type),
@@ -855,7 +855,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                         SORT_FUNCTION(RegionType),
                         SORT_FUNCTION(Priority),
                     };
-                    int (__cdecl *sortFunction)(void *, const void *, const void *);
+                    _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                     static_assert(RTL_NUMBER_OF(sortFunctions) == PHMMTLC_MAXIMUM, "SortFunctions must equal maximum.");
 
