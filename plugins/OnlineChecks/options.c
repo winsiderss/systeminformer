@@ -27,10 +27,8 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_VIRUSTOTAL),
-                PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
-            //Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_IDC_ENABLE_VIRUSTOTAL_HIGHLIGHT),
-            //    PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_SCANNING),
+                PhGetIntegerSetting(SETTING_NAME_SCAN_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
 
             PhSetDialogItemText(WindowHandle, IDC_HYBRIDTEXT, PhGetStringOrEmpty(PhaGetStringSetting(SETTING_NAME_HYBRIDANAL_DEFAULT_PAT)));
             PhSetDialogItemText(WindowHandle, IDC_VTEXT, PhGetStringOrEmpty(PhaGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT)));
@@ -38,8 +36,8 @@ INT_PTR CALLBACK OptionsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSetIntegerSetting(SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED,
-                Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_VIRUSTOTAL)) == BST_CHECKED ? 1 : 0);
+            PhSetIntegerSetting(SETTING_NAME_SCAN_ENABLED,
+                Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_SCANNING)) == BST_CHECKED ? 1 : 0);
         }
         break;
     case WM_COMMAND:

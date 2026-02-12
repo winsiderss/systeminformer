@@ -4,8 +4,7 @@
 //
 #define IDD_OPTIONS                     102
 #define IDD_OPTIONSKEY                  109
-#define IDC_ENABLE_VIRUSTOTAL           1001
-#define IDC_ENABLE_IDC_ENABLE_VIRUSTOTAL_HIGHLIGHT 1002
+#define IDC_ENABLE_SCANNING             1001
 #define IDC_CHECK1                      1010
 #define IDC_EDIT1                       1011
 #define IDC_COMBO1                      1012
@@ -23,7 +22,7 @@
 #define IDC_KEY_EDIT                    1043
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        106

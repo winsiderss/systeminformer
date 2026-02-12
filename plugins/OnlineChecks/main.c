@@ -7,6 +7,7 @@
  *
  *     wj32    2010-2013
  *     dmex    2012-2024
+ *     jxy-s   2026
  *
  */
 
@@ -16,11 +17,11 @@
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessHighlightingColorCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
@@ -29,19 +30,9 @@ PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModulesTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 
-BOOLEAN VirusTotalScanningEnabled = FALSE;
-
-_Function_class_(PH_CALLBACK_FUNCTION)
-VOID ProcessesUpdatedCallback(
-    _In_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    if (PtrToUlong(Parameter) < 3)
-    {
-        return;
-    }
-}
+BOOLEAN ScanningInitialized = FALSE;
+LIST_ENTRY ScanExtensionsListHead = { &ScanExtensionsListHead, &ScanExtensionsListHead };
+PH_QUEUED_LOCK ScanExtensionsListLock = PH_QUEUED_LOCK_INIT;
 
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
@@ -49,7 +40,80 @@ VOID NTAPI LoadCallback(
     _In_ PVOID Context
     )
 {
-    NOTHING;
+    if (PhGetIntegerSetting(SETTING_NAME_SCAN_ENABLED))
+        ScanningInitialized = InitializeScanning();
+}
+
+_Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI UnloadCallback(
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
+    )
+{
+    if (ScanningInitialized)
+        CleanupScanning();
+}
+
+_Function_class_(PH_CALLBACK_FUNCTION)
+VOID ProcessesUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    static const ULONG delay = 3;
+    LARGE_INTEGER systemTime;
+
+    if (!ScanningInitialized)
+        return;
+
+    if (PtrToUlong(Parameter) < delay)
+        return;
+
+    PhQuerySystemTime(&systemTime);
+
+    PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
+
+    for (PLIST_ENTRY listEntry = ScanExtensionsListHead.Flink;
+         listEntry != &ScanExtensionsListHead;
+         listEntry = listEntry->Flink)
+    {
+        PSCAN_EXTENSION extension;
+
+        extension = CONTAINING_RECORD(listEntry, SCAN_EXTENSION, ListEntry);
+
+        if (!extension->FileName)
+        {
+            PPH_STRING fileName = NULL;
+
+            switch (extension->Type)
+            {
+            case SCAN_EXTENSION_PROCESS:
+                if (extension->ProcessItem->FileName)
+                    fileName = PhGetFileName(extension->ProcessItem->FileName);
+                break;
+            case SCAN_EXTENSION_MODULE:
+                if (extension->ModuleItem->FileName)
+                    fileName = PhGetFileName(extension->ModuleItem->FileName);
+                break;
+            case SCAN_EXTENSION_SERVICE:
+                if ((PtrToUlong(Parameter) > delay) && extension->ServiceItem->FileName)
+                    fileName = PhGetFileName(extension->ServiceItem->FileName);
+                break;
+            }
+
+            if (!PhIsNullOrEmptyString(fileName))
+                extension->FileName = PhReferenceObject(fileName);
+
+            PhClearReference(&fileName);
+        }
+
+        if (!extension->FileName)
+            continue;
+
+        EvaluateScanContext(&systemTime, &extension->ScanContext, extension->FileName);
+    }
+
+    PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -79,11 +143,6 @@ VOID NTAPI MenuItemCallback(
 
     switch (menuItem->Id)
     {
-    case ENABLE_SERVICE_VIRUSTOTAL:
-        {
-            NOTHING;
-        }
-        break;
     case MENUITEM_VIRUSTOTAL_UPLOAD:
         UploadToOnlineService(menuItem->Context, MENUITEM_VIRUSTOTAL_UPLOAD);
         break;
@@ -164,17 +223,11 @@ VOID NTAPI MainMenuInitializingCallback(
         return;
 
     onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Online Checks", NULL);
-    //PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"&Enable VirusTotal scanning", NULL), ULONG_MAX);
-    //PhInsertEMenuItem(onlineMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_FILESCANIO_UPLOAD_FILE, L"Upload file to &Filescan...", NULL), ULONG_MAX);
     PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE, L"Upload file to &Hybrid-Analysis...", NULL), ULONG_MAX);
     PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"Upload file to &VirusTotal...", NULL), ULONG_MAX);
     PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD_FILE, L"Upload file to &Jotti...", NULL), ULONG_MAX);
-    //PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), ULONG_MAX);
     PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, ULONG_MAX);
-
-    //if (VirusTotalScanningEnabled)
-    //     enableMenuItem->Flags |= PH_EMENU_CHECKED;
 }
 
 PPH_EMENU_ITEM CreateSendToMenu(
@@ -285,35 +338,30 @@ VOID NTAPI ServiceMenuInitializingCallback(
     }
 }
 
-_Function_class_(PH_CALLBACK_FUNCTION)
-VOID ProcessHighlightingColorCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+VOID UpdateScanExtensionResult(
+    _In_ PSCAN_EXTENSION Extension,
+    _In_ SCAN_TYPE Type
     )
 {
-    //PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
-    //PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)getHighlightingColor->Parameter;
-    //PPROCESS_DB_OBJECT object;
+    PPH_STRING result = ReferenceScanResult(&Extension->ScanContext, Type);
+    if (result != Extension->ScanResults[Type])
+        PhMoveReference(&Extension->ScanResults[Type], result);
+    else
+        PhDereferenceObject(result);
+}
 
-    //if (getHighlightingColor->Handled)
-    //    return;
+PH_STRINGREF GetScanText(
+    _In_ PSCAN_EXTENSION Extension,
+    _In_ SCAN_TYPE Type
+    )
+{
+    static PH_STRINGREF scanningDisabled = PH_STRINGREF_INIT(L"Scanning disabled");
 
-    //if (!PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS))
-    //    return;
+    if (!ScanningInitialized)
+        return scanningDisabled;
 
-    //LockProcessDb();
-
-    //if (PhIsNullOrEmptyString(processItem->FileNameWin32))
-    //    return;
-
-    //if ((object = FindProcessDbObject(&processItem->FileNameWin32->sr)) && object->Positives)
-    //{
-    //    getHighlightingColor->BackColor = RGB(255, 0, 0);
-    //    getHighlightingColor->Cache = TRUE;
-    //    getHighlightingColor->Handled = TRUE;
-    //}
-
-    //UnlockProcessDb();
+    UpdateScanExtensionResult(Extension, Type);
+    return Extension->ScanResults[Type]->sr;
 }
 
 _Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
@@ -327,10 +375,12 @@ LONG NTAPI VirusTotalProcessNodeSortFunction(
 {
     PPH_PROCESS_NODE node1 = Node1;
     PPH_PROCESS_NODE node2 = Node2;
-    PPROCESS_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ProcessItem, EmProcessItemType);
-    PPROCESS_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ProcessItem, EmProcessItemType);
+    PSCAN_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ProcessItem, EmProcessItemType);
+    PSCAN_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ProcessItem, EmProcessItemType);
+    PH_STRINGREF string1 = GetScanText(extension1, SCAN_TYPE_VIRUSTOTAL);
+    PH_STRINGREF string2 = GetScanText(extension2, SCAN_TYPE_VIRUSTOTAL);
 
-    return PhCompareStringWithNullSortOrder(extension1->VirusTotalResult, extension2->VirusTotalResult, SortOrder, TRUE);
+    return PhCompareStringRef(&string1, &string2, FALSE);
 }
 
 _Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
@@ -344,10 +394,12 @@ LONG NTAPI VirusTotalModuleNodeSortFunction(
 {
     PPH_MODULE_NODE node1 = Node1;
     PPH_MODULE_NODE node2 = Node2;
-    PPROCESS_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ModuleItem, EmModuleItemType);
-    PPROCESS_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ModuleItem, EmModuleItemType);
+    PSCAN_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ModuleItem, EmModuleItemType);
+    PSCAN_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ModuleItem, EmModuleItemType);
+    PH_STRINGREF string1 = GetScanText(extension1, SCAN_TYPE_VIRUSTOTAL);
+    PH_STRINGREF string2 = GetScanText(extension2, SCAN_TYPE_VIRUSTOTAL);
 
-    return PhCompareStringWithNullSortOrder(extension1->VirusTotalResult, extension2->VirusTotalResult, SortOrder, TRUE);
+    return PhCompareStringRef(&string1, &string2, FALSE);
 }
 
 _Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
@@ -361,10 +413,69 @@ LONG NTAPI VirusTotalServiceNodeSortFunction(
 {
     PPH_SERVICE_NODE node1 = Node1;
     PPH_SERVICE_NODE node2 = Node2;
-    PPROCESS_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ServiceItem, EmServiceItemType);
-    PPROCESS_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ServiceItem, EmServiceItemType);
+    PSCAN_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ServiceItem, EmServiceItemType);
+    PSCAN_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ServiceItem, EmServiceItemType);
+    PH_STRINGREF string1 = GetScanText(extension1, SCAN_TYPE_VIRUSTOTAL);
+    PH_STRINGREF string2 = GetScanText(extension2, SCAN_TYPE_VIRUSTOTAL);
 
-    return PhCompareStringWithNullSortOrder(extension1->VirusTotalResult, extension2->VirusTotalResult, SortOrder, TRUE);
+    return PhCompareStringRef(&string1, &string2, FALSE);
+}
+
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
+LONG NTAPI HybridAnalysisProcessNodeSortFunction(
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PH_SORT_ORDER SortOrder,
+    _In_ PVOID Context
+    )
+{
+    PPH_PROCESS_NODE node1 = Node1;
+    PPH_PROCESS_NODE node2 = Node2;
+    PSCAN_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ProcessItem, EmProcessItemType);
+    PSCAN_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ProcessItem, EmProcessItemType);
+    PH_STRINGREF string1 = GetScanText(extension1, SCAN_TYPE_HYBRIDANALYSIS);
+    PH_STRINGREF string2 = GetScanText(extension2, SCAN_TYPE_HYBRIDANALYSIS);
+
+    return PhCompareStringRef(&string1, &string2, FALSE);
+}
+
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
+LONG NTAPI HybridAnalysisModuleNodeSortFunction(
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PH_SORT_ORDER SortOrder,
+    _In_ PVOID Context
+    )
+{
+    PPH_MODULE_NODE node1 = Node1;
+    PPH_MODULE_NODE node2 = Node2;
+    PSCAN_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ModuleItem, EmModuleItemType);
+    PSCAN_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ModuleItem, EmModuleItemType);
+    PH_STRINGREF string1 = GetScanText(extension1, SCAN_TYPE_HYBRIDANALYSIS);
+    PH_STRINGREF string2 = GetScanText(extension2, SCAN_TYPE_HYBRIDANALYSIS);
+
+    return PhCompareStringRef(&string1, &string2, FALSE);
+}
+
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
+LONG NTAPI HybridAnalysisServiceNodeSortFunction(
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PH_SORT_ORDER SortOrder,
+    _In_ PVOID Context
+    )
+{
+    PPH_SERVICE_NODE node1 = Node1;
+    PPH_SERVICE_NODE node2 = Node2;
+    PSCAN_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ServiceItem, EmServiceItemType);
+    PSCAN_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ServiceItem, EmServiceItemType);
+    PH_STRINGREF string1 = GetScanText(extension1, SCAN_TYPE_HYBRIDANALYSIS);
+    PH_STRINGREF string2 = GetScanText(extension2, SCAN_TYPE_HYBRIDANALYSIS);
+
+    return PhCompareStringRef(&string1, &string2, FALSE);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -384,6 +495,15 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     column.Context = info->TreeNewHandle; // Context
 
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_PROCESS, NULL, VirusTotalProcessNodeSortFunction);
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"Hybrid-Analysis";
+    column.Width = 140;
+    column.Alignment = PH_ALIGN_CENTER;
+    column.CustomDraw = TRUE;
+    column.Context = info->TreeNewHandle; // Context
+
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_HYBRIDANALYSIS_PROCESS, NULL, HybridAnalysisProcessNodeSortFunction);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -403,6 +523,15 @@ VOID NTAPI ModuleTreeNewInitializingCallback(
     column.Context = info->TreeNewHandle; // Context
 
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_MODULE, NULL, VirusTotalModuleNodeSortFunction);
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"Hybrid-Analysis";
+    column.Width = 140;
+    column.Alignment = PH_ALIGN_CENTER;
+    column.CustomDraw = TRUE;
+    column.Context = info->TreeNewHandle; // Context
+
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_HYBRIDANALYSIS_MODULE, NULL, HybridAnalysisModuleNodeSortFunction);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -422,6 +551,15 @@ VOID NTAPI ServiceTreeNewInitializingCallback(
     column.Context = info->TreeNewHandle; // Context
 
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_SERVICE, NULL, VirusTotalServiceNodeSortFunction);
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"Hybrid-Analysis";
+    column.Width = 140;
+    column.Alignment = PH_ALIGN_CENTER;
+    column.CustomDraw = TRUE;
+    column.Context = info->TreeNewHandle; // Context
+
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_HYBRIDANALYSIS_SERVICE, NULL, HybridAnalysisServiceNodeSortFunction);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -437,96 +575,125 @@ VOID NTAPI TreeNewMessageCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = message->Parameter1;
+            PSCAN_EXTENSION extension = NULL;
+            SCAN_TYPE scanType = SCAN_TYPE_VIRUSTOTAL;
 
             switch (message->SubId)
             {
             case COLUMN_ID_VIUSTOTAL_PROCESS:
                 {
                     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)getCellText->Node;
-                    PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
-
-                    getCellText->Text = PhGetStringRef(extension->VirusTotalResult);
+                    extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
+                    scanType = SCAN_TYPE_VIRUSTOTAL;
                 }
                 break;
             case COLUMN_ID_VIUSTOTAL_MODULE:
                 {
                     PPH_MODULE_NODE moduleNode = (PPH_MODULE_NODE)getCellText->Node;
-                    PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, moduleNode->ModuleItem, EmModuleItemType);
-
-                    getCellText->Text = PhGetStringRef(extension->VirusTotalResult);
+                    extension = PhPluginGetObjectExtension(PluginInstance, moduleNode->ModuleItem, EmModuleItemType);
+                    scanType = SCAN_TYPE_VIRUSTOTAL;
                 }
                 break;
             case COLUMN_ID_VIUSTOTAL_SERVICE:
                 {
                     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)getCellText->Node;
-                    PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, serviceNode->ServiceItem, EmServiceItemType);
-
-                    getCellText->Text = PhGetStringRef(extension->VirusTotalResult);
+                    extension = PhPluginGetObjectExtension(PluginInstance, serviceNode->ServiceItem, EmServiceItemType);
+                    scanType = SCAN_TYPE_VIRUSTOTAL;
+                }
+                break;
+            case COLUMN_ID_HYBRIDANALYSIS_PROCESS:
+                {
+                    PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)getCellText->Node;
+                    extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
+                    scanType = SCAN_TYPE_HYBRIDANALYSIS;
+                }
+                break;
+            case COLUMN_ID_HYBRIDANALYSIS_MODULE:
+                {
+                    PPH_MODULE_NODE moduleNode = (PPH_MODULE_NODE)getCellText->Node;
+                    extension = PhPluginGetObjectExtension(PluginInstance, moduleNode->ModuleItem, EmModuleItemType);
+                    scanType = SCAN_TYPE_HYBRIDANALYSIS;
+                }
+                break;
+            case COLUMN_ID_HYBRIDANALYSIS_SERVICE:
+                {
+                    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)getCellText->Node;
+                    extension = PhPluginGetObjectExtension(PluginInstance, serviceNode->ServiceItem, EmServiceItemType);
+                    scanType = SCAN_TYPE_HYBRIDANALYSIS;
                 }
                 break;
             }
+
+            if (extension)
+                getCellText->Text = GetScanText(extension, scanType);
         }
         break;
     case TreeNewCustomDraw:
         {
             PPH_TREENEW_CUSTOM_DRAW customDraw = message->Parameter1;
-            PPROCESS_EXTENSION extension = NULL;
-            PH_STRINGREF text;
-
-            if (!VirusTotalScanningEnabled)
-            {
-                static CONST PH_STRINGREF disabledText = PH_STRINGREF_INIT(L"Scanning disabled");
-
-                DrawText(
-                    customDraw->Dc,
-                    disabledText.Buffer,
-                    (ULONG)disabledText.Length / 2,
-                    &customDraw->CellRect,
-                    DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
-                    );
-
-                return;
-            }
+            PSCAN_EXTENSION extension = NULL;
+            SCAN_TYPE scanType = SCAN_TYPE_VIRUSTOTAL;
 
             switch (message->SubId)
             {
             case COLUMN_ID_VIUSTOTAL_PROCESS:
                 {
                     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)customDraw->Node;
-
                     extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
+                    scanType = SCAN_TYPE_VIRUSTOTAL;
                 }
                 break;
             case COLUMN_ID_VIUSTOTAL_MODULE:
                 {
                     PPH_MODULE_NODE moduleNode = (PPH_MODULE_NODE)customDraw->Node;
-
                     extension = PhPluginGetObjectExtension(PluginInstance, moduleNode->ModuleItem, EmModuleItemType);
+                    scanType = SCAN_TYPE_VIRUSTOTAL;
                 }
                 break;
             case COLUMN_ID_VIUSTOTAL_SERVICE:
                 {
                     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)customDraw->Node;
-
                     extension = PhPluginGetObjectExtension(PluginInstance, serviceNode->ServiceItem, EmServiceItemType);
+                    scanType = SCAN_TYPE_VIRUSTOTAL;
+                }
+                break;
+            case COLUMN_ID_HYBRIDANALYSIS_PROCESS:
+                {
+                    PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)customDraw->Node;
+                    extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
+                    scanType = SCAN_TYPE_HYBRIDANALYSIS;
+                }
+                break;
+            case COLUMN_ID_HYBRIDANALYSIS_MODULE:
+                {
+                    PPH_MODULE_NODE moduleNode = (PPH_MODULE_NODE)customDraw->Node;
+                    extension = PhPluginGetObjectExtension(PluginInstance, moduleNode->ModuleItem, EmModuleItemType);
+                    scanType = SCAN_TYPE_HYBRIDANALYSIS;
+                }
+                break;
+            case COLUMN_ID_HYBRIDANALYSIS_SERVICE:
+                {
+                    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)customDraw->Node;
+                    extension = PhPluginGetObjectExtension(PluginInstance, serviceNode->ServiceItem, EmServiceItemType);
+                    scanType = SCAN_TYPE_HYBRIDANALYSIS;
                 }
                 break;
             }
 
-            if (!extension)
-                break;
+            if (extension)
+            {
+                PH_STRINGREF text;
 
-            //if (extension->Positives > 0)
-            //    SetTextColor(customDraw->Dc, RGB(0xff, 0x0, 0x0));
+                text = GetScanText(extension, scanType);
 
-            text = PhGetStringRef(extension->VirusTotalResult);
-            DrawText(
-                customDraw->Dc,
-                text.Buffer,
-                (ULONG)text.Length / sizeof(WCHAR),
-                &customDraw->CellRect,
-                DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
-                );
+                DrawText(
+                    customDraw->Dc,
+                    text.Buffer,
+                    (ULONG)text.Length / sizeof(WCHAR),
+                    &customDraw->CellRect,
+                    DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
+                    );
+            }
         }
         break;
     }
@@ -539,10 +706,17 @@ VOID NTAPI ProcessItemCreateCallback(
     )
 {
     PPH_PROCESS_ITEM processItem = Object;
-    PPROCESS_EXTENSION extension = Extension;
+    PSCAN_EXTENSION extension = Extension;
 
-    memset(extension, 0, sizeof(PROCESS_EXTENSION));
+    memset(extension, 0, sizeof(SCAN_EXTENSION));
+    extension->Type = SCAN_EXTENSION_PROCESS;
     extension->ProcessItem = processItem;
+
+    InitializeScanContext(&extension->ScanContext);
+
+    PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
+    InsertTailList(&ScanExtensionsListHead, &extension->ListEntry);
+    PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 }
 
 VOID NTAPI ProcessItemDeleteCallback(
@@ -552,9 +726,16 @@ VOID NTAPI ProcessItemDeleteCallback(
     )
 {
     PPH_PROCESS_ITEM processItem = Object;
-    PPROCESS_EXTENSION extension = Extension;
+    PSCAN_EXTENSION extension = Extension;
 
-    PhClearReference(&extension->VirusTotalResult);
+    PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
+    RemoveEntryList(&extension->ListEntry);
+    PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
+
+    DeleteScanContext(&extension->ScanContext);
+    PhClearReference(&extension->FileName);
+    for (ULONG i = 0; i < RTL_NUMBER_OF(extension->ScanResults); i++)
+        PhClearReference(&extension->ScanResults[i]);
 }
 
 VOID NTAPI ModuleItemCreateCallback(
@@ -564,10 +745,17 @@ VOID NTAPI ModuleItemCreateCallback(
     )
 {
     PPH_MODULE_ITEM moduleItem = Object;
-    PPROCESS_EXTENSION extension = Extension;
+    PSCAN_EXTENSION extension = Extension;
 
-    memset(extension, 0, sizeof(PROCESS_EXTENSION));
+    memset(extension, 0, sizeof(SCAN_EXTENSION));
+    extension->Type = SCAN_EXTENSION_MODULE;
     extension->ModuleItem = moduleItem;
+
+    InitializeScanContext(&extension->ScanContext);
+
+    PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
+    InsertTailList(&ScanExtensionsListHead, &extension->ListEntry);
+    PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 }
 
 VOID NTAPI ModuleItemDeleteCallback(
@@ -577,9 +765,16 @@ VOID NTAPI ModuleItemDeleteCallback(
     )
 {
     PPH_MODULE_ITEM processItem = Object;
-    PPROCESS_EXTENSION extension = Extension;
+    PSCAN_EXTENSION extension = Extension;
 
-    PhClearReference(&extension->VirusTotalResult);
+    PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
+    RemoveEntryList(&extension->ListEntry);
+    PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
+
+    DeleteScanContext(&extension->ScanContext);
+    PhClearReference(&extension->FileName);
+    for (ULONG i = 0; i < RTL_NUMBER_OF(extension->ScanResults); i++)
+        PhClearReference(&extension->ScanResults[i]);
 }
 
 VOID NTAPI ServiceItemCreateCallback(
@@ -589,10 +784,17 @@ VOID NTAPI ServiceItemCreateCallback(
     )
 {
     PPH_SERVICE_ITEM serviceItem = Object;
-    PPROCESS_EXTENSION extension = Extension;
+    PSCAN_EXTENSION extension = Extension;
 
-    memset(extension, 0, sizeof(PROCESS_EXTENSION));
+    memset(extension, 0, sizeof(SCAN_EXTENSION));
+    extension->Type = SCAN_EXTENSION_SERVICE;
     extension->ServiceItem = serviceItem;
+
+    InitializeScanContext(&extension->ScanContext);
+
+    PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
+    InsertTailList(&ScanExtensionsListHead, &extension->ListEntry);
+    PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 }
 
 VOID NTAPI ServiceItemDeleteCallback(
@@ -602,9 +804,16 @@ VOID NTAPI ServiceItemDeleteCallback(
     )
 {
     PPH_SERVICE_ITEM serviceItem = Object;
-    PPROCESS_EXTENSION extension = Extension;
+    PSCAN_EXTENSION extension = Extension;
 
-    PhClearReference(&extension->VirusTotalResult);
+    PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
+    RemoveEntryList(&extension->ListEntry);
+    PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
+
+    DeleteScanContext(&extension->ScanContext);
+    PhClearReference(&extension->FileName);
+    for (ULONG i = 0; i < RTL_NUMBER_OF(extension->ScanResults); i++)
+        PhClearReference(&extension->ScanResults[i]);
 }
 
 LOGICAL DllMain(
@@ -620,8 +829,7 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
-                { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED, L"0" },
-                { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS, L"0" },
+                { IntegerSettingType, SETTING_NAME_SCAN_ENABLED, L"0" },
                 { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION, L"0" },
                 { StringSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT, L"" },
                 { StringSettingType, SETTING_NAME_HYBRIDANAL_DEFAULT_PAT, L"" },
@@ -643,6 +851,12 @@ LOGICAL DllMain(
                 LoadCallback,
                 NULL,
                 &PluginLoadCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+                UnloadCallback,
+                NULL,
+                &PluginUnloadCallbackRegistration
                 );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
@@ -689,13 +903,6 @@ LOGICAL DllMain(
                 );
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackGetProcessHighlightingColor),
-                ProcessHighlightingColorCallback,
-                NULL,
-                &ProcessHighlightingColorCallbackRegistration
-                );
-
-            PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
                 ProcessTreeNewInitializingCallback,
                 NULL,
@@ -724,7 +931,7 @@ LOGICAL DllMain(
             PhPluginSetObjectExtension(
                 PluginInstance,
                 EmProcessItemType,
-                sizeof(PROCESS_EXTENSION),
+                sizeof(SCAN_EXTENSION),
                 ProcessItemCreateCallback,
                 ProcessItemDeleteCallback
                 );
@@ -732,7 +939,7 @@ LOGICAL DllMain(
             PhPluginSetObjectExtension(
                 PluginInstance,
                 EmModuleItemType,
-                sizeof(PROCESS_EXTENSION),
+                sizeof(SCAN_EXTENSION),
                 ModuleItemCreateCallback,
                 ModuleItemDeleteCallback
                 );
@@ -740,7 +947,7 @@ LOGICAL DllMain(
             PhPluginSetObjectExtension(
                 PluginInstance,
                 EmServiceItemType,
-                sizeof(PROCESS_EXTENSION),
+                sizeof(SCAN_EXTENSION),
                 ServiceItemCreateCallback,
                 ServiceItemDeleteCallback
                 );

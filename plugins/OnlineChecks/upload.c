@@ -6,6 +6,7 @@
  * Authors:
  *
  *     dmex    2016-2024
+ *     jxy-s   2026
  *
  */
 
@@ -918,12 +919,12 @@ NTSTATUS UploadFileThreadStart(
 
                     PhFreeJsonObject(jsonRootObject);
                 }
-                else                
+                else
                 {
                     RaiseUploadError(context, L"Unable to complete the request.", status);
                     goto CleanupExit;
                 }
-                
+
                 if (PhIsNullOrEmptyString(context->LaunchCommand))
                 {
                     RaiseUploadError(context, L"Unable to complete the request.", STATUS_FAIL_CHECK);
@@ -1267,7 +1268,7 @@ NTSTATUS UploadCheckThreadStart(
                 )))
             {
                 goto CleanupExit;
-            }   
+            }
 
             if (NT_SUCCESS(status = PhCreateJsonParserEx(&rootJsonObject, subRequestBuffer, FALSE)))
             {
@@ -1397,7 +1398,7 @@ NTSTATUS UploadCheckThreadStart(
                     {
                         RaiseUploadError(context, L"Unable to parse the response.", status);
                     }
-                    
+
                     PhClearReference(&vt3UploadRequestBuffer);
                 }
 
@@ -1465,20 +1466,20 @@ NTSTATUS UploadCheckThreadStart(
                 #if defined(FILESCANIO_PROMPT)
                 PVOID jsonDataObject;
                 LONG reportsCount;
-                
+
                 if (jsonDataObject = PhGetJsonObject(rootJsonObject, "filescan_reports"))
                 {
                     if (reportsCount = PhGetJsonArrayLength(jsonDataObject))
                     {
                         PPH_LIST reportList = PhCreateList(reportsCount);
-                
+
                         for (LONG i = 0; i < reportsCount; i++)
                         {
                             PVOID report;
                             PFILESCANIO_REPORT scan_report;
-                
+
                             report = PhGetJsonArrayIndexObject(jsonDataObject, i);
-                
+
                             scan_report = PhAllocate(sizeof(FILESCANIO_REPORT));
                             scan_report->report_date = PhGetJsonValueAsString(report, "report_date");
                             scan_report->report_id = PhGetJsonValueAsString(report, "report_id");
@@ -1486,13 +1487,13 @@ NTSTATUS UploadCheckThreadStart(
                             scan_report->report_time = UploadFileScanStringToTime(scan_report->report_date);
                             PhAddItemList(reportList, scan_report);
                         }
-                
+
                         qsort(reportList->Items, reportList->Count, sizeof(PVOID), OnlineChecksFileScanIoCompareFunction);
-                
+
                         PFILESCANIO_REPORT latest_report = reportList->Items[reportList->Count - 1];
-                
+
                         context->LastAnalysisDate = latest_report->report_date;
-                
+
                         if (jsonDataObject = PhGetJsonObject(rootJsonObject, "mdcloud"))
                         {
                             PhMoveReference(&context->Detected, PhFormatString(
@@ -1501,7 +1502,7 @@ NTSTATUS UploadCheckThreadStart(
                                 PhGetJsonValueAsUlong(jsonDataObject, "total_av_engines")
                                 ));
                         }
-                
+
                         PhMoveReference(&context->LaunchCommand, PhFormatString(
                             L"https://www.filescan.io/uploads/%s/reports/%s/overview",
                             PhGetString(latest_report->flow_id),
@@ -1511,7 +1512,7 @@ NTSTATUS UploadCheckThreadStart(
                         //    L"https://www.filescan.io/uploads/%s",
                         //    PhGetString(latest_report->flow_id)
                         //    ));
-                
+
                         //PostMessage(context->DialogHandle, UM_LAUNCH, 0, 0);
                         PostMessage(context->DialogHandle, UM_EXISTS, 0, 0);
                     }
@@ -1591,7 +1592,7 @@ NTSTATUS ViewReportThreadStart(
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
     PVIRUSTOTAL_FILE_REPORT fileReport;
 
-    if (fileReport = VirusTotalRequestFileReport(context->FileHash, context->TotalPat))
+    if (NT_SUCCESS(VirusTotalRequestFileReport(context->FileHash, context->TotalPat, &fileReport)))
     {
         PhSwapReference(&context->LaunchCommand, PhConcatStrings2(L"https://www.virustotal.com/gui/file/", PhGetString(context->FileHash)));
 
