@@ -1420,6 +1420,24 @@ PhSplitStringRefEx(
     _Out_opt_ PPH_STRINGREF SeparatorPart
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhSplitStringRef(
+    _In_ PCPH_STRINGREF Input,
+    _In_ WCHAR Separator,
+    _Out_ PVOID **Strings,
+    _Out_ PULONG NumberOfStrings
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFreeStringArray(
+    _In_ PVOID *Strings,
+    _In_ ULONG NumberOfStrings
+    );
+
 #define PH_TRIM_START_ONLY 0x1
 #define PH_TRIM_END_ONLY 0x2
 
