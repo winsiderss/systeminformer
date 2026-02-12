@@ -153,6 +153,13 @@ PhIsThemeActive(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhIsAppThemed(
+    VOID
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhIsThemePartDefined(
     _In_ HTHEME ThemeHandle,
     _In_ LONG PartId,
@@ -457,7 +464,6 @@ PhGetMessagePos(
     memcpy(MessagePoint, &point, sizeof(POINT));
     return TRUE;
 }
-
 
 _Success_(return)
 FORCEINLINE

@@ -77,6 +77,7 @@ static typeof(&OpenThemeData) OpenThemeData_I = NULL;
 static typeof(&CloseThemeData) CloseThemeData_I = NULL;
 static typeof(&SetWindowTheme) SetWindowTheme_I = NULL;
 static typeof(&IsThemeActive) IsThemeActive_I = NULL;
+static typeof(&IsAppThemed) IsAppThemed_I = NULL;
 static typeof(&IsThemePartDefined) IsThemePartDefined_I = NULL;
 static _GetThemeClass GetThemeClass_I = NULL;
 static typeof(&GetThemeColor) GetThemeColor_I = NULL;
@@ -126,6 +127,7 @@ VOID PhGuiSupportInitialization(
         CloseThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "CloseThemeData", 0);
         SetWindowTheme_I = PhGetDllBaseProcedureAddress(baseAddress, "SetWindowTheme", 0);
         IsThemeActive_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemeActive", 0);
+        IsAppThemed_I = PhGetDllBaseProcedureAddress(baseAddress, "IsAppThemed", 0);
         IsThemePartDefined_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemePartDefined", 0);
         GetThemeColor_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeColor", 0);
         GetThemeInt_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeInt", 0);
@@ -418,13 +420,15 @@ HFONT PhInitializeMonospaceFont(
 
     LOGFONT logFont;
 
-    if (GetObject(GetStockFont(SYSTEM_FIXED_FONT), sizeof(LOGFONT), &logFont))
+    fontHandle = GetStockFont(SYSTEM_FIXED_FONT);
+
+    if (GetObject(fontHandle, sizeof(LOGFONT), &logFont))
     {
         logFont.lfWeight = -(LONG)PhMultiplyDivide(logFont.lfWeight, WindowDpi, 72);
         return CreateFontIndirect(&logFont);
     }
 
-    return GetStockFont(SYSTEM_FIXED_FONT);
+    return fontHandle;
 }
 
 /**
@@ -537,6 +541,16 @@ BOOLEAN PhIsThemeActive(
         return FALSE;
 
     return !!IsThemeActive_I();
+}
+
+BOOLEAN PhIsAppThemed(
+    VOID
+    )
+{
+    if (!IsAppThemed_I)
+        return FALSE;
+
+    return !!IsAppThemed_I();
 }
 
 /**
