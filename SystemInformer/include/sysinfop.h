@@ -41,6 +41,7 @@ NTSTATUS PhSipSysInfoThreadStart(
     _In_ PVOID Parameter
     );
 
+_Function_class_(DLGPROC)
 INT_PTR CALLBACK PhSipSysInfoDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -48,6 +49,7 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(DLGPROC)
 INT_PTR CALLBACK PhSipContainerDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -209,6 +211,7 @@ VOID PhSipCreateSectionDialog(
     _In_ PPH_SYSINFO_SECTION Section
     );
 
+_Function_class_(WNDPROC)
 LRESULT CALLBACK PhSipGraphHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
@@ -216,6 +219,7 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(WNDPROC)
 LRESULT CALLBACK PhSipPanelHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
@@ -438,7 +442,7 @@ VOID PhSipUpdateMemoryPanel(
     );
 
 _Function_class_(USER_THREAD_START_ROUTINE)
-NTSTATUS PhSipLoadMmAddresses(
+NTSTATUS NTAPI PhSipLoadMmAddresses(
     _In_ PVOID Parameter
     );
 
@@ -457,7 +461,7 @@ BOOLEAN PhSipGetMemoryCompressionLimits(
 // I/O section
 
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
-BOOLEAN PhSipIoSectionCallback(
+BOOLEAN NTAPI PhSipIoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_ PVOID Parameter1,
