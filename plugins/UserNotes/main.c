@@ -263,20 +263,18 @@ VOID InitializeDbPath(
     VOID
     )
 {
+    PPH_STRING fileName;
+
     if (SystemInformer_IsPortableMode())
     {
-        PPH_STRING fileName;
-
         fileName = PhGetApplicationDirectoryFileNameZ(L"usernotesdb.xml", TRUE);
-        SetDbPath(fileName);
     }
     else
     {
-        PPH_STRING fileName;
-
-        fileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\usernotesdb.xml", TRUE);
-        SetDbPath(fileName);
+        fileName = PhGetRoamingAppDataDirectoryZ(L"usernotesdb.xml", TRUE);
     }
+
+    SetDbPath(fileName);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
