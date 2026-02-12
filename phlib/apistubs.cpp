@@ -144,7 +144,7 @@ static BOOL WINAPI SetFilePointerEx_Stub(
     switch (MoveMethod)
     {
     case FILE_BEGIN:
-        newPos = DistanceToMove;
+        position = DistanceToMove;
         break;
     case FILE_CURRENT:
         {
