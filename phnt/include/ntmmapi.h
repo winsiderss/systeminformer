@@ -1782,6 +1782,16 @@ NtResetWriteWatch(
     _In_ SIZE_T RegionSize
     );
 
+/**
+ * Creates or extends a paging file.
+ *
+ * \param PageFileName The NT path of the paging file to create or extend.
+ * \param MinimumSize A pointer to the minimum size of the paging file, in bytes.
+ * \param MaximumSize A pointer to the maximum size of the paging file, in bytes.
+ * \param Priority The paging file priority.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The caller must have the SeCreatePagefilePrivilege privilege.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
