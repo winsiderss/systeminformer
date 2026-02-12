@@ -129,6 +129,71 @@ static BOOL WINAPI SetEndOfFile_Stub(
     return NT_SUCCESS(status);
 }
 
+static BOOL WINAPI SetFilePointerEx_Stub(
+    _In_ HANDLE File,
+    _In_ LARGE_INTEGER DistanceToMove,
+    _Out_opt_ PLARGE_INTEGER NewFilePointer,
+    _In_ ULONG MoveMethod
+    )
+{
+    NTSTATUS status;
+    LARGE_INTEGER position;
+    LARGE_INTEGER current;
+    LARGE_INTEGER fileSize;
+
+    switch (MoveMethod)
+    {
+    case FILE_BEGIN:
+        newPos = DistanceToMove;
+        break;
+    case FILE_CURRENT:
+        {
+            status = PhGetFilePosition(File, &current);
+
+            if (!NT_SUCCESS(status))
+            {
+                PhSetLastError(PhNtStatusToDosError(status));
+                return FALSE;
+            }
+
+            position.QuadPart = current.QuadPart + DistanceToMove.QuadPart;
+        }
+        break;
+    case FILE_END:
+        {
+            status = PhGetFileSize(File, &fileSize);
+
+            if (!NT_SUCCESS(status))
+            {
+                PhSetLastError(PhNtStatusToDosError(status));
+                return FALSE;
+            }
+
+            position.QuadPart = fileSize.QuadPart + DistanceToMove.QuadPart;
+        }
+        break;
+    default:
+        PhSetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    status = PhSetFilePosition(File, &position);
+
+    PhSetLastError(PhNtStatusToDosError(status));
+
+    if (NT_SUCCESS(status))
+    {
+        if (NewFilePointer)
+        {
+            *NewFilePointer = newPos;
+        }
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 DECLSPEC_NORETURN
 static VOID WINAPI ExitProcess_Stub(
     _In_ UINT uExitCode
@@ -248,6 +313,51 @@ static BOOL WINAPI QueryPerformanceCounter_Stub(
     return !!RtlQueryPerformanceCounter(PerformanceCount);
 }
 
+static VOID WINAPI GetSystemTimeAsFileTime_Stub(
+    _Out_ PFILETIME SystemTime
+    )
+{
+    LARGE_INTEGER systemTime;
+
+    PhQuerySystemTime(&systemTime);
+
+    SystemTime->dwLowDateTime = systemTime.LowPart;
+    SystemTime->dwHighDateTime = systemTime.HighPart;
+}
+
+static BOOL WINAPI VirtualProtect_Stub(
+    _In_ PVOID Address,
+    _In_ SIZE_T Size,
+    _In_ ULONG NewProtect,
+    _Out_opt_ PULONG OldProtect
+    )
+{
+    NTSTATUS status;
+    ULONG oldProtect = 0;
+
+    status = PhProtectVirtualMemory(
+        NtCurrentProcess(),
+        Address,
+        Size,
+        NewProtect,
+        &oldProtect
+        );
+
+    PhSetLastError(PhNtStatusToDosError(status));
+
+    if (NT_SUCCESS(status))
+    {
+        if (OldProtect)
+        {
+            *OldProtect = oldProtect;
+        }
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 static VOID WINAPI EnterCriticalSection_Stub(
     _Inout_ LPCRITICAL_SECTION CriticalSection
     )
@@ -326,10 +436,13 @@ __declspec(selectany) decltype(&GetModuleHandleW) __identifier("_imp__GetModuleH
 __declspec(selectany) decltype(&IsDebuggerPresent) __identifier("_imp__IsDebuggerPresent@0") = IsDebuggerPresent_Stub;
 __declspec(selectany) decltype(&SetEndOfFile) __identifier("_imp__SetEndOfFile@4") = SetEndOfFile_Stub;
 __declspec(selectany) decltype(&ExitProcess) __identifier("_imp__ExitProcess@4") = ExitProcess_Stub;
+__declspec(selectany) decltype(&VirtualProtect) __identifier("_imp__VirtualProtect@16") = VirtualProtect_Stub;
 __declspec(selectany) decltype(&InitializeSListHead) __identifier("_imp__InitializeSListHead@4") = PhInitializeSListHead;
 __declspec(selectany) decltype(&InterlockedPushEntrySList) __identifier("_imp__InterlockedPushEntrySList@8") = RtlInterlockedPushEntrySList;
 __declspec(selectany) decltype(&InterlockedFlushSList) __identifier("_imp__InterlockedFlushSList@4") = RtlInterlockedFlushSList;
 __declspec(selectany) decltype(&QueryPerformanceCounter) __identifier("_imp__QueryPerformanceCounter@4") = QueryPerformanceCounter_Stub;
+__declspec(selectany) decltype(&GetSystemTimeAsFileTime) __identifier("_imp__GetSystemTimeAsFileTime@4") = GetSystemTimeAsFileTime_Stub;
+__declspec(selectany) decltype(&SetFilePointerEx) __identifier("_imp__SetFilePointerEx@16") = SetFilePointerEx_Stub;
 __declspec(selectany) decltype(&EnterCriticalSection) __identifier("_imp__EnterCriticalSection@4") = EnterCriticalSection_Stub;
 __declspec(selectany) decltype(&LeaveCriticalSection) __identifier("_imp__LeaveCriticalSection@4") = LeaveCriticalSection_Stub;
 __declspec(selectany) decltype(&DeleteCriticalSection) __identifier("_imp__DeleteCriticalSection@4") = DeleteCriticalSection_Stub;
@@ -356,10 +469,13 @@ __declspec(selectany) decltype(&GetModuleHandleW) __imp_GetModuleHandleW = GetMo
 __declspec(selectany) decltype(&IsDebuggerPresent) __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
 __declspec(selectany) decltype(&SetEndOfFile) __imp_SetEndOfFile = SetEndOfFile_Stub;
 __declspec(selectany) decltype(&ExitProcess) __imp_ExitProcess = ExitProcess_Stub;
+__declspec(selectany) decltype(&VirtualProtect) __imp_VirtualProtect = VirtualProtect_Stub;
 __declspec(selectany) decltype(&InitializeSListHead) __imp_InitializeSListHead = PhInitializeSListHead;
 __declspec(selectany) decltype(&InterlockedPushEntrySList) __imp_InterlockedPushEntrySList = RtlInterlockedPushEntrySList;
 __declspec(selectany) decltype(&InterlockedFlushSList) __imp_InterlockedFlushSList = RtlInterlockedFlushSList;
 __declspec(selectany) decltype(&QueryPerformanceCounter) __imp_QueryPerformanceCounter = QueryPerformanceCounter_Stub;
+__declspec(selectany) decltype(&GetSystemTimeAsFileTime) __imp_GetSystemTimeAsFileTime = GetSystemTimeAsFileTime_Stub;
+__declspec(selectany) decltype(&SetFilePointerEx) __imp_SetFilePointerEx = SetFilePointerEx_Stub;
 __declspec(selectany) decltype(&EnterCriticalSection) __imp_EnterCriticalSection = EnterCriticalSection_Stub;
 __declspec(selectany) decltype(&LeaveCriticalSection) __imp_LeaveCriticalSection = LeaveCriticalSection_Stub;
 __declspec(selectany) decltype(&DeleteCriticalSection) __imp_DeleteCriticalSection = DeleteCriticalSection_Stub;
