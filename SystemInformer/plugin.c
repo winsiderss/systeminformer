@@ -316,7 +316,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
         if (!NT_SUCCESS(status))
         {
             fileName = PhCreateString2(&baseName);
-            PhLoadPluginErrorMessage(context, PhCreateString2(&baseName), status);
+            PhLoadPluginErrorMessage(context, fileName, status);
             PhDereferenceObject(fileName);
         }
     }
@@ -580,8 +580,14 @@ NTSTATUS PhLoadPlugin(
     )
 {
     NTSTATUS status;
+    ULONG flags;
 
-    if (LoadLibraryEx(PhGetStringRefZ(FileName), NULL, 0))
+    if (WindowsVersion > WINDOWS_7)
+        flags = LOAD_LIBRARY_SEARCH_APPLICATION_DIR;
+    else
+        flags = 0;
+
+    if (LoadLibraryEx(PhGetStringRefZ(FileName), NULL, flags))
         status = STATUS_SUCCESS;
     else
         status = PhGetLastWin32ErrorAsNtStatus();
@@ -801,21 +807,20 @@ PVOID PhGetPluginInterface(
 
     if (plugin = PhFindPlugin2(Name))
     {
-        iface = PhGetPluginInformation(plugin)->Interface;
+        if (!(iface = PhGetPluginInformation(plugin)->Interface))
+            return NULL;
 
-        if (Version)
+        if (Version == 0)
         {
-            struct
-            {
-                ULONG Version;
-            } *Interface = iface;
-
-            if (Interface->Version <= Version)
-            {
-                return iface;
-            }
+            return iface;
         }
-        else
+
+        struct
+        {
+            ULONG Version;
+        } *Interface = iface;
+
+        if (Interface->Version >= Version)
         {
             return iface;
         }
