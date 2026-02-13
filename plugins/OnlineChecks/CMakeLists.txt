@@ -17,6 +17,8 @@ set(RESOURCES
 source_group("Resource Files" FILES ${RESOURCES})
 
 set(SOURCES
+    "api.c"
+    "scan.c"
     "main.c"
     "options.c"
     "page1.c"
@@ -24,7 +26,6 @@ set(SOURCES
     "page3.c"
     "page4.c"
     "upload.c"
-    "virustotal.c"
 )
 source_group("Source Files" FILES ${SOURCES})
 
