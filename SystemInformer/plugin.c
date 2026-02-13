@@ -580,14 +580,8 @@ NTSTATUS PhLoadPlugin(
     )
 {
     NTSTATUS status;
-    ULONG flags;
 
-    if (WindowsVersion > WINDOWS_7)
-        flags = LOAD_LIBRARY_SEARCH_APPLICATION_DIR;
-    else
-        flags = 0;
-
-    if (LoadLibraryEx(PhGetStringRefZ(FileName), NULL, flags))
+    if (LoadLibraryEx(PhGetStringRefZ(FileName), NULL, 0))
         status = STATUS_SUCCESS;
     else
         status = PhGetLastWin32ErrorAsNtStatus();
