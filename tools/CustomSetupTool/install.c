@@ -11,6 +11,7 @@
 
 #include "setup.h"
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS CALLBACK SetupProgressThread(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -42,12 +43,17 @@ NTSTATUS CALLBACK SetupProgressThread(
 
     // Upgrade the settings file.
     SetupUpgradeSettingsFile();
+
     // Convert the settings file.
     SetupConvertSettingsFile();
 
     // Remove the previous installation.
     //if (Context->SetupResetSettings)
     //    PhDeleteDirectory(Context->SetupInstallPath);
+    // Perform Windows Options cleanup (registry)
+    SetupDeleteWindowsOptions(Context);
+    // Delete all shortcuts for cleanup
+    SetupDeleteShortcuts(Context);
 
     // Create the uninstaller.
     if (!NT_SUCCESS(status = SetupCreateUninstallFile(Context)))
@@ -58,6 +64,9 @@ NTSTATUS CALLBACK SetupProgressThread(
 
     // Create the ARP uninstall entries.
     SetupCreateUninstallKey(Context);
+
+    // Create Windows Error Reporting LocalDumps key.
+    SetupCreateLocalDumpsKey();
 
     // Create autorun.
     SetupCreateWindowsOptions(Context);

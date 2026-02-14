@@ -2,5 +2,5 @@
   <Configurations>
     <Platform Name="Win32" />
   </Configurations>
-  <Project Path="CustomSetupTool.vcxproj" />
+  <Project Path="CustomSetupTool.vcxproj" Id="5c00734f-f50a-49fc-9d2a-f6ee51ecb00f" />
 </Solution>

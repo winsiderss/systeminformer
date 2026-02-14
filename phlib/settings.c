@@ -1394,7 +1394,7 @@ DefaultCase:
                 }
                 else
                 {
-                    setting->u.Pointer = PhCreateString(L"");
+                    setting->u.Pointer = PhReferenceEmptyString();
                 }
 
                 if (!PhSettingFromString(
@@ -1585,10 +1585,17 @@ NTSTATUS PhLoadSettingsXml(
     {
         if (settingName = PhGetXmlNodeAttributeText(currentNode, "name"))
         {
+            PH_STRINGREF name = settingName->sr;
+
+            if (PhIsLegacyPrefix(&name))
+            {
+                PhSkipStringRef(&name, 14 * sizeof(WCHAR));
+            }
+
             settingValue = PhGetXmlNodeOpaqueText(currentNode);
 
             {
-                if (setting = PhpLookupSetting(&settingName->sr))
+                if (setting = PhpLookupSetting(&name))
                 {
                     PhpFreeSettingValue(setting->Type, setting);
 
@@ -3624,18 +3631,6 @@ NTSTATUS PhConvertSettingsXmlToJson(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    {
-        PPH_STRING string = PhConcatStrings(
-            14,
-            L"P", L"r", L"o", L"c" L"e"
-            L"s", L"s", L"H", L"a", L"c",
-            L"k", L"e", L"r", L".");
-        PPH_BYTES bytes = PhConvertStringRefToUtf8(&string->sr);
-        PhBytesStripSubstringZ(fileContent->Buffer, bytes->Buffer);
-        PhDereferenceObject(bytes);
-        PhDereferenceObject(string);
-    }
-
     topNode = PhLoadXmlObjectFromString(fileContent->Buffer);
     PhDereferenceObject(fileContent);
 
@@ -3663,13 +3658,20 @@ NTSTATUS PhConvertSettingsXmlToJson(
     {
         if (settingName = PhGetXmlNodeAttributeText(currentNode, "name"))
         {
+            PH_STRINGREF name = settingName->sr;
+
+            if (PhIsLegacyPrefix(&name))
+            {
+                PhSkipStringRef(&name, 14 * sizeof(WCHAR));
+            }
+
             if (settingValue = PhGetXmlNodeOpaqueText(currentNode))
             {
                 PPH_BYTES stringName;
                 PPH_BYTES stringValue;
 
-                stringName = PhConvertStringToUtf8(settingName);
-                stringValue = PhConvertStringToUtf8(settingValue);
+                stringName = PhConvertStringRefToUtf8(&name);
+                stringValue = PhConvertStringRefToUtf8(&settingValue->sr);
 
                 PhAddJsonObject2(
                     object,
@@ -3683,10 +3685,8 @@ NTSTATUS PhConvertSettingsXmlToJson(
 
                 PhDereferenceObject(settingValue);
             }
-
             PhDereferenceObject(settingName);
         }
-
         currentNode = PhGetXmlNodeNextChild(currentNode);
     }
 

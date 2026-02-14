@@ -231,6 +231,11 @@ BOOLEAN PhEmParseCompoundId(
     if (!PhStringToUInt64(&secondPart, 10, &integer))
         return FALSE;
 
+    if (PhIsLegacyPrefix(&firstPart))
+    {
+        PhSkipStringRef(&firstPart, 14 * sizeof(WCHAR));
+    }
+
     *AppName = firstPart;
     *SubId = (ULONG)integer;
 

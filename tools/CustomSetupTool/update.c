@@ -11,6 +11,7 @@
 
 #include "setup.h"
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS CALLBACK SetupUpdateBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -40,6 +41,7 @@ NTSTATUS CALLBACK SetupUpdateBuild(
 
     // Upgrade the settings file.
     SetupUpgradeSettingsFile();
+
     // Convert the settings file.
     SetupConvertSettingsFile();
 
@@ -57,11 +59,11 @@ NTSTATUS CALLBACK SetupUpdateBuild(
     // Create the ARP uninstall entries.
     SetupCreateUninstallKey(Context);
 
-    // Create autorun.
-    SetupCreateWindowsOptions(Context);
+    // Create Windows Error Reporting entries.
+    SetupCreateLocalDumpsKey();
 
-    // Create shortcuts.
-    //SetupCreateShortcuts(Context);
+    // Perform Windows Options cleanup (registry)
+    SetupDeleteWindowsOptions(Context);
 
     // Set the default image execution options.
     //SetupCreateImageFileExecutionOptions();
