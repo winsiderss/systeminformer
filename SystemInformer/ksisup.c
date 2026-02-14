@@ -2062,7 +2062,13 @@ NTSTATUS PhCleanupKsi(
     if (PhGetIntegerSetting(SETTING_KSI_ENABLE_UNLOAD_PROTECTION))
         KphReleaseDriverUnloadProtection(NULL, NULL);
 
-    if (PhGetIntegerSetting(SETTING_KSI_UNLOAD_ON_EXIT))
+    //
+    // N.B. Portable mode doesn't use the updater which will unload the driver
+    // on upgrades. In portable mode updates happen by the user so we should
+    // always unload the driver on exit. It also really doesn't make sense to
+    // keep the driver loaded in a portable configuration.
+    //
+    if (PhPortableEnabled || PhGetIntegerSetting(SETTING_KSI_UNLOAD_ON_EXIT))
     {
         ULONG clientCount;
 
