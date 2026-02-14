@@ -1004,45 +1004,6 @@ NTSTATUS PhRestartSelf(
 }
 
 /**
- * Determine if an old temporary driver file 'ksi.dll-old' exists and try to delete it.
- *
- * This function checks the application directory for the existence of the
- * legacy filename 'ksi.dll-old'. If it exists the function attempts to delete
- * it; if deletion fails the function returns TRUE indicating that a reboot
- * is likely required (the file is still locked).
- * \return TRUE if an old KSI file remains (and may require reboot), FALSE if
- *         no old file exists or deletion succeeded.
- */
-BOOLEAN PhDoesOldKsiExist(
-    VOID
-    )
-{
-    static CONST PH_STRINGREF ksiOld = PH_STRINGREF_INIT(L"ksi.dll-old");
-    BOOLEAN result = FALSE;
-    PPH_STRING applicationDirectory;
-    PPH_STRING fileName;
-
-    if (!(applicationDirectory = PhGetApplicationDirectory()))
-        return FALSE;
-
-    if (fileName = PhConcatStringRef2(&applicationDirectory->sr, &ksiOld))
-    {
-        if (result = PhDoesFileExist(&fileName->sr))
-        {
-            // If the file exists try to delete it. If we can't a reboot is
-            // still required since it's likely still mapped into the kernel.
-            if (NT_SUCCESS(PhDeleteFile(&fileName->sr)))
-                result = FALSE;
-        }
-
-        PhDereferenceObject(fileName);
-    }
-
-    PhDereferenceObject(applicationDirectory);
-    return result;
-}
-
-/**
  * Obtain the configured KSI service name, falling back to default.
  *
  * \return Referenced `PPH_STRING` containing the service name.
@@ -1606,6 +1567,19 @@ NTSTATUS KsiConnect(
         }
     }
 
+    if (status == STATUS_SI_KSIDLL_VERSION_MISMATCH)
+    {
+        PhShowKsiMessageEx(
+            NULL,
+            TD_SHIELD_ERROR_ICON,
+            STATUS_SI_KSIDLL_VERSION_MISMATCH,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The last System Informer update requires a reboot."
+            );
+            goto CleanupExit;
+    }
+
     if (!NT_SUCCESS(status))
     {
         PPH_STRING randomServiceName;
@@ -1978,19 +1952,6 @@ VOID PhInitializeKsi(
             L"Unable to load kernel driver",
             L"The kernel driver is not supported on this Windows version, the "
             L"minimum supported version is Windows 10."
-            );
-        return;
-    }
-
-    if (PhDoesOldKsiExist())
-    {
-        PhShowKsiMessageEx(
-            NULL,
-            TD_SHIELD_ERROR_ICON,
-            STATUS_PENDING,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"The last System Informer update requires a reboot."
             );
         return;
     }
