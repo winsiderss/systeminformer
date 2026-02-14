@@ -1152,7 +1152,7 @@ HRESULT SetupCreateLink(
         PropVariantInit(&propValue);
         V_VT(&propValue) = VT_LPWSTR;
         pwszVal = (LPWSTR)CoTaskMemAlloc(propValueLength + sizeof(UNICODE_NULL));
-        V_LPWSTR(&propValue) = pwszVal;
+        V_UNION(&propValue, pwszVal) = pwszVal;
 
         if (!pwszVal)
         {
@@ -1160,8 +1160,8 @@ HRESULT SetupCreateLink(
             goto CleanupExit; // Jump to cleanup immediately
         }
 
-        memset(V_LPWSTR(&propValue), 0, propValueLength + sizeof(UNICODE_NULL));
-        memcpy(V_LPWSTR(&propValue), AppId, propValueLength);
+        memset(V_UNION(&propValue, pwszVal), 0, propValueLength + sizeof(UNICODE_NULL));
+        memcpy(V_UNION(&propValue, pwszVal), AppId, propValueLength);
 
         status = IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &propValue);
         // If SetValue fails, we might still want to try to save the shortcut (without AppId)
