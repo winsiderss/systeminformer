@@ -894,7 +894,10 @@ BOOLEAN InitializeScanning(
     ScanRateLimitedString = PhCreateString(L"Rate limited...");
 
     result = FALSE;
-    fileName = PhGetRoamingAppDataDirectory(&databaseFileName, FALSE);
+    if (!!SystemInformer_IsPortableMode())
+        fileName = PhGetApplicationDirectoryFileName(&databaseFileName, FALSE);
+    else
+        fileName = PhGetRoamingAppDataDirectory(&databaseFileName, FALSE);
     fileNameUTF8 = PhConvertStringRefToUtf8(&fileName->sr);
 
     ScanItemObjectType = PhCreateObjectType(L"ScanItem", 0, ScanItemDeleteProcedure);
