@@ -62,6 +62,7 @@ EXPORTS
     PhFindProcessNode
     PhFindProcessRecord
     PhFindServiceNode
+    PhFormatLocalSystemTimeISO
     PhFormatLogEntry
     PhFormatLogType
     PhGetApplicationIcon
@@ -425,6 +426,7 @@ EXPORTS
     PhFormatBytes_V
     PhFormatString
     PhFormatString_V
+    PhFormatSystemTimeISO
     PhFormatToBuffer
     PhFree
     PhFreePage

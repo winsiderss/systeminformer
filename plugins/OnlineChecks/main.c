@@ -31,6 +31,7 @@ PH_CALLBACK_REGISTRATION ModulesTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 
 BOOLEAN ScanningInitialized = FALSE;
+BOOLEAN AutoScanningEnabled = FALSE;
 LIST_ENTRY ScanExtensionsListHead = { &ScanExtensionsListHead, &ScanExtensionsListHead };
 PH_QUEUED_LOCK ScanExtensionsListLock = PH_QUEUED_LOCK_INIT;
 
@@ -40,8 +41,8 @@ VOID NTAPI LoadCallback(
     _In_ PVOID Context
     )
 {
-    if (PhGetIntegerSetting(SETTING_NAME_SCAN_ENABLED))
-        ScanningInitialized = InitializeScanning();
+    AutoScanningEnabled = !!PhGetIntegerSetting(SETTING_NAME_AUTO_SCAN_ENABLED);
+    ScanningInitialized = InitializeScanning();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -110,7 +111,12 @@ VOID ProcessesUpdatedCallback(
         if (!extension->FileName)
             continue;
 
-        EvaluateScanContext(&systemTime, &extension->ScanContext, extension->FileName);
+        EvaluateScanContext(
+            &systemTime,
+            &extension->ScanContext,
+            extension->FileName,
+            AutoScanningEnabled ? 0 : SCAN_FLAG_LOCAL_ONLY
+            );
     }
 
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
@@ -140,6 +146,9 @@ VOID NTAPI MenuItemCallback(
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
+    PSCAN_EXTENSION extension = NULL;
+    SCAN_TYPE scanType = 0;
+    PPH_STRING fileName = NULL;
 
     switch (menuItem->Id)
     {
@@ -206,7 +215,76 @@ VOID NTAPI MenuItemCallback(
             PhFreeFileDialog(fileDialog);
         }
         break;
+    case MENUITEM_VIRUSTOTAL_SCAN_PROCESS:
+        {
+            extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmProcessItemType);
+            scanType = SCAN_TYPE_VIRUSTOTAL;
+            if (extension->ProcessItem->FileName)
+            {
+                fileName = PhGetFileName(extension->ProcessItem->FileName);
+                extension->ProcessItem->FileName = fileName;
+            }
+        }
+        break;
+    case MENUITEM_VIRUSTOTAL_SCAN_MODULE:
+        {
+            extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmModuleItemType);
+            scanType = SCAN_TYPE_VIRUSTOTAL;
+            if (extension->ModuleItem->FileName)
+            {
+                fileName = PhGetFileName(extension->ModuleItem->FileName);
+                extension->ModuleItem->FileName = fileName;
+            }
+        }
+        break;
+    case MENUITEM_VIRUSTOTAL_SCAN_SERVICE:
+        {
+            extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmServiceItemType);
+            scanType = SCAN_TYPE_VIRUSTOTAL;
+            if (extension->ServiceItem->FileName)
+            {
+                fileName = PhGetFileName(extension->ServiceItem->FileName);
+                extension->ServiceItem->FileName = fileName;
+            }
+        }
+        break;
+    case MENUITEM_HYBRIDANALYSIS_SCAN_PROCESS:
+        {
+            extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmProcessItemType);
+            scanType = SCAN_TYPE_HYBRIDANALYSIS;
+            if (extension->ProcessItem->FileName)
+            {
+                fileName = PhGetFileName(extension->ProcessItem->FileName);
+                extension->ProcessItem->FileName = fileName;
+            }
+        }
+        break;
+    case MENUITEM_HYBRIDANALYSIS_SCAN_MODULE:
+        {
+            extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmModuleItemType);
+            scanType = SCAN_TYPE_HYBRIDANALYSIS;
+            if (extension->ModuleItem->FileName)
+            {
+                fileName = PhGetFileName(extension->ModuleItem->FileName);
+                extension->ModuleItem->FileName = fileName;
+            }
+        }
+        break;
+    case MENUITEM_HYBRIDANALYSIS_SCAN_SERVICE:
+        {
+            extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmServiceItemType);
+            scanType = SCAN_TYPE_HYBRIDANALYSIS;
+            if (extension->ServiceItem->FileName)
+            {
+                fileName = PhGetFileName(extension->ServiceItem->FileName);
+                extension->ServiceItem->FileName = fileName;
+            }
+        }
+        break;
     }
+
+    if (fileName)
+        EnqueueScan(&extension->ScanContext, scanType, fileName, SCAN_FLAG_RESCAN);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -241,10 +319,10 @@ PPH_EMENU_ITEM CreateSendToMenu(
     ULONG insertIndex;
 
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_FILESCANIO_UPLOAD, L"&Filescan.io", FileName), ULONG_MAX);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD, L"&Hybrid-analysis.com", FileName), ULONG_MAX);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"Virusscan.&Jotti.org", FileName), ULONG_MAX);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"&VirusTotal.com", FileName), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_FILESCANIO_UPLOAD, L"&filescan.io", FileName), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD, L"&hybrid-analysis.com", FileName), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.&jotti.org", FileName), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"&virustotal.com", FileName), ULONG_MAX);
 
     if (ProcessesMenu && (menuItem = PhFindEMenuItem(Parent, 0, NULL, PHAPP_ID_PROCESS_SEARCHONLINE)))
     {
@@ -271,19 +349,47 @@ VOID NTAPI ProcessMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_PROCESS_ITEM processItem;
     PPH_EMENU_ITEM sendToMenu;
+    PPH_EMENU_ITEM scanWithMenu;
+    PPH_EMENU_ITEM menuItem;
 
     if (menuInfo->u.Process.NumberOfProcesses == 1)
         processItem = menuInfo->u.Process.Processes[0];
     else
         processItem = NULL;
 
-    sendToMenu = CreateSendToMenu(TRUE, menuInfo->Menu, processItem ? processItem->FileName : NULL);
+    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_FILESCANIO_UPLOAD, L"&filescan.io", processItem ? processItem->FileName : NULL), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD, L"&hybrid-analysis.com", processItem ? processItem->FileName : NULL), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.&jotti.org", processItem ? processItem->FileName : NULL), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"&virustotal.com", processItem ? processItem->FileName : NULL), ULONG_MAX);
+    scanWithMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Scan with", NULL);
+    PhInsertEMenuItem(scanWithMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_SCAN_PROCESS, L"VirusTotal", processItem), ULONG_MAX);
+    PhInsertEMenuItem(scanWithMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_SCAN_PROCESS, L"Hybrid-Analysis", processItem), ULONG_MAX);
+
+    if ((menuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_SEARCHONLINE)))
+    {
+        ULONG insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem);
+
+        PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), insertIndex + 1);
+        PhInsertEMenuItem(menuInfo->Menu, sendToMenu, insertIndex + 2);
+        PhInsertEMenuItem(menuInfo->Menu, scanWithMenu, insertIndex + 3);
+    }
+    else
+    {
+        PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menuInfo->Menu, sendToMenu, ULONG_MAX);
+        PhInsertEMenuItem(menuInfo->Menu, scanWithMenu, ULONG_MAX);
+    }
 
     // Only enable the Send To menu if there is exactly one process selected and it has a file name.
     if (!processItem || !processItem->FileName)
     {
         sendToMenu->Flags |= PH_EMENU_DISABLED;
+        scanWithMenu->Flags |= PH_EMENU_DISABLED;
     }
+
+    if (!ScanningInitialized)
+        scanWithMenu->Flags |= PH_EMENU_DISABLED;
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -295,18 +401,33 @@ VOID NTAPI ModuleMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_MODULE_ITEM moduleItem;
     PPH_EMENU_ITEM sendToMenu;
+    PPH_EMENU_ITEM scanWithMenu;
 
     if (menuInfo->u.Module.NumberOfModules == 1)
         moduleItem = menuInfo->u.Module.Modules[0];
     else
         moduleItem = NULL;
 
-    sendToMenu = CreateSendToMenu(FALSE, menuInfo->Menu, moduleItem ? moduleItem->FileName : NULL);
+    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_FILESCANIO_UPLOAD, L"&filescan.io", moduleItem ? moduleItem->FileName : NULL), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD, L"&hybrid-analysis.com", moduleItem ? moduleItem->FileName : NULL), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.&jotti.org", moduleItem ? moduleItem->FileName : NULL), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"&virustotal.com", moduleItem ? moduleItem->FileName : NULL), ULONG_MAX);
+    scanWithMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Scan with", NULL);
+    PhInsertEMenuItem(scanWithMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_SCAN_MODULE, L"VirusTotal", moduleItem), ULONG_MAX);
+    PhInsertEMenuItem(scanWithMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_SCAN_MODULE, L"Hybrid-Analysis", moduleItem), ULONG_MAX);
+    PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(menuInfo->Menu, sendToMenu, ULONG_MAX);
+    PhInsertEMenuItem(menuInfo->Menu, scanWithMenu, ULONG_MAX);
 
     if (!moduleItem)
     {
         sendToMenu->Flags |= PH_EMENU_DISABLED;
+        scanWithMenu->Flags |= PH_EMENU_DISABLED;
     }
+
+    if (!ScanningInitialized)
+        scanWithMenu->Flags |= PH_EMENU_DISABLED;
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -318,6 +439,7 @@ VOID NTAPI ServiceMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_SERVICE_ITEM serviceItem;
     PPH_EMENU_ITEM sendToMenu;
+    PPH_EMENU_ITEM scanWithMenu;
 
     if (menuInfo->u.Service.NumberOfServices == 1)
         serviceItem = menuInfo->u.Service.Services[0];
@@ -325,17 +447,25 @@ VOID NTAPI ServiceMenuInitializingCallback(
         serviceItem = NULL;
 
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_FILESCANIO_UPLOAD_SERVICE, L"&filescan.io", serviceItem ? serviceItem : NULL), ULONG_MAX);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"&hybrid-analysis.com", serviceItem ? serviceItem : NULL), ULONG_MAX);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.&jotti.org", serviceItem ? serviceItem : NULL), ULONG_MAX);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"&virustotal.com", serviceItem ? serviceItem : NULL), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_FILESCANIO_UPLOAD_SERVICE, L"&filescan.io", serviceItem), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"&hybrid-analysis.com", serviceItem), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.&jotti.org", serviceItem), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"&virustotal.com", serviceItem), ULONG_MAX);
+    scanWithMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Scan with", NULL);
+    PhInsertEMenuItem(scanWithMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_SCAN_SERVICE, L"VirusTotal", serviceItem), ULONG_MAX);
+    PhInsertEMenuItem(scanWithMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_SCAN_SERVICE, L"Hybrid-Analysis", serviceItem), ULONG_MAX);
     PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuInfo->Menu, sendToMenu, ULONG_MAX);
+    PhInsertEMenuItem(menuInfo->Menu, scanWithMenu, ULONG_MAX);
 
     if (!serviceItem)
     {
         sendToMenu->Flags |= PH_EMENU_DISABLED;
+        scanWithMenu->Flags |= PH_EMENU_DISABLED;
     }
+
+    if (!ScanningInitialized)
+        scanWithMenu->Flags |= PH_EMENU_DISABLED;
 }
 
 VOID UpdateScanExtensionResult(
@@ -829,7 +959,7 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
-                { IntegerSettingType, SETTING_NAME_SCAN_ENABLED, L"0" },
+                { IntegerSettingType, SETTING_NAME_AUTO_SCAN_ENABLED, L"0" },
                 { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION, L"0" },
                 { StringSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT, L"" },
                 { StringSettingType, SETTING_NAME_HYBRIDANAL_DEFAULT_PAT, L"" },

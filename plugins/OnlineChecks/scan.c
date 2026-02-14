@@ -27,6 +27,7 @@ typedef struct _SCAN_ITEM
     SLIST_ENTRY Entry;
     SCAN_TYPE Type;
     BOOLEAN Abort;
+    ULONG Flags;
     PH_QUEUED_LOCK Lock;
     LARGE_INTEGER Expiry;
     PPH_STRING FileName;
@@ -67,16 +68,21 @@ static PH_RUNDOWN_PROTECT ScanRundown;
 static PPH_OBJECT_TYPE ScanItemObjectType;
 static PPH_OBJECT_TYPE ScanHashObjectType;
 static PH_WORK_QUEUE ScanItemWorkQueue;
-static SLIST_HEADER ScanItemListHead;
+static PH_WORK_QUEUE ScanItemWorkPriorityQueue;
+static SLIST_HEADER ScanItemQueueListHead;
+static SLIST_HEADER ScanItemPriorityQueueListHead;
 static PPH_STRING ScanScanningString = NULL;
 static PPH_STRING ScanTokenMissingString = NULL;
 static PPH_STRING ScanUnauthorizedString = NULL;
 static PPH_STRING ScanCleanString = NULL;
 static PPH_STRING ScanRateLimitedString = NULL;
+static PPH_STRING ScanUnknownString = NULL;
 static const LONG64 ScanOKExpMin = (12LL * 24 * 60 * 60 * 10000000); // 12 days
 static const LONG64 ScanOKExpMax = (14LL * 24 * 60 * 60 * 10000000); // 14 days
 static const LONG64 ScanRateLmtExpMin = (15LL * 60 * 10000000); // 15 minutes
 static const LONG64 ScanRateLmtExpMax = (60LL * 60 * 10000000); // 1 hour
+static const LONG64 ScanNoResponseExpMin = (1LL * 24 * 60 * 60 * 10000000); // 1 days
+static const LONG64 ScanNoResponseExpMax = (2LL * 24 * 60 * 60 * 10000000); // 2 days
 
 static sqlite3* ScanDB = NULL;
 static PH_QUEUED_LOCK ScanDBLock = PH_QUEUED_LOCK_INIT;
@@ -108,6 +114,7 @@ const char* ScanDBSQL =
 "    sha256 TEXT PRIMARY KEY,"
 "    http_status INTEGER,"
 "    expiry INTEGER,"
+"    expiry_iso TEXT,"
 "    malicious INTEGER,"
 "    undetected INTEGER"
 ");"
@@ -115,29 +122,49 @@ const char* ScanDBSQL =
 "    sha256 TEXT PRIMARY KEY,"
 "    http_status INTEGER,"
 "    expiry INTEGER,"
+"    expiry_iso TEXT,"
 "    multiscan_result INTEGER,"
 "    vx_family INTEGER"
-");";
+");"
+;
 
 static const SQL_SMT ScanDBSQLSmts[] =
 {
     {
         &ScanDBInsertVirusTotal,
-        "INSERT OR REPLACE INTO virus_total(sha256, http_status, expiry, malicious, undetected)"
-        "VALUES(?, ?, ?, ?, ?);"
+        "INSERT OR REPLACE INTO virus_total("
+        "    sha256,"
+        "    http_status,"
+        "    expiry,"
+        "    expiry_iso,"
+        "    malicious,"
+        "    undetected"
+        ") "
+        "VALUES(?, ?, ?, ?, ?, ?);"
     },
     {
         &ScanDBQueryVirusTotal,
-        "SELECT http_status, expiry, malicious, undetected FROM virus_total WHERE sha256 = ?;"
+        "SELECT http_status, expiry, malicious, undetected "
+        "FROM virus_total "
+        "WHERE sha256 = ?;"
     },
     {
         &ScanDBInsertHybridAnalysis,
-        "INSERT OR REPLACE INTO hybrid_analysis(sha256, http_status, expiry, multiscan_result, vx_family)"
-        "VALUES(?, ?, ?, ?, ?);"
+        "INSERT OR REPLACE INTO hybrid_analysis("
+        "    sha256,"
+        "    http_status,"
+        "    expiry,"
+        "    expiry_iso,"
+        "    multiscan_result,"
+        "    vx_family"
+        ") "
+        "VALUES(?, ?, ?, ?, ?, ?);"
     },
     {
         &ScanDBQueryHybridAnalysis,
-        "SELECT http_status, expiry, multiscan_result, vx_family FROM hybrid_analysis WHERE sha256 = ?;"
+        "SELECT http_status, expiry, multiscan_result, vx_family "
+        "FROM hybrid_analysis "
+        "WHERE sha256 = ?;"
     }
 };
 
@@ -310,15 +337,24 @@ VOID UpdateDBVirusTotal(
     _In_ ULONG64 Undetected
     )
 {
+    SYSTEMTIME systemTime;
+    PPH_STRING iso;
+
+    PhLargeIntegerToLocalSystemTime(&systemTime, Expiry);
+    iso = PhFormatLocalSystemTimeISO(&systemTime);
+
     PhAcquireQueuedLockExclusive(&ScanDBLock);
     sqlite3_bind_text16_I(ScanDBInsertVirusTotal, 1, Hash->Buffer, (int)Hash->Length, SQLITE_TRANSIENT);
     sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 2, HttpStatus);
     sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 3, Expiry->QuadPart);
-    sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 4, Malicious);
-    sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 5, Undetected);
+    sqlite3_bind_text16_I(ScanDBInsertVirusTotal, 4, iso->Buffer, (int)iso->Length, SQLITE_TRANSIENT);
+    sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 5, Malicious);
+    sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 6, Undetected);
     sqlite3_step_I(ScanDBInsertVirusTotal);
     sqlite3_reset_I(ScanDBInsertVirusTotal);
     PhReleaseQueuedLockExclusive(&ScanDBLock);
+
+    PhDereferenceObject(iso);
 }
 
 VOID ProcessVirusTotal(
@@ -335,23 +371,33 @@ VOID ProcessVirusTotal(
 
     PhQuerySystemTime(&systemTime);
 
-    if (QueryDBVirusTotal(Item->FileHash->Sha256, &httpStatus, &expiry, &malicious, &undetected) &&
-        expiry.QuadPart > systemTime.QuadPart)
+    if (!FlagOn(Item->Flags, SCAN_FLAG_RESCAN))
     {
-        if (httpStatus == 200) // OK
+        if (QueryDBVirusTotal(Item->FileHash->Sha256, &httpStatus, &expiry, &malicious, &undetected) &&
+            expiry.QuadPart > systemTime.QuadPart)
         {
-            WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-            SetScanResult(Item, PhFormatString(L"%llu/%llu", malicious, undetected));
-            goto CleanupExit;
-        }
+            if (httpStatus == 200) // OK
+            {
+                WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+                SetScanResult(Item, PhFormatString(L"%llu/%llu", malicious, undetected));
+            }
+            else if (httpStatus == 429) // Too many requests
+            {
+                WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+                SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
+            }
+            else
+            {
+                WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+                SetScanResult(Item, PhReferenceObject(ScanUnknownString));
+            }
 
-        if (httpStatus == 429) // Too many requests
-        {
-            WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-            SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
             goto CleanupExit;
         }
     }
+
+    if (FlagOn(Item->Flags, SCAN_FLAG_LOCAL_ONLY))
+        goto CleanupExit;
 
     pat = PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT);
     if (PhIsNullOrEmptyString(pat))
@@ -363,32 +409,45 @@ VOID ProcessVirusTotal(
     if (!NT_SUCCESS(VirusTotalRequestFileReport(Item->FileHash->Sha256, pat, &report)))
         goto CleanupExit;
 
-
     if (report->HttpStatus == 200) // OK
     {
+        httpStatus = report->HttpStatus;
+        malicious = report->Malicious;
+        undetected = report->Undetected;
+
         expiry.QuadPart = MakeExpiry(&systemTime, ScanOKExpMin, ScanOKExpMax);
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
         SetScanResult(Item, PhFormatString(L"%llu/%llu", malicious, undetected));
 
-        httpStatus = report->HttpStatus;
-        malicious = report->Malicious;
-        undetected = report->Undetected;
         UpdateDBVirusTotal(Item->FileHash->Sha256, httpStatus, &expiry, malicious, undetected);
     }
     else if (report->HttpStatus == 429) // Too many requests
     {
+        httpStatus = report->HttpStatus;
+        malicious = 0;
+        undetected = 0;
+
         expiry.QuadPart = MakeExpiry(&systemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
         SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
 
-        httpStatus = report->HttpStatus;
-        malicious = 0;
-        undetected = 0;
         UpdateDBVirusTotal(Item->FileHash->Sha256, httpStatus, &expiry, malicious, undetected);
     }
     else if (report->HttpStatus == 401 || report->HttpStatus == 403) // Unauthorized/Forbidden
     {
         SetScanResult(Item, PhReferenceObject(ScanUnauthorizedString));
+    }
+    else
+    {
+        httpStatus = report->HttpStatus;
+        malicious = 0;
+        undetected = 0;
+
+        expiry.QuadPart = MakeExpiry(&systemTime, ScanNoResponseExpMin, ScanNoResponseExpMax);
+        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+        SetScanResult(Item, PhReferenceObject(ScanUnknownString));
+
+        UpdateDBVirusTotal(Item->FileHash->Sha256, httpStatus, &expiry, malicious, undetected);
     }
 
 CleanupExit:
@@ -438,15 +497,24 @@ VOID UpdateDBHybridAnalysis(
     _In_ PPH_STRING VxFamily
     )
 {
+    SYSTEMTIME systemTime;
+    PPH_STRING iso;
+
+    PhLargeIntegerToLocalSystemTime(&systemTime, Expiry);
+    iso = PhFormatLocalSystemTimeISO(&systemTime);
+
     PhAcquireQueuedLockExclusive(&ScanDBLock);
     sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 1, Hash->Buffer, (int)Hash->Length, SQLITE_TRANSIENT);
     sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 2, HttpStatus);
     sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 3, Expiry->QuadPart);
-    sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 4, MultiscanResult);
-    sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 5, VxFamily->Buffer, (int)VxFamily->Length, SQLITE_TRANSIENT);
+    sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 4, iso->Buffer, (int)iso->Length, SQLITE_TRANSIENT);
+    sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 5, MultiscanResult);
+    sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 6, VxFamily->Buffer, (int)VxFamily->Length, SQLITE_TRANSIENT);
     sqlite3_step_I(ScanDBInsertHybridAnalysis);
     sqlite3_reset_I(ScanDBInsertHybridAnalysis);
     PhReleaseQueuedLockExclusive(&ScanDBLock);
+
+    PhDereferenceObject(iso);
 }
 
 VOID ProcessHybridAnalysis(
@@ -463,26 +531,36 @@ VOID ProcessHybridAnalysis(
 
     PhQuerySystemTime(&systemTime);
 
-    if (QueryDBHybridAnalysis(Item->FileHash->Sha256, &httpStatus, &expiry, &multiscanResult, &vxFamily) &&
-        expiry.QuadPart > systemTime.QuadPart)
+    if (!FlagOn(Item->Flags, SCAN_FLAG_RESCAN))
     {
-        if (httpStatus == 200) // OK
+        if (QueryDBHybridAnalysis(Item->FileHash->Sha256, &httpStatus, &expiry, &multiscanResult, &vxFamily) &&
+            expiry.QuadPart > systemTime.QuadPart)
         {
-            WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-            if (PhIsNullOrEmptyString(vxFamily))
-                SetScanResult(Item, PhReferenceObject(ScanCleanString));
+            if (httpStatus == 200) // OK
+            {
+                WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+                if (vxFamily->Length == 0)
+                    SetScanResult(Item, PhReferenceObject(ScanCleanString));
+                else
+                    SetScanResult(Item, PhFormatString(L"%llu%% %ls", multiscanResult, PhGetString(vxFamily)));
+            }
+            else if (httpStatus == 429) // Too many requests
+            {
+                WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+                SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
+            }
             else
-                SetScanResult(Item, PhFormatString(L"%llu%% %ls", multiscanResult, PhGetString(vxFamily)));
-            goto CleanupExit;
-        }
+            {
+                WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+                SetScanResult(Item, PhReferenceObject(ScanUnknownString));
+            }
 
-        if (httpStatus == 429) // Too many requests
-        {
-            WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-            SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
             goto CleanupExit;
         }
     }
+
+    if (FlagOn(Item->Flags, SCAN_FLAG_LOCAL_ONLY))
+        goto CleanupExit;
 
     PhClearReference(&vxFamily);
 
@@ -498,32 +576,46 @@ VOID ProcessHybridAnalysis(
 
     if (report->HttpStatus == 200) // OK
     {
+        httpStatus = report->HttpStatus;
+        multiscanResult = report->MultiscanResult;
+        vxFamily = PhReferenceObject(report->VxFamily);
         expiry.QuadPart = MakeExpiry(&systemTime, ScanOKExpMin, ScanOKExpMax);
+
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-        if (PhIsNullOrEmptyString(vxFamily))
+        if (vxFamily->Length == 0)
             SetScanResult(Item, PhReferenceObject(ScanCleanString));
         else
             SetScanResult(Item, PhFormatString(L"%llu%% %ls", multiscanResult, PhGetString(vxFamily)));
 
-        httpStatus = report->HttpStatus;
-        multiscanResult = report->MultiscanResult;
-        vxFamily = PhReferenceObject(report->VxFamily);
         UpdateDBHybridAnalysis(Item->FileHash->Sha256, httpStatus, &expiry, multiscanResult, vxFamily);
     }
     else if (report->HttpStatus == 429) // Too many requests
     {
-        expiry.QuadPart = MakeExpiry(&systemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
-        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-        SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
-
         httpStatus = report->HttpStatus;
         multiscanResult = 0;
         vxFamily = PhReferenceEmptyString();
+
+        expiry.QuadPart = MakeExpiry(&systemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
+        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+        SetScanResult(Item, PhReferenceObject(vxFamily));
+
         UpdateDBHybridAnalysis(Item->FileHash->Sha256, httpStatus, &expiry, multiscanResult, vxFamily);
     }
     else if (report->HttpStatus == 401 || report->HttpStatus == 403) // Unauthorized/Forbidden
     {
         SetScanResult(Item, PhReferenceObject(ScanUnauthorizedString));
+    }
+    else
+    {
+        httpStatus = report->HttpStatus;
+        multiscanResult = 0;
+        vxFamily = PhReferenceEmptyString();
+
+        expiry.QuadPart = MakeExpiry(&systemTime, ScanNoResponseExpMin, ScanNoResponseExpMax);
+        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+        SetScanResult(Item, PhReferenceObject(ScanUnknownString));
+
+        UpdateDBHybridAnalysis(Item->FileHash->Sha256, httpStatus, &expiry, multiscanResult, vxFamily);
     }
 
 CleanupExit:
@@ -576,7 +668,7 @@ NTSTATUS ScanItemWorkerRoutine(
 {
     PSLIST_ENTRY entry;
 
-    entry = RtlInterlockedFlushSList(&ScanItemListHead);
+    entry = RtlInterlockedFlushSList(&ScanItemQueueListHead);
 
     while (entry)
     {
@@ -592,9 +684,35 @@ NTSTATUS ScanItemWorkerRoutine(
     return STATUS_SUCCESS;
 }
 
-PSCAN_ITEM CreateAndSubmitScanItem(
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS ScanItemPriorityWorkerRoutine(
+    _In_ PVOID Parameter
+    )
+{
+    PSLIST_ENTRY entry;
+
+    entry = RtlInterlockedFlushSList(&ScanItemPriorityQueueListHead);
+
+    while (entry)
+    {
+        PSCAN_ITEM item;
+
+        item = CONTAINING_RECORD(entry, SCAN_ITEM, Entry);
+        entry = entry->Next;
+
+        ProcessScanItem(item);
+        PhDereferenceObject(item);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+
+PSCAN_ITEM CreateAndEnqueueScanItem(
     _In_ PSCAN_CONTEXT Context,
-    _In_ SCAN_TYPE Type
+    _In_ SCAN_TYPE Type,
+    _In_ ULONG Flags,
+    _In_ BOOLEAN PriorityQueue
     )
 {
     PSCAN_ITEM item;
@@ -604,14 +722,23 @@ PSCAN_ITEM CreateAndSubmitScanItem(
 
     PhInitializeQueuedLock(&item->Lock);
     item->Type = Type;
+    item->Flags = Flags;
     item->FileName = PhReferenceObject(Context->FileName);
     item->FileHash = PhReferenceObject(Context->FileHash);
     item->Result = PhReferenceObject(ScanScanningString);
     item->Expiry.QuadPart = LONG64_MAX;
 
     PhReferenceObject(item);
-    if (!RtlInterlockedPushEntrySList(&ScanItemListHead, &item->Entry))
-        PhQueueItemWorkQueue(&ScanItemWorkQueue, ScanItemWorkerRoutine, NULL);
+    if (PriorityQueue)
+    {
+        if (!RtlInterlockedPushEntrySList(&ScanItemPriorityQueueListHead, &item->Entry))
+            PhQueueItemWorkQueue(&ScanItemWorkPriorityQueue, ScanItemPriorityWorkerRoutine, NULL);
+    }
+    else
+    {
+        if (!RtlInterlockedPushEntrySList(&ScanItemQueueListHead, &item->Entry))
+            PhQueueItemWorkQueue(&ScanItemWorkQueue, ScanItemWorkerRoutine, NULL);
+    }
 
     return item;
 }
@@ -627,30 +754,49 @@ VOID InitializeScanContext(
     Context->FileHash->Status = STATUS_PENDING;
 }
 
-VOID EvaluateScanContext(
-    _In_ PLARGE_INTEGER SystemTime,
-    _Inout_ PSCAN_CONTEXT Context,
-    _In_ PPH_STRING FileName
+VOID EnqueueScanInternal(
+    _In_ PSCAN_CONTEXT Context,
+    _In_ SCAN_TYPE Type,
+    _In_ PPH_STRING FileName,
+    _In_ ULONG Flags,
+    _In_ BOOLEAN PriorityQueue
     )
 {
     if (!Context->FileName)
         Context->FileName = PhReferenceObject(FileName);
 
+    if (Context->ScanItems[Type])
+        WriteRelease8(&Context->ScanItems[Type]->Abort, TRUE);
+
+    PhMoveReference(
+        &Context->ScanItems[Type],
+        CreateAndEnqueueScanItem(Context, Type, Flags, PriorityQueue)
+        );
+}
+
+VOID EnqueueScan(
+    _In_ PSCAN_CONTEXT Context,
+    _In_ SCAN_TYPE Type,
+    _In_ PPH_STRING FileName,
+    _In_ ULONG Flags
+    )
+{
+    EnqueueScanInternal(Context, Type, FileName, Flags, TRUE);
+}
+
+VOID EvaluateScanContext(
+    _In_ PLARGE_INTEGER SystemTime,
+    _Inout_ PSCAN_CONTEXT Context,
+    _In_ PPH_STRING FileName,
+    _In_ ULONG Flags
+    )
+{
     for (ULONG i = 0; i < RTL_NUMBER_OF(Context->ScanItems); i++)
     {
-        if (!Context->ScanItems[i])
+        if (!Context->ScanItems[i] || Context->ScanItems[i]->Expiry.QuadPart <= SystemTime->QuadPart)
         {
-            NOTHING;
+            EnqueueScanInternal(Context, i, FileName, Flags, FALSE);
         }
-        else if (Context->ScanItems[i]->Expiry.QuadPart > SystemTime->QuadPart)
-        {
-            continue;
-        }
-
-        if (Context->ScanItems[i])
-            WriteRelease8(&Context->ScanItems[i]->Abort, TRUE);
-
-        PhMoveReference(&Context->ScanItems[i], CreateAndSubmitScanItem(Context, i));
     }
 }
 
@@ -744,6 +890,7 @@ BOOLEAN InitializeScanning(
     ScanTokenMissingString = PhCreateString(L"Token missing");
     ScanUnauthorizedString = PhCreateString(L"Unauthorized");
     ScanCleanString = PhCreateString(L"Clean");
+    ScanUnknownString = PhCreateString(L"Unknown");
     ScanRateLimitedString = PhCreateString(L"Rate limited...");
 
     result = FALSE;
@@ -753,7 +900,9 @@ BOOLEAN InitializeScanning(
     ScanItemObjectType = PhCreateObjectType(L"ScanItem", 0, ScanItemDeleteProcedure);
     ScanHashObjectType = PhCreateObjectType(L"ScanHash", 0, ScanHashDeleteProcedure);
     PhInitializeWorkQueue(&ScanItemWorkQueue, 0, 3, 500);
-    RtlInitializeSListHead(&ScanItemListHead);
+    PhInitializeWorkQueue(&ScanItemWorkPriorityQueue, 0, 3, 500);
+    RtlInitializeSListHead(&ScanItemQueueListHead);
+    RtlInitializeSListHead(&ScanItemPriorityQueueListHead);
 
     if (!LoadSQLite())
         goto CleanupExit;
@@ -762,6 +911,7 @@ BOOLEAN InitializeScanning(
     int flags = SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX;
     if (sqlite3_open_v2_I(fn, &ScanDB, flags, NULL) != SQLITE_OK)
         goto CleanupExit;
+
     if (sqlite3_exec_I(ScanDB, ScanDBSQL, NULL, NULL, NULL) != SQLITE_OK)
         goto CleanupExit;
 

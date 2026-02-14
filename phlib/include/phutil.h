@@ -853,6 +853,20 @@ PhCompareUnicodeStringZIgnoreMenuPrefix(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhFormatSystemTimeISO(
+    _In_opt_ PSYSTEMTIME SystemTime
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatLocalSystemTimeISO(
+    _In_opt_ PSYSTEMTIME SystemTime
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhFormatDate(
     _In_opt_ PSYSTEMTIME Date,
     _In_opt_ PCWSTR Format

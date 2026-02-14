@@ -1844,6 +1844,104 @@ LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
 }
 
 /**
+ * Formats UTC system time in ISO 8601 format.
+ *
+ * \param SystemTime The UTC time structure. If NULL, the current local time is used.
+ *
+ * \return A string in the ISO 8601 format.
+ */
+PPH_STRING PhFormatSystemTimeISO(
+    _In_opt_ PSYSTEMTIME SystemTime
+    )
+{
+    SYSTEMTIME systemTime;
+
+    if (SystemTime)
+    {
+        systemTime = *SystemTime;
+    }
+    else
+    {
+        LARGE_INTEGER timeStamp;
+        PhQuerySystemTime(&timeStamp);
+        PhLargeIntegerToSystemTime(&systemTime, &timeStamp);
+    }
+
+    return PhFormatString(
+        L"%04u-%02u-%02uT%02u:%02u:%02u.%03uZ",
+        systemTime.wYear,
+        systemTime.wMonth,
+        systemTime.wDay,
+        systemTime.wHour,
+        systemTime.wMinute,
+        systemTime.wSecond,
+        systemTime.wMilliseconds
+        );
+}
+
+/**
+ * Formats local system time in ISO 8601 format, including the time zone offset.
+ *
+ * \param SystemTime The local time structure. If NULL, the current local time is used.
+ *
+ * \return A string in the ISO 8601 format.
+ */
+PPH_STRING PhFormatLocalSystemTimeISO(
+    _In_opt_ PSYSTEMTIME SystemTime
+    )
+{
+    SYSTEMTIME systemTime;
+    LARGE_INTEGER timeZoneBias;
+    CHAR sign;
+    USHORT timeZoneHours;
+    USHORT timeZoneMinutes;
+
+    if (SystemTime)
+    {
+        systemTime = *SystemTime;
+    }
+    else
+    {
+        LARGE_INTEGER timeStamp;
+        PhQuerySystemTime(&timeStamp);
+        PhLargeIntegerToLocalSystemTime(&systemTime, &timeStamp);
+    }
+
+    PhQueryTimeZoneBias(&timeZoneBias);
+    if (timeZoneBias.QuadPart == 0)
+    {
+        return PhFormatSystemTimeISO(&systemTime);
+    }
+
+    if (timeZoneBias.QuadPart > 0)
+    {
+        sign = '-';
+        timeZoneHours = (USHORT)((timeZoneBias.QuadPart / 600000000LL) / 60);
+        timeZoneMinutes = (USHORT)((timeZoneBias.QuadPart / 600000000LL) % 60);
+    }
+    else
+    {
+        sign = '+';
+        timeZoneHours = (USHORT)((-timeZoneBias.QuadPart / 600000000LL) / 60);
+        timeZoneMinutes = (USHORT)((-timeZoneBias.QuadPart / 600000000LL) % 60);
+    }
+
+    return PhFormatString(
+        L"%04u-%02u-%02uT%02u:%02u:%02u.%03u%c%02u:%02u",
+        systemTime.wYear,
+        systemTime.wMonth,
+        systemTime.wDay,
+        systemTime.wHour,
+        systemTime.wMinute,
+        systemTime.wSecond,
+        systemTime.wMilliseconds,
+        sign,
+        timeZoneHours,
+        timeZoneMinutes
+        );
+}
+
+/**
  * Formats a date using the user's default locale.
  *
  * \param Date The time structure. If NULL, the current time is used.
@@ -4605,7 +4703,7 @@ PPH_STRING PhGetTemporaryDirectory(
  * \param Handles An array of handles.
  * \param Timeout The number of milliseconds to wait on the objects, or INFINITE for no timeout.
  * \param WakeMask The input types for which an input event object handle will be added to the array of object handles.
- * \remarks The wait is always in WaitAny mode. Passing a specific HWND to PeekMessage filters out thread messages 
+ * \remarks The wait is always in WaitAny mode. Passing a specific HWND to PeekMessage filters out thread messages
  * (e.g., WM_QUIT) and messages for other windows on the same thread. If you expect full pumping, the HWND must be NULL.
  */
 NTSTATUS PhWaitForMultipleObjectsAndPump(
@@ -9981,7 +10079,7 @@ NTSTATUS PhInitializeProcThreadAttributeList(
 // rev from DeleteProcThreadAttributeList (dmex)
 /**
  * Frees a PROC_THREAD_ATTRIBUTE_LIST structure previously allocated by PhInitializeProcThreadAttributeList.
- * 
+ *
  * \param AttributeList Pointer to the attribute list to free.
  * \return NTSTATUS code indicating success or failure.
  */

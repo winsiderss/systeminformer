@@ -24,7 +24,7 @@
 #include "resource.h"
 
 #define PLUGIN_NAME L"OnlineChecks"
-#define SETTING_NAME_SCAN_ENABLED (PLUGIN_NAME L".EnableScanning")
+#define SETTING_NAME_AUTO_SCAN_ENABLED (PLUGIN_NAME L".EnableAutoScanning")
 #define SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION (PLUGIN_NAME L".VirusTotalDefautAction")
 #define SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT (PLUGIN_NAME L".VirusTotalDefautPAT")
 #define SETTING_NAME_HYBRIDANAL_DEFAULT_PAT (PLUGIN_NAME L".HybridAnalysisDefautPAT")
@@ -313,6 +313,13 @@ VOID HybridAnalysisFreeFileReport(
 
 // scan
 
+#define MENUITEM_VIRUSTOTAL_SCAN_PROCESS 200
+#define MENUITEM_HYBRIDANALYSIS_SCAN_PROCESS 201
+#define MENUITEM_VIRUSTOTAL_SCAN_MODULE 202
+#define MENUITEM_HYBRIDANALYSIS_SCAN_MODULE 203
+#define MENUITEM_VIRUSTOTAL_SCAN_SERVICE 204
+#define MENUITEM_HYBRIDANALYSIS_SCAN_SERVICE 205
+
 BOOLEAN InitializeScanning(
     VOID
     );
@@ -325,10 +332,21 @@ VOID InitializeScanContext(
     _Out_ PSCAN_CONTEXT Context
     );
 
+#define SCAN_FLAG_RESCAN        0x00000001
+#define SCAN_FLAG_LOCAL_ONLY    0x00000002
+
+VOID EnqueueScan(
+    _In_ PSCAN_CONTEXT Context,
+    _In_ SCAN_TYPE Type,
+    _In_ PPH_STRING FileName,
+    _In_ ULONG Flags
+    );
+
 VOID EvaluateScanContext(
     _In_ PLARGE_INTEGER SystemTime,
     _Inout_ PSCAN_CONTEXT Context,
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRING FileName,
+    _In_ ULONG Flags
     );
 
 VOID DeleteScanContext(
