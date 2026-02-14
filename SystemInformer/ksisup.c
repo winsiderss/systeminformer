@@ -348,6 +348,10 @@ VOID PhShowKsiStatus(
         {
             PhAppendStringBuilder2(&stringBuilder, L"    - process is being debugged\r\n");
         }
+        if (!BooleanFlagOn(processState, KPH_PROCESS_CREATE_NOTIFICATION))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"    - no create notification\r\n");
+        }
         if ((processState & KPH_PROCESS_STATE_MINIMUM) != KPH_PROCESS_STATE_MINIMUM)
         {
             PhAppendStringBuilder2(&stringBuilder, L"    - tampered primary image\r\n");
