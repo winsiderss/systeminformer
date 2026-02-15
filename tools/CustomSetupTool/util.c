@@ -1337,7 +1337,7 @@ PPH_STRING GetApplicationInstallPath(
  *
  * \return TRUE if a legacy setup is installed, otherwise FALSE.
  */
-    NTSTATUS SetupLegacySetupInstalled(
+NTSTATUS SetupLegacySetupInstalled(
     VOID
     )
 {

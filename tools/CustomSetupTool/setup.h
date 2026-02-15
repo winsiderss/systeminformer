@@ -212,7 +212,7 @@ NTSTATUS SetupExecuteApplication(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-VOID SetupUpgradeSettingsFile(
+NTSTATUS SetupUpgradeSettingsFile(
     VOID
     );
 
@@ -250,7 +250,7 @@ PPH_STRING GetApplicationInstallPath(
     VOID
     );
 
-BOOLEAN SetupLegacySetupInstalled(
+NTSTATUS SetupLegacySetupInstalled(
     VOID
     );
 
