@@ -23,6 +23,12 @@ static decltype(&BcdSetElementData) BcdSetElementData_I = nullptr;
 //static decltype(&BcdDeleteElement) BcdDeleteElement_I = nullptr;
 static decltype(&BcdEnumerateObjects) BcdEnumerateObjects_I = nullptr;
 
+/**
+ * Ensures the BCD API (bcd.dll) is loaded and the required procedure
+ * pointers are initialized and cached.
+ *
+ * \return TRUE if the BCD API is available and initialized, FALSE otherwise.
+ */
 static BOOLEAN PhpBcdApiInitialized(
     VOID
     )
@@ -61,6 +67,12 @@ static BOOLEAN PhpBcdApiInitialized(
     return bcdInitialized;
 }
 
+/**
+ * Opens the system BCD store.
+ *
+ * \param StoreHandle Receives the handle to the opened BCD store on success.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdOpenSystemStore(
     _Out_ PHANDLE StoreHandle
     )
@@ -83,6 +95,12 @@ NTSTATUS PhBcdOpenSystemStore(
     return status;
 }
 
+/**
+ * Closes a previously opened BCD store handle.
+ *
+ * \param StoreHandle The handle to the BCD store to close.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdCloseStore(
     _In_ HANDLE StoreHandle
     )
@@ -93,6 +111,14 @@ NTSTATUS PhBcdCloseStore(
     return BcdCloseStore_I(StoreHandle);
 }
 
+/**
+ * Opens a BCD object identified by \p Identifier from the specified store.
+ *
+ * \param StoreHandle Handle to the BCD store.
+ * \param Identifier Pointer to the GUID that identifies the BCD object to open.
+ * \param ObjectHandle Receives the opened object handle on success.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdOpenObject(
     _In_ HANDLE StoreHandle,
     _In_ PCGUID Identifier,
@@ -119,6 +145,12 @@ NTSTATUS PhBcdOpenObject(
     return status;
 }
 
+/**
+ * Closes a previously opened BCD object handle.
+ *
+ * \param ObjectHandle The handle to the BCD object to close.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdCloseObject(
     _In_ HANDLE ObjectHandle
     )
@@ -129,6 +161,15 @@ NTSTATUS PhBcdCloseObject(
     return BcdCloseObject_I(ObjectHandle);
 }
 
+/**
+ * Retrieves element data from a BCD object.
+ *
+ * \param ObjectHandle Handle to the BCD object.
+ * \param ElementType The element type to retrieve.
+ * \param Buffer Buffer to receive the element data; may be NULL to query size.
+ * \param BufferSize On input the size of \p Buffer; on output receives the number of bytes written or required.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdGetElementData(
     _In_ HANDLE ObjectHandle,
     _In_ ULONG ElementType,
@@ -147,6 +188,15 @@ NTSTATUS PhBcdGetElementData(
         );
 }
 
+/**
+ * Sets element data on a BCD object.
+ *
+ * \param ObjectHandle Handle to the BCD object.
+ * \param ElementType The element type to set.
+ * \param Buffer Buffer containing the element data.
+ * \param BufferSize Size of \p Buffer in bytes.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdSetElementData(
     _In_ HANDLE ObjectHandle,
     _In_ ULONG ElementType,
@@ -179,6 +229,16 @@ NTSTATUS PhBcdSetElementData(
 //        );
 //}
 
+/**
+ * Enumerates BCD objects in the provided store that match \p EnumDescriptor.
+ *
+ * \param StoreHandle Handle to the BCD store.
+ * \param EnumDescriptor Descriptor used to filter the enumeration.
+ * \param Buffer Buffer to receive enumeration results; may be NULL to query size.
+ * \param BufferSize On input the size of \p Buffer; on output receives the number of bytes written or required.
+ * \param ObjectCount Receives the number of objects returned.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdEnumerateObjects(
     _In_ HANDLE StoreHandle,
     _In_ PBCD_OBJECT_DESCRIPTION EnumDescriptor,
@@ -208,6 +268,14 @@ NTSTATUS PhBcdEnumerateObjects(
         );
 }
 
+/**
+ * Retrieves a string element from a BCD object into a newly allocated PH_STRING.
+ *
+ * \param ObjectHandle Handle to the BCD object.
+ * \param ElementType The element type to retrieve (must be string format).
+ * \param ElementString On success receives a referenced PH_STRING; caller must dereference when finished. May be NULL.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdGetElementString(
     _In_ HANDLE ObjectHandle,
     _In_ ULONG ElementType,
@@ -262,6 +330,14 @@ NTSTATUS PhBcdGetElementString(
     return status;
 }
 
+/**
+ * Retrieves a 64-bit integer element from a BCD object.
+ *
+ * \param ObjectHandle Handle to the BCD object.
+ * \param ElementType The element type to retrieve (must be integer format).
+ * \param ElementValue Receives the 64-bit value on success.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdGetElementUlong64(
     _In_ HANDLE ObjectHandle,
     _In_ ULONG ElementType,
@@ -292,6 +368,14 @@ NTSTATUS PhBcdGetElementUlong64(
     return status;
 }
 
+/**
+ * Retrieves a boolean element from a BCD object.
+ *
+ * \param ObjectHandle Handle to the BCD object.
+ * \param ElementType The element type to retrieve (must be boolean format).
+ * \param ElementValue Receives the boolean value on success.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdGetElementBoolean(
     _In_ HANDLE ObjectHandle,
     _In_ ULONG ElementType,
@@ -322,6 +406,14 @@ NTSTATUS PhBcdGetElementBoolean(
     return status;
 }
 
+/**
+ * Helper that opens the system store and the current boot entry and retrieves an element's data.
+ *
+ * \param ElementType The element type to retrieve.
+ * \param Buffer Buffer to receive the element data; may be NULL to query size.
+ * \param BufferSize On input the size of \p Buffer; on output receives the number of bytes written or required.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdGetElementData2(
     _In_ ULONG ElementType,
     _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer,
@@ -367,6 +459,14 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Helper that opens the system store and the current boot entry and sets an element's data.
+ *
+ * \param ElementType The element type to set.
+ * \param Buffer Buffer containing the element data.
+ * \param BufferSize Size of \p Buffer in bytes.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdSetElementData2(
     _In_ ULONG ElementType,
     _In_reads_bytes_opt_(BufferSize) PVOID Buffer,
@@ -412,6 +512,12 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Sets or clears the "Advanced Options One Time" flag for the current boot entry.
+ *
+ * \param Enable TRUE to enable the one-time advanced options, FALSE to disable.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdSetAdvancedOptionsOneTime(
     _In_ BOOLEAN Enable
     )
@@ -450,6 +556,13 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Sets the Windows boot manager's one-time boot application and optionally synchronizes the firmware one-time entry.
+ *
+ * \param Identifier GUID of the boot application to set as one-time.
+ * \param UpdateOneTimeFirmware If TRUE attempt to update the firmware boot manager's one-time entry for a seamless reboot.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdSetBootApplicationOneTime(
     _In_ PCGUID Identifier,
     _In_opt_ BOOLEAN UpdateOneTimeFirmware
@@ -545,6 +658,12 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Sets the firmware boot manager's one-time boot application.
+ *
+ * \param Identifier GUID of the firmware boot application to set as one-time.
+ * \return NTSTATUS result code.
+ */
 NTSTATUS PhBcdSetFirmwareBootApplicationOneTime(
     _In_ PCGUID Identifier
     )
@@ -586,6 +705,12 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Enumerates OS loader BCD objects and appends entries to the provided list.
+ *
+ * \param StoreHandle Handle to the BCD store to enumerate.
+ * \param ObjectList List that receives PPH_BCD_OBJECT_LIST entries.
+ */
 static VOID PhpBcdEnumerateOsLoaderList(
     _In_ HANDLE StoreHandle,
     _In_ PPH_LIST ObjectList
@@ -687,6 +812,14 @@ static VOID PhpBcdEnumerateOsLoaderList(
     PhFree(object);
 }
 
+/**
+ * Enumerates object lists from a boot manager entry and appends entries to the provided list.
+ *
+ * \param StoreHandle Handle to the BCD store.
+ * \param Identifier GUID of the object whose list will be enumerated.
+ * \param ElementType The element type that contains the object list.
+ * \param ObjectList List that receives PPH_BCD_OBJECT_LIST entries.
+ */
 static VOID PhpBcdEnumerateBootMgrList(
     _In_ HANDLE StoreHandle,
     _In_ PCGUID Identifier,
@@ -755,6 +888,12 @@ CleanupExit:
         PhBcdCloseObject(objectHandle);
 }
 
+/**
+ * Queries and returns a list of boot applications.
+ *
+ * \param EnumerateAllObjects TRUE to enumerate all OS loader objects; FALSE to use the boot manager display and tools order.
+ * \return A referenced PPH_LIST containing PPH_BCD_OBJECT_LIST entries on success, or NULL on failure.
+ */
 PPH_LIST PhBcdQueryBootApplicationList(
     _In_ BOOLEAN EnumerateAllObjects
     )
@@ -799,6 +938,11 @@ PPH_LIST PhBcdQueryBootApplicationList(
     return objectApplicationList;
 }
 
+/**
+ * Queries and returns a list of firmware boot applications from the firmware boot manager.
+ *
+ * \return A referenced PPH_LIST containing PPH_BCD_OBJECT_LIST entries on success, or NULL on failure.
+ */
 PPH_LIST PhBcdQueryFirmwareBootApplicationList(
     VOID
     )
@@ -832,6 +976,11 @@ PPH_LIST PhBcdQueryFirmwareBootApplicationList(
     return objectApplicationList;
 }
 
+/**
+ * Destroys a boot application list and frees associated entries and references.
+ *
+ * \param ObjectApplicationList The list to destroy and free.
+ */
 VOID PhBcdDestroyBootApplicationList(
     _In_ PPH_LIST ObjectApplicationList
     )
