@@ -333,6 +333,10 @@ NTSTATUS HybridAnalysisRequestFileReport(
     result->HttpStatus = httpStatus;
     if (httpStatus == 200)
     {
+        result->ThreatScore = PhGetJsonValueAsUInt64(jsonRootObject, "threat_score");
+        result->Verdict = PhGetJsonValueAsString(jsonRootObject, "verdict");
+        if (PhIsNullOrEmptyString(result->Verdict))
+            result->Verdict = PhReferenceEmptyString();
         result->MultiscanResult = PhGetJsonValueAsUInt64(jsonRootObject, "multiscan_result");
         result->VxFamily = PhGetJsonValueAsString(jsonRootObject, "vx_family");;
         if (PhIsNullOrEmptyString(result->VxFamily))
@@ -357,5 +361,6 @@ VOID HybridAnalysisFreeFileReport(
     )
 {
     PhClearReference(&FileReport->VxFamily);
+    PhClearReference(&FileReport->Verdict);
     PhFree(FileReport);
 }

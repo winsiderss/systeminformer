@@ -128,6 +128,13 @@ const char* ScanDBSQL =
 ");"
 ;
 
+const char* ScanDBVersion[] =
+{
+    // version 1
+    "ALTER TABLE hybrid_analysis ADD COLUMN threat_score INTEGER; "
+    "ALTER TABLE hybrid_analysis ADD COLUMN verdict TEXT;",
+};
+
 static const SQL_SMT ScanDBSQLSmts[] =
 {
     {
@@ -156,9 +163,11 @@ static const SQL_SMT ScanDBSQLSmts[] =
         "    expiry,"
         "    expiry_iso,"
         "    multiscan_result,"
-        "    vx_family"
+        "    vx_family,"
+        "    threat_score,"
+        "    verdict"
         ") "
-        "VALUES(?, ?, ?, ?, ?, ?);"
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?);"
     },
     {
         &ScanDBQueryHybridAnalysis,
@@ -409,20 +418,26 @@ VOID ProcessVirusTotal(
         httpStatus = report->HttpStatus;
         malicious = report->Malicious;
         undetected = report->Undetected;
-
         expiry.QuadPart = MakeExpiry(&systemTime, ScanOKExpMin, ScanOKExpMax);
+
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
         SetScanResult(Item, PhFormatString(L"%llu/%llu", malicious, undetected));
 
-        UpdateDBVirusTotal(Item->FileHash->Sha256, httpStatus, &expiry, malicious, undetected);
+        UpdateDBVirusTotal(
+            Item->FileHash->Sha256,
+            httpStatus,
+            &expiry,
+            malicious,
+            undetected
+            );
     }
     else if (report->HttpStatus == 429) // Too many requests
     {
         httpStatus = report->HttpStatus;
         malicious = 0;
         undetected = 0;
-
         expiry.QuadPart = MakeExpiry(&systemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
+
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
         SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
 
@@ -437,12 +452,18 @@ VOID ProcessVirusTotal(
         httpStatus = report->HttpStatus;
         malicious = 0;
         undetected = 0;
-
         expiry.QuadPart = MakeExpiry(&systemTime, ScanNoResponseExpMin, ScanNoResponseExpMax);
+
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
         SetScanResult(Item, PhReferenceObject(ScanUnknownString));
 
-        UpdateDBVirusTotal(Item->FileHash->Sha256, httpStatus, &expiry, malicious, undetected);
+        UpdateDBVirusTotal(
+            Item->FileHash->Sha256,
+            httpStatus,
+            &expiry,
+            malicious,
+            undetected
+            );
     }
 
 CleanupExit:
@@ -489,7 +510,9 @@ VOID UpdateDBHybridAnalysis(
     _In_ ULONG HttpStatus,
     _In_ PLARGE_INTEGER Expiry,
     _In_ ULONG64 MultiscanResult,
-    _In_ PPH_STRING VxFamily
+    _In_ PPH_STRING VxFamily,
+    _In_ ULONG64 ThreatScore,
+    _In_ PPH_STRING Verdict
     )
 {
     SYSTEMTIME systemTime;
@@ -505,6 +528,8 @@ VOID UpdateDBHybridAnalysis(
     sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 4, iso->Buffer, (int)iso->Length, SQLITE_TRANSIENT);
     sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 5, MultiscanResult);
     sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 6, VxFamily->Buffer, (int)VxFamily->Length, SQLITE_TRANSIENT);
+    sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 7, ThreatScore);
+    sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 8, Verdict->Buffer, (int)Verdict->Length, SQLITE_TRANSIENT);
     sqlite3_step_I(ScanDBInsertHybridAnalysis);
     sqlite3_reset_I(ScanDBInsertHybridAnalysis);
     PhReleaseQueuedLockExclusive(&ScanDBLock);
@@ -521,6 +546,8 @@ VOID ProcessHybridAnalysis(
     LARGE_INTEGER expiry;
     ULONG64 multiscanResult;
     PPH_STRING vxFamily = NULL;
+    ULONG64 threatScore;
+    PPH_STRING verdict = NULL;
     PPH_STRING pat = NULL;
     PHYBRIDANALYSIS_FILE_REPORT report = NULL;
 
@@ -574,6 +601,8 @@ VOID ProcessHybridAnalysis(
         httpStatus = report->HttpStatus;
         multiscanResult = report->MultiscanResult;
         vxFamily = PhReferenceObject(report->VxFamily);
+        threatScore = report->ThreatScore;
+        verdict = PhReferenceObject(report->Verdict);
         expiry.QuadPart = MakeExpiry(&systemTime, ScanOKExpMin, ScanOKExpMax);
 
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
@@ -582,19 +611,37 @@ VOID ProcessHybridAnalysis(
         else
             SetScanResult(Item, PhFormatString(L"%llu%% %ls", multiscanResult, PhGetString(vxFamily)));
 
-        UpdateDBHybridAnalysis(Item->FileHash->Sha256, httpStatus, &expiry, multiscanResult, vxFamily);
+        UpdateDBHybridAnalysis(
+            Item->FileHash->Sha256,
+            httpStatus,
+            &expiry,
+            multiscanResult,
+            vxFamily,
+            threatScore,
+            verdict
+            );
     }
     else if (report->HttpStatus == 429) // Too many requests
     {
         httpStatus = report->HttpStatus;
         multiscanResult = 0;
         vxFamily = PhReferenceEmptyString();
-
+        threatScore = 0;
+        verdict = PhReferenceEmptyString();
         expiry.QuadPart = MakeExpiry(&systemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
+
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
         SetScanResult(Item, PhReferenceObject(vxFamily));
 
-        UpdateDBHybridAnalysis(Item->FileHash->Sha256, httpStatus, &expiry, multiscanResult, vxFamily);
+        UpdateDBHybridAnalysis(
+            Item->FileHash->Sha256,
+            httpStatus,
+            &expiry,
+            multiscanResult,
+            vxFamily,
+            threatScore,
+            verdict
+            );
     }
     else if (report->HttpStatus == 401 || report->HttpStatus == 403) // Unauthorized/Forbidden
     {
@@ -605,17 +652,28 @@ VOID ProcessHybridAnalysis(
         httpStatus = report->HttpStatus;
         multiscanResult = 0;
         vxFamily = PhReferenceEmptyString();
-
+        threatScore = 0;
+        verdict = PhReferenceEmptyString();
         expiry.QuadPart = MakeExpiry(&systemTime, ScanNoResponseExpMin, ScanNoResponseExpMax);
+
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
         SetScanResult(Item, PhReferenceObject(ScanUnknownString));
 
-        UpdateDBHybridAnalysis(Item->FileHash->Sha256, httpStatus, &expiry, multiscanResult, vxFamily);
+        UpdateDBHybridAnalysis(
+            Item->FileHash->Sha256,
+            httpStatus,
+            &expiry,
+            multiscanResult,
+            vxFamily,
+            threatScore,
+            verdict
+            );
     }
 
 CleanupExit:
 
     PhClearReference(&vxFamily);
+    PhClearReference(&verdict);
     PhClearReference(&pat);
     if (report)
         HybridAnalysisFreeFileReport(report);
@@ -880,6 +938,8 @@ BOOLEAN InitializeScanning(
     BOOLEAN result;
     PPH_STRING fileName;
     PPH_BYTES fileNameUTF8;
+    ULONG version = 0;
+    sqlite3_stmt* stmt;
 
     ScanScanningString = PhCreateString(L"Scanning...");
     ScanTokenMissingString = PhCreateString(L"Token missing");
@@ -912,6 +972,36 @@ BOOLEAN InitializeScanning(
 
     if (sqlite3_exec_I(ScanDB, ScanDBSQL, NULL, NULL, NULL) != SQLITE_OK)
         goto CleanupExit;
+
+    if (sqlite3_prepare_v2_I(ScanDB, "PRAGMA user_version;", -1, &stmt, NULL) == SQLITE_OK)
+    {
+        if (sqlite3_step_I(stmt) == SQLITE_ROW)
+            version = (ULONG)sqlite3_column_int64_I(stmt, 0);
+        sqlite3_finalize_I(stmt);
+    }
+
+    sqlite3_exec_I(ScanDB, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(ScanDBVersion); i++)
+    {
+        CHAR pragma[64];
+
+        if ((i + 1) > version)
+        {
+            if (sqlite3_exec_I(ScanDB, ScanDBVersion[i], NULL, NULL, NULL) != SQLITE_OK)
+                goto CleanupExit;
+
+            snprintf(pragma, sizeof(pragma), "PRAGMA user_version = %lu;", i + 1);
+            if (sqlite3_exec_I(ScanDB, pragma, NULL, NULL, NULL) != SQLITE_OK)
+                goto CleanupExit;
+        }
+    }
+
+    if (sqlite3_exec_I(ScanDB, "COMMIT;", NULL, NULL, NULL) != SQLITE_OK)
+    {
+        sqlite3_exec_I(ScanDB, "ROLLBACK;", NULL, NULL, NULL);
+        goto CleanupExit;
+    }
 
     result = TRUE;
     for (ULONG i = 0; i < RTL_NUMBER_OF(ScanDBSQLSmts); i++)

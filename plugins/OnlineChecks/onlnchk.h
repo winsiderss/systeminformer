@@ -297,8 +297,10 @@ VOID VirusTotalFreeFileReScan(
 typedef struct _HYBRIDANALYSIS_FILE_REPORT
 {
     ULONG HttpStatus;
-    PPH_STRING VxFamily;
+    ULONG64 ThreatScore;
+    PPH_STRING Verdict;
     ULONG64 MultiscanResult;
+    PPH_STRING VxFamily;
 } HYBRIDANALYSIS_FILE_REPORT, *PHYBRIDANALYSIS_FILE_REPORT;
 
 NTSTATUS HybridAnalysisRequestFileReport(
