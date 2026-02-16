@@ -1846,7 +1846,7 @@ LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
 /**
  * Formats UTC system time in ISO 8601 format.
  *
- * \param SystemTime The UTC time structure. If NULL, the current local time is used.
+ * \param SystemTime The UTC time structure. If NULL, the current UTC time is used.
  *
  * \return A string in the ISO 8601 format.
  */
@@ -1913,6 +1913,10 @@ PPH_STRING PhFormatLocalSystemTimeISO(
         return PhFormatSystemTimeISO(&systemTime);
     }
 
+    //
+    // N.B. Bias is subtracted from system time therefore positive is west of
+    // UTC and negative is east of UTC.
+    //
     if (timeZoneBias.QuadPart > 0)
     {
         sign = '-';
