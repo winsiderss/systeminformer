@@ -13,6 +13,9 @@
 #define IMAGE_FILE_MACHINE_ARM64X            0xA64E
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
+/**
+ * The IMAGE_DEBUG_POGO_ENTRY structure represents a POGO (Profile Guided Optimization) entry.
+ */
 typedef struct _IMAGE_DEBUG_POGO_ENTRY
 {
     ULONG Rva;
@@ -20,6 +23,9 @@ typedef struct _IMAGE_DEBUG_POGO_ENTRY
     CHAR Name[1];
 } IMAGE_DEBUG_POGO_ENTRY, *PIMAGE_DEBUG_POGO_ENTRY;
 
+/**
+ * The IMAGE_DEBUG_POGO_SIGNATURE structure represents a POGO signature.
+ */
 typedef struct _IMAGE_DEBUG_POGO_SIGNATURE
 {
     ULONG Signature;
@@ -31,12 +37,18 @@ typedef struct _IMAGE_DEBUG_POGO_SIGNATURE
 #define IMAGE_DEBUG_POGO_SIGNATURE_PGU 'PGU\0' // coffgrp PGU (0x50475500)
 #define IMAGE_DEBUG_POGO_SIGNATURE_SPGO 'SPGO' // coffgrp SPGO (0x5350474F)
 
+/**
+ * The IMAGE_RELOCATION_RECORD structure represents a relocation record.
+ */
 typedef struct _IMAGE_RELOCATION_RECORD
 {
     USHORT Offset : 12;
     USHORT Type : 4;
 } IMAGE_RELOCATION_RECORD, *PIMAGE_RELOCATION_RECORD;
 
+/**
+ * The IMAGE_CHPE_METADATA_X86 structure represents CHPE (Compiled Hybrid Portable Executable) metadata for x86.
+ */
 typedef struct _IMAGE_CHPE_METADATA_X86
 {
     ULONG Version;
@@ -53,6 +65,9 @@ typedef struct _IMAGE_CHPE_METADATA_X86
     ULONG WowA64RdtscFunctionPointer; // Present if Version >= 3
 } IMAGE_CHPE_METADATA_X86, *PIMAGE_CHPE_METADATA_X86;
 
+/**
+ * The IMAGE_CHPE_RANGE_ENTRY structure represents a CHPE range entry.
+ */
 typedef struct _IMAGE_CHPE_RANGE_ENTRY
 {
     union
@@ -68,6 +83,9 @@ typedef struct _IMAGE_CHPE_RANGE_ENTRY
     ULONG Length;
 } IMAGE_CHPE_RANGE_ENTRY, *PIMAGE_CHPE_RANGE_ENTRY;
 
+/**
+ * The IMAGE_ARM64EC_METADATA structure represents ARM64EC metadata.
+ */
 typedef struct _IMAGE_ARM64EC_METADATA
 {
     ULONG Version;
@@ -98,6 +116,9 @@ typedef struct _IMAGE_ARM64EC_METADATA
 #define IMAGE_ARM64EC_CODE_MAP_TYPE_AMD64   2
 
 // rev
+/**
+ * The IMAGE_ARM64EC_CODE_MAP_ENTRY structure represents an ARM64EC code map entry.
+ */
 typedef struct _IMAGE_ARM64EC_CODE_MAP_ENTRY
 {
     union
@@ -113,12 +134,18 @@ typedef struct _IMAGE_ARM64EC_CODE_MAP_ENTRY
     ULONG Length;
 } IMAGE_ARM64EC_CODE_MAP_ENTRY, *PIMAGE_ARM64EC_CODE_MAP_ENTRY;
 
+/**
+ * The IMAGE_ARM64EC_REDIRECTION_ENTRY structure represents an ARM64EC redirection entry.
+ */
 typedef struct _IMAGE_ARM64EC_REDIRECTION_ENTRY
 {
     ULONG Source;
     ULONG Destination;
 } IMAGE_ARM64EC_REDIRECTION_ENTRY, *PIMAGE_ARM64EC_REDIRECTION_ENTRY;
 
+/**
+ * The IMAGE_ARM64EC_CODE_RANGE_ENTRY_POINT structure represents an ARM64EC code range entry point.
+ */
 typedef struct _IMAGE_ARM64EC_CODE_RANGE_ENTRY_POINT
 {
     ULONG StartRva;
@@ -134,6 +161,9 @@ typedef struct _IMAGE_ARM64EC_CODE_RANGE_ENTRY_POINT
 #define IMAGE_DVRT_ARM64X_FIXUP_SIZE_4BYTES     2
 #define IMAGE_DVRT_ARM64X_FIXUP_SIZE_8BYTES     3
 
+/**
+ * The IMAGE_DVRT_ARM64X_FIXUP_RECORD structure represents an ARM64X fixup record.
+ */
 typedef struct _IMAGE_DVRT_ARM64X_FIXUP_RECORD
 {
     USHORT Offset : 12;
@@ -142,6 +172,9 @@ typedef struct _IMAGE_DVRT_ARM64X_FIXUP_RECORD
     // Value of variable Size when IMAGE_DVRT_ARM64X_FIXUP_TYPE_VALUE
 } IMAGE_DVRT_ARM64X_FIXUP_RECORD, *PIMAGE_DVRT_ARM64X_FIXUP_RECORD;
 
+/**
+ * The IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD structure represents an ARM64X delta fixup record.
+ */
 typedef struct _IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD
 {
     USHORT Offset : 12;
@@ -171,6 +204,9 @@ typedef IMAGE_THUNK_DATA64 UNALIGNED* UNALIGNED_PIMAGE_THUNK_DATA64;
 #define IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH       0x00000005
 #define IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE              0x00000007
 
+/**
+ * The IMAGE_FUNCTION_OVERRIDE_HEADER structure represents a function override header.
+ */
 typedef struct _IMAGE_FUNCTION_OVERRIDE_HEADER 
 {
     ULONG FuncOverrideSize;
@@ -179,6 +215,9 @@ typedef struct _IMAGE_FUNCTION_OVERRIDE_HEADER
 } IMAGE_FUNCTION_OVERRIDE_HEADER;
 typedef IMAGE_FUNCTION_OVERRIDE_HEADER UNALIGNED *PIMAGE_FUNCTION_OVERRIDE_HEADER;
 
+/**
+ * The IMAGE_BDD_INFO structure represents BDD (Binary Decision Diagram) information.
+ */
 typedef struct _IMAGE_BDD_INFO 
 {
     ULONG Version; // decides the semantics of serialized BDD
@@ -186,6 +225,9 @@ typedef struct _IMAGE_BDD_INFO
     // IMAGE_BDD_DYNAMIC_RELOCATION BDDNodes[ANYSIZE_ARRAY]; // BDDSize size in bytes.
 } IMAGE_BDD_INFO, *PIMAGE_BDD_INFO;
 
+/**
+ * The IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION structure represents a function override dynamic relocation.
+ */
 typedef struct _IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION 
 {
     ULONG OriginalRva;          // RVA of original function
@@ -199,6 +241,9 @@ typedef struct _IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION
     // ^BaseRelocSize size in bytes
 } IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION, *PIMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION;
 
+/**
+ * The IMAGE_BDD_DYNAMIC_RELOCATION structure represents a BDD dynamic relocation.
+ */
 typedef struct _IMAGE_BDD_DYNAMIC_RELOCATION 
 {
     USHORT Left;  // Index of FALSE edge in BDD array
