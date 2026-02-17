@@ -46,6 +46,11 @@ NTSTATUS FLTAPI KphpFltFilterUnloadCallback(
 
     KphTracePrint(TRACE_LEVEL_VERBOSE, INFORMER, "Filter unload invoked");
 
+    if (KphIsDriverUnloadProtected())
+    {
+        return STATUS_FLT_DO_NOT_DETACH;
+    }
+
     return STATUS_SUCCESS;
 }
 
