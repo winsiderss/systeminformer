@@ -1869,10 +1869,10 @@ RtlWakeAddressAll(
     );
 
 /**
- * The RtlWakeAddressSingleNoFence routine wakes one thread that is waiting for the value of an address to change.
+ * The RtlWakeAddressAllNoFence routine wakes all threads that are waiting for the value of an address to change.
  *
- * \param Address The address to signal.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-wakebyaddresssingle
+ * \param Address The address to signal. If any threads have previously called RtlWaitOnAddress for this address, the system wakes all of the waiting threads.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-wakebyaddressall
  */
 NTSYSAPI
 VOID
@@ -1882,10 +1882,10 @@ RtlWakeAddressAllNoFence(
     );
 
 /**
- * The RtlWakeAddressAllNoFence routine wakes all threads that are waiting for the value of an address to change.
+ * The RtlWakeAddressSingle routine wakes one thread that is waiting for the value of an address to change.
  *
- * \param Address The address to signal. If any threads have previously called RtlWaitOnAddress for this address, the system wakes all of the waiting threads.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-wakebyaddressall
+ * \param Address The address to signal.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-wakebyaddresssingle
  */
 NTSYSAPI
 VOID
@@ -1895,7 +1895,7 @@ RtlWakeAddressSingle(
     );
 
 /**
- * The RtlWakeAddressSingle routine wakes one thread that is waiting for the value of an address to change.
+ * The RtlWakeAddressSingleNoFence routine wakes one thread that is waiting for the value of an address to change.
  *
  * \param Address The address to signal.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-wakebyaddresssingle
