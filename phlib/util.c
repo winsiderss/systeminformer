@@ -10577,6 +10577,35 @@ PPH_STRING PhGetActiveComputerName(
 }
 
 /**
+ * Finds a property in an array of device properties.
+ *
+ * \param Key The property key to find.
+ * \param Store The property store to find.
+ * \param PropertiesCount The number of properties in the array.
+ * \param Properties The array of properties.
+ * \return A pointer to the property, or NULL if not found.
+ */
+PDEVPROPERTY PhDevFindProperty(
+    _In_ PDEVPROPKEY Key,
+    _In_ ULONG Store,
+    _In_ ULONG PropertiesCount,
+    _In_reads_(PropertiesCount) PDEVPROPERTY Properties
+    )
+{
+    for (ULONG i = 0; i < PropertiesCount; i++)
+    {
+        PDEVPROPERTY property = &Properties[i];
+
+        if (RtlEqualMemory(&property->CompKey.Key, Key, sizeof(DEVPROPKEY)) && property->CompKey.Store == Store)
+        {
+            return property;
+        }
+    }
+
+    return NULL;
+}
+
+/**
  * Queries device objects using the DevGetObjects API.
  *
  * \param ObjectType The type of device object to query.
@@ -10757,6 +10786,154 @@ VOID PhDevCloseObjectQuery(
     {
         DevCloseObjectQuery_Import()(QueryHandle);
     }
+}
+
+/**
+ * Modern replacement for CM_Open_DevInst_Key using PhDevGetObjects.
+ *
+ * \param DeviceInstanceId The stable Device Instance ID string.
+ * \param DesiredAccess Registry access mask.
+ * \param Flags PH_DEVKEY_* flags.
+ * \param KeyHandle Pointer to receive the handle.
+ */
+NTSTATUS PhDevOpenObjectKey(
+    _In_ PPH_STRING DeviceInstanceId,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG Flags,
+    _Out_ PHANDLE KeyHandle
+)
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    ULONG objectCount = 0;
+    const DEV_OBJECT* objects = NULL;
+    DEVPROP_FILTER_EXPRESSION filter[1];
+    DEVPROPCOMPKEY driverPropKey[1];
+
+    filter[0].Operator = DEVPROP_OPERATOR_EQUALS;
+    filter[0].Property.CompKey.Key = DEVPKEY_Device_InstanceId;
+    filter[0].Property.CompKey.Store = DEVPROP_STORE_SYSTEM;
+    filter[0].Property.CompKey.LocaleName = NULL;
+    filter[0].Property.Type = DEVPROP_TYPE_STRING;
+    filter[0].Property.BufferSize = (ULONG)DeviceInstanceId->Length + sizeof(UNICODE_NULL);
+    filter[0].Property.Buffer = DeviceInstanceId->Buffer;
+
+    // Request the Driver (Software) property if needed
+    driverPropKey[0].Key = DEVPKEY_Device_Driver;
+    driverPropKey[0].Store = DEVPROP_STORE_SYSTEM;
+    driverPropKey[0].LocaleName = NULL;
+
+    if (HR_SUCCESS(PhDevGetObjects(
+        DevObjectTypeDevice,
+        DevQueryFlagNone,
+        BooleanFlagOn(Flags, PH_DEVKEY_SOFTWARE) ? RTL_NUMBER_OF(driverPropKey) : 0,
+        BooleanFlagOn(Flags, PH_DEVKEY_SOFTWARE) ? driverPropKey : NULL,
+        RTL_NUMBER_OF(filter),
+        filter,
+        &objectCount,
+        &objects
+        )) && objectCount > 0)
+    {
+        PPH_STRING registryPath = NULL;
+
+        if (FlagOn(Flags, PH_DEVKEY_SOFTWARE))
+        {
+            // SOFTWARE (Driver) Key: \Registry\Machine\System\CurrentControlSet\Control\Class\{GUID}\xxxx
+            for (ULONG i = 0; i < objects[0].cPropertyCount; i++)
+            {
+                if (
+                    IsEqualGUID(&objects[0].pProperties[i].CompKey.Key.fmtid, &DEVPKEY_Device_Driver.fmtid) &&
+                    objects[0].pProperties[i].CompKey.Key.pid == DEVPKEY_Device_Driver.pid
+                    )
+                {
+                    if (objects[0].pProperties[i].Type == DEVPROP_TYPE_STRING)
+                    {
+                        static const PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\Class\\");
+                        PH_STRINGREF value;
+
+                        PhInitializeStringRefLongHint(&value, (PCWSTR)objects[0].pProperties[i].Buffer);
+                        registryPath = PhConcatStringRef2(&keyName, &value);
+                    }
+                    break;
+                }
+            }
+        }
+        else if (FlagOn(Flags, PH_DEVKEY_HARDWARE))
+        {
+            // HARDWARE Key: \Registry\Machine\System\CurrentControlSet\Enum\{InstanceID}\Device Parameters
+            static const PH_STRINGREF base = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Enum\\");
+            static const PH_STRINGREF suffix = PH_STRINGREF_INIT(L"\\Device Parameters");
+
+            registryPath = PhConcatStringRef3(&base, &DeviceInstanceId->sr, &suffix);
+        }
+        else if (FlagOn(Flags, PH_DEVKEY_USER))
+        {
+            // USER Key: \Registry\User\{SID}\Software\Microsoft\Windows\CurrentVersion\DeviceAccess\{InstanceID}
+            PPH_STRING userSid;
+
+            if (userSid = PhGetTokenUserString(PhGetOwnTokenAttributes().TokenHandle, FALSE))
+            {
+                status = PhOpenKey(
+                    KeyHandle,
+                    DesiredAccess,
+                    PH_KEY_USERS,
+                    &userSid->sr,
+                    OBJ_CASE_INSENSITIVE
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    static const PH_STRINGREF base = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\DeviceAccess\\");
+                    HANDLE subKey;
+                    PPH_STRING subKeyPath;
+
+                    subKeyPath = PhConcatStringRef2(&base, &DeviceInstanceId->sr);
+
+                    status = PhOpenKey(
+                        &subKey,
+                        DesiredAccess,
+                        *KeyHandle,
+                        &subKeyPath->sr,
+                        OBJ_CASE_INSENSITIVE
+                        );
+
+                    NtClose(*KeyHandle);
+                    PhDereferenceObject(subKeyPath);
+
+                    if (NT_SUCCESS(status))
+                    {
+                        *KeyHandle = subKey;
+                    }
+                }
+
+                PhDereferenceObject(userSid);
+            }
+        }
+        else if (FlagOn(Flags, PH_DEVKEY_CONFIG))
+        {
+            static const PH_STRINGREF base = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Enum\\");
+            static const PH_STRINGREF suffix = PH_STRINGREF_INIT(L"\\Device Parameters\\Configuration");
+
+            // CONFIG Key: \Registry\Machine\System\CurrentControlSet\Enum\{InstanceID}\Device Parameters\Configuration
+            registryPath = PhConcatStringRef3(&base, &DeviceInstanceId->sr, &suffix);
+        }
+
+        if (registryPath)
+        {
+            status = PhOpenKey(
+                KeyHandle,
+                DesiredAccess,
+                PH_KEY_LOCAL_MACHINE,
+                &registryPath->sr,
+                OBJ_CASE_INSENSITIVE
+                );
+
+            PhDereferenceObject(registryPath);
+        }
+
+        PhDevFreeObjects(objectCount, objects);
+    }
+
+    return status;
 }
 
 /**

@@ -2591,6 +2591,16 @@ typedef struct _DEVPROP_FILTER_EXPRESSION DEVPROP_FILTER_EXPRESSION, *PDEVPROP_F
 typedef struct _DEV_OBJECT DEV_OBJECT, *PDEV_OBJECT;
 
 PHLIBAPI
+PDEVPROPERTY
+NTAPI
+PhDevFindProperty(
+    _In_ PDEVPROPKEY Key,
+    _In_ ULONG Store,
+    _In_ ULONG PropertiesCount,
+    _In_reads_(PropertiesCount) PDEVPROPERTY Properties
+    );
+
+PHLIBAPI
 HRESULT
 NTAPI
 PhDevGetObjects(
@@ -2601,7 +2611,7 @@ PhDevGetObjects(
     _In_ ULONG FilterExpressionCount,
     _In_reads_opt_(FilterExpressionCount) const DEVPROP_FILTER_EXPRESSION* FilterExpressions,
     _Out_ PULONG ObjectCount,
-    _Outptr_result_buffer_maybenull_(*ObjectCount) const DEV_OBJECT** Objects
+    _Outptr_result_buffer_(*ObjectCount) const DEV_OBJECT** Objects
     );
 
 PHLIBAPI
@@ -2660,6 +2670,21 @@ VOID
 NTAPI
 PhDevCloseObjectQuery(
     _In_ HDEVQUERY QueryHandle
+    );
+
+#define PH_DEVKEY_HARDWARE        (0x00000000)
+#define PH_DEVKEY_SOFTWARE        (0x00000001)
+#define PH_DEVKEY_USER            (0x00000100)
+#define PH_DEVKEY_CONFIG          (0x00000200)
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDevOpenObjectKey(
+    _In_ PPH_STRING DeviceInstanceId,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG Flags,
+    _Out_ PHANDLE KeyHandle
     );
 
 PHLIBAPI
