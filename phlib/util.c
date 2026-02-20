@@ -2710,7 +2710,7 @@ NTSTATUS PhFormatGuidToBuffer(
     {
         if (WindowsVersion >= WINDOWS_10)
         {
-            RtlStringFromGUIDEx_I = PhGetDllProcedureAddress(RtlNtdllName, "RtlStringFromGUIDEx", 0);
+            RtlStringFromGUIDEx_I = PhGetDllProcedureAddressZ(RtlNtdllName, "RtlStringFromGUIDEx", 0);
         }
 
         PhEndInitOnce(&initOnce);
@@ -2738,6 +2738,13 @@ NTSTATUS PhFormatGuidToBuffer(
     return status;
 }
 
+/**
+ * Converts a string to its UUID representation.
+ *
+ * \param GuidString The string representation of the UUID.
+ * \param Guid Receives the UUID.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhStringToGuid(
     _In_ PCPH_STRINGREF GuidString,
     _Out_ PGUID Guid
