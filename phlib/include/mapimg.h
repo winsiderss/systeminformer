@@ -1050,6 +1050,36 @@ typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
             };
         } ARM64X;
 
+        // IMAGE_DYNAMIC_RELOCATION_ARM64_KERNEL_IMPORT_CALL_TRANSFER
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_IMPORT_CONTROL_TRANSFER_ARM64_RELOCATION Record;
+        } ARM64ImportControl;
+
+        // IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            UCHAR PrologueByteCount;
+            PVOID PrologueBytes;  // Pointer to prologue byte array
+        } RFPrologue;
+
+        // IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            ULONG EpilogueCount;
+            UCHAR EpilogueByteCount;
+            UCHAR BranchDescriptorElementSize;
+            USHORT BranchDescriptorCount;
+            PVOID BranchDescriptors;      // Pointer to branch descriptors
+            PVOID BranchDescriptorBitMap; // Pointer to branch descriptor bitmap
+        } RFEpilogue;
+
         // IMAGE_DYNAMIC_RELOCATION_KI_USER_SHARED_DATA64 or similar
         struct
         {
