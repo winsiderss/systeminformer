@@ -760,7 +760,7 @@ NTSTATUS PhGetSidAccountType(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        LsaLookupUserAccountType_I = PhGetDllProcedureAddress(L"sechost.dll", "LsaLookupUserAccountType", 0);
+        LsaLookupUserAccountType_I = PhGetDllProcedureAddressZ(L"sechost.dll", "LsaLookupUserAccountType", 0);
         PhEndInitOnce(&initOnce);
     }
 

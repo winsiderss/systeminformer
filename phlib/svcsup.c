@@ -1415,7 +1415,7 @@ PPH_STRING PhGetServiceNameFromTag(
 
     if (!QueryTagInformation_I)
     {
-        QueryTagInformation_I = PhGetDllProcedureAddress(L"sechost.dll", "I_QueryTagInformation", 0);
+        QueryTagInformation_I = PhGetDllProcedureAddressZ(L"sechost.dll", "I_QueryTagInformation", 0);
     }
 
     if (!QueryTagInformation_I)
@@ -1456,11 +1456,11 @@ PPH_STRING PhGetServiceNameForModuleReference(
     {
         if (WindowsVersion >= WINDOWS_8_1)
         {
-            QueryTagInformation_I = PhGetDllProcedureAddress(L"sechost.dll", "I_QueryTagInformation", 0);
+            QueryTagInformation_I = PhGetDllProcedureAddressZ(L"sechost.dll", "I_QueryTagInformation", 0);
         }
 
         if (!QueryTagInformation_I)
-            QueryTagInformation_I = PhGetDllProcedureAddress(L"advapi32.dll", "I_QueryTagInformation", 0);
+            QueryTagInformation_I = PhGetDllProcedureAddressZ(L"advapi32.dll", "I_QueryTagInformation", 0);
     }
 
     if (!QueryTagInformation_I)

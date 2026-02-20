@@ -1380,12 +1380,13 @@ VOID PhLoadSymbolProviderModules(
     }
 }
 
-VOID PhLoadModulesForVirtualSymbolProvider(
+NTSTATUS PhLoadModulesForVirtualSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_opt_ HANDLE ProcessId,
     _In_opt_ HANDLE ProcessHandle
     )
 {
+    NTSTATUS status;
     PH_LOAD_SYMBOLS_CONTEXT context;
     HANDLE processHandle = NULL;
     BOOLEAN closeHandle = FALSE;
@@ -1396,18 +1397,33 @@ VOID PhLoadModulesForVirtualSymbolProvider(
     if (SymbolProvider->IsRealHandle)
     {
         processHandle = SymbolProvider->ProcessHandle;
+        status = STATUS_SUCCESS;
     }
     else if (ProcessHandle)
     {
         processHandle = ProcessHandle;
+        status = STATUS_SUCCESS;
     }
-    else
+    else if (ProcessId)
     {
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId)))
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            ProcessId
+            );
+
+        if (NT_SUCCESS(status))
         {
             closeHandle = TRUE;
         }
     }
+    else
+    {
+        status = STATUS_INVALID_PARAMETER_1;
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     // Load symbols for process modules.
     if (ProcessId != SYSTEM_IDLE_PROCESS_ID && processHandle)
@@ -1544,7 +1560,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
     ULONG i;
     BOOLEAN foundNull;
 
-    rtlGetFunctionTableListHead = PhGetDllProcedureAddress(L"ntdll.dll", "RtlGetFunctionTableListHead", 0);
+    rtlGetFunctionTableListHead = PhGetDllProcedureAddressZ(L"ntdll.dll", "RtlGetFunctionTableListHead", 0);
 
     if (!rtlGetFunctionTableListHead)
         return STATUS_PROCEDURE_NOT_FOUND;
@@ -2732,7 +2748,7 @@ BOOLEAN PhEnumerateSymbols(
         return FALSE;
 
     if (!SymEnumSymbolsW_I)
-        SymEnumSymbolsW_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymEnumSymbolsW", 0);
+        SymEnumSymbolsW_I = PhGetDllProcedureAddressZ(L"dbghelp.dll", "SymEnumSymbolsW", 0);
 
     if (!SymEnumSymbolsW_I)
     {
@@ -2775,7 +2791,7 @@ BOOLEAN PhGetSymbolProviderDiaSource(
         return FALSE;
 
     if (!SymGetDiaSource_I)
-        SymGetDiaSource_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymGetDiaSource", 0);
+        SymGetDiaSource_I = PhGetDllProcedureAddressZ(L"dbghelp.dll", "SymGetDiaSource", 0);
     if (!SymGetDiaSource_I)
         return FALSE;
 
@@ -2813,7 +2829,7 @@ BOOLEAN PhGetSymbolProviderDiaSession(
         return FALSE;
 
     if (!SymGetDiaSession_I)
-        SymGetDiaSession_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymGetDiaSession", 0);
+        SymGetDiaSession_I = PhGetDllProcedureAddressZ(L"dbghelp.dll", "SymGetDiaSession", 0);
     if (!SymGetDiaSession_I)
         return FALSE;
 
@@ -2842,7 +2858,7 @@ VOID PhSymbolProviderFreeDiaString(
     )
 {
     if ((SymGetDiaSession_I || SymGetDiaSource_I) && !SymFreeDiaString_I)
-        SymFreeDiaString_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymFreeDiaString", 0);
+        SymFreeDiaString_I = PhGetDllProcedureAddressZ(L"dbghelp.dll", "SymFreeDiaString", 0);
     if (!SymFreeDiaString_I)
         return;
 
@@ -3098,9 +3114,9 @@ BOOLEAN PhGetLineFromInlineContext(
 //        return NULL;
 //
 //    if (!SymAddrIncludeInlineTrace_I)
-//        SymAddrIncludeInlineTrace_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymAddrIncludeInlineTrace", 0);
+//        SymAddrIncludeInlineTrace_I = PhGetDllProcedureAddressZ(L"dbghelp.dll", "SymAddrIncludeInlineTrace", 0);
 //    if (!SymQueryInlineTrace_I)
-//        SymQueryInlineTrace_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymQueryInlineTrace", 0);
+//        SymQueryInlineTrace_I = PhGetDllProcedureAddressZ(L"dbghelp.dll", "SymQueryInlineTrace", 0);
 //
 //    if (!(
 //        SymAddrIncludeInlineTrace_I &&

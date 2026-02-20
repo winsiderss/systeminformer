@@ -249,10 +249,30 @@ PHLIBAPI
 PVOID
 NTAPI
 PhGetDllProcedureAddress(
-    _In_ PCWSTR DllName,
+    _In_ PCPH_STRINGREF DllName,
     _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber
     );
+
+FORCEINLINE
+PVOID
+NTAPI
+PhGetDllProcedureAddressZ(
+    _In_ PCWSTR DllName,
+    _In_opt_ PCSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
+    )
+{
+    PH_STRINGREF fileName;
+
+    PhInitializeStringRef(&fileName, DllName);
+
+    return PhGetDllProcedureAddress(
+        &fileName,
+        ProcedureName,
+        ProcedureNumber
+        );
+}
 
 PHLIBAPI
 NTSTATUS

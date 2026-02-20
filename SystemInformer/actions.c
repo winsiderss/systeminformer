@@ -5916,7 +5916,7 @@ BOOLEAN PhUiCloseConnections(
 
     if (!SetTcpEntry_I)
     {
-        SetTcpEntry_I = PhGetDllProcedureAddress(L"iphlpapi.dll", "SetTcpEntry", 0);
+        SetTcpEntry_I = PhGetDllProcedureAddressZ(L"iphlpapi.dll", "SetTcpEntry", 0);
     }
 
     if (!SetTcpEntry_I)

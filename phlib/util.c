@@ -545,7 +545,7 @@ BOOLEAN PhSystemTimeToTzSpecificLocalTime(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        SystemTimeToTzSpecificLocalTimeEx_I = PhGetDllProcedureAddress(L"kernel32.dll", "SystemTimeToTzSpecificLocalTimeEx", 0);
+        SystemTimeToTzSpecificLocalTimeEx_I = PhGetDllProcedureAddressZ(L"kernel32.dll", "SystemTimeToTzSpecificLocalTimeEx", 0);
         PhEndInitOnce(&initOnce);
     }
 
@@ -8287,7 +8287,7 @@ HWND PhHungWindowFromGhostWindow(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        HungWindowFromGhostWindow_I = PhGetDllProcedureAddress(L"user32.dll", "HungWindowFromGhostWindow", 0);
+        HungWindowFromGhostWindow_I = PhGetDllProcedureAddressZ(L"user32.dll", "HungWindowFromGhostWindow", 0);
         PhEndInitOnce(&initOnce);
     }
 
@@ -10204,7 +10204,7 @@ HRESULT PhDevGetObjects(
     _In_ ULONG FilterExpressionCount,
     _In_reads_opt_(FilterExpressionCount) const DEVPROP_FILTER_EXPRESSION* FilterExpressions,
     _Out_ PULONG ObjectCount,
-    _Outptr_result_buffer_maybenull_(*ObjectCount) const DEV_OBJECT** Objects
+    _Outptr_result_buffer_(*ObjectCount) const DEV_OBJECT** Objects
     )
 {
     HRESULT status;
@@ -10332,6 +10332,8 @@ HRESULT PhDevCreateObjectQuery(
     _Out_ PHDEVQUERY DevQuery
     )
 {
+    *DevQuery = NULL;
+
     if (!DevCreateObjectQuery_Import())
         return E_FAIL;
 
@@ -10606,7 +10608,7 @@ static BOOLEAN CALLBACK PhQueryEndSessionCallback(
     if (
         NT_SUCCESS(PhGetWindowClientId(WindowHandle, &processId)) &&
         processId.UniqueProcess == context->ClientId.UniqueProcess
-    )
+        )
     {
         ULONG_PTR result = 0;
 

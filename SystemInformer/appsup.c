@@ -401,9 +401,9 @@ NTSTATUS PhGetProcessSwitchContext(
     //    ) = NULL;
     //
     //if (!BaseReadAppCompatDataForProcess_I)
-    //    BaseReadAppCompatDataForProcess_I = PhGetDllProcedureAddress(L"kernelbase.dll", "BaseReadAppCompatDataForProcess", 0);
+    //    BaseReadAppCompatDataForProcess_I = PhGetDllProcedureAddressZ(L"kernelbase.dll", "BaseReadAppCompatDataForProcess", 0);
     //if (!BaseFreeAppCompatDataForProcess_I)
-    //    BaseFreeAppCompatDataForProcess_I = PhGetDllProcedureAddress(L"kernelbase.dll", "BaseFreeAppCompatDataForProcess", 0);
+    //    BaseFreeAppCompatDataForProcess_I = PhGetDllProcedureAddressZ(L"kernelbase.dll", "BaseFreeAppCompatDataForProcess", 0);
     //
     //if (BaseReadAppCompatDataForProcess_I && BaseFreeAppCompatDataForProcess_I)
     //{

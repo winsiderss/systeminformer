@@ -3931,7 +3931,7 @@ BOOLEAN PhIsImmersiveProcess(
     if (PhBeginInitOnce(&initOnce))
     {
         if (WindowsVersion >= WINDOWS_8)
-            IsImmersiveProcess_I = PhGetDllProcedureAddress(L"user32.dll", "IsImmersiveProcess", 0);
+            IsImmersiveProcess_I = PhGetDllProcedureAddressZ(L"user32.dll", "IsImmersiveProcess", 0);
         PhEndInitOnce(&initOnce);
     }
 
@@ -3953,7 +3953,7 @@ BOOLEAN PhGetProcessUIContextInformation(
     if (PhBeginInitOnce(&initOnce))
     {
         if (WindowsVersion >= WINDOWS_8)
-            GetProcessUIContextInformation_I = PhGetDllProcedureAddress(L"user32.dll", "GetProcessUIContextInformation", 0);
+            GetProcessUIContextInformation_I = PhGetDllProcedureAddressZ(L"user32.dll", "GetProcessUIContextInformation", 0);
         PhEndInitOnce(&initOnce);
     }
 
@@ -4065,7 +4065,7 @@ NTSTATUS PhGetPhysicallyInstalledSystemMemory(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        GetPhysicallyInstalledSystemMemory_I = PhGetDllProcedureAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory", 0);
+        GetPhysicallyInstalledSystemMemory_I = PhGetDllProcedureAddressZ(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory", 0);
         PhEndInitOnce(&initOnce);
     }
 
@@ -4167,7 +4167,7 @@ NTSTATUS PhGetSendMessageReceiver(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        GetSendMessageReceiver_I = PhGetDllProcedureAddress(L"user32.dll", "GetSendMessageReceiver", 0);
+        GetSendMessageReceiver_I = PhGetDllProcedureAddressZ(L"user32.dll", "GetSendMessageReceiver", 0);
         PhEndInitOnce(&initOnce);
     }
 
@@ -4206,7 +4206,7 @@ BOOLEAN PhExtractIcon(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PrivateExtractIconExW = PhGetDllProcedureAddress(L"user32.dll", "PrivateExtractIconExW", 0);
+        PrivateExtractIconExW = PhGetDllProcedureAddressZ(L"user32.dll", "PrivateExtractIconExW", 0);
         PhEndInitOnce(&initOnce);
     }
 
@@ -5536,7 +5536,7 @@ NTSTATUS PhGetWindowCompositionAttribute(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        GetWindowCompositionAttribute_I = PhGetDllProcedureAddress(L"user32.dll", "GetWindowCompositionAttribute", 0);
+        GetWindowCompositionAttribute_I = PhGetDllProcedureAddressZ(L"user32.dll", "GetWindowCompositionAttribute", 0);
         PhEndInitOnce(&initOnce);
     }
 
@@ -5564,7 +5564,7 @@ NTSTATUS PhSetWindowCompositionAttribute(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        SetWindowCompositionAttribute_I = PhGetDllProcedureAddress(L"user32.dll", "SetWindowCompositionAttribute", 0);
+        SetWindowCompositionAttribute_I = PhGetDllProcedureAddressZ(L"user32.dll", "SetWindowCompositionAttribute", 0);
         PhEndInitOnce(&initOnce);
     }
 
@@ -6014,7 +6014,7 @@ NTSTATUS PhTerminateWindow(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        EndTask_I = PhGetDllProcedureAddress(L"user32.dll", "EndTask", 0);
+        EndTask_I = PhGetDllProcedureAddressZ(L"user32.dll", "EndTask", 0);
         PhEndInitOnce(&initOnce);
     }
 

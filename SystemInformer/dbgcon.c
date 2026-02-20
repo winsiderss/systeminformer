@@ -623,7 +623,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         if (NT_SUCCESS(PhQueryEnvironmentVariable(NULL, &variableNameSr, &variableValue)))
         {
             PPH_STRING currentDirectory = PhGetApplicationDirectoryWin32();
-            PPH_STRING currentSearchPath = PhGetStringSetting(L"DbgHelpSearchPath");
+            PPH_STRING currentSearchPath = PhGetStringSetting(SETTING_DBGHELP_SEARCH_PATH);
 
             if (currentSearchPath->Length != 0)
             {
@@ -1533,7 +1533,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             VOID (NTAPI *rtlDetectHeapLeaks)(VOID);
             PWSTR options = wcstok_s(NULL, delims, &context);
 
-            rtlDetectHeapLeaks = PhGetDllProcedureAddress(L"ntdll.dll", "RtlDetectHeapLeaks", 0);
+            rtlDetectHeapLeaks = PhGetDllProcedureAddressZ(L"ntdll.dll", "RtlDetectHeapLeaks", 0);
 
             if (!(NtCurrentPeb()->NtGlobalFlag & FLG_USER_STACK_TRACE_DB))
             {

@@ -387,10 +387,14 @@ PVOID PhGetModuleProcAddress(
     else
         return NULL;
 #else
-    if (IS_INTRESOURCE(ProcedureName))
-        return PhGetDllProcedureAddress(ModuleName, NULL, PtrToUshort(ProcedureName));
+    PH_STRINGREF baseDllName;
 
-    return PhGetDllProcedureAddress(ModuleName, ProcedureName, 0);
+    PhInitializeStringRefLongHint(&baseDllName, ModuleName);
+
+    if (IS_INTRESOURCE(ProcedureName))
+        return PhGetDllProcedureAddress(&baseDllName, NULL, PtrToUshort(ProcedureName));
+
+    return PhGetDllProcedureAddress(&baseDllName, ProcedureName, 0);
 #endif
 }
 
@@ -1147,17 +1151,14 @@ PVOID PhGetDllBaseProcAddress(
 }
 
 PVOID PhGetDllProcedureAddress(
-    _In_ PCWSTR DllName,
+    _In_ PCPH_STRINGREF DllName,
     _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber
     )
 {
     PVOID baseAddress;
-    PH_STRINGREF baseDllName;
 
-    PhInitializeStringRefLongHint(&baseDllName, DllName);
-
-    if (!(baseAddress = PhGetLoaderEntryDllBase(NULL, &baseDllName)))
+    if (!(baseAddress = PhGetLoaderEntryDllBase(NULL, DllName)))
         return NULL;
 
     return PhGetDllBaseProcedureAddress(

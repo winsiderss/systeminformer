@@ -169,7 +169,7 @@ PhLoadSymbolProviderModules(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhLoadModulesForVirtualSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
