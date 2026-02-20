@@ -203,6 +203,82 @@ static NTSTATUS NTAPI PhImageCoherencyRelocationCallback(
     return STATUS_SUCCESS;
 }
 
+static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_IMAGE_COHERENCY_CONTEXT context = Context;
+    ULONG_PTR rva = 0;
+    ULONG_PTR size = 0;
+
+    if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64X)
+    {
+        rva = (ULONG_PTR)Entry->ARM64X.BlockRva + Entry->ARM64X.RecordFixup.Offset;
+        switch (Entry->ARM64X.RecordFixup.Type)
+        {
+        case IMAGE_DVRT_ARM64X_FIXUP_TYPE_ZEROFILL:
+        case IMAGE_DVRT_ARM64X_FIXUP_TYPE_VALUE:
+            size = (ULONG_PTR)(1ull << Entry->ARM64X.RecordFixup.Size);
+            break;
+        case IMAGE_DVRT_ARM64X_FIXUP_TYPE_DELTA:
+            size = 4;
+            break;
+        }
+    }
+    else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER)
+    {
+        rva = (ULONG_PTR)Entry->ImportControl.BlockRva + Entry->ImportControl.Record.PageRelativeOffset;
+        //
+        // 48 FF 15 XX XX XX XX     call qword ptr [_imp_<function>]
+        // 0F 1F 44 00 00           nop
+        //
+        size = 12;
+    }
+    else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER)
+    {
+        rva = (ULONG_PTR)Entry->IndirControl.BlockRva + Entry->IndirControl.Record.PageRelativeOffset;
+        size = 12;
+    }
+    else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH)
+    {
+        rva = (ULONG_PTR)Entry->SwitchBranch.BlockRva + Entry->SwitchBranch.Record.PageRelativeOffset;
+        //
+        // FF D0                    jmp rax
+        // CC CC CC                 int 3
+        //
+        size = 5;
+    }
+    else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
+    {
+        rva = (ULONG_PTR)Entry->FuncOverride.BlockRva + Entry->FuncOverride.Record.Offset;
+        if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            size = 4;
+        else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+            size = 8;
+    }
+    else
+    {
+        //
+        // This should only be absolute, skipping others.
+        //
+        if (Entry->Other.Record.Type == IMAGE_REL_BASED_ABSOLUTE)
+        {
+            rva = (ULONG_PTR)Entry->Other.BlockRva + Entry->Other.Record.Offset;
+            if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                size = 4;
+            else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                size = 8;
+        }
+    }
+
+    if (rva && size)
+        PhAddItemSimpleHashtable(context->MappedImageReloc, (PVOID)rva, (PVOID)size);
+
+    return STATUS_SUCCESS;
+}
+
 _Function_class_(PH_READ_VIRTUAL_MEMORY_CALLBACK)
 static NTSTATUS PhImageCoherencyReadVirtualMemoryCallback(
     _In_ HANDLE ProcessHandle,
@@ -276,7 +352,6 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
 
         if (NT_SUCCESS(context->MappedImageStatus))
         {
-            PH_MAPPED_IMAGE_DYNAMIC_RELOC dynRelocs;
             PIMAGE_DATA_DIRECTORY directory;
 
             PhMappedImagePrefetch(&context->MappedImage);
@@ -294,82 +369,11 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
                 context
                 );
 
-            if (NT_SUCCESS(PhGetMappedImageDynamicRelocations(&context->MappedImage, &dynRelocs)))
-            {
-                for (ULONG i = 0; i < dynRelocs.NumberOfEntries; i++)
-                {
-                    PPH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
-                    ULONG_PTR rva = 0;
-                    ULONG_PTR size = 0;
-
-                    entry = &dynRelocs.RelocationEntries[i];
-
-                    if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64X)
-                    {
-                        rva = (ULONG_PTR)entry->ARM64X.BlockRva + entry->ARM64X.RecordFixup.Offset;
-                        switch (entry->ARM64X.RecordFixup.Type)
-                        {
-                        case IMAGE_DVRT_ARM64X_FIXUP_TYPE_ZEROFILL:
-                        case IMAGE_DVRT_ARM64X_FIXUP_TYPE_VALUE:
-                            size = (ULONG_PTR)(1ull << entry->ARM64X.RecordFixup.Size);
-                            break;
-                        case IMAGE_DVRT_ARM64X_FIXUP_TYPE_DELTA:
-                            size = 4;
-                            break;
-                        }
-                    }
-                    else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER)
-                    {
-                        rva = (ULONG_PTR)entry->ImportControl.BlockRva + entry->ImportControl.Record.PageRelativeOffset;
-                        //
-                        // 48 FF 15 XX XX XX XX     call qword ptr [_imp_<function>]
-                        // 0F 1F 44 00 00           nop
-                        //
-                        size = 12;
-                    }
-                    else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER)
-                    {
-                        rva = (ULONG_PTR)entry->IndirControl.BlockRva + entry->IndirControl.Record.PageRelativeOffset;
-                        size = 12;
-                    }
-                    else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH)
-                    {
-                        rva = (ULONG_PTR)entry->SwitchBranch.BlockRva + entry->SwitchBranch.Record.PageRelativeOffset;
-                        //
-                        // FF D0                    jmp rax
-                        // CC CC CC                 int 3
-                        //
-                        size = 5;
-                    }
-                    else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
-                    {
-                        rva = (ULONG_PTR)entry->FuncOverride.BlockRva + entry->FuncOverride.Record.Offset;
-                        if (context->MappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                            size = 4;
-                        else if (context->MappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-                            size = 8;
-                    }
-                    else
-                    {
-                        //
-                        // This should only be absolute, skipping others.
-                        //
-                        if (entry->Other.Record.Type == IMAGE_REL_BASED_ABSOLUTE)
-                        {
-                            rva = (ULONG_PTR)entry->Other.BlockRva + entry->Other.Record.Offset;
-                            if (context->MappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                                size = 4;
-                            else if (context->MappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-                                size = 8;
-                        }
-                    }
-
-                    if (rva && size)
-                        PhAddItemSimpleHashtable(context->MappedImageReloc, (PVOID)rva, (PVOID)size);
-                }
-
-                PhFreeMappedImageDynamicRelocations(&dynRelocs);
-            }
+            PhMappedImageEnumerateDynamicRelocations(
+                &context->MappedImage,
+                PhImageCoherencyDynamicRelocationCallback,
+                context
+                );
 
             if (NT_SUCCESS(PhGetMappedImageDataDirectory(
                 &context->MappedImage,
