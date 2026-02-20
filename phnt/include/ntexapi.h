@@ -2518,7 +2518,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemOslRamdiskInformation,                            // q: SYSTEM_OSL_RAMDISK_INFORMATION
     SystemCodeIntegrityPolicyManagementInformation,         // q: SYSTEM_CODEINTEGRITYPOLICY_MANAGEMENT // since 25H2
     SystemMemoryNumaCacheInformation,                       // q:
-    SystemProcessorFeaturesBitMapInformation,               // q: // 250
+    SystemProcessorFeaturesBitMapInformation,               // q: ULONG64[2] // RTL_BITMAP_EX // RtlInitializeBitMapEx // 250
     SystemRefTraceInformationEx,                            // q: SYSTEM_REF_TRACE_INFORMATION_EX
     SystemBasicProcessInformation,                          // q: SYSTEM_BASICPROCESS_INFORMATION
     SystemHandleCountInformation,                           // q: SYSTEM_HANDLECOUNT_INFORMATION
@@ -2594,92 +2594,92 @@ typedef struct _SYSTEM_PROCESSOR_INFORMATION
 } SYSTEM_PROCESSOR_INFORMATION, *PSYSTEM_PROCESSOR_INFORMATION;
 
 /**
- * The SYSTEM_PERFORMANCE_INFORMATION structure contains information about system performance.
+ * The SYSTEM_PERFORMANCE_INFORMATION structure contains detailed system-wide performance statistics.
  */
 typedef struct _SYSTEM_PERFORMANCE_INFORMATION
 {
-    LARGE_INTEGER IdleProcessTime;
-    LARGE_INTEGER IoReadTransferCount;
-    LARGE_INTEGER IoWriteTransferCount;
-    LARGE_INTEGER IoOtherTransferCount;
-    ULONG IoReadOperationCount;
-    ULONG IoWriteOperationCount;
-    ULONG IoOtherOperationCount;
-    ULONG AvailablePages;
-    ULONG CommittedPages;
-    ULONG CommitLimit;
-    ULONG PeakCommitment;
-    ULONG PageFaultCount;
-    ULONG CopyOnWriteCount;
-    ULONG TransitionCount;
-    ULONG CacheTransitionCount;
-    ULONG DemandZeroCount;
-    ULONG PageReadCount;
-    ULONG PageReadIoCount;
-    ULONG CacheReadCount;
-    ULONG CacheIoCount;
-    ULONG DirtyPagesWriteCount;
-    ULONG DirtyWriteIoCount;
-    ULONG MappedPagesWriteCount;
-    ULONG MappedWriteIoCount;
-    ULONG PagedPoolPages;
-    ULONG NonPagedPoolPages;
-    ULONG PagedPoolAllocs;
-    ULONG PagedPoolFrees;
-    ULONG NonPagedPoolAllocs;
-    ULONG NonPagedPoolFrees;
-    ULONG FreeSystemPtes;
-    ULONG ResidentSystemCodePage;
-    ULONG TotalSystemDriverPages;
-    ULONG TotalSystemCodePages;
-    ULONG NonPagedPoolLookasideHits;
-    ULONG PagedPoolLookasideHits;
-    ULONG AvailablePagedPoolPages;
-    ULONG ResidentSystemCachePage;
-    ULONG ResidentPagedPoolPage;
-    ULONG ResidentSystemDriverPage;
-    ULONG CcFastReadNoWait;
-    ULONG CcFastReadWait;
-    ULONG CcFastReadResourceMiss;
-    ULONG CcFastReadNotPossible;
-    ULONG CcFastMdlReadNoWait;
-    ULONG CcFastMdlReadWait;
-    ULONG CcFastMdlReadResourceMiss;
-    ULONG CcFastMdlReadNotPossible;
-    ULONG CcMapDataNoWait;
-    ULONG CcMapDataWait;
-    ULONG CcMapDataNoWaitMiss;
-    ULONG CcMapDataWaitMiss;
-    ULONG CcPinMappedDataCount;
-    ULONG CcPinReadNoWait;
-    ULONG CcPinReadWait;
-    ULONG CcPinReadNoWaitMiss;
-    ULONG CcPinReadWaitMiss;
-    ULONG CcCopyReadNoWait;
-    ULONG CcCopyReadWait;
-    ULONG CcCopyReadNoWaitMiss;
-    ULONG CcCopyReadWaitMiss;
-    ULONG CcMdlReadNoWait;
-    ULONG CcMdlReadWait;
-    ULONG CcMdlReadNoWaitMiss;
-    ULONG CcMdlReadWaitMiss;
-    ULONG CcReadAheadIos;
-    ULONG CcLazyWriteIos;
-    ULONG CcLazyWritePages;
-    ULONG CcDataFlushes;
-    ULONG CcDataPages;
-    ULONG ContextSwitches;
-    ULONG FirstLevelTbFills;
-    ULONG SecondLevelTbFills;
-    ULONG SystemCalls;
-    ULONGLONG CcTotalDirtyPages; // since THRESHOLD
-    ULONGLONG CcDirtyPageThreshold;
-    LONGLONG ResidentAvailablePages;
-    ULONGLONG SharedCommittedPages;
-    ULONGLONG MdlPagesAllocated; // since 24H2
-    ULONGLONG PfnDatabaseCommittedPages;
-    ULONGLONG SystemPageTableCommittedPages;
-    ULONGLONG ContiguousPagesAllocated;
+    LARGE_INTEGER IdleProcessTime;              // Total time spent by the idle process (in 100ns units). Used to calculate overall CPU idle percentage; combine with per-processor stats for system CPU usage.
+    LARGE_INTEGER IoReadTransferCount;          // Total bytes read by all I/O operations system-wide. Combine with IoWriteTransferCount and IoOtherTransferCount for total I/O throughput.
+    LARGE_INTEGER IoWriteTransferCount;         // Total bytes written by all I/O operations system-wide. Use with IoReadTransferCount for disk throughput analysis.
+    LARGE_INTEGER IoOtherTransferCount;         // Total bytes transferred by non-read/write I/O operations (e.g., device control). Add to above for total I/O.
+    ULONG IoReadOperationCount;                 // Number of read I/O operations. Use with IoReadTransferCount to get average read size per operation.
+    ULONG IoWriteOperationCount;                // Number of write I/O operations. Use with IoWriteTransferCount for average write size per operation.
+    ULONG IoOtherOperationCount;                // Number of non-read/write I/O operations. Combine with above for total I/O operation count. */
+    ULONG AvailablePages;                       // Number of free physical memory pages available for immediate allocation to processes. (Display: Value * PageSize for bytes). Indicates instantly available RAM.
+    ULONG CommittedPages;                       // Number of committed virtual memory pages (backed by RAM or pagefile). Use with CommitLimit to assess memory pressure and overcommit risk.
+    ULONG CommitLimit;                          // Maximum number of pages that can be committed (RAM + pagefile). Compare with CommittedPages to determine available commit space.
+    ULONG PeakCommitment;                       // Highest number of committed pages since boot. Tracks historical maximum memory commitment.
+    ULONG PageFaultCount;                       // Total number of page faults (both soft and hard) since boot. Includes all types of faults.
+    ULONG CopyOnWriteCount;                     // Number of page faults due to copy-on-write events. Subset of PageFaultCount. Indicates process memory sharing and forking activity.
+    ULONG TransitionCount;                      // Number of page faults due to transition from standby to active. Subset of PageFaultCount. Indicates memory reactivation from standby lists.
+    ULONG CacheTransitionCount;                 // Number of page faults due to cache transitions. Subset of TransitionCount. Indicates faults resolved from the system cache.
+    ULONG DemandZeroCount;                      // Number of page faults resolved by zeroing a page (demand-zero). Subset of PageFaultCount. Indicates new memory allocations.
+    ULONG PageReadCount;                        // Number of pages read from disk to resolve faults. Use with PageReadIoCount for read efficiency (pages per I/O).
+    ULONG PageReadIoCount;                      // Number of I/O operations for page reads. Compare with PageReadCount for average pages per I/O.
+    ULONG CacheReadCount;                       // Number of pages read from the system cache. Use with CacheIoCount for cache hit/miss analysis.
+    ULONG CacheIoCount;                         // Number of I/O operations for cache reads. Compare with CacheReadCount for average pages per cache I/O.
+    ULONG DirtyPagesWriteCount;                 // Number of dirty pages written to disk (writeback). Use with DirtyWriteIoCount for write efficiency.
+    ULONG DirtyWriteIoCount;                    // Number of I/O operations for dirty page writes. Compare with DirtyPagesWriteCount for average pages per write I/O.
+    ULONG MappedPagesWriteCount;                // Number of mapped pages written (e.g., memory-mapped files). Use with MappedWriteIoCount for mapped file activity.
+    ULONG MappedWriteIoCount;                   // Number of I/O operations for mapped page writes. Compare with MappedPagesWriteCount for average mapped write size.
+    ULONG PagedPoolPages;                       // Number of pages used by the paged pool (kernel memory that can be paged out). Combine with NonPagedPoolPages for total pool usage.
+    ULONG NonPagedPoolPages;                    // Number of pages used by the nonpaged pool (kernel memory that must remain resident). Combine with PagedPoolPages for total pool usage.
+    ULONG PagedPoolAllocs;                      // Number of paged pool allocations. Use with PagedPoolFrees for leak detection and pool usage trends.
+    ULONG PagedPoolFrees;                       // Number of paged pool frees. Compare with PagedPoolAllocs to detect leaks or fragmentation.
+    ULONG NonPagedPoolAllocs;                   // Number of nonpaged pool allocations. Use with NonPagedPoolFrees for leak detection.
+    ULONG NonPagedPoolFrees;                    // Number of nonpaged pool frees. Compare with NonPagedPoolAllocs for pool usage.
+    ULONG FreeSystemPtes;                       // Number of free system page table entries (PTEs). Low values may indicate kernel memory exhaustion or fragmentation.
+    ULONG ResidentSystemCodePage;               // Number of resident pages for system code (kernel and drivers). Use with TotalSystemCodePages for residency ratio.
+    ULONG TotalSystemDriverPages;               // Total pages used by system drivers. Combine with TotalSystemCodePages for total kernel code usage.
+    ULONG TotalSystemCodePages;                 // Total pages used by system code (kernel + drivers). Use with ResidentSystemCodePage for residency analysis.
+    ULONG NonPagedPoolLookasideHits;            // Hits in nonpaged pool lookaside lists. Higher values indicate efficient small nonpaged allocations.
+    ULONG PagedPoolLookasideHits;               // Hits in paged pool lookaside lists. Higher values indicate efficient small paged allocations.
+    ULONG AvailablePagedPoolPages;              // Number of free pages in the paged pool. Monitor for pool exhaustion or fragmentation.
+    ULONG ResidentSystemCachePage;              // Resident pages in the system cache. Use with ResidentPagedPoolPage for cache residency analysis.
+    ULONG ResidentPagedPoolPage;                // Resident pages in the paged pool. Indicates how much of the paged pool is currently resident in RAM.
+    ULONG ResidentSystemDriverPage;             // Resident pages for system drivers. Use with TotalSystemDriverPages for residency ratio.
+    ULONG CcFastReadNoWait;                     // Fast cache reads completed without waiting. Use with CcFastReadWait for cache performance analysis.
+    ULONG CcFastReadWait;                       // Fast cache reads that required waiting. Compare with CcFastReadNoWait to assess cache latency.
+    ULONG CcFastReadResourceMiss;               // Fast cache read misses due to resource contention. Indicates cache bottlenecks.
+    ULONG CcFastReadNotPossible;                // Fast cache reads not possible (e.g., file not cached). Indicates cache limitations or bypasses.
+    ULONG CcFastMdlReadNoWait;                  // Fast MDL (Memory Descriptor List) reads completed without waiting. Use with CcFastMdlReadWait.
+    ULONG CcFastMdlReadWait;                    // Fast MDL reads that required waiting. Compare with CcFastMdlReadNoWait.
+    ULONG CcFastMdlReadResourceMiss;            // Fast MDL read misses due to resource contention. Indicates MDL bottlenecks.
+    ULONG CcFastMdlReadNotPossible;             // Fast MDL reads not possible. Indicates MDL limitations or cache bypass.
+    ULONG CcMapDataNoWait;                      // Cache map data operations completed without waiting. Use with CcMapDataWait for mapping efficiency.
+    ULONG CcMapDataWait;                        // Cache map data operations that required waiting. Compare with CcMapDataNoWait.
+    ULONG CcMapDataNoWaitMiss;                  // Cache map data misses without waiting. Indicates mapping bottlenecks.
+    ULONG CcMapDataWaitMiss;                    // Cache map data misses with waiting. Indicates mapping bottlenecks under contention.
+    ULONG CcPinMappedDataCount;                 // Number of pinned mapped data pages. Indicates how much data is locked in cache for I/O.
+    ULONG CcPinReadNoWait;                      // Pin reads completed without waiting. Use with CcPinReadWait for pinning efficiency.
+    ULONG CcPinReadWait;                        // Pin reads that required waiting. Compare with CcPinReadNoWait.
+    ULONG CcPinReadNoWaitMiss;                  // Pin read misses without waiting. Indicates pinning bottlenecks.
+    ULONG CcPinReadWaitMiss;                    // Pin read misses with waiting. Indicates pinning bottlenecks under contention.
+    ULONG CcCopyReadNoWait;                     // Copy reads completed without waiting. Use with CcCopyReadWait for copy efficiency.
+    ULONG CcCopyReadWait;                       // Copy reads that required waiting. Compare with CcCopyReadNoWait.
+    ULONG CcCopyReadNoWaitMiss;                 // Copy read misses without waiting. Indicates copy bottlenecks.
+    ULONG CcCopyReadWaitMiss;                   // Copy read misses with waiting. Indicates copy bottlenecks under contention.
+    ULONG CcMdlReadNoWait;                      // MDL reads completed without waiting. Use with CcMdlReadWait for MDL efficiency.
+    ULONG CcMdlReadWait;                        // MDL reads that required waiting. Compare with CcMdlReadNoWait.
+    ULONG CcMdlReadNoWaitMiss;                  // MDL read misses without waiting. Indicates MDL bottlenecks.
+    ULONG CcMdlReadWaitMiss;                    // MDL read misses with waiting. Indicates MDL bottlenecks under contention.
+    ULONG CcReadAheadIos;                       // Number of read-ahead I/O operations. Indicates cache prefetching activity.
+    ULONG CcLazyWriteIos;                       // Number of lazy write I/O operations. Indicates deferred write activity by the cache manager.
+    ULONG CcLazyWritePages;                     // Number of pages written by the lazy writer. Use with CcLazyWriteIos for writeback efficiency.
+    ULONG CcDataFlushes;                        // Number of cache data flushes. Indicates cache consistency operations (e.g., file close).
+    ULONG CcDataPages;                          // Number of pages flushed from cache. Use with CcDataFlushes for average flush size.
+    ULONG ContextSwitches;                      // Number of context switches system-wide. Use for CPU scheduling and multitasking analysis.
+    ULONG FirstLevelTbFills;                    // First-level translation buffer (TLB) fills. Indicates TLB efficiency and memory access patterns.
+    ULONG SecondLevelTbFills;                   // Second-level TLB fills. Indicates deeper TLB misses and memory access patterns.
+    ULONG SystemCalls;                          // Number of system calls made. Use for syscall activity and system workload analysis.
+    ULONGLONG CcTotalDirtyPages;                // Total number of dirty pages in the cache (since Windows 10/Threshold). Use with CcDirtyPageThreshold for writeback policy. // since THRESHOLD
+    ULONGLONG CcDirtyPageThreshold;             // Dirty page threshold for the cache. Compare with CcTotalDirtyPages to determine if writeback is needed.
+    LONGLONG ResidentAvailablePages;            // Number of available pages that are resident in memory. Combine with AvailablePages for residency analysis.
+    ULONGLONG SharedCommittedPages;             // Number of committed pages that are shared (e.g., mapped by multiple processes). Useful for shared memory analysis.
+    ULONGLONG MdlPagesAllocated;                // Number of pages allocated for MDLs (since Windows 11 24H2). Indicates MDL resource usage. // since 24H2
+    ULONGLONG PfnDatabaseCommittedPages;        // Number of pages committed for the PFN (Page Frame Number) database. Kernel memory usage for tracking physical pages.
+    ULONGLONG SystemPageTableCommittedPages;    // Number of pages committed for system page tables. Kernel memory usage for virtual-to-physical mapping structures.
+    ULONGLONG ContiguousPagesAllocated;         // Number of contiguous pages allocated. Indicates large memory allocations (e.g., for DMA or drivers).
 } SYSTEM_PERFORMANCE_INFORMATION, *PSYSTEM_PERFORMANCE_INFORMATION;
 
 /**
