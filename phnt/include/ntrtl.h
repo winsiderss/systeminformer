@@ -153,6 +153,14 @@ RtlFailFast(
     __fastfail(Code);
 }
 
+/**
+ * The RtlFatalListEntryError routine reports a fatal list entry error.
+ *
+ * \param p1 The first parameter passed to `RtlFailFast`.
+ * \param p2 The second parameter passed to `RtlFailFast`.
+ * \param p3 The third parameter passed to `RtlFailFast`.
+ * \remarks This routine is a wrapper around `RtlFailFast` that can be used to provide alternative reporting mechanisms, such as logging and trying to continue.
+ */
 DECLSPEC_NORETURN
 FORCEINLINE
 VOID
@@ -192,6 +200,12 @@ typedef struct _LIST_ENTRY LIST_ENTRY, *PLIST_ENTRY;
 // #define NO_LIST_ENTRY_CHECKS
 // #endif
 
+/**
+ * The RtlCheckListEntry routine checks the integrity of a doubly linked list entry.
+ *
+ * \param Entry A pointer to the list entry to check.
+ * \remarks This function calls `RtlFatalListEntryError` if the list entry is corrupted.
+ */
 FORCEINLINE
 VOID
 NTAPI_INLINE
@@ -209,6 +223,12 @@ RtlCheckListEntry(
     }
 }
 
+/**
+ * The InitializeListHead routine initializes a doubly linked list head.
+ *
+ * \param ListHead A pointer to the `LIST_ENTRY` structure to be initialized as a list head.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-initializelisthead
+ */
 FORCEINLINE
 VOID
 NTAPI_INLINE
@@ -219,6 +239,11 @@ InitializeListHead(
     ListHead->Flink = ListHead->Blink = ListHead;
 }
 
+/**
+ * The InitializeListHead32 routine initializes a 32-bit doubly linked list head.
+ *
+ * \param ListHead A pointer to the `LIST_ENTRY32` structure to be initialized as a list head.
+ */
 FORCEINLINE
 VOID
 NTAPI_INLINE
@@ -229,6 +254,14 @@ InitializeListHead32(
     ListHead->Flink = ListHead->Blink = PtrToUlong(ListHead);
 }
 
+/**
+ * The IsListEmpty routine determines whether a doubly linked list is empty.
+ *
+ * \param ListHead A pointer to the list head.
+ *
+ * \return `TRUE` if the list is empty, otherwise `FALSE`.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-islistempty
+ */
 _Must_inspect_result_
 FORCEINLINE
 BOOLEAN
@@ -240,6 +273,12 @@ IsListEmpty(
     return ListHead->Flink == ListHead;
 }
 
+/**
+ * The RemoveEntryListUnsafe routine removes an entry from a doubly linked list without checking for integrity.
+ *
+ * \param Entry A pointer to the list entry to be removed.
+ * \return `TRUE` if the list becomes empty after the entry is removed, otherwise `FALSE`.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI_INLINE
@@ -257,6 +296,13 @@ RemoveEntryListUnsafe(
     return (BOOLEAN)(Flink == Blink);
 }
 
+/**
+ * The RemoveEntryList routine removes an entry from a doubly linked list.
+ *
+ * \param Entry A pointer to the list entry to be removed.
+ * \return `TRUE` if the list becomes empty after the entry is removed, otherwise `FALSE`.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-removeentrylist
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI_INLINE
@@ -283,6 +329,13 @@ RemoveEntryList(
     return NextEntry == PrevEntry;
 }
 
+/**
+ * The RemoveHeadList routine removes the entry from the head of a doubly linked list.
+ *
+ * \param ListHead A pointer to the list head.
+ * \return A pointer to the entry removed from the head of the list.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-removeheadlist
+ */
 FORCEINLINE
 PLIST_ENTRY
 NTAPI_INLINE
@@ -309,6 +362,13 @@ RemoveHeadList(
     return Entry;
 }
 
+/**
+ * The RemoveTailList routine removes the entry from the tail of a doubly linked list.
+ *
+ * \param ListHead A pointer to the list head.
+ * \return A pointer to the entry removed from the tail of the list.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-removetaillist
+ */
 FORCEINLINE
 PLIST_ENTRY
 NTAPI_INLINE
@@ -335,6 +395,13 @@ RemoveTailList(
     return Entry;
 }
 
+/**
+ * The InsertTailList routine inserts an entry at the tail of a doubly linked list.
+ *
+ * \param ListHead A pointer to the list head.
+ * \param Entry A pointer to the list entry to be inserted.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-inserttaillist
+ */
 FORCEINLINE
 VOID
 NTAPI_INLINE
@@ -360,6 +427,13 @@ InsertTailList(
     ListHead->Blink = Entry;
 }
 
+/**
+ * The InsertHeadList routine inserts an entry at the head of a doubly linked list.
+ *
+ * \param ListHead A pointer to the list head.
+ * \param Entry A pointer to the list entry to be inserted.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-insertheadlist
+ */
 FORCEINLINE
 VOID
 NTAPI_INLINE
@@ -387,6 +461,12 @@ InsertHeadList(
     ListHead->Flink = Entry;
 }
 
+/**
+ * The AppendTailList routine appends a doubly linked list to the tail of another doubly linked list.
+ *
+ * \param ListHead A pointer to the head of the list to which to append.
+ * \param ListToAppend A pointer to the list to be appended.
+ */
 FORCEINLINE
 VOID
 NTAPI_INLINE
@@ -408,6 +488,13 @@ AppendTailList(
     ListToAppend->Blink = ListEnd;
 }
 
+/**
+ * The PopEntryList routine removes the first entry from a singly linked list.
+ *
+ * \param ListHead A pointer to the list head.
+ * \return A pointer to the entry removed from the head of the list, or `NULL` if the list is empty.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-popentrylist
+ */
 FORCEINLINE
 PSINGLE_LIST_ENTRY
 NTAPI_INLINE
@@ -425,6 +512,13 @@ PopEntryList(
     return FirstEntry;
 }
 
+/**
+ * The PushEntryList routine inserts an entry at the head of a singly linked list.
+ *
+ * \param ListHead A pointer to the list head.
+ * \param Entry A pointer to the list entry to be inserted.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-pushentrylist
+ */
 FORCEINLINE
 VOID
 NTAPI_INLINE
@@ -512,6 +606,16 @@ typedef struct _RTL_AVL_TABLE
     PVOID TableContext;
 } RTL_AVL_TABLE, *PRTL_AVL_TABLE;
 
+/**
+ * The RtlInitializeGenericTableAvl routine initializes a generic AVL table.
+ *
+ * \param Table A pointer to the `RTL_AVL_TABLE` structure to be initialized.
+ * \param CompareRoutine A comparison routine to be used for comparing elements.
+ * \param AllocateRoutine An allocation routine to be used for allocating memory for the table.
+ * \param FreeRoutine A free routine to be used for freeing memory allocated for the table.
+ * \param TableContext A context to be passed to the comparison, allocation, and free routines.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinitializegenerictableavl
+ */
 NTSYSAPI
 VOID
 NTAPI
@@ -523,6 +627,16 @@ RtlInitializeGenericTableAvl(
     _In_opt_ PVOID TableContext
     );
 
+/**
+ * The RtlInsertElementGenericTableAvl routine inserts an element into a generic AVL table.
+ *
+ * \param Table A pointer to the generic table.
+ * \param Buffer A pointer to the buffer containing the element to be inserted.
+ * \param BufferSize The size of the buffer.
+ * \param NewElement A pointer to a boolean that receives `TRUE` if the element was newly inserted, or `FALSE` if the element already existed.
+ * \return A pointer to the newly inserted or existing element.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinsertelementgenerictableavl
+ */
 NTSYSAPI
 PVOID
 NTAPI
@@ -533,6 +647,18 @@ RtlInsertElementGenericTableAvl(
     _Out_opt_ PBOOLEAN NewElement
     );
 
+/**
+ * The RtlInsertElementGenericTableFullAvl routine inserts an element into a generic AVL table.
+ *
+ * \param Table A pointer to the generic table.
+ * \param Buffer A pointer to the buffer containing the element to be inserted.
+ * \param BufferSize The size of the buffer.
+ * \param NewElement A pointer to a boolean that receives `TRUE` if the element was newly inserted, or `FALSE` if the element already existed.
+ * \param NodeOrParent A pointer to the node or parent for the insertion.
+ * \param SearchResult The result of the search for the insertion point.
+ * \return A pointer to the newly inserted or existing element.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinsertelementgenerictablefullavl
+ */
 NTSYSAPI
 PVOID
 NTAPI
@@ -545,6 +671,14 @@ RtlInsertElementGenericTableFullAvl(
     _In_ TABLE_SEARCH_RESULT SearchResult
     );
 
+/**
+ * The RtlDeleteElementGenericTableAvl routine deletes an element from a generic AVL table.
+ *
+ * \param Table A pointer to the generic table.
+ * \param Buffer A pointer to the buffer containing the element to be deleted.
+ * \return `TRUE` if the element was deleted, otherwise `FALSE`.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtldeleteelementgenerictableavl
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -553,6 +687,14 @@ RtlDeleteElementGenericTableAvl(
     _In_ PVOID Buffer
     );
 
+/**
+ * The RtlLookupElementGenericTableAvl routine looks up an element in a generic AVL table.
+ *
+ * \param Table A pointer to the generic table.
+ * \param Buffer A pointer to the buffer containing the element to look up.
+ * \return A pointer to the found element, or `NULL` if the element was not found.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtllookupelementgenerictableavl
+ */
 _Check_return_
 NTSYSAPI
 PVOID
@@ -562,6 +704,16 @@ RtlLookupElementGenericTableAvl(
     _In_ PVOID Buffer
     );
 
+/**
+ * The RtlLookupElementGenericTableFullAvl routine looks up an element in a generic AVL table.
+ *
+ * \param Table A pointer to the generic table.
+ * \param Buffer A pointer to the buffer containing the element to look up.
+ * \param NodeOrParent A pointer that receives the node or parent of the element.
+ * \param SearchResult A pointer that receives the result of the search.
+ * \return A pointer to the found element, or `NULL` if the element was not found.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtllookupelementgenerictablefullavl
+ */
 NTSYSAPI
 PVOID
 NTAPI
@@ -572,6 +724,14 @@ RtlLookupElementGenericTableFullAvl(
     _Out_ TABLE_SEARCH_RESULT *SearchResult
     );
 
+/**
+ * The RtlEnumerateGenericTableAvl routine enumerates the elements in a generic AVL table.
+ *
+ * \param Table A pointer to the generic table.
+ * \param Restart `TRUE` to restart the enumeration, `FALSE` to continue.
+ * \return A pointer to the next element in the table, or `NULL` if there are no more elements.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlenumerategenerictableavl
+ */
 _Check_return_
 NTSYSAPI
 PVOID
@@ -581,6 +741,14 @@ RtlEnumerateGenericTableAvl(
     _In_ BOOLEAN Restart
     );
 
+/**
+ * The RtlEnumerateGenericTableWithoutSplayingAvl routine enumerates the elements in a generic AVL table without splaying.
+ *
+ * \param Table A pointer to the generic table.
+ * \param RestartKey A pointer to a restart key.
+ * \return A pointer to the next element in the table, or `NULL` if there are no more elements.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlenumerategenerictablewithoutsplayingavl
+ */
 _Check_return_
 NTSYSAPI
 PVOID
@@ -590,6 +758,15 @@ RtlEnumerateGenericTableWithoutSplayingAvl(
     _Inout_ PVOID *RestartKey
     );
 
+/**
+ * The RtlLookupFirstMatchingElementGenericTableAvl routine looks up the first matching element in a generic AVL table.
+ *
+ * \param Table A pointer to the generic table.
+ * \param Buffer A pointer to the buffer containing the element to look up.
+ * \param RestartKey A pointer to a restart key.
+ * \return A pointer to the first matching element, or `NULL` if no matching element was found.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtllookupfirstmatchingelementgenerictableavl
+ */
 _Check_return_
 NTSYSAPI
 PVOID
@@ -600,6 +777,18 @@ RtlLookupFirstMatchingElementGenericTableAvl(
     _Out_ PVOID *RestartKey
     );
 
+/**
+ * The RtlEnumerateGenericTableLikeADirectory routine enumerates the elements in a generic AVL table like a directory.
+ *
+ * \param Table A pointer to the generic table.
+ * \param MatchFunction A match function to be used for comparing elements.
+ * \param MatchData A context to be passed to the match function.
+ * \param NextFlag A flag indicating whether to move to the next element.
+ * \param RestartKey A pointer to a restart key.
+ * \param DeleteCount A pointer to a counter for deleted elements.
+ * \param Buffer A pointer to the buffer containing the element to look up.
+ * \return A pointer to the next element in the table, or `NULL` if there are no more elements.
+ */
 _Check_return_
 NTSYSAPI
 PVOID
@@ -614,6 +803,14 @@ RtlEnumerateGenericTableLikeADirectory(
     _In_ PVOID Buffer
     );
 
+/**
+ * The RtlGetElementGenericTableAvl routine gets an element from a generic AVL table by its index.
+ *
+ * \param Table A pointer to the generic table.
+ * \param I The index of the element to get.
+ * \return A pointer to the element, or `NULL` if the index is out of range.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlgetelementgenerictableavl
+ */
 _Check_return_
 NTSYSAPI
 PVOID
@@ -623,6 +820,13 @@ RtlGetElementGenericTableAvl(
     _In_ ULONG I
     );
 
+/**
+ * The RtlNumberGenericTableElementsAvl routine gets the number of elements in a generic AVL table.
+ *
+ * \param Table A pointer to the generic table.
+ * \return The number of elements in the table.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlnumbergenerictableelementsavl
+ */
 NTSYSAPI
 ULONG
 NTAPI
@@ -630,6 +834,13 @@ RtlNumberGenericTableElementsAvl(
     _In_ PRTL_AVL_TABLE Table
     );
 
+/**
+ * The RtlIsGenericTableEmptyAvl routine determines whether a generic AVL table is empty.
+ *
+ * \param Table A pointer to the generic table.
+ * \return `TRUE` if the table is empty, otherwise `FALSE`.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlisgenerictableemptyavl
+ */
 _Check_return_
 NTSYSAPI
 BOOLEAN
@@ -681,6 +892,13 @@ typedef struct _RTL_SPLAY_LINKS
     _SplayChild->Parent = _SplayParent; \
 }
 
+/**
+ * The RtlSplay routine performs a splay operation on a splay tree.
+ *
+ * \param Links A pointer to the splay links of the node to splay.
+ * \return A pointer to the new root of the splay tree.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlsplay
+ */
 NTSYSAPI
 PRTL_SPLAY_LINKS
 NTAPI
@@ -688,6 +906,13 @@ RtlSplay(
     _Inout_ PRTL_SPLAY_LINKS Links
     );
 
+/**
+ * The RtlDelete routine deletes a node from a splay tree.
+ *
+ * \param Links A pointer to the splay links of the node to delete.
+ * \return A pointer to the new root of the splay tree.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtldelete
+ */
 NTSYSAPI
 PRTL_SPLAY_LINKS
 NTAPI
@@ -695,6 +920,12 @@ RtlDelete(
     _In_ PRTL_SPLAY_LINKS Links
     );
 
+/**
+ * The RtlDeleteNoSplay routine deletes a node from a splay tree without splaying.
+ *
+ * \param Links A pointer to the splay links of the node to delete.
+ * \param Root A pointer to the root of the splay tree.
+ */
 NTSYSAPI
 VOID
 NTAPI
@@ -703,6 +934,13 @@ RtlDeleteNoSplay(
     _Inout_ PRTL_SPLAY_LINKS *Root
     );
 
+/**
+ * The RtlSubtreeSuccessor routine finds the successor of a node in a splay tree.
+ *
+ * \param Links A pointer to the splay links of the node.
+ * \return A pointer to the splay links of the successor node.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlsubtreesuccessor
+ */
 _Check_return_
 NTSYSAPI
 PRTL_SPLAY_LINKS
@@ -711,6 +949,13 @@ RtlSubtreeSuccessor(
     _In_ PRTL_SPLAY_LINKS Links
     );
 
+/**
+ * The RtlSubtreePredecessor routine finds the predecessor of a node in a splay tree.
+ *
+ * \param Links A pointer to the splay links of the node.
+ * \return A pointer to the splay links of the predecessor node.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlsubtreepredecessor
+ */
 _Check_return_
 NTSYSAPI
 PRTL_SPLAY_LINKS
@@ -719,6 +964,13 @@ RtlSubtreePredecessor(
     _In_ PRTL_SPLAY_LINKS Links
     );
 
+/**
+ * The RtlRealSuccessor routine finds the real successor of a node in a splay tree.
+ *
+ * \param Links A pointer to the splay links of the node.
+ * \return A pointer to the splay links of the real successor node.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlrealsuccessor
+ */
 _Check_return_
 NTSYSAPI
 PRTL_SPLAY_LINKS
@@ -727,6 +979,13 @@ RtlRealSuccessor(
     _In_ PRTL_SPLAY_LINKS Links
     );
 
+/**
+ * The RtlRealPredecessor routine finds the real predecessor of a node in a splay tree.
+ *
+ * \param Links A pointer to the splay links of the node.
+ * \return A pointer to the splay links of the real predecessor node.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlrealpredecessor
+ */
 _Check_return_
 NTSYSAPI
 PRTL_SPLAY_LINKS
@@ -772,6 +1031,16 @@ typedef struct _RTL_GENERIC_TABLE
     PVOID TableContext;
 } RTL_GENERIC_TABLE, *PRTL_GENERIC_TABLE;
 
+/**
+ * The RtlInitializeGenericTable routine initializes a generic table.
+ *
+ * \param Table A pointer to the `RTL_GENERIC_TABLE` structure to be initialized.
+ * \param CompareRoutine A comparison routine to be used for comparing elements.
+ * \param AllocateRoutine An allocation routine to be used for allocating memory for the table.
+ * \param FreeRoutine A free routine to be used for freeing memory allocated for the table.
+ * \param TableContext A context to be passed to the comparison, allocation, and free routines.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinitializegenerictable
+ */
 NTSYSAPI
 VOID
 NTAPI
@@ -783,6 +1052,16 @@ RtlInitializeGenericTable(
     _In_opt_ PVOID TableContext
     );
 
+/**
+ * The RtlInsertElementGenericTable routine inserts an element into a generic table.
+ *
+ * \param Table A pointer to the generic table.
+ * \param Buffer A pointer to the buffer containing the element to be inserted.
+ * \param BufferSize The size of the buffer.
+ * \param NewElement A pointer to a boolean that receives `TRUE` if the element was newly inserted, or `FALSE` if the element already existed.
+ * \return A pointer to the newly inserted or existing element.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinsertelementgenerictable
+ */
 NTSYSAPI
 PVOID
 NTAPI
@@ -793,6 +1072,18 @@ RtlInsertElementGenericTable(
     _Out_opt_ PBOOLEAN NewElement
     );
 
+/**
+ * The RtlInsertElementGenericTableFull routine inserts an element into a generic table.
+ *
+ * \param Table A pointer to the generic table.
+ * \param Buffer A pointer to the buffer containing the element to be inserted.
+ * \param BufferSize The size of the buffer.
+ * \param NewElement A pointer to a boolean that receives `TRUE` if the element was newly inserted, or `FALSE` if the element already existed.
+ * \param NodeOrParent A pointer to the node or parent for the insertion.
+ * \param SearchResult The result of the search for the insertion point.
+ * \return A pointer to the newly inserted or existing element.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlinsertelementgenerictablefull
+ */
 NTSYSAPI
 PVOID
 NTAPI
