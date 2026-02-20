@@ -1148,8 +1148,9 @@ VOID PhLoadSymbolProviderOptions(
     PPH_STRING searchPath = NULL;
 
     PhSetOptionsSymbolProvider(
-        PH_SYMOPT_UNDNAME,
-        PhGetIntegerSetting(SETTING_DBGHELP_UNDECORATE) ? PH_SYMOPT_UNDNAME : 0
+        PH_SYMOPT_UNDNAME | PH_SYMOPT_VERIFY_MICROSOFT_CHAIN,
+        (PhGetIntegerSetting(SETTING_DBGHELP_UNDECORATE) ? PH_SYMOPT_UNDNAME : 0) |
+        (PhGetIntegerSetting(SETTING_DBGHELP_VERIFY_MICROSOFT_CHAIN) ? PH_SYMOPT_VERIFY_MICROSOFT_CHAIN : 0)
         );
 
     PhQueryEnvironmentVariable(NULL, &symbolPath, &searchPath);

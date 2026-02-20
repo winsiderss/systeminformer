@@ -25,6 +25,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_CLOSE_ON_ESCAPE, L"0");
     PhpAddStringSetting(SETTING_DBGHELP_SEARCH_PATH, L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
     PhpAddIntegerSetting(SETTING_DBGHELP_UNDECORATE, L"1");
+    PhpAddIntegerSetting(SETTING_DBGHELP_VERIFY_MICROSOFT_CHAIN, L"1");
     PhpAddStringSetting(SETTING_DISABLED_PLUGINS, L"");
     PhpAddIntegerSetting(SETTING_ELEVATION_LEVEL, L"1"); // PromptElevateAction
     PhpAddIntegerSetting(SETTING_ENABLE_ADVANCED_OPTIONS, L"0");

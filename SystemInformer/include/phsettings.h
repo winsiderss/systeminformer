@@ -157,6 +157,7 @@ EXT ULONG PhProcessMonitorCacheLimit;
 #define SETTING_CLOSE_ON_ESCAPE                                     L"CloseOnEscape"
 #define SETTING_DBGHELP_SEARCH_PATH                                 L"DbgHelpSearchPath"
 #define SETTING_DBGHELP_UNDECORATE                                  L"DbgHelpUndecorate"
+#define SETTING_DBGHELP_VERIFY_MICROSOFT_CHAIN                      L"DbgHelpVerifyMicrosoftChain"
 #define SETTING_DISABLED_PLUGINS                                    L"DisabledPlugins"
 #define SETTING_ELEVATION_LEVEL                                     L"ElevationLevel"
 #define SETTING_ENABLE_ADVANCED_OPTIONS                             L"EnableAdvancedOptions"

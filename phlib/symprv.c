@@ -104,6 +104,7 @@ typeof(&UnDecorateSymbolNameW) UnDecorateSymbolNameW_I = NULL;
 _SymGetDiaSource SymGetDiaSource_I = NULL;
 _SymGetDiaSession SymGetDiaSession_I = NULL;
 _SymFreeDiaString SymFreeDiaString_I = NULL;
+static ULONG PhSymbolProviderInternalOptions = PH_SYMOPT_VERIFY_MICROSOFT_CHAIN;
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
     _In_opt_ HANDLE ProcessId
@@ -1474,6 +1475,8 @@ NTSTATUS PhLoadModulesForVirtualSymbolProvider(
     {
         NtClose(processHandle);
     }
+
+    return status;
 }
 
 static const PH_FLAG_MAPPING PhSymbolProviderOptions[] =
@@ -1489,6 +1492,15 @@ VOID PhSetOptionsSymbolProvider(
     ULONG options;
     ULONG mask = 0;
     ULONG value = 0;
+    ULONG internalMask;
+
+    internalMask = Mask & PH_SYMOPT_VERIFY_MICROSOFT_CHAIN;
+
+    if (internalMask)
+    {
+        PhSymbolProviderInternalOptions =
+            (PhSymbolProviderInternalOptions & ~internalMask) | (Value & internalMask);
+    }
 
     PhpRegisterSymbolProvider(NULL);
 
@@ -1762,7 +1774,8 @@ NTSTATUS PhpAccessCallbackFunctionTable(
 
         // Verify the signature is valid and the certificate chained to Microsoft (dmex)
 
-        if (!PhVerifyFileIsChainedToMicrosoft(&fileName, FALSE))
+        if ((PhSymbolProviderInternalOptions & PH_SYMOPT_VERIFY_MICROSOFT_CHAIN) &&
+            !PhVerifyFileIsChainedToMicrosoft(&fileName, FALSE))
         {
             return STATUS_ACCESS_DISABLED_BY_POLICY_DEFAULT;
         }

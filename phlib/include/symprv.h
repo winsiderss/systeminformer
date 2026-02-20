@@ -178,6 +178,7 @@ PhLoadModulesForVirtualSymbolProvider(
     );
 
 #define PH_SYMOPT_UNDNAME 0x1
+#define PH_SYMOPT_VERIFY_MICROSOFT_CHAIN 0x2
 
 PHLIBAPI
 VOID
