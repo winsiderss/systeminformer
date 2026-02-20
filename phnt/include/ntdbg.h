@@ -602,7 +602,8 @@ typedef struct _EVENT_FILTER_DESCRIPTOR *PEVENT_FILTER_DESCRIPTOR;
 /**
  * A callback function that receives event enabled notifications.
  */
-typedef VOID (NTAPI *PENABLECALLBACK)(
+typedef _Function_class_(ENABLECALLBACK)
+VOID NTAPI ENABLECALLBACK(
     _In_ LPCGUID SourceId,
     _In_ ULONG IsEnabled,
     _In_ UCHAR Level,
@@ -611,6 +612,7 @@ typedef VOID (NTAPI *PENABLECALLBACK)(
     _In_opt_ PEVENT_FILTER_DESCRIPTOR FilterData,
     _Inout_opt_ PVOID CallbackContext
     );
+typedef ENABLECALLBACK* PENABLECALLBACK;
 
 typedef ULONGLONG REGHANDLE, *PREGHANDLE;
 
