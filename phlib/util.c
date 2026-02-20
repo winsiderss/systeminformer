@@ -186,6 +186,13 @@ VOID PhCenterWindow(
     }
 }
 
+/**
+ * Moves a window to the specified monitor.
+ *
+ * \param WindowHandle The window to move.
+ * \param MonitorHandle The monitor to move the window to.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhMoveWindowToMonitor(
     _In_ HWND WindowHandle,
     _In_ HMONITOR MonitorHandle
@@ -247,7 +254,10 @@ NTSTATUS PhMoveWindowToMonitor(
     return STATUS_SUCCESS;
 }
 
-// rev from GetSystemDefaultLCID
+/**
+ * Retrieves the system default locale identifier.
+ * \return The system default locale identifier.
+ */
 LCID PhGetSystemDefaultLCID(
     VOID
     )
@@ -257,6 +267,8 @@ LCID PhGetSystemDefaultLCID(
 #else
     LCID localeId = LOCALE_SYSTEM_DEFAULT;
 
+    // rev from GetSystemDefaultLCID (dmex)
+
     if (NT_SUCCESS(NtQueryDefaultLocale(FALSE, &localeId)))
         return localeId;
 
@@ -264,7 +276,10 @@ LCID PhGetSystemDefaultLCID(
 #endif
 }
 
-// rev from GetUserDefaultLCID
+/**
+ * Retrieves the user default locale identifier.
+ * \return The user default locale identifier.
+ */
 LCID PhGetUserDefaultLCID(
     VOID
     )
@@ -274,6 +289,8 @@ LCID PhGetUserDefaultLCID(
 #else
     LCID localeId = LOCALE_USER_DEFAULT;
 
+    // rev from GetUserDefaultLCID (dmex)
+
     if (NT_SUCCESS(NtQueryDefaultLocale(TRUE, &localeId)))
         return localeId;
 
@@ -281,6 +298,12 @@ LCID PhGetUserDefaultLCID(
 #endif
 }
 
+/**
+ * Retrieves a boolean value from the user locale information.
+ *
+ * \param LCType The type of locale information to retrieve.
+ * \return TRUE if the value is '1', otherwise FALSE.
+ */
 BOOLEAN PhGetUserLocaleInfoBool(
     _In_ LCTYPE LCType
     )
@@ -296,7 +319,10 @@ BOOLEAN PhGetUserLocaleInfoBool(
     return FALSE;
 }
 
-// rev from GetThreadLocale
+/**
+ * Retrieves the locale identifier for the current thread.
+ * \return The locale identifier for the current thread.
+ */
 LCID PhGetCurrentThreadLCID(
     VOID
     )
@@ -305,6 +331,8 @@ LCID PhGetCurrentThreadLCID(
     return GetThreadLocale();
 #else
     PTEB currentTeb;
+
+    // rev from GetThreadLocale (dmex)
 
     currentTeb = NtCurrentTeb();
 
@@ -319,7 +347,10 @@ LCID PhGetCurrentThreadLCID(
 #endif
 }
 
-// rev from GetSystemDefaultLangID
+/**
+ * Retrieves the system default language identifier.
+ * \return The system default language identifier.
+ */
 LANGID PhGetSystemDefaultLangID(
     VOID
     )
@@ -327,11 +358,16 @@ LANGID PhGetSystemDefaultLangID(
 #if defined(PHNT_NATIVE_LOCALE)
     return GetSystemDefaultLangID();
 #else
+    // rev from GetSystemDefaultLangID (dmex)
+
     return LANGIDFROMLCID(PhGetSystemDefaultLCID());
 #endif
 }
 
-// rev from GetUserDefaultLangID
+/**
+ * Retrieves the user default language identifier.
+ * \return The user default language identifier.
+ */
 LANGID PhGetUserDefaultLangID(
     VOID
     )
@@ -339,11 +375,16 @@ LANGID PhGetUserDefaultLangID(
 #if defined(PHNT_NATIVE_LOCALE)
     return GetUserDefaultLangID();
 #else
+    // rev from GetUserDefaultLangID (dmex)
+
     return LANGIDFROMLCID(PhGetUserDefaultLCID());
 #endif
 }
 
-// rev from GetUserDefaultUILanguage
+/**
+ * Retrieves the user default UI language identifier.
+ * \return The user default UI language identifier.
+ */
 LANGID PhGetUserDefaultUILanguage(
     VOID
     )
@@ -352,6 +393,8 @@ LANGID PhGetUserDefaultUILanguage(
     return GetUserDefaultUILanguage();
 #else
     LANGID languageId;
+
+    // rev from GetUserDefaultUILanguage (dmex)
 
     if (NT_SUCCESS(NtQueryDefaultUILanguage(&languageId)))
         return languageId;
@@ -362,7 +405,10 @@ LANGID PhGetUserDefaultUILanguage(
 #endif
 }
 
-// rev from GetUserDefaultLocaleName
+/**
+ * Retrieves the user default locale name.
+ * \return A string containing the user default locale name.
+ */
 PPH_STRING PhGetUserDefaultLocaleName(
     VOID
     )
@@ -381,6 +427,8 @@ PPH_STRING PhGetUserDefaultLocaleName(
     UNICODE_STRING localeNameUs;
     WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
+    // rev from GetUserDefaultLocaleName (dmex)
+
     RtlInitEmptyUnicodeString(&localeNameUs, localeName, sizeof(localeName));
 
     if (NT_SUCCESS(RtlLcidToLocaleName(PhGetUserDefaultLCID(), &localeNameUs, 0, FALSE)))
@@ -392,7 +440,12 @@ PPH_STRING PhGetUserDefaultLocaleName(
     return NULL;
 }
 
-// rev from LCIDToLocaleName
+/**
+ * Converts a locale identifier to a locale name.
+ *
+ * \param lcid The locale identifier.
+ * \return A string containing the locale name.
+ */
 PPH_STRING PhLCIDToLocaleName(
     _In_ LCID lcid
     )
@@ -410,6 +463,8 @@ PPH_STRING PhLCIDToLocaleName(
 #else
     UNICODE_STRING localeNameUs;
     WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
+
+    // rev from LCIDToLocaleName (dmex)
 
     RtlInitEmptyUnicodeString(&localeNameUs, localeName, sizeof(localeName));
 
@@ -432,6 +487,12 @@ PPH_STRING PhLCIDToLocaleName(
     return NULL;
 }
 
+/**
+ * Converts a LARGE_INTEGER time value to a SYSTEMTIME structure.
+ *
+ * \param SystemTime The destination SYSTEMTIME structure.
+ * \param LargeInteger The source LARGE_INTEGER time value.
+ */
 VOID PhLargeIntegerToSystemTime(
     _Out_ PSYSTEMTIME SystemTime,
     _In_ PLARGE_INTEGER LargeInteger
@@ -884,6 +945,19 @@ LONG PhShowMessage2(
     }
 }
 
+/**
+ * Internal worker for displaying a message with a "Don't show this message again" checkbox.
+ *
+ * \param WindowHandle The owner window.
+ * \param Buttons The buttons to display.
+ * \param Icon The icon to display.
+ * \param Title The title of the message.
+ * \param Result Receives the selected button.
+ * \param Checked Receives the state of the checkbox.
+ * \param Format The format string.
+ * \param ArgPtr The argument list.
+ * \return TRUE if the dialog was shown, otherwise FALSE.
+ */
 BOOLEAN PhpShowMessageOneTime(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
@@ -956,6 +1030,16 @@ BOOLEAN PhpShowMessageOneTime(
     }
 }
 
+/**
+ * Displays a message with a "Don't show this message again" checkbox.
+ *
+ * \param WindowHandle The owner window.
+ * \param Buttons The buttons to display.
+ * \param Icon The icon to display.
+ * \param Title The title of the message.
+ * \param Format The format string.
+ * \return TRUE if the checkbox was checked, otherwise FALSE.
+ */
 BOOLEAN PhShowMessageOneTime(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
@@ -975,6 +1059,17 @@ BOOLEAN PhShowMessageOneTime(
     return checked;
 }
 
+/**
+ * Displays a message with a "Don't show this message again" checkbox.
+ *
+ * \param WindowHandle The owner window.
+ * \param Buttons The buttons to display.
+ * \param Icon The icon to display.
+ * \param Title The title of the message.
+ * \param Checked Receives the state of the checkbox.
+ * \param Format The format string.
+ * \return The selected button.
+ */
 LONG PhShowMessageOneTime2(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
@@ -995,6 +1090,15 @@ LONG PhShowMessageOneTime2(
     return result;
 }
 
+/**
+ * Displays a task dialog.
+ *
+ * \param Config The task dialog configuration.
+ * \param Button Receives the selected button.
+ * \param RadioButton Receives the selected radio button.
+ * \param FlagChecked Receives the state of the verification checkbox.
+ * \return TRUE if the task dialog was shown, otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN PhShowTaskDialog(
     _In_ PTASKDIALOGCONFIG Config,
@@ -1026,6 +1130,13 @@ BOOLEAN PhShowTaskDialog(
     return FALSE; // PhDosErrorToNtStatus(HRESULT_CODE(status));
 }
 
+/**
+ * Retrieves a status message for a NTSTATUS value or Win32 error code.
+ *
+ * \param Status A NTSTATUS value.
+ * \param Win32Result A Win32 error code, or 0 to derive it from the status.
+ * \return A string containing the status message.
+ */
 PPH_STRING PhGetStatusMessage(
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
@@ -1342,6 +1453,14 @@ VOID PhGenerateGuidFromName(
 }
 
 // rev from ntoskrnl.exe!RtlGenerateClass5Guid (dmex)
+/**
+ * Creates a type 5 (SHA1-based) UUID.
+ *
+ * \param NamespaceGuid The UUID of the namespace.
+ * \param Buffer The input buffer.
+ * \param BufferSize The size of the input buffer.
+ * \param Guid The destination UUID.
+ */
 VOID PhGenerateClass5Guid(
     _In_ REFGUID NamespaceGuid,
     _In_reads_bytes_(BufferSize) PVOID Buffer,
@@ -1374,9 +1493,16 @@ VOID PhGenerateClass5Guid(
     guid->s2.Variant |= GUID_VARIANT_STANDARD;
 }
 
-// rev from Windows SDK\\ComputerHardwareIds.exe (dmex)
-// https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/computerhardwareids
-// https://learn.microsoft.com/en-us/windows-hardware/drivers/install/specifying-hardware-ids-for-a-computer
+/**
+ * Creates a Hardware ID UUID.
+ *
+ * \param Buffer The input buffer.
+ * \param BufferSize The size of the input buffer.
+ * \param Guid The destination UUID.
+ * \remarks rev from Windows SDK\\ComputerHardwareIds.exe (dmex)
+ * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/computerhardwareids
+ * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/install/specifying-hardware-ids-for-a-computer
+ */
 VOID PhGenerateHardwareIDGuid(
     _In_reads_bytes_(BufferSize) PVOID Buffer,
     _In_ ULONG BufferSize,
@@ -1442,6 +1568,11 @@ VOID PhGenerateRandomNumericString(
     Buffer[Count - 1] = UNICODE_NULL;
 }
 
+/**
+ * Generates a random 64-bit number.
+ *
+ * \return A random 64-bit number.
+ */
 ULONG64 PhGenerateRandomNumber64(
     VOID
     )
@@ -1456,6 +1587,12 @@ ULONG64 PhGenerateRandomNumber64(
     return value.QuadPart;
 }
 
+/**
+ * Generates a random number.
+ *
+ * \param Number Receives the random number.
+ * \return TRUE if the random number was generated, otherwise FALSE.
+ */
 BOOLEAN PhGenerateRandomNumber(
     _Out_ PLARGE_INTEGER Number
     )
@@ -1500,6 +1637,12 @@ BOOLEAN PhGenerateRandomNumber(
     return TRUE;
 }
 
+/**
+ * Generates a random seed.
+ *
+ * \param Seed Receives the random seed.
+ * \return TRUE if the random seed was generated, otherwise FALSE.
+ */
 BOOLEAN PhGenerateRandomSeed(
     _Out_ PLARGE_INTEGER Seed
     )
@@ -1627,6 +1770,14 @@ PPH_STRING PhEllipsisStringPath(
     }
 }
 
+/**
+ * Internal worker for matching a pattern against a string.
+ *
+ * \param Pattern The pattern.
+ * \param String The string.
+ * \param IgnoreCase Whether to ignore case.
+ * \return TRUE if the pattern matches the string, otherwise FALSE.
+ */
 FORCEINLINE BOOLEAN PhpMatchWildcards(
     _In_ PCWSTR Pattern,
     _In_ PCWSTR String,
@@ -2044,6 +2195,15 @@ PPH_STRING PhFormatDateTime(
     return string;
 }
 
+/**
+ * Formats a date and time using the user's default locale to a buffer.
+ *
+ * \param DateTime The time structure. If NULL, the current time is used.
+ * \param Buffer The destination buffer.
+ * \param BufferLength The size of the destination buffer, in bytes.
+ * \param ReturnLength Receives the number of bytes written to the buffer.
+ * \return TRUE if the date and time were formatted, otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN PhFormatDateTimeToBuffer(
     _In_opt_ PSYSTEMTIME DateTime,
@@ -2059,7 +2219,7 @@ BOOLEAN PhFormatDateTimeToBuffer(
     timeBufferSize = GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
     dateBufferSize = GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0, NULL);
 
-    returnLength = (timeBufferSize + 1 + dateBufferSize) * sizeof(WCHAR);
+    returnLength = ((SIZE_T)timeBufferSize + 1 + (SIZE_T)dateBufferSize) * sizeof(WCHAR);
 
     if (returnLength >= BufferLength)
         goto CleanupExit;
@@ -2083,6 +2243,13 @@ CleanupExit:
     return FALSE;
 }
 
+/**
+ * Formats a time span.
+ *
+ * \param Ticks The number of ticks.
+ * \param Mode The format mode.
+ * \return A string containing the formatted time span.
+ */
 PPH_STRING PhFormatTimeSpan(
     _In_ ULONG64 Ticks,
     _In_opt_ ULONG Mode
@@ -2097,6 +2264,13 @@ PPH_STRING PhFormatTimeSpan(
     return string;
 }
 
+/**
+ * Formats a time span with extended options.
+ *
+ * \param Ticks The number of ticks.
+ * \param Mode The format mode.
+ * \return A string containing the formatted time span.
+ */
 PPH_STRING PhFormatTimeSpanEx(
     _In_ ULONG64 Ticks,
     _In_opt_ ULONG Mode
@@ -2304,7 +2478,7 @@ PPH_STRING PhFormatUInt64Prefix(
 
     while (
         number >= 1000 &&
-        i + 1 < RTL_NUMBER_OF(PhPrefixUnitNamesCounted) &&
+        i + 1 < (ULONG)RTL_NUMBER_OF(PhPrefixUnitNamesCounted) &&
         i < PhMaxSizeUnit
         )
     {
@@ -2338,7 +2512,7 @@ PPH_STRING PhFormatUInt64BitratePrefix(
 
     while (
         number >= 1000 &&
-        i + 1 < RTL_NUMBER_OF(PhSiPrefixUnitNamesCounted) &&
+        i + 1 < (ULONG)RTL_NUMBER_OF(PhSiPrefixUnitNamesCounted) &&
         i < PhMaxSizeUnit
         )
     {
@@ -2354,6 +2528,14 @@ PPH_STRING PhFormatUInt64BitratePrefix(
     return PhFormat(format, 2, 0);
 }
 
+/**
+ * Formats a decimal string.
+ *
+ * \param Value The decimal string.
+ * \param FractionalDigits The number of fractional digits.
+ * \param GroupDigits TRUE to group digits, otherwise FALSE.
+ * \return A string containing the formatted decimal.
+ */
 PPH_STRING PhFormatDecimal(
     _In_ PCWSTR Value,
     _In_ ULONG FractionalDigits,
@@ -5760,6 +5942,14 @@ NTSTATUS PhFilterTokenForLimitedUser(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Converts a security descriptor to its string representation.
+ *
+ * \param SecurityDescriptor The security descriptor.
+ * \param SecurityInformation The security information to include in the string.
+ * \param SecurityDescriptorString Receives the string representation of the security descriptor.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetSecurityDescriptorAsString(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
@@ -5797,6 +5987,12 @@ NTSTATUS PhGetSecurityDescriptorAsString(
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
+/**
+ * Converts a string representation of a security descriptor to its binary representation.
+ *
+ * \param SecurityDescriptorString The string representation of the security descriptor.
+ * \return A pointer to the security descriptor, or NULL if the operation fails.
+ */
 PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
     _In_ PCWSTR SecurityDescriptorString
     )
@@ -5830,6 +6026,13 @@ PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
     return securityDescriptor;
 }
 
+/**
+ * Retrieves the string representation of an object's security descriptor.
+ *
+ * \param Handle A handle to the object.
+ * \param SecurityDescriptorString Receives the string representation of the security descriptor.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetObjectSecurityDescriptorAsString(
     _In_ HANDLE Handle,
     _Out_ PPH_STRING* SecurityDescriptorString
@@ -6118,6 +6321,15 @@ BOOLEAN PhShellNotifyIcon(
     return !!Shell_NotifyIconW_I(Message, NotifyIconData);
 }
 
+/**
+ * Retrieves the full path of a known folder.
+ *
+ * \param rfid A reference that identifies the folder.
+ * \param Flags Flags that control how the folder is retrieved.
+ * \param TokenHandle An access token that represents a particular user.
+ * \param FolderPath Receives the path of the known folder.
+ * \return Successful or errant status.
+ */
 HRESULT PhShellGetKnownFolderPath(
     _In_ PCGUID rfid,
     _In_ ULONG Flags,
@@ -6146,6 +6358,16 @@ HRESULT PhShellGetKnownFolderPath(
     return SHGetKnownFolderPath_I(rfid, Flags, TokenHandle, FolderPath);
 }
 
+/**
+ * Retrieves an IShellItem object for a known folder.
+ *
+ * \param rfid A reference that identifies the folder.
+ * \param Flags Flags that control how the folder is retrieved.
+ * \param TokenHandle An access token that represents a particular user.
+ * \param riid A reference to the IID of the requested interface.
+ * \param ppv Receives the interface pointer.
+ * \return Successful or errant status.
+ */
 HRESULT PhShellGetKnownFolderItem(
     _In_ PCGUID rfid,
     _In_ ULONG Flags,
@@ -6257,6 +6479,13 @@ PPH_STRING PhQueryRegistryString(
     return string;
 }
 
+/**
+ * Gets a registry ULONG value.
+ *
+ * \param KeyHandle A handle to the key.
+ * \param ValueName The name of the value.
+ * \return The value, or ULONG_MAX if the function failed.
+ */
 ULONG PhQueryRegistryUlong(
     _In_ HANDLE KeyHandle,
     _In_opt_ PCPH_STRINGREF ValueName
@@ -6279,6 +6508,13 @@ ULONG PhQueryRegistryUlong(
     return ulong;
 }
 
+/**
+ * Gets a registry ULONG64 value.
+ *
+ * \param KeyHandle A handle to the key.
+ * \param ValueName The name of the value.
+ * \return The value, or ULLONG_MAX if the function failed.
+ */
 ULONG64 PhQueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
     _In_opt_ PCPH_STRINGREF ValueName
@@ -6306,6 +6542,14 @@ ULONG64 PhQueryRegistryUlong64(
     return ulong64;
 }
 
+/**
+ * Maps flags from one set to another.
+ *
+ * \param Value2 A pointer to the destination flags.
+ * \param Value1 The source flags.
+ * \param Mappings An array of flag mappings.
+ * \param NumberOfMappings The number of mappings.
+ */
 VOID PhMapFlags1(
     _Inout_ PULONG Value2,
     _In_ ULONG Value1,
@@ -6346,6 +6590,14 @@ VOID PhMapFlags1(
     *Value2 = value2;
 }
 
+/**
+ * Maps flags from one set to another.
+ *
+ * \param Value1 A pointer to the destination flags.
+ * \param Value2 The source flags.
+ * \param Mappings An array of flag mappings.
+ * \param NumberOfMappings The number of mappings.
+ */
 VOID PhMapFlags2(
     _Inout_ PULONG Value1,
     _In_ ULONG Value2,
@@ -6380,6 +6632,15 @@ VOID PhMapFlags2(
     *Value1 = value1;
 }
 
+/**
+ * Internal hook procedure for the file dialog.
+ *
+ * \param hdlg The handle to the file dialog.
+ * \param uiMsg The message.
+ * \param wParam The first message parameter.
+ * \param lParam The second message parameter.
+ * \return The message result.
+ */
 UINT_PTR CALLBACK PhpOpenFileNameHookProc(
     _In_ HWND hdlg,
     _In_ UINT uiMsg,
@@ -6430,6 +6691,11 @@ UINT_PTR CALLBACK PhpOpenFileNameHookProc(
     return FALSE;
 }
 
+/**
+ * Internal function to create an OPENFILENAME structure.
+ *
+ * \return A pointer to the OPENFILENAME structure.
+ */
 OPENFILENAME *PhpCreateOpenFileName(
     VOID
     )
@@ -6449,6 +6715,11 @@ OPENFILENAME *PhpCreateOpenFileName(
     return ofn;
 }
 
+/**
+ * Internal function to free an OPENFILENAME structure.
+ *
+ * \param OpenFileName The structure to free.
+ */
 VOID PhpFreeOpenFileName(
     _In_ OPENFILENAME *OpenFileName
     )
@@ -6470,6 +6741,14 @@ typedef struct _PHP_FILE_DIALOG
     } u;
 } PHP_FILE_DIALOG, *PPHP_FILE_DIALOG;
 
+/**
+ * Internal function to create a PHP_FILE_DIALOG structure.
+ *
+ * \param Save TRUE if this is a save dialog, FALSE for an open dialog.
+ * \param OpenFileName An optional OPENFILENAME structure.
+ * \param FileDialog An optional IFileDialog interface.
+ * \return A pointer to the PHP_FILE_DIALOG structure.
+ */
 PPHP_FILE_DIALOG PhpCreateFileDialog(
     _In_ BOOLEAN Save,
     _In_opt_ OPENFILENAME *OpenFileName,
@@ -7931,6 +8210,12 @@ PWSTR* PhCommandLineToArgv(
     return CommandLineToArgvW_I(CommandLine, NumberOfArguments);
 }
 
+/**
+ * Converts a command line string to a list of strings.
+ *
+ * \param CommandLine The command line string.
+ * \return A pointer to a list containing the command line arguments.
+ */
 PPH_LIST PhCommandLineToList(
     _In_ PCWSTR CommandLine
     )
@@ -7952,6 +8237,12 @@ PPH_LIST PhCommandLineToList(
     return commandLineList;
 }
 
+/**
+ * Quotes spaces in a command line string.
+ *
+ * \param CommandLine The command line string.
+ * \return A pointer to a string containing the quoted command line.
+ */
 PPH_STRING PhCommandLineQuoteSpaces(
     _In_ PCPH_STRINGREF CommandLine
     )
@@ -7978,6 +8269,13 @@ PPH_STRING PhCommandLineQuoteSpaces(
     return fileNameEscaped;
 }
 
+/**
+ * Searches for a file in the system path.
+ *
+ * \param FileName The name of the file to search for.
+ * \param Extension An optional extension to append to the file name.
+ * \return A pointer to a string containing the full path to the file, or NULL if not found.
+ */
 PPH_STRING PhSearchFilePath(
     _In_ PCWSTR FileName,
     _In_opt_ PCWSTR Extension
@@ -8067,6 +8365,14 @@ CleanupExit:
 //    return NULL;
 //}
 
+/**
+ * Creates a cache file.
+ *
+ * \param PortableDirectory TRUE to use the application directory, FALSE to use the roaming app data directory.
+ * \param FileName The name of the file.
+ * \param NativeFileName TRUE to return a native path, FALSE for a Win32 path.
+ * \return A pointer to a string containing the full path to the cache file.
+ */
 PPH_STRING PhCreateCacheFile(
     _In_ BOOLEAN PortableDirectory,
     _In_ PPH_STRING FileName,
@@ -8152,6 +8458,12 @@ PPH_STRING PhCreateCacheFile(
 //    }
 //}
 
+/**
+ * Deletes a cache file and its containing directory.
+ *
+ * \param FileName The name of the file.
+ * \param NativeFileName TRUE if the file name is a native path, FALSE otherwise.
+ */
 VOID PhDeleteCacheFile(
     _In_ PPH_STRING FileName,
     _In_ BOOLEAN NativeFileName
@@ -8189,6 +8501,11 @@ VOID PhDeleteCacheFile(
     }
 }
 
+/**
+ * Clears the cache directory.
+ *
+ * \param PortableDirectory TRUE if the application is in portable mode, FALSE otherwise.
+ */
 VOID PhClearCacheDirectory(
     _In_ BOOLEAN PortableDirectory
     )
@@ -8209,6 +8526,11 @@ VOID PhClearCacheDirectory(
     }
 }
 
+/**
+ * Retrieves a handle to the private namespace for System Informer.
+ *
+ * \return A handle to the private namespace.
+ */
 HANDLE PhGetNamespaceHandle(
     VOID
     )
@@ -8298,6 +8620,14 @@ HWND PhHungWindowFromGhostWindow(
     return HungWindowFromGhostWindow_I(WindowHandle);
 }
 
+/**
+ * Reads all data from a file into a buffer.
+ *
+ * \param FileHandle A handle to the file.
+ * \param Buffer Receives a pointer to the buffer containing the file data.
+ * \param BufferLength Receives the length of the buffer.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetFileData(
     _In_ HANDLE FileHandle,
     _Out_ PVOID* Buffer,
@@ -8378,6 +8708,14 @@ NTSTATUS PhGetFileData(
     return status;
 }
 
+/**
+ * Reads all text from a file.
+ *
+ * \param String Receives a pointer to the string containing the file text.
+ * \param FileHandle A handle to the file.
+ * \param Unicode TRUE to return a Unicode string, FALSE to return an ANSI string.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetFileText(
     _Out_ PVOID* String,
     _In_ HANDLE FileHandle,
@@ -8414,6 +8752,14 @@ NTSTATUS PhGetFileText(
     return status;
 }
 
+/**
+ * Reads all text from a file.
+ *
+ * \param String Receives a pointer to the string containing the file text.
+ * \param FileName The name of the file.
+ * \param Unicode TRUE to return a Unicode string, FALSE to return an ANSI string.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhFileReadAllText(
     _Out_ PVOID* String,
     _In_ PCPH_STRINGREF FileName,
@@ -8446,6 +8792,14 @@ NTSTATUS PhFileReadAllText(
     return status;
 }
 
+/**
+ * Reads all text from a file.
+ *
+ * \param String Receives a pointer to the string containing the file text.
+ * \param FileName The Win32 name of the file.
+ * \param Unicode TRUE to return a Unicode string, FALSE to return an ANSI string.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhFileReadAllTextWin32(
     _Out_ PVOID* String,
     _In_ PCWSTR FileName,
@@ -8478,6 +8832,13 @@ NTSTATUS PhFileReadAllTextWin32(
     return status;
 }
 
+/**
+ * Writes text to a file.
+ *
+ * \param FileName The name of the file.
+ * \param String The text to write.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhFileWriteAllText(
     _In_ PCPH_STRINGREF FileName,
     _In_ PCPH_STRINGREF String
@@ -8512,6 +8873,15 @@ NTSTATUS PhFileWriteAllText(
     return status;
 }
 
+/**
+ * Retrieves a class object from a DLL.
+ *
+ * \param DllBase The base address of the DLL.
+ * \param Rclsid The class identifier.
+ * \param Riid The interface identifier.
+ * \param Ppv Receives the interface pointer.
+ * \return Successful or errant status.
+ */
 HRESULT PhGetClassObjectDllBase(
     _In_ PVOID DllBase,
     _In_ REFCLSID Rclsid,
@@ -8605,6 +8975,15 @@ HRESULT PhGetClassObject(
 #endif
 }
 
+/**
+ * Retrieves an activation factory from a DLL.
+ *
+ * \param DllBase The base address of the DLL.
+ * \param RuntimeClass The runtime class name.
+ * \param Riid The interface identifier.
+ * \param Ppv Receives the interface pointer.
+ * \return Successful or errant status.
+ */
 HRESULT PhGetActivationFactoryDllBase(
     _In_ PVOID DllBase,
     _In_ PCWSTR RuntimeClass,
@@ -8875,6 +9254,14 @@ HRESULT PhActivateInstance(
 // last record in the buffer wraps it can still be accessed in a linear fashion
 // using its base VA. (Win10 RS5 and above only) (dmex)
 // Based on Win32 version: https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2#examples
+/**
+ * Creates a ring buffer.
+ *
+ * \param BufferSize The size of the buffer.
+ * \param RingBuffer Receives a pointer to the ring buffer.
+ * \param SecondaryView Receives a pointer to the secondary view of the buffer.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhCreateRingBuffer(
     _In_ SIZE_T BufferSize,
     _Out_ PVOID* RingBuffer,
