@@ -1774,7 +1774,7 @@ NTSTATUS PhpAccessCallbackFunctionTable(
 
         // Verify the signature is valid and the certificate chained to Microsoft (dmex)
 
-        if ((PhSymbolProviderInternalOptions & PH_SYMOPT_VERIFY_MICROSOFT_CHAIN) &&
+        if (FlagOn(PhSymbolProviderInternalOptions, PH_SYMOPT_VERIFY_MICROSOFT_CHAIN) &&
             !PhVerifyFileIsChainedToMicrosoft(&fileName, FALSE))
         {
             return STATUS_ACCESS_DISABLED_BY_POLICY_DEFAULT;
