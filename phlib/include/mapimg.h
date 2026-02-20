@@ -19,9 +19,15 @@ EXTERN_C_START
 #include <exlf.h>
 #include <exprodid.h>
 
+// Section mapping type flags
+#define PH_MAPPED_IMAGE_FLAG_SEC_COMMIT      0x0  // File mapping (default)
+#define PH_MAPPED_IMAGE_FLAG_SEC_IMAGE       0x1  // Image mapping (SEC_IMAGE*)
+
 typedef struct _PH_MAPPED_IMAGE
 {
     USHORT Signature;
+    USHORT Flags;
+    ULONG Spare;
     PVOID ViewBase;
     SIZE_T ViewSize;
 
@@ -105,6 +111,22 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhUnloadMappedImage(
+    _Inout_ PPH_MAPPED_IMAGE MappedImage
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoadMappedImageHeaderFromFile(
+    _In_opt_ PCPH_STRINGREF FileName,
+    _In_opt_ HANDLE FileHandle,
+    _Out_ PPH_MAPPED_IMAGE MappedImage
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhUnloadMappedImageHeaderFromFile(
     _Inout_ PPH_MAPPED_IMAGE MappedImage
     );
 
@@ -965,24 +987,6 @@ PhFreeMappedImageRelocations(
     _In_opt_ PPH_MAPPED_IMAGE_RELOC Relocations
     );
 
-typedef NTSTATUS (NTAPI *PPH_MAPPED_IMAGE_RELOC_CALLBACK)(
-    _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
-    _In_ PIMAGE_BASE_RELOCATION RelocationDirectory,
-    _In_ PIMAGE_RELOCATION_RECORD Relocations,
-    _In_ ULONG RelocationCount,
-    _In_opt_ PVOID Context
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhMappedImageEnumerateRelocations(
-    _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PPH_MAPPED_IMAGE_RELOC_CALLBACK Callback,
-    _In_opt_ PVOID Context
-    );
-
 typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
 {
     ULONGLONG Symbol;
@@ -1067,6 +1071,43 @@ typedef struct _PH_MAPPED_IMAGE_DYNAMIC_RELOC
     ULONG NumberOfEntries;
     PPH_IMAGE_DYNAMIC_RELOC_ENTRY RelocationEntries;
 } PH_MAPPED_IMAGE_DYNAMIC_RELOC, *PPH_MAPPED_IMAGE_DYNAMIC_RELOC;
+
+typedef _Function_class_(PH_MAPPED_IMAGE_RELOC_CALLBACK)
+NTSTATUS NTAPI PH_MAPPED_IMAGE_RELOC_CALLBACK(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
+    _In_ PIMAGE_BASE_RELOCATION RelocationDirectory,
+    _In_ PIMAGE_RELOCATION_RECORD Relocations,
+    _In_ ULONG RelocationCount,
+    _In_opt_ PVOID Context
+    );
+typedef PH_MAPPED_IMAGE_RELOC_CALLBACK *PPH_MAPPED_IMAGE_RELOC_CALLBACK;
+
+typedef _Function_class_(PH_MAPPED_IMAGE_DYNAMIC_RELOC_CALLBACK)
+NTSTATUS NTAPI PH_MAPPED_IMAGE_DYNAMIC_RELOC_CALLBACK(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _In_opt_ PVOID Context
+    );
+typedef PH_MAPPED_IMAGE_DYNAMIC_RELOC_CALLBACK *PPH_MAPPED_IMAGE_DYNAMIC_RELOC_CALLBACK;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhMappedImageEnumerateRelocations(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PPH_MAPPED_IMAGE_RELOC_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhMappedImageEnumerateDynamicRelocations(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PPH_MAPPED_IMAGE_DYNAMIC_RELOC_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
 
 PHLIBAPI
 NTSTATUS
