@@ -986,7 +986,25 @@ VOID PhShellExecuteUserString(
     if (PhEqualString2(executeString, L"%SystemRoot%\\explorer.exe /select,\"%s\"", TRUE))
     {
         // Special case: Use PhShowFileInExplorer for this specific setting. (dmex)
-        PhShellExploreFile(WindowHandle, String);
+
+        if (String[0] == OBJ_NAME_PATH_SEPARATOR)
+        {
+            PPH_STRING stringTemp;
+            PPH_STRING stringMiddle;
+           
+            stringTemp = PhCreateString(String);
+            stringMiddle = PhGetFileName(stringTemp);
+
+            PhShellExploreFile(WindowHandle, PhGetString(stringMiddle));
+
+            PhDereferenceObject(stringMiddle);
+            PhDereferenceObject(stringTemp);
+        }
+        else
+        {
+            PhShellExploreFile(WindowHandle, String);
+        }
+
         PhDereferenceObject(executeString);
         return;
     }
