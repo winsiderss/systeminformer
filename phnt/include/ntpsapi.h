@@ -2835,11 +2835,17 @@ NtAlertMultipleThreadByThreadId(
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
 /**
- * The NtWaitForAlertByThreadId routine waits for an alert to be delivered to the specified thread.
+ * The NtWaitForAlertByThreadId routine blocks the calling thread until another thread calls NtAlertThreadByThreadId
+ * with a matching address, or until the timeout expires.
  *
- * \param Address The address to wait for an alert on.
- * \param Timeout The timeout value for waiting, or NULL for no timeout.
- * \return NTSTATUS Successful or errant status.
+ * \param Address A unique address used to identify this wait operation. Other threads call
+ *                NtAlertThreadByThreadId with this same address to wake the waiting thread.
+ *                Can be NULL to wait on the thread ID itself.
+ * \param Timeout Optional timeout value. If NULL, waits indefinitely. If present, specifies
+ *                the absolute or relative time to wait before returning STATUS_TIMEOUT.
+ * \return STATUS_SUCCESS if alerted successfully.
+ * \return STATUS_TIMEOUT if the timeout expired before being alerted.
+ * \return STATUS_ALERTED if woken by NtAlertThreadByThreadId.
  */
 NTSYSCALLAPI
 NTSTATUS
