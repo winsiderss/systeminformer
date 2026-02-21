@@ -815,27 +815,27 @@ namespace CustomBuildTool
             try
             {
                 // JWT Header
-                var header = new
+                var header = new JwtHeader
                 {
-                    alg = "RS256",
-                    typ = "JWT",
-                    x5t = Base64UrlEncode(Certificate.GetCertHash())
+                    Alg = "RS256",
+                    Typ = "JWT",
+                    X5t = Base64UrlEncode(Certificate.GetCertHash())
                 };
 
                 // JWT Payload
                 var now = DateTimeOffset.UtcNow;
-                var payload = new
+                var payload = new JwtPayload
                 {
-                    aud = $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token",
-                    exp = now.AddMinutes(10).ToUnixTimeSeconds(),
-                    iss = ClientId,
-                    jti = Guid.NewGuid().ToString(),
-                    nbf = now.ToUnixTimeSeconds(),
-                    sub = ClientId
+                    Aud = $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token",
+                    Exp = now.AddMinutes(10).ToUnixTimeSeconds(),
+                    Iss = ClientId,
+                    Jti = Guid.NewGuid().ToString(),
+                    Nbf = now.ToUnixTimeSeconds(),
+                    Sub = ClientId
                 };
 
-                string headerJson = JsonSerializer.Serialize(header);
-                string payloadJson = JsonSerializer.Serialize(payload);
+                string headerJson = JsonSerializer.Serialize(header, AzureJsonContext.Default.JwtHeader);
+                string payloadJson = JsonSerializer.Serialize(payload, AzureJsonContext.Default.JwtPayload);
 
                 string headerBase64 = Base64UrlEncode(Encoding.UTF8.GetBytes(headerJson));
                 string payloadBase64 = Base64UrlEncode(Encoding.UTF8.GetBytes(payloadJson));
@@ -1162,6 +1162,72 @@ namespace CustomBuildTool
     }
 
     /// <summary>
+    /// Represents a JWT header for client assertion.
+    /// </summary>
+    internal class JwtHeader
+    {
+        /// <summary>
+        /// Gets or sets the signing algorithm (RS256).
+        /// </summary>
+        [JsonPropertyName("alg")]
+        public string Alg { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the token type (JWT).
+        /// </summary>
+        [JsonPropertyName("typ")]
+        public string Typ { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the X.509 certificate thumbprint (Base64URL-encoded).
+        /// </summary>
+        [JsonPropertyName("x5t")]
+        public string X5t { get; set; }
+    }
+
+    /// <summary>
+    /// Represents a JWT payload for client assertion.
+    /// </summary>
+    internal class JwtPayload
+    {
+        /// <summary>
+        /// Gets or sets the audience (token endpoint URL).
+        /// </summary>
+        [JsonPropertyName("aud")]
+        public string Aud { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the expiration time (Unix timestamp).
+        /// </summary>
+        [JsonPropertyName("exp")]
+        public long Exp { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the issuer (client ID).
+        /// </summary>
+        [JsonPropertyName("iss")]
+        public string Iss { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the JWT ID (unique identifier).
+        /// </summary>
+        [JsonPropertyName("jti")]
+        public string Jti { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the not-before time (Unix timestamp).
+        /// </summary>
+        [JsonPropertyName("nbf")]
+        public long Nbf { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the subject (client ID).
+        /// </summary>
+        [JsonPropertyName("sub")]
+        public string Sub { get; set; }
+    }
+
+    /// <summary>
     /// JSON serialization context for Azure API data transfer objects.
     /// Provides source-generated serialization for improved performance.
     /// </summary>
@@ -1171,6 +1237,8 @@ namespace CustomBuildTool
     [JsonSerializable(typeof(KeyVaultCertificateResponse))]
     [JsonSerializable(typeof(KeyVaultOperationRequest))]
     [JsonSerializable(typeof(KeyVaultOperationResponse))]
+    [JsonSerializable(typeof(JwtHeader))]
+    [JsonSerializable(typeof(JwtPayload))]
     internal partial class AzureJsonContext : JsonSerializerContext
     {
 
