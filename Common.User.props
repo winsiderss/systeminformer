@@ -145,6 +145,7 @@
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
+          <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
           <GenerateDebugInformation>true</GenerateDebugInformation>
           <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
@@ -155,7 +156,7 @@
   <!-- Debug|x64 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       <ClCompile>
-          <AdditionalOptions>/utf-8 /d1nodatetime /jumptablerdata %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
+          <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /jumptablerdata %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
           <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
@@ -174,6 +175,7 @@
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX64</TargetMachine>
+          <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
           <GenerateDebugInformation>true</GenerateDebugInformation>
           <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
@@ -184,7 +186,7 @@
   <!-- Debug|ARM64 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
       <ClCompile>
-          <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
+          <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
           <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
@@ -204,6 +206,7 @@
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
+          <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
           <GenerateDebugInformation>true</GenerateDebugInformation>
           <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
@@ -214,7 +217,7 @@
   <!-- Release|Win32 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       <ClCompile>
-          <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
+          <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
           <Optimization>MaxSpeed</Optimization>
@@ -238,6 +241,7 @@
           <TargetMachine>MachineX86</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
           <SetChecksum>true</SetChecksum>
+          <StripPrivateSymbols>$(OutDir)$(TargetName)_stripped.pdb</StripPrivateSymbols>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
           <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
@@ -249,7 +253,7 @@
   <!-- Release|x64 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       <ClCompile>
-          <AdditionalOptions>/utf-8 /d1nodatetime /guard:xfg /jumptablerdata /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
+          <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /guard:xfg /jumptablerdata /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
           <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
@@ -275,6 +279,7 @@
           <TargetMachine>MachineX64</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
           <SetChecksum>true</SetChecksum>
+          <StripPrivateSymbols>$(OutDir)$(TargetName)_stripped.pdb</StripPrivateSymbols>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
           <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
@@ -286,7 +291,7 @@
   <!-- Release|ARM64 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
       <ClCompile>
-          <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
+          <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
           <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
@@ -310,6 +315,7 @@
           <TargetMachine>MachineARM64</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
           <SetChecksum>true</SetChecksum>
+          <StripPrivateSymbols>$(OutDir)$(TargetName)_stripped.pdb</StripPrivateSymbols>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
           <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
