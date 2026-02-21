@@ -236,6 +236,34 @@ static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
         //
         size = 12;
     }
+    else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64_KERNEL_IMPORT_CALL_TRANSFER)
+    {
+        rva = (ULONG_PTR)Entry->ARM64ImportControl.BlockRva + (Entry->ARM64ImportControl.Record.PageRelativeOffset << 2);
+        //
+        // ARM64 instructions are fixed 4 bytes
+        // Either BR or BLR instruction for indirect call/jump
+        //
+        size = 4;
+    }
+    else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE)
+    {
+        rva = (ULONG_PTR)Entry->RFPrologue.BlockRva;
+        //
+        // Prologue size is variable, specified in PrologueByteCount
+        //
+        size = Entry->RFPrologue.PrologueByteCount;
+    }
+    else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE)
+    {
+        rva = (ULONG_PTR)Entry->RFEpilogue.BlockRva;
+        //
+        // Epilogue size is variable
+        // Total size = EpilogueByteCount + (BranchDescriptorElementSize * BranchDescriptorCount) + bitmap
+        //
+        size = (ULONG_PTR)Entry->RFEpilogue.EpilogueByteCount +
+               ((ULONG_PTR)Entry->RFEpilogue.BranchDescriptorElementSize * Entry->RFEpilogue.BranchDescriptorCount) +
+               ((Entry->RFEpilogue.BranchDescriptorCount + 7) / 8);
+    }
     else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER)
     {
         rva = (ULONG_PTR)Entry->IndirControl.BlockRva + Entry->IndirControl.Record.PageRelativeOffset;
