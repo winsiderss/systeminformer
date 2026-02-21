@@ -328,7 +328,8 @@ NTSTATUS PhStartProviderThread(
         NtClose(ProviderThread->TimerHandle);
         ProviderThread->TimerHandle = NULL;
         return status;
-       
+    }
+
     ProviderThread->State = ProviderThreadRunning;
     return STATUS_SUCCESS;
 }
