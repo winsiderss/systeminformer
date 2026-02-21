@@ -623,7 +623,7 @@ VOID PhMwpInitializeControls(
  * Performs additional initialization tasks after the main window is shown.
  *
  * \param Parameter The window handle.
- * \return NTSTATUS status code.
+ * \return NTSTATUS Successful or errant status.
  */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhMwpLoadStage1Worker(
@@ -795,7 +795,7 @@ VOID PhMwpOnSettingChange(
  * \param Handle Pointer to a variable that receives the SCM handle.
  * \param DesiredAccess Access mask specifying the desired access rights to the SCM.
  * \param Context Optional context parameter (can be NULL).
- * \return NTSTATUS code indicating success or failure of the operation.
+ * \return NTSTATUS Successful or errant status.
  */
 _Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenServiceControlManager(
@@ -821,7 +821,7 @@ static NTSTATUS PhpOpenServiceControlManager(
  * \param Handle Optional handle to the Service Control Manager to be closed.
  * \param Release Indicates whether to release associated resources.
  * \param Context Optional context pointer for additional information.
- * \return NTSTATUS code indicating success or failure of the close operation.
+ * \return NTSTATUS Successful or errant status.
  */
 _Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseServiceControlManager(
@@ -835,6 +835,14 @@ static NTSTATUS PhpCloseServiceControlManager(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Opens a dummy security handle used for permission editing operations.
+ *
+ * \param Handle Receives the dummy handle value (implementation-defined).
+ * \param DesiredAccess Requested access mask (unused for dummy handle).
+ * \param Context Optional context pointer (unused).
+ * \return NTSTATUS status code indicating success or failure.
+ */
 _Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenSecurityDummyHandle(
     _Inout_ PHANDLE Handle,
@@ -845,6 +853,16 @@ static NTSTATUS PhpOpenSecurityDummyHandle(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Returns a dummy handle representing COM Access Permissions.
+ *
+ * This helper is used when displaying or editing COM permissions where a real
+ * handle is not required.
+ *\param Handle Receives a value representing access permissions (SD_ACCESSPERMISSIONS).
+ *\param DesiredAccess Requested access mask (unused).
+ *\param Context Optional context pointer (unused).
+ *\return NTSTATUS success code.
+ */
 _Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyAccessPermissionsHandle(
     _Inout_ PHANDLE Handle,
@@ -856,6 +874,15 @@ static NTSTATUS PhpOpenComDummyAccessPermissionsHandle(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Returns a dummy handle representing COM Access Restrictions.
+ *
+ * Used when displaying or editing COM access restriction ACLs.
+ *\param Handle Receives a value representing access restrictions (SD_ACCESSRESTRICTIONS).
+ *\param DesiredAccess Requested access mask (unused).
+ *\param Context Optional context pointer (unused).
+ *\return NTSTATUS success code.
+ */
 _Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyAccessRestrictionsHandle(
     _Inout_ PHANDLE Handle,
@@ -867,6 +894,16 @@ static NTSTATUS PhpOpenComDummyAccessRestrictionsHandle(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Returns a dummy handle representing COM Launch Permissions.
+ *
+ * This is a convenience helper used when editing COM launch permissions in
+ * UI dialogs where a real object handle is not necessary.
+ *\param Handle Receives a value representing launch permissions (SD_LAUNCHPERMISSIONS).
+ *\param DesiredAccess Requested access mask (unused).
+ *\param Context Optional context pointer (unused).
+ *\return NTSTATUS success code.
+ */
 _Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyLaunchPermissionsHandle(
     _Inout_ PHANDLE Handle,
@@ -878,6 +915,16 @@ static NTSTATUS PhpOpenComDummyLaunchPermissionsHandle(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Returns a dummy handle representing COM Launch Restrictions.
+ *
+ * Used by the UI when presenting COM launch restriction settings without
+ * requiring an actual system handle.
+ *\param Handle Receives a value representing launch restrictions (SD_LAUNCHRESTRICTIONS).
+ *\param DesiredAccess Requested access mask (unused).
+ *\param Context Optional context pointer (unused).
+ *\return NTSTATUS success code.
+ */
 _Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenComDummyLaunchRestrictionsHandle(
     _Inout_ PHANDLE Handle,
@@ -889,6 +936,14 @@ static NTSTATUS PhpOpenComDummyLaunchRestrictionsHandle(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Opens the current window desktop ("Default") and returns a handle.
+ *
+ * \param Handle Receives the desktop handle on success.
+ * \param DesiredAccess Requested access mask for the desktop.
+ * \param Context Optional context pointer (unused).
+ * \return NTSTATUS success or error code.
+ */
 _Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenSecurityDesktopHandle(
     _Inout_ PHANDLE Handle,
@@ -912,6 +967,14 @@ static NTSTATUS PhpOpenSecurityDesktopHandle(
     return STATUS_UNSUCCESSFUL;
 }
 
+/**
+ * Closes a desktop handle previously opened by PhpOpenSecurityDesktopHandle.
+ *
+ * \param Handle The desktop handle to close (may be NULL).
+ * \param Release Reserved; indicates whether associated resources should be released.
+ * \param Context Optional context pointer (unused).
+ * \return NTSTATUS success code.
+ */
 _Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseSecurityDesktopHandle(
     _In_opt_ HANDLE Handle,
@@ -924,6 +987,14 @@ static NTSTATUS PhpCloseSecurityDesktopHandle(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Opens the interactive window station and returns a handle.
+ *
+ * \param Handle Receives the window station handle on success.
+ * \param DesiredAccess Requested access mask for the window station.
+ * \param Context Optional context pointer (unused).
+ * \return NTSTATUS success or error code.
+ */
 _Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenSecurityStationHandle(
     _Inout_ PHANDLE Handle,
@@ -946,6 +1017,14 @@ static NTSTATUS PhpOpenSecurityStationHandle(
     return STATUS_UNSUCCESSFUL;
 }
 
+/**
+ * Closes a window station handle previously opened by PhpOpenSecurityStationHandle.
+ *
+ * \param Handle The window station handle to close (may be NULL).
+ * \param Release Reserved; indicates whether associated resources should be released.
+ * \param Context Optional context pointer (unused).
+ * \return NTSTATUS success code.
+ */
 _Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseSecurityStationHandle(
     _In_opt_ HANDLE Handle,
@@ -3058,6 +3137,7 @@ LRESULT PhMwpOnUserMessage(
     case WM_PH_INVOKE:
         {
             PhProcessInvokeQueue();
+            InterlockedExchange(&PhMainThreadInvokePending, 0);
         }
         break;
     case WM_PH_UPDATE_FONT:
@@ -4582,6 +4662,13 @@ VOID PhMwpNotifyAllPages(
     }
 }
 
+/**
+ * Comparison routine that orders processes by CPU usage (descending).
+ *
+ * \param elem1 Pointer to the first element (pointer to PPH_PROCESS_ITEM).
+ * \param elem2 Pointer to the second element (pointer to PPH_PROCESS_ITEM).
+ * \return Negative, zero, or positive value for qsort-style comparison.
+ */
 static int __cdecl IconProcessesCpuUsageCompare(
     _In_ void const* elem1,
     _In_ void const* elem2
@@ -4593,6 +4680,13 @@ static int __cdecl IconProcessesCpuUsageCompare(
     return -singlecmp(processItem1->CpuUsage, processItem2->CpuUsage);
 }
 
+/**
+ * Comparison routine that orders processes by their (case-insensitive) name.
+ *
+ * \param elem1 Pointer to the first element (pointer to PPH_PROCESS_ITEM).
+ * \param elem2 Pointer to the second element (pointer to PPH_PROCESS_ITEM).
+ * \return Negative, zero, or positive value for qsort-style comparison.
+ */
 static int __cdecl IconProcessesNameCompare(
     _In_ void const* elem1,
     _In_ void const* elem2
@@ -4604,6 +4698,12 @@ static int __cdecl IconProcessesNameCompare(
     return PhCompareString(processItem1->ProcessName, processItem2->ProcessName, TRUE);
 }
 
+/**
+ * Adds the mini-process submenu items (priority, I/O priority, actions) for a process.
+ *
+ * \param Menu The parent EMENU item to which process items will be appended.
+ * \param ProcessId The process identifier for which menu entries are created.
+ */
 VOID PhAddMiniProcessMenuItems(
     _Inout_ PPH_EMENU_ITEM Menu,
     _In_ HANDLE ProcessId
@@ -4959,6 +5059,12 @@ VOID PhShowIconContextMenu(
     PhDestroyEMenu(menu);
 }
 
+/**
+ * Displays a simple notification balloon from the tray icon.
+ *
+ * \param Title The title text of the notification.
+ * \param Text The body text of the notification.
+ */
 VOID PhShowIconNotification(
     _In_ PCWSTR Title,
     _In_ PCWSTR Text
@@ -4967,6 +5073,16 @@ VOID PhShowIconNotification(
     PhNfShowBalloonTip(Title, Text, 10);
 }
 
+/**
+ * Displays an extended notification from the tray icon with callback support.
+ *
+ * \param Title The title text of the notification.
+ * \param Text The body text of the notification.
+ * \param Timeout Duration (seconds) before the notification is dismissed.
+ * \param Callback Optional callback invoked when the notification is dismissed.
+ * \param Context Context pointer passed to the callback.
+ * \return HRESULT result code.
+ */
 HRESULT PhShowIconNotificationEx(
     _In_ PCWSTR Title,
     _In_ PCWSTR Text,
@@ -4978,6 +5094,12 @@ HRESULT PhShowIconNotificationEx(
     return PhNfShowBalloonTipEx(Title, Text, Timeout, Callback, Context);
 }
 
+/**
+ * Shows detailed information related to the last tray icon notification.
+ *
+ * This function inspects the last notification type and opens the appropriate
+ * UI (process/service) to display details.
+ */
 VOID PhShowDetailsForIconNotification(
     VOID
     )
@@ -5024,6 +5146,11 @@ VOID PhShowDetailsForIconNotification(
     }
 }
 
+/**
+ * Clears stored information about the last tray icon notification.
+ *
+ * Frees any referenced strings and resets the notification type/state.
+ */
 VOID PhMwpClearLastNotificationDetails(
     VOID
     )
@@ -5043,6 +5170,11 @@ VOID PhMwpClearLastNotificationDetails(
 
 // Window plugin extensions (dmex)
 
+/**
+ * Invokes the memory editor dialog from a worker or plugin context.
+ *
+ * \param Parameter Pointer to a PPH_SHOW_MEMORY_EDITOR structure (ownership transferred).
+ */
 VOID PhMwpInvokeShowMemoryEditorDialog(
     _In_ PVOID Parameter
     )
@@ -5063,6 +5195,11 @@ VOID PhMwpInvokeShowMemoryEditorDialog(
     PhFree(showMemoryEditor);
 }
 
+/**
+ * Invokes the memory results dialog from a worker or plugin context.
+ *
+ * \param Parameter Pointer to a PPH_SHOW_MEMORY_RESULTS structure (ownership transferred).
+ */
 VOID PhMwpInvokeShowMemoryResultsDialog(
     _In_ PVOID Parameter
     )
@@ -5081,6 +5218,11 @@ VOID PhMwpInvokeShowMemoryResultsDialog(
     PhFree(showMemoryResults);
 }
 
+/**
+ * Updates the main window font based on saved settings and applies it to controls.
+ *
+ * \param Parameter Optional parameter (unused).
+ */
 VOID PhMwpInvokeUpdateWindowFont(
     _In_opt_ PVOID Parameter
     )
@@ -5113,6 +5255,12 @@ VOID PhMwpInvokeUpdateWindowFont(
     if (oldFont) DeleteFont(oldFont);
 }
 
+/**
+ * Updates the monospace font used by the UI, based on saved settings.
+ *
+ * \param hwnd Optional window handle associated with the update (unused in most callers).
+ * \param Parameter Optional parameter (unused).
+ */
 VOID PhMwpInvokeUpdateWindowFontMonospace(
     _In_ HWND hwnd,
     _In_opt_ PVOID Parameter
@@ -5144,6 +5292,11 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
     if (oldFont) DeleteFont(oldFont);
 }
 
+/**
+ * Prepares the application for an early exit by saving settings and marking state.
+ *
+ * \param WindowHandle The main window handle used when saving state.
+ */
 VOID PhMwpInvokePrepareEarlyExit(
     _In_ HWND WindowHandle
     )
@@ -5152,6 +5305,11 @@ VOID PhMwpInvokePrepareEarlyExit(
     PhMainWndEarlyExit = TRUE;
 }
 
+/**
+ * Invokes activation (or toggling) of the main window.
+ *
+ * \param Toggle If TRUE, toggle visibility when appropriate; otherwise ensure window is active.
+ */
 VOID PhMwpInvokeActivateWindow(
     _In_ BOOLEAN Toggle
     )
@@ -5159,6 +5317,11 @@ VOID PhMwpInvokeActivateWindow(
     PhMwpActivateWindow(PhMainWndHandle, Toggle);
 }
 
+/**
+ * Invokes selection of a main tab page on the UI thread.
+ *
+ * \param Parameter Tab index encoded as ULONG via PtrToUlong.
+ */
 VOID PhMwpInvokeSelectTabPage(
     _In_ PVOID Parameter
     )
@@ -5171,6 +5334,11 @@ VOID PhMwpInvokeSelectTabPage(
         SetFocus(CurrentPage->WindowHandle);
 }
 
+/**
+ * Invokes selection of a service item in the services list (posted to main thread).
+ *
+ * \param ServiceItem Pointer to the service item to select.
+ */
 VOID PhMwpInvokeSelectServiceItem(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -5186,6 +5354,11 @@ VOID PhMwpInvokeSelectServiceItem(
     }
 }
 
+/**
+ * Invokes selection of a network item in the network list (posted to main thread).
+ *
+ * \param NetworkItem Pointer to the network item to select.
+ */
 VOID PhMwpInvokeSelectNetworkItem(
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
@@ -5194,13 +5367,20 @@ VOID PhMwpInvokeSelectNetworkItem(
 
     PhMwpNeedNetworkTreeList();
 
-    // For compatibility, LParam is a service item, not node.
+    // For compatibility, LParam is a network item, not node.
     if (networkNode = PhFindNetworkNode(NetworkItem))
     {
         PhSelectAndEnsureVisibleNetworkNode(networkNode);
     }
 }
 
+/**
+ * Sends a plugin notification event to registered plugin callbacks.
+ *
+ * \param Type Notification event type.
+ * \param Parameter Additional event-specific parameter.
+ * \return TRUE if the event was handled by a plugin, otherwise FALSE.
+ */
 BOOLEAN PhMwpPluginNotifyEvent(
     _In_ ULONG Type,
     _In_ PVOID Parameter
@@ -5217,18 +5397,21 @@ BOOLEAN PhMwpPluginNotifyEvent(
     return notifyEvent.Handled;
 }
 
-typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) _PH_INVOKE_ENTRY
-{
-    SLIST_ENTRY ListEntry;
-    PVOID Command;
-    PVOID Parameter;
-    //HANDLE ThreadId;
-    //ULONG64 SubmitTime;
-} PH_INVOKE_ENTRY, * PPH_INVOKE_ENTRY;
+//
+// 
+// 
 
 SLIST_HEADER PhMainThreadInvokeQueue;
 PH_FREE_LIST PhMainThreadInvokeQueueFreeList;
+volatile LONG PhMainThreadInvokePending = 0;
 
+/**
+ * Queues a command to be executed on the application's main (UI) thread.
+ *
+ * \param Command Function pointer (VOID (NTAPI*)(PVOID)) to invoke on the main thread.
+ * \param Parameter Parameter to pass to the invoked function.
+ * \return NTSTATUS status code (always STATUS_SUCCESS on queueing).
+ */
 NTSTATUS PhInvokeOnMainThread(
     _In_opt_ PVOID Command,
     _In_opt_ PVOID Parameter
@@ -5252,17 +5435,23 @@ NTSTATUS PhInvokeOnMainThread(
 
     RtlInterlockedPushEntrySList(&PhMainThreadInvokeQueue, &entry->ListEntry);
 
-    //static ULONG64 LastInvokeTicks = 0;
-    //ULONG64 currentTicks;
-    //currentTicks = NtGetTickCount64();
-    //if ((currentTicks - LastInvokeTicks) < 100)
-    //    dprintf("Coalesced invoke message (%llu)\n", (currentTicks - LastInvokeTicks));
-    //else LastInvokeTicks = currentTicks;
-    PostMessage(PhMainWndHandle, WM_PH_INVOKE, 0, 0);
+    // Only post WM_PH_INVOKE if no message is currently pending.
+    // This prevents flooding the message queue with redundant messages while
+    // still ensuring the queue is processed (one message drains all items).
+    if (InterlockedCompareExchange(&PhMainThreadInvokePending, 1, 0) == 0)
+    {
+        PostMessage(PhMainWndHandle, WM_PH_INVOKE, 0, 0);
+    }
 
     return STATUS_SUCCESS;
 }
 
+/**
+ * Processes and dispatches all pending main-thread invoke queue entries.
+ *
+ * This function is called on the main/UI thread to execute callbacks queued
+ * via PhInvokeOnMainThread.
+ */
 VOID PhProcessInvokeQueue(
     VOID
     )
@@ -5270,7 +5459,7 @@ VOID PhProcessInvokeQueue(
     PSLIST_ENTRY listEntry;
     PPH_INVOKE_ENTRY entry;
 
-    while ((listEntry = RtlInterlockedPopEntrySList(&PhMainThreadInvokeQueue)) != NULL)
+    while ((listEntry = RtlInterlockedPopEntrySList(&PhMainThreadInvokeQueue)))
     {
         entry = CONTAINING_RECORD(listEntry, PH_INVOKE_ENTRY, ListEntry);
 
@@ -5295,6 +5484,14 @@ VOID PhProcessInvokeQueue(
 
 // Exports for plugin support (dmex)
 
+/**
+ * Plugin-facing helper to invoke main window callbacks or perform window operations.
+ *
+ * \param Event The callback/event type to perform.
+ * \param wparam First parameter (meaning depends on Event).
+ * \param lparam Second parameter (meaning depends on Event).
+ * \return Optional result depending on Event; NULL if none.
+ */
 PVOID PhPluginInvokeWindowCallback(
     _In_ PH_MAINWINDOW_CALLBACK_TYPE Event,
     _In_opt_ PVOID wparam,
@@ -5500,6 +5697,12 @@ PVOID PhPluginInvokeWindowCallback(
     return NULL;
 }
 
+/**
+ * Creates a main tab page on behalf of a plugin.
+ *
+ * \param Page Pointer to a PH_MAIN_TAB_PAGE template structure describing the page.
+ * \return Pointer to the newly created PPH_MAIN_TAB_PAGE.
+ */
 PVOID PhPluginCreateTabPage(
     _In_ PVOID Page
     )

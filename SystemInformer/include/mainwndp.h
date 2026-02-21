@@ -431,6 +431,19 @@ BOOLEAN PhMwpPluginNotifyEvent(
 typedef struct _PH_MAIN_TAB_PAGE *PPH_MAIN_TAB_PAGE;
 typedef struct _PH_PROVIDER_EVENT_QUEUE PH_PROVIDER_EVENT_QUEUE, *PPH_PROVIDER_EVENT_QUEUE;
 
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) _PH_INVOKE_ENTRY
+{
+    SLIST_ENTRY ListEntry;
+    PVOID Command;
+    PVOID Parameter;
+    //HANDLE ThreadId;
+    //ULONG64 SubmitTime;
+} PH_INVOKE_ENTRY, * PPH_INVOKE_ENTRY;
+
+extern SLIST_HEADER PhMainThreadInvokeQueue;
+extern PH_FREE_LIST PhMainThreadInvokeQueueFreeList;
+extern volatile LONG PhMainThreadInvokePending;
+
 //
 // Processes
 //
