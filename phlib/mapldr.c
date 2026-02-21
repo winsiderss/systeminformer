@@ -18,10 +18,9 @@
 /**
  * Locates a loader entry in the current process.
  *
- * \param DllBase The base address of the DLL. Specify NULL if this is not a search criteria.
- * \param FullDllName The full name of the DLL. Specify NULL if this is not a search criteria.
- * \param BaseDllName The base name of the DLL. Specify NULL if this is not a search criteria.
- *
+ * \param[in,opt] DllBase The base address of the DLL. Specify NULL if this is not a search criteria.
+ * \param[in,opt] FullDllName The full name of the DLL. Specify NULL if this is not a search criteria.
+ * \param[in,opt] BaseDllName The base name of the DLL. Specify NULL if this is not a search criteria.
  * \remarks This function must be called with the loader lock acquired. The first entry matching all
  * of the specified values is returned.
  */
@@ -63,6 +62,12 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
     return result;
 }
 
+/**
+ * Locates a loader entry by address in the current process.
+ *
+ * \param[in] Address An address within the module's address range.
+ * \return A pointer to the loader entry, or NULL if not found.
+ */
 PLDR_DATA_TABLE_ENTRY PhFindLoaderEntryAddress(
     _In_ PVOID Address
     )
@@ -94,6 +99,12 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntryAddress(
     return result;
 }
 
+/**
+ * Locates a loader entry by base name hash in the current process.
+ *
+ * \param[in] BaseNameHash The hash value of the DLL base name.
+ * \return A pointer to the loader entry, or NULL if not found.
+ */
 PLDR_DATA_TABLE_ENTRY PhFindLoaderEntryNameHash(
     _In_ ULONG BaseNameHash
     )
@@ -119,12 +130,13 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntryNameHash(
 }
 
 /**
- * Loads the specified file into the address space of the calling process.
- * PhLoadLibrary prevents the loader from searching in an unsafe order by first
- * limiting the search path to \System32 or the application directory.
+ * Loads a DLL into the current process with safe search path behavior.
  *
- * \param[in] FileName The file name of the library to load.
- * \return HMODULE to the library on success, null on failure.
+ * \param[in] FileName The file name of the DLL to load.
+ * \return The base address of the loaded DLL, or NULL if loading failed.
+ * \remarks This function attempts to load the DLL with safe search paths, prioritizing
+ * System32 and the application directory. On Windows 7 without KB2533623, it falls back
+ * to the default LoadLibraryEx behavior for compatibility.
  */
 PVOID PhLoadLibrary(
     _In_ PCWSTR FileName
@@ -170,7 +182,7 @@ PVOID PhLoadLibrary(
  * \param[out] BaseAddress Receives the base address of the loaded library.
  * \param[in] FileName The file name of the library to load.
  * \param[in] Flags Flags to control the loading behavior.
- * \return NTSTATUS code.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhLoadLibraryEx(
     _Out_ PVOID* BaseAddress,
@@ -193,7 +205,7 @@ NTSTATUS PhLoadLibraryEx(
 /**
  * Frees a loaded library.
  *
- * \param BaseAddress The base address of the library to free.
+ * \param[in] BaseAddress The base address of the library to free.
  * \return TRUE if successful, FALSE otherwise.
  */
 BOOLEAN PhFreeLibrary(
@@ -205,6 +217,17 @@ BOOLEAN PhFreeLibrary(
 
 #ifdef DEBUG
 // rev from BasepLoadLibraryAsDataFileInternal (dmex)
+/**
+ * Temporarily suppresses debugger symbol loading notifications for resource loading.
+ *
+ * \param [in] SuppressDebugMessage TRUE to suppress debug messages, FALSE to restore them.
+ *
+ * \remarks This function is based on BasepLoadLibraryAsDataFileInternal from kernelbase.dll.
+ * On Windows 7/8, the Visual Studio debugger attempts to load symbols for non-executable resources,
+ * causing unnecessary overhead. This function temporarily sets the TEB's SuppressDebugMsg flag to
+ * prevent symbol loading during resource-only image mapping. On Windows 10+, SEC_IMAGE_NO_EXECUTE
+ * prevents symbol loading, making this suppression unnecessary. Only enabled in DEBUG builds.
+ */
 FORCEINLINE
 VOID
 NtSuppressDebugMessage(
@@ -226,8 +249,17 @@ NtSuppressDebugMessage(
 #define NtSuppressDebugMessage(SuppressDebugMessage)
 #endif
 
-// rev from LoadLibraryEx and LOAD_LIBRARY_AS_IMAGE_RESOURCE
-// with some extra changes for a read-only page/section. (dmex)
+/**
+ * Loads a DLL as a read-only resource from a file handle.
+ *
+ * \param[in] FileHandle A handle to the file containing the DLL image.
+ * \param[out,opt] BaseAddress An optional pointer that receives the base address with the image mapping flag.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function creates a read-only SEC_IMAGE section and maps it into the current
+ * process. On Windows 8+, SEC_IMAGE_NO_EXECUTE is used. The returned address has the
+ * LDR_IS_IMAGEMAPPING flag set (bitwise OR 2). Debug messages are suppressed during mapping
+ * on Windows versions prior to Windows 10.
+ */
 NTSTATUS PhLoadLibraryAsResource(
     _In_ HANDLE FileHandle,
     _Out_opt_ PVOID *BaseAddress
@@ -288,6 +320,16 @@ NTSTATUS PhLoadLibraryAsResource(
     return status;
 }
 
+/**
+ * Loads a DLL as a read-only image resource from a file path.
+ *
+ * \param[in] FileName The file name of the DLL as a string reference.
+ * \param[in] NativeFileName TRUE if FileName is in NT native format, FALSE for Win32 format.
+ * \param[out,opt] BaseAddress An optional pointer that receives the base address with the image mapping flag.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function opens the file and calls PhLoadLibraryAsResource(). The file is
+ * opened with read-only access and share permissions.
+ */
 NTSTATUS PhLoadLibraryAsImageResource(
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
@@ -331,6 +373,15 @@ NTSTATUS PhLoadLibraryAsImageResource(
     return status;
 }
 
+/**
+ * Releases a DLL loaded as an image resource.
+ *
+ * \param[in] BaseAddress The base address returned by PhLoadLibraryAsImageResource(), with the image mapping flag.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function unmaps the view created by PhLoadLibraryAsResource(). The
+ * LDR_IS_IMAGEMAPPING flag is removed before unmapping. Debug messages are suppressed
+ * during unmapping on Windows versions prior to Windows 10.
+ */
 NTSTATUS PhFreeLibraryAsImageResource(
     _In_ PVOID BaseAddress
     )
@@ -349,6 +400,14 @@ NTSTATUS PhFreeLibraryAsImageResource(
     return status;
 }
 
+/**
+ * Retrieves the base address of a loaded DLL by name.
+ *
+ * \param[in] DllName The base name of the DLL (e.g., "kernel32.dll").
+ * \return The base address of the DLL, or NULL if not found.
+ * \remarks On builds with PHNT_NATIVE_LDR, this uses LdrGetDllHandle(). Otherwise, it
+ * searches the loader data table manually.
+ */
 PVOID PhGetDllHandle(
     _In_ PCWSTR DllName
     )
@@ -372,6 +431,15 @@ PVOID PhGetDllHandle(
 #endif
 }
 
+/**
+ * Retrieves the address of an exported function from a loaded module by name.
+ *
+ * \param[in] ModuleName The name of the module (e.g., "ntdll.dll").
+ * \param[in,opt] ProcedureName The name of the exported procedure, or an ordinal value cast to PCSTR.
+ * \return The address of the procedure, or NULL if not found.
+ * \remarks This function first locates the module, then retrieves the procedure address.
+ * Ordinal values should be passed using the IS_INTRESOURCE macro.
+ */
 PVOID PhGetModuleProcAddress(
     _In_ PCWSTR ModuleName,
     _In_opt_ PCSTR ProcedureName
@@ -398,6 +466,16 @@ PVOID PhGetModuleProcAddress(
 #endif
 }
 
+/**
+ * Retrieves the address of an exported function from a loaded DLL.
+ *
+ * \param[in] DllHandle The base address of the DLL.
+ * \param[in,opt] ProcedureName The name of the exported procedure. Specify NULL to use ProcedureNumber.
+ * \param[in,opt] ProcedureNumber The ordinal of the exported procedure. Specify 0 to use ProcedureName.
+ * \return The address of the procedure, or NULL if not found.
+ * \remarks On builds with PHNT_NATIVE_LDR, this uses LdrGetProcedureAddress(). Otherwise,
+ * it calls PhGetDllBaseProcedureAddress() which handles export suppression and forwarding.
+ */
 PVOID PhGetProcedureAddress(
     _In_ PVOID DllHandle,
     _In_opt_ PCSTR ProcedureName,
@@ -444,6 +522,20 @@ typedef struct _PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT
     PPH_STRING FileName;
 } PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT, *PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT;
 
+/**
+ * Callback function for limited module enumeration during remote procedure address lookup.
+ *
+ * \param [in] ProcessHandle A handle to the target process.
+ * \param [in] VirtualAddress The virtual address of the module.
+ * \param [in] ImageBase The base address of the module.
+ * \param [in] ImageSize The size of the module image in bytes.
+ * \param [in] FileName The file name of the module.
+ * \param [in] Context A pointer to PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT containing search criteria.
+ * \return STATUS_SUCCESS to continue enumeration, or STATUS_NO_MORE_ENTRIES to stop when a match is found.
+ * \remarks This callback is used with limited process module enumeration (PROCESS_QUERY_LIMITED_INFORMATION)
+ * to locate a DLL by name in a remote process. When the file name matches the search criteria, it stores
+ * the base address in the context and returns STATUS_NO_MORE_ENTRIES to terminate enumeration.
+ */
 _Function_class_(PH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK)
 static NTSTATUS NTAPI PhpGetProcedureAddressRemoteLimitedCallback(
     _In_ HANDLE ProcessHandle,
@@ -463,6 +555,16 @@ static NTSTATUS NTAPI PhpGetProcedureAddressRemoteLimitedCallback(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Callback function for full module enumeration during remote procedure address lookup.
+ *
+ * \param [in] Module A pointer to the loader data table entry for the module.
+ * \param [in] Context A pointer to PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT containing search criteria.
+ * \return TRUE to continue enumeration, FALSE to stop when a match is found.
+ * \remarks This callback is used with full process module enumeration (requiring PROCESS_VM_READ)
+ * to locate a DLL by its full path in a remote process. When the full DLL name matches the search
+ * criteria, it stores the base address in the context and returns FALSE to terminate enumeration.
+ */
 _Function_class_(PH_ENUM_PROCESS_MODULES_CALLBACK)
 static BOOLEAN PhpGetProcedureAddressRemoteCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
@@ -485,13 +587,13 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
 /**
  * Gets the address of a procedure in a process.
  *
- * \param ProcessHandle A handle to a process. The handle must have
+ * \param[in] ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
- * \param FileName The file name of the DLL containing the procedure.
- * \param ProcedureName The name or ordinal of the procedure.
- * \param ProcedureAddress A variable which receives the address of the procedure in the address
+ * \param[in] FileName The file name of the DLL containing the procedure.
+ * \param[in] ProcedureName The name or ordinal of the procedure.
+ * \param[out] ProcedureAddress A variable which receives the address of the procedure in the address
  * space of the process.
- * \param DllBase A variable which receives the base address of the DLL containing the procedure.
+ * \param[out,opt] DllBase A variable which receives the base address of the DLL containing the procedure.
  */
 NTSTATUS PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
@@ -683,14 +785,12 @@ CleanupExit:
 /**
  * Finds and returns the address of a resource.
  *
- * \param DllBase The base address of the image containing the resource.
- * \param Name The name of the resource or the integer identifier.
- * \param Type The type of resource or the integer identifier.
- * \param ResourceLength A variable which will receive the length of the resource block.
- * \param ResourceBuffer A variable which receives the address of the resource data.
- *
+ * \param[in] DllBase The base address of the image containing the resource.
+ * \param[in] Name The name of the resource or the integer identifier.
+ * \param[in] Type The type of resource or the integer identifier.
+ * \param[out,opt] ResourceLength A variable which will receive the length of the resource block.
+ * \param[out,opt] ResourceBuffer A variable which receives the address of the resource data.
  * \return TRUE if the resource was found, FALSE if an error occurred.
- *
  * \remarks Use this function instead of LoadResource() because no memory allocation is required.
  * This function returns the address of the resource from the read-only section of the image
  * and does not need to be allocated or deallocated. This function cannot be used when the
@@ -749,14 +849,12 @@ NTSTATUS PhLoadResource(
  /**
   * Finds and returns a copy of the resource.
   *
-  * \param DllBase The base address of the image containing the resource.
-  * \param Name The name of the resource or the integer identifier.
-  * \param Type The type of resource or the integer identifier.
-  * \param ResourceLength A variable which will receive the length of the resource block.
-  * \param ResourceBuffer A variable which receives the address of the resource data.
-  *
+  * \param[in] DllBase The base address of the image containing the resource.
+  * \param[in] Name The name of the resource or the integer identifier.
+  * \param[in] Type The type of resource or the integer identifier.
+  * \param[out,opt] ResourceLength A variable which will receive the length of the resource block.
+  * \param[out,opt] ResourceBuffer A variable which receives the address of the resource data.
   * \return TRUE if the resource was found, FALSE if an error occurred.
-  *
   * \remarks This function returns a copy of a resource from heap memory
   * and must be deallocated. Use this function when the image will be unloaded.
   */
@@ -795,9 +893,8 @@ NTSTATUS PhLoadResourceCopy(
 /**
  * Loads a string resource from the image into a buffer.
  *
- * \param DllBase The base address of the image containing the resource.
- * \param ResourceId The identifier of the string to be loaded.
- *
+ * \param[in] DllBase The base address of the image containing the resource.
+ * \param[in] ResourceId The identifier of the string to be loaded.
  * \return A string containing a copy of the string resource.
  */
 PPH_STRING PhLoadString(
@@ -851,8 +948,7 @@ PPH_STRING PhLoadString(
 // rev from SHLoadIndirectString (dmex)
 /**
  * Extracts a specified text resource when given that resource in the form of an indirect string (a string that begins with the '@' symbol).
- *
- * \param SourceString The indirect string from which the resource will be retrieved.
+ * \param[in] SourceString The indirect string from which the resource will be retrieved.
  */
 PPH_STRING PhLoadIndirectString(
     _In_ PCPH_STRINGREF SourceString
@@ -929,10 +1025,9 @@ PPH_STRING PhLoadIndirectString(
 /**
  * Retrieves the file name of a DLL loaded by the current process.
  *
- * \param DllBase The base address of the DLL.
- * \param IndexOfFileName A variable which receives the index of the base name of the DLL in the
+ * \param[in] DllBase The base address of the DLL.
+ * \param[out,opt] IndexOfFileName A variable which receives the index of the base name of the DLL in the
  * returned string.
- *
  * \return The file name of the DLL, or NULL if the DLL could not be found.
  */
 _Success_(return != NULL)
@@ -976,6 +1071,16 @@ PPH_STRING PhGetDllFileName(
     return fileName;
 }
 
+/**
+ * Retrieves information about a loaded DLL by its base name.
+ *
+ * \param[in] BaseDllName The base name of the DLL as a string reference (e.g., "kernel32.dll").
+ * \param[out,opt] DllBase An optional pointer that receives the base address of the DLL.
+ * \param[out,opt] SizeOfImage An optional pointer that receives the size of the image in bytes.
+ * \param[out,opt] FullName An optional pointer that receives the full path to the DLL.
+ * \return TRUE if the DLL was found, FALSE otherwise.
+ * \remarks This function searches the loader data table with the loader lock held.
+ */
 _Success_(return)
 BOOLEAN PhGetLoaderEntryData(
     _In_ PCPH_STRINGREF BaseDllName,
@@ -1029,6 +1134,13 @@ BOOLEAN PhGetLoaderEntryData(
     return result;
 }
 
+/**
+ * Retrieves the base address of a DLL containing the specified address.
+ *
+ * \param[in] Address An address within the DLL's address space.
+ * \return The base address of the DLL, or NULL if not found.
+ * \remarks This function searches the loader data table with the loader lock held.
+ */
 PVOID PhGetLoaderEntryAddressDllBase(
     _In_ PVOID Address
     )
@@ -1050,6 +1162,15 @@ PVOID PhGetLoaderEntryAddressDllBase(
     return baseAddress;
 }
 
+/**
+ * Retrieves the base address of a DLL by name.
+ *
+ * \param[in,opt] FullDllName The full path to the DLL. Specify NULL if not used.
+ * \param[in,opt] BaseDllName The base name of the DLL (e.g., "kernel32.dll"). Specify NULL if not used.
+ * \return The base address of the DLL, or NULL if not found.
+ * \remarks On Windows 8 and later, when only BaseDllName is specified, this function uses
+ * hash-based lookup for improved performance. Otherwise it performs a linear search.
+ */
 PVOID PhGetLoaderEntryDllBase(
     _In_opt_ PCPH_STRINGREF FullDllName,
     _In_opt_ PCPH_STRINGREF BaseDllName
@@ -1081,6 +1202,16 @@ PVOID PhGetLoaderEntryDllBase(
     return baseAddress;
 }
 
+/**
+ * Retrieves the address of an exported function from a loaded DLL.
+ *
+ * \param[in] DllBase The base address of the DLL.
+ * \param[in,opt] ProcedureName The name of the exported procedure. Specify NULL to use ProcedureNumber.
+ * \param[in,opt] ProcedureNumber The ordinal number of the exported procedure. Specify 0 to use ProcedureName.
+ * \return The address of the exported function, or NULL if the function could not be found.
+ * \remarks This function supports Control Flow Guard (CFG) export suppression on Windows 10 RS2 and later.
+ * It also handles forwarded exports by recursively resolving them through the forwarding chain.
+ */
 PVOID PhGetDllBaseProcedureAddress(
     _In_ PVOID DllBase,
     _In_opt_ PCSTR ProcedureName,
@@ -1122,6 +1253,7 @@ PVOID PhGetDllBaseProcedureAddress(
 
     exportAddress = PhGetLoaderEntryImageExportFunction(
         DllBase,
+        imageNtHeader,
         dataDirectory,
         exportDirectory,
         ProcedureName,
@@ -1139,6 +1271,15 @@ PVOID PhGetDllBaseProcedureAddress(
     return exportAddress;
 }
 
+/**
+ * Retrieves the address of an exported function from a loaded DLL.
+ *
+ * \param[in] BaseAddress The base address of the DLL.
+ * \param[in,opt] ProcedureName The name of the exported procedure, or an ordinal value cast to a pointer.
+ * \return The address of the exported function, or NULL if the function could not be found.
+ * \remarks This is a convenience wrapper around PhGetDllBaseProcedureAddress that automatically
+ * determines whether ProcedureName is a name or an ordinal based on IS_INTRESOURCE.
+ */
 PVOID PhGetDllBaseProcAddress(
     _In_ PVOID BaseAddress,
     _In_opt_ PCSTR ProcedureName
@@ -1150,6 +1291,15 @@ PVOID PhGetDllBaseProcAddress(
     return PhGetDllBaseProcedureAddress(BaseAddress, ProcedureName, 0);
 }
 
+/**
+ * Retrieves the address of an exported function from a DLL by name.
+ *
+ * \param[in] DllName The name of the DLL.
+ * \param[in,opt] ProcedureName The name of the exported procedure. Specify NULL to use ProcedureNumber.
+ * \param[in,opt] ProcedureNumber The ordinal number of the exported procedure. Specify 0 to use ProcedureName.
+ * \return The address of the exported function, or NULL if the DLL or function could not be found.
+ * \remarks This function first locates the DLL in the loader data, then resolves the export address.
+ */
 PVOID PhGetDllProcedureAddress(
     _In_ PCPH_STRINGREF DllName,
     _In_opt_ PCSTR ProcedureName,
@@ -1168,6 +1318,16 @@ PVOID PhGetDllProcedureAddress(
         );
 }
 
+/**
+ * Retrieves the NT headers of a loaded image.
+ *
+ * \param[in] BaseAddress The base address of the image.
+ * \param[out] ImageNtHeaders A variable which receives a pointer to the NT headers.
+ * \return An NTSTATUS code indicating success or failure.
+ * \retval STATUS_INVALID_IMAGE_NOT_MZ The DOS signature is invalid.
+ * \retval STATUS_INVALID_IMAGE_FORMAT The NT headers offset or signature is invalid.
+ * \remarks This function validates the DOS and NT signatures before returning the NT headers pointer.
+ */
 NTSTATUS PhGetLoaderEntryImageNtHeaders(
     _In_ PVOID BaseAddress,
     _Out_ PIMAGE_NT_HEADERS *ImageNtHeaders
@@ -1184,7 +1344,7 @@ NTSTATUS PhGetLoaderEntryImageNtHeaders(
 
     imageNtHeadersOffset = (ULONG)imageDosHeader->e_lfanew;
 
-    if (imageNtHeadersOffset == 0 || imageNtHeadersOffset >= LONG_MAX)
+    if (imageNtHeadersOffset == 0 || imageNtHeadersOffset >= RTL_IMAGE_MAX_DOS_HEADER)
         return STATUS_INVALID_IMAGE_FORMAT;
 
     imageNtHeaders = PTR_ADD_OFFSET(BaseAddress, imageNtHeadersOffset);
@@ -1196,6 +1356,16 @@ NTSTATUS PhGetLoaderEntryImageNtHeaders(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Retrieves the entry point address of an image.
+ *
+ * \param[in] BaseAddress The base address of the image.
+ * \param[in] ImageNtHeader The NT headers of the image.
+ * \param[out] ImageEntryPoint A variable which receives the entry point address.
+ * \return An NTSTATUS code indicating success or failure.
+ * \retval STATUS_ENTRYPOINT_NOT_FOUND The image has no entry point.
+ * \remarks Some images, such as resource-only DLLs, may not have an entry point.
+ */
 NTSTATUS PhGetLoaderEntryImageEntryPoint(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
@@ -1209,6 +1379,18 @@ NTSTATUS PhGetLoaderEntryImageEntryPoint(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Retrieves a data directory entry from an image.
+ *
+ * \param[in] BaseAddress The base address of the image.
+ * \param[in] ImageNtHeader The NT headers of the image.
+ * \param[in] ImageDirectoryIndex The index of the data directory (e.g., IMAGE_DIRECTORY_ENTRY_EXPORT).
+ * \param[out] ImageDataDirectoryEntry A variable which receives a pointer to the data directory entry.
+ * \param[out] ImageDirectoryEntry A variable which receives the virtual address of the directory data.
+ * \param[out,opt] ImageDirectoryLength A variable which optionally receives the size of the directory.
+ * \return An NTSTATUS code indicating success or failure.
+ * \retval STATUS_INVALID_FILE_FOR_SECTION The directory index is invalid or the directory is empty.
+ */
 NTSTATUS PhGetLoaderEntryImageDirectory(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
@@ -1259,6 +1441,19 @@ NTSTATUS PhGetLoaderEntryImageDirectory(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Locates the section containing a given virtual address.
+ *
+ * \param[in] BaseAddress The base address of the image.
+ * \param[in] ImageNtHeader The NT headers of the image.
+ * \param[in] ImageDirectoryAddress The virtual address to locate.
+ * \param[out] ImageSectionAddress A pointer that receives the base address of the section.
+ * \param[out] ImageSectionLength A pointer that receives the size of the section.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_SECTION_NOT_IMAGE The address is not within any section.
+ * \remarks This function iterates through all sections to find which one contains the
+ * specified address. Section size is calculated as the maximum of VirtualSize and SizeOfRawData.
+ */
 NTSTATUS PhGetLoaderEntryImageVaToSection(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
@@ -1313,6 +1508,17 @@ NTSTATUS PhGetLoaderEntryImageVaToSection(
     return STATUS_SECTION_NOT_IMAGE;
 }
 
+/**
+ * Converts an RVA to a file offset within an image.
+ *
+ * \param[in] ImageNtHeader The NT headers of the image.
+ * \param[in] Rva The relative virtual address to convert.
+ * \param[out] Offset A pointer that receives the file offset.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_NOT_FOUND The RVA is not within any section's raw data range.
+ * \remarks This function calculates the file offset by finding the section containing
+ * the RVA and adjusting for the section's PointerToRawData.
+ */
 NTSTATUS PhLoaderEntryImageRvaToFileOffset(
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
     _In_ ULONG Rva,
@@ -1342,6 +1548,18 @@ NTSTATUS PhLoaderEntryImageRvaToFileOffset(
     return STATUS_NOT_FOUND;
 }
 
+/**
+ * Locates the section header containing a given RVA.
+ *
+ * \param[in] ImageNtHeader The NT headers of the image.
+ * \param[in] Rva The relative virtual address to locate.
+ * \param[out] ImageSection A pointer that receives the section header.
+ * \param[out] ImageSectionLength A pointer that receives the section size.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_SECTION_NOT_IMAGE The RVA is not within any section.
+ * \remarks Section size is calculated as the maximum of VirtualSize and SizeOfRawData
+ * to handle both memory-mapped and file-mapped scenarios correctly.
+ */
 NTSTATUS PhLoaderEntryImageRvaToSection(
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
     _In_ ULONG Rva,
@@ -1390,6 +1608,17 @@ NTSTATUS PhLoaderEntryImageRvaToSection(
     return STATUS_SECTION_NOT_IMAGE;
 }
 
+/**
+ * Converts an RVA to a virtual address within a loaded image.
+ *
+ * \param[in] BaseAddress The base address of the image.
+ * \param[in] Rva The relative virtual address to convert.
+ * \param[out] Va A pointer that receives the virtual address.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_SECTION_NOT_IMAGE The RVA is not within any section.
+ * \remarks This function finds the section containing the RVA and calculates the
+ * virtual address by adding the base address and adjusting for section alignment.
+ */
 NTSTATUS PhLoaderEntryImageRvaToVa(
     _In_ PVOID BaseAddress,
     _In_ ULONG Rva,
@@ -1427,6 +1656,16 @@ NTSTATUS PhLoaderEntryImageRvaToVa(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Determines whether an image has Control Flow Guard export suppression information.
+ *
+ * \param[in] BaseAddress The base address of the image.
+ * \param[in] ImageNtHeader The NT headers of the image.
+ * \return TRUE if export suppression information is present; otherwise, FALSE.
+ * \remarks This function checks the IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT flag
+ * in the load configuration directory. Export suppression is a CFG feature on Windows 10 RS2
+ * and later that restricts which exported functions can be called.
+ */
 BOOLEAN PhLoaderEntryImageExportSupressionPresent(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader
@@ -1456,6 +1695,15 @@ BOOLEAN PhLoaderEntryImageExportSupressionPresent(
     return FALSE;
 }
 
+/**
+ * Grants CFG-suppressed call access to an export address.
+ *
+ * \param[in] ExportAddress The address of the suppressed export to grant access to.
+ * \remarks This function maintains a cache of export addresses that have been granted access
+ * to avoid making redundant system calls. On Windows 10 RS2 and later with CFG export
+ * suppression enabled, attempting to call a suppressed export will fail unless access is
+ * explicitly granted via PhGuardGrantSuppressedCallAccess.
+ */
 VOID PhLoaderEntryGrantSuppressedCall(
     _In_ PVOID ExportAddress
     )
@@ -1476,6 +1724,21 @@ VOID PhLoaderEntryGrantSuppressedCall(
     }
 }
 
+/**
+ * Performs a binary search to find the index of an exported function by name.
+ *
+ * \param [in] BaseAddress The base address of the image.
+ * \param [in] ExportDirectory The export directory structure.
+ * \param [in] ExportNameTable The export name table (array of RVAs to name strings).
+ * \param [in] ExportName The name of the exported function to search for.
+ *
+ * \return The index into the export name table, or ULONG_MAX if not found.
+ *
+ * \remarks This function performs a binary search on the export name table, which is sorted
+ * alphabetically by the Windows linker. This provides O(log n) lookup performance compared to
+ * linear search. The returned index can be used with the export ordinal table to locate the
+ * function address in the export address table.
+ */
 static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
@@ -1517,8 +1780,85 @@ static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(
     return ULONG_MAX;
 }
 
+/**
+ * Validates export table RVAs to prevent out-of-bounds memory access.
+ *
+ * \param [in] ImageNtHeader The NT headers of the image.
+ * \param [in] ExportDirectory The export directory structure to validate.
+ * \return TRUE if all export table RVAs are valid and within image bounds, FALSE otherwise.
+ */
+static BOOLEAN PhpValidateExportTableRvas(
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory
+    )
+{
+    ULONG imageSize;
+    ULONG addressTableSize;
+    ULONG nameTableSize;
+    ULONG ordinalTableSize;
+    ULONG addressTableEnd;
+    ULONG nameTableEnd;
+    ULONG ordinalTableEnd;
+
+    imageSize = ImageNtHeader->OptionalHeader.SizeOfImage;
+
+    if (ExportDirectory->NumberOfFunctions > 0)
+    {
+        if (ExportDirectory->AddressOfFunctions == 0)
+            return FALSE;
+        if (!NT_SUCCESS(RtlULongMult(ExportDirectory->NumberOfFunctions, sizeof(ULONG), &addressTableSize)))
+            return FALSE;
+        if (!NT_SUCCESS(RtlULongAdd(ExportDirectory->AddressOfFunctions, addressTableSize, &addressTableEnd)))
+            return FALSE;
+        if (addressTableEnd > imageSize)
+            return FALSE;
+    }
+
+    if (ExportDirectory->NumberOfNames > 0)
+    {
+        if (ExportDirectory->AddressOfNames == 0)
+            return FALSE;
+        if (!NT_SUCCESS(RtlULongMult(ExportDirectory->NumberOfNames, sizeof(ULONG), &nameTableSize)))
+            return FALSE;
+        if (!NT_SUCCESS(RtlULongAdd(ExportDirectory->AddressOfNames, nameTableSize, &nameTableEnd)))
+            return FALSE;
+        if (nameTableEnd > imageSize)
+            return FALSE;
+    }
+
+    if (ExportDirectory->NumberOfNames > 0)
+    {
+        if (ExportDirectory->AddressOfNameOrdinals == 0)
+            return FALSE;
+        if (!NT_SUCCESS(RtlULongMult(ExportDirectory->NumberOfNames, sizeof(USHORT), &ordinalTableSize)))
+            return FALSE;
+        if (!NT_SUCCESS(RtlULongAdd(ExportDirectory->AddressOfNameOrdinals, ordinalTableSize, &ordinalTableEnd)))
+            return FALSE;
+        if (ordinalTableEnd > imageSize)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * Retrieves the address of an exported function from an image's export directory.
+ *
+ * \param [in] BaseAddress The base address of the image.
+ * \param [in] ImageNtHeader The NT headers of the image.
+ * \param [in] DataDirectory The data directory entry for the export table.
+ * \param [in] ExportDirectory The export directory.
+ * \param [in,opt] ExportName The name of the exported function. Specify NULL to use ExportOrdinal.
+ * \param [in,opt] ExportOrdinal The ordinal number of the exported function. Specify 0 to use ExportName.
+ * \return The address of the exported function, or NULL if the function could not be found or validation failed.
+ * \remarks This function validates export table bounds before accessing export data to prevent
+ * malformed DLLs from causing out-of-bounds reads. It uses safe integer arithmetic to prevent
+ * overflow attacks. The function also handles forwarded exports by recursively calling
+ * PhGetDllBaseProcedureAddress to resolve the forwarding chain.
+ */
 PVOID PhGetLoaderEntryImageExportFunction(
     _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
     _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
     _In_opt_ PCSTR ExportName,
@@ -1530,13 +1870,21 @@ PVOID PhGetLoaderEntryImageExportFunction(
     PULONG exportNameTable;
     PUSHORT exportOrdinalTable;
 
+    if (!PhpValidateExportTableRvas(ImageNtHeader, ExportDirectory))
+        return NULL;
+
     exportAddressTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfFunctions);
     exportNameTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNames);
     exportOrdinalTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNameOrdinals);
 
     if (ExportOrdinal)
     {
-        if (ExportOrdinal > ExportDirectory->Base + ExportDirectory->NumberOfFunctions)
+        ULONG maxOrdinal;
+
+        if (!NT_SUCCESS(RtlULongAdd(ExportDirectory->Base, ExportDirectory->NumberOfFunctions, &maxOrdinal)))
+            return NULL;
+
+        if (ExportOrdinal > maxOrdinal)
             return NULL;
 
         exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[ExportOrdinal - ExportDirectory->Base]);
@@ -1637,6 +1985,18 @@ PVOID PhGetLoaderEntryImageExportFunction(
     return exportAddress;
 }
 
+/**
+ * Retrieves the address of an exported function using a hint for optimization.
+ *
+ * \param[in] BaseAddress The base address of the image.
+ * \param[in] ProcedureName The name of the exported procedure.
+ * \param[in] ProcedureHint A hint index into the export name table (typically from import descriptor).
+ * \return The address of the exported function, or NULL if not found.
+ * \remarks The hint is an optimization that allows the loader to check if the export at
+ * the hint index matches the desired name before performing a binary search. If the hint
+ * matches, the lookup is O(1). If not, the function falls back to PhGetDllBaseProcedureAddress().
+ * This function also handles forwarded exports.
+ */
 PVOID PhGetDllBaseProcedureAddressWithHint(
     _In_ PVOID BaseAddress,
     _In_ PCSTR ProcedureName,
@@ -1744,6 +2104,23 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
     return PhGetDllBaseProcedureAddress(BaseAddress, ProcedureName, 0);
 }
 
+/**
+ * Detours (replaces) an imported function in a loaded module's Import Address Table (IAT).
+ *
+ * \param[in] BaseAddress The base address of the module whose import to detour.
+ * \param[in] ImportName The name of the DLL that exports the function (e.g., "ntdll.dll").
+ * \param[in] ProcedureName The name of the imported function to detour (e.g., "NtCreateFile").
+ * \param[in] FunctionAddress The address of the replacement function.
+ * \param[out,opt] OriginalAddress An optional pointer that receives the original function address.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_INVALID_PARAMETER BaseAddress, ImportName, or ProcedureName is NULL.
+ * \retval STATUS_UNSUCCESSFUL The import or procedure was not found.
+ * \remarks This function modifies the Import Address Table (IAT) to redirect calls to the
+ * specified import to a new function address. The memory is temporarily made writable, the
+ * thunk is updated, and protection is restored. On ARM64, the instruction cache is flushed.
+ * This is commonly used for API hooking and function interception. The caller should save
+ * the original address if they need to call the original function.
+ */
 NTSTATUS PhLoaderEntryDetourImportProcedure(
     _In_ PVOID BaseAddress,
     _In_ PCSTR ImportName,
@@ -1847,6 +2224,16 @@ NTSTATUS PhLoaderEntryDetourImportProcedure(
     return status;
 }
 
+/**
+ * Displays an error message when an import cannot be resolved during plugin loading.
+ *
+ * \param [in] BaseAddress The base address of the image that failed to load.
+ * \param [in] ImportName The name of the DLL containing the unresolved import.
+ * \param [in] OriginalThunk The thunk data for the unresolved import.
+ * \remarks This function shows a user-friendly error dialog indicating which function
+ * or ordinal could not be resolved from which module. This is typically called when
+ * plugin loading fails due to missing dependencies.
+ */
 VOID PhLoaderEntrySnapShowErrorMessage(
     _In_ PVOID BaseAddress,
     _In_ PCSTR ImportName,
@@ -1894,6 +2281,22 @@ VOID PhLoaderEntrySnapShowErrorMessage(
     }
 }
 
+/**
+ * Resolves a single import thunk by filling it with the actual function address.
+ *
+ * \param [in] BaseAddress The base address of the importing image.
+ * \param [in] ImportBaseAddress The base address of the DLL containing the export.
+ * \param [in] OriginalThunk The original thunk data containing the import information.
+ * \param [in] ImportThunk The import thunk to be filled with the resolved address.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_INVALID_PARAMETER One of the required parameters is NULL.
+ * \retval STATUS_ORDINAL_NOT_FOUND The import could not be resolved.
+ *
+ * \remarks This function handles both ordinal and name-based imports. For ordinal imports,
+ * it uses the ordinal number directly. For name-based imports, it uses the hint value
+ * for optimization before falling back to a full lookup. This is the core function for
+ * binding imports during dynamic loading.
+ */
 NTSTATUS PhLoaderEntrySnapImportThunk(
     _In_ PVOID BaseAddress,
     _In_ PVOID ImportBaseAddress,
@@ -1945,6 +2348,16 @@ typedef struct _PH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT
     PIMAGE_THUNK_DATA ImportThunkData;
 } PH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT, *PPH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT;
 
+/**
+ * Thread pool callback function that resolves import thunks asynchronously.
+ *
+ * \param Instance The callback instance.
+ * \param Context A pointer to the PH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT structure.
+ * \param Work The work item.
+ * \remarks This function is called by the thread pool to resolve imports in parallel when
+ * PH_NATIVE_LOADER_WORKQUEUE is defined. It calls PhLoaderEntrySnapImportThunk() and raises
+ * an exception on failure. The context is freed after processing.
+ */
 VOID CALLBACK LoaderEntryImageImportThunkWorkQueueCallback(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID Context,
@@ -1973,6 +2386,20 @@ VOID CALLBACK LoaderEntryImageImportThunkWorkQueueCallback(
 }
 #endif
 
+/**
+ * Resolves all imports from a specific DLL for a single import descriptor.
+ *
+ * \param [in] BaseAddress The base address of the importing image.
+ * \param [in] ImportDirectory The import descriptor for the DLL.
+ * \param [in] ImportDllName The name of the DLL to resolve imports from.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_INVALID_PARAMETER One of the required parameters is NULL.
+ * \remarks This function loads the specified DLL (if not already loaded), then iterates
+ * through all import thunks for that DLL and resolves them to actual function addresses.
+ * Special handling exists for self-imports (SystemInformer.exe importing from itself).
+ * When PH_NATIVE_LOADER_WORKQUEUE is enabled, imports are resolved in parallel using a
+ * thread pool for better performance.
+ */
 NTSTATUS PhLoaderEntrySnapImportDirectory(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_IMPORT_DESCRIPTOR ImportDirectory,
@@ -2098,6 +2525,16 @@ typedef struct _PH_LOADER_IMPORTS_WORKQUEUE_CONTEXT
     PCSTR ImportName;
 } PH_LOADER_IMPORTS_WORKQUEUE_CONTEXT, *PPH_LOADER_IMPORTS_WORKQUEUE_CONTEXT;
 
+/**
+ * Thread pool callback function that resolves import directories asynchronously.
+ *
+ * \param [in,out] Instance The callback instance.
+ * \param [in,out,opt] Context A pointer to the PH_LOADER_IMPORTS_WORKQUEUE_CONTEXT structure.
+ * \param [in,out] Work The work item.
+ * \remarks This function is called by the thread pool to resolve import directories in parallel
+ * when PH_NATIVE_LOADER_WORKQUEUE is defined. It calls PhLoaderEntrySnapImportDirectory() and
+ * raises an exception on failure. The context is freed after processing.
+ */
 VOID CALLBACK LoaderEntryImageImportsWorkQueueCallback(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID Context,
@@ -2122,6 +2559,19 @@ VOID CALLBACK LoaderEntryImageImportsWorkQueueCallback(
 }
 #endif
 
+/**
+ * Resolves all standard imports for a loaded image from a specific DLL.
+ *
+ * \param [in] BaseAddress The base address of the image.
+ * \param [in] ImageNtHeader The NT headers of the image.
+ * \param [in] ImportDllName The name of the DLL to resolve imports from.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function processes the import directory table, locating all import descriptors
+ * and resolving their thunks. Memory protection is temporarily changed to PAGE_READWRITE to
+ * allow updating the IAT, then restored. On ARM64, the instruction cache is flushed after
+ * updates. When PH_NATIVE_LOADER_WORKQUEUE is enabled, import directories are processed
+ * in parallel using a thread pool.
+ */
 static NTSTATUS PhpFixupLoaderEntryImageImports(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
@@ -2260,6 +2710,19 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Resolves all delay-load imports for a loaded image from a specific DLL.
+ *
+ * \param [in] BaseAddress The base address of the image.
+ * \param [in] ImageNtHeaders The NT headers of the image.
+ * \param [in] ImportDllName The name of the DLL to resolve delay-load imports from.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_SUCCESS All delay-load imports were resolved or no delay-load imports exist.
+ * \remarks Delay-load imports are resolved on-demand rather than at load time. This function
+ * processes the delay-load import directory, loading required DLLs and binding their imports.
+ * Special handling exists for self-imports and cached module handles. If the import DLL is already
+ * cached in the module handle, it is reused to avoid redundant loading.
+ */
 static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeaders,
@@ -2413,6 +2876,18 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Validates that a section handle represents a valid executable DLL image.
+ *
+ * \param [in] SectionHandle A handle to the section to validate.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_INVALID_IMPORT_OF_NON_DLL The section is not a valid DLL or executable.
+ * \retval STATUS_IMAGE_MACHINE_TYPE_MISMATCH The image architecture doesn't match the process.
+ * \remarks This function queries section information to verify it's a Windows GUI subsystem
+ * image with DLL and executable characteristics. It also validates the machine type matches
+ * the current process architecture (x64 for 64-bit processes, x86 for 32-bit processes).
+ * ARM64 images are also accepted on 64-bit processes.
+ */
 NTSTATUS PhLoaderEntryIsSectionImageExecutable(
     _In_ HANDLE SectionHandle
     )
@@ -2447,6 +2922,15 @@ NTSTATUS PhLoaderEntryIsSectionImageExecutable(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Applies base relocations to an image loaded at a different address than its preferred base.
+ *
+ * \param [in] BaseAddress The base address where the image is loaded.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function is essential when loading DLLs at non-preferred base addresses due to
+ * ASLR or address conflicts. It calculates the relocation delta (actual base - preferred base),
+ * then iterates through all relocation blocks applying fixups to adjust pointers.
+ */
 NTSTATUS PhLoaderEntryRelocateImage(
     _In_ PVOID BaseAddress)
 {
@@ -2583,6 +3067,17 @@ NTSTATUS PhLoaderEntryRelocateImage(
     return status;
 }
 
+/**
+ * Retrieves the export name for a given ordinal from a DLL.
+ *
+ * \param [in] DllBase The base address of the DLL.
+ * \param [in,opt] ProcedureNumber The ordinal number of the exported function.
+ * \return A string containing the export name, or NULL if not found.
+ * \remarks This function searches the export name table for an entry matching the specified
+ * ordinal. If found and not a forwarder, it returns the function name. If the export is a
+ * forwarder (RVA within the export directory), it returns the forwarder string. The returned
+ * string must be freed by the caller using PhDereferenceObject().
+ */
 PPH_STRING PhGetExportNameFromOrdinal(
     _In_ PVOID DllBase,
     _In_opt_ USHORT ProcedureNumber
@@ -2637,6 +3132,15 @@ PPH_STRING PhGetExportNameFromOrdinal(
     return NULL;
 }
 
+/**
+ * Loads a DLL from a file into the current process using native loader functionality.
+ *
+ * \param [in] FileName The path to the DLL file as a string reference.
+ * \param [in,opt] RootDirectory An optional handle to a root directory for relative paths.
+ * \param [out] BaseAddress A pointer that receives the base address of the loaded DLL.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This is only built to support plugins.
+ */
 NTSTATUS PhLoaderEntryLoadDll(
     _In_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE RootDirectory,
@@ -2726,6 +3230,16 @@ NTSTATUS PhLoaderEntryLoadDll(
     return status;
 }
 
+/**
+ * Unloads a manually-loaded DLL from the current process.
+ *
+ * \param [in] BaseAddress The base address of the DLL to unload.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function calls the DLL's entry point with DLL_PROCESS_DETACH to allow it to
+ * perform cleanup operations, then unmaps the image from the process address space. If the
+ * DLL entry point returns FALSE during detachment, STATUS_DLL_INIT_FAILED is returned.
+ * This is the cleanup counterpart to PhLoaderEntryLoadDll().
+ */
 NTSTATUS PhLoaderEntryUnloadDll(
     _In_ PVOID BaseAddress
     )
@@ -2759,6 +3273,18 @@ NTSTATUS PhLoaderEntryUnloadDll(
     return status;
 }
 
+/**
+ * Resolves all delay-load imports for a specific DLL within a loaded image.
+ *
+ * \param [in] BaseAddress The base address of the image to process.
+ * \param [in] ImportDllName The name of the DLL whose imports should be resolved (e.g., "SystemInformer.exe").
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function resolves delay-load imports from the specified DLL by calling
+ * PhpFixupLoaderEntryImageDelayImports(). Delay-load imports are not resolved at load time
+ * but are instead resolved on first use. This function allows preemptive resolution, which
+ * is useful for plugins that need to ensure all imports from the host application are
+ * available before proceeding.
+ */
 NTSTATUS PhLoaderEntryLoadAllImportsForDll(
     _In_ PVOID BaseAddress,
     _In_ PCSTR ImportDllName
@@ -2784,6 +3310,17 @@ NTSTATUS PhLoaderEntryLoadAllImportsForDll(
     return status;
 }
 
+/**
+ * Resolves all delay-load imports for a specific DLL within a loaded image identified by name.
+ *
+ * \param [in] TargetDllName The name of the target DLL whose imports should be resolved.
+ * \param [in] ImportDllName The name of the DLL to import from (e.g., "SystemInformer.exe").
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_INVALID_PARAMETER The target DLL was not found in the process.
+ * \remarks This is a convenience wrapper around PhLoaderEntryLoadAllImportsForDll() that
+ * looks up the DLL by name in the loader data structures. It's useful when you know the
+ * DLL name but not its base address.
+ */
 NTSTATUS PhLoadAllImportsForDll(
     _In_ PCWSTR TargetDllName,
     _In_ PCSTR ImportDllName
@@ -2800,6 +3337,22 @@ NTSTATUS PhLoadAllImportsForDll(
         );
 }
 
+/**
+ * Loads a System Informer plugin image with full initialization.
+ *
+ * \param FileName The path to the plugin DLL as a string reference.
+ * \param RootDirectory An optional handle to a root directory for relative paths.
+ * \param BaseAddress An optional pointer that receives the base address of the loaded plugin.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_DLL_INIT_FAILED The plugin's DllMain returned FALSE during initialization.
+ * \remarks This function performs a complete plugin load sequence:
+ * 1. Loads the plugin using PhLoaderEntryLoadDll() or LdrLoadDll() (if PH_NATIVE_PLUGIN_IMAGE_LOAD is defined)
+ * 2. Resolves standard imports from SystemInformer.exe (this is required since the executable might be renamed)
+ * 3. Resolves delay-load imports from SystemInformer.exe (this is required since the executable might be renamed)
+ * 4. Calls the plugin's DllMain with DLL_PROCESS_ATTACH (optionally including an extra internal context)
+ * The loader lock is held during the operation unless PH_NATIVE_PLUGIN_IMAGE_LOAD is defined.
+ * On failure, the plugin is unloaded before returning.
+ */
 NTSTATUS PhLoadPluginImage(
     _In_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE RootDirectory,
@@ -2908,6 +3461,19 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Determines the binary type of an executable file (32-bit, 64-bit, or DOS).
+ *
+ * \param FileName The path to the executable file.
+ * \param BinaryType A pointer that receives the binary type constant (SCS_32BIT_BINARY, SCS_64BIT_BINARY, or SCS_DOS_BINARY).
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function mimics the behavior of GetBinaryTypeW by creating a SEC_IMAGE section
+ * and querying its machine type. It returns:
+ * - SCS_32BIT_BINARY for x86 images or STATUS_INVALID_IMAGE_WIN_32
+ * - SCS_64BIT_BINARY for x64/IA64 images or STATUS_INVALID_IMAGE_WIN_64
+ * - SCS_DOS_BINARY for DOS executables (STATUS_INVALID_IMAGE_PROTECT) or .COM/.PIF/.EXE files without valid PE headers
+ * This is useful for determining compatibility before attempting to load an image.
+ */
 // based on GetBinaryTypeW (dmex)
 NTSTATUS PhGetFileBinaryTypeWin32(
     _In_ PCWSTR FileName,
@@ -3225,8 +3791,7 @@ NTSTATUS PhCaptureSystemDllInitBlock(
  * Retrieves a copy of the system DLL init block of the current process.
  *
  * \param[out] SystemDllInitBlock A buffer for storing a version-independent copy of LdrSystemDllInitBlock.
- *
- * \return Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetSystemDllInitBlock(
     _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
