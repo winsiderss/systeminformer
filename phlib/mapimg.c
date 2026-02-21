@@ -14,6 +14,17 @@
 #include <ph.h>
 #include <mapimg.h>
 
+/**
+ * Initializes a mapped PE image structure from a memory view.
+ *
+ * \param MappedImage A pointer to a structure that receives the mapped image information.
+ * \param ViewBase The base address of the mapped view containing the PE image.
+ * \param ViewSize The size of the mapped view in bytes.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function validates the DOS and NT headers, verifies signatures, and initializes
+ * the MappedImage structure with pointers to key PE structures. All memory accesses are
+ * protected with structured exception handling.
+ */
 NTSTATUS PhInitializeMappedImage(
     _Out_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PVOID ViewBase,
@@ -111,6 +122,16 @@ NTSTATUS PhInitializeMappedImage(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Loads a PE image file into memory and initializes a mapped image structure.
+ *
+ * \param FileName The path to the PE image file. Specify NULL to use FileHandle.
+ * \param FileHandle A handle to an open file. Specify NULL to use FileName.
+ * \param MappedImage A pointer to a structure that receives the mapped image information.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The entire file is mapped into memory using a section object. The caller must
+ * call PhUnloadMappedImage() to release resources when finished.
+ */
 NTSTATUS PhLoadMappedImage(
     _In_opt_ PCWSTR FileName,
     _In_opt_ HANDLE FileHandle,
@@ -145,6 +166,18 @@ NTSTATUS PhLoadMappedImage(
     return status;
 }
 
+/**
+ * Loads an image file into memory and initializes a mapped image structure, with support for
+ * multiple image formats (PE and ELF).
+ *
+ * \param FileName The path to the image file as a string reference. Specify NULL to use FileHandle.
+ * \param FileHandle A handle to an open file. Specify NULL to use FileName.
+ * \param MappedImage A pointer to a structure that receives the mapped image information.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT The image format is not recognized.
+ * \remarks This function detects the image type based on the signature and initializes it
+ * appropriately. Supported formats include PE (IMAGE_DOS_SIGNATURE) and ELF (IMAGE_ELF_SIGNATURE).
+ */
 NTSTATUS PhLoadMappedImageEx(
     _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
@@ -373,6 +406,14 @@ NTSTATUS PhLoadMappedImageHeaderPageSize(
     return status;
 }
 
+/**
+ * Releases resources associated with a mapped image.
+ *
+ * \param MappedImage A pointer to the mapped image structure to unload.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function unmaps the view and releases associated memory. The MappedImage
+ * structure should not be used after this function is called.
+ */
 NTSTATUS PhUnloadMappedImage(
     _Inout_ PPH_MAPPED_IMAGE MappedImage
     )
@@ -386,6 +427,17 @@ NTSTATUS PhUnloadMappedImage(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Loads only the header portion of a PE image file into memory.
+ *
+ * \param FileName The path to the PE image file as a string reference. Specify NULL to use FileHandle.
+ * \param FileHandle A handle to an open file. Specify NULL to use FileName.
+ * \param MappedImage A pointer to a structure that receives the mapped image header information.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function reads only the first page (4KB) of the file, which contains the DOS
+ * and NT headers. This is more efficient than mapping the entire file when only header
+ * information is needed. Call PhUnloadMappedImageHeaderFromFile() to release resources.
+ */
 NTSTATUS PhLoadMappedImageHeaderFromFile(
     _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
@@ -466,6 +518,12 @@ NTSTATUS PhLoadMappedImageHeaderFromFile(
     return status;
 }
 
+/**
+ * Releases resources associated with a mapped image header loaded from a file.
+ *
+ * \param MappedImage A pointer to the mapped image header structure to unload.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhUnloadMappedImageHeaderFromFile(
     _Inout_ PPH_MAPPED_IMAGE MappedImage
     )
@@ -479,6 +537,17 @@ NTSTATUS PhUnloadMappedImageHeaderFromFile(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Maps an entire file into memory using a section object.
+ *
+ * \param FileName The path to the file. Specify NULL to use FileHandle.
+ * \param FileHandle A handle to an open file. Specify NULL to use FileName.
+ * \param ViewBase A pointer that receives the base address of the mapped view.
+ * \param ViewSize A pointer that receives the size of the mapped view.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The file is mapped read-only. The caller must unmap the view using
+ * PhUnmapViewOfSection() when finished.
+ */
 NTSTATUS PhMapViewOfEntireFile(
     _In_opt_ PCWSTR FileName,
     _In_opt_ HANDLE FileHandle,
@@ -666,6 +735,14 @@ VOID PhMappedImagePrefetch(
     PhPrefetchVirtualMemory(NtCurrentProcess(), RTL_NUMBER_OF(prefetchMemoryRange), prefetchMemoryRange);
 }
 
+/**
+ * Retrieves a section header by name from a mapped image.
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \param Name The name of the section to find (e.g., ".text", ".data").
+ * \param IgnoreCase TRUE to perform a case-insensitive comparison, FALSE for case-sensitive.
+ * \return A pointer to the section header if found, otherwise NULL.
+ */
 PIMAGE_SECTION_HEADER PhMappedImageSectionByName(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PCWSTR Name,
@@ -690,6 +767,13 @@ PIMAGE_SECTION_HEADER PhMappedImageSectionByName(
     return NULL;
 }
 
+/**
+ * Locates the section that contains a given relative virtual address (RVA).
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \param Rva The relative virtual address to locate.
+ * \return A pointer to the section header containing the RVA, otherwise NULL.
+ */
 PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva
@@ -716,6 +800,16 @@ PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
     return NULL;
 }
 
+/**
+ * Converts a relative virtual address (RVA) to a virtual address within the mapped image.
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \param Rva The relative virtual address to convert.
+ * \param Section An optional pointer that receives the section header containing the RVA.
+ * \return A pointer to the virtual address in the mapped view, otherwise NULL.
+ * \remarks This function handles both memory-mapped images (SEC_IMAGE) and file-mapped images (SEC_COMMIT),
+ * adjusting for section alignment differences.
+ */
 _Success_(return != NULL)
 PVOID PhMappedImageRvaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
@@ -745,6 +839,14 @@ PVOID PhMappedImageRvaToVa(
         ));
 }
 
+/**
+ * Converts a virtual address (VA) to a pointer within the mapped image.
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \param Va The virtual address to convert.
+ * \param Section An optional pointer that receives the section header containing the address.
+ * \return A pointer to the address in the mapped view, otherwise NULL.
+ */
 _Success_(return != NULL)
 PVOID PhMappedImageVaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
@@ -814,6 +916,15 @@ PVOID PhMappedImageRvaToFileOffset(
         );
 }
 
+/**
+ * Retrieves the name of a PE section as a Unicode string.
+ *
+ * \param Section A pointer to the section header.
+ * \param Buffer An optional buffer that receives the section name.
+ * \param Count The size of the buffer in characters.
+ * \param ReturnCount An optional pointer that receives the number of characters written.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageSectionName(
     _In_ PIMAGE_SECTION_HEADER Section,
     _Out_writes_opt_z_(Count) PWSTR Buffer,
@@ -838,6 +949,16 @@ NTSTATUS PhGetMappedImageSectionName(
     return status;
 }
 
+/**
+ * Retrieves a data directory from the PE optional header.
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \param Index The data directory index (e.g., IMAGE_DIRECTORY_ENTRY_EXPORT).
+ * \param Entry A pointer that receives the data directory structure.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks Data directories contain RVAs and sizes for various PE structures such as
+ * exports, imports, resources, base relocations, and debug information.
+ */
 NTSTATUS PhGetMappedImageDataDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Index,
@@ -1878,6 +1999,19 @@ NTSTATUS PhRelocateMappedImageDataEntryARM64X(
     return PH_ARM64X_DIR_FIX_DONE() ? STATUS_SUCCESS : STATUS_INVALID_PARAMETER;
 }
 
+/**
+ * Retrieves export information from a mapped PE image with advanced options.
+ *
+ * \param Exports A pointer to a structure that receives the export information.
+ * \param MappedImage A pointer to the mapped image.
+ * \param Flags Flags that control the retrieval (e.g., PH_GET_IMAGE_EXPORTS_ARM64X).
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_INVALID_PARAMETER The export directory is invalid or not found.
+ * \remarks This function retrieves pointers to the export directory and associated tables
+ * (address table, name pointer table, ordinal table). For ARM64X images, it can relocate
+ * the export directory using dynamic relocations. All memory accesses are validated with
+ * structured exception handling.
+ */
 NTSTATUS PhGetMappedImageExportsEx(
     _Out_ PPH_MAPPED_IMAGE_EXPORTS Exports,
     _In_ PPH_MAPPED_IMAGE MappedImage,
@@ -2009,6 +2143,13 @@ NTSTATUS PhGetMappedImageExportsEx(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Retrieves export information from a mapped PE image.
+ *
+ * \param Exports A pointer to a structure that receives the export information.
+ * \param MappedImage A pointer to the mapped image.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageExports(
     _Out_ PPH_MAPPED_IMAGE_EXPORTS Exports,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -2017,6 +2158,18 @@ NTSTATUS PhGetMappedImageExports(
     return PhGetMappedImageExportsEx(Exports, MappedImage, 0);
 }
 
+/**
+ * Retrieves information about a specific export entry by index.
+ *
+ * \param Exports A pointer to the export information structure.
+ * \param Index The zero-based index into the export address table.
+ * \param Entry A pointer to a structure that receives the export entry information.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_PROCEDURE_NOT_FOUND The index is out of range.
+ * \retval STATUS_INVALID_PARAMETER The export name pointer is invalid.
+ * \remarks The function populates the entry with the ordinal, name (if exported by name),
+ * and hint. The ordinal is biased (index + base ordinal).
+ */
 NTSTATUS PhGetMappedImageExportEntry(
     _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
     _In_ ULONG Index,
@@ -2070,6 +2223,15 @@ NTSTATUS PhGetMappedImageExportEntry(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Locates an export by name using binary search.
+ *
+ * \param Exports A pointer to the export information structure.
+ * \param Name The name of the export to find.
+ * \return The index of the export in the name table, or ULONG_MAX if not found.
+ * \remarks The export name table is sorted alphabetically, allowing for efficient binary search.
+ * The returned index can be used with the ordinal table to obtain the unbiased ordinal.
+ */
 ULONG PhLookupMappedImageExportName(
     _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
     _In_ PCSTR Name
@@ -2116,6 +2278,19 @@ ULONG PhLookupMappedImageExportName(
     return ULONG_MAX;
 }
 
+/**
+ * Retrieves the address of an exported function by name or ordinal.
+ *
+ * \param Exports A pointer to the export information structure.
+ * \param Name The name of the exported function. Specify NULL to use Ordinal.
+ * \param Ordinal The ordinal of the exported function. Specify 0 to use Name.
+ * \param Function A pointer to a structure that receives the function information.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_PROCEDURE_NOT_FOUND The function was not found.
+ * \retval STATUS_INVALID_PARAMETER The forwarder name is invalid.
+ * \remarks This function returns the RVA of the export. If the export is a forwarder,
+ * the ForwardedName field will point to the forwarding string (e.g., "NTDLL.RtlAllocateHeap").
+ */
 NTSTATUS PhGetMappedImageExportFunction(
     _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
     _In_opt_ PCSTR Name,
@@ -2218,6 +2393,13 @@ NTSTATUS PhGetMappedImageExportFunctionRemote(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Retrieves import information from a mapped PE image.
+ *
+ * \param Imports A pointer to a structure that receives the import information.
+ * \param MappedImage A pointer to the mapped image.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageImports(
     _Out_ PPH_MAPPED_IMAGE_IMPORTS Imports,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -2277,6 +2459,20 @@ NTSTATUS PhGetMappedImageImports(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Retrieves information about a specific imported DLL by index.
+ *
+ * \param Imports A pointer to the import information structure.
+ * \param Index The zero-based index of the imported DLL.
+ * \param ImportDll A pointer to a structure that receives the import DLL information.
+ * \return NTSTATUS Successful or errant status.
+ * \retval STATUS_INVALID_PARAMETER_2 The index is out of range.
+ * \retval STATUS_INVALID_PARAMETER The DLL name or thunk data is invalid.
+ *
+ * \remarks This function retrieves the import descriptor, DLL name, and import/name tables
+ * for a specific DLL. The lookup table (OriginalFirstThunk) contains import information,
+ * while the address table (FirstThunk) is patched by the loader with actual addresses.
+ */
 NTSTATUS PhGetMappedImageImportDll(
     _In_ PPH_MAPPED_IMAGE_IMPORTS Imports,
     _In_ ULONG Index,
@@ -2553,6 +2749,13 @@ ULONG PhGetMappedImageImportEntryRva(
     return rva;
 }
 
+/**
+ * Retrieves delay-load import information from a mapped PE image.
+ *
+ * \param Imports A pointer to a structure that receives the delay-load import information.
+ * \param MappedImage A pointer to the mapped image.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageDelayImports(
     _Out_ PPH_MAPPED_IMAGE_IMPORTS Imports,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -2613,6 +2816,16 @@ NTSTATUS PhGetMappedImageDelayImports(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Computes a partial checksum for PE image validation.
+ *
+ * \param Sum The initial sum value.
+ * \param Buffer A pointer to the buffer to checksum.
+ * \param Count The number of 16-bit words to process.
+ * \return The computed checksum value.
+ * \remarks This implements the standard PE checksum algorithm used by Windows loaders
+ * to verify image integrity. The algorithm processes 16-bit words with carry folding.
+ */
 USHORT PhCheckSum(
     _In_ ULONG Sum,
     _In_reads_(Count) PUSHORT Buffer,
@@ -2631,8 +2844,13 @@ USHORT PhCheckSum(
 }
 
 /**
- * Computes the checksum of the specified image file.
- * \return ULONG The computed checksum.
+ * Computes the checksum of a mapped PE image.
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \return The computed checksum value.
+ * \remarks This function calculates the PE image checksum using the standard algorithm.
+ * The checksum field in the optional header is excluded from the calculation. The result
+ * can be compared with OptionalHeader.CheckSum to verify image integrity.
  */
 ULONG PhCheckSumMappedImage(
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -4452,6 +4670,13 @@ NTSTATUS PhGetMappedImagePogo(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Retrieves base relocation information from a mapped PE image.
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \param Relocations A pointer to a structure that receives the relocation information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageRelocations(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_RELOC Relocations
@@ -4572,6 +4797,14 @@ NTSTATUS PhGetMappedImageRelocations(
     return status;
 }
 
+/**
+ * Releases resources associated with mapped image relocations.
+ *
+ * \param Relocations A pointer to the relocation information structure.
+ *
+ * \remarks This function frees the relocation entries array allocated by
+ * PhGetMappedImageRelocations().
+ */
 VOID PhFreeMappedImageRelocations(
     _In_opt_ PPH_MAPPED_IMAGE_RELOC Relocations
     )
@@ -4584,6 +4817,14 @@ VOID PhFreeMappedImageRelocations(
     }
 }
 
+/**
+ * Enumerates base relocations in a mapped PE image using a callback function.
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \param Callback A callback function invoked for each relocation entry.
+ * \param Context An optional context pointer passed to the callback.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhMappedImageEnumerateRelocations(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PPH_MAPPED_IMAGE_RELOC_CALLBACK Callback,
@@ -4676,6 +4917,13 @@ NTSTATUS PhMappedImageEnumerateRelocations(
     return status;
 }
 
+/**
+ * Retrieves the dynamic relocation table from a mapped PE image.
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \param Table An optional pointer that receives the dynamic relocation table.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageDynamicRelocationsTable(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_opt_ PIMAGE_DYNAMIC_RELOCATION_TABLE* Table
@@ -5478,6 +5726,14 @@ PVOID PhpFillDynamicRelocationsArray64v2(
     return next;
 }
 
+/**
+ * Enumerates dynamic relocations in a mapped PE image using a callback function.
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \param Callback A callback function invoked for each dynamic relocation entry.
+ * \param Context An optional context pointer passed to the callback.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhMappedImageEnumerateDynamicRelocations(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PPH_MAPPED_IMAGE_DYNAMIC_RELOC_CALLBACK Callback,
@@ -5552,6 +5808,13 @@ NTSTATUS NTAPI PhpGetMappedImageDynamicRelocationsCallback(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Retrieves all dynamic relocations from a mapped PE image into an array.
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \param Relocations A pointer to a structure that receives the dynamic relocation information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageDynamicRelocations(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_DYNAMIC_RELOC Relocations
@@ -5590,6 +5853,11 @@ NTSTATUS PhGetMappedImageDynamicRelocations(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Releases resources associated with dynamic relocations.
+ *
+ * \param Relocations A pointer to the dynamic relocation information structure.
+ */
 VOID PhFreeMappedImageDynamicRelocations(
     _In_opt_ PPH_MAPPED_IMAGE_DYNAMIC_RELOC Relocations
     )
