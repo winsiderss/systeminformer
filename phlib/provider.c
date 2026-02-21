@@ -255,7 +255,7 @@ NTSTATUS PhStartProviderThread(
     // Create the synchronization timer.
     //
      
-    if (ProviderThread->UseHighResolution && NtCreateTimer2_Import())
+    if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution && NtCreateTimer2_Import())
     {
         status = NtCreateTimer2_Import()(
             &ProviderThread->TimerHandle,
@@ -290,8 +290,6 @@ NTSTATUS PhStartProviderThread(
             );
     }
 
-    assert(ProviderThread->TimerHandle);
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -303,19 +301,32 @@ NTSTATUS PhStartProviderThread(
         );
 
     if (!NT_SUCCESS(status))
+    {
+        NtClose(ProviderThread->TimerHandle);
+        ProviderThread->TimerHandle = NULL;
         return status;
+    }
 
     // Create and start the thread.
 
-    status = PhCreateThreadEx(
-        &ProviderThread->ThreadHandle, 
-        PhpProviderThreadStart, 
-        ProviderThread
+    status = PhCreateUserThread(
+        NtCurrentProcess(),
+        NULL,
+        THREAD_ALERT | SYNCHRONIZE,
+        0,
+        0,
+        0,
+        0,
+        PhpProviderThreadStart,
+        ProviderThread,
+        &ProviderThread->ThreadHandle,
+        NULL
         );
 
-    assert(ProviderThread->ThreadHandle);
-
     if (!NT_SUCCESS(status))
+    {
+        NtClose(ProviderThread->TimerHandle);
+        ProviderThread->TimerHandle = NULL;
         return status;
        
     ProviderThread->State = ProviderThreadRunning;
@@ -333,6 +344,18 @@ VOID PhStopProviderThread(
 {
     if (ProviderThread->State != ProviderThreadRunning)
         return;
+
+    // Verify all providers are unregistered
+    PhAcquireQueuedLockExclusive(&ProviderThread->Lock);
+    if (!IsListEmpty(&ProviderThread->ListHead))
+    {
+        PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
+        assert(FALSE && "Stopping provider thread with active registrations");
+    }
+    else
+    {
+        PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
+    }
 
     // Signal to the thread that we are shutting down, and wait for it to exit.
     ProviderThread->State = ProviderThreadStopping;
@@ -362,10 +385,17 @@ NTSTATUS PhSetIntervalProviderThread(
 {
     LARGE_INTEGER interval;
 
-    ProviderThread->Interval = Interval;
+    if (Interval < 0)
+        return STATUS_INVALID_PARAMETER;
+
+    // Prevent intervals > 24 hours (86400000 ms)
+    if (Interval > (24 * 60 * 60 * 1000))
+        return STATUS_INVALID_PARAMETER;
 
     if (!ProviderThread->TimerHandle)
         return STATUS_INVALID_HANDLE;
+
+    ProviderThread->Interval = Interval;
 
     interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
 
@@ -462,7 +492,12 @@ VOID PhUnregisterProvider(
     if (Registration->Boosting)
         providerThread->BoostCount--;
 
+    PhReleaseQueuedLockExclusive(&providerThread->Lock);
+
     PhWaitForRundownProtection(&Registration->RundownProtect);
+
+    // Reacquire the lock to safely dereference the object
+    PhAcquireQueuedLockExclusive(&providerThread->Lock);
 
     // The user-supplied object must be dereferenced
     // while the mutex is held.
@@ -491,9 +526,6 @@ BOOLEAN PhBoostProvider(
     PPH_PROVIDER_THREAD providerThread;
     ULONG futureRunId;
 
-    if (Registration->Unregistering)
-        return FALSE;
-
     providerThread = Registration->ProviderThread;
 
     // Simply move to the provider to the front of the list. This works even if the provider is
@@ -501,8 +533,8 @@ BOOLEAN PhBoostProvider(
 
     PhAcquireQueuedLockExclusive(&providerThread->Lock);
 
-    // Abort if the provider is already being boosted or the provider thread is stopping/stopped.
-    if (Registration->Boosting || providerThread->State != ProviderThreadRunning)
+    // Abort if the provider is already being boosted, unregistering, or the provider thread is stopping/stopped.
+    if (Registration->Unregistering || Registration->Boosting || providerThread->State != ProviderThreadRunning)
     {
         PhReleaseQueuedLockExclusive(&providerThread->Lock);
         return FALSE;
@@ -548,7 +580,16 @@ BOOLEAN PhGetEnabledProvider(
     _In_ PPH_PROVIDER_REGISTRATION Registration
     )
 {
-    return !!Registration->Enabled;
+    PPH_PROVIDER_THREAD providerThread;
+    BOOLEAN enabled;
+    
+    providerThread = Registration->ProviderThread;
+    
+    PhAcquireQueuedLockShared(&providerThread->Lock);
+    enabled = !!Registration->Enabled;
+    PhReleaseQueuedLockShared(&providerThread->Lock);
+    
+    return enabled;
 }
 
 /**
@@ -562,7 +603,13 @@ VOID PhSetEnabledProvider(
     _In_ BOOLEAN Enabled
     )
 {
+    PPH_PROVIDER_THREAD providerThread;
+    
+    providerThread = Registration->ProviderThread;
+    
+    PhAcquireQueuedLockExclusive(&providerThread->Lock);
     Registration->Enabled = Enabled;
+    PhReleaseQueuedLockExclusive(&providerThread->Lock);
 }
 
 /**
