@@ -20,6 +20,7 @@
 #include <phintrnl.h>
 #include <refp.h>
 #include <settings.h>
+#include <phsettings.h>
 #include <symprv.h>
 #include <mapldr.h>
 #include <workqueue.h>
