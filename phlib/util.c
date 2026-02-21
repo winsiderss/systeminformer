@@ -23,6 +23,7 @@
 
 #include <apiimport.h>
 #include <appresolver.h>
+#include <devpkey.h>
 #include <guisup.h>
 #include <mapimg.h>
 #include <mapldr.h>
