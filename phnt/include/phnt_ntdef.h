@@ -625,8 +625,6 @@ typedef struct _CLIENT_ID64
     ULONGLONG UniqueThread;
 } CLIENT_ID64, *PCLIENT_ID64;
 
-#include <pshpack4.h>
-
 /**
  * The KSYSTEM_TIME structure represents interrupt time, system time, and time zone bias.
  */
@@ -636,8 +634,6 @@ typedef struct _KSYSTEM_TIME
     LONG High1Time;
     LONG High2Time;
 } KSYSTEM_TIME, *PKSYSTEM_TIME;
-
-#include <poppack.h>
 
 #if defined(__INTELLISENSE__) || defined(DOXYGEN)
 
