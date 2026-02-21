@@ -221,6 +221,13 @@ PhGetUserLocaleInfoBool(
     _In_ LCTYPE LCType
     );
 
+PHLIBAPI
+LCID
+NTAPI
+PhGetCurrentThreadLCID(
+    VOID
+    );
+
 //
 // Time
 //
