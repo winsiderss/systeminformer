@@ -131,7 +131,9 @@ namespace CustomBuildTool
                     string key = s.Key;
 
                     if (!key.StartsWith('-'))
+                    {
                         key = "-" + key;
+                    }
 
                     kvp[key] = s.Value;
                 }
@@ -692,7 +694,7 @@ namespace CustomBuildTool
             return null;
         }
 
-        public static int ExecuteCMakeCommand(string Command)
+        public static int ExecuteCMakeCommand(string Command, BuildToolchain Toolchain)
         {
             string cmakeFile = GetCMakeFilePath();
 
@@ -702,24 +704,43 @@ namespace CustomBuildTool
                 return int.MaxValue;
             }
 
+            string vcvarsall = string.Empty;
             var instance = BuildVisualStudio.GetVisualStudioInstance();
-            string vcvarsall = Path.Join([instance.Path, "VC\\Auxiliary\\Build\\vcvarsall.bat"]);
 
-            if (!File.Exists(vcvarsall))
+            if (instance != null)
             {
-                Program.PrintColorMessage("[ExecuteCMakeCommand] vcvarsall.bat not found.", ConsoleColor.Red);
-                return int.MaxValue;
+                vcvarsall = Path.Join([instance.Path, "VC\\Auxiliary\\Build\\vcvarsall.bat"]);
+            }
+            else if (Win32.GetEnvironmentVariable("VCINSTALLDIR", out string vcInstallDir))
+            {
+                vcvarsall = Path.Join([vcInstallDir, "Auxiliary\\Build\\vcvarsall.bat"]);
             }
 
-            string arch = "amd64"; // Default
-            if (Command.Contains("msvc-x86", StringComparison.OrdinalIgnoreCase) || Command.Contains("Win32", StringComparison.OrdinalIgnoreCase))
-                arch = "amd64_x86";
-            else if (Command.Contains("msvc-arm64", StringComparison.OrdinalIgnoreCase) || Command.Contains("ARM64", StringComparison.OrdinalIgnoreCase))
-                arch = "amd64_arm64";
+            string arch = Toolchain switch
+            {
+                BuildToolchain.MsvcX86 or BuildToolchain.ClangMsvcX86 => "amd64_x86",
+                BuildToolchain.MsvcArm64 or BuildToolchain.ClangMsvcArm64 => "amd64_arm64",
+                _ => "amd64"
+            };
 
-            // We need to run vcvarsall.bat and then cmake in the same session.
-            // Using cmd /c "call vcvarsall.bat arch && cmake ..."
-            string fullCommand = $"/c \"call \"{vcvarsall}\" {arch} && \"{cmakeFile}\" {Command}\"";
+            string fullCommand;
+
+            if (File.Exists(vcvarsall))
+            {
+                // We need to run vcvarsall.bat and then cmake in the same session.
+                // Using cmd /c "call vcvarsall.bat arch && cmake ..."
+                fullCommand = $"/c \"call \"{vcvarsall}\" {arch} >nul && \"{cmakeFile}\" {Command}\"";
+            }
+            else
+            {
+                // If vcvarsall.bat is not found, assume the environment is already set up (e.g. EWDK)
+                if (!Win32.HasEnvironmentVariable("INCLUDE") && !Win32.HasEnvironmentVariable("LIB"))
+                {
+                    Program.PrintColorMessage("[ExecuteCMakeCommand] Warning: vcvarsall.bat not found and INCLUDE/LIB environment variables are not set. Compilation might fail.", ConsoleColor.Yellow);
+                }
+
+                fullCommand = $"/c \"\"{cmakeFile}\" {Command}\"";
+            }
 
             return Win32.CreateProcess("cmd.exe", fullCommand, out _, false, false);
         }
@@ -823,6 +844,7 @@ namespace CustomBuildTool
         public static string GetDevEnvPath()
         {
             var instance = BuildVisualStudio.GetVisualStudioInstance();
+            if (instance != null)
             {
                 string file = Path.Join([instance.Path, "Common7\\IDE\\devenv.com"]);
 
@@ -2187,6 +2209,12 @@ namespace CustomBuildTool
         public VirusTotalAnalysisDataResponse data { get; init; }
     }
 
+    public class SourceLink
+    {
+        [JsonPropertyName("documents")]
+        public Dictionary<string, string> Documents { get; init; }
+    }
+
     [JsonSerializable(typeof(BuildUpdateRequest))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class BuildUpdateRequestContext : JsonSerializerContext
@@ -2200,6 +2228,7 @@ namespace CustomBuildTool
     [JsonSerializable(typeof(GithubReleasesRequest))]
     [JsonSerializable(typeof(GithubReleasesResponse))]
     [JsonSerializable(typeof(GithubReleaseQueryResponse))]
+    [JsonSerializable(typeof(SourceLink))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class GithubResponseContext : JsonSerializerContext
     {
@@ -2221,7 +2250,7 @@ namespace CustomBuildTool
 
     }
 
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     [JsonSerializable(typeof(Dictionary<string, string>))]
     public partial class DictionarySerializerContext : JsonSerializerContext
     {

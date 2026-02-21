@@ -13,41 +13,55 @@ namespace CustomBuildTool
 {
     public static class BuildHttpClient
     {
-        internal static HttpClientHandler BuildHttpClientHandler = null;
-        public static HttpClientHandler CreateHttpHandler()
-        {
-            BuildHttpClientHandler ??= new HttpClientHandler
-            {
-                AutomaticDecompression = DecompressionMethods.All,
-                SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
-            };
-
-            return BuildHttpClientHandler;
-        }
-
-        internal static HttpClient BuildNetHttpClient = null;
+        /// <summary>
+        /// Creates a new HttpClient instance with its own isolated HttpClientHandler.
+        /// Caller is responsible for disposing the returned HttpClient.
+        /// </summary>
+        /// <remarks>
+        /// Each HttpClient instance has its own handler, connection pool, and cookie container.
+        /// This ensures complete isolation between different API calls and prevents
+        /// credential/cookie leakage across services.
+        /// </remarks>
         public static HttpClient CreateHttpClient()
         {
-            if (BuildNetHttpClient == null)
+            var handler = new HttpClientHandler
             {
-                BuildNetHttpClient = new HttpClient(CreateHttpHandler())
-                {
-                    DefaultRequestVersion = HttpVersion.Version20,
-                    DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
-                };
-                BuildNetHttpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
-            }
+                AutomaticDecompression = DecompressionMethods.All,
+                SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                UseCookies = true, // Enabled for cookie support per instance
+                UseDefaultCredentials = false,
+                AllowAutoRedirect = true,
+                MaxAutomaticRedirections = 50
+            };
 
-            return BuildNetHttpClient;
+            var client = new HttpClient(handler, disposeHandler: true)
+            {
+                Timeout = TimeSpan.FromSeconds(100),
+                DefaultRequestVersion = HttpVersion.Version30,
+                DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower
+            };
+            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
+
+            return client;
         }
 
-        public static HttpResponseMessage SendMessageResponse(HttpRequestMessage HttpMessage)
+        [Obsolete("Use CreateHttpClient() instead and dispose the returned instance.")]
+        public static HttpClient GetHttpClient()
+        {
+            return CreateHttpClient();
+        }
+
+        /// <summary>
+        /// Sends an HTTP request and returns the response. Caller is responsible for disposing the response.
+        /// </summary>
+        public static async Task<HttpResponseMessage> SendMessageResponse(HttpRequestMessage HttpMessage, CancellationToken CancellationToken = default)
         {
             HttpResponseMessage response;
 
             try
             {
-                response = CreateHttpClient().SendAsync(HttpMessage).GetAwaiter().GetResult();
+                using var client = CreateHttpClient();
+                response = await client.SendAsync(HttpMessage, CancellationToken);
             }
             catch (Exception ex)
             {
@@ -58,17 +72,21 @@ namespace CustomBuildTool
             return response;
         }
 
-        public static string SendMessage(HttpRequestMessage HttpMessage)
+        public static async Task<string> SendMessage(HttpRequestMessage HttpMessage, CancellationToken CancellationToken = default)
         {
             string response;
 
             try
             {
-                var httpTask = CreateHttpClient().SendAsync(HttpMessage).GetAwaiter().GetResult();
+                using var client = CreateHttpClient();
+                using var httpResponse = await client.SendAsync(HttpMessage, CancellationToken);
 
-                //if (httpTask.IsSuccessStatusCode)
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    Program.PrintColorMessage($"[HTTP Error] {(int)httpResponse.StatusCode} {httpResponse.ReasonPhrase}", ConsoleColor.Yellow);
+                }
 
-                response = httpTask.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                response = await httpResponse.Content.ReadAsStringAsync(CancellationToken);
             }
             catch (Exception ex)
             {
@@ -79,18 +97,23 @@ namespace CustomBuildTool
             return response;
         }
 
-        public static TValue SendMessage<TValue>(HttpRequestMessage HttpMessage, JsonTypeInfo<TValue> jsonTypeInfo) where TValue : class
+        public static async Task<TValue> SendMessage<TValue>(HttpRequestMessage HttpMessage, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken CancellationToken = default) where TValue : class
         {
             TValue result;
 
             try
             {
-                string response = SendMessage(HttpMessage);
+                string response = await SendMessage(HttpMessage, CancellationToken);
 
                 if (string.IsNullOrWhiteSpace(response))
                     return null;
 
                 result = JsonSerializer.Deserialize(response, jsonTypeInfo);
+
+                if (result == null)
+                {
+                    Program.PrintColorMessage("[Warning] JSON deserialization returned null", ConsoleColor.Yellow);
+                }
             }
             catch (Exception ex)
             {
@@ -111,31 +134,54 @@ namespace CustomBuildTool
 
         public ProgressableStreamContent(Stream content, Action<long, long> progress, int bufferSize = DefaultBufferSize)
         {
+            if (content == null)
+                throw new ArgumentNullException(nameof(content));
+
+            if (!content.CanRead)
+                throw new ArgumentException("Stream must be readable", nameof(content));
+
             _content = content;
             _bufferSize = bufferSize;
             _progress = progress;
-            Headers.ContentLength = content.Length;
+
+            if (content.CanSeek)
+            {
+                Headers.ContentLength = content.Length;
+            }
         }
 
         protected override async Task SerializeToStreamAsync(Stream stream, TransportContext context)
         {
             var buffer = new byte[_bufferSize];
-            var memory = buffer.AsMemory();// new Memory<byte>(buffer);
             long totalBytesRead = 0;
             int bytesRead;
 
-            while ((bytesRead = await _content.ReadAsync(memory)) > 0)
+            while ((bytesRead = await _content.ReadAsync(buffer.AsMemory())) > 0)
             {
-                await stream.WriteAsync(memory);
+                await stream.WriteAsync(buffer.AsMemory(0, bytesRead));
                 totalBytesRead += bytesRead;
-                _progress?.Invoke(totalBytesRead, _content.Length);
+
+                if (_content.CanSeek)
+                {
+                    _progress?.Invoke(totalBytesRead, _content.Length);
+                }
+                else
+                {
+                    _progress?.Invoke(totalBytesRead, -1);
+                }
             }
         }
 
         protected override bool TryComputeLength(out long length)
         {
-            length = _content.Length;
-            return true;
+            if (_content.CanSeek)
+            {
+                length = _content.Length;
+                return true;
+            }
+
+            length = 0;
+            return false;
         }
     }
 }
@@ -184,9 +230,10 @@ namespace CustomBuildTool
 
                 Console.WriteLine($"[NET] {eventData.EventSource.Name}:{eventData.Level} {eventData.EventName} | {payload}");
             }
-            catch
+            catch (Exception ex)
             {
-                /* avoid throwing from listener */
+                // Avoid throwing from listener - log to debug output only
+                System.Diagnostics.Debug.WriteLine($"[HttpEventListener] Error processing event: {ex.Message}");
             }
         }
     }

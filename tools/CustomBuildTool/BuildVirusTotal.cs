@@ -32,7 +32,7 @@ namespace CustomBuildTool
         /// The API token is loaded from the path specified by the "VIRUSTOTAL_BASE_API" environment variable.
         /// If the file size exceeds 32MB, a large file upload URL is requested.
         /// </remarks>
-        public static string UploadScanFile(string FileName)
+        public static async Task<string> UploadScanFile(string FileName)
         {
             if (string.IsNullOrWhiteSpace(VirusTotalApiToken))
             {
@@ -68,7 +68,7 @@ namespace CustomBuildTool
                         requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                         requestMessage.Headers.Add("x-apikey", VirusTotalApiToken);
 
-                        var response = BuildHttpClient.SendMessage(requestMessage, VirusTotalResponseContext.Default.VirusTotalLargeUploadResponse);
+                        var response = await BuildHttpClient.SendMessage(requestMessage, VirusTotalResponseContext.Default.VirusTotalLargeUploadResponse);
 
                         uploadInfo = response.data;
                     }
@@ -98,14 +98,14 @@ namespace CustomBuildTool
                     requestMessage.Content = requestMethod;
 
                     {
-                        virusTotalAnalysisResponseContext = BuildHttpClient.SendMessage(requestMessage, VirusTotalResponseContext.Default.VirusTotalAnalysisResponse);
+                        virusTotalAnalysisResponseContext = await BuildHttpClient.SendMessage(requestMessage, VirusTotalResponseContext.Default.VirusTotalAnalysisResponse);
 
                         using (HttpRequestMessage requestAnalysisMessage = new HttpRequestMessage(HttpMethod.Get, virusTotalAnalysisResponseContext.data.links.self))
                         {
                             requestAnalysisMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                             requestAnalysisMessage.Headers.Add("x-apikey", VirusTotalApiToken);
 
-                            return BuildHttpClient.SendMessage(requestAnalysisMessage);
+                            return await BuildHttpClient.SendMessage(requestAnalysisMessage);
                         }
                     }
                 }

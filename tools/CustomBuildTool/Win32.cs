@@ -15,7 +15,7 @@ namespace CustomBuildTool
     /// Provides utility methods for interacting with the Windows file system, environment variables, processes, and
     /// registry, as well as other Win32-related operations.
     /// </summary>
-    public static unsafe class Win32
+    public static unsafe partial class Win32
     {
         private static readonly char[] PathSeparator = [';'];
 

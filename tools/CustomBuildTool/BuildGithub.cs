@@ -40,23 +40,25 @@ namespace CustomBuildTool
         /// Queries the Github Action Run API for the current build's queue time.
         /// </summary>
         /// <returns>
-        /// The <see cref="DateTime"/> representing the queue time of the build, or <see cref="DateTime.MinValue"/> if an error occurs.
+        /// A tuple containing a boolean indicating success and the <see cref="DateTime"/> representing the queue time of the build, or <see cref="DateTime.MinValue"/> if an error occurs.
         /// </returns>
-        public static bool BuildQueryQueueTime(out DateTime DateTime)
+        public static async Task<(bool Success, DateTime QueueTime)> BuildQueryQueueTime()
         {
             string repo = Win32.GetEnvironmentVariable("GITHUB_REPOSITORY");
             string runId = Win32.GetEnvironmentVariable("GITHUB_RUN_ID");
             string token = Win32.GetEnvironmentVariable("GITHUB_TOKEN");
 
+            DateTime queueTime;
+
             if (string.IsNullOrWhiteSpace(repo) ||
                 string.IsNullOrWhiteSpace(runId) ||
                 string.IsNullOrWhiteSpace(token))
             {
-                DateTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
+                queueTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
 
-                Console.WriteLine($"Build StartTime: {VT.YELLOW}{DateTime}{VT.RESET} (Failed)");
-                Console.WriteLine($"Build Elapsed: {VT.YELLOW}{(DateTimeOffset.UtcNow - DateTime)}{VT.RESET} (Failed)");
-                return true;
+                Console.WriteLine($"Build StartTime: {VT.YELLOW}{queueTime}{VT.RESET} (TickCount)");
+                Console.WriteLine($"Build Elapsed: {VT.YELLOW}{(DateTimeOffset.UtcNow - queueTime)}{VT.RESET} (TickCount)");
+                return (true, queueTime);
             }
 
             try
@@ -67,7 +69,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                     requestMessage.Headers.TryAddWithoutValidation("X-GitHub-Api-Version", "2022-11-28");
 
-                    var httpResult = BuildHttpClient.SendMessage(requestMessage);
+                    var httpResult = await BuildHttpClient.SendMessage(requestMessage);
 
                     if (string.IsNullOrWhiteSpace(httpResult))
                     {
@@ -88,15 +90,15 @@ namespace CustomBuildTool
                     Console.WriteLine($"Build Started: {VT.GREEN}{content.RunStartedAt}{VT.RESET}");
                     Console.WriteLine($"Build Elapsed: {VT.GREEN}{(DateTimeOffset.UtcNow - offset)}{VT.RESET}");
 
-                    DateTime = offset.DateTime;
-                    return true;
+                    queueTime = offset.DateTime;
+                    return (true, queueTime);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"{VT.RED}[ERROR] {ex}{VT.RESET}");
-                DateTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
-                return false;
+                queueTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
+                return (false, queueTime);
             }
         }
 
@@ -107,7 +109,7 @@ namespace CustomBuildTool
         /// <returns>
         /// A <see cref="GithubReleaseQueryResponse"/> object containing release details, or <c>null</c> if not found or on error.
         /// </returns>
-        public static GithubReleaseQueryResponse GetRelease(ulong ReleaseId)
+        public static async Task<GithubReleaseQueryResponse> GetRelease(ulong ReleaseId)
         {
             if (string.IsNullOrWhiteSpace(BaseUrl))
                 return null;
@@ -122,7 +124,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    var httpResult = BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleaseQueryResponse);
+                    var httpResult = await BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleaseQueryResponse);
 
                     if (httpResult == null)
                     {
@@ -151,7 +153,7 @@ namespace CustomBuildTool
         /// <returns>
         /// A <see cref="GithubReleasesResponse"/> object containing release details, or <c>null</c> on error.
         /// </returns>
-        public static GithubReleasesResponse CreateRelease(string Version, bool Draft = true, bool Prerelease = false, bool GenerateReleaseNotes = true)
+        public static async Task<GithubReleasesResponse> CreateRelease(string Version, bool Draft = true, bool Prerelease = false, bool GenerateReleaseNotes = true)
         {
             if (string.IsNullOrWhiteSpace(BaseUrl))
                 return null;
@@ -177,7 +179,7 @@ namespace CustomBuildTool
 
                     requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
 
-                    var httpResult = BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
+                    var httpResult = await BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
 
                     if (httpResult == null)
                     {
@@ -209,7 +211,7 @@ namespace CustomBuildTool
         /// <returns>
         /// <c>true</c> if the release and tag were deleted or did not exist; <c>false</c> on error.
         /// </returns>
-        public static bool DeleteRelease(string Version)
+        public static async Task<bool> DeleteRelease(string Version)
         {
             if (string.IsNullOrWhiteSpace(BaseUrl))
                 return false;
@@ -227,7 +229,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    responseMessage = BuildHttpClient.SendMessageResponse(requestMessage);
+                    responseMessage = await BuildHttpClient.SendMessageResponse(requestMessage);
 
                     if (!responseMessage.IsSuccessStatusCode)
                     {
@@ -244,7 +246,7 @@ namespace CustomBuildTool
                 }
 
                 {
-                    var result = responseMessage.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    var result = await responseMessage.Content.ReadAsStringAsync();
 
                     if (string.IsNullOrWhiteSpace(result))
                     {
@@ -274,7 +276,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    var response = BuildHttpClient.SendMessage(requestMessage);
+                    var response = await BuildHttpClient.SendMessage(requestMessage);
 
                     if (string.IsNullOrWhiteSpace(response))
                     {
@@ -290,7 +292,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    var response = BuildHttpClient.SendMessage(requestMessage);
+                    var response = await BuildHttpClient.SendMessage(requestMessage);
 
                     if (string.IsNullOrWhiteSpace(response))
                     {
@@ -317,7 +319,7 @@ namespace CustomBuildTool
         /// <returns>
         /// A <see cref="GithubReleasesResponse"/> object containing updated release details, or <c>null</c> on error.
         /// </returns>
-        public static GithubReleasesResponse UpdateRelease(ulong ReleaseId, bool Draft = false, bool Prerelease = false)
+        public static async Task<GithubReleasesResponse> UpdateRelease(ulong ReleaseId, bool Draft = false, bool Prerelease = false)
         {
             if (string.IsNullOrWhiteSpace(BaseUrl))
                 return null;
@@ -340,7 +342,7 @@ namespace CustomBuildTool
 
                     requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
 
-                    var response = BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
+                    var response = await BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
 
                     if (response == null)
                     {
@@ -375,7 +377,7 @@ namespace CustomBuildTool
         /// <returns>
         /// A <see cref="GithubAssetsResponse"/> object containing asset upload details, or <c>null</c> on error.
         /// </returns>
-        public static GithubAssetsResponse UploadAsset(string ReleaseAssetUrl, string FileName, string Name, string Label)
+        public static async Task<GithubAssetsResponse> UploadAsset(string ReleaseAssetUrl, string FileName, string Name, string Label)
         {
             if (string.IsNullOrWhiteSpace(BaseToken))
                 return null;
@@ -401,7 +403,7 @@ namespace CustomBuildTool
                 requestMessage.Content = new StreamContent(bufferedStream);
                 requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
-                var response = BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubAssetsResponse);
+                var response = await BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubAssetsResponse);
                 if (response == null || !response.Uploaded || string.IsNullOrWhiteSpace(response.DownloadUrl))
                 {
                     Program.PrintColorMessage("[UploadAssets] upload failed", ConsoleColor.Red);

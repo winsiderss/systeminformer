@@ -48,48 +48,56 @@ namespace CustomBuildTool
         ECDsa
     }
 
+    // JWS / JWT signature algorithm identifiers used by the codebase.
+    public enum SignatureAlgorithm
+    {
+        RSNULL,
+        RS256,
+        RS384,
+        RS512,
+        ES256,
+        ES384,
+        ES512
+    }
+
     public static class SignatureAlgorithmTranslator
     {
-        public static SignatureAlgorithm SignatureAlgorithmToJwsAlgId(KeyVaultSignatureAlgorithm signatureAlgorithm, HashAlgorithmName hashAlgorithmName)
+        // Return the JWS alg identifier string for the specified key and hash algorithm.
+        public static string SignatureAlgorithmToJwsAlgId(KeyVaultSignatureAlgorithm signatureAlgorithm, HashAlgorithmName hashAlgorithmName)
         {
             switch (signatureAlgorithm)
             {
                 case KeyVaultSignatureAlgorithm.RSAPkcs15:
-                    if (hashAlgorithmName == HashAlgorithmName.SHA1)
-                    {
-                        return new SignatureAlgorithm("RSNULL");
-                    }
-
                     if (hashAlgorithmName == HashAlgorithmName.SHA256)
                     {
-                        return SignatureAlgorithm.RS256;
+                        return "RS256";
                     }
 
                     if (hashAlgorithmName == HashAlgorithmName.SHA384)
                     {
-                        return SignatureAlgorithm.RS384;
+                        return "RS384";
                     }
 
                     if (hashAlgorithmName == HashAlgorithmName.SHA512)
                     {
-                        return SignatureAlgorithm.RS512;
+                        return "RS512";
                     }
 
                     break;
                 case KeyVaultSignatureAlgorithm.ECDsa:
                     if (hashAlgorithmName == HashAlgorithmName.SHA256)
                     {
-                        return SignatureAlgorithm.ES256;
+                        return "ES256";
                     }
 
                     if (hashAlgorithmName == HashAlgorithmName.SHA384)
                     {
-                        return SignatureAlgorithm.ES384;
+                        return "ES384";
                     }
 
                     if (hashAlgorithmName == HashAlgorithmName.SHA512)
                     {
-                        return SignatureAlgorithm.ES512;
+                        return "ES512";
                     }
 
                     break;

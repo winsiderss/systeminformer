@@ -50,9 +50,9 @@ namespace CustomBuildTool
             { "-write-tools-id", "Writes the tools id file (internal)." },
         };
 
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
-            if (!Build.InitializeBuildEnvironment())
+            if (!await Build.InitializeBuildEnvironment())
                 return;
 
             ProgramArgs = Utils.ParseArguments(args);
@@ -78,8 +78,10 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.TryGetValue("-azsign", out string Path))
             {
-                if (!BuildAzure.SignFiles(Path))
+                if (!await BuildAzure.SignFiles(Path))
+                {
                     Environment.Exit(1);
+                }
             }
             else if (ProgramArgs.ContainsKey("-cleansdk"))
             {
@@ -88,21 +90,27 @@ namespace CustomBuildTool
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi;
 
                 if (!Build.BuildSolution("SystemInformer.sln", flags))
+                {
                     Environment.Exit(1);
+                }
 
                 Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-check_msvc"))
             {
                 if (!BuildVisualStudio.CheckBuildDependencies())
+                {
                     Environment.Exit(1);
+                }
 
                 Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-install_msvc"))
             {
-                if (!BuildVisualStudio.InstallBuildDependencies())
+                if (!await BuildVisualStudio.InstallBuildDependencies())
+                {
                     Environment.Exit(1);
+                }
 
                 Build.ShowBuildStats();
             }
@@ -183,7 +191,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-vtscan"))
             {
-                BuildVirusTotal.UploadScanFile(ProgramArgs["-file"]);
+                await BuildVirusTotal.UploadScanFile(ProgramArgs["-file"]);
             }
             else if (ProgramArgs.TryGetValue("-devenv-build", out string Command))
             {
@@ -250,7 +258,7 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.ResignFiles())
+                if (!Build.ResignFiles("bin"))
                     Environment.Exit(1);
                 //if (!Build.CopyDebugEngineFiles(flags))
                 //    Environment.Exit(1);
@@ -291,7 +299,7 @@ namespace CustomBuildTool
                 //    Environment.Exit(1);
                 //if (!Build.BuildChecksumsFile())
                 //    Environment.Exit(1);
-                if (!Build.BuildUpdateServerConfig())
+                if (!await Build.BuildUpdateServerConfig())
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
@@ -462,12 +470,11 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
 
                 var generator = Utils.GetGeneratorFromString(ProgramArgs["-generator"]);
-                var toolchain = Utils.GetToolchainFromString(ProgramArgs["-toolchain"]);
                 var config = ProgramArgs["-config"];
 
-                if (!Build.BuildSolutionCMake("SystemInformer", generator, toolchain, flags))
+                if (!Build.BuildSolutionCMake("SystemInformer", generator, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("Plugins", generator, toolchain, flags))
+                if (!Build.BuildSolutionCMake("Plugins", generator, flags))
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
@@ -483,15 +490,10 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(false);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, flags))
                     Environment.Exit(1);
-
-                //if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
-                //    Environment.Exit(1);
-                //if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
-                //    Environment.Exit(1);
 
                 if (!Build.CopyTextFiles(true, flags))
                     Environment.Exit(1);
@@ -513,9 +515,9 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, flags))
                     Environment.Exit(1);
 
                 if (!Build.CopyWow64Files(flags))
@@ -555,9 +557,9 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, flags))
                     Environment.Exit(1);
 
                 Build.CopyWow64Files(flags);
@@ -575,7 +577,7 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.ResignFiles())
+                if (!Build.ResignFiles("bin-cmake"))
                     Environment.Exit(1);
                 if (!Build.CopyTextFiles(true, flags))
                     Environment.Exit(1);
@@ -614,7 +616,7 @@ namespace CustomBuildTool
                 //    Environment.Exit(1);
                 //if (!Build.BuildChecksumsFile())
                 //    Environment.Exit(1);
-                if (!Build.BuildUpdateServerConfig())
+                if (!await Build.BuildUpdateServerConfig())
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();

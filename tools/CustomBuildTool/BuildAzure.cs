@@ -19,7 +19,6 @@ namespace CustomBuildTool
         private static readonly string ENTRA_CERIFICATE_VAULT;
         private static readonly string ENTRA_TENANT_GUID;
         private static readonly string ENTRA_CLIENT_GUID;
-        private static readonly string ENTRA_CLIENT_SECRET;
 
         static BuildAzure()
         {
@@ -29,7 +28,7 @@ namespace CustomBuildTool
             ENTRA_CERIFICATE_VAULT = Win32.GetEnvironmentVariable("BUILD_ENTRA_VAULT_ID");
             ENTRA_TENANT_GUID = Win32.GetEnvironmentVariable("BUILD_ENTRA_TENANT_ID");
             ENTRA_CLIENT_GUID = Win32.GetEnvironmentVariable("BUILD_ENTRA_CLIENT_ID");
-            ENTRA_CLIENT_SECRET = Win32.GetEnvironmentVariable("BUILD_ENTRA_SECRET_ID");
+            // Client secret intentionally not cached here to minimize lifetime.
         }
 
         /// <summary>
@@ -40,50 +39,60 @@ namespace CustomBuildTool
         /// required configuration is missing, the method returns false and displays an error message.</remarks>
         /// <param name="Path">The path to the file or directory containing the files to be signed. Must not be null, empty, or whitespace.</param>
         /// <returns>true if the files are successfully signed; otherwise, false.</returns>
-        public static bool SignFiles(string Path)
+        public static async Task<bool> SignFiles(string Path)
         {
             //if (string.IsNullOrWhiteSpace(ENTRA_TIMESTAMP_ALGORITHM))
             //    return false;
             if (string.IsNullOrWhiteSpace(ENTRA_TIMESTAMP_SERVER))
             {
-                Program.PrintColorMessage("ENTRA_TIMESTAMP_SERVER", ConsoleColor.Red);
+                Console.WriteLine($"{VT.RED}ENTRA TIMESTAMP SERVER{VT.RESET}");
                 return false;
             }
             if (string.IsNullOrWhiteSpace(ENTRA_CERIFICATE_NAME))
             {
-                Program.PrintColorMessage("ENTRA_CERIFICATE_NAME", ConsoleColor.Red);
+                Console.WriteLine($"{VT.RED}ENTRA CERIFICATE NAME{VT.RESET}");
                 return false;
             }
             if (string.IsNullOrWhiteSpace(ENTRA_CERIFICATE_VAULT))
             {
-                Program.PrintColorMessage("ENTRA_CERIFICATE_VAULT", ConsoleColor.Red);
+                Console.WriteLine($"{VT.RED}ENTRA CERIFICATE VAULT{VT.RESET}");
                 return false;
             }
             if (string.IsNullOrWhiteSpace(ENTRA_TENANT_GUID))
             {
-                Program.PrintColorMessage("ENTRA_TENANT_GUID", ConsoleColor.Red);
+                Console.WriteLine($"{VT.RED}ENTRA TENANT GUID{VT.RESET}");
                 return false;
             }
             if (string.IsNullOrWhiteSpace(ENTRA_CLIENT_GUID))
             {
-                Program.PrintColorMessage("ENTRA_CLIENT_GUID", ConsoleColor.Red);
+                Console.WriteLine($"{VT.RED}ENTRA CLIENT GUID{VT.RESET}");
                 return false;
             }
-            if (string.IsNullOrWhiteSpace(ENTRA_CLIENT_SECRET))
+            // Read the client secret from environment at time of use to reduce lifetime in memory.
+            string entraClientSecret = Win32.GetEnvironmentVariable("BUILD_ENTRA_SECRET_ID");
+            if (string.IsNullOrWhiteSpace(entraClientSecret))
             {
-                Program.PrintColorMessage("ENTRA_CLIENT_SECRET", ConsoleColor.Red);
+                Console.WriteLine($"{VT.RED}ENTRA CLIENT SECRET{VT.RESET}");
                 return false;
             }
 
-            return SignFiles(
-                Path,
-                ENTRA_TIMESTAMP_SERVER,
-                ENTRA_CERIFICATE_NAME,
-                ENTRA_CERIFICATE_VAULT,
-                ENTRA_TENANT_GUID,
-                ENTRA_CLIENT_GUID,
-                ENTRA_CLIENT_SECRET
-                );
+            try
+            {
+                return await SignFiles(
+                    Path,
+                    ENTRA_TIMESTAMP_SERVER,
+                    ENTRA_CERIFICATE_NAME,
+                    ENTRA_CERIFICATE_VAULT,
+                    ENTRA_TENANT_GUID,
+                    ENTRA_CLIENT_GUID,
+                    entraClientSecret
+                    );
+            }
+            finally
+            {
+                try { Environment.SetEnvironmentVariable("BUILD_ENTRA_SECRET_ID", null, EnvironmentVariableTarget.Process); } catch { }
+                entraClientSecret = null;
+            }
         }
 
         /// <summary>
@@ -100,7 +109,7 @@ namespace CustomBuildTool
         /// True if the files are successfully signed; otherwise, false. 
         /// The method retries up to three times in case of transient Azure connectivity issues.
         /// </returns>
-        public static bool SignFiles(
+        public static async Task<bool> SignFiles(
             string Path,
             string TimeStampServer,
             string AzureCertName,
@@ -114,7 +123,7 @@ namespace CustomBuildTool
 
             for (int i = 0; i < 3; i++)
             {
-                if (KeyVaultDigestSignFiles(Path, TimeStampServer, AzureCertName, AzureVaultName, TenantGuid, ClientGuid, ClientSecret))
+                if (await KeyVaultDigestSignFiles(Path, TimeStampServer, AzureCertName, AzureVaultName, TenantGuid, ClientGuid, ClientSecret))
                     return true;
 
                 Program.PrintColorMessage("Retrying....", ConsoleColor.Yellow);
@@ -138,7 +147,7 @@ namespace CustomBuildTool
         /// True if all files are successfully signed; otherwise, false. 
         /// Displays error messages for missing certificates, unsupported file types, or signing failures.
         /// </returns>
-        public static bool KeyVaultDigestSignFiles(
+        public static async Task<bool> KeyVaultDigestSignFiles(
             string Path,
             string TimeStampServer,
             string AzureCertName,
@@ -151,18 +160,30 @@ namespace CustomBuildTool
             try
             {
                 var certificateTimeStampServer = new TimeStampConfiguration(TimeStampServer, TimeStampType.RFC3161);
-                var certificateCredential = new Azure.Identity.ClientSecretCredential(TenantGuid, ClientGuid, ClientSecret);
-                var certificateClient = new Azure.Security.KeyVault.Certificates.CertificateClient(new Uri(AzureVaultName), certificateCredential);
-                var certificateBuffer = certificateClient.GetCertificateAsync(AzureCertName).GetAwaiter().GetResult();
 
-                if (!certificateBuffer.HasValue)
+                // Obtain access token via REST
+                string accessToken = await GetAzureADToken(TenantGuid, ClientGuid, ClientSecret);
+                if (string.IsNullOrWhiteSpace(accessToken))
+                {
+                    Program.PrintColorMessage("Failed to obtain Azure AD token.", ConsoleColor.Red);
+                    return false;
+                }
+
+                // Download certificate (public-key only) and key ID via REST
+                var (azureCertificatePublic, keyId) = await DownloadCertificateAndKeyId(AzureVaultName, AzureCertName, accessToken);
+                if (azureCertificatePublic == null)
                 {
                     Program.PrintColorMessage($"Azure Certificate Failed.", ConsoleColor.Red);
                     return false;
                 }
 
-                using (var azureCertificatePublic = X509CertificateLoader.LoadCertificate(certificateBuffer.Value.Cer))
-                using (var azureCertificateRsa = RSAFactory.Create(certificateCredential, certificateBuffer.Value.KeyId, azureCertificatePublic))
+                if (keyId == null)
+                {
+                    Program.PrintColorMessage($"Unable to determine Key Id for certificate.", ConsoleColor.Red);
+                    return false;
+                }
+
+                using (var azureCertificateRsa = RSAFactory.Create(accessToken, keyId, azureCertificatePublic))
                 using (var authenticodeKeyVaultSigner = new AuthenticodeKeyVaultSigner(azureCertificateRsa, azureCertificatePublic, HashAlgorithmName.SHA256, certificateTimeStampServer, null))
                 {
                     if (Directory.Exists(Path))
@@ -223,7 +244,7 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static string GetAzureADTokenAsync(string TenantId, string ClientId, string ClientSecret)
+        public static async Task<string> GetAzureADToken(string TenantId, string ClientId, string ClientSecret)
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token")
             {
@@ -236,43 +257,87 @@ namespace CustomBuildTool
                 ])
             };
 
-            var response = BuildHttpClient.SendMessage(request);
-            using var doc = JsonDocument.Parse(response);
-            return doc.RootElement.GetProperty("access_token").GetString();
+            var response = await BuildHttpClient.SendMessage(request);
+
+            if (string.IsNullOrWhiteSpace(response))
+                return null;
+
+            var tokenResponse = JsonSerializer.Deserialize(response, AzureJsonContext.Default.TokenResponse);
+            return tokenResponse.AccessToken;
         }
 
-        public static X509Certificate2 DownloadCertificateAsync(string BaseUrl, string Name, string Token)
+        public static async Task<(X509Certificate2 Certificate, Uri KeyId)> DownloadCertificateAndKeyId(string BaseUrl, string Name, string Token)
         {
-            // Get certificate metadata (public key only)
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/certificates/{Name}?api-version=7.4")
-            {
-                Headers = { 
-                    Accept = { new MediaTypeWithQualityHeaderValue("application/json") } ,
-                    Authorization = new AuthenticationHeaderValue("Bearer", Token)
-                },
-            };
+            X509Certificate2 cert = null;
+            Uri keyId = null;
 
-            var response = BuildHttpClient.SendMessage(request);
-            using var doc = JsonDocument.Parse(response);
-            string base64 = doc.RootElement.GetProperty("cer").GetString(); // base64-encoded DER certificate
-            return X509CertificateLoader.LoadCertificate(Convert.FromBase64String(base64));
+            // Get certificate with public key (no private key)
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/certificates/{Name}?api-version=2025-07-01");
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token);
+
+            var response = await BuildHttpClient.SendMessage(request);
+            if (string.IsNullOrWhiteSpace(response))
+                return (null, null);
+
+            var certificateResponse = JsonSerializer.Deserialize(response, AzureJsonContext.Default.KeyVaultCertificateResponse);
+            string base64 = certificateResponse.CertificateString;
+            string keyIdStr = certificateResponse.Kid;
+
+            if (string.IsNullOrWhiteSpace(keyIdStr))
+            {
+                if (!string.IsNullOrWhiteSpace(certificateResponse.Key?.Kid))
+                {
+                    keyIdStr = certificateResponse.Key.Kid;
+                }
+                else if (!string.IsNullOrWhiteSpace(certificateResponse.Id))
+                {
+                    // best-effort: transform certificate id to key id by replacing /certificates/ with /keys/
+                    keyIdStr = certificateResponse.Id.Replace("/certificates/", "/keys/", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(base64))
+            {
+                try
+                {
+                    cert = X509CertificateLoader.LoadCertificate(Convert.FromBase64String(base64));
+                }
+                catch (Exception ex)
+                {
+                    Program.PrintColorMessage($"[ERROR - X509CertificateLoader.LoadCertificate] {ex.Message}", ConsoleColor.Red);
+                    return (null, null);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(keyIdStr))
+            {
+                try { keyId = new Uri(keyIdStr); } catch { keyId = null; }
+            }
+
+            return (cert, keyId);
         }
 
-        public static X509Certificate2 DownloadCertificateSecretAsync(string BaseUrl, string Name, string Token)
+        public static async Task<X509Certificate2> DownloadCertificateSecret(string BaseUrl, string Name, string Token)
         {
             // Get certificate with private key
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/secrets/{Name}?api-version=7.4")
-            {
-                Headers = {
-                    Accept = { new MediaTypeWithQualityHeaderValue("application/json") } ,
-                    Authorization = new AuthenticationHeaderValue("Bearer", Token)
-                },
-            };
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/secrets/{Name}?api-version=2025-07-01");
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token);
 
-            var response = BuildHttpClient.SendMessage(request);
-            using var doc = JsonDocument.Parse(response);
-            string base64 = doc.RootElement.GetProperty("value").GetString(); // base64-encoded PFX (PKCS#12)
-            return X509CertificateLoader.LoadCertificate(Convert.FromBase64String(base64));
+            var response = await BuildHttpClient.SendMessage(request);
+            if (string.IsNullOrWhiteSpace(response))
+                return null;
+
+            var secretResponse = JsonSerializer.Deserialize(response, AzureJsonContext.Default.SecretResponse);
+
+            if (!string.IsNullOrWhiteSpace(secretResponse.Value))
+            {
+                var base64 = secretResponse.Value; // base64-encoded PFX (PKCS#12)
+                return X509CertificateLoader.LoadCertificate(Convert.FromBase64String(base64));
+            }
+
+            return null;
         }
     }
 }

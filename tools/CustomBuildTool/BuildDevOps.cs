@@ -8,6 +8,7 @@
  *     dmex
  *
  */
+
 namespace CustomBuildTool
 {
     /// <summary>
@@ -50,30 +51,31 @@ namespace CustomBuildTool
         /// Queries the Azure DevOps build API for the current build's queue time.
         /// </summary>
         /// <returns>
-        /// The <see cref="DateTime"/> representing the queue time of the build, or <see cref="DateTime.MinValue"/> if an error occurs.
+        /// A tuple containing a boolean indicating success or failure, and the <see cref="DateTime"/> representing the queue time of the build, or <see cref="DateTime.MinValue"/> if an error occurs.
         /// </returns>
-        public static bool BuildQueryQueueTime(out DateTime DateTime)
+        public static async Task<(bool Success, DateTime QueueTime)> BuildQueryQueueTime()
         {
+            DateTime queueTime;
             if (string.IsNullOrWhiteSpace(BaseBuild) ||
                 string.IsNullOrWhiteSpace(BaseToken) ||
                 string.IsNullOrWhiteSpace(BaseName) ||
                 string.IsNullOrWhiteSpace(BaseUrl))
             {
-                DateTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
+                queueTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
 
-                Console.WriteLine($"Build StartTime: {VT.YELLOW}{DateTime}{VT.RESET} (Failed)");
-                Console.WriteLine($"Build Elapsed: {VT.YELLOW}{(DateTimeOffset.UtcNow - DateTime)}{VT.RESET} (Failed)");
-                return true;
+                Console.WriteLine($"Build StartTime: {VT.YELLOW}{queueTime}{VT.RESET} (TickCount)");
+                Console.WriteLine($"Build Elapsed: {VT.YELLOW}{(DateTimeOffset.UtcNow - queueTime)}{VT.RESET} (TickCount)");
+                return (true, queueTime);
             }
 
             try
             {
-                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/{BaseName}/_apis/build/builds/{BaseBuild}?api-version=7.1"))
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/{BaseName}/_apis/build/builds/{BaseBuild}?api-version=2025-07-01"))
                 {
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", BaseToken);
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                    var httpResult = BuildHttpClient.SendMessage(requestMessage);
+                    var httpResult = await BuildHttpClient.SendMessage(requestMessage);
 
                     if (string.IsNullOrWhiteSpace(httpResult))
                     {
@@ -94,15 +96,15 @@ namespace CustomBuildTool
                     Console.WriteLine($"Build StartTime: {VT.GREEN}{content.StartTime}{VT.RESET}");
                     Console.WriteLine($"Build Elapsed: {VT.GREEN}{(DateTimeOffset.UtcNow - offset)}{VT.RESET}");
 
-                    DateTime = offset.DateTime;
-                    return true;
+                    queueTime = offset.DateTime;
+                    return (true, queueTime);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{VT.RED}[ERROR] {ex}{VT.RESET}");
-                DateTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
-                return false;
+                Console.WriteLine($"{VT.RED}[ERROR] {ex}{VT.RESET} (TickCount)");
+                queueTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
+                return (false, queueTime);
             }
         }
     }

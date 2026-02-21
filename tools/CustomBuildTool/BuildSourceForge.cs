@@ -25,7 +25,7 @@ namespace CustomBuildTool
             BaseToken = Win32.GetEnvironmentVariable("SOURCEFORGE_BASE_URL");
         }
 
-        public static SourceForgeUploadResponse UploadReleaseFile(
+        public static async Task<SourceForgeUploadResponse> UploadReleaseFile(
             string FileName, 
             string DownloadFileName,
             string DownloadButtonName,
@@ -50,7 +50,7 @@ namespace CustomBuildTool
                     requestMessage.Content = new StreamContent(bufferedStream);
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
-                    var response = BuildHttpClient.SendMessage(requestMessage, SourceForgeUploadResponseContext.Default.SourceForgeUploadResponse);
+                    var response = await BuildHttpClient.SendMessage(requestMessage, SourceForgeUploadResponseContext.Default.SourceForgeUploadResponse);
 
                     return response;
                 }

@@ -105,9 +105,6 @@
     <None Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="Azure.Core" />
-    <Using Include="Azure.Security.KeyVault.Keys" />
-    <Using Include="Azure.Security.KeyVault.Keys.Cryptography" />
     <Using Include="Microsoft.Win32.SafeHandles" />
     <Using Include="System.Buffers" />
     <Using Include="System.Collections.Concurrent" />
@@ -145,13 +142,10 @@
     <LinkerArg Include="/RELEASE /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.17.1" />
-    <PackageReference Include="Azure.Security.KeyVault.Certificates" Version="4.8.0" />
-    <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.8.0" />
-    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.257">
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.269">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SharpCompress" Version="0.41.0" />
+    <PackageReference Include="SharpCompress" Version="0.44.5" />
   </ItemGroup>
 </Project>

@@ -14,7 +14,7 @@ namespace CustomBuildTool
     /// <summary>
     /// Provides methods for discovering and managing installed Visual Studio instances using native setup configuration APIs.
     /// </summary>
-    internal static unsafe class BuildVisualStudio
+    internal static class BuildVisualStudio
     {
         /// <summary>
         /// List of discovered Visual Studio instances on the system.
@@ -29,7 +29,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Static constructor. Discovers all Visual Studio instances using the native setup configuration API and populates <see cref="VisualStudioInstanceList"/>.
         /// </summary>
-        static BuildVisualStudio()
+        static unsafe BuildVisualStudio()
         {
             VisualStudioInstanceList = new List<VisualStudioInstance>();
 
@@ -102,6 +102,24 @@ namespace CustomBuildTool
 
                 NativeLibrary.Free(baseAddress);
             }
+
+            // ESDK Begin
+            if (Win32.GetEnvironmentVariable("EWDK_ROOT", out string ewdkRoot))
+            {
+                if (Directory.Exists(ewdkRoot))
+                {
+                    VisualStudioInstanceList.Add(new VisualStudioInstance("Enterprise WDK", ewdkRoot, "17.0"));
+                }
+            }
+            else if (Win32.GetEnvironmentVariable("VCINSTALLDIR", out string vcInstallDir))
+            {
+                string vsPath = Path.GetFullPath(Path.Combine(vcInstallDir, "..\\..\\"));
+                if (Directory.Exists(vsPath))
+                {
+                    VisualStudioInstanceList.Add(new VisualStudioInstance("Visual Studio (Environment)", vsPath, "17.0"));
+                }
+            }
+            // ESDK End
 
             VisualStudioInstanceList.Sort((p1, p2) =>
             {
@@ -252,19 +270,22 @@ namespace CustomBuildTool
                     Program.PrintColorMessage($"\u2705 - {instance.DisplayName} ({instance.InstallationVersion})", ConsoleColor.Green);
                 }
 
-                var missingWorkloads = RequiredWorkloads.Where(w => !instance.Packages.Any(p => p.Id.Equals(w, StringComparison.OrdinalIgnoreCase))).ToList();
-                var missingComponents = RequiredComponents.Where(c => !instance.Packages.Any(p => p.Id.Equals(c, StringComparison.OrdinalIgnoreCase))).ToList();
-
-                if (missingWorkloads.Count > 0 || missingComponents.Count > 0)
+                if (instance.Packages.Count > 0)
                 {
-                    result = false;
-                    if (!quiet)
+                    var missingWorkloads = RequiredWorkloads.Where(w => !instance.Packages.Any(p => p.Id.Equals(w, StringComparison.OrdinalIgnoreCase))).ToList();
+                    var missingComponents = RequiredComponents.Where(c => !instance.Packages.Any(p => p.Id.Equals(c, StringComparison.OrdinalIgnoreCase))).ToList();
+
+                    if (missingWorkloads.Count > 0 || missingComponents.Count > 0)
                     {
-                        Program.PrintColorMessage("Visual Studio missing components:", ConsoleColor.Yellow);
-                        foreach (var w in missingWorkloads)
-                            Program.PrintColorMessage($"   - Workload: {w}", ConsoleColor.Gray);
-                        foreach (var c in missingComponents)
-                            Program.PrintColorMessage($"   - Component: {c}", ConsoleColor.Gray);
+                        result = false;
+                        if (!quiet)
+                        {
+                            Program.PrintColorMessage("Visual Studio missing components:", ConsoleColor.Yellow);
+                            foreach (var w in missingWorkloads)
+                                Program.PrintColorMessage($"   - Workload: {w}", ConsoleColor.Gray);
+                            foreach (var c in missingComponents)
+                                Program.PrintColorMessage($"   - Component: {c}", ConsoleColor.Gray);
+                        }
                     }
                 }
             }
@@ -320,7 +341,7 @@ namespace CustomBuildTool
             return result;
         }
 
-        public static bool InstallBuildDependencies(bool minimal = false)
+        public static async Task<bool> InstallBuildDependencies(bool minimal = false)
         {
             string installerPath = Path.Combine(Path.GetTempPath(), "vs_community.exe");
 
@@ -331,12 +352,12 @@ namespace CustomBuildTool
                     Program.PrintColorMessage("Downloading Visual Studio 2022 Community installer...", ConsoleColor.Cyan);
 
                     var request = new HttpRequestMessage(HttpMethod.Get, "https://aka.ms/vs/17/release/vs_community.exe");
-                    var response = BuildHttpClient.SendMessageResponse(request);
+                    var response = await BuildHttpClient.SendMessageResponse(request);
                     if (response != null && response.IsSuccessStatusCode)
                     {
                         using (var fs = new FileStream(installerPath, FileMode.Create))
                         {
-                            response.Content.CopyToAsync(fs).GetAwaiter().GetResult();
+                            await response.Content.CopyToAsync(fs);
                         }
                     }
                 }
@@ -465,6 +486,22 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="VisualStudioInstance"/> class with manual parameters.
+        /// </summary>
+        /// <param name="Name">Display name.</param>
+        /// <param name="Path">Installation path.</param>
+        /// <param name="Version">Installation version.</param>
+        public VisualStudioInstance(string Name, string Path, string Version)
+        {
+            this.Name = Name;
+            this.DisplayName = Name;
+            this.Path = Path;
+            this.InstallationVersion = Version;
+            this.Packages = new List<VisualStudioPackage>();
+            this.HasARM64BuildToolsComponents = true; // Assume true for manual/ESDK instances
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="VisualStudioInstance"/> class from a native setup instance pointer.
         /// </summary>
         /// <param name="FromInstance">Pointer to the native ISetupInstance2 vtable.</param>
@@ -553,8 +590,9 @@ namespace CustomBuildTool
         /// </returns>
         private VisualStudioPackage GetLatestSdkPackage()
         {
-            var found = this.Packages.FindAll(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
-                                                   p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase));
+            var found = this.Packages.FindAll(p => 
+                p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||                                                
+                p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase));
         
             if (found.Count == 0)
                 return null;

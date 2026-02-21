@@ -9,6 +9,9 @@
     "includePointerOverloads": false
   },
   "allowMarshaling": false,
-  "comInterop": { "preserveSigMethods": [ "*" ], "useComSourceGenerators": true },
+  "comInterop": {
+    "preserveSigMethods": [ "*" ],
+    "useComSourceGenerators": true
+  },
   "className": "PInvoke"
 }
