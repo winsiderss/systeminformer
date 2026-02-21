@@ -65,6 +65,7 @@ EXPORTS
     PhFormatLocalSystemTimeISO
     PhFormatLogEntry
     PhFormatLogType
+    PhFreezeThread
     PhGetApplicationIcon
     PhGetApplicationIconEx
     PhGetClientIdName
@@ -180,6 +181,7 @@ EXPORTS
     PhSiSetColorsGraphDrawInfo
     PhSiSizeLabelYFunction
     PhSiUInt64LabelYFunction
+    PhThawThread
     PhUnregisterDialog
     PhUnregisterMessageLoopFilter
     PhUpdateProcessNode
@@ -491,6 +493,8 @@ EXPORTS
     PhSplitStringRefAtLastChar
     PhSplitStringRefAtString
     PhSplitStringRefEx
+    PhSplitStringRef
+    PhFreeStringArray
     PhStringFuzzyMatch
     PhStringToDouble
     PhStringToInteger64
