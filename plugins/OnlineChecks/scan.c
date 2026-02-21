@@ -33,6 +33,7 @@ typedef struct _SCAN_ITEM
     PPH_STRING FileName;
     PSCAN_HASH FileHash;
     PPH_STRING Result;
+    PPH_STRING PreviousResult;
 } SCAN_ITEM, *PSCAN_ITEM;
 
 typedef int SQLITE_APICALL sqlite3_open_v2_fn(
@@ -709,7 +710,12 @@ VOID ProcessScanItem(
     }
 
     if (Item->Result == ScanScanningString)
-        SetScanResult(Item, PhReferenceEmptyString());
+    {
+        if (Item->PreviousResult)
+            SetScanResult(Item, PhReferenceObject(Item->PreviousResult));
+        else
+            SetScanResult(Item, PhReferenceEmptyString());
+    }
 
     PhReleaseRundownProtection(&ScanRundown);
 }
@@ -765,7 +771,8 @@ PSCAN_ITEM CreateAndEnqueueScanItem(
     _In_ PSCAN_CONTEXT Context,
     _In_ SCAN_TYPE Type,
     _In_ ULONG Flags,
-    _In_ BOOLEAN PriorityQueue
+    _In_ BOOLEAN PriorityQueue,
+    _In_opt_ PPH_STRING PreviousResult
     )
 {
     PSCAN_ITEM item;
@@ -779,6 +786,8 @@ PSCAN_ITEM CreateAndEnqueueScanItem(
     item->FileName = PhReferenceObject(Context->FileName);
     item->FileHash = PhReferenceObject(Context->FileHash);
     item->Result = PhReferenceObject(ScanScanningString);
+    if (PreviousResult)
+        item->PreviousResult = PhReferenceObject(PreviousResult);
     item->Expiry.QuadPart = LONG64_MAX;
 
     PhReferenceObject(item);
@@ -815,16 +824,29 @@ VOID EnqueueScanInternal(
     _In_ BOOLEAN PriorityQueue
     )
 {
+    PPH_STRING previousResult = NULL;
+
     if (!Context->FileName)
         Context->FileName = PhReferenceObject(FileName);
 
     if (Context->ScanItems[Type])
+    {
         WriteRelease8(&Context->ScanItems[Type]->Abort, TRUE);
+
+        if (Context->ScanItems[Type]->Result)
+        {
+            PhAcquireQueuedLockShared(&Context->ScanItems[Type]->Lock);
+            previousResult = PhReferenceObject(Context->ScanItems[Type]->Result);
+            PhReleaseQueuedLockShared(&Context->ScanItems[Type]->Lock);
+        }
+    }
 
     PhMoveReference(
         &Context->ScanItems[Type],
-        CreateAndEnqueueScanItem(Context, Type, Flags, PriorityQueue)
+        CreateAndEnqueueScanItem(Context, Type, Flags, PriorityQueue, previousResult)
         );
+
+    PhClearReference(&previousResult);
 }
 
 VOID EnqueueScan(
@@ -881,6 +903,7 @@ VOID NTAPI ScanItemDeleteProcedure(
     PhClearReference(&item->FileName);
     PhClearReference(&item->FileHash);
     PhClearReference(&item->Result);
+    PhClearReference(&item->PreviousResult);
 }
 
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
