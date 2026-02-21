@@ -209,7 +209,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     LIST_ENTRY HashLinks;
     ULONG TimeDateStamp;
     PACTIVATION_CONTEXT EntryPointActivationContext;
-    PRTL_SRWLOCK Lock; // RtlAcquireSRWLockExclusive
+    PVOID Lock; // RtlAcquireSRWLockExclusive
     PLDR_DDAG_NODE DdagNode;
     LIST_ENTRY NodeModuleLink;
     PLDRP_LOAD_CONTEXT LoadContext;
