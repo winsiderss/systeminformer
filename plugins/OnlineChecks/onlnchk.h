@@ -337,11 +337,29 @@ VOID InitializeScanContext(
 #define SCAN_FLAG_RESCAN        0x00000001
 #define SCAN_FLAG_LOCAL_ONLY    0x00000002
 
+typedef
+_Function_class_(SCAN_COMPLETE_CALLBACK)
+VOID NTAPI SCAN_COMPLETE_CALLBACK(
+    _In_ SCAN_TYPE Type,
+    _In_ PPH_STRING FileName,
+    _In_ PSCAN_HASH FileHash,
+    _In_ PPH_STRING Result,
+    _In_opt_ PVOID Context
+    );
+typedef SCAN_COMPLETE_CALLBACK* PSCAN_COMPLETE_CALLBACK;
+
 VOID EnqueueScan(
     _In_ PSCAN_CONTEXT Context,
     _In_ SCAN_TYPE Type,
     _In_ PPH_STRING FileName,
-    _In_ ULONG Flags
+    _In_ ULONG Flags,
+    _In_opt_ PSCAN_COMPLETE_CALLBACK Callback,
+    _In_opt_ PVOID CallbackContext
+    );
+
+BOOLEAN ScanHashEqual(
+    _In_ PSCAN_HASH Hash1,
+    _In_ PSCAN_HASH Hash2
     );
 
 VOID EvaluateScanContext(

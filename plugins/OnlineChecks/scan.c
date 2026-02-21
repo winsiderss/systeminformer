@@ -34,6 +34,8 @@ typedef struct _SCAN_ITEM
     PSCAN_HASH FileHash;
     PPH_STRING Result;
     PPH_STRING PreviousResult;
+    PSCAN_COMPLETE_CALLBACK Callback;
+    PVOID CallbackConext;
 } SCAN_ITEM, *PSCAN_ITEM;
 
 typedef int SQLITE_APICALL sqlite3_open_v2_fn(
@@ -717,6 +719,17 @@ VOID ProcessScanItem(
             SetScanResult(Item, PhReferenceEmptyString());
     }
 
+    if (Item->Callback)
+    {
+        Item->Callback(
+            Item->Type,
+            Item->FileName,
+            Item->FileHash,
+            Item->Result,
+            Item->CallbackConext
+            );
+    }
+
     PhReleaseRundownProtection(&ScanRundown);
 }
 
@@ -766,13 +779,14 @@ NTSTATUS ScanItemPriorityWorkerRoutine(
     return STATUS_SUCCESS;
 }
 
-
 PSCAN_ITEM CreateAndEnqueueScanItem(
     _In_ PSCAN_CONTEXT Context,
     _In_ SCAN_TYPE Type,
     _In_ ULONG Flags,
     _In_ BOOLEAN PriorityQueue,
-    _In_opt_ PPH_STRING PreviousResult
+    _In_opt_ PPH_STRING PreviousResult,
+    _In_opt_ PSCAN_COMPLETE_CALLBACK Callback,
+    _In_opt_ PVOID CallbackContext
     )
 {
     PSCAN_ITEM item;
@@ -788,6 +802,8 @@ PSCAN_ITEM CreateAndEnqueueScanItem(
     item->Result = PhReferenceObject(ScanScanningString);
     if (PreviousResult)
         item->PreviousResult = PhReferenceObject(PreviousResult);
+    item->Callback = Callback;
+    item->CallbackConext = CallbackContext;
     item->Expiry.QuadPart = LONG64_MAX;
 
     PhReferenceObject(item);
@@ -810,7 +826,7 @@ VOID InitializeScanContext(
     )
 {
     memset(Context, 0, sizeof(SCAN_CONTEXT));
-    Context->FileHash = PhCreateAlloc(sizeof(SCAN_HASH));
+    Context->FileHash = PhCreateObject(sizeof(SCAN_HASH), ScanHashObjectType);;
     memset(Context->FileHash, 0, sizeof(SCAN_HASH));
     PhInitializeQueuedLock(&Context->FileHash->Lock);
     Context->FileHash->Status = STATUS_PENDING;
@@ -821,10 +837,13 @@ VOID EnqueueScanInternal(
     _In_ SCAN_TYPE Type,
     _In_ PPH_STRING FileName,
     _In_ ULONG Flags,
-    _In_ BOOLEAN PriorityQueue
+    _In_ BOOLEAN PriorityQueue,
+    _In_opt_ PSCAN_COMPLETE_CALLBACK Callback,
+    _In_opt_ PVOID CallbackContext
     )
 {
     PPH_STRING previousResult = NULL;
+    PSCAN_ITEM item;
 
     if (!Context->FileName)
         Context->FileName = PhReferenceObject(FileName);
@@ -841,10 +860,17 @@ VOID EnqueueScanInternal(
         }
     }
 
-    PhMoveReference(
-        &Context->ScanItems[Type],
-        CreateAndEnqueueScanItem(Context, Type, Flags, PriorityQueue, previousResult)
+    item = CreateAndEnqueueScanItem(
+        Context,
+        Type,
+        Flags,
+        PriorityQueue,
+        previousResult,
+        Callback,
+        CallbackContext
         );
+
+    PhMoveReference(&Context->ScanItems[Type], item);
 
     PhClearReference(&previousResult);
 }
@@ -853,10 +879,39 @@ VOID EnqueueScan(
     _In_ PSCAN_CONTEXT Context,
     _In_ SCAN_TYPE Type,
     _In_ PPH_STRING FileName,
-    _In_ ULONG Flags
+    _In_ ULONG Flags,
+    _In_opt_ PSCAN_COMPLETE_CALLBACK Callback,
+    _In_opt_ PVOID CallbackContext
     )
 {
-    EnqueueScanInternal(Context, Type, FileName, Flags, TRUE);
+    EnqueueScanInternal(
+        Context,
+        Type,
+        FileName,
+        Flags,
+        TRUE,
+        Callback,
+        CallbackContext
+        );
+}
+
+BOOLEAN ScanHashEqual(
+    _In_ PSCAN_HASH Hash1,
+    _In_ PSCAN_HASH Hash2
+    )
+{
+    BOOLEAN equal = FALSE;
+
+    PhAcquireQueuedLockShared(&Hash1->Lock);
+    PhAcquireQueuedLockShared(&Hash2->Lock);
+
+    if (Hash1->Sha256 && Hash2->Sha256)
+        equal = PhEqualString(Hash1->Sha256, Hash2->Sha256, FALSE);
+
+    PhReleaseQueuedLockShared(&Hash1->Lock);
+    PhReleaseQueuedLockShared(&Hash2->Lock);
+
+    return equal;
 }
 
 VOID EvaluateScanContext(
@@ -870,7 +925,7 @@ VOID EvaluateScanContext(
     {
         if (!Context->ScanItems[i] || Context->ScanItems[i]->Expiry.QuadPart <= SystemTime->QuadPart)
         {
-            EnqueueScanInternal(Context, i, FileName, Flags, FALSE);
+            EnqueueScanInternal(Context, i, FileName, Flags, FALSE, NULL, NULL);
         }
     }
 }

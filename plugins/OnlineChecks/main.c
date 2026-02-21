@@ -72,7 +72,7 @@ VOID ProcessesUpdatedCallback(
 
     PhQuerySystemTime(&systemTime);
 
-    PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
+    PhAcquireQueuedLockShared(&ScanExtensionsListLock);
 
     for (PLIST_ENTRY listEntry = ScanExtensionsListHead.Flink;
          listEntry != &ScanExtensionsListHead;
@@ -119,7 +119,7 @@ VOID ProcessesUpdatedCallback(
             );
     }
 
-    PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
+    PhReleaseQueuedLockShared(&ScanExtensionsListLock);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -137,6 +137,52 @@ VOID NTAPI ShowOptionsCallback(
         OptionsDlgProc,
         NULL
         );
+}
+
+_Function_class_(SCAN_COMPLETE_CALLBACK)
+VOID NTAPI ScanCompleteCallback(
+    _In_ SCAN_TYPE Type,
+    _In_ PPH_STRING FileName,
+    _In_ PSCAN_HASH FileHash,
+    _In_ PPH_STRING Result,
+    _In_opt_ PVOID Context
+    )
+{
+    PhAcquireQueuedLockShared(&ScanExtensionsListLock);
+
+    for (PLIST_ENTRY listEntry = ScanExtensionsListHead.Flink;
+         listEntry != &ScanExtensionsListHead;
+         listEntry = listEntry->Flink)
+    {
+        PSCAN_EXTENSION extension;
+        PPH_STRING result;
+
+        extension = CONTAINING_RECORD(listEntry, SCAN_EXTENSION, ListEntry);
+
+        if (extension == Context)
+            continue;
+
+        if (ScanHashEqual(extension->ScanContext.FileHash, FileHash))
+        {
+            result = ReferenceScanResult(&extension->ScanContext, Type);
+
+            if (!PhEqualString(result, Result, FALSE))
+            {
+                EnqueueScan(
+                    &extension->ScanContext,
+                    Type,
+                    FileName,
+                    SCAN_FLAG_LOCAL_ONLY,
+                    NULL,
+                    NULL
+                    );
+            }
+
+            PhDereferenceObject(result);
+        }
+    }
+
+    PhReleaseQueuedLockShared(&ScanExtensionsListLock);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -284,7 +330,16 @@ VOID NTAPI MenuItemCallback(
     }
 
     if (fileName)
-        EnqueueScan(&extension->ScanContext, scanType, fileName, SCAN_FLAG_RESCAN);
+    {
+        EnqueueScan(
+            &extension->ScanContext,
+            scanType,
+            fileName,
+            SCAN_FLAG_RESCAN,
+            ScanCompleteCallback,
+            extension
+            );
+    }
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
