@@ -122,6 +122,9 @@
     <ClCompile Include="filestream.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="lsamsup.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="lsasup.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -377,6 +380,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\lsasup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lsamsup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phnativeinl.h">

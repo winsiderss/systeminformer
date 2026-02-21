@@ -72,7 +72,6 @@ namespace CustomBuildTool
             [
                 "tools\\CustomBuildTool",
                 "tools\\CustomBuildTool\\AzureSignTool",
-                "tools\\CustomBuildTool\\AzureSignTool\\RSAKeyVaultProvider",
             ];
 
             using (var sha256 = SHA256.Create())

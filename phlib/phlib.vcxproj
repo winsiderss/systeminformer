@@ -186,6 +186,7 @@
     <ClCompile Include="json.c" />
     <ClCompile Include="kph.c" />
     <ClCompile Include="kphcomms.c" />
+    <ClCompile Include="lsamsup.c" />
     <ClCompile Include="lsasup.c" />
     <ClCompile Include="mapexlf.c" />
     <ClCompile Include="mapimg.c" />
@@ -244,6 +245,7 @@
     <ClInclude Include="include\json.h" />
     <ClInclude Include="include\kphcomms.h" />
     <ClInclude Include="include\guisupview.h" />
+    <ClInclude Include="include\lsamsup.h" />
     <ClInclude Include="include\lsasup.h" />
     <ClInclude Include="include\mapimg.h" />
     <ClInclude Include="include\mapldr.h" />
