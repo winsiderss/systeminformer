@@ -839,6 +839,25 @@ FORCEINLINE WNDPROC PhSetWindowProcedure(
     return (WNDPROC)SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)SubclassProcedure);
 }
 
+FORCEINLINE BOOL PhGetClassInfo(
+    _In_opt_ HINSTANCE Instance,
+    _In_ PCWSTR ClassName,
+    _Out_ PWNDCLASS WindowClass
+    )
+{
+    return GetClassInfo(Instance, ClassName, WindowClass);
+}
+
+FORCEINLINE RTL_ATOM PhGetClassInfoEx(
+    _In_opt_ HINSTANCE Instance,
+    _In_ PCWSTR ClassName,
+    _Out_ PWNDCLASSEX WindowClass
+    )
+{
+    // Note: GetClassInfoEx returns BOOL but contains the RTL_ATOM (dmex)
+    return (RTL_ATOM)GetClassInfoEx(Instance, ClassName, WindowClass);
+}
+
 #define PH_WINDOW_TIMER_DEFAULT 0xF
 
 FORCEINLINE ULONG_PTR PhSetTimer(
