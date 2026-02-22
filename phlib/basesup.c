@@ -1166,7 +1166,7 @@ PVOID PhAllocatePage(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePage(
-    _In_ _Frees_ptr_opt_ _Post_invalid_ PVOID Memory
+    _In_opt_ _Frees_ptr_opt_ _Post_invalid_ PVOID Memory
     )
 {
     PhFreeVirtualMemory(NtCurrentProcess(), Memory, MEM_RELEASE);
@@ -1227,7 +1227,7 @@ PVOID PhAllocatePageAligned(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePageAligned(
-    _In_ _Frees_ptr_ PVOID Memory
+    _In_opt_ _Frees_ptr_opt_ _Post_invalid_ PVOID Memory
     )
 {
     _aligned_free(Memory);
@@ -1247,7 +1247,7 @@ VOID PhFreePageAligned(
  */
 NTSTATUS PhAllocateVirtualMemory(
     _In_ HANDLE ProcessHandle,
-    _Out_ PVOID* BaseAddress,
+    _Outptr_result_bytebuffer_(AllocationSize) PVOID* BaseAddress,
     _In_ SIZE_T AllocationSize,
     _In_ ULONG AllocationType,
     _In_ ULONG Protection
