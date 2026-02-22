@@ -190,15 +190,16 @@ NTSTATUS VirusTotalRequestFileReport(
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &httpStatus)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
-        goto CleanupExit;
-    if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
-        goto CleanupExit;
 
     result = PhAllocateZero(sizeof(VIRUSTOTAL_FILE_REPORT));
     result->HttpStatus = httpStatus;
     if (httpStatus == 200)
     {
+        if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
+            goto CleanupExit;
+
         PVOID dataObject = PhGetJsonObject(jsonRootObject, "data");
         PVOID attributesObject = PhGetJsonObject(dataObject, "attributes");
         PVOID statsObject = PhGetJsonObject(attributesObject, "last_analysis_stats");
@@ -362,15 +363,17 @@ NTSTATUS HybridAnalysisRequestFileReport(
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &httpStatus)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
-        goto CleanupExit;
-    if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
-        goto CleanupExit;
 
     result = PhAllocateZero(sizeof(HYBRIDANALYSIS_FILE_REPORT));
     result->HttpStatus = httpStatus;
+
     if (httpStatus == 200)
     {
+        if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
+            goto CleanupExit;
+
         result->ThreatScore = PhGetJsonValueAsUInt64(jsonRootObject, "threat_score");
         result->Verdict = PhGetJsonValueAsString(jsonRootObject, "verdict");
         if (PhIsNullOrEmptyString(result->Verdict))
