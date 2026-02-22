@@ -184,6 +184,53 @@ typedef struct _IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD
     // USHORT Value; // Delta = Value * Scale * Sign
 } IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD, *PIMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD;
 
+/**
+ * The IMAGE_IMPORT_CONTROL_TRANSFER_ARM64_RELOCATION structure represents an ARM64 import control transfer relocation.
+ *
+ * \remarks On ARM64, optimized imported functions use this structure for import control transfer relocations.
+ * This is used with IMAGE_DYNAMIC_RELOCATION_ARM64_KERNEL_IMPORT_CALL_TRANSFER.
+ */
+//typedef struct _IMAGE_IMPORT_CONTROL_TRANSFER_ARM64_RELOCATION
+//{
+//    ULONG PageRelativeOffset : 10;  ///< Offset to the call instruction shifted right by 2 (4-byte aligned instruction)
+//    ULONG IndirectCall       :  1;  ///< 0 if target instruction is a BR, 1 if BLR
+//    ULONG RegisterIndex      :  5;  ///< Register index used for the indirect call/jump
+//    ULONG ImportType         :  1;  ///< 0 if this refers to a static import, 1 for delayload import
+//    ULONG IATIndex           : 15;  ///< IAT index of the corresponding import (0x7FFF indicates no index)
+//} IMAGE_IMPORT_CONTROL_TRANSFER_ARM64_RELOCATION, *PIMAGE_IMPORT_CONTROL_TRANSFER_ARM64_RELOCATION;
+
+/**
+ * The IMAGE_PROLOGUE_DYNAMIC_RELOCATION_HEADER structure represents a prologue dynamic relocation header.
+ *
+ * \remarks This structure is followed by PrologueByteCount bytes containing the prologue code.
+ * Used with IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE.
+ */
+//#include <pshpack1.h>
+//typedef struct _IMAGE_PROLOGUE_DYNAMIC_RELOCATION_HEADER
+//{
+//    UCHAR PrologueByteCount;
+//    // UCHAR PrologueBytes[PrologueByteCount];
+//} IMAGE_PROLOGUE_DYNAMIC_RELOCATION_HEADER, UNALIGNED *PIMAGE_PROLOGUE_DYNAMIC_RELOCATION_HEADER;
+//#include <poppack.h>
+
+/**
+ * The IMAGE_EPILOGUE_DYNAMIC_RELOCATION_HEADER structure represents an epilogue dynamic relocation header.
+ *
+ * \remarks This structure is followed by variable-length branch descriptor data.
+ * Used with IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE.
+ */
+//#include <pshpack1.h>
+//typedef struct _IMAGE_EPILOGUE_DYNAMIC_RELOCATION_HEADER
+//{
+//    ULONG EpilogueCount;
+//    UCHAR EpilogueByteCount;
+//    UCHAR BranchDescriptorElementSize;
+//    USHORT BranchDescriptorCount;
+//    // UCHAR BranchDescriptors[...];
+//    // UCHAR BranchDescriptorBitMap[...];
+//} IMAGE_EPILOGUE_DYNAMIC_RELOCATION_HEADER, UNALIGNED *PIMAGE_EPILOGUE_DYNAMIC_RELOCATION_HEADER;
+//#include <poppack.h>
+
 #define IMAGE_DYNAMIC_RELOCATION_ARM64X                         0x00000006
 #define IMAGE_DYNAMIC_RELOCATION_ARM64_KERNEL_IMPORT_CALL_TRANSFER 0x00000008
 #define IMAGE_DYNAMIC_RELOCATION_MM_SHARED_USER_DATA_VA         0x7FFE0000
