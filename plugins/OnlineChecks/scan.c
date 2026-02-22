@@ -35,7 +35,7 @@ typedef struct _SCAN_ITEM
     PPH_STRING Result;
     PPH_STRING PreviousResult;
     PSCAN_COMPLETE_CALLBACK Callback;
-    PVOID CallbackConext;
+    PVOID CallbackContext;
 } SCAN_ITEM, *PSCAN_ITEM;
 
 typedef int SQLITE_APICALL sqlite3_open_v2_fn(
@@ -84,7 +84,7 @@ static const LONG64 ScanOKExpMin = (10LL * 24 * 60 * 60 * 10000000); // 10 days
 static const LONG64 ScanOKExpMax = (14LL * 24 * 60 * 60 * 10000000); // 14 days
 static const LONG64 ScanRateLmtExpMin = (15LL * 60 * 10000000); // 15 minutes
 static const LONG64 ScanRateLmtExpMax = (60LL * 60 * 10000000); // 1 hour
-static const LONG64 ScanNoResponseExpMin = (1LL * 24 * 60 * 60 * 10000000); // 1 days
+static const LONG64 ScanNoResponseExpMin = (1LL * 24 * 60 * 60 * 10000000); // 1 day
 static const LONG64 ScanNoResponseExpMax = (2LL * 24 * 60 * 60 * 10000000); // 2 days
 
 static sqlite3* ScanDB = NULL;
@@ -105,11 +105,11 @@ static sqlite3_reset_fn* sqlite3_reset_I = NULL;
 static sqlite3_column_int64_fn* sqlite3_column_int64_I = NULL;
 static sqlite3_column_text16_fn* sqlite3_column_text16_I = NULL;
 
-typedef struct _SQL_SMT
+typedef struct _SQL_STMT
 {
     sqlite3_stmt** Smt;
     const char* Sql;
-} SQL_SMT, *PSQL_SMT;
+} SQL_STMT, *PSQL_STMT;
 
 const char* ScanDBSQL =
 "PRAGMA encoding = \"UTF-16le\";"
@@ -138,7 +138,7 @@ const char* ScanDBVersion[] =
     "ALTER TABLE hybrid_analysis ADD COLUMN verdict TEXT;",
 };
 
-static const SQL_SMT ScanDBSQLSmts[] =
+static const SQL_STMT ScanDBSQLSmts[] =
 {
     {
         &ScanDBInsertVirusTotal,
@@ -298,6 +298,9 @@ NTSTATUS GetFileHash(
 CleanupExit:
 
     PhClearReference(&hash);
+
+    if (buffer)
+        PhFree(buffer);
 
     NtClose(fileHandle);
 
@@ -634,7 +637,7 @@ VOID ProcessHybridAnalysis(
         expiry.QuadPart = MakeExpiry(&systemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
 
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-        SetScanResult(Item, PhReferenceObject(vxFamily));
+        SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
 
         UpdateDBHybridAnalysis(
             Item->FileHash->Sha256,
@@ -726,7 +729,7 @@ VOID ProcessScanItem(
             Item->FileName,
             Item->FileHash,
             Item->Result,
-            Item->CallbackConext
+            Item->CallbackContext
             );
     }
 
@@ -803,7 +806,7 @@ PSCAN_ITEM CreateAndEnqueueScanItem(
     if (PreviousResult)
         item->PreviousResult = PhReferenceObject(PreviousResult);
     item->Callback = Callback;
-    item->CallbackConext = CallbackContext;
+    item->CallbackContext = CallbackContext;
     item->Expiry.QuadPart = LONG64_MAX;
 
     PhReferenceObject(item);
