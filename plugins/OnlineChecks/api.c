@@ -82,13 +82,16 @@ PPH_STRING VirusTotalDateToTime(
 BOOLEAN VirusTotalHeaderStrings(
     _Out_ PPH_STRING* String,
     _Out_ PPH_STRING* Value,
-    _In_ PPH_STRING ApiKey,
+    _In_opt_ PPH_STRING ApiKey,
     _In_opt_ PPH_STRING HashString,
     _In_ PCWSTR ServiceName
     )
 {
     *Value = PhConcatStrings(2, ServiceName, PhGetStringOrEmpty(HashString));
-    *String = PhConcatStrings(2, L"x-apikey: ", PhGetStringOrEmpty(ApiKey));
+    if (PhIsNullOrEmptyString(ApiKey))
+        *String = PhReferenceEmptyString();
+    else
+        *String = PhConcatStrings(2, L"x-apikey: ", PhGetString(ApiKey));
     return TRUE;
 }
 
@@ -137,7 +140,7 @@ CleanupExit:
 
 NTSTATUS VirusTotalRequestFileReport(
     _In_ PPH_STRING FileHash,
-    _In_ PPH_STRING ApiKey,
+    _In_opt_ PPH_STRING ApiKey,
     _Out_ PVIRUSTOTAL_FILE_REPORT* FileReport
     )
 {
@@ -150,17 +153,33 @@ NTSTATUS VirusTotalRequestFileReport(
     PVOID jsonRootObject = NULL;
     ULONG httpStatus = PH_HTTP_STATUS_OK;
 
-    if (!VirusTotalHeaderStrings(&httpHeaderString, &httpPathString, ApiKey, FileHash, L"/api/v3/files/"))
-        return STATUS_UNSUCCESSFUL;
-
     if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"www.virustotal.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
-        goto CleanupExit;
+
+    if (PhIsNullOrEmptyString(ApiKey))
+    {
+        if (!VirusTotalHeaderStrings(&httpHeaderString, &httpPathString, NULL, FileHash, L"/onlinechecks/virustotal/api/v3/files/"))
+            return STATUS_UNSUCCESSFUL;
+        if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"systeminformer.io", PH_HTTP_DEFAULT_HTTPS_PORT)))
+            goto CleanupExit;
+    }
+    else
+    {
+        if (!VirusTotalHeaderStrings(&httpHeaderString, &httpPathString, ApiKey, FileHash, L"/api/v3/files/"))
+            return STATUS_UNSUCCESSFUL;
+        if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"www.virustotal.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
+            goto CleanupExit;
+    }
+
     if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(httpPathString), PH_HTTP_FLAG_SECURE)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderString->sr)))
-        goto CleanupExit;
+
+    if (!PhIsNullOrEmptyString(httpHeaderString))
+    {
+        if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderString->sr)))
+            goto CleanupExit;
+    }
+
     if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"accept: application/json", 0)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"Content-Type: application/json", 0)))
@@ -280,19 +299,22 @@ VOID VirusTotalFreeFileReScan(
 BOOLEAN HybridAnalysisHeaderStrings(
     _Out_ PPH_STRING* String,
     _Out_ PPH_STRING* Value,
-    _In_ PPH_STRING ApiKey,
+    _In_opt_ PPH_STRING ApiKey,
     _In_opt_ PPH_STRING HashString,
     _In_ PCWSTR ServiceName
     )
 {
     *Value = PhConcatStrings(2, ServiceName, PhGetStringOrEmpty(HashString));
-    *String = PhConcatStrings(2, L"api-key: ", PhGetStringOrEmpty(ApiKey));
+    if (PhIsNullOrEmptyString(ApiKey))
+        *String = PhReferenceEmptyString();
+    else
+        *String = PhConcatStrings(2, L"api-key: ", PhGetString(ApiKey));
     return TRUE;
 }
 
 NTSTATUS HybridAnalysisRequestFileReport(
     _In_ PPH_STRING FileHash,
-    _In_ PPH_STRING ApiKey,
+    _In_opt_ PPH_STRING ApiKey,
     _Out_ PHYBRIDANALYSIS_FILE_REPORT* FileReport
     )
 {
@@ -305,17 +327,33 @@ NTSTATUS HybridAnalysisRequestFileReport(
     PVOID jsonRootObject = NULL;
     ULONG httpStatus = PH_HTTP_STATUS_OK;
 
-    if (!HybridAnalysisHeaderStrings(&httpHeaderString, &httpPathString, ApiKey, FileHash, L"/api/v2/overview/"))
-        return STATUS_UNSUCCESSFUL;
-
     if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"hybrid-analysis.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
-        goto CleanupExit;
+
+    if (PhIsNullOrEmptyString(ApiKey))
+    {
+        if (!HybridAnalysisHeaderStrings(&httpHeaderString, &httpPathString, NULL, FileHash, L"/onlinechecks/hybrid-analysis/api/v2/overview/"))
+            return STATUS_UNSUCCESSFUL;
+        if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"systeminformer.io", PH_HTTP_DEFAULT_HTTPS_PORT)))
+            goto CleanupExit;
+    }
+    else
+    {
+        if (!HybridAnalysisHeaderStrings(&httpHeaderString, &httpPathString, ApiKey, FileHash, L"/api/v2/overview/"))
+            return STATUS_UNSUCCESSFUL;
+        if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"hybrid-analysis.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
+            goto CleanupExit;
+    }
+
     if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(httpPathString), PH_HTTP_FLAG_SECURE)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderString->sr)))
-        goto CleanupExit;
+
+    if (!PhIsNullOrEmptyString(httpHeaderString))
+    {
+        if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderString->sr)))
+            goto CleanupExit;
+    }
+
     if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"accept: application/json", 0)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, PH_HTTP_NO_REQUEST_DATA, 0, 0)))

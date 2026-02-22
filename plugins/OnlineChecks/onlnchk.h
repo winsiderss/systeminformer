@@ -277,7 +277,7 @@ typedef struct _VIRUSTOTAL_FILE_REPORT
 
 NTSTATUS VirusTotalRequestFileReport(
     _In_ PPH_STRING FileHash,
-    _In_ PPH_STRING ApiKey,
+    _In_opt_ PPH_STRING ApiKey,
     _Out_ PVIRUSTOTAL_FILE_REPORT* FileReport
     );
 
@@ -305,7 +305,7 @@ typedef struct _HYBRIDANALYSIS_FILE_REPORT
 
 NTSTATUS HybridAnalysisRequestFileReport(
     _In_ PPH_STRING FileHash,
-    _In_ PPH_STRING ApiKey,
+    _In_opt_ PPH_STRING ApiKey,
     _Out_ PHYBRIDANALYSIS_FILE_REPORT* FileReport
     );
 

@@ -74,8 +74,9 @@ static PH_WORK_QUEUE ScanItemWorkQueue;
 static PH_WORK_QUEUE ScanItemWorkPriorityQueue;
 static SLIST_HEADER ScanItemQueueListHead;
 static SLIST_HEADER ScanItemPriorityQueueListHead;
+static PPH_STRING ScanVirusTotalPAT = NULL;
+static PPH_STRING ScanHybridAnalysisPAT = NULL;
 static PPH_STRING ScanScanningString = NULL;
-static PPH_STRING ScanTokenMissingString = NULL;
 static PPH_STRING ScanUnauthorizedString = NULL;
 static PPH_STRING ScanCleanString = NULL;
 static PPH_STRING ScanRateLimitedString = NULL;
@@ -376,7 +377,6 @@ VOID ProcessVirusTotal(
     LARGE_INTEGER expiry;
     ULONG64 malicious;
     ULONG64 undetected;
-    PPH_STRING pat = NULL;
     PVIRUSTOTAL_FILE_REPORT report = NULL;
 
     PhQuerySystemTime(&systemTime);
@@ -409,14 +409,7 @@ VOID ProcessVirusTotal(
     if (FlagOn(Item->Flags, SCAN_FLAG_LOCAL_ONLY))
         goto CleanupExit;
 
-    pat = PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT);
-    if (PhIsNullOrEmptyString(pat))
-    {
-        SetScanResult(Item, PhReferenceObject(ScanTokenMissingString));
-        goto CleanupExit;
-    }
-
-    if (!NT_SUCCESS(VirusTotalRequestFileReport(Item->FileHash->Sha256, pat, &report)))
+    if (!NT_SUCCESS(VirusTotalRequestFileReport(Item->FileHash->Sha256, ScanVirusTotalPAT, &report)))
         goto CleanupExit;
 
     if (report->HttpStatus == 200) // OK
@@ -474,7 +467,6 @@ VOID ProcessVirusTotal(
 
 CleanupExit:
 
-    PhClearReference(&pat);
     if (report)
         VirusTotalFreeFileReport(report);
 }
@@ -554,7 +546,6 @@ VOID ProcessHybridAnalysis(
     PPH_STRING vxFamily = NULL;
     ULONG64 threatScore;
     PPH_STRING verdict = NULL;
-    PPH_STRING pat = NULL;
     PHYBRIDANALYSIS_FILE_REPORT report = NULL;
 
     PhQuerySystemTime(&systemTime);
@@ -592,14 +583,7 @@ VOID ProcessHybridAnalysis(
 
     PhClearReference(&vxFamily);
 
-    pat = PhGetStringSetting(SETTING_NAME_HYBRIDANAL_DEFAULT_PAT);
-    if (PhIsNullOrEmptyString(pat))
-    {
-        SetScanResult(Item, PhReferenceObject(ScanTokenMissingString));
-        goto CleanupExit;
-    }
-
-    if (!NT_SUCCESS(HybridAnalysisRequestFileReport(Item->FileHash->Sha256, pat, &report)))
+    if (!NT_SUCCESS(HybridAnalysisRequestFileReport(Item->FileHash->Sha256, ScanHybridAnalysisPAT, &report)))
         goto CleanupExit;
 
     if (report->HttpStatus == 200) // OK
@@ -680,7 +664,6 @@ CleanupExit:
 
     PhClearReference(&vxFamily);
     PhClearReference(&verdict);
-    PhClearReference(&pat);
     if (report)
         HybridAnalysisFreeFileReport(report);
 }
@@ -1022,8 +1005,10 @@ BOOLEAN InitializeScanning(
     ULONG version = 0;
     sqlite3_stmt* stmt;
 
+    ScanVirusTotalPAT = PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT);
+    ScanHybridAnalysisPAT = PhGetStringSetting(SETTING_NAME_HYBRIDANAL_DEFAULT_PAT);
+
     ScanScanningString = PhCreateString(L"Scanning...");
-    ScanTokenMissingString = PhCreateString(L"Token missing");
     ScanUnauthorizedString = PhCreateString(L"Unauthorized");
     ScanCleanString = PhCreateString(L"Clean");
     ScanUnknownString = PhCreateString(L"Unknown");
