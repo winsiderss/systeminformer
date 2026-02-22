@@ -38,6 +38,7 @@ namespace CustomBuildTool
         {
             Win32.SetErrorMode();
             Win32.SetBasePriority();
+            Win32.SetPathEnvironment();
 
             Console.InputEncoding = Utils.UTF8NoBOM;
             Console.OutputEncoding = Utils.UTF8NoBOM;
@@ -1014,16 +1015,16 @@ namespace CustomBuildTool
         /// <returns>True if all zip archives are built successfully; otherwise, false.</returns>
         public static bool BuildBinZip(BuildFlags Flags)
         {
-            string baseDirectory = GetBuildBaseDirectory(Flags);
             string buildConfiguration = Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release";
+            string buildDirectory = GetBuildBaseDirectory(Flags);
             string toolchainSuffix = GetToolchainSuffix(Flags);
 
             var buildZipFilesMap = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase)
             {
-                [Path.Join([baseDirectory, $"\\{buildConfiguration}32"])] = $"systeminformer-build{toolchainSuffix}-win32-bin.zip",
-                [Path.Join([baseDirectory, $"\\{buildConfiguration}64"])] = $"systeminformer-build{toolchainSuffix}-win64-bin.zip",
-                [Path.Join([baseDirectory, $"\\{buildConfiguration}ARM64"])] = $"systeminformer-build{toolchainSuffix}-arm64-bin.zip",
-                [baseDirectory] = $"systeminformer-build{toolchainSuffix}-bin.zip",
+                [Path.Join([buildDirectory, $"\\{buildConfiguration}32"])] = $"systeminformer-build{toolchainSuffix}-win32-bin.zip",
+                [Path.Join([buildDirectory, $"\\{buildConfiguration}64"])] = $"systeminformer-build{toolchainSuffix}-win64-bin.zip",
+                [Path.Join([buildDirectory, $"\\{buildConfiguration}ARM64"])] = $"systeminformer-build{toolchainSuffix}-arm64-bin.zip",
+                [buildDirectory] = $"systeminformer-build{toolchainSuffix}-bin.zip",
             };
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
@@ -1034,10 +1035,23 @@ namespace CustomBuildTool
                 {
                     string zipFilePath = Path.Join([Build.BuildOutputFolder, zipEntry.Value]);
 
-                    Program.PrintColorMessage($"Building {zipEntry.Value}... ", ConsoleColor.Cyan, false);
                     Win32.DeleteFile(zipFilePath, Flags);
+                }
+
+                foreach (var zipEntry in buildZipFilesMap)
+                {
+                    string zipFilePath = Path.Join([Build.BuildOutputFolder, zipEntry.Value]);
+
+                    Program.PrintColorMessage($"Building {zipEntry.Value}... ", ConsoleColor.Cyan);
+
                     Zip.CreateCompressedFolder(zipEntry.Key, zipFilePath, Flags);
-                    Program.PrintColorMessage(Win32.GetFileSize(zipFilePath).ToPrettySize(), ConsoleColor.Green);
+                }
+
+                foreach (var zipEntry in buildZipFilesMap)
+                {
+                    string zipFilePath = Path.Join([Build.BuildOutputFolder, zipEntry.Value]);
+
+                    Program.PrintColorMessage($"{zipEntry.Value}: {Win32.GetFileSize(zipFilePath).ToPrettySize()}", ConsoleColor.Green);
                 }
             }
             catch (Exception exception)
@@ -1116,7 +1130,7 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Builds a zip archive containing symbol files using SymStore.
+        /// Builds zip archives containing symbol files using SymStore.
         /// </summary>
         /// <param name="Flags">Build flags indicating which configurations to process.</param>
         /// <returns>True if the symbol package is built successfully; otherwise, false.</returns>
@@ -1439,6 +1453,11 @@ namespace CustomBuildTool
                 _ => throw new ArgumentException("Unsupported toolchain")
             };
 
+            // Toggle CMake options based on solution name
+            bool buildCore = Solution.Equals("SystemInformer", StringComparison.OrdinalIgnoreCase);
+            bool buildPlugins = Solution.Equals("Plugins", StringComparison.OrdinalIgnoreCase);
+            var buildLogLevel = Build.BuildToolsDebug ? "DEBUG" : (Flags.HasFlag(BuildFlags.BuildVerbose) ? "STATUS" : "WARNING");
+
             buildDirectoryFolder = Path.Join([Build.BuildWorkingFolder, buildDirectoryFolder + platformSuffixString]);
             toolchainFilePath = Path.Join([Build.BuildWorkingFolder, toolchainFilePath]);
 
@@ -1454,9 +1473,9 @@ namespace CustomBuildTool
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
             Program.PrintColorMessage($"Generating {Path.GetFileNameWithoutExtension(Solution)}... [", ConsoleColor.Cyan, false, Flags);
             Program.PrintColorMessage(Utils.GetToolchainString(Toolchain), ConsoleColor.Green, false, Flags);
-            Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage("] [", ConsoleColor.Cyan, false, Flags);
             Program.PrintColorMessage(buildConfiguration, ConsoleColor.Green, false, Flags);
-            Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
+            Program.PrintColorMessage("]...", ConsoleColor.Cyan, true, Flags);
 
             //
             // Generate
@@ -1469,9 +1488,10 @@ namespace CustomBuildTool
 
             string generateArgs = $"-G \"{Utils.GetGeneratorString(Generator)}\" -S \"{Build.BuildWorkingFolder}\" -B \"{buildDirectoryFolder}\" " +
                                   $"--toolchain \"{toolchainFilePath}\" " +
+                                  $"--log-level={buildLogLevel} " +
                                   $"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON " +
-                                  $"-DSI_WITH_CORE=ON " +
-                                  $"-DSI_WITH_PLUGINS=ON " +
+                                  $"-DSI_WITH_CORE={(buildCore ? "ON" : "OFF")} " +
+                                  $"-DSI_WITH_PLUGINS={(buildPlugins ? "ON" : "OFF")} " +
                                   $"{cmakeGeneratorOptions}";
 
             int exitCodeValue = Utils.ExecuteCMakeCommand(generateArgs, Toolchain);
@@ -1495,13 +1515,18 @@ namespace CustomBuildTool
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
             Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} [", ConsoleColor.Cyan, false, Flags);
             Program.PrintColorMessage(Utils.GetToolchainString(Toolchain), ConsoleColor.Green, false, Flags);
-            Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage("] [", ConsoleColor.Cyan, false, Flags);
             Program.PrintColorMessage(buildConfiguration, ConsoleColor.Green, false, Flags);
-            Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
+            Program.PrintColorMessage("]...", ConsoleColor.Cyan, true, Flags);
 
             if (Generator == BuildGenerator.VisualStudio)
             {
-                cmakeBuildOptions = $"-- /m /p:Platform={Utils.CMakeGetPlatform(Toolchain)} -terminalLogger:auto";
+                cmakeBuildOptions = $"-- /m /p:Platform={Utils.CMakeGetPlatform(Toolchain)} ";
+
+                if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
+                {
+                    cmakeBuildOptions += "-terminalLogger:on ";
+                }
             }
 
             exitCodeValue = Utils.ExecuteCMakeCommand($"--build \"{buildDirectoryFolder}\" --config {buildConfiguration} {cmakeBuildOptions}", Toolchain);
@@ -1532,7 +1557,6 @@ namespace CustomBuildTool
             return true;
         }
 
-#nullable enable
         /// <summary>
         /// Creates a DeployFile object for a build artifact, optionally generating a signature and hash.
         /// </summary>
@@ -1541,7 +1565,7 @@ namespace CustomBuildTool
         /// <param name="FileName">The path to the file.</param>
         /// <param name="CreateSignature">If true, generates a signature and hash for the file.</param>
         /// <returns>A DeployFile object if successful; otherwise, null.</returns>
-        private static DeployFile? CreateBuildDeployFile(string Channel, string Name, string FileName, bool CreateSignature = true)
+        private static DeployFile CreateBuildDeployFile(string Channel, string Name, string FileName, bool CreateSignature = true)
         {
             if (CreateSignature)
             {
@@ -1571,7 +1595,6 @@ namespace CustomBuildTool
                 return new DeployFile(Name, FileName, null, null, fileSize);
             }
         }
-#nullable disable
 
         /// <summary>
         /// Updates the server configuration with build information and asset links after a canary build.
@@ -1637,7 +1660,12 @@ namespace CustomBuildTool
             var relzipdownloadlink = githubMirrorUpload.GetFileUrl("systeminformer-build-release-setup.exe");
             var canzipdownloadlink = githubMirrorUpload.GetFileUrl("systeminformer-build-canary-setup.exe");
 
-            if (string.IsNullOrWhiteSpace(github_release_id) || string.IsNullOrWhiteSpace(binzipdownloadlink) || string.IsNullOrWhiteSpace(relzipdownloadlink) || string.IsNullOrWhiteSpace(canzipdownloadlink))
+            if (
+                string.IsNullOrWhiteSpace(github_release_id) || 
+                string.IsNullOrWhiteSpace(binzipdownloadlink) ||
+                string.IsNullOrWhiteSpace(relzipdownloadlink) || 
+                string.IsNullOrWhiteSpace(canzipdownloadlink)
+                )
             {
                 Program.PrintColorMessage("[ERROR] GetDeployInfo failed.", ConsoleColor.Red);
                 return false;

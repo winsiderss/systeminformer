@@ -17,7 +17,7 @@ namespace CustomBuildTool
     /// </summary>
     internal static class AzureClient
     {
-        private static readonly ConcurrentDictionary<string, X509Certificate2> AzureClientCrtificateCache = new();
+        private static readonly ConcurrentDictionary<string, X509Certificate2> AzureClientCertificateCache = new();
 
         /// <summary>
         /// Creates a cache key for storing certificates based on vault and authentication parameters.
@@ -59,7 +59,7 @@ namespace CustomBuildTool
 
                 var jsonResponse = await responseMessage.Content.ReadAsStringAsync(CancellationToken);
 
-                if (!string.IsNullOrWhiteSpace(jsonResponse))
+                if (string.IsNullOrWhiteSpace(jsonResponse))
                 {
                     Program.PrintColorMessage($"Failed to fetch json response from Key Vault", ConsoleColor.Red);
                     return null;            
@@ -119,7 +119,7 @@ namespace CustomBuildTool
 
             string cacheKey = MakeCacheKey(vaultName, certName, tenantId, clientId);
 
-            if (AzureClientCrtificateCache.TryGetValue(cacheKey, out var cachedCertificate) && cachedCertificate != null)
+            if (AzureClientCertificateCache.TryGetValue(cacheKey, out var cachedCertificate) && cachedCertificate != null)
             {
                 Program.PrintColorMessage($"Loaded certificate from cache: {cachedCertificate.Subject} | Thumbprint: {cachedCertificate.Thumbprint} | HasPrivateKey: {cachedCertificate.HasPrivateKey}", ConsoleColor.Green);
                 return true;
@@ -210,7 +210,7 @@ namespace CustomBuildTool
                 return false;
             }
 
-            AzureClientCrtificateCache[cacheKey] = inMemoryCertificate;
+            AzureClientCertificateCache[cacheKey] = inMemoryCertificate;
 
             Program.PrintColorMessage($"Loaded certificate in-memory: {inMemoryCertificate.Subject} | Thumbprint: {inMemoryCertificate.Thumbprint} | HasPrivateKey: {inMemoryCertificate.HasPrivateKey}", ConsoleColor.Green);
 
@@ -253,7 +253,7 @@ namespace CustomBuildTool
             {
                 string cacheKey = MakeCacheKey(AzureVaultName, AzureCertName, TenantGuid, ClientGuid);
 
-                if (!AzureClientCrtificateCache.TryGetValue(cacheKey, out X509Certificate2 azureCertificatePublic) || azureCertificatePublic == null)
+                if (!AzureClientCertificateCache.TryGetValue(cacheKey, out X509Certificate2 azureCertificatePublic) || azureCertificatePublic == null)
                 {
                     Program.PrintColorMessage($"Azure Client Failed.", ConsoleColor.Red);
                     return false;
@@ -1038,9 +1038,6 @@ namespace CustomBuildTool
     /// <summary>
     /// Represents the JSON response from Azure Key Vault certificate operations.
     /// </summary>
-    /// <summary>
-    /// Represents the JSON response from Azure Key Vault certificate operations.
-    /// </summary>
     internal class KeyVaultCertificateResponse
     {
         /// <summary>
@@ -1080,9 +1077,6 @@ namespace CustomBuildTool
         public string Kid { get; set; }
     }
 
-    /// <summary>
-    /// Represents responses from Azure Key Vault cryptographic operations.
-    /// </summary>
     /// <summary>
     /// Represents responses from Azure Key Vault cryptographic operations.
     /// </summary>

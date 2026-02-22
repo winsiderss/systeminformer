@@ -2256,7 +2256,7 @@ namespace CustomBuildTool
     {
     }
 
-    public static class Extextensions
+    public static class Extensions
     {
         private const long OneKb = 1024;
         private const long OneMb = OneKb * 1024;

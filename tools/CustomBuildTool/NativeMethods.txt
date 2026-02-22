@@ -45,3 +45,13 @@ ImageDirectoryEntryToDataEx
 ImageRvaToVa
 MapAndLoad
 UnMapAndLoad
+OpenProcess
+OpenProcessToken
+SetTokenInformation
+CloseHandle
+TOKEN_MANDATORY_LABEL
+SID_AND_ATTRIBUTES
+PSID
+TOKEN_INFORMATION_CLASS
+TOKEN_ACCESS_MASK
+PROCESS_ACCESS_RIGHTS

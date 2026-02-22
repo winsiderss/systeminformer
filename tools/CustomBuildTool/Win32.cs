@@ -520,6 +520,81 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Filters the PATH environment variable to include only directories essential for building System Informer.
+        /// Removes scripting languages (Python, Ruby, Node.js) and other non-essential tools.
+        /// </summary>
+        /// <remarks>
+        /// This method is called during build initialization and keeps essential build tools 
+        /// while removing potentially unnecessary dependencies.
+        /// </remarks>
+        public static void SetPathEnvironment()
+        {
+            if (!GetEnvironmentVariable("PATH", out string currentPath))
+                return;
+
+            List<string> allowedPaths = new List<string>();
+            string[] pathEntries = currentPath.Split(PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+            string[] requiredEntries =
+            [
+                // Windows system directories
+                "\\Windows\\System32",
+                "\\Windows\\",
+                "\\Windows\\System32\\Wbem",
+                "\\Windows\\System32\\WindowsPowerShell",
+                "\\Windows\\System32\\OpenSSH",
+                
+                // Build tools
+                "\\Microsoft Visual Studio",
+                "\\MSBuild",
+                "\\Windows Kits",
+                "\\dotnet",
+                
+                // Version control
+                "\\git",
+                "\\GitHub CLI",
+                
+                // CMake and build tools
+                "\\CMake",
+                "\\vcpkg",
+                "\\ninja",
+                "\\LLVM",
+                "\\mingw",
+            ];
+
+            foreach (string entry in pathEntries)
+            {
+                bool isEssential = false;
+
+                foreach (string pattern in requiredEntries)
+                {
+                    if (entry.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                    {
+                        isEssential = true;
+                        break;
+                    }
+                }
+
+                if (isEssential)
+                {
+                    allowedPaths.Add(entry);
+                }
+            }
+
+            if (allowedPaths.Count > 0)
+            {
+                string filteredPath = string.Join(';', allowedPaths);
+
+                if (!string.IsNullOrWhiteSpace(filteredPath))
+                {
+                    Environment.SetEnvironmentVariable("PATH", filteredPath, EnvironmentVariableTarget.Process);
+                }
+                
+                //Program.PrintColorMessage($"[PATH] filtered: {pathEntries.Length} entries -> {allowedPaths.Count} entries", ConsoleColor.DarkGray);
+            }
+        }
+
+        /// <summary>
         /// Sets the basic file information, including creation and last write times, and optionally the read-only attribute.
         /// </summary>
         /// <param name="FileName">The path to the file.</param>
@@ -605,6 +680,159 @@ namespace CustomBuildTool
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Sets low (untrusted) integrity level for processes.
+        /// </summary>
+        /// <remarks>
+        /// This method enumerates all running processes, identifies those with executables in
+        /// temporary folders (containing "\Temp\"), and attempts to lower their integrity level
+        /// to Untrusted (S-1-16-0). This is a security mitigation technique.
+        /// </remarks>
+        public static void SetLowIntegrityForProcesses()
+        {
+            const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+            const uint TOKEN_QUERY = 0x0008;
+            const uint TOKEN_ADJUST_DEFAULT = 0x0080;
+            const uint SE_GROUP_INTEGRITY = 0x00000020;
+            const uint SECURITY_MANDATORY_UNTRUSTED_RID = 0x00000000;
+            const int TokenIntegrityLevel = 25;
+
+            var processesToModify = new List<Process>();
+            
+            try
+            {
+                var allProcesses = Process.GetProcesses();
+
+                foreach (var process in allProcesses)
+                {
+                    try
+                    {
+                        var filename = process.MainModule?.FileName;
+                        if (!string.IsNullOrEmpty(filename) && 
+                            filename.Contains("\\Temp\\", StringComparison.OrdinalIgnoreCase))
+                        {
+                            Program.PrintColorMessage($"Process: {filename}", ConsoleColor.DarkGray);
+                            processesToModify.Add(process);
+                        }
+                        else
+                        {
+                            process.Dispose();
+                        }
+                    }
+                    catch
+                    {
+                        process.Dispose();
+                    }
+                }
+
+                foreach (var process in processesToModify)
+                {
+                    try
+                    {
+                        ApplyLowIntegrity(
+                            process, 
+                            PROCESS_QUERY_LIMITED_INFORMATION,
+                            TOKEN_QUERY | TOKEN_ADJUST_DEFAULT,
+                            SE_GROUP_INTEGRITY,
+                            SECURITY_MANDATORY_UNTRUSTED_RID,
+                            TokenIntegrityLevel
+                            );
+                    }
+                    catch (Exception ex)
+                    {
+                        Program.PrintColorMessage(
+                            $"Failed to set integrity for {process.ProcessName} (PID: {process.Id}): {ex.Message}", 
+                            ConsoleColor.Yellow
+                            );
+                    }
+                    finally
+                    {
+                        process.Dispose();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"Error enumerating processes: {ex.Message}", ConsoleColor.Red);
+            }
+        }
+
+        private static void ApplyLowIntegrity(
+            Process process,
+            uint processAccess,
+            uint tokenAccess,
+            uint sidAttributes,
+            uint mandatoryRid,
+            int tokenInfoClass
+            )
+        {
+            HANDLE processHandle = default;
+            HANDLE tokenHandle = default;
+
+            try
+            {
+                processHandle = PInvoke.OpenProcess((PROCESS_ACCESS_RIGHTS)processAccess, false, (uint)process.Id);
+
+                if (processHandle.IsNull)
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), $"OpenProcess failed for {process.ProcessName}");
+                }
+
+                if (!PInvoke.OpenProcessToken(processHandle, (TOKEN_ACCESS_MASK)tokenAccess, &tokenHandle))
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "OpenProcessToken failed");
+                }
+
+                // Manually construct the Untrusted Integrity SID (S-1-16-0)
+                // SID structure: Revision(1) + SubAuthorityCount(1) + Authority(6 bytes) + SubAuthority(4 bytes)
+                byte* sidBuffer = stackalloc byte[12];
+                NativeMemory.Clear(sidBuffer, 12);
+                sidBuffer[0] = 1;  // SID_REVISION
+                sidBuffer[1] = 1;  // SubAuthorityCount
+                sidBuffer[2] = 0;  // IdentifierAuthority[0]
+                sidBuffer[3] = 0;  // IdentifierAuthority[1]
+                sidBuffer[4] = 0;  // IdentifierAuthority[2]
+                sidBuffer[5] = 0;  // IdentifierAuthority[3]
+                sidBuffer[6] = 0;  // IdentifierAuthority[4]
+                sidBuffer[7] = 16; // IdentifierAuthority[5] - SECURITY_MANDATORY_LABEL_AUTHORITY (S-1-16)          
+                *(uint*)(sidBuffer + 8) = mandatoryRid; // SubAuthority[0] = mandatoryRid (little-endian)
+                var integritySid = new PSID(sidBuffer);
+
+                var tokenMandatoryLabel = new TOKEN_MANDATORY_LABEL
+                {
+                    Label = new SID_AND_ATTRIBUTES
+                    {
+                        Attributes = sidAttributes,
+                        Sid = integritySid
+                    }
+                };
+
+                if (!PInvoke.SetTokenInformation(
+                    tokenHandle,
+                    (TOKEN_INFORMATION_CLASS)tokenInfoClass,
+                    &tokenMandatoryLabel,
+                    (uint)sizeof(TOKEN_MANDATORY_LABEL)
+                    ))
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "SetTokenInformation failed");
+                }
+
+                Program.PrintColorMessage($"Successfully set low integrity for {process.ProcessName} (PID: {process.Id})", ConsoleColor.Green);
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"Error setting integrity: {ex.Message}", ConsoleColor.Red);
+            }
+            finally
+            {
+                if (!tokenHandle.IsNull)
+                    PInvoke.CloseHandle(tokenHandle);
+                
+                if (!processHandle.IsNull)
+                    PInvoke.CloseHandle(processHandle);
+            }
         }
     }
 }

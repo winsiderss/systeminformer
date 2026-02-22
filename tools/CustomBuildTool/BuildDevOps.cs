@@ -70,7 +70,7 @@ namespace CustomBuildTool
 
             try
             {
-                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/{BaseName}/_apis/build/builds/{BaseBuild}?api-version=2025-07-01"))
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/{BaseName}/_apis/build/builds/{BaseBuild}?api-version=7.1"))
                 {
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", BaseToken);
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

@@ -9,7 +9,6 @@
  *
  */
 
-
 namespace CustomBuildTool
 {
     /// <summary>

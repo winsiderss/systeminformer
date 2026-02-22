@@ -11,9 +11,27 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides methods for creating compressed ZIP archives from directories.
+    /// </summary>
+    /// <remarks>
+    /// This class supports creating different types of archives:
+    /// - Standard release archives with path transformations
+    /// - SDK archives
+    /// - PDB symbol archives
+    /// </remarks>
     public static class Zip
     {
-        // https://github.com/phofman/zip/blob/master/src/ZipFile.cs
+        /// <summary>
+        /// Converts absolute file paths to relative entry names for archive entries.
+        /// </summary>
+        /// <param name="names">Array of absolute file paths.</param>
+        /// <param name="sourceFolder">The source folder path to remove from each name.</param>
+        /// <param name="includeBaseName">If true, includes the base folder name in the entry path.</param>
+        /// <returns>Array of relative entry names suitable for archive entries.</returns>
+        /// <remarks>
+        /// Based on https://github.com/phofman/zip/blob/master/src/ZipFile.cs
+        /// </remarks>
         private static string[] GetEntryNames(string[] names, string sourceFolder, bool includeBaseName)
         {
             if (names == null || names.Length == 0)
@@ -35,8 +53,41 @@ namespace CustomBuildTool
             return result;
         }
 
+        /// <summary>
+        /// Creates a compressed ZIP archive from a source directory, excluding debug files and applying path transformations.
+        /// </summary>
+        /// <param name="sourceDirectoryName">The path to the directory to compress.</param>
+        /// <param name="destinationArchiveFileName">The path where the ZIP archive will be created.</param>
+        /// <param name="Flags">Build flags controlling verbosity and other options.</param>
+        /// <remarks>
+        /// This method:
+        /// - Skips files in debug directories and files with debug/linker extensions
+        /// - Transforms Release configuration paths to architecture names (e.g., Release64 to amd64)
+        /// - Uses optimal compression level
+        /// </remarks>
         public static void CreateCompressedFolder(string sourceDirectoryName, string destinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
-        {
+        { 
+            // Path prefixes to skip during compression (e.g., debug build directories)
+            string[] SkipPathPrefixes = 
+            [
+                "bin\\Debug"
+            ];
+            // File extensions to skip during compression (debug symbols, linker artifacts)
+            string[] SkipExtensions = 
+            [
+                ".pdb", 
+                ".iobj", 
+                ".ipdb", 
+                ".exp", 
+                ".lib"
+            ];
+            var PathReplacements = new[] // Path replacements for archive entry names
+            {
+                ("Release32\\", "i386\\"),
+                ("Release64\\", "amd64\\"),
+                ("ReleaseARM64\\", "arm64\\")
+            };
+
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
 
@@ -45,35 +96,50 @@ namespace CustomBuildTool
             {
                 for (int i = 0; i < filesToAdd.Length; i++)
                 {
+                    bool shouldSkip = false;
                     string file = filesToAdd[i];
                     string name = entryNames[i];
 
-                    if (
-                       file.StartsWith("bin\\Debug", StringComparison.OrdinalIgnoreCase) || // Ignore junk files
-                       file.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
-                       file.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
-                       file.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
-                       file.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
-                       file.EndsWith(".lib", StringComparison.OrdinalIgnoreCase)
-                       )
+                    foreach (var prefix in SkipPathPrefixes)
                     {
-                        continue;
+                        if (file.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        {
+                            shouldSkip = true;
+                            break;
+                        }
                     }
 
-                    if (name.StartsWith("Release32\\", StringComparison.OrdinalIgnoreCase))
-                        name = name.Replace("Release32\\", "i386\\", StringComparison.OrdinalIgnoreCase);
-                    if (name.StartsWith("Release64\\", StringComparison.OrdinalIgnoreCase))
-                        name = name.Replace("Release64\\", "amd64\\", StringComparison.OrdinalIgnoreCase);
-                    if (name.StartsWith("ReleaseARM64\\", StringComparison.OrdinalIgnoreCase))
-                        name = name.Replace("ReleaseARM64\\", "arm64\\", StringComparison.OrdinalIgnoreCase);
+                    if (!shouldSkip)
+                    {
+                        foreach (var ext in SkipExtensions)
+                        {
+                            if (file.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+                            {
+                                shouldSkip = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (shouldSkip)
+                        continue;
+
+                    foreach (var (from, to) in PathReplacements)
+                    {
+                        if (name.StartsWith(from, StringComparison.OrdinalIgnoreCase))
+                        {
+                            name = name.Replace(from, to, StringComparison.OrdinalIgnoreCase);
+                            break;
+                        }
+                    }
 
                     if (Flags.HasFlag(BuildFlags.BuildVerbose))
                     {
-                        // Print file and entry name in different colors
                         Program.PrintColorMessage("Compressing ", ConsoleColor.DarkGray, false);
-                        Program.PrintColorMessage(file, ConsoleColor.Cyan, false);
-                        Program.PrintColorMessage(" as ", ConsoleColor.DarkGray, false);
-                        Program.PrintColorMessage(name + "...", ConsoleColor.Green, true);
+                        //Program.PrintColorMessage(file, ConsoleColor.Cyan, false);
+                        //Program.PrintColorMessage(" as ", ConsoleColor.DarkGray, false);
+                        Program.PrintColorMessage(name, ConsoleColor.Green, false);
+                        Program.PrintColorMessage("...", ConsoleColor.DarkGray, false);
                     }
 
                     var entry = archive.CreateEntryFromFile(file, name, CompressionLevel.Optimal);
@@ -88,8 +154,8 @@ namespace CustomBuildTool
                             {
                                 long originalSize = uncompressedSizeOpt ?? -1;
                                 long compressedSize = compressedSizeOpt ?? -1;
-                                string originalText = originalSize >= 0 ? Extextensions.ToPrettySize(originalSize) : "?";
-                                string compressedText = compressedSize >= 0 ? Extextensions.ToPrettySize(compressedSize) : "?";
+                                string originalText = originalSize >= 0 ? Extensions.ToPrettySize(originalSize) : "?";
+                                string compressedText = compressedSize >= 0 ? Extensions.ToPrettySize(compressedSize) : "?";
                                 double percent = (originalSize <= 0 || compressedSize < 0) ? 0.0 : (1.0 - ((double)compressedSize / originalSize)) * 100.0;
 
                                 // Print in columns: [file]  as [entry]  [orig] -> [comp] (percent)
@@ -136,6 +202,15 @@ namespace CustomBuildTool
             //}
         }
 
+        /// <summary>
+        /// Creates a compressed ZIP archive containing SDK files from a source directory.
+        /// </summary>
+        /// <param name="sourceDirectoryName">The path to the SDK directory to compress.</param>
+        /// <param name="destinationArchiveFileName">The path where the ZIP archive will be created.</param>
+        /// <param name="Flags">Build flags controlling verbosity and other options.</param>
+        /// <remarks>
+        /// Unlike <see cref="CreateCompressedFolder"/>, this method includes all files without filtering.
+        /// </remarks>
         public static void CreateCompressedSdkFromFolder(string sourceDirectoryName, string destinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
         {
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
@@ -149,9 +224,10 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(BuildFlags.BuildVerbose))
                     {
                         Program.PrintColorMessage("Compressing ", ConsoleColor.DarkGray, false);
-                        Program.PrintColorMessage(filesToAdd[i], ConsoleColor.Cyan, false);
-                        Program.PrintColorMessage(" as ", ConsoleColor.DarkGray, false);
-                        Program.PrintColorMessage(entryNames[i] + "...", ConsoleColor.Green, true);
+                        //Program.PrintColorMessage(filesToAdd[i], ConsoleColor.Cyan, false);
+                        //Program.PrintColorMessage(" as ", ConsoleColor.DarkGray, false);
+                        Program.PrintColorMessage(entryNames[i], ConsoleColor.Green, false);
+                        Program.PrintColorMessage("...", ConsoleColor.DarkGray, false);
                     }
 
                     var entry = archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
@@ -166,8 +242,8 @@ namespace CustomBuildTool
                             {
                                 long originalSize = uncompressedSizeOpt ?? -1;
                                 long compressedSize = compressedSizeOpt ?? -1;
-                                string originalText = originalSize >= 0 ? Extextensions.ToPrettySize(originalSize) : "?";
-                                string compressedText = compressedSize >= 0 ? Extextensions.ToPrettySize(compressedSize) : "?";
+                                string originalText = originalSize >= 0 ? Extensions.ToPrettySize(originalSize) : "?";
+                                string compressedText = compressedSize >= 0 ? Extensions.ToPrettySize(compressedSize) : "?";
                                 double percent = (originalSize <= 0 || compressedSize < 0) ? 0.0 : (1.0 - ((double)compressedSize / originalSize)) * 100.0;
 
                                 PrintCompressionColumns(filesToAdd[i], entryNames[i], originalText, compressedText, percent, Flags);
@@ -205,6 +281,15 @@ namespace CustomBuildTool
             //}
         }
 
+        /// <summary>
+        /// Creates a compressed ZIP archive containing only PDB symbol files from a source directory.
+        /// </summary>
+        /// <param name="sourceDirectoryName">The path to the directory containing PDB files.</param>
+        /// <param name="destinationArchiveFileName">The path where the ZIP archive will be created.</param>
+        /// <param name="Flags">Build flags controlling verbosity and other options.</param>
+        /// <remarks>
+        /// This method only includes .pdb files and excludes files from Debug, obj, and tests directories.
+        /// </remarks>
         public static void CreateCompressedPdbFromFolder(string sourceDirectoryName, string destinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
         {
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
@@ -228,9 +313,10 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(BuildFlags.BuildVerbose))
                     {
                         Program.PrintColorMessage("Compressing ", ConsoleColor.DarkGray, false);
-                        Program.PrintColorMessage(filesToAdd[i], ConsoleColor.Cyan, false);
-                        Program.PrintColorMessage(" as ", ConsoleColor.DarkGray, false);
-                        Program.PrintColorMessage(entryNames[i] + "...", ConsoleColor.Green, true);
+                        //Program.PrintColorMessage(filesToAdd[i], ConsoleColor.Cyan, false);
+                        //Program.PrintColorMessage(" as ", ConsoleColor.DarkGray, false);
+                        Program.PrintColorMessage(entryNames[i], ConsoleColor.Green, false);
+                        Program.PrintColorMessage("...", ConsoleColor.DarkGray, false);
                     }
 
                     var entry = archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
@@ -245,8 +331,8 @@ namespace CustomBuildTool
                             {
                                 long originalSize = uncompressedSizeOpt ?? -1;
                                 long compressedSize = compressedSizeOpt ?? -1;
-                                string originalText = originalSize >= 0 ? Extextensions.ToPrettySize(originalSize) : "?";
-                                string compressedText = compressedSize >= 0 ? Extextensions.ToPrettySize(compressedSize) : "?";
+                                string originalText = originalSize >= 0 ? Extensions.ToPrettySize(originalSize) : "?";
+                                string compressedText = compressedSize >= 0 ? Extensions.ToPrettySize(compressedSize) : "?";
                                 double percent = (originalSize <= 0 || compressedSize < 0) ? 0.0 : (1.0 - ((double)compressedSize / originalSize)) * 100.0;
 
                                 PrintCompressionColumns(filesToAdd[i], entryNames[i], originalText, compressedText, percent, Flags);
@@ -261,7 +347,15 @@ namespace CustomBuildTool
             }
         }
 
-        // Helper that prints compression info in aligned columns
+        /// <summary>
+        /// Prints compression statistics in aligned columns for verbose output.
+        /// </summary>
+        /// <param name="file">The source file path.</param>
+        /// <param name="entryName">The archive entry name.</param>
+        /// <param name="originalText">Formatted original file size.</param>
+        /// <param name="compressedText">Formatted compressed size.</param>
+        /// <param name="percent">Compression reduction percentage.</param>
+        /// <param name="Flags">Build flags for output formatting.</param>
         private static void PrintCompressionColumns(string file, string entryName, string originalText, string compressedText, double percent, BuildFlags Flags)
         {
             // Column widths - tuned for console display
@@ -282,7 +376,16 @@ namespace CustomBuildTool
             Program.PrintColorMessage($" ({percent:0.0}% reduction)", ConsoleColor.DarkGray, true, Flags);
         }
 
-        static (long? Compressed, long? Uncompressed) GetInternalSizes(ZipArchiveEntry entry)
+        /// <summary>
+        /// Retrieves the internal compressed and uncompressed sizes from a ZipArchiveEntry using reflection.
+        /// </summary>
+        /// <param name="entry">The ZIP archive entry to query.</param>
+        /// <returns>A tuple containing the compressed and uncompressed sizes, or null if unavailable.</returns>
+        /// <remarks>
+        /// Uses reflection to access private fields since the public Length property
+        /// may not be available until the entry stream is read.
+        /// </remarks>
+        private static (long? Compressed, long? Uncompressed) GetInternalSizes(ZipArchiveEntry entry)
         {
             var _compressedSize = typeof(ZipArchiveEntry).GetField("_compressedSize", BindingFlags.NonPublic | BindingFlags.Instance);
             var _uncompressedSize = typeof(ZipArchiveEntry).GetField("_uncompressedSize", BindingFlags.NonPublic | BindingFlags.Instance);

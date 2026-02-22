@@ -131,6 +131,7 @@
     <Using Include="System.Xml" />
     <Using Include="Windows.Win32" />
     <Using Include="Windows.Win32.Foundation" />
+    <Using Include="Windows.Win32.Security" />
     <Using Include="Windows.Win32.Security.Cryptography" />
     <Using Include="Windows.Win32.Storage.FileSystem" />
     <Using Include="Windows.Win32.System.Diagnostics.Debug" />
