@@ -584,8 +584,8 @@ PET_GPU_ENGINE_PERFCOUNTER EtPerfCounterAddOrUpdateGpuEngineCounters(
 
         if (numerator)
         {
-            DOUBLE denomenator = (DOUBLE)entry->InstanceTime - (DOUBLE)CounterInstance.InstanceTime;
-            DOUBLE value = (numerator / denomenator) * 100.0;
+            DOUBLE denominator = (DOUBLE)entry->InstanceTime - (DOUBLE)CounterInstance.InstanceTime;
+            DOUBLE value = (numerator / denominator) * 100.0;
 
             if (value > 0.0 && value < 100.0)
             {
@@ -736,10 +736,9 @@ VOID EtPerfCounterCleanupDeletedGpuEngineCounters(
     _In_ ULONG NumberOfCounters
     )
 {
-    PPH_LIST countersToAdd = NULL;
     PPH_HASHTABLE newHashTable;
     PPH_HASHTABLE oldHashTable;
-    PET_GPU_PROCESS_PERFCOUNTER counter;
+    PET_GPU_ENGINE_PERFCOUNTER counter;
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
 
     newHashTable = PhCreateHashtable(
@@ -887,7 +886,7 @@ VOID EtPerfCounterCleanupDeletedGpuAdapterCounters(
 {
     PPH_HASHTABLE newHashTable;
     PPH_HASHTABLE oldHashTable;
-    PET_GPU_PROCESS_PERFCOUNTER counter;
+    PET_GPU_ADAPTER_PERFCOUNTER counter;
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
 
     newHashTable = PhCreateHashtable(
@@ -1168,8 +1167,7 @@ BOOLEAN EtPerfCounterGetCounterData(
 
     if (status == ERROR_SUCCESS)
     {
-        if (initialBufferSize > bufferSize)
-            initialBufferSize = bufferSize;
+        initialBufferSize = bufferSize;
 
         *CounterBuffer = buffer;
         return TRUE;
@@ -1770,7 +1768,7 @@ BOOLEAN EtpLookupProcessGpuMemoryCounters(
         }
     }
 
-    if (sharedUsage && dedicatedUsage && commitUsage)
+    if (sharedUsage || dedicatedUsage || commitUsage)
     {
         *SharedUsage = sharedUsage;
         *DedicatedUsage = dedicatedUsage;
