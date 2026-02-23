@@ -280,7 +280,7 @@ PPH_LIST DnGetClrAppDomainAssemblyList(
     if (SUCCEEDED(IXCLRDataProcess_QueryInterface(Support->DataProcess, &IID_ISOSDacInterface, &sosInterface)))
     {
         DnGetProcessDotNetAppDomainList(Support->DataTarget, sosInterface, &processAppdomainList);
-        IXCLRDataProcess_Release(sosInterface);
+        ISOSDacInterface_Release(sosInterface);
     }
 
     return processAppdomainList;
@@ -831,13 +831,19 @@ PPH_BYTES DnProcessAppDomainListSerialize(
         PhAddJsonObjectUInt64(appdomainEntry, "AppDomainNumber", appdomain->AppDomainNumber);
         PhAddJsonObjectUInt64(appdomainEntry, "AppDomainID", appdomain->AppDomainID);
 
-        valueUtf8 = PhConvertUtf16ToUtf8Ex(appdomain->AppDomainName->Buffer, appdomain->AppDomainName->Length);
-        PhAddJsonObject2(appdomainEntry, "AppDomainName", valueUtf8->Buffer, valueUtf8->Length);
-        PhDereferenceObject(valueUtf8);
+        if (appdomain->AppDomainName)
+        {
+            valueUtf8 = PhConvertUtf16ToUtf8Ex(appdomain->AppDomainName->Buffer, appdomain->AppDomainName->Length);
+            PhAddJsonObject2(appdomainEntry, "AppDomainName", valueUtf8->Buffer, valueUtf8->Length);
+            PhDereferenceObject(valueUtf8);
+        }
 
-        valueUtf8 = PhConvertUtf16ToUtf8Ex(appdomain->AppDomainStage->Buffer, appdomain->AppDomainStage->Length);
-        PhAddJsonObject2(appdomainEntry, "AppDomainStage", valueUtf8->Buffer, valueUtf8->Length);
-        PhDereferenceObject(valueUtf8);
+        if (appdomain->AppDomainStage)
+        {
+            valueUtf8 = PhConvertUtf16ToUtf8Ex(appdomain->AppDomainStage->Buffer, appdomain->AppDomainStage->Length);
+            PhAddJsonObject2(appdomainEntry, "AppDomainStage", valueUtf8->Buffer, valueUtf8->Length);
+            PhDereferenceObject(valueUtf8);
+        }
 
         if (appdomain->AssemblyList)
         {
@@ -845,7 +851,7 @@ PPH_BYTES DnProcessAppDomainListSerialize(
 
             for (ULONG j = 0; j < appdomain->AssemblyList->Count; j++)
             {
-                PDN_DOTNET_ASSEMBLY_ENTRY assembly = PhItemList(appdomain->AssemblyList, i);
+                PDN_DOTNET_ASSEMBLY_ENTRY assembly = PhItemList(appdomain->AssemblyList, j);
                 PVOID assemblyEntry;
 
                 assemblyEntry = PhCreateJsonObject();
@@ -1248,7 +1254,7 @@ static BOOLEAN DnClrVerifyFileIsChainedToMicrosoft(
     _In_ BOOLEAN NativeFileName
     )
 {
-    if (PhGetIntegerSetting(SETTING_NAME_DOT_NET_VERIFYSIGNATURE))
+    if (PhGetIntegerSetting(SETTING_DBGHELP_VERIFY_MICROSOFT_CHAIN))
     {
         return PhVerifyFileIsChainedToMicrosoft(FileName, NativeFileName);
     }
@@ -1394,6 +1400,7 @@ PVOID DnLoadMscordaccore(
             }
         }
 
+        PhDereferenceObject(nativeName);
         PhDereferenceObject(fileName);
 
         if (mscordacBaseAddress)
@@ -1840,7 +1847,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
                         this->ProcessId,
                         this->ProcessHandle,
                         PH_ENUM_GENERIC_MAPPED_IMAGES,
-                        DnGetClrRuntimeCallback,
+                        DnClrDataTarget_EnumImageBaseCallback,
                         &context
                         );
 
@@ -1970,6 +1977,13 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     NTSTATUS status;
     HANDLE threadHandle;
     PCONTEXT buffer;
+    BOOLEAN suspended = FALSE;
+    HANDLE stateChangeHandle = NULL;
+    BOOLEAN deepfreeze = FALSE;
+    BOOLEAN isCurrentThread = threadID == HandleToUlong(NtCurrentThreadId());
+    BOOLEAN canSuspend = FALSE;
+    ULONG desiredAccess = THREAD_GET_CONTEXT;
+    ULONG optionalAccess = THREAD_SUSPEND_RESUME | THREAD_SET_INFORMATION;
 
     if (contextSize < sizeof(CONTEXT))
         return E_INVALIDARG;
@@ -1977,9 +1991,56 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     buffer = PhAllocateZero(contextSize);
     buffer->ContextFlags = contextFlags;
 
-    if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_GET_CONTEXT, UlongToHandle(threadID))))
+    status = PhOpenThread(
+        &threadHandle,
+        desiredAccess | optionalAccess,
+        UlongToHandle(threadID)
+        );
+
+    if (!NT_SUCCESS(status))
     {
+        status = PhOpenThread(
+            &threadHandle,
+            desiredAccess,
+            UlongToHandle(threadID)
+            );
+    }
+    else
+    {
+        canSuspend = TRUE;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        if (!isCurrentThread && canSuspend)
+        {
+            if (SystemInformer_GetWindowsVersion() >= WINDOWS_11)
+            {
+                if (NT_SUCCESS(PhFreezeThread(&stateChangeHandle, threadHandle)))
+                {
+                    deepfreeze = TRUE;
+                }
+            }
+
+            if (NT_SUCCESS(NtSuspendThread(threadHandle, NULL)))
+            {
+                suspended = TRUE;
+            }
+        }
+
         status = PhGetContextThread(threadHandle, buffer);
+
+        if (suspended)
+        {
+            NtResumeThread(threadHandle, NULL);
+        }
+
+        if (deepfreeze)
+        {
+            PhThawThread(stateChangeHandle, threadHandle);
+            NtClose(stateChangeHandle);
+        }
+
         NtClose(threadHandle);
     }
 
@@ -1991,6 +2052,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     }
     else
     {
+        PhFree(buffer);
         return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
     }
 }

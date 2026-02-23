@@ -227,7 +227,6 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_SORTCOLUMN, L"" },
                 { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_GROUPSTATES, L"" },
-                { IntegerSettingType, SETTING_NAME_DOT_NET_VERIFYSIGNATURE, L"1" },
             };
 
             WPP_INIT_TRACING(PLUGIN_NAME);
