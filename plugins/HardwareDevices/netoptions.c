@@ -493,16 +493,24 @@ VOID FindNetworkAdapters(
                     )))
                 {
                     PPH_STRING adapterName;
+                    NDIS_LINK_STATE adapterState;
 
                     // Try query the full adapter name
 
                     if (adapterName = NetworkAdapterQueryName(deviceHandle))
+                    {
                         adapterEntry->DeviceName = adapterName;
+                    }
 
                     if (PhIsNullOrEmptyString(adapterEntry->DeviceName))
+                    {
                         adapterEntry->DeviceName = NetworkAdapterQueryNameFromInterfaceGuid(&deviceGuid);
+                    }
 
-                    adapterEntry->DevicePresent = TRUE;
+                    if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &adapterState)))
+                    {
+                        adapterEntry->DevicePresent = (adapterState.MediaConnectState == MediaConnectStateConnected);
+                    }
 
                     NtClose(deviceHandle);
                 }

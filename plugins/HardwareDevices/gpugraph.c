@@ -15,6 +15,15 @@
 PPH_OBJECT_TYPE GraphicsSysinfoEntryType = NULL;
 BOOLEAN GraphicsEnableAvxSupport = FALSE;
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN GraphicsDeviceGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    );
+
 PPH_STRING GraphicsDeviceGetAdapterDescription(
     _In_ PPH_STRING DevicePath
     )
@@ -139,7 +148,14 @@ VOID GraphicsDeviceCreateGraphs(
     _In_ PDV_GPU_SYSINFO_CONTEXT Context
     )
 {
-    Context->GpuGraphHandle = CreateWindow(
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = GraphicsDeviceGraphMessageCallback;
+    graphCreateParams.Context = Context;
+
+    Context->GpuGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -150,11 +166,11 @@ VOID GraphicsDeviceCreateGraphs(
         Context->GpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->GpuGraphHandle, TRUE);
 
-    Context->DedicatedGraphHandle = CreateWindow(
+    Context->DedicatedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -165,11 +181,11 @@ VOID GraphicsDeviceCreateGraphs(
         Context->GpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->DedicatedGraphHandle, TRUE);
 
-    Context->SharedGraphHandle = CreateWindow(
+    Context->SharedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -180,13 +196,13 @@ VOID GraphicsDeviceCreateGraphs(
         Context->GpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->SharedGraphHandle, TRUE);
 
     //if (Context->EtGpuSupported)
     {
-        Context->PowerUsageGraphHandle = CreateWindow(
+        Context->PowerUsageGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -197,11 +213,11 @@ VOID GraphicsDeviceCreateGraphs(
             Context->GpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(Context->PowerUsageGraphHandle, TRUE);
 
-        Context->TemperatureGraphHandle = CreateWindow(
+        Context->TemperatureGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -212,11 +228,11 @@ VOID GraphicsDeviceCreateGraphs(
             Context->GpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(Context->TemperatureGraphHandle, TRUE);
 
-        Context->FanRpmGraphHandle = CreateWindow(
+        Context->FanRpmGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -227,7 +243,7 @@ VOID GraphicsDeviceCreateGraphs(
             Context->GpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(Context->FanRpmGraphHandle, TRUE);
     }
@@ -1303,6 +1319,46 @@ BOOLEAN GraphicsDeviceSectionCallback(
     return FALSE;
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN GraphicsDeviceGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    PDV_GPU_SYSINFO_CONTEXT context = (PDV_GPU_SYSINFO_CONTEXT)Context;
+    NMHDR *header = (NMHDR *)Parameter1;
+
+    if (WindowHandle == context->GpuGraphHandle)
+    {
+        GraphicsDeviceNotifyGpuGraph(context, header);
+    }
+    else if (WindowHandle == context->DedicatedGraphHandle)
+    {
+        GraphicsDeviceNotifyDedicatedGraph(context, header);
+    }
+    else if (WindowHandle == context->SharedGraphHandle)
+    {
+        GraphicsDeviceNotifySharedGraph(context, header);
+    }
+    else if (WindowHandle == context->PowerUsageGraphHandle)
+    {
+        GraphicsDeviceNotifyPowerUsageGraph(context, header);
+    }
+    else if (WindowHandle == context->TemperatureGraphHandle)
+    {
+        GraphicsDeviceNotifyTemperatureGraph(context, header);
+    }
+    else if (WindowHandle == context->FanRpmGraphHandle)
+    {
+        GraphicsDeviceNotifyFanRpmGraph(context, header);
+    }
+
+    return TRUE;
+}
+
 INT_PTR CALLBACK GraphicsDeviceDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1401,36 +1457,6 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
             PhLayoutManagerLayout(&context->GpuLayoutManager);
 
             GraphicsDeviceLayoutGraphs(context);
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            NMHDR *header = (NMHDR *)lParam;
-
-            if (header->hwndFrom == context->GpuGraphHandle)
-            {
-                GraphicsDeviceNotifyGpuGraph(context, header);
-            }
-            else if (header->hwndFrom == context->DedicatedGraphHandle)
-            {
-                GraphicsDeviceNotifyDedicatedGraph(context, header);
-            }
-            else if (header->hwndFrom == context->SharedGraphHandle)
-            {
-                GraphicsDeviceNotifySharedGraph(context, header);
-            }
-            else if (header->hwndFrom == context->PowerUsageGraphHandle)
-            {
-                GraphicsDeviceNotifyPowerUsageGraph(context, header);
-            }
-            else if (header->hwndFrom == context->TemperatureGraphHandle)
-            {
-                GraphicsDeviceNotifyTemperatureGraph(context, header);
-            }
-            else if (header->hwndFrom == context->FanRpmGraphHandle)
-            {
-                GraphicsDeviceNotifyFanRpmGraph(context, header);
-            }
         }
         break;
     case WM_CTLCOLORBTN:

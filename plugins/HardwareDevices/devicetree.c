@@ -840,6 +840,9 @@ BOOLEAN NTAPI DeviceTreeCallback(
             menu = PhCreateEMenu();
             PhInsertEMenuItem(menu, gotoServiceItem = PhCreateEMenuItem(0, 108, L"Go to service...", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DEVICE_SEARCH_ONLINE, L"Search &online\bCtrl+M", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DEVICE_SEARCH_DRIVER_UPDATE, L"Search driver update", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, enable = PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, disable = PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, restart = PhCreateEMenuItem(0, 2, L"Restart", NULL, NULL), ULONG_MAX);
@@ -921,6 +924,44 @@ BOOLEAN NTAPI DeviceTreeCallback(
                             {
                                 if (devices[i]->InstanceId)
                                     republish |= HardwareDeviceUninstall(hwnd, devices[i]->InstanceId);
+                            }
+                        }
+                        break;
+                    case ID_DEVICE_SEARCH_ONLINE:
+                    case ID_DEVICE_SEARCH_DRIVER_UPDATE:
+                        {
+                            PPH_DEVICE_ITEM deviceItem;
+
+                            if (node->DeviceItem->DeviceInterface)
+                                deviceItem = node->DeviceItem->Parent;
+                            else
+                                deviceItem = node->DeviceItem;
+
+                            if (deviceItem)
+                            {
+                                PPH_DEVICE_PROPERTY hardwareIds = PhGetDeviceProperty(deviceItem, PhDevicePropertyHardwareIds);
+                                PPH_STRING searchId = NULL;
+
+                                if (hardwareIds->Valid && hardwareIds->StringList && hardwareIds->StringList->Count > 0)
+                                    searchId = hardwareIds->StringList->Items[0];
+                                else
+                                    searchId = deviceItem->InstanceId;
+
+                                if (searchId)
+                                {
+                                    if (selectedItem->Id == ID_DEVICE_SEARCH_ONLINE)
+                                    {
+                                        PhSearchOnlineString(hwnd, searchId->Buffer);
+                                    }
+                                    else
+                                    {
+                                        PPH_STRING encodedId = PhpEncodeDeviceQuery(searchId);
+                                        PPH_STRING url = PhFormatString(L"https://www.catalog.update.microsoft.com/search.aspx?q=%s", encodedId->Buffer);
+                                        PhShellExecute(hwnd, url->Buffer, NULL);
+                                        PhDereferenceObject(url);
+                                        PhDereferenceObject(encodedId);
+                                    }
+                                }
                             }
                         }
                         break;

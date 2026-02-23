@@ -11,6 +11,15 @@
 
 #include "devices.h"
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN RaplDeviceGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    );
+
 INT_PTR CALLBACK RaplDevicePanelDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -83,7 +92,14 @@ VOID RaplDeviceCreateGraphs(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
 {
-    Context->ProcessorGraphHandle = CreateWindow(
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = RaplDeviceGraphMessageCallback;
+    graphCreateParams.Context = Context;
+
+    Context->ProcessorGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -94,11 +110,11 @@ VOID RaplDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->ProcessorGraphHandle, TRUE);
 
-    Context->CoreGraphHandle = CreateWindow(
+    Context->CoreGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -109,11 +125,11 @@ VOID RaplDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->CoreGraphHandle, TRUE);
 
-    Context->DimmGraphHandle = CreateWindow(
+    Context->DimmGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -124,11 +140,11 @@ VOID RaplDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->DimmGraphHandle, TRUE);
 
-    Context->TotalGraphHandle = CreateWindow(
+    Context->TotalGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -139,7 +155,7 @@ VOID RaplDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->TotalGraphHandle, TRUE);
 
@@ -659,6 +675,38 @@ VOID RaplDeviceNotifyTotalGraph(
     }
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN RaplDeviceGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    PDV_RAPL_SYSINFO_CONTEXT context = (PDV_RAPL_SYSINFO_CONTEXT)Context;
+    NMHDR *header = (NMHDR *)Parameter1;
+
+    if (WindowHandle == context->ProcessorGraphHandle)
+    {
+        RaplDeviceNotifyProcessorGraph(context, header);
+    }
+    else if (WindowHandle == context->CoreGraphHandle)
+    {
+        RaplDeviceNotifyPackageGraph(context, header);
+    }
+    else if (WindowHandle == context->DimmGraphHandle)
+    {
+        RaplDeviceNotifyDimmGraph(context, header);
+    }
+    else if (WindowHandle == context->TotalGraphHandle)
+    {
+        RaplDeviceNotifyTotalGraph(context, header);
+    }
+
+    return TRUE;
+}
+
 VOID RaplDeviceTickDialog(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -769,28 +817,6 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
         {
             PhLayoutManagerLayout(&context->LayoutManager);
             RaplDeviceLayoutGraphs(context);
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            NMHDR* header = (NMHDR*)lParam;
-
-            if (header->hwndFrom == context->ProcessorGraphHandle)
-            {
-                RaplDeviceNotifyProcessorGraph(context, header);
-            }
-            else if (header->hwndFrom == context->CoreGraphHandle)
-            {
-                RaplDeviceNotifyPackageGraph(context, header);
-            }
-            else if (header->hwndFrom == context->DimmGraphHandle)
-            {
-                RaplDeviceNotifyDimmGraph(context, header);
-            }
-            else if (header->hwndFrom == context->TotalGraphHandle)
-            {
-                RaplDeviceNotifyTotalGraph(context, header);
-            }
         }
         break;
     case WM_CTLCOLORBTN:

@@ -12,6 +12,15 @@
 
 #include "devices.h"
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN NetworkDeviceGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    );
+
  VOID NetworkDeviceUpdatePanel(
      _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
      )
@@ -213,10 +222,16 @@ VOID NetworkDeviceCreateGraphs(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
     PhInitializeGraphState(&Context->GraphSendState);
     PhInitializeGraphState(&Context->GraphReceiveState);
 
-    Context->GraphSendHandle = CreateWindow(
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = NetworkDeviceGraphMessageCallback;
+    graphCreateParams.Context = Context;
+    Context->GraphSendHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -227,11 +242,11 @@ VOID NetworkDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->GraphSendHandle, TRUE);
 
-    Context->GraphReceiveHandle = CreateWindow(
+    Context->GraphReceiveHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -242,7 +257,7 @@ VOID NetworkDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->GraphReceiveHandle, TRUE);
 
@@ -514,6 +529,30 @@ VOID NetworkDeviceNotifyPackageGraph(
     }
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN NetworkDeviceGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    PDV_NETADAPTER_SYSINFO_CONTEXT context = (PDV_NETADAPTER_SYSINFO_CONTEXT)Context;
+    NMHDR *header = (NMHDR *)Parameter1;
+
+    if (WindowHandle == context->GraphSendHandle)
+    {
+        NetworkDeviceNotifyProcessorGraph(context, header);
+    }
+    else if (WindowHandle == context->GraphReceiveHandle)
+    {
+        NetworkDeviceNotifyPackageGraph(context, header);
+    }
+
+    return TRUE;
+}
+
 VOID NetworkDeviceTickDialog(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
@@ -677,20 +716,6 @@ INT_PTR CALLBACK NetworkDeviceDialogProc(
         {
             PhLayoutManagerLayout(&context->LayoutManager);
             NetworkDeviceLayoutGraphs(context);
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            NMHDR* header = (NMHDR*)lParam;
-
-            if (header->hwndFrom == context->GraphSendHandle)
-            {
-                NetworkDeviceNotifyProcessorGraph(context, header);
-            }
-            else if (header->hwndFrom == context->GraphReceiveHandle)
-            {
-                NetworkDeviceNotifyPackageGraph(context, header);
-            }
         }
         break;
     case WM_CTLCOLORBTN:

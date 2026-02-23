@@ -317,7 +317,7 @@ VOID FindGraphicsDevices(
         {DEVPROP_OPERATOR_OR_CLOSE, {0}}
     };
 
-    if (SUCCEEDED(PhDevGetObjects(
+    if (HR_SUCCESS(PhDevGetObjects(
         DevObjectTypeDeviceInterface,
         DevQueryFlagNone,
         RTL_NUMBER_OF(deviceProperties),
@@ -578,7 +578,7 @@ PPH_STRING FindGraphicsDeviceInstance(
         {DEVPROP_OPERATOR_OR_CLOSE, {0}}
     };
 
-    if (SUCCEEDED(PhDevGetObjects(
+    if (HR_SUCCESS(PhDevGetObjects(
         DevObjectTypeDeviceInterface,
         DevQueryFlagNone,
         RTL_NUMBER_OF(deviceProperties),
