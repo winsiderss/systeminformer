@@ -1769,8 +1769,9 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
         parentNode->Type = DNA_TYPE_APPDOMAIN;
         parentNode->u.AppDomain.AppDomainID = entry->AppDomainID;
         parentNode->u.AppDomain.AppDomainType = entry->AppDomainType;
-        parentNode->u.AppDomain.DisplayName = PhFormatString(L"%s [%s]",
-            PH_AUTO_T(PH_STRING, PhConcatStringRef2(&string, &entry->AppDomainName->sr))->Buffer,
+        parentNode->u.AppDomain.DisplayName = PhFormatString(L"%s%s [%s]",
+            string.Buffer,
+            PhGetStringOrDefault(entry->AppDomainName, L""),
             PhGetStringOrDefault(entry->AppDomainStage, L"Unknown")
             );
         parentNode->StructureText = parentNode->u.AppDomain.DisplayName->sr;
