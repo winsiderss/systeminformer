@@ -350,7 +350,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Prints compression statistics in aligned columns for verbose output.
         /// </summary>
-        /// <param name="file">The source file path.</param>
+        /// <param name="file">The source file path (unused, kept for signature compatibility).</param>
         /// <param name="entryName">The archive entry name.</param>
         /// <param name="originalText">Formatted original file size.</param>
         /// <param name="compressedText">Formatted compressed size.</param>
@@ -358,21 +358,18 @@ namespace CustomBuildTool
         /// <param name="Flags">Build flags for output formatting.</param>
         private static void PrintCompressionColumns(string file, string entryName, string originalText, string compressedText, double percent, BuildFlags Flags)
         {
-            // Column widths - tuned for console display
-            const int fileCol = 60;
-            const int entryCol = 30;
+            // Column width for entry name - tuned for console display
+            //const int entryCol = 50;
+            //string entryDisplay = entryName.Length > entryCol 
+            //    ? "..." + entryName[^(entryCol - 3)..] 
+            //    : entryName.PadRight(entryCol);
 
-            string fileDisplay = file.Length > fileCol ? "..." + file[^ (fileCol - 3) ..] : file.PadRight(fileCol);
-            string entryDisplay = entryName.Length > entryCol ? entryName.Substring(0, entryCol - 3) + "..." : entryName.PadRight(entryCol);
-
-            // [file] as [entry]  [orig] -> [comp] (percent)
-            Program.PrintColorMessage(fileDisplay, ConsoleColor.Cyan, false, Flags);
-            Program.PrintColorMessage(" as ", ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage(entryDisplay, ConsoleColor.Green, false, Flags);
+            // [entry]  [orig] -> [comp] (percent)
+            //Program.PrintColorMessage(entryDisplay, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage("  ", ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage(originalText.PadLeft(8), ConsoleColor.Yellow, false, Flags);
+            Program.PrintColorMessage(originalText, ConsoleColor.Yellow, false, Flags);
             Program.PrintColorMessage(" -> ", ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage(compressedText.PadLeft(8), ConsoleColor.Yellow, false, Flags);
+            Program.PrintColorMessage(compressedText, ConsoleColor.Yellow, false, Flags);
             Program.PrintColorMessage($" ({percent:0.0}% reduction)", ConsoleColor.DarkGray, true, Flags);
         }
 

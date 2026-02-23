@@ -348,6 +348,9 @@ namespace CustomBuildTool
                 if (ProgramArgs.ContainsKey("-verbose"))
                     flags |= BuildFlags.BuildVerbose;
 
+                if (ProgramArgs.ContainsKey("-cmake"))
+                    flags |= BuildFlags.BuildCMake;
+
                 if (ProgramArgs.ContainsKey("-Debug"))
                 {
                     flags |= BuildFlags.BuildDebug;
@@ -392,7 +395,10 @@ namespace CustomBuildTool
                 if (!Build.CopyWow64Files(flags))
                     Environment.Exit(1);
 
-                Build.ShowBuildStats();
+                if (ProgramArgs.ContainsKey("-verbose"))
+                {
+                    Build.ShowBuildStats();
+                }
             }
             else if (ProgramArgs.ContainsKey("-debug"))
             {

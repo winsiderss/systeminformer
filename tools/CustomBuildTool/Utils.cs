@@ -696,6 +696,8 @@ namespace CustomBuildTool
 
         public static int ExecuteCMakeCommand(string Command, BuildToolchain Toolchain)
         {
+            string fullCommand;
+            string vcvarsall = string.Empty;
             string cmakeFile = GetCMakeFilePath();
 
             if (string.IsNullOrWhiteSpace(cmakeFile))
@@ -704,16 +706,26 @@ namespace CustomBuildTool
                 return int.MaxValue;
             }
 
-            string vcvarsall = string.Empty;
-            var instance = BuildVisualStudio.GetVisualStudioInstance();
+            {
+                if (Win32.GetEnvironmentVariable("VCINSTALLDIR", out string vcInstallDir))
+                {
+                    vcvarsall = Path.Join([vcInstallDir, "Auxiliary\\Build\\vcvarsall.bat"]);
+                }
+                else
+                {
+                    var instance = BuildVisualStudio.GetVisualStudioInstance();
 
-            if (instance != null)
-            {
-                vcvarsall = Path.Join([instance.Path, "VC\\Auxiliary\\Build\\vcvarsall.bat"]);
+                    if (instance != null)
+                    {
+                        vcvarsall = Path.Join([instance.Path, "VC\\Auxiliary\\Build\\vcvarsall.bat"]);
+                    }
+                }
             }
-            else if (Win32.GetEnvironmentVariable("VCINSTALLDIR", out string vcInstallDir))
+
+            if (string.IsNullOrWhiteSpace(vcvarsall))
             {
-                vcvarsall = Path.Join([vcInstallDir, "Auxiliary\\Build\\vcvarsall.bat"]);
+                Program.PrintColorMessage("[ExecuteCMakeCommand] vcvarsall is invalid.", ConsoleColor.Red);
+                return int.MaxValue;
             }
 
             string arch = Toolchain switch
@@ -722,8 +734,6 @@ namespace CustomBuildTool
                 BuildToolchain.MsvcArm64 or BuildToolchain.ClangMsvcArm64 => "amd64_arm64",
                 _ => "amd64"
             };
-
-            string fullCommand;
 
             if (File.Exists(vcvarsall))
             {

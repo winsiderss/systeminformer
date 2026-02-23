@@ -14,7 +14,7 @@ function(si_sdkbuild target)
     add_custom_command(
         TARGET ${target}
         POST_BUILD
-        COMMAND "${SI_CUSTOM_BUILD_TOOL}" -sdk -$<CONFIG> -${SI_PLATFORM}
+        COMMAND "${SI_CUSTOM_BUILD_TOOL}" -sdk -$<CONFIG> -${SI_PLATFORM} -cmake
         WORKING_DIRECTORY "${SI_ROOT}"
         VERBATIM
     )

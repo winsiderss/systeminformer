@@ -45,11 +45,13 @@ function(_si_set_target_defaults target)
         if(arg_PLUGIN)
             set_target_properties(${target} PROPERTIES
                 RUNTIME_OUTPUT_DIRECTORY "${SI_OUTPUT_DIR}/$<CONFIG>${SI_PLATFORM_SHORT}/plugins"
+                ARCHIVE_OUTPUT_DIRECTORY "${SI_OUTPUT_DIR}/$<CONFIG>${SI_PLATFORM_SHORT}/plugins"
                 PDB_OUTPUT_DIRECTORY "${SI_OUTPUT_DIR}/$<CONFIG>${SI_PLATFORM_SHORT}/plugins"
             )
         else()
             set_target_properties(${target} PROPERTIES
                 RUNTIME_OUTPUT_DIRECTORY "${SI_OUTPUT_DIR}/$<CONFIG>${SI_PLATFORM_SHORT}"
+                ARCHIVE_OUTPUT_DIRECTORY "${SI_OUTPUT_DIR}/$<CONFIG>${SI_PLATFORM_SHORT}"
                 PDB_OUTPUT_DIRECTORY "${SI_OUTPUT_DIR}/$<CONFIG>${SI_PLATFORM_SHORT}"
             )
         endif()
@@ -117,8 +119,16 @@ function(_si_set_target_defaults target)
     endif()
 
     if (arg_PLUGIN)
-        target_link_libraries(${target} PRIVATE SystemInformer)
-        target_include_directories(${target} PRIVATE "${SI_ROOT}/plugins/include")
+        target_link_libraries(${target} PRIVATE SystemInformer thirdparty)
+        target_include_directories(${target} PRIVATE
+            "${SI_ROOT}/plugins/include"
+            "${SI_ROOT}/sdk/include"
+            "${SI_ROOT}/kphlib/include"
+        )
+        target_link_directories(${target} PRIVATE
+            "${SI_ROOT}/sdk/lib/${SI_PLATFORM_SDK_LIB}"
+            "${SI_OUTPUT_DIR}/$<CONFIG>${SI_PLATFORM_SHORT}"
+        )
     endif()
 
     if(SI_WITH_PREFAST)
