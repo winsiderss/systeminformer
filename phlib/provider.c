@@ -400,7 +400,7 @@ NTSTATUS PhSetIntervalProviderThread(
 
     interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
 
-    if (ProviderThread->UseHighResolution && NtSetTimer2_Import())
+    if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution && NtSetTimer2_Import())
     {
         LARGE_INTEGER period;
         T2_SET_PARAMETERS timerParameters;
