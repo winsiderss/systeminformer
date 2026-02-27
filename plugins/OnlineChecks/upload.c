@@ -1182,48 +1182,18 @@ NTSTATUS UploadCheckThreadStart(
 
     if (NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize64)))
     {
+        if (fileSize64.QuadPart > ScanMaxFileSize)
+        {
+            RaiseUploadError(context, L"The file is too large", ERROR_FILE_TOO_LARGE);
+            goto CleanupExit;
+        }
+
         if (context->Service == MENUITEM_VIRUSTOTAL_UPLOAD ||
             context->Service == MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE)
         {
             if (fileSize64.QuadPart < 32 * 1024 * 1024)
             {
                 context->VtApiUpload = TRUE;
-            }
-
-            if (fileSize64.QuadPart > 128 * 1024 * 1024) // 128 MB
-            {
-                RaiseUploadError(context, L"The file is too large (over 128 MB)", ERROR_FILE_TOO_LARGE);
-                goto CleanupExit;
-            }
-        }
-        else if (
-            context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD ||
-            context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE
-            )
-        {
-            if (fileSize64.QuadPart > 128 * 1024 * 1024) // 128 MB
-            {
-                RaiseUploadError(context, L"The file is too large (over 128 MB)", ERROR_FILE_TOO_LARGE);
-                goto CleanupExit;
-            }
-        }
-        else if (
-            context->Service == MENUITEM_FILESCANIO_UPLOAD ||
-            context->Service == MENUITEM_FILESCANIO_UPLOAD_SERVICE
-            )
-        {
-            if (fileSize64.QuadPart > 100 * 1024 * 1024) // 128 MB
-            {
-                RaiseUploadError(context, L"The file is too large (over 100 MB)", ERROR_FILE_TOO_LARGE);
-                goto CleanupExit;
-            }
-        }
-        else
-        {
-            if (fileSize64.QuadPart > 20 * 1024 * 1024) // 20 MB
-            {
-                RaiseUploadError(context, L"The file is too large (over 20 MB)", ERROR_FILE_TOO_LARGE);
-                goto CleanupExit;
             }
         }
 

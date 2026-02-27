@@ -30,7 +30,9 @@ PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModulesTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 
+ULONG ScanMaxFileSize = 0;
 BOOLEAN ScanningInitialized = FALSE;
+BOOLEAN ScanningEnabled = FALSE;
 BOOLEAN AutoScanningEnabled = FALSE;
 LIST_ENTRY ScanExtensionsListHead = { &ScanExtensionsListHead, &ScanExtensionsListHead };
 PH_QUEUED_LOCK ScanExtensionsListLock = PH_QUEUED_LOCK_INIT;
@@ -41,8 +43,11 @@ VOID NTAPI LoadCallback(
     _In_ PVOID Context
     )
 {
+    ScanningEnabled = !!PhGetIntegerSetting(SETTING_NAME_SCAN_ENABLED);
     AutoScanningEnabled = !!PhGetIntegerSetting(SETTING_NAME_AUTO_SCAN_ENABLED);
-    ScanningInitialized = InitializeScanning();
+    ScanMaxFileSize = PhGetIntegerSetting(SETTING_NAME_SCAN_MAX_FILE_SIZE);
+    if (ScanningEnabled)
+        ScanningInitialized = InitializeScanning();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -51,8 +56,8 @@ VOID NTAPI UnloadCallback(
     _In_ PVOID Context
     )
 {
-    if (ScanningInitialized)
-        CleanupScanning();
+   if (ScanningInitialized)
+       CleanupScanning();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -1014,7 +1019,9 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
+                { IntegerSettingType, SETTING_NAME_SCAN_ENABLED, L"0" },
                 { IntegerSettingType, SETTING_NAME_AUTO_SCAN_ENABLED, L"0" },
+                { IntegerSettingType, SETTING_NAME_SCAN_MAX_FILE_SIZE, L"8000000" }, // 128 MiB
                 { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION, L"0" },
                 { StringSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT, L"" },
                 { StringSettingType, SETTING_NAME_HYBRIDANAL_DEFAULT_PAT, L"" },

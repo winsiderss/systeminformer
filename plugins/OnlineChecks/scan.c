@@ -67,7 +67,6 @@ typedef int SQLITE_APICALL sqlite3_reset_fn(sqlite3_stmt *pStmt);
 typedef sqlite3_int64 SQLITE_APICALL sqlite3_column_int64_fn(sqlite3_stmt*, int iCol);
 typedef const void *SQLITE_APICALL sqlite3_column_text16_fn(sqlite3_stmt*, int iCol);
 
-static PH_RUNDOWN_PROTECT ScanRundown;
 static PPH_OBJECT_TYPE ScanItemObjectType;
 static PPH_OBJECT_TYPE ScanHashObjectType;
 static PH_WORK_QUEUE ScanItemWorkQueue;
@@ -81,6 +80,7 @@ static PPH_STRING ScanUnauthorizedString = NULL;
 static PPH_STRING ScanCleanString = NULL;
 static PPH_STRING ScanRateLimitedString = NULL;
 static PPH_STRING ScanUnknownString = NULL;
+static PPH_STRING ScanFileTooLarge = NULL;
 static const LONG64 ScanOKExpMin = (10LL * 24 * 60 * 60 * 10000000); // 10 days
 static const LONG64 ScanOKExpMax = (14LL * 24 * 60 * 60 * 10000000); // 14 days
 static const LONG64 ScanRateLmtExpMin = (15LL * 60 * 10000000); // 15 minutes
@@ -232,6 +232,7 @@ NTSTATUS GetFileHash(
 {
     NTSTATUS status;
     HANDLE fileHandle;
+    LARGE_INTEGER fileSize;
     KPH_HASH_INFORMATION hashInfo;
     PH_HASH_CONTEXT hashContext;
     PBYTE buffer = NULL;
@@ -250,6 +251,15 @@ NTSTATUS GetFileHash(
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY
         )))
         return status;
+
+    if (!NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)))
+        goto CleanupExit;
+
+    if (fileSize.QuadPart > ScanMaxFileSize)
+    {
+        status = STATUS_FILE_TOO_LARGE;
+        goto CleanupExit;
+    }
 
     if (KsiLevel() == KphLevelMax)
     {
@@ -324,17 +334,20 @@ BOOLEAN QueryDBVirusTotal(
     *Undetected = 0;
 
     PhAcquireQueuedLockExclusive(&ScanDBLock);
-    sqlite3_bind_text16_I(ScanDBQueryVirusTotal, 1, Hash->Buffer, (int)Hash->Length, SQLITE_TRANSIENT);
-    if (sqlite3_step_I(ScanDBQueryVirusTotal) == SQLITE_ROW)
+    if (ScanDBQueryVirusTotal)
     {
-        *HttpStatus = (ULONG)sqlite3_column_int64_I(ScanDBQueryVirusTotal, 0);
-        Expiry->QuadPart = sqlite3_column_int64_I(ScanDBQueryVirusTotal, 1);
-        *Malicious = (ULONG64)sqlite3_column_int64_I(ScanDBQueryVirusTotal, 2);
-        *Undetected = (ULONG64)sqlite3_column_int64_I(ScanDBQueryVirusTotal, 3);
-        result = TRUE;
+        sqlite3_bind_text16_I(ScanDBQueryVirusTotal, 1, Hash->Buffer, (int)Hash->Length, SQLITE_TRANSIENT);
+        if (sqlite3_step_I(ScanDBQueryVirusTotal) == SQLITE_ROW)
+        {
+            *HttpStatus = (ULONG)sqlite3_column_int64_I(ScanDBQueryVirusTotal, 0);
+            Expiry->QuadPart = sqlite3_column_int64_I(ScanDBQueryVirusTotal, 1);
+            *Malicious = (ULONG64)sqlite3_column_int64_I(ScanDBQueryVirusTotal, 2);
+            *Undetected = (ULONG64)sqlite3_column_int64_I(ScanDBQueryVirusTotal, 3);
+            result = TRUE;
+        }
+        sqlite3_step_I(ScanDBQueryVirusTotal);
+        sqlite3_reset_I(ScanDBQueryVirusTotal);
     }
-    sqlite3_step_I(ScanDBQueryVirusTotal);
-    sqlite3_reset_I(ScanDBQueryVirusTotal);
     PhReleaseQueuedLockExclusive(&ScanDBLock);
 
     return result;
@@ -355,14 +368,17 @@ VOID UpdateDBVirusTotal(
     iso = PhFormatLocalSystemTimeISO(&systemTime);
 
     PhAcquireQueuedLockExclusive(&ScanDBLock);
-    sqlite3_bind_text16_I(ScanDBInsertVirusTotal, 1, Hash->Buffer, (int)Hash->Length, SQLITE_TRANSIENT);
-    sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 2, HttpStatus);
-    sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 3, Expiry->QuadPart);
-    sqlite3_bind_text16_I(ScanDBInsertVirusTotal, 4, iso->Buffer, (int)iso->Length, SQLITE_TRANSIENT);
-    sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 5, Malicious);
-    sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 6, Undetected);
-    sqlite3_step_I(ScanDBInsertVirusTotal);
-    sqlite3_reset_I(ScanDBInsertVirusTotal);
+    if (ScanDBInsertVirusTotal)
+    {
+        sqlite3_bind_text16_I(ScanDBInsertVirusTotal, 1, Hash->Buffer, (int)Hash->Length, SQLITE_TRANSIENT);
+        sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 2, HttpStatus);
+        sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 3, Expiry->QuadPart);
+        sqlite3_bind_text16_I(ScanDBInsertVirusTotal, 4, iso->Buffer, (int)iso->Length, SQLITE_TRANSIENT);
+        sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 5, Malicious);
+        sqlite3_bind_int64_I(ScanDBInsertVirusTotal, 6, Undetected);
+        sqlite3_step_I(ScanDBInsertVirusTotal);
+        sqlite3_reset_I(ScanDBInsertVirusTotal);
+    }
     PhReleaseQueuedLockExclusive(&ScanDBLock);
 
     PhDereferenceObject(iso);
@@ -487,17 +503,20 @@ BOOLEAN QueryDBHybridAnalysis(
     *VxFamily = NULL;
 
     PhAcquireQueuedLockExclusive(&ScanDBLock);
-    sqlite3_bind_text16_I(ScanDBQueryHybridAnalysis, 1, Hash->Buffer, (int)Hash->Length, SQLITE_TRANSIENT);
-    if (sqlite3_step_I(ScanDBQueryHybridAnalysis) == SQLITE_ROW)
+    if (ScanDBQueryHybridAnalysis)
     {
-        *HttpStatus  = (ULONG)sqlite3_column_int64_I(ScanDBQueryHybridAnalysis, 0);
-        Expiry->QuadPart = sqlite3_column_int64_I(ScanDBQueryHybridAnalysis, 1);
-        *MultiscanResult = (ULONG64)sqlite3_column_int64_I(ScanDBQueryHybridAnalysis, 2);
-        *VxFamily = PhCreateString(sqlite3_column_text16_I(ScanDBQueryHybridAnalysis, 3));
-        result = TRUE;
+        sqlite3_bind_text16_I(ScanDBQueryHybridAnalysis, 1, Hash->Buffer, (int)Hash->Length, SQLITE_TRANSIENT);
+        if (sqlite3_step_I(ScanDBQueryHybridAnalysis) == SQLITE_ROW)
+        {
+            *HttpStatus = (ULONG)sqlite3_column_int64_I(ScanDBQueryHybridAnalysis, 0);
+            Expiry->QuadPart = sqlite3_column_int64_I(ScanDBQueryHybridAnalysis, 1);
+            *MultiscanResult = (ULONG64)sqlite3_column_int64_I(ScanDBQueryHybridAnalysis, 2);
+            *VxFamily = PhCreateString(sqlite3_column_text16_I(ScanDBQueryHybridAnalysis, 3));
+            result = TRUE;
+        }
+        sqlite3_step_I(ScanDBQueryHybridAnalysis);
+        sqlite3_reset_I(ScanDBQueryHybridAnalysis);
     }
-    sqlite3_step_I(ScanDBQueryHybridAnalysis);
-    sqlite3_reset_I(ScanDBQueryHybridAnalysis);
     PhReleaseQueuedLockExclusive(&ScanDBLock);
 
     return result;
@@ -520,16 +539,19 @@ VOID UpdateDBHybridAnalysis(
     iso = PhFormatLocalSystemTimeISO(&systemTime);
 
     PhAcquireQueuedLockExclusive(&ScanDBLock);
-    sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 1, Hash->Buffer, (int)Hash->Length, SQLITE_TRANSIENT);
-    sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 2, HttpStatus);
-    sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 3, Expiry->QuadPart);
-    sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 4, iso->Buffer, (int)iso->Length, SQLITE_TRANSIENT);
-    sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 5, MultiscanResult);
-    sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 6, VxFamily->Buffer, (int)VxFamily->Length, SQLITE_TRANSIENT);
-    sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 7, ThreatScore);
-    sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 8, Verdict->Buffer, (int)Verdict->Length, SQLITE_TRANSIENT);
-    sqlite3_step_I(ScanDBInsertHybridAnalysis);
-    sqlite3_reset_I(ScanDBInsertHybridAnalysis);
+    if (ScanDBInsertHybridAnalysis)
+    {
+        sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 1, Hash->Buffer, (int)Hash->Length, SQLITE_TRANSIENT);
+        sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 2, HttpStatus);
+        sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 3, Expiry->QuadPart);
+        sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 4, iso->Buffer, (int)iso->Length, SQLITE_TRANSIENT);
+        sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 5, MultiscanResult);
+        sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 6, VxFamily->Buffer, (int)VxFamily->Length, SQLITE_TRANSIENT);
+        sqlite3_bind_int64_I(ScanDBInsertHybridAnalysis, 7, ThreatScore);
+        sqlite3_bind_text16_I(ScanDBInsertHybridAnalysis, 8, Verdict->Buffer, (int)Verdict->Length, SQLITE_TRANSIENT);
+        sqlite3_step_I(ScanDBInsertHybridAnalysis);
+        sqlite3_reset_I(ScanDBInsertHybridAnalysis);
+    }
     PhReleaseQueuedLockExclusive(&ScanDBLock);
 
     PhDereferenceObject(iso);
@@ -677,9 +699,6 @@ VOID ProcessScanItem(
     if (ReadAcquire8(&Item->Abort))
         return;
 
-    if (!PhAcquireRundownProtection(&ScanRundown))
-        return;
-
     PhAcquireQueuedLockExclusive(&Item->FileHash->Lock);
     status = Item->FileHash->Status;
     if (status == STATUS_PENDING)
@@ -695,6 +714,10 @@ VOID ProcessScanItem(
             ProcessVirusTotal(Item);
         else if (Item->Type == SCAN_TYPE_HYBRIDANALYSIS)
             ProcessHybridAnalysis(Item);
+    }
+    else if (status == STATUS_FILE_TOO_LARGE)
+    {
+        SetScanResult(Item, PhReferenceObject(ScanFileTooLarge));
     }
 
     if (Item->Result == ScanScanningString)
@@ -715,8 +738,6 @@ VOID ProcessScanItem(
             Item->CallbackContext
             );
     }
-
-    PhReleaseRundownProtection(&ScanRundown);
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)
@@ -725,6 +746,13 @@ NTSTATUS ScanItemWorkerRoutine(
     )
 {
     PSLIST_ENTRY entry;
+    IO_PRIORITY_HINT ioPriority;
+    KPRIORITY priority;
+
+    PhGetThreadBasePriority(NtCurrentThread(), &priority);
+    PhSetThreadBasePriority(NtCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+    PhGetThreadIoPriority(NtCurrentThread(), &ioPriority);
+    PhSetThreadIoPriority(NtCurrentThread(), IoPriorityLow);
 
     entry = RtlInterlockedFlushSList(&ScanItemQueueListHead);
 
@@ -738,6 +766,9 @@ NTSTATUS ScanItemWorkerRoutine(
         ProcessScanItem(item);
         PhDereferenceObject(item);
     }
+
+    PhSetThreadIoPriority(NtCurrentThread(), ioPriority);
+    PhSetThreadBasePriority(NtCurrentThread(), priority);
 
     return STATUS_SUCCESS;
 }
@@ -812,10 +843,13 @@ VOID InitializeScanContext(
     )
 {
     memset(Context, 0, sizeof(SCAN_CONTEXT));
-    Context->FileHash = PhCreateObject(sizeof(SCAN_HASH), ScanHashObjectType);;
-    memset(Context->FileHash, 0, sizeof(SCAN_HASH));
-    PhInitializeQueuedLock(&Context->FileHash->Lock);
-    Context->FileHash->Status = STATUS_PENDING;
+    if (ScanHashObjectType) // checks if scanning is enabled
+    {
+        Context->FileHash = PhCreateObject(sizeof(SCAN_HASH), ScanHashObjectType);;
+        memset(Context->FileHash, 0, sizeof(SCAN_HASH));
+        PhInitializeQueuedLock(&Context->FileHash->Lock);
+        Context->FileHash->Status = STATUS_PENDING;
+    }
 }
 
 VOID EnqueueScanInternal(
@@ -1013,6 +1047,7 @@ BOOLEAN InitializeScanning(
     ScanCleanString = PhCreateString(L"Clean");
     ScanUnknownString = PhCreateString(L"Unknown");
     ScanRateLimitedString = PhCreateString(L"Rate limited...");
+    ScanFileTooLarge = PhCreateString(L"File too large");
 
     result = FALSE;
     if (!!SystemInformer_IsPortableMode())
@@ -1097,14 +1132,22 @@ VOID CleanupScanning(
     VOID
     )
 {
-    PhWaitForRundownProtection(&ScanRundown);
+    PhAcquireQueuedLockExclusive(&ScanDBLock);
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(ScanDBSQLSmts); i++)
     {
         if (*ScanDBSQLSmts[i].Smt)
+        {
             sqlite3_finalize_I(*ScanDBSQLSmts[i].Smt);
+            *ScanDBSQLSmts[i].Smt = NULL;
+        }
     }
 
     if (ScanDB)
+    {
         sqlite3_close_v2_I(ScanDB);
+        ScanDB = NULL;
+    }
+
+    PhReleaseQueuedLockExclusive(&ScanDBLock);
 }

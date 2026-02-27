@@ -27,6 +27,8 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_SCANNING),
+                PhGetIntegerSetting(SETTING_NAME_SCAN_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_AUTO_SCANNING),
                 PhGetIntegerSetting(SETTING_NAME_AUTO_SCAN_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
 
@@ -36,6 +38,8 @@ INT_PTR CALLBACK OptionsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSetIntegerSetting(SETTING_NAME_SCAN_ENABLED,
+                Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_SCANNING)) == BST_CHECKED ? 1 : 0);
             PhSetIntegerSetting(SETTING_NAME_AUTO_SCAN_ENABLED,
                 Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_AUTO_SCANNING)) == BST_CHECKED ? 1 : 0);
         }

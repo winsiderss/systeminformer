@@ -24,7 +24,9 @@
 #include "resource.h"
 
 #define PLUGIN_NAME L"OnlineChecks"
+#define SETTING_NAME_SCAN_ENABLED (PLUGIN_NAME L".EnableScanning")
 #define SETTING_NAME_AUTO_SCAN_ENABLED (PLUGIN_NAME L".EnableAutoScanning")
+#define SETTING_NAME_SCAN_MAX_FILE_SIZE (PLUGIN_NAME L".ScanMaxFileSize")
 #define SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION (PLUGIN_NAME L".VirusTotalDefautAction")
 #define SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT (PLUGIN_NAME L".VirusTotalDefautPAT")
 #define SETTING_NAME_HYBRIDANAL_DEFAULT_PAT (PLUGIN_NAME L".HybridAnalysisDefautPAT")
@@ -37,6 +39,7 @@
 #define UM_SHOWDIALOG (WM_APP + 5)
 
 extern PPH_PLUGIN PluginInstance;
+extern ULONG ScanMaxFileSize;
 
 typedef struct _SERVICE_INFO
 {
