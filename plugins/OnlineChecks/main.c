@@ -31,6 +31,7 @@ PH_CALLBACK_REGISTRATION ModulesTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 
 ULONG ScanMaxFileSize = 0;
+ULONG ScanStartupDelay = 0;
 BOOLEAN ScanningInitialized = FALSE;
 BOOLEAN ScanningEnabled = FALSE;
 BOOLEAN AutoScanningEnabled = FALSE;
@@ -46,6 +47,7 @@ VOID NTAPI LoadCallback(
     ScanningEnabled = !!PhGetIntegerSetting(SETTING_NAME_SCAN_ENABLED);
     AutoScanningEnabled = !!PhGetIntegerSetting(SETTING_NAME_AUTO_SCAN_ENABLED);
     ScanMaxFileSize = PhGetIntegerSetting(SETTING_NAME_SCAN_MAX_FILE_SIZE);
+    ScanStartupDelay = PhGetIntegerSetting(SETTING_NAME_SCAN_STARTUP_DELAY);
     if (ScanningEnabled)
         ScanningInitialized = InitializeScanning();
 }
@@ -66,13 +68,12 @@ VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    static const ULONG delay = 3;
     LARGE_INTEGER systemTime;
 
     if (!ScanningInitialized)
         return;
 
-    if (PtrToUlong(Parameter) < delay)
+    if (PtrToUlong(Parameter) < ScanStartupDelay)
         return;
 
     PhQuerySystemTime(&systemTime);
@@ -102,7 +103,7 @@ VOID ProcessesUpdatedCallback(
                     fileName = PhGetFileName(extension->ModuleItem->FileName);
                 break;
             case SCAN_EXTENSION_SERVICE:
-                if ((PtrToUlong(Parameter) > delay) && extension->ServiceItem->FileName)
+                if ((PtrToUlong(Parameter) > ScanStartupDelay) && extension->ServiceItem->FileName)
                     fileName = PhGetFileName(extension->ServiceItem->FileName);
                 break;
             }
@@ -1022,6 +1023,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_SCAN_ENABLED, L"0" },
                 { IntegerSettingType, SETTING_NAME_AUTO_SCAN_ENABLED, L"0" },
                 { IntegerSettingType, SETTING_NAME_SCAN_MAX_FILE_SIZE, L"8000000" }, // 128 MiB
+                { IntegerSettingType, SETTING_NAME_SCAN_STARTUP_DELAY, L"1E" }, // 30 sec
                 { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION, L"0" },
                 { StringSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT, L"" },
                 { StringSettingType, SETTING_NAME_HYBRIDANAL_DEFAULT_PAT, L"" },
