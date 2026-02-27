@@ -441,13 +441,16 @@ NTSTATUS UploadFileThreadStart(
         switch (machineType)
         {
         case IMAGE_FILE_MACHINE_I386:
-            environmentId = 110;
+            environmentId = 110; // Windows 7 32 bit (HWP Support) 
             break;
         case IMAGE_FILE_MACHINE_AMD64:
-            environmentId = 120;
+            environmentId = 120; // Windows 7 64 bit
+            break;
+        case IMAGE_FILE_MACHINE_ARM64:
+            environmentId = 140; // Windows 11 64 bit HACK(jxy-s)
             break;
         case USHRT_MAX: // 64bit Linux
-            environmentId = 300;
+            environmentId = 310; // Linux (Ubuntu 20.04, 64 bit)
             break;
         default:
             {
