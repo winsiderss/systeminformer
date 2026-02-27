@@ -487,23 +487,58 @@ VOID PhLoadPlugins(
 
     if (pluginLoadDefault)
     {
-        // Load default plugins
-
-        for (ULONG i = 0; i < RTL_NUMBER_OF(DefaultPluginName); i++)
+        if (pluginLoadNative)
         {
-            if (PhIsPluginDisabled(&DefaultPluginName[i]))
-                continue;
+            HANDLE directoryHandle;
 
-            if (pluginFileName = PhConcatStringRef2(&pluginDirectoryPath->sr, &DefaultPluginName[i]))
+            status = PhCreateFile(
+                &directoryHandle,
+                &pluginDirectoryPath->sr,
+                FILE_LIST_DIRECTORY | SYNCHRONIZE,
+                FILE_ATTRIBUTE_DIRECTORY,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                );
+
+            if (NT_SUCCESS(status))
             {
-                status = PhLoadPlugin(&pluginFileName->sr);
-
-                if (!NT_SUCCESS(status))
+                for (ULONG i = 0; i < RTL_NUMBER_OF(DefaultPluginName); i++)
                 {
-                    PhLoadPluginErrorMessage(&pluginLoadContext, pluginFileName, status);
+                    if (PhIsPluginDisabled(&DefaultPluginName[i]))
+                        continue;
+
+                    status = PhLoadPluginImage(&DefaultPluginName[i], directoryHandle, NULL);
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        pluginFileName = PhCreateString2(&DefaultPluginName[i]);
+                        PhLoadPluginErrorMessage(&pluginLoadContext, pluginFileName, status);
+                        PhDereferenceObject(pluginFileName);
+                    }
                 }
 
-                PhDereferenceObject(pluginFileName);
+                NtClose(directoryHandle);
+            }
+        }
+        else
+        {
+            for (ULONG i = 0; i < RTL_NUMBER_OF(DefaultPluginName); i++)
+            {
+                if (PhIsPluginDisabled(&DefaultPluginName[i]))
+                    continue;
+
+                if (pluginFileName = PhConcatStringRef2(&pluginDirectoryPath->sr, &DefaultPluginName[i]))
+                {
+                    status = PhLoadPlugin(&pluginFileName->sr);
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        PhLoadPluginErrorMessage(&pluginLoadContext, pluginFileName, status);
+                    }
+
+                    PhDereferenceObject(pluginFileName);
+                }
             }
         }
     }
@@ -581,7 +616,7 @@ NTSTATUS PhLoadPlugin(
 {
     NTSTATUS status;
 
-    if (LoadLibraryEx(PhGetStringRefZ(FileName), NULL, 0))
+    if (LoadLibraryEx(PhGetStringRefZ(FileName), NULL, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32))
         status = STATUS_SUCCESS;
     else
         status = PhGetLastWin32ErrorAsNtStatus();
