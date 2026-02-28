@@ -115,6 +115,9 @@ NTSYSAPI GUID PARTITION_SPACES_GUID;
 NTSYSAPI GUID PARTITION_SYSTEM_GUID;
 #endif // PHNT_INLINE_BCD_GUIDS
 
+/**
+ * The BCD_MESSAGE_TYPE enumeration represents the types of messages for BCD operations.
+ */
 typedef enum _BCD_MESSAGE_TYPE
 {
     BCD_MESSAGE_TYPE_NONE,
@@ -427,6 +430,9 @@ typedef enum _BCD_APPLICATION_OBJECT_TYPE
     BCD_APPLICATION_OBJECT_RESERVED = 0xFFFFF // 0x000fffff
 } BCD_APPLICATION_OBJECT_TYPE;
 
+/**
+ * The BCD_APPLICATION_IMAGE_TYPE enumeration represents the types of images for BCD applications.
+ */
 typedef enum _BCD_APPLICATION_IMAGE_TYPE
 {
     BCD_APPLICATION_IMAGE_NONE,
@@ -436,6 +442,9 @@ typedef enum _BCD_APPLICATION_IMAGE_TYPE
     BCD_APPLICATION_IMAGE_REALMODE_CODE, // 0x00400000
 } BCD_APPLICATION_IMAGE_TYPE;
 
+/**
+ * The BCD_INHERITED_CLASS_TYPE enumeration represents the classes of inherited BCD objects.
+ */
 typedef enum _BCD_INHERITED_CLASS_TYPE
 {
     BCD_INHERITED_CLASS_NONE,
@@ -759,6 +768,9 @@ BcdQueryObject(
     _Out_ PGUID Identifier
     );
 
+/**
+ * The BCD_ELEMENT_DATATYPE_FORMAT enumeration represents the data formats for BCD elements.
+ */
 typedef enum _BCD_ELEMENT_DATATYPE_FORMAT
 {
     BCD_ELEMENT_DATATYPE_FORMAT_UNKNOWN,
@@ -772,6 +784,9 @@ typedef enum _BCD_ELEMENT_DATATYPE_FORMAT
     BCD_ELEMENT_DATATYPE_FORMAT_BINARY // 0x08000000
 } BCD_ELEMENT_DATATYPE_FORMAT;
 
+/**
+ * The BCD_ELEMENT_DATATYPE_CLASS enumeration represents the classes for BCD elements.
+ */
 typedef enum _BCD_ELEMENT_DATATYPE_CLASS
 {
     BCD_ELEMENT_DATATYPE_CLASS_NONE,
@@ -782,6 +797,9 @@ typedef enum _BCD_ELEMENT_DATATYPE_CLASS
     BCD_ELEMENT_DATATYPE_CLASS_OEM // 0x50000000
 } BCD_ELEMENT_DATATYPE_CLASS;
 
+/**
+ * The BCD_ELEMENT_DEVICE_TYPE enumeration represents the types of devices for BCD elements.
+ */
 typedef enum _BCD_ELEMENT_DEVICE_TYPE
 {
     BCD_ELEMENT_DEVICE_TYPE_NONE,
@@ -797,16 +815,47 @@ typedef enum _BCD_ELEMENT_DEVICE_TYPE
     BCD_ELEMENT_DEVICE_TYPE_COMPOSITE
 } BCD_ELEMENT_DEVICE_TYPE;
 
+/**
+ * Macro to construct a BCD element data type value from its class, format, and subtype.
+ *
+ * \param Class The class of the BCD element.
+ * \param Format The format of the BCD element data.
+ * \param Subtype The subtype identifier for the element.
+ * \return A ULONG value representing the combined BCD element data type.
+ */
 #define MAKE_BCDE_DATA_TYPE(Class, Format, Subtype) \
     (((((ULONG)(Class)) & 0xF) << 28) | ((((ULONG)(Format)) & 0xF) << 24) | (((ULONG)(Subtype)) & 0x00FFFFFF))
 
+/**
+ * Macro to extract the BCD element class from a given data type value.
+ *
+ * \param DataType The value containing the BCD element information.
+ * \return The extracted BCD_ELEMENT_DATATYPE_CLASS.
+ */
 #define GET_BCDE_DATA_CLASS(DataType) \
     ((BCD_ELEMENT_DATATYPE_CLASS)(((((ULONG)(DataType))) >> 28) & 0xF))
+
+/**
+ * Macro to extract the BCD element data format from a given data type value.
+ *
+ * \param DataType The value containing the BCD element information.
+ * \return The extracted BCD_ELEMENT_DATATYPE_FORMAT.
+ */
 #define GET_BCDE_DATA_FORMAT(DataType) \
     ((BCD_ELEMENT_DATATYPE_FORMAT)(((((ULONG)(DataType))) >> 24) & 0xF))
+
+/**
+ * Macro to extract the BCD element subtype identifier from a given data type value.
+ *
+ * \param DataType The value containing the BCD element information.
+ * \return The extracted subtype identifier as a ULONG value.
+ */
 #define GET_BCDE_DATA_SUBTYPE(DataType) \
     ((ULONG)((((ULONG)(DataType))) & 0x00FFFFFF))
 
+/**
+ * The BCD_ELEMENT_DATATYPE union represents the data type for a BCD element.
+ */
 typedef union _BCD_ELEMENT_DATATYPE
 {
     ULONG PackedValue;
@@ -840,6 +889,9 @@ BcdEnumerateElementTypes(
     _Out_ PULONG ElementCount
     );
 
+/**
+ * The BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION structure contains information about a qualified partition.
+ */
 typedef struct _BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION
 {
     ULONG PartitionStyle;
@@ -859,6 +911,9 @@ typedef struct _BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION
     };
 } BCD_ELEMENT_DEVICE_QUALIFIED_PARTITION, *PBCD_ELEMENT_DEVICE_QUALIFIED_PARTITION;
 
+/**
+ * The BCD_ELEMENT_DEVICE structure contains information about a BCD device element.
+ */
 typedef struct _BCD_ELEMENT_DEVICE
 {
     ULONG DeviceType;
@@ -893,31 +948,49 @@ typedef struct _BCD_ELEMENT_DEVICE
     };
 } BCD_ELEMENT_DEVICE, *PBCD_ELEMENT_DEVICE;
 
+/**
+ * The BCD_ELEMENT_STRING structure contains a string value for a BCD element.
+ */
 typedef struct _BCD_ELEMENT_STRING
 {
     WCHAR Value[ANYSIZE_ARRAY];
 } BCD_ELEMENT_STRING, *PBCD_ELEMENT_STRING;
 
+/**
+ * The BCD_ELEMENT_OBJECT structure contains a GUID value for a BCD object element.
+ */
 typedef struct _BCD_ELEMENT_OBJECT
 {
     GUID Object;
 } BCD_ELEMENT_OBJECT, *PBCD_ELEMENT_OBJECT;
 
+/**
+ * The BCD_ELEMENT_OBJECT_LIST structure contains a list of GUIDs for a BCD object list element.
+ */
 typedef struct _BCD_ELEMENT_OBJECT_LIST
 {
     GUID ObjectList[ANYSIZE_ARRAY];
 } BCD_ELEMENT_OBJECT_LIST, *PBCD_ELEMENT_OBJECT_LIST;
 
+/**
+ * The BCD_ELEMENT_INTEGER structure contains a 64-bit integer value for a BCD element.
+ */
 typedef struct _BCD_ELEMENT_INTEGER
 {
     ULONG64 Value;
 } BCD_ELEMENT_INTEGER, *PBCD_ELEMENT_INTEGER;
 
+/**
+ * The BCD_ELEMENT_INTEGER_LIST structure contains a list of 64-bit integers for a BCD element.
+ */
 typedef struct _BCD_ELEMENT_INTEGER_LIST
 {
     ULONG64 Value[ANYSIZE_ARRAY];
 } BCD_ELEMENT_INTEGER_LIST, *PBCD_ELEMENT_INTEGER_LIST;
 
+/**
+ * The BCD_ELEMENT_BOOLEAN structure contains a boolean value for a BCD element.
+ */
 typedef struct _BCD_ELEMENT_BOOLEAN
 {
     BOOLEAN Value;
@@ -926,6 +999,9 @@ typedef struct _BCD_ELEMENT_BOOLEAN
 
 #define BCD_ELEMENT_DESCRIPTION_VERSION 0x1
 
+/**
+ * The BCD_ELEMENT_DESCRIPTION structure contains information about a BCD element.
+ */
 typedef struct BCD_ELEMENT_DESCRIPTION
 {
     ULONG Version; // BCD_ELEMENT_DESCRIPTION_VERSION
@@ -933,6 +1009,9 @@ typedef struct BCD_ELEMENT_DESCRIPTION
     ULONG DataSize;
 } BCD_ELEMENT_DESCRIPTION, *PBCD_ELEMENT_DESCRIPTION;
 
+/**
+ * The BCD_ELEMENT structure contains information about a BCD element.
+ */
 typedef struct _BCD_ELEMENT
 {
     PBCD_ELEMENT_DESCRIPTION Description;
@@ -1531,12 +1610,12 @@ typedef enum _BcdLibraryElementTypes
     /// <remarks>0x1200001D</remarks>
     BcdLibraryString_DebuggerNetKey = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_STRING, 29),
     /// <summary>
-    ///
+    /// Indicates whether the network debugger is connected through a virtual machine (VM).
     /// </summary>
     /// <remarks>0x1600001E</remarks>
     BcdLibraryBoolean_DebuggerNetVM = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 30),
     /// <summary>
-    ///
+    /// Defines the host IPv6 address for the network debugger.
     /// </summary>
     /// <remarks>0x1200001F</remarks>
     BcdLibraryString_DebuggerNetHostIpv6 = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_STRING, 31),
@@ -1597,7 +1676,7 @@ typedef enum _BcdLibraryElementTypes
     /// <remarks>0x16000045</remarks>
     BcdLibraryBoolean_BsdPreserveLog = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 69),
     /// <summary>
-    ///
+    /// Indicates whether graphics mode is disabled, requiring boot applications to use text mode display.
     /// </summary>
     /// <remarks>0x16000046 - BCDE_LIBRARY_TYPE_GRAPHICS_MODE_DISABLED</remarks>
     BcdLibraryBoolean_GraphicsModeDisabled = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 70),
@@ -1701,32 +1780,32 @@ typedef enum _BcdLibraryElementTypes
     /// <remarks>0x1600006A</remarks>
     BcdLibraryBoolean_BootUxFadeDisable = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 106),
     /// <summary>
-    ///
+    /// Enables pool reservation debugging for the Boot UX (User Experience) subsystem.
     /// </summary>
     /// <remarks>0x1600006B</remarks>
     BcdLibraryBoolean_BootUxReservePoolDebug = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 107),
     /// <summary>
-    ///
+    /// Disables the Boot UX (User Experience) animation subsystem.
     /// </summary>
     /// <remarks>0x1600006C</remarks>
     BcdLibraryBoolean_BootUxDisable = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 108),
     /// <summary>
-    ///
+    /// Specifies the number of frames used for the Boot UX fade animation.
     /// </summary>
     /// <remarks>0x1500006D</remarks>
     BcdLibraryInteger_BootUxFadeFrames = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 109),
     /// <summary>
-    ///
+    /// Enables dumping of Boot UX performance statistics.
     /// </summary>
     /// <remarks>0x1600006E</remarks>
     BcdLibraryBoolean_BootUxDumpStats = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 110),
     /// <summary>
-    ///
+    /// Enables display of Boot UX performance statistics on screen.
     /// </summary>
     /// <remarks>0x1600006F</remarks>
     BcdLibraryBoolean_BootUxShowStats = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 111),
     /// <summary>
-    ///
+    /// Indicates whether the system is configured as a multi-boot system.
     /// </summary>
     /// <remarks>0x16000071</remarks>
     BcdLibraryBoolean_MultiBootSystem = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 113),
@@ -1762,12 +1841,12 @@ typedef enum _BcdLibraryElementTypes
     /// <remarks>0x17000077</remarks>
     BcdLibraryIntegerList_AllowedInMemorySettings = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 119),
     /// <summary>
-    ///
+    /// Specifies the duration in milliseconds for the Boot UX bitmap transition effect.
     /// </summary>
     /// <remarks>0x15000079</remarks>
     BcdLibraryInteger_BootUxBitmapTransitionTime = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 121),
     /// <summary>
-    ///
+    /// Indicates whether two boot images are used during the Boot UX transition animation.
     /// </summary>
     /// <remarks>0x1600007A</remarks>
     BcdLibraryBoolean_TwoBootImages = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 122),
@@ -1778,7 +1857,7 @@ typedef enum _BcdLibraryElementTypes
     /// <remarks>0x1600007B</remarks>
     BcdLibraryBoolean_ForceFipsCrypto = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 123),
     /// <summary>
-    ///
+    /// Specifies the Boot UX mode for displaying boot errors.
     /// </summary>
     /// <remarks>0x1500007D</remarks>
     BcdLibraryInteger_BootErrorUx = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 125),
@@ -1788,12 +1867,12 @@ typedef enum _BcdLibraryElementTypes
     /// <remarks>0x1600007E</remarks>
     BcdLibraryBoolean_AllowFlightSignatures = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 126),
     /// <summary>
-    ///
+    /// Specifies the format of the boot measurement log for security auditing.
     /// </summary>
     /// <remarks>0x1500007F</remarks>
     BcdLibraryInteger_BootMeasurementLogFormat = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 127),
     /// <summary>
-    ///
+    /// Specifies the display rotation angle (in degrees) to apply during boot.
     /// </summary>
     /// <remarks>0x15000080</remarks>
     BcdLibraryInteger_DisplayRotation = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 128),
@@ -1808,7 +1887,7 @@ typedef enum _BcdLibraryElementTypes
     /// <remarks>0x16000082</remarks>
     BcdLibraryBoolean_NoFirmwareSync = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 130),
     /// <summary>
-    ///
+    /// Specifies the Windows system device used for boot.
     /// </summary>
     /// <remarks>0x11000084</remarks>
     BcdLibraryDevice_WindowsSystemDevice = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_LIBRARY, BCD_ELEMENT_DATATYPE_FORMAT_DEVICE, 132),
@@ -1832,32 +1911,32 @@ typedef enum _BcdLibraryElementTypes
 typedef enum _BcdTemplateElementTypes
 {
     /// <summary>
-    ///
+    /// Specifies the device type for the setup boot template.
     /// </summary>
     /// <remarks>0x45000001</remarks>
     BcdSetupInteger_DeviceType = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_SETUPTEMPLATE, BCD_ELEMENT_DATATYPE_FORMAT_INTEGER, 1),
     /// <summary>
-    ///
+    /// Specifies the relative path to the boot application for the setup template.
     /// </summary>
     /// <remarks>0x42000002</remarks>
     BcdSetupString_ApplicationRelativePath = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_SETUPTEMPLATE, BCD_ELEMENT_DATATYPE_FORMAT_STRING, 2),
     /// <summary>
-    ///
+    /// Specifies the relative path to the RAM disk device for the setup template.
     /// </summary>
     /// <remarks>0x42000003</remarks>
     BcdSetupString_RamdiskDeviceRelativePath = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_SETUPTEMPLATE, BCD_ELEMENT_DATATYPE_FORMAT_STRING, 3),
     /// <summary>
-    ///
+    /// Indicates whether to omit OS loader elements when copying objects to the setup template.
     /// </summary>
     /// <remarks>0x46000004</remarks>
     BcdSetupBoolean_OmitOsLoaderElements = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_SETUPTEMPLATE, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 4),
     /// <summary>
-    ///
+    /// Specifies the list of element types to migrate from the setup template.
     /// </summary>
     /// <remarks>0x47000006</remarks>
     BcdSetupIntegerList_ElementsToMigrateList = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_SETUPTEMPLATE, BCD_ELEMENT_DATATYPE_FORMAT_INTEGERLIST, 6),
     /// <summary>
-    ///
+    /// Indicates whether the setup template targets the recovery operating system.
     /// </summary>
     /// <remarks>0x46000010</remarks>
     BcdSetupBoolean_RecoveryOs = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_SETUPTEMPLATE, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 16),
