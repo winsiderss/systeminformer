@@ -254,7 +254,7 @@ NTSTATUS PhStartProviderThread(
     //
     // Create the synchronization timer.
     //
-     
+
     if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution && NtCreateTimer2_Import())
     {
         status = NtCreateTimer2_Import()(
@@ -312,7 +312,7 @@ NTSTATUS PhStartProviderThread(
     status = PhCreateUserThread(
         NtCurrentProcess(),
         NULL,
-        THREAD_ALERT | SYNCHRONIZE,
+        THREAD_ALL_ACCESS, // THREAD_ALERT | SYNCHRONIZE,
         0,
         0,
         0,
@@ -583,13 +583,13 @@ BOOLEAN PhGetEnabledProvider(
 {
     PPH_PROVIDER_THREAD providerThread;
     BOOLEAN enabled;
-    
+
     providerThread = Registration->ProviderThread;
-    
+
     PhAcquireQueuedLockShared(&providerThread->Lock);
     enabled = !!Registration->Enabled;
     PhReleaseQueuedLockShared(&providerThread->Lock);
-    
+
     return enabled;
 }
 
@@ -605,9 +605,9 @@ VOID PhSetEnabledProvider(
     )
 {
     PPH_PROVIDER_THREAD providerThread;
-    
+
     providerThread = Registration->ProviderThread;
-    
+
     PhAcquireQueuedLockExclusive(&providerThread->Lock);
     Registration->Enabled = Enabled;
     PhReleaseQueuedLockExclusive(&providerThread->Lock);
