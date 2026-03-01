@@ -43,7 +43,7 @@ CONST PH_STRINGREF TaskmgrIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\
 CONST PH_STRINGREF SystemInformerIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\SystemInformer.exe");
 CONST PH_STRINGREF AppCompatFlagsLayersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers");
 CONST PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
-CONST PH_STRINGREF LocalDumpsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\Windows Error Reporting\\LocalDumps\\SystemInformer.exe");
+CONST PH_STRINGREF LocalDumpsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\Windows Error Reporting\\LocalDumps");
 
 /**
  * Deletes the uninstall keys for System Informer.
@@ -657,14 +657,13 @@ NTSTATUS SetupCreateLocalDumpsKey(
     VOID
     )
 {
+    static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"SystemInformer.exe");
     NTSTATUS status;
-    HANDLE keyHandle;
-    PH_STRINGREF dumpFolderValue;
-    ULONG dumpCountValue;
-    ULONG dumpTypeValue;
+    HANDLE keyParentHandle;
+    HANDLE keyLocalHandle;
 
     status = PhCreateKey(
-        &keyHandle,
+        &keyParentHandle,
         KEY_ALL_ACCESS | KEY_WOW64_64KEY,
         PH_KEY_LOCAL_MACHINE,
         &LocalDumpsKeyName,
@@ -675,19 +674,29 @@ NTSTATUS SetupCreateLocalDumpsKey(
 
     if (NT_SUCCESS(status))
     {
-        // Set DumpCount (REG_DWORD) = 10
-        dumpCountValue = 10;
-        PhSetValueKeyZ(keyHandle, L"DumpCount", REG_DWORD, &dumpCountValue, sizeof(ULONG));
+        status = PhCreateKey(
+            &keyLocalHandle,
+            KEY_ALL_ACCESS | KEY_WOW64_64KEY,
+            keyParentHandle,
+            &fileName,
+            OBJ_OPENIF,
+            0,
+            NULL
+            );
 
-        // Set DumpFolder (REG_SZ) = %APPDATA%\SystemInformer\CrashDumps
-        PhInitializeStringRef(&dumpFolderValue, L"%APPDATA%\\SystemInformer\\CrashDumps");
-        PhSetValueKeyZ(keyHandle, L"DumpFolder", REG_SZ, dumpFolderValue.Buffer, (ULONG)dumpFolderValue.Length + sizeof(UNICODE_NULL));
+        if (NT_SUCCESS(status))
+        {
+            // Set DumpCount (REG_DWORD) = 10
+            PhSetValueKeyUlong(keyLocalHandle, L"DumpCount", 10);
+            // Set DumpFolder (REG_SZ) = %APPDATA%\SystemInformer\CrashDumps
+            PhSetValueKeyString2Z(keyLocalHandle, L"DumpFolder", L"%APPDATA%\\SystemInformer\\CrashDumps");
+            // Set DumpType (REG_DWORD) = 1 (mini dump)
+            PhSetValueKeyUlong(keyLocalHandle, L"DumpType", 1);
 
-        // Set DumpType (REG_DWORD) = 1 (mini dump)
-        dumpTypeValue = 1;
-        PhSetValueKeyZ(keyHandle, L"DumpType", REG_DWORD, &dumpTypeValue, sizeof(ULONG));
+            NtClose(keyLocalHandle);
+        }
 
-        NtClose(keyHandle);
+        NtClose(keyParentHandle);
     }
 
     return status;
@@ -700,18 +709,32 @@ VOID SetupDeleteLocalDumpsKey(
     VOID
     )
 {
-    HANDLE keyHandle;
+    static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"SystemInformer.exe");
+    HANDLE keyParentHandle;
+    HANDLE keyLocalHandle;
 
     if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        DELETE | KEY_WOW64_64KEY,
+        &keyParentHandle,
+        KEY_READ | KEY_WOW64_64KEY,
         PH_KEY_LOCAL_MACHINE,
         &LocalDumpsKeyName,
         0
         )))
     {
-        NtDeleteKey(keyHandle);
-        NtClose(keyHandle);
+        if (NT_SUCCESS(PhOpenKey(
+            &keyLocalHandle,
+            DELETE | KEY_WOW64_64KEY,
+            keyParentHandle,
+            &fileName,
+            0
+            )))
+        {
+            NtDeleteKey(keyLocalHandle);
+
+            NtClose(keyLocalHandle);
+        }
+
+        NtClose(keyParentHandle);
     }
 }
 
