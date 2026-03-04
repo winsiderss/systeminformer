@@ -4213,6 +4213,7 @@ PPH_STRING PhDosPathNameToNtPathName(
     PPH_STRING newName = NULL;
     PH_STRINGREF prefix;
     ULONG index;
+    PH_STRINGREF name;
 
     if (PhBeginInitOnce(&PhDevicePrefixesInitOnce))
     {
@@ -4223,9 +4224,19 @@ PPH_STRING PhDosPathNameToNtPathName(
         PhEndInitOnce(&PhDevicePrefixesInitOnce);
     }
 
-    if (PATH_IS_WIN32_DRIVE_PREFIX(Name))
+    if (PhIsNullOrEmptyStringRef(Name))
+        return NULL;
+
+    name = *Name;
+
+    if (PhStartsWithStringRef(&name, &PhWin32ExtendedPathPrefix, TRUE))
     {
-        index = (ULONG)(PhUpcaseUnicodeChar(Name->Buffer[0]) - L'A');
+        PhSkipStringRef(&name, PhWin32ExtendedPathPrefix.Length);
+    }
+
+    if (PATH_IS_WIN32_DRIVE_PREFIX(&name))
+    {
+        index = (ULONG)(PhUpcaseUnicodeChar(name.Buffer[0]) - L'A');
 
         if (index >= RTL_NUMBER_OF(PhDevicePrefixes))
             return NULL;
@@ -4236,7 +4247,7 @@ PPH_STRING PhDosPathNameToNtPathName(
         if (prefix.Length != 0)
         {
             // C:\\Name -> \\Device\\HardDiskVolumeX\\Name
-            newName = PhCreateStringEx(NULL, prefix.Length + Name->Length - sizeof(WCHAR[2]));
+            newName = PhCreateStringEx(NULL, prefix.Length + name.Length - sizeof(WCHAR[2]));
             memcpy(
                 newName->Buffer,
                 prefix.Buffer,
@@ -4244,14 +4255,14 @@ PPH_STRING PhDosPathNameToNtPathName(
                 );
             memcpy(
                 PTR_ADD_OFFSET(newName->Buffer, prefix.Length),
-                PTR_ADD_OFFSET(Name->Buffer, sizeof(WCHAR[2])),
-                Name->Length - sizeof(WCHAR[2])
+                PTR_ADD_OFFSET(name.Buffer, sizeof(WCHAR[2])),
+                name.Length - sizeof(WCHAR[2])
                 );
         }
 
         PhReleaseQueuedLockShared(&PhDevicePrefixesLock);
     }
-    else if (PhStartsWithStringRef2(Name, L"\\SystemRoot", TRUE))
+    else if (PhStartsWithStringRef2(&name, L"\\SystemRoot", TRUE))
     {
         PhAcquireQueuedLockShared(&PhDevicePrefixesLock);
         PhUnicodeStringToStringRef(&PhDevicePrefixes[(ULONG)'C'-'A'], &prefix);
@@ -4261,7 +4272,7 @@ PPH_STRING PhDosPathNameToNtPathName(
             static CONST PH_STRINGREF systemRoot = PH_STRINGREF_INIT(L"\\Windows");
 
             // \\SystemRoot\\Name -> \\Device\\HardDiskVolumeX\\Windows\\Name
-            newName = PhCreateStringEx(NULL, prefix.Length + Name->Length + systemRoot.Length - sizeof(L"SystemRoot"));
+            newName = PhCreateStringEx(NULL, prefix.Length + name.Length + systemRoot.Length - sizeof(L"SystemRoot"));
             memcpy(
                 newName->Buffer,
                 prefix.Buffer,
@@ -4274,16 +4285,16 @@ PPH_STRING PhDosPathNameToNtPathName(
                 );
             memcpy(
                 PTR_ADD_OFFSET(newName->Buffer, prefix.Length + systemRoot.Length),
-                PTR_ADD_OFFSET(Name->Buffer, sizeof(L"SystemRoot")),
-                Name->Length - sizeof(L"SystemRoot")
+                PTR_ADD_OFFSET(name.Buffer, sizeof(L"SystemRoot")),
+                name.Length - sizeof(L"SystemRoot")
                 );
         }
 
         PhReleaseQueuedLockShared(&PhDevicePrefixesLock);
     }
-    else if (PATH_IS_WIN32_DOSDEVICES_PREFIX(Name))
+    else if (PATH_IS_WIN32_DOSDEVICES_PREFIX(&name))
     {
-        newName = PhResolveMountPrefix(Name, FALSE);
+        newName = PhResolveMountPrefix(&name, FALSE);
     }
 
     return newName;
