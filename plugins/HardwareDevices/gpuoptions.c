@@ -333,8 +333,10 @@ VOID FindGraphicsDevices(
         for (ULONG i = 0; i < deviceCount; i++)
         {
             PDEV_OBJECT device = &deviceObjects[i];
+            NTSTATUS status;
             D3DKMT_HANDLE adapterHandle;
             PGPU_ENUM_ENTRY entry;
+            PPH_STRING locationString = NULL;
             ULONG propertyCount;
             const DEVPROPERTY* propertyList;
             DEVPROPCOMPKEY requestedProperties[] =
@@ -350,9 +352,12 @@ VOID FindGraphicsDevices(
             entry->DevicePath = PhCreateString(device->pszObjectId);
             entry->AdapterLuid.LowPart = i;
 
-            if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(entry->DevicePath))))
+            status = GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(entry->DevicePath));
+
+            if (NT_SUCCESS(status))
             {
                 GX_ADAPTER_ATTRIBUTES adapterAttributes;
+                D3DKMT_QUERY_DEVICE_IDS deviceIds = { 0 };
 
                 entry->DevicePresent = TRUE;
 
@@ -365,7 +370,36 @@ VOID FindGraphicsDevices(
                 }
 
                 if (GraphicsDeviceIsSoftwareDevice(adapterHandle))
+                {
                     entry->SoftwareDevice = TRUE;
+                }
+
+                // Physical adapter index / device ids (may be used to construct location)
+                status = GraphicsQueryAdapterInformation(
+                    adapterHandle,
+                    KMTQAITYPE_PHYSICALADAPTERDEVICEIDS,
+                    &deviceIds,
+                    sizeof(deviceIds)
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    SIZE_T returnLength;
+                    PH_FORMAT format[2];
+                    WCHAR formatBuffer[512];
+
+                    PhInitFormatS(&format[0], entry->NpuDevice ? L"NPU " : L"GPU ");
+                    PhInitFormatU(&format[1], deviceIds.PhysicalAdapterIndex);
+
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+                    {
+                        locationString = PhCreateStringEx(formatBuffer, returnLength - sizeof(UNICODE_NULL));
+                    }
+                    else
+                    {
+                        locationString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                    }
+                }
 
                 GraphicsCloseAdapterHandle(adapterHandle);
             }
@@ -377,8 +411,6 @@ VOID FindGraphicsDevices(
 
             //if (entry->DevicePresent)
             {
-                PPH_STRING locationString = NULL;
-
                 if (SUCCEEDED(PhDevGetObjectProperties(
                     DevObjectTypeDevice,
                     device->pProperties[0].Buffer,
@@ -395,7 +427,7 @@ VOID FindGraphicsDevices(
                     string.Length = propertyList[0].BufferSize ? propertyList[0].BufferSize - sizeof(UNICODE_NULL) : 0;
                     entry->DeviceName = PhLoadIndirectString(&string);
 
-                    if (propertyList[1].BufferSize)
+                    if (PhIsNullOrEmptyString(locationString) && propertyList[2].BufferSize)
                     {
                         SIZE_T returnLength;
                         PH_FORMAT format[2];
@@ -419,18 +451,18 @@ VOID FindGraphicsDevices(
                         entry->AdapterLuid = *(PLUID)propertyList[3].Buffer;
                     }
 
-                    if (locationString)
-                    {
-                        PhMoveReference(&entry->DeviceName, PhFormatString(
-                            L"%s [%s]",
-                            PhGetString(locationString),
-                            PhGetString(entry->DeviceName)
-                            ));
-                        PhDereferenceObject(locationString);
-                    }
-
                     PhDevFreeObjectProperties(propertyCount, propertyList);
                 }
+            }
+
+            if (locationString)
+            {
+                PhMoveReference(&entry->DeviceName, PhFormatString(
+                    L"%s [%s]",
+                    PhGetString(locationString),
+                    PhGetString(entry->DeviceName)
+                    ));
+                PhDereferenceObject(locationString);
             }
 
             // Avoid duplicates, querying for GUID_DISPLAY_DEVICE_ARRIVAL and
