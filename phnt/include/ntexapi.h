@@ -2429,7 +2429,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemEnergyEstimationConfigInformation,                // q: SYSTEM_ENERGY_ESTIMATION_CONFIG_INFORMATION
     SystemHypervisorDetailInformation,                      // q: SYSTEM_HYPERVISOR_DETAIL_INFORMATION
     SystemProcessorCycleStatsInformation,                   // q: SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION (EX in: USHORT ProcessorGroup) // NtQuerySystemInformationEx // 160
-    SystemVmGenerationCountInformation,                     // s:
+    SystemVmGenerationCountInformation,                     // s: PHYSICAL_ADDRESS (kernel-mode only) (vmgencounter.sys)
     SystemTrustedPlatformModuleInformation,                 // q: SYSTEM_TPM_INFORMATION
     SystemKernelDebuggerFlags,                              // q: SYSTEM_KERNEL_DEBUGGER_FLAGS
     SystemCodeIntegrityPolicyInformation,                   // qs: SYSTEM_CODEINTEGRITYPOLICY_INFORMATION
@@ -3822,11 +3822,19 @@ typedef enum _SYSTEM_MEMORY_LIST_COMMAND
     MemoryCommandMax
 } SYSTEM_MEMORY_LIST_COMMAND;
 
-// private
+/**
+ * The SYSTEM_THREAD_CID_PRIORITY_INFORMATION structure is used with NtSetSystemInformation
+ * to set the priority of a thread by its client ID (process ID and thread ID) without
+ * requiring a thread handle.
+ *
+ * \remarks This structure is used with the SystemThreadPriorityClientIdInformation
+ * information class (0x52). The caller must have SeIncreaseBasePriorityPrivilege
+ * to raise a thread's priority above normal.
+ */
 typedef struct _SYSTEM_THREAD_CID_PRIORITY_INFORMATION
 {
-    CLIENT_ID ClientId;
-    KPRIORITY Priority;
+    CLIENT_ID ClientId; // The process and thread identifiers of the target thread.
+    KPRIORITY Priority; // The new priority value to assign to the thread.
 } SYSTEM_THREAD_CID_PRIORITY_INFORMATION, *PSYSTEM_THREAD_CID_PRIORITY_INFORMATION;
 
 /**
