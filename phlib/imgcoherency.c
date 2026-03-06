@@ -534,11 +534,11 @@ NTSTATUS PhpAnalyzeImageCoherencyInspect(
     //
     if (LeftCount > RightCount)
     {
-        Context->TotalBytes += (LeftCount - RightCount);
+        Context->TotalBytes += ((SIZE_T)LeftCount - (SIZE_T)RightCount);
     }
     else if (LeftCount < RightCount)
     {
-        Context->TotalBytes += (RightCount - LeftCount);
+        Context->TotalBytes += ((SIZE_T)RightCount - (SIZE_T)LeftCount);
     }
 
     return status;
