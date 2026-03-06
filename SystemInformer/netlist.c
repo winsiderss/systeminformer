@@ -51,7 +51,7 @@ LONG PhpNetworkTreeNewPostSortFunction(
     );
 
 BOOLEAN NTAPI PhpNetworkTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -562,7 +562,7 @@ BEGIN_SORT_FUNCTION(HvService)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpNetworkTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -571,7 +571,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 {
     PPH_NETWORK_NODE node;
 
-    if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &NetworkTreeListCm))
+    if (PhCmForwardMessage(WindowHandle, Message, Parameter1, Parameter2, &NetworkTreeListCm))
         return TRUE;
 
     switch (Message)
@@ -582,7 +582,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static _CoreCrtNonSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Process),
                     SORT_FUNCTION(Pid),
@@ -599,7 +599,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     SORT_FUNCTION(TimeStamp),
                     SORT_FUNCTION(HvService),
                 };
-                int (__cdecl *sortFunction)(const void *, const void *);
+                _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PHNETLC_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -847,7 +847,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             NetworkTreeListSortOrder = sorting->SortOrder;
 
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -871,7 +871,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             PH_TN_COLUMN_MENU_DATA data;
 
             memset(&data, 0, sizeof(PH_TN_COLUMN_MENU_DATA));
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = PHNETLC_PROCESS;
             data.DefaultSortOrder = AscendingSortOrder;
@@ -879,7 +879,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 
             data.Selection = PhShowEMenu(
                 data.Menu,
-                hwnd,
+                WindowHandle,
                 PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP,
                 data.MouseEvent->ScreenLocation.x,

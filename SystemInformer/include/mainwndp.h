@@ -107,7 +107,7 @@ VOID PhMwpInvokeUpdateWindowFont(
     );
 
 VOID PhMwpInvokeUpdateWindowFontMonospace(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_opt_ PVOID Parameter
     );
 
@@ -346,7 +346,7 @@ VOID PhMwpDispatchMenuCommand(
     );
 
 VOID PhMwpInitializeSubMenu(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_EMENU Menu,
     _In_ ULONG Index
     );

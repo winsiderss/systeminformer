@@ -716,7 +716,7 @@ BEGIN_SORT_FUNCTION(MemoryType)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -826,7 +826,7 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
             context->TreeNewSortColumn = sorting->SortColumn;
             context->TreeNewSortOrder = sorting->SortOrder;
 
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -841,8 +841,8 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
                     {
                         PPH_STRING text;
 
-                        text = PhGetTreeNewText(hwnd, 0);
-                        PhSetClipboardString(hwnd, &text->sr);
+                        text = PhGetTreeNewText(WindowHandle, 0);
+                        PhSetClipboardString(WindowHandle, &text->sr);
                         PhDereferenceObject(text);
                     }
                 }
@@ -875,13 +875,13 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
         {
             PH_TN_COLUMN_MENU_DATA data;
 
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = AscendingSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+            data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);

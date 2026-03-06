@@ -3271,7 +3271,7 @@ VOID PhRunAsPackageUpdateNode(
 }
 
 BOOLEAN NTAPI PhRunAsPackageTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -3290,12 +3290,12 @@ BOOLEAN NTAPI PhRunAsPackageTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Name),
                     SORT_FUNCTION(Version)
                 };
-                int (__cdecl *sortFunction)(void *, const void *, const void *);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PH_RUNASPACKAGE_TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -3358,7 +3358,7 @@ BOOLEAN NTAPI PhRunAsPackageTreeNewCallback(
             context->TreeNewSortOrder = sorting->SortOrder;
 
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -3394,7 +3394,7 @@ BOOLEAN NTAPI PhRunAsPackageTreeNewCallback(
                     SIZE textSize;
                     LONG dpiValue;
 
-                    dpiValue = PhGetWindowDpi(hwnd);
+                    dpiValue = PhGetWindowDpi(WindowHandle);
 
                     rect.left += PhGetDpi(15, dpiValue);
                     rect.top += PhGetDpi(5, dpiValue);

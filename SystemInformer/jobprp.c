@@ -32,7 +32,7 @@ typedef struct _JOB_PAGE_CONTEXT
 } JOB_PAGE_CONTEXT, *PJOB_PAGE_CONTEXT;
 
 INT CALLBACK PhpJobPropPageProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
     );
@@ -125,7 +125,7 @@ HPROPSHEETPAGE PhCreateJobPage(
 }
 
 INT CALLBACK PhpJobPropPageProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
     )

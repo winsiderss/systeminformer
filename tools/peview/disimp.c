@@ -912,6 +912,14 @@ PV_VAL PvBackSliceResolveRegRedecodeInternal(
                 ULONG64 memoryVa = 0;
                 BOOLEAN vaResolved = FALSE;
 
+                dprintf(
+                    "PvBackSliceResolveRegRedecodeInternal: %s %s, [%s + 0x%llx]\n", 
+                    ZydisMnemonicGetString(instruction.mnemonic),
+                    ZydisRegisterGetString(dst->reg.value),
+                    ZydisRegisterGetString(src->mem.base),
+                    src->mem.disp.value
+                    );
+
                 if (is64 && src->mem.base == ZYDIS_REGISTER_RIP)
                 {
                     memoryVa = PvRipTarget(SectionBaseVa + (ULONG64)instOffset, instruction.length, src->mem.disp.value);
@@ -1160,6 +1168,12 @@ PV_VAL PvBackSliceResolveRegWindow(
     _In_ ULONG Depth
     )
 {
+    if (Window->Count == 0)
+    {
+        dprintf("PvBackSliceResolveRegWindow: empty window\n");
+        return PvValUnknownType();
+    }
+
     ULONG maxScan = min(Window->Count - 1, PV_BACKSLICE_WINDOW_SIZE);
     BOOLEAN is64 = (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC);
     ZydisRegister regNorm = PvNormalizeGprRegister(Register, is64);
@@ -1864,7 +1878,7 @@ VOID PvScanImageForPage(
 
                         if (targetName)
                         {
-                            dprintf("PvScanImageForPage: Found register IAT call: %S at 0x%llx\n", targetName, ip);
+                            dprintf("PvScanImageForPage: Found register CALL to IAT: %S at 0x%llx\n", targetName, ip);
                         }
                     }
                 }
@@ -1875,28 +1889,34 @@ VOID PvScanImageForPage(
                         PvRipTarget(ip, instruction.length, operands[0].imm.value.s) :
                         (ULONG64)operands[0].imm.value.u;
 
-                    ULONG thunkRva = (ULONG)(thunkVa - imageBase);
-                    PVOID thunkCode = PhMappedImageRvaToVa(&PvMappedImage, thunkRva, NULL);
+                    // Validate thunk VA against image base and 32-bit RVA range before casting.
+                    if (thunkVa >= imageBase) {
+                        ULONG64 delta = thunkVa - imageBase;
+                        if (delta <= UINT_MAX) {
+                            ULONG thunkRva = (ULONG)delta;
+                            PVOID thunkCode = PhMappedImageRvaToVa(&PvMappedImage, thunkRva, NULL);
 
-                    if (thunkCode)
-                    {
-                        ZydisDecodedInstruction thunkInstr;
-                        ZydisDecodedOperand thunkOps[ZYDIS_MAX_OPERAND_COUNT];
-
-                        if (ZYAN_SUCCESS(ZydisDecoderDecodeFull(&decoder, thunkCode, 15, &thunkInstr, thunkOps)))
-                        {
-                            if (thunkInstr.mnemonic == ZYDIS_MNEMONIC_JMP && thunkOps[0].type == ZYDIS_OPERAND_TYPE_MEMORY)
+                            if (thunkCode)
                             {
-                                ULONG64 iatVa = is64Machine ?
-                                    PvRipTarget(thunkVa, thunkInstr.length, thunkOps[0].mem.disp.value) :
-                                    (ULONG64)thunkOps[0].mem.disp.value;
+                                ZydisDecodedInstruction thunkInstr;
+                                ZydisDecodedOperand thunkOps[ZYDIS_MAX_OPERAND_COUNT];
 
-                                targetName = PvFindIatName(&Context->IatMap, iatVa);
-                                slotVa = iatVa;
-
-                                if (targetName)
+                                if (ZYAN_SUCCESS(ZydisDecoderDecodeFull(&decoder, thunkCode, 15, &thunkInstr, thunkOps)))
                                 {
-                                    dprintf("PvScanImageForPage: Found thunk IAT call: %S at 0x%llx\n", targetName, ip);
+                                    if (thunkInstr.mnemonic == ZYDIS_MNEMONIC_JMP && thunkOps[0].type == ZYDIS_OPERAND_TYPE_MEMORY)
+                                    {
+                                        ULONG64 iatVa = is64Machine ?
+                                            PvRipTarget(thunkVa, thunkInstr.length, thunkOps[0].mem.disp.value) :
+                                            (ULONG64)thunkOps[0].mem.disp.value;
+
+                                        targetName = PvFindIatName(&Context->IatMap, iatVa);
+                                        slotVa = iatVa;
+
+                                        if (targetName)
+                                        {
+                                            dprintf("PvScanImageForPage: Found thunk IAT call: %S at 0x%llx\n", targetName, ip);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -2235,6 +2255,8 @@ VOID PvInitCommonListView(
 
     PhInitializeLayoutManager(&Context->LayoutManager, WindowHandle);
     PhAddLayoutItem(&Context->LayoutManager, Context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+
+    PhInitializeQueuedLock(&Context->RowsLock);
 
     Context->StreamingEnabled = PV_APISCAN_STREAMING_DEFAULT ? TRUE : FALSE;
     Context->DecoderStreamingEnabled = PV_APISCAN_DECODER_STREAMING_DEFAULT ? TRUE : FALSE;

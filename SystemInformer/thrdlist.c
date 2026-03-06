@@ -54,7 +54,7 @@ LONG PhpThreadTreeNewPostSortFunction(
     );
 
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -1360,7 +1360,7 @@ BEGIN_SORT_FUNCTION(ActualBasePriority)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -1370,7 +1370,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
     PPH_THREAD_LIST_CONTEXT context = Context;
     PPH_THREAD_NODE node;
 
-    if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
+    if (PhCmForwardMessage(WindowHandle, Message, Parameter1, Parameter2, &context->Cm))
         return TRUE;
 
     switch (Message)
@@ -1381,7 +1381,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Tid),
                     SORT_FUNCTION(Cpu),
@@ -1432,7 +1432,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(HasRpc),
                     SORT_FUNCTION(ActualBasePriority),
                 };
-                int (__cdecl *sortFunction)(void *, const void *, const void *);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PH_THREAD_TREELIST_COLUMN_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -2464,7 +2464,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             context->TreeNewSortOrder = sorting->SortOrder;
 
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -2494,13 +2494,13 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             // co-operate with the column adjustments (e.g. Cycles Delta vs Context Switches Delta,
             // Service column).
 
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = PH_THREAD_TREELIST_COLUMN_CYCLESDELTA;
             data.DefaultSortOrder = DescendingSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+            data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);

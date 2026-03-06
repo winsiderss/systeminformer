@@ -125,17 +125,17 @@ VOID InitializeTreeNewObjectExtensions(
     );
 
 VOID DispatchTreeNewMessage(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 #define DNTHTNC_APPDOMAIN 1
 
 VOID ThreadTreeNewInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID ThreadTreeNewUninitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 #endif

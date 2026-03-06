@@ -174,7 +174,7 @@ static CONST PH_STRINGREF PhpEmptyTokenClaimsText = PH_STRINGREF_INIT(L"There ar
 static CONST PH_STRINGREF PhpEmptyTokenCapabilitiesText = PH_STRINGREF_INIT(L"There are no capabilities to display.");
 
 UINT CALLBACK PhpTokenPropPageProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
     );
@@ -214,7 +214,7 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
     );
 
 BOOLEAN NTAPI PhpAttributeTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -371,7 +371,7 @@ HPROPSHEETPAGE PhCreateTokenPage(
 }
 
 UINT CALLBACK PhpTokenPropPageProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
     )
@@ -2963,7 +2963,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 }
 
 BOOLEAN NTAPI PhpAttributeTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -3022,8 +3022,8 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
                 {
                     PPH_STRING text;
 
-                    text = PhGetTreeNewText(hwnd, 0);
-                    PhSetClipboardString(hwnd, &text->sr);
+                    text = PhGetTreeNewText(WindowHandle, 0);
+                    PhSetClipboardString(WindowHandle, &text->sr);
                     PhDereferenceObject(text);
                 }
                 break;
@@ -5925,7 +5925,7 @@ BEGIN_SORT_FUNCTION(Value)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -5959,12 +5959,12 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
             {
                 if (!node)
                 {
-                    static PVOID sortFunctions[] =
+                    static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                     {
                         SORT_FUNCTION(Name),
                         SORT_FUNCTION(Value)
                     };
-                    int (__cdecl* sortFunction)(void*, const void*, const void*);
+                    _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                     static_assert(RTL_NUMBER_OF(sortFunctions) == 2, "SortFunctions must equal maximum.");
 
@@ -6033,7 +6033,7 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
             context->TreeNewSortOrder = sorting->SortOrder;
 
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -6047,8 +6047,8 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
                 {
                     PPH_STRING text;
 
-                    text = PhGetTreeNewText(hwnd, 0);
-                    PhSetClipboardString(hwnd, &text->sr);
+                    text = PhGetTreeNewText(WindowHandle, 0);
+                    PhSetClipboardString(WindowHandle, &text->sr);
                     PhDereferenceObject(text);
                 }
                 break;
@@ -6066,13 +6066,13 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
         {
             PH_TN_COLUMN_MENU_DATA data;
 
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = AscendingSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+            data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);

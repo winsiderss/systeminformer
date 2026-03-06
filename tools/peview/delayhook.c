@@ -953,7 +953,6 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
             if (!GetClassName(createStruct->hwndParent, windowClassName, RTL_NUMBER_OF(windowClassName)))
                 windowClassName[0] = UNICODE_NULL;
 
-            if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
             {
                 ULONG windowStyle = PhGetWindowStyle(createStruct->hwndParent);
 

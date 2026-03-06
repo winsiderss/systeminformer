@@ -195,14 +195,14 @@ INT CALLBACK PhpPropSheetProc(
 }
 
 PPH_PROCESS_PROPSHEETCONTEXT PhpGetPropSheetContext(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
-    return PhGetWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
+    return PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 }
 
 LRESULT CALLBACK PhpPropSheetWndProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
@@ -211,7 +211,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
     PPH_PROCESS_PROPSHEETCONTEXT propSheetContext;
     WNDPROC oldWndProc;
 
-    propSheetContext = PhGetWindowContext(hwnd, 0xF);
+    propSheetContext = PhGetWindowContext(WindowHandle, 0xF);
 
     if (!propSheetContext)
         return 0;
@@ -226,15 +226,15 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             TCITEM tabItem;
             WCHAR text[128] = L"";
 
-            PhKillTimer(hwnd, 2000);
+            PhKillTimer(WindowHandle, 2000);
 
             // Save the window position and size.
 
-            PhSaveWindowPlacementToSetting(SETTING_PROC_PROP_POSITION, SETTING_PROC_PROP_SIZE, hwnd);
+            PhSaveWindowPlacementToSetting(SETTING_PROC_PROP_POSITION, SETTING_PROC_PROP_SIZE, WindowHandle);
 
             // Save the selected tab.
 
-            tabControl = PropSheet_GetTabControl(hwnd);
+            tabControl = PropSheet_GetTabControl(WindowHandle);
 
             tabItem.mask = TCIF_TEXT;
             tabItem.pszText = text;
@@ -248,13 +248,13 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case WM_NCDESTROY:
         {
-            PhUnregisterWindowCallback(hwnd);
+            PhUnregisterWindowCallback(WindowHandle);
 
-            PhSetWindowProcedure(hwnd, oldWndProc);
-            PhRemoveWindowContext(hwnd, 0xF);
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
+            PhRemoveWindowContext(WindowHandle, 0xF);
 
             PhDeleteLayoutManager(&propSheetContext->LayoutManager);
-            PhRemoveWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhFree(propSheetContext);
         }
@@ -268,7 +268,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             case SC_CLOSE:
                 {
                     PostQuitMessage(0);
-                    //SetWindowLongPtr(hwnd, DWLP_MSGRESULT, TRUE);
+                    //SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
                     //return TRUE;
                 }
                 break;
@@ -289,7 +289,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case WM_SIZE:
         {
-            if (!IsMinimized(hwnd))
+            if (!IsMinimized(WindowHandle))
             {
                 PhLayoutManagerLayout(&propSheetContext->LayoutManager);
             }
@@ -334,14 +334,14 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             USHORT newDpi = HIWORD(wParam);
             PRECT CONST newRect = (PRECT)lParam;
 
-            CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+            CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 
             PhLayoutManagerUpdate(&propSheetContext->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&propSheetContext->LayoutManager);
 
             {
                 SetWindowPos(
-                    hwnd,
+                    WindowHandle,
                     NULL,
                     newRect->left,
                     newRect->top,
@@ -358,7 +358,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
                 rect.top = 0;
                 rect.right = 290;
                 rect.bottom = 320;
-                MapDialogRect(hwnd, &rect);
+                MapDialogRect(WindowHandle, &rect);
                 MinimumSize = rect;
                 MinimumSize.left = 0;
             }
@@ -368,7 +368,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     }
 
-    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 }
 
 _Function_class_(PH_OPEN_OBJECT)
@@ -879,7 +879,7 @@ VOID PhpCreateProcessPropButtons(
 
 BOOLEAN PhpInitializePropSheetLayoutStage1(
     _In_ PPH_PROCESS_PROPSHEETCONTEXT Context,
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
     if (!Context->LayoutInitialized)
@@ -888,21 +888,21 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         PPH_LAYOUT_ITEM tabControlItem;
         PPH_LAYOUT_ITEM tabPageItem;
 
-        tabControlHandle = PropSheet_GetTabControl(hwnd);
+        tabControlHandle = PropSheet_GetTabControl(WindowHandle);
         tabControlItem = PhAddLayoutItem(&Context->LayoutManager, tabControlHandle, NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
         tabPageItem = PhAddLayoutItem(&Context->LayoutManager, tabControlHandle, NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
-        PhAddLayoutItem(&Context->LayoutManager, GetDlgItem(hwnd, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+        PhAddLayoutItem(&Context->LayoutManager, GetDlgItem(WindowHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
         // Create and add the buttons to the layout
-        PhpCreateProcessPropButtons(Context, hwnd);
+        PhpCreateProcessPropButtons(Context, WindowHandle);
         PhAddLayoutItem(&Context->LayoutManager, Context->OptionsButtonWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
         PhAddLayoutItem(&Context->LayoutManager, Context->ButtonsLabelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
         //PhAddLayoutItem(&Context->LayoutManager, Context->PermissionsButtonWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
 
         // Hide the OK button.
-        ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
+        ShowWindow(GetDlgItem(WindowHandle, IDOK), SW_HIDE);
         // Set the Cancel button's text to "Close".
-        PhSetDialogItemText(hwnd, IDCANCEL, L"Close");
+        PhSetDialogItemText(WindowHandle, IDCANCEL, L"Close");
 
         Context->TabPageItem = tabPageItem;
         Context->LayoutInitialized = TRUE;
@@ -914,14 +914,14 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
 }
 
 VOID PhpInitializePropSheetLayoutStage2(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
     PH_RECTANGLE windowRectangle = {0};
     RECT rect;
     LONG dpiValue;
 
-    PhLoadWindowPlacementFromSetting(SETTING_PROC_PROP_POSITION, SETTING_PROC_PROP_SIZE, hwnd);
+    PhLoadWindowPlacementFromSetting(SETTING_PROC_PROP_POSITION, SETTING_PROC_PROP_SIZE, WindowHandle);
 
     windowRectangle.Position = PhGetIntegerPairSetting(SETTING_PROC_PROP_POSITION);
     PhRectangleToRect(&rect, &windowRectangle);
@@ -1025,7 +1025,7 @@ VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
 }
 
 UINT CALLBACK PhpStandardPropPageProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
     )
@@ -1270,7 +1270,7 @@ static VOID ASSERT_DIALOGRECT(
 #endif
 
 PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor
@@ -1283,7 +1283,7 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
     BOOLEAN doLayoutStage2;
     PPH_LAYOUT_ITEM item;
 
-    parent = GetParent(hwnd);
+    parent = GetParent(WindowHandle);
     propSheetContext = PhpGetPropSheetContext(parent);
     layoutManager = &propSheetContext->LayoutManager;
 
@@ -1311,10 +1311,10 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
         // MAKE SURE THESE NUMBERS ARE CORRECT.
         dialogSize.right = 260;
         dialogSize.bottom = 260;
-        MapDialogRect(hwnd, &dialogSize);
+        MapDialogRect(WindowHandle, &dialogSize);
 
         // Get the original dialog rectangle.
-        PhGetWindowRect(hwnd, &dialogRect);
+        PhGetWindowRect(WindowHandle, &dialogRect);
         dialogRect.right = dialogRect.left + dialogSize.right;
         dialogRect.bottom = dialogRect.top + dialogSize.bottom;
 
@@ -1337,13 +1337,13 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
 }
 
 VOID PhDoPropPageLayout(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
     HWND parent;
     PPH_PROCESS_PROPSHEETCONTEXT propSheetContext;
 
-    parent = GetParent(hwnd);
+    parent = GetParent(WindowHandle);
     propSheetContext = PhpGetPropSheetContext(parent);
     PhLayoutManagerLayout(&propSheetContext->LayoutManager);
 }

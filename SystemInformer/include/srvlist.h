@@ -74,7 +74,7 @@ VOID PhServiceTreeListInitialization(
     );
 
 VOID PhInitializeServiceTreeList(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 VOID PhLoadSettingsServiceTreeList(

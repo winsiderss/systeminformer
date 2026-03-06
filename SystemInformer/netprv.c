@@ -1526,6 +1526,7 @@ VOID PhpGetHvSocket(
 }
 #endif // _WIN64
 
+_Success_(return)
 BOOLEAN PhGetNetworkConnections(
     _Out_ PPH_NETWORK_CONNECTION *Connections,
     _Out_ PULONG NumberOfConnections

@@ -80,7 +80,7 @@ VOID PhCmSetNotifyPlugin(
     );
 
 BOOLEAN PhCmForwardMessage(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,

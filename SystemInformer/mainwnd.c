@@ -4229,12 +4229,12 @@ PPH_EMENU PhpCreateIconMenu(
 /**
  * Initializes a submenu in the main window.
  *
- * \param hwnd Handle to the window that owns the menu.
+ * \param WindowHandle Handle to the window that owns the menu.
  * \param Menu Pointer to the menu structure to be initialized.
  * \param Index Index specifying which submenu to initialize.
  */
 VOID PhMwpInitializeSubMenu(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_EMENU Menu,
     _In_ ULONG Index
     )
@@ -5258,11 +5258,11 @@ VOID PhMwpInvokeUpdateWindowFont(
 /**
  * Updates the monospace font used by the UI, based on saved settings.
  *
- * \param hwnd Optional window handle associated with the update (unused in most callers).
+ * \param WindowHandle Optional window handle associated with the update (unused in most callers).
  * \param Parameter Optional parameter (unused).
  */
 VOID PhMwpInvokeUpdateWindowFontMonospace(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_opt_ PVOID Parameter
     )
 {

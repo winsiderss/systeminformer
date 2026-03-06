@@ -361,7 +361,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreePageAligned(
-    _In_opt_ _Frees_ptr_opt_ PVOID Memory
+    _In_opt_ _Frees_ptr_opt_ _Post_invalid_ PVOID Memory
     );
 
 PHLIBAPI

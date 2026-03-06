@@ -211,7 +211,7 @@ BOOLEAN PhNfpGetShowMiniInfoSectionData(
 #define NFP_ICON_RESTORE_HOVER_DELAY 1000
 
 VOID PhNfpIconClickActivateTimerProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ UINT_PTR idEvent,
     _In_ ULONG dwTime
@@ -222,7 +222,7 @@ VOID PhNfpDisableHover(
     );
 
 VOID PhNfpIconRestoreHoverTimerProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ UINT_PTR idEvent,
     _In_ ULONG dwTime
@@ -233,7 +233,7 @@ VOID PhNfpIconDisablePopupHoverWin11Workaround(
     );
 
 VOID PhNfpIconShowPopupHoverTimerProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ UINT_PTR idEvent,
     _In_ ULONG dwTime

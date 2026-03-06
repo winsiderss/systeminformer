@@ -666,7 +666,7 @@ END_SORT_FUNCTION
 
 
 BOOLEAN NTAPI PhpUserListTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -685,7 +685,7 @@ BOOLEAN NTAPI PhpUserListTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(LogonId),
                     SORT_FUNCTION(UserName),
@@ -713,7 +713,7 @@ BOOLEAN NTAPI PhpUserListTreeNewCallback(
                     SORT_FUNCTION(PasswordMustChange),
 
                 };
-                int (__cdecl *sortFunction)(void *, const void *, const void *);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PH_USER_LIST_COLUMN_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -965,7 +965,7 @@ BOOLEAN NTAPI PhpUserListTreeNewCallback(
             context->TreeNewSortColumn = sorting->SortColumn;
             context->TreeNewSortOrder = sorting->SortOrder;
 
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -980,8 +980,8 @@ BOOLEAN NTAPI PhpUserListTreeNewCallback(
                     {
                         PPH_STRING text;
 
-                        text = PhGetTreeNewText(hwnd, 0);
-                        PhSetClipboardString(hwnd, &text->sr);
+                        text = PhGetTreeNewText(WindowHandle, 0);
+                        PhSetClipboardString(WindowHandle, &text->sr);
                         PhDereferenceObject(text);
                     }
                 }
@@ -1016,7 +1016,7 @@ BOOLEAN NTAPI PhpUserListTreeNewCallback(
 
                 selectedItem = PhShowEMenu(
                     menu,
-                    hwnd,
+                    WindowHandle,
                     PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                     PH_ALIGN_LEFT | PH_ALIGN_TOP,
                     contextMenu->Location.x,
@@ -1044,13 +1044,13 @@ BOOLEAN NTAPI PhpUserListTreeNewCallback(
         {
             PH_TN_COLUMN_MENU_DATA data;
 
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = AscendingSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+            data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);

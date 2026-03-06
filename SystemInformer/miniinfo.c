@@ -103,11 +103,11 @@ VOID PhPinMiniInformation(
             if ((windowAtom = PhMipContainerInitializeWindowClass()) == INVALID_ATOM)
                 return;
 
-            PhMipContainerWindow = CreateWindowEx(
-                WS_EX_TOOLWINDOW,
+            PhMipContainerWindow = PhCreateWindowEx(
                 MAKEINTATOM(windowAtom),
                 NULL,
                 WS_BORDER | WS_THICKFRAME | WS_POPUP,
+                WS_EX_TOOLWINDOW,
                 0,
                 0,
                 400,
@@ -558,7 +558,7 @@ BOOLEAN PhMipOnNotify(
 _Success_(return)
 BOOLEAN PhMipOnCtlColorXxx(
     _In_ ULONG Message,
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ HDC hdc,
     _Out_ HBRUSH *Brush
     )
@@ -808,6 +808,7 @@ VOID PhMipInitializeParameters(
     ReleaseDC(PhMipWindow, hdc);
 }
 
+_Function_class_(PH_MINIINFO_CREATE_SECTION)
 PPH_MINIINFO_SECTION PhMipCreateSection(
     _In_ PPH_MINIINFO_SECTION Template
     )
@@ -838,6 +839,7 @@ VOID PhMipDestroySection(
     PhFree(Section);
 }
 
+_Function_class_(PH_MINIINFO_FIND_SECTION)
 PPH_MINIINFO_SECTION PhMipFindSection(
     _In_ PPH_STRINGREF Name
     )
@@ -1199,7 +1201,7 @@ VOID PhMipShowOptionsMenu(
 }
 
 LRESULT CALLBACK PhMipSectionControlHookWndProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
@@ -1207,15 +1209,15 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
 {
     WNDPROC oldWndProc;
 
-    if (!(oldWndProc = PhGetWindowContext(hwnd, 0xF)))
-        return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    if (!(oldWndProc = PhGetWindowContext(WindowHandle, 0xF)))
+        return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            PhSetWindowProcedure(hwnd, oldWndProc);
-            PhRemoveWindowContext(hwnd, 0xF);
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
+            PhRemoveWindowContext(WindowHandle, 0xF);
         }
         break;
     case WM_SETCURSOR:
@@ -1225,7 +1227,7 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
         return TRUE;
     }
 
-    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 }
 
 PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
@@ -1485,14 +1487,14 @@ VOID PhMipClearListSection(
 }
 
 LONG PhMipCalculateRowHeight(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
     LONG iconHeight;
     LONG titleAndSubtitleHeight;
     LONG dpiValue;
 
-    dpiValue = PhGetWindowDpi(hwnd);
+    dpiValue = PhGetWindowDpi(WindowHandle);
 
     iconHeight = PhGetDpi(MIP_ICON_PADDING + MIP_CELL_PADDING, dpiValue) + PhGetSystemMetrics(SM_CXICON, dpiValue);
     titleAndSubtitleHeight =
@@ -1543,7 +1545,7 @@ VOID PhMipDestroyGroupNode(
 }
 
 BOOLEAN PhMipListSectionTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2,
@@ -1597,7 +1599,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             LONG iconPadding;
             LONG cellPadding;
 
-            dpiValue = PhGetWindowDpi(hwnd);
+            dpiValue = PhGetWindowDpi(WindowHandle);
 
             width = PhGetSystemMetrics(SM_CXICON, dpiValue);
             height = PhGetSystemMetrics(SM_CYICON, dpiValue);

@@ -49,11 +49,11 @@ INT CALLBACK PhpPropSheetProc(
     );
 
 PPH_PROCESS_PROPSHEETCONTEXT PhpGetPropSheetContext(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 LRESULT CALLBACK PhpPropSheetWndProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
@@ -66,7 +66,7 @@ VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
     );
 
 UINT CALLBACK PhpStandardPropPageProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
     );
