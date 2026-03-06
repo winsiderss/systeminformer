@@ -820,10 +820,10 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             }
             else
             {
-                if (OpenDotNetPublicControlBlock_V2(
+                if (NT_SUCCESS(OpenDotNetPublicControlBlock_V2(
                     context->ProcessItem->ProcessId,
                     &context->BlockTableAddress
-                    ))
+                    )))
                 {
                     context->ControlBlockValid = TRUE;
                 }
