@@ -5,6 +5,14 @@ for /f "usebackq tokens=*" %%A in (`call "%ProgramFiles(x86)%\Microsoft Visual S
     set VSINSTALLPATH=%%A
 )
 
+if not defined VSINSTALLPATH if defined WindowsSdkDir (
+   set "VSINSTALLPATH=%WindowsSdkDir%"
+)
+
+if not defined VSINSTALLPATH if defined EWDK_ROOT (
+   set "VSINSTALLPATH=%EWDK_ROOT%"
+)
+
 if not defined VSINSTALLPATH (
     echo [-] Visual Studio not found
     goto end
@@ -12,9 +20,6 @@ if not defined VSINSTALLPATH (
 
 if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
    call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
-) else (
-    echo [-] Failed to set up build environment
-    goto end
 )
 
 echo;
