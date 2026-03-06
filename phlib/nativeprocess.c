@@ -1976,9 +1976,10 @@ NTSTATUS PhGetProcessEnvironment(
 {
     NTSTATUS status;
     PVOID environmentRemote;
-    MEMORY_BASIC_INFORMATION mbi;
+    MEMORY_BASIC_INFORMATION basicInfo;
     PVOID environment;
     SIZE_T environmentLength;
+    ULONG_PTR environmenOffset;
 
     if (IsWow64Process)
     {
@@ -2044,7 +2045,7 @@ NTSTATUS PhGetProcessEnvironment(
         ProcessHandle,
         environmentRemote,
         MemoryBasicInformation,
-        &mbi,
+        &basicInfo,
         sizeof(MEMORY_BASIC_INFORMATION),
         NULL
         )))
@@ -2052,8 +2053,37 @@ NTSTATUS PhGetProcessEnvironment(
 
     // Read in the entire region of memory.
 
+#if defined(PH_NATIVE_ENVCHECK)
+
     environmentLength = (SIZE_T)PTR_SUB_OFFSET(mbi.RegionSize,
         PTR_SUB_OFFSET(environmentRemote, mbi.BaseAddress));
+
+#else
+
+    // Check environment address is valid for the region. (dmex)
+
+    status = RtlULongPtrSub(
+        (ULONG_PTR)environmentRemote,
+        (ULONG_PTR)basicInfo.BaseAddress,
+        &environmenOffset
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (environmenOffset > (ULONG_PTR)basicInfo.RegionSize)
+        return STATUS_FAIL_CHECK;
+
+    status = RtlSizeTSub(
+        (SIZE_T)basicInfo.RegionSize,
+        (SIZE_T)environmenOffset,
+        &environmentLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+#endif
 
     environment = PhAllocatePage(environmentLength, NULL);
 
