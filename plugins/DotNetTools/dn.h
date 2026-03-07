@@ -60,8 +60,7 @@ NTSTATUS OpenDotNetPublicControlBlock_V2(
     _Out_ PVOID* BlockTableAddress
     );
 
-_Success_(return)
-BOOLEAN OpenDotNetPublicControlBlock_V4(
+NTSTATUS OpenDotNetPublicControlBlock_V4(
     _In_ BOOLEAN IsImmersive,
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE ProcessId,
