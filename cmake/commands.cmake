@@ -122,6 +122,7 @@ function(_si_set_target_defaults target)
         target_link_libraries(${target} PRIVATE SystemInformer thirdparty)
         target_include_directories(${target} PRIVATE
             "${SI_ROOT}/plugins/include"
+            "${SI_ROOT}/phnt/include"
             "${SI_ROOT}/sdk/include"
             "${SI_ROOT}/kphlib/include"
         )

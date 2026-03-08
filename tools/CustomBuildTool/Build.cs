@@ -805,13 +805,13 @@ namespace CustomBuildTool
             // Copy headers
             //
 
-            foreach (string headerFileName in BuildConfig.Build_Phnt_Headers)
-            {
-                Win32.CopyIfNewer(
-                    Path.Join([Build.BuildWorkingFolder, "\\phnt\\include\\", headerFileName]),
-                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", headerFileName]),
-                    Flags, true);
-            }
+            //foreach (string headerFileName in BuildConfig.Build_Phnt_Headers)
+            //{
+            //    Win32.CopyIfNewer(
+            //        Path.Join([Build.BuildWorkingFolder, "\\phnt\\include\\", headerFileName]),
+            //        Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", headerFileName]),
+            //        Flags, true);
+            //}
 
             foreach (string headerFileName in BuildConfig.Build_Phlib_Headers)
             {
