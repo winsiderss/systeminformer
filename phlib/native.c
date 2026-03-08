@@ -5885,7 +5885,10 @@ static BOOLEAN NTAPI PhKnownDllsHashtableEqualFunction(
     _In_ PVOID Entry2
     )
 {
-    return PhEqualStringRef(&((PPH_KNOWNDLL_CACHE_ENTRY)Entry1)->FileName->sr, &((PPH_KNOWNDLL_CACHE_ENTRY)Entry2)->FileName->sr, FALSE);
+    PPH_KNOWNDLL_CACHE_ENTRY entry1 = (PPH_KNOWNDLL_CACHE_ENTRY)Entry1;
+    PPH_KNOWNDLL_CACHE_ENTRY entry2 = (PPH_KNOWNDLL_CACHE_ENTRY)Entry2;
+
+    return PhEqualStringRef(&entry1->FileName->sr, &entry2->FileName->sr, FALSE);
 }
 
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
@@ -5893,7 +5896,9 @@ static ULONG NTAPI PhKnownDllsHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return PhHashStringRefEx(&((PPH_KNOWNDLL_CACHE_ENTRY)Entry)->FileName->sr, FALSE, PH_STRING_HASH_XXH32);
+    PPH_KNOWNDLL_CACHE_ENTRY entry = (PPH_KNOWNDLL_CACHE_ENTRY)Entry;
+
+    return PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_XXH32);
 }
 
 _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
@@ -5906,13 +5911,9 @@ static NTSTATUS NTAPI PhpKnownDllObjectsCallback(
 {
     NTSTATUS status;
     HANDLE sectionHandle;
-    UNICODE_STRING objectName;
     PVOID baseAddress;
     SIZE_T viewSize;
     PPH_STRING fileName;
-
-    if (!PhStringRefToUnicodeString(Name, &objectName))
-        goto CleanupExit;
 
     status = PhOpenSection(
         &sectionHandle,
