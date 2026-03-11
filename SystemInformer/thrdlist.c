@@ -475,7 +475,7 @@ VOID PhpUpdateThreadNodePagePriority(
 {
     ULONG pagePriorityInteger = MEMORY_PRIORITY_NORMAL + 1;
 
-    ThreadNode->PagePriority = 0;
+    ThreadNode->PagePriority = ULONG_MAX;
 
     if (ThreadNode->ThreadItem->ThreadHandle)
     {
@@ -492,7 +492,7 @@ VOID PhpUpdateThreadNodeIoPriority(
 {
     IO_PRIORITY_HINT ioPriorityInteger = MaxIoPriorityTypes;
 
-    ThreadNode->IoPriority = 0;
+    ThreadNode->IoPriority = ULONG_MAX;
 
     if (ThreadNode->ThreadItem->ThreadHandle)
     {
@@ -1705,7 +1705,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     PhpUpdateThreadNodePagePriority(node);
 
-                    if (node->PagePriority)
+                    if (node->PagePriority != ULONG_MAX && node->PagePriority <= MEMORY_PRIORITY_NORMAL)
                     {
                         pagePriority = PhPagePriorityNames[node->PagePriority];
                     }
@@ -1720,7 +1720,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     PhpUpdateThreadNodeIoPriority(node);
 
-                    if (node->IoPriority)
+                    if (node->IoPriority != ULONG_MAX && node->IoPriority >= IoPriorityVeryLow && node->IoPriority < MaxIoPriorityTypes)
                     {
                         ioPriority = PhIoPriorityHintNames[node->IoPriority];
                     }
