@@ -33,9 +33,21 @@ if not defined VSINSTALLPATH (
    goto end
 )
 
+set "VS_ARM64_SUPPORT=false"
+for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.ARM64 Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre" -property installationPath`) do (
+   set "VS_ARM64_SUPPORT=true"
+)
+
 if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
-   call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
+   if "%VS_ARM64_SUPPORT%"=="true" (
+      call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
+   ) else (
+      call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
+   )
+   if %ERRORLEVEL% neq 0 goto end
 ) else (
+   echo Warning: vcvarsall.bat not found and compilation environment variables are not defined.
+   echo The build may fail if the environment is not properly initialized.
    goto end
 )
 
@@ -48,35 +60,48 @@ if exist "tools\thirdparty\obj" (
 
 echo:
 
+echo Building thirdparty.sln [Debug32]
 msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x86 -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
+echo Building thirdparty.sln [Release32]
 msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x86 -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
+echo Building thirdparty.sln [Debug64]
 msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x64 -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
+echo Building thirdparty.sln [Release64]
 msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x64 -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=ARM64 -terminalLogger:%TLG%
-if %ERRORLEVEL% neq 0 goto end
-echo:
+if "%VS_ARM64_SUPPORT%"=="true" (
+   echo Building thirdparty.sln [DebugARM64]
+   msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=ARM64 -terminalLogger:%TLG%
+   if %ERRORLEVEL% neq 0 goto end
+   echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=ARM64 -terminalLogger:%TLG%
-if %ERRORLEVEL% neq 0 goto end
-echo:
+   echo Building thirdparty.sln [ReleaseARM64]
+   msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=ARM64 -terminalLogger:%TLG%
+   if %ERRORLEVEL% neq 0 goto end
+   echo:
+)
 
 :end
 
 REM If IS_INIT is not provided, print a message and exit
-if "%IS_INIT%"=="false" (
-pause
+if /i "%IS_INIT%"=="false" (
+   REM Avoid pause in non-interactive runs (stdin redirected).
+   set "STDIN_REDIRECTED=False"
+   for /f %%i in ('powershell -NoProfile -Command "[Console]::IsInputRedirected"') do set "STDIN_REDIRECTED=%%i"
+   REM Pause only for interactive console sessions.
+   if /i not "%STDIN_REDIRECTED%"=="True" pause
 ) else (
-exit /b 0
+   REM INIT mode is used by scripts, so return immediately.
+   exit /b 0
 )
