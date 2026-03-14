@@ -29,6 +29,29 @@
 #include "clr/corsym.h"
 #endif
 
+static CONST PH_STRINGREF DnAppDomainStageStrings[] =
+{
+    PH_STRINGREF_INIT(L"Creating"),           // STAGE_CREATING
+    PH_STRINGREF_INIT(L"ReadyForManagedCode"),// STAGE_READYFORMANAGEDCODE
+    PH_STRINGREF_INIT(L"Active"),             // STAGE_ACTIVE
+    PH_STRINGREF_INIT(L"Open"),               // STAGE_OPEN
+    PH_STRINGREF_INIT(L"UnloadRequested"),    // STAGE_UNLOAD_REQUESTED
+    PH_STRINGREF_INIT(L"Exiting"),            // STAGE_EXITING
+    PH_STRINGREF_INIT(L"Exited"),             // STAGE_EXITED
+    PH_STRINGREF_INIT(L"Finalizing"),         // STAGE_FINALIZING
+    PH_STRINGREF_INIT(L"Finalized"),          // STAGE_FINALIZED
+    PH_STRINGREF_INIT(L"HandleTableNoAccess"),// STAGE_HANDLETABLE_NOACCESS
+    PH_STRINGREF_INIT(L"Cleared"),            // STAGE_CLEARED
+    PH_STRINGREF_INIT(L"Collected"),          // STAGE_COLLECTED
+    PH_STRINGREF_INIT(L"Closed"),             // STAGE_CLOSED
+};
+
+static CONST PH_STRINGREF DnAppDomainTypeSharedString = PH_STRINGREF_INIT(L"SharedDomain");
+static CONST PH_STRINGREF DnAppDomainTypeSystemString = PH_STRINGREF_INIT(L"SystemDomain");
+
+static CONST PH_STRINGREF DnCoreClrModuleName = PH_STRINGREF_INIT(L"coreclr.dll");
+static CONST PH_STRINGREF DnClrModuleName = PH_STRINGREF_INIT(L"clr.dll");
+
 static CONST ICLRDataTargetVtbl DnCLRDataTarget_VTable =
 {
     DnCLRDataTarget_QueryInterface,
@@ -121,20 +144,44 @@ PPH_STRING GetRuntimeNameByAddressClrProcess(
     )
 {
     PPH_STRING buffer;
-    ULONG bufferLength;
-    ULONG returnLength;
+    ULONG returnLength = 0;
     ULONG64 displacement;
+    WCHAR stackBuffer[256];
 
-    bufferLength = 33;
-    buffer = PhCreateStringEx(NULL, (bufferLength - 1) * sizeof(WCHAR));
-
-    returnLength = 0;
-
-    if (!SUCCEEDED(IXCLRDataProcess_GetRuntimeNameByAddress(
+    // Try with stack buffer first to avoid heap allocation in common case.
+    if (HR_FAILED(IXCLRDataProcess_GetRuntimeNameByAddress(
         Support->DataProcess,
         Address,
         0,
-        bufferLength,
+        RTL_NUMBER_OF(stackBuffer),
+        &returnLength,
+        stackBuffer,
+        &displacement
+        )))
+    {
+        return NULL;
+    }
+
+    if (returnLength < sizeof(UNICODE_NULL))
+        return NULL;
+
+    if (returnLength <= RTL_NUMBER_OF(stackBuffer))
+    {
+        // Common case: name fits in stack buffer.
+        if (Displacement)
+            *Displacement = displacement;
+
+        return PhCreateStringEx(stackBuffer, (returnLength - 1) * sizeof(WCHAR));
+    }
+
+    // Rare case: name exceeds stack buffer, allocate exact size needed.
+    buffer = PhCreateStringEx(NULL, (returnLength - 1) * sizeof(WCHAR));
+
+    if (HR_FAILED(IXCLRDataProcess_GetRuntimeNameByAddress(
+        Support->DataProcess,
+        Address,
+        0,
+        returnLength,
         &returnLength,
         buffer->Buffer,
         &displacement
@@ -142,28 +189,6 @@ PPH_STRING GetRuntimeNameByAddressClrProcess(
     {
         PhDereferenceObject(buffer);
         return NULL;
-    }
-
-    // Try again if our buffer was too small.
-    if (returnLength > bufferLength)
-    {
-        PhDereferenceObject(buffer);
-        bufferLength = returnLength;
-        buffer = PhCreateStringEx(NULL, (bufferLength - 1) * sizeof(WCHAR));
-
-        if (!SUCCEEDED(IXCLRDataProcess_GetRuntimeNameByAddress(
-            Support->DataProcess,
-            Address,
-            0,
-            bufferLength,
-            &returnLength,
-            buffer->Buffer,
-            &displacement
-            )))
-        {
-            PhDereferenceObject(buffer);
-            return NULL;
-        }
     }
 
     if (Displacement)
@@ -245,36 +270,33 @@ PPH_STRING GetNameXClrDataAppDomain(
     _In_ PVOID AppDomain
     )
 {
-    IXCLRDataAppDomain *appDomain;
+    IXCLRDataAppDomain *appDomain = AppDomain;
     PPH_STRING buffer;
-    ULONG bufferLength;
-    ULONG returnLength;
+    ULONG returnLength = 0;
+    WCHAR stackBuffer[256];
 
-    appDomain = AppDomain;
-
-    bufferLength = 33;
-    buffer = PhCreateStringEx(NULL, (bufferLength - 1) * sizeof(WCHAR));
-
-    returnLength = 0;
-
-    if (!SUCCEEDED(IXCLRDataAppDomain_GetName(appDomain, bufferLength, &returnLength, buffer->Buffer)))
+    // Try with stack buffer first to avoid heap allocation in common case.
+    if (HR_FAILED(IXCLRDataAppDomain_GetName(appDomain, RTL_NUMBER_OF(stackBuffer), &returnLength, stackBuffer)))
     {
-        PhDereferenceObject(buffer);
         return NULL;
     }
 
-    // Try again if our buffer was too small.
-    if (returnLength > bufferLength)
+    if (returnLength < sizeof(UNICODE_NULL))
+        return NULL;
+
+    if (returnLength <= RTL_NUMBER_OF(stackBuffer))
+    {
+        // Common case: name fits in stack buffer.
+        return PhCreateStringEx(stackBuffer, (returnLength - 1) * sizeof(WCHAR));
+    }
+
+    // Rare case: name exceeds stack buffer, allocate exact size needed.
+    buffer = PhCreateStringEx(NULL, (returnLength - 1) * sizeof(WCHAR));
+
+    if (HR_FAILED(IXCLRDataAppDomain_GetName(appDomain, returnLength, &returnLength, buffer->Buffer)))
     {
         PhDereferenceObject(buffer);
-        bufferLength = returnLength;
-        buffer = PhCreateStringEx(NULL, (bufferLength - 1) * sizeof(WCHAR));
-
-        if (!SUCCEEDED(IXCLRDataAppDomain_GetName(appDomain, bufferLength, &returnLength, buffer->Buffer)))
-        {
-            PhDereferenceObject(buffer);
-            return NULL;
-        }
+        return NULL;
     }
 
     buffer->Length = (returnLength - 1) * sizeof(WCHAR);
@@ -464,7 +486,7 @@ PDN_DOTNET_ASSEMBLY_ENTRY DnGetDotNetAssemblyModuleDataFromAddress(
 
     if (HR_SUCCESS(ISOSDacInterface_GetPEFileBase(
         DacInterface,
-        moduleData.File,
+        moduleData.PEAssembly,
         &pefileBaseAddress
         )))
     {
@@ -473,7 +495,7 @@ PDN_DOTNET_ASSEMBLY_ENTRY DnGetDotNetAssemblyModuleDataFromAddress(
 
     if (ISOSDacInterface_GetPEFileName(
         DacInterface,
-        moduleData.File,
+        moduleData.PEAssembly,
         RTL_NUMBER_OF(buffer),
         buffer,
         &bufferLength
@@ -657,10 +679,10 @@ PDN_PROCESS_APPDOMAIN_ENTRY DnGetDotNetAppDomainDataFromAddress(
     switch (AppDomainType)
     {
     case DN_CLR_APPDOMAIN_TYPE_SHARED:
-        entry->AppDomainName = PhCreateString(L"SharedDomain");
+        entry->AppDomainName = PhCreateString2(&DnAppDomainTypeSharedString);
         break;
     case DN_CLR_APPDOMAIN_TYPE_SYSTEM:
-        entry->AppDomainName = PhCreateString(L"SystemDomain");
+        entry->AppDomainName = PhCreateString2(&DnAppDomainTypeSystemString);
         break;
     case DN_CLR_APPDOMAIN_TYPE_DYNAMIC:
         {
@@ -692,47 +714,9 @@ PDN_PROCESS_APPDOMAIN_ENTRY DnGetDotNetAppDomainDataFromAddress(
         entry->AppDomainNumber = appdomainAddressData.dwId;
         entry->AppDomainID = (ULONG64)appdomainAddressData.AppDomainPtr;
 
-        switch (appdomainAddressData.appDomainStage)
+        if (appdomainAddressData.appDomainStage < RTL_NUMBER_OF(DnAppDomainStageStrings))
         {
-        case STAGE_CREATING:
-            entry->AppDomainStage = PhCreateString(L"Creating");
-            break;
-        case STAGE_READYFORMANAGEDCODE:
-            entry->AppDomainStage = PhCreateString(L"ReadyForManagedCode");
-            break;
-        case STAGE_ACTIVE:
-            entry->AppDomainStage = PhCreateString(L"Active");
-            break;
-        case STAGE_OPEN:
-            entry->AppDomainStage = PhCreateString(L"Open");
-            break;
-        case STAGE_UNLOAD_REQUESTED:
-            entry->AppDomainStage = PhCreateString(L"UnloadRequested");
-            break;
-        case STAGE_EXITING:
-            entry->AppDomainStage = PhCreateString(L"Exiting");
-            break;
-        case STAGE_EXITED:
-            entry->AppDomainStage = PhCreateString(L"Exited");
-            break;
-        case STAGE_FINALIZING:
-            entry->AppDomainStage = PhCreateString(L"Finalizing");
-            break;
-        case STAGE_FINALIZED:
-            entry->AppDomainStage = PhCreateString(L"Finalized");
-            break;
-        case STAGE_HANDLETABLE_NOACCESS:
-            entry->AppDomainStage = PhCreateString(L"HandleTableNoAccess");
-            break;
-        case STAGE_CLEARED:
-            entry->AppDomainStage = PhCreateString(L"Cleared");
-            break;
-        case STAGE_COLLECTED:
-            entry->AppDomainStage = PhCreateString(L"Collected");
-            break;
-        case STAGE_CLOSED:
-            entry->AppDomainStage = PhCreateString(L"Closed");
-            break;
+            entry->AppDomainStage = PhCreateString2(&DnAppDomainStageStrings[appdomainAddressData.appDomainStage]);
         }
     }
     else
@@ -1193,7 +1177,7 @@ VOID DnGetProcessDotNetRuntimes(
         &context
         );
 
-    PhInitializeStringRef(&context.ImageName, L"clr.dll");
+    context.ImageName = DnClrModuleName;
     PhEnumGenericModules(
         dataTarget->ProcessId,
         dataTarget->ProcessHandle,
@@ -1929,11 +1913,19 @@ ULONG STDMETHODCALLTYPE DnCLRDataTarget_Release(
     )
 {
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
+    ULONG count;
 
-    this->RefCount--;
+    count = InterlockedDecrement((volatile LONG*)&this->RefCount);
 
-    if (this->RefCount == 0)
+    if (count == 0)
     {
+        /* Release any cached IXCLRDataProcess reference held by the data target. */
+        if (this->DataProcess)
+        {
+            IXCLRDataProcess_Release(this->DataProcess);
+            this->DataProcess = NULL;
+        }
+
         NtClose(this->ProcessHandle);
 
         DnCleanupDacAuxiliaryProvider(This);
@@ -1943,7 +1935,7 @@ ULONG STDMETHODCALLTYPE DnCLRDataTarget_Release(
         return 0;
     }
 
-    return this->RefCount;
+    return count;
 }
 
 /**
@@ -2048,9 +2040,8 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
     )
 {
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
-    DN_CLRDT_ENUM_IMAGE_BASE_CONTEXT context;
+    DN_CLRDT_ENUM_IMAGE_BASE_CONTEXT context = { 0 };
 
-    memset(&context, 0, sizeof(DN_CLRDT_ENUM_IMAGE_BASE_CONTEXT));
     context.FullName = PhCreateString(imagePath);
     context.BaseName = PhGetBaseName(context.FullName);
 
@@ -2081,24 +2072,25 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
             {
                 if (!PhIsNullOrEmptyString(processItem->FileName))
                 {
-                    memset(&context, 0, sizeof(DN_CLRDT_ENUM_IMAGE_BASE_CONTEXT));
-                    context.FullName = PhReferenceObject(processItem->FileName);
-                    context.BaseName = PhGetBaseName(context.FullName);
+                    DN_CLRDT_ENUM_IMAGE_BASE_CONTEXT selfContext = { 0 };
+
+                    selfContext.FullName = PhReferenceObject(processItem->FileName);
+                    selfContext.BaseName = PhGetBaseName(selfContext.FullName);
 
                     PhEnumGenericModules(
                         this->ProcessId,
                         this->ProcessHandle,
                         PH_ENUM_GENERIC_MAPPED_IMAGES,
                         DnClrDataTarget_EnumImageBaseCallback,
-                        &context
+                        &selfContext
                         );
 
-                    PhClearReference(&context.BaseName);
-                    PhClearReference(&context.FullName);
+                    PhClearReference(&selfContext.BaseName);
+                    PhClearReference(&selfContext.FullName);
 
-                    if (context.BaseAddress)
+                    if (selfContext.BaseAddress)
                     {
-                        *baseAddress = (CLRDATA_ADDRESS)context.BaseAddress;
+                        *baseAddress = (CLRDATA_ADDRESS)selfContext.BaseAddress;
                         PhDereferenceObject(processItem);
                         return S_OK;
                     }
@@ -2111,24 +2103,25 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
 
             if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(this->ProcessId, &fileName)))
             {
-                memset(&context, 0, sizeof(DN_CLRDT_ENUM_IMAGE_BASE_CONTEXT));
-                context.FullName = fileName;
-                context.BaseName = PhGetBaseName(fileName);
+                DN_CLRDT_ENUM_IMAGE_BASE_CONTEXT selfContext = { 0 };
+
+                selfContext.FullName = fileName;
+                selfContext.BaseName = PhGetBaseName(fileName);
 
                 PhEnumGenericModules(
                     this->ProcessId,
                     this->ProcessHandle,
                     PH_ENUM_GENERIC_MAPPED_IMAGES,
-                    DnGetClrRuntimeCallback,
-                    &context
+                    DnClrDataTarget_EnumImageBaseCallback,
+                    &selfContext
                     );
 
-                PhClearReference(&context.BaseName);
-                PhClearReference(&context.FullName);
+                PhClearReference(&selfContext.BaseName);
+                PhClearReference(&selfContext.FullName);
 
-                if (context.BaseAddress)
+                if (selfContext.BaseAddress)
                 {
-                    *baseAddress = (CLRDATA_ADDRESS)context.BaseAddress;
+                    *baseAddress = (CLRDATA_ADDRESS)selfContext.BaseAddress;
                     return S_OK;
                 }
             }
@@ -2420,7 +2413,41 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_SetTLSValue(
     _In_ CLRDATA_ADDRESS value
     )
 {
-    return E_NOTIMPL;
+    DnCLRDataTarget* this = (DnCLRDataTarget*)This;
+    NTSTATUS status;
+    HANDLE threadHandle = NULL;
+    THREAD_BASIC_INFORMATION basicInfo = { 0 };
+
+    status = PhOpenThread(
+        &threadHandle,
+        THREAD_SET_CONTEXT | THREAD_SUSPEND_RESUME,
+        UlongToHandle(threadID)
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
+    }
+
+    status = NtSuspendThread(threadHandle, NULL);
+
+    if (NT_SUCCESS(status))
+    {
+        ULONG_PTR local = (ULONG_PTR)value;
+
+        status = NtSetContextThread(threadHandle, (PCONTEXT)&local);
+
+        NtResumeThread(threadHandle, NULL);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        return S_OK;
+    }
+    else
+    {
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
+    }
 }
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetCurrentThreadID(
@@ -2540,7 +2567,44 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_SetThreadContext(
     _In_ PBYTE context
     )
 {
-    return E_NOTIMPL;
+    DnCLRDataTarget* this = (DnCLRDataTarget*)This;
+    NTSTATUS status;
+    HANDLE threadHandle = NULL;
+    BOOLEAN suspended = FALSE;
+
+    if (!context || contextSize < sizeof(CONTEXT))
+        return E_INVALIDARG;
+
+    // Open thread with rights to set context.
+    status = PhOpenThread(
+        &threadHandle,
+        THREAD_SET_CONTEXT | THREAD_SUSPEND_RESUME,
+        UlongToHandle(threadID)
+        );
+
+    if (!NT_SUCCESS(status))
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
+
+    // Suspend, set context, resume to minimize races (similar to GetThreadContext pattern).
+    status = NtSuspendThread(threadHandle, NULL);
+
+    if (NT_SUCCESS(status))
+        suspended = TRUE;
+
+    // Use NtSetContextThread directly (context pointer is process-local memory - DAC provides context buffer).
+    status = NtSetContextThread(threadHandle, (PCONTEXT)context);
+
+    if (suspended)
+    {
+        NtResumeThread(threadHandle, NULL);
+    }
+
+    NtClose(threadHandle);
+
+    if (!NT_SUCCESS(status))
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
+
+    return S_OK;
 }
 
 /**
