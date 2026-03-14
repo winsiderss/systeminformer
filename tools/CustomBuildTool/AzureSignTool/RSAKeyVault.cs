@@ -14,7 +14,7 @@ namespace CustomBuildTool
     /// <summary>
     /// RSA implementation that uses Azure Key Vault
     /// </summary>
-    public sealed class RSAKeyVault : RSA, IDisposable
+    public sealed class RSAKeyVault : RSA
     {
         private readonly KeyVaultContext VaultContext;
         private RSA PublicKey;
@@ -30,10 +30,16 @@ namespace CustomBuildTool
                 throw new ArgumentException("Must not be the default", nameof(Context));
 
             this.VaultContext = Context;
+
+            //
             // Build public key from certificate if available
+            //
+
             if (Context.Certificate != null)
             {
                 this.PublicKey = Context.Certificate.GetRSAPublicKey();
+
+                ArgumentNullException.ThrowIfNull(this.PublicKey);
             }
             else
             {
@@ -49,7 +55,10 @@ namespace CustomBuildTool
         {
             CheckDisposed();
 
+            //
             // Key Vault only supports PKCSv1 padding
+            //
+
             if (Padding.Mode != RSASignaturePaddingMode.Pkcs1)
             {
                 throw new NotSupportedException("Unsupported padding mode");

@@ -60,9 +60,25 @@ namespace CustomBuildTool
         ES512
     }
 
+    /// <summary>
+    /// Provides methods for translating signature algorithm and hash algorithm combinations to their corresponding JSON
+    /// Web Signature (JWS) algorithm identifiers.
+    /// </summary>
+    /// <remarks>This class is intended for use when interoperating with systems that require JWS algorithm
+    /// identifiers, such as JWT libraries or web authentication protocols. All methods are static and
+    /// thread-safe.</remarks>
     public static class SignatureAlgorithmTranslator
     {
-        // Return the JWS alg identifier string for the specified key and hash algorithm.
+        /// <summary>
+        /// Maps a Key Vault signature algorithm and hash algorithm to the corresponding JWS algorithm identifier.
+        /// </summary>
+        /// <remarks>Use this method to obtain the JWS algorithm identifier required for JWT signing when
+        /// using Azure Key Vault signature algorithms. Only specific combinations of signature and hash algorithms are
+        /// supported.</remarks>
+        /// <param name="signatureAlgorithm">The signature algorithm to convert. Supported values are RSAPkcs15 and ECDsa.</param>
+        /// <param name="hashAlgorithmName">The hash algorithm used with the signature algorithm. Supported values are SHA256, SHA384, and SHA512.</param>
+        /// <returns>A string containing the JWS algorithm identifier that matches the specified signature and hash algorithm.</returns>
+        /// <exception cref="NotSupportedException">Thrown if the combination of signature algorithm and hash algorithm is not supported.</exception>
         public static string SignatureAlgorithmToJwsAlgId(KeyVaultSignatureAlgorithm signatureAlgorithm, HashAlgorithmName hashAlgorithmName)
         {
             switch (signatureAlgorithm)

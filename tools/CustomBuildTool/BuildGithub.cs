@@ -17,6 +17,14 @@ namespace CustomBuildTool
     public static class BuildGithub
     {
         /// <summary>
+        /// Provides a static HTTP client instance for making requests to GitHub APIs.
+        /// </summary>
+        /// <remarks>Using a static instance of HttpClient helps prevent socket exhaustion and improves
+        /// performance when making multiple requests. This client is intended for internal use when interacting with
+        /// GitHub services.</remarks>
+        private static readonly HttpClient GithubHttpClient;
+
+        /// <summary>
         /// The GitHub API token used for authentication.
         /// </summary>
         private static readonly string BaseToken;
@@ -31,6 +39,7 @@ namespace CustomBuildTool
         /// </summary>
         static BuildGithub()
         {
+            GithubHttpClient = BuildHttpClient.CreateHttpClient();
             BaseToken = Win32.GetEnvironmentVariable("GITHUB_MIRROR_KEY");
             BaseUrl = Win32.GetEnvironmentVariable("GITHUB_MIRROR_API");
         }
@@ -68,15 +77,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                     requestMessage.Headers.TryAddWithoutValidation("X-GitHub-Api-Version", "2022-11-28");
 
-                    var httpResult = await BuildHttpClient.SendMessage(requestMessage);
-
-                    if (string.IsNullOrWhiteSpace(httpResult))
-                    {
-                        Console.WriteLine($"{VT.RED}[ERROR] Received empty response.{VT.RESET}");
-                        ArgumentNullException.ThrowIfNull(httpResult);
-                    }
-
-                    var content = JsonSerializer.Deserialize(httpResult, GithubResponseContext.Default.GithubActionRun);
+                    var content = await BuildHttpClient.SendMessage(GithubHttpClient, requestMessage, GithubResponseContext.Default.GithubActionRun);
                     if (content == null)
                     {
                         Console.WriteLine($"{VT.RED}[ERROR] Failed to deserialize the response.{VT.RESET}");
@@ -123,7 +124,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    var httpResult = await BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleaseQueryResponse);
+                    var httpResult = await BuildHttpClient.SendMessage(GithubHttpClient, requestMessage, GithubResponseContext.Default.GithubReleaseQueryResponse);
 
                     if (httpResult == null)
                     {
@@ -178,7 +179,7 @@ namespace CustomBuildTool
 
                     requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
 
-                    var httpResult = await BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
+                    var httpResult = await BuildHttpClient.SendMessage(GithubHttpClient, requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
 
                     if (httpResult == null)
                     {
@@ -228,7 +229,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    responseMessage = await BuildHttpClient.SendMessageResponse(requestMessage);
+                    responseMessage = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
 
                     if (!responseMessage.IsSuccessStatusCode)
                     {
@@ -245,16 +246,14 @@ namespace CustomBuildTool
                 }
 
                 {
-                    var result = await responseMessage.Content.ReadAsStringAsync();
-
-                    if (string.IsNullOrWhiteSpace(result))
+                    var result = await responseMessage.Content.ReadAsStreamAsync();
+                    if (result == null)
                     {
-                        Program.PrintColorMessage("[DeleteRelease-ReadAsStringAsync]", ConsoleColor.Red);
+                        Program.PrintColorMessage("[DeleteRelease-ReadAsStreamAsync]", ConsoleColor.Red);
                         return false;
                     }
 
                     githubResponseMessage = JsonSerializer.Deserialize(result, GithubResponseContext.Default.GithubReleasesResponse);
-
                     if (githubResponseMessage == null)
                     {
                         Program.PrintColorMessage("[DeleteRelease-GithubReleasesResponse]", ConsoleColor.Red);
@@ -275,9 +274,8 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    var response = await BuildHttpClient.SendMessage(requestMessage);
-
-                    if (string.IsNullOrWhiteSpace(response))
+                    var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+                    if (!response.IsSuccessStatusCode)
                     {
                         Program.PrintColorMessage("[DeleteRelease-DeleteAsync]", ConsoleColor.Red);
                         return false;
@@ -291,9 +289,8 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    var response = await BuildHttpClient.SendMessage(requestMessage);
-
-                    if (string.IsNullOrWhiteSpace(response))
+                    var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+                    if (!response.IsSuccessStatusCode)
                     {
                         Program.PrintColorMessage("[DeleteRelease-DeleteAsync]", ConsoleColor.Red);
                         return false;
@@ -341,7 +338,7 @@ namespace CustomBuildTool
 
                     requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
 
-                    var response = await BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
+                    var response = await BuildHttpClient.SendMessage(GithubHttpClient, requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
 
                     if (response == null)
                     {
@@ -402,7 +399,7 @@ namespace CustomBuildTool
                 requestMessage.Content = new StreamContent(bufferedStream);
                 requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
-                var response = await BuildHttpClient.SendMessage(requestMessage, GithubResponseContext.Default.GithubAssetsResponse);
+                var response = await BuildHttpClient.SendMessage(GithubHttpClient, requestMessage, GithubResponseContext.Default.GithubAssetsResponse);
                 if (response == null || !response.Uploaded || string.IsNullOrWhiteSpace(response.DownloadUrl))
                 {
                     Program.PrintColorMessage("[UploadAssets] upload failed", ConsoleColor.Red);

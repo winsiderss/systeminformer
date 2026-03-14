@@ -43,6 +43,15 @@ namespace CustomBuildTool
             this.LegalKeySizesValue = new[] { new KeySizes(this.PublicKey.KeySize, this.PublicKey.KeySize, 0) };
         }
 
+        /// <summary>
+        /// Generates a digital signature for the specified hash using the configured elliptic curve key and algorithm.
+        /// </summary>
+        /// <remarks>The method selects the appropriate hash algorithm based on the key size. Supported
+        /// key sizes are 256, 384, and 521 bits, corresponding to SHA-256, SHA-384, and SHA-512 respectively.</remarks>
+        /// <param name="Hash">The hash value to be signed. The length of the hash must correspond to the key size and supported hash
+        /// algorithm.</param>
+        /// <returns>A byte array containing the digital signature of the provided hash.</returns>
+        /// <exception cref="ArgumentException">Thrown if the length of the hash does not match the expected digest length for the key size.</exception>
         public override byte[] SignHash(byte[] Hash)
         {
             CheckDisposed();
@@ -58,6 +67,17 @@ namespace CustomBuildTool
             throw new ArgumentException("Digest length is not valid for the key size.", nameof(Hash));
         }
 
+        /// <summary>
+        /// Computes the hash value for a specified region of the input data using the provided hash algorithm.
+        /// </summary>
+        /// <remarks>The method supports hashing only the specified segment of the input array, allowing
+        /// partial data hashing. The hash algorithm must be compatible with the key size used by the
+        /// implementation.</remarks>
+        /// <param name="Data">The byte array containing the data to be hashed.</param>
+        /// <param name="Offset">The zero-based index in the data array at which to begin hashing.</param>
+        /// <param name="Count">The number of bytes to hash, starting from the specified offset.</param>
+        /// <param name="HashAlgorithm">The hash algorithm to use for computing the hash value.</param>
+        /// <returns>A byte array containing the computed hash value for the specified data segment.</returns>
         protected override byte[] HashData(byte[] Data, int Offset, int Count, HashAlgorithmName HashAlgorithm)
         {
             ValidateKeyDigestCombination(KeySize, HashAlgorithm);
@@ -65,6 +85,17 @@ namespace CustomBuildTool
             return HashDataIncremental(Data, Offset, Count, HashAlgorithm);
         }
 
+        /// <summary>
+        /// Computes the hash value for a specified segment of a byte array using the given hash algorithm.
+        /// </summary>
+        /// <remarks>This method processes only the specified segment of the input array, defined by the
+        /// offset and count parameters. The hash algorithm is applied incrementally, which can be useful for hashing
+        /// large data in segments.</remarks>
+        /// <param name="Data">The byte array containing the data to hash.</param>
+        /// <param name="Offset">The zero-based index in the array at which to begin hashing.</param>
+        /// <param name="Count">The number of bytes to hash, starting from the specified offset.</param>
+        /// <param name="HashAlgorithm">The hash algorithm to use for computing the hash value.</param>
+        /// <returns>A byte array containing the computed hash value for the specified data segment.</returns>
         private static byte[] HashDataIncremental(byte[] Data, int Offset, int Count, HashAlgorithmName HashAlgorithm)
         {
             using (IncrementalHash incrementalHash = IncrementalHash.CreateHash(HashAlgorithm))
@@ -74,6 +105,18 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Computes the hash value for a specified segment of a byte array using the given hash algorithm.
+        /// </summary>
+        /// <remarks>This method processes only the specified segment of the input array, defined by the
+        /// offset and count parameters. The caller is responsible for ensuring that the offset and count are within the
+        /// bounds of the array. The method does not allocate an IncrementalHash instance for each call, which may
+        /// improve performance in scenarios where hashing is performed infrequently.</remarks>
+        /// <param name="Data">The byte array containing the data to hash.</param>
+        /// <param name="Offset">The zero-based index in the array at which to begin hashing.</param>
+        /// <param name="Count">The number of bytes to hash, starting from the specified offset.</param>
+        /// <param name="HashAlgorithm">The hash algorithm to use for computing the hash value.</param>
+        /// <returns>A byte array containing the computed hash value for the specified data segment.</returns>
         private static byte[] HashDataStatic(byte[] Data, int Offset, int Count, HashAlgorithmName HashAlgorithm)
         {
             // Use static method for hashing to avoid allocation of IncrementalHash
@@ -82,6 +125,17 @@ namespace CustomBuildTool
             return incrementalHash.GetHashAndReset();
         }
 
+        /// <summary>
+        /// Computes the hash of a specified segment of a byte array using the given hash algorithm.
+        /// </summary>
+        /// <remarks>This method avoids allocation of incremental hash objects by using static hash
+        /// algorithm instances. Only SHA256, SHA384, and SHA512 are supported.</remarks>
+        /// <param name="Data">The byte array containing the data to hash.</param>
+        /// <param name="Offset">The zero-based index in the array at which to begin hashing.</param>
+        /// <param name="Count">The number of bytes to hash, starting from the specified offset.</param>
+        /// <param name="HashAlgorithm">The hash algorithm to use for computing the hash. Supported values are SHA256, SHA384, and SHA512.</param>
+        /// <returns>A byte array containing the computed hash value for the specified segment of the input data.</returns>
+        /// <exception cref="NotSupportedException">Thrown if the specified hash algorithm is not supported.</exception>
         private static byte[] HashDataFixed(byte[] Data, int Offset, int Count, HashAlgorithmName HashAlgorithm)
         {
             // Use static method for hashing to avoid allocation of IncrementalHash

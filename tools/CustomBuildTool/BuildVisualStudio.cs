@@ -245,6 +245,16 @@ namespace CustomBuildTool
             "Microsoft.VisualStudio.Component.VC.14.45.17.12.CLI.Support"
         ];
 
+        /// <summary>
+        /// Checks whether all required build dependencies are installed and available on the system.
+        /// </summary>
+        /// <remarks>This method verifies the presence of Visual Studio, Windows SDK, Git, and .NET. It
+        /// can be used to ensure the environment is ready for building projects. When <paramref name="quiet"/> is <see
+        /// langword="false"/>, informative messages are printed to the console for each dependency.</remarks>
+        /// <param name="quiet">If <see langword="true"/>, suppresses output messages; otherwise, displays status information for each
+        /// dependency check.</param>
+        /// <returns>A value indicating whether all required build dependencies are present. <see langword="true"/> if all
+        /// dependencies are found; otherwise, <see langword="false"/>.</returns>
         public static bool CheckBuildDependencies(bool quiet = false)
         {
             var result = true;
@@ -341,6 +351,17 @@ namespace CustomBuildTool
             return result;
         }
 
+        /// <summary>
+        /// Installs required Visual Studio build dependencies and components for the current environment.
+        /// </summary>
+        /// <remarks>The method downloads the Visual Studio Community installer if it is not already
+        /// present, then installs required workloads and components. A restart may be required to complete
+        /// installation. The method returns <see langword="false"/> if the installer download or installation
+        /// fails.</remarks>
+        /// <param name="minimal">Specifies whether to install only the minimal set of required components. If <see langword="true"/>,
+        /// recommended components are excluded; otherwise, all recommended components are installed.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result is <see langword="true"/> if the
+        /// installation completes successfully; otherwise, <see langword="false"/>.</returns>
         public static async Task<bool> InstallBuildDependencies(bool minimal = false)
         {
             string installerPath = Path.Combine(Path.GetTempPath(), "vs_community.exe");
@@ -351,9 +372,11 @@ namespace CustomBuildTool
                 {
                     Program.PrintColorMessage("Downloading Visual Studio 2022 Community installer...", ConsoleColor.Cyan);
 
-                    var request = new HttpRequestMessage(HttpMethod.Get, "https://aka.ms/vs/17/release/vs_community.exe");
-                    var response = await BuildHttpClient.SendMessageResponse(request);
-                    if (response != null && response.IsSuccessStatusCode)
+                    using var client = BuildHttpClient.CreateHttpClient();
+                    using var request = new HttpRequestMessage(HttpMethod.Get, "https://aka.ms/vs/17/release/vs_community.exe");
+                    using var response = await BuildHttpClient.SendMessageResponse(client, request);
+
+                    if (response.IsSuccessStatusCode)
                     {
                         using (var fs = new FileStream(installerPath, FileMode.Create))
                         {
@@ -428,6 +451,58 @@ namespace CustomBuildTool
                     Program.PrintColorMessage($"Visual Studio installation failed with exit code: {exitCode}", ConsoleColor.Red);
                 }
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the latest Windows SDK BuildTools package version from NuGet.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>
+        /// Latest stable version if available, otherwise latest version (including prerelease), or <c>string.Empty</c> on failure.
+        /// </returns>
+        public static async Task<string> GetLatestWindowsSdkNuGetVersion(CancellationToken cancellationToken = default)
+        {
+            // https://www.nuget.org/profiles/WindowsSDK
+            const string buildToolsUri = $"https://api.nuget.org/v3-flatcontainer/microsoft.windows.sdk.buildtools/index.json"; // https://www.nuget.org/packages/Microsoft.Windows.SDK.BuildTools/
+            const string build_WDK_64 = $"https://api.nuget.org/v3-flatcontainer/Microsoft.Windows.WDK.x64/index.json";         // https://www.nuget.org/packages/Microsoft.Windows.WDK.x64
+            const string build_SDK_64 = $"https://api.nuget.org/v3-flatcontainer/Microsoft.Windows.SDK.CPP.x64/index.json";     // https://www.nuget.org/packages/Microsoft.Windows.SDK.CPP.x64/
+            const string build_SDK_32 = $"https://api.nuget.org/v3-flatcontainer/Microsoft.Windows.SDK.CPP.x86/index.json";     // https://www.nuget.org/packages/Microsoft.Windows.SDK.CPP.x86/
+            const string build_SDK_ARM64 = $"https://api.nuget.org/v3-flatcontainer/Microsoft.Windows.SDK.CPP.arm64/index.json"; // https://www.nuget.org/packages/Microsoft.Windows.SDK.CPP.arm64/
+            const string build_WDK_ARM64 = $"https://api.nuget.org/v3-flatcontainer/Microsoft.Windows.WDK.x64/index.json";
+
+            try
+            {
+                using var client = BuildHttpClient.CreateHttpClient();
+                using var request = new HttpRequestMessage(HttpMethod.Get, build_SDK_64);
+                var response = await BuildHttpClient.SendMessage(client, request, NugetVersionResponseContext.Default.NugetVersionResponse, cancellationToken);
+
+                if (response?.Versions == null || response.Versions.Count == 0)
+                    return string.Empty;
+
+                string latest = string.Empty;
+                string latestNonPreview = string.Empty;
+
+                foreach (string version in response.Versions)
+                {
+                    if (string.IsNullOrWhiteSpace(version))
+                        continue;
+
+                    latest = version;
+
+                    if (!version.Contains("preview", StringComparison.OrdinalIgnoreCase) &&
+                        !version.Contains("prerelease", StringComparison.OrdinalIgnoreCase))
+                    {
+                        latestNonPreview = version;
+                    }
+                }
+
+                return !string.IsNullOrWhiteSpace(latestNonPreview) ? latestNonPreview : latest;
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"Failed to query NuGet for latest Windows SDK version: {ex.Message}", ConsoleColor.Yellow);
+                return string.Empty;
             }
         }
     }

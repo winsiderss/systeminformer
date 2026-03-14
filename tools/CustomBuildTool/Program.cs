@@ -11,6 +11,16 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides the entry point and core command-line processing logic for the custom build tool application. Handles
+    /// argument parsing, command dispatch, and console output utilities for build operations and related tasks.
+    /// </summary>
+    /// <remarks>The Program class is responsible for interpreting command-line arguments, executing
+    /// build-related commands, and displaying output in a user-friendly manner. It supports a variety of build,
+    /// cleanup, packaging, and deployment operations, as well as help and diagnostic commands. Console output methods
+    /// allow for colorized and verbose messaging, supporting both ANSI and native console coloring. This class is
+    /// intended to be used as the main entry point for the build tool and is not intended for direct
+    /// instantiation.</remarks>
     public static class Program
     {
         private static Dictionary<string, string> ProgramArgs;
@@ -50,6 +60,18 @@ namespace CustomBuildTool
             { "-write-tools-id", "Writes the tools id file (internal)." },
         };
 
+        /// <summary>
+        /// Entry point for the build tool application. Processes command-line arguments to execute build, cleanup,
+        /// packaging, deployment, signing, encryption, and other operations as specified by the user.
+        /// </summary>
+        /// <remarks>This method supports a wide range of build and utility commands. Only one operation
+        /// is performed per invocation, based on the provided arguments. Some operations may terminate the application
+        /// early if errors occur. Use the '-help' or '-h' argument to display available commands and usage
+        /// information.</remarks>
+        /// <param name="args">An array of command-line arguments that determine which build or utility operation to perform. Supported
+        /// arguments include build modes, cleanup, signing, encryption, help, and other commands. Cannot be null.</param>
+        /// <returns>A task representing the asynchronous execution of the build tool. The task completes when all requested
+        /// operations have finished.</returns>
         public static async Task Main(string[] args)
         {
             if (!await Build.InitializeBuildEnvironment())
@@ -476,11 +498,12 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
 
                 var generator = Utils.GetGeneratorFromString(ProgramArgs["-generator"]);
+                var toolchain = Utils.GetToolchainFromString(ProgramArgs["-toolchain"]);
                 var config = ProgramArgs["-config"];
-
-                if (!Build.BuildSolutionCMake("SystemInformer", generator, flags))
+                
+                if (!Build.BuildSolutionCMake("SystemInformer", generator, toolchain, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("Plugins", generator, flags))
+                if (!Build.BuildSolutionCMake("Plugins", generator, toolchain, flags))
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
@@ -496,9 +519,14 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(false);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, flags))
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, flags))
+                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
+                    Environment.Exit(1);
+
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
+                    Environment.Exit(1);
+                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
                     Environment.Exit(1);
 
                 if (!Build.CopyTextFiles(true, flags))
@@ -521,9 +549,9 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, flags))
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, flags))
+                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
                     Environment.Exit(1);
 
                 if (!Build.CopyWow64Files(flags))
@@ -563,9 +591,9 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, flags))
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, flags))
+                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
                     Environment.Exit(1);
 
                 Build.CopyWow64Files(flags);

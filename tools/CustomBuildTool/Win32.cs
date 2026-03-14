@@ -759,6 +759,19 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Sets the specified process's token integrity level to low by updating its mandatory label information.
+        /// </summary>
+        /// <param name="process">The process whose token integrity level will be modified.</param>
+        /// <param name="processAccess">The access rights required to open the target process. Must be sufficient to allow token manipulation.</param>
+        /// <param name="tokenAccess">The access rights required to open the process token. Must permit setting token information.</param>
+        /// <param name="sidAttributes">The attributes to assign to the integrity SID in the token mandatory label.</param>
+        /// <param name="mandatoryRid">The relative identifier (RID) used to construct the integrity SID. Typically specifies the desired integrity
+        /// level.</param>
+        /// <param name="tokenInfoClass">The token information class specifying the type of information to set. Must correspond to mandatory label
+        /// information.</param>
+        /// <exception cref="Win32Exception">Thrown if any Windows API call fails, such as opening the process, opening the process token, or setting
+        /// token information.</exception>
         private static void ApplyLowIntegrity(
             Process process,
             uint processAccess,

@@ -11,17 +11,39 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides static methods for signing files using Azure Key Vault certificates and timestamp servers, as well as
+    /// helper methods for obtaining Azure Active Directory tokens and downloading certificates from Azure Key Vault.
+    /// </summary>
+    /// <remarks>This class is intended for use in automated build and deployment scenarios where files must
+    /// be digitally signed using Azure-managed certificates. All methods require appropriate Azure configuration and
+    /// credentials. The class is not thread-safe and should be used in contexts where concurrent access is managed
+    /// externally.</remarks>
     public static class BuildAzure
     {
-        //private static string ENTRA_TIMESTAMP_ALGORITHM;
+        /// <summary>
+        /// Provides a static instance of the HTTP client used for sending requests to Entra services.
+        /// </summary>
+        /// <remarks>This instance is intended for reuse to optimize connection management and
+        /// performance. Avoid disposing this client directly; use it for all Entra-related HTTP operations within the
+        /// application.</remarks>
+        private static readonly HttpClient EntraHttpClient;
         private static readonly string ENTRA_TIMESTAMP_SERVER;
         private static readonly string ENTRA_CERIFICATE_NAME;
         private static readonly string ENTRA_CERIFICATE_VAULT;
         private static readonly string ENTRA_TENANT_GUID;
         private static readonly string ENTRA_CLIENT_GUID;
 
+        /// <summary>
+        /// Initializes static fields required for Azure build operations by retrieving configuration values from
+        /// environment variables.
+        /// </summary>
+        /// <remarks>This static constructor sets up the HTTP client and loads Azure-related configuration
+        /// such as certificate and tenant identifiers. Sensitive values, such as client secrets, are not cached to
+        /// minimize their exposure.</remarks>
         static BuildAzure()
         {
+            EntraHttpClient = BuildHttpClient.CreateHttpClient();
             //ENTRA_TIMESTAMP_ALGORITHM = Win32.GetEnvironmentVariable("BUILD_TIMESTAMP_ALGORITHM");
             ENTRA_TIMESTAMP_SERVER = Win32.GetEnvironmentVariable("BUILD_TIMESTAMP_SERVER");
             ENTRA_CERIFICATE_NAME = Win32.GetEnvironmentVariable("BUILD_ENTRA_CERT_ID");
@@ -244,6 +266,16 @@ namespace CustomBuildTool
             return true;
         }
 
+        /// <summary>
+        /// Requests an Azure Active Directory access token using client credentials for the specified tenant.
+        /// </summary>
+        /// <remarks>The returned token is scoped for Azure Key Vault operations. This method uses the
+        /// OAuth 2.0 client credentials flow and should be used in secure server-side scenarios. Ensure that the client
+        /// secret is protected and not exposed in client applications.</remarks>
+        /// <param name="TenantId">The Azure Active Directory tenant identifier. Cannot be null or empty.</param>
+        /// <param name="ClientId">The client application identifier registered in Azure Active Directory. Cannot be null or empty.</param>
+        /// <param name="ClientSecret">The client application's secret used for authentication. Cannot be null or empty.</param>
+        /// <returns>A string containing the access token if authentication is successful; otherwise, null.</returns>
         public static async Task<string> GetAzureADToken(string TenantId, string ClientId, string ClientSecret)
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token")
@@ -257,15 +289,26 @@ namespace CustomBuildTool
                 ])
             };
 
-            var response = await BuildHttpClient.SendMessage(request);
-
-            if (string.IsNullOrWhiteSpace(response))
+            var tokenResponse = await BuildHttpClient.SendMessage(EntraHttpClient, request, AzureJsonContext.Default.TokenResponse);
+           
+            if (string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
                 return null;
 
-            var tokenResponse = JsonSerializer.Deserialize(response, AzureJsonContext.Default.TokenResponse);
             return tokenResponse.AccessToken;
         }
 
+        /// <summary>
+        /// Downloads an X.509 certificate and its associated key identifier from the specified Azure Key Vault
+        /// endpoint.
+        /// </summary>
+        /// <remarks>The returned certificate contains only the public key. The key identifier URI can be
+        /// used to reference the corresponding key in the Key Vault. If the certificate or key identifier is not found
+        /// or cannot be parsed, both values in the tuple will be null.</remarks>
+        /// <param name="BaseUrl">The base URL of the Azure Key Vault service. Must be a valid URI pointing to the Key Vault instance.</param>
+        /// <param name="Name">The name of the certificate to retrieve from the Key Vault.</param>
+        /// <param name="Token">The bearer token used for authentication with the Key Vault service. Must be a valid access token.</param>
+        /// <returns>A tuple containing the downloaded X.509 certificate and the URI of its associated key identifier. Returns
+        /// (null, null) if the certificate or key identifier cannot be retrieved.</returns>
         public static async Task<(X509Certificate2 Certificate, Uri KeyId)> DownloadCertificateAndKeyId(string BaseUrl, string Name, string Token)
         {
             X509Certificate2 cert = null;
@@ -276,24 +319,23 @@ namespace CustomBuildTool
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token);
 
-            var response = await BuildHttpClient.SendMessage(request);
-            if (string.IsNullOrWhiteSpace(response))
+            var certResponse = await BuildHttpClient.SendMessage(EntraHttpClient, request, AzureJsonContext.Default.KeyVaultCertificateResponse);
+            if (certResponse == null)
                 return (null, null);
 
-            var certificateResponse = JsonSerializer.Deserialize(response, AzureJsonContext.Default.KeyVaultCertificateResponse);
-            string base64 = certificateResponse.CertificateString;
-            string keyIdStr = certificateResponse.Kid;
+            string base64 = certResponse.CertificateString;
+            string keyIdStr = certResponse.Kid;
 
             if (string.IsNullOrWhiteSpace(keyIdStr))
             {
-                if (!string.IsNullOrWhiteSpace(certificateResponse.Key?.Kid))
+                if (!string.IsNullOrWhiteSpace(certResponse.Key?.Kid))
                 {
-                    keyIdStr = certificateResponse.Key.Kid;
+                    keyIdStr = certResponse.Key.Kid;
                 }
-                else if (!string.IsNullOrWhiteSpace(certificateResponse.Id))
+                else if (!string.IsNullOrWhiteSpace(certResponse.Id))
                 {
                     // best-effort: transform certificate id to key id by replacing /certificates/ with /keys/
-                    keyIdStr = certificateResponse.Id.Replace("/certificates/", "/keys/", StringComparison.OrdinalIgnoreCase);
+                    keyIdStr = certResponse.Id.Replace("/certificates/", "/keys/", StringComparison.OrdinalIgnoreCase);
                 }
             }
 
@@ -318,6 +360,18 @@ namespace CustomBuildTool
             return (cert, keyId);
         }
 
+        /// <summary>
+        /// Downloads a certificate secret from the specified endpoint and returns it as an X509Certificate2 instance
+        /// with the private key.
+        /// </summary>
+        /// <remarks>The returned certificate includes the private key and is loaded from a base64-encoded
+        /// PKCS#12 (PFX) payload. Ensure the token has sufficient permissions to access the secret. The method performs
+        /// an HTTP GET request and may throw exceptions related to network or authentication failures.</remarks>
+        /// <param name="BaseUrl">The base URL of the secret management service endpoint. Must be a valid URI.</param>
+        /// <param name="Name">The name of the certificate secret to retrieve. Cannot be null or empty.</param>
+        /// <param name="Token">The bearer token used for authentication with the secret management service. Cannot be null or empty.</param>
+        /// <returns>An X509Certificate2 object containing the certificate and its private key if the secret is found; otherwise,
+        /// null.</returns>
         public static async Task<X509Certificate2> DownloadCertificateSecret(string BaseUrl, string Name, string Token)
         {
             // Get certificate with private key
@@ -325,11 +379,7 @@ namespace CustomBuildTool
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token);
 
-            var response = await BuildHttpClient.SendMessage(request);
-            if (string.IsNullOrWhiteSpace(response))
-                return null;
-
-            var secretResponse = JsonSerializer.Deserialize(response, AzureJsonContext.Default.SecretResponse);
+            var secretResponse = await BuildHttpClient.SendMessage(EntraHttpClient, request, AzureJsonContext.Default.SecretResponse);
 
             if (!string.IsNullOrWhiteSpace(secretResponse.Value))
             {

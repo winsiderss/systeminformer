@@ -11,6 +11,16 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides utility methods for file operations, environment management, argument parsing, and build tool
+    /// integration. This class includes helpers for interacting with build systems, locating toolchain executables,
+    /// reading and writing files, and manipulating environment variables.
+    /// </summary>
+    /// <remarks>The methods in this class are designed to support build automation and scripting scenarios,
+    /// including locating Visual Studio, MSBuild, Git, and CMake executables, parsing command-line arguments, and
+    /// handling Windows SDK paths. Many methods assume Windows environments and may rely on environment variables or
+    /// registry keys. Thread safety is not guaranteed for all static members; use caution when accessing shared
+    /// resources concurrently.</remarks>
     public static unsafe class Utils
     {
         private static readonly Dictionary<string, string> EnvironmentBlock = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -117,6 +127,15 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Parses command-line arguments from a JSON file and returns them as a dictionary with normalized keys.
+        /// </summary>
+        /// <remarks>Keys in the resulting dictionary are prefixed with a hyphen if not already present.
+        /// Parsing errors are handled gracefully, and no exception is thrown; instead, an empty dictionary is
+        /// returned.</remarks>
+        /// <param name="filePath">The path to the JSON file containing argument key-value pairs. The file must exist and be readable.</param>
+        /// <returns>A dictionary containing the parsed arguments, with keys normalized to start with a hyphen ('-'). The
+        /// dictionary is case-insensitive. If the file cannot be parsed, an empty dictionary is returned.</returns>
         public static Dictionary<string, string> ParseArgumentsFromFile(string filePath)
         {
             var kvp = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -161,6 +180,20 @@ namespace CustomBuildTool
             return dict;
         }
 
+        /// <summary>
+        /// Executes an MSBuild command using the specified build flags and returns the process exit code.
+        /// </summary>
+        /// <remarks>If the MSBuild executable cannot be located based on the provided flags and system
+        /// architecture, the method returns 3 and sets <paramref name="OutputString"/> to an error message. Otherwise,
+        /// the output from the MSBuild process is captured in <paramref name="OutputString"/> if <paramref
+        /// name="RedirectOutput"/> is <see langword="true"/>.</remarks>
+        /// <param name="Command">The MSBuild command-line arguments to execute. This string is passed directly to the MSBuild process.</param>
+        /// <param name="Flags">The build flags that determine which MSBuild executable to use and how the command is executed.</param>
+        /// <param name="OutputString">When the method returns, contains the output produced by the MSBuild process. If the MSBuild executable
+        /// cannot be found, contains an error message.</param>
+        /// <param name="RedirectOutput">Indicates whether the output from the MSBuild process should be redirected and captured. The default is <see
+        /// langword="true"/>.</param>
+        /// <returns>The exit code returned by the MSBuild process. Returns 3 if the MSBuild executable cannot be found.</returns>
         public static int ExecuteMsbuildCommand(string Command, BuildFlags Flags, out string OutputString, bool RedirectOutput = true)
         {
             string file = null;
@@ -179,6 +212,15 @@ namespace CustomBuildTool
             return Win32.CreateProcess(file, Command, out OutputString, false, RedirectOutput);
         }
 
+        /// <summary>
+        /// Executes a command using the vswhere utility and returns the trimmed output as a string.
+        /// </summary>
+        /// <remarks>The method locates the vswhere executable and runs the specified command. If the
+        /// vswhere file path is invalid, the method returns null and displays an error message. The output is trimmed
+        /// to remove leading and trailing whitespace.</remarks>
+        /// <param name="Command">The command-line arguments to pass to the vswhere executable. Cannot be null or empty.</param>
+        /// <returns>A string containing the trimmed output from the vswhere command. Returns null if the vswhere executable
+        /// cannot be found.</returns>
         public static string ExecuteVsWhereCommand(string Command)
         {
             string file = GetVswhereFilePath();
@@ -194,6 +236,14 @@ namespace CustomBuildTool
             return outputString.Trim();
         }
 
+        /// <summary>
+        /// Attempts to set the current working directory to the nearest parent directory containing the specified file.
+        /// </summary>
+        /// <remarks>If the specified file is found in a parent directory, the current working directory
+        /// is changed to that directory. If the file is not found or an error occurs, the current directory remains
+        /// unchanged and the method returns false.</remarks>
+        /// <param name="FileName">The name of the file to search for in parent directories. Cannot be null or empty.</param>
+        /// <returns>true if the current directory contains the specified file after the operation; otherwise, false.</returns>
         public static bool SetCurrentDirectoryParent(string FileName)
         {
             try
@@ -220,11 +270,23 @@ namespace CustomBuildTool
             return File.Exists(FileName);
         }
 
+        /// <summary>
+        /// Combines the working folder path with the specified file name to generate the full output directory path.
+        /// </summary>
+        /// <param name="FileName">The name of the file to append to the working folder path. Cannot be null or empty.</param>
+        /// <returns>A string containing the full path to the output directory for the specified file.</returns>
         public static string GetOutputDirectoryPath(string FileName)
         {
             return Path.Join([Build.BuildWorkingFolder, FileName]);
         }
 
+        /// <summary>
+        /// Creates the output directory specified by the build configuration if it does not already exist and is not a
+        /// file.
+        /// </summary>
+        /// <remarks>If the output folder path is null, empty, or whitespace, or if it points to an
+        /// existing file, the method does nothing. Any errors encountered during directory creation are reported to the
+        /// console.</remarks>
         public static void CreateOutputDirectory()
         {
             if (string.IsNullOrWhiteSpace(Build.BuildOutputFolder))
@@ -278,6 +340,18 @@ namespace CustomBuildTool
             return VsWhereFilePath;
         }
 
+        /// <summary>
+        /// Locates the file path to the MSBuild executable for the specified build flags and target architecture.
+        /// </summary>
+        /// <remarks>The method searches for MSBuild in environment variables, system paths, and Visual
+        /// Studio installation directories. If multiple locations are available, the search order prioritizes
+        /// environment variables, then system paths, followed by Visual Studio instances. The returned path may vary
+        /// depending on the installed Visual Studio versions and system configuration.</remarks>
+        /// <param name="Flags">The build flags that influence how MSBuild is located and which version is selected.</param>
+        /// <param name="Architecture">The target processor architecture for which the MSBuild executable should be found. Must be a valid
+        /// architecture supported by MSBuild.</param>
+        /// <returns>A string containing the full file path to the MSBuild executable matching the specified architecture and
+        /// build flags, or null if no suitable executable is found.</returns>
         private static string GetMsbuildFilePath(BuildFlags Flags, Architecture Architecture)
         {
             // ESDK Begin
@@ -295,7 +369,7 @@ namespace CustomBuildTool
                     return file;
                 }
             }
-            //ESDK End
+            // ESDK End
 
             var MsBuildPath = new Dictionary<string, Architecture>(3, StringComparer.OrdinalIgnoreCase)
             {
@@ -371,6 +445,13 @@ namespace CustomBuildTool
             return null;
         }
 
+        /// <summary>
+        /// Retrieves the full file path to the Git executable on the local machine.
+        /// </summary>
+        /// <remarks>This method searches common installation directories for the Git executable and
+        /// caches the result for subsequent calls. If Git is not installed in the standard locations, it attempts to
+        /// locate the executable using the system search path.</remarks>
+        /// <returns>A string containing the absolute path to the Git executable if found; otherwise, an empty string.</returns>
         public static string GetGitFilePath()
         {
             if (string.IsNullOrWhiteSpace(GitFilePath))
@@ -407,6 +488,16 @@ namespace CustomBuildTool
             return GitFilePath;
         }
 
+        /// <summary>
+        /// Constructs a command-line argument string for specifying the Git directory and working tree based on the
+        /// provided directory path.
+        /// </summary>
+        /// <remarks>The returned string can be used with Git commands to explicitly set the repository
+        /// location and working tree. If the directory does not contain a .git folder, the method returns
+        /// null.</remarks>
+        /// <param name="DirectoryPath">The file system path to the directory containing the Git repository. Must not be null, empty, or whitespace.</param>
+        /// <returns>A string containing the Git command-line arguments for the specified directory, or null if the directory
+        /// path is invalid or does not contain a .git folder.</returns>
         private static string GetGitWorkPath(string DirectoryPath)
         {
             if (string.IsNullOrWhiteSpace(DirectoryPath))
@@ -418,6 +509,16 @@ namespace CustomBuildTool
             return $"--git-dir=\"{DirectoryPath}\\.git\" --work-tree=\"{DirectoryPath}\" ";
         }
 
+        /// <summary>
+        /// Executes a Git command in the specified working folder and returns the command output as a string.
+        /// </summary>
+        /// <remarks>If the working folder is not a valid Git directory or the Git executable cannot be
+        /// found, the method returns null and prints an error message to the console. The output string is trimmed
+        /// before being returned.</remarks>
+        /// <param name="WorkingFolder">The path to the folder where the Git command will be executed. Must be a valid Git working directory.</param>
+        /// <param name="Command">The Git command to execute. This should be a valid command supported by the Git executable.</param>
+        /// <returns>A string containing the trimmed output of the executed Git command. Returns null if the working folder or
+        /// Git executable path is invalid.</returns>
         public static string ExecuteGitCommand(string WorkingFolder, string Command)
         {
             string currentGitDirectory = GetGitWorkPath(WorkingFolder);
@@ -441,6 +542,18 @@ namespace CustomBuildTool
             return outputString.Trim();
         }
 
+        /// <summary>
+        /// Enumerates all files in the specified directory and its subdirectories that match the given file extensions,
+        /// optionally excluding specified file names.
+        /// </summary>
+        /// <remarks>The search includes all subdirectories and ignores special directories such as "."
+        /// and "..". File extension and exclusion comparisons are performed in a case-insensitive manner.</remarks>
+        /// <param name="FilePath">The path to the directory to search. Must be a valid directory path.</param>
+        /// <param name="Extensions">An array of file extensions to include in the results. Extensions should include the leading dot (e.g.,
+        /// ".txt").</param>
+        /// <param name="Exclude">An optional array of file names to exclude from the results. Comparison is case-insensitive.</param>
+        /// <returns>A list of file paths that match the specified extensions and are not excluded. The list will be empty if no
+        /// files are found.</returns>
         public static List<string> EnumerateDirectory(string FilePath, string[] Extensions, string[] Exclude = null)
         {
             var list = Directory.EnumerateFiles(FilePath, "*", new EnumerationOptions
@@ -457,6 +570,14 @@ namespace CustomBuildTool
             return list;
         }
 
+        /// <summary>
+        /// Retrieves the file system path to the Windows SDK binaries directory, if available.
+        /// </summary>
+        /// <remarks>This method searches for the Windows SDK path using environment variables and
+        /// registry keys. The returned path can be used to locate SDK tools and binaries. If multiple SDK versions are
+        /// installed, the method returns the path to the highest available version.</remarks>
+        /// <returns>A string containing the path to the Windows SDK binaries directory. Returns null if the SDK path cannot be
+        /// determined.</returns>
         public static string GetWindowsSdkPath()
         {
             // ESDK Begin
@@ -469,7 +590,7 @@ namespace CustomBuildTool
                 if (Directory.Exists(path))
                     return path;
             }
-            //ESDK End
+            // ESDK End
 
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
@@ -505,6 +626,13 @@ namespace CustomBuildTool
             return null;
         }
 
+        /// <summary>
+        /// Retrieves the version number of the installed Windows SDK, if available.
+        /// </summary>
+        /// <remarks>The method first checks the 'WindowsSDKVersion' environment variable. If not set, it
+        /// searches the Windows Kits installation directory for available SDK versions and returns the highest version
+        /// found. The returned value does not include a trailing backslash.</remarks>
+        /// <returns>A string containing the Windows SDK version number, or null if no SDK version is found.</returns>
         public static string GetWindowsSdkVersion()
         {
             // ESDK Begin
@@ -512,7 +640,7 @@ namespace CustomBuildTool
             {
                 return windowsSdkVersion.TrimEnd('\\');
             }
-            //ESDK End
+            // ESDK End
 
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
@@ -549,6 +677,13 @@ namespace CustomBuildTool
             return null;
         }
 
+        /// <summary>
+        /// Retrieves the path to the Windows SDK include directory for the current system.
+        /// </summary>
+        /// <remarks>The method searches for the Windows SDK include path using environment variables and
+        /// registry keys. If multiple SDK versions are installed, it returns the path for the highest available
+        /// version. The returned path can be used to locate header files required for Windows development.</remarks>
+        /// <returns>A string containing the full path to the Windows SDK include directory if found; otherwise, null.</returns>
         public static string GetWindowsSdkIncludePath()
         {
             // ESDK Begin
@@ -561,7 +696,7 @@ namespace CustomBuildTool
                 if (Directory.Exists(path))
                     return path;
             }
-            //ESDK End
+            // ESDK End
 
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
@@ -597,6 +732,16 @@ namespace CustomBuildTool
             return null;
         }
 
+        /// <summary>
+        /// Retrieves the Visual Studio product version associated with the specified build flags and architecture.
+        /// </summary>
+        /// <remarks>Returns an empty string if the MSBuild path cannot be resolved or if the Visual
+        /// Studio installation is not found. This method does not throw exceptions; errors are logged and an empty
+        /// string is returned.</remarks>
+        /// <param name="Flags">The build flags that determine the MSBuild configuration and location.</param>
+        /// <param name="Architecture">The target architecture for which to locate the Visual Studio version.</param>
+        /// <returns>A string containing the Visual Studio product version, or an empty string if the version cannot be
+        /// determined.</returns>
         public static string GetVisualStudioVersion(BuildFlags Flags, Architecture Architecture)
         {
             string msbuild = GetMsbuildFilePath(Flags, Architecture);
@@ -632,6 +777,13 @@ namespace CustomBuildTool
             return string.Empty;
         }
 
+        /// <summary>
+        /// Retrieves the full path to the MakeAppx.exe tool from the Windows SDK installation.
+        /// </summary>
+        /// <remarks>This method searches for MakeAppx.exe in standard Windows SDK locations. If the tool
+        /// is not installed or cannot be found, the method returns null. Use this method to locate MakeAppx.exe for
+        /// packaging Windows applications.</remarks>
+        /// <returns>The full path to MakeAppx.exe if found; otherwise, null.</returns>
         public static string GetMakeAppxPath()
         {
             string windowsSdkPath = Utils.GetWindowsSdkPath();
@@ -660,9 +812,19 @@ namespace CustomBuildTool
             return makeAppxPath;
         }
 
+        /// <summary>
+        /// Locates the full file path to the CMake executable (cmake.exe) available on the system.
+        /// </summary>
+        /// <remarks>The method first searches for cmake.exe in the system PATH. If not found, it attempts
+        /// to locate a bundled version with Visual Studio. Returns null if CMake is not installed or cannot be located
+        /// by either method.</remarks>
+        /// <returns>The full path to the CMake executable if found; otherwise, null.</returns>
         public static string GetCMakeFilePath()
         {
+            //
             // Try searching in the PATH first
+            //
+
             string file = Win32.SearchPath("cmake.exe");
 
             if (File.Exists(file))
@@ -670,7 +832,10 @@ namespace CustomBuildTool
                 return file;
             }
 
+            //
             // Try bundled with Visual Studio
+            //
+
             VisualStudioInstance instance = BuildVisualStudio.GetVisualStudioInstance();
 
             if (instance != null)
@@ -694,10 +859,18 @@ namespace CustomBuildTool
             return null;
         }
 
-        public static int ExecuteCMakeCommand(string Command, BuildToolchain Toolchain)
+        /// <summary>
+        /// Executes a CMake command in a Visual Studio environment, initializing the required build tools before
+        /// running the command.
+        /// </summary>
+        /// <remarks>This method sets up the Visual Studio build environment by calling 'vcvarsall.bat'
+        /// for the appropriate architecture before executing the CMake command. The exit code can be used to determine
+        /// success or failure of the operation.</remarks>
+        /// <param name="Command">The CMake command line arguments to execute. Must specify the desired build configuration and architecture.</param>
+        /// <returns>The exit code returned by the CMake process. Returns <see cref="int.MaxValue"/> if required tools are not
+        /// found or initialization fails.</returns>
+        public static int ExecuteCMakeCommand(string Command)
         {
-            string fullCommand;
-            string vcvarsall = string.Empty;
             string cmakeFile = GetCMakeFilePath();
 
             if (string.IsNullOrWhiteSpace(cmakeFile))
@@ -706,55 +879,39 @@ namespace CustomBuildTool
                 return int.MaxValue;
             }
 
-            {
-                if (Win32.GetEnvironmentVariable("VCINSTALLDIR", out string vcInstallDir))
-                {
-                    vcvarsall = Path.Join([vcInstallDir, "Auxiliary\\Build\\vcvarsall.bat"]);
-                }
-                else
-                {
-                    var instance = BuildVisualStudio.GetVisualStudioInstance();
+            var instance = BuildVisualStudio.GetVisualStudioInstance();
+            string vcvarsall = Path.Join([instance.Path, "VC\\Auxiliary\\Build\\vcvarsall.bat"]);
 
-                    if (instance != null)
-                    {
-                        vcvarsall = Path.Join([instance.Path, "VC\\Auxiliary\\Build\\vcvarsall.bat"]);
-                    }
-                }
-            }
-
-            if (string.IsNullOrWhiteSpace(vcvarsall))
+            if (!File.Exists(vcvarsall))
             {
-                Program.PrintColorMessage("[ExecuteCMakeCommand] vcvarsall is invalid.", ConsoleColor.Red);
+                Program.PrintColorMessage("[ExecuteCMakeCommand] vcvarsall.bat not found.", ConsoleColor.Red);
                 return int.MaxValue;
             }
 
-            string arch = Toolchain switch
-            {
-                BuildToolchain.MsvcX86 or BuildToolchain.ClangMsvcX86 => "amd64_x86",
-                BuildToolchain.MsvcArm64 or BuildToolchain.ClangMsvcArm64 => "amd64_arm64",
-                _ => "amd64"
-            };
+            string arch = null;
 
-            if (File.Exists(vcvarsall))
-            {
-                // We need to run vcvarsall.bat and then cmake in the same session.
-                // Using cmd /c "call vcvarsall.bat arch && cmake ..."
-                fullCommand = $"/c \"call \"{vcvarsall}\" {arch} >nul && \"{cmakeFile}\" {Command}\"";
-            }
+            if (Command.Contains("msvc-x86", StringComparison.OrdinalIgnoreCase) || Command.Contains("Win32", StringComparison.OrdinalIgnoreCase))
+                arch = "amd64_x86";
+            else if (Command.Contains("msvc-arm64", StringComparison.OrdinalIgnoreCase) || Command.Contains("ARM64", StringComparison.OrdinalIgnoreCase))
+                arch = "amd64_arm64";
             else
-            {
-                // If vcvarsall.bat is not found, assume the environment is already set up (e.g. EWDK)
-                if (!Win32.HasEnvironmentVariable("INCLUDE") && !Win32.HasEnvironmentVariable("LIB"))
-                {
-                    Program.PrintColorMessage("[ExecuteCMakeCommand] Warning: vcvarsall.bat not found and INCLUDE/LIB environment variables are not set. Compilation might fail.", ConsoleColor.Yellow);
-                }
+                arch = "amd64";
 
-                fullCommand = $"/c \"\"{cmakeFile}\" {Command}\"";
-            }
+            // We need to run vcvarsall.bat and then cmake in the same session.
+            // Using cmd /c "call vcvarsall.bat arch && cmake ..."
+            string fullCommand = $"/c \"call \"{vcvarsall}\" {arch} && \"{cmakeFile}\" {Command}\"";
 
             return Win32.CreateProcess("cmd.exe", fullCommand, out _, false, false);
         }
 
+        /// <summary>
+        /// Executes an MSIX packaging command using the MakeAppx tool and returns the output as a string.
+        /// </summary>
+        /// <remarks>The returned output is trimmed and consecutive blank lines are reduced to a single
+        /// blank line. This method does not throw exceptions for invalid tool paths; instead, it returns null and
+        /// prints an error message.</remarks>
+        /// <param name="Command">The command-line arguments to pass to the MakeAppx tool. Cannot be null or empty.</param>
+        /// <returns>A string containing the output from the MakeAppx tool. Returns null if the tool path is invalid.</returns>
         public static string ExecuteMsixCommand(string Command)
         {
             string file = GetMakeAppxPath();
@@ -788,6 +945,14 @@ namespace CustomBuildTool
         //    return signToolPath;
         //}
 
+        /// <summary>
+        /// Retrieves the full file path to the SymStore executable (symstore.exe) from the Windows SDK installation, if
+        /// available.
+        /// </summary>
+        /// <remarks>This method searches for symstore.exe in the Windows SDK directory, using environment
+        /// variables and registry keys. The returned path can be used to invoke SymStore for symbol storage operations.
+        /// If the SDK is not installed or symstore.exe is not present, the method returns null.</remarks>
+        /// <returns>The full path to symstore.exe if found; otherwise, null.</returns>
         public static string GetSymStorePath()
         {
             // Required for the ESDK
@@ -851,6 +1016,13 @@ namespace CustomBuildTool
             return Win32.CreateProcess(file, Command, out _, false, false);
         }
 
+        /// <summary>
+        /// Retrieves the full path to the Visual Studio 'devenv.com' executable for the latest installed instance.
+        /// </summary>
+        /// <remarks>This method searches for the latest Visual Studio installation and returns the path
+        /// to its 'devenv.com' executable. If no suitable installation is found, the method returns null. The result
+        /// can be used to launch Visual Studio from the command line.</remarks>
+        /// <returns>A string containing the path to 'devenv.com' if found; otherwise, null.</returns>
         public static string GetDevEnvPath()
         {
             var instance = BuildVisualStudio.GetVisualStudioInstance();
@@ -1104,6 +1276,14 @@ namespace CustomBuildTool
             return fileTime;
         }
 
+        /// <summary>
+        /// Validates the export directory of a PE image file to determine if exported functions are defined.
+        /// </summary>
+        /// <remarks>This method checks the export directory of the specified PE image file and reports
+        /// missing exported functions. If exported functions are missing, a message is printed to the console. The
+        /// method unmaps the image file after validation.</remarks>
+        /// <param name="FileName">The path to the PE image file to validate. Cannot be null or empty.</param>
+        /// <returns>true if the image file contains an export directory with no exported function names; otherwise, false.</returns>
         public static bool ValidateImageExports(string FileName)
         {
             LOADED_IMAGE loadedMappedImage = default;
@@ -2225,6 +2405,12 @@ namespace CustomBuildTool
         public Dictionary<string, string> Documents { get; init; }
     }
 
+    public class NugetVersionResponse
+    {
+        [JsonPropertyName("versions")]
+        public List<string> Versions { get; init; }
+    }
+
     [JsonSerializable(typeof(BuildUpdateRequest))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class BuildUpdateRequestContext : JsonSerializerContext
@@ -2266,6 +2452,21 @@ namespace CustomBuildTool
     {
     }
 
+    [JsonSerializable(typeof(NugetVersionResponse))]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
+    public partial class NugetVersionResponseContext : JsonSerializerContext
+    {
+
+    }
+
+    /// <summary>
+    /// Provides extension methods for formatting numeric values as human-readable file sizes.
+    /// </summary>
+    /// <remarks>The methods in this class convert numeric values representing byte counts into formatted
+    /// strings using common size units such as kilobytes (Kb), megabytes (Mb), gigabytes (Gb), and terabytes (Tb).
+    /// These extensions are intended to simplify displaying file sizes in user interfaces or logs. All methods are
+    /// thread-safe and can be used with integer and long values, including unsigned long. The class is static and
+    /// cannot be instantiated.</remarks>
     public static class Extensions
     {
         private const long OneKb = 1024;
@@ -2289,10 +2490,10 @@ namespace CustomBuildTool
             double asGb = Math.Round((double)value / OneGb, decimalPlaces);
             double asMb = Math.Round((double)value / OneMb, decimalPlaces);
             double asKb = Math.Round((double)value / OneKb, decimalPlaces);
-            string chosenValue = asTb > 1 ? $"{asTb}Tb"
-                : asGb > 1 ? $"{asGb}Gb"
-                : asMb > 1 ? $"{asMb}Mb"
-                : asKb > 1 ? $"{asKb}Kb"
+            string chosenValue = asTb > 1 ? $"{asTb} Tb"
+                : asGb > 1 ? $"{asGb} Gb"
+                : asMb > 1 ? $"{asMb} Mb"
+                : asKb > 1 ? $"{asKb} Kb"
                 : $"{Math.Round((double)value, decimalPlaces)}B";
             return chosenValue;
         }

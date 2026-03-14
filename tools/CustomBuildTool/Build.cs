@@ -287,13 +287,9 @@ namespace CustomBuildTool
         public static string GetBuildBaseDirectory(BuildFlags Flags)
         {
             if (Flags.HasFlag(BuildFlags.BuildCMake))
-            {
-                return Path.Join([Build.BuildWorkingFolder, "\\bin-cmake"]);
-            }
+                return Path.Join([Build.BuildWorkingFolder, "bin-cmake"]);
             else
-            {
-                return Path.Join([Build.BuildWorkingFolder, "\\bin"]);
-            }
+                return Path.Join([Build.BuildWorkingFolder, "bin"]);
         }
 
         /// <summary>
@@ -387,7 +383,7 @@ namespace CustomBuildTool
                 {
                     if (Flags.HasFlag(architectureEntry.Key))
                     {
-                        string targetFilePath = Path.Join([baseDirectory, $"\\{architectureEntry.Value}\\", fileName]);
+                        string targetFilePath = Path.Join([baseDirectory, architectureEntry.Value, fileName]);
 
                         if (Update)
                             Win32.CopyIfNewer(fileName, targetFilePath, Flags);
@@ -436,8 +432,8 @@ namespace CustomBuildTool
                 {
                     if (Flags.HasFlag(configurationEntry.Key.configuration) && Flags.HasFlag(configurationEntry.Key.architecture))
                     {
-                        string sourceFilePath = Path.Join([baseDirectory, $"\\{configurationEntry.Value.source}\\", fileName]);
-                        string targetFilePath = Path.Join([baseDirectory, $"\\{configurationEntry.Value.target}\\", fileName]);
+                        string sourceFilePath = Path.Join([baseDirectory, configurationEntry.Value.source, fileName]);
+                        string targetFilePath = Path.Join([baseDirectory, configurationEntry.Value.target, fileName]);
                         Win32.CopyIfNewer(sourceFilePath, targetFilePath, Flags);
                     }
                 }
@@ -480,8 +476,8 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(configurationEntry.Key.configuration) && Flags.HasFlag(configurationEntry.Key.architecture))
                     {
                         Win32.CopyIfNewer(
-                            Path.Join([BuildWorkingFolder, "\\SystemInformer\\resources\\", resourceEntry.Key]),
-                            Path.Join([baseDirectory, $"\\{configurationEntry.Value}\\", resourceEntry.Value]),
+                            Path.Join([BuildWorkingFolder, "SystemInformer\\resources", resourceEntry.Key]),
+                            Path.Join([baseDirectory, configurationEntry.Value, resourceEntry.Value]),
                             Flags);
                     }
                 }
@@ -561,8 +557,8 @@ namespace CustomBuildTool
                         if (Flags.HasFlag(architectureEntry.Key))
                         {
                             Win32.CopyIfNewer(
-                                Path.Join([windowsSdkPath, $"\\{architectureEntry.Value.sdkArchitecture}\\", fileName]),
-                                Path.Join([baseDirectory, $"\\{architectureEntry.Value.debugDirectory}\\", fileName]),
+                                Path.Join([windowsSdkPath, architectureEntry.Value.sdkArchitecture, fileName]),
+                                Path.Join([baseDirectory, architectureEntry.Value.debugDirectory, fileName]),
                                 Flags);
                         }
                     }
@@ -575,8 +571,8 @@ namespace CustomBuildTool
                         if (Flags.HasFlag(architectureEntry.Key))
                         {
                             Win32.CopyIfNewer(
-                                Path.Join([windowsSdkPath, $"\\{architectureEntry.Value.sdkArchitecture}\\", fileName]),
-                                Path.Join([baseDirectory, $"\\{architectureEntry.Value.releaseDirectory}\\", fileName]),
+                                Path.Join([windowsSdkPath, architectureEntry.Value.sdkArchitecture, fileName]),
+                                Path.Join([baseDirectory, architectureEntry.Value.releaseDirectory, fileName]),
                                 Flags);
                         }
                     }
@@ -610,7 +606,7 @@ namespace CustomBuildTool
             {
                 if (Flags.HasFlag(validationEntry.Key.configuration) && Flags.HasFlag(validationEntry.Key.architecture))
                 {
-                    if (!Utils.ValidateImageExports(Path.Join([baseDirectory, $"\\{validationEntry.Value}"])) )
+                    if (!Utils.ValidateImageExports(Path.Join([baseDirectory, validationEntry.Value])) )
                         return false;
                 }
             }
@@ -715,7 +711,7 @@ namespace CustomBuildTool
                         {
                             Win32.CopyVersionIfNewer(
                                 Path.Join([Build.BuildWorkingFolder, $"\\KSystemInformer\\bin-signed\\{configurationEntry.Value.sourceArchitecture}\\", fileName]),
-                                Path.Join([baseDirectory, $"\\{configurationEntry.Value.targetDirectory}\\", fileName]),
+                                Path.Join([baseDirectory, configurationEntry.Value.targetDirectory, fileName]),
                                 Flags);
                         }
                     }
@@ -816,15 +812,15 @@ namespace CustomBuildTool
             foreach (string headerFileName in BuildConfig.Build_Phlib_Headers)
             {
                 Win32.CopyIfNewer(
-                    Path.Join([Build.BuildWorkingFolder, "\\phlib\\include\\", headerFileName]),
-                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", headerFileName]),
+                    Path.Join([Build.BuildWorkingFolder, "phlib\\include", headerFileName]),
+                    Path.Join([Build.BuildWorkingFolder, "sdk\\include", headerFileName]),
                     Flags, true);
             }
             foreach (string headerFileName in BuildConfig.Build_Kphlib_Headers)
             {
                 Win32.CopyIfNewer(
-                    Path.Join([Build.BuildWorkingFolder, "\\kphlib\\include\\", headerFileName]),
-                    Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", headerFileName]),
+                    Path.Join([Build.BuildWorkingFolder, "kphlib\\include", headerFileName]),
+                    Path.Join([Build.BuildWorkingFolder, "sdk\\include", headerFileName]),
                     Flags, true);
             }
 
@@ -833,8 +829,8 @@ namespace CustomBuildTool
             //
 
             Win32.CopyIfNewer(
-                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\readme.txt"]),
-                Path.Join([Build.BuildWorkingFolder, "\\sdk\\readme.txt"]),
+                Path.Join([Build.BuildWorkingFolder, "SystemInformer\\sdk\\readme.txt"]),
+                Path.Join([Build.BuildWorkingFolder, "sdk\\readme.txt"]),
                 Flags, true);
 
             //
@@ -848,8 +844,8 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(configurationEntry.Key.configuration) && Flags.HasFlag(configurationEntry.Key.architecture))
                     {
                         Win32.CopyIfNewer(
-                            Path.Join([baseDirectory, $"\\{configurationEntry.Value.sourceDirectory}\\", fileName]),
-                            Path.Join([Build.BuildWorkingFolder, $"\\sdk\\lib\\{configurationEntry.Value.targetArchitecture}\\", fileName]),
+                            Path.Join([baseDirectory, configurationEntry.Value.sourceDirectory, fileName]),
+                            Path.Join([Build.BuildWorkingFolder, $"sdk\\lib\\{configurationEntry.Value.targetArchitecture}\\", fileName]),
                             Flags,
                             true
                             );
@@ -868,18 +864,18 @@ namespace CustomBuildTool
             //
 
             Win32.CopyIfNewer(
-                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\include\\phappres.h"]),
-                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappres.h"]),
+                Path.Join([Build.BuildWorkingFolder, "SystemInformer\\include\\phappres.h"]),
+                Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phappres.h"]),
                 Flags, true);
 
             Win32.CopyIfNewer(
-                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\phapppub.h"]),
-                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phapppub.h"]),
+                Path.Join([Build.BuildWorkingFolder, "SystemInformer\\sdk\\phapppub.h"]),
+                Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phapppub.h"]),
                 Flags, true);
 
             Win32.CopyIfNewer(
-                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\sdk\\phdk.h"]),
-                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phdk.h"]),
+                Path.Join([Build.BuildWorkingFolder, "SystemInformer\\sdk\\phdk.h"]),
+                Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phdk.h"]),
                 Flags, true);
 
             //
@@ -887,14 +883,14 @@ namespace CustomBuildTool
             //
 
             Win32.GetFileBasicInfo(
-                Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\resource.h"]),
+                Path.Join([Build.BuildWorkingFolder, "SystemInformer\\resource.h"]),
                 out var sourceCreationTime,
                 out var sourceWriteTime,
                 out _
                 );
 
             Win32.GetFileBasicInfo(
-                Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappresource.h"]),
+                Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phappresource.h"]),
                 out var targetCreationTime,
                 out var targetWriteTime,
                 out var targetAttributes
@@ -908,11 +904,11 @@ namespace CustomBuildTool
                 if (!resourceContent.Equals(targetContent, StringComparison.OrdinalIgnoreCase))
                 {
                     if ((targetAttributes & FileAttributes.ReadOnly) != 0)
-                        File.SetAttributes(Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappresource.h"]), FileAttributes.Normal);
-                    Utils.WriteAllText(Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappresource.h"]), targetContent);
+                        File.SetAttributes(Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phappresource.h"]), FileAttributes.Normal);
+                    Utils.WriteAllText(Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phappresource.h"]), targetContent);
                 }
 
-                Win32.SetFileBasicInfo(Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\phappresource.h"]), sourceCreationTime, sourceWriteTime, true);
+                Win32.SetFileBasicInfo(Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phappresource.h"]), sourceCreationTime, sourceWriteTime, true);
                 //Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h", Flags);
             }
 
@@ -931,7 +927,7 @@ namespace CustomBuildTool
             Program.PrintColorMessage($"Building build-{Channel}-setup.exe... ", ConsoleColor.Cyan, false);
 
             if (!BuildSolution(
-                Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSetupTool\\CustomSetupTool.sln"]),
+                Path.Join([Build.BuildWorkingFolder, "tools\\CustomSetupTool\\CustomSetupTool.sln"]),
                 BuildFlags.Build32bit | BuildFlags.BuildApi,
                 Channel
                 ))
@@ -943,8 +939,8 @@ namespace CustomBuildTool
             {
                 string toolchainSuffix = GetToolchainSuffix(Flags);
                 string buildConfiguration = Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release";
-                string sourceExecutableFile = Path.Join([Build.BuildWorkingFolder, $"\\tools\\CustomSetupTool\\bin\\{buildConfiguration}32\\CustomSetupTool.exe"]);
-                string targetSetupExecutableFile = Path.Join([Build.BuildOutputFolder, $"\\systeminformer-build{toolchainSuffix}-{Channel}-setup.exe"]);
+                string sourceExecutableFile = Path.Join([Build.BuildWorkingFolder, $"tools\\CustomSetupTool\\bin\\{buildConfiguration}32\\CustomSetupTool.exe"]);
+                string targetSetupExecutableFile = Path.Join([Build.BuildOutputFolder, $"systeminformer-build{toolchainSuffix}-{Channel}-setup.exe"]);
 
                 Utils.CreateOutputDirectory();
 
@@ -982,7 +978,7 @@ namespace CustomBuildTool
             try
             {
                 string toolchainSuffix = GetToolchainSuffix(Flags);
-                string zipFilePath = Path.Join([Build.BuildOutputFolder, $"\\systeminformer-build{toolchainSuffix}-sdk.zip"]);
+                string zipFilePath = Path.Join([Build.BuildOutputFolder, $"systeminformer-build{toolchainSuffix}-sdk.zip"]);
 
                 Utils.CreateOutputDirectory();
 
@@ -1021,13 +1017,14 @@ namespace CustomBuildTool
 
             var buildZipFilesMap = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase)
             {
-                [Path.Join([buildDirectory, $"\\{buildConfiguration}32"])] = $"systeminformer-build{toolchainSuffix}-win32-bin.zip",
-                [Path.Join([buildDirectory, $"\\{buildConfiguration}64"])] = $"systeminformer-build{toolchainSuffix}-win64-bin.zip",
-                [Path.Join([buildDirectory, $"\\{buildConfiguration}ARM64"])] = $"systeminformer-build{toolchainSuffix}-arm64-bin.zip",
+                [Path.Join([buildDirectory, $"{buildConfiguration}32"])] = $"systeminformer-build{toolchainSuffix}-win32-bin.zip",
+                [Path.Join([buildDirectory, $"{buildConfiguration}64"])] = $"systeminformer-build{toolchainSuffix}-win64-bin.zip",
+                [Path.Join([buildDirectory, $"{buildConfiguration}ARM64"])] = $"systeminformer-build{toolchainSuffix}-arm64-bin.zip",
                 [buildDirectory] = $"systeminformer-build{toolchainSuffix}-bin.zip",
             };
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage($"Generating zip files... ", ConsoleColor.Cyan);
 
             try
             {
@@ -1038,6 +1035,8 @@ namespace CustomBuildTool
                     Win32.DeleteFile(zipFilePath, Flags);
                 }
 
+                // Create zips
+
                 foreach (var zipEntry in buildZipFilesMap)
                 {
                     string zipFilePath = Path.Join([Build.BuildOutputFolder, zipEntry.Value]);
@@ -1047,11 +1046,15 @@ namespace CustomBuildTool
                     Zip.CreateCompressedFolder(zipEntry.Key, zipFilePath, Flags);
                 }
 
+                // Total stats
+
                 foreach (var zipEntry in buildZipFilesMap)
                 {
                     string zipFilePath = Path.Join([Build.BuildOutputFolder, zipEntry.Value]);
 
-                    Program.PrintColorMessage($"{zipEntry.Value}: {Win32.GetFileSize(zipFilePath).ToPrettySize()}", ConsoleColor.Green);
+                    Program.PrintColorMessage($"{zipEntry.Value}: ", ConsoleColor.Green, false);
+                    Program.PrintColorMessage("...", ConsoleColor.Gray, false);
+                    Program.PrintColorMessage($" {Win32.GetFileSize(zipFilePath).ToPrettySize()}", ConsoleColor.Yellow);
                 }
             }
             catch (Exception exception)
@@ -1081,7 +1084,7 @@ namespace CustomBuildTool
 
                 if (MsixPackageBuild)
                 {
-                    string zipFilePath = Path.Join([Build.BuildOutputFolder, $"\\systeminformer-setup{toolchainSuffix}-package-pdb.zip"]);
+                    string zipFilePath = Path.Join([Build.BuildOutputFolder, $"systeminformer-setup{toolchainSuffix}-package-pdb.zip"]);
 
                     Win32.DeleteFile(
                         zipFilePath,
@@ -1101,7 +1104,7 @@ namespace CustomBuildTool
                 }
                 else
                 {
-                    string zipFilePath = Path.Join([Build.BuildOutputFolder, $"\\systeminformer-build{toolchainSuffix}-pdb.zip"]);
+                    string zipFilePath = Path.Join([Build.BuildOutputFolder, $"systeminformer-build{toolchainSuffix}-pdb.zip"]);
 
                     Win32.DeleteFile(
                         zipFilePath,
@@ -1150,7 +1153,7 @@ namespace CustomBuildTool
             try
             {
                 string toolchainSuffix = GetToolchainSuffix(Flags);
-                string zipFilePath = Path.Join([Build.BuildOutputFolder, $"\\systeminformer{toolchainSuffix}-symbols-package.zip"]);
+                string zipFilePath = Path.Join([Build.BuildOutputFolder, $"systeminformer{toolchainSuffix}-symbols-package.zip"]);
 
                 Win32.DeleteFile(
                     zipFilePath
@@ -1385,7 +1388,7 @@ namespace CustomBuildTool
         /// <param name="Generator">The CMake generator to use.</param>
         /// <param name="Flags">Build flags indicating which configurations to process.</param>
         /// <returns>True if the solution is built successfully; otherwise, false.</returns>
-        public static bool BuildSolutionCMake(string Solution, BuildGenerator Generator, BuildFlags Flags)
+        public static bool BuildSolutionCMake(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags)
         {
             // If CMake build is requested, route to BuildSolutionCMake for each requested arch.
             if (Flags.HasFlag(BuildFlags.BuildCMake))
@@ -1393,14 +1396,14 @@ namespace CustomBuildTool
                 // 32-bit
                 if (Flags.HasFlag(BuildFlags.Build32bit))
                 {
-                    if (!ExecuteBuildSolutionCMake(Solution, Generator, BuildToolchain.ClangMsvcX86, Flags))
+                    if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags))
                         return false;
                 }
 
                 // 64-bit
                 if (Flags.HasFlag(BuildFlags.Build64bit))
                 {
-                    if (!ExecuteBuildSolutionCMake(Solution, Generator, BuildToolchain.ClangMsvcAmd64, Flags))
+                    if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags))
                         return false;
                 }
 
@@ -1409,7 +1412,7 @@ namespace CustomBuildTool
                 {
                     if (HaveArm64BuildTools)
                     {
-                        if (!ExecuteBuildSolutionCMake(Solution, Generator, BuildToolchain.ClangMsvcArm64, Flags))
+                        if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags))
                             return false;
                     }
                     else
@@ -1426,12 +1429,10 @@ namespace CustomBuildTool
 
         public static bool ExecuteBuildSolutionCMake(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags)
         {
-            string buildConfiguration = Flags.HasFlag(BuildFlags.Debug) ? "Debug" : "Release";
-            string buildDirectoryFolder = Flags.HasFlag(BuildFlags.Debug) ? "build\\debug" : "build\\release";
-            string cmakeGeneratorOptions = string.Empty;
-            string cmakeBuildOptions = string.Empty;
+            string buildConfig = Flags.HasFlag(BuildFlags.Debug) ? "Debug" : "Release";
+            string buildFolder = Flags.HasFlag(BuildFlags.Debug) ? "build\\debug" : "build\\release";
 
-            string platformSuffixString = Toolchain switch
+            string platformSuffix = Toolchain switch
             {
                 BuildToolchain.MsvcX86 => "-msvc-32",
                 BuildToolchain.MsvcAmd64 => "-msvc-64",
@@ -1442,7 +1443,7 @@ namespace CustomBuildTool
                 _ => throw new ArgumentException("Unsupported toolchain")
             };
 
-            string toolchainFilePath = Toolchain switch
+            string toolchainFile = Toolchain switch
             {
                 BuildToolchain.MsvcX86 => "cmake/toolchain/msvc-x86.cmake",
                 BuildToolchain.MsvcAmd64 => "cmake/toolchain/msvc-amd64.cmake",
@@ -1453,104 +1454,86 @@ namespace CustomBuildTool
                 _ => throw new ArgumentException("Unsupported toolchain")
             };
 
-            // Toggle CMake options based on solution name
-            bool buildCore = Solution.Equals("SystemInformer", StringComparison.OrdinalIgnoreCase);
-            bool buildPlugins = Solution.Equals("Plugins", StringComparison.OrdinalIgnoreCase);
-            var buildLogLevel = Build.BuildToolsDebug ? "DEBUG" : (Flags.HasFlag(BuildFlags.BuildVerbose) ? "STATUS" : "WARNING");
-
-            buildDirectoryFolder = Path.Join([Build.BuildWorkingFolder, buildDirectoryFolder + platformSuffixString]);
-            toolchainFilePath = Path.Join([Build.BuildWorkingFolder, toolchainFilePath]);
+            buildFolder = Path.Join([Build.BuildWorkingFolder, buildFolder + platformSuffix]);
+            toolchainFile = Path.Join([Build.BuildWorkingFolder, toolchainFile]);
 
             //
             // Clean
             //
 
-            if (Directory.Exists(buildDirectoryFolder))
+            if (Directory.Exists(buildFolder))
             {
-                try { Directory.Delete(buildDirectoryFolder, true); } catch { }
+                try { Directory.Delete(buildFolder, true); } catch { }
             }
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage($"Generating {Path.GetFileNameWithoutExtension(Solution)}... [", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage($"Generating {Path.GetFileNameWithoutExtension(Solution)} [", ConsoleColor.Cyan, false, Flags);
             Program.PrintColorMessage(Utils.GetToolchainString(Toolchain), ConsoleColor.Green, false, Flags);
-            Program.PrintColorMessage("] [", ConsoleColor.Cyan, false, Flags);
-            Program.PrintColorMessage(buildConfiguration, ConsoleColor.Green, false, Flags);
-            Program.PrintColorMessage("]...", ConsoleColor.Cyan, true, Flags);
+            Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(buildConfig, ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
 
             //
             // Generate
             //
-
+ 
+            string cmakeGenOpts = string.Empty;
             if (Generator == BuildGenerator.Ninja)
             {
-                cmakeGeneratorOptions = $"-DCMAKE_BUILD_TYPE={buildConfiguration}";
+                cmakeGenOpts = $"-DCMAKE_BUILD_TYPE={buildConfig}";
             }
-
-            string generateArgs = $"-G \"{Utils.GetGeneratorString(Generator)}\" -S \"{Build.BuildWorkingFolder}\" -B \"{buildDirectoryFolder}\" " +
-                                  $"--toolchain \"{toolchainFilePath}\" " +
-                                  $"--log-level={buildLogLevel} " +
-                                  $"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON " +
-                                  $"-DSI_WITH_CORE={(buildCore ? "ON" : "OFF")} " +
-                                  $"-DSI_WITH_PLUGINS={(buildPlugins ? "ON" : "OFF")} " +
-                                  $"{cmakeGeneratorOptions}";
-
-            int exitCodeValue = Utils.ExecuteCMakeCommand(generateArgs, Toolchain);
-            if (exitCodeValue != 0)
+            else
             {
-                if (Directory.Exists(buildDirectoryFolder))
+                string generateArgs =
+                    $"-G \"{Utils.GetGeneratorString(Generator)}\" -S \"{Build.BuildWorkingFolder}\" -B \"{buildFolder}\" " +
+                    $"--toolchain \"{toolchainFile}\" " +
+                    $"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON " +
+                    $"-DSI_WITH_CORE=ON " +
+                    $"-DSI_WITH_PLUGINS=ON " +
+                    $"{cmakeGenOpts}";
+
+                int errorcode = Utils.ExecuteCMakeCommand(generateArgs);
+                if (errorcode != 0)
                 {
-                    try { Directory.Delete(buildDirectoryFolder, true); } catch { }
+                    Program.PrintColorMessage($"[ERROR] CMake generate failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    return false;
                 }
 
-                Program.PrintColorMessage($"[ERROR] CMake generate failed ({exitCodeValue})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                return false;
-            }
+                Console.WriteLine();
 
-            Console.WriteLine();
+                //
+                // Build
+                //
 
-            //
-            // Build
-            //
+                Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} [", ConsoleColor.Cyan, false, Flags);
+                Program.PrintColorMessage(Utils.GetToolchainString(Toolchain), ConsoleColor.Green, false, Flags);
+                Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
+                Program.PrintColorMessage(buildConfig, ConsoleColor.Green, false, Flags);       
+                Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
 
-            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} [", ConsoleColor.Cyan, false, Flags);
-            Program.PrintColorMessage(Utils.GetToolchainString(Toolchain), ConsoleColor.Green, false, Flags);
-            Program.PrintColorMessage("] [", ConsoleColor.Cyan, false, Flags);
-            Program.PrintColorMessage(buildConfiguration, ConsoleColor.Green, false, Flags);
-            Program.PrintColorMessage("]...", ConsoleColor.Cyan, true, Flags);
-
-            if (Generator == BuildGenerator.VisualStudio)
-            {
-                cmakeBuildOptions = $"-- /m /p:Platform={Utils.CMakeGetPlatform(Toolchain)} ";
-
-                if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
+                string cmakeBuildOpts = string.Empty;
+                if (Generator == BuildGenerator.VisualStudio)
                 {
-                    cmakeBuildOptions += "-terminalLogger:on ";
-                }
-            }
-
-            exitCodeValue = Utils.ExecuteCMakeCommand($"--build \"{buildDirectoryFolder}\" --config {buildConfiguration} {cmakeBuildOptions}", Toolchain);
-            if (exitCodeValue != 0)
-            {
-                if (Directory.Exists(buildDirectoryFolder))
-                {
-                    try { Directory.Delete(buildDirectoryFolder, true); } catch { }
+                    cmakeBuildOpts = $"-- /m /p:Platform={Utils.CMakeGetPlatform(Toolchain)} -terminalLogger:auto";
                 }
 
-                Program.PrintColorMessage($"[ERROR] CMake build failed ({exitCodeValue})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                return false;
+                errorcode = Utils.ExecuteCMakeCommand($"--build \"{buildFolder}\" --config {buildConfig} {cmakeBuildOpts}");
+                if (errorcode != 0)
+                {
+                    Program.PrintColorMessage($"[ERROR] CMake build failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    return false;
+                }
             }
-
-            Console.WriteLine();
-
+            
             //
             // Clean
             //
 
-            if (Directory.Exists(buildDirectoryFolder))
+            if (Directory.Exists(buildFolder))
             {
                 try
-                { Directory.Delete(buildDirectoryFolder, true); }
+                { Directory.Delete(buildFolder, true); }
                 catch { }
             }
 
@@ -1624,9 +1607,9 @@ namespace CustomBuildTool
             // N.B. HACK we only produce a "release" (default setting) build for the binary (portable).
             // Sign it using the "release" key. (jxy-s)
 
-            var portable_zip = CreateBuildDeployFile("release", "systeminformer-build-bin.zip", Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-bin.zip"]));
-            var release_exe = CreateBuildDeployFile("release", "systeminformer-build-release-setup.exe", Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-release-setup.exe"]));
-            var canary_exe = CreateBuildDeployFile("canary", "systeminformer-build-canary-setup.exe", Path.Join([Build.BuildOutputFolder, "\\systeminformer-build-canary-setup.exe"]));
+            var portable_zip = CreateBuildDeployFile("release", "systeminformer-build-bin.zip", Path.Join([Build.BuildOutputFolder, "systeminformer-build-bin.zip"]));
+            var release_exe = CreateBuildDeployFile("release", "systeminformer-build-release-setup.exe", Path.Join([Build.BuildOutputFolder, "systeminformer-build-release-setup.exe"]));
+            var canary_exe = CreateBuildDeployFile("canary", "systeminformer-build-canary-setup.exe", Path.Join([Build.BuildOutputFolder, "systeminformer-build-canary-setup.exe"]));
 
             if (portable_zip == null || release_exe == null || canary_exe == null)
             {
@@ -1911,17 +1894,12 @@ namespace CustomBuildTool
                     requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-                    var httpResult = await BuildHttpClient.SendMessage(requestMessage);
+                    using var httpClient = BuildHttpClient.CreateHttpClient();
+                    var httpResult = await BuildHttpClient.SendMessageResponse(httpClient, requestMessage);
 
-                    if (string.IsNullOrWhiteSpace(httpResult))
+                    if (!httpResult.IsSuccessStatusCode)
                     {
                         Program.PrintColorMessage("[UpdateBuildWebService-SF-NullOrWhiteSpace]", ConsoleColor.Red);
-                        return false;
-                    }
-
-                    if (!httpResult.Equals("OK", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Program.PrintColorMessage($"[UpdateBuildWebService-SF] {httpResult}", ConsoleColor.Red);
                         return false;
                     }
                 }
