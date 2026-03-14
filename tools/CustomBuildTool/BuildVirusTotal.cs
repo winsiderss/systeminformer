@@ -16,7 +16,7 @@ namespace CustomBuildTool
     /// </summary>
     public static class BuildVirusTotal
     {
-        private static readonly HttpClient VirusTotalHttpClient;
+        private static readonly HttpClient VirusTotalHttpClient = null;
 
         /// <summary>
         /// Stores the VirusTotal API token used for authentication.

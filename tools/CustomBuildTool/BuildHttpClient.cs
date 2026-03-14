@@ -227,7 +227,7 @@ namespace CustomBuildTool
             }
 
             base.OnEventSourceCreated(eventSource);
-        } 
+        }
 
         protected override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData)
         {
@@ -237,7 +237,7 @@ namespace CustomBuildTool
 
                 Console.WriteLine($"[NET] {eventData.EventSource.Name}:{eventData.Level} {eventData.EventName} | {payload}");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Avoid throwing from listener - log to debug output only
                 Console.WriteLine($"[HttpEventListener] Error processing event.");
