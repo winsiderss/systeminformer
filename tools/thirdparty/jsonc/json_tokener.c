@@ -66,7 +66,7 @@
  * compiler will also inline these functions, providing an additional
  * speedup by saving on function calls.
  */
-static inline int is_ws_char(char c)
+static inline int is_ws_char(unsigned char c)
 {
     return c == ' '
         || c == '\t'
@@ -74,7 +74,7 @@ static inline int is_ws_char(char c)
         || c == '\r';
 }
 
-static inline int is_hex_char(char c)
+static inline int is_hex_char(unsigned char c)
 {
     return (c >= '0' && c <= '9')
         || (c >= 'A' && c <= 'F')
@@ -312,7 +312,7 @@ struct json_object *json_tokener_parse_verbose(const char *str, enum json_tokene
 struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *str, size_t len)
 {
     struct json_object *obj = NULL;
-    char c = '\1';
+    unsigned char c = '\1';
     unsigned int nBytes = 0;
     unsigned int *nBytesp = &nBytes;
 
@@ -362,7 +362,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
     }
 #elif defined(HAVE_SETLOCALE)
     {
-        char *tmplocale;
+        unsigned char *tmplocale;
         tmplocale = setlocale(LC_NUMERIC, NULL);
         if (tmplocale)
         {
@@ -501,7 +501,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
             /* Note: tok->st_pos must be 0 when state is set to json_tokener_state_inf */
             while (tok->st_pos < (int)json_inf_str_len)
             {
-                char inf_char = *str;
+                unsigned char inf_char = *str;
                 if (inf_char != json_inf_str[tok->st_pos] &&
                     ((tok->flags & JSON_TOKENER_STRICT) ||
                       inf_char != json_inf_str_invert[tok->st_pos])
@@ -602,7 +602,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
         case json_tokener_state_comment:
         {
             /* Advance until we change state */
-            const char *case_start = str;
+            const unsigned char *case_start = str;
             while (c != '*')
             {
                 if (!ADVANCE_CHAR(str, tok) || !PEEK_CHAR(c, tok))
@@ -778,7 +778,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
                      * Replace the high and process the rest normally
                      */
                     printbuf_memappend_checked(tok->pb,
-                                               (char *)utf8_replacement_char, 3);
+                                               (unsigned char *)utf8_replacement_char, 3);
                 }
                 tok->high_surrogate = 0;
             }
@@ -787,14 +787,14 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
             {
                 unsigned char unescaped_utf[1];
                 unescaped_utf[0] = tok->ucs_char;
-                printbuf_memappend_checked(tok->pb, (char *)unescaped_utf, 1);
+                printbuf_memappend_checked(tok->pb, (unsigned char *)unescaped_utf, 1);
             }
             else if (tok->ucs_char < 0x800)
             {
                 unsigned char unescaped_utf[2];
                 unescaped_utf[0] = 0xc0 | (tok->ucs_char >> 6);
                 unescaped_utf[1] = 0x80 | (tok->ucs_char & 0x3f);
-                printbuf_memappend_checked(tok->pb, (char *)unescaped_utf, 2);
+                printbuf_memappend_checked(tok->pb, (unsigned char *)unescaped_utf, 2);
             }
             else if (IS_HIGH_SURROGATE(tok->ucs_char))
             {
@@ -837,7 +837,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
                 unescaped_utf[1] = 0x80 | ((tok->ucs_char >> 12) & 0x3f);
                 unescaped_utf[2] = 0x80 | ((tok->ucs_char >> 6) & 0x3f);
                 unescaped_utf[3] = 0x80 | (tok->ucs_char & 0x3f);
-                printbuf_memappend_checked(tok->pb, (char *)unescaped_utf, 4);
+                printbuf_memappend_checked(tok->pb, (unsigned char *)unescaped_utf, 4);
             }
             else
             {
@@ -876,7 +876,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
                  * Put a replacement char in for the high surrogate
                  * and handle the escape sequence normally.
                  */
-                printbuf_memappend_checked(tok->pb, (char *)utf8_replacement_char, 3);
+                printbuf_memappend_checked(tok->pb, (unsigned char *)utf8_replacement_char, 3);
                 tok->high_surrogate = 0;
                 tok->ucs_char = 0;
                 tok->st_pos = 0;
