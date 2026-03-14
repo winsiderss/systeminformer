@@ -34,21 +34,14 @@ if not defined VSINSTALLPATH (
 )
 
 set "VS_ARM64_SUPPORT=false"
-for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.ARM64 Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre" -property installationPath`) do (
+for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.ARM64" -property installationPath`) do (
    set "VS_ARM64_SUPPORT=true"
 )
 
-if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
-   if "%VS_ARM64_SUPPORT%"=="true" (
-      call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
-   ) else (
-      call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
-   )
-   if %ERRORLEVEL% neq 0 goto end
+if "%PROCESSOR_ARCHITECTURE%"=="ARM64" (
+   call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" arm64
 ) else (
-   echo Warning: vcvarsall.bat not found and compilation environment variables are not defined.
-   echo The build may fail if the environment is not properly initialized.
-   goto end
+   call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
 )
 
 if exist "tools\thirdparty\bin" (

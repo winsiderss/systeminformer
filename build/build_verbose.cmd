@@ -26,7 +26,7 @@ if not defined VSINSTALLPATH (
 )
 
 set "VS_ARM64_SUPPORT=false"
-for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.ARM64 Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre" -property installationPath`) do (
+for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.ARM64" -property installationPath`) do (
    set "VS_ARM64_SUPPORT=true"
 )
 
