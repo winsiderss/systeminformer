@@ -1482,50 +1482,48 @@ namespace CustomBuildTool
             {
                 cmakeGenOpts = $"-DCMAKE_BUILD_TYPE={buildConfig}";
             }
-            else
+
+            string generateArgs =
+                $"-G \"{Utils.GetGeneratorString(Generator)}\" -S \"{Build.BuildWorkingFolder}\" -B \"{buildFolder}\" " +
+                $"--toolchain \"{toolchainFile}\" " +
+                $"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON " +
+                $"-DSI_WITH_CORE=ON " +
+                $"-DSI_WITH_PLUGINS=ON " +
+                $"{cmakeGenOpts}";
+
+            int errorcode = Utils.ExecuteCMakeCommand(generateArgs);
+            if (errorcode != 0)
             {
-                string generateArgs =
-                    $"-G \"{Utils.GetGeneratorString(Generator)}\" -S \"{Build.BuildWorkingFolder}\" -B \"{buildFolder}\" " +
-                    $"--toolchain \"{toolchainFile}\" " +
-                    $"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON " +
-                    $"-DSI_WITH_CORE=ON " +
-                    $"-DSI_WITH_PLUGINS=ON " +
-                    $"{cmakeGenOpts}";
-
-                int errorcode = Utils.ExecuteCMakeCommand(generateArgs);
-                if (errorcode != 0)
-                {
-                    Program.PrintColorMessage($"[ERROR] CMake generate failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                    return false;
-                }
-
-                Console.WriteLine();
-
-                //
-                // Build
-                //
-
-                Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
-                Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} [", ConsoleColor.Cyan, false, Flags);
-                Program.PrintColorMessage(Utils.GetToolchainString(Toolchain), ConsoleColor.Green, false, Flags);
-                Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
-                Program.PrintColorMessage(buildConfig, ConsoleColor.Green, false, Flags);       
-                Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
-
-                string cmakeBuildOpts = string.Empty;
-                if (Generator == BuildGenerator.VisualStudio)
-                {
-                    cmakeBuildOpts = $"-- /m /p:Platform={Utils.CMakeGetPlatform(Toolchain)} -terminalLogger:auto";
-                }
-
-                errorcode = Utils.ExecuteCMakeCommand($"--build \"{buildFolder}\" --config {buildConfig} {cmakeBuildOpts}");
-                if (errorcode != 0)
-                {
-                    Program.PrintColorMessage($"[ERROR] CMake build failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                    return false;
-                }
+                Program.PrintColorMessage($"[ERROR] CMake generate failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                return false;
             }
-            
+
+            Console.WriteLine();
+
+            //
+            // Build
+            //
+
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+            Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} [", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(Utils.GetToolchainString(Toolchain), ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(buildConfig, ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
+
+            string cmakeBuildOpts = string.Empty;
+            if (Generator == BuildGenerator.VisualStudio)
+            {
+                cmakeBuildOpts = $"-- /m /p:Platform={Utils.CMakeGetPlatform(Toolchain)} -terminalLogger:auto";
+            }
+
+            errorcode = Utils.ExecuteCMakeCommand($"--build \"{buildFolder}\" --config {buildConfig} {cmakeBuildOpts}");
+            if (errorcode != 0)
+            {
+                Program.PrintColorMessage($"[ERROR] CMake build failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                return false;
+            }
+
             //
             // Clean
             //

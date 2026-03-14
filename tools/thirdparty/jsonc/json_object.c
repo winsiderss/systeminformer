@@ -867,7 +867,7 @@ uint64_t json_object_get_uint64(const struct json_object *jso)
         return (uint64_t)JC_DOUBLE_C(jso)->c_double;
     case json_type_boolean: return JC_BOOL_C(jso)->c_boolean;
     case json_type_string:
-        if (json_parse_uint64((const char *)get_string_component(jso), &cuint) == 0)
+        if (json_parse_uint64(get_string_component(jso), &cuint) == 0)
             return cuint;
         /* FALLTHRU */
     default: return 0;
@@ -1037,7 +1037,7 @@ static size_t json_object_double_to_json_string_format(struct json_object *jso, 
     }
     else
     {
-        const char *std_format = "%.17g";
+        const unsigned char *std_format = "%.17g";
         int format_drops_decimals = 0;
         int looks_numeric = 0;
 
@@ -1064,7 +1064,7 @@ static size_t json_object_double_to_json_string_format(struct json_object *jso, 
         else
             p = strchr(buf, '.');
 
-        if (format == std_format || strstr(format, ".0f") == NULL)
+        if (format == std_format || strstr((const char*)format, ".0f") == NULL)
             format_drops_decimals = 1;
 
         looks_numeric = /* Looks like *some* kind of number */

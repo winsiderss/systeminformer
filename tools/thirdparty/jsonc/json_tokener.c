@@ -125,11 +125,11 @@ static const char *json_tokener_errors[] = {
  * validete the utf-8 string in strict model.
  * if not utf-8 format, return err.
  */
-static json_bool json_tokener_validate_utf8(const char c, unsigned int *nBytes);
+static json_bool json_tokener_validate_utf8(const unsigned char c, unsigned int *nBytes);
 
-static int json_tokener_parse_double(const char *buf, size_t len, double *retval);
+static int json_tokener_parse_double(const unsigned char *buf, size_t len, double *retval);
 
-const char *json_tokener_error_desc(enum json_tokener_error jerr)
+const unsigned char *json_tokener_error_desc(enum json_tokener_error jerr)
 {
     int jerr_int = (int)jerr;
     if (jerr_int < 0 ||
@@ -211,7 +211,7 @@ void json_tokener_reset(struct json_tokener *tok)
     tok->err = json_tokener_success;
 }
 
-struct json_object *json_tokener_parse(const char *str)
+struct json_object *json_tokener_parse(const unsigned char *str)
 {
     enum json_tokener_error jerr_ignored;
     struct json_object *obj;
@@ -219,7 +219,7 @@ struct json_object *json_tokener_parse(const char *str)
     return obj;
 }
 
-struct json_object *json_tokener_parse_verbose(const char *str, enum json_tokener_error *error)
+struct json_object *json_tokener_parse_verbose(const unsigned char *str, enum json_tokener_error *error)
 {
     struct json_tokener *tok;
     struct json_object *obj;
@@ -309,7 +309,7 @@ struct json_object *json_tokener_parse_verbose(const char *str, enum json_tokene
 
 /* End optimization macro defs */
 
-struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *str, size_t len)
+struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const unsigned char *str, size_t len)
 {
     struct json_object *obj = NULL;
     unsigned char c = '\1';
@@ -620,7 +620,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
         case json_tokener_state_comment_eol:
         {
             /* Advance until we change state */
-            const char *case_start = str;
+            const unsigned char *case_start = str;
             while (c != '\n')
             {
                 if (!ADVANCE_CHAR(str, tok) || !PEEK_CHAR(c, tok))
@@ -652,7 +652,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
         case json_tokener_state_string:
         {
             /* Advance until we change state */
-            const char *case_start = str;
+            const unsigned char *case_start = str;
             while (1)
             {
                 if (c == tok->quote_char)
@@ -940,7 +940,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
         case json_tokener_state_number:
         {
             /* Advance until we change state */
-            const char *case_start = str;
+            const unsigned char *case_start = str;
             int case_len = 0;
             int is_exponent = 0;
             int neg_sign_ok = 1;
@@ -1212,7 +1212,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
         case json_tokener_state_object_field:
         {
             /* Advance until we change state */
-            const char *case_start = str;
+            const unsigned char *case_start = str;
             while (1)
             {
                 if (c == tok->quote_char)
@@ -1350,7 +1350,7 @@ out:
     return NULL;
 }
 
-static json_bool json_tokener_validate_utf8(const char c, unsigned int *nBytes)
+static json_bool json_tokener_validate_utf8(const unsigned char c, unsigned int *nBytes)
 {
     unsigned char chr = c;
     if (*nBytes == 0)
@@ -1387,9 +1387,9 @@ size_t json_tokener_get_parse_end(struct json_tokener *tok)
     return (size_t)tok->char_offset;
 }
 
-static int json_tokener_parse_double(const char *buf, size_t len, double *retval)
+static int json_tokener_parse_double(const unsigned char *buf, size_t len, double *retval)
 {
-    char *end;
+    unsigned char *end;
     *retval = strtod(buf, &end);
     if (buf + len == end)
         return 0; // It worked

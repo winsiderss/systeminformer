@@ -2549,8 +2549,6 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     }
 }
 
-
-
 /**
  * ICLRDataTarget::SetThreadContext implementation (not implemented).
  *

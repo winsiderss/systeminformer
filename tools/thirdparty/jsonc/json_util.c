@@ -64,7 +64,7 @@ const unsigned char *json_util_get_last_err(void)
 {
     if (_last_err[0] == '\0')
         return NULL;
-    return (const char *)_last_err;
+    return _last_err;
 }
 
 void _json_c_set_last_err(const unsigned char *err_fmt, ...)
@@ -197,7 +197,7 @@ static int _json_object_to_fd(int fd, struct json_object *obj, int flags, const 
     const unsigned char *json_str;
     size_t wpos, wsize;
 
-    filename = filename ? filename : "(fd)";
+    filename = filename ? filename : (const unsigned char*)"(fd)";
 
     if (!(json_str = json_object_to_json_string_ext(obj, flags)))
     {
