@@ -103,11 +103,10 @@ VOID PhpInformerGetKeys(
     {
     case KphMsgProcessCreate:
         *ActorKey = Message->Kernel.ProcessCreate.CreatingProcessStartKey;
-        *TargetKey = Message->Kernel.ProcessCreate.CreatingProcessStartKey;
+        *TargetKey = Message->Kernel.ProcessCreate.TargetProcessStartKey;
         return;
     case KphMsgProcessExit:
         *ActorKey = Message->Kernel.ProcessExit.ProcessStartKey;
-        *TargetKey = Message->Kernel.ProcessExit.ProcessStartKey;
         return;
     case KphMsgThreadCreate:
         *ActorKey = Message->Kernel.ThreadCreate.CreatingProcessStartKey;
@@ -115,15 +114,13 @@ VOID PhpInformerGetKeys(
         return;
     case KphMsgThreadExecute:
         *ActorKey = Message->Kernel.ThreadExecute.ProcessStartKey;
-        *TargetKey = Message->Kernel.ThreadExecute.ProcessStartKey;
         return;
     case KphMsgThreadExit:
         *ActorKey = Message->Kernel.ThreadExit.ProcessStartKey;
-        *TargetKey = Message->Kernel.ThreadExit.ProcessStartKey;
         return;
     case KphMsgImageLoad:
         *ActorKey = Message->Kernel.ImageLoad.LoadingProcessStartKey;
-        *TargetKey = Message->Kernel.ImageLoad.LoadingProcessStartKey;
+        *TargetKey = Message->Kernel.ImageLoad.TargetProcessStartKey;
         return;
     case KphMsgImageVerify:
         *ActorKey = Message->Kernel.ImageVerify.ProcessStartKey;
@@ -205,7 +202,6 @@ VOID PhpInformerDatabaseReap(
     if (PhpInformerDBReapProc && Reap->ProcessStartKey)
     {
         sqlite3_bind_int64_I(PhpInformerDBReapProc, 1, Reap->ProcessStartKey);
-        sqlite3_bind_int64_I(PhpInformerDBReapProc, 2, Reap->ProcessStartKey);
         sqlite3_step_I(PhpInformerDBReapProc);
         sqlite3_reset_I(PhpInformerDBReapProc);
     }
@@ -476,7 +472,7 @@ VOID PhpInitializeInformerDatabase(
             sqlite3_prepare_v2_I(
                 PhpInformerDB,
                 "DELETE FROM messages "
-                "WHERE actor_key = ? OR target_key = ?;",
+                "WHERE actor_key = ?;",
                 -1,
                 &PhpInformerDBReapProc,
                 NULL
