@@ -125,6 +125,18 @@ namespace CustomBuildTool
                 throw new ArgumentException("SigningCertificate must not contain a private key. Use AsymmetricAlgorithm for signing.", nameof(SigningCertificate));
             }
 
+            // Validate and configure timestamp settings
+
+            if (this.TimeStampConfiguration.Type.HasValue)
+            {
+                if (string.IsNullOrEmpty(this.TimeStampConfiguration.Url))
+                {
+                    throw new InvalidOperationException("TimeStampConfiguration.Url is required when Type is specified.");
+                }
+            }
+
+            // Validate and configure signing settings
+
             this.SigningAlgorithm = SigningAlgorithm;
             this.SigningCertificate = SigningCertificate;
             this.FileDigestAlgorithm = FileDigestAlgorithm;
@@ -153,13 +165,15 @@ namespace CustomBuildTool
             IntPtr certPtr = SigningCertificate.Handle;
             this.InstanceHandle = GCHandle.Alloc(this);
 
-            if (SignCallbackInstanceMap.TryGetValue(certPtr, out var oldHandle))
+            SignCallbackInstanceMap.AddOrUpdate(certPtr, this.InstanceHandle, (key, oldHandle) =>
             {
                 if (oldHandle.IsAllocated)
                 {
                     oldHandle.Free();
                 }
-            }
+
+                return this.InstanceHandle;
+            });
 
             SignCallbackInstanceMap[certPtr] = this.InstanceHandle;
 
@@ -203,21 +217,22 @@ namespace CustomBuildTool
             else
                 flags |= (SIGNER_SIGN_FLAGS)SignerSignEx3Flags.SPC_EXC_PE_PAGE_HASHES_FLAG;
 
+            //
             // Validate and configure timestamp settings
+            //
+
             if (this.TimeStampConfiguration.Type.HasValue)
             {
-                if (string.IsNullOrEmpty(this.TimeStampConfiguration.Url))
-                {
-                    throw new InvalidOperationException("TimeStampConfiguration.Url is required when Type is specified.");
-                }
-
                 if (this.TimeStampConfiguration.Type == TimeStampType.Authenticode)
                     timeStampFlags = SIGNER_TIMESTAMP_FLAGS.SIGNER_TIMESTAMP_AUTHENTICODE;
                 else if (this.TimeStampConfiguration.Type == TimeStampType.RFC3161)
                     timeStampFlags = SIGNER_TIMESTAMP_FLAGS.SIGNER_TIMESTAMP_RFC3161;
             }
 
+            //
             // Ensure null-terminated strings for wide-char pointers
+            //
+
             var fileNameTerminated = NullTerminate(FileName);
             var timestampTerminated = this.TimeStampConfiguration.Type.HasValue ? NullTerminate(this.TimeStampConfiguration.Url) : null;
             var descriptionTerminated = !Description.IsEmpty ? NullTerminate(Description) : null;
@@ -384,17 +399,25 @@ namespace CustomBuildTool
                 return;
             }
 
-            if (this.SigningCertificate?.Handle != IntPtr.Zero)
+            try
             {
-                SignCallbackInstanceMap.TryRemove(this.SigningCertificate.Handle, out _);
+                if (this.SigningCertificate?.Handle != IntPtr.Zero)
+                {
+                    SignCallbackInstanceMap.TryRemove(this.SigningCertificate.Handle, out var removed);
+
+                    if (removed.IsAllocated)
+                    {
+                        removed.Free(); // Ensure it's freed
+                    }
+                }
             }
+            catch (ObjectDisposedException) { }
+
 
             if (this.InstanceHandle.IsAllocated)
             {
                 this.InstanceHandle.Free();
             }
-
-            this.SigningCallback = null;
 
             if (disposing)
             {

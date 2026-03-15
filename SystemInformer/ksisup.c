@@ -348,6 +348,10 @@ VOID PhShowKsiStatus(
         {
             PhAppendStringBuilder2(&stringBuilder, L"    - process is being debugged\r\n");
         }
+        if (!BooleanFlagOn(processState, KPH_PROCESS_CREATE_NOTIFICATION))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"    - no create notification\r\n");
+        }
         if ((processState & KPH_PROCESS_STATE_MINIMUM) != KPH_PROCESS_STATE_MINIMUM)
         {
             PhAppendStringBuilder2(&stringBuilder, L"    - tampered primary image\r\n");
@@ -1730,65 +1734,7 @@ NTSTATUS KsiConnect(
             KphStripProtectedProcessMasks(NtCurrentProcess(), process, thread);
     }
 
-    if (PhEnableProcessMonitor)
-    {
-        KPH_INFORMER_SETTINGS settings;
-        KPH_RATE_LIMIT_POLICY unlimited = KPH_RATE_LIMIT_UNLIMITED;
-        KPH_RATE_LIMIT_POLICY disable = KPH_RATE_LIMIT_DENY_ALL;
-
-        settings.Options.Flags = ULONG_MAX;
-        for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
-        {
-            settings.Policy[i] = unlimited;
-        }
-
-        //
-        // Conservative settings for now.
-        //
-
-        settings.Options.EnableStackTraces = FALSE;
-
-        settings.Policy[KPH_INFORMER_INDEX(DebugPrint)] = disable;
-
-        settings.Policy[KPH_INFORMER_INDEX(HandlePreCreateProcess)] = disable;
-        settings.Policy[KPH_INFORMER_INDEX(HandlePostCreateProcess)] = disable;
-        settings.Policy[KPH_INFORMER_INDEX(HandlePreDuplicateProcess)] = disable;
-        settings.Policy[KPH_INFORMER_INDEX(HandlePostDuplicateProcess)] = disable;
-        settings.Policy[KPH_INFORMER_INDEX(HandlePreCreateThread)] = disable;
-        settings.Policy[KPH_INFORMER_INDEX(HandlePostCreateThread)] = disable;
-        settings.Policy[KPH_INFORMER_INDEX(HandlePreDuplicateThread)] = disable;
-        settings.Policy[KPH_INFORMER_INDEX(HandlePostDuplicateThread)] = disable;
-        settings.Policy[KPH_INFORMER_INDEX(HandlePreCreateDesktop)] = disable;
-        settings.Policy[KPH_INFORMER_INDEX(HandlePostCreateDesktop)] = disable;
-        settings.Policy[KPH_INFORMER_INDEX(HandlePreDuplicateDesktop)] = disable;
-        settings.Policy[KPH_INFORMER_INDEX(HandlePostDuplicateDesktop)] = disable;
-
-        settings.Options.EnableProcessCreateReply = FALSE;
-        settings.Options.FileEnablePreCreateReply = FALSE;
-        settings.Options.FileEnablePostCreateReply = FALSE;
-
-        settings.Options.FileEnablePostFileNames = FALSE;
-        settings.Options.FileEnableIoControlBuffers = FALSE;
-        settings.Options.FileEnableFsControlBuffers = FALSE;
-        settings.Options.FileEnableDirControlBuffers = FALSE;
-
-        settings.Options.RegEnablePostObjectNames = FALSE;
-        settings.Options.RegEnablePostValueNames = FALSE;
-        settings.Options.RegEnableValueBuffers = FALSE;
-
-        KphSetInformerSettings(&settings);
-    }
-    else
-    {
-        KPH_INFORMER_SETTINGS settings;
-        KPH_RATE_LIMIT_POLICY unlimited = KPH_RATE_LIMIT_UNLIMITED;
-
-        memset(&settings, 0, sizeof(settings));
-
-        settings.Policy[KPH_INFORMER_INDEX(RequiredStateFailure)] = unlimited;
-
-        KphSetInformerSettings(&settings);
-    }
+    PhInformerActivate();
 
     status = STATUS_SUCCESS;
 

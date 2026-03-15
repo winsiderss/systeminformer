@@ -16,6 +16,8 @@ namespace CustomBuildTool
     /// </summary>
     public static class BuildVirusTotal
     {
+        private static readonly HttpClient VirusTotalHttpClient = null;
+
         /// <summary>
         /// Stores the VirusTotal API token used for authentication.
         /// </summary>
@@ -68,7 +70,7 @@ namespace CustomBuildTool
                         requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                         requestMessage.Headers.Add("x-apikey", VirusTotalApiToken);
 
-                        var response = await BuildHttpClient.SendMessage(requestMessage, VirusTotalResponseContext.Default.VirusTotalLargeUploadResponse);
+                        var response = await BuildHttpClient.SendMessage(VirusTotalHttpClient, requestMessage, VirusTotalResponseContext.Default.VirusTotalLargeUploadResponse);
 
                         uploadInfo = response.data;
                     }
@@ -98,14 +100,14 @@ namespace CustomBuildTool
                     requestMessage.Content = requestMethod;
 
                     {
-                        virusTotalAnalysisResponseContext = await BuildHttpClient.SendMessage(requestMessage, VirusTotalResponseContext.Default.VirusTotalAnalysisResponse);
+                        virusTotalAnalysisResponseContext = await BuildHttpClient.SendMessage(VirusTotalHttpClient, requestMessage, VirusTotalResponseContext.Default.VirusTotalAnalysisResponse);
 
                         using (HttpRequestMessage requestAnalysisMessage = new HttpRequestMessage(HttpMethod.Get, virusTotalAnalysisResponseContext.data.links.self))
                         {
                             requestAnalysisMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                             requestAnalysisMessage.Headers.Add("x-apikey", VirusTotalApiToken);
 
-                            return await BuildHttpClient.SendMessage(requestAnalysisMessage);
+                            await BuildHttpClient.SendMessageResponse(VirusTotalHttpClient, requestAnalysisMessage);
                         }
                     }
                 }

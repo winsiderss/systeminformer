@@ -17,6 +17,14 @@ namespace CustomBuildTool
     public static class BuildDevOps
     {
         /// <summary>
+        /// Provides a shared HTTP client instance for communicating with DevOps services.
+        /// </summary>
+        /// <remarks>This static instance is intended for reuse across multiple requests to optimize
+        /// connection management and resource usage. Avoid disposing this client directly; dispose of it only when the
+        /// application is shutting down.</remarks>
+        private static readonly HttpClient DevOpsHttpClient;
+
+        /// <summary>
         /// The build ID from the environment variable <c>BUILD_BUILDID</c>.
         /// </summary>
         private static readonly string BaseBuild;
@@ -41,6 +49,7 @@ namespace CustomBuildTool
         /// </summary>
         static BuildDevOps()
         {
+            DevOpsHttpClient = BuildHttpClient.CreateHttpClient();
             BaseBuild = Win32.GetEnvironmentVariable("BUILD_BUILDID");
             BaseToken = Win32.GetEnvironmentVariable("SYSTEM_ACCESSTOKEN");
             BaseName = Win32.GetEnvironmentVariable("SYSTEM_TEAMPROJECT");
@@ -75,15 +84,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", BaseToken);
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                    var httpResult = await BuildHttpClient.SendMessage(requestMessage);
-
-                    if (string.IsNullOrWhiteSpace(httpResult))
-                    {
-                        Console.WriteLine($"{VT.RED}[ERROR] Received empty response.{VT.RESET}");
-                        ArgumentNullException.ThrowIfNull(httpResult);
-                    }
-
-                    var content = JsonSerializer.Deserialize(httpResult, BuildInfoResponseContext.Default.BuildInfo);
+                    var content = await BuildHttpClient.SendMessage(DevOpsHttpClient, requestMessage, BuildInfoResponseContext.Default.BuildInfo);
                     if (content == null)
                     {
                         Console.WriteLine($"{VT.RED}[ERROR] Failed to deserialize the response.{VT.RESET}");

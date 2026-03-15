@@ -53,8 +53,8 @@
 #endif
 #endif
 
-const char *json_number_chars = "0123456789.+-eE"; /* Unused, but part of public API, drop for 1.0 */
-const char *json_hex_chars = "0123456789abcdefABCDEF";
+const unsigned char *json_number_chars = "0123456789.+-eE"; /* Unused, but part of public API, drop for 1.0 */
+const unsigned char *json_hex_chars = "0123456789abcdefABCDEF";
 
 static void json_object_generic_delete(struct json_object *jso);
 
@@ -163,11 +163,11 @@ static json_object_to_json_string_fn _json_object_userdata_to_json_string;
  * This should be used rather than assert() for unconditional abortion
  * (in particular for code paths which are never supposed to be run).
  * */
-JSON_NORETURN static void json_abort(const char *message);
+JSON_NORETURN static void json_abort(const unsigned char *message);
 
 /* helper for accessing the optimized string data component in json_object
  */
-static inline char *get_string_component_mutable(struct json_object *jso)
+static inline unsigned char *get_string_component_mutable(struct json_object *jso)
 {
     if (JC_STRING_C(jso)->len < 0)
     {
@@ -176,14 +176,14 @@ static inline char *get_string_component_mutable(struct json_object *jso)
     }
     return JC_STRING(jso)->c_string.idata;
 }
-static inline const char *get_string_component(const struct json_object *jso)
+static inline const unsigned char *get_string_component(const struct json_object *jso)
 {
     return get_string_component_mutable((void *)(uintptr_t)(const void *)jso);
 }
 
 /* string escaping */
 
-static int json_escape_str(struct printbuf *pb, const char *str, size_t len, int flags)
+static int json_escape_str(struct printbuf *pb, const unsigned char *str, size_t len, int flags)
 {
     size_t pos = 0, start_offset = 0;
     unsigned char c;
@@ -232,7 +232,7 @@ static int json_escape_str(struct printbuf *pb, const char *str, size_t len, int
         default:
             if (c < ' ')
             {
-                char sbuf[7];
+                unsigned char sbuf[7];
                 if (pos > start_offset)
                     printbuf_memappend(pb, str + start_offset,
                                        pos - start_offset);
@@ -405,9 +405,9 @@ void json_object_set_serializer(json_object *jso, json_object_to_json_string_fn 
 
 /* extended conversion to string */
 
-const char *json_object_to_json_string_length(struct json_object *jso, int flags, size_t *length)
+const unsigned char *json_object_to_json_string_length(struct json_object *jso, int flags, size_t *length)
 {
-    const char *r = NULL;
+    const unsigned char *r = NULL;
     size_t s = 0;
 
     if (!jso)
@@ -431,14 +431,14 @@ const char *json_object_to_json_string_length(struct json_object *jso, int flags
     return r;
 }
 
-const char *json_object_to_json_string_ext(struct json_object *jso, int flags)
+const unsigned char *json_object_to_json_string_ext(struct json_object *jso, int flags)
 {
     return json_object_to_json_string_length(jso, flags, NULL);
 }
 
 /* backwards-compatible conversion to string */
 
-const char *json_object_to_json_string(struct json_object *jso)
+const unsigned char *json_object_to_json_string(struct json_object *jso)
 {
     return json_object_to_json_string_ext(jso, JSON_C_TO_STRING_SPACED);
 }
@@ -554,7 +554,7 @@ struct lh_table *json_object_get_object(const struct json_object *jso)
     }
 }
 
-int json_object_object_add_ex(struct json_object *jso, const char *const key,
+int json_object_object_add_ex(struct json_object *jso, const unsigned char *const key,
                               struct json_object *const val, const unsigned opts)
 {
     struct json_object *existing_value = NULL;
@@ -591,7 +591,7 @@ int json_object_object_add_ex(struct json_object *jso, const char *const key,
     return 0;
 }
 
-int json_object_object_add(struct json_object *jso, const char *key, struct json_object *val)
+int json_object_object_add(struct json_object *jso, const unsigned char *key, struct json_object *val)
 {
     return json_object_object_add_ex(jso, key, val, 0);
 }
@@ -607,14 +607,14 @@ size_t json_c_object_sizeof(void)
     return sizeof(struct json_object);
 }
 
-struct json_object *json_object_object_get(const struct json_object *jso, const char *key)
+struct json_object *json_object_object_get(const struct json_object *jso, const unsigned char *key)
 {
     struct json_object *result = NULL;
     json_object_object_get_ex(jso, key, &result);
     return result;
 }
 
-json_bool json_object_object_get_ex(const struct json_object *jso, const char *key,
+json_bool json_object_object_get_ex(const struct json_object *jso, const unsigned char *key,
                                     struct json_object **value)
 {
     if (value != NULL)
@@ -635,7 +635,7 @@ json_bool json_object_object_get_ex(const struct json_object *jso, const char *k
     }
 }
 
-void json_object_object_del(struct json_object *jso, const char *key)
+void json_object_object_del(struct json_object *jso, const unsigned char *key)
 {
     assert(json_object_get_type(jso) == json_type_object);
     lh_table_delete(JC_OBJECT(jso)->c_object, key);
@@ -703,7 +703,7 @@ static size_t json_object_int_to_json_string(struct json_object *jso, struct pri
                                           int flags)
 {
     /* room for 19 digits, the sign char, and a null term */
-    char sbuf[21];
+    unsigned char sbuf[21];
     if (JC_INT(jso)->cint_type == json_object_int_type_int64)
         snprintf(sbuf, sizeof(sbuf), "%" PRId64, JC_INT(jso)->cint.c_int64);
     else
@@ -944,9 +944,9 @@ int json_object_int_inc(struct json_object *jso, int64_t val)
 // i.e. __thread or __declspec(thread)
 static SPEC___THREAD char *tls_serialization_float_format = NULL;
 #endif
-static char *global_serialization_float_format = NULL;
+static unsigned char *global_serialization_float_format = NULL;
 
-int json_c_set_serialization_double_format(const char *double_format, int global_or_thread)
+int json_c_set_serialization_double_format(const unsigned char *double_format, int global_or_thread)
 {
     if (global_or_thread == JSON_C_OPTION_GLOBAL)
     {
@@ -961,7 +961,7 @@ int json_c_set_serialization_double_format(const char *double_format, int global
             free(global_serialization_float_format);
         if (double_format)
         {
-            char *p = _strdup(double_format);
+           unsigned char *p = _strdup(double_format);
             if (p == NULL)
             {
                 _json_c_set_last_err("json_c_set_serialization_double_format: "
@@ -1014,10 +1014,10 @@ int json_c_set_serialization_double_format(const char *double_format, int global
 }
 
 static size_t json_object_double_to_json_string_format(struct json_object *jso, struct printbuf *pb,
-                                                    int level, int flags, const char *format)
+                                                    int level, int flags, const unsigned char *format)
 {
     struct json_object_double *jsodbl = JC_DOUBLE(jso);
-    char buf[128], *p, *q;
+    unsigned char buf[128], *p, *q;
     size_t size;
     /* Although JSON RFC does not support
      * NaN or Infinity as numeric values
@@ -1037,7 +1037,7 @@ static size_t json_object_double_to_json_string_format(struct json_object *jso, 
     }
     else
     {
-        const char *std_format = "%.17g";
+        const unsigned char *std_format = "%.17g";
         int format_drops_decimals = 0;
         int looks_numeric = 0;
 
@@ -1064,7 +1064,7 @@ static size_t json_object_double_to_json_string_format(struct json_object *jso, 
         else
             p = strchr(buf, '.');
 
-        if (format == std_format || strstr(format, ".0f") == NULL)
+        if (format == std_format || strstr((const char*)format, ".0f") == NULL)
             format_drops_decimals = 1;
 
         looks_numeric = /* Looks like *some* kind of number */
@@ -1116,7 +1116,7 @@ size_t json_object_double_to_json_string(struct json_object *jso, struct printbu
                                       int flags)
 {
     return json_object_double_to_json_string_format(jso, pb, level, flags,
-                                                    (const char *)jso->_userdata);
+                                                    (const unsigned char *)jso->_userdata);
 }
 
 struct json_object *json_object_new_double(double d)
@@ -1129,9 +1129,9 @@ struct json_object *json_object_new_double(double d)
     return &jso->base;
 }
 
-struct json_object *json_object_new_double_s(double d, const char *ds)
+struct json_object *json_object_new_double_s(double d, const unsigned char *ds)
 {
-    char *new_ds;
+    unsigned char *new_ds;
     struct json_object *jso = json_object_new_double(d);
     if (!jso)
         return NULL;
@@ -1162,8 +1162,8 @@ static size_t _json_object_userdata_to_json_string(struct json_object *jso, stru
 size_t json_object_userdata_to_json_string(struct json_object *jso, struct printbuf *pb, int level,
                                         int flags)
 {
-    size_t userdata_len = strlen((const char *)jso->_userdata);
-    printbuf_memappend(pb, (const char *)jso->_userdata, userdata_len);
+    size_t userdata_len = strlen((const unsigned char *)jso->_userdata);
+    printbuf_memappend(pb, (const unsigned char *)jso->_userdata, userdata_len);
     return userdata_len;
 }
 
@@ -1175,7 +1175,7 @@ void json_object_free_userdata(struct json_object *jso, void *userdata)
 double json_object_get_double(const struct json_object *jso)
 {
     double cdouble;
-    char *errPtr = NULL;
+    unsigned char *errPtr = NULL;
 
     if (!jso)
         return 0.0;
@@ -1192,10 +1192,10 @@ double json_object_get_double(const struct json_object *jso)
     case json_type_boolean: return JC_BOOL_C(jso)->c_boolean;
     case json_type_string:
         errno = 0;
-        cdouble = strtod(get_string_component(jso), &errPtr);
+        cdouble = strtod((const char *)get_string_component(jso), &errPtr);
 
         /* if conversion stopped at the first character, return 0.0 */
-        if (errPtr == get_string_component(jso))
+        if (errPtr == (unsigned char *)get_string_component(jso))
         {
             errno = EINVAL;
             return 0.0;
@@ -1263,7 +1263,7 @@ static void json_object_string_delete(struct json_object *jso)
     json_object_generic_delete(jso);
 }
 
-static struct json_object *_json_object_new_string(const char *s, const size_t len)
+static struct json_object *_json_object_new_string(const unsigned char *s, const size_t len)
 {
     size_t objsize;
     struct json_object_string *jso;
@@ -1297,28 +1297,28 @@ static struct json_object *_json_object_new_string(const char *s, const size_t l
     jso->len = len;
     memcpy(jso->c_string.idata, s, len);
     // Cast below needed for Clang UB sanitizer
-    ((char *)jso->c_string.idata)[len] = '\0';
+    ((unsigned char *)jso->c_string.idata)[len] = '\0';
     return &jso->base;
 }
 
-struct json_object *json_object_new_string(const char *s)
+struct json_object *json_object_new_string(const unsigned char *s)
 {
     return _json_object_new_string(s, strlen(s));
 }
 
-struct json_object *json_object_new_string_len(const char *s, const size_t len)
+struct json_object *json_object_new_string_len(const unsigned char *s, const size_t len)
 {
     return _json_object_new_string(s, len);
 }
 
-const char *json_object_get_string(struct json_object *jso)
+const unsigned char *json_object_get_string(struct json_object *jso)
 {
     if (!jso)
         return NULL;
     switch (jso->o_type)
     {
-    case json_type_string: return get_string_component(jso);
-    default: return json_object_to_json_string(jso);
+    case json_type_string: return (const unsigned char *)get_string_component(jso);
+    default: return (const unsigned char *)json_object_to_json_string(jso);
     }
 }
 
@@ -1339,9 +1339,9 @@ size_t json_object_get_string_len(const struct json_object *jso)
     }
 }
 
-static int _json_object_set_string_len(json_object *jso, const char *s, size_t len)
+static int _json_object_set_string_len(json_object *jso, const unsigned char *s, size_t len)
 {
-    char *dstbuf;
+    unsigned char *dstbuf;
     ssize_t curlen;
     ssize_t newlen;
     if (jso == NULL || jso->o_type != json_type_string)
@@ -1371,7 +1371,7 @@ static int _json_object_set_string_len(json_object *jso, const char *s, size_t l
         // We have no way to return the new ptr from realloc(jso, newlen)
         // and we have no way of knowing whether there's extra room available
         // so we need to stuff a pointer in to pdata :(
-        dstbuf = (char *)malloc(len + 1);
+        dstbuf = (unsigned char *)malloc(len + 1);
         if (dstbuf == NULL)
             return 0;
         if (JC_STRING(jso)->len < 0)
@@ -1392,12 +1392,12 @@ static int _json_object_set_string_len(json_object *jso, const char *s, size_t l
     return 1;
 }
 
-int json_object_set_string(json_object *jso, const char *s)
+int json_object_set_string(json_object *jso, const unsigned char *s)
 {
     return _json_object_set_string_len(jso, s, strlen(s));
 }
 
-int json_object_set_string_len(json_object *jso, const char *s, int len)
+int json_object_set_string_len(json_object *jso, const unsigned char *s, int len)
 {
     return _json_object_set_string_len(jso, s, len);
 }
@@ -1664,7 +1664,7 @@ static int json_object_copy_serializer_data(struct json_object *src, struct json
     if (dst->_to_json_string == json_object_userdata_to_json_string ||
         dst->_to_json_string == _json_object_userdata_to_json_string)
     {
-        char *p;
+        unsigned char *p;
         assert(src->_userdata);
         p = _strdup(src->_userdata);
         if (p == NULL)
@@ -1694,7 +1694,7 @@ static int json_object_copy_serializer_data(struct json_object *src, struct json
  *
  * This always returns -1 or 1.  It will never return 2 since it does not copy the serializer.
  */
-int json_c_shallow_copy_default(json_object *src, json_object *parent, const char *key,
+int json_c_shallow_copy_default(json_object *src, json_object *parent, const unsigned char *key,
                                 size_t index, json_object **dst)
 {
     switch (src->o_type)
@@ -1717,7 +1717,7 @@ int json_c_shallow_copy_default(json_object *src, json_object *parent, const cha
         break;
 
     case json_type_string:
-        *dst = json_object_new_string_len(get_string_component(src),
+        *dst = json_object_new_string_len((const char *)get_string_component(src),
                                           _json_object_get_string_len(JC_STRING(src)));
         break;
 
@@ -1745,7 +1745,7 @@ int json_c_shallow_copy_default(json_object *src, json_object *parent, const cha
  * Note: caller is responsible for freeing *dst if this fails and returns -1.
  */
 static int json_object_deep_copy_recursive(struct json_object *src, struct json_object *parent,
-                                           const char *key_in_parent, size_t index_in_parent,
+                                           const unsigned char *key_in_parent, size_t index_in_parent,
                                            struct json_object **dst,
                                            json_c_shallow_copy_fn *shallow_copy)
 {
@@ -1846,9 +1846,9 @@ int json_object_deep_copy(struct json_object *src, struct json_object **dst,
     return rc;
 }
 
-static void json_abort(const char *message)
+static void json_abort(const unsigned char *message)
 {
     if (message != NULL)
-        fprintf(stderr, "json-c aborts with error: %s\n", message);
+        fprintf(stderr, "json-c aborts with error: %s\n", (const char *)message);
     abort();
 }

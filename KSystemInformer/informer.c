@@ -228,7 +228,7 @@ BOOLEAN KphInformerAllowed(
 
     KPH_NPAGED_CODE_DISPATCH_MAX();
 
-    if (!KphGetConnectedClientCount())
+    if (!KphGetInformerClientCount())
     {
         return FALSE;
     }
@@ -609,6 +609,8 @@ BOOLEAN KSIAPI KphpSetInformerProcessSettings(
     }
 
     KphAtomicAssignObjectReference(&Process->InformerState.Atomic, state);
+
+    KphDereferenceObject(state);
 
     return FALSE;
 }

@@ -24,7 +24,7 @@ VOID KphInitialize(
 {
     PH_OBJECT_TYPE_PARAMETERS parameters;
 
-    parameters.FreeListSize = sizeof(KPH_MESSAGE) / 8;
+    parameters.FreeListSize = ALIGN_UP_BY(KPH_MESSAGE_MIN_SIZE, 1024);
     parameters.FreeListCount = 65536;
 
     KphMessageObjectType = PhCreateObjectTypeEx(
@@ -1635,40 +1635,40 @@ NTSTATUS KphCompareObjects(
     return status;
 }
 
-NTSTATUS KphGetMessageSettings(
-    _Out_ PKPH_MESSAGE_SETTINGS Settings
+NTSTATUS KphGetInformerClientSettings(
+    _Out_ PKPH_INFORMER_CLIENT_SETTINGS Settings
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    msg = KphCreateUserMessage(KphMsgGetMessageSettings);
-    msg->User.GetMessageSettings.Settings = Settings;
+    msg = KphCreateUserMessage(KphMsgGetInformerClientSettings);
+    msg->User.GetInformerClientSettings.Settings = Settings;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.GetMessageSettings.Status;
+        status = msg->User.GetInformerClientSettings.Status;
     }
 
     PhDereferenceObject(msg);
     return status;
 }
 
-NTSTATUS KphSetMessageSettings(
-    _In_ PKPH_MESSAGE_SETTINGS Settings
+NTSTATUS KphSetInformerClientSettings(
+    _Out_ PKPH_INFORMER_CLIENT_SETTINGS Settings
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    msg = KphCreateUserMessage(KphMsgSetMessageSettings);
-    msg->User.SetMessageSettings.Settings = Settings;
+    msg = KphCreateUserMessage(KphMsgSetInformerClientSettings);
+    msg->User.SetInformerClientSettings.Settings = Settings;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.SetMessageSettings.Status;
+        status = msg->User.SetInformerClientSettings.Status;
     }
 
     PhDereferenceObject(msg);
@@ -2102,20 +2102,20 @@ NTSTATUS KphGetInformerStats(
     return status;
 }
 
-NTSTATUS KphGetMessageStats(
-    _Out_ PKPH_INFORMER_STATS Stats
+NTSTATUS KphGetInformerClientStats(
+    _Out_ PKPH_INFORMER_CLIENT_STATS Stats
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
-    msg = KphCreateUserMessage(KphMsgGetMessageStats);
-    msg->User.GetMessageStats.Stats = Stats;
+    msg = KphCreateUserMessage(KphMsgGetInformerClientStats);
+    msg->User.GetInformerClientStats.Stats = Stats;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.GetMessageStats.Status;
+        status = msg->User.GetInformerClientStats.Status;
     }
 
     PhDereferenceObject(msg);

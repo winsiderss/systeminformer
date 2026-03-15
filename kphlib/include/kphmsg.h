@@ -52,8 +52,8 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgQueryInformationThread,
     KphMsgQuerySection,
     KphMsgCompareObjects,
-    KphMsgGetMessageSettings,
-    KphMsgSetMessageSettings,
+    KphMsgGetInformerClientSettings,
+    KphMsgSetInformerClientSettings,
     KphMsgAcquireDriverUnloadProtection,
     KphMsgReleaseDriverUnloadProtection,
     KphMsgGetConnectedClientCount,
@@ -71,7 +71,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgOpenDeviceDriver,
     KphMsgOpenDeviceBaseDevice,
     KphMsgGetInformerStats,
-    KphMsgGetMessageStats,
+    KphMsgGetInformerClientStats,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -345,8 +345,8 @@ typedef struct _KPH_MESSAGE
             KPHM_QUERY_INFORMATION_THREAD QueryInformationThread;
             KPHM_QUERY_SECTION QuerySection;
             KPHM_COMPARE_OBJECTS CompareObjects;
-            KPHM_GET_MESSAGE_SETTINGS GetMessageSettings;
-            KPHM_SET_MESSAGE_SETTINGS SetMessageSettings;
+            KPHM_GET_INFORMER_CLIENT_SETTINGS GetInformerClientSettings;
+            KPHM_SET_INFORMER_CLIENT_SETTINGS SetInformerClientSettings;
             KPHM_ACQUIRE_DRIVER_UNLOAD_PROTECTION AcquireDriverUnloadProtection;
             KPHM_RELEASE_DRIVER_UNLOAD_PROTECTION ReleaseDriverUnloadProtection;
             KPHM_GET_CONNECTED_CLIENT_COUNT GetConnectedClientCount;
@@ -364,7 +364,7 @@ typedef struct _KPH_MESSAGE
             KPHM_OPEN_DEVICE_DRIVER OpenDeviceDriver;
             KPHM_OPEN_DEVICE_BASE_DEVICE OpenDeviceBaseDevice;
             KPHM_GET_INFORMER_STATS GetInformerStats;
-            KPHM_GET_MESSAGE_STATS GetMessageStats;
+            KPHM_GET_INFORMER_CLIENT_STATS GetInformerClientStats;
         } User;
 
         //
@@ -403,7 +403,7 @@ typedef struct _KPH_MESSAGE
     {
         UCHAR Count;
         KPH_MESSAGE_DYNAMIC_TABLE_ENTRY Entries[8];
-        CHAR Buffer[0x2000 - 380];
+        CHAR Buffer[0x4000 - 380];
     } _Dyn;
 } KPH_MESSAGE, *PKPH_MESSAGE;
 typedef const KPH_MESSAGE* PCKPH_MESSAGE;
@@ -419,7 +419,7 @@ typedef const KPH_MESSAGE* PCKPH_MESSAGE;
 //
 C_ASSERT(sizeof(KPH_MESSAGE) <= 0xffff);
 #ifdef _WIN64
-C_ASSERT(sizeof(KPH_MESSAGE) == 0x2000);
+C_ASSERT(sizeof(KPH_MESSAGE) == 0x4000);
 C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 280);
 C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer) == 380);
 C_ASSERT(KPH_MESSAGE_MIN_SIZE == 380);

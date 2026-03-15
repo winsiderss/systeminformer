@@ -2628,14 +2628,13 @@ typedef struct _KPH_RING_BUFFER
     KSPIN_LOCK ProducerLock;
     PULONG ProducerPos;
     PULONG ConsumerPos;
+    PULONG ConsumerProcessing;
     ULONG Length;
     PVOID Buffer;
     PKEVENT Event;
     KPH_RING_SECTION ProducerSection;
     KPH_RING_SECTION ConsumerSection;
     PEPROCESS Process;
-    PVOID UserProducerBase;
-    PVOID UserConsumerBase;
 } KPH_RING_BUFFER, *PKPH_RING_BUFFER;
 
 _Return_allocatesMem_size_(Length)

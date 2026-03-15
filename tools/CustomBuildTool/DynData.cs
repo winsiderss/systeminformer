@@ -526,7 +526,15 @@ typedef struct _KPH_DYN_CONFIG
         private static byte[] GenerateConfig(string ManifestFile)
         {
             var xml = new XmlDocument();
-            xml.Load(ManifestFile);
+            var xmlSettings = new XmlReaderSettings 
+            {
+                DtdProcessing = DtdProcessing.Prohibit,
+                IgnoreWhitespace = true 
+            };
+            using (var xmlReader = XmlReader.Create(ManifestFile, xmlSettings))
+            {
+                xml.Load(xmlReader);
+            }
 
             var dyn = xml.SelectSingleNode("/dyn");
             var dataNodes = dyn?.SelectNodes("data");

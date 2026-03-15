@@ -340,7 +340,6 @@ VOID KphpAtomicReleaseObjectLockShared(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
 {
-
     ULONG_PTR object;
 
     object = InterlockedDecrementULongPtr(&ObjectRef->Object);
@@ -348,7 +347,6 @@ VOID KphpAtomicReleaseObjectLockShared(
     object = object & KPH_ATOMIC_OBJECT_REF_SHARED_MAX;
 
     NT_ASSERT(object < KPH_ATOMIC_OBJECT_REF_SHARED_MAX);
-
 }
 
 /**

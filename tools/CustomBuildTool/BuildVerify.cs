@@ -426,9 +426,10 @@ namespace CustomBuildTool
                 // Common OIDs:
                 // 1.2.840.10045.2.1 = ecPublicKey
                 // 1.2.840.113549.1.1.1 = rsaEncryption
-                if (oid == "1.2.840.10045.2.1")
+
+                if (string.Equals(oid, "1.2.840.10045.2.1", StringComparison.OrdinalIgnoreCase))
                     return CngAlgorithmGroup.ECDsa;
-                if (oid == "1.2.840.113549.1.1.1")
+                if (string.Equals(oid, "1.2.840.113549.1.1.1", StringComparison.OrdinalIgnoreCase))
                     return CngAlgorithmGroup.Rsa;
             }
             catch

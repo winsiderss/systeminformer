@@ -11,6 +11,14 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides static methods for creating isolated HttpClient instances and sending HTTP requests with response
+    /// handling and JSON deserialization.
+    /// </summary>
+    /// <remarks>This class is intended for scenarios where complete isolation between HTTP requests is
+    /// required, such as preventing credential or cookie leakage across services. All methods are static and
+    /// thread-safe. Callers are responsible for disposing returned HttpClient and HttpResponseMessage objects to avoid
+    /// resource leaks.</remarks>
     public static class BuildHttpClient
     {
         /// <summary>
@@ -45,86 +53,73 @@ namespace CustomBuildTool
             return client;
         }
 
-        [Obsolete("Use CreateHttpClient() instead and dispose the returned instance.")]
-        public static HttpClient GetHttpClient()
-        {
-            return CreateHttpClient();
-        }
-
         /// <summary>
         /// Sends an HTTP request and returns the response. Caller is responsible for disposing the response.
         /// </summary>
-        public static async Task<HttpResponseMessage> SendMessageResponse(HttpRequestMessage HttpMessage, CancellationToken CancellationToken = default)
+        public static async Task<HttpResponseMessage> SendMessageResponse(HttpClient HttpClient, HttpRequestMessage HttpMessage, CancellationToken CancellationToken = default)
         {
             HttpResponseMessage response;
 
             try
             {
-                using var client = CreateHttpClient();
-                response = await client.SendAsync(HttpMessage, CancellationToken);
+                response = await HttpClient.SendAsync(HttpMessage, CancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Program.PrintColorMessage($"[Exception] SendMessageResponse {ex}", ConsoleColor.Red);
+                Program.PrintColorMessage($"[Exception] SendMessageResponse", ConsoleColor.Red);
                 return null;
             }
 
             return response;
         }
 
-        public static async Task<string> SendMessage(HttpRequestMessage HttpMessage, CancellationToken CancellationToken = default)
+        /// <summary>
+        /// Sends an HTTP request and asynchronously deserializes the JSON response to the specified type.
+        /// </summary>
+        /// <remarks>If the HTTP response is not successful or deserialization returns null, a warning
+        /// message is printed to the console. The method returns the default value of TValue in case of
+        /// exceptions.</remarks>
+        /// <typeparam name="TValue">The type to which the JSON response will be deserialized.</typeparam>
+        /// <param name="HttpClient">The HTTP client used to send the request.</param>
+        /// <param name="HttpMessage">The HTTP request message to be sent.</param>
+        /// <param name="jsonTypeInfo">The metadata used to control JSON deserialization for the target type.</param>
+        /// <param name="CancellationToken">A cancellation token that can be used to cancel the operation. Optional.</param>
+        /// <returns>A task representing the asynchronous operation. The task result contains the deserialized value of type
+        /// TValue, or the default value if deserialization fails.</returns>
+        public static async Task<TValue> SendMessage<TValue>(HttpClient HttpClient, HttpRequestMessage HttpMessage, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken CancellationToken = default)
         {
-            string response;
-
             try
             {
-                using var client = CreateHttpClient();
-                using var httpResponse = await client.SendAsync(HttpMessage, CancellationToken);
-
+                using var httpResponse = await HttpClient.SendAsync(HttpMessage, CancellationToken);
                 if (!httpResponse.IsSuccessStatusCode)
                 {
                     Program.PrintColorMessage($"[HTTP Error] {(int)httpResponse.StatusCode} {httpResponse.ReasonPhrase}", ConsoleColor.Yellow);
                 }
 
-                response = await httpResponse.Content.ReadAsStringAsync(CancellationToken);
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[Exception] SendMessage {ex}", ConsoleColor.Red);
-                return null;
-            }
-
-            return response;
-        }
-
-        public static async Task<TValue> SendMessage<TValue>(HttpRequestMessage HttpMessage, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken CancellationToken = default) where TValue : class
-        {
-            TValue result;
-
-            try
-            {
-                string response = await SendMessage(HttpMessage, CancellationToken);
-
-                if (string.IsNullOrWhiteSpace(response))
-                    return null;
-
-                result = JsonSerializer.Deserialize(response, jsonTypeInfo);
-
+                using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
+                var result = await JsonSerializer.DeserializeAsync(stream, jsonTypeInfo, CancellationToken);
                 if (result == null)
                 {
                     Program.PrintColorMessage("[Warning] JSON deserialization returned null", ConsoleColor.Yellow);
                 }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[Exception] SendMessage<TValue> {ex}", ConsoleColor.Red);
-                return null;
-            }
 
-            return result;
+                return result;
+            }
+            catch (Exception)
+            {
+                Program.PrintColorMessage($"[Exception] SendMessage", ConsoleColor.Red);
+                return default;
+            }
         }
     }
 
+    /// <summary>
+    /// Provides HTTP content based on a readable stream and reports upload progress during serialization.
+    /// </summary>
+    /// <remarks>Use this class to send stream data in HTTP requests while tracking progress. Progress updates
+    /// are reported via a callback as bytes are written. The stream must be readable and, if seekable, its length is
+    /// used for progress reporting and content length headers. This class is useful for uploading large files or
+    /// streams where progress feedback is required.</remarks>
     public class ProgressableStreamContent : HttpContent
     {
         private const int DefaultBufferSize = 4096;
@@ -188,6 +183,12 @@ namespace CustomBuildTool
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides methods to enable and disable HTTP request and response logging for diagnostic purposes.
+    /// </summary>
+    /// <remarks>Use this class to start or stop logging of HTTP activity within the application. Logging can
+    /// help diagnose issues related to HTTP communication. The logging is global and affects all HTTP requests and
+    /// responses handled by the application.</remarks>
     public static class HttpLogging
     {
         private static HttpEventListener httpEventListener = null;
@@ -208,32 +209,38 @@ namespace CustomBuildTool
         }
     }
 
+    //
     // EventSource-based runtime logging from System.Net.Http
+    //
     public sealed class HttpEventListener : System.Diagnostics.Tracing.EventListener
     {
         protected override void OnEventSourceCreated(System.Diagnostics.Tracing.EventSource eventSource)
         {
             // System.Net providers: System.Net.Http, System.Net.Sockets, System.Net.NameResolution
-            if (eventSource.Name == "System.Net.Http" || eventSource.Name == "System.Net.Sockets" || eventSource.Name == "System.Net.NameResolution")
+            if (
+                string.Equals(eventSource.Name, "System.Net.Http", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(eventSource.Name, "System.Net.Sockets", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(eventSource.Name, "System.Net.NameResolution", StringComparison.OrdinalIgnoreCase)
+                )
             {
                 this.EnableEvents(eventSource, System.Diagnostics.Tracing.EventLevel.Informational);
             }
 
             base.OnEventSourceCreated(eventSource);
-        } 
+        }
 
         protected override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData)
         {
             try
             {
-                var payload = eventData.Payload == null ? "" : string.Join(", ", eventData.Payload);
+                var payload = eventData.Payload == null ? string.Empty : string.Join(", ", eventData.Payload);
 
                 Console.WriteLine($"[NET] {eventData.EventSource.Name}:{eventData.Level} {eventData.EventName} | {payload}");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Avoid throwing from listener - log to debug output only
-                System.Diagnostics.Debug.WriteLine($"[HttpEventListener] Error processing event: {ex.Message}");
+                Console.WriteLine($"[HttpEventListener] Error processing event.");
             }
         }
     }

@@ -9,6 +9,8 @@
  *
  */
 
+using System.Drawing;
+
 namespace CustomBuildTool
 {
     /// <summary>
@@ -66,19 +68,19 @@ namespace CustomBuildTool
         /// - Uses optimal compression level
         /// </remarks>
         public static void CreateCompressedFolder(string sourceDirectoryName, string destinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
-        { 
+        {
             // Path prefixes to skip during compression (e.g., debug build directories)
-            string[] SkipPathPrefixes = 
+            string[] SkipPathPrefixes =
             [
                 "bin\\Debug"
             ];
             // File extensions to skip during compression (debug symbols, linker artifacts)
-            string[] SkipExtensions = 
+            string[] SkipExtensions =
             [
-                ".pdb", 
-                ".iobj", 
-                ".ipdb", 
-                ".exp", 
+                ".pdb",
+                ".iobj",
+                ".ipdb",
+                ".exp",
                 ".lib"
             ];
             var PathReplacements = new[] // Path replacements for archive entry names
@@ -133,40 +135,10 @@ namespace CustomBuildTool
                         }
                     }
 
-                    if (Flags.HasFlag(BuildFlags.BuildVerbose))
-                    {
-                        Program.PrintColorMessage("Compressing ", ConsoleColor.DarkGray, false);
-                        //Program.PrintColorMessage(file, ConsoleColor.Cyan, false);
-                        //Program.PrintColorMessage(" as ", ConsoleColor.DarkGray, false);
-                        Program.PrintColorMessage(name, ConsoleColor.Green, false);
-                        Program.PrintColorMessage("...", ConsoleColor.DarkGray, false);
-                    }
-
                     var entry = archive.CreateEntryFromFile(file, name, CompressionLevel.Optimal);
 
                     if (Flags.HasFlag(BuildFlags.BuildVerbose))
-                    {
-                        try
-                        {
-                            var (compressedSizeOpt, uncompressedSizeOpt) = GetInternalSizes(entry);
-
-                            if (compressedSizeOpt.HasValue || uncompressedSizeOpt.HasValue)
-                            {
-                                long originalSize = uncompressedSizeOpt ?? -1;
-                                long compressedSize = compressedSizeOpt ?? -1;
-                                string originalText = originalSize >= 0 ? Extensions.ToPrettySize(originalSize) : "?";
-                                string compressedText = compressedSize >= 0 ? Extensions.ToPrettySize(compressedSize) : "?";
-                                double percent = (originalSize <= 0 || compressedSize < 0) ? 0.0 : (1.0 - ((double)compressedSize / originalSize)) * 100.0;
-
-                                // Print in columns: [file]  as [entry]  [orig] -> [comp] (percent)
-                                PrintCompressionColumns(file, name, originalText, compressedText, percent, Flags);
-                            }
-                        }
-                        catch
-                        {
-                            // Ignore any errors querying sizes for verbose output
-                        }
-                    }
+                        PrintCompressionVerboseLine(entry, name, Flags);
                 }
             }
 
@@ -221,39 +193,10 @@ namespace CustomBuildTool
             {
                 for (int i = 0; i < filesToAdd.Length; i++)
                 {
-                    if (Flags.HasFlag(BuildFlags.BuildVerbose))
-                    {
-                        Program.PrintColorMessage("Compressing ", ConsoleColor.DarkGray, false);
-                        //Program.PrintColorMessage(filesToAdd[i], ConsoleColor.Cyan, false);
-                        //Program.PrintColorMessage(" as ", ConsoleColor.DarkGray, false);
-                        Program.PrintColorMessage(entryNames[i], ConsoleColor.Green, false);
-                        Program.PrintColorMessage("...", ConsoleColor.DarkGray, false);
-                    }
-
                     var entry = archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
 
                     if (Flags.HasFlag(BuildFlags.BuildVerbose))
-                    {
-                        try
-                        {
-                            var (compressedSizeOpt, uncompressedSizeOpt) = GetInternalSizes(entry);
-
-                            if (compressedSizeOpt.HasValue || uncompressedSizeOpt.HasValue)
-                            {
-                                long originalSize = uncompressedSizeOpt ?? -1;
-                                long compressedSize = compressedSizeOpt ?? -1;
-                                string originalText = originalSize >= 0 ? Extensions.ToPrettySize(originalSize) : "?";
-                                string compressedText = compressedSize >= 0 ? Extensions.ToPrettySize(compressedSize) : "?";
-                                double percent = (originalSize <= 0 || compressedSize < 0) ? 0.0 : (1.0 - ((double)compressedSize / originalSize)) * 100.0;
-
-                                PrintCompressionColumns(filesToAdd[i], entryNames[i], originalText, compressedText, percent, Flags);
-                            }
-                        }
-                        catch
-                        {
-                            // Ignore any errors querying sizes for verbose output
-                        }
-                    }
+                        PrintCompressionVerboseLine(entry, entryNames[i], Flags);
                 }
             }
 
@@ -310,67 +253,79 @@ namespace CustomBuildTool
                         filesToAdd[i].Contains("tests\\", StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    if (Flags.HasFlag(BuildFlags.BuildVerbose))
-                    {
-                        Program.PrintColorMessage("Compressing ", ConsoleColor.DarkGray, false);
-                        //Program.PrintColorMessage(filesToAdd[i], ConsoleColor.Cyan, false);
-                        //Program.PrintColorMessage(" as ", ConsoleColor.DarkGray, false);
-                        Program.PrintColorMessage(entryNames[i], ConsoleColor.Green, false);
-                        Program.PrintColorMessage("...", ConsoleColor.DarkGray, false);
-                    }
-
                     var entry = archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
 
                     if (Flags.HasFlag(BuildFlags.BuildVerbose))
-                    {
-                        try
-                        {
-                            var (compressedSizeOpt, uncompressedSizeOpt) = GetInternalSizes(entry);
-
-                            if (compressedSizeOpt.HasValue || uncompressedSizeOpt.HasValue)
-                            {
-                                long originalSize = uncompressedSizeOpt ?? -1;
-                                long compressedSize = compressedSizeOpt ?? -1;
-                                string originalText = originalSize >= 0 ? Extensions.ToPrettySize(originalSize) : "?";
-                                string compressedText = compressedSize >= 0 ? Extensions.ToPrettySize(compressedSize) : "?";
-                                double percent = (originalSize <= 0 || compressedSize < 0) ? 0.0 : (1.0 - ((double)compressedSize / originalSize)) * 100.0;
-
-                                PrintCompressionColumns(filesToAdd[i], entryNames[i], originalText, compressedText, percent, Flags);
-                            }
-                        }
-                        catch
-                        {
-                            // Ignore any errors querying sizes for verbose output
-                        }
-                    }
+                        PrintCompressionVerboseLine(entry, entryNames[i], Flags);
                 }
             }
         }
 
         /// <summary>
+        /// Prints a full verbose compression line, with sizes when available.
+        /// </summary>
+        /// <param name="entry">ZIP entry to inspect for size information.</param>
+        /// <param name="entryName">Archive entry name.</param>
+        /// <param name="Flags">Build flags for output formatting.</param>
+        private static void PrintCompressionVerboseLine(ZipArchiveEntry entry, string entryName, BuildFlags Flags)
+        {
+            try
+            {
+                var (compressedSizeOpt, uncompressedSizeOpt) = GetInternalSizes(entry);
+
+                if (compressedSizeOpt.HasValue || uncompressedSizeOpt.HasValue)
+                {
+                    long originalSize = uncompressedSizeOpt ?? -1;
+                    long compressedSize = compressedSizeOpt ?? -1;
+                    string originalText = originalSize >= 0 ? Extensions.ToPrettySize(originalSize) : "?";
+                    string compressedText = compressedSize >= 0 ? Extensions.ToPrettySize(compressedSize) : "?";
+                    double percent = (originalSize <= 0 || compressedSize < 0) ? 0.0 : (1.0 - ((double)compressedSize / originalSize)) * 100.0;
+
+                    PrintCompressionColumns(entryName, originalText, compressedText, percent, Flags);
+                    return;
+                }
+            }
+            catch
+            {
+                // Ignore any errors querying sizes for verbose output.
+            }
+
+            // Fallback when internal sizes are unavailable.
+            Program.PrintColorMessage("Compressing ", ConsoleColor.DarkGray, false, Flags);
+            Program.PrintColorMessage(entryName ?? "?", ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage("...", ConsoleColor.DarkGray, true, Flags);
+        }
+
+        /// <summary>
         /// Prints compression statistics in aligned columns for verbose output.
         /// </summary>
-        /// <param name="file">The source file path (unused, kept for signature compatibility).</param>
         /// <param name="entryName">The archive entry name.</param>
         /// <param name="originalText">Formatted original file size.</param>
         /// <param name="compressedText">Formatted compressed size.</param>
         /// <param name="percent">Compression reduction percentage.</param>
         /// <param name="Flags">Build flags for output formatting.</param>
-        private static void PrintCompressionColumns(string file, string entryName, string originalText, string compressedText, double percent, BuildFlags Flags)
+        private static void PrintCompressionColumns(string entryName, string originalText, string compressedText, double percent, BuildFlags Flags)
         {
-            // Column width for entry name - tuned for console display
-            //const int entryCol = 50;
-            //string entryDisplay = entryName.Length > entryCol 
-            //    ? "..." + entryName[^(entryCol - 3)..] 
-            //    : entryName.PadRight(entryCol);
+            const int entryColumnWidth = 48;
+            const int sizeColumnWidth = 10;      // e.g. "1446Kb"
+            const int percentColumnWidth = 6;    // e.g. " 59.6%"
 
-            // [entry]  [orig] -> [comp] (percent)
-            //Program.PrintColorMessage(entryDisplay, ConsoleColor.Green, false, Flags);
-            Program.PrintColorMessage("  ", ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage(originalText, ConsoleColor.Yellow, false, Flags);
+            string entryText = entryName ?? "?";
+            if (entryText.Length > entryColumnWidth)
+                entryText = entryText.Substring(0, entryColumnWidth - 1) + "~";
+
+            string entryAligned = $"{entryText,-entryColumnWidth}";
+            string originalAligned = $"{(originalText ?? "?"),sizeColumnWidth}";
+            string compressedAligned = $"{(compressedText ?? "?"),sizeColumnWidth}";
+            string percentAligned = $"{percent,percentColumnWidth - 1:0.0}%";
+
+            Program.PrintColorMessage("Compressing ", ConsoleColor.DarkGray, false, Flags);
+            Program.PrintColorMessage(entryAligned, ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage("... ", ConsoleColor.DarkGray, false, Flags);
+            Program.PrintColorMessage(originalAligned, ConsoleColor.Yellow, false, Flags);
             Program.PrintColorMessage(" -> ", ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage(compressedText, ConsoleColor.Yellow, false, Flags);
-            Program.PrintColorMessage($" ({percent:0.0}% reduction)", ConsoleColor.DarkGray, true, Flags);
+            Program.PrintColorMessage(compressedAligned, ConsoleColor.Yellow, false, Flags);
+            Program.PrintColorMessage($" ({percentAligned} reduction)", ConsoleColor.DarkGray, true, Flags);
         }
 
         /// <summary>

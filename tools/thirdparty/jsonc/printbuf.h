@@ -37,7 +37,7 @@ extern "C" {
 
 struct printbuf
 {
-    char *buf;
+    unsigned char *buf;
     size_t bpos;
     size_t size;
 };
@@ -53,7 +53,7 @@ JSON_EXPORT struct printbuf *printbuf_new(void);
  * Your code should not use printbuf_memappend() directly unless it
  * checks the return code. Use printbuf_memappend_fast() instead.
  */
-JSON_EXPORT size_t printbuf_memappend(struct printbuf *p, const char *buf, size_t size);
+JSON_EXPORT size_t printbuf_memappend(struct printbuf *p, const unsigned char *buf, size_t size);
 
 #define printbuf_memappend_fast(p, bufptr, bufsize)                  \
     do                                                           \
@@ -118,7 +118,7 @@ JSON_EXPORT int printbuf_memset(struct printbuf *pb, size_t offset, int charvalu
  *   printbuf_memappend()
  *   printbuf_strappend()
  */
-JSON_EXPORT size_t sprintbuf(struct printbuf *p, const char *msg, ...);
+JSON_EXPORT size_t sprintbuf(struct printbuf *p, const unsigned char *msg, ...);
 
 JSON_EXPORT void printbuf_reset(struct printbuf *p);
 

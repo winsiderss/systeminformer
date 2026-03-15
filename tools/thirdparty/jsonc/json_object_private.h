@@ -91,14 +91,14 @@ struct json_object_string
     // to expand the length of a string are common operations to perform.
     union
     {
-        char idata[1]; // Immediate data.  Actually longer
-        char *pdata;   // Only when len < 0
+        unsigned char idata[1]; // Immediate data.  Actually longer
+        unsigned char *pdata;   // Only when len < 0
     } c_string;
 };
 
-void _json_c_set_last_err(const char *err_fmt, ...);
+void _json_c_set_last_err(const unsigned char *err_fmt, ...);
 
-extern const char *json_hex_chars;
+extern const unsigned char *json_hex_chars;
 
 #ifdef __cplusplus
 }

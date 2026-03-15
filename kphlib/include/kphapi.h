@@ -32,6 +32,7 @@ typedef KPH_PROCESS_STATE* PKPH_PROCESS_STATE;
 #define KPH_PROCESS_NO_FILE_TRANSACTION                  0x00000080ul
 #define KPH_PROCESS_NOT_BEING_DEBUGGED                   0x00000100ul
 #define KPH_PROCESS_NO_WRITABLE_FILE_OBJECT              0x00000200ul
+#define KPH_PROCESS_CREATE_NOTIFICATION                  0x00000400ul
 
 #define KPH_PROCESS_STATE_MAXIMUM (KPH_PROCESS_SECURELY_CREATED               |\
                                    KPH_PROCESS_VERIFIED_PROCESS               |\
@@ -42,7 +43,8 @@ typedef KPH_PROCESS_STATE* PKPH_PROCESS_STATE;
                                    KPH_PROCESS_NO_USER_WRITABLE_REFERENCES    |\
                                    KPH_PROCESS_NO_FILE_TRANSACTION            |\
                                    KPH_PROCESS_NOT_BEING_DEBUGGED             |\
-                                   KPH_PROCESS_NO_WRITABLE_FILE_OBJECT)
+                                   KPH_PROCESS_NO_WRITABLE_FILE_OBJECT        |\
+                                   KPH_PROCESS_CREATE_NOTIFICATION)
 
 #define KPH_PROCESS_STATE_HIGH    (KPH_PROCESS_VERIFIED_PROCESS               |\
                                    KPH_PROCESS_PROTECTED_PROCESS              |\
@@ -52,7 +54,8 @@ typedef KPH_PROCESS_STATE* PKPH_PROCESS_STATE;
                                    KPH_PROCESS_NO_USER_WRITABLE_REFERENCES    |\
                                    KPH_PROCESS_NO_FILE_TRANSACTION            |\
                                    KPH_PROCESS_NOT_BEING_DEBUGGED             |\
-                                   KPH_PROCESS_NO_WRITABLE_FILE_OBJECT)
+                                   KPH_PROCESS_NO_WRITABLE_FILE_OBJECT        |\
+                                   KPH_PROCESS_CREATE_NOTIFICATION)
 
 #define KPH_PROCESS_STATE_MEDIUM  (KPH_PROCESS_VERIFIED_PROCESS               |\
                                    KPH_PROCESS_PROTECTED_PROCESS              |\
@@ -541,11 +544,12 @@ typedef struct _KPH_MESSAGE_TIMEOUTS
     LARGE_INTEGER FilePostCreateTimeout;
 } KPH_MESSAGE_TIMEOUTS, *PKPH_MESSAGE_TIMEOUTS;
 
-typedef struct _KPH_MESSAGE_SETTINGS
+typedef struct _KPH_INFORMER_CLIENT_SETTINGS
 {
-    KPH_MESSAGE_TIMEOUTS Timeouts;
-    KPH_RATE_LIMIT_POLICY Policy[KPH_INFORMER_COUNT];
-} KPH_MESSAGE_SETTINGS, *PKPH_MESSAGE_SETTINGS;
+    KPH_MESSAGE_TIMEOUTS MessageTimeouts;
+    KPH_RATE_LIMIT_POLICY AsyncQueuePolicy;
+    KPH_RATE_LIMIT_POLICY InformerPolicy[KPH_INFORMER_COUNT];
+} KPH_INFORMER_CLIENT_SETTINGS, *PKPH_INFORMER_CLIENT_SETTINGS;
 
 typedef struct _KPH_RATE_LIMIT_STATS
 {
@@ -555,10 +559,16 @@ typedef struct _KPH_RATE_LIMIT_STATS
     LONG64 CasMiss;
 } KPH_RATE_LIMIT_STATS, *PKPH_RATE_LIMIT_STATS;
 
+typedef struct _KPH_INFORMER_CLIENT_STATS
+{
+    KPH_RATE_LIMIT_STATS AsyncQueueRateLimit;
+    KPH_RATE_LIMIT_STATS InformerRateLimit[KPH_INFORMER_COUNT];
+} KPH_INFORMER_CLIENT_STATS, *PKPH_INFORMER_CLIENT_STATS;
+
 typedef struct _KPH_INFORMER_STATS
 {
     KPH_RATE_LIMIT_STATS RateLimit[KPH_INFORMER_COUNT];
-} KPH_INFORMER_STATS, * PKPH_INFORMER_STATS;
+} KPH_INFORMER_STATS, *PKPH_INFORMER_STATS;
 
 // Parameters
 

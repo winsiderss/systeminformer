@@ -14,8 +14,9 @@
 #include <kphcomms.h>
 #include <kphmsgdyn.h>
 #include <informer.h>
-
 #include <dpfilter.h>
+
+#include <trace.h>
 
 #ifdef DEBUG
 
@@ -41,180 +42,7 @@ static PH_FAST_LOCK KsiDebugRawFileStreamLock = PH_FAST_LOCK_INIT;
 static PPH_FILE_STREAM KsiDebugRawFileStream = NULL;
 static CONST PH_STRINGREF KsiDebugRawSuffix = PH_STRINGREF_INIT(L"\\Desktop\\ksidbg.bin");
 
-static CONST PH_STRINGREF KsiDebugProcFilter = PH_STRINGREF_INIT(L"");
 static PH_CALLBACK_REGISTRATION KsiDebugMessageRegistration = { NULL };
-
-static KPH_INFORMER_SETTINGS KsiDebugInformerSettings =
-{
-    .Options =
-    {
-        .EnableStackTraces              = FALSE,
-        .EnableProcessCreateReply       = FALSE,
-        .FileEnablePreCreateReply       = FALSE,
-        .FileEnablePostCreateReply      = FALSE,
-        .FileEnablePostFileNames        = FALSE,
-        .FileEnablePagingIo             = TRUE,
-        .FileEnableSyncPagingIo         = TRUE,
-        .FileEnableIoControlBuffers     = FALSE,
-        .FileEnableFsControlBuffers     = FALSE,
-        .FileEnableDirControlBuffers    = FALSE,
-        .RegEnablePostObjectNames       = FALSE,
-        .RegEnablePostValueNames        = FALSE,
-        .RegEnableValueBuffers          = FALSE,
-    },
-    .Policy[KPH_INFORMER_INDEX(ProcessCreate)]                  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(ProcessExit)]                    = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(ThreadCreate)]                   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(ThreadExecute)]                  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(ThreadExit)]                     = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(ImageLoad)]                      = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(DebugPrint)]                     = KPH_RATE_LIMIT_DENY_ALL,
-    .Policy[KPH_INFORMER_INDEX(HandlePreCreateProcess)]         = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(HandlePostCreateProcess)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(HandlePreDuplicateProcess)]      = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(HandlePostDuplicateProcess)]     = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(HandlePreCreateThread)]          = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(HandlePostCreateThread)]         = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(HandlePreDuplicateThread)]       = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(HandlePostDuplicateThread)]      = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(HandlePreCreateDesktop)]         = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(HandlePostCreateDesktop)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(HandlePreDuplicateDesktop)]      = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(HandlePostDuplicateDesktop)]     = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreCreate)]                  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostCreate)]                 = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreCreateNamedPipe)]         = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostCreateNamedPipe)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreClose)]                   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostClose)]                  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreRead)]                    = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostRead)]                   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreWrite)]                   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostWrite)]                  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreQueryInformation)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostQueryInformation)]       = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreSetInformation)]          = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostSetInformation)]         = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreQueryEa)]                 = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostQueryEa)]                = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreSetEa)]                   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostSetEa)]                  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreFlushBuffers)]            = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostFlushBuffers)]           = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreQueryVolumeInformation)]  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostQueryVolumeInformation)] = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreSetVolumeInformation)]    = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostSetVolumeInformation)]   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreDirectoryControl)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostDirectoryControl)]       = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreFileSystemControl)]       = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostFileSystemControl)]      = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreDeviceControl)]           = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostDeviceControl)]          = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreInternalDeviceControl)]   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostInternalDeviceControl)]  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreShutdown)]                = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostShutdown)]               = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreLockControl)]             = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostLockControl)]            = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreCleanup)]                 = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostCleanup)]                = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreCreateMailslot)]          = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostCreateMailslot)]         = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreQuerySecurity)]           = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostQuerySecurity)]          = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreSetSecurity)]             = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostSetSecurity)]            = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePrePower)]                   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostPower)]                  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreSystemControl)]           = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostSystemControl)]          = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreDeviceChange)]            = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostDeviceChange)]           = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreQueryQuota)]              = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostQueryQuota)]             = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreSetQuota)]                = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostSetQuota)]               = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePrePnp)]                     = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostPnp)]                    = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreAcquireForSectionSync)]   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostAcquireForSectionSync)]  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreReleaseForSectionSync)]   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostReleaseForSectionSync)]  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreAcquireForModWrite)]      = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostAcquireForModWrite)]     = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreReleaseForModWrite)]      = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostReleaseForModWrite)]     = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreAcquireForCcFlush)]       = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostAcquireForCcFlush)]      = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreReleaseForCcFlush)]       = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostReleaseForCcFlush)]      = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreQueryOpen)]               = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostQueryOpen)]              = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreFastIoCheckIfPossible)]   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostFastIoCheckIfPossible)]  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreNetworkQueryOpen)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostNetworkQueryOpen)]       = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreMdlRead)]                 = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostMdlRead)]                = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreMdlReadComplete)]         = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostMdlReadComplete)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePrePrepareMdlWrite)]         = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostPrepareMdlWrite)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreMdlWriteComplete)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostMdlWriteComplete)]       = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreVolumeMount)]             = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostVolumeMount)]            = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePreVolumeDismount)]          = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(FilePostVolumeDismount)]         = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreDeleteKey)]                = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostDeleteKey)]               = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreSetValueKey)]              = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostSetValueKey)]             = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreDeleteValueKey)]           = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostDeleteValueKey)]          = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreSetInformationKey)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostSetInformationKey)]       = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreRenameKey)]                = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostRenameKey)]               = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreEnumerateKey)]             = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostEnumerateKey)]            = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreEnumerateValueKey)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostEnumerateValueKey)]       = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreQueryKey)]                 = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostQueryKey)]                = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreQueryValueKey)]            = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostQueryValueKey)]           = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreQueryMultipleValueKey)]    = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostQueryMultipleValueKey)]   = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreKeyHandleClose)]           = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostKeyHandleClose)]          = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreCreateKey)]                = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostCreateKey)]               = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreOpenKey)]                  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostOpenKey)]                 = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreFlushKey)]                 = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostFlushKey)]                = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreLoadKey)]                  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostLoadKey)]                 = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreUnLoadKey)]                = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostUnLoadKey)]               = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreQueryKeySecurity)]         = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostQueryKeySecurity)]        = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreSetKeySecurity)]           = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostSetKeySecurity)]          = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreRestoreKey)]               = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostRestoreKey)]              = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreSaveKey)]                  = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostSaveKey)]                 = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreReplaceKey)]               = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostReplaceKey)]              = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreQueryKeyName)]             = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostQueryKeyName)]            = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPreSaveMergedKey)]            = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(RegPostSaveMergedKey)]           = KPH_RATE_LIMIT_UNLIMITED,
-    .Policy[KPH_INFORMER_INDEX(ImageVerify)]                    = KPH_RATE_LIMIT_UNLIMITED,
-};
 
 PPH_STRING KsiDebugLogProcessCreate(
     _In_ PCKPH_MESSAGE Message
@@ -1366,77 +1194,6 @@ BOOLEAN KsiDebugLogSkip(
     return FALSE;
 }
 
-VOID KsiDebugFilterToProcInit(
-    VOID
-    )
-{
-    KPH_RATE_LIMIT_POLICY policy = KPH_RATE_LIMIT_UNLIMITED;
-    KPH_INFORMER_SETTINGS settings;
-
-    if (!KsiDebugProcFilter.Length)
-        return;
-
-    RtlZeroMemory(&settings, sizeof(settings));
-    settings.Policy[KPH_INFORMER_INDEX(ProcessCreate)] = policy;
-
-    KphSetInformerProcessSettings(NULL, &settings);
-}
-
-VOID KsiDebugFilterToProc(
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    BOOLEAN isTarget;
-    UNICODE_STRING fileName;
-    HANDLE processHandle;
-
-    if (!KsiDebugProcFilter.Length || Message->Header.MessageId != KphMsgProcessCreate)
-    {
-        return;
-    }
-
-    isTarget = FALSE;
-    if (NT_SUCCESS(KphMsgDynGetUnicodeString(Message, KphMsgFieldFileName, &fileName)))
-    {
-        PH_STRINGREF sr;
-
-        PhUnicodeStringToStringRef(&fileName, &sr);
-
-        if (PhEndsWithStringRef(&sr, &KsiDebugProcFilter, TRUE))
-            isTarget = TRUE;
-    }
-
-    if (NT_SUCCESS(PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION,
-        Message->Kernel.ProcessCreate.TargetProcessId
-        )))
-    {
-        KPH_INFORMER_SETTINGS settings;
-
-        KphGetInformerProcessSettings(processHandle, &settings);
-
-        if (isTarget)
-        {
-            settings.Options.Flags = ULONG_MAX;
-            for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
-            {
-                KPH_RATE_LIMIT_POLICY policy = KPH_RATE_LIMIT_UNLIMITED;
-
-                settings.Policy[i] = policy;
-            }
-        }
-        else
-        {
-            RtlZeroMemory(&settings, sizeof(settings));
-        }
-
-        KphSetInformerProcessSettings(processHandle, &settings);
-
-        NtClose(processHandle);
-    }
-}
-
 VOID KsiDebugLogMessageLog(
     _In_ PCKPH_MESSAGE Message
     )
@@ -1447,8 +1204,6 @@ VOID KsiDebugLogMessageLog(
     PH_FORMAT format[7];
     PPH_STRING line;
     KPHM_STACK_TRACE stack;
-
-    KsiDebugFilterToProc(Message);
 
     if (!KsiDebugLogFileStream || KsiDebugLogSkip(Message))
         return;
@@ -1541,30 +1296,37 @@ NTSTATUS NTAPI KsiDebugMonitorRoutine(
 {
     ULONG64 lastMessagesReceived = 0;
     ULONG64 lastBytesReceived = 0;
+    KPH_INFORMER_CLIENT_STATS lastStats;
 
-    for (NOTHING; NOTHING; PhDelayExecution(500))
+    memset(&lastStats, 0, sizeof(lastStats));
+
+    for (NOTHING; NOTHING; PhDelayExecution(1000))
     {
         ULONG64 messagesReceived;
         ULONG64 bytesReceived;
+        KPH_INFORMER_CLIENT_STATS stats;
 
         messagesReceived = ReadULong64Acquire(&KsiMessagesReceived);
         bytesReceived = ReadULong64Acquire(&KsiBytesReceived);
+        KphGetInformerClientStats(&stats);
 
         if (lastMessagesReceived)
         {
             ULONG64 bytesDiff = (bytesReceived - lastBytesReceived);
             ULONG64 messagesDiff = (messagesReceived - lastMessagesReceived);
+            ULONG64 droppedDiff = (stats.AsyncQueueRateLimit.Dropped - lastStats.AsyncQueueRateLimit.Dropped);
             PPH_STRING size;
 
             size = PhFormatSize(bytesDiff, ULONG_MAX);
 
-            dprintf("KSI: %ls\t%llu\n", PhGetString(size), messagesDiff);
+            PhTrace("KSI: B:%ls M:%llu D:%llu", PhGetString(size), messagesDiff, droppedDiff);
 
             PhDereferenceObject(size);
         }
 
         lastMessagesReceived = messagesReceived;
         lastBytesReceived = bytesReceived;
+        lastStats = stats;
     }
 
     return STATUS_SUCCESS;
@@ -1623,6 +1385,8 @@ VOID KsiDebugLogInitialize(
 
     if (KsiDebugLogFileStream || KsiDebugRawFileStream)
     {
+        KPH_INFORMER_SETTINGS settings;
+
         PhCreateThread2(KsiDebugMonitorRoutine, NULL);
 
         PhRegisterCallback(
@@ -1632,14 +1396,14 @@ VOID KsiDebugLogInitialize(
             &KsiDebugMessageRegistration
             );
 
-        KsiDebugFilterToProcInit();
-        KphSetInformerSettings(&KsiDebugInformerSettings);
-
-        if (KsiDebugInformerSettings.Policy[KPH_INFORMER_INDEX(DebugPrint)].TokensPerPeriod)
+        if (NT_SUCCESS(KphGetInformerSettings(&settings)))
         {
-            NtSetDebugFilterState(ULONG_MAX, ULONG_MAX, TRUE);
-            for (DPFLTR_TYPE i = 0; i <= DPFLTR_ENDOFTABLE_ID; i++)
-                NtSetDebugFilterState(i, ULONG_MAX, TRUE);
+            if (settings.Policy[KPH_INFORMER_INDEX(DebugPrint)].TokensPerPeriod)
+            {
+                NtSetDebugFilterState(ULONG_MAX, ULONG_MAX, TRUE);
+                for (DPFLTR_TYPE i = 0; i <= DPFLTR_ENDOFTABLE_ID; i++)
+                    NtSetDebugFilterState(i, ULONG_MAX, TRUE);
+            }
         }
     }
 }

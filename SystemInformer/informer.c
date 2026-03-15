@@ -103,11 +103,10 @@ VOID PhpInformerGetKeys(
     {
     case KphMsgProcessCreate:
         *ActorKey = Message->Kernel.ProcessCreate.CreatingProcessStartKey;
-        *TargetKey = Message->Kernel.ProcessCreate.CreatingProcessStartKey;
+        *TargetKey = Message->Kernel.ProcessCreate.TargetProcessStartKey;
         return;
     case KphMsgProcessExit:
         *ActorKey = Message->Kernel.ProcessExit.ProcessStartKey;
-        *TargetKey = Message->Kernel.ProcessExit.ProcessStartKey;
         return;
     case KphMsgThreadCreate:
         *ActorKey = Message->Kernel.ThreadCreate.CreatingProcessStartKey;
@@ -115,15 +114,13 @@ VOID PhpInformerGetKeys(
         return;
     case KphMsgThreadExecute:
         *ActorKey = Message->Kernel.ThreadExecute.ProcessStartKey;
-        *TargetKey = Message->Kernel.ThreadExecute.ProcessStartKey;
         return;
     case KphMsgThreadExit:
         *ActorKey = Message->Kernel.ThreadExit.ProcessStartKey;
-        *TargetKey = Message->Kernel.ThreadExit.ProcessStartKey;
         return;
     case KphMsgImageLoad:
         *ActorKey = Message->Kernel.ImageLoad.LoadingProcessStartKey;
-        *TargetKey = Message->Kernel.ImageLoad.LoadingProcessStartKey;
+        *TargetKey = Message->Kernel.ImageLoad.TargetProcessStartKey;
         return;
     case KphMsgImageVerify:
         *ActorKey = Message->Kernel.ImageVerify.ProcessStartKey;
@@ -205,7 +202,6 @@ VOID PhpInformerDatabaseReap(
     if (PhpInformerDBReapProc && Reap->ProcessStartKey)
     {
         sqlite3_bind_int64_I(PhpInformerDBReapProc, 1, Reap->ProcessStartKey);
-        sqlite3_bind_int64_I(PhpInformerDBReapProc, 2, Reap->ProcessStartKey);
         sqlite3_step_I(PhpInformerDBReapProc);
         sqlite3_reset_I(PhpInformerDBReapProc);
     }
@@ -476,7 +472,7 @@ VOID PhpInitializeInformerDatabase(
             sqlite3_prepare_v2_I(
                 PhpInformerDB,
                 "DELETE FROM messages "
-                "WHERE actor_key = ? OR target_key = ?;",
+                "WHERE actor_key = ?;",
                 -1,
                 &PhpInformerDBReapProc,
                 NULL
@@ -580,6 +576,7 @@ VOID NTAPI PhpInformerProcessUpdatedHandler(
 
     reap->ProcessStartKey = 0;
     reap->MaxCount = PhProcessMonitorCacheLimit;
+    reap->Seconds = 0;
 
     if (PhProcessMonitorLookback && runCount % PhProcessMonitorLookback == 0)
         reap->Seconds = PhProcessMonitorLookback;
@@ -628,22 +625,74 @@ VOID PhInformerInitialize(
 {
     PhInitializeFreeList(&PhpInformerReapFreeList, sizeof(PH_INFORMER_DB_REAP), 16);
 
-    if (PhEnableProcessMonitor)
+    if (!PhEnableProcessMonitor)
+        return;
+
+    PhpInitializeInformerDatabase();
+
+    PhRegisterCallback(
+        PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
+        PhpInformerProcessUpdatedHandler,
+        NULL,
+        &PhpInformerProcessesUpdatedRegistration
+        );
+
+    PhRegisterCallback(
+        PhGetGeneralCallback(GeneralCallbackProcessProviderRemovedEvent),
+        PhpInformerProcessRemovedHandler,
+        NULL,
+        &PhpInformerProcessesRemovedRegistration
+        );
+}
+
+VOID PhInformerActivate(
+    VOID
+    )
+{
+    KPH_INFORMER_SETTINGS settings;
+    KPH_INFORMER_CLIENT_SETTINGS client;
+
+    memset(&settings, 0, sizeof(settings));
+    settings.Policy[KPH_INFORMER_INDEX(RequiredStateFailure)] = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_UNLIMITED;
+    KphSetInformerProcessSettings(NtCurrentProcess(), &settings);
+
+    if (!PhEnableProcessMonitor)
     {
-        PhpInitializeInformerDatabase();
-
-        PhRegisterCallback(
-            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
-            PhpInformerProcessUpdatedHandler,
-            NULL,
-            &PhpInformerProcessesUpdatedRegistration
-            );
-
-        PhRegisterCallback(
-            PhGetGeneralCallback(GeneralCallbackProcessProviderRemovedEvent),
-            PhpInformerProcessRemovedHandler,
-            NULL,
-            &PhpInformerProcessesRemovedRegistration
-            );
+        KphSetInformerSettings(&settings);
+        return;
     }
+
+    memset(&settings, 0, sizeof(settings));
+    settings.Options.Flags = ULONG_MAX;
+    settings.Options.EnableStackTraces = FALSE;
+    settings.Options.EnableProcessCreateReply = FALSE;
+    settings.Options.FileEnablePreCreateReply = FALSE;
+    settings.Options.FileEnablePostCreateReply = FALSE;
+    settings.Options.FileEnablePostFileNames = FALSE;
+    settings.Options.FileEnableIoControlBuffers = FALSE;
+    settings.Options.FileEnableFsControlBuffers = FALSE;
+    settings.Options.FileEnableDirControlBuffers = FALSE;
+    settings.Options.RegEnablePostObjectNames = FALSE;
+    settings.Options.RegEnablePostValueNames = FALSE;
+    settings.Options.RegEnableValueBuffers = FALSE;
+
+    for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+        settings.Policy[i] = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_UNLIMITED;
+
+    settings.Policy[KPH_INFORMER_INDEX(DebugPrint)] = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_DENY_ALL;
+
+    KphSetInformerSettings(&settings);
+
+    memset(&client, 0, sizeof(client));
+    PhTimeoutFromMilliseconds(&client.MessageTimeouts.AsyncTimeout, 3000);
+    PhTimeoutFromMilliseconds(&client.MessageTimeouts.DefaultTimeout, 3000);
+    PhTimeoutFromMilliseconds(&client.MessageTimeouts.ProcessCreateTimeout, 3000);
+    PhTimeoutFromMilliseconds(&client.MessageTimeouts.FilePreCreateTimeout, 3000);
+    PhTimeoutFromMilliseconds(&client.MessageTimeouts.FilePostCreateTimeout, 3000);
+    //client.AsyncQueuePolicy = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_PER_SEC(1000, 30000);
+    client.AsyncQueuePolicy = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_DENY_ALL;
+    for (ULONG i = 0; i < KPH_INFORMER_COUNT; i++)
+        client.InformerPolicy[i] = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_UNLIMITED;
+
+    KphSetInformerClientSettings(&client);
 }

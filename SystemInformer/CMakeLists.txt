@@ -211,6 +211,7 @@ target_include_directories(SystemInformer PRIVATE
 )
 
 target_include_directories(SystemInformer INTERFACE
+    "${SI_ROOT}/phnt/include"
     "${SI_ROOT}/sdk/include"
 )
 
