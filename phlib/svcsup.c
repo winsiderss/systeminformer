@@ -1566,7 +1566,7 @@ PPH_STRING PhGetServiceParametersKeyName(
  */
 PPH_STRING PhGetServiceConfigFileName(
     _In_ ULONG ServiceType,
-    _In_ PCWSTR ServicePathName,
+    _In_opt_ PCWSTR ServicePathName,
     _In_ PPH_STRINGREF ServiceName
     )
 {
@@ -1577,7 +1577,7 @@ PPH_STRING PhGetServiceConfigFileName(
 
     if (!NT_SUCCESS(status))
     {
-        if (ServicePathName[0])
+        if (ServicePathName && ServicePathName[0])
         {
             PPH_STRING commandLine = PhCreateString(ServicePathName);
 
@@ -1621,7 +1621,7 @@ PPH_STRING PhGetServiceConfigFileName(
  */
 NTSTATUS PhGetServiceConfigFileName2(
     _In_ ULONG ServiceType,
-    _In_ PCWSTR ServicePathName,
+    _In_opt_ PCWSTR ServicePathName,
     _In_ PPH_STRINGREF ServiceName,
     _Out_ PPH_STRING* ServiceFileName
     )
@@ -1633,7 +1633,7 @@ NTSTATUS PhGetServiceConfigFileName2(
 
     if (!NT_SUCCESS(status))
     {
-        if (ServicePathName[0])
+        if (ServicePathName && ServicePathName[0])
         {
             PPH_STRING commandLine = PhCreateString(ServicePathName);
 
