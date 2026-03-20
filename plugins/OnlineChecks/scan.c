@@ -928,8 +928,8 @@ BOOLEAN ScanHashEqual(
     if (Hash1->Sha256 && Hash2->Sha256)
         equal = PhEqualString(Hash1->Sha256, Hash2->Sha256, FALSE);
 
-    PhReleaseQueuedLockShared(&Hash1->Lock);
     PhReleaseQueuedLockShared(&Hash2->Lock);
+    PhReleaseQueuedLockShared(&Hash1->Lock);
 
     return equal;
 }
