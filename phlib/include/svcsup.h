@@ -372,7 +372,7 @@ PPH_STRING
 NTAPI
 PhGetServiceConfigFileName(
     _In_ ULONG ServiceType,
-    _In_ PCWSTR ServicePathName,
+    _In_opt_ PCWSTR ServicePathName,
     _In_ PPH_STRINGREF ServiceName
     );
 
