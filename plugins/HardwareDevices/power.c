@@ -62,7 +62,7 @@ VOID RaplDevicesUpdate(
     {
         PDV_RAPL_ENTRY entry;
 
-        entry = PhReferenceObjectSafe(RaplDevicesList->Items[i]);
+        entry = PhReferenceObjectUnsafe(RaplDevicesList->Items[i]);
 
         if (!entry)
             continue;

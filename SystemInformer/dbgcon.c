@@ -910,7 +910,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 objectHeader = CONTAINING_RECORD(currentEntry, PH_OBJECT_HEADER, ObjectListEntry);
 
                 // Make sure the object isn't being destroyed.
-                if (!PhReferenceObjectSafe(PhObjectHeaderToObject(objectHeader)))
+                if (!PhReferenceObjectUnsafe(PhObjectHeaderToObject(objectHeader)))
                 {
                     currentEntry = currentEntry->Flink;
                     continue;
@@ -1069,7 +1069,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 {
                     if (!PhFindItemSimpleHashtable(ObjectListSnapshot, objectHeader))
                     {
-                        if (PhReferenceObjectSafe(PhObjectHeaderToObject(objectHeader)))
+                        if (PhReferenceObjectUnsafe(PhObjectHeaderToObject(objectHeader)))
                             PhAddItemList(newObjects, objectHeader);
                     }
                 }
@@ -1458,7 +1458,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     continue;
 
                 // Make sure the object isn't being destroyed.
-                if (!PhReferenceObjectSafe(string))
+                if (!PhReferenceObjectUnsafe(string))
                     continue;
 
                 localStringEntry.String = string;

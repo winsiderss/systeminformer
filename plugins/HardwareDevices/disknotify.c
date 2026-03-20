@@ -41,7 +41,7 @@ VOID NTAPI HardwareDevicesDeviceChangeCallback(
                 {
                     PDV_DISK_ENTRY entry;
 
-                    entry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
+                    entry = PhReferenceObjectUnsafe(DiskDevicesList->Items[i]);
 
                     if (!entry)
                         continue;

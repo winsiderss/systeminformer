@@ -162,7 +162,7 @@ VOID NTAPI SystemInformationInitializingCallback(
 
     for (ULONG i = 0; i < GraphicsDevicesList->Count; i++)
     {
-        PDV_GPU_ENTRY entry = PhReferenceObjectSafe(GraphicsDevicesList->Items[i]);
+        PDV_GPU_ENTRY entry = PhReferenceObjectUnsafe(GraphicsDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -183,7 +183,7 @@ VOID NTAPI SystemInformationInitializingCallback(
 
     for (ULONG i = 0; i < DiskDevicesList->Count; i++)
     {
-        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
+        PDV_DISK_ENTRY entry = PhReferenceObjectUnsafe(DiskDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -204,7 +204,7 @@ VOID NTAPI SystemInformationInitializingCallback(
 
     for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
-        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectUnsafe(NetworkDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -225,7 +225,7 @@ VOID NTAPI SystemInformationInitializingCallback(
 
     for (ULONG i = 0; i < RaplDevicesList->Count; i++)
     {
-        PDV_RAPL_ENTRY entry = PhReferenceObjectSafe(RaplDevicesList->Items[i]);
+        PDV_RAPL_ENTRY entry = PhReferenceObjectUnsafe(RaplDevicesList->Items[i]);
 
         if (!entry)
             continue;

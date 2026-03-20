@@ -65,7 +65,7 @@ VOID GraphicsDevicesUpdate(
     {
         PDV_GPU_ENTRY entry;
 
-        entry = PhReferenceObjectSafe(GraphicsDevicesList->Items[i]);
+        entry = PhReferenceObjectUnsafe(GraphicsDevicesList->Items[i]);
 
         if (!entry)
             continue;

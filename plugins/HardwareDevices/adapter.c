@@ -52,7 +52,7 @@ VOID NetworkDevicesUpdate(
         ULONG64 networkInOctets = 0;
         ULONG64 networkOutOctets = 0;
 
-        entry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
+        entry = PhReferenceObjectUnsafe(NetworkDevicesList->Items[i]);
 
         if (!entry)
             continue;

@@ -84,7 +84,7 @@ VOID DiskDrivesSaveList(
 
     for (ULONG i = 0; i < DiskDevicesList->Count; i++)
     {
-        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
+        PDV_DISK_ENTRY entry = PhReferenceObjectUnsafe(DiskDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -119,7 +119,7 @@ BOOLEAN FindDiskEntry(
 
     for (ULONG i = 0; i < DiskDevicesList->Count; i++)
     {
-        PDV_DISK_ENTRY currentEntry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
+        PDV_DISK_ENTRY currentEntry = PhReferenceObjectUnsafe(DiskDevicesList->Items[i]);
 
         if (!currentEntry)
             continue;
@@ -168,7 +168,7 @@ VOID AddDiskDriveToListView(
 
     for (ULONG i = 0; i < DiskDevicesList->Count; i++)
     {
-        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
+        PDV_DISK_ENTRY entry = PhReferenceObjectUnsafe(DiskDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -480,7 +480,7 @@ VOID FindDiskDrives(
     {
         INT index = INT_ERROR;
         BOOLEAN found = FALSE;
-        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
+        PDV_DISK_ENTRY entry = PhReferenceObjectUnsafe(DiskDevicesList->Items[i]);
 
         if (!entry)
             continue;

@@ -87,7 +87,7 @@ VOID RaplDevicesSaveList(
 
     for (ULONG i = 0; i < RaplDevicesList->Count; i++)
     {
-        PDV_RAPL_ENTRY entry = PhReferenceObjectSafe(RaplDevicesList->Items[i]);
+        PDV_RAPL_ENTRY entry = PhReferenceObjectUnsafe(RaplDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -122,7 +122,7 @@ BOOLEAN FindRaplDeviceEntry(
 
     for (ULONG i = 0; i < RaplDevicesList->Count; i++)
     {
-        PDV_RAPL_ENTRY currentEntry = PhReferenceObjectSafe(RaplDevicesList->Items[i]);
+        PDV_RAPL_ENTRY currentEntry = PhReferenceObjectUnsafe(RaplDevicesList->Items[i]);
 
         if (!currentEntry)
             continue;
@@ -171,7 +171,7 @@ VOID AddRaplDeviceToListView(
 
     for (ULONG i = 0; i < RaplDevicesList->Count; i++)
     {
-        PDV_RAPL_ENTRY entry = PhReferenceObjectSafe(RaplDevicesList->Items[i]);
+        PDV_RAPL_ENTRY entry = PhReferenceObjectUnsafe(RaplDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -496,7 +496,7 @@ VOID FindRaplDevices(
     {
         INT index = INT_ERROR;
         BOOLEAN found = FALSE;
-        PDV_RAPL_ENTRY entry = PhReferenceObjectSafe(RaplDevicesList->Items[i]);
+        PDV_RAPL_ENTRY entry = PhReferenceObjectUnsafe(RaplDevicesList->Items[i]);
 
         if (!entry)
             continue;

@@ -116,7 +116,7 @@ PhReferenceObjectEx(
 PHLIBAPI
 PVOID
 NTAPI
-PhReferenceObjectSafe(
+PhReferenceObjectUnsafe(
     _In_ PVOID Object
     );
 

@@ -103,7 +103,7 @@ PPHSVC_CLIENT PhSvcReferenceClientByClientId(
 
     if (client)
     {
-        if (!PhReferenceObjectSafe(client))
+        if (!PhReferenceObjectUnsafe(client))
             client = NULL;
     }
 

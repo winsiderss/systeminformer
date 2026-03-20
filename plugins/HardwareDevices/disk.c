@@ -51,7 +51,7 @@ VOID DiskDevicesUpdate(
         HANDLE deviceHandle;
         PDV_DISK_ENTRY entry;
 
-        entry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
+        entry = PhReferenceObjectUnsafe(DiskDevicesList->Items[i]);
 
         if (!entry)
             continue;

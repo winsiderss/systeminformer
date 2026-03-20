@@ -107,7 +107,7 @@ VOID NetAdaptersSaveList(
 
     for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
-        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectUnsafe(NetworkDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -166,7 +166,7 @@ BOOLEAN FindAdapterEntry(
 
     for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
-        PDV_NETADAPTER_ENTRY currentEntry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
+        PDV_NETADAPTER_ENTRY currentEntry = PhReferenceObjectUnsafe(NetworkDevicesList->Items[i]);
 
         if (!currentEntry)
             continue;
@@ -217,7 +217,7 @@ VOID AddNetworkAdapterToListView(
 
     for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
-        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectUnsafe(NetworkDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -616,7 +616,7 @@ VOID FindNetworkAdapters(
     {
         INT index = INT_ERROR;
         BOOLEAN found = FALSE;
-        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectUnsafe(NetworkDevicesList->Items[i]);
 
         if (!entry)
             continue;

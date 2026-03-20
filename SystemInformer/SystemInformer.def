@@ -303,7 +303,7 @@ EXPORTS
     PhInitializeAutoPool
     PhReferenceObject
     PhReferenceObjectEx
-    PhReferenceObjectSafe
+    PhReferenceObjectUnsafe
 
 ; queuedlock
     PhfAcquireQueuedLockExclusive

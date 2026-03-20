@@ -2907,7 +2907,7 @@ INT_PTR CALLBACK WinObjDlgProc(
             }
 
             context->CurrentDirectoryList = PhCreateList(100);
-            if (!EtObjectManagerOwnHandles || !PhReferenceObjectSafe(EtObjectManagerOwnHandles))
+            if (!EtObjectManagerOwnHandles || !PhReferenceObjectUnsafe(EtObjectManagerOwnHandles))
                 EtObjectManagerOwnHandles = PhCreateList(10);
 
             PhSetApplicationWindowIcon(hwndDlg);

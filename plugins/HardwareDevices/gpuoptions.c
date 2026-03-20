@@ -95,7 +95,7 @@ VOID GraphicsDevicesSaveList(
 
     for (ULONG i = 0; i < GraphicsDevicesList->Count; i++)
     {
-        PDV_GPU_ENTRY entry = PhReferenceObjectSafe(GraphicsDevicesList->Items[i]);
+        PDV_GPU_ENTRY entry = PhReferenceObjectUnsafe(GraphicsDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -131,7 +131,7 @@ BOOLEAN FindGraphicsDeviceEntry(
 
     for (ULONG i = 0; i < GraphicsDevicesList->Count; i++)
     {
-        PDV_GPU_ENTRY currentEntry = PhReferenceObjectSafe(GraphicsDevicesList->Items[i]);
+        PDV_GPU_ENTRY currentEntry = PhReferenceObjectUnsafe(GraphicsDevicesList->Items[i]);
 
         if (!currentEntry)
             continue;
@@ -180,7 +180,7 @@ VOID AddGraphicsDeviceToListView(
 
     for (ULONG i = 0; i < GraphicsDevicesList->Count; i++)
     {
-        PDV_GPU_ENTRY entry = PhReferenceObjectSafe(GraphicsDevicesList->Items[i]);
+        PDV_GPU_ENTRY entry = PhReferenceObjectUnsafe(GraphicsDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -545,7 +545,7 @@ VOID FindGraphicsDevices(
     {
         INT index = INT_ERROR;
         BOOLEAN found = FALSE;
-        PDV_GPU_ENTRY entry = PhReferenceObjectSafe(GraphicsDevicesList->Items[i]);
+        PDV_GPU_ENTRY entry = PhReferenceObjectUnsafe(GraphicsDevicesList->Items[i]);
 
         if (!entry)
             continue;
