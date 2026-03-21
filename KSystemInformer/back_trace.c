@@ -511,8 +511,19 @@ NTSTATUS KphCaptureStackBackTraceThread(
 
     backTrace = NULL;
 
-    status = RtlULongAdd(FramesToCapture,
-                         sizeof(KPH_STACK_BACK_TRACE_OBJECT),
+    status = RtlULongMult(FramesToCapture, sizeof(PVOID), &backTraceSize);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "RtlULongMult failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = RtlULongAdd(backTraceSize,
+                         FIELD_OFFSET(KPH_STACK_BACK_TRACE_OBJECT, BackTrace),
                          &backTraceSize);
     if (!NT_SUCCESS(status))
     {
