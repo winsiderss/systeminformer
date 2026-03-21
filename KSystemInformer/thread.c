@@ -298,8 +298,20 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
 
     if (AccessMode != KernelMode)
     {
-        backTrace = KphAllocatePaged(FramesToCapture * sizeof(PVOID),
-                                     KPH_TAG_THREAD_BACK_TRACE);
+        SIZE_T backTraceSize;
+
+        status = RtlSizeTMult(FramesToCapture, sizeof(PVOID), &backTraceSize);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "RtlSizeTMult failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+
+        backTrace = KphAllocatePaged(backTraceSize, KPH_TAG_THREAD_BACK_TRACE);
         if (!backTrace)
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
