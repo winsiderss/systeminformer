@@ -670,6 +670,8 @@ typedef enum _SCAN_READ_STATE
     ScanReadComplete,
 } SCAN_READ_STATE, *PSCAN_READ_STATE;
 
+#define SCAN_READ_BUFFER_SIZE (16 * 1024)
+
 typedef struct _PROCESS_SCAN_HASH_CONTEXT
 {
     PSCAN_HASH ScanHash;
@@ -680,7 +682,7 @@ typedef struct _PROCESS_SCAN_HASH_CONTEXT
     IO_STATUS_BLOCK IoStatusBlock;
     BOOLEAN HashFinished;
     BYTE HashBuffer[256 / 8];
-    BYTE ReadBuffer[PAGE_SIZE * 2];
+    PBYTE ReadBuffer;
 } PROCESS_SCAN_HASH_CONTEXT, *PPROCESS_SCAN_HASH_CONTEXT;
 
 VOID CreateProcessScanHashContexts(
@@ -844,6 +846,7 @@ VOID ProcessScanHashes(
         //
         context->FileHandle = fileHandle;
         context->ActiveIndex = activeCount;
+        context->ReadBuffer = PhAllocate(SCAN_READ_BUFFER_SIZE);
         activeCount++;
     }
 
@@ -893,8 +896,8 @@ VOID ProcessScanHashes(
                     ProcessScanHashApcRoutine,
                     context,
                     &context->IoStatusBlock,
-                    &context->ReadBuffer,
-                    sizeof(context->ReadBuffer),
+                    context->ReadBuffer,
+                    SCAN_READ_BUFFER_SIZE,
                     &context->ReadOffset,
                     NULL
                     );
@@ -986,6 +989,12 @@ CleanupExit:
     for (ULONG i = count; i > 0; i--)
     {
         PPROCESS_SCAN_HASH_CONTEXT context = &contexts[i - 1];
+
+        if (context->ReadBuffer)
+        {
+#pragma prefast(suppress: 6001) // ReadBuffer is initialized
+            PhFree(context->ReadBuffer);
+        }
 
         if (!context->FileHandle)
             continue;
