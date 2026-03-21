@@ -64,7 +64,6 @@ typedef struct _SCAN_HASH* PSCAN_HASH;
 
 typedef struct _SCAN_CONTEXT
 {
-    PPH_STRING FileName;
     PSCAN_HASH FileHash;
     PSCAN_ITEM ScanItems[SCAN_TYPE_MAX];
 } SCAN_CONTEXT, *PSCAN_CONTEXT;
