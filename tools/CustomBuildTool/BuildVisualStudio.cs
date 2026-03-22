@@ -461,49 +461,21 @@ namespace CustomBuildTool
         /// <returns>
         /// Latest stable version if available, otherwise latest version (including prerelease), or <c>string.Empty</c> on failure.
         /// </returns>
-        public static async Task<string> GetLatestWindowsSdkNuGetVersion(CancellationToken cancellationToken = default)
+        public static string GetLatestWindowsSdkNuGetVersion()
         {
-            // https://www.nuget.org/profiles/WindowsSDK
-            const string buildToolsUri = $"https://api.nuget.org/v3-flatcontainer/microsoft.windows.sdk.buildtools/index.json"; // https://www.nuget.org/packages/Microsoft.Windows.SDK.BuildTools/
-            const string build_WDK_64 = $"https://api.nuget.org/v3-flatcontainer/Microsoft.Windows.WDK.x64/index.json";         // https://www.nuget.org/packages/Microsoft.Windows.WDK.x64
-            const string build_SDK_64 = $"https://api.nuget.org/v3-flatcontainer/Microsoft.Windows.SDK.CPP.x64/index.json";     // https://www.nuget.org/packages/Microsoft.Windows.SDK.CPP.x64/
-            const string build_SDK_32 = $"https://api.nuget.org/v3-flatcontainer/Microsoft.Windows.SDK.CPP.x86/index.json";     // https://www.nuget.org/packages/Microsoft.Windows.SDK.CPP.x86/
-            const string build_SDK_ARM64 = $"https://api.nuget.org/v3-flatcontainer/Microsoft.Windows.SDK.CPP.arm64/index.json"; // https://www.nuget.org/packages/Microsoft.Windows.SDK.CPP.arm64/
-            const string build_WDK_ARM64 = $"https://api.nuget.org/v3-flatcontainer/Microsoft.Windows.WDK.x64/index.json";
+            return NugetMetadataClient.GetLatestVersion("Microsoft.Windows.SDK.CPP").GetAwaiter().GetResult();
+            //return NugetMetadataClient.GetLatestVersion("Microsoft.Windows.SDK.CPP.x64").GetAwaiter().GetResult();
+            //return NugetMetadataClient.GetLatestVersion("Microsoft.Windows.SDK.CPP.x64").GetAwaiter().GetResult();
+        }
 
-            try
-            {
-                using var client = BuildHttpClient.CreateHttpClient();
-                using var request = new HttpRequestMessage(HttpMethod.Get, build_SDK_64);
-                var response = await BuildHttpClient.SendMessage(client, request, NugetVersionResponseContext.Default.NugetVersionResponse, cancellationToken);
+        public static string GetLatestBuildToolsNuGetVersion()
+        {
+            return NugetMetadataClient.GetLatestVersion("Microsoft.Windows.SDK.BuildTools").GetAwaiter().GetResult();
+        }
 
-                if (response?.Versions == null || response.Versions.Count == 0)
-                    return string.Empty;
-
-                string latest = string.Empty;
-                string latestNonPreview = string.Empty;
-
-                foreach (string version in response.Versions)
-                {
-                    if (string.IsNullOrWhiteSpace(version))
-                        continue;
-
-                    latest = version;
-
-                    if (!version.Contains("preview", StringComparison.OrdinalIgnoreCase) &&
-                        !version.Contains("prerelease", StringComparison.OrdinalIgnoreCase))
-                    {
-                        latestNonPreview = version;
-                    }
-                }
-
-                return !string.IsNullOrWhiteSpace(latestNonPreview) ? latestNonPreview : latest;
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"Failed to query NuGet for latest Windows SDK version: {ex.Message}", ConsoleColor.Yellow);
-                return string.Empty;
-            }
+        public static string GetLatestWindowsWdkNuGetVersion()
+        {
+            return NugetMetadataClient.GetLatestVersion("Microsoft.Windows.WDK.x64").GetAwaiter().GetResult();
         }
     }
 

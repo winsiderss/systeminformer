@@ -111,6 +111,7 @@
     <Using Include="System.Collections.Immutable" />
     <Using Include="System.ComponentModel" />
     <Using Include="System.Diagnostics" />
+    <Using Include="System.Diagnostics.CodeAnalysis" />
     <Using Include="System.Globalization" />
     <Using Include="System.IO.Compression" />
     <Using Include="System.Net" />
