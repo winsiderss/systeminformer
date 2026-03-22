@@ -217,6 +217,8 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.TryGetValue("-devenv-build", out string Command))
             {
+                Build.SetupBuildEnvironment(true);
+
                 Utils.ExecuteDevEnvCommand(Command);
 
                 Build.ShowBuildStats();
@@ -230,7 +232,7 @@ namespace CustomBuildTool
                     flags |= BuildFlags.BuildVerbose;
                 }
 
-                Build.SetupBuildEnvironment(false);
+                Build.SetupBuildEnvironment(true);
 
                 if (!Build.BuildSolution("SystemInformer.sln", flags))
                     Environment.Exit(1);
@@ -517,7 +519,7 @@ namespace CustomBuildTool
                     flags |= BuildFlags.BuildVerbose;
                 }
 
-                Build.SetupBuildEnvironment(false);
+                Build.SetupBuildEnvironment(true);
 
                 if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
                     Environment.Exit(1);

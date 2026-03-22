@@ -1003,8 +1003,10 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                 MinimumSize.left = 0;
             }
 
-            PhLoadWindowPlacementFromSetting(NULL, SETTING_THREAD_STACK_WINDOW_SIZE, hwndDlg);
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            if (PhValidWindowPlacementFromSetting(SETTING_THREAD_STACK_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_THREAD_STACK_WINDOW_POSITION, SETTING_THREAD_STACK_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             PhSetDialogFocus(hwndDlg, context->TreeNewHandle);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
@@ -1057,7 +1059,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
             for (ULONG i = 0; i < context->List->Count; i++)
                 PhpFreeThreadStackItem(context->List->Items[i]);
 
-            PhSaveWindowPlacementToSetting(NULL, L"ThreadStackWindowSize", hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_THREAD_STACK_WINDOW_POSITION, SETTING_THREAD_STACK_WINDOW_SIZE, hwndDlg);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhDereferenceObject(context);

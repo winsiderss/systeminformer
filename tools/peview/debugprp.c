@@ -141,7 +141,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
                     PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, PvpGetDebugTypeString(entry.Type));
                     PhPrintPointer(value, UlongToPtr(entry.AddressOfRawData));
                     PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, value);
-                    PhPrintPointer(value, PTR_ADD_OFFSET(entry.AddressOfRawData, entry.SizeOfData));
+                    PhPrintPointer(value, UlongToPtr(UInt32Add32To64(entry.AddressOfRawData, entry.SizeOfData)));
                     PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, value);
                     PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 4, PhaFormatSize(entry.SizeOfData, ULONG_MAX)->Buffer);
 

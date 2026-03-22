@@ -237,6 +237,14 @@ NTSTATUS PhLoadMappedImageEx(
     return status;
 }
 
+/**
+ * Loads mapped image no execute.
+ *
+ * \param FileName The FileName parameter.
+ * \param FileHandle The FileHandle parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhLoadMappedImageNoExecute(
     _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
@@ -326,6 +334,14 @@ NTSTATUS PhLoadMappedImageNoExecute(
     return status;
 }
 
+/**
+ * Loads mapped image header page size.
+ *
+ * \param FileName The FileName parameter.
+ * \param FileHandle The FileHandle parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhLoadMappedImageHeaderPageSize(
     _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
@@ -635,6 +651,15 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Maps view of entire file ex.
+ *
+ * \param FileName The FileName parameter.
+ * \param FileHandle The FileHandle parameter.
+ * \param ViewBase The ViewBase parameter.
+ * \param ViewSize The ViewSize parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhMapViewOfEntireFileEx(
     _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
@@ -722,6 +747,11 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Maps ped image prefetch.
+ *
+ * \param MappedImage The MappedImage parameter.
+ */
 VOID PhMappedImagePrefetch(
     _In_ PPH_MAPPED_IMAGE MappedImage
     )
@@ -811,6 +841,14 @@ PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
  * adjusting for section alignment differences.
  */
 _Success_(return != NULL)
+/**
+ * Maps ped image rva to va.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Rva The Rva parameter.
+ * \param Section The Section parameter.
+ * \return PVOID A pointer to the requested data, or NULL if unavailable.
+ */
 PVOID PhMappedImageRvaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva,
@@ -833,8 +871,8 @@ PVOID PhMappedImageRvaToVa(
     if (FlagOn(MappedImage->Flags, PH_MAPPED_IMAGE_FLAG_SEC_IMAGE))
         return PTR_ADD_OFFSET(MappedImage->ViewBase, Rva);
 
-    return PTR_ADD_OFFSET(MappedImage->ViewBase, PTR_ADD_OFFSET(
-        PTR_SUB_OFFSET(Rva, section->VirtualAddress),
+    return PTR_ADD_OFFSET(MappedImage->ViewBase, UInt32Add32To64(
+        UInt32Sub32To64(Rva, section->VirtualAddress),
         section->PointerToRawData
         ));
 }
@@ -848,6 +886,14 @@ PVOID PhMappedImageRvaToVa(
  * \return A pointer to the address in the mapped view, otherwise NULL.
  */
 _Success_(return != NULL)
+/**
+ * Maps ped image va to va.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Va The Va parameter.
+ * \param Section The Section parameter.
+ * \return PVOID A pointer to the requested data, or NULL if unavailable.
+ */
 PVOID PhMappedImageVaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONGLONG Va,
@@ -881,13 +927,21 @@ PVOID PhMappedImageVaToVa(
     if (FlagOn(MappedImage->Flags, PH_MAPPED_IMAGE_FLAG_SEC_IMAGE))
         return PTR_ADD_OFFSET(MappedImage->ViewBase, rva);
 
-    return PTR_ADD_OFFSET(MappedImage->ViewBase, PTR_ADD_OFFSET(
-        PTR_SUB_OFFSET(rva, section->VirtualAddress),
+    return PTR_ADD_OFFSET(MappedImage->ViewBase, UInt32Add32To64(
+        UInt32Sub32To64(rva, section->VirtualAddress),
         section->PointerToRawData
         ));
 }
 
 _Success_(return != NULL)
+/**
+ * Maps ped image rva to file offset.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Rva The Rva parameter.
+ * \param Section The Section parameter.
+ * \return PVOID A pointer to the requested data, or NULL if unavailable.
+ */
 PVOID PhMappedImageRvaToFileOffset(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva,
@@ -911,7 +965,7 @@ PVOID PhMappedImageRvaToFileOffset(
         return PTR_ADD_OFFSET(MappedImage->ViewBase, Rva);
 
     return PTR_ADD_OFFSET(
-        PTR_SUB_OFFSET(Rva, section->VirtualAddress),
+        UInt32Sub32To64(Rva, section->VirtualAddress),
         section->PointerToRawData
         );
 }
@@ -1005,6 +1059,13 @@ NTSTATUS PhGetMappedImageDataDirectory(
     return STATUS_NOT_FOUND;
 }
 
+/**
+ * Gets mapped image directory entry.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Index The Index parameter.
+ * \return PVOID A pointer to the requested data, or NULL if unavailable.
+ */
 PVOID PhGetMappedImageDirectoryEntry(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Index
@@ -1029,6 +1090,15 @@ PVOID PhGetMappedImageDirectoryEntry(
         );
 }
 
+/**
+ * p Get Mapped Image Load Config.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Magic The Magic parameter.
+ * \param ProbeLength The ProbeLength parameter.
+ * \param LoadConfig The LoadConfig parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 FORCEINLINE NTSTATUS PhpGetMappedImageLoadConfig(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ USHORT Magic,
@@ -1075,6 +1145,13 @@ FORCEINLINE NTSTATUS PhpGetMappedImageLoadConfig(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets mapped image load config32.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param LoadConfig The LoadConfig parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageLoadConfig32(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PIMAGE_LOAD_CONFIG_DIRECTORY32 *LoadConfig
@@ -1088,6 +1165,13 @@ NTSTATUS PhGetMappedImageLoadConfig32(
         );
 }
 
+/**
+ * Gets mapped image load config64.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param LoadConfig The LoadConfig parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageLoadConfig64(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PIMAGE_LOAD_CONFIG_DIRECTORY64 *LoadConfig
@@ -1103,6 +1187,14 @@ NTSTATUS PhGetMappedImageLoadConfig64(
 
 // Remote mapped image routines
 
+/**
+ * Initializes remote mapped image.
+ *
+ * \param RemoteMappedImage The RemoteMappedImage parameter.
+ * \param ReadVirtualMemoryCallback The ReadVirtualMemoryCallback parameter.
+ * \param Context The Context parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhInitializeRemoteMappedImage(
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_opt_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
@@ -1115,6 +1207,15 @@ NTSTATUS PhInitializeRemoteMappedImage(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Loads remote mapped image page size.
+ *
+ * \param RemoteMappedImage The RemoteMappedImage parameter.
+ * \param ProcessHandle The ProcessHandle parameter.
+ * \param ViewBase The ViewBase parameter.
+ * \param ViewSize The ViewSize parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhLoadRemoteMappedImagePageSize(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ HANDLE ProcessHandle,
@@ -1265,6 +1366,15 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Loads remote mapped image.
+ *
+ * \param RemoteMappedImage The RemoteMappedImage parameter.
+ * \param ProcessHandle The ProcessHandle parameter.
+ * \param ViewBase The ViewBase parameter.
+ * \param ViewSize The ViewSize parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhLoadRemoteMappedImage(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ HANDLE ProcessHandle,
@@ -1443,6 +1553,12 @@ NTSTATUS PhLoadRemoteMappedImage(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Unloads remote mapped image.
+ *
+ * \param RemoteMappedImage The RemoteMappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhUnloadRemoteMappedImage(
     _Inout_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
@@ -1461,6 +1577,14 @@ NTSTATUS PhUnloadRemoteMappedImage(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets remote mapped image data entry.
+ *
+ * \param RemoteMappedImage The RemoteMappedImage parameter.
+ * \param Index The Index parameter.
+ * \param Entry The Entry parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetRemoteMappedImageDataEntry(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ ULONG Index,
@@ -1503,6 +1627,15 @@ NTSTATUS PhGetRemoteMappedImageDataEntry(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets remote mapped image directory entry.
+ *
+ * \param RemoteMappedImage The RemoteMappedImage parameter.
+ * \param Index The Index parameter.
+ * \param DataBuffer The DataBuffer parameter.
+ * \param DataLength The DataLength parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetRemoteMappedImageDirectoryEntry(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ ULONG Index,
@@ -1569,6 +1702,15 @@ NTSTATUS PhGetRemoteMappedImageDirectoryEntry(
     return status;
 }
 
+/**
+ * Gets remote mapped image debug entry by type.
+ *
+ * \param RemoteMappedImage The RemoteMappedImage parameter.
+ * \param Type The Type parameter.
+ * \param DataLength The DataLength parameter.
+ * \param DataBuffer The DataBuffer parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetRemoteMappedImageDebugEntryByType(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ ULONG Type,
@@ -1661,6 +1803,13 @@ NTSTATUS PhGetRemoteMappedImageDebugEntryByType(
     return status;
 }
 
+/**
+ * Gets remote mapped image guard flags.
+ *
+ * \param RemoteMappedImage The RemoteMappedImage parameter.
+ * \param GuardFlags The GuardFlags parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetRemoteMappedImageGuardFlags(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _Out_ PULONG GuardFlags
@@ -1737,6 +1886,13 @@ NTSTATUS PhGetRemoteMappedImageGuardFlags(
     return status;
 }
 
+/**
+ * Gets remote mapped image chpeversion.
+ *
+ * \param RemoteMappedImage The RemoteMappedImage parameter.
+ * \param CHPEVersion The CHPEVersion parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetRemoteMappedImageCHPEVersion(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _Out_ PULONG CHPEVersion
@@ -1860,6 +2016,14 @@ CleanupExit:
 
 // Mapped image
 
+/**
+ * Relocates mapped image data entry arm64 x.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Entry The Entry parameter.
+ * \param RelocatedEntry The RelocatedEntry parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhRelocateMappedImageDataEntryARM64X(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_DATA_DIRECTORY Entry,
@@ -2348,6 +2512,16 @@ NTSTATUS PhGetMappedImageExportFunction(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets mapped image export function remote.
+ *
+ * \param Exports The Exports parameter.
+ * \param Name The Name parameter.
+ * \param Ordinal The Ordinal parameter.
+ * \param RemoteBase The RemoteBase parameter.
+ * \param Function The Function parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageExportFunctionRemote(
     _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
     _In_opt_ PCSTR Name,
@@ -2628,6 +2802,14 @@ NTSTATUS PhGetMappedImageImportDll(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets mapped image import entry.
+ *
+ * \param ImportDll The ImportDll parameter.
+ * \param Index The Index parameter.
+ * \param Entry The Entry parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageImportEntry(
     _In_ PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
     _In_ ULONG Index,
@@ -2710,6 +2892,14 @@ NTSTATUS PhGetMappedImageImportEntry(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets mapped image import entry rva.
+ *
+ * \param ImportDll The ImportDll parameter.
+ * \param Index The Index parameter.
+ * \param DelayImport The DelayImport parameter.
+ * \return ULONG The requested value.
+ */
 ULONG PhGetMappedImageImportEntryRva(
     _In_ PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
     _In_ ULONG Index,
@@ -2876,6 +3066,13 @@ ULONG PhCheckSumMappedImage(
     return checkSum;
 }
 
+/**
+ * Gets mapped image cfg64.
+ *
+ * \param CfgConfig The CfgConfig parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageCfg64(
     _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -2988,6 +3185,13 @@ NTSTATUS PhGetMappedImageCfg64(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets mapped image cfg32.
+ *
+ * \param CfgConfig The CfgConfig parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageCfg32(
     _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -3100,6 +3304,13 @@ NTSTATUS PhGetMappedImageCfg32(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets mapped image cfg.
+ *
+ * \param CfgConfig The CfgConfig parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageCfg(
     _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -3115,6 +3326,15 @@ NTSTATUS PhGetMappedImageCfg(
     }
 }
 
+/**
+ * Gets mapped image cfg entry.
+ *
+ * \param CfgConfig The CfgConfig parameter.
+ * \param Index The Index parameter.
+ * \param Type The Type parameter.
+ * \param Entry The Entry parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageCfgEntry(
     _In_ PPH_MAPPED_IMAGE_CFG CfgConfig,
     _In_ ULONGLONG Index,
@@ -3178,6 +3398,13 @@ NTSTATUS PhGetMappedImageCfgEntry(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets mapped image resources.
+ *
+ * \param Resources The Resources parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageResources(
     _Out_ PPH_MAPPED_IMAGE_RESOURCES Resources,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -3320,12 +3547,23 @@ NTSTATUS PhGetMappedImageResources(
     Resources->MappedImage = MappedImage;
     Resources->DataDirectory = dataDirectory;
     Resources->ResourceDirectory = resourceDirectory;
-    Resources->NumberOfEntries = (ULONG)PhFinalArrayCount(&resourceArray); // resourceCount;
+    Resources->NumberOfEntries = PhFinalArrayCount(&resourceArray);
     Resources->ResourceEntries = PhFinalArrayItems(&resourceArray);
 
     return status;
 }
 
+/**
+ * Gets mapped image resource.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Name The Name parameter.
+ * \param Type The Type parameter.
+ * \param Language The Language parameter.
+ * \param ResourceLength The ResourceLength parameter.
+ * \param ResourceBuffer The ResourceBuffer parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageResource(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PCWSTR Name,
@@ -3482,6 +3720,17 @@ NTSTATUS PhGetMappedImageResource(
     return STATUS_UNSUCCESSFUL;
 }
 
+/**
+ * Gets mapped image resource index.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param ResourceDirectory The ResourceDirectory parameter.
+ * \param ResourceIndex The ResourceIndex parameter.
+ * \param ResourceType The ResourceType parameter.
+ * \param ResourceLength The ResourceLength parameter.
+ * \param ResourceBuffer The ResourceBuffer parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageResourceIndex(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
@@ -3574,6 +3823,13 @@ NTSTATUS PhGetMappedImageResourceIndex(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets mapped image tls callback directory32.
+ *
+ * \param TlsCallbacks The TlsCallbacks parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
     _Out_ PPH_MAPPED_IMAGE_TLS_CALLBACKS TlsCallbacks,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -3630,6 +3886,13 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
     return STATUS_INVALID_PARAMETER;
 }
 
+/**
+ * Gets mapped image tls callback directory64.
+ *
+ * \param TlsCallbacks The TlsCallbacks parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageTlsCallbackDirectory64(
     _Out_ PPH_MAPPED_IMAGE_TLS_CALLBACKS TlsCallbacks,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -3686,6 +3949,13 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory64(
     return STATUS_INVALID_PARAMETER;
 }
 
+/**
+ * Gets mapped image tls callbacks.
+ *
+ * \param TlsCallbacks The TlsCallbacks parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageTlsCallbacks(
     _Out_ PPH_MAPPED_IMAGE_TLS_CALLBACKS TlsCallbacks,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -3769,6 +4039,13 @@ NTSTATUS PhGetMappedImageTlsCallbacks(
     return status;
 }
 
+/**
+ * Gets mapped image prod id header.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param ProdIdHeader The ProdIdHeader parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageProdIdHeader(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_PRODID ProdIdHeader
@@ -3877,7 +4154,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
         return GetExceptionCode();
     }
 
-    richHeaderEnd = PTR_ADD_OFFSET(MappedImage->ViewBase, richHeaderEndOffset + sizeof(PRODITEM));
+    richHeaderEnd = PTR_ADD_OFFSET(MappedImage->ViewBase, UInt32Add32To64(richHeaderEndOffset, sizeof(PRODITEM)));
 
     __try
     {
@@ -4095,6 +4372,14 @@ NTSTATUS PhGetMappedImageProdIdHeader(
     return STATUS_FAIL_CHECK;
 }
 
+/**
+ * Gets mapped image prod id extents.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param ProdIdHeaderStart The ProdIdHeaderStart parameter.
+ * \param ProdIdHeaderEnd The ProdIdHeaderEnd parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageProdIdExtents(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PULONG ProdIdHeaderStart,
@@ -4200,7 +4485,7 @@ NTSTATUS PhGetMappedImageProdIdExtents(
         return GetExceptionCode();
     }
 
-    richHeaderEnd = PTR_ADD_OFFSET(MappedImage->ViewBase, richHeaderEndOffset + sizeof(PRODITEM));
+    richHeaderEnd = PTR_ADD_OFFSET(MappedImage->ViewBase, UInt32Add32To64(richHeaderEndOffset, sizeof(PRODITEM)));
 
     __try
     {
@@ -4248,6 +4533,13 @@ NTSTATUS PhGetMappedImageProdIdExtents(
     return STATUS_UNSUCCESSFUL;
 }
 
+/**
+ * Gets mapped image debug.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Debug The Debug parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageDebug(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_DEBUG Debug
@@ -4330,6 +4622,15 @@ NTSTATUS PhGetMappedImageDebug(
     return status;
 }
 
+/**
+ * Gets mapped image debug entry by type.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Type The Type parameter.
+ * \param DataLength The DataLength parameter.
+ * \param DataBuffer The DataBuffer parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageDebugEntryByType(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Type,
@@ -4399,6 +4700,13 @@ NTSTATUS PhGetMappedImageDebugEntryByType(
     return STATUS_UNSUCCESSFUL;
 }
 
+/**
+ * Gets mapped image eh cont32.
+ *
+ * \param EhContConfig The EhContConfig parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageEhCont32(
     _Out_ PPH_MAPPED_IMAGE_EH_CONT EhContConfig,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -4439,6 +4747,13 @@ NTSTATUS PhGetMappedImageEhCont32(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets mapped image eh cont64.
+ *
+ * \param EhContConfig The EhContConfig parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageEhCont64(
     _Out_ PPH_MAPPED_IMAGE_EH_CONT EhContConfig,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -4479,6 +4794,13 @@ NTSTATUS PhGetMappedImageEhCont64(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets mapped image eh cont.
+ *
+ * \param EhContConfig The EhContConfig parameter.
+ * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageEhCont(
     _Out_ PPH_MAPPED_IMAGE_EH_CONT EhContConfig,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -4495,6 +4817,15 @@ NTSTATUS PhGetMappedImageEhCont(
 }
 
 _Success_(return)
+/**
+ * Gets mapped image pogo entry by name.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Name The Name parameter.
+ * \param DataLength The DataLength parameter.
+ * \param DataBuffer The DataBuffer parameter.
+ * \return BOOLEAN TRUE if successful; otherwise, FALSE.
+ */
 BOOLEAN PhGetMappedImagePogoEntryByName(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PCSTR Name,
@@ -4569,6 +4900,13 @@ BOOLEAN PhGetMappedImagePogoEntryByName(
     return FALSE;
 }
 
+/**
+ * Gets mapped image pogo.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param PogoDebug The PogoDebug parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImagePogo(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_DEBUG_POGO PogoDebug
@@ -4779,7 +5117,7 @@ NTSTATUS PhGetMappedImageRelocations(
                 if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
                     entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders->OptionalHeader.ImageBase, UInt32Add32To64(entry.BlockRva, entry.Record.Offset));
                 else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                    entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders32->OptionalHeader.ImageBase, UInt32Add32To64(entry.BlockRva, entry.Record.Offset));
+                    entry.ImageBaseVa = PTR_ADD_OFFSET(UlongToPtr(MappedImage->NtHeaders32->OptionalHeader.ImageBase), UInt32Add32To64(entry.BlockRva, entry.Record.Offset));
 
                 entry.MappedImageVa = PhMappedImageRvaToVa(MappedImage, UInt32Add32To64(entry.BlockRva, entry.Record.Offset), NULL);
             }
@@ -4957,9 +5295,9 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
             if (config32->DynamicValueRelocTableSection <= MappedImage->NumberOfSections)
             {
                 PIMAGE_SECTION_HEADER section = &MappedImage->Sections[config32->DynamicValueRelocTableSection - 1];
-                PVOID offset = PTR_ADD_OFFSET(section->PointerToRawData, config32->DynamicValueRelocTableOffset);
+                SIZE_T offset = (section->PointerToRawData + config32->DynamicValueRelocTableOffset);
 
-                if (offset < PTR_ADD_OFFSET(section->PointerToRawData, section->SizeOfRawData))
+                if (offset < (section->PointerToRawData + section->SizeOfRawData))
                 {
                     table = PTR_ADD_OFFSET(MappedImage->ViewBase, offset);
                 }
@@ -4987,9 +5325,9 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
             if (config64->DynamicValueRelocTableSection <= MappedImage->NumberOfSections)
             {
                 PIMAGE_SECTION_HEADER section = &MappedImage->Sections[config64->DynamicValueRelocTableSection - 1];
-                PVOID offset = PTR_ADD_OFFSET(section->PointerToRawData, config64->DynamicValueRelocTableOffset);
+                SIZE_T offset = (section->PointerToRawData + config64->DynamicValueRelocTableOffset);
 
-                if (offset < PTR_ADD_OFFSET(section->PointerToRawData, section->SizeOfRawData))
+                if (offset < (section->PointerToRawData + section->SizeOfRawData))
                 {
                     table = PTR_ADD_OFFSET(MappedImage->ViewBase, offset);
                 }
@@ -5029,6 +5367,17 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
     return STATUS_SUCCESS;
 }
 
+/**
+ * p Fill Dynamic Relocations.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Symbol The Symbol parameter.
+ * \param BaseRelocs The BaseRelocs parameter.
+ * \param BaseRelocsEnd The BaseRelocsEnd parameter.
+ * \param Callback The Callback parameter.
+ * \param Context The Context parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpFillDynamicRelocations(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONGLONG Symbol,
@@ -5051,6 +5400,7 @@ NTSTATUS PhpFillDynamicRelocations(
 
             record = (PIMAGE_DVRT_ARM64X_FIXUP_RECORD)base;
             blockEnd = PTR_ADD_OFFSET(base, base->SizeOfBlock);
+
             if (!PhPtrAdvance(&record, blockEnd, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock)))
                 break;
 
@@ -5616,6 +5966,16 @@ NTSTATUS PhpFillDynamicRelocations(
     return status;
 }
 
+/**
+ * p Fill Dynamic Relocations Array32.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Relocs The Relocs parameter.
+ * \param RelocsEnd The RelocsEnd parameter.
+ * \param Callback The Callback parameter.
+ * \param Context The Context parameter.
+ * \return PVOID A pointer to the requested data, or NULL if unavailable.
+ */
 PVOID PhpFillDynamicRelocationsArray32(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_DYNAMIC_RELOCATION32 Relocs,
@@ -5644,6 +6004,16 @@ PVOID PhpFillDynamicRelocationsArray32(
     return next;
 }
 
+/**
+ * p Fill Dynamic Relocations Array64.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Relocs The Relocs parameter.
+ * \param RelocsEnd The RelocsEnd parameter.
+ * \param Callback The Callback parameter.
+ * \param Context The Context parameter.
+ * \return PVOID A pointer to the requested data, or NULL if unavailable.
+ */
 PVOID PhpFillDynamicRelocationsArray64(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_DYNAMIC_RELOCATION64 Relocs,
@@ -5672,6 +6042,16 @@ PVOID PhpFillDynamicRelocationsArray64(
     return next;
 }
 
+/**
+ * p Fill Dynamic Relocations Array32v2.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Relocs The Relocs parameter.
+ * \param RelocsEnd The RelocsEnd parameter.
+ * \param Callback The Callback parameter.
+ * \param Context The Context parameter.
+ * \return PVOID A pointer to the requested data, or NULL if unavailable.
+ */
 PVOID PhpFillDynamicRelocationsArray32v2(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_DYNAMIC_RELOCATION32_V2 Relocs,
@@ -5699,6 +6079,16 @@ PVOID PhpFillDynamicRelocationsArray32v2(
     return next;
 }
 
+/**
+ * p Fill Dynamic Relocations Array64v2.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Relocs The Relocs parameter.
+ * \param RelocsEnd The RelocsEnd parameter.
+ * \param Callback The Callback parameter.
+ * \param Context The Context parameter.
+ * \return PVOID A pointer to the requested data, or NULL if unavailable.
+ */
 PVOID PhpFillDynamicRelocationsArray64v2(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_DYNAMIC_RELOCATION64_V2 Relocs,
@@ -5870,6 +6260,13 @@ VOID PhFreeMappedImageDynamicRelocations(
     }
 }
 
+/**
+ * Gets mapped image exceptions.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Exceptions The Exceptions parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageExceptions(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_EXCEPTIONS Exceptions
@@ -5878,6 +6275,14 @@ NTSTATUS PhGetMappedImageExceptions(
     return PhGetMappedImageExceptionsEx(MappedImage, Exceptions, 0);
 }
 
+/**
+ * Gets mapped image exceptions ex.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Exceptions The Exceptions parameter.
+ * \param Flags The Flags parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageExceptionsEx(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_EXCEPTIONS Exceptions,
@@ -6079,6 +6484,13 @@ NTSTATUS PhGetMappedImageExceptionsEx(
     return status;
 }
 
+/**
+ * Gets mapped image volatile metadata.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param VolatileMetadata The VolatileMetadata parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageVolatileMetadata(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_VOLATILE_METADATA VolatileMetadata
@@ -6258,6 +6670,14 @@ NTSTATUS PhGetMappedImageVolatileMetadata(
     return status;
 }
 
+/**
+ * Maps ped image update hash data.
+ *
+ * \param HashContext The HashContext parameter.
+ * \param Buffer The Buffer parameter.
+ * \param BufferLength The BufferLength parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhMappedImageUpdateHashData(
     _In_ PPH_HASH_CONTEXT HashContext,
     _In_ PVOID Buffer,
@@ -6314,6 +6734,14 @@ typedef struct _PH_MAPPED_IMAGE_HASH_REGION
     ULONG64 Length;
 } PH_MAPPED_IMAGE_HASH_REGION;
 
+/**
+ * Gets mapped image authenticode hash.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Algorithm The Algorithm parameter.
+ * \param AuthenticodeHash The AuthenticodeHash parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageAuthenticodeHash(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PH_HASH_ALGORITHM Algorithm,
@@ -6429,6 +6857,14 @@ NTSTATUS PhGetMappedImageAuthenticodeHash(
     return status;
 }
 
+/**
+ * Gets mapped image authenticode legacy.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Algorithm The Algorithm parameter.
+ * \param AuthenticodeHash The AuthenticodeHash parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageAuthenticodeLegacy(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PH_HASH_ALGORITHM Algorithm,
@@ -6551,6 +6987,14 @@ NTSTATUS PhGetMappedImageAuthenticodeLegacy(
     return status;
 }
 
+/**
+ * Gets mapped image wdac hash.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Algorithm The Algorithm parameter.
+ * \param WdacHash The WdacHash parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetMappedImageWdacHash(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PH_HASH_ALGORITHM Algorithm,
@@ -6650,6 +7094,15 @@ NTSTATUS PhGetMappedImageWdacHash(
     return status;
 }
 
+/**
+ * Gets mapped image entropy.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param ImageEntropy The ImageEntropy parameter.
+ * \param ImageMean The ImageMean parameter.
+ * \param ImageVariance The ImageVariance parameter.
+ * \return BOOLEAN TRUE if successful; otherwise, FALSE.
+ */
 BOOLEAN PhGetMappedImageEntropy(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PFLOAT ImageEntropy,
@@ -6677,6 +7130,12 @@ BOOLEAN PhGetMappedImageEntropy(
     return status;
 }
 
+/**
+ * Gets mapped image chpeversion.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \return ULONG The requested value.
+ */
 ULONG PhGetMappedImageCHPEVersion(
     _In_ PPH_MAPPED_IMAGE MappedImage
     )
@@ -6715,3 +7174,457 @@ ULONG PhGetMappedImageCHPEVersion(
     return 0;
 }
 
+
+/**
+ * Maps ped image parse tlg provider blob.
+ *
+ * \param Address The Address parameter.
+ * \param EndAddress The EndAddress parameter.
+ * \param Providers The Providers parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhMappedImageParseTlgProviderBlob(
+    _Inout_ PVOID* Address,
+    _In_ PVOID EndAddress,
+    _Inout_ PPH_ARRAY Providers
+    )
+{
+    USHORT remaining;
+    PVOID blockEnd;
+    PH_TLG_PROVIDER_META meta;
+
+    RtlZeroMemory(&meta, sizeof(PH_TLG_PROVIDER_META));
+
+    if (!PhPtrReadBytes(Address, EndAddress, &remaining, sizeof(remaining)))
+        return STATUS_INVALID_VIEW_SIZE;
+
+    if (remaining == 0)
+        return STATUS_SUCCESS;
+
+    blockEnd = *Address;
+    if (!PhPtrAdvance(&blockEnd, EndAddress, (SIZE_T)remaining - 2)) // -2 for the size field itself often accounted for
+        return STATUS_INVALID_VIEW_SIZE;
+
+    // Name
+    if (!PhPtrReadUtf8Z(Address, blockEnd, &meta.Name, &meta.NameLength))
+    {
+        *Address = (PUCHAR)blockEnd;
+        return STATUS_SUCCESS; // Skip invalid provider
+    }
+
+    // Optional Group GUID Chunk
+    if ((PUCHAR)*Address < (PUCHAR)blockEnd)
+    {
+        USHORT chunkSize = 0;
+
+        if (PhPtrReadBytes(
+            Address,
+            blockEnd,
+            &chunkSize,
+            sizeof(chunkSize)
+            ))
+        {
+            if (chunkSize > 0 && (PUCHAR)*Address < (PUCHAR)blockEnd)
+            {
+                UCHAR traitType = 0;
+
+                if (PhPtrReadBytes(
+                    Address,
+                    blockEnd,
+                    &traitType,
+                    sizeof(traitType)
+                    ))
+                {
+                    if (traitType == _TlgOptionGroup)
+                    {
+                        PhPtrReadBytes(
+                            Address,
+                            blockEnd,
+                            &meta.ProviderGroupGuid,
+                            sizeof(meta.ProviderGroupGuid)
+                            );
+                    }
+                }
+            }
+        }
+    }
+
+    PhAddItemArray(Providers, &meta);
+    *Address = (PUCHAR)blockEnd;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Maps ped image parse tlg provider3 blob.
+ *
+ * \param Address The Address parameter.
+ * \param EndAddress The EndAddress parameter.
+ * \param Providers The Providers parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhMappedImageParseTlgProvider3Blob(
+    _Inout_ PUCHAR* Address,
+    _In_ PVOID EndAddress,
+    _Inout_ PPH_ARRAY Providers
+    )
+{
+    GUID providerId;
+    USHORT remainingSize;
+    PVOID blockEnd;
+    PH_TLG_PROVIDER_META meta;
+
+    RtlZeroMemory(&meta, sizeof(PH_TLG_PROVIDER_META));
+
+    if (!PhPtrReadBytes(Address, EndAddress, &providerId, sizeof(providerId)))
+        return STATUS_INVALID_VIEW_SIZE;
+
+    meta.ProviderGuid = providerId;
+
+    if (!PhPtrReadBytes(Address, EndAddress, &remainingSize, sizeof(remainingSize)))
+        return STATUS_INVALID_VIEW_SIZE;
+
+    if (remainingSize == 0)
+    {
+        PhAddItemArray(Providers, &meta);
+        return STATUS_SUCCESS;
+    }
+
+    blockEnd = *Address;
+    if (!PhPtrAdvance(&blockEnd, EndAddress, (SIZE_T)remainingSize - 2))
+        return STATUS_INVALID_VIEW_SIZE;
+
+    // Name
+    if (!PhPtrReadUtf8Z(Address, blockEnd, &meta.Name, &meta.NameLength))
+    {
+        *Address = (PUCHAR)blockEnd;
+        PhAddItemArray(Providers, &meta);
+        return STATUS_SUCCESS;
+    }
+
+    // Optional Traits (Group GUID)
+    while (*Address < (PUCHAR)blockEnd)
+    {
+        USHORT chunkSize = 0;
+
+        if (!PhPtrReadBytes(Address, blockEnd, &chunkSize, sizeof(chunkSize)))
+            break;
+
+        if (chunkSize < 2)
+            continue; // Should not happen in valid TLG
+
+        // Peek trait type
+        if (*Address < (PUCHAR)blockEnd)
+        {
+            UCHAR traitType = **Address; // Peek
+            if (traitType == _TlgOptionGroup)
+            {
+                // Consume type
+                PhPtrAdvance(Address, blockEnd, 1);
+                // Read GUID
+                PhPtrReadBytes(Address, blockEnd, &meta.ProviderGroupGuid, sizeof(meta.ProviderGroupGuid));
+            }
+            else
+            {
+                // Skip unknown chunk payload
+                PhPtrAdvance(Address, blockEnd, (SIZE_T)chunkSize - 2); // -2 for size
+            }
+        }
+    }
+
+    PhAddItemArray(Providers, &meta);
+    *Address = (PUCHAR)blockEnd;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Maps ped image parse tlg event blob.
+ *
+ * \param BlobType The BlobType parameter.
+ * \param HeaderStart The HeaderStart parameter.
+ * \param Address The Address parameter.
+ * \param End The End parameter.
+ * \param Events The Events parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhMappedImageParseTlgEventBlob(
+    _In_ UCHAR BlobType,
+    _In_ PUCHAR HeaderStart,
+    _Inout_ PUCHAR* Address,
+    _In_ PVOID End,
+    _Inout_ PPH_ARRAY Events
+    )
+{
+    PH_TLG_EVENT_META meta;
+    USHORT remaining;
+    PVOID blockEnd;
+
+    RtlZeroMemory(&meta, sizeof(meta));
+
+    // 1. Read Header based on version
+    if (BlobType == TLG_BLOB_EVENT_V2)
+    {
+        meta.EventId = 0; // Not implicit in offset
+        if (!PhPtrReadBytes(Address, End, &meta.Channel, sizeof(meta.Channel))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &meta.Level, sizeof(meta.Level))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &meta.Opcode, sizeof(meta.Opcode))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &meta.Keyword, sizeof(meta.Keyword))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &remaining, sizeof(remaining))) return STATUS_INVALID_VIEW_SIZE;
+    }
+    else if (BlobType == TLG_BLOB_EVENT2)
+    {
+        USHORT task;
+        meta.EventId = (ULONG)(*Address - HeaderStart); // Approximate offset ID
+        if (!PhPtrReadBytes(Address, End, &meta.Level, sizeof(meta.Level))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &meta.Opcode, sizeof(meta.Opcode))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &task, sizeof(task))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &meta.Keyword, sizeof(meta.Keyword))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &remaining, sizeof(remaining))) return STATUS_INVALID_VIEW_SIZE;
+        meta.Channel = 11; // Default
+    }
+    else // Type 3 (TLG_BLOB_EVENT)
+    {
+        meta.EventId = (ULONG)(*Address - HeaderStart);
+        if (!PhPtrReadBytes(Address, End, &meta.Channel, sizeof(meta.Channel))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &meta.Level, sizeof(meta.Level))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &meta.Opcode, sizeof(meta.Opcode))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &meta.Keyword, sizeof(meta.Keyword))) return STATUS_INVALID_VIEW_SIZE;
+        if (!PhPtrReadBytes(Address, End, &remaining, sizeof(remaining))) return STATUS_INVALID_VIEW_SIZE;
+    }
+
+    if (remaining == 0)
+    {
+        PhAddItemArray(Events, &meta);
+        return STATUS_SUCCESS;
+    }
+
+    // 2. Determine Block Boundaries
+    blockEnd = *Address;
+    if (!PhPtrAdvance(&blockEnd, End, (SIZE_T)remaining - 2))
+        return STATUS_INVALID_VIEW_SIZE;
+
+    // 3. Skip Extensions (Tags)
+    if (*Address < (PUCHAR)blockEnd)
+    {
+        if (!PhpSkipTlgExtensions(Address, blockEnd))
+            return STATUS_INVALID_VIEW_SIZE;
+    }
+
+    // 4. Read Name
+    if (*Address < (PUCHAR)blockEnd)
+    {
+        if (!PhPtrReadUtf8Z(Address, blockEnd, &meta.Name, &meta.NameLength))
+        {
+            // Name read failed, just consume block and add what we have
+            *Address = (PUCHAR)blockEnd;
+            PhAddItemArray(Events, &meta);
+            return STATUS_SUCCESS;
+        }
+    }
+
+    // 5. Skip Fields to validate format
+    while (*Address < (PUCHAR)blockEnd)
+    {
+        PCHAR fieldName;
+        SIZE_T fieldNameLen;
+        UCHAR inType;
+
+        // Field Name
+        if (!PhPtrReadUtf8Z(Address, blockEnd, &fieldName, &fieldNameLen))
+            break;
+        if (!PhPtrReadBytes(Address, blockEnd, &inType, sizeof(inType)))
+            break;
+
+        // OutType + Tags
+        if (inType & 0x80)
+        {
+            UCHAR outType;
+
+            if (!PhPtrReadBytes(Address, blockEnd, &outType, sizeof(outType)))
+                break;
+
+            if (outType & 0x80)
+            {
+                if (!PhpSkipTlgExtensions(Address, blockEnd))
+                    break;
+            }
+        }
+
+        // Value Count
+        if (inType & 0x20)
+        {
+            USHORT valCount;
+            if (!PhPtrReadBytes(Address, blockEnd, &valCount, sizeof(valCount))) break;
+        }
+
+        // Custom Type Info
+        if ((inType & (0x20 | 0x40)) == (0x20 | 0x40))
+        {
+            USHORT typeLen;
+            if (PhPtrReadBytes(Address, blockEnd, &typeLen, sizeof(typeLen)))
+            {
+                PhPtrAdvance(Address, blockEnd, typeLen);
+            }
+        }
+    }
+
+    *Address = (PUCHAR)blockEnd;
+    PhAddItemArray(Events, &meta);
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Maps ped image parse trace logging block.
+ *
+ * \param ViewBase The ViewBase parameter.
+ * \param ViewSize The ViewSize parameter.
+ * \param HeaderPtr The HeaderPtr parameter.
+ * \param NextScan The NextScan parameter.
+ * \param Providers The Providers parameter.
+ * \param Events The Events parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhMappedImageParseTraceLoggingBlock(
+    _In_ PVOID ViewBase,
+    _In_ SIZE_T ViewSize,
+    _Inout_ PUCHAR HeaderPtr,
+    _Out_ PUCHAR* NextScan,
+    _Inout_ PPH_ARRAY Providers,
+    _Inout_ PPH_ARRAY Events
+    )
+{
+    NTSTATUS status;
+    PH_TLG_HEADER header;
+    PVOID end;
+    PUCHAR p;
+
+    end = RTL_PTR_ADD(ViewBase, ViewSize);
+    p = HeaderPtr;
+
+    //
+    // Validate Header
+    //
+
+    if (!PhPtrReadBytes((PVOID*)&p, end, &header, sizeof(header)))
+        return STATUS_INVALID_VIEW_SIZE;
+
+    if (!RtlEqualMemory(header.Signature, TLG_SIGNATURE, 4) || header.Magic != _tlg_MetadataMagic)
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    //
+    // Parse GUIDs
+    //
+
+    for (;;)
+    {
+        UCHAR blobType = 0;
+
+        if (!PhPtrReadBytes((PVOID*)&p, end, &blobType, sizeof(blobType)))
+            return STATUS_INVALID_VIEW_SIZE;
+
+        if (blobType == TLG_BLOB_END)
+            break;
+
+        switch (blobType)
+        {
+        case TLG_BLOB_PROVIDER:
+            status = PhMappedImageParseTlgProviderBlob(&p, end, Providers);
+            break;
+        case TLG_BLOB_PROVIDER3:
+            status = PhMappedImageParseTlgProvider3Blob(&p, end, Providers);
+            break;
+        case TLG_BLOB_EVENT:
+        case _TlgBlobEvent2:
+        case TLG_BLOB_EVENT_V2:
+            status = PhMappedImageParseTlgEventBlob(blobType, HeaderPtr, &p, end, Events);
+            break;
+        default:
+            status = STATUS_NOT_SUPPORTED;
+            break;
+        }
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+
+    *NextScan = HeaderPtr + 4;
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Gets mapped image trace logging.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param Providers The Providers parameter.
+ * \param Events The Events parameter.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetMappedImageTraceLogging(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_ARRAY Providers,
+    _Out_ PPH_ARRAY Events
+    )
+{
+    NTSTATUS status;
+    PVOID baseAddress;
+    PVOID endAddress;
+
+    baseAddress = MappedImage->ViewBase;
+    endAddress = RTL_PTR_ADD(baseAddress, MappedImage->ViewSize);
+
+    // Try to find the tracelogging data via POGO
+    // since it contains the exact offset.
+
+    if (!NT_SUCCESS(PhGetMappedImagePogoEntryByName(
+        MappedImage,
+        "_tlg_SegMetadata_Begin",
+        NULL,
+        &baseAddress
+        )))
+    {
+        // Fallback to image scan
+        baseAddress = MappedImage->ViewBase;
+    }
+
+    PhInitializeArray(Providers, sizeof(PH_TLG_PROVIDER_META), 8);
+    PhInitializeArray(Events, sizeof(PH_TLG_EVENT_META), 16);
+
+    //
+    // Scan for "ETW0" signature
+    //
+
+    while (PhPtrAdvance(&baseAddress, &endAddress, sizeof(BYTE[4])))
+    {
+        if (
+            ((PUCHAR)baseAddress)[0] == 'E' &&
+            ((PUCHAR)baseAddress)[1] == 'T' &&
+            ((PUCHAR)baseAddress)[2] == 'W' &&
+            ((PUCHAR)baseAddress)[3] == '0'
+            )
+        {
+            PUCHAR nextScan = NULL;
+
+            status = PhMappedImageParseTraceLoggingBlock(
+                MappedImage->ViewBase,
+                MappedImage->ViewSize,
+                baseAddress,
+                &nextScan,
+                Providers,
+                Events
+                );
+
+            if (NT_SUCCESS(status) && nextScan)
+            {
+                baseAddress = nextScan;
+                continue;
+            }
+
+            // If parsing failed, just step over the signature and keep searching
+        }
+
+        baseAddress = PTR_ADD_OFFSET(baseAddress, sizeof(BYTE));
+    }
+
+    return STATUS_SUCCESS;
+}

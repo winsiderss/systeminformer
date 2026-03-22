@@ -2294,9 +2294,8 @@ VOID PhSipUpdateProcessorFrequency(
 
     memset(&input, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT));
     input.InternalType = PowerInternalProcessorBrandedFrequency;
-    input.ProcessorNumber.Group = USHRT_MAX;
-    input.ProcessorNumber.Number = UCHAR_MAX;
-    input.ProcessorNumber.Reserved = UCHAR_MAX;
+    input.Version = POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION;
+    //PhGetCurrentProcessorNumber(&input.ProcessorNumber);
 
     memset(&output, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT));
     output.Version = POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION;

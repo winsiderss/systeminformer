@@ -1491,7 +1491,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                         statisticsContext->ProcessItem->IoReadDelta.Delta +
                                         statisticsContext->ProcessItem->IoWriteDelta.Delta +
                                         statisticsContext->ProcessItem->IoOtherDelta.Delta
-                                    );
+                                        );
                                 }
                                 break;
                             }

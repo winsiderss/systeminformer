@@ -94,6 +94,7 @@ namespace CustomBuildTool
                 if (!httpResponse.IsSuccessStatusCode)
                 {
                     Program.PrintColorMessage($"[HTTP Error] {(int)httpResponse.StatusCode} {httpResponse.ReasonPhrase}", ConsoleColor.Yellow);
+                    return default;
                 }
 
                 using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
@@ -101,6 +102,7 @@ namespace CustomBuildTool
                 if (result == null)
                 {
                     Program.PrintColorMessage("[Warning] JSON deserialization returned null", ConsoleColor.Yellow);
+                    return default;
                 }
 
                 return result;

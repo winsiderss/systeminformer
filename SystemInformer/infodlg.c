@@ -57,8 +57,9 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             if (PhValidWindowPlacementFromSetting(SETTING_INFORMATION_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(NULL, SETTING_INFORMATION_WINDOW_SIZE, hwndDlg);
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+                PhLoadWindowPlacementFromSetting(SETTING_INFORMATION_WINDOW_POSITION, SETTING_INFORMATION_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             context->MinimumSize = (RECT){ -1, -1, -1, -1 };
 

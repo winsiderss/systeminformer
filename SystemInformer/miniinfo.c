@@ -144,7 +144,12 @@ VOID PhPinMiniInformation(
             MapDialogRect(PhMipWindow, &MinimumSize);
         }
 
-        if (!(Flags & PH_MINIINFO_LOAD_POSITION))
+        if ((Flags & PH_MINIINFO_LOAD_POSITION) && PhValidWindowPlacementFromSetting(SETTING_MINI_INFO_WINDOW_POSITION))
+        {
+            PhLoadWindowPlacementFromSetting(SETTING_MINI_INFO_WINDOW_POSITION, SETTING_MINI_INFO_WINDOW_SIZE, PhMipContainerWindow);
+            SetWindowPos(PhMipContainerWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+        }
+        else
         {
             PhMipCalculateWindowRectangle(&PhMipSourcePoint, &windowRectangle);
             SetWindowPos(
@@ -156,11 +161,6 @@ VOID PhPinMiniInformation(
                 windowRectangle.Height,
                 SWP_NOACTIVATE
                 );
-        }
-        else
-        {
-            PhLoadWindowPlacementFromSetting(SETTING_MINI_INFO_WINDOW_POSITION, SETTING_MINI_INFO_WINDOW_SIZE, PhMipContainerWindow);
-            SetWindowPos(PhMipContainerWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
         }
 
         PhInitializeWindowTheme(PhMipContainerWindow, PhEnableThemeSupport);

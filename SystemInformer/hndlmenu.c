@@ -253,7 +253,7 @@ VOID PhShowHandleObjectProperties1(
             readOnly = TRUE;
         }
 
-        if (handle)
+        if (NT_SUCCESS(status))
         {
             PPH_STRING sectionName = NULL;
             SECTION_BASIC_INFORMATION basicInfo;
@@ -329,6 +329,10 @@ VOID PhShowHandleObjectProperties1(
             PhClearReference(&sectionName);
 
             NtClose(handle);
+        }
+        else
+        {
+            PhShowStatus(hWnd, L"Unable to query the section.", status, 0);
         }
     }
     else if (PhEqualString2(Info->TypeName, L"Thread", TRUE))

@@ -106,8 +106,8 @@ FORCEINLINE T* PTR_SUB_OFFSET(
         );
 }
 #else
-#define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
-#define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Offset)))
+#define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((PUCHAR)(Pointer) + (ULONG_PTR)(Offset)))
+#define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((PUCHAR)(Pointer) - (ULONG_PTR)(Offset)))
 #endif
 
 #define PH_LARGE_BUFFER_SIZE (256 * 1024 * 1024)

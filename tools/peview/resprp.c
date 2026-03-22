@@ -356,7 +356,7 @@ VOID PvpPeEnumMappedImageResources(
             resourceNode->RvaStart = UlongToPtr(entry.Offset);
             PhPrintPointer(value, resourceNode->RvaStart);
             resourceNode->RvaStartString = PhCreateString(value);
-            resourceNode->RvaEnd = PTR_ADD_OFFSET(entry.Offset, entry.Size);
+            resourceNode->RvaEnd = (PVOID)(ULONG_PTR)UInt32Add32To64(entry.Offset, entry.Size);
             PhPrintPointer(value, resourceNode->RvaEnd);
             resourceNode->RvaEndString = PhCreateString(value);
             resourceNode->RvaSize = entry.Size;
@@ -530,6 +530,7 @@ NTSTATUS PvpPeResourcesEnumerateThread(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PvpPeResourcesSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context

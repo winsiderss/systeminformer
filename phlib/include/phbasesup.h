@@ -120,6 +120,10 @@ PhQueryPerformanceFrequency(
     _Out_ PLARGE_INTEGER PerformanceFrequency
     );
 
+/**
+ * Reads the current high-resolution performance counter value.
+ * \return The current performance counter value.
+ */
 FORCEINLINE
 ULONGLONG
 NTAPI
@@ -132,6 +136,10 @@ PhReadPerformanceCounter(
     return (ULONGLONG)counter.QuadPart;
 }
 
+/**
+ * Reads the high-resolution performance counter frequency.
+ * \return The performance counter frequency in counts per second.
+ */
 FORCEINLINE
 ULONGLONG
 NTAPI
@@ -1079,23 +1087,23 @@ PhIsControlOrFormattingUnicodeChar(
     // C0 and C1 control characters
     if (c < 0x20 || (c >= 0x7F && c <= 0x9F)) // TAB, CR, LF
         return TRUE;
-    
+
     // Bidirectional format characters
     if (c >= 0x202A && c <= 0x202E)
         return TRUE;
-    
+
     // Direction mark characters
     if (c == 0x200E || c == 0x200F)
         return TRUE;
-    
+
     // Zero-width and invisible characters
     if (c >= 0x200B && c <= 0x200D) // ZWSP, ZWNJ, ZWJ
         return TRUE;
 
     // Zero-width no-break space (BOM)
-    if (c == 0xFEFF) 
+    if (c == 0xFEFF)
         return TRUE;
-    
+
     return FALSE;
 }
 
@@ -1178,6 +1186,12 @@ typedef struct _PH_RELATIVE_BYTESREF
 #define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(UNICODE_NULL), RTL_CONST_CAST(PWCH)(String) }
 #define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(ANSI_NULL), RTL_CONST_CAST(PCH)(String) }
 
+/**
+ * Initializes a string reference from a null-terminated Unicode string.
+ *
+ * \param String A pointer to the string reference to initialize.
+ * \param Buffer A null-terminated Unicode string.
+ */
 FORCEINLINE
 VOID
 PhInitializeStringRef(
@@ -1189,6 +1203,12 @@ PhInitializeStringRef(
     String->Buffer = (PWCH)Buffer;
 }
 
+/**
+ * Initializes a string reference using the long-string count helper.
+ *
+ * \param String A pointer to the string reference to initialize.
+ * \param Buffer A null-terminated Unicode string.
+ */
 FORCEINLINE
 VOID
 PhInitializeStringRefLongHint(
@@ -1200,6 +1220,12 @@ PhInitializeStringRefLongHint(
     String->Buffer = (PWCH)Buffer;
 }
 
+/**
+ * Initializes a byte-string reference from a null-terminated ANSI string.
+ *
+ * \param Bytes A pointer to the byte-string reference to initialize.
+ * \param Buffer A null-terminated ANSI string.
+ */
 FORCEINLINE
 VOID
 PhInitializeBytesRef(
@@ -1211,6 +1237,11 @@ PhInitializeBytesRef(
     Bytes->Buffer = (PCH)Buffer;
 }
 
+/**
+ * Initializes a string reference to an empty value.
+ *
+ * \param String A pointer to the string reference to initialize.
+ */
 FORCEINLINE
 VOID
 PhInitializeEmptyStringRef(
@@ -1221,6 +1252,11 @@ PhInitializeEmptyStringRef(
     String->Buffer = NULL;
 }
 
+/**
+ * Initializes a byte-string reference to an empty value.
+ *
+ * \param String A pointer to the byte-string reference to initialize.
+ */
 FORCEINLINE
 VOID
 PhInitializeEmptyBytesRef(
@@ -1231,6 +1267,13 @@ PhInitializeEmptyBytesRef(
     String->Buffer = NULL;
 }
 
+/**
+ * Initializes a string reference from a caller-supplied buffer and length.
+ *
+ * \param String A pointer to the string reference to initialize.
+ * \param Buffer The string buffer.
+ * \param Length The length of the string, in bytes.
+ */
 FORCEINLINE
 VOID
 NTAPI
@@ -1245,6 +1288,13 @@ PhInitializeBufferStringRef(
     String->Buffer = Buffer;
 }
 
+/**
+ * Initializes a byte-string reference from a caller-supplied buffer and length.
+ *
+ * \param String A pointer to the byte-string reference to initialize.
+ * \param Buffer The byte buffer.
+ * \param Length The length of the byte string, in bytes.
+ */
 FORCEINLINE
 VOID
 NTAPI
@@ -1259,6 +1309,13 @@ PhInitializeBufferBytesRef(
     String->Buffer = Buffer;
 }
 
+/**
+ * Converts a string reference to a UNICODE_STRING view.
+ *
+ * \param String A pointer to the source string reference.
+ * \param UnicodeString A pointer to the destination UNICODE_STRING.
+ * \return TRUE if the source length fits in UNICODE_STRING length fields; otherwise, FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 PhStringRefToUnicodeString(
@@ -1274,6 +1331,12 @@ PhStringRefToUnicodeString(
     return String->Length <= UNICODE_STRING_MAX_BYTES;
 }
 
+/**
+ * Initializes a string reference from a UNICODE_STRING.
+ *
+ * \param UnicodeString A pointer to the source UNICODE_STRING.
+ * \param String A pointer to the destination string reference.
+ */
 FORCEINLINE
 VOID
 PhUnicodeStringToStringRef(
@@ -1902,7 +1965,7 @@ PhConcatStringRefZ(
     return PhConcatStringRef2(String1, &string);
 }
 
-_Ret_notnull_
+_Ret_maybenull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1911,7 +1974,7 @@ PhFormatString(
     ...
     );
 
-_Ret_notnull_
+_Ret_maybenull_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -2080,19 +2143,19 @@ PhIsNullOrEmptyStringRef(
 //     )
 // {
 //     SIZE_T length;
-//     
+//
 //     if (!String || String->Length == 0)
 //         return TRUE;
-//     
+//
 //     length = String->Length / sizeof(WCHAR);
-//     
+//
 //     // Check first and last character (leading/trailing whitespace)
 //     if (PhIsWhiteSpaceUnicodeChar(String->Buffer[0]) ||
 //         PhIsWhiteSpaceUnicodeChar(String->Buffer[length - 1]))
 //     {
 //         return TRUE;
 //     }
-//     
+//
 //     return FALSE;
 // }
 
@@ -4140,7 +4203,9 @@ PhRemoveItemSimpleHashtable(
     _In_opt_ PVOID Key
     );
 
+//
 // Free list
+//
 
 typedef struct _PH_FREE_LIST
 {
@@ -4937,7 +5002,9 @@ typedef struct _PH_FORMAT
     } u;
 } PH_FORMAT, *PPH_FORMAT;
 
+//
 // Convenience functions
+//
 
 FORCEINLINE
 VOID

@@ -148,7 +148,7 @@ VOID PvEnumerateExceptionEntries(
 
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
-                PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, entry),
+                PTR_ADD_OFFSET(UlongToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), UlongToPtr(entry)),
                 NULL,
                 NULL,
                 &symbolName,

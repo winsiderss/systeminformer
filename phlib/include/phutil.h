@@ -2800,6 +2800,96 @@ PhPtrAdvance(
     return TRUE;
 }
 
+/**
+ * \brief Reads bytes from a pointer and advances the pointer.
+ *
+ * \param Pointer Pointer to the address to read from and advance.
+ * \param EndPointer The end of the buffer.
+ * \param Buffer The buffer to read the bytes into.
+ * \param Size The number of bytes to read.
+ * \return TRUE if the bytes were successfully read, otherwise FALSE.
+ */
+FORCEINLINE
+BOOLEAN
+PhPtrReadBytes(
+    _Inout_ PVOID* Pointer,
+    _In_ PVOID EndPointer,
+    _Out_writes_bytes_(Size) PVOID Buffer,
+    _In_ SIZE_T Size
+    )
+{
+    PVOID next = *Pointer;
+
+    if (!PhPtrAdvance(&next, EndPointer, Size))
+        return FALSE;
+
+    memcpy(Buffer, *Pointer, Size);
+    *Pointer = next;
+    return TRUE;
+}
+
+/**
+ * \brief Advances a pointer by a specified number of bytes.
+ *
+ * \param Pointer Pointer to the address to advance.
+ * \param EndPointer The end of the buffer.
+ * \param Size The number of bytes to skip.
+ * \return TRUE if the pointer was successfully advanced, otherwise FALSE.
+ */
+FORCEINLINE
+BOOLEAN
+PhPtrSkipBytes(
+    _Inout_ PVOID* Pointer,
+    _In_ PVOID EndPointer,
+    _In_ SIZE_T Size
+    )
+{
+    PVOID next = *Pointer;
+
+    if (!PhPtrAdvance(&next, EndPointer, Size))
+        return FALSE;
+
+    *Pointer = next;
+    return TRUE;
+}
+
+/**
+ * \brief Reads a UTF-8 null-terminated string from a pointer and advances the pointer.
+ *
+ * \param Pointer Pointer to the address to read from and advance.
+ * \param EndPointer The end of the buffer.
+ * \param Buffer The pointer to the start of the string.
+ * \param Length The length of the string in characters, excluding the null terminator.
+ * \return TRUE if the string was successfully read, otherwise FALSE.
+ */
+_Success_(return)
+FORCEINLINE
+BOOLEAN
+PhPtrReadUtf8Z(
+    _Inout_ PVOID* Pointer,
+    _In_ PVOID EndPointer,
+    _Out_ PUCHAR* Buffer,
+    _Out_ PSIZE_T Length
+    )
+{
+    PUCHAR current = (PUCHAR)*Pointer;
+    PUCHAR start = (PUCHAR)*Pointer;
+
+    while ((ULONG_PTR)current < (ULONG_PTR)EndPointer)
+    {
+        if (*current == ANSI_NULL)
+        {
+            *Buffer = start;
+            *Length = (SIZE_T)(current - start);
+            *Pointer = current + 1;
+            return TRUE;
+        }
+        current++;
+    }
+
+    return FALSE;
+}
+
 typedef UINT D3DDDI_VIDEO_PRESENT_SOURCE_ID;
 typedef enum _D3DKMT_VIDPNSOURCEOWNER_TYPE D3DKMT_VIDPNSOURCEOWNER_TYPE;
 typedef struct _D3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP D3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP, *PD3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP;

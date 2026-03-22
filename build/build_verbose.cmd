@@ -45,33 +45,33 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
 
 echo:
 
-echo Building thirdparty.sln [Debug32]
+echo Building SystemInformer.sln [Debug32]
 msbuild /m SystemInformer.sln -t:rebuild -p:Configuration=Debug -p:Platform=Win32 -verbosity:%TLV% -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-echo Building thirdparty.sln [Debug64]
+echo Building SystemInformer.sln [Debug64]
 msbuild /m SystemInformer.sln -t:rebuild -p:Configuration=Debug -p:Platform=x64 -verbosity:%TLV% -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-echo Building thirdparty.sln [Release32]
+echo Building Plugins.sln [Release32]
 msbuild /m Plugins\Plugins.sln -t:rebuild -p:Configuration=Debug -p:Platform=Win32 -verbosity:%TLV% -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-echo Building thirdparty.sln [Release64]
+echo Building Plugins.sln [Release64]
 msbuild /m Plugins\Plugins.sln -t:rebuild -p:Configuration=Debug -p:Platform=x64 -verbosity:%TLV% -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
 if "%VS_ARM64_SUPPORT%"=="true" (
-   echo Building thirdparty.sln [DebugARM64]
+   echo Building SystemInformer.sln [DebugARM64]
    msbuild /m SystemInformer.sln -t:rebuild -p:Configuration=Debug -p:Platform=ARM64 -verbosity:%TLV% -terminalLogger:%TLG%
    if %ERRORLEVEL% neq 0 goto end
    echo:
 
-   echo Building thirdparty.sln [ReleaseARM64]
+   echo Building Plugins.sln [ReleaseARM64]
    msbuild /m Plugins\Plugins.sln -t:rebuild -p:Configuration=Debug -p:Platform=ARM64 -verbosity:%TLV% -terminalLogger:%TLG%
    if %ERRORLEVEL% neq 0 goto end
    echo:

@@ -841,6 +841,50 @@ NTSTATUS PhTerminateThread(
 }
 
 /**
+ * Suspends a thread.
+ *
+ * \param[in] ThreadHandle A handle to the thread to be suspended.
+ * \param[out,opt] PreviousSuspendCount A pointer to a variable that receives the previous suspend count.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhSuspendThread(
+    _In_ HANDLE ThreadHandle,
+    _Out_opt_ PULONG PreviousSuspendCount
+    )
+{
+    NTSTATUS status;
+
+    status = NtSuspendThread(
+        ThreadHandle,
+        PreviousSuspendCount
+        );
+
+    return status;
+}
+
+/**
+ * Resumes a thread.
+ *
+ * \param[in] ThreadHandle A handle to the thread to be resumed.
+ * \param[out,opt] PreviousSuspendCount A pointer to a variable that receives the previous suspend count.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhResumeThread(
+    _In_ HANDLE ThreadHandle,
+    _Out_opt_ PULONG PreviousSuspendCount
+    )
+{
+    NTSTATUS status;
+
+    status = NtResumeThread(
+        ThreadHandle,
+        PreviousSuspendCount
+        );
+
+    return status;
+}
+
+/**
  * Retrieves the context of a thread.
  *
  * \param[in] ThreadHandle The handle to the thread.
@@ -4375,6 +4419,7 @@ CleanupExit:
  * \param[in] RemoteHandle Handle value in remote process.
  * \param[in] Mask Bitmask of flags to modify.
  * \param[in] Flags New flag values.
+ * \param[in,opt] Timeout The timeout, in milliseconds, for the process to set the handle information.
  * \return NTSTATUS Successful or errant status.
  * \remarks Invokes SetHandleInformation via APC onto suspended thread.
  */
@@ -4382,7 +4427,8 @@ NTSTATUS PhSetHandleInformationRemote(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE RemoteHandle,
     _In_ ULONG Mask,
-    _In_ ULONG Flags
+    _In_ ULONG Flags,
+    _In_opt_ PLARGE_INTEGER Timeout
     )
 {
     NTSTATUS status;
@@ -4400,7 +4446,7 @@ NTSTATUS PhSetHandleInformationRemote(
         ProcessHandle,
         &runtimeLibrary,
 #ifdef _WIN64
-        & isWow64
+        &isWow64
 #else
         NULL
 #endif
@@ -4488,7 +4534,7 @@ NTSTATUS PhSetHandleInformationRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhWaitForSingleObject(threadHandle, 5000);
+    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;

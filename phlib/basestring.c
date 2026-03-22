@@ -1128,7 +1128,7 @@ BOOLEAN PhEqualStringRef(
         {
             do
             {
-                if (*(PULONG_PTR)s1 != *(PULONG_PTR)s2)
+                if (*s1 != *s2)
                 {
                     l1 = (String1->Length / sizeof(WCHAR)) - (s1 - String1->Buffer);
                     goto CompareCharacters;
@@ -2780,7 +2780,7 @@ PPH_STRING PhConcatStringRef3(
     )
 {
     PPH_STRING string;
-    PCHAR buffer;
+    PUCHAR buffer;
 
     assert(!(String1->Length & 1));
     assert(!(String2->Length & 1));
@@ -2788,7 +2788,7 @@ PPH_STRING PhConcatStringRef3(
 
     string = PhCreateStringEx(NULL, String1->Length + String2->Length + String3->Length);
 
-    buffer = (PCHAR)string->Buffer;
+    buffer = (PUCHAR)string->Buffer;
     memcpy(buffer, String1->Buffer, String1->Length);
 
     buffer += String1->Length;
@@ -2817,7 +2817,7 @@ PPH_STRING PhConcatStringRef4(
     )
 {
     PPH_STRING string;
-    PCHAR buffer;
+    PUCHAR buffer;
 
     assert(!(String1->Length & 1));
     assert(!(String2->Length & 1));
@@ -2826,7 +2826,7 @@ PPH_STRING PhConcatStringRef4(
 
     string = PhCreateStringEx(NULL, String1->Length + String2->Length + String3->Length + String4->Length);
 
-    buffer = (PCHAR)string->Buffer;
+    buffer = (PUCHAR)string->Buffer;
     memcpy(buffer, String1->Buffer, String1->Length);
 
     buffer += String1->Length;

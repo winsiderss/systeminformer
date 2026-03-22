@@ -8897,8 +8897,8 @@ HRESULT PhGetClassObjectDllBase(
     _Out_ PVOID* Ppv
     )
 {
-    HRESULT (WINAPI* DllGetClassObject_I)(_In_ REFCLSID rclsid, _In_ REFIID riid, _COM_Outptr_ PVOID* ppv);
     HRESULT status;
+    LPFNGETCLASSOBJECT DllGetClassObject_I;
     IClassFactory* classFactory;
 
     if (!(DllGetClassObject_I = PhGetDllBaseProcedureAddress(DllBase, "DllGetClassObject", 0)))
@@ -11299,4 +11299,3 @@ PCPH_STRINGREF PhGetLuidKnownTypeToString(
 
     return NULL;
 }
-

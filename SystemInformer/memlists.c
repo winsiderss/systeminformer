@@ -745,7 +745,10 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
             PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), ProcessesUpdatedCallback, NULL, &ProcessesUpdatedRegistration);
             PhpUpdateMemoryListInfo(hwndDlg);
 
-            PhLoadWindowPlacementFromSetting(SETTING_MEMORY_LISTS_WINDOW_POSITION, NULL, hwndDlg);
+            if (PhValidWindowPlacementFromSetting(SETTING_MEMORY_LISTS_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_MEMORY_LISTS_WINDOW_POSITION, NULL, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             PhRegisterDialog(hwndDlg);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);

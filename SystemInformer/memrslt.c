@@ -591,7 +591,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                             break;
 
                         menu = PhCreateEMenu();
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MEMORY_READWRITEMEMORY, L"Read/Write memory", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MEMORY_READWRITEMEMORY, L"&Read/Write memory", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
                         PhInsertCopyListViewEMenuItem(menu, IDC_COPY, lvHandle);

@@ -527,6 +527,22 @@ PhTerminateThread(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSuspendThread(
+    _In_ HANDLE ThreadHandle,
+    _Out_opt_ PULONG PreviousSuspendCount
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhResumeThread(
+    _In_ HANDLE ThreadHandle,
+    _Out_opt_ PULONG PreviousSuspendCount
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessBasicInformation(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_BASIC_INFORMATION BasicInformation
@@ -1068,6 +1084,15 @@ PhSetEnvironmentVariableZ(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessMemoryBasicInformation(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_ PMEMORY_BASIC_INFORMATION BasicInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessMappedFileName(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
@@ -1221,7 +1246,8 @@ PhSetHandleInformationRemote(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE RemoteHandle,
     _In_ ULONG Mask,
-    _In_ ULONG Flags
+    _In_ ULONG Flags,
+    _In_opt_ PLARGE_INTEGER Timeout
     );
 
 PHLIBAPI

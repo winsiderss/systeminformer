@@ -312,7 +312,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
                     {
                         exportSymbol = PhGetSymbolFromAddress(
                             PvSymbolProvider,
-                            PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, exportFunction.Function),
+                            PTR_ADD_OFFSET(UlongToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), exportFunction.Function),
                             NULL,
                             NULL,
                             &exportSymbolName,

@@ -292,7 +292,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
         sectionNode->RawStart = UlongToPtr(PvMappedImage.Sections[i].PointerToRawData);
         PhPrintPointer(value, sectionNode->RawStart);
         sectionNode->RawStartString = PhCreateString(value);
-        sectionNode->RawEnd = PTR_ADD_OFFSET(PvMappedImage.Sections[i].PointerToRawData, PvMappedImage.Sections[i].SizeOfRawData);
+        sectionNode->RawEnd = (PVOID)(ULONG_PTR)UInt32Add32To64(PvMappedImage.Sections[i].PointerToRawData, PvMappedImage.Sections[i].SizeOfRawData);
         PhPrintPointer(value, sectionNode->RawEnd);
         sectionNode->RawEndString = PhCreateString(value);
         sectionNode->RawSize = PvMappedImage.Sections[i].SizeOfRawData;
@@ -301,7 +301,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
         sectionNode->RvaStart = UlongToPtr(PvMappedImage.Sections[i].VirtualAddress);
         PhPrintPointer(value, sectionNode->RvaStart);
         sectionNode->RvaStartString = PhCreateString(value);
-        sectionNode->RvaEnd = PTR_ADD_OFFSET(PvMappedImage.Sections[i].VirtualAddress, PvMappedImage.Sections[i].Misc.VirtualSize);
+        sectionNode->RvaEnd = (PVOID)(ULONG_PTR)UInt32Add32To64(PvMappedImage.Sections[i].VirtualAddress, PvMappedImage.Sections[i].Misc.VirtualSize);
         PhPrintPointer(value, sectionNode->RvaEnd);
         sectionNode->RvaEndString = PhCreateString(value);
         sectionNode->RvaSize = PvMappedImage.Sections[i].Misc.VirtualSize;

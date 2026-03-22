@@ -389,9 +389,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
             // HACK
             if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
-                PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
-            else
                 PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
+            else
+                PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
 
             PhAddComboBoxStringRefs(context->TypeWindowHandle, PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
             PhAddComboBoxStringRefs(context->StartTypeWindowHandle, PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));

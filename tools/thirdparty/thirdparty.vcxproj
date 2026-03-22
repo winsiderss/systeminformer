@@ -283,4 +283,7 @@
     <ClInclude Include="zydis\Zydis.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyThirdPartyPdb" AfterTargets="Build">
+    <Copy SourceFiles="$(OutDir)thirdparty.pdb" DestinationFolder="$(SystemInformerRoot)bin\$(Configuration)$(PlatformArchitecture)\" />
+  </Target>
 </Project>

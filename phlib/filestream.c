@@ -950,7 +950,7 @@ NTSTATUS PhWriteStringAsUtf8FileStreamEx(
     NTSTATUS status = STATUS_SUCCESS;
     PH_STRINGREF block;
     SIZE_T inPlaceUtf8Size = 0;
-    PCHAR inPlaceUtf8 = NULL;
+    PUCHAR inPlaceUtf8 = NULL;
     PPH_BYTES utf8 = NULL;
 
     if (Length > PAGE_SIZE)

@@ -1636,7 +1636,7 @@ NTSTATUS PhGetProcessPebString(
 
         if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(processParameters32, offset),
+            PTR_ADD_OFFSET(UlongToPtr(processParameters32), offset),
             &unicodeString32,
             sizeof(UNICODE_STRING32),
             NULL
@@ -1892,7 +1892,7 @@ NTSTATUS PhGetProcessWindowTitle(
 
         if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(processParameters32, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, WindowFlags)),
+            PTR_ADD_OFFSET(UlongToPtr(processParameters32), FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, WindowFlags)),
             &windowFlags,
             sizeof(ULONG),
             NULL
@@ -2003,7 +2003,7 @@ NTSTATUS PhGetProcessEnvironment(
 
         if (!NT_SUCCESS(status = PhReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(processParameters32, UFIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, Environment)),
+            PTR_ADD_OFFSET(UlongToPtr(processParameters32), FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, Environment)),
             &environmentRemote32,
             sizeof(ULONG),
             NULL
@@ -2110,6 +2110,90 @@ NTSTATUS PhGetProcessEnvironment(
     return status;
 }
 
+NTSTATUS PhGetProcessMemoryBasicInformation(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_ PMEMORY_BASIC_INFORMATION BasicInformation
+    )
+{
+    NTSTATUS status;
+    MEMORY_BASIC_INFORMATION basicInfo;
+
+    RtlZeroMemory(&basicInfo, sizeof(MEMORY_BASIC_INFORMATION));
+
+    status = NtQueryVirtualMemory(
+        ProcessHandle,
+        BaseAddress,
+        MemoryBasicInformation,
+        &basicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        RtlCopyMemory(BasicInformation, &basicInfo, sizeof(MEMORY_BASIC_INFORMATION));
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessMemoryRegionInformation(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_ PMEMORY_REGION_INFORMATION RegionInformation
+    )
+{
+    NTSTATUS status;
+    MEMORY_REGION_INFORMATION regionInfo;
+
+    RtlZeroMemory(&regionInfo, sizeof(MEMORY_REGION_INFORMATION));
+
+    status = NtQueryVirtualMemory(
+        ProcessHandle,
+        BaseAddress,
+        MemoryRegionInformation,
+        &regionInfo,
+        sizeof(MEMORY_REGION_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        RtlCopyMemory(RegionInformation, &regionInfo, sizeof(MEMORY_REGION_INFORMATION));
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessMemoryRegionInformationEx(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_ PMEMORY_REGION_INFORMATION_EX RegionInformation
+    )
+{
+    NTSTATUS status;
+    MEMORY_REGION_INFORMATION_EX regionInfo;
+
+    RtlZeroMemory(&regionInfo, sizeof(MEMORY_REGION_INFORMATION_EX));
+
+    status = NtQueryVirtualMemory(
+        ProcessHandle,
+        BaseAddress,
+        MemoryRegionInformationEx,
+        &regionInfo,
+        sizeof(MEMORY_REGION_INFORMATION_EX),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        RtlCopyMemory(RegionInformation, &regionInfo, sizeof(MEMORY_REGION_INFORMATION_EX));
+    }
+
+    return status;
+}
+
 /**
  * Gets the file name of a mapped section.
  *
@@ -2190,6 +2274,8 @@ NTSTATUS PhGetProcessMappedImageInformation(
     NTSTATUS status;
     MEMORY_IMAGE_INFORMATION imageInformation;
 
+    RtlZeroMemory(&imageInformation, sizeof(MEMORY_IMAGE_INFORMATION));
+
     status = NtQueryVirtualMemory(
         ProcessHandle,
         BaseAddress,
@@ -2201,7 +2287,7 @@ NTSTATUS PhGetProcessMappedImageInformation(
 
     if (NT_SUCCESS(status))
     {
-        *ImageInformation = imageInformation;
+        RtlCopyMemory(ImageInformation, &imageInformation, sizeof(MEMORY_IMAGE_INFORMATION));
     }
 
     return status;

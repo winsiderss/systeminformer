@@ -2632,6 +2632,9 @@ VOID PhLoadWindowPlacementFromRectangle(
     windowIntegerPair = PhGetIntegerPairSetting(PositionSettingName);
     scalableIntegerPair = PhGetScalableIntegerPairSetting(SizeSettingName, FALSE, 0);
 
+    if (!scalableIntegerPair)
+        return;
+
     memset(WindowRectangle, 0, sizeof(PH_RECTANGLE));
     WindowRectangle->Position = windowIntegerPair;
     WindowRectangle->Size = scalableIntegerPair->Pair;
@@ -2659,10 +2662,14 @@ BOOLEAN PhLoadWindowPlacementFromSetting(
 
         windowIntegerPair = PhGetIntegerPairSetting(PositionSettingName);
         scalableIntegerPair = PhGetScalableIntegerPairSetting(SizeSettingName, FALSE, 0);
+
+        if (!scalableIntegerPair)
+            return FALSE;
+
         windowRectangle.Position = windowIntegerPair;
         windowRectangle.Size = scalableIntegerPair->Pair;
 
-        if (windowRectangle.Position.X == 0)
+        if (windowRectangle.Position.X == 0 && windowRectangle.Position.Y == 0)
             return FALSE;
 
         PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
@@ -2690,6 +2697,9 @@ BOOLEAN PhLoadWindowPlacementFromSetting(
         PhRectangleToRect(&rectForAdjust, &windowRectangle);
         SendMessage(WindowHandle, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&rectForAdjust);
         PhRectToRectangle(&windowRectangle, &rectForAdjust);
+
+        // Make sure the window doesn't get positioned on disconnected monitors.
+        PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
         MoveWindow(WindowHandle, windowRectangle.Left, windowRectangle.Top,
             windowRectangle.Width, windowRectangle.Height, FALSE);
@@ -2723,7 +2733,12 @@ BOOLEAN PhLoadWindowPlacementFromSetting(
             //rect = PhRectangleToRect(windowRectangle);
             //dpi = PhGetMonitorDpi(&rect);
             dpi = PhGetWindowDpi(WindowHandle);
-            size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi)->Pair;
+            scalableIntegerPair = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi);
+
+            if (!scalableIntegerPair)
+                return FALSE;
+
+            size = scalableIntegerPair->Pair;
             ClearFlag(flags, SWP_NOSIZE);
         }
         else
@@ -2745,7 +2760,7 @@ BOOLEAN PhLoadWindowPlacementFromSetting(
         windowRectangle.Size = size;
         PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
-        SetWindowPos(WindowHandle, NULL, windowRectangle.Left, windowRectangle.Top, size.X, size.Y, flags);
+        SetWindowPos(WindowHandle, NULL, windowRectangle.Left, windowRectangle.Top, windowRectangle.Width, windowRectangle.Height, flags);
     }
 
     return TRUE;

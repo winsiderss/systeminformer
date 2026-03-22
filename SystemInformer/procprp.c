@@ -921,7 +921,10 @@ VOID PhpInitializePropSheetLayoutStage2(
     RECT rect;
     LONG dpiValue;
 
-    PhLoadWindowPlacementFromSetting(SETTING_PROC_PROP_POSITION, SETTING_PROC_PROP_SIZE, WindowHandle);
+    if (PhValidWindowPlacementFromSetting(SETTING_PROC_PROP_POSITION))
+        PhLoadWindowPlacementFromSetting(SETTING_PROC_PROP_POSITION, SETTING_PROC_PROP_SIZE, WindowHandle);
+    else
+        PhCenterWindow(WindowHandle, NULL);
 
     windowRectangle.Position = PhGetIntegerPairSetting(SETTING_PROC_PROP_POSITION);
     PhRectangleToRect(&rect, &windowRectangle);

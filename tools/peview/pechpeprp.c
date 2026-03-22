@@ -45,7 +45,7 @@ PPH_STRING PvpCHPERvaToSymbol(
         if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
             va = PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, Rva);
         else if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-            va = PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, Rva);
+            va = PTR_ADD_OFFSET(UintToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), Rva);
 
         if (va)
         {

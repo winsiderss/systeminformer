@@ -120,7 +120,7 @@ VOID PvPeProperties(
                 PhLoadModuleSymbolProvider(
                     PvSymbolProvider,
                     fileName,
-                    PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, 0),
+                    (PVOID)(ULONG_PTR)PvMappedImage.NtHeaders32->OptionalHeader.ImageBase,
                     PvMappedImage.NtHeaders32->OptionalHeader.SizeOfImage
                     );
             }
@@ -129,7 +129,7 @@ VOID PvPeProperties(
                 PhLoadModuleSymbolProvider(
                     PvSymbolProvider,
                     fileName,
-                    PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, 0),
+                    (PVOID)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
                     PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
                     );
             }
@@ -1016,7 +1016,7 @@ VOID PvpSetPeImageSize(
         if (PvMappedImage.Sections[i].PointerToRawData > lastRawDataAddress)
         {
             lastRawDataAddress = PvMappedImage.Sections[i].PointerToRawData;
-            lastRawDataOffset = (ULONG64)PTR_ADD_OFFSET(lastRawDataAddress, PvMappedImage.Sections[i].SizeOfRawData);
+            lastRawDataOffset = UInt32Add32To64(lastRawDataAddress, PvMappedImage.Sections[i].SizeOfRawData);
         }
     }
 
@@ -1135,7 +1135,7 @@ static NTSTATUS PvpEntryPointImageThreadStart(
         {
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
-                PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, addressOfEntryPoint),
+                PTR_ADD_OFFSET(UlongToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), addressOfEntryPoint),
                 &symbolResolveLevel,
                 &fileName,
                 &symbolName,
@@ -1218,7 +1218,7 @@ VOID PvpSetPeImageSpareHeaderBytes(
         ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader) + PvMappedImage.NtHeaders32->FileHeader.SizeOfOptionalHeader;
         ULONG sectionsLength = PvMappedImage.NtHeaders32->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
         ULONG totalLength = nativeHeadersLength + optionalHeadersLength + sectionsLength;
-        ULONG spareLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.SizeOfHeaders, totalLength));
+        ULONG spareLength = (PvMappedImage.NtHeaders32->OptionalHeader.SizeOfHeaders - totalLength);
 
         PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_HEADERSPARE, 1, PhaFormatSize(spareLength, ULONG_MAX)->Buffer);
     }
@@ -1228,7 +1228,7 @@ VOID PvpSetPeImageSpareHeaderBytes(
         ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader) + PvMappedImage.NtHeaders->FileHeader.SizeOfOptionalHeader;
         ULONG sectionsLength = PvMappedImage.NtHeaders->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
         ULONG totalLength = nativeHeadersLength + optionalHeadersLength + sectionsLength;
-        ULONG spareLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.SizeOfHeaders, totalLength));
+        ULONG spareLength = (PvMappedImage.NtHeaders->OptionalHeader.SizeOfHeaders - totalLength);
 
         PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_HEADERSPARE, 1, PhaFormatSize(spareLength, ULONG_MAX)->Buffer);
     }

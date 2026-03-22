@@ -23,6 +23,11 @@ namespace CustomBuildTool
         /// </summary>
         private static string VirusTotalApiToken = null;
 
+        static BuildVirusTotal()
+        {
+            VirusTotalHttpClient = BuildHttpClient.CreateHttpClient();
+        }   
+
         /// <summary>
         /// Uploads a file to VirusTotal for scanning and retrieves the analysis result.
         /// </summary>
@@ -36,6 +41,8 @@ namespace CustomBuildTool
         /// </remarks>
         public static async Task<string> UploadScanFile(string FileName)
         {
+            string analysisResult = null;
+
             if (string.IsNullOrWhiteSpace(VirusTotalApiToken))
             {
                 var fileName = Win32.GetEnvironmentVariable("VIRUSTOTAL_BASE_API");
@@ -107,8 +114,12 @@ namespace CustomBuildTool
                             requestAnalysisMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                             requestAnalysisMessage.Headers.Add("x-apikey", VirusTotalApiToken);
 
-                            await BuildHttpClient.SendMessageResponse(VirusTotalHttpClient, requestAnalysisMessage);
+                            using var upload = await BuildHttpClient.SendMessageResponse(VirusTotalHttpClient, requestAnalysisMessage);
+
+                            upload.EnsureSuccessStatusCode();
                         }
+
+                        analysisResult = virusTotalAnalysisResponseContext.data.id;
                     }
                 }
 
@@ -118,7 +129,7 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("[BuildVirusTotal] " + ex, ConsoleColor.Red);
             }
 
-            return null;
+            return analysisResult;
         }
     }
 }

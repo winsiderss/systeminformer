@@ -1429,8 +1429,8 @@ namespace CustomBuildTool
 
         public static bool ExecuteBuildSolutionCMake(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags)
         {
-            string buildConfig = Flags.HasFlag(BuildFlags.Debug) ? "Debug" : "Release";
-            string buildFolder = Flags.HasFlag(BuildFlags.Debug) ? "build\\debug" : "build\\release";
+            string buildConfig = Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release";
+            string buildFolder = Flags.HasFlag(BuildFlags.BuildDebug) ? "build\\debug" : "build\\release";
 
             string platformSuffix = Toolchain switch
             {
@@ -1893,7 +1893,7 @@ namespace CustomBuildTool
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
                     using var httpClient = BuildHttpClient.CreateHttpClient();
-                    var httpResult = await BuildHttpClient.SendMessageResponse(httpClient, requestMessage);
+                    using var httpResult = await BuildHttpClient.SendMessageResponse(httpClient, requestMessage);
 
                     if (!httpResult.IsSuccessStatusCode)
                     {
@@ -2050,7 +2050,7 @@ namespace CustomBuildTool
             if (Flags.HasFlag(BuildFlags.Build32bit) && File.Exists("tools\\msix\\MsixPackage32.map"))
             {
                 Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
-                Program.PrintColorMessage("Building systeminformer-build-package-x64.msix...", ConsoleColor.Cyan, false);
+                Program.PrintColorMessage("Building systeminformer-build-package-x32.msix...", ConsoleColor.Cyan, false);
 
                 string result = Utils.ExecuteMsixCommand(
                     $"pack /o /f {BuildWorkingFolder}\\tools\\msix\\MsixPackage32.map /p {BuildOutputFolder}\\systeminformer-build-package-x32.msix"
@@ -2111,7 +2111,7 @@ namespace CustomBuildTool
                     return false;
                 }
 
-                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix").ToPrettySize(), ConsoleColor.Green);
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-package.msixbundle").ToPrettySize(), ConsoleColor.Green);
             }
 
             if (File.Exists("tools\\msix\\PackageTemplate.appinstaller"))

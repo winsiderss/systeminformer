@@ -274,7 +274,8 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+                    using var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+
                     if (!response.IsSuccessStatusCode)
                     {
                         Program.PrintColorMessage("[DeleteRelease-DeleteAsync]", ConsoleColor.Red);
@@ -289,7 +290,8 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+                    using var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+
                     if (!response.IsSuccessStatusCode)
                     {
                         Program.PrintColorMessage("[DeleteRelease-DeleteAsync]", ConsoleColor.Red);

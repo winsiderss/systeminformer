@@ -17,6 +17,12 @@ namespace CustomBuildTool
     /// </summary>
     internal static class AzureClient
     {
+        /// <summary>
+        /// Provides a thread-safe cache for storing Azure client certificates indexed by their identifier.
+        /// </summary>
+        /// <remarks>This dictionary enables efficient retrieval and storage of X509 certificates in
+        /// concurrent scenarios, such as when multiple threads access or update the cache. The cache is intended for
+        /// use in Azure authentication workflows where client certificates are reused.</remarks>
         private static readonly ConcurrentDictionary<string, X509Certificate2> AzureClientCertificateCache = new();
 
         /// <summary>
@@ -43,29 +49,25 @@ namespace CustomBuildTool
         {
             try
             {
-                HttpRequestMessage requestMessage = new HttpRequestMessage(
-                    HttpMethod.Get, 
-                    $"https://{VaultName}.vault.azure.net/certificates/{CertName}?api-version=2025-07-01"
-                    );
+                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, 
+                    $"https://{VaultName}.vault.azure.net/certificates/{CertName}?api-version=2025-07-01");
                 requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
 
                 using var responseMessage = await HttpClient.SendAsync(requestMessage, CancellationToken);
-
                 if (!responseMessage.IsSuccessStatusCode)
                 {
                     Program.PrintColorMessage($"Failed to fetch certificate from Key Vault: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}", ConsoleColor.Red);
                     return null;
                 }
 
-                var jsonResponse = await responseMessage.Content.ReadAsStringAsync(CancellationToken);
-
-                if (string.IsNullOrWhiteSpace(jsonResponse))
+                var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
+                if (jsonResponseStream == null)
                 {
                     Program.PrintColorMessage($"Failed to fetch json response from Key Vault", ConsoleColor.Red);
                     return null;            
                 }
 
-                var keyVaultCertificateResponse = JsonSerializer.Deserialize(jsonResponse, AzureJsonContext.Default.KeyVaultCertificateResponse);
+                var keyVaultCertificateResponse = JsonSerializer.Deserialize(jsonResponseStream, AzureJsonContext.Default.KeyVaultCertificateResponse);
                 var keyVaultCertificate = new KeyVaultCertificate();
 
                 if (!string.IsNullOrEmpty(keyVaultCertificateResponse?.CertificateString))
@@ -73,7 +75,10 @@ namespace CustomBuildTool
                     keyVaultCertificate.CertificateBuffer = Convert.FromBase64String(keyVaultCertificateResponse.CertificateString);
                 }
 
+                //
                 // KeyId may be in 'kid' or 'key.kid' depending on response shape
+                //
+
                 if (!string.IsNullOrWhiteSpace(keyVaultCertificateResponse?.Kid))
                 {
                     keyVaultCertificate.KeyId = keyVaultCertificateResponse.Kid;
@@ -158,8 +163,8 @@ namespace CustomBuildTool
                 return false;
             }
 
-            var jsonResponse = await responseMessage.Content.ReadAsStringAsync(CancellationToken);
-            var secretResponse = JsonSerializer.Deserialize(jsonResponse, AzureJsonContext.Default.SecretResponse);
+            var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
+            var secretResponse = JsonSerializer.Deserialize(jsonResponseStream, AzureJsonContext.Default.SecretResponse);
             
             if (string.IsNullOrWhiteSpace(secretResponse.Value))
             {
@@ -545,8 +550,8 @@ namespace CustomBuildTool
 
                         if (responseMessage.IsSuccessStatusCode)
                         {
-                            string jsonResponse = await responseMessage.Content.ReadAsStringAsync(CancellationToken);
-                            TokenResponse tokenResponse = JsonSerializer.Deserialize(jsonResponse, AzureJsonContext.Default.TokenResponse);
+                            var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
+                            var tokenResponse = JsonSerializer.Deserialize(jsonResponseStream, AzureJsonContext.Default.TokenResponse);
 
                             if (tokenResponse.AccessToken == null)
                             {
@@ -652,12 +657,15 @@ namespace CustomBuildTool
                 {
                     string fileExtension = Path.GetExtension(ClientCertificatePath).ToLowerInvariant();
 
-                    if (fileExtension == ".pem")
+                    if (fileExtension.Equals(".pem", StringComparison.OrdinalIgnoreCase))
                     {
                         string pemContent = File.ReadAllText(ClientCertificatePath);
                         clientCertificate = CreateCertificateFromPem(pemContent);
                     }
-                    else if (fileExtension == ".pfx" || fileExtension == ".p12")
+                    else if (
+                        fileExtension.Equals(".pfx", StringComparison.OrdinalIgnoreCase) || 
+                        fileExtension.Equals(".p12", StringComparison.OrdinalIgnoreCase)
+                        )
                     {
                         // For PFX, you may need a password. Check environment variable.
                         string certPassword = Environment.GetEnvironmentVariable("AZURE_CLIENT_CERTIFICATE_PASSWORD");
@@ -721,7 +729,6 @@ namespace CustomBuildTool
                         };
 
                         using var tokenBody = new FormUrlEncodedContent(tokenRequestData);
-
                         using HttpResponseMessage responseMessage = await HttpClient.PostAsync(
                             $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token",
                             tokenBody,
@@ -730,8 +737,8 @@ namespace CustomBuildTool
 
                         if (responseMessage.IsSuccessStatusCode)
                         {
-                            string jsonResponse = await responseMessage.Content.ReadAsStringAsync(CancellationToken);
-                            TokenResponse tokenResponse = JsonSerializer.Deserialize(jsonResponse, AzureJsonContext.Default.TokenResponse);
+                            var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
+                            var tokenResponse = JsonSerializer.Deserialize(jsonResponseStream, AzureJsonContext.Default.TokenResponse);
 
                             if (tokenResponse.AccessToken == null)
                             {
@@ -740,7 +747,9 @@ namespace CustomBuildTool
                             }
 
                             if (!string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
+                            {
                                 return tokenResponse.AccessToken;
+                            }
 
                             Program.PrintColorMessage("Token response missing 'access_token'.", ConsoleColor.Red);
                             return string.Empty;

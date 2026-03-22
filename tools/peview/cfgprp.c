@@ -65,7 +65,7 @@ VOID PvPeAddListViewCfgFunctionEntry(
     {
         symbol = PhGetSymbolFromAddress(
             PvSymbolProvider,
-            PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, cfgFunctionEntry.Rva),
+            PTR_ADD_OFFSET(UlongToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), UlongToPtr(cfgFunctionEntry.Rva)),
             &symbolResolveLevel,
             NULL,
             &symbolName,

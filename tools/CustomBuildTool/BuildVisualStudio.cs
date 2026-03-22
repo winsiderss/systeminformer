@@ -650,7 +650,7 @@ namespace CustomBuildTool
 
             // https://learn.microsoft.com/en-us/visualstudio/install/workload-component-id-vs-community
 
-            var found = this.Packages.FindAll(p => 
+            var found = this.Packages.FindAll(p =>
                 p.Id.Equals("Microsoft.VisualStudio.Component.VC.Tools.ARM64", StringComparison.OrdinalIgnoreCase) ||
                 p.Id.Equals("Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre", StringComparison.OrdinalIgnoreCase));
 
@@ -665,10 +665,8 @@ namespace CustomBuildTool
         /// </returns>
         private VisualStudioPackage GetLatestSdkPackage()
         {
-            var found = this.Packages.FindAll(p => 
-                p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||                                                
-                p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase));
-        
+            var found = this.Packages.FindAll(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase));
+
             if (found.Count == 0)
                 return null;
 
@@ -679,7 +677,7 @@ namespace CustomBuildTool
                 else
                     return 1;
             });
-        
+
             return found[^1];
         }
 

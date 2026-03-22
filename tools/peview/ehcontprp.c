@@ -54,7 +54,7 @@ VOID PvEnumerateEHContinuationEntries(
             {
                 if (!(symbol = PhGetSymbolFromAddress(
                     PvSymbolProvider,
-                    PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, rva),
+                    PTR_ADD_OFFSET(UlongToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), UlongToPtr(rva)),
                     &symbolResolveLevel,
                     NULL,
                     &symbolName,

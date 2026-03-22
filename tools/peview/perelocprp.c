@@ -44,7 +44,7 @@ VOID PvEnumerateRelocationEntries(
             //PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
             //PhPrintPointer(value, UlongToPtr(entry->Offset));
             //PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
-            PhPrintPointer(value, PTR_ADD_OFFSET(entry->BlockRva, entry->Record.Offset));
+            PhPrintPointer(value, (PVOID)(ULONG_PTR)UInt32Add32To64(entry->BlockRva, entry->Record.Offset));
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
 
             switch (entry->Record.Type)
@@ -78,7 +78,7 @@ VOID PvEnumerateRelocationEntries(
 
                 directorySection = PhMappedImageRvaToSection(
                     &PvMappedImage,
-                    PtrToUlong(PTR_ADD_OFFSET(entry->BlockRva, entry->Record.Offset))
+                    (entry->BlockRva - entry->Record.Offset)
                     );
 
                 if (directorySection)

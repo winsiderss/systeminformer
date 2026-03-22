@@ -288,7 +288,7 @@ VOID PvpPeClrEnumSections(
 
         PhPrintPointer(value, UlongToPtr(streamHeader->Offset));
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
-        PhPrintPointer(value, PTR_ADD_OFFSET(streamHeader->Offset, streamHeader->Size));
+        PhPrintPointer(value, (PVOID)(ULONG_PTR)UInt32Add32To64(streamHeader->Offset, streamHeader->Size));
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, value);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(streamHeader->Size, ULONG_MAX)->Buffer);
 

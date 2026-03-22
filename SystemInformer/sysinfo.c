@@ -470,7 +470,10 @@ VOID PhSipOnInitDialog(
         //    MinimumSize.bottom = newMinimumHeight;
     }
 
-    PhLoadWindowPlacementFromSetting(SETTING_SYSINFO_WINDOW_POSITION, SETTING_SYSINFO_WINDOW_SIZE, PhSipWindow);
+    if (PhValidWindowPlacementFromSetting(SETTING_SYSINFO_WINDOW_POSITION))
+        PhLoadWindowPlacementFromSetting(SETTING_SYSINFO_WINDOW_POSITION, SETTING_SYSINFO_WINDOW_SIZE, PhSipWindow);
+    else
+        PhCenterWindow(PhSipWindow, NULL);
 
     if (PhGetIntegerSetting(SETTING_SYSINFO_WINDOW_STATE) == SW_MAXIMIZE)
         ShowWindow(PhSipWindow, SW_MAXIMIZE);

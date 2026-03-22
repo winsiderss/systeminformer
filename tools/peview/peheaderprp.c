@@ -410,15 +410,14 @@ VOID PvSetPeImageOptionalHeaderProperties(
         {
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
-                PTR_ADD_OFFSET(
-                    PvMappedImage.NtHeaders32->OptionalHeader.ImageBase,
-                    imageNtHeader->OptionalHeader.AddressOfEntryPoint),
+                PTR_ADD_OFFSET(UlongToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), imageNtHeader->OptionalHeader.AddressOfEntryPoint),
                 NULL,
                 NULL,
                 &symbolName,
                 NULL
                 );
         }
+
         if (symbolName)
         {
             PH_FORMAT format[5];

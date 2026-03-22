@@ -22,7 +22,6 @@
  */
 
 #include <phbase.h>
-
 #include <locale.h>
 
 extern ULONG PhMaxSizeUnit;
@@ -170,10 +169,10 @@ VOID PhpFormatDoubleToUtf8Locale(
 
 // From Source\10.0.10150.0\ucrt\inc\corecrt_internal_stdio_output.h in SDK v10.
 VOID PhpCropZeros(
-    _Inout_ PCHAR Buffer
+    _Inout_ PUCHAR Buffer
     )
 {
-    CHAR decimalSeparator = (CHAR)PhpFormatDecimalSeparator;
+    UCHAR decimalSeparator = (UCHAR)PhpFormatDecimalSeparator;
 
     while (*Buffer && *Buffer != decimalSeparator)
         ++Buffer;
@@ -183,7 +182,7 @@ VOID PhpCropZeros(
         while (*Buffer && *Buffer != 'e' && *Buffer != 'E')
             ++Buffer;
 
-        PCHAR stop = Buffer--;
+        PUCHAR stop = Buffer--;
 
         while (*Buffer == '0')
             --Buffer;

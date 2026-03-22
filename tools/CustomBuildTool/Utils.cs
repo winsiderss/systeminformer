@@ -636,7 +636,7 @@ namespace CustomBuildTool
         public static string GetWindowsSdkVersion()
         {
             // ESDK Begin
-            if (Win32.GetEnvironmentVariable("WindowsSDKVersion", out string windowsSdkVersion)) 
+            if (Win32.GetEnvironmentVariable("WindowsSDKVersion", out string windowsSdkVersion))
             {
                 return windowsSdkVersion.TrimEnd('\\');
             }
@@ -881,14 +881,13 @@ namespace CustomBuildTool
 
             var instance = BuildVisualStudio.GetVisualStudioInstance();
             string vcvarsall = Path.Join([instance.Path, "VC\\Auxiliary\\Build\\vcvarsall.bat"]);
+            string arch = null;
 
             if (!File.Exists(vcvarsall))
             {
                 Program.PrintColorMessage("[ExecuteCMakeCommand] vcvarsall.bat not found.", ConsoleColor.Red);
                 return int.MaxValue;
             }
-
-            string arch = null;
 
             if (Command.Contains("msvc-x86", StringComparison.OrdinalIgnoreCase) || Command.Contains("Win32", StringComparison.OrdinalIgnoreCase))
                 arch = "amd64_x86";
@@ -1363,7 +1362,7 @@ namespace CustomBuildTool
         {
             switch (toolchain)
             {
-            case BuildToolchain.MsvcX86:         
+            case BuildToolchain.MsvcX86:
                 return "msvc-x86";
             case BuildToolchain.MsvcAmd64:
                 return "msvc-amd64";
@@ -2411,6 +2410,7 @@ namespace CustomBuildTool
         public List<string> Versions { get; init; }
     }
 
+ 
     [JsonSerializable(typeof(BuildUpdateRequest))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class BuildUpdateRequestContext : JsonSerializerContext
@@ -2450,13 +2450,6 @@ namespace CustomBuildTool
     [JsonSerializable(typeof(Dictionary<string, string>))]
     public partial class DictionarySerializerContext : JsonSerializerContext
     {
-    }
-
-    [JsonSerializable(typeof(NugetVersionResponse))]
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
-    public partial class NugetVersionResponseContext : JsonSerializerContext
-    {
-
     }
 
     /// <summary>

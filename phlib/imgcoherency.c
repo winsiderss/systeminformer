@@ -154,6 +154,7 @@ VOID PhpFreeImageCoherencyContext(
     }
 }
 
+_Function_class_(PH_MAPPED_IMAGE_RELOC_CALLBACK)
 static NTSTATUS NTAPI PhImageCoherencyRelocationCallback(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
@@ -181,7 +182,7 @@ static NTSTATUS NTAPI PhImageCoherencyRelocationCallback(
             (entry->Type != IMAGE_REL_BASED_RESERVED)
             )
         {
-            PVOID rva = PTR_ADD_OFFSET(RelocationDirectory->VirtualAddress, entry->Offset);
+            PVOID rva = (PVOID)UInt32Add32To64(RelocationDirectory->VirtualAddress, entry->Offset);
 
             if (entry->Type == IMAGE_REL_BASED_DIR64)
             {
@@ -203,6 +204,7 @@ static NTSTATUS NTAPI PhImageCoherencyRelocationCallback(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_MAPPED_IMAGE_DYNAMIC_RELOC_CALLBACK)
 static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
@@ -215,7 +217,8 @@ static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
 
     if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64X)
     {
-        rva = (ULONG_PTR)Entry->ARM64X.BlockRva + Entry->ARM64X.RecordFixup.Offset;
+        rva = UInt32Add32To64(Entry->ARM64X.BlockRva, Entry->ARM64X.RecordFixup.Offset);
+
         switch (Entry->ARM64X.RecordFixup.Type)
         {
         case IMAGE_DVRT_ARM64X_FIXUP_TYPE_ZEROFILL:
@@ -229,7 +232,7 @@ static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
     }
     else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER)
     {
-        rva = (ULONG_PTR)Entry->ImportControl.BlockRva + Entry->ImportControl.Record.PageRelativeOffset;
+        rva = UInt32Add32To64(Entry->ImportControl.BlockRva, Entry->ImportControl.Record.PageRelativeOffset);
         //
         // 48 FF 15 XX XX XX XX     call qword ptr [_imp_<function>]
         // 0F 1F 44 00 00           nop
@@ -238,7 +241,7 @@ static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
     }
     else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64_KERNEL_IMPORT_CALL_TRANSFER)
     {
-        rva = (ULONG_PTR)Entry->ARM64ImportControl.BlockRva + (Entry->ARM64ImportControl.Record.PageRelativeOffset << 2);
+        rva = UInt32Add32To64(Entry->ARM64ImportControl.BlockRva, (Entry->ARM64ImportControl.Record.PageRelativeOffset << 2));
         //
         // ARM64 instructions are fixed 4 bytes
         // Either BR or BLR instruction for indirect call/jump
@@ -247,7 +250,7 @@ static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
     }
     else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE)
     {
-        rva = (ULONG_PTR)Entry->RFPrologue.BlockRva;
+        rva = Entry->RFPrologue.BlockRva;
         //
         // Prologue size is variable, specified in PrologueByteCount
         //
@@ -255,7 +258,7 @@ static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
     }
     else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE)
     {
-        rva = (ULONG_PTR)Entry->RFEpilogue.BlockRva;
+        rva = Entry->RFEpilogue.BlockRva;
         //
         // Epilogue size is variable
         // Total size = EpilogueByteCount + (BranchDescriptorElementSize * BranchDescriptorCount) + bitmap
@@ -266,12 +269,12 @@ static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
     }
     else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER)
     {
-        rva = (ULONG_PTR)Entry->IndirControl.BlockRva + Entry->IndirControl.Record.PageRelativeOffset;
+        rva = UInt32Add32To64(Entry->IndirControl.BlockRva, Entry->IndirControl.Record.PageRelativeOffset);
         size = 12;
     }
     else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH)
     {
-        rva = (ULONG_PTR)Entry->SwitchBranch.BlockRva + Entry->SwitchBranch.Record.PageRelativeOffset;
+        rva = UInt32Add32To64(Entry->SwitchBranch.BlockRva, Entry->SwitchBranch.Record.PageRelativeOffset);
         //
         // FF D0                    jmp rax
         // CC CC CC                 int 3
@@ -280,7 +283,8 @@ static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
     }
     else if (Entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
     {
-        rva = (ULONG_PTR)Entry->FuncOverride.BlockRva + Entry->FuncOverride.Record.Offset;
+        rva = UInt32Add32To64(Entry->FuncOverride.BlockRva, Entry->FuncOverride.Record.Offset);
+
         if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
             size = 4;
         else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
@@ -293,7 +297,8 @@ static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
         //
         if (Entry->Other.Record.Type == IMAGE_REL_BASED_ABSOLUTE)
         {
-            rva = (ULONG_PTR)Entry->Other.BlockRva + Entry->Other.Record.Offset;
+            rva = UInt32Add32To64(Entry->Other.BlockRva, Entry->Other.Record.Offset);
+
             if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                 size = 4;
             else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
