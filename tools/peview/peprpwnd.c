@@ -725,7 +725,7 @@ VOID PvAddTreeViewSections(
         PvpPeMuiResourceDlgProc,
         NULL
         );
-        
+
     // LoadLibrary page
     PvCreateTabSection(
         L"GetLoadLibrary",
@@ -892,6 +892,9 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
         break;
     case WM_DPICHANGED:
         {
+            PhLayoutManagerUpdate(&PvTabWindowLayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&PvTabWindowLayoutManager);
+
             PvSetTreeViewImageList(hwndDlg, PvTabTreeControl);
         }
         break;

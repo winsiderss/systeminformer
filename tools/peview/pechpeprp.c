@@ -35,7 +35,7 @@ VOID PvpCHPAddValue(
 }
 
 PPH_STRING PvpCHPERvaToSymbol(
-    _In_ ULONG Rva
+    _In_ ULONG_PTR Rva
     )
 {
     if (Rva)
