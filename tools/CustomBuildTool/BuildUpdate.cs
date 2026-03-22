@@ -124,7 +124,7 @@ namespace CustomBuildTool
             CancellationToken CancellationToken)
         {
             var registrationIndexUri = $"{RegistrationsBase.TrimEnd('/')}/{PackageId.ToLowerInvariant()}/index.json";
-            NugetRegistrationIndexResponse? index;
+            NugetRegistrationIndexResponse index = default;
 
             try
             {
@@ -160,7 +160,7 @@ namespace CustomBuildTool
                 if (string.IsNullOrWhiteSpace(page.Id))
                     continue;
 
-                NugetRegistrationPageResponse? pageResponse;
+                NugetRegistrationPageResponse pageResponse = default;
                 try
                 {
                     using var request = new HttpRequestMessage(HttpMethod.Get, page.Id);
@@ -201,7 +201,7 @@ namespace CustomBuildTool
             CancellationToken CancellationToken)
         {
             var searchUri = $"{SearchQueryService.TrimEnd('/')}?q=packageid:{Uri.EscapeDataString(PackageId)}&prerelease=true&take=20";
-            NugetSearchResponse? search;
+            NugetSearchResponse search = default;
 
             try
             {
@@ -629,4 +629,3 @@ namespace CustomBuildTool
         public NugetSearchPackageResponse[] Data { get; init; }
     }
 }
-
