@@ -6140,6 +6140,28 @@ PhGetFileMotw(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateWaitableTimer(
+    _Out_ PHANDLE TimerHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ TIMER_TYPE TimerType,
+    _In_ BOOLEAN HighResolution
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetWaitableTimer(
+    _In_ HANDLE TimerHandle,
+    _In_ PLARGE_INTEGER DueTime,
+    _In_opt_ PLARGE_INTEGER Period,
+    _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine,
+    _In_opt_ PVOID TimerContext,
+    _In_ BOOLEAN ResumeTimer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhFlushProcessHeapsRemote(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PLARGE_INTEGER Timeout
