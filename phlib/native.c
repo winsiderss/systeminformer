@@ -8201,7 +8201,7 @@ NTSTATUS PhIsEcCode(
 {
     NTSTATUS status;
     PVOID pebBaseAddress;
-    RTL_FIELD_TYPE(PEB, EcCodeBitMap) ecCodeBitMap;
+    PVOID ecCodeBitMap;
     ULONG64 bitmap;
 
     *IsEcCode = FALSE;
@@ -8219,7 +8219,7 @@ NTSTATUS PhIsEcCode(
         ProcessHandle,
         PTR_ADD_OFFSET(pebBaseAddress, FIELD_OFFSET(PEB, EcCodeBitMap)),
         &ecCodeBitMap,
-        RTL_FIELD_SIZE(PEB, EcCodeBitMap),
+        sizeof(PVOID),
         NULL
         )))
         return status;
@@ -8234,7 +8234,7 @@ NTSTATUS PhIsEcCode(
         ProcessHandle,
         ecCodeBitMap,
         &bitmap,
-        RTL_FIELD_SIZE(PEB, EcCodeBitMap)),
+        sizeof(ULONG64),
         NULL
         )))
         return status;
