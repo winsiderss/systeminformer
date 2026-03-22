@@ -267,6 +267,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(SETTING_THREAD_TREE_LIST_SORT, L"1,2"); // 1, DescendingSortOrder
     PhpAddIntegerSetting(SETTING_THREAD_TREE_LIST_FLAGS, L"60");
     PhpAddStringSetting(SETTING_THREAD_STACK_TREE_LIST_COLUMNS, L"");
+    PhpAddIntegerPairSetting(SETTING_THREAD_STACK_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_THREAD_STACK_WINDOW_SIZE, L"@96|420,400");
     PhpAddIntegerPairSetting(SETTING_TOKEN_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_TOKEN_WINDOW_SIZE, L"@96|0,0");

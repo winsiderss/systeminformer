@@ -401,6 +401,7 @@ EXT ULONG PhProcessMonitorCacheLimit;
 #define SETTING_THREAD_TREE_LIST_FLAGS                              L"ThreadTreeListFlags"
 #define SETTING_THREAD_STACK_TREE_LIST_COLUMNS                      L"ThreadStackTreeListColumns"
 #define SETTING_THREAD_STACK_WINDOW_SIZE                            L"ThreadStackWindowSize"
+#define SETTING_THREAD_STACK_WINDOW_POSITION                        L"ThreadStackWindowPosition"
 #define SETTING_TOKEN_WINDOW_POSITION                               L"TokenWindowPosition"
 #define SETTING_TOKEN_WINDOW_SIZE                                   L"TokenWindowSize"
 #define SETTING_TOKEN_GROUPS_LIST_VIEW_COLUMNS                      L"TokenGroupsListViewColumns"
