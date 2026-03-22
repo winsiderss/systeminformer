@@ -751,7 +751,7 @@ typedef struct _KSYSTEM_TIME
  * \return A pointer at or below @p Address aligned down to @p Alignment.
  * \remarks The pointer is treated as an integer (`ULONG_PTR`) for masking.
  */
-#define ALIGN_DOWN_POINTER_BY(Address, Alignment) ((PVOID)((ULONG_PTR)(Address) & ~((ULONG_PTR)(Alignment) - 1)))
+#define ALIGN_DOWN_POINTER_BY(Address, Alignment) ((PVOID)ALIGN_DOWN_BY(Address, Alignment))
 #endif
 
 #ifndef ALIGN_UP_POINTER_BY
@@ -761,9 +761,9 @@ typedef struct _KSYSTEM_TIME
  * \param Address   The pointer to align.
  * \param Alignment The alignment boundary in bytes (typically a power of two).
  * \return A pointer at or above @p Address aligned up to @p Alignment.
- * \remarks This uses ALIGN_DOWN_POINTER_BY after adding (@p Alignment - 1).
+ * \remarks This is a pointer wrapper over ALIGN_UP_BY.
  */
-#define ALIGN_UP_POINTER_BY(Address, Alignment) (ALIGN_DOWN_POINTER_BY(((ULONG_PTR)(Address) + (Alignment) - 1), Alignment))
+#define ALIGN_UP_POINTER_BY(Address, Alignment) ((PVOID)ALIGN_UP_BY(Address, Alignment))
 #endif
 
 #ifndef ALIGN_DOWN
@@ -933,10 +933,10 @@ typedef struct _KSYSTEM_TIME
 #define ALIGN_UP_BY(Length, Alignment) (ALIGN_DOWN_BY(((ULONG_PTR)(Length) + (Alignment) - 1), Alignment))
 #endif
 #ifndef ALIGN_DOWN_POINTER_BY
-#define ALIGN_DOWN_POINTER_BY(Address, Alignment) ((PVOID)((ULONG_PTR)(Address) & ~((ULONG_PTR)(Alignment) - 1)))
+#define ALIGN_DOWN_POINTER_BY(Address, Alignment) ((PVOID)ALIGN_DOWN_BY(Address, Alignment))
 #endif
 #ifndef ALIGN_UP_POINTER_BY
-#define ALIGN_UP_POINTER_BY(Address, Alignment) (ALIGN_DOWN_POINTER_BY(((ULONG_PTR)(Address) + (Alignment) - 1), Alignment))
+#define ALIGN_UP_POINTER_BY(Address, Alignment) ((PVOID)ALIGN_UP_BY(Address, Alignment))
 #endif
 #ifndef ALIGN_DOWN
 #define ALIGN_DOWN(Length, Type) ALIGN_DOWN_BY(Length, sizeof(Type))
