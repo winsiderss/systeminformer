@@ -7916,200 +7916,6 @@ NTSTATUS PhEnumProcessEnclaves(
     return status;
 }
 
-/**
- * Sets an event object to the not-signaled state and optionally returns the previous state.
- *
- * \param EventHandle A handle to the event object.
- * \param PreviousState A pointer to a variable that receives the previous state of the event object.
- * \return NTSTATUS Successful or errant status.
- */
-//NTSTATUS PhResetEvent(
-//    _In_ HANDLE EventHandle,
-//    _Out_opt_ PLONG PreviousState
-//    )
-//{
-//    return NtResetEvent(EventHandle, PreviousState);
-//}
-
-/**
- * Sets an event object to the signaled state and then resets it to the not-signaled state after
- * releasing the appropriate number of waiting threads.
- *
- * \param EventHandle A handle to the event object.
- * \param PreviousState A pointer to a variable that receives the previous state of the event object.
- * \return NTSTATUS Successful or errant status.
- */
-NTSTATUS PhPulseEvent(
-    _In_ HANDLE EventHandle,
-    _Out_opt_ PLONG PreviousState
-    )
-{
-    return NtPulseEvent(EventHandle, PreviousState);
-}
-
-/**
- * Retrieves information about an event object.
- *
- * \param EventHandle A handle to the event object.
- * \param EventInformationClass The type of information to be retrieved.
- * \param EventInformation A pointer to a buffer that receives the requested information.
- * \param EventInformationLength The size of the buffer pointed to by EventInformation.
- * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
- * \return NTSTATUS Successful or errant status.
- */
-NTSTATUS PhQueryEvent(
-    _In_ HANDLE EventHandle,
-    _In_ EVENT_INFORMATION_CLASS EventInformationClass,
-    _Out_writes_bytes_(EventInformationLength) PVOID EventInformation,
-    _In_ ULONG EventInformationLength,
-    _Out_opt_ PULONG ReturnLength
-    )
-{
-    return NtQueryEvent(
-        EventHandle,
-        EventInformationClass,
-        EventInformation,
-        EventInformationLength,
-        ReturnLength
-        );
-}
-
-/**
- * Creates a waitable timer object.
- *
- * \param TimerHandle A pointer to a variable that receives the handle to the timer object.
- * \param DesiredAccess The access mask that specifies the requested access to the timer object.
- * \param TimerType The type of the timer object (NotificationTimer or SynchronizationTimer).
- * \param HighResolution If TRUE and NtCreateTimer2 is available, creates a high-resolution timer;
- * otherwise falls back to NtCreateTimer.
- * \return NTSTATUS Successful or errant status.
- */
-NTSTATUS PhCreateWaitableTimer(
-    _Out_ PHANDLE TimerHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ TIMER_TYPE TimerType,
-    _In_ BOOLEAN HighResolution
-    )
-{
-    NTSTATUS status;
-    HANDLE timerHandle = NULL;
-
-    if (HighResolution && NtCreateTimer2_Import())
-    {
-        status = NtCreateTimer2_Import()(
-            &timerHandle,
-            NULL,
-            NULL,
-            TIMER2_BUILD_ATTRIBUTES(TimerType, TRUE),
-            DesiredAccess
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            *TimerHandle = timerHandle;
-            return status;
-        }
-    }
-
-    {
-        OBJECT_ATTRIBUTES objectAttributes;
-
-        InitializeObjectAttributes(
-            &objectAttributes,
-            NULL,
-            OBJ_EXCLUSIVE,
-            NULL,
-            NULL
-            );
-
-        status = NtCreateTimer(
-            &timerHandle,
-            DesiredAccess,
-            &objectAttributes,
-            TimerType
-            );
-    }
-
-    if (NT_SUCCESS(status))
-    {
-        *TimerHandle = timerHandle;
-    }
-
-    return status;
-}
-
-/**
- * Sets a waitable timer.
- *
- * \param TimerHandle A handle to the timer object.
- * \param DueTime The time at which the timer is to expire, in 100-nanosecond intervals.
- * Negative values specify a relative time; positive values specify an absolute time.
- * \param Period An optional pointer to the timer period in 100-nanosecond intervals.
- * If NULL the timer is non-periodic. When falling back to NtSetTimer, the period is
- * converted from 100-nanosecond intervals to milliseconds.
- * \param TimerApcRoutine An optional APC routine invoked when the timer expires.
- * Only used when NtSetTimer2 is unavailable.
- * \param TimerContext An optional context value passed to the APC routine.
- * Only used when NtSetTimer2 is unavailable.
- * \param ResumeTimer If TRUE, resumes the system from a low-power state on expiry.
- * Only used when NtSetTimer2 is unavailable.
- * \return NTSTATUS Successful or errant status.
- */
-NTSTATUS PhSetWaitableTimer(
-    _In_ HANDLE TimerHandle,
-    _In_ PLARGE_INTEGER DueTime,
-    _In_opt_ PLARGE_INTEGER Period,
-    _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine,
-    _In_opt_ PVOID TimerContext,
-    _In_ BOOLEAN ResumeTimer
-    )
-{
-    if (NtSetTimer2_Import())
-    {
-        T2_SET_PARAMETERS timerParameters;
-
-        memset(&timerParameters, 0, sizeof(T2_SET_PARAMETERS));
-        timerParameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
-        timerParameters.NoWakeTolerance = 0;
-
-        return NtSetTimer2_Import()(
-            TimerHandle,
-            DueTime,
-            Period,
-            &timerParameters
-            );
-    }
-
-    if (NtSetTimerEx_Import())
-    {
-        TIMER_SET_COALESCABLE_TIMER_INFO timerParameters;
-
-        memset(&timerParameters, 0, sizeof(TIMER_SET_COALESCABLE_TIMER_INFO));
-        timerParameters.DueTime.QuadPart = DueTime->QuadPart;
-        timerParameters.Period = Period ? (LONG)(Period->QuadPart / PH_TIMEOUT_MS) : 0;
-        timerParameters.TimerApcRoutine = TimerApcRoutine;
-        timerParameters.TimerContext = TimerContext;
-        timerParameters.TolerableDelay = 0;
-
-        return NtSetTimerEx(
-            TimerHandle,
-            TimerSetCoalescableTimer,
-            &timerParameters,
-            sizeof(timerParameters)
-            );
-    }
-
-    return NtSetTimer(
-        TimerHandle,
-        DueTime,
-        TimerApcRoutine,
-        TimerContext,
-        ResumeTimer,
-        Period ? (LONG)(Period->QuadPart / PH_TIMEOUT_MS) : 0,
-        NULL
-        );
-}
-
 #ifdef _M_ARM64
 // rev from ntdll!RtlEcContextToNativeContext (jxy-s)
 VOID PhEcContextToNativeContext(
@@ -8572,4 +8378,198 @@ NTSTATUS PhGetFileMotw(
     }
 
     return status;
+}
+
+/**
+ * Sets an event object to the not-signaled state and optionally returns the previous state.
+ *
+ * \param EventHandle A handle to the event object.
+ * \param PreviousState A pointer to a variable that receives the previous state of the event object.
+ * \return NTSTATUS Successful or errant status.
+ */
+//NTSTATUS PhResetEvent(
+//    _In_ HANDLE EventHandle,
+//    _Out_opt_ PLONG PreviousState
+//    )
+//{
+//    return NtResetEvent(EventHandle, PreviousState);
+//}
+
+/**
+ * Sets an event object to the signaled state and then resets it to the not-signaled state after
+ * releasing the appropriate number of waiting threads.
+ *
+ * \param EventHandle A handle to the event object.
+ * \param PreviousState A pointer to a variable that receives the previous state of the event object.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhPulseEvent(
+    _In_ HANDLE EventHandle,
+    _Out_opt_ PLONG PreviousState
+    )
+{
+    return NtPulseEvent(EventHandle, PreviousState);
+}
+
+/**
+ * Retrieves information about an event object.
+ *
+ * \param EventHandle A handle to the event object.
+ * \param EventInformationClass The type of information to be retrieved.
+ * \param EventInformation A pointer to a buffer that receives the requested information.
+ * \param EventInformationLength The size of the buffer pointed to by EventInformation.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhQueryEvent(
+    _In_ HANDLE EventHandle,
+    _In_ EVENT_INFORMATION_CLASS EventInformationClass,
+    _Out_writes_bytes_(EventInformationLength) PVOID EventInformation,
+    _In_ ULONG EventInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    return NtQueryEvent(
+        EventHandle,
+        EventInformationClass,
+        EventInformation,
+        EventInformationLength,
+        ReturnLength
+        );
+}
+
+/**
+ * Creates a waitable timer object.
+ *
+ * \param TimerHandle A pointer to a variable that receives the handle to the timer object.
+ * \param DesiredAccess The access mask that specifies the requested access to the timer object.
+ * \param TimerType The type of the timer object (NotificationTimer or SynchronizationTimer).
+ * \param HighResolution If TRUE and NtCreateTimer2 is available, creates a high-resolution timer;
+ * otherwise falls back to NtCreateTimer.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhCreateWaitableTimer(
+    _Out_ PHANDLE TimerHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ TIMER_TYPE TimerType,
+    _In_ BOOLEAN HighResolution
+    )
+{
+    NTSTATUS status;
+    HANDLE timerHandle = NULL;
+
+    if (HighResolution && NtCreateTimer2_Import())
+    {
+        status = NtCreateTimer2_Import()(
+            &timerHandle,
+            NULL,
+            NULL,
+            TIMER2_BUILD_ATTRIBUTES(TimerType, TRUE),
+            DesiredAccess
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            *TimerHandle = timerHandle;
+            return status;
+        }
+    }
+
+    {
+        OBJECT_ATTRIBUTES objectAttributes;
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            NULL,
+            OBJ_EXCLUSIVE,
+            NULL,
+            NULL
+            );
+
+        status = NtCreateTimer(
+            &timerHandle,
+            DesiredAccess,
+            &objectAttributes,
+            TimerType
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *TimerHandle = timerHandle;
+    }
+
+    return status;
+}
+
+/**
+ * Sets a waitable timer.
+ *
+ * \param TimerHandle A handle to the timer object.
+ * \param DueTime The time at which the timer is to expire, in 100-nanosecond intervals.
+ * Negative values specify a relative time; positive values specify an absolute time.
+ * \param Period An optional pointer to the timer period in 100-nanosecond intervals.
+ * If NULL the timer is non-periodic. When falling back to NtSetTimer, the period is
+ * converted from 100-nanosecond intervals to milliseconds.
+ * \param TimerApcRoutine An optional APC routine invoked when the timer expires.
+ * Only used when NtSetTimer2 is unavailable.
+ * \param TimerContext An optional context value passed to the APC routine.
+ * Only used when NtSetTimer2 is unavailable.
+ * \param ResumeTimer If TRUE, resumes the system from a low-power state on expiry.
+ * Only used when NtSetTimer2 is unavailable.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhSetWaitableTimer(
+    _In_ HANDLE TimerHandle,
+    _In_ PLARGE_INTEGER DueTime,
+    _In_opt_ PLARGE_INTEGER Period,
+    _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine,
+    _In_opt_ PVOID TimerContext,
+    _In_ BOOLEAN ResumeTimer
+    )
+{
+    if (NtSetTimer2_Import())
+    {
+        T2_SET_PARAMETERS timerParameters;
+
+        memset(&timerParameters, 0, sizeof(T2_SET_PARAMETERS));
+        timerParameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
+        timerParameters.NoWakeTolerance = 0;
+
+        return NtSetTimer2_Import()(
+            TimerHandle,
+            DueTime,
+            Period,
+            &timerParameters
+            );
+    }
+
+    if (NtSetTimerEx_Import())
+    {
+        TIMER_SET_COALESCABLE_TIMER_INFO timerParameters;
+
+        memset(&timerParameters, 0, sizeof(TIMER_SET_COALESCABLE_TIMER_INFO));
+        timerParameters.DueTime.QuadPart = DueTime->QuadPart;
+        timerParameters.Period = Period ? (LONG)(Period->QuadPart / PH_TIMEOUT_MS) : 0;
+        timerParameters.TimerApcRoutine = TimerApcRoutine;
+        timerParameters.TimerContext = TimerContext;
+        timerParameters.TolerableDelay = 0;
+
+        return NtSetTimerEx(
+            TimerHandle,
+            TimerSetCoalescableTimer,
+            &timerParameters,
+            sizeof(timerParameters)
+            );
+    }
+
+    return NtSetTimer(
+        TimerHandle,
+        DueTime,
+        TimerApcRoutine,
+        TimerContext,
+        ResumeTimer,
+        Period ? (LONG)(Period->QuadPart / PH_TIMEOUT_MS) : 0,
+        NULL
+        );
 }
