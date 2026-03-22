@@ -1232,15 +1232,15 @@ PSCAN_HASH GetScanHash(
     )
 {
     PSCAN_HASH scanHash;
-    BOOLEAN havenFileId = FALSE;
+    BOOLEAN haveFileId = FALSE;
     SCAN_FILE_ID fileId;
 
     if (NT_SUCCESS(GetScanFileId(FileName, &fileId)))
-        havenFileId = TRUE;
+        haveFileId = TRUE;
 
     PhAcquireQueuedLockExclusive(&ScanHashHashtableLock);
 
-    if (havenFileId)
+    if (haveFileId)
     {
         PSCAN_HASH* entry;
         C_ASSERT(FIELD_OFFSET(SCAN_HASH, FileId) == 0);
@@ -1260,7 +1260,7 @@ PSCAN_HASH GetScanHash(
     scanHash->FileName = PhReferenceObject(FileName);
     scanHash->Status = STATUS_PENDING;
 
-    if (havenFileId)
+    if (haveFileId)
     {
         memcpy(&scanHash->FileId, &fileId, sizeof(SCAN_FILE_ID));
         PhReferenceObject(scanHash);
@@ -1280,19 +1280,25 @@ VOID ReapScanHashCache(
 {
     PSCAN_HASH* scanHash;
     ULONG enumerationKey = 0;
+    PPH_LIST reapList = PhCreateList(10);
 
     PhAcquireQueuedLockExclusive(&ScanHashHashtableLock);
 
     while (PhEnumHashtable(ScanHashHashtable, (PVOID*)&scanHash, &enumerationKey))
     {
         if (PhGetObjectRefCount(*scanHash) == 1)
-        {
-            PhRemoveEntryHashtable(ScanHashHashtable, scanHash);
-            PhDereferenceObject(*scanHash);
-        }
+            PhAddItemList(reapList, *scanHash);
     }
 
+    for (ULONG i = 0; i < reapList->Count; i++)
+        PhRemoveEntryHashtable(ScanHashHashtable, &reapList->Items[i]);
+
     PhReleaseQueuedLockExclusive(&ScanHashHashtableLock);
+
+    for (ULONG i = 0; i < reapList->Count; i++)
+        PhDereferenceObject(reapList->Items[i]);
+
+    PhDereferenceObject(reapList);
 }
 
 VOID InitializeScanContext(
