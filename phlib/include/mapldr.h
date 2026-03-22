@@ -310,7 +310,7 @@ NTSTATUS
 NTAPI
 PhLoaderEntryImageRvaToSection(
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _In_ ULONG Rva,
+    _In_ ULONG_PTR Rva,
     _Out_ PIMAGE_SECTION_HEADER *ImageSection,
     _Out_ SIZE_T *ImageSectionLength
     );
@@ -320,7 +320,7 @@ NTSTATUS
 NTAPI
 PhLoaderEntryImageRvaToVa(
     _In_ PVOID BaseAddress,
-    _In_ ULONG Rva,
+    _In_ ULONG_PTR Rva,
     _Out_ PVOID *Va
     );
 
