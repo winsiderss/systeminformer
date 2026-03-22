@@ -1018,7 +1018,7 @@ CleanupExit:
             context->ScanHash->Status = STATUS_UNSUCCESSFUL;
         }
 
-#pragma prefast(suppress: 26110) // Lock hanlding is correct
+#pragma prefast(suppress: 26110) // Lock handling is correct
         PhReleaseQueuedLockExclusive(&context->ScanHash->Lock);
 #pragma prefast(suppress: 6001) // FileHandle is initialized
         NtClose(context->FileHandle);
