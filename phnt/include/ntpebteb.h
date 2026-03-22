@@ -26,12 +26,15 @@ typedef struct _PEB_LDR_DATA PEB_LDR_DATA, *PPEB_LDR_DATA;
 typedef struct tagSOleTlsData SOleTlsData, *PSOleTlsData;
 typedef struct _KERNEL_CALLBACK_TABLE KERNEL_CALLBACK_TABLE, *PKERNEL_CALLBACK_TABLE;
 typedef struct _GDI_HANDLE_ENTRY GDI_HANDLE_ENTRY, *PGDI_HANDLE_ENTRY;
+typedef struct _SHIM_PROCESS_CONTEXT SHIM_PROCESS_CONTEXT, *PSHIM_PROCESS_CONTEXT;
+typedef struct _HEAP HEAP, *PHEAP;
 
 // PEB->AppCompatFlags
 #define KACF_OLDGETSHORTPATHNAME                      0x00000001
 #define KACF_VERSIONLIE_NOT_USED                      0x00000002
 #define KACF_GETTEMPPATH_NOT_USED                     0x00000004
 #define KACF_GETDISKFREESPACE                         0x00000008
+#define KACF_APPCOMPATFLAG_BIT4                       0x00000010
 #define KACF_FTMFROMCURRENTAPT                        0x00000020
 #define KACF_DISALLOWORBINDINGCHANGES                 0x00000040
 #define KACF_OLE32VALIDATEPTRS                        0x00000080
@@ -46,6 +49,7 @@ typedef struct _GDI_HANDLE_ENTRY GDI_HANDLE_ENTRY, *PGDI_HANDLE_ENTRY;
 #define KACF_OLE32DOCFILEUSELEGACYNTFSFLAGS           0x00010000
 #define KACF_RPCDISABLENDRCONSTIIDCHECK               0x00020000
 #define KACF_USERDISABLEFORWARDERPATCH                0x00040000
+#define KACF_APPCOMPATFLAG_BIT19                      0x00080000
 #define KACF_OLE32DISABLENEW_WMPAINT_DISPATCH         0x00100000
 #define KACF_ADDRESTRICTEDSIDINCOINITIALIZESECURITY   0x00200000
 #define KACF_ALLOCDEBUGINFOFORCRITSECTIONS            0x00400000
@@ -408,7 +412,7 @@ typedef struct _PEB
     //
     // Pointer to the process default heap.
     //
-    PVOID ProcessHeap;
+    PHEAP ProcessHeap;
 
     //
     // Pointer to a critical section used to synchronize access to the PEB.
@@ -708,7 +712,7 @@ typedef struct _PEB
     //
     // Pointer to the Application SwitchBack Compatibility Engine.
     //
-    PVOID pShimData;
+    PSHIM_PROCESS_CONTEXT pShimData;
 
     //
     // Pointer to the Application Compatibility Engine.
@@ -1081,7 +1085,7 @@ typedef struct _TEB
     // Reserved for win32k.sys
     //
     PVOID Win32ThreadInfo;
- 
+
     //
     // Reserved for user32.dll
     //
