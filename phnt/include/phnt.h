@@ -93,6 +93,8 @@ EXTERN_C_START
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #include <phnt_ntdef.h>
 #include <ntnls.h>
+#include <ntintsafe.h>
+#include <nttypesafe.h>
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #include <ntkeapi.h>
@@ -106,7 +108,6 @@ EXTERN_C_START
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #include <ntbcd.h>
 #include <ntdbg.h>
-#include <ntintsafe.h>
 #include <ntimage.h>
 #include <ntioapi.h>
 #include <ntlsa.h>
