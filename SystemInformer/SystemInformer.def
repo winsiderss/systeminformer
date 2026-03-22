@@ -573,6 +573,7 @@ EXPORTS
     PhFilterConnectCommunicationPort
     PhFindProcessInformation
     PhFindProcessInformationByImageName
+    PhFreezeProcess
     PhGetActiveProcessorCount
     PhGetContextThread
     PhGetDeviceType
@@ -600,6 +601,7 @@ EXPORTS
     PhGetProcedureAddress
     PhGetProcedureAddressRemote
     PhGetProcessAffinityMask
+    PhGetProcessArchitecture
     PhGetProcessCommandLine
     PhGetProcessDepStatus
     PhGetProcessDeviceMap
@@ -632,6 +634,7 @@ EXPORTS
     PhGetThreadIsTerminated
     PhGetThreadIoPriority
     PhGetThreadName
+    PhGetThreadPagePriority
     PhGetTokenAppContainerSid
     PhGetTokenGroups
     PhGetTokenIntegrityLevel
@@ -669,6 +672,8 @@ EXPORTS
     PhQueueUserWorkItem
     PhReadFile
     PhResolveDevicePrefix
+    PhResumeProcess
+    PhResumeThread
     PhRevertImpersonationToken
     PhSetFileAllocationSize
     PhSetFileIoPriorityHint
@@ -682,12 +687,16 @@ EXPORTS
     PhSetThreadBasePriority
     PhSetThreadIoPriority
     PhSetThreadName
+    PhSetThreadPagePriority
     PhSetTokenIsVirtualizationEnabled
     PhSetTokenPrivilege
     PhSetTokenPrivilege2
     PhSetTokenSessionId
     PhSetValueKey
+    PhSuspendProcess
+    PhSuspendThread
     PhTerminateProcess
+    PhThawProcess
     PhTraceControl
     PhTransceiveNamedPipe
     PhUnloadDllProcess
