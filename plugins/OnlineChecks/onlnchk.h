@@ -333,6 +333,10 @@ VOID CleanupScanning(
     VOID
     );
 
+VOID ReapScanHashCache(
+    VOID
+    );
+
 VOID InitializeScanContext(
     _Out_ PSCAN_CONTEXT Context
     );

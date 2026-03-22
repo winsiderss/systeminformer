@@ -126,6 +126,9 @@ VOID ProcessesUpdatedCallback(
     }
 
     PhReleaseQueuedLockShared(&ScanExtensionsListLock);
+
+    if ((PtrToUlong(Parameter) % 120) == 0)
+        ReapScanHashCache();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -165,7 +168,7 @@ VOID NTAPI ScanCompleteCallback(
 
         extension = CONTAINING_RECORD(listEntry, SCAN_EXTENSION, ListEntry);
 
-        if (extension == Context)
+        if (extension == Context || !extension->ScanContext.FileHash)
             continue;
 
         if (ScanHashEqual(extension->ScanContext.FileHash, FileHash))

@@ -16,11 +16,18 @@
 
 #include <winsqlite/winsqlite3.h>
 
+typedef struct _SCAN_FILE_ID
+{
+    GUID VolumeGuid;
+    FILE_ID_128 FileId;
+} SCAN_FILE_ID, *PSCAN_FILE_ID;
+
 typedef struct _SCAN_HASH
 {
+    SCAN_FILE_ID FileId;
     PPH_STRING FileName;
-    NTSTATUS Status;
     PH_QUEUED_LOCK Lock;
+    NTSTATUS Status;
     PPH_STRING Sha256;
 } SCAN_HASH, *PSCAN_HASH;
 
@@ -74,6 +81,8 @@ static PH_WORK_QUEUE ScanItemWorkQueue;
 static PH_WORK_QUEUE ScanItemWorkPriorityQueue;
 static SLIST_HEADER ScanItemQueueListHead;
 static SLIST_HEADER ScanItemPriorityQueueListHead;
+static PH_QUEUED_LOCK ScanHashHashtableLock = PH_QUEUED_LOCK_INIT;
+static PPH_HASHTABLE ScanHashHashtable = NULL;
 static PPH_STRING ScanVirusTotalPAT = NULL;
 static PPH_STRING ScanHybridAnalysisPAT = NULL;
 static PPH_STRING ScanScanningString = NULL;
@@ -1138,18 +1147,159 @@ PSCAN_ITEM CreateAndEnqueueScanItem(
     return item;
 }
 
+NTSTATUS GetScanFileId(
+    _In_ PPH_STRING FileName,
+    _Out_ PSCAN_FILE_ID FileId
+    )
+{
+    static const PH_STRINGREF volumePrefix = PH_STRINGREF_INIT(L"Volume{");
+    NTSTATUS status;
+    WCHAR volumePathName[MAX_PATH];
+    WCHAR mountPoint[MAX_PATH];
+    PH_STRINGREF mountPointRef;
+    PH_STRINGREF firstPart;
+    PH_STRINGREF secondPart;
+    UNICODE_STRING volumeGuidString;
+    HANDLE fileHandle;
+    FILE_ID_INFORMATION fileIdInfo;
+    GUID volumeGuid;
+
+    memset(FileId, 0, sizeof(SCAN_FILE_ID));
+
+    if (NT_SUCCESS(status = PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(FileName),
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        status = PhGetFileId(fileHandle, &fileIdInfo);
+        NtClose(fileHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!GetVolumePathNameW(PhGetString(FileName), volumePathName, RTL_NUMBER_OF(volumePathName)))
+        return STATUS_UNSUCCESSFUL;
+    if (!GetVolumeNameForVolumeMountPointW(volumePathName, mountPoint, RTL_NUMBER_OF(mountPoint)))
+        return STATUS_UNSUCCESSFUL;
+    PhInitializeStringRef(&mountPointRef, mountPoint);
+    if (!PhSplitStringRefAtString(&mountPointRef, &volumePrefix, FALSE, &firstPart, &secondPart))
+        return STATUS_UNSUCCESSFUL;
+    if (!PhSplitStringRefAtChar(&secondPart, L'}', &firstPart, &secondPart))
+        return STATUS_UNSUCCESSFUL;
+    firstPart.Buffer -= 1;
+    firstPart.Length += (sizeof(WCHAR) * 2);
+    if (!PhStringRefToUnicodeString(&firstPart, &volumeGuidString))
+        return STATUS_UNSUCCESSFUL;
+    if (!NT_SUCCESS(status = RtlGUIDFromString(&volumeGuidString, &volumeGuid)))
+        return status;
+
+    memcpy(&FileId->VolumeGuid, &volumeGuid, sizeof(GUID));
+    memcpy(&FileId->FileId, &fileIdInfo.FileId, sizeof(FILE_ID_128));
+
+    return status;
+}
+
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+BOOLEAN NTAPI ScanHashHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PSCAN_HASH hash1 = *((PSCAN_HASH*)Entry1);
+    PSCAN_HASH hash2 = *((PSCAN_HASH*)Entry2);
+
+    return (memcmp(&hash1->FileId, &hash2->FileId, sizeof(SCAN_FILE_ID)) == 0);
+}
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
+ULONG NTAPI ScanHashHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PSCAN_HASH hash = *((PSCAN_HASH*)Entry);
+
+    return PhHashBytes((PUCHAR)&hash->FileId, sizeof(SCAN_FILE_ID));
+}
+
+PSCAN_HASH GetScanHash(
+    _In_ PPH_STRING FileName
+    )
+{
+    PSCAN_HASH scanHash;
+    BOOLEAN havenFileId = FALSE;
+    SCAN_FILE_ID fileId;
+
+    if (NT_SUCCESS(GetScanFileId(FileName, &fileId)))
+        havenFileId = TRUE;
+
+    PhAcquireQueuedLockExclusive(&ScanHashHashtableLock);
+
+    if (havenFileId)
+    {
+        PSCAN_HASH* entry;
+        C_ASSERT(FIELD_OFFSET(SCAN_HASH, FileId) == 0);
+        scanHash = (PSCAN_HASH)&fileId;
+        entry = PhFindEntryHashtable(ScanHashHashtable, &scanHash);
+        if (entry)
+        {
+            scanHash = *entry;
+            PhReferenceObject(scanHash);
+            goto CleanupExit;
+        }
+    }
+
+    scanHash = PhCreateObject(sizeof(SCAN_HASH), ScanHashObjectType);
+    memset(scanHash, 0, sizeof(SCAN_HASH));
+    PhInitializeQueuedLock(&scanHash->Lock);
+    scanHash->FileName = PhReferenceObject(FileName);
+    scanHash->Status = STATUS_PENDING;
+
+    if (havenFileId)
+    {
+        memcpy(&scanHash->FileId, &fileId, sizeof(SCAN_FILE_ID));
+        PhReferenceObject(scanHash);
+        PhAddEntryHashtable(ScanHashHashtable, &scanHash);
+    }
+
+CleanupExit:
+
+    PhReleaseQueuedLockExclusive(&ScanHashHashtableLock);
+
+    return scanHash;
+}
+
+VOID ReapScanHashCache(
+    VOID
+    )
+{
+    PSCAN_HASH* scanHash;
+    ULONG enumerationKey = 0;
+
+    PhAcquireQueuedLockExclusive(&ScanHashHashtableLock);
+
+    while (PhEnumHashtable(ScanHashHashtable, (PVOID*)&scanHash, &enumerationKey))
+    {
+        if (PhGetObjectRefCount(*scanHash) == 1)
+        {
+            PhRemoveEntryHashtable(ScanHashHashtable, scanHash);
+            PhDereferenceObject(*scanHash);
+        }
+    }
+
+    PhReleaseQueuedLockExclusive(&ScanHashHashtableLock);
+}
+
 VOID InitializeScanContext(
     _Out_ PSCAN_CONTEXT Context
     )
 {
     memset(Context, 0, sizeof(SCAN_CONTEXT));
-    if (ScanHashObjectType) // checks if scanning is enabled
-    {
-        Context->FileHash = PhCreateObject(sizeof(SCAN_HASH), ScanHashObjectType);;
-        memset(Context->FileHash, 0, sizeof(SCAN_HASH));
-        PhInitializeQueuedLock(&Context->FileHash->Lock);
-        Context->FileHash->Status = STATUS_PENDING;
-    }
 }
 
 VOID EnqueueScanInternal(
@@ -1165,8 +1315,8 @@ VOID EnqueueScanInternal(
     PPH_STRING previousResult = NULL;
     PSCAN_ITEM item;
 
-    if (!Context->FileHash->FileName)
-        Context->FileHash->FileName = PhReferenceObject(FileName);
+    if (!Context->FileHash)
+        Context->FileHash = GetScanHash(FileName);
 
     if (Context->ScanItems[Type])
     {
@@ -1361,6 +1511,12 @@ BOOLEAN InitializeScanning(
     PhInitializeWorkQueue(&ScanItemWorkPriorityQueue, 0, 3, 500);
     RtlInitializeSListHead(&ScanItemQueueListHead);
     RtlInitializeSListHead(&ScanItemPriorityQueueListHead);
+    ScanHashHashtable = PhCreateHashtable(
+        sizeof(PSCAN_HASH),
+        ScanHashHashtableEqualFunction,
+        ScanHashHashtableHashFunction,
+        100
+        );
 
     if (!LoadSQLite())
         goto CleanupExit;

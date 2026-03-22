@@ -298,6 +298,7 @@ EXPORTS
     PhDereferenceObjectDeferDelete
     PhDereferenceObjectEx
     PhDrainAutoPool
+    PhGetObjectRefCount
     PhGetObjectType
     PhGetObjectTypeInformation
     PhInitializeAutoPool
@@ -582,6 +583,7 @@ EXPORTS
     PhGetDriverName
     PhGetDriverServiceKeyName
     PhGetFileFullAttributesInformation
+    PhGetFileId
     PhGetFileName
     PhGetFilePosition
     PhGetFileSize
