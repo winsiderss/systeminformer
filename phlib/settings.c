@@ -423,7 +423,7 @@ BOOLEAN PhGetScalableIntegerPairStringRefSetting(
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    if (ScaleToDpi)
+    if (ScaleToDpi && value)
     {
         if (value->Scale != Dpi && value->Scale != 0)
         {
@@ -1484,24 +1484,6 @@ NTSTATUS PhSaveSettingsJson(
     {
         switch (setting->Type)
         {
-        //case IntegerSettingType:
-        //    {
-        //        PPH_BYTES stringName = PhConvertStringRefToUtf8(&setting->Name);
-        //        PhAddJsonObjectInt64(object, stringName->Buffer, setting->u.Integer);
-        //        PhAddItemList(strings, stringName);
-        //    }
-        //    break;
-        //case IntegerPairSettingType:
-        //    {
-        //        PPH_BYTES stringName = PhConvertStringRefToUtf8(&setting->Name);
-        //        ULARGE_INTEGER value;
-        //
-        //        value.LowPart = setting->u.IntegerPair.X;
-        //        value.HighPart = setting->u.IntegerPair.Y;
-        //        PhAddJsonObjectUInt64(object, stringName->Buffer, value.QuadPart);
-        //        PhAddItemList(strings, stringName);
-        //    }
-        //    break;
         case IntegerSettingType:
         case IntegerPairSettingType:
         case StringSettingType:
