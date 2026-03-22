@@ -2709,6 +2709,7 @@ BOOLEAN PhLoadWindowPlacementFromSetting(
 
         if (SizeSettingName)
         {
+            PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair;
             //RECT rect;
             //
             //windowRectangle.Position = position;
