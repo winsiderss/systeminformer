@@ -1203,6 +1203,40 @@ PVOID PhGetLoaderEntryDllBase(
 }
 
 /**
+ * Retrieves the NT headers and export directory of a loaded module.
+ *
+ * \param [in] BaseAddress The base address of the module.
+ * \param [out] ImageNtHeader A pointer that receives the NT headers.
+ * \param [out] DataDirectory A pointer that receives the export data directory entry.
+ * \param [out] ExportDirectory A pointer that receives the export directory structure.
+ *
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS PhpGetExportDirectory(
+    _In_ PVOID BaseAddress,
+    _Out_ PIMAGE_NT_HEADERS* ImageNtHeader,
+    _Out_ PIMAGE_DATA_DIRECTORY* DataDirectory,
+    _Out_ PIMAGE_EXPORT_DIRECTORY* ExportDirectory
+    )
+{
+    NTSTATUS status;
+
+    status = PhGetLoaderEntryImageNtHeaders(BaseAddress, ImageNtHeader);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    return PhGetLoaderEntryImageDirectory(
+        BaseAddress,
+        *ImageNtHeader,
+        IMAGE_DIRECTORY_ENTRY_EXPORT,
+        DataDirectory,
+        ExportDirectory,
+        NULL
+        );
+}
+
+/**
  * Retrieves the address of an exported function from a loaded DLL.
  *
  * \param[in] DllBase The base address of the DLL.
@@ -1238,18 +1272,15 @@ PVOID PhGetDllBaseProcedureAddress(
         PhEndInitOnce(&initOnce);
     }
 
-    if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(DllBase, &imageNtHeader)))
-        return NULL;
-
-    if (!NT_SUCCESS(PhGetLoaderEntryImageDirectory(
+    if (!NT_SUCCESS(PhpGetExportDirectory(
         DllBase,
-        imageNtHeader,
-        IMAGE_DIRECTORY_ENTRY_EXPORT,
+        &imageNtHeader,
         &dataDirectory,
-        &exportDirectory,
-        NULL
+        &exportDirectory
         )))
+    {
         return NULL;
+    }
 
     exportAddress = PhGetLoaderEntryImageExportFunction(
         DllBase,
@@ -1462,50 +1493,30 @@ NTSTATUS PhGetLoaderEntryImageVaToSection(
     _Out_ SIZE_T *ImageSectionLength
     )
 {
-    SIZE_T directorySectionLength = 0;
-    PIMAGE_SECTION_HEADER section;
+    NTSTATUS status;
     PIMAGE_SECTION_HEADER sectionHeader;
-    PVOID directorySectionAddress = NULL;
-    PVOID imageSectionStart;
-    ULONG imageSectionSize;
-    PVOID imageSectionEnd;
+    PVOID rva;
 
-    section = IMAGE_FIRST_SECTION(ImageNtHeader);
+    rva = PTR_SUB_OFFSET(ImageDirectoryAddress, BaseAddress);
 
-    for (USHORT i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
+    status = PhLoaderEntryImageRvaToSection(
+        ImageNtHeader,
+        PtrToUlong(rva),
+        &sectionHeader,
+        ImageSectionLength
+        );
+
+    if (NT_SUCCESS(status))
     {
-        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
-
-        // Note: VirtualSize is used by the loader, SizeOfRawData is used for file on disk.
-        // A .bss section in a PE file might have SizeOfRawData = 0 (since it is not stored in the file) 
-        // and VirtualSize = 4096 (the amount of memory to allocate and zero-fill).
-        // The section length must be the maximum of the two values.
-
-        imageSectionStart = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
-        imageSectionSize = max(sectionHeader->Misc.VirtualSize, sectionHeader->SizeOfRawData);
-        imageSectionEnd = PTR_ADD_OFFSET(imageSectionStart, imageSectionSize);
-
-        if (
-            ((ULONG_PTR)ImageDirectoryAddress >= (ULONG_PTR)imageSectionStart) &&
-            ((ULONG_PTR)ImageDirectoryAddress < (ULONG_PTR)imageSectionEnd)
-            )
-        {
-            directorySectionLength = imageSectionSize;
-            directorySectionAddress = imageSectionStart;
-            break;
-        }
+        *ImageSectionAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
+    }
+    else
+    {
+        *ImageSectionAddress = NULL;
+        *ImageSectionLength = 0;
     }
 
-    if (directorySectionAddress && directorySectionLength)
-    {
-        *ImageSectionAddress = directorySectionAddress;
-        *ImageSectionLength = directorySectionLength;
-        return STATUS_SUCCESS;
-    }
-
-    *ImageSectionAddress = NULL;
-    *ImageSectionLength = 0;
-    return STATUS_SECTION_NOT_IMAGE;
+    return status;
 }
 
 /**
@@ -1521,8 +1532,8 @@ NTSTATUS PhGetLoaderEntryImageVaToSection(
  */
 NTSTATUS PhLoaderEntryImageRvaToFileOffset(
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _In_ ULONG Rva,
-    _Out_ PULONG Offset
+    _In_ ULONG_PTR Rva,
+    _Out_ PULONG_PTR Offset
     )
 {
     PIMAGE_SECTION_HEADER section;
@@ -1562,7 +1573,7 @@ NTSTATUS PhLoaderEntryImageRvaToFileOffset(
  */
 NTSTATUS PhLoaderEntryImageRvaToSection(
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _In_ ULONG Rva,
+    _In_ ULONG_PTR Rva,
     _Out_ PIMAGE_SECTION_HEADER *ImageSection,
     _Out_ SIZE_T *ImageSectionLength
     )
@@ -1571,9 +1582,9 @@ NTSTATUS PhLoaderEntryImageRvaToSection(
     PIMAGE_SECTION_HEADER section;
     PIMAGE_SECTION_HEADER sectionHeader;
     PIMAGE_SECTION_HEADER directorySectionHeader = NULL;
-    ULONG imageSectionAddress;
+    SIZE_T imageSectionAddress;
     SIZE_T imageSectionLength;
-    PVOID imageSectionMaximum;
+    SIZE_T imageSectionMaximum;
 
     section = IMAGE_FIRST_SECTION(ImageNtHeader);
 
@@ -1583,7 +1594,7 @@ NTSTATUS PhLoaderEntryImageRvaToSection(
 
         imageSectionAddress = sectionHeader->VirtualAddress;
         imageSectionLength = __max(sectionHeader->Misc.VirtualSize, sectionHeader->SizeOfRawData);
-        imageSectionMaximum = PTR_ADD_OFFSET(imageSectionAddress, imageSectionLength);
+        imageSectionMaximum = imageSectionAddress + imageSectionLength;
 
         if (
             ((ULONG_PTR)Rva >= (ULONG_PTR)imageSectionAddress) &&
@@ -1621,7 +1632,7 @@ NTSTATUS PhLoaderEntryImageRvaToSection(
  */
 NTSTATUS PhLoaderEntryImageRvaToVa(
     _In_ PVOID BaseAddress,
-    _In_ ULONG Rva,
+    _In_ ULONG_PTR Rva,
     _Out_ PVOID *Va
     )
 {
@@ -1648,8 +1659,8 @@ NTSTATUS PhLoaderEntryImageRvaToVa(
     if (!NT_SUCCESS(status))
         return status;
 
-    *Va = PTR_ADD_OFFSET(BaseAddress, PTR_ADD_OFFSET(
-        PTR_SUB_OFFSET(Rva, imageSection->VirtualAddress),
+    *Va = PTR_ADD_OFFSET(BaseAddress, UInt32Add32To64(
+        UInt32Sub32To64(Rva, imageSection->VirtualAddress),
         imageSection->PointerToRawData
         ));
 
@@ -1741,6 +1752,7 @@ VOID PhLoaderEntryGrantSuppressedCall(
  */
 static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(
     _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
     _In_ PULONG ExportNameTable,
     _In_ PCSTR ExportName
@@ -1749,10 +1761,12 @@ static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(
     LONG low;
     LONG high;
     LONG i;
+    ULONG imageSize;
 
     if (ExportDirectory->NumberOfNames == 0)
         return ULONG_MAX;
 
+    imageSize = ImageNtHeader->OptionalHeader.SizeOfImage;
     low = 0;
     high = ExportDirectory->NumberOfNames - 1;
 
@@ -1760,13 +1774,16 @@ static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(
     {
         PSTR name;
         INT comparison;
+        ULONG nameRva;
 
         i = (low + high) / 2;
-        name = PTR_ADD_OFFSET(BaseAddress, ExportNameTable[i]);
+        nameRva = ExportNameTable[i];
 
-        if (!name)
+        // Validate that the name RVA is within the image bounds. (dmex)
+        if (nameRva == 0 || nameRva >= imageSize)
             return ULONG_MAX;
 
+        name = PTR_ADD_OFFSET(BaseAddress, nameRva);
         comparison = strcmp(ExportName, name);
 
         if (comparison == 0)
@@ -1842,6 +1859,99 @@ static BOOLEAN PhpValidateExportTableRvas(
 }
 
 /**
+ * Resolves a forwarded export by loading the target library and looking up the procedure.
+ *
+ * \param[in] BaseAddress The base address of the image containing the forwarder.
+ * \param[in] ExportAddress The address of the forwarder string or the function address.
+ * \param[in] DataDirectory The export data directory.
+ * \param[in] ExportDirectory The export directory structure.
+ * \return The resolved procedure address, or NULL if resolution failed.
+ * \remarks This function checks if ExportAddress falls within the range of the export directory.
+ * If it does, it's treated as a null-terminated string containing the target DLL and function
+ * (e.g., "NTDLL.NtCreateFile"). The function then loads the target DLL and recursively
+ * resolves the export.
+ */
+static PVOID PhpResolveExportForwarder(
+    _In_ PVOID BaseAddress,
+    _In_ PVOID ExportAddress,
+    _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
+    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory
+    )
+{
+    if (
+        ((ULONG_PTR)ExportAddress >= (ULONG_PTR)ExportDirectory) &&
+        ((ULONG_PTR)ExportAddress < (ULONG_PTR)PTR_ADD_OFFSET(ExportDirectory, DataDirectory->Size))
+        )
+    {
+        SIZE_T dllForwarderLength;
+        PH_STRINGREF dllNameRef;
+        PH_STRINGREF dllForwarderRef;
+        PH_STRINGREF dllProcedureRef;
+        WCHAR dllForwarderName[DOS_MAX_PATH_LENGTH] = L"";
+
+        // This is a forwarder RVA.
+
+        dllForwarderLength = PhCountBytesZ((PCSTR)ExportAddress);
+        PhZeroExtendToUtf16Buffer((PCSTR)ExportAddress, dllForwarderLength, dllForwarderName);
+        dllForwarderRef.Length = dllForwarderLength * sizeof(WCHAR);
+        dllForwarderRef.Buffer = dllForwarderName;
+
+        if (PhSplitStringRefAtChar(&dllForwarderRef, L'.', &dllNameRef, &dllProcedureRef))
+        {
+            PVOID libraryDllBase;
+            WCHAR libraryName[DOS_MAX_PATH_LENGTH] = L"";
+
+            if (memcpy_s(libraryName, sizeof(libraryName), dllNameRef.Buffer, dllNameRef.Length) != 0)
+            {
+                return NULL;
+            }
+
+            if (libraryDllBase = PhLoadLibrary(libraryName))
+            {
+                CHAR libraryFunctionName[DOS_MAX_PATH_LENGTH] = "";
+
+                if (!NT_SUCCESS(PhConvertUtf16ToUtf8Buffer(
+                    libraryFunctionName,
+                    sizeof(libraryFunctionName),
+                    NULL,
+                    dllProcedureRef.Buffer,
+                    dllProcedureRef.Length
+                    )))
+                {
+                    return NULL;
+                }
+
+                if (libraryFunctionName[0] == '#') // This is a forwarder RVA with an ordinal import.
+                {
+                    LONG64 importOrdinal64;
+                    USHORT importOrdinal;
+
+                    PhSkipStringRef(&dllProcedureRef, sizeof(L'#'));
+
+                    if (PhStringToInteger64(&dllProcedureRef, 10, &importOrdinal64))
+                    {
+                        if (NT_SUCCESS(RtlLong64ToUShort(importOrdinal64, &importOrdinal)))
+                        {
+                            ExportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, NULL, importOrdinal);
+                        }
+                    }
+                    else
+                    {
+                        ExportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionName, 0);
+                    }
+                }
+                else
+                {
+                    ExportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionName, 0);
+                }
+            }
+        }
+    }
+
+    return ExportAddress;
+}
+
+/**
  * Retrieves the address of an exported function from an image's export directory.
  *
  * \param [in] BaseAddress The base address of the image.
@@ -1869,10 +1979,12 @@ PVOID PhGetLoaderEntryImageExportFunction(
     PULONG exportAddressTable;
     PULONG exportNameTable;
     PUSHORT exportOrdinalTable;
+    ULONG imageSize;
 
     if (!PhpValidateExportTableRvas(ImageNtHeader, ExportDirectory))
         return NULL;
 
+    imageSize = ImageNtHeader->OptionalHeader.SizeOfImage;
     exportAddressTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfFunctions);
     exportNameTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNames);
     exportOrdinalTable = PTR_ADD_OFFSET(BaseAddress, ExportDirectory->AddressOfNameOrdinals);
@@ -1880,21 +1992,38 @@ PVOID PhGetLoaderEntryImageExportFunction(
     if (ExportOrdinal)
     {
         ULONG maxOrdinal;
+        ULONG functionRva;
 
+        if (ExportOrdinal < ExportDirectory->Base)
+            return NULL;
         if (!NT_SUCCESS(RtlULongAdd(ExportDirectory->Base, ExportDirectory->NumberOfFunctions, &maxOrdinal)))
             return NULL;
 
         if (ExportOrdinal > maxOrdinal)
             return NULL;
 
-        exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[ExportOrdinal - ExportDirectory->Base]);
+        // Fix: Validate that the function RVA is non-zero and within the image bounds. (dmex)
+
+        functionRva = exportAddressTable[ExportOrdinal - ExportDirectory->Base];
+
+        if (functionRva == 0 || functionRva >= imageSize)
+        {
+            // In the PE specification, an RVA of 0 in the Export Address Table indicates that 
+            // the function is not exported (often used for skipped ordinals).  (dmex)
+            return NULL;
+        }
+
+        exportAddress = PTR_ADD_OFFSET(BaseAddress, functionRva);
     }
     else if (ExportName)
     {
         ULONG exportIndex;
+        USHORT ordinalIndex;
+        ULONG functionRva;
 
         exportIndex = PhpLookupLoaderEntryImageExportFunctionIndex(
             BaseAddress,
+            ImageNtHeader,
             ExportDirectory,
             exportNameTable,
             ExportName
@@ -1903,86 +2032,25 @@ PVOID PhGetLoaderEntryImageExportFunction(
         if (exportIndex == ULONG_MAX)
             return NULL;
 
-        exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[exportIndex]]);
+        ordinalIndex = exportOrdinalTable[exportIndex];
 
-        //for (exportIndex = 0; exportIndex < ExportDirectory->NumberOfNames; exportIndex++)
-        //{
-        //    if (PhEqualBytesZ(ExportName, PTR_ADD_OFFSET(BaseAddress, exportNameTable[exportIndex]), FALSE))
-        //    {
-        //        exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[exportIndex]]);
-        //        break;
-        //    }
-        //}
+        if (ordinalIndex >= ExportDirectory->NumberOfFunctions)
+            return NULL;
+
+        // Fix: Validate that the function RVA is non-zero and within the image bounds. (dmex)
+        // In the PE specification, an RVA of 0 in the Export Address Table indicates that 
+        // the function is not exported (often used for skipped ordinals).
+        functionRva = exportAddressTable[ordinalIndex];
+        if (functionRva == 0 || functionRva >= imageSize)
+            return NULL;
+
+        exportAddress = PTR_ADD_OFFSET(BaseAddress, functionRva);
     }
 
     if (!exportAddress)
         return NULL;
 
-    if (
-        ((ULONG_PTR)exportAddress >= (ULONG_PTR)ExportDirectory) &&
-        ((ULONG_PTR)exportAddress < (ULONG_PTR)PTR_ADD_OFFSET(ExportDirectory, DataDirectory->Size))
-        )
-    {
-        SIZE_T dllForwarderLength;
-        PH_STRINGREF dllNameRef;
-        PH_STRINGREF dllForwarderRef;
-        PH_STRINGREF dllProcedureRef;
-        WCHAR dllForwarderName[DOS_MAX_PATH_LENGTH] = L"";
-
-        // This is a forwarder RVA.
-
-        dllForwarderLength = PhCountBytesZ((PCSTR)exportAddress);
-        PhZeroExtendToUtf16Buffer((PCSTR)exportAddress, dllForwarderLength, dllForwarderName);
-        dllForwarderRef.Length = dllForwarderLength * sizeof(WCHAR);
-        dllForwarderRef.Buffer = dllForwarderName;
-
-        if (PhSplitStringRefAtChar(&dllForwarderRef, L'.', &dllNameRef, &dllProcedureRef))
-        {
-            PVOID libraryDllBase;
-            WCHAR libraryName[DOS_MAX_PATH_LENGTH] = L"";
-
-            if (memcpy_s(libraryName, sizeof(libraryName), dllNameRef.Buffer, dllNameRef.Length))
-            {
-                return NULL;
-            }
-
-            libraryDllBase = PhLoadLibrary(libraryName);
-
-            if (libraryDllBase)
-            {
-                CHAR libraryFunctionName[DOS_MAX_PATH_LENGTH] = "";
-
-                if (!NT_SUCCESS(PhConvertUtf16ToUtf8Buffer(
-                    libraryFunctionName,
-                    sizeof(libraryFunctionName),
-                    NULL,
-                    dllProcedureRef.Buffer,
-                    dllProcedureRef.Length
-                    )))
-                {
-                    return NULL;
-                }
-
-                if (libraryFunctionName[0] == '#') // This is a forwarder RVA with an ordinal import.
-                {
-                    LONG64 importOrdinal;
-
-                    PhSkipStringRef(&dllProcedureRef, sizeof(L'#'));
-
-                    if (PhStringToInteger64(&dllProcedureRef, 10, &importOrdinal))
-                        exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, NULL, (USHORT)importOrdinal);
-                    else
-                        exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionName, 0);
-                }
-                else
-                {
-                    exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionName, 0);
-                }
-            }
-        }
-    }
-
-    return exportAddress;
+    return PhpResolveExportForwarder(BaseAddress, exportAddress, DataDirectory, ExportDirectory);
 }
 
 /**
@@ -2027,77 +2095,31 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
         PULONG exportAddressTable = PTR_ADD_OFFSET(BaseAddress, exportDirectory->AddressOfFunctions);
         PULONG exportNameTable = PTR_ADD_OFFSET(BaseAddress, exportDirectory->AddressOfNames);
         PUSHORT exportOrdinalTable = PTR_ADD_OFFSET(BaseAddress, exportDirectory->AddressOfNameOrdinals);
+        ULONG exportNameRva = exportNameTable[ProcedureHint];
 
-        // If the import hint matches the export name then return the address.
-        if (PhEqualBytesZ(ProcedureName, PTR_ADD_OFFSET(BaseAddress, exportNameTable[ProcedureHint]), FALSE))
+        if (exportNameRva != 0 && exportNameRva < imageNtHeader->OptionalHeader.SizeOfImage)
         {
-            PVOID exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[ProcedureHint]]);
+            PCSTR exportName = PTR_ADD_OFFSET(BaseAddress, exportNameRva);
 
-            if (
-                ((ULONG_PTR)exportAddress >= (ULONG_PTR)exportDirectory) &&
-                ((ULONG_PTR)exportAddress < (ULONG_PTR)PTR_ADD_OFFSET(exportDirectory, dataDirectory->Size))
-                )
+            if (PhEqualBytesZ(ProcedureName, exportName, FALSE))
             {
-                SIZE_T dllForwarderLength;
-                PH_STRINGREF dllNameRef;
-                PH_STRINGREF dllForwarderRef;
-                PH_STRINGREF dllProcedureRef;
-                WCHAR dllForwarderName[DOS_MAX_PATH_LENGTH] = L"";
+                USHORT exportOrdinal = exportOrdinalTable[ProcedureHint];
 
-                // This is a forwarder RVA.
-
-                dllForwarderLength = PhCountBytesZ((PCSTR)exportAddress);
-                PhZeroExtendToUtf16Buffer((PCSTR)exportAddress, dllForwarderLength, dllForwarderName);
-                dllForwarderRef.Length = dllForwarderLength * sizeof(WCHAR);
-                dllForwarderRef.Buffer = dllForwarderName;
-
-                if (PhSplitStringRefAtChar(&dllForwarderRef, L'.', &dllNameRef, &dllProcedureRef))
+                if (exportOrdinal < exportDirectory->NumberOfFunctions)
                 {
-                    PVOID libraryDllBase;
-                    WCHAR libraryName[DOS_MAX_PATH_LENGTH] = L"";
+                    ULONG exportRva = exportAddressTable[exportOrdinal];
 
-                    if (memcpy_s(libraryName, sizeof(libraryName), dllNameRef.Buffer, dllNameRef.Length))
+                    // Fix: Validate that the function RVA is non-zero and within the image bounds. (dmex)
+                    // In the PE specification, an RVA of 0 in the Export Address Table indicates that 
+                    // the function is not exported (often used for skipped ordinals).
+                    if (exportRva != 0 && exportRva < imageNtHeader->OptionalHeader.SizeOfImage)
                     {
-                        return NULL;
-                    }
+                        PVOID exportAddress = PTR_ADD_OFFSET(BaseAddress, exportRva);
 
-                    libraryDllBase = PhLoadLibrary(libraryName);
-
-                    if (libraryDllBase)
-                    {
-                        CHAR libraryFunctionName[DOS_MAX_PATH_LENGTH] = "";
-
-                        if (!NT_SUCCESS(PhConvertUtf16ToUtf8Buffer(
-                            libraryFunctionName,
-                            sizeof(libraryFunctionName),
-                            NULL,
-                            dllProcedureRef.Buffer,
-                            dllProcedureRef.Length
-                            )))
-                        {
-                            return NULL;
-                        }
-
-                        if (libraryFunctionName[0] == '#') // This is a forwarder RVA with an ordinal import.
-                        {
-                            LONG64 importOrdinal;
-
-                            PhSkipStringRef(&dllProcedureRef, sizeof(L'#'));
-
-                            if (PhStringToInteger64(&dllProcedureRef, 10, &importOrdinal))
-                                exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, NULL, (USHORT)importOrdinal);
-                            else
-                                exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionName, 0);
-                        }
-                        else
-                        {
-                            exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionName, 0);
-                        }
+                        return PhpResolveExportForwarder(BaseAddress, exportAddress, dataDirectory, exportDirectory);
                     }
                 }
             }
-
-            return exportAddress;
         }
     }
 
