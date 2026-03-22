@@ -91,11 +91,11 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryBasicInformation,                     // q: MEMORY_BASIC_INFORMATION
     MemoryWorkingSetInformation,                // q: MEMORY_WORKING_SET_INFORMATION
     MemoryMappedFilenameInformation,            // q: UNICODE_STRING
-    MemoryRegionInformation,                    // q: MEMORY_REGION_INFORMATION
+    MemoryRegionInformation,                    // q: MEMORY_REGION_INFORMATION/MEMORY_REGION_INFORMATION_EX
     MemoryWorkingSetExInformation,              // q: MEMORY_WORKING_SET_EX_INFORMATION // since VISTA
     MemorySharedCommitInformation,              // q: MEMORY_SHARED_COMMIT_INFORMATION // since WIN8
     MemoryImageInformation,                     // q: MEMORY_IMAGE_INFORMATION
-    MemoryRegionInformationEx,                  // q: MEMORY_REGION_INFORMATION
+    MemoryRegionInformationEx,                  // q: MEMORY_REGION_INFORMATION/MEMORY_REGION_INFORMATION_EX
     MemoryPrivilegedBasicInformation,           // q: MEMORY_BASIC_INFORMATION
     MemoryEnclaveImageInformation,              // q: MEMORY_ENCLAVE_IMAGE_INFORMATION // since REDSTONE3
     MemoryBasicInformationCapped,               // q: 10
@@ -184,37 +184,49 @@ typedef struct _MEMORY_WORKING_SET_INFORMATION
     _Field_size_(NumberOfEntries) MEMORY_WORKING_SET_BLOCK WorkingSetInfo[ANYSIZE_ARRAY];
 } MEMORY_WORKING_SET_INFORMATION, *PMEMORY_WORKING_SET_INFORMATION;
 
+typedef union _MEMORY_REGION_INFORMATION_TYPE
+{
+    ULONG RegionType;
+    struct
+    {
+        ULONG Private : 1;                 // Region is private to the process (not shared).
+        ULONG MappedDataFile : 1;          // Region is a mapped view of a data file (read/write data mapping).
+        ULONG MappedImage : 1;             // Region is a mapped view of an image file (executable/DLL mapping).
+        ULONG MappedPageFile : 1;          // Region is a mapped view of a pagefile-backed section.
+        ULONG MappedPhysical : 1;          // Region is a mapped view of the \Device\PhysicalMemory section.
+        ULONG DirectMapped : 1;            // Region is a mapped view of a direct-mapped file.
+        ULONG SoftwareEnclave : 1;         // Region is a mapped view of a software enclave. // since REDSTONE3
+        ULONG PageSize64K : 1;             // Region uses 64 KB page size.
+        ULONG PlaceholderReservation : 1;  // Region uses placeholder reservations. // since REDSTONE4
+        ULONG MappedAwe : 1;               // Region uses Address Windowing Extensions (AWE). // 21H1
+        ULONG MappedWriteWatch : 1;        // Region uses write-watch protection.
+        ULONG PageSizeLarge : 1;           // Region uses large page size.
+        ULONG PageSizeHuge : 1;            // Region uses huge page size.
+        ULONG Reserved : 19;
+    };
+} MEMORY_REGION_INFORMATION_TYPE, *PMEMORY_REGION_INFORMATION_TYPE;
+
 // private
 typedef struct _MEMORY_REGION_INFORMATION
 {
-    PVOID AllocationBase;                             // Base address of the allocation.
-    ULONG AllocationProtect;                          // Page protection when the allocation was created (individual pages can be different from this value).
-    union
-    {
-        ULONG RegionType;
-        struct
-        {
-            ULONG Private : 1;                        // Region is private to the process (not shared).
-            ULONG MappedDataFile : 1;                 // Region is a mapped view of a data file (read/write data mapping).
-            ULONG MappedImage : 1;                    // Region is a mapped view of an image file (executable/DLL mapping).
-            ULONG MappedPageFile : 1;                 // Region is a mapped view of a pagefile-backed section.
-            ULONG MappedPhysical : 1;                 // Region is a mapped view of the \Device\PhysicalMemory section.
-            ULONG DirectMapped : 1;                   // Region is a mapped view of a direct-mapped file.
-            ULONG SoftwareEnclave : 1;                // Region is a mapped view of a software enclave. // since REDSTONE3
-            ULONG PageSize64K : 1;                    // Region uses 64 KB page size.
-            ULONG PlaceholderReservation : 1;         // Region uses placeholder reservations. // since REDSTONE4
-            ULONG MappedAwe : 1; // 21H1              // Region uses Address Windowing Extensions (AWE).
-            ULONG MappedWriteWatch : 1;               // Region uses write-watch protection.
-            ULONG PageSizeLarge : 1;                  // Region uses large page size.
-            ULONG PageSizeHuge : 1;                   // Region uses huge page size.
-            ULONG Reserved : 19;
-        };
-    };
-    SIZE_T RegionSize;                                // The combined size of pages in the region.
-    SIZE_T CommitSize;                                // The commit charge associated with the allocation.
-    ULONG_PTR PartitionId; // 19H1
-    ULONG_PTR NodePreference; // 20H1
+    PVOID AllocationBase;                  // Base address of the allocation.
+    ULONG AllocationProtect;               // Page protection when the allocation was created (individual pages can be different from this value).
+    ULONG RegionType;                      // Region type flags.
+    SIZE_T RegionSize;                     // The combined size of pages in the region.
+    SIZE_T CommitSize;                     // The commit charge associated with the allocation.
 } MEMORY_REGION_INFORMATION, *PMEMORY_REGION_INFORMATION;
+
+// private
+typedef struct _MEMORY_REGION_INFORMATION_EX
+{
+    PVOID AllocationBase;                  // Base address of the allocation.
+    ULONG AllocationProtect;               // Page protection when the allocation was created (individual pages can be different from this value).
+    ULONG RegionType;                      // Region type flags.
+    SIZE_T RegionSize;                     // The combined size of pages in the region.
+    SIZE_T CommitSize;                     // The commit charge associated with the allocation.
+    ULONG_PTR PartitionId;                 // 19H1
+    ULONG_PTR NodePreference;              // 20H1
+} MEMORY_REGION_INFORMATION_EX, *PMEMORY_REGION_INFORMATION_EX;
 
 // private
 typedef enum _MEMORY_WORKING_SET_EX_LOCATION
