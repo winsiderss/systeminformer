@@ -645,6 +645,40 @@ typedef struct MSLAYOUT DacpMethodDescTransparencyData
 #endif
 } DacpMethodDescTransparencyData;
 
+typedef enum OptimizationTier
+{
+    OptimizationTier_Unknown,
+    OptimizationTier_MinOptJitted,
+    OptimizationTier_Optimized,
+    OptimizationTier_QuickJitted,
+    OptimizationTier_OptimizedTier1,
+    OptimizationTier_ReadyToRun,
+    OptimizationTier_OptimizedTier1OSR,
+    OptimizationTier_QuickJittedInstrumented,
+    OptimizationTier_OptimizedTier1Instrumented,
+} OptimizationTier;
+
+typedef struct MSLAYOUT DacpTieredVersionData
+{
+    CLRDATA_ADDRESS NativeCodeAddr;
+    OptimizationTier OptimizationTier;
+    CLRDATA_ADDRESS NativeCodeVersionNodePtr;
+
+#if defined(__cplusplus)
+    HRESULT Request(ISOSDacInterface *sos, CLRDATA_ADDRESS methodDesc, int rejitId, int cNativeCodeAddrs, int *pcNativeCodeAddrs)
+    {
+        HRESULT hr;
+        ISOSDacInterface5 *psos5 = NULL;
+        if (SUCCEEDED(hr = sos->QueryInterface(__uuidof(ISOSDacInterface5), (void**) &psos5)))
+        {
+            hr = psos5->GetTieredVersions(methodDesc, rejitId, this, cNativeCodeAddrs, pcNativeCodeAddrs);
+            psos5->Release();
+        }
+        return hr;
+    }
+#endif
+} DacpTieredVersionData;
+
 typedef enum JITTypes
 {
     TYPE_UNKNOWN = 0,
@@ -1151,5 +1185,6 @@ static_assert(sizeof(DacpFrameData) == 0x8, "Dacp structs cannot be modified due
 static_assert(sizeof(DacpJitCodeHeapInfo) == 0x18, "Dacp structs cannot be modified due to backwards compatibility.");
 static_assert(sizeof(DacpExceptionObjectData) == 0x38, "Dacp structs cannot be modified due to backwards compatibility.");
 static_assert(sizeof(DacpMethodTableCollectibleData) == 0x10, "Dacp structs cannot be modified due to backwards compatibility.");
+static_assert(sizeof(DacpTieredVersionData) == 0x18, "Dacp structs cannot be modified due to backwards compatibility.");
 
 #endif  // _DACPRIVATE_H_
