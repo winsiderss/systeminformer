@@ -236,6 +236,9 @@
     <ClCompile Include="basestring.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="nativeobject.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">

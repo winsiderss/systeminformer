@@ -131,6 +131,7 @@ set(SOURCES
     "nativefile.c"
     "nativeflt.c"
     "nativemodule.c"
+    "nativeobject.c"
     "nativejob.c"
     "nativekey.c"
     "nativetxn.c"

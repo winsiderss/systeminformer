@@ -2815,19 +2815,19 @@ PhFreeSid(
 #endif
 }
 
-FORCEINLINE
-VOID
-NTAPI
-PhDeleteBoundaryDescriptor(
-    _In_ _Post_invalid_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
-    )
-{
-#if defined(PHNT_NATIVE_INLINE)
-    RtlDeleteBoundaryDescriptor(BoundaryDescriptor);
-#else
-    RtlFreeHeap(RtlProcessHeap(), 0, BoundaryDescriptor);
-#endif
-}
+//FORCEINLINE
+//VOID
+//NTAPI
+//PhDeleteBoundaryDescriptor(
+//    _In_ _Post_invalid_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
+//    )
+//{
+//#if defined(PHNT_NATIVE_INLINE)
+//    RtlDeleteBoundaryDescriptor(BoundaryDescriptor);
+//#else
+//    RtlFreeHeap(RtlProcessHeap(), 0, BoundaryDescriptor);
+//#endif
+//}
 
 //#define RtlDeleteSecurityObject(ObjectDescriptor) RtlFreeHeap(RtlProcessHeap(), 0, *(ObjectDescriptor))
 //FORCEINLINE
@@ -2887,7 +2887,7 @@ PhDestroyProcessParameters(
 //#define RtlFreeSid(Sid) RtlFreeHeap(RtlProcessHeap(), 0, (Sid))
 #define RtlFreeSid PhFreeSid
 //#define RtlDeleteBoundaryDescriptor(BoundaryDescriptor) RtlFreeHeap(RtlProcessHeap(), 0, (BoundaryDescriptor))
-#define RtlDeleteBoundaryDescriptor PhDeleteBoundaryDescriptor
+//#define RtlDeleteBoundaryDescriptor PhDeleteBoundaryDescriptor
 //#define RtlDestroyEnvironment(Environment) RtlFreeHeap(RtlProcessHeap(), 0, (Environment))
 #define RtlDestroyEnvironment PhDestroyEnvironment
 //#define RtlDestroyProcessParameters(ProcessParameters) RtlFreeHeap(RtlProcessHeap(), 0, (ProcessParameters))
@@ -3926,6 +3926,85 @@ PhOpenDirectoryObject(
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF ObjectName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateDirectoryObject(
+    _Out_ PHANDLE DirectoryHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PCPH_STRINGREF ObjectName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreatePrivateNamespace(
+    _Out_ PHANDLE NamespaceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PCPH_STRINGREF ObjectName,
+    _In_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhOpenPrivateNamespace(
+    _Out_ PHANDLE NamespaceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PCPH_STRINGREF ObjectName,
+    _In_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
+    );
+
+PHLIBAPI
+POBJECT_BOUNDARY_DESCRIPTOR
+NTAPI
+PhCreateBoundaryDescriptor(
+    _In_ PCPH_STRINGREF Name,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteBoundaryDescriptor(
+    _In_ _Post_invalid_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
+    );
+
+typedef _Function_class_(OBJECT_BOUNDARY_ENUM_PROCEDURE)
+BOOLEAN NTAPI OBJECT_BOUNDARY_ENUM_PROCEDURE(
+    _In_ POBJECT_BOUNDARY_ENTRY Entry,
+    _In_opt_ PVOID Context
+    );
+typedef OBJECT_BOUNDARY_ENUM_PROCEDURE* POBJECT_BOUNDARY_ENUM_PROCEDURE;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumerateBoundaryDescriptorEntries(
+    _In_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor,
+    _In_opt_ POBJECT_BOUNDARY_ENUM_PROCEDURE Callback,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAddSIDToBoundaryDescriptor(
+    _Inout_ POBJECT_BOUNDARY_DESCRIPTOR* BoundaryDescriptor,
+    _In_ PCSID RequiredSid
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAddIntegrityLabelToBoundaryDescriptor(
+    _Inout_ POBJECT_BOUNDARY_DESCRIPTOR* BoundaryDescriptor,
+    _In_ PCSID IntegrityLabel
     );
 
 /**

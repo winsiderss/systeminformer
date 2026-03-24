@@ -195,6 +195,7 @@
     <ClCompile Include="nativefile.c" />
     <ClCompile Include="nativejob.c" />
     <ClCompile Include="nativekey.c" />
+    <ClCompile Include="nativeobject.c" />
     <ClCompile Include="nativeprocess.c" />
     <ClCompile Include="nativesocket.c" />
     <ClCompile Include="nativeflt.c" />
