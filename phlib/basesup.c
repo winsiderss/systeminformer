@@ -2716,10 +2716,10 @@ VOID PhDeleteCallback(
     )
 {
     PhAcquireQueuedLockExclusive(&Callback->ListLock);
-    
+
     // Assert that all callbacks have been unregistered
     assert(IsListEmpty(&Callback->ListHead));
-    
+
     PhReleaseQueuedLockExclusive(&Callback->ListLock);
 }
 
@@ -3315,7 +3315,7 @@ VOID PhFillMemoryUlong(
             PULONG end;
             __m256i pattern;
 
-            end = (PULONG)(ULONG_PTR)(Memory + count);
+            end = Memory + count;
             pattern = _mm256_set1_epi32(Value);
 
             while (Memory != end)
@@ -3340,7 +3340,7 @@ VOID PhFillMemoryUlong(
             PULONG end;
             PH_INT128 pattern;
 
-            end = (PULONG)(ULONG_PTR)(Memory + count);
+            end = Memory + count;
             pattern = PhSetINT128by32(Value);
 
             while (Memory != end)
@@ -3476,7 +3476,7 @@ VOID PhDivideSinglesBySingle(
             __m256 a;
             __m256 b;
 
-            end = (PFLOAT)(ULONG_PTR)(A + count);
+            end = A + count;
             b = _mm256_set1_ps(invB); // _mm256_broadcast_ss(&B);
 
             while (A != end)
@@ -3610,7 +3610,7 @@ FLOAT PhMaxMemorySingles(
             __m128 lo;
             __m128 d;
 
-            end = (PFLOAT)(ULONG_PTR)(A + count);
+            end = A + count;
             c = _mm256_setzero_ps();
 
             while (A != end)
@@ -3650,7 +3650,7 @@ FLOAT PhMaxMemorySingles(
             PH_FLOAT128 a;
             PH_FLOAT128 c;
 
-            end = (PFLOAT)(ULONG_PTR)(A + count);
+            end = A + count;
             c = PhZeroFLOAT128();
 
             while (A != end)
@@ -3719,7 +3719,7 @@ FLOAT PhAddPlusMaxMemorySingles(
             __m128 hi;
             __m128 d;
 
-            end = (PFLOAT)(ULONG_PTR)(A + count);
+            end = A + count;
             c = _mm256_setzero_ps();
 
             while (A != end)
@@ -3763,7 +3763,7 @@ FLOAT PhAddPlusMaxMemorySingles(
             PH_FLOAT128 b;
             PH_FLOAT128 c;
 
-            end = (PFLOAT)(ULONG_PTR)(A + count);
+            end = A + count;
             c = PhZeroFLOAT128();
 
             while (A != end)
@@ -3826,7 +3826,7 @@ VOID PhConvertCopyMemoryUlong(
             __m256i a;
             __m256 b;
 
-            end = (PULONG)(ULONG_PTR)(From + count);
+            end = From + count;
 
             while (From != end)
             {
@@ -3855,7 +3855,7 @@ VOID PhConvertCopyMemoryUlong(
             PH_INT128 a;
             PH_FLOAT128 b;
 
-            end = (PULONG)(ULONG_PTR)(From + count);
+            end = From + count;
 
             while (From != end)
             {
@@ -3898,36 +3898,36 @@ VOID PhConvertCopyMemoryUlong64(
     if (PhHasAVX512)
     {
         SIZE_T count = Count & ~0xF;
-    
+
         if (count)
         {
             PULONG64 end = From + count;
-    
-            // Convert 16 × uint64 → 16 × float in single iteration
+
+            // Convert 16 x uint64 → 16 x float in single iteration
             while (From != end)
             {
-                // Load 16 × uint64 (2 × 512-bit loads = 128 bytes)
-                __m512i v0 = _mm512_load_si512((__m512i const*)From);       // 8 × uint64
-                __m512i v1 = _mm512_load_si512((__m512i const*)(From + 8)); // 8 × uint64
-    
+                // Load 16 x uint64 (2 x 512-bit loads = 128 bytes)
+                __m512i v0 = _mm512_load_si512((__m512i const*)From);       // 8 x uint64
+                __m512i v1 = _mm512_load_si512((__m512i const*)(From + 8)); // 8 x uint64
+
                 // Direct uint64 → double conversion (AVX-512 DQ)
-                __m512d d0 = _mm512_cvtepu64_pd(v0);  // 8 × double
-                __m512d d1 = _mm512_cvtepu64_pd(v1);  // 8 × double
-    
+                __m512d d0 = _mm512_cvtepu64_pd(v0);  // 8 x double
+                __m512d d1 = _mm512_cvtepu64_pd(v1);  // 8 x double
+
                 // Double → float conversion with rounding
-                __m256 f0 = _mm512_cvtpd_ps(d0);  // 8 × float
-                __m256 f1 = _mm512_cvtpd_ps(d1);  // 8 × float
-    
+                __m256 f0 = _mm512_cvtpd_ps(d0);  // 8 x float
+                __m256 f1 = _mm512_cvtpd_ps(d1);  // 8 x float
+
                 // Combine into single 512-bit register
                 __m512 result = _mm512_insertf32x8(_mm512_castps256_ps512(f0), f1, 1);
-    
+
                 // Store 16 floats
                 _mm512_storeu_ps(To, result);
-    
+
                 From += 16;
                 To += 16;
             }
-    
+
             Count &= 0xF;
         }
     }
@@ -4051,9 +4051,9 @@ VOID PhConvertCopyMemoryUlong64(
 
             while (From != end)
             {
-                // Load 4 × uint64 as 2 × __m128i
-                __m128i v0 = _mm_load_si128((__m128i const*)From);       // 2 × uint64
-                __m128i v1 = _mm_load_si128((__m128i const*)(From + 2)); // 2 × uint64
+                // Load 4 x uint64 as 2 x __m128i
+                __m128i v0 = _mm_load_si128((__m128i const*)From);       // 2 x uint64
+                __m128i v1 = _mm_load_si128((__m128i const*)(From + 2)); // 2 x uint64
 
                 // Split low/high 32-bit
                 __m128i mask = _mm_set1_epi64x(0xFFFFFFFFULL);
@@ -4120,10 +4120,11 @@ VOID PhConvertCopyMemorySingles(
 
         if (count != 0)
         {
-            PFLOAT end = From + count;
-
+            PFLOAT end;
             __m256 a;
             __m256i b;
+
+            end = From + count;
 
             while (From != end)
             {
@@ -4153,7 +4154,7 @@ VOID PhConvertCopyMemorySingles(
             PH_FLOAT128 a;
             PH_INT128 b;
 
-            end = (PFLOAT)(ULONG_PTR)(From + count);
+            end = From + count;
 
             while (From != end)
             {
