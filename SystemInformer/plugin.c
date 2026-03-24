@@ -27,6 +27,7 @@ typedef struct _PHP_PLUGIN_LOAD_ERROR
 {
     PPH_STRING FileName;
     PPH_STRING ErrorMessage;
+    NTSTATUS Status;
 } PHP_PLUGIN_LOAD_ERROR, *PPHP_PLUGIN_LOAD_ERROR;
 
 typedef struct _PHP_PLUGIN_MENU_HOOK
@@ -328,11 +329,9 @@ VOID PhpShowPluginErrorMessage(
     _Inout_ PPH_LIST PluginLoadErrors
     )
 {
-    TASKDIALOGCONFIG config;
     PH_STRING_BUILDER stringBuilder;
     PPHP_PLUGIN_LOAD_ERROR loadError;
     PPH_STRING baseName;
-    INT result;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
@@ -343,9 +342,10 @@ VOID PhpShowPluginErrorMessage(
 
         PhAppendFormatStringBuilder(
             &stringBuilder,
-            L"%s: %s\n",
+            L"%s: %s (0x%lx)\n\n",
             baseName->Buffer,
-            PhGetStringOrDefault(loadError->ErrorMessage, L"An unknown error occurred.")
+            PhGetStringOrDefault(loadError->ErrorMessage, L"An unknown error occurred."),
+            loadError->Status
             );
 
         PhDereferenceObject(baseName);
@@ -354,23 +354,17 @@ VOID PhpShowPluginErrorMessage(
     if (PhEndsWithStringRef2(&stringBuilder.String->sr, L"\n", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);
 
-    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
-    config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
-    config.dwCommonButtons = TDCBF_OK_BUTTON;
-    config.pszWindowTitle = PhApplicationName;
-    config.pszMainIcon = TD_INFORMATION_ICON;
-    config.pszMainInstruction = L"Unable to load the following plugin(s)";
-    config.pszContent = PhGetString(PhFinalStringBuilderString(&stringBuilder));
-    config.nDefaultButton = IDOK;
-
-    if (PhShowTaskDialog(
-        &config,
-        &result,
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && PhShowMessageOneTime(
         NULL,
-        NULL
+        TD_CLOSE_BUTTON,
+        TD_ERROR_ICON,
+        L"Unable to load the following plugin(s)",
+        L"%s",
+        PhGetString(PhFinalStringBuilderString(&stringBuilder))
         ))
     {
+        PhSetIntegerSetting(SETTING_ENABLE_WARNINGS, FALSE);
+
         //switch (result)
         //{
         //case IDNO:
@@ -635,6 +629,7 @@ VOID PhLoadPluginErrorMessage(
 
     loadError = PhAllocateZero(sizeof(PHP_PLUGIN_LOAD_ERROR));
     PhSetReference(&loadError->FileName, FileName);
+    loadError->Status = Status;
 
     if (errorMessage = PhGetNtMessage(Status))
     {
