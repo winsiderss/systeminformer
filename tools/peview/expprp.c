@@ -176,7 +176,7 @@ PPH_HASHTABLE PvPeCreateSuppressedGuardHashtable(
             }
         }
 
-        for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardAdressIatEntries; i++)
+        for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardAddressIatEntries; i++)
         {
             IMAGE_CFG_ENTRY cfgFunctionEntry = { 0 };
 
