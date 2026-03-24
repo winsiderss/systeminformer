@@ -328,6 +328,23 @@ VOID PH_PROCESS_STATISTICS_FORMAT_SIZE(
     }
 }
 
+VOID PH_PROCESS_STATISTICS_FORMAT_SIZE_PER_SEC(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ ULONG64 Value
+    )
+{
+    PH_FORMAT format[2];
+    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+    PhInitFormatSize(&format[0], Value);
+    PhInitFormatS(&format[1], L"/s");
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+    {
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+    }
+}
+
 VOID PH_PROCESS_STATISTICS_FORMAT_TIME(
     _In_ NMLVDISPINFO* Entry,
     _In_ ULONG64 Value
@@ -340,6 +357,33 @@ VOID PH_PROCESS_STATISTICS_FORMAT_TIME(
         wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
     }
 }
+
+VOID PH_PROCESS_STATISTICS_FORMAT_IOPRIORITY(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ LONG Value
+    )
+{
+    if (Value != LONG_MAX && Value >= IoPriorityVeryLow && Value <= MaxIoPriorityTypes)
+    {
+        const PH_STRINGREF ioPriority = PhIoPriorityHintNames[Value];
+
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, ioPriority.Buffer, _TRUNCATE);
+    }
+    else
+    {
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"N/A", _TRUNCATE);
+    }
+}
+
+#define PH_PROCESS_STATISTICS_UPDATE_MINMAX_VALID(Minimum, Maximum, Difference, Value, InvalidValue) \
+    if ((Value) != (InvalidValue)) \
+    { \
+        if ((Minimum) == (InvalidValue) || (Value) < (Minimum)) \
+            (Minimum) = (Value); \
+        if ((Maximum) == (InvalidValue) || (Value) > (Maximum)) \
+            (Maximum) = (Value); \
+        (Difference) = (Maximum) - (Minimum); \
+    }
 
 #define PH_PROCESS_STATISTICS_UPDATE_MINMAX(Minimum, Maximum, Difference, Value) \
     if ((Value) != 0 && ((Minimum) == 0 || (Value) < (Minimum))) \
@@ -498,7 +542,22 @@ VOID PhUpdateProcessStatisticsValue(
     Context->OtherTransferCount = ProcessItem->IoCounters.OtherTransferCount;
     Context->IoOtherDelta = ProcessItem->IoOtherDelta.Delta;
 
-    Context->IoTotalDelta = ProcessItem->IoReadDelta.Value + ProcessItem->IoWriteDelta.Value + ProcessItem->IoOtherDelta.Value;
+    Context->IoTotal = ProcessItem->IoCounters.ReadTransferCount + ProcessItem->IoCounters.WriteTransferCount + ProcessItem->IoCounters.OtherTransferCount;
+    Context->IoTotalDelta = ProcessItem->IoReadDelta.Delta + ProcessItem->IoWriteDelta.Delta + ProcessItem->IoOtherDelta.Delta;
+    Context->IoAverage = 0;
+    Context->HandleCount = ProcessItem->NumberOfHandles;
+
+    for (ULONG i = 0; i < ProcessItem->IoReadHistory.Count; i++)
+    {
+        Context->IoAverage += PhGetItemCircularBuffer_ULONG64(&ProcessItem->IoReadHistory, i) +
+            PhGetItemCircularBuffer_ULONG64(&ProcessItem->IoWriteHistory, i) +
+            PhGetItemCircularBuffer_ULONG64(&ProcessItem->IoOtherHistory, i);
+    }
+
+    if (ProcessItem->IoReadHistory.Count)
+    {
+        Context->IoAverage /= ProcessItem->IoReadHistory.Count;
+    }
 }
 
 VOID PhUpdateProcessStatisticsMinMax(
@@ -554,6 +613,21 @@ VOID PhUpdateProcessStatisticsMinMax(
 
     PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->IoTotalMin, Context->IoTotalMax, Context->IoTotalDiff, Context->IoTotal);
     PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->IoTotalDeltaMin, Context->IoTotalDeltaMax, Context->IoTotalDeltaDiff, Context->IoTotalDelta);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->IoAverageMin, Context->IoAverageMax, Context->IoAverageDiff, Context->IoAverage);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX_VALID(Context->IoPriorityMin, Context->IoPriorityMax, Context->IoPriorityDiff, Context->IoPriority, LONG_MAX);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->HandleCountMin, Context->HandleCountMax, Context->HandleCountDiff, Context->HandleCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->PeakHandleCountMin, Context->PeakHandleCountMax, Context->PeakHandleCountDiff, Context->PeakHandleCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->GdiHandleCountMin, Context->GdiHandleCountMax, Context->GdiHandleCountDiff, Context->GdiHandleCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->PeakGdiHandleCountMin, Context->PeakGdiHandleCountMax, Context->PeakGdiHandleCountDiff, Context->PeakGdiHandleCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->UserHandleCountMin, Context->UserHandleCountMax, Context->UserHandleCountDiff, Context->UserHandleCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->PeakUserHandleCountMin, Context->PeakUserHandleCountMax, Context->PeakUserHandleCountDiff, Context->PeakUserHandleCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->RunningTimeMin, Context->RunningTimeMax, Context->RunningTimeDiff, Context->RunningTime);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->SuspendedTimeMin, Context->SuspendedTimeMax, Context->SuspendedTimeDiff, Context->SuspendedTime);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->HangCountMin, Context->HangCountMax, Context->HangCountDiff, Context->HangCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->GhostCountMin, Context->GhostCountMax, Context->GhostCountDiff, Context->GhostCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->NetworkTxRxBytesMin, Context->NetworkTxRxBytesMax, Context->NetworkTxRxBytesDiff, Context->NetworkTxRxBytes);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->MouseInputMin, Context->MouseInputMax, Context->MouseInputDiff, Context->MouseInput);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->KeyboardInputMin, Context->KeyboardInputMax, Context->KeyboardInputDiff, Context->KeyboardInput);
 }
 
 VOID PhpUpdateProcessStatistics(
@@ -562,7 +636,6 @@ VOID PhpUpdateProcessStatistics(
     )
 {
     PhUpdateProcessStatisticsValue(ProcessItem, Context);
-    PhUpdateProcessStatisticsMinMax(ProcessItem, Context);
 
     if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
     {
@@ -572,21 +645,25 @@ VOID PhpUpdateProcessStatistics(
 
         if (NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS, &objects))) // GDI handles
         {
+            Context->GdiHandleCount = objects;
             PhMoveReference(&Context->GdiHandles, PhFormatUInt64(objects, TRUE));
         }
 
         if (NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS, &objects))) // USER handles
         {
+            Context->UserHandleCount = objects;
             PhMoveReference(&Context->UserHandles, PhFormatUInt64(objects, TRUE));
         }
 
         if (NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS_PEAK, &objects))) // GDI handles (Peak)
         {
+            Context->PeakGdiHandleCount = objects;
             PhMoveReference(&Context->PeakGdiHandles, PhFormatUInt64(objects, TRUE));
         }
 
         if (NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS_PEAK, &objects))) // USER handles (Peak)
         {
+            Context->PeakUserHandleCount = objects;
             PhMoveReference(&Context->PeakUserHandles, PhFormatUInt64(objects, TRUE));
         }
 
@@ -638,6 +715,7 @@ VOID PhpUpdateProcessStatistics(
             if (!NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS, &objectsTotal)))
                 objectsTotal = 1;
 
+            Context->GdiHandleCount = objects;
             PPH_STRING string = PhFormatUInt64(objects, TRUE);
             PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
             PhMoveReference(&Context->GdiHandles, string);
@@ -648,6 +726,7 @@ VOID PhpUpdateProcessStatistics(
             if (!NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS, &objectsTotal)))
                 objectsTotal = 1;
 
+            Context->UserHandleCount = objects;
             PPH_STRING string = PhFormatUInt64(objects, TRUE);
             PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
             PhMoveReference(&Context->UserHandles, string);
@@ -658,6 +737,7 @@ VOID PhpUpdateProcessStatistics(
             if (!NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS_PEAK, &objectsTotal)))
                 objectsTotal = 1;
 
+            Context->PeakGdiHandleCount = objects;
             PPH_STRING string = PhFormatUInt64(objects, TRUE);
             PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
             PhMoveReference(&Context->PeakGdiHandles, string);
@@ -668,6 +748,7 @@ VOID PhpUpdateProcessStatistics(
             if (!NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS_PEAK, &objectsTotal)))
                 objectsTotal = 1;
 
+            Context->PeakUserHandleCount = objects;
             PPH_STRING string = PhFormatUInt64(objects, TRUE);
             PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
             PhMoveReference(&Context->PeakUserHandles, string);
@@ -705,6 +786,9 @@ VOID PhpUpdateProcessStatistics(
         }
     }
 
+    Context->MouseInput = Context->MouseDelta.Value;
+    Context->KeyboardInput = Context->KeyboardDelta.Value;
+    PhUpdateProcessStatisticsMinMax(ProcessItem, Context);
     PhRedrawListViewItems(Context->ListViewHandle);
 }
 
@@ -762,6 +846,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             statisticsContext->Enabled = TRUE;
             statisticsContext->PagePriority = ULONG_MAX;
             statisticsContext->IoPriority = LONG_MAX;
+            statisticsContext->IoPriorityMin = LONG_MAX;
+            statisticsContext->IoPriorityMax = LONG_MAX;
 
             // Try to open a process handle with PROCESS_QUERY_INFORMATION access for WS information.
             if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
@@ -1107,45 +1193,12 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOAVERAGE:
                                 {
-                                    PH_FORMAT format[2];
-                                    SIZE_T returnLength;
-                                    FLOAT cpuSumValue = 0;
-                                    FLOAT cpuAverageValue = 0;
-                                    WCHAR buffer[PH_INT64_STR_LEN_1];
-
-                                    for (ULONG i = 0; i < statisticsContext->ProcessItem->IoReadHistory.Count; i++)
-                                    {
-                                        cpuSumValue += (FLOAT)PhGetItemCircularBuffer_ULONG64(&statisticsContext->ProcessItem->IoReadHistory, i) +
-                                            (FLOAT)PhGetItemCircularBuffer_ULONG64(&statisticsContext->ProcessItem->IoWriteHistory, i) +
-                                            (FLOAT)PhGetItemCircularBuffer_ULONG64(&statisticsContext->ProcessItem->IoOtherHistory, i);
-                                    }
-
-                                    if (statisticsContext->ProcessItem->IoReadHistory.Count)
-                                    {
-                                        cpuAverageValue = (FLOAT)cpuSumValue / statisticsContext->ProcessItem->IoReadHistory.Count;
-                                    }
-
-                                    PhInitFormatSize(&format[0], (ULONG64)cpuAverageValue);
-                                    PhInitFormatS(&format[1], L"/s");
-
-                                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
-                                    {
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
-                                    }
+                                    PH_PROCESS_STATISTICS_FORMAT_SIZE_PER_SEC(dispInfo, statisticsContext->IoAverage);
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOPRIORITY:
                                 {
-                                    if (statisticsContext->IoPriority != LONG_MAX && statisticsContext->IoPriority >= IoPriorityVeryLow && statisticsContext->IoPriority <= MaxIoPriorityTypes)
-                                    {
-                                        const PH_STRINGREF ioPriority = PhIoPriorityHintNames[statisticsContext->IoPriority];
-
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, ioPriority.Buffer, _TRUNCATE);
-                                    }
-                                    else
-                                    {
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
-                                    }
+                                    PH_PROCESS_STATISTICS_FORMAT_IOPRIORITY(dispInfo, statisticsContext->IoPriority);
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_HANDLES:
@@ -1482,17 +1535,55 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoOtherDeltaMin);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTAL:
-                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDeltaMin);
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalMin);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTALDELTA:
-                                {
-                                    PH_PROCESS_STATISTICS_FORMAT_SIZE(
-                                        dispInfo,
-                                        statisticsContext->ProcessItem->IoReadDelta.Delta +
-                                        statisticsContext->ProcessItem->IoWriteDelta.Delta +
-                                        statisticsContext->ProcessItem->IoOtherDelta.Delta
-                                        );
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOAVERAGE:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE_PER_SEC(dispInfo, statisticsContext->IoAverageMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOPRIORITY:
+                                PH_PROCESS_STATISTICS_FORMAT_IOPRIORITY(dispInfo, statisticsContext->IoPriorityMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HandleCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakHandleCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_GDIHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->GdiHandleCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakGdiHandleCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_USERHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->UserHandleCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakUserHandleCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->RunningTimeMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SUSPENDEDTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->SuspendedTimeMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HANGCOUNT:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HangCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_GHOSTCOUNT:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->GhostCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NetworkTxRxBytesMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_MOUSE:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->MouseInputMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_KEYBOARD:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KeyboardInputMin);
                                 break;
                             }
                         }
@@ -1710,9 +1801,55 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoOtherDeltaMax);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTAL:
-                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDeltaMax);
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalMax);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTALDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOAVERAGE:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE_PER_SEC(dispInfo, statisticsContext->IoAverageMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOPRIORITY:
+                                PH_PROCESS_STATISTICS_FORMAT_IOPRIORITY(dispInfo, statisticsContext->IoPriorityMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HandleCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakHandleCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_GDIHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->GdiHandleCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakGdiHandleCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_USERHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->UserHandleCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakUserHandleCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->RunningTimeMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SUSPENDEDTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->SuspendedTimeMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HANGCOUNT:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HangCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_GHOSTCOUNT:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->GhostCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NetworkTxRxBytesMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_MOUSE:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->MouseInputMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_KEYBOARD:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KeyboardInputMax);
                                 break;
                             }
                         }
@@ -1930,9 +2067,55 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoOtherDeltaDiff);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTAL:
-                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDeltaDiff);
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDiff);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTALDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOAVERAGE:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE_PER_SEC(dispInfo, statisticsContext->IoAverageDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOPRIORITY:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoPriorityDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HandleCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakHandleCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_GDIHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->GdiHandleCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakGdiHandleCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_USERHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->UserHandleCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PeakUserHandleCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->RunningTimeDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SUSPENDEDTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->SuspendedTimeDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HANGCOUNT:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HangCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_GHOSTCOUNT:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->GhostCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NetworkTxRxBytesDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_MOUSE:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->MouseInputDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_KEYBOARD:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KeyboardInputDiff);
                                 break;
                             }
                         }
