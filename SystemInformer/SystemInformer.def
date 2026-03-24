@@ -674,6 +674,7 @@ EXPORTS
     PhQueueUserWorkItem
     PhReadFile
     PhResolveDevicePrefix
+    PhReadVirtualMemory
     PhResumeProcess
     PhResumeThread
     PhRevertImpersonationToken
@@ -932,6 +933,7 @@ EXPORTS
     PhCreateWindowEx
     PhDeleteLayoutManager
     PhDialogBox
+    PhDrawThemeBackground
     PhDuplicateFont
     PhDuplicateFontWithNewWeight
     PhEnumChildWindows
