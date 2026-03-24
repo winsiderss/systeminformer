@@ -4636,6 +4636,30 @@ PhSetValueKeyString2Z(
 FORCEINLINE
 NTSTATUS
 NTAPI
+PhSetExpandKeyString(
+    _In_ HANDLE KeyHandle,
+    _In_ PCWSTR ValueName,
+    _In_ PCWSTR String
+    )
+{
+    PH_STRINGREF valueName;
+    PH_STRINGREF valueString;
+
+    PhInitializeStringRef(&valueName, ValueName);
+    PhInitializeStringRef(&valueString, String);
+
+    return PhSetValueKey(
+        KeyHandle,
+        &valueName,
+        REG_EXPAND_SZ,
+        valueString.Buffer,
+        (ULONG)valueString.Length + sizeof(UNICODE_NULL)
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
 PhSetValueKeyUlong(
     _In_ HANDLE KeyHandle,
     _In_ PCWSTR ValueName,
