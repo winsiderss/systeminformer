@@ -6857,7 +6857,7 @@ BOOLEAN PhUiEmptyProcessMemoryWorkingSet(
 static BOOLEAN PhpShowErrorHandle(
     _In_ HWND WindowHandle,
     _In_ PCWSTR Verb,
-    _In_ PCWSTR Verb2,
+    _In_opt_ PCWSTR Verb2,
     _In_ PPH_HANDLE_ITEM Handle,
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
