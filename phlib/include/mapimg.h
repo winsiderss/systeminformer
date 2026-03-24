@@ -568,8 +568,8 @@ typedef struct _PH_MAPPED_IMAGE_CFG
     PULONGLONG GuardFunctionTable;
     ULONGLONG NumberOfGuardFunctionEntries;
 
-    PULONGLONG GuardAdressIatTable;
-    ULONGLONG NumberOfGuardAdressIatEntries;
+    PULONGLONG GuardAddressIatTable;
+    ULONGLONG NumberOfGuardAddressIatEntries;
 
     PULONGLONG GuardLongJumpTable;
     ULONGLONG NumberOfGuardLongJumpEntries;

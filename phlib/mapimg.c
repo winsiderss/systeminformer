@@ -3124,26 +3124,26 @@ NTSTATUS PhGetMappedImageCfg64(
         }
     }
 
-    CfgConfig->NumberOfGuardAdressIatEntries = 0;
-    CfgConfig->GuardAdressIatTable = 0;
+    CfgConfig->NumberOfGuardAddressIatEntries = 0;
+    CfgConfig->GuardAddressIatTable = 0;
 
     if (RTL_CONTAINS_FIELD(config64, config64->Size, GuardAddressTakenIatEntryTable))
     {
-        CfgConfig->NumberOfGuardAdressIatEntries = config64->GuardAddressTakenIatEntryCount;
-        CfgConfig->GuardAdressIatTable = PhMappedImageVaToVa(
+        CfgConfig->NumberOfGuardAddressIatEntries = config64->GuardAddressTakenIatEntryCount;
+        CfgConfig->GuardAddressIatTable = PhMappedImageVaToVa(
             MappedImage,
             config64->GuardAddressTakenIatEntryTable,
             NULL
             );
 
-        if (CfgConfig->GuardAdressIatTable && CfgConfig->NumberOfGuardAdressIatEntries)
+        if (CfgConfig->GuardAddressIatTable && CfgConfig->NumberOfGuardAddressIatEntries)
         {
             __try
             {
                 PhMappedImageProbe(
                     MappedImage,
-                    CfgConfig->GuardAdressIatTable,
-                    (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardAdressIatEntries)
+                    CfgConfig->GuardAddressIatTable,
+                    (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardAddressIatEntries)
                     );
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
@@ -3243,26 +3243,26 @@ NTSTATUS PhGetMappedImageCfg32(
         }
     }
 
-    CfgConfig->NumberOfGuardAdressIatEntries = 0;
-    CfgConfig->GuardAdressIatTable = 0;
+    CfgConfig->NumberOfGuardAddressIatEntries = 0;
+    CfgConfig->GuardAddressIatTable = 0;
 
     if (RTL_CONTAINS_FIELD(config32, config32->Size, GuardAddressTakenIatEntryTable))
     {
-        CfgConfig->NumberOfGuardAdressIatEntries = config32->GuardAddressTakenIatEntryCount;
-        CfgConfig->GuardAdressIatTable = PhMappedImageVaToVa(
+        CfgConfig->NumberOfGuardAddressIatEntries = config32->GuardAddressTakenIatEntryCount;
+        CfgConfig->GuardAddressIatTable = PhMappedImageVaToVa(
             MappedImage,
             config32->GuardAddressTakenIatEntryTable,
             NULL
             );
 
-        if (CfgConfig->GuardAdressIatTable && CfgConfig->NumberOfGuardAdressIatEntries)
+        if (CfgConfig->GuardAddressIatTable && CfgConfig->NumberOfGuardAddressIatEntries)
         {
             __try
             {
                 PhMappedImageProbe(
                     MappedImage,
-                    CfgConfig->GuardAdressIatTable,
-                    (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardAdressIatEntries)
+                    CfgConfig->GuardAddressIatTable,
+                    (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardAddressIatEntries)
                     );
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
@@ -3356,8 +3356,8 @@ NTSTATUS PhGetMappedImageCfgEntry(
         break;
     case ControlFlowGuardTakenIatEntry:
         {
-            guardTable = CfgConfig->GuardAdressIatTable;
-            numberofGuardEntries = CfgConfig->NumberOfGuardAdressIatEntries;
+            guardTable = CfgConfig->GuardAddressIatTable;
+            numberofGuardEntries = CfgConfig->NumberOfGuardAddressIatEntries;
         }
         break;
     case ControlFlowGuardLongJump:
