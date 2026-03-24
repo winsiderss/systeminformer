@@ -162,7 +162,7 @@ VOID PvpPeCgfEnumGuardFunctions(
             PvPeAddListViewCfgFunctionEntry(ListViewHandle, ++count, i, ControlFlowGuardFunction, &cfgConfig);
         }
 
-        for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardAdressIatEntries; i++)
+        for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardAddressIatEntries; i++)
         {
             PvPeAddListViewCfgFunctionEntry(ListViewHandle, ++count, i, ControlFlowGuardTakenIatEntry, &cfgConfig);
         }
