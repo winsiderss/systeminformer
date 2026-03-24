@@ -688,8 +688,8 @@ NTSTATUS SetupCreateLocalDumpsKey(
         {
             // Set DumpCount (REG_DWORD) = 10
             PhSetValueKeyUlong(keyLocalHandle, L"DumpCount", 10);
-            // Set DumpFolder (REG_SZ) = %APPDATA%\SystemInformer\CrashDumps
-            PhSetValueKeyString2Z(keyLocalHandle, L"DumpFolder", L"%APPDATA%\\SystemInformer\\CrashDumps");
+            // Set DumpFolder (REG_EXPAND_SZ) = %APPDATA%\SystemInformer\CrashDumps
+            PhSetExpandKeyString(keyLocalHandle, L"DumpFolder", L"%APPDATA%\\SystemInformer\\CrashDumps");
             // Set DumpType (REG_DWORD) = 1 (mini dump)
             PhSetValueKeyUlong(keyLocalHandle, L"DumpType", 1);
 
@@ -914,11 +914,48 @@ NTSTATUS SetupUpgradeSettingsFile(
         goto CleanupExit;
     }
 
-    // Construct legacy nightly build settings.xml path
-    legacyNightlyFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\Process Hacker\\settings.xml");
+    {
+        PPH_STRING keyName = NULL;
+        PPH_STRING processString = NULL;
+        PPH_STRING hackerString = NULL;
 
-    // Construct legacy stable build settings.xml path
-    legacySettingsFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\Process Hacker 2\\settings.xml");
+        // Construct "Process"
+        {
+            PH_FORMAT format[7];
+            ULONG i = 0;
+            PhInitFormatC(&format[i++], L'P');
+            PhInitFormatC(&format[i++], L'r');
+            PhInitFormatC(&format[i++], L'o');
+            PhInitFormatC(&format[i++], L'c');
+            PhInitFormatC(&format[i++], L'e');
+            PhInitFormatC(&format[i++], L's');
+            PhInitFormatC(&format[i++], L's');
+            processString = PhFormat(format, i, 0);
+        }
+
+        // Construct "Hacker"
+        {
+            PH_FORMAT format[6];
+            ULONG i = 0;
+            PhInitFormatC(&format[i++], L'H');
+            PhInitFormatC(&format[i++], L'a');
+            PhInitFormatC(&format[i++], L'c');
+            PhInitFormatC(&format[i++], L'k');
+            PhInitFormatC(&format[i++], L'e');
+            PhInitFormatC(&format[i++], L'r');
+            hackerString = PhFormat(format, i, 0);
+        }
+
+        // Construct legacy nightly build settings.xml path
+        //legacyNightlyFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\Process Hacker\\settings.xml");
+        legacyNightlyFileName = PhConcatStrings(5, L"\\", PhGetString(processString), L" ", PhGetString(hackerString), L"\\settings.xml");
+        legacyNightlyFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, &legacyNightlyFileName->sr);
+
+        // Construct legacy stable build settings.xml path
+        //legacySettingsFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\Process Hacker 2\\settings.xml");
+        legacySettingsFileName = PhConcatStrings(6, L"\\", PhGetString(processString), L" ", PhGetString(hackerString), L" 2", L"\\settings.xml");
+        legacySettingsFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, &legacySettingsFileName->sr);
+    }
 
     // Attempt to migrate nightly build settings if they exist
     if (legacyNightlyFileName && PhDoesFileExistWin32(PhGetString(legacyNightlyFileName)))
