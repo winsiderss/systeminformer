@@ -457,6 +457,8 @@ VOID PhTnpDestroyTreeNewContext(
     if (Context->HeaderBoldFontHandle)
         DeleteFont(Context->HeaderBoldFontHandle);
 
+    PhTnpSelectionDestroyBufferedContext(Context);
+
     PhFree(Context);
 }
 
@@ -954,7 +956,7 @@ BOOLEAN PhTnpOnSetCursor(
     POINT point;
 
     if (
-        PhGetClientPos(WindowHandle, &point) && 
+        PhGetClientPos(WindowHandle, &point) &&
         TNP_HIT_TEST_FIXED_DIVIDER(point.x, Context)
         )
     {
@@ -6347,38 +6349,36 @@ VOID PhTnpPaint(
 
         if (Context->ThemeSupport)
         {
-            HDC tempDc;
-            HBITMAP bitmap;
-            HBITMAP oldBitmap;
-            RECT tempRect;
-            BLENDFUNCTION blendFunction;
-
             SetTextColor(hdc, PhThemeWindowTextColor);
             SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
             FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
 
-            if (tempDc = CreateCompatibleDC(hdc))
+            if (PhTnpSelectionCreateBufferedContext(Context))
             {
-                if (bitmap = CreateCompatibleBitmap(hdc, 1, 1))
+                if (Context->SelectionScratchBitmap)
                 {
+                    HBITMAP oldBitmap;
+                    RECT tempRect;
+                    BLENDFUNCTION blendFunction;
+
                     // Fill in the selection rectangle.
-                    oldBitmap = SelectBitmap(tempDc, bitmap);
+                    oldBitmap = SelectBitmap(Context->SelectionScratchDc, Context->SelectionScratchBitmap);
                     tempRect.left = 0;
                     tempRect.top = 0;
                     tempRect.right = 1;
                     tempRect.bottom = 1;
 
-                    SetTextColor(tempDc, node->s.DrawForeColor);
+                    SetTextColor(Context->SelectionScratchDc, node->s.DrawForeColor);
 
                     if (node->s.DrawBackColor != 16777215)
                     {
-                        SetDCBrushColor(tempDc, node->s.DrawBackColor);
-                        FillRect(tempDc, &tempRect, PhGetStockBrush(DC_BRUSH));
+                        SetDCBrushColor(Context->SelectionScratchDc, node->s.DrawBackColor);
+                        FillRect(Context->SelectionScratchDc, &tempRect, PhGetStockBrush(DC_BRUSH));
                     }
                     else
                     {
-                        SetDCBrushColor(tempDc, PhThemeWindowBackgroundColor);
-                        FillRect(tempDc, &tempRect, PhGetStockBrush(DC_BRUSH));
+                        SetDCBrushColor(Context->SelectionScratchDc, PhThemeWindowBackgroundColor);
+                        FillRect(Context->SelectionScratchDc, &tempRect, PhGetStockBrush(DC_BRUSH));
                     }
 
                     blendFunction.BlendOp = AC_SRC_OVER;
@@ -6392,7 +6392,7 @@ VOID PhTnpPaint(
                         rowRect.top,
                         rowRect.right - rowRect.left,
                         rowRect.bottom - rowRect.top,
-                        tempDc,
+                        Context->SelectionScratchDc,
                         0,
                         0,
                         1,
@@ -6407,11 +6407,8 @@ VOID PhTnpPaint(
                         FrameRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
                     }
 
-                    SelectBitmap(tempDc, oldBitmap);
-                    DeleteBitmap(bitmap);
+                    SelectBitmap(Context->SelectionScratchDc, oldBitmap);
                 }
-
-                DeleteDC(tempDc);
             }
         }
         else
@@ -7163,53 +7160,45 @@ VOID PhTnpDrawSelectionRectangle(
 
     if (Context->SelectionRectangleAlpha)
     {
-        HDC tempDc;
-        HBITMAP bitmap;
-        HBITMAP oldBitmap;
-        RECT tempRect;
-        BLENDFUNCTION blendFunction;
-
-        if (tempDc = CreateCompatibleDC(hdc))
+        if (PhTnpSelectionCreateBufferedContext(Context))
         {
-            if (bitmap = CreateCompatibleBitmap(hdc, 1, 1))
-            {
-                // Draw the outline of the selection rectangle.
-                FrameRect(hdc, &rect, GetSysColorBrush(COLOR_HIGHLIGHT));
+            HBITMAP oldBitmap;
+            RECT tempRect;
+            BLENDFUNCTION blendFunction;
 
-                // Fill in the selection rectangle.
-                oldBitmap = SelectBitmap(tempDc, bitmap);
-                tempRect.left = 0;
-                tempRect.top = 0;
-                tempRect.right = 1;
-                tempRect.bottom = 1;
-                FillRect(tempDc, &tempRect, (HBRUSH)(COLOR_HOTLIGHT + 1));
+            // Draw the outline of the selection rectangle.
+            FrameRect(hdc, &rect, GetSysColorBrush(COLOR_HIGHLIGHT));
 
-                blendFunction.BlendOp = AC_SRC_OVER;
-                blendFunction.BlendFlags = 0;
-                blendFunction.SourceConstantAlpha = 70;
-                blendFunction.AlphaFormat = 0;
+            // Fill in the selection rectangle.
+            oldBitmap = SelectBitmap(Context->SelectionScratchDc, Context->SelectionScratchBitmap);
+            tempRect.left = 0;
+            tempRect.top = 0;
+            tempRect.right = 1;
+            tempRect.bottom = 1;
+            FillRect(Context->SelectionScratchDc, &tempRect, (HBRUSH)(COLOR_HOTLIGHT + 1));
 
-                GdiAlphaBlend(
-                    hdc,
-                    rect.left,
-                    rect.top,
-                    rect.right - rect.left,
-                    rect.bottom - rect.top,
-                    tempDc,
-                    0,
-                    0,
-                    1,
-                    1,
-                    blendFunction
-                    );
+            blendFunction.BlendOp = AC_SRC_OVER;
+            blendFunction.BlendFlags = 0;
+            blendFunction.SourceConstantAlpha = 70;
+            blendFunction.AlphaFormat = 0;
 
-                drewWithAlpha = TRUE;
+            GdiAlphaBlend(
+                hdc,
+                rect.left,
+                rect.top,
+                rect.right - rect.left,
+                rect.bottom - rect.top,
+                Context->SelectionScratchDc,
+                0,
+                0,
+                1,
+                1,
+                blendFunction
+                );
 
-                SelectBitmap(tempDc, oldBitmap);
-                DeleteBitmap(bitmap);
-            }
+            drewWithAlpha = TRUE;
 
-            DeleteDC(tempDc);
+            SelectBitmap(Context->SelectionScratchDc, oldBitmap);
         }
     }
 
@@ -8008,6 +7997,69 @@ VOID PhTnpHeaderDestroyBufferedContext(
     {
         DeleteDC(Context->HeaderBufferedDc);
         Context->HeaderBufferedDc = NULL;
+    }
+}
+
+BOOLEAN PhTnpSelectionCreateBufferedContext(
+    _In_ PPH_TREENEW_CONTEXT Context
+    )
+{
+    BITMAPINFO bmi;
+
+    if (Context->SelectionScratchDc)
+        return TRUE;
+
+    Context->SelectionScratchDc = CreateCompatibleDC(NULL);
+    if (!Context->SelectionScratchDc)
+        return FALSE;
+
+    memset(&bmi, 0, sizeof(BITMAPINFO));
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = 1;
+    bmi.bmiHeader.biHeight = -1;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    Context->SelectionScratchBitmap = CreateDIBSection(
+        Context->SelectionScratchDc,
+        &bmi,
+        DIB_RGB_COLORS,
+        NULL,
+        NULL,
+        0
+        );
+
+    if (!Context->SelectionScratchBitmap)
+    {
+        DeleteDC(Context->SelectionScratchDc);
+        Context->SelectionScratchDc = NULL;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+VOID PhTnpSelectionDestroyBufferedContext(
+    _In_ PPH_TREENEW_CONTEXT Context
+    )
+{
+    if (Context->SelectionScratchOldBitmap)
+    {
+        SelectBitmap(Context->SelectionScratchDc, Context->SelectionScratchOldBitmap);
+        Context->SelectionScratchOldBitmap = NULL;
+    }
+
+    if (Context->SelectionScratchBitmap)
+    {
+        DeleteBitmap(Context->SelectionScratchBitmap);
+        Context->SelectionScratchBitmap = NULL;
+    }
+
+    if (Context->SelectionScratchDc)
+    {
+        DeleteDC(Context->SelectionScratchDc);
+        Context->SelectionScratchDc = NULL;
     }
 }
 

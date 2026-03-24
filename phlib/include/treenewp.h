@@ -229,6 +229,10 @@ typedef struct _PH_TREENEW_CONTEXT
 
     ULONG64 ScrollTickCount;
 
+    HDC SelectionScratchDc;
+    HBITMAP SelectionScratchBitmap;
+    HBITMAP SelectionScratchOldBitmap;
+
     // Drag-reorder support
     ULONG   ReorderSourceIndex;   // source row index in FlatList
     ULONG   ReorderTargetIndex;   // target row index under caret
@@ -784,6 +788,14 @@ VOID PhTnpDrawSelectionRectangle(
 VOID PhTnpDrawThemedBorder(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ HDC hdc
+    );
+
+BOOLEAN PhTnpSelectionCreateBufferedContext(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpSelectionDestroyBufferedContext(
+    _In_ PPH_TREENEW_CONTEXT Context
     );
 
 // Tooltips
