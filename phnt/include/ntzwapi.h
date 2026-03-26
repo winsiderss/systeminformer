@@ -260,8 +260,8 @@ NTAPI
 ZwAlertMultipleThreadByThreadId(
     _In_ PHANDLE MultipleThreadId,
     _In_ ULONG Count,
-    _In_ PVOID Boost,
-    _In_ ULONG BoostCount
+    _Inout_updates_opt_(ExtendedParameterCount) PPS_ALERT_THREAD_EXTENDED_PARAMETER ExtendedParameters,
+    _In_ ULONG ExtendedParameterCount
     );
 
 NTSYSCALLAPI
@@ -451,7 +451,7 @@ ZwAlpcCreateResourceReserve(
     _In_ HANDLE PortHandle,
     _Reserved_ ULONG Flags,
     _In_ SIZE_T MessageSize,
-    _Out_ PALPC_HANDLE ResourceId
+    _Out_ PULONG ResourceId
     );
 
 NTSYSCALLAPI
@@ -487,7 +487,7 @@ NTAPI
 ZwAlpcDeleteResourceReserve(
     _In_ HANDLE PortHandle,
     _Reserved_ ULONG Flags,
-    _In_ ALPC_HANDLE ResourceId
+    _In_ ULONG ResourceId
     );
 
 NTSYSCALLAPI
@@ -618,7 +618,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwApphelpCacheControl(
-    _In_ ULONG ServiceClass,
+    _In_ AHC_SERVICE_CLASS ServiceClass,
     _Inout_opt_ PVOID ServiceContext // AHC_SERVICE_DATA
     );
 
@@ -742,7 +742,7 @@ ZwChangeThreadState(
     _In_ THREAD_STATE_CHANGE_TYPE StateChangeType,
     _In_opt_ PVOID ExtendedInformation,
     _In_opt_ SIZE_T ExtendedInformationLength,
-    _In_opt_ ULONG64 Reserved
+    _In_opt_ ULONG Reserved
     );
 
 NTSYSCALLAPI
@@ -1058,7 +1058,7 @@ NTSTATUS
 NTAPI
 ZwCreateIRTimer(
     _Out_ PHANDLE TimerHandle,
-    _In_ PVOID Reserved,
+    _In_ PULONG TimerId,
     _In_ ACCESS_MASK DesiredAccess
     );
 
@@ -1193,8 +1193,7 @@ ZwCreatePartition(
     _In_opt_ HANDLE ParentPartitionHandle,
     _Out_ PHANDLE PartitionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ ULONG PreferredNode
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -1418,9 +1417,9 @@ NTSTATUS
 NTAPI
 ZwCreateTimer2(
     _Out_ PHANDLE TimerHandle,
-    _In_opt_ PVOID Reserved1,
+    _In_opt_ PULONG TimerId,
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ ULONG Attributes, // TIMER_TYPE
+    _In_ ULONG Attributes,
     _In_ ACCESS_MASK DesiredAccess
     );
 
@@ -1649,7 +1648,7 @@ NTSTATUS
 NTAPI
 ZwDeleteWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
-    _In_opt_ const VOID* ExplicitScope
+    _In_opt_ PCSID ExplicitScope
     );
 
 NTSYSCALLAPI
@@ -2058,7 +2057,7 @@ ZwGetNextThread(
     _In_opt_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG HandleAttributes,
-    _In_ ULONG Flags,
+    _In_opt_ _Reserved_ ULONG Flags,
     _Out_ PHANDLE NewThreadHandle
     );
 
@@ -3562,7 +3561,7 @@ NTAPI
 ZwQueryWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
     _In_opt_ PCWNF_TYPE_ID TypeId,
-    _In_opt_ const VOID* ExplicitScope,
+    _In_opt_ PCSID ExplicitScope,
     _Out_ PWNF_CHANGE_STAMP ChangeStamp,
     _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
     _Inout_ PULONG BufferLength
@@ -3574,7 +3573,7 @@ NTAPI
 ZwQueryWnfStateNameInformation(
     _In_ PCWNF_STATE_NAME StateName,
     _In_ WNF_STATE_NAME_INFORMATION NameInfoClass,
-    _In_opt_ const VOID* ExplicitScope,
+    _In_opt_ PCSID ExplicitScope,
     _Out_writes_bytes_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength
     );
@@ -4519,7 +4518,7 @@ ZwSetTimer2(
     _In_ HANDLE TimerHandle,
     _In_ PLARGE_INTEGER DueTime,
     _In_opt_ PLARGE_INTEGER Period,
-    _In_ PT2_SET_PARAMETERS Parameters
+    _In_opt_ PT2_SET_PARAMETERS Parameters
     );
 
 NTSYSCALLAPI
@@ -4847,7 +4846,7 @@ ZwUpdateWnfStateData(
     _In_reads_bytes_opt_(Length) const VOID* Buffer,
     _In_opt_ ULONG Length,
     _In_opt_ PCWNF_TYPE_ID TypeId,
-    _In_opt_ const VOID* ExplicitScope,
+    _In_opt_ PCSID ExplicitScope,
     _In_ WNF_CHANGE_STAMP MatchingChangeStamp,
     _In_ LOGICAL CheckStamp
     );
