@@ -800,32 +800,28 @@ NTSTATUS KphCaptureStackBackTraceThread(
     _In_ ULONG Flags
     )
 {
-    //
-    // Temporarily disabled pending driver bugfix (jxy-s)
-    //
-    return STATUS_NOT_SUPPORTED;
-    //NTSTATUS status;
-    //PKPH_MESSAGE msg;
-    //LARGE_INTEGER timeout;
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+    LARGE_INTEGER timeout;
 
-    //msg = KphCreateUserMessage(KphMsgCaptureStackBackTraceThread);
-    //msg->User.CaptureStackBackTraceThread.ThreadHandle = ThreadHandle;
-    //msg->User.CaptureStackBackTraceThread.FramesToSkip = FramesToSkip;
-    //msg->User.CaptureStackBackTraceThread.FramesToCapture = FramesToCapture;
-    //msg->User.CaptureStackBackTraceThread.BackTrace = BackTrace;
-    //msg->User.CaptureStackBackTraceThread.CapturedFrames = CapturedFrames;
-    //msg->User.CaptureStackBackTraceThread.BackTraceHash = BackTraceHash;
-    //msg->User.CaptureStackBackTraceThread.Timeout = PhTimeoutFromMilliseconds(&timeout, 300);
-    //msg->User.CaptureStackBackTraceThread.Flags = Flags;
-    //status = KphCommsSendMessage(msg);
+    msg = KphCreateUserMessage(KphMsgCaptureStackBackTraceThread);
+    msg->User.CaptureStackBackTraceThread.ThreadHandle = ThreadHandle;
+    msg->User.CaptureStackBackTraceThread.FramesToSkip = FramesToSkip;
+    msg->User.CaptureStackBackTraceThread.FramesToCapture = FramesToCapture;
+    msg->User.CaptureStackBackTraceThread.BackTrace = BackTrace;
+    msg->User.CaptureStackBackTraceThread.CapturedFrames = CapturedFrames;
+    msg->User.CaptureStackBackTraceThread.BackTraceHash = BackTraceHash;
+    msg->User.CaptureStackBackTraceThread.Timeout = PhTimeoutFromMilliseconds(&timeout, 300);
+    msg->User.CaptureStackBackTraceThread.Flags = Flags;
+    status = KphCommsSendMessage(msg);
 
-    //if (NT_SUCCESS(status))
-    //{
-    //    status = msg->User.CaptureStackBackTraceThread.Status;
-    //}
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.CaptureStackBackTraceThread.Status;
+    }
 
-    //PhDereferenceObject(msg);
-    //return status;
+    PhDereferenceObject(msg);
+    return status;
 }
 
 NTSTATUS KphEnumerateProcessHandles(

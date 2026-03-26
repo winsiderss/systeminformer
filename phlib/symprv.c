@@ -2265,7 +2265,7 @@ NTSTATUS PhWalkThreadStack(
     // Kernel stack walk.
     if ((Flags & PH_WALK_KERNEL_STACK) && (KsiLevel() >= KphLevelMed))
     {
-        PVOID stack[256 - 2]; // See MAX_STACK_DEPTH
+        PVOID stack[256];
         ULONG capturedFrames = 0;
         ULONG i;
 
