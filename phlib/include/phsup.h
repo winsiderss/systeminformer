@@ -773,27 +773,36 @@ PhProbeForRead(
     _In_ CONST ULONG Alignment
     )
 {
+    PVOID startAddress;
+    PVOID endAddress;
+
     if (UserLength != 0)
     {
         PhProbeAddress(UserAddress, UserLength, BufferAddress, BufferLength, Alignment);
 
-        // Align the UserLength to the nearest page boundary.
-        SIZE_T length = (SIZE_T)ALIGN_UP_BY(UserLength, PAGE_SIZE);
+        startAddress = UserAddress;
+        endAddress = PTR_ADD_OFFSET(UserAddress, UserLength - 1);
+        endAddress = PTR_ADD_OFFSET(PAGE_ALIGN(endAddress), PAGE_SIZE);
 
-        // Iterate over each page and ensure the address is valid and accessible.
-        for (SIZE_T offset = 0; offset < length; offset += PAGE_SIZE)
+        do
         {
-            // Ensure the address does not overflow
-            if ((ULONG_PTR)UserAddress + offset < (ULONG_PTR)UserAddress)
-            {
-                PhRaiseStatus(STATUS_ACCESS_VIOLATION);
-            }
+            *((volatile char*)startAddress);
 
-            *((volatile char*)UserAddress + offset);
-        }
+            startAddress = PTR_ADD_OFFSET(PAGE_ALIGN(startAddress), PAGE_SIZE);
+        } while (startAddress != endAddress);
     }
 }
 
+/**
+ * Probes a user address for write access and checks if the specified user address is writable
+ * and within the bounds of the buffer.
+ *
+ * \param UserAddress The address to probe.
+ * \param UserLength The length of the memory to probe.
+ * \param BufferAddress The base address of the buffer.
+ * \param BufferLength The length of the buffer.
+ * \param Alignment The required alignment of the address.
+ */
 FORCEINLINE
 VOID
 PhProbeForWrite(
@@ -804,24 +813,23 @@ PhProbeForWrite(
     _In_ CONST ULONG Alignment
     )
 {
+    PVOID startAddress;
+    PVOID endAddress;
+
     if (UserLength != 0)
     {
         PhProbeAddress(UserAddress, UserLength, BufferAddress, BufferLength, Alignment);
 
-        // Align the UserLength to the nearest page boundary.
-        SIZE_T length = (SIZE_T)ALIGN_UP_BY(UserLength, PAGE_SIZE);
+        startAddress = UserAddress;
+        endAddress = PTR_ADD_OFFSET(UserAddress, UserLength - 1);
+        endAddress = PTR_ADD_OFFSET(PAGE_ALIGN(endAddress), PAGE_SIZE);
 
-        // Iterate over each page and ensure the address is valid and accessible.
-        for (SIZE_T offset = 0; offset < length; offset += PAGE_SIZE)
+        do
         {
-            // Ensure the address does not overflow
-            if ((ULONG_PTR)UserAddress + offset < (ULONG_PTR)UserAddress)
-            {
-                PhRaiseStatus(STATUS_ACCESS_VIOLATION);
-            }
+            *((volatile char*)startAddress) = *((volatile char*)startAddress);
 
-            *((volatile char*)UserAddress + offset) = *((volatile char*)UserAddress + offset);
-        }
+            startAddress = PTR_ADD_OFFSET(PAGE_ALIGN(startAddress), PAGE_SIZE);
+        } while (startAddress != endAddress);
     }
 }
 
