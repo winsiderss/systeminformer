@@ -734,7 +734,7 @@ VOID CreateProcessScanHashContexts(
 }
 
 _Function_class_(IO_APC_ROUTINE)
-VOID NTAPI ProcessScanHashApcRoutine(
+static VOID NTAPI ProcessScanHashApcRoutine(
     _In_ PVOID ApcContext,
     _In_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ ULONG Reserved
