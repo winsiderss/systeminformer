@@ -20,6 +20,16 @@ BOOLEAN RaplDeviceGraphMessageCallback(
     _In_ PVOID Context
     );
 
+/**
+ * Handles the embedded RAPL summary panel dialog.
+ *
+ * \param hwndDlg Dialog window handle.
+ * \param uMsg Window message identifier.
+ * \param wParam Message-specific wParam value.
+ * \param lParam Message-specific lParam value.
+ *
+ * \return Dialog procedure result.
+ */
 INT_PTR CALLBACK RaplDevicePanelDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -71,6 +81,11 @@ INT_PTR CALLBACK RaplDevicePanelDialogProc(
     return FALSE;
 }
 
+/**
+ * Initializes DPI-dependent layout values for the RAPL dialog.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceInitializeDialogDpi(
     _In_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -78,6 +93,11 @@ VOID RaplDeviceInitializeDialogDpi(
     Context->GraphPadding = PhGetDpi(RAPL_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
 }
 
+/**
+ * Initializes graph state objects for all RAPL graphs.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceInitializeGraphStates(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -88,6 +108,11 @@ VOID RaplDeviceInitializeGraphStates(
     PhInitializeGraphState(&Context->TotalGraphState);
 }
 
+/**
+ * Creates the graph controls used by the RAPL device dialog.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceCreateGraphs(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -165,6 +190,11 @@ VOID RaplDeviceCreateGraphs(
     Context->TotalGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_TOTAL_L);
 }
 
+/**
+ * Invalidates all RAPL graph states and requests redraws.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceUpdateGraphs(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -186,6 +216,11 @@ VOID RaplDeviceUpdateGraphs(
     Graph_Update(Context->TotalGraphHandle);
 }
 
+/**
+ * Updates the text labels shown in the RAPL device panel.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceUpdatePanel(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -242,6 +277,11 @@ VOID RaplDeviceUpdatePanel(
         PhSetWindowText(Context->RaplDeviceTotalUsageLabel, L"N/A");
 }
 
+/**
+ * Lays out the RAPL graph controls inside the dialog.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceLayoutGraphs(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -373,6 +413,16 @@ VOID RaplDeviceLayoutGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
+/**
+ * Formats a graph Y-axis label for a single power series.
+ *
+ * \param DrawInfo Graph draw information.
+ * \param DataIndex Data point index.
+ * \param Value Normalized graph value.
+ * \param Parameter Scale factor used to denormalize the value.
+ *
+ * \return Formatted label string.
+ */
 PPH_STRING RaplGraphSingleLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
@@ -397,6 +447,12 @@ PPH_STRING RaplGraphSingleLabelYFunction(
     }
 }
 
+/**
+ * Handles notifications for the package power graph.
+ *
+ * \param Context RAPL sysinfo context.
+ * \param Header Notification header.
+ */
 VOID RaplDeviceNotifyProcessorGraph(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context,
     _In_ NMHDR *Header
@@ -467,6 +523,12 @@ VOID RaplDeviceNotifyProcessorGraph(
     }
 }
 
+/**
+ * Handles notifications for the core power graph.
+ *
+ * \param Context RAPL sysinfo context.
+ * \param Header Notification header.
+ */
 VOID RaplDeviceNotifyPackageGraph(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context,
     _In_ NMHDR *Header
@@ -535,6 +597,12 @@ VOID RaplDeviceNotifyPackageGraph(
     }
 }
 
+/**
+ * Handles notifications for the DRAM power graph.
+ *
+ * \param Context RAPL sysinfo context.
+ * \param Header Notification header.
+ */
 VOID RaplDeviceNotifyDimmGraph(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context,
     _In_ NMHDR *Header
@@ -605,6 +673,12 @@ VOID RaplDeviceNotifyDimmGraph(
     }
 }
 
+/**
+ * Handles notifications for the total power graph.
+ *
+ * \param Context RAPL sysinfo context.
+ * \param Header Notification header.
+ */
 VOID RaplDeviceNotifyTotalGraph(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context,
     _In_ NMHDR* Header
@@ -675,6 +749,17 @@ VOID RaplDeviceNotifyTotalGraph(
     }
 }
 
+/**
+ * Dispatches graph messages to the correct RAPL graph handler.
+ *
+ * \param WindowHandle Graph window handle.
+ * \param Message Graph callback message.
+ * \param Parameter1 Message parameter 1.
+ * \param Parameter2 Message parameter 2.
+ * \param Context RAPL sysinfo context.
+ *
+ * \return TRUE after processing the graph message.
+ */
 _Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN RaplDeviceGraphMessageCallback(
     _In_ HWND WindowHandle,
@@ -707,6 +792,11 @@ BOOLEAN RaplDeviceGraphMessageCallback(
     return TRUE;
 }
 
+/**
+ * Refreshes the RAPL device dialog contents for the current sample.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceTickDialog(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -715,6 +805,16 @@ VOID RaplDeviceTickDialog(
     RaplDeviceUpdatePanel(Context);
 }
 
+/**
+ * Handles the main RAPL device dialog.
+ *
+ * \param hwndDlg Dialog window handle.
+ * \param uMsg Window message identifier.
+ * \param wParam Message-specific wParam value.
+ * \param lParam Message-specific lParam value.
+ *
+ * \return Dialog procedure result.
+ */
 INT_PTR CALLBACK RaplDeviceDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -830,6 +930,16 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
     return FALSE;
 }
 
+/**
+ * Handles sysinfo section callbacks for a RAPL device section.
+ *
+ * \param Section Sysinfo section.
+ * \param Message Sysinfo callback message.
+ * \param Parameter1 Message parameter 1.
+ * \param Parameter2 Message parameter 2.
+ *
+ * \return TRUE if the message was handled.
+ */
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN RaplDeviceSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
@@ -986,6 +1096,12 @@ BOOLEAN RaplDeviceSectionCallback(
     return FALSE;
 }
 
+/**
+ * Registers a RAPL device as a sysinfo section.
+ *
+ * \param Pointers Plugin sysinfo callback table.
+ * \param DeviceEntry RAPL device entry.
+ */
 VOID RaplDeviceSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_RAPL_ENTRY DeviceEntry
