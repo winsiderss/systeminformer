@@ -5360,6 +5360,61 @@ PhIntegerToUtf8Buffer(
     _Out_opt_ PSIZE_T ReturnLength
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhStringToInteger64Utf8(
+    _In_ PCSTR String,
+    _In_opt_ ULONG Base,
+    _Out_ PLONG64 Integer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhStringToInteger64Utf8Ex(
+    _In_reads_bytes_(Length) PCSTR String,
+    _In_ SIZE_T Length,
+    _In_opt_ ULONG Base,
+    _Out_ PLONG64 Integer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhStringToUInt64Utf8(
+    _In_ PCSTR String,
+    _In_opt_ ULONG Base,
+    _Out_ PULONG64 Integer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhStringToUInt64Utf8Ex(
+    _In_reads_bytes_(Length) PCSTR String,
+    _In_ SIZE_T Length,
+    _In_opt_ ULONG Base,
+    _Out_ PULONG64 Integer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhStringToDoubleUtf8(
+    _In_ PCSTR String,
+    _Out_ DOUBLE* Double
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhStringToDoubleUtf8Ex(
+    _In_reads_bytes_(Length) PCSTR String,
+    _In_ SIZE_T Length,
+    _Out_ DOUBLE* Double
+    );
+
 //
 // Errors
 //
