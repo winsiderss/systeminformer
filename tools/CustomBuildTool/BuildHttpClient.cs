@@ -97,8 +97,8 @@ namespace CustomBuildTool
                     return default;
                 }
 
-                using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
-                var result = await JsonSerializer.DeserializeAsync(stream, jsonTypeInfo, CancellationToken);
+                await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
+                var result = JsonSerializer.Deserialize(stream, jsonTypeInfo);
                 if (result == null)
                 {
                     Program.PrintColorMessage("[Warning] JSON deserialization returned null", ConsoleColor.Yellow);

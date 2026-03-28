@@ -9,8 +9,6 @@
  *
  */
 
-using System.Drawing;
-
 namespace CustomBuildTool
 {
     /// <summary>

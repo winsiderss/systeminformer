@@ -127,33 +127,99 @@ namespace CustomBuildTool
         /// <returns>A filtered list of lines relevant to the current mode.</returns>
         private static List<string> ProcessHeaderLines(List<string> lines)
         {
-            var result = new List<string>();
-            var modes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var result = new List<string>(lines.Count);
+            var activeModes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             bool blankLine = false;
+
+            const string beginPrefix = "// begin_";
+            const string endPrefix = "// end_";
+
+            // Optimization: Pre-cache markers to avoid allocation and interpolation in the hot loop.
+            string[] cachedModeMarkers = new string[Modes.Length];
+            for (int i = 0; i < Modes.Length; i++)
+            {
+                cachedModeMarkers[i] = "// " + Modes[i];
+            }
 
             foreach (string line in lines)
             {
-                string text = line.Trim();
+                ReadOnlySpan<char> span = line.AsSpan().Trim();
 
-                if (text.StartsWith("// begin_", StringComparison.OrdinalIgnoreCase))
+                if (span.IsEmpty)
                 {
-                    modes.Add(text.Substring("// begin_".Length));
+                    blankLine = true;
+                    continue;
                 }
-                else if (text.StartsWith("// end_", StringComparison.OrdinalIgnoreCase))
+
+                // Optimization: Use spans for prefix checking and mode extraction to avoid heap allocations.
+                if (span.StartsWith(beginPrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    modes.Remove(text.Substring("// end_".Length));
+                    ReadOnlySpan<char> modeName = span.Slice(beginPrefix.Length);
+                    string modeStr = null;
+                    foreach (string m in Modes)
+                    {
+                        if (modeName.Equals(m, StringComparison.OrdinalIgnoreCase))
+                        {
+                            modeStr = m;
+                            break;
+                        }
+                    }
+                    activeModes.Add(modeStr ?? modeName.ToString());
+                }
+                else if (span.StartsWith(endPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    ReadOnlySpan<char> modeName = span.Slice(endPrefix.Length);
+                    string modeStr = null;
+                    foreach (string m in Modes)
+                    {
+                        if (modeName.Equals(m, StringComparison.OrdinalIgnoreCase))
+                        {
+                            modeStr = m;
+                            break;
+                        }
+                    }
+                    activeModes.Remove(modeStr ?? modeName.ToString());
                 }
                 else
                 {
-                    bool blockMode = Modes.Any(mode => modes.Contains(mode, StringComparer.OrdinalIgnoreCase));
-                    bool lineMode = Modes.Any(mode =>
+                    bool blockMode = false;
+                    foreach (string mode in Modes)
                     {
-                        int indexOfMarker = text.LastIndexOf($"// {mode}", StringComparison.OrdinalIgnoreCase);
-                        if (indexOfMarker == -1)
-                            return false;
+                        if (activeModes.Contains(mode))
+                        {
+                            blockMode = true;
+                            break;
+                        }
+                    }
 
-                        return text.Substring(indexOfMarker).Trim().All(c => char.IsLetterOrDigit(c) || c == ' ' || c == '/');
-                    });
+                    bool lineMode = false;
+                    if (!blockMode) // Optimization: Skip line-based mode checking if we are already in a block.
+                    {
+                        foreach (string marker in cachedModeMarkers)
+                        {
+                            int indexOfMarker = span.LastIndexOf(marker.AsSpan(), StringComparison.OrdinalIgnoreCase);
+                            if (indexOfMarker != -1)
+                            {
+                                // Optimization: Validate the marker using spans instead of All(...) and Trim() on strings.
+                                ReadOnlySpan<char> validatedPart = span.Slice(indexOfMarker).Trim();
+                                bool isValid = true;
+                                foreach (char c in validatedPart)
+                                {
+                                    if (!char.IsLetterOrDigit(c) && c != ' ' && c != '/')
+                                    {
+                                        isValid = false;
+                                        break;
+                                    }
+                                }
+
+                                if (isValid)
+                                {
+                                    lineMode = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
 
                     if (blockMode || lineMode)
                     {
@@ -162,10 +228,6 @@ namespace CustomBuildTool
 
                         result.Add(line);
                         blankLine = false;
-                    }
-                    else if (text.Length == 0)
-                    {
-                        blankLine = true;
                     }
                 }
             }
@@ -178,58 +240,53 @@ namespace CustomBuildTool
         /// </summary>
         public static void Execute()
         {
-            // Read in all header files.
-            Dictionary<string, HeaderFile> headerFiles = new Dictionary<string, HeaderFile>(StringComparer.OrdinalIgnoreCase);
+            // Read in all header files into a dictionary for O(1) lookup.
+            var headerFiles = new Dictionary<string, HeaderFile>(Files.Length, StringComparer.OrdinalIgnoreCase);
 
             foreach (string name in Files)
             {
                 string file = Path.Join([BaseDirectory, name]);
-                List<string> lines = File.ReadAllLines(file).ToList();
-
-                headerFiles.Add(name, new HeaderFile(name, lines));
+                string[] allLines = File.ReadAllLines(file);
+                headerFiles.Add(name, new HeaderFile(name, new List<string>(allLines)));
             }
 
+            // Dependency resolution and Line Filtering:
+            // Identify #include dependencies and remove those lines from the internal representation.
             foreach (HeaderFile h in headerFiles.Values)
             {
-                var partitions = new List<KeyValuePair<string, HeaderFile>>();
-                var dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var uniqueDeps = new HashSet<HeaderFile>();
+                var filteredLines = new List<string>(h.Lines.Count);
 
                 foreach (string line in h.Lines)
                 {
-                    var trimmed = line.Trim();
+                    ReadOnlySpan<char> span = line.AsSpan().Trim();
+                    const string includePrefix = "#include <";
 
-                    if (trimmed.StartsWith("#include <", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(">", StringComparison.OrdinalIgnoreCase))
+                    if (span.Length > includePrefix.Length && span.StartsWith(includePrefix, StringComparison.OrdinalIgnoreCase) && span.EndsWith(">"))
                     {
-                        var dependencyName = trimmed.Substring("#include <".Length, trimmed.Length - "#include <".Length - 1);
+                        ReadOnlySpan<char> dependencyNameSpan = span.Slice(includePrefix.Length, span.Length - includePrefix.Length - 1);
+                        string dependencyName = dependencyNameSpan.ToString();
 
                         if (headerFiles.TryGetValue(dependencyName, out HeaderFile dependency))
                         {
-                            partitions.Add(new KeyValuePair<string, HeaderFile>(line, dependency));
-                            dependencies.Add(dependencyName);
-                        }
-                        else
-                        {
-                            partitions.Add(new KeyValuePair<string, HeaderFile>(line, null));
+                            uniqueDeps.Add(dependency);
+                            continue; // Dependency found: skip this line to avoid duplicate inclusions in the merged header.
                         }
                     }
-                    else
-                    {
-                        partitions.Add(new KeyValuePair<string, HeaderFile>(line, null));
-                    }
+
+                    filteredLines.Add(line);
                 }
 
-                h.Lines = partitions.Where(p => p.Value == null).Select(p => p.Key).ToList();
-                h.Dependencies = dependencies.Select(dependencyName => headerFiles[dependencyName]).ToList();
+                h.Lines = filteredLines;
+                h.Dependencies = new List<HeaderFile>(uniqueDeps);
             }
 
-            // Generate the ordering.
-
-            List<HeaderFile> orderedHeaderFilesList = new List<HeaderFile>();
-
+            // Generate the dependency ordering.
+            var orderedHeaderFilesList = new List<HeaderFile>(Files.Length);
             foreach (string file in Files)
             {
+                // Note: Path.GetFileName is used to handle potential subdirectories in the Files array.
                 string name = Path.GetFileName(file);
-
                 if (headerFiles.TryGetValue(name, out HeaderFile value))
                 {
                     orderedHeaderFilesList.Add(value);
@@ -238,62 +295,51 @@ namespace CustomBuildTool
 
             List<HeaderFile> orderedHeaderFiles = OrderHeaderFiles(orderedHeaderFilesList);
 
-            // Process each header file and remove irrelevant content.
+            // Process each header file to remove irrelevant content based on Modes.
             foreach (HeaderFile h in orderedHeaderFiles)
             {
                 h.Lines = ProcessHeaderLines(h.Lines);
             }
 
-            // Write out the result.
+            // Write out the result using a pre-sized StringBuilder to reduce re-allocations.
+            StringBuilder sw = new StringBuilder(1024 * 512);
+            sw.Append(Notice);
+            sw.Append(Header);
 
-            StringBuilder sw = new StringBuilder();
+            foreach (HeaderFile h in orderedHeaderFiles)
             {
-                // Copyright
-                sw.Append(Notice);
+                sw.AppendLine();
+                sw.AppendLine("//");
+                sw.AppendLine($"// {Path.GetFileNameWithoutExtension(h.Name)}");
+                sw.AppendLine("//");
+                sw.AppendLine();
 
-                // Header
-                sw.Append(Header);
-
-                // Header files
-                foreach (HeaderFile h in orderedHeaderFiles)
+                foreach (string line in h.Lines)
                 {
-                    //Console.WriteLine("Header file: " + h.Name);
-                    sw.AppendLine();
-                    sw.AppendLine("//");
-                    sw.AppendLine($"// {Path.GetFileNameWithoutExtension(h.Name)}");
-                    sw.AppendLine("//");
-                    sw.AppendLine();
-
-                    foreach (string line in h.Lines)
-                    {
-                        sw.AppendLine(line);
-                    }
+                    sw.AppendLine(line);
                 }
-
-                // Footer
-                sw.Append(Footer);
             }
 
-            // Check for new or modified content. We don't want to touch the file if it's not needed.
+            sw.Append(Footer);
+
+            string headerFileName = Path.Join([BaseDirectory, OutputFile]);
+            string headerUpdateText = sw.ToString();
+
+            // Only update the file if the content has changed to preserve timestamps and prevent unnecessary rebuilds.
+            if (File.Exists(headerFileName))
             {
-                string headerFileName = Path.Join([BaseDirectory, OutputFile]);
-                string headerUpdateText = sw.ToString();
+                string headerCurrentText = Utils.ReadAllText(headerFileName);
 
-                if (File.Exists(headerFileName))
-                {
-                    string headerCurrentText = Utils.ReadAllText(headerFileName);
-
-                    if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
-                    {
-                        Program.PrintColorMessage($"HeaderGen -> {headerFileName}", ConsoleColor.Cyan);
-                        Utils.WriteAllText(headerFileName, headerUpdateText);
-                    }
-                }
-                else
+                if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
                 {
                     Program.PrintColorMessage($"HeaderGen -> {headerFileName}", ConsoleColor.Cyan);
                     Utils.WriteAllText(headerFileName, headerUpdateText);
                 }
+            }
+            else
+            {
+                Program.PrintColorMessage($"HeaderGen -> {headerFileName}", ConsoleColor.Cyan);
+                Utils.WriteAllText(headerFileName, headerUpdateText);
             }
         }
     }

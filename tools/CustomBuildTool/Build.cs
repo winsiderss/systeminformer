@@ -1390,47 +1390,42 @@ namespace CustomBuildTool
         /// <returns>True if the solution is built successfully; otherwise, false.</returns>
         public static bool BuildSolutionCMake(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags)
         {
-            // If CMake build is requested, route to BuildSolutionCMake for each requested arch.
-            if (Flags.HasFlag(BuildFlags.BuildCMake))
+            bool build = false;
+
+            if (Flags.HasFlag(BuildFlags.Build32bit) && Utils.IsX86Toolchain(Toolchain))
+                build = true;
+            if (Flags.HasFlag(BuildFlags.Build64bit) && Utils.IsAmd64Toolchain(Toolchain))
+                build = true;
+            if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Utils.IsArm64Toolchain(Toolchain))
             {
-                // 32-bit
-                if (Flags.HasFlag(BuildFlags.Build32bit))
-                {
-                    if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags))
-                        return false;
-                }
-
-                // 64-bit
-                if (Flags.HasFlag(BuildFlags.Build64bit))
-                {
-                    if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags))
-                        return false;
-                }
-
-                // ARM64
-                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                {
-                    if (HaveArm64BuildTools)
-                    {
-                        if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags))
-                            return false;
-                    }
-                    else
-                    {
-                        Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
-                    }
-                }
-
-                return true;
+                if (HaveArm64BuildTools)
+                    build = true;
+                else
+                    Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
             }
 
-            return false;
+            if (!build)
+                return true;
+
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
+            {
+                if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags, "Debug"))
+                    return false;
+            }
+
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
+            {
+                if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags, "Release"))
+                    return false;
+            }
+
+            return true;
         }
 
-        public static bool ExecuteBuildSolutionCMake(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags)
+        public static bool ExecuteBuildSolutionCMake(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags, string Configuration)
         {
-            string buildConfig = Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release";
-            string buildFolder = Flags.HasFlag(BuildFlags.BuildDebug) ? "build\\debug" : "build\\release";
+            string buildConfig = Configuration;
+            string buildFolder = Configuration.Equals("Debug", StringComparison.OrdinalIgnoreCase) ? "build\\debug" : "build\\release";
 
             string platformSuffix = Toolchain switch
             {

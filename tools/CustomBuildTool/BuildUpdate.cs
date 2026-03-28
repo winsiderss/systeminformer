@@ -20,8 +20,8 @@ namespace CustomBuildTool
         /// Gets the latest package version from NuGet using service index discovery.
         /// Query order: RegistrationsBaseUrl -> SearchQueryService -> flat-container fallback.
         /// </summary>
-        /// <param name="packageId">Package ID.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="PackageId">Package ID.</param>
+        /// <param name="CancellationToken">Cancellation token.</param>
         /// <returns>Latest stable version if available; otherwise latest prerelease; null if not found.</returns>
         public static async Task<string> GetLatestVersion(string PackageId, CancellationToken CancellationToken = default)
         {
@@ -41,7 +41,7 @@ namespace CustomBuildTool
                 if (httpResponse.IsSuccessStatusCode)
                 {
                     await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
-                    var doc = await JsonSerializer.DeserializeAsync(stream, NugetJsonContext.Default.NugetServiceIndexResponse, cancellationToken: CancellationToken);
+                    var doc = JsonSerializer.Deserialize(stream, NugetJsonContext.Default.NugetServiceIndexResponse);
 
                     if (doc.Resources != null)
                     {
@@ -124,7 +124,7 @@ namespace CustomBuildTool
             CancellationToken CancellationToken)
         {
             var registrationIndexUri = $"{RegistrationsBase.TrimEnd('/')}/{PackageId.ToLowerInvariant()}/index.json";
-            NugetRegistrationIndexResponse index = default;
+            NugetRegistrationIndexResponse index = null;
 
             try
             {
@@ -134,7 +134,7 @@ namespace CustomBuildTool
                 if (httpResponse.IsSuccessStatusCode)
                 {
                     await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
-                    index = await JsonSerializer.DeserializeAsync(stream, NugetJsonContext.Default.NugetRegistrationIndexResponse, cancellationToken: CancellationToken);
+                    index = JsonSerializer.Deserialize(stream, NugetJsonContext.Default.NugetRegistrationIndexResponse);
                 }
                 else
                 {
@@ -151,7 +151,7 @@ namespace CustomBuildTool
 
             foreach (var page in index?.Items)
             {
-                if (page.Items != null && page.Items.Count() > 0)
+                if (page.Items != null && page.Items.Length != 0)
                 {
                     AddVersions(Versions, page.Items.Select(i => i.CatalogEntry.Version));
                     continue;
@@ -160,7 +160,7 @@ namespace CustomBuildTool
                 if (string.IsNullOrWhiteSpace(page.Id))
                     continue;
 
-                NugetRegistrationPageResponse pageResponse = default;
+                NugetRegistrationPageResponse pageResponse = null;
                 try
                 {
                     using var request = new HttpRequestMessage(HttpMethod.Get, page.Id);
@@ -169,7 +169,7 @@ namespace CustomBuildTool
                     if (httpResponse.IsSuccessStatusCode)
                     {
                         await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
-                        pageResponse = await JsonSerializer.DeserializeAsync(stream, NugetJsonContext.Default.NugetRegistrationPageResponse, cancellationToken: CancellationToken);
+                        pageResponse = JsonSerializer.Deserialize(stream, NugetJsonContext.Default.NugetRegistrationPageResponse);
                     }
                     else
                     {
@@ -201,7 +201,7 @@ namespace CustomBuildTool
             CancellationToken CancellationToken)
         {
             var searchUri = $"{SearchQueryService.TrimEnd('/')}?q=packageid:{Uri.EscapeDataString(PackageId)}&prerelease=true&take=20";
-            NugetSearchResponse search = default;
+            NugetSearchResponse search = null;
 
             try
             {
@@ -211,7 +211,7 @@ namespace CustomBuildTool
                 if (httpResponse.IsSuccessStatusCode)
                 {
                     await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
-                    search = await JsonSerializer.DeserializeAsync(stream, NugetJsonContext.Default.NugetSearchResponse, cancellationToken: CancellationToken);
+                    search = JsonSerializer.Deserialize(stream, NugetJsonContext.Default.NugetSearchResponse);
                 }
                 else
                 {
@@ -263,7 +263,7 @@ namespace CustomBuildTool
                 else
                 {
                     await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
-                    response = await JsonSerializer.DeserializeAsync(stream, NugetJsonContext.Default.NugetVersionResponse, cancellationToken: CancellationToken);
+                    response = JsonSerializer.Deserialize(stream, NugetJsonContext.Default.NugetVersionResponse);
                 }
             }
             catch
@@ -345,7 +345,7 @@ namespace CustomBuildTool
             return (stable ?? ordered[^1]).Original;
         }
 
-        private sealed class NugetSemVer : IComparable<NugetSemVer>
+        public sealed class NugetSemVer : IComparable<NugetSemVer>
         {
             public string Original { get; init; }
             public int Major { get; init; }
@@ -364,12 +364,12 @@ namespace CustomBuildTool
             public static bool TryParse(string Value, out NugetSemVer Result)
             {
                 Result = null;
+
                 if (string.IsNullOrWhiteSpace(Value))
                     return false;
 
                 var plusIndex = Value.IndexOf('+');
                 var trimmed = plusIndex >= 0 ? Value[..plusIndex] : Value;
-
                 var dashIndex = trimmed.IndexOf('-');
                 var numeric = dashIndex >= 0 ? trimmed[..dashIndex] : trimmed;
                 var prerelease = dashIndex >= 0 ? trimmed[(dashIndex + 1)..] : null;
@@ -560,17 +560,17 @@ namespace CustomBuildTool
         public string Id { get; init; }
 
         [JsonPropertyName("commitId")]
-        public string commitId { get; init; }
+        public string CommitId { get; init; }
 
         [JsonPropertyName("commitTimeStamp")]
-        public string commitTimeStamp { get; init; }
+        public string CommitTimeStamp { get; init; }
 
         [JsonPropertyName("catalogEntry")]
         public NugetRegistrationCatalogEntryResponse CatalogEntry { get; init; }
 
         public override string ToString()
         {
-            return $"{this.Id} [{this.commitTimeStamp}] [{this.commitId}]";
+            return $"{this.Id} [{this.CommitTimeStamp}] [{this.CommitId}]";
         }
     }
 
@@ -609,17 +609,17 @@ namespace CustomBuildTool
         public string Id { get; init; }
 
         [JsonPropertyName("commitId")]
-        public string commitId { get; init; }
+        public string CommitId { get; init; }
 
         [JsonPropertyName("commitTimeStamp")]
-        public string commitTimeStamp { get; init; }
+        public string CommitTimeStamp { get; init; }
 
         [JsonPropertyName("items")]
         public NugetRegistrationLeafResponse[] Items { get; init; }
 
         public override string ToString()
         {
-            return $"{this.Id} [{this.commitTimeStamp}] [{this.commitId}]";
+            return $"{this.Id} [{this.CommitTimeStamp}] [{this.CommitId}]";
         }
     }
 

@@ -545,10 +545,9 @@ typedef struct _KPH_DYN_CONFIG
             if (fieldsNodes == null)
                 return null;
 
+            using var fieldsStream = new MemoryStream();
             var fieldsMap = new Dictionary<UInt32, XmlNode>(fieldsNodes.Count);
             var fieldsOffsets = new Dictionary<UInt32, UInt32>(fieldsNodes.Count);
-            var fieldsStream = new MemoryStream();
-            var fieldsWirter = new BinaryWriter(fieldsStream);
             var entries = new List<DynDataEntry>(dataNodes.Count);
 
             foreach (XmlNode field in fieldsNodes)
@@ -558,12 +557,11 @@ typedef struct _KPH_DYN_CONFIG
                 if (string.IsNullOrWhiteSpace(name))
                     continue;
 
-                fieldsMap.Add(UInt32.Parse(name), field);
+                fieldsMap.Add(UInt32.Parse(name.AsSpan()), field);
             }
 
             foreach (XmlNode data in dataNodes)
             {
-                var entry = new DynDataEntry();
                 var file = data.Attributes?.GetNamedItem("file")?.Value;
                 var arch = data.Attributes?.GetNamedItem("arch")?.Value;
                 var timestamp = data.Attributes?.GetNamedItem("timestamp")?.Value;
@@ -575,12 +573,15 @@ typedef struct _KPH_DYN_CONFIG
                 if (string.IsNullOrWhiteSpace(size))
                     continue;
 
-                entry.Class = (UInt16)dynClass;
-                entry.Machine = MachineFromString(arch);
-                entry.TimeDateStamp = UInt32.Parse(timestamp[2..], NumberStyles.HexNumber);
-                entry.SizeOfImage = UInt32.Parse(size[2..], NumberStyles.HexNumber);
+                DynDataEntry entry = new DynDataEntry
+                {
+                    Class = (UInt16)dynClass,
+                    Machine = MachineFromString(arch),
+                    TimeDateStamp = UInt32.Parse(timestamp.AsSpan(2), NumberStyles.HexNumber),
+                    SizeOfImage = UInt32.Parse(size.AsSpan(2), NumberStyles.HexNumber)
+                };
 
-                var fieldId = UInt32.Parse(data.InnerText);
+                var fieldId = UInt32.Parse(data.InnerText.AsSpan());
 
                 if (!fieldsOffsets.TryGetValue(fieldId, out UInt32 offset))
                 {
@@ -595,24 +596,24 @@ typedef struct _KPH_DYN_CONFIG
                             var fieldsData = new DynFieldsKernel();
                             var fieldNodes = fieldsMap[fieldId].SelectNodes("field");
 
-                            if (fieldNodes == null)
-                                continue;
-
-                            foreach (XmlNode field in fieldNodes)
+                            if (fieldNodes != null)
                             {
-                                string value = field.Attributes?.GetNamedItem("value")?.Value;
-                                string name = field.Attributes?.GetNamedItem("name")?.Value;
-
-                                if (string.IsNullOrWhiteSpace(name))
-                                    continue;
-
-                                if (DynFieldsKernelFieldCache.TryGetValue(name, out var member))
+                                foreach (XmlNode field in fieldNodes)
                                 {
-                                    member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
+                                    string value = field.Attributes?.GetNamedItem("value")?.Value;
+                                    string name = field.Attributes?.GetNamedItem("name")?.Value;
+
+                                    if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value))
+                                        continue;
+
+                                    if (DynFieldsKernelFieldCache.TryGetValue(name, out var member))
+                                    {
+                                        member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
+                                    }
                                 }
                             }
 
-                            fieldsWirter.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref fieldsData, 1)));
+                            fieldsStream.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref fieldsData, 1)));
                         }
                         break;
                     case ClassType.Lxcore:
@@ -620,24 +621,24 @@ typedef struct _KPH_DYN_CONFIG
                             var fieldsData = new DynFieldsLxcore();
                             var fieldNodes = fieldsMap[fieldId].SelectNodes("field");
 
-                            if (fieldNodes == null)
-                                continue;
-
-                            foreach (XmlNode field in fieldNodes)
+                            if (fieldNodes != null)
                             {
-                                string value = field.Attributes?.GetNamedItem("value")?.Value;
-                                string name = field.Attributes?.GetNamedItem("name")?.Value;
-
-                                if (string.IsNullOrWhiteSpace(name))
-                                    continue;
-
-                                if (DynFieldsLxcoreFieldCache.TryGetValue(name, out var member))
+                                foreach (XmlNode field in fieldNodes)
                                 {
-                                    member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
+                                    string value = field.Attributes?.GetNamedItem("value")?.Value;
+                                    string name = field.Attributes?.GetNamedItem("name")?.Value;
+
+                                    if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value))
+                                        continue;
+
+                                    if (DynFieldsLxcoreFieldCache.TryGetValue(name, out var member))
+                                    {
+                                        member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
+                                    }
                                 }
                             }
 
-                            fieldsWirter.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref fieldsData, 1)));
+                            fieldsStream.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref fieldsData, 1)));
                         }
                         break;
                     default:
@@ -663,7 +664,11 @@ typedef struct _KPH_DYN_CONFIG
                 writer.Write(SessionTokenPublicKey);
                 writer.Write((uint)entries.Count);
                 writer.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(entries)));
-                writer.Write(fieldsStream.ToArray());
+
+                if (fieldsStream.TryGetBuffer(out ArraySegment<byte> buffer))
+                    writer.Write(buffer.AsSpan());
+                else
+                    writer.Write(fieldsStream.ToArray());
 
                 return stream.ToArray();
             }
@@ -676,39 +681,32 @@ typedef struct _KPH_DYN_CONFIG
         /// <returns>The formatted string.</returns>
         private static string BytesToString(byte[] Buffer)
         {
-            using (MemoryStream stream = new MemoryStream(Buffer, false))
+            if (Buffer == null || Buffer.Length == 0)
+                return null;
+
+            // This method avoids intermediate string allocations using InterpolatedStringHandler,
+            // and calculates exact or near-exact capacity to avoid reallocation. Each full line of 8 bytes is:
+            // "    " (4) + 8 * "0xXX, " (48) - 1 (trailing space) + \r\n (2) = 53-55 chars.
+
+            var lines = (Buffer.Length + 7) / 8;
+            var sb = new StringBuilder(lines * 55);
+
+            for (var i = 0; i < Buffer.Length; i++)
             {
-                StringBuilder hex = new StringBuilder(64);
-                StringBuilder sb = new StringBuilder(8192);
-                Span<byte> bytes = stackalloc byte[8];
-
-                while (true)
+                if (i % 8 == 0)
                 {
-                    var len = stream.Read(bytes);
-
-                    if (len == 0)
-                    {
-                        break;
-                    }
-
-                    for (int i = 0; i < len; i++)
-                    {
-                        hex.AppendFormat("0x{0:x2}, ", bytes[i]);
-                    }
-                    hex.Remove(hex.Length - 1, 1);
-
                     sb.Append("    ");
-                    sb.AppendLine(hex.ToString());
-                    hex.Clear();
-
-                    if (len < bytes.Length)
-                    {
-                        break;
-                    }
                 }
 
-                return sb.ToString();
+                sb.Append($"0x{Buffer[i]:x2},");
+
+                if (i % 8 == 7 || i == Buffer.Length - 1)
+                    sb.AppendLine();
+                else
+                    sb.Append(' ');
             }
+
+            return sb.ToString();
         }
 
         /// <summary>

@@ -659,7 +659,7 @@ namespace CustomBuildTool
 
                     if (fileExtension.Equals(".pem", StringComparison.OrdinalIgnoreCase))
                     {
-                        string pemContent = File.ReadAllText(ClientCertificatePath);
+                        string pemContent = await File.ReadAllTextAsync(ClientCertificatePath, CancellationToken);
                         clientCertificate = CreateCertificateFromPem(pemContent);
                     }
                     else if (
@@ -669,7 +669,7 @@ namespace CustomBuildTool
                     {
                         // For PFX, you may need a password. Check environment variable.
                         string certPassword = Environment.GetEnvironmentVariable("AZURE_CLIENT_CERTIFICATE_PASSWORD");
-                        byte[] certBytes = File.ReadAllBytes(ClientCertificatePath);
+                        byte[] certBytes = await File.ReadAllBytesAsync(ClientCertificatePath, CancellationToken);
                         
                         if (!string.IsNullOrWhiteSpace(certPassword))
                         {

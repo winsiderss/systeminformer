@@ -49,7 +49,7 @@ namespace CustomBuildTool
 
                 if (File.Exists(fileName))
                 {
-                    VirusTotalApiToken = File.ReadAllText(fileName).Trim();
+                    VirusTotalApiToken = (await File.ReadAllTextAsync(fileName)).Trim();
                 }
             }
 

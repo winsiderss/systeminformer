@@ -1358,6 +1358,21 @@ namespace CustomBuildTool
             _ => throw new ArgumentException("Unsupported toolchain")
         };
 
+        public static bool IsX86Toolchain(BuildToolchain toolchain)
+        {
+            return toolchain == BuildToolchain.MsvcX86 || toolchain == BuildToolchain.ClangMsvcX86;
+        }
+
+        public static bool IsAmd64Toolchain(BuildToolchain toolchain)
+        {
+            return toolchain == BuildToolchain.MsvcAmd64 || toolchain == BuildToolchain.ClangMsvcAmd64;
+        }
+
+        public static bool IsArm64Toolchain(BuildToolchain toolchain)
+        {
+            return toolchain == BuildToolchain.MsvcArm64 || toolchain == BuildToolchain.ClangMsvcArm64;
+        }
+
         public static string GetToolchainString(BuildToolchain toolchain)
         {
             switch (toolchain)
