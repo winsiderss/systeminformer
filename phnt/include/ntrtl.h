@@ -3346,7 +3346,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlStringFromGUID(
-    _In_ PGUID Guid,
+    _In_ PCGUID Guid,
     _Out_ PUNICODE_STRING GuidString
     );
 
@@ -3360,7 +3360,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlStringFromGUIDEx(
-    _In_ PGUID Guid,
+    _In_ PCGUID Guid,
     _Inout_ PUNICODE_STRING GuidString,
     _In_ BOOLEAN AllocateGuidString
     );
@@ -5134,7 +5134,7 @@ NTSTATUS
 NTAPI
 RtlFindActivationContextSectionString(
     _In_ ULONG Flags,
-    _In_opt_ PGUID ExtensionGuid,
+    _In_opt_ PCGUID ExtensionGuid,
     _In_ ULONG SectionId, // ACTIVATION_CONTEXT_SECTION_*
     _In_ PCUNICODE_STRING StringToFind,
     _Inout_ PACTCTX_SECTION_KEYED_DATA ReturnedData
@@ -5146,9 +5146,9 @@ NTSTATUS
 NTAPI
 RtlFindActivationContextSectionGuid(
     _In_ ULONG Flags,
-    _In_opt_ PGUID ExtensionGuid,
+    _In_opt_ PCGUID ExtensionGuid,
     _In_ ULONG SectionId, // ACTIVATION_CONTEXT_SECTION_*
-    _In_ PGUID GuidToFind,
+    _In_ PCGUID GuidToFind,
     _Inout_ PACTCTX_SECTION_KEYED_DATA ReturnedData
     );
 
@@ -9751,8 +9751,8 @@ RtlAddAccessAllowedObjectAce(
     _In_ ULONG AceRevision,
     _In_ ULONG AceFlags,
     _In_ ACCESS_MASK AccessMask,
-    _In_opt_ PGUID ObjectTypeGuid,
-    _In_opt_ PGUID InheritedObjectTypeGuid,
+    _In_opt_ PCGUID ObjectTypeGuid,
+    _In_opt_ PCGUID InheritedObjectTypeGuid,
     _In_ PSID Sid
     );
 
@@ -9764,8 +9764,8 @@ RtlAddAccessDeniedObjectAce(
     _In_ ULONG AceRevision,
     _In_ ULONG AceFlags,
     _In_ ACCESS_MASK AccessMask,
-    _In_opt_ PGUID ObjectTypeGuid,
-    _In_opt_ PGUID InheritedObjectTypeGuid,
+    _In_opt_ PCGUID ObjectTypeGuid,
+    _In_opt_ PCGUID InheritedObjectTypeGuid,
     _In_ PSID Sid
     );
 
@@ -9777,8 +9777,8 @@ RtlAddAuditAccessObjectAce(
     _In_ ULONG AceRevision,
     _In_ ULONG AceFlags,
     _In_ ACCESS_MASK AccessMask,
-    _In_opt_ PGUID ObjectTypeGuid,
-    _In_opt_ PGUID InheritedObjectTypeGuid,
+    _In_opt_ PCGUID ObjectTypeGuid,
+    _In_opt_ PCGUID InheritedObjectTypeGuid,
     _In_ PSID Sid,
     _In_ BOOLEAN AuditSuccess,
     _In_ BOOLEAN AuditFailure
@@ -12234,7 +12234,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryProtectedPolicy(
-    _In_ PGUID PolicyGuid,
+    _In_ PCGUID PolicyGuid,
     _Out_ PULONG_PTR PolicyValue
     );
 
@@ -12243,7 +12243,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetProtectedPolicy(
-    _In_ PGUID PolicyGuid,
+    _In_ PCGUID PolicyGuid,
     _In_ ULONG_PTR PolicyValue,
     _Out_ PULONG_PTR OldPolicyValue
     );
