@@ -47,7 +47,7 @@ namespace CustomBuildTool
             var result = new string[names.Length];
             for (int i = 0; i < names.Length; i++)
             {
-                result[i] = names[i].Substring(length);
+                result[i] = names[i].Substring(Math.Min(length, names[i].Length));
             }
 
             return result;
