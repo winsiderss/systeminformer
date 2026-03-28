@@ -11,6 +11,13 @@
  */
 
 #include "devices.h"
+
+/**
+ * Deletes a disk entry and releases its resources.
+ *
+ * \param Object Disk entry object.
+ * \param Flags Object deletion flags.
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID DiskEntryDeleteProcedure(
     _In_ PVOID Object,
@@ -32,6 +39,9 @@ VOID DiskEntryDeleteProcedure(
     AddRemoveDeviceChangeCallback();
 }
 
+/**
+ * Initializes the disk device list and object type.
+ */
 VOID DiskDevicesInitialize(
     VOID
     )
@@ -40,6 +50,11 @@ VOID DiskDevicesInitialize(
     DiskDeviceEntryType = PhCreateObjectType(L"DiskDeviceEntry", 0, DiskEntryDeleteProcedure);
 }
 
+/**
+ * Refreshes all tracked disk devices and samples current statistics.
+ *
+ * \param RunCount Current provider update count.
+ */
 VOID DiskDevicesUpdate(
     _In_ ULONG RunCount
     )
@@ -177,6 +192,12 @@ VOID DiskDevicesUpdate(
     PhReleaseQueuedLockShared(&DiskDevicesListLock);
 }
 
+/**
+ * Updates cached display information for a disk entry.
+ *
+ * \param DeviceHandle Optional disk device handle.
+ * \param DiskEntry Target disk entry.
+ */
 VOID DiskDeviceUpdateDeviceInfo(
     _In_opt_ HANDLE DeviceHandle,
     _In_ PDV_DISK_ENTRY DiskEntry
@@ -233,6 +254,12 @@ VOID DiskDeviceUpdateDeviceInfo(
     }
 }
 
+/**
+ * Initializes a disk device identifier.
+ *
+ * \param Id Destination identifier.
+ * \param DevicePath Device path.
+ */
 VOID InitializeDiskId(
     _Out_ PDV_DISK_ID Id,
     _In_ PPH_STRING DevicePath
@@ -241,6 +268,12 @@ VOID InitializeDiskId(
     PhSetReference(&Id->DevicePath, DevicePath);
 }
 
+/**
+ * Copies a disk device identifier.
+ *
+ * \param Destination Destination identifier.
+ * \param Source Source identifier.
+ */
 VOID CopyDiskId(
     _Out_ PDV_DISK_ID Destination,
     _In_ PDV_DISK_ID Source
@@ -252,6 +285,11 @@ VOID CopyDiskId(
         );
 }
 
+/**
+ * Releases references held by a disk device identifier.
+ *
+ * \param Id Identifier to release.
+ */
 VOID DeleteDiskId(
     _Inout_ PDV_DISK_ID Id
     )
@@ -259,6 +297,13 @@ VOID DeleteDiskId(
     PhClearReference(&Id->DevicePath);
 }
 
+/**
+ * Compares two disk device identifiers.
+ *
+ * \param Id1 First identifier.
+ * \param Id2 Second identifier.
+ * \return TRUE if both identifiers refer to the same disk.
+ */
 BOOLEAN EquivalentDiskId(
     _In_ PDV_DISK_ID Id1,
     _In_ PDV_DISK_ID Id2
@@ -267,6 +312,12 @@ BOOLEAN EquivalentDiskId(
     return PhEqualString(Id1->DevicePath, Id2->DevicePath, TRUE);
 }
 
+/**
+ * Creates and registers a disk entry.
+ *
+ * \param Id Disk identifier.
+ * \return Newly created disk entry.
+ */
 PDV_DISK_ENTRY CreateDiskEntry(
     _In_ PDV_DISK_ID Id
     )
