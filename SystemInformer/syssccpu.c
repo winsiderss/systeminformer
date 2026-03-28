@@ -1386,17 +1386,17 @@ PPH_STRING PhSipGetCpuBrandString(
     static CONST PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" ");
     PPH_STRING brand = NULL;
     ULONG brandLength;
-    CHAR brandString[49];
+    SYSTEM_PROCESSOR_BRAND_STRING brandString;
 
     if (NT_SUCCESS(NtQuerySystemInformation(
         SystemProcessorBrandString,
-        brandString,
+        &brandString,
         sizeof(brandString),
         NULL
         )))
     {
-        brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
-        brand = PhConvertUtf8ToUtf16Ex(brandString, brandLength);
+        brandLength = sizeof(brandString.BrandString) - sizeof(ANSI_NULL);
+        brand = PhConvertUtf8ToUtf16Ex(brandString.BrandString, brandLength);
     }
     else
     {
