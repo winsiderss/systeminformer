@@ -810,6 +810,10 @@ BOOLEAN CpuHistoryGraphMessageCallback(
                     }
                 }
             }
+            else if (mouseEvent->Message == WM_RBUTTONUP)
+            {
+                ShowCustomizeMenu(WindowHandle);
+            }
         }
         break;
     }
@@ -913,6 +917,10 @@ BOOLEAN PhysicalHistoryGraphMessageCallback(
                     PhShowSystemInformationDialog(L"Memory");
                 }
             }
+            else if (mouseEvent->Message == WM_RBUTTONUP)
+            {
+                ShowCustomizeMenu(WindowHandle);
+            }
         }
         break;
     }
@@ -1015,6 +1023,10 @@ BOOLEAN CommitHistoryGraphMessageCallback(
                 {
                     PhShowSystemInformationDialog(L"Memory");
                 }
+            }
+            else if (mouseEvent->Message == WM_RBUTTONUP)
+            {
+                ShowCustomizeMenu(WindowHandle);
             }
         }
         break;
@@ -1141,6 +1153,10 @@ BOOLEAN IoHistoryGraphMessageCallback(
                         PhDereferenceProcessRecord(record);
                     }
                 }
+            }
+            else if (mouseEvent->Message == WM_RBUTTONUP)
+            {
+                ShowCustomizeMenu(WindowHandle);
             }
         }
         break;
