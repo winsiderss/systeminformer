@@ -195,35 +195,35 @@ typedef enum _PROCESSINFOCLASS
     ProcessVmCounters,                              // q: VM_COUNTERS, VM_COUNTERS_EX, VM_COUNTERS_EX2
     ProcessTimes,                                   // q: KERNEL_USER_TIMES
     ProcessBasePriority,                            // s: KPRIORITY
-    ProcessRaisePriority,                           // s: ULONG
+    ProcessRaisePriority,                           // s: PROCESS_RAISE_PRIORITY
     ProcessDebugPort,                               // q: HANDLE
     ProcessExceptionPort,                           // s: PROCESS_EXCEPTION_PORT (requires SeTcbPrivilege)
     ProcessAccessToken,                             // s: PROCESS_ACCESS_TOKEN
     ProcessLdtInformation,                          // qs: PROCESS_LDT_INFORMATION // 10
     ProcessLdtSize,                                 // s: PROCESS_LDT_SIZE
-    ProcessDefaultHardErrorMode,                    // qs: ULONG
+    ProcessDefaultHardErrorMode,                    // qs: PROCESS_DEFAULT_HARD_ERROR_MODE
     ProcessIoPortHandlers,                          // s: PROCESS_IO_PORT_HANDLER_INFORMATION // (kernel-mode only)
     ProcessPooledUsageAndLimits,                    // q: POOLED_USAGE_AND_LIMITS
     ProcessWorkingSetWatch,                         // q: PROCESS_WS_WATCH_INFORMATION[]; s: void
-    ProcessUserModeIOPL,                            // qs: ULONG (requires SeTcbPrivilege)
+    ProcessUserModeIOPL,                            // qs: PROCESS_USER_MODE_IOPL (requires SeTcbPrivilege)
     ProcessEnableAlignmentFaultFixup,               // s: BOOLEAN
     ProcessPriorityClass,                           // qs: PROCESS_PRIORITY_CLASS
     ProcessWx86Information,                         // qs: ULONG (requires SeTcbPrivilege) (VdmAllowed)
     ProcessHandleCount,                             // q: ULONG, PROCESS_HANDLE_INFORMATION // 20
     ProcessAffinityMask,                            // qs: KAFFINITY, qs: GROUP_AFFINITY
-    ProcessPriorityBoost,                           // qs: ULONG
+    ProcessPriorityBoost,                           // qs: PROCESS_PRIORITY_BOOST
     ProcessDeviceMap,                               // qs: PROCESS_DEVICEMAP_INFORMATION, PROCESS_DEVICEMAP_INFORMATION_EX
     ProcessSessionInformation,                      // q: PROCESS_SESSION_INFORMATION
     ProcessForegroundInformation,                   // s: PROCESS_FOREGROUND_BACKGROUND
     ProcessWow64Information,                        // q: ULONG_PTR
     ProcessImageFileName,                           // q: UNICODE_STRING
-    ProcessLUIDDeviceMapsEnabled,                   // q: ULONG
+    ProcessLUIDDeviceMapsEnabled,                   // q: PROCESS_LUID_DEVICE_MAPS_ENABLED
     ProcessBreakOnTermination,                      // qs: ULONG
     ProcessDebugObjectHandle,                       // q: HANDLE // 30
-    ProcessDebugFlags,                              // qs: ULONG
+    ProcessDebugFlags,                              // qs: PROCESS_DEBUG_FLAGS
     ProcessHandleTracing,                           // q: PROCESS_HANDLE_TRACING_QUERY; s: PROCESS_HANDLE_TRACING_ENABLE[_EX] or void to disable
     ProcessIoPriority,                              // qs: IO_PRIORITY_HINT
-    ProcessExecuteFlags,                            // qs: ULONG (MEM_EXECUTE_OPTION_*)
+    ProcessExecuteFlags,                            // qs: PROCESS_EXECUTE_FLAGS
     ProcessTlsInformation,                          // qs: PROCESS_TLS_INFORMATION // ProcessResourceManagement
     ProcessCookie,                                  // q: ULONG
     ProcessImageInformation,                        // q: SECTION_IMAGE_INFORMATION
@@ -236,14 +236,14 @@ typedef enum _PROCESSINFOCLASS
     ProcessImageFileMapping,                        // q: HANDLE (input)
     ProcessAffinityUpdateMode,                      // qs: PROCESS_AFFINITY_UPDATE_MODE
     ProcessMemoryAllocationMode,                    // qs: PROCESS_MEMORY_ALLOCATION_MODE
-    ProcessGroupInformation,                        // q: USHORT[]
+    ProcessGroupInformation,                        // q: PROCESS_GROUP_INFORMATION
     ProcessTokenVirtualizationEnabled,              // s: ULONG
     ProcessConsoleHostProcess,                      // qs: ULONG_PTR // ProcessOwnerInformation
     ProcessWindowInformation,                       // q: PROCESS_WINDOW_INFORMATION // 50
     ProcessHandleInformation,                       // q: PROCESS_HANDLE_SNAPSHOT_INFORMATION // since WIN8
     ProcessMitigationPolicy,                        // qs: PROCESS_MITIGATION_POLICY_INFORMATION
     ProcessDynamicFunctionTableInformation,         // s: PROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION
-    ProcessHandleCheckingMode,                      // qs: ULONG; s: 0 disables, otherwise enables
+    ProcessHandleCheckingMode,                      // qs: PROCESS_HANDLE_CHECKING_MODE; s: 0 disables, otherwise enables
     ProcessKeepAliveCount,                          // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
     ProcessRevokeFileHandles,                       // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
     ProcessWorkingSetControl,                       // s: PROCESS_WORKING_SET_CONTROL
@@ -260,7 +260,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessSubsystemProcess,                        // s: void // EPROCESS->SubsystemProcess
     ProcessJobMemoryInformation,                    // q: PROCESS_JOB_MEMORY_INFO
     ProcessInPrivate,                               // q: BOOLEAN; s: void // ETW // since THRESHOLD2 // 70
-    ProcessRaiseUMExceptionOnInvalidHandleClose,    // qs: ULONG; s: 0 disables, otherwise enables
+    ProcessRaiseUMExceptionOnInvalidHandleClose,    // qs: PROCESS_RAISE_UM_EXCEPTION_ON_INVALID_HANDLE_CLOSE; s: 0 disables, otherwise enables
     ProcessIumChallengeResponse,                    // q: PROCESS_IUM_CHALLENGE_RESPONSE
     ProcessChildProcessInformation,                 // q: PROCESS_CHILD_PROCESS_INFORMATION
     ProcessHighGraphicsPriorityInformation,         // q: BOOLEAN; s: BOOLEAN (requires SeTcbPrivilege)
@@ -275,7 +275,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessManageWritesToExecutableMemory,          // s: MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
     ProcessCaptureTrustletLiveDump,                 // q: ULONG
     ProcessTelemetryCoverage,                       // q: TELEMETRY_COVERAGE_HEADER; s: TELEMETRY_COVERAGE_POINT
-    ProcessEnclaveInformation,
+    ProcessEnclaveInformation,                      // qs: not implemented
     ProcessEnableReadWriteVmLogging,                // qs: PROCESS_READWRITEVM_LOGGING_INFORMATION
     ProcessUptimeInformation,                       // q: PROCESS_UPTIME_INFORMATION
     ProcessImageSection,                            // q: HANDLE
@@ -302,7 +302,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessEffectiveIoPriority,                     // q: IO_PRIORITY_HINT // 110
     ProcessEffectivePagePriority,                   // q: ULONG
     ProcessSchedulerSharedData,                     // q: SCHEDULER_SHARED_DATA_SLOT_INFORMATION // since 24H2
-    ProcessSlistRollbackInformation,
+    ProcessSlistRollbackInformation,                // s: no input buffer, length 0, current process only
     ProcessNetworkIoCounters,                       // q: PROCESS_NETWORK_COUNTERS
     ProcessFindFirstThreadByTebValue,               // q: PROCESS_TEB_VALUE_INFORMATION // NtCurrentProcess
     ProcessEnclaveAddressSpaceRestriction,          // qs: // since 25H2
@@ -782,16 +782,120 @@ typedef struct _PROCESS_SESSION_INFORMATION
     ULONG SessionId;
 } PROCESS_SESSION_INFORMATION, *PPROCESS_SESSION_INFORMATION;
 
+/**
+ * The PROCESS_DEFAULT_HARD_ERROR_MODE structure is used to query or set the process default hard error mode.
+ */
+typedef struct _PROCESS_DEFAULT_HARD_ERROR_MODE
+{
+    ULONG DefaultHardErrorMode;
+} PROCESS_DEFAULT_HARD_ERROR_MODE, *PPROCESS_DEFAULT_HARD_ERROR_MODE;
+
+/**
+ * The PROCESS_USER_MODE_IOPL structure is used to query or set the process user-mode IOPL state.
+ */
+typedef struct _PROCESS_USER_MODE_IOPL
+{
+    ULONG UserModeIOPL;
+} PROCESS_USER_MODE_IOPL, *PPROCESS_USER_MODE_IOPL;
+
+/**
+ * The PROCESS_LUID_DEVICE_MAPS_ENABLED structure is used to query whether LUID device maps are enabled for a process.
+ */
+typedef struct _PROCESS_LUID_DEVICE_MAPS_ENABLED
+{
+    ULONG LuidDeviceMapsEnabled;
+} PROCESS_LUID_DEVICE_MAPS_ENABLED, *PPROCESS_LUID_DEVICE_MAPS_ENABLED;
+
+/**
+ * The PROCESS_GROUP_INFORMATION structure is used to query the group numbers associated with a process.
+ */
+typedef struct _PROCESS_GROUP_INFORMATION
+{
+    _Field_size_(GroupCount) USHORT Groups[1];
+} PROCESS_GROUP_INFORMATION, *PPROCESS_GROUP_INFORMATION;
+
 #define PROCESS_HANDLE_EXCEPTIONS_ENABLED 0x00000001
 #define PROCESS_HANDLE_RAISE_EXCEPTION_ON_INVALID_HANDLE_CLOSE_DISABLED 0x00000000
 #define PROCESS_HANDLE_RAISE_EXCEPTION_ON_INVALID_HANDLE_CLOSE_ENABLED 0x00000001
+
+/**
+ * The PROCESS_HANDLE_CHECKING_MODE structure is used to query or set process handle checking mode.
+ */
+typedef struct _PROCESS_HANDLE_CHECKING_MODE
+{
+    ULONG HandleCheckingMode;
+} PROCESS_HANDLE_CHECKING_MODE, *PPROCESS_HANDLE_CHECKING_MODE;
+
+typedef PROCESS_HANDLE_CHECKING_MODE PROCESS_RAISE_UM_EXCEPTION_ON_INVALID_HANDLE_CLOSE, *PPROCESS_RAISE_UM_EXCEPTION_ON_INVALID_HANDLE_CLOSE;
+
+/**
+ * The PROCESS_RAISE_PRIORITY structure is used to raise the priority of a process.
+ */
+typedef struct _PROCESS_RAISE_PRIORITY
+{
+    ULONG RaisePriority;
+} PROCESS_RAISE_PRIORITY, *PPROCESS_RAISE_PRIORITY;
+
+/**
+ * The PROCESS_PRIORITY_BOOST structure is used to query or set process priority boost behavior.
+ */
+typedef struct _PROCESS_PRIORITY_BOOST
+{
+    ULONG PriorityBoost;
+} PROCESS_PRIORITY_BOOST, *PPROCESS_PRIORITY_BOOST;
+
+/**
+ * The PROCESS_DEBUG_FLAGS structure is used to query or set process debug inheritance behavior.
+ */
+typedef struct _PROCESS_DEBUG_FLAGS
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG NoDebugInherit : 1;
+            ULONG Spare : 31;
+        };
+    };
+} PROCESS_DEBUG_FLAGS, *PPROCESS_DEBUG_FLAGS;
+
+/**
+ * The PROCESS_EXECUTE_FLAGS structure is used to query or set per-process execute options.
+ */
+typedef struct _PROCESS_EXECUTE_FLAGS
+{
+    union
+    {
+        ULONG Flags; // MEM_EXECUTE_OPTION_*
+        struct
+        {
+            ULONG Disable : 1; // MEM_EXECUTE_OPTION_DISABLE
+            ULONG Enable : 1; // MEM_EXECUTE_OPTION_ENABLE
+            ULONG DisableThunkEmulation : 1; // MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION
+            ULONG Permanent : 1; // MEM_EXECUTE_OPTION_PERMANENT
+            ULONG ExecuteDispatchEnable : 1; // MEM_EXECUTE_OPTION_EXECUTE_DISPATCH_ENABLE
+            ULONG ImageDispatchEnable : 1; // MEM_EXECUTE_OPTION_IMAGE_DISPATCH_ENABLE
+            ULONG DisableExceptionChainValidation : 1; // MEM_EXECUTE_OPTION_DISABLE_EXCEPTION_CHAIN_VALIDATION
+            ULONG Spare : 25;
+        };
+    };
+} PROCESS_EXECUTE_FLAGS, *PPROCESS_EXECUTE_FLAGS;
 
 /**
  * The PROCESS_HANDLE_TRACING_ENABLE structure is used to enable handle tracing for a process.
  */
 typedef struct _PROCESS_HANDLE_TRACING_ENABLE
 {
-    ULONG Flags;        // Flags that control handle tracing.
+    union
+    {
+        ULONG Flags; // Flags that control handle tracing.
+        struct
+        {
+            ULONG Enable : 1;
+            ULONG Spare : 31;
+        };
+    };
 } PROCESS_HANDLE_TRACING_ENABLE, *PPROCESS_HANDLE_TRACING_ENABLE;
 
 /**
@@ -804,7 +908,15 @@ typedef struct _PROCESS_HANDLE_TRACING_ENABLE
  */
 typedef struct _PROCESS_HANDLE_TRACING_ENABLE_EX
 {
-    ULONG Flags;        // Flags that control handle tracing.
+    union
+    {
+        ULONG Flags; // Flags that control handle tracing.
+        struct
+        {
+            ULONG Enable : 1;
+            ULONG Spare : 31;
+        };
+    };
     ULONG TotalSlots;   // Total number of handle tracing slots.
 } PROCESS_HANDLE_TRACING_ENABLE_EX, *PPROCESS_HANDLE_TRACING_ENABLE_EX;
 
@@ -872,11 +984,22 @@ typedef struct _PROCESS_TLS_INFORMATION
 /**
  * The PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION structure contains information about the instrumentation callback for a process.
  */
+#define PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION_VERSION 0
+
+typedef _Function_class_(PROCESS_INSTRUMENTATION_CALLBACK)
+VOID NTAPI PROCESS_INSTRUMENTATION_CALLBACK(
+    VOID
+    );
+typedef PROCESS_INSTRUMENTATION_CALLBACK* PPROCESS_INSTRUMENTATION_CALLBACK;
+
+/**
+ * The PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION structure contains information about the instrumentation callback for a process.
+ */
 typedef struct _PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION
 {
     ULONG Version;  // The version of the instrumentation callback information.
     ULONG Reserved; // Reserved for future use.
-    PVOID Callback; // Pointer to the callback function.
+    PPROCESS_INSTRUMENTATION_CALLBACK Callback; // Pointer to the callback function.
 } PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION, *PPROCESS_INSTRUMENTATION_CALLBACK_INFORMATION;
 
 /**
@@ -1131,35 +1254,31 @@ typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
  */
 typedef enum _PROCESS_WORKING_SET_OPERATION
 {
-    ProcessWorkingSetSwap,              // Swap the working set of a process to disk. // (requires SeDebugPrivilege)
-    ProcessWorkingSetEmpty,             // Remove all pages from the working set of a process.
-    ProcessWorkingSetEmptyPrivatePages, // Remove private pages from the working set of a process.
+    ProcessWorkingSetSwap,              // Swap the working set of a process. // Flags: 0 or 1. // (requires SeDebugPrivilege)
+    ProcessWorkingSetEmpty,             // Empty the working set of a process according to PROCESS_WORKING_SET_CONTROL.Flags.
     ProcessWorkingSetOperationMax
 } PROCESS_WORKING_SET_OPERATION;
 
 /**
- * The PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES flag indicates that the operation should target private pages in the working set.
- * Private pages are those that are not shared with other processes.
+ * The PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES flag selects the private-page emptying path.
+ * On this build, it must be paired with PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES.
  */
 #define PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES 0x01
 /**
- * The PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES flag indicates that the operation should target shared pages in the working set.
- * Shared pages are those that are shared between multiple processes.
+ * The PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES flag is required together with PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES
+ * for the private-page emptying path on this build.
  */
 #define PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES  0x02
- /**
-  * The PROCESS_WORKING_SET_FLAG_EMPTY_PAGES flag indicates that the operation should target pages in the working set.
-  */
+/**
+ * The PROCESS_WORKING_SET_FLAG_EMPTY_PAGES flag is only used with ProcessWorkingSetEmpty when the private-page path is not selected.
+ */
 #define PROCESS_WORKING_SET_FLAG_EMPTY_PAGES         0x04
 /**
- * The PROCESS_WORKING_SET_FLAG_COMPRESS flag indicates that the operation should compress the pages before they are removed from the working set.
- * Compression is typically used in conjunction with other flags to specify that the pages should be compressed as part of the operation.
+ * The PROCESS_WORKING_SET_FLAG_COMPRESS flag enables store compression during ProcessWorkingSetEmpty.
  */
 #define PROCESS_WORKING_SET_FLAG_COMPRESS            0x08
 /**
- * The PROCESS_WORKING_SET_FLAG_STORE flag indicates that the operation should store the compressed pages.
- * This is useful when the compressed data might be needed later, allowing for efficient retrieval and decompression when required.
- * This flag is typically used in conjunction with the PROCESS_WORKING_SET_FLAG_COMPRESS flag to specify that the compressed pages should be stored.
+ * The PROCESS_WORKING_SET_FLAG_STORE flag is only valid together with PROCESS_WORKING_SET_FLAG_COMPRESS.
  */
 #define PROCESS_WORKING_SET_FLAG_STORE               0x10
 
@@ -1168,9 +1287,21 @@ typedef enum _PROCESS_WORKING_SET_OPERATION
  */
 typedef struct _PROCESS_WORKING_SET_CONTROL
 {
-    ULONG Version;
-    PROCESS_WORKING_SET_OPERATION Operation;
-    ULONG Flags;
+    ULONG Version; // PROCESS_WORKING_SET_CONTROL_VERSION
+    PROCESS_WORKING_SET_OPERATION Operation; // < ProcessWorkingSetOperationMax on this build
+    union
+    {
+        ULONG Flags; // For ProcessWorkingSetSwap: 0 or 1. For ProcessWorkingSetEmpty: only bits 0..5 are accepted.
+        struct
+        {
+            ULONG EmptyPrivatePages : 1; // PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES
+            ULONG EmptySharedPages : 1;  // PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES
+            ULONG EmptyPages : 1;        // PROCESS_WORKING_SET_FLAG_EMPTY_PAGES
+            ULONG Compress : 1;          // PROCESS_WORKING_SET_FLAG_COMPRESS
+            ULONG Store : 1;            // PROCESS_WORKING_SET_FLAG_STORE
+            ULONG Spare : 27;
+        };
+    };
 } PROCESS_WORKING_SET_CONTROL, *PPROCESS_WORKING_SET_CONTROL;
 
 /**
@@ -1316,20 +1447,30 @@ typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
 
 /**
  * The PROCESS_COMMIT_RELEASE_INFORMATION structure contains information about the commit and release of memory for a process.
+ *
+ * NtQueryInformationProcess(ProcessCommitReleaseInformation) calls MmQueryCommitReleaseState and fills:
+ * Eligible from the process commit-release state, CommitDebt, CommittedMemResetSize, and RepurposedMemResetSize.
+ *
+ * NtSetInformationProcess(ProcessCommitReleaseInformation) interprets the low three flag bits exactly as the current names
+ * suggest: Eligible, ReleaseRepurposedMemResetCommit, and ForceReleaseMemResetCommit.
  */
 typedef struct _PROCESS_COMMIT_RELEASE_INFORMATION
 {
-    ULONG Version;
-    struct
+    ULONG Version; // Set expects version 1.
+    union
     {
-        ULONG Eligible : 1;
-        ULONG ReleaseRepurposedMemResetCommit : 1;
-        ULONG ForceReleaseMemResetCommit : 1;
-        ULONG Spare : 29;
+        ULONG Flags;
+        struct
+        {
+            ULONG Eligible : 1; // Query: commit-release eligibility. Set: enables or disables eligibility.
+            ULONG ReleaseRepurposedMemResetCommit : 1; // Set: releases commit for MEM_RESET pages when Eligible is also set.
+            ULONG ForceReleaseMemResetCommit : 1; // Set: forces MEM_RESET commit release when Eligible is also set.
+            ULONG Spare : 29;
+        };
     };
-    SIZE_T CommitDebt;
-    SIZE_T CommittedMemResetSize;
-    SIZE_T RepurposedMemResetSize;
+    SIZE_T CommitDebt; // Query only.
+    SIZE_T CommittedMemResetSize; // Query only.
+    SIZE_T RepurposedMemResetSize; // Query only.
 } PROCESS_COMMIT_RELEASE_INFORMATION, *PPROCESS_COMMIT_RELEASE_INFORMATION;
 
 /**
