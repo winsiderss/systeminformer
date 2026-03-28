@@ -2652,7 +2652,7 @@ BOOLEAN PhFormatSizeToBuffer(
  * \param Guid A UUID.
  */
 PPH_STRING PhFormatGuid(
-    _In_ PGUID Guid
+    _In_ PCGUID Guid
     )
 {
     PPH_STRING string;
@@ -2676,7 +2676,7 @@ PPH_STRING PhFormatGuid(
  * \param ReturnLength The number of bytes required to hold the string, including the null terminator.
  */
 NTSTATUS PhFormatGuidToBuffer(
-    _In_ PGUID Guid,
+    _In_ PCGUID Guid,
     _Writable_bytes_(BufferLength) _When_(BufferLength != 0, _Notnull_) PWCHAR Buffer,
     _In_opt_ USHORT BufferLength,
     _Out_opt_ PSIZE_T ReturnLength
@@ -10575,35 +10575,6 @@ PPH_STRING PhGetActiveComputerName(
     PhDereferenceObject(keyName);
 
     return computerName;
-}
-
-/**
- * Finds a property in an array of device properties.
- *
- * \param Key The property key to find.
- * \param Store The property store to find.
- * \param PropertiesCount The number of properties in the array.
- * \param Properties The array of properties.
- * \return A pointer to the property, or NULL if not found.
- */
-PDEVPROPERTY PhDevFindProperty(
-    _In_ PDEVPROPKEY Key,
-    _In_ ULONG Store,
-    _In_ ULONG PropertiesCount,
-    _In_reads_(PropertiesCount) PDEVPROPERTY Properties
-    )
-{
-    for (ULONG i = 0; i < PropertiesCount; i++)
-    {
-        PDEVPROPERTY property = &Properties[i];
-
-        if (RtlEqualMemory(&property->CompKey.Key, Key, sizeof(DEVPROPKEY)) && property->CompKey.Store == Store)
-        {
-            return property;
-        }
-    }
-
-    return NULL;
 }
 
 /**
