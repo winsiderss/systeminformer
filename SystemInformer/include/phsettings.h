@@ -530,6 +530,12 @@ EXT ULONG PhProcessMonitorCacheLimit;
 #define SETTING_ENABLE_PROCESS_MONITOR                              L"EnableProcessMonitor"
 #define SETTING_PROCESS_MONITOR_LOOKBACK                            L"ProcessMonitorLookback"
 #define SETTING_PROCESS_MONITOR_CACHE_LIMIT                         L"ProcessMonitorCacheLimit"
+#define SETTING_PROCESS_MONITOR_TREE_LIST_COLUMNS                   L"ProcessMonitorTreeListColumns"
+#define SETTING_PROCESS_MONITOR_TAB_TREE_LIST_COLUMNS               L"ProcessMonitorTabTreeListColumns"
+#define SETTING_PROCESS_MONITOR_WINDOW_POSITION                     L"ProcessMonitorWindowPosition"
+#define SETTING_PROCESS_MONITOR_WINDOW_SIZE                         L"ProcessMonitorWindowSize"
+#define SETTING_PROCESS_MONITOR_CATEGORY_FILTER                     L"ProcessMonitorCategoryFilter"
+#define SETTING_PROCESS_MONITOR_NODE_LIMIT                          L"ProcessMonitorNodeLimit"
 // end_phapppub
 
 #endif

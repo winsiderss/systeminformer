@@ -110,6 +110,7 @@ set(SOURCES
     "hndlstat.c"
     "infodlg.c"
     "informer.c"
+    "informerwnd.c"
     "itemtips.c"
     "jobprp.c"
     "kdump.c"

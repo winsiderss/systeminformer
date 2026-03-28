@@ -134,6 +134,8 @@
 #define IDD_MEMSTRINGS                  277
 #define IDD_HNDLAUDITING                278
 #define IDD_HNDLSECAUDIT                278
+#define IDD_INFORMER                    279
+#define IDD_PROCINFORMER                280
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -610,6 +612,7 @@
 #define IDC_ZL1CACHE_V                  1451
 #define IDC_ZL2CACHE_V                  1452
 #define IDC_ZL3CACHE_V                  1453
+#define IDC_CAPTURE                     1454
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_DUMP_MINIMAL         40002
 #define ID_PROCESS_DUMP_LIMITED         40003
@@ -872,6 +875,7 @@
 #define ID_TOOLS_COM_ACCESS_RESTRICTIONS 40316
 #define ID_TOOLS_COM_LAUNCH_PERMISSIONS 40317
 #define ID_TOOLS_COM_LAUNCH_RESTRICTIONS 40318
+#define ID_TOOLS_INFORMER               40319
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
