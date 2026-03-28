@@ -110,11 +110,8 @@ VOID KphpLoadImageNotifyInformer(
 
     if (targetProcess)
     {
-        ULONG64 startKey;
-
-        startKey = KphGetProcessStartKey(targetProcess->EProcess);
-
-        msg->Kernel.ImageLoad.TargetProcessStartKey = startKey;
+        msg->Kernel.ImageLoad.TargetProcessStartKey =
+            KphGetProcessStartKey(targetProcess->EProcess);
     }
 
     if (fileName)
