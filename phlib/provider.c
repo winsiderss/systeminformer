@@ -28,7 +28,6 @@
  */
 
 #include <ph.h>
-#include <apiimport.h>
 #include <provider.h>
 
 #ifdef DEBUG
@@ -255,14 +254,13 @@ NTSTATUS PhStartProviderThread(
     // Create the synchronization timer.
     //
 
-    if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution && NtCreateTimer2_Import())
+    if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution)
     {
-        status = NtCreateTimer2_Import()(
+        status = PhCreateWaitableTimer(
             &ProviderThread->TimerHandle,
-            NULL,
-            NULL,
-            TIMER2_BUILD_ATTRIBUTES(SynchronizationTimer, TRUE),
-            TIMER_ALL_ACCESS
+            TIMER_ALL_ACCESS,
+            SynchronizationTimer,
+            TRUE
             );
     }
     else
@@ -385,6 +383,7 @@ NTSTATUS PhSetIntervalProviderThread(
     )
 {
     LARGE_INTEGER interval;
+    LARGE_INTEGER period;
 
     if (Interval < 0)
         return STATUS_INVALID_PARAMETER;
@@ -399,23 +398,17 @@ NTSTATUS PhSetIntervalProviderThread(
     ProviderThread->Interval = Interval;
 
     interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
+    period.QuadPart = UInt32x32To64(Interval, PH_TIMEOUT_MS);
 
-    if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution && NtSetTimer2_Import())
+    if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution)
     {
-        LARGE_INTEGER period;
-        T2_SET_PARAMETERS timerParameters;
-
-        period.QuadPart = UInt32x32To64(Interval, PH_TIMEOUT_MS);
-
-        memset(&timerParameters, 0, sizeof(T2_SET_PARAMETERS));
-        timerParameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
-        timerParameters.NoWakeTolerance = 0;
-
-        return NtSetTimer2_Import()(
+        return PhSetWaitableTimer(
             ProviderThread->TimerHandle,
             &interval,
             &period,
-            &timerParameters
+            NULL,
+            NULL,
+            FALSE
             );
     }
 
