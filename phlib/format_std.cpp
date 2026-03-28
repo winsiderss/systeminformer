@@ -16,6 +16,17 @@ extern NTSTATUS PhErrcToNtStatus(
     _In_ std::errc ec
     );
 
+/**
+ * Converts a single-precision floating point value to a UTF-8 string.
+ * 
+ * \param Value The value to convert.
+ * \param Type The format type (e.g., FormatStandardForm, FormatHexadecimalForm).
+ * \param Precision The number of digits after the decimal point. If -1, finds the shortest representation.
+ * \param Buffer The output buffer.
+ * \param BufferLength The size of the buffer in bytes.
+ * \param ReturnLength Contains the number of bytes written (excluding null terminator).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhFormatSingleToUtf8(
     _In_ FLOAT Value,
     _In_ ULONG Type,
@@ -110,6 +121,17 @@ NTSTATUS PhFormatSingleToUtf8(
 #endif
 }
 
+/**
+ * Converts a double-precision floating point value to a UTF-8 string.
+ * 
+ * \param Value The value to convert.
+ * \param Type The format type (e.g., FormatStandardForm, FormatHexadecimalForm).
+ * \param Precision The number of digits after the decimal point. If -1, finds the shortest representation.
+ * \param Buffer The output buffer.
+ * \param BufferLength The size of the buffer in bytes.
+ * \param ReturnLength Contains the number of bytes written (excluding null terminator).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhFormatDoubleToUtf8(
     _In_ DOUBLE Value,
     _In_ ULONG Type,
@@ -228,6 +250,7 @@ NTSTATUS PhFormatDoubleToUtf8(
  * \param Buffer The output buffer.
  * \param BufferLength The size of the buffer in bytes.
  * \param ReturnLength Contains the number of bytes written (excluding null terminator).
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhIntegerToUtf8Buffer(
     _In_ LONG64 Integer,
@@ -288,6 +311,11 @@ NTSTATUS PhIntegerToUtf8Buffer(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Converts a std::errc error code to an NTSTATUS.
+ * 
+ * \param ec The error code to convert.
+ */
 NTSTATUS PhErrcToNtStatus(
     _In_ std::errc ec
     )
@@ -442,4 +470,145 @@ NTSTATUS PhErrcToNtStatus(
     default:
         return STATUS_UNSUCCESSFUL;
     }
+}
+
+/**
+ * Converts a UTF-8 string to a 64-bit integer.
+ * 
+ * \param String The string to process.
+ * \param Length The length of the string, in bytes.
+ * \param Base The radix (e.g., 10, 16, 8). If 0, defaults to 10.
+ * \param Integer The resulting integer.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhStringToInteger64Utf8Ex(
+    _In_reads_bytes_(Length) PCSTR String,
+    _In_ SIZE_T Length,
+    _In_opt_ ULONG Base,
+    _Out_ PLONG64 Integer
+    )
+{
+    std::from_chars_result result;
+    INT radix = (Base == 0) ? 10 : (INT)Base;
+
+    result = std::from_chars(
+        String,
+        String + Length,
+        *reinterpret_cast<long long*>(Integer),
+        radix
+        );
+
+    if (result.ec != std::errc())
+        return PhErrcToNtStatus(result.ec);
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Converts a UTF-8 string to a 64-bit integer.
+ * 
+ * \param String The string to process.
+ * \param Base The radix (e.g., 10, 16, 8). If 0, defaults to 10.
+ * \param Integer The resulting integer.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhStringToInteger64Utf8(
+    _In_ PCSTR String,
+    _In_opt_ ULONG Base,
+    _Out_ PLONG64 Integer
+    )
+{
+    return PhStringToInteger64Utf8Ex(String, strlen(String), Base, Integer);
+}
+
+/**
+ * Converts a UTF-8 string to an unsigned 64-bit integer.
+ * 
+ * \param String The string to process.
+ * \param Length The length of the string, in bytes.
+ * \param Base The radix (e.g., 10, 16, 8). If 0, defaults to 10.
+ * \param Integer The resulting integer.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhStringToUInt64Utf8Ex(
+    _In_reads_bytes_(Length) PCSTR String,
+    _In_ SIZE_T Length,
+    _In_opt_ ULONG Base,
+    _Out_ PULONG64 Integer
+    )
+{
+    std::from_chars_result result;
+    INT radix = (Base == 0) ? 10 : (INT)Base;
+
+    result = std::from_chars(
+        String,
+        String + Length,
+        *reinterpret_cast<unsigned long long*>(Integer),
+        radix
+        );
+
+    if (result.ec != std::errc())
+        return PhErrcToNtStatus(result.ec);
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Converts a UTF-8 string to an unsigned 64-bit integer.
+ * 
+ * \param String The string to process.
+ * \param Base The radix (e.g., 10, 16, 8). If 0, defaults to 10.
+ * \param Integer The resulting integer.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhStringToUInt64Utf8(
+    _In_ PCSTR String,
+    _In_opt_ ULONG Base,
+    _Out_ PULONG64 Integer
+    )
+{
+    return PhStringToUInt64Utf8Ex(String, strlen(String), Base, Integer);
+}
+
+/**
+ * Converts a UTF-8 string to a double-precision floating point value.
+ * 
+ * \param String The string to process.
+ * \param Length The length of the string, in bytes.
+ * \param Double The resulting double.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhStringToDoubleUtf8Ex(
+    _In_reads_bytes_(Length) PCSTR String,
+    _In_ SIZE_T Length,
+    _Out_ DOUBLE* Double
+    )
+{
+    std::from_chars_result result;
+
+    result = std::from_chars(
+        String,
+        String + Length,
+        *Double
+        );
+
+    if (result.ec != std::errc())
+        return PhErrcToNtStatus(result.ec);
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Converts a UTF-8 string to a double-precision floating point value.
+ * 
+ * \param String The string to process.
+ * \param Double The resulting double.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhStringToDoubleUtf8(
+    _In_ PCSTR String,
+    _Out_ DOUBLE* Double
+    )
+{
+    return PhStringToDoubleUtf8Ex(String, strlen(String), Double);
 }
