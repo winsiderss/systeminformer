@@ -16,10 +16,23 @@ static typeof(&NhGetInterfaceDescriptionFromGuid) NhGetInterfaceDescriptionFromG
 static typeof(&NhGetInterfaceNameFromDeviceGuid) NhGetInterfaceNameFromDeviceGuid_I = NULL;
 static typeof(&NhGetInterfaceNameFromGuid) NhGetInterfaceNameFromGuid_I = NULL;
 static typeof(&NhGetGuidFromInterfaceName) NhGetGuidFromInterfaceName_I = NULL;
+static typeof(&GetAdaptersAddresses) GetAdaptersAddresses_I = NULL;
+static typeof(&ConvertInterfaceLuidToNameW) ConvertInterfaceLuidToNameW_I = NULL;
+static typeof(&NotifyIpInterfaceChange) NotifyIpInterfaceChange_I = NULL;
+static typeof(&CancelMibChangeNotify2) CancelMibChangeNotify2_I = NULL;
+static typeof(&ConvertLengthToIpv4Mask) ConvertLengthToIpv4Mask_I = NULL;
+static typeof(&GetIfEntry2) GetIfEntry2_I = NULL;
+static typeof(&GetIfEntry2Ex) GetIfEntry2Ex_I = NULL;
+static typeof(&ConvertInterfaceLuidToAlias) ConvertInterfaceLuidToAlias_I = NULL;
 
 static PH_INITONCE IphlpapiInitOnce = PH_INITONCE_INIT;
 static PVOID IphlpapiBaseAddress = NULL;
 
+/**
+ * Initializes lazy imports from iphlpapi.dll.
+ *
+ * \return TRUE if the library was loaded successfully.
+ */
 static BOOLEAN NetworkAdapterInitializeIphlpApiFunctionImports(
     VOID
     )
@@ -31,6 +44,14 @@ static BOOLEAN NetworkAdapterInitializeIphlpApiFunctionImports(
             NhGetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(IphlpapiBaseAddress, "NhGetInterfaceDescriptionFromGuid", 0);
             NhGetInterfaceNameFromDeviceGuid_I = PhGetProcedureAddress(IphlpapiBaseAddress, "NhGetInterfaceNameFromDeviceGuid", 0);
             NhGetInterfaceNameFromGuid_I = PhGetProcedureAddress(IphlpapiBaseAddress, "NhGetInterfaceNameFromGuid", 0);
+            GetAdaptersAddresses_I = PhGetProcedureAddress(IphlpapiBaseAddress, "GetAdaptersAddresses", 0);
+            ConvertInterfaceLuidToNameW_I = PhGetProcedureAddress(IphlpapiBaseAddress, "ConvertInterfaceLuidToNameW", 0);
+            NotifyIpInterfaceChange_I = PhGetProcedureAddress(IphlpapiBaseAddress, "NotifyIpInterfaceChange", 0);
+            CancelMibChangeNotify2_I = PhGetProcedureAddress(IphlpapiBaseAddress, "CancelMibChangeNotify2", 0);
+            ConvertLengthToIpv4Mask_I = PhGetProcedureAddress(IphlpapiBaseAddress, "ConvertLengthToIpv4Mask", 0);
+            GetIfEntry2_I = PhGetProcedureAddress(IphlpapiBaseAddress, "GetIfEntry2", 0);
+            GetIfEntry2Ex_I = PhGetProcedureAddress(IphlpapiBaseAddress, "GetIfEntry2Ex", 0);
+            ConvertInterfaceLuidToAlias_I = PhGetProcedureAddress(IphlpapiBaseAddress, "ConvertInterfaceLuidToAlias", 0);
         }
 
         PhEndInitOnce(&IphlpapiInitOnce);
@@ -42,6 +63,12 @@ static BOOLEAN NetworkAdapterInitializeIphlpApiFunctionImports(
     return FALSE;
 }
 
+/**
+ * Checks whether an adapter supports the NDIS OIDs required by the plugin.
+ *
+ * \param DeviceHandle Adapter device handle.
+ * \return TRUE if all required queries are supported.
+ */
 BOOLEAN NetworkAdapterQuerySupported(
     _In_ HANDLE DeviceHandle
     )
@@ -129,6 +156,14 @@ BOOLEAN NetworkAdapterQuerySupported(
     return ndisQuerySupported;
 }
 
+/**
+ * Queries the adapter's NDIS driver version.
+ *
+ * \param DeviceHandle Adapter device handle.
+ * \param MajorVersion Receives the major version, if requested.
+ * \param MinorVersion Receives the minor version, if requested.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS NetworkAdapterQueryNdisVersion(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PULONG MajorVersion,
@@ -165,6 +200,12 @@ NTSTATUS NetworkAdapterQueryNdisVersion(
     return status;
 }
 
+/**
+ * Resolves an interface GUID to its alias name.
+ *
+ * \param InterfaceGuid Interface GUID.
+ * \return The alias name string, or NULL on failure.
+ */
 PPH_STRING NetworkAdapterGetInterfaceAliasNameFromGuid(
     _In_ PGUID InterfaceGuid
     )
@@ -189,6 +230,12 @@ PPH_STRING NetworkAdapterGetInterfaceAliasNameFromGuid(
     return NULL;
 }
 
+/**
+ * Resolves an interface GUID to its descriptive name.
+ *
+ * \param InterfaceGuid Interface GUID.
+ * \return The interface description string, or NULL on failure.
+ */
 PPH_STRING NetworkAdapterQueryNameFromInterfaceGuid(
     _In_ PGUID InterfaceGuid
     )
@@ -213,6 +260,12 @@ PPH_STRING NetworkAdapterQueryNameFromInterfaceGuid(
     return NULL;
 }
 
+/**
+ * Resolves a device GUID to its interface name.
+ *
+ * \param InterfaceGuid Device GUID.
+ * \return The interface name string, or NULL on failure.
+ */
 PPH_STRING NetworkAdapterQueryNameFromDeviceGuid(
     _In_ PGUID InterfaceGuid
     )
@@ -237,13 +290,22 @@ PPH_STRING NetworkAdapterQueryNameFromDeviceGuid(
     return NULL;
 }
 
+/**
+ * Resolves an adapter LUID to its alias string.
+ *
+ * \param Id Network adapter identifier.
+ * \return The alias string, or NULL on failure.
+ */
 PPH_STRING NetworkAdapterGetInterfaceAliasFromLuid(
     _In_ PDV_NETADAPTER_ID Id
     )
 {
     WCHAR aliasBuffer[IF_MAX_STRING_SIZE + 1];
 
-    if (NETIO_SUCCESS(ConvertInterfaceLuidToAlias(&Id->InterfaceLuid, aliasBuffer, IF_MAX_STRING_SIZE)))
+    if (!NetworkAdapterInitializeIphlpApiFunctionImports())
+        return NULL;
+
+    if (ConvertInterfaceLuidToAlias_I && NETIO_SUCCESS(ConvertInterfaceLuidToAlias_I(&Id->InterfaceLuid, aliasBuffer, IF_MAX_STRING_SIZE)))
     {
         return PhCreateString(aliasBuffer);
     }
@@ -251,13 +313,22 @@ PPH_STRING NetworkAdapterGetInterfaceAliasFromLuid(
     return NULL;
 }
 
+/**
+ * Resolves an adapter LUID to its interface name.
+ *
+ * \param Id Network adapter identifier.
+ * \return The interface name string, or NULL on failure.
+ */
 PPH_STRING NetworkAdapterGetInterfaceNameFromLuid(
     _In_ PDV_NETADAPTER_ID Id
     )
 {
     WCHAR interfaceName[IF_MAX_STRING_SIZE + 1];
 
-    if (NETIO_SUCCESS(ConvertInterfaceLuidToNameW(&Id->InterfaceLuid, interfaceName, IF_MAX_STRING_SIZE)))
+    if (!NetworkAdapterInitializeIphlpApiFunctionImports())
+        return NULL;
+
+    if (ConvertInterfaceLuidToNameW_I && NETIO_SUCCESS(ConvertInterfaceLuidToNameW_I(&Id->InterfaceLuid, interfaceName, IF_MAX_STRING_SIZE)))
     {
         return PhCreateString(interfaceName);
     }
@@ -265,6 +336,12 @@ PPH_STRING NetworkAdapterGetInterfaceNameFromLuid(
     return NULL;
 }
 
+/**
+ * Queries the adapter vendor description through NDIS.
+ *
+ * \param DeviceHandle Adapter device handle.
+ * \return The adapter description string, or NULL on failure.
+ */
 PPH_STRING NetworkAdapterQueryDescription(
     _In_ HANDLE DeviceHandle
     )
@@ -301,6 +378,12 @@ PPH_STRING NetworkAdapterQueryDescription(
     return NULL;
 }
 
+/**
+ * Queries the adapter friendly name through NDIS.
+ *
+ * \param DeviceHandle Adapter device handle.
+ * \return The adapter name string, or NULL on failure.
+ */
 PPH_STRING NetworkAdapterQueryName(
     _In_ HANDLE DeviceHandle
     )
@@ -337,6 +420,13 @@ PPH_STRING NetworkAdapterQueryName(
     return NULL;
 }
 
+/**
+ * Queries adapter traffic statistics.
+ *
+ * \param DeviceHandle Adapter device handle.
+ * \param Info Receives the NDIS statistics structure.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS NetworkAdapterQueryStatistics(
     _In_ HANDLE DeviceHandle,
     _Out_ PNDIS_STATISTICS_INFO Info
@@ -360,6 +450,13 @@ NTSTATUS NetworkAdapterQueryStatistics(
         );
 }
 
+/**
+ * Queries the current adapter link state.
+ *
+ * \param DeviceHandle Adapter device handle.
+ * \param State Receives the link state.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS NetworkAdapterQueryLinkState(
     _In_ HANDLE DeviceHandle,
     _Out_ PNDIS_LINK_STATE State
@@ -383,6 +480,13 @@ NTSTATUS NetworkAdapterQueryLinkState(
         );
 }
 
+/**
+ * Queries the adapter physical media type.
+ *
+ * \param DeviceHandle Adapter device handle.
+ * \param Medium Receives the physical medium type.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS NetworkAdapterQueryMediaType(
     _In_ HANDLE DeviceHandle,
     _Out_ PNDIS_PHYSICAL_MEDIUM Medium
@@ -469,6 +573,13 @@ NTSTATUS NetworkAdapterQueryMediaType(
     return status;
 }
 
+/**
+ * Queries the adapter link speed.
+ *
+ * \param DeviceHandle Adapter device handle.
+ * \param LinkSpeed Receives the link speed in bits per second.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS NetworkAdapterQueryLinkSpeed(
     _In_ HANDLE DeviceHandle,
     _Out_ PULONG64 LinkSpeed
@@ -498,6 +609,13 @@ NTSTATUS NetworkAdapterQueryLinkSpeed(
     return status;
 }
 
+/**
+ * Queries a 64-bit NDIS counter value.
+ *
+ * \param DeviceHandle Adapter device handle.
+ * \param OpCode NDIS OID to query.
+ * \return Queried value, or 0 on failure.
+ */
 ULONG64 NetworkAdapterQueryValue(
     _In_ HANDLE DeviceHandle,
     _In_ NDIS_OID OpCode
@@ -521,6 +639,14 @@ ULONG64 NetworkAdapterQueryValue(
     return 0;
 }
 
+/**
+ * Queries a MIB interface row for the adapter.
+ *
+ * \param Id Network adapter identifier.
+ * \param Level Requested MIB query level.
+ * \param InterfaceRow Receives the interface row on success.
+ * \return TRUE if the row was queried successfully.
+ */
 _Success_(return)
 BOOLEAN NetworkAdapterQueryInterfaceRow(
     _In_ PDV_NETADAPTER_ID Id,
@@ -530,20 +656,23 @@ BOOLEAN NetworkAdapterQueryInterfaceRow(
 {
     MIB_IF_ROW2 interfaceRow;
 
+    if (!NetworkAdapterInitializeIphlpApiFunctionImports())
+        return FALSE;
+
     memset(&interfaceRow, 0, sizeof(MIB_IF_ROW2));
     interfaceRow.InterfaceLuid = Id->InterfaceLuid;
     interfaceRow.InterfaceIndex = Id->InterfaceIndex;
 
     if (NetWindowsVersion >= WINDOWS_10_RS2)
     {
-        if (NETIO_SUCCESS(GetIfEntry2Ex(Level, &interfaceRow)))
+        if (GetIfEntry2Ex_I && NETIO_SUCCESS(GetIfEntry2Ex_I(Level, &interfaceRow)))
         {
             *InterfaceRow = interfaceRow;
             return TRUE;
         }
     }
 
-    if (NETIO_SUCCESS(GetIfEntry2(&interfaceRow)))
+    if (GetIfEntry2_I && NETIO_SUCCESS(GetIfEntry2_I(&interfaceRow)))
     {
         *InterfaceRow = interfaceRow;
         return TRUE;
@@ -559,6 +688,12 @@ BOOLEAN NetworkAdapterQueryInterfaceRow(
     return FALSE;
 }
 
+/**
+ * Converts an NDIS physical medium type to display text.
+ *
+ * \param MediumType Physical medium type.
+ * \return Constant display string for the medium type.
+ */
 PCWSTR MediumTypeToString(
     _In_ NDIS_PHYSICAL_MEDIUM MediumType
     )
@@ -610,6 +745,12 @@ PCWSTR MediumTypeToString(
     return L"N/A";
 }
 
+/**
+ * Formats a bitrate using SI prefixes.
+ *
+ * \param Value Raw bitrate value.
+ * \return Formatted bitrate string.
+ */
 PPH_STRING NetAdapterFormatBitratePrefix(
     _In_ ULONG64 Value
     )
