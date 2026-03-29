@@ -89,7 +89,7 @@ static BOOLEAN StringContains(
 
     // Non-wildcard search with whole word support
     SIZE_T length = SubString->Length;// PhCountStringZ(SubString);
-    SIZE_T index = PhFindStringInStringRef(Haystack, SubString, MatchCase);
+    SIZE_T index = PhFindStringInStringRef(Haystack, SubString, !MatchCase);
     
     if (index == SIZE_MAX)
         return FALSE;
