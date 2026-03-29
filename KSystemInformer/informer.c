@@ -140,7 +140,7 @@ VOID KSIAPI KphpFreeInformerState(
  * \return TRUE if the informer is allowed, FALSE otherwise.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN KphInformerProcessAllowed(
+BOOLEAN KphpInformerProcessAllowed(
     _In_ ULONG Index,
     _In_ PLARGE_INTEGER TimeStamp,
     _In_opt_ PKPH_PROCESS_CONTEXT Process
@@ -183,7 +183,7 @@ BOOLEAN KphInformerProcessAllowed(
  * \return TRUE if the informer is allowed, FALSE otherwise.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN KphInformerGlobalAllowed(
+BOOLEAN KphpInformerGlobalAllowed(
     _In_ ULONG Index,
     _In_ PLARGE_INTEGER TimeStamp
     )
@@ -235,20 +235,20 @@ BOOLEAN KphInformerAllowed(
 
     KeQuerySystemTime(&timeStamp);
 
-    if (!KphInformerProcessAllowed(Index, &timeStamp, ActorProcess))
+    if (!KphpInformerProcessAllowed(Index, &timeStamp, ActorProcess))
     {
-        if (ActorProcess == TargetProcess)
+        if (!TargetProcess || (ActorProcess == TargetProcess))
         {
             return FALSE;
         }
 
-        if (!KphInformerProcessAllowed(Index, &timeStamp, TargetProcess))
+        if (!KphpInformerProcessAllowed(Index, &timeStamp, TargetProcess))
         {
             return FALSE;
         }
     }
 
-    if (!KphInformerGlobalAllowed(Index, &timeStamp))
+    if (!KphpInformerGlobalAllowed(Index, &timeStamp))
     {
         return FALSE;
     }
