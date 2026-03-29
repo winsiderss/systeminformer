@@ -526,7 +526,6 @@ VOID PhpRefreshWslEnvironmentList(
     }
 
     PhApplyTreeNewFilters(&Context->TreeFilterSupport);
-    TreeNew_NodesStructured(Context->TreeNewHandle);
 
     PhClearReference(&environment);
 }

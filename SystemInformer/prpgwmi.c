@@ -972,7 +972,6 @@ VOID PhpRefreshWmiProvidersList(
     }
 
     PhApplyTreeNewFilters(&Context->TreeFilterSupport);
-    TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID PhpShowWmiProviderStatus(

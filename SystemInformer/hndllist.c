@@ -339,7 +339,7 @@ VOID PhUpdateHandleNode(
     memset(HandleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHHNTLC_MAXIMUM);
 
     PhInvalidateTreeNewNode(&HandleNode->Node, TN_CACHE_COLOR);
-    TreeNew_NodesStructured(Context->TreeNewHandle);
+    TreeNew_InvalidateNode(Context->TreeNewHandle, &HandleNode->Node);
 }
 
 VOID PhExpandAllHandleNodes(

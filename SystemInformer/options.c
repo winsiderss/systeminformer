@@ -3207,7 +3207,6 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                 {
                     ClearOptionsAdvancedTree(context);
                     PhEnumSettings(PhpOptionsSettingsCallback, context);
-                    TreeNew_NodesStructured(context->TreeNewHandle);
 
                     PhApplyTreeNewFilters(&context->TreeFilterSupport);
                 }
