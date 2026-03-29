@@ -24,6 +24,128 @@ typedef struct _RAPL_ENUM_ENTRY
     ULONG ChannelIndex[EV_EMI_DEVICE_INDEX_MAX];
 } RAPL_ENUM_ENTRY, *PRAPL_ENUM_ENTRY;
 
+/**
+ * Checks whether an EMI channel name belongs to a RAPL package channel.
+ *
+ * \param ChannelName EMI channel name.
+ * \return TRUE if the channel name starts with the RAPL package prefix.
+ */
+static BOOLEAN RaplChannelNameStartsWithPackage(
+    _In_ PCWSTR ChannelName
+    )
+{
+    PH_STRINGREF channelName;
+
+    PhInitializeStringRefLongHint(&channelName, ChannelName);
+
+    return PhStartsWithStringRef2(&channelName, L"RAPL_Package", TRUE);
+}
+
+/**
+ * Matches a RAPL package channel name against a specific suffix.
+ *
+ * \param ChannelName EMI channel name.
+ * \param Suffix Expected channel suffix.
+ * \return TRUE if the channel is a RAPL package channel with the requested suffix.
+ */
+static BOOLEAN RaplChannelNameMatchesSuffix(
+    _In_ PCWSTR ChannelName,
+    _In_ PCWSTR Suffix
+    )
+{
+    PH_STRINGREF channelName;
+
+    if (!RaplChannelNameStartsWithPackage(ChannelName))
+        return FALSE;
+
+    PhInitializeStringRefLongHint(&channelName, ChannelName);
+
+    return PhEndsWithStringRef2(&channelName, Suffix, TRUE);
+}
+
+/**
+ * Determines whether a channel represents package power.
+ *
+ * \param ChannelName EMI channel name.
+ * \return TRUE if the channel is a package power channel.
+ */
+static BOOLEAN RaplChannelNameIsPackage(
+    _In_ PCWSTR ChannelName
+    )
+{
+    return RaplChannelNameMatchesSuffix(ChannelName, L"_PKG");
+}
+
+/**
+ * Determines whether a channel represents a core-power domain.
+ *
+ * This accepts both Intel-style `PP0` names and AMD-style per-core `_CORE`
+ * names during device enumeration.
+ *
+ * \param ChannelName EMI channel name.
+ * \return TRUE if the channel represents core power.
+ */
+static BOOLEAN RaplChannelNameIsCore(
+    _In_ PCWSTR ChannelName
+    )
+{
+    return RaplChannelNameMatchesSuffix(ChannelName, L"_PP0") ||
+        RaplChannelNameMatchesSuffix(ChannelName, L"_CORE");
+}
+
+/**
+ * Determines whether a channel represents the discrete GPU domain.
+ *
+ * \param ChannelName EMI channel name.
+ * \return TRUE if the channel is the PP1 discrete GPU channel.
+ */
+static BOOLEAN RaplChannelNameIsDiscreteGpu(
+    _In_ PCWSTR ChannelName
+    )
+{
+    return RaplChannelNameMatchesSuffix(ChannelName, L"_PP1");
+}
+
+/**
+ * Determines whether a channel represents the DRAM domain.
+ *
+ * \param ChannelName EMI channel name.
+ * \return TRUE if the channel is the DRAM channel.
+ */
+static BOOLEAN RaplChannelNameIsDram(
+    _In_ PCWSTR ChannelName
+    )
+{
+    return RaplChannelNameMatchesSuffix(ChannelName, L"_DRAM");
+}
+
+/**
+ * Converts a stored RAPL interface path into the DevQuery object ID form.
+ *
+ * \param DeviceInterface Stored device interface path.
+ * \return A newly allocated normalized path string.
+ */
+static PPH_STRING NormalizeRaplDeviceInterfacePath(
+    _In_ PCWSTR DeviceInterface
+    )
+{
+    PPH_STRING normalizedPath;
+
+    normalizedPath = PhCreateString(DeviceInterface);
+
+    if (normalizedPath->Length >= 2 * sizeof(WCHAR) && normalizedPath->Buffer[1] == L'?')
+        normalizedPath->Buffer[1] = OBJ_NAME_PATH_SEPARATOR;
+
+    return normalizedPath;
+}
+
+/**
+ * Compares two enumerated RAPL entries by discovery order.
+ *
+ * \param elem1 First sort element.
+ * \param elem2 Second sort element.
+ * \return Comparison result suitable for qsort.
+ */
 static int __cdecl RaplDeviceEntryCompareFunction(
     _In_ const void *elem1,
     _In_ const void *elem2
@@ -35,6 +157,9 @@ static int __cdecl RaplDeviceEntryCompareFunction(
     return uint64cmp(entry1->DeviceIndex, entry2->DeviceIndex);
 }
 
+/**
+ * Loads the persisted RAPL device selection from settings.
+ */
 VOID RaplDevicesLoadList(
     VOID
     )
@@ -74,6 +199,9 @@ VOID RaplDevicesLoadList(
     PhClearReference(&settingsString);
 }
 
+/**
+ * Saves the current user-selected RAPL device list to settings.
+ */
 VOID RaplDevicesSaveList(
     VOID
     )
@@ -111,6 +239,13 @@ VOID RaplDevicesSaveList(
     PhDereferenceObject(settingsString);
 }
 
+/**
+ * Finds a tracked RAPL device entry by identifier.
+ *
+ * \param Id Device identifier to search for.
+ * \param RemoveUserReference Removes the user-reference flag when TRUE.
+ * \return TRUE if the device entry was found.
+ */
 BOOLEAN FindRaplDeviceEntry(
     _In_ PDV_RAPL_ID Id,
     _In_ BOOLEAN RemoveUserReference
@@ -155,6 +290,14 @@ BOOLEAN FindRaplDeviceEntry(
     return found;
 }
 
+/**
+ * Adds a RAPL device row to the options list view.
+ *
+ * \param Context Options dialog context.
+ * \param DevicePresent TRUE if the device is currently connected.
+ * \param DevicePath Device interface path.
+ * \param DeviceName Display name for the row.
+ */
 VOID AddRaplDeviceToListView(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context,
     _In_ BOOLEAN DevicePresent,
@@ -212,6 +355,11 @@ VOID AddRaplDeviceToListView(
     DeleteRaplDeviceId(&deviceId);
 }
 
+/**
+ * Releases all RAPL device identifiers stored in list view item parameters.
+ *
+ * \param Context Options dialog context.
+ */
 VOID FreeListViewRaplDeviceEntries(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context
     )
@@ -234,125 +382,169 @@ VOID FreeListViewRaplDeviceEntries(
     }
 }
 
+/**
+ * Resolves a RAPL device interface to a user-visible device description.
+ *
+ * \param DeviceInterface Device interface path.
+ * \param DeviceDescription Receives the allocated device description on success.
+ * \return TRUE if a description was resolved.
+ */
 _Success_(return)
 BOOLEAN QueryRaplDeviceInterfaceDescription(
     _In_ PCWSTR DeviceInterface,
-    _Out_ PPH_STRING *DeviceDescription
+    _Out_ PPH_STRING* DeviceDescription
     )
 {
-    CONFIGRET result;
-    ULONG bufferSize;
-    PPH_STRING deviceDescription;
-    DEVPROPTYPE devicePropertyType;
-    DEVINST deviceInstanceHandle;
-    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
+    ULONG deviceInterfacePropertyCount = 0;
+    ULONG devicePropertyCount = 0;
+    const DEVPROPERTY* deviceInterfaceProperties = NULL;
+    const DEVPROPERTY* devicePropertiesList = NULL;
+    const DEVPROPERTY* instanceIdProperty;
+    PPH_STRING normalizedDeviceInterface;
+    DEVPROPCOMPKEY requestedProperties[] =
+    {
+        { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
+    };
+    DEVPROPCOMPKEY deviceProperties[] =
+    {
+        { DEVPKEY_Device_FriendlyName, DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_NAME, DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_Device_DeviceDesc, DEVPROP_STORE_SYSTEM, NULL },
+    };
 
-    if (CM_Get_Device_Interface_Property(
-        DeviceInterface,
+    // Convert the stored Win32-style interface path into the object ID form used by DevQuery.
+    normalizedDeviceInterface = NormalizeRaplDeviceInterfacePath(DeviceInterface);
+
+    // Query the interface object just far enough to recover the stable device instance ID.
+    if (HR_FAILED(PhDevGetObjectProperties(
+        DevObjectTypeDeviceInterface,
+        PhGetString(normalizedDeviceInterface),
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedProperties),
+        requestedProperties,
+        &deviceInterfacePropertyCount,
+        &deviceInterfaceProperties
+        )))
+    {
+        PhDereferenceObject(normalizedDeviceInterface);
+        return FALSE;
+    }
+
+    PhDereferenceObject(normalizedDeviceInterface);
+
+    instanceIdProperty = PhDevFindProperty(
         &DEVPKEY_Device_InstanceId,
-        &devicePropertyType,
-        (PBYTE)deviceInstanceId,
-        &deviceInstanceIdLength,
-        0
-        ) != CR_SUCCESS)
+        DEVPROP_STORE_SYSTEM,
+        deviceInterfacePropertyCount,
+        deviceInterfaceProperties
+        );
+
+    if (!instanceIdProperty || instanceIdProperty->Type != DEVPROP_TYPE_STRING || !instanceIdProperty->Buffer || instanceIdProperty->BufferSize < sizeof(UNICODE_NULL))
     {
+        PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
         return FALSE;
     }
 
-    if (CM_Locate_DevNode(
-        &deviceInstanceHandle,
-        deviceInstanceId,
-        CM_LOCATE_DEVNODE_PHANTOM
-        ) != CR_SUCCESS)
+    // Use the instance ID to query the backing device and read its display properties.
+    if (HR_FAILED(PhDevGetObjectProperties(
+        DevObjectTypeDevice,
+        instanceIdProperty->Buffer,
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(deviceProperties),
+        deviceProperties,
+        &devicePropertyCount,
+        &devicePropertiesList
+        )) || devicePropertyCount == 0)
     {
+        PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
         return FALSE;
     }
 
-    bufferSize = 0x40;
-    deviceDescription = PhCreateStringEx(NULL, bufferSize);
+    *DeviceDescription = NULL;
 
-    if ((result = CM_Get_DevNode_Property(
-        deviceInstanceHandle,
-        &DEVPKEY_Device_FriendlyName,
-        &devicePropertyType,
-        (PBYTE)deviceDescription->Buffer,
-        &bufferSize,
-        0
-        )) != CR_SUCCESS)
+    // Prefer the most user-friendly property and fall back until one is populated.
+    for (ULONG i = 0; i < RTL_NUMBER_OF(deviceProperties); i++)
     {
-        PhDereferenceObject(deviceDescription);
-        deviceDescription = PhCreateStringEx(NULL, bufferSize);
+        const DEVPROPERTY* property;
 
-        result = CM_Get_DevNode_Property(
-            deviceInstanceHandle,
-            &DEVPKEY_Device_FriendlyName,
-            &devicePropertyType,
-            (PBYTE)deviceDescription->Buffer,
-            &bufferSize,
-            0
+        property = PhDevFindProperty(
+            &deviceProperties[i].Key,
+            deviceProperties[i].Store,
+            devicePropertyCount,
+            devicePropertiesList
             );
+
+        if (property && property->Type == DEVPROP_TYPE_STRING && property->Buffer && property->BufferSize >= sizeof(UNICODE_NULL))
+        {
+            SIZE_T deviceDescriptionLength = property->BufferSize;
+
+            // Keep the stored string length aligned with the visible character count.
+            if (((PWSTR)property->Buffer)[(property->BufferSize / sizeof(WCHAR)) - 1] == UNICODE_NULL)
+                deviceDescriptionLength -= sizeof(UNICODE_NULL);
+
+            *DeviceDescription = PhCreateStringEx((PWSTR)property->Buffer, deviceDescriptionLength);
+            break;
+        }
     }
 
-    if (result != CR_SUCCESS)
-    {
-        PhDereferenceObject(deviceDescription);
-        return FALSE;
-    }
+    PhDevFreeObjectProperties(devicePropertyCount, devicePropertiesList);
+    PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
 
-    PhTrimToNullTerminatorString(deviceDescription);
-    *DeviceDescription = deviceDescription;
-
-    return TRUE;
+    return *DeviceDescription != NULL;
 }
 
+/**
+ * Enumerates available RAPL devices and populates the options list view.
+ *
+ * \param Context Options dialog context.
+ */
 VOID FindRaplDevices(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context
     )
 {
     ULONG deviceIndex = 0;
+    ULONG deviceCount = 0;
     PPH_LIST deviceList;
-    PWSTR deviceInterfaceList;
-    ULONG deviceInterfaceListLength = 0;
-    PWSTR deviceInterface;
-
-    if (CM_Get_Device_Interface_List_Size(
-        &deviceInterfaceListLength,
-        (PGUID)&GUID_DEVICE_ENERGY_METER,
-        NULL,
-        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-        ) != CR_SUCCESS)
+    const DEV_OBJECT* deviceObjects = NULL;
+    const DEVPROPCOMPKEY requestedProperties[] =
     {
-        return;
-    }
-
-    deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
-    memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
-
-    if (CM_Get_Device_Interface_List(
-        (PGUID)&GUID_DEVICE_ENERGY_METER,
-        NULL,
-        deviceInterfaceList,
-        deviceInterfaceListLength,
-        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-        ) != CR_SUCCESS)
+        { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
+    };
+    const DEVPROP_FILTER_EXPRESSION deviceFilter[] =
     {
-        PhFree(deviceInterfaceList);
-        return;
-    }
+        { DEVPROP_OPERATOR_EQUALS, {{ DEVPKEY_DeviceInterface_ClassGuid, DEVPROP_STORE_SYSTEM, NULL }, DEVPROP_TYPE_GUID, sizeof(GUID), (PVOID)&GUID_DEVICE_ENERGY_METER } }
+    };
 
     deviceList = PH_AUTO(PhCreateList(1));
 
-    for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
+    // Enumerate every energy-meter interface exposed through DevQuery.
+    if (HR_FAILED(PhDevGetObjects(
+        DevObjectTypeDeviceInterface,
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedProperties),
+        requestedProperties,
+        RTL_NUMBER_OF(deviceFilter),
+        deviceFilter,
+        &deviceCount,
+        &deviceObjects
+        )))
+    {
+        return;
+    }
+
+    for (ULONG i = 0; i < deviceCount; i++)
     {
         PPH_STRING deviceDescription;
         HANDLE deviceHandle;
         PRAPL_ENUM_ENTRY deviceEntry;
+        PWSTR deviceInterface;
+
+        deviceInterface = (PWSTR)deviceObjects[i].pszObjectId;
 
         if (!QueryRaplDeviceInterfaceDescription(deviceInterface, &deviceDescription))
             continue;
 
-        // Convert path to avoid conversion during interval updates. (dmex)
+        // Convert the object ID form back to the runtime Win32 path form once up front.
         if (deviceInterface[1] == OBJ_NAME_PATH_SEPARATOR)
             deviceInterface[1] = L'?';
 
@@ -392,6 +584,7 @@ VOID FindRaplDevices(
                 }
             }
 
+            // Only EMI v2 devices expose the metadata needed for RAPL channel discovery.
             if (deviceEntry->DeviceCapable)
             {
                 EMI_METADATA_SIZE metadataSize;
@@ -424,31 +617,34 @@ VOID FindRaplDevices(
                     {
                         EMI_CHANNEL_V2* channels = metadata->Channels;
 
+                        // Only power counters are relevant for RAPL-style reporting.
                         if (channels->MeasurementUnit == EmiMeasurementUnitPicowattHours)
                         {
+                            BOOLEAN hasCoreChannel = FALSE;
+
+                            // Map the exported EMI channels into the logical RAPL domains we expose.
                             for (ULONG i = 0; i < metadata->ChannelCount; i++)
                             {
-                                if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PKG", TRUE))
+                                if (RaplChannelNameIsPackage(channels->ChannelName))
                                     deviceEntry->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] = i;
-                                if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PP0", TRUE))
+                                if (RaplChannelNameIsCore(channels->ChannelName))
+                                {
                                     deviceEntry->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] = i;
-                                if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PP1", TRUE))
+                                    hasCoreChannel = TRUE;
+                                }
+                                if (RaplChannelNameIsDiscreteGpu(channels->ChannelName))
                                     deviceEntry->ChannelIndex[EV_EMI_DEVICE_INDEX_GPUDISCRETE] = i;
-                                if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_DRAM", TRUE))
+                                if (RaplChannelNameIsDram(channels->ChannelName))
                                     deviceEntry->ChannelIndex[EV_EMI_DEVICE_INDEX_DIMM] = i;
 
                                 channels = EMI_CHANNEL_V2_NEXT_CHANNEL(channels);
                             }
-                        }
 
-                        if (
-                            deviceEntry->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] != ULONG_MAX &&
-                            deviceEntry->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] != ULONG_MAX &&
-                            deviceEntry->ChannelIndex[EV_EMI_DEVICE_INDEX_GPUDISCRETE] != ULONG_MAX &&
-                            deviceEntry->ChannelIndex[EV_EMI_DEVICE_INDEX_DIMM] != ULONG_MAX
-                            )
-                        {
-                            deviceEntry->DeviceSupported = TRUE;
+                            // A usable device must expose package power and at least one core domain.
+                            if (deviceEntry->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] != ULONG_MAX && hasCoreChannel)
+                            {
+                                deviceEntry->DeviceSupported = TRUE;
+                            }
                         }
                     }
 
@@ -465,7 +661,7 @@ VOID FindRaplDevices(
         PhDereferenceObject(deviceDescription);
     }
 
-    PhFree(deviceInterfaceList);
+    PhDevFreeObjects(deviceCount, deviceObjects);
 
     // Sort the entries
     qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), RaplDeviceEntryCompareFunction);
@@ -540,117 +736,131 @@ VOID FindRaplDevices(
     PhReleaseQueuedLockShared(&RaplDevicesListLock);
 }
 
+/**
+ * Resolves a stored device path back to its device instance identifier.
+ *
+ * \param DevicePath Stored device interface path.
+ * \return The matching device instance identifier, or NULL if none is found.
+ */
 PPH_STRING FindRaplDeviceInstance(
     _In_ PPH_STRING DevicePath
     )
 {
     PPH_STRING deviceInstanceString = NULL;
-    PWSTR deviceInterfaceList;
-    ULONG deviceInterfaceListLength = 0;
-    PWSTR deviceInterface;
-
-    if (CM_Get_Device_Interface_List_Size(
-        &deviceInterfaceListLength,
-        (PGUID)&GUID_DEVICE_ENERGY_METER,
-        NULL,
-        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-        ) != CR_SUCCESS)
+    ULONG propertyCount = 0;
+    const DEVPROPERTY* properties = NULL;
+    const DEVPROPERTY* instanceIdProperty;
+    PPH_STRING normalizedDevicePath;
+    DEVPROPCOMPKEY requestedProperty =
     {
-        return NULL;
-    }
+        DEVPKEY_Device_InstanceId,
+        DEVPROP_STORE_SYSTEM,
+        NULL
+    };
 
-    deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
-    memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
+    normalizedDevicePath = NormalizeRaplDeviceInterfacePath(PhGetString(DevicePath));
 
-    if (CM_Get_Device_Interface_List(
-        (PGUID)&GUID_DEVICE_ENERGY_METER,
-        NULL,
-        deviceInterfaceList,
-        deviceInterfaceListLength,
-        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-        ) != CR_SUCCESS)
+    if (SUCCEEDED(PhDevGetObjectProperties(
+        DevObjectTypeDeviceInterface,
+        PhGetString(normalizedDevicePath),
+        DevQueryFlagNone,
+        1,
+        &requestedProperty,
+        &propertyCount,
+        &properties
+        )))
     {
-        PhFree(deviceInterfaceList);
-        return NULL;
-    }
-
-    for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
-    {
-        DEVPROPTYPE devicePropertyType;
-        ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-        WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
-
-        if (CM_Get_Device_Interface_Property(
-            deviceInterface,
+        instanceIdProperty = PhDevFindProperty(
             &DEVPKEY_Device_InstanceId,
-            &devicePropertyType,
-            (PBYTE)deviceInstanceId,
-            &deviceInstanceIdLength,
-            0
-            ) != CR_SUCCESS)
+            DEVPROP_STORE_SYSTEM,
+            propertyCount,
+            properties
+            );
+
+        if (instanceIdProperty && instanceIdProperty->Type == DEVPROP_TYPE_STRING && instanceIdProperty->Buffer && instanceIdProperty->BufferSize >= sizeof(UNICODE_NULL))
         {
-            continue;
+            SIZE_T deviceInstanceLength = instanceIdProperty->BufferSize;
+
+            if (((PWSTR)instanceIdProperty->Buffer)[(instanceIdProperty->BufferSize / sizeof(WCHAR)) - 1] == UNICODE_NULL)
+                deviceInstanceLength -= sizeof(UNICODE_NULL);
+
+            deviceInstanceString = PhCreateStringEx((PWSTR)instanceIdProperty->Buffer, deviceInstanceLength);
         }
 
-        if (deviceInterface[1] == OBJ_NAME_PATH_SEPARATOR)
-            deviceInterface[1] = L'?';
-
-        if (PhEqualStringZ(deviceInterface, DevicePath->Buffer, TRUE))
-        {
-            deviceInstanceString = PhCreateString(deviceInstanceId);
-            break;
-        }
+        PhDevFreeObjectProperties(propertyCount, properties);
     }
 
-    PhFree(deviceInterfaceList);
+    PhDereferenceObject(normalizedDevicePath);
 
     return deviceInstanceString;
 }
 
+/**
+ * Loads the icon used by the RAPL options list view.
+ *
+ * \param Context Options dialog context.
+ */
 VOID LoadRaplDeviceImages(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context
     )
 {
     HICON largeIcon;
-    CONFIGRET result;
-    ULONG bufferSize;
+    ULONG deviceInstallerClassPropertyCount = 0;
+    const DEVPROPERTY* deviceInstallerClassProperties = NULL;
+    const DEVPROPERTY* deviceIconPathProperty;
+    PPH_STRING classGuidString;
     PPH_STRING deviceIconPath;
     PH_STRINGREF dllPartSr;
     PH_STRINGREF indexPartSr;
     ULONG64 index;
-    DEVPROPTYPE devicePropertyType;
-    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
     LONG dpiValue;
-
-    bufferSize = 0x40;
-    deviceIconPath = PhCreateStringEx(NULL, bufferSize);
+    DEVPROPCOMPKEY requestedProperties[] =
+    {
+        { DEVPKEY_DeviceClass_IconPath, DEVPROP_STORE_SYSTEM, NULL },
+    };
 
     dpiValue = PhGetWindowDpi(Context->ListViewHandle);
+    classGuidString = PhFormatGuid(&GUID_DEVCLASS_PROCESSOR);
 
-    if ((result = CM_Get_Class_Property(
-        &GUID_DEVCLASS_PROCESSOR,
-        &DEVPKEY_DeviceClass_IconPath,
-        &devicePropertyType,
-        (PBYTE)deviceIconPath->Buffer,
-        &bufferSize,
-        0
-        )) != CR_SUCCESS)
+    if (!classGuidString)
+        return;
+
+    if (HR_FAILED(PhDevGetObjectProperties(
+        DevObjectTypeDeviceInstallerClass,
+        PhGetString(classGuidString),
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedProperties),
+        requestedProperties,
+        &deviceInstallerClassPropertyCount,
+        &deviceInstallerClassProperties
+        )))
     {
-        PhDereferenceObject(deviceIconPath);
-        deviceIconPath = PhCreateStringEx(NULL, bufferSize);
-
-        result = CM_Get_Class_Property(
-            &GUID_DEVCLASS_PROCESSOR,
-            &DEVPKEY_DeviceClass_IconPath,
-            &devicePropertyType,
-            (PBYTE)deviceIconPath->Buffer,
-            &bufferSize,
-            0
-            );
+        PhDereferenceObject(classGuidString);
+        return;
     }
 
+    PhDereferenceObject(classGuidString);
+
+    deviceIconPathProperty = PhDevFindProperty(
+        &DEVPKEY_DeviceClass_IconPath,
+        DEVPROP_STORE_SYSTEM,
+        deviceInstallerClassPropertyCount,
+        deviceInstallerClassProperties
+        );
+
+    if (
+        !deviceIconPathProperty ||
+        (deviceIconPathProperty->Type != DEVPROP_TYPE_STRING && deviceIconPathProperty->Type != DEVPROP_TYPE_STRING_LIST) ||
+        !deviceIconPathProperty->Buffer || deviceIconPathProperty->BufferSize < sizeof(UNICODE_NULL)
+        )
+    {
+        PhDevFreeObjectProperties(deviceInstallerClassPropertyCount, deviceInstallerClassProperties);
+        return;
+    }
+
+    deviceIconPath = PhCreateStringEx((PWSTR)deviceIconPathProperty->Buffer, deviceIconPathProperty->BufferSize);
     PhTrimToNullTerminatorString(deviceIconPath);
+    PhDevFreeObjectProperties(deviceInstallerClassPropertyCount, deviceInstallerClassProperties);
 
     PhSplitStringRefAtChar(&deviceIconPath->sr, L',', &dllPartSr, &indexPartSr);
     PhStringToInteger64(&indexPartSr, 10, &index);
@@ -687,6 +897,15 @@ VOID LoadRaplDeviceImages(
     PhDereferenceObject(deviceIconPath);
 }
 
+/**
+ * Handles the RAPL devices options dialog.
+ *
+ * \param hwndDlg Dialog window handle.
+ * \param uMsg Window message identifier.
+ * \param wParam Message-specific wParam value.
+ * \param lParam Message-specific lParam value.
+ * \return Dialog procedure result.
+ */
 INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
