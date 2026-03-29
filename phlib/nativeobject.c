@@ -449,7 +449,7 @@ NTSTATUS PhOpenPrivateNamespace(
  *
  * \param Name The name of the private namespace.
  * \param Flags Flags for the boundary descriptor (e.g., BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID).
- * \return A pointer to the allocated boundary descriptor, or NULL on failure. 
+ * \return A pointer to the allocated boundary descriptor, or NULL on failure.
  */
 POBJECT_BOUNDARY_DESCRIPTOR PhCreateBoundaryDescriptor(
     _In_ PCPH_STRINGREF Name,
@@ -554,9 +554,9 @@ NTSTATUS PhEnumerateBoundaryDescriptorEntries(
     )
 {
     ULONG totalSize;
-    PBYTE bufferStart;
-    PBYTE bufferEnd;
-    PBYTE currentOffset;
+    ULONG_PTR bufferStart;
+    ULONG_PTR bufferEnd;
+    ULONG_PTR currentOffset;
     ULONG entryCount = 0;
     ULONG nameEntryCount = 0;
     ULONG ilEntryCount = 0;
@@ -582,18 +582,18 @@ NTSTATUS PhEnumerateBoundaryDescriptorEntries(
     //
     // Calculate Bounds
     //
-    bufferStart = (PBYTE)BoundaryDescriptor;
-    bufferEnd = (PBYTE)PTR_ADD_OFFSET(bufferStart, totalSize);
+    bufferStart = (ULONG_PTR)BoundaryDescriptor;
+    bufferEnd = (ULONG_PTR)bufferStart + (ULONG_PTR)totalSize;
 
     //
     // Check for pointer overflow (wrap-around)
     //
-    if ((ULONG_PTR)bufferEnd < (ULONG_PTR)bufferStart)
+    if (bufferEnd < bufferStart)
     {
         return STATUS_INVALID_PARAMETER;
     }
 
-    currentOffset = (PBYTE)PTR_ADD_OFFSET(bufferStart, sizeof(OBJECT_BOUNDARY_DESCRIPTOR));
+    currentOffset = (bufferStart + sizeof(OBJECT_BOUNDARY_DESCRIPTOR));
 
     while (TRUE)
     {
@@ -605,7 +605,7 @@ NTSTATUS PhEnumerateBoundaryDescriptorEntries(
         //
         // Ensure there is enough space left for the entry header
         //
-        if ((ULONG_PTR)PTR_ADD_OFFSET(currentOffset, sizeof(OBJECT_BOUNDARY_ENTRY)) > (ULONG_PTR)bufferEnd)
+        if (currentOffset > bufferEnd || sizeof(OBJECT_BOUNDARY_ENTRY) > (bufferEnd - currentOffset))
             break;
 
         entry = (POBJECT_BOUNDARY_ENTRY)currentOffset;
@@ -621,16 +621,16 @@ NTSTATUS PhEnumerateBoundaryDescriptorEntries(
         //
         // Check overflow for current entry
         //
-        if ((ULONG_PTR)PTR_ADD_OFFSET(currentOffset, entrySize) < (ULONG_PTR)currentOffset)
+        if ((currentOffset + entrySize) < currentOffset)
             return STATUS_INVALID_PARAMETER;
 
         //
         // Check if entry extends past the total descriptor size
         //
-        if ((ULONG_PTR)PTR_ADD_OFFSET(currentOffset, entrySize) > (ULONG_PTR)bufferEnd)
+        if ((currentOffset + entrySize) > bufferEnd)
             return STATUS_INVALID_PARAMETER;
 
-        entryEnd = (PBYTE)PTR_ADD_OFFSET(currentOffset, entrySize);
+        entryEnd = (currentOffset + entrySize);
         entryCount++;
 
         //
@@ -640,10 +640,17 @@ NTSTATUS PhEnumerateBoundaryDescriptorEntries(
         {
         case BOUNDARY_ENTRY_TYPE_NAME:
             {
+                ULONG nameLength;
+
                 nameEntryCount++;
 
                 if (nameEntryCount > 1)
                     return STATUS_DUPLICATE_NAME;
+
+                nameLength = (ULONG)(entrySize - sizeof(OBJECT_BOUNDARY_ENTRY));
+
+                if (nameLength == 0 || (nameLength & 1))
+                    return STATUS_INVALID_PARAMETER;
             }
             break;
         case BOUNDARY_ENTRY_TYPE_SID:
@@ -651,7 +658,7 @@ NTSTATUS PhEnumerateBoundaryDescriptorEntries(
                 PSID sidBuffer;
                 ULONG sidLength;
 
-                sidLength = entrySize - sizeof(OBJECT_BOUNDARY_ENTRY);
+                sidLength = (ULONG)(entrySize - sizeof(OBJECT_BOUNDARY_ENTRY));
 
                 //
                 // Check for minimum SID header size (Revision + SubAuthorityCount + IdentifierAuthority).
@@ -667,13 +674,13 @@ NTSTATUS PhEnumerateBoundaryDescriptorEntries(
                 // specified in the SID header (Sid[1] is SubAuthorityCount).
                 //
                 if (sidLength < PhLengthRequiredSid(*PhSubAuthorityCountSid(sidBuffer)))
-                    return FALSE;
+                    return STATUS_INVALID_SID;
 
                 //
                 // Perform standard structural validation.
                 //
                 if (!PhValidSid(sidBuffer))
-                    return FALSE;
+                    return STATUS_INVALID_SID;
             }
             break;
         case BOUNDARY_ENTRY_TYPE_IL:
@@ -688,23 +695,23 @@ NTSTATUS PhEnumerateBoundaryDescriptorEntries(
                     return STATUS_INVALID_PARAMETER;
                 }
 
-                sidLength = entrySize - sizeof(OBJECT_BOUNDARY_ENTRY);
+                sidLength = (ULONG)(entrySize - sizeof(OBJECT_BOUNDARY_ENTRY));
 
                 if (sidLength < 8)
                 {
-                    return STATUS_INVALID_PARAMETER;
+                    return STATUS_INVALID_SID;
                 }
 
                 sidBuffer = (PSID)PTR_ADD_OFFSET(currentOffset, sizeof(OBJECT_BOUNDARY_ENTRY));
 
                 if (sidLength < PhLengthRequiredSid(*PhSubAuthorityCountSid(sidBuffer)))
                 {
-                    return STATUS_INVALID_PARAMETER;
+                    return STATUS_INVALID_SID;
                 }
 
                 if (!PhValidSid(sidBuffer))
                 {
-                    return STATUS_INVALID_PARAMETER;
+                    return STATUS_INVALID_SID;
                 }
             }
             break;
@@ -725,10 +732,10 @@ NTSTATUS PhEnumerateBoundaryDescriptorEntries(
         // Advance Pointer
         // Entries are aligned to 8-byte boundaries relative to the start.
         //
-        currentOffset = (PBYTE)ALIGN_UP_BY((ULONG_PTR)entryEnd, sizeof(ULONG64));
+        currentOffset = ALIGN_UP_BY(entryEnd, sizeof(ULONG64));
 
         // Check if alignment pushed us past the end
-        if ((ULONG_PTR)currentOffset > (ULONG_PTR)bufferEnd)
+        if (currentOffset > bufferEnd)
         {
             return STATUS_INVALID_PARAMETER;
         }
@@ -785,7 +792,7 @@ static NTSTATUS PhAddSidToBoundaryDescriptorWorker(
     // 2. Compute SID length and aligned entry size.
     //
     sidLength = PhLengthRequiredSid(*PhSubAuthorityCountSid(Sid));
-    
+
     // EntrySize = Header (8) + Payload (SidLength) + Padding
     entrySize = (ULONG)ALIGN_UP_BY(sizeof(OBJECT_BOUNDARY_ENTRY) + sidLength, sizeof(ULONG64));
     oldDescriptor = *BoundaryDescriptor;
@@ -860,7 +867,7 @@ static NTSTATUS PhAddSidToBoundaryDescriptorWorker(
 /**
  * Adds a SID to the specified boundary descriptor.
  *
- * \param BoundaryDescriptor A pointer to the boundary descriptor pointer. 
+ * \param BoundaryDescriptor A pointer to the boundary descriptor pointer.
  * \param RequiredSid The SID to add.
  * \return NTSTATUS Successful or errant status.
  */
