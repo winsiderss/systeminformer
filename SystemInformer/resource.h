@@ -3,7 +3,7 @@
 // Used by SystemInformer.rc
 //
 #define IDR_RT_MANIFEST                 1
-#define IDI_PROCESSHACKER               101
+#define IDI_SYSTEMINFORMER              101
 #define IDR_MAINWND_ACCEL               102
 #define IDD_PROCGENERAL                 103
 #define IDD_PROCMODULES                 104

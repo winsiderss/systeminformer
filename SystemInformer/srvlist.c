@@ -324,13 +324,16 @@ VOID PhTickServiceNodes(
     VOID
     )
 {
+    BOOLEAN fullyInvalidated = FALSE;
+
     if (ServiceTreeListSortOrder != NoSortOrder)
     {
         // Force a rebuild to sort the items.
         TreeNew_NodesStructured(ServiceTreeListHandle);
+        fullyInvalidated = TRUE;
     }
 
-    PH_TICK_SH_STATE_TN(PH_SERVICE_NODE, ShState, ServiceNodeStateList, PhpRemoveServiceNode, PhCsHighlightingDuration, ServiceTreeListHandle, TRUE, NULL, NULL);
+    PH_TICK_SH_STATE_TN(PH_SERVICE_NODE, ShState, ServiceNodeStateList, PhpRemoveServiceNode, PhCsHighlightingDuration, ServiceTreeListHandle, TRUE, &fullyInvalidated, NULL);
 }
 
 static VOID PhpUpdateServiceNodeConfig(

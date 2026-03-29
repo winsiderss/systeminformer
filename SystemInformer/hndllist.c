@@ -369,7 +369,16 @@ VOID PhTickHandleNodes(
     _In_ PPH_HANDLE_LIST_CONTEXT Context
     )
 {
-    PH_TICK_SH_STATE_TN(PH_HANDLE_NODE, ShState, Context->NodeStateList, PhpRemoveHandleNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, NULL, Context);
+    BOOLEAN fullyInvalidated = FALSE;
+
+    if (Context->TreeNewSortOrder != NoSortOrder)
+    {
+        // Force a rebuild to sort the items.
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+        fullyInvalidated = TRUE;
+    }
+
+    PH_TICK_SH_STATE_TN(PH_HANDLE_NODE, ShState, Context->NodeStateList, PhpRemoveHandleNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, &fullyInvalidated, Context);
 }
 
 #define SORT_FUNCTION(Column) PhpHandleTreeNewCompare##Column
