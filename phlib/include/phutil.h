@@ -985,14 +985,14 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhFormatGuid(
-    _In_ PGUID Guid
+    _In_ PCGUID Guid
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhFormatGuidToBuffer(
-    _In_ PGUID Guid,
+    _In_ PCGUID Guid,
     _Writable_bytes_(BufferLength) _When_(BufferLength != 0, _Notnull_) PWCHAR Buffer,
     _In_opt_ USHORT BufferLength,
     _Out_opt_ PSIZE_T ReturnLength
@@ -2597,15 +2597,27 @@ typedef struct _DEVPROPCOMPKEY DEVPROPCOMPKEY, *PDEVPROPCOMPKEY;
 typedef struct _DEVPROP_FILTER_EXPRESSION DEVPROP_FILTER_EXPRESSION, *PDEVPROP_FILTER_EXPRESSION;
 typedef struct _DEV_OBJECT DEV_OBJECT, *PDEV_OBJECT;
 
-PHLIBAPI
-PDEVPROPERTY
-NTAPI
+FORCEINLINE
+const DEVPROPERTY*
 PhDevFindProperty(
-    _In_ PDEVPROPKEY Key,
+    _In_ const DEVPROPKEY* Key,
     _In_ ULONG Store,
     _In_ ULONG PropertiesCount,
-    _In_reads_(PropertiesCount) PDEVPROPERTY Properties
-    );
+    _In_reads_(PropertiesCount) const DEVPROPERTY* Properties
+    )
+{
+    for (ULONG i = 0; i < PropertiesCount; i++)
+    {
+        const DEVPROPERTY* property = &Properties[i];
+
+        if (RtlEqualMemory(&property->CompKey.Key, Key, sizeof(DEVPROPKEY)) && property->CompKey.Store == Store)
+        {
+            return property;
+        }
+    }
+
+    return NULL;
+}
 
 PHLIBAPI
 HRESULT
