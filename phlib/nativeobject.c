@@ -600,7 +600,7 @@ NTSTATUS PhEnumerateBoundaryDescriptorEntries(
         POBJECT_BOUNDARY_ENTRY entry;
         ULONG entryType;
         ULONG entrySize;
-        PBYTE entryEnd;
+        ULONG_PTR entryEnd;
 
         //
         // Ensure there is enough space left for the entry header
