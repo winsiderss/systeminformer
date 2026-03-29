@@ -423,6 +423,7 @@ VOID RaplDeviceLayoutGraphs(
  *
  * \return Formatted label string.
  */
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
 PPH_STRING RaplGraphSingleLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,

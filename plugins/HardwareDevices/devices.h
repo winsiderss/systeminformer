@@ -94,7 +94,7 @@ __has_include (<d3dkmthk.h>)
 #include "resource.h"
 #include "prpsh.h"
 
-extern PPH_PLUGIN PluginInstance;
+EXTERN_C PPH_PLUGIN PluginInstance;
 extern BOOLEAN NetAdapterEnableNdis;
 extern ULONG NetWindowsVersion;
 extern ULONG NetUpdateInterval;
@@ -1218,6 +1218,9 @@ typedef struct _DV_RAPL_ENTRY
     ULONG ChannelDataBufferLength;
     ULONG ChannelIndex[EV_EMI_DEVICE_INDEX_MAX];
     EV_MEASUREMENT_DATA ChannelData[EV_EMI_DEVICE_INDEX_MAX];
+    ULONG NumberOfCoreChannels;
+    PULONG CoreChannelIndexes;
+    EV_MEASUREMENT_DATA* CoreChannelData;
 } DV_RAPL_ENTRY, *PDV_RAPL_ENTRY;
 
 typedef struct _DV_RAPL_SYSINFO_CONTEXT

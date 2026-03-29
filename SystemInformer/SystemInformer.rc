@@ -82,7 +82,7 @@ IDB_SEARCH_INACTIVE_MODERN_DARK PNG                     "resources\\search_moder
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_PROCESSHACKER       ICON                    "SystemInformer.ico"
+IDI_SYSTEMINFORMER      ICON                    "SystemInformer.ico"
 
 IDI_PHAPPLICATION       ICON                    "resources\\application.ico"
 
@@ -206,7 +206,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTI
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    ICON            IDI_PROCESSHACKER,IDC_FILEICON,16,11,20,20
+    ICON            IDI_SYSTEMINFORMER,IDC_FILEICON,16,11,20,20
     CONTROL         "System Informer",IDC_ABOUT_NAME,"SysLink",WS_TABSTOP,45,12,192,8
     LTEXT           "Copyright (c) Winsider Seminars && Solutions, Inc.",IDC_STATIC,45,24,193,8
     CONTROL         "Credits.",IDC_CREDITS,"SysLink",WS_TABSTOP,15,49,248,141

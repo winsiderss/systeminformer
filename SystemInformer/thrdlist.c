@@ -421,6 +421,8 @@ VOID PhTickThreadNodes(
     _In_ PPH_THREAD_LIST_CONTEXT Context
     )
 {
+    BOOLEAN fullyInvalidated = FALSE;
+
     // Text invalidation, node updates
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
@@ -436,10 +438,11 @@ VOID PhTickThreadNodes(
     {
         // Force a rebuild to sort the items.
         TreeNew_NodesStructured(Context->TreeNewHandle);
+        fullyInvalidated = TRUE;
     }
 
     // State highlighting
-    PH_TICK_SH_STATE_TN(PH_THREAD_NODE, ShState, Context->NodeStateList, PhpRemoveThreadNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, NULL, Context);
+    PH_TICK_SH_STATE_TN(PH_THREAD_NODE, ShState, Context->NodeStateList, PhpRemoveThreadNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, &fullyInvalidated, Context);
 }
 
 VOID PhpUpdateThreadNodeNameText(
