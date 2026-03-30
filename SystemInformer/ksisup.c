@@ -628,17 +628,21 @@ LONG PhpShowKsiMessage(
 
         if (Status != STATUS_SUCCESS)
         {
-            LONG bufferLength;
+            INT bufferLength;
             WCHAR buffer[0x100];
 
             bufferLength = _snwprintf(
                 buffer,
-                ARRAYSIZE(buffer) - sizeof(UNICODE_NULL),
+                ARRAYSIZE(buffer),
                 L"%s (0x%08x)",
                 Title,
                 Status
                 );
-            buffer[bufferLength] = UNICODE_NULL;
+
+            if (bufferLength >= 0 && bufferLength < ARRAYSIZE(buffer))
+                buffer[bufferLength] = UNICODE_NULL;
+            else
+                buffer[ARRAYSIZE(buffer) - 1] = UNICODE_NULL;
 
             result = PhShowMessageOneTime2(
                 WindowHandle,
