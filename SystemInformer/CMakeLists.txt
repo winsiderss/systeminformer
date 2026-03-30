@@ -114,7 +114,6 @@ set(SOURCES
     "itemtips.c"
     "jobprp.c"
     "kdump.c"
-    "ksidbg.c"
     "ksisup.c"
     "ksyscall.c"
     "log.c"

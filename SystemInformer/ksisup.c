@@ -61,20 +61,6 @@ static PPH_STRING KsiServiceName = NULL;
 static PPH_STRING KsiFileName = NULL;
 static PPH_STRING KsiObjectName = NULL;
 
-#ifdef DEBUG
-//#define KSI_DEBUG_DELAY_SPLASHSCREEN 1
-
-extern // ksidbg.c
-VOID KsiDebugLogInitialize(
-    VOID
-    );
-
-extern // ksidbg.c
-VOID KsiDebugLogFinalize(
-    VOID
-    );
-#endif
-
 /**
  * Get the kernel file name for the running system.
  * \return PPH_STRING The kernel file name, or NULL on failure.
@@ -1746,10 +1732,6 @@ CleanupExit:
     PhClearReference(&ksiFileName);
     PhClearReference(&tempDriverDir);
 
-#ifdef DEBUG
-    KsiDebugLogInitialize();
-#endif
-
     return status;
 }
 
@@ -1764,10 +1746,6 @@ NTSTATUS KsiInitializeCallbackThread(
     _In_opt_ PVOID CallbackContext
     )
 {
-#ifdef KSI_DEBUG_DELAY_SPLASHSCREEN
-    if (CallbackContext) PhDelayExecution(1000);
-#endif
-
     KsiConnect(CallbackContext);
 
     if (CallbackContext)
@@ -1990,9 +1968,6 @@ NTSTATUS PhCleanupKsi(
     }
 
     KphCommsStop();
-#ifdef DEBUG
-    KsiDebugLogFinalize();
-#endif
 
     if (!shouldUnload)
         return STATUS_SUCCESS;
