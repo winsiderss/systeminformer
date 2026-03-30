@@ -208,67 +208,6 @@ PPH_PROCESS_ITEM PhpInformerReferenceProcessItem(
     return processItem;
 }
 
-VOID PhpInformerGetProcessStartKeys(
-    _In_ PCKPH_MESSAGE Message,
-    _Out_ PULONG64 ActorKey,
-    _Out_ PULONG64 TargetKey
-    )
-{
-    *ActorKey = 0;
-    *TargetKey = 0;
-
-    switch (Message->Header.MessageId)
-    {
-    case KphMsgProcessCreate:
-        *ActorKey = Message->Kernel.ProcessCreate.CreatingProcessStartKey;
-        *TargetKey = Message->Kernel.ProcessCreate.TargetProcessStartKey;
-        return;
-    case KphMsgProcessExit:
-        *ActorKey = Message->Kernel.ProcessExit.ProcessStartKey;
-        return;
-    case KphMsgThreadCreate:
-        *ActorKey = Message->Kernel.ThreadCreate.CreatingProcessStartKey;
-        *TargetKey = Message->Kernel.ThreadCreate.TargetProcessStartKey;
-        return;
-    case KphMsgThreadExecute:
-        *ActorKey = Message->Kernel.ThreadExecute.ProcessStartKey;
-        return;
-    case KphMsgThreadExit:
-        *ActorKey = Message->Kernel.ThreadExit.ProcessStartKey;
-        return;
-    case KphMsgImageLoad:
-        *ActorKey = Message->Kernel.ImageLoad.LoadingProcessStartKey;
-        *TargetKey = Message->Kernel.ImageLoad.TargetProcessStartKey;
-        return;
-    case KphMsgImageVerify:
-        *ActorKey = Message->Kernel.ImageVerify.ProcessStartKey;
-        return;
-    default:
-        break;
-    }
-
-    if (Message->Header.MessageId >= KphMsgHandlePreCreateProcess &&
-        Message->Header.MessageId <= KphMsgHandlePostDuplicateDesktop)
-    {
-        *ActorKey = Message->Kernel.Handle.ContextProcessStartKey;
-        return;
-    }
-
-    if (Message->Header.MessageId >= KphMsgFilePreCreate &&
-        Message->Header.MessageId <= KphMsgFilePostVolumeDismount)
-    {
-        *ActorKey = Message->Kernel.File.ProcessStartKey;
-        return;
-    }
-
-    if (Message->Header.MessageId >= KphMsgRegPreDeleteKey &&
-        Message->Header.MessageId <= KphMsgRegPostSaveMergedKey)
-    {
-        *ActorKey = Message->Kernel.Reg.ProcessStartKey;
-        return;
-    }
-}
-
 ULONG PhpInformerGetCategory(
     _In_ PCKPH_MESSAGE Message
     )
@@ -3095,16 +3034,19 @@ VOID PhpInformerAddMessage(
 
     //
     // For process-scoped views, only keep events where this process is
-    // either the actor or the target.
+    // associated with at least one of the process start keys.
     //
     if (Context->ProcessStartKey != 0)
     {
-        ULONG64 actorKey;
-        ULONG64 targetKey;
+        ULONG64 keys[5];
 
-        PhpInformerGetProcessStartKeys(Message, &actorKey, &targetKey);
+        PhInformerGetProcessStartKeys(Message, keys);
 
-        if (actorKey != Context->ProcessStartKey && targetKey != Context->ProcessStartKey)
+        if (keys[0] != Context->ProcessStartKey &&
+            keys[1] != Context->ProcessStartKey &&
+            keys[2] != Context->ProcessStartKey &&
+            keys[3] != Context->ProcessStartKey &&
+            keys[4] != Context->ProcessStartKey)
         {
             PhDereferenceObject(Message);
             return;

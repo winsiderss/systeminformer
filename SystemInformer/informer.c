@@ -90,8 +90,8 @@ static sqlite3_column_int64_fn* sqlite3_column_int64_I = NULL;
 
 PH_CALLBACK_DECLARE(PhInformerCallback);
 
-VOID PhpInformerGetKeys(
-    _In_ PKPH_MESSAGE Message,
+VOID PhInformerGetProcessStartKeys(
+    _In_ PCKPH_MESSAGE Message,
     _Out_writes_(5) PULONG64 Keys
     )
 {
@@ -240,7 +240,7 @@ VOID PhpInformerDatabaseInsert(
     {
         ULONG64 keys[5];
 
-        PhpInformerGetKeys(Message, keys);
+        PhInformerGetProcessStartKeys(Message, keys);
 
         PhAcquireQueuedLockExclusive(&PhpInformerDatabaseLock);
 
