@@ -3079,6 +3079,16 @@ VOID PhpInformerAddMessage(
                 preNode->DurationText = PhFormat(durationFmt, 1, 20);
             }
 
+            //
+            // Ensure the pre-op details text is materialized before
+            // appending post-op information. DetailsText is lazily
+            // initialized, so if the post-op arrives before the UI
+            // renders the pre-op row, it would still be NULL and the
+            // pre-op details would be lost.
+            //
+            if (!preNode->DetailsText)
+                preNode->DetailsText = PhpInformerFormatDetailsText(Context, preNode->Message);
+
             PhpInformerUpdateDetailsFromPostOp(preNode, Message);
 
             TreeNew_InvalidateNode(Context->TreeNewHandle, &preNode->Node);
