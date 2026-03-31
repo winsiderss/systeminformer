@@ -73,22 +73,22 @@ Thread creation is done through the `PhCreateThread` and `PhCreateThreadEx` func
 ### Collections
 The collections available are summarized below:
 
-Name                  | Use                     | Type
---------------------- | ----------------------- | ---------------
-`PH_ARRAY`            | Array                   | Non-intrusive
-`PH_LIST`             | Array                   | Non-intrusive
-`LIST_ENTRY`          | Doubly linked list      | Intrusive
-`SINGLE_LIST_ENTRY`   | Singly linked list      | Intrusive
-`PH_POINTER_LIST`     | Array                   | Non-intrusive
-`LIST_ENTRY`          | Stack                   | Intrusive
-`SINGLE_LIST_ENTRY`   | Stack                   | Intrusive
-`LIST_ENTRY`          | Queue                   | Intrusive
-`RTL_AVL_TABLE`       | Binary tree (AVL)       | Non-intrusive
-`PH_AVL_LINKS`        | Binary tree (AVL)       | Intrusive
-`RTL_GENERIC_TABLE`   | Binary tree (splay)     | Non-intrusive
-`PH_HASHTABLE`        | Hashtable               | Non-intrusive
-`PH_HASH_ENTRY`       | Hashtable               | Intrusive
-`PH_CIRCULAR_BUFFER`  | Circular buffer         | Non-intrusive
+| Name                 | Use                 | Type          |
+|----------------------|---------------------|---------------|
+| `PH_ARRAY`           | Array               | Non-intrusive |
+| `PH_LIST`            | Array               | Non-intrusive |
+| `LIST_ENTRY`         | Doubly linked list  | Intrusive     |
+| `SINGLE_LIST_ENTRY`  | Singly linked list  | Intrusive     |
+| `PH_POINTER_LIST`    | Array               | Non-intrusive |
+| `LIST_ENTRY`         | Stack               | Intrusive     |
+| `SINGLE_LIST_ENTRY`  | Stack               | Intrusive     |
+| `LIST_ENTRY`         | Queue               | Intrusive     |
+| `RTL_AVL_TABLE`      | Binary tree (AVL)   | Non-intrusive |
+| `PH_AVL_LINKS`       | Binary tree (AVL)   | Intrusive     |
+| `RTL_GENERIC_TABLE`  | Binary tree (splay) | Non-intrusive |
+| `PH_HASHTABLE`       | Hashtable           | Non-intrusive |
+| `PH_HASH_ENTRY`      | Hashtable           | Intrusive     |
+| `PH_CIRCULAR_BUFFER` | Circular buffer     | Non-intrusive |
 
 ### Synchronization
 The queued lock should be used for all synchronization, due to its small size and good performance. Although the queued lock is a reader-writer lock, it can be used as a mutex simply by using the exclusive acquire/release functions.
