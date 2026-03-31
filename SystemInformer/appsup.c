@@ -991,7 +991,7 @@ VOID PhShellExecuteUserString(
         {
             PPH_STRING stringTemp;
             PPH_STRING stringMiddle;
-           
+
             stringTemp = PhCreateString(String);
             stringMiddle = PhGetFileName(stringTemp);
 
@@ -1011,7 +1011,7 @@ VOID PhShellExecuteUserString(
 
     // Expand environment strings. (dmex)
     PhMoveReference(&executeString, PhExpandEnvironmentStrings(&executeString->sr));
-    
+
     if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
     {
         PhShowStatus(WindowHandle, L"Unable to locate the application directory.", STATUS_NOT_FOUND, 0);
@@ -1346,6 +1346,11 @@ VOID PhSetWindowOpacity(
         );
 }
 
+/**
+ * Gets the full application version string.
+ *
+ * \return A formatted version string in major.minor.build.revision form.
+ */
 PPH_STRING PhGetPhVersion(
     VOID
     )
@@ -1363,6 +1368,14 @@ PPH_STRING PhGetPhVersion(
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
+/**
+ * Gets the individual application version number components.
+ *
+ * \param MajorVersion Receives the major version number.
+ * \param MinorVersion Receives the minor version number.
+ * \param BuildNumber Receives the build number.
+ * \param RevisionNumber Receives the revision number.
+ */
 VOID PhGetPhVersionNumbers(
     _Out_opt_ PULONG MajorVersion,
     _Out_opt_ PULONG MinorVersion,
@@ -1380,6 +1393,11 @@ VOID PhGetPhVersionNumbers(
         *RevisionNumber = PHAPP_VERSION_REVISION;
 }
 
+/**
+ * Gets the commit hash for the current build.
+ *
+ * \return The commit hash as a UTF-16 string.
+ */
 PPH_STRING PhGetPhVersionHash(
     VOID
     )
@@ -1387,6 +1405,85 @@ PPH_STRING PhGetPhVersionHash(
     return PhConvertUtf8ToUtf16(PHAPP_VERSION_COMMIT);
 }
 
+/**
+ * Gets the timestamp for the current build.
+ *
+ * \return A formatted local date/time string for the current version, or
+ * "Unknown" when the encoded values are invalid.
+ * \remarks The timestamp format is determined by the encoded version fields:
+ * PHAPP_VERSION_BUILD uses YDDD (Y = years since 2000, DDD = day of year),
+ * and PHAPP_VERSION_REVISION uses HHMM with an hour offset of +1.
+ */
+PPH_STRING PhGetPhVersionDateTime(
+    VOID
+    )
+{
+    static const USHORT DaysInMonth[2][12] =
+    {
+        { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+        { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+    };
+    ULONG build;
+    ULONG revision;
+    ULONG year;
+    ULONG dayOfYear;
+    USHORT month;
+    ULONG hour;
+    ULONG minute;
+    ULONG leapYear;
+    SYSTEMTIME utcSystemTime;
+    SYSTEMTIME localSystemTime;
+
+    build = PHAPP_VERSION_BUILD;
+    revision = PHAPP_VERSION_REVISION;
+
+    // Decode packed build/revision values into calendar and time components.
+
+    year = 2000 + (build / 1000);
+    dayOfYear = build % 1000;
+    minute = revision % 100;
+    hour = (revision / 100) - 1;
+
+    // Reject impossible day/time values before constructing a timestamp.
+    if (dayOfYear == 0 || dayOfYear > 366 || hour > 23 || minute > 59)
+        return PhCreateString(L"Unknown");
+
+    leapYear = (year % 4 == 0 && ((year % 100 != 0) || (year % 400 == 0))) ? 1 : 0;
+
+    if ((!leapYear && dayOfYear > 365) || year < 2000)
+        return PhCreateString(L"Unknown");
+
+    month = 1;
+
+    // Convert day-of-year to month/day using leap-year-aware month lengths.
+    while (dayOfYear > DaysInMonth[leapYear][month - 1] && month <= 12)
+    {
+        dayOfYear -= DaysInMonth[leapYear][month - 1];
+        month++;
+    }
+
+    if (month > 12)
+        return PhCreateString(L"Unknown");
+
+    // Build a UTC SYSTEMTIME first; convert to local time for display if possible.
+    memset(&utcSystemTime, 0, sizeof(utcSystemTime));
+    utcSystemTime.wYear = (USHORT)year;
+    utcSystemTime.wMonth = month;
+    utcSystemTime.wDay = (USHORT)dayOfYear;
+    utcSystemTime.wHour = (USHORT)hour;
+    utcSystemTime.wMinute = (USHORT)minute;
+
+    if (!PhSystemTimeToTzSpecificLocalTime(&utcSystemTime, &localSystemTime))
+        return PhFormatDateTime(&utcSystemTime);
+
+    return PhFormatDateTime(&localSystemTime);
+}
+
+/**
+ * Gets the configured release update channel.
+ *
+ * \return The configured release channel value.
+ */
 PH_RELEASE_CHANNEL PhGetPhReleaseChannel(
     VOID
     )
@@ -1394,6 +1491,11 @@ PH_RELEASE_CHANNEL PhGetPhReleaseChannel(
     return PhGetIntegerSetting(SETTING_RELEASE_CHANNEL);
 }
 
+/**
+ * Gets the display name for the configured release channel.
+ *
+ * \return A static string describing the current release channel.
+ */
 PCWSTR PhGetPhReleaseChannelString(
     VOID
     )

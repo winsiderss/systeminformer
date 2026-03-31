@@ -254,6 +254,13 @@ PhGetPhVersionHash(
     VOID
     );
 
+PHAPPAPI
+PPH_STRING
+NTAPI
+PhGetPhVersionDateTime(
+    VOID
+    );
+
 typedef enum _PH_RELEASE_CHANNEL
 {
     PhReleaseChannel = 0,
