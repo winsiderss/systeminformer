@@ -265,7 +265,7 @@ int json_parse_uint64(const unsigned char *buf, uint64_t *retval)
     if (*buf == '-')
         return 1; /* error: uint cannot be negative */
 
-    val = strtoull(buf, &end, 10);
+    val = strtoull(buf, (char**)&end, 10);
     if (end != buf)
         *retval = val;
     if ((val == 0 && errno != 0) || (end == buf))
