@@ -836,7 +836,8 @@ PerfIsGroupOnInGroupMask(
 // behaviors go here.
 //
 
-#define PERF_CLUSTER_OFF     0xe0000001
+#define PERF_MARK_WITH_FLUSH 0xe0000001  // control mark flag; EtwpSetMark bit 0; calls MmEmptyAllWorkingSets() and then MmIdentifyPhysicalMemory(..., 629, 1)
+#define PERF_CLUSTER_OFF     PERF_MARK_WITH_FLUSH
 #define PERF_MEMORY_CONTROL  0xe0000002
 
 //
@@ -6577,6 +6578,14 @@ WmiQueryAllDataA(
     _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer
     );
 
+/**
+ * The WmiQueryAllDataW function returns all WMI data blocks that implement a given WMI class (Unicode).
+ *
+ * @param DataBlockHandle Handle to a WMI data block object.
+ * @param BufferLength Pointer to a memory location that specifies the size of the buffer.
+ * @param Buffer Pointer to the buffer where the routine returns the WMI data.
+ * @return ULONG Successful or errant status.
+ */
 NTSYSAPI
 ULONG
 NTAPI
@@ -6586,14 +6595,6 @@ WmiQueryAllDataW(
     _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer
     );
 
-/**
- * The WmiQueryAllDataW function returns all WMI data blocks that implement a given WMI class (Unicode).
- *
- * @param DataBlockHandle Handle to a WMI data block object.
- * @param BufferLength Pointer to a memory location that specifies the size of the buffer.
- * @param Buffer Pointer to the buffer where the routine returns the WMI data.
- * @return ULONG Successful or errant status.
- */
 NTSYSAPI
 ULONG
 NTAPI
