@@ -1776,6 +1776,47 @@ PhRedrawWindow(
     RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
+typedef _Function_class_(PH_DESKTOP_ENUM_CALLBACK)
+BOOLEAN NTAPI PH_DESKTOP_ENUM_CALLBACK(
+    _In_ PCWSTR DesktopName,
+    _In_opt_ PVOID Context
+    );
+typedef PH_DESKTOP_ENUM_CALLBACK* PPH_DESKTOP_ENUM_CALLBACK;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumDesktops(
+    _In_opt_ HWINSTA WindowStationHandle,
+    _In_ PPH_DESKTOP_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+typedef _Function_class_(PH_WINDOWSTATION_ENUM_CALLBACK)
+BOOLEAN NTAPI PH_WINDOWSTATION_ENUM_CALLBACK(
+    _In_ PCWSTR WindowStationName,
+    _In_opt_ PVOID Context
+    );
+typedef PH_WINDOWSTATION_ENUM_CALLBACK* PPH_WINDOWSTATION_ENUM_CALLBACK;
+
+typedef enum _PH_WINDOWSTATION_ENUM_TYPE
+{
+    PH_WINDOWSTATION_ENUM_WIN32 = 0x1,             // Phase 1: Win32 EnumWindowStations (current session, access-filtered)
+    PH_WINDOWSTATION_ENUM_GLOBAL_DIRECTORY = 0x2,  // Phase 2: Object directory \Windows\WindowStations (session 0)
+    PH_WINDOWSTATION_ENUM_SESSION_DIRECTORY = 0x4, // Phase 3: Object directory \Sessions\N\Windows\WindowStations
+    PH_WINDOWSTATION_ENUM_SYSTEM_HANDLES = 0x8,    // Phase 4: System-wide handle enumeration
+    PH_WINDOWSTATION_ENUM_ALL = 0xF                // All enumeration methods
+} PH_WINDOWSTATION_ENUM_TYPE;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumWindowStations(
+    _In_ PH_WINDOWSTATION_ENUM_TYPE Types,
+    _In_ PPH_WINDOWSTATION_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
 typedef _Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN NTAPI PH_WINDOW_ENUM_CALLBACK(
     _In_ HWND WindowHandle,

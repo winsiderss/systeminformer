@@ -937,6 +937,7 @@ EXPORTS
     PhDuplicateFont
     PhDuplicateFontWithNewWeight
     PhEnumChildWindows
+    PhEnumDesktops
     PhEnumWindows
     PhEnumWindowsEx
     PhFindListViewItemByFlags

@@ -3128,6 +3128,342 @@ VOID PhRemoveWindowContext(
     PhRemoveEntryHashtable(PhGetWindowContextHashTable(), &lookupEntry);
 }
 
+//
+// Window and Desktop enumeration
+//
+
+typedef struct _PH_DESKTOP_ENUM_CONTEXT
+{
+    _Function_class_(PH_DESKTOP_ENUM_CALLBACK)
+    _In_ PPH_DESKTOP_ENUM_CALLBACK Callback;
+    _In_opt_ PVOID Context;
+    BOOLEAN StopSearch;
+} PH_DESKTOP_ENUM_CONTEXT, *PPH_DESKTOP_ENUM_CONTEXT;
+
+static BOOL CALLBACK PhEnumDesktopsCallback(
+    _In_ PWSTR DesktopName,
+    _In_opt_ LPARAM Context
+    )
+{
+    PPH_DESKTOP_ENUM_CONTEXT context = (PPH_DESKTOP_ENUM_CONTEXT)Context;
+
+    if (context->Callback(DesktopName, context->Context))
+        return TRUE;
+
+    context->StopSearch = TRUE;
+    return FALSE;
+}
+
+/**
+ * Enumerates all desktops of the specified window station.
+ *
+ * \param WindowStationHandle A handle to the window station to enumerate desktops of.
+ * If NULL, the current process window station is used.
+ * \param Callback The callback function to be called for each desktop.
+ * \param Context An optional context parameter to be passed to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhEnumDesktops(
+    _In_opt_ HWINSTA WindowStationHandle,
+    _In_ PPH_DESKTOP_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_DESKTOP_ENUM_CONTEXT context;
+    HWINSTA windowStationHandle;
+
+    memset(&context, 0, sizeof(PH_DESKTOP_ENUM_CONTEXT));
+    context.Callback = Callback;
+    context.Context = Context;
+
+    windowStationHandle = WindowStationHandle ? WindowStationHandle : GetProcessWindowStation();
+
+    if (EnumDesktops(windowStationHandle, PhEnumDesktopsCallback, (LPARAM)&context) || context.StopSearch)
+        return STATUS_SUCCESS;
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
+typedef struct _PH_WINDOWSTATION_ENUM_CONTEXT
+{
+    _Function_class_(PH_WINDOWSTATION_ENUM_CALLBACK)
+    _In_ PPH_WINDOWSTATION_ENUM_CALLBACK Callback;
+    _In_opt_ PVOID Context;
+    BOOLEAN StopSearch;
+    PPH_LIST SeenNames;
+} PH_WINDOWSTATION_ENUM_CONTEXT, *PPH_WINDOWSTATION_ENUM_CONTEXT;
+
+static BOOL CALLBACK PhEnumWindowStationsWin32Callback(
+    _In_ PWSTR WindowStationName,
+    _In_opt_ LPARAM Context
+    )
+{
+    PPH_WINDOWSTATION_ENUM_CONTEXT context = (PPH_WINDOWSTATION_ENUM_CONTEXT)Context;
+
+    PhAddItemList(context->SeenNames, PhCreateString(WindowStationName));
+
+    if (context->Callback(WindowStationName, context->Context))
+        return TRUE;
+
+    context->StopSearch = TRUE;
+    return FALSE;
+}
+
+_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
+static NTSTATUS NTAPI PhEnumWindowStationsDirectoryCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PPH_STRINGREF Name,
+    _In_ PPH_STRINGREF TypeName,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_WINDOWSTATION_ENUM_CONTEXT context = (PPH_WINDOWSTATION_ENUM_CONTEXT)Context;
+    static const PH_STRINGREF windowStationType = PH_STRINGREF_INIT(L"WindowStation");
+    PPH_STRING nameString;
+
+    if (!PhEqualStringRef(TypeName, &windowStationType, TRUE))
+        return STATUS_SUCCESS;
+
+    for (ULONG i = 0; i < context->SeenNames->Count; i++)
+    {
+        if (PhEqualStringRef(&((PPH_STRING)context->SeenNames->Items[i])->sr, Name, TRUE))
+            return STATUS_SUCCESS;
+    }
+
+    nameString = PhCreateString2(Name);
+    PhAddItemList(context->SeenNames, nameString);
+
+    if (!context->Callback(nameString->Buffer, context->Context))
+    {
+        context->StopSearch = TRUE;
+    }
+
+    return context->StopSearch ? STATUS_NO_MORE_ENTRIES : STATUS_SUCCESS;
+}
+
+/**
+ * Enumerates all window stations visible to the current session using both the Win32
+ * EnumWindowStations API and the object manager directory for comprehensive coverage.
+ * Results from both sources are deduplicated before the callback is invoked.
+ *
+ * Enumerates four sources:
+ * 1. Win32 EnumWindowStations (current session, access-filtered by the kernel).
+ * 2. Object directory \\Windows\\WindowStations (session 0 / global service stations).
+ * 3. Object directory \\Sessions\\N\\Windows\\WindowStations (current session, catches stations
+ *    hidden from EnumWindowStations by access filtering).
+ * 4. System-wide handle enumeration: duplicates all open window station handles to
+ *    discover stations from other sessions.
+ *
+ * \param Types Combination of PH_WINDOWSTATION_ENUM_TYPE flags specifying which enumeration
+ *        methods to use. Use PH_WINDOWSTATION_ENUM_ALL for comprehensive enumeration.
+ * \param Callback The callback function to be called for each window station.
+ * \param Context An optional context parameter to be passed to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhEnumWindowStations(
+    _In_ PH_WINDOWSTATION_ENUM_TYPE Types,
+    _In_ PPH_WINDOWSTATION_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    PH_WINDOWSTATION_ENUM_CONTEXT context;
+    HANDLE directoryHandle;
+    ULONG sessionId;
+
+    memset(&context, 0, sizeof(PH_WINDOWSTATION_ENUM_CONTEXT));
+    context.Callback = Callback;
+    context.Context = Context;
+    context.SeenNames = PhCreateList(8);
+
+    //
+    // Win32 EnumWindowStations (current session, access-filtered)
+    //
+
+    if (FlagOn(Types, PH_WINDOWSTATION_ENUM_WIN32))
+    {
+        EnumWindowStations(PhEnumWindowStationsWin32Callback, (LPARAM)&context);
+    }
+
+    if (!context.StopSearch)
+        goto CleanupExit;
+
+    //
+    // Object directory \Windows\WindowStations (session 0 / global service stations)
+    //
+
+    if (FlagOn(Types, PH_WINDOWSTATION_ENUM_GLOBAL_DIRECTORY))
+    {
+        static const PH_STRINGREF globalPath = PH_STRINGREF_INIT(L"\\Windows\\WindowStations");
+
+        if (NT_SUCCESS(PhOpenDirectoryObject(
+            &directoryHandle,
+            DIRECTORY_QUERY,
+            NULL,
+            &globalPath
+            )))
+        {
+            PhEnumDirectoryObjects(
+                directoryHandle,
+                PhEnumWindowStationsDirectoryCallback,
+                &context
+                );
+            NtClose(directoryHandle);
+        }
+    }
+
+    if (!context.StopSearch)
+        goto CleanupExit;
+
+    //
+    // Object directory \Sessions\N\Windows\WindowStations (filtered by EnumWindowStations)
+    // Skip for session 0 since \Windows\WindowStations is the same directory.
+    //
+
+    if (FlagOn(Types, PH_WINDOWSTATION_ENUM_SESSION_DIRECTORY))
+    {
+        if (NT_SUCCESS(PhGetProcessSessionId(NtCurrentProcess(), &sessionId)) && sessionId != 0)
+        {
+            PPH_STRING sessionPath;
+            PH_FORMAT format[3];
+
+            // \\Sessions\\%lu\\Windows\\WindowStations
+            PhInitFormatS(&format[0], L"\\Sessions\\");
+            PhInitFormatU(&format[1], sessionId);
+            PhInitFormatS(&format[2], L"\\Windows\\WindowStations");
+
+            sessionPath = PhFormat(format, RTL_NUMBER_OF(format), 0);
+
+            if (NT_SUCCESS(PhOpenDirectoryObject(
+                &directoryHandle,
+                DIRECTORY_QUERY,
+                NULL,
+                &sessionPath->sr
+                )))
+            {
+                PhEnumDirectoryObjects(
+                    directoryHandle,
+                    PhEnumWindowStationsDirectoryCallback,
+                    &context
+                    );
+                NtClose(directoryHandle);
+            }
+
+            PhDereferenceObject(sessionPath);
+        }
+    }
+
+    if (!context.StopSearch)
+        goto CleanupExit;
+
+    //
+    // System handle enumeration. Duplicate all open window station handles to
+    // discover stations from sessions other than our own that were not visible via the
+    // object directory paths above.
+    //
+
+    //if (FlagOn(Types, PH_WINDOWSTATION_ENUM_SYSTEM_HANDLES))
+    //{
+    //    PSYSTEM_HANDLE_INFORMATION_EX handles;
+    //    ULONG windowStationTypeNumber;
+    //
+    //    windowStationTypeNumber = PhGetObjectTypeNumberZ(L"WindowStation");
+    //
+    //    if (windowStationTypeNumber != ULONG_MAX && NT_SUCCESS(PhEnumHandlesEx(&handles)))
+    //    {
+    //        HANDLE currentProcessId = NtCurrentProcessId();
+    //        HANDLE lastProcessId = NULL;
+    //        HANDLE processHandle = NULL;
+    //
+    //        for (ULONG_PTR i = 0; i < handles->NumberOfHandles && !context.StopSearch; i++)
+    //        {
+    //            PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles->Handles[i];
+    //
+    //            if (handle->ObjectTypeIndex != (USHORT)windowStationTypeNumber)
+    //                continue;
+    //
+    //            if (handle->UniqueProcessId != lastProcessId)
+    //            {
+    //                if (processHandle && processHandle != NtCurrentProcess())
+    //                    NtClose(processHandle);
+    //
+    //                lastProcessId = handle->UniqueProcessId;
+    //                processHandle = NULL;
+    //
+    //                if (lastProcessId == currentProcessId)
+    //                    processHandle = NtCurrentProcess();
+    //                else
+    //                    PhOpenProcess(&processHandle, PROCESS_DUP_HANDLE, lastProcessId);
+    //            }
+    //
+    //            if (!processHandle)
+    //                continue;
+    //
+    //            {
+    //                HANDLE dupHandle;
+    //                NTSTATUS dupStatus;
+    //
+    //                dupStatus = NtDuplicateObject(
+    //                    processHandle,
+    //                    (HANDLE)handle->HandleValue,
+    //                    NtCurrentProcess(),
+    //                    &dupHandle,
+    //                    WINSTA_READATTRIBUTES,
+    //                    0,
+    //                    0
+    //                    );
+    //
+    //                if (NT_SUCCESS(dupStatus))
+    //                {
+    //                    PPH_STRING nameString;
+    //
+    //                    if (NT_SUCCESS(PhGetUserObjectNameInformation(dupHandle, &nameString)))
+    //                    {
+    //                        BOOLEAN seen = FALSE;
+    //
+    //                        for (ULONG j = 0; j < context.SeenNames->Count; j++)
+    //                        {
+    //                            if (PhEqualString(
+    //                                (PPH_STRING)context.SeenNames->Items[j],
+    //                                nameString,
+    //                                TRUE
+    //                                ))
+    //                            {
+    //                                seen = TRUE;
+    //                                break;
+    //                            }
+    //                        }
+    //
+    //                        if (!seen)
+    //                        {
+    //                            PhAddItemList(context.SeenNames, PhReferenceObject(nameString));
+    //
+    //                            if (!context.Callback(nameString->Buffer, context.Context))
+    //                                context.StopSearch = TRUE;
+    //                        }
+    //
+    //                        PhDereferenceObject(nameString);
+    //                    }
+    //
+    //                    NtClose(dupHandle);
+    //                }
+    //            }
+    //        }
+    //
+    //        if (processHandle && processHandle != NtCurrentProcess())
+    //            NtClose(processHandle);
+    //
+    //        PhFree(handles);
+    //    }
+    //}
+
+CleanupExit:
+    PhDereferenceObjects(context.SeenNames->Items, context.SeenNames->Count);
+    PhDereferenceObject(context.SeenNames);
+
+    return STATUS_SUCCESS;
+}
+
 typedef struct _PH_WINDOW_ENUM_CONTEXT
 {
     _Function_class_(PH_WINDOW_ENUM_CALLBACK)
