@@ -306,7 +306,7 @@ VOID PhpGetPhSvcPortName(
  * \param Mode The phsvc mode to start (ElevatedPhSvcMode or Wow64PhSvcMode).
  * \return BOOLEAN TRUE on success (an attempt to start phsvc was made and succeeded), FALSE otherwise.
  */
-BOOLEAN PhpStartPhSvcProcess(
+NTSTATUS PhpStartPhSvcProcess(
     _In_opt_ HWND WindowHandle,
     _In_ PH_PHSVC_MODE Mode
     )
@@ -314,19 +314,22 @@ BOOLEAN PhpStartPhSvcProcess(
     switch (Mode)
     {
     case ElevatedPhSvcMode:
-        if (NT_SUCCESS(PhShellProcessHacker(
-            WindowHandle,
-            L"-phsvc",
-            SW_HIDE,
-            PH_SHELL_EXECUTE_ADMIN,
-            0,
-            0,
-            NULL
-            )))
         {
-            return TRUE;
-        }
+            NTSTATUS status;
 
+            status = PhShellProcessHacker(
+                WindowHandle,
+                L"-phsvc",
+                SW_HIDE,
+                PH_SHELL_EXECUTE_ADMIN,
+                0,
+                0,
+                NULL
+                );
+
+            if (NT_SUCCESS(status))
+                return status;
+        }
         break;
     case Wow64PhSvcMode:
         {
@@ -339,13 +342,14 @@ BOOLEAN PhpStartPhSvcProcess(
 #endif
             };
             ULONG i;
+            NTSTATUS status;
             PPH_STRING applicationDirectory;
             PPH_STRING applicationFileName;
 
             if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
-                return FALSE;
+                return STATUS_INSUFFICIENT_RESOURCES;
             if (!(applicationFileName = PhGetApplicationFileNameWin32()))
-                return FALSE;
+                return STATUS_INSUFFICIENT_RESOURCES;
 
             PhMoveReference(&applicationFileName, PhGetBaseName(applicationFileName));
 
@@ -367,7 +371,7 @@ BOOLEAN PhpStartPhSvcProcess(
 
                 if (PhDoesFileExistWin32(PhGetString(fileName)))
                 {
-                    if (NT_SUCCESS(PhShellProcessHackerEx(
+                    status = PhShellProcessHackerEx(
                         WindowHandle,
                         PhGetString(fileName),
                         L"-phsvc",
@@ -376,12 +380,14 @@ BOOLEAN PhpStartPhSvcProcess(
                         0,
                         0,
                         NULL
-                        )))
+                        );
+
+                    if (NT_SUCCESS(status))
                     {
                         PhDereferenceObject(fileName);
                         PhDereferenceObject(applicationFileName);
                         PhDereferenceObject(applicationDirectory);
-                        return TRUE;
+                        return status;
                     }
                 }
 
@@ -394,7 +400,7 @@ BOOLEAN PhpStartPhSvcProcess(
         break;
     }
 
-    return FALSE;
+    return STATUS_UNSUCCESSFUL;
 }
 
 /**
@@ -432,7 +438,7 @@ BOOLEAN PhUiConnectToPhSvcEx(
     {
         PhAcquireQueuedLockExclusive(&PhSvcStartLock);
 
-        if (_InterlockedExchange(&PhSvcReferenceCount, 0) == 0)
+        if (_InterlockedCompareExchange(&PhSvcReferenceCount, 0, 0) == 0)
         {
             started = FALSE;
             PhpGetPhSvcPortName(Mode, &portName);
@@ -450,12 +456,13 @@ BOOLEAN PhUiConnectToPhSvcEx(
             {
                 // Prompt for elevation, and then try to connect to the server.
 
-                if (PhpStartPhSvcProcess(WindowHandle, Mode))
-                    started = TRUE;
+                status = PhpStartPhSvcProcess(WindowHandle, Mode);
 
-                if (started)
+                if (NT_SUCCESS(status))
                 {
                     ULONG attempts = 10;
+
+                    started = TRUE;
 
                     // Try to connect several times because the server may take
                     // a while to initialize.
