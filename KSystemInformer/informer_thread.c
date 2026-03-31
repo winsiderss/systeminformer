@@ -115,7 +115,6 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
  * \param[in] Create If true the thread is being created, if false the thread
  * is being destroyed.
  */
-_Function_class_(PCREATE_THREAD_NOTIFY_ROUTINE)
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphpCreateThreadNotifyInformer(
     _In_ PKPH_THREAD_CONTEXT Thread,
