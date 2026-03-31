@@ -2220,9 +2220,9 @@ BOOLEAN PhFormatDateTimeToBuffer(
     timeBufferSize = GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
     dateBufferSize = GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0, NULL);
 
-    returnLength = ((SIZE_T)timeBufferSize + 1 + (SIZE_T)dateBufferSize) * sizeof(WCHAR);
+    returnLength = (SIZE_T)timeBufferSize + 1 + (SIZE_T)dateBufferSize;
 
-    if (returnLength >= BufferLength)
+    if (returnLength * sizeof(WCHAR) > BufferLength)
         goto CleanupExit;
 
     if (!GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, &Buffer[0], timeBufferSize))
@@ -2234,13 +2234,13 @@ BOOLEAN PhFormatDateTimeToBuffer(
         goto CleanupExit;
 
     if (ReturnLength)
-        *ReturnLength = returnLength - sizeof(UNICODE_NULL); // HACK
-    Buffer[returnLength] = UNICODE_NULL;
+        *ReturnLength = (returnLength - 1) * sizeof(WCHAR);
+
     return TRUE;
 
 CleanupExit:
     if (ReturnLength)
-        *ReturnLength = returnLength;
+        *ReturnLength = 0;
     return FALSE;
 }
 

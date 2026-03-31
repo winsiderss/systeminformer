@@ -36,7 +36,9 @@ typedef struct _KPH_OB_CALL_CONTEXT
     ACCESS_MASK DesiredAccess;
     ACCESS_MASK OriginalDesiredAccess;
     HANDLE SourceProcessId;
+    ULONG64 SourceProcessStartKey;
     HANDLE TargetProcessId;
+    ULONG64 TargetProcessStartKey;
 } KPH_OB_CALL_CONTEXT, *PKPH_OB_CALL_CONTEXT;
 
 KPH_PROTECTED_DATA_SECTION_PUSH();
@@ -353,17 +355,19 @@ VOID KphpObPreFillMessage(
         {
             Message->Kernel.Handle.Pre.Create.Process.ProcessId =
                 PsGetProcessId(Info->Object);
+            Message->Kernel.Handle.Pre.Create.Process.ProcessStartKey =
+                KphGetProcessStartKey(Info->Object);
         }
         else if (Info->ObjectType == *PsThreadType)
         {
             Message->Kernel.Handle.Pre.Create.Thread.ClientId.UniqueProcess =
                 PsGetProcessId(PsGetThreadProcess(Info->Object));
-
             Message->Kernel.Handle.Pre.Create.Thread.ClientId.UniqueThread =
                 PsGetThreadId(Info->Object);
-
             Message->Kernel.Handle.Pre.Create.Thread.SubProcessTag =
                 KphGetThreadSubProcessTag(Info->Object);
+            Message->Kernel.Handle.Pre.Create.Thread.ProcessStartKey =
+                KphGetThreadProcessStartKey(Info->Object);
         }
         else
         {
@@ -384,24 +388,32 @@ VOID KphpObPreFillMessage(
         Message->Kernel.Handle.Pre.DesiredAccess = params->DesiredAccess;
         Message->Kernel.Handle.Pre.OriginalDesiredAccess = params->OriginalDesiredAccess;
 
-        Message->Kernel.Handle.Pre.Duplicate.SourceProcessId = PsGetProcessId(params->SourceProcess);
-        Message->Kernel.Handle.Pre.Duplicate.TargetProcessId = PsGetProcessId(params->TargetProcess);
+        Message->Kernel.Handle.Pre.Duplicate.SourceProcessId =
+            PsGetProcessId(params->SourceProcess);
+        Message->Kernel.Handle.Pre.Duplicate.SourceProcessStartKey =
+            KphGetProcessStartKey(params->SourceProcess);
+        Message->Kernel.Handle.Pre.Duplicate.TargetProcessId =
+            PsGetProcessId(params->TargetProcess);
+        Message->Kernel.Handle.Pre.Duplicate.TargetProcessStartKey =
+            KphGetProcessStartKey(params->TargetProcess);
 
         if (Info->ObjectType == *PsProcessType)
         {
             Message->Kernel.Handle.Pre.Duplicate.Process.ProcessId =
                 PsGetProcessId(Info->Object);
+            Message->Kernel.Handle.Pre.Duplicate.Process.ProcessStartKey =
+                KphGetProcessStartKey(Info->Object);
         }
         else if (Info->ObjectType == *PsThreadType)
         {
             Message->Kernel.Handle.Pre.Duplicate.Thread.ClientId.UniqueProcess =
                 PsGetProcessId(PsGetThreadProcess(Info->Object));
-
             Message->Kernel.Handle.Pre.Duplicate.Thread.ClientId.UniqueThread =
                 PsGetThreadId(Info->Object);
-
             Message->Kernel.Handle.Pre.Duplicate.Thread.SubProcessTag =
                 KphGetThreadSubProcessTag(Info->Object);
+            Message->Kernel.Handle.Pre.Duplicate.Thread.ProcessStartKey =
+                KphGetThreadProcessStartKey(Info->Object);
         }
         else
         {
@@ -453,17 +465,19 @@ VOID KphpObPostFillMessage(
         {
             Message->Kernel.Handle.Post.Create.Process.ProcessId =
                 PsGetProcessId(Info->Object);
+            Message->Kernel.Handle.Post.Create.Process.ProcessStartKey =
+                KphGetProcessStartKey(Info->Object);
         }
         else if (Info->ObjectType == *PsThreadType)
         {
             Message->Kernel.Handle.Post.Create.Thread.ClientId.UniqueProcess =
                 PsGetProcessId(PsGetThreadProcess(Info->Object));
-
             Message->Kernel.Handle.Post.Create.Thread.ClientId.UniqueThread =
                 PsGetThreadId(Info->Object);
-
             Message->Kernel.Handle.Post.Create.Thread.SubProcessTag =
                 KphGetThreadSubProcessTag(Info->Object);
+            Message->Kernel.Handle.Post.Create.Thread.ProcessStartKey =
+                KphGetThreadProcessStartKey(Info->Object);
         }
         else
         {
@@ -483,24 +497,32 @@ VOID KphpObPostFillMessage(
 
         Message->Kernel.Handle.Post.GrantedAccess = params->GrantedAccess;
 
-        Message->Kernel.Handle.Post.Duplicate.SourceProcessId = Context->SourceProcessId;
-        Message->Kernel.Handle.Post.Duplicate.TargetProcessId = Context->TargetProcessId;
+        Message->Kernel.Handle.Post.Duplicate.SourceProcessId =
+            Context->SourceProcessId;
+        Message->Kernel.Handle.Post.Duplicate.SourceProcessStartKey =
+            Context->SourceProcessStartKey;
+        Message->Kernel.Handle.Post.Duplicate.TargetProcessId =
+            Context->TargetProcessId;
+        Message->Kernel.Handle.Post.Duplicate.TargetProcessStartKey =
+            Context->TargetProcessStartKey;
 
         if (Info->ObjectType == *PsProcessType)
         {
             Message->Kernel.Handle.Post.Duplicate.Process.ProcessId =
                 PsGetProcessId(Info->Object);
+            Message->Kernel.Handle.Post.Duplicate.Process.ProcessStartKey =
+                KphGetProcessStartKey(Info->Object);
         }
         else if (Info->ObjectType == *PsThreadType)
         {
             Message->Kernel.Handle.Post.Duplicate.Thread.ClientId.UniqueProcess =
                 PsGetProcessId(PsGetThreadProcess(Info->Object));
-
             Message->Kernel.Handle.Post.Duplicate.Thread.ClientId.UniqueThread =
                 PsGetThreadId(Info->Object);
-
             Message->Kernel.Handle.Post.Duplicate.Thread.SubProcessTag =
                 KphGetThreadSubProcessTag(Info->Object);
+            Message->Kernel.Handle.Post.Duplicate.Thread.ProcessStartKey =
+                KphGetThreadProcessStartKey(Info->Object);
         }
         else
         {
@@ -637,7 +659,9 @@ VOID KphpObPreOpSetCallContext(
         context->DesiredAccess = params->DesiredAccess;
         context->OriginalDesiredAccess = params->OriginalDesiredAccess;
         context->SourceProcessId = PsGetProcessId(params->SourceProcess);
+        context->SourceProcessStartKey = KphGetProcessStartKey(params->SourceProcess);
         context->TargetProcessId = PsGetProcessId(params->TargetProcess);
+        context->TargetProcessStartKey = KphGetProcessStartKey(params->TargetProcess);
     }
 
     Info->CallContext = context;

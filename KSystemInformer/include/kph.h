@@ -1416,7 +1416,7 @@ ULONG64 KphGetProcessStartKey(
     _In_ PEPROCESS Process
     );
 
-#define KphGetCurrentProcessStartKey() KphGetProcessStartKey(PsGetCurrentProcess())
+#define KphGetCurrentProcessStartKey() KphGetProcessStartKey(PsGetThreadProcess(PsGetCurrentThread()))
 #define KphGetThreadProcessStartKey(thread) KphGetProcessStartKey(PsGetThreadProcess(thread))
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

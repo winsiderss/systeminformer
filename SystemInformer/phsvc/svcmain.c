@@ -66,7 +66,7 @@ NTSTATUS PhSvcMain(
         if (Stop && Stop->Stop)
             break;
 
-        status = NtWaitForSingleObject(PhSvcTimeoutCancelEventHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, 10 * 1000));
+        status = NtWaitForSingleObject(PhSvcTimeoutCancelEventHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, 30 * 1000));
 
         if (Stop && Stop->Stop)
             break;

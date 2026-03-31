@@ -216,6 +216,13 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
     );
 #endif
 
+INT_PTR CALLBACK PhpProcessInformerDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 extern PH_STRINGREF PhProcessPropPageLoadingText;
 
 #define WM_PH_THREADS_UPDATED (WM_APP + 200)

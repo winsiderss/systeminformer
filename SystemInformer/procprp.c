@@ -1425,6 +1425,17 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         );
     PhAddProcessPropPage(PropContext, newPage);
 
+    // Monitor
+    if (PhEnableProcessMonitor && KsiLevel() >= KphLevelMed)
+    {
+        newPage = PhCreateProcessPropPageContext(
+            MAKEINTRESOURCE(IDD_PROCINFORMER),
+            PhpProcessInformerDlgProc,
+            NULL
+            );
+        PhAddProcessPropPage(PropContext, newPage);
+    }
+
     // Environment
     newPage = PhCreateProcessPropPageContext(
         MAKEINTRESOURCE(IDD_PROCENVIRONMENT),

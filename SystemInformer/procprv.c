@@ -1598,6 +1598,11 @@ VOID PhpFillProcessItem(
                 ProcessItem->CommandLine = PhCreateString2(&commandLine);
             }
         }
+        else // N.B. Telemetry info does not succeed for all processes.
+        {
+            if (!NT_SUCCESS(PhGetProcessStartKey(ProcessItem->QueryHandle, &ProcessItem->ProcessStartKey)))
+                ProcessItem->ProcessStartKey = 0;
+        }
     }
 
     // Known Process Type

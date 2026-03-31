@@ -1533,6 +1533,11 @@ VOID PhMwpOnCommand(
             PhShowLiveDumpDialog(WindowHandle);
         }
         break;
+    case ID_TOOLS_INFORMER:
+        {
+            PhShowInformerWindow(WindowHandle);
+        }
+        break;
     case ID_TOOLS_STARTTASKMANAGER:
         {
             extern BOOLEAN PhpIsDefaultTaskManager(VOID); // options.c (dmex)
@@ -3643,6 +3648,9 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_THREADSTACKS, L"&Search thread stacks", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_ZOMBIEPROCESSES, L"&Zombie processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_PAGEFILES, L"&Pagefiles", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
+        (PhEnableProcessMonitor && KsiLevel() >= KphLevelMed) ? 0 : PH_EMENU_DISABLED,
+        ID_TOOLS_INFORMER, L"&Process monitor", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTTASKMANAGER, L"Start &Task Manager", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTRESOURCEMONITOR, L"Start &Resource Monitor", NULL, NULL), ULONG_MAX);
@@ -5398,8 +5406,8 @@ BOOLEAN PhMwpPluginNotifyEvent(
 }
 
 //
-// 
-// 
+//
+//
 
 SLIST_HEADER PhMainThreadInvokeQueue;
 PH_FREE_LIST PhMainThreadInvokeQueueFreeList;

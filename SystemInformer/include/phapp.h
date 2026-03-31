@@ -571,6 +571,12 @@ VOID PhShowLiveDumpDialog(
     _In_ HWND ParentWindowHandle
     );
 
+// informerwnd
+
+VOID PhShowInformerWindow(
+    _In_opt_ HWND ParentWindowHandle
+    );
+
 // ksyscall
 
 PPH_STRING PhGetSystemCallNumberName(

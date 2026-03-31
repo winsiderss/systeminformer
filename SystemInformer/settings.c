@@ -404,6 +404,12 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_ENABLE_PROCESS_MONITOR, L"0");
     PhpAddIntegerSetting(SETTING_PROCESS_MONITOR_LOOKBACK, L"1e");
     PhpAddIntegerSetting(SETTING_PROCESS_MONITOR_CACHE_LIMIT, L"20000");
+    PhpAddStringSetting(SETTING_PROCESS_MONITOR_TREE_LIST_COLUMNS, L"");
+    PhpAddStringSetting(SETTING_PROCESS_MONITOR_TAB_TREE_LIST_COLUMNS, L"");
+    PhpAddIntegerPairSetting(SETTING_PROCESS_MONITOR_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_PROCESS_MONITOR_WINDOW_SIZE, L"@96|900,600");
+    PhpAddIntegerSetting(SETTING_PROCESS_MONITOR_CATEGORY_FILTER, L"2f"); // Process | Thread | File | Registry | Image
+    PhpAddIntegerSetting(SETTING_PROCESS_MONITOR_NODE_LIMIT, L"10000");
 }
 
 VOID PhUpdateCachedSettings(

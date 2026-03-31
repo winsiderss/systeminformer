@@ -333,9 +333,6 @@
     <ClCompile Include="notiftoast.cpp">
       <Filter>System Informer</Filter>
     </ClCompile>
-    <ClCompile Include="ksidbg.c">
-      <Filter>System Informer</Filter>
-    </ClCompile>
     <ClCompile Include="thrdstks.c">
       <Filter>System Informer</Filter>
     </ClCompile>
@@ -349,6 +346,9 @@
       <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="netsup.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="informerwnd.c">
       <Filter>System Informer</Filter>
     </ClCompile>
   </ItemGroup>

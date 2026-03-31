@@ -90,40 +90,42 @@ static sqlite3_column_int64_fn* sqlite3_column_int64_I = NULL;
 
 PH_CALLBACK_DECLARE(PhInformerCallback);
 
-VOID PhpInformerGetKeys(
-    _In_ PKPH_MESSAGE Message,
-    _Out_ PULONG64 ActorKey,
-    _Out_ PULONG64 TargetKey
+VOID PhInformerGetProcessStartKeys(
+    _In_ PCKPH_MESSAGE Message,
+    _Out_writes_(5) PULONG64 Keys
     )
 {
-    *ActorKey = ULONG64_MAX;
-    *TargetKey = ULONG64_MAX;
+    Keys[0] = 0;
+    Keys[1] = 0;
+    Keys[2] = 0;
+    Keys[3] = 0;
+    Keys[4] = 0;
 
     switch (Message->Header.MessageId)
     {
     case KphMsgProcessCreate:
-        *ActorKey = Message->Kernel.ProcessCreate.CreatingProcessStartKey;
-        *TargetKey = Message->Kernel.ProcessCreate.TargetProcessStartKey;
+        Keys[0] = Message->Kernel.ProcessCreate.CreatingProcessStartKey;
+        Keys[1] = Message->Kernel.ProcessCreate.TargetProcessStartKey;
         return;
     case KphMsgProcessExit:
-        *ActorKey = Message->Kernel.ProcessExit.ProcessStartKey;
+        Keys[0] = Message->Kernel.ProcessExit.ProcessStartKey;
         return;
     case KphMsgThreadCreate:
-        *ActorKey = Message->Kernel.ThreadCreate.CreatingProcessStartKey;
-        *TargetKey = Message->Kernel.ThreadCreate.TargetProcessStartKey;
+        Keys[0] = Message->Kernel.ThreadCreate.CreatingProcessStartKey;
+        Keys[1] = Message->Kernel.ThreadCreate.TargetProcessStartKey;
         return;
     case KphMsgThreadExecute:
-        *ActorKey = Message->Kernel.ThreadExecute.ProcessStartKey;
+        Keys[0] = Message->Kernel.ThreadExecute.ProcessStartKey;
         return;
     case KphMsgThreadExit:
-        *ActorKey = Message->Kernel.ThreadExit.ProcessStartKey;
+        Keys[0] = Message->Kernel.ThreadExit.ProcessStartKey;
         return;
     case KphMsgImageLoad:
-        *ActorKey = Message->Kernel.ImageLoad.LoadingProcessStartKey;
-        *TargetKey = Message->Kernel.ImageLoad.TargetProcessStartKey;
+        Keys[0] = Message->Kernel.ImageLoad.LoadingProcessStartKey;
+        Keys[1] = Message->Kernel.ImageLoad.TargetProcessStartKey;
         return;
     case KphMsgImageVerify:
-        *ActorKey = Message->Kernel.ImageVerify.ProcessStartKey;
+        Keys[0] = Message->Kernel.ImageVerify.ProcessStartKey;
         return;
     case KphMsgDebugPrint:
         return;
@@ -134,21 +136,84 @@ VOID PhpInformerGetKeys(
     if (Message->Header.MessageId >= KphMsgHandlePreCreateProcess &&
         Message->Header.MessageId <= KphMsgHandlePostDuplicateDesktop)
     {
-        *ActorKey = Message->Kernel.Handle.ContextProcessStartKey;
+        Keys[0] = Message->Kernel.Handle.ContextProcessStartKey;
+
+        if (Message->Kernel.Handle.Duplicate)
+        {
+            //
+            // Duplicate operations have source and target process keys in
+            // addition to the object-specific key.
+            //
+
+            if (Message->Kernel.Handle.PostOperation)
+            {
+                Keys[1] = Message->Kernel.Handle.Post.Duplicate.SourceProcessStartKey;
+                Keys[2] = Message->Kernel.Handle.Post.Duplicate.TargetProcessStartKey;
+            }
+            else
+            {
+                Keys[1] = Message->Kernel.Handle.Pre.Duplicate.SourceProcessStartKey;
+                Keys[2] = Message->Kernel.Handle.Pre.Duplicate.TargetProcessStartKey;
+            }
+
+            switch (Message->Header.MessageId)
+            {
+            case KphMsgHandlePreDuplicateProcess:
+                Keys[3] = Message->Kernel.Handle.Pre.Duplicate.Process.ProcessStartKey;
+                break;
+            case KphMsgHandlePostDuplicateProcess:
+                Keys[3] = Message->Kernel.Handle.Post.Duplicate.Process.ProcessStartKey;
+                break;
+            case KphMsgHandlePreDuplicateThread:
+                Keys[3] = Message->Kernel.Handle.Pre.Duplicate.Thread.ProcessStartKey;
+                break;
+            case KphMsgHandlePostDuplicateThread:
+                Keys[3] = Message->Kernel.Handle.Post.Duplicate.Thread.ProcessStartKey;
+                break;
+            default:
+                break;
+            }
+        }
+        else
+        {
+            //
+            // Create operations have an object-specific key for process
+            // and thread handle types.
+            //
+
+            switch (Message->Header.MessageId)
+            {
+            case KphMsgHandlePreCreateProcess:
+                Keys[1] = Message->Kernel.Handle.Pre.Create.Process.ProcessStartKey;
+                break;
+            case KphMsgHandlePostCreateProcess:
+                Keys[1] = Message->Kernel.Handle.Post.Create.Process.ProcessStartKey;
+                break;
+            case KphMsgHandlePreCreateThread:
+                Keys[1] = Message->Kernel.Handle.Pre.Create.Thread.ProcessStartKey;
+                break;
+            case KphMsgHandlePostCreateThread:
+                Keys[1] = Message->Kernel.Handle.Post.Create.Thread.ProcessStartKey;
+                break;
+            default:
+                break;
+            }
+        }
+
         return;
     }
 
     if (Message->Header.MessageId >= KphMsgFilePreCreate &&
         Message->Header.MessageId <= KphMsgFilePostVolumeDismount)
     {
-        *ActorKey = Message->Kernel.File.ProcessStartKey;
+        Keys[0] = Message->Kernel.File.ProcessStartKey;
         return;
     }
 
     if (Message->Header.MessageId >= KphMsgRegPreDeleteKey &&
         Message->Header.MessageId <= KphMsgRegPostSaveMergedKey)
     {
-        *ActorKey = Message->Kernel.Reg.ProcessStartKey;
+        Keys[0] = Message->Kernel.Reg.ProcessStartKey;
         return;
     }
 }
@@ -173,17 +238,19 @@ VOID PhpInformerDatabaseInsert(
 {
     if (PhpInformerDBInsert)
     {
-        ULONG64 actorKey;
-        ULONG64 targetKey;
+        ULONG64 keys[5];
 
-        PhpInformerGetKeys(Message, &actorKey, &targetKey);
+        PhInformerGetProcessStartKeys(Message, keys);
 
         PhAcquireQueuedLockExclusive(&PhpInformerDatabaseLock);
 
         sqlite3_bind_int64_I(PhpInformerDBInsert, 1, Message->Header.TimeStamp.QuadPart);
-        sqlite3_bind_int64_I(PhpInformerDBInsert, 2, actorKey);
-        sqlite3_bind_int64_I(PhpInformerDBInsert, 3, targetKey);
-        sqlite3_bind_int64_I(PhpInformerDBInsert, 4, (LONG64)(LONG_PTR)Message);
+        sqlite3_bind_int64_I(PhpInformerDBInsert, 2, keys[0]);
+        sqlite3_bind_int64_I(PhpInformerDBInsert, 3, keys[1]);
+        sqlite3_bind_int64_I(PhpInformerDBInsert, 4, keys[2]);
+        sqlite3_bind_int64_I(PhpInformerDBInsert, 5, keys[3]);
+        sqlite3_bind_int64_I(PhpInformerDBInsert, 6, keys[4]);
+        sqlite3_bind_int64_I(PhpInformerDBInsert, 7, (LONG64)(LONG_PTR)Message);
         sqlite3_step_I(PhpInformerDBInsert);
         sqlite3_reset_I(PhpInformerDBInsert);
 
@@ -202,6 +269,10 @@ VOID PhpInformerDatabaseReap(
     if (PhpInformerDBReapProc && Reap->ProcessStartKey)
     {
         sqlite3_bind_int64_I(PhpInformerDBReapProc, 1, Reap->ProcessStartKey);
+        sqlite3_bind_int64_I(PhpInformerDBReapProc, 2, Reap->ProcessStartKey);
+        sqlite3_bind_int64_I(PhpInformerDBReapProc, 3, Reap->ProcessStartKey);
+        sqlite3_bind_int64_I(PhpInformerDBReapProc, 4, Reap->ProcessStartKey);
+        sqlite3_bind_int64_I(PhpInformerDBReapProc, 5, Reap->ProcessStartKey);
         sqlite3_step_I(PhpInformerDBReapProc);
         sqlite3_reset_I(PhpInformerDBReapProc);
     }
@@ -256,7 +327,10 @@ PPH_LIST PhInformerDatabaseQuery(
         {
             sqlite3_bind_int64_I(PhpInformerDBQueryProc, 1, ProcessStartKey);
             sqlite3_bind_int64_I(PhpInformerDBQueryProc, 2, ProcessStartKey);
-            sqlite3_bind_int64_I(PhpInformerDBQueryProc, 3, timeStamp.QuadPart);
+            sqlite3_bind_int64_I(PhpInformerDBQueryProc, 3, ProcessStartKey);
+            sqlite3_bind_int64_I(PhpInformerDBQueryProc, 4, ProcessStartKey);
+            sqlite3_bind_int64_I(PhpInformerDBQueryProc, 5, ProcessStartKey);
+            sqlite3_bind_int64_I(PhpInformerDBQueryProc, 6, timeStamp.QuadPart);
 
             while (sqlite3_step_I(PhpInformerDBQueryProc) == SQLITE_ROW)
             {
@@ -371,8 +445,11 @@ VOID PhpInitializeInformerDatabase(
             "CREATE TABLE messages("
             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "time_stamp INTEGER NOT NULL,"
-            "actor_key INTEGER NOT NULL,"
-            "target_key INTEGER NOT NULL,"
+            "key1 INTEGER NOT NULL,"
+            "key2 INTEGER NOT NULL,"
+            "key3 INTEGER NOT NULL,"
+            "key4 INTEGER NOT NULL,"
+            "key5 INTEGER NOT NULL,"
             "message INTEGER NOT NULL"
             ");",
             NULL,
@@ -432,8 +509,8 @@ VOID PhpInitializeInformerDatabase(
 
             sqlite3_prepare_v2_I(
                 PhpInformerDB,
-                "INSERT INTO messages(time_stamp, actor_key, target_key, message)"
-                "VALUES(?, ?, ?, ?);",
+                "INSERT INTO messages(time_stamp, key1, key2, key3, key4, key5, message)"
+                "VALUES(?, ?, ?, ?, ?, ?, ?);",
                 -1,
                 &PhpInformerDBInsert,
                 NULL
@@ -472,7 +549,11 @@ VOID PhpInitializeInformerDatabase(
             sqlite3_prepare_v2_I(
                 PhpInformerDB,
                 "DELETE FROM messages "
-                "WHERE actor_key = ?;",
+                "WHERE (key1 = 0 OR key1 = ?)"
+                "  AND (key2 = 0 OR key2 = ?)"
+                "  AND (key3 = 0 OR key3 = ?)"
+                "  AND (key4 = 0 OR key4 = ?)"
+                "  AND (key5 = 0 OR key5 = ?);",
                 -1,
                 &PhpInformerDBReapProc,
                 NULL
@@ -491,7 +572,8 @@ VOID PhpInitializeInformerDatabase(
             sqlite3_prepare_v2_I(
                 PhpInformerDB,
                 "SELECT message FROM messages "
-                "WHERE (actor_key = ? OR target_key = ?) AND time_stamp >= ? "
+                "WHERE (key1 = ? OR key2 = ? OR key3 = ? OR key4 = ? OR key5 = ?)"
+                "  AND time_stamp >= ? "
                 "ORDER BY time_stamp ASC;",
                 -1,
                 &PhpInformerDBQueryProc,

@@ -598,12 +598,14 @@ typedef struct _KPHM_HANDLE
                         struct
                         {
                             HANDLE ProcessId;
+                            ULONG64 ProcessStartKey;
                         } Process; // KphMsgHandlePreCreateProcess
 
                         struct
                         {
                             CLIENT_ID ClientId;
                             PVOID SubProcessTag;
+                            ULONG64 ProcessStartKey;
                         } Thread; // KphMsgHandlePreCreateThread
                     };
                 } Create;
@@ -611,19 +613,23 @@ typedef struct _KPHM_HANDLE
                 struct
                 {
                     HANDLE SourceProcessId;
+                    ULONG64 SourceProcessStartKey;
                     HANDLE TargetProcessId;
+                    ULONG64 TargetProcessStartKey;
 
                     union
                     {
                         struct
                         {
                             HANDLE ProcessId;
+                            ULONG64 ProcessStartKey;
                         } Process; // KphMsgHandlePreDuplicateProcess
 
                         struct
                         {
                             CLIENT_ID ClientId;
                             PVOID SubProcessTag;
+                            ULONG64 ProcessStartKey;
                         } Thread; // KphMsgHandlePreDuplicateThread
                     };
                 } Duplicate;
@@ -648,12 +654,14 @@ typedef struct _KPHM_HANDLE
                         struct
                         {
                             HANDLE ProcessId;
+                            ULONG64 ProcessStartKey;
                         } Process; // KphMsgHandlePostCreateProcess
 
                         struct
                         {
                             CLIENT_ID ClientId;
                             PVOID SubProcessTag;
+                            ULONG64 ProcessStartKey;
                         } Thread; // KphMsgHandlePostCreateThread
                     };
                 } Create;
@@ -661,19 +669,23 @@ typedef struct _KPHM_HANDLE
                 struct
                 {
                     HANDLE SourceProcessId;
+                    ULONG64 SourceProcessStartKey;
                     HANDLE TargetProcessId;
+                    ULONG64 TargetProcessStartKey;
 
                     union
                     {
                         struct
                         {
                             HANDLE ProcessId;
+                            ULONG64 ProcessStartKey;
                         } Process; // KphMsgHandlePostDuplicateProcess
 
                         struct
                         {
                             CLIENT_ID ClientId;
                             PVOID SubProcessTag;
+                            ULONG64 ProcessStartKey;
                         } Thread; // KphMsgHandlePostDuplicateThread
                     };
                 } Duplicate;
