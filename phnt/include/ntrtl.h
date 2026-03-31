@@ -2133,7 +2133,7 @@ RtlBarrierForDelete(
  * \param AddressSize The size of the value, in bytes. This parameter can be 1, 2, 4, or 8.
  * \param Timeout The number of milliseconds to wait before the operation times out. If this parameter is NULL (INFINITE), the thread waits indefinitely.
  * \remarks WaitOnAddress is guaranteed to return when the address is signaled, but it is also allowed to return for other reasons.
- * For this reason, the caller should compare the new value with the original undesired value to confirm that the value has actually changed. 
+ * For this reason, the caller should compare the new value with the original undesired value to confirm that the value has actually changed.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitonaddress
  */
 NTSYSAPI
@@ -10434,6 +10434,12 @@ RtlAddIntegrityLabelToBoundaryDescriptor(
 // Version
 //
 
+/**
+ * \brief Basic operating system version information returned by RtlGetVersion.
+ *
+ * \details This is the RTL equivalent of OSVERSIONINFOW. Callers must set
+ * OSVersionInfoSize to sizeof(RTL_OSVERSIONINFO) before calling RtlGetVersion.
+ */
 // rev
 typedef struct _RTL_OSVERSIONINFO
 {
@@ -10445,6 +10451,14 @@ typedef struct _RTL_OSVERSIONINFO
     WCHAR CSDVersion[128];
 } RTL_OSVERSIONINFO, *PRTL_OSVERSIONINFO;
 
+/**
+ * \brief Extended operating system version information returned by RtlGetVersion.
+ *
+ * \details This is the RTL equivalent of OSVERSIONINFOEXW. In addition to the
+ * basic version fields, it includes service-pack, suite-mask, and product-type
+ * information. Callers must set OSVersionInfoSize to sizeof(RTL_OSVERSIONINFOEX)
+ * before calling RtlGetVersion.
+ */
 // rev
 typedef struct _RTL_OSVERSIONINFOEX
 {
@@ -10462,6 +10476,10 @@ typedef struct _RTL_OSVERSIONINFOEX
 } RTL_OSVERSIONINFOEX, *PRTL_OSVERSIONINFOEX;
 
 // rev
+/**
+ * Further-extended operating system version information used by newer
+ * Windows builds.
+ */
 typedef struct _RTL_OSVERSIONINFOEX2
 {
     ULONG OSVersionInfoSize;
@@ -10480,22 +10498,65 @@ typedef struct _RTL_OSVERSIONINFOEX2
 } RTL_OSVERSIONINFOEX2, *PRTL_OSVERSIONINFOEX2;
 
 // rev
+//
+// Input:
+// - OSVersionInfoSize must be set to sizeof(RTL_OSVERSIONINFOEX3).
+// - Input.LayerNumber selects which build layer to query.
+// - Input.AttribSelector selects which attribute to return for that layer.
+//
+// Output:
+// - MajorVersion/MinorVersion/BuildNumber identify the selected layer.
+// - LayerAttrib contains the string for the selected attribute.
+// - LayerCount returns the number of available build layers.
+// - LayerFlags contains per-layer flags; bit 0 is top-level and bit 1 is checked.
+
+#define RTL_OSVERSIONINFO_ATTRIB_LAYER_NAME    0
+#define RTL_OSVERSIONINFO_ATTRIB_BUILD_STAMP   1
+#define RTL_OSVERSIONINFO_ATTRIB_BUILD_BRANCH  2 // HKLM\Software\Microsoft\Windows NT\CurrentVersion\BuildBranch
+#define RTL_OSVERSIONINFO_ATTRIB_BUILD_ARCH    3
+#define RTL_OSVERSIONINFO_ATTRIB_BUILD_LAB     4 // HKLM\Software\Microsoft\Windows NT\CurrentVersion\BuildLab
+#define RTL_OSVERSIONINFO_ATTRIB_BUILD_LAB_EX  5 // HKLM\Software\Microsoft\Windows NT\CurrentVersion\BuildLabEx
+
+// rev
+/**
+ * Further-extended operating system version information used by newer
+ * Windows builds.
+ */
 typedef struct _RTL_OSVERSIONINFOEX3
 {
+    //
+    // Input: Set to sizeof(RTL_OSVERSIONINFOEX3) before calling RtlGetVersion.
+    //
     ULONG OSVersionInfoSize;
+
+    //
+    // Output: Version numbers for the selected build layer.
+    //
     ULONG MajorVersion;
     ULONG MinorVersion;
     ULONG BuildNumber;
+
+    //
+    // Output: A QFE/build-layer numeric field.
+    //
     union
     {
         ULONG PlatformId;
         ULONG QfeNumber;
     };
+
+    //
+    // Output: Contains the string for the selected attribute.
+    //
     union
     {
         WCHAR CSDVersion[128];
         WCHAR LayerAttrib[128];
     };
+
+    //
+    // Output: Operating system version information
+    //
     USHORT ServicePackMajor;
     USHORT ServicePackMinor;
     USHORT SuiteMask;
@@ -10503,16 +10564,65 @@ typedef struct _RTL_OSVERSIONINFOEX3
     UCHAR Reserved;
     ULONG SuiteMaskEx;
     ULONG Reserved2;
+
+    //
+    // Input LayerNumber:
+    //   Which build layer to query, in the range [0, LayerCount).
+    //
+    // Input AttribSelector:
+    //   Which value to retrieve for that layer:
+    //     0 = layer display name
+    //     1 = BuildStamp
+    //     2 = BuildBranch
+    //     3 = BuildArch
+    //     4 = BuildLab
+    //     5 = BuildLabEx
+    //
     union
     {
         USHORT RawInput16;
-        USHORT LayerNumber : 12;
-        USHORT AttribSelector : 4;
+        struct
+        {
+            USHORT LayerNumber : 12;
+            USHORT AttribSelector : 4;
+        };
     } Input;
-    USHORT LayerCount;
-    ULONG LayerFlags;
-} RTL_OSVERSIONINFOEX3, *PRTL_OSVERSIONINFOEX3;
 
+    //
+    // Output: total number of available build layers.
+    //
+    USHORT LayerCount;
+
+    //
+    // Output: flags for the selected layer.
+    //
+    union
+    {
+        ULONG LayerFlags;
+        struct
+        {
+            ULONG IsTopLevel : 1;
+            ULONG IsChecked : 1;
+            ULONG Spare : 30;
+        };
+    };
+} RTL_OSVERSIONINFOEX3, * PRTL_OSVERSIONINFOEX3;
+
+/**
+ * Gets version information about the currently running operating system.
+ *
+ * \param VersionInformation A pointer to an RTL_OSVERSIONINFO- or
+ * RTL_OSVERSIONINFOEX-compatible structure that receives the current operating
+ * system version information.
+ * \return STATUS_SUCCESS on success.
+ * \remarks RtlGetVersion is the native equivalent of GetVersionEx. When using
+ * this routine to test for a required Windows version, compare version numbers
+ * as greater-than-or-equal rather than exact equality so later versions also
+ * satisfy the check. Because features can be delivered outside the base OS,
+ * major and minor version numbers alone are not a reliable feature test; use
+ * RtlVerifyVersionInfo when checking for specific system features.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlgetversion
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
