@@ -1896,14 +1896,19 @@ VOID UploadServiceToOnlineService(
         }
         else
         {
-            PUPLOAD_CONTEXT context;
+            PPH_STRING fileNtPathName;
 
-            context = PhCreateObjectZero(sizeof(UPLOAD_CONTEXT), UploadContextType);
-            context->Service = Service;
-            context->FileName = ServiceItem->FileName;
-            context->BaseFileName = PhGetBaseName(context->FileName);
+            if (fileNtPathName = PhDosPathNameToNtPathName(&ServiceItem->FileName->sr))
+            {
+                PUPLOAD_CONTEXT context;
 
-            PhCreateThread2(OnlineChecksUploadDialogThread, context);
+                context = PhCreateObjectZero(sizeof(UPLOAD_CONTEXT), UploadContextType);
+                context->Service = Service;
+                context->FileName = fileNtPathName;
+                context->BaseFileName = PhGetBaseName(context->FileName);
+
+                PhCreateThread2(OnlineChecksUploadDialogThread, context);
+            }
         }
     }
     else
