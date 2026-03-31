@@ -6358,6 +6358,27 @@ typedef enum _ETWTRACECONTROLCODE
 } ETWTRACECONTROLCODE;
 
 // rev
+typedef struct _ETW_UM_REGISTRATION_INFORMATION
+{
+    GUID ProviderGuid;
+    ULONG RegType;
+    USHORT LoggerId;
+    USHORT Reserved0;
+    HANDLE ReplyHandle;
+    PVOID ReplyCallback;
+    ULONG ReplyBufferSize;
+    ULONG Reserved1;
+    UCHAR Reserved2[0x40];
+    ULONGLONG EnableCallbackContext;
+    ULONGLONG EnableFilterDesc;
+    ULONGLONG EnableCallback;
+    ULONGLONG EnableCallbackReserved;
+    ULONGLONG ProviderTraits;
+    ULONG TraitsFlags;
+    ULONG HasPayload;
+} ETW_UM_REGISTRATION_INFORMATION, *PETW_UM_REGISTRATION_INFORMATION;
+
+// rev
 typedef struct _ETW_SCHEMATIZED_FILTER
 {
     UCHAR Header[16];
