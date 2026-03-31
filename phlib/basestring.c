@@ -1715,7 +1715,7 @@ ULONG_PTR PhFindLastCharInStringRef(
                         _mm256_zeroupper();
                         return (buffer - String->Buffer) + index / 2;
                     }
-                    
+
                 } while (--length32 != 0);
 
                 _mm256_zeroupper();
@@ -1750,7 +1750,7 @@ ULONG_PTR PhFindLastCharInStringRef(
                     {
                         return (buffer - String->Buffer) + index / 2;
                     }
-                    
+
                 } while (--length16 != 0);
             }
         }
@@ -5508,9 +5508,9 @@ BOOLEAN PhDoesNameContainWildCards(
     for (SIZE_T i = 0; i < Expression->Length / sizeof(WCHAR); i++)
     {
         WCHAR c = Expression->Buffer[i];
-        
+
         if (c == L'*' ||
-            c == L'?' || 
+            c == L'?' ||
             c == ANSI_DOS_STAR_W ||
             c == ANSI_DOS_DOT_W ||
             c == ANSI_DOS_QM_W
@@ -5519,7 +5519,7 @@ BOOLEAN PhDoesNameContainWildCards(
             return TRUE;
         }
     }
-    
+
     return FALSE;
 }
 
@@ -5643,7 +5643,7 @@ BOOLEAN PhIsNameInExpression(
     while (e < exprLen)
     {
         WCHAR c = Expression->Buffer[e];
-        
+
         if (
             c == L'*' ||
             c == ANSI_DOS_STAR_W ||
@@ -5727,27 +5727,27 @@ BOOLEAN PhIsControlOrFormattingString(
 {
     SIZE_T length;
     BOOLEAN hasVisibleContent = FALSE;
-    
+
     if (!String || String->Length == 0)
         return FALSE;
-    
+
     length = String->Length / sizeof(WCHAR);
-    
+
     for (SIZE_T i = 0; i < length; i++)
     {
         WCHAR c = String->Buffer[i];
-        
+
         // Reject strings with control/formatting characters.
         if (PhIsControlOrFormattingUnicodeChar(c))
             return FALSE;
-        
+
         // Check if we have non-whitespace content.
         if (!PhIsWhiteSpaceUnicodeChar(c))
         {
             hasVisibleContent = TRUE;
         }
     }
-    
+
     // String must have at least one visible character
     return hasVisibleContent;
 }
@@ -5769,12 +5769,12 @@ ULONG PhFilterControlOrFormattingString(
 {
     SIZE_T length;
     ULONG replaced = 0;
-    
+
     if (!String || String->Length == 0)
         return 0;
-    
+
     length = String->Length / sizeof(WCHAR);
-    
+
     for (SIZE_T i = 0; i < length; i++)
     {
         if (PhIsControlOrFormattingUnicodeChar(String->Buffer[i]))
@@ -5783,6 +5783,6 @@ ULONG PhFilterControlOrFormattingString(
             replaced++;
         }
     }
-    
+
     return replaced;
 }
