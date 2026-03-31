@@ -3212,13 +3212,9 @@ VOID NTAPI PhpInformerLiveCallback(
     )
 {
     PPH_INFORMERW_CONTEXT context = (PPH_INFORMERW_CONTEXT)Context;
-    PPH_INFORMER_CONTEXT informer;
+    PPH_INFORMER_CONTEXT informer = (PPH_INFORMER_CONTEXT)Parameter;
 
-    if (!context || !context->Capturing || !context->WindowHandle)
-        return;
-
-    informer = (PPH_INFORMER_CONTEXT)Parameter;
-    if (!informer || !informer->Message)
+    if (!context->Capturing || !context->WindowHandle)
         return;
 
     //
