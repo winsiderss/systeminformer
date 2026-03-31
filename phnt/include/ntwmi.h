@@ -6482,13 +6482,13 @@ typedef struct _ETW_MAX_PMC_COUNTER_INFORMATION
 /**
  * The NtTraceControl function is used to control various aspects of Event Tracing for Windows (ETW).
  *
- * @param FunctionCode The control code for the operation to be performed.
- * @param InputBuffer A pointer to the input buffer.
- * @param InputBufferLength The size of the input buffer, in bytes.
- * @param OutputBuffer A pointer to the output buffer.
- * @param OutputBufferLength The size of the output buffer, in bytes.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the output buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param FunctionCode The control code for the operation to be performed.
+ * \param InputBuffer A pointer to the input buffer.
+ * \param InputBufferLength The size of the input buffer, in bytes.
+ * \param OutputBuffer A pointer to the output buffer.
+ * \param OutputBufferLength The size of the output buffer, in bytes.
+ * \param ReturnLength A pointer to a variable that receives the size of the data returned in the output buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -6505,11 +6505,11 @@ NtTraceControl(
 /**
  * The NtTraceEvent function is used to log an event to an ETW session.
  *
- * @param TraceHandle A handle to the event provider or the logger session.
- * @param Flags Bitmask defining the event type and how Fields should be interpreted.
- * @param FieldSize The size of the data pointed to by Fields.
- * @param Fields A pointer to the event data or header structure.
- * @return NTSTATUS Successful or errant status.
+ * \param TraceHandle A handle to the event provider or the logger session.
+ * \param Flags Bitmask defining the event type and how Fields should be interpreted.
+ * \param FieldSize The size of the data pointed to by Fields.
+ * \param Fields A pointer to the event data or header structure.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -6535,8 +6535,8 @@ typedef struct _TELEMETRY_COVERAGE_POINT
 /**
  * The EtwCheckCoverage function is used to check telemetry coverage points.
  *
- * @param CoveragePoint A pointer to a TELEMETRY_COVERAGE_POINT structure.
- * @return BOOLEAN TRUE if the coverage point is covered, FALSE otherwise.
+ * \param CoveragePoint A pointer to a TELEMETRY_COVERAGE_POINT structure.
+ * \return BOOLEAN TRUE if the coverage point is covered, FALSE otherwise.
  */
 NTSYSAPI
 BOOLEAN
@@ -6555,10 +6555,10 @@ EtwCheckCoverage(
 /**
  * The WmiOpenBlock function opens the WMI data block object for the specified WMI class.
  *
- * @param Guid Specifies the GUID for WMI class.
- * @param DesiredAccess Specifies the desired access rights to the data block object.
- * @param DataBlockHandle Pointer to a memory location where the routine returns a handle to the data block object.
- * @return ULONG Successful or errant status.
+ * \param Guid Specifies the GUID for WMI class.
+ * \param DesiredAccess Specifies the desired access rights to the data block object.
+ * \param DataBlockHandle Pointer to a memory location where the routine returns a handle to the data block object.
+ * \return ULONG Successful or errant status.
  */
 NTSYSAPI
 ULONG
@@ -6572,8 +6572,8 @@ WmiOpenBlock(
 /**
  * The WmiCloseBlock function closes a WMI data block object.
  *
- * @param DataBlockHandle Handle to the data block object to be closed.
- * @return ULONG Successful or errant status.
+ * \param DataBlockHandle Handle to the data block object to be closed.
+ * \return ULONG Successful or errant status.
  */
 NTSYSAPI
 ULONG
@@ -6585,10 +6585,10 @@ WmiCloseBlock(
 /**
  * The WmiQueryAllDataA function returns all WMI data blocks that implement a given WMI class (ANSI).
  *
- * @param DataBlockHandle Handle to a WMI data block object.
- * @param BufferLength Pointer to a memory location that specifies the size of the buffer.
- * @param Buffer Pointer to the buffer where the routine returns the WMI data.
- * @return ULONG Successful or errant status.
+ * \param DataBlockHandle Handle to a WMI data block object.
+ * \param BufferLength Pointer to a memory location that specifies the size of the buffer.
+ * \param Buffer Pointer to the buffer where the routine returns the WMI data.
+ * \return ULONG Successful or errant status.
  */
 NTSYSAPI
 ULONG
@@ -6602,10 +6602,10 @@ WmiQueryAllDataA(
 /**
  * The WmiQueryAllDataW function returns all WMI data blocks that implement a given WMI class (Unicode).
  *
- * @param DataBlockHandle Handle to a WMI data block object.
- * @param BufferLength Pointer to a memory location that specifies the size of the buffer.
- * @param Buffer Pointer to the buffer where the routine returns the WMI data.
- * @return ULONG Successful or errant status.
+ * \param DataBlockHandle Handle to a WMI data block object.
+ * \param BufferLength Pointer to a memory location that specifies the size of the buffer.
+ * \param Buffer Pointer to the buffer where the routine returns the WMI data.
+ * \return ULONG Successful or errant status.
  */
 NTSYSAPI
 ULONG
