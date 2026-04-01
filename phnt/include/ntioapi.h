@@ -228,6 +228,14 @@ typedef struct _EXTENDED_CREATE_INFORMATION_32
 
 #define MAILSLOT_SIZE_AUTO 0
 
+//
+// I/O Status Blocks
+//
+
+/**
+ * A driver sets an IRP's I/O status block to indicate the final status of an I/O request, before calling IoCompleteRequest for the IRP.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_io_status_block
+ */
 typedef struct _IO_STATUS_BLOCK
 {
     union
@@ -238,6 +246,11 @@ typedef struct _IO_STATUS_BLOCK
     ULONG_PTR Information;
 } IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
 
+/**
+ * An asynchronous procedure call (APC) is a function that executes asynchronously in the context of a particular thread.
+ * When an APC is queued to a thread, the system issues a software interrupt. The next time the thread is scheduled, it will run the APC function.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/sync/asynchronous-procedure-calls
+ */
 typedef _Function_class_(IO_APC_ROUTINE)
 VOID NTAPI IO_APC_ROUTINE(
     _In_ PVOID ApcContext,
@@ -1819,6 +1832,23 @@ typedef struct _FILE_FS_GUID_INFORMATION
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/Winternl/nf-winternl-ntcreatefile
  */
+/**
+ * The NtCreateFile routine creates a new file or directory, or opens an existing file, device, directory, or volume.
+ *
+ * \param[out] FileHandle Pointer to a variable that receives a handle to the file.
+ * \param[in] DesiredAccess The requested access to the object.
+ * \param[in] ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that contains the file's attributes, including file name.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure that receives the final completion status and information about the operation.
+ * \param[in, optional] AllocationSize Initial allocation size in bytes for the file.
+ * \param[in] FileAttributes Specifies one or more FILE_ATTRIBUTE_XXX flags.
+ * \param[in] ShareAccess Specifies the type of share access for the file.
+ * \param[in] CreateDisposition Specifies how the file should be handled when the file already exists.
+ * \param[in] CreateOptions Specifies the options to be applied when creating or opening the file.
+ * \param[in, optional] EaBuffer Pointer to a caller-allocated input buffer containing extended attributes.
+ * \param[in] EaLength Length of the EaBuffer.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/Winternl/nf-winternl-ntcreatefile
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1837,7 +1867,7 @@ NtCreateFile(
     );
 
 /**
- * The NtCreateNamedPipeFile routine deletes the specified file.
+ * The NtCreateNamedPipeFile routine creates or opens a named pipe.
  *
  * \param[out] FileHandle Pointer to a variable that receives a handle to the pipe.
  * \param[in] DesiredAccess The requested access to the object.
@@ -1876,6 +1906,20 @@ NtCreateNamedPipeFile(
     _In_ PLARGE_INTEGER DefaultTimeout
     );
 
+/**
+ * The NtCreateMailslotFile routine creates a mailslot.
+ *
+ * \param[out] FileHandle Pointer to a variable that receives a handle to the mailslot.
+ * \param[in] DesiredAccess The requested access to the mailslot.
+ * \param[in] ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \param[in] CreateOptions Specifies the options to be applied when creating the mailslot.
+ * \param[in] MailslotQuota Specifies the amount of memory that the mailslot can use for its messages.
+ * \param[in] MaximumMessageSize Specifies the maximum size of a message that can be written to the mailslot.
+ * \param[in] ReadTimeout Specifies the maximum time a read operation can wait for a message to be written to the mailslot.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createmailslotw
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2193,6 +2237,21 @@ NtQueryDirectoryFileEx(
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
+/**
+ * The NtQueryEaFile routine returns extended attributes (EA) for a file.
+ *
+ * \param[in] FileHandle Handle to the file.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \param[out] Buffer Pointer to a caller-allocated output buffer where extended attributes are to be returned.
+ * \param[in] Length Size, in bytes, of the buffer.
+ * \param[in] ReturnSingleEntry Set to TRUE if only a single entry should be returned.
+ * \param[in, optional] EaList Pointer to a caller-allocated input buffer containing a FILE_GET_EA_INFORMATION structure.
+ * \param[in] EaListLength Length of the EaList buffer.
+ * \param[in, optional] EaIndex The index of the entry at which to begin scanning the extended-attribute list.
+ * \param[in] RestartScan Set to TRUE if the scan is to start at the first entry in the extended-attribute list.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwqueryeafile
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2208,6 +2267,16 @@ NtQueryEaFile(
     _In_ BOOLEAN RestartScan
     );
 
+/**
+ * The NtSetEaFile routine sets extended attributes (EA) for a file.
+ *
+ * \param[in] FileHandle Handle to the file.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \param[in] Buffer Pointer to a caller-allocated input buffer containing the extended attributes to be set.
+ * \param[in] Length Size, in bytes, of the buffer.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwseteafile
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2218,6 +2287,21 @@ NtSetEaFile(
     _In_ ULONG Length
     );
 
+/**
+ * The NtQueryQuotaInformationFile routine retrieves quota information for a volume.
+ *
+ * \param[in] FileHandle Handle to the file or volume.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \param[out] Buffer Pointer to a caller-allocated output buffer where quota information is to be returned.
+ * \param[in] Length Size, in bytes, of the buffer.
+ * \param[in] ReturnSingleEntry Set to TRUE if only a single entry should be returned.
+ * \param[in, optional] SidList Pointer to a caller-allocated input buffer containing a SID list.
+ * \param[in] SidListLength Length of the SidList buffer.
+ * \param[in, optional] StartSid Pointer to a SID identifying the entry at which to begin scanning the quota information.
+ * \param[in] RestartScan Set to TRUE if the scan is to start at the first entry in the quota information list.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwqueryquotainformationfile
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2233,6 +2317,16 @@ NtQueryQuotaInformationFile(
     _In_ BOOLEAN RestartScan
     );
 
+/**
+ * The NtSetQuotaInformationFile routine sets quota information for a volume.
+ *
+ * \param[in] FileHandle Handle to the file or volume.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \param[in] Buffer Pointer to a caller-allocated input buffer containing the quota information to be set.
+ * \param[in] Length Size, in bytes, of the buffer.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwsetquotainformationfile
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2287,6 +2381,14 @@ NtSetVolumeInformationFile(
     _In_ FSINFOCLASS FsInformationClass
     );
 
+/**
+ * The NtCancelIoFile routine cancels all pending input/output (I/O) operations that are issued by the calling thread for the specified file.
+ *
+ * \param[in] FileHandle Handle to the file.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiet-cancelio
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2295,6 +2397,15 @@ NtCancelIoFile(
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
 
+/**
+ * The NtCancelIoFileEx routine marks any outstanding I/O operations for the specified file handle.
+ *
+ * \param[in] FileHandle Handle to the file.
+ * \param[in, optional] IoRequestToCancel Pointer to an IO_STATUS_BLOCK structure that identifies the I/O request to cancel.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiet-cancelioex
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2304,6 +2415,15 @@ NtCancelIoFileEx(
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
 
+/**
+ * The NtCancelSynchronousIoFile routine marks pending synchronous I/O operations that are issued by the specified thread as canceled.
+ *
+ * \param[in] ThreadHandle Handle to the thread.
+ * \param[in, optional] IoRequestToCancel Pointer to an IO_STATUS_BLOCK structure that identifies the I/O request to cancel.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiet-cancelsynchronousio
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2437,6 +2557,21 @@ NtWriteFile(
     _In_opt_ PULONG Key
     );
 
+/**
+ * The NtReadFileScatter routine reads data from a file and scatters it into a set of buffers.
+ *
+ * \param[in] FileHandle Handle to the file.
+ * \param[in, optional] Event Handle to an event.
+ * \param[in, optional] ApcRoutine Pointer to an APC routine.
+ * \param[in, optional] ApcContext Pointer to an APC context.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \param[in] SegmentArray Pointer to an array of FILE_SEGMENT_ELEMENT structures that specify the buffers.
+ * \param[in] Length The number of bytes to be read from the file.
+ * \param[in, optional] ByteOffset Pointer to a variable that specifies the starting byte offset in the file.
+ * \param[in, optional] Key Device and intermediate drivers should set this pointer to NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfilescatter
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2452,6 +2587,21 @@ NtReadFileScatter(
     _In_opt_ PULONG Key
     );
 
+/**
+ * The NtWriteFileGather routine gathers data from a set of buffers and writes it to a file.
+ *
+ * \param[in] FileHandle Handle to the file.
+ * \param[in, optional] Event Handle to an event.
+ * \param[in, optional] ApcRoutine Pointer to an APC routine.
+ * \param[in, optional] ApcContext Pointer to an APC context.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \param[in] SegmentArray Pointer to an array of FILE_SEGMENT_ELEMENT structures that specify the buffers.
+ * \param[in] Length The number of bytes to be written to the file.
+ * \param[in, optional] ByteOffset Pointer to a variable that specifies the starting byte offset in the file.
+ * \param[in, optional] Key Device and intermediate drivers should set this pointer to NULL.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefilegather
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2467,6 +2617,22 @@ NtWriteFileGather(
     _In_opt_ PULONG Key
     );
 
+/**
+ * The NtLockFile routine locks a specified range of bytes in a file.
+ *
+ * \param[in] FileHandle Handle to the file.
+ * \param[in, optional] Event Handle to an event.
+ * \param[in, optional] ApcRoutine Pointer to an APC routine.
+ * \param[in, optional] ApcContext Pointer to an APC context.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \param[in] ByteOffset Pointer to a variable that specifies the starting byte offset of the range to be locked.
+ * \param[in] Length Pointer to a variable that specifies the length of the range to be locked.
+ * \param[in] Key The value specified for the lock.
+ * \param[in] FailImmediately If TRUE, the routine fails if the range is already locked.
+ * \param[in] ExclusiveLock If TRUE, the routine requests an exclusive lock.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfile
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2483,6 +2649,17 @@ NtLockFile(
     _In_ BOOLEAN ExclusiveLock
     );
 
+/**
+ * The NtUnlockFile routine unlocks a specified range of bytes in a file.
+ *
+ * \param[in] FileHandle Handle to the file.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \param[in] ByteOffset Pointer to a variable that specifies the starting byte offset of the range to be unlocked.
+ * \param[in] Length Pointer to a variable that specifies the length of the range to be unlocked.
+ * \param[in] Key The value specified for the lock.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-unlockfile
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2497,8 +2674,8 @@ NtUnlockFile(
 /**
  * The NtQueryAttributesFile function retrieves basic attributes for the specified file.
  *
- * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that supplies the attributes to be used for the file object.
- * \param FileInformation A pointer to a FILE_BASIC_INFORMATION structure to receive the returned file attribute information.
+ * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that supplies the attributes to be used for the file object.
+ * \param[out] FileInformation A pointer to a FILE_BASIC_INFORMATION structure to receive the returned file attribute information.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntqueryattributesfile
  */
@@ -2513,8 +2690,8 @@ NtQueryAttributesFile(
 /**
  * The NtQueryFullAttributesFile function retrieves network open information for the specified file.
  *
- * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that supplies the attributes to be used for the file object.
- * \param FileInformation A pointer to a FILE_NETWORK_OPEN_INFORMATION structure that receives the returned file attributes information.
+ * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that supplies the attributes to be used for the file object.
+ * \param[out] FileInformation A pointer to a FILE_NETWORK_OPEN_INFORMATION structure that receives the returned file attributes information.
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile
  */
@@ -2557,6 +2734,21 @@ NtQueryFullAttributesFile(
 #define FILE_ACTION_ID_NOT_TUNNELLED        0x0000000A
 #define FILE_ACTION_TUNNELLED_ID_COLLISION  0x0000000B
 
+/**
+ * The NtNotifyChangeDirectoryFile routine creates a change notification request for a directory.
+ *
+ * \param[in] FileHandle Handle to the directory.
+ * \param[in, optional] Event Handle to an event.
+ * \param[in, optional] ApcRoutine Pointer to an APC routine.
+ * \param[in, optional] ApcContext Pointer to an APC context.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \param[out] Buffer Pointer to a buffer that receives change information.
+ * \param[in] Length Size, in bytes, of the buffer.
+ * \param[in] CompletionFilter Specifies the type of changes to notify.
+ * \param[in] WatchTree If TRUE, the routine monitors the directory tree.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readdirectorychangesw
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2649,6 +2841,22 @@ typedef struct _FILE_NOTIFY_FULL_INFORMATION
 #endif // NTDDI_WIN10_NI
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
+/**
+ * The NtNotifyChangeDirectoryFileEx routine creates a change notification request for a directory.
+ *
+ * \param[in] FileHandle Handle to the directory.
+ * \param[in, optional] Event Handle to an event.
+ * \param[in, optional] ApcRoutine Pointer to an APC routine.
+ * \param[in, optional] ApcContext Pointer to an APC context.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure.
+ * \param[out] Buffer Pointer to a buffer that receives change information.
+ * \param[in] Length Size, in bytes, of the buffer.
+ * \param[in] CompletionFilter Specifies the type of changes to notify.
+ * \param[in] WatchTree If TRUE, the routine monitors the directory tree.
+ * \param[in, optional] DirectoryNotifyInformationClass The type of information to return.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readdirectorychangesexw
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2669,8 +2877,9 @@ NtNotifyChangeDirectoryFileEx(
 /**
  * The NtLoadDriver function loads a driver specified by the DriverServiceName parameter.
  *
- * \param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
+ * \param[in] DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwloaddriver
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2682,8 +2891,9 @@ NtLoadDriver(
 /**
  * The NtUnloadDriver function unloads a driver specified by the DriverServiceName parameter.
  *
- * \param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
+ * \param[in] DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwunloaddriver
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2718,6 +2928,19 @@ typedef struct _IO_COMPLETION_BASIC_INFORMATION
     LONG Depth;
 } IO_COMPLETION_BASIC_INFORMATION, *PIO_COMPLETION_BASIC_INFORMATION;
 
+/**
+ * The NtCreateIoCompletion routine creates an I/O completion port and associates it with a specified file handle,
+ * or creates an I/O completion port that is not yet associated with a file handle, allowing association at a later time.
+ *
+ * \param[out] IoCompletionHandle Pointer to a variable that receives a handle to the I/O completion port.
+ * \param[in] DesiredAccess The requested access to the object.
+ * \param[in] ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that contains the name to an existing I/O completion port or NULL.
+ * \param[out] NumberOfConcurrentThreads The maximum number of threads that the operating system can allow to concurrently process
+ * I/O completion packets for the I/O completion port. This parameter is ignored if the ExistingCompletionPort parameter is not NULL.
+ * If this parameter is zero, the system allows as many concurrently running threads as there are processors in the system.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/fileio/createiocompletionport
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2728,6 +2951,15 @@ NtCreateIoCompletion(
     _In_opt_ ULONG NumberOfConcurrentThreads
     );
 
+/**
+ * The NtOpenIoCompletion routine opens an existing I/O completion port object.
+ *
+ * \param[out] IoCompletionHandle Pointer to a variable that receives a handle to the I/O completion port.
+ * \param[in] DesiredAccess The requested access to the object.
+ * \param[in] ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that specifies the name and other attributes.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/fileio/createiocompletionport
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2737,6 +2969,16 @@ NtOpenIoCompletion(
     _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtQueryIoCompletion routine queries information about an I/O completion port.
+ *
+ * \param[in] IoCompletionHandle Handle to the I/O completion port.
+ * \param[in] IoCompletionInformationClass The type of information to query.
+ * \param[out] IoCompletionInformation Pointer to a buffer that receives the information.
+ * \param[in] IoCompletionInformationLength The size of the buffer.
+ * \param[out, optional] ReturnLength Pointer to a variable that receives the number of bytes returned.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2748,6 +2990,17 @@ NtQueryIoCompletion(
     _Out_opt_ PULONG ReturnLength
     );
 
+/**
+ * The NtSetIoCompletion routine queues an I/O completion packet to an I/O completion port.
+ *
+ * \param[in] IoCompletionHandle Handle to the I/O completion port.
+ * \param[in, optional] KeyContext The value specified when the port was associated with a file handle.
+ * \param[in, optional] ApcContext The value specified when the I/O operation was issued.
+ * \param[in] IoStatus The completion status for the I/O operation.
+ * \param[in] IoStatusInformation The number of bytes transferred or other information.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiet-postqueuedcompletionstatus
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2759,6 +3012,17 @@ NtSetIoCompletion(
     _In_ ULONG_PTR IoStatusInformation
     );
 
+/**
+ * The NtSetIoCompletionEx routine queues an I/O completion packet to an I/O completion port using a completion packet.
+ *
+ * \param[in] IoCompletionHandle Handle to the I/O completion port.
+ * \param[in] IoCompletionPacketHandle Handle to a completion packet.
+ * \param[in, optional] KeyContext The value specified when the port was associated with a file handle.
+ * \param[in, optional] ApcContext The value specified when the I/O operation was issued.
+ * \param[in] IoStatus The completion status for the I/O operation.
+ * \param[in] IoStatusInformation The number of bytes transferred or other information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2771,6 +3035,17 @@ NtSetIoCompletionEx(
     _In_ ULONG_PTR IoStatusInformation
     );
 
+/**
+ * The NtRemoveIoCompletion routine removes an entry from an I/O completion port.
+ *
+ * \param[in] IoCompletionHandle Handle to the I/O completion port.
+ * \param[out] KeyContext Pointer to a variable that receives the key context.
+ * \param[out] ApcContext Pointer to a variable that receives the APC context.
+ * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure that receives the completion status.
+ * \param[in, optional] Timeout Optional pointer to a timeout value.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntremoveiocompletion
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2790,6 +3065,18 @@ typedef struct _FILE_IO_COMPLETION_INFORMATION
     IO_STATUS_BLOCK IoStatusBlock;
 } FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
 
+/**
+ * The NtRemoveIoCompletionEx routine removes multiple entries from an I/O completion port.
+ *
+ * \param[in] IoCompletionHandle Handle to the I/O completion port.
+ * \param[out] IoCompletionInformation Pointer to an array of FILE_IO_COMPLETION_INFORMATION structures.
+ * \param[in] Count The number of entries to remove.
+ * \param[out] NumEntriesRemoved Pointer to a variable that receives the number of entries removed.
+ * \param[in, optional] Timeout Optional pointer to a timeout value.
+ * \param[in] Alertable Whether the wait is alertable.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiet-getqueuedcompletionstatusex
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2945,6 +3232,17 @@ NtCopyFileChunk(
 //
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
+/**
+ * The NtCreateIoRing routine creates an I/O ring.
+ *
+ * \param[out] IoRingHandle Pointer to a variable that receives a handle to the I/O ring.
+ * \param[in] CreateParametersLength The size of the create parameters buffer.
+ * \param[in] CreateParameters Pointer to a caller-allocated buffer containing the create parameters.
+ * \param[in] OutputParametersLength The size of the output parameters buffer.
+ * \param[out] OutputParameters Pointer to a buffer that receives the output parameters.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioringapi/nf-ioringapi-createioring
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2956,6 +3254,16 @@ NtCreateIoRing(
     _Out_ PVOID OutputParameters
     );
 
+/**
+ * The NtSubmitIoRing routine submits entries to an I/O ring.
+ *
+ * \param[in] IoRingHandle Handle to the I/O ring.
+ * \param[in] Flags Specifies the flags for the submission.
+ * \param[in, optional] WaitOperations The number of operations to wait for.
+ * \param[in, optional] Timeout Optional pointer to a timeout value.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioringapi/nf-ioringapi-submitioring
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2966,6 +3274,14 @@ NtSubmitIoRing(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
+/**
+ * The NtQueryIoRingCapabilities routine queries the capabilities of I/O rings on the system.
+ *
+ * \param[in] IoRingCapabilitiesLength The size of the capabilities buffer.
+ * \param[out] IoRingCapabilities Pointer to a buffer that receives the capabilities.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioringapi/nf-ioringapi-queryioringcapabilities
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2974,6 +3290,16 @@ NtQueryIoRingCapabilities(
     _Out_ PVOID IoRingCapabilities
     );
 
+/**
+ * The NtSetInformationIoRing routine sets information for an I/O ring.
+ *
+ * \param[in] IoRingHandle Handle to the I/O ring.
+ * \param[in] IoRingInformationClass The type of information to set.
+ * \param[in] IoRingInformationLength The size of the information buffer.
+ * \param[in] IoRingInformation Pointer to a buffer that contains the information to set.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/ioringapi/nf-ioringapi-setioringcompletionevent
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
