@@ -348,44 +348,58 @@ VOID EspLoadDeviceInstanceImage(
     )
 {
     HICON largeIcon;
-    CONFIGRET result;
-    ULONG deviceIconPathLength;
-    DEVPROPTYPE deviceIconPathPropertyType;
+    ULONG deviceInstallerClassPropertyCount = 0;
+    const DEVPROPERTY* deviceInstallerClassProperties = NULL;
+    const DEVPROPERTY* deviceIconPathProperty;
+    PPH_STRING classGuidString;
     PPH_STRING deviceIconPath;
     LONG dpiValue;
-
-    deviceIconPathLength = 0x40;
-    deviceIconPath = PhCreateStringEx(NULL, deviceIconPathLength);
-
-    if ((result = CM_Get_Class_Property(
-        &DeviceClass,
-        &DEVPKEY_DeviceClass_IconPath,
-        &deviceIconPathPropertyType,
-        (PBYTE)deviceIconPath->Buffer,
-        &deviceIconPathLength,
-        0
-        )) != CR_SUCCESS)
+    DEVPROPCOMPKEY requestedProperties[] =
     {
-        PhDereferenceObject(deviceIconPath);
-        deviceIconPath = PhCreateStringEx(NULL, deviceIconPathLength);
+        { DEVPKEY_DeviceClass_IconPath, DEVPROP_STORE_SYSTEM, NULL },
+    };
 
-        result = CM_Get_Class_Property(
-            &DeviceClass,
-            &DEVPKEY_DeviceClass_IconPath,
-            &deviceIconPathPropertyType,
-            (PBYTE)deviceIconPath->Buffer,
-            &deviceIconPathLength,
-            0
-            );
-    }
+    classGuidString = PhFormatGuid(&DeviceClass);
 
-    if (result != CR_SUCCESS)
+    if (!classGuidString)
+        return;
+
+    if (HR_FAILED(PhDevGetObjectProperties(
+        DevObjectTypeDeviceInstallerClass,
+        PhGetString(classGuidString),
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedProperties),
+        requestedProperties,
+        &deviceInstallerClassPropertyCount,
+        &deviceInstallerClassProperties
+        )))
     {
-        PhDereferenceObject(deviceIconPath);
+        PhDereferenceObject(classGuidString);
         return;
     }
 
+    PhDereferenceObject(classGuidString);
+
+    deviceIconPathProperty = PhDevFindProperty(
+        &DEVPKEY_DeviceClass_IconPath,
+        DEVPROP_STORE_SYSTEM,
+        deviceInstallerClassPropertyCount,
+        deviceInstallerClassProperties
+        );
+
+    if (
+        !deviceIconPathProperty ||
+        (deviceIconPathProperty->Type != DEVPROP_TYPE_STRING && deviceIconPathProperty->Type != DEVPROP_TYPE_STRING_LIST) ||
+        !deviceIconPathProperty->Buffer || deviceIconPathProperty->BufferSize < sizeof(UNICODE_NULL)
+        )
+    {
+        PhDevFreeObjectProperties(deviceInstallerClassPropertyCount, deviceInstallerClassProperties);
+        return;
+    }
+
+    deviceIconPath = PhCreateStringEx((PWSTR)deviceIconPathProperty->Buffer, deviceIconPathProperty->BufferSize);
     PhTrimToNullTerminatorString(deviceIconPath);
+    PhDevFreeObjectProperties(deviceInstallerClassPropertyCount, deviceInstallerClassProperties);
 
     {
         PPH_STRING dllIconPath;
