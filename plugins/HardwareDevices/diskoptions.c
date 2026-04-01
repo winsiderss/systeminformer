@@ -21,6 +21,20 @@ typedef struct _DISK_ENUM_ENTRY
     PPH_STRING DeviceMountPoints;
 } DISK_ENUM_ENTRY, *PDISK_ENUM_ENTRY;
 
+static PPH_STRING NormalizeDiskDeviceInterfacePath(
+    _In_ PCWSTR DeviceInterface
+    )
+{
+    PPH_STRING normalizedPath;
+
+    normalizedPath = PhCreateString(DeviceInterface);
+
+    if (normalizedPath->Length >= 2 * sizeof(WCHAR) && normalizedPath->Buffer[1] == L'?')
+        normalizedPath->Buffer[1] = OBJ_NAME_PATH_SEPARATOR;
+
+    return normalizedPath;
+}
+
 static int __cdecl DiskEntryCompareFunction(
     _In_ const void *elem1,
     _In_ const void *elem2
@@ -238,116 +252,153 @@ BOOLEAN QueryDiskDeviceInterfaceDescription(
     _Out_ PPH_STRING *DeviceDescription
     )
 {
-    CONFIGRET result;
-    ULONG bufferSize;
-    PPH_STRING deviceDescription;
-    DEVPROPTYPE devicePropertyType;
+    ULONG deviceInterfacePropertyCount = 0;
+    ULONG devicePropertyCount = 0;
+    const DEVPROPERTY* deviceInterfaceProperties = NULL;
+    const DEVPROPERTY* devicePropertiesList = NULL;
+    const DEVPROPERTY* instanceIdProperty;
+    PPH_STRING normalizedDeviceInterface;
     DEVINST deviceInstanceHandle;
-    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
-
-    if (CM_Get_Device_Interface_Property(
-        DeviceInterface,
-        &DEVPKEY_Device_InstanceId,
-        &devicePropertyType,
-        (PBYTE)deviceInstanceId,
-        &deviceInstanceIdLength,
-        0
-        ) != CR_SUCCESS)
+    DEVPROPCOMPKEY requestedProperties[] =
     {
+        { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
+    };
+    DEVPROPCOMPKEY deviceProperties[] =
+    {
+        { DEVPKEY_Device_FriendlyName, DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_NAME, DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_Device_DeviceDesc, DEVPROP_STORE_SYSTEM, NULL },
+    };
+
+    normalizedDeviceInterface = NormalizeDiskDeviceInterfacePath(DeviceInterface);
+
+    if (HR_FAILED(PhDevGetObjectProperties(
+        DevObjectTypeDeviceInterface,
+        PhGetString(normalizedDeviceInterface),
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedProperties),
+        requestedProperties,
+        &deviceInterfacePropertyCount,
+        &deviceInterfaceProperties
+        )))
+    {
+        PhDereferenceObject(normalizedDeviceInterface);
+        return FALSE;
+    }
+
+    PhDereferenceObject(normalizedDeviceInterface);
+
+    instanceIdProperty = PhDevFindProperty(
+        &DEVPKEY_Device_InstanceId,
+        DEVPROP_STORE_SYSTEM,
+        deviceInterfacePropertyCount,
+        deviceInterfaceProperties
+        );
+
+    if (!instanceIdProperty || instanceIdProperty->Type != DEVPROP_TYPE_STRING || !instanceIdProperty->Buffer || instanceIdProperty->BufferSize < sizeof(UNICODE_NULL))
+    {
+        PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
         return FALSE;
     }
 
     if (CM_Locate_DevNode(
         &deviceInstanceHandle,
-        deviceInstanceId,
+        instanceIdProperty->Buffer,
         CM_LOCATE_DEVNODE_PHANTOM
         ) != CR_SUCCESS)
     {
+        PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
         return FALSE;
     }
 
-    bufferSize = 0x40;
-    deviceDescription = PhCreateStringEx(NULL, bufferSize);
-
-    if ((result = CM_Get_DevNode_Property(
-        deviceInstanceHandle,
-        &DEVPKEY_Device_FriendlyName,
-        &devicePropertyType,
-        (PBYTE)deviceDescription->Buffer,
-        &bufferSize,
-        0
-        )) != CR_SUCCESS)
+    if (HR_FAILED(PhDevGetObjectProperties(
+        DevObjectTypeDevice,
+        instanceIdProperty->Buffer,
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(deviceProperties),
+        deviceProperties,
+        &devicePropertyCount,
+        &devicePropertiesList
+        )) || devicePropertyCount == 0)
     {
-        PhDereferenceObject(deviceDescription);
-        deviceDescription = PhCreateStringEx(NULL, bufferSize);
+        PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
+        return FALSE;
+    }
 
-        result = CM_Get_DevNode_Property(
-            deviceInstanceHandle,
-            &DEVPKEY_Device_FriendlyName,
-            &devicePropertyType,
-            (PBYTE)deviceDescription->Buffer,
-            &bufferSize,
-            0
+    *DeviceDescription = NULL;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(deviceProperties); i++)
+    {
+        const DEVPROPERTY* property;
+
+        property = PhDevFindProperty(
+            &deviceProperties[i].Key,
+            deviceProperties[i].Store,
+            devicePropertyCount,
+            devicePropertiesList
             );
+
+        if (property && property->Type == DEVPROP_TYPE_STRING && property->Buffer && property->BufferSize >= sizeof(UNICODE_NULL))
+        {
+            SIZE_T deviceDescriptionLength = property->BufferSize;
+
+            if (((PWSTR)property->Buffer)[(property->BufferSize / sizeof(WCHAR)) - 1] == UNICODE_NULL)
+                deviceDescriptionLength -= sizeof(UNICODE_NULL);
+
+            *DeviceDescription = PhCreateStringEx((PWSTR)property->Buffer, deviceDescriptionLength);
+            break;
+        }
     }
 
-    if (result != CR_SUCCESS)
-    {
-        PhDereferenceObject(deviceDescription);
-        return FALSE;
-    }
-
-    PhTrimToNullTerminatorString(deviceDescription);
+    PhDevFreeObjectProperties(devicePropertyCount, devicePropertiesList);
+    PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
 
     *DeviceInstanceHandle = deviceInstanceHandle;
-    *DeviceDescription = deviceDescription;
 
-    return TRUE;
+    return *DeviceDescription != NULL;
 }
 
 VOID FindDiskDrives(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context
     )
 {
+    ULONG deviceCount = 0;
     PPH_LIST deviceList;
-    PWSTR deviceInterfaceList;
-    ULONG deviceInterfaceListLength = 0;
-    PWSTR deviceInterface;
-
-    if (CM_Get_Device_Interface_List_Size(
-        &deviceInterfaceListLength,
-        (PGUID)&GUID_DEVINTERFACE_DISK,
-        NULL,
-        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-        ) != CR_SUCCESS)
+    const DEV_OBJECT* deviceObjects = NULL;
+    const DEVPROPCOMPKEY requestedProperties[] =
     {
-        return;
-    }
-
-    deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
-    memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
-
-    if (CM_Get_Device_Interface_List(
-        (PGUID)&GUID_DEVINTERFACE_DISK,
-        NULL,
-        deviceInterfaceList,
-        deviceInterfaceListLength,
-        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-        ) != CR_SUCCESS)
+        { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
+    };
+    const DEVPROP_FILTER_EXPRESSION deviceFilter[] =
     {
-        PhFree(deviceInterfaceList);
+        { DEVPROP_OPERATOR_EQUALS, {{ DEVPKEY_DeviceInterface_ClassGuid, DEVPROP_STORE_SYSTEM, NULL }, DEVPROP_TYPE_GUID, sizeof(GUID), (PVOID)&GUID_DEVINTERFACE_DISK } }
+    };
+
+    if (HR_FAILED(PhDevGetObjects(
+        DevObjectTypeDeviceInterface,
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedProperties),
+        requestedProperties,
+        RTL_NUMBER_OF(deviceFilter),
+        deviceFilter,
+        &deviceCount,
+        &deviceObjects
+        )))
+    {
         return;
     }
 
     deviceList = PH_AUTO(PhCreateList(1));
 
-    for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
+    for (ULONG i = 0; i < deviceCount; i++)
     {
         DEVINST deviceInstanceHandle;
         PPH_STRING deviceDescription;
+        PWSTR deviceInterface;
         HANDLE deviceHandle;
         PDISK_ENUM_ENTRY diskEntry;
+
+        deviceInterface = (PWSTR)deviceObjects[i].pszObjectId;
 
         if (!QueryDiskDeviceInterfaceDescription(deviceInterface, &deviceInstanceHandle, &deviceDescription))
             continue;
@@ -447,7 +498,7 @@ VOID FindDiskDrives(
         PhDereferenceObject(deviceDescription);
     }
 
-    PhFree(deviceInterfaceList);
+    PhDevFreeObjects(deviceCount, deviceObjects);
 
     // Sort the entries
     qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), DiskEntryCompareFunction);
@@ -529,64 +580,54 @@ PPH_STRING FindDiskDeviceInstance(
     )
 {
     PPH_STRING deviceInstanceString = NULL;
-    PWSTR deviceInterfaceList;
-    ULONG deviceInterfaceListLength = 0;
-    PWSTR deviceInterface;
+    ULONG deviceCount = 0;
+    const DEV_OBJECT* deviceObjects = NULL;
+    const DEVPROPCOMPKEY requestedProperties[] =
+    {
+        { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
+    };
+    const DEVPROP_FILTER_EXPRESSION deviceFilter[] =
+    {
+        { DEVPROP_OPERATOR_EQUALS, {{ DEVPKEY_DeviceInterface_ClassGuid, DEVPROP_STORE_SYSTEM, NULL }, DEVPROP_TYPE_GUID, sizeof(GUID), (PVOID)&GUID_DEVINTERFACE_DISK } }
+    };
 
-    if (CM_Get_Device_Interface_List_Size(
-        &deviceInterfaceListLength,
-        (PGUID)&GUID_DEVINTERFACE_DISK,
-        NULL,
-        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-        ) != CR_SUCCESS)
+    if (HR_FAILED(PhDevGetObjects(
+        DevObjectTypeDeviceInterface,
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedProperties),
+        requestedProperties,
+        RTL_NUMBER_OF(deviceFilter),
+        deviceFilter,
+        &deviceCount,
+        &deviceObjects
+        )))
     {
         return NULL;
     }
 
-    deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
-    memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
-
-    if (CM_Get_Device_Interface_List(
-        (PGUID)&GUID_DEVINTERFACE_DISK,
-        NULL,
-        deviceInterfaceList,
-        deviceInterfaceListLength,
-        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-        ) != CR_SUCCESS)
+    for (ULONG i = 0; i < deviceCount; i++)
     {
-        PhFree(deviceInterfaceList);
-        return NULL;
-    }
+        const DEV_OBJECT* device;
+        PWSTR deviceInterface;
 
-    for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
-    {
-        DEVPROPTYPE devicePropertyType;
-        ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-        WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
-
-        if (CM_Get_Device_Interface_Property(
-            deviceInterface,
-            &DEVPKEY_Device_InstanceId,
-            &devicePropertyType,
-            (PBYTE)deviceInstanceId,
-            &deviceInstanceIdLength,
-            0
-            ) != CR_SUCCESS)
-        {
-            continue;
-        }
+        device = &deviceObjects[i];
+        deviceInterface = (PWSTR)device->pszObjectId;
 
         if (deviceInterface[1] == OBJ_NAME_PATH_SEPARATOR)
             deviceInterface[1] = L'?';
 
         if (PhEqualStringZ(deviceInterface, DevicePath->Buffer, TRUE))
         {
-            deviceInstanceString = PhCreateString(deviceInstanceId);
+            PH_STRINGREF string;
+
+            string.Buffer = device->pProperties[0].Buffer;
+            string.Length = device->pProperties[0].BufferSize ? device->pProperties[0].BufferSize - sizeof(UNICODE_NULL) : 0;
+            deviceInstanceString = PhCreateString2(&string);
             break;
         }
     }
 
-    PhFree(deviceInterfaceList);
+    PhDevFreeObjects(deviceCount, deviceObjects);
 
     return deviceInstanceString;
 }
@@ -596,43 +637,62 @@ VOID LoadDiskDriveImages(
     )
 {
     HICON largeIcon;
-    CONFIGRET result;
-    ULONG bufferSize;
+    ULONG deviceInstallerClassPropertyCount = 0;
+    const DEVPROPERTY* deviceInstallerClassProperties = NULL;
+    const DEVPROPERTY* deviceIconPathProperty;
+    PPH_STRING classGuidString;
     PPH_STRING deviceIconPath;
     PH_STRINGREF dllPartSr;
     PH_STRINGREF indexPartSr;
     ULONG64 index;
-    DEVPROPTYPE devicePropertyType;
     LONG dpiValue;
-
-    bufferSize = 0x40;
-    deviceIconPath = PhCreateStringEx(NULL, bufferSize);
+    DEVPROPCOMPKEY requestedProperties[] =
+    {
+        { DEVPKEY_DeviceClass_IconPath, DEVPROP_STORE_SYSTEM, NULL },
+    };
 
     dpiValue = PhGetWindowDpi(Context->ListViewHandle);
+    classGuidString = PhFormatGuid(&GUID_DEVCLASS_DISKDRIVE);
 
-    if ((result = CM_Get_Class_Property(
-        &GUID_DEVCLASS_DISKDRIVE,
-        &DEVPKEY_DeviceClass_IconPath,
-        &devicePropertyType,
-        (PBYTE)deviceIconPath->Buffer,
-        &bufferSize,
-        0
-        )) != CR_SUCCESS)
+    if (!classGuidString)
+        return;
+
+    if (HR_FAILED(PhDevGetObjectProperties(
+        DevObjectTypeDeviceInstallerClass,
+        PhGetString(classGuidString),
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedProperties),
+        requestedProperties,
+        &deviceInstallerClassPropertyCount,
+        &deviceInstallerClassProperties
+        )))
     {
-        PhDereferenceObject(deviceIconPath);
-        deviceIconPath = PhCreateStringEx(NULL, bufferSize);
-
-        result = CM_Get_Class_Property(
-            &GUID_DEVCLASS_DISKDRIVE,
-            &DEVPKEY_DeviceClass_IconPath,
-            &devicePropertyType,
-            (PBYTE)deviceIconPath->Buffer,
-            &bufferSize,
-            0
-            );
+        PhDereferenceObject(classGuidString);
+        return;
     }
 
+    PhDereferenceObject(classGuidString);
+
+    deviceIconPathProperty = PhDevFindProperty(
+        &DEVPKEY_DeviceClass_IconPath,
+        DEVPROP_STORE_SYSTEM,
+        deviceInstallerClassPropertyCount,
+        deviceInstallerClassProperties
+        );
+
+    if (
+        !deviceIconPathProperty ||
+        (deviceIconPathProperty->Type != DEVPROP_TYPE_STRING && deviceIconPathProperty->Type != DEVPROP_TYPE_STRING_LIST) ||
+        !deviceIconPathProperty->Buffer || deviceIconPathProperty->BufferSize < sizeof(UNICODE_NULL)
+        )
+    {
+        PhDevFreeObjectProperties(deviceInstallerClassPropertyCount, deviceInstallerClassProperties);
+        return;
+    }
+
+    deviceIconPath = PhCreateStringEx((PWSTR)deviceIconPathProperty->Buffer, deviceIconPathProperty->BufferSize);
     PhTrimToNullTerminatorString(deviceIconPath);
+    PhDevFreeObjectProperties(deviceInstallerClassPropertyCount, deviceInstallerClassProperties);
 
     // %SystemRoot%\System32\setupapi.dll,-53
     PhSplitStringRefAtChar(&deviceIconPath->sr, L',', &dllPartSr, &indexPartSr);

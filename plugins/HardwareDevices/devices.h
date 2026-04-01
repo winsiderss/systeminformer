@@ -532,12 +532,22 @@ BOOLEAN NetworkAdapterQueryInterfaceRow(
     _Out_ PMIB_IF_ROW2 InterfaceRow
     );
 
+PVOID NetworkAdapterGetAddresses(
+    _In_ ULONG Family,
+    _In_ ULONG Flags
+    );
+
 PCWSTR MediumTypeToString(
     _In_ NDIS_PHYSICAL_MEDIUM MediumType
     );
 
-PPH_STRING NetAdapterFormatBitratePrefix(
+PPH_STRING NetworkAdapterFormatBitratePrefix(
     _In_ ULONG64 Value
+    );
+
+NTSTATUS NetworkAdapterConvertLengthToIpv4Mask(
+    _In_ ULONG MaskLength,
+    _Out_ PULONG Mask
     );
 
 // netoptions.c
@@ -889,6 +899,11 @@ NTSTATUS DiskDriveQueryDeviceTypeAndNumber(
     );
 
 NTSTATUS DiskDriveQueryStatistics(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PDISK_PERFORMANCE Info
+    );
+
+NTSTATUS DiskDriveQueryStatisticsWmi(
     _In_ HANDLE DeviceHandle,
     _Out_ PDISK_PERFORMANCE Info
     );

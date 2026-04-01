@@ -204,6 +204,12 @@ LRESULT CALLBACK PvpPropSheetWndProc(
             }
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             if (!IsMinimized(hWnd))
@@ -222,19 +228,20 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 
-BOOLEAN CALLBACK PvUpdateButtonWindowEnumCallback(
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+static BOOLEAN CALLBACK PvUpdateButtonWindowEnumCallback(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
     )
 {
     WCHAR className[256];
 
-    if (!GetClassName(WindowHandle, className, RTL_NUMBER_OF(className)))
-        className[0] = UNICODE_NULL;
-
-    if (PhEqualStringZ(className, L"#32770", TRUE))
+    if (NT_SUCCESS(PhGetClassName(WindowHandle, className, RTL_NUMBER_OF(className), NULL)))
     {
-        SendMessage(WindowHandle, WM_PH_UPDATE_DIALOG, 0, 0);
+        if (PhEqualStringZ(className, L"#32770", TRUE))
+        {
+            SendMessage(WindowHandle, WM_PH_UPDATE_DIALOG, 0, 0);
+        }
     }
 
     return TRUE;
@@ -295,13 +302,16 @@ HWND PvpCreateControlButton(
 {
     if (!PropSheetContext->OptionsButtonWindowHandle)
     {
+        HWND buttonHandle;
         RECT clientRect;
         RECT rect;
+
+        buttonHandle = GetDlgItem(PropSheetWindow, IDCANCEL);
 
         // Create the refresh button.
         if (!PhGetClientRect(PropSheetWindow, &clientRect))
             return NULL;
-        if (!PhGetWindowRect(GetDlgItem(PropSheetWindow, IDCANCEL), &rect))
+        if (!PhGetWindowRect(buttonHandle, &rect))
             return NULL;
 
         PropSheetContext->OldOptionsButtonWndProc = PhGetWindowProcedure(PropSheetWindow);
@@ -309,11 +319,11 @@ HWND PvpCreateControlButton(
         PhSetWindowProcedure(PropSheetWindow, PvControlButtonWndProc);
 
         MapWindowRect(NULL, PropSheetWindow, &rect);
-        PropSheetContext->OptionsButtonWindowHandle = CreateWindowEx(
-            WS_EX_NOPARENTNOTIFY,
+        PropSheetContext->OptionsButtonWindowHandle = PhCreateWindowEx(
             WC_BUTTON,
             L"Options",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+            WS_EX_NOPARENTNOTIFY,
             clientRect.right - rect.right,
             rect.top,
             rect.right - rect.left,
@@ -323,7 +333,7 @@ HWND PvpCreateControlButton(
             PluginInstance->DllBase,
             NULL
             );
-        SetWindowFont(PropSheetContext->OptionsButtonWindowHandle, GetWindowFont(GetDlgItem(PropSheetWindow, IDCANCEL)), TRUE);
+        SetWindowFont(PropSheetContext->OptionsButtonWindowHandle, GetWindowFont(buttonHandle), TRUE);
     }
 
     return PropSheetContext->OptionsButtonWindowHandle;

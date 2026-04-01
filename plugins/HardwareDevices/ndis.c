@@ -12,6 +12,9 @@
 #include "devices.h"
 #include <objbase.h>
 
+static PH_INITONCE IphlpapiInitOnce = PH_INITONCE_INIT;
+static PVOID IphlpapiBaseAddress = NULL;
+
 static typeof(&NhGetInterfaceDescriptionFromGuid) NhGetInterfaceDescriptionFromGuid_I = NULL;
 static typeof(&NhGetInterfaceNameFromDeviceGuid) NhGetInterfaceNameFromDeviceGuid_I = NULL;
 static typeof(&NhGetInterfaceNameFromGuid) NhGetInterfaceNameFromGuid_I = NULL;
@@ -20,13 +23,9 @@ static typeof(&GetAdaptersAddresses) GetAdaptersAddresses_I = NULL;
 static typeof(&ConvertInterfaceLuidToNameW) ConvertInterfaceLuidToNameW_I = NULL;
 static typeof(&NotifyIpInterfaceChange) NotifyIpInterfaceChange_I = NULL;
 static typeof(&CancelMibChangeNotify2) CancelMibChangeNotify2_I = NULL;
-static typeof(&ConvertLengthToIpv4Mask) ConvertLengthToIpv4Mask_I = NULL;
 static typeof(&GetIfEntry2) GetIfEntry2_I = NULL;
 static typeof(&GetIfEntry2Ex) GetIfEntry2Ex_I = NULL;
 static typeof(&ConvertInterfaceLuidToAlias) ConvertInterfaceLuidToAlias_I = NULL;
-
-static PH_INITONCE IphlpapiInitOnce = PH_INITONCE_INIT;
-static PVOID IphlpapiBaseAddress = NULL;
 
 /**
  * Initializes lazy imports from iphlpapi.dll.
@@ -48,7 +47,6 @@ static BOOLEAN NetworkAdapterInitializeIphlpApiFunctionImports(
             ConvertInterfaceLuidToNameW_I = PhGetProcedureAddress(IphlpapiBaseAddress, "ConvertInterfaceLuidToNameW", 0);
             NotifyIpInterfaceChange_I = PhGetProcedureAddress(IphlpapiBaseAddress, "NotifyIpInterfaceChange", 0);
             CancelMibChangeNotify2_I = PhGetProcedureAddress(IphlpapiBaseAddress, "CancelMibChangeNotify2", 0);
-            ConvertLengthToIpv4Mask_I = PhGetProcedureAddress(IphlpapiBaseAddress, "ConvertLengthToIpv4Mask", 0);
             GetIfEntry2_I = PhGetProcedureAddress(IphlpapiBaseAddress, "GetIfEntry2", 0);
             GetIfEntry2Ex_I = PhGetProcedureAddress(IphlpapiBaseAddress, "GetIfEntry2Ex", 0);
             ConvertInterfaceLuidToAlias_I = PhGetProcedureAddress(IphlpapiBaseAddress, "ConvertInterfaceLuidToAlias", 0);
@@ -305,7 +303,11 @@ PPH_STRING NetworkAdapterGetInterfaceAliasFromLuid(
     if (!NetworkAdapterInitializeIphlpApiFunctionImports())
         return NULL;
 
-    if (ConvertInterfaceLuidToAlias_I && NETIO_SUCCESS(ConvertInterfaceLuidToAlias_I(&Id->InterfaceLuid, aliasBuffer, IF_MAX_STRING_SIZE)))
+    if (ConvertInterfaceLuidToAlias_I && NETIO_SUCCESS(ConvertInterfaceLuidToAlias_I(
+        &Id->InterfaceLuid,
+        aliasBuffer,
+        IF_MAX_STRING_SIZE
+        )))
     {
         return PhCreateString(aliasBuffer);
     }
@@ -328,7 +330,11 @@ PPH_STRING NetworkAdapterGetInterfaceNameFromLuid(
     if (!NetworkAdapterInitializeIphlpApiFunctionImports())
         return NULL;
 
-    if (ConvertInterfaceLuidToNameW_I && NETIO_SUCCESS(ConvertInterfaceLuidToNameW_I(&Id->InterfaceLuid, interfaceName, IF_MAX_STRING_SIZE)))
+    if (ConvertInterfaceLuidToNameW_I && NETIO_SUCCESS(ConvertInterfaceLuidToNameW_I(
+        &Id->InterfaceLuid,
+        interfaceName,
+        IF_MAX_STRING_SIZE
+        )))
     {
         return PhCreateString(interfaceName);
     }
@@ -688,6 +694,32 @@ BOOLEAN NetworkAdapterQueryInterfaceRow(
     return FALSE;
 }
 
+PVOID NetworkAdapterGetAddresses(
+    _In_ ULONG Family,
+    _In_ ULONG Flags
+    )
+{
+    ULONG bufferLength = 0;
+    PIP_ADAPTER_ADDRESSES buffer;
+
+    if (!NetworkAdapterInitializeIphlpApiFunctionImports())
+        return FALSE;
+
+    if (GetAdaptersAddresses_I(Family, Flags, NULL, NULL, &bufferLength) != ERROR_BUFFER_OVERFLOW)
+        return NULL;
+
+    buffer = PhAllocate(bufferLength);
+    memset(buffer, 0, bufferLength);
+
+    if (GetAdaptersAddresses_I(Family, Flags, NULL, buffer, &bufferLength) != ERROR_SUCCESS)
+    {
+        PhFree(buffer);
+        return NULL;
+    }
+
+    return buffer;
+}
+
 /**
  * Converts an NDIS physical medium type to display text.
  *
@@ -751,7 +783,7 @@ PCWSTR MediumTypeToString(
  * \param Value Raw bitrate value.
  * \return Formatted bitrate string.
  */
-PPH_STRING NetAdapterFormatBitratePrefix(
+PPH_STRING NetworkAdapterFormatBitratePrefix(
     _In_ ULONG64 Value
     )
 {
@@ -911,3 +943,59 @@ PPH_STRING NetAdapterFormatBitratePrefix(
 //
 //    return socketResult;
 //}
+
+// IPv4 subnet mask table: Ipv4Mask[0..32]
+static const ULONG Ipv4Mask[33] =
+{
+    0x00000000, // /0  = 0.0.0.0
+    0x80000000, // /1  = 128.0.0.0
+    0xC0000000, // /2  = 192.0.0.0
+    0xE0000000, // /3  = 224.0.0.0
+    0xF0000000, // /4  = 240.0.0.0
+    0xF8000000, // /5  = 248.0.0.0
+    0xFC000000, // /6  = 252.0.0.0
+    0xFE000000, // /7  = 254.0.0.0
+    0xFF000000, // /8  = 255.0.0.0
+    0xFF800000, // /9  = 255.128.0.0
+    0xFFC00000, // /10 = 255.192.0.0
+    0xFFE00000, // /11 = 255.224.0.0
+    0xFFF00000, // /12 = 255.240.0.0
+    0xFFF80000, // /13 = 255.248.0.0
+    0xFFFC0000, // /14 = 255.252.0.0
+    0xFFFE0000, // /15 = 255.254.0.0
+    0xFFFF0000, // /16 = 255.255.0.0
+    0xFFFF8000, // /17 = 255.255.128.0
+    0xFFFFC000, // /18 = 255.255.192.0
+    0xFFFFE000, // /19 = 255.255.224.0
+    0xFFFFF000, // /20 = 255.255.240.0
+    0xFFFFF800, // /21 = 255.255.248.0
+    0xFFFFFC00, // /22 = 255.255.252.0
+    0xFFFFFE00, // /23 = 255.255.254.0
+    0xFFFFFF00, // /24 = 255.255.255.0
+    0xFFFFFF80, // /25 = 255.255.255.128
+    0xFFFFFFC0, // /26 = 255.255.255.192
+    0xFFFFFFE0, // /27 = 255.255.255.224
+    0xFFFFFFF0, // /28 = 255.255.255.240
+    0xFFFFFFF8, // /29 = 255.255.255.248
+    0xFFFFFFFC, // /30 = 255.255.255.252
+    0xFFFFFFFE, // /31 = 255.255.255.254
+    0xFFFFFFFF  // /32 = 255.255.255.255
+};
+
+// rev from ConvertLengthToIpv4Mask
+NTSTATUS NetworkAdapterConvertLengthToIpv4Mask(
+    _In_ ULONG MaskLength,
+    _Out_ PULONG Mask
+    )
+{
+    if (MaskLength >= RTL_NUMBER_OF(Ipv4Mask))
+    {
+        *Mask = ULONG_MAX;
+        return STATUS_INVALID_PARAMETER;
+    }
+    else
+    {
+        *Mask = Ipv4Mask[MaskLength];
+        return STATUS_SUCCESS;
+    }
+}

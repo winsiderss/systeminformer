@@ -10,7 +10,6 @@
  */
 
 #include "devices.h"
-
 #include <devquery.h>
 
 typedef enum _DEVICE_PROPERTIES_CATEGORY
@@ -274,11 +273,6 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
 
             DeviceInitializeGeneralPage(hwndDlg, context);
 
-            if (!PhValidWindowPlacementFromSetting(SETTING_NAME_DEVICE_PROPERTIES_POSITION))
-            {
-                ExtendedListView_SetColumnWidth(context->GeneralListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
-            }
-
             if (!!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)) // TODO: Required for compat (dmex)
                 PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
             else
@@ -305,6 +299,8 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEVICE_MANUFACTURER), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PvAddPropPageLayoutItem(hwndDlg, context->GeneralListViewHandle, dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
+
+                ExtendedListView_SetColumnWidth(context->GeneralListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
@@ -709,6 +705,8 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
                 PvAddPropPageLayoutItem(hwndDlg, context->PropsListViewHandle, dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
+                ExtendedListView_SetColumnWidth(context->PropsListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
+
                 propPageContext->LayoutInitialized = TRUE;
             }
         }
@@ -860,6 +858,7 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
             PhAddListViewColumn(context->InterfacesListViewHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
             PhAddListViewColumn(context->InterfacesListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->InterfacesListViewHandle);
+
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_INTERFACES_COLUMNS, context->InterfacesListViewHandle);
             DeviceSetImageList(context->InterfacesListViewHandle, context);
 
@@ -882,6 +881,8 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvAddPropPageLayoutItem(hwndDlg, context->InterfacesListViewHandle, dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
+
+                ExtendedListView_SetColumnWidth(context->InterfacesListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
@@ -1010,6 +1011,8 @@ INT_PTR CALLBACK DevicePropResourcesDlgProc(
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvAddPropPageLayoutItem(hwndDlg, context->ResourcesListViewHandle, dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
+
+                ExtendedListView_SetColumnWidth(context->ResourcesListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
