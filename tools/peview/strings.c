@@ -160,11 +160,11 @@ BOOLEAN NTAPI PvpStringSearchCallback(
     node->Index = ++Context->StringsCount;
     node->Rva = (ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase);
     node->Unicode = Result->Unicode;
-    node->String = PhReferenceObject(Result->String);
+    node->String = PhCreateString2(&Result->String);
 
     PhPrintUInt64(node->IndexString, node->Index);
     PhPrintPointer(node->RvaString, (PVOID)node->Rva);
-    PhPrintUInt64(node->LengthString, node->String->Length / 2);
+    PhPrintUInt64(node->LengthString, node->String->Length / sizeof(WCHAR));
 
     PhInitializeStringRefLongHint(&node->IndexStringRef, node->IndexString);
 
@@ -186,7 +186,6 @@ BOOLEAN NTAPI PvpStringSearchCallback(
 
     return !!Context->StopSearch;
 }
-
 
 static int __cdecl PvpStringsRegionSkipCompare(
     _In_ void *context,
