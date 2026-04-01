@@ -212,8 +212,8 @@ static VOID FilterResults(
 }
 
 #define PHP_MAKE_MEMORY_COMPARE_FUNC(Name, Expression) \
-LONG NTAPI PhpMemoryResults##Name##CompareFunction( \
-    _In_opt_ void* Context, \
+LONG __cdecl PhpMemoryResults##Name##CompareFunction( \
+    _In_ void* Context, \
     _In_ void const* Item1, \
     _In_ void const* Item2 \
     ) \
@@ -721,7 +721,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
             case LVN_COLUMNCLICK:
                 {
                     LPNMLISTVIEW listView = (LPNMLISTVIEW)lParam;
-                    PVOID sortFunction;
+                    _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                     // Note: ListView_SortItems does not support virtual mode,
                     // sort the underlying data and redraw the listview. (dmex)
