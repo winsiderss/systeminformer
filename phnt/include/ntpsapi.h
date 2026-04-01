@@ -1635,6 +1635,50 @@ typedef struct _PROCESS_WAKE_INFORMATION
     JOBOBJECT_WAKE_FILTER WakeFilter;
 } PROCESS_WAKE_INFORMATION, *PPROCESS_WAKE_INFORMATION;
 
+//
+// PROCESS_ENERGY_TRACKING_STATE flags.
+//
+// ProcessEnergyTrackingState can be used to query the current energy-tracking
+// state.
+//
+// - NtQueryInformationProcess(ProcessEnergyTrackingState) gives you the current
+//   tracked state flags.
+// - NtQueryInformationProcess(ProcessEnergyValues) gives you the actual
+//   accumulated durations/counters.
+// - When you call NtQueryInformationProcess(ProcessEnergyTrackingState), the
+//   returned state field is not limited to 0x10.
+// - The kernel may report a state word containing 0x4, 0x8, and 0x10.
+//
+// Disassembly of ntoskrnl!PoSetProcessEnergyTrackingState shows that only
+// PROCESS_ENERGY_STATE_PSM_FOREGROUND is accepted in StateUpdateMask /
+// StateDesiredValue for NtSetInformationProcess(ProcessEnergyTrackingState).
+// The API only lets you toggle one bit, PROCESS_ENERGY_STATE_PSM_FOREGROUND.
+// Changes how the process contributes to energy duration buckets.
+//
+// So these defines describe the bits that can appear in the queried state:
+//
+// - 0x4: process is in the foreground state.
+// - 0x8: process is desktop-visible.
+// - 0x10: process is in PSM foreground.
+//
+// Important distinction:
+//
+// - NtSetInformationProcess(ProcessEnergyTrackingState) only accepts 0x10.
+// - NtQueryInformationProcess(ProcessEnergyTrackingState) may return
+//   0x4 | 0x8 | 0x10 combinations.
+//
+// The kernel also returns 0x4 and 0x8 in the queried state word. Those two
+// bits are correlated with the three base duration buckets in
+// PROCESS_ENERGY_VALUES:
+// foreground, desktop visible, and PSM foreground.
+//
+// The 0x4 and 0x8 names below are therefore best-effort and grounded in
+// disassembly plus structure correlation, not public symbol names.
+//
+#define PROCESS_ENERGY_STATE_FOREGROUND        0x00000004UL
+#define PROCESS_ENERGY_STATE_DESKTOP_VISIBLE   0x00000008UL
+#define PROCESS_ENERGY_STATE_PSM_FOREGROUND    0x00000010UL
+
 typedef struct _PROCESS_ENERGY_TRACKING_STATE
 {
     ULONG StateUpdateMask;
@@ -3360,39 +3404,39 @@ typedef struct _ISOLATION_MANIFEST_PROPERTIES
 // private
 typedef enum _PS_ATTRIBUTE_NUM
 {
-    PsAttributeParentProcess, // in HANDLE
-    PsAttributeDebugObject, // in HANDLE
-    PsAttributeToken, // in HANDLE
-    PsAttributeClientId, // out PCLIENT_ID
-    PsAttributeTebAddress, // out PTEB *
-    PsAttributeImageName, // in PWSTR
-    PsAttributeImageInfo, // out PSECTION_IMAGE_INFORMATION
-    PsAttributeMemoryReserve, // in PPS_MEMORY_RESERVE
-    PsAttributePriorityClass, // in UCHAR
-    PsAttributeErrorMode, // in ULONG
-    PsAttributeStdHandleInfo, // in PPS_STD_HANDLE_INFO // 10
-    PsAttributeHandleList, // in HANDLE[]
-    PsAttributeGroupAffinity, // in PGROUP_AFFINITY
-    PsAttributePreferredNode, // in PUSHORT
-    PsAttributeIdealProcessor, // in PPROCESSOR_NUMBER
-    PsAttributeUmsThread, // in PUMS_CREATE_THREAD_ATTRIBUTES
-    PsAttributeMitigationOptions, // in PPS_MITIGATION_OPTIONS_MAP (PROCESS_CREATION_MITIGATION_POLICY_*) // since WIN8
-    PsAttributeProtectionLevel, // in PS_PROTECTION // since WINBLUE
-    PsAttributeSecureProcess, // in PPS_TRUSTLET_CREATE_ATTRIBUTES, since THRESHOLD
-    PsAttributeJobList, // in HANDLE[]
-    PsAttributeChildProcessPolicy, // in PULONG (PROCESS_CREATION_CHILD_PROCESS_*) // since THRESHOLD2 // 20
-    PsAttributeAllApplicationPackagesPolicy, // in PULONG (PROCESS_CREATION_ALL_APPLICATION_PACKAGES_*) // since REDSTONE
-    PsAttributeWin32kFilter, // in PWIN32K_SYSCALL_FILTER
-    PsAttributeSafeOpenPromptOriginClaim, // in SE_SAFE_OPEN_PROMPT_RESULTS
-    PsAttributeBnoIsolation, // in PPS_BNO_ISOLATION_PARAMETERS // since REDSTONE2
-    PsAttributeDesktopAppPolicy, // in PULONG (PROCESS_CREATION_DESKTOP_APP_*)
-    PsAttributeChpe, // in BOOLEAN // since REDSTONE3
-    PsAttributeMitigationAuditOptions, // in PPS_MITIGATION_AUDIT_OPTIONS_MAP (PROCESS_CREATION_MITIGATION_AUDIT_POLICY_*) // since 21H1
-    PsAttributeMachineType, // in USHORT // since 21H2
-    PsAttributeComponentFilter, // in COMPONENT_FILTER
-    PsAttributeEnableOptionalXStateFeatures, // in ULONG64 // since WIN11 // 30
-    PsAttributeSupportedMachines, // in ULONG // since 24H2
-    PsAttributeSveVectorLength, // PPS_PROCESS_CREATION_SVE_VECTOR_LENGTH
+    PsAttributeParentProcess,                   // in HANDLE
+    PsAttributeDebugObject,                     // in HANDLE
+    PsAttributeToken,                           // in HANDLE
+    PsAttributeClientId,                        // out PCLIENT_ID
+    PsAttributeTebAddress,                      // out PTEB*
+    PsAttributeImageName,                       // in PWSTR
+    PsAttributeImageInfo,                       // out PSECTION_IMAGE_INFORMATION
+    PsAttributeMemoryReserve,                   // in PPS_MEMORY_RESERVE
+    PsAttributePriorityClass,                   // in UCHAR
+    PsAttributeErrorMode,                       // in ULONG
+    PsAttributeStdHandleInfo,                   // in PPS_STD_HANDLE_INFO // 10
+    PsAttributeHandleList,                      // in HANDLE[]
+    PsAttributeGroupAffinity,                   // in PGROUP_AFFINITY
+    PsAttributePreferredNode,                   // in PUSHORT
+    PsAttributeIdealProcessor,                  // in PPROCESSOR_NUMBER
+    PsAttributeUmsThread,                       // in PUMS_CREATE_THREAD_ATTRIBUTES
+    PsAttributeMitigationOptions,               // in PPS_MITIGATION_OPTIONS_MAP (PROCESS_CREATION_MITIGATION_POLICY_*) // since WIN8
+    PsAttributeProtectionLevel,                 // in PS_PROTECTION // since WINBLUE
+    PsAttributeSecureProcess,                   // in PPS_TRUSTLET_CREATE_ATTRIBUTES // since THRESHOLD
+    PsAttributeJobList,                         // in HANDLE[]
+    PsAttributeChildProcessPolicy,              // in PULONG (PROCESS_CREATION_CHILD_PROCESS_*) // since THRESHOLD2 // 20
+    PsAttributeAllApplicationPackagesPolicy,    // in PULONG (PROCESS_CREATION_ALL_APPLICATION_PACKAGES_*) // since REDSTONE
+    PsAttributeWin32kFilter,                    // in PWIN32K_SYSCALL_FILTER
+    PsAttributeSafeOpenPromptOriginClaim,       // in SE_SAFE_OPEN_PROMPT_RESULTS
+    PsAttributeBnoIsolation,                    // in PPS_BNO_ISOLATION_PARAMETERS // since REDSTONE2
+    PsAttributeDesktopAppPolicy,                // in PULONG (PROCESS_CREATION_DESKTOP_APP_*)
+    PsAttributeChpe,                            // in BOOLEAN // since REDSTONE3
+    PsAttributeMitigationAuditOptions,          // in PPS_MITIGATION_AUDIT_OPTIONS_MAP (PROCESS_CREATION_MITIGATION_AUDIT_POLICY_*) // since 21H1
+    PsAttributeMachineType,                     // in USHORT // since 21H2
+    PsAttributeComponentFilter,                 // in COMPONENT_FILTER
+    PsAttributeEnableOptionalXStateFeatures,    // in ULONG64 // since WIN11 // 30
+    PsAttributeSupportedMachines,               // in ULONG // since 24H2
+    PsAttributeSveVectorLength,                 // in PPS_PROCESS_CREATION_SVE_VECTOR_LENGTH
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
 
@@ -3472,6 +3516,10 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeValue(PsAttributeComponentFilter, FALSE, TRUE, FALSE)
 #define PS_ATTRIBUTE_ENABLE_OPTIONAL_XSTATE_FEATURES \
     PsAttributeValue(PsAttributeEnableOptionalXStateFeatures, TRUE, TRUE, FALSE)
+#define PS_ATTRIBUTE_SUPPORTED_MACHINES \
+    PsAttributeValue(PsAttributeSupportedMachines, FALSE, TRUE, FALSE)
+#define PS_ATTRIBUTE_SVE_VECTOR_LENGTH \
+    PsAttributeValue(PsAttributeSveVectorLength, FALSE, TRUE, FALSE)
 
 // end_rev
 
@@ -4474,9 +4522,11 @@ PssNtValidateDescriptor(
 
 // rev
 /**
- * Flag indicating the type of bulk information to query.
+ * Flags indicating the types of bulk information to query.
  */
 #define MEMORY_BULK_INFORMATION_FLAG_BASIC 0x00000001
+#define MEMORY_BULK_INFORMATION_FLAG_RESERVED 0x00000002
+#define MEMORY_BULK_INFORMATION_FLAG_VALID_MASK 0x00000003
 
 // rev
 /**
