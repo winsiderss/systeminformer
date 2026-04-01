@@ -2360,6 +2360,7 @@ PhListView_SetColumnWidth(
     _In_ ULONG Width
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -2368,6 +2369,7 @@ PhListView_GetHeader(
     _Out_ HWND* WindowHandle
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -2533,6 +2535,7 @@ PhListView_EnsureItemVisible(
     _In_ BOOLEAN PartialOk
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI

@@ -1055,7 +1055,7 @@ PVOID PhReAllocate(
     _In_ SIZE_T Size
     )
 {
-    assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
+    assert(Size > 0);
 #if defined(PH_DEBUG_HEAP)
     return realloc(Memory, Size);
 #else

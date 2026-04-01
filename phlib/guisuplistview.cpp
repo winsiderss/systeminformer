@@ -684,7 +684,7 @@ PPH_LISTVIEW_CONTEXT PhListView_Initialize(
     PPH_LISTVIEW_CONTEXT context;
     IListView* listviewInterface;
 
-    context = (PPH_LISTVIEW_CONTEXT)PhAllocateZero(sizeof(PH_LISTVIEW_CONTEXT));
+    context = reinterpret_cast<PPH_LISTVIEW_CONTEXT>(PhAllocateZero(sizeof(PH_LISTVIEW_CONTEXT)));
     context->ListViewHandle = ListViewHandle;
     context->ThreadId = UlongToHandle(GetWindowThreadProcessId(ListViewHandle, nullptr));
 
@@ -703,7 +703,7 @@ VOID PhListView_Destroy(
     if (Context->ListViewInterface)
     {
         Context->ListViewInterface->Release();
-        Context->ListViewInterface = NULL;
+        Context->ListViewInterface = nullptr;
     }
 
     PhFree(Context);
@@ -1135,6 +1135,7 @@ BOOLEAN PhListView_SetColumnWidth(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN PhListView_GetHeader(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _Out_ HWND* WindowHandle
@@ -1164,6 +1165,7 @@ BOOLEAN PhListView_GetHeader(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN PhListView_GetToolTip(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _Out_ HWND* WindowHandle
@@ -1506,6 +1508,7 @@ BOOLEAN PhListView_EnsureItemVisible(
     }
 }
 
+_Success_(return)
 BOOLEAN PhListView_IsItemVisible(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _In_ LONG ItemIndex,

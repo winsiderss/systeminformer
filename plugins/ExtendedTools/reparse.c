@@ -65,6 +65,7 @@ VOID EtFreeReparseListViewEntries(
     NULL \
     )
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID EtReparseDialogContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -481,6 +482,7 @@ PCWSTR EtReparseTagToString(
     return PhaFormatString(L"UNKNOWN: %lu", Tag)->Buffer;
 }
 
+_Function_class_(PH_ENUM_REPARSE_POINT)
 NTSTATUS NTAPI EtEnumVolumeReparseCallback(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
@@ -561,6 +563,7 @@ NTSTATUS NTAPI EtEnumVolumeReparseCallback(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_ENUM_OBJECT_ID)
 NTSTATUS NTAPI EtEnumVolumeObjectIdCallback(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,

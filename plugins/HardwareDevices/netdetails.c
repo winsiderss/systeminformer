@@ -12,6 +12,7 @@
 
 #include "devices.h"
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI NetAdapterProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

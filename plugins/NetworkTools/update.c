@@ -40,6 +40,7 @@ BOOLEAN GeoLiteCheckUpdatePlatformSupported(
     return supported;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID GeoLiteUpdateContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
