@@ -604,9 +604,9 @@ RemoveEntryListNoFence(
     if ((ReadPointerNoFence((volatile const PVOID*)&NextEntry->Blink) != Entry) ||
         (ReadPointerNoFence((volatile const PVOID*)&PrevEntry->Flink) != Entry))
     {
-        FatalListEntryError((PVOID)PrevEntry,
-                            (PVOID)Entry,
-                            (PVOID)NextEntry);
+        RtlFatalListEntryError((PVOID)PrevEntry,
+                               (PVOID)Entry,
+                               (PVOID)NextEntry);
     }
 
     WritePointerNoFence((volatile PVOID*)&PrevEntry->Flink, NextEntry);
@@ -636,9 +636,9 @@ RemoveHeadListNoFence(
     if ((ReadPointerNoFence((volatile const PVOID*)&Entry->Blink) != ListHead) ||
         (ReadPointerNoFence((volatile const PVOID*)&NextEntry->Blink) != Entry))
     {
-        FatalListEntryError((PVOID)ListHead,
-                            (PVOID)Entry,
-                            (PVOID)NextEntry);
+        RtlFatalListEntryError((PVOID)ListHead,
+                               (PVOID)Entry,
+                               (PVOID)NextEntry);
     }
 
     WritePointerNoFence((volatile PVOID*)&ListHead->Flink, NextEntry);
@@ -669,9 +669,9 @@ RemoveTailListNoFence(
     if ((ReadPointerNoFence((volatile const PVOID*)&Entry->Flink) != ListHead) ||
         (ReadPointerNoFence((volatile const PVOID*)&PrevEntry->Flink) != Entry))
     {
-        FatalListEntryError((PVOID)PrevEntry,
-                            (PVOID)Entry,
-                            (PVOID)ListHead);
+        RtlFatalListEntryError((PVOID)PrevEntry,
+                               (PVOID)Entry,
+                               (PVOID)ListHead);
     }
 
     WritePointerNoFence((volatile PVOID*)&ListHead->Blink, PrevEntry);
@@ -698,9 +698,9 @@ InsertTailListNoFence(
 
     if (ReadPointerNoFence((volatile const PVOID*)&PrevEntry->Flink) != ListHead)
     {
-        FatalListEntryError((PVOID)PrevEntry,
-                            (PVOID)ListHead,
-                            (PVOID)PrevEntry->Flink);
+        RtlFatalListEntryError((PVOID)PrevEntry,
+                               (PVOID)ListHead,
+                               (PVOID)PrevEntry->Flink);
     }
 
     WritePointerNoFence((volatile PVOID*)&Entry->Flink, ListHead);
@@ -729,9 +729,9 @@ InsertHeadListNoFence(
 
     if (ReadPointerNoFence((volatile const PVOID*)&NextEntry->Blink) != ListHead)
     {
-        FatalListEntryError((PVOID)ListHead,
-                            (PVOID)NextEntry,
-                            (PVOID)NextEntry->Blink);
+        RtlFatalListEntryError((PVOID)ListHead,
+                               (PVOID)NextEntry,
+                               (PVOID)NextEntry->Blink);
     }
 
     WritePointerNoFence((volatile PVOID*)&Entry->Flink, NextEntry);
