@@ -1321,6 +1321,40 @@ typedef struct _POWER_INTERNAL_IDLE_INTERVAL_STATS_OUTPUT
 #define PPM_PERF_DELTA_OFFSET 0xF8 // 248 bytes
 
 // rev
+/**
+ * The PPM_WMI_PERFSTATES_DATA structure is the fixed 0x50-byte payload returned for
+ * PPM_PERFSTATES_DATA_GUID by PpmWmiGetAllData.
+ *
+ * Only a subset of fields could be named confidently from the kernel path:
+ * - StateCount at offset 0x04
+ * - PercentFrequency at offset 0x1C
+ * - Type at offset 0x1D
+ * - Control at offset 0x28
+ * - HitCount at offset 0x40
+ *
+ * The remaining fields are structurally verified but semantically opaque on this build.
+ */
+typedef struct _PPM_WMI_PERFSTATES_DATA
+{
+    ULONG Reserved0;
+    ULONG StateCount;
+    ULONG Reserved1;
+    ULONG Reserved2;
+    ULONGLONG Reserved3;
+    UCHAR PercentFrequency;
+    UCHAR Type;
+    USHORT Reserved4;
+    ULONG Reserved5;
+    ULONG Reserved6;
+    ULONGLONG Control;
+    ULONGLONG Reserved7;
+    ULONGLONG Reserved8;
+    ULONG HitCount;
+    ULONG Reserved9;
+    ULONGLONG Reserved10;
+} PPM_WMI_PERFSTATES_DATA, *PPPM_WMI_PERFSTATES_DATA;
+
+// rev
 typedef struct _POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK
 {
     // Metric[0][0..47], Metric[1][0..47], Metric[2][0..47]
