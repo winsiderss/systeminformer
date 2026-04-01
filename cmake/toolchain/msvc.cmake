@@ -105,7 +105,7 @@ elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
         /QIntel-jcc-erratum             # Intel erratum 1279
     )
     list(APPEND SI_LINK_FLAGS_RELEASE_INIT
-        /SAFESEH                        # EH continuation guard
+        /SAFESEH                        # Safe Exception Handlers (x86)
         /CETCOMPAT                      # CET compatibility
     )
 else()
