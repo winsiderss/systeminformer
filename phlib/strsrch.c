@@ -259,14 +259,11 @@ CreateResult:
             result.Unicode = isWide;
             result.Address = PTR_ADD_OFFSET(Buffer, i - bias - lengthInBytes);
             result.Length = lengthInBytes;
-            result.String = PhCreateStringEx(
-                Context->Buffer,
-                2 * min(length, RTL_NUMBER_OF(Context->Buffer))
-                );
+            result.String.Buffer = Context->Buffer;
+            result.String.Length = min(length, RTL_NUMBER_OF(Context->Buffer)) * sizeof(WCHAR);
 
             isFinished = Context->Callback(&result, Context->CallbackContext);
 
-            PhClearReference(&result.String);
             pattern = PhCharPatternNone;
             length = 0;
 

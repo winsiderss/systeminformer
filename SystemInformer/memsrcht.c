@@ -272,8 +272,8 @@ BOOLEAN NTAPI PhpMemoryStringSearchTreeCallback(
     }
 
     node->Unicode = Result->Unicode;
-    node->String = PhReferenceObject(Result->String);
-    PhPrintUInt64(node->LengthString, node->String->Length / 2);
+    node->String = PhCreateString2(&Result->String);
+    PhPrintUInt64(node->LengthString, node->String->Length / sizeof(WCHAR));
 
     node->Protection = context->BasicInfo.Protect;
     PhGetMemoryProtectionString(node->Protection, node->ProtectionText);
