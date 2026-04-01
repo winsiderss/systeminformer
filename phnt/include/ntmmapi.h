@@ -85,6 +85,34 @@ typedef struct _IO_STATUS_BLOCK* PIO_STATUS_BLOCK;
 #define MEM_IMAGE SEC_IMAGE
 #endif
 
+#define MEM_EXTENDED_PARAMETER_GRAPHICS 0x00000001
+#define MEM_EXTENDED_PARAMETER_NONPAGED 0x00000002
+#define MEM_EXTENDED_PARAMETER_ZERO_PAGES_OPTIONAL 0x00000004
+#define MEM_EXTENDED_PARAMETER_NONPAGED_LARGE 0x00000008
+#define MEM_EXTENDED_PARAMETER_NONPAGED_HUGE 0x00000010
+#define MEM_EXTENDED_PARAMETER_SOFT_FAULT_PAGES 0x00000020
+#define MEM_EXTENDED_PARAMETER_EC_CODE 0x00000040
+#define MEM_EXTENDED_PARAMETER_SECURE_PAGES 0x00000080
+#define MEM_EXTENDED_PARAMETER_TAGGED 0x00000100
+#define MEM_EXTENDED_PARAMETER_NUMA_NODE_MANDATORY MINLONG64
+
+// typedef enum MEM_SECTION_EXTENDED_PARAMETER_TYPE
+// {
+//     MemSectionExtendedParameterInvalidType = 0,
+//     MemSectionExtendedParameterUserPhysicalFlags,
+//     MemSectionExtendedParameterNumaNode,
+//     MemSectionExtendedParameterSigningLevel,
+//     MemSectionExtendedParameterAttributeFlags,
+//     MemSectionExtendedParameterMax
+// } MEM_SECTION_EXTENDED_PARAMETER_TYPE, *PMEM_SECTION_EXTENDED_PARAMETER_TYPE;
+
+#define MemSectionExtendedParameterInvalidType 0x0
+#define MemSectionExtendedParameterUserPhysicalFlags 0x1
+#define MemSectionExtendedParameterNumaNode 0x2
+#define MemSectionExtendedParameterSigningLevel 0x3
+#define MemSectionExtendedParameterAttributeFlags 0x4
+#define MemSectionExtendedParameterMax 0x5
+
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _MEMORY_INFORMATION_CLASS
 {
