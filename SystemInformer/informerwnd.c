@@ -427,7 +427,7 @@ VOID PhpInformerPopulateFileEventName(
         return;
     }
 
-    // "IRP_MJ (0x" (10) + hex (2) + ")" (1) + null (1) = 14 WCHARs + null
+    // "IRP_MJ (0x" (10) + hex (2) + ")" (1) + null (1) = characters + null => 15 WCHARs
     C_ASSERT(RTL_NUMBER_OF_FIELD(PH_INFORMERW_NODE, EventFallback) >= 15);
     PhInitFormatS(&fmt[0], L"IRP_MJ (0x");
     PhInitFormatI64XWithWidth(&fmt[1], (ULONG64)File->MajorFunction, 2);
@@ -2846,7 +2846,6 @@ ULONG64 PhpInformerGetPreOpSequence(
     {
         if (!Message->Kernel.Reg.PostOperation)
             return Message->Kernel.Reg.Sequence;
-        return 0;
     }
     else if (msgId >= KphMsgHandlePreCreateProcess && msgId <= KphMsgHandlePostDuplicateDesktop)
     {
@@ -3555,15 +3554,24 @@ INT_PTR CALLBACK PhpProcessInformerDlgProc(
     {
     case WM_INITDIALOG:
         {
+            NTSTATUS status = STATUS_UNSUCCESSFUL;
             ULONG64 processStartKey = processItem->ProcessStartKey;
             if (processStartKey == 0 && processItem->QueryHandle)
             {
-                if (!NT_SUCCESS(PhGetProcessStartKey(processItem->QueryHandle, &processStartKey)))
+                if (!NT_SUCCESS(status = PhGetProcessStartKey(processItem->QueryHandle, &processStartKey)))
                     processStartKey = 0;
             }
 
             if (processStartKey == 0)
+            {
+                //
+                // On failure, set a value that will not match any real process
+                // start key. And one which does not collide with the default
+                // "global" value of 0.
+                //
                 processStartKey = ULONG64_MAX;
+                PhShowStatus(hwndDlg, L"Failed to get process start key.", status, 0);
+            }
 
             context = PhpCreateInformerContext(processStartKey);
             context->ProcessId = processItem->ProcessId;
