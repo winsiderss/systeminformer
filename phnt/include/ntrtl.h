@@ -25,14 +25,14 @@ template <typename T>
 FORCEINLINE
 T*
 RTL_PTR_ADD(T* Pointer, ULONG_PTR Value) noexcept {
-    return reinterpret_cast<T*>(reinterpret_cast<PBYTE>(Pointer) + Value);
+    return reinterpret_cast<T*>(reinterpret_cast<PUCHAR>(Pointer) + Value);
 }
 
 template <typename T>
 FORCEINLINE
 T*
 RTL_PTR_SUBTRACT(T* Pointer, ULONG_PTR Value) noexcept {
-    return reinterpret_cast<T*>(reinterpret_cast<PBYTE>(Pointer) - Value);
+    return reinterpret_cast<T*>(reinterpret_cast<PUCHAR>(Pointer) - Value);
 }
 
 EXTERN_C_START
@@ -69,29 +69,29 @@ EXTERN_C_START
 // Time unit constants (ordered by magnitude)
 //
 
-#define RTL_NANOSEC_PER_TICK        100
-#define RTL_TICKS_PER_MICROSEC      10
-#define RTL_TICKS_PER_MILLISEC      (RTL_TICKS_PER_MICROSEC * 1000)  // 10,000
-#define RTL_TICKS_PER_SEC           (RTL_TICKS_PER_MILLISEC * 1000)  // 10,000,000
-#define RTL_TICKS_PER_MIN           (RTL_TICKS_PER_SEC * 60)         // 600,000,000
-#define RTL_TICKS_PER_HOUR          (RTL_TICKS_PER_MIN * 60)         // 36,000,000,000
-#define RTL_TICKS_PER_DAY           (RTL_TICKS_PER_HOUR * 24)        // 864,000,000,000
-#define RTL_TICKS_PER_WEEK          (RTL_TICKS_PER_DAY * 7)          // 6,048,000,000,000
-#define RTL_TICKS_PER_MONTH         (RTL_TICKS_PER_DAY * 30)         // 25,920,000,000,000
-#define RTL_TICKS_PER_YEAR          (RTL_TICKS_PER_DAY * 365)        // 31,536,000,000,000
-#define RTL_TICKS_PER_LEAP_YEAR     (RTL_TICKS_PER_DAY * 366)        // 31,622,400,000,000
+#define RTL_NANOSEC_PER_TICK        ULONG64_C(100)
+#define RTL_TICKS_PER_MICROSEC      ULONG64_C(10)
+#define RTL_TICKS_PER_MILLISEC      (RTL_TICKS_PER_MICROSEC * ULONG64_C(1000))  // 10,000
+#define RTL_TICKS_PER_SEC           (RTL_TICKS_PER_MILLISEC * ULONG64_C(1000))  // 10,000,000
+#define RTL_TICKS_PER_MIN           (RTL_TICKS_PER_SEC      * ULONG64_C(60))    // 600,000,000
+#define RTL_TICKS_PER_HOUR          (RTL_TICKS_PER_MIN      * ULONG64_C(60))    // 36,000,000,000
+#define RTL_TICKS_PER_DAY           (RTL_TICKS_PER_HOUR     * ULONG64_C(24))    // 864,000,000,000
+#define RTL_TICKS_PER_WEEK          (RTL_TICKS_PER_DAY      * ULONG64_C(7))     // 6,048,000,000,000
+#define RTL_TICKS_PER_MONTH         (RTL_TICKS_PER_DAY      * ULONG64_C(30))    // 25,920,000,000,000
+#define RTL_TICKS_PER_YEAR          (RTL_TICKS_PER_DAY      * ULONG64_C(365))   // 31,536,000,000,000
+#define RTL_TICKS_PER_LEAP_YEAR     (RTL_TICKS_PER_DAY      * ULONG64_C(366))   // 31,622,400,000,000
 
-#define RTL_NANOSEC_PER_SEC              1000000000ull
-#define RTL_NANOSEC_PER_MILLISEC            1000000ull
-#define RTL_100NANOSEC_PER_SEC             10000000ull
-#define RTL_100NANOSEC_PER_MILLISEC           10000ull
-#define RTL_MILLISEC_PER_SEC                   1000ull
+#define RTL_NANOSEC_PER_SEC              ULONG64_C(1000000000)
+#define RTL_NANOSEC_PER_MILLISEC            ULONG64_C(1000000)
+#define RTL_100NANOSEC_PER_SEC             ULONG64_C(10000000)
+#define RTL_100NANOSEC_PER_MILLISEC           ULONG64_C(10000)
+#define RTL_MILLISEC_PER_SEC                   ULONG64_C(1000)
 
-#define RTL_SEC_PER_HOUR                       3600ull // 1 hour  // 3,600 seconds
-#define RTL_SEC_PER_DAY                       86400ull // 1 day   // 86,400 seconds
-#define RTL_SEC_PER_WEEK                     604800ull // 1 week  // 604,800 seconds
-#define RTL_SEC_PER_MONTH                   2592000ull // 1 month // 2,592,000 seconds (30 days)
-#define RTL_SEC_PER_YEAR                   31536000ull // 1 year  // 31,536,000 seconds (365 days)
+#define RTL_SEC_PER_HOUR                       ULONG64_C(3600) // 1 hour  // 3,600 seconds
+#define RTL_SEC_PER_DAY                       ULONG64_C(86400) // 1 day   // 86,400 seconds
+#define RTL_SEC_PER_WEEK                     ULONG64_C(604800) // 1 week  // 604,800 seconds
+#define RTL_SEC_PER_MONTH                   ULONG64_C(2592000) // 1 month // 2,592,000 seconds (30 days)
+#define RTL_SEC_PER_YEAR                   ULONG64_C(31536000) // 1 year  // 31,536,000 seconds (365 days)
 
 //
 // Time conversion macros (ordered by unit)
@@ -102,8 +102,8 @@ EXTERN_C_START
 #define RTL_NANOSEC_TO_SEC(ns)         ((ns) / RTL_NANOSEC_PER_SEC)
 #define RTL_MILLISEC_TO_NANOSEC(m)     ((m) * RTL_NANOSEC_PER_MILLISEC)
 #define RTL_NANOSEC_TO_MILLISEC(ns)    ((ns) / RTL_NANOSEC_PER_MILLISEC)
-#define RTL_NANOSEC_TO_100NANOSEC(ns)  ((ns) / 100)
-#define RTL_100NANOSEC_TO_NANOSEC(ns)  ((ns) * 100)
+#define RTL_NANOSEC_TO_100NANOSEC(ns)  ((ns) / ULONG64_C(100))
+#define RTL_100NANOSEC_TO_NANOSEC(ns)  ((ns) * ULONG64_C(100))
 
 // 100-Nanoseconds
 #define RTL_SEC_TO_100NANOSEC(s)       ((s) * RTL_100NANOSEC_PER_SEC)
@@ -118,7 +118,7 @@ EXTERN_C_START
 /**
  * The maximum value of the e_lfanew field in the IMAGE_DOS_HEADER structure for validation.
  */
-#define RTL_IMAGE_MAX_DOS_HEADER (256UL * (1024UL * 1024UL)) // 256 MB
+#define RTL_IMAGE_MAX_DOS_HEADER (ULONG_C(256) * (ULONG_C(1024) * ULONG_C(1024))) // 256 MB
 
 /**
  * Meta characters for wildcard processing.
@@ -488,6 +488,16 @@ AppendTailList(
     ListToAppend->Blink = ListEnd;
 }
 
+_Must_inspect_result_
+FORCEINLINE
+BOOLEAN
+IsSingleListEmpty (
+    _Inout_ PSINGLE_LIST_ENTRY ListHead
+    )
+{
+    return ListHead->Next == NULL;
+}
+
 /**
  * The PopEntryList routine removes the first entry from a singly linked list.
  *
@@ -530,6 +540,239 @@ PushEntryList(
     Entry->Next = ListHead->Next;
     ListHead->Next = Entry;
 }
+
+
+//
+// Single list volatile accessors
+//
+
+_Must_inspect_result_
+FORCEINLINE
+BOOLEAN
+IsSingleListEmptyNoFence (
+    _Inout_ PSINGLE_LIST_ENTRY ListHead
+    )
+{
+    return ReadPointerNoFence((PVOID*)&ListHead->Next) == NULL;
+}
+
+FORCEINLINE
+PSINGLE_LIST_ENTRY
+PopEntryListNoFence (
+    _Inout_ PSINGLE_LIST_ENTRY ListHead
+    )
+{
+    PSINGLE_LIST_ENTRY FirstEntry;
+
+    FirstEntry = ListHead->Next;
+    if (FirstEntry != NULL)
+    {
+        WritePointerNoFence((PVOID*)&ListHead->Next, FirstEntry->Next);
+    }
+
+    return FirstEntry;
+}
+
+FORCEINLINE
+VOID
+PushEntryListNoFence (
+    _Inout_ PSINGLE_LIST_ENTRY ListHead,
+    _Inout_ __drv_aliasesMem PSINGLE_LIST_ENTRY Entry
+    )
+{
+    Entry->Next = ListHead->Next;
+    WritePointerNoFence((PVOID*)&ListHead->Next, Entry);
+    return;
+}
+
+//
+// List volatile accessors
+//
+
+FORCEINLINE
+BOOLEAN
+RemoveEntryListNoFence(
+    _In_ PLIST_ENTRY Entry
+    )
+{
+    PLIST_ENTRY PrevEntry;
+    PLIST_ENTRY NextEntry;
+
+    NextEntry = (PLIST_ENTRY)ReadPointerNoFence((volatile const PVOID*)&Entry->Flink);
+    PrevEntry = (PLIST_ENTRY)ReadPointerNoFence((volatile const PVOID*)&Entry->Blink);
+
+    if ((ReadPointerNoFence((volatile const PVOID*)&NextEntry->Blink) != Entry) ||
+        (ReadPointerNoFence((volatile const PVOID*)&PrevEntry->Flink) != Entry))
+    {
+        FatalListEntryError((PVOID)PrevEntry,
+                            (PVOID)Entry,
+                            (PVOID)NextEntry);
+    }
+
+    WritePointerNoFence((volatile PVOID*)&PrevEntry->Flink, NextEntry);
+    WritePointerNoFence((volatile PVOID*)&NextEntry->Blink, PrevEntry);
+    return (BOOLEAN)(PrevEntry == NextEntry);
+}
+
+FORCEINLINE
+PLIST_ENTRY
+RemoveHeadListNoFence(
+    _Inout_ PLIST_ENTRY ListHead
+    )
+{
+    PLIST_ENTRY Entry;
+    PLIST_ENTRY NextEntry;
+
+    Entry = (PLIST_ENTRY)ReadPointerNoFence((volatile const PVOID*)&ListHead->Flink);
+
+#if DBG
+
+    RtlCheckListEntry(ListHead);
+
+#endif
+
+    NextEntry = (PLIST_ENTRY)ReadPointerNoFence((volatile const PVOID*)&Entry->Flink);
+
+    if ((ReadPointerNoFence((volatile const PVOID*)&Entry->Blink) != ListHead) ||
+        (ReadPointerNoFence((volatile const PVOID*)&NextEntry->Blink) != Entry))
+    {
+        FatalListEntryError((PVOID)ListHead,
+                            (PVOID)Entry,
+                            (PVOID)NextEntry);
+    }
+
+    WritePointerNoFence((volatile PVOID*)&ListHead->Flink, NextEntry);
+    WritePointerNoFence((volatile PVOID*)&NextEntry->Blink, ListHead);
+
+    return Entry;
+}
+
+FORCEINLINE
+PLIST_ENTRY
+RemoveTailListNoFence(
+    _Inout_ PLIST_ENTRY ListHead
+    )
+{
+    PLIST_ENTRY Entry;
+    PLIST_ENTRY PrevEntry;
+
+    Entry = (PLIST_ENTRY)ReadPointerNoFence((volatile const PVOID*)&ListHead->Blink);
+
+#if DEBUG
+
+    RtlCheckListEntry(ListHead);
+
+#endif
+
+    PrevEntry = (PLIST_ENTRY)ReadPointerNoFence((volatile const PVOID*)&Entry->Blink);
+
+    if ((ReadPointerNoFence((volatile const PVOID*)&Entry->Flink) != ListHead) ||
+        (ReadPointerNoFence((volatile const PVOID*)&PrevEntry->Flink) != Entry))
+    {
+        FatalListEntryError((PVOID)PrevEntry,
+                            (PVOID)Entry,
+                            (PVOID)ListHead);
+    }
+
+    WritePointerNoFence((volatile PVOID*)&ListHead->Blink, PrevEntry);
+    WritePointerNoFence((volatile PVOID*)&PrevEntry->Flink, ListHead);
+    return Entry;
+}
+
+FORCEINLINE
+VOID
+InsertTailListNoFence(
+    _Inout_ PLIST_ENTRY ListHead,
+    _Inout_ __drv_aliasesMem PLIST_ENTRY Entry
+    )
+{
+    PLIST_ENTRY PrevEntry;
+
+#if DEBUG
+
+    RtlCheckListEntry(ListHead);
+
+#endif
+
+    PrevEntry = (PLIST_ENTRY)ReadPointerNoFence((volatile const PVOID*)&ListHead->Blink);
+
+    if (ReadPointerNoFence((volatile const PVOID*)&PrevEntry->Flink) != ListHead)
+    {
+        FatalListEntryError((PVOID)PrevEntry,
+                            (PVOID)ListHead,
+                            (PVOID)PrevEntry->Flink);
+    }
+
+    WritePointerNoFence((volatile PVOID*)&Entry->Flink, ListHead);
+    WritePointerNoFence((volatile PVOID*)&Entry->Blink, PrevEntry);
+    WritePointerNoFence((volatile PVOID*)&PrevEntry->Flink, Entry);
+    WritePointerNoFence((volatile PVOID*)&ListHead->Blink, Entry);
+    return;
+}
+
+FORCEINLINE
+VOID
+InsertHeadListNoFence(
+    _Inout_ PLIST_ENTRY ListHead,
+    _Inout_ __drv_aliasesMem PLIST_ENTRY Entry
+    )
+{
+    PLIST_ENTRY NextEntry;
+
+#if DEBUG
+
+    RtlCheckListEntry(ListHead);
+
+#endif
+
+    NextEntry = (PLIST_ENTRY)ReadPointerNoFence((volatile const PVOID*)&ListHead->Flink);
+
+    if (ReadPointerNoFence((volatile const PVOID*)&NextEntry->Blink) != ListHead)
+    {
+        FatalListEntryError((PVOID)ListHead,
+                            (PVOID)NextEntry,
+                            (PVOID)NextEntry->Blink);
+    }
+
+    WritePointerNoFence((volatile PVOID*)&Entry->Flink, NextEntry);
+    WritePointerNoFence((volatile PVOID*)&Entry->Blink, ListHead);
+    WritePointerNoFence((volatile PVOID*)&NextEntry->Blink, Entry);
+    WritePointerNoFence((volatile PVOID*)&ListHead->Flink, Entry);
+    return;
+}
+
+FORCEINLINE
+VOID
+AppendTailListNoFence(
+    _Inout_ PLIST_ENTRY ListHead,
+    _Inout_ PLIST_ENTRY ListToAppend
+    )
+{
+    PLIST_ENTRY ListEnd = (PLIST_ENTRY)ReadPointerNoFence((volatile const PVOID*)&ListHead->Blink);
+
+    RtlCheckListEntry(ListHead);
+    RtlCheckListEntry(ListToAppend);
+
+    WritePointerNoFence((volatile PVOID*)&ListHead->Blink->Flink, ListToAppend);
+    WritePointerNoFence((volatile PVOID*)&ListHead->Blink, ListToAppend->Blink);
+    WritePointerNoFence((volatile PVOID*)&ListToAppend->Blink->Flink, ListHead);
+    WritePointerNoFence((volatile PVOID*)&ListToAppend->Blink, ListEnd);
+    return;
+}
+
+// Rtl-prefixed aliases for list helpers.
+#define RtlInitializeListHead InitializeListHead
+#define RtlInitializeListHead32 InitializeListHead32
+#define RtlIsListEmpty IsListEmpty
+#define RtlRemoveEntryListUnsafe RemoveEntryListUnsafe
+#define RtlRemoveEntryList RemoveEntryList
+#define RtlRemoveHeadList RemoveHeadList
+#define RtlRemoveTailList RemoveTailList
+#define RtlInsertTailList InsertTailList
+#define RtlInsertHeadList InsertHeadList
+#define RtlAppendTailList AppendTailList
+#define RtlPopEntryList PopEntryList
+#define RtlPushEntryList PushEntryList
 
 //
 // AVL and splay trees
@@ -4055,24 +4298,25 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
 
 // RTL_USER_PROCESS_PARAMETERS Flags
-#define RTL_USER_PROC_PARAMS_NORMALIZED                 0x00000001
-#define RTL_USER_PROC_PROFILE_USER                      0x00000002
-#define RTL_USER_PROC_PROFILE_KERNEL                    0x00000004
-#define RTL_USER_PROC_PROFILE_SERVER                    0x00000008
-//#define RTL_USER_PROC_RESERVE_64K                     0x00000010
-#define RTL_USER_PROC_RESERVE_1MB                       0x00000020
-#define RTL_USER_PROC_RESERVE_16MB                      0x00000040
-#define RTL_USER_PROC_CASE_SENSITIVE                    0x00000080
-#define RTL_USER_PROC_DISABLE_HEAP_DECOMMIT             0x00000100
-#define RTL_USER_PROC_DLL_REDIRECTION_LOCAL             0x00001000
-#define RTL_USER_PROC_APP_MANIFEST_PRESENT              0x00002000
-#define RTL_USER_PROC_IMAGE_KEY_MISSING                 0x00004000
-#define RTL_USER_PROC_DEV_OVERRIDE_ENABLED              0x00008000
-#define RTL_USER_PROC_OPTIN_PROCESS                     0x00020000
-#define RTL_USER_PROC_SESSION_OWNER                     0x00040000
-#define RTL_USER_PROC_HANDLE_USER_CALLBACK_EXCEPTIONS   0x00080000
-#define RTL_USER_PROC_PROTECTED_PROCESS                 0x00400000
-#define RTL_USER_PROC_SECURE_PROCESS                    0x80000000
+#define RTL_USER_PROC_PARAMS_NORMALIZED                 0x00000001 // Pointer representation: 1=absolute pointers, 0=relative offsets; set by RtlNormalizeProcessParams, cleared by RtlDeNormalizeProcessParams
+#define RTL_USER_PROC_PROFILE_USER                      0x00000002 // User-mode profiling enabled
+#define RTL_USER_PROC_PROFILE_KERNEL                    0x00000004 // Kernel-mode profiling enabled
+#define RTL_USER_PROC_PROFILE_SERVER                    0x00000008 // Server-mode profiling enabled
+//#define RTL_USER_PROC_RESERVE_64K                     0x00000010 // Unused/reserved
+#define RTL_USER_PROC_RESERVE_1MB                       0x00000020 // Reserve 1MB virtual memory (mutually exclusive group)
+#define RTL_USER_PROC_RESERVE_16MB                      0x00000040 // Reserve 16MB virtual memory (mutually exclusive group)
+#define RTL_USER_PROC_CASE_SENSITIVE                    0x00000080 // Enable case-sensitive filename matching (NTFS)
+#define RTL_USER_PROC_DISABLE_HEAP_DECOMMIT             0x00000100 // Disable heap decommitment
+#define RTL_USER_PROC_DLL_REDIRECTION_LOCAL             0x00001000 // Enable local DLL redirection (.local manifest behavior)
+#define RTL_USER_PROC_APP_MANIFEST_PRESENT              0x00002000 // Application manifest is present
+#define RTL_USER_PROC_IMAGE_KEY_MISSING                 0x00004000 // Process registry image key not found (masked during kernel flag validation)
+#define RTL_USER_PROC_DEV_OVERRIDE_ENABLED              0x00008000 // Developer override configuration enabled
+#define RTL_USER_PROC_OPTIN_PROCESS                     0x00020000 // Process opted into mitigations (Windows 8+)
+#define RTL_USER_PROC_SESSION_OWNER                     0x00040000 // Process is session owner
+#define RTL_USER_PROC_HANDLE_USER_CALLBACK_EXCEPTIONS   0x00080000 // Handle user callback exceptions
+#define RTL_USER_PROC_PROTECTED_PROCESS                 0x00400000 // Process is protected (Windows Vista+)
+#define RTL_USER_PROC_RESERVE_PLACEHOLDER               0x01000000 // Reserved user-mapping placeholder mode; grouped with RTL_USER_PROC_RESERVE* flags // PspSetupReservedUserMappings
+#define RTL_USER_PROC_SECURE_PROCESS                    0x80000000 // Process is secure (Windows 11+); rejected by current kernel capture validation path
 
 NTSYSAPI
 NTSTATUS
@@ -7532,32 +7776,32 @@ typedef struct _RTL_PROCESS_VERIFIER_OPTIONS
 // private
 typedef struct _RTL_DEBUG_INFORMATION
 {
-    HANDLE SectionHandleClient;
-    PVOID ViewBaseClient;
-    PVOID ViewBaseTarget;
-    ULONG_PTR ViewBaseDelta;
-    HANDLE EventPairClient;
-    HANDLE EventPairTarget;
-    HANDLE TargetProcessId;
-    HANDLE TargetThreadHandle;
-    ULONG Flags;
-    SIZE_T OffsetFree;
-    SIZE_T CommitSize;
-    SIZE_T ViewSize;
+    HANDLE SectionHandleClient;                         // Debug buffer section handle (client view)
+    PVOID ViewBaseClient;                               // Debug buffer view base (client process)
+    PVOID ViewBaseTarget;                               // Debug buffer view base (target process)
+    ULONG_PTR ViewBaseDelta;                            // Offset between client and target view bases
+    HANDLE EventPairClient;                             // Event pair for synchronization (client)
+    HANDLE EventPairTarget;                             // Event pair for synchronization (target)
+    HANDLE TargetProcessId;                             // Target process ID or current process if RTL_QUERY_PROCESS_USE_CURRENT_PROCESS set)
+    HANDLE TargetThreadHandle;                          // Target thread handle
+    ULONG Flags;                                        // Query flags (RTL_QUERY_PROCESS_* flags)
+    SIZE_T OffsetFree;                                  // Offset of free space in debug buffer
+    SIZE_T CommitSize;                                  // Committed size of debug buffer
+    SIZE_T ViewSize;                                    // Total view size of debug buffer
     union
     {
-        PRTL_PROCESS_MODULES Modules;
-        PRTL_PROCESS_MODULE_INFORMATION_EX ModulesEx;
+        PRTL_PROCESS_MODULES Modules;                   // Module list // RtlQueryProcessModuleInformation // RTL_QUERY_PROCESS_MODULES // RTL_QUERY_PROCESS_MODULES32 // RTL_QUERY_PROCESS_MODULESEX
+        PRTL_PROCESS_MODULE_INFORMATION_EX ModulesEx;   // Extended module list // RtlQueryProcessModuleInformation // RTL_QUERY_PROCESS_MODULES // RTL_QUERY_PROCESS_MODULES32 // RTL_QUERY_PROCESS_MODULESEX
     };
-    PRTL_PROCESS_BACKTRACES BackTraces;
-    PVOID Heaps;
-    PRTL_PROCESS_LOCKS Locks;
-    PVOID SpecificHeap;
-    HANDLE TargetProcessHandle;
-    PRTL_PROCESS_VERIFIER_OPTIONS VerifierOptions;
-    PVOID ProcessHeap;
-    HANDLE CriticalSectionHandle;
-    HANDLE CriticalSectionOwnerThread;
+    PRTL_PROCESS_BACKTRACES BackTraces;                 // Stack backtraces // RtlQueryProcessBackTraceInformation // RTL_QUERY_PROCESS_BACKTRACES
+    PVOID Heaps;                                        // Heap information // RtlQueryProcessHeapInformation // RTL_QUERY_PROCESS_HEAP_SUMMARY // RTL_QUERY_PROCESS_HEAP_TAGS // RTL_QUERY_PROCESS_HEAP_ENTRIES // RTL_QUERY_PROCESS_HEAP_SEGMENTS
+    PRTL_PROCESS_LOCKS Locks;                           // Lock information // RtlQueryProcessLockInformation // RTL_QUERY_PROCESS_LOCKS
+    PVOID SpecificHeap;                                 // Target heap to query
+    HANDLE TargetProcessHandle;                         // Target process to query
+    PRTL_PROCESS_VERIFIER_OPTIONS VerifierOptions;      // Verifier options // AVrfpQueryProcessVerifierOptions // RTL_QUERY_PROCESS_VERIFIER_OPTIONS
+    PVOID ProcessHeap;                                  // Process heap reference
+    HANDLE CriticalSectionHandle;                       // Critical section handle // RtlQueryCriticalSectionOwner // RTL_QUERY_PROCESS_CS_OWNER // RTL_QUERY_PROCESS_NONINVASIVE_CS_OWNER
+    HANDLE CriticalSectionOwnerThread;                  // Critical section owner thread // RtlQueryCriticalSectionOwner
     PVOID Reserved[4];
 } RTL_DEBUG_INFORMATION, *PRTL_DEBUG_INFORMATION;
 
@@ -7595,19 +7839,20 @@ RtlDeCommitDebugInfo(
     _In_ SIZE_T Size
     );
 
-#define RTL_QUERY_PROCESS_MODULES 0x00000001
-#define RTL_QUERY_PROCESS_BACKTRACES 0x00000002
-#define RTL_QUERY_PROCESS_HEAP_SUMMARY 0x00000004
-#define RTL_QUERY_PROCESS_HEAP_TAGS 0x00000008
-#define RTL_QUERY_PROCESS_HEAP_ENTRIES 0x00000010
-#define RTL_QUERY_PROCESS_LOCKS 0x00000020
-#define RTL_QUERY_PROCESS_MODULES32 0x00000040
-#define RTL_QUERY_PROCESS_VERIFIER_OPTIONS 0x00000080 // rev
-#define RTL_QUERY_PROCESS_MODULESEX 0x00000100 // rev
-#define RTL_QUERY_PROCESS_HEAP_SEGMENTS 0x00000200
-#define RTL_QUERY_PROCESS_CS_OWNER 0x00000400 // rev
-#define RTL_QUERY_PROCESS_NONINVASIVE 0x80000000
-#define RTL_QUERY_PROCESS_NONINVASIVE_CS_OWNER 0x80000800 // WIN11
+#define RTL_QUERY_PROCESS_MODULES 0x00000001 // RtlQueryProcessModuleInformation
+#define RTL_QUERY_PROCESS_BACKTRACES 0x00000002 // RtlQueryProcessBackTraceInformation
+#define RTL_QUERY_PROCESS_HEAP_SUMMARY 0x00000004 // RtlQueryProcessHeapInformation
+#define RTL_QUERY_PROCESS_HEAP_TAGS 0x00000008 // RtlQueryProcessHeapInformation
+#define RTL_QUERY_PROCESS_HEAP_ENTRIES 0x00000010 // RtlQueryProcessHeapInformation
+#define RTL_QUERY_PROCESS_LOCKS 0x00000020 // RtlQueryProcessLockInformation
+#define RTL_QUERY_PROCESS_MODULES32 0x00000040 // RtlQueryProcessModuleInformation (32-bit)
+#define RTL_QUERY_PROCESS_VERIFIER_OPTIONS 0x00000080 // AVrfpQueryProcessVerifierOptions; rev
+#define RTL_QUERY_PROCESS_MODULESEX 0x00000100 // RtlQueryProcessModuleInformation (extended); rev
+#define RTL_QUERY_PROCESS_HEAP_SEGMENTS 0x00000200 // RtlQueryProcessHeapInformation (segments)
+#define RTL_QUERY_PROCESS_CS_OWNER 0x00000400 // RtlQueryCriticalSectionOwner; rev
+#define RTL_QUERY_PROCESS_USE_CURRENT_PROCESS 0x40000000 // Control flag for current process path; rev
+#define RTL_QUERY_PROCESS_NONINVASIVE 0x80000000 // Non-invasive query flag
+#define RTL_QUERY_PROCESS_NONINVASIVE_CS_OWNER 0x80000800 // RtlQueryCriticalSectionOwner (non-invasive); WIN11
 
 NTSYSAPI
 NTSTATUS
