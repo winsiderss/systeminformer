@@ -134,6 +134,7 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumn(hwnd, PHSVTLC_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumnEx2(hwnd, PHSVTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(hwnd, PHSVTLC_EXITCODE, FALSE, L"Exit code", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_USERNAME, FALSE, L"Username", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&ServiceTreeListCm, hwnd, PHSVTLC_MAXIMUM, PhpServiceTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ServiceNodeList);
@@ -295,6 +296,7 @@ VOID PhpRemoveServiceNode(
 
     PhClearReference(&ServiceNode->BinaryPath);
     PhClearReference(&ServiceNode->LoadOrderGroup);
+    PhClearReference(&ServiceNode->UserName);
     PhClearReference(&ServiceNode->Description);
     PhClearReference(&ServiceNode->TooltipText);
     PhClearReference(&ServiceNode->KeyModifiedTimeText);
@@ -345,6 +347,10 @@ static VOID PhpUpdateServiceNodeConfig(
         SC_HANDLE serviceHandle;
         LPQUERY_SERVICE_CONFIG serviceConfig;
 
+        PhClearReference(&ServiceNode->BinaryPath);
+        PhClearReference(&ServiceNode->LoadOrderGroup);
+        PhClearReference(&ServiceNode->UserName);
+
         if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(ServiceNode->ServiceItem->Name))))
         {
             if (NT_SUCCESS(PhGetServiceConfig(serviceHandle, &serviceConfig)))
@@ -353,6 +359,8 @@ static VOID PhpUpdateServiceNodeConfig(
                     PhMoveReference(&ServiceNode->BinaryPath, PhCreateString(serviceConfig->lpBinaryPathName));
                 if (serviceConfig->lpLoadOrderGroup)
                     PhMoveReference(&ServiceNode->LoadOrderGroup, PhCreateString(serviceConfig->lpLoadOrderGroup));
+                if (serviceConfig->lpServiceStartName)
+                    PhMoveReference(&ServiceNode->UserName, PhCreateString(serviceConfig->lpServiceStartName));
 
                 PhFree(serviceConfig);
             }
@@ -571,6 +579,14 @@ BEGIN_SORT_FUNCTION(ExitCode)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(UserName)
+{
+    PhpUpdateServiceNodeConfig(node1);
+    PhpUpdateServiceNodeConfig(node2);
+    sortResult = PhCompareStringWithNullSortOrder(node1->UserName, node2->UserName, ServiceTreeListSortOrder, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -610,6 +626,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     SORT_FUNCTION(FileName),
                     SORT_FUNCTION(KeyModifiedTime), // Timeline
                     SORT_FUNCTION(ExitCode),
+                    SORT_FUNCTION(UserName),
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -808,6 +825,12 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                         PhMoveReference(&node->ExitCodeText, PhFinalStringBuilderString(&stringBuilder));
                         getCellText->Text = node->ExitCodeText->sr;
                     }
+                }
+                break;
+            case PHSVTLC_USERNAME:
+                {
+                    PhpUpdateServiceNodeConfig(node);
+                    getCellText->Text = PhGetStringRef(node->UserName);
                 }
                 break;
             default:
