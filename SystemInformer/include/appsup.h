@@ -254,7 +254,6 @@ PhGetPhVersionHash(
     VOID
     );
 
-PHAPPAPI
 PPH_STRING
 NTAPI
 PhGetPhVersionDateTime(
