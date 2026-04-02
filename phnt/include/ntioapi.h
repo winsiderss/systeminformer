@@ -71,20 +71,25 @@
 #define FILE_CONTAINS_EXTENDED_CREATE_INFORMATION   0x10000000
 #define FILE_VALID_EXTENDED_OPTION_FLAGS            0x10000000
 
+/**
+ * The EXTENDED_CREATE_DUAL_OPLOCK_KEYS structure contains the parent and target oplock keys for an extended create operation.
+ */
 typedef struct _EXTENDED_CREATE_DUAL_OPLOCK_KEYS
 {
-    //
-    //  Parent oplock key.
-    //  All-zero if not set.
-    //
+    /**
+     * Parent oplock key. All-zero if not set.
+     */
     GUID ParentOplockKey;
-    //
-    //  Target oplock key.
-    //  All-zero if not set.
-    //
+    /**
+     * Target oplock key. All-zero if not set.
+     */
     GUID TargetOplockKey;
 } EXTENDED_CREATE_DUAL_OPLOCK_KEYS, *PEXTENDED_CREATE_DUAL_OPLOCK_KEYS;
 
+/**
+ * The EXTENDED_CREATE_INFORMATION structure contains extended information for a create operation.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_extended_create_information
+ */
 typedef struct _EXTENDED_CREATE_INFORMATION
 {
     LONGLONG ExtendedCreateFlags;
@@ -93,6 +98,9 @@ typedef struct _EXTENDED_CREATE_INFORMATION
     //PEXTENDED_CREATE_DUAL_OPLOCK_KEYS DualOplockKeys; // since 24H2
 } EXTENDED_CREATE_INFORMATION, *PEXTENDED_CREATE_INFORMATION;
 
+/**
+ * The EXTENDED_CREATE_INFORMATION_32 structure contains extended information for a 32-bit create operation.
+ */
 typedef struct _EXTENDED_CREATE_INFORMATION_32
 {
     LONGLONG ExtendedCreateFlags;
@@ -112,7 +120,9 @@ typedef struct _EXTENDED_CREATE_INFORMATION_32
 #define FILE_COPY_STRUCTURED_STORAGE        0x00000041
 #define FILE_STRUCTURED_STORAGE             0x00000441
 
+//
 // I/O status information values for NtCreateFile/NtOpenFile
+//
 
 #define FILE_SUPERSEDED                 0x00000000
 #define FILE_OPENED                     0x00000001
@@ -121,12 +131,16 @@ typedef struct _EXTENDED_CREATE_INFORMATION_32
 #define FILE_EXISTS                     0x00000004
 #define FILE_DOES_NOT_EXIST             0x00000005
 
+//
 // Special ByteOffset parameters
+//
 
 #define FILE_WRITE_TO_END_OF_FILE       0xffffffff
 #define FILE_USE_FILE_POINTER_POSITION  0xfffffffe
 
+//
 // Alignment requirement values
+//
 
 #define FILE_BYTE_ALIGNMENT             0x00000000
 #define FILE_WORD_ALIGNMENT             0x00000001
@@ -139,12 +153,41 @@ typedef struct _EXTENDED_CREATE_INFORMATION_32
 #define FILE_256_BYTE_ALIGNMENT         0x000000ff
 #define FILE_512_BYTE_ALIGNMENT         0x000001ff
 
+//
 // Maximum length of a filename string
+//
 
 #define DOS_MAX_COMPONENT_LENGTH 255
 #define DOS_MAX_PATH_LENGTH (DOS_MAX_COMPONENT_LENGTH + 5)
 
 #define MAXIMUM_FILENAME_LENGTH 256
+
+//
+// Standard attributes
+//
+
+#define FILE_ATTRIBUTE_READONLY                 0x00000001
+#define FILE_ATTRIBUTE_HIDDEN                   0x00000002
+#define FILE_ATTRIBUTE_SYSTEM                   0x00000004
+#define FILE_ATTRIBUTE_DIRECTORY                0x00000010
+#define FILE_ATTRIBUTE_ARCHIVE                  0x00000020
+#define FILE_ATTRIBUTE_DEVICE                   0x00000040
+#define FILE_ATTRIBUTE_NORMAL                   0x00000080
+#define FILE_ATTRIBUTE_TEMPORARY                0x00000100
+#define FILE_ATTRIBUTE_SPARSE_FILE              0x00000200
+#define FILE_ATTRIBUTE_REPARSE_POINT            0x00000400
+#define FILE_ATTRIBUTE_COMPRESSED               0x00000800
+#define FILE_ATTRIBUTE_OFFLINE                  0x00001000
+#define FILE_ATTRIBUTE_NOT_CONTENT_INDEXED      0x00002000
+#define FILE_ATTRIBUTE_ENCRYPTED                0x00004000
+#define FILE_ATTRIBUTE_INTEGRITY_STREAM         0x00008000
+#define FILE_ATTRIBUTE_VIRTUAL                  0x00010000
+#define FILE_ATTRIBUTE_NO_SCRUB_DATA            0x00020000
+#define FILE_ATTRIBUTE_EA                       0x00040000
+#define FILE_ATTRIBUTE_PINNED                   0x00080000
+#define FILE_ATTRIBUTE_UNPINNED                 0x00100000
+#define FILE_ATTRIBUTE_RECALL_ON_OPEN           0x00040000
+#define FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS    0x00400000
 
 //
 // Extended attributes
@@ -263,6 +306,10 @@ typedef IO_APC_ROUTINE* PIO_APC_ROUTINE;
 // NtQueryInformationFile/NtSetInformationFile types
 //
 
+/**
+ * The FILE_INFORMATION_CLASS enumeration type specifies the type of file information to be queried or set.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_file_information_class
+ */
 typedef enum _FILE_INFORMATION_CLASS
 {
     FileDirectoryInformation = 1,                   // q: FILE_DIRECTORY_INFORMATION (requires FILE_LIST_DIRECTORY) (NtQueryDirectoryFile[Ex])
@@ -384,7 +431,7 @@ typedef struct _FILE_STANDARD_INFORMATION
 } FILE_STANDARD_INFORMATION, *PFILE_STANDARD_INFORMATION;
 
 /**
- * The FILE_STANDARD_INFORMATION_EX structure is used as an argument to routines that query or set file information
+ * The FILE_STANDARD_INFORMATION_EX structure is used as an argument to routines that query or set file information.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_standard_information_ex
  */
 typedef struct _FILE_STANDARD_INFORMATION_EX
@@ -1069,6 +1116,9 @@ typedef struct _FILE_ID_EXTD_DIR_INFORMATION
     FIELD_OFFSET(FILE_ID_EXTD_DIR_INFORMATION, FileNameLength)      \
 }
 
+/**
+ * The FILE_LINK_ENTRY_FULL_ID_INFORMATION structure contains information about a file link entry.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_LINK_ENTRY_FULL_ID_INFORMATION
 {
@@ -1078,6 +1128,9 @@ typedef struct _FILE_LINK_ENTRY_FULL_ID_INFORMATION
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_LINK_ENTRY_FULL_ID_INFORMATION, *PFILE_LINK_ENTRY_FULL_ID_INFORMATION;
 
+/**
+ * The FILE_LINKS_FULL_ID_INFORMATION structure contains information about file links.
+ */
 typedef struct _FILE_LINKS_FULL_ID_INFORMATION
 {
     ULONG BytesNeeded;
@@ -1085,6 +1138,9 @@ typedef struct _FILE_LINKS_FULL_ID_INFORMATION
     FILE_LINK_ENTRY_FULL_ID_INFORMATION Entry;
 } FILE_LINKS_FULL_ID_INFORMATION, *PFILE_LINKS_FULL_ID_INFORMATION;
 
+/**
+ * The FILE_ID_EXTD_BOTH_DIR_INFORMATION structure is used to query 128-bit file reference number information for the files in a directory.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_ID_EXTD_BOTH_DIR_INFORMATION
 {
@@ -1113,6 +1169,9 @@ typedef struct _FILE_ID_EXTD_BOTH_DIR_INFORMATION
     FIELD_OFFSET(FILE_ID_EXTD_BOTH_DIR_INFORMATION, FileNameLength)     \
 }
 
+/**
+ * The FILE_ID_64_EXTD_DIR_INFORMATION structure is used to query 64-bit file reference number information for the files in a directory.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_ID_64_EXTD_DIR_INFORMATION
 {
@@ -1143,6 +1202,9 @@ typedef struct _FILE_ID_64_EXTD_DIR_INFORMATION
     FIELD_OFFSET(FILE_ID_64_EXTD_DIR_INFORMATION, FileNameLength)       \
 }
 
+/**
+ * The FILE_ID_64_EXTD_BOTH_DIR_INFORMATION structure is used to query 64-bit file reference number information for the files in a directory.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
 {
@@ -1175,6 +1237,9 @@ typedef struct _FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
     FIELD_OFFSET(FILE_ID_64_EXTD_BOTH_DIR_INFORMATION, FileNameLength)      \
 }
 
+/**
+ * The FILE_ID_ALL_EXTD_DIR_INFORMATION structure is used to query file reference number information for the files in a directory.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_ID_ALL_EXTD_DIR_INFORMATION
 {
@@ -1206,6 +1271,9 @@ typedef struct _FILE_ID_ALL_EXTD_DIR_INFORMATION
     FIELD_OFFSET(FILE_ID_ALL_EXTD_DIR_INFORMATION, FileNameLength)       \
 }
 
+/**
+ * The FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION structure is used to query file reference number information for the files in a directory.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
 {
@@ -1240,6 +1308,10 @@ typedef struct _FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
 }
 
 #if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+/**
+ * The FILE_STAT_INFORMATION structure is used to query file statistics.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_stat_information
+ */
 typedef struct _FILE_STAT_INFORMATION
 {
     LARGE_INTEGER FileId;
@@ -1255,6 +1327,10 @@ typedef struct _FILE_STAT_INFORMATION
     ACCESS_MASK EffectiveAccess;
 } FILE_STAT_INFORMATION, *PFILE_STAT_INFORMATION;
 
+/**
+ * The FILE_STAT_BASIC_INFORMATION structure is used to query file statistics.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_stat_basic_information
+ */
 typedef struct _FILE_STAT_BASIC_INFORMATION
 {
     LARGE_INTEGER FileId;
@@ -1301,6 +1377,9 @@ typedef struct _FILE_MEMORY_PARTITION_INFORMATION
 #define LX_FILE_CASE_SENSITIVE_DIR 0x10
 
 #if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+/**
+ * The FILE_STAT_LX_INFORMATION structure is used to query file statistics for Linux compatibility.
+ */
 typedef struct _FILE_STAT_LX_INFORMATION
 {
     FILE_INTERNAL_INFORMATION FileId;
@@ -1383,6 +1462,10 @@ typedef struct _FILE_INFORMATION_DEFINITION
     ULONG FileNameLengthOffset;
 } FILE_INFORMATION_DEFINITION, *PFILE_INFORMATION_DEFINITION;
 
+/**
+ * The FILE_DIRECTORY_INFORMATION structure is used to query detailed information for the files in a directory.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_directory_information
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_DIRECTORY_INFORMATION
 {
@@ -1406,6 +1489,10 @@ typedef struct _FILE_DIRECTORY_INFORMATION
     FIELD_OFFSET(FILE_DIRECTORY_INFORMATION, FileNameLength)    \
 }
 
+/**
+ * The FILE_FULL_DIR_INFORMATION structure is used to query detailed information for the files in a directory.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_full_dir_information
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_FULL_DIR_INFORMATION
 {
@@ -1430,6 +1517,10 @@ typedef struct _FILE_FULL_DIR_INFORMATION
     FIELD_OFFSET(FILE_FULL_DIR_INFORMATION, FileNameLength)     \
 }
 
+/**
+ * The FILE_ID_FULL_DIR_INFORMATION structure is used to query detailed information for the files in a directory.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_id_full_dir_information
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_ID_FULL_DIR_INFORMATION
 {
@@ -1459,6 +1550,10 @@ typedef struct _FILE_ID_FULL_DIR_INFORMATION
     FIELD_OFFSET(FILE_ID_FULL_DIR_INFORMATION, FileNameLength)  \
 }
 
+/**
+ * The FILE_BOTH_DIR_INFORMATION structure is used to query detailed information for the files in a directory.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_both_dir_information
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_BOTH_DIR_INFORMATION
 {
@@ -1485,6 +1580,10 @@ typedef struct _FILE_BOTH_DIR_INFORMATION
     FIELD_OFFSET(FILE_BOTH_DIR_INFORMATION, FileNameLength)     \
 }
 
+/**
+ * The FILE_ID_BOTH_DIR_INFORMATION structure is used to query detailed information for the files in a directory.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_id_both_dir_information
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_ID_BOTH_DIR_INFORMATION
 {
@@ -1516,6 +1615,10 @@ typedef struct _FILE_ID_BOTH_DIR_INFORMATION
     FIELD_OFFSET(FILE_ID_BOTH_DIR_INFORMATION, FileNameLength)  \
 }
 
+/**
+ * The FILE_NAMES_INFORMATION structure is used to query for the names of files in a directory.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_names_information
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_NAMES_INFORMATION
 {
@@ -1532,6 +1635,10 @@ typedef struct _FILE_NAMES_INFORMATION
     FIELD_OFFSET(FILE_NAMES_INFORMATION, FileNameLength)    \
 }
 
+/**
+ * The FILE_ID_GLOBAL_TX_DIR_INFORMATION structure contains information about the files in a directory for a transactional NTFS (TxNTFS) operation.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_id_global_tx_dir_information
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_ID_GLOBAL_TX_DIR_INFORMATION
 {
@@ -1603,6 +1710,10 @@ typedef struct _FILE_FULL_EA_INFORMATION
     // UCHAR EaValue[1]
 } FILE_FULL_EA_INFORMATION, *PFILE_FULL_EA_INFORMATION;
 
+/**
+ * The FILE_GET_EA_INFORMATION structure is used to query for extended-attribute (EA) information.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_get_ea_information
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_GET_EA_INFORMATION
 {
@@ -1615,6 +1726,10 @@ typedef struct _FILE_GET_EA_INFORMATION
 // NtQueryQuotaInformationFile/NtSetQuotaInformationFile types
 //
 
+/**
+ * The FILE_GET_QUOTA_INFORMATION structure is used to query for quota information.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_get_quota_information
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_GET_QUOTA_INFORMATION
 {
@@ -1623,6 +1738,10 @@ typedef struct _FILE_GET_QUOTA_INFORMATION
     _Field_size_bytes_(SidLength) SID Sid;
 } FILE_GET_QUOTA_INFORMATION, *PFILE_GET_QUOTA_INFORMATION;
 
+/**
+ * The FILE_QUOTA_INFORMATION structure contains per-user quota information for each of the files in a directory.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_quota_information
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_QUOTA_INFORMATION
 {
@@ -1635,6 +1754,10 @@ typedef struct _FILE_QUOTA_INFORMATION
     _Field_size_bytes_(SidLength) SID Sid;
 } FILE_QUOTA_INFORMATION, *PFILE_QUOTA_INFORMATION;
 
+/**
+ * The FS_INFORMATION_CLASS enumeration type is used to specify the type of volume information to be queried or set.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_fsinfoclass
+ */
 typedef enum _FSINFOCLASS
 {
     FileFsVolumeInformation = 1,            // q: FILE_FS_VOLUME_INFORMATION
@@ -1660,6 +1783,10 @@ typedef enum _FSINFOCLASS FS_INFORMATION_CLASS;
 // NtQueryVolumeInformation/NtSetVolumeInformation types
 //
 
+/**
+ * The FILE_FS_VOLUME_INFORMATION structure is used to query information about a volume where a file resides.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_fs_volume_information
+ */
 typedef struct _FILE_FS_VOLUME_INFORMATION
 {
     LARGE_INTEGER VolumeCreationTime;
@@ -1669,12 +1796,20 @@ typedef struct _FILE_FS_VOLUME_INFORMATION
     _Field_size_bytes_(VolumeLabelLength) WCHAR VolumeLabel[1];
 } FILE_FS_VOLUME_INFORMATION, *PFILE_FS_VOLUME_INFORMATION;
 
+/**
+ * The FILE_FS_LABEL_INFORMATION structure is used to set the label for a file system volume.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_fs_label_information
+ */
 typedef struct _FILE_FS_LABEL_INFORMATION
 {
     ULONG VolumeLabelLength;
     _Field_size_bytes_(VolumeLabelLength) WCHAR VolumeLabel[1];
 } FILE_FS_LABEL_INFORMATION, *PFILE_FS_LABEL_INFORMATION;
 
+/**
+ * The FILE_FS_SIZE_INFORMATION structure is used to query sector size information for a file system volume.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_fs_size_information
+ */
 typedef struct _FILE_FS_SIZE_INFORMATION
 {
     LARGE_INTEGER TotalAllocationUnits;
@@ -1697,6 +1832,10 @@ typedef struct _FILE_FS_SIZE_INFORMATION
 #define FILE_VC_QUOTAS_REBUILDING 0x00000200
 #define FILE_VC_VALID_MASK 0x000003ff
 
+/**
+ * The FILE_FS_CONTROL_INFORMATION structure is used to query or set information about a file system volume.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_fs_control_information
+ */
 typedef struct _FILE_FS_CONTROL_INFORMATION
 {
     LARGE_INTEGER FreeSpaceStartFiltering;
@@ -1707,6 +1846,10 @@ typedef struct _FILE_FS_CONTROL_INFORMATION
     ULONG FileSystemControlFlags; // FILE_VC_*
 } FILE_FS_CONTROL_INFORMATION, *PFILE_FS_CONTROL_INFORMATION;
 
+/**
+ * The FILE_FS_FULL_SIZE_INFORMATION structure is used to query sector size information for a file system volume.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_fs_full_size_information
+ */
 typedef struct _FILE_FS_FULL_SIZE_INFORMATION
 {
     LARGE_INTEGER TotalAllocationUnits;
@@ -1716,6 +1859,10 @@ typedef struct _FILE_FS_FULL_SIZE_INFORMATION
     ULONG BytesPerSector;
 } FILE_FS_FULL_SIZE_INFORMATION, *PFILE_FS_FULL_SIZE_INFORMATION;
 
+/**
+ * The FILE_FS_OBJECTID_INFORMATION structure is used to query or set the object ID for a file system volume.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_fs_objectid_information
+ */
 typedef struct _FILE_FS_OBJECTID_INFORMATION
 {
     UCHAR ObjectId[16];
@@ -1731,12 +1878,20 @@ typedef struct _FILE_FS_OBJECTID_INFORMATION
     };
 } FILE_FS_OBJECTID_INFORMATION, *PFILE_FS_OBJECTID_INFORMATION;
 
+/**
+ * The FILE_FS_DEVICE_INFORMATION structure provides file system device information about the type of device object associated with a file object.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_fs_device_information
+ */
 typedef struct _FILE_FS_DEVICE_INFORMATION
 {
     DEVICE_TYPE DeviceType;
     ULONG Characteristics;
 } FILE_FS_DEVICE_INFORMATION, *PFILE_FS_DEVICE_INFORMATION;
 
+/**
+ * The FILE_FS_ATTRIBUTE_INFORMATION structure is used to query attribute information for a file system.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_fs_attribute_information
+ */
 typedef struct _FILE_FS_ATTRIBUTE_INFORMATION
 {
     ULONG FileSystemAttributes;
@@ -1745,6 +1900,10 @@ typedef struct _FILE_FS_ATTRIBUTE_INFORMATION
     _Field_size_bytes_(FileSystemNameLength) WCHAR FileSystemName[1];
 } FILE_FS_ATTRIBUTE_INFORMATION, *PFILE_FS_ATTRIBUTE_INFORMATION;
 
+/**
+ * The FILE_FS_DRIVER_PATH_INFORMATION structure is used to query whether a given driver is in the I/O path for a file system volume.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_fs_driver_path_information
+ */
 typedef struct _FILE_FS_DRIVER_PATH_INFORMATION
 {
     BOOLEAN DriverInPath;
@@ -1752,6 +1911,9 @@ typedef struct _FILE_FS_DRIVER_PATH_INFORMATION
     _Field_size_bytes_(DriverNameLength) WCHAR DriverName[1];
 } FILE_FS_DRIVER_PATH_INFORMATION, *PFILE_FS_DRIVER_PATH_INFORMATION;
 
+/**
+ * The FILE_FS_VOLUME_FLAGS_INFORMATION structure is used to query or set file system volume flags.
+ */
 typedef struct _FILE_FS_VOLUME_FLAGS_INFORMATION
 {
     ULONG Flags;
@@ -1766,6 +1928,10 @@ typedef struct _FILE_FS_VOLUME_FLAGS_INFORMATION
 // If set for Sector and Partition fields, alignment is not known.
 #define SSINFO_OFFSET_UNKNOWN 0xffffffff
 
+/**
+ * The FILE_FS_SECTOR_SIZE_INFORMATION structure is used to query sector size information for a file system volume.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_fs_sector_size_information
+ */
 typedef struct _FILE_FS_SECTOR_SIZE_INFORMATION
 {
     ULONG LogicalBytesPerSector;
@@ -1777,11 +1943,17 @@ typedef struct _FILE_FS_SECTOR_SIZE_INFORMATION
     ULONG ByteOffsetForPartitionAlignment;
 } FILE_FS_SECTOR_SIZE_INFORMATION, *PFILE_FS_SECTOR_SIZE_INFORMATION;
 
+/**
+ * The FILE_FS_DATA_COPY_INFORMATION structure is used to query the number of copies of data for a file system volume.
+ */
 typedef struct _FILE_FS_DATA_COPY_INFORMATION
 {
     ULONG NumberOfCopies;
 } FILE_FS_DATA_COPY_INFORMATION, *PFILE_FS_DATA_COPY_INFORMATION;
 
+/**
+ * The FILE_FS_METADATA_SIZE_INFORMATION structure is used to query the size of metadata for a file system volume.
+ */
 typedef struct _FILE_FS_METADATA_SIZE_INFORMATION
 {
     LARGE_INTEGER TotalMetadataAllocationUnits;
@@ -1789,6 +1961,9 @@ typedef struct _FILE_FS_METADATA_SIZE_INFORMATION
     ULONG BytesPerSector;
 } FILE_FS_METADATA_SIZE_INFORMATION, *PFILE_FS_METADATA_SIZE_INFORMATION;
 
+/**
+ * The FILE_FS_FULL_SIZE_INFORMATION_EX structure is used to query sector size information for a file system volume.
+ */
 typedef struct _FILE_FS_FULL_SIZE_INFORMATION_EX
 {
     ULONGLONG ActualTotalAllocationUnits;
@@ -1806,6 +1981,9 @@ typedef struct _FILE_FS_FULL_SIZE_INFORMATION_EX
     ULONG BytesPerSector;
 } FILE_FS_FULL_SIZE_INFORMATION_EX, *PFILE_FS_FULL_SIZE_INFORMATION_EX;
 
+/**
+ * The FILE_FS_GUID_INFORMATION structure is used to query the GUID for a file system volume.
+ */
 typedef struct _FILE_FS_GUID_INFORMATION
 {
     GUID FsGuid;
@@ -2918,11 +3096,17 @@ NtUnloadDriver(
 #define IO_COMPLETION_ALL_ACCESS (IO_COMPLETION_QUERY_STATE|IO_COMPLETION_MODIFY_STATE|STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE)
 #endif
 
+/**
+ * The IO_COMPLETION_INFORMATION_CLASS enumeration type specifies the type of I/O completion information to be queried.
+ */
 typedef enum _IO_COMPLETION_INFORMATION_CLASS
 {
     IoCompletionBasicInformation
 } IO_COMPLETION_INFORMATION_CLASS;
 
+/**
+ * The IO_COMPLETION_BASIC_INFORMATION structure contains the depth of an I/O completion port.
+ */
 typedef struct _IO_COMPLETION_BASIC_INFORMATION
 {
     LONG Depth;
@@ -3385,6 +3569,10 @@ typedef enum _BUS_DATA_TYPE
 #define SYMLINK_DIRECTORY 0x80000000 // If set then this is a directory symlink
 #define SYMLINK_FILE 0x40000000 // If set then this is a file symlink
 
+/**
+ * The REPARSE_DATA_BUFFER structure contains reparse point data for a Microsoft reparse point.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_reparse_data_buffer
+ */
 typedef struct _REPARSE_DATA_BUFFER
 {
     ULONG ReparseTag;
@@ -3425,54 +3613,51 @@ typedef struct _REPARSE_DATA_BUFFER
 
 #define REPARSE_DATA_BUFFER_HEADER_SIZE UFIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
 
-// Reparse structure for FSCTL_SET_REPARSE_POINT_EX
-
+/**
+ * The REPARSE_DATA_BUFFER_EX structure contains reparse point data.
+ */
 typedef struct _REPARSE_DATA_BUFFER_EX
 {
     ULONG Flags;
 
-    //
-    //  This is the existing reparse tag on the file if any,  if the
-    //  caller wants to replace the reparse tag too.
-    //
-    //    - To set the reparse data  along with the reparse tag that
-    //      could be different,  pass the current reparse tag of the
-    //      file.
-    //
-    //    - To update the reparse data while having the same reparse
-    //      tag,  the caller should give the existing reparse tag in
-    //      this ExistingReparseTag field.
-    //
-    //    - To set the reparse tag along with reparse data on a file
-    //      that doesn't have a reparse tag yet, set this to zero.
-    //
-    //  If the ExistingReparseTag  does not match the reparse tag on
-    //  the file,  the FSCTL_SET_REPARSE_POINT_EX  would  fail  with
-    //  STATUS_IO_REPARSE_TAG_MISMATCH. NOTE: If a file doesn't have
-    //  a reparse tag, ExistingReparseTag should be 0.
-    //
-
+    /**
+     * This is the existing reparse tag on the file if any, if the
+     * caller wants to replace the reparse tag too.
+     *
+     * - To set the reparse data along with the reparse tag that
+     *   could be different, pass the current reparse tag of the
+     *   file.
+     *
+     * - To update the reparse data while having the same reparse
+     *   tag, the caller should give the existing reparse tag in
+     *   this ExistingReparseTag field.
+     *
+     * - To set the reparse tag along with reparse data on a file
+     *   that doesn't have a reparse tag yet, set this to zero.
+     *
+     * If the ExistingReparseTag does not match the reparse tag on
+     * the file, the FSCTL_SET_REPARSE_POINT_EX would fail with
+     * STATUS_IO_REPARSE_TAG_MISMATCH. NOTE: If a file doesn't have
+     * a reparse tag, ExistingReparseTag should be 0.
+     */
     ULONG ExistingReparseTag;
 
-    //  For non-Microsoft reparse tags, this is the existing reparse
-    //  guid on the file if any,  if the caller wants to replace the
-    //  reparse tag and / or guid along with the data.
-    //
-    //  If ExistingReparseTag is 0, the file is not expected to have
-    //  any reparse tags, so ExistingReparseGuid is ignored. And for
-    //  non-Microsoft tags ExistingReparseGuid should match the guid
-    //  in the file if ExistingReparseTag is non zero.
-
+    /**
+     * For non-Microsoft reparse tags, this is the existing reparse
+     * guid on the file if any, if the caller wants to replace the
+     * reparse tag and / or guid along with the data.
+     *
+     * If ExistingReparseTag is 0, the file is not expected to have
+     * any reparse tags, so ExistingReparseGuid is ignored. And for
+     * non-Microsoft tags ExistingReparseGuid should match the guid
+     * in the file if ExistingReparseTag is non zero.
+     */
     GUID ExistingReparseGuid;
 
-    //
-    //  Reserved
-    //
+    /** Reserved. */
     ULONGLONG Reserved;
 
-    //
-    //  Reparse data to set
-    //
+    /** Reparse data to set. */
     union
     {
         REPARSE_DATA_BUFFER ReparseDataBuffer;
@@ -3707,7 +3892,10 @@ typedef struct _FILE_MAILSLOT_PEEK_BUFFER
 
 #define IOCTL_MOUNTDEV_QUERY_DEVICE_NAME            CTL_CODE(MOUNTDEVCONTROLTYPE, 2, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
-// Input structure for IOCTL_MOUNTMGR_CREATE_POINT.
+/**
+ * The MOUNTMGR_CREATE_POINT_INPUT structure is used by a mount manager client to send a symbolic link name and a device name to the mount manager.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/mountmgr/ns-mountmgr-_mountmgr_create_point_input
+ */
 typedef struct _MOUNTMGR_CREATE_POINT_INPUT
 {
     USHORT SymbolicLinkNameOffset;
@@ -3716,7 +3904,10 @@ typedef struct _MOUNTMGR_CREATE_POINT_INPUT
     USHORT DeviceNameLength;
 } MOUNTMGR_CREATE_POINT_INPUT, *PMOUNTMGR_CREATE_POINT_INPUT;
 
-// Input structure for IOCTL_MOUNTMGR_DELETE_POINTS, IOCTL_MOUNTMGR_QUERY_POINTS, and IOCTL_MOUNTMGR_DELETE_POINTS_DBONLY.
+/**
+ * The MOUNTMGR_MOUNT_POINT structure is used by mount manager clients to store information about a mount point.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/mountmgr/ns-mountmgr-_mountmgr_mount_point
+ */
 typedef struct _MOUNTMGR_MOUNT_POINT
 {
     ULONG SymbolicLinkNameOffset;
@@ -3730,7 +3921,10 @@ typedef struct _MOUNTMGR_MOUNT_POINT
     USHORT Reserved3;
 } MOUNTMGR_MOUNT_POINT, *PMOUNTMGR_MOUNT_POINT;
 
-// Output structure for IOCTL_MOUNTMGR_DELETE_POINTS, IOCTL_MOUNTMGR_QUERY_POINTS, and IOCTL_MOUNTMGR_DELETE_POINTS_DBONLY.
+/**
+ * The MOUNTMGR_MOUNT_POINTS structure is used by the mount manager to send a list of mount points to a client.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/mountmgr/ns-mountmgr-_mountmgr_mount_points
+ */
 _Struct_size_bytes_(Size)
 typedef struct _MOUNTMGR_MOUNT_POINTS
 {
@@ -3739,22 +3933,30 @@ typedef struct _MOUNTMGR_MOUNT_POINTS
     _Field_size_(NumberOfMountPoints) MOUNTMGR_MOUNT_POINT MountPoints[1];
 } MOUNTMGR_MOUNT_POINTS, *PMOUNTMGR_MOUNT_POINTS;
 
-// Input structure for IOCTL_MOUNTMGR_NEXT_DRIVE_LETTER.
+/**
+ * The MOUNTMGR_DRIVE_LETTER_TARGET structure is used by a mount manager client to send a non-persistent device name to the mount manager.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/mountmgr/ns-mountmgr-_mountmgr_drive_letter_target
+ */
 typedef struct _MOUNTMGR_DRIVE_LETTER_TARGET
 {
     USHORT DeviceNameLength;
     _Field_size_bytes_(DeviceNameLength) WCHAR DeviceName[1];
 } MOUNTMGR_DRIVE_LETTER_TARGET, *PMOUNTMGR_DRIVE_LETTER_TARGET;
 
-// Output structure for IOCTL_MOUNTMGR_NEXT_DRIVE_LETTER.
+/**
+ * The MOUNTMGR_DRIVE_LETTER_INFORMATION structure is used by the mount manager to provide a drive letter to a client.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/mountmgr/ns-mountmgr-_mountmgr_drive_letter_information
+ */
 typedef struct _MOUNTMGR_DRIVE_LETTER_INFORMATION
 {
     BOOLEAN DriveLetterWasAssigned;
     UCHAR CurrentDriveLetter;
 } MOUNTMGR_DRIVE_LETTER_INFORMATION, *PMOUNTMGR_DRIVE_LETTER_INFORMATION;
 
-// Input structure for IOCTL_MOUNTMGR_VOLUME_MOUNT_POINT_CREATED and
-// IOCTL_MOUNTMGR_VOLUME_MOUNT_POINT_DELETED.
+/**
+ * The MOUNTMGR_VOLUME_MOUNT_POINT structure is used by a mount manager client to send a volume mount point to the mount manager.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/mountmgr/ns-mountmgr-_mountmgr_volume_mount_point
+ */
 typedef struct _MOUNTMGR_VOLUME_MOUNT_POINT
 {
     USHORT SourceVolumeNameOffset;
@@ -3763,45 +3965,53 @@ typedef struct _MOUNTMGR_VOLUME_MOUNT_POINT
     USHORT TargetVolumeNameLength;
 } MOUNTMGR_VOLUME_MOUNT_POINT, *PMOUNTMGR_VOLUME_MOUNT_POINT;
 
-// Input structure for IOCTL_MOUNTMGR_CHANGE_NOTIFY.
-// Output structure for IOCTL_MOUNTMGR_CHANGE_NOTIFY.
+/**
+ * The MOUNTMGR_CHANGE_NOTIFY_INFO structure is used by the mount manager to provide information about a change in the mount manager's mount point database.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/mountmgr/ns-mountmgr-_mountmgr_change_notify_info
+ */
 typedef struct _MOUNTMGR_CHANGE_NOTIFY_INFO
 {
     ULONG EpicNumber;
 } MOUNTMGR_CHANGE_NOTIFY_INFO, *PMOUNTMGR_CHANGE_NOTIFY_INFO;
 
-// Input structure for IOCTL_MOUNTMGR_KEEP_LINKS_WHEN_OFFLINE,
-// IOCTL_MOUNTMGR_VOLUME_ARRIVAL_NOTIFICATION,
-// IOCTL_MOUNTMGR_QUERY_DOS_VOLUME_PATH, and
-// IOCTL_MOUNTMGR_QUERY_DOS_VOLUME_PATHS.
-// IOCTL_MOUNTMGR_PREPARE_VOLUME_DELETE
-// IOCTL_MOUNTMGR_CANCEL_VOLUME_DELETE
+/**
+ * The MOUNTMGR_TARGET_NAME structure is used by mount manager clients to send a target name to the mount manager.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/mountmgr/ns-mountmgr-_mountmgr_target_name
+ */
 typedef struct _MOUNTMGR_TARGET_NAME
 {
     USHORT DeviceNameLength;
     _Field_size_bytes_(DeviceNameLength) WCHAR DeviceName[1];
 } MOUNTMGR_TARGET_NAME, *PMOUNTMGR_TARGET_NAME;
 
-// Input / Output structure for querying / setting the auto-mount setting
+/**
+ * The MOUNTMGR_AUTO_MOUNT_STATE enumeration type specifies whether auto-mount is enabled or disabled.
+ */
 typedef enum _MOUNTMGR_AUTO_MOUNT_STATE
 {
     Disabled = 0,
     Enabled
 } MOUNTMGR_AUTO_MOUNT_STATE;
 
-// IOCTL_MOUNTMGR_QUERY_AUTO_MOUNT
+/**
+ * The MOUNTMGR_QUERY_AUTO_MOUNT structure is used to query the current auto-mount setting.
+ */
 typedef struct _MOUNTMGR_QUERY_AUTO_MOUNT
 {
     MOUNTMGR_AUTO_MOUNT_STATE CurrentState;
 } MOUNTMGR_QUERY_AUTO_MOUNT, *PMOUNTMGR_QUERY_AUTO_MOUNT;
 
-// IOCTL_MOUNTMGR_SET_AUTO_MOUNT
+/**
+ * The MOUNTMGR_SET_AUTO_MOUNT structure is used to set the auto-mount setting.
+ */
 typedef struct _MOUNTMGR_SET_AUTO_MOUNT
 {
     MOUNTMGR_AUTO_MOUNT_STATE NewState;
 } MOUNTMGR_SET_AUTO_MOUNT, *PMOUNTMGR_SET_AUTO_MOUNT;
 
-// Input structure for IOCTL_MOUNTMGR_SILO_ARRIVAL.
+/**
+ * The MOUNTMGR_SILO_ARRIVAL_INPUT structure is used to notify the mount manager about a silo arrival.
+ */
 typedef struct _MOUNTMGR_SILO_ARRIVAL_INPUT
 {
     HANDLE JobHandle;
