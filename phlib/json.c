@@ -575,14 +575,19 @@ static void PhJsonObjectToJsonStringEscape(
                     }
 
                     char buffer[7];
-                    const char* json_hex_chars = "0123456789abcdefABCDEF";
-                    sprintf_s(buffer, sizeof(buffer), "\\u00%c%c", json_hex_chars[c >> 4], json_hex_chars[c & 0xf]);
-                    
+                    const char* json_hex_chars = "0123456789abcdef";
+                    buffer[0] = '\\';
+                    buffer[1] = 'u';
+                    buffer[2] = '0';
+                    buffer[3] = '0';
+                    buffer[4] = json_hex_chars[(c >> 4) & 0xf];
+                    buffer[5] = json_hex_chars[c & 0xf];
+                    buffer[6] = ANSI_NULL;
+
                     PH_BYTESREF string;
                     string.Buffer = buffer;
-                    string.Length = (SIZE_T)strlen(buffer);
+                    string.Length = 6;
                     PhAppendBytesBuilder(StringBuilder, &string);
-
                     offset = ++pos;
                 }
                 else
@@ -776,75 +781,32 @@ BOOLEAN PhJsonObjectToString(
                 PH_BYTESREF stringFormat;
 
                 stringFormat.Buffer = formatBuffer;
-                stringFormat.Length = returnLength - sizeof(ANSI_NULL);
+                stringFormat.Length = returnLength;
 
                 PhAppendBytesBuilder(StringBuilder, &stringFormat);
-            }
-            else
-            {
-                CHAR buffer[64];
-
-                // %.17g is standard to preserve double precision in text
-                if (sprintf_s(buffer, sizeof(buffer), "%.17g", json_object_get_double(Object)) > 0)
-                {
-                    // Handle specific JSON quirk: if double looks like int (no dot), append .0?
-                    // Standard JSON-C usually handles this, but strictly speaking "1" is a valid double in JSON.
-                    // We stick to the string output.
-                    PhAppendBytesBuilder2(StringBuilder, buffer);
-                }
             }
         }
         break;
     case json_type_int:
         {
             SIZE_T returnLength;
-            //PH_FORMAT format[1];
-            //WCHAR formatBuffer[260];
-            //
-            //PhInitFormatI64D(&format[0], json_object_get_int64(Object));
-            //
-            //if (PhFormatToBuffer(
-            //    format,
-            //    RTL_NUMBER_OF(format),
-            //    formatBuffer,
-            //    sizeof(formatBuffer),
-            //    &returnLength
-            //    ))
-            //{
-            //    PH_BYTESREF stringFormat;
-            //
-            //    stringFormat.Buffer = formatBuffer;
-            //    stringFormat.Length = returnLength - sizeof(ANSI_NULL);
-            //
-            //    PhAppendBytesBuilder(StringBuilder, &stringFormat);
-            //}
-            //else
+            CHAR formatBuffer[65];
+
+            if (NT_SUCCESS(PhIntegerToUtf8Buffer(
+                json_object_get_int64(Object),
+                10,
+                TRUE,
+                formatBuffer,
+                sizeof(formatBuffer),
+                &returnLength
+                )))
             {
-                CHAR formatBuffer[65];
+                PH_BYTESREF stringFormat;
 
-                if (NT_SUCCESS(PhIntegerToUtf8Buffer(
-                    json_object_get_int64(Object),
-                    10,
-                    TRUE,
-                    formatBuffer,
-                    sizeof(formatBuffer),
-                    &returnLength
-                    )))
-                {
-                    PH_BYTESREF stringFormat;
+                stringFormat.Buffer = formatBuffer;
+                stringFormat.Length = returnLength;
 
-                    stringFormat.Buffer = formatBuffer;
-                    stringFormat.Length = returnLength - sizeof(ANSI_NULL);
-
-                    PhAppendBytesBuilder(StringBuilder, &stringFormat);
-                }
-                else
-                {
-                    if (sprintf_s(formatBuffer, sizeof(formatBuffer), "%lld", json_object_get_int64(Object)) > 0)
-                    {
-                        PhAppendBytesBuilder2(StringBuilder, formatBuffer);
-                    }
-                }
+                PhAppendBytesBuilder(StringBuilder, &stringFormat);
             }
         }
         break;
