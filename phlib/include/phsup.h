@@ -941,10 +941,16 @@ PhProbeAddress(
             PhRaiseStatus(STATUS_DATATYPE_MISALIGNMENT);
         }
 
+        ULONG_PTR userStartAddress = (ULONG_PTR)UserAddress;
+        ULONG_PTR userEndAddress = userStartAddress + UserLength;
+        ULONG_PTR bufferStartAddress = (ULONG_PTR)BufferAddress;
+        ULONG_PTR bufferEndAddress = bufferStartAddress + BufferLength;
+
         if (
-            ((ULONG_PTR)UserAddress + UserLength < (ULONG_PTR)UserAddress) ||
-            ((ULONG_PTR)UserAddress < (ULONG_PTR)BufferAddress) ||
-            ((ULONG_PTR)UserAddress + UserLength > (ULONG_PTR)BufferAddress + BufferLength)
+            (userEndAddress < userStartAddress) ||
+            (bufferEndAddress < bufferStartAddress) ||
+            (userStartAddress < bufferStartAddress) ||
+            (userEndAddress > bufferEndAddress)
             )
         {
             PhRaiseStatus(STATUS_ACCESS_VIOLATION);
@@ -989,20 +995,20 @@ PhProbeForRead(
         *((volatile UCHAR*)p);
 
         // Stop if rounding up by one page would wrap the address space.
-        if (p > MAXULONG_PTR - PAGE_SIZE)
+        if (p > (ULONG_PTR_MAX - PAGE_SIZE))
             return;
 
         // Round up to the first byte of the next page.
-        p = (p + PAGE_SIZE) & ~((ULONG_PTR)PAGE_MASK);
+        p = (ULONG_PTR)PAGE_ALIGN(p) + PAGE_SIZE;
 
         // Probe the first byte of each remaining page that intersects the range.
         while (p < endAddress)
         {
             // Verify the current page is readable.
-            *((volatile UCHAR*)p);
+            *(volatile UCHAR*)p;
 
             // Stop before adding another page would wrap the address space.
-            if (p > (ULONG_PTR)-PAGE_SIZE)
+            if (p > (ULONG_PTR_MAX - PAGE_SIZE))
                 break;
 
             // Advance to the first byte of the next page.
@@ -1045,23 +1051,23 @@ PhProbeForWrite(
         p = startAddress;
 
         // Probe the first byte in the range with a self-assignment to verify writability.
-        *((volatile UCHAR*)p) = *((volatile UCHAR*)p);
+        *(volatile UCHAR*)p = *(volatile UCHAR*)p;
 
         // Stop if rounding up by one page would wrap the address space.
-        if (p > MAXULONG_PTR - PAGE_SIZE)
+        if (p > (ULONG_PTR_MAX - PAGE_SIZE))
             return;
 
         // Round up to the first byte of the next page.
-        p = (p + PAGE_SIZE) & ~((ULONG_PTR)PAGE_MASK);
+        p = (ULONG_PTR)PAGE_ALIGN(p) + PAGE_SIZE; //  p = (p + PAGE_SIZE) & ~((ULONG_PTR)PAGE_MASK);
 
         // Probe the first byte of each remaining page that intersects the range.
         while (p < endAddress)
         {
             // Verify the page is writable by performing a volatile read‑modify‑write.
-            *((volatile UCHAR*)p) = *((volatile UCHAR*)p);
+            *(volatile UCHAR*)p = *(volatile UCHAR*)p;
 
             // Prevent wraparound before adding PAGE_SIZE.
-            if (p > (ULONG_PTR)-PAGE_SIZE)
+            if (p > (ULONG_PTR_MAX - PAGE_SIZE))
                 break;
 
             // Advance to the first byte of the next page.
