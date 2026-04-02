@@ -1070,15 +1070,15 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalStandbyNetworkRequest,                         // out: POWER_STANDBY_NETWORK_REQUEST (requires PopNetBIServiceSid)
     PowerInternalDirtyTransitionInformation,                    // out: BOOLEAN
     PowerInternalSetBackgroundTaskState,                        // out: POWER_SET_BACKGROUND_TASK_STATE
-    PowerInternalTtmOpenTerminal,                               // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmCreateTerminal,                             // in: (requires SeShutdownPrivilege and terminalPowerManagement capability) // 10
-    PowerInternalTtmEvacuateDevices,                            // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmCreateTerminalEventQueue,                   // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmGetTerminalEvent,                           // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmSetDefaultDeviceAssignment,                 // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmAssignDevice,                               // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmSetDisplayState,                            // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
-    PowerInternalTtmSetDisplayTimeouts,                         // in: (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmOpenTerminal,                               // in: POWER_INTERNAL_TTM_OPEN_TERMINAL_INPUT, out: POWER_INTERNAL_TTM_TERMINAL_HANDLE_OUTPUT // requires SeShutdownPrivilege and terminalPowerManagement capability
+    PowerInternalTtmCreateTerminal,                             // in: POWER_INTERNAL_TTM_CREATE_TERMINAL_INPUT, out: POWER_INTERNAL_TTM_CREATE_TERMINAL_OUTPUT // requires SeShutdownPrivilege and terminalPowerManagement capability
+    PowerInternalTtmEvacuateDevices,                            // in: POWER_INTERNAL_TTM_EVACUATE_DEVICES_INPUT // requires SeShutdownPrivilege and terminalPowerManagement capability
+    PowerInternalTtmCreateTerminalEventQueue,                   // in: POWER_INTERNAL_TTM_CREATE_EVENT_QUEUE_INPUT, out: POWER_INTERNAL_TTM_EVENT_QUEUE_HANDLE_OUTPUT // requires SeShutdownPrivilege and terminalPowerManagement capability
+    PowerInternalTtmGetTerminalEvent,                           // in: POWER_INTERNAL_TTM_GET_TERMINAL_EVENT_INPUT, out: POWER_INTERNAL_TTM_TERMINAL_EVENT // requires SeShutdownPrivilege and terminalPowerManagement capability
+    PowerInternalTtmSetDefaultDeviceAssignment,                 // in: POWER_INTERNAL_TTM_SET_DEFAULT_DEVICE_ASSIGNMENT_INPUT // requires SeShutdownPrivilege and terminalPowerManagement capability
+    PowerInternalTtmAssignDevice,                               // in: POWER_INTERNAL_TTM_ASSIGN_DEVICE_INPUT // requires SeShutdownPrivilege and terminalPowerManagement capability
+    PowerInternalTtmSetDisplayState,                            // in: POWER_INTERNAL_TTM_SET_DISPLAY_STATE_INPUT // requires SeShutdownPrivilege and terminalPowerManagement capability
+    PowerInternalTtmSetDisplayTimeouts,                         // in: POWER_INTERNAL_TTM_SET_DISPLAY_TIMEOUTS_INPUT // requires SeShutdownPrivilege and terminalPowerManagement capability
     PowerInternalBootSessionStandbyActivationInformation,       // out: POWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO
     PowerInternalSessionPowerState,                             // in: POWER_SESSION_POWER_STATE
     PowerInternalSessionTerminalInput,                          // in: POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT // 20
@@ -1289,6 +1289,115 @@ typedef struct _POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT
     ULONG TerminalId;
     UCHAR InputType;
 } POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT, *PPOWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_OPEN_TERMINAL_INPUT
+{
+    POWER_INFORMATION_INTERNAL_HEADER Header;
+    ACCESS_MASK DesiredAccess;
+} POWER_INTERNAL_TTM_OPEN_TERMINAL_INPUT, *PPOWER_INTERNAL_TTM_OPEN_TERMINAL_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_TERMINAL_HANDLE_OUTPUT
+{
+    HANDLE TerminalHandle;
+} POWER_INTERNAL_TTM_TERMINAL_HANDLE_OUTPUT, *PPOWER_INTERNAL_TTM_TERMINAL_HANDLE_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_CREATE_TERMINAL_INPUT
+{
+    POWER_INFORMATION_INTERNAL_HEADER Header;
+    ULONG CreateFlags;
+    ULONG Reserved;
+    HANDLE ParentTerminalHandle;
+} POWER_INTERNAL_TTM_CREATE_TERMINAL_INPUT, *PPOWER_INTERNAL_TTM_CREATE_TERMINAL_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_CREATE_TERMINAL_OUTPUT
+{
+    HANDLE TerminalHandle;
+    ULONG TerminalId;
+    ULONG Reserved;
+} POWER_INTERNAL_TTM_CREATE_TERMINAL_OUTPUT, *PPOWER_INTERNAL_TTM_CREATE_TERMINAL_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_EVACUATE_DEVICES_INPUT
+{
+    POWER_INFORMATION_INTERNAL_HEADER Header;
+    HANDLE TerminalHandle;
+} POWER_INTERNAL_TTM_EVACUATE_DEVICES_INPUT, *PPOWER_INTERNAL_TTM_EVACUATE_DEVICES_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_CREATE_EVENT_QUEUE_INPUT
+{
+    POWER_INFORMATION_INTERNAL_HEADER Header;
+    HANDLE TerminalHandle;
+} POWER_INTERNAL_TTM_CREATE_EVENT_QUEUE_INPUT, *PPOWER_INTERNAL_TTM_CREATE_EVENT_QUEUE_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_EVENT_QUEUE_HANDLE_OUTPUT
+{
+    HANDLE EventQueueHandle;
+} POWER_INTERNAL_TTM_EVENT_QUEUE_HANDLE_OUTPUT, *PPOWER_INTERNAL_TTM_EVENT_QUEUE_HANDLE_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_GET_TERMINAL_EVENT_INPUT
+{
+    POWER_INFORMATION_INTERNAL_HEADER Header;
+    HANDLE EventQueueHandle;
+} POWER_INTERNAL_TTM_GET_TERMINAL_EVENT_INPUT, *PPOWER_INTERNAL_TTM_GET_TERMINAL_EVENT_INPUT;
+
+#define POWER_INTERNAL_TTM_TERMINAL_EVENT_TYPE_DEVICE_ENUMERATED 0
+#define POWER_INTERNAL_TTM_TERMINAL_EVENT_TYPE_ENUMERATION_COMPLETE 1
+#define POWER_INTERNAL_TTM_TERMINAL_EVENT_TYPE_DEVICE_ARRIVED 3
+#define POWER_INTERNAL_TTM_TERMINAL_EVENT_TYPE_DEVICE_ASSIGNED 4
+#define POWER_INTERNAL_TTM_TERMINAL_EVENT_TYPE_DEVICE_DEPARTED 5
+#define POWER_INTERNAL_TTM_TERMINAL_EVENT_TYPE_DISPLAY_REQUIRED_POWER_REQUEST_UPDATED 6
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_TERMINAL_EVENT
+{
+    ULONG EventType;
+    ULONG Reserved;
+    UCHAR Payload[0x218];
+} POWER_INTERNAL_TTM_TERMINAL_EVENT, *PPOWER_INTERNAL_TTM_TERMINAL_EVENT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_SET_DEFAULT_DEVICE_ASSIGNMENT_INPUT
+{
+    POWER_INFORMATION_INTERNAL_HEADER Header;
+    HANDLE TerminalHandle;
+    BOOLEAN DefaultAssignmentEnabled;
+    UCHAR Reserved[7];
+} POWER_INTERNAL_TTM_SET_DEFAULT_DEVICE_ASSIGNMENT_INPUT, *PPOWER_INTERNAL_TTM_SET_DEFAULT_DEVICE_ASSIGNMENT_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_ASSIGN_DEVICE_INPUT
+{
+    POWER_INFORMATION_INTERNAL_HEADER Header;
+    HANDLE TerminalHandle;
+    ULONG DeviceId;
+    ULONG Reserved;
+} POWER_INTERNAL_TTM_ASSIGN_DEVICE_INPUT, *PPOWER_INTERNAL_TTM_ASSIGN_DEVICE_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_SET_DISPLAY_STATE_INPUT
+{
+    POWER_INFORMATION_INTERNAL_HEADER Header;
+    HANDLE TerminalHandle;
+    BOOLEAN DisplayOn;
+    UCHAR Reserved[3];
+    ULONG RequestReason;
+} POWER_INTERNAL_TTM_SET_DISPLAY_STATE_INPUT, *PPOWER_INTERNAL_TTM_SET_DISPLAY_STATE_INPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_TTM_SET_DISPLAY_TIMEOUTS_INPUT
+{
+    POWER_INFORMATION_INTERNAL_HEADER Header;
+    HANDLE TerminalHandle;
+    ULONG DimTimeoutSeconds;
+    ULONG OffTimeoutSeconds;
+} POWER_INTERNAL_TTM_SET_DISPLAY_TIMEOUTS_INPUT, *PPOWER_INTERNAL_TTM_SET_DISPLAY_TIMEOUTS_INPUT;
 
 // rev
 typedef struct _POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT
