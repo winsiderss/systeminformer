@@ -447,6 +447,16 @@ PhShowStatus(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhShowStatusHR(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PCWSTR Message,
+    _In_ HRESULT Status,
+    _In_opt_ ULONG Win32Result
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhShowContinueStatus(

@@ -1171,6 +1171,42 @@ PPH_STRING PhGetStatusMessage(
         return PhGetNtMessage(Status);
 }
 
+PPH_STRING PhGetStatusMessageHR(
+    _In_ HRESULT Status,
+    _In_opt_ ULONG Win32Result
+    )
+{
+    PPH_STRING statusMessage;
+
+    statusMessage = NULL;
+
+    if (!Win32Result)
+    {
+        if (HRESULT_NTSTATUS(Status))
+            return PhGetStatusMessage(PhNtStatusFromHResult(Status), 0);
+
+        if (
+            HRESULT_FACILITY(Status) == FACILITY_WIN32 ||
+            HRESULT_FACILITY(Status) == FACILITY_WINDOWS ||
+            //Status & 0xFFFF0000) == MAKE_HRESULT(SEVERITY_ERROR, FACILITY_WIN32, 0) || // produced by HRESULT_FROM_WIN32(x)
+            (HRESULT_FACILITY(Status) == FACILITY_WIN32 && HRESULT_SEVERITY(Status) == SEVERITY_ERROR) // produced by HRESULT_FROM_WIN32(x)
+            )
+        {
+            Win32Result = HRESULT_CODE(Status);
+        }
+    }
+
+    if (Win32Result)
+        return PhGetWin32Message(Win32Result);
+
+    statusMessage = PhGetWin32FormatMessage((ULONG)Status);
+
+    if (!statusMessage && HRESULT_CODE(Status))
+        statusMessage = PhGetWin32Message(HRESULT_CODE(Status));
+
+    return statusMessage;
+}
+
 /**
  * Displays an error message for a NTSTATUS value or Win32 error code.
  *
@@ -1203,6 +1239,41 @@ VOID PhShowStatus(
             PhShowError2(WindowHandle, L"Unable to perform the operation.", L"%s", Message);
         else
             PhShowStatus(WindowHandle, L"Unable to perform the operation.", STATUS_UNSUCCESSFUL, 0);
+    }
+}
+
+/**
+ * Displays an error message for a HRESULT value or Win32 error code.
+ *
+ * \param WindowHandle The owner window of the message box.
+ * \param Message A message describing the operation that failed.
+ * \param Status A HRESULT value, or 0 if there is none.
+ * \param Win32Result A Win32 error code, or 0 if there is none.
+ */
+VOID PhShowStatusHR(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PCWSTR Message,
+    _In_ HRESULT Status,
+    _In_opt_ ULONG Win32Result
+    )
+{
+    PPH_STRING statusMessage;
+
+    if (statusMessage = PhGetStatusMessageHR(Status, Win32Result))
+    {
+        if (Message)
+            PhShowError2(WindowHandle, Message, L"%s", PhGetString(statusMessage));
+        else
+            PhShowError2(WindowHandle, L"Unable to perform the operation.", L"%s", PhGetString(statusMessage));
+
+        PhDereferenceObject(statusMessage);
+    }
+    else
+    {
+        if (Message)
+            PhShowError2(WindowHandle, L"Unable to perform the operation.", L"%s", Message);
+        else
+            PhShowStatusHR(WindowHandle, L"Unable to perform the operation.", E_FAIL, 0);
     }
 }
 

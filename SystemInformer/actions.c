@@ -847,7 +847,7 @@ BOOLEAN PhUiRestartComputer(
                 if (status == S_OK)
                     return TRUE;
 
-                if ((status & 0xFFFF0000) == MAKE_HRESULT(SEVERITY_ERROR, FACILITY_WIN32, 0))
+                if (HRESULT_FACILITY(status) == FACILITY_WIN32 && HRESULT_SEVERITY(status) == SEVERITY_ERROR)
                 {
                     PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, HRESULT_CODE(status));
                 }
