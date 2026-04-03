@@ -755,15 +755,26 @@ PhfWaitForRundownProtection(
     _Inout_ PPH_RUNDOWN_PROTECT Protection
     );
 
+/**
+ * Initializes a rundown protection object.
+ *
+ * \param Protection A pointer to a rundown protection object.
+ */
 FORCEINLINE
 VOID
 PhInitializeRundownProtection(
     _Out_ PPH_RUNDOWN_PROTECT Protection
     )
 {
-    Protection->Value = 0;
+    Protection->Value = 0; // PhfInitializeRundownProtection(Protection);
 }
 
+/**
+ * Attempts to acquire rundown protection.
+ *
+ * \param Protection A rundown protection object.
+ * \return TRUE if rundown protection was acquired, otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 PhAcquireRundownProtection(
@@ -788,6 +799,11 @@ PhAcquireRundownProtection(
     }
 }
 
+/**
+ * Releases rundown protection.
+ *
+ * \param Protection A rundown protection object.
+ */
 FORCEINLINE
 VOID
 PhReleaseRundownProtection(
@@ -808,6 +824,11 @@ PhReleaseRundownProtection(
     }
 }
 
+/**
+ * Starts rundown and waits for all protected users to finish.
+ *
+ * \param Protection A rundown protection object.
+ */
 FORCEINLINE
 VOID
 PhWaitForRundownProtection(
@@ -866,6 +887,12 @@ PhfEndInitOnce(
     _Inout_ PPH_INITONCE InitOnce
     );
 
+/**
+ * Begins one-time initialization.
+ *
+ * \param InitOnce An init-once object.
+ * \return TRUE if the caller should perform initialization, otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 PhBeginInitOnce(
@@ -898,6 +925,12 @@ PhCountStringZ(
     _In_ PCWSTR String
     );
 
+/**
+ * Computes the length of a null-terminated ANSI/UTF-8 string in bytes.
+ *
+ * \param String A pointer to a null-terminated ANSI string.
+ * \return The length of the string in bytes, excluding the null terminator.
+ */
 FORCEINLINE
 SIZE_T
 PhCountBytesZ(
