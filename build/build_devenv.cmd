@@ -22,4 +22,6 @@ start /B /W "" "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\Custo
 start /B /W "" "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" "-devenv-build" "Plugins\Plugins.sln /Rebuild ""Release|Win32"" "
 start /B /W "" "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" "-devenv-build" "Plugins\Plugins.sln /Rebuild ""Release|x64"" "
 
-pause
+set "STDIN_REDIRECTED=False"
+for /f %%i in ('powershell -NoProfile -Command "[Console]::IsInputRedirected"') do set "STDIN_REDIRECTED=%%i"
+if /i not "%STDIN_REDIRECTED%"=="True" pause

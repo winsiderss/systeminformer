@@ -78,4 +78,6 @@ if "%VS_ARM64_SUPPORT%"=="true" (
 )
 
 :end
-pause
+set "STDIN_REDIRECTED=False"
+for /f %%i in ('powershell -NoProfile -Command "[Console]::IsInputRedirected"') do set "STDIN_REDIRECTED=%%i"
+if /i not "%STDIN_REDIRECTED%"=="True" pause

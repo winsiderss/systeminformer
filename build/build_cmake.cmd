@@ -127,4 +127,8 @@ if /i "%ACTION%"=="clean" (
 )
 
 :end
-if "%TIB%"=="false" pause
+if /i "%TIB%"=="false" (
+    set "STDIN_REDIRECTED=False"
+    for /f %%i in ('powershell -NoProfile -Command "[Console]::IsInputRedirected"') do set "STDIN_REDIRECTED=%%i"
+    if /i not "%STDIN_REDIRECTED%"=="True" pause
+)
