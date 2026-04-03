@@ -174,6 +174,7 @@ VOID PhShowModuleContextMenu(
     PhFree(modules);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpModulesTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PPH_MODULES_CONTEXT Context
@@ -660,6 +661,7 @@ VOID PhpProcessModulesSave(
     PhFreeFileDialog(fileDialog);
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpProcessModulesSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
