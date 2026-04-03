@@ -1701,6 +1701,9 @@ NTSTATUS PhDeleteDirectoryWin32(
     NTSTATUS status;
     HANDLE directoryHandle;
 
+    // Open the directory with the required access rights for enumeration, attribute inspection, and deletion.
+    // FILE_OPEN_REPARSE_POINT ensures that we open the directory itself (not its target) if it is a reparse point. (dmex)
+
     status = PhCreateFileWin32(
         &directoryHandle,
         PhGetStringRefZ(DirectoryPath),
@@ -1713,7 +1716,9 @@ NTSTATUS PhDeleteDirectoryWin32(
 
     if (NT_SUCCESS(status))
     {
-        // Remove any files or folders inside the directory. (dmex)
+        // Enumerate and delete all files and subdirectories within the target directory.
+        // PhDeleteDirectoryCallback handles both files and nested directories recursively. (dmex)
+
         status = PhEnumDirectoryFile(
             directoryHandle,
             NULL,
@@ -1723,12 +1728,17 @@ NTSTATUS PhDeleteDirectoryWin32(
 
         if (NT_SUCCESS(status))
         {
-            // Remove the directory. (dmex)
+            // Mark the directory itself for deletion after files and subdirectories have been removed.
+            // The directory will be deleted when the handle is closed or when the system finalizes the deletion. (dmex)
+
             status = PhSetFileDelete(directoryHandle);
         }
 
         NtClose(directoryHandle);
     }
+
+    // If the directory no longer exists (either it was successfully deleted or was not present),
+    // return STATUS_SUCCESS regardless of the previous status to maintain idempotency. (dmex)
 
     if (!PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
         return STATUS_SUCCESS;
@@ -1964,7 +1974,7 @@ NTSTATUS PhCopyFileChunkDirectIoWin32(
         goto CleanupExit;
 
     // https://learn.microsoft.com/en-us/windows/win32/w8cookbook/advanced-format--4k--disk-compatibility-update
-    NtQueryVolumeInformationFile(
+    status = NtQueryVolumeInformationFile(
         sourceHandle,
         &ioStatusBlock,
         &sourceSectorInfo,
@@ -1972,7 +1982,10 @@ NTSTATUS PhCopyFileChunkDirectIoWin32(
         FileFsSectorSizeInformation
         );
 
-    NtQueryVolumeInformationFile(
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtQueryVolumeInformationFile(
         destinationHandle,
         &ioStatusBlock,
         &destinationSectorInfo,
@@ -1980,12 +1993,17 @@ NTSTATUS PhCopyFileChunkDirectIoWin32(
         FileFsSectorSizeInformation
         );
 
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
     // Non-cached I/O requires 'blockSize' be sector-aligned with whichever file is opened as non-cached.
     // If both, the length should be aligned with the larger sector size of the two. (dmex)
+
     alignSize = __max(max(sourceSectorInfo.PhysicalBytesPerSectorForPerformance, destinationSectorInfo.PhysicalBytesPerSectorForPerformance),
         max(sourceSectorInfo.PhysicalBytesPerSectorForAtomicity, destinationSectorInfo.PhysicalBytesPerSectorForAtomicity));
 
     // Enable BypassIO (skip error checking since might be disabled) (dmex)
+
     PhSetFileBypassIO(sourceHandle, TRUE);
     PhSetFileBypassIO(destinationHandle, TRUE);
 
@@ -2227,6 +2245,7 @@ NTSTATUS PhMoveFile(
     renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + fileNameLength + sizeof(UNICODE_NULL);
     renameInfo = PhAllocateStack(renameInfoLength);
     if (!renameInfo) return STATUS_NO_MEMORY;
+
     memset(renameInfo, 0, renameInfoLength);
     renameInfo->ReplaceIfExists = FailIfExists ? FALSE : TRUE;
     renameInfo->RootDirectory = NULL;
@@ -2387,6 +2406,7 @@ NTSTATUS PhMoveFileWin32(
     renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + newFileName.Length + sizeof(UNICODE_NULL);
     renameInfo = PhAllocateStack(renameInfoLength);
     if (!renameInfo) return STATUS_NO_MEMORY;
+
     memset(renameInfo, 0, renameInfoLength);
     renameInfo->ReplaceIfExists = FailIfExists ? FALSE : TRUE;
     renameInfo->RootDirectory = NULL;
@@ -2738,13 +2758,11 @@ NTSTATUS PhSetFileExtendedAttributes(
     infoLength = sizeof(FILE_FULL_EA_INFORMATION) + (ULONG)Name->Length + sizeof(ANSI_NULL);
     if (Value) infoLength += (ULONG)Value->Length + sizeof(ANSI_NULL);
 
-    info = PhAllocateZero(infoLength);
+    info = PhAllocateStack(infoLength);
+    if (!info) return STATUS_INSUFFICIENT_RESOURCES;
+
     info->EaNameLength = (UCHAR)Name->Length;
-    memcpy(
-        info->EaName,
-        Name->Buffer,
-        Name->Length
-        );
+    memcpy(info->EaName, Name->Buffer, Name->Length);
 
     if (Value)
     {
@@ -2763,7 +2781,7 @@ NTSTATUS PhSetFileExtendedAttributes(
         infoLength
         );
 
-    PhFree(info);
+    PhFreeStack(info);
 
     return status;
 }
@@ -3420,7 +3438,8 @@ NTSTATUS PhGetFileHandleName(
     IO_STATUS_BLOCK isb;
 
     bufferSize = sizeof(FILE_NAME_INFORMATION) + MAX_PATH;
-    buffer = PhAllocateZero(bufferSize);
+    buffer = PhAllocateStack(bufferSize);
+    if (!buffer) return STATUS_INSUFFICIENT_RESOURCES;
 
     status = NtQueryInformationFile(
         FileHandle,
@@ -3433,8 +3452,9 @@ NTSTATUS PhGetFileHandleName(
     if (status == STATUS_BUFFER_OVERFLOW)
     {
         bufferSize = sizeof(FILE_NAME_INFORMATION) + buffer->FileNameLength + sizeof(UNICODE_NULL);
-        PhFree(buffer);
-        buffer = PhAllocateZero(bufferSize);
+        PhFreeStack(buffer);
+        buffer = PhAllocateStack(bufferSize);
+        if (!buffer) return STATUS_INSUFFICIENT_RESOURCES;
 
         status = NtQueryInformationFile(
             FileHandle,
@@ -3447,12 +3467,12 @@ NTSTATUS PhGetFileHandleName(
 
     if (!NT_SUCCESS(status))
     {
-        PhFree(buffer);
+        PhFreeStack(buffer);
         return status;
     }
 
     *FileName = PhCreateStringEx(buffer->FileName, buffer->FileNameLength);
-    PhFree(buffer);
+    PhFreeStack(buffer);
 
     return status;
 }
@@ -3468,7 +3488,8 @@ NTSTATUS PhGetFileNetworkPhysicalName(
     PFILE_NETWORK_PHYSICAL_NAME_INFORMATION buffer;
 
     bufferLength = UFIELD_OFFSET(FILE_NETWORK_PHYSICAL_NAME_INFORMATION, FileName[DOS_MAX_PATH_LENGTH]) + sizeof(UNICODE_NULL);
-    buffer = PhAllocate(bufferLength);
+    buffer = PhAllocateStack(bufferLength);
+    if (!buffer) return STATUS_INSUFFICIENT_RESOURCES;
 
     status = NtQueryInformationFile(
         FileHandle,
@@ -3481,8 +3502,9 @@ NTSTATUS PhGetFileNetworkPhysicalName(
     if (status == STATUS_BUFFER_OVERFLOW)
     {
         bufferLength = sizeof(FILE_NETWORK_PHYSICAL_NAME_INFORMATION) + buffer->FileNameLength;
-        PhFree(buffer);
-        buffer = PhAllocate(bufferLength);
+        PhFreeStack(buffer);
+        buffer = PhAllocateStack(bufferLength);
+        if (!buffer) return STATUS_INSUFFICIENT_RESOURCES;
 
         status = NtQueryInformationFile(
             FileHandle,
@@ -3495,12 +3517,12 @@ NTSTATUS PhGetFileNetworkPhysicalName(
 
     if (!NT_SUCCESS(status))
     {
-        PhFree(buffer);
+        PhFreeStack(buffer);
         return status;
     }
 
     *FileName = PhCreateStringEx(buffer->FileName, buffer->FileNameLength);
-    PhFree(buffer);
+    PhFreeStack(buffer);
 
     return status;
 }
