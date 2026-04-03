@@ -241,28 +241,28 @@ VOID NTAPI MenuItemCallback(
                 { L"All files (*.*)", L"*.*" }
             };
             PVOID fileDialog;
-            PPH_STRING fileName;
+            PPH_STRING fileSaveName;
 
             fileDialog = PhCreateOpenFileDialog();
             PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
             if (PhShowFileDialog(menuItem->Context, fileDialog))
             {
-                fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
+                fileSaveName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
 
                 switch (menuItem->Id)
                 {
                 case MENUITEM_VIRUSTOTAL_UPLOAD_FILE:
-                    UploadToOnlineService(fileName, MENUITEM_VIRUSTOTAL_UPLOAD);
+                    UploadToOnlineService(fileSaveName, MENUITEM_VIRUSTOTAL_UPLOAD);
                     break;
                 case MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE:
-                    UploadToOnlineService(fileName, MENUITEM_HYBRIDANALYSIS_UPLOAD);
+                    UploadToOnlineService(fileSaveName, MENUITEM_HYBRIDANALYSIS_UPLOAD);
                     break;
                 case MENUITEM_JOTTI_UPLOAD_FILE:
-                    UploadToOnlineService(fileName, MENUITEM_JOTTI_UPLOAD);
+                    UploadToOnlineService(fileSaveName, MENUITEM_JOTTI_UPLOAD);
                     break;
                 case MENUITEM_FILESCANIO_UPLOAD_FILE:
-                    UploadToOnlineService(fileName, MENUITEM_FILESCANIO_UPLOAD);
+                    UploadToOnlineService(fileSaveName, MENUITEM_FILESCANIO_UPLOAD);
                     break;
                 }
             }
@@ -909,7 +909,7 @@ VOID NTAPI ProcessItemCreateCallback(
     InitializeScanContext(&extension->ScanContext);
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    InsertTailList(&ScanExtensionsListHead, &extension->ListEntry);
+    InsertTailListNoFence(&ScanExtensionsListHead, &extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 }
 
@@ -923,7 +923,7 @@ VOID NTAPI ProcessItemDeleteCallback(
     PSCAN_EXTENSION extension = Extension;
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    RemoveEntryList(&extension->ListEntry);
+    RemoveEntryListNoFence(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 
     DeleteScanContext(&extension->ScanContext);
@@ -948,7 +948,7 @@ VOID NTAPI ModuleItemCreateCallback(
     InitializeScanContext(&extension->ScanContext);
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    InsertTailList(&ScanExtensionsListHead, &extension->ListEntry);
+    InsertTailListNoFence(&ScanExtensionsListHead, &extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 }
 
@@ -962,7 +962,7 @@ VOID NTAPI ModuleItemDeleteCallback(
     PSCAN_EXTENSION extension = Extension;
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    RemoveEntryList(&extension->ListEntry);
+    RemoveEntryListNoFence(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 
     DeleteScanContext(&extension->ScanContext);
@@ -987,7 +987,7 @@ VOID NTAPI ServiceItemCreateCallback(
     InitializeScanContext(&extension->ScanContext);
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    InsertTailList(&ScanExtensionsListHead, &extension->ListEntry);
+    InsertTailListNoFence(&ScanExtensionsListHead, &extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 }
 
@@ -1001,7 +1001,7 @@ VOID NTAPI ServiceItemDeleteCallback(
     PSCAN_EXTENSION extension = Extension;
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    RemoveEntryList(&extension->ListEntry);
+    RemoveEntryListNoFence(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 
     DeleteScanContext(&extension->ScanContext);
