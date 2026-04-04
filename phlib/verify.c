@@ -321,7 +321,7 @@ BOOLEAN PhIsChainedToMicrosoft(
  * \param StateData The state data handle.
  * \param Signatures A variable which receives a pointer to an array of certificate contexts.
  * \param NumberOfSignatures A variable which receives the number of signatures.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhpGetSignaturesFromStateData(
     _In_ HANDLE StateData,
@@ -491,7 +491,7 @@ VERIFY_RESULT PhpVerifyFile(
  * \param FileHash A variable which receives a pointer to the file hash.
  * \param FileHashLength A variable which receives the length of the file hash.
  * \param CatAdminHandle A variable which receives the catalog administrator handle.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhpCalculateFileHash(
     _In_ HANDLE FileHandle,
@@ -572,7 +572,7 @@ NTSTATUS PhpCalculateFileHash(
  * \param FileHashBuffer A buffer which receives the file hash.
  * \param FileHashLength A variable which receives the length of the file hash.
  * \param CatAdminHandle A variable which receives the catalog administrator handle.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhpVerifyGetHashFromFileHandle(
     _In_ HANDLE FileHandle,
@@ -773,7 +773,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
  * \param VerifyResult A variable which receives the verification result.
  * \param Signatures A variable which receives a pointer to an array of certificate contexts.
  * \param NumberOfSignatures A variable which receives the number of signatures.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhVerifyFileEx(
     _In_ PPH_VERIFY_FILE_INFO Information,
@@ -1012,7 +1012,7 @@ PPH_STRING PhGetSignerNameFromCertificate(
  * Checks if a certificate is a Windows system component certificate.
  *
  * \param Certificate The certificate context.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetSystemComponentFromCertificate(
     _In_ PCERT_CONTEXT Certificate
