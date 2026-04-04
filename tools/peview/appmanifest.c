@@ -10,6 +10,8 @@
  */
 
 #include <peview.h>
+#include <xmllite.h>
+#include <shlwapi.h>
 
 typedef struct _PV_APP_MANIFEST_CONTEXT
 {
@@ -24,27 +26,129 @@ VOID PvpShowAppManifest(
     _In_ PPV_APP_MANIFEST_CONTEXT Context
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(&CreateXmlReader) CreateXmlReader_I = NULL;
+    static typeof(&CreateXmlWriter) CreateXmlWriter_I = NULL;
+    static typeof(&SHCreateMemStream) SHCreateMemStream_I = NULL;
+    static typeof(&CreateStreamOnHGlobal) CreateStreamOnHGlobal_I = NULL;
     ULONG manifestLength;
     PVOID manifestBuffer;
 
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID xmllite = PhLoadLibrary(L"xmllite.dll");
+        PVOID shlwapi = PhLoadLibrary(L"shlwapi.dll");
+        PVOID ole32 = PhLoadLibrary(L"ole32.dll");
+
+        if (xmllite)
+        {
+            CreateXmlReader_I = PhGetDllBaseProcedureAddress(xmllite, "CreateXmlReader", 0);
+            CreateXmlWriter_I = PhGetDllBaseProcedureAddress(xmllite, "CreateXmlWriter", 0);
+        }
+
+        if (shlwapi)
+        {
+            SHCreateMemStream_I = PhGetDllBaseProcedureAddress(shlwapi, "SHCreateMemStream", 0);
+        }
+
+        if (ole32)
+        {
+            CreateStreamOnHGlobal_I = PhGetDllBaseProcedureAddress(ole32, "CreateStreamOnHGlobal", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
     if (NT_SUCCESS(PhGetMappedImageResource(
         &PvMappedImage,
-        MAKEINTRESOURCEW(1),
+        CREATEPROCESS_MANIFEST_RESOURCE_ID,
         RT_MANIFEST,
         0,
         &manifestLength,
         &manifestBuffer
         )))
     {
-        PPH_STRING manifestString;
+        IStream* dataInputStream = NULL;
+        IStream* dataOutputStream = NULL;
+        IXmlReader* streamReader = NULL;
+        IXmlWriter* streamWriter = NULL;
+        STATSTG statstg;
+        LARGE_INTEGER move;
 
-        manifestString = PhConvertUtf8ToUtf16Ex(manifestBuffer, manifestLength);
+        move.QuadPart = 0;
 
-        SendMessage(Context->EditWindow, WM_SETREDRAW, FALSE, 0);
-        SendMessage(Context->EditWindow, WM_SETTEXT, FALSE, (LPARAM)manifestString->Buffer);
-        SendMessage(Context->EditWindow, WM_SETREDRAW, TRUE, 0);
+        if (!(CreateXmlReader_I && CreateXmlWriter_I && SHCreateMemStream_I && CreateStreamOnHGlobal_I))
+            goto Fallback;
 
-        PhDereferenceObject(manifestString);
+        dataInputStream = SHCreateMemStream_I((const BYTE*)manifestBuffer, manifestLength);
+        if (!dataInputStream)
+            goto Fallback;
+
+        if (FAILED(CreateXmlReader_I(&IID_IXmlReader, (void**)&streamReader, NULL)))
+            goto Fallback;
+
+        if (FAILED(IXmlReader_SetInput(streamReader, (IUnknown*)dataInputStream)))
+            goto Fallback;
+
+        if (FAILED(CreateStreamOnHGlobal_I(NULL, TRUE, &dataOutputStream)))
+            goto Fallback;
+
+        if (FAILED(CreateXmlWriter_I(&IID_IXmlWriter, (void**)&streamWriter, NULL)))
+            goto Fallback;
+
+        if (FAILED(IXmlWriter_SetOutput(streamWriter, (IUnknown*)dataOutputStream)))
+            goto Fallback;
+
+        IXmlWriter_SetProperty(streamWriter, XmlWriterProperty_Indent, TRUE);
+
+        while (IXmlReader_Read(streamReader, NULL) == S_OK)
+        {
+            IXmlWriter_WriteNode(streamWriter, streamReader, TRUE);
+        }
+
+        IXmlWriter_Flush(streamWriter);
+
+        if (SUCCEEDED(dataOutputStream->lpVtbl->Stat(dataOutputStream, &statstg, STATFLAG_NONAME)))
+        {
+            ULONG bufferLength = statstg.cbSize.LowPart;
+            PVOID buffer = PhAllocate(bufferLength);
+
+            if (buffer)
+            {
+                IStream_Seek(dataOutputStream, move, STREAM_SEEK_SET, NULL);
+
+                if (SUCCEEDED(dataOutputStream->lpVtbl->Read(dataOutputStream, buffer, bufferLength, NULL)))
+                {
+                    PPH_STRING manifestString;
+
+                    manifestString = PhConvertUtf8ToUtf16Ex((PCSTR)buffer, bufferLength);
+
+                    SendMessage(Context->EditWindow, WM_SETREDRAW, FALSE, 0);
+                    SendMessage(Context->EditWindow, WM_SETTEXT, FALSE, (LPARAM)manifestString->Buffer);
+                    SendMessage(Context->EditWindow, WM_SETREDRAW, TRUE, 0);
+
+                    PhDereferenceObject(manifestString);
+                }
+                PhFree(buffer);
+            }
+        }
+
+    Cleanup:
+        if (streamWriter) IStream_Release(streamWriter);
+        if (dataOutputStream) dataOutputStream->lpVtbl->Release(dataOutputStream);
+        if (streamReader) IXmlReader_Release(streamReader);
+        if (dataInputStream) dataInputStream->lpVtbl->Release(dataInputStream);
+        return;
+
+    Fallback:
+        {
+            PPH_STRING manifestString = PhConvertUtf8ToUtf16Ex(manifestBuffer, manifestLength);
+            SendMessage(Context->EditWindow, WM_SETREDRAW, FALSE, 0);
+            SendMessage(Context->EditWindow, WM_SETTEXT, FALSE, (LPARAM)manifestString->Buffer);
+            SendMessage(Context->EditWindow, WM_SETREDRAW, TRUE, 0);
+            PhDereferenceObject(manifestString);
+        }
+        goto Cleanup;
     }
 }
 
