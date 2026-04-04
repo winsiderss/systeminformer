@@ -526,11 +526,6 @@ namespace CustomBuildTool
                 if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
                     Environment.Exit(1);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
-                    Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("Plugins", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
-                    Environment.Exit(1);
-
                 if (!Build.CopyTextFiles(true, flags))
                     Environment.Exit(1);
                 if (!Build.BuildBinZip(flags))
