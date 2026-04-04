@@ -98,7 +98,7 @@ BOOLEAN NTAPI PhWslDistributionNamesCallback(
  * \param DistributionName A variable which receives the distribution name.
  * \param DistributionPath A variable which receives the distribution path.
  * \param TranslatedPath A variable which receives the translated path.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetWslDistributionFromPath(
     _In_ PPH_STRINGREF FileName,
@@ -245,7 +245,7 @@ PPH_STRING PhGetWslPathCommandLine(
  *
  * \param FileName The DOS path name.
  * \param LxssFileName A variable which receives the translated WSL path name.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhDosPathNameToWslPathName(
     _In_ PPH_STRINGREF FileName,
@@ -317,7 +317,7 @@ CleanupExit:
  * \param FileName The file path within the distribution.
  * \param LxssProcessId The WSL process ID.
  * \param Result A variable which receives the command line.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhWslQueryDistroProcessCommandLine(
     _In_ PPH_STRINGREF FileName,
@@ -426,7 +426,7 @@ NTSTATUS PhWslQueryDistroProcessCommandLine(
  * \param FileName The file path within the distribution.
  * \param LxssProcessId The WSL process ID.
  * \param Result A variable which receives the environment.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhWslQueryDistroProcessEnvironment(
     _In_ PPH_STRINGREF FileName,
@@ -536,7 +536,7 @@ NTSTATUS PhWslQueryDistroProcessEnvironment(
  * \param DistributionName The distribution name.
  * \param LxssFileName The WSL file name.
  * \param Result A variable which receives the package information.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhWslQueryRpmPackageFromFileName(
     _In_ PPH_STRING DistributionGuid,
@@ -579,7 +579,7 @@ NTSTATUS PhWslQueryRpmPackageFromFileName(
  * \param DistributionName The distribution name.
  * \param LxssFileName The WSL file name.
  * \param Result A variable which receives the package information.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhWslQueryDebianPackageFromFileName(
     _In_ PPH_STRING DistributionGuid,
@@ -687,7 +687,7 @@ CleanupExit:
  *
  * \param ImageVersionInfo The image version info structure to populate.
  * \param LxssCommandResult The command result string.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhWslParsePackageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
@@ -730,7 +730,7 @@ NTSTATUS PhWslParsePackageVersionInfo(
  *
  * \param ImageVersionInfo The image version info structure to populate.
  * \param FileName The file name.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhInitializeLxssImageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
@@ -806,7 +806,7 @@ CleanupExit:
  * \param DistributionName The distribution name.
  * \param DistributionCommand The command to execute within the distribution.
  * \param Result A variable which receives the captured output.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhCreateProcessLxss(
     _In_ PPH_STRING DistributionGuid,
