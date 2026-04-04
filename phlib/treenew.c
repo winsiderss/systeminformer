@@ -7496,12 +7496,12 @@ BOOLEAN PhTnpPrepareTooltipShow(
     {
         SetWindowPos(
             Context->TooltipsHandle,
-            HWND_TOPMOST,
+            NULL,
             0,
             0,
             0,
             0,
-            SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_HIDEWINDOW
+            SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE
             );
 
         return FALSE;
@@ -7512,12 +7512,12 @@ BOOLEAN PhTnpPrepareTooltipShow(
     MapWindowRect(Context->Handle, NULL, &rect);
     SetWindowPos(
         Context->TooltipsHandle,
-        HWND_TOPMOST,
+        NULL,
         rect.left,
         rect.top,
         0,
         0,
-        SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW
+        SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE
         );
 
     return TRUE;
