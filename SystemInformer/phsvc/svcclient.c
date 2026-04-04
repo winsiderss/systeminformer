@@ -43,7 +43,7 @@ PPHSVC_CLIENT PhSvcCreateClient(
         client->ClientId = *ClientId;
 
     PhAcquireQueuedLockExclusive(&PhSvcClientListLock);
-    InsertTailList(&PhSvcClientListHead, &client->ListEntry);
+    InsertTailListNoFence(&PhSvcClientListHead, &client->ListEntry);
     PhReleaseQueuedLockExclusive(&PhSvcClientListLock);
 
     return client;
@@ -58,7 +58,7 @@ VOID NTAPI PhSvcpClientDeleteProcedure(
     PPHSVC_CLIENT client = Object;
 
     PhAcquireQueuedLockExclusive(&PhSvcClientListLock);
-    RemoveEntryList(&client->ListEntry);
+    RemoveEntryListNoFence(&client->ListEntry);
     PhReleaseQueuedLockExclusive(&PhSvcClientListLock);
 
     if (client->PortHandle)
