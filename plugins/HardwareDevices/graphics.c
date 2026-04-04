@@ -1200,7 +1200,7 @@ NTSTATUS GraphicsQueryAdapterPropertyString(
             regInfoSize
             )))
             goto CleanupExit;
-    }
+        }
 
     if (regInfo->Status != D3DDDI_QUERYREGISTRY_STATUS_SUCCESS)
     {

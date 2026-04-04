@@ -55,12 +55,15 @@ VOID EtpGpuDetailsAddListViewItemGroups(
 
 VOID EtpGpuQueryAdapterDeviceProperties(
     _In_ PPH_STRING DeviceName,
+    _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ HWND ListViewHandle)
 {
     PPH_STRING driverDate;
     PPH_STRING driverVersion;
     PPH_STRING locationInfo;
     ULONG64 installedMemory;
+    ULONG64 dedicatedLimit = 0;
+    ULONG64 sharedLimit = 0;
 
     if (EtQueryDeviceProperties(DeviceName, NULL, &driverDate, &driverVersion, &locationInfo, &installedMemory))
     {
@@ -70,8 +73,30 @@ VOID EtpGpuQueryAdapterDeviceProperties(
 
         if (installedMemory != ULLONG_MAX)
         {
+            D3DKMT_SEGMENTSIZEINFO segmentInfo;
+
+            memset(&segmentInfo, 0, sizeof(D3DKMT_SEGMENTSIZEINFO));
+
+            if (NT_SUCCESS(EtQueryAdapterInformation(
+                AdapterHandle,
+                KMTQAITYPE_GETSEGMENTSIZE,
+                &segmentInfo,
+                sizeof(D3DKMT_SEGMENTSIZEINFO)
+                )))
+            {
+                dedicatedLimit = segmentInfo.DedicatedVideoMemorySize;
+                sharedLimit = segmentInfo.SharedSystemMemorySize;
+            }
+
             PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, 1, PhaFormatSize(installedMemory, ULONG_MAX)->Buffer);
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, 1, PhaFormatSize(installedMemory - (EtGpuDedicatedLimit ? EtGpuDedicatedLimit : EtGpuSharedLimit), ULONG_MAX)->Buffer);
+
+            if (dedicatedLimit || sharedLimit)
+            {
+                ULONG64 visibleLimit = dedicatedLimit ? dedicatedLimit : sharedLimit;
+                ULONG64 reservedMemory = installedMemory > visibleLimit ? installedMemory - visibleLimit : 0;
+
+                PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, 1, PhaFormatSize(reservedMemory, ULONG_MAX)->Buffer);
+            }
         }
 
         PhClearReference(&locationInfo);
@@ -325,7 +350,7 @@ VOID EtpGpuDetailsEnumAdapters(
             EtpGpuDetailsAddListViewItemGroups(ListViewHandle, i);
         }
 
-        EtpGpuQueryAdapterDeviceProperties(gpuAdapter->DeviceInterface, ListViewHandle);
+        EtpGpuQueryAdapterDeviceProperties(gpuAdapter->DeviceInterface, adapterHandle, ListViewHandle);
         //EtpQueryAdapterRegistryInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
         EtpGpuQueryAdapterDriverModel(adapterHandle, ListViewHandle);
         //EtpQueryAdapterDriverVersion(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
