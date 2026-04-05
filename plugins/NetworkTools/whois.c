@@ -638,6 +638,7 @@ BOOLEAN WhoisQueryServer(
     ULONG whoisResponseLength = 0;
     PSTR whoisResponse = NULL;
     PPH_BYTES whoisServerQuery = NULL;
+    PPH_STRING whoisServerQueryString = NULL;
     SOCKET whoisSocketHandle = INVALID_SOCKET;
 
     if (!WhoisServerAddress)
@@ -660,9 +661,27 @@ BOOLEAN WhoisQueryServer(
     }
 
     if (PhEqualStringZ(WhoisServerAddress, L"whois.arin.net", TRUE))
-        whoisServerQuery = PhFormatBytes("n %S\r\n", WhoisQueryAddress);
+    {
+        PH_FORMAT format[3];
+
+        PhInitFormatS(&format[0], L"n ");
+        PhInitFormatS(&format[1], WhoisQueryAddress);
+        PhInitFormatS(&format[2], L"\r\n");
+
+        whoisServerQueryString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+    }
     else
-        whoisServerQuery = PhFormatBytes("%S\r\n", WhoisQueryAddress);
+    {
+        PH_FORMAT format[2];
+
+        PhInitFormatS(&format[0], WhoisQueryAddress);
+        PhInitFormatS(&format[1], L"\r\n");
+
+        whoisServerQueryString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+    }
+
+    whoisServerQuery = PhConvertStringToUtf8(whoisServerQueryString);
+    PhDereferenceObject(whoisServerQueryString);
 
     if (!WriteSocketString(whoisSocketHandle, whoisServerQuery->Buffer, (ULONG)whoisServerQuery->Length))
     {
