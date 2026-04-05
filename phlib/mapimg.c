@@ -841,14 +841,6 @@ PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
  * adjusting for section alignment differences.
  */
 _Success_(return != NULL)
-/**
- * Maps ped image rva to va.
- *
- * \param MappedImage The MappedImage parameter.
- * \param Rva The Rva parameter.
- * \param Section The Section parameter.
- * \return PVOID A pointer to the requested data, or NULL if unavailable.
- */
 PVOID PhMappedImageRvaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva,
@@ -886,14 +878,6 @@ PVOID PhMappedImageRvaToVa(
  * \return A pointer to the address in the mapped view, otherwise NULL.
  */
 _Success_(return != NULL)
-/**
- * Maps ped image va to va.
- *
- * \param MappedImage The MappedImage parameter.
- * \param Va The Va parameter.
- * \param Section The Section parameter.
- * \return PVOID A pointer to the requested data, or NULL if unavailable.
- */
 PVOID PhMappedImageVaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONGLONG Va,
@@ -933,15 +917,20 @@ PVOID PhMappedImageVaToVa(
         ));
 }
 
-_Success_(return != NULL)
 /**
- * Maps ped image rva to file offset.
+ * Converts a relative virtual address (RVA) to a file offset within the mapped image.
  *
- * \param MappedImage The MappedImage parameter.
- * \param Rva The Rva parameter.
- * \param Section The Section parameter.
- * \return PVOID A pointer to the requested data, or NULL if unavailable.
+ * \param MappedImage A pointer to the mapped image.
+ * \param Rva The relative virtual address to convert.
+ * \param Section An optional pointer that receives the section header containing the RVA.
+ * \return A pointer representing the file offset, or NULL if the RVA is invalid or not found.
+ * \remarks This function differs from PhMappedImageRvaToVa by returning a file offset pointer
+ * rather than a mapped view pointer. For SEC_IMAGE mappings, it returns ViewBase + RVA.
+ * For file mappings (SEC_COMMIT), it calculates the file offset by adjusting for the difference
+ * between the section's virtual address and its raw data pointer. The returned pointer represents
+ * an offset value and should not be dereferenced directly as memory.
  */
+_Success_(return != NULL)
 PVOID PhMappedImageRvaToFileOffset(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva,
@@ -4373,12 +4362,16 @@ NTSTATUS PhGetMappedImageProdIdHeader(
 }
 
 /**
- * Gets mapped image prod id extents.
+ * Retrieves the extents (start and end offsets) of the Rich/ProdId header in a mapped PE image.
  *
- * \param MappedImage The MappedImage parameter.
- * \param ProdIdHeaderStart The ProdIdHeaderStart parameter.
- * \param ProdIdHeaderEnd The ProdIdHeaderEnd parameter.
+ * \param MappedImage A pointer to the mapped image.
+ * \param ProdIdHeaderStart A pointer that receives the start offset of the Rich header.
+ * \param ProdIdHeaderEnd A pointer that receives the end offset of the Rich header.
  * \return NTSTATUS Successful or errant status.
+ * \remarks This function locates the Rich header (also known as ProdId header) which contains
+ * metadata about the tools used to build the PE image. The Rich header is located between the
+ * DOS stub and the PE header, starting with "DanS" (0x536E6144 XOR key) and ending with "Rich"
+ * (0x68636952). The function validates the header by computing and verifying the checksum.
  */
 NTSTATUS PhGetMappedImageProdIdExtents(
     _In_ PPH_MAPPED_IMAGE MappedImage,
