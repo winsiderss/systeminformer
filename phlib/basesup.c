@@ -535,61 +535,77 @@ NTSTATUS PhQueueUserWorkItem(
     return status;
 }
 
+/**
+ * Measures the Time Stamp Counter (TSC) frequency by calibrating against
+ * the high-resolution performance counter (QPC).
+ *
+ * \return The estimated TSC frequency in Hz (ticks per second).
+ * \remarks This function pins the calling thread to CPU 0 during measurement
+ * to avoid TSC skew across cores. The measurement takes approximately 100ms.
+ */
 DOUBLE PhReadTimeStampFrequency(
     VOID
     )
 {
-    LARGE_INTEGER frequency;
-    LARGE_INTEGER start;
-    LARGE_INTEGER end;
-    ULONG_PTR old_affinity = 0;
-    DOUBLE elapsed_qpc;
-    ULONG64 elapsed_tsc;
-    DOUBLE tsc_freq;
-    ULONG64 tsc_start;
-    ULONG64 tsc_end;
+    LARGE_INTEGER performanceFrequency;
+    LARGE_INTEGER startTime;
+    LARGE_INTEGER endTime;
+    ULONG_PTR affinityMask = 0;
+    ULONG64 startTsc;
+    ULONG64 endTsc;
 
-    // Wait interval (in QPC ticks)
-    PhQueryPerformanceFrequency(&frequency);
-    const LONGLONG interval_ms = 100; // 100 ms
-    const LONGLONG interval_ticks = (frequency.QuadPart * interval_ms) / 1000;
+    // Get QPC frequency for time conversion.
 
-    // Warm up
-    for (volatile ULONG i = 0UL; i < 1000000UL; ++i) {}
+    PhQueryPerformanceFrequency(&performanceFrequency);
 
-    // Pin thread to one CPU (optional, for best accuracy)
-    PhGetThreadAffinityMask(NtCurrentThread(), &old_affinity);
+    // Calculate wait interval in QPC ticks (100ms measurement window)
+
+    const LONGLONG calibrationIntervalMs = 100;
+    const LONGLONG calibrationIntervalTicks = (performanceFrequency.QuadPart * calibrationIntervalMs) / 1000;
+
+    // Warm up CPU caches and branch predictors.
+
+    for (volatile ULONG i = 0; i < 1000000; ++i) {}
+
+    // Pin thread to CPU 0 for consistent TSC readings across the measurement.
+
+    PhGetThreadAffinityMask(NtCurrentThread(), &affinityMask);
     PhSetThreadAffinityMask(NtCurrentThread(), 1);
 
-    PhQueryPerformanceCounter(&start);
+    // Capture start timestamps with speculation barriers for ordering.
+
+    PhQueryPerformanceCounter(&startTime);
     SpeculationFence();
-    tsc_start = ReadTimeStampCounter();
+    startTsc = ReadTimeStampCounter();
     SpeculationFence();
 
-    // Wait for interval
-    for (;;)
+    // Busy-wait for calibration interval.
+
+    do
     {
-        PhQueryPerformanceCounter(&end);
-
-        if ((end.QuadPart - start.QuadPart) >= interval_ticks)
-            break;
-
         YieldProcessor();
-    }
+        PhQueryPerformanceCounter(&endTime);
+    } while ((endTime.QuadPart - startTime.QuadPart) < calibrationIntervalTicks);
+
+    // Capture end TSC with speculation barriers.
 
     SpeculationFence();
-    tsc_end = ReadTimeStampCounter();
+    endTsc = ReadTimeStampCounter();
     SpeculationFence();
 
-    if (old_affinity)
+    // Restore original thread affinity.
+
+    if (affinityMask)
     {
-        PhSetThreadAffinityMask(NtCurrentThread(), old_affinity);
+        PhSetThreadAffinityMask(NtCurrentThread(), affinityMask);
     }
 
-    elapsed_qpc = (DOUBLE)(end.QuadPart - start.QuadPart) / frequency.QuadPart;
-    elapsed_tsc = tsc_end - tsc_start;
-    tsc_freq = elapsed_tsc / elapsed_qpc;
-    return tsc_freq;
+    // Calculate TSC frequency: tsc_delta / elapsed_seconds.
+
+    const DOUBLE elapsedSeconds = (DOUBLE)(endTime.QuadPart - startTime.QuadPart) / performanceFrequency.QuadPart;
+    const ULONG64 elapsedTscTicks = endTsc - startTsc;
+
+    return (DOUBLE)elapsedTscTicks / elapsedSeconds;
 }
 
 /**
