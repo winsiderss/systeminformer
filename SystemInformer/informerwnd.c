@@ -3293,55 +3293,186 @@ VOID PhpInformerDestroyDialog(
     PhpInformerDestroyContext(Context);
 }
 
+typedef struct _PH_INFORMER_FILTER_HOOK_CONTEXT
+{
+    PPH_INFORMERW_CONTEXT InformerContext;
+    HMENU PopupMenu;
+    HWND OwnerWindow;
+} PH_INFORMER_FILTER_HOOK_CONTEXT;
+
+static PH_INFORMER_FILTER_HOOK_CONTEXT PhpInformerFilterHookContext;
+static HHOOK PhpInformerFilterMsgHook;
+
+//
+// Message filter hook callback for the filter popup menu. This hook
+// intercepts mouse clicks inside the menu modal loop so we can toggle
+// category check marks in-place without the menu dismissing. When the
+// user left-clicks an item we determine which item was hit, flip its
+// check state and filter, then swallow the message so TrackPopupMenu
+// never sees the selection and the popup stays visible. The user
+// dismisses the menu normally by clicking outside it or pressing Escape.
+//
+
+static LRESULT CALLBACK PhpInformerFilterMenuHookProc(
+    _In_ int nCode,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    if (nCode == MSGF_MENU)
+    {
+        MSG* msg = (MSG*)lParam;
+
+        if (msg->message == WM_LBUTTONDOWN)
+        {
+            HMENU popupMenu = PhpInformerFilterHookContext.PopupMenu;
+            PPH_INFORMERW_CONTEXT context = PhpInformerFilterHookContext.InformerContext;
+            POINT pt;
+            LONG itemIndex;
+
+            //
+            // The coordinates in msg->lParam are client-relative to the
+            // menu window. Use GetCursorPos for screen coordinates which
+            // MenuItemFromPoint requires.
+            //
+
+            GetCursorPos(&pt);
+            itemIndex = MenuItemFromPoint(
+                PhpInformerFilterHookContext.OwnerWindow,
+                popupMenu,
+                pt
+                );
+
+            if (itemIndex >= 0)
+            {
+                MENUITEMINFO mii;
+
+                memset(&mii, 0, sizeof(MENUITEMINFO));
+                mii.cbSize = sizeof(MENUITEMINFO);
+                mii.fMask = MIIM_ID;
+
+                if (GetMenuItemInfo(popupMenu, (UINT)itemIndex, TRUE, &mii))
+                {
+                    ULONG categoryBit = mii.wID;
+
+                    //
+                    // Toggle the category filter bit and persist.
+                    //
+
+                    context->CategoryFilter ^= categoryBit;
+                    PhSetIntegerSetting(SETTING_PROCESS_MONITOR_CATEGORY_FILTER, context->CategoryFilter);
+                    PhApplyTreeNewFilters(&context->TreeFilterSupport);
+
+                    //
+                    // Update the check mark in the live menu.
+                    //
+
+                    CheckMenuItem(
+                        popupMenu,
+                        categoryBit,
+                        MF_BYCOMMAND | ((context->CategoryFilter & categoryBit) ? MF_CHECKED : MF_UNCHECKED)
+                        );
+
+                    //
+                    // Swallow the click so the menu does not dismiss.
+                    //
+
+                    return TRUE;
+                }
+            }
+        }
+    }
+
+    return CallNextHookEx(PhpInformerFilterMsgHook, nCode, wParam, lParam);
+}
+
 VOID PhpInformerShowFilterMenu(
     _In_ PPH_INFORMERW_CONTEXT Context,
     _In_ HWND ButtonHandle
     )
 {
+    static const struct
+    {
+        ULONG Id;
+        PCWSTR Text;
+    } categories[] =
+    {
+        { PH_INFORMER_CATEGORY_PROCESS, L"Process" },
+        { PH_INFORMER_CATEGORY_THREAD, L"Thread" },
+        { PH_INFORMER_CATEGORY_FILE, L"File" },
+        { PH_INFORMER_CATEGORY_REGISTRY, L"Registry" },
+        { PH_INFORMER_CATEGORY_HANDLE, L"Handle" },
+        { PH_INFORMER_CATEGORY_IMAGE, L"Image" },
+        { PH_INFORMER_CATEGORY_OTHER, L"Other" },
+    };
+
     RECT rect;
-    PPH_EMENU menu;
-    PPH_EMENU_ITEM item;
-    ULONG filter = Context->CategoryFilter;
+    HMENU popupMenu;
 
     GetWindowRect(ButtonHandle, &rect);
 
-    menu = PhCreateEMenu();
-
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_INFORMER_CATEGORY_PROCESS, L"Process", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_INFORMER_CATEGORY_THREAD, L"Thread", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_INFORMER_CATEGORY_FILE, L"File", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_INFORMER_CATEGORY_REGISTRY, L"Registry", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_INFORMER_CATEGORY_HANDLE, L"Handle", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_INFORMER_CATEGORY_IMAGE, L"Image", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_INFORMER_CATEGORY_OTHER, L"Other", NULL, NULL), ULONG_MAX);
-
     //
-    // Set checkmarks
+    // Build a native popup menu with a message-filter hook that intercepts
+    // item clicks. The hook toggles check marks in-place and swallows the
+    // mouse message so TrackPopupMenu never processes the selection and the
+    // popup stays visible. This avoids the destroy/recreate flash that
+    // occurred when looping over TrackPopupMenu calls. (jxy-s)
     //
-    for (ULONG i = 0; i < menu->Items->Count; i++)
+
+    popupMenu = CreatePopupMenu();
+
+    if (!popupMenu)
+        return;
+
+    PhSetHMenuStyle(popupMenu, FALSE);
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(categories); i++)
     {
-        item = menu->Items->Items[i];
-        if (filter & item->Id)
-            item->Flags |= PH_EMENU_CHECKED;
+        MENUITEMINFO mii;
+
+        memset(&mii, 0, sizeof(MENUITEMINFO));
+        mii.cbSize = sizeof(MENUITEMINFO);
+        mii.fMask = MIIM_ID | MIIM_STRING | MIIM_STATE;
+        mii.wID = categories[i].Id;
+        mii.dwTypeData = (PWSTR)categories[i].Text;
+        mii.fState = (Context->CategoryFilter & categories[i].Id) ? MFS_CHECKED : MFS_UNCHECKED;
+
+        InsertMenuItem(popupMenu, ULONG_MAX, TRUE, &mii);
     }
 
-    item = PhShowEMenu(
-        menu,
-        Context->WindowHandle,
-        PH_EMENU_SHOW_LEFTRIGHT,
-        PH_ALIGN_LEFT | PH_ALIGN_TOP,
-        rect.left,
-        rect.bottom
+    //
+    // Install a thread-local message filter hook for the duration of
+    // the TrackPopupMenu modal loop.
+    //
+
+    PhpInformerFilterHookContext.InformerContext = Context;
+    PhpInformerFilterHookContext.PopupMenu = popupMenu;
+    PhpInformerFilterHookContext.OwnerWindow = Context->WindowHandle;
+
+    PhpInformerFilterMsgHook = SetWindowsHookEx(
+        WH_MSGFILTER,
+        PhpInformerFilterMenuHookProc,
+        NULL,
+        GetCurrentThreadId()
         );
 
-    if (item)
+    TrackPopupMenu(
+        popupMenu,
+        TPM_RIGHTBUTTON | TPM_LEFTALIGN | TPM_TOPALIGN,
+        rect.left,
+        rect.bottom,
+        0,
+        Context->WindowHandle,
+        NULL
+        );
+
+    if (PhpInformerFilterMsgHook)
     {
-        Context->CategoryFilter ^= item->Id;
-        PhSetIntegerSetting(SETTING_PROCESS_MONITOR_CATEGORY_FILTER, Context->CategoryFilter);
-        PhApplyTreeNewFilters(&Context->TreeFilterSupport);
+        UnhookWindowsHookEx(PhpInformerFilterMsgHook);
+        PhpInformerFilterMsgHook = NULL;
     }
 
-    PhDestroyEMenu(menu);
+    DestroyMenu(popupMenu);
 }
 
 INT_PTR PhpInformerHandleMessage(
