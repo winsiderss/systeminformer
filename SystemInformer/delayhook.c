@@ -1636,12 +1636,12 @@ BOOL WINAPI PhSystemParametersInfoHook(
 HRESULT WINAPI PhDrawThemeTextHook(
     _In_ HTHEME  hTheme,
     _In_ HDC     hdc,
-    _In_ int     iPartId,
-    _In_ int     iStateId,
+    _In_ LONG    iPartId,
+    _In_ LONG    iStateId,
     _In_ LPCWSTR pszText,
-    _In_ int     cchText,
-    _In_ DWORD   dwTextFlags,
-    _In_ DWORD   dwTextFlags2,
+    _In_ LONG    cchText,
+    _In_ ULONG   dwTextFlags,
+    _In_ ULONG   dwTextFlags2,
     _In_ LPCRECT pRect
     )
 {
@@ -1790,7 +1790,6 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     )
 {
     WCHAR windowClassName[MAX_PATH];
-    PTASKDIALOG_COMMON_CONTEXT context;
     BOOLEAN windowHasContext = !!PhGetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG);
 
     if (CallbackData && !windowHasContext)
@@ -1820,25 +1819,29 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 
     GETCLASSNAME_OR_NULL(WindowHandle, windowClassName);
 
-    context = PhAllocateZero(sizeof(TASKDIALOG_COMMON_CONTEXT));
-    context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
-    PhSetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG, context);
+    {
+        PTASKDIALOG_COMMON_CONTEXT context;
 
-    if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE) ||
-        PhEqualStringZ(windowClassName, WC_SCROLLBAR, FALSE))
-    {
-        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-    }
-    //else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
-    //{
-    //    PhAllowDarkModeForWindow(WindowHandle);   // this doesn't work, idk why
-    //}
-    else if (PhEqualStringZ(windowClassName, L"DirectUIHWND", FALSE))
-    {
-        //WINDOWPLACEMENT pos = { 0 };
-        //GetWindowPlacement(GetParent(WindowHandle), &pos);
-        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-        //SetWindowPlacement(GetParent(WindowHandle), &pos);
+        context = PhAllocateZero(sizeof(TASKDIALOG_COMMON_CONTEXT));
+        context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
+        PhSetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG, context);
+
+        if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE) ||
+            PhEqualStringZ(windowClassName, WC_SCROLLBAR, FALSE))
+        {
+            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+        }
+        //else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
+        //{
+        //    PhAllowDarkModeForWindow(WindowHandle);   // this doesn't work, idk why
+        //}
+        else if (PhEqualStringZ(windowClassName, L"DirectUIHWND", FALSE))
+        {
+            //WINDOWPLACEMENT pos = { 0 };
+            //GetWindowPlacement(GetParent(WindowHandle), &pos);
+            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            //SetWindowPlacement(GetParent(WindowHandle), &pos);
+        }
     }
 
     return TRUE;
