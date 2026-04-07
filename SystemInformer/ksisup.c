@@ -2170,7 +2170,7 @@ PPH_STRING KsiCreateBuildString(
     PH_FORMAT format[8];
     WCHAR formatBuffer[260];
 
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
     PhInitFormatSR(&format[0], versionHeader);
     PhInitFormatU(&format[1], majorVersion);
     PhInitFormatC(&format[2], L'.');
