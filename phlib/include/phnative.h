@@ -647,6 +647,30 @@ PhGetProcessIoPriority(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessIoCounters(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PIO_COUNTERS IoCounters
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessIoCountersEx(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVM_COUNTERS_EX VmCounters
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessIoCountersEx2(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVM_COUNTERS_EX2 VmCounters
+    );
+ 
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessPagePriority(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG PagePriority
@@ -3715,6 +3739,33 @@ PhEnumProcessesEx(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass
     );
 
+/**
+ * Gets a pointer to the first basic process information structure in a buffer returned by
+ * PhEnumBasicProcessInformation().
+ * \param Processes A pointer to a buffer returned by PhEnumBasicProcessInformation().
+ */
+#define PH_FIRST_BASIC_PROCESS(Processes) ((PSYSTEM_BASICPROCESS_INFORMATION)(Processes))
+
+/**
+ * Gets a pointer to the basic process information structure after a given structure.
+ * \param Process A pointer to a basic process information structure.
+ * \return A pointer to the next basic process information structure, or NULL if there are no more.
+ */
+#define PH_NEXT_BASIC_PROCESS(Process) ( \
+    ((PSYSTEM_BASICPROCESS_INFORMATION)(Process))->NextEntryOffset ? \
+    (PSYSTEM_BASICPROCESS_INFORMATION)PTR_ADD_OFFSET((Process), \
+    ((PSYSTEM_BASICPROCESS_INFORMATION)(Process))->NextEntryOffset) : \
+    NULL \
+    )
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumBasicProcessInformation(
+    _Inout_ PVOID *Buffer,
+    _Inout_ PULONG BufferSize
+    );
+
 typedef _Function_class_(PH_ENUM_PROCESS_THREADS)
 NTSTATUS NTAPI PH_ENUM_PROCESS_THREADS(
     _In_ ULONG NumberOfThreads,
@@ -6019,11 +6070,56 @@ PhSetSystemFileCacheSize(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateMutant(
+    _Out_ PHANDLE MutantHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PCPH_STRINGREF ObjectName,
+    _In_ BOOLEAN InitialOwner
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhOpenMutant(
+    _Out_ PHANDLE MutantHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PCPH_STRINGREF ObjectName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMutantBasicInformation(
+    _In_ HANDLE MutantHandle,
+    _Out_ PMUTANT_BASIC_INFORMATION BasicInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMutantOwnerInformation(
+    _In_ HANDLE MutantHandle,
+    _Out_ PMUTANT_OWNER_INFORMATION OwnerInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateEvent(
     _Out_ PHANDLE EventHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ EVENT_TYPE EventType,
     _In_ BOOLEAN InitialState
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetEventBasicInformation(
+    _In_ HANDLE EventHandle,
+    _Out_ PEVENT_BASIC_INFORMATION BasicInformation
     );
 
 PHLIBAPI

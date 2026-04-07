@@ -259,7 +259,7 @@ PPH_STRING UpdateVersionString(
     PH_FORMAT format[8];
     WCHAR formatBuffer[260];
 
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
     PhInitFormatSR(&format[0], versionHeader);
     PhInitFormatU(&format[1], majorVersion);
     PhInitFormatC(&format[2], L'.');
@@ -692,15 +692,15 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
 
 #if defined(FORCE_FUTURE_VERSION)
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
     Context->CurrentVersion = MAKE_VERSION_ULONGLONG(USHRT_MAX, USHRT_MAX, USHRT_MAX, USHRT_MAX);
     Context->LatestVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
 #elif defined(FORCE_LATEST_VERSION)
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
     Context->CurrentVersion = MAKE_VERSION_ULONGLONG(0, 0, 0, 0);
     Context->LatestVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
 #else
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
     Context->CurrentVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
     Context->LatestVersion = ParseVersionString(Context->Version);
 #endif
@@ -1453,7 +1453,7 @@ VOID ShowStartupUpdateDialog(
             context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
             context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
 
-            PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+            PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
 #ifdef FORCE_LATEST_VERSION
             context->LatestVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
             context->CurrentVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);

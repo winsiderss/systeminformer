@@ -1351,7 +1351,7 @@ VOID PhSetWindowOpacity(
  *
  * \return A formatted version string in major.minor.build.revision form.
  */
-PPH_STRING PhGetPhVersion(
+PPH_STRING PhGetBuildVersion(
     VOID
     )
 {
@@ -1376,7 +1376,7 @@ PPH_STRING PhGetPhVersion(
  * \param BuildNumber Receives the build number.
  * \param RevisionNumber Receives the revision number.
  */
-VOID PhGetPhVersionNumbers(
+VOID PhGetBuildVersionNumbers(
     _Out_opt_ PULONG MajorVersion,
     _Out_opt_ PULONG MinorVersion,
     _Out_opt_ PULONG BuildNumber,
@@ -1398,7 +1398,7 @@ VOID PhGetPhVersionNumbers(
  *
  * \return The commit hash as a UTF-16 string.
  */
-PPH_STRING PhGetPhVersionHash(
+PPH_STRING PhGetBuildCommit(
     VOID
     )
 {
@@ -1414,7 +1414,7 @@ PPH_STRING PhGetPhVersionHash(
  * PHAPP_VERSION_BUILD uses YDDD (Y = years since 2000, DDD = day of year),
  * and PHAPP_VERSION_REVISION uses HHMM with an hour offset of +1.
  */
-PPH_STRING PhGetPhVersionDateTime(
+PPH_STRING PhGetBuildTime(
     VOID
     )
 {
@@ -1526,7 +1526,7 @@ VOID PhWritePhTextHeader(
 
     PhWriteStringAsUtf8FileStream2(FileStream, L"System Informer ");
 
-    if (version = PhGetPhVersion())
+    if (version = PhGetBuildVersion())
     {
         PhWriteStringAsUtf8FileStream(FileStream, &version->sr);
         PhDereferenceObject(version);

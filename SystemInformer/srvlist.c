@@ -202,6 +202,7 @@ PPH_SERVICE_NODE PhAddServiceNode(
     serviceNode = PhAllocate(PhEmGetObjectSize(EmServiceNodeType, sizeof(PH_SERVICE_NODE)));
     memset(serviceNode, 0, sizeof(PH_SERVICE_NODE));
     PhInitializeTreeNewNode(&serviceNode->Node);
+    serviceNode->ServiceItem = PhReferenceObject(ServiceItem);
 
     if (PhServiceTreeListStateHighlighting && RunId != 1)
     {
@@ -214,9 +215,6 @@ PPH_SERVICE_NODE PhAddServiceNode(
             NULL
             );
     }
-
-    serviceNode->ServiceItem = ServiceItem;
-    PhReferenceObject(ServiceItem);
 
     memset(serviceNode->TextCache, 0, sizeof(PH_STRINGREF) * PHSVTLC_MAXIMUM);
     serviceNode->Node.TextCache = serviceNode->TextCache;
@@ -335,7 +333,17 @@ VOID PhTickServiceNodes(
         fullyInvalidated = TRUE;
     }
 
-    PH_TICK_SH_STATE_TN(PH_SERVICE_NODE, ShState, ServiceNodeStateList, PhpRemoveServiceNode, PhCsHighlightingDuration, ServiceTreeListHandle, TRUE, &fullyInvalidated, NULL);
+    PH_TICK_SH_STATE_TN(
+        PH_SERVICE_NODE,
+        ShState,
+        ServiceNodeStateList,
+        PhpRemoveServiceNode,
+        PhCsHighlightingDuration,
+        ServiceTreeListHandle,
+        TRUE,
+        &fullyInvalidated,
+        NULL
+        );
 }
 
 static VOID PhpUpdateServiceNodeConfig(

@@ -300,7 +300,7 @@ static HFONT NTAPI PhpHeapFontFunction(
     if (heapBaseAddress == context->ProcessHeap)
     {
         if (!context->BoldFont)
-            context->BoldFont = PhDuplicateFontWithNewWeight((HFONT)SendMessage(context->ListViewHandle, WM_GETFONT, 0, 0), FW_BOLD);
+            context->BoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(context->ListViewHandle), FW_BOLD);
 
         return context->BoldFont;
     }
