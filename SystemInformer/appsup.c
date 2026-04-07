@@ -1484,7 +1484,7 @@ PPH_STRING PhGetBuildTime(
  *
  * \return The configured release channel value.
  */
-PH_RELEASE_CHANNEL PhGetPhReleaseChannel(
+PH_RELEASE_CHANNEL PhGetBuildReleaseChannel(
     VOID
     )
 {
@@ -1496,7 +1496,7 @@ PH_RELEASE_CHANNEL PhGetPhReleaseChannel(
  *
  * \return A static string describing the current release channel.
  */
-PCWSTR PhGetPhReleaseChannelString(
+PCWSTR PhGetBuildReleaseChannelString(
     VOID
     )
 {

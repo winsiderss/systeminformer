@@ -1253,7 +1253,7 @@ VOID KsiActivateDynData(
 #if defined(KSI_ONLINE_PLATFORM_SUPPORT)
         KsiShowKernelSupportCheckDialog(WindowHandle);
 #else
-        if (PhGetPhReleaseChannel() < PhCanaryChannel)
+        if (PhGetBuildReleaseChannel() < PhCanaryChannel)
         {
             PhShowKsiMessageEx(
                 WindowHandle,

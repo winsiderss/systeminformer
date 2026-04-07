@@ -272,14 +272,14 @@ typedef enum _PH_RELEASE_CHANNEL
 PHAPPAPI
 PH_RELEASE_CHANNEL
 NTAPI
-PhGetPhReleaseChannel(
+PhGetBuildReleaseChannel(
     VOID
     );
 
 PHAPPAPI
 PCWSTR
 NTAPI
-PhGetPhReleaseChannelString(
+PhGetBuildReleaseChannelString(
     VOID
     );
 

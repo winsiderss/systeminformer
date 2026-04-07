@@ -248,7 +248,7 @@ PPH_STRING PhGetApplicationVersionString(
     )
 {
     PPH_STRING versionString;
-    PCWSTR channelNameString = PhGetPhReleaseChannelString();
+    PCWSTR channelNameString = PhGetBuildReleaseChannelString();
     PPH_STRING commitVersionString = PhGetBuildVersion();
     PPH_STRING commitHashString = PhGetBuildCommit();
     PPH_STRING commitTimeString = PhGetBuildTime();
