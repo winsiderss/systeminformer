@@ -8,6 +8,9 @@
 #define _NTUSER_H
 
 typedef enum _USERTHREADINFOCLASS USERTHREADINFOCLASS;
+typedef struct _DOCONNECTDATA* PDOCONNECTDATA;
+typedef struct _CACHE_STATISTICS* PCACHE_STATISTICS;
+typedef struct _DONOTIFYDATA* PDONOTIFYDATA;
 
 NTSYSCALLAPI
 NTSTATUS
@@ -344,7 +347,7 @@ typedef struct _PROCESS_UICONTEXT_INFORMATION
     PROCESS_UICONTEXT ProcessUIContext;
     PROCESS_UI_FLAGS Flags;
 } PROCESS_UICONTEXT_INFORMATION, *PPROCESS_UICONTEXT_INFORMATION;
-    
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -352,7 +355,7 @@ NtUserGetProcessUIContextInformation(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_UICONTEXT_INFORMATION UIContext
     );
-    
+
 NTSYSCALLAPI
 BOOL
 NTAPI
@@ -2326,7 +2329,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUserRemoteReconnect(
-    _In_ struct _DOCONNECTDATA* DoConnectData
+    _In_ PDOCONNECTDATA DoConnectData
     );
 
 // private // NtUserCallOneParam(SFI_REMOTETHINWIRESTATS) before WIN11
@@ -2334,7 +2337,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUserRemoteThinwireStats(
-    _Out_ struct CACHE_STATISTICS* Stats
+    _Out_ PCACHE_STATISTICS Stats
     );
 
 // private // NtUserCallOneParam(SFI_REMOTENOTIFY) before WIN11
@@ -2342,7 +2345,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUserRemoteNotify(
-    _In_ struct _DONOTIFYDATA* DoNotifyData
+    _In_ PDONOTIFYDATA DoNotifyData
     );
 
 // private // NtUserCallOneParam(SFI_REPLYMESSAGE) before WIN11
