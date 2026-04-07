@@ -1097,12 +1097,11 @@ NTSTATUS PhInitializeNamespacePolicy(
     VOID
     )
 {
+    NTSTATUS status;
     HANDLE mutantHandle;
     SIZE_T returnLength;
     WCHAR formatBuffer[PH_INT64_STR_LEN_1];
-    OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectName;
-    PH_STRINGREF objectNameSr;
+    PH_STRINGREF objectName;
     PH_FORMAT format[2];
 
     PhInitFormatS(&format[0], L"SiMutant_");
@@ -1119,28 +1118,21 @@ NTSTATUS PhInitializeNamespacePolicy(
         return STATUS_BUFFER_TOO_SMALL;
     }
 
-    objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
-    objectNameSr.Buffer = formatBuffer;
-
-    if (!PhStringRefToUnicodeString(&objectNameSr, &objectName))
-        return STATUS_NAME_TOO_LONG;
-
-    InitializeObjectAttributes(
-        &objectAttributes,
+    PhInitializeBufferStringRef(
         &objectName,
-        OBJ_CASE_INSENSITIVE,
-        PhGetNamespaceHandle(),
-        NULL
+        formatBuffer,
+        returnLength - sizeof(UNICODE_NULL)
         );
 
-    NtCreateMutant(
+    status = PhCreateMutant(
         &mutantHandle,
         MUTANT_QUERY_STATE,
-        &objectAttributes,
+        PhGetNamespaceHandle(),
+        &objectName,
         TRUE
         );
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 /**
@@ -1164,7 +1156,7 @@ NTSTATUS PhInitializeComPolicy(
     PACL dacl;
 
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
-        return TRUE; // Continue without COM support. (dmex)
+        return STATUS_SUCCESS; // Continue without COM support. (dmex)
 
     if (SUCCEEDED(PhGetClassObject(L"combase.dll", &CLSID_GlobalOptions, &IID_IGlobalOptions, &globalOptions)))
     {
@@ -1220,7 +1212,7 @@ NTSTATUS PhInitializeComPolicy(
     assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif
 
-    return TRUE;
+    return STATUS_SUCCESS;
 #else
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         NOTHING;
