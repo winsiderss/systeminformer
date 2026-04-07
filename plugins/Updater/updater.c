@@ -223,6 +223,7 @@ BOOLEAN LastUpdateCheckExpired(
     ULONG lastTimeUpdateSeconds;
     LARGE_INTEGER lastTimeUpdateTicks;
     LARGE_INTEGER currentTimeUpdateTicks;
+    LONG updateInterval;
 
     PhQuerySystemTime(&currentTimeUpdateTicks);
     lastTimeUpdateSeconds = PhGetIntegerSetting(SETTING_NAME_LAST_CHECK);
@@ -236,7 +237,11 @@ BOOLEAN LastUpdateCheckExpired(
 
     PhSecondsSince1970ToTime(lastTimeUpdateSeconds, &lastTimeUpdateTicks);
 
-    if (currentTimeUpdateTicks.QuadPart - lastTimeUpdateTicks.QuadPart >= 7 * PH_TICKS_PER_DAY)
+    updateInterval = PhGetIntegerSetting(SETTING_NAME_UPDATE_INTERVAL);
+    updateInterval = __max(updateInterval, 1);
+    updateInterval = __min(updateInterval, 90);
+
+    if (currentTimeUpdateTicks.QuadPart - lastTimeUpdateTicks.QuadPart >= updateInterval * PH_TICKS_PER_DAY)
     {
         PhTimeToSecondsSince1970(&currentTimeUpdateTicks, &lastTimeUpdateSeconds);
         PhSetIntegerSetting(SETTING_NAME_LAST_CHECK, lastTimeUpdateSeconds);
