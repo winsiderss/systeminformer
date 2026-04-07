@@ -231,7 +231,7 @@ VOID DiskDriveCloseMountPointHandles(
  * \param DiskModel A pointer to a variable that receives the disk model.
  * \param DiskRevision A pointer to a variable that receives the disk revision.
  * \param DiskSerial A pointer to a variable that receives the disk serial.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveQueryDeviceInformation(
     _In_ HANDLE DeviceHandle,
@@ -367,7 +367,7 @@ NTSTATUS DiskDriveQueryDeviceInformation(
  * \param DeviceHandle A handle to the device.
  * \param DeviceNumber A pointer to a variable that receives the device number.
  * \param DeviceType A pointer to a variable that receives the device type.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveQueryDeviceTypeAndNumber(
     _In_ HANDLE DeviceHandle,
@@ -411,7 +411,7 @@ NTSTATUS DiskDriveQueryDeviceTypeAndNumber(
  *
  * \param DeviceHandle A handle to the device.
  * \param Info A pointer to a variable that receives the disk performance statistics.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveQueryStatistics(
     _In_ HANDLE DeviceHandle,
@@ -487,7 +487,7 @@ static BOOLEAN DiskDriveInitializeAdvapi32FunctionImports(
  *
  * \param DeviceHandle A handle to the device.
  * \param Info A pointer to a variable that receives the disk performance statistics.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveQueryStatisticsWmi(
     _In_ HANDLE DeviceHandle,
@@ -717,7 +717,7 @@ PPH_STRING DiskDriveQueryGeometry(
  *
  * \param DeviceHandle A handle to the device.
  * \param DiskSmartAttributes A pointer to a variable that receives the SMART attributes list.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveQueryImminentFailure(
     _In_ HANDLE DeviceHandle,
@@ -823,7 +823,7 @@ NTSTATUS DiskDriveQueryImminentFailure(
  *
  * \param DeviceHandle A handle to the device.
  * \param HealthInfo A pointer to a variable that receives the NVMe health information.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveQueryNvmeHealthInfo(
     _In_ HANDLE DeviceHandle,
@@ -1125,7 +1125,7 @@ BOOLEAN DiskDriveQueryRefsVolumeInfo(
  *
  * \param DosDeviceHandle A handle to the DOS device.
  * \param VolumeInfo A pointer to a variable that receives the volume information.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveQueryVolumeInformation(
     _In_ HANDLE DosDeviceHandle,
@@ -1179,7 +1179,7 @@ NTSTATUS DiskDriveQueryVolumeInformation(
  *
  * \param DosDeviceHandle A handle to the DOS device.
  * \param AttributeInfo A pointer to a variable that receives the attribute information.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveQueryVolumeAttributes(
     _In_ HANDLE DosDeviceHandle,
@@ -1425,7 +1425,7 @@ PCWSTR SmartAttributeGetText(
  * \param DeviceHandle A handle to the device.
  * \param UniqueId A pointer to a variable that receives the unique ID.
  * \param PartitionId A pointer to a variable that receives the partition IDs.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveQueryUniqueId(
     _In_ HANDLE DeviceHandle,
@@ -1493,7 +1493,7 @@ NTSTATUS DiskDriveQueryUniqueId(
  *
  * \param DeviceHandle A handle to the device.
  * \param Partitions A pointer to a variable that receives the partition list.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveQueryPartitionList(
     _In_ HANDLE DeviceHandle,
@@ -1547,7 +1547,7 @@ NTSTATUS DiskDriveQueryPartitionList(
  *
  * \param DeviceHandle A handle to the device.
  * \param PartitionInfo A pointer to a variable that receives the partition information.
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveQueryPartitionInfo(
     _In_ HANDLE DeviceHandle,
@@ -2111,7 +2111,7 @@ NTSTATUS DiskDriveQueryPartitionInfo(
 /**
  * Enables disk performance statistics.
  *
- * \return NTSTATUS.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS DiskDriveEnableStatistics(
     VOID
