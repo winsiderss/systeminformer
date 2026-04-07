@@ -3327,7 +3327,7 @@ static LRESULT CALLBACK PhpInformerFilterMenuHookProc(
         {
             HMENU popupMenu = PhpInformerFilterHookContext.PopupMenu;
             PPH_INFORMERW_CONTEXT context = PhpInformerFilterHookContext.InformerContext;
-            POINT pt;
+            POINT cursorPos;
             LONG itemIndex;
 
             //
@@ -3336,11 +3336,11 @@ static LRESULT CALLBACK PhpInformerFilterMenuHookProc(
             // MenuItemFromPoint requires.
             //
 
-            GetCursorPos(&pt);
+            GetCursorPos(&cursorPos);
             itemIndex = MenuItemFromPoint(
                 PhpInformerFilterHookContext.OwnerWindow,
                 popupMenu,
-                pt
+                cursorPos
                 );
 
             if (itemIndex >= 0)
@@ -3407,6 +3407,7 @@ VOID PhpInformerShowFilterMenu(
     };
 
     RECT rect;
+    PPH_EMENU menu;
     HMENU popupMenu;
 
     GetWindowRect(ButtonHandle, &rect);
@@ -3419,25 +3420,26 @@ VOID PhpInformerShowFilterMenu(
     // occurred when looping over TrackPopupMenu calls. (jxy-s)
     //
 
-    popupMenu = CreatePopupMenu();
-
-    if (!popupMenu)
-        return;
-
-    PhSetHMenuStyle(popupMenu, FALSE);
+    menu = PhCreateEMenu();
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(categories); i++)
     {
-        MENUITEMINFO mii;
+        PPH_EMENU_ITEM menuItem;
 
-        memset(&mii, 0, sizeof(MENUITEMINFO));
-        mii.cbSize = sizeof(MENUITEMINFO);
-        mii.fMask = MIIM_ID | MIIM_STRING | MIIM_STATE;
-        mii.wID = categories[i].Id;
-        mii.dwTypeData = (PWSTR)categories[i].Text;
-        mii.fState = (Context->CategoryFilter & categories[i].Id) ? MFS_CHECKED : MFS_UNCHECKED;
+        menuItem = PhCreateEMenuItem(0, categories[i].Id, categories[i].Text, NULL, NULL);
 
-        InsertMenuItem(popupMenu, ULONG_MAX, TRUE, &mii);
+        if (Context->CategoryFilter & categories[i].Id)
+            menuItem->Flags |= PH_EMENU_CHECKED;
+
+        PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+    }
+
+    popupMenu = PhEMenuToHMenu(menu, 0, NULL);
+
+    if (!popupMenu)
+    {
+        PhDestroyEMenu(menu);
+        return;
     }
 
     //
@@ -3453,7 +3455,7 @@ VOID PhpInformerShowFilterMenu(
         WH_MSGFILTER,
         PhpInformerFilterMenuHookProc,
         NULL,
-        GetCurrentThreadId()
+        HandleToUlong(NtCurrentThreadId())
         );
 
     TrackPopupMenu(
@@ -3473,6 +3475,7 @@ VOID PhpInformerShowFilterMenu(
     }
 
     DestroyMenu(popupMenu);
+    PhDestroyEMenu(menu);
 }
 
 INT_PTR PhpInformerHandleMessage(
