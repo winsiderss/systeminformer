@@ -118,7 +118,7 @@ _May_raise_ PVOID PhCreateObject(
     }
 
     PhAcquireQueuedLockExclusive(&PhDbgObjectListLock);
-    InsertTailList(&PhDbgObjectListHead, &objectHeader->ObjectListEntry);
+    InsertTailListNoFence(&PhDbgObjectListHead, &objectHeader->ObjectListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
 
     {
@@ -492,7 +492,7 @@ VOID PhpFreeObject(
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgObjectListLock);
-    RemoveEntryList(&ObjectHeader->ObjectListEntry);
+    RemoveEntryListNoFence(&ObjectHeader->ObjectListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
 #endif
 
