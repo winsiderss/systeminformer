@@ -34,7 +34,7 @@ typedef struct _QUAD
     {
         __int64 UseThisFieldToCopy;
         double DoNotUseThisField;
-    };
+    } DUMMYUNIONNAME;
 } QUAD, *PQUAD;
 
 /**
