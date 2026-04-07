@@ -20,11 +20,36 @@
 // Create disposition
 //
 
+#define FILE_DISPOSITION_NONE               0x00000000
+/**
+ * If the file already exists, replace it with the given file.
+ * If it does not, create the given file.
+ */
 #define FILE_SUPERSEDE                      0x00000000
+/**
+ * If the file already exists, open it instead of creating a new file.
+ * If it does not, fail the request and do not create a new file.
+ */
 #define FILE_OPEN                           0x00000001
+/**
+ * If the file already exists, fail the request and do not create or open the given file.
+ * If it does not, create the given file.
+ */
 #define FILE_CREATE                         0x00000002
+/**
+ * If the file already exists, open it.
+ * If it does not, create the given file.
+ */
 #define FILE_OPEN_IF                        0x00000003
+/**
+ * If the file already exists, open it and overwrite it.
+ * If it does not, fail the request.
+ */
 #define FILE_OVERWRITE                      0x00000004
+/**
+ * If the file already exists, open it and overwrite it.
+ * If it does not, create the given file.
+ */
 #define FILE_OVERWRITE_IF                   0x00000005
 #define FILE_MAXIMUM_DISPOSITION            0x00000005
 
@@ -32,36 +57,147 @@
 // Create/open flags
 //
 
+/**
+ * The file being created or opened is a directory file.
+ * With this flag, the CreateDisposition parameter must be set to FILE_CREATE, FILE_OPEN, or FILE_OPEN_IF.
+ * With this flag, other compatible CreateOptions flags include only FILE_SYNCHRONOUS_IO_ALERT,
+ * FILE_SYNCHRONOUS_IO_NONALERT, FILE_WRITE_THROUGH, FILE_OPEN_FOR_BACKUP_INTENT, and FILE_OPEN_BY_FILE_ID.
+ */
 #define FILE_DIRECTORY_FILE                 0x00000001
+/**
+ * Applications that write data to the file must actually transfer the data into the file before any
+ * requested write operation is considered complete.
+ * This flag is automatically set if the CreateOptions flag FILE_NO_INTERMEDIATE_BUFFERING is set.
+ */
 #define FILE_WRITE_THROUGH                  0x00000002
+/**
+ * All accesses to the file are sequential.
+ */
 #define FILE_SEQUENTIAL_ONLY                0x00000004
+/**
+ * The file cannot be cached or buffered in a driver's internal buffers.
+ * This flag is incompatible with the DesiredAccess FILE_APPEND_DATA flag.
+ */
 #define FILE_NO_INTERMEDIATE_BUFFERING      0x00000008
-
+/**
+ * All operations on the file are performed synchronously.
+ * Any wait on behalf of the caller is subject to premature termination from alerts.
+ * This flag also causes the I/O system to maintain the file position context.
+ * If this flag is set, the DesiredAccess SYNCHRONIZE flag also must be set.
+ */
 #define FILE_SYNCHRONOUS_IO_ALERT           0x00000010
+/**
+ * All operations on the file are performed synchronously.
+ * Waits in the system to synchronize I/O queuing and completion are not subject to alerts.
+ * This flag also causes the I/O system to maintain the file position context.
+ * If this flag is set, the DesiredAccess SYNCHRONIZE flag also must be set.
+ */
 #define FILE_SYNCHRONOUS_IO_NONALERT        0x00000020
+/**
+ * The file being opened must not be a directory file or this call fails.
+ * The file object being opened can represent a data file, a logical, virtual, or physical device, or a volume.
+ */
 #define FILE_NON_DIRECTORY_FILE             0x00000040
+/**
+ * Create a tree connection for this file in order to open it over the network.
+ * This flag is not used by device and intermediate drivers.
+ */
 #define FILE_CREATE_TREE_CONNECTION         0x00000080
-
+/**
+ * Complete this operation immediately with an alternate success code of STATUS_OPLOCK_BREAK_IN_PROGRESS
+ * if the target file is oplocked, rather than blocking the caller's thread.
+ * If the file is oplocked, another caller already has access to the file.
+ * This flag is not used by device and intermediate drivers.
+ */
 #define FILE_COMPLETE_IF_OPLOCKED           0x00000100
+/**
+ * If the extended attributes on an existing file being opened indicate that the caller must understand
+ * EAs to properly interpret the file, fail this request because the caller does not understand how to
+ * deal with EAs.
+ * This flag is irrelevant for device and intermediate drivers.
+ */
 #define FILE_NO_EA_KNOWLEDGE                0x00000200
+/**
+ * Open a remote instance of a file object, rather than attempting to reuse or
+ * collapse it into an existing local or cached file object.
+ */
 #define FILE_OPEN_REMOTE_INSTANCE           0x00000400
+/**
+ * Accesses to the file can be random, so no sequential read-ahead operations should be performed on
+ * the file by FSDs or the system.
+ */
 #define FILE_RANDOM_ACCESS                  0x00000800
-
+/**
+ * Delete the file when the last handle to it is passed to NtClose.
+ * If this flag is set, the DELETE flag must be set in the DesiredAccess parameter.
+ */
 #define FILE_DELETE_ON_CLOSE                0x00001000
+/**
+ * The file name specified by the ObjectAttributes parameter includes the 8-byte file reference number
+ * for the file.
+ * This number is assigned by and specific to the particular file system.
+ * If the file is a reparse point, the file name will also include the name of a device.
+ * Note that the FAT file system does not support this flag.
+ * This flag is not used by device and intermediate drivers.
+ */
 #define FILE_OPEN_BY_FILE_ID                0x00002000
+/**
+ * The file is being opened for backup intent.
+ * Therefore, the system should check for certain access rights and grant the caller the appropriate
+ * access to the file before checking the DesiredAccess parameter against the file's security descriptor.
+ * This flag is not used by device and intermediate drivers.
+ */
 #define FILE_OPEN_FOR_BACKUP_INTENT         0x00004000
+/**
+ * Suppress inheritance of FILE_ATTRIBUTE_COMPRESSED from the parent directory.
+ * This allows creation of a non-compressed file in a directory that is marked compressed.
+ */
 #define FILE_NO_COMPRESSION                 0x00008000
-
+/**
+ * The file is being opened and an opportunistic lock on the file is being requested as a single atomic operation.
+ * The file system checks for oplocks before it performs the create operation and fails the create with
+ * STATUS_CANNOT_BREAK_OPLOCK if the result would break an existing oplock.
+ */
 #define FILE_OPEN_REQUIRING_OPLOCK          0x00010000
+/**
+ * When opening an existing file, if FILE_SHARE_READ is not specified and file system access checks
+ * would not grant the caller write access to the file, fail this open with STATUS_ACCESS_DENIED.
+ * This was default behavior prior to Windows 7.
+ */
 #define FILE_DISALLOW_EXCLUSIVE             0x00020000
+/**
+ * The client opening the file or device is session aware and per session access is validated if necessary.
+ */
 #define FILE_SESSION_AWARE                  0x00040000
-
+/**
+ * Allows an application to request a filter opportunistic lock to prevent other applications from
+ * getting share violations.
+ * If there are already open handles, the create request fails with STATUS_OPLOCK_NOT_GRANTED.
+ */
 #define FILE_RESERVE_OPFILTER               0x00100000
+/**
+ * Open a file with a reparse point and bypass normal reparse point processing for the file.
+ */
 #define FILE_OPEN_REPARSE_POINT             0x00200000
+/**
+ * Instructs any filters that perform offline storage or virtualization to not recall the contents of
+ * the file as a result of this open.
+ */
 #define FILE_OPEN_NO_RECALL                 0x00400000
+/**
+ * Instructs the file system to capture the user associated with the calling thread.
+ * Subsequent calls to FltQueryVolumeInformation or ZwQueryVolumeInformationFile using the returned handle
+ * use the captured user, rather than the calling user at that time, to compute available free space.
+ * This applies to FileFsSizeInformation, FileFsFullSizeInformation, and FileFsFullSizeInformationEx.
+ */
 #define FILE_OPEN_FOR_FREE_SPACE_QUERY      0x00800000
-
+/**
+ * Create the tree connection with write-through semantics.
+ */
 #define TREE_CONNECT_WRITE_THROUGH          0x00000002
+/**
+ * Create the tree connection without client-side buffering.
+ */
 #define TREE_CONNECT_NO_CLIENT_BUFFERING    0x00000008
 
 //
@@ -124,11 +260,29 @@ typedef struct _EXTENDED_CREATE_INFORMATION_32
 // I/O status information values for NtCreateFile/NtOpenFile
 //
 
+/**
+ * An existing file was deleted and a new file was created in its place.
+ */
 #define FILE_SUPERSEDED                 0x00000000
+/**
+ * An existing file was opened.
+ */
 #define FILE_OPENED                     0x00000001
+/**
+ * A new file was created.
+ */
 #define FILE_CREATED                    0x00000002
+/**
+ * An existing file was overwritten.
+ */
 #define FILE_OVERWRITTEN                0x00000003
+/**
+ * The file already exists.
+ */
 #define FILE_EXISTS                     0x00000004
+/**
+ * The file does not exist.
+ */
 #define FILE_DOES_NOT_EXIST             0x00000005
 
 //
@@ -137,6 +291,13 @@ typedef struct _EXTENDED_CREATE_INFORMATION_32
 
 #define FILE_WRITE_TO_END_OF_FILE       0xffffffff
 #define FILE_USE_FILE_POINTER_POSITION  0xfffffffe
+
+//
+// Special Timestamp values
+//
+
+#define FILE_TIMESTAMP_UPDATE_DISABLED ((LONGLONG)-1)
+#define FILE_TIMESTAMP_UPDATE_ENABLED ((LONGLONG)-2)
 
 //
 // Alignment requirement values
@@ -3292,6 +3453,7 @@ NtRemoveIoCompletionEx(
  * \param ObjectAttributes Optional pointer to an OBJECT_ATTRIBUTES structure that
  *        supplies the object name and other attributes. May be NULL.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntcreatewaitcompletionpacket
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3330,6 +3492,7 @@ NtCreateWaitCompletionPacket(
  * \remarks Use this routine to arrange for notification of a target object's
  *          completion by queuing a wait completion packet containing the
  *          supplied context and status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntassociatewaitcompletionpacket
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -3356,6 +3519,7 @@ NtAssociateWaitCompletionPacket(
  * \return NTSTATUS Successful or errant status.
  * \remarks After successful cancellation, the wait completion packet will no
  *          longer be delivered as a result of the previously associated target.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntcancelwaitcompletionpacket
  */
 NTSYSCALLAPI
 NTSTATUS
