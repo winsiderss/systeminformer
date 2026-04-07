@@ -14,6 +14,8 @@
 #ifndef PV_PRP_H
 #define PV_PRP_H
 
+EXTERN_C_START
+
 #define PV_PROPCONTEXT_MAXPAGES 20
 
 typedef struct _PV_PROPSHEETCONTEXT
@@ -97,8 +99,8 @@ VOID PvDoPropPageLayout(
     _In_ HWND hwnd
     );
 
-FORCEINLINE
 _Success_(return)
+FORCEINLINE
 BOOLEAN
 NTAPI
 PvPropPageDlgProcHeader(
@@ -122,7 +124,7 @@ PvPropPageDlgProcHeader(
     }
     else
     {
-        propSheetPage = PhGetWindowContext(hwndDlg, 0xfff);
+        propSheetPage = (LPPROPSHEETPAGE)PhGetWindowContext(hwndDlg, 0xfff);
 
         if (!propSheetPage)
             return FALSE;
@@ -144,5 +146,7 @@ PvPropPageDlgProcHeader(
 VOID PvRefreshChildWindows(
     _In_ HWND WindowHandle
     );
+
+EXTERN_C_END
 
 #endif

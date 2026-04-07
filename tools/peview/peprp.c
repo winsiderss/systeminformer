@@ -120,7 +120,7 @@ VOID PvPeProperties(
                 PhLoadModuleSymbolProvider(
                     PvSymbolProvider,
                     fileName,
-                    PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, 0),
+                    (PVOID)(ULONG_PTR)PvMappedImage.NtHeaders32->OptionalHeader.ImageBase,
                     PvMappedImage.NtHeaders32->OptionalHeader.SizeOfImage
                     );
             }
@@ -129,7 +129,7 @@ VOID PvPeProperties(
                 PhLoadModuleSymbolProvider(
                     PvSymbolProvider,
                     fileName,
-                    PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, 0),
+                    (PVOID)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
                     PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
                     );
             }
@@ -1016,7 +1016,7 @@ VOID PvpSetPeImageSize(
         if (PvMappedImage.Sections[i].PointerToRawData > lastRawDataAddress)
         {
             lastRawDataAddress = PvMappedImage.Sections[i].PointerToRawData;
-            lastRawDataOffset = (ULONG64)PTR_ADD_OFFSET(lastRawDataAddress, PvMappedImage.Sections[i].SizeOfRawData);
+            lastRawDataOffset = UInt32Add32To64(lastRawDataAddress, PvMappedImage.Sections[i].SizeOfRawData);
         }
     }
 
@@ -1066,55 +1066,11 @@ VOID PvpSetPeImageSize(
     PhDereferenceObject(string);
 }
 
-VOID PvCalculateImageEntropy(
-    _Out_ FLOAT* ImageEntropy,
-    _Out_ FLOAT* ImageVariance
-    )
-{
-    FLOAT imageEntropy = 0.f;
-    ULONG64 offset = 0;
-    ULONG64 imageSumValue = 0;
-    FLOAT imageMeanValue = 0;
-    //FLOAT deviationValue = 0;
-    ULONG64 counts[UCHAR_MAX + 1];
-
-    memset(counts, 0, sizeof(counts));
-
-    while (offset < PvMappedImage.ViewSize)
-    {
-        BYTE value = *(PBYTE)PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset++);
-
-        imageSumValue += value;
-        counts[value]++;
-    }
-
-    for (ULONG i = 0; i < RTL_NUMBER_OF(counts); i++)
-    {
-        FLOAT value = (FLOAT)counts[i] / (FLOAT)PvMappedImage.ViewSize;
-
-        if (value > 0.f)
-            imageEntropy -= value * log2f(value);
-    }
-
-    imageMeanValue = (FLOAT)imageSumValue / (FLOAT)PvMappedImage.ViewSize; // 127.5 = random
-
-    //offset = 0;
-    //while (offset < PvMappedImage.Size)
-    //{
-    //    BYTE value = *(PBYTE)PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset++);
-    //    deviationValue += pow(value - imageMeanValue, 2);
-    //}
-    //DOUBLE varianceValue = deviationValue / (DOUBLE)PvMappedImage.Size;
-    //deviationValue = sqrt(varianceValue);
-
-    *ImageEntropy = imageEntropy;
-    *ImageVariance = imageMeanValue;
-}
-
 typedef struct _PVP_ENTROPY_RESULT
 {
     FLOAT ImageEntropy;
     FLOAT ImageAvgMean;
+    FLOAT ImageVariance;
 } PVP_ENTROPY_RESULT, *PPVP_ENTROPY_RESULT;
 
 _Function_class_(USER_THREAD_START_ROUTINE)
@@ -1124,14 +1080,21 @@ static NTSTATUS PvpEntropyImageThreadStart(
 {
     HWND windowHandle = Parameter;
     PPVP_ENTROPY_RESULT result;
-    FLOAT imageEntropy;
-    FLOAT imageAvgMean;
+    FLOAT imageEntropy = 0.0f;
+    FLOAT imageAvgMean = 0.0f;
+    FLOAT imageVariance = 0.0f;
 
-    PvCalculateImageEntropy(&imageEntropy, &imageAvgMean);
+    PhGetMappedImageEntropy(
+        &PvMappedImage,
+        &imageEntropy,
+        &imageAvgMean,
+        &imageVariance
+        );
 
     result = PhAllocateZero(sizeof(PVP_ENTROPY_RESULT));
     result->ImageEntropy = imageEntropy;
     result->ImageAvgMean = imageAvgMean;
+    result->ImageVariance = imageVariance;
 
     PostMessage(windowHandle, PVM_ENTROPY_DONE, 0, (LPARAM)result);
 
@@ -1172,7 +1135,7 @@ static NTSTATUS PvpEntryPointImageThreadStart(
         {
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
-                PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, addressOfEntryPoint),
+                PTR_ADD_OFFSET(UlongToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), addressOfEntryPoint),
                 &symbolResolveLevel,
                 &fileName,
                 &symbolName,
@@ -1255,7 +1218,7 @@ VOID PvpSetPeImageSpareHeaderBytes(
         ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader) + PvMappedImage.NtHeaders32->FileHeader.SizeOfOptionalHeader;
         ULONG sectionsLength = PvMappedImage.NtHeaders32->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
         ULONG totalLength = nativeHeadersLength + optionalHeadersLength + sectionsLength;
-        ULONG spareLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.SizeOfHeaders, totalLength));
+        ULONG spareLength = (PvMappedImage.NtHeaders32->OptionalHeader.SizeOfHeaders - totalLength);
 
         PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_HEADERSPARE, 1, PhaFormatSize(spareLength, ULONG_MAX)->Buffer);
     }
@@ -1265,7 +1228,7 @@ VOID PvpSetPeImageSpareHeaderBytes(
         ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader) + PvMappedImage.NtHeaders->FileHeader.SizeOfOptionalHeader;
         ULONG sectionsLength = PvMappedImage.NtHeaders->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
         ULONG totalLength = nativeHeadersLength + optionalHeadersLength + sectionsLength;
-        ULONG spareLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.SizeOfHeaders, totalLength));
+        ULONG spareLength = (PvMappedImage.NtHeaders->OptionalHeader.SizeOfHeaders - totalLength);
 
         PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_HEADERSPARE, 1, PhaFormatSize(spareLength, ULONG_MAX)->Buffer);
     }
@@ -2205,7 +2168,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             PPVP_ENTROPY_RESULT result = (PPVP_ENTROPY_RESULT)lParam;
             PPH_STRING string;
 
-            string = PhFormatEntropy(result->ImageEntropy, 6, result->ImageAvgMean, 4);
+            string = PhFormatEntropy(result->ImageEntropy, 6, result->ImageAvgMean, 4, result->ImageVariance, 4);
             PhSetListViewSubItem(context->ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTROPY, 1, string->Buffer);
             PhDereferenceObject(string);
         }

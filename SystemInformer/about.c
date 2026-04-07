@@ -248,38 +248,45 @@ PPH_STRING PhGetApplicationVersionString(
     )
 {
     PPH_STRING versionString;
-    PCWSTR channelName = PhGetPhReleaseChannelString();
-    PPH_STRING commitversionString = PhGetPhVersion();
-    PPH_STRING commitHashString = PhGetPhVersionHash();
+    PCWSTR channelNameString = PhGetBuildReleaseChannelString();
+    PPH_STRING commitVersionString = PhGetBuildVersion();
+    PPH_STRING commitHashString = PhGetBuildCommit();
+    PPH_STRING commitTimeString = PhGetBuildTime();
 
 #if (PHAPP_VERSION_REVISION != 0)
     if (LinkToCommit)
     {
-        PH_FORMAT format[8];
+        PH_FORMAT format[11];
 
         // "System Informer %lu.%lu.%lu (<a href=\"https://github.com/winsiderss/systeminformer/commit/%hs\">%hs</a>) %ls"
         PhInitFormatS(&format[0], L"System Informer ");
-        PhInitFormatSR(&format[1], commitversionString->sr);
+        PhInitFormatSR(&format[1], commitVersionString->sr);
         PhInitFormatS(&format[2], L" (<a href=\"https://github.com/winsiderss/systeminformer/commit/");
         PhInitFormatSR(&format[3], commitHashString->sr);
         PhInitFormatS(&format[4], L"\">");
         PhInitFormatSR(&format[5], commitHashString->sr);
         PhInitFormatS(&format[6], L"</a>) ");
-        PhInitFormatS(&format[7], channelName);
+        PhInitFormatS(&format[7], channelNameString);
+        PhInitFormatS(&format[8], L" (");
+        PhInitFormatSR(&format[9], commitTimeString->sr);
+        PhInitFormatS(&format[10], L") ");
 
         versionString = PhFormat(format, RTL_NUMBER_OF(format), 0);
     }
     else
     {
-        PH_FORMAT format[6];
+        PH_FORMAT format[9];
 
         // "System Informer %lu.%lu.%lu (%hs) %ls"
         PhInitFormatS(&format[0], L"System Informer ");
-        PhInitFormatSR(&format[1], commitversionString->sr);
+        PhInitFormatSR(&format[1], commitVersionString->sr);
         PhInitFormatS(&format[2], L" (");
         PhInitFormatSR(&format[3], commitHashString->sr);
         PhInitFormatS(&format[4], L") ");
         PhInitFormatS(&format[5], channelName);
+        PhInitFormatS(&format[6], L" (");
+        PhInitFormatSR(&format[7], commitTimeString->sr);
+        PhInitFormatS(&format[8], L") ");
 
         versionString = PhFormat(format, RTL_NUMBER_OF(format), 0);
     }
@@ -288,15 +295,16 @@ PPH_STRING PhGetApplicationVersionString(
 
     // "System Informer %lu.%lu %ls"
     PhInitFormatS(&format[0], L"System Informer ");
-    PhInitFormatSR(&format[1], commitversionString->sr);
+    PhInitFormatSR(&format[1], commitVersionString->sr);
     PhInitFormatC(&format[2], L' ');
-    PhInitFormatS(&format[3], channelName);
+    PhInitFormatS(&format[3], channelNameString);
 
     versionString = PhFormat(format, RTL_NUMBER_OF(format), 0);
 #endif
 
+    PhClearReference(&commitTimeString);
     PhClearReference(&commitHashString);
-    PhClearReference(&commitversionString);
+    PhClearReference(&commitVersionString);
 
     return versionString;
 }

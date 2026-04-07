@@ -40,6 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef PCRE2_STATIC
 #define PCRE2_STATIC 1
 #endif
+#ifndef HAVE_CONFIG_H
+#define HAVE_CONFIG_H 1
+#endif
 
 // dmex: This must match SUPPORT_PCRE2_16 or SUPPORT_PCRE2_32 in config.h
 #undef PCRE2_CODE_UNIT_WIDTH

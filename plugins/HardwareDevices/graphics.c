@@ -11,6 +11,46 @@
 
 #include "devices.h"
 
+static PH_QUEUED_LOCK GraphicsDeviceInterfaceAdapterIndexLock = PH_QUEUED_LOCK_INIT;
+
+/**
+ * Finds a full adapter LUID in a cached list and returns its index.
+ *
+ * \param LuidList Cached adapter LUID list.
+ * \param AdapterLuid Adapter LUID to search for.
+ * \param Index Receives the matching list index.
+ * \return TRUE if the LUID was found in the list.
+ */
+_Success_(return)
+static BOOLEAN GraphicsFindCachedAdapterLuid(
+    _In_ PPH_LIST LuidList,
+    _In_ CONST LUID* AdapterLuid,
+    _Out_ PULONG Index
+    )
+{
+    for (ULONG i = 0; i < LuidList->Count; i++)
+    {
+        PLUID luidEntry = LuidList->Items[i];
+
+        if (luidEntry->LowPart == AdapterLuid->LowPart &&
+            luidEntry->HighPart == AdapterLuid->HighPart)
+        {
+            *Index = i;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+/**
+ * Opens a graphics adapter handle from a device interface name.
+ *
+ * \param AdapterHandle Receives the adapter handle.
+ * \param AdapterLuid Receives the adapter LUID, if requested.
+ * \param DeviceName Device interface name.
+ * \return NTSTATUS result of the open request.
+ */
 NTSTATUS GraphicsOpenAdapterFromDeviceName(
     _Out_ D3DKMT_HANDLE* AdapterHandle,
     _Out_opt_ PLUID AdapterLuid,
@@ -36,6 +76,12 @@ NTSTATUS GraphicsOpenAdapterFromDeviceName(
     return status;
 }
 
+/**
+ * Closes a graphics adapter handle.
+ *
+ * \param AdapterHandle Adapter handle to close.
+ * \return TRUE if the adapter was closed successfully.
+ */
 BOOLEAN GraphicsCloseAdapterHandle(
     _In_ D3DKMT_HANDLE AdapterHandle
     )
@@ -48,6 +94,15 @@ BOOLEAN GraphicsCloseAdapterHandle(
     return NT_SUCCESS(D3DKMTCloseAdapter(&closeAdapter));
 }
 
+/**
+ * Queries adapter information through D3DKMT.
+ *
+ * \param AdapterHandle Adapter handle.
+ * \param InformationClass Information class to query.
+ * \param Information Output buffer.
+ * \param InformationLength Output buffer length.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS GraphicsQueryAdapterInformation(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ KMTQUERYADAPTERINFOTYPE InformationClass,
@@ -66,6 +121,14 @@ NTSTATUS GraphicsQueryAdapterInformation(
     return D3DKMTQueryAdapterInfo(&queryAdapterInfo);
 }
 
+/**
+ * Queries the adapter's segment and node counts.
+ *
+ * \param AdapterLuid Adapter LUID.
+ * \param NumberOfSegments Receives the segment count.
+ * \param NumberOfNodes Receives the node count.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS GraphicsQueryAdapterNodeInformation(
     _In_ LUID AdapterLuid,
     _Out_ PULONG NumberOfSegments,
@@ -90,6 +153,19 @@ NTSTATUS GraphicsQueryAdapterNodeInformation(
     return status;
 }
 
+/**
+ * Queries memory segment usage and limits for an adapter.
+ *
+ * \param AdapterLuid Adapter LUID.
+ * \param NumberOfSegments Number of segments to inspect.
+ * \param SharedUsage Receives total shared resident usage.
+ * \param SharedCommit Receives shared committed bytes.
+ * \param SharedLimit Receives shared commit limit.
+ * \param DedicatedUsage Receives dedicated resident usage.
+ * \param DedicatedCommit Receives dedicated committed bytes.
+ * \param DedicatedLimit Receives dedicated commit limit.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS GraphicsQueryAdapterSegmentLimits(
     _In_ LUID AdapterLuid,
     _In_ ULONG NumberOfSegments,
@@ -172,6 +248,14 @@ NTSTATUS GraphicsQueryAdapterSegmentLimits(
     return status;
 }
 
+/**
+ * Queries node running time for an adapter node.
+ *
+ * \param AdapterLuid Adapter LUID.
+ * \param NodeId Node ordinal.
+ * \param RunningTime Receives the running time value.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS GraphicsQueryAdapterNodeRunningTime(
     _In_ LUID AdapterLuid,
     _In_ ULONG NodeId,
@@ -197,6 +281,15 @@ NTSTATUS GraphicsQueryAdapterNodeRunningTime(
     return status;
 }
 
+/**
+ * Queries adapter-wide performance data.
+ *
+ * \param AdapterHandle Adapter handle.
+ * \param PowerUsage Receives power usage.
+ * \param Temperature Receives temperature.
+ * \param FanRPM Receives fan speed.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS GraphicsQueryAdapterDevicePerfData(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _Out_ PFLOAT PowerUsage,
@@ -228,6 +321,20 @@ NTSTATUS GraphicsQueryAdapterDevicePerfData(
     return status;
 }
 
+/**
+ * Queries performance data for a specific adapter node.
+ *
+ * \param AdapterHandle Adapter handle.
+ * \param NodeOrdinal Node ordinal.
+ * \param Frequency Receives the current frequency.
+ * \param MaxFrequency Receives the maximum frequency.
+ * \param MaxFrequencyOC Receives the overclocked maximum frequency.
+ * \param Voltage Receives the current voltage.
+ * \param VoltageMax Receives the maximum voltage.
+ * \param VoltageMaxOC Receives the overclocked maximum voltage.
+ * \param MaxTransitionLatency Receives the transition latency.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS GraphicsQueryAdapterDeviceNodePerfData(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ ULONG NodeOrdinal,
@@ -268,6 +375,12 @@ NTSTATUS GraphicsQueryAdapterDeviceNodePerfData(
     return status;
 }
 
+/**
+ * Queries a display adapter description from a device instance.
+ *
+ * \param DeviceHandle Device instance handle.
+ * \return Adapter description string.
+ */
 PPH_STRING GraphicsQueryDeviceDescription(
     _In_ DEVINST DeviceHandle
     )
@@ -286,6 +399,12 @@ PPH_STRING GraphicsQueryDeviceDescription(
         return string;
 }
 
+/**
+ * Queries a display adapter description from a device interface path.
+ *
+ * \param DeviceInterface Device interface path.
+ * \return Adapter description string.
+ */
 PPH_STRING GraphicsQueryDeviceInterfaceDescription(
     _In_opt_ PWSTR DeviceInterface
     )
@@ -319,6 +438,16 @@ PPH_STRING GraphicsQueryDeviceInterfaceDescription(
     }
 }
 
+/**
+ * Queries an arbitrary device property from a device instance.
+ *
+ * \param DeviceHandle Device instance handle.
+ * \param DeviceProperty Property key to query.
+ * \param PropertyType Receives the property type.
+ * \param BufferLength Receives the buffer size.
+ * \param Buffer Receives the allocated property buffer.
+ * \return TRUE if the property query succeeded.
+ */
 _Success_(return)
 BOOLEAN GraphicsQueryDevicePropertyKey(
     _In_ DEVINST DeviceHandle,
@@ -367,6 +496,8 @@ BOOLEAN GraphicsQueryDevicePropertyKey(
             *BufferLength = bufferSize;
         if (Buffer)
             *Buffer = buffer;
+        else
+            PhFree(buffer);
         return TRUE;
     }
 
@@ -374,6 +505,13 @@ BOOLEAN GraphicsQueryDevicePropertyKey(
     return FALSE;
 }
 
+/**
+ * Queries a device property and converts it to a display string.
+ *
+ * \param DeviceHandle Device instance handle.
+ * \param DeviceProperty Property key to query.
+ * \return Formatted property string, or NULL on failure.
+ */
 PPH_STRING GraphicsQueryDevicePropertyString(
     _In_ DEVINST DeviceHandle,
     _In_ CONST DEVPROPKEY *DeviceProperty
@@ -448,9 +586,16 @@ PPH_STRING GraphicsQueryDevicePropertyString(
         break;
     }
 
+    PhFree(buffer);
     return NULL;
 }
 
+/**
+ * Queries the installed memory value for a graphics adapter.
+ *
+ * \param DeviceHandle Device instance handle.
+ * \return Installed memory size, or ULLONG_MAX when unavailable.
+ */
 ULONG64 GraphicsQueryInstalledMemory(
     _In_ DEVINST DeviceHandle
     )
@@ -499,6 +644,18 @@ ULONG64 GraphicsQueryInstalledMemory(
     return installedMemory;
 }
 
+/**
+ * Queries a set of common device properties for a graphics adapter.
+ *
+ * \param DeviceInterface Device interface path.
+ * \param Description Receives the device description.
+ * \param DriverDate Receives the driver date.
+ * \param DriverVersion Receives the driver version.
+ * \param LocationInfo Receives the location string.
+ * \param InstalledMemory Receives installed memory.
+ * \param AdapterLuid Receives the adapter LUID.
+ * \return TRUE if the device was resolved successfully.
+ */
 _Success_(return)
 BOOLEAN GraphicsQueryDeviceProperties(
     _In_ PCWSTR DeviceInterface,
@@ -555,7 +712,12 @@ BOOLEAN GraphicsQueryDeviceProperties(
 
         if (GraphicsQueryDevicePropertyKey(deviceInstanceHandle, &DEVPKEY_Gpu_Luid, &propertyType, &bufferSize, &buffer))
         {
-            memcpy(AdapterLuid, buffer, sizeof(LUID));
+            if (propertyType == DEVPROP_TYPE_UINT64 && bufferSize >= sizeof(LUID))
+                memcpy(AdapterLuid, buffer, sizeof(LUID));
+            else
+                memset(AdapterLuid, 0, sizeof(LUID));
+
+            PhFree(buffer);
         }
         else
         {
@@ -578,6 +740,13 @@ BOOLEAN GraphicsQueryDeviceProperties(
     return TRUE;
 }
 
+/**
+ * Queries the LUID associated with a graphics device interface.
+ *
+ * \param DeviceInterface Device interface path.
+ * \param AdapterLuid Receives the adapter LUID.
+ * \return TRUE if the LUID was queried successfully.
+ */
 _Success_(return)
 BOOLEAN GraphicsQueryDeviceInterfaceLuid(
     _In_ PCWSTR DeviceInterface,
@@ -624,10 +793,26 @@ BOOLEAN GraphicsQueryDeviceInterfaceLuid(
         return FALSE;
     }
 
+    if (propertyType != DEVPROP_TYPE_UINT64 || bufferSize < sizeof(LUID))
+    {
+        PhFree(buffer);
+        memset(AdapterLuid, 0, sizeof(LUID));
+        return FALSE;
+    }
+
     memcpy(AdapterLuid, buffer, sizeof(LUID));
+    PhFree(buffer);
     return TRUE;
 }
 
+/**
+ * Computes a stable unique adapter index for display.
+ *
+ * \param DeviceInstanceHandle Device instance handle.
+ * \param DeviceInterface Device interface path.
+ * \param PhysicalAdapterIndex Receives the unique adapter index.
+ * \return TRUE if an index was produced successfully.
+ */
 _Success_(return)
 BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndexUnique(
     _In_ DEVINST DeviceInstanceHandle,
@@ -674,23 +859,8 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndexUnique(
         return FALSE;
     }
 
-    for (ULONG i = 0; i < gpuLuids->Count; i++)
-    {
-        if (luid.LowPart == PtrToUlong(gpuLuids->Items[i]))
-        {
-            *PhysicalAdapterIndex = i;
-            return TRUE;
-        }
-    }
-
-    for (ULONG i = 0; i < npuLuids->Count; i++)
-    {
-        if (luid.LowPart == PtrToUlong(npuLuids->Items[i]))
-        {
-            *PhysicalAdapterIndex = i;
-            return TRUE;
-        }
-    }
+    if (propertyType != DEVPROP_TYPE_UINT64 || luidSize < sizeof(LUID))
+        return FALSE;
 
     BOOLEAN npuDevice = FALSE;
 
@@ -711,18 +881,51 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndexUnique(
 
     if (npuDevice)
     {
-        PhAddItemList(npuLuids, UlongToPtr(luid.LowPart));
-        *PhysicalAdapterIndex = npuLuids->Count - 1;
+        ULONG index;
+
+        PhAcquireQueuedLockExclusive(&GraphicsDeviceInterfaceAdapterIndexLock);
+
+        if (!GraphicsFindCachedAdapterLuid(npuLuids, &luid, &index))
+        {
+            PLUID luidEntry = PhAllocate(sizeof(LUID));
+
+            *luidEntry = luid;
+            PhAddItemList(npuLuids, luidEntry);
+            index = npuLuids->Count - 1;
+        }
+
+        *PhysicalAdapterIndex = index;
+        PhReleaseQueuedLockExclusive(&GraphicsDeviceInterfaceAdapterIndexLock);
     }
     else
     {
-        PhAddItemList(gpuLuids, UlongToPtr(luid.LowPart));
-        *PhysicalAdapterIndex = gpuLuids->Count - 1;
+        ULONG index;
+
+        PhAcquireQueuedLockExclusive(&GraphicsDeviceInterfaceAdapterIndexLock);
+
+        if (!GraphicsFindCachedAdapterLuid(gpuLuids, &luid, &index))
+        {
+            PLUID luidEntry = PhAllocate(sizeof(LUID));
+
+            *luidEntry = luid;
+            PhAddItemList(gpuLuids, luidEntry);
+            index = gpuLuids->Count - 1;
+        }
+
+        *PhysicalAdapterIndex = index;
+        PhReleaseQueuedLockExclusive(&GraphicsDeviceInterfaceAdapterIndexLock);
     }
 
     return TRUE;
 }
 
+/**
+ * Queries the adapter index associated with a graphics device interface.
+ *
+ * \param DeviceInterface Device interface path.
+ * \param PhysicalAdapterIndex Receives the adapter index.
+ * \return TRUE if an adapter index was found.
+ */
 _Success_(return)
 BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
     _In_ PCWSTR DeviceInterface,
@@ -841,6 +1044,12 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
     return FALSE;
 }
 
+/**
+ * Converts a GPU node engine type to a display string.
+ *
+ * \param NodeMetaData Node metadata record.
+ * \return Engine type display string.
+ */
 PPH_STRING GraphicsGetNodeEngineTypeString(
     _In_ D3DKMT_NODEMETADATA NodeMetaData
     )
@@ -857,14 +1066,14 @@ PPH_STRING GraphicsGetNodeEngineTypeString(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PH_STRINGREF name3DString = PH_STRINGREF_INIT(L"3D");
-        PH_STRINGREF nameDecodeString = PH_STRINGREF_INIT(L"Video Decode");
-        PH_STRINGREF nameEncodeString = PH_STRINGREF_INIT(L"Video Encode");
-        PH_STRINGREF nameProcessingString = PH_STRINGREF_INIT(L"Video Processing");
-        PH_STRINGREF nameAssemblyString = PH_STRINGREF_INIT(L"Scene Assembly");
-        PH_STRINGREF nameCopyString = PH_STRINGREF_INIT(L"Copy");
-        PH_STRINGREF nameOverlayString = PH_STRINGREF_INIT(L"Overlay");
-        PH_STRINGREF nameCryptoString = PH_STRINGREF_INIT(L"Crypto");
+        static CONST PH_STRINGREF name3DString = PH_STRINGREF_INIT(L"3D");
+        static CONST PH_STRINGREF nameDecodeString = PH_STRINGREF_INIT(L"Video Decode");
+        static CONST PH_STRINGREF nameEncodeString = PH_STRINGREF_INIT(L"Video Encode");
+        static CONST PH_STRINGREF nameProcessingString = PH_STRINGREF_INIT(L"Video Processing");
+        static CONST PH_STRINGREF nameAssemblyString = PH_STRINGREF_INIT(L"Scene Assembly");
+        static CONST PH_STRINGREF nameCopyString = PH_STRINGREF_INIT(L"Copy");
+        static CONST PH_STRINGREF nameOverlayString = PH_STRINGREF_INIT(L"Overlay");
+        static CONST PH_STRINGREF nameCryptoString = PH_STRINGREF_INIT(L"Crypto");
 
         name3D = PhCreateString2(&name3DString);
         decode = PhCreateString2(&nameDecodeString);
@@ -903,6 +1112,13 @@ PPH_STRING GraphicsGetNodeEngineTypeString(
     }
 }
 
+/**
+ * Queries display names for all adapter nodes.
+ *
+ * \param AdapterHandle Adapter handle.
+ * \param NodeCount Number of nodes to inspect.
+ * \return List of node name strings.
+ */
 PPH_LIST GraphicsQueryDeviceNodeList(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ ULONG NodeCount
@@ -935,6 +1151,14 @@ PPH_LIST GraphicsQueryDeviceNodeList(
     return NodeNameList;
 }
 
+/**
+ * Queries a string property from the adapter registry.
+ *
+ * \param AdapterHandle Adapter handle.
+ * \param PropertyName Registry property name.
+ * \param String Receives the property string.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS GraphicsQueryAdapterPropertyString(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ PCPH_STRINGREF PropertyName,
@@ -976,7 +1200,7 @@ NTSTATUS GraphicsQueryAdapterPropertyString(
             regInfoSize
             )))
             goto CleanupExit;
-    }
+        }
 
     if (regInfo->Status != D3DDDI_QUERYREGISTRY_STATUS_SUCCESS)
     {
@@ -993,13 +1217,20 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Queries DXCore/DX adapter attribute flags.
+ *
+ * \param AdapterHandle Adapter handle.
+ * \param Attributes Receives the decoded attribute flags.
+ * \return NTSTATUS result of the query.
+ */
 NTSTATUS GraphicsQueryAdapterAttributes(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _Out_ PGX_ADAPTER_ATTRIBUTES Attributes
     )
 {
-    static PH_STRINGREF dxCoreAttributes = PH_STRINGREF_INIT(L"DXCoreAttributes");
-    static PH_STRINGREF dxAttributes = PH_STRINGREF_INIT(L"DXAttributes");
+    static CONST PH_STRINGREF dxCoreAttributes = PH_STRINGREF_INIT(L"DXCoreAttributes");
+    static CONST PH_STRINGREF dxAttributes = PH_STRINGREF_INIT(L"DXAttributes");
     NTSTATUS status;
     PPH_STRING adapterAttributes;
 
@@ -1007,15 +1238,17 @@ NTSTATUS GraphicsQueryAdapterAttributes(
 
     // DXCoreAdapter::QueryAndFillAdapterExtendedProperiesOnPlatform
     if (!NT_SUCCESS(status = GraphicsQueryAdapterPropertyString(AdapterHandle, &dxCoreAttributes, &adapterAttributes)))
+    {
         if (!NT_SUCCESS(status = GraphicsQueryAdapterPropertyString(AdapterHandle, &dxAttributes, &adapterAttributes)))
             return status;
+    }
 
     for (PWCHAR attr = adapterAttributes->Buffer;;)
     {
         PH_STRINGREF attribute;
         GUID guid;
 
-        PhInitializeStringRef(&attribute, attr);
+        PhInitializeStringRefLongHint(&attribute, attr);
 
         if (!attribute.Length)
             break;

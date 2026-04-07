@@ -16,7 +16,7 @@ BOOLEAN IsCollapseServicesOnStartEnabled(
     VOID
     )
 {
-    static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
+    static CONST PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
     PDB_OBJECT object;
 
     object = FindDbObject(FILE_TAG, &servicesBaseName);
@@ -38,7 +38,7 @@ VOID AddOrRemoveCollapseServicesOnStart(
 
     if (CollapseServicesOnStart)
     {
-        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
+        static CONST PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
         PDB_OBJECT object;
 
         if (object = FindDbObject(FILE_TAG, &servicesBaseName))
@@ -53,7 +53,7 @@ VOID AddOrRemoveCollapseServicesOnStart(
     }
     else
     {
-        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
+        static CONST PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
         PDB_OBJECT object;
 
         object = FindDbObject(FILE_TAG, &servicesBaseName);

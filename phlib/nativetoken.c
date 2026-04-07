@@ -113,7 +113,14 @@ NTSTATUS PhOpenProcessToken(
     return status;
 }
 
-/** Limited API for untrusted/external code. */
+/**
+ * Public API to open a process token using only NtOpenProcessToken.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param DesiredAccess The desired access to the token.
+ * \param TokenHandle Receives a handle to the token on success.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhOpenProcessTokenPublic(
     _In_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -127,6 +134,15 @@ NTSTATUS PhOpenProcessTokenPublic(
         );
 }
 
+/**
+ * Opens a thread token by calling NtOpenThreadToken.
+ *
+ * \param ThreadHandle A handle to a thread.
+ * \param DesiredAccess The desired access to the token.
+ * \param OpenAsSelf Whether to open the token using the process security context.
+ * \param TokenHandle Receives a handle to the token on success.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhOpenThreadToken(
     _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -147,14 +163,13 @@ NTSTATUS PhOpenThreadToken(
 }
 
 /**
- * Queries variable-sized information for a token. The function allocates a buffer to contain the
- * information.
+ * Queries variable-sized information for a token. Allocates a buffer of the
+ * appropriate size and returns it via \a Buffer.
  *
- * \param TokenHandle A handle to a token. The access required depends on the information class
- * specified.
+ * \param TokenHandle A handle to a token.
  * \param TokenInformationClass The information class to retrieve.
- * \param Buffer A variable which receives a pointer to a buffer containing the information. You
- * must free the buffer using PhFree() when you no longer need it.
+ * \param Buffer Receives a pointer to an allocated buffer containing the information.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhpQueryTokenVariableSize(
     _In_ HANDLE TokenHandle,
@@ -207,14 +222,12 @@ NTSTATUS PhpQueryTokenVariableSize(
 }
 
 /**
- * Queries variable-sized information for a token. The function allocates a buffer to contain the
- * information.
+ * Alias for PhpQueryTokenVariableSize.
  *
- * \param TokenHandle A handle to a token. The access required depends on the information class
- * specified.
+ * \param TokenHandle A handle to a token.
  * \param TokenInformationClass The information class to retrieve.
- * \param Buffer A variable which receives a pointer to a buffer containing the information. You
- * must free the buffer using PhFree() when you no longer need it.
+ * \param Buffer Receives a pointer to an allocated buffer containing the information.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhQueryTokenVariableSize(
     _In_ HANDLE TokenHandle,
@@ -230,11 +243,476 @@ NTSTATUS PhQueryTokenVariableSize(
 }
 
 /**
- * Gets a token's user.
+ * Retrieves the type of a token (primary or impersonation).
  *
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param User A variable which receives a pointer to a structure containing the token's user. You
- * must free the structure using PhFree() when you no longer need it.
+ * \param Type A variable which receives the token type (primary or impersonation).
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetTokenType(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_TYPE Type
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenType,
+        Type,
+        sizeof(TOKEN_TYPE),
+        &returnLength
+        );
+}
+
+/**
+ * Gets a token's session ID.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param SessionId A variable which receives the session ID.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenSessionId(
+    _In_ HANDLE TokenHandle,
+    _Out_ PULONG SessionId
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenSessionId,
+        SessionId,
+        sizeof(ULONG),
+        &returnLength
+        );
+}
+
+/**
+ * Gets a token's elevation type.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param ElevationType A variable which receives the elevation type.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenElevationType(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_ELEVATION_TYPE ElevationType
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenElevationType,
+        ElevationType,
+        sizeof(TOKEN_ELEVATION_TYPE),
+        &returnLength
+        );
+}
+
+/**
+ * Gets whether a token is elevated.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param TokenIsElevated A variable which receives a boolean indicating whether the token is elevated.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenElevation(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN TokenIsElevated
+    )
+{
+    NTSTATUS status;
+    TOKEN_ELEVATION elevation;
+    ULONG returnLength;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenElevation,
+        &elevation,
+        sizeof(TOKEN_ELEVATION),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *TokenIsElevated = !!elevation.TokenIsElevated;
+    }
+
+    return status;
+}
+
+/**
+ * Gets a token's statistics.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param Statistics A variable which receives the token's statistics.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenStatistics(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_STATISTICS Statistics
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenStatistics,
+        Statistics,
+        sizeof(TOKEN_STATISTICS),
+        &returnLength
+        );
+}
+
+/**
+ * Gets a token's source.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY_SOURCE access.
+ * \param Source A variable which receives the token's source.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenSource(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_SOURCE Source
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenSource,
+        Source,
+        sizeof(TOKEN_SOURCE),
+        &returnLength
+        );
+}
+
+/**
+ * Gets a handle to a token's linked token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param LinkedTokenHandle A variable which receives a handle to the linked token. You must close
+ * the handle using NtClose() when you no longer need it.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenLinkedToken(
+    _In_ HANDLE TokenHandle,
+    _Out_ PHANDLE LinkedTokenHandle
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    TOKEN_LINKED_TOKEN linkedToken;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenLinkedToken,
+        &linkedToken,
+        sizeof(TOKEN_LINKED_TOKEN),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *LinkedTokenHandle = linkedToken.LinkedToken;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetTokenIsRestricted(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsRestricted
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG restricted;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenIsRestricted,
+        &restricted,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsRestricted = !!restricted;
+    }
+
+    return status;
+}
+
+/**
+ * Gets whether virtualization is allowed for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsVirtualizationAllowed A variable which receives a boolean indicating whether
+ * virtualization is allowed for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenIsVirtualizationAllowed(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsVirtualizationAllowed
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG virtualizationAllowed;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenVirtualizationAllowed,
+        &virtualizationAllowed,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsVirtualizationAllowed = !!virtualizationAllowed;
+    }
+
+    return status;
+}
+
+/**
+ * Gets whether virtualization is enabled for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsVirtualizationEnabled A variable which receives a boolean indicating whether
+ * virtualization is enabled for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenIsVirtualizationEnabled(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsVirtualizationEnabled
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG virtualizationEnabled;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenVirtualizationEnabled,
+        &virtualizationEnabled,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsVirtualizationEnabled = !!virtualizationEnabled;
+
+    return status;
+}
+
+/**
+ * Gets UIAccess flag for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsUIAccessEnabled A variable which receives a boolean indicating whether
+ * UIAccess is enabled for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenUIAccess(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsUIAccessEnabled
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG uiAccess;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenUIAccess,
+        &uiAccess,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsUIAccessEnabled = !!uiAccess;
+
+    return status;
+}
+
+/**
+ * Sets UIAccess flag for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_ADJUST_DEFAULT access.
+ * \param IsUIAccessEnabled The new flag state.
+ * \remarks Enabling UIAccess requires SeTcbPrivilege.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhSetTokenUIAccess(
+    _In_ HANDLE TokenHandle,
+    _In_ BOOLEAN IsUIAccessEnabled
+    )
+{
+    ULONG uiAccess;
+
+    uiAccess = IsUIAccessEnabled ? 1 : 0;
+
+    return NtSetInformationToken(
+        TokenHandle,
+        TokenUIAccess,
+        &uiAccess,
+        sizeof(ULONG)
+        );
+}
+
+/**
+ * Gets SandBoxInert flag for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsSandBoxInert A variable which receives a boolean indicating whether
+ * AppLocker rules or Software Restriction Policies are enabled for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenIsSandBoxInert(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsSandBoxInert
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG sandBoxInert;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenSandBoxInert,
+        &sandBoxInert,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsSandBoxInert = !!sandBoxInert;
+
+    return status;
+}
+
+/**
+ * Gets Mandatory Policy for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param MandatoryPolicy A variable which receives a set of mandatory integrity
+ * policies enforced for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenMandatoryPolicy(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_MANDATORY_POLICY MandatoryPolicy
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenMandatoryPolicy,
+        MandatoryPolicy,
+        sizeof(TOKEN_MANDATORY_POLICY),
+        &returnLength
+        );
+}
+
+/**
+ * The TOKEN_ORIGIN structure contains information about the origin of the logon session.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param Origin A variable which receives the Locally unique identifier (LUID) for the logon session.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenOrigin(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_ORIGIN Origin
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenOrigin,
+        Origin,
+        sizeof(TOKEN_ORIGIN),
+        &returnLength
+        );
+}
+
+/**
+ * Gets a value that is nonzero if the token is an app container token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsAppContainer Any callers who check the TokenIsAppContainer and have it return 0 should
+ * also verify that the caller token is not an identify level impersonation token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenIsAppContainer(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsAppContainer
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG isAppContainer;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenIsAppContainer,
+        &isAppContainer,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsAppContainer = !!isAppContainer;
+
+    return status;
+}
+
+/**
+ * Gets a value that includes the app container number for the token.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param AppContainerNumber The app container number for the token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetTokenAppContainerNumber(
+    _In_ HANDLE TokenHandle,
+    _Out_ PULONG AppContainerNumber
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenAppContainerNumber,
+        AppContainerNumber,
+        sizeof(ULONG),
+        &returnLength
+        );
+}
+
+/**
+ * Gets a token's user SID and returns a copy of the SID.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param User Receives a pointer to a newly allocated SID copy.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetTokenUserCopy(
     _In_ HANDLE TokenHandle,
@@ -262,6 +740,13 @@ NTSTATUS PhGetTokenUserCopy(
     return status;
 }
 
+/**
+ * Gets a token's user information into a caller-provided PH_TOKEN_USER buffer.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param User Receives the token user information (PH_TOKEN_USER sized buffer).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenUser(
     _In_ HANDLE TokenHandle,
     _Out_ PPH_TOKEN_USER User
@@ -279,11 +764,11 @@ NTSTATUS PhGetTokenUser(
 }
 
 /**
- * Gets a token's owner.
+ * Gets a token's owner SID and returns a copy of the SID.
  *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param Owner A variable which receives a pointer to a structure containing the token's owner. You
- * must free the structure using PhFree() when you no longer need it.
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param Owner Receives a pointer to a newly allocated SID copy.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetTokenOwnerCopy(
     _In_ HANDLE TokenHandle,
@@ -311,6 +796,13 @@ NTSTATUS PhGetTokenOwnerCopy(
     return status;
 }
 
+/**
+ * Gets a token's owner information into a caller-provided PH_TOKEN_OWNER buffer.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param Owner Receives the token owner information (PH_TOKEN_OWNER sized buffer).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenOwner(
     _In_ HANDLE TokenHandle,
     _Out_ PPH_TOKEN_OWNER Owner
@@ -328,11 +820,11 @@ NTSTATUS PhGetTokenOwner(
 }
 
 /**
- * Gets a token's primary group.
+ * Gets a token's primary group information.
  *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param PrimaryGroup A variable which receives a pointer to a structure containing the token's
- * primary group. You must free the structure using PhFree() when you no longer need it.
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param PrimaryGroup Receives a pointer to the allocated TOKEN_PRIMARY_GROUP structure.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetTokenPrimaryGroup(
     _In_ HANDLE TokenHandle,
@@ -347,11 +839,11 @@ NTSTATUS PhGetTokenPrimaryGroup(
 }
 
 /**
- * Gets a token's discretionary access control list (DACL).
+ * Gets a token's default DACL.
  *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param DefaultDacl A pointer to an ACL structure assigned by default to any objects created
- * by the user. You must free the structure using PhFree() when you no longer need it.
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param DefaultDacl Receives a pointer to the allocated TOKEN_DEFAULT_DACL structure.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetTokenDefaultDacl(
     _In_ HANDLE TokenHandle,
@@ -386,9 +878,9 @@ NTSTATUS PhGetTokenDefaultDacl(
 /**
  * Gets a token's groups.
  *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param Groups A variable which receives a pointer to a structure containing the token's groups.
- * You must free the structure using PhFree() when you no longer need it.
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param Groups Receives a pointer to the allocated TOKEN_GROUPS structure.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetTokenGroups(
     _In_ HANDLE TokenHandle,
@@ -403,11 +895,11 @@ NTSTATUS PhGetTokenGroups(
 }
 
 /**
- * Get a token's restricted SIDs.
+ * Gets a token's restricted SIDs.
  *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param RestrictedSids A variable which receives a pointer to a structure containing the token's restricted SIDs.
- * You must free the structure using PhFree() when you no longer need it.
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param RestrictedSids Receives a pointer to the allocated TOKEN_GROUPS structure describing restricted SIDs.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetTokenRestrictedSids(
     _In_ HANDLE TokenHandle,
@@ -424,9 +916,9 @@ NTSTATUS PhGetTokenRestrictedSids(
 /**
  * Gets a token's privileges.
  *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param Privileges A variable which receives a pointer to a structure containing the token's
- * privileges. You must free the structure using PhFree() when you no longer need it.
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param Privileges Receives a pointer to the allocated TOKEN_PRIVILEGES structure.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetTokenPrivileges(
     _In_ HANDLE TokenHandle,
@@ -440,6 +932,13 @@ NTSTATUS PhGetTokenPrivileges(
         );
 }
 
+/**
+ * Gets a token's process trust level information.
+ *
+ * \param TokenHandle A handle to a token. Must have appropriate access for TokenProcessTrustLevel.
+ * \param TrustLevel Receives a pointer to the allocated TOKEN_PROCESS_TRUST_LEVEL structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenTrustLevel(
     _In_ HANDLE TokenHandle,
     _Out_ PTOKEN_PROCESS_TRUST_LEVEL *TrustLevel
@@ -452,6 +951,13 @@ NTSTATUS PhGetTokenTrustLevel(
         );
 }
 
+/**
+ * Gets a token's AppContainer SID.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param AppContainerSid Receives the PH_TOKEN_APPCONTAINER structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenAppContainerSid(
     _In_ HANDLE TokenHandle,
     _Out_ PPH_TOKEN_APPCONTAINER AppContainerSid
@@ -476,6 +982,13 @@ NTSTATUS PhGetTokenAppContainerSid(
     return status;
 }
 
+/**
+ * Gets a copy of a token's AppContainer SID.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param AppContainerSid Receives a pointer to a newly allocated SID copy.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenAppContainerSidCopy(
     _In_ HANDLE TokenHandle,
     _Out_ PSID* AppContainerSid
@@ -509,6 +1022,13 @@ NTSTATUS PhGetTokenAppContainerSidCopy(
     return status;
 }
 
+/**
+ * Retrieves token security attributes.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param SecurityAttributes Receives pointer to the allocated TOKEN_SECURITY_ATTRIBUTES_INFORMATION.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenSecurityAttributes(
     _In_ HANDLE TokenHandle,
     _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
@@ -521,6 +1041,14 @@ NTSTATUS PhGetTokenSecurityAttributes(
         );
 }
 
+/**
+ * Retrieves specific security attribute values for a token by attribute name.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param AttributeName The attribute name to query (stringref).
+ * \param SecurityAttributes Receives pointer to the allocated TOKEN_SECURITY_ATTRIBUTES_INFORMATION.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenSecurityAttribute(
     _In_ HANDLE TokenHandle,
     _In_ PCPH_STRINGREF AttributeName,
@@ -551,6 +1079,7 @@ NTSTATUS PhGetTokenSecurityAttribute(
 
     if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
     {
+        PhFree(buffer);
         bufferLength = returnLength;
         buffer = PhAllocate(bufferLength);
 
@@ -582,6 +1111,14 @@ NTSTATUS PhGetTokenSecurityAttribute(
     return status;
 }
 
+/**
+ * Determines whether a named security attribute exists on a token.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param AttributeName The attribute name to query (stringref).
+ * \param SecurityAttributeExists Receives TRUE if attribute exists.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhDoesTokenSecurityAttributeExist(
     _In_ HANDLE TokenHandle,
     _In_ PCPH_STRINGREF AttributeName,
@@ -593,7 +1130,7 @@ NTSTATUS PhDoesTokenSecurityAttributeExist(
     ULONG returnLength;
 
     if (!PhStringRefToUnicodeString(AttributeName, &attributeName))
-        return FALSE;
+        return STATUS_NAME_TOO_LONG;
 
     status = NtQuerySecurityAttributesToken(
         TokenHandle,
@@ -613,6 +1150,13 @@ NTSTATUS PhDoesTokenSecurityAttributeExist(
     return status;
 }
 
+/**
+ * Finds a security attribute entry by name within a TOKEN_SECURITY_ATTRIBUTES_INFORMATION block.
+ *
+ * \param Attributes Pointer to TOKEN_SECURITY_ATTRIBUTES_INFORMATION to search.
+ * \param AttributeName The attribute name to find (stringref).
+ * \return PTOKEN_SECURITY_ATTRIBUTE_V1 Pointer to the attribute entry if found, NULL otherwise.
+ */
 PTOKEN_SECURITY_ATTRIBUTE_V1 PhFindTokenSecurityAttributeName(
     _In_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION Attributes,
     _In_ PCPH_STRINGREF AttributeName
@@ -634,6 +1178,14 @@ PTOKEN_SECURITY_ATTRIBUTE_V1 PhFindTokenSecurityAttributeName(
     return NULL;
 }
 
+/**
+ * Determines whether a token represents a full-trust (system) package.
+ * This checks for the presence of the WIN://SYSAPPID attribute and ensures the
+ * token is not an AppContainer.
+ *
+ * \param TokenHandle A handle to a token.
+ * \return BOOLEAN TRUE if token is a full-trust package, FALSE otherwise.
+ */
 BOOLEAN PhGetTokenIsFullTrustPackage(
     _In_ HANDLE TokenHandle
     )
@@ -656,6 +1208,39 @@ BOOLEAN PhGetTokenIsFullTrustPackage(
     return FALSE;
 }
 
+/**
+ * Determines whether a token is a process user service (SCM user service) by checking the WIN://SCMUserService attribute.
+ * 
+ * \param TokenHandle A handle to a token.
+ * \param IsStronglyNamed Receives TRUE if the attribute exists.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetTokenIsProcessUserService(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsStronglyNamed
+    )
+{
+    static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SCMUserService");
+    BOOLEAN attributeExists = FALSE;
+    NTSTATUS status;
+
+    status = PhDoesTokenSecurityAttributeExist(TokenHandle, &attributeName, &attributeExists);
+
+    if (NT_SUCCESS(status))
+    {
+        *IsStronglyNamed = attributeExists;
+    }
+
+    return status;
+}
+
+/**
+ * Determines whether a process is strongly named by querying extended basic info.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param IsStronglyNamed Receives TRUE if the process is strongly named.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetProcessIsStronglyNamed(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsStronglyNamed
@@ -674,6 +1259,13 @@ NTSTATUS PhGetProcessIsStronglyNamed(
     return status;
 }
 
+/**
+ * Determines whether a token is strongly named by checking the WIN://SYSAPPID attribute.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param IsStronglyNamed Receives TRUE if token is strongly named.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenIsStronglyNamed(
     _In_ HANDLE TokenHandle,
     _Out_ PBOOLEAN IsStronglyNamed
@@ -693,6 +1285,12 @@ NTSTATUS PhGetTokenIsStronglyNamed(
     return status;
 }
 
+/**
+ * Determines whether a process is a full-trust package and not an AppContainer.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \return BOOLEAN TRUE if process is a full-trust package, FALSE otherwise.
+ */
 BOOLEAN PhGetProcessIsFullTrustPackage(
     _In_ HANDLE ProcessHandle
     )
@@ -722,7 +1320,12 @@ BOOLEAN PhGetProcessIsFullTrustPackage(
     return FALSE;
 }
 
-// rev from PackageIdFromFullName (dmex)
+/**
+ * Retrieves the package full name for a process by opening its token and querying.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \return PPH_STRING The package full name string object, or NULL if not available.
+ */
 PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     )
@@ -732,13 +1335,20 @@ PPH_STRING PhGetProcessPackageFullName(
 
     if (NT_SUCCESS(PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
     {
-        packageName = PhGetTokenPackageFullName(tokenHandle);
+        PhGetTokenPackageFullName(tokenHandle, &packageName);
         NtClose(tokenHandle);
     }
 
     return packageName;
 }
 
+/**
+ * Determines whether a token is a less-privileged AppContainer by checking for the WIN://NOALLAPPPKG attribute.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param IsLessPrivilegedAppContainer Receives TRUE if the attribute indicates less-privileged AppContainer.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenIsLessPrivilegedAppContainer(
     _In_ HANDLE TokenHandle,
     _Out_ PBOOLEAN IsLessPrivilegedAppContainer
@@ -764,6 +1374,14 @@ NTSTATUS PhGetTokenIsLessPrivilegedAppContainer(
     return status;
 }
 
+/**
+ * Helper to retrieve a 64-bit value from a token security attribute.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param Name The attribute name (stringref).
+ * \param ValueIndex Index of the value to retrieve.
+ * \return ULONG64 The retrieved value, or MAXULONG64 if not present.
+ */
 ULONG64 PhGetTokenSecurityAttributeValueUlong64(
     _In_ HANDLE TokenHandle,
     _In_ PCPH_STRINGREF Name,
@@ -788,6 +1406,14 @@ ULONG64 PhGetTokenSecurityAttributeValueUlong64(
     return value;
 }
 
+/**
+ * Helper to retrieve a string value from a token security attribute.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param Name The attribute name (stringref).
+ * \param ValueIndex Index of the value to retrieve.
+ * \return PPH_STRING The retrieved string object or NULL if not present.
+ */
 PPH_STRING PhGetTokenSecurityAttributeValueString(
     _In_ HANDLE TokenHandle,
     _In_ PCPH_STRINGREF Name,
@@ -813,6 +1439,14 @@ PPH_STRING PhGetTokenSecurityAttributeValueString(
 }
 
 // rev from GetApplicationUserModelId/GetApplicationUserModelIdFromToken (dmex)
+/**
+ * Retrieves the Application User Model ID (AUMID) for a token's package.
+ *
+ * \param TokenHandle A handle to a token.
+ * \return PPH_STRING The AUMID string or NULL if not available.
+ * \remarks Constructs the AUMID from the SYSAPPID attribute values (family and relative id)
+ * as "<packageFamilyName>!<relativeIdName>".
+ */
 PPH_STRING PhGetTokenPackageApplicationUserModelId(
     _In_ HANDLE TokenHandle
     )
@@ -850,15 +1484,29 @@ PPH_STRING PhGetTokenPackageApplicationUserModelId(
     return applicationUserModelId;
 }
 
-PPH_STRING PhGetTokenPackageFullName(
-    _In_ HANDLE TokenHandle
+/**
+ * Retrieves the package full name for a token from the SYSAPPID attribute.
+ *
+ * \param TokenHandle A handle to a token.
+ * \return PPH_STRING The package full name string object, or NULL if not available.
+ */
+NTSTATUS PhGetTokenPackageFullName(
+    _In_ HANDLE TokenHandle,
+    _Out_ PPH_STRING* PackageFullName
     )
 {
     static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     PPH_STRING packageFullName = NULL;
+    NTSTATUS status;
 
-    if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, &attributeName, &info)))
+    status = PhGetTokenSecurityAttribute(
+        TokenHandle,
+        &attributeName,
+        &info
+        );
+
+    if (NT_SUCCESS(status))
     {
         PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
 
@@ -866,13 +1514,27 @@ PPH_STRING PhGetTokenPackageFullName(
         {
             packageFullName = PhCreateStringFromUnicodeString(&attribute->Values.String[0]);
         }
+        else
+        {
+            status = STATUS_OBJECT_TYPE_MISMATCH;
+        }
 
         PhFree(info);
     }
 
-    return packageFullName;
+    *PackageFullName = packageFullName;
+
+    return status;
 }
 
+/**
+ * Retrieves the named object path of a token.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param Sid Optional SID to query a named path for (may be NULL).
+ * \param ObjectPath Receives the created string object for the object path.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenNamedObjectPath(
     _In_ HANDLE TokenHandle,
     _In_opt_ PSID Sid,
@@ -902,6 +1564,15 @@ NTSTATUS PhGetTokenNamedObjectPath(
     return status;
 }
 
+/**
+ * Retrieves an AppContainer named object path if available.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param AppContainerSid Optional AppContainer SID to query for (may be NULL to use token's AppContainer).
+ * \param RelativePath If TRUE, request a relative path.
+ * \param ObjectPath Receives the created string object for the object path.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetAppContainerNamedObjectPath(
     _In_ HANDLE TokenHandle,
     _In_opt_ PSID AppContainerSid,
@@ -933,6 +1604,13 @@ NTSTATUS PhGetAppContainerNamedObjectPath(
     return status;
 }
 
+/**
+ * Checks whether the specified privilege is enabled for the token.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param Privilege The privilege constant (as ULONG) to check.
+ * \return BOOLEAN TRUE if the privilege is enabled and used for access, FALSE otherwise.
+ */
 BOOLEAN PhPrivilegeCheck(
     _In_ HANDLE TokenHandle,
     _In_ ULONG Privilege
@@ -953,6 +1631,16 @@ BOOLEAN PhPrivilegeCheck(
     return result;
 }
 
+/**
+ * Checks whether a privilege is present in the token and was used for access.
+ * This function returns TRUE either when the privileged was used for access
+ * (SE_PRIVILEGE_USED_FOR_ACCESS) or when NtPrivilegeCheck indicates success
+ * and the attributes were set accordingly.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param Privilege The privilege constant (as ULONG) to check.
+ * \return BOOLEAN TRUE if privilege was used for access, FALSE otherwise.
+ */
 BOOLEAN PhPrivilegeCheckAny(
     _In_ HANDLE TokenHandle,
     _In_ ULONG Privilege
@@ -976,14 +1664,13 @@ BOOLEAN PhPrivilegeCheckAny(
 }
 
 /**
- * Modifies a token privilege.
+ * Modifies a token privilege. Can specify privilege by name or by LUID.
  *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_ADJUST_PRIVILEGES access.
- * \param PrivilegeName The name of the privilege to modify. If this parameter is NULL, you must
- * specify a LUID in the \a PrivilegeLuid parameter.
- * \param PrivilegeLuid The LUID of the privilege to modify. If this parameter is NULL, you must
- * specify a name in the \a PrivilegeName parameter.
- * \param Attributes The new attributes of the privilege.
+ * \param TokenHandle A handle to a token with TOKEN_ADJUST_PRIVILEGES access.
+ * \param PrivilegeName Optional privilege name (NULL if PrivilegeLuid supplied).
+ * \param PrivilegeLuid Optional pointer to LUID (NULL if PrivilegeName supplied).
+ * \param Attributes New attributes for the privilege (e.g. SE_PRIVILEGE_ENABLED or 0).
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhSetTokenPrivilege(
     _In_ HANDLE TokenHandle,
@@ -1041,6 +1728,14 @@ NTSTATUS PhSetTokenPrivilege(
     return status;
 }
 
+/**
+ * Convenience wrapper to set a privilege by numeric constant.
+ *
+ * \param TokenHandle A handle to a token with TOKEN_ADJUST_PRIVILEGES access.
+ * \param Privilege The privilege constant to change (LONG).
+ * \param Attributes New attribute flags.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhSetTokenPrivilege2(
     _In_ HANDLE TokenHandle,
     _In_ LONG Privilege,
@@ -1054,6 +1749,14 @@ NTSTATUS PhSetTokenPrivilege2(
     return PhSetTokenPrivilege(TokenHandle, NULL, &privilegeLuid, Attributes);
 }
 
+/**
+ * Adjusts a privilege for the current process token.
+ *
+ * \param PrivilegeName Optional name of privilege to change (NULL if Privilege provided).
+ * \param Privilege Optional numeric privilege constant (0 if PrivilegeName provided).
+ * \param Enable TRUE to enable, FALSE to disable.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhAdjustPrivilege(
     _In_opt_ PCWSTR PrivilegeName,
     _In_opt_ LONG Privilege,
@@ -1125,15 +1828,14 @@ NTSTATUS PhAdjustPrivilege(
 }
 
 /**
-* Modifies a token group.
-*
-* \param TokenHandle A handle to a token. The handle must have TOKEN_ADJUST_GROUPS access.
-* \param GroupName The name of the group to modify. If this parameter is NULL, you must
-* specify a PSID in the \a GroupSid parameter.
-* \param GroupSid The PSID of the group to modify. If this parameter is NULL, you must
-* specify a group name in the \a GroupName parameter.
-* \param Attributes The new attributes of the group.
-*/
+ * Modifies a token group by name or SID.
+ *
+ * \param TokenHandle A handle to a token with TOKEN_ADJUST_GROUPS access.
+ * \param GroupName Optional group name to lookup (NULL if GroupSid supplied).
+ * \param GroupSid Optional group SID to set (NULL if GroupName supplied).
+ * \param Attributes New attributes for the group.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhSetTokenGroups(
     _In_ HANDLE TokenHandle,
     _In_opt_ PCWSTR GroupName,
@@ -1180,6 +1882,13 @@ NTSTATUS PhSetTokenGroups(
     return status;
 }
 
+/**
+ * Sets the session ID for a token.
+ *
+ * \param TokenHandle A handle to a token with appropriate access.
+ * \param SessionId The session id to set.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhSetTokenSessionId(
     _In_ HANDLE TokenHandle,
     _In_ ULONG SessionId
@@ -1194,11 +1903,11 @@ NTSTATUS PhSetTokenSessionId(
 }
 
 /**
- * Sets whether virtualization is enabled for a token.
+ * Enables or disables virtualization for a token.
  *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_WRITE access.
- * \param IsVirtualizationEnabled A boolean indicating whether virtualization is to be enabled for
- * the token.
+ * \param TokenHandle A handle to a token with TOKEN_WRITE access.
+ * \param IsVirtualizationEnabled TRUE to enable, FALSE to disable.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhSetTokenIsVirtualizationEnabled(
     _In_ HANDLE TokenHandle,
@@ -1218,13 +1927,13 @@ NTSTATUS PhSetTokenIsVirtualizationEnabled(
 }
 
 /**
-* Gets a token's integrity level RID. Can handle custom integrity levels.
-*
-* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
-* \param IntegrityLevelRID A variable which receives the integrity level of the token.
-* \param IntegrityString A variable which receives a pointer to a string containing a string
-* representation of the integrity level.
-*/
+ * Gets a token's integrity level RID and an optional human-readable string.
+ *
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param IntegrityLevelRID Receives the integrity-level RID (last subauthority).
+ * \param IntegrityString Receives a pointer to a static descriptive string (optional).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenIntegrityLevelRID(
     _In_ HANDLE TokenHandle,
     _Out_opt_ PMANDATORY_LEVEL_RID IntegrityLevelRID,
@@ -1301,13 +2010,12 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
 }
 
 /**
- * Gets a token's integrity level.
+ * Gets a token's integrity level as a well-known enumerated value.
  *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param IntegrityLevel A variable which receives the integrity level of the token.
- * If the integrity level is not a well-known one the function fails.
- * \param IntegrityString A variable which receives a pointer to a string containing a string
- * representation of the integrity level.
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param IntegrityLevel Receives the mapped MANDATORY_LEVEL enumeration (optional).
+ * \param IntegrityString Receives a static descriptive string (optional).
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetTokenIntegrityLevel(
     _In_ HANDLE TokenHandle,
@@ -1366,12 +2074,12 @@ typedef struct _PH_INTEGRITY_LEVEL_STRING_ENTRY
 } PH_INTEGRITY_LEVEL_STRING_ENTRY, *PPH_INTEGRITY_LEVEL_STRING_ENTRY;
 
 /**
- * Gets a token's integrity level with extended information.
+ * Gets a token's integrity level with extended information and a mapped stringref.
  *
- * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param IntegrityLevel A variable which receives the integrity level of the token.
- * \param IntegrityString A variable which receives a pointer to a string containing a string
- * representation of the integrity level with any extended information.
+ * \param TokenHandle A handle to a token. Must have TOKEN_QUERY access.
+ * \param IntegrityLevel Receives the PH_INTEGRITY_LEVEL (as a Level value) if provided.
+ * \param IntegrityString Receives a pointer to a static PH_STRINGREF describing the level.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhGetTokenIntegrityLevelEx(
     _In_ HANDLE TokenHandle,
@@ -1462,6 +2170,17 @@ NTSTATUS PhGetTokenIntegrityLevelEx(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Parses the token process trust level SID into protection type and level and
+ * optionally returns readable strings and the SID string.
+ *
+ * \param TokenHandle A handle to a token.
+ * \param ProtectionType Receives the protection type RID (optional).
+ * \param ProtectionLevel Receives the protection level RID (optional).
+ * \param TrustLevelString Receives a newly created or concatenated string describing the protection (optional).
+ * \param TrustLevelSidString Receives a string SID representation of the trust-level SID (optional).
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetTokenProcessTrustLevelRID(
     _In_ HANDLE TokenHandle,
     _Out_opt_ PULONG ProtectionType,

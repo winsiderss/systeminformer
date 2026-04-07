@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="fixlib.vcxproj" Id="31f4aa06-7ed5-4a6d-b901-19ad4bd16175" />
+</Solution>

@@ -7,6 +7,10 @@
 #ifndef _NTSAM_H
 #define _NTSAM_H
 
+//
+// Types
+//
+
 #define SAM_MAXIMUM_LOOKUP_COUNT (1000)
 #define SAM_MAXIMUM_LOOKUP_LENGTH (32000)
 #define SAM_MAX_PASSWORD_LENGTH (256)
@@ -41,7 +45,9 @@ typedef struct _SAM_BYTE_ARRAY_32K
 
 typedef SAM_BYTE_ARRAY_32K SAM_SHELL_OBJECT_PROPERTIES, *PSAM_SHELL_OBJECT_PROPERTIES;
 
+//
 // Basic
+//
 
 NTSYSAPI
 NTSTATUS
@@ -50,6 +56,13 @@ SamFreeMemory(
     _In_ PVOID Buffer
     );
 
+/**
+ * The SamCloseHandle method closes (that is, releases server-side resources used by) any handle.
+ *
+ * \param SamHandle The object handle.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/55d134df-e257-48ad-8afa-cb2ca45cd3cc
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -66,6 +79,15 @@ SamSetSecurityObject(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+/**
+ * The SamQuerySecurityObject method queries the access control on a server, domain, user, group, or alias object.
+ *
+ * \param ObjectHandle The "Domain", "User", "Group", or "Alias" object handle.
+ * \param SecurityInformation A bit field that specifies which fields of SecurityDescriptor the client is requesting to be returned.
+ * \param SecurityDescriptor A security descriptor expressing accesses that are specific to the ObjectHandle and the owner and group of the object.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/0ecf8fec-d17e-4a88-b7f1-e0f0f66790db
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -75,6 +97,15 @@ SamQuerySecurityObject(
     _Outptr_ PSECURITY_DESCRIPTOR *SecurityDescriptor
     );
 
+/**
+ * The SamRidToSid method obtains the SID of an account, given a RID.
+ *
+ * \param ObjectHandle The "Domain", "User", "Group", or "Alias" object handle.
+ * \param Rid The RID of the object.
+ * \param Sid The SID of the object referenced by Rid.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/00ff8192-a4f6-45ba-9f65-917e46b6a693
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -84,7 +115,17 @@ SamRidToSid(
     _Outptr_ PSID *Sid
     );
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamQueryLapsManagedAccount(
+    _In_ SAM_HANDLE ObjectHandle,
+    _Outptr_ PSID *AccountSid
+    );
+
+//
 // Server
+//
 
 #define SAM_SERVER_CONNECT 0x0001
 #define SAM_SERVER_SHUTDOWN 0x0002
@@ -115,8 +156,20 @@ SamRidToSid(
 
 typedef struct _RPC_AUTH_IDENTITY_HANDLE *PRPC_AUTH_IDENTITY_HANDLE;
 
+//
 // Functions
+//
 
+/**
+ * The SamConnect method returns a handle to a server.
+ *
+ * \param ServerName The NETBIOS name of the server; this parameter MAY be ignored on receipt.
+ * \param ServerHandle A handle representing a server.
+ * \param DesiredAccess The access requested for ServerHandle upon output. 
+ * \param ObjectAttributes The OBJECT_ATTRIBUTES structure that specifies the properties of the server handle to be opened.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/47492d59-e095-4398-b03e-8a062b989123
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -124,7 +177,7 @@ SamConnect(
     _In_opt_ PCUNICODE_STRING ServerName,
     _Out_ PSAM_HANDLE ServerHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSAPI
@@ -134,10 +187,10 @@ SamConnectWithCreds(
     _In_ PCUNICODE_STRING ServerName,
     _Out_ PSAM_HANDLE ServerHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ PRPC_AUTH_IDENTITY_HANDLE Creds,
     _In_ PWCHAR Spn,
-    _Out_ BOOL* pfDstIsW2K
+    _Out_ PBOOL DestinationIsWindows2K
     );
 
 NTSYSAPI
@@ -147,7 +200,9 @@ SamShutdownSamServer(
     _In_ SAM_HANDLE ServerHandle
     );
 
+//
 // Domain
+//
 
 #define DOMAIN_READ_PASSWORD_PARAMETERS 0x0001
 #define DOMAIN_WRITE_PASSWORD_PARAMS 0x0002
@@ -194,23 +249,26 @@ SamShutdownSamServer(
 #define DOMAIN_PROMOTION_INCREMENT { 0x0, 0x10 }
 #define DOMAIN_PROMOTION_MASK { 0x0, 0xfffffff0 }
 
+//
 // SamQueryInformationDomain/SamSetInformationDomain types
+//
 
 typedef enum _DOMAIN_INFORMATION_CLASS
 {
-    DomainPasswordInformation = 1, // q; s: DOMAIN_PASSWORD_INFORMATION
-    DomainGeneralInformation, // q: DOMAIN_GENERAL_INFORMATION
-    DomainLogoffInformation, // q; s: DOMAIN_LOGOFF_INFORMATION
-    DomainOemInformation, // q; s: DOMAIN_OEM_INFORMATION
-    DomainNameInformation, // q: DOMAIN_NAME_INFORMATION
-    DomainReplicationInformation, // q; s: DOMAIN_REPLICATION_INFORMATION
-    DomainServerRoleInformation, // q; s: DOMAIN_SERVER_ROLE_INFORMATION
-    DomainModifiedInformation, // q: DOMAIN_MODIFIED_INFORMATION
-    DomainStateInformation, // q; s: DOMAIN_STATE_INFORMATION
-    DomainUasInformation, // q; s: DOMAIN_UAS_INFORMATION
-    DomainGeneralInformation2, // q: DOMAIN_GENERAL_INFORMATION2
-    DomainLockoutInformation, // q; s: DOMAIN_LOCKOUT_INFORMATION
-    DomainModifiedInformation2 // q: DOMAIN_MODIFIED_INFORMATION2
+    DomainPasswordInformation = 1,      // qs: DOMAIN_PASSWORD_INFORMATION
+    DomainGeneralInformation,           // q: DOMAIN_GENERAL_INFORMATION
+    DomainLogoffInformation,            // qs: DOMAIN_LOGOFF_INFORMATION
+    DomainOemInformation,               // qs: DOMAIN_OEM_INFORMATION
+    DomainNameInformation,              // q: DOMAIN_NAME_INFORMATION
+    DomainReplicationInformation,       // qs: DOMAIN_REPLICATION_INFORMATION
+    DomainServerRoleInformation,        // qs: DOMAIN_SERVER_ROLE_INFORMATION
+    DomainModifiedInformation,          // q: DOMAIN_MODIFIED_INFORMATION
+    DomainStateInformation,             // qs: DOMAIN_STATE_INFORMATION
+    DomainUasInformation,               // qs: DOMAIN_UAS_INFORMATION
+    DomainGeneralInformation2,          // q: DOMAIN_GENERAL_INFORMATION2
+    DomainLockoutInformation,           // qs: DOMAIN_LOCKOUT_INFORMATION
+    DomainModifiedInformation2,         // q: DOMAIN_MODIFIED_INFORMATION2
+    DomainMaxInformation
 } DOMAIN_INFORMATION_CLASS;
 
 typedef enum _DOMAIN_SERVER_ENABLE_STATE
@@ -225,7 +283,6 @@ typedef enum _DOMAIN_SERVER_ROLE
     DomainServerRolePrimary
 } DOMAIN_SERVER_ROLE, *PDOMAIN_SERVER_ROLE;
 
-#include <pshpack4.h>
 typedef struct _DOMAIN_GENERAL_INFORMATION
 {
     LARGE_INTEGER ForceLogoff;
@@ -240,9 +297,7 @@ typedef struct _DOMAIN_GENERAL_INFORMATION
     ULONG GroupCount;
     ULONG AliasCount;
 } DOMAIN_GENERAL_INFORMATION, *PDOMAIN_GENERAL_INFORMATION;
-#include <poppack.h>
 
-#include <pshpack4.h>
 typedef struct _DOMAIN_GENERAL_INFORMATION2
 {
     DOMAIN_GENERAL_INFORMATION I1;
@@ -250,7 +305,6 @@ typedef struct _DOMAIN_GENERAL_INFORMATION2
     LARGE_INTEGER LockoutObservationWindow; // delta time
     USHORT LockoutThreshold;
 } DOMAIN_GENERAL_INFORMATION2, *PDOMAIN_GENERAL_INFORMATION2;
-#include <poppack.h>
 
 typedef struct _DOMAIN_UAS_INFORMATION
 {
@@ -269,7 +323,9 @@ typedef struct _DOMAIN_PASSWORD_INFORMATION
     LARGE_INTEGER MinPasswordAge;
 } DOMAIN_PASSWORD_INFORMATION, *PDOMAIN_PASSWORD_INFORMATION;
 
+//
 // PasswordProperties flags
+//
 
 #define DOMAIN_PASSWORD_COMPLEX 0x00000001L
 #define DOMAIN_PASSWORD_NO_ANON_CHANGE 0x00000002L
@@ -337,16 +393,19 @@ typedef struct _DOMAIN_LOCKOUT_INFORMATION
     USHORT LockoutThreshold; // zero means no lockout
 } DOMAIN_LOCKOUT_INFORMATION, *PDOMAIN_LOCKOUT_INFORMATION;
 
+//
 // SamQueryDisplayInformation types
+//
 
 typedef enum _DOMAIN_DISPLAY_INFORMATION
 {
-    DomainDisplayUser = 1, // DOMAIN_DISPLAY_USER
-    DomainDisplayMachine, // DOMAIN_DISPLAY_MACHINE
-    DomainDisplayGroup, // DOMAIN_DISPLAY_GROUP
-    DomainDisplayOemUser, // DOMAIN_DISPLAY_OEM_USER
-    DomainDisplayOemGroup, // DOMAIN_DISPLAY_OEM_GROUP
-    DomainDisplayServer
+    DomainDisplayUser = 1,      // DOMAIN_DISPLAY_USER
+    DomainDisplayMachine,       // DOMAIN_DISPLAY_MACHINE
+    DomainDisplayGroup,         // DOMAIN_DISPLAY_GROUP
+    DomainDisplayOemUser,       // DOMAIN_DISPLAY_OEM_USER
+    DomainDisplayOemGroup,      // DOMAIN_DISPLAY_OEM_GROUP
+    DomainDisplayServer,        // DOMAIN_DISPLAY_MACHINE
+    DomainDisplayMax
 } DOMAIN_DISPLAY_INFORMATION, *PDOMAIN_DISPLAY_INFORMATION;
 
 typedef struct _DOMAIN_DISPLAY_USER
@@ -389,7 +448,9 @@ typedef struct _DOMAIN_DISPLAY_OEM_GROUP
     OEM_STRING Group;
 } DOMAIN_DISPLAY_OEM_GROUP, *PDOMAIN_DISPLAY_OEM_GROUP;
 
+//
 // SamQueryLocalizableAccountsInDomain types
+//
 
 typedef enum _DOMAIN_LOCALIZABLE_ACCOUNTS_INFORMATION
 {
@@ -415,8 +476,19 @@ typedef union _DOMAIN_LOCALIZABLE_INFO_BUFFER
     DOMAIN_LOCALIZABLE_ACCOUNTS_BASIC Basic;
 } DOMAIN_LOCALIZABLE_ACCOUNTS_INFO_BUFFER, *PDOMAIN_LOCALIZABLE_ACCOUNTS_INFO_BUFFER;
 
+//
 // Functions
+//
 
+/**
+ * The SamLookupDomainInSamServer method obtains the SID of a domain, given the object's name.
+ *
+ * \param ServerHandle A handle representing a server.
+ * \param Name A UTF-16 encoded string.
+ * \param DomainId A SID value of a domain that corresponds to the Name.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/47492d59-e095-4398-b03e-8a062b989123
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -426,6 +498,17 @@ SamLookupDomainInSamServer(
     _Outptr_ PSID *DomainId
     );
 
+/**
+ * The SamEnumerateDomainsInSamServer method obtains a listing of all domains hosted by the server side of this protocol.
+ *
+ * \param ServerHandle A handle representing a server.
+ * \param EnumerationContext An opaque value that the server can use to continue an enumeration on a subsequent call.
+ * \param Buffer A listing of domain information.
+ * \param PreferedMaximumLength The requested maximum number of bytes to return in Buffer.
+ * \param CountReturned The count of domain elements returned in Buffer.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/2142fd2d-0854-42c1-a9fb-2fe964e381ce
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -437,6 +520,16 @@ SamEnumerateDomainsInSamServer(
     _Out_ PULONG CountReturned
     );
 
+/**
+ * The SamOpenDomain method obtains a handle to a domain, given a SID.
+ *
+ * \param ServerHandle A handle representing a server.
+ * \param DesiredAccess The desired access to the domain.
+ * \param DomainId A SID value of a domain hosted by the server.
+ * \param DomainHandle A handle to the requested domain.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/ba710c90-5b12-42f8-9e5a-d4aacc1329fa
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -447,6 +540,15 @@ SamOpenDomain(
     _Out_ PSAM_HANDLE DomainHandle
     );
 
+/**
+ * The SamQueryInformationDomain method obtains attributes from a domain object.
+ *
+ * \param DomainHandle A handle representing a domain.
+ * \param DomainInformationClass An enumeration indicating which attributes to return.
+ * \param Buffer The requested attributes on output.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5d6a2817-caa9-41ca-a269-fd13ecbb4fa8
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -456,15 +558,34 @@ SamQueryInformationDomain(
     _Outptr_ PVOID *Buffer
     );
 
+/**
+ * The SamSetInformationDomain method updates attributes of a domain object.
+ *
+ * \param DomainHandle A handle representing a domain.
+ * \param DomainInformationClass An enumeration indicating which attributes to update.
+ * \param Buffer The provided attributes on output.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 SamSetInformationDomain(
     _In_ SAM_HANDLE DomainHandle,
     _In_ DOMAIN_INFORMATION_CLASS DomainInformationClass,
-    _In_ PVOID DomainInformation
+    _In_ PVOID Buffer
     );
 
+/**
+ * The SamLookupNamesInDomain method translates a set of account names into a set of RIDs.
+ *
+ * \param DomainHandle A handle representing a domain.
+ * \param Count The number of elements in Names.
+ * \param Names An array of strings that are to be mapped to RIDs.
+ * \param RelativeIds An array of RIDs of accounts that correspond to the elements in Names.
+ * \param Use An array of SID_NAME_USE enumeration values that describe the type of account for each entry in RelativeIds.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/d91271c6-7b2e-4194-9927-8fabfa429f90
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -487,6 +608,17 @@ SamLookupNamesInDomain2(
     _Out_ _Deref_post_count_(Count) PSID_NAME_USE* Use
     );
 
+/**
+ * The SamLookupIdsInDomain method translates a set of RIDs into account names.
+ *
+ * \param DomainHandle A handle representing a domain.
+ * \param Count The number of elements in RelativeIds.
+ * \param RelativeIds An array of RIDs that are to be mapped to account names.
+ * \param Names An array of account names that correspond to the elements in RelativeIds.
+ * \param Use An array of SID_NAME_USE enumeration values that describe the type of account for each entry in RelativeIds.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/c870951c-74b3-4714-9857-224595ffc61a
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -498,6 +630,14 @@ SamLookupIdsInDomain(
     _Out_ _Deref_post_opt_count_(Count) PSID_NAME_USE *Use
     );
 
+/**
+ * The SamRemoveMemberFromForeignDomain method removes a member from all aliases.
+ *
+ * \param DomainHandle A handle representing a domain.
+ * \param MemberId The SID to remove from the membership.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/03afc843-584d-473b-834a-3f5a1ac86cce
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -517,7 +657,9 @@ SamQueryLocalizableAccountsInDomain(
     _Outptr_ PVOID *Buffer
     );
 
+//
 // Group
+//
 
 #define GROUP_READ_INFORMATION 0x0001
 #define GROUP_WRITE_ACCOUNT 0x0002
@@ -549,15 +691,18 @@ typedef struct _GROUP_MEMBERSHIP
     ULONG Attributes;
 } GROUP_MEMBERSHIP, *PGROUP_MEMBERSHIP;
 
+//
 // SamQueryInformationGroup/SamSetInformationGroup types
+//
 
 typedef enum _GROUP_INFORMATION_CLASS
 {
-    GroupGeneralInformation = 1, // q: GROUP_GENERAL_INFORMATION
-    GroupNameInformation, // q; s: GROUP_NAME_INFORMATION
-    GroupAttributeInformation, // q; s: GROUP_ATTRIBUTE_INFORMATION
-    GroupAdminCommentInformation, // q; s: GROUP_ADM_COMMENT_INFORMATION
-    GroupReplicationInformation
+    GroupGeneralInformation = 1,        // q: GROUP_GENERAL_INFORMATION
+    GroupNameInformation,               // qs: GROUP_NAME_INFORMATION
+    GroupAttributeInformation,          // qs: GROUP_ATTRIBUTE_INFORMATION
+    GroupAdminCommentInformation,       // qs: GROUP_ADM_COMMENT_INFORMATION
+    GroupReplicationInformation,        // q: GROUP_REPLICATION_INFORMATION
+    GroupMaxInformation
 } GROUP_INFORMATION_CLASS;
 
 typedef struct _GROUP_GENERAL_INFORMATION
@@ -583,8 +728,26 @@ typedef struct _GROUP_ADM_COMMENT_INFORMATION
     UNICODE_STRING AdminComment;
 } GROUP_ADM_COMMENT_INFORMATION, *PGROUP_ADM_COMMENT_INFORMATION;
 
-// Functions
+typedef struct _GROUP_REPLICATION_INFORMATION
+{
+    LARGE_INTEGER LastWriteTime;
+} GROUP_REPLICATION_INFORMATION, *PGROUP_REPLICATION_INFORMATION;
 
+//
+// Functions
+//
+
+/**
+ * The SamEnumerateGroupsInDomain method enumerates all groups.
+ *
+ * \param DomainHandle A handle representing a domain.
+ * \param EnumerationContext An opaque value that the server can use to continue an enumeration on a subsequent call.
+ * \param Buffer A listing of group information.
+ * \param PreferedMaximumLength The requested maximum number of bytes to return in Buffer.
+ * \param CountReturned The count of domain elements returned in Buffer.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/e0b7a4b7-ecfc-405f-9d7d-32b3cd2cd6c8
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -678,7 +841,9 @@ SamSetMemberAttributesOfGroup(
     _In_ ULONG Attributes
     );
 
+//
 // Alias
+//
 
 #define ALIAS_ADD_MEMBER 0x0001
 #define ALIAS_REMOVE_MEMBER 0x0002
@@ -704,15 +869,18 @@ SamSetMemberAttributesOfGroup(
 #define ALIAS_EXECUTE (STANDARD_RIGHTS_EXECUTE | \
     ALIAS_READ_INFORMATION)
 
+//
 // SamQueryInformationAlias/SamSetInformationAlias types
+//
 
 typedef enum _ALIAS_INFORMATION_CLASS
 {
-    AliasGeneralInformation = 1, // q: ALIAS_GENERAL_INFORMATION
-    AliasNameInformation, // q; s: ALIAS_NAME_INFORMATION
-    AliasAdminCommentInformation, // q; s: ALIAS_ADM_COMMENT_INFORMATION
-    AliasReplicationInformation,
-    AliasExtendedInformation,
+    AliasGeneralInformation = 1,        // q: ALIAS_GENERAL_INFORMATION
+    AliasNameInformation,               // qs: ALIAS_NAME_INFORMATION
+    AliasAdminCommentInformation,       // qs: ALIAS_ADM_COMMENT_INFORMATION
+    AliasReplicationInformation,        // q: ALIAS_REPLICATION_INFORMATION
+    AliasExtendedInformation,           // q: ALIAS_EXTENDED_INFORMATION
+    AliasMaxInformation
 } ALIAS_INFORMATION_CLASS;
 
 typedef struct _ALIAS_GENERAL_INFORMATION
@@ -732,6 +900,11 @@ typedef struct _ALIAS_ADM_COMMENT_INFORMATION
     UNICODE_STRING AdminComment;
 } ALIAS_ADM_COMMENT_INFORMATION, *PALIAS_ADM_COMMENT_INFORMATION;
 
+typedef struct _ALIAS_REPLICATION_INFORMATION
+{
+    LARGE_INTEGER LastWriteTime;
+} ALIAS_REPLICATION_INFORMATION, *PALIAS_REPLICATION_INFORMATION;
+
 #define ALIAS_ALL_NAME (0x00000001L)
 #define ALIAS_ALL_MEMBER_COUNT (0x00000002L)
 #define ALIAS_ALL_ADMIN_COMMENT (0x00000004L)
@@ -743,7 +916,9 @@ typedef struct _ALIAS_EXTENDED_INFORMATION
     SAM_SHELL_OBJECT_PROPERTIES ShellAdminObjectProperties;
 } ALIAS_EXTENDED_INFORMATION, *PALIAS_EXTENDED_INFORMATION;
 
+//
 // Functions
+//
 
 NTSYSAPI
 NTSTATUS
@@ -855,8 +1030,9 @@ SamGetAliasMembership(
     _Out_ PULONG MembershipCount,
     _Out_ _Deref_post_count_(*MembershipCount) PULONG *Aliases
     );
-
+//
 // Group types
+//
 
 #define GROUP_TYPE_BUILTIN_LOCAL_GROUP 0x00000001
 #define GROUP_TYPE_ACCOUNT_GROUP 0x00000002
@@ -870,7 +1046,9 @@ SamGetAliasMembership(
     GROUP_TYPE_APP_BASIC_GROUP | \
     GROUP_TYPE_APP_QUERY_GROUP)
 
+//
 // User
+//
 
 #define USER_READ_GENERAL 0x0001
 #define USER_READ_PREFERENCES 0x0002
@@ -912,7 +1090,9 @@ SamGetAliasMembership(
     USER_READ_GENERAL | \
     USER_CHANGE_PASSWORD)
 
+//
 // User account control flags
+//
 
 #define USER_ACCOUNT_DISABLED (0x00000001)
 #define USER_HOME_DIRECTORY_REQUIRED (0x00000002)
@@ -981,48 +1161,56 @@ typedef struct _LOGON_HOURS
     PUCHAR LogonHours;
 } LOGON_HOURS, *PLOGON_HOURS;
 
+/**
+ * The SR_SECURITY_DESCRIPTOR structure contains information about the security privileges of the user.
+ *
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/subauth/ns-subauth-sr_security_descriptor
+ */
 typedef struct _SR_SECURITY_DESCRIPTOR
 {
-    ULONG Length;
-    PUCHAR SecurityDescriptor;
+    ULONG Length;                   // Indicates the size in bytes of the structure.
+    PUCHAR SecurityDescriptor;      // Indicates the user's security privileges.
 } SR_SECURITY_DESCRIPTOR, *PSR_SECURITY_DESCRIPTOR;
 
+//
 // SamQueryInformationUser/SamSetInformationUser types
+//
 
 typedef enum _USER_INFORMATION_CLASS
 {
-    UserGeneralInformation = 1, // q: USER_GENERAL_INFORMATION
-    UserPreferencesInformation, // q; s: USER_PREFERENCES_INFORMATION
-    UserLogonInformation, // q: USER_LOGON_INFORMATION
-    UserLogonHoursInformation, // q; s: USER_LOGON_HOURS_INFORMATION
-    UserAccountInformation, // q: USER_ACCOUNT_INFORMATION
-    UserNameInformation, // q; s: USER_NAME_INFORMATION
-    UserAccountNameInformation, // q; s: USER_ACCOUNT_NAME_INFORMATION
-    UserFullNameInformation, // q; s: USER_FULL_NAME_INFORMATION
-    UserPrimaryGroupInformation, // q; s: USER_PRIMARY_GROUP_INFORMATION
-    UserHomeInformation, // q; s: USER_HOME_INFORMATION // 10
-    UserScriptInformation, // q; s: USER_SCRIPT_INFORMATION
-    UserProfileInformation, // q; s: USER_PROFILE_INFORMATION
-    UserAdminCommentInformation, // q; s: USER_ADMIN_COMMENT_INFORMATION
-    UserWorkStationsInformation, // q; s: USER_WORKSTATIONS_INFORMATION
-    UserSetPasswordInformation, // s: USER_SET_PASSWORD_INFORMATION
-    UserControlInformation, // q; s: USER_CONTROL_INFORMATION
-    UserExpiresInformation, // q; s: USER_EXPIRES_INFORMATION
-    UserInternal1Information, // USER_INTERNAL1_INFORMATION
-    UserInternal2Information, // USER_INTERNAL2_INFORMATION
-    UserParametersInformation, // q; s: USER_PARAMETERS_INFORMATION // 20
-    UserAllInformation, // USER_ALL_INFORMATION
-    UserInternal3Information, // USER_INTERNAL3_INFORMATION
-    UserInternal4Information, // USER_INTERNAL4_INFORMATION
-    UserInternal5Information, // USER_INTERNAL5_INFORMATION
-    UserInternal4InformationNew, // USER_INTERNAL4_INFORMATION_NEW
-    UserInternal5InformationNew, // USER_INTERNAL5_INFORMATION_NEW
-    UserInternal6Information, // USER_INTERNAL6_INFORMATION
-    UserExtendedInformation, // USER_EXTENDED_INFORMATION
-    UserLogonUIInformation, // USER_LOGON_UI_INFORMATION
-    UserUnknownTodoInformation,
-    UserInternal7Information, // USER_INTERNAL7_INFORMATION
-    UserInternal8Information, // USER_INTERNAL8_INFORMATION
+    UserGeneralInformation = 1,     // q: USER_GENERAL_INFORMATION
+    UserPreferencesInformation,     // qs: USER_PREFERENCES_INFORMATION
+    UserLogonInformation,           // q: USER_LOGON_INFORMATION
+    UserLogonHoursInformation,      // qs: USER_LOGON_HOURS_INFORMATION
+    UserAccountInformation,         // q: USER_ACCOUNT_INFORMATION
+    UserNameInformation,            // qs: USER_NAME_INFORMATION
+    UserAccountNameInformation,     // qs: USER_ACCOUNT_NAME_INFORMATION
+    UserFullNameInformation,        // qs: USER_FULL_NAME_INFORMATION
+    UserPrimaryGroupInformation,    // qs: USER_PRIMARY_GROUP_INFORMATION
+    UserHomeInformation,            // qs: USER_HOME_INFORMATION // 10
+    UserScriptInformation,          // qs: USER_SCRIPT_INFORMATION
+    UserProfileInformation,         // qs: USER_PROFILE_INFORMATION
+    UserAdminCommentInformation,    // qs: USER_ADMIN_COMMENT_INFORMATION
+    UserWorkStationsInformation,    // qs: USER_WORKSTATIONS_INFORMATION
+    UserSetPasswordInformation,     // s: USER_SET_PASSWORD_INFORMATION
+    UserControlInformation,         // qs: USER_CONTROL_INFORMATION
+    UserExpiresInformation,         // qs: USER_EXPIRES_INFORMATION
+    UserInternal1Information,       // qs: USER_INTERNAL1_INFORMATION
+    UserInternal2Information,       // qs: USER_INTERNAL2_INFORMATION
+    UserParametersInformation,      // qs: USER_PARAMETERS_INFORMATION // 20
+    UserAllInformation,             // qs: USER_ALL_INFORMATION
+    UserInternal3Information,       // qs: USER_INTERNAL3_INFORMATION
+    UserInternal4Information,       // qs: USER_INTERNAL4_INFORMATION
+    UserInternal5Information,       // qs: USER_INTERNAL5_INFORMATION
+    UserInternal4InformationNew,    // qs: USER_INTERNAL4_INFORMATION_NEW
+    UserInternal5InformationNew,    // qs: USER_INTERNAL5_INFORMATION_NEW
+    UserInternal6Information,       // qs: USER_INTERNAL6_INFORMATION
+    UserExtendedInformation,        // qs: USER_EXTENDED_INFORMATION
+    UserLogonUIInformation,         // q: USER_LOGON_UI_INFORMATION // since VISTA
+    UserAuthInformation,            // qs: USER_AUTH_INFORMATION // since WIN10 // 30
+    UserInternal7Information,       // qs: USER_INTERNAL7_INFORMATION // since 20H1
+    UserInternal8Information,       // qs: USER_INTERNAL8_INFORMATION
+    UserMaxInformation
 } USER_INFORMATION_CLASS, *PUSER_INFORMATION_CLASS;
 
 typedef struct _USER_GENERAL_INFORMATION
@@ -1042,7 +1230,6 @@ typedef struct _USER_PREFERENCES_INFORMATION
     USHORT CodePage;
 } USER_PREFERENCES_INFORMATION, *PUSER_PREFERENCES_INFORMATION;
 
-#include <pshpack4.h>
 typedef struct _USER_LOGON_INFORMATION
 {
     UNICODE_STRING UserName;
@@ -1064,14 +1251,12 @@ typedef struct _USER_LOGON_INFORMATION
     USHORT LogonCount;
     ULONG UserAccountControl;
 } USER_LOGON_INFORMATION, *PUSER_LOGON_INFORMATION;
-#include <poppack.h>
 
 typedef struct _USER_LOGON_HOURS_INFORMATION
 {
     LOGON_HOURS LogonHours;
 } USER_LOGON_HOURS_INFORMATION, *PUSER_LOGON_HOURS_INFORMATION;
 
-#include <pshpack4.h>
 typedef struct _USER_ACCOUNT_INFORMATION
 {
     UNICODE_STRING UserName;
@@ -1093,7 +1278,6 @@ typedef struct _USER_ACCOUNT_INFORMATION
     LARGE_INTEGER AccountExpires;
     ULONG UserAccountControl;
 } USER_ACCOUNT_INFORMATION, *PUSER_ACCOUNT_INFORMATION;
-#include <poppack.h>
 
 typedef struct _USER_NAME_INFORMATION
 {
@@ -1198,7 +1382,9 @@ typedef struct _USER_PARAMETERS_INFORMATION
     UNICODE_STRING Parameters;
 } USER_PARAMETERS_INFORMATION, *PUSER_PARAMETERS_INFORMATION;
 
+//
 // Flags for WhichFields in USER_ALL_INFORMATION
+//
 
 #define USER_ALL_USERNAME 0x00000001
 #define USER_ALL_FULLNAME 0x00000002
@@ -1338,7 +1524,6 @@ typedef struct _USER_PARAMETERS_INFORMATION
     USER_ALL_PASSWORDMUSTCHANGE | \
     USER_ALL_UNDEFINED_MASK)
 
-#include <pshpack4.h>
 typedef struct _USER_ALL_INFORMATION
 {
     LARGE_INTEGER LastLogon;
@@ -1375,15 +1560,12 @@ typedef struct _USER_ALL_INFORMATION
     BOOLEAN PasswordExpired;
     BOOLEAN PrivateDataSensitive;
 } USER_ALL_INFORMATION, *PUSER_ALL_INFORMATION;
-#include <poppack.h>
 
-#include <pshpack4.h>
 typedef struct _USER_INTERNAL3_INFORMATION
 {
     USER_ALL_INFORMATION I1;
     LARGE_INTEGER LastBadPasswordTime;
 } USER_INTERNAL3_INFORMATION, *PUSER_INTERNAL3_INFORMATION;
-#include <poppack.h>
 
 typedef struct _ENCRYPTED_USER_PASSWORD
 {
@@ -1464,6 +1646,11 @@ typedef struct _USER_LOGON_UI_INFORMATION
     BOOLEAN AccountIsDisabled;
 } USER_LOGON_UI_INFORMATION, *PUSER_LOGON_UI_INFORMATION;
 
+typedef struct _USER_AUTH_INFORMATION
+{
+    SAM_BYTE_ARRAY_32K AuthData;
+} USER_AUTH_INFORMATION, *PUSER_AUTH_INFORMATION;
+
 typedef struct _ENCRYPTED_PASSWORD_AES
 {
     UCHAR AuthData[64];
@@ -1502,7 +1689,9 @@ typedef struct _USER_PWD_CHANGE_FAILURE_INFORMATION
     UNICODE_STRING FilterModuleName;
 } USER_PWD_CHANGE_FAILURE_INFORMATION, *PUSER_PWD_CHANGE_FAILURE_INFORMATION;
 
+//
 // ExtendedFailureReason values
+//
 
 #define SAM_PWD_CHANGE_NO_ERROR 0
 #define SAM_PWD_CHANGE_PASSWORD_TOO_SHORT 1
@@ -1515,7 +1704,9 @@ typedef struct _USER_PWD_CHANGE_FAILURE_INFORMATION
 #define SAM_PWD_CHANGE_PASSWORD_TOO_LONG 8
 #define SAM_PWD_CHANGE_FAILURE_REASON_MAX 8
 
+//
 // Functions
+//
 
 NTSYSAPI
 NTSTATUS
@@ -1524,6 +1715,20 @@ SamEnumerateUsersInDomain(
     _In_ SAM_HANDLE DomainHandle,
     _Inout_ PSAM_ENUMERATE_HANDLE EnumerationContext,
     _In_ ULONG UserAccountControl,
+    _Outptr_ PVOID *Buffer, // PSAM_RID_ENUMERATION *
+    _In_ ULONG PreferedMaximumLength,
+    _Out_ PULONG CountReturned
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+SamEnumerateUsersInDomain2(
+    _In_ SAM_HANDLE DomainHandle,
+    _Inout_ PSAM_ENUMERATE_HANDLE EnumerationContext,
+    _In_ ULONG UserAccountControl,
+    _In_ ULONG Flags,
     _Outptr_ PVOID *Buffer, // PSAM_RID_ENUMERATION *
     _In_ ULONG PreferedMaximumLength,
     _Out_ PULONG CountReturned
@@ -1643,6 +1848,16 @@ SamQueryDisplayInformation(
     _Outptr_ PVOID *SortedBuffer
     );
 
+/**
+ * The SamGetDisplayEnumerationIndex method obtains an index into an ascending account-name–sorted list of accounts.
+ *
+ * \param DomainHandle A handle representing a domain.
+ * \param DisplayInformation An enumeration indicating which set of objects to return an index.
+ * \param Prefix A string matched against the account name to find a starting point for an enumeration.
+ * \param Index A value to use as input to SamQueryDisplayInformation in order to control the accounts that are returned from that method.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/bd429624-f2d5-4717-8aa2-659952c3e209
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1653,7 +1868,9 @@ SamGetDisplayEnumerationIndex(
     _Out_ PULONG Index
     );
 
+//
 // Database replication
+//
 
 typedef enum _SECURITY_DB_DELTA_TYPE
 {
@@ -1737,7 +1954,9 @@ SamUnregisterObjectChangeNotification(
     _In_ HANDLE NotificationEventHandle
     );
 
+//
 // Compatibility mode
+//
 
 #define SAM_SID_COMPATIBILITY_ALL 0
 #define SAM_SID_COMPATIBILITY_LAX 1
@@ -1751,7 +1970,9 @@ SamGetCompatibilityMode(
     _Out_ ULONG *Mode
     );
 
+//
 // Password validation
+//
 
 typedef enum _PASSWORD_POLICY_VALIDATION_TYPE
 {
@@ -1856,7 +2077,9 @@ SamValidatePassword(
     _Out_ PSAM_VALIDATE_OUTPUT_ARG *OutputArg
     );
 
+//
 // Generic operation
+//
 
 typedef enum _SAM_GENERIC_OPERATION_TYPE
 {

@@ -27,7 +27,7 @@ static typeof(&AppContainerFreeMemory) AppContainerFreeMemory_I = NULL;
 /**
  * Queries the AppResolver interface.
  *
- * @return A pointer to the AppResolver interface, or NULL if the interface could not be queried.
+ * \return A pointer to the AppResolver interface, or NULL if the interface could not be queried.
  */
 static PVOID PhpQueryAppResolverInterface(
     VOID
@@ -52,7 +52,7 @@ static PVOID PhpQueryAppResolverInterface(
 /**
  * Queries the StartMenuCache interface.
  *
- * @return A pointer to the StartMenuCache interface, or NULL if the interface could not be queried.
+ * \return A pointer to the StartMenuCache interface, or NULL if the interface could not be queried.
  */
 static PVOID PhpQueryStartMenuCacheInterface(
     VOID

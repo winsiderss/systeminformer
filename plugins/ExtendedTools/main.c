@@ -45,15 +45,6 @@ PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessStatsEventCallbackRegistration;
 PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration;
 
-EXTENDEDTOOLS_INTERFACE PluginInterface =
-{
-    EXTENDEDTOOLS_INTERFACE_VERSION,
-    EtLookupTotalGpuAdapterUtilization,
-    EtLookupTotalGpuAdapterDedicated,
-    EtLookupTotalGpuAdapterShared,
-    EtLookupTotalGpuAdapterEngineUtilization
-};
-
 ULONG EtWindowsVersion = WINDOWS_ANCIENT;
 BOOLEAN EtIsExecutingInWow64 = FALSE;
 BOOLEAN EtGpuFahrenheitEnabled = FALSE;
@@ -69,6 +60,15 @@ BOOLEAN EtEnableScaleText = FALSE;
 BOOLEAN EtPropagateCpuUsage = FALSE;
 BOOLEAN EtEnableAvxSupport = FALSE;
 
+EXTENDEDTOOLS_INTERFACE PluginInterface =
+{
+    EXTENDEDTOOLS_INTERFACE_VERSION,
+    EtLookupTotalGpuAdapterUtilization,
+    EtLookupTotalGpuAdapterDedicated,
+    EtLookupTotalGpuAdapterShared,
+    EtLookupTotalGpuAdapterEngineUtilization
+};
+
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
@@ -77,7 +77,7 @@ VOID NTAPI LoadCallback(
 {
     EtWindowsVersion = PhWindowsVersion;
     EtIsExecutingInWow64 = PhIsExecutingInWow64();
-    EtSampleCount = PhGetIntegerSetting(L"SampleCount");
+    EtSampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
 
     EtLoadSettings();
 
@@ -191,7 +191,7 @@ VOID NTAPI MenuItemCallback(
         break;
     case ID_OBJMGR:
         {
-            EtShowObjectManagerDialog(menuItem->OwnerWindow);
+            //EtShowObjectManagerDialog(menuItem->OwnerWindow);
         }
         break;
     case ID_POOL_TABLE:
@@ -256,7 +256,7 @@ VOID NTAPI MainMenuInitializingCallback(
     }
 
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POOL_TABLE, L"Poo&l Table", NULL), ULONG_MAX);
-    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), ULONG_MAX);
+    //PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SMBIOS, L"SM&BIOS", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, bootMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_FIRMWARE, L"Firm&ware Table", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, tpmMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_TPM, L"&Trusted Platform Module", NULL), ULONG_MAX);
@@ -299,10 +299,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (ProcessesUpdatedCount != 3)
-    {
-        ProcessesUpdatedCount++;
-    }
+    ProcessesUpdatedCount = PtrToUlong(Parameter);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -326,8 +323,8 @@ VOID NTAPI HandlePropertiesInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (Parameter)
-        EtHandlePropertiesInitializing(Parameter);
+    //if (Parameter)
+    //    EtHandlePropertiesInitializing(Parameter);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -336,8 +333,8 @@ VOID NTAPI HandlePropertiesWindowInitializedCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (Parameter)
-        EtHandlePropertiesWindowInitialized(Parameter);
+    //if (Parameter)
+    //    EtHandlePropertiesWindowInitialized(Parameter);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -346,8 +343,8 @@ VOID NTAPI HandlePropertiesWindowUninitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (Parameter)
-        EtHandlePropertiesWindowUninitializing(Parameter);
+    //if (Parameter)
+    //    EtHandlePropertiesWindowUninitializing(Parameter);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -1106,14 +1103,14 @@ VOID EtLoadSettings(
 {
     EtLoadSettingsFirstRun();
 
-    EtUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
-    EtMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(L"MaxPrecisionUnit");
-    EtGraphShowText = !!PhGetIntegerSetting(L"GraphShowText");
-    EtEnableScaleGraph = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
-    EtEnableScaleText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
-    EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
-    EtEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
-    EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
+    EtUpdateInterval = PhGetIntegerSetting(SETTING_UPDATE_INTERVAL);
+    EtMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(SETTING_MAX_PRECISION_UNIT);
+    EtGraphShowText = !!PhGetIntegerSetting(SETTING_GRAPH_SHOW_TEXT);
+    EtEnableScaleGraph = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_SCALE);
+    EtEnableScaleText = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_TEXT);
+    EtPropagateCpuUsage = !!PhGetIntegerSetting(SETTING_PROPAGATE_CPU_USAGE);
+    EtEnableAvxSupport = !!PhGetIntegerSetting(SETTING_ENABLE_AVX_SUPPORT);
+    EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(SETTING_ICON_TRANSPARENCY_ENABLED);
     EtGpuFahrenheitEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT);
     EtNpuFahrenheitEnabled = EtGpuFahrenheitEnabled;
 }

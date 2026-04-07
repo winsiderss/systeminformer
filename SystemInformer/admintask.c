@@ -13,7 +13,7 @@
 #include <appsup.h>
 #include <taskschd.h>
 #include <secwmi.h>
-
+#include <phconsole.h>
 #include <trace.h>
 
 DEFINE_GUID(CLSID_TaskScheduler, 0x0f87369f, 0xa4e5, 0x4cfc, 0xbd, 0x3e, 0x73, 0xe6, 0x15, 0x45, 0x72, 0xdd);
@@ -345,6 +345,7 @@ HRESULT PhRunAsAdminTask(
     )
 {
     HRESULT status;
+    ULONG sessionId = ULONG_MAX;
     BSTR taskNameString = NULL;
     BSTR taskFolderString = NULL;
     VARIANT empty = { VT_EMPTY };
@@ -414,8 +415,8 @@ HRESULT PhRunAsAdminTask(
     status = IRegisteredTask_RunEx(
         taskRegisteredTask,
         params,
-        TASK_RUN_AS_SELF,
-        0,
+        TASK_RUN_AS_SELF | TASK_RUN_USE_SESSION_ID,
+        USER_SHARED_DATA->ActiveConsoleId,
         NULL,
         &taskRunningTask
         );

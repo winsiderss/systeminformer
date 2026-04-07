@@ -14,6 +14,7 @@
 #include <procprp.h>
 #include <procprpp.h>
 #include <settings.h>
+#include <phsettings.h>
 
 #include <cpysave.h>
 #include <emenu.h>
@@ -139,7 +140,7 @@ VOID PhShowMemoryContextMenu(
 
     PhGetSelectedMemoryNodes(&Context->ListContext, &memoryNodes, &numberOfMemoryNodes);
 
-    //if (numberOfMemoryNodes != 0)
+    if (numberOfMemoryNodes != 0)
     {
         PPH_EMENU menu;
         PPH_EMENU_ITEM item;
@@ -198,6 +199,7 @@ VOID PhShowMemoryContextMenu(
     PhFree(memoryNodes);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpMemoryTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -524,6 +526,7 @@ PPH_MEMORY_CONTEXT PhCreateMemoryContext(
     return memoryContext;
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpProcessMemorySearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -577,6 +580,13 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
             // Initialize the list.
             PhInitializeMemoryList(hwndDlg, memoryContext->TreeNewHandle, &memoryContext->ListContext);
+
+            if (PhTreeWindowFont)
+            {
+                memoryContext->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(memoryContext->TreeNewHandle, memoryContext->TreeNewFont, FALSE);
+            }
+
             TreeNew_SetEmptyText(memoryContext->TreeNewHandle, &PhProcessPropPageLoadingText, 0);
 
             memoryContext->AllocationFilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.AllocationTreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
@@ -626,6 +636,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             }
 
             PhSaveSettingsMemoryList(&memoryContext->ListContext);
+
+            if (memoryContext->TreeNewFont)
+                DeleteFont(memoryContext->TreeNewFont);
 
             PhDereferenceObject(memoryContext);
         }
@@ -737,7 +750,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                                         for (offset = 0; offset < memoryItem->RegionSize; offset += PAGE_SIZE)
                                         {
-                                            if (NT_SUCCESS(NtReadVirtualMemory(
+                                            if (NT_SUCCESS(PhReadVirtualMemory(
                                                 processHandle,
                                                 PTR_ADD_OFFSET(memoryItem->BaseAddress, offset),
                                                 buffer,
@@ -859,7 +872,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PPH_EMENU_ITEM zeroPadItem;
                     PPH_EMENU_ITEM selectedItem;
 
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect);
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect))
+                        break;
 
                     typedef enum _PH_MEMORY_FILTER_MENU_ITEM
                     {
@@ -986,7 +1000,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         }
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_STRINGS)
                         {
-                            if (PhGetIntegerSetting(L"EnableMemStringsTreeDialog"))
+                            if (PhGetIntegerSetting(SETTING_ENABLE_MEM_STRINGS_TREE_DIALOG))
                                 PhShowMemoryStringTreeDialog(hwndDlg, processItem);
                             else
                                 PhShowMemoryStringDialog(hwndDlg, processItem);
@@ -1012,7 +1026,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                                 PH_CHOICE_DIALOG_USER_CHOICE,
                                 &selectedChoice,
                                 NULL,
-                                L"MemoryReadWriteAddressChoices"
+                                SETTING_MEMORY_READ_WRITE_ADDRESS_CHOICES
                                 ))
                             {
                                 ULONG64 address64;

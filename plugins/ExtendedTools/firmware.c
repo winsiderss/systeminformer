@@ -49,14 +49,14 @@ PPH_STRING EtFirmwareAttributeToString(
     return PhFinalStringBuilderString(&sb);
 }
 
-PWSTR EtFirmwareGuidToNameString(
+PCWSTR EtFirmwareGuidToNameString(
     _In_ PGUID VendorGuid
     )
 {
     for (ULONG i = 0; i < ARRAYSIZE(table); i++)
     {
         if (IsEqualGUID(VendorGuid, &table[i].Guid))
-            return (PWSTR)table[i].Name;
+            return table[i].Name;
     }
 
     return L"";
@@ -264,7 +264,7 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             EtEnumerateFirmwareEntries(context);
         }

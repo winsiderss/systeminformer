@@ -53,8 +53,9 @@ PWSTR CstHelpMessage =
     L"verify\t\t-k publickeyfile -s inputsigfile inputfile\n"
     ;
 
+_Function_class_(PH_COMMAND_LINE_CALLBACK)
 static BOOLEAN NTAPI CstCommandLineCallback(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
     )
@@ -389,7 +390,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
     NTSTATUS status;
     PH_STRINGREF commandLine;
 
-    if (!NT_SUCCESS(PhInitializePhLib(L"CustomSignTool", (PVOID)&__ImageBase)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"CustomSignTool")))
         return EXIT_FAILURE;
 
     if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))

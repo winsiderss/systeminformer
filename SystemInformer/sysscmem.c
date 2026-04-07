@@ -187,7 +187,7 @@ BOOLEAN PhSipMemorySectionCallback(
     {
     case SysInfoCreate:
         {
-            ShowCommitInSummary = !!PhGetIntegerSetting(L"ShowCommitInSummary");
+            ShowCommitInSummary = !!PhGetIntegerSetting(SETTING_SHOW_COMMIT_IN_SUMMARY);
             MemorySection = Section;
             MemorySlotsTotal = 0;
             MemorySlotsUsed = 0;
@@ -744,6 +744,7 @@ VOID PhSipLayoutMemoryGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipNotifyCommitGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -840,6 +841,7 @@ BOOLEAN NTAPI PhSipNotifyCommitGraph(
     return TRUE;
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
 BOOLEAN NTAPI PhSipNotifyPhysicalGraph(
     _In_ HWND GraphHandle,
     _In_ ULONG GraphMessage,
@@ -1077,7 +1079,7 @@ VOID PhSipUpdateMemoryPanel(
         PhaFormatSize(UInt32x32To64(PhPerfInformation.NonPagedPoolPages, PAGE_SIZE), ULONG_MAX)->Buffer);
 
     if (MemoryTicked > 1)
-        PhSetDialogItemText(MemoryPanel, IDC_ZNONPAGEDALLOCSDELTA_V, PhaFormatUInt64(PagedAllocsDelta.Delta, TRUE)->Buffer);
+        PhSetDialogItemText(MemoryPanel, IDC_ZNONPAGEDALLOCSDELTA_V, PhaFormatUInt64(NonPagedAllocsDelta.Delta, TRUE)->Buffer);
     else
         PhSetDialogItemText(MemoryPanel, IDC_ZNONPAGEDALLOCSDELTA_V, L"-");
 
@@ -1216,6 +1218,7 @@ VOID PhSipUpdateMemoryPanel(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhSipLoadMmAddresses(
     _In_ PVOID Parameter
     )

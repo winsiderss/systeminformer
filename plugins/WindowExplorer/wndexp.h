@@ -26,7 +26,7 @@
 
 extern PPH_PLUGIN PluginInstance;
 
-#define PLUGIN_NAME L"ProcessHacker.WindowExplorer"
+#define PLUGIN_NAME L"WindowExplorer"
 #define SETTING_NAME_SHOW_DESKTOP_WINDOWS (PLUGIN_NAME L".ShowDesktopWindows")
 #define SETTING_NAME_WINDOW_ENUM_ALTERNATE (PLUGIN_NAME L".EnableAltEnumWindow")
 #define SETTING_NAME_WINDOW_ENABLE_ICONS (PLUGIN_NAME L".EnableIcons")

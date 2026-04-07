@@ -19,7 +19,7 @@
 
 #include "resource.h"
 
-#define PLUGIN_NAME L"ProcessHacker.DotNetTools"
+#define PLUGIN_NAME L"DotNetTools"
 #define SETTING_NAME_ASM_TREE_LIST_COLUMNS (PLUGIN_NAME L".AsmTreeListColumns")
 #define SETTING_NAME_ASM_TREE_LIST_FLAGS (PLUGIN_NAME L".AsmTreeListFlags")
 #define SETTING_NAME_ASM_TREE_LIST_SORT (PLUGIN_NAME L".AsmTreeListSort")
@@ -27,7 +27,6 @@
 #define SETTING_NAME_DOT_NET_COUNTERS_COLUMNS (PLUGIN_NAME L".DotNetListColumns")
 #define SETTING_NAME_DOT_NET_COUNTERS_SORTCOLUMN (PLUGIN_NAME L".DotNetListSort")
 #define SETTING_NAME_DOT_NET_COUNTERS_GROUPSTATES (PLUGIN_NAME L".DotNetListGroupStates")
-#define SETTING_NAME_DOT_NET_VERIFYSIGNATURE (PLUGIN_NAME L".DotNetVerifySignature")
 
 extern PPH_PLUGIN PluginInstance;
 
@@ -126,17 +125,17 @@ VOID InitializeTreeNewObjectExtensions(
     );
 
 VOID DispatchTreeNewMessage(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 #define DNTHTNC_APPDOMAIN 1
 
 VOID ThreadTreeNewInitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 VOID ThreadTreeNewUninitializing(
-    __in PVOID Parameter
+    _In_ PVOID Parameter
     );
 
 #endif

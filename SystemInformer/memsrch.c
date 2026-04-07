@@ -80,12 +80,6 @@ BOOLEAN PhpShowMemoryStringProgressDialog(
     _In_ PMEMORY_STRING_CONTEXT Context
     );
 
-BOOLEAN PhpShowMemoryStringDialog(
-    _In_ HWND ParentWindowHandle,
-    _In_ PPH_PROCESS_ITEM ProcessItem,
-    _In_opt_ PPH_LIST PrevNodeList
-    );
-
 PVOID PhMemorySearchHeap = NULL;
 LONG PhMemorySearchHeapRefCount = 0;
 PH_QUEUED_LOCK PhMemorySearchHeapLock = PH_QUEUED_LOCK_INIT;
@@ -218,9 +212,7 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
     PMEMORY_STRING_SEARCH_CONTEXT context;
 
     assert(Context);
-
     context = Context;
-
     *Buffer = NULL;
     *Length = 0;
 
@@ -265,7 +257,7 @@ ReadMemory:
             context->CurrentReadAddress = context->NextReadAddress;
             length = min(context->ReadRemaning, context->BufferSize);
 
-            if (NT_SUCCESS(status = NtReadVirtualMemory(
+            if (NT_SUCCESS(status = PhReadVirtualMemory(
                 context->ProcessHandle,
                 context->CurrentReadAddress,
                 context->Buffer,
@@ -297,17 +289,19 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
     PMEMORY_STRING_SEARCH_CONTEXT context = Context;
     PPH_MEMORY_RESULT result;
 
-    assert(context);
-
     if (!context->DetectUnicode && Result->Unicode)
         return context->Options->Cancel;
 
-    result = PhCreateMemoryResult(PTR_ADD_OFFSET(context->CurrentReadAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer)), context->BasicInfo.BaseAddress, Result->Length);
+    result = PhCreateMemoryResult(
+        PTR_ADD_OFFSET(context->CurrentReadAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer)),
+        context->BasicInfo.BaseAddress,
+        Result->Length
+        );
 
-    result->Display.Buffer = PhAllocateForMemorySearch(Result->String->Length + sizeof(WCHAR));
-    memcpy(result->Display.Buffer, Result->String->Buffer, Result->String->Length);
-    result->Display.Buffer[Result->String->Length / sizeof(WCHAR)] = UNICODE_NULL;
-    result->Display.Length = Result->String->Length;
+    result->Display.Buffer = PhAllocateForMemorySearch(Result->String.Length + sizeof(WCHAR));
+    memcpy(result->Display.Buffer, Result->String.Buffer, Result->String.Length);
+    result->Display.Buffer[Result->String.Length / sizeof(WCHAR)] = UNICODE_NULL;
+    result->Display.Length = Result->String.Length;
 
     context->Options->Callback(result, context->Options->Context);
 
@@ -322,7 +316,6 @@ VOID PhSearchMemoryString(
     MEMORY_STRING_SEARCH_CONTEXT context;
 
     memset(&context, 0, sizeof(MEMORY_STRING_SEARCH_CONTEXT));
-
     context.Options = &Options->Header;
     context.ProcessHandle = ProcessHandle;
     context.TypeMask = Options->MemoryTypeMask;
@@ -421,7 +414,6 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhSetDialogItemText(hwndDlg, IDC_MINIMUMLENGTH, L"10");
-
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE), BST_CHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PRIVATE), BST_CHECKED);
 
@@ -464,14 +456,16 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
                 break;
             case IDC_DETECTUNICODE:
                 {
+                    HWND windowHandle = GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE);
+
                     if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE)) == BST_UNCHECKED)
                     {
-                        Button_SetCheck(GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE), BST_UNCHECKED);
-                        Button_Enable(GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE), FALSE);
+                        Button_SetCheck(windowHandle, BST_UNCHECKED);
+                        Button_Enable(windowHandle, FALSE);
                     }
                     else
                     {
-                        Button_Enable(GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE), TRUE);
+                        Button_Enable(windowHandle, TRUE);
                     }
                 }
                 break;

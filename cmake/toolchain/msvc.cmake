@@ -11,6 +11,7 @@ set(SI_CXX_STANDARD_FLAG /std:c++latest)
 # Compiler flags
 #
 set(SI_COMPILE_FLAGS_INIT
+    /diagnostics:caret                  # Quality of life compiler output
     /W3                                 # Warning level 3
     /MP                                 # Multi-processor compilation
     /WX                                 # Treat warnings as errors
@@ -56,6 +57,7 @@ set(SI_STATIC_LINK_FLAGS_INIT
 set(SI_LINK_FLAGS_INIT
     /MACHINE:${CMAKE_SYSTEM_PROCESSOR}  # Target platform
     /DEBUG                              # Generate debug info
+    /DEBUGTYPE:CV,PDATA
     /DYNAMICBASE                        # Enable ASLR
     /NXCOMPAT                           # Enable DEP
     /DEPENDENTLOADFLAG:0x800            # LOAD_LIBRARY_SEARCH_SYSTEM32
@@ -103,9 +105,37 @@ elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
         /QIntel-jcc-erratum             # Intel erratum 1279
     )
     list(APPEND SI_LINK_FLAGS_RELEASE_INIT
-        /SAFESEH                        # EH continuation guard
+        /SAFESEH                        # Safe Exception Handlers (x86)
         /CETCOMPAT                      # CET compatibility
     )
 else()
     message(FATAL_ERROR "Unknown system processor: ${CMAKE_SYSTEM_PROCESSOR}")
 endif()
+
+#
+# Spectre mitigation libraries
+#
+# Specifying /Qspectre alone is not sufficient to link to the spectre mitigation
+# libraries from the Windows SDK. Locate the libraries here and add them to the
+# link flags for builds that specify /Qspectre. This takes precedence over any
+# other libraries in the linker search order.
+#
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+    set(_si_spectre_arch "arm64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
+    set(_si_spectre_arch "x64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
+    set(_si_spectre_arch "x86")
+else()
+    message(FATAL_ERROR "Unknown system processor: ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+cmake_path(SET _si_vctools_dir NORMALIZE $ENV{VCToolsInstallDir})
+if(NOT _si_vctools_dir)
+    message(FATAL_ERROR "VCToolsInstallDir environment variable is not set")
+endif()
+cmake_path(NATIVE_PATH _si_vctools_dir NORMALIZE _si_vctools_dir)
+list(APPEND SI_LINK_FLAGS_RELEASE_INIT
+    "/LIBPATH:\"${_si_vctools_dir}lib\\spectre\\${_si_spectre_arch}\""
+)
+unset(_si_vctools_dir)
+unset(_si_spectre_arch)

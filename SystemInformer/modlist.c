@@ -43,6 +43,7 @@ VOID PhpRemoveModuleNode(
     _In_ PPH_MODULE_LIST_CONTEXT Context
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpModuleTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -51,7 +52,7 @@ LONG PhpModuleTreeNewPostSortFunction(
     );
 
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -64,7 +65,7 @@ VOID PhInitializeModuleList(
     _Out_ PPH_MODULE_LIST_CONTEXT Context
     )
 {
-    BOOLEAN enableMonospaceFont = !!PhGetIntegerSetting(L"EnableMonospaceFont");
+    BOOLEAN enableMonospaceFont = !!PhGetIntegerSetting(SETTING_ENABLE_MONOSPACE_FONT);
 
     memset(Context, 0, sizeof(PH_MODULE_LIST_CONTEXT));
     Context->EnableStateHighlighting = TRUE;
@@ -171,9 +172,9 @@ VOID PhLoadSettingsModuleList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    flags = PhGetIntegerSetting(L"ModuleTreeListFlags");
-    settings = PhGetStringSetting(L"ModuleTreeListColumns");
-    sortSettings = PhGetStringSetting(L"ModuleTreeListSort");
+    flags = PhGetIntegerSetting(SETTING_MODULE_TREE_LIST_FLAGS);
+    settings = PhGetStringSetting(SETTING_MODULE_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_MODULE_TREE_LIST_SORT);
 
     Context->Flags = flags;
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
@@ -191,9 +192,9 @@ VOID PhSaveSettingsModuleList(
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
-    PhSetIntegerSetting(L"ModuleTreeListFlags", Context->Flags);
-    PhSetStringSetting2(L"ModuleTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"ModuleTreeListSort", &sortSettings->sr);
+    PhSetIntegerSetting(SETTING_MODULE_TREE_LIST_FLAGS, Context->Flags);
+    PhSetStringSetting2(SETTING_MODULE_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_MODULE_TREE_LIST_SORT, &sortSettings->sr);
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
@@ -563,6 +564,7 @@ VOID PhTickModuleNodes(
     return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpModuleTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -791,7 +793,7 @@ BEGIN_SORT_FUNCTION(Architecture)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -801,7 +803,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
     PPH_MODULE_LIST_CONTEXT context = Context;
     PPH_MODULE_NODE node;
 
-    if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
+    if (PhCmForwardMessage(WindowHandle, Message, Parameter1, Parameter2, &context->Cm))
         return TRUE;
 
     switch (Message)
@@ -828,7 +830,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             }
             else
             {
-                static PVOID sortFunctions[] =
+                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Name),
                     SORT_FUNCTION(BaseAddress),
@@ -860,7 +862,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(EnclaveSize),
                     SORT_FUNCTION(Architecture),
                 };
-                int (__cdecl *sortFunction)(void *, const void *, const void *);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PHMOTLC_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -1438,7 +1440,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             context->TreeNewSortOrder = sorting->SortOrder;
 
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -1467,13 +1469,13 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
         {
             PH_TN_COLUMN_MENU_DATA data;
 
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = NoSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+            data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);

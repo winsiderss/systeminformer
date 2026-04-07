@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *
+ */
+
 #include "tests.h"
 
 static VOID Test_time(
@@ -32,13 +43,13 @@ static VOID Test_stringz(
     VOID
     )
 {
-    BOOLEAN result;
+    NTSTATUS result;
     CHAR inputA[16] = "test";
     CHAR outputA[16];
     WCHAR inputW[16] = L"test";
     WCHAR outputW[16];
     SIZE_T returnCount;
-    PWSTR zero = L"\0\0\0\0\0\0\0\0";
+    PCWSTR zero = L"\0\0\0\0\0\0\0\0";
     PWSTR asdf = L"asdfasdfasdfasdf";
     ULONG i;
 
@@ -48,33 +59,33 @@ static VOID Test_stringz(
         assert(PhCountStringZ(asdf + i) == 16 - i);
 
     result = PhCopyBytesZ(inputA, 4, outputA, 4, &returnCount);
-    assert(!result && returnCount == 5);
+    assert(!NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyBytesZ(inputA, 100, outputA, 4, &returnCount);
-    assert(!result && returnCount == 5);
+    assert(!NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyBytesZ(inputA, 3, outputA, 4, &returnCount);
-    assert(result && returnCount == 4);
+    assert(NT_SUCCESS(result) && returnCount == 4);
     result = PhCopyBytesZ(inputA, 4, outputA, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyBytesZ(inputA, 100, outputA, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
 
     result = PhCopyStringZ(inputW, 100, outputW, 4, &returnCount);
-    assert(!result && returnCount == 5);
+    assert(!NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyStringZ(inputW, 4, outputW, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyStringZ(inputW, 100, outputW, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
 
     result = PhCopyStringZFromMultiByte(inputA, 4, outputW, 4, &returnCount);
-    assert(!result && returnCount == 5);
+    assert(!NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyStringZFromMultiByte(inputA, 100, outputW, 4, &returnCount);
-    assert(!result && returnCount == 5);
+    assert(!NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyStringZFromMultiByte(inputA, 3, outputW, 4, &returnCount);
-    assert(result && returnCount == 4);
+    assert(NT_SUCCESS(result) && returnCount == 4);
     result = PhCopyStringZFromMultiByte(inputA, 4, outputW, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
     result = PhCopyStringZFromMultiByte(inputA, 100, outputW, 5, &returnCount);
-    assert(result && returnCount == 5);
+    assert(NT_SUCCESS(result) && returnCount == 5);
 
     assert(PhCompareStringZNatural(L"abc", L"abc", FALSE) == 0);
     assert(PhCompareStringZNatural(L"abc", L"abc", TRUE) == 0);
@@ -339,6 +350,60 @@ VOID Test_unicode(
     assert(memcmp(utf8_2->Buffer, utf8_3->Buffer, utf8_2->Length) == 0);
 }
 
+VOID Test_PhConvertCopyMemoryUlong64(
+    VOID
+    )
+{
+    // Test small values
+    {
+        ULONG64 input[] = { 0, 1, 100, 1000, 10000 };
+        FLOAT output[5];
+        PhConvertCopyMemoryUlong64(input, output, 5);
+
+        assert(output[0] == 0.0f);
+        assert(output[1] == 1.0f);
+        assert(output[2] == 100.0f);
+        assert(output[3] == 1000.0f);
+        assert(output[4] == 10000.0f);
+    }
+
+    // Test large values
+    {
+        ULONG64 input[] = {
+            0xFFFFFFFFFFFFFFFFULL,  // Max uint64
+            0x8000000000000000ULL,  // 2^63
+            0x0000000100000000ULL,  // 2^32
+        };
+        FLOAT output[3];
+        PhConvertCopyMemoryUlong64(input, output, 3);
+
+        assert(output[0] > 1.8e19f);        // ~18.4 quintillion
+        assert(output[1] > 9.2e18f);        // ~9.2 quintillion
+        assert(output[2] == 4294967296.0f); // Exactly 2^32
+    }
+
+    // Test alignment
+    {
+        // Unaligned input/output
+        ULONG64 input[16 + 1];
+        FLOAT output[16 + 1];
+
+        PhConvertCopyMemoryUlong64(input + 1, output + 1, 16);
+        // Should not crash
+    }
+
+    // Test edge cases
+    {
+        ULONG64 input = 0;
+        FLOAT output;
+
+        PhConvertCopyMemoryUlong64(&input, &output, 0);  // Count = 0
+        // Should return immediately
+
+        PhConvertCopyMemoryUlong64(&input, &output, 1);
+        assert(output == 0.0f);
+    }
+}
 VOID Test_basesup(
     VOID
     )
@@ -349,4 +414,5 @@ VOID Test_basesup(
     Test_hexstring();
     Test_strint();
     Test_unicode();
+    Test_PhConvertCopyMemoryUlong64();
 }

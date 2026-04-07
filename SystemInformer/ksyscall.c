@@ -264,7 +264,7 @@ PPH_STRING PhGetSystemCallNumberName(
     {
     case NTOS_SERVICE_INDEX:
         {
-            if (ntdllSystemCallList && systemCallEntry->SystemCallIndex <= ntdllSystemCallList->Count)
+            if (ntdllSystemCallList && systemCallEntry->SystemCallIndex < ntdllSystemCallList->Count)
             {
                 PPH_STRING entry = ntdllSystemCallList->Items[systemCallEntry->SystemCallIndex];
 
@@ -274,7 +274,7 @@ PPH_STRING PhGetSystemCallNumberName(
         break;
     case WIN32K_SERVICE_INDEX:
         {
-            if (win32kSystemCallList && systemCallEntry->SystemCallIndex <= win32kSystemCallList->Count)
+            if (win32kSystemCallList && systemCallEntry->SystemCallIndex < win32kSystemCallList->Count)
             {
                 PPH_STRING entry = win32kSystemCallList->Items[systemCallEntry->SystemCallIndex];
 

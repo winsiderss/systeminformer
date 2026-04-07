@@ -13,7 +13,7 @@
 #ifndef DB_H
 #define DB_H
 
-#define PLUGIN_NAME L"ProcessHacker.UserNotes"
+#define PLUGIN_NAME L"UserNotes"
 #define SETTING_NAME_CUSTOM_COLOR_LIST (PLUGIN_NAME L".ColorCustomList")
 #define SETTING_NAME_OPTIONS_DB_COLUMNS (PLUGIN_NAME L".DbListColumns")
 

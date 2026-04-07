@@ -171,6 +171,7 @@ static int __cdecl PvClrCoreNameCompare(
     return PhCompareStringWithNull(item1, item2, TRUE);
 }
 
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
 static BOOLEAN PvClrCoreDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
@@ -501,7 +502,7 @@ HRESULT PvSafeParseAttributeString(
         return META_E_CA_INVALID_BLOB;
 
     offset += sizeof(USHORT);
-    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(Buffer, offset));
+    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(const_cast<PVOID>(Buffer), offset));
     if (offset > BufferLength)
         return COR_E_OVERFLOW;
 
@@ -515,7 +516,7 @@ HRESULT PvSafeParseAttributeString(
         return COR_E_OVERFLOW;
 
     offset += skipLength;
-    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(Buffer, offset));
+    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(const_cast<PVOID>(Buffer), offset));
     if (offset > BufferLength)
         return COR_E_OVERFLOW;
 
@@ -710,7 +711,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
 
             if (SUCCEEDED(metaDataTables->GetRow(TBL_ImplMap, i, &importRowValue)))
             {
-                importOffsetValue = PTR_SUB_OFFSET(importRowValue, PvMappedImage.ViewBase);
+                importOffsetValue = PTR_SUB_OFFSET(importRowValue, reinterpret_cast<ULONG_PTR>(PvMappedImage.ViewBase));
             }
 
             for (ULONG j = 0; j < clrImportsList->Count; j++)

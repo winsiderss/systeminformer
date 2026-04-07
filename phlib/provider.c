@@ -54,6 +54,7 @@ VOID PhInitializeProviderThread(
     PhInitializeQueuedLock(&ProviderThread->Lock);
     InitializeListHead(&ProviderThread->ListHead);
     ProviderThread->BoostCount = 0;
+    ProviderThread->Flags = 0;
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgProviderListLock);
@@ -86,6 +87,12 @@ VOID PhDeleteProviderThread(
 #endif
 }
 
+/**
+ * The start routine for the provider thread.
+ *
+ * \param Parameter A pointer to user-defined data passed to the thread.
+ * \return NTSTATUS status code indicating success or failure of the thread routine.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI PhpProviderThreadStart(
     _In_ PVOID Parameter
@@ -99,6 +106,8 @@ NTSTATUS NTAPI PhpProviderThreadStart(
     PPH_PROVIDER_FUNCTION providerFunction;
     PVOID object;
     LIST_ENTRY tempListHead;
+
+    PhSetThreadName(NtCurrentThread(), L"ProviderThread");
 
     PhInitializeAutoPool(&autoPool);
 
@@ -134,7 +143,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
                     break;
             }
 
-            listEntry = RemoveHeadList(&providerThread->ListHead);
+            listEntry = RemoveHeadListNoFence(&providerThread->ListHead);
 
             if (listEntry == &providerThread->ListHead)
                 break;
@@ -142,7 +151,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             registration = CONTAINING_RECORD(listEntry, PH_PROVIDER_REGISTRATION, ListEntry);
 
             // Add the provider to the temp list.
-            InsertTailList(&tempListHead, listEntry);
+            InsertTailListNoFence(&tempListHead, listEntry);
 
             if (status != STATUS_ALERTED)
             {
@@ -180,8 +189,16 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             registration->RunId++;
 
             PhReleaseQueuedLockExclusive(&providerThread->Lock);
-            providerFunction(object);
+
+            if (PhAcquireRundownProtection(&registration->RundownProtect))
+            {
+                providerFunction(object);
+
+                PhReleaseRundownProtection(&registration->RundownProtect);
+            }
+
             PhDrainAutoPool(&autoPool);
+
             PhAcquireQueuedLockExclusive(&providerThread->Lock);
 
             if (object)
@@ -190,7 +207,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
         // Re-add the items in the temp list to the main list.
 
-        while ((listEntry = RemoveHeadList(&tempListHead)) != &tempListHead)
+        while ((listEntry = RemoveHeadListNoFence(&tempListHead)) != &tempListHead)
         {
             registration = CONTAINING_RECORD(listEntry, PH_PROVIDER_REGISTRATION, ListEntry);
 
@@ -198,9 +215,9 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             // condition that boosted providers are always in front of normal providers. This occurs
             // when the timer is signaled just before a boosting provider alerts our thread.
             if (!registration->Boosting)
-                InsertTailList(&providerThread->ListHead, listEntry);
+                InsertTailListNoFence(&providerThread->ListHead, listEntry);
             else
-                InsertHeadList(&providerThread->ListHead, listEntry);
+                InsertHeadListNoFence(&providerThread->ListHead, listEntry);
         }
 
         PhReleaseQueuedLockExclusive(&providerThread->Lock);
@@ -224,43 +241,95 @@ NTSTATUS NTAPI PhpProviderThreadStart(
  *
  * \param ProviderThread A pointer to a provider thread object.
  */
-VOID PhStartProviderThread(
+NTSTATUS PhStartProviderThread(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread
     )
 {
-    OBJECT_ATTRIBUTES objectAttributes;
+    NTSTATUS status;
 
     if (ProviderThread->State != ProviderThreadStopped)
-        return;
+        return STATUS_PENDING;
 
+    //
     // Create the synchronization timer.
+    //
 
-    InitializeObjectAttributes(
-        &objectAttributes,
-        NULL,
-        OBJ_EXCLUSIVE,
-        NULL,
-        NULL
-        );
+    if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution)
+    {
+        status = PhCreateWaitableTimer(
+            &ProviderThread->TimerHandle,
+            TIMER_ALL_ACCESS,
+            SynchronizationTimer,
+            TRUE
+            );
+    }
+    else
+    {
+        status = STATUS_UNSUCCESSFUL;
+    }
 
-    NtCreateTimer(
-        &ProviderThread->TimerHandle,
-        TIMER_ALL_ACCESS,
-        &objectAttributes,
-        SynchronizationTimer
-        );
-    assert(ProviderThread->TimerHandle);
+    if (!NT_SUCCESS(status))
+    {
+        OBJECT_ATTRIBUTES objectAttributes;
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            NULL,
+            OBJ_EXCLUSIVE,
+            NULL,
+            NULL
+            );
+
+        status = NtCreateTimer(
+            &ProviderThread->TimerHandle,
+            TIMER_ALL_ACCESS,
+            &objectAttributes,
+            SynchronizationTimer
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     // Set the run interval for the timer.
 
-    PhSetIntervalProviderThread(ProviderThread, ProviderThread->Interval);
+    status = PhSetIntervalProviderThread(
+        ProviderThread,
+        ProviderThread->Interval
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(ProviderThread->TimerHandle);
+        ProviderThread->TimerHandle = NULL;
+        return status;
+    }
 
     // Create and start the thread.
 
-    PhCreateThreadEx(&ProviderThread->ThreadHandle, PhpProviderThreadStart, ProviderThread);
-    assert(ProviderThread->ThreadHandle);
+    status = PhCreateUserThread(
+        NtCurrentProcess(),
+        NULL,
+        THREAD_ALL_ACCESS, // THREAD_ALERT | SYNCHRONIZE,
+        0,
+        0,
+        0,
+        0,
+        PhpProviderThreadStart,
+        ProviderThread,
+        &ProviderThread->ThreadHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(ProviderThread->TimerHandle);
+        ProviderThread->TimerHandle = NULL;
+        return status;
+    }
 
     ProviderThread->State = ProviderThreadRunning;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -274,6 +343,18 @@ VOID PhStopProviderThread(
 {
     if (ProviderThread->State != ProviderThreadRunning)
         return;
+
+    // Verify all providers are unregistered
+    PhAcquireQueuedLockExclusive(&ProviderThread->Lock);
+    if (!IsListEmpty(&ProviderThread->ListHead))
+    {
+        PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
+        assert(FALSE && "Stopping provider thread with active registrations");
+    }
+    else
+    {
+        PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
+    }
 
     // Signal to the thread that we are shutting down, and wait for it to exit.
     ProviderThread->State = ProviderThreadStopping;
@@ -296,20 +377,50 @@ VOID PhStopProviderThread(
  * \param ProviderThread A pointer to a provider thread object.
  * \param Interval The interval between each run, in milliseconds.
  */
-VOID PhSetIntervalProviderThread(
+NTSTATUS PhSetIntervalProviderThread(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread,
     _In_ LONG Interval
     )
 {
+    LARGE_INTEGER interval;
+    LARGE_INTEGER period;
+
+    if (Interval < 0)
+        return STATUS_INVALID_PARAMETER;
+
+    // Prevent intervals > 24 hours (86400000 ms)
+    if (Interval > (24 * 60 * 60 * 1000))
+        return STATUS_INVALID_PARAMETER;
+
+    if (!ProviderThread->TimerHandle)
+        return STATUS_INVALID_HANDLE;
+
     ProviderThread->Interval = Interval;
 
-    if (ProviderThread->TimerHandle)
-    {
-        LARGE_INTEGER interval;
+    interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
+    period.QuadPart = UInt32x32To64(Interval, PH_TIMEOUT_MS);
 
-        interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
-        NtSetTimer(ProviderThread->TimerHandle, &interval, NULL, NULL, FALSE, Interval, NULL);
+    if (WindowsVersion >= WINDOWS_11 && ProviderThread->UseHighResolution)
+    {
+        return PhSetWaitableTimer(
+            ProviderThread->TimerHandle,
+            &interval,
+            &period,
+            NULL,
+            NULL,
+            FALSE
+            );
     }
+
+    return NtSetTimer(
+        ProviderThread->TimerHandle,
+        &interval,
+        NULL,
+        NULL,
+        FALSE,
+        Interval,
+        NULL
+        );
 }
 
 /**
@@ -320,7 +431,6 @@ VOID PhSetIntervalProviderThread(
  * \param Object A pointer to an object to pass to the provider function. The object must be managed
  * by the reference-counting system.
  * \param Registration A variable which receives registration information for the provider.
- *
  * \remarks The provider is initially disabled. Call PhSetEnabledProvider() to enable it.
  */
 VOID PhRegisterProvider(
@@ -330,6 +440,7 @@ VOID PhRegisterProvider(
     _Out_ PPH_PROVIDER_REGISTRATION Registration
     )
 {
+    PhInitializeRundownProtection(&Registration->RundownProtect);
     Registration->ProviderThread = ProviderThread;
     Registration->Function = Function;
     Registration->Object = Object;
@@ -342,7 +453,7 @@ VOID PhRegisterProvider(
         PhReferenceObject(Object);
 
     PhAcquireQueuedLockExclusive(&ProviderThread->Lock);
-    InsertTailList(&ProviderThread->ListHead, &Registration->ListEntry);
+    InsertTailListNoFence(&ProviderThread->ListHead, &Registration->ListEntry);
     PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
 }
 
@@ -350,7 +461,6 @@ VOID PhRegisterProvider(
  * Unregisters a provider.
  *
  * \param Registration A pointer to the registration object for a provider.
- *
  * \remarks The provider function may still be in execution once this function returns.
  */
 VOID PhUnregisterProvider(
@@ -376,6 +486,13 @@ VOID PhUnregisterProvider(
     if (Registration->Boosting)
         providerThread->BoostCount--;
 
+    PhReleaseQueuedLockExclusive(&providerThread->Lock);
+
+    PhWaitForRundownProtection(&Registration->RundownProtect);
+
+    // Reacquire the lock to safely dereference the object
+    PhAcquireQueuedLockExclusive(&providerThread->Lock);
+
     // The user-supplied object must be dereferenced
     // while the mutex is held.
     if (Registration->Object)
@@ -389,13 +506,12 @@ VOID PhUnregisterProvider(
  *
  * \param Registration A pointer to the registration object for a provider.
  * \param FutureRunId A variable which receives the run ID of the future run.
- *
  * \return TRUE if the operation was successful; FALSE if the provider is being unregistered, the
  * provider is already being boosted, or the provider thread is not running.
- *
  * \remarks Boosted providers will be run immediately, ignoring the run interval. Boosting will not
  * however affect the normal runs.
  */
+_Use_decl_annotations_
 BOOLEAN PhBoostProvider(
     _Inout_ PPH_PROVIDER_REGISTRATION Registration,
     _Out_opt_ PULONG FutureRunId
@@ -404,9 +520,6 @@ BOOLEAN PhBoostProvider(
     PPH_PROVIDER_THREAD providerThread;
     ULONG futureRunId;
 
-    if (Registration->Unregistering)
-        return FALSE;
-
     providerThread = Registration->ProviderThread;
 
     // Simply move to the provider to the front of the list. This works even if the provider is
@@ -414,15 +527,15 @@ BOOLEAN PhBoostProvider(
 
     PhAcquireQueuedLockExclusive(&providerThread->Lock);
 
-    // Abort if the provider is already being boosted or the provider thread is stopping/stopped.
-    if (Registration->Boosting || providerThread->State != ProviderThreadRunning)
+    // Abort if the provider is already being boosted, unregistering, or the provider thread is stopping/stopped.
+    if (Registration->Unregistering || Registration->Boosting || providerThread->State != ProviderThreadRunning)
     {
         PhReleaseQueuedLockExclusive(&providerThread->Lock);
         return FALSE;
     }
 
     RemoveEntryList(&Registration->ListEntry);
-    InsertHeadList(&providerThread->ListHead, &Registration->ListEntry);
+    InsertHeadListNoFence(&providerThread->ListHead, &Registration->ListEntry);
 
     Registration->Boosting = TRUE;
     providerThread->BoostCount++;
@@ -461,7 +574,16 @@ BOOLEAN PhGetEnabledProvider(
     _In_ PPH_PROVIDER_REGISTRATION Registration
     )
 {
-    return !!Registration->Enabled;
+    PPH_PROVIDER_THREAD providerThread;
+    BOOLEAN enabled;
+
+    providerThread = Registration->ProviderThread;
+
+    PhAcquireQueuedLockShared(&providerThread->Lock);
+    enabled = !!Registration->Enabled;
+    PhReleaseQueuedLockShared(&providerThread->Lock);
+
+    return enabled;
 }
 
 /**
@@ -475,5 +597,25 @@ VOID PhSetEnabledProvider(
     _In_ BOOLEAN Enabled
     )
 {
+    PPH_PROVIDER_THREAD providerThread;
+
+    providerThread = Registration->ProviderThread;
+
+    PhAcquireQueuedLockExclusive(&providerThread->Lock);
     Registration->Enabled = Enabled;
+    PhReleaseQueuedLockExclusive(&providerThread->Lock);
+}
+
+/**
+ * Sets whether a provider thread uses a high-resolution timer.
+ *
+ * \param ProviderThread A pointer to the provider thread object.
+ * \param UseHighResolutionTimer TRUE to use a high-resolution timer, otherwise FALSE.
+ */
+VOID PhSetHighResolutionProvider(
+    _Inout_ PPH_PROVIDER_THREAD ProviderThread,
+    _In_ BOOLEAN UseHighResolution
+    )
+{
+    ProviderThread->UseHighResolution = !!UseHighResolution;
 }

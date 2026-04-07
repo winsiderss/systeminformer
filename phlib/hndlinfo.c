@@ -751,7 +751,7 @@ PPH_STRING PhGetPnPDeviceName(
                 PhInitFormatSR(&format[2], ObjectName->sr);
                 PhInitFormatC(&format[3], ')');
 
-                PhSetReference(&objectPnPDeviceName, PhFormat(format, 4, 0x50));
+                PhSetReference(&objectPnPDeviceName, PhFormat(format, RTL_NUMBER_OF(format), 0));
             }
             else if (!PhIsNullOrEmptyString(deviceName))
             {
@@ -762,7 +762,7 @@ PPH_STRING PhGetPnPDeviceName(
                 PhInitFormatSR(&format[2], ObjectName->sr);
                 PhInitFormatC(&format[3], ')');
 
-                PhSetReference(&objectPnPDeviceName, PhFormat(format, 4, 0x50));
+                PhSetReference(&objectPnPDeviceName, PhFormat(format, RTL_NUMBER_OF(format), 0));
             }
 
             if (deviceDesc)
@@ -912,12 +912,10 @@ PPH_STRING PhStdGetClientIdNameEx(
     PPH_STRING threadName = NULL;
     PH_STRINGREF processNameStringRef;
     PH_STRINGREF threadNameStringRef;
-    HANDLE processHandle;
-    HANDLE threadHandle;
     BOOLEAN processIsTerminated = FALSE;
     BOOLEAN threadIsTerminated = FALSE;
 
-    PhInitializeStringRef(&processNameStringRef, L"unnamed process");
+    PhInitializeStringRef(&processNameStringRef, L"unknown process");
     PhInitializeStringRef(&threadNameStringRef, L"unnamed thread");
 
     if (PhIsNullOrEmptyString(ProcessName))
@@ -953,47 +951,36 @@ PPH_STRING PhStdGetClientIdNameEx(
 
     if (ClientId->UniqueProcess)
     {
-        if (NT_SUCCESS(PhOpenProcess(
+        HANDLE processHandle;
+
+        if (NT_SUCCESS(PhOpenProcessClientId(
             &processHandle,
-            SYNCHRONIZE,
-            ClientId->UniqueProcess
+            SYNCHRONIZE, // PROCESS_QUERY_LIMITED_INFORMATION
+            ClientId
             )))
         {
-            LARGE_INTEGER timeout = { 0 };
-
             // Check if the process is alive
-            if (NtWaitForSingleObject(processHandle, FALSE, &timeout) == STATUS_WAIT_0)
-                processIsTerminated = TRUE;
+            PhGetProcessIsTerminated(processHandle, &processIsTerminated);
 
-            PhQueryCloseHandle(processHandle);
+            // Use the name of the process if available
+            //if (PhIsNullOrEmptyString(ProcessName) && NT_SUCCESS(PhGetProcessImageFileName(processHandle, &processName)))
+            //{
+            //    processNameStringRef.Length = processName->Length;
+            //    processNameStringRef.Buffer = processName->Buffer;
+            //}
+
+            NtClose(processHandle);
         }
-
-        //if (PhIsNullOrEmptyString(ProcessName) && NT_SUCCESS(PhOpenProcessClientId(
-        //    &processHandle,
-        //    PROCESS_QUERY_LIMITED_INFORMATION,
-        //    ClientId
-        //    )))
-        //{
-        //    PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
-        //
-        //    if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
-        //    {
-        //        if (basicInfo.IsProcessDeleting)
-        //        {
-        //            isProcessTerminated = TRUE;
-        //        }
-        //    }
-        //
-        //    PhQueryCloseHandle(processHandle);
-        //}
     }
 
     if (ClientId->UniqueThread)
     {
-        if (NT_SUCCESS(PhOpenThread(
+        HANDLE threadHandle;
+
+        if (NT_SUCCESS(PhOpenThreadClientId(
             &threadHandle,
             THREAD_QUERY_LIMITED_INFORMATION,
-            ClientId->UniqueThread
+            ClientId
             )))
         {
             // Check if the thread is alive
@@ -1006,7 +993,7 @@ PPH_STRING PhStdGetClientIdNameEx(
                 threadNameStringRef.Buffer = threadName->Buffer;
             }
 
-            PhQueryCloseHandle(threadHandle);
+            NtClose(threadHandle);
         }
     }
 
@@ -1028,7 +1015,7 @@ PPH_STRING PhStdGetClientIdNameEx(
         PhInitFormatU(&format[8], HandleToUlong(ClientId->UniqueThread));
         PhInitFormatC(&format[9], L')');
 
-        result = PhFormat(format, RTL_NUMBER_OF(format), 0x50);
+        result = PhFormat(format, RTL_NUMBER_OF(format), 0);
     }
     else
     {
@@ -1041,7 +1028,7 @@ PPH_STRING PhStdGetClientIdNameEx(
         PhInitFormatU(&format[3], HandleToUlong(ClientId->UniqueProcess));
         PhInitFormatC(&format[4], L')');
 
-        result = PhFormat(format, RTL_NUMBER_OF(format), 0x50);
+        result = PhFormat(format, RTL_NUMBER_OF(format), 0);
     }
 
     //result = PhFormatString(
@@ -1148,7 +1135,7 @@ NTSTATUS PhpGetBestObjectName(
 
         if (PhIsNullOrEmptyString(bestObjectName) && (KsiLevel() >= KphLevelMed))
         {
-            KPH_FILE_OBJECT_DRIVER fileObjectDriver;
+            HANDLE fileObjectDriver;
             PPH_STRING driverName;
 
             status = KphQueryInformationObject(
@@ -1156,13 +1143,13 @@ NTSTATUS PhpGetBestObjectName(
                 Handle,
                 KphObjectFileObjectDriver,
                 &fileObjectDriver,
-                sizeof(KPH_FILE_OBJECT_DRIVER),
+                sizeof(HANDLE),
                 NULL
                 );
 
-            if (NT_SUCCESS(status) && fileObjectDriver.DriverHandle)
+            if (NT_SUCCESS(status) && fileObjectDriver)
             {
-                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver.DriverHandle, &driverName)))
+                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver, &driverName)))
                 {
                     static CONST PH_STRINGREF prefix = PH_STRINGREF_INIT(L"Unnamed file: ");
 
@@ -1170,7 +1157,7 @@ NTSTATUS PhpGetBestObjectName(
                     PhDereferenceObject(driverName);
                 }
 
-                PhQueryCloseHandle(fileObjectDriver.DriverHandle);
+                PhQueryCloseHandle(fileObjectDriver);
             }
         }
     }
@@ -1397,7 +1384,7 @@ NTSTATUS PhpGetBestObjectName(
                 PhInitFormatS(&format[1], L" (");
                 PhInitFormatSize(&format[2], basicInfo.MaximumSize.QuadPart);
                 PhInitFormatC(&format[3], ')');
-                bestObjectName = PhFormat(format, 4, 0);
+                bestObjectName = PhFormat(format, RTL_NUMBER_OF(format), 0);
             }
         }
 
@@ -1655,7 +1642,7 @@ NTSTATUS PhpGetBestObjectName(
                 PhInitFormatX(&format[2], statistics.AuthenticationId.LowPart);
                 PhInitFormatS(&format[3], statistics.TokenType == TokenPrimary ? L" (Primary)" : L" (Impersonation)");
 
-                bestObjectName = PhFormat(format, 4, fullName->Length + 8 + 16 + 16);
+                bestObjectName = PhFormat(format, RTL_NUMBER_OF(format), fullName->Length + 8 + 16 + 16);
                 PhDereferenceObject(fullName);
             }
         }
@@ -1690,7 +1677,7 @@ NTSTATUS PhpGetBestObjectName(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        if (!NT_SUCCESS(KphAlpcQueryComminicationsNamesInfo(ProcessHandle, Handle, &namesInfo)))
+        if (!NT_SUCCESS(KphAlpcQueryCommunicationsNamesInfo(ProcessHandle, Handle, &namesInfo)))
         {
             namesInfo = NULL;
         }

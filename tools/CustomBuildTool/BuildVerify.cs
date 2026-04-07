@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -11,18 +11,34 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides cryptographic and signature verification utilities for build artifacts.
+    /// </summary>
     public static class BuildVerify
     {
-        public static readonly SortedDictionary<string, KeyValuePair<string, string>> KeyName_Vars = new(StringComparer.OrdinalIgnoreCase)
+        /// <summary>
+        /// Maps build key names to their corresponding environment variable names for key and salt.
+        /// </summary>
+        public static readonly SortedDictionary<string, BuildVerifyKeyPair> KeyName_Vars = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "canary",    new("CANARY_BUILD_KEY", "CANARY_BUILD_S") },
-            { "developer", new("DEVELOPER_BUILD_KEY", "DEVELOPER_BUILD_S") },
-            { "kph",       new("KPH_BUILD_KEY", "KPH_BUILD_S")},
-            { "preview",   new("PREVIEW_BUILD_KEY", "PREVIEW_BUILD_S")  },
-            { "release",   new("RELEASE_BUILD_KEY", "RELEASE_BUILD_S")},
+            { "canary",    new("CANARY_BUILD_KEY", "CANARY_BUILD_S", "CANARY_BUILD_I") },
+            { "developer", new("DEVELOPER_BUILD_KEY", "DEVELOPER_BUILD_S", "DEVELOPER_BUILD_I") },
+            { "kph",       new("KPH_BUILD_KEY", "KPH_BUILD_S", "KPH_BUILD_I") },
+            { "preview",   new("PREVIEW_BUILD_KEY", "PREVIEW_BUILD_S", "PREVIEW_BUILD_I") },
+            { "release",   new("RELEASE_BUILD_KEY", "RELEASE_BUILD_S", "RELEASE_BUILD_I") },
         };
+        public record BuildVerifyKeyPair(string Key, string Salt, string Iterations);
 
-        public static bool EncryptFile(string FileName, string OutFileName, string Secret, string Salt)
+        /// <summary>
+        /// Encrypts the specified file using the provided secret and salt, and writes the result to the output file.
+        /// </summary>
+        /// <param name="FileName">The path to the input file to encrypt.</param>
+        /// <param name="OutFileName">The path to the output encrypted file.</param>
+        /// <param name="Secret">The secret used for encryption.</param>
+        /// <param name="Salt">The salt value or key name for encryption.</param>
+        /// <param name="Iterations">The iterations value or key name for encryption.</param>
+        /// <returns>True if encryption succeeds; otherwise, false.</returns>
+        public static bool EncryptFile(string FileName, string OutFileName, string Secret, string Salt, string Iterations)
         {
             if (string.IsNullOrWhiteSpace(FileName) || string.IsNullOrWhiteSpace(OutFileName) || string.IsNullOrWhiteSpace(Secret) || string.IsNullOrWhiteSpace(Salt))
             {
@@ -34,7 +50,7 @@ namespace CustomBuildTool
             {
                 using (var fileStream = File.OpenRead(FileName))
                 {
-                    var encryptedBytes = Encrypt(fileStream, Secret, GetSalt(Salt));
+                    var encryptedBytes = Encrypt(fileStream, Secret, GetSalt(Salt), GetIterations(Iterations));
 
                     Utils.WriteAllBytes(OutFileName, encryptedBytes);
                 }
@@ -48,7 +64,16 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool DecryptFile(string FileName, string OutFileName, string Secret, string Salt)
+        /// <summary>
+        /// Decrypts the specified file using the provided secret and salt, and writes the result to the output file.
+        /// </summary>
+        /// <param name="FileName">The path to the input encrypted file.</param>
+        /// <param name="OutFileName">The path to the output decrypted file.</param>
+        /// <param name="Secret">The secret used for decryption.</param>
+        /// <param name="Salt">The salt value or key name for decryption.</param>
+        /// <param name="Iterations">The iterations value or key name for encryption.</param>
+        /// <returns>True if decryption succeeds; otherwise, false.</returns>
+        public static bool DecryptFile(string FileName, string OutFileName, string Secret, string Salt, string Iterations)
         {
             if (string.IsNullOrWhiteSpace(FileName) || string.IsNullOrWhiteSpace(OutFileName) || string.IsNullOrWhiteSpace(Secret) || string.IsNullOrWhiteSpace(Salt))
             {
@@ -60,7 +85,7 @@ namespace CustomBuildTool
             {
                 using (var fileStream = File.OpenRead(FileName))
                 {
-                    var decryptedBytes = Decrypt(fileStream, Secret, GetSalt(Salt));
+                    var decryptedBytes = Decrypt(fileStream, Secret, GetSalt(Salt), GetIterations(Iterations));
 
                     Utils.WriteAllBytes(OutFileName, decryptedBytes);
                 }
@@ -74,28 +99,11 @@ namespace CustomBuildTool
             return true;
         }
 
-        //private static void DecryptFile(string FileName, string OutFileName, string Secret)
-        //{
-        //    try
-        //    {
-        //        using (FileStream fileReadStream = new FileStream(FileName, FileMode.Open))
-        //        using (FileStream fileWriteStream = new FileStream(OutFileName, FileMode.Create))
-        //        {
-        //            using (var rijndael = GetRijndael(Secret))
-        //            using (var cryptoDecrypt = rijndael.CreateDecryptor())
-        //            using (var cryptoStream = new CryptoStream(fileWriteStream, cryptoDecrypt, CryptoStreamMode.Write))
-        //            {
-        //                fileReadStream.CopyTo(cryptoStream);
-        //                cryptoStream.FlushFinalBlock();
-        //            }
-        //        }
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        Program.PrintColorMessage($"[DecryptFileStream-Exception]: {e.Message}", ConsoleColor.Red);
-        //    }
-        //}
-
+        /// <summary>
+        /// Computes the SHA256 hash of the specified file and returns it as a hexadecimal string.
+        /// </summary>
+        /// <param name="FileName">The path to the file to hash.</param>
+        /// <returns>The hexadecimal string of the file's hash, or an empty string if hashing fails.</returns>
         public static string HashFile(string FileName)
         {
             try
@@ -114,6 +122,13 @@ namespace CustomBuildTool
             }
         }
 
+        /// <summary>
+        /// Creates a signature file for the specified file using the given key name.
+        /// </summary>
+        /// <param name="KeyName">The key name to use for signing.</param>
+        /// <param name="FileName">The path to the file to sign.</param>
+        /// <param name="StrictChecks">If true, performs strict checks before creating the signature file.</param>
+        /// <returns>True if the signature file is created; otherwise, false.</returns>
         public static bool CreateSigFile(string KeyName, string FileName, bool StrictChecks)
         {
             if (string.IsNullOrWhiteSpace(KeyName))
@@ -163,16 +178,22 @@ namespace CustomBuildTool
             }
             catch (Exception e)
             {
-                Program.PrintColorMessage($"Unable to create signature file {Path.GetFileName(FileName)}: {e.Message}", ConsoleColor.Yellow);
+                Program.PrintColorMessage($"Unable to create signature file {Path.GetFileName(FileName)}: {e}", ConsoleColor.Yellow);
                 return false;
             }
 
             return true;
         }
 
+        /// <summary>
+        /// Creates a signature string for the specified file using the given key name.
+        /// </summary>
+        /// <param name="KeyName">The key name to use for signing.</param>
+        /// <param name="FileName">The path to the file to sign.</param>
+        /// <returns>The hexadecimal string of the signature, or null if signing fails.</returns>
         public static string CreateSigString(string KeyName, string FileName)
         {
-            if (File.Exists(FileName))
+            if (!File.Exists(FileName))
                 return null;
 
             try
@@ -195,108 +216,135 @@ namespace CustomBuildTool
             return null;
         }
 
-        private static byte[] Encrypt(Stream Stream, string Secret, string Salt)
+        /// <summary>
+        /// Encrypts the provided stream using the specified secret and salt.
+        /// </summary>
+        /// <param name="Stream">The input stream to encrypt.</param>
+        /// <param name="Secret">The secret used for encryption.</param>
+        /// <param name="Salt">The salt value for encryption.</param>
+        /// <param name="Iterations">The iterations value for encryption.</param>
+        /// <returns>The encrypted byte array, or null if encryption fails.</returns>
+        private static byte[] Encrypt(Stream Stream, string Secret, string Salt, int Iterations)
         {
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(0x4000);
-
             try
             {
-                using (MemoryStream memoryStream = new MemoryStream(buffer, 0, 0x4000, true, true))
+                using (var rijndael = GetRijndael(Secret, Salt, Iterations))
+                using (var cryptoEncrypt = rijndael.CreateEncryptor())
+                using (var ms = new MemoryStream())
                 {
-                    using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
-                    using (var cryptoEncrypt = rijndael.CreateEncryptor())
-                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoEncrypt, CryptoStreamMode.Write, true))
+                    using (var cryptoStreamOut = new CryptoStream(ms, cryptoEncrypt, CryptoStreamMode.Write, leaveOpen: true))
                     {
-                        Stream.CopyTo(cryptoStream);
-                        cryptoStream.FlushFinalBlock();
+                        Stream.CopyTo(cryptoStreamOut);
+                        cryptoStreamOut.FlushFinalBlock();
                     }
-
-                    memoryStream.SetLength(memoryStream.Position);
-                    return memoryStream.ToArray();
-                }
-            }
-            catch (Exception e)
-            {
-                Program.PrintColorMessage($"[Encrypt-Exception]: {e.Message}", ConsoleColor.Red);
-            }
-            finally
-            {
-                // Zero the buffer (copied from System.Security.Cryptography)
-                CryptographicOperations.ZeroMemory(buffer.AsSpan(0, 0x4000));
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
-
-            return null;
-        }
-
-        private static byte[] Decrypt(Stream Stream, string Secret, string Salt)
-        {
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(0x4000);
-
-            try
-            {
-                using (MemoryStream memoryStream = new MemoryStream(buffer, 0, 0x4000, true, true))
-                {
-                    using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
-                    using (var cryptoDecrypt = rijndael.CreateDecryptor())
-                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoDecrypt, CryptoStreamMode.Write, true))
-                    {
-                        Stream.CopyTo(cryptoStream);
-                        cryptoStream.FlushFinalBlock();
-                    }
-
-                    memoryStream.SetLength(memoryStream.Position);
-                    return memoryStream.ToArray();
+                    return ms.ToArray();
                 }
             }
             catch (Exception e)
             {
                 Program.PrintColorMessage($"[Decrypt-Exception]: {e.Message}", ConsoleColor.Red);
             }
-            finally
+
+            return null;
+        }
+
+        /// <summary>
+        /// Decrypts the provided stream using the specified secret and salt.
+        /// </summary>
+        /// <param name="Stream">The input stream to decrypt.</param>
+        /// <param name="Secret">The secret used for decryption.</param>
+        /// <param name="Salt">The salt value for decryption.</param>
+        /// <param name="Iterations">The iterations value for decryption.</param>
+        /// <returns>The decrypted byte array, or null if decryption fails.</returns>
+        private static byte[] Decrypt(Stream Stream, string Secret, string Salt, int Iterations)
+        {
+            try
             {
-                // Zero the buffer (copied from System.Security.Cryptography)
-                CryptographicOperations.ZeroMemory(buffer.AsSpan(0, 0x4000));
-                ArrayPool<byte>.Shared.Return(buffer);
+                using (var rijndael = GetRijndael(Secret, Salt, Iterations))
+                using (var cryptoDecrypt = rijndael.CreateDecryptor())
+                using (var ms = new MemoryStream())
+                {
+                    using (var cryptoStream = new CryptoStream(ms, cryptoDecrypt, CryptoStreamMode.Write, leaveOpen: true))
+                    {
+                        Stream.CopyTo(cryptoStream);
+                        cryptoStream.FlushFinalBlock();
+                    }
+                    return ms.ToArray();
+                }
+            }
+            catch (Exception e)
+            {
+                Program.PrintColorMessage($"[Decrypt-Exception]: {e.Message}", ConsoleColor.Red);
             }
 
             return null;
         }
 
-        private static byte[] Decrypt(byte[] Bytes, string Secret, string Salt)
+        /// <summary>
+        /// Decrypts the provided byte array using the specified secret and salt.
+        /// </summary>
+        /// <param name="Bytes">The encrypted byte array.</param>
+        /// <param name="Secret">The secret used for decryption.</param>
+        /// <param name="Salt">The salt value for decryption.</param>
+        /// <param name="Iterations">The iterations value for decryption.</param>
+        /// <returns>The decrypted byte array.</returns>
+        private static byte[] Decrypt(byte[] Bytes, string Secret, string Salt, int Iterations)
         {
             using (var blobStream = new MemoryStream(Bytes))
             {
-                return Decrypt(blobStream, Secret, GetSalt(Salt));
+                return Decrypt(blobStream, Secret, Salt, Iterations);
             }
         }
 
-        private static byte[] Encrypt(byte[] Bytes, string Secret, string Salt)
+        /// <summary>
+        /// Encrypts the provided byte array using the specified secret and salt.
+        /// </summary>
+        /// <param name="Bytes">The input byte array to encrypt.</param>
+        /// <param name="Secret">The secret used for encryption.</param>
+        /// <param name="Salt">The salt value for encryption.</param>
+        /// <param name="Iterations">The iterations value for encryption.</param>
+        /// <returns>The encrypted byte array.</returns>
+        private static byte[] Encrypt(byte[] Bytes, string Secret, string Salt, int Iterations)
         {
             using (var blobStream = new MemoryStream(Bytes))
             {
-                return Encrypt(blobStream, Secret, GetSalt(Salt));
+                return Encrypt(blobStream, Secret, Salt, Iterations);
             }
         }
 
-        private static Aes GetRijndael(string Secret, string Salt)
+        /// <summary>
+        /// Creates and configures an AES instance using the provided secret and salt.
+        /// </summary>
+        /// <param name="Secret">The secret used for key derivation.</param>
+        /// <param name="Salt">The salt value for key derivation.</param>
+        /// <param name="Iterations">The iterations value for key derivation.</param>
+        /// <returns>An AES instance configured with the derived key and IV.</returns>
+        private static Aes GetRijndael(string Secret, string Salt, int Iterations)
         {
-            using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(
-                Secret,
-                Convert.FromBase64String(GetSalt(Salt)),
-                10000,
+            ReadOnlySpan<byte> saltBytes = Convert.FromBase64String(Salt);
+            Span<byte> keyMaterial = stackalloc byte[48];
+
+            Rfc2898DeriveBytes.Pbkdf2(
+                Secret.AsSpan(),
+                saltBytes,
+                keyMaterial,
+                Iterations,
                 HashAlgorithmName.SHA512
-                ))
-            {
-                Aes rijndael = Aes.Create();
+                );
 
-                rijndael.Key = rfc2898DeriveBytes.GetBytes(32);
-                rijndael.IV = rfc2898DeriveBytes.GetBytes(16);
+            Aes rijndael = Aes.Create();
+            rijndael.Key = keyMaterial[..32].ToArray();
+            rijndael.IV = keyMaterial[32..48].ToArray();
 
-                return rijndael;
-            }
+            return rijndael;
         }
 
+        /// <summary>
+        /// Signs the provided byte array using the specified key material.
+        /// </summary>
+        /// <param name="KeyMaterial">The private key material for signing.</param>
+        /// <param name="Bytes">The data to sign.</param>
+        /// <returns>The signature byte array.</returns>
         private static byte[] Sign(byte[] KeyMaterial, byte[] Bytes)
         {
             byte[] buffer;
@@ -326,6 +374,12 @@ namespace CustomBuildTool
             return buffer;
         }
 
+        /// <summary>
+        /// Signs the contents of the specified file using the provided key material.
+        /// </summary>
+        /// <param name="KeyMaterial">The private key material for signing.</param>
+        /// <param name="FileName">The path to the file to sign.</param>
+        /// <returns>The signature byte array.</returns>
         private static byte[] SignFile(byte[] KeyMaterial, string FileName)
         {
             byte[] buffer;
@@ -356,32 +410,106 @@ namespace CustomBuildTool
             return buffer;
         }
 
+        /// <summary>
+        /// Attempts to extract the algorithm OID from a SubjectPublicKeyInfo ASN.1 blob.
+        /// Returns "RSA", "ECDSA", or null if unknown.
+        /// </summary>
+        private static CngAlgorithmGroup GetPublicKeyAlgorithmOid(byte[] keyBlob)
+        {
+            try
+            {
+                var reader = new System.Formats.Asn1.AsnReader(keyBlob, System.Formats.Asn1.AsnEncodingRules.DER);
+                var seq = reader.ReadSequence(); // SubjectPublicKeyInfo SEQUENCE
+                var algId = seq.ReadSequence(); // AlgorithmIdentifier SEQUENCE
+                var oid = algId.ReadObjectIdentifier();
+
+                // Common OIDs:
+                // 1.2.840.10045.2.1 = ecPublicKey
+                // 1.2.840.113549.1.1.1 = rsaEncryption
+
+                if (string.Equals(oid, "1.2.840.10045.2.1", StringComparison.OrdinalIgnoreCase))
+                    return CngAlgorithmGroup.ECDsa;
+                if (string.Equals(oid, "1.2.840.113549.1.1.1", StringComparison.OrdinalIgnoreCase))
+                    return CngAlgorithmGroup.Rsa;
+            }
+            catch
+            {
+                // Not a valid SubjectPublicKeyInfo or unknown format
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Prints public key information for the provided key blob and format.
+        /// </summary>
+        /// <param name="KeyBlob">The key blob containing the public key.</param>
+        /// <param name="KeyFormat">The format of the key blob.</param>
         public static void PrintCngPublicKeyInfo(byte[] KeyBlob, CngKeyBlobFormat KeyFormat)
         {
-            using (CngKey cngkey = CngKey.Import(KeyBlob, KeyFormat))
+            // Try to detect if the blob is SubjectPublicKeyInfo (ASN.1 SEQUENCE starts with 0x30)
+            bool isSubjectPublicKeyInfo = KeyBlob.Length > 0 && KeyBlob[0] == 0x30;
+
+            if (isSubjectPublicKeyInfo)
             {
-                if (cngkey.Algorithm == CngAlgorithm.ECDsaP256)
+                var type = GetPublicKeyAlgorithmOid(KeyBlob);
+
+                if (type == CngAlgorithmGroup.ECDsa)
                 {
-                    using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
+                    using (ECDsa ecdsa = ECDsa.Create())
                     {
+                        ecdsa.ImportSubjectPublicKeyInfo(KeyBlob, out _);
+                        Program.PrintColorMessage("ECDSA Public Key (SubjectPublicKeyInfo)\n", ConsoleColor.Cyan);
                         Program.PrintColorMessage($"{ecdsa.ExportSubjectPublicKeyInfoPem()}\n", ConsoleColor.White);
                     }
                 }
-                else if (cngkey.Algorithm == CngAlgorithm.Rsa)
+                else if (type == CngAlgorithmGroup.Rsa)
                 {
-                    using (RSACng rsa = new RSACng(cngkey))
+                    using (RSA rsa = RSA.Create())
                     {
+                        rsa.ImportSubjectPublicKeyInfo(KeyBlob, out _);
+                        Program.PrintColorMessage("RSA Public Key (SubjectPublicKeyInfo)\n", ConsoleColor.Cyan);
                         Program.PrintColorMessage($"{rsa.ExportSubjectPublicKeyInfoPem()}\n", ConsoleColor.White);
                         Program.PrintColorMessage($"{rsa.ExportRSAPublicKeyPem()}\n", ConsoleColor.White);
                     }
                 }
                 else
                 {
-                    throw new NotSupportedException($"Unsupported algorithm: {cngkey.Algorithm}");
+                    throw new NotSupportedException($"Unsupported algorithm.");
+                }
+            }
+            else
+            {
+                using (CngKey cngkey = CngKey.Import(KeyBlob, KeyFormat))
+                {
+                    if (cngkey.Algorithm == CngAlgorithm.ECDsaP256)
+                    {
+                        using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
+                        {
+                            Program.PrintColorMessage($"{ecdsa.ExportSubjectPublicKeyInfoPem()}\n", ConsoleColor.White);
+                        }
+                    }
+                    else if (cngkey.Algorithm == CngAlgorithm.Rsa)
+                    {
+                        using (RSACng rsa = new RSACng(cngkey))
+                        {
+                            Program.PrintColorMessage($"{rsa.ExportSubjectPublicKeyInfoPem()}\n", ConsoleColor.White);
+                            Program.PrintColorMessage($"{rsa.ExportRSAPublicKeyPem()}\n", ConsoleColor.White);
+                        }
+                    }
+                    else
+                    {
+                        throw new NotSupportedException($"Unsupported algorithm: {cngkey.Algorithm}");
+                    }
                 }
             }
         }
 
+        /// <summary>
+        /// Gets the full path for the specified file, using environment variables or default locations.
+        /// </summary>
+        /// <param name="FileName">The file name to resolve.</param>
+        /// <returns>The resolved file path.</returns>
         private static string GetPath(string FileName)
         {
             if (Win32.GetEnvironmentVariable("BUILD_DRM", out string value))
@@ -393,29 +521,82 @@ namespace CustomBuildTool
             return Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSignTool\\Resources\\", FileName]);
         }
 
+        /// <summary>
+        /// Gets the salt value for the specified key name or returns the input if not found.
+        /// </summary>
+        /// <param name="KeyNameOrSalt">The key name or salt value.</param>
+        /// <returns>The salt value.</returns>
         private static string GetSalt(string KeyNameOrSalt)
         {
-            if (KeyName_Vars.TryGetValue(KeyNameOrSalt, out var vars) &&
-                Win32.GetEnvironmentVariable(vars.Value, out string salt))
+            if (KeyName_Vars.TryGetValue(KeyNameOrSalt, out var vars))
             {
-                return salt;
+                if (Win32.GetEnvironmentVariable(vars.Salt, out string salt))
+                {
+                    return salt;
+                }
+
+                string saltFile = GetPath($"{KeyNameOrSalt}.salt");
+                if (File.Exists(saltFile))
+                {
+                    return File.ReadAllText(saltFile).Trim();
+                }
             }
 
             // Assume this is the salt itself...
             return KeyNameOrSalt;
         }
 
-        private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
+        /// <summary>
+        /// Gets the iterations value for the specified key name or returns the input if not found.
+        /// </summary>
+        /// <param name="KeyNameOrIterations">The key name or salt value.</param>
+        /// <returns>The salt value.</returns>
+        private static int GetIterations(string KeyNameOrIterations)
         {
-            if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret))
+            if (KeyName_Vars.TryGetValue(KeyNameOrIterations, out var vars))
             {
+                if (Win32.GetEnvironmentVariable(vars.Iterations, out string iterations))
+                {
+                    return int.Parse(iterations);
+                }
+
+                string iterationsFile = GetPath($"{KeyNameOrIterations}.iterations");
+                if (File.Exists(iterationsFile))
+                {
+                    return int.Parse(File.ReadAllText(iterationsFile).Trim());
+                }
+            }
+
+            // Assume this is the iterations itself...
+            return int.Parse(KeyNameOrIterations);
+        }
+
+        /// <summary>
+        /// Retrieves the key material for the specified key name.
+        /// </summary>
+        /// <param name="KeyName">The key name to retrieve material for.</param>
+        /// <param name="KeyMaterial">The output key material byte array.</param>
+        /// <returns>True if key material is found; otherwise, false.</returns>
+        private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
+        {    
+            string fileName = GetPath($"{KeyName}");
+
+            if (File.Exists(fileName))
+            {
+                string secret = File.ReadAllText(fileName);
                 byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
-                KeyMaterial = Decrypt(bytes, secret, GetSalt(KeyName));
+                KeyMaterial = Decrypt(bytes, secret, GetSalt(KeyName), GetIterations(KeyName));
                 return true;
             }
             else if (File.Exists(GetPath($"{KeyName}.key")))
             {
                 KeyMaterial = Utils.ReadAllBytes(GetPath($"{KeyName}.key"));
+                return true;
+            }
+            else if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret))
+            {
+                byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
+                KeyMaterial = Decrypt(bytes, secret, GetSalt(KeyName), GetIterations(KeyName));
                 return true;
             }
             else

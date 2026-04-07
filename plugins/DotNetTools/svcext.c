@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2015
- *     dmes    2017-2021
+ *     dmex    2017-2021
  *
  */
 
@@ -14,6 +14,14 @@
 #include "svcext.h"
 #include "clrsup.h"
 
+/**
+ * Calls the 32-bit PhSvc helper to resolve a managed runtime symbol name at the given address.
+ *
+ * \param ProcessId The process identifier of the target process.
+ * \param Address The virtual address to look up.
+ * \param Displacement Optionally receives the byte offset from the start of the identified symbol.
+ * \return The resolved symbol name, or NULL on failure. The caller must dereference the string.
+ */
 _Success_(return != NULL)
 PPH_STRING CallGetRuntimeNameByAddress(
     _In_ HANDLE ProcessId,
@@ -68,6 +76,14 @@ PPH_STRING CallGetRuntimeNameByAddress(
     return name;
 }
 
+/**
+ * Server-side handler for the GetRuntimeNameByAddress PhSvc request.
+ *
+ * \param Request The PhSvc request context used to probe shared memory buffers.
+ * \param In The input parameters containing the process identifier and address to look up.
+ * \param Out The output parameters that receive the symbol name length and displacement.
+ * \return An NTSTATUS code. Returns STATUS_BUFFER_OVERFLOW if the name exceeds the provided buffer.
+ */
 NTSTATUS DispatchGetRuntimeNameByAddress(
     _In_ PPH_PLUGIN_PHSVC_REQUEST Request,
     _In_ PDN_API_GETRUNTIMENAMEBYADDRESS In,
@@ -104,9 +120,23 @@ NTSTATUS DispatchGetRuntimeNameByAddress(
 CleanupExit:
     FreeClrProcessSupport(support);
 
+    PhClearReference(&name);
+
     return status;
 }
 
+/**
+ * Calls the 32-bit PhSvc helper to predict the next managed stack frame register values for a WOW64 process.
+ *
+ * \param ProcessId The process identifier of the target process.
+ * \param ThreadId The OS thread identifier.
+ * \param PcAddress The current program counter address.
+ * \param FrameAddress The current frame (EBP) address.
+ * \param StackAddress The current stack (ESP) address.
+ * \param PredictedEip Receives the predicted next instruction pointer, or NULL on failure.
+ * \param PredictedEbp Receives the predicted next frame pointer, or NULL on failure.
+ * \param PredictedEsp Receives the predicted next stack pointer, or NULL on failure.
+ */
 VOID CallPredictAddressesFromClrData(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
@@ -155,6 +185,14 @@ VOID CallPredictAddressesFromClrData(
     }
 }
 
+/**
+ * Server-side handler for the PredictAddressesFromClrData PhSvc request.
+ *
+ * \param Request The PhSvc request context (unused by this handler).
+ * \param In The input parameters containing the process, thread, and current register values.
+ * \param Out The output parameters that receive the predicted next frame register values.
+ * \return An NTSTATUS code.
+ */
 NTSTATUS DispatchPredictAddressesFromClrData(
     _In_ PPH_PLUGIN_PHSVC_REQUEST Request,
     _In_ PDN_API_PREDICTADDRESSESFROMCLRDATA In,
@@ -190,6 +228,13 @@ NTSTATUS DispatchPredictAddressesFromClrData(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Calls the 32-bit PhSvc helper to retrieve the current AppDomain name for the given thread.
+ *
+ * \param ProcessId The process identifier of the target process.
+ * \param ThreadId The OS thread identifier whose current AppDomain is queried.
+ * \return The AppDomain display name, or NULL on failure. The caller must dereference the string.
+ */
 PPH_STRING CallGetClrThreadAppDomain(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId
@@ -239,6 +284,14 @@ PPH_STRING CallGetClrThreadAppDomain(
     return name;
 }
 
+/**
+ * Server-side handler for the GetClrThreadAppDomain PhSvc request.
+ *
+ * \param Request The PhSvc request context used to probe shared memory buffers.
+ * \param In The input parameters containing the process and thread identifiers.
+ * \param Out The output parameters that receive the AppDomain name length.
+ * \return An NTSTATUS code. Returns STATUS_BUFFER_OVERFLOW if the name exceeds the provided buffer.
+ */
 NTSTATUS DispatchGetClrThreadAppDomain(
     _In_ PPH_PLUGIN_PHSVC_REQUEST Request,
     _In_ PDN_API_GETWOW64THREADAPPDOMAIN In,
@@ -270,12 +323,21 @@ NTSTATUS DispatchGetClrThreadAppDomain(
 
 CleanupExit:
 
+    PhClearReference(&appDomainText);
+
     if (support)
         FreeClrProcessSupport(support);
 
     return status;
 }
 
+/**
+ * Calls the 32-bit PhSvc helper to retrieve the source file name for the managed method at the given address.
+ *
+ * \param ProcessId The process identifier of the target process.
+ * \param Address The virtual address of the managed method.
+ * \return The source file name, or NULL on failure. The caller must dereference the string.
+ */
 PPH_STRING CallGetFileNameByAddress(
     _In_ HANDLE ProcessId,
     _In_ ULONG64 Address
@@ -325,6 +387,14 @@ PPH_STRING CallGetFileNameByAddress(
     return name;
 }
 
+/**
+ * Server-side handler for the GetFileNameByAddress PhSvc request.
+ *
+ * \param Request The PhSvc request context used to probe shared memory buffers.
+ * \param In The input parameters containing the process identifier and address.
+ * \param Out The output parameters that receive the file name length.
+ * \return An NTSTATUS code. Returns STATUS_BUFFER_OVERFLOW if the name exceeds the provided buffer.
+ */
 NTSTATUS DispatchGetFileNameByAddress(
     _In_ PPH_PLUGIN_PHSVC_REQUEST Request,
     _In_ PDN_API_GETFILENAMEBYADDRESS In,
@@ -334,7 +404,7 @@ NTSTATUS DispatchGetFileNameByAddress(
     NTSTATUS status;
     PVOID nameBuffer;
     PCLR_PROCESS_SUPPORT support;
-    PPH_STRING name;
+    PPH_STRING name = NULL;
 
     if (!NT_SUCCESS(status = Request->ProbeBuffer(&In->i.Name, sizeof(WCHAR), FALSE, &nameBuffer)))
         return status;
@@ -359,11 +429,19 @@ NTSTATUS DispatchGetFileNameByAddress(
         status = STATUS_BUFFER_OVERFLOW;
 
 CleanupExit:
+    PhClearReference(&name);
     FreeClrProcessSupport(support);
 
     return status;
 }
 
+/**
+ * Calls the 32-bit PhSvc helper to retrieve the serialized AppDomain and assembly list for a process.
+ *
+ * \param ProcessId The process identifier of the target process.
+ * \return A list of DN_PROCESS_APPDOMAIN_ENTRY objects, or NULL on failure.
+ * \remarks The caller is responsible for freeing the list with DnDestroyProcessDotNetAppDomainList.
+ */
 PPH_LIST CallGetClrAppDomainAssemblyList(
     _In_ HANDLE ProcessId
     )
@@ -414,6 +492,14 @@ PPH_LIST CallGetClrAppDomainAssemblyList(
     return appdomainlist;
 }
 
+/**
+ * Server-side handler for the GetClrAppDomainAssemblyList PhSvc request.
+ *
+ * \param Request The PhSvc request context used to probe shared memory buffers.
+ * \param In The input parameters containing the process identifier.
+ * \param Out The output parameters that receive the serialized data length.
+ * \return An NTSTATUS code. Returns STATUS_BUFFER_OVERFLOW if the data exceeds the provided buffer.
+ */
 NTSTATUS DispatchGetClrAppDomainAssemblyList(
     _In_ PPH_PLUGIN_PHSVC_REQUEST Request,
     _In_ PDN_API_GETAPPDOMAINASSEMBLYDATA In,
@@ -467,6 +553,12 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Dispatches an incoming PhSvc request to the appropriate DotNetTools handler.
+ *
+ * \param Parameter A pointer to the PPH_PLUGIN_PHSVC_REQUEST describing the request.
+ * \remarks The input buffer is copied before dispatching because InBuffer and OutBuffer may alias.
+ */
 VOID DispatchPhSvcRequest(
     _In_ PVOID Parameter
     )

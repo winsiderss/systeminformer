@@ -13,6 +13,7 @@
 #ifndef _PH_APIIMPORT_H
 #define _PH_APIIMPORT_H
 
+#include <devquery.h>
 #include <sddl.h>
 #include <shlwapi.h>
 #include <userenv.h>
@@ -35,9 +36,14 @@ PH_DECLARE_IMPORT(NtCreateThreadStateChange);
 PH_DECLARE_IMPORT(NtChangeThreadState);
 PH_DECLARE_IMPORT(NtCopyFileChunk);
 PH_DECLARE_IMPORT(NtCompareObjects);
+PH_DECLARE_IMPORT(NtCreateTimer2);
+PH_DECLARE_IMPORT(NtSetTimerEx);
+PH_DECLARE_IMPORT(NtSetTimer2);
 
 PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
 PH_DECLARE_IMPORT(LdrSystemDllInitBlock);
+PH_DECLARE_IMPORT(LdrResFindResource);
+PH_DECLARE_IMPORT(LdrResSearchResource);
 
 PH_DECLARE_IMPORT(RtlDefaultNpAcl);
 PH_DECLARE_IMPORT(RtlDelayExecution);
@@ -53,6 +59,7 @@ PH_DECLARE_IMPORT(PssNtQuerySnapshot);
 PH_DECLARE_IMPORT(PssNtFreeSnapshot);
 PH_DECLARE_IMPORT(PssNtFreeRemoteSnapshot);
 PH_DECLARE_IMPORT(NtPssCaptureVaSpaceBulk);
+PH_DECLARE_IMPORT(TpSetPoolThreadBasePriority);
 
 // Advapi32
 
@@ -83,6 +90,9 @@ PH_DECLARE_IMPORT(GetAppContainerFolderPath);
 // User32
 
 PH_DECLARE_IMPORT(ConsoleControl);
+PH_DECLARE_IMPORT(GetCurrentInputMessageSource);
+PH_DECLARE_IMPORT(GetCIMSSM);
+PH_DECLARE_IMPORT(NtUserBuildHwndList);
 
 // Xmllite
 

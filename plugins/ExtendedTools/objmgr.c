@@ -539,7 +539,7 @@ VOID EtInitializeListImages(
     DestroyIcon(icon);
 }
 
-static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
+static NTSTATUS NTAPI EtEnumDirectoryObjectsCallback(
     _In_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF Name,
     _In_ PCPH_STRINGREF TypeName,
@@ -573,7 +573,7 @@ static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
 }
 
 _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
+static NTSTATUS NTAPI EtEnumCurrentDirectoryObjectsCallback(
     _In_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF Name,
     _In_ PCPH_STRINGREF TypeName,
@@ -723,7 +723,7 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         PhAddItemList(Context->CurrentDirectoryList, entry);
     }
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS EtTreeViewEnumDirectoryObjects(
@@ -2331,7 +2331,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     EtObjectManagerPropIcon = PhImageListGetIcon(context->ListImageList, Entry->EtObjectType, ILD_NORMAL | ILD_TRANSPARENT);
 
     // Object Manager plugin window
-    PhShowHandlePropertiesEx(context->WindowHandle, processId, handleItem, PluginInstance, PhGetString(Entry->TypeName));
+    //PhShowHandlePropertiesEx(context->WindowHandle, processId, handleItem, PluginInstance, PhGetString(Entry->TypeName));
 
     PhDereferenceObject(Entry);
     PhDereferenceObject(objectContext.CurrentPath);
@@ -2455,7 +2455,7 @@ start_scan:
             {
                 PhShellExecuteUserString(
                     Context->WindowHandle,
-                    L"FileBrowseExecutable",
+                    SETTING_FILE_BROWSE_EXECUTABLE,
                     PhGetString(Target),
                     FALSE,
                     L"Make sure the Explorer executable file is present."
@@ -2588,7 +2588,7 @@ VOID NTAPI EtpObjectManagerOpenSecurity(
     }
 
     PhEditSecurity(
-        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->WindowHandle,
+        !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : context->WindowHandle,
         PhGetString(objectContext->FullName),
         PhGetString(objectContext->Object->TypeName),
         EtObjectManagerHandleOpenCallback,
@@ -2907,7 +2907,7 @@ INT_PTR CALLBACK WinObjDlgProc(
             }
 
             context->CurrentDirectoryList = PhCreateList(100);
-            if (!EtObjectManagerOwnHandles || !PhReferenceObjectSafe(EtObjectManagerOwnHandles))
+            if (!EtObjectManagerOwnHandles || !PhReferenceObjectUnsafe(EtObjectManagerOwnHandles))
                 EtObjectManagerOwnHandles = PhCreateList(10);
 
             PhSetApplicationWindowIcon(hwndDlg);
@@ -2987,7 +2987,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                 context->CurrentPath
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             {
                 PPH_STRING Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
@@ -3483,7 +3483,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                                     {
                                         PhShellExecuteUserString(
                                             hwndDlg,
-                                            L"FileBrowseExecutable",
+                                            SETTING_FILE_BROWSE_EXECUTABLE,
                                             PhGetString(target),
                                             FALSE,
                                             L"Make sure the Explorer executable file is present."

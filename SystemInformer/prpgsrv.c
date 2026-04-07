@@ -21,7 +21,9 @@ static VOID PhpLayoutServiceListControl(
 {
     RECT rect;
 
-    GetWindowRect(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), &rect);
+    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), &rect))
+        return;
+
     MapWindowRect(NULL, hwndDlg, &rect);
 
     MoveWindow(
@@ -83,7 +85,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
                 services,
                 numberOfServices
                 );
-            SendMessage(serviceListHandle, WM_PH_SET_LIST_VIEW_SETTINGS, 0, (LPARAM)L"ProcessServiceListViewColumns");
+            SendMessage(serviceListHandle, WM_PH_SET_LIST_VIEW_SETTINGS, 0, (LPARAM)SETTING_PROCESS_SERVICE_LIST_VIEW_COLUMNS);
             ShowWindow(serviceListHandle, SW_SHOW);
 
             propPageContext->Context = serviceListHandle;

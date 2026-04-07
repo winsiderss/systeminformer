@@ -120,6 +120,12 @@ typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
     PPH_STRING FullName;
 } PH_SID_FULL_NAME_CACHE_ENTRY, *PPH_SID_FULL_NAME_CACHE_ENTRY;
 
+typedef struct _PH_SID_RESOLVE_QUEUE_ENTRY
+{
+    PSID Sid;
+    ULONG SidLength;
+} PH_SID_RESOLVE_QUEUE_ENTRY, *PPH_SID_RESOLVE_QUEUE_ENTRY;
+
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessItemDeleteProcedure(
     _In_ PVOID Object,
@@ -146,6 +152,31 @@ VOID PhpRemoveProcessRecord(
     _Inout_ PPH_PROCESS_RECORD ProcessRecord
     );
 
+PPH_STRING PhpGetSidFullNameCached(
+    _In_ PCSID Sid
+    );
+
+PPH_STRING PhpGetSidFullNameCachedSlow(
+    _In_ PSID Sid
+    );
+
+VOID PhpQueueSidForBulkResolution(
+    _In_ PSID Sid
+    );
+
+VOID PhpBulkResolveSidsToCache(
+    _In_ PSID* Sids,
+    _In_ ULONG Count
+    );
+
+VOID PhpProcessBulkSidResolution(
+    VOID
+    );
+
+VOID PhpRemoveProcessRecord(
+    _Inout_ PPH_PROCESS_RECORD ProcessRecord
+    );
+
 PPH_OBJECT_TYPE PhProcessItemType = NULL;
 
 PPH_HASH_ENTRY PhProcessHashSet[256] = PH_HASH_SET_INIT;
@@ -156,6 +187,10 @@ SLIST_HEADER PhProcessQueryDataListHead;
 
 PPH_LIST PhProcessRecordList = NULL;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
+
+static PPH_HASHTABLE PhpSidFullNameCacheHashtable = NULL;
+static PPH_HASHTABLE PhpSidResolveQueue = NULL;
+static PH_QUEUED_LOCK PhpSidResolveQueueLock = PH_QUEUED_LOCK_INIT;
 
 ULONG PhStatisticsSampleCount = 512;
 BOOLEAN PhEnableProcessExtension = TRUE;
@@ -229,8 +264,6 @@ PH_CIRCULAR_BUFFER_FLOAT PhMaxCpuUsageHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoReadOtherHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 #endif
-
-static PPH_HASHTABLE PhpSidFullNameCacheHashtable = NULL;
 
 BOOLEAN PhProcessProviderInitialization(
     VOID
@@ -412,14 +445,13 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->CommandLine) PhDereferenceObject(processItem->CommandLine);
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->Sid) PhFree(processItem->Sid);
-    if (processItem->ProtectionString) PhDereferenceObject(processItem->ProtectionString);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
 
     if (!PhSystemProcessorInformation.SingleProcessorGroup)
     {
-        if (processItem->AffinityMasks) PhFree(processItem->AffinityMasks);
+        if (processItem->AffinityMaskGroups) PhFree(processItem->AffinityMaskGroups);
     }
 
     if (processItem->FreezeHandle) NtClose(processItem->FreezeHandle);
@@ -604,6 +636,154 @@ static ULONG PhpSidFullNameCacheHashtableHashFunction(
     PPH_SID_FULL_NAME_CACHE_ENTRY entry = Entry;
 
     return PhHashBytes((PUCHAR)entry->Sid, PhLengthSid(entry->Sid));
+}
+
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+static BOOLEAN PhpSidResolveQueueHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPH_SID_RESOLVE_QUEUE_ENTRY entry1 = Entry1;
+    PPH_SID_RESOLVE_QUEUE_ENTRY entry2 = Entry2;
+
+    return PhEqualSid(entry1->Sid, entry2->Sid);
+}
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
+static ULONG PhpSidResolveQueueHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PPH_SID_RESOLVE_QUEUE_ENTRY entry = Entry;
+
+    return PhHashBytes((PUCHAR)entry->Sid, PhLengthSid(entry->Sid));
+}
+
+VOID PhpQueueSidForBulkResolution(
+    _In_ PSID Sid
+    )
+{
+    PH_SID_RESOLVE_QUEUE_ENTRY lookupEntry;
+    PPH_SID_RESOLVE_QUEUE_ENTRY entry;
+
+    PhAcquireQueuedLockExclusive(&PhpSidResolveQueueLock);
+
+    if (!PhpSidResolveQueue)
+    {
+        PhpSidResolveQueue = PhCreateHashtable(
+            sizeof(PH_SID_RESOLVE_QUEUE_ENTRY),
+            PhpSidResolveQueueHashtableEqualFunction,
+            PhpSidResolveQueueHashtableHashFunction,
+            64
+            );
+    }
+
+    lookupEntry.Sid = Sid;
+    entry = PhFindEntryHashtable(PhpSidResolveQueue, &lookupEntry);
+
+    if (!entry)
+    {
+        PH_SID_RESOLVE_QUEUE_ENTRY newEntry;
+
+        newEntry.SidLength = PhLengthSid(Sid);
+        newEntry.Sid = PhAllocateCopy(Sid, newEntry.SidLength);
+
+        PhAddEntryHashtable(PhpSidResolveQueue, &newEntry);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpSidResolveQueueLock);
+}
+
+VOID PhpBulkResolveSidsToCache(
+    _In_ PSID* Sids,
+    _In_ ULONG Count
+    )
+{
+    NTSTATUS status;
+    PPH_STRING* fullNames = NULL;
+
+    if (Count == 0)
+        return;
+
+    status = PhLookupSids(
+        Count,
+        Sids,
+        &fullNames
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (!PhpSidFullNameCacheHashtable)
+        {
+            PhpSidFullNameCacheHashtable = PhCreateHashtable(
+                sizeof(PH_SID_FULL_NAME_CACHE_ENTRY),
+                PhpSidFullNameCacheHashtableEqualFunction,
+                PhpSidFullNameCacheHashtableHashFunction,
+                128
+                );
+        }
+
+        for (ULONG i = 0; i < Count; i++)
+        {
+            if (fullNames[i])
+            {
+                PH_SID_FULL_NAME_CACHE_ENTRY newEntry;
+
+                newEntry.Sid = PhAllocateCopy(Sids[i], PhLengthSid(Sids[i]));
+                newEntry.FullName = fullNames[i];
+                PhAddEntryHashtable(PhpSidFullNameCacheHashtable, &newEntry);
+            }
+        }
+
+        PhFree(fullNames);
+    }
+}
+
+VOID PhpProcessBulkSidResolution(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_SID_RESOLVE_QUEUE_ENTRY entry;
+    PPH_LIST sidArray = NULL;
+    ULONG sidCount = 0;
+
+    PhAcquireQueuedLockExclusive(&PhpSidResolveQueueLock);
+
+    if (!PhpSidResolveQueue || PhpSidResolveQueue->Count == 0)
+    {
+        PhReleaseQueuedLockExclusive(&PhpSidResolveQueueLock);
+        return;
+    }
+
+    sidCount = PhpSidResolveQueue->Count;
+    sidArray = PhCreateList(sidCount);
+
+    PhBeginEnumHashtable(PhpSidResolveQueue, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        PhAddItemList(sidArray, entry->Sid);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpSidResolveQueueLock);
+
+    PhpBulkResolveSidsToCache(sidArray->Items, sidCount);
+
+    PhAcquireQueuedLockExclusive(&PhpSidResolveQueueLock);
+
+    PhBeginEnumHashtable(PhpSidResolveQueue, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        PhFree(entry->Sid);
+    }
+
+    PhClearHashtable(PhpSidResolveQueue);
+    PhReleaseQueuedLockExclusive(&PhpSidResolveQueueLock);
+
+    PhDereferenceObject(sidArray);
 }
 
 PPH_STRING PhpGetSidFullNameCachedSlow(
@@ -904,15 +1084,6 @@ VOID PhpProcessQueryStage1(
                 }
             }
         }
-    }
-
-    if (processItem->Sid && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME))
-    {
-        // Note: We delay resolving the SID name because the local LSA cache might still be
-        // initializing for users on domain networks with slow links (e.g. VPNs). This can block
-        // for a very long time depending on server/network conditions. (dmex)
-        // TODO: This might need to be moved to Stage2...
-        PhMoveReference(&Data->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
     }
 }
 
@@ -1223,33 +1394,36 @@ VOID PhpFillProcessItem(
     {
         if (PhSystemProcessorInformation.SingleProcessorGroup)
         {
-            ProcessItem->AffinityMasks = &PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[0];
-            ProcessItem->AffinityPopulationCount = PhCountBitsUlongPtr(ProcessItem->AffinityMasks[0]);
+            KAFFINITY affinityMask;
+
+            if (ProcessItem->QueryHandle && NT_SUCCESS(PhGetProcessAffinityMask(ProcessItem->QueryHandle, &affinityMask)))
+            {
+                ProcessItem->AffinityMaskSingle = affinityMask;
+                ProcessItem->AffinityPopulationCount = PhCountBitsUlongPtr(ProcessItem->AffinityMaskSingle);
+            }
+            else
+            {
+                ProcessItem->AffinityMaskSingle = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[0];
+                ProcessItem->AffinityPopulationCount = PhCountBitsUlongPtr(ProcessItem->AffinityMaskSingle);
+            }
         }
         else
         {
             GROUP_AFFINITY affinity;
 
-            ProcessItem->AffinityMasks = PhAllocateZero(sizeof(KAFFINITY) * PhSystemProcessorInformation.NumberOfProcessorGroups);
+            ProcessItem->AffinityMaskGroups = PhAllocateZero(sizeof(KAFFINITY) * PhSystemProcessorInformation.NumberOfProcessorGroups);
 
             for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
             {
                 RtlZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
                 affinity.Group = i;
 
-                if (
-                    ProcessItem->QueryHandle &&
-                    NT_SUCCESS(PhGetProcessGroupAffinity(ProcessItem->QueryHandle, &affinity))
-                    )
-                {
-                    ProcessItem->AffinityMasks[i] = affinity.Mask;
-                }
+                if (ProcessItem->QueryHandle && NT_SUCCESS(PhGetProcessGroupAffinity(ProcessItem->QueryHandle, &affinity)))
+                    ProcessItem->AffinityMaskGroups[i] = affinity.Mask;
                 else
-                {
-                    ProcessItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
-                }
+                    ProcessItem->AffinityMaskGroups[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
 
-                ProcessItem->AffinityPopulationCount += PhCountBitsUlongPtr(ProcessItem->AffinityMasks[i]);
+                ProcessItem->AffinityPopulationCount += PhCountBitsUlongPtr(ProcessItem->AffinityMaskGroups[i]);
             }
         }
     }
@@ -1305,6 +1479,7 @@ VOID PhpFillProcessItem(
             BOOLEAN tokenIsUIAccessEnabled;
             PH_INTEGRITY_LEVEL integrityLevel;
             PPH_STRINGREF integrityString;
+            PPH_STRING packageFullName;
 
             // User
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
@@ -1338,9 +1513,12 @@ VOID PhpFillProcessItem(
             }
 
             // Package name
-            if (WindowsVersion >= WINDOWS_8 && ProcessItem->IsPackagedProcess)
+            if (
+                WindowsVersion >= WINDOWS_8 && ProcessItem->IsPackagedProcess &&
+                NT_SUCCESS(PhGetTokenPackageFullName(tokenHandle, &packageFullName))
+                )
             {
-                ProcessItem->PackageFullName = PhGetTokenPackageFullName(tokenHandle);
+                ProcessItem->PackageFullName = packageFullName;
             }
 
             NtClose(tokenHandle);
@@ -1402,10 +1580,28 @@ VOID PhpFillProcessItem(
                 ProcessItem->PackageFullName = PhCreateStringEx(PackageNameBuffer, PackageNameLength - sizeof(UNICODE_NULL));
             }
 
-            //if (PhIsNullOrEmptyString(ProcessItem->CommandLine) && CommandLineLength > sizeof(UNICODE_NULL))
-            //{
-            //    ProcessItem->CommandLine = PhCreateString(CommandLineBuffer); // CommandLineLength - sizeof(UNICODE_NULL));
-            //}
+            if (PhIsNullOrEmptyString(ProcessItem->CommandLine) && CommandLineLength > sizeof(UNICODE_NULL))
+            {
+                PH_STRINGREF commandLine;
+
+                commandLine.Buffer = CommandLineBuffer;
+                commandLine.Length = CommandLineLength - sizeof(UNICODE_NULL);
+
+                // Some command lines (e.g. from taskeng.exe) have nulls in them. Since Windows
+                // can't display them, we'll replace them with spaces. (wj32)
+                for (SIZE_T i = 0; i < commandLine.Length / sizeof(WCHAR); i++)
+                {
+                    if (commandLine.Buffer[i] == UNICODE_NULL)
+                        commandLine.Buffer[i] = L' ';
+                }
+
+                ProcessItem->CommandLine = PhCreateString2(&commandLine);
+            }
+        }
+        else // N.B. Telemetry info does not succeed for all processes.
+        {
+            if (!NT_SUCCESS(PhGetProcessStartKey(ProcessItem->QueryHandle, &ProcessItem->ProcessStartKey)))
+                ProcessItem->ProcessStartKey = 0;
         }
     }
 
@@ -1433,7 +1629,8 @@ VOID PhpFillProcessItem(
             }
             else
             {
-                if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID || ProcessItem->ProcessId == INTERRUPTS_PROCESS_ID || ProcessItem->ProcessId == DPCS_PROCESS_ID)
+                // System, DPCs, Interrupts and Idle processes are always protected. (dmex)
+                if (PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId) || ProcessItem->IsSystemProcess)
                 {
                     ProcessItem->Protection.Level = PsProtectedValue(PsProtectedSignerWinSystem, FALSE, PsProtectedTypeProtected);
                     ProcessItem->IsProtectedProcess = ProcessItem->IsSecureProcess = ProcessItem->IsSystemProcess = TRUE;
@@ -2155,6 +2352,85 @@ VOID PhpGetProcessThreadInformation(
         *ProcessorQueueLength = processorQueueLength;
 }
 
+/**
+ * Computes CPU utilization percentage from processor cycles during a measurement interval, normalized by a scaling factor using the number of logical processors.
+ *
+ * Cycles = ProcessorCycleCounterStop - ProcessorCycleCounterStart
+ * Cycles per Tick = Cycles / PerformanceCounterTickDelta
+ * Normalized Cycles per Tick = (Cycles / PerformanceCounterTickDelta) / LogicalProcessorCount
+ * CPU Usage % = DeltaCycles / (DeltaTicks x LogicalProcessorCount) x 100
+ *
+ * \param ProcessorCycleCountStart The number of CPU cycles at the start of the measurement interval.
+ * \param ProcessorCycleCountStop The number of CPU cycles at the end of the measurement interval. Must be greater than ProcessorCycleCounterStart for a valid calculation.
+ * \param PerformanceCounterDelta The elapsed ticks from a high-resolution performance counter (e.g., QueryPerformanceCounter) during the measurement interval, in performance counter ticks.
+ * \param NumberOfProcessors The number of logical processors in the system, used to normalize the usage percentage.
+ * \return The utilization percentage of processor cycles during the interval.
+ * \remarks This method is used by Windows Task Manager to estimate CPU usage from TSC deltas.
+ */
+DOUBLE PhComputeCpuUtilizationPercentFromCycles(
+    _In_ ULONGLONG ProcessorCycleCounterStart,
+    _In_ ULONGLONG ProcessorCycleCounterStop,
+    _In_ LONGLONG PerformanceCounterDelta,
+    _In_ ULONG LogicalProcessorCount
+    )
+{
+    if (ProcessorCycleCounterStop <= ProcessorCycleCounterStart ||
+        PerformanceCounterDelta == 0 || LogicalProcessorCount == 0)
+    {
+        return 0.0;
+    }
+
+    const DOUBLE DeltaCycles = (DOUBLE)(ProcessorCycleCounterStop - ProcessorCycleCounterStart);
+    const DOUBLE DeltaTicks = (DOUBLE)PerformanceCounterDelta;
+
+    const DOUBLE CyclesPerQpcTick = DeltaCycles / DeltaTicks;
+    const DOUBLE UtilizationPercent = (CyclesPerQpcTick / (DOUBLE)LogicalProcessorCount) * 100.0;
+
+    return UtilizationPercent;
+}
+
+/*
+ * Computes CPU utilization percentage from processor cycles during a measurement interval, normalized by logical processors and calibrated by counter frequencies.
+ *
+ * Utilization% = ObservedCycles / (ElapsedSeconds * CycleCounterFrequencyHz * LogicalProcessorCount) * 100
+ *
+ * \param ProcessorCycleCountStart The number of CPU cycles at the start of the measurement interval.
+ * \param ProcessorCycleCountStop The number of CPU cycles at the end of the measurement interval. Must be greater than ProcessorCycleCounterStart for a valid calculation.
+ * \param PerformanceCounterDelta The elapsed ticks from a high-resolution performance counter (e.g., QueryPerformanceCounter) during the measurement interval, in performance counter ticks.
+ * \param NumberOfProcessors The number of logical processors in the system, used to normalize the usage percentage.
+ * \return The precise utilization percentage of processor cycles during the interval.
+ * \remarks This method produces a true CPU utilization percentage by incorporating counter frequencies.
+ * \remarks ProcessorCycleCounterFrequency must correspond to the SAME source as ProcessorCycleCounterStart/Stop.
+ * If cycles are from TSC, pass TSC frequency. If cycles are from a PMU (e.g., Unhalted Core Cycles), pass that
+ * counter's effective frequency at 100%, not the invariant TSC frequency.
+ */
+DOUBLE PhComputeCpuUtilizationPercentFromCyclesPrecise(
+    _In_ ULONGLONG ProcessorCycleCounterStart,
+    _In_ ULONGLONG ProcessorCycleCounterStop,
+    _In_ ULONGLONG ProcessorCycleCounterFrequency,
+    _In_ LONGLONG  PerformanceCounterDelta,
+    _In_ ULONGLONG PerformanceCounterFrequency,
+    _In_ ULONG LogicalProcessorCount
+    )
+{
+    if (ProcessorCycleCounterStop <= ProcessorCycleCounterStart || PerformanceCounterDelta <= 0 ||
+        PerformanceCounterFrequency == 0 || ProcessorCycleCounterFrequency == 0 || LogicalProcessorCount == 0)
+    {
+        return 0.0;
+    }
+
+    const DOUBLE ObservedCycles = (DOUBLE)(ProcessorCycleCounterStop - ProcessorCycleCounterStart);
+    const DOUBLE ElapsedSeconds = (DOUBLE)PerformanceCounterDelta / (DOUBLE)PerformanceCounterFrequency;
+    const DOUBLE CapacityCycles = ElapsedSeconds * (DOUBLE)ProcessorCycleCounterFrequency * (DOUBLE)LogicalProcessorCount;
+
+    if (!(CapacityCycles > 0.0))
+        return 0.0;
+
+    const DOUBLE UtilizationPercent = (ObservedCycles / CapacityCycles) * 100.0;
+
+    return UtilizationPercent;
+}
+
 #ifdef _ARM64_
 VOID PhpEstimateIdleCyclesForARM(
     _Inout_ PULONG64 TotalCycles,
@@ -2290,6 +2566,11 @@ VOID PhProcessProviderUpdate(
     // Pre-update tasks
 
     PhTraceFuncEnter("Process provider run count: %lu", runCount);
+
+    if (runCount > 0)
+    {
+        PhpProcessBulkSidResolution();
+    }
 
     if (runCount % 512 == 0) // yes, a very long time
     {
@@ -2824,23 +3105,37 @@ VOID PhProcessProviderUpdate(
             {
                 ULONG affinityPopulationCount = 0;
 
-                for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+                if (PhSystemProcessorInformation.SingleProcessorGroup)
                 {
-                    GROUP_AFFINITY affinity;
+                    KAFFINITY affinityMask;
 
-                    affinity.Group = i;
-
-                    if (processItem->QueryHandle &&
-                        NT_SUCCESS(PhGetProcessGroupAffinity(processItem->QueryHandle, &affinity)))
+                    if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessAffinityMask(processItem->QueryHandle, &affinityMask)))
                     {
-                        processItem->AffinityMasks[i] = affinity.Mask;
+                        processItem->AffinityMaskSingle = affinityMask;
+                        affinityPopulationCount = PhCountBitsUlongPtr(processItem->AffinityMaskSingle);
                     }
                     else
                     {
-                        processItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                        processItem->AffinityMaskSingle = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[0];
+                        affinityPopulationCount = PhCountBitsUlongPtr(processItem->AffinityMaskSingle);
                     }
+                }
+                else
+                {
+                    for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+                    {
+                        GROUP_AFFINITY affinity;
 
-                    affinityPopulationCount = PhCountBitsUlongPtr(processItem->AffinityMasks[i]);
+                        RtlZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
+                        affinity.Group = i;
+
+                        if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessGroupAffinity(processItem->QueryHandle, &affinity)))
+                            processItem->AffinityMaskGroups[i] = affinity.Mask;
+                        else
+                            processItem->AffinityMaskGroups[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+
+                        affinityPopulationCount += PhCountBitsUlongPtr(processItem->AffinityMaskGroups[i]);
+                    }
                 }
 
                 if (processItem->AffinityPopulationCount != affinityPopulationCount)
@@ -2921,10 +3216,40 @@ VOID PhProcessProviderUpdate(
 
                                 if (processItem->Sid)
                                 {
-                                    PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
+                                    PPH_STRING resolvedName;
+
+                                    // Try cache
+                                    if (resolvedName = PhpGetSidFullNameCached(processItem->Sid))
+                                    {
+                                        PhMoveReference(&processItem->UserName, resolvedName);
+                                    }
+                                    else
+                                    {
+                                        // Queue for bulk resolution
+                                        PhpQueueSidForBulkResolution(processItem->Sid);
+                                    }
                                 }
 
                                 modified = TRUE;
+                            }
+                            else
+                            {
+                                if (processItem->Sid && PhIsNullOrEmptyString(processItem->UserName))
+                                {
+                                    PPH_STRING resolvedName;
+
+                                    // Try cache
+                                    if (resolvedName = PhpGetSidFullNameCached(processItem->Sid))
+                                    {
+                                        PhMoveReference(&processItem->UserName, resolvedName);
+                                        modified = TRUE;
+                                    }
+                                    else
+                                    {
+                                        // Queue for bulk resolution
+                                        PhpQueueSidForBulkResolution(processItem->Sid);
+                                    }
+                                }
                             }
                         }
                     }
@@ -2972,7 +3297,18 @@ VOID PhProcessProviderUpdate(
                     {
                         if (PhIsNullOrEmptyString(processItem->UserName))
                         {
-                            PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow((PSID)&PhSeLocalSystemSid));
+                            PPH_STRING resolvedName;
+
+                            // Try cache or fallback to slow lookup
+                            if (resolvedName = PhpGetSidFullNameCached((PSID)&PhSeLocalSystemSid))
+                            {
+                                PhMoveReference(&processItem->UserName, resolvedName);
+                            }
+                            else
+                            {
+                                PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow((PSID)&PhSeLocalSystemSid));
+                            }
+
                             modified = TRUE;
                         }
                     }

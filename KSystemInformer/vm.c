@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -21,8 +21,7 @@
  * \param[out] SectionInformation Populated with the information. This storage
  * must be located in non-paged system-space memory.
  * \param[in] SectionInformationLength Length of the section information.
- * \param[out] ReturnLength Set to the number of bytes written or the required
- * number of bytes if the input length is insufficient.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  *
  * \return Successful or errant status.
  */
@@ -185,13 +184,12 @@ KPH_PAGED_FILE();
  * \brief Copies process or kernel memory into the current process.
  *
  * \param[in] ProcessHandle A handle to a process. The handle must have
- * PROCESS_VM_READ access. This parameter may be NULL if BaseAddress lies above
- * the user-mode range.
+ * PROCESS_VM_READ access. This parameter may be NULL if BaseAddress is a kernel
+ * address.
  * \param[in] BaseAddress The address from which memory is to be copied.
  * \param[out] Buffer A buffer which receives the copied memory.
  * \param[in] BufferSize The number of bytes to copy.
- * \param[out] NumberOfBytesRead A variable which receives the number of bytes
- * copied to the buffer.
+ * \param[out] NumberOfBytesRead Receives the number of bytes written.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -225,28 +223,10 @@ NTSTATUS KphReadVirtualMemory(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
+    if (Add2Ptr(BaseAddress, BufferSize) < BaseAddress)
     {
-        if (Add2Ptr(BaseAddress, BufferSize) < BaseAddress)
-        {
-            status = STATUS_ACCESS_VIOLATION;
-            goto Exit;
-        }
-
-        __try
-        {
-            ProbeOutputBytes(Buffer, BufferSize);
-
-            if (NumberOfBytesRead)
-            {
-                ProbeOutputType(NumberOfBytesRead, SIZE_T);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
+        status = STATUS_ACCESS_VIOLATION;
+        goto Exit;
     }
 
     if (!BufferSize)
@@ -313,13 +293,20 @@ NTSTATUS KphReadVirtualMemory(
                               MM_COPY_MEMORY_VIRTUAL,
                               &numberOfBytesRead);
 
-        __try
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                CopyToUser(Buffer, buffer, numberOfBytesRead);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+            }
+        }
+        else
         {
             RtlCopyMemory(Buffer, buffer, numberOfBytesRead);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
         }
     }
     else
@@ -374,21 +361,7 @@ Exit:
 
     if (NumberOfBytesRead)
     {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                *NumberOfBytesRead = numberOfBytesRead;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                NOTHING;
-            }
-        }
-        else
-        {
-            *NumberOfBytesRead = numberOfBytesRead;
-        }
+        KphWriteSizeTToMode(NumberOfBytesRead, numberOfBytesRead, AccessMode);
     }
 
     return status;
@@ -401,8 +374,7 @@ Exit:
  * \param[in] SectionInformationClass Classification of information to query.
  * \param[out] SectionInformation Populated with the requested information.
  * \param[in] SectionInformationLength Length of the information buffer.
- * \param[out] ReturnLength Set to the number of bytes written or the required
- * number of bytes if the input length is insufficient.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -426,30 +398,8 @@ NTSTATUS KphQuerySection(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    sectionObject = NULL;
     returnLength = 0;
     buffer = NULL;
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            if (SectionInformation)
-            {
-                ProbeOutputBytes(SectionInformation, SectionInformationLength);
-            }
-
-            if (ReturnLength)
-            {
-                ProbeOutputType(ReturnLength, ULONG);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
 
     status = ObReferenceObjectByHandle(SectionHandle,
                                        0,
@@ -504,14 +454,10 @@ NTSTATUS KphQuerySection(
                 goto Exit;
             }
 
-            __try
-            {
-                RtlCopyMemory(SectionInformation, buffer, returnLength);
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-            }
+            status = KphCopyToMode(SectionInformation,
+                                   buffer,
+                                   returnLength,
+                                   AccessMode);
 
             break;
         }
@@ -526,21 +472,7 @@ Exit:
 
     if (ReturnLength)
     {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                *ReturnLength = returnLength;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                NOTHING;
-            }
-        }
-        else
-        {
-            *ReturnLength = returnLength;
-        }
+        KphWriteULongToMode(ReturnLength, returnLength, AccessMode);
     }
 
     if (sectionObject)
@@ -566,8 +498,7 @@ Exit:
  * \param[in] MemoryInformationClass The memory information to retrieve.
  * \param[out] MemoryInformation Populated with the requested information.
  * \param[in] MemoryInformationLength Length of the information buffer.
- * \param[out] ReturnLength Set to the number of bytes written or the required
- * number of bytes if the input length is insufficient.
+ * \param[out] ReturnLength Receives the number of bytes written or required.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -595,27 +526,6 @@ NTSTATUS KphQueryVirtualMemory(
     thread = NULL;
     mappedFileName = NULL;
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            if (MemoryInformation)
-            {
-                ProbeOutputBytes(MemoryInformation, MemoryInformationLength);
-            }
-
-            if (ReturnLength)
-            {
-                ProbeOutputType(ReturnLength, ULONG);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-    }
-
     switch (MemoryInformationClass)
     {
         case KphMemoryImageSection:
@@ -630,6 +540,7 @@ NTSTATUS KphQueryVirtualMemory(
                 (MemoryInformationLength < sizeof(HANDLE)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(HANDLE);
                 goto Exit;
             }
 
@@ -751,25 +662,12 @@ NTSTATUS KphQueryVirtualMemory(
                 goto Exit;
             }
 
-            if (AccessMode != KernelMode)
+            status = KphWriteHandleToMode(MemoryInformation,
+                                          sectionHandle,
+                                          AccessMode);
+            if (NT_SUCCESS(status))
             {
-                __try
-                {
-                    *(PHANDLE)MemoryInformation = sectionHandle;
-                    returnLength = sizeof(HANDLE);
-                    status = STATUS_SUCCESS;
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    ObCloseHandle(sectionHandle, UserMode);
-                    status = GetExceptionCode();
-                }
-            }
-            else
-            {
-                *(PHANDLE)MemoryInformation = sectionHandle;
                 returnLength = sizeof(HANDLE);
-                status = STATUS_SUCCESS;
             }
 
             break;
@@ -784,6 +682,7 @@ NTSTATUS KphQueryVirtualMemory(
                 (MemoryInformationLength) < sizeof(KPH_MEMORY_DATA_SECTION))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(KPH_MEMORY_DATA_SECTION);
                 goto Exit;
             }
 
@@ -807,7 +706,7 @@ NTSTATUS KphQueryVirtualMemory(
                 goto Exit;
             }
 
-            RtlZeroMemory(&tls, sizeof(tls));
+            RtlZeroMemory(&tls, sizeof(KPH_VM_TLS_CREATE_DATA_SECTION));
 
             tls.AccessMode = AccessMode;
 
@@ -819,6 +718,8 @@ NTSTATUS KphQueryVirtualMemory(
                                           NULL,
                                           0,
                                           &length);
+
+            NT_ANALYSIS_ASSUME(NT_SUCCESS(status));
 
             if (thread->VmTlsCreateDataSection)
             {
@@ -847,28 +748,19 @@ NTSTATUS KphQueryVirtualMemory(
 
             memoryInformation = MemoryInformation;
 
-            if (AccessMode != KernelMode)
+            status = KphCopyToMode(&memoryInformation->SectionFileSize,
+                                   &tls.SectionFileSize,
+                                   sizeof(LARGE_INTEGER),
+                                   AccessMode);
+            if (!NT_SUCCESS(status))
             {
-                __try
-                {
-                    memoryInformation->SectionHandle = tls.SectionHandle;
-                    memoryInformation->SectionFileSize = tls.SectionFileSize;
-                    returnLength = sizeof(KPH_MEMORY_DATA_SECTION);
-                    status = STATUS_SUCCESS;
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    ObCloseHandle(tls.SectionHandle, UserMode);
-                    status = GetExceptionCode();
-                }
+                ObCloseHandle(tls.SectionHandle, AccessMode);
+                goto Exit;
             }
-            else
-            {
-                memoryInformation->SectionHandle = tls.SectionHandle;
-                memoryInformation->SectionFileSize = tls.SectionFileSize;
-                returnLength = sizeof(KPH_MEMORY_DATA_SECTION);
-                status = STATUS_SUCCESS;
-            }
+
+            status = KphWriteHandleToMode(&memoryInformation->SectionHandle,
+                                          tls.SectionHandle,
+                                          AccessMode);
 
             break;
         }
@@ -876,12 +768,13 @@ NTSTATUS KphQueryVirtualMemory(
         {
             SIZE_T length;
             KPH_MEMORY_MAPPED_INFORMATION tls;
-            PKPH_MEMORY_MAPPED_INFORMATION memoryInformation;
+            KPH_MEMORY_MAPPED_INFORMATION memoryInformation;
 
             if (!MemoryInformation ||
                 (MemoryInformationLength) < sizeof(KPH_MEMORY_MAPPED_INFORMATION))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(KPH_MEMORY_MAPPED_INFORMATION);
                 goto Exit;
             }
 
@@ -892,7 +785,7 @@ NTSTATUS KphQueryVirtualMemory(
                 goto Exit;
             }
 
-            RtlZeroMemory(&tls, sizeof(tls));
+            RtlZeroMemory(&tls, sizeof(KPH_MEMORY_MAPPED_INFORMATION));
 
             thread->VmTlsMappedInformation = &tls;
 
@@ -902,6 +795,8 @@ NTSTATUS KphQueryVirtualMemory(
                                           NULL,
                                           0,
                                           &length);
+
+            NT_ANALYSIS_ASSUME(NT_SUCCESS(status));
 
             if (thread->VmTlsMappedInformation)
             {
@@ -917,22 +812,22 @@ NTSTATUS KphQueryVirtualMemory(
                 goto Exit;
             }
 
-            memoryInformation = MemoryInformation;
+            RtlZeroMemory(&memoryInformation, sizeof(KPH_MEMORY_MAPPED_INFORMATION));
 
-            __try
+            memoryInformation.FileObject = tls.FileObject;
+            memoryInformation.SectionObjectPointers = tls.SectionObjectPointers;
+            memoryInformation.DataControlArea = tls.DataControlArea;
+            memoryInformation.SharedCacheMap = tls.SharedCacheMap;
+            memoryInformation.ImageControlArea = tls.ImageControlArea;
+            memoryInformation.UserWritableReferences = tls.UserWritableReferences;
+
+            status = KphCopyToMode(MemoryInformation,
+                                   &memoryInformation,
+                                   sizeof(KPH_MEMORY_MAPPED_INFORMATION),
+                                   AccessMode);
+            if (NT_SUCCESS(status))
             {
-                memoryInformation->FileObject = tls.FileObject;
-                memoryInformation->SectionObjectPointers = tls.SectionObjectPointers;
-                memoryInformation->DataControlArea = tls.DataControlArea;
-                memoryInformation->SharedCacheMap = tls.SharedCacheMap;
-                memoryInformation->ImageControlArea = tls.ImageControlArea;
-                memoryInformation->UserWritableReferences = tls.UserWritableReferences;
                 returnLength = sizeof(KPH_MEMORY_MAPPED_INFORMATION);
-                status = STATUS_SUCCESS;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
             }
 
             break;
@@ -948,21 +843,7 @@ Exit:
 
     if (ReturnLength)
     {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                *ReturnLength = returnLength;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                NOTHING;
-            }
-        }
-        else
-        {
-            *ReturnLength = returnLength;
-        }
+        KphWriteULongToMode(ReturnLength, returnLength, AccessMode);
     }
 
     if (mappedFileName)

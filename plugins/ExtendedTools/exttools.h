@@ -95,7 +95,7 @@ extern BOOLEAN EtEnableScaleText;
 extern BOOLEAN EtPropagateCpuUsage;
 extern BOOLEAN EtEnableAvxSupport;
 
-#define PLUGIN_NAME L"ProcessHacker.ExtendedTools"
+#define PLUGIN_NAME L"ExtendedTools"
 #define SETTING_NAME_FIRST_RUN (PLUGIN_NAME L".FirstRun")
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")
 #define SETTING_NAME_DISK_TREE_LIST_SORT (PLUGIN_NAME L".DiskTreeListSort")
@@ -1249,7 +1249,11 @@ typedef struct _FW_EVENT_ITEM
             ULONG RemotePortServiceResolved : 1;
             ULONG LocalHostnameResolved : 1;
             ULONG RemoteHostnameResolved : 1;
-            ULONG Spare : 27;
+            ULONG LocalAddressResolved : 1;
+            ULONG LocalPortResolved : 1;
+            ULONG RemoteAddressResolved : 1;
+            ULONG RemotePortResolved : 1;
+            ULONG Spare : 23;
         };
     };
 
@@ -1327,7 +1331,7 @@ VOID LoadSettingsFwTreeList(
     );
 
 VOID SaveSettingsFwTreeList(
-    VOID
+     _In_ HWND TreeNewHandle
     );
 
 VOID EtFwFlushResolveCache(
@@ -1505,19 +1509,20 @@ BOOLEAN EtFwGetSelectedFwItems(
     );
 
 VOID EtFwDeselectAllFwNodes(
-    VOID
+    _In_ HWND TreeNewHandle
     );
 
 VOID EtFwSelectAndEnsureVisibleFwNode(
+    _In_ HWND TreeNewHandle,
     _In_ PFW_EVENT_ITEM FwNode
     );
 
 VOID EtFwInvalidateAllFwNodes(
-    VOID
+    _In_ HWND TreeNewHandle
     );
 
 VOID EtFwInvalidateAllFwNodesHostnames(
-    VOID
+    _In_ HWND TreeNewHandle
     );
 
 VOID EtFwCopyFwList(
@@ -1573,6 +1578,7 @@ VOID NTAPI OnFwItemsUpdated(
     _In_ ULONG RunId
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN NTAPI FwSearchFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -1584,10 +1590,12 @@ VOID NTAPI FwSearchChangedHandler(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(TOOLSTATUS_TAB_ACTIVATE_CONTENT)
 VOID NTAPI FwToolStatusActivateContent(
     _In_ BOOLEAN Select
     );
 
+_Function_class_(TOOLSTATUS_GET_TREENEW_HANDLE)
 HWND NTAPI FwToolStatusGetTreeNewHandle(
     VOID
     );

@@ -370,7 +370,7 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         PVOID timeoutAddress = StackFrame->Params[1];
         LONGLONG timeout;
 
-        if (NT_SUCCESS(NtReadVirtualMemory(
+        if (NT_SUCCESS(PhReadVirtualMemory(
             context->ProcessHandle,
             timeoutAddress,
             &timeout,
@@ -1010,7 +1010,7 @@ VOID PhpGetWfmoInformation(
         {
             ULONG handles32[MAXIMUM_WAIT_OBJECTS];
 
-            if (NT_SUCCESS(status = NtReadVirtualMemory(
+            if (NT_SUCCESS(status = PhReadVirtualMemory(
                 ProcessHandle,
                 AddressOfHandles,
                 handles32,
@@ -1025,7 +1025,7 @@ VOID PhpGetWfmoInformation(
         else
         {
 #endif
-            status = NtReadVirtualMemory(
+            status = PhReadVirtualMemory(
                 ProcessHandle,
                 AddressOfHandles,
                 handles,

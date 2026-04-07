@@ -28,6 +28,7 @@
 #include <procprv.h>
 #include <srvprv.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -43,6 +44,7 @@ VOID PhpRemoveServiceNode(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpServiceTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -65,7 +67,6 @@ static PH_CM_MANAGER ServiceTreeListCm;
 
 static PPH_HASHTABLE ServiceNodeHashtable; // hashtable of all nodes
 static PPH_LIST ServiceNodeList; // list of all nodes
-
 static PH_TN_FILTER_SUPPORT FilterSupport;
 
 BOOLEAN PhServiceTreeListStateHighlighting = TRUE;
@@ -84,6 +85,7 @@ VOID PhServiceTreeListInitialization(
     ServiceNodeList = PhCreateList(100);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -132,6 +134,7 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumn(hwnd, PHSVTLC_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumnEx2(hwnd, PHSVTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(hwnd, PHSVTLC_EXITCODE, FALSE, L"Exit code", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_USERNAME, FALSE, L"Username", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&ServiceTreeListCm, hwnd, PHSVTLC_MAXIMUM, PhpServiceTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ServiceNodeList);
@@ -156,13 +159,13 @@ VOID PhLoadSettingsServiceTreeList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"ServiceTreeListColumns");
-    sortSettings = PhGetStringSetting(L"ServiceTreeListSort");
+    settings = PhGetStringSetting(SETTING_SERVICE_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_SERVICE_TREE_LIST_SORT);
     PhCmLoadSettingsEx(ServiceTreeListHandle, &ServiceTreeListCm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -176,8 +179,8 @@ VOID PhSaveSettingsServiceTreeList(
     PPH_STRING sortSettings;
 
     settings = PhCmSaveSettingsEx(ServiceTreeListHandle, &ServiceTreeListCm, 0, &sortSettings);
-    PhSetStringSetting2(L"ServiceTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"ServiceTreeListSort", &sortSettings->sr);
+    PhSetStringSetting2(SETTING_SERVICE_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_SERVICE_TREE_LIST_SORT, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
@@ -199,6 +202,7 @@ PPH_SERVICE_NODE PhAddServiceNode(
     serviceNode = PhAllocate(PhEmGetObjectSize(EmServiceNodeType, sizeof(PH_SERVICE_NODE)));
     memset(serviceNode, 0, sizeof(PH_SERVICE_NODE));
     PhInitializeTreeNewNode(&serviceNode->Node);
+    serviceNode->ServiceItem = PhReferenceObject(ServiceItem);
 
     if (PhServiceTreeListStateHighlighting && RunId != 1)
     {
@@ -211,9 +215,6 @@ PPH_SERVICE_NODE PhAddServiceNode(
             NULL
             );
     }
-
-    serviceNode->ServiceItem = ServiceItem;
-    PhReferenceObject(ServiceItem);
 
     memset(serviceNode->TextCache, 0, sizeof(PH_STRINGREF) * PHSVTLC_MAXIMUM);
     serviceNode->Node.TextCache = serviceNode->TextCache;
@@ -293,6 +294,7 @@ VOID PhpRemoveServiceNode(
 
     PhClearReference(&ServiceNode->BinaryPath);
     PhClearReference(&ServiceNode->LoadOrderGroup);
+    PhClearReference(&ServiceNode->UserName);
     PhClearReference(&ServiceNode->Description);
     PhClearReference(&ServiceNode->TooltipText);
     PhClearReference(&ServiceNode->KeyModifiedTimeText);
@@ -322,13 +324,26 @@ VOID PhTickServiceNodes(
     VOID
     )
 {
+    BOOLEAN fullyInvalidated = FALSE;
+
     if (ServiceTreeListSortOrder != NoSortOrder)
     {
         // Force a rebuild to sort the items.
         TreeNew_NodesStructured(ServiceTreeListHandle);
+        fullyInvalidated = TRUE;
     }
 
-    PH_TICK_SH_STATE_TN(PH_SERVICE_NODE, ShState, ServiceNodeStateList, PhpRemoveServiceNode, PhCsHighlightingDuration, ServiceTreeListHandle, TRUE, NULL, NULL);
+    PH_TICK_SH_STATE_TN(
+        PH_SERVICE_NODE,
+        ShState,
+        ServiceNodeStateList,
+        PhpRemoveServiceNode,
+        PhCsHighlightingDuration,
+        ServiceTreeListHandle,
+        TRUE,
+        &fullyInvalidated,
+        NULL
+        );
 }
 
 static VOID PhpUpdateServiceNodeConfig(
@@ -340,6 +355,10 @@ static VOID PhpUpdateServiceNodeConfig(
         SC_HANDLE serviceHandle;
         LPQUERY_SERVICE_CONFIG serviceConfig;
 
+        PhClearReference(&ServiceNode->BinaryPath);
+        PhClearReference(&ServiceNode->LoadOrderGroup);
+        PhClearReference(&ServiceNode->UserName);
+
         if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(ServiceNode->ServiceItem->Name))))
         {
             if (NT_SUCCESS(PhGetServiceConfig(serviceHandle, &serviceConfig)))
@@ -348,6 +367,8 @@ static VOID PhpUpdateServiceNodeConfig(
                     PhMoveReference(&ServiceNode->BinaryPath, PhCreateString(serviceConfig->lpBinaryPathName));
                 if (serviceConfig->lpLoadOrderGroup)
                     PhMoveReference(&ServiceNode->LoadOrderGroup, PhCreateString(serviceConfig->lpLoadOrderGroup));
+                if (serviceConfig->lpServiceStartName)
+                    PhMoveReference(&ServiceNode->UserName, PhCreateString(serviceConfig->lpServiceStartName));
 
                 PhFree(serviceConfig);
             }
@@ -365,36 +386,10 @@ static VOID PhpUpdateServiceNodeDescription(
 {
     if (!FlagOn(ServiceNode->ValidMask, PHSN_DESCRIPTION))
     {
-        NTSTATUS status;
-        HANDLE keyHandle;
-
-        status = PhOpenServiceKey(
-            &keyHandle,
-            KEY_QUERY_VALUE,
-            &ServiceNode->ServiceItem->Name->sr
+        PhSwapReference(
+            &ServiceNode->Description,
+            PhGetServiceDescriptionKey(&ServiceNode->ServiceItem->Name->sr)
             );
-
-        if (NT_SUCCESS(status))
-        {
-            PPH_STRING descriptionString;
-            PPH_STRING serviceDescriptionString;
-
-            if (descriptionString = PhQueryRegistryStringZ(keyHandle, L"Description"))
-            {
-                if (serviceDescriptionString = PhLoadIndirectString(&descriptionString->sr))
-                    PhMoveReference(&ServiceNode->Description, serviceDescriptionString);
-                else
-                    PhSwapReference(&ServiceNode->Description, descriptionString);
-
-                PhDereferenceObject(descriptionString);
-            }
-
-            NtClose(keyHandle);
-        }
-        else
-        {
-            PhMoveReference(&ServiceNode->Description, PhGetStatusMessage(status, 0));
-        }
 
         SetFlag(ServiceNode->ValidMask, PHSN_DESCRIPTION);
     }
@@ -460,6 +455,7 @@ static VOID PhpUpdateServiceNodeKey(
     return PhModifySort(sortResult, ServiceTreeListSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpServiceTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -591,6 +587,14 @@ BEGIN_SORT_FUNCTION(ExitCode)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(UserName)
+{
+    PhpUpdateServiceNodeConfig(node1);
+    PhpUpdateServiceNodeConfig(node2);
+    sortResult = PhCompareStringWithNullSortOrder(node1->UserName, node2->UserName, ServiceTreeListSortOrder, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -630,6 +634,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     SORT_FUNCTION(FileName),
                     SORT_FUNCTION(KeyModifiedTime), // Timeline
                     SORT_FUNCTION(ExitCode),
+                    SORT_FUNCTION(UserName),
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -828,6 +833,12 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                         PhMoveReference(&node->ExitCodeText, PhFinalStringBuilderString(&stringBuilder));
                         getCellText->Text = node->ExitCodeText->sr;
                     }
+                }
+                break;
+            case PHSVTLC_USERNAME:
+                {
+                    PhpUpdateServiceNodeConfig(node);
+                    getCellText->Text = PhGetStringRef(node->UserName);
                 }
                 break;
             default:

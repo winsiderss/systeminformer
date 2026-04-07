@@ -11,6 +11,25 @@
 
 #include "devices.h"
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN RaplDeviceGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    );
+
+/**
+ * Handles the embedded RAPL summary panel dialog.
+ *
+ * \param hwndDlg Dialog window handle.
+ * \param uMsg Window message identifier.
+ * \param wParam Message-specific wParam value.
+ * \param lParam Message-specific lParam value.
+ *
+ * \return Dialog procedure result.
+ */
 INT_PTR CALLBACK RaplDevicePanelDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -62,6 +81,11 @@ INT_PTR CALLBACK RaplDevicePanelDialogProc(
     return FALSE;
 }
 
+/**
+ * Initializes DPI-dependent layout values for the RAPL dialog.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceInitializeDialogDpi(
     _In_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -69,6 +93,11 @@ VOID RaplDeviceInitializeDialogDpi(
     Context->GraphPadding = PhGetDpi(RAPL_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
 }
 
+/**
+ * Initializes graph state objects for all RAPL graphs.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceInitializeGraphStates(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -79,11 +108,23 @@ VOID RaplDeviceInitializeGraphStates(
     PhInitializeGraphState(&Context->TotalGraphState);
 }
 
+/**
+ * Creates the graph controls used by the RAPL device dialog.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceCreateGraphs(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
 {
-    Context->ProcessorGraphHandle = CreateWindow(
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = RaplDeviceGraphMessageCallback;
+    graphCreateParams.Context = Context;
+
+    Context->ProcessorGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -94,11 +135,11 @@ VOID RaplDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->ProcessorGraphHandle, TRUE);
 
-    Context->CoreGraphHandle = CreateWindow(
+    Context->CoreGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -109,11 +150,11 @@ VOID RaplDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->CoreGraphHandle, TRUE);
 
-    Context->DimmGraphHandle = CreateWindow(
+    Context->DimmGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -124,11 +165,11 @@ VOID RaplDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->DimmGraphHandle, TRUE);
 
-    Context->TotalGraphHandle = CreateWindow(
+    Context->TotalGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -139,7 +180,7 @@ VOID RaplDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->TotalGraphHandle, TRUE);
 
@@ -149,6 +190,11 @@ VOID RaplDeviceCreateGraphs(
     Context->TotalGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_TOTAL_L);
 }
 
+/**
+ * Invalidates all RAPL graph states and requests redraws.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceUpdateGraphs(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -170,6 +216,11 @@ VOID RaplDeviceUpdateGraphs(
     Graph_Update(Context->TotalGraphHandle);
 }
 
+/**
+ * Updates the text labels shown in the RAPL device panel.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceUpdatePanel(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -226,6 +277,11 @@ VOID RaplDeviceUpdatePanel(
         PhSetWindowText(Context->RaplDeviceTotalUsageLabel, L"N/A");
 }
 
+/**
+ * Lays out the RAPL graph controls inside the dialog.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceLayoutGraphs(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -357,6 +413,17 @@ VOID RaplDeviceLayoutGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
+/**
+ * Formats a graph Y-axis label for a single power series.
+ *
+ * \param DrawInfo Graph draw information.
+ * \param DataIndex Data point index.
+ * \param Value Normalized graph value.
+ * \param Parameter Scale factor used to denormalize the value.
+ *
+ * \return Formatted label string.
+ */
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
 PPH_STRING RaplGraphSingleLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
@@ -381,6 +448,12 @@ PPH_STRING RaplGraphSingleLabelYFunction(
     }
 }
 
+/**
+ * Handles notifications for the package power graph.
+ *
+ * \param Context RAPL sysinfo context.
+ * \param Header Notification header.
+ */
 VOID RaplDeviceNotifyProcessorGraph(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context,
     _In_ NMHDR *Header
@@ -394,7 +467,7 @@ VOID RaplDeviceNotifyProcessorGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->ProcessorGraphState, getDrawInfo, Context->DeviceEntry->PackageBuffer.Count);
 
             if (!Context->ProcessorGraphState.Valid)
@@ -451,6 +524,12 @@ VOID RaplDeviceNotifyProcessorGraph(
     }
 }
 
+/**
+ * Handles notifications for the core power graph.
+ *
+ * \param Context RAPL sysinfo context.
+ * \param Header Notification header.
+ */
 VOID RaplDeviceNotifyPackageGraph(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context,
     _In_ NMHDR *Header
@@ -464,7 +543,7 @@ VOID RaplDeviceNotifyPackageGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PHYSICAL), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->CoreGraphState, getDrawInfo, Context->DeviceEntry->CoreBuffer.Count);
 
             if (!Context->CoreGraphState.Valid)
@@ -519,6 +598,12 @@ VOID RaplDeviceNotifyPackageGraph(
     }
 }
 
+/**
+ * Handles notifications for the DRAM power graph.
+ *
+ * \param Context RAPL sysinfo context.
+ * \param Header Notification header.
+ */
 VOID RaplDeviceNotifyDimmGraph(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context,
     _In_ NMHDR *Header
@@ -532,7 +617,7 @@ VOID RaplDeviceNotifyDimmGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->DimmGraphState, getDrawInfo, Context->DeviceEntry->DimmBuffer.Count);
 
             if (!Context->DimmGraphState.Valid)
@@ -589,6 +674,12 @@ VOID RaplDeviceNotifyDimmGraph(
     }
 }
 
+/**
+ * Handles notifications for the total power graph.
+ *
+ * \param Context RAPL sysinfo context.
+ * \param Header Notification header.
+ */
 VOID RaplDeviceNotifyTotalGraph(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context,
     _In_ NMHDR* Header
@@ -602,7 +693,7 @@ VOID RaplDeviceNotifyTotalGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PRIVATE), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->TotalGraphState, getDrawInfo, Context->DeviceEntry->TotalBuffer.Count);
 
             if (!Context->TotalGraphState.Valid)
@@ -659,6 +750,54 @@ VOID RaplDeviceNotifyTotalGraph(
     }
 }
 
+/**
+ * Dispatches graph messages to the correct RAPL graph handler.
+ *
+ * \param WindowHandle Graph window handle.
+ * \param Message Graph callback message.
+ * \param Parameter1 Message parameter 1.
+ * \param Parameter2 Message parameter 2.
+ * \param Context RAPL sysinfo context.
+ *
+ * \return TRUE after processing the graph message.
+ */
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN RaplDeviceGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    PDV_RAPL_SYSINFO_CONTEXT context = (PDV_RAPL_SYSINFO_CONTEXT)Context;
+    NMHDR *header = (NMHDR *)Parameter1;
+
+    if (WindowHandle == context->ProcessorGraphHandle)
+    {
+        RaplDeviceNotifyProcessorGraph(context, header);
+    }
+    else if (WindowHandle == context->CoreGraphHandle)
+    {
+        RaplDeviceNotifyPackageGraph(context, header);
+    }
+    else if (WindowHandle == context->DimmGraphHandle)
+    {
+        RaplDeviceNotifyDimmGraph(context, header);
+    }
+    else if (WindowHandle == context->TotalGraphHandle)
+    {
+        RaplDeviceNotifyTotalGraph(context, header);
+    }
+
+    return TRUE;
+}
+
+/**
+ * Refreshes the RAPL device dialog contents for the current sample.
+ *
+ * \param Context RAPL sysinfo context.
+ */
 VOID RaplDeviceTickDialog(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -667,6 +806,16 @@ VOID RaplDeviceTickDialog(
     RaplDeviceUpdatePanel(Context);
 }
 
+/**
+ * Handles the main RAPL device dialog.
+ *
+ * \param hwndDlg Dialog window handle.
+ * \param uMsg Window message identifier.
+ * \param wParam Message-specific wParam value.
+ * \param lParam Message-specific lParam value.
+ *
+ * \return Dialog procedure result.
+ */
 INT_PTR CALLBACK RaplDeviceDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -771,28 +920,6 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
             RaplDeviceLayoutGraphs(context);
         }
         break;
-    case WM_NOTIFY:
-        {
-            NMHDR* header = (NMHDR*)lParam;
-
-            if (header->hwndFrom == context->ProcessorGraphHandle)
-            {
-                RaplDeviceNotifyProcessorGraph(context, header);
-            }
-            else if (header->hwndFrom == context->CoreGraphHandle)
-            {
-                RaplDeviceNotifyPackageGraph(context, header);
-            }
-            else if (header->hwndFrom == context->DimmGraphHandle)
-            {
-                RaplDeviceNotifyDimmGraph(context, header);
-            }
-            else if (header->hwndFrom == context->TotalGraphHandle)
-            {
-                RaplDeviceNotifyTotalGraph(context, header);
-            }
-        }
-        break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
@@ -804,6 +931,16 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
     return FALSE;
 }
 
+/**
+ * Handles sysinfo section callbacks for a RAPL device section.
+ *
+ * \param Section Sysinfo section.
+ * \param Message Sysinfo callback message.
+ * \param Parameter1 Message parameter 1.
+ * \param Parameter2 Message parameter 2.
+ *
+ * \return TRUE if the message was handled.
+ */
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN RaplDeviceSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
@@ -895,7 +1032,7 @@ BOOLEAN RaplDeviceSectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, context->SysinfoSection->Parameters->WindowDpi);
+            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PRIVATE), 0, context->SysinfoSection->Parameters->WindowDpi);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->DeviceEntry->TotalBuffer.Count);
 
             if (!Section->GraphState.Valid)
@@ -960,6 +1097,12 @@ BOOLEAN RaplDeviceSectionCallback(
     return FALSE;
 }
 
+/**
+ * Registers a RAPL device as a sysinfo section.
+ *
+ * \param Pointers Plugin sysinfo callback table.
+ * \param DeviceEntry RAPL device entry.
+ */
 VOID RaplDeviceSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_RAPL_ENTRY DeviceEntry

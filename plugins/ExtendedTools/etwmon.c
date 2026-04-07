@@ -396,10 +396,11 @@ VOID NTAPI EtpEtwEventCallback(
 
                 source.Address.Type = PH_NETWORK_TYPE_IPV4;
                 source.Port = _byteswap_ushort(data->SourcePort);
-                memcpy(&source.Address.InAddr, data->SourceAddress, sizeof(IN_ADDR));
+                memcpy(source.Address.Ipv4, data->SourceAddress, sizeof(IN_ADDR));
+
                 destination.Address.Type = PH_NETWORK_TYPE_IPV4;
                 destination.Port = _byteswap_ushort(data->DestinationPort);
-                memcpy(&destination.Address.InAddr, data->DestinationAddress, sizeof(IN_ADDR));
+                memcpy(destination.Address.Ipv4, data->DestinationAddress, sizeof(IN_ADDR));
 
                 memset(&networkEvent, 0, sizeof(ET_ETW_NETWORK_EVENT));
                 networkEvent.Type = EtEtwNetworkSendType;
@@ -422,6 +423,7 @@ VOID NTAPI EtpEtwEventCallback(
                 source.Address.Type = PH_NETWORK_TYPE_IPV4;
                 source.Port = _byteswap_ushort(data->SourcePort);
                 memcpy(source.Address.Ipv4, data->SourceAddress, sizeof(IN_ADDR));
+
                 destination.Address.Type = PH_NETWORK_TYPE_IPV4;
                 destination.Port = _byteswap_ushort(data->DestinationPort);
                 memcpy(destination.Address.Ipv4, data->DestinationAddress, sizeof(IN_ADDR));
@@ -447,6 +449,7 @@ VOID NTAPI EtpEtwEventCallback(
                 source.Address.Type = PH_NETWORK_TYPE_IPV6;
                 source.Port = _byteswap_ushort(data->SourcePort);
                 memcpy(source.Address.Ipv6, data->SourceAddress, sizeof(IN6_ADDR));
+
                 destination.Address.Type = PH_NETWORK_TYPE_IPV6;
                 destination.Port = _byteswap_ushort(data->DestinationPort);
                 memcpy(destination.Address.Ipv6, data->DestinationAddress, sizeof(IN6_ADDR));
@@ -472,6 +475,7 @@ VOID NTAPI EtpEtwEventCallback(
                 source.Address.Type = PH_NETWORK_TYPE_IPV6;
                 source.Port = _byteswap_ushort(data->SourcePort);
                 memcpy(source.Address.Ipv6, data->SourceAddress, sizeof(IN6_ADDR));
+
                 destination.Address.Type = PH_NETWORK_TYPE_IPV6;
                 destination.Port = _byteswap_ushort(data->DestinationPort);
                 memcpy(destination.Address.Ipv6, data->DestinationAddress, sizeof(IN6_ADDR));

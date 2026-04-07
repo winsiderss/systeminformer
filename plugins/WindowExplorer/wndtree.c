@@ -494,7 +494,7 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
 
             if (node->WindowMessageOnly)
             {
-                getNodeColor->BackColor = PhGetIntegerSetting(L"ColorServiceProcesses");
+                getNodeColor->BackColor = PhGetIntegerSetting(SETTING_COLOR_SERVICE_PROCESSES);
             }
 
             getNodeColor->Flags = TN_CACHE;

@@ -139,6 +139,7 @@ PPH_STRING PhGetProcessItemImageTypeText(
     return PhConcatStrings2(arch, bits);
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 NTSTATUS PhpProcessGeneralOpenProcess(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -150,6 +151,7 @@ NTSTATUS PhpProcessGeneralOpenProcess(
     return STATUS_UNSUCCESSFUL;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS PhpProcessGeneralCloseHandle(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -375,7 +377,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     }
                 }
 
-                inspectExecutables = PhaGetStringSetting(L"ProgramInspectExecutables");
+                inspectExecutables = PhaGetStringSetting(SETTING_PROGRAM_INSPECT_EXECUTABLES);
 
                 if (PhIsNullOrEmptyString(inspectExecutables))
                 {
@@ -548,7 +550,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Protection
 
-            PhSetDialogItemText(hwndDlg, IDC_PROTECTION, PhpGetStringOrNa(processItem->ProtectionString));
+            PPH_STRING string = PhGetProcessProtectionString(processItem->Protection, (BOOLEAN)processItem->IsSecureProcess);
+            PhSetDialogItemText(hwndDlg, IDC_PROTECTION, PhpGetStringOrNa(string));
+            PhClearReference(&string);
 
             // Image type
 
@@ -632,7 +636,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,
-                                L"ProgramInspectExecutables",
+                                SETTING_PROGRAM_INSPECT_EXECUTABLES,
                                 PhGetString(processItem->FileName),
                                 FALSE,
                                 L"Make sure the PE Viewer executable file is present."
@@ -657,7 +661,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,
-                                L"FileBrowseExecutable",
+                                SETTING_FILE_BROWSE_EXECUTABLE,
                                 PhGetString(processItem->FileName),
                                 FALSE,
                                 L"Make sure the Explorer executable file is present."
@@ -756,7 +760,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     PPH_EMENU menu;
                     RECT rect;
 
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_INTEGRITY), &rect);
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_INTEGRITY), &rect))
+                        break;
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"No-Write-Up", NULL, NULL), ULONG_MAX);

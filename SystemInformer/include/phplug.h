@@ -1000,17 +1000,6 @@ PhEnumeratePlugins(
     _In_ PPH_PLUGIN_ENUMERATE Callback,
     _In_opt_ PVOID Context
     );
-
-PHAPPAPI
-VOID
-NTAPI
-PhShowHandlePropertiesEx(
-    _In_ HWND ParentWindowHandle,
-    _In_ HANDLE ProcessId,
-    _In_ PPH_HANDLE_ITEM HandleItem,
-    _In_opt_ PPH_PLUGIN OwnerPlugin,
-    _In_opt_ PWSTR Caption
-    );
 // end_phapppub
 
 #endif

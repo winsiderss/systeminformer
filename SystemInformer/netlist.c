@@ -42,6 +42,7 @@ VOID PhpRemoveNetworkNode(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpNetworkTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -50,7 +51,7 @@ LONG PhpNetworkTreeNewPostSortFunction(
     );
 
 BOOLEAN NTAPI PhpNetworkTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -192,13 +193,13 @@ VOID PhLoadSettingsNetworkTreeList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"NetworkTreeListColumns");
-    sortSettings = PhGetStringSetting(L"NetworkTreeListSort");
+    settings = PhGetStringSetting(SETTING_NETWORK_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_NETWORK_TREE_LIST_SORT);
     PhCmLoadSettingsEx(NetworkTreeListHandle, &NetworkTreeListCm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -214,8 +215,8 @@ VOID PhSaveSettingsNetworkTreeList(
     PPH_STRING sortSettings;
 
     settings = PhCmSaveSettingsEx(NetworkTreeListHandle, &NetworkTreeListCm, 0, &sortSettings);
-    PhSetStringSetting2(L"NetworkTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"NetworkTreeListSort", &sortSettings->sr);
+    PhSetStringSetting2(SETTING_NETWORK_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_NETWORK_TREE_LIST_SORT, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
@@ -224,7 +225,7 @@ VOID PhReloadSettingsNetworkTreeList(
     VOID
     )
 {
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -371,14 +372,17 @@ VOID PhTickNetworkNodes(
     VOID
     )
 {
+    BOOLEAN fullyInvalidated = FALSE;
+
     if (NetworkTreeListSortOrder != NoSortOrder)
     {
         // Sorting is on, but it's not one of our columns. Force a rebuild. (If it was one of our
         // columns, the restructure would have been handled in PhUpdateNetworkNode.)
         TreeNew_NodesStructured(NetworkTreeListHandle);
+        fullyInvalidated = TRUE;
     }
 
-    PH_TICK_SH_STATE_TN(PH_NETWORK_NODE, ShState, NetworkNodeStateList, PhpRemoveNetworkNode, PhCsHighlightingDuration, NetworkTreeListHandle, TRUE, NULL, NULL);
+    PH_TICK_SH_STATE_TN(PH_NETWORK_NODE, ShState, NetworkNodeStateList, PhpRemoveNetworkNode, PhCsHighlightingDuration, NetworkTreeListHandle, TRUE, &fullyInvalidated, NULL);
 }
 
 #define SORT_FUNCTION(Column) PhpNetworkTreeNewCompare##Column
@@ -400,6 +404,7 @@ VOID PhTickNetworkNodes(
     return PhModifySort(sortResult, NetworkTreeListSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpNetworkTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -560,7 +565,7 @@ BEGIN_SORT_FUNCTION(HvService)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpNetworkTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -569,7 +574,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 {
     PPH_NETWORK_NODE node;
 
-    if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &NetworkTreeListCm))
+    if (PhCmForwardMessage(WindowHandle, Message, Parameter1, Parameter2, &NetworkTreeListCm))
         return TRUE;
 
     switch (Message)
@@ -580,7 +585,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static _CoreCrtNonSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Process),
                     SORT_FUNCTION(Pid),
@@ -597,7 +602,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     SORT_FUNCTION(TimeStamp),
                     SORT_FUNCTION(HvService),
                 };
-                int (__cdecl *sortFunction)(const void *, const void *);
+                _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PHNETLC_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -845,7 +850,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             NetworkTreeListSortOrder = sorting->SortOrder;
 
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -869,7 +874,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             PH_TN_COLUMN_MENU_DATA data;
 
             memset(&data, 0, sizeof(PH_TN_COLUMN_MENU_DATA));
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = PHNETLC_PROCESS;
             data.DefaultSortOrder = AscendingSortOrder;
@@ -877,7 +882,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 
             data.Selection = PhShowEMenu(
                 data.Menu,
-                hwnd,
+                WindowHandle,
                 PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP,
                 data.MouseEvent->ScreenLocation.x,

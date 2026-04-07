@@ -983,6 +983,8 @@ VOID FASTCALL PhfWaitForCondition(
                 PhpOptimizeQueuedLockListEx(Condition, currentValue, TRUE);
             }
 
+            _Analysis_assume_lock_acquired_(*(PPH_FAST_LOCK)Lock);
+
             PhReleaseQueuedLockExclusive(Lock);
 
             PhpBlockOnQueuedWaitBlock(&waitBlock, FALSE, NULL);
@@ -1037,19 +1039,31 @@ VOID FASTCALL PhfWaitForConditionEx(
             switch (Flags & PH_CONDITION_WAIT_LOCK_TYPE_MASK)
             {
             case PH_CONDITION_WAIT_QUEUED_LOCK:
-                if (!(Flags & PH_CONDITION_WAIT_SHARED))
-                    PhReleaseQueuedLockExclusive((PPH_QUEUED_LOCK)Lock);
-                else
-                    PhReleaseQueuedLockShared((PPH_QUEUED_LOCK)Lock);
+                {
+                    _Analysis_assume_lock_acquired_(*(PPH_QUEUED_LOCK)Lock);
+
+                    if (!(Flags & PH_CONDITION_WAIT_SHARED))
+                        PhReleaseQueuedLockExclusive((PPH_QUEUED_LOCK)Lock);
+                    else
+                        PhReleaseQueuedLockShared((PPH_QUEUED_LOCK)Lock);
+                }
                 break;
             case PH_CONDITION_WAIT_CRITICAL_SECTION:
-                RtlLeaveCriticalSection((PRTL_CRITICAL_SECTION)Lock);
+                {
+                    _Analysis_assume_lock_acquired_(*(PRTL_CRITICAL_SECTION)Lock);
+
+                    RtlLeaveCriticalSection((PRTL_CRITICAL_SECTION)Lock);
+                }
                 break;
             case PH_CONDITION_WAIT_FAST_LOCK:
-                if (!(Flags & PH_CONDITION_WAIT_SHARED))
-                    PhReleaseFastLockExclusive((PPH_FAST_LOCK)Lock);
-                else
-                    PhReleaseFastLockShared((PPH_FAST_LOCK)Lock);
+                {
+                    _Analysis_assume_lock_acquired_(*(PPH_FAST_LOCK)Lock);
+
+                    if (!(Flags & PH_CONDITION_WAIT_SHARED))
+                        PhReleaseFastLockExclusive((PPH_FAST_LOCK)Lock);
+                    else
+                        PhReleaseFastLockShared((PPH_FAST_LOCK)Lock);
+                }
                 break;
             }
 
@@ -1065,19 +1079,25 @@ VOID FASTCALL PhfWaitForConditionEx(
             switch (Flags & PH_CONDITION_WAIT_LOCK_TYPE_MASK)
             {
             case PH_CONDITION_WAIT_QUEUED_LOCK:
-                if (!(Flags & PH_CONDITION_WAIT_SHARED))
-                    PhfAcquireQueuedLockExclusive((PPH_QUEUED_LOCK)Lock);
-                else
-                    PhfAcquireQueuedLockShared((PPH_QUEUED_LOCK)Lock);
+                {
+                    if (!(Flags & PH_CONDITION_WAIT_SHARED))
+                        PhfAcquireQueuedLockExclusive((PPH_QUEUED_LOCK)Lock);
+                    else
+                        PhfAcquireQueuedLockShared((PPH_QUEUED_LOCK)Lock);
+                }
                 break;
             case PH_CONDITION_WAIT_CRITICAL_SECTION:
-                RtlEnterCriticalSection((PRTL_CRITICAL_SECTION)Lock);
+                {
+                    RtlEnterCriticalSection((PRTL_CRITICAL_SECTION)Lock);
+                }
                 break;
             case PH_CONDITION_WAIT_FAST_LOCK:
-                if (!(Flags & PH_CONDITION_WAIT_SHARED))
-                    PhAcquireFastLockExclusive((PPH_FAST_LOCK)Lock);
-                else
-                    PhAcquireFastLockShared((PPH_FAST_LOCK)Lock);
+                {
+                    if (!(Flags & PH_CONDITION_WAIT_SHARED))
+                        PhAcquireFastLockExclusive((PPH_FAST_LOCK)Lock);
+                    else
+                        PhAcquireFastLockShared((PPH_FAST_LOCK)Lock);
+                }
                 break;
             }
 

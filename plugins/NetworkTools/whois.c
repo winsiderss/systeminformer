@@ -20,7 +20,7 @@ VOID RichEditSetText(
     _In_ PWSTR Text
     )
 {
-    if (PhGetIntegerSetting(L"EnableThemeSupport"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
     {
         CHARFORMAT cf;
 
@@ -28,7 +28,7 @@ VOID RichEditSetText(
         cf.cbSize = sizeof(CHARFORMAT);
         cf.dwMask = CFM_COLOR;
 
-        switch (PhGetIntegerSetting(L"GraphColorMode"))
+        switch (PhGetIntegerSetting(SETTING_GRAPH_COLOR_MODE))
         {
         case 0: // New colors
             cf.crTextColor = RGB(0x0, 0x0, 0x0);
@@ -586,7 +586,7 @@ BOOLEAN WhoisConnectServer(
     SOCKET socketHandle;
     PDNS_RECORD dnsRecordList;
 
-    if (PhGetIntegerSetting(L"EnableNetworkResolveDoH"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_NETWORK_RESOLVE_DOH))
     {
         dnsRecordList = PhDnsQuery(
             NULL,
@@ -638,6 +638,7 @@ BOOLEAN WhoisQueryServer(
     ULONG whoisResponseLength = 0;
     PSTR whoisResponse = NULL;
     PPH_BYTES whoisServerQuery = NULL;
+    PPH_STRING whoisServerQueryString = NULL;
     SOCKET whoisSocketHandle = INVALID_SOCKET;
 
     if (!WhoisServerAddress)
@@ -660,9 +661,27 @@ BOOLEAN WhoisQueryServer(
     }
 
     if (PhEqualStringZ(WhoisServerAddress, L"whois.arin.net", TRUE))
-        whoisServerQuery = PhFormatBytes("n %S\r\n", WhoisQueryAddress);
+    {
+        PH_FORMAT format[3];
+
+        PhInitFormatS(&format[0], L"n ");
+        PhInitFormatS(&format[1], WhoisQueryAddress);
+        PhInitFormatS(&format[2], L"\r\n");
+
+        whoisServerQueryString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+    }
     else
-        whoisServerQuery = PhFormatBytes("%S\r\n", WhoisQueryAddress);
+    {
+        PH_FORMAT format[2];
+
+        PhInitFormatS(&format[0], WhoisQueryAddress);
+        PhInitFormatS(&format[1], L"\r\n");
+
+        whoisServerQueryString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+    }
+
+    whoisServerQuery = PhConvertStringToUtf8(whoisServerQueryString);
+    PhDereferenceObject(whoisServerQueryString);
 
     if (!WriteSocketString(whoisSocketHandle, whoisServerQuery->Buffer, (ULONG)whoisServerQuery->Length))
     {
@@ -691,6 +710,7 @@ BOOLEAN WhoisQueryServer(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NetworkWhoisThreadStart(
     _In_ PVOID Parameter
     )
@@ -816,7 +836,7 @@ VOID WhoisSetTextFont(
     PPH_STRING fontHexString;
     LOGFONT font;
 
-    fontHexString = PhaGetStringSetting(L"Font");
+    fontHexString = PhaGetStringSetting(SETTING_FONT);
 
     if (
         fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
@@ -917,7 +937,7 @@ INT_PTR CALLBACK WhoisDlgProc(
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             PhReferenceObject(context);
             PhCreateThread2(NetworkWhoisThreadStart, (PVOID)context);
@@ -1081,6 +1101,7 @@ INT_PTR CALLBACK WhoisDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NetworkWhoisDialogThreadStart(
     _In_ PVOID Parameter
     )
@@ -1138,6 +1159,7 @@ NTSTATUS NetworkWhoisDialogThreadStart(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID WhoisContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

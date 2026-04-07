@@ -105,7 +105,7 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
     HWND ListViewHandle;
     HWND ParentWindow;
     HANDLE ProcessId;
-    IListView* ListViewClass;
+    PPH_LISTVIEW_CONTEXT ListViewClass;
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
 } HANDLE_PROPERTIES_CONTEXT, *PHANDLE_PROPERTIES_CONTEXT;
@@ -117,7 +117,7 @@ typedef struct _HANDLE_PERMISSIONS_CONTEXT
     HWND ListViewHandle;
     HWND ParentWindow;
     HANDLE ProcessId;
-    IListView* ListViewClass;
+    PPH_LISTVIEW_CONTEXT ListViewClass;
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
 } HANDLE_PERMISSIONS_CONTEXT, *PHANDLE_PERMISSIONS_CONTEXT;
@@ -241,7 +241,6 @@ typedef struct _HANDLE_PROPERTIES_THREAD_CONTEXT
     HWND ParentWindowHandle;
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
-    PWSTR Caption;
 } HANDLE_PROPERTIES_THREAD_CONTEXT, *PHANDLE_PROPERTIES_THREAD_CONTEXT;
 
 BOOLEAN PhpIsVerboseBestObjectName(
@@ -323,7 +322,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
         PSH_PROPTITLE;
     propSheetHeader.hInstance = NtCurrentImageBase();
     propSheetHeader.hwndParent = PhCsForceNoParent ? NULL : handleContext->ParentWindowHandle;
-    propSheetHeader.pszCaption = handleContext->Caption ? handleContext->Caption : L"Handle";
+    propSheetHeader.pszCaption = L"Handle";
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
@@ -482,37 +481,25 @@ VOID PhShowHandleProperties(
     _In_ PPH_HANDLE_ITEM HandleItem
     )
 {
-    PhShowHandlePropertiesEx(ParentWindowHandle, ProcessId, HandleItem, NULL, NULL);
-}
-
-VOID PhShowHandlePropertiesEx(
-    _In_ HWND ParentWindowHandle,
-    _In_ HANDLE ProcessId,
-    _In_ PPH_HANDLE_ITEM HandleItem,
-    _In_opt_ PPH_PLUGIN OwnerPlugin,
-    _In_opt_ PWSTR Caption
-    )
-{
     PHANDLE_PROPERTIES_THREAD_CONTEXT context;
 
     context = PhAllocateZero(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
     context->ParentWindowHandle = ParentWindowHandle;
     context->ProcessId = ProcessId;
     context->HandleItem = HandleItem;
-    context->Caption = Caption;
     PhReferenceObject(HandleItem);
 
     PhCreateThread2(PhpShowHandlePropertiesThread, context);
 }
 
 VOID PhAddHandleListViewItem(
-    _In_ IListView* ListViewClass,
+    _In_ PPH_LISTVIEW_CONTEXT ListViewClass,
     _In_ LONG GroupId,
     _In_ LONG Index,
     _In_ PCWSTR Text
     )
 {
-    PhAddIListViewGroupItem(ListViewClass, GroupId, Index, Text, UlongToPtr(Index));
+    PhListView_AddGroupItem(ListViewClass, GroupId, Index, Text, UlongToPtr(Index));
 }
 
 VOID PhSetHandleListViewItem(
@@ -526,7 +513,7 @@ VOID PhSetHandleListViewItem(
 
     if (index != INT_ERROR)
     {
-        PhSetIListViewSubItem(Context->ListViewClass, index, SubItemIndex, Text);
+        PhListView_SetSubItem(Context->ListViewClass, index, SubItemIndex, Text);
     }
 }
 
@@ -534,11 +521,11 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     _In_ PHANDLE_PROPERTIES_CONTEXT Context
     )
 {
-    IListView_EnableGroupView(Context->ListViewClass, TRUE);
-    PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, L"Basic information");
-    PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECURITY, L"Security information");
-    PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_REFERENCES, L"References");
-    PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_QUOTA, L"Quota charges");
+    PhListView_EnableGroupView(Context->ListViewClass, TRUE);
+    PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, L"Basic information");
+    PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECURITY, L"Security information");
+    PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_REFERENCES, L"References");
+    PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_QUOTA, L"Quota charges");
 
     PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_NAME, L"Name");
     PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_TYPE, L"Type");
@@ -561,7 +548,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, L"ALPC Port");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, L"ALPC Port");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, PH_HANDLE_GENERAL_INDEX_FLAGS, L"Flags");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER, L"Sequence Number");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT, L"Port Context");
@@ -580,13 +567,13 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ETW, L"Event trace information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ETW, L"Event trace information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ETW, PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME, L"GUID");
         //PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ETW, PH_HANDLE_GENERAL_INDEX_ETWGROUPNAME, L"Group GUID");
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"File", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, L"File information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, L"File information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, PH_HANDLE_GENERAL_INDEX_FILETYPE, L"Type");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, PH_HANDLE_GENERAL_INDEX_FILEMODE, L"Mode");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, PH_HANDLE_GENERAL_INDEX_FILEPOSITION, L"Position");
@@ -601,21 +588,21 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Section", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECTION, L"Section information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECTION, L"Section information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECTION, PH_HANDLE_GENERAL_INDEX_SECTIONTYPE, L"Type");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECTION, PH_HANDLE_GENERAL_INDEX_SECTIONFILE, L"File");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SECTION, PH_HANDLE_GENERAL_INDEX_SECTIONSIZE, L"Size");
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Mutant", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_MUTANT, L"Mutant information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_MUTANT, L"Mutant information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_MUTANT, PH_HANDLE_GENERAL_INDEX_MUTANTCOUNT, L"Count");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_MUTANT, PH_HANDLE_GENERAL_INDEX_MUTANTABANDONED, L"Abandoned");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_MUTANT, PH_HANDLE_GENERAL_INDEX_MUTANTOWNER, L"Owner");
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Process", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, L"Process information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, L"Process information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME, L"Name");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME, L"Created");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME, L"Exited");
@@ -623,7 +610,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Thread", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, L"Thread information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, L"Thread information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME, L"Name");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME, L"Created");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME, L"Exited");
@@ -631,7 +618,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"SymbolicLink", TRUE))
     {
-        PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK, L"Symbolic Link information");
+        PhListView_AddGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK, L"Symbolic Link information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK, PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK, L"Link target");
     }
 }
@@ -644,7 +631,7 @@ VOID PhpUpdateHandleGeneral(
 
     // Name, FullName
 
-    if (PhpIsVerboseBestObjectName(Context->HandleItem) && Context->HandleItem->ObjectName)
+    if (PhpIsVerboseBestObjectName(Context->HandleItem) && !PhIsNullOrEmptyString(Context->HandleItem->ObjectName))
     {
         PPH_STRING objectName;
 
@@ -656,7 +643,7 @@ VOID PhpUpdateHandleGeneral(
         PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FULLNAME, 1, PhGetStringOrEmpty(objectName));
         PhClearReference(&objectName);
     }
-    else if (Context->HandleItem->BestObjectName)
+    else if (!PhIsNullOrEmptyString(Context->HandleItem->BestObjectName))
     {
         PPH_STRING objectName;
 
@@ -684,7 +671,7 @@ VOID PhpUpdateHandleGeneral(
     }
     else
     {
-        if (PhGetIntegerSetting(L"EnableHandleSnapshot"))
+        if (PhGetIntegerSetting(SETTING_ENABLE_HANDLE_SNAPSHOT))
             PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_OBJECT, 1, L"N/A (snapshot)");
         else
             PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_OBJECT, 1, L"N/A");
@@ -885,7 +872,7 @@ VOID PhpUpdateHandleGeneral(
                 PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT, 1, string);
             }
 
-            if (!NT_SUCCESS(KphAlpcQueryComminicationsNamesInfo(
+            if (!NT_SUCCESS(KphAlpcQueryCommunicationsNamesInfo(
                 processHandle,
                 Context->HandleItem->Handle,
                 &connectionNames)))
@@ -1099,7 +1086,7 @@ VOID PhpUpdateHandleGeneral(
             FILE_POSITION_INFORMATION filePositionInfo;
             FILE_IO_PRIORITY_HINT_INFORMATION_EX priorityInfo;
             IO_STATUS_BLOCK isb;
-            KPH_FILE_OBJECT_DRIVER fileObjectDriver;
+            HANDLE fileObjectDriver;
 
             if (NT_SUCCESS(KphQueryVolumeInformationFile(
                 processHandle,
@@ -1279,25 +1266,25 @@ VOID PhpUpdateHandleGeneral(
                 Context->HandleItem->Handle,
                 KphObjectFileObjectDriver,
                 &fileObjectDriver,
-                sizeof(fileObjectDriver),
+                sizeof(HANDLE),
                 NULL
                 )))
             {
                 PPH_STRING driverName;
 
-                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver.DriverHandle, &driverName)))
+                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver, &driverName)))
                 {
                     PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEDRIVER, 1, PhGetString(driverName));
                     PhDereferenceObject(driverName);
                 }
 
-                if (NT_SUCCESS(PhGetDriverImageFileName(fileObjectDriver.DriverHandle, &driverName)))
+                if (NT_SUCCESS(PhGetDriverImageFileName(fileObjectDriver, &driverName)))
                 {
                     PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE, 1, PhGetString(driverName));
                     PhDereferenceObject(driverName);
                 }
 
-                NtClose(fileObjectDriver.DriverHandle);
+                NtClose(fileObjectDriver);
             }
 
             NtClose(processHandle);
@@ -1763,75 +1750,76 @@ VOID PhpUpdateHandleGeneral(
         KERNEL_USER_TIMES times;
         BOOLEAN haveTimes = FALSE;
 
-        if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
-                Context->ProcessId
-                )))
-        {
-            ULONG bufferSize;
-            ULONG returnLength;
-            PUNICODE_STRING buffer;
-            NTSTATUS status2;
+        // TODO(jxy-s): Uncomment following code after next driver release (commented out as workaround for KphObjectProcessImageFileName memory leak) (dmex)
+        //if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
+        //        &processHandle,
+        //        PROCESS_QUERY_LIMITED_INFORMATION,
+        //        Context->ProcessId
+        //        )))
+        //{
+        //    ULONG bufferSize;
+        //    ULONG returnLength;
+        //    PUNICODE_STRING buffer;
+        //    NTSTATUS status2;
 
-            returnLength = 0;
-            bufferSize = 0x100;
-            buffer = PhAllocate(bufferSize);
+        //    returnLength = 0;
+        //    bufferSize = 0x100;
+        //    buffer = PhAllocate(bufferSize);
 
-            if (NT_SUCCESS(KphQueryInformationObject(
-                processHandle,
-                Context->HandleItem->Handle,
-                KphObjectProcessBasicInformation,
-                &basicInfo,
-                sizeof(basicInfo),
-                NULL
-                )))
-            {
-                exitStatus = basicInfo.ExitStatus;
-            }
+        //    if (NT_SUCCESS(KphQueryInformationObject(
+        //        processHandle,
+        //        Context->HandleItem->Handle,
+        //        KphObjectProcessBasicInformation,
+        //        &basicInfo,
+        //        sizeof(basicInfo),
+        //        NULL
+        //        )))
+        //    {
+        //        exitStatus = basicInfo.ExitStatus;
+        //    }
 
-            haveTimes = NT_SUCCESS(KphQueryInformationObject(
-                processHandle,
-                Context->HandleItem->Handle,
-                KphObjectProcessTimes,
-                &times,
-                sizeof(times),
-                NULL
-                ));
+        //    haveTimes = NT_SUCCESS(KphQueryInformationObject(
+        //        processHandle,
+        //        Context->HandleItem->Handle,
+        //        KphObjectProcessTimes,
+        //        &times,
+        //        sizeof(times),
+        //        NULL
+        //        ));
 
-            status2 = KphQueryInformationObject(
-                processHandle,
-                Context->HandleItem->Handle,
-                KphObjectProcessImageFileName,
-                buffer,
-                bufferSize,
-                &returnLength
-                );
-            if (status2 == STATUS_BUFFER_TOO_SMALL && returnLength > 0)
-            {
-                PhFree(buffer);
-                bufferSize = returnLength;
-                buffer = PhAllocate(returnLength);
+        //    status2 = KphQueryInformationObject(
+        //        processHandle,
+        //        Context->HandleItem->Handle,
+        //        KphObjectProcessImageFileName,
+        //        buffer,
+        //        bufferSize,
+        //        &returnLength
+        //        );
+        //    if (status2 == STATUS_BUFFER_TOO_SMALL && returnLength > 0)
+        //    {
+        //        PhFree(buffer);
+        //        bufferSize = returnLength;
+        //        buffer = PhAllocate(returnLength);
 
-                status2 = KphQueryInformationObject(
-                    processHandle,
-                    Context->HandleItem->Handle,
-                    KphObjectProcessImageFileName,
-                    buffer,
-                    bufferSize,
-                    &returnLength
-                    );
-            }
+        //        status2 = KphQueryInformationObject(
+        //            processHandle,
+        //            Context->HandleItem->Handle,
+        //            KphObjectProcessImageFileName,
+        //            buffer,
+        //            bufferSize,
+        //            &returnLength
+        //            );
+        //    }
 
-            if (NT_SUCCESS(status2))
-            {
-                fileName = PhCreateStringFromUnicodeString(buffer);
-                PhMoveReference(&fileName, PhGetFileName(fileName));
-            }
+        //    if (NT_SUCCESS(status2))
+        //    {
+        //        fileName = PhCreateStringFromUnicodeString(buffer);
+        //        PhMoveReference(&fileName, PhGetFileName(fileName));
+        //    }
 
-            NtClose(processHandle);
-        }
-        else
+        //    NtClose(processHandle);
+        //}
+        //else
         {
             HANDLE dupHandle = NULL;
 
@@ -2087,7 +2075,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ParentWindow = GetParent(hwndDlg);
-            context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
+            context->ListViewClass = PhListView_Initialize(context->ListViewHandle);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -2098,8 +2086,8 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (PhValidWindowPlacementFromSetting(L"HandlePropertiesWindowPosition"))
-                PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
+            if (PhValidWindowPlacementFromSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
             else
                 PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
 
@@ -2126,11 +2114,11 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         {
             PhUnregisterWindowCallback(context->ParentWindow);
 
-            PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
+            PhSaveWindowPlacementToSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            PhDestroyListViewInterface(context->ListViewClass);
+            PhListView_Destroy(context->ListViewClass);
 
             PhRemoveDialogContext(hwndDlg);
         }
@@ -2177,15 +2165,15 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetIListViewContextMenuPoint(context->ListViewClass, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyIListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle, context->ListViewClass);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -2211,7 +2199,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                             {
                             case IDC_COPY:
                                 {
-                                    PhCopyIListView(context->ListViewHandle, context->ListViewClass);
+                                    PhCopyListView(context->ListViewHandle);
                                 }
                                 break;
                             }
@@ -2323,7 +2311,7 @@ VOID PhAddHandlePermissionsTrustee(
             );
         PhSetListViewSubItem(ListViewHandle, index, 1, L"Allow");
     }
-  
+
 
     if (PhGetAccessEntries(
         PhGetStringOrEmpty(Context->HandleProperties->HandleItem->TypeName),
@@ -2697,7 +2685,7 @@ VOID PhUpdateHandlePermissionsDaclSecurity(
             &currentSacl,
             &currentSaclDefaulted
             );
-        
+
         if (NT_SUCCESS(status) && currentSaclPresent && currentSacl)
         {
             PACCESS_ALLOWED_ACE currentAce;
@@ -2984,32 +2972,11 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
 
             PhUpdateHandlePermissionSecurity(context);
 
-
-               // index = PhAddListViewGroupItem(GetDlgItem(hwndDlg, IDC_LIST2), 0, MAXINT, L"Integrity level", NULL);
-              //  PhSetListViewSubItem(GetDlgItem(hwndDlg, IDC_LIST2), index, 1, L"Unable to disable the integrity level.");
-
-
-
-            //// Plugins can load window position in GeneralCallbackHandlePropertiesWindowInitialized, ex. Object Manager (Dart Vanya)
-            //if (!PhPluginsEnabled || !context->OwnerPlugin)
-            //{
-            //    // HACK
-            //    if (PhValidWindowPlacementFromSetting(L"HandlePropertiesWindowPosition"))
-            //        PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
-            //    else
-            //        PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
-            //}
-
-            //PhpUpdateHandleGeneralListViewGroups(context);
-            //PhpUpdateHandleGeneral(context);
-
-            //PhRegisterWindowCallback(context->ParentWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
-
             //if (PhPluginsEnabled)
             //{
             //    PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT Context;
             //    Context = (PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT)context;
-
+            //
             //    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowInitialized), Context);
             //}
 
@@ -3023,7 +2990,7 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
         {
             //PhUnregisterWindowCallback(context->ParentWindow);
 
-            //PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
+            //PhSaveWindowPlacementToSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -3194,9 +3161,7 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
         break;
     case WM_DESTROY:
         {
-            //PhUnregisterWindowCallback(context->ParentWindow);
-
-            //PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
+            //PhSaveWindowPlacementToSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -3249,15 +3214,15 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetIListViewContextMenuPoint(context->ListViewClass, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyIListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle, context->ListViewClass);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -3283,7 +3248,7 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
                             {
                             case IDC_COPY:
                                 {
-                                    PhCopyIListView(context->ListViewHandle, context->ListViewClass);
+                                    PhCopyListView(context->ListViewHandle);
                                 }
                                 break;
                             }

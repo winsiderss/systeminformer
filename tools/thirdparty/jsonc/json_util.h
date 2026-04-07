@@ -39,7 +39,7 @@ extern "C" {
  *
  * Returns NULL on failure.  See json_util_get_last_err() for details.
  */
-JSON_EXPORT struct json_object *json_object_from_file(const char *filename);
+JSON_EXPORT struct json_object *json_object_from_file(const unsigned char *filename);
 
 /**
  * Create a JSON object from already opened file descriptor.
@@ -71,7 +71,7 @@ JSON_EXPORT struct json_object *json_object_from_fd(int fd);
  *
  * Returns -1 if something fails.  See json_util_get_last_err() for details.
  */
-JSON_EXPORT int json_object_to_file(const char *filename, struct json_object *obj);
+JSON_EXPORT int json_object_to_file(const unsigned char *filename, struct json_object *obj);
 
 /**
  * Open and truncate the given file, creating it if necessary, then
@@ -79,7 +79,7 @@ JSON_EXPORT int json_object_to_file(const char *filename, struct json_object *ob
  *
  * Returns -1 if something fails.  See json_util_get_last_err() for details.
  */
-JSON_EXPORT int json_object_to_file_ext(const char *filename, struct json_object *obj, int flags);
+JSON_EXPORT int json_object_to_file_ext(const unsigned char *filename, struct json_object *obj, int flags);
 
 /**
  * Convert the json_object to a string and write it to the file descriptor.
@@ -98,7 +98,7 @@ JSON_EXPORT int json_object_to_fd(int fd, struct json_object *obj, int flags);
  * json_object_to_file{,_ext}, json_object_to_fd() or
  * json_object_from_{file,fd}, or NULL if there is none.
  */
-JSON_EXPORT const char *json_util_get_last_err(void);
+JSON_EXPORT const unsigned char *json_util_get_last_err(void);
 
 /**
  * A parsing helper for integer values.  Returns 0 on success,
@@ -106,22 +106,22 @@ JSON_EXPORT const char *json_util_get_last_err(void);
  * are NOT considered errors, but errno will be set to ERANGE,
  * just like the strtol/strtoll functions do.
  */
-JSON_EXPORT int json_parse_int64(const char *buf, int64_t *retval);
+JSON_EXPORT int json_parse_int64(const unsigned char *buf, int64_t *retval);
 /**
  * A parsing help for integer values, providing one extra bit of 
  * magnitude beyond json_parse_int64().
  */
-JSON_EXPORT int json_parse_uint64(const char *buf, uint64_t *retval);
+JSON_EXPORT int json_parse_uint64(const unsigned char *buf, uint64_t *retval);
 /**
  * @deprecated
  */
-JSON_EXPORT int json_parse_double(const char *buf, double *retval);
+JSON_EXPORT int json_parse_double(const unsigned char *buf, double *retval);
 
 /**
  * Return a string describing the type of the object.
  * e.g. "int", or "object", etc...
  */
-JSON_EXPORT const char *json_type_to_name(enum json_type o_type);
+JSON_EXPORT const unsigned char *json_type_to_name(enum json_type o_type);
 
 #ifdef __cplusplus
 }

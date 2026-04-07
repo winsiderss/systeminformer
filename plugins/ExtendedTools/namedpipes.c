@@ -38,7 +38,7 @@ VOID EtEnumerateNamedPipeDirectory(
     _In_ PPIPE_ENUM_DIALOG_CONTEXT Context
     )
 {
-    static PH_STRINGREF objectName = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE);
+    static CONST PH_STRINGREF objectName = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE);
     NTSTATUS status;
     HANDLE pipeDirectoryHandle;
     IO_STATUS_BLOCK isb;
@@ -516,7 +516,7 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
                 PhSetExtendedListView(context->ListViewWndHandle);
                 PhLoadListViewColumnsFromSetting(SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS_WITH_KSI, context->ListViewWndHandle);
 
-                PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+                PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
                 EtEnumerateNamedPipeHandles(context);
             }
@@ -538,7 +538,7 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
                 PhSetExtendedListView(context->ListViewWndHandle);
                 PhLoadListViewColumnsFromSetting(SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, context->ListViewWndHandle);
 
-                PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+                PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
                 EtEnumerateNamedPipeDirectory(context);
             }

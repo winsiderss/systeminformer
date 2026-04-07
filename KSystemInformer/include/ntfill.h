@@ -3,7 +3,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -150,6 +150,51 @@ ZwQuerySection(
 
 extern POBJECT_TYPE *IoDriverObjectType;
 extern POBJECT_TYPE *IoDeviceObjectType;
+
+typedef
+_Function_class_(IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE)
+BOOLEAN
+NTAPI
+IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE(
+    _In_ PFILE_OBJECT FileObject
+    );
+typedef IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE* PIO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE;
+
+typedef
+_Function_class_(IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION)
+BOOLEAN
+IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION(
+    _In_ PFILE_OBJECT FileObject
+    );
+typedef IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION* PIO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION;
+
+typedef struct _COPY_INFORMATION
+{
+    PFILE_OBJECT SourceFileObject;
+    LONGLONG SourceFileOffset;
+} COPY_INFORMATION, *PCOPY_INFORMATION;
+
+typedef
+_Function_class_(IO_GET_COPY_INFORMATION_EXTENSION)
+NTSTATUS
+IO_GET_COPY_INFORMATION_EXTENSION(
+    _In_ PIRP Irp,
+    _Out_ PCOPY_INFORMATION CopyInformation
+    );
+typedef IO_GET_COPY_INFORMATION_EXTENSION* PIO_GET_COPY_INFORMATION_EXTENSION;
+
+// FLT
+
+typedef
+_Function_class_(FLT_GET_COPY_INFORMATION_FROM_CALLBACK_DATA)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+NTSTATUS
+FLTAPI
+FLT_GET_COPY_INFORMATION_FROM_CALLBACK_DATA(
+    _In_ PFLT_CALLBACK_DATA Data,
+    _Out_ PCOPY_INFORMATION CopyInformation
+    );
+typedef FLT_GET_COPY_INFORMATION_FROM_CALLBACK_DATA* PFLT_GET_COPY_INFORMATION_FROM_CALLBACK_DATA;
 
 // KE
 
@@ -342,7 +387,7 @@ ObOpenObjectByName(
     _In_ POBJECT_TYPE ObjectType,
     _In_ KPROCESSOR_MODE AccessMode,
     _In_opt_ PACCESS_STATE AccessState,
-    _In_opt_ ACCESS_MASK DesiredAccess,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PVOID ParseContext,
     _Out_ PHANDLE Handle
     );
@@ -545,6 +590,7 @@ PsGetProcessJob(
     _In_ PEPROCESS Process
     );
 
+_When_(NT_SUCCESS(return), _Acquires_lock_(Process))
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -552,6 +598,7 @@ PsAcquireProcessExitSynchronization(
     _In_ PEPROCESS Process
     );
 
+_Releases_lock_(Process)
 NTKERNELAPI
 VOID
 NTAPI
@@ -563,6 +610,13 @@ NTKERNELAPI
 PVOID
 NTAPI
 PsGetProcessSectionBaseAddress(
+    _In_ PEPROCESS Process
+    );
+
+NTKERNELAPI
+BOOLEAN
+NTAPI
+PsGetProcessExitProcessCalled(
     _In_ PEPROCESS Process
     );
 
@@ -599,7 +653,6 @@ typedef enum _PS_PROTECTED_TYPE
     PsProtectedTypeNone = 0,
     PsProtectedTypeProtectedLight = 1,
     PsProtectedTypeProtected = 2
-
 } PS_PROTECTED_TYPE, *PPS_PROTECTED_TYPE;
 
 typedef enum _PS_PROTECTED_SIGNER
@@ -798,6 +851,27 @@ typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
     ULONG RelativeAppNameOffset;
     ULONG CommandLineOffset;
 } PROCESS_TELEMETRY_ID_INFORMATION, *PPROCESS_TELEMETRY_ID_INFORMATION;
+
+#define PROCESS_CREATE_FLAGS_MINIMAL_PROCESS 0x00000800 // NtCreateProcessEx only
+
+typedef
+_Function_class_(ZW_CREATE_PROCESS_EX)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZW_CREATE_PROCESS_EX(
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ HANDLE ParentProcess,
+    _In_ ULONG Flags, // PROCESS_CREATE_FLAGS_*
+    _In_opt_ HANDLE SectionHandle,
+    _In_opt_ HANDLE DebugPort,
+    _In_opt_ HANDLE TokenHandle,
+    _Reserved_ ULONG Reserved // JobMemberLevel
+    );
+typedef ZW_CREATE_PROCESS_EX* PZW_CREATE_PROCESS_EX;
+
 
 // RTL
 
@@ -1230,6 +1304,7 @@ MiGetVadEndAddress(
 
 NTKERNELAPI
 NTSTATUS
+NTAPI
 MmCreateSection(
     _Out_ PVOID* SectionObject,
     _In_ ACCESS_MASK DesiredAccess,
@@ -1239,6 +1314,30 @@ MmCreateSection(
     _In_ ULONG AllocationAttributes,
     _In_opt_ HANDLE FileHandle,
     _In_opt_ PFILE_OBJECT FileObject
+    );
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+MmMapViewOfSection(
+    _In_ PVOID SectionObject,
+    _In_ PEPROCESS Process,
+    _Inout_ _At_(*BaseAddress, _Readable_bytes_(*ViewSize) _Writable_bytes_(*ViewSize) _Post_readable_byte_size_(*ViewSize)) PVOID *BaseAddress,
+    _In_ ULONG_PTR ZeroBits,
+    _In_ SIZE_T CommitSize,
+    _Inout_opt_ PLARGE_INTEGER SectionOffset,
+    _Inout_ PSIZE_T ViewSize,
+    _In_ SECTION_INHERIT InheritDisposition,
+    _In_ ULONG AllocationType,
+    _In_ ULONG PageProtection
+    );
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+MmUnmapViewOfSection(
+    _In_ PEPROCESS Process,
+    _In_ PVOID BaseAddress
     );
 
 NTKERNELAPI

@@ -28,9 +28,9 @@ static_assert(sizeof(HSTRING_REFERENCE) == sizeof(WSTRING_HEADER), "HSTRING_REFE
 /**
  * Creates a string from a Windows Runtime string.
  *
- * @param String The Windows Runtime string.
+ * \param String The Windows Runtime string.
  *
- * @return A pointer to the created string.
+ * \return A pointer to the created string.
  */
 PPH_STRING PhCreateStringFromWindowsRuntimeString(
     _In_ HSTRING String
@@ -725,6 +725,7 @@ CleanupExit:
     return status;
 }
 
+_Function_class_(PH_ENUM_NEXT_THREAD)
 static NTSTATUS NTAPI PhEnumNextThreadSystemIdentification(
     _In_ HANDLE ThreadHandle,
     _Inout_ HANDLE* Context

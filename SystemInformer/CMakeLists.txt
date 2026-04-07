@@ -110,10 +110,10 @@ set(SOURCES
     "hndlstat.c"
     "infodlg.c"
     "informer.c"
+    "informerwnd.c"
     "itemtips.c"
     "jobprp.c"
     "kdump.c"
-    "ksidbg.c"
     "ksisup.c"
     "ksyscall.c"
     "log.c"
@@ -140,6 +140,7 @@ set(SOURCES
     "mwpgsrv.c"
     "netlist.c"
     "netprv.c"
+    "netsup.c"
     "notifico.c"
     "notiftoast.cpp"
     "ntobjprp.c"
@@ -210,6 +211,7 @@ target_include_directories(SystemInformer PRIVATE
 )
 
 target_include_directories(SystemInformer INTERFACE
+    "${SI_ROOT}/phnt/include"
     "${SI_ROOT}/sdk/include"
 )
 

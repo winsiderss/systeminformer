@@ -116,6 +116,9 @@ if /i "%ACTION%"=="clean" (
     echo Setting up Visual Studio environment for %VCVARS_ARCH%...
     call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" %VCVARS_ARCH%
     if %ERRORLEVEL% neq 0 goto end
+    if "%NINJA_STATUS%"=="" (
+        set "NINJA_STATUS=[%%p][%%w][%%f/%%t][%%o/s] "
+    )
     cmake --build %BUILD_DIR% --config %CONFIG% %CMAKE_BUILD_OPTS%
     if %ERRORLEVEL% neq 0 goto end
 ) else (
@@ -124,4 +127,8 @@ if /i "%ACTION%"=="clean" (
 )
 
 :end
-if "%TIB%"=="false" pause
+if /i "%TIB%"=="false" (
+    set "STDIN_REDIRECTED=False"
+    for /f %%i in ('powershell -NoProfile -Command "[Console]::IsInputRedirected"') do set "STDIN_REDIRECTED=%%i"
+    if /i not "%STDIN_REDIRECTED%"=="True" pause
+)

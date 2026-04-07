@@ -99,7 +99,7 @@ typedef struct _ASMPAGE_CONTEXT
     PPH_PROCESS_ITEM ProcessItem;
     PDNA_NODE ClrV2Node;
 
-    volatile LONG CancelQueryContext;
+    LONG CancelQueryContext;
 
     union
     {
@@ -226,6 +226,11 @@ static FLAG_DEFINITION StartupFlagsMap[] =
     { L"ARM", StartupFlags_ARM }
 };
 
+/**
+ * Adds the .NET Assemblies property page to a process properties context.
+ *
+ * \param PropContext The process property sheet context to which the page is added.
+ */
 VOID AddAsmPageToPropContext(
     _In_ PPH_PLUGIN_PROCESS_PROPCONTEXT PropContext
     )
@@ -236,6 +241,12 @@ VOID AddAsmPageToPropContext(
         );
 }
 
+/**
+ * Formats a 64-bit value as a hexadecimal string prefixed with "0x".
+ *
+ * \param Value The 64-bit value to format.
+ * \return A new PPH_STRING containing the formatted hex string.
+ */
 PPH_STRING FormatToHexString(
     _In_ ULONG64 Value
     )
@@ -248,6 +259,14 @@ PPH_STRING FormatToHexString(
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
+/**
+ * Converts a bitmask value to a comma-separated string of flag names.
+ *
+ * \param Flags The bitmask value to convert.
+ * \param Map An array of FLAG_DEFINITION entries mapping bit values to names.
+ * \param SizeOfMap The size in bytes of the Map array.
+ * \return A new PPH_STRING containing the comma-separated flag names, or an empty string if no flags match.
+ */
 PPH_STRING FlagsToString(
     _In_ ULONG Flags,
     _In_ PFLAG_DEFINITION Map,
@@ -274,6 +293,12 @@ PPH_STRING FlagsToString(
     return PhFinalStringBuilderString(&sb);
 }
 
+/**
+ * Allocates and initializes a new DNA_NODE and adds it to the query context's node list.
+ *
+ * \param Context The query context to which the node is added.
+ * \return A pointer to the newly allocated and initialized DNA_NODE.
+ */
 PDNA_NODE AddNode(
     _Inout_ PASMPAGE_QUERY_CONTEXT Context
     )
@@ -295,6 +320,11 @@ PDNA_NODE AddNode(
     return node;
 }
 
+/**
+ * Frees all resources associated with a DNA_NODE and then frees the node itself.
+ *
+ * \param Node The node to destroy.
+ */
 VOID DotNetAsmDestroyNode(
     _In_ PDNA_NODE Node
     )
@@ -325,6 +355,13 @@ VOID DotNetAsmDestroyNode(
     PhFree(Node);
 }
 
+/**
+ * Creates a placeholder CLR root node for CLR versions that do not emit ETW rundown events.
+ *
+ * \param Context The query context to which the fake CLR node is added.
+ * \param DisplayName The display name for the fake CLR node (e.g., "CLR v2.0.50727").
+ * \return A pointer to the newly created DNA_NODE.
+ */
 PDNA_NODE AddFakeClrNode(
     _In_ PASMPAGE_QUERY_CONTEXT Context,
     _In_ PCWSTR DisplayName
@@ -347,6 +384,13 @@ PDNA_NODE AddFakeClrNode(
     return node;
 }
 
+/**
+ * Searches the root node list for a CLR node with the specified instance identifier.
+ *
+ * \param Context The query context whose root list is searched.
+ * \param ClrInstanceID The CLR instance identifier to find.
+ * \return A pointer to the matching DNA_NODE, or NULL if not found.
+ */
 PDNA_NODE FindClrNode(
     _In_ PASMPAGE_QUERY_CONTEXT Context,
     _In_ USHORT ClrInstanceID
@@ -354,7 +398,7 @@ PDNA_NODE FindClrNode(
 {
     for (ULONG i = 0; i < Context->NodeRootList->Count; i++)
     {
-        PDNA_NODE node = Context->NodeRootList->Items[i];
+        PDNA_NODE node = PhItemList(Context->NodeRootList, i);
 
         if (!node->IsFakeClr && node->u.Clr.ClrInstanceID == ClrInstanceID)
             return node;
@@ -363,6 +407,13 @@ PDNA_NODE FindClrNode(
     return NULL;
 }
 
+/**
+ * Searches the children of a CLR node for an AppDomain node with the specified identifier.
+ *
+ * \param ClrNode The CLR parent node whose children are searched.
+ * \param AppDomainID The AppDomain identifier to find.
+ * \return A pointer to the matching AppDomain DNA_NODE, or NULL if not found.
+ */
 PDNA_NODE FindAppDomainNode(
     _In_ PDNA_NODE ClrNode,
     _In_ ULONG64 AppDomainID
@@ -370,7 +421,7 @@ PDNA_NODE FindAppDomainNode(
 {
     for (ULONG i = 0; i < ClrNode->Children->Count; i++)
     {
-        PDNA_NODE node = ClrNode->Children->Items[i];
+        PDNA_NODE node = PhItemList(ClrNode->Children, i);
 
         if (node->u.AppDomain.AppDomainID == AppDomainID)
             return node;
@@ -379,6 +430,13 @@ PDNA_NODE FindAppDomainNode(
     return NULL;
 }
 
+/**
+ * Searches the children of an AppDomain node for an Assembly node with the specified identifier.
+ *
+ * \param AppDomainNode The AppDomain parent node whose children are searched.
+ * \param AssemblyID The assembly identifier to find.
+ * \return A pointer to the matching Assembly DNA_NODE, or NULL if not found.
+ */
 PDNA_NODE FindAssemblyNode(
     _In_ PDNA_NODE AppDomainNode,
     _In_ ULONG64 AssemblyID
@@ -386,7 +444,7 @@ PDNA_NODE FindAssemblyNode(
 {
     for (ULONG i = 0; i < AppDomainNode->Children->Count; i++)
     {
-        PDNA_NODE node = AppDomainNode->Children->Items[i];
+        PDNA_NODE node = PhItemList(AppDomainNode->Children, i);
 
         if (node->u.Assembly.AssemblyID == AssemblyID)
             return node;
@@ -395,6 +453,13 @@ PDNA_NODE FindAssemblyNode(
     return NULL;
 }
 
+/**
+ * Searches all AppDomain children of a CLR node for an Assembly node with the specified identifier.
+ *
+ * \param ClrNode The CLR root node whose descendant AppDomains are searched.
+ * \param AssemblyID The assembly identifier to find.
+ * \return A pointer to the matching Assembly DNA_NODE, or NULL if not found.
+ */
 PDNA_NODE FindAssemblyNode2(
     _In_ PDNA_NODE ClrNode,
     _In_ ULONG64 AssemblyID
@@ -402,11 +467,11 @@ PDNA_NODE FindAssemblyNode2(
 {
     for (ULONG i = 0; i < ClrNode->Children->Count; i++)
     {
-        PDNA_NODE appDomainNode = ClrNode->Children->Items[i];
+        PDNA_NODE appDomainNode = PhItemList(ClrNode->Children, i);
 
         for (ULONG j = 0; j < appDomainNode->Children->Count; j++)
         {
-            PDNA_NODE assemblyNode = appDomainNode->Children->Items[j];
+            PDNA_NODE assemblyNode = PhItemList(appDomainNode->Children, j);
 
             if (assemblyNode->u.Assembly.AssemblyID == AssemblyID)
                 return assemblyNode;
@@ -416,6 +481,13 @@ PDNA_NODE FindAssemblyNode2(
     return NULL;
 }
 
+/**
+ * Searches all nodes in the query context's root list for an Assembly node with the specified identifier.
+ *
+ * \param Context The query context whose root list is searched.
+ * \param AssemblyID The assembly identifier to find.
+ * \return A pointer to the matching Assembly DNA_NODE, or NULL if not found.
+ */
 PDNA_NODE FindAssemblyNode3(
     _In_ PASMPAGE_QUERY_CONTEXT Context,
     _In_ ULONG64 AssemblyID
@@ -423,11 +495,11 @@ PDNA_NODE FindAssemblyNode3(
 {
     for (ULONG i = 0; i < Context->NodeRootList->Count; i++)
     {
-        PDNA_NODE appDomainNode = Context->NodeRootList->Items[i];
+        PDNA_NODE appDomainNode = PhItemList(Context->NodeRootList, i);
 
         for (ULONG j = 0; j < appDomainNode->Children->Count; j++)
         {
-            PDNA_NODE assemblyNode = appDomainNode->Children->Items[j];
+            PDNA_NODE assemblyNode = PhItemList(appDomainNode->Children, j);
 
             if (assemblyNode->u.Assembly.AssemblyID == AssemblyID)
                 return assemblyNode;
@@ -437,6 +509,13 @@ PDNA_NODE FindAssemblyNode3(
     return NULL;
 }
 
+/**
+ * Compares two Assembly DNA_NODE pointers by their StructureText for qsort.
+ *
+ * \param elem1 Pointer to the first DNA_NODE pointer.
+ * \param elem2 Pointer to the second DNA_NODE pointer.
+ * \return Negative if elem1 < elem2, zero if equal, positive if elem1 > elem2.
+ */
 static int __cdecl AssemblyNodeNameCompareFunction(
     _In_ const void *elem1,
     _In_ const void *elem2
@@ -448,6 +527,13 @@ static int __cdecl AssemblyNodeNameCompareFunction(
     return PhCompareStringRef(&node1->StructureText, &node2->StructureText, TRUE);
 }
 
+/**
+ * Compares two AppDomain DNA_NODE pointers by their AppDomainID for qsort.
+ *
+ * \param elem1 Pointer to the first DNA_NODE pointer.
+ * \param elem2 Pointer to the second DNA_NODE pointer.
+ * \return Negative if elem1 < elem2, zero if equal, positive if elem1 > elem2.
+ */
 static int __cdecl AppdomainNodeTypeCompareFunction(
     _In_ const void *elem1,
     _In_ const void *elem2
@@ -459,6 +545,12 @@ static int __cdecl AppdomainNodeTypeCompareFunction(
     return uint64cmp(node1->u.AppDomain.AppDomainID, node2->u.AppDomain.AppDomainID);
 }
 
+/**
+ * Expands or collapses all nodes in the assemblies tree view.
+ *
+ * \param Context The assemblies page context containing the node list and tree handle.
+ * \param Expand TRUE to expand all nodes; FALSE to collapse all nodes.
+ */
 VOID DotNetAsmExpandAllTreeNodes(
     _In_ PASMPAGE_CONTEXT Context,
     _In_ BOOLEAN Expand
@@ -469,7 +561,7 @@ VOID DotNetAsmExpandAllTreeNodes(
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
-        PPH_MODULE_NODE node = Context->NodeList->Items[i];
+        PDNA_NODE node = PhItemList(Context->NodeList, i);
 
         if (node->Node.Expanded != Expand)
         {
@@ -482,6 +574,11 @@ VOID DotNetAsmExpandAllTreeNodes(
         TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
+/**
+ * Destroys all tree nodes and releases the node and root node lists from the assemblies page context.
+ *
+ * \param Context The assemblies page context whose node lists are to be destroyed.
+ */
 VOID DotNetAsmDestroyTreeNodes(
     _In_ PASMPAGE_CONTEXT Context
     )
@@ -489,7 +586,7 @@ VOID DotNetAsmDestroyTreeNodes(
     if (Context->NodeList)
     {
         for (ULONG i = 0; i < Context->NodeList->Count; i++)
-            DotNetAsmDestroyNode(Context->NodeList->Items[i]);
+            DotNetAsmDestroyNode(PhItemList(Context->NodeList, i));
 
         PhDereferenceObject(Context->NodeList);
         Context->NodeList = NULL;
@@ -502,6 +599,12 @@ VOID DotNetAsmDestroyTreeNodes(
     }
 }
 
+/**
+ * Clears the node and root node lists without destroying the individual nodes.
+ *
+ * \param Context The assemblies page context whose node lists are to be cleared.
+ * \remarks This function clears the list references only; it does not free the underlying node objects.
+ */
 VOID DotNetAsmClearTreeNodes(
     _In_ PASMPAGE_CONTEXT Context
     )
@@ -519,6 +622,12 @@ VOID DotNetAsmClearTreeNodes(
     //TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
+/**
+ * Returns the currently selected node in the assemblies tree view.
+ *
+ * \param Context The assemblies page context.
+ * \return A pointer to the selected DNA_NODE, or NULL if no node is selected.
+ */
 PDNA_NODE DotNetAsmGetSelectedTreeNode(
     _In_ PASMPAGE_CONTEXT Context
     )
@@ -527,7 +636,7 @@ PDNA_NODE DotNetAsmGetSelectedTreeNode(
     {
         for (ULONG i = 0; i < Context->NodeList->Count; i++)
         {
-            PDNA_NODE node = Context->NodeList->Items[i];
+            PDNA_NODE node = PhItemList(Context->NodeList, i);
 
             if (node->Node.Selected)
             {
@@ -539,6 +648,12 @@ PDNA_NODE DotNetAsmGetSelectedTreeNode(
     return NULL;
 }
 
+/**
+ * Displays the context menu for the selected assembly node.
+ *
+ * \param Context The assemblies page context.
+ * \param ContextMenuEvent The treenew context menu event containing location and column information.
+ */
 VOID DotNetAsmShowContextMenu(
     _In_ PASMPAGE_CONTEXT Context,
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenuEvent
@@ -599,7 +714,7 @@ VOID DotNetAsmShowContextMenu(
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
-                            L"ProgramInspectExecutables",
+                            SETTING_PROGRAM_INSPECT_EXECUTABLES,
                             PhGetString(node->PathText),
                             FALSE,
                             L"Make sure the PE Viewer executable file is present."
@@ -613,7 +728,7 @@ VOID DotNetAsmShowContextMenu(
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
-                            L"ProgramInspectExecutables",
+                            SETTING_PROGRAM_INSPECT_EXECUTABLES,
                             PhGetString(node->NativePathText),
                             FALSE,
                             L"Make sure the PE Viewer executable file is present."
@@ -627,7 +742,7 @@ VOID DotNetAsmShowContextMenu(
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
-                            L"FileBrowseExecutable",
+                            SETTING_FILE_BROWSE_EXECUTABLE,
                             PhGetString(node->PathText),
                             FALSE,
                             L"Make sure the Explorer executable file is present."
@@ -641,7 +756,7 @@ VOID DotNetAsmShowContextMenu(
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
-                            L"FileBrowseExecutable",
+                            SETTING_FILE_BROWSE_EXECUTABLE,
                             PhGetString(node->NativePathText),
                             FALSE,
                             L"Make sure the Explorer executable file is present."
@@ -726,6 +841,16 @@ BEGIN_SORT_FUNCTION(Mvid)
 }
 END_SORT_FUNCTION
 
+/**
+ * TreeNew callback that handles data requests, sorting, key events, and context menus for the assemblies tree.
+ *
+ * \param hwnd The tree-new control handle.
+ * \param Message The TreeNew message identifier.
+ * \param Parameter1 The first message-specific parameter.
+ * \param Parameter2 The second message-specific parameter.
+ * \param Context The assemblies page context.
+ * \return TRUE if the message was handled, FALSE otherwise.
+ */
 BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -853,21 +978,21 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
             {
             case DNA_TYPE_CLR:
             case DNA_TYPE_APPDOMAIN:
-                //getNodeColor->BackColor = PhGetIntegerSetting(L"ColorDotNet");
+                //getNodeColor->BackColor = PhGetIntegerSetting(SETTING_COLOR_DOT_NET);
                 break;
             case DNA_TYPE_ASSEMBLY:
                 {
                     if (context->HighlightDynamicModules && (node->u.Assembly.AssemblyFlags & 0x2) == 0x2)
                     {
-                        getNodeColor->BackColor = PhGetIntegerSetting(L"ColorPacked");
+                        getNodeColor->BackColor = PhGetIntegerSetting(SETTING_COLOR_PACKED);
                     }
                     else if (context->HighlightNativeModules && (node->u.Assembly.AssemblyFlags & 0x4) == 0x4)
                     {
-                        getNodeColor->BackColor = PhGetIntegerSetting(L"ColorSystemProcesses");
+                        getNodeColor->BackColor = PhGetIntegerSetting(SETTING_COLOR_SYSTEM_PROCESSES);
                     }
                     else
                     {
-                        //getNodeColor->BackColor = PhGetIntegerSetting(L"ColorDotNet");
+                        //getNodeColor->BackColor = PhGetIntegerSetting(SETTING_COLOR_DOT_NET);
                     }
                 }
                 break;
@@ -933,7 +1058,7 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
             {
                 PhShellExecuteUserString(
                     context->WindowHandle,
-                    L"ProgramInspectExecutables",
+                    SETTING_PROGRAM_INSPECT_EXECUTABLES,
                     PhGetString(node->PathText),
                     FALSE,
                     L"Make sure the PE Viewer executable file is present."
@@ -969,6 +1094,11 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     return FALSE;
 }
 
+/**
+ * Initializes the assemblies tree-new control, adds columns, and loads saved settings.
+ *
+ * \param Context The assemblies page context whose tree handle and node lists are initialized.
+ */
 VOID DotNetAsmInitializeTreeList(
     _Inout_ PASMPAGE_CONTEXT Context
     )
@@ -998,6 +1128,11 @@ VOID DotNetAsmInitializeTreeList(
     DotNetAsmLoadSettingsTreeList(Context);
 }
 
+/**
+ * Removes the tree filter, saves settings, and destroys all tree nodes.
+ *
+ * \param Context The assemblies page context to clean up.
+ */
 VOID DotNetAsmDeleteTree(
     _Inout_ PASMPAGE_CONTEXT Context
     )
@@ -1009,6 +1144,11 @@ VOID DotNetAsmDeleteTree(
     DotNetAsmDestroyTreeNodes(Context);
 }
 
+/**
+ * Loads tree-new column layout and display flag settings from the plugin settings store.
+ *
+ * \param Context The assemblies page context to apply settings to.
+ */
 VOID DotNetAsmLoadSettingsTreeList(
     _Inout_ PASMPAGE_CONTEXT Context
     )
@@ -1028,6 +1168,11 @@ VOID DotNetAsmLoadSettingsTreeList(
     PhDereferenceObject(settings);
 }
 
+/**
+ * Saves tree-new column layout, sort order, and display flag settings to the plugin settings store.
+ *
+ * \param Context The assemblies page context whose settings are persisted.
+ */
 VOID DotNetAsmSaveSettingsTreeList(
     _Inout_ PASMPAGE_CONTEXT Context
     )
@@ -1049,6 +1194,12 @@ VOID DotNetAsmSaveSettingsTreeList(
     PhDereferenceObject(settings);
 }
 
+/**
+ * Toggles a display option flag in the assemblies page context.
+ *
+ * \param Context The assemblies page context whose option flag is toggled.
+ * \param Options The menu option identifier (e.g., DN_ASM_MENU_HIDE_DYNAMIC_OPTION).
+ */
 VOID DotNetAsmSetOptionsTreeList(
     _Inout_ PASMPAGE_CONTEXT Context,
     _In_ ULONG Options
@@ -1071,6 +1222,15 @@ VOID DotNetAsmSetOptionsTreeList(
     }
 }
 
+/**
+ * Starts or attaches to the System Informer .NET ETW trace session.
+ *
+ * \param SessionHandle Receives the ETW trace session handle on success.
+ * \param Properties Receives a pointer to the allocated EVENT_TRACE_PROPERTIES on success.
+ * \return ERROR_SUCCESS on success, or a Win32 error code on failure.
+ * \remarks If the session already exists, the existing session handle is queried and returned.
+ * The caller is responsible for freeing the Properties buffer.
+ */
 _Success_(return == ERROR_SUCCESS)
 static ULONG StartDotNetTrace(
     _Out_ PTRACEHANDLE SessionHandle,
@@ -1125,6 +1285,12 @@ static ULONG StartDotNetTrace(
     }
 }
 
+/**
+ * ETW buffer callback that signals the trace processor to continue consuming events.
+ *
+ * \param Buffer The EVENT_TRACE_LOGFILE buffer descriptor provided by ETW.
+ * \return Always TRUE to continue processing.
+ */
 static ULONG NTAPI DotNetBufferCallback(
     _In_ PEVENT_TRACE_LOGFILE Buffer
     )
@@ -1132,34 +1298,89 @@ static ULONG NTAPI DotNetBufferCallback(
     return TRUE;
 }
 
+/**
+ * Creates a PPH_STRING from a potentially unaligned wide character string.
+ *
+ * \param UnalignedString A pointer to a null-terminated wide string that may not be naturally aligned.
+ * \return A new PPH_STRING containing a copy of the string.
+ * \remarks If the pointer is already aligned, the string is created directly. Otherwise a temporary
+ * aligned buffer is used to safely copy characters one at a time using memcpy.
+ */
 PPH_STRING DnCreateStringSafe(
     _In_ UNALIGNED PCWSTR UnalignedString
     )
 {
-    if (IS_ALIGNED(UnalignedString, MAX_NATURAL_ALIGNMENT))
+    if (IS_ALIGNED(UnalignedString, MEMORY_ALLOCATION_ALIGNMENT))
     {
         // Address is aligned, access directly
-
         return PhCreateString(UnalignedString);
     }
-    else // if (((ULONG_PTR)UnalignedString % sizeof(PWSTR)) != 0)
+    else
     {
+        WCHAR ch;
         SIZE_T alignedLength = 0;
-        WCHAR alignedBuffer[0x800];
+        const unsigned char *src = (const unsigned char *)UnalignedString;
+        const SIZE_T maxChars = 0x1000 - 1;
 
-        // Address is not aligned, use memcpy to access the string.
-        while (UnalignedString[alignedLength] != UNICODE_NULL && alignedLength < RTL_NUMBER_OF(alignedBuffer) - 1)
+        SIZE_T allocSize = 0x1000 * sizeof(WCHAR);
+        WCHAR *alignedBuffer = _aligned_malloc(allocSize, MEMORY_ALLOCATION_ALIGNMENT);
+
+        if (alignedBuffer)
         {
-            alignedLength++;
+            // Read one WCHAR at a time from the unaligned source using memcpy to avoid unaligned wide deref.
+            while (alignedLength < maxChars)
+            {
+                memcpy(&ch, src + alignedLength * sizeof(WCHAR), sizeof(WCHAR));
+                if (ch == UNICODE_NULL)
+                    break;
+                alignedLength++;
+            }
+
+            // Copy the measured characters into alignedBuffer (memcpy handles unaligned source).
+            if (alignedLength)
+            {
+                memcpy(alignedBuffer, UnalignedString, alignedLength * sizeof(WCHAR));
+            }
+            alignedBuffer[alignedLength] = UNICODE_NULL;
+
+            PPH_STRING result = PhCreateString(alignedBuffer);
+            _aligned_free(alignedBuffer);
+            return result;
         }
+        else
+        {
+            // Fallback to a small stack buffer if allocation fails.
+            WCHAR smallBuffer[256];
+            const SIZE_T smallMax = RTL_NUMBER_OF(smallBuffer) - 1;
+            alignedLength = 0;
 
-        memcpy(alignedBuffer, UnalignedString, alignedLength * sizeof(WCHAR));
-        alignedBuffer[alignedLength] = UNICODE_NULL;
+            while (alignedLength < smallMax)
+            {
+                memcpy(&ch, src + alignedLength * sizeof(WCHAR), sizeof(WCHAR));
+                if (ch == UNICODE_NULL)
+                    break;
+                alignedLength++;
+            }
 
-        return PhCreateString(alignedBuffer);
+            if (alignedLength)
+            {
+                memcpy(smallBuffer, UnalignedString, alignedLength * sizeof(WCHAR));
+            }
+            smallBuffer[alignedLength] = UNICODE_NULL;
+
+            return PhCreateString(smallBuffer);
+        }
     }
 }
 
+/**
+ * Processes a single decoded .NET ETW event and updates the query context's node tree.
+ *
+ * \param EventRecord The ETW event record whose header and descriptor are inspected.
+ * \param UserData Pointer to the (possibly aligned-copied) user data payload for the event.
+ * \remarks Handles both .NET 4.0+ (descriptor ID-based) and .NET 2.0 (opcode-based) events.
+ * Builds CLR, AppDomain, Assembly, and Module nodes and signals trace completion on DCStartComplete.
+ */
 static VOID DotNetUserDataCallback(
     _In_ PEVENT_RECORD EventRecord,
     _In_ PVOID UserData
@@ -1235,6 +1456,14 @@ static VOID DotNetUserDataCallback(
                 appDomainNameString = DnCreateStringSafe(offset);
                 displayNameString = PhConcatStringRef2(&appDomainString, &appDomainNameString->sr);
                 offset = PTR_ADD_OFFSET(offset, appDomainNameString->Length + sizeof(UNICODE_NULL) + sizeof(ULONG));
+
+                if ((ULONG_PTR)PTR_ADD_OFFSET(offset, sizeof(USHORT)) > (ULONG_PTR)PTR_ADD_OFFSET(UserData, EventRecord->UserDataLength))
+                {
+                    PhDereferenceObject(displayNameString);
+                    PhDereferenceObject(appDomainNameString);
+                    break;
+                }
+
                 clrInstanceID = *(UNALIGNED PUSHORT)offset;
 
                 // Find the CLR node to add the AppDomain node to.
@@ -1285,6 +1514,13 @@ static VOID DotNetUserDataCallback(
                 offset = PTR_ADD_OFFSET(UserData, RTL_SIZEOF_THROUGH_FIELD(AssemblyLoadUnloadRundown_V1, AssemblyFlags));
                 assemblyNameString = DnCreateStringSafe(offset);
                 offset = PTR_ADD_OFFSET(offset, assemblyNameString->Length + sizeof(UNICODE_NULL));
+
+                if ((ULONG_PTR)PTR_ADD_OFFSET(offset, sizeof(USHORT)) > (ULONG_PTR)PTR_ADD_OFFSET(UserData, EventRecord->UserDataLength))
+                {
+                    PhDereferenceObject(assemblyNameString);
+                    break;
+                }
+
                 clrInstanceID = *(UNALIGNED PUSHORT)offset;
 
                 // Find the AppDomain node to add the Assembly node to.
@@ -1342,6 +1578,14 @@ static VOID DotNetUserDataCallback(
                 offset = PTR_ADD_OFFSET(offset, moduleILPathString->Length + sizeof(UNICODE_NULL));
                 moduleNativeString = DnCreateStringSafe(offset);
                 offset = PTR_ADD_OFFSET(offset, moduleNativeString->Length + sizeof(UNICODE_NULL));
+
+                if ((ULONG_PTR)PTR_ADD_OFFSET(offset, sizeof(USHORT)) > (ULONG_PTR)PTR_ADD_OFFSET(UserData, EventRecord->UserDataLength))
+                {
+                    PhDereferenceObject(moduleNativeString);
+                    PhDereferenceObject(moduleILPathString);
+                    break;
+                }
+
                 clrInstanceID = *(UNALIGNED PUSHORT)offset;
 
                 // Find the Assembly node to set the path on.
@@ -1450,33 +1694,35 @@ static VOID DotNetUserDataCallback(
     }
 }
 
+/**
+ * ETW event record callback that ensures aligned access before dispatching to DotNetUserDataCallback.
+ *
+ * \param EventRecord The ETW event record provided by the trace processor.
+ * \remarks If the user data is not naturally aligned, a copy is made into a heap-allocated aligned buffer.
+ */
 static VOID NTAPI DotNetEventCallback(
     _In_ PEVENT_RECORD EventRecord
     )
 {
-    if (EventRecord->UserDataLength)
+    if (!EventRecord->UserDataLength)
+        return;
+
+    // Note: ETW does not force an alignment between event data values. (dmex)
+
+    if (EventRecord->UserDataLength != ROUND_TO_SIZE(EventRecord->UserDataLength, MEMORY_ALLOCATION_ALIGNMENT))
     {
-        // Note: ETW does not force an alignment between event data values.
+        PVOID alignedUserData;
 
-        if (EventRecord->UserDataLength != ROUND_TO_SIZE(EventRecord->UserDataLength, MEMORY_ALLOCATION_ALIGNMENT))
+        alignedUserData = _aligned_malloc(EventRecord->UserDataLength, MEMORY_ALLOCATION_ALIGNMENT);
+
+        if (alignedUserData)
         {
-            PVOID alignedUserData;
+            RtlSecureZeroMemory(alignedUserData, EventRecord->UserDataLength);
+            RtlCopyMemory(alignedUserData, EventRecord->UserData, EventRecord->UserDataLength);
 
-            alignedUserData = _aligned_malloc(EventRecord->UserDataLength, MEMORY_ALLOCATION_ALIGNMENT);
+            DotNetUserDataCallback(EventRecord, alignedUserData);
 
-            if (alignedUserData)
-            {
-                RtlSecureZeroMemory(alignedUserData, EventRecord->UserDataLength);
-                RtlCopyMemory(alignedUserData, EventRecord->UserData, EventRecord->UserDataLength);
-
-                DotNetUserDataCallback(EventRecord, alignedUserData);
-
-                _aligned_free(alignedUserData);
-            }
-        }
-        else
-        {
-            DotNetUserDataCallback(EventRecord, EventRecord->UserData);
+            _aligned_free(alignedUserData);
         }
     }
     else
@@ -1485,6 +1731,12 @@ static VOID NTAPI DotNetEventCallback(
     }
 }
 
+/**
+ * Opens the .NET ETW trace session and processes events until the session ends or an error occurs.
+ *
+ * \param Context The query context providing the event callbacks and trace handle storage.
+ * \return ERROR_SUCCESS or a Win32 error code.
+ */
 static ULONG ProcessDotNetTrace(
     _In_ PASMPAGE_QUERY_CONTEXT Context
     )
@@ -1517,23 +1769,26 @@ static ULONG ProcessDotNetTrace(
     return result;
 }
 
+/**
+ * Thread procedure that starts the .NET ETW trace session, enables the CLR provider, and processes events.
+ *
+ * \param Parameter A pointer to the ASMPAGE_QUERY_CONTEXT for this query.
+ * \return The Win32 result of the trace operation cast to NTSTATUS.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateDotNetTraceInfoThreadStart(
     _In_ PVOID Parameter
     )
 {
     PASMPAGE_QUERY_CONTEXT context = Parameter;
+    PEVENT_TRACE_PROPERTIES properties = NULL;
     TRACEHANDLE sessionHandle;
-    PEVENT_TRACE_PROPERTIES properties;
     PCGUID guidToEnable;
 
     context->TraceResult = StartDotNetTrace(&sessionHandle, &properties);
 
     if (context->TraceResult != ERROR_SUCCESS)
-    {
-        PhFree(properties);
         return context->TraceResult;
-    }
 
     if (context->TraceClrV2)
         guidToEnable = &ClrRuntimeProviderGuid;
@@ -1567,6 +1822,14 @@ NTSTATUS UpdateDotNetTraceInfoThreadStart(
     return context->TraceResult;
 }
 
+/**
+ * Runs the .NET ETW trace session in a worker thread with an optional timeout.
+ *
+ * \param Context The query context for this trace session.
+ * \param ClrV2 TRUE to enable the CLR v2 runtime provider; FALSE to enable the CLR rundown provider.
+ * \param Timeout An optional timeout after which the trace handle is closed to force termination.
+ * \return ERROR_SUCCESS on success, ERROR_TIMEOUT if the timeout expired, or a Win32 error code.
+ */
 ULONG UpdateDotNetTraceInfoWithTimeout(
     _In_ PASMPAGE_QUERY_CONTEXT Context,
     _In_ BOOLEAN ClrV2,
@@ -1611,6 +1874,14 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
     return Context->TraceResult;
 }
 
+/**
+ * Thread procedure that performs the full ETW-based .NET assembly query for a process.
+ *
+ * \param Parameter A pointer to the ASMPAGE_QUERY_CONTEXT for this query.
+ * \return STATUS_SUCCESS.
+ * \remarks Handles CLR v1.0, v1.1, v2.0, and v4.0+ runtimes by running separate trace sessions
+ * for each detected version. Posts DN_ASM_UPDATE_MSG to the page window on completion.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS DotNetTraceQueryThreadStart(
     _In_ PVOID Parameter
@@ -1663,7 +1934,7 @@ NTSTATUS DotNetTraceQueryThreadStart(
     {
         for (i = 0; i < context->NodeList->Count; i++)
         {
-            PDNA_NODE node = context->NodeList->Items[i];
+            PDNA_NODE node = PhItemList(context->NodeList, i);
 
             if (node->Type != DNA_TYPE_CLR)
             {
@@ -1686,28 +1957,37 @@ NTSTATUS DotNetTraceQueryThreadStart(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Thread procedure that performs a DAC/SOS-based .NET assembly query for a process.
+ *
+ * \param Context A pointer to the ASMPAGE_QUERY_CONTEXT for this query.
+ * \return STATUS_SUCCESS.
+ * \remarks For WOW64 processes, routes the query through the 32-bit PhSvc helper.
+ * Posts DN_ASM_UPDATE_MSG on success or DN_ASM_UPDATE_ERROR on failure.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS DotNetSosTraceQueryThreadStart(
-    _In_ PASMPAGE_QUERY_CONTEXT Context
+    _In_ PVOID Context
     )
 {
+    PASMPAGE_QUERY_CONTEXT context = (PASMPAGE_QUERY_CONTEXT)Context;
     PCLR_PROCESS_SUPPORT support;
     PPH_LIST appdomainlist = NULL;
     BOOLEAN success = FALSE;
 
 #ifdef _WIN64
-    if (Context->IsWow64Process)
+    if (context->IsWow64Process)
     {
         if (PhUiConnectToPhSvcEx(NULL, Wow64PhSvcMode, FALSE))
         {
-            appdomainlist = CallGetClrAppDomainAssemblyList(Context->ProcessId);
+            appdomainlist = CallGetClrAppDomainAssemblyList(context->ProcessId);
             PhUiDisconnectFromPhSvc();
         }
     }
     else
 #endif
     {
-        if (support = CreateClrProcessSupport(Context->ProcessId))
+        if (support = CreateClrProcessSupport(context->ProcessId))
         {
             appdomainlist = DnGetClrAppDomainAssemblyList(support);
             FreeClrProcessSupport(support);
@@ -1720,36 +2000,37 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
     for (ULONG i = 0; i < appdomainlist->Count; i++)
     {
         static CONST PH_STRINGREF string = PH_STRINGREF_INIT(L"AppDomain: ");
-        PDN_PROCESS_APPDOMAIN_ENTRY entry = appdomainlist->Items[i];
+        PDN_PROCESS_APPDOMAIN_ENTRY entry = PhItemList(appdomainlist, i);
         PDNA_NODE parentNode;
 
         //if (!entry->AssemblyList)
         //    continue;
 
-        parentNode = AddNode(Context);
+        parentNode = AddNode(context);
         parentNode->Type = DNA_TYPE_APPDOMAIN;
         parentNode->u.AppDomain.AppDomainID = entry->AppDomainID;
         parentNode->u.AppDomain.AppDomainType = entry->AppDomainType;
-        parentNode->u.AppDomain.DisplayName = PhFormatString(L"%s [%s]",
-            PH_AUTO_T(PH_STRING, PhConcatStringRef2(&string, &entry->AppDomainName->sr))->Buffer,
+        parentNode->u.AppDomain.DisplayName = PhFormatString(L"%s%s [%s]",
+            string.Buffer,
+            PhGetStringOrDefault(entry->AppDomainName, L""),
             PhGetStringOrDefault(entry->AppDomainStage, L"Unknown")
             );
         parentNode->StructureText = parentNode->u.AppDomain.DisplayName->sr;
         parentNode->IdText = FormatToHexString(entry->AppDomainID);
         parentNode->RootNode = TRUE;
-        PhAddItemList(Context->NodeRootList, parentNode);
+        PhAddItemList(context->NodeRootList, parentNode);
 
         if (entry->AssemblyList)
         {
             for (ULONG j = 0; j < entry->AssemblyList->Count; j++)
             {
-                PDN_DOTNET_ASSEMBLY_ENTRY assembly = entry->AssemblyList->Items[j];
+                PDN_DOTNET_ASSEMBLY_ENTRY assembly = PhItemList(entry->AssemblyList, j);
                 PDNA_NODE childNode;
 
                 //if (FindAssemblyNode3(Context, assembly->AssemblyID))
                 //    continue;
 
-                childNode = AddNode(Context);
+                childNode = AddNode(context);
                 childNode->Type = DNA_TYPE_ASSEMBLY;
                 childNode->u.Assembly.AssemblyID = assembly->AssemblyID;
                 PhSetReference(&childNode->u.Assembly.DisplayName, assembly->DisplayName);
@@ -1792,9 +2073,9 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
 
     // Check whether we got any data.
     {
-        for (ULONG i = 0; i < Context->NodeList->Count; i++)
+        for (ULONG i = 0; i < context->NodeList->Count; i++)
         {
-            PDNA_NODE node = Context->NodeList->Items[i];
+            PDNA_NODE node = PhItemList(context->NodeList, i);
 
             if (node->Type != DNA_TYPE_CLR)
             {
@@ -1803,16 +2084,16 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
             }
         }
 
-        if (success && !Context->PageContext->CancelQueryContext && Context->PageContext->WindowHandle)
+        if (success && !context->PageContext->CancelQueryContext && context->PageContext->WindowHandle)
         {
-            SendMessage(Context->PageContext->WindowHandle, DN_ASM_UPDATE_MSG, 0, (LPARAM)Context);
+            SendMessage(context->PageContext->WindowHandle, DN_ASM_UPDATE_MSG, 0, (LPARAM)Context);
         }
     }
 
 CleanupExit:
-    if (!success && !Context->PageContext->CancelQueryContext && Context->PageContext->WindowHandle)
+    if (!success && !context->PageContext->CancelQueryContext && context->PageContext->WindowHandle)
     {
-        SendMessage(Context->PageContext->WindowHandle, DN_ASM_UPDATE_ERROR, 0, (LPARAM)Context);
+        SendMessage(context->PageContext->WindowHandle, DN_ASM_UPDATE_ERROR, 0, (LPARAM)Context);
     }
 
     PhDereferenceObject(Context);
@@ -1820,6 +2101,12 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
+/**
+ * Object deletion callback that releases resources held by an ASMPAGE_QUERY_CONTEXT.
+ *
+ * \param Context The query context being deleted.
+ * \param Flags Object type flags (unused).
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID DotNetQueryContextDeleteProcedure(
     _In_ PASMPAGE_QUERY_CONTEXT Context,
@@ -1841,6 +2128,12 @@ VOID DotNetQueryContextDeleteProcedure(
     PhDereferenceObject(Context->PageContext);
 }
 
+/**
+ * Allocates and zeroes a reference-counted ASMPAGE_QUERY_CONTEXT object.
+ *
+ * \return A pointer to the newly allocated ASMPAGE_QUERY_CONTEXT.
+ * \remarks The object type is registered on first call. Release the context with PhDereferenceObject.
+ */
 PASMPAGE_QUERY_CONTEXT DotNetCreateQueryContext(
     VOID
     )
@@ -1861,6 +2154,12 @@ PASMPAGE_QUERY_CONTEXT DotNetCreateQueryContext(
     return context;
 }
 
+/**
+ * Allocates and zeroes a reference-counted ASMPAGE_CONTEXT object.
+ *
+ * \return A pointer to the newly allocated ASMPAGE_CONTEXT.
+ * \remarks The object type is registered on first call. Release the context with PhDereferenceObject.
+ */
 PASMPAGE_CONTEXT DotNetCreatePageContext(
     VOID
     )
@@ -1881,6 +2180,13 @@ PASMPAGE_CONTEXT DotNetCreatePageContext(
     return context;
 }
 
+/**
+ * Creates the query context and queues the appropriate .NET assembly query work item.
+ *
+ * \param Context The assemblies page context for which the query is started.
+ * \param ProcessId The process identifier of the target .NET process.
+ * \param EnableTrace TRUE to use ETW-based tracing; FALSE to use the DAC/SOS-based method.
+ */
 VOID CreateDotNetTraceQueryThread(
     _In_ PASMPAGE_CONTEXT Context,
     _In_ HANDLE ProcessId,
@@ -1919,6 +2225,12 @@ VOID CreateDotNetTraceQueryThread(
         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), DotNetSosTraceQueryThreadStart, context);
 }
 
+/**
+ * Resets the tree empty-text message and starts a new assembly query background thread.
+ *
+ * \param Context The assemblies page context to refresh.
+ * \param EnableTrace TRUE to use ETW-based tracing; FALSE to use the DAC/SOS-based method.
+ */
 VOID DotNetAsmRefreshTraceQuery(
     _In_ PASMPAGE_CONTEXT Context,
     _In_ BOOLEAN EnableTrace
@@ -1947,6 +2259,13 @@ VOID DotNetAsmRefreshTraceQuery(
     //}
 }
 
+/**
+ * Tree filter callback that hides dynamic or native assembly nodes and applies the search filter.
+ *
+ * \param Node The tree node to evaluate.
+ * \param Context The assemblies page context providing filter options and search state.
+ * \return TRUE if the node should be visible; FALSE if it should be hidden.
+ */
 BOOLEAN DotNetAsmTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_ PVOID Context
@@ -1992,6 +2311,12 @@ BOOLEAN DotNetAsmTreeFilterCallback(
     return FALSE;
 }
 
+/**
+ * Search control callback that expands all nodes and applies the updated search filter.
+ *
+ * \param MatchHandle The new search match handle, or 0 to clear the search filter.
+ * \param Context The assemblies page context.
+ */
 _Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI DotNetAsmSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
@@ -2010,6 +2335,15 @@ VOID NTAPI DotNetAsmSearchControlCallback(
     TreeNew_NodesStructured(context->TreeNewHandle);
 }
 
+/**
+ * Dialog procedure for the .NET Assemblies process property page.
+ *
+ * \param hwndDlg The dialog window handle.
+ * \param uMsg The window message identifier.
+ * \param wParam The first message parameter.
+ * \param lParam The second message parameter.
+ * \return A message-specific value or FALSE if the message was not handled.
+ */
 INT_PTR CALLBACK DotNetAsmPageDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2054,7 +2388,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             PhReferenceObject(context);
             DotNetAsmRefreshTraceQuery(context, FALSE);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:

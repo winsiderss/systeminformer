@@ -174,6 +174,7 @@ VOID PhShowModuleContextMenu(
     PhFree(modules);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpModulesTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PPH_MODULES_CONTEXT Context
@@ -660,6 +661,7 @@ VOID PhpProcessModulesSave(
     PhFreeFileDialog(fileDialog);
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpProcessModulesSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -745,6 +747,13 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             // Initialize the list.
             PhInitializeModuleList(hwndDlg, modulesContext->TreeNewHandle, &modulesContext->ListContext);
+
+            if (PhTreeWindowFont)
+            {
+                modulesContext->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(modulesContext->TreeNewHandle, modulesContext->TreeNewFont, FALSE);
+            }
+
             TreeNew_SetEmptyText(modulesContext->TreeNewHandle, &PhProcessPropPageLoadingText, 0);
             PhInitializeProviderEventQueue(&modulesContext->EventQueue, 100);
             modulesContext->LastRunStatus = -1;
@@ -826,6 +835,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhDereferenceObject(modulesContext->Provider);
             PhDeleteProviderEventQueue(&modulesContext->EventQueue);
 
+            if (modulesContext->TreeNewFont)
+                DeleteFont(modulesContext->TreeNewFont);
+
             if (PhPluginsEnabled)
             {
                 PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
@@ -902,7 +914,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                         PhShellExecuteUserString(
                             hwndDlg,
-                            L"FileBrowseExecutable",
+                            SETTING_FILE_BROWSE_EXECUTABLE,
                             PhGetString(fileNameWin32),
                             FALSE,
                             L"Make sure the Explorer executable file is present."
@@ -920,7 +932,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                         PhShellExecuteUserString(
                             hwndDlg,
-                            L"ProgramInspectExecutables",
+                            SETTING_PROGRAM_INSPECT_EXECUTABLES,
                             PhGetString(fileNameWin32),
                             FALSE,
                             L"Make sure the PE Viewer executable file is present."
@@ -958,7 +970,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PPH_EMENU_ITEM zeroPadItem;
                     PPH_EMENU_ITEM selectedItem;
 
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect);
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect))
+                        break;
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, dynamicItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_DYNAMIC_OPTION, L"Hide dynamic", NULL, NULL), ULONG_MAX);
@@ -1028,7 +1041,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     {
                         if (selectedItem->Id == PH_MODULE_FLAGS_LOAD_MODULE_OPTION)
                         {
-                            if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                            if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
                                 hwndDlg,
                                 L"load",
                                 L"a module",

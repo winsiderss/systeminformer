@@ -11,6 +11,7 @@
 
 #include "setup.h"
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS CALLBACK SetupUninstallBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -31,10 +32,13 @@ NTSTATUS CALLBACK SetupUninstallBuild(
         goto CleanupExit;
     }
 
-    // Remove autorun.
+    // Remove all Windows Options (registry cleanup)
     SetupDeleteWindowsOptions(Context);
 
-    // Remove shortcuts.
+    // Remove Windows Error Reporting.
+    SetupDeleteLocalDumpsKey();
+
+    // Remove all shortcuts.
     SetupDeleteShortcuts(Context);
 
     // Remove the uninstaller.

@@ -140,7 +140,7 @@ VOID PhCmSetNotifyPlugin(
 }
 
 BOOLEAN PhCmForwardMessage(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -166,7 +166,7 @@ BOOLEAN PhCmForwardMessage(
             if (getCellText->Id < Manager->MinId)
                 return FALSE;
 
-            if (!TreeNew_GetColumn(hwnd, getCellText->Id, &tnColumn))
+            if (!TreeNew_GetColumn(WindowHandle, getCellText->Id, &tnColumn))
                 return FALSE;
 
             column = tnColumn.Context;
@@ -227,7 +227,7 @@ BOOLEAN PhCmForwardMessage(
                 {
                     plugin = Manager->NotifyList->Items[i];
 
-                    pluginMessage.TreeNewHandle = hwnd;
+                    pluginMessage.TreeNewHandle = WindowHandle;
                     pluginMessage.Message = Message;
                     pluginMessage.Parameter1 = Parameter1;
                     pluginMessage.Parameter2 = Parameter2;
@@ -241,7 +241,7 @@ BOOLEAN PhCmForwardMessage(
         return FALSE;
     }
 
-    pluginMessage.TreeNewHandle = hwnd;
+    pluginMessage.TreeNewHandle = WindowHandle;
     pluginMessage.Message = Message;
     pluginMessage.Parameter1 = Parameter1;
     pluginMessage.Parameter2 = Parameter2;

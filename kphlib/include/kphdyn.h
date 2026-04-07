@@ -10,7 +10,7 @@
 #pragma once
 
 #include <kphlibbase.h>
-#define KPH_DYN_CONFIGURATION_VERSION           ((ULONG)15)
+#define KPH_DYN_CONFIGURATION_VERSION           ((ULONG)16)
 #define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH ((ULONG)539)
 #define KPH_DYN_CLASS_NTOSKRNL                  ((USHORT)0)
 #define KPH_DYN_CLASS_NTKRLA57                  ((USHORT)1)
@@ -41,6 +41,10 @@ typedef struct _KPH_DYN_KERNEL_FIELDS
     USHORT AlpcPortObjectLock;           // dt nt!_ALPC_PORT PortObjectLock
     USHORT AlpcSequenceNo;               // dt nt!_ALPC_PORT SequenceNo
     USHORT AlpcState;                    // dt nt!_ALPC_PORT u1.State
+    USHORT KtInitialStack;               // dt nt!_KTHREAD InitialStack
+    USHORT KtStackLimit;                 // dt nt!_KTHREAD StackLimit
+    USHORT KtStackBase;                  // dt nt!_KTHREAD StackBase
+    USHORT KtKernelStack;                // dt nt!_KTHREAD KernelStack
     USHORT KtReadOperationCount;         // dt nt!_KTHREAD ReadOperationCount
     USHORT KtWriteOperationCount;        // dt nt!_KTHREAD WriteOperationCount
     USHORT KtOtherOperationCount;        // dt nt!_KTHREAD OtherOperationCount

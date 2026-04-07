@@ -30,9 +30,6 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="objprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="thrdact.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -139,9 +136,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="firmware_editor.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="objmgr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pooldb.c">

@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -22,6 +22,14 @@
 #define KPH_HASH_EACACHE_SHA256_AUTHENTICODE KPH_KERNEL_PURGE_EA "SHA256A"
 #define KPH_HASH_EACACHE_SHA384              KPH_KERNEL_PURGE_EA "SHA384"
 #define KPH_HASH_EACACHE_SHA512              KPH_KERNEL_PURGE_EA "SHA512"
+
+C_ASSERT(sizeof(KPH_HASH_EACACHE_MD5)                 < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA1)                < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA1_AUTHENTICODE)   < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA256)              < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA256_AUTHENTICODE) < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA384)              < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA512)              < MAXUCHAR);
 
 #define KPH_HASH_EACACHE_LEN(x)                                                \
     ALIGN_UP_BY(FIELD_OFFSET(FILE_GET_EA_INFORMATION, EaName) +                \
@@ -883,6 +891,13 @@ VOID KphpLoadHashesFromEaCache(
 
             eaCacheInfo = &KphpHashEaCacheInfo[i];
 
+            //
+            // None of our EA names will reach this limit. We compile time
+            // assert this and runtime assert here for clarity. This is
+            // necessary when advancing the buffer pointer below.
+            //
+            NT_ASSERT(eaCacheInfo->EaName.Length < MAXUCHAR);
+
             if (fullEaInfo->EaValueLength != eaCacheInfo->HashSize)
             {
                 continue;
@@ -1032,7 +1047,7 @@ VOID KphpInitializeEaCacheContext(
     }
 
     oplockInput.StructureVersion = REQUEST_OPLOCK_CURRENT_VERSION;
-    oplockInput.StructureLength = sizeof(oplockInput);
+    oplockInput.StructureLength = sizeof(REQUEST_OPLOCK_INPUT_BUFFER);
     oplockInput.Flags = REQUEST_OPLOCK_INPUT_FLAG_REQUEST;
     oplockInput.RequestedOplockLevel = (OPLOCK_LEVEL_CACHE_READ |
                                         OPLOCK_LEVEL_CACHE_HANDLE);
@@ -1046,7 +1061,7 @@ VOID KphpInitializeEaCacheContext(
                              &Context->EaCache.IoStatusBlock,
                              FSCTL_REQUEST_OPLOCK,
                              &oplockInput,
-                             sizeof(oplockInput),
+                             sizeof(REQUEST_OPLOCK_INPUT_BUFFER),
                              &Context->EaCache.OplockOutput,
                              sizeof(Context->EaCache.OplockOutput));
     if (status != STATUS_PENDING)
@@ -1071,7 +1086,7 @@ VOID KphpInitializeEaCacheContext(
                                       NULL,
                                       0,
                                       &usnValue,
-                                      sizeof(usnValue),
+                                      sizeof(ULONG64),
                                       &returnLength);
     if (!NT_SUCCESS(status))
     {
@@ -1737,10 +1752,7 @@ NTSTATUS KphQueryHashInformationFile(
 
         __try
         {
-            ProbeInputBytes(HashInformation, HashInformationLength);
-            RtlCopyVolatileMemory(hashInfo,
-                                  HashInformation,
-                                  HashInformationLength);
+            CopyFromUser(hashInfo, HashInformation, HashInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -1768,8 +1780,7 @@ NTSTATUS KphQueryHashInformationFile(
     {
         __try
         {
-            ProbeOutputBytes(HashInformation, HashInformationLength);
-            RtlCopyMemory(HashInformation, hashInfo, HashInformationLength);
+            CopyToUser(HashInformation, hashInfo, HashInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {

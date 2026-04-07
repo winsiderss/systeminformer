@@ -184,7 +184,7 @@ typedef struct json_tokener json_tokener;
  *
  * @return a generic error message is returned if an invalid error value is provided.
  */
-JSON_EXPORT const char *json_tokener_error_desc(enum json_tokener_error jerr);
+JSON_EXPORT const unsigned char *json_tokener_error_desc(enum json_tokener_error jerr);
 
 /**
  * Retrieve the error caused by the last call to json_tokener_parse_ex(),
@@ -227,7 +227,7 @@ JSON_EXPORT void json_tokener_reset(struct json_tokener *tok);
  * If you need more control over how the parsing occurs,
  * see json_tokener_parse_ex().
  */
-JSON_EXPORT struct json_object *json_tokener_parse(const char *str);
+JSON_EXPORT struct json_object *json_tokener_parse(const unsigned char *str);
 
 /**
  * Parse a json_object out of the string `str`, but if it fails
@@ -235,7 +235,7 @@ JSON_EXPORT struct json_object *json_tokener_parse(const char *str);
  * @see json_tokener_parse()
  * @see json_tokener_parse_ex()
  */
-JSON_EXPORT struct json_object *json_tokener_parse_verbose(const char *str,
+JSON_EXPORT struct json_object *json_tokener_parse_verbose(const unsigned char *str,
                                                            enum json_tokener_error *error);
 
 /**
@@ -319,7 +319,7 @@ if (json_tokener_get_parse_end(tok) < stringlen)
  * @param str an string with any valid JSON expression, or portion of.  This does not need to be null terminated.
  * @param len the length of str
  */
-JSON_EXPORT struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *str,
+JSON_EXPORT struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const unsigned char *str,
                                                       size_t len);
 
 #ifdef __cplusplus

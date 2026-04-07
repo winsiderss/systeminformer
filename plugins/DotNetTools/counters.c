@@ -14,6 +14,14 @@
 #include "clr/ipcheader.h"
 #include "clr/ipcshared.h"
 
+/**
+ * Returns a pointer to an entry within a legacy CLR IPC control block's data table.
+ *
+ * \param Wow64 TRUE if the target process is a 32-bit WOW64 process.
+ * \param IpcBlockAddress The base address of the mapped legacy private IPC control block.
+ * \param EntryId The index of the desired entry in the IPC directory table.
+ * \return A pointer to the start of the requested data entry within the IPC block.
+ */
 PVOID GetLegacyBlockTableEntry(
     _In_ BOOLEAN Wow64,
     _In_ PVOID IpcBlockAddress,
@@ -44,6 +52,13 @@ PVOID GetLegacyBlockTableEntry(
     }
 }
 
+/**
+ * Returns a pointer to the performance IPC block within a legacy public CLR IPC control block (v2 format).
+ *
+ * \param Wow64 TRUE if the target process is a 32-bit WOW64 process.
+ * \param BlockTableAddress The base address of the mapped legacy public IPC control block.
+ * \return A pointer to the PerfIpcBlock within the control block, or NULL if the block version is unsupported.
+ */
 PVOID GetPerfIpcBlock_V2(
     _In_ BOOLEAN Wow64,
     _In_ PVOID BlockTableAddress
@@ -73,6 +88,13 @@ PVOID GetPerfIpcBlock_V2(
     }
 }
 
+/**
+ * Returns a pointer to the performance IPC block within a CLR v4 IPC control block table.
+ *
+ * \param Wow64 TRUE if the target process is a 32-bit WOW64 process.
+ * \param BlockTableAddress The base address of the mapped v4 IPC control block table.
+ * \return A pointer to the PerfIpcBlock, or NULL if the block version is unsupported.
+ */
 PVOID GetPerfIpcBlock_V4(
     _In_ BOOLEAN Wow64,
     _In_ PVOID BlockTableAddress
@@ -91,7 +113,7 @@ PVOID GetPerfIpcBlock_V4(
     }
     else
     {
-        IPCControlBlockTable_Wow64* ipcBlockTable = BlockTableAddress;
+        IPCControlBlockTable* ipcBlockTable = BlockTableAddress;
 
         if (ipcBlockTable->Blocks->Header.Version > VER_IPC_BLOCK)
         {
@@ -102,6 +124,15 @@ PVOID GetPerfIpcBlock_V4(
     }
 }
 
+/**
+ * Reads the AppDomain enumeration IPC block from a target process and returns the AppDomain names.
+ *
+ * \param ProcessHandle A handle to the target process with PROCESS_DUP_HANDLE and PROCESS_VM_READ access.
+ * \param AppDomainIpcBlock A pointer to the AppDomain enumeration IPC block mapped from the target process.
+ * \return A list of PWSTR AppDomain name strings read from the target process, possibly empty.
+ * \remarks The mutex inside the IPC block is duplicated and acquired before reading to guard against
+ * concurrent modifications. The returned list and its string items must be freed by the caller.
+ */
 PPH_LIST EnumerateAppDomainIpcBlock(
     _In_ HANDLE ProcessHandle,
     _In_ AppDomainEnumerationIPCBlock* AppDomainIpcBlock
@@ -189,7 +220,7 @@ PPH_LIST EnumerateAppDomainIpcBlock(
     appDomainInfoBlock = PhAllocate(appDomainInfoBlockLength);
     memset(appDomainInfoBlock, 0, appDomainInfoBlockLength);
 
-    if (!NT_SUCCESS(NtReadVirtualMemory(
+    if (!NT_SUCCESS(PhReadVirtualMemory(
         ProcessHandle,
         tempBlock.ListOfAppDomains,
         appDomainInfoBlock,
@@ -204,6 +235,7 @@ PPH_LIST EnumerateAppDomainIpcBlock(
     // Collect all the AppDomain names into a list of strings.
     for (INT i = 0; i < tempBlock.NumOfUsedSlots; i++)
     {
+        AppDomainInfo* appDomainInfo = &appDomainInfoBlock[i];
         SIZE_T appDomainNameLength;
         PVOID appDomainName;
 
@@ -230,10 +262,10 @@ PPH_LIST EnumerateAppDomainIpcBlock(
 
         // We know the string is a well-formed null-terminated string,
         // but beyond that, we can't verify that the data is actually truthful.
-        appDomainName = PhAllocate(appDomainInfoBlock[i].NameLengthInBytes + 1);
-        memset(appDomainName, 0, appDomainInfoBlock[i].NameLengthInBytes + 1);
+        appDomainName = PhAllocate((SIZE_T)appDomainInfoBlock[i].NameLengthInBytes + 1);
+        memset(appDomainName, 0, (SIZE_T)appDomainInfoBlock[i].NameLengthInBytes + 1);
 
-        if (!NT_SUCCESS(NtReadVirtualMemory(
+        if (!NT_SUCCESS(PhReadVirtualMemory(
             ProcessHandle,
             appDomainInfoBlock[i].AppDomainName,
             appDomainName,
@@ -263,6 +295,15 @@ CleanupExit:
     return appDomainsList;
 }
 
+/**
+ * Reads the 32-bit WOW64 AppDomain enumeration IPC block from a target process and returns the AppDomain names.
+ *
+ * \param ProcessHandle A handle to the target process with PROCESS_DUP_HANDLE and PROCESS_VM_READ access.
+ * \param AppDomainIpcBlock A pointer to the WOW64 AppDomain enumeration IPC block mapped from the target process.
+ * \return A list of PWSTR AppDomain name strings read from the target process, possibly empty.
+ * \remarks The mutex inside the IPC block is duplicated and acquired before reading to guard against
+ * concurrent modifications. The returned list and its string items must be freed by the caller.
+ */
 PPH_LIST EnumerateAppDomainIpcBlockWow64(
     _In_ HANDLE ProcessHandle,
     _In_ AppDomainEnumerationIPCBlock_Wow64* AppDomainIpcBlock
@@ -350,7 +391,7 @@ PPH_LIST EnumerateAppDomainIpcBlockWow64(
     appDomainInfoBlock = PhAllocate(appDomainInfoBlockLength);
     memset(appDomainInfoBlock, 0, appDomainInfoBlockLength);
 
-    if (!NT_SUCCESS(NtReadVirtualMemory(
+    if (!NT_SUCCESS(PhReadVirtualMemory(
         ProcessHandle,
         UlongToPtr(tempBlock.ListOfAppDomains),
         appDomainInfoBlock,
@@ -358,7 +399,6 @@ PPH_LIST EnumerateAppDomainIpcBlockWow64(
         NULL
         )))
     {
-        PhFree(appDomainInfoBlock);
         goto CleanupExit;
     }
 
@@ -394,7 +434,7 @@ PPH_LIST EnumerateAppDomainIpcBlockWow64(
         appDomainName = PhAllocate(appDomainInfoBlock[i].NameLengthInBytes + 1);
         memset(appDomainName, 0, appDomainInfoBlock[i].NameLengthInBytes + 1);
 
-        if (!NT_SUCCESS(NtReadVirtualMemory(
+        if (!NT_SUCCESS(PhReadVirtualMemory(
             ProcessHandle,
             UlongToPtr(appDomainInfoBlock[i].AppDomainName),
             appDomainName,
@@ -425,6 +465,14 @@ CleanupExit:
     return appDomainsList;
 }
 
+/**
+ * Maps the legacy .NET 2.0 public CLR IPC control block section into the current process.
+ *
+ * \param ProcessId The process identifier of the target .NET process.
+ * \param BlockTableAddress Receives a pointer to the mapped block on success.
+ * \return TRUE if the block was mapped successfully, FALSE otherwise.
+ * \remarks The caller must unmap the returned view with NtUnmapViewOfSection when done.
+ */
 _Success_(return)
 BOOLEAN OpenDotNetPublicControlBlock_V2(
     _In_ HANDLE ProcessId,
@@ -492,6 +540,17 @@ BOOLEAN OpenDotNetPublicControlBlock_V2(
     return FALSE;
 }
 
+/**
+ * Maps the .NET 4.0 public CLR IPC control block section into the current process.
+ *
+ * \param IsImmersive TRUE if the target process is a Windows Store (immersive) app.
+ * \param ProcessHandle A handle to the target process used to obtain the AppContainer SID for immersive apps.
+ * \param ProcessId The process identifier of the target .NET process.
+ * \param BlockTableAddress Receives a pointer to the mapped block on success.
+ * \return TRUE if the block was mapped successfully, FALSE otherwise.
+ * \remarks The section is located within a private object namespace bounded by the process SID.
+ * The caller must unmap the returned view with NtUnmapViewOfSection when done.
+ */
 _Success_(return)
 BOOLEAN OpenDotNetPublicControlBlock_V4(
     _In_ BOOLEAN IsImmersive,
@@ -515,7 +574,6 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     UNICODE_STRING boundaryNameUs;
     OBJECT_ATTRIBUTES namespaceObjectAttributes;
     OBJECT_ATTRIBUTES sectionObjectAttributes;
-    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo = NULL;
     SID_IDENTIFIER_AUTHORITY SIDWorldAuth = SECURITY_WORLD_SID_AUTHORITY;
 
     legacyBoundaryDescriptorName = PhFormatString(
@@ -536,10 +594,12 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     {
         if (NT_SUCCESS(PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
         {
-            if (!NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+            PH_TOKEN_APPCONTAINER tokenAppContainer;
+
+            if (!NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &tokenAppContainer)))
                 goto CleanupExit;
 
-            if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, appContainerInfo->TokenAppContainer)))
+            if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, tokenAppContainer.AppContainer.Sid)))
                 goto CleanupExit;
         }
     }
@@ -623,11 +683,6 @@ CleanupExit:
         NtClose(tokenHandle);
     }
 
-    if (appContainerInfo)
-    {
-        PhFree(appContainerInfo);
-    }
-
     if (privateNamespaceHandle)
     {
         NtClose(privateNamespaceHandle);
@@ -643,6 +698,15 @@ CleanupExit:
     return result;
 }
 
+/**
+ * Enumerates the AppDomains of a .NET 2.0 process using the legacy private IPC block.
+ *
+ * \param Wow64 TRUE if the target process is a 32-bit WOW64 process.
+ * \param ProcessHandle A handle to the target process with PROCESS_DUP_HANDLE and PROCESS_VM_READ access.
+ * \param ProcessId The process identifier of the target .NET process.
+ * \return A list of PWSTR AppDomain name strings, or NULL on failure.
+ * \remarks The returned list and its string items must be freed by the caller.
+ */
 PPH_LIST QueryDotNetAppDomainsForPid_V2(
     _In_ BOOLEAN Wow64,
     _In_ HANDLE ProcessHandle,
@@ -772,6 +836,15 @@ CleanupExit:
     return appDomainsList;
 }
 
+/**
+ * Enumerates the AppDomains of a .NET 4.0 process using the legacy private IPC block.
+ *
+ * \param Wow64 TRUE if the target process is a 32-bit WOW64 process.
+ * \param ProcessHandle A handle to the target process with PROCESS_DUP_HANDLE and PROCESS_VM_READ access.
+ * \param ProcessId The process identifier of the target .NET process.
+ * \return A list of PWSTR AppDomain name strings, or NULL on failure.
+ * \remarks The returned list and its string items must be freed by the caller.
+ */
 PPH_LIST QueryDotNetAppDomainsForPid_V4(
     _In_ BOOLEAN Wow64,
     _In_ HANDLE ProcessHandle,

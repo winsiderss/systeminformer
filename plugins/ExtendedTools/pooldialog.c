@@ -82,7 +82,7 @@ VOID EtUpdatePoolTagTable(
     PhFree(poolTagTable);
 }
 
-_Function_class_(PH_CALLBACK_FUNCTION)
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN EtPoolTagTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_ PVOID Context
@@ -218,7 +218,7 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
                 &context->ProcessesUpdatedCallbackRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->TreeNewHandle, TRUE);
         }
@@ -376,6 +376,7 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtShowPoolMonDialogThread(
     _In_ PVOID Parameter
     )

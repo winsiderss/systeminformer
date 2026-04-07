@@ -6,22 +6,27 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2016-2023
+ *     dmex    2016-2026
  *
  */
 
 #include <phapp.h>
 #include <procprp.h>
 #include <procprpp.h>
+#include <proctree.h>
 
 #include <mapldr.h>
 #include <kphuser.h>
 #include <settings.h>
+#include <secedit.h>
+#include <emenu.h>
 
+#include <actions.h>
 #include <phplug.h>
 #include <phsettings.h>
 #include <procprv.h>
 #include <mainwnd.h>
+#include <mainwndp.h>
 
 PPH_OBJECT_TYPE PhpProcessPropContextType = NULL;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType = NULL;
@@ -96,6 +101,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     return propContext;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -189,14 +195,14 @@ INT CALLBACK PhpPropSheetProc(
 }
 
 PPH_PROCESS_PROPSHEETCONTEXT PhpGetPropSheetContext(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
-    return PhGetWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
+    return PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 }
 
 LRESULT CALLBACK PhpPropSheetWndProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
@@ -205,7 +211,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
     PPH_PROCESS_PROPSHEETCONTEXT propSheetContext;
     WNDPROC oldWndProc;
 
-    propSheetContext = PhGetWindowContext(hwnd, 0xF);
+    propSheetContext = PhGetWindowContext(WindowHandle, 0xF);
 
     if (!propSheetContext)
         return 0;
@@ -220,15 +226,15 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             TCITEM tabItem;
             WCHAR text[128] = L"";
 
-            PhKillTimer(hwnd, 2000);
+            PhKillTimer(WindowHandle, 2000);
 
             // Save the window position and size.
 
-            PhSaveWindowPlacementToSetting(L"ProcPropPosition", L"ProcPropSize", hwnd);
+            PhSaveWindowPlacementToSetting(SETTING_PROC_PROP_POSITION, SETTING_PROC_PROP_SIZE, WindowHandle);
 
             // Save the selected tab.
 
-            tabControl = PropSheet_GetTabControl(hwnd);
+            tabControl = PropSheet_GetTabControl(WindowHandle);
 
             tabItem.mask = TCIF_TEXT;
             tabItem.pszText = text;
@@ -236,19 +242,19 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 
             if (TabCtrl_GetItem(tabControl, TabCtrl_GetCurSel(tabControl), &tabItem))
             {
-                PhSetStringSetting(L"ProcPropPage", text);
+                PhSetStringSetting(SETTING_PROC_PROP_PAGE, text);
             }
         }
         break;
     case WM_NCDESTROY:
         {
-            PhUnregisterWindowCallback(hwnd);
+            PhUnregisterWindowCallback(WindowHandle);
 
-            PhSetWindowProcedure(hwnd, oldWndProc);
-            PhRemoveWindowContext(hwnd, 0xF);
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
+            PhRemoveWindowContext(WindowHandle, 0xF);
 
             PhDeleteLayoutManager(&propSheetContext->LayoutManager);
-            PhRemoveWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhFree(propSheetContext);
         }
@@ -262,7 +268,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             case SC_CLOSE:
                 {
                     PostQuitMessage(0);
-                    //SetWindowLongPtr(hwnd, DWLP_MSGRESULT, TRUE);
+                    //SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
                     //return TRUE;
                 }
                 break;
@@ -283,7 +289,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case WM_SIZE:
         {
-            if (!IsMinimized(hwnd))
+            if (!IsMinimized(WindowHandle))
             {
                 PhLayoutManagerLayout(&propSheetContext->LayoutManager);
             }
@@ -328,14 +334,14 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             USHORT newDpi = HIWORD(wParam);
             PRECT CONST newRect = (PRECT)lParam;
 
-            CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+            CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 
             PhLayoutManagerUpdate(&propSheetContext->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&propSheetContext->LayoutManager);
 
             {
                 SetWindowPos(
-                    hwnd,
+                    WindowHandle,
                     NULL,
                     newRect->left,
                     newRect->top,
@@ -352,7 +358,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
                 rect.top = 0;
                 rect.right = 290;
                 rect.bottom = 320;
-                MapDialogRect(hwnd, &rect);
+                MapDialogRect(WindowHandle, &rect);
                 MinimumSize = rect;
                 MinimumSize.left = 0;
             }
@@ -362,12 +368,518 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     }
 
-    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
+}
+
+_Function_class_(PH_OPEN_OBJECT)
+NTSTATUS PhOptionsButtonGeneralOpenProcess(
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Context)
+    {
+        return PhOpenProcess(Handle, DesiredAccess, (HANDLE)Context);
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+_Function_class_(PH_CLOSE_OBJECT)
+NTSTATUS PhOptionsButtonGeneralCloseHandle(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Handle)
+    {
+        NtClose(Handle);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+LRESULT CALLBACK PhpOptionsButtonWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PPH_PROCESS_PROPSHEETCONTEXT propSheetContext;
+    WNDPROC oldWndProc;
+
+    if (!(propSheetContext = PhGetWindowContext(WindowHandle, SCHAR_MAX)))
+        return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
+
+    oldWndProc = propSheetContext->OldOptionsButtonWndProc;
+
+    switch (uMsg)
+    {
+    case WM_DESTROY:
+        {
+            PhRemoveWindowContext(WindowHandle, SCHAR_MAX);
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            if (GET_WM_COMMAND_HWND(wParam, lParam) == propSheetContext->OptionsButtonWindowHandle)
+            {
+                RECT rect;
+                PPH_EMENU menu;
+                PPH_EMENU_ITEM selectedItem;
+                PPH_EMENU_ITEM menuItem;
+                HWND pageWindow;
+                LPPROPSHEETPAGE propSheetPage;
+                PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+                PPH_PROCESS_PROPCONTEXT propContext;
+
+                if (!(pageWindow = PropSheet_GetCurrentPageHwnd(WindowHandle)))
+                    break;
+                if (!(propSheetPage = PhGetWindowContext(pageWindow, PH_WINDOW_CONTEXT_DEFAULT)))
+                    break;
+                if (!(propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam))
+                    break;
+                if (!(propContext = propPageContext->PropContext))
+                    break;
+                if (!PhGetWindowRect(propSheetContext->OptionsButtonWindowHandle, &rect))
+                    break;
+
+                menu = PhCreateEMenu();
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_TERMINATE, L"T&erminate\bDel", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_TERMINATETREE, L"Terminate tree\bShift+Del", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_SUSPEND, L"&Suspend", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_SUSPENDTREE, L"Suspend tree", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_RESUME, L"Res&ume", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_RESUMETREE, L"Resume tree", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_FREEZE, L"Freeze", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_THAW, L"Thaw", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_RESTART, L"Res&tart", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+
+                if (propContext->ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
+                {
+                    PPH_EMENU_ITEM kernelMinimal;
+
+                    menuItem = PhCreateEMenuItem(0, ID_PROCESS_CREATEDUMPFILE, L"Create live kernel dump fi&le", NULL, NULL);
+                    PhInsertEMenuItem(menuItem, kernelMinimal = PhCreateEMenuItem(0, ID_PROCESS_DUMP_MINIMAL, L"&Minimal...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_NORMAL, L"&Normal...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_FULL, L"&Full...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_CUSTOM, L"&Custom...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+
+                    if (!PhGetOwnTokenAttributes().Elevated)
+                    {
+                        menuItem->Flags |= PH_EMENU_DISABLED;
+                    }
+                    else if (WindowsVersion < WINDOWS_11)
+                    {
+                        // Minimal only captures thread stacks, not supported before Windows 11
+                        PhSetDisabledEMenuItem(kernelMinimal);
+                    }
+                }
+                else
+                {
+                    menuItem = PhCreateEMenuItem(0, ID_PROCESS_CREATEDUMPFILE, L"Create dump fi&le", NULL, NULL);
+                    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_MINIMAL, L"&Minimal...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_LIMITED, L"&Limited...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_NORMAL, L"&Normal...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_FULL, L"&Full...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_CUSTOM, L"&Custom...", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+                }
+
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_DEBUG, L"De&bug", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
+
+                menuItem = PhCreateEMenuItem(0, ID_PROCESS_PRIORITYCLASS, L"&Priority", NULL, NULL);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"&High", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"&Above normal", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_NORMAL, L"&Normal", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_BELOWNORMAL, L"&Below normal", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_IDLE, L"&Idle", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+
+                menuItem = PhCreateEMenuItem(0, ID_PROCESS_IOPRIORITY, L"&I/O priority", NULL, NULL);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_IOPRIORITY_HIGH, L"&High", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_IOPRIORITY_NORMAL, L"&Normal", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_IOPRIORITY_LOW, L"&Low", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_IOPRIORITY_VERYLOW, L"&Very low", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+
+                menuItem = PhCreateEMenuItem(0, ID_PROCESS_PAGEPRIORITY, L"Pa&ge priority", NULL, NULL);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PAGEPRIORITY_NORMAL, L"&Normal", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PAGEPRIORITY_BELOWNORMAL, L"&Below normal", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PAGEPRIORITY_MEDIUM, L"&Medium", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PAGEPRIORITY_LOW, L"&Low", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PAGEPRIORITY_VERYLOW, L"&Very low", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+
+                menuItem = PhCreateEMenuItem(0, ID_PROCESS_MISCELLANEOUS, L"&Miscellaneous", NULL, NULL);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_ACTIVITY, L"Activity moderation", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_SETCRITICAL, L"&Critical", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_DETACHFROMDEBUGGER, L"&Detach from debugger", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_ECOMODE, L"Efficiency mode", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_EXECUTIONREQUIRED, L"Execution required", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_GDIHANDLES, L"GDI &handles...", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_HEAPS, L"Heaps...", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_LOCKS, L"Locks...", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_FLUSHHEAPS, L"Flush heaps", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_PAGESMODIFIED, L"Modified pages...", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_REDUCEWORKINGSET, L"Reduce working &set", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_RUNAS, L"&Run as...", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_RUNASTHISUSER, L"Run &as this user...", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_VIRTUALIZATION, L"Virtuali&zation", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_SEARCHONLINE, L"Search &online\bCtrl+M", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_OPENFILELOCATION, L"Open &file location\bCtrl+Enter", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_HANDLE_SECURITY, L"Security", NULL, NULL), ULONG_MAX);
+
+                PhMwpInitializeProcessMenu(menu, &propContext->ProcessItem, 1);
+
+                selectedItem = PhShowEMenu(
+                    menu,
+                    WindowHandle,
+                    PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_BOTTOM,
+                    rect.left,
+                    rect.top
+                    );
+
+                if (selectedItem && selectedItem->Id)
+                {
+                    PPH_PROCESS_ITEM processItem = propContext->ProcessItem;
+                    
+                    PhReferenceObject(processItem);
+                    
+                    switch (selectedItem->Id)
+                    {
+                    case ID_PROCESS_TERMINATE:
+                        PhUiTerminateProcesses(WindowHandle, &processItem, 1);
+                        break;
+                    case ID_PROCESS_TERMINATETREE:
+                        PhUiTerminateTreeProcess(WindowHandle, processItem);
+                        break;
+                    case ID_PROCESS_SUSPEND:
+                        PhUiSuspendProcesses(WindowHandle, &processItem, 1);
+                        break;
+                    case ID_PROCESS_SUSPENDTREE:
+                        PhUiSuspendTreeProcess(WindowHandle, processItem);
+                        break;
+                    case ID_PROCESS_RESUME:
+                        PhUiResumeProcesses(WindowHandle, &processItem, 1);
+                        break;
+                    case ID_PROCESS_RESUMETREE:
+                        PhUiResumeTreeProcess(WindowHandle, processItem);
+                        break;
+                    case ID_PROCESS_FREEZE:
+                        PhUiFreezeTreeProcess(WindowHandle, processItem);
+                        break;
+                    case ID_PROCESS_THAW:
+                        PhUiThawTreeProcess(WindowHandle, processItem);
+                        break;
+                    case ID_PROCESS_RESTART:
+                        PhUiRestartProcess(WindowHandle, processItem);
+                        break;
+                    case ID_PROCESS_AFFINITY:
+                        PhShowProcessAffinityDialog(WindowHandle, processItem, NULL);
+                        break;
+                    case ID_PRIORITY_REALTIME:
+                    case ID_PRIORITY_HIGH:
+                    case ID_PRIORITY_ABOVENORMAL:
+                    case ID_PRIORITY_NORMAL:
+                    case ID_PRIORITY_BELOWNORMAL:
+                    case ID_PRIORITY_IDLE:
+                        PhMwpExecuteProcessPriorityClassCommand(WindowHandle, selectedItem->Id, &processItem, 1);
+                        break;
+                    case ID_IOPRIORITY_VERYLOW:
+                    case ID_IOPRIORITY_LOW:
+                    case ID_IOPRIORITY_NORMAL:
+                    case ID_IOPRIORITY_HIGH:
+                        PhMwpExecuteProcessIoPriorityCommand(WindowHandle, selectedItem->Id, &processItem, 1);
+                        break;
+                    case ID_PAGEPRIORITY_VERYLOW:
+                    case ID_PAGEPRIORITY_LOW:
+                    case ID_PAGEPRIORITY_MEDIUM:
+                    case ID_PAGEPRIORITY_BELOWNORMAL:
+                    case ID_PAGEPRIORITY_NORMAL:
+                        {
+                            ULONG pagePriority;
+
+                            switch (selectedItem->Id)
+                            {
+                            case ID_PAGEPRIORITY_VERYLOW:
+                                pagePriority = MEMORY_PRIORITY_VERY_LOW;
+                                break;
+                            case ID_PAGEPRIORITY_LOW:
+                                pagePriority = MEMORY_PRIORITY_LOW;
+                                break;
+                            case ID_PAGEPRIORITY_MEDIUM:
+                                pagePriority = MEMORY_PRIORITY_MEDIUM;
+                                break;
+                            case ID_PAGEPRIORITY_BELOWNORMAL:
+                                pagePriority = MEMORY_PRIORITY_BELOW_NORMAL;
+                                break;
+                            case ID_PAGEPRIORITY_NORMAL:
+                                pagePriority = MEMORY_PRIORITY_NORMAL;
+                                break;
+                            }
+
+                            PhUiSetPagePriorityProcess(WindowHandle, processItem, pagePriority);
+                        }
+                        break;
+                    case ID_MISCELLANEOUS_ACTIVITY:
+                        PhUiSetActivityModeration(WindowHandle, processItem);
+                        break;
+                    case ID_MISCELLANEOUS_SETCRITICAL:
+                        PhUiSetCriticalProcess(WindowHandle, processItem);
+                        break;
+                    case ID_MISCELLANEOUS_DETACHFROMDEBUGGER:
+                        PhUiDetachFromDebuggerProcess(WindowHandle, processItem);
+                        break;
+                    case ID_MISCELLANEOUS_ECOMODE:
+                        PhUiSetEcoModeProcess(WindowHandle, processItem);
+                        break;
+                    case ID_MISCELLANEOUS_EXECUTIONREQUIRED:
+                        PhUiSetExecutionRequiredProcess(WindowHandle, processItem);
+                        break;
+                    case ID_MISCELLANEOUS_GDIHANDLES:
+                        PhShowGdiHandlesDialog(WindowHandle, processItem);
+                        break;
+                    case ID_MISCELLANEOUS_HEAPS:
+                        PhShowProcessHeapsDialog(WindowHandle, processItem);
+                        break;
+                    case ID_MISCELLANEOUS_LOCKS:
+                        PhShowProcessLocksDialog(WindowHandle, processItem);
+                        break;
+                    case ID_MISCELLANEOUS_REDUCEWORKINGSET:
+                        PhUiReduceWorkingSetProcesses(WindowHandle, &processItem, 1);
+                        break;
+                    case ID_MISCELLANEOUS_RUNAS:
+                        PhShowRunAsDialog(WindowHandle, NULL);
+                        break;
+                    case ID_MISCELLANEOUS_RUNASTHISUSER:
+                        PhShowRunAsDialog(WindowHandle, processItem->ProcessId);
+                        break;
+                    case ID_MISCELLANEOUS_FLUSHHEAPS:
+                        PhUiFlushHeapProcesses(WindowHandle, &processItem, 1);
+                        break;
+                    case ID_PROCESS_DUMP_MINIMAL:
+                    case ID_PROCESS_DUMP_LIMITED:
+                    case ID_PROCESS_DUMP_NORMAL:
+                    case ID_PROCESS_DUMP_FULL:
+                    case ID_PROCESS_DUMP_CUSTOM:
+                        PhUiCreateDumpFileProcess(WindowHandle, processItem, selectedItem->Id);
+                        break;
+                    case ID_PROCESS_DEBUG:
+                        PhUiDebugProcess(WindowHandle, processItem);
+                        break;
+                    case ID_PROCESS_SEARCHONLINE:
+                        PhSearchOnlineString(WindowHandle, processItem->ProcessName->Buffer);
+                        break;
+                    case ID_PROCESS_OPENFILELOCATION:
+                        {
+                            NTSTATUS status;
+                            PPH_STRING fileName;
+
+                            status = PhGetProcessItemFileNameWin32(processItem, &fileName);
+
+                            if (NT_SUCCESS(status))
+                            {
+                                PhShellExecuteUserString(
+                                    WindowHandle,
+                                    SETTING_FILE_BROWSE_EXECUTABLE,
+                                    PhGetString(fileName),
+                                    FALSE,
+                                    L"Make sure the Explorer executable file is present."
+                                    );
+
+                                PhDereferenceObject(fileName);
+                            }
+                            else
+                            {
+                                PhShowStatus(WindowHandle, L"Unable to locate the file.", status, 0);
+                            }
+                        }
+                        break;
+                    case ID_HANDLE_SECURITY:
+                        {
+                            PhEditSecurity(
+                                PhCsForceNoParent ? NULL : pageWindow,
+                                PhGetStringOrEmpty(propContext->ProcessItem->ProcessName),
+                                L"Process",
+                                PhOptionsButtonGeneralOpenProcess,
+                                PhOptionsButtonGeneralCloseHandle,
+                                propContext->ProcessItem->ProcessId
+                                );
+                        }
+                        break;
+                    }
+                    
+                    PhDereferenceObject(processItem);
+                }
+
+                PhDestroyEMenu(menu);
+            }
+            //else if (GET_WM_COMMAND_HWND(wParam, lParam) == propSheetContext->PermissionsButtonWindowHandle)
+            //{
+            //    HWND pageWindow;
+            //    LPPROPSHEETPAGE propSheetPage;
+            //    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+            //    PPH_PROCESS_PROPCONTEXT propContext;
+            //
+            //    if (!(pageWindow = PropSheet_GetCurrentPageHwnd(WindowHandle)))
+            //        break;
+            //    if (!(propSheetPage = PhGetWindowContext(pageWindow, PH_WINDOW_CONTEXT_DEFAULT)))
+            //        break;
+            //    if (!(propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam))
+            //        break;
+            //    if (!(propContext = propPageContext->PropContext))
+            //        break;
+            //
+            //    NOTHING;
+            //}
+        }
+        break;
+    case WM_PH_UPDATE_DIALOG:
+        {
+            if (propSheetContext->ButtonsLabelWindowHandle)
+            {
+                static CONST PH_STRINGREF text = PH_STRINGREF_INIT(L"Protection");
+                static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L": ");
+                static CONST PH_STRINGREF natext = PH_STRINGREF_INIT(L"N/A");
+                HWND pageWindow;
+                LPPROPSHEETPAGE propSheetPage;
+                PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+                PPH_PROCESS_PROPCONTEXT propContext;
+
+                if (!(pageWindow = PropSheet_GetCurrentPageHwnd(WindowHandle)))
+                    break;
+                if (!(propSheetPage = PhGetWindowContext(pageWindow, PH_WINDOW_CONTEXT_DEFAULT)))
+                    break;
+                if (!(propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam))
+                    break;
+                if (!(propContext = propPageContext->PropContext))
+                    break;
+
+                PPH_STRING string = PhGetProcessProtectionString(propContext->ProcessItem->Protection, (BOOLEAN)propContext->ProcessItem->IsSecureProcess);
+
+                if (string)
+                {
+                    PhMoveReference(&string, PhConcatStringRef3(&text, &seperator, &string->sr));
+                }
+                else
+                {
+                    PhMoveReference(&string, PhConcatStringRef3(&text, &seperator, &natext));
+                }
+
+                PhSetWindowText(propSheetContext->ButtonsLabelWindowHandle, string->Buffer);
+                PhClearReference(&string);
+            }
+        }
+        break;
+    }
+
+    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
+}
+
+VOID PhpCreateProcessPropButtons(
+    _In_ PPH_PROCESS_PROPSHEETCONTEXT PropSheetContext,
+    _In_ HWND PropSheetWindow
+    )
+{
+    if (!PropSheetContext->OptionsButtonWindowHandle)
+    {
+        RECT clientRect;
+        RECT rect;
+        LONG buttonWidth;
+        LONG buttonHeight;
+        LONG buttonSpacing = 6;
+        LONG labelWidth = 250;
+        HFONT windowFont;
+
+        windowFont = GetWindowFont(GetDlgItem(PropSheetWindow, IDCANCEL));
+
+        PropSheetContext->OldOptionsButtonWndProc = PhGetWindowProcedure(PropSheetWindow);
+        PhSetWindowContext(PropSheetWindow, SCHAR_MAX, PropSheetContext);
+        PhSetWindowProcedure(PropSheetWindow, PhpOptionsButtonWndProc);
+
+        PhGetClientRect(PropSheetWindow, &clientRect);
+        PhGetWindowRect(GetDlgItem(PropSheetWindow, IDCANCEL), &rect);
+        MapWindowRect(NULL, PropSheetWindow, &rect);
+
+        buttonWidth = rect.right - rect.left;
+        buttonHeight = rect.bottom - rect.top;
+
+        // Create the Options button
+        PropSheetContext->OptionsButtonWindowHandle = CreateWindowEx(
+            WS_EX_NOPARENTNOTIFY,
+            WC_BUTTON,
+            L"Options",
+            WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+            clientRect.right - rect.right,
+            rect.top,
+            buttonWidth,
+            buttonHeight,
+            PropSheetWindow,
+            NULL,
+            PhInstanceHandle,
+            NULL
+            );
+        SetWindowFont(PropSheetContext->OptionsButtonWindowHandle, windowFont, TRUE);
+
+        // Create the Permissions button
+        //PropSheetContext->PermissionsButtonWindowHandle = CreateWindowEx(
+        //    WS_EX_NOPARENTNOTIFY,
+        //    WC_BUTTON,
+        //    L"Permissions",
+        //    WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+        //    clientRect.right - rect.right + buttonWidth + buttonSpacing,
+        //    rect.top,
+        //    buttonWidth,
+        //    buttonHeight,
+        //    PropSheetWindow,
+        //    NULL,
+        //    PhInstanceHandle,
+        //    NULL
+        //    );
+        //SetWindowFont(PropSheetContext->PermissionsButtonWindowHandle, windowFont, TRUE);
+
+        // Create the label
+        PropSheetContext->ButtonsLabelWindowHandle = CreateWindowEx(
+            WS_EX_NOPARENTNOTIFY,
+            WC_STATIC,
+            L"Protection",
+            WS_CHILD | WS_VISIBLE | SS_LEFT,
+            clientRect.right - rect.right + (buttonWidth + buttonSpacing) + 5,
+            rect.top + 7,
+            labelWidth,
+            buttonHeight,
+            PropSheetWindow,
+            NULL,
+            PhInstanceHandle,
+            NULL
+            );
+        SetWindowFont(PropSheetContext->ButtonsLabelWindowHandle, windowFont, TRUE);
+
+        PostMessage(PropSheetWindow, WM_PH_UPDATE_DIALOG, 0, 0);
+    }
 }
 
 BOOLEAN PhpInitializePropSheetLayoutStage1(
     _In_ PPH_PROCESS_PROPSHEETCONTEXT Context,
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
     if (!Context->LayoutInitialized)
@@ -376,15 +888,21 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         PPH_LAYOUT_ITEM tabControlItem;
         PPH_LAYOUT_ITEM tabPageItem;
 
-        tabControlHandle = PropSheet_GetTabControl(hwnd);
+        tabControlHandle = PropSheet_GetTabControl(WindowHandle);
         tabControlItem = PhAddLayoutItem(&Context->LayoutManager, tabControlHandle, NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
         tabPageItem = PhAddLayoutItem(&Context->LayoutManager, tabControlHandle, NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
-        PhAddLayoutItem(&Context->LayoutManager, GetDlgItem(hwnd, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+        PhAddLayoutItem(&Context->LayoutManager, GetDlgItem(WindowHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+        // Create and add the buttons to the layout
+        PhpCreateProcessPropButtons(Context, WindowHandle);
+        PhAddLayoutItem(&Context->LayoutManager, Context->OptionsButtonWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+        PhAddLayoutItem(&Context->LayoutManager, Context->ButtonsLabelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+        //PhAddLayoutItem(&Context->LayoutManager, Context->PermissionsButtonWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
 
         // Hide the OK button.
-        ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
+        ShowWindow(GetDlgItem(WindowHandle, IDOK), SW_HIDE);
         // Set the Cancel button's text to "Close".
-        PhSetDialogItemText(hwnd, IDCANCEL, L"Close");
+        PhSetDialogItemText(WindowHandle, IDCANCEL, L"Close");
 
         Context->TabPageItem = tabPageItem;
         Context->LayoutInitialized = TRUE;
@@ -396,19 +914,22 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
 }
 
 VOID PhpInitializePropSheetLayoutStage2(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
     PH_RECTANGLE windowRectangle = {0};
     RECT rect;
     LONG dpiValue;
 
-    PhLoadWindowPlacementFromSetting(L"ProcPropPosition", L"ProcPropSize", hwnd);
+    if (PhValidWindowPlacementFromSetting(SETTING_PROC_PROP_POSITION))
+        PhLoadWindowPlacementFromSetting(SETTING_PROC_PROP_POSITION, SETTING_PROC_PROP_SIZE, WindowHandle);
+    else
+        PhCenterWindow(WindowHandle, NULL);
 
-    windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
+    windowRectangle.Position = PhGetIntegerPairSetting(SETTING_PROC_PROP_POSITION);
     PhRectangleToRect(&rect, &windowRectangle);
     dpiValue = PhGetMonitorDpi(NULL, &rect);
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"ProcPropSize", TRUE, dpiValue)->Pair;
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_PROC_PROP_SIZE, TRUE, dpiValue)->Pair;
 
     if (windowRectangle.Size.X < MinimumSize.right)
         windowRectangle.Size.X = MinimumSize.right;
@@ -420,7 +941,7 @@ VOID PhpInitializePropSheetLayoutStage2(
     // Implement cascading by saving an offsetted rectangle.
     windowRectangle.Left += 20;
     windowRectangle.Top += 20;
-    PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
+    PhSetIntegerPairSetting(SETTING_PROC_PROP_POSITION, windowRectangle.Position);
 }
 
 BOOLEAN PhAddProcessPropPage(
@@ -507,7 +1028,7 @@ VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
 }
 
 UINT CALLBACK PhpStandardPropPageProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
     )
@@ -585,7 +1106,7 @@ VOID PhpCreateProcessPropSheetWaitContext(
         PhpProcessPropertiesWaitCallback,
         waitContext,
         INFINITE,
-        WT_EXECUTEONLYONCE | WT_EXECUTEINWAITTHREAD | WT_EXECUTELONGFUNCTION
+        WT_EXECUTEONLYONCE | WT_EXECUTEINWAITTHREAD
         )))
     {
         PropContext->ProcessWaitContext = waitContext;
@@ -752,7 +1273,7 @@ static VOID ASSERT_DIALOGRECT(
 #endif
 
 PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor
@@ -765,7 +1286,7 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
     BOOLEAN doLayoutStage2;
     PPH_LAYOUT_ITEM item;
 
-    parent = GetParent(hwnd);
+    parent = GetParent(WindowHandle);
     propSheetContext = PhpGetPropSheetContext(parent);
     layoutManager = &propSheetContext->LayoutManager;
 
@@ -793,15 +1314,15 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
         // MAKE SURE THESE NUMBERS ARE CORRECT.
         dialogSize.right = 260;
         dialogSize.bottom = 260;
-        MapDialogRect(hwnd, &dialogSize);
+        MapDialogRect(WindowHandle, &dialogSize);
 
         // Get the original dialog rectangle.
-        GetWindowRect(hwnd, &dialogRect);
+        PhGetWindowRect(WindowHandle, &dialogRect);
         dialogRect.right = dialogRect.left + dialogSize.right;
         dialogRect.bottom = dialogRect.top + dialogSize.bottom;
 
         // Calculate the margin from the original rectangle.
-        GetWindowRect(Handle, &margin);
+        PhGetWindowRect(Handle, &margin);
         PhMapRect(&margin, &margin, &dialogRect);
         PhConvertRect(&margin, &dialogRect);
 
@@ -819,13 +1340,13 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
 }
 
 VOID PhDoPropPageLayout(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
     HWND parent;
     PPH_PROCESS_PROPSHEETCONTEXT propSheetContext;
 
-    parent = GetParent(hwnd);
+    parent = GetParent(WindowHandle);
     propSheetContext = PhpGetPropSheetContext(parent);
     PhLayoutManagerLayout(&propSheetContext->LayoutManager);
 }
@@ -903,6 +1424,17 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         NULL
         );
     PhAddProcessPropPage(PropContext, newPage);
+
+    // Monitor
+    if (PhEnableProcessMonitor && KsiLevel() >= KphLevelMed)
+    {
+        newPage = PhCreateProcessPropPageContext(
+            MAKEINTRESOURCE(IDD_PROCINFORMER),
+            PhpProcessInformerDlgProc,
+            NULL
+            );
+        PhAddProcessPropPage(PropContext, newPage);
+    }
 
     // Environment
     newPage = PhCreateProcessPropPageContext(
@@ -986,11 +1518,13 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     // Create the property sheet
 
     if (PropContext->SelectThreadId)
-        PhSetStringSetting(L"ProcPropPage", L"Threads");
+    {
+        PhSetStringSetting(SETTING_PROC_PROP_PAGE, L"Threads");
+    }
 
-    startPage = PhGetStringSetting(L"ProcPropPage");
+    startPage = PhGetStringSetting(SETTING_PROC_PROP_PAGE);
     PropContext->PropSheetHeader.dwFlags |= PSH_USEPSTARTPAGE;
-    PropContext->PropSheetHeader.pStartPage = startPage->Buffer;
+    PropContext->PropSheetHeader.pStartPage = PhGetString(startPage);
 
     PhModalPropertySheet(&PropContext->PropSheetHeader);
 

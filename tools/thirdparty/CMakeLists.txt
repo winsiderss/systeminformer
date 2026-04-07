@@ -76,7 +76,6 @@ set(SOURCES_PCRE
     "pcre/pcre2_chkdint.c"
     "pcre/pcre2_compile.c"
     "pcre/pcre2_compile_class.c"
-    "pcre/pcre2_chkdint.c"
     "pcre/pcre2_config.c"
     "pcre/pcre2_context.c"
     "pcre/pcre2_convert.c"
@@ -115,6 +114,9 @@ set(HEADERS_PCRE
     "pcre/pcre2posix.h"
     "pcre/pcre2_compile.h"
     "pcre/pcre2_util.h"
+    "pcre/pcre2_jit_char_inc.h"
+    "pcre/pcre2_jit_neon_inc.h"
+    "pcre/pcre2_jit_simd_inc.h"
 )
 source_group("PCRE\\Headers" FILES ${HEADERS_PCRE})
 
@@ -198,6 +200,12 @@ set(SOURCES_XXHASH
 )
 source_group("xxhash" FILES ${SOURCES_XXHASH})
 
+set(SOURCES_ZYDIS
+    "zydis/Zydis.h"
+    "zydis/Zydis.c"
+)
+source_group("zydis" FILES ${SOURCES_ZYDIS})
+
 set(ALL_FILES
     ${SOURCES_JSON_C}
     ${HEADERS_JSON_C}
@@ -214,6 +222,7 @@ set(ALL_FILES
     ${SOURCES_SSDEEP}
     ${SOURCES_TLSH}
     ${SOURCES_XXHASH}
+    ${SOURCES_ZYDIS}
 )
 
 si_add_library(thirdparty STATIC ${ALL_FILES})

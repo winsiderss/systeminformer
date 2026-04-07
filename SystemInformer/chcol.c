@@ -153,6 +153,7 @@ VOID PhpColumnsResetListBox(
     SendMessage(ListBoxHandle, WM_SETREDRAW, TRUE, 0);
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpInactiveColumnsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -168,6 +169,7 @@ VOID NTAPI PhpInactiveColumnsSearchControlCallback(
         );
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpActiveColumnsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context

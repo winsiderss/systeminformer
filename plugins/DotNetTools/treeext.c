@@ -30,6 +30,7 @@ VOID ThreadTreeNewMessage(
     _In_ PVOID Parameter
     );
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG ThreadTreeNewSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -240,13 +241,10 @@ VOID ThreadTreeNewInitializing(
         PH_CLR_USE_SECTION_CHECK,
 #endif
         &isDotNet,
-        NULL
+        &flags
         );
 
-    if (!isDotNet && (flags & PH_CLR_CORELIB_PRESENT | PH_CLR_CORE_3_0_ABOVE))
-        isDotNet = TRUE;
-
-    if (isDotNet)
+    if (isDotNet || FlagOn(flags, PH_CLR_CORELIB_PRESENT | PH_CLR_CORE_3_0_ABOVE))
     {
 #if _WIN64
         if (context->IsWow64Process)
@@ -330,6 +328,7 @@ VOID ThreadTreeNewMessage(
     }
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG ThreadTreeNewSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,

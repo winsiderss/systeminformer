@@ -594,6 +594,7 @@ VOID EtpNpuUpdateSystemNodeInformation(
     PhUpdateDelta(&EtNpuClockTotalRunningTimeDelta, performanceCounter.QuadPart);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtNpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

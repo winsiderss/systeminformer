@@ -35,6 +35,7 @@ static HANDLE EtNpuNodesThreadHandle = NULL;
 static HWND EtNpuNodesWindowHandle = NULL;
 static PH_EVENT EtNpuNodesInitializedEvent = PH_EVENT_INIT;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtpNpuNodesDialogThreadStart(
     _In_ PVOID Parameter
     )
@@ -177,7 +178,7 @@ INT_PTR CALLBACK EtpNpuNodesDlgProc(
                 &ProcessesUpdatedCallbackRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -307,7 +308,7 @@ INT_PTR CALLBACK EtpNpuNodesDlgProc(
                     PhGetSizeDpiValue(&padding, dpiValue, TRUE);
 
                     drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
-                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
+                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, dpiValue);
 
                     for (i = 0; i < EtNpuTotalNodeCount; i++)
                     {

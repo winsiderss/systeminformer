@@ -24,18 +24,21 @@ VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Context
     )
 {
+    // Check if there's a pending update and the user wants the update prompt before the main window.
     if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE) && PhGetIntegerSetting(SETTING_NAME_UPDATE_AVAILABLE))
     {
-        PPH_STRING setting;
+        PPH_STRING string;
 
-        if (setting = PhGetStringSetting(SETTING_NAME_UPDATE_DATA))
+        if (string = PhGetStringSetting(SETTING_NAME_UPDATE_DATA))
         {
-            ShowStartupUpdateDialog();
-
-            PhSetIntegerSetting(SETTING_NAME_UPDATE_AVAILABLE, FALSE);
+            // Clear the update cache. (dmex)
             PhSetStringSetting(SETTING_NAME_UPDATE_DATA, L"");
+            PhSetIntegerSetting(SETTING_NAME_UPDATE_AVAILABLE, FALSE);
 
-            PhDereferenceObject(setting);
+            // Show the update prompt. (dmex)
+            ShowStartupUpdateDialog(string);
+
+            PhDereferenceObject(string);
         }
     }
 
@@ -163,6 +166,7 @@ LOGICAL DllMain(
             {
                 { IntegerSettingType, SETTING_NAME_AUTO_CHECK, L"1" },
                 { IntegerSettingType, SETTING_NAME_LAST_CHECK, L"0" },
+                { IntegerSettingType, SETTING_NAME_UPDATE_INTERVAL, L"1" },
                 { IntegerPairSettingType, SETTING_NAME_CHANGELOG_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_CHANGELOG_WINDOW_SIZE, L"@96|420,250" },
                 { StringSettingType, SETTING_NAME_CHANGELOG_COLUMNS, L"" },

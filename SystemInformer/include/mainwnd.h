@@ -71,6 +71,9 @@ typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
     PH_MAINWINDOW_CALLBACK_TYPE_PAGEINDEX,
     PH_MAINWINDOW_CALLBACK_TYPE_WINDOWDPI,
     PH_MAINWINDOW_CALLBACK_TYPE_WINDOWNAME,
+    PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_MENU,
+    PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_SUBMENU,
+    PH_MAINWINDOW_CALLBACK_TYPE_SET_MAIN_SUBCMD,
     PH_MAINWINDOW_CALLBACK_TYPE_MAXIMUM
 } PH_MAINWINDOW_CALLBACK_TYPE;
 
@@ -117,8 +120,8 @@ PhPluginInvokeWindowCallback(
     ((HFONT)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT, 0, 0))
 #define SystemInformer_Invoke(Function, Parameter) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_INVOKE, (PVOID)(ULONG_PTR)(Parameter), (PVOID)(ULONG_PTR)(Function))
-#define SystemInformer_Post(Function, Parameter) \
-    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_POST, (PVOID)(ULONG_PTR)(Parameter), (PVOID)(ULONG_PTR)(Function))
+//#define SystemInformer_Post(Function, Parameter) \
+//    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_POST, (PVOID)(ULONG_PTR)(Parameter), (PVOID)(ULONG_PTR)(Function))
 //#define SystemInformer_CreateTabPage(Template) \
 //    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_CREATE_TAB_PAGE, 0, (PVOID)(ULONG_PTR)(Template))
 #define SystemInformer_Refresh() \
@@ -147,6 +150,12 @@ PhPluginInvokeWindowCallback(
     (PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOWDPI, 0, 0)))
 #define SystemInformer_GetWindowName() \
     (PWSTR)(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOWNAME, 0, 0))
+#define SystemInformer_GetMainMenu() \
+    ((PPH_EMENU)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_MENU, 0, 0))
+#define SystemInformer_GetMainSubMenu(Index) \
+    ((PPH_EMENU)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_SUBMENU, (PVOID)(ULONG_PTR)(Index), 0))
+#define SystemInformer_SetMainSubCmd(Index, Context) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SET_MAIN_SUBCMD, (PVOID)(ULONG_PTR)(Index), (PVOID)Context)
 
 #define PhWindowsVersion SystemInformer_GetWindowsVersion() // Temporary backwards compat (dmex)
 // end_phapppub
@@ -206,12 +215,14 @@ typedef enum _PH_MAIN_TAB_PAGE_MESSAGE
 
 typedef struct _PH_MAIN_TAB_PAGE *PPH_MAIN_TAB_PAGE;
 
-typedef BOOLEAN (NTAPI *PPH_MAIN_TAB_PAGE_CALLBACK)(
+typedef _Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
+BOOLEAN NTAPI PH_MAIN_TAB_PAGE_CALLBACK(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
     );
+typedef PH_MAIN_TAB_PAGE_CALLBACK* PPH_MAIN_TAB_PAGE_CALLBACK;
 
 typedef struct _PH_MAIN_TAB_PAGE_EXPORT_CONTENT
 {
@@ -285,7 +296,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
 
 VOID PhShowIconContextMenu(
     _In_ HWND WindowHandle,
-    _In_ POINT Location
+    _In_ PPOINT Location
     );
 
 // begin_phapppub
@@ -326,6 +337,10 @@ PhShowIconNotificationEx(
     _In_opt_ PVOID Context
     );
 // end_phapppub
+
+VOID PhProcessInvokeQueue(
+    VOID
+    );
 
 VOID PhShowDetailsForIconNotification(
     VOID

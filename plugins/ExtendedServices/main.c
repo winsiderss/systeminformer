@@ -373,6 +373,7 @@ VOID NTAPI ServicePropertiesInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ServiceMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

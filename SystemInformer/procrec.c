@@ -242,7 +242,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                     {
                         PhShellExecuteUserString(
                             hwndDlg,
-                            L"FileBrowseExecutable",
+                            SETTING_FILE_BROWSE_EXECUTABLE,
                             context->Record->FileName->Buffer,
                             FALSE,
                             L"Make sure the Explorer executable file is present."

@@ -129,6 +129,14 @@ PhLoadResourceCopy(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhLoadString(
+    _In_ PVOID DllBase,
+    _In_ ULONG ResourceId
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhLoadIndirectString(
     _In_ PCPH_STRINGREF SourceString
     );
@@ -241,10 +249,30 @@ PHLIBAPI
 PVOID
 NTAPI
 PhGetDllProcedureAddress(
-    _In_ PCWSTR DllName,
+    _In_ PCPH_STRINGREF DllName,
     _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber
     );
+
+FORCEINLINE
+PVOID
+NTAPI
+PhGetDllProcedureAddressZ(
+    _In_ PCWSTR DllName,
+    _In_opt_ PCSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber
+    )
+{
+    PH_STRINGREF fileName;
+
+    PhInitializeStringRef(&fileName, DllName);
+
+    return PhGetDllProcedureAddress(
+        &fileName,
+        ProcedureName,
+        ProcedureNumber
+        );
+}
 
 PHLIBAPI
 NTSTATUS
@@ -282,7 +310,7 @@ NTSTATUS
 NTAPI
 PhLoaderEntryImageRvaToSection(
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _In_ ULONG Rva,
+    _In_ ULONG_PTR Rva,
     _Out_ PIMAGE_SECTION_HEADER *ImageSection,
     _Out_ SIZE_T *ImageSectionLength
     );
@@ -292,7 +320,7 @@ NTSTATUS
 NTAPI
 PhLoaderEntryImageRvaToVa(
     _In_ PVOID BaseAddress,
-    _In_ ULONG Rva,
+    _In_ ULONG_PTR Rva,
     _Out_ PVOID *Va
     );
 
@@ -316,6 +344,7 @@ PVOID
 NTAPI
 PhGetLoaderEntryImageExportFunction(
     _In_ PVOID BaseAddress,
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
     _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
     _In_opt_ PCSTR ExportName,

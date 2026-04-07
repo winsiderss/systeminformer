@@ -135,45 +135,21 @@ VOID PvInitializeSettings(
     VOID
     )
 {
-    NTSTATUS status;
-    PPH_STRING appFileName;
-    PPH_STRING tempFileName;
+    NTSTATUS status = STATUS_OBJECT_NAME_NOT_FOUND;
+    PPH_STRING settingsPath = NULL;
 
     PvAddDefaultSettings();
 
-    // There are three possible locations for the settings file:
-    // 1. A file named peview.exe.settings.xml in the program directory. (This changes
-    //    based on the executable file name.)
-    // 2. The default location.
+    // 1. Default locations (Portable, AppData or Registry)
+    status = PhLoadSettingsAutoDetect(NULL, L"peview", &settingsPath, NULL, NULL);
 
-    // 1. File in program directory
-
-    if (appFileName = PhGetApplicationFileName())
+    if (NT_SUCCESS(status) || status == STATUS_OBJECT_NAME_NOT_FOUND)
     {
-        tempFileName = PhConcatStringRefZ(&appFileName->sr, L".settings.xml");
-
-        if (PhDoesFileExist(&tempFileName->sr))
-        {
-            PvSettingsFileName = tempFileName;
-        }
-        else
-        {
-            PhDereferenceObject(tempFileName);
-        }
-
-        PhDereferenceObject(appFileName);
+        PhMoveReference(&PvSettingsFileName, settingsPath);
     }
 
-    // 2. Default location
-    if (PhIsNullOrEmptyString(PvSettingsFileName))
+    if (PvSettingsFileName)
     {
-        PvSettingsFileName = PhGetRoamingAppDataDirectoryZ(L"peview.xml", TRUE);
-    }
-
-    if (!PhIsNullOrEmptyString(PvSettingsFileName))
-    {
-        status = PhLoadSettings(&PvSettingsFileName->sr);
-
         // If we didn't find the file, it will be created. Otherwise,
         // there was probably a parsing error and we don't want to
         // change anything.
@@ -187,25 +163,7 @@ VOID PvInitializeSettings(
                 L"If you select No, the settings system will not function properly."
                 ) == IDYES)
             {
-                HANDLE fileHandle;
-                IO_STATUS_BLOCK isb;
-                CHAR data[] = "<settings></settings>";
-
-                // This used to delete the file. But it's better to keep the file there
-                // and overwrite it with some valid XML, especially with case (2) above.
-                if (NT_SUCCESS(PhCreateFile(
-                    &fileHandle,
-                    &PvSettingsFileName->sr,
-                    FILE_GENERIC_WRITE,
-                    FILE_ATTRIBUTE_NORMAL,
-                    FILE_SHARE_READ | FILE_SHARE_DELETE,
-                    FILE_OVERWRITE,
-                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                    )))
-                {
-                    NtWriteFile(fileHandle, NULL, NULL, NULL, &isb, data, sizeof(data) - 1, NULL, NULL);
-                    NtClose(fileHandle);
-                }
+                PhResetSettingsFile(&PvSettingsFileName->sr);
             }
             else
             {

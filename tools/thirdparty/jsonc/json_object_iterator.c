@@ -104,12 +104,12 @@ void json_object_iter_next(struct json_object_iterator *iter)
 /**
  * ****************************************************************************
  */
-const char *json_object_iter_peek_name(const struct json_object_iterator *iter)
+const unsigned  char *json_object_iter_peek_name(const struct json_object_iterator *iter)
 {
     JASSERT(NULL != iter);
     JASSERT(kObjectEndIterValue != iter->opaque_);
 
-    return (const char *)(((const struct lh_entry *)iter->opaque_)->k);
+    return (const unsigned char *)(((const struct lh_entry *)iter->opaque_)->k);
 }
 
 /**

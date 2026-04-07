@@ -367,6 +367,7 @@ BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
     return FALSE;
 }
 
+_Function_class_(PH_COMMAND_LINE_CALLBACK)
 BOOLEAN NTAPI MainPropSheetCommandLineCallback(
     _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,

@@ -18,7 +18,7 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="virustotal.c">
+    <ClCompile Include="api.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="options.c">
@@ -37,6 +37,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="page4.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="scan.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

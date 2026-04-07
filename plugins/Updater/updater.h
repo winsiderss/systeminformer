@@ -39,9 +39,10 @@
 #define PH_SHOWINSTALL (WM_APP + 505)
 #define PH_SHOWERROR   (WM_APP + 506)
 
-#define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
+#define PLUGIN_NAME L"UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
 #define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".UpdateCheck")
+#define SETTING_NAME_UPDATE_INTERVAL (PLUGIN_NAME L".UpdateInterval")
 #define SETTING_NAME_UPDATE_MODE (PLUGIN_NAME L".UpdateMode")
 #define SETTING_NAME_UPDATE_AVAILABLE (PLUGIN_NAME L".UpdateAvailable")
 #define SETTING_NAME_UPDATE_DATA (PLUGIN_NAME L".UpdateData")
@@ -198,11 +199,11 @@ VOID StartInitialCheck(
     );
 
 VOID ShowStartupUpdateDialog(
-    VOID
+    _In_ PPH_STRING CacheSttring
     );
 
 ULONG64 ParseVersionString(
-    _Inout_ PPH_STRING VersionString
+    _In_ PPH_STRING VersionString
     );
 
 // options.c

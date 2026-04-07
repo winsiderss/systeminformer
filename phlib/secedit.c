@@ -647,27 +647,27 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
 
     if (this->ObjectType == PH_SE_WMIDEF_OBJECT_TYPE)
     {
-        static SI_INHERIT_TYPE inheritTypes[] =
+        static const SI_INHERIT_TYPE inheritTypes[] =
         {
             { NULL, 0, L"This namespace only" },
             { NULL, CONTAINER_INHERIT_ACE, L"This namespace and subnamespaces" },
             { NULL, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subnamespaces only" },
         };
 
-        *InheritTypes = inheritTypes;
+        *InheritTypes = (PSI_INHERIT_TYPE)inheritTypes;
         *InheritTypesCount = RTL_NUMBER_OF(inheritTypes);
         return S_OK;
     }
     else
     {
-        static SI_INHERIT_TYPE inheritTypes[] =
+        static const SI_INHERIT_TYPE inheritTypes[] =
         {
             { NULL, 0, L"This folder only" },
             { NULL, CONTAINER_INHERIT_ACE, L"This folder, subfolders and files" },
             { NULL, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subfolders and files only" },
         };
 
-        *InheritTypes = inheritTypes;
+        *InheritTypes = (PSI_INHERIT_TYPE)inheritTypes;
         *InheritTypesCount = RTL_NUMBER_OF(inheritTypes);
         return S_OK;
     }

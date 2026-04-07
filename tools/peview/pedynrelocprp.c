@@ -95,6 +95,28 @@ VOID PvEnumerateDynamicRelocationEntries(
                     break;
                 }
             }
+            else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE)
+            {
+                PhPrintPointer(value, UlongToPtr(entry->RFPrologue.BlockRva));
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"RF_PROLOGUE");
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3,
+                                     PhFormatString(L"%u bytes", entry->RFPrologue.PrologueByteCount)->Buffer);
+            }
+            else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE)
+            {
+                PhPrintPointer(value, UlongToPtr(entry->RFEpilogue.BlockRva));
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"RF_EPILOGUE");
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3,
+                                     PhFormatString(
+                                         L"%u epilogues, %u bytes, %u branches (%u byte elems)",
+                                         entry->RFEpilogue.EpilogueCount,
+                                         entry->RFEpilogue.EpilogueByteCount,
+                                         entry->RFEpilogue.BranchDescriptorCount,
+                                         entry->RFEpilogue.BranchDescriptorElementSize
+                                         )->Buffer);
+            }
             else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER)
             {
                 ULONG iatIndex = entry->ImportControl.Record.IATIndex;
@@ -106,6 +128,21 @@ VOID PvEnumerateDynamicRelocationEntries(
                                          L"IAT index %05x%ls",
                                          iatIndex,
                                          (entry->ImportControl.Record.IndirectCall ? L" call" : L" branch")
+                                         )->Buffer);
+            }
+            else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64_KERNEL_IMPORT_CALL_TRANSFER)
+            {
+                ULONG iatIndex = entry->ARM64ImportControl.Record.IATIndex;
+                PhPrintPointer(value, UlongToPtr(entry->ARM64ImportControl.BlockRva + (entry->ARM64ImportControl.Record.PageRelativeOffset << 2)));
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ARM64_IMPORT");
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3,
+                                     PhFormatString(
+                                         L"IAT %05x reg x%u%ls%ls",
+                                         iatIndex,
+                                         entry->ARM64ImportControl.Record.RegisterIndex,
+                                         (entry->ARM64ImportControl.Record.IndirectCall ? L" BLR" : L" BR"),
+                                         (entry->ARM64ImportControl.Record.ImportType ? L" delay" : L"")
                                          )->Buffer);
             }
             else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER)

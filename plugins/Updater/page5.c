@@ -138,8 +138,8 @@ PPH_STRING UpdaterGetLatestVersionText(
     ULONG buildVersion;
     ULONG revisionVersion;
 
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
-    commit = PhGetPhVersionHash();
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    commit = PhGetBuildCommit();
 
     if (commit && commit->Length > 4)
     {

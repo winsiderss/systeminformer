@@ -9,6 +9,7 @@
 *  Copyright (c) Microsoft Corp.  All rights reserved.            *
 *                                                                 *
 ******************************************************************/
+
 #ifndef _NTSTRSAFE_H_INCLUDED_
 #define _NTSTRSAFE_H_INCLUDED_
 #if (_MSC_VER > 1000)

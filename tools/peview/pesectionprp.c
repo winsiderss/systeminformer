@@ -266,6 +266,7 @@ PPH_STRING PvGetSectionCharacteristics(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PvpPeSectionsEnumerateThread(
     _In_ PPV_SECTION_CONTEXT Context
     )
@@ -291,7 +292,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
         sectionNode->RawStart = UlongToPtr(PvMappedImage.Sections[i].PointerToRawData);
         PhPrintPointer(value, sectionNode->RawStart);
         sectionNode->RawStartString = PhCreateString(value);
-        sectionNode->RawEnd = PTR_ADD_OFFSET(PvMappedImage.Sections[i].PointerToRawData, PvMappedImage.Sections[i].SizeOfRawData);
+        sectionNode->RawEnd = (PVOID)(ULONG_PTR)UInt32Add32To64(PvMappedImage.Sections[i].PointerToRawData, PvMappedImage.Sections[i].SizeOfRawData);
         PhPrintPointer(value, sectionNode->RawEnd);
         sectionNode->RawEndString = PhCreateString(value);
         sectionNode->RawSize = PvMappedImage.Sections[i].SizeOfRawData;
@@ -300,7 +301,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
         sectionNode->RvaStart = UlongToPtr(PvMappedImage.Sections[i].VirtualAddress);
         PhPrintPointer(value, sectionNode->RvaStart);
         sectionNode->RvaStartString = PhCreateString(value);
-        sectionNode->RvaEnd = PTR_ADD_OFFSET(PvMappedImage.Sections[i].VirtualAddress, PvMappedImage.Sections[i].Misc.VirtualSize);
+        sectionNode->RvaEnd = (PVOID)(ULONG_PTR)UInt32Add32To64(PvMappedImage.Sections[i].VirtualAddress, PvMappedImage.Sections[i].Misc.VirtualSize);
         PhPrintPointer(value, sectionNode->RvaEnd);
         sectionNode->RvaEndString = PhCreateString(value);
         sectionNode->RvaSize = PvMappedImage.Sections[i].Misc.VirtualSize;
@@ -328,11 +329,12 @@ NTSTATUS PvpPeSectionsEnumerateThread(
                         imageSectionData,
                         PvMappedImage.Sections[i].SizeOfRawData,
                         &imageSectionEntropy,
+                        NULL,
                         NULL
                         ))
                     {
                         sectionNode->SectionEntropy = imageSectionEntropy;
-                        sectionNode->EntropyString = PhFormatEntropy(imageSectionEntropy, 2, 0, 0);
+                        sectionNode->EntropyString = PhFormatEntropy(imageSectionEntropy, 2, 0, 0, 0, 0);
                     }
                 }
             }
@@ -541,7 +543,8 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
                     PPH_EMENU_ITEM highlightReadMenuItem;
                     PPH_EMENU_ITEM selectedItem;
 
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect);
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect))
+                        break;
 
                     writableMenuItem = PhCreateEMenuItem(0, SECTION_TREE_MENU_ITEM_HIDE_WRITE, L"Hide writable", NULL, NULL);
                     executableMenuItem = PhCreateEMenuItem(0, SECTION_TREE_MENU_ITEM_HIDE_EXECUTE, L"Hide executable", NULL, NULL);

@@ -50,7 +50,7 @@ VOID NTAPI LoadSettings(
 {
     NetAdapterEnableNdis = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS);
     NetWindowsVersion = PhWindowsVersion;
-    NetUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
+    NetUpdateInterval = PhGetIntegerSetting(SETTING_UPDATE_INTERVAL);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -162,7 +162,7 @@ VOID NTAPI SystemInformationInitializingCallback(
 
     for (ULONG i = 0; i < GraphicsDevicesList->Count; i++)
     {
-        PDV_GPU_ENTRY entry = PhReferenceObjectSafe(GraphicsDevicesList->Items[i]);
+        PDV_GPU_ENTRY entry = PhReferenceObjectUnsafe(GraphicsDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -183,7 +183,7 @@ VOID NTAPI SystemInformationInitializingCallback(
 
     for (ULONG i = 0; i < DiskDevicesList->Count; i++)
     {
-        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
+        PDV_DISK_ENTRY entry = PhReferenceObjectUnsafe(DiskDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -204,7 +204,7 @@ VOID NTAPI SystemInformationInitializingCallback(
 
     for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
-        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectUnsafe(NetworkDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -225,7 +225,7 @@ VOID NTAPI SystemInformationInitializingCallback(
 
     for (ULONG i = 0; i < RaplDevicesList->Count; i++)
     {
-        PDV_RAPL_ENTRY entry = PhReferenceObjectSafe(RaplDevicesList->Items[i]);
+        PDV_RAPL_ENTRY entry = PhReferenceObjectUnsafe(RaplDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -575,13 +575,17 @@ VOID ShowDeviceMenu(
     PPH_EMENU subMenu;
     PPH_EMENU_ITEM selectedItem;
 
-    GetCursorPos(&cursorPos);
+    if (!PhGetMessagePos(&cursorPos))
+        return;
 
     menu = PhCreateEMenu();
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Restart", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Uninstall", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DEVICE_SEARCH_ONLINE, L"Search &online\bCtrl+M", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_DEVICE_SEARCH_DRIVER_UPDATE, L"Search driver update", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     subMenu = PhCreateEMenuItem(0, 0, L"Open key", NULL, NULL);
     PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, HW_KEY_INDEX_HARDWARE, L"Hardware", NULL, NULL), ULONG_MAX);
@@ -620,6 +624,44 @@ VOID ShowDeviceMenu(
                 }
             }
             break;
+        case ID_DEVICE_SEARCH_ONLINE:
+        case ID_DEVICE_SEARCH_DRIVER_UPDATE:
+            {
+                PPH_DEVICE_TREE deviceTree;
+                PPH_DEVICE_ITEM deviceItem;
+
+                if (deviceTree = PhReferenceDeviceTree())
+                {
+                    if (deviceItem = PhLookupDeviceItem(deviceTree, &DeviceInstance->sr))
+                    {
+                        PPH_DEVICE_PROPERTY hardwareIds = PhGetDeviceProperty(deviceItem, PhDevicePropertyHardwareIds);
+                        PPH_STRING searchId = NULL;
+
+                        if (hardwareIds->Valid && hardwareIds->StringList && hardwareIds->StringList->Count > 0)
+                            searchId = hardwareIds->StringList->Items[0];
+                        else
+                            searchId = deviceItem->InstanceId;
+
+                        if (searchId)
+                        {
+                            if (selectedItem->Id == ID_DEVICE_SEARCH_ONLINE)
+                            {
+                                PhSearchOnlineString(ParentWindow, searchId->Buffer);
+                            }
+                            else
+                            {
+                                PPH_STRING encodedId = PhpEncodeDeviceQuery(searchId);
+                                PPH_STRING url = PhFormatString(L"https://www.catalog.update.microsoft.com/search.aspx?q=%s", encodedId->Buffer);
+                                PhShellExecute(ParentWindow, url->Buffer, NULL);
+                                PhDereferenceObject(url);
+                                PhDereferenceObject(encodedId);
+                            }
+                        }
+                    }
+                    PhDereferenceObject(deviceTree);
+                }
+            }
+            break;
         case HW_KEY_INDEX_HARDWARE:
         case HW_KEY_INDEX_SOFTWARE:
         case HW_KEY_INDEX_USER:
@@ -633,6 +675,29 @@ VOID ShowDeviceMenu(
     }
 
     PhDestroyEMenu(menu);
+}
+
+PPH_STRING PhpEncodeDeviceQuery(
+    _In_ PPH_STRING String
+    )
+{
+    PH_STRING_BUILDER sb;
+
+    PhInitializeStringBuilder(&sb, String->Length / sizeof(WCHAR) + 16);
+
+    for (SIZE_T i = 0; i < String->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = String->Buffer[i];
+
+        if (c == L'&')
+            PhAppendStringBuilder2(&sb, L"%26");
+        else if (c == L'\\')
+            PhAppendStringBuilder2(&sb, L"%5C");
+        else
+            PhAppendCharStringBuilder(&sb, c);
+    }
+
+    return PhFinalStringBuilderString(&sb);
 }
 
 LOGICAL DllMain(

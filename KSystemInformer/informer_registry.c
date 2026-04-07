@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2023-2024
+ *     jxy-s   2023-2026
  *
  */
 
@@ -94,7 +94,7 @@ static PAGED_LOOKASIDE_LIST KphpCmCallContextLookaside = { 0 };
 
 KPH_PAGED_FILE();
 
-static volatile ULONG64 KphpCmSequence = 0;
+static ULONG64 KphpCmSequence = 0;
 static BOOLEAN KphpCmRegistered = FALSE;
 static LARGE_INTEGER KphpCmCookie = { 0 };
 
@@ -105,7 +105,7 @@ static LARGE_INTEGER KphpCmCookie = { 0 };
  *
  * \return Options for the specified class.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 KPH_REG_OPTIONS KphpRegGetOptions(
     _In_ REG_NOTIFY_CLASS RegClass
     )
@@ -113,7 +113,7 @@ KPH_REG_OPTIONS KphpRegGetOptions(
     KPH_REG_OPTIONS options;
     PKPH_PROCESS_CONTEXT process;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     options.Flags = 0;
 
@@ -188,8 +188,14 @@ KPH_REG_OPTIONS KphpRegGetOptions(
 
     if (!options.InPost && (options.PreEnabled || options.PostEnabled))
     {
-        options.EnableStackTraces = KphInformerEnabled(EnableStackTraces, process);
-        options.EnableValueBuffers = KphInformerEnabled(RegEnableValueBuffers, process);
+        KPH_INFORMER_OPTIONS opts;
+
+        opts = KphInformerOpts(process);
+
+        options.EnableStackTraces = !!opts.EnableStackTraces;
+        options.EnablePostObjectNames = !!opts.RegEnablePostObjectNames;
+        options.EnablePostValueNames = !!opts.RegEnablePostValueNames;
+        options.EnableValueBuffers = !!opts.RegEnableValueBuffers;
     }
 
     if (process)
@@ -207,14 +213,14 @@ KPH_REG_OPTIONS KphpRegGetOptions(
  *
  * \return The message ID for the specified class.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 KPH_MESSAGE_ID KphpRegGetMessageId(
     _In_ REG_NOTIFY_CLASS RegClass
     )
 {
     KPH_MESSAGE_ID messageId;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
 #define KPH_REG_MESSAGE_ID2(reg, name)                                        \
     case RegNtPre##reg:                                                       \
@@ -267,14 +273,14 @@ KPH_MESSAGE_ID KphpRegGetMessageId(
  * \param[in] RegClass The registry operation class.
  * \param[in] PreInfo The pre-operation information.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegFillCommonMessage(
     _Inout_ PKPH_MESSAGE Message,
     _In_ REG_NOTIFY_CLASS RegClass,
     _In_ PKPH_REG_PRE_INFORMATION PreInfo
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     Message->Kernel.Reg.ClientId.UniqueProcess = PsGetCurrentProcessId();
     Message->Kernel.Reg.ClientId.UniqueThread = PsGetCurrentThreadId();
@@ -506,7 +512,7 @@ VOID KphpRegFillCommonMessage(
  * \param[out] ObjectId Receives the object ID for the object.
  * \param[out] Transaction Receives the transaction for the object, if any.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegCopyObjectInfo(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
@@ -520,7 +526,7 @@ VOID KphpRegCopyObjectInfo(
     PUNICODE_STRING objectName;
     PUNICODE_STRING* objectNamePointer;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     objectName = NULL;
 
@@ -597,7 +603,7 @@ Exit:
  * \param[in] IncludeObjectName If TRUE the object name is included in the
  * message, when FALSE the object name is not copied into the message.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegFillObjectInfo(
     _Inout_ PKPH_MESSAGE Message,
     _In_ PVOID Object,
@@ -606,7 +612,7 @@ VOID KphpRegFillObjectInfo(
 {
     KPH_MESSAGE_FIELD_ID fieldId;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (IncludeObjectName)
     {
@@ -634,7 +640,7 @@ VOID KphpRegFillObjectInfo(
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpRegMakeObjectName(
     _In_ PVOID RootObject,
@@ -648,7 +654,7 @@ NTSTATUS KphpRegMakeObjectName(
     BOOLEAN needsSeparator;
     ULONG length;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     *ObjectName = NULL;
 
@@ -673,9 +679,9 @@ NTSTATUS KphpRegMakeObjectName(
     length = (rootName->Length + RelativeName->Length);
 
     if ((rootName->Length >= sizeof(WCHAR)) &&
-        (rootName->Buffer[(rootName->Length / sizeof(WCHAR)) - 1] != L'\\') &&
+        (rootName->Buffer[(rootName->Length / sizeof(WCHAR)) - 1] != OBJ_NAME_PATH_SEPARATOR) &&
         (RelativeName->Length >= sizeof(WCHAR)) &&
-        (RelativeName->Buffer[0] != L'\\'))
+        (RelativeName->Buffer[0] != OBJ_NAME_PATH_SEPARATOR))
     {
         needsSeparator = TRUE;
         length += sizeof(WCHAR);
@@ -747,7 +753,7 @@ Exit:
  * \param[in] IncludeObjectName If TRUE the object name is included in the
  * message, when FALSE the object name is not copied into the message.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegFillCreateKeyObjectInfo(
     _Inout_ PKPH_MESSAGE Message,
     _In_ PREG_CREATE_KEY_INFORMATION_V1 CreateInfo,
@@ -757,7 +763,7 @@ VOID KphpRegFillCreateKeyObjectInfo(
     NTSTATUS status;
     PUNICODE_STRING objectName;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     Message->Kernel.Reg.Transaction = CreateInfo->Transaction;
 
@@ -767,7 +773,7 @@ VOID KphpRegFillCreateKeyObjectInfo(
     }
 
     if ((CreateInfo->CompleteName->Length >= sizeof(WCHAR)) &&
-        (CreateInfo->CompleteName->Buffer[0] == L'\\'))
+        (CreateInfo->CompleteName->Buffer[0] == OBJ_NAME_PATH_SEPARATOR))
     {
         objectName = CreateInfo->CompleteName;
     }
@@ -814,7 +820,7 @@ Exit:
  * \param[in] IncludeObjectName If TRUE the object name is included in the
  * message, when FALSE the object name is not copied into the message.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegFillLoadKeyObjectInfo(
     _Inout_ PKPH_MESSAGE Message,
     _In_ PREG_LOAD_KEY_INFORMATION_V2 LoadInfo,
@@ -824,7 +830,7 @@ VOID KphpRegFillLoadKeyObjectInfo(
     NTSTATUS status;
     PUNICODE_STRING objectName;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (!IncludeObjectName)
     {
@@ -878,7 +884,7 @@ Exit:
  * \param[in] String The string to populate into the message.
  * \param[in] Default Default string to use input string length is zero.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegCopyUnicodeStringWithDefault(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
@@ -889,7 +895,7 @@ VOID KphpRegCopyUnicodeStringWithDefault(
     NTSTATUS status;
     UNICODE_STRING string;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (!String)
     {
@@ -965,14 +971,14 @@ VOID KphpRegCopyUnicodeStringWithDefault(
  * \param[in] FieldId The field ID for the Unicode string.
  * \param[in] String The string to populate into the message.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegCopyUnicodeString(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
     _In_opt_ PUNICODE_STRING String
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     KphpRegCopyUnicodeStringWithDefault(Message, FieldId, String, NULL);
 }
@@ -983,13 +989,13 @@ VOID KphpRegCopyUnicodeString(
  * \param[in,out] Message The message to populate.
  * \param[in] ValueName The value name to populate into the message.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegCopyValueName(
     _Inout_ PKPH_MESSAGE Message,
     _In_opt_ PUNICODE_STRING ValueName
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     KphpRegCopyUnicodeStringWithDefault(Message,
                                         KphMsgFieldValueName,
@@ -1004,7 +1010,7 @@ VOID KphpRegCopyValueName(
  * \param[in] ValueEntries The value entries to populate into the message.
  * \param[in] EntryCount The number of value entries.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegCopyMultipleValueNames(
     _Inout_ PKPH_MESSAGE Message,
     _In_opt_ PKEY_VALUE_ENTRY ValueEntries,
@@ -1016,7 +1022,7 @@ VOID KphpRegCopyMultipleValueNames(
     PUNICODE_STRING valueNames;
     ULONG remaining;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (!ValueEntries || !EntryCount)
     {
@@ -1132,7 +1138,7 @@ VOID KphpRegCopyMultipleValueNames(
                 goto Exit;
             }
 
-            valueNames->Buffer[valueNames->Length / sizeof(WCHAR)] = L'\0';
+            valueNames->Buffer[valueNames->Length / sizeof(WCHAR)] = UNICODE_NULL;
             valueNames->Length += sizeof(WCHAR);
         }
     }
@@ -1156,7 +1162,7 @@ VOID KphpRegCopyMultipleValueNames(
         goto Exit;
     }
 
-    valueNames->Buffer[valueNames->Length / sizeof(WCHAR)] = L'\0';
+    valueNames->Buffer[valueNames->Length / sizeof(WCHAR)] = UNICODE_NULL;
     valueNames->Length += sizeof(WCHAR);
 
     status = KphMsgDynAddUnicodeString(Message,
@@ -1186,7 +1192,7 @@ Exit:
  * \param[in] Buffer The buffer to copy.
  * \param[in] Length The length of the buffer.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegCopyBuffer(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
@@ -1198,7 +1204,7 @@ VOID KphpRegCopyBuffer(
     USHORT remaining;
     KPHM_SIZED_BUFFER sizedBuffer;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (!Buffer)
     {
@@ -1261,7 +1267,7 @@ VOID KphpRegCopyBuffer(
  * \param[in] FieldId The field ID for the object name.
  * \param[in] Object The object to copy the name from.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegCopyObjectName(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
@@ -1274,7 +1280,7 @@ VOID KphpRegCopyObjectName(
     POBJECT_NAME_INFORMATION nameInfo;
     ULONG length;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (!Object)
     {
@@ -1370,7 +1376,7 @@ Exit:
  * \param[in] FieldId The field ID for the handle name.
  * \param[in] Handle The handle to copy the name from.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegCopyHandleName(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
@@ -1381,7 +1387,7 @@ VOID KphpRegCopyHandleName(
     KAPC_STATE apcState;
     PVOID object;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (!Handle)
     {
@@ -1430,7 +1436,7 @@ VOID KphpRegCopyHandleName(
  * \param[in] PostInfo The post operation information.
  * \param[in] Context The call context.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegFillPostOpMessage(
     _Inout_ PKPH_MESSAGE Message,
     _In_ REG_NOTIFY_CLASS RegClass,
@@ -1443,7 +1449,7 @@ VOID KphpRegFillPostOpMessage(
     BOOLEAN enableObjectNames;
     BOOLEAN enableValueNames;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     enableObjectNames = Context->Options.EnablePostObjectNames;
     enableValueNames = Context->Options.EnablePostValueNames;
@@ -1789,7 +1795,7 @@ VOID KphpRegFillPostOpMessage(
  * \param[in] PreInfo The pre operation information.
  * \param[in] Options Registry options to use.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegFillPreOpMessage(
     _Inout_ PKPH_MESSAGE Message,
     _In_ REG_NOTIFY_CLASS RegClass,
@@ -1797,7 +1803,7 @@ VOID KphpRegFillPreOpMessage(
     _In_ PKPH_REG_OPTIONS Options
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     Message->Kernel.Reg.PostOperation = FALSE;
 
@@ -1961,7 +1967,7 @@ VOID KphpRegFillPreOpMessage(
  * \param[in] Sequence The registry sequence number.
  * \param[in] Context The call context.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegPostOpSend(
     _In_ REG_NOTIFY_CLASS RegClass,
     _In_ PKPH_REG_POST_INFORMATION PostInfo,
@@ -1971,7 +1977,7 @@ VOID KphpRegPostOpSend(
 {
     PKPH_MESSAGE msg;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     msg = KphAllocateMessage();
     if (!msg)
@@ -1997,12 +2003,12 @@ VOID KphpRegPostOpSend(
     KphCommsSendMessageAsync(msg);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegFreeCallContext(
     _In_ PKPH_REG_CALL_CONTEXT Context
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     if (Context->ObjectName)
     {
@@ -2019,7 +2025,7 @@ VOID KphpRegFreeCallContext(
  * \param[in] PostInfo The post operation information.
  * \param[in] Sequence The registry sequence number for the post operation.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegPostOp(
     _In_ REG_NOTIFY_CLASS RegClass,
     _In_ PKPH_REG_POST_INFORMATION PostInfo,
@@ -2028,7 +2034,7 @@ VOID KphpRegPostOp(
 {
     PKPH_REG_CALL_CONTEXT context;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     context = PostInfo->Common.CallContext;
 
@@ -2052,7 +2058,7 @@ VOID KphpRegPostOp(
  * \param[in] Sequence The registry sequence number for the pre operation.
  * \param[in] TimeStamp The time stamp for the pre operation.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpRegPreOpSetCallContext(
     _In_ REG_NOTIFY_CLASS RegClass,
@@ -2065,7 +2071,7 @@ NTSTATUS KphpRegPreOpSetCallContext(
     NTSTATUS status;
     PKPH_REG_CALL_CONTEXT context;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     context = KphAllocateFromPagedLookaside(&KphpCmCallContextLookaside);
     if (!context)
@@ -2176,7 +2182,7 @@ Exit:
  * \param[in] Sequence The registry sequence number for the pre operation.
  * \param[out] TimeStamp Receives time stamp for the pre operation.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegPreOpSend(
     _In_ REG_NOTIFY_CLASS RegClass,
     _In_ PKPH_REG_PRE_INFORMATION PreInfo,
@@ -2187,7 +2193,7 @@ VOID KphpRegPreOpSend(
 {
     PKPH_MESSAGE msg;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     msg = KphAllocateMessage();
     if (!msg)
@@ -2201,11 +2207,8 @@ VOID KphpRegPreOpSend(
     }
 
     KphMsgInit(msg, KphpRegGetMessageId(RegClass));
-
     *TimeStamp = msg->Header.TimeStamp;
-
     msg->Kernel.Reg.Sequence = Sequence;
-
     KphpRegFillPreOpMessage(msg, RegClass, PreInfo, Options);
 
     if (Options->EnableStackTraces)
@@ -2224,7 +2227,7 @@ VOID KphpRegPreOpSend(
  * \param[in] Options Registry options to use.
  * \param[in] Sequence The registry sequence number for the pre operation.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphpRegPreOp(
     _In_ REG_NOTIFY_CLASS RegClass,
     _In_ PKPH_REG_PRE_INFORMATION PreInfo,
@@ -2235,7 +2238,7 @@ VOID KphpRegPreOp(
     NTSTATUS status;
     LARGE_INTEGER timeStamp;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     NT_ASSERT(!Options->InPost);
 
@@ -2278,7 +2281,7 @@ VOID KphpRegPreOp(
  *
  * \return STATUS_SUCCESS
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _IRQL_requires_same_
 _Function_class_(EX_CALLBACK_FUNCTION)
 NTSTATUS KphpRegistryCallback(
@@ -2291,7 +2294,17 @@ NTSTATUS KphpRegistryCallback(
     ULONG64 sequence;
     KPH_REG_OPTIONS options;
 
-    KPH_PAGED_CODE_PASSIVE();
+    //
+    // N.B. Although Microsoft’s documentation states that registry callbacks
+    // (e.g. CmRegisterCallbackEx) are invoked at PASSIVE_LEVEL, they can and
+    // *do* get invoked at APC_LEVEL in practice.
+    //
+    // This behavior has been observed and is triggered by code in Microsoft’s
+    // own kernel components - not third-party drivers. As such, assuming
+    // callbacks always run at PASSIVE_LEVEL is unsafe. This contradicts the
+    // stated IRQL guarantees - use caution.
+    //
+    KPH_PAGED_CODE();
 
     UNREFERENCED_PARAMETER(CallbackContext);
 

@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2023-2024
+ *     jxy-s   2023-2026
  *
  */
 
@@ -58,7 +58,7 @@ PVOID KSIAPI KphpAllocateSessionToken(
  *
  * \param[in] Object The session token object to free.
  */
-_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_Function_class_(KPH_TYPE_FREE_PROCEDURE)
 _IRQL_requires_max_(APC_LEVEL)
 VOID KSIAPI KphpFreeSessionToken(
     _In_freesMem_ PVOID Object
@@ -140,7 +140,7 @@ NTSTATUS KSIAPI KphpInitializeSessionToken(
     token->AccessToken.Privileges = init->Privileges;
     token->AccessToken.Uses = init->Uses;
 
-    token->UseCount = 0;
+    WriteNoFence(&token->UseCount, 0);
 
     return STATUS_SUCCESS;
 }
@@ -266,8 +266,6 @@ NTSTATUS KphpVerifySessionToken(
 {
     NTSTATUS status;
     PKPH_DYN dyn;
-    KPH_PROCESS_STATE actorState;
-    KPH_PROCESS_STATE targetState;
     PBYTE signature;
 
     KPH_PAGED_CODE_PASSIVE();
@@ -298,8 +296,7 @@ NTSTATUS KphpVerifySessionToken(
 
         __try
         {
-            ProbeInputBytes(Signature, SignatureLength);
-            RtlCopyVolatileMemory(signature, Signature, SignatureLength);
+            CopyFromUser(signature, Signature, SignatureLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -327,11 +324,8 @@ NTSTATUS KphpVerifySessionToken(
         goto Exit;
     }
 
-    actorState = KphGetProcessState(Actor);
-    targetState = KphGetProcessState(Target);
-
-    if (((actorState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM) ||
-        ((actorState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM))
+    if (!KphTestProcessContextState(Actor, KPH_PROCESS_STATE_MAXIMUM) ||
+        !KphTestProcessContextState(Target, KPH_PROCESS_STATE_MAXIMUM))
     {
         status = STATUS_ACCESS_DENIED;
         goto Exit;
@@ -587,7 +581,8 @@ NTSTATUS KphpAssignThreadSessionToken(
         goto Exit;
     }
 
-    KphAtomicAssignObjectReference(&Thread->SessionToken.Atomic, token);
+    KphAtomicAssignObjectReference(&Thread->SessionToken.Atomic,
+                                   token);
 
     status = STATUS_SUCCESS;
 
@@ -729,22 +724,25 @@ BOOLEAN KphpSessionTokenPrivilegeCheck(
 
     for (;;)
     {
+        LONG expected;
+
         if (useCount >= Token->AccessToken.Uses)
         {
             status = STATUS_QUOTA_EXCEEDED;
             goto Exit;
         }
 
-        if (InterlockedCompareExchange(&Token->UseCount,
-                                       useCount + 1,
-                                       useCount) == useCount)
+        expected = useCount;
+
+        useCount = InterlockedCompareExchange(&Token->UseCount,
+                                              useCount + 1,
+                                              expected);
+        if (useCount == expected)
         {
             useCount++;
             status = STATUS_SUCCESS;
             break;
         }
-
-        useCount = ReadAcquire(&Token->UseCount);
     }
 
 Exit:

@@ -169,7 +169,6 @@ typedef struct _PH_PROCESS_ITEM
     PH_INTEGRITY_LEVEL IntegrityLevel;
     PPH_STRINGREF IntegrityString;
     PS_PROTECTION Protection;
-    PPH_STRING ProtectionString;
 
     // Other
 
@@ -243,7 +242,11 @@ typedef struct _PH_PROCESS_ITEM
     // Dynamic
 
     KPRIORITY BasePriority;
-    PKAFFINITY AffinityMasks; // PhSystemProcessorInformation.NumberOfProcessorGroups
+    union
+    {
+        KAFFINITY AffinityMaskSingle; // Single processor group
+        PKAFFINITY AffinityMaskGroups; // Multiple processor groups * PhSystemProcessorInformation.NumberOfProcessorGroups
+    };
     ULONG AffinityPopulationCount;
     ULONG PriorityClass;
     LARGE_INTEGER KernelTime;

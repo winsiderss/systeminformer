@@ -176,7 +176,7 @@ PPH_HASHTABLE PvPeCreateSuppressedGuardHashtable(
             }
         }
 
-        for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardAdressIatEntries; i++)
+        for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardAddressIatEntries; i++)
         {
             IMAGE_CFG_ENTRY cfgFunctionEntry = { 0 };
 
@@ -312,7 +312,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
                     {
                         exportSymbol = PhGetSymbolFromAddress(
                             PvSymbolProvider,
-                            PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, exportFunction.Function),
+                            PTR_ADD_OFFSET(UlongToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), exportFunction.Function),
                             NULL,
                             NULL,
                             &exportSymbolName,

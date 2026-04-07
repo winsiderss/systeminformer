@@ -13,13 +13,12 @@
 #include <phapp.h>
 #include <phplug.h>
 #include <mainwnd.h>
-
 #include <emenu.h>
 
 #include <netlist.h>
 #include <netprv.h>
 #include <settings.h>
-
+#include <phsettings.h>
 #include <mainwndp.h>
 
 PPH_MAIN_TAB_PAGE PhMwpNetworkPage;
@@ -35,6 +34,7 @@ static BOOLEAN NetworkFirstTime = TRUE;
 static BOOLEAN NetworkTreeListLoaded = FALSE;
 static PPH_TN_FILTER_ENTRY NetworkFilterEntry = NULL;
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpNetworkPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
@@ -123,7 +123,7 @@ BOOLEAN PhMwpNetworkPageCallback(
         return TRUE;
     case MainTabPageLoadSettings:
         {
-            if (PhGetIntegerSetting(L"HideWaitingConnections"))
+            if (PhGetIntegerSetting(SETTING_HIDE_WAITING_CONNECTIONS))
                 NetworkFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), PhMwpNetworkTreeFilter, NULL);
         }
         return TRUE;
@@ -188,9 +188,10 @@ VOID PhMwpToggleNetworkWaitingConnectionTreeFilter(
 
     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
 
-    PhSetIntegerSetting(L"HideWaitingConnections", !!NetworkFilterEntry);
+    PhSetIntegerSetting(SETTING_HIDE_WAITING_CONNECTIONS, !!NetworkFilterEntry);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpNetworkTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context

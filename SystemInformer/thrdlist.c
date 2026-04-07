@@ -12,6 +12,7 @@
 
 #include <phapp.h>
 #include <phuisup.h>
+#include <kphuser.h>
 #include <colmgr.h>
 
 #include <thrdlist.h>
@@ -44,6 +45,7 @@ VOID PhpRemoveThreadNode(
     _In_ PPH_THREAD_LIST_CONTEXT Context
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpThreadTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -52,7 +54,7 @@ LONG PhpThreadTreeNewPostSortFunction(
     );
 
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -140,6 +142,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_POWERTHROTTLING, FALSE, L"Power throttling", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     //PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CONTAINERID, FALSE, L"Container ID", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STARTADDRESS, FALSE, L"Start address (Native)", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_KSTACKUSAGE, FALSE, L"Kernel stack usage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_RPC, FALSE, L"RPC usage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_ACTUALBASEPRIORITY, FALSE, L"Base priority (actual)", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
@@ -199,9 +202,9 @@ VOID PhLoadSettingsThreadList(
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
 
-    settings = PhGetStringSetting(L"ThreadTreeListColumns");
-    sortSettings = PhGetStringSetting(L"ThreadTreeListSort");
-    Context->Flags = PhGetIntegerSetting(L"ThreadTreeListFlags");
+    settings = PhGetStringSetting(SETTING_THREAD_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_THREAD_TREE_LIST_SORT);
+    Context->Flags = PhGetIntegerSetting(SETTING_THREAD_TREE_LIST_FLAGS);
 
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
@@ -226,9 +229,9 @@ VOID PhSaveSettingsThreadList(
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
-    PhSetIntegerSetting(L"ThreadTreeListFlags", Context->Flags);
-    PhSetStringSetting2(L"ThreadTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"ThreadTreeListSort", &sortSettings->sr);
+    PhSetIntegerSetting(SETTING_THREAD_TREE_LIST_FLAGS, Context->Flags);
+    PhSetStringSetting2(SETTING_THREAD_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_THREAD_TREE_LIST_SORT, &sortSettings->sr);
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
@@ -364,6 +367,7 @@ VOID PhpDestroyThreadNode(
     if (ThreadNode->ApartmentTypeText) PhDereferenceObject(ThreadNode->ApartmentTypeText);
     if (ThreadNode->ApartmentFlagsText) PhDereferenceObject(ThreadNode->ApartmentFlagsText);
     if (ThreadNode->StackUsageText) PhDereferenceObject(ThreadNode->StackUsageText);
+    if (ThreadNode->KernelStackUsageText) PhDereferenceObject(ThreadNode->KernelStackUsageText);
 
     if (ThreadNode->KernelTimeText) PhDereferenceObject(ThreadNode->KernelTimeText);
     if (ThreadNode->UserTimeText) PhDereferenceObject(ThreadNode->UserTimeText);
@@ -417,6 +421,8 @@ VOID PhTickThreadNodes(
     _In_ PPH_THREAD_LIST_CONTEXT Context
     )
 {
+    BOOLEAN fullyInvalidated = FALSE;
+
     // Text invalidation, node updates
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
@@ -432,10 +438,11 @@ VOID PhTickThreadNodes(
     {
         // Force a rebuild to sort the items.
         TreeNew_NodesStructured(Context->TreeNewHandle);
+        fullyInvalidated = TRUE;
     }
 
     // State highlighting
-    PH_TICK_SH_STATE_TN(PH_THREAD_NODE, ShState, Context->NodeStateList, PhpRemoveThreadNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, NULL, Context);
+    PH_TICK_SH_STATE_TN(PH_THREAD_NODE, ShState, Context->NodeStateList, PhpRemoveThreadNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, &fullyInvalidated, Context);
 }
 
 VOID PhpUpdateThreadNodeNameText(
@@ -471,7 +478,7 @@ VOID PhpUpdateThreadNodePagePriority(
 {
     ULONG pagePriorityInteger = MEMORY_PRIORITY_NORMAL + 1;
 
-    ThreadNode->PagePriority = 0;
+    ThreadNode->PagePriority = ULONG_MAX;
 
     if (ThreadNode->ThreadItem->ThreadHandle)
     {
@@ -488,7 +495,7 @@ VOID PhpUpdateThreadNodeIoPriority(
 {
     IO_PRIORITY_HINT ioPriorityInteger = MaxIoPriorityTypes;
 
-    ThreadNode->IoPriority = 0;
+    ThreadNode->IoPriority = ULONG_MAX;
 
     if (ThreadNode->ThreadItem->ThreadHandle)
     {
@@ -887,6 +894,48 @@ VOID PhpUpdateThreadNodeStackUsage(
     }
 }
 
+VOID PhpUpdateThreadNodeKernelStackSize(
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    KPH_KERNEL_STACK_INFORMATION info;
+
+    // This is imperfect because the KernelStack is infrequently updated by the kernel (happens on
+    // context swaps). Additionally, the space between InitialStack and first stack usage is not
+    // accounted for. But generally this is a good enough representation of the kernel stack usage.
+    // (jxy-s)
+
+    if (ThreadNode->ThreadItem->ThreadHandle && KsiLevel() == KphLevelMax)
+    {
+        status = KphQueryInformationThread(
+            ThreadNode->ThreadItem->ThreadHandle,
+            KphThreadKernelStackInformation,
+            &info,
+            sizeof(info),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        ULONG_PTR stackUsage = (ULONG_PTR)PTR_SUB_OFFSET(info.InitialStack, info.KernelStack);
+        ULONG_PTR stackLimit = (ULONG_PTR)PTR_SUB_OFFSET(info.StackBase, info.StackLimit);
+        FLOAT percent = (FLOAT)stackUsage / stackLimit * 100;
+
+        ThreadNode->KernelStackUsageFloat = percent;
+        ThreadNode->KernelStackUsage = stackUsage;
+        ThreadNode->KernelStackLimit = stackLimit;
+    }
+    else
+    {
+        ThreadNode->KernelStackUsageFloat = 0;
+        ThreadNode->KernelStackUsage = 0;
+        ThreadNode->KernelStackLimit = 0;
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpThreadTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpThreadTreeNewCompare##Column( \
     _In_ void *_context, \
@@ -908,6 +957,7 @@ VOID PhpUpdateThreadNodeStackUsage(
     return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpThreadTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -1288,6 +1338,15 @@ BEGIN_SORT_FUNCTION(StartAddressKernel)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(KernelStackUsage)
+{
+    PhpUpdateThreadNodeKernelStackSize(context, node1);
+    PhpUpdateThreadNodeKernelStackSize(context, node2);
+
+    sortResult = singlecmp(node1->KernelStackUsageFloat, node2->KernelStackUsageFloat);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(HasRpc)
 {
     PhpUpdateThreadNodeRpc(context, node1);
@@ -1304,7 +1363,7 @@ BEGIN_SORT_FUNCTION(ActualBasePriority)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -1314,7 +1373,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
     PPH_THREAD_LIST_CONTEXT context = Context;
     PPH_THREAD_NODE node;
 
-    if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
+    if (PhCmForwardMessage(WindowHandle, Message, Parameter1, Parameter2, &context->Cm))
         return TRUE;
 
     switch (Message)
@@ -1325,7 +1384,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Tid),
                     SORT_FUNCTION(Cpu),
@@ -1372,10 +1431,11 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(LxssTid),
                     SORT_FUNCTION(PowerThrottling),
                     SORT_FUNCTION(StartAddressKernel),
+                    SORT_FUNCTION(KernelStackUsage),
                     SORT_FUNCTION(HasRpc),
                     SORT_FUNCTION(ActualBasePriority),
                 };
-                int (__cdecl *sortFunction)(void *, const void *, const void *);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PH_THREAD_TREELIST_COLUMN_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -1648,7 +1708,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     PhpUpdateThreadNodePagePriority(node);
 
-                    if (node->PagePriority)
+                    if (node->PagePriority != ULONG_MAX && node->PagePriority <= MEMORY_PRIORITY_NORMAL)
                     {
                         pagePriority = PhPagePriorityNames[node->PagePriority];
                     }
@@ -1663,7 +1723,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     PhpUpdateThreadNodeIoPriority(node);
 
-                    if (node->IoPriority)
+                    if (node->IoPriority != ULONG_MAX && node->IoPriority >= IoPriorityVeryLow && node->IoPriority < MaxIoPriorityTypes)
                     {
                         ioPriority = PhIoPriorityHintNames[node->IoPriority];
                     }
@@ -2188,6 +2248,32 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     getCellText->Text = PhGetStringRef(node->StackUsageText);
                 }
                 break;
+            case PH_THREAD_TREELIST_COLUMN_KSTACKUSAGE:
+                {
+                    PhpUpdateThreadNodeKernelStackSize(context, node);
+
+                    if (node->KernelStackUsage && node->KernelStackLimit)
+                    {
+                        PH_FORMAT format[6];
+
+                        // %s / %s (%.0f%%)
+                        PhInitFormatSize(&format[0], node->KernelStackUsage);
+                        PhInitFormatS(&format[1], L" | ");
+                        PhInitFormatSize(&format[2], node->KernelStackLimit);
+                        PhInitFormatS(&format[3], L" (");
+                        PhInitFormatF(&format[4], node->KernelStackUsageFloat, PhMaxPrecisionUnit);
+                        PhInitFormatS(&format[5], L"%)");
+
+                        PhMoveReference(&node->KernelStackUsageText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
+                    else
+                    {
+                        PhClearReference(&node->KernelStackUsageText);
+                    }
+
+                    getCellText->Text = PhGetStringRef(node->KernelStackUsageText);
+                }
+                break;
             case PH_THREAD_TREELIST_COLUMN_WAITTIME:
                 {
                     if (threadItem->WaitTime != 0)
@@ -2326,7 +2412,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             else if (context->HighlightSuspended && threadItem->WaitReason == Suspended)
                 getNodeColor->BackColor = PhCsColorSuspended;
             else if (context->HighlightSuspended && threadItem->WaitReason == DelayExecution) // NtDelayExecution
-                getNodeColor->BackColor = PhCsColorPartiallySuspended;
+                getNodeColor->BackColor = PhCsColorImmersiveProcesses;
             else if (context->HighlightSuspended && threadItem->WaitReason == UserRequest) // NtWaitForSingleObject
                 getNodeColor->BackColor = PhCsColorOwnProcesses;
             else if (context->HighlightSuspended && threadItem->WaitReason == WrAlertByThreadId)
@@ -2381,7 +2467,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             context->TreeNewSortOrder = sorting->SortOrder;
 
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -2411,13 +2497,13 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             // co-operate with the column adjustments (e.g. Cycles Delta vs Context Switches Delta,
             // Service column).
 
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = PH_THREAD_TREELIST_COLUMN_CYCLESDELTA;
             data.DefaultSortOrder = DescendingSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+            data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);

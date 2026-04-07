@@ -663,7 +663,7 @@ ACCESS_ENTRIES(ComLaunch)
     { L"Activate remote", COM_RIGHTS_ACTIVATE_REMOTE, TRUE, TRUE, NULL },
 };
 
-static PH_SPECIFIC_TYPE PhSpecificTypes[] =
+static const PH_SPECIFIC_TYPE PhSpecificTypes[] =
 {
     ACCESS_ENTRY(AlpcPort, TRUE),
     ACCESS_ENTRY(DebugObject, TRUE),
@@ -786,7 +786,7 @@ BOOLEAN PhGetAccessEntries(
         {
             if (PhEqualStringZ(PhSpecificTypes[i].Type, L"Wbem", TRUE))
             {
-                specificType = &PhSpecificTypes[i];
+                specificType = (PPH_SPECIFIC_TYPE)&PhSpecificTypes[i];
                 break;
             }
         }
@@ -807,7 +807,7 @@ BOOLEAN PhGetAccessEntries(
     {
         if (PhEqualStringZ(PhSpecificTypes[i].Type, Type, TRUE))
         {
-            specificType = &PhSpecificTypes[i];
+            specificType = (PPH_SPECIFIC_TYPE)&PhSpecificTypes[i];
             break;
         }
     }

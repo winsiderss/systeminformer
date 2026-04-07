@@ -28,6 +28,7 @@ VOID PhpDestroyMemoryNode(
     _In_ PPH_MEMORY_NODE MemoryNode
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpMemoryTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -36,7 +37,7 @@ LONG PhpMemoryTreeNewPostSortFunction(
     );
 
 BOOLEAN NTAPI PhpMemoryTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -49,7 +50,7 @@ VOID PhInitializeMemoryList(
     _Out_ PPH_MEMORY_LIST_CONTEXT Context
     )
 {
-    BOOLEAN enableMonospaceFont = !!PhGetIntegerSetting(L"EnableMonospaceFont");
+    BOOLEAN enableMonospaceFont = !!PhGetIntegerSetting(SETTING_ENABLE_MONOSPACE_FONT);
 
     memset(Context, 0, sizeof(PH_MEMORY_LIST_CONTEXT));
     Context->AllocationBaseNodeList = PhCreateList(100);
@@ -126,9 +127,9 @@ VOID PhLoadSettingsMemoryList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    flags = PhGetIntegerSetting(L"MemoryListFlags");
-    settings = PhGetStringSetting(L"MemoryTreeListColumns");
-    sortSettings = PhGetStringSetting(L"MemoryTreeListSort");
+    flags = PhGetIntegerSetting(SETTING_MEMORY_LIST_FLAGS);
+    settings = PhGetStringSetting(SETTING_MEMORY_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_MEMORY_TREE_LIST_SORT);
 
     Context->Flags = flags;
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
@@ -146,9 +147,9 @@ VOID PhSaveSettingsMemoryList(
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
-    PhSetIntegerSetting(L"MemoryListFlags", Context->Flags);
-    PhSetStringSetting2(L"MemoryTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"MemoryTreeListSort", &sortSettings->sr);
+    PhSetIntegerSetting(SETTING_MEMORY_LIST_FLAGS, Context->Flags);
+    PhSetStringSetting2(SETTING_MEMORY_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_MEMORY_TREE_LIST_SORT, &sortSettings->sr);
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
@@ -611,6 +612,8 @@ PPH_STRING PhGetMemoryRegionUseText(
         return PhFormatString(L"USER_PROCESS_PARAMETERS");
     case LeapSecondDataRegion:
         return PhFormatString(L"LEAP_SECOND_DATA");
+    case DesktopHeapRegion:
+        return PhFormatString(L"Desktop heap");
     default:
         return NULL;
     }
@@ -665,6 +668,7 @@ PPH_STRING PhpFormatSizeIfNonZero(
     return PhModifySort(sortResult, ((PPH_MEMORY_LIST_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpMemoryTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -794,7 +798,7 @@ BEGIN_SORT_FUNCTION(Priority)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpMemoryTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -804,7 +808,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
     PPH_MEMORY_LIST_CONTEXT context = Context;
     PPH_MEMORY_NODE node;
 
-    if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
+    if (PhCmForwardMessage(WindowHandle, Message, Parameter1, Parameter2, &context->Cm))
         return TRUE;
 
     switch (Message)
@@ -831,7 +835,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             {
                 if (!node)
                 {
-                    static PVOID sortFunctions[] =
+                    static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                     {
                         SORT_FUNCTION(BaseAddress),
                         SORT_FUNCTION(Type),
@@ -851,7 +855,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                         SORT_FUNCTION(RegionType),
                         SORT_FUNCTION(Priority),
                     };
-                    int (__cdecl *sortFunction)(void *, const void *, const void *);
+                    _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                     static_assert(RTL_NUMBER_OF(sortFunctions) == PHMMTLC_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -1150,7 +1154,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             context->TreeNewSortOrder = sorting->SortOrder;
 
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -1176,13 +1180,13 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
         {
             PH_TN_COLUMN_MENU_DATA data;
 
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = NoSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+            data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);
@@ -1194,7 +1198,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             node = (PPH_MEMORY_NODE)mouseEvent->Node;
 
             if (node && node->IsAllocationBase)
-                TreeNew_SetNodeExpanded(hwnd, node, !node->Node.Expanded);
+                TreeNew_SetNodeExpanded(WindowHandle, node, !node->Node.Expanded);
             else
                 SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MEMORY_READWRITEMEMORY, 0);
         }

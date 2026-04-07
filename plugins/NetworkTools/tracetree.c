@@ -14,6 +14,7 @@
 
 PPH_OBJECT_TYPE TracertTreeNodeItemType;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI TracertTreeNodeItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -157,6 +158,7 @@ VOID TracertSaveSettingsTreeList(
     PhSetIntegerPairSetting(SETTING_NAME_TRACERT_TREE_LIST_SORT, sortSettings);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN TracertNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -168,6 +170,7 @@ BOOLEAN TracertNodeHashtableEqualFunction(
     return node1->TTL == node2->TTL;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG TracertNodeHashtableHashFunction(
     _In_ PVOID Entry
     )

@@ -26,18 +26,18 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE
+3 TEXTINCLUDE 
 BEGIN
     "\r\n"
     "\0"
@@ -51,19 +51,22 @@ END
 // Dialog
 //
 
-IDD_OPTIONS DIALOGEX 0, 0, 290, 95
+IDD_OPTIONS DIALOGEX 0, 0, 288, 93
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Updater Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "Check for updates automatically",IDC_AUTOCHECKBOX,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,37,142,10
+    COMBOBOX        IDC_UPDATE_INTERVAL,153,35,55,14,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Last update check: N/A",IDC_TEXT,7,7,276,8
     LTEXT           "Next update check: N/A",IDC_TEXT2,7,21,276,8
     CONTROL         "Show update prompt before main window",IDC_SHOWSTARTPROMPTCHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,51,160,10
     CONTROL         "Skip check for updates and search automatically",IDC_SKIPWELCOMEPAGECHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,65,169,10
+    CONTROL         "Show update notifications instead of update prompts",IDC_SHOWUPDATENOTIFICATION,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,78,182,10
 END
 
 IDD_TEXT DIALOGEX 0, 0, 309, 176

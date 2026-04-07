@@ -14,6 +14,7 @@
 #include <memprv.h>
 #include <heapstruct.h>
 #include <settings.h>
+#include <phsettings.h>
 
 #define MAX_HEAPS 1000
 #define WS_REQUEST_COUNT (PAGE_SIZE / sizeof(MEMORY_WORKING_SET_EX_INFORMATION))
@@ -344,6 +345,69 @@ PPH_MEMORY_ITEM PhLookupMemoryItemList(
     return NULL;
 }
 
+// Split an existing memory item at the specified address and return the new item starting at Address.
+// The original item is shrunk to end just before Address. The new item inherits metadata and will be
+// inserted directly after the original in both the list and AVL tree. (dmex)
+static PPH_MEMORY_ITEM PhpSplitMemoryItem(
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _Inout_ PPH_MEMORY_ITEM MemoryItem,
+    _In_ PVOID Address
+    )
+{
+    PPH_MEMORY_ITEM newItem;
+    ULONG_PTR addr = (ULONG_PTR)Address;
+    ULONG_PTR start = (ULONG_PTR)MemoryItem->BaseAddress;
+    ULONG_PTR end = start + MemoryItem->RegionSize;
+
+    if (addr <= start || addr >= end)
+        return NULL;
+
+    // Copy region info
+    newItem = PhCreateMemoryItem();
+    newItem->BasicInfo = MemoryItem->BasicInfo;
+    newItem->BaseAddress = (PVOID)addr;
+    newItem->BasicInfo.BaseAddress = (PVOID)addr;
+    newItem->RegionSize = end - addr;
+    newItem->BasicInfo.RegionSize = newItem->RegionSize;
+    PhPrintPointer(newItem->BaseAddressString, newItem->BaseAddress);
+
+    // Adjust current region size.
+    SIZE_T originalRegionSize = MemoryItem->RegionSize;
+    MemoryItem->RegionSize = addr - start;
+    MemoryItem->BasicInfo.RegionSize = MemoryItem->RegionSize;
+
+    if (MemoryItem->CommittedSize == originalRegionSize)
+    {
+        newItem->CommittedSize = newItem->RegionSize;
+        MemoryItem->CommittedSize = MemoryItem->RegionSize;
+    }
+    if (MemoryItem->PrivateSize == originalRegionSize && (MemoryItem->Type & MEM_PRIVATE))
+    {
+        newItem->PrivateSize = newItem->RegionSize;
+        MemoryItem->PrivateSize = MemoryItem->RegionSize;
+    }
+
+    newItem->AllocationBase = MemoryItem->AllocationBase;
+    newItem->AllocationBaseItem = MemoryItem->AllocationBaseItem;
+
+    newItem->Type = MemoryItem->Type;
+    newItem->State = MemoryItem->State;
+    newItem->AllocationProtect = MemoryItem->AllocationProtect;
+    newItem->Protect = MemoryItem->Protect;
+    newItem->Valid = FALSE;
+    newItem->Bad = FALSE;
+    newItem->RegionTypeEx = MemoryItem->RegionTypeEx;
+
+    PhAddElementAvlTree(&List->Set, &newItem->Links);
+
+    newItem->ListEntry.Flink = MemoryItem->ListEntry.Flink;
+    newItem->ListEntry.Blink = &MemoryItem->ListEntry;
+    MemoryItem->ListEntry.Flink->Blink = &newItem->ListEntry;
+    MemoryItem->ListEntry.Flink = &newItem->ListEntry;
+
+    return newItem;
+}
+
 PPH_MEMORY_ITEM PhpSetMemoryRegionType(
     _In_ PPH_MEMORY_ITEM_LIST List,
     _In_ PVOID Address,
@@ -360,6 +424,26 @@ PPH_MEMORY_ITEM PhpSetMemoryRegionType(
 
     if (GoToAllocationBase && memoryItem->AllocationBaseItem)
         memoryItem = memoryItem->AllocationBaseItem;
+
+    // If we are tagging a sub-region inside an already tagged region, split it first.
+    if (!GoToAllocationBase && memoryItem->RegionType != UnknownRegion && memoryItem->BaseAddress != Address)
+    {
+        PPH_MEMORY_ITEM newItem = PhpSplitMemoryItem(List, memoryItem, Address);
+        if (newItem)
+        {
+            newItem->RegionType = RegionType;
+            return newItem;
+        }
+        return NULL; // Could not split; don't overwrite existing tag.
+    }
+
+    // If region is Unknown but the address is interior and we don't want allocation base, split so the tag is precise.
+    if (!GoToAllocationBase && memoryItem->RegionType == UnknownRegion && memoryItem->BaseAddress != Address)
+    {
+        PPH_MEMORY_ITEM newItem = PhpSplitMemoryItem(List, memoryItem, Address);
+        if (newItem)
+            memoryItem = newItem; // Tag the new split item below.
+    }
 
     if (memoryItem->RegionType != UnknownRegion)
         return NULL;
@@ -393,7 +477,7 @@ VOID PhpUpdateHeapRegions(
         if (WindowsVersion >= WINDOWS_10)
             PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
 
-        if (PhGetIntegerSetting(L"EnableHeapReflection"))
+        if (PhGetIntegerSetting(SETTING_ENABLE_HEAP_REFLECTION))
         {
             status = PhCreateProcessReflection(
                 &reflectionInfo,
@@ -593,17 +677,17 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         ULONG telemetryCoverageData32;
         ULONG leapSecondData32;
 #endif
-        if (PhGetIntegerSetting(L"EnableHeapMemoryTagging"))
+        if (PhGetIntegerSetting(SETTING_ENABLE_HEAP_MEMORY_TAGGING))
         {
             PhpUpdateHeapRegions(List);
         }
 
         if (NT_SUCCESS(PhGetProcessPeb(ProcessHandle, &processPeb)))
         {
-            // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections. (dmex)
+            // Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' (dmex)
             PhpSetMemoryRegionType(List, processPeb, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, PebRegion);
 
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, UFIELD_OFFSET(PEB, NumberOfHeaps)),
                 &numberOfHeaps,
@@ -614,8 +698,8 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 processHeaps = PhAllocate(numberOfHeaps * sizeof(PVOID));
 
                 if (
-                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, PTR_ADD_OFFSET(processPeb, UFIELD_OFFSET(PEB, ProcessHeaps)), &processHeapsPtr, sizeof(PVOID), NULL)) &&
-                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, processHeapsPtr, processHeaps, numberOfHeaps * sizeof(PVOID), NULL))
+                    NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, PTR_ADD_OFFSET(processPeb, UFIELD_OFFSET(PEB, ProcessHeaps)), &processHeapsPtr, sizeof(PVOID), NULL)) &&
+                    NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, processHeapsPtr, processHeaps, numberOfHeaps * sizeof(PVOID), NULL))
                     )
                 {
                     for (i = 0; i < numberOfHeaps; i++)
@@ -627,7 +711,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                             memoryItem->u.Heap.Index = i;
 
                             // Try to read heap class from the header
-                            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, processHeaps[i], &buffer, sizeof(buffer), NULL)))
+                            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, processHeaps[i], &buffer, sizeof(buffer), NULL)))
                             {
                                 if (WindowsVersion >= WINDOWS_8)
                                 {
@@ -678,7 +762,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // RTL_USER_PROCESS_PARAMETERS
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, ProcessParameters)),
                 &processParameters,
@@ -690,7 +774,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // ApiSet schema map
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, ApiSetMap)),
                 &apiSetMap,
@@ -702,7 +786,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // CSR shared memory
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, ReadOnlySharedMemoryBase)),
                 &readOnlySharedMemory,
@@ -714,7 +798,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // CodePage data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, AnsiCodePageData)),
                 &codePageData,
@@ -726,7 +810,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // GDI shared handle table
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, GdiSharedHandleTable)),
                 &gdiSharedHandleTable,
@@ -738,7 +822,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // Shim data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, pShimData)),
                 &shimData,
@@ -750,7 +834,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // Process activation context data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, ActivationContextData)),
                 &activationContextData,
@@ -765,7 +849,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // System-default activation context data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, SystemDefaultActivationContextData)),
                 &defaultActivationContextData,
@@ -780,7 +864,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // WER registration data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, WerRegistrationData)),
                 &werRegistrationData,
@@ -792,7 +876,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // Silo shared data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, SharedData)),
                 &siloSharedData,
@@ -804,7 +888,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // Telemetry coverage map
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, TelemetryCoverageHeader)),
                 &telemetryCoverageData,
@@ -816,7 +900,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // Leap second data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, UFIELD_OFFSET(PEB, LeapSecondData)),
                 &leapSecondData,
@@ -834,7 +918,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             isWow64 = TRUE;
             PhpSetMemoryRegionType(List, processPeb32, TRUE, Peb32Region);
 
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, NumberOfHeaps)),
                 &numberOfHeaps,
@@ -845,8 +929,8 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 processHeaps32 = PhAllocate(numberOfHeaps * sizeof(ULONG));
 
                 if (
-                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, ProcessHeaps)), &processHeapsPtr32, sizeof(ULONG), NULL)) &&
-                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, UlongToPtr(processHeapsPtr32), processHeaps32, numberOfHeaps * sizeof(ULONG), NULL))
+                    NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, ProcessHeaps)), &processHeapsPtr32, sizeof(ULONG), NULL)) &&
+                    NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, UlongToPtr(processHeapsPtr32), processHeaps32, numberOfHeaps * sizeof(ULONG), NULL))
                     )
                 {
                     for (i = 0; i < numberOfHeaps; i++)
@@ -860,7 +944,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // RTL_USER_PROCESS_PARAMETERS
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, FIELD_OFFSET(PEB32, ProcessParameters)),
                 &processParameters32,
@@ -872,7 +956,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // ApiSet schema map
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, ApiSetMap)),
                 &apiSetMap32,
@@ -884,7 +968,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // CSR shared memory
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, ReadOnlySharedMemoryBase)),
                 &readOnlySharedMemory32,
@@ -896,7 +980,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // CodePage data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, AnsiCodePageData)),
                 &codePageData32,
@@ -908,7 +992,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // GDI shared handle table
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, GdiSharedHandleTable)),
                 &gdiSharedHandleTable32,
@@ -920,7 +1004,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // Shim data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, pShimData)),
                 &shimData32,
@@ -932,7 +1016,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // Process activation context data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, ActivationContextData)),
                 &activationContextData32,
@@ -947,7 +1031,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // System-default activation context data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, SystemDefaultActivationContextData)),
                 &defaultActivationContextData32,
@@ -962,7 +1046,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // WER registration data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, WerRegistrationData)),
                 &werRegistrationData32,
@@ -974,7 +1058,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // Silo shared data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, SharedData)),
                 &siloSharedData32,
@@ -986,7 +1070,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // Telemetry coverage map
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, TelemetryCoverageHeader)),
                 &telemetryCoverageData32,
@@ -998,7 +1082,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
 
             // Leap second data
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, LeapSecondData)),
                 &leapSecondData32,
@@ -1012,7 +1096,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 #endif
     }
 
-    // TEB, stack
+    // TEB, stack, desktop heap
     for (i = 0; i < process->NumberOfThreads; i++)
     {
         PSYSTEM_EXTENDED_THREAD_INFORMATION thread = (PSYSTEM_EXTENDED_THREAD_INFORMATION)process->Threads + i;
@@ -1020,13 +1104,14 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         if (thread->TebBaseAddress)
         {
             NT_TIB ntTib;
+            PVOID desktopInfo;
             SIZE_T bytesRead;
 
             // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections.
             if (memoryItem = PhpSetMemoryRegionType(List, thread->TebBaseAddress, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, TebRegion))
                 memoryItem->u.Teb.ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
 
-            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, thread->TebBaseAddress, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
+            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, thread->TebBaseAddress, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
                 bytesRead == sizeof(NT_TIB))
             {
                 if ((ULONG_PTR)ntTib.StackLimit < (ULONG_PTR)ntTib.StackBase)
@@ -1044,7 +1129,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                     // 64-bit and 32-bit TEBs usually share the same memory region, so don't do anything for the 32-bit
                     // TEB.
 
-                    if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, UlongToPtr(teb32), &ntTib32, sizeof(NT_TIB32), &bytesRead)) &&
+                    if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, UlongToPtr(teb32), &ntTib32, sizeof(NT_TIB32), &bytesRead)) &&
                         bytesRead == sizeof(NT_TIB32))
                     {
                         if (ntTib32.StackLimit < ntTib32.StackBase)
@@ -1055,6 +1140,23 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                     }
                 }
 #endif
+            }
+
+            // TEB->Win32ClientInfo.DesktopBase (which nowadays is a pointer to the start of the desktop heap)
+            // used to be called ClientDelta before RS2 and used to store the difference between the kernel and
+            // the user mappings of the desktop heap. TEB->Win32ClientInfo.DeskInfo, on the other hand, has
+            // always been a pointer to a structure on the desktop heap. (diversenok)
+
+            // Desktop heap
+            if (NT_SUCCESS(PhReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(thread->TebBaseAddress, FIELD_OFFSET(TEB, Win32ClientInfo.DeskInfo)),
+                &desktopInfo,
+                sizeof(PVOID),
+                NULL
+                )) && desktopInfo)
+            {
+                PhpSetMemoryRegionType(List, desktopInfo, TRUE, DesktopHeapRegion);
             }
         }
     }
@@ -1098,7 +1200,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         {
             UCHAR buffer[HEAP_SEGMENT_MAX_SIZE];
 
-            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, memoryItem->BaseAddress, buffer, sizeof(buffer), NULL)))
+            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, memoryItem->BaseAddress, buffer, sizeof(buffer), NULL)))
             {
                 PVOID candidateHeap = NULL;
                 ULONG candidateHeap32 = 0;
@@ -1144,7 +1246,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         {
             ACTIVATION_CONTEXT_DATA buffer;
 
-            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, memoryItem->BaseAddress, &buffer, sizeof(buffer), NULL)))
+            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, memoryItem->BaseAddress, &buffer, sizeof(buffer), NULL)))
             {
                 if (buffer.Magic == ACTIVATION_CONTEXT_DATA_MAGIC)
                 {

@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2025
+ *
+ */
+
 #include <ph.h>
 #include <mapimg.h>
 
@@ -5,10 +17,10 @@
 
 PPH_STRING inFile = NULL;
 PPH_STRING outFile = NULL;
-EXTERN_C PVOID __ImageBase;
 
+_Function_class_(PH_COMMAND_LINE_CALLBACK)
 BOOLEAN NTAPI CommandLineCallback(
-    _In_opt_ PPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
     )
@@ -32,7 +44,7 @@ BOOLEAN NTAPI CommandLineCallback(
     return TRUE;
 }
 
-int __cdecl main(int argc, char *argv[])
+int __cdecl wmain(int argc, wchar_t *argv[])
 {
     static PH_COMMAND_LINE_OPTION options[] =
     {
@@ -44,7 +56,7 @@ int __cdecl main(int argc, char *argv[])
     PH_MAPPED_ARCHIVE_MEMBER member;
     PH_MAPPED_ARCHIVE_IMPORT_ENTRY entry;
 
-    if (!NT_SUCCESS(PhInitializePhLib(L"fixlib", __ImageBase)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"fixlib")))
         return 1;
 
     PhGetProcessCommandLineStringRef(&commandLine);

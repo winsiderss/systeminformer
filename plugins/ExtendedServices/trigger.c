@@ -1254,7 +1254,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
             EnableWindow(GetDlgItem(WindowHandle, IDC_EDIT), FALSE);
             EnableWindow(GetDlgItem(WindowHandle, IDC_DELETE), FALSE);
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -1584,7 +1584,7 @@ INT_PTR CALLBACK ValueDlgProc(
             PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDC_VALUES));
             Edit_SetSel(GetDlgItem(WindowHandle, IDC_VALUES), 0, -1);
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:

@@ -26,8 +26,32 @@ INT_PTR CALLBACK OptionsDlgProc(
             {
                 ULONG lastTimeUpdateSeconds;
                 LARGE_INTEGER lastTimeUpdateTicks;
+                HWND comboBoxHandle;
+                ULONG updateInterval;
 
                 Button_SetCheck(GetDlgItem(WindowHandle, IDC_AUTOCHECKBOX), BST_CHECKED);
+
+                comboBoxHandle = GetDlgItem(WindowHandle, IDC_UPDATE_INTERVAL);
+                ComboBox_AddString(comboBoxHandle, L"1 day");
+                ComboBox_AddString(comboBoxHandle, L"1 week");
+                ComboBox_AddString(comboBoxHandle, L"1 month");
+
+                updateInterval = PhGetIntegerSetting(SETTING_NAME_UPDATE_INTERVAL);
+                switch (updateInterval)
+                {
+                case 1:
+                    ComboBox_SetCurSel(comboBoxHandle, 0);
+                    break;
+                case 7:
+                    ComboBox_SetCurSel(comboBoxHandle, 1);
+                    break;
+                case 30:
+                    ComboBox_SetCurSel(comboBoxHandle, 2);
+                    break;
+                default:
+                    ComboBox_SetCurSel(comboBoxHandle, 0);
+                    break;
+                }
 
                 if (lastTimeUpdateSeconds = PhGetIntegerSetting(SETTING_NAME_LAST_CHECK))
                 {
@@ -52,7 +76,10 @@ INT_PTR CALLBACK OptionsDlgProc(
                         PhGetStringOrEmpty(timeRelativeString)
                         )->Buffer);
 
-                    time.QuadPart = lastTimeUpdateTicks.QuadPart + (7 * PH_TICKS_PER_DAY);
+                    if (updateInterval == 0)
+                        updateInterval = 1;
+
+                    time.QuadPart = lastTimeUpdateTicks.QuadPart + (updateInterval * PH_TICKS_PER_DAY);
                     PhLargeIntegerToLocalSystemTime(&timeFields, &time);
                     timeString = PhaFormatDateTime(&timeFields);
 
@@ -75,6 +102,10 @@ INT_PTR CALLBACK OptionsDlgProc(
                     }
                 }
             }
+            else
+            {
+                EnableWindow(GetDlgItem(WindowHandle, IDC_UPDATE_INTERVAL), FALSE);
+            }
 
             if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE))
             {
@@ -85,6 +116,11 @@ INT_PTR CALLBACK OptionsDlgProc(
             {
                 Button_SetCheck(GetDlgItem(WindowHandle, IDC_SKIPWELCOMEPAGECHECK), BST_CHECKED);
             }
+
+            if (PhGetIntegerSetting(SETTING_NAME_SHOW_NOTIFICATION))
+            {
+                Button_SetCheck(GetDlgItem(WindowHandle, IDC_SHOWUPDATENOTIFICATION), BST_CHECKED);
+            }
         }
         break;
     case WM_COMMAND:
@@ -93,8 +129,35 @@ INT_PTR CALLBACK OptionsDlgProc(
             {
             case IDC_AUTOCHECKBOX:
                 {
-                    PhSetIntegerSetting(SETTING_NAME_AUTO_CHECK,
-                        Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
+                    BOOLEAN autoCheck = Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED;
+                    PhSetIntegerSetting(SETTING_NAME_AUTO_CHECK, autoCheck);
+                    EnableWindow(GetDlgItem(WindowHandle, IDC_UPDATE_INTERVAL), autoCheck);
+                }
+                break;
+            case IDC_UPDATE_INTERVAL:
+                {
+                    if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
+                    {
+                        ULONG updateInterval = 0;
+
+                        switch (ComboBox_GetCurSel(GET_WM_COMMAND_HWND(wParam, lParam)))
+                        {
+                        case 0:
+                            updateInterval = 1;
+                            break;
+                        case 1:
+                            updateInterval = 7;
+                            break;
+                        case 2:
+                            updateInterval = 30;
+                            break;
+                        }
+
+                        if (updateInterval != 0)
+                        {
+                            PhSetIntegerSetting(SETTING_NAME_UPDATE_INTERVAL, updateInterval);
+                        }
+                    }
                 }
                 break;
             case IDC_SHOWSTARTPROMPTCHECK:
@@ -106,6 +169,12 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDC_SKIPWELCOMEPAGECHECK:
                 {
                     PhSetIntegerSetting(SETTING_NAME_AUTO_CHECK_PAGE,
+                        Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
+                }
+                break;
+            case IDC_SHOWUPDATENOTIFICATION:
+                {
+                    PhSetIntegerSetting(SETTING_NAME_SHOW_NOTIFICATION,
                         Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
                 }
                 break;
@@ -495,7 +564,7 @@ INT_PTR CALLBACK TextDlgProc(
 
             {
                 PPH_UPDATER_CONTEXT updater = ((PPH_UPDATER_CONTEXT)lParam);
-                context->CurrentCommitHash = PhGetPhVersionHash();
+                context->CurrentCommitHash = PhGetBuildCommit();
                 if (updater) context->LatestCommitHash = PhReferenceObject(updater->CommitHash);
 
                 if (
@@ -522,7 +591,7 @@ INT_PTR CALLBACK TextDlgProc(
             //PhSetWindowText(GetDlgItem(hwndDlg, IDC_TEXT), PhGetString(context->BuildMessage));
             PhCreateThread2(PhpUpdaterQueryCommitHistoryThread, hwndDlg);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -656,7 +725,7 @@ INT_PTR CALLBACK TextDlgProc(
                                         if (PhEqualString(commitHash, shortCommitHash, TRUE))
                                         {
                                             newFont = context->ListViewBoldFont;
-                                            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                                            if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
                                                 customDraw->clrText = RGB(125, 125, 125);
                                             else
                                                 customDraw->clrText = GetSysColor(COLOR_WINDOWTEXT);

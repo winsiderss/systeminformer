@@ -121,6 +121,7 @@ typedef struct _PH_TREENEW_NODE
 #define TN_STYLE_CUSTOM_COLORS 0x100
 #define TN_STYLE_ALWAYS_SHOW_SELECTION 0x200
 #define TN_STYLE_CUSTOM_HEADERDRAW 0x400
+#define TN_STYLE_DRAG_REORDER_ROWS 0x800
 
 // Extended flags
 #define TN_FLAG_ITEM_DRAG_SELECT 0x1
@@ -185,6 +186,21 @@ typedef struct _PH_TREENEW_NODE
 // Auto-size flags
 #define TN_AUTOSIZE_REMAINING_SPACE 0x1
 
+typedef struct _PH_TREENEW_VIEW_PARTS
+{
+    RECT ClientRect;
+    LONG HeaderHeight;
+    LONG RowHeight;
+    ULONG VScrollWidth;
+    ULONG HScrollHeight;
+    LONG VScrollPosition;
+    LONG HScrollPosition;
+    LONG FixedWidth;
+    LONG NormalLeft;
+    LONG NormalWidth;
+    ULONG64 ScrollTickCount;
+} PH_TREENEW_VIEW_PARTS, *PPH_TREENEW_VIEW_PARTS;
+
 typedef struct _PH_TREENEW_CELL_PARTS
 {
     ULONG Flags;
@@ -245,12 +261,19 @@ typedef enum _PH_TREENEW_MESSAGE
 
     TreeNewGetHeaderText,
 
+    TreeNewDpiChanged, // PH_TREENEW_DPICHANGED_EVENT Parameter1
+
+    TreeNewReorderBegin,   // PH_TREENEW_REORDER_EVENT (in/out) Parameter1
+    TreeNewReorderOver,    // PH_TREENEW_REORDER_EVENT (in/out) Parameter1
+    TreeNewReorderCommit,  // PH_TREENEW_REORDER_EVENT (in) Parameter1
+    TreeNewReorderCancel,  // PH_TREENEW_REORDER_EVENT (best-effort notify) Parameter1
+
     MaxTreeNewMessage
 } PH_TREENEW_MESSAGE;
 
 typedef BOOLEAN _Function_class_(PH_TREENEW_CALLBACK)
 NTAPI PH_TREENEW_CALLBACK(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2,
@@ -407,6 +430,28 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
     PVOID HeaderTreeColumnTextCache;
 } PH_TREENEW_SET_HEADER_CACHE, *PPH_TREENEW_SET_HEADER_CACHE;
 
+typedef struct _PH_TREENEW_DPICHANGED_EVENT
+{
+    LONG OldWindowDpi;
+    LONG NewWindowDpi;
+} PH_TREENEW_DPICHANGED_EVENT, *PPH_TREENEW_DPICHANGED_EVENT;
+
+typedef struct _PH_TREENEW_REORDER_EVENT
+{
+    PPH_TREENEW_NODE Source; // node being dragged
+    PPH_TREENEW_NODE Target; // node at drop caret (may be NULL if empty area)
+    BOOLEAN DropAfter; // TRUE = insert after Target; FALSE = before Target
+    BOOLEAN Allow; // in Begin/Over: host sets to TRUE to allow; Commit ignores this field
+} PH_TREENEW_REORDER_EVENT, *PPH_TREENEW_REORDER_EVENT;
+
+typedef struct _PH_TREENEW_GET_CELL_PARTS
+{
+    ULONG Flags;
+    PPH_TREENEW_NODE Node;
+    PPH_TREENEW_COLUMN Column;
+    PH_TREENEW_CELL_PARTS Parts;
+} PH_TREENEW_GET_CELL_PARTS, *PPH_TREENEW_GET_CELL_PARTS;
+
 #define TNM_FIRST (WM_USER + 1)
 #define TNM_SETCALLBACK (WM_USER + 1)
 #define TNM_NODESADDED (WM_USER + 2) // unimplemented
@@ -462,15 +507,17 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
 #define TNM_GETSELECTEDCOUNT (WM_USER + 52)
 #define TNM_GETSELECTEDNODE (WM_USER + 53)
 #define TNM_FOCUSMARKSELECT (WM_USER + 54)
-#define TNM_LAST (WM_USER + 55)
+#define TNM_FOCUSVISIBLENODE (WM_USER + 55)
+#define TNM_GETCELLPARTS (WM_USER + 56)
+#define TNM_LAST (WM_USER + 57)
 
 #if defined(_PHLIB_)
 
 EXTERN_C LRESULT PhTnSendMessage(
     _In_ HWND WindowHandle,
     _In_ ULONG WindowMessage,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _Pre_maybenull_ _Post_valid_ WPARAM wParam,
+    _Pre_maybenull_ _Post_valid_ LPARAM lParam
     );
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
@@ -623,8 +670,21 @@ EXTERN_C LRESULT PhTnSendMessage(
 #define TreeNew_GetSelectedNodeCount(hWnd) \
     ((ULONG)PhTnSendMessage((hWnd), TNM_GETSELECTEDCOUNT, 0, 0))
 
+#define TreeNew_GetSelectedNode(hWnd) \
+    ((PPH_TREENEW_NODE)PhTnSendMessage((hWnd), TNM_GETSELECTEDNODE, 0, 0))
+
+#define TreeNew_GetVisibleNode(hWnd) \
+    ((PPH_TREENEW_NODE)PhTnSendMessage((hWnd), TNM_GETSELECTEDNODE, 0, 0))
+
 #define TreeNew_FocusMarkSelectNode(hWnd, Node) \
     PhTnSendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, (LPARAM)(Node))
+
+#define TreeNew_SelectFirstVisibleNode(hWnd) \
+    PhTnSendMessage((hWnd), TNM_FOCUSVISIBLENODE, 0, 0)
+
+#define TreeNew_GetCellParts(hWnd, Parts) \
+    ((BOOLEAN)PhTnSendMessage((hWnd), TNM_GETCELLPARTS, 0, (LPARAM)(Parts)))
+
 #else
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
@@ -783,22 +843,12 @@ EXTERN_C LRESULT PhTnSendMessage(
 #define TreeNew_FocusMarkSelectNode(hWnd, Node) \
     SendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, (LPARAM)(Node))
 
-#endif
+#define TreeNew_SelectFirstVisibleNode(hWnd) \
+    SendMessage((hWnd), TNM_FOCUSVISIBLENODE, 0, 0)
 
-typedef struct _PH_TREENEW_VIEW_PARTS
-{
-    RECT ClientRect;
-    LONG HeaderHeight;
-    LONG RowHeight;
-    ULONG VScrollWidth;
-    ULONG HScrollHeight;
-    LONG VScrollPosition;
-    LONG HScrollPosition;
-    LONG FixedWidth;
-    LONG NormalLeft;
-    LONG NormalWidth;
-    ULONG64 ScrollTickCount;
-} PH_TREENEW_VIEW_PARTS, *PPH_TREENEW_VIEW_PARTS;
+#define TreeNew_GetCellParts(hWnd, Parts) \
+    SendMessage((hWnd), TNM_GETCELLPARTS, 0, (LPARAM)(Parts))
+#endif
 
 PHLIBAPI
 RTL_ATOM
@@ -831,7 +881,7 @@ FORCEINLINE VOID PhInvalidateTreeNewNode(
 }
 
 FORCEINLINE BOOLEAN PhAddTreeNewColumn(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG Id,
     _In_ BOOLEAN Visible,
     _In_ PCWSTR Text,
@@ -856,11 +906,11 @@ FORCEINLINE BOOLEAN PhAddTreeNewColumn(
     if (DisplayIndex == -2)
         column.Fixed = TRUE;
 
-    return !!TreeNew_AddColumn(hwnd, &column);
+    return !!TreeNew_AddColumn(WindowHandle, &column);
 }
 
 FORCEINLINE BOOLEAN PhAddTreeNewColumnEx(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG Id,
     _In_ BOOLEAN Visible,
     _In_ PCWSTR Text,
@@ -888,11 +938,11 @@ FORCEINLINE BOOLEAN PhAddTreeNewColumnEx(
     if (SortDescending)
         column.SortDescending = TRUE;
 
-    return !!TreeNew_AddColumn(hwnd, &column);
+    return !!TreeNew_AddColumn(WindowHandle, &column);
 }
 
 FORCEINLINE BOOLEAN PhAddTreeNewColumnEx2(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG Id,
     _In_ BOOLEAN Visible,
     _In_ PCWSTR Text,
@@ -923,7 +973,7 @@ FORCEINLINE BOOLEAN PhAddTreeNewColumnEx2(
     if (!(ExtraFlags & TN_COLUMN_FLAG_NODPISCALEONADD))
         column.DpiScaleOnAdd = TRUE;
 
-    return !!TreeNew_AddColumn(hwnd, &column);
+    return !!TreeNew_AddColumn(WindowHandle, &column);
 }
 
 EXTERN_C_END

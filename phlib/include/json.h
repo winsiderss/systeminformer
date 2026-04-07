@@ -100,6 +100,13 @@ PhGetJsonUInt64Object(
     );
 
 PHLIBAPI
+LONGLONG
+NTAPI
+PhGetJsonInt64Object(
+    _In_ PVOID Object
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhCreateJsonObject(
@@ -174,6 +181,15 @@ PhAddJsonObject2(
     _In_ PCSTR Key,
     _In_ PCSTR Value,
     _In_ SIZE_T Length
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhAddJsonObjectUtf8(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ PPH_BYTES String
     );
 
 PHLIBAPI
@@ -282,6 +298,24 @@ PhLoadJsonObjectFromFile(
 #define PH_JSON_TO_STRING_PRETTY 0x0004
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhJsonObjectToString(
+    _In_ PPH_BYTES_BUILDER StringBuilder,
+    _In_ PVOID Object,
+    _In_ ULONG Level,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
+PPH_BYTES
+NTAPI
+PhJsonObjectToJsonString(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhSaveJsonObjectToFile(
@@ -296,6 +330,13 @@ PHLIBAPI
 PVOID
 NTAPI
 PhLoadXmlObjectFromString(
+    _In_ PCSTR String
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhLoadXmlObjectFromString2(
     _In_ PCSTR String
     );
 

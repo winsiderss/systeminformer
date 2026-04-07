@@ -1,3 +1,6 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 
 
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
@@ -26,10 +29,10 @@
 #error this stub requires an updated version of <rpcndr.h>
 #endif // __RPCNDR_H_VERSION__
 
-#ifndef COM_NO_WINDOWS_H
-#include "windows.h"
-#include "ole2.h"
-#endif /*COM_NO_WINDOWS_H*/
+//#ifndef COM_NO_WINDOWS_H
+//#include "windows.h"
+//#include "ole2.h"
+//#endif /*COM_NO_WINDOWS_H*/
 
 #ifndef __corsym_h__
 #define __corsym_h__
@@ -5289,8 +5292,8 @@ EXTERN_C const IID IID_ISymNGenWriter2;
     {
     public:
         virtual HRESULT STDMETHODCALLTYPE OpenModW( 
-            /* [in] */ const wchar_t *wszModule,
-            /* [in] */ const wchar_t *wszObjFile,
+            /* [in] */ LPCWSTR wszModule,
+            /* [in] */ LPCWSTR wszObjFile,
             /* [out] */ BYTE **ppmod) = 0;
         
         virtual HRESULT STDMETHODCALLTYPE CloseMod( 
@@ -5311,7 +5314,7 @@ EXTERN_C const IID IID_ISymNGenWriter2;
             /* [in] */ DWORD dwRelocCrc) = 0;
         
         virtual HRESULT STDMETHODCALLTYPE QueryPDBNameExW( 
-            /* [size_is][out] */ wchar_t wszPDB[  ],
+            /* [size_is][out] */ WCHAR wszPDB[  ],
             /* [in] */ SIZE_T cchMax) = 0;
         
     };
@@ -5350,8 +5353,8 @@ EXTERN_C const IID IID_ISymNGenWriter2;
         
         HRESULT ( STDMETHODCALLTYPE *OpenModW )( 
             ISymNGenWriter2 * This,
-            /* [in] */ const wchar_t *wszModule,
-            /* [in] */ const wchar_t *wszObjFile,
+            /* [in] */ const WCHAR *wszModule,
+            /* [in] */ const WCHAR *wszObjFile,
             /* [out] */ BYTE **ppmod);
         
         HRESULT ( STDMETHODCALLTYPE *CloseMod )( 
@@ -5376,7 +5379,7 @@ EXTERN_C const IID IID_ISymNGenWriter2;
         
         HRESULT ( STDMETHODCALLTYPE *QueryPDBNameExW )( 
             ISymNGenWriter2 * This,
-            /* [size_is][out] */ wchar_t wszPDB[  ],
+            /* [size_is][out] */ WCHAR wszPDB[  ],
             /* [in] */ SIZE_T cchMax);
         
         END_INTERFACE
@@ -5679,7 +5682,7 @@ EXTERN_C const IID IID_ISymUnmanagedAsyncMethod;
 #endif 	/* __ISymUnmanagedAsyncMethod_INTERFACE_DEFINED__ */
 
 
-/* Additional Prototypes for ALL interfaces */
+/* Additional Prototypes for ALL interfaces
 
 unsigned long             __RPC_USER  BSTR_UserSize(     __RPC__in unsigned long *, unsigned long            , __RPC__in BSTR * ); 
 unsigned char * __RPC_USER  BSTR_UserMarshal(  __RPC__in unsigned long *, __RPC__inout_xcount(0) unsigned char *, __RPC__in BSTR * ); 
@@ -5691,12 +5694,11 @@ unsigned char * __RPC_USER  VARIANT_UserMarshal(  __RPC__in unsigned long *, __R
 unsigned char * __RPC_USER  VARIANT_UserUnmarshal(__RPC__in unsigned long *, __RPC__in_xcount(0) unsigned char *, __RPC__out VARIANT * ); 
 void                      __RPC_USER  VARIANT_UserFree(     __RPC__in unsigned long *, __RPC__in VARIANT * ); 
 
-/* end of Additional Prototypes */
+ end of Additional Prototypes */
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-
 

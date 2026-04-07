@@ -12,6 +12,7 @@
 
 #include "devices.h"
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI NetAdapterProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -90,29 +91,6 @@ VOID NetAdapterAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, NETADAPTER_DETAILS_INDEX_ERRORS_TOTAL, L"Total discards", NULL);
 }
 
-PVOID NetAdapterGetAddresses(
-    _In_ ULONG Family
-    )
-{
-    ULONG flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_FRIENDLY_NAME | GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_ALL_INTERFACES;
-    ULONG bufferLength = 0;
-    PIP_ADAPTER_ADDRESSES buffer;
-
-    if (GetAdaptersAddresses(Family, flags, NULL, NULL, &bufferLength) != ERROR_BUFFER_OVERFLOW)
-        return NULL;
-
-    buffer = PhAllocate(bufferLength);
-    memset(buffer, 0, bufferLength);
-
-    if (GetAdaptersAddresses(Family, flags, NULL, buffer, &bufferLength) != ERROR_SUCCESS)
-    {
-        PhFree(buffer);
-        return NULL;
-    }
-
-    return buffer;
-}
-
 VOID NetAdapterEnumerateAddresses(
     _In_ PVOID AddressesBuffer,
     _In_ ULONG64 InterfaceLuid,
@@ -165,7 +143,7 @@ VOID NetAdapterEnumerateAddresses(
                     PhAppendFormatStringBuilder(Ipv4AddressBuffer, L"%s, ", ipv4AddressString);
                 }
 
-                ConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
+                NetworkAdapterConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
 
                 if (NT_SUCCESS(PhIpv4AddressToString(
                     &subnetMask,
@@ -323,7 +301,11 @@ VOID NetAdapterLookupConfig(
     PhInitializeStringBuilder(&ipv4dnsAddressBuffer, 0x100);
     PhInitializeStringBuilder(&ipv6dnsAddressBuffer, 0x100);
 
-    if (addressesBuffer = NetAdapterGetAddresses(AF_INET))
+    if (addressesBuffer = NetworkAdapterGetAddresses(
+        AF_INET,
+        GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_FRIENDLY_NAME |
+        GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_ALL_INTERFACES
+        ))
     {
         NetAdapterEnumerateAddresses(
             addressesBuffer,
@@ -342,7 +324,11 @@ VOID NetAdapterLookupConfig(
         PhFree(addressesBuffer);
     }
 
-    if (addressesBuffer = NetAdapterGetAddresses(AF_INET6))
+    if (addressesBuffer = NetworkAdapterGetAddresses(
+        AF_INET6,
+        GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_FRIENDLY_NAME |
+        GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_ALL_INTERFACES
+        ))
     {
         NetAdapterEnumerateAddresses(
             addressesBuffer,
@@ -531,7 +517,7 @@ VOID NetAdapterUpdateDetails(
     }
 
     interfaceRcvSpeed = interfaceStats.ifHCInOctets - Context->LastDetailsInboundValue;
-    interfaceXmitSpeed = interfaceStats.ifHCOutOctets - Context->LastDetailsIOutboundValue;
+    interfaceXmitSpeed = interfaceStats.ifHCOutOctets - Context->LastDetailsOutboundValue;
     //interfaceRcvUnicastSpeed = interfaceStats.ifHCInUcastOctets - Context->LastDetailsInboundUnicastValue;
     //interfaceXmitUnicastSpeed = interfaceStats.ifHCOutUcastOctets - Context->LastDetailsIOutboundUnicastValue;
 
@@ -554,7 +540,7 @@ VOID NetAdapterUpdateDetails(
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_LINKSPEED, 1, PhaFormatString(
         L"%s/s (%s)",
         PhaFormatSize(interfaceLinkSpeed / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer,
-        PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(interfaceLinkSpeed))->Buffer
+        PH_AUTO_T(PH_STRING, NetworkAdapterFormatBitratePrefix(interfaceLinkSpeed))->Buffer
         )->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SENT, 1, PhaFormatSize(interfaceStats.ifHCOutOctets, ULONG_MAX)->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_RECEIVED, 1, PhaFormatSize(interfaceStats.ifHCInOctets, ULONG_MAX)->Buffer);
@@ -562,12 +548,12 @@ VOID NetAdapterUpdateDetails(
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SENDING, 1, interfaceXmitSpeed != 0 ? PhaFormatString(
         L"%s/s (%s)",
         PhaFormatSize(interfaceXmitSpeed, ULONG_MAX)->Buffer,
-        PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(interfaceXmitSpeed * BITS_IN_ONE_BYTE))->Buffer
+        PH_AUTO_T(PH_STRING, NetworkAdapterFormatBitratePrefix(interfaceXmitSpeed * BITS_IN_ONE_BYTE))->Buffer
         )->Buffer : L"");
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_RECEIVING, 1, interfaceRcvSpeed != 0 ? PhaFormatString(
         L"%s/s (%s)",
         PhaFormatSize(interfaceRcvSpeed, ULONG_MAX)->Buffer,
-        PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(interfaceRcvSpeed * BITS_IN_ONE_BYTE))->Buffer
+        PH_AUTO_T(PH_STRING, NetworkAdapterFormatBitratePrefix(interfaceRcvSpeed * BITS_IN_ONE_BYTE))->Buffer
         )->Buffer : L"");
 
     if (interfaceLinkSpeed > 0)
@@ -613,7 +599,7 @@ VOID NetAdapterUpdateDetails(
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_ERRORS_TOTAL, 1, PhaFormatUInt64(interfaceStats.ifInDiscards + interfaceStats.ifOutDiscards, TRUE)->Buffer);
 
     Context->LastDetailsInboundValue = interfaceStats.ifHCInOctets;
-    Context->LastDetailsIOutboundValue = interfaceStats.ifHCOutOctets;
+    Context->LastDetailsOutboundValue = interfaceStats.ifHCOutOctets;
     //Context->LastDetailsInboundUnicastValue = interfaceStats.ifHCInUcastOctets;
     //Context->LastDetailsIOutboundUnicastValue = interfaceStats.ifHCOutUcastOctets;
 }
@@ -686,7 +672,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
                 &context->NotifyHandle
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport")); // HACK
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)); // HACK
         }
         break;
     case WM_DESTROY:
@@ -815,6 +801,7 @@ VOID FreeNetAdapterDetailsContext(
     PhFree(Context);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS ShowNetAdapterDetailsDialogThread(
     _In_ PVOID Parameter
     )

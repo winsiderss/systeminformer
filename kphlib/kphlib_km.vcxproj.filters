@@ -36,6 +36,9 @@
     <ClInclude Include="include\sistatus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\kphringbuff.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="kphmsgdyn.c">
@@ -48,6 +51,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="kphdyndata.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kphringbuff.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

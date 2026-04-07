@@ -25,7 +25,6 @@ typedef struct _PH_HANDLE_ITEM_INFO
     PPH_STRING BestObjectName;
 } PH_HANDLE_ITEM_INFO, *PPH_HANDLE_ITEM_INFO;
 
-
 VOID PhInsertHandleObjectPropertiesEMenuItems(
     _In_ struct _PH_EMENU_ITEM *Menu,
     _In_ ULONG InsertBeforeId,

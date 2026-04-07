@@ -13,7 +13,7 @@
 #include <phapp.h>
 #include <appresolver.h>
 #include <settings.h>
-
+#include <phsettings.h>
 #include <dbghelp.h>
 #include <symprv.h>
 
@@ -199,8 +199,8 @@ VOID PhUiCreateDumpFileProcess(
         return;
 
     context = PhpCreateProcessMiniDumpContext();
-    context->EnableProcessSnapshot = !!PhGetIntegerSetting(L"EnableMinidumpSnapshot");
-    context->EnableKernelSnapshot = !!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump");
+    context->EnableProcessSnapshot = !!PhGetIntegerSetting(SETTING_ENABLE_MINIDUMP_SNAPSHOT);
+    context->EnableKernelSnapshot = !!PhGetIntegerSetting(SETTING_ENABLE_MINIDUMP_KERNEL_MINIDUMP);
     context->ParentWindowHandle = WindowHandle;
     context->ProcessId = ProcessItem->ProcessId;
     context->ProcessItem = PhReferenceObject(ProcessItem);

@@ -263,20 +263,18 @@ VOID InitializeDbPath(
     VOID
     )
 {
+    PPH_STRING fileName;
+
     if (SystemInformer_IsPortableMode())
     {
-        PPH_STRING fileName;
-
         fileName = PhGetApplicationDirectoryFileNameZ(L"usernotesdb.xml", TRUE);
-        SetDbPath(fileName);
     }
     else
     {
-        PPH_STRING fileName;
-
-        fileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\usernotesdb.xml", TRUE);
-        SetDbPath(fileName);
+        fileName = PhGetRoamingAppDataDirectoryZ(L"usernotesdb.xml", TRUE);
     }
+
+    SetDbPath(fileName);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -816,7 +814,6 @@ VOID ShowProcessPagePriorityDialog(
     PhFree(context);
 }
 
-
 NTSTATUS PhD3DKMTGetProcessSchedulingPriorityClass(
     _In_ HANDLE ProcessHandle,
     _Out_ D3DKMT_SCHEDULINGPRIORITYCLASS* SchedulingPriorityClass
@@ -951,6 +948,7 @@ VOID ShowProcessD3DKMTPriorityDialog(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuItemCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2185,7 +2183,7 @@ VOID MainWindowShowingCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (ToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_PLUGIN_NAME, TOOLSTATUS_INTERFACE_VERSION))
+    if (ToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_INTERFACE_NAME, TOOLSTATUS_INTERFACE_VERSION))
     {
         PhRegisterCallback(ToolStatusInterface->SearchChangedEvent, SearchChangedHandler, NULL, &SearchChangedRegistration);
     }
@@ -2453,6 +2451,7 @@ VOID ProcessMenuInitializingCallback(
     UnlockDb();
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 static LONG NTAPI ProcessCommentSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -2472,6 +2471,7 @@ static LONG NTAPI ProcessCommentSortFunction(
     return PhCompareStringWithNull(extension1->Comment, extension2->Comment, TRUE);
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 static LONG NTAPI ProcessAffinitySortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -2491,6 +2491,7 @@ static LONG NTAPI ProcessAffinitySortFunction(
     return PhCompareStringWithNull(extension1->Affinity, extension2->Affinity, TRUE);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ProcessTreeNewInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2516,6 +2517,7 @@ VOID ProcessTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &affinity, AFFINITY_COLUMN_ID, NULL, ProcessAffinitySortFunction);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID GetProcessHighlightingColorCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2542,6 +2544,7 @@ VOID GetProcessHighlightingColorCallback(
     UnlockDb();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ServicePropertiesInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2564,6 +2567,7 @@ VOID ServicePropertiesInitializingCallback(
     }
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG NTAPI ServiceCommentSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,

@@ -47,4 +47,18 @@ VOID PhInformerInitialize(
     VOID
     );
 
+VOID PhInformerActivate(
+    VOID
+    );
+
+PPH_LIST PhInformerDatabaseQuery(
+    _In_ ULONG64 ProcessStartKey,
+    _In_opt_ PLARGE_INTEGER TimeStamp
+    );
+
+VOID PhInformerGetProcessStartKeys(
+    _In_ PCKPH_MESSAGE Message,
+    _Out_writes_(5) PULONG64 ProcessStartKeys
+    );
+
 #endif

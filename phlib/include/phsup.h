@@ -106,8 +106,8 @@ FORCEINLINE T* PTR_SUB_OFFSET(
         );
 }
 #else
-#define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
-#define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Offset)))
+#define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((PUCHAR)(Pointer) + (ULONG_PTR)(Offset)))
+#define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((PUCHAR)(Pointer) - (ULONG_PTR)(Offset)))
 #endif
 
 #define PH_LARGE_BUFFER_SIZE (256 * 1024 * 1024)
@@ -159,19 +159,20 @@ FORCEINLINE T* PTR_SUB_OFFSET(
 // Time
 //
 
-#define PH_TICKS_PER_NS ((LONG64)1 * 10)
-#define PH_TICKS_PER_MS (PH_TICKS_PER_NS * 1000)
-#define PH_TICKS_PER_SEC (PH_TICKS_PER_MS * 1000)
-#define PH_TICKS_PER_MIN (PH_TICKS_PER_SEC * 60)
-#define PH_TICKS_PER_HOUR (PH_TICKS_PER_MIN * 60)
-#define PH_TICKS_PER_DAY (PH_TICKS_PER_HOUR * 24)
+#define PH_TICKS_PER_NS   (LONG64_C(1)       * LONG64_C(10))   // 10 ticks (1 tick = 0.1 ns = 100 picoseconds)
+#define PH_TICKS_PER_MS   (PH_TICKS_PER_NS   * LONG64_C(1000)) // 10 * 1,000 = 10,000 ticks/ms
+#define PH_TICKS_PER_SEC  (PH_TICKS_PER_MS   * LONG64_C(1000)) // 10,000 * 1,000 = 10,000,000 ticks/s
+#define PH_TICKS_PER_MIN  (PH_TICKS_PER_SEC  * LONG64_C(60))   // 10,000,000 * 60
+#define PH_TICKS_PER_HOUR (PH_TICKS_PER_MIN  * LONG64_C(60))   // previous * 60
+#define PH_TICKS_PER_DAY  (PH_TICKS_PER_HOUR * LONG64_C(24))   // previous * 24
 
-#define PH_TICKS_PARTIAL_NS(Ticks) (((ULONG64)(Ticks) / PH_TICKS_PER_NS) % 1000000)
-#define PH_TICKS_PARTIAL_MS(Ticks) (((ULONG64)(Ticks) / PH_TICKS_PER_MS) % 1000)
-#define PH_TICKS_PARTIAL_SEC(Ticks) (((ULONG64)(Ticks) / PH_TICKS_PER_SEC) % 60)
-#define PH_TICKS_PARTIAL_MIN(Ticks) (((ULONG64)(Ticks) / PH_TICKS_PER_MIN) % 60)
-#define PH_TICKS_PARTIAL_HOURS(Ticks) (((ULONG64)(Ticks) / PH_TICKS_PER_HOUR) % 24)
-#define PH_TICKS_PARTIAL_DAYS(Ticks) ((ULONG64)(Ticks) / PH_TICKS_PER_DAY)
+#define PH_TICKS_PARTIAL_NS(Ticks)    ((((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_NS))   % ULONG64_C(1000000))
+#define PH_TICKS_PARTIAL_MS(Ticks)    ((((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_MS))   % ULONG64_C(1000))
+#define PH_TICKS_PARTIAL_SEC(Ticks)   ((((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_SEC))  % ULONG64_C(60))
+#define PH_TICKS_PARTIAL_MIN(Ticks)   ((((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_MIN))  % ULONG64_C(60))
+#define PH_TICKS_PARTIAL_HOURS(Ticks) ((((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_HOUR)) % ULONG64_C(24))
+#define PH_TICKS_PARTIAL_DAYS(Ticks)   (((ULONG64)(Ticks)) / ((ULONG64)PH_TICKS_PER_DAY))
+
 
 #define PH_TIMEOUT_MS PH_TICKS_PER_MS
 #define PH_TIMEOUT_SEC PH_TICKS_PER_SEC
@@ -202,12 +203,6 @@ FORCEINLINE T* PTR_SUB_OFFSET(
  */
 #define _May_raise_
 
-/**
- * Indicates that a function requires the specified value to be aligned at the specified number of
- * bytes.
- */
-#define _Needs_align_(align)
-
 //
 // Casts
 //
@@ -233,6 +228,13 @@ typedef enum _PH_SORT_ORDER
     DescendingSortOrder
 } PH_SORT_ORDER, *PPH_SORT_ORDER;
 
+/**
+ * Adjusts a comparison result to match the requested sort order.
+ *
+ * \param Result The original comparison result.
+ * \param Order The sort order to apply.
+ * \return The adjusted comparison result.
+ */
 FORCEINLINE LONG PhModifySort(
     _In_ LONG Result,
     _In_ PH_SORT_ORDER Order
@@ -257,6 +259,13 @@ FORCEINLINE LONG PhModifySort(
     \
     return 0
 
+/**
+ * Compares two signed 8-bit values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int charcmp(
     _In_ signed char value1,
     _In_ signed char value2
@@ -265,6 +274,13 @@ FORCEINLINE int charcmp(
     return C_1sTo4(value1 - value2);
 }
 
+/**
+ * Compares two unsigned 8-bit values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int ucharcmp(
     _In_ unsigned char value1,
     _In_ unsigned char value2
@@ -273,6 +289,13 @@ FORCEINLINE int ucharcmp(
     PH_BUILTIN_COMPARE(value1, value2);
 }
 
+/**
+ * Compares two signed 16-bit values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int shortcmp(
     _In_ signed short value1,
     _In_ signed short value2
@@ -281,6 +304,13 @@ FORCEINLINE int shortcmp(
     return C_2sTo4(value1 - value2);
 }
 
+/**
+ * Compares two unsigned 16-bit values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int ushortcmp(
     _In_ unsigned short value1,
     _In_ unsigned short value2
@@ -289,6 +319,13 @@ FORCEINLINE int ushortcmp(
     PH_BUILTIN_COMPARE(value1, value2);
 }
 
+/**
+ * Compares two signed 32-bit values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int intcmp(
     _In_ int value1,
     _In_ int value2
@@ -297,6 +334,13 @@ FORCEINLINE int intcmp(
     return value1 - value2;
 }
 
+/**
+ * Compares two unsigned 32-bit values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int uintcmp(
     _In_ unsigned int value1,
     _In_ unsigned int value2
@@ -305,6 +349,13 @@ FORCEINLINE int uintcmp(
     PH_BUILTIN_COMPARE(value1, value2);
 }
 
+/**
+ * Compares two signed 64-bit values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int int64cmp(
     _In_ __int64 value1,
     _In_ __int64 value2
@@ -313,6 +364,13 @@ FORCEINLINE int int64cmp(
     PH_BUILTIN_COMPARE(value1, value2);
 }
 
+/**
+ * Compares two unsigned 64-bit values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int uint64cmp(
     _In_ unsigned __int64 value1,
     _In_ unsigned __int64 value2
@@ -321,6 +379,13 @@ FORCEINLINE int uint64cmp(
     PH_BUILTIN_COMPARE(value1, value2);
 }
 
+/**
+ * Compares two signed pointer-sized values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int intptrcmp(
     _In_ LONG_PTR value1,
     _In_ LONG_PTR value2
@@ -329,6 +394,13 @@ FORCEINLINE int intptrcmp(
     PH_BUILTIN_COMPARE(value1, value2);
 }
 
+/**
+ * Compares two unsigned pointer-sized values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int uintptrcmp(
     _In_ ULONG_PTR value1,
     _In_ ULONG_PTR value2
@@ -337,6 +409,13 @@ FORCEINLINE int uintptrcmp(
     PH_BUILTIN_COMPARE(value1, value2);
 }
 
+/**
+ * Compares two single-precision floating-point values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int singlecmp(
     _In_ float value1,
     _In_ float value2
@@ -345,6 +424,13 @@ FORCEINLINE int singlecmp(
     PH_BUILTIN_COMPARE(value1, value2);
 }
 
+/**
+ * Compares two double-precision floating-point values.
+ *
+ * \param value1 The first value.
+ * \param value2 The second value.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int doublecmp(
     _In_ double value1,
     _In_ double value2
@@ -353,6 +439,13 @@ FORCEINLINE int doublecmp(
     PH_BUILTIN_COMPARE(value1, value2);
 }
 
+/**
+ * Compares two optional Unicode strings without regard to case.
+ *
+ * \param Value1 The first string, or NULL.
+ * \param Value2 The second string, or NULL.
+ * \return A negative, zero, or positive value depending on the comparison result.
+ */
 FORCEINLINE int wcsicmp2(
     _In_opt_ PCWSTR Value1,
     _In_opt_ PCWSTR Value2
@@ -372,6 +465,13 @@ typedef int (__cdecl *PC_COMPARE_FUNCTION)(void *, const void *, const void *);
 // Synchronization
 //
 
+/**
+ * Atomically adds a pointer-sized value and returns the previous value.
+ *
+ * \param Addend The target value to update.
+ * \param Value The value to add.
+ * \return The original value before the addition.
+ */
 FORCEINLINE LONG_PTR __InterlockedExchangeAddPointer(
     _Inout_ _Interlocked_operand_ LONG_PTR volatile *Addend,
     _In_ LONG_PTR Value
@@ -386,6 +486,12 @@ FORCEINLINE LONG_PTR __InterlockedExchangeAddPointer(
 
 #define _InterlockedExchangeAddPointer __InterlockedExchangeAddPointer
 
+/**
+ * Atomically increments a pointer-sized value.
+ *
+ * \param Addend The target value to update.
+ * \return The incremented value.
+ */
 FORCEINLINE LONG_PTR _InterlockedIncrementPointer(
     _Inout_ _Interlocked_operand_ LONG_PTR volatile *Addend
     )
@@ -397,6 +503,12 @@ FORCEINLINE LONG_PTR _InterlockedIncrementPointer(
 #endif
 }
 
+/**
+ * Atomically decrements a pointer-sized value.
+ *
+ * \param Addend The target value to update.
+ * \return The decremented value.
+ */
 FORCEINLINE LONG_PTR __InterlockedDecrementPointer(
     _Inout_ _Interlocked_operand_ LONG_PTR volatile *Addend
     )
@@ -410,6 +522,13 @@ FORCEINLINE LONG_PTR __InterlockedDecrementPointer(
 
 #define _InterlockedDecrementPointer __InterlockedDecrementPointer
 
+/**
+ * Atomically clears the specified bit in a pointer-sized value.
+ *
+ * \param Base The target value to update.
+ * \param Bit The zero-based bit index to clear.
+ * \return TRUE if the bit was previously set; otherwise, FALSE.
+ */
 FORCEINLINE BOOLEAN _InterlockedBitTestAndResetPointer(
     _Inout_ _Interlocked_operand_ LONG_PTR volatile *Base,
     _In_ LONG_PTR Bit
@@ -422,6 +541,13 @@ FORCEINLINE BOOLEAN _InterlockedBitTestAndResetPointer(
 #endif
 }
 
+/**
+ * Atomically sets the specified bit in a pointer-sized value.
+ *
+ * \param Base The target value to update.
+ * \param Bit The zero-based bit index to set.
+ * \return TRUE if the bit was previously set; otherwise, FALSE.
+ */
 FORCEINLINE BOOLEAN _InterlockedBitTestAndSetPointer(
     _Inout_ _Interlocked_operand_ LONG_PTR volatile *Base,
     _In_ LONG_PTR Bit
@@ -434,6 +560,12 @@ FORCEINLINE BOOLEAN _InterlockedBitTestAndSetPointer(
 #endif
 }
 
+/**
+ * Atomically increments a value unless it is zero.
+ *
+ * \param Addend The target value to update.
+ * \return TRUE if the increment succeeded; otherwise, FALSE.
+ */
 FORCEINLINE BOOLEAN _InterlockedIncrementNoZero(
     _Inout_ _Interlocked_operand_ LONG volatile *Addend
     )
@@ -461,6 +593,12 @@ FORCEINLINE BOOLEAN _InterlockedIncrementNoZero(
     }
 }
 
+/**
+ * Atomically increments a value only while it remains positive.
+ *
+ * \param Addend The target value to update.
+ * \return TRUE if the increment succeeded; otherwise, FALSE.
+ */
 FORCEINLINE BOOLEAN _InterlockedIncrementPositive(
     _Inout_ _Interlocked_operand_ LONG volatile *Addend
     )
@@ -488,6 +626,12 @@ FORCEINLINE BOOLEAN _InterlockedIncrementPositive(
     }
 }
 
+/**
+ * Atomically reads a pointer value.
+ *
+ * \param Base The pointer to read.
+ * \return The current pointer value.
+ */
 FORCEINLINE
 PVOID
 _InterlockedReadPointer(
@@ -497,6 +641,13 @@ _InterlockedReadPointer(
     return _InterlockedCompareExchangePointer(Base, NULL, NULL);
 }
 
+/**
+ * Atomically writes a pointer value.
+ *
+ * \param Base The pointer to update.
+ * \param Value The new value to store.
+ * \return The previous pointer value.
+ */
 FORCEINLINE
 PVOID
 _InterlockedWritePointer(
@@ -532,6 +683,12 @@ _InterlockedWritePointer(
 #pragma warning(push)
 #pragma warning(disable:4996)
 
+/**
+ * Formats a signed 32-bit integer as a decimal string.
+ *
+ * \param Destination The destination buffer.
+ * \param Int32 The value to format.
+ */
 FORCEINLINE
 VOID
 PhPrintInt32(
@@ -542,6 +699,12 @@ PhPrintInt32(
     _ltow(Int32, Destination, 10);
 }
 
+/**
+ * Formats an unsigned 32-bit integer as a decimal string.
+ *
+ * \param Destination The destination buffer.
+ * \param UInt32 The value to format.
+ */
 FORCEINLINE
 VOID
 PhPrintUInt32(
@@ -552,6 +715,12 @@ PhPrintUInt32(
     _ultow(UInt32, Destination, 10);
 }
 
+/**
+ * Formats an unsigned 32-bit integer as a hexadecimal string.
+ *
+ * \param Destination The destination buffer.
+ * \param UInt32 The value to format.
+ */
 FORCEINLINE
 VOID
 PhPrintUInt32IX(
@@ -562,6 +731,12 @@ PhPrintUInt32IX(
     _ultow(UInt32, Destination, 16);
 }
 
+/**
+ * Formats a signed 64-bit integer as a decimal string.
+ *
+ * \param Destination The destination buffer.
+ * \param Int64 The value to format.
+ */
 FORCEINLINE
 VOID
 PhPrintInt64(
@@ -572,6 +747,12 @@ PhPrintInt64(
     _i64tow(Int64, Destination, 10);
 }
 
+/**
+ * Formats an unsigned 64-bit integer as a decimal string.
+ *
+ * \param Destination The destination buffer.
+ * \param UInt64 The value to format.
+ */
 FORCEINLINE
 VOID
 PhPrintUInt64(
@@ -582,6 +763,12 @@ PhPrintUInt64(
     _ui64tow(UInt64, Destination, 10);
 }
 
+/**
+ * Formats a pointer with a hexadecimal prefix.
+ *
+ * \param Destination The destination buffer.
+ * \param Pointer The pointer to format.
+ */
 FORCEINLINE
 VOID
 PhPrintPointer(
@@ -600,6 +787,12 @@ PhPrintPointer(
 
 #pragma warning(pop)
 
+/**
+ * Formats a pointer with a hexadecimal prefix and zero-padded digits.
+ *
+ * \param Destination The destination buffer.
+ * \param Pointer The pointer to format.
+ */
 FORCEINLINE
 VOID
 PhPrintPointerPadZeros(
@@ -644,8 +837,17 @@ PhPrintPointerPadZeros(
     *dest = UNICODE_NULL;
 }
 
+//
 // Misc.
+//
 
+/**
+ * Rounds the given value to the nearest multiple of the specified granularity.
+ *
+ * \param Value The value to round.
+ * \param Granularity The granularity to which the value should be rounded.
+ * \return The value rounded to the nearest multiple of granularity.
+ */
 FORCEINLINE
 ULONG64
 PhRoundNumber(
@@ -656,6 +858,17 @@ PhRoundNumber(
     return (Value + Granularity / 2) / Granularity * Granularity;
 }
 
+/**
+ * Multiplies a number by a numerator and divides by a denominator, with rounding.
+ *
+ * This function performs the operation: ((Number * Numerator) + (Denominator / 2)) / Denominator
+ * using 32-bit unsigned integers, avoiding overflow and providing rounding.
+ *
+ * \param Number The base number to multiply.
+ * \param Numerator The numerator for multiplication.
+ * \param Denominator The denominator for division.
+ * \return The result of the multiply-divide operation, rounded to the nearest integer.
+ */
 FORCEINLINE
 ULONG
 PhMultiplyDivide(
@@ -668,6 +881,17 @@ PhMultiplyDivide(
     return UInt32Div32To64(UInt32Add32To64(UInt32Mul32To64(Number, Numerator), UInt32Div32To64(Denominator, 2)), Denominator);
 }
 
+/**
+ * Multiplies a signed number by a numerator and divides by a denominator, with rounding.
+ *
+ * This function performs the operation: ((Number * Numerator) + (Denominator / 2)) / Denominator
+ * for signed numbers, preserving the sign and providing rounding.
+ *
+ * \param Number The signed base number to multiply.
+ * \param Numerator The numerator for multiplication.
+ * \param Denominator The denominator for division.
+ * \return The result of the signed multiply-divide operation, rounded to the nearest integer.
+ */
 FORCEINLINE
 LONG
 PhMultiplyDivideSigned(
@@ -682,6 +906,24 @@ PhMultiplyDivideSigned(
         return -(LONG)PhMultiplyDivide(-Number, Numerator, Denominator);
 }
 
+/**
+ * Probes a user-supplied address for validity and alignment within a specified buffer.
+ *
+ * This function checks that the given `UserAddress` is properly aligned to the specified `Alignment`,
+ * and that the memory region defined by `UserAddress` and `UserLength` is fully contained within
+ * the buffer defined by `BufferAddress` and `BufferLength`. If any of these checks fail, a software
+ * exception is raised.
+ *
+ * \param UserAddress    The starting address of the user-supplied memory region to probe.
+ * \param UserLength     The length, in bytes, of the memory region to probe.
+ * \param BufferAddress  The base address of the buffer within which the user region must reside.
+ * \param BufferLength   The length, in bytes, of the buffer.
+ * \param Alignment      The required alignment, in bytes, for the user address.
+ * \remarks
+ * This function does not actually access the memory at `UserAddress`; it only performs pointer arithmetic
+ * and alignment checks. Use this function before reading from or writing to user-supplied memory to ensure
+ * safety and prevent access violations.
+ */
 FORCEINLINE
 VOID
 PhProbeAddress(
@@ -694,15 +936,25 @@ PhProbeAddress(
 {
     if (UserLength != 0)
     {
-        if (((ULONG_PTR)UserAddress & (Alignment - 1)) != 0)
+        if (!IS_ALIGNED(UserAddress, Alignment))
+        {
             PhRaiseStatus(STATUS_DATATYPE_MISALIGNMENT);
+        }
+
+        ULONG_PTR userStartAddress = (ULONG_PTR)UserAddress;
+        ULONG_PTR userEndAddress = userStartAddress + UserLength;
+        ULONG_PTR bufferStartAddress = (ULONG_PTR)BufferAddress;
+        ULONG_PTR bufferEndAddress = bufferStartAddress + BufferLength;
 
         if (
-            ((ULONG_PTR)UserAddress + UserLength < (ULONG_PTR)UserAddress) ||
-            ((ULONG_PTR)UserAddress < (ULONG_PTR)BufferAddress) ||
-            ((ULONG_PTR)UserAddress + UserLength > (ULONG_PTR)BufferAddress + BufferLength)
+            (userEndAddress < userStartAddress) ||
+            (bufferEndAddress < bufferStartAddress) ||
+            (userStartAddress < bufferStartAddress) ||
+            (userEndAddress > bufferEndAddress)
             )
+        {
             PhRaiseStatus(STATUS_ACCESS_VIOLATION);
+        }
     }
 }
 
@@ -710,11 +962,11 @@ PhProbeAddress(
  * Probes a user address for read access and checks if the specified user address is readable
  * and within the bounds of the buffer.
  *
- * @param UserAddress The address to probe.
- * @param UserLength The length of the memory to probe.
- * @param BufferAddress The base address of the buffer.
- * @param BufferLength The length of the buffer.
- * @param Alignment The required alignment of the address.
+ * \param UserAddress The address to probe.
+ * \param UserLength The length of the memory to probe.
+ * \param BufferAddress The base address of the buffer.
+ * \param BufferLength The length of the buffer.
+ * \param Alignment The required alignment of the address.
  */
 FORCEINLINE
 VOID
@@ -726,27 +978,55 @@ PhProbeForRead(
     _In_ CONST ULONG Alignment
     )
 {
+    ULONG_PTR startAddress;
+    ULONG_PTR endAddress;
+    ULONG_PTR p;
+
     if (UserLength != 0)
     {
+        // Validate the requested span before touching the memory.
         PhProbeAddress(UserAddress, UserLength, BufferAddress, BufferLength, Alignment);
 
-        // Align the UserLength to the nearest page boundary.
-        SIZE_T length = (SIZE_T)ALIGN_UP_BY(UserLength, PAGE_SIZE);
+        startAddress = (ULONG_PTR)UserAddress;
+        endAddress = startAddress + UserLength;
+        p = startAddress;
 
-        // Iterate over each page and ensure the address is valid and accessible.
-        for (SIZE_T offset = 0; offset < length; offset += PAGE_SIZE)
+        // Probe the first byte in the range to verify the initial page is readable.
+        *((volatile UCHAR*)p);
+
+        // Stop if rounding up by one page would wrap the address space.
+        if (p > (ULONG_PTR_MAX - PAGE_SIZE))
+            return;
+
+        // Round up to the first byte of the next page.
+        p = (ULONG_PTR)PAGE_ALIGN(p) + PAGE_SIZE;
+
+        // Probe the first byte of each remaining page that intersects the range.
+        while (p < endAddress)
         {
-            // Ensure the address does not overflow
-            if ((ULONG_PTR)UserAddress + offset < (ULONG_PTR)UserAddress)
-            {
-                PhRaiseStatus(STATUS_ACCESS_VIOLATION);
-            }
+            // Verify the current page is readable.
+            *(volatile UCHAR*)p;
 
-            *((volatile char*)UserAddress + offset);
+            // Stop before adding another page would wrap the address space.
+            if (p > (ULONG_PTR_MAX - PAGE_SIZE))
+                break;
+
+            // Advance to the first byte of the next page.
+            p += PAGE_SIZE;
         }
     }
 }
 
+/**
+ * Probes a user address for write access and checks if the specified user address is writable
+ * and within the bounds of the buffer.
+ *
+ * \param UserAddress The address to probe.
+ * \param UserLength The length of the memory to probe.
+ * \param BufferAddress The base address of the buffer.
+ * \param BufferLength The length of the buffer.
+ * \param Alignment The required alignment of the address.
+ */
 FORCEINLINE
 VOID
 PhProbeForWrite(
@@ -757,27 +1037,52 @@ PhProbeForWrite(
     _In_ CONST ULONG Alignment
     )
 {
+    ULONG_PTR startAddress;
+    ULONG_PTR endAddress;
+    ULONG_PTR p;
+
     if (UserLength != 0)
     {
+        // Validate the address span, alignment, boundaries, and overflow before touching the address.
         PhProbeAddress(UserAddress, UserLength, BufferAddress, BufferLength, Alignment);
 
-        // Align the UserLength to the nearest page boundary.
-        SIZE_T length = (SIZE_T)ALIGN_UP_BY(UserLength, PAGE_SIZE);
+        startAddress = (ULONG_PTR)UserAddress;
+        endAddress = startAddress + UserLength;
+        p = startAddress;
 
-        // Iterate over each page and ensure the address is valid and accessible.
-        for (SIZE_T offset = 0; offset < length; offset += PAGE_SIZE)
+        // Probe the first byte in the range with a self-assignment to verify writability.
+        *(volatile UCHAR*)p = *(volatile UCHAR*)p;
+
+        // Stop if rounding up by one page would wrap the address space.
+        if (p > (ULONG_PTR_MAX - PAGE_SIZE))
+            return;
+
+        // Round up to the first byte of the next page.
+        p = (ULONG_PTR)PAGE_ALIGN(p) + PAGE_SIZE; //  p = (p + PAGE_SIZE) & ~((ULONG_PTR)PAGE_MASK);
+
+        // Probe the first byte of each remaining page that intersects the range.
+        while (p < endAddress)
         {
-            // Ensure the address does not overflow
-            if ((ULONG_PTR)UserAddress + offset < (ULONG_PTR)UserAddress)
-            {
-                PhRaiseStatus(STATUS_ACCESS_VIOLATION);
-            }
+            // Verify the page is writable by performing a volatile read‑modify‑write.
+            *(volatile UCHAR*)p = *(volatile UCHAR*)p;
 
-            *((volatile char*)UserAddress + offset) = *((volatile char*)UserAddress + offset);
+            // Prevent wraparound before adding PAGE_SIZE.
+            if (p > (ULONG_PTR_MAX - PAGE_SIZE))
+                break;
+
+            // Advance to the first byte of the next page.
+            p += PAGE_SIZE;
         }
     }
 }
 
+/**
+ * Converts a millisecond timeout to a relative or infinite NT timeout value.
+ *
+ * \param Timeout Receives the converted timeout.
+ * \param Milliseconds The timeout, in milliseconds, or `INFINITE`.
+ * \return The `Timeout` pointer.
+ */
 FORCEINLINE
 PLARGE_INTEGER
 PhTimeoutFromMilliseconds(
@@ -791,6 +1096,44 @@ PhTimeoutFromMilliseconds(
         Timeout->QuadPart = -(LONGLONG)UInt32x32To64(Milliseconds, PH_TIMEOUT_MS);
 
     return Timeout;
+}
+
+/**
+ * Clamps a single-precision floating-point value to the specified range.
+ *
+ * \param Value The value to clamp.
+ * \param Min The lower bound.
+ * \param Max The upper bound.
+ * \return The clamped value.
+ */
+FORCEINLINE
+FLOAT
+PhClampSingle(
+    _In_ FLOAT Value,
+    _In_ FLOAT Min,
+    _In_ FLOAT Max
+    )
+{
+    return fminf(fmaxf(Value, Min), Max);
+}
+
+/**
+ * Clamps a double-precision floating-point value to the specified range.
+ *
+ * \param Value The value to clamp.
+ * \param Min The lower bound.
+ * \param Max The upper bound.
+ * \return The clamped value.
+ */
+FORCEINLINE
+DOUBLE
+PhClampDouble(
+    _In_ DOUBLE Value,
+    _In_ DOUBLE Min,
+    _In_ DOUBLE Max
+    )
+{
+    return fmin(fmax(Value, Min), Max);
 }
 
 #endif

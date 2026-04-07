@@ -187,7 +187,7 @@ NTSTATUS PhFilterLoadUnload(
         return status;
 
     filterLoadParametersLength = UFIELD_OFFSET(FLT_LOAD_PARAMETERS, FilterName[ServiceName->Length]) + sizeof(UNICODE_NULL);
-    filterLoadParameters = _malloca(filterLoadParametersLength);
+    filterLoadParameters = PhAllocateStack(filterLoadParametersLength);
 
     if (filterLoadParameters)
     {
@@ -208,7 +208,7 @@ NTSTATUS PhFilterLoadUnload(
             0
             );
 
-        _freea(filterLoadParameters);
+        PhFreeStack(filterLoadParameters);
     }
     else
     {

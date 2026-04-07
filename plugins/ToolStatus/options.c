@@ -22,7 +22,7 @@ static PH_KEY_VALUE_PAIR GraphTypePairs[] =
     { L"Physical memory history", (PVOID)TASKBAR_ICON_PHYSICAL_HISTORY },
 };
 
-static PWSTR GraphTypeStrings[] =
+static CONST PCWSTR GraphTypeStrings[] =
 {
     L"None",
     L"CPU usage",
@@ -32,11 +32,11 @@ static PWSTR GraphTypeStrings[] =
     L"Physical memory history"
 };
 
-PWSTR GraphTypeGetTypeString(
+PCWSTR GraphTypeGetTypeString(
     _In_ ULONG SidType
     )
 {
-    PWSTR string;
+    PCWSTR string;
 
     if (PhFindStringSiKeyValuePairs(
         GraphTypePairs,
@@ -52,7 +52,7 @@ PWSTR GraphTypeGetTypeString(
 }
 
 ULONG GraphTypeGetTypeInteger(
-    _In_ PWSTR SidType
+    _In_ PCWSTR SidType
     )
 {
     ULONG integer;
@@ -91,7 +91,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_LARGETOOLBARICON), ToolStatusConfig.ToolBarLargeIcons ? BST_CHECKED : BST_UNCHECKED);
 
             graphTypeHandle = GetDlgItem(WindowHandle, IDC_CURRENT);
-            PhAddComboBoxStrings(graphTypeHandle, GraphTypeStrings, RTL_NUMBER_OF(GraphTypeStrings));
+            PhAddComboBoxStrings(graphTypeHandle, (PCWSTR*)GraphTypeStrings, RTL_NUMBER_OF(GraphTypeStrings));
             PhSelectComboBoxString(graphTypeHandle, GraphTypeGetTypeString(PhGetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE)), FALSE);
         }
         break;

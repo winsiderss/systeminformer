@@ -102,6 +102,7 @@
   <ItemGroup>
     <ClInclude Include="clretw.h" />
     <ClInclude Include="clrsup.h" />
+    <ClInclude Include="clr\clrdata.h" />
     <ClInclude Include="clr\dbgappdomain.h" />
     <ClInclude Include="clr\ipcenums.h" />
     <ClInclude Include="clr\ipcheader.h" />

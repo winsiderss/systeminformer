@@ -282,9 +282,9 @@ VOID DiskDeviceQueryVolumeInfo(
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_SERIAL_NUMBER, Column,
                 PhaFormatString(L"0x%s", PH_AUTO_T(PH_STRING, PhBufferToHexString((PUCHAR)&ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart, sizeof(ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart)))->Buffer)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_FS_VERSION, Column,
-                PhaFormatString(L"%lu.%lu", ntfsVolumeInfo.ExtendedVolumeData.MajorVersion, ntfsVolumeInfo.ExtendedVolumeData.MinorVersion)->Buffer);
+                PhaFormatString(L"%lu.%lu", ntfsVolumeInfo.VolumeDataEx.MajorVersion, ntfsVolumeInfo.VolumeDataEx.MinorVersion)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_LFS_VERSION, Column,
-                PhaFormatString(L"%lu.%lu", ntfsVolumeInfo.ExtendedVolumeData.LfsMajorVersion, ntfsVolumeInfo.ExtendedVolumeData.LfsMinorVersion)->Buffer);
+                PhaFormatString(L"%lu.%lu", ntfsVolumeInfo.VolumeDataEx.LfsMajorVersion, ntfsVolumeInfo.VolumeDataEx.LfsMinorVersion)->Buffer);
             //PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, Column,
             //    PhaFormatSize(ntfsVolumeInfo.ExtendedVolumeData.BytesPerPhysicalSector, ULONG_MAX)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_TOTAL_SIZE, Column,
@@ -596,10 +596,9 @@ VOID DiskDeviceQueryFileSystem(
                 PhFree(fsInfoBuffer);
             }
         }
-
-        NtClose(entry->DeviceHandle);
-        PhFree(entry);
     }
+
+    DiskDriveCloseMountPointHandles(deviceMountHandles);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -663,8 +662,8 @@ INT_PTR CALLBACK DiskDeviceFileSystemDetailsDlgProc(
             // Note: Load settings after querying devices. (dmex)
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DISK_COUNTERS_COLUMNS, context->ListViewHandle);
 
-            if (!!PhGetIntegerSetting(L"EnableThemeSupport")) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            if (!!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)) // TODO: Required for compat (dmex)
+                PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
             else
                 PhInitializeWindowTheme(hwndDlg, FALSE);
 
@@ -838,7 +837,7 @@ INT_PTR CALLBACK DiskDeviceSmartDetailsDlgProc(
 
             DiskDeviceQuerySmart(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -953,6 +952,7 @@ VOID DiskDeviceFreeDetailsContext(
     PhFree(Context);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS ShowDiskDeviceDetailsDialogThread(
     _In_ PVOID Parameter
     )

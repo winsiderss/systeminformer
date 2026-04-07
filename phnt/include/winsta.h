@@ -130,52 +130,58 @@ typedef struct _SESSIONIDW
     WINSTATIONSTATECLASS State;
 } SESSIONIDW, *PSESSIONIDW;
 
-// private
+/**
+ * The WINSTATIONINFOCLASS enumeration indicates the class of data for which to either query or set on the server. 
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/f333c223-de8a-46e1-a83e-79cbdab92371
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/1bba9ff2-71d3-49a3-bb26-2e5f6fcab3ee
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/2a5ee131-a1dd-44c7-9880-98df708061ea
+ */
 typedef enum _WINSTATIONINFOCLASS
 {
-    WinStationCreateData, // q: WINSTATIONCREATE
-    WinStationConfiguration, // qs: WINSTACONFIGWIRE + USERCONFIG
-    WinStationPdParams, // qs: PDPARAMS
-    WinStationWd, // q: WDCONFIG
-    WinStationPd, // q: PDCONFIG2 + PDPARAMS
-    WinStationPrinter, // qs: Not supported.
-    WinStationClient, // q: WINSTATIONCLIENT
-    WinStationModules, // q:
-    WinStationInformation, // q: WINSTATIONINFORMATION
-    WinStationTrace, // qs:
-    WinStationBeep, // s: // 10
-    WinStationEncryptionOff, // s:
-    WinStationEncryptionPerm,
-    WinStationNtSecurity, // s: (open secure desktop ctrl+alt+del)
-    WinStationUserToken, // q: WINSTATIONUSERTOKEN
-    WinStationUnused1,
-    WinStationVideoData, // q: WINSTATIONVIDEODATA
-    WinStationInitialProgram, // s: (set current process as initial program)
-    WinStationCd, // q: CDCONFIG
-    WinStationSystemTrace, // qs:
-    WinStationVirtualData, // q: // 20
-    WinStationClientData, // WINSTATIONCLIENTDATA
-    WinStationSecureDesktopEnter, // qs:
-    WinStationSecureDesktopExit, // qs:
-    WinStationLoadBalanceSessionTarget, // q: ULONG
-    WinStationLoadIndicator, // q: WINSTATIONLOADINDICATORDATA
-    WinStationShadowInfo, // qs: WINSTATIONSHADOW
-    WinStationDigProductId, // WINSTATIONPRODID
-    WinStationLockedState, // BOOL
-    WinStationRemoteAddress, // WINSTATIONREMOTEADDRESS
-    WinStationIdleTime, // ULONG // 30
-    WinStationLastReconnectType, // ULONG
-    WinStationDisallowAutoReconnect, // qs: BOOLEAN
-    WinStationMprNotifyInfo,
-    WinStationExecSrvSystemPipe, // WCHAR[48]
-    WinStationSmartCardAutoLogon, // BOOLEAN
-    WinStationIsAdminLoggedOn, // BOOLEAN
-    WinStationReconnectedFromId, // ULONG
-    WinStationEffectsPolicy, // ULONG
-    WinStationType, // ULONG
-    WinStationInformationEx, // WINSTATIONINFORMATIONEX // 40
-    WinStationValidationInfo,
-    WinStationActivityId, // q: GUID
+    WinStationCreateData,                   // q: WINSTATIONCREATE
+    WinStationConfiguration,                // qs: WINSTACONFIGWIRE + USERCONFIG
+    WinStationPdParams,                     // qs: PDPARAMSWIRE + PDPARAMS
+    WinStationWd,                           // q: WDCONFIG
+    WinStationPd,                           // q: PDCONFIG2 + PDPARAMS
+    WinStationPrinter,                      // qs: Not supported.
+    WinStationClient,                       // q: VARDATA_WIRE + WINSTATIONCLIENT
+    WinStationModules,                      // q:
+    WinStationInformation,                  // q: WINSTATIONINFORMATION
+    WinStationTrace,                        // s: TS_TRACE
+    WinStationBeep,                         // s: BEEPINPUT // 10
+    WinStationEncryptionOff,                // s:
+    WinStationEncryptionPerm,               // s:
+    WinStationNtSecurity,                   // s: (open secure desktop ctrl+alt+del)
+    WinStationUserToken,                    // q: WINSTATIONUSERTOKEN
+    WinStationUnused1,                      // qs: Not supported.
+    WinStationVideoData,                    // q: WINSTATIONVIDEODATA
+    WinStationInitialProgram,               // s: (set current process as initial program)
+    WinStationCd,                           // q: CDCONFIG
+    WinStationSystemTrace,                  // s: TS_TRACE
+    WinStationVirtualData,                  // q: PVOID // 20
+    WinStationClientData,                   // s: VARDATA_WIRE + WINSTATIONCLIENTDATA
+    WinStationSecureDesktopEnter,           // qs:
+    WinStationSecureDesktopExit,            // qs:
+    WinStationLoadBalanceSessionTarget,     // q: ULONG
+    WinStationLoadIndicator,                // q: WINSTATIONLOADINDICATORDATA
+    WinStationShadowInfo,                   // qs: WINSTATIONSHADOW
+    WinStationDigProductId,                 // q: WINSTATIONPRODID
+    WinStationLockedState,                  // qs: BOOL
+    WinStationRemoteAddress,                // q: WINSTATIONREMOTEADDRESS
+    WinStationIdleTime,                     // q: ULONG // 30
+    WinStationLastReconnectType,            // q: ULONG
+    WinStationDisallowAutoReconnect,        // qs: BOOLEAN
+    WinStationMprNotifyInfo,                // q:
+    WinStationExecSrvSystemPipe,            // q: WCHAR[48]
+    WinStationSmartCardAutoLogon,           // q: BOOLEAN
+    WinStationIsAdminLoggedOn,              // q: BOOLEAN
+    WinStationReconnectedFromId,            // q: ULONG
+    WinStationEffectsPolicy,                // q: ULONG
+    WinStationType,                         // q: ULONG
+    WinStationInformationEx,                // q: VARDATA_WIRE + WINSTATIONINFORMATIONEX // 40
+    WinStationValidationInfo,               // q:
+    WinStationActivityId,                   // q: GUID
     MaxWinStationInfoClass
 } WINSTATIONINFOCLASS;
 
@@ -203,7 +209,9 @@ typedef enum _CALLBACKCLASS
     Callback_Fixed
 } CALLBACKCLASS;
 
-// The SHADOWCLASS enumeration is used to indicate the shadow-related settings for a session running on a terminal server.
+/**
+ * The SHADOWCLASS enumeration is used to indicate the shadow-related settings for a session running on a terminal server.
+ */
 typedef enum _SHADOWCLASS
 {
     Shadow_Disable, // Shadowing is disabled.
@@ -213,8 +221,11 @@ typedef enum _SHADOWCLASS
     Shadow_EnableNoInputNoNotify // Permission is not asked first from the session being shadowed. The shadower is not permitted keyboard and mouse input and MUST observe the shadowed session.
 } SHADOWCLASS;
 
-// For a specific terminal server session, the USERCONFIG structure indicates the user and session configuration.
-// https://msdn.microsoft.com/en-us/library/cc248610.aspx
+/**
+ * The USERCONFIG structure indicates the user and session configuration for a specific terminal server session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/dba750b8-cb35-4e88-9811-e2a1f8a10701
+ */
 typedef struct _USERCONFIG
 {
     ULONG fInheritAutoLogon : 1;
@@ -544,57 +555,109 @@ typedef struct _TSHARE_CACHE
     ULONG Reserved;
 } TSHARE_CACHE, *PTSHARE_CACHE;
 
+/**
+ * The CACHE_STATISTICS structure represents the cache statistics on the protocol.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/81203ca2-e58b-4681-affa-924e59671b5c
+ */
 typedef struct CACHE_STATISTICS
 {
-    USHORT ProtocolType;
-    USHORT Length;
+    USHORT ProtocolType;                        // Protocol type.
+    USHORT Length;                              // Length of data in the protocol-specific area. Can be up to 20 * sizeof(ULONG) in size.
     union
     {
-        RESERVED_CACHE ReservedCacheStats;
-        TSHARE_CACHE TShareCacheStats;
-        ULONG Reserved[20];
+        RESERVED_CACHE ReservedCacheStats;      // Not used.
+        TSHARE_CACHE TShareCacheStats;          // Protocol cache statistics.
+        ULONG Reserved[20];                     // Reserved for future use.
     } Specific;
 } CACHE_STATISTICS, *PCACHE_STATISTICS;
 
+/**
+ * The PROTOCOLSTATUS structure represents the status of the protocol used by the session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/c9066753-acbd-4678-9a72-8fb1b080bd09
+ */
 typedef struct _PROTOCOLSTATUS
 {
-    PROTOCOLCOUNTERS Output;
-    PROTOCOLCOUNTERS Input;
-    CACHE_STATISTICS Cache;
-    ULONG AsyncSignal;
-    ULONG AsyncSignalMask;
+    PROTOCOLCOUNTERS Output;    // A PROTOCOLCOUNTERS structure containing the output protocol counters.
+    PROTOCOLCOUNTERS Input;     // A PROTOCOLCOUNTERS structure containing the input protocol counters.
+    CACHE_STATISTICS Cache;     // A CACHE_STATISTICS structure containing statistics for the cache.
+    ULONG AsyncSignal;          // Indicator of async signal, such as MS_CTS_ON, for async protocols.
+    ULONG AsyncSignalMask;      // Mask of async signal events, such as EV_CTS, for async protocols.
 } PROTOCOLSTATUS, *PPROTOCOLSTATUS;
 
-// Retrieves information on the session.
+/**
+ * The WINSTATIONINFORMATION structure retrieves the state, connect time, last input time, and so on, for a session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/c2566d8b-7016-440b-b7e0-0d07c3b2418f
+ */
 typedef struct _WINSTATIONINFORMATION
 {
-    WINSTATIONSTATECLASS ConnectState;
-    WINSTATIONNAME WinStationName;
-    ULONG LogonId;
-    LARGE_INTEGER ConnectTime;
-    LARGE_INTEGER DisconnectTime;
-    LARGE_INTEGER LastInputTime;
-    LARGE_INTEGER LogonTime;
-    PROTOCOLSTATUS Status;
-    WCHAR Domain[DOMAIN_LENGTH + 1];
-    WCHAR UserName[USERNAME_LENGTH + 1];
-    LARGE_INTEGER CurrentTime;
+    WINSTATIONSTATECLASS ConnectState;      // The current connect state of the session.
+    WINSTATIONNAME WinStationName;          // The name of the session.
+    ULONG LogonId;                          // The session identifier of the session.
+    LARGE_INTEGER ConnectTime;              // The time of the most recent connection to the session.
+    LARGE_INTEGER DisconnectTime;           // The time of the most recent disconnection from the session.
+    LARGE_INTEGER LastInputTime;            // The time the session last received input.
+    LARGE_INTEGER LogonTime;                // The time of the logon to the session.
+    PROTOCOLSTATUS Status;                  // The status of the protocol.
+    WCHAR Domain[DOMAIN_LENGTH + 1];        // The user's domain name.
+    WCHAR UserName[USERNAME_LENGTH + 1];    // The user's user name.
+    LARGE_INTEGER CurrentTime;              // The current time in the session.
 } WINSTATIONINFORMATION, *PWINSTATIONINFORMATION;
 
-// Retrieves the user's token in the session. Caller requires WINSTATION_ALL_ACCESS permission.
+/**
+ * The TS_TRACE structure specifies fields used for configuring tracing operations in TS binaries if they are checked.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/ad349575-5369-4830-a174-1920a7af8d5f
+ */
+typedef struct _TS_TRACE
+{
+    WCHAR TraceFile[256];   // Specifies the file name, if any, to which to write debug information.
+    BOOLEAN Debugger;       // Specifies whether debugger is attached.
+    BOOLEAN Timestamp;      // Specifies whether to append time stamp to the traces logged.
+    ULONG TraceClass;       // Classes of tracing to log. They enable tracing for the various terminal server binaries/functionalities.
+    ULONG TraceEnable;      // Type of tracing calls log.
+    WCHAR TraceOption[64];  // Trace option string. This can be an empty string meaning collect trace for all files and lines in those files.
+} TS_TRACE, *PTS_TRACE;
+
+/**
+ * The BEEPINPUT structure performs a beep in the session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/2faf4c5b-3a79-491a-9d1a-145f46a797d1
+ */
+typedef struct _BEEPINPUT
+{
+    /**
+     * If the session ID is 0, this can be any of the values that can be passed to the standard MessageBeep function.
+     * If the session ID is not 0, a frequency and duration is chosen by the server to send as a beep to the session.
+     */
+    ULONG Type;
+} BEEPINPUT, *PBEEPINPUT;
+
+/**
+ * The WINSTATIONUSERTOKEN structure retrieves the user's token for the session.
+ *
+ * \remarks Caller requires WINSTATION_ALL_ACCESS permission.
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/07f9831c-6331-43e5-ba27-d3d58772eb4c
+ */
 typedef struct _WINSTATIONUSERTOKEN
 {
-    HANDLE ProcessId;
-    HANDLE ThreadId;
-    HANDLE UserToken;
+    HANDLE ProcessId;   // Specifies the Process ID.
+    HANDLE ThreadId;    // Specifies the calling thread.
+    HANDLE UserToken;   // Returns the user token that is currently logged on to the session.
 } WINSTATIONUSERTOKEN, *PWINSTATIONUSERTOKEN;
 
-// Retrieves resolution and color depth of the session.
+/**
+ * The WINSTATIONVIDEODATA structure defines the resolution and color depth of a session.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/5f95f657-89d2-472d-b4ab-b0595618dbd1
+ */
 typedef struct _WINSTATIONVIDEODATA
 {
-    USHORT HResolution;
-    USHORT VResolution;
-    USHORT fColorDepth;
+    USHORT HResolution; // Specifies the horizontal resolution, in pixels.
+    USHORT VResolution; // Specifies the vertical resolution, in pixels.
+    USHORT ColorDepth;  // Specifies the color depth.
 } WINSTATIONVIDEODATA, *PWINSTATIONVIDEODATA;
 
 typedef enum _CDCLASS
@@ -604,7 +667,11 @@ typedef enum _CDCLASS
     CdClass_Maximum,
 } CDCLASS;
 
-// Connection driver configuration. It is used for connecting via modem to a server.
+/**
+ * The CDCONFIG structure defines the configuration used for connecting via modem to a server.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/f88900e1-c159-4f02-b3ae-84f05eec212f
+ */
 typedef struct _CDCONFIG
 {
     CDCLASS CdClass; // Connection driver type.
@@ -620,7 +687,7 @@ typedef CHAR* PCLIENTDATANAME;
 
 typedef struct _WINSTATIONCLIENTDATA
 {
-    CLIENTDATANAME DataName; // Identifies the type of data sent in this WINSTATIONCLIENTDATA structure. The definition is dependent on the caller and on the client receiving it. This MUST be a data name following a format similar to that of the CLIENTDATANAME data type.
+    CLIENTDATANAME DataName; // Identifies the type of data sent in this WINSTATIONCLIENTDATA structure.
     BOOLEAN fUnicodeData; // TRUE indicates data is in Unicode format; FALSE otherwise.
 } WINSTATIONCLIENTDATA, *PWINSTATIONCLIENTDATA;
 
@@ -634,19 +701,28 @@ typedef enum _LOADFACTORTYPE
     CPUConstraint // CPU usage is the constraint.
 } LOADFACTORTYPE;
 
-// The WINSTATIONLOADINDICATORDATA structure defines data used for the load balancing of a server.
+/**
+ * The WINSTATIONLOADINDICATORDATA structure defines data used for the load balancing of a server.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/91459fa1-77e8-4987-a6f0-fe7dd3e62bfc
+ */
 typedef struct _WINSTATIONLOADINDICATORDATA
 {
-    ULONG RemainingSessionCapacity; // The estimated number of additional sessions that can be supported given the CPU constraint.
-    LOADFACTORTYPE LoadFactor; // Indicates the most constrained current resource.
-    ULONG TotalSessions; // The total number of sessions.
-    ULONG DisconnectedSessions; // The number of disconnected sessions.
-    LARGE_INTEGER IdleCPU; // This is always set to 0.
-    LARGE_INTEGER TotalCPU; // This is always set to 0.
-    ULONG RawSessionCapacity; // The raw number of sessions capacity.
-    ULONG reserved[9]; // Reserved.
+    ULONG RemainingSessionCapacity;     // The estimated number of additional sessions that can be supported given the CPU constraint.
+    LOADFACTORTYPE LoadFactor;          // Indicates the most constrained current resource.
+    ULONG TotalSessions;                // The total number of sessions.
+    ULONG DisconnectedSessions;         // The number of disconnected sessions.
+    LARGE_INTEGER IdleCPU;              // This is always set to 0.
+    LARGE_INTEGER TotalCPU;             // This is always set to 0.
+    ULONG RawSessionCapacity;           // The raw number of sessions capacity.
+    ULONG reserved[9];                  // Reserved.
 } WINSTATIONLOADINDICATORDATA, *PWINSTATIONLOADINDICATORDATA;
 
+/**
+ * The SHADOWSTATECLASS enumeration specifies WinStation shadow states.
+ *
+ * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/c55fbd8f-d7e3-4efe-9ca6-d0985dab9602
+ */
 typedef enum _SHADOWSTATECLASS
 {
     State_NoShadow, // No shadow operations are currently being performed on this session.
@@ -767,6 +843,7 @@ typedef struct _TS_PROCESS_INFORMATION_NT4
 #define SIZEOF_TS4_SYSTEM_THREAD_INFORMATION 64
 #define SIZEOF_TS4_SYSTEM_PROCESS_INFORMATION 136
 
+_Struct_size_bytes_(NextEntryOffset)
 typedef struct _TS_SYS_PROCESS_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -845,6 +922,18 @@ typedef struct _TS_COUNTER
 
 // begin_rev
 // Flags for WinStationRegisterConsoleNotification
+/**
+ * WNOTIFY_THIS_SESSION
+ *
+ * Specifies that only session notifications involving the session attached
+ * to by the window identified by the WindowHandle are to be received.
+ */
+#define WNOTIFY_THIS_SESSION 0x0
+/**
+ * WNOTIFY_ALL_SESSIONS
+ *
+ * Specifies that all session notifications are to be received.
+ */
 #define WNOTIFY_ALL_SESSIONS 0x1
 // end_rev
 
@@ -853,6 +942,12 @@ typedef struct _TS_COUNTER
 // current session ID.
 
 // rev
+/**
+ * The WinStationFreeMemory routine frees memory allocated by a Remote Desktop Services function.
+ *
+ * \param Buffer Pointer to the memory to free.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsfreememory
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -861,6 +956,13 @@ WinStationFreeMemory(
     );
 
 // rev
+/**
+ * The WinStationOpenServerW routine opens a handle to the specified Remote Desktop Session Host (RD Session Host) server.
+ *
+ * \param ServerName Pointer to a null-terminated string specifying the NetBIOS name of the RD Session Host server.
+ * \return HANDLE If the function succeeds, the return value is a handle to the specified server.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsopenserverw
+ */
 NTSYSAPI
 HANDLE
 NTAPI
@@ -869,6 +971,29 @@ WinStationOpenServerW(
     );
 
 // rev
+/**
+ * The WinStationOpenServerExW routine opens a handle to the specified Remote Desktop Session Host (RD Session Host) server
+ * or Remote Desktop Virtualization Host (RD Virtualization Host) server.
+ *
+ * \param ServerName Pointer to a null-terminated string specifying the NetBIOS name of the RD Session Host server.
+ * \return HANDLE If the function succeeds, the return value is a handle to the specified server.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsopenserverexw
+ */
+NTSYSAPI
+HANDLE
+NTAPI
+WinStationOpenServerExW(
+    _In_opt_ PCWSTR ServerName
+    );
+
+// rev
+/**
+ * The WinStationCloseServer routine closes an open handle to a Remote Desktop Session Host (RD Session Host) server.
+ *
+ * \param ServerHandle A handle to an RD Session Host server opened by a call to the WinStationOpenServerW function.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtscloseserver
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -894,6 +1019,16 @@ WinStationGetTermSrvCountersValue(
     _Inout_ PTS_COUNTER Counters // set counter IDs before calling
     );
 
+// rev
+/**
+ * The WinStationShutdownSystem routine shuts down (and optionally restarts) the specified Remote Desktop Session Host (RD Session Host) server.
+ *
+ * \param ServerHandle Handle to an RD Session Host server, or specify WINSTATION_CURRENT_SERVER to indicate the server on which your application is running.
+ * \param ShutdownFlags Indicates the type of shutdown. This parameter can be one of the WSD_* values.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \remarks To shut down or restart the system, the calling process must have the SE_SHUTDOWN_NAME privilege enabled.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsshutdownsystem
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -913,6 +1048,16 @@ WinStationWaitSystemEvent(
     );
 
 // rev
+/**
+ * The WinStationRegisterConsoleNotification routine shuts down (and optionally restarts) the specified Remote Desktop Session Host (RD Session Host) server.
+ *
+ * \param ServerHandle Handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER .
+ * \param WindowHandle Handle of the window to receive session change notifications.
+ * \param Flags Specifies whether to receive notifications for all sessions (WNOTIFY_ALL_SESSIONS) or only for the console session.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \remarks To shut down or restart the system, the calling process must have the SE_SHUTDOWN_NAME privilege enabled.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsregistersessionnotificationex
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -944,17 +1089,17 @@ WinStationEnumerateW(
 /**
  * The WinStationQueryInformationW routine retrieves information about a window station.
  *
- * @param ServerHandle A handle to an RD Session Host server. Specify a handle opened by the WinStationOpenServerW function, or specify WINSTATION_CURRENT_SERVER to indicate the server on which your application is running.
- * @param SessionId A Remote Desktop Services session identifier.
+ * \param ServerHandle A handle to an RD Session Host server. Specify a handle opened by the WinStationOpenServerW function, or specify WINSTATION_CURRENT_SERVER to indicate the server on which your application is running.
+ * \param SessionId A Remote Desktop Services session identifier.
  * To indicate the session in which the calling application is running (or the current session) specify WINSTATION_CURRENT_SESSION.
  * Only specify WINSTATION_CURRENT_SESSION when obtaining session information on the local server.
  * If WINSTATION_CURRENT_SESSION is specified when querying session information on a remote server, the returned session information will be inconsistent. Do not use the returned data.
- * @param WinStationInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be retrieved.
- * @param WinStationInformation Pointer to a caller-allocated buffer that receives the requested information about the token.
- * @param WinStationInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
- * @param ReturnLength Pointer to a caller-allocated variable that receives the actual length, in bytes, of the information returned in the TokenInformation buffer.
- * @return NTSTATUS Successful or errant status.
- * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationtoken
+ * \param WinStationInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be retrieved.
+ * \param WinStationInformation Pointer to a caller-allocated buffer that receives the requested information about the token.
+ * \param WinStationInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
+ * \param ReturnLength Pointer to a caller-allocated variable that receives the actual length, in bytes, of the information returned in the TokenInformation buffer.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \sa https://learn.microsoft.com/en-us/previous-versions/aa383827(v=vs.85)
  */
 NTSYSAPI
 BOOLEAN
@@ -1236,6 +1381,61 @@ WinStationSetAutologonPassword(
     _In_ PCSTR Password
     );
 
+// private
+typedef struct _EXECENVDATAEX_LEVEL1
+{
+    LONG ExecEnvId;
+    LONG State;
+    LONG AbsSessionId;
+    PWSTR SessionName;
+    PWSTR HostName;
+    PWSTR UserName;
+    PWSTR DomainName;
+    PWSTR FarmName;
+} EXECENVDATAEX_LEVEL1, *PEXECENVDATAEX_LEVEL1;
+
+typedef union _EXECENVDATAEX_PAYLOAD
+{
+    UCHAR Data[1];
+    EXECENVDATAEX_LEVEL1 Level1;
+    // define level 2/3/4 here
+} EXECENVDATAEX_PAYLOAD;
+
+typedef struct _EXECENVDATAEX
+{
+    ULONG Level;
+    EXECENVDATAEX_PAYLOAD Payload;
+} EXECENVDATAEX, *PEXECENVDATAEX;
+
+// typedef struct _EXECENVDATAEX
+// {
+//     ULONG Level;
+//     union
+//     {
+//         EXECENVDATAEX_LEVEL1 ExecEnvEnum_Level1;
+//     };
+// } EXECENVDATAEX, *PEXECENVDATAEX;
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetAllSessionsEx(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG Level, // Must be 1
+    _Out_ PEXECENVDATAEX *SessionData,
+    _Out_ PULONG Count
+    );
+
+// rev
+NTSYSAPI
+VOID 
+WINAPI 
+WinStationFreeEXECENVDATAEX(
+    _In_opt_ PEXECENVDATAEX SessionData,
+    _In_ ULONG Count
+    );
+
 typedef enum _SessionType
 {
     SESSIONTYPE_UNKNOWN = 0,
@@ -1310,7 +1510,8 @@ WinStationGetLoggedOnCount(
 
 // rev
 /**
- * Used by an application that is displaying content that can be optimized for displaying in a remote session to identify the region of a window that is the actual content.
+ * The WinStationSetRenderHint routine is used by an application that is displaying content that 
+ * can be optimized for displaying in a remote session to identify the region of a window that is the actual content.
  * In the remote session, this content will be encoded, sent to the client, then decoded and displayed.
  *
  * \param[out] RenderHintID The address of a value that identifies the rendering hint affected by this call.
@@ -1320,7 +1521,7 @@ WinStationGetLoggedOnCount(
  * \param[in] RenderHintType Specifies the type of hint represented by this call.
  * \param[in] HintDataLength The size in bytes, of the HintData buffer.
  * \param[in] HintData Additional data for the hint. The format of this data is dependent upon the value passed in the renderHintType parameter.
- * \return NTSTATUS Successful or errant status.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtshintapi/nf-wtshintapi-wtssetrenderhint
  */
 NTSYSAPI
@@ -1332,6 +1533,21 @@ WinStationSetRenderHint(
     _In_ ULONG RenderHintType,
     _In_ ULONG HintDataLength,
     _In_ PBYTE HintData
+    );
+
+// rev
+/**
+ * The WinStationActiveSessionExists routine returns active sessions on the system without enumerating through the list of sessions.
+ * It also does not obtain any extra information from Local Session Manager.
+ *
+ * \return BOOLEAN Nonzero if an active session exists.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsactivesessionexists
+ */
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationActiveSessionExists(
+    VOID
     );
 
 #endif

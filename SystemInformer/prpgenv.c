@@ -526,7 +526,6 @@ VOID PhpRefreshWslEnvironmentList(
     }
 
     PhApplyTreeNewFilters(&Context->TreeFilterSupport);
-    TreeNew_NodesStructured(Context->TreeNewHandle);
 
     PhClearReference(&environment);
 }
@@ -762,7 +761,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                     PPH_STRING name;
                     PPH_STRING value;
 
-                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
                         hwndDlg,
                         L"edit",
                         L"the selected environment variable",
@@ -927,9 +926,9 @@ VOID PhLoadSettingsEnvironmentList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"EnvironmentTreeListColumns");
-    sortSettings = PhGetStringSetting(L"EnvironmentTreeListSort");
-    Context->Flags = PhGetIntegerSetting(L"EnvironmentTreeListFlags");
+    settings = PhGetStringSetting(SETTING_ENVIRONMENT_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_ENVIRONMENT_TREE_LIST_SORT);
+    Context->Flags = PhGetIntegerSetting(SETTING_ENVIRONMENT_TREE_LIST_FLAGS);
 
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
@@ -946,9 +945,9 @@ VOID PhSaveSettingsEnvironmentList(
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
-    PhSetIntegerSetting(L"EnvironmentTreeListFlags", Context->Flags);
-    PhSetStringSetting2(L"EnvironmentTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"EnvironmentTreeListSort", &sortSettings->sr);
+    PhSetIntegerSetting(SETTING_ENVIRONMENT_TREE_LIST_FLAGS, Context->Flags);
+    PhSetStringSetting2(SETTING_ENVIRONMENT_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_ENVIRONMENT_TREE_LIST_SORT, &sortSettings->sr);
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
@@ -1164,6 +1163,7 @@ VOID PhpExpandAllEnvironmentNodes(
     return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpEnvironmentTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -1190,7 +1190,7 @@ BEGIN_SORT_FUNCTION(Value)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -1224,12 +1224,12 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
             {
                 if (!node)
                 {
-                    static PVOID sortFunctions[] =
+                    static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                     {
                         SORT_FUNCTION(Name),
                         SORT_FUNCTION(Value)
                     };
-                    int (__cdecl *sortFunction)(void *, const void *, const void *);
+                    _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                     static_assert(RTL_NUMBER_OF(sortFunctions) == ENVIRONMENT_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -1316,7 +1316,7 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
                 PhApplyTreeNewFilters(&context->TreeFilterSupport);
 
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewContextMenu:
@@ -1352,7 +1352,7 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
         {
             PH_TN_COLUMN_MENU_DATA data;
 
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = NoSortOrder;
@@ -1360,7 +1360,7 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
 
             data.Selection = PhShowEMenu(
                 data.Menu,
-                hwnd,
+                WindowHandle,
                 PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP,
                 data.MouseEvent->ScreenLocation.x,
@@ -1517,6 +1517,7 @@ VOID PhpDeleteEnvironmentTree(
     PhDereferenceObject(Context->NodeList);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpProcessEnvironmentTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_ PVOID Context
@@ -1557,7 +1558,8 @@ BOOLEAN PhpProcessEnvironmentTreeFilterCallback(
     return FALSE;
 }
 
-VOID NTAPI PhpProcessEnvironmentSearchControlCallback(
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
+static VOID NTAPI PhpProcessEnvironmentSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
     )
@@ -1615,6 +1617,12 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             PhpInitializeEnvironmentTree(context);
 
+            if (PhTreeWindowFont)
+            {
+                context->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(context->TreeNewHandle, context->TreeNewFont, FALSE);
+            }
+
             PhInitializeArray(&context->Items, sizeof(PH_ENVIRONMENT_ITEM), 100);
             context->TreeFilterEntry = PhAddTreeNewFilter(&context->TreeFilterSupport, PhpProcessEnvironmentTreeFilterCallback, context);
 
@@ -1646,6 +1654,9 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             PhpClearEnvironmentItems(context);
             PhDeleteArray(&context->Items);
             PhClearReference(&context->StatusMessage);
+
+            if (context->TreeNewFont)
+                DeleteFont(context->TreeNewFont);
 
             PhFree(context);
         }
@@ -1681,7 +1692,8 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     PPH_EMENU_ITEM newProcessMenuItem;
                     PPH_EMENU_ITEM selectedItem;
 
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect);
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect))
+                        break;
 
                     processMenuItem = PhCreateEMenuItem(0, ENVIRONMENT_TREE_MENU_ITEM_HIDE_PROCESS_TYPE, L"Hide process", NULL, NULL);
                     userMenuItem = PhCreateEMenuItem(0, ENVIRONMENT_TREE_MENU_ITEM_HIDE_USER_TYPE, L"Hide user", NULL, NULL);
@@ -1835,7 +1847,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     if (!item || item->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
                         break;
 
-                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
                         context->WindowHandle,
                         L"delete",
                         L"the selected environment variable",

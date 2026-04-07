@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -118,7 +118,7 @@ NTSTATUS KphInitializeKnownDll(
         status = ZwQuerySection(sectionHandle,
                                 SectionImageInformation,
                                 &sectionImageInfo,
-                                sizeof(sectionImageInfo),
+                                sizeof(SECTION_IMAGE_INFORMATION),
                                 NULL);
         if (!NT_SUCCESS(status))
         {

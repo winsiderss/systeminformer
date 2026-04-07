@@ -165,24 +165,23 @@ LRESULT CALLBACK PhColorBoxWndProc(
                 updateRect = paintStruct.rcPaint;
 
                 // Border color
+                oldPen = SelectPen(hdc, PhGetStockPen(DC_PEN));
                 SetDCPenColor(hdc, RGB(0x44, 0x44, 0x44));
 
+                // Select the border and fill.
+                oldBrush = SelectBrush(hdc, PhGetStockBrush(DC_BRUSH));
                 // Fill color
                 if (!context->Hot && !context->HasFocus)
                     SetDCBrushColor(hdc, context->SelectedColor);
                 else
                     SetDCBrushColor(hdc, PhMakeColorBrighter(context->SelectedColor, 64));
 
-                // Select the border and fill.
-                oldBrush = SelectBrush(hdc, PhGetStockBrush(DC_BRUSH));
-                oldPen = SelectPen(hdc, PhGetStockPen(DC_PEN));
-
                 // Draw the border and fill.
                 Rectangle(hdc, updateRect.left, updateRect.top, updateRect.right, updateRect.bottom);
 
                 // Restore the original border and fill.
-                SelectPen(hdc, oldPen);
                 SelectBrush(hdc, oldBrush);
+                SelectPen(hdc, oldPen);
 
                 EndPaint(hwnd, &paintStruct);
             }

@@ -103,6 +103,7 @@ typedef struct _QUERY_WINDOWS_CONTEXT
     PPH_HASHTABLE ProcessDataHashtable;
 } QUERY_WINDOWS_CONTEXT, *PQUERY_WINDOWS_CONTEXT;
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhpQueryWindowsEnumWindowsProc(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
@@ -277,7 +278,7 @@ PPH_LIST PhCreateProcessGroupList(
     PhpProcessDataListToHashtable(processDataList, &processDataHashtable);
 
     queryWindowsContext.ProcessDataHashtable = processDataHashtable;
-    PhEnumChildWindows(NULL, 0x800, PhpQueryWindowsEnumWindowsProc, &queryWindowsContext);
+    PhEnumChildWindows(NULL, PhpQueryWindowsEnumWindowsProc, &queryWindowsContext);
 
     processGroupList = PhCreateList(10);
 

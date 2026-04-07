@@ -38,20 +38,22 @@ extern ULONG PhMwpLastNotificationType;
 extern PH_MWP_NOTIFICATION_DETAILS PhMwpLastNotificationDetails;
 
 LRESULT CALLBACK PhMwpWndProc(
-    _In_ HWND hWnd,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
+//
 // Initialization
+//
 
 RTL_ATOM PhMwpInitializeWindowClass(
     VOID
     );
 
 PPH_STRING PhMwpInitializeWindowTitle(
-    _In_ ULONG KphLevel
+    VOID
     );
 
 VOID PhMwpInitializeProviders(
@@ -105,11 +107,13 @@ VOID PhMwpInvokeUpdateWindowFont(
     );
 
 VOID PhMwpInvokeUpdateWindowFontMonospace(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_opt_ PVOID Parameter
     );
 
-// main
+//
+// Main
+//
 
 LONG PhMainMessageLoop(
     VOID
@@ -159,6 +163,10 @@ NTSTATUS PhInitializeExceptionPolicy(
     VOID
     );
 
+NTSTATUS PhInitializeExecutionPolicy(
+    VOID
+    );
+
 NTSTATUS PhInitializeNamespacePolicy(
     VOID
     );
@@ -175,7 +183,9 @@ NTSTATUS PhInitializeTimerPolicy(
     VOID
     );
 
+//
 // Event handlers
+//
 
 VOID PhMwpOnDestroy(
     _In_ HWND WindowHandle
@@ -240,6 +250,12 @@ VOID PhMwpOnSetFocus(
     _In_ HWND WindowHandle
     );
 
+VOID PhMwpOnTimer(
+    _In_ HWND WindowHandle,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 _Success_(return)
 BOOLEAN PhMwpOnNotify(
     _In_ NMHDR *Header,
@@ -264,7 +280,9 @@ LRESULT PhMwpOnUserMessage(
     _In_ ULONG_PTR LParam
     );
 
+//
 // Settings
+//
 
 VOID PhMwpLoadSettings(
     _In_ HWND WindowHandle
@@ -278,7 +296,9 @@ VOID PhMwpSaveWindowState(
     _In_ HWND WindowHandle
     );
 
+//
 // Misc.
+//
 
 VOID PhMwpUpdateLayoutPadding(
     VOID
@@ -307,7 +327,9 @@ VOID PhMwpActivateWindow(
     _In_ BOOLEAN Toggle
     );
 
+//
 // Main menu
+//
 
 PPH_EMENU PhpCreateMainMenu(
     _In_ ULONG SubMenuIndex
@@ -319,14 +341,12 @@ VOID PhMwpInitializeMainMenu(
 
 VOID PhMwpDispatchMenuCommand(
     _In_ HWND WindowHandle,
-    _In_ HMENU MenuHandle,
-    _In_ ULONG ItemIndex,
     _In_ ULONG ItemId,
     _In_ ULONG_PTR ItemData
     );
 
 VOID PhMwpInitializeSubMenu(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_EMENU Menu,
     _In_ ULONG Index
     );
@@ -346,7 +366,13 @@ BOOLEAN PhMwpExecuteNotificationSettingsMenuCommand(
     _In_ ULONG Id
     );
 
+PPH_EMENU PhMwpCreateProcessMenu(
+    _In_ BOOLEAN SystemProcess
+    );
+
+//
 // Tab control
+//
 
 VOID PhMwpLayoutTabControl(
     _Inout_ HDWP *DeferHandle
@@ -384,7 +410,9 @@ VOID PhMwpNotifyAllPages(
     _In_opt_ PVOID Parameter2
     );
 
+//
 // Notifications
+//
 
 VOID PhMwpAddIconProcesses(
     _In_ PPH_EMENU_ITEM Menu,
@@ -403,7 +431,22 @@ BOOLEAN PhMwpPluginNotifyEvent(
 typedef struct _PH_MAIN_TAB_PAGE *PPH_MAIN_TAB_PAGE;
 typedef struct _PH_PROVIDER_EVENT_QUEUE PH_PROVIDER_EVENT_QUEUE, *PPH_PROVIDER_EVENT_QUEUE;
 
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) _PH_INVOKE_ENTRY
+{
+    SLIST_ENTRY ListEntry;
+    PVOID Command;
+    PVOID Parameter;
+    //HANDLE ThreadId;
+    //ULONG64 SubmitTime;
+} PH_INVOKE_ENTRY, * PPH_INVOKE_ENTRY;
+
+extern SLIST_HEADER PhMainThreadInvokeQueue;
+extern PH_FREE_LIST PhMainThreadInvokeQueueFreeList;
+extern volatile LONG PhMainThreadInvokePending;
+
+//
 // Processes
+//
 
 extern PPH_MAIN_TAB_PAGE PhMwpProcessesPage;
 extern HWND PhMwpProcessTreeNewHandle;
@@ -411,6 +454,7 @@ extern HWND PhMwpSelectedProcessWindowHandle;
 extern BOOLEAN PhMwpSelectedProcessVirtualizationEnabled;
 extern PH_PROVIDER_EVENT_QUEUE PhMwpProcessEventQueue;
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpProcessesPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
@@ -426,6 +470,7 @@ VOID PhMwpToggleCurrentUserProcessTreeFilter(
     VOID
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -439,11 +484,13 @@ VOID PhMwpToggleMicrosoftProcessTreeFilter(
     VOID
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpSignedProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -505,12 +552,15 @@ VOID PhMwpOnProcessesUpdated(
     _In_ ULONG RunId
     );
 
+//
 // Services
+//
 
 extern PPH_MAIN_TAB_PAGE PhMwpServicesPage;
 extern HWND PhMwpServiceTreeNewHandle;
 extern PH_PROVIDER_EVENT_QUEUE PhMwpServiceEventQueue;
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpServicesPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
@@ -530,11 +580,13 @@ VOID PhMwpToggleMicrosoftServiceTreeFilter(
     VOID
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpDriverServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpMicrosoftServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -574,12 +626,15 @@ VOID PhMwpOnServicesUpdated(
     _In_ ULONG RunId
     );
 
+//
 // Network
+//
 
 extern PPH_MAIN_TAB_PAGE PhMwpNetworkPage;
 extern HWND PhMwpNetworkTreeNewHandle;
 extern PH_PROVIDER_EVENT_QUEUE PhMwpNetworkEventQueue;
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpNetworkPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
@@ -595,6 +650,7 @@ VOID PhMwpToggleNetworkWaitingConnectionTreeFilter(
     VOID
     );
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpNetworkTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -634,7 +690,9 @@ VOID PhMwpOnNetworkItemsUpdated(
     _In_ ULONG RunId
     );
 
+//
 // Devices
+//
 
 VOID PhMwpInitializeDeviceNotifications(
     VOID

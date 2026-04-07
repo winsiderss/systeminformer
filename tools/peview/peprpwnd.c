@@ -726,6 +726,24 @@ VOID PvAddTreeViewSections(
         NULL
         );
 
+    // LoadLibrary page
+    PvCreateTabSection(
+        L"GetLoadLibrary",
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_GETLOADLIBRARY),
+        PvGetLoadLibraryDlgProc,
+        NULL
+        );
+
+    // ProcAddress page
+    PvCreateTabSection(
+        L"GetProcAddress",
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_GETPROCADDR),
+        PvGetProcAddressDlgProc,
+        NULL
+        );
+
     if (PhGetIntegerSetting(L"MainWindowPageRestoreEnabled"))
     {
         PPH_STRING startPage;
@@ -819,7 +837,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
                         PhLoadModuleSymbolProvider(
                             PvSymbolProvider,
                             fileName,
-                            PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, 0),
+                            PTR_ADD_OFFSET(UlongToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), 0),
                             PvMappedImage.NtHeaders32->OptionalHeader.SizeOfImage
                             );
                     }
@@ -828,7 +846,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
                         PhLoadModuleSymbolProvider(
                             PvSymbolProvider,
                             fileName,
-                            PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, 0),
+                            PTR_ADD_OFFSET((ULONG_PTR)PvMappedImage.NtHeaders->OptionalHeader.ImageBase, 0),
                             PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
                             );
                     }
@@ -874,6 +892,9 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
         break;
     case WM_DPICHANGED:
         {
+            PhLayoutManagerUpdate(&PvTabWindowLayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&PvTabWindowLayoutManager);
+
             PvSetTreeViewImageList(hwndDlg, PvTabTreeControl);
         }
         break;

@@ -31,12 +31,14 @@ extern RECT PhNormalGraphTextPadding;
 
 typedef struct _PH_GRAPH_DRAW_INFO *PPH_GRAPH_DRAW_INFO;
 
-typedef PPH_STRING (NTAPI *PPH_GRAPH_LABEL_Y_FUNCTION)(
+typedef _Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
+PPH_STRING NTAPI PH_GRAPH_LABEL_Y_FUNCTION(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
     _In_ FLOAT Value,
     _In_ FLOAT Parameter
     );
+typedef PH_GRAPH_LABEL_Y_FUNCTION* PPH_GRAPH_LABEL_Y_FUNCTION;
 
 typedef struct _PH_GRAPH_DRAW_INFO
 {
@@ -78,6 +80,10 @@ typedef struct _PH_GRAPH_DRAW_INFO
     HFONT TextFont;
     COLORREF TextColor;
     COLORREF TextBoxColor;
+
+    PH_STRINGREF Text2;
+    RECT TextRect2;
+    RECT TextBoxRect2;
 } PH_GRAPH_DRAW_INFO, *PPH_GRAPH_DRAW_INFO;
 
 // Graph control
@@ -104,6 +110,18 @@ PHLIBAPI
 VOID
 NTAPI
 PhSetGraphText(
+    _In_ HDC hdc,
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ PPH_STRINGREF Text,
+    _In_ PRECT Margin,
+    _In_ PRECT Padding,
+    _In_ ULONG Align
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetGraphText2(
     _In_ HDC hdc,
     _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ PPH_STRINGREF Text,
@@ -170,13 +188,15 @@ typedef struct _PH_GRAPH_OPTIONS
 #define GCN_MOUSEEVENT (WM_USER + 1353)
 #define GCN_DRAWPANEL (WM_USER + 1354)
 
-typedef BOOLEAN (NTAPI* PPH_GRAPH_MESSAGE_CALLBACK)(
+typedef _Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN NTAPI PH_GRAPH_MESSAGE_CALLBACK(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2,
     _In_opt_ PVOID Context
     );
+typedef PH_GRAPH_MESSAGE_CALLBACK* PPH_GRAPH_MESSAGE_CALLBACK;
 
 typedef struct _PH_GRAPH_CREATEPARAMS
 {
@@ -279,6 +299,7 @@ typedef struct _PH_GRAPH_STATE
     PPH_STRING Text;
     PPH_STRING TooltipText; // invalidate by setting TooltipIndex to -1
     ULONG TooltipIndex; // indicates the tooltip text is valid for this index
+    PPH_STRING TextLine2;
 } PH_GRAPH_STATE, *PPH_GRAPH_STATE;
 
 PHLIBAPI

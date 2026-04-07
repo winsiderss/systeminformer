@@ -6,6 +6,8 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Deterministic>true</Deterministic>
+    <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
+    <CsWin32RunAsBuildTask>true</CsWin32RunAsBuildTask>
     <EmbedAllSources>false</EmbedAllSources>
     <EmbedUntrackedSources>false</EmbedUntrackedSources>
     <EventSourceSupport>false</EventSourceSupport>
@@ -25,11 +27,12 @@
     <TargetFramework>net9.0-windows</TargetFramework>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
-    <Version>4.0.0.0</Version>
+    <Version>5.0.0.0</Version>
     <Nullable>disable</Nullable>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
     <PackageProjectUrl>https://github.com/winsiderss/systeminformer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/winsiderss/systeminformer</RepositoryUrl>
+    <NuGetAuditMode>all</NuGetAuditMode>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
     <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
@@ -102,14 +105,13 @@
     <None Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="Azure.Core" />
-    <Using Include="Azure.Security.KeyVault.Keys" />
-    <Using Include="Azure.Security.KeyVault.Keys.Cryptography" />
     <Using Include="Microsoft.Win32.SafeHandles" />
     <Using Include="System.Buffers" />
+    <Using Include="System.Collections.Concurrent" />
     <Using Include="System.Collections.Immutable" />
     <Using Include="System.ComponentModel" />
     <Using Include="System.Diagnostics" />
+    <Using Include="System.Diagnostics.CodeAnalysis" />
     <Using Include="System.Globalization" />
     <Using Include="System.IO.Compression" />
     <Using Include="System.Net" />
@@ -130,6 +132,7 @@
     <Using Include="System.Xml" />
     <Using Include="Windows.Win32" />
     <Using Include="Windows.Win32.Foundation" />
+    <Using Include="Windows.Win32.Security" />
     <Using Include="Windows.Win32.Security.Cryptography" />
     <Using Include="Windows.Win32.Storage.FileSystem" />
     <Using Include="Windows.Win32.System.Diagnostics.Debug" />
@@ -141,13 +144,10 @@
     <LinkerArg Include="/RELEASE /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.15.0" />
-    <PackageReference Include="Azure.Security.KeyVault.Certificates" Version="4.8.0" />
-    <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.8.0" />
-    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.269">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SharpCompress" Version="0.40.0" />
+    <PackageReference Include="SharpCompress" Version="0.47.3" />
   </ItemGroup>
 </Project>

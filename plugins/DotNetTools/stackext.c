@@ -36,6 +36,12 @@ static PPH_HASHTABLE ContextHashtable;
 static PH_QUEUED_LOCK ContextHashtableLock = PH_QUEUED_LOCK_INIT;
 static PH_INITONCE ContextHashtableInitOnce = PH_INITONCE_INIT;
 
+/**
+ * Looks up a thread stack context by its unique walk key.
+ *
+ * \param UniqueKey The unique key identifying the thread stack walk session.
+ * \return A pointer to the THREAD_STACK_CONTEXT, or NULL if not found.
+ */
 PTHREAD_STACK_CONTEXT FindThreadStackContext(
     _In_ PVOID UniqueKey
     )
@@ -57,6 +63,14 @@ PTHREAD_STACK_CONTEXT FindThreadStackContext(
     return context;
 }
 
+/**
+ * Handles plugin thread stack control events for .NET managed frame resolution.
+ *
+ * \param Control The plugin thread stack control structure describing the event type and parameters.
+ * \remarks Manages the CLR process support lifecycle and resolves managed method names and source
+ * file names for stack frames. On 64-bit builds also connects to the 32-bit PhSvc helper for
+ * WOW64 processes and uses it to predict next-frame register values.
+ */
 VOID ProcessThreadStackControl(
     _In_ PPH_PLUGIN_THREAD_STACK_CONTROL Control
     )
@@ -92,11 +106,11 @@ VOID ProcessThreadStackControl(
             if (!context)
                 return;
 
-            PhFree(context);
-
             PhAcquireQueuedLockExclusive(&ContextHashtableLock);
             PhRemoveItemSimpleHashtable(ContextHashtable, Control->UniqueKey);
             PhReleaseQueuedLockExclusive(&ContextHashtableLock);
+
+            PhFree(context);
         }
         break;
     case PluginThreadStackResolveSymbol:
@@ -283,6 +297,20 @@ VOID ProcessThreadStackControl(
     }
 }
 
+/**
+ * Uses the CLR data access layer to predict the next managed stack frame's register values.
+ *
+ * \param Support The CLR process support object for the target process.
+ * \param ThreadId The OS thread identifier.
+ * \param PcAddress The current program counter address.
+ * \param FrameAddress The current frame (EBP) address.
+ * \param StackAddress The current stack (ESP) address.
+ * \param PredictedEip Receives the predicted next instruction pointer, or NULL.
+ * \param PredictedEbp Receives the predicted next frame pointer, or NULL.
+ * \param PredictedEsp Receives the predicted next stack pointer, or NULL.
+ * \remarks On 64-bit builds all output pointers are set to NULL because the CLR handles 64-bit
+ * stack walking directly. This function is only meaningful on 32-bit builds.
+ */
 VOID PredictAddressesFromClrData(
     _In_ PCLR_PROCESS_SUPPORT Support,
     _In_ HANDLE ThreadId,

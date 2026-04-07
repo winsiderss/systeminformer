@@ -266,6 +266,19 @@ static BCRYPT_PSS_PADDING_INFO UpdaterPaddingInfo =
     (512 / 8)
 };
 
+/**
+ * Initializes signing information for the updater.
+ *
+ * \param Signing The signing structure to initialize.
+ * \param PublicKey The public key material.
+ * \param PublicKeySize The size of the public key material.
+ * \param SignAlgId The signature algorithm ID.
+ * \param SignBlobType The signature blob type.
+ * \param HashAlgId The hash algorithm ID.
+ * \param PaddingInfo Optional padding information.
+ * \param PaddingFlags Padding flags.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS UpdaterInitializeSigning(
     _Inout_ PUPDATER_SIGNING Signing,
     _In_ PUCHAR PublicKey,
@@ -353,6 +366,13 @@ NTSTATUS UpdaterInitializeSigning(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Initializes hash contexts for the updater based on the release channel.
+ *
+ * \param Context A variable which receives a pointer to the hash context.
+ * \param Channel The release channel.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS UpdaterInitializeHash(
     _Out_ PUPDATER_HASH_CONTEXT* Context,
     _In_ PH_RELEASE_CHANNEL Channel
@@ -489,6 +509,14 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Hashes data for the updater.
+ *
+ * \param Context The hash context.
+ * \param Buffer The data buffer.
+ * \param Length The length of the data buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS UpdaterHashData(
     _In_ PUPDATER_HASH_CONTEXT Context,
     _In_reads_bytes_(Length) PVOID Buffer,
@@ -513,6 +541,13 @@ NTSTATUS UpdaterHashData(
     return status;
 }
 
+/**
+ * Verifies the accumulated hash against a provided SHA-256 hash string.
+ *
+ * \param Context The hash context.
+ * \param Sha2Hash The SHA-256 hash string to verify against.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS UpdaterVerifyHash(
     _In_ PUPDATER_HASH_CONTEXT Context,
     _In_ PPH_STRING Sha2Hash
@@ -545,6 +580,13 @@ NTSTATUS UpdaterVerifyHash(
     return status;
 }
 
+/**
+ * Verifies the signature of the accumulated data.
+ *
+ * \param Context The hash context.
+ * \param HexSignature The hex-encoded signature string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS UpdaterVerifySignature(
     _In_ PUPDATER_HASH_CONTEXT Context,
     _In_ PPH_STRING HexSignature
@@ -600,6 +642,11 @@ NTSTATUS UpdaterVerifySignature(
     return status;
 }
 
+/**
+ * Destroys an updater hash context and frees associated resources.
+ *
+ * \param Context The hash context to destroy.
+ */
 VOID UpdaterDestroyHash(
     _Frees_ptr_opt_ PUPDATER_HASH_CONTEXT Context
     )

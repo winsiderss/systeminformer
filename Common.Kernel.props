@@ -27,6 +27,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup>
+    <CodeAnalysisRuleSet>$(SystemInformerRoot)\Common.Kernel.ruleset</CodeAnalysisRuleSet>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <EnableInf2cat>false</EnableInf2cat>
   </PropertyGroup>
@@ -41,6 +42,7 @@
       <CallingConvention>StdCall</CallingConvention>
       <ConformanceMode>true</ConformanceMode>
       <ControlFlowGuard>Guard</ControlFlowGuard>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <GuardSignedReturns Condition="'$(Platform)'=='ARM64'">true</GuardSignedReturns>
@@ -57,7 +59,7 @@
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <WarningLevel>Level4</WarningLevel>
     </ClCompile>
-    <ClCompile Condition="'$Configuration)'=='Release'">
+    <ClCompile Condition="'$(Configuration)'=='Release'">
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -72,6 +74,7 @@
       <CETCompat Condition="'$(Platform)'!='ARM64'">true</CETCompat>
       <LinkTimeCodeGeneration Condition="'$(Configuration)'=='Release'">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </Link>
     <Lib>
       <LinkTimeCodeGeneration Condition="'$(Configuration)'=='Release'">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -99,7 +102,7 @@
           <TraceWppCmd>$(TraceWppCmd) -km</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -ext:.c.cpp.h.hpp</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -preserveext:.c.cpp.h.hpp</TraceWppCmd>
-          <TraceWppCmd>$(TraceWppCmd) -cfgdir:"$(WPP_CONFIG_PATH)\$(WPP_REVISION)"</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -I"$(WindowsSdkDir)bin\$(TargetPlatformVersion)\WppConfig\Rev1"</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -odir:"$(IntDir)tmh"</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -scan:"$(SystemInformerRoot)KSystemInformer\include\trace.h"</TraceWppCmd>
       </PropertyGroup>

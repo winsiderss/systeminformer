@@ -36,6 +36,7 @@ static ULONG NTAPI EtFramesHashFunction(
     return HandleToUlong(entry->ProcessId) / 4;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS NTAPI EtStartFpsTraceSession(
     _In_ PVOID ThreadParameter
     )

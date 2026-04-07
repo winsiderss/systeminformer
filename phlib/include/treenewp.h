@@ -199,9 +199,14 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG HeaderCustomDraw : 1;
             ULONG HeaderMouseActive : 1;
             ULONG HeaderDragging : 1;
-            ULONG HeaderUnused : 28;
+            ULONG HeaderUnused : 12;
 
             ULONG FillerBoxVisible : 1;
+            ULONG ReorderDragActive : 1;
+            ULONG ReorderJustStarted : 1;
+            ULONG TooltipVisible : 1;
+            ULONG TooltipActive : 1;
+            ULONG SpareUnused : 12;
         };
     };
 
@@ -220,19 +225,32 @@ typedef struct _PH_TREENEW_CONTEXT
     PPH_STRINGREF HeaderStringCache;
     PVOID HeaderTextCache;
 
+    HANDLE UniqueThread;
+
     ULONG64 ScrollTickCount;
+
+    HDC SelectionScratchDc;
+    HBITMAP SelectionScratchBitmap;
+    HBITMAP SelectionScratchOldBitmap;
+
+    // Drag-reorder support
+    ULONG   ReorderSourceIndex;   // source row index in FlatList
+    ULONG   ReorderTargetIndex;   // target row index under caret
+    BOOLEAN ReorderDropAfter;     // caret drops after the target row
+    RECT    ReorderInsertRect;    // last drawn caret invalidation
+    HCURSOR ReorderCursor;        // optional cursor during reorder
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
-    _In_ HWND hwnd,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
 _Function_class_(PH_TREENEW_CALLBACK)
 BOOLEAN NTAPI PhTnpNullCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2,
@@ -250,54 +268,54 @@ VOID PhTnpDestroyTreeNewContext(
 // Event handlers
 
 BOOLEAN PhTnpOnCreate(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ CONST CREATESTRUCT *CreateStruct
     );
 
 VOID PhTnpOnSize(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpOnSetFont(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_opt_ HFONT Font,
     _In_ LOGICAL Redraw
     );
 
 VOID PhTnpOnStyleChanged(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ LONG Type,
     _In_ STYLESTRUCT *StyleStruct
     );
 
 VOID PhTnpOnSettingChange(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpOnThemeChanged(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpOnDpiChanged(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context
     );
 
 ULONG PhTnpOnGetDlgCode(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG VirtualKey,
     _In_opt_ PMSG Message
     );
 
 VOID PhTnpOnPaint(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context
     );
 
@@ -315,7 +333,7 @@ BOOLEAN PhTnpOnNcPaint(
     );
 
 BOOLEAN PhTnpOnSetCursor(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ HWND CursorWindowHandle,
     _In_ ULONG HitTest,
@@ -323,13 +341,13 @@ BOOLEAN PhTnpOnSetCursor(
     );
 
 VOID PhTnpOnTimer(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG Id
     );
 
 VOID PhTnpOnMouseMove(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG VirtualKeys,
     _In_ LONG CursorX,
@@ -337,12 +355,12 @@ VOID PhTnpOnMouseMove(
     );
 
 VOID PhTnpOnMouseLeave(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpOnXxxButtonXxx(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG Message,
     _In_ ULONG VirtualKeys,
@@ -351,26 +369,26 @@ VOID PhTnpOnXxxButtonXxx(
     );
 
 VOID PhTnpOnCaptureChanged(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context
     );
 
 VOID PhTnpOnKeyDown(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG VirtualKey,
     _In_ ULONG Data
     );
 
 VOID PhTnpOnChar(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG Character,
     _In_ ULONG Data
     );
 
 VOID PhTnpOnMouseWheel(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ LONG Distance,
     _In_ ULONG VirtualKeys,
@@ -379,7 +397,7 @@ VOID PhTnpOnMouseWheel(
     );
 
 VOID PhTnpOnMouseHWheel(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ LONG Distance,
     _In_ ULONG VirtualKeys,
@@ -388,21 +406,21 @@ VOID PhTnpOnMouseHWheel(
     );
 
 VOID PhTnpOnContextMenu(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ LONG CursorScreenX,
     _In_ LONG CursorScreenY
     );
 
 VOID PhTnpOnVScroll(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG Request,
     _In_ USHORT Position
     );
 
 VOID PhTnpOnHScroll(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG Request,
     _In_ USHORT Position
@@ -410,14 +428,14 @@ VOID PhTnpOnHScroll(
 
 _Success_(return)
 BOOLEAN PhTnpOnNotify(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ NMHDR *Header,
     _Out_ LRESULT *Result
     );
 
 LRESULT PhTnpOnUserMessage(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG Message,
     _In_ ULONG_PTR WParam,
@@ -728,7 +746,7 @@ BOOLEAN PhTnpCanScroll(
 // Drawing
 
 VOID PhTnpPaint(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ HDC hdc,
     _In_ PRECT PaintRect
@@ -772,6 +790,14 @@ VOID PhTnpDrawThemedBorder(
     _In_ HDC hdc
     );
 
+BOOLEAN PhTnpSelectionCreateBufferedContext(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpSelectionDestroyBufferedContext(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
 // Tooltips
 
 VOID PhTnpInitializeTooltips(
@@ -813,8 +839,8 @@ BOOLEAN PhTnpGetHeaderTooltipText(
     );
 
 LRESULT CALLBACK PhTnpHeaderHookWndProc(
-    _In_ HWND hwnd,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -843,6 +869,40 @@ VOID PhTnpProcessDragSelect(
     _In_ PRECT TotalRect
     );
 
+// Drag-reorder
+
+VOID PhTnpDrawInsertionCaret(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC Hdc
+    );
+
+VOID PhTnpReorderInvalidateCaret(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpReorderUpdateCaretRect(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpReorderBegin(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG SourceIndex
+    );
+
+VOID PhTnpReorderCancel(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpReorderCommit(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpReorderUpdate(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG CursorX,
+    _In_ LONG CursorY
+    );
+
 // Double buffering
 
 VOID PhTnpCreateBufferedContext(
@@ -855,7 +915,6 @@ VOID PhTnpDestroyBufferedContext(
     );
 
 // Support functions
-
 
 _Success_(return)
 BOOLEAN PhTnpGetMessagePos(

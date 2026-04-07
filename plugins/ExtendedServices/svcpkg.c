@@ -148,7 +148,7 @@ PPH_STRING PhGetServiceSharedDirectory(
     //
     //if (!GetSharedServiceDirectory_I)
     //{
-    //    GetSharedServiceDirectory_I = PhGetDllProcedureAddress(L"sechost.dll", "GetSharedServiceDirectory", 0);
+    //    GetSharedServiceDirectory_I = PhGetDllProcedureAddressZ(L"sechost.dll", "GetSharedServiceDirectory", 0);
     //
     //    if (!GetSharedServiceDirectory_I)
     //        return NULL;
@@ -241,7 +241,7 @@ PPH_STRING PhGetServiceSharedRegistryKey(
     //
     //if (!GetSharedServiceRegistryStateKey_I)
     //{
-    //    GetSharedServiceRegistryStateKey_I = PhGetDllProcedureAddress(L"sechost.dll", "GetSharedServiceRegistryStateKey", 0);
+    //    GetSharedServiceRegistryStateKey_I = PhGetDllProcedureAddressZ(L"sechost.dll", "GetSharedServiceRegistryStateKey", 0);
     //
     //    if (!GetSharedServiceRegistryStateKey_I)
     //        return NULL;
@@ -264,7 +264,8 @@ PPH_STRING PhGetServiceSharedRegistryKey(
     //    NULL,
     //    NULL,
     //    NULL,
-    //    &keyPath
+    //    &keyPath,
+    //    NULL
     //    );
     //
     //NtClose(keyHandle);
@@ -340,7 +341,7 @@ INT_PTR CALLBACK EspPackageServiceDlgProc(
 
             EspUpdatePackageProperties(context);
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             PhSetDialogFocus(WindowHandle, GetDlgItem(GetParent(WindowHandle), IDCANCEL));
         }

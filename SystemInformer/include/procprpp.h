@@ -29,6 +29,11 @@ typedef struct _PH_PROCESS_PROPSHEETCONTEXT
     PPH_LAYOUT_ITEM TabPageItem;
     BOOLEAN LayoutInitialized;
     HFONT PropSheetWindowFont;
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+    HWND OptionsButtonWindowHandle;
+    WNDPROC OldOptionsButtonWndProc;
+    //HWND PermissionsButtonWindowHandle;
+    HWND ButtonsLabelWindowHandle;
 } PH_PROCESS_PROPSHEETCONTEXT, *PPH_PROCESS_PROPSHEETCONTEXT;
 
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
@@ -44,11 +49,11 @@ INT CALLBACK PhpPropSheetProc(
     );
 
 PPH_PROCESS_PROPSHEETCONTEXT PhpGetPropSheetContext(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 LRESULT CALLBACK PhpPropSheetWndProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
@@ -61,7 +66,7 @@ VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
     );
 
 UINT CALLBACK PhpStandardPropPageProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
     );
@@ -211,6 +216,13 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
     );
 #endif
 
+INT_PTR CALLBACK PhpProcessInformerDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 extern PH_STRINGREF PhProcessPropPageLoadingText;
 
 #define WM_PH_THREADS_UPDATED (WM_APP + 200)
@@ -232,6 +244,7 @@ typedef struct _PH_THREADS_CONTEXT
     HWND TreeNewHandle;
     HWND StatusHandle;
     HWND SearchboxHandle;
+    HFONT TreeNewFont;
     ULONG_PTR SearchMatchHandle;
     PPH_TN_FILTER_ENTRY FilterEntry;
     union
@@ -267,6 +280,7 @@ typedef struct _PH_MODULES_CONTEXT
 // end_phapppub
     HWND SearchboxHandle;
     HWND TreeNewHandle;
+    HFONT TreeNewFont;
     union
     {
         PH_MODULE_LIST_CONTEXT ListContext;
@@ -302,6 +316,7 @@ typedef struct _PH_HANDLES_CONTEXT
 // end_phapppub
     HWND TreeNewHandle;
     HWND SearchWindowHandle;
+    HFONT TreeNewFont;
 
     union
     {
@@ -332,6 +347,7 @@ typedef struct _PH_MEMORY_CONTEXT
 // end_phapppub
     HWND TreeNewHandle;
     HWND SearchboxHandle;
+    HFONT TreeNewFont;
 
     union
     {
@@ -361,7 +377,9 @@ typedef struct _PH_STATISTICS_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
     HWND WindowHandle;
     HWND ListViewHandle;
-    IListView* ListView;
+    HFONT TreeNewFont;
+
+    PPH_LISTVIEW_CONTEXT ListViewContext;
 
     BOOLEAN Enabled;
     HANDLE ProcessHandle;
@@ -371,15 +389,22 @@ typedef struct _PH_STATISTICS_CONTEXT
     BOOLEAN GotCounters;
 
     ULONG PagePriority;
-    IO_PRIORITY_HINT IoPriority;
-    ULONG PeakHandleCount;
-    ULONG HangCount;
-    ULONG GhostCount;
-    ULONGLONG RunningTime;
-    ULONGLONG SuspendedTime;
-    ULONGLONG NetworkTxRxBytes;
+    IO_PRIORITY_HINT IoPriority; IO_PRIORITY_HINT IoPriorityMin; IO_PRIORITY_HINT IoPriorityMax; IO_PRIORITY_HINT IoPriorityDiff;
+    ULONG HandleCount; ULONG HandleCountMin; ULONG HandleCountMax; ULONG HandleCountDiff;
+    ULONG PeakHandleCount; ULONG PeakHandleCountMin; ULONG PeakHandleCountMax; ULONG PeakHandleCountDiff;
+    ULONG GdiHandleCount; ULONG GdiHandleCountMin; ULONG GdiHandleCountMax; ULONG GdiHandleCountDiff;
+    ULONG PeakGdiHandleCount; ULONG PeakGdiHandleCountMin; ULONG PeakGdiHandleCountMax; ULONG PeakGdiHandleCountDiff;
+    ULONG UserHandleCount; ULONG UserHandleCountMin; ULONG UserHandleCountMax; ULONG UserHandleCountDiff;
+    ULONG PeakUserHandleCount; ULONG PeakUserHandleCountMin; ULONG PeakUserHandleCountMax; ULONG PeakUserHandleCountDiff;
+    ULONG HangCount; ULONG HangCountMin; ULONG HangCountMax; ULONG HangCountDiff;
+    ULONG GhostCount; ULONG GhostCountMin; ULONG GhostCountMax; ULONG GhostCountDiff;
+    ULONGLONG RunningTime; ULONGLONG RunningTimeMin; ULONGLONG RunningTimeMax; ULONGLONG RunningTimeDiff;
+    ULONGLONG SuspendedTime; ULONGLONG SuspendedTimeMin; ULONGLONG SuspendedTimeMax; ULONGLONG SuspendedTimeDiff;
+    ULONGLONG NetworkTxRxBytes; ULONGLONG NetworkTxRxBytesMin; ULONGLONG NetworkTxRxBytesMax; ULONGLONG NetworkTxRxBytesDiff;
     PH_UINT64_DELTA KeyboardDelta;
+    ULONG64 KeyboardInput; ULONG64 KeyboardInputMin; ULONG64 KeyboardInputMax; ULONG64 KeyboardInputDiff;
     PH_UINT64_DELTA MouseDelta;
+    ULONG64 MouseInput; ULONG64 MouseInputMin; ULONG64 MouseInputMax; ULONG64 MouseInputDiff;
 
     //PPH_STRING PrivateWs;
     //PPH_STRING ShareableWs;
@@ -446,6 +471,7 @@ typedef struct _PH_STATISTICS_CONTEXT
 
     ULONG64 IoTotal; ULONG64 IoTotalMin; ULONG64 IoTotalMax; ULONG64 IoTotalDiff;
     ULONG64 IoTotalDelta; ULONG64 IoTotalDeltaMin; ULONG64 IoTotalDeltaMax; ULONG64 IoTotalDeltaDiff;
+    ULONG64 IoAverage; ULONG64 IoAverageMin; ULONG64 IoAverageMax; ULONG64 IoAverageDiff;
 
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
 
@@ -483,6 +509,7 @@ typedef struct _PH_ENVIRONMENT_CONTEXT
     HWND WindowHandle;
     HWND TreeNewHandle;
     HWND SearchWindowHandle;
+    HFONT TreeNewFont;
 
     BOOLEAN EnableStateHighlighting;
 

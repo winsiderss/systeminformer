@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -109,26 +109,12 @@ NTSTATUS KphQueryInformationFile(
 
     process = NULL;
     buffer = NULL;
-    RtlZeroMemory(&ioStatusBlock, sizeof(ioStatusBlock));
+    RtlZeroMemory(&ioStatusBlock, sizeof(IO_STATUS_BLOCK));
 
     if (!FileInformation || !IoStatusBlock)
     {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
-    }
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputBytes(FileInformation, FileInformationLength);
-            ProbeOutputType(IoStatusBlock, IO_STATUS_BLOCK);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
     }
 
     status = ObReferenceObjectByHandle(ProcessHandle,
@@ -150,7 +136,6 @@ NTSTATUS KphQueryInformationFile(
     if (process == PsInitialSystemProcess)
     {
         FileHandle = MakeKernelHandle(FileHandle);
-        AccessMode = KernelMode;
     }
     else
     {
@@ -183,24 +168,16 @@ NTSTATUS KphQueryInformationFile(
     KeUnstackDetachProcess(&apcState);
     if (NT_SUCCESS(status))
     {
-        __try
-        {
-            RtlCopyMemory(FileInformation, buffer, FileInformationLength);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-        }
+        status = KphCopyToMode(FileInformation,
+                               buffer,
+                               FileInformationLength,
+                               AccessMode);
     }
 
-    __try
-    {
-        RtlCopyMemory(IoStatusBlock, &ioStatusBlock, sizeof(ioStatusBlock));
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        NOTHING;
-    }
+    KphCopyToMode(IoStatusBlock,
+                  &ioStatusBlock,
+                  sizeof(IO_STATUS_BLOCK),
+                  AccessMode);
 
 Exit:
 
@@ -253,26 +230,12 @@ NTSTATUS KphQueryVolumeInformationFile(
 
     process = NULL;
     buffer = NULL;
-    RtlZeroMemory(&ioStatusBlock, sizeof(ioStatusBlock));
+    RtlZeroMemory(&ioStatusBlock, sizeof(IO_STATUS_BLOCK));
 
     if (!FsInformation || !IoStatusBlock)
     {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
-    }
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeOutputBytes(FsInformation, FsInformationLength);
-            ProbeOutputType(IoStatusBlock, IO_STATUS_BLOCK);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
     }
 
     status = ObReferenceObjectByHandle(ProcessHandle,
@@ -294,7 +257,6 @@ NTSTATUS KphQueryVolumeInformationFile(
     if (process == PsInitialSystemProcess)
     {
         FileHandle = MakeKernelHandle(FileHandle);
-        AccessMode = KernelMode;
     }
     else
     {
@@ -327,24 +289,16 @@ NTSTATUS KphQueryVolumeInformationFile(
     KeUnstackDetachProcess(&apcState);
     if (NT_SUCCESS(status))
     {
-        __try
-        {
-            RtlCopyMemory(FsInformation, buffer, FsInformationLength);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-        }
+        status = KphCopyToMode(FsInformation,
+                               buffer,
+                               FsInformationLength,
+                               AccessMode);
     }
 
-    __try
-    {
-        RtlCopyMemory(IoStatusBlock, &ioStatusBlock, sizeof(ioStatusBlock));
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        NOTHING;
-    }
+    KphCopyToMode(IoStatusBlock,
+                  &ioStatusBlock,
+                  sizeof(IO_STATUS_BLOCK),
+                  AccessMode);
 
 Exit:
 
@@ -422,7 +376,8 @@ NTSTATUS KphCreateFile(
 
         if (Options & ~(IO_OPEN_TARGET_DIRECTORY |
                         IO_STOP_ON_SYMLINK |
-                        IO_IGNORE_SHARE_ACCESS_CHECK))
+                        IO_IGNORE_SHARE_ACCESS_CHECK |
+                        IO_OPEN_PAGING_FILE))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,

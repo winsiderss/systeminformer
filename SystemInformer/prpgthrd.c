@@ -996,6 +996,13 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             // Initialize the list. (wj32)
             PhInitializeThreadList(hwndDlg, threadsContext->TreeNewHandle, &threadsContext->ListContext);
+
+            if (PhTreeWindowFont)
+            {
+                threadsContext->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                SetWindowFont(threadsContext->TreeNewHandle, threadsContext->TreeNewFont, FALSE);
+            }
+
             TreeNew_SetEmptyText(threadsContext->TreeNewHandle, &EmptyThreadsText, 0);
             PhInitializeProviderEventQueue(&threadsContext->EventQueue, 100);
             threadsContext->FilterEntry = PhAddTreeNewFilter(&threadsContext->ListContext.TreeFilterSupport, PhpThreadTreeFilterCallback, threadsContext);
@@ -1119,6 +1126,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhSetTerminatingThreadProvider(threadsContext->Provider);
             PhDereferenceObject(threadsContext->Provider);
             PhDeleteProviderEventQueue(&threadsContext->EventQueue);
+
+            if (threadsContext->TreeNewFont)
+                DeleteFont(threadsContext->TreeNewFont);
 
             if (PhPluginsEnabled)
             {
@@ -1299,7 +1309,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                             if (NT_SUCCESS(status))
                             {
-                                if (!breakOnTermination && (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                                if (!breakOnTermination && (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                                     hwndDlg,
                                     L"enable",
                                     L"critical status on the thread",
@@ -1309,7 +1319,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                                 {
                                     status = PhSetThreadBreakOnTermination(threadHandle, TRUE);
                                 }
-                                else if (breakOnTermination && (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                                else if (breakOnTermination && (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                                     hwndDlg,
                                     L"disable",
                                     L"critical status on the thread",
@@ -1542,7 +1552,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             //        {
             //            PhShellExecuteUserString(
             //                hwndDlg,
-            //                L"FileBrowseExecutable",
+            //                SETTING_FILE_BROWSE_EXECUTABLE,
             //                threadItem->StartAddressWin32FileName->Buffer,
             //                FALSE,
             //                L"Make sure the Explorer executable file is present."
@@ -1561,7 +1571,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PPH_EMENU_ITEM saveMenuItem;
                     PPH_EMENU_ITEM selectedItem;
 
-                    if (!GetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect))
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect))
                         break;
 
                     hideSuspendedMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIDE_SUSPENDED, L"Hide suspended", NULL, NULL);

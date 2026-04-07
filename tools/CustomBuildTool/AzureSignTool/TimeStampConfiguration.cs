@@ -24,7 +24,7 @@ namespace CustomBuildTool
         /// <summary>
         /// The digest algorithm the timestamp service authority should use on timestamp signatures.
         /// </summary>
-        //public HashAlgorithmName DigestAlgorithm { get; }
+        public HashAlgorithmName DigestAlgorithm { get; }
 
         /// <summary>
         /// The type of timestamp to use. See <see cref="TimeStampType" /> for details, or null if
@@ -35,13 +35,12 @@ namespace CustomBuildTool
         /// <summary>
         /// A default timestamp configuration indicating no timestamp should be generated.
         /// </summary>
-        public static TimeStampConfiguration None { get; } = new TimeStampConfiguration();
+        public static TimeStampConfiguration None { get; }
 
         /// <summary>
         /// Creates a new instance of a <see cref="TimeStampConfiguration" />.
         /// </summary>
         /// <param name="url">The URL to the timestamp authority.</param>
-        /// <param name="digestAlgorithm">The digest algorithm the timestamp service authority should use on timestamp signatures.</param>
         /// <param name="type">The type of timestamp to use. See <see cref="TimeStampType" /> for details.</param>
         public TimeStampConfiguration(string url, TimeStampType type)
         {

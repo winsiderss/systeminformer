@@ -165,4 +165,4 @@ NtYieldExecution(
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#endif
+#endif // _NTKEAPI_H

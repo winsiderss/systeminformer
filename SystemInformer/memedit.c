@@ -14,6 +14,7 @@
 
 #include <procprv.h>
 #include <settings.h>
+#include <phsettings.h>
 
 #define WM_PH_SELECT_OFFSET (WM_APP + 300)
 
@@ -110,7 +111,7 @@ VOID PhShowMemoryEditorDialog(
 
             if (NT_SUCCESS(status))
             {
-                status = NtReadVirtualMemory(
+                status = PhReadVirtualMemory(
                     processHandle,
                     BaseAddress,
                     buffer,
@@ -268,7 +269,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             {
                 PH_RECTANGLE windowRectangle = { 0 };
 
-                windowRectangle.Position = PhGetIntegerPairSetting(L"MemEditPosition");
+                windowRectangle.Position = PhGetIntegerPairSetting(SETTING_MEM_EDIT_POSITION);
 
                 if (windowRectangle.Position.X == 0)
                 {
@@ -282,7 +283,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                     PhRectangleToRect(&rect, &windowRectangle);
                     dpiValue = PhGetMonitorDpi(NULL, &rect);
 
-                    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue)->Pair;
+                    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_MEM_EDIT_SIZE, TRUE, dpiValue)->Pair;
                     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                     MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
@@ -292,8 +293,8 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                     windowRectangle.Left += 20;
                     windowRectangle.Top += 20;
 
-                    PhSetIntegerPairSetting(L"MemEditPosition", windowRectangle.Position);
-                    PhSetScalableIntegerPairSetting2(L"MemEditSize", windowRectangle.Size, dpiValue);
+                    PhSetIntegerPairSetting(SETTING_MEM_EDIT_POSITION, windowRectangle.Position);
+                    PhSetScalableIntegerPairSetting2(SETTING_MEM_EDIT_SIZE, windowRectangle.Size, dpiValue);
                 }
             }
 
@@ -308,7 +309,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_BYTESPERROW),
                     bytesPerRowStrings, sizeof(bytesPerRowStrings) / sizeof(PWSTR));
 
-                bytesPerRow = PhGetIntegerSetting(L"MemEditBytesPerRow");
+                bytesPerRow = PhGetIntegerSetting(SETTING_MEM_EDIT_BYTES_PER_ROW);
 
                 if (bytesPerRow >= 4)
                 {
@@ -318,7 +319,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 }
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             context->LoadCompleted = TRUE;
         }
@@ -327,7 +328,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
         {
             if (context->LoadCompleted)
             {
-                PhSaveWindowPlacementToSetting(L"MemEditPosition", L"MemEditSize", hwndDlg);
+                PhSaveWindowPlacementToSetting(SETTING_MEM_EDIT_POSITION, SETTING_MEM_EDIT_SIZE, hwndDlg);
                 PhRemoveElementAvlTree(&PhMemoryEditorSet, &context->Links);
                 PhUnregisterDialog(hwndDlg);
             }
@@ -426,7 +427,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         PH_CHOICE_DIALOG_USER_CHOICE,
                         &selectedChoice,
                         NULL,
-                        L"MemEditGotoChoices"
+                        SETTING_MEM_EDIT_GOTO_CHOICES
                         ))
                     {
                         ULONG64 offset;
@@ -453,7 +454,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 {
                     NTSTATUS status;
 
-                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
                         hwndDlg,
                         L"write",
                         L"process memory",
@@ -475,7 +476,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
                         if (NT_SUCCESS(status))
                         {
-                            status = NtWriteVirtualMemory(
+                            status = PhWriteVirtualMemory(
                                 processHandle,
                                 context->BaseAddress,
                                 context->Buffer,
@@ -510,7 +511,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
                     if (NT_SUCCESS(status))
                     {
-                        status = NtReadVirtualMemory(
+                        status = PhReadVirtualMemory(
                             processHandle,
                             context->BaseAddress,
                             context->Buffer,
@@ -545,7 +546,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                     {
                         if (PhStringToInteger64(&firstPart, 10, &bytesPerRow64))
                         {
-                            PhSetIntegerSetting(L"MemEditBytesPerRow", (ULONG)bytesPerRow64);
+                            PhSetIntegerSetting(SETTING_MEM_EDIT_BYTES_PER_ROW, (ULONG)bytesPerRow64);
                             HexEdit_SetBytesPerRow(context->HexEditHandle, (ULONG)bytesPerRow64);
                             PhSetDialogFocus(hwndDlg, context->HexEditHandle);
                         }

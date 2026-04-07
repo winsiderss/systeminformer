@@ -18,6 +18,7 @@
 #include <Vssym32.h>
 
 #include "settings.h"
+#include <phsettings.h>
 
 // https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-procedures#window-procedure-superclassing
 static WNDPROC PhDefaultMenuWindowProcedure = NULL;
@@ -195,7 +196,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
 {
     if (WindowMessage == WM_NCCREATE)
     {
-        LONG_PTR style = PhGetWindowStyle(WindowHandle);
+        ULONG style = PhGetWindowStyle(WindowHandle);
 
         if ((style & SS_ICON) == SS_ICON)
         {
@@ -460,7 +461,7 @@ VOID ThemeWindowStatusBarDrawPart(
     if (!CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETTEXT, (WPARAM)Index, (LPARAM)text))
         return;
 
-    if (PhPtInRect(&blockRect, Context->CursorPos))
+    if (PhPtInRect(&blockRect, &Context->CursorPos))
     {
         SetTextColor(bufferDc, PhThemeWindowTextColor);
         SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
@@ -726,20 +727,21 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
             // The searchbox control does its own theme drawing.
             if (PhGetWindowContext(WindowHandle, SHRT_MAX))
                 break;
+            if (!PhGetWindowRect(WindowHandle, &windowRect))
+                break;
 
             updateRegion = (HRGN)wParam;
 
             if (updateRegion == HRGN_FULL)
                 updateRegion = NULL;
 
-            flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | DCX_USESTYLE;
+            flags = DCX_WINDOW | DCX_CACHE | DCX_USESTYLE;
 
             if (updateRegion)
                 flags |= DCX_INTERSECTRGN | DCX_NODELETERGN;
 
             if (hdc = GetDCEx(WindowHandle, updateRegion, flags))
             {
-                PhGetWindowRect(WindowHandle, &windowRect);
                 PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
 
                 if (GetFocus() == WindowHandle)
@@ -807,7 +809,7 @@ VOID ThemeWindowRenderHeaderControl(
             continue;
         }
 
-        if (PhPtInRect(&headerRect, Context->CursorPos))
+        if (PhPtInRect(&headerRect, &Context->CursorPos))
         {
             SetTextColor(bufferDc, PhThemeWindowTextColor);
             SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color); // PhThemeWindowHighlightColor);
@@ -958,7 +960,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
 
             if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
             {
-                LONG_PTR windowStyle = PhGetWindowStyle(createStruct->hwndParent);
+                ULONG windowStyle = PhGetWindowStyle(createStruct->hwndParent);
 
                 if (BooleanFlagOn(windowStyle, TN_STYLE_CUSTOM_HEADERDRAW))
                 {
@@ -1634,12 +1636,12 @@ BOOL WINAPI PhSystemParametersInfoHook(
 HRESULT WINAPI PhDrawThemeTextHook(
     _In_ HTHEME  hTheme,
     _In_ HDC     hdc,
-    _In_ int     iPartId,
-    _In_ int     iStateId,
+    _In_ LONG    iPartId,
+    _In_ LONG    iStateId,
     _In_ LPCWSTR pszText,
-    _In_ int     cchText,
-    _In_ DWORD   dwTextFlags,
-    _In_ DWORD   dwTextFlags2,
+    _In_ LONG    cchText,
+    _In_ ULONG   dwTextFlags,
+    _In_ ULONG   dwTextFlags2,
     _In_ LPCRECT pRect
     )
 {
@@ -1788,7 +1790,6 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     )
 {
     WCHAR windowClassName[MAX_PATH];
-    PTASKDIALOG_COMMON_CONTEXT context;
     BOOLEAN windowHasContext = !!PhGetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG);
 
     if (CallbackData && !windowHasContext)
@@ -1809,7 +1810,6 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 
     PhEnumChildWindows(
         WindowHandle,
-        0x1000,
         PhInitializeTaskDialogTheme,
         NULL
         );
@@ -1819,25 +1819,29 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 
     GETCLASSNAME_OR_NULL(WindowHandle, windowClassName);
 
-    context = PhAllocateZero(sizeof(TASKDIALOG_COMMON_CONTEXT));
-    context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
-    PhSetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG, context);
+    {
+        PTASKDIALOG_COMMON_CONTEXT context;
 
-    if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE) ||
-        PhEqualStringZ(windowClassName, WC_SCROLLBAR, FALSE))
-    {
-        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-    }
-    //else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
-    //{
-    //    PhAllowDarkModeForWindow(WindowHandle);   // this doesn't work, idk why
-    //}
-    else if (PhEqualStringZ(windowClassName, L"DirectUIHWND", FALSE))
-    {
-        //WINDOWPLACEMENT pos = { 0 };
-        //GetWindowPlacement(GetParent(WindowHandle), &pos);
-        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-        //SetWindowPlacement(GetParent(WindowHandle), &pos);
+        context = PhAllocateZero(sizeof(TASKDIALOG_COMMON_CONTEXT));
+        context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
+        PhSetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG, context);
+
+        if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE) ||
+            PhEqualStringZ(windowClassName, WC_SCROLLBAR, FALSE))
+        {
+            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+        }
+        //else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
+        //{
+        //    PhAllowDarkModeForWindow(WindowHandle);   // this doesn't work, idk why
+        //}
+        else if (PhEqualStringZ(windowClassName, L"DirectUIHWND", FALSE))
+        {
+            //WINDOWPLACEMENT pos = { 0 };
+            //GetWindowPlacement(GetParent(WindowHandle), &pos);
+            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            //SetWindowPlacement(GetParent(WindowHandle), &pos);
+        }
     }
 
     return TRUE;
@@ -2076,7 +2080,7 @@ VOID PhInitializeSuperclassControls(
     VOID
     )
 {
-    PhDefaultEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
+    PhDefaultEnableStreamerMode = !!PhGetIntegerSetting(SETTING_ENABLE_STREAMER_MODE);
 
     if (PhEnableThemeAcrylicSupport && !PhEnableThemeSupport)
         PhEnableThemeAcrylicSupport = FALSE;
@@ -2087,10 +2091,10 @@ VOID PhInitializeSuperclassControls(
     {
         if (WindowsVersion >= WINDOWS_11)
         {
-            PhDefaultEnableThemeAcrylicWindowSupport = !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+            PhDefaultEnableThemeAcrylicWindowSupport = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_WINDOW_SUPPORT);
         }
 
-        PhDefaultEnableThemeAnimation = !!PhGetIntegerSetting(L"EnableThemeAnimation");
+        PhDefaultEnableThemeAnimation = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ANIMATION);
 
         PhRegisterDialogSuperClass();
         PhRegisterMenuSuperClass();

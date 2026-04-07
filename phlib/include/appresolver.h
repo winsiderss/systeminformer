@@ -331,32 +331,32 @@ typedef struct IInspectableVtbl
     BEGIN_INTERFACE
 
     DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
-    HRESULT(STDMETHODCALLTYPE* QueryInterface)(
+    HRESULT (STDMETHODCALLTYPE* QueryInterface)(
         __RPC__in IInspectable* This,
         __RPC__in REFIID riid,
         _COM_Outptr_ void** ppvObject);
 
     DECLSPEC_XFGVIRT(IUnknown, AddRef)
-    ULONG(STDMETHODCALLTYPE* AddRef)(
+    ULONG (STDMETHODCALLTYPE* AddRef)(
         __RPC__in IInspectable* This);
 
     DECLSPEC_XFGVIRT(IUnknown, Release)
-    ULONG(STDMETHODCALLTYPE* Release)(
+    ULONG (STDMETHODCALLTYPE* Release)(
         __RPC__in IInspectable* This);
 
     DECLSPEC_XFGVIRT(IInspectable, GetIids)
-    HRESULT(STDMETHODCALLTYPE* GetIids)(
+    HRESULT (STDMETHODCALLTYPE* GetIids)(
         __RPC__in IInspectable* This,
         __RPC__out ULONG* iidCount,
         __RPC__deref_out_ecount_full_opt(*iidCount) IID** iids);
 
     DECLSPEC_XFGVIRT(IInspectable, GetRuntimeClassName)
-    HRESULT(STDMETHODCALLTYPE* GetRuntimeClassName)(
+    HRESULT (STDMETHODCALLTYPE* GetRuntimeClassName)(
         __RPC__in IInspectable* This,
         __RPC__deref_out_opt HSTRING* className);
 
     DECLSPEC_XFGVIRT(IInspectable, GetTrustLevel)
-    HRESULT(STDMETHODCALLTYPE* GetTrustLevel)(
+    HRESULT (STDMETHODCALLTYPE* GetTrustLevel)(
         __RPC__in IInspectable* This,
         __RPC__out ULONG* trustLevel); // TrustLevel
 

@@ -32,6 +32,7 @@
     <ProjectGuid>{f1757430-8eee-49df-a5f1-0999a53bb4a0}</ProjectGuid>
     <RootNamespace>kphlib_um</RootNamespace>
     <ProjectName>kphlib</ProjectName>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -233,6 +234,7 @@
     <None Include="sistatus.mc" />
     <None Include="include\sistatus_MSG00001.bin" />
     <ResourceCompile Include="include\sistatus.rc" />
+    <ClInclude Include="include\kphringbuff.h" />
     <ClInclude Include="include\sistatus.h" />
   </ItemGroup>
   <!-- sistatus -->
@@ -250,6 +252,7 @@
     <ClCompile Include="kphmsg.c" />
     <ClCompile Include="kphmsgdyn.c" />
     <ClCompile Include="kphdyn.c" />
+    <ClCompile Include="kphringbuff.c" />
   </ItemGroup>
   <ItemGroup>
     <Xml Include="kphdyn.xml" />

@@ -87,6 +87,11 @@ extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
 extern PH_PROVIDER_THREAD PhSecondaryProviderThread;
 extern PH_PROVIDER_THREAD PhTertiaryProviderThread;
 
+extern RTL_ATOM PhTreeWindowAtom;
+extern RTL_ATOM PhGraphWindowAtom;
+extern RTL_ATOM PhHexEditWindowAtom;
+extern RTL_ATOM PhColorBoxWindowAtom;
+
 // begin_phapppub
 PHAPPAPI
 VOID
@@ -253,6 +258,13 @@ PHAPPAPI
 PPH_STRING
 NTAPI
 PhFormatLogEntry(
+    _In_ PPH_LOG_ENTRY Entry
+    );
+
+PHAPPAPI
+PCPH_STRINGREF
+NTAPI
+PhFormatLogType(
     _In_ PPH_LOG_ENTRY Entry
     );
 // end_phapppub
@@ -562,6 +574,12 @@ VOID PhUiCreateLiveDump(
 
 VOID PhShowLiveDumpDialog(
     _In_ HWND ParentWindowHandle
+    );
+
+// informerwnd
+
+VOID PhShowInformerWindow(
+    _In_opt_ HWND ParentWindowHandle
     );
 
 // ksyscall

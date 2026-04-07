@@ -19,6 +19,8 @@ static BOOLEAN DiskTreeNewCreated = FALSE;
 static HWND DiskTreeNewHandle = NULL;
 static ULONG DiskTreeNewSortColumn = 0;
 static PH_SORT_ORDER DiskTreeNewSortOrder = NoSortOrder;
+static CONST PH_STRINGREF DiskPageText = PH_STRINGREF_INIT(L"Disk");
+static CONST PH_STRINGREF DiskBannerText = PH_STRINGREF_INIT(L"Search Disk");
 static CONST PH_STRINGREF DiskTreeEmptyText = PH_STRINGREF_INIT(L"Disk monitoring requires System Informer to be restarted with administrative privileges.");
 static PPH_STRING DiskTreeErrorText = NULL;
 
@@ -42,16 +44,15 @@ VOID EtInitializeDiskTab(
     PH_MAIN_TAB_PAGE page;
 
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
-    PhInitializeStringRef(&page.Name, L"Disk");
+    page.Name = DiskPageText;
     page.Callback = EtpDiskPageCallback;
     DiskPage = PhPluginCreateTabPage(&page);
 
-    if (ToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_PLUGIN_NAME, TOOLSTATUS_INTERFACE_VERSION))
+    if (ToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_INTERFACE_NAME, TOOLSTATUS_INTERFACE_VERSION))
     {
         PTOOLSTATUS_TAB_INFO tabInfo;
 
-        tabInfo = ToolStatusInterface->RegisterTabInfo(DiskPage->Index);
-        tabInfo->BannerText = L"Search Disk";
+        tabInfo = ToolStatusInterface->RegisterTabInfo(DiskPage->Index, &DiskBannerText);
         tabInfo->ActivateContent = EtpToolStatusActivateContent;
         tabInfo->GetTreeNewHandle = EtpToolStatusGetTreeNewHandle;
     }
@@ -74,15 +75,15 @@ BOOLEAN EtpDiskPageCallback(
             ULONG treelistCustomColors;
             PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
 
-            thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
-            treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !!PhGetIntegerSetting(L"TreeListBorderEnable")) ? WS_BORDER : 0;
-            treelistCustomColors =  PhGetIntegerSetting(L"TreeListCustomColorsEnable") ? TN_STYLE_CUSTOM_COLORS : 0;
+            thinRows = PhGetIntegerSetting(SETTING_THIN_ROWS) ? TN_STYLE_THIN_ROWS : 0;
+            treelistBorder = (PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE) && !!PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE)) ? WS_BORDER : 0;
+            treelistCustomColors =  PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLORS_ENABLE) ? TN_STYLE_CUSTOM_COLORS : 0;
 
             if (treelistCustomColors)
             {
-                treelistCreateParams.TextColor = PhGetIntegerSetting(L"TreeListCustomColorText");
-                treelistCreateParams.FocusColor = PhGetIntegerSetting(L"TreeListCustomColorFocus");
-                treelistCreateParams.SelectionColor = PhGetIntegerSetting(L"TreeListCustomColorSelection");
+                treelistCreateParams.TextColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_TEXT);
+                treelistCreateParams.FocusColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_FOCUS);
+                treelistCreateParams.SelectionColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_SELECTION);
             }
 
             hwnd = CreateWindow(
@@ -102,7 +103,7 @@ BOOLEAN EtpDiskPageCallback(
             if (!hwnd)
                 return FALSE;
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
             {
                 PhInitializeWindowTheme(hwnd, TRUE); // HACK (dmex)
                 TreeNew_ThemeSupport(hwnd, TRUE);
@@ -238,6 +239,7 @@ BOOLEAN EtpDiskPageCallback(
     return FALSE;
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN EtpDiskNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -249,6 +251,7 @@ BOOLEAN EtpDiskNodeHashtableEqualFunction(
     return diskNode1->DiskItem == diskNode2->DiskItem;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG EtpDiskNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -262,7 +265,7 @@ VOID EtInitializeDiskTreeList(
 {
     DiskTreeNewHandle = WindowHandle;
 
-    PhSetControlTheme(DiskTreeNewHandle, !PhGetIntegerSetting(L"EnableThemeSupport") ? L"explorer" : L"DarkMode_Explorer");
+    PhSetControlTheme(DiskTreeNewHandle, !PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT) ? L"explorer" : L"DarkMode_Explorer");
     TreeNew_SetRedraw(WindowHandle, FALSE);
     SendMessage(TreeNew_GetTooltips(DiskTreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
     TreeNew_SetCallback(WindowHandle, EtpDiskTreeNewCallback, NULL);
@@ -1060,7 +1063,7 @@ VOID EtHandleDiskCommand(
                 {
                     PhShellExecuteUserString(
                         WindowHandle,
-                        L"ProgramInspectExecutables",
+                        SETTING_PROGRAM_INSPECT_EXECUTABLES,
                         fileName->Buffer,
                         FALSE,
                         L"Make sure the PE Viewer executable file is present."
@@ -1287,6 +1290,7 @@ VOID NTAPI EtpSearchChangedHandler(
     PhApplyTreeNewFilters(&FilterSupport);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -1311,6 +1315,7 @@ BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
     return FALSE;
 }
 
+_Function_class_(TOOLSTATUS_TAB_ACTIVATE_CONTENT)
 VOID NTAPI EtpToolStatusActivateContent(
     _In_ BOOLEAN Select
     )
@@ -1320,10 +1325,13 @@ VOID NTAPI EtpToolStatusActivateContent(
     if (Select)
     {
         if (TreeNew_GetFlatNodeCount(DiskTreeNewHandle) > 0)
+        {
             EtSelectAndEnsureVisibleDiskNode((PET_DISK_NODE)TreeNew_GetFlatNode(DiskTreeNewHandle, 0));
+        }
     }
 }
 
+_Function_class_(TOOLSTATUS_GET_TREENEW_HANDLE)
 HWND NTAPI EtpToolStatusGetTreeNewHandle(
     VOID
     )
@@ -1352,7 +1360,7 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
 //                ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
 //            }
 //
-//            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+//            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 //        }
 //        break;
 //    case WM_COMMAND:

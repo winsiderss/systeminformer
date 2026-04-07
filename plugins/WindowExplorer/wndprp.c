@@ -12,6 +12,7 @@
 
 #include "wndexp.h"
 #include <appresolver.h>
+#include <settings.h>
 #include <workqueue.h>
 #include <symprv.h>
 #include <mapldr.h>
@@ -30,7 +31,6 @@ typedef struct _WINDOW_PROPERTIES_CONTEXT
     HWND ListViewHandle;
     HWND PropsListViewHandle;
     HWND PropStoreListViewHandle;
-    IListView* ListViewClass;
 
     HICON WindowIcon;
     ULONG PropsListCount;
@@ -1510,14 +1510,13 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
     case WM_INITDIALOG:
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_WINDOWINFO);
-            context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
 
             PhSetApplicationWindowIcon(GetParent(hwndDlg));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddIListViewColumn(context->ListViewClass, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
-            PhAddIListViewColumn(context->ListViewClass, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_WINDOWS_PROPERTY_COLUMNS, context->ListViewHandle);
 
@@ -1530,8 +1529,8 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
 
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
-            if (!!PhGetIntegerSetting(L"EnableThemeSupport")) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            if (!!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)) // TODO: Required for compat (dmex)
+                PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
             else
                 PhInitializeWindowTheme(hwndDlg, FALSE);
         }
@@ -1543,11 +1542,6 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             if (context->WindowIcon)
             {
                 DestroyIcon(context->WindowIcon);
-            }
-
-            if (context->ListViewClass)
-            {
-                IListView_Release(context->ListViewClass);
             }
         }
         break;
@@ -1754,7 +1748,7 @@ static INT_PTR CALLBACK WepWindowPropEditDlgProc(
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -1948,7 +1942,7 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
 
             WepRefreshWindowProps(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -2068,7 +2062,7 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
                             {
                                 NTSTATUS status;
 
-                                if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                                if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
                                     hwndDlg,
                                     L"remove",
                                     L"the window property",
@@ -2220,7 +2214,7 @@ INT_PTR CALLBACK WepWindowPropStoreDlgProc(
 
             WepRefreshWindowPropertyStorage(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -2431,7 +2425,7 @@ INT_PTR CALLBACK WepWindowPreviewDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Value");
             PhSetExtendedListView(lvHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
         }
@@ -2577,7 +2571,7 @@ VOID WepQueryWindowAttributes(
                 );
             PhSetListViewSubItem(Context->PropStoreListViewHandle, lvItemIndex, 2, PhGetStringOrEmpty(string));
         }
-        else if (i == WCA_ACCENT_POLICY || i == WCA_PART_COLOR)
+        else if (i == WCA_ACCENT_POLICY || i == WCA_PART_COLOR || i == WCA_SYSTEMBACKDROP_TYPE)
         {
             PhPrintUInt32IX(value, *(PULONG)buffer);
             PhSetListViewSubItem(Context->PropStoreListViewHandle, lvItemIndex, 2, value);
@@ -2690,7 +2684,7 @@ INT_PTR CALLBACK WepWindowAttributeDlgProc(
 
             WepRefreshWindowAttributes(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:

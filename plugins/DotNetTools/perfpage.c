@@ -820,10 +820,10 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             }
             else
             {
-                if (OpenDotNetPublicControlBlock_V2(
+                if (NT_SUCCESS(OpenDotNetPublicControlBlock_V2(
                     context->ProcessItem->ProcessId,
                     &context->BlockTableAddress
-                    ))
+                    )))
                 {
                     context->ControlBlockValid = TRUE;
                 }
@@ -841,7 +841,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                 &context->ProcessesUpdatedCallbackRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:

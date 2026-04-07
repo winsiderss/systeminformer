@@ -56,23 +56,23 @@
 #include "json_util.h"
 #include "printbuf.h"
 
-static int _json_object_to_fd(int fd, struct json_object *obj, int flags, const char *filename);
+static int _json_object_to_fd(int fd, struct json_object *obj, int flags, const unsigned char *filename);
 
-static char _last_err[256] = "";
+static unsigned char _last_err[256] = "";
 
-const char *json_util_get_last_err(void)
+const unsigned char *json_util_get_last_err(void)
 {
     if (_last_err[0] == '\0')
         return NULL;
     return _last_err;
 }
 
-void _json_c_set_last_err(const char *err_fmt, ...)
+void _json_c_set_last_err(const unsigned char *err_fmt, ...)
 {
     va_list ap;
     va_start(ap, err_fmt);
     // Ignore (attempted) overruns from snprintf
-    (void)vsnprintf(_last_err, sizeof(_last_err), err_fmt, ap);
+    (void)vsnprintf((char *)_last_err, sizeof(_last_err), err_fmt, ap);
     va_end(ap);
 }
 
@@ -84,7 +84,7 @@ struct json_object *json_object_from_fd_ex(int fd, int in_depth)
 {
     struct printbuf *pb;
     struct json_object *obj;
-    char buf[JSON_FILE_BUF_SIZE];
+    unsigned char buf[JSON_FILE_BUF_SIZE];
     ssize_t ret;
     int depth = JSON_TOKENER_DEFAULT_DEPTH;
     json_tokener *tok;
@@ -139,7 +139,7 @@ struct json_object *json_object_from_fd_ex(int fd, int in_depth)
     return obj;
 }
 
-struct json_object *json_object_from_file(const char *filename)
+struct json_object *json_object_from_file(const unsigned char *filename)
 {
     struct json_object *obj;
     int fd;
@@ -157,7 +157,7 @@ struct json_object *json_object_from_file(const char *filename)
 
 /* extended "format and write to file" function */
 
-int json_object_to_file_ext(const char *filename, struct json_object *obj, int flags)
+int json_object_to_file_ext(const unsigned char *filename, struct json_object *obj, int flags)
 {
     int fd, ret;
     int saved_errno;
@@ -191,20 +191,20 @@ int json_object_to_fd(int fd, struct json_object *obj, int flags)
 
     return _json_object_to_fd(fd, obj, flags, NULL);
 }
-static int _json_object_to_fd(int fd, struct json_object *obj, int flags, const char *filename)
+static int _json_object_to_fd(int fd, struct json_object *obj, int flags, const unsigned char *filename)
 {
     ssize_t ret;
-    const char *json_str;
+    const unsigned char *json_str;
     size_t wpos, wsize;
 
-    filename = filename ? filename : "(fd)";
+    filename = filename ? filename : (const unsigned char*)"(fd)";
 
     if (!(json_str = json_object_to_json_string_ext(obj, flags)))
     {
         return -1;
     }
 
-    wsize = strlen(json_str);
+    wsize = strlen((const unsigned char *)json_str);
     wpos = 0;
     while (wpos < wsize)
     {
@@ -224,22 +224,22 @@ static int _json_object_to_fd(int fd, struct json_object *obj, int flags, const 
 
 // backwards compatible "format and write to file" function
 
-int json_object_to_file(const char *filename, struct json_object *obj)
+int json_object_to_file(const unsigned char *filename, struct json_object *obj)
 {
     return json_object_to_file_ext(filename, obj, JSON_C_TO_STRING_PLAIN);
 }
 
 // Deprecated json_parse_double function.  See json_tokener_parse_double instead.
-int json_parse_double(const char *buf, double *retval)
+int json_parse_double(const unsigned char *buf, double *retval)
 {
-    char *end;
+    unsigned char *end;
     *retval = strtod(buf, &end);
     return end == buf ? 1 : 0;
 }
 
-int json_parse_int64(const char *buf, int64_t *retval)
+int json_parse_int64(const unsigned char *buf, int64_t *retval)
 {
-    char *end = NULL;
+    unsigned char *end = NULL;
     int64_t val;
 
     errno = 0;
@@ -254,9 +254,9 @@ int json_parse_int64(const char *buf, int64_t *retval)
     return 0;
 }
 
-int json_parse_uint64(const char *buf, uint64_t *retval)
+int json_parse_uint64(const unsigned char *buf, uint64_t *retval)
 {
-    char *end = NULL;
+    unsigned char *end = NULL;
     uint64_t val;
 
     errno = 0;
@@ -265,7 +265,7 @@ int json_parse_uint64(const char *buf, uint64_t *retval)
     if (*buf == '-')
         return 1; /* error: uint cannot be negative */
 
-    val = strtoull(buf, &end, 10);
+    val = strtoull(buf, (char**)&end, 10);
     if (end != buf)
         *retval = val;
     if ((val == 0 && errno != 0) || (end == buf))
@@ -289,7 +289,7 @@ void *rpl_realloc(void *p, size_t n)
 
 #define NELEM(a) (sizeof(a) / sizeof(a[0]))
 /* clang-format off */
-static const char *json_type_name[] = {
+static const unsigned char *json_type_name[] = {
     /* If you change this, be sure to update the enum json_type definition too */
     "null",
     "boolean",
@@ -301,7 +301,7 @@ static const char *json_type_name[] = {
 };
 /* clang-format on */
 
-const char *json_type_to_name(enum json_type o_type)
+const unsigned char *json_type_to_name(enum json_type o_type)
 {
     int o_type_int = (int)o_type;
     if (o_type_int < 0 || o_type_int >= (int)NELEM(json_type_name))

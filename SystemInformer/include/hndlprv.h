@@ -34,6 +34,11 @@ typedef struct _PH_HANDLE_ITEM
     ULONG TypeIndex;
     ULONG FileFlags;
 
+    ULONG HandleCount;
+    ULONG PointerCount;
+    ULONG PagedPoolCharge;
+    ULONG NonPagedPoolCharge;
+
     PPH_STRING TypeName;
     PPH_STRING ObjectName;
     PPH_STRING BestObjectName;
@@ -62,10 +67,7 @@ typedef struct _PH_HANDLE_PROVIDER
     NTSTATUS RunStatus;
 } PH_HANDLE_PROVIDER, *PPH_HANDLE_PROVIDER;
 
-PHAPPAPI
-PPH_HANDLE_ITEM
-NTAPI
-PhCreateHandleItem(
+PPH_HANDLE_ITEM PhCreateHandleItem(
     _In_opt_ PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handle
     );
 // end_phapppub

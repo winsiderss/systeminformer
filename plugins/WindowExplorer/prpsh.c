@@ -251,7 +251,7 @@ VOID PvRefreshChildWindows(
         //    SendMessage(pageHandle, WM_PH_UPDATE_DIALOG, 0, 0);
         //}
 
-        PhEnumChildWindows(propSheetHandle, ULONG_MAX, PvRefreshButtonWindowEnumCallback, NULL);
+        PhEnumChildWindows(propSheetHandle, PvRefreshButtonWindowEnumCallback, NULL);
     }
 }
 

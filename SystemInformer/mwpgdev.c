@@ -12,11 +12,11 @@
 #include <phapp.h>
 #include <devprv.h>
 #include <settings.h>
+#include <phsettings.h>
 
 #include <phplug.h>
 #include <mainwnd.h>
 #include <mainwndp.h>
-
 #include <devguid.h>
 
 static PH_CALLBACK_REGISTRATION PhpDeviceNotifyRegistration = { 0 };
@@ -96,6 +96,7 @@ VOID PhpNotifyForDevice(
     PhDereferenceObject(classification);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhpDeviceProviderCallbackHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -129,7 +130,7 @@ VOID PhMwpInitializeDeviceNotifications(
     VOID
     )
 {
-    if (!PhGetIntegerSetting(L"EnableDeviceNotifySupport")) // EnableDeviceNotificationSupport
+    if (!PhGetIntegerSetting(SETTING_ENABLE_DEVICE_NOTIFY_SUPPORT)) // EnableDeviceNotificationSupport
         return;
 
     if (!PhDeviceProviderInitialization())

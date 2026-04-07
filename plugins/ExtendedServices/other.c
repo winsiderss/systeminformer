@@ -381,7 +381,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -443,7 +443,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                         // Check for duplicates.
                         for (i = 0; i < context->PrivilegeList->Count; i++)
                         {
-                            if (PhEqualString(context->PrivilegeList->Items[i], selectedChoice, FALSE))
+                            if (PhEqualString(PhItemList(context->PrivilegeList, i), selectedChoice, FALSE))
                             {
                                 found = TRUE;
                                 break;
@@ -645,7 +645,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                             for (i = 0; i < context->PrivilegeList->Count; i++)
                             {
-                                PhAppendStringBuilder(&sb, &((PPH_STRING)context->PrivilegeList->Items[i])->sr);
+                                PhAppendStringBuilder(&sb, &((PPH_STRING)PhItemList(context->PrivilegeList, i))->sr);
                                 PhAppendCharStringBuilder(&sb, 0);
                             }
 

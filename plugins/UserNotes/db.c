@@ -13,11 +13,13 @@
 #include "usernotes.h"
 #include <json.h>
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI ObjectDbEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI ObjectDbHashFunction(
     _In_ PVOID Entry
     );
@@ -44,6 +46,7 @@ VOID InitializeDb(
         );
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI ObjectDbEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -55,6 +58,7 @@ BOOLEAN NTAPI ObjectDbEqualFunction(
     return object1->Tag == object2->Tag && PhEqualStringRef(&object1->Key, &object2->Key, FALSE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI ObjectDbHashFunction(
     _In_ PVOID Entry
     )

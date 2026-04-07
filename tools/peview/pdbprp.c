@@ -72,6 +72,7 @@ VOID PvDeleteSymbolTree(
 
     PhDereferenceObject(Context->NodeHashtable);
     PhDereferenceObject(Context->NodeList);
+    PhDereferenceObject(Context->NodeRootList);
 }
 
 struct _PH_TN_FILTER_SUPPORT* GetSymbolListFilterSupport(
@@ -89,14 +90,14 @@ BOOLEAN SymbolNodeHashtableCompareFunction(
     PPV_SYMBOL_NODE node1 = *(PPV_SYMBOL_NODE *)Entry1;
     PPV_SYMBOL_NODE node2 = *(PPV_SYMBOL_NODE *)Entry2;
 
-    return PhEqualString(node1->Name, node2->Name, TRUE);
+    return node1->UniqueId == node2->UniqueId;
 }
 
 ULONG SymbolNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return PhHashStringRef(&(*(PPV_SYMBOL_NODE*)Entry)->Name->sr, TRUE);
+    return PhHashInt64((ULONG_PTR)(*(PPV_SYMBOL_NODE*)Entry)->UniqueId);
 }
 
 VOID PvSymbolAddTreeNode(
@@ -109,6 +110,20 @@ VOID PvSymbolAddTreeNode(
     memset(Entry->TextCache, 0, sizeof(PH_STRINGREF) * TREE_COLUMN_ITEM_MAXIMUM);
     Entry->Node.TextCache = Entry->TextCache;
     Entry->Node.TextCacheSize = TREE_COLUMN_ITEM_MAXIMUM;
+
+    if (!Entry->Parent)
+    {
+        Entry->Node.Expanded = TRUE;
+        PhAddItemList(Context->NodeRootList, Entry);
+    }
+
+    if (Entry->Children)
+    {
+        for (ULONG i = 0; i < Entry->Children->Count; i++)
+        {
+            PvSymbolAddTreeNode(Context, Entry->Children->Items[i]);
+        }
+    }
 
     if (PhAddEntryHashtable(Context->NodeHashtable, &Entry)) // HACK
     {
@@ -126,21 +141,15 @@ PPV_SYMBOL_NODE PvFindSymbolNode(
     _In_ PPH_STRING Name
     )
 {
-    PV_SYMBOL_NODE lookupSymbolNode;
-    PPV_SYMBOL_NODE lookupSymbolNodePtr = &lookupSymbolNode;
-    PPV_SYMBOL_NODE *threadNode;
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPV_SYMBOL_NODE node = Context->NodeList->Items[i];
 
-    lookupSymbolNode.Name = Name;
+        if (PhEqualString(node->Name, Name, TRUE))
+            return node;
+    }
 
-    threadNode = (PPV_SYMBOL_NODE *)PhFindEntryHashtable(
-        Context->NodeHashtable,
-        &lookupSymbolNodePtr
-        );
-
-    if (threadNode)
-        return *threadNode;
-    else
-        return NULL;
+    return NULL;
 }
 
 VOID PvRemoveSymbolNode(
@@ -315,7 +324,25 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
             node = (PPV_SYMBOL_NODE)getChildren->Node;
 
-            if (!getChildren->Node)
+            if (context->TreeNewSortOrder == NoSortOrder)
+            {
+                if (!node)
+                {
+                    getChildren->Children = (PPH_TREENEW_NODE *)context->NodeRootList->Items;
+                    getChildren->NumberOfChildren = context->NodeRootList->Count;
+                }
+                else if (node->Children)
+                {
+                    getChildren->Children = (PPH_TREENEW_NODE *)node->Children->Items;
+                    getChildren->NumberOfChildren = node->Children->Count;
+                }
+                else
+                {
+                    getChildren->Children = NULL;
+                    getChildren->NumberOfChildren = 0;
+                }
+            }
+            else if (!getChildren->Node)
             {
                 static PVOID sortFunctions[] =
                 {
@@ -351,7 +378,10 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
             node = (PPV_SYMBOL_NODE)isLeaf->Node;
 
-            isLeaf->IsLeaf = TRUE;
+            if (context->TreeNewSortOrder == NoSortOrder)
+                isLeaf->IsLeaf = !(node->Children && node->Children->Count);
+            else
+                isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
     case TreeNewGetCellText:
@@ -533,8 +563,8 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
-            data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            data.DefaultSortOrder = NoSortOrder;
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
@@ -556,6 +586,7 @@ VOID PvSymbolClearTree(
 
     PhClearHashtable(Context->NodeHashtable);
     PhClearList(Context->NodeList);
+    PhClearList(Context->NodeRootList);
 }
 
 PPV_SYMBOL_NODE PvGetSelectedSymbolNode(
@@ -615,6 +646,7 @@ VOID PvInitializeSymbolTree(
         100
         );
     Context->NodeList = PhCreateList(100);
+    Context->NodeRootList = PhCreateList(16);
 
     Context->ParentWindowHandle = ParentWindowHandle;
     Context->TreeNewHandle = TreeNewHandle;
@@ -632,11 +664,15 @@ VOID PvInitializeSymbolTree(
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_SECTION, TRUE, L"Section", 40, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_SECTION, 0, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
-    TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);
+    TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_INDEX, NoSortOrder);
+    TreeNew_SetTriState(TreeNewHandle, TRUE);
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, TREE_COLUMN_ITEM_MAXIMUM, PvSymbolsTreeNewPostSortFunction);
 
     PvLoadSettingsSymbolsList(Context);
+    Context->TreeNewSortColumn = TREE_COLUMN_ITEM_INDEX;
+    Context->TreeNewSortOrder = NoSortOrder;
+    TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_INDEX, NoSortOrder);
 
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
 }
@@ -759,7 +795,7 @@ VOID PvAddPendingSymbolNodes(
     ULONG i;
     BOOLEAN needsFullUpdate = FALSE;
 
-    SendMessage(Context->WindowHandle, WM_PV_SEARCH_SETREDRAW, FALSE, 0);
+    //TreeNew_SetRedraw(Context->WindowHandle, FALSE);
 
     PhAcquireQueuedLockExclusive(&SearchResultsLock);
 
@@ -772,9 +808,9 @@ VOID PvAddPendingSymbolNodes(
 
     PhReleaseQueuedLockExclusive(&SearchResultsLock);
 
-    if (needsFullUpdate)
+    //if (needsFullUpdate)
         SendMessage(Context->WindowHandle, WM_PV_SEARCH_NODESSTRUCTURED, 0, 0);
-    SendMessage(Context->WindowHandle, WM_PV_SEARCH_SETREDRAW, TRUE, 0);
+   // TreeNew_SetRedraw(Context->WindowHandle, TRUE);
 }
 
 HANDLE PvSymbolGetGlobalTimerQueue(
@@ -945,7 +981,8 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
                     PPH_EMENU_ITEM highlightReadMenuItem;
                     PPH_EMENU_ITEM selectedItem;
 
-                    GetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect);
+                    if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect))
+                        break;
 
                     writableMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIDE_WRITE, L"Hide writable", NULL, NULL);
                     executableMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIDE_EXECUTE, L"Hide executable", NULL, NULL);
@@ -1081,11 +1118,6 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
 
                 PhDestroyEMenu(menu);
             }
-        }
-        break;
-    case WM_PV_SEARCH_SETREDRAW:
-        {
-            TreeNew_SetRedraw(context->TreeNewHandle, wParam);
         }
         break;
     case WM_PV_SEARCH_NODESSTRUCTURED:

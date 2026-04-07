@@ -402,7 +402,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
 
                 GetClientRect(hwnd, &rect);
 
-                if (!PhPtInRect(&rect, cursorPos))
+                if (!PhPtInRect(&rect, &cursorPos))
                 {
                     if (cursorPos.y < 0)
                     {
@@ -1404,7 +1404,7 @@ VOID PhpHexEditRepositionCaret(
 
     GetClientRect(hwnd, &rect);
 
-    if (PhPtInRect(&rect, Context->EditPosition))
+    if (PhPtInRect(&rect, &Context->EditPosition))
     {
         SetCaretPos(Context->EditPosition.x, Context->EditPosition.y);
         ShowCaret(hwnd);

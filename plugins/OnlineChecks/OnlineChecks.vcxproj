@@ -66,8 +66,9 @@
     <ClCompile Include="page2.c" />
     <ClCompile Include="page3.c" />
     <ClCompile Include="page4.c" />
+    <ClCompile Include="scan.c" />
     <ClCompile Include="upload.c" />
-    <ClCompile Include="virustotal.c" />
+    <ClCompile Include="api.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="onlnchk.h" />

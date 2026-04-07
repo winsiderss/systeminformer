@@ -115,7 +115,7 @@ _Success_(return)
 BOOLEAN
 PhMipOnCtlColorXxx(
     _In_ ULONG Message,
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ HDC hdc,
     _Out_ HBRUSH *Brush
     );
@@ -165,6 +165,7 @@ VOID PhMipInitializeParameters(
     VOID
     );
 
+_Function_class_(PH_MINIINFO_CREATE_SECTION)
 PPH_MINIINFO_SECTION PhMipCreateSection(
     _In_ PPH_MINIINFO_SECTION Template
     );
@@ -173,6 +174,7 @@ VOID PhMipDestroySection(
     _In_ PPH_MINIINFO_SECTION Section
     );
 
+_Function_class_(PH_MINIINFO_FIND_SECTION)
 PPH_MINIINFO_SECTION PhMipFindSection(
     _In_ PPH_STRINGREF Name
     );
@@ -234,7 +236,7 @@ VOID PhMipShowOptionsMenu(
     );
 
 LRESULT CALLBACK PhMipSectionControlHookWndProc(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
@@ -304,7 +306,7 @@ VOID PhMipClearListSection(
     );
 
 LONG PhMipCalculateRowHeight(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 PPH_MIP_GROUP_NODE PhMipAddGroupNode(
@@ -317,7 +319,7 @@ VOID PhMipDestroyGroupNode(
     );
 
 BOOLEAN PhMipListSectionTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2,

@@ -12,12 +12,11 @@
 
 #include <phapp.h>
 #include <emenu.h>
-
 #include <mainwnd.h>
 #include <memsrch.h>
 #include <procprv.h>
 #include <settings.h>
-
+#include <phsettings.h>
 #include <thirdparty.h>
 
 #define FILTER_CONTAINS 1
@@ -29,8 +28,11 @@ typedef struct _MEMORY_RESULTS_CONTEXT
 {
     HANDLE ProcessId;
     PPH_LIST Results;
-
+    HWND ListViewHandle;
     PH_LAYOUT_MANAGER LayoutManager;
+
+    ULONG SortColumn;
+    PH_SORT_ORDER SortOrder;
 } MEMORY_RESULTS_CONTEXT, *PMEMORY_RESULTS_CONTEXT;
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
@@ -96,7 +98,7 @@ static VOID FilterResults(
         PH_CHOICE_DIALOG_USER_CHOICE,
         &selectedChoice,
         NULL,
-        L"MemFilterChoices"
+        SETTING_MEM_FILTER_CHOICES
         ))
     {
         PPH_LIST newResults = NULL;
@@ -209,6 +211,26 @@ static VOID FilterResults(
     PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 }
 
+#define PHP_MAKE_MEMORY_COMPARE_FUNC(Name, Expression) \
+LONG __cdecl PhpMemoryResults##Name##CompareFunction( \
+    _In_ void* Context, \
+    _In_ void const* Item1, \
+    _In_ void const* Item2 \
+    ) \
+{ \
+    PMEMORY_RESULTS_CONTEXT context = Context; \
+    const PH_MEMORY_RESULT* item1 = *(const PH_MEMORY_RESULT**)Item1; \
+    const PH_MEMORY_RESULT* item2 = *(const PH_MEMORY_RESULT**)Item2; \
+    LONG res = (Expression); \
+    if (context->SortOrder == DescendingSortOrder) res = -res; \
+    return res; \
+}
+
+PHP_MAKE_MEMORY_COMPARE_FUNC(Address, uintptrcmp((ULONG_PTR)item1->Address, (ULONG_PTR)item2->Address))
+PHP_MAKE_MEMORY_COMPARE_FUNC(BaseAddress, uintptrcmp((ULONG_PTR)item1->BaseAddress, (ULONG_PTR)item2->BaseAddress))
+PHP_MAKE_MEMORY_COMPARE_FUNC(Length, uintptrcmp((ULONG_PTR)item1->Length, (ULONG_PTR)item2->Length))
+PHP_MAKE_MEMORY_COMPARE_FUNC(Item, PhCompareStringRef(&item1->Display, &item2->Display, FALSE))
+
 INT_PTR CALLBACK PhpMemoryResultsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -252,27 +274,28 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 }
             }
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, FALSE, TRUE);
+            context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Address");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Base Address");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Length");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 200, L"Result");
+            PhSetExtendedListView(lvHandle);
 
-            PhLoadListViewColumnsFromSetting(L"MemResultsListViewColumns", lvHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_MEM_RESULTS_LIST_VIEW_COLUMNS, lvHandle);
+
+            context->SortColumn = 0;
+            context->SortOrder = AscendingSortOrder;
+            ExtendedListView_SetSort(lvHandle, 0, AscendingSortOrder);
+            qsort_s(context->Results->Items, context->Results->Count, sizeof(PVOID), PhpMemoryResultsAddressCompareFunction, context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL,
-                PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL,
-                PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL,
-                PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL,
-                PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILTER), NULL,
-                PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILTER), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             if (MinimumSize.left == -1)
             {
@@ -297,10 +320,10 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 RECT rect;
                 LONG dpiValue;
 
-                windowRectangle.Position = PhGetIntegerPairSetting(L"MemResultsPosition");
+                windowRectangle.Position = PhGetIntegerPairSetting(SETTING_MEM_RESULTS_POSITION);
                 PhRectangleToRect(&rect, &windowRectangle);
                 dpiValue = PhGetMonitorDpi(NULL, &rect);
-                windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemResultsSize", TRUE, dpiValue)->Pair;
+                windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_MEM_RESULTS_SIZE, TRUE, dpiValue)->Pair;
                 PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                 MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
@@ -310,8 +333,8 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 windowRectangle.Left += 20;
                 windowRectangle.Top += 20;
 
-                PhSetIntegerPairSetting(L"MemResultsPosition", windowRectangle.Position);
-                PhSetScalableIntegerPairSetting2(L"MemResultsSize", windowRectangle.Size, dpiValue);
+                PhSetIntegerPairSetting(SETTING_MEM_RESULTS_POSITION, windowRectangle.Position);
+                PhSetScalableIntegerPairSetting2(SETTING_MEM_RESULTS_SIZE, windowRectangle.Size, dpiValue);
             }
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
@@ -319,8 +342,8 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveWindowPlacementToSetting(L"MemResultsPosition", L"MemResultsSize", hwndDlg);
-            PhSaveListViewColumnsToSetting(L"MemResultsListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+            PhSaveWindowPlacementToSetting(SETTING_MEM_RESULTS_POSITION, SETTING_MEM_RESULTS_SIZE, hwndDlg);
+            PhSaveListViewColumnsToSetting(SETTING_MEM_RESULTS_LIST_VIEW_COLUMNS, context->ListViewHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
             PhUnregisterDialog(hwndDlg);
@@ -341,28 +364,26 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 break;
             case IDC_COPY:
                 {
-                    HWND lvHandle;
                     PPH_STRING string;
                     ULONG selectedCount;
 
-                    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-                    selectedCount = ListView_GetSelectedCount(lvHandle);
+                    selectedCount = ListView_GetSelectedCount(context->ListViewHandle);
 
                     if (selectedCount == 0)
                     {
                         // User didn't select anything, so copy all items.
-                        string = PhpGetStringForSelectedResults(lvHandle, context->Results, TRUE);
-                        PhSetStateAllListViewItems(lvHandle, LVIS_SELECTED, LVIS_SELECTED);
+                        string = PhpGetStringForSelectedResults(context->ListViewHandle, context->Results, TRUE);
+                        PhSetStateAllListViewItems(context->ListViewHandle, LVIS_SELECTED, LVIS_SELECTED);
                     }
                     else
                     {
-                        string = PhpGetStringForSelectedResults(lvHandle, context->Results, FALSE);
+                        string = PhpGetStringForSelectedResults(context->ListViewHandle, context->Results, FALSE);
                     }
 
                     PhSetClipboardString(hwndDlg, &string->sr);
                     PhDereferenceObject(string);
 
-                    PhSetDialogFocus(hwndDlg, lvHandle);
+                    PhSetDialogFocus(hwndDlg, context->ListViewHandle);
                 }
                 break;
             case IDC_SAVE:
@@ -375,7 +396,6 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                     PVOID fileDialog;
 
                     fileDialog = PhCreateSaveFileDialog();
-
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
                     PhSetFileDialogFileName(fileDialog, L"Search results.txt");
 
@@ -400,7 +420,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                             PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
                             PhWritePhTextHeader(fileStream);
 
-                            string = PhpGetStringForSelectedResults(GetDlgItem(hwndDlg, IDC_LIST), context->Results, TRUE);
+                            string = PhpGetStringForSelectedResults(context->ListViewHandle, context->Results, TRUE);
                             PhWriteStringAsUtf8FileStreamEx(fileStream, string->Buffer, string->Length);
                             PhDereferenceObject(string);
 
@@ -469,10 +489,8 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
-            HWND lvHandle;
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhHandleListViewNotifyForCopy(lParam, lvHandle);
+            PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
 
             switch (header->code)
             {
@@ -480,7 +498,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 {
                     NMLVDISPINFO *dispInfo = (NMLVDISPINFO *)header;
 
-                    if (dispInfo->item.mask & LVIF_TEXT)
+                    if (FlagOn(dispInfo->item.mask, LVIF_TEXT))
                     {
                         PPH_MEMORY_RESULT result = context->Results->Items[dispInfo->item.iItem];
 
@@ -526,12 +544,14 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                             }
                             break;
                         case 3:
-                            wcsncpy_s(
-                                dispInfo->item.pszText,
-                                dispInfo->item.cchTextMax,
-                                result->Display.Buffer,
-                                _TRUNCATE
-                                );
+                            {
+                                wcsncpy_s(
+                                    dispInfo->item.pszText,
+                                    dispInfo->item.cchTextMax,
+                                    result->Display.Buffer,
+                                    _TRUNCATE
+                                    );
+                            }
                             break;
                         }
                     }
@@ -539,11 +559,11 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 break;
             case NM_DBLCLK:
                 {
-                    if (header->hwndFrom == lvHandle)
+                    if (header->hwndFrom == context->ListViewHandle)
                     {
                         INT index;
 
-                        if ((index = PhFindListViewItemByFlags(lvHandle, -1, LVNI_SELECTED)) != -1)
+                        if ((index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED)) != INT_ERROR)
                         {
                             NTSTATUS status;
                             PPH_MEMORY_RESULT result = context->Results->Items[index];
@@ -580,14 +600,16 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                             }
 
                             if (!NT_SUCCESS(status))
+                            {
                                 PhShowStatus(hwndDlg, L"Unable to edit memory", status, 0);
+                            }
                         }
                     }
                 }
                 break;
             case NM_RCLICK:
                 {
-                    if (header->hwndFrom == lvHandle)
+                    if (header->hwndFrom == context->ListViewHandle)
                     {
                         POINT position;
                         PPH_EMENU menu;
@@ -597,10 +619,10 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                             break;
 
                         menu = PhCreateEMenu();
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MEMORY_READWRITEMEMORY, L"Read/Write memory", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MEMORY_READWRITEMEMORY, L"&Read/Write memory", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
-                        PhInsertCopyListViewEMenuItem(menu, IDC_COPY, lvHandle);
+                        PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
                         selectedItem = PhShowEMenu(
                             menu,
@@ -621,7 +643,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                     {
                                         INT index;
 
-                                        if ((index = PhFindListViewItemByFlags(lvHandle, -1, LVNI_SELECTED)) != -1)
+                                        if ((index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED)) != INT_ERROR)
                                         {
                                             NTSTATUS status;
                                             PPH_MEMORY_RESULT result = context->Results->Items[index];
@@ -658,7 +680,9 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                             }
 
                                             if (!NT_SUCCESS(status))
+                                            {
                                                 PhShowStatus(hwndDlg, L"Unable to edit memory", status, 0);
+                                            }
                                         }
                                     }
                                     break;
@@ -667,23 +691,23 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                         PPH_STRING string;
                                         ULONG selectedCount;
 
-                                        selectedCount = ListView_GetSelectedCount(lvHandle);
+                                        selectedCount = ListView_GetSelectedCount(context->ListViewHandle);
 
                                         if (selectedCount == 0)
                                         {
                                             // User didn't select anything, so copy all items.
-                                            string = PhpGetStringForSelectedResults(lvHandle, context->Results, TRUE);
-                                            PhSetStateAllListViewItems(lvHandle, LVIS_SELECTED, LVIS_SELECTED);
+                                            string = PhpGetStringForSelectedResults(context->ListViewHandle, context->Results, TRUE);
+                                            PhSetStateAllListViewItems(context->ListViewHandle, LVIS_SELECTED, LVIS_SELECTED);
                                         }
                                         else
                                         {
-                                            string = PhpGetStringForSelectedResults(lvHandle, context->Results, FALSE);
+                                            string = PhpGetStringForSelectedResults(context->ListViewHandle, context->Results, FALSE);
                                         }
 
                                         PhSetClipboardString(hwndDlg, &string->sr);
                                         PhDereferenceObject(string);
 
-                                        PhSetDialogFocus(hwndDlg, lvHandle);
+                                        PhSetDialogFocus(hwndDlg, context->ListViewHandle);
                                     }
                                     break;
                                 }
@@ -692,6 +716,45 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
                         PhDestroyEMenu(menu);
                     }
+                }
+                break;
+            case LVN_COLUMNCLICK:
+                {
+                    LPNMLISTVIEW listView = (LPNMLISTVIEW)lParam;
+                    _CoreCrtSecureSearchSortCompareFunction sortFunction;
+
+                    // Note: ListView_SortItems does not support virtual mode,
+                    // sort the underlying data and redraw the listview. (dmex)
+
+                    if (context->SortColumn == listView->iSubItem)
+                    {
+                        if (context->SortOrder == AscendingSortOrder)
+                            context->SortOrder = DescendingSortOrder;
+                        else
+                            context->SortOrder = AscendingSortOrder;
+                    }
+                    else
+                    {
+                        context->SortColumn = listView->iSubItem;
+                        context->SortOrder = AscendingSortOrder;
+                    }
+
+                    switch (context->SortColumn)
+                    {
+                    case 0: sortFunction = PhpMemoryResultsAddressCompareFunction; break;
+                    case 1: sortFunction = PhpMemoryResultsBaseAddressCompareFunction; break;
+                    case 2: sortFunction = PhpMemoryResultsLengthCompareFunction; break;
+                    case 3: sortFunction = PhpMemoryResultsItemCompareFunction; break;
+                    default: return TRUE;
+                    }
+
+                    qsort_s(context->Results->Items, context->Results->Count, sizeof(PVOID), sortFunction, context);
+
+                    ExtendedListView_SetSort(context->ListViewHandle, context->SortColumn, context->SortOrder);
+                    //ListView_RedrawItems(context->ListViewHandle, 0, context->Results->Count - 1);
+                    PhRedrawListViewItems(context->ListViewHandle);
+
+                    return TRUE;
                 }
                 break;
             }

@@ -13,6 +13,7 @@
 #include "exttools.h"
 #include <netfw.h>
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG EtpProcessTreeNewSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -21,6 +22,7 @@ LONG EtpProcessTreeNewSortFunction(
     _In_ PVOID Context
     );
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG EtpNetworkTreeNewSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -963,7 +965,7 @@ FORCEINLINE LONG EtpSortAggregateIfNeeded2(
         FIELD_OFFSET(ET_PROCESS_BLOCK, Field2)                                 \
         )
 
-
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG EtpProcessTreeNewSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -1246,6 +1248,7 @@ VOID EtNetworkTreeNewMessage(
     }
 }
 
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
 LONG EtpNetworkTreeNewSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,

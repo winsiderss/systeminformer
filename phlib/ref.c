@@ -118,7 +118,7 @@ _May_raise_ PVOID PhCreateObject(
     }
 
     PhAcquireQueuedLockExclusive(&PhDbgObjectListLock);
-    InsertTailList(&PhDbgObjectListHead, &objectHeader->ObjectListEntry);
+    InsertTailListNoFence(&PhDbgObjectListHead, &objectHeader->ObjectListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
 
     {
@@ -177,7 +177,7 @@ _May_raise_ PVOID PhReferenceObjectEx(
     PPH_OBJECT_HEADER objectHeader;
     LONG oldRefCount;
 
-    assert(!(RefCount < 0));
+    assert(RefCount >= 0);
 
     objectHeader = PhObjectToObjectHeader(Object);
     // Increase the reference count.
@@ -187,18 +187,22 @@ _May_raise_ PVOID PhReferenceObjectEx(
 }
 
 /**
- * Attempts to reference an object and fails if it is being destroyed.
+ * Unsafely attempts to reference an object and fails if it is being destroyed.
  *
  * \param Object The object to reference if it is not being deleted.
  *
  * \return The object itself if the object was referenced, NULL if it was being deleted and was not
  * referenced.
  *
- * \remarks This function is useful if a reference to an object is held, protected by a mutex, and
+ * \remarks This function is unsafe because it is the responsibility of the caller to ensure the
+ * memory pointed to by \a Object remains valid outside of the object's reference counting. The
+ * caller must property synchronize with the delete procedure of the object's type to avoid
+ * use-after-free bugs. The function itself provides you no safety or guarantees without correct
+ * usage. This function is useful if a reference to an object is held, protected by a mutex, and
  * the delete procedure of the object's type attempts to acquire the mutex. If this function is
  * called while the mutex is owned, you can avoid referencing an object that is being destroyed.
  */
-PVOID PhReferenceObjectSafe(
+PVOID PhReferenceObjectUnsafe(
     _In_ PVOID Object
     )
 {
@@ -220,7 +224,7 @@ PVOID PhReferenceObjectSafe(
  * \param Object A pointer to the object to dereference.
  */
 VOID PhDereferenceObject(
-    _In_ PVOID Object
+    _In_ _Post_invalid_ PVOID Object
     )
 {
     PPH_OBJECT_HEADER objectHeader;
@@ -230,7 +234,6 @@ VOID PhDereferenceObject(
     // Decrement the reference count.
     newRefCount = _InterlockedDecrement(&objectHeader->RefCount);
     ASSUME_ASSERT(newRefCount >= 0);
-    ASSUME_ASSERT(!(newRefCount < 0));
 
     // Free the object if it has 0 references.
     if (newRefCount == 0)
@@ -246,7 +249,7 @@ VOID PhDereferenceObject(
  * \param Object A pointer to the object to dereference.
  */
 VOID PhDereferenceObjectDeferDelete(
-    _In_ PVOID Object
+    _In_ _Post_invalid_ PVOID Object
     )
 {
     PhDereferenceObjectEx(Object, 1, TRUE);
@@ -489,7 +492,7 @@ VOID PhpFreeObject(
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgObjectListLock);
-    RemoveEntryList(&ObjectHeader->ObjectListEntry);
+    RemoveEntryListNoFence(&ObjectHeader->ObjectListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
 #endif
 
@@ -659,7 +662,7 @@ VOID PhInitializeAutoPool(
  * \param AutoPool The auto-dereference pool to delete.
  */
 _May_raise_ VOID PhDeleteAutoPool(
-    _Inout_ PPH_AUTO_POOL AutoPool
+    _In_ _Post_invalid_ PPH_AUTO_POOL AutoPool
     )
 {
     PhDrainAutoPool(AutoPool);

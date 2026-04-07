@@ -25,6 +25,7 @@
 #include <mapldr.h>
 #include <secwmi.h>
 #include <settings.h>
+#include <phsettings.h>
 #include <svcsup.h>
 
 #include <apiimport.h>
@@ -46,6 +47,17 @@ static volatile LONG PhSvcReferenceCount = 0;
 static PH_PHSVC_MODE PhSvcCurrentMode;
 static PH_QUEUED_LOCK PhSvcStartLock = PH_QUEUED_LOCK_INIT;
 
+/**
+ * Callback used by elevation Task Dialogs to mark the primary action button
+ * as requiring elevation when the dialog is constructed.
+ *
+ * \param WindowHandle The handle to the task dialog window.
+ * \param Notification The Task Dialog notification code (e.g. TDN_DIALOG_CONSTRUCTED).
+ * \param wParam Notification-specific word parameter.
+ * \param lParam Notification-specific long parameter.
+ * \param Context Callback context (passed through lpCallbackData).
+ * \return HRESULT S_OK.
+ */
 HRESULT CALLBACK PhpElevateActionCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT Notification,
@@ -64,6 +76,15 @@ HRESULT CALLBACK PhpElevateActionCallbackProc(
     return S_OK;
 }
 
+/**
+ * Display a Task Dialog asking the user to continue with an elevated action.
+ *
+ * \param WindowHandle Parent window for the dialog.
+ * \param Message Main instruction text describing the operation requiring elevation.
+ * \param Context Optional callback context passed to the dialog callback.
+ * \param Button Receives the ID of the button pressed by the user when the dialog returns.
+ * \return BOOLEAN TRUE if the dialog was shown and a button value was returned, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhpShowElevatePrompt(
     _In_ HWND WindowHandle,
@@ -124,7 +145,6 @@ BOOLEAN PhpShowElevatePrompt(
  * \param WindowHandle The window to display user interface components on.
  * \param Connected A variable which receives TRUE if the elevated
  * action succeeded or FALSE if the action failed.
- *
  * \return TRUE if the user was prompted for elevation, otherwise
  * FALSE, in which case you need to show your own error message.
  */
@@ -141,7 +161,7 @@ BOOLEAN PhpElevationLevelAndConnectToPhSvc(
     if (PhGetOwnTokenAttributes().Elevated)
         return FALSE;
 
-    elevationLevel = PhGetIntegerSetting(L"ElevationLevel");
+    elevationLevel = PhGetIntegerSetting(SETTING_ELEVATION_LEVEL);
 
     if (elevationLevel == NeverElevateAction)
         return FALSE;
@@ -202,7 +222,7 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
     if (PhGetOwnTokenAttributes().Elevated)
         return FALSE;
 
-    elevationLevel = PhGetIntegerSetting(L"ElevationLevel");
+    elevationLevel = PhGetIntegerSetting(SETTING_ELEVATION_LEVEL);
 
     if (elevationLevel == NeverElevateAction)
         return FALSE;
@@ -250,6 +270,13 @@ BOOLEAN PhUiConnectToPhSvc(
     return PhUiConnectToPhSvcEx(WindowHandle, ElevatedPhSvcMode, ConnectOnly);
 }
 
+/**
+ * Get the LPC/ALPC port name for the phsvc instance corresponding to the requested mode.
+ *
+ * \param Mode The phsvc mode for which the port name is required.
+ * \param PortName Receives the UNICODE_STRING for the port name.
+ * \note Raises STATUS_INVALID_PARAMETER for unknown modes.
+ */
 VOID PhpGetPhSvcPortName(
     _In_ PH_PHSVC_MODE Mode,
     _Out_ PUNICODE_STRING PortName
@@ -272,7 +299,14 @@ VOID PhpGetPhSvcPortName(
     }
 }
 
-BOOLEAN PhpStartPhSvcProcess(
+/**
+ * Attempt to start the phsvc helper process for the specified mode.
+ *
+ * \param WindowHandle Optional parent window for elevation UI created by ShellExecute.
+ * \param Mode The phsvc mode to start (ElevatedPhSvcMode or Wow64PhSvcMode).
+ * \return BOOLEAN TRUE on success (an attempt to start phsvc was made and succeeded), FALSE otherwise.
+ */
+NTSTATUS PhpStartPhSvcProcess(
     _In_opt_ HWND WindowHandle,
     _In_ PH_PHSVC_MODE Mode
     )
@@ -280,19 +314,22 @@ BOOLEAN PhpStartPhSvcProcess(
     switch (Mode)
     {
     case ElevatedPhSvcMode:
-        if (NT_SUCCESS(PhShellProcessHacker(
-            WindowHandle,
-            L"-phsvc",
-            SW_HIDE,
-            PH_SHELL_EXECUTE_ADMIN,
-            0,
-            0,
-            NULL
-            )))
         {
-            return TRUE;
-        }
+            NTSTATUS status;
 
+            status = PhShellProcessHacker(
+                WindowHandle,
+                L"-phsvc",
+                SW_HIDE,
+                PH_SHELL_EXECUTE_ADMIN,
+                0,
+                0,
+                NULL
+                );
+
+            if (NT_SUCCESS(status))
+                return status;
+        }
         break;
     case Wow64PhSvcMode:
         {
@@ -305,13 +342,14 @@ BOOLEAN PhpStartPhSvcProcess(
 #endif
             };
             ULONG i;
+            NTSTATUS status;
             PPH_STRING applicationDirectory;
             PPH_STRING applicationFileName;
 
             if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
-                return FALSE;
+                return STATUS_INSUFFICIENT_RESOURCES;
             if (!(applicationFileName = PhGetApplicationFileNameWin32()))
-                return FALSE;
+                return STATUS_INSUFFICIENT_RESOURCES;
 
             PhMoveReference(&applicationFileName, PhGetBaseName(applicationFileName));
 
@@ -333,7 +371,7 @@ BOOLEAN PhpStartPhSvcProcess(
 
                 if (PhDoesFileExistWin32(PhGetString(fileName)))
                 {
-                    if (NT_SUCCESS(PhShellProcessHackerEx(
+                    status = PhShellProcessHackerEx(
                         WindowHandle,
                         PhGetString(fileName),
                         L"-phsvc",
@@ -342,12 +380,14 @@ BOOLEAN PhpStartPhSvcProcess(
                         0,
                         0,
                         NULL
-                        )))
+                        );
+
+                    if (NT_SUCCESS(status))
                     {
                         PhDereferenceObject(fileName);
                         PhDereferenceObject(applicationFileName);
                         PhDereferenceObject(applicationDirectory);
-                        return TRUE;
+                        return status;
                     }
                 }
 
@@ -360,7 +400,7 @@ BOOLEAN PhpStartPhSvcProcess(
         break;
     }
 
-    return FALSE;
+    return STATUS_UNSUCCESSFUL;
 }
 
 /**
@@ -398,7 +438,7 @@ BOOLEAN PhUiConnectToPhSvcEx(
     {
         PhAcquireQueuedLockExclusive(&PhSvcStartLock);
 
-        if (_InterlockedExchange(&PhSvcReferenceCount, 0) == 0)
+        if (_InterlockedCompareExchange(&PhSvcReferenceCount, 0, 0) == 0)
         {
             started = FALSE;
             PhpGetPhSvcPortName(Mode, &portName);
@@ -416,12 +456,13 @@ BOOLEAN PhUiConnectToPhSvcEx(
             {
                 // Prompt for elevation, and then try to connect to the server.
 
-                if (PhpStartPhSvcProcess(WindowHandle, Mode))
-                    started = TRUE;
+                status = PhpStartPhSvcProcess(WindowHandle, Mode);
 
-                if (started)
+                if (NT_SUCCESS(status))
                 {
                     ULONG attempts = 10;
+
+                    started = TRUE;
 
                     // Try to connect several times because the server may take
                     // a while to initialize.
@@ -480,6 +521,12 @@ VOID PhUiDisconnectFromPhSvc(
     PhReleaseQueuedLockExclusive(&PhSvcStartLock);
 }
 
+/**
+ * Locks the current workstation.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \return BOOLEAN TRUE on success, FALSE on failure (and an error UI is shown).
+ */
 BOOLEAN PhUiLockComputer(
     _In_ HWND WindowHandle
     )
@@ -492,6 +539,12 @@ BOOLEAN PhUiLockComputer(
     return FALSE;
 }
 
+/**
+ * Log the current user off.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \return BOOLEAN TRUE on success, FALSE on failure (and an error UI is shown).
+ */
 BOOLEAN PhUiLogoffComputer(
     _In_ HWND WindowHandle
     )
@@ -499,11 +552,17 @@ BOOLEAN PhUiLogoffComputer(
     if (ExitWindowsEx(EWX_LOGOFF, 0))
         return TRUE;
     else
-        PhShowStatus(WindowHandle, L"Unable to log off the computer.", 0, GetLastError());
+        PhShowStatus(WindowHandle, L"Unable to log off the computer.", 0, PhGetLastError());
 
     return FALSE;
 }
 
+/**
+ * Put the system into sleep (standby) state.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \return BOOLEAN TRUE on success, FALSE on failure (and an error UI is shown).
+ */
 BOOLEAN PhUiSleepComputer(
     _In_ HWND WindowHandle
     )
@@ -523,6 +582,12 @@ BOOLEAN PhUiSleepComputer(
     return FALSE;
 }
 
+/**
+ * Put the system into hibernate state.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \return BOOLEAN TRUE on success, FALSE on failure (and an error UI is shown).
+ */
 BOOLEAN PhUiHibernateComputer(
     _In_ HWND WindowHandle
     )
@@ -542,6 +607,14 @@ BOOLEAN PhUiHibernateComputer(
     return FALSE;
 }
 
+/**
+ * Restart the computer using the specified power action type.
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Action The type of restart to perform (PH_POWERACTION_TYPE_*).
+ * \param Flags Additional flags passed to PhInitiateShutdown for Win32 restart.
+ * \return BOOLEAN TRUE if the restart action was initiated, FALSE otherwise.
+ */
 BOOLEAN PhUiRestartComputer(
     _In_ HWND WindowHandle,
     _In_ PH_POWERACTION_TYPE Action,
@@ -552,7 +625,7 @@ BOOLEAN PhUiRestartComputer(
     {
     case PH_POWERACTION_TYPE_WIN32:
         {
-            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+            if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                 WindowHandle,
                 L"restart",
                 L"the computer",
@@ -579,7 +652,7 @@ BOOLEAN PhUiRestartComputer(
             PPH_STRING messageText;
 
             messageText = PhaFormatString(
-                L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.",
+                L"This option %s %s in a disorderly manner and may cause file corruption or system instability.",
                 L"performs a hard",
                 L"restart");
 
@@ -644,7 +717,7 @@ BOOLEAN PhUiRestartComputer(
         break;
     case PH_POWERACTION_TYPE_ADVANCEDBOOT:
         {
-            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+            if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                 WindowHandle,
                 L"restart",
                 L"the computer",
@@ -712,7 +785,7 @@ BOOLEAN PhUiRestartComputer(
                 break;
             }
 
-            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+            if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                 WindowHandle,
                 L"restart",
                 L"the computer",
@@ -742,7 +815,7 @@ BOOLEAN PhUiRestartComputer(
         break;
     case PH_POWERACTION_TYPE_UPDATE:
         {
-            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+            if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                 WindowHandle,
                 L"update and restart",
                 L"the computer",
@@ -761,7 +834,7 @@ BOOLEAN PhUiRestartComputer(
         break;
     case PH_POWERACTION_TYPE_WDOSCAN:
         {
-            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+            if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                 WindowHandle,
                 L"restart",
                 L"the computer for Windows Defender Offline Scan",
@@ -774,7 +847,7 @@ BOOLEAN PhUiRestartComputer(
                 if (status == S_OK)
                     return TRUE;
 
-                if ((status & 0xFFFF0000) == MAKE_HRESULT(SEVERITY_ERROR, FACILITY_WIN32, 0))
+                if (HRESULT_FACILITY(status) == FACILITY_WIN32 && HRESULT_SEVERITY(status) == SEVERITY_ERROR)
                 {
                     PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, HRESULT_CODE(status));
                 }
@@ -790,6 +863,14 @@ BOOLEAN PhUiRestartComputer(
     return FALSE;
 }
 
+/**
+ * Shutdown the computer using the specified power action type.
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Action The type of shutdown to perform (PH_POWERACTION_TYPE_*).
+ * \param Flags Additional flags passed to PhInitiateShutdown for Win32 shutdown.
+ * \return BOOLEAN TRUE if the shutdown action was initiated, FALSE otherwise.
+ */
 BOOLEAN PhUiShutdownComputer(
     _In_ HWND WindowHandle,
     _In_ PH_POWERACTION_TYPE Action,
@@ -800,7 +881,7 @@ BOOLEAN PhUiShutdownComputer(
     {
     case PH_POWERACTION_TYPE_WIN32:
         {
-            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+            if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                 WindowHandle,
                 L"shut down",
                 L"the computer",
@@ -894,7 +975,7 @@ BOOLEAN PhUiShutdownComputer(
         break;
     case PH_POWERACTION_TYPE_UPDATE:
         {
-            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+            if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                 WindowHandle,
                 L"update and shutdown",
                 L"the computer",
@@ -916,6 +997,13 @@ BOOLEAN PhUiShutdownComputer(
     return FALSE;
 }
 
+/**
+ * Build a dynamic menu listing boot applications (one-time boot entries).
+ *
+ * \param DelayLoadMenu If TRUE, the function will create a placeholder menu item
+ * and delay enumerating boot applications until the menu is opened.
+ * \return PVOID A menu item object (owner-managed); may be disabled if the caller lacks privileges.
+ */
 PVOID PhUiCreateComputerBootDeviceMenu(
     _In_ BOOLEAN DelayLoadMenu
     )
@@ -930,7 +1018,7 @@ PVOID PhUiCreateComputerBootDeviceMenu(
 
     if (!DelayLoadMenu)
     {
-        BOOLEAN bootEnumerateAllObjects = !!PhGetIntegerSetting(L"EnableBootObjectsEnumerate");
+        BOOLEAN bootEnumerateAllObjects = !!PhGetIntegerSetting(SETTING_ENABLE_BOOT_OBJECTS_ENUMERATE);
 
         if (bootApplicationList = PhBcdQueryBootApplicationList(bootEnumerateAllObjects))
         {
@@ -960,6 +1048,13 @@ PVOID PhUiCreateComputerBootDeviceMenu(
     return menuItem;
 }
 
+/**
+ * Build a dynamic menu listing firmware boot applications (UEFI).
+ *
+ * \param DelayLoadMenu If TRUE, the function will create a placeholder menu item
+ * and delay enumerating firmware applications until the menu is opened.
+ * \return PVOID A menu item object (owner-managed); may be disabled if the caller lacks privileges.
+ */
 PVOID PhUiCreateComputerFirmwareDeviceMenu(
     _In_ BOOLEAN DelayLoadMenu
     )
@@ -1002,6 +1097,13 @@ PVOID PhUiCreateComputerFirmwareDeviceMenu(
     return menuItem;
 }
 
+/**
+ * Handle selection of a boot application menu entry by configuring a one-time boot entry
+ * and initiating a restart if the operation succeeded.
+ *
+ * \param WindowHandle Parent window for confirmation and error dialogs.
+ * \param MenuIndex Index of the selected boot application as returned from the created menu.
+ */
 VOID PhUiHandleComputerBootApplicationMenu(
     _In_ HWND WindowHandle,
     _In_ ULONG MenuIndex
@@ -1012,7 +1114,7 @@ VOID PhUiHandleComputerBootApplicationMenu(
     BOOLEAN bootUpdateFwBootObjects;
     PPH_LIST bootApplicationList;
 
-    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
         WindowHandle,
         L"restart",
         L"the computer",
@@ -1023,8 +1125,8 @@ VOID PhUiHandleComputerBootApplicationMenu(
         return;
     }
 
-    bootEnumerateAllObjects = !!PhGetIntegerSetting(L"EnableBootObjectsEnumerate");
-    bootUpdateFwBootObjects = !!PhGetIntegerSetting(L"EnableUpdateDefaultFirmwareBootEntry");
+    bootEnumerateAllObjects = !!PhGetIntegerSetting(SETTING_ENABLE_BOOT_OBJECTS_ENUMERATE);
+    bootUpdateFwBootObjects = !!PhGetIntegerSetting(SETTING_ENABLE_UPDATE_DEFAULT_FIRMWARE_BOOT_ENTRY);
 
     if (bootApplicationList = PhBcdQueryBootApplicationList(bootEnumerateAllObjects))
     {
@@ -1032,7 +1134,7 @@ VOID PhUiHandleComputerBootApplicationMenu(
         {
             PPH_BCD_OBJECT_LIST entry = bootApplicationList->Items[MenuIndex];
 
-            status = PhBcdSetBootApplicationOneTime(entry->ObjectGuid, bootUpdateFwBootObjects);
+            status = PhBcdSetBootApplicationOneTime(&entry->ObjectGuid, bootUpdateFwBootObjects);
         }
 
         PhBcdDestroyBootApplicationList(bootApplicationList);
@@ -1053,6 +1155,13 @@ VOID PhUiHandleComputerBootApplicationMenu(
     }
 }
 
+/**
+ * Handle selection of a firmware boot application menu entry by configuring a one-time firmware boot
+ * entry and initiating a restart if the operation succeeded.
+ *
+ * \param WindowHandle Parent window for confirmation and error dialogs.
+ * \param MenuIndex Index of the selected firmware application as returned from the created menu.
+ */
 VOID PhUiHandleComputerFirmwareApplicationMenu(
     _In_ HWND WindowHandle,
     _In_ ULONG MenuIndex
@@ -1061,7 +1170,7 @@ VOID PhUiHandleComputerFirmwareApplicationMenu(
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     PPH_LIST firmwareApplicationList;
 
-    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
         WindowHandle,
         L"restart",
         L"the computer",
@@ -1078,7 +1187,7 @@ VOID PhUiHandleComputerFirmwareApplicationMenu(
         {
             PPH_BCD_OBJECT_LIST entry = firmwareApplicationList->Items[MenuIndex];
 
-            status = PhBcdSetFirmwareBootApplicationOneTime(entry->ObjectGuid);
+            status = PhBcdSetFirmwareBootApplicationOneTime(&entry->ObjectGuid);
         }
 
         PhBcdDestroyBootApplicationList(firmwareApplicationList);
@@ -1105,6 +1214,14 @@ typedef struct _PHP_USERSMENU_ENTRY
     PPH_STRING UserName;
 } PHP_USERSMENU_ENTRY, *PPHP_USERSMENU_ENTRY;
 
+/**
+ * Comparison callback used to sort user session menu entries.
+ *
+ * \param Context Unused callback context.
+ * \param elem1 Pointer to the first element to compare.
+ * \param elem2 Pointer to the second element to compare.
+ * \return int <0 if elem1 < elem2, 0 if equal, >0 if elem1 > elem2.
+ */
 static int __cdecl PhpUsersMainMenuNameCompare(
     _In_ void* Context,
     _In_ void const* elem1,
@@ -1117,6 +1234,11 @@ static int __cdecl PhpUsersMainMenuNameCompare(
     return PhCompareString(item1->UserName, item2->UserName, TRUE);
 }
 
+/**
+ * Populate the provided users menu item with entries for each active WinStation session.
+ *
+ * \param UsersMenuItem Menu object to populate with per-session submenus.
+ */
 VOID PhUiCreateSessionMenu(
     _In_ PVOID UsersMenuItem
     )
@@ -1228,6 +1350,14 @@ VOID PhUiCreateSessionMenu(
     PhDereferenceObject(userSessionList);
 }
 
+/**
+ * Connect the current console to a remote/non-current WinStation session. Prompts for a password
+ * if an initial attempt without credentials fails.
+ *
+ * \param WindowHandle Parent window for password prompts and error UI.
+ * \param SessionId The WinStation session id to connect to.
+ * \return BOOLEAN TRUE on success, FALSE on failure or user cancel.
+ */
 BOOLEAN PhUiConnectSession(
     _In_ HWND WindowHandle,
     _In_ ULONG SessionId
@@ -1283,6 +1413,13 @@ BOOLEAN PhUiConnectSession(
     return success;
 }
 
+/**
+ * Disconnect a WinStation session.
+ *
+ * \param WindowHandle Parent window for error reporting.
+ * \param SessionId The WinStation session id to disconnect.
+ * \return BOOLEAN TRUE on success, FALSE on failure (and an error UI is shown).
+ */
 BOOLEAN PhUiDisconnectSession(
     _In_ HWND WindowHandle,
     _In_ ULONG SessionId
@@ -1296,12 +1433,19 @@ BOOLEAN PhUiDisconnectSession(
     return FALSE;
 }
 
+/**
+ * Log off a specific WinStation session after optional confirmation.
+ *
+ * \param WindowHandle Parent window for confirmation and error UI.
+ * \param SessionId The WinStation session id to log off.
+ * \return BOOLEAN TRUE on success, FALSE on failure or if the user cancelled.
+ */
 BOOLEAN PhUiLogoffSession(
     _In_ HWND WindowHandle,
     _In_ ULONG SessionId
     )
 {
-    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+    if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
         WindowHandle,
         L"logoff",
         L"the user",
@@ -1473,7 +1617,6 @@ BOOLEAN PhIsTerminalServerSystemProcess(
  * FALSE to always show the confirmation dialog.
  * \param Processes An array of pointers to process items.
  * \param NumberOfProcesses The number of process items.
- *
  * \return TRUE if the user wants to proceed with the operation,
  * otherwise FALSE.
  */
@@ -1524,7 +1667,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
     if (WarnOnlyIfDangerous && !dangerous)
         return TRUE;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         if (NumberOfProcesses == 1)
         {
@@ -1850,7 +1993,7 @@ BOOLEAN PhUiTerminateTreeProcess(
     BOOLEAN cont = FALSE;
     PVOID processes;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         cont = PhShowConfirmMessage(
             WindowHandle,
@@ -2047,7 +2190,7 @@ BOOLEAN PhUiSuspendTreeProcess(
     BOOLEAN result;
     PVOID processes;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         result = PhShowConfirmMessage(
             WindowHandle,
@@ -2244,7 +2387,7 @@ BOOLEAN PhUiResumeTreeProcess(
     BOOLEAN result;
     PVOID processes;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         result = PhShowConfirmMessage(
             WindowHandle,
@@ -2286,7 +2429,7 @@ BOOLEAN PhUiFreezeTreeProcess(
     if (ReadPointerAcquire(&Process->FreezeHandle))
         return FALSE;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         result = PhShowConfirmMessage(
             WindowHandle,
@@ -2304,7 +2447,7 @@ BOOLEAN PhUiFreezeTreeProcess(
     if (!result)
         return FALSE;
 
-    status = PhFreezeProcess(
+    status = PhFreezeProcessById(
         &freezeHandle,
         Process->ProcessId
         );
@@ -2334,7 +2477,7 @@ BOOLEAN PhUiThawTreeProcess(
     if (!ReadPointerAcquire(&Process->FreezeHandle))
         return FALSE;
 
-    status = PhThawProcess(
+    status = PhThawProcessById(
         Process->FreezeHandle,
         Process->ProcessId
         );
@@ -2378,7 +2521,7 @@ BOOLEAN PhUiRestartProcess(
     PVOID environmentBuffer = NULL;
     ULONG environmentLength;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         result = PhShowConfirmMessage(
             WindowHandle,
@@ -2714,7 +2857,129 @@ CleanupExit:
     return TRUE;
 }
 
-// Contributed by evilpie (#2981421)
+static PPH_STRING PhFindDebuggerPath(
+    _In_ PCWSTR DebuggerName
+    )
+{
+    static PH_STRINGREF windowsKitsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows Kits\\Installed Roots");
+    PPH_STRING debuggerPath = NULL;
+    HANDLE keyHandle;
+    PPH_STRING kitsRoot;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &windowsKitsKeyName,
+        0
+        )))
+    {
+        if (kitsRoot = PhQueryRegistryStringZ(keyHandle, L"KitsRoot10"))
+        {
+            PPH_STRING testPath;
+
+#ifdef _WIN64
+            testPath = PhConcatStringRefZ(&kitsRoot->sr, L"Debuggers\\x64\\");
+#else
+            testPath = PhConcatStringRefZ(&kitsRoot->sr, L"Debuggers\\x86\\");
+#endif
+            PhMoveReference(&testPath, PhConcatStringRefZ(&testPath->sr, DebuggerName));
+
+            if (PhDoesFileExistWin32(PhGetString(testPath)))
+            {
+                debuggerPath = testPath;
+            }
+            else
+            {
+                PhDereferenceObject(testPath);
+            }
+
+            PhDereferenceObject(kitsRoot);
+        }
+
+        NtClose(keyHandle);
+    }
+
+    if (PhIsNullOrEmptyString(debuggerPath))
+    {
+        PhMoveReference(&debuggerPath, PhSearchFilePath(DebuggerName, L".exe"));
+    }
+
+    return debuggerPath;
+}
+
+//static PPH_STRING PhFindVisualStudioDebugger(
+//    _In_ PCPH_STRINGREF VersionRange
+//    )
+//{
+//    static const PH_STRINGREF vswhere = PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
+//    static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"\r\n");
+//    static const PH_STRINGREF args01 = PH_STRINGREF_INIT(L" -prerelease -version ");
+//    static const PH_STRINGREF args02 = PH_STRINGREF_INIT(L" -property installationPath ");
+//    NTSTATUS status;
+//    PPH_STRING expandedfileName = NULL;
+//    PPH_STRING expandedCommand = NULL;
+//    PPH_STRING devenvPath = NULL;
+//    PPH_STRING output = NULL;
+//
+//    if (!(expandedfileName = PhExpandEnvironmentStrings(&vswhere)))
+//        return NULL;
+//
+//    if (!PhDoesFileExistWin32(PhGetString(expandedfileName)))
+//    {
+//        PhDereferenceObject(expandedfileName);
+//        return NULL;
+//    }
+//
+//    // vswhere.exe -prerelease -version %s -property installationPath
+//    expandedCommand = PhConcatStringRef3(
+//        &args01,
+//        VersionRange,
+//        &args02
+//        );
+//
+//    status = PhCreateProcessRedirection(
+//        &expandedfileName->sr,
+//        &expandedCommand->sr,
+//        NULL,
+//        &output
+//        );
+//
+//    if (!NT_SUCCESS(status) || PhIsNullOrEmptyString(output))
+//        goto CleanupExit;
+//
+//    PhTrimStringRef(
+//        &output->sr,
+//        &trimSet,
+//        PH_TRIM_END_ONLY
+//        );
+//
+//    devenvPath = PhConcatStringRefZ(&output->sr, L"\\Common7\\IDE\\devenv.exe");
+//
+//    if (PhDoesFileExistWin32(devenvPath->Buffer))
+//    {
+//        PhClearReference(&output);
+//        PhClearReference(&expandedCommand);
+//        PhClearReference(&expandedfileName);
+//
+//        return devenvPath;
+//    }
+//
+//CleanupExit:
+//    PhClearReference(&output);
+//    PhClearReference(&devenvPath);
+//    PhClearReference(&expandedCommand);
+//    PhClearReference(&expandedfileName);
+//    return NULL;
+//}
+
+/**
+ * Launch a system debugger attached to the specified process.
+ *
+ * \param WindowHandle: The parent HWND for dialogs (Task Dialogs, errors, etc.).
+ * \param Process A pointer to a `PPH_PROCESS_ITEM` describing the target process.
+ * \return BOOLEAN: TRUE on success (debugger launched), FALSE on cancel or failure.
+ */
 BOOLEAN PhUiDebugProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -2725,31 +2990,34 @@ BOOLEAN PhUiDebugProcess(
     static CONST PH_STRINGREF aeDebugWow64KeyName = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
 #endif
     NTSTATUS status;
-    BOOLEAN result;
+    PPH_STRING commandLine = NULL;
     PPH_STRING debuggerCommand = NULL;
     PH_STRING_BUILDER commandLineBuilder;
     HANDLE keyHandle;
     PPH_STRING debugger;
     PH_STRINGREF commandPart;
     PH_STRINGREF dummy;
+    LONG debuggerChoice = 0;
+    PPH_STRING registryDebuggerPath = NULL;
+    PPH_STRING registryDebuggerName = NULL;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
-    {
-        result = PhShowConfirmMessage(
-            WindowHandle,
-            L"debug",
-            Process->ProcessName->Buffer,
-            L"Debugging a process may result in loss of data.",
-            FALSE
-            );
-    }
-    else
-    {
-        result = TRUE;
-    }
-
-    if (!result)
-        return FALSE;
+    //if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
+    //{
+    //    result = PhShowConfirmMessage(
+    //        WindowHandle,
+    //        L"debug",
+    //        Process->ProcessName->Buffer,
+    //        L"Debugging a process may result in loss of data.",
+    //        FALSE
+    //        );
+    //}
+    //else
+    //{
+    //    result = TRUE;
+    //}
+    //
+    //if (!result)
+    //    return FALSE;
 
     status = PhOpenKey(
         &keyHandle,
@@ -2770,7 +3038,8 @@ BOOLEAN PhUiDebugProcess(
             if (PhSplitStringRefAtChar(&debugger->sr, L'"', &dummy, &commandPart) &&
                 PhSplitStringRefAtChar(&commandPart, L'"', &commandPart, &dummy))
             {
-                debuggerCommand = PhCreateString2(&commandPart);
+                registryDebuggerPath = PhCreateString2(&commandPart);
+                registryDebuggerName = PhGetFileName(registryDebuggerPath);
             }
 
             PhDereferenceObject(debugger);
@@ -2779,9 +3048,117 @@ BOOLEAN PhUiDebugProcess(
         NtClose(keyHandle);
     }
 
-    if (PhIsNullOrEmptyString(debuggerCommand))
+    // Check for available debuggers and show selection dialog
     {
-        PhShowStatus(WindowHandle, L"Unable to locate the debugger.", STATUS_OBJECT_NAME_NOT_FOUND, 0);
+        PPH_STRING windbgPath = NULL;
+        PPH_STRING windbgPreviewPath = NULL;
+        //PPH_STRING vs2026Path = NULL;
+        //PPH_STRING vs2022Path = NULL;
+        PPH_STRING cdbPath = NULL;
+        PPH_STRING kdPath = NULL;
+        PPH_STRING ntsdPath = NULL;
+        TASKDIALOGCONFIG config;
+        TASKDIALOG_BUTTON buttons[11];
+        ULONG buttonCount = 0;
+        PPH_STRING registryButtonText = NULL;
+
+        if (windbgPath = PhFindDebuggerPath(L"windbg.exe"))
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 101, L"\U0001FA9F WinDbg\nGraphical debugger for both user-mode and kernel-mode debugging." };
+        if (windbgPreviewPath = PhFindDebuggerPath(L"windbgx.exe"))
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 102, L"\U0001FA9F WinDbg (Preview)\nModern graphical debugger for both user-mode and kernel-mode debugging." };
+        //if (vs2026Path = PhFindVisualStudioDebugger(SREF(L"[18.0,19.0)")))
+        //    buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 107, L"\U0001F4D8 Visual Studio 2026\nFull-featured IDE with integrated debugging." };
+        //if (vs2022Path = PhFindVisualStudioDebugger(SREF(L"[16.0,17.0)")))
+        //    buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 108, L"\U0001F4D8 Visual Studio 2022\nFull-featured IDE with integrated debugging." };
+        if (cdbPath = PhFindDebuggerPath(L"cdb.exe"))
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 103, L"\U0001F4FA CDB\nCommand-line debugger for user-mode applications." };
+        if (kdPath = PhFindDebuggerPath(L"kd.exe"))
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 104, L"\U0001F4FA KD\nKernel debugger for low-level system debugging." };
+        if (ntsdPath = PhFindDebuggerPath(L"ntsd.exe"))
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 105, L"\U0001F4FA NTSD\nLegacy command-line debugger similar to CDB." };
+
+        // Always add registry debugger option
+        if (registryDebuggerPath && registryDebuggerName)
+        {
+            registryButtonText = PhFormatString(
+                L"\U00002699 (System Default)\n%s",
+                registryDebuggerName->Buffer,
+                registryDebuggerPath->Buffer
+                );
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 106, registryButtonText->Buffer };
+        }
+        else
+        {
+            buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 106, L"\U00002699 System Default\nNo debugger configured in AeDebug registry key." };
+        }
+
+        memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+        config.cbSize = sizeof(TASKDIALOGCONFIG);
+        config.hwndParent = WindowHandle;
+        config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_CAN_BE_MINIMIZED;
+        config.hMainIcon = PhGetApplicationIcon(FALSE);
+        config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+        config.pszWindowTitle = PhApplicationName;
+        config.pszMainInstruction = L"Select a system debugger to use for this process:";
+        config.pszContent = L"You can choose from the installed debugging tools below.";
+        config.cButtons = buttonCount;
+        config.pButtons = buttons;
+
+        if (PhShowTaskDialog(&config, &debuggerChoice, NULL, NULL) && debuggerChoice != 0)
+        {
+            switch (debuggerChoice)
+            {
+            case 101:
+                debuggerCommand = windbgPath;
+                windbgPath = NULL;
+                break;
+            case 102:
+                debuggerCommand = windbgPreviewPath;
+                windbgPreviewPath = NULL;
+                break;
+            case 103:
+                debuggerCommand = cdbPath;
+                cdbPath = NULL;
+                break;
+            case 104:
+                debuggerCommand = kdPath;
+                kdPath = NULL;
+                break;
+            case 105:
+                debuggerCommand = ntsdPath;
+                ntsdPath = NULL;
+                break;
+            case 106:
+                debuggerCommand = registryDebuggerPath;
+                registryDebuggerPath = NULL;
+                break;
+            //case 107:
+            //    debuggerCommand = vs2026Path;
+            //    vs2026Path = NULL;
+            //    break;
+            //case 108:
+            //    debuggerCommand = vs2022Path;
+            //    vs2022Path = NULL;
+            //    break;
+            }
+        }
+
+        PhClearReference(&windbgPath);
+        PhClearReference(&windbgPreviewPath);
+        //PhClearReference(&vs2026Path);
+        //PhClearReference(&vs2022Path);
+        PhClearReference(&cdbPath);
+        PhClearReference(&kdPath);
+        PhClearReference(&ntsdPath);
+        PhClearReference(&registryButtonText);
+    }
+
+    PhClearReference(&registryDebuggerName);
+    PhClearReference(&registryDebuggerPath);
+
+    if (!debuggerCommand || debuggerChoice == 0)
+    {
+        // User cancelled
         return FALSE;
     }
 
@@ -2789,11 +3166,28 @@ BOOLEAN PhUiDebugProcess(
     PhAppendCharStringBuilder(&commandLineBuilder, L'"');
     PhAppendStringBuilder(&commandLineBuilder, &debuggerCommand->sr);
     PhAppendCharStringBuilder(&commandLineBuilder, L'"');
-    PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %lu", HandleToUlong(Process->ProcessId));
+
+    switch (debuggerChoice)
+    {
+    case 101:
+    case 102:
+    case 103:
+    case 104:
+    case 105:
+    case 106:
+        PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %lu", HandleToUlong(Process->ProcessId));
+        break;
+    case 107:
+    case 108:
+        PhAppendFormatStringBuilder(&commandLineBuilder, L" /JITDebug /JITDebugParam %lx", HandleToUlong(Process->ProcessId));
+        break;
+    }
+
+    commandLine = PhFinalStringBuilderString(&commandLineBuilder);
 
     status = PhCreateProcessWin32(
         NULL,
-        PhGetString(PhFinalStringBuilderString(&commandLineBuilder)),
+        PhGetString(commandLine),
         NULL,
         NULL,
         0,
@@ -2814,6 +3208,14 @@ BOOLEAN PhUiDebugProcess(
     return TRUE;
 }
 
+/**
+ * Reduce the working set of a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \return BOOLEAN TRUE if the operation succeeded for all processes, FALSE if one or more failed.
+ */
 BOOLEAN PhUiReduceWorkingSetProcesses(
     _In_ HWND WindowHandle,
     _In_ CONST PPH_PROCESS_ITEM *Processes,
@@ -2861,6 +3263,14 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
     return success;
 }
 
+/**
+ * Empty the working set of a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \return BOOLEAN TRUE if the operation succeeded for all processes, FALSE if one or more failed.
+ */
 BOOLEAN PhUiSetEmptyWorkingSetProcesses(
     _In_ HWND WindowHandle,
     _In_ CONST PPH_PROCESS_ITEM* Processes,
@@ -2899,6 +3309,13 @@ BOOLEAN PhUiSetEmptyWorkingSetProcesses(
     return success;
 }
 
+/**
+ * Configure activity moderation (Eco/foreground throttling) for a process.
+ *
+ * \param WindowHandle Parent window for dialogs.
+ * \param Process The process item to configure.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetActivityModeration(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3013,6 +3430,14 @@ BOOLEAN PhUiSetActivityModeration(
     return TRUE;
 }
 
+/**
+ * Enable or disable token virtualization for the specified process.
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Process The process item to operate on.
+ * \param Enable TRUE to enable virtualization, FALSE to disable.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetVirtualizationProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
@@ -3024,7 +3449,7 @@ BOOLEAN PhUiSetVirtualizationProcess(
     HANDLE processHandle;
     HANDLE tokenHandle;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         cont = PhShowConfirmMessage(
             WindowHandle,
@@ -3071,6 +3496,13 @@ BOOLEAN PhUiSetVirtualizationProcess(
     return TRUE;
 }
 
+/**
+ * Toggle break-on-termination (critical process) for a process.
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Process The process item to operate on.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetCriticalProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3095,7 +3527,7 @@ BOOLEAN PhUiSetCriticalProcess(
 
         if (NT_SUCCESS(status))
         {
-            if (!breakOnTermination && (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+            if (!breakOnTermination && (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                 WindowHandle,
                 L"enable",
                 L"critical status on the process",
@@ -3105,7 +3537,7 @@ BOOLEAN PhUiSetCriticalProcess(
             {
                 status = PhSetProcessBreakOnTermination(processHandle, TRUE);
             }
-            else if (breakOnTermination && (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+            else if (breakOnTermination && (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                 WindowHandle,
                 L"disable",
                 L"critical status on the process",
@@ -3129,6 +3561,13 @@ BOOLEAN PhUiSetCriticalProcess(
     return TRUE;
 }
 
+/**
+ * Enable or disable Eco mode for a process (power throttling).
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Process The process item to operate on.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetEcoModeProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3158,7 +3597,7 @@ BOOLEAN PhUiSetEcoModeProcess(
                 FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED)
                 ))
             {
-                if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                     WindowHandle,
                     L"enable",
                     L"Eco mode for this process",
@@ -3181,7 +3620,7 @@ BOOLEAN PhUiSetEcoModeProcess(
             }
             else
             {
-                //if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                //if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) || PhShowConfirmMessage(
                 //    WindowHandle,
                 //    L"disable",
                 //    L"Eco mode for this process",
@@ -3214,6 +3653,13 @@ BOOLEAN PhUiSetEcoModeProcess(
     return TRUE;
 }
 
+/**
+ * Toggle the "execution required" state for a process (prevent PLM suspension/termination).
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Process The process item to operate on.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetExecutionRequiredProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3221,7 +3667,7 @@ BOOLEAN PhUiSetExecutionRequiredProcess(
 {
     NTSTATUS status;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         if (!PhShowConfirmMessage(
             WindowHandle,
@@ -3253,6 +3699,13 @@ BOOLEAN PhUiSetExecutionRequiredProcess(
     return TRUE;
 }
 
+/**
+ * Detach the debugger from a process.
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Process The process item to operate on.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiDetachFromDebuggerProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3303,6 +3756,13 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
     return TRUE;
 }
 
+/**
+ * Load a DLL into the target process.
+ *
+ * \param WindowHandle Parent window for dialogs.
+ * \param Process The process item to load the DLL into.
+ * \return BOOLEAN TRUE on success, FALSE on failure or cancel.
+ */
 BOOLEAN PhUiLoadDllProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -3374,6 +3834,15 @@ BOOLEAN PhUiLoadDllProcess(
     return TRUE;
 }
 
+/**
+ * Set I/O priority for a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \param IoPriority The IO priority hint to set.
+ * \return BOOLEAN TRUE if the operation succeeded for all processes, FALSE otherwise.
+ */
 BOOLEAN PhUiSetIoPriorityProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -3452,6 +3921,14 @@ BOOLEAN PhUiSetIoPriorityProcesses(
     return success;
 }
 
+/**
+ * Set page priority for a process.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Process The process item to operate on.
+ * \param PagePriority Page priority value to set.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetPagePriorityProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
@@ -3489,6 +3966,15 @@ BOOLEAN PhUiSetPagePriorityProcess(
     return TRUE;
 }
 
+/**
+ * Set the priority class for a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \param PriorityClass Priority class value to set.
+ * \return BOOLEAN TRUE if the operation succeeded for all processes, FALSE otherwise.
+ */
 BOOLEAN PhUiSetPriorityClassProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -3568,6 +4054,15 @@ BOOLEAN PhUiSetPriorityClassProcesses(
     return success;
 }
 
+/**
+ * Set or clear priority boost for a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \param PriorityBoost TRUE to enable boost, FALSE to disable.
+ * \return BOOLEAN TRUE if the operation succeeded for all processes, FALSE otherwise.
+ */
 BOOLEAN PhUiSetBoostPriorityProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM* Processes,
@@ -3605,6 +4100,14 @@ BOOLEAN PhUiSetBoostPriorityProcesses(
     return success;
 }
 
+/**
+ * Set or clear priority boost for a single process.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Process The process item to operate on.
+ * \param PriorityBoost TRUE to enable boost, FALSE to disable.
+ * \return BOOLEAN TRUE on success, FALSE on failure.
+ */
 BOOLEAN PhUiSetBoostPriorityProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
@@ -4176,7 +4679,7 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
             PhSetWindowProcedure(WindowHandle, PhpUiServiceProgressDialogWndProc);
 
             if (
-                PhGetIntegerSetting(L"EnableWarnings") &&
+                PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) &&
                 context->ActionCommand != PhSvcControlServiceStart
                 )
             {
@@ -4187,7 +4690,7 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
                 PhShowServiceProgressDialogStatusPage(context);
             }
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     }
@@ -4296,7 +4799,7 @@ static BOOLEAN PhpShowContinueMessageServices(
     if (NumberOfServices == 0)
         return FALSE;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         PCWSTR object;
 
@@ -4377,7 +4880,7 @@ BOOLEAN PhUiStartServices(
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
-    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_SERVICE_PROGRESS_DIALOG))
     {
         PhShowServiceProgressDialog(
             WindowHandle,
@@ -4583,7 +5086,7 @@ BOOLEAN PhUiContinueServices(
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
-    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_SERVICE_PROGRESS_DIALOG))
     {
         PhShowServiceProgressDialog(
             WindowHandle,
@@ -4791,7 +5294,7 @@ BOOLEAN PhUiPauseServices(
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
-    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_SERVICE_PROGRESS_DIALOG))
     {
         PhShowServiceProgressDialog(
             WindowHandle,
@@ -4999,7 +5502,7 @@ BOOLEAN PhUiStopServices(
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
-    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_SERVICE_PROGRESS_DIALOG))
     {
         PhShowServiceProgressDialog(
             WindowHandle,
@@ -5291,7 +5794,7 @@ BOOLEAN PhUiRestartServices(
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
-    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_SERVICE_PROGRESS_DIALOG))
     {
         PhShowServiceProgressDialog(
             WindowHandle,
@@ -5411,7 +5914,6 @@ BOOLEAN PhUiCloseConnections(
     _In_ ULONG NumberOfConnections
     )
 {
-    extern NTSTATUS PhSetTcpEntry(_In_ PPH_NETWORK_ITEM NetworkItem);
     static ULONG (WINAPI* SetTcpEntry_I)(_In_ PMIB_TCPROW pTcpRow) = NULL;
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
@@ -5421,7 +5923,7 @@ BOOLEAN PhUiCloseConnections(
 
     if (!SetTcpEntry_I)
     {
-        SetTcpEntry_I = PhGetDllProcedureAddress(L"iphlpapi.dll", "SetTcpEntry", 0);
+        SetTcpEntry_I = PhGetDllProcedureAddressZ(L"iphlpapi.dll", "SetTcpEntry", 0);
     }
 
     if (!SetTcpEntry_I)
@@ -5517,7 +6019,7 @@ static BOOLEAN PhpShowContinueMessageThreads(
     if (NumberOfThreads == 0)
         return FALSE;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         if (NumberOfThreads == 1)
         {
@@ -6013,7 +6515,7 @@ BOOLEAN PhUiUnloadModule(
     HANDLE processHandle = NULL;
     BOOLEAN cont = FALSE;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         PWSTR verb;
         PWSTR message;
@@ -6224,7 +6726,7 @@ BOOLEAN PhUiFreeMemory(
     BOOLEAN cont = FALSE;
     HANDLE processHandle;
 
-    if (PhGetIntegerSetting(L"EnableWarnings"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         PWSTR verb;
         PWSTR message;
@@ -6362,7 +6864,7 @@ BOOLEAN PhUiEmptyProcessMemoryWorkingSet(
 static BOOLEAN PhpShowErrorHandle(
     _In_ HWND WindowHandle,
     _In_ PCWSTR Verb,
-    _In_ PCWSTR Verb2,
+    _In_opt_ PCWSTR Verb2,
     _In_ PPH_HANDLE_ITEM Handle,
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
@@ -6419,7 +6921,7 @@ BOOLEAN PhUiCloseHandles(
     if (NumberOfHandles == 0)
         return FALSE;
 
-    if (Warn && PhGetIntegerSetting(L"EnableWarnings"))
+    if (Warn && PhGetIntegerSetting(SETTING_ENABLE_WARNINGS))
     {
         result = PhShowConfirmMessage(
             WindowHandle,
@@ -6593,6 +7095,14 @@ BOOLEAN PhUiSetAttributesHandle(
     return TRUE;
 }
 
+/**
+ * Flush process heap(s) remotely for a list of processes.
+ *
+ * \param WindowHandle Parent window used for error reporting.
+ * \param Processes Array of process items to operate on.
+ * \param NumberOfProcesses Number of processes in the array.
+ * \return BOOLEAN TRUE if all flush operations succeeded, FALSE if any failed.
+ */
 BOOLEAN PhUiFlushHeapProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,

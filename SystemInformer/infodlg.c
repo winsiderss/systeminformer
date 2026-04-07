@@ -56,9 +56,10 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (PhValidWindowPlacementFromSetting(L"InformationWindowPosition"))
-                PhLoadWindowPlacementFromSetting(NULL, L"InformationWindowSize", hwndDlg);
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            if (PhValidWindowPlacementFromSetting(SETTING_INFORMATION_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_INFORMATION_WINDOW_POSITION, SETTING_INFORMATION_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             context->MinimumSize = (RECT){ -1, -1, -1, -1 };
 
@@ -84,7 +85,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveWindowPlacementToSetting(L"InformationWindowPosition", L"InformationWindowSize", hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_INFORMATION_WINDOW_POSITION, SETTING_INFORMATION_WINDOW_SIZE, hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 

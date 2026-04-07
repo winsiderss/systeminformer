@@ -293,6 +293,9 @@ typedef struct _PV_SYMBOL_NODE
 {
     PH_TREENEW_NODE Node;
 
+    struct _PV_SYMBOL_NODE* Parent;
+    PPH_LIST Children;
+
     ULONG64 UniqueId;
     ULONG TypeId;
     PV_SYMBOL_TYPE Type;
@@ -329,6 +332,7 @@ typedef enum PV_SYMBOL_TREE_MENU_ITEM
     PV_SYMBOL_TREE_MENU_ITEM_HIDE_EXECUTE,
     PV_SYMBOL_TREE_MENU_ITEM_HIDE_CODE,
     PV_SYMBOL_TREE_MENU_ITEM_HIDE_READ,
+    PV_SYMBOL_TREE_MENU_ITEM_FILTER_TYPES,
     PV_SYMBOL_TREE_MENU_ITEM_FILTER_WRITE,
     PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_WRITE,
     PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_EXECUTE,
@@ -460,6 +464,7 @@ typedef struct _PDB_SYMBOL_CONTEXT
     PH_TN_FILTER_SUPPORT FilterSupport;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
+    PPH_LIST NodeRootList;
 
     PVOID IDiaSession;
 
@@ -472,12 +477,13 @@ typedef struct _PDB_SYMBOL_CONTEXT
             ULONG HideExecuteSection : 1;
             ULONG HideCodeSection : 1;
             ULONG HideReadSection : 1;
+            ULONG FilterNonReadWriteTypes : 1;
             ULONG HighlightWriteSection : 1;
             ULONG HighlightExecuteSection : 1;
             ULONG HighlightCodeSection : 1;
             ULONG HighlightReadSection : 1;
             ULONG FilterNonWriteSections : 1;
-            ULONG Spare : 23;
+            ULONG Spare : 22;
         };
     };
 } PDB_SYMBOL_CONTEXT, *PPDB_SYMBOL_CONTEXT;
@@ -496,7 +502,8 @@ NTSTATUS PeDumpFileSymbols(
 
 VOID PdbDumpAddress(
     _In_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ ULONG Rva
+    _In_ ULONG_PTR Rva,
+    _In_opt_ PPV_SYMBOL_NODE Parent
     );
 
 PPH_STRING PdbGetSymbolDetails(
@@ -781,6 +788,20 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
     );
 
 INT_PTR CALLBACK PvpPeMuiResourceDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvGetProcAddressDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvGetLoadLibraryDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

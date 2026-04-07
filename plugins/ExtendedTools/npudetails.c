@@ -400,7 +400,7 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             EtpNpuDetailsEnumAdapters(context->ListViewHandle);
 
@@ -541,7 +541,7 @@ NTSTATUS EtNpuDetailsDialogThreadStart(
     EtNpuDetailsDialogHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_SYSINFO_NPUDETAILS),
-        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : Parameter,
+        !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : Parameter,
         EtpNpuDetailsDlgProc,
         NULL
         );

@@ -30,9 +30,9 @@ EXPORTS
     PhCmLoadSettings
     PhCmSaveSettings
     PhCopyListView
-    PhCopyIListView
     PhCopyListViewInfoTip
     PhCreateKsiSettingsBlob
+    PhCreateHandleItem
     PhCreateProcessPropContext
     PhCreateProcessPropPageContext
     PhCreateProcessPropPageContextEx
@@ -62,7 +62,10 @@ EXPORTS
     PhFindProcessNode
     PhFindProcessRecord
     PhFindServiceNode
+    PhFormatLocalSystemTimeISO
     PhFormatLogEntry
+    PhFormatLogType
+    PhFreezeThread
     PhGetApplicationIcon
     PhGetApplicationIconEx
     PhGetClientIdName
@@ -74,13 +77,12 @@ EXPORTS
     PhGetFilterSupportServiceTreeList
     PhGetGeneralCallback
     PhGetImageListIcon
-    PhGetIListViewContextMenuPoint
     PhGetListViewContextMenuPoint
     PhGetPhReleaseChannel
     PhGetPhReleaseChannelString
-    PhGetPhVersion
-    PhGetPhVersionHash
-    PhGetPhVersionNumbers
+    PhGetBuildVersion
+    PhGetBuildCommit
+    PhGetBuildVersionNumbers
     PhGetProcessIsSuspended
     PhGetProcessKnownType
     PhGetProcessKnownTypeEx
@@ -90,6 +92,7 @@ EXPORTS
     PhGetSelectedAndPropagateProcessItems
     PhGetSelectedProcessItem
     PhGetSelectedProcessItems
+    PhGetSelectedProcessNode
     PhGetSelectedProcessNodes
     PhGetSelectedServiceItem
     PhGetSelectedServiceItems
@@ -110,7 +113,6 @@ EXPORTS
     PhInitializeTreeNewFilterSupport
     PhInsertCopyCellEMenuItem
     PhInsertCopyListViewEMenuItem
-    PhInsertCopyIListViewEMenuItem
     PhInsertHandleObjectPropertiesEMenuItems
     PhInvalidateAllProcessNodes
     PhIsProcessBackground
@@ -141,6 +143,7 @@ EXPORTS
     PhRegisterDialog
     PhRegisterMessageLoopFilter
     PhRemoveTreeNewFilter
+    PhSearchControlClear
     PhSearchControlMatch
     PhSearchControlMatchLongHintZ
     PhSearchControlMatchPointer
@@ -167,8 +170,8 @@ EXPORTS
     PhShowChooseProcessDialog
     PhShowHandleObjectProperties1
     PhShowHandleObjectProperties2
-    PhShowHandlePropertiesEx
     PhShowIconNotification
+    PhShowIconNotificationEx
     PhShowProcessAffinityDialog2
     PhShowProcessProperties
     PhShowProcessRecordDialog
@@ -178,6 +181,7 @@ EXPORTS
     PhSiSetColorsGraphDrawInfo
     PhSiSizeLabelYFunction
     PhSiUInt64LabelYFunction
+    PhThawThread
     PhUnregisterDialog
     PhUnregisterMessageLoopFilter
     PhUpdateProcessNode
@@ -294,12 +298,13 @@ EXPORTS
     PhDereferenceObjectDeferDelete
     PhDereferenceObjectEx
     PhDrainAutoPool
+    PhGetObjectRefCount
     PhGetObjectType
     PhGetObjectTypeInformation
     PhInitializeAutoPool
     PhReferenceObject
     PhReferenceObjectEx
-    PhReferenceObjectSafe
+    PhReferenceObjectUnsafe
 
 ; queuedlock
     PhfAcquireQueuedLockExclusive
@@ -336,12 +341,13 @@ EXPORTS
     PhAllocatePage
     PhAllocateSafe
     PhAppendBytesBuilder
-    PhAppendBytesBuilder2
     PhAppendBytesBuilderEx
     PhAppendCharStringBuilder
     PhAppendCharStringBuilder2
     PhAppendFormatStringBuilder
     PhAppendFormatStringBuilder_V
+    PhAppendFormatBytesBuilder
+    PhAppendFormatBytesBuilder_V
     PhAppendStringBuilderEx
     PhBufferToHexString
     PhBufferToHexStringEx
@@ -375,7 +381,6 @@ EXPORTS
     PhCopyStringZFromBytes
     PhCopyStringZFromMultiByte
     PhCountStringZ
-    PhCreateBytes
     PhCreateBytesEx
     PhCreateHashtable
     PhCreateList
@@ -394,6 +399,7 @@ EXPORTS
     PhDeleteFreeList
     PhDeleteStringBuilder
     PhDivideSinglesBySingle
+    PhDoesNameContainWildCards
     PhDosErrorToNtStatus
     PhDuplicateBytesZ
     PhDuplicateBytesZSafe
@@ -423,6 +429,7 @@ EXPORTS
     PhFormatBytes_V
     PhFormatString
     PhFormatString_V
+    PhFormatSystemTimeISO
     PhFormatToBuffer
     PhFree
     PhFreePage
@@ -448,6 +455,7 @@ EXPORTS
     PhInsertStringBuilderEx
     PhIntegerToString64
     PhInvokeCallback
+    PhIsNameInExpression
     PhLoadIndirectString
     PhLoadResource
     PhLocalTimeToSystemTime
@@ -466,7 +474,6 @@ EXPORTS
     PhQueryTimeZoneBias
     PhReAllocate
     PhReAllocateSafe
-    PhReadTimeStampCounter
     PhReferenceEmptyString
     PhRegisterCallback
     PhRegisterCallbackEx
@@ -487,6 +494,9 @@ EXPORTS
     PhSplitStringRefAtLastChar
     PhSplitStringRefAtString
     PhSplitStringRefEx
+    PhSplitStringRef
+    PhFreeStringArray
+    PhStringFuzzyMatch
     PhStringToDouble
     PhStringToInteger64
     PhStringToUInt64
@@ -560,9 +570,11 @@ EXPORTS
     PhEnumReparsePointInformation
     PhEnumerateKey
     PhEnumerateValueKey
+    PhEnumerateValueKeyEx
     PhFilterConnectCommunicationPort
     PhFindProcessInformation
     PhFindProcessInformationByImageName
+    PhFreezeProcess
     PhGetActiveProcessorCount
     PhGetContextThread
     PhGetDeviceType
@@ -571,13 +583,13 @@ EXPORTS
     PhGetDriverName
     PhGetDriverServiceKeyName
     PhGetFileFullAttributesInformation
+    PhGetFileId
     PhGetFileName
     PhGetFilePosition
     PhGetFileSize
     PhGetFirmwareEnvironmentVariable
     PhGetJobProcessIdList
     PhGetKernelFileName
-    PhGetKernelFileName2
     PhGetKernelFileNameEx
     PhGetModuleProcAddress
     PhGetNamedPipeClientComputerName
@@ -590,28 +602,47 @@ EXPORTS
     PhGetPnPDeviceName
     PhGetProcedureAddress
     PhGetProcedureAddressRemote
+    PhGetProcessAffinityMask
+    PhGetProcessArchitecture
     PhGetProcessCommandLine
     PhGetProcessDepStatus
     PhGetProcessDeviceMap
     PhGetProcessEnvironment
+    PhGetProcessExtendedBasicInformation
+    PhGetProcessGroupAffinity
+    PhGetProcessGroupInformation
     PhGetProcessImageFileName
+    PhGetProcessImageFileNameById
     PhGetProcessImageFileNameByProcessId
     PhGetProcessImageFileNameWin32
+    PhGetProcessIoPriority
     PhGetProcessIsDotNet
     PhGetProcessIsDotNetEx
+    PhGetProcessIsTerminated
+    PhGetProcessIsWow64
     PhGetProcessMappedFileName
+    PhGetProcessPagePriority
     PhGetProcessPebString
     PhGetProcessPowerThrottlingState
+    PhGetProcessPriorityBoost
     PhGetProcessPriorityClass
     PhGetProcessUnloadedDlls
     PhGetProcessWindowTitle
     PhGetProcessWorkingSetInformation
     PhGetProcessWsCounters
     PhGetSectionFileName
+    PhGetThreadBasePriority
+    PhGetThreadBasicInformation
+    PhGetThreadIsTerminated
+    PhGetThreadIoPriority
+    PhGetThreadName
+    PhGetThreadPagePriority
+    PhGetTokenAppContainerSid
     PhGetTokenGroups
     PhGetTokenIntegrityLevel
     PhGetTokenIntegrityLevelRID
     PhGetTokenOwner
+    PhGetTokenPackageFullName
     PhGetTokenPrimaryGroup
     PhGetTokenPrivileges
     PhGetTokenUser
@@ -630,6 +661,7 @@ EXPORTS
     PhOpenProcessClientId
     PhOpenProcessToken
     PhOpenThread
+    PhOpenThreadClientId
     PhOpenThreadProcess
     PhPeekNamedPipe
     PhQueryEnvironmentVariable
@@ -642,6 +674,9 @@ EXPORTS
     PhQueueUserWorkItem
     PhReadFile
     PhResolveDevicePrefix
+    PhReadVirtualMemory
+    PhResumeProcess
+    PhResumeThread
     PhRevertImpersonationToken
     PhSetFileAllocationSize
     PhSetFileIoPriorityHint
@@ -655,12 +690,16 @@ EXPORTS
     PhSetThreadBasePriority
     PhSetThreadIoPriority
     PhSetThreadName
+    PhSetThreadPagePriority
     PhSetTokenIsVirtualizationEnabled
     PhSetTokenPrivilege
     PhSetTokenPrivilege2
     PhSetTokenSessionId
     PhSetValueKey
+    PhSuspendProcess
+    PhSuspendThread
     PhTerminateProcess
+    PhThawProcess
     PhTraceControl
     PhTransceiveNamedPipe
     PhUnloadDllProcess
@@ -699,6 +738,7 @@ EXPORTS
     PhFinalHash
     PhFormatDate
     PhFormatDateTime
+    PhFormatDateTimeToBuffer
     PhFormatDecimal
     PhFormatGuid
     PhFormatImageVersionInfo
@@ -714,11 +754,13 @@ EXPORTS
     PhGenerateGuidFromName
     PhGenerateRandomAlphaString
     PhGenerateRandomNumber64
+    PhGetActivationFactory
     PhGetApplicationDataFileName
     PhGetApplicationDirectory
     PhGetApplicationDirectoryFileName
     PhGetApplicationDirectoryWin32
     PhGetApplicationFileNameWin32
+    PhGetApplicationFileName
     PhGetBaseDirectory
     PhGetBaseName
     PhGetClassObject
@@ -740,6 +782,7 @@ EXPORTS
     PhGetMonitorDpi
     PhGetNtMessage
     PhGetNtSystemRoot
+    PhGetRoamingAppDataDirectory
     PhGetStatusMessage
     PhGetSystemDirectory
     PhGetSystemDpi
@@ -879,15 +922,12 @@ EXPORTS
     PhAddLayoutItem
     PhAddLayoutItemEx
     PhAddListViewColumn
-    PhAddIListViewColumn
-    PhAddIListViewGroup
-    PhAddIListViewGroupItem
     PhAddListViewGroup
     PhAddListViewGroupItem
     PhAddListViewItem
-    PhAddIListViewItem
     PhAddTabControlTab
     PhBitmapSetAlpha
+    PhCloseThemeData
     PhCreateCommonFont
     PhCreateDialog
     PhCreateDIBSection
@@ -895,29 +935,33 @@ EXPORTS
     PhCreateWindowEx
     PhDeleteLayoutManager
     PhDialogBox
+    PhDrawThemeBackground
     PhDuplicateFont
     PhDuplicateFontWithNewWeight
     PhEnumChildWindows
+    PhEnumDesktops
     PhEnumWindows
-    PhFindIListViewItemByFlags
+    PhEnumWindowsEx
     PhFindListViewItemByFlags
     PhFindListViewItemByParam
+    PhGetClassName
     PhGetComboBoxString
     PhGetDialogItemValue
-    PhGetIListViewItemParam
     PhGetListBoxString
     PhGetListViewItemImageIndex
     PhGetListViewItemParam
     PhGetSelectedListViewItemParam
     PhGetSelectedListViewItemParams
-    PhGetSelectedIListViewItemParams
     PhGetStockApplicationIcon
     PhGetStockObject
+    PhGetThemeMargins
+    PhGetThemePartSize
     PhGetWindowClientId
     PhGetWindowCompositionAttribute
     PhGetWindowContext
     PhGetWindowText
     PhGetWindowTextEx
+    PhGetWindowTextToBuffer
     PhIconToBitmap
     PhImageListAddBitmap
     PhImageListAddIcon
@@ -932,11 +976,13 @@ EXPORTS
     PhImageListSetIconSize
     PhImageListSetImageCount
     PhInitializeLayoutManager
+    PhIsThemeActive
     PhLayoutManagerUpdate
     PhLayoutManagerLayout
     PhLoadIcon
     PhLoadImageFormatFromResource
     PhModalPropertySheet
+    PhOpenThemeData
     PhQueryDirectXExclusiveOwnership
     PhInitializeWindowTheme
     PhReInitializeWindowTheme
@@ -955,7 +1001,6 @@ EXPORTS
     PhSetListViewItemImageIndex
     PhSetListViewItemParam
     PhSetListViewSubItem
-    PhSetIListViewSubItem
     PhSetStateAllListViewItems
     PhSetWindowContext
     PhSetWindowText
@@ -968,7 +1013,6 @@ EXPORTS
 
 ; hndlinfo
     PhCallKphQueryFileInformationWithTimeout
-    PhCreateHandleItem
     PhCompareObjects
     PhEnumObjectTypes
     PhFormatNativeKeyName
@@ -1108,6 +1152,7 @@ EXPORTS
     PhAddJsonArrayObject
     PhAddJsonObject
     PhAddJsonObject2
+    PhAddJsonObjectUtf8
     PhAddJsonObjectInt64
     PhAddJsonObjectUInt64
     PhAddJsonObjectValue
@@ -1128,6 +1173,8 @@ EXPORTS
     PhGetJsonValueAsInt64
     PhGetJsonValueAsString
     PhGetJsonValueAsUInt64
+    PhLoadJsonObjectFromFile
+    PhSaveJsonObjectToFile
 
 ; xml
     PhCreateXmlNode

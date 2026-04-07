@@ -13,6 +13,14 @@ for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual S
    set "VSINSTALLPATH=%%a"
 )
 
+if not defined VSINSTALLPATH if defined WindowsSdkDir (
+   set "VSINSTALLPATH=%WindowsSdkDir%"
+)
+
+if not defined VSINSTALLPATH if defined EWDK_ROOT (
+   set "VSINSTALLPATH=%EWDK_ROOT%"
+)
+
 if not defined VSINSTALLPATH (
    echo No Visual Studio installation detected.
    goto end
@@ -38,7 +46,7 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
        dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\amd64.pubxml /p:ContinuousIntegrationBuild=%TIB%
     )
 ) else (
-   goto end
+    goto end
 )
 
 :: Post-cleanup (required since dotnet doesn't cleanup)
@@ -73,4 +81,10 @@ if exist "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuild
 
 :end
 
-if "%TIB%"=="false" pause
+if "%TIB%"=="false" (
+   REM Avoid pause in non-interactive runs (stdin redirected).
+   set "STDIN_REDIRECTED=False"
+   for /f %%i in ('powershell -NoProfile -Command "[Console]::IsInputRedirected"') do set "STDIN_REDIRECTED=%%i"
+   REM Pause only for interactive console sessions.
+   if /i not "%STDIN_REDIRECTED%"=="True" pause
+)

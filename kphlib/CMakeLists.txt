@@ -30,6 +30,7 @@ set(SOURCES
     "kphdyndata.c"
     "kphmsg.c"
     "kphmsgdyn.c"
+    "kphringbuff.c"
 )
 source_group("Source Files" FILES SOURCES)
 

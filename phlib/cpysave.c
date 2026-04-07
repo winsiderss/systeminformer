@@ -242,13 +242,15 @@ PPH_LIST PhaFormatTextTable(
     return lines;
 }
 
-VOID PhMapDisplayIndexTreeNew(
+_Use_decl_annotations_
+BOOLEAN PhMapDisplayIndexTreeNew(
     _In_ HWND TreeNewHandle,
     _Out_opt_ PULONG *DisplayToId,
     _Out_opt_ PWSTR **DisplayToText,
     _Out_ PULONG NumberOfColumns
     )
 {
+    BOOLEAN result = TRUE;
     PPH_TREENEW_COLUMN fixedColumn;
     ULONG numberOfColumns;
     PULONG displayToId;
@@ -281,17 +283,29 @@ VOID PhMapDisplayIndexTreeNew(
             {
                 displayToText[i] = (PWSTR)column.Text;
             }
+            else
+            {
+                result = FALSE;
+                break;
+            }
         }
 
         *DisplayToText = displayToText;
     }
 
-    if (DisplayToId)
-        *DisplayToId = displayToId;
-    else
-        PhFree(displayToId);
+    if (result)
+    {
+        if (DisplayToId)
+            *DisplayToId = displayToId;
+        else
+            PhFree(displayToId);
 
-    *NumberOfColumns = numberOfColumns;
+        *NumberOfColumns = numberOfColumns;
+        return TRUE;
+    }
+
+    PhFree(displayToId);
+    return FALSE;
 }
 
 PPH_STRING PhGetTreeNewText(
@@ -415,7 +429,8 @@ PPH_LIST PhGetGenericTreeNewLines(
     return lines;
 }
 
-VOID PhaMapDisplayIndexListView(
+_Use_decl_annotations_
+BOOLEAN PhaMapDisplayIndexListView(
     _In_ HWND ListViewHandle,
     _Out_writes_(Count) PULONG DisplayToId,
     _Out_writes_opt_(Count) PPH_STRING *DisplayToText,
@@ -455,48 +470,7 @@ VOID PhaMapDisplayIndexListView(
     }
 
     *NumberOfColumns = count;
-}
-
-VOID PhaMapDisplayIndexIListView(
-    _In_ PVOID ListView,
-    _Out_writes_(Count) PULONG DisplayToId,
-    _Out_writes_opt_(Count) PPH_STRING *DisplayToText,
-    _In_ ULONG Count,
-    _Out_ PULONG NumberOfColumns
-    )
-{
-    LVCOLUMN lvColumn;
-    ULONG i;
-    ULONG count;
-    WCHAR buffer[128];
-
-    count = 0;
-    lvColumn.mask = LVCF_ORDER | LVCF_TEXT;
-    lvColumn.pszText = buffer;
-    lvColumn.cchTextMax = sizeof(buffer) / sizeof(WCHAR);
-
-    for (i = 0; i < Count; i++)
-    {
-        if (SUCCEEDED(IListView_GetColumn((struct IListView*)ListView, i, &lvColumn)))
-        {
-            ULONG displayIndex;
-
-            displayIndex = (ULONG)lvColumn.iOrder;
-            assert(displayIndex < Count);
-            DisplayToId[displayIndex] = i;
-
-            if (DisplayToText)
-                DisplayToText[displayIndex] = PhaCreateString(buffer);
-
-            count++;
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    *NumberOfColumns = count;
+    return TRUE;
 }
 
 PPH_STRING PhGetListViewItemText(
@@ -535,51 +509,6 @@ PPH_STRING PhGetListViewItemText(
     return buffer;
 }
 
-PPH_STRING PhGetIListViewItemText(
-    _In_ PVOID ListView,
-    _In_ LONG Index,
-    _In_ LONG SubItemIndex
-    )
-{
-    PPH_STRING buffer;
-    SIZE_T allocatedCount;
-    SIZE_T count;
-    LVITEM lvItem;
-
-    // Unfortunately LVM_GETITEMTEXT doesn't want to return the actual length of the text.
-    // Keep doubling the buffer size until we get a return count that is strictly less than
-    // the amount we allocated.
-
-    buffer = NULL;
-    allocatedCount = 256;
-    count = allocatedCount;
-
-    while (count >= allocatedCount)
-    {
-        allocatedCount *= 2;
-        if (buffer) PhDereferenceObject(buffer);
-        buffer = PhCreateStringEx(NULL, (allocatedCount + 1) * sizeof(WCHAR));
-
-        memset(&lvItem, 0, sizeof(LVITEM));
-        lvItem.mask = LVIF_TEXT;
-        lvItem.iItem = Index;
-        lvItem.iSubItem = SubItemIndex;
-        lvItem.pszText = buffer->Buffer;
-        lvItem.cchTextMax = (LONG)allocatedCount;
-
-        if (SUCCEEDED(IListView_GetItem((struct IListView*)ListView, &lvItem)))
-            break;
-
-        count = PhCountStringZ(lvItem.pszText);
-
-        //if (SUCCEEDED(IListView_GetItemText(ListView, Index, 0, buffer->Buffer, allocatedCount)))
-        //    break;
-    }
-
-    PhTrimToNullTerminatorString(buffer);
-
-    return buffer;
-}
 //PPH_STRING PhGetListViewItemText(
 //    _In_ HWND ListViewHandle,
 //    _In_ INT Index,
@@ -623,26 +552,6 @@ PPH_STRING PhGetListViewSelectedItemText(
     return NULL;
 }
 
-PPH_STRING PhGetIListViewSelectedItemText(
-    _In_ PVOID ListView
-    )
-{
-    LONG index;
-
-    index = PhFindIListViewItemByFlags(
-        ListView,
-        INT_ERROR,
-        LVNI_SELECTED
-        );
-
-    if (index != INT_ERROR)
-    {
-        return PhGetIListViewItemText(ListView, index, 0);
-    }
-
-    return NULL;
-}
-
 PPH_STRING PhaGetListViewItemText(
     _In_ HWND ListViewHandle,
     _In_ LONG Index,
@@ -652,24 +561,6 @@ PPH_STRING PhaGetListViewItemText(
     PPH_STRING value;
 
     if (value = PhGetListViewItemText(ListViewHandle, Index, SubItemIndex))
-    {
-        PH_AUTO(value);
-
-        return value;
-    }
-
-    return NULL;
-}
-
-PPH_STRING PhaGetIListViewItemText(
-    _In_ PVOID ListView,
-    _In_ LONG Index,
-    _In_ LONG SubItemIndex
-    )
-{
-    PPH_STRING value;
-
-    if (value = PhGetIListViewItemText(ListView, Index, SubItemIndex))
     {
         PH_AUTO(value);
 
@@ -706,52 +597,6 @@ PPH_STRING PhGetListViewText(
         for (j = 0; j < columns; j++)
         {
             PhAppendStringBuilder(&stringBuilder, &PhaGetListViewItemText(ListViewHandle, i, j)->sr);
-            PhAppendStringBuilder2(&stringBuilder, L", ");
-        }
-
-        // Remove the trailing comma and space.
-        if (stringBuilder.String->Length != 0)
-            PhRemoveEndStringBuilder(&stringBuilder, 2);
-
-        PhAppendStringBuilder2(&stringBuilder, L"\r\n");
-    }
-
-    PhDeleteAutoPool(&autoPool);
-
-    return PhFinalStringBuilderString(&stringBuilder);
-}
-
-PPH_STRING PhGetIListViewText(
-    _In_ PVOID ListView
-    )
-{
-    PH_AUTO_POOL autoPool;
-    PH_STRING_BUILDER stringBuilder;
-    ULONG displayToId[100];
-    ULONG state = 0;
-    ULONG rows = 0;
-    ULONG columns;
-    ULONG i;
-    ULONG j;
-
-    PhInitializeAutoPool(&autoPool);
-
-    PhaMapDisplayIndexIListView(ListView, displayToId, NULL, 100, &columns);
-    IListView_GetItemCount((struct IListView*)ListView, &rows);
-
-    PhInitializeStringBuilder(&stringBuilder, 0x100);
-
-    for (i = 0; i < rows; i++)
-    {
-        if (!SUCCEEDED(IListView_GetItemState((struct IListView*)ListView, i, 0, LVIS_SELECTED, &state)))
-            continue;
-
-        if (!FlagOn(state, LVIS_SELECTED))
-            continue;
-
-        for (j = 0; j < columns; j++)
-        {
-            PhAppendStringBuilder(&stringBuilder, &PhaGetIListViewItemText(ListView, i, j)->sr);
             PhAppendStringBuilder2(&stringBuilder, L", ");
         }
 

@@ -94,7 +94,7 @@ static size_t printbuf_extend(struct printbuf *p, size_t min_size)
     return 0;
 }
 
-size_t printbuf_memappend(struct printbuf *p, const char *buf, size_t size)
+size_t printbuf_memappend(struct printbuf *p, const unsigned char *buf, size_t size)
 {
     /* Prevent signed integer overflows with large buffers. */
     if (size < 0 || size > INT_MAX - p->bpos - 1)
@@ -141,16 +141,16 @@ int printbuf_memset(struct printbuf *pb, size_t offset, int charvalue, size_t le
     return 0;
 }
 
-size_t sprintbuf(struct printbuf *p, const char *msg, ...)
+size_t sprintbuf(struct printbuf *p, const unsigned char *msg, ...)
 {
     va_list ap;
-    char *t;
+    unsigned char *t;
     size_t size;
-    char buf[128];
+    unsigned char buf[128];
 
     /* use stack buffer first */
     va_start(ap, msg);
-    size = vsnprintf(buf, 128, msg, ap);
+    size = vsnprintf(buf, 128, (const char*)msg, ap);
     va_end(ap);
     /* if string is greater than stack buffer, then use dynamic string
      * with vasprintf.  Note: some implementations of vsnprintf return -1
@@ -160,7 +160,7 @@ size_t sprintbuf(struct printbuf *p, const char *msg, ...)
     if (size < 0 || size > 127)
     {
         va_start(ap, msg);
-        if ((size = vasprintf(&t, msg, ap)) < 0)
+        if ((size = vasprintf((char**)&t, (const char*)msg, ap)) < 0)
         {
             va_end(ap);
             return -1;

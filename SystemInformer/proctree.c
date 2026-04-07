@@ -45,6 +45,7 @@ VOID PhpRemoveProcessNode(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpProcessTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -89,6 +90,12 @@ static HBITMAP GraphOldBitmap = NULL;
 static HBITMAP GraphBitmap = NULL;
 static PVOID GraphBits = NULL;
 
+/**
+ * Initializes the process tree list.
+ *
+ * This function sets up any necessary data structures or state required
+ * for displaying or managing the process tree within the application.
+ */
 VOID PhProcessTreeListInitialization(
     VOID
     )
@@ -111,7 +118,7 @@ VOID PhInitializeProcessTreeList(
     TreeNew_SetMaxId(hwnd, PHPRTLC_MAXIMUM - 1);
 
     // Default columns
-    PhAddTreeNewColumn(hwnd, PHPRTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, (PhGetIntegerSetting(L"ProcessTreeListNameDefault") ? TN_COLUMN_FIXED : 0), 0); // HACK (dmex)
+    PhAddTreeNewColumn(hwnd, PHPRTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, (PhGetIntegerSetting(SETTING_PROCESS_TREE_LIST_NAME_DEFAULT) ? TN_COLUMN_FIXED : 0), 0); // HACK (dmex)
     PhAddTreeNewColumn(hwnd, PHPRTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_IOTOTALRATE, TRUE, L"I/O total rate", 70, PH_ALIGN_RIGHT, 2, DT_RIGHT, TRUE);
@@ -320,13 +327,13 @@ VOID PhLoadSettingsProcessTreeList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"ProcessTreeListColumns");
-    sortSettings = PhGetStringSetting(L"ProcessTreeListSort");
+    settings = PhGetStringSetting(SETTING_PROCESS_TREE_LIST_COLUMNS);
+    sortSettings = PhGetStringSetting(SETTING_PROCESS_TREE_LIST_SORT);
     PhCmLoadSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -342,8 +349,8 @@ VOID PhSaveSettingsProcessTreeList(
     PPH_STRING sortSettings;
 
     settings = PhCmSaveSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, 0, &sortSettings);
-    PhSetStringSetting2(L"ProcessTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"ProcessTreeListSort", &sortSettings->sr);
+    PhSetStringSetting2(SETTING_PROCESS_TREE_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_PROCESS_TREE_LIST_SORT, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
@@ -355,7 +362,7 @@ VOID PhLoadSettingsProcessTreeListEx(
 {
     PhCmLoadSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, 0, &TreeListSettings->sr, &TreeSortSettings->sr);
 
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -381,7 +388,7 @@ VOID PhReloadSettingsProcessTreeList(
     VOID
     )
 {
-    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     else
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -666,6 +673,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->FileSizeText);
     PhClearReference(&ProcessNode->SubprocessCountText);
     PhClearReference(&ProcessNode->JobObjectIdText);
+    PhClearReference(&ProcessNode->ProtectionText);
     PhClearReference(&ProcessNode->DesktopInfoText);
     PhClearReference(&ProcessNode->CpuCoreUsageText);
     PhClearReference(&ProcessNode->ImageCoherencyText);
@@ -720,7 +728,10 @@ VOID PhTickProcessNodes(
 
     // Header text invalidation (dmex)
 
-    memset(PhProcessTreeColumnHeaderCache, 0, PhProcessTreeColumnHeaderCacheLength);
+    if (PhProcessTreeColumnHeaderCache)
+    {
+        memset(PhProcessTreeColumnHeaderCache, 0, PhProcessTreeColumnHeaderCacheLength);
+    }
 
     // Node text invalidation, node updates
 
@@ -1912,6 +1923,7 @@ static VOID PhpUpdateProcessNodeServices(
     return PhModifySort(sortResult, ProcessTreeListSortOrder); \
 }
 
+_Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpProcessTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -3694,7 +3706,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhQuerySystemTime(&currentTime);
 
-                        if (PhGetIntegerSetting(L"EnableShortRelativeStartTime"))
+                        if (PhGetIntegerSetting(SETTING_ENABLE_SHORT_RELATIVE_START_TIME))
                         {
                             if (processItem->CreateTime.QuadPart < currentTime.QuadPart)
                             {
@@ -4252,7 +4264,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         processItem->IsSecureProcess ||
                         processItem->IsProtectedProcess)
                     {
-                        getCellText->Text = PhGetStringRef(processItem->ProtectionString);
+                        PhMoveReference(&node->ProtectionText, PhGetProcessProtectionString(
+                            processItem->Protection,
+                            (BOOLEAN)processItem->IsSecureProcess
+                            ));
+                        getCellText->Text = PhGetStringRef(node->ProtectionText);
                     }
                 }
                 break;
@@ -5642,6 +5658,119 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             }
         }
         return TRUE;
+    case TreeNewReorderBegin:
+        {
+            PPH_TREENEW_REORDER_EVENT reorderEvent = Parameter1;
+            node = (PPH_PROCESS_NODE)reorderEvent->Source;
+
+            reorderEvent->Allow = TRUE;
+        }
+        return TRUE;
+    case TreeNewReorderOver:
+        {
+            PPH_TREENEW_REORDER_EVENT reorderEvent = Parameter1;
+            node = (PPH_PROCESS_NODE)reorderEvent->Source;
+
+            reorderEvent->Allow = TRUE;
+        }
+        return TRUE;
+    case TreeNewReorderCommit:
+        {
+            PPH_TREENEW_REORDER_EVENT reorderEvent = Parameter1;
+            PPH_PROCESS_NODE sourceNode = (PPH_PROCESS_NODE)reorderEvent->Source;
+            PPH_PROCESS_NODE targetNode = (PPH_PROCESS_NODE)reorderEvent->Target;
+            BOOLEAN targetIsDescendant = FALSE;
+            ULONG oldIndex, newIndex;
+
+            if (sourceNode && targetNode)
+            {
+                PPH_PROCESS_NODE current = targetNode;
+                while (current)
+                {
+                    if (current == sourceNode)
+                    {
+                        targetIsDescendant = TRUE;
+                        break;
+                    }
+                    current = current->Parent;
+                }
+            }
+
+            // Remove sourceNode from its current parent or root list (dmex)
+            if (sourceNode->Parent)
+            {
+                oldIndex = PhFindItemList(sourceNode->Parent->Children, sourceNode);
+                if (oldIndex != ULONG_MAX)
+                    PhRemoveItemList(sourceNode->Parent->Children, oldIndex);
+            }
+            else
+            {
+                oldIndex = PhFindItemList(ProcessNodeRootList, sourceNode);
+                if (oldIndex != ULONG_MAX)
+                    PhRemoveItemList(ProcessNodeRootList, oldIndex);
+            }
+
+            if (targetNode && !targetIsDescendant)
+            {
+                BOOLEAN droppedIntoTargetAsChild = FALSE;
+
+                // If DropAfter is TRUE and the target is a parent (expanded or already has children),
+                // append as the last child of the target (instead of inserting after the parent). (dmex)
+                if (reorderEvent->DropAfter &&
+                    (targetNode->Node.Expanded || (targetNode->Children && targetNode->Children->Count > 0)))
+                {
+                    newIndex = targetNode->Children->Count;
+                    PhInsertItemList(targetNode->Children, newIndex, sourceNode);
+                    sourceNode->Parent = targetNode;
+                    droppedIntoTargetAsChild = TRUE;
+                }
+
+                if (!droppedIntoTargetAsChild)
+                {
+                    // Default behavior: insert as sibling before/after the target (dmex)
+                    if (targetNode->Parent)
+                    {
+                        // Insert as sibling in parent's children list
+                        PPH_PROCESS_NODE parent = targetNode->Parent;
+                        newIndex = PhFindItemList(parent->Children, targetNode);
+                        if (newIndex > parent->Children->Count)
+                            newIndex = parent->Children->Count;
+                        if (reorderEvent->DropAfter && newIndex < parent->Children->Count)
+                            newIndex++;
+                        PhInsertItemList(parent->Children, newIndex, sourceNode);
+                        sourceNode->Parent = parent;
+                    }
+                    else
+                    {
+                        // Insert as root node (sibling of target in root list) (dmex)
+                        newIndex = PhFindItemList(ProcessNodeRootList, targetNode);
+                        if (newIndex > ProcessNodeRootList->Count)
+                            newIndex = ProcessNodeRootList->Count;
+                        if (reorderEvent->DropAfter && newIndex < ProcessNodeRootList->Count)
+                            newIndex++;
+                        PhInsertItemList(ProcessNodeRootList, newIndex, sourceNode);
+                        sourceNode->Parent = NULL;
+                    }
+                }
+            }
+            else if (!targetNode)
+            {
+                // No target, insert at the end of the root list (dmex)
+                PhInsertItemList(ProcessNodeRootList, ProcessNodeRootList->Count, sourceNode);
+                sourceNode->Parent = NULL;
+            }
+            else
+            {
+                // Invalid move (would create a cycle) - restore original placement at end of root list. (dmex)
+                PhInsertItemList(ProcessNodeRootList, ProcessNodeRootList->Count, sourceNode);
+                sourceNode->Parent = NULL;
+            }
+
+            TreeNew_NodesStructured(hwnd);
+        }
+        return TRUE;
+    case TreeNewReorderCancel:
+        return TRUE;
     }
 
     return FALSE;
@@ -6139,14 +6268,13 @@ PPH_LIST PhDuplicateProcessNodeList(
 }
 
 /**
-* Determines if the process item should show the image coherency in the UI.
-*
-* \param[in] ProcessItem - Process item to check.
-* \param[in] CheckThreshold - If TRUE the image low coherency threshold is
-* checked, see: LowImageCoherencyThreshold.
-*
-* \return TRUE if the image coherency should be shown, FALSE otherwise.
-*/
+ * Determines if the process item should show the image coherency in the UI.
+ *
+ * \param[in] ProcessItem - Process item to check.
+ * \param[in] CheckThreshold - If TRUE the image low coherency threshold is
+ * checked, see: LowImageCoherencyThreshold.
+ * \return TRUE if the image coherency should be shown, FALSE otherwise.
+ */
 BOOLEAN PhpShouldShowImageCoherency(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ BOOLEAN CheckThreshold
@@ -6243,6 +6371,13 @@ BOOLEAN PhpShouldShowImageCoherency(
     return FALSE;
 }
 
+/**
+ * Retrieves the Win32 file name of the process associated with the specified process item.
+ *
+ * \param ProcessItem A pointer to a PPH_PROCESS_ITEM structure representing the process.
+ * \param FileNameWin32 A pointer to a variable that receives a pointer to a PPH_STRING containing the Win32 file name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetProcessItemFileNameWin32(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _Out_ PPH_STRING* FileNameWin32

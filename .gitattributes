@@ -4,6 +4,7 @@
 # Custom for Visual Studio
 *.cs            diff=csharp
 *.sln           merge=union
+*.slnx          merge=union
 *.csproj        merge=union
 *.vbproj        merge=union
 *.fsproj        merge=union
@@ -16,6 +17,7 @@
 *.cs            text
 *.cpp           text
 *.config        text
+*.cmake         text
 *.cmd           text
 *.csproj        text
 *.def           text
@@ -27,6 +29,7 @@
 *.hpp           text
 *.inc           text
 *.inf           text
+*.json          text
 *.map           text
 *.manifest      text
 *.mc            text
@@ -37,13 +40,16 @@
 *.pubxml        text
 *.resx          text
 *.rc            text
+*.sh            text eol=lf
 *.sln           text
+*.slnx          text
 *.txt           text
 *.vsconfig      text
 *.vcxproj       text
 *.filters       text
 *.xml           text
 *.yml           text
+*.yaml          text
 
 **AUTHORS       text
 **COPYING       text
@@ -62,6 +68,7 @@
 *.png           binary
 *.s             binary
 *.sys           binary
+*.zip           binary
 
 # svg standard require LF
 *.svg           text eol=lf

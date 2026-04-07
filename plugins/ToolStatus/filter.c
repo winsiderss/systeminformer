@@ -13,13 +13,14 @@
 #include "toolstatus.h"
 #include <verify.h>
 
-BOOLEAN WordMatchStringRef(
+BOOLEAN SearchWordMatchStringRefCallback(
     _In_ PCPH_STRINGREF Text
     )
 {
     return PhSearchControlMatch(SearchMatchHandle, Text);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN ProcessTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -90,11 +91,11 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (processNode->ProcessItem->ProtectionString)
-    {
-        if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->ProtectionString->sr))
-            return TRUE;
-    }
+    //if (processNode->ProcessItem->ProtectionString)
+    //{
+    //    if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->ProtectionString->sr))
+    //        return TRUE;
+    //}
 
     if (!PhIsNullOrEmptyString(processNode->ProcessItem->VerifySignerName))
     {
@@ -351,6 +352,7 @@ BOOLEAN ProcessTreeFilterCallback(
     return FALSE;
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN ServiceTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -478,6 +480,7 @@ BOOLEAN ServiceTreeFilterCallback(
     return FALSE;
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN NetworkTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context

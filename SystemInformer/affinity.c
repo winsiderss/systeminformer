@@ -550,6 +550,12 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                              affinityGroup = (USHORT)affinityGroupSelection;
                     }
 
+                    if (affinityMask == 0)
+                    {
+                        PhShowError2(hwndDlg, L"Unable to change affinity settings.", L"%s", L"You must select at least one CPU.");
+                        break;
+                    }
+
                     if (context->ProcessItem)
                     {
                         HANDLE processHandle;

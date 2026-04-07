@@ -55,8 +55,16 @@ if not "%1"=="" (
     goto :argloop
 )
 
-for /f "usebackq tokens=*" %%A in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
+for /f "usebackq tokens=*" %%A in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
     set VSINSTALLPATH=%%A
+)
+
+if not defined VSINSTALLPATH if defined WindowsSdkDir (
+   set "VSINSTALLPATH=%WindowsSdkDir%"
+)
+
+if not defined VSINSTALLPATH if defined EWDK_ROOT (
+   set "VSINSTALLPATH=%EWDK_ROOT%"
 )
 
 if not defined VSINSTALLPATH (
@@ -67,14 +75,20 @@ if not defined VSINSTALLPATH (
 if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
    call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
 ) else (
-    echo [-] Failed to set up build environment
-    goto end
+   if not defined INCLUDE (
+      if not defined LIB (
+         echo Warning: vcvarsall.bat not found and compilation environment variables ^(INCLUDE/LIB^) are not defined.
+         echo The build may fail if the environment is not properly initialized.
+      )
+   )
 )
 
-echo [+] Building... %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS% %LEGACY_BUILD%
+echo [+] Building... [WIN64] %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS% %LEGACY_BUILD%
 
 msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=x64 -maxCpuCount -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
 if %ERRORLEVEL% neq 0 goto end
+
+echo [+] Building... [ARM64] %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS% %LEGACY_BUILD%
 
 msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=ARM64 -maxCpuCount -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
 if %ERRORLEVEL% neq 0 goto end

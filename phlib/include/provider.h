@@ -55,6 +55,7 @@ typedef struct _PH_PROVIDER_REGISTRATION
             ULONG Spare : 29;
         };
     };
+    PH_RUNDOWN_PROTECT RundownProtect;
 } PH_PROVIDER_REGISTRATION, *PPH_PROVIDER_REGISTRATION;
 
 typedef struct _PH_PROVIDER_THREAD
@@ -67,6 +68,15 @@ typedef struct _PH_PROVIDER_THREAD
     PH_QUEUED_LOCK Lock;
     LIST_ENTRY ListHead;
     ULONG BoostCount;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG UseHighResolution : 1;
+            ULONG Spare : 31;
+        };
+    };
 } PH_PROVIDER_THREAD, *PPH_PROVIDER_THREAD;
 
 PHLIBAPI
@@ -85,7 +95,7 @@ PhDeleteProviderThread(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhStartProviderThread(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread
@@ -99,7 +109,7 @@ PhStopProviderThread(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhSetIntervalProviderThread(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread,
@@ -123,6 +133,7 @@ PhUnregisterProvider(
     _Inout_ PPH_PROVIDER_REGISTRATION Registration
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -151,6 +162,14 @@ NTAPI
 PhSetEnabledProvider(
     _Inout_ PPH_PROVIDER_REGISTRATION Registration,
     _In_ BOOLEAN Enabled
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetHighResolutionProvider(
+    _Inout_ PPH_PROVIDER_THREAD ProviderThread,
+    _In_ BOOLEAN UseHighResolution
     );
 
 #ifdef __cplusplus

@@ -137,6 +137,7 @@ USHORT SetupGetCurrentArchitecture(
     return info.wProcessorArchitecture;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS CALLBACK SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )

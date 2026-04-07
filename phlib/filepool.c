@@ -959,6 +959,7 @@ PPH_FILE_POOL_VIEW PhFppFindViewByIndex(
     return NULL;
 }
 
+_Function_class_(PH_AVL_TREE_COMPARE_FUNCTION)
 LONG NTAPI PhpFilePoolViewByBaseCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2

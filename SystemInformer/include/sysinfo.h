@@ -173,6 +173,7 @@ PhSiSetColorsGraphDrawInfo(
     _In_ LONG WindowDpi
     );
 
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
 PHAPPAPI
 PPH_STRING
 NTAPI
@@ -183,6 +184,7 @@ PhSiSizeLabelYFunction(
     _In_ FLOAT Parameter
     );
 
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
 PHAPPAPI
 PPH_STRING
 NTAPI
@@ -193,6 +195,7 @@ PhSiDoubleLabelYFunction(
     _In_ FLOAT Parameter
     );
 
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
 PHAPPAPI
 PPH_STRING
 NTAPI

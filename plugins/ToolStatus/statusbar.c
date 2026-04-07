@@ -204,7 +204,8 @@ VOID StatusBarShowMenu(
     PPH_EMENU_ITEM selectedItem;
     POINT cursorPos;
 
-    GetCursorPos(&cursorPos);
+    if (!PhGetMessagePos(&cursorPos))
+        return;
 
     menu = PhCreateEMenu();
     menuItem = PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Customize...", NULL, NULL);
@@ -550,7 +551,7 @@ VOID StatusBarUpdate(
 
                 if (UpdateAutomatically)
                 {
-                    switch (PhGetIntegerSetting(L"UpdateInterval"))
+                    switch (PhGetIntegerSetting(SETTING_UPDATE_INTERVAL))
                     {
                     case 500:
                         PhInitFormatS(&format[0], L"Interval: Fast");

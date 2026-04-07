@@ -34,6 +34,7 @@ static BOOLEAN ServiceTreeListLoaded = FALSE;
 static PPH_TN_FILTER_ENTRY DriverFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY MicrosoftFilterEntry = NULL;
 
+_Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpServicesPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
@@ -111,9 +112,9 @@ BOOLEAN PhMwpServicesPageCallback(
         return TRUE;
     case MainTabPageLoadSettings:
         {
-            if (PhGetIntegerSetting(L"HideDriverServices"))
+            if (PhGetIntegerSetting(SETTING_HIDE_DRIVER_SERVICES))
                 DriverFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpDriverServiceTreeFilter, NULL);
-            if (PhGetIntegerSetting(L"HideDefaultServices"))
+            if (PhGetIntegerSetting(SETTING_HIDE_DEFAULT_SERVICES))
                 MicrosoftFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpMicrosoftServiceTreeFilter, NULL);
         }
         return TRUE;
@@ -176,7 +177,7 @@ VOID PhMwpToggleDriverServiceTreeFilter(
 
     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
 
-    PhSetIntegerSetting(L"HideDriverServices", !!DriverFilterEntry);
+    PhSetIntegerSetting(SETTING_HIDE_DRIVER_SERVICES, !!DriverFilterEntry);
 }
 
 VOID PhMwpToggleMicrosoftServiceTreeFilter(
@@ -195,9 +196,10 @@ VOID PhMwpToggleMicrosoftServiceTreeFilter(
 
     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
 
-    PhSetIntegerSetting(L"HideDefaultServices", !!MicrosoftFilterEntry);
+    PhSetIntegerSetting(SETTING_HIDE_DEFAULT_SERVICES, !!MicrosoftFilterEntry);
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpDriverServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -211,6 +213,7 @@ BOOLEAN PhMwpDriverServiceTreeFilter(
     return TRUE;
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpMicrosoftServiceTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context

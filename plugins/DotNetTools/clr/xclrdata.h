@@ -1,6 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
+
 
 
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
@@ -9,25 +9,7 @@
  /* File created by MIDL compiler version 8.00.0603 */
 /* @@MIDL_FILE_HEADING(  ) */
 
-//#pragma warning( disable: 4049 )  /* more than 64k source lines */
-
-
-/* verify that the <rpcndr.h> version is high enough to compile this file*/
-#ifndef __REQUIRED_RPCNDR_H_VERSION__
-#define __REQUIRED_RPCNDR_H_VERSION__ 475
-#endif
-
-#include "rpc.h"
-#include "rpcndr.h"
-
-#ifndef __RPCNDR_H_VERSION__
-#error this stub requires an updated version of <rpcndr.h>
-#endif // __RPCNDR_H_VERSION__
-
-#ifndef COM_NO_WINDOWS_H
-//#include "windows.h"
-//#include "ole2.h"
-#endif /*COM_NO_WINDOWS_H*/
+#pragma warning( disable: 4049 )  /* more than 64k source lines */
 
 #ifndef __xclrdata_h__
 #define __xclrdata_h__
@@ -219,6 +201,9 @@ typedef interface IXCLRDataExceptionNotification5 IXCLRDataExceptionNotification
 extern "C"{
 #endif 
 
+
+/* interface __MIDL_itf_xclrdata_0000_0000 */
+/* [local] */ 
 
 typedef UINT32 mdToken;
 typedef mdToken mdTypeDef;
@@ -7874,3 +7859,5 @@ EXTERN_C const IID IID_IXCLRDataExceptionNotification5;
 #endif
 
 #endif
+
+

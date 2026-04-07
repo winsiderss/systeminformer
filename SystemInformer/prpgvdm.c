@@ -277,7 +277,7 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Thread Id");
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Task Id");
             PhSetExtendedListView(context->ListViewHandle);
-            PhLoadListViewColumnsFromSetting(L"VdmHostListViewColumns", context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_VDM_HOST_LIST_VIEW_COLUMNS, context->ListViewHandle);
 
             PhpRefreshVdmHostProcess(hwndDlg, context, processItem);
 
@@ -295,7 +295,7 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
         {
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
 
-            PhSaveListViewColumnsToSetting(L"VdmHostListViewColumns", context->ListViewHandle);
+            PhSaveListViewColumnsToSetting(SETTING_VDM_HOST_LIST_VIEW_COLUMNS, context->ListViewHandle);
         }
         break;
     case WM_NCDESTROY:
@@ -403,7 +403,7 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
                                 {
                                     PhShellExecuteUserString(
                                         hwndDlg,
-                                        L"FileBrowseExecutable",
+                                        SETTING_FILE_BROWSE_EXECUTABLE,
                                         PhGetString(entry->FileName),
                                         FALSE,
                                         L"Make sure the Explorer executable file is present."
@@ -417,7 +417,7 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
                                 {
                                     PhShellExecuteUserString(
                                         hwndDlg,
-                                        L"ProgramInspectExecutables",
+                                        SETTING_PROGRAM_INSPECT_EXECUTABLES,
                                         PhGetString(entry->FileName),
                                         FALSE,
                                         L"Make sure the PE Viewer executable file is present."

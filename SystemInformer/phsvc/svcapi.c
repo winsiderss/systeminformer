@@ -54,7 +54,8 @@ static CONST PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiCreateProcessIgnoreIfeoDebugger,
     PhSvcApiSetServiceSecurity,
     PhSvcApiWriteMiniDumpProcess,
-    PhSvcApiQueryProcessHeapInformation
+    PhSvcApiQueryProcessHeapInformation,
+    PhSvcApiCreateProcessForKsi,
 };
 static_assert(RTL_NUMBER_OF(PhSvcApiCallTable) == PhSvcMaximumApiNumber - 1, "SvcApiCallTable must equal MaximumApiNumber");
 
@@ -1548,6 +1549,105 @@ CleanupExit:
         PhDereferenceObject(heapInfoHexBuffer);
     if (heapInfo)
         PhFree(heapInfo);
+
+    return status;
+}
+
+NTSTATUS PhSvcApiCreateProcessForKsi(
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_PAYLOAD Payload
+    )
+{
+    NTSTATUS status;
+    PPH_STRING commandLine = NULL;
+    PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
+    STARTUPINFOEX startupInfoEx;
+    HANDLE processHandle = NULL;
+    HANDLE tokenHandle = NULL;
+    PVOID environment = NULL;
+
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateProcessForKsi.i.CommandLine, TRUE, &commandLine)))
+        goto CleanupExit;
+
+    if (Payload->u.CreateProcessForKsi.i.MitigationFlags[0] || Payload->u.CreateProcessForKsi.i.MitigationFlags[1])
+    {
+        status = PhInitializeProcThreadAttributeList(&attributeList, 1);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        if (WindowsVersion >= WINDOWS_10_22H2)
+        {
+            status = PhUpdateProcThreadAttribute(
+                attributeList,
+                PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
+                Payload->u.CreateProcessForKsi.i.MitigationFlags,
+                sizeof(ULONG64) * 2
+                );
+        }
+        else
+        {
+            status = PhUpdateProcThreadAttribute(
+                attributeList,
+                PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
+                Payload->u.CreateProcessForKsi.i.MitigationFlags,
+                sizeof(ULONG64) * 1
+                );
+        }
+    }
+
+    memset(&startupInfoEx, 0, sizeof(STARTUPINFOEX));
+    startupInfoEx.StartupInfo.cb = sizeof(STARTUPINFOEX);
+    startupInfoEx.lpAttributeList = attributeList;
+
+    // ClientId is verified to be System Informer, see: PhSvcHandleConnectionRequest
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        Client->ClientId.UniqueProcess
+        )))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhOpenProcessToken(
+        processHandle,
+        TOKEN_ALL_ACCESS,
+        &tokenHandle
+        )))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhCreateEnvironmentBlock(&environment, tokenHandle, FALSE)))
+        goto CleanupExit;
+
+    status = PhCreateProcessWin32Ex(
+        NULL,
+        PhGetString(commandLine),
+        environment,
+        NULL,
+        &startupInfoEx,
+        (PH_CREATE_PROCESS_DEFAULT_ERROR_MODE |
+         PH_CREATE_PROCESS_EXTENDED_STARTUPINFO |
+         PH_CREATE_PROCESS_UNICODE_ENVIRONMENT),
+        tokenHandle,
+        NULL,
+        NULL,
+        NULL
+        );
+
+CleanupExit:
+
+    if (environment)
+        PhDestroyEnvironmentBlock(environment);
+
+    if (tokenHandle)
+        NtClose(tokenHandle);
+
+    if (processHandle)
+        NtClose(processHandle);
+
+    if (attributeList)
+        PhDeleteProcThreadAttributeList(attributeList);
+
+    PhClearReference(&commandLine);
 
     return status;
 }

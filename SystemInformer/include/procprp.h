@@ -125,7 +125,7 @@ PHAPPAPI
 PPH_LAYOUT_ITEM
 NTAPI
 PhAddPropPageLayoutItem(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor
@@ -135,7 +135,7 @@ PHAPPAPI
 VOID
 NTAPI
 PhDoPropPageLayout(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 FORCEINLINE

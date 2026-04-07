@@ -11,6 +11,16 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides utility methods for file operations, environment management, argument parsing, and build tool
+    /// integration. This class includes helpers for interacting with build systems, locating toolchain executables,
+    /// reading and writing files, and manipulating environment variables.
+    /// </summary>
+    /// <remarks>The methods in this class are designed to support build automation and scripting scenarios,
+    /// including locating Visual Studio, MSBuild, Git, and CMake executables, parsing command-line arguments, and
+    /// handling Windows SDK paths. Many methods assume Windows environments and may rely on environment variables or
+    /// registry keys. Thread safety is not guaranteed for all static members; use caution when accessing shared
+    /// resources concurrently.</remarks>
     public static unsafe class Utils
     {
         private static readonly Dictionary<string, string> EnvironmentBlock = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -28,7 +38,7 @@ namespace CustomBuildTool
 
             foreach (string s in args)
             {
-                if (s.StartsWith("-", StringComparison.OrdinalIgnoreCase))
+                if (s.StartsWith('-'))
                 {
                     dict[s] = string.Empty;
                     argPending = s;
@@ -64,7 +74,7 @@ namespace CustomBuildTool
 
             foreach (string s in args)
             {
-                if (s.StartsWith("-", StringComparison.OrdinalIgnoreCase))
+                if (s.StartsWith('-'))
                 {
                     key = s;
 
@@ -78,6 +88,78 @@ namespace CustomBuildTool
                     kvp[key] += s;
                 }
                 // else: ignore values before any key
+            }
+
+            return kvp;
+        }
+
+        /// <summary>
+        /// Parses arguments from a file. Each line should contain a key-value pair in the format: key=value
+        /// Lines starting with # are treated as comments and ignored.
+        /// </summary>
+        public static void ParseArgumentsFromFile(Dictionary<string, string> Kvp, string FileName)
+        {
+            if (!File.Exists(FileName))
+            {
+                Program.PrintColorMessage($"Arguments file not found: {FileName}", ConsoleColor.Red);
+                return;
+            }
+
+            var args = File.ReadAllLines(FileName);
+            var key = string.Empty;
+
+            foreach (string s in args)
+            {
+                if (s.StartsWith('-'))
+                {
+                    key = s;
+
+                    if (!Kvp.ContainsKey(key))
+                    {
+                        Kvp[key] = string.Empty;
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(key))
+                {
+                    Kvp[key] += s;
+                }
+                // else: ignore values before any key
+            }
+        }
+
+        /// <summary>
+        /// Parses command-line arguments from a JSON file and returns them as a dictionary with normalized keys.
+        /// </summary>
+        /// <remarks>Keys in the resulting dictionary are prefixed with a hyphen if not already present.
+        /// Parsing errors are handled gracefully, and no exception is thrown; instead, an empty dictionary is
+        /// returned.</remarks>
+        /// <param name="filePath">The path to the JSON file containing argument key-value pairs. The file must exist and be readable.</param>
+        /// <returns>A dictionary containing the parsed arguments, with keys normalized to start with a hyphen ('-'). The
+        /// dictionary is case-insensitive. If the file cannot be parsed, an empty dictionary is returned.</returns>
+        public static Dictionary<string, string> ParseArgumentsFromFile(string filePath)
+        {
+            var kvp = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                string jsonContent = File.ReadAllText(filePath);
+                var args = JsonSerializer.Deserialize(jsonContent, DictionarySerializerContext.Default.DictionaryStringString);
+
+                foreach (var s in args)
+                {
+                    string key = s.Key;
+
+                    if (!key.StartsWith('-'))
+                    {
+                        key = "-" + key;
+                    }
+
+                    kvp[key] = s.Value;
+                }
+            }
+            catch (JsonException ex)
+            {
+                Program.PrintColorMessage($"Failed to parse JSON arguments file: {ex.Message}", ConsoleColor.Red);
             }
 
             return kvp;
@@ -98,26 +180,27 @@ namespace CustomBuildTool
             return dict;
         }
 
+        /// <summary>
+        /// Executes an MSBuild command using the specified build flags and returns the process exit code.
+        /// </summary>
+        /// <remarks>If the MSBuild executable cannot be located based on the provided flags and system
+        /// architecture, the method returns 3 and sets <paramref name="OutputString"/> to an error message. Otherwise,
+        /// the output from the MSBuild process is captured in <paramref name="OutputString"/> if <paramref
+        /// name="RedirectOutput"/> is <see langword="true"/>.</remarks>
+        /// <param name="Command">The MSBuild command-line arguments to execute. This string is passed directly to the MSBuild process.</param>
+        /// <param name="Flags">The build flags that determine which MSBuild executable to use and how the command is executed.</param>
+        /// <param name="OutputString">When the method returns, contains the output produced by the MSBuild process. If the MSBuild executable
+        /// cannot be found, contains an error message.</param>
+        /// <param name="RedirectOutput">Indicates whether the output from the MSBuild process should be redirected and captured. The default is <see
+        /// langword="true"/>.</param>
+        /// <returns>The exit code returned by the MSBuild process. Returns 3 if the MSBuild executable cannot be found.</returns>
         public static int ExecuteMsbuildCommand(string Command, BuildFlags Flags, out string OutputString, bool RedirectOutput = true)
         {
             string file = null;
 
-            //if (Flags.HasFlag(BuildFlags.Build32bit))
-            //{
-            //    file = GetMsbuildFilePath(Flags, Architecture.X86);
-            //}
-            //else if (Flags.HasFlag(BuildFlags.Build64bit))
-            //{
-            //    file = GetMsbuildFilePath(Flags, Architecture.X64);
-            //}
-            //else if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-            //{
-            //    file = GetMsbuildFilePath(Flags, Architecture.Arm64);
-            //}
-
             if (string.IsNullOrWhiteSpace(file))
             {
-                file = GetMsbuildFilePath(Flags, Architecture.X64);
+                file = GetMsbuildFilePath(Flags, RuntimeInformation.ProcessArchitecture);
             }
 
             if (string.IsNullOrWhiteSpace(file))
@@ -129,6 +212,15 @@ namespace CustomBuildTool
             return Win32.CreateProcess(file, Command, out OutputString, false, RedirectOutput);
         }
 
+        /// <summary>
+        /// Executes a command using the vswhere utility and returns the trimmed output as a string.
+        /// </summary>
+        /// <remarks>The method locates the vswhere executable and runs the specified command. If the
+        /// vswhere file path is invalid, the method returns null and displays an error message. The output is trimmed
+        /// to remove leading and trailing whitespace.</remarks>
+        /// <param name="Command">The command-line arguments to pass to the vswhere executable. Cannot be null or empty.</param>
+        /// <returns>A string containing the trimmed output from the vswhere command. Returns null if the vswhere executable
+        /// cannot be found.</returns>
         public static string ExecuteVsWhereCommand(string Command)
         {
             string file = GetVswhereFilePath();
@@ -144,6 +236,14 @@ namespace CustomBuildTool
             return outputString.Trim();
         }
 
+        /// <summary>
+        /// Attempts to set the current working directory to the nearest parent directory containing the specified file.
+        /// </summary>
+        /// <remarks>If the specified file is found in a parent directory, the current working directory
+        /// is changed to that directory. If the file is not found or an error occurs, the current directory remains
+        /// unchanged and the method returns false.</remarks>
+        /// <param name="FileName">The name of the file to search for in parent directories. Cannot be null or empty.</param>
+        /// <returns>true if the current directory contains the specified file after the operation; otherwise, false.</returns>
         public static bool SetCurrentDirectoryParent(string FileName)
         {
             try
@@ -170,11 +270,23 @@ namespace CustomBuildTool
             return File.Exists(FileName);
         }
 
+        /// <summary>
+        /// Combines the working folder path with the specified file name to generate the full output directory path.
+        /// </summary>
+        /// <param name="FileName">The name of the file to append to the working folder path. Cannot be null or empty.</param>
+        /// <returns>A string containing the full path to the output directory for the specified file.</returns>
         public static string GetOutputDirectoryPath(string FileName)
         {
             return Path.Join([Build.BuildWorkingFolder, FileName]);
         }
 
+        /// <summary>
+        /// Creates the output directory specified by the build configuration if it does not already exist and is not a
+        /// file.
+        /// </summary>
+        /// <remarks>If the output folder path is null, empty, or whitespace, or if it points to an
+        /// existing file, the method does nothing. Any errors encountered during directory creation are reported to the
+        /// console.</remarks>
         public static void CreateOutputDirectory()
         {
             if (string.IsNullOrWhiteSpace(Build.BuildOutputFolder))
@@ -228,8 +340,37 @@ namespace CustomBuildTool
             return VsWhereFilePath;
         }
 
+        /// <summary>
+        /// Locates the file path to the MSBuild executable for the specified build flags and target architecture.
+        /// </summary>
+        /// <remarks>The method searches for MSBuild in environment variables, system paths, and Visual
+        /// Studio installation directories. If multiple locations are available, the search order prioritizes
+        /// environment variables, then system paths, followed by Visual Studio instances. The returned path may vary
+        /// depending on the installed Visual Studio versions and system configuration.</remarks>
+        /// <param name="Flags">The build flags that influence how MSBuild is located and which version is selected.</param>
+        /// <param name="Architecture">The target processor architecture for which the MSBuild executable should be found. Must be a valid
+        /// architecture supported by MSBuild.</param>
+        /// <returns>A string containing the full file path to the MSBuild executable matching the specified architecture and
+        /// build flags, or null if no suitable executable is found.</returns>
         private static string GetMsbuildFilePath(BuildFlags Flags, Architecture Architecture)
         {
+            // ESDK Begin
+            if (Win32.GetEnvironmentVariable("MSBuild", out string msbuildPath))
+            {
+                if (File.Exists(msbuildPath))
+                    return msbuildPath;
+            }
+
+            {
+                string file = Win32.SearchPath("MSBuild.exe");
+
+                if (File.Exists(file))
+                {
+                    return file;
+                }
+            }
+            // ESDK End
+
             var MsBuildPath = new Dictionary<string, Architecture>(3, StringComparer.OrdinalIgnoreCase)
             {
                 ["\\MSBuild\\Current\\Bin\\arm64\\MSBuild.exe"] = Architecture.Arm64,
@@ -304,6 +445,13 @@ namespace CustomBuildTool
             return null;
         }
 
+        /// <summary>
+        /// Retrieves the full file path to the Git executable on the local machine.
+        /// </summary>
+        /// <remarks>This method searches common installation directories for the Git executable and
+        /// caches the result for subsequent calls. If Git is not installed in the standard locations, it attempts to
+        /// locate the executable using the system search path.</remarks>
+        /// <returns>A string containing the absolute path to the Git executable if found; otherwise, an empty string.</returns>
         public static string GetGitFilePath()
         {
             if (string.IsNullOrWhiteSpace(GitFilePath))
@@ -340,6 +488,16 @@ namespace CustomBuildTool
             return GitFilePath;
         }
 
+        /// <summary>
+        /// Constructs a command-line argument string for specifying the Git directory and working tree based on the
+        /// provided directory path.
+        /// </summary>
+        /// <remarks>The returned string can be used with Git commands to explicitly set the repository
+        /// location and working tree. If the directory does not contain a .git folder, the method returns
+        /// null.</remarks>
+        /// <param name="DirectoryPath">The file system path to the directory containing the Git repository. Must not be null, empty, or whitespace.</param>
+        /// <returns>A string containing the Git command-line arguments for the specified directory, or null if the directory
+        /// path is invalid or does not contain a .git folder.</returns>
         private static string GetGitWorkPath(string DirectoryPath)
         {
             if (string.IsNullOrWhiteSpace(DirectoryPath))
@@ -351,6 +509,16 @@ namespace CustomBuildTool
             return $"--git-dir=\"{DirectoryPath}\\.git\" --work-tree=\"{DirectoryPath}\" ";
         }
 
+        /// <summary>
+        /// Executes a Git command in the specified working folder and returns the command output as a string.
+        /// </summary>
+        /// <remarks>If the working folder is not a valid Git directory or the Git executable cannot be
+        /// found, the method returns null and prints an error message to the console. The output string is trimmed
+        /// before being returned.</remarks>
+        /// <param name="WorkingFolder">The path to the folder where the Git command will be executed. Must be a valid Git working directory.</param>
+        /// <param name="Command">The Git command to execute. This should be a valid command supported by the Git executable.</param>
+        /// <returns>A string containing the trimmed output of the executed Git command. Returns null if the working folder or
+        /// Git executable path is invalid.</returns>
         public static string ExecuteGitCommand(string WorkingFolder, string Command)
         {
             string currentGitDirectory = GetGitWorkPath(WorkingFolder);
@@ -374,6 +542,18 @@ namespace CustomBuildTool
             return outputString.Trim();
         }
 
+        /// <summary>
+        /// Enumerates all files in the specified directory and its subdirectories that match the given file extensions,
+        /// optionally excluding specified file names.
+        /// </summary>
+        /// <remarks>The search includes all subdirectories and ignores special directories such as "."
+        /// and "..". File extension and exclusion comparisons are performed in a case-insensitive manner.</remarks>
+        /// <param name="FilePath">The path to the directory to search. Must be a valid directory path.</param>
+        /// <param name="Extensions">An array of file extensions to include in the results. Extensions should include the leading dot (e.g.,
+        /// ".txt").</param>
+        /// <param name="Exclude">An optional array of file names to exclude from the results. Comparison is case-insensitive.</param>
+        /// <returns>A list of file paths that match the specified extensions and are not excluded. The list will be empty if no
+        /// files are found.</returns>
         public static List<string> EnumerateDirectory(string FilePath, string[] Extensions, string[] Exclude = null)
         {
             var list = Directory.EnumerateFiles(FilePath, "*", new EnumerationOptions
@@ -390,8 +570,28 @@ namespace CustomBuildTool
             return list;
         }
 
+        /// <summary>
+        /// Retrieves the file system path to the Windows SDK binaries directory, if available.
+        /// </summary>
+        /// <remarks>This method searches for the Windows SDK path using environment variables and
+        /// registry keys. The returned path can be used to locate SDK tools and binaries. If multiple SDK versions are
+        /// installed, the method returns the path to the highest available version.</remarks>
+        /// <returns>A string containing the path to the Windows SDK binaries directory. Returns null if the SDK path cannot be
+        /// determined.</returns>
         public static string GetWindowsSdkPath()
         {
+            // ESDK Begin
+            if (
+                Win32.GetEnvironmentVariable("WindowsSdkDir", out string windowsSdkDir) &&
+                Win32.GetEnvironmentVariable("WindowsSDKVersion", out string windowsSdkVersion)
+                )
+            {
+                string path = Path.Join([windowsSdkDir, "bin", windowsSdkVersion.TrimEnd('\\')]);
+                if (Directory.Exists(path))
+                    return path;
+            }
+            // ESDK End
+
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
             string kitsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "\\bin"]));
@@ -426,8 +626,22 @@ namespace CustomBuildTool
             return null;
         }
 
+        /// <summary>
+        /// Retrieves the version number of the installed Windows SDK, if available.
+        /// </summary>
+        /// <remarks>The method first checks the 'WindowsSDKVersion' environment variable. If not set, it
+        /// searches the Windows Kits installation directory for available SDK versions and returns the highest version
+        /// found. The returned value does not include a trailing backslash.</remarks>
+        /// <returns>A string containing the Windows SDK version number, or null if no SDK version is found.</returns>
         public static string GetWindowsSdkVersion()
         {
+            // ESDK Begin
+            if (Win32.GetEnvironmentVariable("WindowsSDKVersion", out string windowsSdkVersion))
+            {
+                return windowsSdkVersion.TrimEnd('\\');
+            }
+            // ESDK End
+
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
             string kitsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "\\bin"]));
@@ -463,6 +677,71 @@ namespace CustomBuildTool
             return null;
         }
 
+        /// <summary>
+        /// Retrieves the path to the Windows SDK include directory for the current system.
+        /// </summary>
+        /// <remarks>The method searches for the Windows SDK include path using environment variables and
+        /// registry keys. If multiple SDK versions are installed, it returns the path for the highest available
+        /// version. The returned path can be used to locate header files required for Windows development.</remarks>
+        /// <returns>A string containing the full path to the Windows SDK include directory if found; otherwise, null.</returns>
+        public static string GetWindowsSdkIncludePath()
+        {
+            // ESDK Begin
+            if (
+                Win32.GetEnvironmentVariable("WindowsSdkDir", out string windowsSdkDir) &&
+                Win32.GetEnvironmentVariable("WindowsSDKVersion", out string windowsSdkVersion)
+                )
+            {
+                string path = Path.Join([windowsSdkDir, "Include", windowsSdkVersion.TrimEnd('\\')]);
+                if (Directory.Exists(path))
+                    return path;
+            }
+            // ESDK End
+
+            List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
+            string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
+            string kitsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "\\Include"]));
+
+            if (Directory.Exists(kitsPath))
+            {
+                var windowsKitsDirectory = Directory.EnumerateDirectories(kitsPath);
+
+                foreach (string path in windowsKitsDirectory)
+                {
+                    var name = Path.GetFileName(path);
+
+                    if (Version.TryParse(name, out var version))
+                    {
+                        versionList.Add(new KeyValuePair<Version, string>(version, path));
+                    }
+                }
+
+                versionList.Sort((first, second) => first.Key.CompareTo(second.Key));
+
+                if (versionList.Count > 0)
+                {
+                    var result = versionList[^1];
+
+                    if (!string.IsNullOrWhiteSpace(result.Value))
+                    {
+                        return result.Value;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Retrieves the Visual Studio product version associated with the specified build flags and architecture.
+        /// </summary>
+        /// <remarks>Returns an empty string if the MSBuild path cannot be resolved or if the Visual
+        /// Studio installation is not found. This method does not throw exceptions; errors are logged and an empty
+        /// string is returned.</remarks>
+        /// <param name="Flags">The build flags that determine the MSBuild configuration and location.</param>
+        /// <param name="Architecture">The target architecture for which to locate the Visual Studio version.</param>
+        /// <returns>A string containing the Visual Studio product version, or an empty string if the version cannot be
+        /// determined.</returns>
         public static string GetVisualStudioVersion(BuildFlags Flags, Architecture Architecture)
         {
             string msbuild = GetMsbuildFilePath(Flags, Architecture);
@@ -498,6 +777,13 @@ namespace CustomBuildTool
             return string.Empty;
         }
 
+        /// <summary>
+        /// Retrieves the full path to the MakeAppx.exe tool from the Windows SDK installation.
+        /// </summary>
+        /// <remarks>This method searches for MakeAppx.exe in standard Windows SDK locations. If the tool
+        /// is not installed or cannot be found, the method returns null. Use this method to locate MakeAppx.exe for
+        /// packaging Windows applications.</remarks>
+        /// <returns>The full path to MakeAppx.exe if found; otherwise, null.</returns>
         public static string GetMakeAppxPath()
         {
             string windowsSdkPath = Utils.GetWindowsSdkPath();
@@ -526,6 +812,105 @@ namespace CustomBuildTool
             return makeAppxPath;
         }
 
+        /// <summary>
+        /// Locates the full file path to the CMake executable (cmake.exe) available on the system.
+        /// </summary>
+        /// <remarks>The method first searches for cmake.exe in the system PATH. If not found, it attempts
+        /// to locate a bundled version with Visual Studio. Returns null if CMake is not installed or cannot be located
+        /// by either method.</remarks>
+        /// <returns>The full path to the CMake executable if found; otherwise, null.</returns>
+        public static string GetCMakeFilePath()
+        {
+            //
+            // Try searching in the PATH first
+            //
+
+            string file = Win32.SearchPath("cmake.exe");
+
+            if (File.Exists(file))
+            {
+                return file;
+            }
+
+            //
+            // Try bundled with Visual Studio
+            //
+
+            VisualStudioInstance instance = BuildVisualStudio.GetVisualStudioInstance();
+
+            if (instance != null)
+            {
+                string[] cmakePathArray =
+                [
+                    "\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+                ];
+
+                foreach (string path in cmakePathArray)
+                {
+                    file = Path.Join([instance.Path, path]);
+
+                    if (File.Exists(file))
+                    {
+                        return file;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Executes a CMake command in a Visual Studio environment, initializing the required build tools before
+        /// running the command.
+        /// </summary>
+        /// <remarks>This method sets up the Visual Studio build environment by calling 'vcvarsall.bat'
+        /// for the appropriate architecture before executing the CMake command. The exit code can be used to determine
+        /// success or failure of the operation.</remarks>
+        /// <param name="Command">The CMake command line arguments to execute. Must specify the desired build configuration and architecture.</param>
+        /// <returns>The exit code returned by the CMake process. Returns <see cref="int.MaxValue"/> if required tools are not
+        /// found or initialization fails.</returns>
+        public static int ExecuteCMakeCommand(string Command)
+        {
+            string cmakeFile = GetCMakeFilePath();
+
+            if (string.IsNullOrWhiteSpace(cmakeFile))
+            {
+                Program.PrintColorMessage("[ExecuteCMakeCommand] cmake.exe is invalid.", ConsoleColor.Red);
+                return int.MaxValue;
+            }
+
+            var instance = BuildVisualStudio.GetVisualStudioInstance();
+            string vcvarsall = Path.Join([instance.Path, "VC\\Auxiliary\\Build\\vcvarsall.bat"]);
+            string arch = null;
+
+            if (!File.Exists(vcvarsall))
+            {
+                Program.PrintColorMessage("[ExecuteCMakeCommand] vcvarsall.bat not found.", ConsoleColor.Red);
+                return int.MaxValue;
+            }
+
+            if (Command.Contains("msvc-x86", StringComparison.OrdinalIgnoreCase) || Command.Contains("Win32", StringComparison.OrdinalIgnoreCase))
+                arch = "amd64_x86";
+            else if (Command.Contains("msvc-arm64", StringComparison.OrdinalIgnoreCase) || Command.Contains("ARM64", StringComparison.OrdinalIgnoreCase))
+                arch = "amd64_arm64";
+            else
+                arch = "amd64";
+
+            // We need to run vcvarsall.bat and then cmake in the same session.
+            // Using cmd /c "call vcvarsall.bat arch && cmake ..."
+            string fullCommand = $"/c \"call \"{vcvarsall}\" {arch} && \"{cmakeFile}\" {Command}\"";
+
+            return Win32.CreateProcess("cmd.exe", fullCommand, out _, false, false);
+        }
+
+        /// <summary>
+        /// Executes an MSIX packaging command using the MakeAppx tool and returns the output as a string.
+        /// </summary>
+        /// <remarks>The returned output is trimmed and consecutive blank lines are reduced to a single
+        /// blank line. This method does not throw exceptions for invalid tool paths; instead, it returns null and
+        /// prints an error message.</remarks>
+        /// <param name="Command">The command-line arguments to pass to the MakeAppx tool. Cannot be null or empty.</param>
+        /// <returns>A string containing the output from the MakeAppx tool. Returns null if the tool path is invalid.</returns>
         public static string ExecuteMsixCommand(string Command)
         {
             string file = GetMakeAppxPath();
@@ -541,26 +926,42 @@ namespace CustomBuildTool
             return outputString.Replace("\r\n\r\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
         }
 
-        public static string GetSignToolPath()
-        {
-            string windowsSdkPath = Utils.GetWindowsSdkPath();
+        //public static string GetSignToolPath()
+        //{
+        //    string windowsSdkPath = Utils.GetWindowsSdkPath();
+        //
+        //    if (string.IsNullOrWhiteSpace(windowsSdkPath))
+        //        return string.Empty;
+        //
+        //    string signToolPath = Path.Join([windowsSdkPath, "\\x64\\SignTool.exe"]);
+        //
+        //    if (string.IsNullOrWhiteSpace(signToolPath))
+        //        return string.Empty;
+        //
+        //    if (!File.Exists(signToolPath))
+        //        return string.Empty;
+        //
+        //    return signToolPath;
+        //}
 
-            if (string.IsNullOrWhiteSpace(windowsSdkPath))
-                return string.Empty;
-
-            string signToolPath = Path.Join([windowsSdkPath, "\\x64\\SignTool.exe"]);
-
-            if (string.IsNullOrWhiteSpace(signToolPath))
-                return string.Empty;
-
-            if (!File.Exists(signToolPath))
-                return string.Empty;
-
-            return signToolPath;
-        }
-
+        /// <summary>
+        /// Retrieves the full file path to the SymStore executable (symstore.exe) from the Windows SDK installation, if
+        /// available.
+        /// </summary>
+        /// <remarks>This method searches for symstore.exe in the Windows SDK directory, using environment
+        /// variables and registry keys. The returned path can be used to invoke SymStore for symbol storage operations.
+        /// If the SDK is not installed or symstore.exe is not present, the method returns null.</remarks>
+        /// <returns>The full path to symstore.exe if found; otherwise, null.</returns>
         public static string GetSymStorePath()
         {
+            // Required for the ESDK
+            if (Win32.GetEnvironmentVariable("WindowsSdkDir", out string windowsSdkDir))
+            {
+                string path = Path.Join([windowsSdkDir, "Debuggers\\x64\\symstore.exe"]);
+                if (File.Exists(path))
+                    return path;
+            }
+
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
             if (string.IsNullOrWhiteSpace(kitsRoot))
                 return null;
@@ -576,22 +977,55 @@ namespace CustomBuildTool
             return symStorePath;
         }
 
+        public static bool SymStoreExists()
+        {
+            string file = GetSymStorePath();
+
+            if (string.IsNullOrWhiteSpace(file))
+            {
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe is invalid.", ConsoleColor.Red);
+                return false;
+            }
+
+            if (!File.Exists(file))
+            {
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe does not exist.", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
         public static int ExecuteSymStoreCommand(string Command)
         {
             string file = GetSymStorePath();
 
             if (string.IsNullOrWhiteSpace(file))
             {
-                Program.PrintColorMessage("[ExecuteSymStoreCommand] File is invalid.", ConsoleColor.Red);
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe is invalid.", ConsoleColor.Red);
+                return int.MaxValue;
+            }
+
+            if (!File.Exists(file))
+            {
+                Program.PrintColorMessage("[ExecuteSymStoreCommand] symstore.exe does not exist.", ConsoleColor.Red);
                 return int.MaxValue;
             }
 
             return Win32.CreateProcess(file, Command, out _, false, false);
         }
 
+        /// <summary>
+        /// Retrieves the full path to the Visual Studio 'devenv.com' executable for the latest installed instance.
+        /// </summary>
+        /// <remarks>This method searches for the latest Visual Studio installation and returns the path
+        /// to its 'devenv.com' executable. If no suitable installation is found, the method returns null. The result
+        /// can be used to launch Visual Studio from the command line.</remarks>
+        /// <returns>A string containing the path to 'devenv.com' if found; otherwise, null.</returns>
         public static string GetDevEnvPath()
         {
             var instance = BuildVisualStudio.GetVisualStudioInstance();
+            if (instance != null)
             {
                 string file = Path.Join([instance.Path, "Common7\\IDE\\devenv.com"]);
 
@@ -841,6 +1275,14 @@ namespace CustomBuildTool
             return fileTime;
         }
 
+        /// <summary>
+        /// Validates the export directory of a PE image file to determine if exported functions are defined.
+        /// </summary>
+        /// <remarks>This method checks the export directory of the specified PE image file and reports
+        /// missing exported functions. If exported functions are missing, a message is printed to the console. The
+        /// method unmaps the image file after validation.</remarks>
+        /// <param name="FileName">The path to the PE image file to validate. Cannot be null or empty.</param>
+        /// <returns>true if the image file contains an export directory with no exported function names; otherwise, false.</returns>
         public static bool ValidateImageExports(string FileName)
         {
             LOADED_IMAGE loadedMappedImage = default;
@@ -893,6 +1335,120 @@ namespace CustomBuildTool
 
             return false;
         }
+
+        /// <summary>
+        /// Returns the CMake platform string for the specified toolchain.
+        /// </summary>
+        /// <param name="toolchain">The toolchain identifier.</param>
+        /// <returns>The platform string (e.g., Win32, x64, ARM64).</returns>
+        /// <exception cref="ArgumentException">Thrown if the toolchain is unsupported.</exception>
+        public static string CMakeGetPlatform(string toolchain) => toolchain switch
+        {
+            "msvc-x86" or "clang-msvc-x86" => "Win32",
+            "msvc-amd64" or "clang-msvc-amd64" => "x64",
+            "msvc-arm64" or "clang-msvc-arm64" => "ARM64",
+            _ => throw new ArgumentException("Unsupported toolchain")
+        };
+
+        public static string CMakeGetPlatform(BuildToolchain toolchain) => toolchain switch
+        {
+            BuildToolchain.MsvcX86 or BuildToolchain.ClangMsvcX86 => "Win32",
+            BuildToolchain.MsvcAmd64 or BuildToolchain.ClangMsvcAmd64 => "x64",
+            BuildToolchain.MsvcArm64 or BuildToolchain.ClangMsvcArm64 => "ARM64",
+            _ => throw new ArgumentException("Unsupported toolchain")
+        };
+
+        public static bool IsX86Toolchain(BuildToolchain toolchain)
+        {
+            return toolchain == BuildToolchain.MsvcX86 || toolchain == BuildToolchain.ClangMsvcX86;
+        }
+
+        public static bool IsAmd64Toolchain(BuildToolchain toolchain)
+        {
+            return toolchain == BuildToolchain.MsvcAmd64 || toolchain == BuildToolchain.ClangMsvcAmd64;
+        }
+
+        public static bool IsArm64Toolchain(BuildToolchain toolchain)
+        {
+            return toolchain == BuildToolchain.MsvcArm64 || toolchain == BuildToolchain.ClangMsvcArm64;
+        }
+
+        public static string GetToolchainString(BuildToolchain toolchain)
+        {
+            switch (toolchain)
+            {
+            case BuildToolchain.MsvcX86:
+                return "msvc-x86";
+            case BuildToolchain.MsvcAmd64:
+                return "msvc-amd64";
+            case BuildToolchain.MsvcArm64:
+                return "msvc-arm64";
+            case BuildToolchain.ClangMsvcX86:
+                return "clang-msvc-x86";
+            case BuildToolchain.ClangMsvcAmd64:
+                return "clang-msvc-amd64";
+            case BuildToolchain.ClangMsvcArm64:
+                return "clang-msvc-arm64";
+            }
+
+            throw new ArgumentException("Unsupported toolchain");
+        }
+
+        public static BuildToolchain GetToolchainFromString(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return BuildToolchain.ClangMsvcAmd64;
+
+            if (s.Equals("msvc-x86", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.MsvcX86;
+
+            if (s.Equals("msvc-amd64", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.MsvcAmd64;
+
+            if (s.Equals("msvc-arm64", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.MsvcArm64;
+
+            if (s.Equals("clang-msvc-x86", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.ClangMsvcX86;
+
+            if (s.Equals("clang-msvc-amd64", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.ClangMsvcAmd64;
+
+            if (s.Equals("clang-msvc-arm64", StringComparison.OrdinalIgnoreCase))
+                return BuildToolchain.ClangMsvcArm64;
+
+            return BuildToolchain.ClangMsvcAmd64;
+        }
+
+        public static BuildGenerator GetGeneratorFromString(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return BuildGenerator.Ninja;
+
+            if (s.Contains("ninja", StringComparison.OrdinalIgnoreCase))
+                return BuildGenerator.Ninja;
+
+            if (
+                s.Contains("visual studio", StringComparison.OrdinalIgnoreCase) ||
+                s.Contains("visualstudio", StringComparison.OrdinalIgnoreCase)
+                )
+            {
+                return BuildGenerator.VisualStudio;
+            }
+
+            return BuildGenerator.Ninja;
+        }
+
+        public static string GetGeneratorString(BuildGenerator gen, string original = null)
+        {
+            return gen switch
+            {
+                BuildGenerator.Ninja => "Ninja",
+                BuildGenerator.VisualStudio => "Visual Studio",
+                BuildGenerator.Other => original ?? string.Empty,
+                _ => original ?? string.Empty
+            };
+        }
     }
 
     public class BuildUpdateRequest
@@ -902,6 +1458,7 @@ namespace CustomBuildTool
         [JsonPropertyName("build_version")] public string BuildVersion { get; init; }
         [JsonPropertyName("build_commit")] public string BuildCommit { get; init; }
         [JsonPropertyName("build_updated")] public string BuildUpdated { get; init; }
+        [JsonPropertyName("build_github_id")] public string BuildGithubId { get; init; }
 
         [JsonPropertyName("bin_url")] public string BinUrl { get; init; }
         [JsonPropertyName("bin_length")] public string BinLength { get; init; }
@@ -936,10 +1493,10 @@ namespace CustomBuildTool
 
     public class GithubReleasesRequest
     {
-        [JsonPropertyName("tag_name")] 
+        [JsonPropertyName("tag_name")]
         public string ReleaseTag { get; init; }
 
-        [JsonPropertyName("target_commitish")] 
+        [JsonPropertyName("target_commitish")]
         public string Branch { get; init; }
 
         [JsonPropertyName("name")]
@@ -948,13 +1505,13 @@ namespace CustomBuildTool
         [JsonPropertyName("body")]
         public string Description { get; init; }
 
-        [JsonPropertyName("draft")] 
+        [JsonPropertyName("draft")]
         public bool Draft { get; init; }
 
-        [JsonPropertyName("prerelease")] 
+        [JsonPropertyName("prerelease")]
         public bool Prerelease { get; init; }
 
-        [JsonPropertyName("generate_release_notes")] 
+        [JsonPropertyName("generate_release_notes")]
         public bool GenerateReleaseNotes { get; init; }
 
         public override string ToString()
@@ -975,10 +1532,10 @@ namespace CustomBuildTool
 
     public class GithubReleasesResponse
     {
-        [JsonPropertyName("id")] 
-        public ulong ID { get; init; }
+        [JsonPropertyName("id")]
+        public ulong ReleaseId { get; init; }
 
-        [JsonPropertyName("upload_url")] 
+        [JsonPropertyName("upload_url")]
         public string UploadUrl { get; init; }
 
         [JsonPropertyName("html_url")]
@@ -987,12 +1544,55 @@ namespace CustomBuildTool
         [JsonPropertyName("assets")]
         public List<GithubAssetsResponse> Assets { get; init; }
 
-        [JsonIgnore] 
-        public string ReleaseId => this.ID.ToString();
+        public override string ToString()
+        {
+            return this.ReleaseId.ToString();
+        }
+
+        public string SerializeToJson()
+        {
+            return JsonSerializer.Serialize(this, GithubResponseContext.Default.GithubReleasesRequest);
+        }
+
+        public byte[] SerializeToBytes()
+        {
+            return JsonSerializer.SerializeToUtf8Bytes(this, GithubResponseContext.Default.GithubReleasesRequest);
+        }
+    }
+
+    public class GithubReleaseQueryResponse
+    {
+        [JsonPropertyName("id")]
+        public ulong ReleaseId { get; init; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; init; }
+        [JsonPropertyName("tag_name")]
+        public string TagName { get; init; }
+
+        [JsonPropertyName("upload_url")]
+        public string UploadUrl { get; init; }
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; init; }
+
+        [JsonPropertyName("created_at")]
+        public DateTimeOffset Created { get; init; }
+        [JsonPropertyName("updated_at")]
+        public DateTimeOffset Updated { get; init; }
+        [JsonPropertyName("published_at")]
+        public DateTimeOffset Published { get; init; }
+
+        [JsonPropertyName("draft")]
+        public bool Draft { get; init; }
+        [JsonPropertyName("prerelease")]
+        public bool Prerelease { get; init; }
+
+        [JsonPropertyName("assets")]
+        public List<GithubAssetsResponse> Assets { get; init; }
 
         public override string ToString()
         {
-            return this.ReleaseId;
+            return this.ReleaseId.ToString();
         }
 
         public string SerializeToJson()
@@ -1011,22 +1611,22 @@ namespace CustomBuildTool
         [JsonPropertyName("id")]
         public ulong Id { get; init; }
 
-        [JsonPropertyName("name")] 
+        [JsonPropertyName("name")]
         public string Name { get; init; }
 
-        [JsonPropertyName("label")] 
+        [JsonPropertyName("label")]
         public string Label { get; init; }
 
-        [JsonPropertyName("size")] 
+        [JsonPropertyName("size")]
         public ulong Size { get; init; }
 
-        [JsonPropertyName("state")] 
+        [JsonPropertyName("state")]
         public string State { get; init; }
 
         [JsonPropertyName("browser_download_url")]
         public string DownloadUrl { get; init; }
 
-        [JsonPropertyName("digest")] 
+        [JsonPropertyName("digest")]
         public string Digest { get; init; }
 
         [JsonIgnore]
@@ -1037,7 +1637,7 @@ namespace CustomBuildTool
         {
             get
             {
-                if (string.IsNullOrEmpty(this.Digest))
+                if (string.IsNullOrWhiteSpace(this.Digest))
                     return string.Empty;
 
                 if (this.Digest.AsSpan().IndexOf(':') is int idx && idx >= 0)
@@ -1054,7 +1654,7 @@ namespace CustomBuildTool
         {
             get
             {
-                if (string.IsNullOrEmpty(this.Digest))
+                if (string.IsNullOrWhiteSpace(this.Digest))
                     return string.Empty;
 
                 if (this.Digest.AsSpan().IndexOf(':') is int idx && idx >= 0)
@@ -1072,7 +1672,7 @@ namespace CustomBuildTool
         }
     }
 
-    public class GithubAuthor
+    public class GithubUser
     {
         [JsonPropertyName("name")]
         public string Name { get; init; }
@@ -1129,7 +1729,7 @@ namespace CustomBuildTool
         public string EventsUrl { get; init; }
 
         [JsonPropertyName("received_events_url")]
-        public string Received_events_url { get; init; }
+        public string ReceivedEventsUrl { get; init; }
 
         [JsonPropertyName("type")]
         public string Type { get; init; }
@@ -1138,10 +1738,10 @@ namespace CustomBuildTool
     public class GithubCommit
     {
         [JsonPropertyName("author")]
-        public GithubAuthor Author { get; init; }
+        public GithubUser Author { get; init; }
 
         [JsonPropertyName("committer")]
-        public GithubCommitAuthor Committer { get; init; }
+        public GithubUser Committer { get; init; }
 
         [JsonPropertyName("message")]
         public string Message { get; init; }
@@ -1157,69 +1757,6 @@ namespace CustomBuildTool
 
         [JsonPropertyName("verification")]
         public GithubCommitVerification Verification { get; init; }
-    }
-
-    public class GithubCommitAuthor
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; init; }
-
-        [JsonPropertyName("email")]
-        public string Email { get; init; }
-
-        [JsonPropertyName("date")]
-        public DateTime Date { get; init; }
-
-        [JsonPropertyName("login")]
-        public string Login { get; init; }
-
-        [JsonPropertyName("id")]
-        public ulong Id { get; init; }
-
-        [JsonPropertyName("node_id")]
-        public string NodeId { get; init; }
-
-        [JsonPropertyName("avatar_url")]
-        public string AvatarUrl { get; init; }
-
-        [JsonPropertyName("gravatar_id")]
-        public string Gravatar_id { get; init; }
-
-        [JsonPropertyName("url")]
-        public string Url { get; init; }
-
-        [JsonPropertyName("html_url")]
-        public string HtmlUrl { get; init; }
-
-        [JsonPropertyName("followers_url")]
-        public string FollowersUrl { get; init; }
-
-        [JsonPropertyName("following_url")]
-        public string FollowingUrl { get; init; }
-
-        [JsonPropertyName("gists_url")]
-        public string GistsUrl { get; init; }
-
-        [JsonPropertyName("starred_url")]
-        public string StarredUrl { get; init; }
-
-        [JsonPropertyName("subscriptions_url")]
-        public string SubscriptionsUrl { get; init; }
-
-        [JsonPropertyName("organizations_url")]
-        public string OrganizationsUrl { get; init; }
-
-        [JsonPropertyName("repos_url")]
-        public string ReposUrl { get; init; }
-
-        [JsonPropertyName("events_url")]
-        public string EventsUrl { get; init; }
-
-        [JsonPropertyName("received_events_url")]
-        public string ReceivedEventsUrl { get; init; }
-
-        [JsonPropertyName("type")]
-        public string Type { get; init; }
     }
 
     //public class GithubFile
@@ -1288,10 +1825,10 @@ namespace CustomBuildTool
         public string CommentsUrl { get; init; }
 
         [JsonPropertyName("author")]
-        public GithubAuthor Author { get; init; }
+        public GithubUser Author { get; init; }
 
         [JsonPropertyName("committer")]
-        public GithubCommitAuthor Committer { get; init; }
+        public GithubUser Committer { get; init; }
 
         //[JsonPropertyName("parents")]
         //public List<GithubParent> parents { get; init; }
@@ -1339,6 +1876,435 @@ namespace CustomBuildTool
         public string Payload { get; init; }
     }
 
+    public class GithubHeadCommit
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("tree_id")]
+        public string TreeId { get; set; }
+
+        [JsonPropertyName("message")]
+        public string Message { get; set; }
+
+        [JsonPropertyName("timestamp")]
+        public DateTime Timestamp { get; set; }
+
+        [JsonPropertyName("author")]
+        public GithubUser Author { get; set; }
+
+        [JsonPropertyName("committer")]
+        public GithubUser Committer { get; set; }
+    }
+
+    public class GithubHeadRepository
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("node_id")]
+        public string NodeId { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("full_name")]
+        public string FullName { get; set; }
+
+        [JsonPropertyName("private")]
+        public bool PrivateRepo { get; set; }
+
+        [JsonPropertyName("owner")]
+        public GithubUser Owner { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; }
+
+        //[JsonPropertyName("description")]
+        //public object description { get; set; }
+
+        [JsonPropertyName("fork")]
+        public bool Fork { get; set; }
+
+        [JsonPropertyName("url")]
+        public string Url { get; set; }
+
+        [JsonPropertyName("forks_url")]
+        public string ForksUrl { get; set; }
+
+        [JsonPropertyName("keys_url")]
+        public string KeysUrl { get; set; }
+
+        [JsonPropertyName("collaborators_url")]
+        public string CollaboratorsUrl { get; set; }
+
+        [JsonPropertyName("teams_url")]
+        public string TeamsUrl { get; set; }
+
+        [JsonPropertyName("hooks_url")]
+        public string HooksUrl { get; set; }
+
+        [JsonPropertyName("issue_events_url")]
+        public string IssueEventsUrl { get; set; }
+
+        [JsonPropertyName("events_url")]
+        public string EventsUrl { get; set; }
+
+        [JsonPropertyName("assignees_url")]
+        public string AssigneesUrl { get; set; }
+
+        [JsonPropertyName("branches_url")]
+        public string BranchesUrl { get; set; }
+
+        [JsonPropertyName("tags_url")]
+        public string TagsUrl { get; set; }
+
+        [JsonPropertyName("blobs_url")]
+        public string BlobsUrl { get; set; }
+
+        [JsonPropertyName("git_tags_url")]
+        public string GitTagsUrl { get; set; }
+
+        [JsonPropertyName("git_refs_url")]
+        public string GitRefsUrl { get; set; }
+
+        [JsonPropertyName("trees_url")]
+        public string TreesUrl { get; set; }
+
+        [JsonPropertyName("statuses_url")]
+        public string StatusesUrl { get; set; }
+
+        //[JsonPropertyName("languages_url")]
+        //public string languages_url { get; set; }
+
+        //[JsonPropertyName("stargazers_url")]
+        //public string stargazers_url { get; set; }
+
+        //[JsonPropertyName("contributors_url")]
+        //public string contributors_url { get; set; }
+
+        //[JsonPropertyName("subscribers_url")]
+        //public string subscribers_url { get; set; }
+
+        //[JsonPropertyName("subscription_url")]
+        //public string subscription_url { get; set; }
+
+        [JsonPropertyName("commits_url")]
+        public string CommitsUrl { get; set; }
+
+        [JsonPropertyName("git_commits_url")]
+        public string GitCommitsUrl { get; set; }
+
+        [JsonPropertyName("comments_url")]
+        public string CommentsUrl { get; set; }
+
+        [JsonPropertyName("issue_comment_url")]
+        public string IssueCommentUrl { get; set; }
+
+        [JsonPropertyName("contents_url")]
+        public string ContentsUrl { get; set; }
+
+        [JsonPropertyName("compare_url")]
+        public string CompareUrl { get; set; }
+
+        [JsonPropertyName("merges_url")]
+        public string MergesUrl { get; set; }
+
+        [JsonPropertyName("archive_url")]
+        public string ArchiveUrl { get; set; }
+
+        [JsonPropertyName("downloads_url")]
+        public string DownloadsUrl { get; set; }
+
+        [JsonPropertyName("issues_url")]
+        public string IssuesUrl { get; set; }
+
+        [JsonPropertyName("pulls_url")]
+        public string PullsUrl { get; set; }
+
+        [JsonPropertyName("milestones_url")]
+        public string MilestonesUrl { get; set; }
+
+        [JsonPropertyName("notifications_url")]
+        public string NotificationsUrl { get; set; }
+
+        [JsonPropertyName("labels_url")]
+        public string LabelsUrl { get; set; }
+
+        [JsonPropertyName("releases_url")]
+        public string ReleasesUrl { get; set; }
+
+        [JsonPropertyName("deployments_url")]
+        public string DeploymentsUrl { get; set; }
+    }
+
+    public class GithubReferencedWorkflow
+    {
+        [JsonPropertyName("path")]
+        public string Path { get; set; }
+
+        [JsonPropertyName("sha")]
+        public string Sha { get; set; }
+
+        //[JsonPropertyName("ref")]
+        //public string @ref { get; set; }
+    }
+
+    public class GithubRepository
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("node_id")]
+        public string NodeId { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("full_name")]
+        public string FullName { get; set; }
+
+        [JsonPropertyName("owner")]
+        public GithubUser Owner { get; set; }
+
+        [JsonPropertyName("private")]
+        public bool PrivateRepo { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; }
+
+        [JsonPropertyName("description")]
+        public string Description { get; set; }
+
+        [JsonPropertyName("fork")]
+        public bool Fork { get; set; }
+
+        [JsonPropertyName("url")]
+        public string Url { get; set; }
+
+        [JsonPropertyName("archive_url")]
+        public string ArchiveUrl { get; set; }
+
+        [JsonPropertyName("assignees_url")]
+        public string AssigneesUrl { get; set; }
+
+        [JsonPropertyName("blobs_url")]
+        public string BlobsUrl { get; set; }
+
+        [JsonPropertyName("branches_url")]
+        public string BranchesUrl { get; set; }
+
+        [JsonPropertyName("collaborators_url")]
+        public string CollaboratorsUrl { get; set; }
+
+        [JsonPropertyName("comments_url")]
+        public string CommentsUrl { get; set; }
+
+        [JsonPropertyName("commits_url")]
+        public string CommitsUrl { get; set; }
+
+        [JsonPropertyName("compare_url")]
+        public string CompareUrl { get; set; }
+
+        [JsonPropertyName("contents_url")]
+        public string ContentsUrl { get; set; }
+
+        [JsonPropertyName("contributors_url")]
+        public string ContributorsUrl { get; set; }
+
+        [JsonPropertyName("deployments_url")]
+        public string DeploymentsUrl { get; set; }
+
+        [JsonPropertyName("downloads_url")]
+        public string DownloadsUrl { get; set; }
+
+        [JsonPropertyName("events_url")]
+        public string EventsUrl { get; set; }
+
+        [JsonPropertyName("forks_url")]
+        public string ForksUrl { get; set; }
+
+        [JsonPropertyName("git_commits_url")]
+        public string GitCommitsUrl { get; set; }
+
+        [JsonPropertyName("git_refs_url")]
+        public string GitRefsUrl { get; set; }
+
+        [JsonPropertyName("git_tags_url")]
+        public string GitTagsUrl { get; set; }
+
+        [JsonPropertyName("git_url")]
+        public string GitUrl { get; set; }
+
+        [JsonPropertyName("issue_comment_url")]
+        public string IssueCommentUrl { get; set; }
+
+        [JsonPropertyName("issue_events_url")]
+        public string IssueEventsUrl { get; set; }
+
+        [JsonPropertyName("issues_url")]
+        public string IssuesUrl { get; set; }
+
+        [JsonPropertyName("keys_url")]
+        public string KeysUrl { get; set; }
+
+        [JsonPropertyName("labels_url")]
+        public string LabelsUrl { get; set; }
+
+        [JsonPropertyName("languages_url")]
+        public string LanguagesUrl { get; set; }
+
+        [JsonPropertyName("merges_url")]
+        public string MergesUrl { get; set; }
+
+        [JsonPropertyName("milestones_url")]
+        public string MilestonesUrl { get; set; }
+
+        [JsonPropertyName("notifications_url")]
+        public string NotificationsUrl { get; set; }
+
+        [JsonPropertyName("pulls_url")]
+        public string PullsUrl { get; set; }
+
+        [JsonPropertyName("releases_url")]
+        public string ReleasesUrl { get; set; }
+
+        [JsonPropertyName("ssh_url")]
+        public string SshUrl { get; set; }
+
+        [JsonPropertyName("stargazers_url")]
+        public string StargazersUrl { get; set; }
+
+        [JsonPropertyName("statuses_url")]
+        public string StatusesUrl { get; set; }
+
+        [JsonPropertyName("subscribers_url")]
+        public string SubscribersUrl { get; set; }
+
+        [JsonPropertyName("subscription_url")]
+        public string SubscriptionUrl { get; set; }
+
+        [JsonPropertyName("tags_url")]
+        public string TagsUrl { get; set; }
+
+        [JsonPropertyName("teams_url")]
+        public string TeamsUrl { get; set; }
+
+        [JsonPropertyName("trees_url")]
+        public string TreesUrl { get; set; }
+
+        [JsonPropertyName("hooks_url")]
+        public string HooksUrl { get; set; }
+    }
+
+    public class GithubActionRun
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("node_id")]
+        public string NodeId { get; set; }
+
+        [JsonPropertyName("check_suite_id")]
+        public ulong CheckSuiteId { get; set; }
+
+        [JsonPropertyName("check_suite_node_id")]
+        public string CheckSuiteNodeId { get; set; }
+
+        [JsonPropertyName("head_branch")]
+        public string HeadBranch { get; set; }
+
+        [JsonPropertyName("head_sha")]
+        public string HeadSha { get; set; }
+
+        [JsonPropertyName("path")]
+        public string Path { get; set; }
+
+        [JsonPropertyName("run_number")]
+        public ulong RunNumber { get; set; }
+
+        [JsonPropertyName("event")]
+        public string EventName { get; set; }
+
+        [JsonPropertyName("display_title")]
+        public string DisplayTitle { get; set; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; }
+
+        //[JsonPropertyName("conclusion")]
+        //public object conclusion { get; set; }
+
+        [JsonPropertyName("workflow_id")]
+        public string WorkflowId { get; set; }
+
+        [JsonPropertyName("url")]
+        public string Url { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; }
+
+        //[JsonPropertyName("pull_requests")]
+        //public List<object> pull_requests { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("updated_at")]
+        public DateTime UpdatedAt { get; set; }
+
+        [JsonPropertyName("actor")]
+        public GithubUser Actor { get; set; }
+
+        [JsonPropertyName("run_attempt")]
+        public string RunAttempt { get; set; }
+
+        [JsonPropertyName("referenced_workflows")]
+        public List<GithubReferencedWorkflow> ReferencedWorkflows { get; set; }
+
+        [JsonPropertyName("run_started_at")]
+        public DateTime RunStartedAt { get; set; }
+
+        [JsonPropertyName("triggering_actor")]
+        public GithubUser TriggeringActor { get; set; }
+
+        [JsonPropertyName("jobs_url")]
+        public string JobsUrl { get; set; }
+
+        [JsonPropertyName("logs_url")]
+        public string LogsUrl { get; set; }
+
+        [JsonPropertyName("check_suite_url")]
+        public string CheckSuiteUrl { get; set; }
+
+        [JsonPropertyName("artifacts_url")]
+        public string ArtifactsUrl { get; set; }
+
+        [JsonPropertyName("cancel_url")]
+        public string CancelUrl { get; set; }
+
+        [JsonPropertyName("rerun_url")]
+        public string RerunUrl { get; set; }
+
+        [JsonPropertyName("previous_attempt_url")]
+        public string PreviousAttemptUrl { get; set; }
+
+        [JsonPropertyName("workflow_url")]
+        public string WorkflowUrl { get; set; }
+
+        [JsonPropertyName("head_commit")]
+        public GithubHeadCommit HeadCommit { get; set; }
+
+        [JsonPropertyName("repository")]
+        public GithubRepository Repository { get; set; }
+
+        [JsonPropertyName("head_repository")]
+        public GithubHeadRepository HeadRepository { get; set; }
+    }
+
     public class SourceForgeResponseData
     {
         [JsonPropertyName("file_type")]
@@ -1355,19 +2321,19 @@ namespace CustomBuildTool
 
         [JsonPropertyName("id")]
         public string id { get; init; }
-       
+
         [JsonPropertyName("size")]
         public string size { get; init; }
-       
+
         [JsonPropertyName("x_stage")]
         public string x_stage { get; init; }
-       
+
         [JsonPropertyName("downloadable")]
         public string downloadable { get; init; }
-       
+
         [JsonPropertyName("stage")]
         public string stage { get; init; }
-       
+
         [JsonPropertyName("type")]
         public string type { get; init; }
 
@@ -1447,6 +2413,19 @@ namespace CustomBuildTool
         public VirusTotalAnalysisDataResponse data { get; init; }
     }
 
+    public class SourceLink
+    {
+        [JsonPropertyName("documents")]
+        public Dictionary<string, string> Documents { get; init; }
+    }
+
+    public class NugetVersionResponse
+    {
+        [JsonPropertyName("versions")]
+        public List<string> Versions { get; init; }
+    }
+
+ 
     [JsonSerializable(typeof(BuildUpdateRequest))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class BuildUpdateRequestContext : JsonSerializerContext
@@ -1454,10 +2433,13 @@ namespace CustomBuildTool
 
     }
 
+    [JsonSerializable(typeof(GithubActionRun))]
     [JsonSerializable(typeof(GithubAssetsResponse))]
     [JsonSerializable(typeof(GithubCommitResponse))]
     [JsonSerializable(typeof(GithubReleasesRequest))]
     [JsonSerializable(typeof(GithubReleasesResponse))]
+    [JsonSerializable(typeof(GithubReleaseQueryResponse))]
+    [JsonSerializable(typeof(SourceLink))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class GithubResponseContext : JsonSerializerContext
     {
@@ -1479,7 +2461,21 @@ namespace CustomBuildTool
 
     }
 
-    public static class Extextensions
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
+    [JsonSerializable(typeof(Dictionary<string, string>))]
+    public partial class DictionarySerializerContext : JsonSerializerContext
+    {
+    }
+
+    /// <summary>
+    /// Provides extension methods for formatting numeric values as human-readable file sizes.
+    /// </summary>
+    /// <remarks>The methods in this class convert numeric values representing byte counts into formatted
+    /// strings using common size units such as kilobytes (Kb), megabytes (Mb), gigabytes (Gb), and terabytes (Tb).
+    /// These extensions are intended to simplify displaying file sizes in user interfaces or logs. All methods are
+    /// thread-safe and can be used with integer and long values, including unsigned long. The class is static and
+    /// cannot be instantiated.</remarks>
+    public static class Extensions
     {
         private const long OneKb = 1024;
         private const long OneMb = OneKb * 1024;
@@ -1502,10 +2498,10 @@ namespace CustomBuildTool
             double asGb = Math.Round((double)value / OneGb, decimalPlaces);
             double asMb = Math.Round((double)value / OneMb, decimalPlaces);
             double asKb = Math.Round((double)value / OneKb, decimalPlaces);
-            string chosenValue = asTb > 1 ? $"{asTb}Tb"
-                : asGb > 1 ? $"{asGb}Gb"
-                : asMb > 1 ? $"{asMb}Mb"
-                : asKb > 1 ? $"{asKb}Kb"
+            string chosenValue = asTb > 1 ? $"{asTb} Tb"
+                : asGb > 1 ? $"{asGb} Gb"
+                : asMb > 1 ? $"{asMb} Mb"
+                : asKb > 1 ? $"{asKb} Kb"
                 : $"{Math.Round((double)value, decimalPlaces)}B";
             return chosenValue;
         }
@@ -1523,10 +2519,29 @@ namespace CustomBuildTool
         BuildVerbose = 32,
         BuildApi = 64,
         BuildMsix = 128,
+        BuildCMake = 256,
 
         Debug = Build32bit | Build64bit | BuildArm64bit | BuildDebug | BuildApi | BuildVerbose,
         Release = Build32bit | Build64bit | BuildArm64bit | BuildRelease | BuildApi | BuildVerbose,
         All = Build32bit | Build64bit | BuildArm64bit | BuildDebug | BuildRelease | BuildApi | BuildVerbose,
+    }
+
+    public enum BuildToolchain
+    {
+        None,
+        MsvcX86 = 1,
+        MsvcAmd64 = 2,
+        MsvcArm64 = 3,
+        ClangMsvcX86 = 4,
+        ClangMsvcAmd64 = 5,
+        ClangMsvcArm64 = 6
+    }
+
+    public enum BuildGenerator
+    {
+        Ninja,
+        VisualStudio,
+        Other
     }
 
     /// <summary>
@@ -1561,5 +2576,61 @@ namespace CustomBuildTool
         {
             return builder.ToString();
         }
+    }
+
+    public static class VT
+    {
+        // Reset
+        public const string RESET       = "\x1b[0m";
+
+        // Standard foreground colors
+        public const string BLACK       = "\x1b[30m";
+        public const string RED         = "\x1b[31m";
+        public const string GREEN       = "\x1b[32m";
+        public const string YELLOW      = "\x1b[33m";
+        public const string BLUE        = "\x1b[34m";
+        public const string MAGENTA     = "\x1b[35m";
+        public const string CYAN        = "\x1b[36m";
+        public const string WHITE       = "\x1b[37m";
+
+        // Bright foreground colors
+        public const string BRIGHT_BLACK    = "\x1b[90m";
+        public const string BRIGHT_RED      = "\x1b[91m";
+        public const string BRIGHT_GREEN    = "\x1b[92m";
+        public const string BRIGHT_YELLOW   = "\x1b[93m";
+        public const string BRIGHT_BLUE     = "\x1b[94m";
+        public const string BRIGHT_MAGENTA  = "\x1b[95m";
+        public const string BRIGHT_CYAN     = "\x1b[96m";
+        public const string BRIGHT_WHITE    = "\x1b[97m";
+
+        // Background colors
+        public const string BG_BLACK    = "\x1b[40m";
+        public const string BG_RED      = "\x1b[41m";
+        public const string BG_GREEN    = "\x1b[42m";
+        public const string BG_YELLOW   = "\x1b[43m";
+        public const string BG_BLUE     = "\x1b[44m";
+        public const string BG_MAGENTA  = "\x1b[45m";
+        public const string BG_CYAN     = "\x1b[46m";
+        public const string BG_WHITE    = "\x1b[47m";
+
+        // Bright background colors
+        public const string BG_BRIGHT_BLACK     = "\x1b[100m";
+        public const string BG_BRIGHT_RED       = "\x1b[101m";
+        public const string BG_BRIGHT_GREEN     = "\x1b[102m";
+        public const string BG_BRIGHT_YELLOW    = "\x1b[103m";
+        public const string BG_BRIGHT_BLUE      = "\x1b[104m";
+        public const string BG_BRIGHT_MAGENTA   = "\x1b[105m";
+        public const string BG_BRIGHT_CYAN      = "\x1b[106m";
+        public const string BG_BRIGHT_WHITE     = "\x1b[107m";
+
+        // 256-color foreground
+        public static string FROM256(int n) => $"\x1b[38;5;{n}m";
+
+        // 256-color background
+        public static string BGFROM256(int n) => $"\x1b[48;5;{n}m";
+
+        // True-color (RGB)
+        public static string RGB(int r, int g, int b) => $"\x1b[38;2;{r};{g};{b}m";
+        public static string BGRGB(int r, int g, int b) => $"\x1b[48;2;{r};{g};{b}m";
     }
 }

@@ -215,7 +215,7 @@ VOID PvpPeEnumerateImageDataDirectory(
 
             if (directorySection)
             {
-                directoryNode->RawStart = PTR_ADD_OFFSET((directoryAddress - directorySection->VirtualAddress), directorySection->PointerToRawData);
+                directoryNode->RawStart = PTR_ADD_OFFSET(UInt32Sub32To64(directoryAddress, directorySection->VirtualAddress), directorySection->PointerToRawData);
                 PhPrintPointer(value, directoryNode->RawStart);
                 directoryNode->RawStartString = PhCreateString(value);
 
@@ -229,7 +229,7 @@ VOID PvpPeEnumerateImageDataDirectory(
             PhPrintPointer(value, directoryNode->RvaStart);
             directoryNode->RvaStartString = PhCreateString(value);
 
-            directoryNode->RvaEnd = PTR_ADD_OFFSET(directoryAddress, directorySize);
+            directoryNode->RvaEnd = (PVOID)(ULONG_PTR)UInt32Add32To64(directoryAddress, directorySize);
             PhPrintPointer(value, directoryNode->RvaEnd);
             directoryNode->RvaEndString = PhCreateString(value);
         }
@@ -261,11 +261,12 @@ VOID PvpPeEnumerateImageDataDirectory(
                 imageDirectoryData,
                 directorySize,
                 &imageDirectoryEntropy,
+                NULL,
                 NULL
                 ))
             {
                 directoryNode->DirectoryEntropy = imageDirectoryEntropy;
-                directoryNode->EntropyString = PhFormatEntropy(imageDirectoryEntropy, 2, 0, 0);
+                directoryNode->EntropyString = PhFormatEntropy(imageDirectoryEntropy, 2, 0, 0, 0, 0);
             }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)

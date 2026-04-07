@@ -120,7 +120,6 @@
     <ClCompile Include="npunodes.c" />
     <ClCompile Include="npuprprp.c" />
     <ClCompile Include="npusys.c" />
-    <ClCompile Include="objmgr.c" />
     <ClCompile Include="pooldb.c" />
     <ClCompile Include="pooldialog.c" />
     <ClCompile Include="pooldialogbig.c" />
@@ -140,7 +139,6 @@
     <ClCompile Include="etwsys.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="modsrv.c" />
-    <ClCompile Include="objprp.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="thrdact.c" />
     <ClCompile Include="unldll.c" />

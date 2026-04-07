@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022-2024
+ *     jxy-s   2022-2026
  *
  */
 
@@ -105,16 +105,14 @@ VOID KphpLoadImageNotifyInformer(
     msg->Kernel.ImageLoad.Properties = ImageInfo->ImageInfo.Properties;
     msg->Kernel.ImageLoad.ImageBase = ImageInfo->ImageInfo.ImageBase;
     msg->Kernel.ImageLoad.ImageSelector = ImageInfo->ImageInfo.ImageSelector;
+    msg->Kernel.ImageLoad.ImageSize = ImageInfo->ImageInfo.ImageSize;
     msg->Kernel.ImageLoad.ImageSectionNumber = ImageInfo->ImageInfo.ImageSectionNumber;
     msg->Kernel.ImageLoad.FileObject = ImageInfo->FileObject;
 
     if (targetProcess)
     {
-        ULONG64 startKey;
-
-        startKey = KphGetProcessStartKey(targetProcess->EProcess);
-
-        msg->Kernel.ImageLoad.TargetProcessStartKey = startKey;
+        msg->Kernel.ImageLoad.TargetProcessStartKey =
+            KphGetProcessStartKey(targetProcess->EProcess);
     }
 
     if (fileName)
@@ -134,7 +132,7 @@ VOID KphpLoadImageNotifyInformer(
         }
     }
 
-    if (KphInformerEnabled2(EnableStackTraces, actorProcess, targetProcess))
+    if (KphInformerOpts2(actorProcess, targetProcess).EnableStackTraces)
     {
         KphCaptureStackInMessage(msg);
     }
@@ -315,7 +313,7 @@ KphpImageVerificationCallback(
                       status);
     }
 
-    if (KphInformerEnabled(EnableStackTraces, actorProcess))
+    if (KphInformerOpts(actorProcess).EnableStackTraces)
     {
         KphCaptureStackInMessage(msg);
     }

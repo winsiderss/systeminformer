@@ -43,7 +43,7 @@ VOID WeInvertWindowBorder(
         pen = CreatePen(PS_INSIDEFRAME, penWidth, RGB(0x00, 0x00, 0x00));
         oldPen = SelectPen(hdc, pen);
 
-        brush = GetStockBrush(NULL_BRUSH);
+        brush = PhGetStockBrush(NULL_BRUSH);
         oldBrush = SelectBrush(hdc, brush);
 
         // Draw the rectangle.

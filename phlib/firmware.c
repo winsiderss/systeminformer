@@ -596,7 +596,7 @@ typedef struct _HV_X64_PLATFORM_CAPABILITIES
         UINT UseAlternateXvd : 1;
     };
 } HV_X64_PLATFORM_CAPABILITIES, *PHV_X64_PLATFORM_CAPABILITIES;
-static_assert(sizeof(HV_HYPERVISOR_IPT_FEATURES) == 16);
+static_assert(sizeof(HV_X64_PLATFORM_CAPABILITIES) == 32);
 
 #if defined(_M_IX86) || defined(_M_AMD64)
 typedef union _PH_CPUID
@@ -826,10 +826,10 @@ PH_VIRTUAL_STATUS PhGetVirtualStatus(
     if (USER_SHARED_DATA->ProcessorFeatures[PF_SECOND_LEVEL_ADDRESS_TRANSLATION] &&
         USER_SHARED_DATA->ProcessorFeatures[PF_NX_ENABLED])
     {
-        return PhVirtualStatusDiabledWithHyperV;
+        return PhVirtualStatusDisabledWithHyperV;
     }
 
-    return PhVirtualStatusDiabled;
+    return PhVirtualStatusDisabled;
 #endif
 }
 
@@ -947,20 +947,21 @@ NTSTATUS PhEnumSMBIOS(
     _In_opt_ PVOID Context
     )
 {
-    static volatile ULONG cachedLength = sizeof(PSYSTEM_FIRMWARE_TABLE_INFORMATION) + 64;
+    static volatile ULONG cachedLength = sizeof(SYSTEM_FIRMWARE_TABLE_INFORMATION) + 64;
     NTSTATUS status;
     ULONG length;
     PSYSTEM_FIRMWARE_TABLE_INFORMATION info;
 
-    length = (ULONG)ReadAcquire((volatile LONG*)&cachedLength);
+    length = ReadULongAcquire(&cachedLength);
 
-    if (!(info = PhAllocatePageZero(length)))
+    if (!(info = PhAllocateStack(length)))
         return STATUS_NO_MEMORY;
 
+    RtlZeroMemory(info, length);
     info->ProviderSignature = 'RSMB';
     info->TableID = 0;
     info->Action = SystemFirmwareTableGet;
-    info->TableBufferLength = length - sizeof(PSYSTEM_FIRMWARE_TABLE_INFORMATION);
+    info->TableBufferLength = length - sizeof(SYSTEM_FIRMWARE_TABLE_INFORMATION);
 
     status = NtQuerySystemInformation(
         SystemFirmwareTableInformation,
@@ -971,11 +972,12 @@ NTSTATUS PhEnumSMBIOS(
 
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
-        PhFreePage(info);
+        PhFreeStack(info);
 
-        if (!(info = PhAllocatePageZero(length)))
+        if (!(info = PhAllocateStack(length)))
             return STATUS_NO_MEMORY;
 
+        RtlZeroMemory(info, length);
         info->ProviderSignature = 'RSMB';
         info->TableID = 0;
         info->Action = SystemFirmwareTableGet;
@@ -990,7 +992,7 @@ NTSTATUS PhEnumSMBIOS(
 
         if (NT_SUCCESS(status))
         {
-            WriteRelease((volatile LONG*)&cachedLength, (LONG)length);
+            WriteULongRelease(&cachedLength, length);
         }
     }
 
@@ -1003,7 +1005,7 @@ NTSTATUS PhEnumSMBIOS(
             );
     }
 
-    PhFreePage(info);
+    PhFreeStack(info);
 
     return status;
 }
