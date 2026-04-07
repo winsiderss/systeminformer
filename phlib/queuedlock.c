@@ -1035,7 +1035,7 @@ VOID FASTCALL PhfWaitForConditionEx(
             {
                 PhpOptimizeQueuedLockListEx(Condition, currentValue, TRUE);
             }
-            
+
             switch (Flags & PH_CONDITION_WAIT_LOCK_TYPE_MASK)
             {
             case PH_CONDITION_WAIT_QUEUED_LOCK:
