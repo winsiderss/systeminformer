@@ -3078,6 +3078,49 @@ RtlxAnsiStringToUnicodeSize(
     _In_ PCANSI_STRING AnsiString
     );
 
+/**
+ * The RtlxUnicodeStringToAnsiSize routine routine returns the number of bytes required for a null-terminated ANSI string that is equivalent to a specified Unicode string.
+ *
+ * \param UnicodeString Pointer to the Unicode string for which to compute the number of bytes required for an equivalent null-terminated ANSI string.
+ * \return If the Unicode string can be translated into an ANSI string using the current system locale information,
+ * RtlxUnicodeStringToAnsiSize returns the number of bytes required for an equivalent null-terminated ANSI string. Otherwise, it returns zero.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlxunicodestringtoansisize
+ */
+NTSYSAPI
+ULONG
+NTAPI
+RtlxUnicodeStringToAnsiSize(
+    _In_ PCUNICODE_STRING UnicodeString
+    );
+
+/**
+ * The RtlxUnicodeStringToOemSize routine is reserved for system use - use RtlUnicodeStringToOemSize instead.
+ *
+ * \param UnicodeString Reserved.
+ * \return Reserved.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlxunicodestringtooemsize
+ */
+NTSYSAPI
+ULONG
+NTAPI
+RtlxUnicodeStringToOemSize(
+    _In_ PCUNICODE_STRING UnicodeString
+    );
+
+/**
+ * The RtlxOemStringToUnicodeSize routine is reserved for system use - use RtlOemStringToUnicodeSize instead.
+ *
+ * \param UnicodeString Reserved.
+ * \return Reserved.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlxoemstringtounicodesize
+ */
+NTSYSAPI
+ULONG
+NTAPI
+RtlxOemStringToUnicodeSize(
+    _In_ PCUNICODE_STRING UnicodeString
+    );
+
 // NTSYSAPI
 // ULONG
 // NTAPI
@@ -7242,7 +7285,7 @@ typedef struct _HEAP_INFORMATION_ITEM
         HEAP_BLOCK_INFORMATION HeapBlockInformation;
         HEAP_PERFORMANCE_COUNTERS_INFORMATION HeapPerfInformation;
         ULONG_PTR DynamicStart;
-    };
+    } DUMMYUNIONNAME;
 } HEAP_INFORMATION_ITEM, *PHEAP_INFORMATION_ITEM;
 
 typedef _Function_class_(RTL_HEAP_EXTENDED_ENUMERATION_ROUTINE)
@@ -7275,15 +7318,18 @@ typedef struct _HEAP_EXTENDED_INFORMATION
 } HEAP_EXTENDED_INFORMATION, *PHEAP_EXTENDED_INFORMATION;
 
 // rev
+// Information points to one of: RTLP_HEAP_STACK_TRACE_SERIALIZATION_INIT,
+// RTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER, RTLP_HEAP_STACK_TRACE_SERIALIZATION_ALLOCATION.
+// A null Information/Size signals end-of-stream.
 typedef _Function_class_(RTL_HEAP_STACK_WRITE_ROUTINE)
 NTSTATUS NTAPI RTL_HEAP_STACK_WRITE_ROUTINE(
-    _In_ PVOID Information, // TODO: 3 missing structures (dmex)
+    _In_ PVOID Information,
     _In_ ULONG Size,
     _In_opt_ PVOID Context
     );
 typedef RTL_HEAP_STACK_WRITE_ROUTINE* PRTL_HEAP_STACK_WRITE_ROUTINE;
 
-// rev
+// rev - written first; Flags == 0x80001
 typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_INIT
 {
     ULONG Count;
@@ -7291,7 +7337,7 @@ typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_INIT
     ULONG Flags;
 } RTLP_HEAP_STACK_TRACE_SERIALIZATION_INIT, *PRTLP_HEAP_STACK_TRACE_SERIALIZATION_INIT;
 
-// rev
+// rev - written per-heap; Version == 2, Flags/Version field == 0x80002
 typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER
 {
     USHORT Version;
@@ -7301,7 +7347,7 @@ typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER
     SIZE_T TotalReserve;
 } RTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER, *PRTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER;
 
-// rev
+// rev - written per live allocation
 typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_ALLOCATION
 {
     PVOID Address;
@@ -7309,10 +7355,19 @@ typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_ALLOCATION
     SIZE_T DataSize;
 } RTLP_HEAP_STACK_TRACE_SERIALIZATION_ALLOCATION, *PRTLP_HEAP_STACK_TRACE_SERIALIZATION_ALLOCATION;
 
-// rev
+// rev - written as end-of-heap sentinel; Address == 0x1234CDEF, DataSize == -1
+typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_TERMINATOR
+{
+    PVOID Address; // 0x1234CDEF
+    ULONG Flags;
+    SIZE_T DataSize; // -1
+} RTLP_HEAP_STACK_TRACE_SERIALIZATION_TERMINATOR, *PRTLP_HEAP_STACK_TRACE_SERIALIZATION_TERMINATOR;
+
+// rev - variable-length block; Max depth is 0xC0 (192).
+// Determine frame count from Size / sizeof(PVOID).
 typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_STACKFRAME
 {
-    PVOID StackFrame[8];
+    PVOID StackFrame[ANYSIZE_ARRAY]; // actual count: Size / sizeof(PVOID)
 } RTLP_HEAP_STACK_TRACE_SERIALIZATION_STACKFRAME, *PRTLP_HEAP_STACK_TRACE_SERIALIZATION_STACKFRAME;
 
 #define HEAP_STACK_QUERY_VERSION 0x2
@@ -7360,18 +7415,40 @@ NTSTATUS NTAPI RTL_HEAP_LEAK_ENUMERATION_ROUTINE(
     );
 typedef RTL_HEAP_LEAK_ENUMERATION_ROUTINE* PRTL_HEAP_LEAK_ENUMERATION_ROUTINE;
 
+// rev
+// ExtendedOptions valid values are 0..3 (low 2 bits).
+// RtlpSetHeapDebuggingInformation writes (ExtendedOptions << 1) into LFH bucket flags (mask 0x6),
+// and app-compat metadata references "HeapPaddingAndLFHSubsegmentCommitSwitch" semantics.
+#define HEAP_DEBUG_EXTENDED_OPTION_NONE                                0x0
+#define HEAP_DEBUG_EXTENDED_OPTION_LFH_SUBSEGMENT_COMMIT               0x1
+#define HEAP_DEBUG_EXTENDED_OPTION_PAD_ALLOCATIONS_WITH_HEADER_BLOCK   0x2
+#define HEAP_DEBUG_EXTENDED_OPTION_VALID_MASK                          0x3
+
 // symbols
 typedef struct _HEAP_DEBUGGING_INFORMATION
 {
     PRTL_HEAP_DEBUGGING_INTERCEPTOR_ROUTINE InterceptorFunction;
     USHORT InterceptorValue;
-    ULONG ExtendedOptions;
+    ULONG ExtendedOptions; // HEAP_DEBUG_EXTENDED_OPTION_*
     ULONG StackTraceDepth;
     SIZE_T MinTotalBlockSize;
     SIZE_T MaxTotalBlockSize;
     PRTL_HEAP_LEAK_ENUMERATION_ROUTINE HeapLeakEnumerationRoutine;
 } HEAP_DEBUGGING_INFORMATION, *PHEAP_DEBUGGING_INFORMATION;
 
+/**
+ * The RtlQueryHeapInformation routine retrieves information about a heap or process heaps.
+ *
+ * \param HeapHandle Handle to the heap to query. For classes that operate on process-wide data,
+ * this parameter may be NULL or ignored depending on HeapInformationClass.
+ * \param HeapInformationClass The information class to query (for example, compatibility mode,
+ * extended heap information, stack database information).
+ * \param HeapInformation A caller-supplied buffer that receives the queried information.
+ * \param HeapInformationLength Size, in bytes, of the HeapInformation buffer.
+ * \param ReturnLength Receives the required or returned size, in bytes.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapqueryinformation
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -7383,6 +7460,17 @@ RtlQueryHeapInformation(
     _Out_opt_ PSIZE_T ReturnLength
     );
 
+/**
+ * The RtlSetHeapInformation routine sets information for a heap or process heap policy.
+ *
+ * \param HeapHandle Handle to the heap to configure. Some information classes allow NULL to apply
+ * process-wide policy.
+ * \param HeapInformationClass The information class to set.
+ * \param HeapInformation Pointer to the class-specific input data.
+ * \param HeapInformationLength Size, in bytes, of HeapInformation.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapsetinformation
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -7393,6 +7481,17 @@ RtlSetHeapInformation(
     _In_opt_ SIZE_T HeapInformationLength
     );
 
+/**
+ * The RtlMultipleAllocateHeap routine allocates multiple fixed-size blocks from a heap.
+ *
+ * \param HeapHandle Handle for the heap from which memory is allocated.
+ * \param Flags Controllable aspects of heap allocation. Specifying any flags overrides the corresponding heap defaults.
+ * \param Size Number of bytes to allocate for each element.
+ * \param Count Number of elements to allocate.
+ * \param Array Caller-supplied array that receives pointers to allocated blocks.
+ * \return The number of successfully allocated elements.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc
+ */
 NTSYSAPI
 ULONG
 NTAPI
@@ -7404,6 +7503,16 @@ RtlMultipleAllocateHeap(
     _Out_ PVOID *Array
     );
 
+/**
+ * The RtlMultipleFreeHeap routine frees multiple heap blocks.
+ *
+ * \param HeapHandle Handle for the heap that owns the blocks.
+ * \param Flags Controllable aspects of heap free behavior.
+ * \param Count Number of elements in Array.
+ * \param Array Array of pointers to previously allocated heap blocks.
+ * \return The number of successfully freed elements.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapfree
+ */
 NTSYSAPI
 ULONG
 NTAPI
@@ -7414,6 +7523,10 @@ RtlMultipleFreeHeap(
     _In_ PVOID *Array
     );
 
+/**
+ * The RtlDetectHeapLeaks routine performs heap leak detection across all heaps
+ * in the current process and invokes any registered callbacks during enumeration.
+ */
 NTSYSAPI
 VOID
 NTAPI
@@ -7421,6 +7534,12 @@ RtlDetectHeapLeaks(
     VOID
     );
 
+/**
+ * The RtlFlushHeaps routine flushes heap state for process heaps.
+ *
+ * \return This routine does not return a value.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapcompact
+ */
 NTSYSAPI
 VOID
 NTAPI
@@ -8734,10 +8853,10 @@ RtlGetSystemTimePrecise(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_21H2)
 NTSYSAPI
-KSYSTEM_TIME
+ULONGLONG
 NTAPI
 RtlGetSystemTimeAndBias(
-    _Out_ KSYSTEM_TIME TimeZoneBias,
+    _Out_ PLARGE_INTEGER TimeZoneBias,
     _Out_opt_ PLARGE_INTEGER TimeZoneBiasEffectiveStart,
     _Out_opt_ PLARGE_INTEGER TimeZoneBiasEffectiveEnd
     );
@@ -8754,7 +8873,7 @@ RtlGetInterruptTimePrecise(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSAPI
-ULONGLONG
+BOOLEAN
 NTAPI
 RtlQueryUnbiasedInterruptTime(
     _Out_ PLARGE_INTEGER InterruptTime
@@ -8762,12 +8881,30 @@ RtlQueryUnbiasedInterruptTime(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11_24H2)
-// rev
+// RtlGetMultiTimePrecise RequestedMask/ProvidedMask bits
+#define RTL_GET_MULTI_TIME_PRECISE_PERF_COUNTER        0x00000001UL
+#define RTL_GET_MULTI_TIME_PRECISE_HV_CORRELATED_TIME  0x00000002UL
+#define RTL_GET_MULTI_TIME_PRECISE_SHAREDUSER_TIME     0x00000004UL
+#define RTL_GET_MULTI_TIME_PRECISE_SUPPORTED_MASK      0x00000007UL
+
+typedef struct _RTL_MULTI_TIME_PRECISE
+{
+    ULONGLONG PerformanceCounter;
+    ULONGLONG HypervisorCorrelatedTime;
+    ULONGLONG SharedUserTime;
+} RTL_MULTI_TIME_PRECISE, *PRTL_MULTI_TIME_PRECISE;
+
+// Bit 0x1: writes PerformanceCounter; sets ProvidedMask bit 0x1.
+// Bit 0x2: writes HypervisorCorrelatedTime when available/stable; sets bit 0x2 on success.
+// Bit 0x4: writes SharedUserTime using SharedUserData calibration fields; sets bit 0x4.
+// RequestedMask == 0 returns success with *ProvidedMask = 0.
 NTSYSAPI
-ULONGLONG
+NTSTATUS
 NTAPI
-RtlQueryUnbiasedInterruptTimePrecise(
-    _Out_ PLARGE_INTEGER InterruptTime
+RtlGetMultiTimePrecise(
+    _Out_ PRTL_MULTI_TIME_PRECISE TimesOut,
+    _In_ ULONG RequestedMask,
+    _Out_ PULONG ProvidedMask
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11_24H2
 
@@ -12891,13 +13028,19 @@ RtlIsMultiUsersInSessionSku(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
+
+typedef struct _RTL_SESSION_PROPERTIES
+{
+    ULONG IsCurrentSessionId;
+} RTL_SESSION_PROPERTIES, *PRTL_SESSION_PROPERTIES;
+
 // rev
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetSessionProperties(
     _In_ ULONG SessionId,
-    _Out_ PULONG SharedUserSessionId
+    _Out_ PRTL_SESSION_PROPERTIES SessionProperties
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
@@ -13827,6 +13970,25 @@ RtlWow64ChangeThreadState(
     _In_ HANDLE ThreadStateChangeHandle,
     _In_ HANDLE ThreadHandle,
     _In_ THREAD_STATE_CHANGE_TYPE StateChangeType
+    );
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
+
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlWow64SuspendProcess(
+    _In_ HANDLE ProcessHandle
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlWow64SuspendThread(
+    _In_ HANDLE ThreadHandle,
+    _Out_opt_ PULONG SuspendCount
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
