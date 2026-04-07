@@ -80,9 +80,9 @@ EXPORTS
     PhGetListViewContextMenuPoint
     PhGetPhReleaseChannel
     PhGetPhReleaseChannelString
-    PhGetPhVersion
-    PhGetPhVersionHash
-    PhGetPhVersionNumbers
+    PhGetBuildVersion
+    PhGetBuildCommit
+    PhGetBuildVersionNumbers
     PhGetProcessIsSuspended
     PhGetProcessKnownType
     PhGetProcessKnownTypeEx
@@ -738,6 +738,7 @@ EXPORTS
     PhFinalHash
     PhFormatDate
     PhFormatDateTime
+    PhFormatDateTimeToBuffer
     PhFormatDecimal
     PhFormatGuid
     PhFormatImageVersionInfo
@@ -753,6 +754,7 @@ EXPORTS
     PhGenerateGuidFromName
     PhGenerateRandomAlphaString
     PhGenerateRandomNumber64
+    PhGetActivationFactory
     PhGetApplicationDataFileName
     PhGetApplicationDirectory
     PhGetApplicationDirectoryFileName
