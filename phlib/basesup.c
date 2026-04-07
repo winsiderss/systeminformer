@@ -199,9 +199,8 @@ NTSTATUS PhpBaseThreadStart(
     dbg.CurrentAutoPool = NULL;
 
     PhAcquireQueuedLockExclusive(&PhDbgThreadListLock);
-    InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
+    InsertTailListNoFence(&PhDbgThreadListHead, &dbg.ListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgThreadListLock);
-
     PhTlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
 #endif
 
@@ -220,7 +219,7 @@ NTSTATUS PhpBaseThreadStart(
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgThreadListLock);
-    RemoveEntryList(&dbg.ListEntry);
+    RemoveEntryListNoFence(&dbg.ListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgThreadListLock);
 #endif
 
@@ -2791,7 +2790,7 @@ VOID PhRegisterCallbackEx(
     Registration->Flags = Flags;
 
     PhAcquireQueuedLockExclusive(&Callback->ListLock);
-    InsertTailList(&Callback->ListHead, &Registration->ListEntry);
+    InsertTailListNoFence(&Callback->ListHead, &Registration->ListEntry);
     PhReleaseQueuedLockExclusive(&Callback->ListLock);
 }
 
@@ -2818,7 +2817,7 @@ VOID PhUnregisterCallback(
     while (Registration->Busy)
         PhWaitForCondition(&Callback->BusyCondition, &Callback->ListLock, NULL);
 
-    RemoveEntryList(&Registration->ListEntry);
+    RemoveEntryListNoFence(&Registration->ListEntry);
 
     PhReleaseQueuedLockExclusive(&Callback->ListLock);
 }
