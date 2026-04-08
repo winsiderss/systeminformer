@@ -82,7 +82,6 @@ NTSTATUS SetupCreateUninstallKey(
 {
     NTSTATUS status;
     HANDLE keyHandle;
-    PH_STRINGREF value;
 
     SetupDeleteUninstallKey();
 
