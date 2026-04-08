@@ -125,7 +125,7 @@ VOID NTAPI MenuItemCallback(
         return;
     }
 
-    if (PhGetBuildhReleaseChannel() != channel)
+    if (PhGetBuildReleaseChannel() != channel)
     {
         context = CreateUpdateContext(FALSE);
         context->Channel = channel;

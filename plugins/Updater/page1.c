@@ -50,7 +50,7 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
                 break;
             }
 
-            if (PhGetBuildhReleaseChannel() != channel)
+            if (PhGetBuildReleaseChannel() != channel)
             {
                 context->Channel = channel;
                 context->SwitchingChannel = TRUE;

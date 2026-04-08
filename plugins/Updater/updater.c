@@ -606,7 +606,7 @@ BOOLEAN QueryUpdateData(
     {
         if (!Context->SwitchingChannel)
         {
-            Context->Channel = PhGetBuildhReleaseChannel();
+            Context->Channel = PhGetBuildReleaseChannel();
         }
 
         switch (Context->Channel)
