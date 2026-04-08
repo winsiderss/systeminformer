@@ -186,6 +186,12 @@ VOID SetupCreateWindowsOptions(
 VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     );
+BOOLEAN SetupHasTaskMgrDebuggerIfeo(
+    VOID
+    );
+NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
 
 NTSTATUS SetupCreateLocalDumpsKey(
     VOID

@@ -18,14 +18,20 @@ NTSTATUS CALLBACK SetupUninstallBuild(
 {
     NTSTATUS status;
 
+    //
     // Stop the application.
+    //
+
     if (!NT_SUCCESS(status = SetupShutdownApplication(Context)))
     {
         Context->LastStatus = status;
         goto CleanupExit;
     }
 
+    //
     // Stop the kernel driver.
+    //
+
     if (!NT_SUCCESS(status = SetupUninstallDriver(Context)))
     {
         Context->LastStatus = status;
