@@ -103,6 +103,75 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Downloads the GitHub meta IP ranges and returns them as a list of strings.
+        /// </summary>
+        /// <returns>A list of IP address ranges from the GitHub meta endpoint, or <c>null</c> on error.</returns>
+        public static async Task<List<string>> DownloadGithubIpRanges()
+        {
+            try
+            {
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/meta"))
+                {
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+                    requestMessage.Headers.TryAddWithoutValidation("X-GitHub-Api-Version", "2022-11-28");
+
+                    using var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+                    if (response == null || !response.IsSuccessStatusCode)
+                    {
+                        Program.PrintColorMessage("[DownloadGithubIpRanges] response failed", ConsoleColor.Red);
+                        return null;
+                    }
+
+                    await using Stream stream = await response.Content.ReadAsStreamAsync();
+                    var meta = JsonSerializer.Deserialize(stream, GithubResponseContext.Default.DictionaryStringJsonElement);
+                    if (meta == null)
+                    {
+                        Program.PrintColorMessage("[DownloadGithubIpRanges] invalid response", ConsoleColor.Red);
+                        return null;
+                    }
+
+                    var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var property in meta)
+                    {
+                        if (property.Value.ValueKind != JsonValueKind.Array)
+                            continue;
+
+                        foreach (var entry in property.Value.EnumerateArray())
+                        {
+                            if (entry.ValueKind != JsonValueKind.String)
+                                continue;
+
+                            var value = entry.GetString();
+                            if (IsIpRange(value))
+                            {
+                                results.Add(value);
+                            }
+                        }
+                    }
+
+                    return results.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[DownloadGithubIpRanges] " + ex, ConsoleColor.Red);
+                return null;
+            }
+
+            static bool IsIpRange(string value)
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    return false;
+
+                var slashIndex = value.IndexOf('/', StringComparison.OrdinalIgnoreCase);
+                var address = slashIndex >= 0 ? value[..slashIndex] : value;
+
+                return IPAddress.TryParse(address, out _);
+            }
+        }
+
+        /// <summary>
         /// Retrieves a GitHub release by its release ID.
         /// </summary>
         /// <param name="ReleaseId">The unique identifier of the release.</param>

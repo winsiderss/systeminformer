@@ -2440,6 +2440,7 @@ namespace CustomBuildTool
     [JsonSerializable(typeof(GithubReleasesResponse))]
     [JsonSerializable(typeof(GithubReleaseQueryResponse))]
     [JsonSerializable(typeof(SourceLink))]
+    [JsonSerializable(typeof(Dictionary<string, JsonElement>))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class GithubResponseContext : JsonSerializerContext
     {

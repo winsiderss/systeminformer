@@ -684,7 +684,7 @@ PPH_LISTVIEW_CONTEXT PhListView_Initialize(
     PPH_LISTVIEW_CONTEXT context;
     IListView* listviewInterface;
 
-    context = reinterpret_cast<PPH_LISTVIEW_CONTEXT>(PhAllocateZero(sizeof(PH_LISTVIEW_CONTEXT)));
+    context = static_cast<PPH_LISTVIEW_CONTEXT>(PhAllocateZero(sizeof(PH_LISTVIEW_CONTEXT)));
     context->ListViewHandle = ListViewHandle;
     context->ThreadId = UlongToHandle(GetWindowThreadProcessId(ListViewHandle, nullptr));
 
@@ -798,7 +798,7 @@ BOOLEAN PhListView_SetItem(
     return FALSE;
 }
 
-_Use_decl_annotations_
+_Success_(return)
 BOOLEAN PhListView_GetItemText(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _In_ LONG ItemIndex,

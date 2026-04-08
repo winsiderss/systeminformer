@@ -108,6 +108,76 @@ namespace CustomBuildTool
                 return (false, queueTime);
             }
         }
+
+        /// <summary>
+        /// Downloads the Azure service tags JSON and returns all address prefixes.
+        /// </summary>
+        /// <returns>A list of address prefixes from the weekly service tags JSON file, or <c>null</c> on error.</returns>
+        public static async Task<List<string>> DownloadAzureServiceTags()
+        {
+            try
+            {
+                const string downloadPageUrl = "https://www.microsoft.com/download/details.aspx?id=56519";
+
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Get, downloadPageUrl);
+                requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
+
+                using var response = await BuildHttpClient.SendMessageResponse(DevOpsHttpClient, requestMessage);
+                if (response == null || !response.IsSuccessStatusCode)
+                {
+                    Program.PrintColorMessage("[DownloadAzureServiceTags] download page failed", ConsoleColor.Red);
+                    return null;
+                }
+
+                var pageContent = await response.Content.ReadAsStringAsync();
+                var match = System.Text.RegularExpressions.Regex.Match(pageContent, @"https://download\.microsoft\.com/download/[^\']+\.json", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (!match.Success)
+                {
+                    Program.PrintColorMessage("[DownloadAzureServiceTags] download url not found", ConsoleColor.Red);
+                    return null;
+                }
+
+                using var jsonRequest = new HttpRequestMessage(HttpMethod.Get, match.Value);
+                jsonRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                using var jsonResponse = await BuildHttpClient.SendMessageResponse(DevOpsHttpClient, jsonRequest);
+                if (jsonResponse == null || !jsonResponse.IsSuccessStatusCode)
+                {
+                    Program.PrintColorMessage("[DownloadAzureServiceTags] json download failed", ConsoleColor.Red);
+                    return null;
+                }
+
+                using var stream = await jsonResponse.Content.ReadAsStreamAsync();
+                var tags = JsonSerializer.Deserialize(stream, BuildInfoResponseContext.Default.AzureServiceTagsResponse);
+                if (tags?.Values == null)
+                {
+                    Program.PrintColorMessage("[DownloadAzureServiceTags] invalid json", ConsoleColor.Red);
+                    return null;
+                }
+
+                var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var value in tags.Values)
+                {
+                    if (value?.Properties?.AddressPrefixes == null)
+                        continue;
+
+                    foreach (var prefix in value.Properties.AddressPrefixes)
+                    {
+                        if (!string.IsNullOrWhiteSpace(prefix))
+                        {
+                            results.Add(prefix);
+                        }
+                    }
+                }
+
+                return results.ToList();
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[DownloadAzureServiceTags] " + ex, ConsoleColor.Red);
+                return null;
+            }
+        }
     }
 
     /// <summary>
@@ -115,9 +185,28 @@ namespace CustomBuildTool
     /// </summary>
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     [JsonSerializable(typeof(BuildInfo))]
+    [JsonSerializable(typeof(AzureServiceTagsResponse))]
     public partial class BuildInfoResponseContext : JsonSerializerContext
     {
 
+    }
+
+    public class AzureServiceTagsResponse
+    {
+        [JsonPropertyName("values")]
+        public List<AzureServiceTag> Values { get; set; }
+    }
+
+    public class AzureServiceTag
+    {
+        [JsonPropertyName("properties")]
+        public AzureServiceTagProperties Properties { get; set; }
+    }
+
+    public class AzureServiceTagProperties
+    {
+        [JsonPropertyName("addressPrefixes")]
+        public List<string> AddressPrefixes { get; set; }
     }
 
     /// <summary>
