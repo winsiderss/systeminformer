@@ -75,7 +75,7 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
     context->StartupCheck = StartupCheck;
     context->Cleanup = TRUE;
     context->PortableMode = !!SystemInformer_IsPortableMode();
-    context->Channel = PhGetPhReleaseChannel();
+    context->Channel = PhGetBuildReleaseChannel();
 
     return context;
 }
@@ -606,7 +606,7 @@ BOOLEAN QueryUpdateData(
     {
         if (!Context->SwitchingChannel)
         {
-            Context->Channel = PhGetPhReleaseChannel();
+            Context->Channel = PhGetBuildhReleaseChannel();
         }
 
         switch (Context->Channel)
