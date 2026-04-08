@@ -1417,6 +1417,7 @@ namespace CustomBuildTool
             else
             {
                 return true;
+            }
 
             //if (useBuildCmakeScript)
             //{
@@ -2094,6 +2095,7 @@ namespace CustomBuildTool
         {
             //
             // Cleanup package manifests.
+            //
 
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x32.appx", Flags);
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x64.appx", Flags);
