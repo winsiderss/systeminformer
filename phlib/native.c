@@ -8367,28 +8367,29 @@ NTSTATUS PhSetWaitableTimer(
     _In_opt_ PLARGE_INTEGER Period,
     _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine,
     _In_opt_ PVOID TimerContext,
-    _In_ BOOLEAN ResumeTimer
+    _In_ BOOLEAN ResumeTimer,
+    _In_ BOOLEAN HighResolution
     )
 {
-    if (NtSetTimer2_Import())
-    {
-        T2_SET_PARAMETERS timerParameters;
-
-        memset(&timerParameters, 0, sizeof(T2_SET_PARAMETERS));
-        timerParameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
-        timerParameters.NoWakeTolerance = 0;
-
-        return NtSetTimer2_Import()(
-            TimerHandle,
-            DueTime,
-            Period,
-            &timerParameters
-            );
-    }
-
-    if (NtSetTimerEx_Import())
+    if (HighResolution)
     {
         TIMER_SET_COALESCABLE_TIMER_INFO timerParameters;
+
+        if (NtSetTimer2_Import())
+        {
+            T2_SET_PARAMETERS timerParameters;
+
+            memset(&timerParameters, 0, sizeof(T2_SET_PARAMETERS));
+            timerParameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
+            timerParameters.NoWakeTolerance = 0;
+
+            return NtSetTimer2_Import()(
+                TimerHandle,
+                DueTime,
+                Period,
+                &timerParameters
+                );
+        }
 
         memset(&timerParameters, 0, sizeof(TIMER_SET_COALESCABLE_TIMER_INFO));
         timerParameters.DueTime.QuadPart = DueTime->QuadPart;
@@ -8401,7 +8402,7 @@ NTSTATUS PhSetWaitableTimer(
             TimerHandle,
             TimerSetCoalescableTimer,
             &timerParameters,
-            sizeof(timerParameters)
+            sizeof(TIMER_SET_COALESCABLE_TIMER_INFO)
             );
     }
 

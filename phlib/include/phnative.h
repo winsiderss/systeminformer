@@ -3698,7 +3698,6 @@ PhGetSecureKernelFileName(
  * Gets a pointer to the process information structure after a given structure.
  *
  * \param Process A pointer to a process information structure.
- *
  * \return A pointer to the next process information structure, or NULL if there are no more.
  */
 #define PH_NEXT_PROCESS(Process) ( \
@@ -6355,7 +6354,8 @@ PhSetWaitableTimer(
     _In_opt_ PLARGE_INTEGER Period,
     _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine,
     _In_opt_ PVOID TimerContext,
-    _In_ BOOLEAN ResumeTimer
+    _In_ BOOLEAN ResumeTimer,
+    _In_ BOOLEAN HighResolution
     );
 
 PHLIBAPI
