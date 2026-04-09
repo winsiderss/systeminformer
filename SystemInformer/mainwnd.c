@@ -1613,6 +1613,42 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_TOOLS_STARTPERFORMANCEMONITOR:
+        {
+            PPH_STRING perfmonFileName;
+
+            perfmonFileName = PH_AUTO(PhGetSystemDirectoryWin32Z(L"\\perfmon.exe"));
+
+            if (PhGetIntegerSetting(SETTING_ENABLE_SHELL_EXECUTE_SKIP_IFEO_DEBUGGER))
+            {
+                PhShellExecuteEx(
+                    WindowHandle,
+                    PhGetString(perfmonFileName),
+                    L" /sys",
+                    NULL,
+                    SW_SHOW,
+                    0,
+                    0,
+                    NULL
+                    );
+            }
+            else
+            {
+                if (!PhGetOwnTokenAttributes().Elevated)
+                {
+                    if (PhUiConnectToPhSvc(WindowHandle, FALSE))
+                    {
+                        PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(perfmonFileName), L" /sys");
+                        PhUiDisconnectFromPhSvc();
+                    }
+                }
+                else
+                {
+                    PhCreateProcessIgnoreIfeoDebugger(PhGetString(perfmonFileName), L" /sys");
+                }
+            }
+        }
+        break;
     case ID_TOOLS_SHUTDOWNWSLPROCESSES:
         {
             NTSTATUS status;
@@ -3654,6 +3690,7 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTTASKMANAGER, L"Start &Task Manager", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTRESOURCEMONITOR, L"Start &Resource Monitor", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTPERFORMANCEMONITOR, L"Start &Performance Monitor", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_SHUTDOWNWSLPROCESSES, L"T&erminate WSL processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -4378,6 +4415,8 @@ VOID PhMwpInitializeSubMenu(
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
                     menuItem->Bitmap = shieldBitmap;
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTRESOURCEMONITOR))
+                    menuItem->Bitmap = shieldBitmap;
+                if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTPERFORMANCEMONITOR))
                     menuItem->Bitmap = shieldBitmap;
             }
         }
