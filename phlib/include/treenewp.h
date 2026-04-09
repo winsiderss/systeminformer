@@ -869,7 +869,7 @@ _Success_(return)
 BOOLEAN PhTnpGetTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPOINT Point,
-    _Out_ PWSTR *Text
+    _Out_ PPH_STRING *Text
     );
 
 BOOLEAN PhTnpPrepareTooltipShow(
