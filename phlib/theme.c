@@ -570,7 +570,7 @@ HBRUSH PhWindowThemeControlColor(
         break;
     }
 
-    return (HBRUSH)DefWindowProc(WindowHandle, Type, (WPARAM)Hdc, (LPARAM)ChildWindowHandle);
+    return GetSysColorBrush(COLOR_WINDOW);
 }
 
 VOID PhWindowThemeMainMenuBorder(

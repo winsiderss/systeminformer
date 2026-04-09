@@ -82,7 +82,6 @@ NTSTATUS SetupCreateUninstallKey(
 {
     NTSTATUS status;
     HANDLE keyHandle;
-    PH_STRINGREF value;
 
     SetupDeleteUninstallKey();
 
@@ -99,14 +98,14 @@ NTSTATUS SetupCreateUninstallKey(
     if (NT_SUCCESS(status))
     {
         PPH_STRING string;
-        ULONG regValue;
         PH_FORMAT format[7];
 
-        string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer.exe,0");
-        PhSetValueKeyZ(keyHandle, L"DisplayIcon", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
+        PhSetValueKeyString2Z(keyHandle, L"DisplayName", L"System Informer");
+        PhSetValueKeyString2Z(keyHandle, L"HelpLink", L"https://system-informer.com/"); // package manager (winget) consistency (jxy-s)
+        PhSetValueKeyString2Z(keyHandle, L"Publisher", L"Winsider Seminars & Solutions, Inc.");
 
-        PhInitializeStringRef(&value, L"System Informer");
-        PhSetValueKeyZ(keyHandle, L"DisplayName", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
+        string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer.exe,0");
+        PhSetValueKeyStringZ(keyHandle, L"DisplayIcon", &string->sr);
 
         PhInitFormatU(&format[0], PHAPP_VERSION_MAJOR);
         PhInitFormatC(&format[1], L'.');
@@ -116,24 +115,17 @@ NTSTATUS SetupCreateUninstallKey(
         PhInitFormatC(&format[5], L'.');
         PhInitFormatU(&format[6], PHAPP_VERSION_REVISION);
         string = PhFormat(format, RTL_NUMBER_OF(format), 10);
-        PhSetValueKeyZ(keyHandle, L"DisplayVersion", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
-
-        PhInitializeStringRef(&value, L"https://system-informer.com/"); // package manager (winget) consistency (jxy-s)
-        PhSetValueKeyZ(keyHandle, L"HelpLink", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
+        PhSetValueKeyStringZ(keyHandle, L"DisplayVersion", &string->sr);
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"");
-        PhSetValueKeyZ(keyHandle, L"InstallLocation", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
-
-        PhInitializeStringRef(&value, L"Winsider Seminars & Solutions, Inc.");
-        PhSetValueKeyZ(keyHandle, L"Publisher", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
+        PhSetValueKeyStringZ(keyHandle, L"InstallLocation", &string->sr);
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer-setup.exe");
         PhMoveReference(&string, PhFormatString(L"\"%s\" -uninstall", PhGetString(string)));
-        PhSetValueKeyZ(keyHandle, L"UninstallString", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
+        PhSetValueKeyStringZ(keyHandle, L"UninstallString", &string->sr);
 
-        regValue = TRUE;
-        PhSetValueKeyZ(keyHandle, L"NoModify", REG_DWORD, &regValue, sizeof(ULONG));
-        PhSetValueKeyZ(keyHandle, L"NoRepair", REG_DWORD, &regValue, sizeof(ULONG));
+        PhSetValueKeyUlong(keyHandle, L"NoModify", TRUE);
+        PhSetValueKeyUlong(keyHandle, L"NoRepair", TRUE);
 
         NtClose(keyHandle);
     }
@@ -646,6 +638,88 @@ VOID SetupDeleteWindowsOptions(
         PhEnumerateValueKey(keyHandle, KeyValueFullInformation, SetupDeleteAutoRunKeyCallback, NULL);
         NtClose(keyHandle);
     }
+}
+
+BOOLEAN SetupHasTaskMgrDebuggerIfeo(
+    VOID
+    )
+{
+    BOOLEAN hasDebugger = FALSE;
+    HANDLE keyHandle;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ | KEY_WOW64_64KEY,
+        PH_KEY_LOCAL_MACHINE,
+        &TaskmgrIfeoKeyName,
+        0
+        )))
+    {
+        PPH_STRING debuggerValue;
+
+        debuggerValue = PhQueryRegistryStringZ(keyHandle, L"Debugger");
+
+        if (!PhIsNullOrEmptyString(debuggerValue))
+            hasDebugger = TRUE;
+
+        PhClearReference(&debuggerValue);
+        NtClose(keyHandle);
+    }
+
+    return hasDebugger;
+}
+
+NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhCreateKey(
+        &keyHandle,
+        KEY_ALL_ACCESS | KEY_WOW64_64KEY,
+        PH_KEY_LOCAL_MACHINE,
+        &TaskmgrIfeoKeyName,
+        OBJ_OPENIF,
+        0,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PPH_STRING clientPathString;
+        PPH_STRING value;
+
+        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
+        if (!clientPathString)
+        {
+            NtClose(keyHandle);
+            return STATUS_NO_MEMORY;
+        }
+
+        value = PhFormatString(L"\"%s\"", PhGetString(clientPathString));
+        if (!value)
+        {
+            PhDereferenceObject(clientPathString);
+            NtClose(keyHandle);
+            return STATUS_NO_MEMORY;
+        }
+
+        status = PhSetValueKeyZ(
+            keyHandle,
+            L"Debugger",
+            REG_SZ,
+            value->Buffer,
+            (ULONG)value->Length + sizeof(UNICODE_NULL)
+            );
+
+        PhDereferenceObject(value);
+        PhDereferenceObject(clientPathString);
+        NtClose(keyHandle);
+    }
+
+    return status;
 }
 
 /**

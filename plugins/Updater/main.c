@@ -75,7 +75,7 @@ VOID NTAPI MainMenuInitializingCallback(
     //PhInsertEMenuItem(menuInfo->Menu, channelMenuItem, 0);
     PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM_UPDATE, L"Check for &updates", NULL), 0);
 
-    //switch (PhGetPhReleaseChannel())
+    //switch (PhGetBuildhReleaseChannel())
     //{
     //case PhReleaseChannel:
     //    releaseMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
@@ -125,7 +125,7 @@ VOID NTAPI MenuItemCallback(
         return;
     }
 
-    if (PhGetPhReleaseChannel() != channel)
+    if (PhGetBuildReleaseChannel() != channel)
     {
         context = CreateUpdateContext(FALSE);
         context->Channel = channel;

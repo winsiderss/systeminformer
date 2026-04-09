@@ -50,7 +50,7 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
                 break;
             }
 
-            if (PhGetPhReleaseChannel() != channel)
+            if (PhGetBuildReleaseChannel() != channel)
             {
                 context->Channel = channel;
                 context->SwitchingChannel = TRUE;
@@ -132,7 +132,7 @@ VOID ShowCheckForUpdatesDialog(
     //        break;
     //    }
     //
-    //    //if (Context->Channel < PhGetPhReleaseChannel())
+    //    //if (Context->Channel < PhGetBuildhReleaseChannel())
     //    //{
     //    //    config.pszContent = L"Downgrading the channel might cause instability.\r\n\r\nClick Yes to continue.\r\n";
     //    //}
@@ -148,7 +148,6 @@ VOID ShowCheckForUpdatesDialog(
         config.pszMainInstruction = L"Check for an updated System Informer release?";
         config.pszContent = L"Click Check to continue.";
     }
-
 
     PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }

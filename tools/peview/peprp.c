@@ -45,7 +45,8 @@ typedef enum _PVP_IMAGE_GENERAL_INDEX
 
     //PVP_IMAGE_GENERAL_INDEX_FILEATTRIBUTES,
     PVP_IMAGE_GENERAL_INDEX_FILECREATEDTIME,
-    PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME,
+    PVP_IMAGE_GENERAL_INDEX_FILELASTACCESSTIME,
+    PVP_IMAGE_GENERAL_INDEX_FILELASTMODIFIEDTIME,
     PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME,
     PVP_IMAGE_GENERAL_INDEX_FILEINDEX,
     PVP_IMAGE_GENERAL_INDEX_FILEID,
@@ -699,6 +700,9 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
         numberOfSignatures = 0;
         return VrNoSignature;
     }
+    FILE_BASIC_INFORMATION basicInfo = { 0 };
+    basicInfo.LastAccessTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
+    PhSetFileBasicInformation(fileHandle, &basicInfo);
 
     memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
     info.FileHandle = fileHandle;
@@ -1417,6 +1421,10 @@ VOID PvpSetPeImageFileProperties(
         FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
+        FILE_BASIC_INFORMATION basicTimestampInfo = { 0 };
+        basicTimestampInfo.LastAccessTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
+        PhSetFileBasicInformation(fileHandle, &basicTimestampInfo);
+
         if (NT_SUCCESS(PhGetFileBasicInformation(fileHandle, &basicInfo)))
         {
             if (basicInfo.CreationTime.QuadPart != 0)
@@ -1426,10 +1434,17 @@ VOID PvpSetPeImageFileProperties(
                 PhDereferenceObject(string);
             }
 
+            if (basicInfo.LastAccessTime.QuadPart != 0)
+            {
+                PPH_STRING string = PvGetRelativeTimeString(&basicInfo.LastAccessTime);
+                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILELASTACCESSTIME, 1, PhGetString(string));
+                PhDereferenceObject(string);
+            }
+
             if (basicInfo.LastWriteTime.QuadPart != 0)
             {
                 PPH_STRING string = PvGetRelativeTimeString(&basicInfo.LastWriteTime);
-                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME, 1, PhGetString(string));
+                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILELASTMODIFIEDTIME, 1, PhGetString(string));
                 PhDereferenceObject(string);
             }
 
@@ -1608,6 +1623,10 @@ VOID PvUpdatePeFileTimes(
         FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
+        FILE_BASIC_INFORMATION basicTimestampInfo = { 0 };
+        basicTimestampInfo.LastAccessTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
+        PhSetFileBasicInformation(fileHandle, &basicTimestampInfo);
+
         if (NT_SUCCESS(PhGetFileBasicInformation(fileHandle, &basicInfo)))
         {
             if (basicInfo.CreationTime.QuadPart != 0)
@@ -1617,10 +1636,17 @@ VOID PvUpdatePeFileTimes(
                 PhDereferenceObject(string);
             }
 
+            if (basicInfo.LastAccessTime.QuadPart != 0)
+            {
+                PPH_STRING string = PvGetRelativeTimeString(&basicInfo.LastAccessTime);
+                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILELASTACCESSTIME, 1, PhGetString(string));
+                PhDereferenceObject(string);
+            }
+
             if (basicInfo.LastWriteTime.QuadPart != 0)
             {
                 PPH_STRING string = PvGetRelativeTimeString(&basicInfo.LastWriteTime);
-                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME, 1, PhGetString(string));
+                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILELASTMODIFIEDTIME, 1, PhGetString(string));
                 PhDereferenceObject(string);
             }
 
@@ -1822,7 +1848,8 @@ VOID PvpSetPeImageProperties(
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_CHARACTERISTICS, L"Characteristics", NULL);
     //PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEATTRIBUTES, L"Attributes", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILECREATEDTIME, L"Created time", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME, L"Modified time", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILELASTACCESSTIME, L"Accessed time", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILELASTMODIFIEDTIME, L"Modified time", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME, L"Updated time", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGPDB, L"Guid", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, PVP_IMAGE_GENERAL_INDEX_DEBUGIMAGE, L"Image name", NULL);

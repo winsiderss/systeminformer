@@ -78,8 +78,8 @@ EXPORTS
     PhGetGeneralCallback
     PhGetImageListIcon
     PhGetListViewContextMenuPoint
-    PhGetPhReleaseChannel
-    PhGetPhReleaseChannelString
+    PhGetBuildReleaseChannel
+    PhGetBuildReleaseChannelString
     PhGetBuildVersion
     PhGetBuildCommit
     PhGetBuildVersionNumbers

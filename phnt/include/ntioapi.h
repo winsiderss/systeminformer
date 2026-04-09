@@ -296,8 +296,8 @@ typedef struct _EXTENDED_CREATE_INFORMATION_32
 // Special Timestamp values
 //
 
-#define FILE_TIMESTAMP_UPDATE_DISABLED ((LONGLONG)-1)
-#define FILE_TIMESTAMP_UPDATE_ENABLED ((LONGLONG)-2)
+#define FILE_TIMESTAMP_UPDATE_DISABLE   ((LONGLONG)-1LL)
+#define FILE_TIMESTAMP_UPDATE_ENABLE    ((LONGLONG)-2LL)
 
 //
 // Alignment requirement values

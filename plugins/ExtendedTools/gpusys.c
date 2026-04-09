@@ -410,36 +410,6 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             EtpLayoutGpuGraphs(hwndDlg);
         }
         break;
-    case WM_NOTIFY:
-        {
-            NMHDR *header = (NMHDR *)lParam;
-
-            if (header->hwndFrom == GpuGraphHandle)
-            {
-                EtpNotifyGpuGraph(header);
-            }
-            else if (header->hwndFrom == DedicatedGraphHandle)
-            {
-                EtpNotifyDedicatedGpuGraph(header);
-            }
-            else if (header->hwndFrom == SharedGraphHandle)
-            {
-                EtpNotifySharedGpuGraph(header);
-            }
-            else if (header->hwndFrom == PowerUsageGraphHandle)
-            {
-                EtpNotifyPowerUsageGpuGraph(header);
-            }
-            else if (header->hwndFrom == TemperatureGraphHandle)
-            {
-                EtpNotifyTemperatureGpuGraph(header);
-            }
-            else if (header->hwndFrom == FanRpmGraphHandle)
-            {
-                EtpNotifyFanRpmGpuGraph(header);
-            }
-        }
-        break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
@@ -496,7 +466,13 @@ VOID EtpCreateGpuGraphs(
     VOID
     )
 {
-    GpuGraphHandle = CreateWindow(
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = EtpGpuSysInfoGraphMessageCallback;
+
+    GpuGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -507,11 +483,11 @@ VOID EtpCreateGpuGraphs(
         GpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(GpuGraphHandle, TRUE);
 
-    DedicatedGraphHandle = CreateWindow(
+    DedicatedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -522,11 +498,11 @@ VOID EtpCreateGpuGraphs(
         GpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(DedicatedGraphHandle, TRUE);
 
-    SharedGraphHandle = CreateWindow(
+    SharedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -537,13 +513,13 @@ VOID EtpCreateGpuGraphs(
         GpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(SharedGraphHandle, TRUE);
 
     if (EtGpuSupported)
     {
-        PowerUsageGraphHandle = CreateWindow(
+        PowerUsageGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -554,11 +530,11 @@ VOID EtpCreateGpuGraphs(
             GpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(PowerUsageGraphHandle, TRUE);
 
-        TemperatureGraphHandle = CreateWindow(
+        TemperatureGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -569,11 +545,11 @@ VOID EtpCreateGpuGraphs(
             GpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(TemperatureGraphHandle, TRUE);
 
-        FanRpmGraphHandle = CreateWindow(
+        FanRpmGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -584,7 +560,7 @@ VOID EtpCreateGpuGraphs(
             GpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(FanRpmGraphHandle, TRUE);
     }
@@ -1513,4 +1489,43 @@ PPH_STRING EtpGpuGetNameString(
         PhRemoveEndStringBuilder(&sb, 2);
 
     return PhFinalStringBuilderString(&sb);
+}
+
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN EtpGpuSysInfoGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    NMHDR* header = (NMHDR*)Parameter1;
+
+    if (header->hwndFrom == GpuGraphHandle)
+    {
+        EtpNotifyGpuGraph(header);
+    }
+    else if (header->hwndFrom == DedicatedGraphHandle)
+    {
+        EtpNotifyDedicatedGpuGraph(header);
+    }
+    else if (header->hwndFrom == SharedGraphHandle)
+    {
+        EtpNotifySharedGpuGraph(header);
+    }
+    else if (header->hwndFrom == PowerUsageGraphHandle)
+    {
+        EtpNotifyPowerUsageGpuGraph(header);
+    }
+    else if (header->hwndFrom == TemperatureGraphHandle)
+    {
+        EtpNotifyTemperatureGpuGraph(header);
+    }
+    else if (header->hwndFrom == FanRpmGraphHandle)
+    {
+        EtpNotifyFanRpmGpuGraph(header);
+    }
+
+    return TRUE;
 }

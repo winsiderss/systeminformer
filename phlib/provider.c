@@ -344,17 +344,20 @@ VOID PhStopProviderThread(
     if (ProviderThread->State != ProviderThreadRunning)
         return;
 
-    // Verify all providers are unregistered
+#ifdef DEBUG
+    // Verify all providers are unregistered (dmex)
     PhAcquireQueuedLockExclusive(&ProviderThread->Lock);
     if (!IsListEmpty(&ProviderThread->ListHead))
     {
         PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
-        assert(FALSE && "Stopping provider thread with active registrations");
+        // Unregister all providers before provider thread shutdown (dmex)
+        assert(FALSE && "Active provider registrations during thread shutdown");
     }
     else
     {
         PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
     }
+#endif
 
     // Signal to the thread that we are shutting down, and wait for it to exit.
     ProviderThread->State = ProviderThreadStopping;
@@ -408,7 +411,8 @@ NTSTATUS PhSetIntervalProviderThread(
             &period,
             NULL,
             NULL,
-            FALSE
+            FALSE,
+            TRUE
             );
     }
 

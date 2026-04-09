@@ -2609,7 +2609,7 @@ VOID KsiShowKernelSupportCheckDialog(
         );
 
     context.WindowHandle = WindowHandle;
-    context.IsCanaryChannel = (PhGetPhReleaseChannel() >= PhCanaryChannel);
+    context.IsCanaryChannel = (PhGetBuildReleaseChannel() >= PhCanaryChannel);
     KsiGetKernelSupportData(&context.SupportData);
 
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };

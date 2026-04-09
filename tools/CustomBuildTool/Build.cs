@@ -1352,7 +1352,6 @@ namespace CustomBuildTool
         /// <returns>True if the solution is built successfully; otherwise, false.</returns>
         public static bool BuildSolution(string Solution, BuildFlags Flags, string Channel = null)
         {
-            // Default/MSBuild path (existing behavior).
             if (Flags.HasFlag(BuildFlags.Build32bit))
             {
                 if (!MsbuildCommand(Solution, "Win32", Flags, Channel))
@@ -1385,111 +1384,191 @@ namespace CustomBuildTool
         /// Builds the specified solution using CMake for the given generator, configuration, and toolchain.
         /// </summary>
         /// <param name="Solution">The solution file to build.</param>
-        /// <param name="Generator">The CMake generator to use.</param>
+        /// <param name="Generator">The CMake Generator to use.</param>
+        /// <param name="Toolchain">The CMake Toolchain to use.</param>
         /// <param name="Flags">Build flags indicating which configurations to process.</param>
         /// <returns>True if the solution is built successfully; otherwise, false.</returns>
         public static bool BuildSolutionCMake(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags)
         {
-            bool build = false;
+            var buildDebug = (Flags & BuildFlags.BuildDebug) != 0;
+            var buildRelease = (Flags & BuildFlags.BuildRelease) != 0;
 
-            if (Flags.HasFlag(BuildFlags.Build32bit) && Utils.IsX86Toolchain(Toolchain))
-                build = true;
-            if (Flags.HasFlag(BuildFlags.Build64bit) && Utils.IsAmd64Toolchain(Toolchain))
-                build = true;
-            if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Utils.IsArm64Toolchain(Toolchain))
+            if (Utils.IsX86Toolchain(Toolchain))
             {
-                if (HaveArm64BuildTools)
-                    build = true;
-                else
+                if ((Flags & BuildFlags.Build32bit) == 0)
+                    return true;
+            }
+            else if (Utils.IsAmd64Toolchain(Toolchain))
+            {
+                if ((Flags & BuildFlags.Build64bit) == 0)
+                    return true;
+            }
+            else if (Utils.IsArm64Toolchain(Toolchain))
+            {
+                if ((Flags & BuildFlags.BuildArm64bit) == 0)
+                    return true;
+
+                if (!HaveArm64BuildTools)
+                {
                     Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
+                    return true;
+                }
             }
-
-            if (!build)
+            else
+            {
                 return true;
-
-            if (Flags.HasFlag(BuildFlags.BuildDebug))
-            {
-                if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags, "Debug"))
-                    return false;
             }
 
-            if (Flags.HasFlag(BuildFlags.BuildRelease))
+            //if (useBuildCmakeScript)
+            //{
+            //    if (buildDebug && !ExecuteBuildSolutionCMakeScript(Solution, Generator, Toolchain, Flags, "Debug"))
+            //        return false;
+            //    if (buildRelease && !ExecuteBuildSolutionCMakeScript(Solution, Generator, Toolchain, Flags, "Release"))
+            //        return false;
+            //}
+            //else
             {
-                if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags, "Release"))
+                if (buildDebug && !ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags, "Debug"))
+                    return false;
+                if (buildRelease && !ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags, "Release"))
                     return false;
             }
 
             return true;
         }
 
-        public static bool ExecuteBuildSolutionCMake(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags, string Configuration)
+        private static bool ExecuteBuildSolutionCMakeScript(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags, string BuildConfig)
         {
-            string buildConfig = Configuration;
-            string buildFolder = Configuration.Equals("Debug", StringComparison.OrdinalIgnoreCase) ? "build\\debug" : "build\\release";
+            string solutionName = Path.GetFileNameWithoutExtension(Solution);
+            string toolchainName = Utils.GetToolchainString(Toolchain);
+            string generatorName = Utils.GetGeneratorString(Generator);
+            string toolchainArgument = toolchainName;
+            string configuration = BuildConfig;
+            BuildFlags verboseFlags = Flags | BuildFlags.BuildVerbose;
 
-            string platformSuffix = Toolchain switch
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+            Program.PrintColorMessage($"Generating {solutionName} [", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(toolchainName, ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(BuildConfig, ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
+
+            if (!ExecuteBuildCMakeScriptCommand(generatorName, configuration, toolchainArgument, "clean", verboseFlags))
+                return false;
+            if (!ExecuteBuildCMakeScriptCommand(generatorName, configuration, toolchainArgument, "generate", verboseFlags))
+                return false;
+
+            Console.WriteLine();
+
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+            Program.PrintColorMessage($"Building {solutionName} [", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(toolchainName, ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(BuildConfig, ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
+
+            if (!ExecuteBuildCMakeScriptCommand(generatorName, configuration, toolchainArgument, "build", verboseFlags))
+                return false;
+            if (!ExecuteBuildCMakeScriptCommand(generatorName, configuration, toolchainArgument, "clean", verboseFlags))
+                return false;
+
+            return true;
+        }
+
+        private static bool ExecuteBuildCMakeScriptCommand(string Generator, string Configuration, string Toolchain, string Action, BuildFlags Flags)
+        {
+            string scriptPath = Path.Join([Build.BuildWorkingFolder, "build\\build_cmake.cmd"]);
+            string commandLine = $"/c \"cd /d \"{Build.BuildWorkingFolder}\" && call \"{scriptPath}\" \"{Generator}\" \"{Configuration}\" \"{Toolchain}\" \"{Action}\"\"";
+
+            int errorCode = Win32.CreateProcess("cmd.exe", commandLine, out _, false, false);
+            if (errorCode != 0)
             {
-                BuildToolchain.MsvcX86 => "-msvc-32",
-                BuildToolchain.MsvcAmd64 => "-msvc-64",
-                BuildToolchain.MsvcArm64 => "-msvc-arm64",
-                BuildToolchain.ClangMsvcX86 => "-clang-msvc-32",
-                BuildToolchain.ClangMsvcAmd64 => "-clang-msvc-64",
-                BuildToolchain.ClangMsvcArm64 => "-clang-msvc-arm64",
+                Program.PrintColorMessage($"[ERROR] build_cmake.cmd {Action} failed ({errorCode})", ConsoleColor.Red, true, Flags);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Executes the CMake generation and build process for a specific solution, toolchain, and configuration.
+        /// </summary>
+        /// <param name="Solution">The solution file being built, used for logging.</param>
+        /// <param name="Generator">The CMake generator (e.g., Ninja, Visual Studio).</param>
+        /// <param name="Toolchain">The toolchain (e.g., MsvcX86, ClangMsvcAmd64).</param>
+        /// <param name="Flags">Build flags, used for controlling output verbosity.</param>
+        /// <param name="BuildConfig">The build configuration to use (e.g., "Debug" or "Release").</param>
+        /// <returns><c>true</c> if both the generation and build steps complete successfully; otherwise, <c>false</c>.</returns>
+        public static bool ExecuteBuildSolutionCMake(string Solution, BuildGenerator Generator, BuildToolchain Toolchain, BuildFlags Flags, string BuildConfig)
+        {
+            bool isDebugConfig = BuildConfig.Equals("Debug", StringComparison.OrdinalIgnoreCase);
+            string configFolder = isDebugConfig ? "debug" : "release";
+
+            (string platformSuffix, string toolchainRelativeFile) = Toolchain switch
+            {
+                BuildToolchain.MsvcX86 => ("-msvc-32", "cmake/toolchain/msvc-x86.cmake"),
+                BuildToolchain.MsvcAmd64 => ("-msvc-64", "cmake/toolchain/msvc-amd64.cmake"),
+                BuildToolchain.MsvcArm64 => ("-msvc-arm64", "cmake/toolchain/msvc-arm64.cmake"),
+                BuildToolchain.ClangMsvcX86 => ("-clang-msvc-32", "cmake/toolchain/clang-msvc-x86.cmake"),
+                BuildToolchain.ClangMsvcAmd64 => ("-clang-msvc-64", "cmake/toolchain/clang-msvc-amd64.cmake"),
+                BuildToolchain.ClangMsvcArm64 => ("-clang-msvc-arm64", "cmake/toolchain/clang-msvc-arm64.cmake"),
                 _ => throw new ArgumentException("Unsupported toolchain")
             };
 
-            string toolchainFile = Toolchain switch
-            {
-                BuildToolchain.MsvcX86 => "cmake/toolchain/msvc-x86.cmake",
-                BuildToolchain.MsvcAmd64 => "cmake/toolchain/msvc-amd64.cmake",
-                BuildToolchain.MsvcArm64 => "cmake/toolchain/msvc-arm64.cmake",
-                BuildToolchain.ClangMsvcX86 => "cmake/toolchain/clang-msvc-x86.cmake",
-                BuildToolchain.ClangMsvcAmd64 => "cmake/toolchain/clang-msvc-amd64.cmake",
-                BuildToolchain.ClangMsvcArm64 => "cmake/toolchain/clang-msvc-arm64.cmake",
-                _ => throw new ArgumentException("Unsupported toolchain")
-            };
+            string buildFolder = Path.Join([Build.BuildWorkingFolder, configFolder + platformSuffix]);
+            string toolchainFile = Path.Join([Build.BuildWorkingFolder, toolchainRelativeFile]);
 
-            buildFolder = Path.Join([Build.BuildWorkingFolder, buildFolder + platformSuffix]);
-            toolchainFile = Path.Join([Build.BuildWorkingFolder, toolchainFile]);
+            static void TryDeleteDirectory(string directoryPath)
+            {
+                if (Directory.Exists(directoryPath))
+                {
+                    try { Directory.Delete(directoryPath, true); }
+                    catch { }
+                }
+            }
 
             //
             // Clean
             //
 
-            if (Directory.Exists(buildFolder))
-            {
-                try { Directory.Delete(buildFolder, true); } catch { }
-            }
+            TryDeleteDirectory(buildFolder);
+
+            string solutionName = Path.GetFileNameWithoutExtension(Solution);
+            string toolchainName = Utils.GetToolchainString(Toolchain);
+            BuildFlags verboseFlags = Flags | BuildFlags.BuildVerbose;
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage($"Generating {Path.GetFileNameWithoutExtension(Solution)} [", ConsoleColor.Cyan, false, Flags);
-            Program.PrintColorMessage(Utils.GetToolchainString(Toolchain), ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage($"Generating {solutionName} [", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(toolchainName, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
-            Program.PrintColorMessage(buildConfig, ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage(BuildConfig, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
 
             //
             // Generate
             //
- 
-            string cmakeGenOpts = string.Empty;
+
+            StringBuilder generateArgsBuilder = new StringBuilder(256);
+            generateArgsBuilder.Append("-G \"");
+            generateArgsBuilder.Append(Utils.GetGeneratorString(Generator));
+            generateArgsBuilder.Append("\" -S \"");
+            generateArgsBuilder.Append(Build.BuildWorkingFolder);
+            generateArgsBuilder.Append("\" -B \"");
+            generateArgsBuilder.Append(buildFolder);
+            generateArgsBuilder.Append("\" --toolchain \"");
+            generateArgsBuilder.Append(toolchainFile);
+            generateArgsBuilder.Append("\" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSI_WITH_CORE=ON -DSI_WITH_PLUGINS=ON");
+
             if (Generator == BuildGenerator.Ninja)
             {
-                cmakeGenOpts = $"-DCMAKE_BUILD_TYPE={buildConfig}";
+                generateArgsBuilder.Append(" -DCMAKE_BUILD_TYPE=");
+                generateArgsBuilder.Append(BuildConfig);
             }
 
-            string generateArgs =
-                $"-G \"{Utils.GetGeneratorString(Generator)}\" -S \"{Build.BuildWorkingFolder}\" -B \"{buildFolder}\" " +
-                $"--toolchain \"{toolchainFile}\" " +
-                $"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON " +
-                $"-DSI_WITH_CORE=ON " +
-                $"-DSI_WITH_PLUGINS=ON " +
-                $"{cmakeGenOpts}";
-
-            int errorcode = Utils.ExecuteCMakeCommand(generateArgs);
-            if (errorcode != 0)
+            int errorCode = Utils.ExecuteCMakeCommand(generateArgsBuilder.ToString());
+            if (errorCode != 0)
             {
-                Program.PrintColorMessage($"[ERROR] CMake generate failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                Program.PrintColorMessage($"[ERROR] CMake generate failed ({errorCode})", ConsoleColor.Red, true, verboseFlags);
                 return false;
             }
 
@@ -1500,22 +1579,20 @@ namespace CustomBuildTool
             //
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} [", ConsoleColor.Cyan, false, Flags);
-            Program.PrintColorMessage(Utils.GetToolchainString(Toolchain), ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage($"Building {solutionName} [", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(toolchainName, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
-            Program.PrintColorMessage(buildConfig, ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage(BuildConfig, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
 
-            string cmakeBuildOpts = string.Empty;
-            if (Generator == BuildGenerator.VisualStudio)
-            {
-                cmakeBuildOpts = $"-- /m /p:Platform={Utils.CMakeGetPlatform(Toolchain)} -terminalLogger:auto";
-            }
+            string cmakeBuildOpts = Generator == BuildGenerator.VisualStudio
+                ? $" -- /m /p:Platform={Utils.CMakeGetPlatform(Toolchain)} -terminalLogger:auto"
+                : string.Empty;
 
-            errorcode = Utils.ExecuteCMakeCommand($"--build \"{buildFolder}\" --config {buildConfig} {cmakeBuildOpts}");
-            if (errorcode != 0)
+            errorCode = Utils.ExecuteCMakeCommand($"--build \"{buildFolder}\" --config {BuildConfig}{cmakeBuildOpts}");
+            if (errorCode != 0)
             {
-                Program.PrintColorMessage($"[ERROR] CMake build failed ({errorcode})", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                Program.PrintColorMessage($"[ERROR] CMake build failed ({errorCode})", ConsoleColor.Red, true, verboseFlags);
                 return false;
             }
 
@@ -1523,13 +1600,7 @@ namespace CustomBuildTool
             // Clean
             //
 
-            if (Directory.Exists(buildFolder))
-            {
-                try
-                { Directory.Delete(buildFolder, true); }
-                catch { }
-            }
-
+            TryDeleteDirectory(buildFolder);
             return true;
         }
 
@@ -1882,7 +1953,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                     requestMessage.Headers.Add("X-ApiKey", buildPostKey);
                     requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                    requestMessage.Version = HttpVersion.Version20;
+                    requestMessage.Version = HttpVersion.Version30;
 
                     requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
@@ -1907,8 +1978,7 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Generates MSIX package manifest files for the specified build architectures based on the provided build
-        /// flags.
+        /// Generates MSIX package manifest files for the specified build architectures based on the provided build flags.
         /// </summary>
         /// <remarks>This method creates separate manifest files for each architecture indicated in the
         /// <paramref name="Flags"/> parameter. The generated files are written to the tools\msix directory and are
@@ -2023,7 +2093,9 @@ namespace CustomBuildTool
         /// <returns>True if the MSIX package is built successfully; otherwise, false.</returns>
         public static bool BuildStorePackage(BuildFlags Flags)
         {
+            //
             // Cleanup package manifests.
+            //
 
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x32.appx", Flags);
             Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x64.appx", Flags);
@@ -2035,12 +2107,16 @@ namespace CustomBuildTool
             Win32.DeleteFile($"{BuildWorkingFolder}\\tools\\msix\\bundle.map", Flags);
             Utils.CreateOutputDirectory();
 
+            //
             // Create the package manifests.
+            //
 
             BuildMsixPackageManifest(Flags);
             BuildMsixPackageMapping(Flags);
 
+            //
             // Create the MSIX package.
+            //
 
             if (Flags.HasFlag(BuildFlags.Build32bit) && File.Exists("tools\\msix\\MsixPackage32.map"))
             {
@@ -2078,7 +2154,9 @@ namespace CustomBuildTool
                 Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix").ToPrettySize(), ConsoleColor.Green);
             }
 
+            //
             // Create the bundle package.
+            //
 
             if (
                 File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x32.msix") &&
@@ -2272,7 +2350,7 @@ namespace CustomBuildTool
  * Authors:
  *
  *     wj32    2008-2016
- *     dmex    2017-2024
+ *     dmex    2017-2026
  *
  *
  * This file was automatically generated.

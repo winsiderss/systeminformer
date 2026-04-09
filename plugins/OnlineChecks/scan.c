@@ -46,35 +46,6 @@ typedef struct _SCAN_ITEM
     PVOID CallbackContext;
 } SCAN_ITEM, *PSCAN_ITEM;
 
-typedef int SQLITE_APICALL sqlite3_open_v2_fn(
-  const char *filename,   /* Database filename (UTF-8) */
-  sqlite3 **ppDb,         /* OUT: SQLite db handle */
-  int flags,              /* Flags */
-  const char *zVfs        /* Name of VFS module to use */
-);
-typedef int SQLITE_APICALL sqlite3_close_v2_fn(sqlite3*);
-typedef int SQLITE_APICALL sqlite3_exec_fn(
-  sqlite3*,                                  /* An open database */
-  const char *sql,                           /* SQL to be evaluated */
-  int (SQLITE_CALLBACK *callback)(void*,int,char**,char**),  /* Callback function */
-  void *,                                    /* 1st argument to callback */
-  char **errmsg                              /* Error msg written here */
-);
-typedef int SQLITE_APICALL sqlite3_prepare_v2_fn(
-  sqlite3 *db,            /* Database handle */
-  const char *zSql,       /* SQL statement, UTF-8 encoded */
-  int nByte,              /* Maximum length of zSql in bytes. */
-  sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
-  const char **pzTail     /* OUT: Pointer to unused portion of zSql */
-);
-typedef int SQLITE_APICALL sqlite3_finalize_fn(sqlite3_stmt *pStmt);
-typedef int SQLITE_APICALL sqlite3_bind_int64_fn(sqlite3_stmt*, int, sqlite3_int64);
-typedef int SQLITE_APICALL sqlite3_bind_text16_fn(sqlite3_stmt*, int, const void*, int, void(SQLITE_CALLBACK *)(void*));
-typedef int SQLITE_APICALL sqlite3_step_fn(sqlite3_stmt*);
-typedef int SQLITE_APICALL sqlite3_reset_fn(sqlite3_stmt *pStmt);
-typedef sqlite3_int64 SQLITE_APICALL sqlite3_column_int64_fn(sqlite3_stmt*, int iCol);
-typedef const void *SQLITE_APICALL sqlite3_column_text16_fn(sqlite3_stmt*, int iCol);
-
 static PPH_OBJECT_TYPE ScanItemObjectType;
 static PPH_OBJECT_TYPE ScanHashObjectType;
 static PH_WORK_QUEUE ScanItemWorkQueue;
@@ -98,23 +69,29 @@ static const LONG64 ScanRateLmtExpMax = (60LL * 60 * 10000000); // 1 hour
 static const LONG64 ScanNoResponseExpMin = (1LL * 24 * 60 * 60 * 10000000); // 1 day
 static const LONG64 ScanNoResponseExpMax = (2LL * 24 * 60 * 60 * 10000000); // 2 days
 
+static typeof(&BCryptOpenAlgorithmProvider) BCryptOpenAlgorithmProvider_I = NULL;
+static typeof(&BCryptCloseAlgorithmProvider) BCryptCloseAlgorithmProvider_I = NULL;
+static typeof(&BCryptDestroyHash) BCryptDestroyHash_I = NULL;
+static typeof(&BCryptCreateMultiHash) BCryptCreateMultiHash_I = NULL;
+static typeof(&BCryptProcessMultiOperations) BCryptProcessMultiOperations_I = NULL;
+
 static sqlite3* ScanDB = NULL;
 static PH_QUEUED_LOCK ScanDBLock = PH_QUEUED_LOCK_INIT;
 static sqlite3_stmt* ScanDBInsertVirusTotal = NULL;
 static sqlite3_stmt* ScanDBQueryVirusTotal = NULL;
 static sqlite3_stmt* ScanDBInsertHybridAnalysis = NULL;
 static sqlite3_stmt* ScanDBQueryHybridAnalysis = NULL;
-static sqlite3_open_v2_fn* sqlite3_open_v2_I = NULL;
-static sqlite3_close_v2_fn* sqlite3_close_v2_I = NULL;
-static sqlite3_exec_fn* sqlite3_exec_I = NULL;
-static sqlite3_prepare_v2_fn* sqlite3_prepare_v2_I = NULL;
-static sqlite3_finalize_fn* sqlite3_finalize_I = NULL;
-static sqlite3_bind_int64_fn* sqlite3_bind_int64_I = NULL;
-static sqlite3_bind_text16_fn* sqlite3_bind_text16_I = NULL;
-static sqlite3_step_fn* sqlite3_step_I = NULL;
-static sqlite3_reset_fn* sqlite3_reset_I = NULL;
-static sqlite3_column_int64_fn* sqlite3_column_int64_I = NULL;
-static sqlite3_column_text16_fn* sqlite3_column_text16_I = NULL;
+static typeof(&sqlite3_open_v2) sqlite3_open_v2_I = NULL;
+static typeof(&sqlite3_close_v2) sqlite3_close_v2_I = NULL;
+static typeof(&sqlite3_exec) sqlite3_exec_I = NULL;
+static typeof(&sqlite3_prepare_v2) sqlite3_prepare_v2_I = NULL;
+static typeof(&sqlite3_finalize) sqlite3_finalize_I = NULL;
+static typeof(&sqlite3_bind_int64) sqlite3_bind_int64_I = NULL;
+static typeof(&sqlite3_bind_text16) sqlite3_bind_text16_I = NULL;
+static typeof(&sqlite3_step) sqlite3_step_I = NULL;
+static typeof(&sqlite3_reset) sqlite3_reset_I = NULL;
+static typeof(&sqlite3_column_int64) sqlite3_column_int64_I = NULL;
+static typeof(&sqlite3_column_text16) sqlite3_column_text16_I = NULL;
 
 typedef struct _SQL_STMT
 {
@@ -760,7 +737,7 @@ VOID ProcessScanHashes(
 
     CreateProcessScanHashContexts(Hashes, Count, &contexts, &count);
 
-    if (!NT_SUCCESS(status = BCryptOpenAlgorithmProvider(
+    if (!NT_SUCCESS(status = BCryptOpenAlgorithmProvider_I(
         &algorithmHandle,
         BCRYPT_SHA256_ALGORITHM,
         NULL,
@@ -862,7 +839,7 @@ VOID ProcessScanHashes(
     if (activeCount == 0)
         goto CleanupExit;
 
-    if (!NT_SUCCESS(status = BCryptCreateMultiHash(
+    if (!NT_SUCCESS(status = BCryptCreateMultiHash_I(
         algorithmHandle,
         &multiHashHandle,
         activeCount,
@@ -970,7 +947,7 @@ VOID ProcessScanHashes(
 
         if (countOps > 0)
         {
-            NT_VERIFY(NT_SUCCESS(BCryptProcessMultiOperations(
+            NT_VERIFY(NT_SUCCESS(BCryptProcessMultiOperations_I(
                 multiHashHandle,
                 BCRYPT_OPERATION_TYPE_HASH,
                 hashOps,
@@ -1028,10 +1005,10 @@ CleanupExit:
         PhFree(hashOps);
 
     if (multiHashHandle)
-        BCryptDestroyHash(multiHashHandle);
+        BCryptDestroyHash_I(multiHashHandle);
 
     if (algorithmHandle)
-        BCryptCloseAlgorithmProvider(algorithmHandle, 0);
+        BCryptCloseAlgorithmProvider_I(algorithmHandle, 0);
 
     PhFree(contexts);
 }
@@ -1074,20 +1051,25 @@ NTSTATUS ScanItemWorkerRoutine(
     )
 {
     PSLIST_ENTRY first;
+    KPRIORITY threadPriority;
     IO_PRIORITY_HINT ioPriority;
-    KPRIORITY priority;
+    ULONG pagePriority = ULONG_MAX;
 
-    PhGetThreadBasePriority(NtCurrentThread(), &priority);
-    PhSetThreadBasePriority(NtCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+    PhGetThreadBasePriority(NtCurrentThread(), &threadPriority);
     PhGetThreadIoPriority(NtCurrentThread(), &ioPriority);
+    PhGetThreadPagePriority(NtCurrentThread(), &pagePriority);
+
+    PhSetThreadBasePriority(NtCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
     PhSetThreadIoPriority(NtCurrentThread(), IoPriorityLow);
+    PhSetThreadPagePriority(NtCurrentThread(), MEMORY_PRIORITY_LOW);
 
     first = RtlInterlockedFlushSList(&ScanItemQueueListHead);
     if (first)
         ProcessScanItemsList(first);
 
+    PhSetThreadPagePriority(NtCurrentThread(), pagePriority);
     PhSetThreadIoPriority(NtCurrentThread(), ioPriority);
-    PhSetThreadBasePriority(NtCurrentThread(), priority);
+    PhSetThreadBasePriority(NtCurrentThread(), threadPriority);
 
     return STATUS_SUCCESS;
 }
@@ -1447,6 +1429,30 @@ VOID NTAPI ScanHashDeleteProcedure(
     PhClearReference(&item->Sha256);
 }
 
+BOOLEAN LoadBCrypt(
+    VOID
+    )
+{
+    PVOID baseAddress;
+
+    if (baseAddress = PhLoadLibrary(L"bcrypt.dll"))
+    {
+        BCryptOpenAlgorithmProvider_I = PhGetProcedureAddress(baseAddress, "BCryptOpenAlgorithmProvider", 0);
+        BCryptCloseAlgorithmProvider_I = PhGetProcedureAddress(baseAddress, "BCryptCloseAlgorithmProvider", 0);
+        BCryptDestroyHash_I = PhGetProcedureAddress(baseAddress, "BCryptDestroyHash", 0);
+        BCryptCreateMultiHash_I = PhGetProcedureAddress(baseAddress, "BCryptCreateMultiHash", 0);
+        BCryptProcessMultiOperations_I = PhGetProcedureAddress(baseAddress, "BCryptProcessMultiOperations", 0);
+    }
+
+    return (
+        BCryptOpenAlgorithmProvider_I &&
+        BCryptCloseAlgorithmProvider_I &&
+        BCryptDestroyHash_I &&
+        BCryptCreateMultiHash_I &&
+        BCryptProcessMultiOperations_I
+        );
+}
+
 BOOLEAN LoadSQLite(
     VOID
     )
@@ -1524,7 +1530,7 @@ BOOLEAN InitializeScanning(
         100
         );
 
-    if (!LoadSQLite())
+    if (!LoadSQLite() || !LoadBCrypt())
         goto CleanupExit;
 
     const char* fn = fileNameUTF8->Buffer;

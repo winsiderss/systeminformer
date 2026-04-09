@@ -283,7 +283,7 @@ PPH_STRING PhGetApplicationVersionString(
         PhInitFormatS(&format[2], L" (");
         PhInitFormatSR(&format[3], commitHashString->sr);
         PhInitFormatS(&format[4], L") ");
-        PhInitFormatS(&format[5], channelName);
+        PhInitFormatS(&format[5], channelNameString);
         PhInitFormatS(&format[6], L" (");
         PhInitFormatSR(&format[7], commitTimeString->sr);
         PhInitFormatS(&format[8], L") ");

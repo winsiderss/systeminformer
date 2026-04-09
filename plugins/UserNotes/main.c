@@ -2833,7 +2833,7 @@ VOID ProcessItemCreateCallback(
     extension->ProcessItem = processItem;
 
     PhAcquireQueuedLockExclusive(&ProcessListLock);
-    InsertTailList(&ProcessListHead, &extension->ListEntry);
+    InsertTailListNoFence(&ProcessListHead, &extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
@@ -2850,7 +2850,7 @@ VOID ProcessItemDeleteCallback(
     PhClearReference(&extension->Affinity);
 
     PhAcquireQueuedLockExclusive(&ProcessListLock);
-    RemoveEntryList(&extension->ListEntry);
+    RemoveEntryListNoFence(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
@@ -2884,7 +2884,7 @@ VOID ServiceItemCreateCallback(
 
     memset(extension, 0, sizeof(SERVICE_EXTENSION));
     PhAcquireQueuedLockExclusive(&ServiceListLock);
-    InsertTailList(&ServiceListHead, &extension->ListEntry);
+    InsertTailListNoFence(&ServiceListHead, &extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ServiceListLock);
 }
 
@@ -2899,7 +2899,7 @@ VOID ServiceItemDeleteCallback(
 
     PhClearReference(&extension->Comment);
     PhAcquireQueuedLockExclusive(&ServiceListLock);
-    RemoveEntryList(&extension->ListEntry);
+    RemoveEntryListNoFence(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ServiceListLock);
 }
 
