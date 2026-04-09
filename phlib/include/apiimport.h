@@ -37,7 +37,6 @@ PH_DECLARE_IMPORT(NtChangeThreadState);
 PH_DECLARE_IMPORT(NtCopyFileChunk);
 PH_DECLARE_IMPORT(NtCompareObjects);
 PH_DECLARE_IMPORT(NtCreateTimer2);
-PH_DECLARE_IMPORT(NtSetTimerEx);
 PH_DECLARE_IMPORT(NtSetTimer2);
 
 PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
