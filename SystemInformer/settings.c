@@ -247,6 +247,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_SORT_CHILD_PROCESSES, L"0");
     PhpAddIntegerSetting(SETTING_SORT_ROOT_PROCESSES, L"0");
     PhpAddIntegerSetting(SETTING_START_HIDDEN, L"0");
+    PhpAddIntegerSetting(SETTING_SYSINFO_MINIMUM_GRAPH_HEIGHT, L"96"); // 150
+    PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_SCROLL_ENABLED, L"1");
     PhpAddIntegerSetting(SETTING_SYSINFO_SHOW_CPU_SPEED_MHZ, L"0");
     PhpAddIntegerSetting(SETTING_SYSINFO_SHOW_CPU_SPEED_PER_CPU, L"0");
     PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_ALWAYS_ON_TOP, L"0");
@@ -504,8 +506,4 @@ VOID PhUpdateCachedSettings(
     PH_GET_INTEGER_CACHED_SETTING(EnableNetworkResolveDoH);
     PH_GET_INTEGER_CACHED_SETTING(EnableVersionSupport);
     PH_GET_INTEGER_CACHED_SETTING(EnableHandleSnapshot);
-
-    PhEnableProcessMonitor = !!PhGetIntegerSetting(SETTING_ENABLE_PROCESS_MONITOR);
-    PhProcessMonitorLookback = PhGetIntegerSetting(SETTING_PROCESS_MONITOR_LOOKBACK);
-    PhProcessMonitorCacheLimit = PhGetIntegerSetting(SETTING_PROCESS_MONITOR_CACHE_LIMIT);
 }
