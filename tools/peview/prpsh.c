@@ -392,7 +392,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         break;
     case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hWnd, oldWndProc);
             PhRemoveWindowContext(hWnd, UCHAR_MAX);
 
             PhDeleteLayoutManager(&propSheetContext->LayoutManager);

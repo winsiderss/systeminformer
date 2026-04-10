@@ -842,7 +842,7 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Index),
                     SORT_FUNCTION(Rva),
@@ -853,7 +853,7 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
                     SORT_FUNCTION(Ordinal),
                     SORT_FUNCTION(OrdinalName),
                 };
-                int (__cdecl *sortFunction)(void *, const void *, const void *);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PV_IMPORT_TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 

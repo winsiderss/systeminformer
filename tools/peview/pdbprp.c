@@ -344,7 +344,7 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
             }
             else if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Index),
                     SORT_FUNCTION(Type),
@@ -354,7 +354,7 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
                     SORT_FUNCTION(Size),
                     SORT_FUNCTION(Section),
                 };
-                int (__cdecl *sortFunction)(void *, const void *, const void *);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 

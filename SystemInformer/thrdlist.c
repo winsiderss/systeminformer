@@ -1384,7 +1384,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Tid),
                     SORT_FUNCTION(Cpu),

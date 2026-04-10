@@ -393,8 +393,6 @@ VOID PhReplaceMemoryList(
 
     PhApplyTreeNewFilters(&Context->AllocationTreeFilterSupport);
     PhApplyTreeNewFilters(&Context->TreeFilterSupport);
-
-    TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID PhRemoveMemoryNode(

@@ -1265,7 +1265,6 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     context->BackOffSearchMatchRequests = 0;
                     context->BackOffSearchMatchChecked = 0;
                     PhApplyTreeNewFilters(&context->FilterSupport);
-                    TreeNew_NodesStructured(context->TreeNewHandle);
                 }
                 else
                 {

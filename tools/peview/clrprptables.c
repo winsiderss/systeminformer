@@ -83,10 +83,9 @@ VOID PvClrEnumerateTables(
         Context
         );
 
-    if (SUCCEEDED(status))
+    if (FAILED(status))
     {
-        // TODO: PhShowStatus doesn't handle HRESULT (dmex)
-        //PhShowStatus(Context->WindowHandle, L"Unable to enumerate CLR tables", 0, status);
+        PhShowStatusHR(Context->WindowHandle, L"Unable to enumerate CLR tables", status, 0);
     }
 }
 

@@ -228,6 +228,7 @@ HRESULT PvGetClrMetaDataInterface(
             // Sort by version?
             qsort_s(directoryList->Items, directoryList->Count, sizeof(PVOID), PvClrCoreNameCompare, nullptr);
 
+            if (directoryList->Count > 0)
             {
                 PPH_STRING directoryName = static_cast<PPH_STRING>(directoryList->Items[directoryList->Count - 1]);
                 PPH_STRING fileName = PhConcatStringRef3(

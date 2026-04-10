@@ -521,7 +521,7 @@ VOID PrintType(
             }
 
             else {
-                DWORD dwCountElems;
+                ULONG dwCountElems;
                 ULONGLONG ulLenArray;
                 ULONGLONG ulLenElem;
 

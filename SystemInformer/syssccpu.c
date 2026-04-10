@@ -1977,7 +1977,7 @@ PCPH_STRINGREF PhGetHybridProcessorType(
         PhEndInitOnce(&initOnce);
     }
 
-    if (!hybridProcessorTypeList || ProcessorIndex > hybridProcessorTypeList->Count)
+    if (!hybridProcessorTypeList || ProcessorIndex >= hybridProcessorTypeList->Count)
         return NULL;
 
     switch (PtrToUlong(hybridProcessorTypeList->Items[ProcessorIndex]))
@@ -2058,7 +2058,7 @@ PCPH_STRINGREF PhGetHybridProcessorType(
         PhEndInitOnce(&initOnce);
     }
 
-    if (!hybridProcessorTypeList || ProcessorIndex > hybridProcessorTypeList->Count)
+    if (!hybridProcessorTypeList || ProcessorIndex >= hybridProcessorTypeList->Count)
         return NULL;
 
     switch (PtrToUlong(hybridProcessorTypeList->Items[ProcessorIndex]))
