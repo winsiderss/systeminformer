@@ -457,7 +457,6 @@ VOID PhInvalidateAllMemoryNodes(
         TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
     }
 
-    InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
@@ -493,7 +492,6 @@ VOID PhInvalidateAllMemoryBaseAddressNodes(
         //TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
     }
 
-    InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
@@ -835,7 +833,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             {
                 if (!node)
                 {
-                    static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                    static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                     {
                         SORT_FUNCTION(BaseAddress),
                         SORT_FUNCTION(Type),

@@ -202,7 +202,6 @@ PPH_SERVICE_NODE PhAddServiceNode(
     serviceNode = PhAllocate(PhEmGetObjectSize(EmServiceNodeType, sizeof(PH_SERVICE_NODE)));
     memset(serviceNode, 0, sizeof(PH_SERVICE_NODE));
     PhInitializeTreeNewNode(&serviceNode->Node);
-    serviceNode->ServiceItem = PhReferenceObject(ServiceItem);
 
     if (PhServiceTreeListStateHighlighting && RunId != 1)
     {
@@ -215,6 +214,9 @@ PPH_SERVICE_NODE PhAddServiceNode(
             NULL
             );
     }
+
+    PhReferenceObject(ServiceItem);
+    serviceNode->ServiceItem = ServiceItem;
 
     memset(serviceNode->TextCache, 0, sizeof(PH_STRINGREF) * PHSVTLC_MAXIMUM);
     serviceNode->Node.TextCache = serviceNode->TextCache;
@@ -616,7 +618,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static CONST _CoreCrtNonSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Name),
                     SORT_FUNCTION(Pid),
@@ -636,7 +638,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     SORT_FUNCTION(ExitCode),
                     SORT_FUNCTION(UserName),
                 };
-                int (__cdecl *sortFunction)(const void *, const void *);
+                _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PHSVTLC_MAXIMUM, "SortFunctions must equal maximum.");
 

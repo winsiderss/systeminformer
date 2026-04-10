@@ -68,6 +68,10 @@ extern int __isa_available;
 #define ISA_AVAILABLE_AVX2 5
 #define ISA_AVAILABLE_AVX512 6
 
+#define ISA_AVAILABLE_ARMNT 0
+#define ISA_AVAILABLE_NEON 1
+#define ISA_AVAILABLE_NEON_ARM64 2
+
 /**
  * @var __isa_enabled
  *
@@ -97,6 +101,23 @@ extern long __isa_enabled;
     FlagOn(__isa_enabled, ISA_ENABLED_AVX2)
 #define PhHasAVX512 \
     FlagOn(__isa_enabled, ISA_ENABLED_AVX512)
+#endif
+
+/**
+ * @var __favor
+ *
+ * External variable indicating performance features that are enabled in the processor.
+ *
+ * \note This is an external variable initialized by the MSCRT (Microsoft C Runtime).
+ */
+extern long __favor;
+#if defined(_M_IX86)
+#define ISA_FAVOR_ATOM    0
+#define ISA_FAVOR_ENFSTRG 1 // Enhanced Fast Strings rep movb/stob
+#elif defined(_M_AMD64)
+#define ISA_FAVOR_ATOM    0
+#define ISA_FAVOR_ENFSTRG 1 // Enhanced Fast Strings rep movb/stob
+#define ISA_FAVOR_SMSTRG  2 // use rep movb/stob for small counts
 #endif
 
 /**

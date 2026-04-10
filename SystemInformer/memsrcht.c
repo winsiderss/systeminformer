@@ -452,7 +452,6 @@ VOID PhpInvalidateMemoryStringsAddresses(
         memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM);
     }
 
-    InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
@@ -735,7 +734,7 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Index),
                     SORT_FUNCTION(BaseAddress),

@@ -267,8 +267,6 @@ PPH_MODULE_NODE PhCreateModuleNode(
     memset(moduleNode, 0, sizeof(PH_MODULE_NODE));
     PhInitializeTreeNewNode(&moduleNode->Node);
 
-    moduleNode->Children = PhCreateList(1);
-
     if (Context->EnableStateHighlighting && RunId != 1)
     {
         PhChangeShStateTn(
@@ -281,7 +279,9 @@ PPH_MODULE_NODE PhCreateModuleNode(
             );
     }
 
-    moduleNode->ModuleItem = PhReferenceObject(ModuleItem);
+    PhReferenceObject(ModuleItem);
+    moduleNode->ModuleItem = ModuleItem;
+    moduleNode->Children = PhCreateList(1);
 
     memset(moduleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMOTLC_MAXIMUM);
     moduleNode->Node.TextCache = moduleNode->TextCache;
@@ -473,7 +473,6 @@ VOID PhInvalidateAllModuleNodes(
         PhInvalidateTreeNewNode(&moduleNode->Node, TN_CACHE_COLOR | TN_CACHE_FONT);
     }
 
-    InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
@@ -505,7 +504,6 @@ VOID PhInvalidateAllModuleBaseAddressNodes(
         PhInvalidateTreeNewNode(&moduleNode->Node, TN_CACHE_COLOR);
     }
 
-    InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
@@ -830,7 +828,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             }
             else
             {
-                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Name),
                     SORT_FUNCTION(BaseAddress),

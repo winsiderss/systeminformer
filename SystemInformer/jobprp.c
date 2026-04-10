@@ -31,7 +31,7 @@ typedef struct _JOB_PAGE_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 } JOB_PAGE_CONTEXT, *PJOB_PAGE_CONTEXT;
 
-INT CALLBACK PhpJobPropPageProc(
+UINT CALLBACK PhpJobPropPageProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -124,7 +124,7 @@ HPROPSHEETPAGE PhCreateJobPage(
     return propSheetPageHandle;
 }
 
-INT CALLBACK PhpJobPropPageProc(
+UINT CALLBACK PhpJobPropPageProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp

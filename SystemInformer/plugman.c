@@ -281,7 +281,7 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Name),
                     //SORT_FUNCTION(Author),

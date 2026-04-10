@@ -1427,7 +1427,7 @@ BOOLEAN NTAPI PhpWmiProviderTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(ProviderName),
                     SORT_FUNCTION(ProviderNamespace),

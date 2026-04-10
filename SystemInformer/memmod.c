@@ -651,8 +651,10 @@ INT_PTR CALLBACK PhPageModifiedDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
+                EndDialog(WindowHandle, IDCANCEL);
+                break;
             case IDOK:
-                DestroyWindow(WindowHandle);
+                EndDialog(WindowHandle, IDOK);
                 break;
             case IDC_REFRESH:
                 {

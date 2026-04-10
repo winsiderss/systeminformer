@@ -2625,7 +2625,7 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Name),
                     SORT_FUNCTION(Type),

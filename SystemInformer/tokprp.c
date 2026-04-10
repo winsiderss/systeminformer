@@ -5959,7 +5959,7 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
             {
                 if (!node)
                 {
-                    static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                    static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                     {
                         SORT_FUNCTION(Name),
                         SORT_FUNCTION(Value)

@@ -263,8 +263,8 @@ PPH_NETWORK_NODE PhAddNetworkNode(
             );
     }
 
-    networkNode->NetworkItem = NetworkItem;
     PhReferenceObject(NetworkItem);
+    networkNode->NetworkItem = NetworkItem;
     networkNode->UniqueId = ++NextUniqueId; // used to stabilize sorting
 
     memset(networkNode->TextCache, 0, sizeof(PH_STRINGREF) * PHNETLC_MAXIMUM);
@@ -382,7 +382,17 @@ VOID PhTickNetworkNodes(
         fullyInvalidated = TRUE;
     }
 
-    PH_TICK_SH_STATE_TN(PH_NETWORK_NODE, ShState, NetworkNodeStateList, PhpRemoveNetworkNode, PhCsHighlightingDuration, NetworkTreeListHandle, TRUE, &fullyInvalidated, NULL);
+    PH_TICK_SH_STATE_TN(
+        PH_NETWORK_NODE,
+        ShState,
+        NetworkNodeStateList,
+        PhpRemoveNetworkNode,
+        PhCsHighlightingDuration,
+        NetworkTreeListHandle,
+        TRUE,
+        &fullyInvalidated,
+        NULL
+        );
 }
 
 #define SORT_FUNCTION(Column) PhpNetworkTreeNewCompare##Column
@@ -585,7 +595,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static _CoreCrtNonSecureSearchSortCompareFunction sortFunctions[] =
+                static CONST _CoreCrtNonSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Process),
                     SORT_FUNCTION(Pid),
@@ -702,10 +712,6 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                         getCellText->Text.Buffer = protocolType->Buffer;
                         getCellText->Text.Length = protocolType->Length;
                     }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
-                    }
                 }
                 break;
             case PHNETLC_STATE:
@@ -719,10 +725,6 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                             getCellText->Text.Buffer = stateName->Buffer;
                             getCellText->Text.Length = stateName->Length;
                         }
-                        else
-                        {
-                            PhInitializeEmptyStringRef(&getCellText->Text);
-                        }
                     }
                     else if (networkItem->ProtocolType == PH_NETWORK_PROTOCOL_HYPERV)
                     {
@@ -735,14 +737,12 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                             PhInitializeStringRef(&getCellText->Text, L"Listen");
                         }
                     }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
-                    }
                 }
                 break;
             case PHNETLC_OWNER:
-                getCellText->Text = PhGetStringRef(networkItem->OwnerName);
+                {
+                    getCellText->Text = PhGetStringRef(networkItem->OwnerName);
+                }
                 break;
             case PHNETLC_TIMESTAMP:
                 {
@@ -761,7 +761,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 }
                 break;
             case PHNETLC_HV_SERVICE:
-                getCellText->Text = PhGetStringRef(networkItem->HvService);
+                {
+                    getCellText->Text = PhGetStringRef(networkItem->HvService);
+                }
                 break;
             default:
                 return FALSE;

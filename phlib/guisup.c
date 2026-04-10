@@ -2574,18 +2574,13 @@ BOOLEAN PhModalPropertySheet(
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
-        BOOLEAN processed = FALSE;
-
         if (result == INT_ERROR)
             break;
 
-        if (!processed)
+        if (!PropSheet_IsDialogMessage(hwnd, &message))
         {
-            if (!PropSheet_IsDialogMessage(hwnd, &message))
-            {
-                TranslateMessage(&message);
-                DispatchMessage(&message);
-            }
+            TranslateMessage(&message);
+            DispatchMessage(&message);
         }
 
         PhDrainAutoPool(&autoPool);
@@ -4412,8 +4407,8 @@ NTSTATUS PhGetPhysicallyInstalledSystemMemory(
 
     if (GetPhysicallyInstalledSystemMemory_I(&physicallyInstalledSystemMemory))
     {
-        *TotalMemory = physicallyInstalledSystemMemory * 1024ULL;
-        *ReservedMemory = physicallyInstalledSystemMemory * 1024ULL - UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
+        *TotalMemory = physicallyInstalledSystemMemory * ULONGLONG_C(1024);
+        *ReservedMemory = physicallyInstalledSystemMemory * ULONGLONG_C(1024)- UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
         return STATUS_SUCCESS;
     }
 

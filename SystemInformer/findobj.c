@@ -331,7 +331,7 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Process),
                     SORT_FUNCTION(Type),

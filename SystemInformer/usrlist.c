@@ -685,7 +685,7 @@ BOOLEAN NTAPI PhpUserListTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(LogonId),
                     SORT_FUNCTION(UserName),

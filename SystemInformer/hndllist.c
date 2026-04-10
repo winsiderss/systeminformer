@@ -228,9 +228,9 @@ PPH_HANDLE_NODE PhAddHandleNode(
             );
     }
 
-    handleNode->Handle = HandleItem->Handle;
-    handleNode->HandleItem = HandleItem;
     PhReferenceObject(HandleItem);
+    handleNode->HandleItem = HandleItem;
+    handleNode->Handle = HandleItem->Handle;
 
     memset(handleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHHNTLC_MAXIMUM);
     handleNode->Node.TextCache = handleNode->TextCache;
@@ -514,7 +514,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Type),
                     SORT_FUNCTION(Name),
@@ -531,7 +531,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                     SORT_FUNCTION(PagedPoolCharge),
                     SORT_FUNCTION(NonPagedPoolCharge),
                 };
-                int (__cdecl *sortFunction)(void *, const void *, const void *);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PHHNTLC_MAXIMUM, "SortFunctions must equal maximum.");
 
