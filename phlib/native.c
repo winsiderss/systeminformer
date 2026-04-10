@@ -4394,6 +4394,8 @@ NTSTATUS PhQueryProcessHeapInformation(
     NTSTATUS status;
     PRTL_DEBUG_INFORMATION debugBuffer = NULL;
     PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo = NULL;
+    ULONG numberOfHeaps;
+    SIZE_T heapDebugInfoLength;
 
     for (ULONG i = 0x400000; ; i *= 2) // rev from Heap32First/Heap32Next (dmex)
     {
@@ -4441,15 +4443,29 @@ NTSTATUS PhQueryProcessHeapInformation(
 
     if (WindowsVersion > WINDOWS_11)
     {
-        heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
-        heapDebugInfo->NumberOfHeaps = ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->NumberOfHeaps;
+        numberOfHeaps = ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->NumberOfHeaps;
     }
     else
     {
-        heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
-        heapDebugInfo->NumberOfHeaps = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps;
+        numberOfHeaps = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps;
     }
 
+    if ((SIZE_T)numberOfHeaps > (((SIZE_T)-1) - sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION)) / sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY))
+    {
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    heapDebugInfoLength = sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + (SIZE_T)numberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY);
+    heapDebugInfo = PhAllocateZero(heapDebugInfoLength);
+
+    if (!heapDebugInfo)
+    {
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+        return STATUS_NO_MEMORY;
+    }
+
+    heapDebugInfo->NumberOfHeaps = numberOfHeaps;
     heapDebugInfo->DefaultHeap = debugBuffer->ProcessHeap;
 
     for (ULONG i = 0; i < heapDebugInfo->NumberOfHeaps; i++)
