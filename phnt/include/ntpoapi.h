@@ -1079,7 +1079,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalTtmAssignDevice,                               // in: POWER_INTERNAL_TTM_ASSIGN_DEVICE_INPUT // requires SeShutdownPrivilege and terminalPowerManagement capability
     PowerInternalTtmSetDisplayState,                            // in: POWER_INTERNAL_TTM_SET_DISPLAY_STATE_INPUT // requires SeShutdownPrivilege and terminalPowerManagement capability
     PowerInternalTtmSetDisplayTimeouts,                         // in: POWER_INTERNAL_TTM_SET_DISPLAY_TIMEOUTS_INPUT // requires SeShutdownPrivilege and terminalPowerManagement capability
-    PowerInternalBootSessionStandbyActivationInformation,       // out: POWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO
+    PowerInternalBootSessionStandbyActivationInformation,       // out: POWER_INTERNAL_BOOT_SESSION_STANDBY_ACTIVATION_INFO
     PowerInternalSessionPowerState,                             // in: POWER_SESSION_POWER_STATE
     PowerInternalSessionTerminalInput,                          // in: POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT // 20
     PowerInternalSetWatchdog,                                   // in: POWER_INTERNAL_SET_WATCHDOG, out: (optional) HANDLE
@@ -1094,7 +1094,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalPpmSchedulerQosSupport,                        // out: POWER_INTERNAL_PROCESSOR_QOS_SUPPORT // 30
     PowerInternalBootStatGet,                                   // in: POWER_INTERNAL_BOOTSTAT_GET_INPUT, out: (optional) POWER_INTERNAL_BOOTSTAT_GET_OUTPUT[EntryCount] or ULONG[EntryCount]
     PowerInternalBootStatSet,                                   // in: POWER_INTERNAL_BOOTSTAT_GET_INPUT
-    PowerInternalCallHasNotReturnedWatchdog,                    // not implemented
+    PowerInternalCallHasNotReturnedWatchdog,                    // in: not implemented
     PowerInternalBootStatCheckIntegrity,                        // in: POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT, out: POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_OUTPUT
     PowerInternalBootStatRestoreDefaults,                       // in: void
     PowerInternalHostEsStateUpdate,                             // in: POWER_INTERNAL_HOST_ENERGY_SAVER_STATE
@@ -1113,11 +1113,11 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalIsLongPowerButtonBugcheckEnabled,              // out: BOOLEAN
     PowerInternalAutoChkCausedReboot,                           // in: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT, out: POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT // 50
     PowerInternalSetWakeAlarmOverride,                          // in: POWER_INTERNAL_SET_WAKE_ALARM_OVERRIDE_INPUT
-
-    PowerInternalDirectedFxAddTestDevice = 53,                  // in: POWER_INTERNAL_DIRECTED_FX_ADD_TEST_DEVICE_INPUT
+    PowerInternalReservedInformation52,                         // in: not implemented
+    PowerInternalDirectedFxAddTestDevice,                       // in: POWER_INTERNAL_DIRECTED_FX_ADD_TEST_DEVICE_INPUT
     PowerInternalDirectedFxRemoveTestDevice,                    // in: POWER_INTERNAL_DIRECTED_FX_REMOVE_TEST_DEVICE_INPUT
-
-    PowerInternalDirectedFxSetMode = 56,                        // in: POWER_INTERNAL_DIRECTED_FX_SET_MODE_INPUT
+    PowerInternalReservedInformation55,                         // in: not implemented
+    PowerInternalDirectedFxSetMode,                             // in: POWER_INTERNAL_DIRECTED_FX_SET_MODE_INPUT
     PowerInternalRegisterPowerPlane,                            // in: POWER_INTERNAL_REGISTER_POWER_PLANE_INPUT
     PowerInternalSetDirectedDripsFlags,                         // in: POWER_INTERNAL_DIRECTED_DRIPS_DEVICE_FLAGS_INPUT
     PowerInternalClearDirectedDripsFlags,                       // in: POWER_INTERNAL_DIRECTED_DRIPS_DEVICE_FLAGS_INPUT
@@ -1127,7 +1127,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalQuerySleepStudyHelperRoutineBlock,             // out: POWER_INTERNAL_QUERY_SLEEPSTUDY_HELPER_ROUTINE_BLOCK_OUTPUT
     PowerInternalDirectedDripsQueryCapabilities,                // out: POWER_INTERNAL_DIRECTED_DRIPS_QUERY_CAPABILITIES_OUTPUT
     PowerInternalClearConstraints,                              // in: POWER_INTERNAL_CLEAR_CONSTRAINTS_INPUT
-    PowerInternalSoftParkVelocityEnabled,                       // not implemented
+    PowerInternalSoftParkVelocityEnabled,                       // in: not implemented
     PowerInternalQueryIntelPepCapabilities,                     // in: POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT, out: POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT
     PowerInternalGetSystemIdleLoopEnablement,                   // in: POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT, out: POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT // since WIN11
     PowerInternalGetVmPerfControlSupport,                       // in: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT, out: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT
@@ -1139,8 +1139,8 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalClassIdleIntervalStats,                        // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT, out: POWER_INTERNAL_IDLE_INTERVAL_STATS_OUTPUT
     PowerInternalCpuNodeConcurrencyStats,                       // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT, out: POWER_INTERNAL_CPU_NODE_CONCURRENCY_STATS_OUTPUT
     PowerInternalClassConcurrencyStats,                         // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT, out: POWER_INTERNAL_CLASS_CONCURRENCY_STATS_OUTPUT
-    PowerInternalQueryProcMeasurementCapabilities,              // in: PROCESSOR_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES, out: PROCESSOR_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT // (in optional)
-    PowerInternalQueryProcMeasurementValues,                    // in: PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES, out: PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES_OUTPUT
+    PowerInternalQueryProcMeasurementCapabilities,              // in: POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES, out: POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT // (in optional)
+    PowerInternalQueryProcMeasurementValues,                    // in: POWER_INTERNAL_QUERY_MEASUREMENT_VALUES, out: POWER_INTERNAL_QUERY_MEASUREMENT_VALUES_OUTPUT
     PowerInternalPrepareForSystemInitiatedReboot,               // in: POWER_INTERNAL_PREPARE_FOR_SYSTEM_INITIATED_REBOOT_INPUT // 80
     PowerInternalGetAdaptiveSessionState,                       // in: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT, out: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT
     PowerInternalSetConsoleLockedState,                         // in: POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT
@@ -1250,13 +1250,13 @@ typedef struct _POWER_SET_BACKGROUND_TASK_STATE
 } POWER_SET_BACKGROUND_TASK_STATE, *PPOWER_SET_BACKGROUND_TASK_STATE;
 
 // rev
-typedef struct _POWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO
+typedef struct _POWER_INTERNAL_BOOT_SESSION_STANDBY_ACTIVATION_INFO
 {
     ULONG StandbyTotalTime;
     ULONG DripsTotalTime;
     ULONG ActivatorClientTotalActiveTime;
     ULONG PerActivatorClientTotalActiveTime[98];
-} POWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO, *PPOWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO;
+} POWER_INTERNAL_BOOT_SESSION_STANDBY_ACTIVATION_INFO, *PPOWER_INTERNAL_BOOT_SESSION_STANDBY_ACTIVATION_INFO;
 
 // rev
 typedef struct _POWER_SESSION_POWER_STATE
@@ -2097,16 +2097,16 @@ typedef POWER_INTERNAL_CONCURRENCY_STATS_OUTPUT POWER_INTERNAL_CLASS_CONCURRENCY
 typedef POWER_INTERNAL_CONCURRENCY_STATS_OUTPUT *PPOWER_INTERNAL_CLASS_CONCURRENCY_STATS_OUTPUT;
 
 // rev
-typedef struct _PROCESSOR_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES
+typedef struct _POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
-} PROCESSOR_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES, *PPROCESSOR_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES;
+} POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES, *PPOWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES;
 
 // rev
-typedef struct _PROCESSOR_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT
+typedef struct _POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT
 {
     ULONG Capabilities;
-} PROCESSOR_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT, *PPROCESSOR_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT;
+} POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT, *PPOWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT;
 
 // rev
 typedef struct _PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES
