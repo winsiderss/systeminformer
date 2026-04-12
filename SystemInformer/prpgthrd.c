@@ -113,6 +113,8 @@ VOID PhpInitializeThreadMenu(
             ID_THREAD_TERMINATE,
             ID_THREAD_SUSPEND,
             ID_THREAD_RESUME,
+            ID_THREAD_FREEZE,
+            ID_THREAD_THAW,
             ID_THREAD_COPY,
             ID_THREAD_AFFINITY,
         };
@@ -131,6 +133,31 @@ VOID PhpInitializeThreadMenu(
         if (menuItem = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"&Priority", 0))
         {
             PhSetEnabledEMenuItem(menuItem, TRUE);
+        }
+    }
+
+    if (WindowsVersion < WINDOWS_11)
+    {
+        PPH_EMENU_ITEM menuItem;
+
+        if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FREEZE))
+            PhDestroyEMenuItem(menuItem);
+        if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_THAW))
+            PhDestroyEMenuItem(menuItem);
+    }
+    else if (NumberOfThreads == 1)
+    {
+        PPH_EMENU_ITEM menuItem;
+
+        if (ReadPointerAcquire(&Threads[0]->FreezeHandle))
+        {
+            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FREEZE))
+                PhDestroyEMenuItem(menuItem);
+        }
+        else
+        {
+            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_THAW))
+                PhDestroyEMenuItem(menuItem);
         }
     }
 
@@ -493,6 +520,8 @@ PPH_EMENU PhpCreateThreadMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_TERMINATE, L"T&erminate\bDel", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_SUSPEND, L"&Suspend", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_RESUME, L"Res&ume", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_FREEZE, L"&Freeze", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_THAW, L"&Thaw", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ANALYZE_WAIT, L"Analy&ze", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
@@ -1219,6 +1248,30 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
                     PhReferenceObjects(threads, numberOfThreads);
                     PhUiResumeThreads(hwndDlg, threads, numberOfThreads);
+                    PhDereferenceObjects(threads, numberOfThreads);
+                    PhFree(threads);
+                }
+                break;
+            case ID_THREAD_FREEZE:
+                {
+                    PPH_THREAD_ITEM *threads;
+                    ULONG numberOfThreads;
+
+                    PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
+                    PhReferenceObjects(threads, numberOfThreads);
+                    PhUiFreezeThreads(hwndDlg, threads, numberOfThreads);
+                    PhDereferenceObjects(threads, numberOfThreads);
+                    PhFree(threads);
+                }
+                break;
+            case ID_THREAD_THAW:
+                {
+                    PPH_THREAD_ITEM *threads;
+                    ULONG numberOfThreads;
+
+                    PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
+                    PhReferenceObjects(threads, numberOfThreads);
+                    PhUiThawThreads(hwndDlg, threads, numberOfThreads);
                     PhDereferenceObjects(threads, numberOfThreads);
                     PhFree(threads);
                 }

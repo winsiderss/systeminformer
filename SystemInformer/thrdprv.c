@@ -274,6 +274,7 @@ VOID PhpThreadItemDeleteProcedure(
     PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectDelete);
 
     if (threadItem->ThreadHandle) NtClose(threadItem->ThreadHandle);
+    if (threadItem->FreezeHandle) NtClose(threadItem->FreezeHandle);
     if (threadItem->StartAddressWin32String) PhDereferenceObject(threadItem->StartAddressWin32String);
     if (threadItem->StartAddressWin32FileName) PhDereferenceObject(threadItem->StartAddressWin32FileName);
     if (threadItem->ServiceName) PhDereferenceObject(threadItem->ServiceName);

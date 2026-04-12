@@ -247,6 +247,7 @@ EXPORTS
     PhUiRestartComputer
     PhUiRestartProcess
     PhUiRestartServices
+    PhUiFreezeThreads
     PhUiResumeProcesses
     PhUiResumeThreads
     PhUiResumeTreeProcess
@@ -280,6 +281,7 @@ EXPORTS
     PhUiTerminateProcesses
     PhUiTerminateThreads
     PhUiTerminateTreeProcess
+    PhUiThawThreads
     PhUiThawTreeProcess
     PhUiUnloadModule
 

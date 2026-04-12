@@ -6281,6 +6281,80 @@ BOOLEAN PhUiResumeThreads(
     return success;
 }
 
+BOOLEAN PhUiFreezeThreads(
+    _In_ HWND WindowHandle,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
+    )
+{
+    BOOLEAN success = TRUE;
+
+    for (ULONG i = 0; i < NumberOfThreads; i++)
+    {
+        NTSTATUS status;
+        HANDLE freezeHandle;
+
+        if (ReadPointerAcquire(&Threads[i]->FreezeHandle))
+            continue;
+
+        status = PhFreezeThreadById(
+            &freezeHandle,
+            Threads[i]->ThreadId
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
+
+            if (!PhpShowErrorThread(WindowHandle, L"freeze", Threads[i], status, 0))
+                break;
+        }
+        else if (freezeHandle = InterlockedExchangePointer(&Threads[i]->FreezeHandle, freezeHandle))
+        {
+            NtClose(freezeHandle);
+        }
+    }
+
+    return success;
+}
+
+BOOLEAN PhUiThawThreads(
+    _In_ HWND WindowHandle,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
+    )
+{
+    BOOLEAN success = TRUE;
+
+    for (ULONG i = 0; i < NumberOfThreads; i++)
+    {
+        NTSTATUS status;
+        HANDLE freezeHandle;
+
+        if (!(freezeHandle = ReadPointerAcquire(&Threads[i]->FreezeHandle)))
+            continue;
+
+        status = PhThawThreadById(
+            freezeHandle,
+            Threads[i]->ThreadId
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
+
+            if (!PhpShowErrorThread(WindowHandle, L"thaw", Threads[i], status, 0))
+                break;
+        }
+        else if (freezeHandle = InterlockedExchangePointer(&Threads[i]->FreezeHandle, NULL))
+        {
+            NtClose(freezeHandle);
+        }
+    }
+
+    return success;
+}
+
 BOOLEAN PhUiSetBoostPriorityThreads(
     _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM *Threads,

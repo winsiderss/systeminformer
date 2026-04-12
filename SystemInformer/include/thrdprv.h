@@ -55,6 +55,7 @@ typedef struct _PH_THREAD_ITEM
     KWAIT_REASON WaitReason;
 
     HANDLE ThreadHandle;
+    HANDLE FreezeHandle;
 
     PPH_STRING ServiceName;
 
