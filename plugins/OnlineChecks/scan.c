@@ -997,10 +997,7 @@ CleanupExit:
 
         _Analysis_assume_lock_acquired_(&context->ScanHash->Lock);
         PhReleaseQueuedLockExclusive(&context->ScanHash->Lock);
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
         NtClose(context->FileHandle);
         context->FileHandle = NULL;
     }
