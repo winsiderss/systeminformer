@@ -106,7 +106,7 @@ VOID PhGenerateSyscallLists(
         PhUnloadMappedImage(&mappedImage);
     }
 
-    if (WindowsVersion >= WINDOWS_10_20H1)
+    if (WindowsVersion >= WINDOWS_10_21H1)
     {
         if (NT_SUCCESS(PhLoadMappedImageEx(&win32kFileName, NULL, &mappedImage)))
         {
@@ -181,9 +181,10 @@ VOID PhGenerateSyscallLists(
                             // NOTE: When system calls are deleted from win32k.sys the win32u.dll interface gets
                             // replaced with stubs that call RaiseFailFastException. This breaks the sorting via
                             // RVA based on exports since these exports still exist so we have to check the prologue. (dmex)
-                            if (WindowsVersion >= WINDOWS_10_21H1)
+                            if (WindowsVersion >= WINDOWS_10_20H1)
                             {
                                 PBYTE exportAddress;
+                                BOOLEAN added = FALSE;
 
                                 if (exportAddress = PhMappedImageRvaToVa(&mappedImage, PtrToUlong(exportFunction.Function), NULL))
                                 {
@@ -209,7 +210,14 @@ VOID PhGenerateSyscallLists(
                                     {
                                         entry->Address = systemCallEntry->SystemCallIndex;
                                         PhAddItemList(list, entry);
+                                        added = TRUE;
                                     }
+                                }
+
+                                if (!added)
+                                {
+                                    PhDereferenceObject(entry->Name);
+                                    PhFree(entry);
                                 }
                             }
                             else
