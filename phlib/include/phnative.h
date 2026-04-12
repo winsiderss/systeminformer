@@ -2129,9 +2129,11 @@ InvalidAcl:
 }
 
 /**
- * Destroys process parameters.
+ * Gets a pointer to an ACE in an ACL.
  *
- * \param ProcessParameters The process parameters to destroy.
+ * \param Acl The ACL.
+ * \param AceIndex The index of the ACE.
+ * \param Ace A pointer to a variable that receives the pointer to the ACE.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2176,8 +2178,13 @@ PhGetAce(
 }
 
 /**
- * Acquires the loader lock.
+ * Adds one or more Access Control Entries (ACEs) to an Access Control List (ACL).
  *
+ * \param Acl A pointer to an ACL structure.
+ * \param AceRevision The revision level of the ACEs being added.
+ * \param StartingAceIndex The zero-based index at which to add the new ACEs.
+ * \param AceList A pointer to a buffer containing the list of ACEs to be added.
+ * \param AceListLength The size of the ACE list in bytes.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2326,11 +2333,12 @@ PhCreateAcl(
 }
 
 /**
- * Gets a pointer to an ACE in an ACL.
+ * Gets the DACL from a security descriptor.
  *
- * \param Acl The ACL.
- * \param AceIndex The index of the ACE.
- * \param Ace A pointer to a variable that receives the pointer to the ACE.
+ * \param SecurityDescriptor The security descriptor.
+ * \param DaclPresent Receives TRUE if a DACL is present, FALSE otherwise.
+ * \param Dacl Receives a pointer to the DACL.
+ * \param DaclDefaulted Receives TRUE if the DACL was defaulted, FALSE otherwise.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2381,13 +2389,12 @@ PhGetDaclSecurityDescriptor(
 }
 
 /**
- * Adds one or more Access Control Entries (ACEs) to an Access Control List (ACL).
+ * Sets the DACL of a security descriptor.
  *
- * \param Acl A pointer to an ACL structure.
- * \param AceRevision The revision level of the ACEs being added.
- * \param StartingAceIndex The zero-based index at which to add the new ACEs.
- * \param AceList A pointer to a buffer containing the list of ACEs to be added.
- * \param AceListLength The size of the ACE list in bytes.
+ * \param SecurityDescriptor The security descriptor.
+ * \param DaclPresent TRUE if a DACL is present, FALSE otherwise.
+ * \param Dacl A pointer to the DACL.
+ * \param DaclDefaulted TRUE if the DACL was defaulted, FALSE otherwise.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2424,8 +2431,12 @@ PhSetDaclSecurityDescriptor(
 }
 
 /**
- * Releases the PEB lock.
+ * Gets the DACL from a security descriptor, ensuring it is not NULL.
  *
+ * \param SecurityDescriptor The security descriptor.
+ * \param DaclPresent Receives TRUE if a DACL is present, FALSE otherwise.
+ * \param DaclDefaulted Receives TRUE if the DACL was defaulted, FALSE otherwise.
+ * \param Dacl Receives a pointer to the DACL.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2524,12 +2535,12 @@ PhGetSaclSecurityDescriptor(
 }
 
 /**
- * Gets the DACL from a security descriptor.
+ * Sets the SACL of a security descriptor.
  *
  * \param SecurityDescriptor The security descriptor.
- * \param DaclPresent Receives TRUE if a DACL is present, FALSE otherwise.
- * \param Dacl Receives a pointer to the DACL.
- * \param DaclDefaulted Receives TRUE if the DACL was defaulted, FALSE otherwise.
+ * \param SaclPresent TRUE if a SACL is present, FALSE otherwise.
+ * \param Sacl A pointer to the SACL.
+ * \param SaclDefaulted TRUE if the SACL was defaulted, FALSE otherwise.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2566,12 +2577,11 @@ PhSetSaclSecurityDescriptor(
 }
 
 /**
- * Sets the DACL of a security descriptor.
+ * Gets the owner from a security descriptor.
  *
  * \param SecurityDescriptor The security descriptor.
- * \param DaclPresent TRUE if a DACL is present, FALSE otherwise.
- * \param Dacl A pointer to the DACL.
- * \param DaclDefaulted TRUE if the DACL was defaulted, FALSE otherwise.
+ * \param Owner Receives a pointer to the owner SID.
+ * \param OwnerDefaulted Receives TRUE if the owner was defaulted, FALSE otherwise.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2617,12 +2627,11 @@ PhGetOwnerSecurityDescriptor(
 }
 
 /**
- * Gets the DACL from a security descriptor, ensuring it is not NULL.
+ * Sets the owner of a security descriptor.
  *
  * \param SecurityDescriptor The security descriptor.
- * \param DaclPresent Receives TRUE if a DACL is present, FALSE otherwise.
- * \param DaclDefaulted Receives TRUE if the DACL was defaulted, FALSE otherwise.
- * \param Dacl Receives a pointer to the DACL.
+ * \param Owner A pointer to the owner SID.
+ * \param OwnerDefaulted TRUE if the owner was defaulted, FALSE otherwise.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2659,12 +2668,11 @@ PhSetOwnerSecurityDescriptor(
 }
 
 /**
- * Adds an access-allowed ACE to an ACL.
+ * Gets the group from a security descriptor.
  *
- * \param Acl The ACL.
- * \param AceRevision The revision level.
- * \param AccessMask The access mask.
- * \param Sid The SID.
+ * \param SecurityDescriptor The security descriptor.
+ * \param Group Receives a pointer to the group SID.
+ * \param GroupDefaulted Receives TRUE if the group was defaulted, FALSE otherwise.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2710,12 +2718,11 @@ PhGetGroupSecurityDescriptor(
 }
 
 /**
- * Sets the SACL of a security descriptor.
+ * Sets the group of a security descriptor.
  *
  * \param SecurityDescriptor The security descriptor.
- * \param SaclPresent TRUE if a SACL is present, FALSE otherwise.
- * \param Sacl A pointer to the SACL.
- * \param SaclDefaulted TRUE if the SACL was defaulted, FALSE otherwise.
+ * \param Group A pointer to the group SID.
+ * \param GroupDefaulted TRUE if the group was defaulted, FALSE otherwise.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2752,11 +2759,11 @@ PhSetGroupSecurityDescriptor(
 }
 
 /**
- * Gets the owner from a security descriptor.
+ * Gets the control and revision information from a security descriptor.
  *
  * \param SecurityDescriptor The security descriptor.
- * \param Owner Receives a pointer to the owner SID.
- * \param OwnerDefaulted Receives TRUE if the owner was defaulted, FALSE otherwise.
+ * \param Control Receives the control information.
+ * \param Revision Receives the revision level.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2824,11 +2831,13 @@ PhSetControlSecurityDescriptor(
 }
 
 /**
- * Sets the owner of a security descriptor.
+ * Adds an access-allowed ACE with flags to an ACL.
  *
- * \param SecurityDescriptor The security descriptor.
- * \param Owner A pointer to the owner SID.
- * \param OwnerDefaulted TRUE if the owner was defaulted, FALSE otherwise.
+ * \param Acl The ACL.
+ * \param AceRevision The revision level.
+ * \param AceFlags The ACE flags.
+ * \param AccessMask The access mask.
+ * \param Sid The SID.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2880,11 +2889,12 @@ PhAddAccessAllowedAceEx(
 }
 
 /**
- * Gets the group from a security descriptor.
+ * Adds an access-allowed ACE to an ACL.
  *
- * \param SecurityDescriptor The security descriptor.
- * \param Group Receives a pointer to the group SID.
- * \param GroupDefaulted Receives TRUE if the group was defaulted, FALSE otherwise.
+ * \param Acl The ACL.
+ * \param AceRevision The revision level.
+ * \param AccessMask The access mask.
+ * \param Sid The SID.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2920,11 +2930,8 @@ PhAcquirePebLock(
 }
 
 /**
- * Sets the group of a security descriptor.
+ * Releases the PEB lock.
  *
- * \param SecurityDescriptor The security descriptor.
- * \param Group A pointer to the group SID.
- * \param GroupDefaulted TRUE if the group was defaulted, FALSE otherwise.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2942,11 +2949,8 @@ PhReleasePebLock(
 }
 
 /**
- * Gets the control and revision information from a security descriptor.
+ * Acquires the loader lock.
  *
- * \param SecurityDescriptor The security descriptor.
- * \param Control Receives the control information.
- * \param Revision Receives the revision level.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -2994,9 +2998,9 @@ PhGetCurrentThreadPrimaryGroup(
 }
 
 /**
- * Gets the active console session ID.
+ * Gets the session ID of the current service session.
  *
- * \return The active console session ID.
+ * \return The session ID.
  */
 FORCEINLINE
 ULONG
@@ -3016,9 +3020,9 @@ PhGetCurrentServiceSessionId(
 }
 
 /**
- * Gets the session ID of the current service session.
+ * Gets the active console session ID.
  *
- * \return The session ID.
+ * \return The active console session ID.
  */
 FORCEINLINE
 ULONG
@@ -3124,9 +3128,9 @@ PhFreeUnicodeString(
 }
 
 /**
- * Frees a UTF-8 string.
+ * Frees an ANSI string.
  *
- * \param Utf8String The UTF-8 string to free.
+ * \param AnsiString The ANSI string to free.
  */
 FORCEINLINE
 VOID
@@ -3147,9 +3151,9 @@ PhFreeAnsiString(
 }
 
 /**
- * Frees an ANSI string.
+ * Frees a UTF-8 string.
  *
- * \param AnsiString The ANSI string to free.
+ * \param Utf8String The UTF-8 string to free.
  */
 FORCEINLINE
 VOID
@@ -3237,13 +3241,9 @@ PhDestroyEnvironment(
 }
 
 /**
- * Adds an access-allowed ACE with flags to an ACL.
+ * Destroys process parameters.
  *
- * \param Acl The ACL.
- * \param AceRevision The revision level.
- * \param AceFlags The ACE flags.
- * \param AccessMask The access mask.
- * \param Sid The SID.
+ * \param ProcessParameters The process parameters to destroy.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -4470,11 +4470,9 @@ PhEnumDirectoryFile(
     );
 
 /**
- * Enumerates files in a directory with extended options.
+ * Enumerates files in a directory.
  *
  * \param FileHandle A handle to the directory.
- * \param FileInformationClass The type of information to return.
- * \param ReturnSingleEntry Whether to return only a single entry.
  * \param SearchPattern An optional search pattern.
  * \param Callback A callback function called for each file.
  * \param Context A user-defined value passed to the callback.
@@ -4515,9 +4513,11 @@ PhEnumDirectoryFileEx(
     );
 
 /**
- * Enumerates files in a directory.
+ * Enumerates files in a directory with extended options.
  *
  * \param FileHandle A handle to the directory.
+ * \param FileInformationClass The type of information to return.
+ * \param ReturnSingleEntry Whether to return only a single entry.
  * \param SearchPattern An optional search pattern.
  * \param Callback A callback function called for each file.
  * \param Context A user-defined value passed to the callback.
@@ -5069,11 +5069,11 @@ PhSetValueKeyZ(
 }
 
 /**
- * Sets a registry ULONG value.
+ * Sets a registry string value.
  *
  * \param KeyHandle A handle to the registry key.
  * \param ValueName The name of the value to set.
- * \param Value The ULONG value to set.
+ * \param String The string data to set.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -5104,11 +5104,11 @@ PhSetValueKeyStringZ(
 }
 
 /**
- * Sets a registry expandable string value.
+ * Sets a registry string value from a null-terminated string.
  *
  * \param KeyHandle A handle to the registry key.
  * \param ValueName The name of the value to set.
- * \param String The expandable string data to set.
+ * \param String The null-terminated string data to set.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -5136,11 +5136,11 @@ PhSetValueKeyString2Z(
 }
 
 /**
- * Sets a registry string value from a null-terminated string.
+ * Sets a registry expandable string value.
  *
  * \param KeyHandle A handle to the registry key.
  * \param ValueName The name of the value to set.
- * \param String The null-terminated string data to set.
+ * \param String The expandable string data to set.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -5168,11 +5168,11 @@ PhSetExpandKeyString(
 }
 
 /**
- * Sets a registry string value.
+ * Sets a registry ULONG value.
  *
  * \param KeyHandle A handle to the registry key.
  * \param ValueName The name of the value to set.
- * \param String The string data to set.
+ * \param Value The ULONG value to set.
  * \return NTSTATUS Successful or error status.
  */
 FORCEINLINE
@@ -5623,7 +5623,7 @@ PhCreateNamedPipe(
     );
 
 /**
- * Connects to a named pipe.
+ * Creates a named pipe.
  *
  * \param PipeHandle Receives the pipe handle.
  * \param PipeName The name of the pipe.
@@ -5653,7 +5653,7 @@ PhConnectPipe(
     );
 
 /**
- * Creates a named pipe.
+ * Connects to a named pipe.
  *
  * \param PipeHandle Receives the pipe handle.
  * \param PipeName The name of the pipe.
