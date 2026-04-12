@@ -10020,7 +10020,7 @@ NTSTATUS PhApiSetResolveToHost(
                     apisetNamespacePart.Length = valueArray->Array[midIndex].NameLength;
 
                     comparison = PhCompareStringRef(
-                        &apiSetNameShort,
+                        &parentNameFilePart,
                         &apisetNamespacePart,
                         TRUE
                         );
@@ -11282,7 +11282,7 @@ NTSTATUS PhEndWindowSession(
     RtlZeroMemory(&context, sizeof(PH_ENDSESSION_CONTEXT));
     context.ClientId = clientId;
 
-    status = PhEnumWindows(PhQueryEndSessionCallback, &clientId);
+    status = PhEnumWindows(PhQueryEndSessionCallback, &context);
 
     if (!NT_SUCCESS(status))
         return status;
