@@ -682,6 +682,8 @@
 #define ID_HACKER_OPTIONS               40083
 #define ID_PROCESS_FREEZE               40084
 #define ID_PROCESS_THAW                 40085
+#define ID_THREAD_FREEZE                40086
+#define ID_THREAD_THAW                  40087
 #define ID_VIEW_SYSTEMINFORMATION       40091
 #define ID_TRAYICONS_CPUHISTORY         40093
 #define ID_TRAYICONS_CPUUSAGE           40094
