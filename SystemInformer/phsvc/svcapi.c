@@ -993,6 +993,7 @@ NTSTATUS PhSvcApiChangeServiceConfig2(
     case SERVICE_CONFIG_FAILURE_ACTIONS:
         {
             LPSERVICE_FAILURE_ACTIONS failureActions;
+            ULONG actionsLength;
 
             if (!NT_SUCCESS(status = PhSvcpUnpackRoot(&packedData, info, sizeof(SERVICE_FAILURE_ACTIONS), &failureActions)))
                 goto CleanupExit;
@@ -1000,8 +1001,15 @@ NTSTATUS PhSvcApiChangeServiceConfig2(
                 goto CleanupExit;
             if (!NT_SUCCESS(status = PhSvcpUnpackStringZ(&packedData, info, &failureActions->lpCommand, FALSE, TRUE)))
                 goto CleanupExit;
-            if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &failureActions->lpsaActions, failureActions->cActions * sizeof(SC_ACTION), __alignof(SC_ACTION), TRUE)))
+            if (!NT_SUCCESS(status = RtlULongMult(failureActions->cActions, (ULONG)sizeof(SC_ACTION), &actionsLength)))
                 goto CleanupExit;
+            if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &failureActions->lpsaActions, actionsLength, __alignof(SC_ACTION), TRUE)))
+                goto CleanupExit;
+            if (failureActions->cActions != 0 && !failureActions->lpsaActions)
+            {
+                status = STATUS_INVALID_PARAMETER;
+                goto CleanupExit;
+            }
 
             if (failureActions->lpsaActions)
             {
@@ -1047,16 +1055,25 @@ NTSTATUS PhSvcApiChangeServiceConfig2(
     case SERVICE_CONFIG_TRIGGER_INFO:
         {
             PSERVICE_TRIGGER_INFO triggerInfo;
+            ULONG triggersLength;
             ULONG i;
             PSERVICE_TRIGGER trigger;
             ULONG j;
             PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM dataItem;
             ULONG alignment;
+            ULONG dataItemsLength;
 
             if (!NT_SUCCESS(status = PhSvcpUnpackRoot(&packedData, info, sizeof(SERVICE_TRIGGER_INFO), &triggerInfo)))
                 goto CleanupExit;
-            if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &triggerInfo->pTriggers, triggerInfo->cTriggers * sizeof(SERVICE_TRIGGER), __alignof(SERVICE_TRIGGER), TRUE)))
+            if (!NT_SUCCESS(status = RtlULongMult(triggerInfo->cTriggers, (ULONG)sizeof(SERVICE_TRIGGER), &triggersLength)))
                 goto CleanupExit;
+            if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &triggerInfo->pTriggers, triggersLength, __alignof(SERVICE_TRIGGER), TRUE)))
+                goto CleanupExit;
+            if (triggerInfo->cTriggers != 0 && !triggerInfo->pTriggers)
+            {
+                status = STATUS_INVALID_PARAMETER;
+                goto CleanupExit;
+            }
 
             if (triggerInfo->pTriggers)
             {
@@ -1066,8 +1083,15 @@ NTSTATUS PhSvcApiChangeServiceConfig2(
 
                     if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &trigger->pTriggerSubtype, sizeof(GUID), __alignof(GUID), TRUE)))
                         goto CleanupExit;
-                    if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &trigger->pDataItems, trigger->cDataItems * sizeof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM), __alignof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM), TRUE)))
+                    if (!NT_SUCCESS(status = RtlULongMult(trigger->cDataItems, (ULONG)sizeof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM), &dataItemsLength)))
                         goto CleanupExit;
+                    if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &trigger->pDataItems, dataItemsLength, __alignof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM), TRUE)))
+                        goto CleanupExit;
+                    if (trigger->cDataItems != 0 && !trigger->pDataItems)
+                    {
+                        status = STATUS_INVALID_PARAMETER;
+                        goto CleanupExit;
+                    }
 
                     if (trigger->pDataItems)
                     {
@@ -1521,8 +1545,9 @@ NTSTATUS PhSvcApiQueryProcessHeapInformation(
 {
     NTSTATUS status;
     PVOID dataBuffer;
-    PPH_PROCESS_DEBUG_HEAP_INFORMATION heapInfo;
-    PPH_STRING heapInfoHexBuffer;
+    PPH_PROCESS_DEBUG_HEAP_INFORMATION heapInfo = NULL;
+    PPH_STRING heapInfoHexBuffer = NULL;
+    SIZE_T heapInfoLength;
 
     if (!NT_SUCCESS(status = PhSvcProbeBuffer(&Payload->u.QueryProcessHeap.i.Data, sizeof(WCHAR), FALSE, &dataBuffer)))
         return status;
@@ -1530,10 +1555,24 @@ NTSTATUS PhSvcApiQueryProcessHeapInformation(
     if (!NT_SUCCESS(status = PhQueryProcessHeapInformation(UlongToHandle(Payload->u.QueryProcessHeap.i.ProcessId), &heapInfo)))
         return status;
 
+    if ((SIZE_T)heapInfo->NumberOfHeaps > (((SIZE_T)-1) - sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION)) / sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY))
+    {
+        status = STATUS_INTEGER_OVERFLOW;
+        goto CleanupExit;
+    }
+
+    heapInfoLength = sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + (SIZE_T)heapInfo->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY);
+
     heapInfoHexBuffer = PhBufferToHexString(
         (PUCHAR)heapInfo,
-        sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + heapInfo->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY)
+        heapInfoLength
         );
+
+    if (!heapInfoHexBuffer)
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
 
     if (Payload->u.QueryProcessHeap.i.Data.Length < heapInfoHexBuffer->Length)
     {
