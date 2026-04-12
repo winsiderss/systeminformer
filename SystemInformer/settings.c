@@ -506,4 +506,8 @@ VOID PhUpdateCachedSettings(
     PH_GET_INTEGER_CACHED_SETTING(EnableNetworkResolveDoH);
     PH_GET_INTEGER_CACHED_SETTING(EnableVersionSupport);
     PH_GET_INTEGER_CACHED_SETTING(EnableHandleSnapshot);
+
+    PhEnableProcessMonitor = !!PhGetIntegerSetting(SETTING_ENABLE_PROCESS_MONITOR);
+    PhProcessMonitorLookback = PhGetIntegerSetting(SETTING_PROCESS_MONITOR_LOOKBACK);
+    PhProcessMonitorCacheLimit = PhGetIntegerSetting(SETTING_PROCESS_MONITOR_CACHE_LIMIT);
 }
