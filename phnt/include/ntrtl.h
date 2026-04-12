@@ -7924,6 +7924,15 @@ typedef struct _RTL_DEBUG_INFORMATION
     PVOID Reserved[4];
 } RTL_DEBUG_INFORMATION, *PRTL_DEBUG_INFORMATION;
 
+typedef _Function_class_(RTL_TRACE_HASH_FUNCTION)
+ULONG
+NTAPI
+RTL_TRACE_HASH_FUNCTION(
+    _In_ ULONG Count,
+    _In_reads_(Count) PVOID* Trace
+    );
+typedef RTL_TRACE_HASH_FUNCTION *PRTL_TRACE_HASH_FUNCTION;
+
 NTSYSAPI
 PRTL_DEBUG_INFORMATION
 NTAPI
@@ -9343,6 +9352,23 @@ RtlSetBitEx(
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG64 BitNumber
     );
 
+NTSYSAPI
+VOID
+NTAPI
+RtlSetBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_ ULONGLONG StartingIndex,
+    _In_ ULONGLONG NumberToSet
+    );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+RtlSetAllBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader
+    );
+
 // rev
 NTSYSAPI
 ULONG64
@@ -9360,6 +9386,47 @@ RtlFindSetBitsAndClearEx(
     _In_ PRTL_BITMAP_EX BitMapHeader,
     _In_ ULONG64 NumberToFind,
     _In_ ULONG64 HintIndex
+    );
+
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlNumberOfClearBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader
+    );
+
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlFindClearBitsAndSetEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_ ULONGLONG NumberToFind,
+    _In_ ULONGLONG HintIndex
+    );
+
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlFindClearBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_ ULONGLONG NumberToFind,
+    _In_ ULONGLONG HintIndex
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlClearBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_ ULONGLONG StartingIndex,
+    _In_ ULONGLONG NumberToClear
+    );
+
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlNumberOfSetBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader
     );
 
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10
