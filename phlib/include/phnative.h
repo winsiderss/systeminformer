@@ -667,7 +667,7 @@ PhGetProcessIoCountersEx2(
     _In_ HANDLE ProcessHandle,
     _Out_ PVM_COUNTERS_EX2 VmCounters
     );
- 
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -4938,8 +4938,8 @@ NTSTATUS
 NTAPI
 PhReadFile(
     _In_ HANDLE FileHandle,
-    _In_ PVOID Buffer,
-    _In_opt_ ULONG NumberOfBytesToRead,
+    _Out_writes_bytes_(NumberOfBytesToRead) PVOID Buffer,
+    _In_ ULONG NumberOfBytesToRead,
     _In_opt_ PLARGE_INTEGER ByteOffset,
     _Out_opt_ PULONG NumberOfBytesRead
     );
@@ -4949,8 +4949,8 @@ NTSTATUS
 NTAPI
 PhWriteFile(
     _In_ HANDLE FileHandle,
-    _In_ PVOID Buffer,
-    _In_opt_ ULONG NumberOfBytesToWrite,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ ULONG NumberOfBytesToWrite,
     _In_opt_ PLARGE_INTEGER ByteOffset,
     _Out_opt_ PULONG NumberOfBytesWritten
     );
