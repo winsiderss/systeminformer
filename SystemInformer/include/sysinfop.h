@@ -361,6 +361,15 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
     _Out_ DOUBLE *Frequency
     );
 
+NTSTATUS PhSipQueryProcessorPerformanceDistribution(
+    _Out_ PVOID *Buffer
+    );
+
+NTSTATUS PhSipQueryProcessorPerformanceDistributionEx(
+    _In_ USHORT ProcessorGroup,
+    _Out_ PVOID* Buffer
+    );
+
 PCPH_STRINGREF PhGetHybridProcessorType(
     _In_ ULONG ProcessorIndex
     );
