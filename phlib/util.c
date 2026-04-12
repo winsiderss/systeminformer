@@ -7929,7 +7929,7 @@ BOOLEAN PhParseCommandLine(
 
         if (option &&
             (option->Type == MandatoryArgumentType ||
-            (option->Type == OptionalArgumentType && CommandLine->Buffer[i] != L'-')))
+            (option->Type == OptionalArgumentType && CommandLine->Buffer[i] != L'-' && CommandLine->Buffer[i] != L'/')))
         {
             // Read the value and execute the callback function.
 
@@ -7942,14 +7942,14 @@ BOOLEAN PhParseCommandLine(
 
             option = NULL;
         }
-        else if (CommandLine->Buffer[i] == L'-')
+        else if (CommandLine->Buffer[i] == L'-' || CommandLine->Buffer[i] == L'/')
         {
             ULONG_PTR originalIndex;
             SIZE_T optionNameLength;
 
             // Read the option (only alphanumeric characters allowed).
 
-            // Skip the dash.
+            // Skip the prefix character.
             i++;
 
             originalIndex = i;
