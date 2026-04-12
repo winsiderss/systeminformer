@@ -1426,7 +1426,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PhAddProcessPropPage(PropContext, newPage);
 
     // Monitor
-    if (PhEnableProcessMonitor && KsiLevel() >= KphLevelMed)
+    if (PhCsEnableProcessMonitor && KsiLevel() >= KphLevelMed)
     {
         newPage = PhCreateProcessPropPageContext(
             MAKEINTRESOURCE(IDD_PROCINFORMER),

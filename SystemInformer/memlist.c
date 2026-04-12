@@ -132,6 +132,7 @@ VOID PhLoadSettingsMemoryList(
     sortSettings = PhGetStringSetting(SETTING_MEMORY_TREE_LIST_SORT);
 
     Context->Flags = flags;
+
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
     PhDereferenceObject(settings);
@@ -419,7 +420,8 @@ VOID PhRemoveMemoryNode(
 
     PhpDestroyMemoryNode(MemoryNode);
 
-    TreeNew_NodesStructured(Context->TreeNewHandle);
+    if (Context->TreeNewSortOrder != NoSortOrder)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID PhUpdateMemoryNode(
@@ -474,7 +476,7 @@ VOID PhInvalidateAllMemoryBaseAddressNodes(
             PhPrintPointer(memoryNode->MemoryItem->BaseAddressString, memoryNode->MemoryItem->BaseAddress);
 
         memset(memoryNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMMTLC_MAXIMUM);
-        //TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
+        TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
     }
 
     for (i = 0; i < Context->RegionNodeList->Count; i++)
@@ -487,10 +489,11 @@ VOID PhInvalidateAllMemoryBaseAddressNodes(
             PhPrintPointer(memoryNode->MemoryItem->BaseAddressString, memoryNode->MemoryItem->BaseAddress);
 
         memset(memoryNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMMTLC_MAXIMUM);
-        //TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
+        TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
     }
 
-    TreeNew_NodesStructured(Context->TreeNewHandle);
+    if (Context->TreeNewSortOrder != NoSortOrder)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID PhExpandAllMemoryNodes(
@@ -1105,7 +1108,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 memoryItem->Protect & PAGE_EXECUTE_WRITECOPY
                 ))
             {
-                getNodeColor->BackColor = PhCsColorPacked;
+                getNodeColor->BackColor = PhCsColorMemoryExecutePages;
             }
             else if (
                 context->HighlightCfgPages && (
@@ -1113,18 +1116,18 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 memoryItem->RegionType == CfgBitmap32Region
                 ))
             {
-                getNodeColor->BackColor = PhCsColorElevatedProcesses;
+                getNodeColor->BackColor = PhCsColorMemoryCfgPages;
             }
             else if (
                 context->HighlightSystemPages && (
                 memoryItem->Type & SEC_IMAGE
                 ))
             {
-                getNodeColor->BackColor = PhCsColorSystemProcesses;
+                getNodeColor->BackColor = PhCsColorMemorySystemPages;
             }
             else if (context->HighlightPrivatePages && memoryItem->Type & MEM_PRIVATE)
             {
-                getNodeColor->BackColor = PhCsColorOwnProcesses;
+                getNodeColor->BackColor = PhCsColorMemoryPrivatePages;
             }
             //else if (
             //    memoryItem->RegionType == StackRegion || memoryItem->RegionType == Stack32Region ||

@@ -657,11 +657,11 @@ VOID NTAPI PhpInformerProcessUpdatedHandler(
     //
 
     reap->ProcessStartKey = 0;
-    reap->MaxCount = PhProcessMonitorCacheLimit;
+    reap->MaxCount = PhCsProcessMonitorCacheLimit;
     reap->Seconds = 0;
 
-    if (PhProcessMonitorLookback && runCount % PhProcessMonitorLookback == 0)
-        reap->Seconds = PhProcessMonitorLookback;
+    if (PhCsProcessMonitorLookback && runCount % PhCsProcessMonitorLookback == 0)
+        reap->Seconds = PhCsProcessMonitorLookback;
 
     if (!NT_SUCCESS(PhQueueUserWorkItem(PhpInformerReapWorkItemRoutine, reap)))
         PhFreeToFreeList(&PhpInformerReapFreeList, reap);
@@ -707,7 +707,7 @@ VOID PhInformerInitialize(
 {
     PhInitializeFreeList(&PhpInformerReapFreeList, sizeof(PH_INFORMER_DB_REAP), 16);
 
-    if (!PhEnableProcessMonitor)
+    if (!PhCsEnableProcessMonitor)
         return;
 
     PhpInitializeInformerDatabase();
@@ -738,7 +738,7 @@ VOID PhInformerActivate(
     settings.Policy[KPH_INFORMER_INDEX(RequiredStateFailure)] = (KPH_RATE_LIMIT_POLICY)KPH_RATE_LIMIT_UNLIMITED;
     KphSetInformerProcessSettings(NtCurrentProcess(), &settings);
 
-    if (!PhEnableProcessMonitor)
+    if (!PhCsEnableProcessMonitor)
     {
         KphSetInformerSettings(&settings);
         return;

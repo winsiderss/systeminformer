@@ -931,13 +931,13 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             {
                 NOTHING;
             }
-            else if (PhCsUseColorPacked && node->NetworkItem->UnknownProcess)
+            else if (PhCsUseColorNetworkUnknownProcess && node->NetworkItem->UnknownProcess)
             {
-                getNodeColor->BackColor = PhCsColorPacked;
+                getNodeColor->BackColor = PhCsColorNetworkUnknownProcess;
             }
-            else if (PhCsUseColorPicoProcesses && node->NetworkItem->SubsystemProcess)
+            else if (PhCsUseColorNetworkSubsystemProcess && node->NetworkItem->SubsystemProcess)
             {
-                getNodeColor->BackColor = PhCsColorPicoProcesses;
+                getNodeColor->BackColor = PhCsColorNetworkSubsystemProcess;
             }
 
             getNodeColor->Flags |= TN_AUTO_FORECOLOR;

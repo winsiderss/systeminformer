@@ -3337,6 +3337,7 @@ typedef struct _COLOR_ITEM
 {
     PCWSTR SettingName;
     PCWSTR UseSettingName;
+    ULONG GroupId;
     PCWSTR Name;
     PCWSTR Description;
 
@@ -3344,38 +3345,87 @@ typedef struct _COLOR_ITEM
     COLORREF CurrentColor;
 } COLOR_ITEM, *PCOLOR_ITEM;
 
-#define COLOR_ITEM(SettingName, Name, Description) { SettingName, L"Use" SettingName, Name, Description }
+typedef enum _PH_OPTIONS_HIGHLIGHTING_GROUP
+{
+    PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS,
+    PH_OPTIONS_HIGHLIGHTING_GROUP_THREADS,
+    PH_OPTIONS_HIGHLIGHTING_GROUP_NETWORK,
+    PH_OPTIONS_HIGHLIGHTING_GROUP_ENVIRONMENT,
+    PH_OPTIONS_HIGHLIGHTING_GROUP_WMI,
+    PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN,
+    PH_OPTIONS_HIGHLIGHTING_GROUP_MEMORY,
+    PH_OPTIONS_HIGHLIGHTING_GROUP_MODULES,
+    PH_OPTIONS_HIGHLIGHTING_GROUP_IMAGES,
+    PH_OPTIONS_HIGHLIGHTING_GROUP_HANDLES,
+    PH_OPTIONS_HIGHLIGHTING_GROUP_SERVICES
+} PH_OPTIONS_HIGHLIGHTING_GROUP;
+
+#define COLOR_ITEM(SettingName, GroupId, Name, Description) { SettingName, L"Use" SettingName, GroupId, Name, Description }
+#define COLOR_ITEM_USE(SettingName, UseSettingName, GroupId, Name, Description) { SettingName, UseSettingName, GroupId, Name, Description }
 
 static COLOR_ITEM ColorItems[] =
 {
-    COLOR_ITEM(SETTING_COLOR_OWN_PROCESSES, L"Own processes", L"Processes running under the same user account as System Informer."),
-    COLOR_ITEM(SETTING_COLOR_SYSTEM_PROCESSES, L"System processes", L"Processes running under the NT AUTHORITY\\SYSTEM user account."),
-    COLOR_ITEM(SETTING_COLOR_SERVICE_PROCESSES, L"Service processes", L"Processes which host one or more services."),
-    COLOR_ITEM(SETTING_COLOR_BACKGROUND_PROCESSES, L"Background processes", L"Processes with a background scheduling priority."),
-    COLOR_ITEM(SETTING_COLOR_JOB_PROCESSES, L"Job processes", L"Processes associated with a job."),
+    COLOR_ITEM(SETTING_COLOR_OWN_PROCESSES, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Own processes", L"Processes running under the same user account as System Informer."),
+    COLOR_ITEM(SETTING_COLOR_SYSTEM_PROCESSES, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"System processes", L"Processes running under the NT AUTHORITY\\SYSTEM user account."),
+    COLOR_ITEM(SETTING_COLOR_SERVICE_PROCESSES, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Service processes", L"Processes which host one or more services."),
+    COLOR_ITEM(SETTING_COLOR_BACKGROUND_PROCESSES, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Background processes", L"Processes with a background scheduling priority."),
+    COLOR_ITEM(SETTING_COLOR_JOB_PROCESSES, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Job processes", L"Processes associated with a job."),
 #ifdef _WIN64
-    COLOR_ITEM(SETTING_COLOR_WOW64_PROCESSES, L"32-bit processes", L"Processes running under WOW64, i.e. 32-bit."),
+    COLOR_ITEM(SETTING_COLOR_WOW64_PROCESSES, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"32-bit processes", L"Processes running under WOW64, i.e. 32-bit."),
 #endif
-    COLOR_ITEM(SETTING_COLOR_DEBUGGED_PROCESSES, L"Debugged processes", L"Processes that are currently being debugged."),
-    COLOR_ITEM(SETTING_COLOR_ELEVATED_PROCESSES, L"Elevated processes", L"Processes with full privileges on a system with UAC enabled."),
-    COLOR_ITEM(SETTING_COLOR_UI_ACCESS_PROCESSES, L"UIAccess processes", L"Processes with UIAccess privileges."),
-    COLOR_ITEM(SETTING_COLOR_PICO_PROCESSES, L"Pico processes", L"Processes that belong to the Windows subsystem for Linux."),
-    COLOR_ITEM(SETTING_COLOR_IMMERSIVE_PROCESSES, L"Immersive processes and DLLs", L"Processes and DLLs that belong to a Modern UI app."),
-    COLOR_ITEM(SETTING_COLOR_SUSPENDED, L"Suspended processes and threads", L"Processes and threads that are suspended from execution."),
-    COLOR_ITEM(SETTING_COLOR_PARTIALLY_SUSPENDED, L"Partially suspended processes and threads", L"Processes and threads that are partially suspended from execution."),
-    COLOR_ITEM(SETTING_COLOR_DOT_NET, L".NET processes and DLLs", L".NET (i.e. managed) processes and DLLs."),
-    COLOR_ITEM(SETTING_COLOR_PACKED, L"Packed processes", L"Executables are sometimes \"packed\" to reduce their size."),
-    COLOR_ITEM(SETTING_COLOR_LOW_IMAGE_COHERENCY, L"Low process image coherency", L"The image file backing the process has low coherency when compared to the mapped image."),
-    COLOR_ITEM(SETTING_COLOR_GUI_THREADS, L"GUI threads", L"Threads that have made at least one GUI-related system call."),
-    COLOR_ITEM(SETTING_COLOR_RELOCATED_MODULES, L"Relocated DLLs", L"DLLs that were not loaded at their preferred image bases."),
-    COLOR_ITEM(SETTING_COLOR_PROTECTED_HANDLES, L"Protected handles", L"Handles that are protected from being closed."),
-    COLOR_ITEM(SETTING_COLOR_PROTECTED_PROCESS, L"Protected processes", L"Processes with built-in protection levels."),
-    COLOR_ITEM(SETTING_COLOR_INHERIT_HANDLES, L"Inheritable handles", L"Handles that can be inherited by child processes."),
-    COLOR_ITEM(SETTING_COLOR_HANDLE_FILTERED, L"Filtered processes", L"Processes that are protected by handle object callbacks."),
-    COLOR_ITEM(SETTING_COLOR_UNKNOWN, L"Untrusted DLLs and Services", L"Services and DLLs which are not digitally signed."),
-    COLOR_ITEM(SETTING_COLOR_SERVICE_DISABLED, L"Disabled Services", L"Services which have been disabled."),
+    COLOR_ITEM(SETTING_COLOR_DEBUGGED_PROCESSES, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Debugged processes", L"Processes that are currently being debugged."),
+    COLOR_ITEM(SETTING_COLOR_ELEVATED_PROCESSES, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Elevated processes", L"Processes with full privileges on a system with UAC enabled."),
+    COLOR_ITEM(SETTING_COLOR_UI_ACCESS_PROCESSES, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"UIAccess processes", L"Processes with UIAccess privileges."),
+    COLOR_ITEM(SETTING_COLOR_PICO_PROCESSES, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Pico processes", L"Processes that belong to the Windows subsystem for Linux."),
+    COLOR_ITEM(SETTING_COLOR_IMMERSIVE_PROCESSES, PH_OPTIONS_HIGHLIGHTING_GROUP_IMAGES, L"Immersive processes and DLLs", L"Processes and DLLs that belong to a Modern UI app."),
+    COLOR_ITEM(SETTING_COLOR_SUSPENDED, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Suspended processes and threads", L"Processes and threads that are suspended from execution."),
+    COLOR_ITEM(SETTING_COLOR_PARTIALLY_SUSPENDED, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Partially suspended processes and threads", L"Processes and threads that are partially suspended from execution."),
+    COLOR_ITEM(SETTING_COLOR_DOT_NET, PH_OPTIONS_HIGHLIGHTING_GROUP_IMAGES, L".NET processes and DLLs", L".NET (i.e. managed) processes and DLLs."),
+    COLOR_ITEM(SETTING_COLOR_PACKED, PH_OPTIONS_HIGHLIGHTING_GROUP_IMAGES, L"Packed processes", L"Executables are sometimes \"packed\" to reduce their size."),
+    COLOR_ITEM(SETTING_COLOR_LOW_IMAGE_COHERENCY, PH_OPTIONS_HIGHLIGHTING_GROUP_IMAGES, L"Low process image coherency", L"The image file backing the process has low coherency when compared to the mapped image."),
+    COLOR_ITEM(SETTING_COLOR_GUI_THREADS, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"GUI threads", L"Threads that have made at least one GUI-related system call."),
+    COLOR_ITEM(SETTING_COLOR_THREAD_SUSPENDED, PH_OPTIONS_HIGHLIGHTING_GROUP_THREADS, L"Suspended", L"Highlight suspended threads in the Threads list."),
+    COLOR_ITEM(SETTING_COLOR_THREAD_DELAY_EXECUTION, PH_OPTIONS_HIGHLIGHTING_GROUP_THREADS, L"Delay execution", L"Highlight delay-execution waits in the Threads list."),
+    COLOR_ITEM(SETTING_COLOR_THREAD_USER_REQUEST, PH_OPTIONS_HIGHLIGHTING_GROUP_THREADS, L"User request", L"Highlight user-request waits in the Threads list."),
+    COLOR_ITEM(SETTING_COLOR_THREAD_ALERT_BY_THREAD_ID, PH_OPTIONS_HIGHLIGHTING_GROUP_THREADS, L"Alert by thread ID", L"Highlight alert-by-thread-ID waits in the Threads list."),
+    COLOR_ITEM(SETTING_COLOR_THREAD_QUEUE, PH_OPTIONS_HIGHLIGHTING_GROUP_THREADS, L"Queue", L"Highlight queue waits in the Threads list."),
+    COLOR_ITEM(SETTING_COLOR_THREAD_EXECUTIVE, PH_OPTIONS_HIGHLIGHTING_GROUP_THREADS, L"Executive", L"Highlight executive waits in the Threads list."),
+    COLOR_ITEM(SETTING_COLOR_THREAD_GUI_THREADS, PH_OPTIONS_HIGHLIGHTING_GROUP_THREADS, L"GUI threads", L"Highlight GUI threads in the Threads list."),
+    COLOR_ITEM(SETTING_COLOR_NETWORK_UNKNOWN_PROCESS, PH_OPTIONS_HIGHLIGHTING_GROUP_NETWORK, L"Unknown process", L"Highlight network items whose owning process is unknown."),
+    COLOR_ITEM(SETTING_COLOR_NETWORK_SUBSYSTEM_PROCESS, PH_OPTIONS_HIGHLIGHTING_GROUP_NETWORK, L"Subsystem process", L"Highlight network items owned by subsystem processes."),
+    COLOR_ITEM(SETTING_COLOR_ENVIRONMENT_PROCESS, PH_OPTIONS_HIGHLIGHTING_GROUP_ENVIRONMENT, L"Process environment", L"Highlight process environment variables in the Environment page."),
+    COLOR_ITEM(SETTING_COLOR_ENVIRONMENT_USER, PH_OPTIONS_HIGHLIGHTING_GROUP_ENVIRONMENT, L"User environment", L"Highlight user environment variables in the Environment page."),
+    COLOR_ITEM(SETTING_COLOR_ENVIRONMENT_SYSTEM, PH_OPTIONS_HIGHLIGHTING_GROUP_ENVIRONMENT, L"System environment", L"Highlight system environment variables in the Environment page."),
+    COLOR_ITEM(SETTING_COLOR_ENVIRONMENT_CMD, PH_OPTIONS_HIGHLIGHTING_GROUP_ENVIRONMENT, L"CMD variables", L"Highlight CMD-style environment variables in the Environment page."),
+    COLOR_ITEM(SETTING_COLOR_WMI_DEFAULT_NAMESPACE, PH_OPTIONS_HIGHLIGHTING_GROUP_WMI, L"Default namespace", L"Highlight providers in the default WMI namespace."),
+    COLOR_ITEM(SETTING_COLOR_TOKEN_ENABLED_DEFAULT, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Enabled by default", L"Token groups or privileges that are enabled by default."),
+    COLOR_ITEM(SETTING_COLOR_TOKEN_ENABLED, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Enabled", L"Token groups or privileges that are enabled."),
+    COLOR_ITEM(SETTING_COLOR_TOKEN_DISABLED_DEFAULT, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Disabled by default", L"Token groups or privileges that are disabled but enabled by default."),
+    COLOR_ITEM(SETTING_COLOR_TOKEN_DISABLED, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Disabled", L"Token groups or privileges that are disabled."),
+    COLOR_ITEM(SETTING_COLOR_TOKEN_REMOVED, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Removed privilege", L"Token privileges that have been removed."),
+    COLOR_ITEM(SETTING_COLOR_TOKEN_DANGEROUS_FLAG, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Dangerous flag", L"Token dangerous flags that are enabled."),
+    COLOR_ITEM(SETTING_COLOR_TOKEN_NORMAL_FLAG, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Normal flag", L"Token dangerous flags that are disabled."),
+    COLOR_ITEM(SETTING_COLOR_MEMORY_PRIVATE_PAGES, PH_OPTIONS_HIGHLIGHTING_GROUP_MEMORY, L"Private pages", L"Highlight private pages in the Memory list."),
+    COLOR_ITEM(SETTING_COLOR_MEMORY_SYSTEM_PAGES, PH_OPTIONS_HIGHLIGHTING_GROUP_MEMORY, L"System pages", L"Highlight system image pages in the Memory list."),
+    COLOR_ITEM(SETTING_COLOR_MEMORY_CFG_PAGES, PH_OPTIONS_HIGHLIGHTING_GROUP_MEMORY, L"CFG pages", L"Highlight CFG bitmap pages in the Memory list."),
+    COLOR_ITEM(SETTING_COLOR_MEMORY_EXECUTE_PAGES, PH_OPTIONS_HIGHLIGHTING_GROUP_MEMORY, L"Execute pages", L"Highlight executable pages in the Memory list."),
+    COLOR_ITEM(SETTING_COLOR_MODULE_UNKNOWN, PH_OPTIONS_HIGHLIGHTING_GROUP_MODULES, L"Untrusted modules", L"Modules that are not digitally signed or otherwise untrusted."),
+    COLOR_ITEM(SETTING_COLOR_MODULE_LOW_IMAGE_COHERENCY, PH_OPTIONS_HIGHLIGHTING_GROUP_MODULES, L"Low image coherency", L"Modules whose backing image file has low coherency."),
+    COLOR_ITEM(SETTING_COLOR_MODULE_DOT_NET, PH_OPTIONS_HIGHLIGHTING_GROUP_MODULES, L".NET modules", L"Modules that contain managed .NET code."),
+    COLOR_ITEM(SETTING_COLOR_MODULE_IMMERSIVE, PH_OPTIONS_HIGHLIGHTING_GROUP_MODULES, L"Immersive modules", L"Modules associated with app-container or immersive applications."),
+    COLOR_ITEM(SETTING_COLOR_MODULE_RELOCATED, PH_OPTIONS_HIGHLIGHTING_GROUP_MODULES, L"Relocated modules", L"Modules that were not loaded at their preferred image base."),
+    COLOR_ITEM(SETTING_COLOR_MODULE_IMAGEKNOWNDLL, PH_OPTIONS_HIGHLIGHTING_GROUP_MODULES, L"Known DLLs", L"Modules loaded from the KnownDLLs image set."),
+    COLOR_ITEM(SETTING_COLOR_MODULE_SYSTEM, PH_OPTIONS_HIGHLIGHTING_GROUP_MODULES, L"Native modules", L"Standard loaded native modules, including trusted Microsoft modules."),
+    COLOR_ITEM(SETTING_COLOR_MODULE_MAPPED, PH_OPTIONS_HIGHLIGHTING_GROUP_MODULES, L"Mapped modules", L"Mapped files, mapped images, and enclave modules."),
+    COLOR_ITEM(SETTING_COLOR_RELOCATED_MODULES, PH_OPTIONS_HIGHLIGHTING_GROUP_IMAGES, L"Relocated DLLs", L"DLLs that were not loaded at their preferred image bases."),
+    COLOR_ITEM(SETTING_COLOR_PROTECTED_HANDLES, PH_OPTIONS_HIGHLIGHTING_GROUP_HANDLES, L"Protected handles", L"Handles that are protected from being closed."),
+    COLOR_ITEM(SETTING_COLOR_PROTECTED_PROCESS, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Protected processes", L"Processes with built-in protection levels."),
+    COLOR_ITEM(SETTING_COLOR_INHERIT_HANDLES, PH_OPTIONS_HIGHLIGHTING_GROUP_HANDLES, L"Inheritable handles", L"Handles that can be inherited by child processes."),
+    COLOR_ITEM(SETTING_COLOR_HANDLE_FILTERED, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Filtered processes", L"Processes that are protected by handle object callbacks."),
+    COLOR_ITEM(SETTING_COLOR_UNKNOWN, PH_OPTIONS_HIGHLIGHTING_GROUP_SERVICES, L"Untrusted DLLs and Services", L"Services and DLLs which are not digitally signed."),
+    COLOR_ITEM(SETTING_COLOR_SERVICE_DISABLED, PH_OPTIONS_HIGHLIGHTING_GROUP_SERVICES, L"Disabled Services", L"Services which have been disabled."),
     //COLOR_ITEM(SETTING_COLOR_SERVICE_STOP, L"Stopped Services", L"Services that are not running.")
-    COLOR_ITEM(SETTING_COLOR_EFFICIENCY_MODE, L"Power efficiency", L"Processes and threads with power efficiency."),
+    COLOR_ITEM(SETTING_COLOR_EFFICIENCY_MODE, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Power efficiency", L"Processes and threads with power efficiency."),
 };
 
 COLORREF NTAPI PhpColorItemColorFunction(
@@ -3447,12 +3497,24 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             PhAddListViewColumn(HighlightingListViewHandle, 0, 0, 0, LVCFMT_LEFT, 240, L"Name");
             PhSetExtendedListView(HighlightingListViewHandle);
             ExtendedListView_SetItemColorFunction(HighlightingListViewHandle, PhpColorItemColorFunction);
+            ListView_EnableGroupView(HighlightingListViewHandle, TRUE);
+            PhAddListViewGroup(HighlightingListViewHandle, PH_OPTIONS_HIGHLIGHTING_GROUP_PROCESSES_AND_THREADS, L"Processes");
+            PhAddListViewGroup(HighlightingListViewHandle, PH_OPTIONS_HIGHLIGHTING_GROUP_THREADS, L"Threads");
+            PhAddListViewGroup(HighlightingListViewHandle, PH_OPTIONS_HIGHLIGHTING_GROUP_NETWORK, L"Network");
+            PhAddListViewGroup(HighlightingListViewHandle, PH_OPTIONS_HIGHLIGHTING_GROUP_ENVIRONMENT, L"Environment");
+            PhAddListViewGroup(HighlightingListViewHandle, PH_OPTIONS_HIGHLIGHTING_GROUP_WMI, L"WMI");
+            PhAddListViewGroup(HighlightingListViewHandle, PH_OPTIONS_HIGHLIGHTING_GROUP_TOKEN, L"Token");
+            PhAddListViewGroup(HighlightingListViewHandle, PH_OPTIONS_HIGHLIGHTING_GROUP_MEMORY, L"Memory");
+            PhAddListViewGroup(HighlightingListViewHandle, PH_OPTIONS_HIGHLIGHTING_GROUP_MODULES, L"Modules");
+            PhAddListViewGroup(HighlightingListViewHandle, PH_OPTIONS_HIGHLIGHTING_GROUP_IMAGES, L"Images and DLLs");
+            PhAddListViewGroup(HighlightingListViewHandle, PH_OPTIONS_HIGHLIGHTING_GROUP_HANDLES, L"Handles");
+            PhAddListViewGroup(HighlightingListViewHandle, PH_OPTIONS_HIGHLIGHTING_GROUP_SERVICES, L"Services");
 
             for (ULONG i = 0; i < RTL_NUMBER_OF(ColorItems); i++)
             {
                 INT lvItemIndex;
 
-                lvItemIndex = PhAddListViewItem(HighlightingListViewHandle, MAXINT, ColorItems[i].Name, &ColorItems[i]);
+                lvItemIndex = PhAddListViewGroupItem(HighlightingListViewHandle, ColorItems[i].GroupId, MAXINT, ColorItems[i].Name, &ColorItems[i]);
                 ColorItems[i].CurrentColor = PhGetIntegerSetting(ColorItems[i].SettingName);
                 ColorItems[i].CurrentUse = !!PhGetIntegerSetting(ColorItems[i].UseSettingName);
                 ListView_SetCheckState(HighlightingListViewHandle, lvItemIndex, ColorItems[i].CurrentUse);
@@ -3473,7 +3535,11 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
 
             for (ULONG i = 0; i < RTL_NUMBER_OF(ColorItems); i++)
             {
-                ColorItems[i].CurrentUse = !!ListView_GetCheckState(HighlightingListViewHandle, i);
+                INT index;
+
+                index = PhFindListViewItemByParam(HighlightingListViewHandle, INT_ERROR, &ColorItems[i]);
+                if (index != INT_ERROR)
+                    ColorItems[i].CurrentUse = !!ListView_GetCheckState(HighlightingListViewHandle, index);
                 PhSetIntegerSetting(ColorItems[i].SettingName, ColorItems[i].CurrentColor);
                 PhSetIntegerSetting(ColorItems[i].UseSettingName, ColorItems[i].CurrentUse);
             }
@@ -3501,13 +3567,25 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             case IDC_ENABLEALL:
                 {
                     for (ULONG i = 0; i < RTL_NUMBER_OF(ColorItems); i++)
-                        ListView_SetCheckState(HighlightingListViewHandle, i, TRUE);
+                    {
+                        INT index;
+
+                        index = PhFindListViewItemByParam(HighlightingListViewHandle, INT_ERROR, &ColorItems[i]);
+                        if (index != INT_ERROR)
+                            ListView_SetCheckState(HighlightingListViewHandle, index, TRUE);
+                    }
                 }
                 break;
             case IDC_DISABLEALL:
                 {
                     for (ULONG i = 0; i < RTL_NUMBER_OF(ColorItems); i++)
-                        ListView_SetCheckState(HighlightingListViewHandle, i, FALSE);
+                    {
+                        INT index;
+
+                        index = PhFindListViewItemByParam(HighlightingListViewHandle, INT_ERROR, &ColorItems[i]);
+                        if (index != INT_ERROR)
+                            ListView_SetCheckState(HighlightingListViewHandle, index, FALSE);
+                    }
                 }
                 break;
             }
@@ -3559,9 +3637,13 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                     {
                         NMLVGETINFOTIP *getInfoTip = (NMLVGETINFOTIP *)lParam;
                         PH_STRINGREF tip;
+                        PCOLOR_ITEM colorItem;
 
-                        PhInitializeStringRefLongHint(&tip, ColorItems[getInfoTip->iItem].Description);
-                        PhCopyListViewInfoTip(getInfoTip, &tip);
+                        if (PhGetListViewItemParam(HighlightingListViewHandle, getInfoTip->iItem, &colorItem))
+                        {
+                            PhInitializeStringRefLongHint(&tip, colorItem->Description);
+                            PhCopyListViewInfoTip(getInfoTip, &tip);
+                        }
                     }
                 }
                 break;
@@ -3678,15 +3760,15 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
 
 static COLOR_ITEM PhpOptionsGraphColorItems[] =
 {
-    COLOR_ITEM(SETTING_COLOR_CPU_KERNEL, L"CPU kernel", L"CPU kernel"),
-    COLOR_ITEM(SETTING_COLOR_CPU_USER, L"CPU user", L"CPU user"),
-    COLOR_ITEM(SETTING_COLOR_IO_READ_OTHER, L"I/O R+O", L"I/O R+O"),
-    COLOR_ITEM(SETTING_COLOR_IO_WRITE, L"I/O W", L"I/O W"),
-    COLOR_ITEM(SETTING_COLOR_PRIVATE, L"Private bytes", L"Private bytes"),
-    COLOR_ITEM(SETTING_COLOR_PHYSICAL, L"Physical memory", L"Physical memory"),
-    COLOR_ITEM(SETTING_COLOR_POWER_USAGE, L"Power usage", L"Power usage"),
-    COLOR_ITEM(SETTING_COLOR_TEMPERATURE, L"Temperature", L"Temperature"),
-    COLOR_ITEM(SETTING_COLOR_FAN_RPM, L"Fan RPM", L"Fan RPM"),
+    COLOR_ITEM(SETTING_COLOR_CPU_KERNEL, 0, L"CPU kernel", L"CPU kernel"),
+    COLOR_ITEM(SETTING_COLOR_CPU_USER, 0, L"CPU user", L"CPU user"),
+    COLOR_ITEM(SETTING_COLOR_IO_READ_OTHER, 0, L"I/O R+O", L"I/O R+O"),
+    COLOR_ITEM(SETTING_COLOR_IO_WRITE, 0, L"I/O W", L"I/O W"),
+    COLOR_ITEM(SETTING_COLOR_PRIVATE, 0, L"Private bytes", L"Private bytes"),
+    COLOR_ITEM(SETTING_COLOR_PHYSICAL, 0, L"Physical memory", L"Physical memory"),
+    COLOR_ITEM(SETTING_COLOR_POWER_USAGE, 0, L"Power usage", L"Power usage"),
+    COLOR_ITEM(SETTING_COLOR_TEMPERATURE, 0, L"Temperature", L"Temperature"),
+    COLOR_ITEM(SETTING_COLOR_FAN_RPM, 0, L"Fan RPM", L"Fan RPM"),
 };
 static HWND PhpGraphListViewHandle = NULL;
 
