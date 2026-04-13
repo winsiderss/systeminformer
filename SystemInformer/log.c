@@ -52,6 +52,7 @@ VOID PhpFreeLogEntry(
     {
         PhDereferenceObject(Entry->Process.Name);
         if (Entry->Process.ParentName) PhDereferenceObject(Entry->Process.ParentName);
+        if (Entry->Process.CommandLine) PhDereferenceObject(Entry->Process.CommandLine);
     }
     else if (Entry->Type >= PH_LOG_ENTRY_SERVICE_FIRST && Entry->Type <= PH_LOG_ENTRY_SERVICE_LAST)
     {
@@ -72,6 +73,7 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
     _In_ PPH_STRING Name,
     _In_opt_ HANDLE ParentProcessId,
     _In_opt_ PPH_STRING ParentName,
+    _In_opt_ PPH_STRING CommandLine,
     _In_opt_ ULONG Status
     )
 {
@@ -88,6 +90,12 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
     {
         PhReferenceObject(ParentName);
         entry->Process.ParentName = ParentName;
+    }
+
+    if (!PhIsNullOrEmptyString(CommandLine))
+    {
+        PhReferenceObject(CommandLine);
+        entry->Process.CommandLine = CommandLine;
     }
 
     entry->Process.ExitStatus = Status;
@@ -179,10 +187,11 @@ VOID PhLogProcessEntry(
     _In_ PPH_STRING Name,
     _In_opt_ HANDLE ParentProcessId,
     _In_opt_ PPH_STRING ParentName,
+    _In_opt_ PPH_STRING CommandLine,
     _In_opt_ ULONG Status
     )
 {
-    PhpLogEntry(PhpCreateProcessLogEntry(Type, ProcessId, Name, ParentProcessId, ParentName, Status));
+    PhpLogEntry(PhpCreateProcessLogEntry(Type, ProcessId, Name, ParentProcessId, ParentName, CommandLine, Status));
 }
 
 VOID PhLogServiceEntry(
