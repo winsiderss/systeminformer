@@ -223,7 +223,8 @@ VOID FASTCALL PhfAcquireFastLockExclusive(
 
                 do
                 {
-                    value = FastLock->Value;
+                    value = ReadULongAcquire(&FastLock->Value);
+
                 } while (_InterlockedCompareExchange(
                     &FastLock->Value,
                     value + PH_LOCK_OWNED - PH_LOCK_EXCLUSIVE_WAKING,
