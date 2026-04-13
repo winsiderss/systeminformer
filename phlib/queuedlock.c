@@ -930,8 +930,10 @@ VOID FASTCALL PhfPulseCondition(
     _Inout_ PPH_CONDITION Condition
     )
 {
-    if (Condition->Value & PH_QUEUED_LOCK_WAITERS)
-        PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, FALSE);
+    ULONG_PTR value = ReadULongPtrAcquire(&Condition->Value);
+
+    if (value & PH_QUEUED_LOCK_WAITERS)
+        PhpfWakeQueuedLockEx(Condition, value, TRUE, FALSE);
 }
 
 /**
@@ -946,8 +948,10 @@ VOID FASTCALL PhfPulseAllCondition(
     _Inout_ PPH_CONDITION Condition
     )
 {
-    if (Condition->Value & PH_QUEUED_LOCK_WAITERS)
-        PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, TRUE);
+    ULONG_PTR value = ReadULongPtrAcquire(&Condition->Value);
+
+    if (value & PH_QUEUED_LOCK_WAITERS)
+        PhpfWakeQueuedLockEx(Condition, value, TRUE, TRUE);
 }
 
 /**
