@@ -2417,7 +2417,7 @@ LRESULT PhTnpOnUserMessage(
             parts->HeaderHeight = Context->HeaderHeight;
             parts->RowHeight = Context->RowHeight;
             parts->VScrollWidth = Context->VScrollVisible ? Context->VScrollWidth : 0;
-            parts->HScrollHeight = Context->HScrollHeight ? Context->HScrollHeight : 0;
+            parts->HScrollHeight = Context->HScrollVisible ? Context->HScrollHeight : 0;
             parts->VScrollPosition = Context->VScrollPosition;
             parts->HScrollPosition = Context->HScrollPosition;
             parts->FixedWidth = Context->FixedWidth;
@@ -2539,7 +2539,16 @@ LRESULT PhTnpOnUserMessage(
             if (index >= Context->NumberOfColumnsByDisplay + (Context->FixedColumnVisible ? 1 : 0))
                 return FALSE;
 
-            index = Context->ColumnsByDisplay[index - (Context->FixedColumnVisible ? 1 : 0)]->Id;
+            if (Context->FixedColumnVisible)
+            {
+                if (index == 0)
+                    return PhTnpCopyColumn(Context, Context->FixedColumn->Id, (PPH_TREENEW_COLUMN)LParam);
+                index = Context->ColumnsByDisplay[index - 1]->Id;
+            }
+            else
+            {
+                index = Context->ColumnsByDisplay[index]->Id;
+            }
 
             return PhTnpCopyColumn(Context, index, (PPH_TREENEW_COLUMN)LParam);
         }
@@ -4749,7 +4758,7 @@ BOOLEAN PhTnpGetCellParts(
                     if (Column->TextFlags & DT_CENTER)
                     {
                         Parts->TextRect.left = Parts->ContentRect.left / 2 + (Parts->ContentRect.right - textSize.cx) / 2;
-                        Parts->TextRect.right = Parts->ContentRect.left + textSize.cx;
+                        Parts->TextRect.right = Parts->TextRect.left + textSize.cx;
                     }
                     else if (Column->TextFlags & DT_RIGHT)
                     {
@@ -5799,7 +5808,7 @@ BOOLEAN PhTnpProcessNodeKey(
                         {
                             Context->FocusNode = newNode;
                             Context->MarkNodeIndex = newNode->Index;
-                            PhTnpEnsureVisibleNode(Context, Context->FocusNode->Index + 1);
+                            PhTnpEnsureVisibleNode(Context, Context->FocusNode->Index);
                             PhTnpSetHotNode(Context, newNode, FALSE);
                             PhTnpSelectRange(Context, Context->FocusNode->Index, Context->FocusNode->Index, TN_SELECT_RESET, &changedStart, &changedEnd);
 
