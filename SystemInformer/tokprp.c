@@ -152,7 +152,7 @@ static CONST PH_KEY_VALUE_PAIR PhSidTypePairs[] =
     SIP(L"Alias", SidTypeAlias),
     SIP(L"WellKnownGroup", SidTypeWellKnownGroup),
     SIP(L"DeletedAccount", SidTypeDeletedAccount),
-    SIP(L"Yes (Limited)", SidTypeInvalid),
+    SIP(L"Invalid", SidTypeInvalid),
     SIP(L"Unknown", SidTypeUnknown),
     SIP(L"Computer", SidTypeComputer),
     SIP(L"Label", SidTypeLabel),
@@ -436,25 +436,27 @@ COLORREF PhGetGroupAttributesColorDark(
     _In_ ULONG Attributes
     )
 {
+    COLORREF backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
+
     if (FlagOn(Attributes, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
     {
         if (!FlagOn(Attributes, SE_GROUP_ENABLED))
-            return RGB(0, 26, 0);
+            return PhCsUseColorTokenEnabledDefault ? PhCsColorTokenEnabledDefault : backgroundColor;
     }
 
     if (FlagOn(Attributes, SE_GROUP_ENABLED))
     {
         if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
-            return RGB(0, 26, 0);
+            return PhCsUseColorTokenEnabledDefault ? PhCsColorTokenEnabledDefault : backgroundColor;
         else
-            return RGB(0, 102, 0);
+            return PhCsUseColorTokenEnabled ? PhCsColorTokenEnabled : backgroundColor;
     }
     else
     {
         if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
-            return RGB(122, 77, 84);
+            return PhCsUseColorTokenDisabledDefault ? PhCsColorTokenDisabledDefault : backgroundColor;
         else
-            return RGB(43, 12, 15);
+            return PhCsUseColorTokenDisabled ? PhCsColorTokenDisabled : backgroundColor;
     }
 }
 
@@ -462,24 +464,26 @@ COLORREF PhGetPrivilegeAttributesColorDark(
     _In_ ULONG Attributes
     )
 {
+    COLORREF backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
+
     if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
     {
-        return RGB(0, 0, 0);
+        return PhCsUseColorTokenRemoved ? PhCsColorTokenRemoved : backgroundColor;
     }
 
     if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
     {
         if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
-            return RGB(0, 26, 0);
+            return PhCsUseColorTokenEnabledDefault ? PhCsColorTokenEnabledDefault : backgroundColor;
         else
-            return RGB(0, 102, 0);
+            return PhCsUseColorTokenEnabled ? PhCsColorTokenEnabled : backgroundColor;
     }
     else
     {
         if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
-            return RGB(122, 77, 84);
+            return PhCsUseColorTokenDisabledDefault ? PhCsColorTokenDisabledDefault : backgroundColor;
         else
-            return RGB(43, 12, 15);
+            return PhCsUseColorTokenDisabled ? PhCsColorTokenDisabled : backgroundColor;
     }
 }
 
@@ -487,35 +491,39 @@ COLORREF PhGetDangerousFlagColorDark(
     _In_ BOOLEAN FlagState
     )
 {
+    COLORREF backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
+
     if (FlagState)
-        return RGB(0xc0, 0xf0, 0xc0);
+        return PhCsUseColorTokenDangerousFlag ? PhCsColorTokenDangerousFlag : backgroundColor;
     else
-        return RGB(0xf0, 0xc0, 0xc0);
+        return PhCsUseColorTokenNormalFlag ? PhCsColorTokenNormalFlag : backgroundColor;
 }
 
 COLORREF PhGetGroupAttributesColor(
     _In_ ULONG Attributes
     )
 {
+    COLORREF backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
+
     if (FlagOn(Attributes, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
     {
         if (!FlagOn(Attributes, SE_GROUP_ENABLED))
-            return RGB(0xe0, 0xf0, 0xe0);
+            return PhCsUseColorTokenEnabledDefault ? PhCsColorTokenEnabledDefault : backgroundColor;
     }
 
     if (FlagOn(Attributes, SE_GROUP_ENABLED))
     {
         if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
-            return RGB(0xe0, 0xf0, 0xe0);
+            return PhCsUseColorTokenEnabledDefault ? PhCsColorTokenEnabledDefault : backgroundColor;
         else
-            return RGB(0xc0, 0xf0, 0xc0);
+            return PhCsUseColorTokenEnabled ? PhCsColorTokenEnabled : backgroundColor;
     }
     else
     {
         if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
-            return RGB(0xf0, 0xc0, 0xc0);
+            return PhCsUseColorTokenDisabledDefault ? PhCsColorTokenDisabledDefault : backgroundColor;
         else
-            return RGB(0xf0, 0xe0, 0xe0);
+            return PhCsUseColorTokenDisabled ? PhCsColorTokenDisabled : backgroundColor;
     }
 }
 
@@ -523,24 +531,26 @@ COLORREF PhGetPrivilegeAttributesColor(
     _In_ ULONG Attributes
     )
 {
+    COLORREF backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
+
     if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
     {
-        return RGB(0xc0, 0xc0, 0xc0);
+        return PhCsUseColorTokenRemoved ? PhCsColorTokenRemoved : backgroundColor;
     }
 
     if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
     {
         if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
-            return RGB(0xe0, 0xf0, 0xe0);
+            return PhCsUseColorTokenEnabledDefault ? PhCsColorTokenEnabledDefault : backgroundColor;
         else
-            return RGB(0xc0, 0xf0, 0xc0);
+            return PhCsUseColorTokenEnabled ? PhCsColorTokenEnabled : backgroundColor;
     }
     else
     {
         if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
-            return RGB(0xf0, 0xc0, 0xc0);
+            return PhCsUseColorTokenDisabledDefault ? PhCsColorTokenDisabledDefault : backgroundColor;
         else
-            return RGB(0xf0, 0xe0, 0xe0);
+            return PhCsUseColorTokenDisabled ? PhCsColorTokenDisabled : backgroundColor;
     }
 }
 
@@ -548,10 +558,12 @@ COLORREF PhGetDangerousFlagColor(
     _In_ BOOLEAN FlagState
     )
 {
+    COLORREF backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
+
     if (FlagState)
-        return RGB(0xc0, 0xf0, 0xc0);
+        return PhCsUseColorTokenDangerousFlag ? PhCsColorTokenDangerousFlag : backgroundColor;
     else
-        return RGB(0xf0, 0xc0, 0xc0);
+        return PhCsUseColorTokenNormalFlag ? PhCsColorTokenNormalFlag : backgroundColor;
 }
 
 static COLORREF NTAPI PhpTokenGroupColorFunction(
@@ -911,13 +923,20 @@ NTSTATUS NTAPI PhpEnumeratePrivilegesCallback(
         PPH_STRING privilegeDisplayName;
         PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
         LONG itemIndex;
+        BOOLEAN found = FALSE;
 
         for (ULONG j = 0; j < tokenPageContext->Privileges->PrivilegeCount; j++)
         {
             if (RtlIsEqualLuid(&tokenPageContext->Privileges->Privileges[j].Luid, &Privileges[i].LocalValue))
             {
-                continue;
+                found = TRUE;
+                break;
             }
+        }
+                
+        if (found)
+        {
+            continue;
         }
 
         privilegeName = PhCreateStringFromUnicodeString(&Privileges[i].Name);
@@ -2019,7 +2038,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         rect.top
                         );
 
-                    if (selectedItem && selectedItem->Id != integrityLevelRID)
+                    if (selectedItem && selectedItem->Id != (ULONG)integrityLevelRID)
                     {
                         if (PhShowConfirmMessage(
                             hwndDlg,
@@ -2546,7 +2565,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
                 if (NT_SUCCESS(PhGetTokenUIAccess(tokenHandle, &isUIAccessEnabled)))
                 {
-                    tokenUIAccess = isUIAccessEnabled ? L"Enabled": L"Disabled";
+                    tokenUIAccess = isUIAccessEnabled ? L"Enabled" : L"Disabled";
                 }
 
                 tokenPageContext->CloseObject(tokenHandle, FALSE, tokenPageContext->Context);
@@ -4719,7 +4738,7 @@ typedef enum _AppModelPolicy_Type
     AppModelPolicy_Type_BackgroundTaskRegistrationType = 57,
     AppModelPolicy_Type_ModsPowerNotification = 58,
     AppModelPolicy_Type_DamRegistration = 59, // since 24H2
-    AppModelPolicy_Type_Count = 59,
+    AppModelPolicy_Type_Count = 60,
 } AppModelPolicy_Type;
 
 typedef enum _AppModelPolicy_PolicyValue

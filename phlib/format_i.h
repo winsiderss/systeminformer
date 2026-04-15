@@ -87,7 +87,7 @@
                 PSTR multiByteBuffer;
                 SIZE_T multiByteLength;
 
-                if (format->Type == MultiByteStringFormatType)
+                if ((format->Type & FormatTypeMask) == MultiByteStringFormatType)
                 {
                     multiByteBuffer = format->u.MultiByteString.Buffer;
                     multiByteLength = format->u.MultiByteString.Length;
@@ -490,7 +490,7 @@ CommonInt64Format:
 
                 while (
                     s >= 1000 &&
-                    i < sizeof(PhSizeUnitNamesCounted) / sizeof(PH_STRINGREF) &&
+                    i + 1 < sizeof(PhSizeUnitNamesCounted) / sizeof(PH_STRINGREF) &&
                     i < maxSizeUnit
                     )
                 {

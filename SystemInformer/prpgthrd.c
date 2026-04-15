@@ -113,6 +113,8 @@ VOID PhpInitializeThreadMenu(
             ID_THREAD_TERMINATE,
             ID_THREAD_SUSPEND,
             ID_THREAD_RESUME,
+            ID_THREAD_FREEZE,
+            ID_THREAD_THAW,
             ID_THREAD_COPY,
             ID_THREAD_AFFINITY,
         };
@@ -131,6 +133,31 @@ VOID PhpInitializeThreadMenu(
         if (menuItem = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"&Priority", 0))
         {
             PhSetEnabledEMenuItem(menuItem, TRUE);
+        }
+    }
+
+    if (WindowsVersion < WINDOWS_11)
+    {
+        PPH_EMENU_ITEM menuItem;
+
+        if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FREEZE))
+            PhDestroyEMenuItem(menuItem);
+        if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_THAW))
+            PhDestroyEMenuItem(menuItem);
+    }
+    else if (NumberOfThreads == 1)
+    {
+        PPH_EMENU_ITEM menuItem;
+
+        if (ReadPointerAcquire(&Threads[0]->FreezeHandle))
+        {
+            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FREEZE))
+                PhDestroyEMenuItem(menuItem);
+        }
+        else
+        {
+            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_THAW))
+                PhDestroyEMenuItem(menuItem);
         }
     }
 
@@ -493,6 +520,8 @@ PPH_EMENU PhpCreateThreadMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_TERMINATE, L"T&erminate\bDel", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_SUSPEND, L"&Suspend", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_RESUME, L"Res&ume", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_FREEZE, L"&Freeze", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_THAW, L"&Thaw", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ANALYZE_WAIT, L"Analy&ze", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
@@ -1223,6 +1252,30 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PhFree(threads);
                 }
                 break;
+            case ID_THREAD_FREEZE:
+                {
+                    PPH_THREAD_ITEM *threads;
+                    ULONG numberOfThreads;
+
+                    PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
+                    PhReferenceObjects(threads, numberOfThreads);
+                    PhUiFreezeThreads(hwndDlg, threads, numberOfThreads);
+                    PhDereferenceObjects(threads, numberOfThreads);
+                    PhFree(threads);
+                }
+                break;
+            case ID_THREAD_THAW:
+                {
+                    PPH_THREAD_ITEM *threads;
+                    ULONG numberOfThreads;
+
+                    PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
+                    PhReferenceObjects(threads, numberOfThreads);
+                    PhUiThawThreads(hwndDlg, threads, numberOfThreads);
+                    PhDereferenceObjects(threads, numberOfThreads);
+                    PhFree(threads);
+                }
+                break;
             case ID_THREAD_AFFINITY:
                 {
                     ULONG numberOfThreads;
@@ -1567,6 +1620,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PPH_EMENU_ITEM hideSuspendedMenuItem;
                     PPH_EMENU_ITEM hideGuiMenuItem;
                     PPH_EMENU_ITEM highlightSuspendedMenuItem;
+                    PPH_EMENU_ITEM highlightDelayExecutionMenuItem;
+                    PPH_EMENU_ITEM highlightUserRequestMenuItem;
+                    PPH_EMENU_ITEM highlightAlertByThreadIdMenuItem;
+                    PPH_EMENU_ITEM highlightQueueMenuItem;
+                    PPH_EMENU_ITEM highlightExecutiveMenuItem;
                     PPH_EMENU_ITEM highlightGuiMenuItem;
                     PPH_EMENU_ITEM saveMenuItem;
                     PPH_EMENU_ITEM selectedItem;
@@ -1577,6 +1635,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     hideSuspendedMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIDE_SUSPENDED, L"Hide suspended", NULL, NULL);
                     hideGuiMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIDE_GUITHREADS, L"Hide gui", NULL, NULL);
                     highlightSuspendedMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_SUSPENDED, L"Highlight suspended", NULL, NULL);
+                    highlightDelayExecutionMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_DELAYEXECUTION, L"Highlight delay execution", NULL, NULL);
+                    highlightUserRequestMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_USERREQUEST, L"Highlight user request", NULL, NULL);
+                    highlightAlertByThreadIdMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_ALERTBYTHREADID, L"Highlight alert by thread ID", NULL, NULL);
+                    highlightQueueMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_QUEUE, L"Highlight queue", NULL, NULL);
+                    highlightExecutiveMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_EXECUTIVE, L"Highlight executive", NULL, NULL);
                     highlightGuiMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_GUITHREADS, L"Highlight gui", NULL, NULL);
                     saveMenuItem = PhCreateEMenuItem(0, PH_THREAD_TREELIST_MENUITEM_SAVE, L"Save...", NULL, NULL);
 
@@ -1585,6 +1648,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PhInsertEMenuItem(menu, hideGuiMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, highlightSuspendedMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightDelayExecutionMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightUserRequestMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightAlertByThreadIdMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightQueueMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightExecutiveMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, highlightGuiMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, saveMenuItem, ULONG_MAX);
@@ -1595,6 +1663,16 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                         hideGuiMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (threadsContext->ListContext.HighlightSuspended)
                         highlightSuspendedMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (threadsContext->ListContext.HighlightDelayExecution)
+                        highlightDelayExecutionMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (threadsContext->ListContext.HighlightUserRequest)
+                        highlightUserRequestMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (threadsContext->ListContext.HighlightAlertByThreadId)
+                        highlightAlertByThreadIdMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (threadsContext->ListContext.HighlightQueue)
+                        highlightQueueMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (threadsContext->ListContext.HighlightExecutive)
+                        highlightExecutiveMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (threadsContext->ListContext.HighlightGuiThreads)
                         highlightGuiMenuItem->Flags |= PH_EMENU_CHECKED;
 

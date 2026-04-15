@@ -68,8 +68,15 @@ NTSTATUS PhQueuedLockInitialization(
     VOID
     );
 
+//
 // Queued lock
+//
 
+/**
+ * Initializes a queued lock.
+ *
+ * \param QueuedLock A pointer to a queued lock structure to initialize.
+ */
 FORCEINLINE
 VOID
 PhInitializeQueuedLock(
@@ -79,6 +86,21 @@ PhInitializeQueuedLock(
     QueuedLock->Value = 0;
 }
 
+/**
+ * Deletes a queued lock.
+ *
+ * \param QueuedLock A pointer to a queued lock structure to delete.
+ */
+FORCEINLINE
+VOID
+PhDeleteQueuedLock(
+    _Inout_ _Post_invalid_ PPH_QUEUED_LOCK QueuedLock
+    )
+{
+    QueuedLock->Value = 0;
+}
+
+_Acquires_exclusive_lock_(*QueuedLock)
 PHLIBAPI
 VOID
 FASTCALL
@@ -86,6 +108,12 @@ PhfAcquireQueuedLockExclusive(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     );
 
+/**
+ * Acquires a queued lock in exclusive mode.
+ *
+ * \param QueuedLock A pointer to a queued lock structure.
+ */
+_Requires_lock_not_held_(*QueuedLock)
 _Acquires_exclusive_lock_(*QueuedLock)
 FORCEINLINE
 VOID
@@ -100,6 +128,7 @@ PhAcquireQueuedLockExclusive(
     }
 }
 
+_Acquires_shared_lock_(*QueuedLock)
 PHLIBAPI
 VOID
 FASTCALL
@@ -107,6 +136,12 @@ PhfAcquireQueuedLockShared(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     );
 
+/**
+ * Acquires a queued lock in shared mode.
+ *
+ * \param QueuedLock A pointer to a queued lock structure.
+ */
+_Requires_lock_not_held_(*QueuedLock)
 _Acquires_shared_lock_(*QueuedLock)
 FORCEINLINE
 VOID
@@ -124,6 +159,13 @@ PhAcquireQueuedLockShared(
     }
 }
 
+/**
+ * Attempts to acquire a queued lock in exclusive mode.
+ *
+ * \param QueuedLock A pointer to a queued lock structure.
+ * \return TRUE if the lock was acquired, otherwise FALSE.
+ */
+_Requires_lock_not_held_(*QueuedLock)
 _When_(return != 0, _Acquires_exclusive_lock_(*QueuedLock))
 FORCEINLINE
 BOOLEAN
@@ -141,6 +183,7 @@ PhTryAcquireQueuedLockExclusive(
     }
 }
 
+_Releases_exclusive_lock_(*QueuedLock)
 PHLIBAPI
 VOID
 FASTCALL
@@ -148,6 +191,7 @@ PhfReleaseQueuedLockExclusive(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     );
 
+_Requires_lock_not_held_(*QueuedLock)
 PHLIBAPI
 VOID
 FASTCALL
@@ -156,6 +200,12 @@ PhfWakeForReleaseQueuedLock(
     _In_ ULONG_PTR Value
     );
 
+/**
+ * Releases a queued lock in exclusive mode.
+ *
+ * \param QueuedLock A pointer to a queued lock structure.
+ */
+_Requires_exclusive_lock_held_(*QueuedLock)
 _Releases_exclusive_lock_(*QueuedLock)
 FORCEINLINE
 VOID
@@ -169,10 +219,12 @@ PhReleaseQueuedLockExclusive(
 
     if ((value & (PH_QUEUED_LOCK_WAITERS | PH_QUEUED_LOCK_TRAVERSING)) == PH_QUEUED_LOCK_WAITERS)
     {
+        _Analysis_assume_lock_not_held_(*QueuedLock);
         PhfWakeForReleaseQueuedLock(QueuedLock, value - PH_QUEUED_LOCK_OWNED);
     }
 }
 
+_Releases_shared_lock_(*QueuedLock)
 PHLIBAPI
 VOID
 FASTCALL
@@ -180,6 +232,12 @@ PhfReleaseQueuedLockShared(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     );
 
+/**
+ * Releases a queued lock in shared mode.
+ *
+ * \param QueuedLock A pointer to a queued lock structure.
+ */
+_Requires_shared_lock_held_(*QueuedLock)
 _Releases_shared_lock_(*QueuedLock)
 FORCEINLINE
 VOID
@@ -201,6 +259,11 @@ PhReleaseQueuedLockShared(
     }
 }
 
+/**
+ * Acts as a memory barrier by ensuring the queued lock is unowned or briefly acquiring and releasing it.
+ *
+ * \param QueuedLock A pointer to a queued lock structure.
+ */
 FORCEINLINE
 VOID
 PhAcquireReleaseQueuedLockExclusive(
@@ -220,6 +283,12 @@ PhAcquireReleaseQueuedLockExclusive(
     }
 }
 
+/**
+ * Acts as a memory barrier and tests if a queued lock is currently unowned without blocking.
+ *
+ * \param QueuedLock A pointer to a queued lock structure.
+ * \return TRUE if the lock is unowned, otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 PhTryAcquireReleaseQueuedLockExclusive(
@@ -243,6 +312,11 @@ typedef struct _PH_QUEUED_LOCK PH_CONDITION, *PPH_CONDITION;
 
 #define PH_CONDITION_INIT PH_QUEUED_LOCK_INIT
 
+/**
+ * Initializes a condition variable.
+ *
+ * \param Condition A pointer to a condition variable structure to initialize.
+ */
 FORCEINLINE
 VOID
 PhInitializeCondition(
@@ -303,6 +377,11 @@ typedef struct _PH_QUEUED_LOCK PH_WAKE_EVENT, *PPH_WAKE_EVENT;
 
 #define PH_WAKE_EVENT_INIT PH_QUEUED_LOCK_INIT
 
+/**
+ * Initializes a wake event.
+ *
+ * \param WakeEvent A pointer to a wake event structure to initialize.
+ */
 FORCEINLINE
 VOID
 PhInitializeWakeEvent(
@@ -329,6 +408,12 @@ PhfSetWakeEvent(
     _Inout_opt_ PPH_QUEUED_WAIT_BLOCK WaitBlock
     );
 
+/**
+ * Sets a wake event, unblocking waiters.
+ *
+ * \param WakeEvent A pointer to a wake event structure.
+ * \param WaitBlock An optional wait block indicating a cancelled wait.
+ */
 FORCEINLINE
 VOID
 PhSetWakeEvent(

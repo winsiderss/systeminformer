@@ -4393,7 +4393,7 @@ PPH_STRING PhGetLocalAppDataDirectory(
     {
         if (!FileName) return localAppDataDirectory;
         localAppDataFileName = PhConcatStringRef2(&localAppDataDirectory->sr, FileName);
-        PhReferenceObject(localAppDataDirectory);
+        PhDereferenceObject(localAppDataDirectory);
     }
 
     return localAppDataFileName;
@@ -4418,7 +4418,7 @@ PPH_STRING PhGetRoamingAppDataDirectory(
     {
         if (!FileName) return roamingAppDataDirectory;
         roamingAppDataFileName = PhConcatStringRef2(&roamingAppDataDirectory->sr, FileName);
-        PhReferenceObject(roamingAppDataDirectory);
+        PhDereferenceObject(roamingAppDataDirectory);
     }
 
     return roamingAppDataFileName;
@@ -7929,7 +7929,7 @@ BOOLEAN PhParseCommandLine(
 
         if (option &&
             (option->Type == MandatoryArgumentType ||
-            (option->Type == OptionalArgumentType && CommandLine->Buffer[i] != L'-')))
+            (option->Type == OptionalArgumentType && CommandLine->Buffer[i] != L'-' && CommandLine->Buffer[i] != L'/')))
         {
             // Read the value and execute the callback function.
 
@@ -7942,14 +7942,14 @@ BOOLEAN PhParseCommandLine(
 
             option = NULL;
         }
-        else if (CommandLine->Buffer[i] == L'-')
+        else if (CommandLine->Buffer[i] == L'-' || CommandLine->Buffer[i] == L'/')
         {
             ULONG_PTR originalIndex;
             SIZE_T optionNameLength;
 
             // Read the option (only alphanumeric characters allowed).
 
-            // Skip the dash.
+            // Skip the prefix character.
             i++;
 
             originalIndex = i;
@@ -10020,7 +10020,7 @@ NTSTATUS PhApiSetResolveToHost(
                     apisetNamespacePart.Length = valueArray->Array[midIndex].NameLength;
 
                     comparison = PhCompareStringRef(
-                        &apiSetNameShort,
+                        &parentNameFilePart,
                         &apisetNamespacePart,
                         TRUE
                         );
@@ -11282,7 +11282,7 @@ NTSTATUS PhEndWindowSession(
     RtlZeroMemory(&context, sizeof(PH_ENDSESSION_CONTEXT));
     context.ClientId = clientId;
 
-    status = PhEnumWindows(PhQueryEndSessionCallback, &clientId);
+    status = PhEnumWindows(PhQueryEndSessionCallback, &context);
 
     if (!NT_SUCCESS(status))
         return status;

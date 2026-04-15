@@ -2976,7 +2976,7 @@ NTSTATUS PhGetMappedImageDelayImports(
     {
         while (TRUE)
         {
-            PhMappedImageProbe(MappedImage, descriptor, sizeof(PIMAGE_DELAYLOAD_DESCRIPTOR));
+            PhMappedImageProbe(MappedImage, descriptor, sizeof(IMAGE_DELAYLOAD_DESCRIPTOR));
 
             if (descriptor->ImportAddressTableRVA == 0 && descriptor->ImportNameTableRVA == 0)
                 break;
@@ -4215,13 +4215,17 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
+                PhDereferenceObject(hashRawContentString);
                 return GetExceptionCode();
             }
 
             richHeaderContentBuffer = PhAllocateZero(richHeaderContentLength);
 
             if (!richHeaderContentBuffer)
+            {
+                PhDereferenceObject(hashRawContentString);
                 return STATUS_NO_MEMORY;
+            }
             memcpy(richHeaderContentBuffer, richHeaderStart, richHeaderContentLength);
             richHeaderContentBufferEnd = (PULONG)PTR_ADD_OFFSET(richHeaderContentBuffer, richHeaderContentLength);
 
@@ -4245,7 +4249,10 @@ NTSTATUS PhGetMappedImageProdIdHeader(
         }
 
         if (PhIsNullOrEmptyString(hashContentString))
+        {
+            PhDereferenceObject(hashRawContentString);
             return STATUS_FAIL_CHECK;
+        }
 
         __try
         {

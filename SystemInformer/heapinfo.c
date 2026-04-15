@@ -1389,6 +1389,7 @@ NTSTATUS NTAPI PhEnumProcessLocksCallback(
         PhPrintPointer(value, entry->Address);
         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, value);
         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, PhGetStringOrEmpty(fileName));
+        PhClearReference(&fileName);
         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 4, entry->OwningThread ? PH_AUTO_T(PH_STRING, PhGetClientIdName(&clientId))->Buffer : L"");
         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 5, entry->LockCount != ULONG_MAX ? PhaFormatUInt64(entry->LockCount, TRUE)->Buffer : L"");
         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 6, PhaFormatUInt64(entry->ContentionCount, TRUE)->Buffer);
@@ -1431,6 +1432,7 @@ VOID PhEnumerateProcessLocks(
 
     if (!NT_SUCCESS(status))
     {
+        ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
         PhShowStatus(Context->WindowHandle, L"Unable to query lock information.", status, 0);
         return;
     }
@@ -1480,10 +1482,11 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 120, L"Filename");
             PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 120, L"Thread");
             PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 80, L"Lock count");
-            PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 80, L"Entry count");
-            PhAddListViewColumn(context->ListViewHandle, 7, 7, 7, LVCFMT_LEFT, 80, L"Recursion count");
-            PhAddListViewColumn(context->ListViewHandle, 8, 8, 8, LVCFMT_LEFT, 80, L"Waiting shared count");
-            PhAddListViewColumn(context->ListViewHandle, 9, 9, 9, LVCFMT_LEFT, 80, L"Waiting exclusive count");
+            PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 80, L"Contention count");
+            PhAddListViewColumn(context->ListViewHandle, 7, 7, 7, LVCFMT_LEFT, 80, L"Entry count");
+            PhAddListViewColumn(context->ListViewHandle, 8, 8, 8, LVCFMT_LEFT, 80, L"Recursion count");
+            PhAddListViewColumn(context->ListViewHandle, 9, 9, 9, LVCFMT_LEFT, 80, L"Waiting shared count");
+            PhAddListViewColumn(context->ListViewHandle, 10, 10, 10, LVCFMT_LEFT, 80, L"Waiting exclusive count");
             PhSetExtendedListView(context->ListViewHandle);
 
             ExtendedListView_SetContext(context->ListViewHandle, context);
@@ -1522,6 +1525,18 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
             {
                 DeleteFont(context->BoldFont);
                 context->BoldFont = NULL;
+            }
+
+            {
+                INT index = -1;
+
+                while ((index = ListView_GetNextItem(context->ListViewHandle, index, LVNI_ALL)) != -1)
+                {
+                    PRTL_PROCESS_LOCK_INFORMATION lockInfo;
+
+                    if (PhGetListViewItemParam(context->ListViewHandle, index, &lockInfo))
+                        PhFree(lockInfo);
+                }
             }
 
             if (context->DebugBuffer)

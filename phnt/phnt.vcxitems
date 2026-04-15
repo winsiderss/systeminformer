@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{3bdf0453-a79d-4bd0-b80b-d90c8ed0d180}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)include</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntafd.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntbcd.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntd3dkmt.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntdbg.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntexapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntgdi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntimage.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntintsafe.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntioapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntkeapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntldr.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntlpcapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntlsa.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntmisc.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntmmapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntnls.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntobapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntpebteb.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntpfapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntpnpapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntpoapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntpsapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntregapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntrtl.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntsam.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntseapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntsmss.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntstrsafe.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntsxs.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\nttmapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\nttp.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\nttypesafe.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntuser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntwmi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntwow64.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntxcapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntzwapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\phnt.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\phnt_ntdef.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\phnt_windows.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\smbios.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\subprocesstag.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\usermgr.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\winsta.h" />
+  </ItemGroup>
+</Project>

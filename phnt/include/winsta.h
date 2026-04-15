@@ -131,7 +131,7 @@ typedef struct _SESSIONIDW
 } SESSIONIDW, *PSESSIONIDW;
 
 /**
- * The WINSTATIONINFOCLASS enumeration indicates the class of data for which to either query or set on the server. 
+ * The WINSTATIONINFOCLASS enumeration indicates the class of data for which to either query or set on the server.
  *
  * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/f333c223-de8a-46e1-a83e-79cbdab92371
  * \sa https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/1bba9ff2-71d3-49a3-bb26-2e5f6fcab3ee
@@ -146,23 +146,23 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationPd,                           // q: PDCONFIG2 + PDPARAMS
     WinStationPrinter,                      // qs: Not supported.
     WinStationClient,                       // q: VARDATA_WIRE + WINSTATIONCLIENT
-    WinStationModules,                      // q:
+    WinStationModules,                      // q: UCHAR[]
     WinStationInformation,                  // q: WINSTATIONINFORMATION
     WinStationTrace,                        // s: TS_TRACE
     WinStationBeep,                         // s: BEEPINPUT // 10
-    WinStationEncryptionOff,                // s:
-    WinStationEncryptionPerm,               // s:
-    WinStationNtSecurity,                   // s: (open secure desktop ctrl+alt+del)
+    WinStationEncryptionOff,                // s: VOID
+    WinStationEncryptionPerm,               // s: VOID
+    WinStationNtSecurity,                   // s: VOID (SessionId WINSTATION_CURRENT_SESSION)
     WinStationUserToken,                    // q: WINSTATIONUSERTOKEN
     WinStationUnused1,                      // qs: Not supported.
     WinStationVideoData,                    // q: WINSTATIONVIDEODATA
-    WinStationInitialProgram,               // s: (set current process as initial program)
+    WinStationInitialProgram,               // s: VOID (set current process as initial program)
     WinStationCd,                           // q: CDCONFIG
     WinStationSystemTrace,                  // s: TS_TRACE
-    WinStationVirtualData,                  // q: PVOID // 20
+    WinStationVirtualData,                  // q: UCHAR[] // 20
     WinStationClientData,                   // s: VARDATA_WIRE + WINSTATIONCLIENTDATA
-    WinStationSecureDesktopEnter,           // qs:
-    WinStationSecureDesktopExit,            // qs:
+    WinStationSecureDesktopEnter,           // qs: VOID
+    WinStationSecureDesktopExit,            // qs: VOID
     WinStationLoadBalanceSessionTarget,     // q: ULONG
     WinStationLoadIndicator,                // q: WINSTATIONLOADINDICATORDATA
     WinStationShadowInfo,                   // qs: WINSTATIONSHADOW
@@ -172,15 +172,15 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationIdleTime,                     // q: ULONG // 30
     WinStationLastReconnectType,            // q: ULONG
     WinStationDisallowAutoReconnect,        // qs: BOOLEAN
-    WinStationMprNotifyInfo,                // q:
-    WinStationExecSrvSystemPipe,            // q: WCHAR[48]
+    WinStationMprNotifyInfo,                // q: UCHAR[]
+    WinStationExecSrvSystemPipe,            // q: WINSTATIONEXECSRVSYSTEMPIPE
     WinStationSmartCardAutoLogon,           // q: BOOLEAN
     WinStationIsAdminLoggedOn,              // q: BOOLEAN
     WinStationReconnectedFromId,            // q: ULONG
     WinStationEffectsPolicy,                // q: ULONG
     WinStationType,                         // q: ULONG
     WinStationInformationEx,                // q: VARDATA_WIRE + WINSTATIONINFORMATIONEX // 40
-    WinStationValidationInfo,               // q:
+    WinStationValidationInfo,               // q: UCHAR[]
     WinStationActivityId,                   // q: GUID
     MaxWinStationInfoClass
 } WINSTATIONINFOCLASS;
@@ -775,6 +775,12 @@ typedef struct _WINSTATIONREMOTEADDRESS
         } ipv6;
     };
 } WINSTATIONREMOTEADDRESS, *PWINSTATIONREMOTEADDRESS;
+
+// rev
+typedef struct _WINSTATIONEXECSRVSYSTEMPIPE
+{
+    WCHAR PipeName[48];
+} WINSTATIONEXECSRVSYSTEMPIPE, *PWINSTATIONEXECSRVSYSTEMPIPE;
 
 //
 // WinStationInformationEx
@@ -1429,8 +1435,8 @@ WinStationGetAllSessionsEx(
 
 // rev
 NTSYSAPI
-VOID 
-WINAPI 
+VOID
+WINAPI
 WinStationFreeEXECENVDATAEX(
     _In_opt_ PEXECENVDATAEX SessionData,
     _In_ ULONG Count
@@ -1510,7 +1516,7 @@ WinStationGetLoggedOnCount(
 
 // rev
 /**
- * The WinStationSetRenderHint routine is used by an application that is displaying content that 
+ * The WinStationSetRenderHint routine is used by an application that is displaying content that
  * can be optimized for displaying in a remote session to identify the region of a window that is the actual content.
  * In the remote session, this content will be encoded, sent to the client, then decoded and displayed.
  *

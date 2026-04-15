@@ -139,6 +139,14 @@ FORCEINLINE T* PTR_SUB_OFFSET(
 #define ASSUME_NO_DEFAULT __assume(FALSE)
 #endif
 
+#if defined(__clang__) || defined(__GNUC__)
+#define PH_RESTRICT __restrict__
+#elif defined(_MSC_VER)
+#define PH_RESTRICT __restrict
+#else
+#define PH_RESTRICT
+#endif
+
 //
 // Math
 //

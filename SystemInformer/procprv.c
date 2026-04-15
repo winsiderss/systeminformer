@@ -4418,7 +4418,7 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
     if (smallIcon)
         DestroyIcon(smallIcon);
     if (largeIcon)
-        DestroyIcon(smallIcon);
+        DestroyIcon(largeIcon);
 
     return newentry;
 }

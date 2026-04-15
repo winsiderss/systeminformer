@@ -4290,16 +4290,44 @@ typedef struct _RTL_DRIVE_LETTER_CURDIR
 #define RTL_USER_PROC_CREATE_NEW_CONSOLE ((HANDLE)(LONG_PTR)-2)
 #define RTL_USER_PROC_CREATE_NO_WINDOW ((HANDLE)(LONG_PTR)-3)
 
+typedef enum RTL_USER_PROC_FLAGS
+{
+    RTL_USER_PROC_PARAMS_NORMALIZED = 0x1,
+    RTL_USER_PROC_FLAG_INHERITED    = 0x100,
+    RTL_USER_PROC_SECURE_PROCESS    = 0x2000000,
+    RTL_USER_PROC_APPX_CONTEXT      = 0x8000000,
+    RTL_USER_PROC_PROTECTED_PROCESS = 0x80000000,
+} RTL_USER_PROC_FLAGS;
+
+typedef enum _RTL_USER_PROC_CONSOLE_FLAGS
+{
+    RTL_USER_PROC_CONSOLE_FLAG_IGNORE_CTRL_C  = 0x1, // Ignore Ctrl+C events — skip handler dispatch
+    RTL_USER_PROC_CONSOLE_FLAG_SANITIZE_STDIO = 0x2, // Sanitize/validate inherited standard I/O handles at startup
+    RTL_USER_PROC_CONSOLE_FLAG_CLOSE_STDIO    = 0x4, // Close inherited stdin/stdout/stderr before connecting
+} RTL_USER_PROC_CONSOLE_FLAGS;
+
+typedef enum _RTL_USER_PROC_WINDOW_FLAGS
+{
+    RTL_USER_PROC_WINDOW_FLAG_USESHOWWINDOW       = 0x001, // STARTF_USESHOWWINDOW 
+    RTL_USER_PROC_WINDOW_FLAG_USESIZE             = 0x002, // STARTF_USESIZE
+    RTL_USER_PROC_WINDOW_FLAG_USEPOSITION         = 0x004, // STARTF_USEPOSITION
+    RTL_USER_PROC_WINDOW_FLAG_USECOUNTCHARS       = 0x008, // STARTF_USECOUNTCHARS
+    RTL_USER_PROC_WINDOW_FLAG_USEFILLATTRIBUTE    = 0x010, // STARTF_USEFILLATTRIBUTE
+    RTL_USER_PROC_WINDOW_FLAG_USESTDHANDLES       = 0x100, // STARTF_USESTDHANDLES
+    RTL_USER_PROC_WINDOW_FLAG_HASSHELLDATA_STDIN  = 0x200, // STARTF_HASSHELLDATA_STDIN
+    RTL_USER_PROC_WINDOW_FLAG_HASSHELLDATA_STDOUT = 0x400, // STARTF_HASSHELLDATA_STDOUT
+} _RTL_USER_PROC_WINDOW_FLAGS;
+
 typedef struct _RTL_USER_PROCESS_PARAMETERS
 {
     ULONG MaximumLength;
     ULONG Length;
 
-    ULONG Flags;
+    ULONG Flags; // RTL_USER_PROC_FLAGS
     ULONG DebugFlags;
 
     HANDLE ConsoleHandle;
-    ULONG ConsoleFlags;
+    ULONG ConsoleFlags; // RTL_USER_PROC_CONSOLE_FLAGS
     HANDLE StandardInput;
     HANDLE StandardOutput;
     HANDLE StandardError;
@@ -4318,7 +4346,7 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
     ULONG CountCharsY;
     ULONG FillAttribute;
 
-    ULONG WindowFlags;
+    ULONG WindowFlags; // RTL_USER_PROC_WINDOW_FLAGS
     ULONG ShowWindowFlags;
     UNICODE_STRING WindowTitle;
     UNICODE_STRING DesktopInfo;
@@ -7924,6 +7952,15 @@ typedef struct _RTL_DEBUG_INFORMATION
     PVOID Reserved[4];
 } RTL_DEBUG_INFORMATION, *PRTL_DEBUG_INFORMATION;
 
+typedef _Function_class_(RTL_TRACE_HASH_FUNCTION)
+ULONG
+NTAPI
+RTL_TRACE_HASH_FUNCTION(
+    _In_ ULONG Count,
+    _In_reads_(Count) PVOID* Trace
+    );
+typedef RTL_TRACE_HASH_FUNCTION *PRTL_TRACE_HASH_FUNCTION;
+
 NTSYSAPI
 PRTL_DEBUG_INFORMATION
 NTAPI
@@ -9343,6 +9380,23 @@ RtlSetBitEx(
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG64 BitNumber
     );
 
+NTSYSAPI
+VOID
+NTAPI
+RtlSetBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_ ULONGLONG StartingIndex,
+    _In_ ULONGLONG NumberToSet
+    );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+RtlSetAllBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader
+    );
+
 // rev
 NTSYSAPI
 ULONG64
@@ -9360,6 +9414,47 @@ RtlFindSetBitsAndClearEx(
     _In_ PRTL_BITMAP_EX BitMapHeader,
     _In_ ULONG64 NumberToFind,
     _In_ ULONG64 HintIndex
+    );
+
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlNumberOfClearBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader
+    );
+
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlFindClearBitsAndSetEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_ ULONGLONG NumberToFind,
+    _In_ ULONGLONG HintIndex
+    );
+
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlFindClearBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_ ULONGLONG NumberToFind,
+    _In_ ULONGLONG HintIndex
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlClearBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader,
+    _In_ ULONGLONG StartingIndex,
+    _In_ ULONGLONG NumberToClear
+    );
+
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlNumberOfSetBitsEx(
+    _In_ PRTL_BITMAP_EX BitMapHeader
     );
 
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10

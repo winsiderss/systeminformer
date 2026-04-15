@@ -1178,7 +1178,9 @@ VOID PhDestroyServiceNotifyContext(
     if (NotifyContext->Buffer.pszServiceNames)
         LocalFree(NotifyContext->Buffer.pszServiceNames);
 
-    PhCloseServiceHandle(NotifyContext->ServiceHandle);
+    if (!NotifyContext->IsServiceManager)
+        PhCloseServiceHandle(NotifyContext->ServiceHandle);
+
     PhClearReference(&NotifyContext->ServiceName);
     PhFree(NotifyContext);
 }

@@ -58,6 +58,7 @@
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(SolutionDir)phnt\phnt.vcxitems" />
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -93,7 +94,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phnt\include;$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -113,7 +114,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phnt\include;$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -133,7 +134,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phnt\include;$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -153,7 +154,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phnt\include;$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -173,7 +174,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phnt\include;$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -193,7 +194,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phnt\include;$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>

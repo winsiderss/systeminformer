@@ -102,7 +102,7 @@ VOID
 NTAPI
 PhDrawGraphDirect(
     _In_ HDC hdc,
-    _In_ PVOID Bits,
+    _In_ PVOID PH_RESTRICT Bits,
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo
     );
 

@@ -147,7 +147,7 @@ FORCEINLINE VOID PhpGetGraphPoint(
  */
 VOID PhDrawGraphDirect(
     _In_ HDC hdc,
-    _In_ PVOID Bits,
+    _In_ PVOID PH_RESTRICT Bits,
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo
     )
 {
@@ -685,7 +685,7 @@ VOID PhSetGraphText2(
         oldFont = SelectFont(hdc, DrawInfo->TextFont);
 
     // Measure multi-line text
-    DrawInfo->Text = *Text;
+    DrawInfo->Text2 = *Text;
     DrawText(
         hdc,
         Text->Buffer,
@@ -727,8 +727,8 @@ VOID PhSetGraphText2(
     textRectangle.Height = textHeight;
 
     // Save rectangles
-    PhRectangleToRect(&DrawInfo->TextRect, &textRectangle);
-    PhRectangleToRect(&DrawInfo->TextBoxRect, &boxRectangle);
+    PhRectangleToRect(&DrawInfo->TextRect2, &textRectangle);
+    PhRectangleToRect(&DrawInfo->TextBoxRect2, &boxRectangle);
 }
 
 PPHP_GRAPH_CONTEXT PhCreateGraphContext(
@@ -1405,6 +1405,12 @@ LRESULT CALLBACK PhpGraphWndProc(
             if (wParam)
             {
                 TOOLINFO toolInfo;
+
+                if (context->TooltipHandle)
+                {
+                    DestroyWindow(context->TooltipHandle);
+                    context->TooltipHandle = NULL;
+                }
 
                 context->TooltipHandle = PhCreateWindowEx(
                     TOOLTIPS_CLASS,

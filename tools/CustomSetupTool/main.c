@@ -426,19 +426,6 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
             }
         }
     }
-    else
-    {
-        // Note: PhParseCommandLine requires "-" for commandline parameters
-        // and we already support the -silent parameter however we need to maintain
-        // compatibility with the legacy Inno Setup. (dmex)
-        if (!PhIsNullOrEmptyString(Value))
-        {
-            if (PhEqualString2(Value, L"/silent", TRUE))
-            {
-                context->Silent = TRUE;
-            }
-        }
-    }
 
     return TRUE;
 }

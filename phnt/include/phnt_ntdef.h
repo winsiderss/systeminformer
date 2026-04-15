@@ -900,6 +900,48 @@ typedef struct _KSYSTEM_TIME
 #define PAGE_TAILSIZE(p) (PAGE_SIZE - PAGE_OFFSET(p))
 #endif
 
+#ifndef ADDRESS_AND_SIZE_TO_SPAN_PAGES
+/**
+ * Calculates the number of pages spanned by a virtual address and size.
+ *
+ * @param Address The starting virtual address.
+ * @param Size The size of the memory region in bytes.
+ * @return The number of pages spanned by the specified region.
+ */
+#define ADDRESS_AND_SIZE_TO_SPAN_PAGES(Address, Size) ((BYTE_OFFSET(Address) + ((SIZE_T)(Size)) + PAGE_MASK) >> PAGE_SHIFT)
+#endif
+
+#ifndef ROUND_TO_SIZE
+/**
+ * Rounds a value up to the nearest multiple of a specified alignment.
+ *
+ * @param Size The value to round.
+ * @param Alignment The alignment boundary. This must be a power of two.
+ * @return The rounded value.
+ */
+#define ROUND_TO_SIZE(Size, Alignment) ((((ULONG_PTR)(Size)) + ((Alignment) - 1)) & ~(ULONG_PTR)((Alignment) - 1))
+#endif
+
+#ifndef ROUND_TO_PAGES
+/**
+ * Rounds a size in bytes up to the nearest page boundary.
+ *
+ * @param Size The size in bytes to round.
+ * @return The size rounded up to the nearest multiple of the system page size.
+ */
+#define ROUND_TO_PAGES(Size) (((ULONG_PTR)(Size) + PAGE_MASK) & ~PAGE_MASK)
+#endif
+
+#ifndef BYTES_TO_PAGES
+/**
+ * Calculates the number of pages required to hold a specified number of bytes.
+ *
+ * @param Size The size in bytes.
+ * @return The number of pages, rounded up if the size is not page-aligned.
+ */
+#define BYTES_TO_PAGES(Size) (((Size) >> PAGE_SHIFT) + (((Size) & PAGE_MASK) != 0))
+#endif
+
 #else
 
 #ifndef AFFINITY_MASK

@@ -925,10 +925,12 @@ VOID PhLoadSettingsEnvironmentList(
 {
     PPH_STRING settings;
     PPH_STRING sortSettings;
+    ULONG flags;
 
     settings = PhGetStringSetting(SETTING_ENVIRONMENT_TREE_LIST_COLUMNS);
     sortSettings = PhGetStringSetting(SETTING_ENVIRONMENT_TREE_LIST_SORT);
-    Context->Flags = PhGetIntegerSetting(SETTING_ENVIRONMENT_TREE_LIST_FLAGS);
+    flags = PhGetIntegerSetting(SETTING_ENVIRONMENT_TREE_LIST_FLAGS);
+    Context->Flags = flags;
 
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
@@ -1292,13 +1294,13 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
             //else
             {
                 if (context->HighlightCmdEnvironment && node->IsCmdVariable)
-                    getNodeColor->BackColor = PhCsColorDebuggedProcesses;
+                    getNodeColor->BackColor = PhCsColorEnvironmentCmd;
                 else if (context->HighlightProcessEnvironment && node->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS)
-                    getNodeColor->BackColor = PhCsColorServiceProcesses;
+                    getNodeColor->BackColor = PhCsColorEnvironmentProcess;
                 else if (context->HighlightUserEnvironment && node->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_USER)
-                    getNodeColor->BackColor = PhCsColorOwnProcesses;
+                    getNodeColor->BackColor = PhCsColorEnvironmentUser;
                 else if (context->HighlightSystemEnvironment && node->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM)
-                    getNodeColor->BackColor = PhCsColorSystemProcesses;
+                    getNodeColor->BackColor = PhCsColorEnvironmentSystem;
             }
 
             getNodeColor->Flags = TN_AUTO_FORECOLOR;
@@ -1314,9 +1316,8 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
             // HACK
             if (context->TreeFilterSupport.FilterList)
                 PhApplyTreeNewFilters(&context->TreeFilterSupport);
-
-            // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(WindowHandle);
+            else
+                TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewContextMenu:

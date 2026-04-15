@@ -496,8 +496,9 @@ NTSTATUS
 NTAPI
 PhHttpReadDataToBuffer(
     _In_ PVOID RequestHandle,
-    _Out_ PVOID* Buffer,
-    _Out_ ULONG* BufferLength
+    _In_opt_ ULONG TotalLength,
+    _Out_ PVOID *Buffer,
+    _Out_ ULONG *BufferLength
     );
 
 PHLIBAPI

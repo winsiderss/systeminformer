@@ -3685,7 +3685,7 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_ZOMBIEPROCESSES, L"&Zombie processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_PAGEFILES, L"&Pagefiles", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
-        (PhEnableProcessMonitor && KsiLevel() >= KphLevelMed) ? 0 : PH_EMENU_DISABLED,
+        (PhCsEnableProcessMonitor && KsiLevel() >= KphLevelMed) ? 0 : PH_EMENU_DISABLED,
         ID_TOOLS_INFORMER, L"&Process monitor", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTTASKMANAGER, L"Start &Task Manager", NULL, NULL), ULONG_MAX);

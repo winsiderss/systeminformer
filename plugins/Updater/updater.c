@@ -546,8 +546,8 @@ ULONG64 ParseVersionString(
     remaining = PhGetStringRef(VersionString);
     PhSplitStringRefAtChar(&remaining, L'.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, L'.', &minorPart, &remaining);
-    PhSplitStringRefAtChar(&remaining, L'.', &revisionPart, &remaining);
     PhSplitStringRefAtChar(&remaining, L'.', &buildPart, &remaining);
+    PhSplitStringRefAtChar(&remaining, L'.', &revisionPart, &remaining);
 
     if (majorPart.Length)
     {
@@ -559,14 +559,14 @@ ULONG64 ParseVersionString(
         PhStringToUInt64(&minorPart, 10, &minorInteger);
     }
 
-    if (revisionPart.Length)
-    {
-        PhStringToUInt64(&revisionPart, 10, &buildInteger);
-    }
-
     if (buildPart.Length)
     {
-        PhStringToUInt64(&buildPart, 10, &revisionInteger);
+        PhStringToUInt64(&buildPart, 10, &buildInteger);
+    }
+
+    if (revisionPart.Length)
+    {
+        PhStringToUInt64(&revisionPart, 10, &revisionInteger);
     }
 
     return MAKE_VERSION_ULONGLONG(
@@ -783,9 +783,6 @@ NTSTATUS UpdateCheckSilentThread(
             // Check if the user hasn't already opened the dialog.
             if (!UpdateDialogHandle)
             {
-                // We have data we're going to cache and pass into the dialog
-                context->HaveData = TRUE;
-
                 if (PhGetIntegerSetting(SETTING_NAME_SHOW_NOTIFICATION))
                 {
                     if (!HR_SUCCESS(PhShowIconNotificationEx(
@@ -796,11 +793,15 @@ NTSTATUS UpdateCheckSilentThread(
                         NULL
                         )))
                     {
+                        // We have data we're going to cache and pass into the dialog
+                        context->HaveData = TRUE;
                         ShowUpdateDialog(context);
                     }
                 }
                 else
                 {
+                    // We have data we're going to cache and pass into the dialog
+                    context->HaveData = TRUE;
                     // Show the dialog asynchronously on a new thread.
                     ShowUpdateDialog(context);
                 }
@@ -1472,12 +1473,12 @@ VOID ShowStartupUpdateDialog(
 
     PhClearReference(&jsonString);
 
-    if (PhIsNullOrEmptyString(context->Version) &&
-        PhIsNullOrEmptyString(context->RelDate) &&
-        PhIsNullOrEmptyString(context->SetupFileDownloadUrl) &&
-        PhIsNullOrEmptyString(context->SetupFileLength) &&
-        PhIsNullOrEmptyString(context->SetupFileHash) &&
-        PhIsNullOrEmptyString(context->SetupFileSignature) &&
+    if (PhIsNullOrEmptyString(context->Version) ||
+        PhIsNullOrEmptyString(context->RelDate) ||
+        PhIsNullOrEmptyString(context->SetupFileDownloadUrl) ||
+        PhIsNullOrEmptyString(context->SetupFileLength) ||
+        PhIsNullOrEmptyString(context->SetupFileHash) ||
+        PhIsNullOrEmptyString(context->SetupFileSignature) ||
         PhIsNullOrEmptyString(context->CommitHash))
     {
         goto CleanupExit;

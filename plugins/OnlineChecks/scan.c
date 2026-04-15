@@ -966,7 +966,7 @@ VOID ProcessScanHashes(
             //
             // N.B. Alertable wait to drain I/O completion APCs.
             //
-            NtDelayExecution(TRUE, PhTimeoutFromMilliseconds(&timeout, 100));
+            PhDelayExecutionEx(TRUE, PhTimeoutFromMilliseconds(&timeout, 100));
         }
     }
 
@@ -978,8 +978,8 @@ CleanupExit:
 
         if (context->ReadBuffer)
         {
-#pragma prefast(suppress: 6001) // ReadBuffer is initialized
             PhFree(context->ReadBuffer);
+            context->ReadBuffer = NULL;
         }
 
         if (!context->FileHandle)
@@ -995,10 +995,11 @@ CleanupExit:
             context->ScanHash->Status = STATUS_UNSUCCESSFUL;
         }
 
-#pragma prefast(suppress: 26110) // Lock handling is correct
+        _Analysis_assume_lock_acquired_(&context->ScanHash->Lock);
         PhReleaseQueuedLockExclusive(&context->ScanHash->Lock);
-#pragma prefast(suppress: 6001) // FileHandle is initialized
+
         NtClose(context->FileHandle);
+        context->FileHandle = NULL;
     }
 
     if (hashOps)

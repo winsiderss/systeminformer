@@ -195,7 +195,7 @@ VOID PhpAnalyzeWaitPassive(
     if (!NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_GET_CONTEXT, ThreadId)))
     {
         PhShowStatus(WindowHandle, L"Unable to open the thread.", status, 0);
-        return;
+        goto CleanupExit;
     }
 
     if (!NT_SUCCESS(status = PhGetThreadLastSystemCall(threadHandle, &lastSystemCall)))
@@ -213,6 +213,7 @@ VOID PhpAnalyzeWaitPassive(
         PhAppendStringBuilder2(&stringBuilder, L"Thread is waiting on system call: ");
         PhAppendStringBuilder(&stringBuilder, &lastSystemCallName->sr);
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+        PhDereferenceObject(lastSystemCallName);
 
         if (
             PhEqualString2(lastSystemCallName, L"NtWaitForSingleObject", TRUE)
@@ -352,11 +353,7 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     PhStartsWithString2(name, L"ntdll.dll!Zw" L##Name, TRUE) \
     )
 
-    if (!name)
-    {
-        // Dummy
-    }
-    else if (FUNC_MATCH("kernel32.dll!Sleep"))
+    if (FUNC_MATCH("kernel32.dll!Sleep"))
     {
         PhAppendFormatStringBuilder(
             &context->StringBuilder,

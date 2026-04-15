@@ -738,8 +738,8 @@ NTSTATUS PhReOpenFile(
 
 NTSTATUS PhReadFile(
     _In_ HANDLE FileHandle,
-    _In_ PVOID Buffer,
-    _In_opt_ ULONG NumberOfBytesToRead,
+    _Out_writes_bytes_(NumberOfBytesToRead) PVOID Buffer,
+    _In_ ULONG NumberOfBytesToRead,
     _In_opt_ PLARGE_INTEGER ByteOffset,
     _Out_opt_ PULONG NumberOfBytesRead
     )
@@ -782,8 +782,8 @@ NTSTATUS PhReadFile(
 
 NTSTATUS PhWriteFile(
     _In_ HANDLE FileHandle,
-    _In_ PVOID Buffer,
-    _In_opt_ ULONG NumberOfBytesToWrite,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ ULONG NumberOfBytesToWrite,
     _In_opt_ PLARGE_INTEGER ByteOffset,
     _Out_opt_ PULONG NumberOfBytesWritten
     )
