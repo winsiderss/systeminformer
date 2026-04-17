@@ -270,7 +270,7 @@ namespace CustomBuildTool
             // Extract the hour of the day. For example, if the hour is 0|23, (Hour + 1) will result in 1|24.
             var hourOffset = (TimeStart.Hour + 1).ToString();
             // Extract the minute of the hour (0 to 59). Padding with leading zeros if necessary.
-            // For example, if the minute of the hour is 5, it will be converted to "005".
+            // For example, if the minute of the hour is 5, it will be converted to "05".
             var minuteOffset = TimeStart.Minute.ToString("D2");
             // Format the strings: 1005|24005
             return string.Concat([hourOffset, minuteOffset]);
@@ -1086,7 +1086,7 @@ namespace CustomBuildTool
         public static bool BuildPdbZip(bool MsixPackageBuild, BuildFlags Flags)
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
-            Program.PrintColorMessage(MsixPackageBuild ? "Building setup-package-pdb..." : "Building build-pdb.zip...", ConsoleColor.Cyan, false);
+            Program.PrintColorMessage(MsixPackageBuild ? "Building setup-package-pdb..." : "Building build-pdb.zip...", ConsoleColor.Cyan);
 
             try
             {
@@ -2032,7 +2032,7 @@ namespace CustomBuildTool
 ";
 
         private const string ExportFooter = @"
-#endif _PH_EXPORT_DEF_H
+#endif // _PH_EXPORT_DEF_H
 ";
 
         /// <summary>

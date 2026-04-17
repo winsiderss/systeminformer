@@ -272,7 +272,7 @@ namespace CustomBuildTool
             {
                 string directory = Path.GetDirectoryName(DestinationFile);
 
-                if (string.IsNullOrWhiteSpace(directory))
+                if (directory is null || directory.Length == 0 || string.IsNullOrWhiteSpace(directory))
                     return;
 
                 Win32.CreateDirectory(directory);
@@ -515,10 +515,7 @@ namespace CustomBuildTool
         /// </summary>
         public static void SetErrorMode()
         {
-            PInvoke.SetPriorityClass(
-                PInvoke.GetCurrentProcess(),
-                PROCESS_CREATION_FLAGS.HIGH_PRIORITY_CLASS
-                );
+            PInvoke.SetErrorMode(THREAD_ERROR_MODE.SEM_NOGPFAULTERRORBOX | THREAD_ERROR_MODE.SEM_NOOPENFILEERRORBOX);
         }
 
         /// <summary>

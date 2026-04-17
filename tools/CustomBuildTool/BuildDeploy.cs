@@ -68,7 +68,7 @@ namespace CustomBuildTool
             if (Build.BuildToolsDebug)
                 return true;
 
-            // Define the files to upload (bool true create hash and signatute)
+            // Define the files to upload (bool true create hash and signature)
             var Build_Upload_Files = new Dictionary<string, bool>(4, StringComparer.OrdinalIgnoreCase)
             {
                 ["systeminformer-build-win32-bin.zip"] = true,
@@ -364,8 +364,6 @@ namespace CustomBuildTool
                     requestMessage.Headers.Add("X-Build-Key", buildPostKey);
                     requestMessage.Headers.Add("X-Build-Hash", bufferHash);
                     //requestMessage.Headers.Add("X-Build-Sig", bufferSignature);
-                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                    requestMessage.Version = HttpVersion.Version30;
 
                     requestMessage.Content = new ByteArrayContent(buffer);
                     requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
@@ -373,9 +371,17 @@ namespace CustomBuildTool
                     using var httpClient = BuildHttpClient.CreateHttpClient();
                     using var httpResult = await BuildHttpClient.SendMessageResponse(httpClient, requestMessage);
 
+                    if (httpResult == null)
+                    {
+                        Program.PrintColorMessage("[UpdateBuildWebService-SF-TransportFailure]", ConsoleColor.Red);
+                        return false;
+                    }
+
                     if (!httpResult.IsSuccessStatusCode)
                     {
-                        Program.PrintColorMessage("[UpdateBuildWebService-SF-NullOrWhiteSpace]", ConsoleColor.Red);
+                        Program.PrintColorMessage(
+                            $"[UpdateBuildWebService-SF-HTTP] {(int)httpResult.StatusCode} {httpResult.ReasonPhrase}",
+                            ConsoleColor.Red);
                         return false;
                     }
                 }

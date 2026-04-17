@@ -86,8 +86,8 @@ namespace CustomBuildTool
                 {
                     { "-argsfile", "Read arguments from a file instead of the command line." },
                     { "-bin", "Builds the binary package." },
-                    { "-check_msvc", "Check required build dependancies are installed." },
-                    { "-install_msvc", "Installs any missing build dependancies." },
+                    { "-check_msvc", "Check required build dependencies are installed." },
+                    { "-install_msvc", "Installs any missing build dependencies." },
                     { "-cleanup", "Cleans up the build environment." },
                     { "-cleansdk", "Cleans SDK build artifacts (internal)." },
                     { "-cmake-bin", "Builds the binary package using CMake (clang)." },
@@ -205,7 +205,7 @@ namespace CustomBuildTool
         /// <returns>A command configured to check for MSVC build dependencies and display build statistics.</returns>
         private static Command CreateCheckMsvcCommand()
         {
-            var cmd = new Command("-check_msvc", "Check required build dependancies are installed.");
+            var cmd = new Command("-check_msvc", "Check required build dependencies are installed.");
             cmd.SetHandler(() =>
             {
                 BuildToolsId.CheckForOutOfDateTools();
@@ -221,7 +221,7 @@ namespace CustomBuildTool
         /// <returns>A command configured to handle the installation of missing MSVC build dependencies.</returns>
         private static Command CreateInstallMsvcCommand()
         {
-            var cmd = new Command("-install_msvc", "Installs any missing build dependancies.");
+            var cmd = new Command("-install_msvc", "Installs any missing build dependencies.");
             cmd.SetHandler(async () =>
             {
                 BuildToolsId.CheckForOutOfDateTools();
@@ -238,7 +238,7 @@ namespace CustomBuildTool
         private static Command CreateDynDataCommand()
         {
             var cmd = new Command("-dyndata", "Builds dynamic data.");
-            var arg = new Argument<string>("arg", () => "", "Dynamic data argument (optional)");
+            var arg = new Argument<string>("arg", () => string.Empty, "Dynamic data argument (optional)");
             cmd.AddArgument(arg);
             cmd.SetHandler((string a) =>
             {

@@ -114,7 +114,7 @@ HRESULT PhCreateWindowsRuntimeStringReferenceEx(
 
     return WindowsCreateStringReference(
         SourceString,
-        (UINT32)PhCountStringZ(SourceString),
+        Length,
         String,
         &stringHandle
         );
@@ -689,7 +689,7 @@ CleanupExit:
         //    ClearFlag(systemIdPublisherStatus, FACILITY_NT_BIT); // 0xD0000022 -> 0xC0000022
         //}
 
-        if (HRESULT_NTSTATUS(systemIdForUserStatus))
+        if (HRESULT_NTSTATUS(systemIdPublisherStatus))
         {
             *SystemIdForPublisher = PhGetStatusMessage(PhNtStatusFromHResult(systemIdPublisherStatus), 0);
         }
@@ -1113,7 +1113,7 @@ BOOLEAN PhQueryApplicationModelPackageInformation(
                 PhInitFormatC(&format[5], L'.');
                 PhInitFormatU(&format[6], appPackageVersion.Build);
 
-                packageVersionString = PhFormat(format,RTL_NUMBER_OF(format), 0);
+                packageVersionString = PhFormat(format, RTL_NUMBER_OF(format), 0);
             }
         }
 
