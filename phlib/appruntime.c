@@ -20,7 +20,7 @@
 #endif
 
 #ifdef __hstring_h__
-static_assert(sizeof(HSTRING_REFERENCE) == sizeof(HSTRING_HEADER), "HSTRING_REFERENCE must equal WSTRING_HEADER");
+static_assert(sizeof(HSTRING_REFERENCE) == sizeof(HSTRING_HEADER), "HSTRING_REFERENCE must equal HSTRING_HEADER");
 #else
 static_assert(sizeof(HSTRING_REFERENCE) == sizeof(WSTRING_HEADER), "HSTRING_REFERENCE must equal WSTRING_HEADER");
 #endif
