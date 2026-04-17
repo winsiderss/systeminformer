@@ -63,7 +63,7 @@ typedef struct _LSA_TRANSLATED_SID2
 //         SidInvalid, then the remainder of the record is not set and
 //         should be ignored.
 //
-//     Sid - Contains the complete Sid of the tranlated SID
+//     Sid - Contains the complete Sid of the translated SID
 //
 //     DomainIndex - Is the index of an entry in a related
 //         LSA_REFERENCED_DOMAIN_LIST data structure describing the
@@ -292,7 +292,7 @@ typedef ULONG LSA_OPERATIONAL_MODE, *PLSA_OPERATIONAL_MODE;
 
 typedef enum _SECURITY_LOGON_TYPE
 {
-    UndefinedLogonType = 0, // This is used to specify an undefied logon type
+    UndefinedLogonType = 0, // This is used to specify an undefined logon type
     Interactive = 2,      // Interactively logged on (locally or remotely)
     Network,              // Accessing system via network
     Batch,                // Started via a batch queue
@@ -820,7 +820,7 @@ typedef struct _SE_ADT_ACCESS_REASON
     ULONG AccessReasons[32];
     ULONG ObjectTypeIndex;
     ULONG AccessGranted;
-    PSECURITY_DESCRIPTOR SecurityDescriptor;    // multple SDs may be stored here in self-relative way.
+    PSECURITY_DESCRIPTOR SecurityDescriptor;    // multiple SDs may be stored here in self-relative way.
 } SE_ADT_ACCESS_REASON, *PSE_ADT_ACCESS_REASON;
 
 typedef struct _SE_ADT_CLAIMS
@@ -1235,9 +1235,9 @@ typedef struct _LSA_TOKEN_INFORMATION_NULL
 
 
 //
-// The V1 token information structure is superceeded by the V2 token
-// information structure.  The V1 strucure should only be used for
-// backwards compatability.
+// The V1 token information structure is superseded by the V2 token
+// information structure.  The V1 structure should only be used for
+// backwards compatibility.
 // This structure contains information that an authentication package
 // can place in a Version 1 NT token object.
 //
@@ -1659,7 +1659,7 @@ typedef struct _POLICY_PRIVILEGE_DEFINITION
 //         transportable between systems.
 //
 //     Luid - is a LUID value assigned locally for efficient representation
-//         of the privilege.  Ths value is meaningful only on the system it
+//         of the privilege.  This value is meaningful only on the system it
 //         was assigned on and is not transportable in any way.
 //
 
@@ -1771,7 +1771,7 @@ typedef struct _POLICY_AUDIT_LOG_INFO
 //         FALSE indicates that a shutdown is not in progress.
 //
 //         Once a shutdown has been initiated, this flag will be set to
-//         TRUE.  If an administrator is able to currect the situation
+//         TRUE.  If an administrator is able to correct the situation
 //         before the shutdown becomes irreversible, then this flag will
 //         be reset to false.
 //
@@ -2042,7 +2042,7 @@ typedef struct _POLICY_DOMAIN_KERBEROS_TICKET_INFO
 //      AuthenticationOptions -- allowed ticket options (POLICY_KERBEROS_* flags )
 //      MaxServiceTicketAge   -- Maximum lifetime for a service ticket
 //      MaxTicketAge -- Maximum lifetime for the initial ticket
-//      MaxRenewAge -- Maximum cumulative age a renewable ticket can be with requring authentication
+//      MaxRenewAge -- Maximum cumulative age a renewable ticket can be with requiring authentication
 //      MaxClockSkew -- Maximum tolerance for synchronization of computer clocks
 //      Reserved   --  Reserved
 
@@ -2300,7 +2300,7 @@ typedef PLSA_TRUST_INFORMATION PTRUSTED_DOMAIN_INFORMATION_BASIC;
 #define TRUST_ATTRIBUTE_WITHIN_FOREST                 0x00000020  // Trust is internal to this forest
 #define TRUST_ATTRIBUTE_TREAT_AS_EXTERNAL             0x00000040  // Trust is to be treated as external for trust boundary purposes
 #define TRUST_ATTRIBUTE_TRUST_USES_RC4_ENCRYPTION     0x00000080  // MIT trust with RC4
-#define TRUST_ATTRIBUTE_TRUST_USES_AES_KEYS           0x00000100  // Use AES keys to encrypte KRB TGTs
+#define TRUST_ATTRIBUTE_TRUST_USES_AES_KEYS           0x00000100  // Use AES keys to encrypt KRB TGTs
 #define TRUST_ATTRIBUTE_CROSS_ORGANIZATION_NO_TGT_DELEGATION 0x00000200  // do not forward TGT to the other side of the trust which is not part of this enterprise
 #define TRUST_ATTRIBUTE_PIM_TRUST                     0x00000400  // Outgoing trust to a PIM forest.
 

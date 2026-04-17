@@ -8146,7 +8146,7 @@ typedef struct _CODE_INTEGRITY_REPORT_GENERATION_HEADER
 
     //
     // Secure Kernel / Hypervisor secure time reference when this policy was
-    // commited.
+    // committed.
     //
 
     ULONG64 CommitTime;
