@@ -7,6 +7,7 @@
 *  Copyright (c) Microsoft Corp.  All rights reserved.            *
 *                                                                 *
 ******************************************************************/
+
 #ifndef _NTINTSAFE_H_INCLUDED_
 #define _NTINTSAFE_H_INCLUDED_
 
@@ -6951,7 +6952,7 @@ RtlUShortAdd(
 #define RtlUInt16Add   RtlUShortAdd
 
 //
-// WORD addtition
+// WORD addition
 //
 #define RtlWordAdd     RtlUShortAdd
 
