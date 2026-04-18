@@ -32,6 +32,7 @@
 #define PH_INFORMER_CATEGORY_HANDLE     0x10
 #define PH_INFORMER_CATEGORY_IMAGE      0x20
 #define PH_INFORMER_CATEGORY_OTHER      0x40
+#define PH_INFORMER_CATEGORY_SILO       0x80
 #define PH_INFORMER_CATEGORY_ALL        0xff
 
 typedef enum _PH_INFORMER_COLUMN_ID
@@ -40,6 +41,10 @@ typedef enum _PH_INFORMER_COLUMN_ID
     PHIC_PROCESS,
     PHIC_PID,
     PHIC_TID,
+    PHIC_START_KEY,
+    PHIC_ATTACHED_PROCESS,
+    PHIC_ATTACHED_PID,
+    PHIC_ATTACHED_START_KEY,
     PHIC_CATEGORY,
     PHIC_EVENT,
     PHIC_PATH,
@@ -59,6 +64,10 @@ typedef struct _PH_INFORMERW_NODE
     PPH_STRING ProcessText;
     WCHAR PidString[PH_INT32_STR_LEN_1];
     WCHAR TidString[PH_INT32_STR_LEN_1];
+    PPH_STRING StartKeyText;
+    PPH_STRING AttachedProcessText;
+    WCHAR AttachedPidString[PH_INT32_STR_LEN_1];
+    PPH_STRING AttachedStartKeyText;
     PH_STRINGREF CategoryText;
     PH_STRINGREF EventText;
     WCHAR EventFallback[16];
@@ -135,6 +144,9 @@ VOID PhpInformerNodeFree(
 
     PhClearReference(&Node->TimeText);
     PhClearReference(&Node->ProcessText);
+    PhClearReference(&Node->StartKeyText);
+    PhClearReference(&Node->AttachedProcessText);
+    PhClearReference(&Node->AttachedStartKeyText);
     PhClearReference(&Node->PathAllocated);
     PhClearReference(&Node->ResultText);
     PhClearReference(&Node->DurationText);
@@ -227,6 +239,9 @@ ULONG PhpInformerGetCategory(
     case KphMsgDebugPrint:
     case KphMsgRequiredStateFailure:
         return PH_INFORMER_CATEGORY_OTHER;
+    case KphMsgSiloCreate:
+    case KphMsgSiloTerminate:
+        return PH_INFORMER_CATEGORY_SILO;
     default:
         break;
     }
@@ -451,6 +466,8 @@ VOID PhpInformerPopulateEventName(
     static const PH_STRINGREF imageVerify = PH_STRINGREF_INIT(L"Image Verify");
     static const PH_STRINGREF debugPrint = PH_STRINGREF_INIT(L"Debug Print");
     static const PH_STRINGREF requiredStateFailure = PH_STRINGREF_INIT(L"Required State Failure");
+    static const PH_STRINGREF siloCreate = PH_STRINGREF_INIT(L"Silo Create");
+    static const PH_STRINGREF siloTerminate = PH_STRINGREF_INIT(L"Silo Terminate");
     static const PH_STRINGREF handleCreateProcess = PH_STRINGREF_INIT(L"Handle Create (Process)");
     static const PH_STRINGREF handleDuplicateProcess = PH_STRINGREF_INIT(L"Handle Duplicate (Process)");
     static const PH_STRINGREF handleCreateThread = PH_STRINGREF_INIT(L"Handle Create (Thread)");
@@ -513,6 +530,12 @@ VOID PhpInformerPopulateEventName(
         break;
     case KphMsgRequiredStateFailure:
         name = &requiredStateFailure;
+        break;
+    case KphMsgSiloCreate:
+        name = &siloCreate;
+        break;
+    case KphMsgSiloTerminate:
+        name = &siloTerminate;
         break;
     //
     // Handle events — only pre-op cases; post-ops are consumed during
@@ -642,6 +665,7 @@ PCPH_STRINGREF PhpInformerGetCategoryName(
     static const PH_STRINGREF registry = PH_STRINGREF_INIT(L"Registry");
     static const PH_STRINGREF handle = PH_STRINGREF_INIT(L"Handle");
     static const PH_STRINGREF image = PH_STRINGREF_INIT(L"Image");
+    static const PH_STRINGREF silo = PH_STRINGREF_INIT(L"Silo");
     static const PH_STRINGREF other = PH_STRINGREF_INIT(L"Other");
 
     switch (Category)
@@ -658,6 +682,8 @@ PCPH_STRINGREF PhpInformerGetCategoryName(
         return &handle;
     case PH_INFORMER_CATEGORY_IMAGE:
         return &image;
+    case PH_INFORMER_CATEGORY_SILO:
+        return &silo;
     default:
         return &other;
     }
@@ -810,6 +836,80 @@ PCPH_STRINGREF PhpInformerGetRegTypeName(
         return &regResReqList;
     case REG_QWORD:
         return &regQword;
+    default:
+        return &unknown;
+    }
+}
+
+PCPH_STRINGREF PhpInformerGetKeyInfoClassName(
+    _In_ KEY_INFORMATION_CLASS Class
+    )
+{
+    static const PH_STRINGREF keyBasicInformation = PH_STRINGREF_INIT(L"KeyBasicInformation");
+    static const PH_STRINGREF keyNodeInformation = PH_STRINGREF_INIT(L"KeyNodeInformation");
+    static const PH_STRINGREF keyFullInformation = PH_STRINGREF_INIT(L"KeyFullInformation");
+    static const PH_STRINGREF keyNameInformation = PH_STRINGREF_INIT(L"KeyNameInformation");
+    static const PH_STRINGREF keyCachedInformation = PH_STRINGREF_INIT(L"KeyCachedInformation");
+    static const PH_STRINGREF keyFlagsInformation = PH_STRINGREF_INIT(L"KeyFlagsInformation");
+    static const PH_STRINGREF keyVirtualizationInformation = PH_STRINGREF_INIT(L"KeyVirtualizationInformation");
+    static const PH_STRINGREF keyHandleTagsInformation = PH_STRINGREF_INIT(L"KeyHandleTagsInformation");
+    static const PH_STRINGREF keyTrustInformation = PH_STRINGREF_INIT(L"KeyTrustInformation");
+    static const PH_STRINGREF keyLayerInformation = PH_STRINGREF_INIT(L"KeyLayerInformation");
+    static const PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
+
+    switch (Class)
+    {
+    case KeyBasicInformation:
+        return &keyBasicInformation;
+    case KeyNodeInformation:
+        return &keyNodeInformation;
+    case KeyFullInformation:
+        return &keyFullInformation;
+    case KeyNameInformation:
+        return &keyNameInformation;
+    case KeyCachedInformation:
+        return &keyCachedInformation;
+    case KeyFlagsInformation:
+        return &keyFlagsInformation;
+    case KeyVirtualizationInformation:
+        return &keyVirtualizationInformation;
+    case KeyHandleTagsInformation:
+        return &keyHandleTagsInformation;
+    case KeyTrustInformation:
+        return &keyTrustInformation;
+    case KeyLayerInformation:
+        return &keyLayerInformation;
+    default:
+        return &unknown;
+    }
+}
+
+PCPH_STRINGREF PhpInformerGetKeyValueInfoClassName(
+    _In_ KEY_VALUE_INFORMATION_CLASS Class
+    )
+{
+    static const PH_STRINGREF keyValueBasicInformation = PH_STRINGREF_INIT(L"KeyValueBasicInformation");
+    static const PH_STRINGREF keyValueFullInformation = PH_STRINGREF_INIT(L"KeyValueFullInformation");
+    static const PH_STRINGREF keyValuePartialInformation = PH_STRINGREF_INIT(L"KeyValuePartialInformation");
+    static const PH_STRINGREF keyValueFullInformationAlign64 = PH_STRINGREF_INIT(L"KeyValueFullInformationAlign64");
+    static const PH_STRINGREF keyValuePartialInformationAlign64 = PH_STRINGREF_INIT(L"KeyValuePartialInformationAlign64");
+    static const PH_STRINGREF keyValueLayerInformation = PH_STRINGREF_INIT(L"KeyValueLayerInformation");
+    static const PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
+
+    switch (Class)
+    {
+    case KeyValueBasicInformation:
+        return &keyValueBasicInformation;
+    case KeyValueFullInformation:
+        return &keyValueFullInformation;
+    case KeyValuePartialInformation:
+        return &keyValuePartialInformation;
+    case KeyValueFullInformationAlign64:
+        return &keyValueFullInformationAlign64;
+    case KeyValuePartialInformationAlign64:
+        return &keyValuePartialInformationAlign64;
+    case KeyValueLayerInformation:
+        return &keyValueLayerInformation;
     default:
         return &unknown;
     }
@@ -1643,12 +1743,6 @@ PPH_STRING PhpInformerFormatDetailsText(
             return PhFormat(format, 4, 40);
         }
 
-    case KphMsgRegPreDeleteValueKey:
-        break;
-
-    case KphMsgRegPreQueryValueKey:
-        break;
-
     case KphMsgRegPreEnumerateKey:
         {
             PH_FORMAT format[2];
@@ -1674,6 +1768,63 @@ PPH_STRING PhpInformerFormatDetailsText(
             return PhCreateStringFromUnicodeString(&str);
         break;
 
+    case KphMsgRegPreQueryKey:
+        {
+            PH_FORMAT format[4];
+
+            PhInitFormatS(&format[0], L"Query: ");
+            PhInitFormatSR(&format[1], *PhpInformerGetKeyInfoClassName(Message->Kernel.Reg.Parameters.QueryKey.KeyInformationClass));
+            PhInitFormatS(&format[2], L", Length: ");
+            PhInitFormatU(&format[3], Message->Kernel.Reg.Parameters.QueryKey.Length);
+
+            return PhFormat(format, 4, 60);
+        }
+
+    case KphMsgRegPreQueryValueKey:
+        {
+            PH_FORMAT format[4];
+
+            PhInitFormatS(&format[0], L"Query: ");
+            PhInitFormatSR(&format[1], *PhpInformerGetKeyValueInfoClassName(Message->Kernel.Reg.Parameters.QueryValueKey.KeyValueInformationClass));
+            PhInitFormatS(&format[2], L", Length: ");
+            PhInitFormatU(&format[3], Message->Kernel.Reg.Parameters.QueryValueKey.Length);
+
+            return PhFormat(format, 4, 60);
+        }
+
+    case KphMsgRegPreCreateKey:
+    case KphMsgRegPreOpenKey:
+        {
+            ACCESS_MASK desiredAccess;
+            ULONG attributes;
+            PPH_STRING accessStr;
+            PH_FORMAT format[3];
+            ULONG count = 0;
+
+            if (msgId == KphMsgRegPreCreateKey)
+            {
+                desiredAccess = Message->Kernel.Reg.Parameters.CreateKey.DesiredAccess;
+                attributes = Message->Kernel.Reg.Parameters.CreateKey.Attributes;
+            }
+            else
+            {
+                desiredAccess = Message->Kernel.Reg.Parameters.OpenKey.DesiredAccess;
+                attributes = Message->Kernel.Reg.Parameters.OpenKey.Attributes;
+            }
+
+            accessStr = PhpInformerFormatAccessMask(L"Key", desiredAccess);
+            PhInitFormatS(&format[count++], L"Access: ");
+            PhInitFormatSR(&format[count++], accessStr->sr);
+
+            if (FlagOn(attributes, OBJ_KERNEL_HANDLE) ||
+                (Message->Kernel.Reg.Context.ClientId.UniqueProcess == SYSTEM_PROCESS_ID))
+            {
+                PhInitFormatS(&format[count++], L", Kernel handle: Yes");
+            }
+
+            return PhFormat(format, count, 20);
+        }
+
     //
     // Handle events — process
     //
@@ -1684,7 +1835,7 @@ PPH_STRING PhpInformerFormatDetailsText(
             ACCESS_MASK desiredAccess = Message->Kernel.Handle.Pre.DesiredAccess;
             PPH_STRING targetName = PhpInformerGetTargetProcessName(Context, targetPid);
             PPH_STRING accessStr = PhpInformerFormatAccessMask(L"Process", desiredAccess);
-            PH_FORMAT format[7];
+            PH_FORMAT format[8];
             ULONG count = 0;
             PPH_STRING result;
 
@@ -1704,6 +1855,9 @@ PPH_STRING PhpInformerFormatDetailsText(
             PhInitFormatS(&format[count++], L"), Access: ");
             PhInitFormatSR(&format[count++], accessStr->sr);
 
+            if (Message->Kernel.Handle.KernelHandle)
+                PhInitFormatS(&format[count++], L", Kernel handle: Yes");
+
             result = PhFormat(format, count, 100);
             PhClearReference(&targetName);
             PhDereferenceObject(accessStr);
@@ -1718,7 +1872,7 @@ PPH_STRING PhpInformerFormatDetailsText(
             ACCESS_MASK desiredAccess = Message->Kernel.Handle.Pre.DesiredAccess;
             PPH_STRING targetName = PhpInformerGetTargetProcessName(Context, targetPid);
             PPH_STRING accessStr = PhpInformerFormatAccessMask(L"Process", desiredAccess);
-            PH_FORMAT format[11];
+            PH_FORMAT format[12];
             ULONG count = 0;
             PPH_STRING result;
 
@@ -1741,6 +1895,9 @@ PPH_STRING PhpInformerFormatDetailsText(
             PhInitFormatU(&format[count++], HandleToUlong(destPid));
             PhInitFormatS(&format[count++], L", Access: ");
             PhInitFormatSR(&format[count++], accessStr->sr);
+
+            if (Message->Kernel.Handle.KernelHandle)
+                PhInitFormatS(&format[count++], L", Kernel handle: Yes");
 
             result = PhFormat(format, count, 120);
             PhClearReference(&targetName);
@@ -1758,7 +1915,7 @@ PPH_STRING PhpInformerFormatDetailsText(
             ACCESS_MASK desiredAccess = Message->Kernel.Handle.Pre.DesiredAccess;
             PPH_STRING targetName = PhpInformerGetTargetProcessName(Context, targetCid.UniqueProcess);
             PPH_STRING accessStr = PhpInformerFormatAccessMask(L"Thread", desiredAccess);
-            PH_FORMAT format[9];
+            PH_FORMAT format[10];
             ULONG count = 0;
             PPH_STRING result;
 
@@ -1780,6 +1937,9 @@ PPH_STRING PhpInformerFormatDetailsText(
             PhInitFormatS(&format[count++], L"), Access: ");
             PhInitFormatSR(&format[count++], accessStr->sr);
 
+            if (Message->Kernel.Handle.KernelHandle)
+                PhInitFormatS(&format[count++], L", Kernel handle: Yes");
+
             result = PhFormat(format, count, 100);
             PhClearReference(&targetName);
             PhDereferenceObject(accessStr);
@@ -1794,7 +1954,7 @@ PPH_STRING PhpInformerFormatDetailsText(
             ACCESS_MASK desiredAccess = Message->Kernel.Handle.Pre.DesiredAccess;
             PPH_STRING targetName = PhpInformerGetTargetProcessName(Context, targetCid.UniqueProcess);
             PPH_STRING accessStr = PhpInformerFormatAccessMask(L"Thread", desiredAccess);
-            PH_FORMAT format[13];
+            PH_FORMAT format[14];
             ULONG count = 0;
             PPH_STRING result;
 
@@ -1820,6 +1980,9 @@ PPH_STRING PhpInformerFormatDetailsText(
             PhInitFormatS(&format[count++], L", Access: ");
             PhInitFormatSR(&format[count++], accessStr->sr);
 
+            if (Message->Kernel.Handle.KernelHandle)
+                PhInitFormatS(&format[count++], L", Kernel handle: Yes");
+
             result = PhFormat(format, count, 140);
             PhClearReference(&targetName);
             PhDereferenceObject(accessStr);
@@ -1835,7 +1998,7 @@ PPH_STRING PhpInformerFormatDetailsText(
             ACCESS_MASK desiredAccess = Message->Kernel.Handle.Pre.DesiredAccess;
             PPH_STRING accessStr = PhpInformerFormatAccessMask(L"Desktop", desiredAccess);
             PPH_STRING objectName = NULL;
-            PH_FORMAT format[4];
+            PH_FORMAT format[5];
             ULONG count = 0;
             PPH_STRING result;
 
@@ -1851,6 +2014,9 @@ PPH_STRING PhpInformerFormatDetailsText(
             PhInitFormatS(&format[count++], L"Access: ");
             PhInitFormatSR(&format[count++], accessStr->sr);
 
+            if (Message->Kernel.Handle.KernelHandle)
+                PhInitFormatS(&format[count++], L", Kernel handle: Yes");
+
             result = PhFormat(format, count, 80);
             PhClearReference(&objectName);
             PhDereferenceObject(accessStr);
@@ -1864,7 +2030,7 @@ PPH_STRING PhpInformerFormatDetailsText(
             ACCESS_MASK desiredAccess = Message->Kernel.Handle.Pre.DesiredAccess;
             PPH_STRING accessStr = PhpInformerFormatAccessMask(L"Desktop", desiredAccess);
             PPH_STRING objectName = NULL;
-            PH_FORMAT format[8];
+            PH_FORMAT format[9];
             ULONG count = 0;
             PPH_STRING result;
 
@@ -1884,9 +2050,103 @@ PPH_STRING PhpInformerFormatDetailsText(
             PhInitFormatS(&format[count++], L", Access: ");
             PhInitFormatSR(&format[count++], accessStr->sr);
 
+            if (Message->Kernel.Handle.KernelHandle)
+                PhInitFormatS(&format[count++], L", Kernel handle: Yes");
+
             result = PhFormat(format, count, 100);
             PhClearReference(&objectName);
             PhDereferenceObject(accessStr);
+            return result;
+        }
+
+    //
+    // Silo events
+    //
+
+    case KphMsgSiloCreate:
+    case KphMsgSiloTerminate:
+        {
+            const KPHM_SILO_INFORMATION* siloInfo;
+            const KPHM_SILO_INFORMATION* serverInfo;
+            PPH_STRING containerId = NULL;
+            PPH_STRING serverContainerId = NULL;
+            UNICODE_STRING serverName;
+            PH_STRINGREF serverNameRef;
+            PH_FORMAT format[20];
+            ULONG count = 0;
+            PPH_STRING result;
+
+            if (msgId == KphMsgSiloCreate)
+            {
+                siloInfo = &Message->Kernel.SiloCreate.Silo;
+                serverInfo = &Message->Kernel.SiloCreate.ServerSilo;
+            }
+            else
+            {
+                siloInfo = &Message->Kernel.SiloTerminate.Silo;
+                serverInfo = &Message->Kernel.SiloTerminate.ServerSilo;
+            }
+
+            containerId = PhFormatGuid(&siloInfo->ContainerId);
+            PhInitFormatS(&format[count++], L"ContainerId: ");
+            PhInitFormatSR(&format[count++], containerId->sr);
+
+            if (siloInfo->IsHostSilo)
+                PhInitFormatS(&format[count++], L", HostSilo: Yes");
+
+            if (siloInfo->SiloIdentifier)
+            {
+                PhInitFormatS(&format[count++], L", SiloIdentifier: ");
+                PhInitFormatU(&format[count++], siloInfo->SiloIdentifier);
+            }
+
+            if (siloInfo->ServiceSessionId)
+            {
+                PhInitFormatS(&format[count++], L", ServiceSessionId: ");
+                PhInitFormatU(&format[count++], siloInfo->ServiceSessionId);
+            }
+
+            if (siloInfo->ActiveConsoleId)
+            {
+                PhInitFormatS(&format[count++], L", ActiveConsoleId: ");
+                PhInitFormatU(&format[count++], siloInfo->ActiveConsoleId);
+            }
+
+            serverContainerId = PhFormatGuid(&serverInfo->ContainerId);
+            PhInitFormatS(&format[count++], L", ServerContainerId: ");
+            PhInitFormatSR(&format[count++], serverContainerId->sr);
+
+            if (serverInfo->IsHostSilo)
+                PhInitFormatS(&format[count++], L", ServerHostSilo: Yes");
+
+            if (serverInfo->SiloIdentifier)
+            {
+                PhInitFormatS(&format[count++], L", ServerSiloIdentifier: ");
+                PhInitFormatU(&format[count++], serverInfo->SiloIdentifier);
+            }
+
+            if (serverInfo->ServiceSessionId)
+            {
+                PhInitFormatS(&format[count++], L", ServerServiceSessionId: ");
+                PhInitFormatU(&format[count++], serverInfo->ServiceSessionId);
+            }
+
+            if (serverInfo->ActiveConsoleId)
+            {
+                PhInitFormatS(&format[count++], L", ServerActiveConsoleId: ");
+                PhInitFormatU(&format[count++], siloInfo->ActiveConsoleId);
+            }
+
+            if (NT_SUCCESS(KphMsgDynGetUnicodeString(Message, KphMsgFieldOtherObjectName, &serverName)) && serverName.Length > 0)
+            {
+                PhUnicodeStringToStringRef(&serverName, &serverNameRef);
+                PhInitFormatS(&format[count++], L", ServerSiloName: ");
+                PhInitFormatSR(&format[count++], serverNameRef);
+            }
+
+            result = PhFormat(format, count, 200);
+            PhClearReference(&containerId);
+            PhClearReference(&serverContainerId);
             return result;
         }
 
@@ -1906,6 +2166,8 @@ PPH_STRING PhpInformerFormatDetailsText(
         switch (majorFunction)
         {
         case IRP_MJ_CREATE:
+        case IRP_MJ_CREATE_NAMED_PIPE:
+        case IRP_MJ_CREATE_MAILSLOT:
             {
                 static const PH_STRINGREF shareNames[] =
                 {
@@ -1967,14 +2229,34 @@ PPH_STRING PhpInformerFormatDetailsText(
                 };
 #undef PH_FILE_ATTR
 
-                ULONG options = Message->Kernel.File.Parameters.Create.Options;
-                ULONG disposition = options >> 24;
-                ULONG createOptions = options & 0x00FFFFFF;
-                USHORT shareAccess = Message->Kernel.File.Parameters.Create.ShareAccess;
-                USHORT fileAttributes = Message->Kernel.File.Parameters.Create.FileAttributes;
+                ULONG options;
+                ULONG disposition;
+                ULONG createOptions;
+                USHORT shareAccess;
+                ACCESS_MASK desiredAccess;
                 PH_STRING_BUILDER createSb;
-                PPH_STRING optionsStr;
-                PPH_STRING attribStr;
+
+                if (majorFunction == IRP_MJ_CREATE)
+                {
+                    options = Message->Kernel.File.Parameters.Create.Options;
+                    shareAccess = Message->Kernel.File.Parameters.Create.ShareAccess;
+                    desiredAccess = Message->Kernel.File.Pre.Create.SecurityContext.DesiredAccess;
+                }
+                else if (majorFunction == IRP_MJ_CREATE_NAMED_PIPE)
+                {
+                    options = Message->Kernel.File.Parameters.CreateNamedPipe.Options;
+                    shareAccess = Message->Kernel.File.Parameters.CreateNamedPipe.ShareAccess;
+                    desiredAccess = Message->Kernel.File.Pre.CreateNamedPipe.SecurityContext.DesiredAccess;
+                }
+                else
+                {
+                    options = Message->Kernel.File.Parameters.CreateMailslot.Options;
+                    shareAccess = Message->Kernel.File.Parameters.CreateMailslot.ShareAccess;
+                    desiredAccess = Message->Kernel.File.Pre.CreateMailslot.SecurityContext.DesiredAccess;
+                }
+
+                disposition = options >> 24;
+                createOptions = options & 0x00FFFFFF;
 
                 PhInitializeStringBuilder(&createSb, 120);
 
@@ -1992,6 +2274,7 @@ PPH_STRING PhpInformerFormatDetailsText(
                 if (createOptions)
                 {
                     PH_FORMAT hexFmt[4];
+                    PPH_STRING optionsStr;
 
                     static const PH_STRINGREF optSep = PH_STRINGREF_INIT(L", Options: ");
                     PhAppendStringBuilder(&createSb, &optSep);
@@ -2019,26 +2302,45 @@ PPH_STRING PhpInformerFormatDetailsText(
                 }
 
                 //
-                // FileAttributes — symbolicated.
+                // FileAttributes — only meaningful for IRP_MJ_CREATE.
                 //
 
-                if (fileAttributes && fileAttributes != FILE_ATTRIBUTE_NORMAL)
+                if (majorFunction == IRP_MJ_CREATE)
                 {
-                    PH_FORMAT hexFmt[4];
+                    USHORT fileAttributes = Message->Kernel.File.Parameters.Create.FileAttributes;
 
-                    static const PH_STRINGREF attrSep = PH_STRINGREF_INIT(L", Attributes: ");
-                    PhAppendStringBuilder(&createSb, &attrSep);
-                    attribStr = PhGetAccessString(fileAttributes, (PPH_ACCESS_ENTRY)fileAttributeEntries, RTL_NUMBER_OF(fileAttributeEntries));
+                    if (fileAttributes)
+                    {
+                        PH_FORMAT hexFmt[4];
+                        PPH_STRING attribStr;
 
-                    PhInitFormatSR(&hexFmt[0], attribStr->sr);
-                    PhInitFormatS(&hexFmt[1], L" (0x");
-                    PhInitFormatI64XWithWidth(&hexFmt[2], (ULONG64)fileAttributes, 4);
-                    PhInitFormatC(&hexFmt[3], L')');
-                    PhDereferenceObject(attribStr);
-                    attribStr = PhFormat(hexFmt, 4, 30);
+                        static const PH_STRINGREF attrSep = PH_STRINGREF_INIT(L", Attributes: ");
+                        PhAppendStringBuilder(&createSb, &attrSep);
+                        attribStr = PhGetAccessString(fileAttributes, (PPH_ACCESS_ENTRY)fileAttributeEntries, RTL_NUMBER_OF(fileAttributeEntries));
 
-                    PhAppendStringBuilder(&createSb, &attribStr->sr);
-                    PhDereferenceObject(attribStr);
+                        PhInitFormatSR(&hexFmt[0], attribStr->sr);
+                        PhInitFormatS(&hexFmt[1], L" (0x");
+                        PhInitFormatI64XWithWidth(&hexFmt[2], (ULONG64)fileAttributes, 4);
+                        PhInitFormatC(&hexFmt[3], L')');
+                        PhDereferenceObject(attribStr);
+                        attribStr = PhFormat(hexFmt, 4, 30);
+
+                        PhAppendStringBuilder(&createSb, &attribStr->sr);
+                        PhDereferenceObject(attribStr);
+                    }
+                }
+
+                //
+                // DesiredAccess — from IO_SECURITY_CONTEXT
+                //
+
+                if (desiredAccess)
+                {
+                    PPH_STRING accessStr = PhpInformerFormatAccessMask(L"File", desiredAccess);
+                    static const PH_STRINGREF accessSep = PH_STRINGREF_INIT(L", Access: ");
+                    PhAppendStringBuilder(&createSb, &accessSep);
+                    PhAppendStringBuilder(&createSb, &accessStr->sr);
+                    PhDereferenceObject(accessStr);
                 }
 
                 perOpDetails = PhFinalStringBuilderString(&createSb);
@@ -2216,101 +2518,129 @@ PPH_STRING PhpInformerFormatDetailsText(
     return NULL;
 }
 
+PCKPHM_CONTEXT PhpInformerGetContext(
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    if (Message->Header.MessageId >= KphMsgFilePreCreate &&
+        Message->Header.MessageId <= KphMsgFilePostVolumeDismount)
+    {
+        if (Message->Kernel.File.Thread.ProcessStartKey)
+            return &Message->Kernel.File.Thread;
+        return &Message->Kernel.File.Context;
+    }
+
+    if (Message->Header.MessageId >= KphMsgRegPreDeleteKey &&
+        Message->Header.MessageId <= KphMsgRegPostSaveMergedKey)
+    {
+        return &Message->Kernel.Reg.Context;
+    }
+
+    if (Message->Header.MessageId >= KphMsgHandlePreCreateProcess &&
+        Message->Header.MessageId <= KphMsgHandlePostDuplicateDesktop)
+    {
+        return &Message->Kernel.Handle.Context;
+    }
+
+    switch (Message->Header.MessageId)
+    {
+    case KphMsgProcessCreate:
+        return &Message->Kernel.ProcessCreate.Context;
+    case KphMsgProcessExit:
+        return &Message->Kernel.ProcessExit.Context;
+    case KphMsgThreadCreate:
+        return &Message->Kernel.ThreadCreate.Context;
+    case KphMsgThreadExecute:
+        return &Message->Kernel.ThreadExecute.Context;
+    case KphMsgThreadExit:
+        return &Message->Kernel.ThreadExit.Context;
+    case KphMsgImageLoad:
+        return &Message->Kernel.ImageLoad.Context;
+    case KphMsgImageVerify:
+        return &Message->Kernel.ImageVerify.Context;
+    case KphMsgSiloCreate:
+        return &Message->Kernel.SiloCreate.Context;
+    case KphMsgSiloTerminate:
+        return &Message->Kernel.SiloTerminate.Context;
+    case KphMsgDebugPrint:
+        return &Message->Kernel.DebugPrint.Context;
+    }
+
+    return NULL;
+}
+
+PPH_STRING PhpInformerResolveProcessText(
+    _In_ PPH_INFORMERW_CONTEXT Context,
+    _In_ HANDLE ProcessId,
+    _In_ ULONG64 ProcessStartKey
+    )
+{
+    PPH_PROCESS_ITEM processItem;
+
+    if (!ProcessId)
+        return NULL;
+
+    processItem = PhpInformerReferenceProcessItem(ProcessId, ProcessStartKey);
+    if (processItem)
+    {
+        PPH_STRING name = PhReferenceObject(processItem->ProcessName);
+        PhDereferenceObject(processItem);
+        return name;
+    }
+
+    //
+    // If this is a process-scoped monitor and the event's start key
+    // matches, use the cached process name to avoid showing
+    // "Non-existent process" for the monitored process after it exits.
+    //
+    if (Context->ProcessName && ProcessStartKey == Context->ProcessStartKey)
+        return PhReferenceObject(Context->ProcessName);
+
+    //
+    // Fallback when process is not in the snapshot (e.g. already exited).
+    //
+    {
+        PH_FORMAT format[3];
+
+        PhInitFormatS(&format[0], L"Non-existent process (");
+        PhInitFormatU(&format[1], HandleToUlong(ProcessId));
+        PhInitFormatC(&format[2], L')');
+
+        return PhFormat(format, 3, 40);
+    }
+}
+
 PPH_STRING PhpInformerGetProcessText(
     _In_ PPH_INFORMERW_CONTEXT Context,
     _In_ PCKPH_MESSAGE Message
     )
 {
-    HANDLE processId = NULL;
-    ULONG64 processStartKey = 0;
+    PCKPHM_CONTEXT ctx = PhpInformerGetContext(Message);
 
-    switch (Message->Header.MessageId)
-    {
-    case KphMsgProcessCreate:
-        processId = Message->Kernel.ProcessCreate.CreatingClientId.UniqueProcess;
-        processStartKey = Message->Kernel.ProcessCreate.CreatingProcessStartKey;
-        break;
-    case KphMsgProcessExit:
-        processId = Message->Kernel.ProcessExit.ClientId.UniqueProcess;
-        processStartKey = Message->Kernel.ProcessExit.ProcessStartKey;
-        break;
-    case KphMsgThreadCreate:
-        processId = Message->Kernel.ThreadCreate.CreatingClientId.UniqueProcess;
-        processStartKey = Message->Kernel.ThreadCreate.CreatingProcessStartKey;
-        break;
-    case KphMsgThreadExecute:
-        processId = Message->Kernel.ThreadExecute.ClientId.UniqueProcess;
-        processStartKey = Message->Kernel.ThreadExecute.ProcessStartKey;
-        break;
-    case KphMsgThreadExit:
-        processId = Message->Kernel.ThreadExit.ClientId.UniqueProcess;
-        processStartKey = Message->Kernel.ThreadExit.ProcessStartKey;
-        break;
-    case KphMsgImageLoad:
-        processId = Message->Kernel.ImageLoad.LoadingClientId.UniqueProcess;
-        processStartKey = Message->Kernel.ImageLoad.LoadingProcessStartKey;
-        break;
-    case KphMsgImageVerify:
-        processId = Message->Kernel.ImageVerify.ClientId.UniqueProcess;
-        processStartKey = Message->Kernel.ImageVerify.ProcessStartKey;
-        break;
-    default:
-        if (Message->Header.MessageId >= KphMsgHandlePreCreateProcess &&
-            Message->Header.MessageId <= KphMsgHandlePostDuplicateDesktop)
-        {
-            processId = Message->Kernel.Handle.ContextClientId.UniqueProcess;
-            processStartKey = Message->Kernel.Handle.ContextProcessStartKey;
-        }
-        else if (Message->Header.MessageId >= KphMsgFilePreCreate &&
-            Message->Header.MessageId <= KphMsgFilePostVolumeDismount)
-        {
-            processId = Message->Kernel.File.ClientId.UniqueProcess;
-            processStartKey = Message->Kernel.File.ProcessStartKey;
-        }
-        else if (Message->Header.MessageId >= KphMsgRegPreDeleteKey &&
-            Message->Header.MessageId <= KphMsgRegPostSaveMergedKey)
-        {
-            processId = Message->Kernel.Reg.ClientId.UniqueProcess;
-            processStartKey = Message->Kernel.Reg.ProcessStartKey;
-        }
-        break;
-    }
+    if (!ctx)
+        return NULL;
 
-    if (processId)
-    {
-        PPH_PROCESS_ITEM processItem;
+    return PhpInformerResolveProcessText(Context,
+                                         ctx->ClientId.UniqueProcess,
+                                         ctx->ProcessStartKey);
+}
 
-        processItem = PhpInformerReferenceProcessItem(processId, processStartKey);
-        if (processItem)
-        {
-            PPH_STRING name = PhReferenceObject(processItem->ProcessName);
-            PhDereferenceObject(processItem);
-            return name;
-        }
+PPH_STRING PhpInformerGetAttachedProcessText(
+    _In_ PPH_INFORMERW_CONTEXT Context,
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    PCKPHM_CONTEXT ctx = PhpInformerGetContext(Message);
 
-        //
-        // If this is a process-scoped monitor and the event's start key
-        // matches, use the cached process name to avoid showing
-        // "Non-existent process" for the monitored process after it exits.
-        //
-        if (Context->ProcessName && processStartKey == Context->ProcessStartKey)
-            return PhReferenceObject(Context->ProcessName);
+    if (!ctx || !ctx->AttachedProcessId)
+        return NULL;
 
-        //
-        // Fallback when process is not in the snapshot (e.g. already exited)
-        //
-        {
-            PH_FORMAT format[3];
+    if (ctx->AttachedProcessStartKey == ctx->ProcessStartKey)
+        return NULL;
 
-            PhInitFormatS(&format[0], L"Non-existent process (");
-            PhInitFormatU(&format[1], HandleToUlong(processId));
-            PhInitFormatC(&format[2], L')');
-
-            return PhFormat(format, 3, 40);
-        }
-    }
-
-    return NULL;
+    return PhpInformerResolveProcessText(Context,
+                                         ctx->AttachedProcessId,
+                                         ctx->AttachedProcessStartKey);
 }
 
 VOID PhpInformerEnsureTexts(
@@ -2326,6 +2656,9 @@ VOID PhpInformerEnsureTexts(
     if (!Node->ProcessText)
         Node->ProcessText = PhpInformerGetProcessText(Context, msg);
 
+    if (!Node->AttachedProcessText)
+        Node->AttachedProcessText = PhpInformerGetAttachedProcessText(Context, msg);
+
     if (!Node->ResultText)
         Node->ResultText = PhpInformerGetImmediateResultText(msg);
 
@@ -2337,92 +2670,24 @@ HANDLE PhpInformerGetTid(
     _In_ PCKPH_MESSAGE Message
     )
 {
-    if (Message->Header.MessageId >= KphMsgFilePreCreate &&
-        Message->Header.MessageId <= KphMsgFilePostVolumeDismount)
-    {
-        return Message->Kernel.File.ClientId.UniqueThread;
-    }
-
-    if (Message->Header.MessageId >= KphMsgRegPreDeleteKey &&
-        Message->Header.MessageId <= KphMsgRegPostSaveMergedKey)
-    {
-        return Message->Kernel.Reg.ClientId.UniqueThread;
-    }
-
-    switch (Message->Header.MessageId)
-    {
-    case KphMsgThreadCreate:
-        return Message->Kernel.ThreadCreate.CreatingClientId.UniqueThread;
-    case KphMsgThreadExecute:
-        return Message->Kernel.ThreadExecute.ClientId.UniqueThread;
-    case KphMsgThreadExit:
-        return Message->Kernel.ThreadExit.ClientId.UniqueThread;
-    case KphMsgProcessCreate:
-        return Message->Kernel.ProcessCreate.CreatingClientId.UniqueThread;
-    case KphMsgProcessExit:
-        return Message->Kernel.ProcessExit.ClientId.UniqueThread;
-    case KphMsgImageLoad:
-        return Message->Kernel.ImageLoad.LoadingClientId.UniqueThread;
-    case KphMsgImageVerify:
-        return Message->Kernel.ImageVerify.ClientId.UniqueThread;
-    default:
-        {
-            if (Message->Header.MessageId >= KphMsgHandlePreCreateProcess &&
-                Message->Header.MessageId <= KphMsgHandlePostDuplicateDesktop)
-            {
-                return Message->Kernel.Handle.ContextClientId.UniqueThread;
-            }
-        }
-        break;
-    }
-
-    return NULL;
+    PCKPHM_CONTEXT ctx = PhpInformerGetContext(Message);
+    return ctx ? ctx->ClientId.UniqueThread : NULL;
 }
 
 HANDLE PhpInformerGetPid(
     _In_ PCKPH_MESSAGE Message
     )
 {
-    if (Message->Header.MessageId >= KphMsgFilePreCreate &&
-        Message->Header.MessageId <= KphMsgFilePostVolumeDismount)
-    {
-        return Message->Kernel.File.ClientId.UniqueProcess;
-    }
+    PCKPHM_CONTEXT ctx = PhpInformerGetContext(Message);
+    return ctx ? ctx->ClientId.UniqueProcess : NULL;
+}
 
-    if (Message->Header.MessageId >= KphMsgRegPreDeleteKey &&
-        Message->Header.MessageId <= KphMsgRegPostSaveMergedKey)
-    {
-        return Message->Kernel.Reg.ClientId.UniqueProcess;
-    }
-
-    switch (Message->Header.MessageId)
-    {
-    case KphMsgThreadCreate:
-        return Message->Kernel.ThreadCreate.CreatingClientId.UniqueProcess;
-    case KphMsgThreadExecute:
-        return Message->Kernel.ThreadExecute.ClientId.UniqueProcess;
-    case KphMsgThreadExit:
-        return Message->Kernel.ThreadExit.ClientId.UniqueProcess;
-    case KphMsgProcessCreate:
-        return Message->Kernel.ProcessCreate.CreatingClientId.UniqueProcess;
-    case KphMsgProcessExit:
-        return Message->Kernel.ProcessExit.ClientId.UniqueProcess;
-    case KphMsgImageLoad:
-        return Message->Kernel.ImageLoad.LoadingClientId.UniqueProcess;
-    case KphMsgImageVerify:
-        return Message->Kernel.ImageVerify.ClientId.UniqueProcess;
-    default:
-        {
-            if (Message->Header.MessageId >= KphMsgHandlePreCreateProcess &&
-                Message->Header.MessageId <= KphMsgHandlePostDuplicateDesktop)
-            {
-                return Message->Kernel.Handle.ContextClientId.UniqueProcess;
-            }
-        }
-        break;
-    }
-
-    return NULL;
+ULONG64 PhpInformerGetStartKey(
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    PCKPHM_CONTEXT ctx = PhpInformerGetContext(Message);
+    return ctx ? ctx->ProcessStartKey : 0;
 }
 
 _Function_class_(PH_TN_FILTER_FUNCTION)
@@ -2440,6 +2705,8 @@ BOOLEAN NTAPI PhpInformerSearchFilterCallback(
     PhpInformerEnsureTexts(context, node);
 
     if (!PhIsNullOrEmptyString(node->ProcessText) && PhSearchControlMatch(context->SearchMatchHandle, &node->ProcessText->sr))
+        return TRUE;
+    if (!PhIsNullOrEmptyString(node->AttachedProcessText) && PhSearchControlMatch(context->SearchMatchHandle, &node->AttachedProcessText->sr))
         return TRUE;
     if (!PhIsNullOrEmptyStringRef(&node->CategoryText) && PhSearchControlMatch(context->SearchMatchHandle, &node->CategoryText))
         return TRUE;
@@ -2600,6 +2867,22 @@ BOOLEAN NTAPI PhpInformerTreeNewCallback(
             case PHIC_TID:
                 PhInitializeStringRefLongHint(&getCellText->Text, node->TidString);
                 break;
+            case PHIC_START_KEY:
+                if (node->StartKeyText)
+                    getCellText->Text = node->StartKeyText->sr;
+                break;
+            case PHIC_ATTACHED_PROCESS:
+                if (node->AttachedProcessText)
+                    getCellText->Text = node->AttachedProcessText->sr;
+                break;
+            case PHIC_ATTACHED_PID:
+                if (node->AttachedPidString[0])
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->AttachedPidString);
+                break;
+            case PHIC_ATTACHED_START_KEY:
+                if (node->AttachedStartKeyText)
+                    getCellText->Text = node->AttachedStartKeyText->sr;
+                break;
             case PHIC_CATEGORY:
                 getCellText->Text = node->CategoryText;
                 break;
@@ -2670,6 +2953,23 @@ BOOLEAN NTAPI PhpInformerTreeNewCallback(
                 }
                 break;
             }
+        }
+        return TRUE;
+
+    case TreeNewHeaderRightClick:
+        {
+            PH_TN_COLUMN_MENU_DATA data;
+
+            data.TreeNewHandle = hwnd;
+            data.MouseEvent = Parameter1;
+            data.DefaultSortColumn = 0;
+            data.DefaultSortOrder = NoSortOrder;
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
+
+            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            PhHandleTreeNewColumnMenu(&data);
+            PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
 
@@ -2747,15 +3047,19 @@ VOID PhpInformerInitializeColumns(
     TreeNew_SetSort(tn, PHIC_TIME, NoSortOrder);
 
     PhAddTreeNewColumn(tn, PHIC_TIME, TRUE, L"Time", 140, PH_ALIGN_RIGHT, 0, DT_RIGHT);
-    PhAddTreeNewColumn(tn, PHIC_DURATION, TRUE, L"Duration", 70, PH_ALIGN_RIGHT, 1, DT_RIGHT);
+    PhAddTreeNewColumn(tn, PHIC_DURATION, FALSE, L"Duration", 70, PH_ALIGN_RIGHT, 1, DT_RIGHT);
     PhAddTreeNewColumn(tn, PHIC_PROCESS,TRUE, L"Process", 120, PH_ALIGN_LEFT, 2, 0);
     PhAddTreeNewColumn(tn, PHIC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 3, DT_RIGHT);
     PhAddTreeNewColumn(tn, PHIC_TID, TRUE, L"TID", 50, PH_ALIGN_RIGHT, 4, DT_RIGHT);
-    PhAddTreeNewColumn(tn, PHIC_CATEGORY, TRUE, L"Category", 60, PH_ALIGN_LEFT, 5, 0);
-    PhAddTreeNewColumn(tn, PHIC_EVENT, TRUE, L"Event", 100, PH_ALIGN_LEFT, 6, 0);
-    PhAddTreeNewColumn(tn, PHIC_PATH, TRUE, L"Path", 200, PH_ALIGN_LEFT, 7, 0);
-    PhAddTreeNewColumn(tn, PHIC_RESULT, TRUE, L"Result", 60, PH_ALIGN_LEFT, 8, 0);
-    PhAddTreeNewColumn(tn, PHIC_DETAILS, TRUE, L"Details", 200, PH_ALIGN_LEFT, 9, 0);
+    PhAddTreeNewColumn(tn, PHIC_START_KEY, FALSE, L"Start key", 140, PH_ALIGN_LEFT, 5, 0);
+    PhAddTreeNewColumn(tn, PHIC_ATTACHED_PROCESS, FALSE, L"Attached process", 120, PH_ALIGN_LEFT, 6, 0);
+    PhAddTreeNewColumn(tn, PHIC_ATTACHED_PID, FALSE, L"Attached PID", 60, PH_ALIGN_RIGHT, 7, DT_RIGHT);
+    PhAddTreeNewColumn(tn, PHIC_ATTACHED_START_KEY, FALSE, L"Attached start key", 140, PH_ALIGN_LEFT, 8, 0);
+    PhAddTreeNewColumn(tn, PHIC_CATEGORY, TRUE, L"Category", 60, PH_ALIGN_LEFT, 9, 0);
+    PhAddTreeNewColumn(tn, PHIC_EVENT, TRUE, L"Event", 100, PH_ALIGN_LEFT, 10, 0);
+    PhAddTreeNewColumn(tn, PHIC_PATH, TRUE, L"Path", 200, PH_ALIGN_LEFT, 11, 0);
+    PhAddTreeNewColumn(tn, PHIC_RESULT, TRUE, L"Result", 60, PH_ALIGN_LEFT, 12, 0);
+    PhAddTreeNewColumn(tn, PHIC_DETAILS, TRUE, L"Details", 200, PH_ALIGN_LEFT, 13, 0);
 
     PhCmInitializeManager(&Context->Cm, tn, PHIC_MAXIMUM, PhpInformerPostSortFunction);
 
@@ -2950,39 +3254,66 @@ VOID PhpInformerUpdateDetailsFromPostOp(
         break;
 
     //
-    // Registry post-ops: append disposition for CreateKey/OpenKey.
+    // Registry post-ops: append access and disposition for CreateKey/OpenKey.
     //
 
     case KphMsgRegPostCreateKey:
     case KphMsgRegPostOpenKey:
         {
             ULONG disposition;
+            ACCESS_MASK granted;
+            PPH_STRING accessStr = NULL;
             PCPH_STRINGREF dispText;
-            PH_FORMAT format[3];
+            PH_FORMAT format[6];
             ULONG count = 0;
 
             if (msgId == KphMsgRegPostCreateKey)
+            {
                 disposition = PostMsg->Kernel.Reg.Post.CreateKey.Disposition;
+                if (PostMsg->Kernel.Reg.Parameters.CreateKey.GrantedAccess)
+                    granted = PostMsg->Kernel.Reg.Parameters.CreateKey.GrantedAccess;
+                else
+                    granted = PostMsg->Kernel.Reg.Parameters.CreateKey.DesiredAccess;
+            }
             else
+            {
                 disposition = PostMsg->Kernel.Reg.Post.OpenKey.Disposition;
+                if (PostMsg->Kernel.Reg.Parameters.CreateKey.GrantedAccess)
+                    granted = PostMsg->Kernel.Reg.Parameters.CreateKey.GrantedAccess;
+                else
+                    granted = PostMsg->Kernel.Reg.Parameters.CreateKey.DesiredAccess;
+            }
 
             if (disposition == REG_CREATED_NEW_KEY)
                 dispText = &dispCreated;
             else if (disposition == REG_OPENED_EXISTING_KEY)
                 dispText = &dispOpened;
             else
-                break;
+                dispText = NULL;
 
             if (!PhIsNullOrEmptyString(PreNode->DetailsText))
             {
                 PhInitFormatSR(&format[count++], PreNode->DetailsText->sr);
-                PhInitFormatSR(&format[count++], separator);
             }
 
-            PhInitFormatSR(&format[count++], *dispText);
+            if (NT_SUCCESS(PostMsg->Kernel.Reg.Post.Status) &&
+                (PostMsg->Kernel.Reg.Post.Status != STATUS_REPARSE))
+            {
+                PhInitFormatSR(&format[count++], separator);
+                accessStr = PhpInformerFormatAccessMask(L"Key", granted);
+                PhInitFormatSR(&format[count++], grantedPrefix);
+                PhInitFormatSR(&format[count++], accessStr->sr);
+            }
+
+            if (dispText)
+            {
+                PhInitFormatSR(&format[count++], separator);
+                PhInitFormatSR(&format[count++], *dispText);
+            }
 
             PhMoveReference(&PreNode->DetailsText, PhFormat(format, count, 80));
             PhClearReference(&PreNode->TooltipText);
+            PhClearReference(&accessStr);
         }
         break;
 
@@ -2994,26 +3325,53 @@ VOID PhpInformerUpdateDetailsFromPostOp(
     case KphMsgFilePostCreateNamedPipe:
     case KphMsgFilePostCreateMailslot:
         {
-            ULONG_PTR information = PostMsg->Kernel.File.Post.IoStatus.Information;
-            PCPH_STRINGREF resultName = PhpInformerGetOpenResultName(information);
+            ACCESS_MASK granted;
+            PPH_STRING accessStr = NULL;
+            PH_FORMAT format[8];
+            ULONG count = 0;
 
-            if (resultName)
+            if (!NT_SUCCESS(PostMsg->Kernel.File.Post.IoStatus.Status))
+                break;
+
+
+            if (msgId == KphMsgFilePostCreate)
+                granted = PostMsg->Kernel.File.Post.Create.SecurityContext.PreviouslyGrantedAccess;
+            else if (msgId == KphMsgFilePostCreateNamedPipe)
+                granted = PostMsg->Kernel.File.Post.CreateNamedPipe.SecurityContext.PreviouslyGrantedAccess;
+            else
+                granted = PostMsg->Kernel.File.Post.CreateMailslot.SecurityContext.PreviouslyGrantedAccess;
+
+            if (!PhIsNullOrEmptyString(PreNode->DetailsText))
             {
-                PH_FORMAT format[4];
-                ULONG count = 0;
+                PhInitFormatSR(&format[count++], PreNode->DetailsText->sr);
+                PhInitFormatSR(&format[count++], separator);
+            }
 
-                if (!PhIsNullOrEmptyString(PreNode->DetailsText))
-                {
-                    PhInitFormatSR(&format[count++], PreNode->DetailsText->sr);
-                    PhInitFormatSR(&format[count++], separator);
-                }
+            accessStr = PhpInformerFormatAccessMask(L"File", granted);
+
+            PhInitFormatSR(&format[count++], grantedPrefix);
+            PhInitFormatSR(&format[count++], accessStr->sr);
+            PhInitFormatSR(&format[count++], separator);
+
+            if (PostMsg->Kernel.File.Post.IoStatus.Status == STATUS_SUCCESS)
+            {
+                ULONG_PTR information;
+                PCPH_STRINGREF resultName;
+
+                information = PostMsg->Kernel.File.Post.IoStatus.Information;
+                resultName = PhpInformerGetOpenResultName(information);
 
                 PhInitFormatSR(&format[count++], openResultPrefix);
-                PhInitFormatSR(&format[count++], *resultName);
-
-                PhMoveReference(&PreNode->DetailsText, PhFormat(format, count, 100));
-                PhClearReference(&PreNode->TooltipText);
+                if (resultName)
+                    PhInitFormatSR(&format[count++], *resultName);
+                else
+                    PhInitFormatI64U(&format[count++], information);
             }
+
+            PhMoveReference(&PreNode->DetailsText, PhFormat(format, count, 100));
+            PhClearReference(&PreNode->TooltipText);
+
+            PhClearReference(&accessStr);
         }
         break;
     }
@@ -3037,7 +3395,7 @@ VOID PhpInformerAddMessage(
     //
     if (Context->ProcessStartKey != 0)
     {
-        ULONG64 keys[5];
+        ULONG64 keys[PH_INFORMER_PROCESS_START_KEYS];
 
         PhInformerGetProcessStartKeys(Message, keys);
 
@@ -3045,7 +3403,9 @@ VOID PhpInformerAddMessage(
             keys[1] != Context->ProcessStartKey &&
             keys[2] != Context->ProcessStartKey &&
             keys[3] != Context->ProcessStartKey &&
-            keys[4] != Context->ProcessStartKey)
+            keys[4] != Context->ProcessStartKey &&
+            keys[5] != Context->ProcessStartKey &&
+            keys[6] != Context->ProcessStartKey)
         {
             PhDereferenceObject(Message);
             return;
@@ -3143,10 +3503,41 @@ VOID PhpInformerAddMessage(
 
     HANDLE pid = PhpInformerGetPid(Message);
     HANDLE tid = PhpInformerGetTid(Message);
+    ULONG64 startKey = PhpInformerGetStartKey(Message);
+    PCKPHM_CONTEXT messageContext = PhpInformerGetContext(Message);
     if (pid)
         PhPrintUInt32(node->PidString, HandleToUlong(pid));
     if (tid)
         PhPrintUInt32(node->TidString, HandleToUlong(tid));
+    if (startKey)
+    {
+        PH_FORMAT format[2];
+        PhInitFormatS(&format[0], L"0x");
+        PhInitFormatI64XWithWidth(&format[1], startKey, 16);
+        node->StartKeyText = PhFormat(format, 2, 20);
+    }
+
+    //
+    // Attached-process columns surface APC-state / stack-attach situations.
+    // Populated only when the attached identifiers differ from the owning
+    // ones so the cells stay blank for non-attached events and attach cases
+    // pop visually.
+    //
+    if (messageContext &&
+        messageContext->AttachedProcessId &&
+        messageContext->AttachedProcessId != messageContext->ClientId.UniqueProcess)
+    {
+        PhPrintUInt32(node->AttachedPidString, HandleToUlong(messageContext->AttachedProcessId));
+    }
+    if (messageContext &&
+        messageContext->AttachedProcessStartKey &&
+        messageContext->AttachedProcessStartKey != messageContext->ProcessStartKey)
+    {
+        PH_FORMAT format[2];
+        PhInitFormatS(&format[0], L"0x");
+        PhInitFormatI64XWithWidth(&format[1], messageContext->AttachedProcessStartKey, 16);
+        node->AttachedStartKeyText = PhFormat(format, 2, 20);
+    }
 
     preSeq = PhpInformerGetPreOpSequence(Message);
     if (preSeq)
@@ -3403,6 +3794,7 @@ VOID PhpInformerShowFilterMenu(
         { PH_INFORMER_CATEGORY_REGISTRY, L"Registry" },
         { PH_INFORMER_CATEGORY_HANDLE, L"Handle" },
         { PH_INFORMER_CATEGORY_IMAGE, L"Image" },
+        { PH_INFORMER_CATEGORY_SILO, L"Silo" },
         { PH_INFORMER_CATEGORY_OTHER, L"Other" },
     };
 

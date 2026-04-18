@@ -65,11 +65,14 @@ static KPH_DYN_ATOMIC KphpDynData = { .Atomic = KPH_ATOMIC_OBJECT_REF_INIT };
  * \return Pointer to the dynamic configuration, NULL if not activated. The
  * caller must eventually dereference the object.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PKPH_DYN KphReferenceDynData(
     VOID
     )
 {
+    KPH_NPAGED_CODE_HIGH_MAX();
+
     return KphAtomicReferenceObject(&KphpDynData.Atomic);
 }
 

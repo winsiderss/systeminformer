@@ -233,6 +233,8 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgRegPreSaveMergedKey,
     KphMsgRegPostSaveMergedKey,
     KphMsgImageVerify,
+    KphMsgSiloCreate,
+    KphMsgSiloTerminate,
 
     MaxKphMsg,
 
@@ -384,6 +386,8 @@ typedef struct _KPH_MESSAGE
             KPHM_FILE File;
             KPHM_REGISTRY Reg;
             KPHM_IMAGE_VERIFY ImageVerify;
+            KPHM_SILO_CREATE SiloCreate;
+            KPHM_SILO_TERMINATE SiloTerminate;
         } Kernel;
 
         //
@@ -403,7 +407,7 @@ typedef struct _KPH_MESSAGE
     {
         UCHAR Count;
         KPH_MESSAGE_DYNAMIC_TABLE_ENTRY Entries[8];
-        CHAR Buffer[0x4000 - 380];
+        CHAR Buffer[0x4000 - 460];
     } _Dyn;
 } KPH_MESSAGE, *PKPH_MESSAGE;
 typedef const KPH_MESSAGE* PCKPH_MESSAGE;
@@ -420,9 +424,9 @@ typedef const KPH_MESSAGE* PCKPH_MESSAGE;
 C_ASSERT(sizeof(KPH_MESSAGE) <= 0xffff);
 #ifdef _WIN64
 C_ASSERT(sizeof(KPH_MESSAGE) == 0x4000);
-C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 280);
-C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer) == 380);
-C_ASSERT(KPH_MESSAGE_MIN_SIZE == 380);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 360);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer) == 460);
+C_ASSERT(KPH_MESSAGE_MIN_SIZE == 460);
 C_ASSERT(KPH_MESSAGE_MIN_SIZE == FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer));
 #else
 // not supported

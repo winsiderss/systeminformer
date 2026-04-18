@@ -139,7 +139,7 @@ VOID KSIAPI KphpFreeInformerState(
  *
  * \return TRUE if the informer is allowed, FALSE otherwise.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 BOOLEAN KphpInformerProcessAllowed(
     _In_ ULONG Index,
     _In_ PLARGE_INTEGER TimeStamp,
@@ -149,16 +149,13 @@ BOOLEAN KphpInformerProcessAllowed(
     BOOLEAN allowed;
     PKPH_INFORMER_STATE state;
 
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
+
+    NT_ASSERT(Index < KPH_INFORMER_COUNT);
 
     if (!Process)
     {
         return TRUE;
-    }
-
-    if (!NT_VERIFY(Index < KPH_INFORMER_COUNT))
-    {
-        return FALSE;
     }
 
     state = KphAtomicReferenceObject(&Process->InformerState.Atomic);
@@ -169,7 +166,7 @@ BOOLEAN KphpInformerProcessAllowed(
 
     allowed = KphRateLimitConsumeToken(&state->RateLimit[Index], TimeStamp);
 
-    KphDereferenceObject(state);
+    KphDereferenceObjectDeferDelete(state);
 
     return allowed;
 }
@@ -182,7 +179,7 @@ BOOLEAN KphpInformerProcessAllowed(
  *
  * \return TRUE if the informer is allowed, FALSE otherwise.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 BOOLEAN KphpInformerGlobalAllowed(
     _In_ ULONG Index,
     _In_ PLARGE_INTEGER TimeStamp
@@ -191,19 +188,16 @@ BOOLEAN KphpInformerGlobalAllowed(
     BOOLEAN allowed;
     PKPH_INFORMER_STATE state;
 
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
-    if (!NT_VERIFY(Index < KPH_INFORMER_COUNT))
-    {
-        return FALSE;
-    }
+    NT_ASSERT(Index < KPH_INFORMER_COUNT);
 
     state = KphAtomicReferenceObject(&KphpInformerState.Atomic);
     NT_ASSERT(state);
 
     allowed = KphRateLimitConsumeToken(&state->RateLimit[Index], TimeStamp);
 
-    KphDereferenceObject(state);
+    KphDereferenceObjectDeferDelete(state);
 
     return allowed;
 }
@@ -212,21 +206,24 @@ BOOLEAN KphpInformerGlobalAllowed(
  * \brief Checks if an informer is allowed.
  *
  * \param[in] Index The informer index to check.
- * \param[in] ActorProcess The actor process check.
- * \param[in] TargetProcess The target process check.
+ * \param[in] Context Informer context.
  *
  * \return TRUE if the informer is allowed, FALSE otherwise.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 BOOLEAN KphInformerAllowed(
     _In_ ULONG Index,
-    _In_opt_ PKPH_PROCESS_CONTEXT ActorProcess,
-    _In_opt_ PKPH_PROCESS_CONTEXT TargetProcess
+    _In_opt_ PKPH_INFORMER_CONTEXT Context
     )
 {
     LARGE_INTEGER timeStamp;
 
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
+
+    if (!NT_VERIFY(Index < KPH_INFORMER_COUNT))
+    {
+        return FALSE;
+    }
 
     if (!KphGetInformerClientCount())
     {
@@ -235,45 +232,38 @@ BOOLEAN KphInformerAllowed(
 
     KeQuerySystemTime(&timeStamp);
 
-    if (!KphpInformerProcessAllowed(Index, &timeStamp, ActorProcess))
+    if (!Context || (Context->Count == 0))
     {
-        if (!TargetProcess || (ActorProcess == TargetProcess))
-        {
-            return FALSE;
-        }
+        return KphpInformerGlobalAllowed(Index, &timeStamp);
+    }
 
-        if (!KphpInformerProcessAllowed(Index, &timeStamp, TargetProcess))
+    for (ULONG i = 0; i < Context->Count; i++)
+    {
+        if (KphpInformerProcessAllowed(Index, &timeStamp, Context->Items[i]))
         {
-            return FALSE;
+            return KphpInformerGlobalAllowed(Index, &timeStamp);
         }
     }
 
-    if (!KphpInformerGlobalAllowed(Index, &timeStamp))
-    {
-        return FALSE;
-    }
-
-    return TRUE;
+    return FALSE;
 }
 
 /**
  * \brief Retrieves the active informer options.
  *
- * \param[in] ActorProcess The actor process check.
- * \param[in] TargetProcess The target process check.
+ * \param[in] Context Informer context.
  *
  * \return Active informer options.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 KPH_INFORMER_OPTIONS KphInformerOptions(
-    _In_opt_ PKPH_PROCESS_CONTEXT ActorProcess,
-    _In_opt_ PKPH_PROCESS_CONTEXT TargetProcess
+    _In_opt_ PKPH_INFORMER_CONTEXT Context
     )
 {
     PKPH_INFORMER_STATE state;
     KPH_INFORMER_OPTIONS options;
 
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     options.Flags = 0;
 
@@ -282,25 +272,22 @@ KPH_INFORMER_OPTIONS KphInformerOptions(
 
     SetFlag(options.Flags, state->Options.Flags);
 
-    KphDereferenceObject(state);
+    KphDereferenceObjectDeferDelete(state);
 
-    if (ActorProcess)
+    if (Context)
     {
-        state = KphAtomicReferenceObject(&ActorProcess->InformerState.Atomic);
-        if (state)
+        for (ULONG i = 0; i < Context->Count; i++)
         {
-            SetFlag(options.Flags, state->Options.Flags);
-            KphDereferenceObject(state);
-        }
-    }
+            PKPH_PROCESS_CONTEXT process;
 
-    if (TargetProcess)
-    {
-        state = KphAtomicReferenceObject(&TargetProcess->InformerState.Atomic);
-        if (state)
-        {
-            SetFlag(options.Flags, state->Options.Flags);
-            KphDereferenceObject(state);
+            process = Context->Items[i];
+
+            state = KphAtomicReferenceObject(&process->InformerState.Atomic);
+            if (state)
+            {
+                SetFlag(options.Flags, state->Options.Flags);
+                KphDereferenceObjectDeferDelete(state);
+            }
         }
     }
 

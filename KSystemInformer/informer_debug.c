@@ -20,7 +20,7 @@ typedef struct _KPH_DBG_PRINT_SLOT
 {
     KDPC Dpc;
     LARGE_INTEGER TimeStamp;
-    CLIENT_ID ContextClientId;
+    KPHM_CONTEXT Context;
     ULONG ComponentId;
     ULONG Level;
     USHORT Length;
@@ -49,26 +49,12 @@ VOID KphpDebugPrintFlush(
     for (ULONG i = 0; i < KphpDbgPrintSlotNext; i++)
     {
         NTSTATUS status;
-        PKPH_PROCESS_CONTEXT process;
-        BOOLEAN enabled;
         USHORT remaining;
         ANSI_STRING output;
         PKPH_MESSAGE msg;
         PKPH_DBG_PRINT_SLOT slot;
 
         slot = &KphpDbgPrintSlots[i];
-
-        process = KphGetProcessContext(slot->ContextClientId.UniqueProcess);
-        enabled = KphInformerEnabled(DebugPrint, process);
-        if (process)
-        {
-            KphDereferenceObjectDeferDelete(process);
-        }
-
-        if (!enabled)
-        {
-            continue;
-        }
 
         msg = KphAllocateNPagedMessage();
         if (!msg)
@@ -81,8 +67,7 @@ VOID KphpDebugPrintFlush(
 
         KphMsgInit(msg, KphMsgDebugPrint);
         msg->Header.TimeStamp.QuadPart = slot->TimeStamp.QuadPart;
-        msg->Kernel.DebugPrint.ContextClientId.UniqueProcess = slot->ContextClientId.UniqueProcess;
-        msg->Kernel.DebugPrint.ContextClientId.UniqueThread = slot->ContextClientId.UniqueThread;
+        msg->Kernel.DebugPrint.Context = slot->Context;
         msg->Kernel.DebugPrint.ComponentId = slot->ComponentId;
         msg->Kernel.DebugPrint.Level = slot->Level;
 
@@ -164,6 +149,7 @@ VOID KphpDebugPrintCallback(
     _In_ ULONG Level
     )
 {
+    BOOLEAN enabled;
     PKPH_DBG_PRINT_SLOT slot;
 
     KPH_NPAGED_CODE_DISPATCH_MIN();
@@ -171,6 +157,14 @@ VOID KphpDebugPrintCallback(
     slot = NULL;
 
     if (!Output->Buffer || (Output->Length == 0))
+    {
+        return;
+    }
+
+    KPH_INFORMER_CONTEXT_ENTER();
+    enabled = KphInformerEnabled(DebugPrint);
+    KPH_INFORMER_CONTEXT_EXIT();
+    if (!enabled)
     {
         return;
     }
@@ -188,8 +182,7 @@ VOID KphpDebugPrintCallback(
     slot = &KphpDbgPrintSlots[KphpDbgPrintSlotNext++];
 
     KeQuerySystemTime(&slot->TimeStamp);
-    slot->ContextClientId.UniqueProcess = PsGetCurrentProcessId();
-    slot->ContextClientId.UniqueThread = PsGetCurrentThreadId();
+    KphCaptureCurrentContextEx(&slot->Context, TRUE);
     slot->ComponentId = ComponentId;
     slot->Level = Level;
     slot->Length = min(Output->Length, ARRAYSIZE(slot->Buffer));

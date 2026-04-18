@@ -33,6 +33,7 @@ KPH_PROTECTED_DATA_SECTION_RO_POP();
  *
  * \return Reserved buffer, null on failure.
  */
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Return_allocatesMem_size_(Length)
 PVOID KphReserveRingBuffer(
     _In_ PKPH_RING_BUFFER Ring,
@@ -49,6 +50,8 @@ PVOID KphReserveRingBuffer(
     ULONG alignment;
     PKPH_RING_HEADER headerPointer;
     KPH_RING_HEADER header;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     //
     // Maximum reserve accounts for the maximum encoded length bits, additional
@@ -180,6 +183,7 @@ Exit:
  * \param[in] Buffer Pointer to the buffer to submit.
  * \param[in] Discard If TRUE the buffer is discarded, if FALSE is it committed.
  */
+_IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphpSubmitRingBuffer(
     _In_ PKPH_RING_BUFFER Ring,
     _In_aliasesMem_ PVOID Buffer,
@@ -188,6 +192,8 @@ VOID KphpSubmitRingBuffer(
 {
     PKPH_RING_HEADER headerPointer;
     KPH_RING_HEADER header;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     headerPointer = Add2Ptr(Buffer, -KPH_RING_BUFFER_HEADER_SIZE);
 
@@ -213,11 +219,14 @@ VOID KphpSubmitRingBuffer(
  * \param[in] Buffer Pointer to the buffer to commit, previously returned from
  * KphReserveRingBuffer.
  */
+_IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphCommitRingBuffer(
     _In_ PKPH_RING_BUFFER Ring,
     _In_freesMem_ PVOID Buffer
     )
 {
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
     KphpSubmitRingBuffer(Ring, Buffer, FALSE);
 }
 
@@ -231,11 +240,14 @@ VOID KphCommitRingBuffer(
  * \param[in] Buffer Pointer to the buffer to discard, previously returned from
  * KphReserveRingBuffer.
  */
+_IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphDiscardRingBuffer(
     _In_ PKPH_RING_BUFFER Ring,
     _In_freesMem_ PVOID Buffer
     )
 {
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
     KphpSubmitRingBuffer(Ring, Buffer, TRUE);
 }
 

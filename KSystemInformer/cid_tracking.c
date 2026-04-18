@@ -52,7 +52,7 @@ static ULONG64 KphpProcessSequence = 0;
  * not of the expected type. The caller *must* dereference the object when
  * they are through with it.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PVOID KphpLookupContext(
     _In_ HANDLE Cid,
@@ -62,9 +62,9 @@ PVOID KphpLookupContext(
     PVOID object;
     PKPH_CID_TABLE_ENTRY entry;
 
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
-    entry = KphCidGetEntry(Cid, &KphpCidTable);
+    entry = KphCidLookupEntry(Cid, &KphpCidTable);
     if (!entry)
     {
         return NULL;
@@ -73,7 +73,7 @@ PVOID KphpLookupContext(
     object = KphCidReferenceObject(entry);
     if (object && (KphGetObjectType(object) != ObjectType))
     {
-        KphDereferenceObject(object);
+        KphDereferenceObjectDeferDelete(object);
         object = NULL;
     }
 
@@ -86,13 +86,13 @@ PVOID KphpLookupContext(
  * \return Pointer to the system process context, null if not found. The caller
  * *must* dereference the object when they are through with it.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PKPH_PROCESS_CONTEXT KphGetSystemProcessContext(
     VOID
     )
 {
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     if (KphpSystemProcessContext)
     {
@@ -110,13 +110,13 @@ PKPH_PROCESS_CONTEXT KphGetSystemProcessContext(
  * \return Pointer to the process context, null if not found. The caller
  * *must* dereference the object when they are through with it.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PKPH_PROCESS_CONTEXT KphGetProcessContext(
     _In_ HANDLE ProcessId
     )
 {
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     return KphpLookupContext(ProcessId, KphProcessContextType);
 }
@@ -129,20 +129,25 @@ PKPH_PROCESS_CONTEXT KphGetProcessContext(
  * \return Pointer to the process context, null if not found. The caller
  * *must* dereference the object when they are through with it.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PKPH_PROCESS_CONTEXT KphGetEProcessContext(
     _In_ PEPROCESS Process
     )
 {
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    HANDLE processId;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     if (Process == PsInitialSystemProcess)
     {
         return KphGetSystemProcessContext();
     }
 
-    return KphGetProcessContext(PsGetProcessId(Process));
+#pragma prefast(suppress: 28121) // SAL is incorrect
+    processId = PsGetProcessId(Process);
+
+    return KphGetProcessContext(processId);
 }
 
 /**
@@ -153,13 +158,13 @@ PKPH_PROCESS_CONTEXT KphGetEProcessContext(
  * \return Pointer to the thread context, null if not found. The caller
  * *must* dereference the object when they are through with it.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PKPH_THREAD_CONTEXT KphGetThreadContext(
     _In_ HANDLE ThreadId
     )
 {
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     return KphpLookupContext(ThreadId, KphThreadContextType);
 }
@@ -520,7 +525,10 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
     KphInitializeRWLock(&process->ThreadListLock);
     InitializeListHead(&process->ThreadListHead);
 
-    KphInitializeRWLock(&process->ProtectionLock);
+    KphInitializeRWLock(&process->Protection.AllowedMaskLock);
+    KeInitializeEvent(&process->Protection.CompletionEvent,
+                      NotificationEvent,
+                      FALSE);
 
     status = PsReferenceProcessFilePointer(process->EProcess,
                                            &process->FileObject);
@@ -672,11 +680,6 @@ VOID KSIAPI KphpDeleteProcessContext(
     KphAtomicAssignObjectReference(&process->InformerState.Atomic, NULL);
     KphAtomicAssignObjectReference(&process->SessionToken.Atomic, NULL);
 
-    if (process->Protected)
-    {
-        KphStopProtectingProcess(process);
-    }
-
     if (process->ImageFileName)
     {
         if (process->SystemAllocatedImageFileName)
@@ -699,7 +702,7 @@ VOID KSIAPI KphpDeleteProcessContext(
         ObDereferenceObject(process->FileObject);
     }
 
-    KphDeleteRWLock(&process->ProtectionLock);
+    KphDeleteRWLock(&process->Protection.AllowedMaskLock);
 
     NT_ASSERT(IsListEmpty(&process->ThreadListHead));
     NT_ASSERT(process->NumberOfThreads == 0);
@@ -1481,39 +1484,6 @@ PVOID KphpUntrackContext(
     return object;
 }
 
-/**
- * \brief Performs actions post population of CID table.
- *
- * \param[in] Process The context being enumerated.
- * \param[in] Parameter Unused.
- *
- * \return FALSE
- */
-_Function_class_(KPH_ENUM_CID_CONTEXTS_CALLBACK)
-_Must_inspect_result_
-BOOLEAN KSIAPI KphpCidEnumPostPopulate(
-    _In_ PVOID Context,
-    _In_opt_ PVOID Parameter
-    )
-{
-    PKPH_OBJECT_TYPE objectType;
-    PKPH_PROCESS_CONTEXT process;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Parameter);
-
-    objectType = KphGetObjectType(Context);
-
-    if (objectType == KphProcessContextType)
-    {
-        process = Context;
-        KphVerifyProcessAndProtectIfAppropriate(process);
-    }
-
-    return FALSE;
-}
-
 // from phnative.h
 #define KPH_FIRST_PROCESS(Processes) ((PSYSTEM_PROCESS_INFORMATION)(Processes))
 #define KPH_NEXT_PROCESS(Process) (                                            \
@@ -1781,11 +1751,6 @@ Exit:
     if (buffer)
     {
         KphFree(buffer, KPH_TAG_CID_POPULATE);
-    }
-
-    if (NT_SUCCESS(status))
-    {
-        KphEnumerateCidContexts(KphpCidEnumPostPopulate, NULL);
     }
 
     return status;
@@ -2169,74 +2134,6 @@ Exit:
 }
 
 /**
- * \brief Performs actions to verify a process and begin protecting it. Process
- * protection is only started processes that meet the necessary requirements.
- *
- * \param[in] Process The context of a process verify and protect.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphVerifyProcessAndProtectIfAppropriate(
-    _In_ PKPH_PROCESS_CONTEXT Process
-    )
-{
-    NTSTATUS status;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    if (Process->ImageFileName &&
-        Process->FileObject &&
-        !Process->VerifiedProcess)
-    {
-        status = KphVerifyFile(Process->ImageFileName, Process->FileObject);
-
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
-                      "KphVerifyFile: %lu \"%wZ\": %!STATUS!",
-                      HandleToULong(Process->ProcessId),
-                      Process->ImageFileName,
-                      status);
-
-        if (NT_SUCCESS(status))
-        {
-            Process->VerifiedProcess = TRUE;
-        }
-    }
-
-    if (KphTestProcessContextState(Process, KPH_PROCESS_STATE_LOW))
-    {
-        ACCESS_MASK processAllowedMask;
-        ACCESS_MASK threadAllowedMask;
-
-        if (KphProtectionsSuppressed())
-        {
-            //
-            // Allow all access, but still exercise the code by registering.
-            //
-            processAllowedMask = ((ACCESS_MASK)-1);
-            threadAllowedMask = ((ACCESS_MASK)-1);
-        }
-        else
-        {
-            processAllowedMask = KPH_PROTECTED_PROCESS_MASK;
-            threadAllowedMask = KPH_PROTECTED_THREAD_MASK;
-        }
-
-        status = KphStartProtectingProcess(Process,
-                                           processAllowedMask,
-                                           threadAllowedMask);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          PROTECTION,
-                          "KphStartProtectingProcess failed: %!STATUS!",
-                          status);
-
-            NT_ASSERT(!Process->Protected);
-        }
-    }
-}
-
-/**
  * \brief Gets the process image name for a given thread.
  *
  * \details The image name of a thread might not be available if there is no
@@ -2278,6 +2175,7 @@ KPH_PROCESS_STATE KphGetProcessState(
     )
 {
     KPH_PROCESS_STATE processState;
+    KPH_PROTECTION_STATE protectionState;
 
     KPH_PAGED_CODE();
 
@@ -2295,36 +2193,38 @@ KPH_PROCESS_STATE KphGetProcessState(
         processState = 0;
     }
 
-    if (Process->SecurelyCreated)
+    protectionState = KphGetProtectionState(Process);
+
+    if (FlagOn(protectionState, KPH_PROTECTION_TCB))
     {
-        processState |= KPH_PROCESS_SECURELY_CREATED;
+        SetFlag(processState, KPH_PROCESS_SECURELY_CREATED);
     }
 
-    if (Process->VerifiedProcess)
+    if (FlagOn(protectionState, KPH_PROTECTION_VERIFIED))
     {
-        processState |= KPH_PROCESS_VERIFIED_PROCESS;
+        SetFlag(processState, KPH_PROCESS_VERIFIED_PROCESS);
     }
 
-    if (Process->Protected)
+    if (FlagOn(protectionState, KPH_PROTECTION_ACTIVE))
     {
-        processState |= KPH_PROCESS_PROTECTED_PROCESS;
+        SetFlag(processState, KPH_PROCESS_PROTECTED_PROCESS);
     }
 
     if (Process->CreateNotification)
     {
-        processState |= KPH_PROCESS_CREATE_NOTIFICATION;
+        SetFlag(processState, KPH_PROCESS_CREATE_NOTIFICATION);
     }
 
     if (ReadSizeTAcquire(&Process->NumberOfUntrustedImageLoads) == 0)
     {
-        processState |= KPH_PROCESS_NO_UNTRUSTED_IMAGES;
+        SetFlag(processState, KPH_PROCESS_NO_UNTRUSTED_IMAGES);
     }
 
     if (!Process->StateTracking.Debugged)
     {
         if (!PsIsProcessBeingDebugged(Process->EProcess))
         {
-            processState |= KPH_PROCESS_NOT_BEING_DEBUGGED;
+            SetFlag(processState, KPH_PROCESS_NOT_BEING_DEBUGGED);
         }
         else
         {
@@ -2337,13 +2237,13 @@ KPH_PROCESS_STATE KphGetProcessState(
         return processState;
     }
 
-    processState |= KPH_PROCESS_HAS_FILE_OBJECT;
+    SetFlag(processState, KPH_PROCESS_HAS_FILE_OBJECT);
 
     if (!Process->StateTracking.FileObjectWritable)
     {
         if (!Process->FileObject->WriteAccess || !Process->FileObject->SharedWrite)
         {
-            processState |= KPH_PROCESS_NO_WRITABLE_FILE_OBJECT;
+            SetFlag(processState, KPH_PROCESS_NO_WRITABLE_FILE_OBJECT);
         }
         else
         {
@@ -2355,7 +2255,7 @@ KPH_PROCESS_STATE KphGetProcessState(
     {
         if (!IoGetTransactionParameterBlock(Process->FileObject))
         {
-            processState |= KPH_PROCESS_NO_FILE_TRANSACTION;
+            SetFlag(processState, KPH_PROCESS_NO_FILE_TRANSACTION);
         }
         else
         {
@@ -2368,13 +2268,13 @@ KPH_PROCESS_STATE KphGetProcessState(
         return processState;
     }
 
-    processState |= KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS;
+    SetFlag(processState, KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS);
 
     if (!Process->StateTracking.UserWritableReferences)
     {
         if (!MmDoesFileHaveUserWritableReferences(Process->FileObject->SectionObjectPointer))
         {
-            processState |= KPH_PROCESS_NO_USER_WRITABLE_REFERENCES;
+            SetFlag(processState, KPH_PROCESS_NO_USER_WRITABLE_REFERENCES);
         }
         else
         {

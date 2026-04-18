@@ -4566,7 +4566,7 @@ NTSTATUS
 NTAPI
 PssNtValidateDescriptor(
     _In_ HANDLE SnapshotHandle,
-    _In_opt_ PVOID ExceptionAddress
+    _In_opt_ PVOID ExceptionAddress //  _ReturnAddress()
     );
 
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8_1)

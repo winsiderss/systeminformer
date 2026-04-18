@@ -103,7 +103,7 @@ NTAPI
 PhDrawGraphDirect(
     _In_ HDC hdc,
     _In_ PVOID PH_RESTRICT Bits,
-    _In_ PPH_GRAPH_DRAW_INFO DrawInfo
+    _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo
     );
 
 PHLIBAPI
@@ -169,9 +169,9 @@ typedef struct _PH_GRAPH_OPTIONS
 #define Graph_GetBufferedContext(hWnd) \
     ((HDC)SendMessage((hWnd), GCM_GETBUFFEREDCONTEXT, 0, 0))
 #define Graph_SetTooltip(hWnd, Enable) \
-    ((HDC)SendMessage((hWnd), GCM_SETTOOLTIP, (WPARAM)(Enable), 0))
+    SendMessage((hWnd), GCM_SETTOOLTIP, (WPARAM)(Enable), 0)
 #define Graph_UpdateTooltip(hWnd) \
-    ((HDC)SendMessage((hWnd), GCM_UPDATETOOLTIP, 0, 0))
+    SendMessage((hWnd), GCM_UPDATETOOLTIP, 0, 0)
 #define Graph_GetOptions(hWnd, Options) \
     SendMessage((hWnd), GCM_GETOPTIONS, 0, (LPARAM)(Options))
 #define Graph_SetOptions(hWnd, Options) \

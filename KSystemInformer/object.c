@@ -29,12 +29,15 @@ KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const UNICODE_STRING KphpEtwRegistrationName = RTL_CONSTANT_STRING(L"EtwRegistration");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PVOID KphObpDecodeObject(
     _In_ PKPH_DYN Dyn,
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
+    KPH_NPAGED_CODE_HIGH_MAX();
+
 #if defined(_M_X64) || defined(_M_ARM64)
     if (Dyn->ObDecodeShift != ULONG_MAX)
     {
@@ -61,11 +64,14 @@ PVOID KphObpDecodeObject(
 #endif
 }
 
+_IRQL_requires_max_(HIGH_LEVEL)
 ULONG KphObpGetHandleAttributes(
     _In_ PKPH_DYN Dyn,
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
+    KPH_NPAGED_CODE_HIGH_MAX();
+
 #if defined(_M_X64) || defined(_M_ARM64)
     if (Dyn->ObAttributesShift != ULONG_MAX)
     {

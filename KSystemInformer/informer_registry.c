@@ -111,29 +111,26 @@ KPH_REG_OPTIONS KphpRegGetOptions(
     )
 {
     KPH_REG_OPTIONS options;
-    PKPH_PROCESS_CONTEXT process;
 
     KPH_PAGED_CODE();
 
+    KPH_INFORMER_CONTEXT_ENTER();
+
     options.Flags = 0;
 
-    if (ExGetPreviousMode() != KernelMode)
+    if (ExGetPreviousMode() != UserMode)
     {
-        process = KphGetCurrentProcessContext();
-    }
-    else
-    {
-        process = KphGetSystemProcessContext();
+        KphInformerMove(KphGetSystemProcessContext());
     }
 
 #define KPH_REG_SETTING2(reg, name)                                            \
     case RegNtPre##reg:                                                        \
     {                                                                          \
-        if (KphInformerEnabled(RegPre##name, process))                         \
+        if (KphInformerEnabled(RegPre##name))                                  \
         {                                                                      \
             options.PreEnabled = TRUE;                                         \
         }                                                                      \
-        if (KphInformerEnabled(RegPost##name, process))                        \
+        if (KphInformerEnabled(RegPost##name))                                 \
         {                                                                      \
             options.PostEnabled = TRUE;                                        \
         }                                                                      \
@@ -190,7 +187,7 @@ KPH_REG_OPTIONS KphpRegGetOptions(
     {
         KPH_INFORMER_OPTIONS opts;
 
-        opts = KphInformerOpts(process);
+        opts = KphInformerOpts();
 
         options.EnableStackTraces = !!opts.EnableStackTraces;
         options.EnablePostObjectNames = !!opts.RegEnablePostObjectNames;
@@ -198,10 +195,7 @@ KPH_REG_OPTIONS KphpRegGetOptions(
         options.EnableValueBuffers = !!opts.RegEnableValueBuffers;
     }
 
-    if (process)
-    {
-        KphDereferenceObject(process);
-    }
+    KPH_INFORMER_CONTEXT_EXIT();
 
     return options;
 }
@@ -282,10 +276,7 @@ VOID KphpRegFillCommonMessage(
 {
     KPH_PAGED_CODE();
 
-    Message->Kernel.Reg.ClientId.UniqueProcess = PsGetCurrentProcessId();
-    Message->Kernel.Reg.ClientId.UniqueThread = PsGetCurrentThreadId();
-    Message->Kernel.Reg.ProcessStartKey = KphGetCurrentProcessStartKey();
-    Message->Kernel.Reg.ThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
+    KphCaptureCurrentContext(&Message->Kernel.Reg.Context);
     Message->Kernel.Reg.PreviousMode = (ExGetPreviousMode() != KernelMode);
 
 #define KPH_REG_COPY_PARAMETER(name, value)                                    \

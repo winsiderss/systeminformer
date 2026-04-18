@@ -29,9 +29,10 @@
 //
 // N.B. If more object types are added the array must be expanded.
 //
-static KPH_OBJECT_TYPE KphpObjectTypes[16] = { 0 };
+static KPH_OBJECT_TYPE KphpObjectTypes[15] = { 0 };
 C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
 static LONG KphpObjectTypeCount = 0;
+static KSI_KDPC KphpDeferDeleteObjectDpc;
 static KSI_WORK_QUEUE_ITEM KphpDeferDeleteObjectWorkItem;
 static SLIST_HEADER KphpDeferDeleteObjectList;
 
@@ -40,11 +41,14 @@ static SLIST_HEADER KphpDeferDeleteObjectList;
  *
  * \param[in] Header The header of an object to delete.
  */
+_IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphpObjectDelete(
     _In_freesMem_ PKPH_OBJECT_HEADER Header
     )
 {
     PKPH_OBJECT_TYPE type;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     type = &KphpObjectTypes[Header->TypeIndex];
 
@@ -63,62 +67,32 @@ VOID KphpObjectDelete(
  *
  * \param[in] Header The header of an object to defer deletion of.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 VOID KphpObjectDeferDelete(
     _In_ PKPH_OBJECT_HEADER Header
     )
 {
+    KPH_NPAGED_CODE_HIGH_MAX();
+
     //
-    // Only queue the work item when the list was empty. The worker will flush
-    // the list, at that point the work item is already removed from the work
-    // queue and ready to be re-queued.
+    // Only schedule the worker when we transition the list from empty. The
+    // worker will flush the entire list on its next pass, so subsequent
+    // pushes can rely on it picking up our entry.
     //
-    if (!InterlockedPushEntrySList(&KphpDeferDeleteObjectList,
-                                   &Header->ListEntry))
+    if (InterlockedPushEntrySList(&KphpDeferDeleteObjectList,
+                                  &Header->ListEntry))
+    {
+        return;
+    }
+
+    if (KeGetCurrentIrql() <= DISPATCH_LEVEL)
     {
         KsiQueueWorkItem(&KphpDeferDeleteObjectWorkItem, CriticalWorkQueue);
     }
-}
-
-/**
- * \brief Creates an object type.
- *
- * \param[in] TypeName The name of the type, this must always be resident.
- * Preferably a string literal.
- * \param[in] TypeInfo The information for the type being created.
- * \param[out] ObjectType Set to a pointer to the object type on success.
- */
-VOID KphCreateObjectType(
-    _In_ PCUNICODE_STRING TypeName,
-    _In_ PKPH_OBJECT_TYPE_INFO TypeInfo,
-    _Outptr_ PKPH_OBJECT_TYPE* ObjectType
-    )
-{
-    PKPH_OBJECT_TYPE type;
-    LONG index;
-
-    index = (InterlockedIncrement(&KphpObjectTypeCount) - 1);
-
-    //
-    // We have failure free object type creation, to achieve this we have
-    // a pre-reserved sized array above. If this asserts the array wasn't
-    // expanded correctly to support a new type.
-    //
-    NT_ASSERT((index >= 0) && (index < ARRAYSIZE(KphpObjectTypes)));
-    NT_ASSERT(index < MAXUCHAR);
-
-    type = &KphpObjectTypes[index];
-
-    type->Name.Buffer = TypeName->Buffer;
-    type->Name.MaximumLength = TypeName->MaximumLength;
-    type->Name.Length = TypeName->Length;
-
-    type->Index = (UCHAR)index;
-    WriteSizeTNoFence(&type->TotalNumberOfObjects, 0);
-    WriteSizeTNoFence(&type->HighWaterNumberOfObjects, 0);
-
-    RtlCopyMemory(&type->TypeInfo, TypeInfo, sizeof(*TypeInfo));
-
-    *ObjectType = type;
+    else
+    {
+        KsiInsertQueueDpc(&KphpDeferDeleteObjectDpc, NULL, NULL);
+    }
 }
 
 /**
@@ -131,6 +105,7 @@ VOID KphCreateObjectType(
  *
  * \return Successful or errant status.
  */
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphCreateObject(
     _In_ PKPH_OBJECT_TYPE ObjectType,
@@ -143,6 +118,8 @@ NTSTATUS KphCreateObject(
     PKPH_OBJECT_HEADER header;
     PVOID object;
     SIZE_T total;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     *Object = NULL;
 
@@ -181,11 +158,14 @@ NTSTATUS KphCreateObject(
  *
  * \param[in] Object The object to reference.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 VOID KphReferenceObject(
     _In_ PVOID Object
     )
 {
     PKPH_OBJECT_HEADER header;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     header = KphObjectToObjectHeader(Object);
 
@@ -197,6 +177,7 @@ VOID KphReferenceObject(
  *
  * \param[in] Object The object to dereference.
  */
+_IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphDereferenceObject(
     _In_ PVOID Object
     )
@@ -204,6 +185,8 @@ VOID KphDereferenceObject(
     PKPH_OBJECT_HEADER header;
     PKPH_OBJECT_TYPE type;
     SSIZE_T refCount;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     header = KphObjectToObjectHeader(Object);
 
@@ -232,12 +215,15 @@ VOID KphDereferenceObject(
  *
  * \param[in] Object The object to dereference.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 VOID KphDereferenceObjectDeferDelete(
     _In_ PVOID Object
     )
 {
     PKPH_OBJECT_HEADER header;
     SSIZE_T refCount;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     header = KphObjectToObjectHeader(Object);
 
@@ -259,6 +245,7 @@ VOID KphDereferenceObjectDeferDelete(
  *
  * \return Pointer to the type of object.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PKPH_OBJECT_TYPE KphGetObjectType(
     _In_ PVOID Object
@@ -267,6 +254,8 @@ PKPH_OBJECT_TYPE KphGetObjectType(
     PKPH_OBJECT_HEADER header;
     UCHAR index;
     LONG count;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     header = KphObjectToObjectHeader(Object);
     index = header->TypeIndex;
@@ -292,6 +281,7 @@ PKPH_OBJECT_TYPE KphGetObjectType(
  *
  * \param[in,out] ObjectRef The object reference to acquire the lock for.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 _Requires_lock_not_held_(*ObjectRef)
 _Acquires_lock_(*ObjectRef)
 FORCEINLINE
@@ -300,6 +290,8 @@ VOID KphpAtomicAcquireObjectLockShared(
     )
 {
     ULONG_PTR object;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     object = ReadULongPtrAcquire(&ObjectRef->Object);
 
@@ -333,6 +325,7 @@ VOID KphpAtomicAcquireObjectLockShared(
  *
  * \param[in,out] ObjectRef The object reference to release the lock of.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 _Requires_lock_held_(*ObjectRef)
 _Releases_lock_(*ObjectRef)
 FORCEINLINE
@@ -341,6 +334,8 @@ VOID KphpAtomicReleaseObjectLockShared(
     )
 {
     ULONG_PTR object;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     object = InterlockedDecrementULongPtr(&ObjectRef->Object);
 
@@ -354,6 +349,7 @@ VOID KphpAtomicReleaseObjectLockShared(
  *
  * \param[in,out] ObjectRef The object reference to acquire the lock for.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 _Requires_lock_not_held_(*ObjectRef)
 _Acquires_lock_(*ObjectRef)
 FORCEINLINE
@@ -362,6 +358,8 @@ VOID KphpAtomicAcquireObjectLockExclusive(
     )
 {
     ULONG_PTR object;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     object = ReadULongPtrAcquire(&ObjectRef->Object);
 
@@ -399,6 +397,7 @@ VOID KphpAtomicAcquireObjectLockExclusive(
  *
  * \param[in,out] ObjectRef The object reference to release the lock of.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 _Requires_lock_held_(*ObjectRef)
 _Releases_lock_(*ObjectRef)
 FORCEINLINE
@@ -407,6 +406,8 @@ VOID KphpAtomicReleaseObjectLockExclusive(
     )
 {
     BOOLEAN result;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     result = InterlockedBitTestAndResetULongPtr(&ObjectRef->Object,
                                                 KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_BIT);
@@ -432,6 +433,7 @@ VOID KphpAtomicReleaseObjectLockExclusive(
  *
  * \return A referenced object, NULL if no object is managed.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PVOID KphAtomicReferenceObject(
     _In_ PKPH_ATOMIC_OBJECT_REF ObjectRef
@@ -439,6 +441,8 @@ PVOID KphAtomicReferenceObject(
 {
     ULONG_PTR value;
     PVOID object;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     KphpAtomicAcquireObjectLockShared(ObjectRef);
 
@@ -462,6 +466,7 @@ PVOID KphAtomicReferenceObject(
  *
  * \return The previous object that was managed, NULL if no object was managed.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PVOID KphpAtomicStoreObjectReference(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
@@ -471,6 +476,8 @@ PVOID KphpAtomicStoreObjectReference(
     PVOID previous;
     ULONG_PTR value;
     ULONG_PTR object;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     NT_ASSERT(((ULONG_PTR)Object & KPH_ATOMIC_OBJECT_REF_LOCK_MASK) == 0);
 
@@ -500,12 +507,15 @@ PVOID KphpAtomicStoreObjectReference(
  * \param[in] Object Optional object to reference and assign, if NULL the
  * managed reference will be cleared.
  */
+_IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphAtomicAssignObjectReference(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
     _In_opt_ PVOID Object
     )
 {
     PVOID previous;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (Object)
     {
@@ -534,16 +544,94 @@ VOID KphAtomicAssignObjectReference(
  *
  * \return The previous object that was managed, NULL if no object was managed.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PVOID KphAtomicMoveObjectReference(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
     _In_opt_ PVOID Object
     )
 {
+    KPH_NPAGED_CODE_HIGH_MAX();
+
     return KphpAtomicStoreObjectReference(ObjectRef, Object);
 }
 
+/**
+ * \brief DPC bridge that bounces from above-DISPATCH context down to
+ * DISPATCH_LEVEL where the work-queue API can be called. Its only job is
+ * to queue the deferred-delete worker.
+ *
+ * \param[in] Dpc Unused.
+ * \param[in] DeferredContext Unused.
+ * \param[in] SystemArgument1 Unused.
+ * \param[in] SystemArgument2 Unused.
+ */
+_Function_class_(KDEFERRED_ROUTINE)
+_IRQL_requires_(DISPATCH_LEVEL)
+_IRQL_requires_same_
+VOID KphpDeferDeleteObjectDpcRoutine(
+    _In_ PKDPC Dpc,
+    _In_opt_ PVOID DeferredContext,
+    _In_opt_ PVOID SystemArgument1,
+    _In_opt_ PVOID SystemArgument2
+    )
+{
+    KPH_NPAGED_CODE_DISPATCH();
+
+    UNREFERENCED_PARAMETER(Dpc);
+    UNREFERENCED_PARAMETER(DeferredContext);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
+
+    KsiQueueWorkItem(&KphpDeferDeleteObjectWorkItem, CriticalWorkQueue);
+}
+
 KPH_PAGED_FILE();
+
+/**
+ * \brief Creates an object type.
+ *
+ * \param[in] TypeName The name of the type, this must always be resident.
+ * Preferably a string literal.
+ * \param[in] TypeInfo The information for the type being created.
+ * \param[out] ObjectType Set to a pointer to the object type on success.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCreateObjectType(
+    _In_ PCUNICODE_STRING TypeName,
+    _In_ PKPH_OBJECT_TYPE_INFO TypeInfo,
+    _Outptr_ PKPH_OBJECT_TYPE* ObjectType
+    )
+{
+    PKPH_OBJECT_TYPE type;
+    LONG index;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    index = (InterlockedIncrement(&KphpObjectTypeCount) - 1);
+
+    //
+    // We have failure free object type creation, to achieve this we have
+    // a pre-reserved sized array above. If this asserts the array wasn't
+    // expanded correctly to support a new type.
+    //
+    NT_ASSERT((index >= 0) && (index < ARRAYSIZE(KphpObjectTypes)));
+    NT_ASSERT(index < MAXUCHAR);
+
+    type = &KphpObjectTypes[index];
+
+    type->Name.Buffer = TypeName->Buffer;
+    type->Name.MaximumLength = TypeName->MaximumLength;
+    type->Name.Length = TypeName->Length;
+
+    type->Index = (UCHAR)index;
+    WriteSizeTNoFence(&type->TotalNumberOfObjects, 0);
+    WriteSizeTNoFence(&type->HighWaterNumberOfObjects, 0);
+
+    RtlCopyMemory(&type->TypeInfo, TypeInfo, sizeof(*TypeInfo));
+
+    *ObjectType = type;
+}
 
 /**
  * \brief Worker routine for deleting objects in a deferred manner.
@@ -588,8 +676,12 @@ VOID KphObjectInitialize(
     KPH_PAGED_CODE_PASSIVE();
 
     InitializeSListHead(&KphpDeferDeleteObjectList);
+    KsiInitializeDpc(&KphpDeferDeleteObjectDpc,
+                     KphDriverObject,
+                     KphpDeferDeleteObjectDpcRoutine,
+                     NULL);
     KsiInitializeWorkItem(&KphpDeferDeleteObjectWorkItem,
                           KphDriverObject,
-                          &KphpDeferDeleteObjectWorker,
+                          KphpDeferDeleteObjectWorker,
                           NULL);
 }

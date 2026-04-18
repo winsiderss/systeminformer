@@ -63,7 +63,7 @@ typedef PH_OPEN_OBJECT* PPH_OPEN_OBJECT;
 
 typedef _Function_class_(PH_CLOSE_OBJECT)
 NTSTATUS NTAPI PH_CLOSE_OBJECT(
-    _In_ HANDLE Handle,
+    _In_opt_ HANDLE Handle,
     _In_ BOOLEAN Release,
     _In_opt_ PVOID Context
     );

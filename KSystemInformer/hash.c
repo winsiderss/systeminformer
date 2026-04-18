@@ -62,12 +62,6 @@ C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA512)              < MAXUCHAR);
 
 C_ASSERT(KPH_HASH_EACACHE_FULL_MAX_LENGTH <= KPH_HASHING_BUFFER_SIZE);
 
-typedef struct _KPH_HASHING_INFRASTRUCTURE
-{
-    PAGED_LOOKASIDE_LIST HashingLookaside;
-    BYTE EaList[KPH_HASH_EACACHE_MAX_LENGTH];
-} KPH_HASHING_INFRASTRUCTURE, *PKPH_HASHING_INFRASTRUCTURE;
-
 typedef struct _KPH_HASHING_EACACHE_INFORMATION
 {
     ULONG HashSize;
@@ -110,7 +104,6 @@ typedef struct _KPH_HASHING_CONTEXT
 } KPH_HASHING_CONTEXT, *PKPH_HASHING_CONTEXT;
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const UNICODE_STRING KphpHashingInfraName = RTL_CONSTANT_STRING(L"KphHashingInfrastructure");
 static const KPH_HASHING_EACACHE_INFORMATION KphpHashEaCacheInfo[] =
 {
     { (128 / 8), RTL_CONSTANT_STRING(KPH_HASH_EACACHE_MD5) },
@@ -123,128 +116,11 @@ static const KPH_HASHING_EACACHE_INFORMATION KphpHashEaCacheInfo[] =
 };
 C_ASSERT(ARRAYSIZE(KphpHashEaCacheInfo) == MaxKphHashAlgorithm);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
-KPH_PROTECTED_DATA_SECTION_PUSH();
-static PKPH_HASHING_INFRASTRUCTURE KphpHashingInfra = NULL;
-static PKPH_OBJECT_TYPE KphpHashingInfraType = NULL;
-KPH_PROTECTED_DATA_SECTION_POP();
+static BYTE KphpHashingEaList[KPH_HASH_EACACHE_MAX_LENGTH] = { 0 };
+static PAGED_LOOKASIDE_LIST KphpHashingLookaside = { 0 };
+static KPH_RUNDOWN KphpHashingRundown = { 0 };
 
 KPH_PAGED_FILE();
-
-/**
- * \brief Allocates hashing infrastructure object.
- *
- * \param[in] Size The size to allocate.
- *
- * \return Allocated hashing infrastructure object, null on failure.
- */
-_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
-_Return_allocatesMem_size_(Size)
-PVOID KSIAPI KphpAllocateHashingInfra(
-    _In_ SIZE_T Size
-    )
-{
-    KPH_PAGED_CODE();
-
-    return KphAllocateNPaged(Size, KPH_TAG_HASHING_INFRA);
-}
-
-/**
- * \brief Initializes hashing infrastructure.
- *
- * \param[in,out] Object The hashing infrastructure to initialize.
- * \param[in] Parameter Unused
- *
- * \return Successful or errant status.
- */
-_Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
-_Must_inspect_result_
-NTSTATUS KSIAPI KphpInitHashingInfra(
-    _Inout_ PVOID Object,
-    _In_opt_ PVOID Parameter
-    )
-{
-    PKPH_HASHING_INFRASTRUCTURE infra;
-    PFILE_GET_EA_INFORMATION eaInfo;
-
-    KPH_PAGED_CODE();
-
-    UNREFERENCED_PARAMETER(Parameter);
-
-    infra = Object;
-
-    //
-    // Pre-populate the EA cache items into the buffer to be used when querying
-    // for the cached EA values. We compile time assert that it will all fit in
-    // the buffer.
-    //
-
-    eaInfo = (PFILE_GET_EA_INFORMATION)infra->EaList;
-    eaInfo->NextEntryOffset = 0;
-
-    for (ULONG i = 0; i < ARRAYSIZE(KphpHashEaCacheInfo); i++)
-    {
-        PCKPH_HASHING_EACACHE_INFORMATION eaCacheInfo;
-
-        eaInfo = Add2Ptr(eaInfo, eaInfo->NextEntryOffset);
-
-        eaCacheInfo = &KphpHashEaCacheInfo[i];
-
-        RtlCopyMemory(eaInfo->EaName,
-                      eaCacheInfo->EaName.Buffer,
-                      eaCacheInfo->EaName.Length);
-
-        eaInfo->EaNameLength = (UCHAR)eaCacheInfo->EaName.Length;
-        eaInfo->EaName[eaInfo->EaNameLength] = ANSI_NULL;
-
-        eaInfo->NextEntryOffset = FIELD_OFFSET(FILE_GET_EA_INFORMATION, EaName);
-        eaInfo->NextEntryOffset += eaCacheInfo->EaName.Length;
-        eaInfo->NextEntryOffset += sizeof(ANSI_NULL);
-        eaInfo->NextEntryOffset = ALIGN_UP_BY(eaInfo->NextEntryOffset,
-                                              sizeof(ULONG));
-    }
-
-    eaInfo->NextEntryOffset = 0;
-
-    KphInitializePagedLookaside(&infra->HashingLookaside,
-                                sizeof(KPH_HASHING_CONTEXT),
-                                KPH_TAG_HASHING_CONTEXT);
-
-    return STATUS_SUCCESS;
-}
-
-/**
- * \brief Deletes hashing infrastructure.
- *
- * \param[in,out] Object The hashing infrastructure to delete.
- */
-_Function_class_(KPH_TYPE_DELETE_PROCEDURE)
-VOID KSIAPI KphpDeleteHashingInfra(
-    _Inout_ PVOID Object
-    )
-{
-    PKPH_HASHING_INFRASTRUCTURE infra;
-
-    KPH_PAGED_CODE();
-
-    infra = Object;
-
-    KphDeletePagedLookaside(&infra->HashingLookaside);
-}
-
-/**
- * \brief Frees hashing infrastructure object.
- *
- * \param[in] Object The object to free.
- */
-_Function_class_(KPH_TYPE_FREE_PROCEDURE)
-VOID KSIAPI KphpFreeHashingInfra(
-    _In_freesMem_ PVOID Object
-    )
-{
-    KPH_PAGED_CODE();
-
-    KphFree(Object, KPH_TAG_HASHING_INFRA);
-}
 
 /**
  * \brief Allocates a hashing context from the hashing look-aside list.
@@ -259,9 +135,7 @@ PKPH_HASHING_CONTEXT KphpAllocateHashingContext(
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    NT_ASSERT(KphpHashingInfra);
-
-    return KphAllocateFromPagedLookaside(&KphpHashingInfra->HashingLookaside);
+    return KphAllocateFromPagedLookaside(&KphpHashingLookaside);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -316,8 +190,6 @@ VOID KphpFreeHashingContext(
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    NT_ASSERT(KphpHashingInfra);
-
     for (ULONG i = 0; i < ARRAYSIZE(Context->Hash); i++)
     {
         if (Context->Hash[i].Handle)
@@ -328,7 +200,7 @@ VOID KphpFreeHashingContext(
 
     KphpCloseHashingEaCacheContext(&Context->EaCache);
 
-    KphFreeToPagedLookaside(&KphpHashingInfra->HashingLookaside, Context);
+    KphFreeToPagedLookaside(&KphpHashingLookaside, Context);
 }
 
 /**
@@ -342,31 +214,50 @@ NTSTATUS KphInitializeHashing(
     VOID
     )
 {
-    NTSTATUS status;
-    KPH_OBJECT_TYPE_INFO typeInfo;
+    PFILE_GET_EA_INFORMATION eaInfo;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    typeInfo.Allocate = KphpAllocateHashingInfra;
-    typeInfo.Initialize = KphpInitHashingInfra;
-    typeInfo.Delete = KphpDeleteHashingInfra;
-    typeInfo.Free = KphpFreeHashingInfra;
-    typeInfo.Flags = 0;
+    KphInitializeRundown(&KphpHashingRundown);
 
-    KphCreateObjectType(&KphpHashingInfraName,
-                        &typeInfo,
-                        &KphpHashingInfraType);
+    //
+    // Pre-populate the EA cache items into the buffer to be used when querying
+    // for the cached EA values. We compile time assert that it will all fit in
+    // the buffer.
+    //
 
-    status = KphCreateObject(KphpHashingInfraType,
-                             sizeof(KPH_HASHING_INFRASTRUCTURE),
-                             &KphpHashingInfra,
-                             NULL);
-    if (!NT_SUCCESS(status))
+    eaInfo = (PFILE_GET_EA_INFORMATION)KphpHashingEaList;
+    eaInfo->NextEntryOffset = 0;
+
+    for (ULONG i = 0; i < ARRAYSIZE(KphpHashEaCacheInfo); i++)
     {
-        KphpHashingInfra = NULL;
+        PCKPH_HASHING_EACACHE_INFORMATION eaCacheInfo;
+
+        eaInfo = Add2Ptr(eaInfo, eaInfo->NextEntryOffset);
+
+        eaCacheInfo = &KphpHashEaCacheInfo[i];
+
+        RtlCopyMemory(eaInfo->EaName,
+                      eaCacheInfo->EaName.Buffer,
+                      eaCacheInfo->EaName.Length);
+
+        eaInfo->EaNameLength = (UCHAR)eaCacheInfo->EaName.Length;
+        eaInfo->EaName[eaInfo->EaNameLength] = ANSI_NULL;
+
+        eaInfo->NextEntryOffset = FIELD_OFFSET(FILE_GET_EA_INFORMATION, EaName);
+        eaInfo->NextEntryOffset += eaCacheInfo->EaName.Length;
+        eaInfo->NextEntryOffset += sizeof(ANSI_NULL);
+        eaInfo->NextEntryOffset = ALIGN_UP_BY(eaInfo->NextEntryOffset,
+                                              sizeof(ULONG));
     }
 
-    return status;
+    eaInfo->NextEntryOffset = 0;
+
+    KphInitializePagedLookaside(&KphpHashingLookaside,
+                                sizeof(KPH_HASHING_CONTEXT),
+                                KPH_TAG_HASHING_CONTEXT);
+
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -379,40 +270,8 @@ VOID KphCleanupHashing(
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    if (KphpHashingInfra)
-    {
-        KphDereferenceObject(KphpHashingInfra);
-    }
-}
-
-/**
- * \brief References the signing infrastructure.
- */
-_IRQL_requires_max_(APC_LEVEL)
-VOID KphReferenceHashingInfrastructure(
-    VOID
-    )
-{
-    KPH_PAGED_CODE();
-
-    NT_ASSERT(KphpHashingInfra);
-
-    KphReferenceObject(KphpHashingInfra);
-}
-
-/**
- * \brief Dereferences the signing infrastructure.
- */
-_IRQL_requires_max_(APC_LEVEL)
-VOID KphDereferenceHashingInfrastructure(
-    VOID
-    )
-{
-    KPH_PAGED_CODE();
-
-    NT_ASSERT(KphpHashingInfra);
-
-    KphDereferenceObject(KphpHashingInfra);
+    KphWaitForRundown(&KphpHashingRundown);
+    KphDeletePagedLookaside(&KphpHashingLookaside);
 }
 
 /**
@@ -439,8 +298,6 @@ NTSTATUS KphHashBuffer(
     BCRYPT_HASH_HANDLE hashHandle;
 
     KPH_PAGED_CODE_PASSIVE();
-
-    NT_ASSERT(KphpHashingInfra);
 
     hashHandle = NULL;
 
@@ -858,8 +715,8 @@ VOID KphpLoadHashesFromEaCache(
                                     Context->Buffer,
                                     sizeof(Context->Buffer),
                                     FALSE,
-                                    KphpHashingInfra->EaList,
-                                    sizeof(KphpHashingInfra->EaList),
+                                    KphpHashingEaList,
+                                    sizeof(KphpHashingEaList),
                                     NULL,
                                     TRUE,
                                     &returnLength);
@@ -1580,6 +1437,13 @@ NTSTATUS KphpHashFile(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    if (!KphAcquireRundown(&KphpHashingRundown))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE, HASH, "Failed to acquire rundown.");
+
+        return STATUS_TOO_LATE;
+    }
+
     mappedBase = NULL;
 
     context = KphpAllocateHashingContext();
@@ -1699,6 +1563,8 @@ Exit:
     {
         KphpFreeHashingContext(context);
     }
+
+    KphReleaseRundown(&KphpHashingRundown);
 
     return status;
 }

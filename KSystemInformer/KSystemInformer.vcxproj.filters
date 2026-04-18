@@ -135,6 +135,15 @@
     <ClCompile Include="kphthread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ratelmt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="umaccess.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="informer_silo.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">

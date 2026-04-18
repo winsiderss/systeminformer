@@ -1283,7 +1283,7 @@ PPH_LIST PhEnumPackageApplicationUserModelIds(
                 __x_ABI_CWindows_CApplicationModel_CIPackage2_Release(currentPackage2);
             }
 
-            __FIIterator_1_Windows__CApplicationModel__CPackage_Release(currentPackage);
+            __x_ABI_CWindows_CApplicationModel_CIPackage_Release(currentPackage);
         }
 
         if (HR_FAILED(status))

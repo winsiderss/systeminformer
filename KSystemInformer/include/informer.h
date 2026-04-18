@@ -24,30 +24,94 @@ NTSTATUS KphInitializeInformer(
     VOID
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+typedef struct _KPH_INFORMER_CONTEXT
+{
+    ULONG Count;
+    PKPH_PROCESS_CONTEXT Items[8];
+} KPH_INFORMER_CONTEXT, *PKPH_INFORMER_CONTEXT;
+
+_IRQL_requires_max_(HIGH_LEVEL)
+FORCEINLINE
+VOID KphInformerContextAdd(
+    _Inout_ PKPH_INFORMER_CONTEXT Context,
+    _In_opt_ PKPH_PROCESS_CONTEXT Process
+    )
+{
+    if (!Process)
+    {
+        return;
+    }
+
+    for (ULONG i = 0; i < Context->Count; i++)
+    {
+        if (Context->Items[i] == Process)
+        {
+            return;
+        }
+    }
+
+    if (NT_VERIFY(Context->Count < ARRAYSIZE(Context->Items)))
+    {
+        Context->Items[Context->Count++] = Process;
+        KphReferenceObject(Process);
+    }
+}
+
+_IRQL_requires_max_(HIGH_LEVEL)
+FORCEINLINE
+VOID KphInformerContextMove(
+    _Inout_ PKPH_INFORMER_CONTEXT Context,
+    _In_opt_ PKPH_PROCESS_CONTEXT Process
+    )
+{
+    KphInformerContextAdd(Context, Process);
+
+    if (Process)
+    {
+        KphDereferenceObjectDeferDelete(Process);
+    }
+}
+
+_IRQL_requires_max_(HIGH_LEVEL)
+FORCEINLINE
+VOID KphInformerContextInit(
+    _Out_ PKPH_INFORMER_CONTEXT Context
+    )
+{
+    RtlZeroMemory(Context, sizeof(KPH_INFORMER_CONTEXT));
+    KphInformerContextMove(Context, KphGetCurrentProcessContext());
+    KphInformerContextMove(Context, KphGetEProcessContext(PsGetThreadProcess(PsGetCurrentThread())));
+}
+
+_IRQL_requires_max_(HIGH_LEVEL)
+FORCEINLINE
+VOID KphInformerContextDelete(
+    _In_ _Post_invalid_ PKPH_INFORMER_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->Count; i++)
+    {
+        KphDereferenceObjectDeferDelete(Context->Items[i]);
+    }
+}
+
+_IRQL_requires_max_(HIGH_LEVEL)
 BOOLEAN KphInformerAllowed(
     _In_ ULONG Index,
-    _In_opt_ PKPH_PROCESS_CONTEXT ActorProcess,
-    _In_opt_ PKPH_PROCESS_CONTEXT TargetProcess
+    _In_opt_ PKPH_INFORMER_CONTEXT Context
     );
 
-#define KphInformerEnabled(name, proc)                                         \
-    KphInformerAllowed(KPH_INFORMER_INDEX(name), proc, NULL)
-
-#define KphInformerEnabled2(name, actor, target)                               \
-    KphInformerAllowed(KPH_INFORMER_INDEX(name), actor, target)
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 KPH_INFORMER_OPTIONS KphInformerOptions(
-    _In_opt_ PKPH_PROCESS_CONTEXT ActorProcess,
-    _In_opt_ PKPH_PROCESS_CONTEXT TargetProcess
+    _In_opt_ PKPH_INFORMER_CONTEXT Context
     );
 
-#define KphInformerOpts(proc)                                                  \
-    KphInformerOptions(proc, NULL)
-
-#define KphInformerOpts2(proc, target)                                         \
-    KphInformerOptions(proc, target)
+#define KPH_INFORMER_CONTEXT_ENTER() KPH_INFORMER_CONTEXT informerContext; KphInformerContextInit(&informerContext)
+#define KPH_INFORMER_CONTEXT_EXIT() KphInformerContextDelete(&informerContext)
+#define KphInformerMove(proc) KphInformerContextMove(&informerContext, (proc))
+#define KphInformerAdd(proc) KphInformerContextAdd(&informerContext, (proc))
+#define KphInformerEnabled(name) KphInformerAllowed(KPH_INFORMER_INDEX(name), &informerContext)
+#define KphInformerOpts() KphInformerOptions(&informerContext)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -184,5 +248,18 @@ NTSTATUS KphDebugInformerStart(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphDebugInformerStop(
+    VOID
+    );
+
+// silo informer
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSiloInformerStart(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphSiloInformerStop(
     VOID
     );

@@ -432,11 +432,19 @@ typedef struct _KPHM_GET_INFORMER_CLIENT_STATS
 // KPH -> PH
 //
 
+typedef struct _KPHM_CONTEXT
+{
+    CLIENT_ID ClientId;
+    ULONG64 ProcessStartKey;
+    PVOID ThreadSubProcessTag;
+    HANDLE AttachedProcessId;
+    ULONG64 AttachedProcessStartKey;
+} KPHM_CONTEXT, *PKPHM_CONTEXT;
+typedef const KPHM_CONTEXT *PCKPHM_CONTEXT;
+
 typedef struct _KPHM_PROCESS_CREATE
 {
-    CLIENT_ID CreatingClientId;
-    ULONG64 CreatingProcessStartKey;
-    PVOID CreatingThreadSubProcessTag;
+    KPHM_CONTEXT Context;
     HANDLE TargetProcessId;
     ULONG64 TargetProcessStartKey;
     HANDLE ParentProcessId;
@@ -470,41 +478,31 @@ typedef struct _KPHM_PROCESS_CREATE_REPLY
 
 typedef struct _KPHM_PROCESS_EXIT
 {
-    CLIENT_ID ClientId;
-    ULONG64 ProcessStartKey;
-    PVOID ThreadSubProcessTag;
+    KPHM_CONTEXT Context;
     NTSTATUS ExitStatus;
 } KPHM_PROCESS_EXIT, *PKPHM_PROCESS_EXIT;
 
 typedef struct _KPHM_THREAD_CREATE
 {
-    CLIENT_ID CreatingClientId;
-    ULONG64 CreatingProcessStartKey;
-    PVOID CreatingThreadSubProcessTag;
+    KPHM_CONTEXT Context;
     CLIENT_ID TargetClientId;
     ULONG64 TargetProcessStartKey;
 } KPHM_THREAD_CREATE, *PKPHM_THREAD_CREATE;
 
 typedef struct _KPHM_THREAD_EXECUTE
 {
-    CLIENT_ID ClientId;
-    ULONG64 ProcessStartKey;
-    PVOID ThreadSubProcessTag;
+    KPHM_CONTEXT Context;
 } KPHM_THREAD_EXECUTE, *PKPHM_THREAD_EXECUTE;
 
 typedef struct _KPHM_THREAD_EXIT
 {
-    CLIENT_ID ClientId;
-    ULONG64 ProcessStartKey;
-    PVOID ThreadSubProcessTag;
+    KPHM_CONTEXT Context;
     NTSTATUS ExitStatus;
 } KPHM_THREAD_EXIT, *PKPHM_THREAD_EXIT;
 
 typedef struct _KPHM_IMAGE_LOAD
 {
-    CLIENT_ID LoadingClientId;
-    ULONG64 LoadingProcessStartKey;
-    PVOID LoadingThreadSubProcessTag;
+    KPHM_CONTEXT Context;
     HANDLE TargetProcessId;
     ULONG64 TargetProcessStartKey;
 
@@ -540,7 +538,7 @@ typedef struct _KPHM_IMAGE_LOAD
 
 typedef struct _KPHM_DEBUG_PRINT
 {
-    CLIENT_ID ContextClientId;
+    KPHM_CONTEXT Context;
     ULONG ComponentId;
     ULONG Level;
 
@@ -553,9 +551,7 @@ typedef struct _KPHM_DEBUG_PRINT
 
 typedef struct _KPHM_HANDLE
 {
-    CLIENT_ID ContextClientId;
-    ULONG64 ContextProcessStartKey;
-    PVOID ContextThreadSubProcessTag;
+    KPHM_CONTEXT Context;
 
     union
     {
@@ -1188,11 +1184,21 @@ typedef struct _KPHM_COPY_INFORMATION
     ULONG64 SourceFileOffset;
 } KPHM_COPY_INFORMATION, *PKPHM_COPY_INFORMATION;
 
+//
+// IO_SECURITY_CONTEXT
+//
+typedef struct _KPHM_IO_SECURITY_CONTEXT
+{
+    ACCESS_MASK DesiredAccess;
+    ACCESS_MASK OriginalDesiredAccess;
+    ACCESS_MASK PreviouslyGrantedAccess;
+    ACCESS_MASK RemainingDesiredAccess;
+} KPHM_IO_SECURITY_CONTEXT, *PKPHM_IO_SECURITY_CONTEXT;
+
 typedef struct _KPHM_FILE
 {
-    CLIENT_ID ClientId;
-    ULONG64 ProcessStartKey;
-    PVOID ThreadSubProcessTag;
+    KPHM_CONTEXT Thread;
+    KPHM_CONTEXT Context;
 
     UCHAR MajorFunction;  // IRP_MJ_*
     UCHAR MinorFunction;  // IRP_MN_*
@@ -1260,11 +1266,13 @@ typedef struct _KPHM_FILE
             {
                 struct
                 {
+                    KPHM_IO_SECURITY_CONTEXT SecurityContext;
                     BOOLEAN MaybeTunneledFileName;
                 } Create;
 
                 struct
                 {
+                    KPHM_IO_SECURITY_CONTEXT SecurityContext;
                     NAMED_PIPE_CREATE_PARAMETERS Parameters;
                 } CreateNamedPipe;
 
@@ -1281,6 +1289,7 @@ typedef struct _KPHM_FILE
 
                 struct
                 {
+                    KPHM_IO_SECURITY_CONTEXT SecurityContext;
                     MAILSLOT_CREATE_PARAMETERS Parameters;
                 } CreateMailslot;
 
@@ -1305,14 +1314,25 @@ typedef struct _KPHM_FILE
             {
                 struct
                 {
+                    KPHM_IO_SECURITY_CONTEXT SecurityContext;
                     BOOLEAN TunneledFileName;
                 } Create;
+
+                struct
+                {
+                    KPHM_IO_SECURITY_CONTEXT SecurityContext;
+                } CreateNamedPipe;
 
                 struct
                 {
                     BOOLEAN TunneledFileName;
                     BOOLEAN TunneledDestinationFileName;
                 } SetInformation;
+
+                struct
+                {
+                    KPHM_IO_SECURITY_CONTEXT SecurityContext;
+                } CreateMailslot;
             };
         } Post;
     };
@@ -1558,9 +1578,7 @@ typedef union _KPHM_REGISTRY_PARAMETERS
 
 typedef struct _KPHM_REGISTRY
 {
-    CLIENT_ID ClientId;
-    ULONG64 ProcessStartKey;
-    PVOID ThreadSubProcessTag;
+    KPHM_CONTEXT Context;
 
     union
     {
@@ -1737,9 +1755,7 @@ typedef struct _KPHM_REGISTRY
 
 typedef struct _KPHM_IMAGE_VERIFY
 {
-    CLIENT_ID ClientId;
-    ULONG64 ProcessStartKey;
-    PVOID ThreadSubProcessTag;
+    KPHM_CONTEXT Context;
     ULONG ImageType;               // SE_IMAGE_TYPE
     ULONG Classification;          // BDCB_CLASSIFICATION
     ULONG ImageFlags;
@@ -1757,5 +1773,42 @@ typedef struct _KPHM_IMAGE_VERIFY
     // id: KphMsgFieldRegistryPath            type: KphMsgTypeUnicodeString
     //
 } KPHM_IMAGE_VERIFY, *PKPHM_IMAGE_VERIFY;
+
+typedef struct _KPHM_SILO_INFORMATION
+{
+    BOOLEAN IsHostSilo;
+    ULONG SiloIdentifier;
+    ULONG ServiceSessionId;
+    ULONG ActiveConsoleId;
+    GUID ContainerId;
+} KPHM_SILO_INFORMATION, *PKPHM_SILO_INFORMATION;
+
+typedef struct _KPHM_SILO_CREATE
+{
+    KPHM_CONTEXT Context;
+    KPHM_SILO_INFORMATION Silo;
+    KPHM_SILO_INFORMATION ServerSilo;
+
+    //
+    // Dynamic
+    //
+    // id: KphMsgFieldObjectName              type: KphMsgTypeUnicodeString
+    // id: KphMsgFieldOtherObjectName         type: KphMsgTypeUnicodeString
+    //
+} KPHM_SILO_CREATE, *PKPHM_SILO_CREATE;
+
+typedef struct _KPHM_SILO_TERMINATE
+{
+    KPHM_CONTEXT Context;
+    KPHM_SILO_INFORMATION Silo;
+    KPHM_SILO_INFORMATION ServerSilo;
+
+    //
+    // Dynamic
+    //
+    // id: KphMsgFieldObjectName              type: KphMsgTypeUnicodeString
+    // id: KphMsgFieldOtherObjectName         type: KphMsgTypeUnicodeString
+    //
+} KPHM_SILO_TERMINATE, *PKPHM_SILO_TERMINATE;
 
 #pragma warning(pop)

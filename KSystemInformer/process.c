@@ -537,18 +537,12 @@ NTSTATUS KphQueryInformationProcess(
                 goto Exit;
             }
 
-            KphAcquireRWLockShared(&process->ThreadListLock);
-            KphAcquireRWLockShared(&process->ProtectionLock);
-
             info.ProcessState = KphGetProcessState(process);
             info.ProcessStartKey = KphGetProcessStartKey(processObject);
             info.CreatorClientId.UniqueProcess = process->CreatorClientId.UniqueProcess;
             info.CreatorClientId.UniqueThread = process->CreatorClientId.UniqueThread;
             info.NumberOfImageLoads = ReadSizeTNoFence(&process->NumberOfImageLoads);
             info.Flags = process->Flags;
-            info.NumberOfThreads = process->NumberOfThreads;
-            info.ProcessAllowedMask = process->ProcessAllowedMask;
-            info.ThreadAllowedMask = process->ThreadAllowedMask;
             info.NumberOfMicrosoftImageLoads = ReadSizeTNoFence(&process->NumberOfMicrosoftImageLoads);
             info.NumberOfAntimalwareImageLoads = ReadSizeTNoFence(&process->NumberOfAntimalwareImageLoads);
             info.NumberOfVerifiedImageLoads = ReadSizeTNoFence(&process->NumberOfVerifiedImageLoads);
@@ -562,7 +556,13 @@ NTSTATUS KphQueryInformationProcess(
                     MmDoesFileHaveUserWritableReferences(process->FileObject->SectionObjectPointer);
             }
 
-            KphReleaseRWLock(&process->ProtectionLock);
+            KphAcquireRWLockShared(&process->Protection.AllowedMaskLock);
+            info.ProcessAllowedMask = process->Protection.ProcessAllowedMask;
+            info.ThreadAllowedMask = process->Protection.ThreadAllowedMask;
+            KphReleaseRWLock(&process->Protection.AllowedMaskLock);
+
+            KphAcquireRWLockShared(&process->ThreadListLock);
+            info.NumberOfThreads = process->NumberOfThreads;
             KphReleaseRWLock(&process->ThreadListLock);
 
             status = KphCopyToMode(ProcessInformation,
