@@ -188,6 +188,7 @@ PH_DEFINE_IMPORT(L"ntdll.dll", PssNtQuerySnapshot);
 PH_DEFINE_IMPORT(L"ntdll.dll", PssNtFreeSnapshot);
 PH_DEFINE_IMPORT(L"ntdll.dll", PssNtFreeRemoteSnapshot);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtPssCaptureVaSpaceBulk);
+PH_DEFINE_IMPORT(L"ntdll.dll", PssNtValidateDescriptor);
 PH_DEFINE_IMPORT(L"ntdll.dll", TpSetPoolThreadBasePriority);
 
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertSecurityDescriptorToStringSecurityDescriptorW);

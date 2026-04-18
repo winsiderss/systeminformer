@@ -88,10 +88,10 @@ RTL_ATOM PhGraphControlInitialization(
 }
 
 FORCEINLINE VOID PhpGetGraphPoint(
-    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo,
     _In_ ULONG Index,
-    _Out_ PULONG H1,
-    _Out_ PULONG H2
+    _Out_ PULONG PH_RESTRICT H1,
+    _Out_ PULONG PH_RESTRICT H2
     )
 {
     if (Index < DrawInfo->LineDataCount)
@@ -148,10 +148,10 @@ FORCEINLINE VOID PhpGetGraphPoint(
 VOID PhDrawGraphDirect(
     _In_ HDC hdc,
     _In_ PVOID PH_RESTRICT Bits,
-    _In_ PPH_GRAPH_DRAW_INFO DrawInfo
+    _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo
     )
 {
-    PULONG bits = Bits;
+    PULONG PH_RESTRICT bits = Bits;
     LONG width = DrawInfo->Width;
     LONG height = DrawInfo->Height;
     LONG numberOfPixels = width * height;

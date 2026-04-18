@@ -89,6 +89,15 @@ typedef struct _PH_RUNAS_DESKTOP_ITEM
     PPH_STRING DesktopName;
 } PH_RUNAS_DESKTOP_ITEM, *PPH_RUNAS_DESKTOP_ITEM;
 
+/**
+ * RunAs dialog procedure.
+ *
+ * \param hwndDlg A handle to the dialog box.
+ * \param uMsg The message.
+ * \param wParam The first message parameter.
+ * \param lParam The second message parameter.
+ * \return Dialog procedure return value.
+ */
 INT_PTR CALLBACK PhpRunAsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -149,6 +158,12 @@ static PPH_STRING RunAsServiceName;
 static SERVICE_STATUS_HANDLE RunAsServiceStatusHandle;
 static PHSVC_STOP RunAsServiceStop;
 
+/**
+ * Shows the Run As dialog for starting a process as another user.
+ *
+ * \param ParentWindowHandle Handle to the parent window.
+ * \param ProcessId Optional process ID to use for context.
+ */
 VOID PhShowRunAsDialog(
     _In_ HWND ParentWindowHandle,
     _In_opt_ HANDLE ProcessId
@@ -163,6 +178,12 @@ VOID PhShowRunAsDialog(
         );
 }
 
+/**
+ * Shows the Run File dialog for starting a new process.
+ *
+ * \param ParentWindowHandle Handle to the parent window.
+ * \return TRUE if a process was started, FALSE otherwise.
+ */
 BOOLEAN PhShowRunFileDialog(
     _In_ HWND ParentWindowHandle
     )
@@ -218,6 +239,11 @@ BOOLEAN PhShowRunFileDialog(
     //}
 }
 
+/**
+ * Shows the Run As Package dialog for starting a packaged app as another user.
+ *
+ * \param ParentWindowHandle Handle to the parent window.
+ */
 VOID PhShowRunAsPackageDialog(
     _In_ HWND ParentWindowHandle
     )
@@ -231,6 +257,12 @@ VOID PhShowRunAsPackageDialog(
         );
 }
 
+/**
+ * Determines if the specified user name is a service account (SYSTEM, LOCAL SERVICE, NETWORK SERVICE).
+ *
+ * \param UserName The user name to check.
+ * \return TRUE if the user is a service account, FALSE otherwise.
+ */
 BOOLEAN IsServiceAccount(
     _In_ PPH_STRING UserName
     )
@@ -260,6 +292,12 @@ BOOLEAN IsServiceAccount(
     return serviceAccount;
 }
 
+/**
+ * Determines if the specified user name matches the current user.
+ *
+ * \param UserName The user name to check.
+ * \return TRUE if the user is the current user, FALSE otherwise.
+ */
 BOOLEAN IsCurrentUserAccount(
     _In_ PPH_STRING UserName
     )
@@ -280,6 +318,11 @@ BOOLEAN IsCurrentUserAccount(
     return FALSE;
 }
 
+/**
+ * Gets the current desktop information as a string.
+ *
+ * \return A string containing the current window station and desktop name.
+ */
 PPH_STRING PhpGetCurrentDesktopInfo(
     VOID
     )
@@ -309,6 +352,14 @@ PPH_STRING PhpGetCurrentDesktopInfo(
     return desktopInfo;
 }
 
+/**
+ * Callback to add recent programs to a combo box.
+ *
+ * \param Command The command string.
+ * \param Context The combo box handle.
+ * \return TRUE to continue enumeration.
+ */
+_Function_class_(PH_ENUM_MRULIST_CALLBACK)
 BOOLEAN PhpEnumerateRecentProgramsToComboBox(
     _In_ PPH_STRINGREF Command,
     _In_ PVOID Context
@@ -318,6 +369,14 @@ BOOLEAN PhpEnumerateRecentProgramsToComboBox(
     return TRUE;
 }
 
+/**
+ * Callback to add account names to a combo box.
+ *
+ * \param AccountName The account name string.
+ * \param Context The combo box handle.
+ * \return STATUS_SUCCESS.
+ */
+_Function_class_(PH_ENUM_ACCOUNT_CALLBACK)
 NTSTATUS PhpEnumerateAccountsToComboBox(
     _In_ PPH_STRINGREF AccountName,
     _In_ PVOID Context
@@ -327,6 +386,11 @@ NTSTATUS PhpEnumerateAccountsToComboBox(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Adds recent programs to the specified combo box.
+ *
+ * \param ComboBoxHandle The combo box handle.
+ */
 static VOID PhpAddProgramsToComboBox(
     _In_ HWND ComboBoxHandle
     )
@@ -336,6 +400,11 @@ static VOID PhpAddProgramsToComboBox(
     PhEnumerateRecentList(PhpEnumerateRecentProgramsToComboBox, ComboBoxHandle);
 }
 
+/**
+ * Adds user accounts to the specified combo box.
+ *
+ * \param ComboBoxHandle The combo box handle.
+ */
 static VOID PhpAddAccountsToComboBox(
     _In_ HWND ComboBoxHandle
     )
@@ -349,6 +418,11 @@ static VOID PhpAddAccountsToComboBox(
     PhEnumerateAccounts(PhpEnumerateAccountsToComboBox, ComboBoxHandle);
 }
 
+/**
+ * Frees all session items in the specified combo box.
+ *
+ * \param ComboBoxHandle The combo box handle.
+ */
 static VOID PhpFreeSessionsComboBox(
     _In_ HWND ComboBoxHandle
     )
@@ -373,6 +447,11 @@ static VOID PhpFreeSessionsComboBox(
     ComboBox_ResetContent(ComboBoxHandle);
 }
 
+/**
+ * Adds available sessions to the specified combo box.
+ *
+ * \param ComboBoxHandle The combo box handle.
+ */
 static VOID PhpAddSessionsToComboBox(
     _In_ HWND ComboBoxHandle
     )
@@ -499,6 +578,11 @@ static VOID PhpAddSessionsToComboBox(
                 {
                     ComboBox_SetItemData(ComboBoxHandle, itemIndex, entry);
                 }
+                else
+                {
+                    PhDereferenceObject(menuString);
+                    PhFree(entry);
+                }
             }
         }
 
@@ -512,6 +596,13 @@ typedef struct _RUNAS_DIALOG_DESKTOP_CALLBACK
     PPH_STRING WinStaName;
 } RUNAS_DIALOG_DESKTOP_CALLBACK, *PRUNAS_DIALOG_DESKTOP_CALLBACK;
 
+/**
+ * Callback for EnumDesktops to add desktop names to a list.
+ *
+ * \param DesktopName The desktop name.
+ * \param Context Pointer to RUNAS_DIALOG_DESKTOP_CALLBACK.
+ * \return TRUE to continue enumeration.
+ */
 static BOOL CALLBACK EnumDesktopsCallback(
     _In_ PWSTR DesktopName,
     _In_ LPARAM Context
@@ -529,6 +620,11 @@ static BOOL CALLBACK EnumDesktopsCallback(
     return TRUE;
 }
 
+/**
+ * Frees all desktop items in the specified combo box.
+ *
+ * \param ComboBoxHandle The combo box handle.
+ */
 static VOID PhpFreeDesktopsComboBox(
     _In_ HWND ComboBoxHandle
     )
@@ -553,6 +649,11 @@ static VOID PhpFreeDesktopsComboBox(
     ComboBox_ResetContent(ComboBoxHandle);
 }
 
+/**
+ * Adds available desktops to the specified combo box.
+ *
+ * \param ComboBoxHandle The combo box handle.
+ */
 static VOID PhpAddDesktopsToComboBox(
     _In_ HWND ComboBoxHandle
     )
@@ -583,12 +684,21 @@ static VOID PhpAddDesktopsToComboBox(
 
             ComboBox_SetItemData(ComboBoxHandle, itemIndex, entry);
         }
+        else
+        {
+            PhDereferenceObject(callback.DesktopList->Items[i]);
+        }
     }
 
-    PhDereferenceObject(callback.DesktopList);
-    PhDereferenceObject(callback.WinStaName);
+    PhClearReference(&callback.DesktopList);
+    PhClearReference(&callback.WinStaName);
 }
 
+/**
+ * Sets the default program entry in the combo box.
+ *
+ * \param ComboBoxHandle The combo box handle.
+ */
 VOID SetDefaultProgramEntry(
     _In_ HWND ComboBoxHandle
     )
@@ -597,6 +707,13 @@ VOID SetDefaultProgramEntry(
     ComboBox_SetCurSel(ComboBoxHandle, 0);
 }
 
+/**
+ * Sets the default user entry in the combo box.
+ *
+ * \param Context The run-as dialog context.
+ * \param WindowHandle The window handle.
+ * \param ComboBoxHandle The combo box handle.
+ */
 VOID SetDefaultUserEntry(
     _In_ PRUNAS_DIALOG_CONTEXT Context,
     _In_ HWND WindowHandle,
@@ -661,6 +778,11 @@ VOID SetDefaultUserEntry(
     }
 }
 
+/**
+ * Sets the default session entry in the combo box.
+ *
+ * \param ComboBoxHandle The combo box handle.
+ */
 VOID SetDefaultSessionEntry(
     _In_ HWND ComboBoxHandle
     )
@@ -686,6 +808,12 @@ VOID SetDefaultSessionEntry(
     }
 }
 
+/**
+ * Sets the default desktop entry in the combo box.
+ *
+ * \param Context The run-as dialog context.
+ * \param ComboBoxHandle The combo box handle.
+ */
 VOID SetDefaultDesktopEntry(
     _In_ PRUNAS_DIALOG_CONTEXT Context,
     _In_ HWND ComboBoxHandle
@@ -716,7 +844,44 @@ VOID SetDefaultDesktopEntry(
 
     PhClearReference(&desktopName);
 }
+ 
+/**
+ * Gets the logon ID for the current session.
+ *
+ * \return The logon ID, or 0 if not available.
+ */
+ULONG PhRunAsGetLogonId(
+    VOID
+    )
+{
+    ULONG returnLength;
+    WINSTATIONINFORMATION stationInfo;
 
+    // LsaGetLogonSessionData or TokenLogonSid
+
+    if (WinStationQueryInformationW(
+        WINSTATION_CURRENT_SERVER,
+        WINSTATION_CURRENT_SESSION,
+        WinStationInformation,
+        &stationInfo,
+        sizeof(WINSTATIONINFORMATION),
+        &returnLength
+        ))
+    {
+        return stationInfo.LogonId;
+    }
+
+    return 0;
+}
+
+/**
+ * Retrieves the user and logon SIDs for a process.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param UserSid Receives the user SID.
+ * \param LogonSid Receives the logon SID.
+ * \return TRUE if both SIDs were found, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhRunAsGetLogonSid(
     _In_ HANDLE ProcessHandle,
@@ -727,7 +892,45 @@ BOOLEAN PhRunAsGetLogonSid(
     PSID userSid = NULL;
     PSID groupSid = NULL;
     HANDLE tokenHandle;
+    ULONG sessionId;
 
+    // Try WinStationInformation first: derive UserSid from Domain\UserName without
+    // needing token access, which may be restricted on some process types.
+    if (NT_SUCCESS(PhGetProcessSessionId(ProcessHandle, &sessionId)))
+    {
+        WINSTATIONINFORMATION winStationInfo;
+        ULONG returnLength;
+
+        if (WinStationQueryInformationW(
+            WINSTATION_CURRENT_SERVER,
+            sessionId,
+            WinStationInformation,
+            &winStationInfo,
+            sizeof(WINSTATIONINFORMATION),
+            &returnLength
+            ) && winStationInfo.UserName[0] != UNICODE_NULL)
+        {
+            PPH_STRING fullUserName;
+
+            if (winStationInfo.Domain[0] != UNICODE_NULL)
+            {
+                fullUserName = PhFormatString(L"%s\\%s", winStationInfo.Domain, winStationInfo.UserName);
+            }
+            else
+            {
+                fullUserName = PhCreateString(winStationInfo.UserName);
+            }
+
+            if (fullUserName)
+            {
+                PhLookupName(&fullUserName->sr, &userSid, NULL, NULL);
+                PhDereferenceObject(fullUserName);
+            }
+        }
+    }
+
+    // Open the process token to obtain the LogonSid from the token groups,
+    // and as a fallback for UserSid if the WinStation lookup did not succeed.
     if (NT_SUCCESS(PhOpenProcessToken(
         ProcessHandle,
         TOKEN_QUERY,
@@ -737,7 +940,7 @@ BOOLEAN PhRunAsGetLogonSid(
         PTOKEN_GROUPS tokenGroups = NULL;
         PH_TOKEN_USER tokenUser;
 
-        if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
+        if (!userSid && NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
         {
             userSid = PhAllocateCopy(tokenUser.User.Sid, PhLengthSid(tokenUser.User.Sid));
         }
@@ -760,6 +963,8 @@ BOOLEAN PhRunAsGetLogonSid(
 
             PhFree(tokenGroups);
         }
+
+        NtClose(tokenHandle);
     }
 
     if (userSid && groupSid)
@@ -776,6 +981,12 @@ BOOLEAN PhRunAsGetLogonSid(
     return FALSE;
 }
 
+/**
+ * Checks if the command is an execution alias and handles accordingly.
+ *
+ * \param Command The command string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhRunAsExecutionAlias(
     _In_ PPH_STRING Command
     )
@@ -786,12 +997,8 @@ NTSTATUS PhRunAsExecutionAlias(
     PH_STRINGREF fileName;
     PH_STRINGREF arguments;
 
-    commandString = PhExpandEnvironmentStrings(&Command->sr);
-
-    if (PhIsNullOrEmptyString(commandString))
-    {
-        PhMoveReference(&fullFileName, PhCreateString2(&Command->sr));
-    }
+    if (!(commandString = PhExpandEnvironmentStrings(&Command->sr)))
+        commandString = PhCreateString2(&Command->sr);
 
     PhParseCommandLineFuzzy(&commandString->sr, &fileName, &arguments, &fullFileName);
 
@@ -819,6 +1026,15 @@ NTSTATUS PhRunAsExecutionAlias(
     return status;
 }
 
+/**
+ * Executes a command as a child of the specified parent process.
+ *
+ * \param WindowHandle The window handle for UI context.
+ * \param CommandLine The command line to execute.
+ * \param ProcessId The parent process ID.
+ * \param CreateSuspendedProcess Whether to create the process suspended.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhRunAsExecuteParentCommand(
     _In_ HWND WindowHandle,
     _In_ PCWSTR CommandLine,
@@ -916,15 +1132,16 @@ NTSTATUS PhRunAsExecuteParentCommand(
     {
         PROCESS_BASIC_INFORMATION basicInfo;
         PSID userSid, logonSid;
-        
+
         if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
         {
             status = PhRunAsUpdateDesktop(userSid);
 
-            if (!NT_SUCCESS(status))
-                goto CleanupExit;
+            if (NT_SUCCESS(status))
+                status = PhRunAsUpdateWindowStation(userSid, logonSid);
 
-            status = PhRunAsUpdateWindowStation(userSid, logonSid);
+            PhFree(userSid);
+            PhFree(logonSid);
 
             if (!NT_SUCCESS(status))
                 goto CleanupExit;
@@ -1008,6 +1225,12 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Executes the run-as command using the provided dialog context and process ID.
+ *
+ * \param Context The run-as dialog context.
+ * \param ProcessId The process ID to use for context.
+ */
 VOID PhRunAsExecuteCommmand(
     _In_ PRUNAS_DIALOG_CONTEXT Context,
     _In_ HANDLE ProcessId
@@ -1104,9 +1327,14 @@ VOID PhRunAsExecuteCommmand(
             status = PhRunAsUpdateDesktop(userSid);
 
             if (!NT_SUCCESS(status))
+            {
+                PhFree(userSid);
                 goto CleanupExit;
+            }
 
             status = PhRunAsUpdateWindowStation(userSid, NULL);
+
+            PhFree(userSid);
 
             if (!NT_SUCCESS(status))
                 goto CleanupExit;
@@ -1155,6 +1383,7 @@ VOID PhRunAsExecuteCommmand(
         createInfo.UserName = PhGetString(userPart);
         createInfo.DomainName = PhGetString(domainPart);
         createInfo.Password = PhGetStringOrEmpty(password);
+        createInfo.LogonId = PhRunAsGetLogonId();
 
         // Whenever we can, try not to set the desktop name; it breaks a lot of things.
         if (!PhIsNullOrEmptyString(desktopName) && !PhEqualString2(desktopName, L"WinSta0\\Default", TRUE))
@@ -1162,7 +1391,8 @@ VOID PhRunAsExecuteCommmand(
 
         status = PhCreateProcessAsUser(
             &createInfo,
-            PH_CREATE_PROCESS_WITH_PROFILE | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_SUSPENDED,
+            PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_SUSPENDED |
+            PH_CREATE_PROCESS_WITH_PROFILE | PH_CREATE_PROCESS_SET_LOGON_ID,
             NULL,
             NULL,
             &newProcessHandle,
@@ -1178,13 +1408,19 @@ VOID PhRunAsExecuteCommmand(
             {
                 status = PhRunAsUpdateDesktop(userSid);
 
-                if (!NT_SUCCESS(status))
-                    goto CleanupExit;
+                if (NT_SUCCESS(status))
+                    status = PhRunAsUpdateWindowStation(userSid, logonSid);
 
-                status = PhRunAsUpdateWindowStation(userSid, logonSid);
+                PhFree(userSid);
+                PhFree(logonSid);
 
                 if (!NT_SUCCESS(status))
+                {
+                    NtClose(newProcessHandle);
+                    PhClearReference(&domainPart);
+                    PhClearReference(&userPart);
                     goto CleanupExit;
+                }
             }
 
             if (!createSuspended)
@@ -1491,14 +1727,16 @@ NTSTATUS PhRunAsUpdateDesktop(
         ))
     {
         ULONG i;
+        SECURITY_DESCRIPTOR newSecurityDescriptor;
+        PSECURITY_DESCRIPTOR currentSecurityDescriptor = NULL;
         BOOLEAN currentDaclPresent;
         BOOLEAN currentDaclDefaulted;
         PACL currentDacl;
         PACE_HEADER currentAce;
         ULONG newDaclLength;
         PACL newDacl;
-        SECURITY_DESCRIPTOR newSecurityDescriptor;
-        PSECURITY_DESCRIPTOR currentSecurityDescriptor;
+        ULONG headerSize;
+        ULONG aceSize;
 
         status = PhGetObjectSecurity(
             desktopHandle,
@@ -1518,10 +1756,21 @@ NTSTATUS PhRunAsUpdateDesktop(
                 currentDaclPresent = FALSE;
             }
 
-            newDaclLength = sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(UserSid);
+            headerSize = sizeof(ACL);
+            aceSize = FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(UserSid);
+
+            if (!NT_SUCCESS(status = RtlULongAdd(headerSize, aceSize, &newDaclLength)))
+                goto CleanupExit;
 
             if (currentDaclPresent && currentDacl)
-                newDaclLength += currentDacl->AclSize - sizeof(ACL);
+            {
+                ULONG existingAclBodySize;
+
+                if (!NT_SUCCESS(status = RtlULongSub(currentDacl->AclSize, sizeof(ACL), &existingAclBodySize)))
+                    goto CleanupExit;
+                if (!NT_SUCCESS(status = RtlULongAdd(newDaclLength, existingAclBodySize, &newDaclLength)))
+                    goto CleanupExit;
+            }
 
             newDacl = PhAllocateStack(newDaclLength);
 
@@ -1533,9 +1782,7 @@ NTSTATUS PhRunAsUpdateDesktop(
 
             RtlZeroMemory(newDacl, newDaclLength);
 
-            status = PhCreateAcl(newDacl, newDaclLength, ACL_REVISION);
-
-            if (!NT_SUCCESS(status))
+            if (!NT_SUCCESS(status = PhCreateAcl(newDacl, newDaclLength, ACL_REVISION)))
                 goto CleanupExit;
 
             // Add the existing DACL entries.
@@ -1601,6 +1848,8 @@ NTSTATUS PhRunAsUpdateDesktop(
         }
 
     CleanupExit:
+        if (currentSecurityDescriptor)
+            PhFree(currentSecurityDescriptor);
         CloseDesktop(desktopHandle);
     }
     else
@@ -1631,9 +1880,9 @@ NTSTATUS PhRunAsUpdateWindowStation(
         PACL currentDacl;
         PACE_HEADER currentAce;
         ULONG newDaclLength;
-        PACL newDacl;
+        PACL newDacl = NULL;
         SECURITY_DESCRIPTOR newSecurityDescriptor;
-        PSECURITY_DESCRIPTOR currentSecurityDescriptor;
+        PSECURITY_DESCRIPTOR currentSecurityDescriptor = NULL;
 
         status = PhGetObjectSecurity(
             wsHandle,
@@ -1653,14 +1902,26 @@ NTSTATUS PhRunAsUpdateWindowStation(
                 currentDaclPresent = FALSE;
             }
 
-            newDaclLength = (sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) * 3) +
-                (UserSid ? PhLengthSid(UserSid) : 0) + (LogonSid ? PhLengthSid(LogonSid) : 0);
+            // UserSid contributes 1 ACE; LogonSid contributes 2 ACEs (inherit + direct).
+            newDaclLength = sizeof(ACL) +
+                (UserSid ? (FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(UserSid)) : 0) +
+                (LogonSid ? 2 * (FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(LogonSid)) : 0);
 
             if (currentDaclPresent && currentDacl)
                 newDaclLength += currentDacl->AclSize - sizeof(ACL);
 
             newDacl = PhAllocate(newDaclLength);
-            PhCreateAcl(newDacl, newDaclLength, ACL_REVISION);
+
+            if (!newDacl)
+            {
+                status = STATUS_NO_MEMORY;
+                goto CleanupExit;
+            }
+
+            status = PhCreateAcl(newDacl, newDaclLength, ACL_REVISION);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
 
             // Add the existing DACL entries.
 
@@ -1721,7 +1982,7 @@ NTSTATUS PhRunAsUpdateWindowStation(
                     //    );
                 }
 
-                if (UserSid)
+                if (LogonSid)
                 {
                     PhAddAccessAllowedAceEx(
                         newDacl,
@@ -1757,6 +2018,11 @@ NTSTATUS PhRunAsUpdateWindowStation(
             }
         }
 
+    CleanupExit:
+        if (newDacl)
+            PhFree(newDacl);
+        if (currentSecurityDescriptor)
+            PhFree(currentSecurityDescriptor);
         CloseWindowStation(wsHandle);
     }
     else
@@ -2100,6 +2366,13 @@ NTSTATUS PhExecuteRunAsCommand3(
     return status;
 }
 
+/**
+ * Splits a user name into domain and user parts.
+ *
+ * \param UserName The user name to split.
+ * \param DomainPart Receives the domain part (optional).
+ * \param UserPart Receives the user part (optional).
+ */
 VOID PhpSplitUserName(
     _In_ PCWSTR UserName,
     _Out_opt_ PPH_STRING *DomainPart,
@@ -2128,6 +2401,11 @@ VOID PhpSplitUserName(
     }
 }
 
+/**
+ * Sets the status of the Run As service.
+ *
+ * \param State The service state to set.
+ */
 static VOID SetRunAsServiceStatus(
     _In_ ULONG State
     )
@@ -2142,6 +2420,15 @@ static VOID SetRunAsServiceStatus(
     SetServiceStatus(RunAsServiceStatusHandle, &status);
 }
 
+/**
+ * Service control handler for the Run As service.
+ *
+ * \param dwControl The control code.
+ * \param dwEventType The event type.
+ * \param lpEventData Event data.
+ * \param lpContext Context pointer.
+ * \return NO_ERROR or ERROR_CALL_NOT_IMPLEMENTED.
+ */
 static ULONG WINAPI RunAsServiceHandlerEx(
     _In_ ULONG dwControl,
     _In_ ULONG dwEventType,
@@ -2152,7 +2439,9 @@ static ULONG WINAPI RunAsServiceHandlerEx(
     switch (dwControl)
     {
     case SERVICE_CONTROL_STOP:
-        PhSvcStop(&RunAsServiceStop);
+        {
+            PhSvcStop(&RunAsServiceStop);
+        }
         return NO_ERROR;
     case SERVICE_CONTROL_INTERROGATE:
         return NO_ERROR;
@@ -2161,16 +2450,28 @@ static ULONG WINAPI RunAsServiceHandlerEx(
     return ERROR_CALL_NOT_IMPLEMENTED;
 }
 
+/**
+ * Main entry point for the Run As service.
+ *
+ * \param dwArgc Argument count.
+ * \param lpszArgv Argument vector.
+ */
 static VOID WINAPI RunAsServiceMain(
     _In_ ULONG dwArgc,
     _In_ PWSTR *lpszArgv
     )
 {
+    NTSTATUS status;
     PPH_STRING portName;
 
     memset(&RunAsServiceStop, 0, sizeof(RunAsServiceStop));
 
-    RunAsServiceStatusHandle = RegisterServiceCtrlHandlerEx(RunAsServiceName->Buffer, RunAsServiceHandlerEx, NULL);
+    RunAsServiceStatusHandle = RegisterServiceCtrlHandlerEx(
+        RunAsServiceName->Buffer,
+        RunAsServiceHandlerEx,
+        NULL
+        );
+
     SetRunAsServiceStatus(SERVICE_RUNNING);
 
     portName = PhConcatStrings2(
@@ -2178,11 +2479,17 @@ static VOID WINAPI RunAsServiceMain(
         RunAsServiceName->Buffer
         );
 
-    PhSvcMain(portName, &RunAsServiceStop);
+    status = PhSvcMain(portName, &RunAsServiceStop);
 
     SetRunAsServiceStatus(SERVICE_STOPPED);
 }
 
+/**
+ * Starts the Run As service with the specified service name.
+ *
+ * \param ServiceName The name of the service to start.
+ * \return NTSTATUS status code.
+ */
 NTSTATUS PhRunAsServiceStart(
     _In_ PPH_STRING ServiceName
     )
@@ -2236,6 +2543,12 @@ NTSTATUS PhRunAsServiceStart(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Invokes the Run As service to create a process as another user.
+ *
+ * \param Parameters The run-as service parameters.
+ * \return NTSTATUS status code.
+ */
 NTSTATUS PhInvokeRunAsService(
     _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     )
@@ -2281,6 +2594,12 @@ NTSTATUS PhInvokeRunAsService(
         flags |= PH_CREATE_PROCESS_USE_PROCESS_TOKEN;
     }
 
+    if (Parameters->UserName)
+    {
+        createInfo.LogonId = PhRunAsGetLogonId();
+        flags |= PH_CREATE_PROCESS_SET_LOGON_ID;
+    }
+
     if (Parameters->UseLinkedToken)
         flags |= PH_CREATE_PROCESS_USE_LINKED_TOKEN;
     //if (Parameters->CreateSuspendedProcess)
@@ -2306,10 +2625,11 @@ NTSTATUS PhInvokeRunAsService(
         {
             status = PhRunAsUpdateDesktop(userSid);
 
-            if (!NT_SUCCESS(status))
-                goto CleanupExit;
+            if (NT_SUCCESS(status))
+                status = PhRunAsUpdateWindowStation(userSid, logonSid);
 
-            status = PhRunAsUpdateWindowStation(userSid, logonSid);
+            PhFree(userSid);
+            PhFree(logonSid);
 
             if (!NT_SUCCESS(status))
                 goto CleanupExit;
@@ -2349,6 +2669,12 @@ typedef struct _PHP_RUNFILEDLG
     LONG WindowDpi;
 } PHP_RUNFILEDLG, *PPHP_RUNFILEDLG;
 
+/**
+ * Queries the parent directory to use for a new process, depending on elevation.
+ *
+ * \param Elevated TRUE if the process is elevated, FALSE otherwise.
+ * \return The parent directory string.
+ */
 PPH_STRING PhpQueryRunFileParentDirectory(
     _In_ BOOLEAN Elevated
     )
@@ -2445,6 +2771,13 @@ NTSTATUS PhRunAsShellExecute(
     return status;
 }
 
+/**
+ * Runs a file as the interactive user.
+ *
+ * \param Context The Run File dialog context.
+ * \param Command The command string to execute.
+ * \return TRUE if successful, FALSE otherwise.
+ */
 BOOLEAN PhpRunFileAsInteractiveUser(
     _In_ PPHP_RUNFILEDLG Context,
     _In_ PPH_STRING Command
@@ -2523,6 +2856,13 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     return success;
 }
 
+/**
+ * Runs a program from the Run File dialog.
+ *
+ * \param Context The Run File dialog context.
+ * \param Command The command string to execute.
+ * \return NTSTATUS status code.
+ */
 NTSTATUS PhpRunFileProgram(
     _In_ PPHP_RUNFILEDLG Context,
     _In_ PPH_STRING Command
@@ -2553,6 +2893,7 @@ NTSTATUS PhpRunFileProgram(
         if (fullFileName)
             PhDereferenceObject(fullFileName);
 
+        PhDereferenceObject(commandString);
         return STATUS_UNSUCCESSFUL;
     }
 
@@ -2667,6 +3008,9 @@ NTSTATUS RunAsCreateProcessThread(
             PhDelayExecution(1000);
 
         } while (--attempts != 0);
+
+        if (NT_SUCCESS(status) && serviceStatus.dwCurrentState != SERVICE_RUNNING)
+            status = STATUS_UNSUCCESSFUL;
     }
 
     if (!NT_SUCCESS(status))
@@ -2749,6 +3093,11 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Sets the image list for the Run File dialog.
+ *
+ * \param Context The Run File dialog context.
+ */
 static VOID PhpRunFileSetImageList(
     _Inout_ PPHP_RUNFILEDLG Context
     )
@@ -2778,6 +3127,15 @@ static VOID PhpRunFileSetImageList(
     }
 }
 
+/**
+ * Dialog procedure for the Run File dialog.
+ *
+ * \param hwndDlg Handle to the dialog window.
+ * \param uMsg The message.
+ * \param wParam Message parameter.
+ * \param lParam Message parameter.
+ * \return INT_PTR result.
+ */
 INT_PTR CALLBACK PhpRunFileWndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -3150,6 +3508,11 @@ ULONG PhRunAsPackageNodeHashtableHashFunction(
     return PhHashStringRef(&(*(PPH_RUNASPACKAGE_TREE_ROOT_NODE*)Entry)->AppUserModelId->sr, TRUE);
 }
 
+/**
+ * Destroys a Run As Package tree node and releases its resources.
+ *
+ * \param Node The node to destroy.
+ */
 VOID PhRunAsPackageDestroyNode(
     _In_ PPH_RUNASPACKAGE_TREE_ROOT_NODE Node
     )
@@ -3163,6 +3526,13 @@ VOID PhRunAsPackageDestroyNode(
     PhFree(Node);
 }
 
+/**
+ * Adds a new node to the Run As Package tree.
+ *
+ * \param Context The Run As Package context.
+ * \param Package The package entry to add.
+ * \return The created tree node.
+ */
 PPH_RUNASPACKAGE_TREE_ROOT_NODE PhRunAsPackageAddNode(
     _Inout_ PPH_RUNAS_PACKAGE_CONTEXT Context,
     _In_ PPH_APPUSERMODELID_ENUM_ENTRY Package
@@ -3219,6 +3589,13 @@ PPH_RUNASPACKAGE_TREE_ROOT_NODE PhRunAsPackageAddNode(
     return node;
 }
 
+/**
+ * Finds a node in the Run As Package tree by AppUserModelId.
+ *
+ * \param Context The Run As Package context.
+ * \param AppUserModelId The AppUserModelId to search for.
+ * \return The found node, or NULL if not found.
+ */
 PPH_RUNASPACKAGE_TREE_ROOT_NODE PhRunAsPackageFindNode(
     _In_ PPH_RUNAS_PACKAGE_CONTEXT Context,
     _In_ PPH_STRING AppUserModelId
@@ -3241,6 +3618,12 @@ PPH_RUNASPACKAGE_TREE_ROOT_NODE PhRunAsPackageFindNode(
         return NULL;
 }
 
+/**
+ * Removes a node from the Run As Package tree and destroys it.
+ *
+ * \param Context The Run As Package context.
+ * \param Node The node to remove.
+ */
 VOID PhRunAsPackageRemoveNode(
     _In_ PPH_RUNAS_PACKAGE_CONTEXT Context,
     _In_ PPH_RUNASPACKAGE_TREE_ROOT_NODE Node
@@ -3259,6 +3642,12 @@ VOID PhRunAsPackageRemoveNode(
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
+/**
+ * Updates a node in the Run As Package tree, invalidating its cache and refreshing the view.
+ *
+ * \param Context The Run As Package context.
+ * \param Node The node to update.
+ */
 VOID PhRunAsPackageUpdateNode(
     _In_ PPH_RUNAS_PACKAGE_CONTEXT Context,
     _In_ PPH_RUNASPACKAGE_TREE_ROOT_NODE Node
@@ -3464,6 +3853,11 @@ BOOLEAN NTAPI PhRunAsPackageTreeNewCallback(
     return FALSE;
 }
 
+/**
+ * Clears all nodes from the Run As Package tree.
+ *
+ * \param Context The Run As Package context.
+ */
 VOID PhRunAsPackageClearTree(
     _In_ PPH_RUNAS_PACKAGE_CONTEXT Context
     )
@@ -3477,6 +3871,12 @@ VOID PhRunAsPackageClearTree(
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
+/**
+ * Gets the currently selected node in the Run As Package tree.
+ *
+ * \param Context The Run As Package context.
+ * \return The selected node, or NULL if none is selected.
+ */
 PPH_RUNASPACKAGE_TREE_ROOT_NODE PhRunAsPackageGetSelectedNode(
     _In_ PPH_RUNAS_PACKAGE_CONTEXT Context
     )
@@ -3494,6 +3894,14 @@ PPH_RUNASPACKAGE_TREE_ROOT_NODE PhRunAsPackageGetSelectedNode(
     return NULL;
 }
 
+/**
+ * Gets all selected nodes in the Run As Package tree.
+ *
+ * \param Context The Run As Package context.
+ * \param Nodes Receives an array of selected nodes.
+ * \param NumberOfNodes Receives the number of selected nodes.
+ * \return TRUE if any nodes are selected, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhRunAsPackageGetSelectedNodes(
     _In_ PPH_RUNAS_PACKAGE_CONTEXT Context,
@@ -3550,6 +3958,11 @@ BOOLEAN PhRunAsPackageTreeFilterCallback(
     return FALSE;
 }
 
+/**
+ * Initializes the Run As Package tree and its resources.
+ *
+ * \param Context The Run As Package context.
+ */
 VOID PhRunAsPackageInitializeTree(
     _Inout_ PPH_RUNAS_PACKAGE_CONTEXT Context
     )
@@ -3585,6 +3998,11 @@ VOID PhRunAsPackageInitializeTree(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
+/**
+ * Deletes the Run As Package tree and releases its resources.
+ *
+ * \param Context The Run As Package context.
+ */
 VOID PhRunAsPackageDeleteTree(
     _In_ PPH_RUNAS_PACKAGE_CONTEXT Context
     )
@@ -3609,6 +4027,12 @@ VOID PhRunAsPackageDeleteTree(
 #pragma endregion
 
 _Function_class_(USER_THREAD_START_ROUTINE)
+/**
+ * Thread callback to enumerate package application user model IDs and post results to the dialog.
+ *
+ * \param Context Pointer to the run-as package context.
+ * \return NTSTATUS status code.
+ */
 static NTSTATUS PhEnumPackageThreadCallback(
     _In_ PVOID Context
     )
@@ -3622,6 +4046,11 @@ static NTSTATUS PhEnumPackageThreadCallback(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Sets the image list for the run-as package dialog.
+ *
+ * \param Context The run-as package context.
+ */
 static VOID PhRunAsPackageSetImagelist(
     _Inout_ PPH_RUNAS_PACKAGE_CONTEXT Context
     )
@@ -3686,6 +4115,15 @@ VOID NTAPI PhpRunAsPackageSearchControlCallback(
     PhApplyTreeNewFilters(&context->TreeFilterSupport);
 }
 
+/**
+ * Dialog procedure for the Run As Package dialog.
+ *
+ * \param WindowHandle Handle to the dialog window.
+ * \param WindowMessage The message.
+ * \param wParam Message parameter.
+ * \param lParam Message parameter.
+ * \return INT_PTR result.
+ */
 INT_PTR CALLBACK PhRunAsPackageWndProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,

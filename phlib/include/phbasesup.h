@@ -922,7 +922,7 @@ PHLIBAPI
 SIZE_T
 NTAPI
 PhCountStringZ(
-    _In_ PCWSTR String
+    _In_ PCWSTR PH_RESTRICT String
     );
 
 /**
@@ -971,9 +971,9 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCopyBytesZ(
-    _In_ PCSTR InputBuffer,
+    _In_ PCSTR PH_RESTRICT InputBuffer,
     _In_ SIZE_T InputCount,
-    _Out_writes_opt_z_(OutputCount) PSTR OutputBuffer,
+    _Out_writes_opt_z_(OutputCount) PSTR PH_RESTRICT OutputBuffer,
     _In_ SIZE_T OutputCount,
     _Out_opt_ PSIZE_T ReturnCount
     );
@@ -982,9 +982,9 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCopyStringZ(
-    _In_ PCWSTR InputBuffer,
+    _In_ PCWSTR PH_RESTRICT InputBuffer,
     _In_ SIZE_T InputCount,
-    _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
+    _Out_writes_opt_z_(OutputCount) PWSTR PH_RESTRICT OutputBuffer,
     _In_ SIZE_T OutputCount,
     _Out_opt_ PSIZE_T ReturnCount
     );
@@ -1409,8 +1409,8 @@ PHLIBAPI
 LONG
 NTAPI
 PhCompareStringRef(
-    _In_ PCPH_STRINGREF String1,
-    _In_ PCPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF PH_RESTRICT String1,
+    _In_ PCPH_STRINGREF PH_RESTRICT String2,
     _In_ BOOLEAN IgnoreCase
     );
 
@@ -1418,8 +1418,8 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhEqualStringRef(
-    _In_ PCPH_STRINGREF String1,
-    _In_ PCPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF PH_RESTRICT String1,
+    _In_ PCPH_STRINGREF PH_RESTRICT String2,
     _In_ BOOLEAN IgnoreCase
     );
 

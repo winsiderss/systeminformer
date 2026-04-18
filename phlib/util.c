@@ -10270,6 +10270,39 @@ NTSTATUS PhCreateProcessSnapshot(
     return status;
 }
 
+NTSTATUS PhPssFreeSnapshot(
+    _In_ HANDLE ProcessHandle,
+    _In_ HPSS SnapshotHandle
+    )
+{
+    NTSTATUS status;
+
+    if (ProcessHandle == NtCurrentProcess())
+    {
+        if (PssNtValidateDescriptor_Import())
+            status = PssNtValidateDescriptor_Import()(SnapshotHandle, _ReturnAddress());
+        else
+            status = STATUS_PROCEDURE_NOT_FOUND;
+
+        if (NT_SUCCESS(status))
+        {
+            if (PssNtFreeSnapshot_Import())
+                status = PssNtFreeSnapshot_Import()(SnapshotHandle);
+            else
+                status = STATUS_PROCEDURE_NOT_FOUND;
+        }
+    }
+    else
+    {
+        if (PssNtFreeRemoteSnapshot_Import())
+            status = PssNtFreeRemoteSnapshot_Import()(ProcessHandle, SnapshotHandle);
+        else
+            status = STATUS_PROCEDURE_NOT_FOUND;
+    }
+
+    return status;
+}
+
 /**
  * Frees a process snapshot and associated resources.
  *
@@ -10313,15 +10346,7 @@ VOID PhFreeProcessSnapshot(
         }
     }
 
-    if (PssNtFreeRemoteSnapshot_Import())
-    {
-        PssNtFreeRemoteSnapshot_Import()(ProcessHandle, SnapshotHandle);
-    }
-
-    if (PssNtFreeSnapshot_Import())
-    {
-        PssNtFreeSnapshot_Import()(SnapshotHandle);
-    }
+    PhPssFreeSnapshot(ProcessHandle, SnapshotHandle);
 }
 
 /**

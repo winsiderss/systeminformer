@@ -113,10 +113,10 @@ FORCEINLINE T* PTR_SUB_OFFSET(
 #define PH_LARGE_BUFFER_SIZE (256 * 1024 * 1024)
 
 #define XMM_SIZE sizeof(__m128i)
-#define XMM_OFFSET(p) ((XMM_SIZE - 1) & (ULONG_PTR)(p))
+#define XMM_OFFSET(Payload) ((XMM_SIZE - 1) & (ULONG_PTR)(Payload))
 #define XMM_CHARS (XMM_SIZE / sizeof(wchar_t))
-#define XMM_CHAR_ALIGNED(p) (0 == (((ULONG_PTR)(p) + sizeof(wchar_t) - 1) & (0-sizeof(wchar_t)) & (XMM_SIZE-1)))
-#define XMM_PAGE_SAFE(p) (PAGE_OFFSET(p) <= (PAGE_SIZE - XMM_SIZE))
+#define XMM_CHAR_ALIGNED(Payload) (0 == (((ULONG_PTR)(Payload) + sizeof(wchar_t) - 1) & (0-sizeof(wchar_t)) & (XMM_SIZE-1)))
+#define XMM_PAGE_SAFE(Payload) (PAGE_OFFSET(Payload) <= (PAGE_SIZE - XMM_SIZE))
 
 //
 // Exceptions

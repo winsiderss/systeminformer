@@ -1561,7 +1561,16 @@ NTSTATUS KsiConnect(
         }
     }
 
-    if (status == STATUS_SI_KSIDLL_VERSION_MISMATCH)
+    //
+    // An explicit check for KSIDLL version mismatch or a missing procedure
+    // indicates the loaded KSIDLL is out of date relative to the driver.
+    // STATUS_PROCEDURE_NOT_FOUND could in theory occur if the driver imported
+    // something absent from the kernel, but in practice it means the new
+    // driver depends on a new export from KSIDLL and the updated KSIDLL has
+    // not been loaded yet - the user must reboot.
+    //
+    if ((status == STATUS_SI_KSIDLL_VERSION_MISMATCH) ||
+        (status == STATUS_PROCEDURE_NOT_FOUND))
     {
         PhShowKsiMessageEx(
             NULL,
@@ -1571,7 +1580,7 @@ NTSTATUS KsiConnect(
             L"Unable to load kernel driver",
             L"The last System Informer update requires a reboot."
             );
-            goto CleanupExit;
+        goto CleanupExit;
     }
 
     if (!NT_SUCCESS(status))
@@ -2112,7 +2121,7 @@ PVOID PhCreateKsiSettingsBlob(
  *
  * \param[out] Duration      Total measured duration.
  * \param[out] DurationDown  Time spent sending the request to the kernel.
- * \param[out] DurationUp    Time spent recieving the response from the kernel.
+ * \param[out] DurationUp    Time spent receiving the response from the kernel.
  * \return NTSTATUS from KphQueryPerformanceCounter, or STATUS_UNSUCCESSFUL.
  * \remarks Use this function when you need a kernel-reported high-resolution
  * timebase to measure or correlate user/kernel timing.
@@ -2574,7 +2583,7 @@ HRESULT CALLBACK KsiKernelSupportCheckDialogCallbackProc(
                     {
                         config.pszMainInstruction = L"Kernel version not supported";
                         config.pszContent = L"This kernel version is not yet supported. "
-                            L"Your kernel version is pending review review on the development branch.";
+                            L"Your kernel version is pending review on the development branch.";
                     }
                     else
                     {

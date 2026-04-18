@@ -57,6 +57,7 @@ PH_DECLARE_IMPORT(PssNtCaptureSnapshot);
 PH_DECLARE_IMPORT(PssNtQuerySnapshot);
 PH_DECLARE_IMPORT(PssNtFreeSnapshot);
 PH_DECLARE_IMPORT(PssNtFreeRemoteSnapshot);
+PH_DECLARE_IMPORT(PssNtValidateDescriptor);
 PH_DECLARE_IMPORT(NtPssCaptureVaSpaceBulk);
 PH_DECLARE_IMPORT(TpSetPoolThreadBasePriority);
 
