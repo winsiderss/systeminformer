@@ -21,7 +21,7 @@ typedef struct _CLIENT_ID64
     ULONGLONG UniqueThread;
 } CLIENT_ID64, *PCLIENT_ID64;
 
-typedef const STRING32 *PCUNICODE_STRING32;
+typedef const UNICODE_STRING32 *PCUNICODE_STRING32;
 
 // EX
 
@@ -1218,7 +1218,7 @@ MiGetVadShortEndAddress(
     ULONG_PTR low = Vad->EndingVpn;
     return (PVOID)(((low + 1) | ((high | (higher << 8)) << 32)) << PAGE_SHIFT);
 #else
-    return (PVOID)(((ULONG_PTR)Vad->StartingVpn + 1) << PAGE_SHIFT);
+    return (PVOID)(((ULONG_PTR)Vad->EndingVpn + 1) << PAGE_SHIFT);
 #endif
 }
 
@@ -1480,7 +1480,7 @@ typedef unsigned int ALG_ID;
 
 #ifndef ALG_SID_MD5
 #define ALG_SID_MD5                     3
-#endif ALG_SID_MD5
+#endif
 #ifndef ALG_SID_SHA1
 #define ALG_SID_SHA1                    4
 #endif
