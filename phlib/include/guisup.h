@@ -619,6 +619,7 @@ PhScaleToDisplay(
     _In_ LONG Scale
     )
 {
+    assert(Scale);
     return PhMultiplyDivideSigned(Value, Scale, USER_DEFAULT_SCREEN_DPI);
 }
 
@@ -637,18 +638,8 @@ PhScaleToDefault(
     _In_ LONG Scale
     )
 {
+    assert(Scale);
     return PhMultiplyDivideSigned(Value, USER_DEFAULT_SCREEN_DPI, Scale);
-}
-
-FORCEINLINE
-LONG
-NTAPI
-PhGetDpi(
-    _In_ LONG Value,
-    _In_ LONG Scale
-    )
-{
-    return PhMultiplyDivideSigned(Value, Scale, USER_DEFAULT_SCREEN_DPI);
 }
 
 PHLIBAPI
@@ -672,12 +663,6 @@ PhGetMonitorDpiFromRect(
     return PhGetMonitorDpi(NULL, &rect);
 }
 
-PHLIBAPI
-LONG
-NTAPI
-PhGetSystemDpi(
-    VOID
-    );
 
 PHLIBAPI
 LONG
@@ -718,28 +703,54 @@ PhGetSizeDpiValue(
 
     if (ScaleToDisplay)
     {
-        if (rect.Left)
-            rect.Left = PhScaleToDisplay(rect.Left, Dpi);
-        if (rect.Top)
-            rect.Top = PhScaleToDisplay(rect.Top, Dpi);
-        if (rect.Width)
-            rect.Width = PhScaleToDisplay(rect.Width, Dpi);
-        if (rect.Height)
-            rect.Height = PhScaleToDisplay(rect.Height, Dpi);
+        rect.Left = PhScaleToDisplay(rect.Left, Dpi);
+        rect.Top = PhScaleToDisplay(rect.Top, Dpi);
+        rect.Width = PhScaleToDisplay(rect.Width, Dpi);
+        rect.Height = PhScaleToDisplay(rect.Height, Dpi);
     }
     else
     {
-        if (rect.Left)
-            rect.Left = PhScaleToDefault(rect.Left, Dpi);
-        if (rect.Top)
-            rect.Top = PhScaleToDefault(rect.Top, Dpi);
-        if (rect.Width)
-            rect.Width = PhScaleToDefault(rect.Width, Dpi);
-        if (rect.Height)
-            rect.Height = PhScaleToDefault(rect.Height, Dpi);
+        rect.Left = PhScaleToDefault(rect.Left, Dpi);
+        rect.Top = PhScaleToDefault(rect.Top, Dpi);
+        rect.Width = PhScaleToDefault(rect.Width, Dpi);
+        rect.Height = PhScaleToDefault(rect.Height, Dpi);
     }
 
     PhRectangleToRect(Rect, &rect);
+}
+
+/**
+ * Scales a RECT representing margins or padding.
+ *
+ * Unlike PhGetSizeDpiValue which treats a RECT as a bounding box and scales its width/height,
+ * this function scales each field (left, top, right, bottom) independently.
+ * Use this function for non-spatial RECTs to avoid rounding errors.
+ */
+FORCEINLINE
+VOID
+PhGetMarginDpiValue(
+    _Inout_ PRECT Margin,
+    _In_ LONG Dpi,
+    _In_ BOOLEAN ScaleToDisplay
+    )
+{
+    if (Dpi == USER_DEFAULT_SCREEN_DPI)
+        return;
+
+    if (ScaleToDisplay)
+    {
+        Margin->left = PhScaleToDisplay(Margin->left, Dpi);
+        Margin->top = PhScaleToDisplay(Margin->top, Dpi);
+        Margin->right = PhScaleToDisplay(Margin->right, Dpi);
+        Margin->bottom = PhScaleToDisplay(Margin->bottom, Dpi);
+    }
+    else
+    {
+        Margin->left = PhScaleToDefault(Margin->left, Dpi);
+        Margin->top = PhScaleToDefault(Margin->top, Dpi);
+        Margin->right = PhScaleToDefault(Margin->right, Dpi);
+        Margin->bottom = PhScaleToDefault(Margin->bottom, Dpi);
+    }
 }
 
 PHLIBAPI

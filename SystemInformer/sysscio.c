@@ -289,7 +289,7 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             ShowWindow(IoPanel, SW_SHOW);
 
             margin = panelItem->Margin;
-            PhGetSizeDpiValue(&margin, IoSection->Parameters->WindowDpi, TRUE);
+            PhGetMarginDpiValue(&margin, IoSection->Parameters->WindowDpi, TRUE);
             PhAddLayoutItemEx(&IoLayoutManager, IoPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &margin);
 
             PhSipCreateIoGraph();
@@ -462,7 +462,7 @@ VOID PhSipLayoutIoGraphs(
     LONG y;
 
     marginRect = IoGraphMargin;
-    PhGetSizeDpiValue(&marginRect, IoSection->Parameters->WindowDpi, TRUE);
+    PhGetMarginDpiValue(&marginRect, IoSection->Parameters->WindowDpi, TRUE);
 
     if (!PhGetClientRect(IoDialog, &clientRect))
         return;

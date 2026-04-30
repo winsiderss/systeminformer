@@ -310,8 +310,8 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
                     dpiValue = PhGetWindowDpi(WindowHandle);
 
-                    PhGetSizeDpiValue(&margin, dpiValue, TRUE);
-                    PhGetSizeDpiValue(&padding, dpiValue, TRUE);
+                    PhGetMarginDpiValue(&margin, dpiValue, TRUE);
+                    PhGetMarginDpiValue(&padding, dpiValue, TRUE);
 
                     drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
                     PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, dpiValue);
