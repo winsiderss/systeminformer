@@ -50,7 +50,7 @@ static VOID PhpChoiceDialogUpdateFonts(
         if (fontHandle = CreateFontIndirect(&metrics.lfMessageFont))
             PhReplaceWindowFont(&Context->TitleFontHandle, GetDlgItem(WindowHandle, IDC_TITLE), fontHandle, FALSE);
 
-        metrics.lfMessageFont.lfHeight = PhGetDpi(-14, DpiValue);
+        metrics.lfMessageFont.lfHeight = PhScaleToDisplay(-14, DpiValue);
 
         if (fontHandle = CreateFontIndirect(&metrics.lfMessageFont))
             PhReplaceWindowFont(&Context->FontHandle, Context->ComboBoxHandle, fontHandle, FALSE);
@@ -548,11 +548,11 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
 
             SetBkMode(hdc, TRANSPARENT);
 
-            clientRect.bottom -= PhGetDpi(50, dpi);
+            clientRect.bottom -= PhScaleToDisplay(50, dpi);
             FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_WINDOW));
 
             clientRect.top = clientRect.bottom;
-            clientRect.bottom = clientRect.top + PhGetDpi(50, dpi);
+            clientRect.bottom = clientRect.top + PhScaleToDisplay(50, dpi);
 
             if (PhEnableThemeSupport)
             {

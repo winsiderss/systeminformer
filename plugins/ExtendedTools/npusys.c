@@ -621,7 +621,7 @@ VOID EtpLayoutNpuGraphs(
 
     marginRect = NpuGraphMargin;
     PhGetSizeDpiValue(&marginRect, NpuDialogWindowDpi, TRUE);
-    graphPadding = PhGetDpi(ET_NPU_PADDING, NpuDialogWindowDpi);
+    graphPadding = PhScaleToDisplay(ET_NPU_PADDING, NpuDialogWindowDpi);
 
     PhGetClientRect(NpuDialog, &clientRect);
     PhGetClientRect(GetDlgItem(NpuDialog, IDC_NPU_L), &labelRect);

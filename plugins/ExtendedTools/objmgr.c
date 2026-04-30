@@ -415,8 +415,8 @@ VOID EtInitializeTreeImages(
     dpiValue = PhGetWindowDpi(Context->TreeViewHandle);
 
     Context->TreeImageList = PhImageListCreate(
-        PhGetDpi(24, dpiValue),
-        PhGetDpi(24, dpiValue),
+        PhScaleToDisplay(24, dpiValue),
+        PhScaleToDisplay(24, dpiValue),
         ILC_MASK | ILC_COLOR32,
         1, 1
         );
@@ -425,8 +425,8 @@ VOID EtInitializeTreeImages(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDI_FOLDER),
         PH_LOAD_ICON_SIZE_LARGE,
-        PhGetDpi(16, dpiValue),
-        PhGetDpi(16, dpiValue),
+        PhScaleToDisplay(16, dpiValue),
+        PhScaleToDisplay(16, dpiValue),
         dpiValue
         ))
     {
@@ -445,7 +445,7 @@ VOID EtInitializeListImages(
     INT32 index;
 
     dpiValue = PhGetWindowDpi(Context->TreeViewHandle);
-    size = PhGetDpi(20, dpiValue); // 24
+    size = PhScaleToDisplay(20, dpiValue); // 24
 
     Context->ListImageList = PhImageListCreate(
         size,

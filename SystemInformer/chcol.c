@@ -250,8 +250,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 context
                 );
 
-            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, dpiValue));
-            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, dpiValue));
+            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhScaleToDisplay(16, dpiValue));
+            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhScaleToDisplay(16, dpiValue));
 
             Button_Enable(context->HideWindowHandle, FALSE);
             Button_Enable(context->ShowWindowHandle, FALSE);
@@ -373,8 +373,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             if (context->ControlFont) DeleteFont(context->ControlFont);
             context->ControlFont = PhCreateMessageFont(LOWORD(wParam));
 
-            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));
-            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));
+            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhScaleToDisplay(16, LOWORD(wParam)));
+            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhScaleToDisplay(16, LOWORD(wParam)));
         }
         break;
     case WM_COMMAND:

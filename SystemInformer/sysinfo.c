@@ -1276,14 +1276,14 @@ VOID PhSipInitializeParameters(
     SelectFont(hdc, originalFont);
 
     // Internal padding and other values
-    CurrentParameters.PanelPadding = PhGetDpi(PH_SYSINFO_PANEL_PADDING, CurrentParameters.WindowDpi);
-    CurrentParameters.WindowPadding = PhGetDpi(PH_SYSINFO_WINDOW_PADDING, CurrentParameters.WindowDpi);
-    CurrentParameters.GraphPadding = PhGetDpi(PH_SYSINFO_GRAPH_PADDING, CurrentParameters.WindowDpi);
-    CurrentParameters.SmallGraphWidth = PhGetDpi(PH_SYSINFO_SMALL_GRAPH_WIDTH, CurrentParameters.WindowDpi);
-    CurrentParameters.SmallGraphPadding = PhGetDpi(PH_SYSINFO_SMALL_GRAPH_PADDING, CurrentParameters.WindowDpi);
-    CurrentParameters.SeparatorWidth = PhGetDpi(PH_SYSINFO_SEPARATOR_WIDTH, CurrentParameters.WindowDpi);
-    CurrentParameters.CpuPadding = PhGetDpi(PH_SYSINFO_CPU_PADDING, CurrentParameters.WindowDpi);
-    CurrentParameters.MemoryPadding = PhGetDpi(PH_SYSINFO_MEMORY_PADDING, CurrentParameters.WindowDpi);
+    CurrentParameters.PanelPadding = PhScaleToDisplay(PH_SYSINFO_PANEL_PADDING, CurrentParameters.WindowDpi);
+    CurrentParameters.WindowPadding = PhScaleToDisplay(PH_SYSINFO_WINDOW_PADDING, CurrentParameters.WindowDpi);
+    CurrentParameters.GraphPadding = PhScaleToDisplay(PH_SYSINFO_GRAPH_PADDING, CurrentParameters.WindowDpi);
+    CurrentParameters.SmallGraphWidth = PhScaleToDisplay(PH_SYSINFO_SMALL_GRAPH_WIDTH, CurrentParameters.WindowDpi);
+    CurrentParameters.SmallGraphPadding = PhScaleToDisplay(PH_SYSINFO_SMALL_GRAPH_PADDING, CurrentParameters.WindowDpi);
+    CurrentParameters.SeparatorWidth = PhScaleToDisplay(PH_SYSINFO_SEPARATOR_WIDTH, CurrentParameters.WindowDpi);
+    CurrentParameters.CpuPadding = PhScaleToDisplay(PH_SYSINFO_CPU_PADDING, CurrentParameters.WindowDpi);
+    CurrentParameters.MemoryPadding = PhScaleToDisplay(PH_SYSINFO_MEMORY_PADDING, CurrentParameters.WindowDpi);
 
 #if defined(SYSINFO_SCROLL_ANCHOR)
     CurrentParameters.MinimumGraphHeight = PhGetIntegerSetting(SETTING_SYSINFO_MINIMUM_GRAPH_HEIGHT);

@@ -598,7 +598,7 @@ VOID EtpLayoutGpuGraphs(
 
     marginRect = GpuGraphMargin;
     PhGetSizeDpiValue(&marginRect, GpuDialogWindowDpi, TRUE);
-    graphPadding = PhGetDpi(ET_GPU_PADDING, GpuDialogWindowDpi);
+    graphPadding = PhScaleToDisplay(ET_GPU_PADDING, GpuDialogWindowDpi);
 
     PhGetClientRect(GpuDialog, &clientRect);
     PhGetClientRect(GetDlgItem(GpuDialog, IDC_GPU_L), &labelRect);

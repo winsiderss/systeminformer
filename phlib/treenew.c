@@ -2764,13 +2764,13 @@ VOID PhTnpUpdateSystemMetrics(
     Context->SmallIconWidth = PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi);
     Context->SmallIconHeight = PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi);
 
-    Context->CellMarginLeft = PhGetDpi(TNP_CELL_LEFT_MARGIN, Context->WindowDpi);
-    Context->CellMarginRight = PhGetDpi(TNP_CELL_RIGHT_MARGIN, Context->WindowDpi);
-    Context->IconRightPadding = PhGetDpi(TNP_ICON_RIGHT_PADDING, Context->WindowDpi);
-    Context->TextMarginPadding = PhGetDpi(6 + 6, Context->WindowDpi);
-    Context->HeaderTextPadding = PhGetDpi(5, Context->WindowDpi);
-    Context->HeaderTextMargin = PhGetDpi(2, Context->WindowDpi);
-    Context->HeaderRowMargin = PhGetDpi(1, Context->WindowDpi);
+    Context->CellMarginLeft = PhScaleToDisplay(TNP_CELL_LEFT_MARGIN, Context->WindowDpi);
+    Context->CellMarginRight = PhScaleToDisplay(TNP_CELL_RIGHT_MARGIN, Context->WindowDpi);
+    Context->IconRightPadding = PhScaleToDisplay(TNP_ICON_RIGHT_PADDING, Context->WindowDpi);
+    Context->TextMarginPadding = PhScaleToDisplay(6 + 6, Context->WindowDpi);
+    Context->HeaderTextPadding = PhScaleToDisplay(5, Context->WindowDpi);
+    Context->HeaderTextMargin = PhScaleToDisplay(2, Context->WindowDpi);
+    Context->HeaderRowMargin = PhScaleToDisplay(1, Context->WindowDpi);
 
     if (Context->SystemDragX < 2)
         Context->SystemDragX = 2;
@@ -3368,7 +3368,7 @@ BOOLEAN PhTnpAddColumn(
     {
         if (WindowsVersion >= WINDOWS_10)
         {
-            realColumn->Width = PhGetDpi(realColumn->Width, Context->WindowDpi);
+            realColumn->Width = PhScaleToDisplay(realColumn->Width, Context->WindowDpi);
         }
         realColumn->DpiScaleOnAdd = FALSE;
     }
@@ -5376,7 +5376,7 @@ VOID PhTnpProcessMouseVWheel(
 
     if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, 0))
     {
-        wheelScrollLines = PhGetDpi(3, Context->WindowDpi);
+        wheelScrollLines = PhScaleToDisplay(3, Context->WindowDpi);
     }
 
     // If page scrolling is enabled, use the number of visible rows.
@@ -5455,7 +5455,7 @@ VOID PhTnpProcessMouseHWheel(
 
     if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &wheelScrollChars, 0))
     {
-        wheelScrollChars = PhGetDpi(3, Context->WindowDpi);
+        wheelScrollChars = PhScaleToDisplay(3, Context->WindowDpi);
     }
 
     // Zero the remainder if the direction changed.
@@ -6833,8 +6833,8 @@ VOID PhTnpPaint(
         RECT textRect;
 
         textRect.left = 20;
-        textRect.top = Context->HeaderHeight + PhGetDpi(10, Context->WindowDpi);
-        textRect.right = viewRect.right - PhGetDpi(20, Context->WindowDpi);
+        textRect.top = Context->HeaderHeight + PhScaleToDisplay(10, Context->WindowDpi);
+        textRect.right = viewRect.right - PhScaleToDisplay(20, Context->WindowDpi);
         textRect.bottom = viewRect.bottom - Context->HeaderTextPadding;
 
         if (Context->ThemeSupport)

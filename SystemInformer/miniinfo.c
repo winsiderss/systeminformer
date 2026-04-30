@@ -1496,9 +1496,9 @@ LONG PhMipCalculateRowHeight(
 
     dpiValue = PhGetWindowDpi(WindowHandle);
 
-    iconHeight = PhGetDpi(MIP_ICON_PADDING + MIP_CELL_PADDING, dpiValue) + PhGetSystemMetrics(SM_CXICON, dpiValue);
+    iconHeight = PhScaleToDisplay(MIP_ICON_PADDING + MIP_CELL_PADDING, dpiValue) + PhGetSystemMetrics(SM_CXICON, dpiValue);
     titleAndSubtitleHeight =
-        PhGetDpi(MIP_CELL_PADDING, dpiValue) * 2 + CurrentParameters.FontHeight + PhGetDpi(MIP_INNER_PADDING, dpiValue) + CurrentParameters.FontHeight;
+        PhScaleToDisplay(MIP_CELL_PADDING, dpiValue) * 2 + CurrentParameters.FontHeight + PhScaleToDisplay(MIP_INNER_PADDING, dpiValue) + CurrentParameters.FontHeight;
 
     return max(iconHeight, titleAndSubtitleHeight);
 }
@@ -1604,8 +1604,8 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             width = PhGetSystemMetrics(SM_CXICON, dpiValue);
             height = PhGetSystemMetrics(SM_CYICON, dpiValue);
 
-            iconPadding = PhGetDpi(MIP_ICON_PADDING, dpiValue);
-            cellPadding = PhGetDpi(MIP_CELL_PADDING, dpiValue);
+            iconPadding = PhScaleToDisplay(MIP_ICON_PADDING, dpiValue);
+            cellPadding = PhScaleToDisplay(MIP_CELL_PADDING, dpiValue);
 
             rect.left += iconPadding;
             rect.top += iconPadding;

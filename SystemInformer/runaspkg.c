@@ -396,10 +396,10 @@ BOOLEAN NTAPI PhRunAsPackageTreeNewCallback(
 
                     dpiValue = PhGetWindowDpi(WindowHandle);
 
-                    rect.left += PhGetDpi(15, dpiValue);
-                    rect.top += PhGetDpi(5, dpiValue);
-                    rect.right -= PhGetDpi(5, dpiValue);
-                    rect.bottom -= PhGetDpi(8, dpiValue);
+                    rect.left += PhScaleToDisplay(15, dpiValue);
+                    rect.top += PhScaleToDisplay(5, dpiValue);
+                    rect.right -= PhScaleToDisplay(5, dpiValue);
+                    rect.bottom -= PhScaleToDisplay(8, dpiValue);
 
                     rect.left += 32;
 
@@ -594,7 +594,7 @@ VOID PhRunAsPackageInitializeTree(
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
     TreeNew_SetCallback(Context->TreeNewHandle, PhRunAsPackageTreeNewCallback, Context);
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(48, Context->WindowDpi));
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PhScaleToDisplay(48, Context->WindowDpi));
 
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME, TRUE, L"Package", 80, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
     //PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_VERSION, TRUE, L"Version", 80, PH_ALIGN_CENTER, 1, DT_CENTER, 0);
@@ -873,7 +873,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
             if (titleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL, context->WindowDpi))
                 PhReplaceWindowFont(&context->TitleFontHandle, NULL, titleFontHandle, FALSE);
 
-            TreeNew_SetRowHeight(context->TreeNewHandle, PhGetDpi(48, context->WindowDpi));
+            TreeNew_SetRowHeight(context->TreeNewHandle, PhScaleToDisplay(48, context->WindowDpi));
             TreeNew_NodesStructured(context->TreeNewHandle);
 
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));

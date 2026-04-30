@@ -418,10 +418,10 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
 
                     dpiValue = PhGetWindowDpi(WindowHandle);
 
-                    rect.left += PhGetDpi(15, dpiValue);
-                    rect.top += PhGetDpi(5, dpiValue);
-                    rect.right -= PhGetDpi(5, dpiValue);
-                    rect.bottom -= PhGetDpi(8, dpiValue);
+                    rect.left += PhScaleToDisplay(15, dpiValue);
+                    rect.top += PhScaleToDisplay(5, dpiValue);
+                    rect.right -= PhScaleToDisplay(5, dpiValue);
+                    rect.bottom -= PhScaleToDisplay(8, dpiValue);
 
                     // top
                     if (PhEnableThemeSupport)
@@ -544,7 +544,7 @@ VOID InitializePluginsTree(
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
 
     TreeNew_SetCallback(Context->TreeNewHandle, PluginsTreeNewCallback, Context);
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(48, dpiValue));
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PhScaleToDisplay(48, dpiValue));
 
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
@@ -814,7 +814,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
             if (titleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL, LOWORD(wParam)))
                 PhReplaceWindowFont(&context->TitleFontHandle, NULL, titleFontHandle, FALSE);
 
-            TreeNew_SetRowHeight(context->TreeNewHandle, PhGetDpi(48, LOWORD(wParam)));
+            TreeNew_SetRowHeight(context->TreeNewHandle, PhScaleToDisplay(48, LOWORD(wParam)));
             TreeNew_NodesStructured(context->TreeNewHandle);
 
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));

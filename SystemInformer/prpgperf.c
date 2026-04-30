@@ -482,12 +482,12 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             LONG width;
             LONG height;
 
-            margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, performanceContext->WindowDpi);
+            margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, performanceContext->WindowDpi);
 
-            innerMargin.top = PhGetDpi(20, performanceContext->WindowDpi);
-            innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, performanceContext->WindowDpi);
+            innerMargin.top = PhScaleToDisplay(20, performanceContext->WindowDpi);
+            innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, performanceContext->WindowDpi);
 
-            between = PhGetDpi(3, performanceContext->WindowDpi);
+            between = PhScaleToDisplay(3, performanceContext->WindowDpi);
 
             performanceContext->CpuGraphState.Valid = FALSE;
             performanceContext->CpuGraphState.TooltipIndex = ULONG_MAX;

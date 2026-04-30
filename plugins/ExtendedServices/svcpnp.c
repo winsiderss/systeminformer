@@ -767,8 +767,8 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
 
             dpiValue = PhGetWindowDpi(WindowHandle);
             context->ImageList = PhImageListCreate(
-                PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)
-                PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON, dpiValue)
+                PhScaleToDisplay(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)
+                PhScaleToDisplay(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON, dpiValue)
                 ILC_MASK | ILC_COLOR32,
                 1, 1
                 );

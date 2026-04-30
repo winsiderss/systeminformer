@@ -1115,7 +1115,7 @@ HFONT PhNfGetTrayIconFont(
         }
 
         PhNfTrayIconFont = CreateFont(
-            PhGetDpi(-11, DpiValue),
+            PhScaleToDisplay(-11, DpiValue),
             0,
             0,
             0,

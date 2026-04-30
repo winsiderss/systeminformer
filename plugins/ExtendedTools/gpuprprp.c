@@ -184,12 +184,12 @@ VOID GpuPropLayoutGraphs(
     ULONG graphWidth;
     ULONG graphHeight;
 
-    margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, Context->WindowDpi);
+    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
 
-    innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, Context->WindowDpi);
-    innerMargin.top = PhGetDpi(20, Context->WindowDpi);
+    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
+    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
 
-    between = PhGetDpi(3, Context->WindowDpi);
+    between = PhScaleToDisplay(3, Context->WindowDpi);
 
     Context->GpuGraphState.Valid = FALSE;
     Context->GpuGraphState.TooltipIndex = ULONG_MAX;
