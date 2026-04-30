@@ -425,10 +425,24 @@ BOOLEAN PhGetScalableIntegerPairStringRefSetting(
 
     if (ScaleToDpi && value)
     {
-        if (value->Scale != Dpi && value->Scale != 0)
+        LONG currentScale = value->Scale;
+
+        if (currentScale == 0)
+            currentScale = USER_DEFAULT_SCREEN_DPI;
+
+        if (currentScale != Dpi)
         {
-            value->X = PhMultiplyDivideSigned(value->X, Dpi, value->Scale);
-            value->Y = PhMultiplyDivideSigned(value->Y, Dpi, value->Scale);
+            LONG x = value->X;
+            LONG y = value->Y;
+
+            if (currentScale != USER_DEFAULT_SCREEN_DPI)
+            {
+                x = PhScaleToDefault(x, currentScale);
+                y = PhScaleToDefault(y, currentScale);
+            }
+
+            value->X = PhScaleToDisplay(x, Dpi);
+            value->Y = PhScaleToDisplay(y, Dpi);
             value->Scale = Dpi;
         }
     }
@@ -546,14 +560,18 @@ VOID PhSetScalableIntegerPairStringRefSetting(
 VOID PhSetScalableIntegerPairStringRefSetting2(
     _In_ PCPH_STRINGREF Name,
     _In_ PPH_INTEGER_PAIR Value,
-    _In_ LONG dpiValue
+    _In_ LONG Dpi
     )
 {
     PH_SCALABLE_INTEGER_PAIR scalableIntegerPair;
 
+    // Store the size at the DPI it was saved at and let the load path rescale on demand
+    // (PhScalableIntegerPairToScale interprets the Scale field). Same-DPI round-trips are
+    // lossless; cross-DPI round-trips still pay a single MulDiv on load. (dmex)
     ZeroMemory(&scalableIntegerPair, sizeof(PH_SCALABLE_INTEGER_PAIR));
-    memcpy(&scalableIntegerPair.Pair, Value, sizeof(PH_INTEGER_PAIR));
-    scalableIntegerPair.Scale = dpiValue;
+    scalableIntegerPair.X = Value->X;
+    scalableIntegerPair.Y = Value->Y;
+    scalableIntegerPair.Scale = Dpi;
 
     PhSetScalableIntegerPairStringRefSetting(Name, &scalableIntegerPair);
 }
@@ -2609,7 +2627,7 @@ VOID PhLoadWindowPlacementFromRectangle(
     PH_INTEGER_PAIR windowIntegerPair = { 0 };
     PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair = NULL;
     LONG windowDpi;
-    RECT windowRect;
+    RECT probeRect;
 
     windowIntegerPair = PhGetIntegerPairSetting(PositionSettingName);
     scalableIntegerPair = PhGetScalableIntegerPairSetting(SizeSettingName, FALSE, 0);
@@ -2621,10 +2639,13 @@ VOID PhLoadWindowPlacementFromRectangle(
     WindowRectangle->Position = windowIntegerPair;
     WindowRectangle->Size = scalableIntegerPair->Pair;
 
-    PhRectangleToRect(&windowRect, WindowRectangle);
-    windowDpi = PhGetMonitorDpi(NULL, &windowRect);
+    // Resolve the target monitor's DPI by rect (no window move required). (dmex)
+    PhRectangleToRect(&probeRect, WindowRectangle);
+    windowDpi = PhGetMonitorDpi(NULL, &probeRect);
 
     PhScalableIntegerPairToScale(scalableIntegerPair, windowDpi);
+    WindowRectangle->Size = scalableIntegerPair->Pair;
+
     PhAdjustRectangleToWorkingArea(NULL, WindowRectangle);
 }
 

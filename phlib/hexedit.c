@@ -1034,7 +1034,7 @@ VOID PhpHexEditUpdateMetrics(
 
         if (Context->LinesPerPage * Context->BytesPerRow > Context->Length)
         {
-            Context->LinesPerPage = (Context->Length + Context->BytesPerRow / 2) / Context->BytesPerRow;
+            Context->LinesPerPage = PhMultiplyDivideSigned(Context->Length, 1, Context->BytesPerRow);
 
             if (Context->Length % Context->BytesPerRow != 0)
             {

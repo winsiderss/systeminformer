@@ -242,10 +242,10 @@ INT_PTR CALLBACK PhpServicesPageProc(
 
             if (PhTreeWindowFont)
             {
-                context->TreeNewFont = PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg));
+                context->TreeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
                 SetWindowFont(context->ListViewHandle, context->TreeNewFont, FALSE);
             }
-
+            
             for (ULONG i = 0; i < context->NumberOfServices; i++)
             {
                 SC_HANDLE serviceHandle;
@@ -415,7 +415,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
             {
                 HFONT treeNewFont;
 
-                if (treeNewFont = PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg)))
+                if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
                     PhReplaceWindowFont(&context->TreeNewFont, context->ListViewHandle, treeNewFont, TRUE);
             }
 

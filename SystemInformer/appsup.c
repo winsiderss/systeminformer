@@ -1341,7 +1341,7 @@ VOID PhSetWindowOpacity(
     SetLayeredWindowAttributes(
         WindowHandle,
         0,
-        (BYTE)(255 * (100 - OpacityPercent) / 100),
+        (BYTE)PhMultiplyDivide(255, 100 - OpacityPercent, 100),
         LWA_ALPHA
         );
 }
@@ -2787,9 +2787,14 @@ HICON PhGetApplicationIcon(
     _In_ LONG WindowDpi
     )
 {
+    ULONG iconFlags;
+
     if (SmallIcon)
-        return PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_SYSTEMINFORMER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, WindowDpi);
-    return PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_SYSTEMINFORMER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, WindowDpi);
+        iconFlags = PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL;
+    else
+        iconFlags = PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_LARGE;
+
+    return PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_SYSTEMINFORMER), iconFlags, 0, 0, WindowDpi);
 }
 
 VOID PhSetWindowIcon(
@@ -2799,42 +2804,45 @@ VOID PhSetWindowIcon(
     _In_ BOOLEAN CleanupIcon
     )
 {
+    HICON iconSmallHandle = NULL;
+    HICON iconLargeHandle = NULL;
+
     if (SmallIcon)
     {
-        HICON iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)SmallIcon);
-
-        if (iconHandle && CleanupIcon)
-        {
-            DestroyIcon(iconHandle);
-        }
+        iconSmallHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)SmallIcon);
     }
 
     if (LargeIcon)
     {
-        HICON iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, (LPARAM)LargeIcon);
-
-        if (iconHandle && CleanupIcon)
-        {
-            DestroyIcon(iconHandle);
-        }
+        iconLargeHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, (LPARAM)LargeIcon);
     }
+
+    //if (iconSmallHandle && CleanupIcon)
+    //{
+    //    DestroyIcon(iconSmallHandle);
+    //}
+
+    //if (iconLargeHandle && CleanupIcon)
+    //{
+    //    DestroyIcon(iconLargeHandle);
+    //}
 }
 
 VOID PhDestroyWindowIcon(
     _In_ HWND WindowHandle
     )
 {
-    HICON iconHandle;
+    //HICON iconHandle;
 
-    if (iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, 0))
-    {
-        DestroyIcon(iconHandle);
-    }
+    //if (iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, 0))
+    //{
+    //    DestroyIcon(iconHandle);
+    //}
 
-    if (iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, 0))
-    {
-        DestroyIcon(iconHandle);
-    }
+    //if (iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, 0))
+    //{
+    //    DestroyIcon(iconHandle);
+    //}
 }
 
 VOID PhSetApplicationWindowIcon(
@@ -2849,12 +2857,16 @@ VOID PhSetApplicationWindowIconEx(
     _In_opt_ LONG WindowDpi
     )
 {
-    PhSetWindowIcon(
-        WindowHandle,
-        PhGetApplicationIcon(TRUE, WindowDpi),
-        PhGetApplicationIcon(FALSE, WindowDpi),
-        TRUE
-        );
+    HICON smallIcon;
+    HICON largeIcon;
+
+    smallIcon = PhGetApplicationIcon(TRUE, WindowDpi);
+    largeIcon = PhGetApplicationIcon(FALSE, WindowDpi);
+
+    if (smallIcon && largeIcon)
+    {
+        PhSetWindowIcon(WindowHandle, smallIcon, largeIcon, TRUE);
+    }
 }
 
 VOID PhSetStaticWindowIcon(

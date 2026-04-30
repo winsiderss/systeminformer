@@ -1707,6 +1707,12 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);
 
             PhpUpdateDropdownThemeMetrics(context, LOWORD(wParam));
+
+            context->MinimumSize.left = 0;
+            context->MinimumSize.top = 0;
+            context->MinimumSize.right = 300;
+            context->MinimumSize.bottom = 100;
+            MapDialogRect(hwndDlg, &context->MinimumSize);
         }
         break;
     case WM_SIZE:

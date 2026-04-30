@@ -84,6 +84,27 @@ PhInitializeMonospaceFont(
     );
 
 PHLIBAPI
+HFONT
+NTAPI
+PhCreateApplicationFont(
+    _In_ LONG WindowDpi
+    );
+
+PHLIBAPI
+HFONT
+NTAPI
+PhCreateTreeWindowFont(
+    _In_ LONG WindowDpi
+    );
+
+PHLIBAPI
+HFONT
+NTAPI
+PhCreateMonospaceFont(
+    _In_ LONG WindowDpi
+    );
+
+PHLIBAPI
 HDC
 NTAPI
 PhGetDC(
@@ -1315,13 +1336,13 @@ PhLoadIcon(
     _In_opt_ PVOID ImageBaseAddress,
     _In_ PCWSTR Name,
     _In_ ULONG Flags,
-    _In_opt_ LONG Width,
-    _In_opt_ LONG Height,
-    _In_opt_ LONG SystemDpi
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ LONG WindowDpi
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhGetStockApplicationIcon(
     _Out_opt_ HICON *SmallIcon,
@@ -3506,7 +3527,16 @@ HFONT
 NTAPI
 PhDuplicateFontUpdateDpi(
     _In_ HFONT Font,
-    _In_ LONG WindowDpi
+    _In_ LONG NewDpi
+    );
+
+PHLIBAPI
+HFONT
+NTAPI
+PhDuplicateFontUpdateDpiEx(
+    _In_ HFONT Font,
+    _In_ LONG NewDpi,
+    _In_ LONG OldDpi
     );
 
 FORCEINLINE VOID PhReplaceWindowFont(

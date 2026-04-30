@@ -206,7 +206,7 @@ HFONT PhCreateFont(
     )
 {
     return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, Dpi, 72),
+        PhMultiplyDivideSigned(-Size, Dpi, 72),
         0,
         0,
         0,
@@ -345,7 +345,7 @@ HFONT PhDuplicateFontWithNewHeight(
 
     if (GetObject(Font, sizeof(LOGFONT), &logFont))
     {
-        logFont.lfHeight = PhGetDpi(NewHeight, dpiValue);
+        logFont.lfHeight = PhScaleToDisplay(NewHeight, dpiValue);
         logFont.lfQuality = (UCHAR)PhFontQuality;
         return CreateFontIndirect(&logFont);
     }
@@ -358,12 +358,24 @@ HFONT PhDuplicateFontUpdateDpi(
     _In_ LONG WindowDpi
     )
 {
+    return PhDuplicateFontUpdateDpiEx(Font, WindowDpi, USER_DEFAULT_SCREEN_DPI);
+}
+
+HFONT PhDuplicateFontUpdateDpiEx(
+    _In_ HFONT Font,
+    _In_ LONG NewDpi,
+    _In_ LONG OldDpi
+    )
+{
     LOGFONT logFont;
 
     if (GetObject(Font, sizeof(LOGFONT), &logFont))
     {
-        logFont.lfHeight = PhScaleToDisplay(logFont.lfHeight, WindowDpi);
+        if (OldDpi != 0 && OldDpi != NewDpi)
+            logFont.lfHeight = PhMultiplyDivideSigned(logFont.lfHeight, NewDpi, OldDpi);
+
         logFont.lfQuality = (UCHAR)PhFontQuality;
+
         return CreateFontIndirect(&logFont);
     }
 
@@ -416,11 +428,61 @@ HFONT PhInitializeMonospaceFont(
 
     if (GetObject(fontHandle, sizeof(LOGFONT), &logFont))
     {
-        logFont.lfWeight = -(LONG)PhMultiplyDivide(logFont.lfWeight, WindowDpi, 72);
+        logFont.lfWeight = PhMultiplyDivideSigned(-logFont.lfWeight, WindowDpi, 72);
         return CreateFontIndirect(&logFont);
     }
 
     return fontHandle;
+}
+
+static HFONT PhpCreateFontFromSetting(
+    _In_ PCWSTR SettingName,
+    _In_ LONG WindowDpi,
+    _In_opt_ HFONT (*Fallback)(LONG)
+    )
+{
+    PPH_STRING fontHexString;
+    LOGFONT font;
+    HFONT fontHandle;
+
+    fontHexString = PhaGetStringSetting(SettingName);
+
+    if (
+        fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
+        PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
+        )
+    {
+        font.lfQuality = (UCHAR)PhFontQuality;
+
+        if (fontHandle = CreateFontIndirect(&font))
+            return fontHandle;
+    }
+
+    if (Fallback)
+        return Fallback(WindowDpi);
+
+    return NULL;
+}
+
+HFONT PhCreateApplicationFont(
+    _In_ LONG WindowDpi
+    )
+{
+    return PhInitializeFont(WindowDpi);
+}
+
+HFONT PhCreateTreeWindowFont(
+    _In_ LONG WindowDpi
+    )
+{
+    return PhpCreateFontFromSetting(L"Font", WindowDpi, PhCreateIconTitleFont);
+}
+
+HFONT PhCreateMonospaceFont(
+    _In_ LONG WindowDpi
+    )
+{
+    return PhpCreateFontFromSetting(L"FontMonospace", WindowDpi, PhInitializeMonospaceFont);
 }
 
 /**
@@ -1086,62 +1148,6 @@ LONG PhGetMonitorDpi(
 }
 
 /**
- * Attempts to discover the system DPI using a sequence of fallbacks.
- *
- * \return Effective system DPI (pixels per inch) or USER_DEFAULT_SCREEN_DPI on failure.
- */
-LONG PhGetSystemDpi(
-    VOID
-    )
-{
-    LONG dpi;
-
-    if (dpi = PhGetTaskbarDpi())
-        return dpi;
-
-    if (dpi = PhGetDpiValue(NULL, NULL))
-        return dpi;
-
-    return USER_DEFAULT_SCREEN_DPI;
-}
-
-// rev from GetDpiForShellUIComponent (dmex)
-//LONG PhGetShellDpi(
-//    VOID
-//    )
-//{
-//    static HWND trayWindow = NULL;
-//    HWND windowHandle;
-//    LONG dpi = 0;
-//
-//    if (IsWindow(trayWindow))
-//    {
-//        windowHandle = trayWindow;
-//    }
-//    else
-//    {
-//        windowHandle = trayWindow = FindWindow(L"Shell_TrayWnd", NULL);
-//    }
-//
-//    if (windowHandle)
-//    {
-//        dpi = HandleToLong(GetProp(windowHandle, L"TaskbarDPI_NotificationArea"));
-//    }
-//
-//    //if (dpi == 0)
-//    //{
-//    //    dpi = GetDpiForShellUIComponent(SHELL_UI_COMPONENT_NOTIFICATIONAREA);
-//    //}
-//
-//    if (dpi == 0)
-//    {
-//        dpi = USER_DEFAULT_SCREEN_DPI;
-//    }
-//
-//    return dpi;
-//}
-
-/**
  * Retrieves an effective DPI for the taskbar area (used as a reasonable
  * approximation for shell UI DPI). The function attempts several fallbacks
  * shell window bounds -> monitor DPI, then DpiValue from other sources,
@@ -1304,6 +1310,31 @@ LONG PhGetDpiValue(
     return USER_DEFAULT_SCREEN_DPI;
 }
 
+//LONG PhGetSystemMetrics(
+//    _In_ LONG Index,
+//    _In_opt_ LONG DpiValue
+//    )
+//{
+//    if (DpiValue > 0 && GetSystemMetricsForDpi_I)
+//    {
+//        return GetSystemMetricsForDpi_I(Index, DpiValue);
+//    }
+//
+//    return GetSystemMetrics(Index);
+//}
+
+#define PH_SYS_METRICS_MAX_INDEX 100
+#define PH_SYS_METRICS_MAX_DPI_SLOTS 8 // Supports 8 different DPI scales
+
+typedef struct _PH_SYS_METRIC_ENTRY
+{
+    LONG Dpi;
+    LONG Metrics[PH_SYS_METRICS_MAX_INDEX];
+} PH_SYS_METRIC_ENTRY, *PPH_SYS_METRIC_ENTRY;
+
+static PH_SYS_METRIC_ENTRY PhpSystemMetricsCache[PH_SYS_METRICS_MAX_DPI_SLOTS] = { 0 };
+static volatile LONG PhpNextFreeDpiSlot = 0;
+
 /**
  * Retrieves the system metrics for the specified index.
  *
@@ -1316,10 +1347,51 @@ LONG PhGetSystemMetrics(
     _In_opt_ LONG DpiValue
     )
 {
-    if (DpiValue > 0 && GetSystemMetricsForDpi_I)
+    LONG dpi = (DpiValue > 0) ? DpiValue : 96; // Default to 96 DPI
+    
+    if (Index < 0 || Index >= PH_SYS_METRICS_MAX_INDEX)
+        goto SkipCache;
+
+    // 1. Search for existing DPI slot (Lock-free read)
+    for (LONG i = 0; i < PH_SYS_METRICS_MAX_DPI_SLOTS; i++)
     {
-        return GetSystemMetricsForDpi_I(Index, DpiValue);
+        if (PhpSystemMetricsCache[i].Dpi == dpi)
+        {
+            LONG value = PhpSystemMetricsCache[i].Metrics[Index];
+            if (value != 0) return value; 
+            
+            // Slot exists but index not yet populated
+            value = (DpiValue > 0 && GetSystemMetricsForDpi_I) ? 
+                    GetSystemMetricsForDpi_I(Index, dpi) : GetSystemMetrics(Index);
+            
+            PhpSystemMetricsCache[i].Metrics[Index] = value;
+            return value;
+        }
     }
+
+    // 2. DPI not cached, attempt to claim a new slot atomically
+    LONG slot = InterlockedIncrement(&PhpNextFreeDpiSlot) - 1;
+    if (slot < PH_SYS_METRICS_MAX_DPI_SLOTS)
+    {
+        PhpSystemMetricsCache[slot].Dpi = dpi;
+
+        if ((DpiValue > 0 && GetSystemMetricsForDpi_I))
+        {
+            LONG value = GetSystemMetricsForDpi_I(Index, dpi);
+            PhpSystemMetricsCache[slot].Metrics[Index] = value;
+            return value;
+        }
+        else
+        {
+            LONG value = GetSystemMetrics(Index);
+            PhpSystemMetricsCache[slot].Metrics[Index] = value;
+            return value;
+        }
+    }
+
+SkipCache:
+    if (DpiValue > 0 && GetSystemMetricsForDpi_I)
+        return GetSystemMetricsForDpi_I(Index, DpiValue);
 
     return GetSystemMetrics(Index);
 }
@@ -1809,16 +1881,16 @@ static ULONG SharedIconCacheHashtableHashFunction(
  * \param Flags Flags controlling loading behavior (size, shared, strict, ...).
  * \param Width Desired width (or 0 to use defaults).
  * \param Height Desired height (or 0 to use defaults).
- * \param SystemDpi DPI value for scaling.
+ * \param Dpi DPI value for scaling.
  * \return Handle to an HICON on success, otherwise NULL.
  */
 HICON PhLoadIcon(
     _In_opt_ PVOID ImageBaseAddress,
     _In_ PCWSTR Name,
     _In_ ULONG Flags,
-    _In_opt_ LONG Width,
-    _In_opt_ LONG Height,
-    _In_opt_ LONG SystemDpi
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ LONG Dpi
     )
 {
     PHP_ICON_ENTRY entry;
@@ -1842,7 +1914,7 @@ HICON PhLoadIcon(
         entry.Name = Name;
         entry.Width = PhpGetIconEntrySize(Width, Flags);
         entry.Height = PhpGetIconEntrySize(Height, Flags);
-        entry.DpiValue = SystemDpi;
+        entry.DpiValue = Dpi;
         actualEntry = PhFindEntryHashtable(SharedIconCacheHashtable, &entry);
 
         if (actualEntry)
@@ -1857,13 +1929,13 @@ HICON PhLoadIcon(
     {
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
-            width = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
-            height = PhGetSystemMetrics(SM_CYSMICON, SystemDpi);
+            width = PhGetSystemMetrics(SM_CXSMICON, Dpi);
+            height = PhGetSystemMetrics(SM_CYSMICON, Dpi);
         }
         else
         {
-            width = PhGetSystemMetrics(SM_CXICON, SystemDpi);
-            height = PhGetSystemMetrics(SM_CYICON, SystemDpi);
+            width = PhGetSystemMetrics(SM_CXICON, Dpi);
+            height = PhGetSystemMetrics(SM_CYICON, Dpi);
         }
 
         LoadIconWithScaleDown(ImageBaseAddress, Name, width, height, &icon);
@@ -1877,13 +1949,13 @@ HICON PhLoadIcon(
     {
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
-            width = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
-            height = PhGetSystemMetrics(SM_CYSMICON, SystemDpi);
+            width = PhGetSystemMetrics(SM_CXSMICON, Dpi);
+            height = PhGetSystemMetrics(SM_CYSMICON, Dpi);
         }
         else
         {
-            width = PhGetSystemMetrics(SM_CXICON, SystemDpi);
-            height = PhGetSystemMetrics(SM_CYICON, SystemDpi);
+            width = PhGetSystemMetrics(SM_CXICON, Dpi);
+            height = PhGetSystemMetrics(SM_CYICON, Dpi);
         }
 
         icon = LoadImage(ImageBaseAddress, Name, IMAGE_ICON, width, height, 0);
@@ -1912,8 +1984,105 @@ HICON PhLoadIcon(
  * icon using DestroyIcon(); it is shared between callers.
  * \param LargeIcon A variable which receives the large default executable icon. Do not destroy the
  * icon using DestroyIcon(); it is shared between callers.
+ * \param Dpi The DPI used for sizing the returned icons.
  */
-VOID PhGetStockApplicationIcon(
+BOOLEAN PhGetStockApplicationIconEx(
+    _Out_opt_ HICON *SmallIcon,
+    _Out_opt_ HICON *LargeIcon,
+    _In_ LONG Dpi
+    )
+{
+    HICON smallIcon = NULL;
+    HICON largeIcon = NULL;
+
+    // imageres,11 (Windows 10 and above), user32,0 (Vista and above) or shell32,2 (XP) contains
+    // the default application icon.
+
+    if (WindowsVersion < WINDOWS_10)
+    {
+        static CONST PH_STRINGREF imageFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\user32.dll");
+
+        PhExtractIconEx(
+            &imageFileName,
+            TRUE,
+            0,
+            PhGetSystemMetrics(SM_CXICON, Dpi),
+            PhGetSystemMetrics(SM_CYICON, Dpi),
+            PhGetSystemMetrics(SM_CXSMICON, Dpi),
+            PhGetSystemMetrics(SM_CYSMICON, Dpi),
+            &largeIcon,
+            &smallIcon
+            );
+    }
+    else
+    {
+        static CONST PH_STRINGREF imageFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\imageres.dll");
+
+        PhExtractIconEx(
+            &imageFileName,
+            TRUE,
+            11,
+            PhGetSystemMetrics(SM_CXICON, Dpi),
+            PhGetSystemMetrics(SM_CYICON, Dpi),
+            PhGetSystemMetrics(SM_CXSMICON, Dpi),
+            PhGetSystemMetrics(SM_CYSMICON, Dpi),
+            &largeIcon,
+            &smallIcon
+            );
+    }
+
+    if (!smallIcon)
+        smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, Dpi);
+    if (!largeIcon)
+        largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, Dpi);
+
+    if (LargeIcon && SmallIcon)
+    {
+        if (largeIcon && smallIcon)
+        {
+            *LargeIcon = largeIcon;
+            *SmallIcon = smallIcon;
+            return TRUE;
+        }
+
+        if (largeIcon)
+            DestroyIcon(largeIcon);
+        if (smallIcon)
+            DestroyIcon(smallIcon);
+
+        return FALSE;
+    }
+
+    if (LargeIcon && largeIcon)
+    {
+        *LargeIcon = largeIcon;
+        return TRUE;
+    }
+
+    if (SmallIcon && smallIcon)
+    {
+        *SmallIcon = smallIcon;
+        return TRUE;
+    }
+
+    if (largeIcon)
+        DestroyIcon(largeIcon);
+    if (smallIcon)
+        DestroyIcon(smallIcon);
+
+    return FALSE;
+}
+
+/**
+ * Gets the default icon used for executable files at the caller-supplied DPI.
+ *
+ * \param SmallIcon A variable which receives the small default executable icon. Do not destroy the
+ * icon using DestroyIcon(); it is shared between callers.
+ * \param LargeIcon A variable which receives the large default executable icon. Do not destroy the
+ * icon using DestroyIcon(); it is shared between callers.
+ * \param WindowDpi The DPI to size the icons for; typically PhGetWindowDpi(hwnd) of the consumer.
+ */
+NTSTATUS PhGetStockApplicationIcon(
     _Out_opt_ HICON *SmallIcon,
     _Out_opt_ HICON *LargeIcon,
     _In_ LONG WindowDpi
@@ -1927,6 +2096,7 @@ VOID PhGetStockApplicationIcon(
         HICON LargeIcon;
     } cache[4] = { 0 };
     static ULONG cacheNext = 0;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     HICON smallIcon = NULL;
     HICON largeIcon = NULL;
     ULONG slot;
@@ -1952,31 +2122,28 @@ VOID PhGetStockApplicationIcon(
     {
         if (WindowsVersion < WINDOWS_10)
         {
-            PPH_STRING systemDirectory;
-            PPH_STRING dllFileName;
-
             // imageres,11 (Windows 10 and above), user32,0 (Vista and above) or shell32,2 (XP) contains
             // the default application icon.
 
-            if (systemDirectory = PhGetSystemDirectory())
-            {
-                dllFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\user32.dll");
+            static CONST PH_STRINGREF imageFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\user32.dll");
 
-                PhExtractIcon(
-                    dllFileName->Buffer,
-                    &largeIcon,
-                    &smallIcon
-                    );
-
-                PhDereferenceObject(dllFileName);
-                PhDereferenceObject(systemDirectory);
-            }
+            status = PhExtractIconEx(
+                &imageFileName,
+                TRUE,
+                11,
+                PhGetSystemMetrics(SM_CXICON, WindowDpi),
+                PhGetSystemMetrics(SM_CYICON, WindowDpi),
+                PhGetSystemMetrics(SM_CXSMICON, WindowDpi),
+                PhGetSystemMetrics(SM_CYSMICON, WindowDpi),
+                &largeIcon,
+                &smallIcon
+                );
         }
         else
         {
             static CONST PH_STRINGREF imageFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\imageres.dll");
 
-            PhExtractIconEx(
+            status = PhExtractIconEx(
                 &imageFileName,
                 TRUE,
                 11,
@@ -2008,10 +2175,41 @@ VOID PhGetStockApplicationIcon(
         cache[slot].LargeIcon = largeIcon;
     }
 
-    if (SmallIcon)
-        *SmallIcon = smallIcon;
-    if (LargeIcon)
+    if (LargeIcon && SmallIcon)
+    {
+        if (largeIcon && smallIcon)
+        {
+            *LargeIcon = largeIcon;
+            *SmallIcon = smallIcon;
+            return STATUS_SUCCESS;
+        }
+
+        if (largeIcon)
+            DestroyIcon(largeIcon);
+        if (smallIcon)
+            DestroyIcon(smallIcon);
+
+        return status;
+    }
+
+    if (LargeIcon && largeIcon)
+    {
         *LargeIcon = largeIcon;
+        return STATUS_SUCCESS;
+    }
+
+    if (SmallIcon && smallIcon)
+    {
+        *SmallIcon = smallIcon;
+        return STATUS_SUCCESS;
+    }
+
+    if (largeIcon)
+        DestroyIcon(largeIcon);
+    if (smallIcon)
+        DestroyIcon(smallIcon);
+
+    return status;
 }
 
 //HICON PhGetFileShellIcon(
@@ -5299,7 +5497,7 @@ VOID PhCustomDrawTreeTimeLine(
     }
     else
     {
-        percent = (LONG)((createTime.QuadPart * 100) / startTime.QuadPart);
+        percent = PhMultiplyDivideSigned((LONG)createTime.QuadPart, 100, (LONG)startTime.QuadPart);
         if (percent < 0) percent = 0;
         else if (percent > 100) percent = 100;
     }
@@ -5343,7 +5541,7 @@ VOID PhCustomDrawTreeTimeLine(
     //    );
 
     LONG width = CellRect->right - CellRect->left;
-    LONG left = CellRect->right - ((width * percent) / 100);
+    LONG left = CellRect->right - PhMultiplyDivideSigned(width, percent, 100);
     PatBlt(
         Hdc,
         left,

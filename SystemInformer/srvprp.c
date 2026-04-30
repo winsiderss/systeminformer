@@ -247,7 +247,7 @@ LONG CALLBACK PhpPropSheetSrvProc(
     {
     case PSCB_INITIALIZED:
         {
-            PhSetWindowContext(hwndDlg, 0xF, PhGetWindowProcedure(hwndDlg));
+            PhSetWindowContext(hwndDlg, PH_SERVICE_PROP_OLD_WNDPROC_CONTEXT, PhGetWindowProcedure(hwndDlg));
             PhSetWindowProcedure(hwndDlg, PhpPropSheetSrvWndProc);
         }
         break;
@@ -458,12 +458,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             context->PassBoxWindowHandle = GetDlgItem(hwndDlg, IDC_PASSWORD);
             context->PassCheckBoxWindowHandle = GetDlgItem(hwndDlg, IDC_PASSWORDCHECK);
             context->ServiceDllWindowHandle = GetDlgItem(hwndDlg, IDC_SERVICEDLL);
-
-            // HACK
-            if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
-            else
-                PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
+            PhSetWindowContext(GetParent(hwndDlg), PH_SERVICE_PROP_CONTEXT, context);
 
             PhAddComboBoxStringRefs(context->TypeWindowHandle, PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
             PhAddComboBoxStringRefs(context->StartTypeWindowHandle, PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
@@ -535,10 +530,24 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
             context->Ready = TRUE;
 
+            // HACK
+            context->SuppressDpiChanged = TRUE;
+
+            if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
+            else
+                PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
+
+            context->SuppressDpiChanged = FALSE;
+
             if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
                 PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);  // HACK (GetParent)
             else
                 PhInitializeWindowTheme(hwndDlg, FALSE);
+
+            context->WindowDpi = PhGetWindowDpi(GetParent(hwndDlg));
+            PhpServicePropertiesUpdateFont(GetParent(hwndDlg), context, context->WindowDpi);
+            context->GeneralPageInitialized = TRUE;
         }
         break;
     case WM_DESTROY:

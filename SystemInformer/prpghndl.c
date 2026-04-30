@@ -220,11 +220,11 @@ BOOLEAN PhpHandleTreeFilterCallback(
     PPH_HANDLE_NODE handleNode = (PPH_HANDLE_NODE)Node;
     PPH_HANDLE_ITEM handleItem = handleNode->HandleItem;
 
-    if (handlesContext->ListContext.HideProtectedHandles && handleItem->Attributes & OBJ_PROTECT_CLOSE)
+    if (handlesContext->ListContext.HideProtectedHandles && FlagOn(handleItem->Attributes, OBJ_PROTECT_CLOSE))
         return FALSE;
-    if (handlesContext->ListContext.HideInheritHandles && handleItem->Attributes & OBJ_INHERIT)
+    if (handlesContext->ListContext.HideInheritHandles && FlagOn(handleItem->Attributes, OBJ_INHERIT))
         return FALSE;
-    if (handlesContext->ListContext.HideUnnamedHandles && PhIsNullOrEmptyString(handleItem->BestObjectName))
+    if (handlesContext->ListContext.HideUnnamedHandles && handleItem->NameResolved && PhIsNullOrEmptyString(handleItem->BestObjectName))
         return FALSE;
 
     if (handlesContext->ListContext.HideEtwHandles)
@@ -491,7 +491,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             if (PhTreeWindowFont)
             {
-                handlesContext->TreeNewFont = PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg));
+                handlesContext->TreeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
                 SetWindowFont(handlesContext->TreeNewHandle, handlesContext->TreeNewFont, FALSE);
             }
 
@@ -603,7 +603,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             {
                 HFONT treeNewFont;
 
-                if (treeNewFont = PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg)))
+                if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
                     PhReplaceWindowFont(&handlesContext->TreeNewFont, handlesContext->TreeNewHandle, treeNewFont, TRUE);
             }
         }

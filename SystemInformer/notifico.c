@@ -1163,7 +1163,7 @@ BOOLEAN PhNfpAddNotifyIcon(
         _TRUNCATE
         );
     //notifyIcon.hIcon = PhNfpGetBlackIcon();
-    notifyIcon.hIcon = PhGetApplicationIcon(TRUE, PhGetTaskbarDpi()); // Fixes GH#1845 (dmex)
+    notifyIcon.hIcon = PhNfGetApplicationIcon(0); // Fixes GH#1845 (dmex)
 
     if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || FlagOn(Icon->Flags, PH_NF_ICON_NOSHOW_MINIINFO))
         SetFlag(notifyIcon.uFlags, NIF_SHOWTIP);
@@ -1497,7 +1497,7 @@ VOID PhNfpBeginBitmap2(
     if (Context->TaskbarDpi == 0 || Context->TaskbarDpi != dpiValue)
     {
         Context->Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-        Context->Height = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+        Context->Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
         // Re-initialize fonts with updated DPI (only when there's an existing handle). (dmex)
         //PhNfGetTrayIconFont(dpiValue);

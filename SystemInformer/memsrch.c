@@ -864,7 +864,7 @@ HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
                 }
 
                 SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS,
-                    (WPARAM)((progressValue < progressMax) ? progressValue * 100 / progressMax : 100), 0);
+                    (WPARAM)((progressValue < progressMax) ? PhMultiplyDivide(progressValue, 100, progressMax) : 100), 0);
             }
 
             numberText = PhFormatUInt64(context->ResultCount, TRUE);

@@ -235,7 +235,7 @@ static HFONT PvpCreateFont(
     )
 {
     return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, dpiValue, 72),
+        PhMultiplyDivideSigned(-Size, dpiValue, 72),
         0,
         0,
         0,

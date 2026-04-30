@@ -348,6 +348,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
 
 typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
 {
+    LONG WindowDpi;
     struct
     {
        BOOLEAN Flags;
@@ -524,7 +525,7 @@ VOID ThemeWindowRenderStatusBar(
         RECT sizeGripRect;
         LONG dpi;
 
-        dpi = PhGetWindowDpi(WindowHandle);
+        dpi = Context->WindowDpi;
         sizeGripRect.left = clientRect->right - PhGetSystemMetrics(SM_CXHSCROLL, dpi);
         sizeGripRect.top = clientRect->bottom - PhGetSystemMetrics(SM_CYVSCROLL, dpi);
         sizeGripRect.right = clientRect->right;
@@ -567,7 +568,8 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
     if (WindowMessage == WM_NCCREATE)
     {
         context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_STATUSBAR_CONTEXT));
-        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, PhGetWindowDpi(WindowHandle));
+        context->WindowDpi = PhGetWindowDpi(WindowHandle);
+        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, context->WindowDpi);
         context->CursorPos.x = LONG_MIN;
         context->CursorPos.y = LONG_MIN;
         PhSetWindowContext(WindowHandle, LONG_MAX, context);
@@ -603,7 +605,8 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
                     context->ThemeHandle = NULL;
                 }
 
-                context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, PhGetWindowDpi(WindowHandle));
+                context->WindowDpi = PhGetWindowDpi(WindowHandle);
+                context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, context->WindowDpi);
             }
             break;
         case WM_ERASEBKGND:
@@ -768,6 +771,7 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
 
 typedef struct _PHP_THEME_WINDOW_HEADER_CONTEXT
 {
+    LONG WindowDpi;
     HTHEME ThemeHandle;
     BOOLEAN MouseActive;
     POINT CursorPos;
@@ -972,7 +976,8 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
         }
 
         context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
-        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
+        context->WindowDpi = PhGetWindowDpi(WindowHandle);
+        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, context->WindowDpi);
         context->CursorPos.x = LONG_MIN;
         context->CursorPos.y = LONG_MIN;
         PhSetWindowContext(WindowHandle, LONG_MAX, context);
@@ -1010,7 +1015,8 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                     context->ThemeHandle = NULL;
                 }
 
-                context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
+                context->WindowDpi = PhGetWindowDpi(WindowHandle);
+        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, context->WindowDpi);
             }
             break;
         case WM_ERASEBKGND:
@@ -1713,7 +1719,8 @@ int PhDetoursComCtl32DrawTextW(
         {
             if (PhBeginInitOnce(&initOnce))
             {
-                HTHEME hTextTheme = PhOpenThemeData(WindowHandle, VSCLASS_TEXTSTYLE, PhGetWindowDpi(WindowHandle));
+                LONG windowDpi = PhGetWindowDpi(WindowHandle);
+                HTHEME hTextTheme = PhOpenThemeData(WindowHandle, VSCLASS_TEXTSTYLE, windowDpi);
                 if (hTextTheme)
                 {
                     PhGetThemeColor(hTextTheme, TEXT_HYPERLINKTEXT, TS_HYPERLINK_NORMAL, TMT_TEXTCOLOR, &colLinkNormal);

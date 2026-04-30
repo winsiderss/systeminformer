@@ -1028,7 +1028,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             if (PhTreeWindowFont)
             {
-                threadsContext->TreeNewFont = PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg));
+                threadsContext->TreeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
                 SetWindowFont(threadsContext->TreeNewHandle, threadsContext->TreeNewFont, FALSE);
             }
 
@@ -1193,7 +1193,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             {
                 HFONT treeNewFont;
 
-                if (treeNewFont = PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg)))
+                if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
                     PhReplaceWindowFont(&threadsContext->TreeNewFont, threadsContext->TreeNewHandle, treeNewFont, TRUE);
             }
         }

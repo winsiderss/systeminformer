@@ -2070,11 +2070,11 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhSetApplicationWindowIcon(context->ParentWindow);
-
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ParentWindow = GetParent(hwndDlg);
             context->ListViewClass = PhListView_Initialize(context->ListViewHandle);
+
+            PhSetApplicationWindowIcon(context->ParentWindow);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -2941,12 +2941,12 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhSetApplicationWindowIcon(context->ParentWindow);
-
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ListViewHeader = GetDlgItem(hwndDlg, IDC_SETTINGS);
             context->ParentWindow = GetParent(hwndDlg);
             //context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
+
+            PhSetApplicationWindowIcon(context->ParentWindow);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -3126,12 +3126,12 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhSetApplicationWindowIcon(context->ParentWindow);
-
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ListViewHeader = GetDlgItem(hwndDlg, IDC_SETTINGS);
             context->ParentWindow = GetParent(hwndDlg);
             //context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
+
+            PhSetApplicationWindowIcon(context->ParentWindow);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");

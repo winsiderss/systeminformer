@@ -94,6 +94,8 @@ typedef enum _PH_PROCESS_STATISTICS_INDEX
     PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES,
 
     PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLES,
+    PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLES,
+    PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLES,
     PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESHIGHUSER,
     PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESHIGHKERNEL,
     PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESABOVENORMALUSER,
@@ -122,24 +124,7 @@ typedef enum _PH_PROCESS_STATISTICS_INDEX
     PH_PROCESS_STATISTICS_INDEX_ENERGYCOMPOSITIONRENDERED,
     PH_PROCESS_STATISTICS_INDEX_ENERGYCOMPOSITIONDIRTYGENERATED,
     PH_PROCESS_STATISTICS_INDEX_ENERGYCOMPOSITIONDIRTYPROPAGATED,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLES,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLESHIGHUSER,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLESHIGHKERNEL,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLESABOVENORMALUSER,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLESABOVENORMALKERNEL,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLESNORMALUSER,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLESNORMALKERNEL,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLESLOWUSER,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLESLOWKERNEL,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLES,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLESHIGHUSER,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLESHIGHKERNEL,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLESABOVENORMALUSER,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLESABOVENORMALKERNEL,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLESNORMALUSER,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLESNORMALKERNEL,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLESLOWUSER,
-    PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLESLOWKERNEL,
+
     PH_PROCESS_STATISTICS_INDEX_ENERGYCPUTIMELINE,
     PH_PROCESS_STATISTICS_INDEX_ENERGYDISKTIMELINE,
     PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTIMELINE,
@@ -247,6 +232,8 @@ VOID PhpUpdateStatisticsAddListViewGroups(
     if (WindowsVersion >= WINDOWS_10_RS3)
     {
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLES, L"Cycles", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLES);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLES, L"Attributed cycles", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLES);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLES, L"Work on behalf cycles", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLES);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESHIGHUSER, L"Cycles: high/foreground user", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESHIGHUSER);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESHIGHKERNEL, L"Cycles: high/foreground kernel", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESHIGHKERNEL);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESABOVENORMALUSER, L"Cycles: above normal user", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESABOVENORMALUSER);
@@ -255,15 +242,21 @@ VOID PhpUpdateStatisticsAddListViewGroups(
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESNORMALKERNEL, L"Cycles: normal kernel", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESNORMALKERNEL);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESLOWUSER, L"Cycles: low/background user", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESLOWUSER);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESLOWKERNEL, L"Cycles: low/background kernel", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCYCLESLOWKERNEL);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISK, L"Disk energy", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISK);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISK, L"Disk energy (uJ)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISK);
+        //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISKMILLIWATTSECONDS, L"Disk energy (mW*s)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISKMILLIWATTSECONDS);
+       // PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISKNANOJOULES, L"Disk energy (nJ)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISKNANOJOULES);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISKJOULES, L"Disk energy (J)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISKJOULES);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTHOURS, L"Disk energy (Wh)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTHOURS);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTS, L"Disk power (W)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTS);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAIL, L"Network tail energy", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAIL);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAIL, L"Network tail energy (uJ)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAIL);
+        //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILMILLIWATTSECONDS, L"Network tail energy (mW*s)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILMILLIWATTSECONDS);
+        //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILNANOJOULES, L"Network tail energy (nJ)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILNANOJOULES);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILJOULES, L"Network tail energy (J)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILJOULES);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTHOURS, L"Network tail energy (Wh)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTHOURS);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTS, L"Network tail power (W)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTS);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAIL, L"MBB tail energy", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAIL);
+        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAIL, L"MBB tail energy (uJ)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAIL);
+        //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILMILLIWATTSECONDS, L"MBB tail energy (mW*s)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILMILLIWATTSECONDS);
+        //PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILNANOJOULES, L"MBB tail energy (nJ)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILNANOJOULES);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILJOULES, L"MBB tail energy (J)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILJOULES);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILWATTHOURS, L"MBB tail energy (Wh)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILWATTHOURS);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILWATTS, L"MBB tail power (W)", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILWATTS);
@@ -275,8 +268,7 @@ VOID PhpUpdateStatisticsAddListViewGroups(
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCOMPOSITIONRENDERED, L"Composition rendered", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCOMPOSITIONRENDERED);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCOMPOSITIONDIRTYGENERATED, L"Composition dirty generated", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCOMPOSITIONDIRTYGENERATED);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCOMPOSITIONDIRTYPROPAGATED, L"Composition dirty propagated", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCOMPOSITIONDIRTYPROPAGATED);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLES, L"Attributed cycles", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLES);
-        PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLES, L"Work on behalf cycles", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLES);
+
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYCPUTIMELINE, L"CPU timeline active", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYCPUTIMELINE);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYDISKTIMELINE, L"Disk timeline active", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYDISKTIMELINE);
         PhListView_AddGroupItem(Context->ListViewContext, PH_PROCESS_STATISTICS_CATEGORY_ENERGY, PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTIMELINE, L"Network timeline active", (PVOID)PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTIMELINE);
@@ -552,10 +544,10 @@ static BOOLEAN PhpGetProcessStatisticsEnergyAttributedCycleIndex(
 {
     ULONG offset;
 
-    if (Index < PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLESHIGHUSER || Index > PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLESLOWKERNEL)
+    if (Index < PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLES|| Index > PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLES)
         return FALSE;
 
-    offset = Index - PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLESHIGHUSER;
+    offset = Index - PH_PROCESS_STATISTICS_INDEX_ENERGYATTRIBUTEDCYCLES;
     *QosIndex = offset / 2;
     *CycleTypeIndex = offset % 2;
 
@@ -570,10 +562,10 @@ static BOOLEAN PhpGetProcessStatisticsEnergyWorkOnBehalfCycleIndex(
 {
     ULONG offset;
 
-    if (Index < PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLESHIGHUSER || Index > PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLESLOWKERNEL)
+    if (Index < PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLES|| Index > PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLES)
         return FALSE;
 
-    offset = Index - PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLESHIGHUSER;
+    offset = Index - PH_PROCESS_STATISTICS_INDEX_ENERGYWORKONBEHALFCYCLES;
     *QosIndex = offset / 2;
     *CycleTypeIndex = offset % 2;
 
@@ -796,40 +788,61 @@ static BOOLEAN PhpGetProcessStatisticsNumericValue(
             return FALSE;
         *Value = (DOUBLE)Context->EnergyDisk;
         return TRUE;
+    //case PH_PROCESS_STATISTICS_INDEX_ENERGYDISKMILLIWATTSECONDS:
+    //    if (!Context->GotExtendedEnergyValues)
+    //        return FALSE;
+    //    *Value = (DOUBLE)Context->EnergyDisk / 1000.0;
+    //    return TRUE;
+    //case PH_PROCESS_STATISTICS_INDEX_ENERGYDISKNANOJOULES:
+    //    if (!Context->GotExtendedEnergyValues)
+    //        return FALSE;
+    //    *Value = (DOUBLE)Context->EnergyDisk * 1000.0;
+    //    return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYDISKJOULES:
         if (!Context->GotExtendedEnergyValues)
             return FALSE;
-        *Value = (DOUBLE)Context->EnergyDisk / 1000;
+        *Value = (DOUBLE)Context->EnergyDisk / 1000000.0;
         return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTHOURS:
         if (!Context->GotExtendedEnergyValues)
             return FALSE;
-        *Value = (DOUBLE)Context->EnergyDisk / 3600000;
+        *Value = (DOUBLE)Context->EnergyDisk / 3600000000.0;
         return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTS: // Watts is the rate of J/s
         if (!Context->GotExtendedEnergyValues || !PhCsUpdateInterval)
             return FALSE;
-        *Value = (DOUBLE)Context->EnergyDiskDelta.Delta / PhCsUpdateInterval;
+        *Value = (DOUBLE)Context->EnergyDiskDelta.Delta / (PhCsUpdateInterval * 1000.0);
         return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAIL:
         if (!Context->GotExtendedEnergyValues)
             return FALSE;
         *Value = (DOUBLE)Context->EnergyNetworkTail;
         return TRUE;
+    //case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILMILLIWATTSECONDS:
+    //    if (!Context->GotExtendedEnergyValues)
+    //        return FALSE;
+    //    *Value = (DOUBLE)Context->EnergyNetworkTail / 1000.0;
+    //    return TRUE;
+    //case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILNANOJOULES:
+    //    if (!Context->GotExtendedEnergyValues)
+    //        return FALSE;
+    //    *Value = (DOUBLE)Context->EnergyNetworkTail * 1000.0;
+    //    return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILJOULES:
         if (!Context->GotExtendedEnergyValues)
             return FALSE;
-        *Value = (DOUBLE)Context->EnergyNetworkTail / 1000;
+        *Value = (DOUBLE)Context->EnergyNetworkTail / 1000000.0;
         return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTHOURS:
         if (!Context->GotExtendedEnergyValues)
             return FALSE;
         *Value = (DOUBLE)Context->EnergyNetworkTail / 3600000;
+        *Value = (DOUBLE)Context->EnergyNetworkTail / 3600000000.0;
         return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTS:
         if (!Context->GotExtendedEnergyValues || !PhCsUpdateInterval)
             return FALSE;
-        *Value = (DOUBLE)Context->EnergyNetworkTailDelta.Delta / PhCsUpdateInterval;
+        *Value = (DOUBLE)Context->EnergyNetworkTailDelta.Delta / (PhCsUpdateInterval * 1000.0);
         return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAIL:
         if (!Context->GotExtendedEnergyValues)
@@ -839,17 +852,17 @@ static BOOLEAN PhpGetProcessStatisticsNumericValue(
     case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILJOULES:
         if (!Context->GotExtendedEnergyValues)
             return FALSE;
-        *Value = (DOUBLE)Context->EnergyMbbTail / 1000;
+        *Value = (DOUBLE)Context->EnergyMbbTail / 1000000.0;
         return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILWATTHOURS:
         if (!Context->GotExtendedEnergyValues)
             return FALSE;
-        *Value = (DOUBLE)Context->EnergyMbbTail / 3600000;
+        *Value = (DOUBLE)Context->EnergyMbbTail / 3600000000.0;
         return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILWATTS: // Watts is the rate of J/s
         if (!Context->GotExtendedEnergyValues || !PhCsUpdateInterval)
             return FALSE;
-        *Value = (DOUBLE)Context->EnergyMbbTailDelta.Delta / PhCsUpdateInterval;
+        *Value = (DOUBLE)Context->EnergyMbbTailDelta.Delta / (PhCsUpdateInterval * 1000.0);
         return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTXRX:
         if (!Context->GotExtendedEnergyValues)
@@ -995,7 +1008,17 @@ static BOOLEAN PhpGetProcessStatisticsNumericValue(
     return FALSE;
 }
 
-static VOID PhpFormatProcessStatisticsEnergyMilliJoules(
+static VOID PhpFormatProcessStatisticsEnergyMicroJoules(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ ULONG64 Value
+    );
+
+static VOID PhpFormatProcessStatisticsEnergyNanoJoules(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ ULONG64 Value
+    );
+
+static VOID PhpFormatProcessStatisticsEnergyMilliWattSeconds(
     _In_ NMLVDISPINFO* Entry,
     _In_ ULONG64 Value
     );
@@ -1065,7 +1088,7 @@ static VOID PhpFormatProcessStatisticsSampleValue(
     case PH_PROCESS_STATISTICS_INDEX_ENERGYDISK:
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAIL:
     case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAIL:
-        PhpFormatProcessStatisticsEnergyMilliJoules(Entry, (ULONG64)Value);
+        PhpFormatProcessStatisticsEnergyMicroJoules(Entry, (ULONG64)Value);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYDISKJOULES:
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILJOULES:
@@ -1106,7 +1129,7 @@ static VOID PhpFormatProcessStatisticsSampleValue(
     }
 }
 
-static VOID PhpFormatProcessStatisticsEnergyMilliJoules(
+static VOID PhpFormatProcessStatisticsEnergyMicroJoules(
     _In_ NMLVDISPINFO* Entry,
     _In_ ULONG64 Value
     )
@@ -1409,50 +1432,55 @@ static BOOLEAN PhpFormatProcessStatisticsEnergyColumn(
         PH_PROCESS_STATISTICS_ENERGY_COLUMN(EnergyCycleTimeTotal);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYDISK:
+    //case PH_PROCESS_STATISTICS_INDEX_ENERGYDISKMILLIWATTSECONDS:
+    //case PH_PROCESS_STATISTICS_INDEX_ENERGYDISKNANOJOULES:
         PH_PROCESS_STATISTICS_ENERGY_COLUMN(EnergyDisk);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYDISKJOULES:
-        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyDisk, 1000, PhpFormatProcessStatisticsEnergyJoules);
+        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyDisk, 1000000.0, PhpFormatProcessStatisticsEnergyJoules);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTHOURS:
-        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyDisk, 3600000, PhpFormatProcessStatisticsEnergyWattHours);
+        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyDisk, 3600000000.0, PhpFormatProcessStatisticsEnergyWattHours);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYDISKWATTS:
         if (SubItem == 1 && PhCsUpdateInterval)
         {
-            PhpFormatProcessStatisticsEnergyWatts(Entry, (DOUBLE)Context->EnergyDiskDelta.Delta / PhCsUpdateInterval);
+            PhpFormatProcessStatisticsEnergyWatts(Entry, (DOUBLE)Context->EnergyDiskDelta.Delta / (PhCsUpdateInterval * 1000.0));
             return TRUE;
         }
         return FALSE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAIL:
+    //case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILMILLIWATTSECONDS:
+    //case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILNANOJOULES:
         PH_PROCESS_STATISTICS_ENERGY_COLUMN(EnergyNetworkTail);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILJOULES:
-        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyNetworkTail, 1000, PhpFormatProcessStatisticsEnergyJoules);
+        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyNetworkTail, 1000000.0, PhpFormatProcessStatisticsEnergyJoules);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTHOURS:
-        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyNetworkTail, 3600000, PhpFormatProcessStatisticsEnergyWattHours);
+        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyNetworkTail, 3600000000.0, PhpFormatProcessStatisticsEnergyWattHours);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTS:
         if (SubItem == 1 && PhCsUpdateInterval)
         {
-            PhpFormatProcessStatisticsEnergyWatts(Entry, (DOUBLE)Context->EnergyNetworkTailDelta.Delta / PhCsUpdateInterval);
+            PhpFormatProcessStatisticsEnergyWatts(Entry, (DOUBLE)Context->EnergyNetworkTailDelta.Delta / (PhCsUpdateInterval * 1000.0));
             return TRUE;
         }
         return FALSE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAIL:
+    //case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILMILLIWATTSECONDS:
+    //case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILNANOJOULES:
         PH_PROCESS_STATISTICS_ENERGY_COLUMN(EnergyMbbTail);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILJOULES:
-        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyMbbTail, 1000, PhpFormatProcessStatisticsEnergyJoules);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILWATTHOURS:
-        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyMbbTail, 3600000, PhpFormatProcessStatisticsEnergyWattHours);
+        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyMbbTail, 3600000000.0, PhpFormatProcessStatisticsEnergyWattHours);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILWATTS:
         if (SubItem == 1 && PhCsUpdateInterval)
         {
-            PhpFormatProcessStatisticsEnergyWatts(Entry, (DOUBLE)Context->EnergyMbbTailDelta.Delta / PhCsUpdateInterval);
+            PhpFormatProcessStatisticsEnergyWatts(Entry, (DOUBLE)Context->EnergyMbbTailDelta.Delta / (PhCsUpdateInterval * 1000.0));
             return TRUE;
         }
         return FALSE;
@@ -1971,15 +1999,15 @@ VOID PrintProcessExtendedEnergyValues(
 
     for (int i = 0; i < 4; ++i)
     {
-        Context->EnergyCycles[i][0] = base->Cycles[i][0];
-        Context->EnergyCycles[i][1] = base->Cycles[i][1];
-        Context->EnergyAttributedCyclesBreakdown[i][0] = base->AttributedCycles[i][0];
-        Context->EnergyAttributedCyclesBreakdown[i][1] = base->AttributedCycles[i][1];
-        Context->EnergyWorkOnBehalfCyclesBreakdown[i][0] = base->WorkOnBehalfCycles[i][0];
-        Context->EnergyWorkOnBehalfCyclesBreakdown[i][1] = base->WorkOnBehalfCycles[i][1];
-        totalCycles += base->Cycles[i][0] + base->Cycles[i][1];
-        attributedCycles += base->AttributedCycles[i][0] + base->AttributedCycles[i][1];
-        workOnBehalfCycles += base->WorkOnBehalfCycles[i][0] + base->WorkOnBehalfCycles[i][1];
+        Context->EnergyCycles[i][0] = base->Cycles[i][ProcessEnergyValuesCycleTypeUser];
+        Context->EnergyCycles[i][1] = base->Cycles[i][ProcessEnergyValuesCycleTypeKernel];
+        Context->EnergyAttributedCyclesBreakdown[i][0] = base->AttributedCycles[i][ProcessEnergyValuesCycleTypeUser];
+        Context->EnergyAttributedCyclesBreakdown[i][1] = base->AttributedCycles[i][ProcessEnergyValuesCycleTypeKernel];
+        Context->EnergyWorkOnBehalfCyclesBreakdown[i][0] = base->WorkOnBehalfCycles[i][ProcessEnergyValuesCycleTypeUser];
+        Context->EnergyWorkOnBehalfCyclesBreakdown[i][1] = base->WorkOnBehalfCycles[i][ProcessEnergyValuesCycleTypeKernel];
+        totalCycles += base->Cycles[i][ProcessEnergyValuesCycleTypeUser] + base->Cycles[i][ProcessEnergyValuesCycleTypeKernel];
+        attributedCycles += base->AttributedCycles[i][ProcessEnergyValuesCycleTypeUser] + base->AttributedCycles[i][ProcessEnergyValuesCycleTypeKernel];
+        workOnBehalfCycles += base->WorkOnBehalfCycles[i][ProcessEnergyValuesCycleTypeUser] + base->WorkOnBehalfCycles[i][ProcessEnergyValuesCycleTypeKernel];
     }
 
     Context->GotExtendedEnergyValues = TRUE;
@@ -2012,7 +2040,6 @@ VOID PrintProcessExtendedEnergyValues(
     Context->EnergyKeyboardInput = extension->KeyboardInput;
     Context->EnergyMouseInput = extension->MouseInput;
 }
-
 
 VOID PhpUpdateProcessStatistics(
     _In_ PPH_PROCESS_ITEM ProcessItem,
@@ -2245,7 +2272,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
             if (PhTreeWindowFont)
             {
-                statisticsContext->TreeNewFont = PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg));
+                statisticsContext->TreeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
                 SetWindowFont(statisticsContext->ListViewHandle, statisticsContext->TreeNewFont, FALSE);
             }
 
@@ -2329,7 +2356,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             {
                 HFONT treeNewFont;
 
-                if (treeNewFont = PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg)))
+                if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
                 {
                     PhReplaceWindowFont(&statisticsContext->TreeNewFont, statisticsContext->ListViewHandle, treeNewFont, TRUE);
                 }

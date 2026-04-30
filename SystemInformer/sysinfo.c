@@ -303,6 +303,7 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
     case WM_DPICHANGED:
         {
             PhSipInitializeParameters();
+            PhSipUpdateThemeData();
 
             if (SectionList)
             {
@@ -1085,7 +1086,7 @@ VOID PhSiSetColorsGraphDrawInfo(
 
             if (!iconTitleFont)
             {
-                iconTitleFont = PhDuplicateFont(PhApplicationFont);
+                iconTitleFont = PhCreateApplicationFont(WindowDpi);
             }
 
             lastDpi = WindowDpi;
@@ -2710,7 +2711,7 @@ VOID PhSipUpdateThemeData(
     VOID
     )
 {
-    LONG dpi = PhGetWindowDpi(PhSipWindow);
+    LONG dpi = CurrentParameters.WindowDpi;
 
     if (ThemeData)
     {

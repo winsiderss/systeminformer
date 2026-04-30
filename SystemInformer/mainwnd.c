@@ -135,7 +135,7 @@ BOOLEAN PhMainWndInitialization(
         return FALSE;
 
     // Initialize window metrics.
-    PhMwpInitializeMetrics(PhMainWndHandle, 0);
+    PhMwpInitializeMetrics(PhMainWndHandle, PhGetWindowDpi(PhMainWndHandle));
 
     // Initialize window controls.
     PhMwpInitializeControls(PhMainWndHandle);
@@ -307,8 +307,8 @@ RTL_ATOM PhMwpInitializeWindowClass(
 
     if (PhEnableWindowText)
     {
-        wcex.hIcon = PhGetApplicationIcon(FALSE, PhGetSystemDpi());
-        wcex.hIconSm = PhGetApplicationIcon(TRUE, PhGetSystemDpi());
+        wcex.hIcon = PhGetApplicationIcon(FALSE, USER_DEFAULT_SCREEN_DPI);
+        wcex.hIconSm = PhGetApplicationIcon(TRUE, USER_DEFAULT_SCREEN_DPI);
     }
 
     return RegisterClassEx(&wcex);
@@ -504,7 +504,10 @@ VOID PhMwpInitializeMetrics(
     _In_ LONG WindowDpi
     )
 {
-    LayoutWindowDpi = PhGetWindowDpi(WindowHandle);
+    if (WindowDpi == 0)
+        WindowDpi = PhGetWindowDpi(WindowHandle);
+
+    LayoutWindowDpi = WindowDpi;
     LayoutBorderSize = PhGetSystemMetrics(SM_CXBORDER, LayoutWindowDpi);
 
     PhProcessImageListInitialization(WindowHandle, LayoutWindowDpi);
@@ -763,14 +766,14 @@ VOID PhMwpOnSettingChange(
 {
     {
         HFONT oldFont = PhApplicationFont;
-        PhApplicationFont = PhInitializeFont(LayoutWindowDpi);
+        PhApplicationFont = PhCreateApplicationFont(LayoutWindowDpi);
         if (oldFont) DeleteFont(oldFont);
     }
 
     if (PhGetIntegerSetting(SETTING_ENABLE_MONOSPACE_FONT))
     {
         HFONT oldFont = PhMonospaceFont;
-        PhMonospaceFont = PhInitializeMonospaceFont(LayoutWindowDpi);
+        PhMonospaceFont = PhCreateMonospaceFont(LayoutWindowDpi);
         if (oldFont) DeleteFont(oldFont);
     }
 
@@ -3016,7 +3019,9 @@ VOID PhMwpOnDpiChanged(
     PhMwpInitializeMetrics(WindowHandle, WindowDpi);
 
     if (PhEnableWindowText)
+    {
         PhSetApplicationWindowIconEx(WindowHandle, LayoutWindowDpi);
+    }
 
     PhMwpOnSettingChange(WindowHandle, 0, NULL);
 
@@ -5275,24 +5280,9 @@ VOID PhMwpInvokeUpdateWindowFont(
 {
     HFONT oldFont = PhTreeWindowFont;
     HFONT newFont;
-    PPH_STRING fontHexString;
-    LOGFONT font;
 
-    fontHexString = PhaGetStringSetting(SETTING_FONT);
-
-    if (
-        fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
-        PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
-        )
-    {
-        if (!(newFont = CreateFontIndirect(&font)))
-            return;
-    }
-    else
-    {
-        if (!(newFont = PhCreateIconTitleFont(LayoutWindowDpi)))
-            return;
-    }
+    if (!(newFont = PhCreateTreeWindowFont(LayoutWindowDpi)))
+        return;
 
     PhTreeWindowFont = newFont;
     SetWindowFont(TabControlHandle, PhTreeWindowFont, TRUE);
@@ -5314,25 +5304,9 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
 {
     HFONT oldFont = PhMonospaceFont;
     HFONT newFont;
-    PPH_STRING fontHexString;
-    LOGFONT font;
 
-    fontHexString = PhaGetStringSetting(SETTING_FONT_MONOSPACE);
-
-    if (
-        fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
-        PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
-        )
-    {
-        if (!(newFont = CreateFontIndirect(&font)))
-            return;
-    }
-    else
-    {
-        PhMonospaceFont = PhInitializeMonospaceFont(LayoutWindowDpi);
-        if (oldFont) DeleteFont(oldFont);
+    if (!(newFont = PhCreateMonospaceFont(LayoutWindowDpi)))
         return;
-    }
 
     PhMonospaceFont = newFont;
     if (oldFont) DeleteFont(oldFont);

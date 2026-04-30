@@ -715,7 +715,7 @@ LRESULT CALLBACK PhpProcessMiniDumpTaskDialogSubclassProc(
             memset(&config, 0, sizeof(TASKDIALOGCONFIG));
             config.cbSize = sizeof(TASKDIALOGCONFIG);
             config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-            config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(hwndDlg));
+            config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(context->WindowHandle));
             config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
             config.pfCallback = PhpProcessMiniDumpErrorPageCallbackProc;
             config.lpCallbackData = (LONG_PTR)context;

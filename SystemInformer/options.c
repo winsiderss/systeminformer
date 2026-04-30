@@ -1902,6 +1902,23 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
+            LOGFONT font;
+            HFONT fontHandle;
+
+            if (GetCurrentFont(&font) && (fontHandle = CreateFontIndirect(&font)))
+            {
+                PhReplaceWindowFont(&CurrentFontInstance, NULL, fontHandle, FALSE);
+                SetWindowFont(OptionsTreeControl, CurrentFontInstance, TRUE); // HACK
+                SetWindowFont(ListViewHandle, CurrentFontInstance, TRUE);
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_FONT), CurrentFontInstance, TRUE);
+            }
+
+            if (GetCurrentFontMonospace(&font) && (fontHandle = CreateFontIndirect(&font)))
+            {
+                PhReplaceWindowFont(&CurrentFontMonospaceInstance, NULL, fontHandle, FALSE);
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_FONTMONOSPACE), CurrentFontMonospaceInstance, TRUE);
+            }
+
             PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&LayoutManager);
 

@@ -232,7 +232,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             context->MoveDownHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->InactiveListArray = PhCreateList(1);
             context->ActiveListArray = PhCreateList(1);
-            context->ControlFont = PhCreateMessageFont(dpiValue); // PhDuplicateFont(PhTreeWindowFont)
+            context->ControlFont = PhCreateMessageFont(dpiValue); // PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg))
 
             PhCreateSearchControl(
                 hwndDlg,

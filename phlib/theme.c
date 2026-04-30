@@ -22,6 +22,7 @@
 typedef struct _PHP_THEME_WINDOW_TAB_CONTEXT
 {
     WNDPROC DefaultWindowProc;
+    LONG WindowDpi;
     BOOLEAN MouseActive;
     POINT CursorPos;
 } PHP_THEME_WINDOW_TAB_CONTEXT, *PPHP_THEME_WINDOW_TAB_CONTEXT;
@@ -29,7 +30,7 @@ typedef struct _PHP_THEME_WINDOW_TAB_CONTEXT
 typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
 {
     WNDPROC DefaultWindowProc;
-
+    LONG WindowDpi;
     struct
     {
        BOOLEAN Flags;
@@ -56,6 +57,7 @@ typedef struct _PHP_THEME_WINDOW_COMBO_CONTEXT
 {
     WNDPROC DefaultWindowProc;
     HTHEME ThemeHandle;
+    LONG WindowDpi;
     POINT CursorPos;
 } PHP_THEME_WINDOW_COMBO_CONTEXT, *PPHP_THEME_WINDOW_COMBO_CONTEXT;
 
@@ -620,6 +622,7 @@ VOID PhInitializeThemeWindowTabControl(
 
     context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_TAB_CONTEXT));
     context->DefaultWindowProc = PhGetWindowProcedure(TabControlWindow);
+    context->WindowDpi = PhGetWindowDpi(TabControlWindow);
     context->CursorPos.x = LONG_MIN;
     context->CursorPos.y = LONG_MIN;
 
@@ -669,6 +672,7 @@ VOID PhInitializeWindowThemeListboxControl(
 
     context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_STATUSBAR_CONTEXT));
     context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(ListBoxControl, GWLP_WNDPROC);
+    context->WindowDpi = PhGetWindowDpi(ListBoxControl);
     context->CursorPos.x = LONG_MIN;
     context->CursorPos.y = LONG_MIN;
 
@@ -687,7 +691,8 @@ VOID PhInitializeWindowThemeComboboxControl(
 
     context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_COMBO_CONTEXT));
     context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(ComboBoxControl, GWLP_WNDPROC);
-    context->ThemeHandle = PhOpenThemeData(ComboBoxControl, VSCLASS_COMBOBOX, PhGetWindowDpi(ComboBoxControl));
+    context->WindowDpi = PhGetWindowDpi(ComboBoxControl);
+    context->ThemeHandle = PhOpenThemeData(ComboBoxControl, VSCLASS_COMBOBOX, context->WindowDpi);
     context->CursorPos.x = LONG_MIN;
     context->CursorPos.y = LONG_MIN;
 
@@ -2729,6 +2734,11 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
             PhFree(context);
         }
         break;
+    case WM_THEMECHANGED:
+        {
+            context->WindowDpi = PhGetWindowDpi(WindowHandle);
+        }
+        break;
     case WM_ERASEBKGND:
         return TRUE;
     case WM_MOUSEMOVE:
@@ -2957,7 +2967,7 @@ LRESULT CALLBACK PhpThemeWindowListBoxControlSubclassProc(
             RECT clientRect;
             RECT windowRect;
             HRGN updateRegion;
-            LONG dpiValue = PhGetWindowDpi(WindowHandle);
+            LONG dpiValue = context->WindowDpi;
             INT cxEdge = PhGetSystemMetrics(SM_CXEDGE, dpiValue);
             INT cyEdge = PhGetSystemMetrics(SM_CYEDGE, dpiValue);
 
@@ -3026,6 +3036,11 @@ LRESULT CALLBACK PhpThemeWindowListBoxControlSubclassProc(
                 ReleaseDC(WindowHandle, hdc);
                 return TRUE;
             }
+        }
+        break;
+    case WM_THEMECHANGED:
+        {
+            context->WindowDpi = PhGetWindowDpi(WindowHandle);
         }
         break;
     }
@@ -3205,7 +3220,8 @@ LRESULT CALLBACK PhpThemeWindowComboBoxControlSubclassProc(
                 context->ThemeHandle = NULL;
             }
 
-            context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_COMBOBOX, PhGetWindowDpi(WindowHandle));
+            context->WindowDpi = PhGetWindowDpi(WindowHandle);
+            context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_COMBOBOX, context->WindowDpi);
         }
         break;
     case WM_ERASEBKGND:
