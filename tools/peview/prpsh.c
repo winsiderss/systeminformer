@@ -229,13 +229,13 @@ static HWND PvpCreateSecurityButton(
 
 static HFONT PvpCreateFont(
     _In_ PWSTR Name,
-    _In_ ULONG Size,
-    _In_ ULONG Weight,
-    _In_ LONG dpiValue
+    _In_ LONG Size,
+    _In_ LONG Weight,
+    _In_ LONG Dpi
     )
 {
     return CreateFont(
-        PhMultiplyDivideSigned(-Size, dpiValue, 72),
+        PhMultiplyDivideSigned(-Size, Dpi, 72),
         0,
         0,
         0,

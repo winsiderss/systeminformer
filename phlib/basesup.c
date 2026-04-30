@@ -560,7 +560,7 @@ DOUBLE PhReadTimeStampFrequency(
     // Calculate wait interval in QPC ticks (100ms measurement window)
 
     const LONGLONG calibrationIntervalMs = 100;
-    const LONGLONG calibrationIntervalTicks = (performanceFrequency.QuadPart * calibrationIntervalMs) / 1000;
+    const LONGLONG calibrationIntervalTicks = PhMultiplyDivide((ULONG)performanceFrequency.QuadPart, (ULONG)calibrationIntervalMs, 1000);
 
     // Warm up CPU caches and branch predictors.
 

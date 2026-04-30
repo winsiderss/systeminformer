@@ -1203,7 +1203,7 @@ NTSTATUS PhInitializeComPolicy(
         NULL
         )))
     {
-        NOTHING;
+        goto CleanupExit;
     }
 
 #ifdef DEBUG
@@ -1211,7 +1211,7 @@ NTSTATUS PhInitializeComPolicy(
     assert(securityDescriptorAllocationLength < sizeof(securityDescriptorBuffer));
     assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif
-
+CleanupExit:
     return STATUS_SUCCESS;
 #else
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))

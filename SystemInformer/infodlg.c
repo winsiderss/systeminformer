@@ -179,6 +179,18 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
+
+            {
+                RECT rect;
+
+                rect.left = 0;
+                rect.top = 0;
+                rect.right = 200;
+                rect.bottom = 140;
+                MapDialogRect(hwndDlg, &rect);
+                context->MinimumSize = rect;
+                context->MinimumSize.left = 0;
+            }
         }
         break;
     case WM_SIZE:

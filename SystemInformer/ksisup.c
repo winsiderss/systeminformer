@@ -965,7 +965,7 @@ NTSTATUS PhRestartSelf(
 #endif
 
     if (!NT_SUCCESS(status))
-        return status;
+        goto CleanupExit;
 
     memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
     startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
@@ -989,8 +989,15 @@ NTSTATUS PhRestartSelf(
         PhExitApplication(STATUS_SUCCESS);
     }
 
+CleanupExit:
+
     if (attributeList)
         PhDeleteProcThreadAttributeList(attributeList);
+
+#ifndef DEBUG
+    if (jobObjectHandle)
+        NtClose(jobObjectHandle);
+#endif
 
     PhDereferenceObject(commandline);
 
@@ -1854,7 +1861,7 @@ VOID KsiShowInitializingSplashScreen(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED | TDF_CALLBACK_TIMER;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetSystemDpi());
+    config.hMainIcon = PhGetApplicationIcon(FALSE, USER_DEFAULT_SCREEN_DPI);
     config.pfCallback = KsiSplashScreenDialogCallbackProc;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"Initializing System Informer kernel driver...";
