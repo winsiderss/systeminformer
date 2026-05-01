@@ -193,7 +193,7 @@ VOID ShowDbCheckForUpdatesDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(PhMainWndHandle));
+    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
     config.cxWidth = 200;
     config.pButtons = DownloadButtonArray;
     config.cButtons = ARRAYSIZE(DownloadButtonArray);
@@ -217,7 +217,7 @@ VOID ShowDbCheckingForUpdatesDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(PhMainWndHandle));
+    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
     config.cxWidth = 200;
     config.pfCallback = CheckingForUpdatesDbCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
@@ -239,7 +239,7 @@ VOID ShowDbInstallRestartDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(PhMainWndHandle));
+    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
     config.cxWidth = 200;
     config.pfCallback = RestartDbTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
@@ -264,7 +264,7 @@ VOID ShowDbUpdateFailedDialog(
     //config.pszMainIcon = MAKEINTRESOURCE(65529);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON | TDCBF_RETRY_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(PhMainWndHandle));
+    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
     config.cxWidth = 200;
     config.pfCallback = FinalDbTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
@@ -309,7 +309,7 @@ VOID ShowDbInvalidSettingsDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(PhMainWndHandle));
+    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
     config.pszWindowTitle = L"Network Tools - GeoLite Updater";
     config.pszMainInstruction = L"Unable to download GeoLite update.";
     config.pszContent = L"Please check the Options > Network Tools > GeoLite ID or Key are configured before downloading geoLite updates.";

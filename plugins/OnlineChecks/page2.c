@@ -93,7 +93,7 @@ VOID ShowFileFoundDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_USE_COMMAND_LINKS;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(PhMainWndHandle));
+    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
     config.pszMainInstruction = PhaFormatString(
         L"%s was last analyzed %s",
         PhGetStringOrEmpty(Context->BaseFileName),

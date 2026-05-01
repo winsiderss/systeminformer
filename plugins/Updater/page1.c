@@ -88,7 +88,7 @@ VOID ShowCheckForUpdatesDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_EXPAND_FOOTER_AREA;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(PhMainWndHandle));
+    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
     config.pRadioButtons = checkForUpdatesRadioButtons;
     config.cRadioButtons = RTL_NUMBER_OF(checkForUpdatesRadioButtons);
     config.pfCallback = CheckForUpdatesCallbackProc;

@@ -165,7 +165,7 @@ VOID ShowFileUploadProgressDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR | TDF_CALLBACK_TIMER;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(PhMainWndHandle));
+    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
 
     config.pszWindowTitle = PhaFormatString(L"Uploading %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
     config.pszMainInstruction = PhaFormatString(L"Uploading %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
@@ -188,7 +188,7 @@ VOID ShowVirusTotalReScanProgressDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(PhMainWndHandle));
+    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
 
     config.pszWindowTitle = PhaFormatString(L"Rescanning %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
     config.pszMainInstruction = PhaFormatString(L"Rescanning %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
@@ -210,7 +210,7 @@ VOID ShowVirusTotalViewReportProgressDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(PhMainWndHandle));
+    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
 
     config.pszWindowTitle = PhaFormatString(L"Locating analysis for %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
     config.pszMainInstruction = PhaFormatString(L"Locating analysis for %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
