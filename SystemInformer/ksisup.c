@@ -847,7 +847,10 @@ NTSTATUS KsiSvcConnectToServer(
     PhDereferenceObject(fileName);
 
     if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(serviceName);
         return status;
+    }
 
     PhStartService(serviceHandle, 0, NULL);
     PhDeleteService(serviceHandle);
@@ -870,6 +873,7 @@ NTSTATUS KsiSvcConnectToServer(
     } while (--attempts != 0);
 
     PhDereferenceObject(portName);
+    PhDereferenceObject(serviceName);
 
     PhCloseServiceHandle(serviceHandle);
 
@@ -993,11 +997,6 @@ CleanupExit:
 
     if (attributeList)
         PhDeleteProcThreadAttributeList(attributeList);
-
-#ifndef DEBUG
-    if (jobObjectHandle)
-        NtClose(jobObjectHandle);
-#endif
 
     PhDereferenceObject(commandline);
 
