@@ -937,10 +937,12 @@ EXPORTS
     PhAddTabControlTab
     PhBitmapSetAlpha
     PhCloseThemeData
+    PhCreateApplicationFont
     PhCreateCommonFont
     PhCreateDialog
     PhCreateDIBSection
     PhCreateIconTitleFont
+    PhCreateTreeWindowFont
     PhCreateWindowEx
     PhDeleteLayoutManager
     PhDialogBox
