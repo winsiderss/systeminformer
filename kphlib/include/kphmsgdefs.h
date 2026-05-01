@@ -239,7 +239,7 @@ typedef struct _KPHM_CREATE_FILE
     NTSTATUS Status;
     PHANDLE FileHandle;
     ACCESS_MASK DesiredAccess;
-    PCOBJECT_ATTRIBUTES ObjectAttributes;
+    POBJECT_ATTRIBUTES ObjectAttributes;
     PIO_STATUS_BLOCK IoStatusBlock;
     PLARGE_INTEGER AllocationSize;
     ULONG FileAttributes;
@@ -396,7 +396,7 @@ typedef struct _KPHM_OPEN_DEVICE
     NTSTATUS Status;
     PHANDLE DeviceHandle;
     ACCESS_MASK DesiredAccess;
-    PCOBJECT_ATTRIBUTES ObjectAttributes;
+    POBJECT_ATTRIBUTES ObjectAttributes;
 } KPHM_OPEN_DEVICE, *PKPHM_OPEN_DEVICE;
 
 typedef struct _KPHM_OPEN_DEVICE_DRIVER
