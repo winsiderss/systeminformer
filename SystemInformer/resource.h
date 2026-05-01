@@ -427,6 +427,7 @@
 #define IDC_TOGGLESUSPENDED             1255
 #define IDC_TRUSTEDINSTALLER            1255
 #define IDC_TOGGLEUIACCESS              1256
+#define IDC_TOGGLENOPROFILE             1257
 #define IDC_PARENT                      1263
 #define IDC_PROCESSNAME                 1264
 #define IDC_SERVICES_LAYOUT             1266
