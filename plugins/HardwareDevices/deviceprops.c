@@ -190,14 +190,14 @@ VOID DeviceSetImageList(
         PhImageListSetIconSize(
             Context->ListViewImageList,
             2,
-            PhGetDpi(20, dpiValue)
+            PhScaleToDisplay(20, dpiValue)
             );
     }
     else
     {
         Context->ListViewImageList = PhImageListCreate(
             2,
-            PhGetDpi(20, dpiValue),
+            PhScaleToDisplay(20, dpiValue),
             ILC_MASK | ILC_COLOR32,
             1, 1
             );
