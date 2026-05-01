@@ -163,20 +163,27 @@ typedef DOUBLE *PDOUBLE;
 #ifndef __PGUID_DEFINED__
 #define __PGUID_DEFINED__
 typedef GUID* PGUID;
-#endif
+#endif // __PGUID_DEFINED__
 
 #ifndef __PCGUID_DEFINED__
 #define __PCGUID_DEFINED__
 typedef const GUID* PCGUID;
-#endif
+#endif // __PCGUID_DEFINED__
 
 #ifndef GUID_NULL
 DEFINE_GUID(GUID_NULL, 0x00000000L, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-#endif
+#endif // GUID_NULL
 
 #ifndef __PCSID_DEFINED__
 #define __PCSID_DEFINED__
 typedef const SID* PCSID;
-#endif
+#endif // __PCSID_DEFINED__
+
+#if (PHNT_MODE == PHNT_MODE_KERNEL)
+typedef struct _RTL_SRWLOCK
+{
+    PVOID Ptr;
+} RTL_SRWLOCK, *PRTL_SRWLOCK;
+#endif // #if (PHNT_MODE == PHNT_MODE_KERNEL)
 
 #endif
