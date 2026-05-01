@@ -306,8 +306,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             }
 
 
-            ListBox_SetItemHeight(context->AvailableListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
-            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
+            ListBox_SetItemHeight(context->AvailableListHandle, 0, PhScaleToDisplay(22, context->WindowDpi)); // BitmapHeight
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhScaleToDisplay(22, context->WindowDpi)); // BitmapHeight
 
             CustomizeLoadStatusBarItems(context);
 
@@ -346,8 +346,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             context->WindowDpi = LOWORD(wParam); // PhGetWindowDpi(hwndDlg);
             if (context->FontHandle) DeleteFont(context->FontHandle);
             context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
-            ListBox_SetItemHeight(context->AvailableListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
-            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
+            ListBox_SetItemHeight(context->AvailableListHandle, 0, PhScaleToDisplay(22, context->WindowDpi)); // BitmapHeight
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhScaleToDisplay(22, context->WindowDpi)); // BitmapHeight
 
             InvalidateRect(context->AvailableListHandle, NULL, TRUE);
             InvalidateRect(context->CurrentListHandle, NULL, TRUE);

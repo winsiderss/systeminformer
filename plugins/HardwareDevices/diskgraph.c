@@ -202,7 +202,7 @@ VOID DiskDeviceUpdateDialogDpi(
     _In_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    Context->GraphPadding = PhGetDpi(RAPL_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
+    Context->GraphPadding = PhScaleToDisplay(RAPL_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
 }
 
 VOID DiskDeviceCreateGraphs(

@@ -879,8 +879,8 @@ VOID LoadRaplDeviceImages(
         ))
     {
         HIMAGELIST imageList = PhImageListCreate(
-            PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON)
-            PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON)
+            PhScaleToDisplay(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON)
+            PhScaleToDisplay(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON)
             ILC_MASK | ILC_COLOR32,
             1,
             1

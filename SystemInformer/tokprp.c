@@ -1158,14 +1158,14 @@ static VOID PhpTokenSetImageList(
         PhImageListSetIconSize(
             TokenPageContext->ListViewImageList,
             2,
-            PhGetDpi(20, dpiValue)
+            PhScaleToDisplay(20, dpiValue)
             );
     }
     else
     {
         TokenPageContext->ListViewImageList = PhImageListCreate(
             2,
-            PhGetDpi(20, dpiValue),
+            PhScaleToDisplay(20, dpiValue),
             ILC_MASK | ILC_COLOR32,
             1, 1
             );

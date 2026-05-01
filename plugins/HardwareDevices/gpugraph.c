@@ -133,7 +133,7 @@ VOID GraphicsDeviceInitializeDialogDpi(
     _In_ PDV_GPU_SYSINFO_CONTEXT Context
     )
 {
-    Context->SysInfoGraphPadding = PhGetDpi(GPU_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
+    Context->SysInfoGraphPadding = PhScaleToDisplay(GPU_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
 }
 
 VOID GraphicsDeviceTickDialog(

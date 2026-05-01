@@ -215,7 +215,7 @@ VOID NetworkDeviceInitializeDialogDpi(
     _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    Context->GraphPadding = PhGetDpi(RAPL_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
+    Context->GraphPadding = PhScaleToDisplay(RAPL_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
 }
 
 VOID NetworkDeviceCreateGraphs(

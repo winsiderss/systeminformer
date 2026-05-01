@@ -829,8 +829,8 @@ VOID LoadGraphicsDeviceImages(
         ))
     {
         HIMAGELIST imageList = PhImageListCreate(
-            PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)
-            PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON, dpiValue)
+            PhScaleToDisplay(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)
+            PhScaleToDisplay(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON, dpiValue)
             ILC_MASK | ILC_COLOR32,
             1,
             1

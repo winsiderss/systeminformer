@@ -434,7 +434,7 @@ VOID EtpLayoutDiskGraphs(
 
     marginRect = DiskGraphMargin;
     PhGetSizeDpiValue(&marginRect, DiskSection->Parameters->WindowDpi, TRUE);
-    graphPadding = PhGetDpi(GRAPH_PADDING, DiskSection->Parameters->WindowDpi);
+    graphPadding = PhScaleToDisplay(GRAPH_PADDING, DiskSection->Parameters->WindowDpi);
 
     PhGetClientRect(WindowHandle, &clientRect);
     PhGetClientRect(GetDlgItem(WindowHandle, IDC_DISKREAD_L), &labelRect);
@@ -1194,7 +1194,7 @@ VOID EtpLayoutNetworkGraphs(
 
     marginRect = NetworkGraphMargin;
     PhGetSizeDpiValue(&marginRect, NetworkSection->Parameters->WindowDpi, TRUE);
-    graphPadding = PhGetDpi(GRAPH_PADDING, NetworkSection->Parameters->WindowDpi);
+    graphPadding = PhScaleToDisplay(GRAPH_PADDING, NetworkSection->Parameters->WindowDpi);
 
     PhGetClientRect(WindowHandle, &clientRect);
     PhGetClientRect(GetDlgItem(WindowHandle, IDC_NETRECEIVE_L), &labelRect);
