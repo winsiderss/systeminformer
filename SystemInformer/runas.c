@@ -3274,11 +3274,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
             SetBkMode(hdc, TRANSPARENT);
 
-            clientRect.bottom -= PhGetDpi(60, context->WindowDpi);
+            clientRect.bottom -= PhScaleToDisplay(60, context->WindowDpi);
             FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : (HBRUSH)(COLOR_WINDOW + 1));
 
             clientRect.top = clientRect.bottom;
-            clientRect.bottom = clientRect.top + PhGetDpi(60, context->WindowDpi);
+            clientRect.bottom = clientRect.top + PhScaleToDisplay(60, context->WindowDpi);
             FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : (HBRUSH)(COLOR_3DFACE + 1));
 
             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
