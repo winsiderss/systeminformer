@@ -401,7 +401,6 @@ BOOLEAN PhGetScalableIntegerPairStringRefSetting(
     _Out_ PPH_SCALABLE_INTEGER_PAIR* ScalableIntegerPair
     )
 {
-    PH_SCALABLE_INTEGER_PAIR scaledValue = { 0 };
     BOOLEAN result;
     PPH_SETTING setting;
     PPH_SCALABLE_INTEGER_PAIR value;
@@ -414,13 +413,6 @@ BOOLEAN PhGetScalableIntegerPairStringRefSetting(
     if (setting && setting->Type == ScalableIntegerPairSettingType)
     {
         value = setting->u.Pointer;
-
-        if (ScaleToDpi && value)
-        {
-            RtlCopyMemory(&scaledValue, value, sizeof(PH_SCALABLE_INTEGER_PAIR));
-            value = &scaledValue;
-        }
-
         result = TRUE;
     }
     else
@@ -431,13 +423,18 @@ BOOLEAN PhGetScalableIntegerPairStringRefSetting(
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    if (ScaleToDpi && value)
+    if (!value)
+    {
+        *ScalableIntegerPair = NULL;
+        return result;
+    }
+
+    if (ScaleToDpi)
     {
         PhScalableIntegerPairToScale(value, Dpi);
     }
 
-    RtlCopyMemory(ScalableIntegerPair, value, sizeof(PH_SCALABLE_INTEGER_PAIR));
-
+    *ScalableIntegerPair = value;
     return result;
 }
 
