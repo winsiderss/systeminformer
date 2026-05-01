@@ -271,17 +271,17 @@ VOID EtpNpuQueryAdapterPerfInfo(
         else
             PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_FANRPM, 1, PhaFormatUInt64(adapterPerfData.FanRPM, FALSE)->Buffer);
 
-        PhInitFormatI64U(&format[0], adapterPerfData.Power * 100 / 1000);
+        PhInitFormatI64U(&format[0], PhMultiplyDivide((ULONG)adapterPerfData.Power, 100, 1000));
         PhInitFormatS(&format[1], L"%");
 
         if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
             PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, formatBuffer);
         else
-            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", adapterPerfData.Power * 100 / 1000)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", PhMultiplyDivide((ULONG)adapterPerfData.Power, 100, 1000))->Buffer);
 
         if (EtNpuFahrenheitEnabled)
         {
-            ULONG gpuCurrentTemp = adapterPerfData.Temperature * 100 / 1000;
+            ULONG gpuCurrentTemp = PhMultiplyDivide((ULONG)adapterPerfData.Temperature, 100, 1000);
             FLOAT gpuFahrenheitTemp = (FLOAT)(gpuCurrentTemp * 1.8 + 32);
 
             PhInitFormatF(&format[0], gpuFahrenheitTemp, 1);
@@ -302,7 +302,7 @@ VOID EtpNpuQueryAdapterPerfInfo(
         }
         else
         {
-            ULONG gpuCurrentTemp = adapterPerfData.Temperature * 100 / 1000;
+            ULONG gpuCurrentTemp = PhMultiplyDivide((ULONG)adapterPerfData.Temperature, 100, 1000);
 
             PhInitFormatI64U(&format[0], gpuCurrentTemp);
             PhInitFormatS(&format[1], L"\u00b0C");
