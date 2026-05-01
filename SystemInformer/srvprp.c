@@ -23,7 +23,9 @@
 #include <procprv.h>
 #include <srvprv.h>
 
+#define PH_SERVICE_PROP_OLD_WNDPROC_CONTEXT 0xF
 #define PH_SERVICE_PROP_CONTEXT 0xE
+
 typedef struct _SERVICE_PROPERTIES_CONTEXT
 {
     PPH_SERVICE_ITEM ServiceItem;
