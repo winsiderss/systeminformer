@@ -869,7 +869,7 @@ typedef struct _PEB
     //
     // Thread pool worker list lock.
     //
-    RTL_SRWLOCK TppWorkerpListLock;
+    PRTL_SRWLOCK TppWorkerpListLock;
 
     //
     // Thread pool worker list.
