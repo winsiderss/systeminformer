@@ -1676,7 +1676,7 @@ VOID PhpInitializeWmiProviderTree(
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_PROVIDER, NoSortOrder);
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(22, dpiValue));
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PhScaleToDisplay(22, dpiValue));
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
@@ -1808,7 +1808,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
 
             if (PhTreeWindowFont)
             {
-                context->TreeNewFont = PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg));
+                context->TreeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
                 SetWindowFont(context->TreeNewHandle, context->TreeNewFont, FALSE);
             }
 
@@ -1847,11 +1847,11 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
             {
                 HFONT treeNewFont;
 
-                if (treeNewFont = PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg)))
+                if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
                     PhReplaceWindowFont(&context->TreeNewFont, context->TreeNewHandle, treeNewFont, TRUE);
             }
 
-            TreeNew_SetRowHeight(context->TreeNewHandle, PhGetDpi(22, LOWORD(wParam)));
+            TreeNew_SetRowHeight(context->TreeNewHandle, PhScaleToDisplay(22, LOWORD(wParam)));
         }
         break;
     case WM_SHOWWINDOW:
