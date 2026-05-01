@@ -1230,6 +1230,7 @@ VOID PhRunAsExecuteCommmand(
     BOOLEAN useLinkedToken;
     BOOLEAN createSuspended;
     BOOLEAN createUIAccess;
+    BOOLEAN noProfile;
     ULONG currentSessionId = ULONG_MAX;
     ULONG logonType = ULONG_MAX;
     ULONG sessionId = ULONG_MAX;
@@ -1246,6 +1247,7 @@ VOID PhRunAsExecuteCommmand(
     useLinkedToken = Button_GetCheck(GetDlgItem(Context->WindowHandle, IDC_TOGGLEELEVATION)) == BST_CHECKED;
     createSuspended = Button_GetCheck(GetDlgItem(Context->WindowHandle, IDC_TOGGLESUSPENDED)) == BST_CHECKED;
     createUIAccess = Button_GetCheck(GetDlgItem(Context->WindowHandle, IDC_TOGGLEUIACCESS)) == BST_CHECKED;
+    noProfile = Button_GetCheck(GetDlgItem(Context->WindowHandle, IDC_TOGGLENOPROFILE)) == BST_CHECKED;
 
     if (PhIsNullOrEmptyString(program))
         return;
@@ -1354,7 +1356,8 @@ VOID PhRunAsExecuteCommmand(
         logonType == LOGON32_LOGON_INTERACTIVE &&
         !ProcessId &&
         sessionId == currentSessionId &&
-        !useLinkedToken
+        !useLinkedToken &&
+        !noProfile
         )
     {
         // We are eligible to load the user profile.
@@ -1460,7 +1463,8 @@ VOID PhRunAsExecuteCommmand(
                 PhGetString(desktopName),
                 useLinkedToken,
                 createSuspended,
-                createUIAccess
+                createUIAccess,
+                noProfile
                 );
         }
     }
@@ -2263,6 +2267,7 @@ NTSTATUS PhExecuteRunAsCommand2(
         DesktopName,
         UseLinkedToken,
         FALSE,
+        FALSE,
         FALSE
         );
 }
@@ -2278,7 +2283,8 @@ NTSTATUS PhExecuteRunAsCommand3(
     _In_opt_ PCWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken,
     _In_ BOOLEAN CreateSuspendedProcess,
-    _In_ BOOLEAN CreateUIAccessProcess
+    _In_ BOOLEAN CreateUIAccessProcess,
+    _In_ BOOLEAN NoProfile
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -2299,6 +2305,7 @@ NTSTATUS PhExecuteRunAsCommand3(
     parameters.CreateSuspendedProcess = CreateSuspendedProcess;
     parameters.WindowHandle = WindowHandle;
     parameters.CreateUIAccessProcess = CreateUIAccessProcess;
+    parameters.NoProfile = NoProfile;
 
     // Try to use an existing instance of the service if possible.
     if (RunAsOldServiceName[0] != UNICODE_NULL)
@@ -2605,6 +2612,8 @@ NTSTATUS PhInvokeRunAsService(
     //    flags |= PH_CREATE_PROCESS_SUSPENDED;
     if (Parameters->CreateUIAccessProcess)
         flags |= PH_CREATE_PROCESS_SET_UIACCESS;
+    if (!Parameters->NoProfile)
+        flags |= PH_CREATE_PROCESS_WITH_PROFILE;
 
     status = PhCreateProcessAsUser(
         &createInfo,
