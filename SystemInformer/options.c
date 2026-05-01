@@ -270,7 +270,7 @@ static VOID PhpOptionsSetImageList(
 
     if (imageListHandle)
     {
-        PhImageListSetIconSize(imageListHandle, 2, PhGetDpi(24, dpiValue));
+        PhImageListSetIconSize(imageListHandle, 2, PhScaleToDisplay(24, dpiValue));
 
         if (Treeview)
             TreeView_SetImageList(WindowHandle, imageListHandle, TVSIL_NORMAL);
@@ -279,7 +279,7 @@ static VOID PhpOptionsSetImageList(
     }
     else
     {
-        if (imageListHandle = PhImageListCreate(2, PhGetDpi(24, dpiValue), ILC_MASK | ILC_COLOR32, 1, 1))
+        if (imageListHandle = PhImageListCreate(2, PhScaleToDisplay(24, dpiValue), ILC_MASK | ILC_COLOR32, 1, 1))
         {
             if (Treeview)
                 TreeView_SetImageList(WindowHandle, imageListHandle, TVSIL_NORMAL);
