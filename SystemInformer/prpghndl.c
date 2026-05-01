@@ -224,7 +224,7 @@ BOOLEAN PhpHandleTreeFilterCallback(
         return FALSE;
     if (handlesContext->ListContext.HideInheritHandles && FlagOn(handleItem->Attributes, OBJ_INHERIT))
         return FALSE;
-    if (handlesContext->ListContext.HideUnnamedHandles && handleItem->NameResolved && PhIsNullOrEmptyString(handleItem->BestObjectName))
+    if (handlesContext->ListContext.HideUnnamedHandles && PhIsNullOrEmptyString(handleItem->BestObjectName))
         return FALSE;
 
     if (handlesContext->ListContext.HideEtwHandles)
