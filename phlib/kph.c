@@ -1287,7 +1287,7 @@ NTSTATUS KphSetInformationObject(
 NTSTATUS KphOpenDriver(
     _Out_ PHANDLE DriverHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
     )
 {
     NTSTATUS status;

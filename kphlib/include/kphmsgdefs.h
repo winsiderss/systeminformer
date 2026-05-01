@@ -137,7 +137,7 @@ typedef struct _KPHM_OPEN_DRIVER
     NTSTATUS Status;
     PHANDLE DriverHandle;
     ACCESS_MASK DesiredAccess;
-    PCOBJECT_ATTRIBUTES ObjectAttributes;
+    POBJECT_ATTRIBUTES ObjectAttributes;
 } KPHM_OPEN_DRIVER, *PKPHM_OPEN_DRIVER;
 
 typedef struct _KPHM_QUERY_INFORMATION_DRIVER
