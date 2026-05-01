@@ -179,11 +179,4 @@ DEFINE_GUID(GUID_NULL, 0x00000000L, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00
 typedef const SID* PCSID;
 #endif // __PCSID_DEFINED__
 
-#if (PHNT_MODE == PHNT_MODE_KERNEL)
-typedef struct _RTL_SRWLOCK
-{
-    PVOID Ptr;
-} RTL_SRWLOCK, *PRTL_SRWLOCK;
-#endif // #if (PHNT_MODE == PHNT_MODE_KERNEL)
-
 #endif
