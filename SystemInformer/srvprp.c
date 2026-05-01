@@ -23,21 +23,24 @@
 #include <procprv.h>
 #include <srvprv.h>
 
+#define PH_SERVICE_PROP_CONTEXT 0xE
 typedef struct _SERVICE_PROPERTIES_CONTEXT
 {
     PPH_SERVICE_ITEM ServiceItem;
 
     union
     {
-        BOOLEAN Flags;
+        ULONG Flags;
         struct
         {
-            BOOLEAN Ready : 1;
-            BOOLEAN Dirty : 1;
-            BOOLEAN OldDelayedStart : 1;
-            BOOLEAN Spare : 5;
+            ULONG Ready : 1;
+            ULONG Dirty : 1;
+            ULONG OldDelayedStart : 1;
+            ULONG GeneralPageInitialized : 1;
+            ULONG SpareFlags : 28;
         };
     };
+    ULONG Spare;
 
     HWND WindowHandle;
     HWND TypeWindowHandle;
@@ -51,6 +54,8 @@ typedef struct _SERVICE_PROPERTIES_CONTEXT
     HWND PassBoxWindowHandle;
     HWND PassCheckBoxWindowHandle;
     HWND ServiceDllWindowHandle;
+    HFONT WindowFont;
+    LONG WindowDpi;
 } SERVICE_PROPERTIES_CONTEXT, *PSERVICE_PROPERTIES_CONTEXT;
 
 INT_PTR CALLBACK PhpServiceGeneralDlgProc(
@@ -69,7 +74,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
  * \return STATUS_SUCCESS if successful, otherwise an NTSTATUS error code.
  */
 _Function_class_(PH_OPEN_OBJECT)
-static NTSTATUS PhpOpenServiceCallback(
+NTSTATUS PhpOpenServiceCallback(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ PVOID Context
@@ -182,8 +187,10 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
     )
 {
     WNDPROC oldWndProc;
+    PSERVICE_PROPERTIES_CONTEXT context;
 
-    oldWndProc = PhGetWindowContext(hwnd, 0xF);
+    oldWndProc = PhGetWindowContext(hwnd, PH_SERVICE_PROP_OLD_WNDPROC_CONTEXT);
+    context = PhGetWindowContext(hwnd, PH_SERVICE_PROP_CONTEXT);
 
     if (!oldWndProc)
         return 0;
@@ -193,7 +200,14 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
     case WM_NCDESTROY:
         {
             PhSetWindowProcedure(hwnd, oldWndProc);
-            PhRemoveWindowContext(hwnd, 0xF);
+            PhRemoveWindowContext(hwnd, PH_SERVICE_PROP_OLD_WNDPROC_CONTEXT);
+            PhRemoveWindowContext(hwnd, PH_SERVICE_PROP_CONTEXT);
+
+            if (context && context->WindowFont)
+            {
+                DeleteFont(context->WindowFont);
+                context->WindowFont = NULL;
+            }
         }
         break;
     case WM_SYSCOMMAND:
@@ -530,23 +544,17 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
             context->Ready = TRUE;
 
-            // HACK
-            context->SuppressDpiChanged = TRUE;
+            if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
+                PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);  // HACK (GetParent)
+            else
+                PhInitializeWindowTheme(hwndDlg, FALSE);
 
             if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
             else
                 PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
 
-            context->SuppressDpiChanged = FALSE;
-
-            if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);  // HACK (GetParent)
-            else
-                PhInitializeWindowTheme(hwndDlg, FALSE);
-
             context->WindowDpi = PhGetWindowDpi(GetParent(hwndDlg));
-            PhpServicePropertiesUpdateFont(GetParent(hwndDlg), context, context->WindowDpi);
             context->GeneralPageInitialized = TRUE;
         }
         break;
