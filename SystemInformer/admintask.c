@@ -505,7 +505,8 @@ NTSTATUS PhRunAsAdminTaskUIAccess(
         NULL,
         TRUE,
         FALSE,
-        TRUE
+        TRUE,
+        FALSE
         );
 
 CleanupExit:
