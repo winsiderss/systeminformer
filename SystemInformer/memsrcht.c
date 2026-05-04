@@ -649,51 +649,54 @@ VOID PhpMemoryStringsCheckBackOff(
     }
 }
 
-VOID PhpMemoryStringsAddTreeNode(
-    _In_ PPH_MEMSTRINGS_CONTEXT Context,
-    _In_ PPH_MEMSTRINGS_NODE Entry
-    )
-{
-    PhInitializeTreeNewNode(&Entry->Node);
-
-    memset(Entry->TextCache, 0, sizeof(PH_STRINGREF) * PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM);
-    Entry->Node.TextCache = Entry->TextCache;
-    Entry->Node.TextCacheSize = PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM;
-
-    Entry->Node.Visible = TRUE;
-    Entry->Node.Expanded = TRUE;
-
-    PhAddItemList(Context->NodeList, Entry);
-
-    if (Context->FilterSupport.NodeList)
-    {
-        Entry->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &Entry->Node);
-    }
-}
-
 VOID PhpAddPendingMemoryStringsNodes(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
 {
-    ULONG i;
-    BOOLEAN needsFullUpdate = FALSE;
+    ULONG pendingStart;
+    ULONG pendingEnd;
+    ULONG pendingCount;
+    BOOLEAN hasFilter;
 
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAcquireQueuedLockExclusive(&Context->SearchResultsLock);
 
-    for (i = Context->SearchResultsAddIndex; i < Context->SearchResults->Count; i++)
+    pendingStart = Context->SearchResultsAddIndex;
+    pendingEnd = Context->SearchResults->Count;
+    pendingCount = pendingEnd - pendingStart;
+
+    if (pendingCount > 0)
     {
-        PhpMemoryStringsAddTreeNode(Context, Context->SearchResults->Items[i]);
-        needsFullUpdate = TRUE;
+        PhResizeList(Context->NodeList, Context->NodeList->Count + pendingCount);
+
+        hasFilter = Context->FilterSupport.NodeList && Context->SearchMatchHandle;
+
+        for (ULONG i = pendingStart; i < pendingEnd; i++)
+        {
+            PPH_MEMSTRINGS_NODE entry = (PPH_MEMSTRINGS_NODE)Context->SearchResults->Items[i];
+
+            entry->Node.Visible = TRUE;
+            entry->Node.Expanded = TRUE;
+
+            if (hasFilter)
+                entry->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &entry->Node);
+        }
+
+        PhAddItemsList(
+            Context->NodeList,
+            &Context->SearchResults->Items[pendingStart],
+            pendingCount
+            );
+
+        Context->SearchResultsAddIndex = pendingEnd;
     }
-    Context->SearchResultsAddIndex = i;
 
     PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
 
     PhpMemoryStringsCheckBackOff(Context);
 
-    if (needsFullUpdate)
+    if (pendingCount > 0)
         TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
@@ -1054,7 +1057,13 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
                 else
                     sortFunction = NULL;
 
-                if (sortFunction)
+                // Nodes are added in index order; skip the sort when column is Index ascending.
+                BOOLEAN skipSort =
+                    sortFunction &&
+                    context->TreeNewSortColumn == PH_MEMSTRINGS_TREE_COLUMN_ITEM_INDEX &&
+                    context->TreeNewSortOrder != DescendingSortOrder;
+
+                if (sortFunction && !skipSort)
                 {
                     qsort_s(context->NodeList->Items, context->NodeList->Count, sizeof(PVOID), sortFunction, context);
                 }
