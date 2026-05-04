@@ -35,6 +35,7 @@ VOID NTAPI MenuItemCallback(
         {
             SystemInformer_SelectTabPage(1);
             SystemInformer_SelectServiceItem((PPH_SERVICE_ITEM)menuItem->Context);
+            SystemInformer_ToggleVisible(TRUE);
         }
         break;
     case ID_SERVICE_START:

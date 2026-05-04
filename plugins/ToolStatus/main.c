@@ -800,7 +800,8 @@ LRESULT CALLBACK MainWindowCallbackProc(
                             if (node = PhFindProcessNode(UlongToHandle(RestoreSearchSelectedProcessId)))
                             {
                                 SystemInformer_SelectTabPage(0);
-                                PhSelectAndEnsureVisibleProcessNode(node);
+                                SystemInformer_SelectProcessNode(node);
+                                SystemInformer_ToggleVisible(FALSE);
                             }
 
                             RestoreSearchSelectedProcessId = ULONG_MAX;
@@ -1069,7 +1070,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
                             // NOTE: The TBNF_DI_SETITEM flag below will cache the index so we only get called once.
                             //       However, when adding buttons from the customize dialog we get called a second time,
                             //       so we cache the index in our ToolbarButtons array to prevent ToolBarImageList from growing.
-                            for (UINT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+                            for (ULONG i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
                             {
                                 if (ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand)
                                 {
@@ -1087,7 +1088,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
                                 // We didn't find a cached bitmap index...
                                 // Load the button bitmap and cache the index.
-                                for (UINT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+                                for (ULONG i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
                                 {
                                     if (ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand)
                                     {
@@ -1386,6 +1387,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
                         {
                             SystemInformer_SelectTabPage(0);
                             SystemInformer_SelectProcessNode(processNode);
+                            SystemInformer_ToggleVisible(FALSE);
                         }
 
                         switch (TargetingMode)
@@ -1531,7 +1533,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
         break;
     case WM_SYSCOMMAND:
         {
-            UINT command = (wParam & 0xFFF0);
+            ULONG command = (wParam & 0xFFF0);
 
             switch (command)
             {

@@ -278,8 +278,8 @@ VOID GraphicsDeviceLayoutGraphs(
         Context->FanRpmGraphState.TooltipIndex = ULONG_MAX;
     }
 
-    marginRect = Context->GpuGraphMargin;
-    PhGetSizeDpiValue(&marginRect, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
+    marginRect = Context->GraphMargin;
+    PhGetMarginDpiValue(&marginRect, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
     PhGetClientRect(Context->GpuDialog, &clientRect);
     PhGetClientRect(GetDlgItem(Context->GpuDialog, IDC_GPU_L), &labelRect);
@@ -1360,29 +1360,29 @@ BOOLEAN GraphicsDeviceGraphMessageCallback(
 }
 
 INT_PTR CALLBACK GraphicsDeviceDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PDV_GPU_SYSINFO_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = (PDV_GPU_SYSINFO_CONTEXT)lParam;
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (context == NULL)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
@@ -1391,30 +1391,30 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
             PPH_STRING adapterDescription;
             PPH_STRING description;
 
-            context->GpuDialog = hwndDlg;
+            context->GpuDialog = WindowHandle;
 
-            PhInitializeLayoutManager(&context->GpuLayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->GpuLayoutManager, GetDlgItem(hwndDlg, IDC_GPUNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
-            graphItem = PhAddLayoutItem(&context->GpuLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
-            panelItem = PhAddLayoutItem(&context->GpuLayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhInitializeLayoutManager(&context->GpuLayoutManager, WindowHandle);
+            PhAddLayoutItem(&context->GpuLayoutManager, GetDlgItem(WindowHandle, IDC_GPUNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            graphItem = PhAddLayoutItem(&context->GpuLayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
+            panelItem = PhAddLayoutItem(&context->GpuLayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             context->GpuGraphMargin = graphItem->Margin;
 
             GraphicsDeviceInitializeDialog(context);
             GraphicsDeviceInitializeDialogDpi(context);
 
-            SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), context->SysinfoSection->Parameters->LargeFont, FALSE);
-            SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
+            SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), context->SysinfoSection->Parameters->LargeFont, FALSE);
+            SetWindowFont(GetDlgItem(WindowHandle, IDC_GPUNAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
 
             adapterDescription = PH_AUTO_T(PH_STRING, GraphicsDeviceGetAdapterDescription(context->DeviceEntry->Id.DevicePath));
 
-            PhSetDialogItemText(hwndDlg, IDC_TITLE, PhGetString(adapterDescription));
+            PhSetDialogItemText(WindowHandle, IDC_TITLE, PhGetString(adapterDescription));
 
             if (GraphicsQueryDeviceProperties(PhGetString(context->DeviceEntry->Id.DevicePath), &description, NULL, NULL, NULL, NULL, NULL))
-                PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PhGetString(PH_AUTO_T(PH_STRING, description)));
+                PhSetDialogItemText(WindowHandle, IDC_GPUNAME, PhGetString(PH_AUTO_T(PH_STRING, description)));
             else
-                PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PhGetString(adapterDescription));
+                PhSetDialogItemText(WindowHandle, IDC_GPUNAME, PhGetString(adapterDescription));
 
-            context->GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_GPUDEVICE_PANEL), hwndDlg, GraphicsDevicePanelDialogProc, context);
+            context->GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_GPUDEVICE_PANEL), WindowHandle, GraphicsDevicePanelDialogProc, context);
             ShowWindow(context->GpuPanel, SW_SHOW);
             PhAddLayoutItemEx(&context->GpuLayoutManager, context->GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
@@ -1430,7 +1430,7 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_DPICHANGED_AFTERPARENT:
@@ -1439,12 +1439,12 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
 
             if (context->SysinfoSection->Parameters->LargeFont)
             {
-                SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), context->SysinfoSection->Parameters->LargeFont, FALSE);
+                SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), context->SysinfoSection->Parameters->LargeFont, FALSE);
             }
 
             if (context->SysinfoSection->Parameters->MediumFont)
             {
-                SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
+                SetWindowFont(GetDlgItem(WindowHandle, IDC_GPUNAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
             }
 
             PhLayoutManagerUpdate(&context->GpuLayoutManager, context->SysinfoSection->Parameters->WindowDpi);
@@ -1460,52 +1460,52 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
 }
 
 INT_PTR CALLBACK GraphicsDevicePanelDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PDV_GPU_SYSINFO_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = (PDV_GPU_SYSINFO_CONTEXT)lParam;
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (context == NULL)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->GpuPanelDedicatedUsageLabel = GetDlgItem(hwndDlg, IDC_ZDEDICATEDCURRENT_V);
-            context->GpuPanelDedicatedLimitLabel = GetDlgItem(hwndDlg, IDC_ZDEDICATEDLIMIT_V);
-            context->GpuPanelSharedUsageLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDCURRENT_V);
-            context->GpuPanelSharedLimitLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDLIMIT_V);
+            context->GpuPanelDedicatedUsageLabel = GetDlgItem(WindowHandle, IDC_ZDEDICATEDCURRENT_V);
+            context->GpuPanelDedicatedLimitLabel = GetDlgItem(WindowHandle, IDC_ZDEDICATEDLIMIT_V);
+            context->GpuPanelSharedUsageLabel = GetDlgItem(WindowHandle, IDC_ZSHAREDCURRENT_V);
+            context->GpuPanelSharedLimitLabel = GetDlgItem(WindowHandle, IDC_ZSHAREDLIMIT_V);
         }
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -1522,11 +1522,11 @@ INT_PTR CALLBACK GraphicsDevicePanelDialogProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

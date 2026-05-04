@@ -248,17 +248,16 @@ VOID FreeListViewDiskDriveEntries(
 _Success_(return)
 BOOLEAN QueryDiskDeviceInterfaceDescription(
     _In_ PWSTR DeviceInterface,
-    _Out_ DEVINST *DeviceInstanceHandle,
     _Out_ PPH_STRING *DeviceDescription
     )
 {
+    PPH_STRING description = NULL;
     ULONG deviceInterfacePropertyCount = 0;
     ULONG devicePropertyCount = 0;
     const DEVPROPERTY* deviceInterfaceProperties = NULL;
     const DEVPROPERTY* devicePropertiesList = NULL;
     const DEVPROPERTY* instanceIdProperty;
     PPH_STRING normalizedDeviceInterface;
-    DEVINST deviceInstanceHandle;
     DEVPROPCOMPKEY requestedProperties[] =
     {
         { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
@@ -269,6 +268,8 @@ BOOLEAN QueryDiskDeviceInterfaceDescription(
         { DEVPKEY_NAME, DEVPROP_STORE_SYSTEM, NULL },
         { DEVPKEY_Device_DeviceDesc, DEVPROP_STORE_SYSTEM, NULL },
     };
+
+    *DeviceDescription = NULL;
 
     normalizedDeviceInterface = NormalizeDiskDeviceInterfacePath(DeviceInterface);
 
@@ -301,16 +302,6 @@ BOOLEAN QueryDiskDeviceInterfaceDescription(
         return FALSE;
     }
 
-    if (CM_Locate_DevNode(
-        &deviceInstanceHandle,
-        instanceIdProperty->Buffer,
-        CM_LOCATE_DEVNODE_PHANTOM
-        ) != CR_SUCCESS)
-    {
-        PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
-        return FALSE;
-    }
-
     if (HR_FAILED(PhDevGetObjectProperties(
         DevObjectTypeDevice,
         instanceIdProperty->Buffer,
@@ -324,8 +315,6 @@ BOOLEAN QueryDiskDeviceInterfaceDescription(
         PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
         return FALSE;
     }
-
-    *DeviceDescription = NULL;
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(deviceProperties); i++)
     {
@@ -345,7 +334,7 @@ BOOLEAN QueryDiskDeviceInterfaceDescription(
             if (((PWSTR)property->Buffer)[(property->BufferSize / sizeof(WCHAR)) - 1] == UNICODE_NULL)
                 deviceDescriptionLength -= sizeof(UNICODE_NULL);
 
-            *DeviceDescription = PhCreateStringEx((PWSTR)property->Buffer, deviceDescriptionLength);
+            description = PhCreateStringEx((PWSTR)property->Buffer, deviceDescriptionLength);
             break;
         }
     }
@@ -353,9 +342,13 @@ BOOLEAN QueryDiskDeviceInterfaceDescription(
     PhDevFreeObjectProperties(devicePropertyCount, devicePropertiesList);
     PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
 
-    *DeviceInstanceHandle = deviceInstanceHandle;
+    if (description)
+    {
+        *DeviceDescription = description;
+        return TRUE;
+    }
 
-    return *DeviceDescription != NULL;
+    return FALSE;
 }
 
 VOID FindDiskDrives(
@@ -392,7 +385,6 @@ VOID FindDiskDrives(
 
     for (ULONG i = 0; i < deviceCount; i++)
     {
-        DEVINST deviceInstanceHandle;
         PPH_STRING deviceDescription;
         PWSTR deviceInterface;
         HANDLE deviceHandle;
@@ -400,7 +392,7 @@ VOID FindDiskDrives(
 
         deviceInterface = (PWSTR)deviceObjects[i].pszObjectId;
 
-        if (!QueryDiskDeviceInterfaceDescription(deviceInterface, &deviceInstanceHandle, &deviceDescription))
+        if (!QueryDiskDeviceInterfaceDescription(deviceInterface, &deviceDescription))
             continue;
 
         if (Context->UseAlternateMethod)
@@ -731,32 +723,32 @@ VOID LoadDiskDriveImages(
 }
 
 INT_PTR CALLBACK DiskDriveOptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PDV_DISK_OPTIONS_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(DV_DISK_OPTIONS_CONTEXT));
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (context == NULL)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DISKDRIVE_LISTVIEW);
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_DISKDRIVE_LISTVIEW);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
@@ -769,9 +761,9 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
             PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
             FindDiskDrives(context);
@@ -795,7 +787,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -882,7 +874,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                 {
                     if (deviceInstance = FindDiskDeviceInstance(param->DevicePath))
                     {
-                        ShowDeviceMenu(hwndDlg, deviceInstance);
+                        ShowDeviceMenu(WindowHandle, deviceInstance);
                         PhDereferenceObject(deviceInstance);
 
                         ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
@@ -902,7 +894,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                 {
                     if (deviceInstance = FindDiskDeviceInstance(param->DevicePath))
                     {
-                        HardwareDeviceShowProperties(hwndDlg, deviceInstance);
+                        HardwareDeviceShowProperties(WindowHandle, deviceInstance);
                         PhDereferenceObject(deviceInstance);
                     }
                 }
@@ -910,11 +902,11 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

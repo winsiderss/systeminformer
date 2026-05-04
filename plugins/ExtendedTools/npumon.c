@@ -125,6 +125,7 @@ PETP_NPU_ADAPTER EtpAddNpuAdapter(
     adapter->SegmentCount = NumberOfSegments;
     RtlInitializeBitMap(&adapter->ApertureBitMap, adapter->ApertureBitMapBuffer, NumberOfSegments);
 
+    if (DeviceInterface)
     {
         PPH_STRING description;
 

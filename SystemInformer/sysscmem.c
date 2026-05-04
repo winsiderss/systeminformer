@@ -523,7 +523,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             ShowWindow(MemoryPanel, SW_SHOW);
 
             margin = panelItem->Margin;
-            PhGetSizeDpiValue(&margin, MemorySection->Parameters->WindowDpi, TRUE);
+            PhGetMarginDpiValue(&margin, MemorySection->Parameters->WindowDpi, TRUE);
             PhAddLayoutItemEx(&MemoryLayoutManager, MemoryPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &margin);
 
             PhSipCreateMemoryGraphs();
@@ -681,7 +681,7 @@ VOID PhSipLayoutMemoryGraphs(
     ULONG y;
 
     marginRect = MemoryGraphMargin;
-    PhGetSizeDpiValue(&marginRect, MemorySection->Parameters->WindowDpi, TRUE);
+    PhGetMarginDpiValue(&marginRect, MemorySection->Parameters->WindowDpi, TRUE);
 
     if (!PhGetClientRect(MemoryDialog, &clientRect))
         return;

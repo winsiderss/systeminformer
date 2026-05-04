@@ -207,7 +207,7 @@ VOID DeviceSetImageList(
 }
 
 VOID DeviceInitializeGeneralPage(
-    _In_ HWND hwndDlg,
+    _In_ HWND WindowHandle,
     _In_ PDEVICE_PROPERTIES_CONTEXT Context
     )
 {
@@ -216,19 +216,19 @@ VOID DeviceInitializeGeneralPage(
     ExtendedListView_SetRedraw(Context->GeneralListViewHandle, FALSE);
     ListView_DeleteAllItems(Context->GeneralListViewHandle);
 
-    dpi = PhGetWindowDpi(hwndDlg);
+    dpi = PhGetWindowDpi(WindowHandle);
     Context->DeviceIconSize.X = PhGetSystemMetrics(SM_CXICON, dpi);
     Context->DeviceIconSize.Y = PhGetSystemMetrics(SM_CYICON, dpi);
     Context->DeviceIcon = PhGetDeviceIcon(Context->DeviceItem, &Context->DeviceIconSize);
     if (Context->DeviceIcon)
-        Static_SetIcon(GetDlgItem(hwndDlg, IDC_DEVICE_ICON), Context->DeviceIcon);
+        Static_SetIcon(GetDlgItem(WindowHandle, IDC_DEVICE_ICON), Context->DeviceIcon);
 
     PhSetWindowText(
-        GetDlgItem(hwndDlg, IDC_DEVICE_NAME),
+        GetDlgItem(WindowHandle, IDC_DEVICE_NAME),
         PhGetStringOrDefault(PhGetDeviceProperty(Context->DeviceItem, PhDevicePropertyName)->AsString, L"Unnamed Device")
         );
     PhSetWindowText(
-        GetDlgItem(hwndDlg, IDC_DEVICE_MANUFACTURER),
+        GetDlgItem(WindowHandle, IDC_DEVICE_MANUFACTURER),
         PhGetStringOrEmpty(PhGetDeviceProperty(Context->DeviceItem, PhDevicePropertyManufacturer)->AsString)
         );
 
@@ -239,8 +239,8 @@ VOID DeviceInitializeGeneralPage(
 }
 
 INT_PTR CALLBACK DevicePropGeneralDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -249,7 +249,7 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
 
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (!PvPropPageDlgProcHeader(WindowHandle, WindowMessage, lParam, &propSheetPage, &propPageContext))
         return FALSE;
 
     context = (PDEVICE_PROPERTIES_CONTEXT)propPageContext->Context;
@@ -257,11 +257,11 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->GeneralListViewHandle = GetDlgItem(hwndDlg, IDC_DEVICE_INFO);
+            context->GeneralListViewHandle = GetDlgItem(WindowHandle, IDC_DEVICE_INFO);
 
             PhSetListViewStyle(context->GeneralListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->GeneralListViewHandle, L"explorer");
@@ -271,12 +271,12 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_GENERAL_COLUMNS, context->GeneralListViewHandle);
             DeviceSetImageList(context->GeneralListViewHandle, context);
 
-            DeviceInitializeGeneralPage(hwndDlg, context);
+            DeviceInitializeGeneralPage(WindowHandle, context);
 
             if (!!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+                PhInitializeWindowTheme(GetParent(WindowHandle), !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
             else
-                PhInitializeWindowTheme(hwndDlg, FALSE);
+                PhInitializeWindowTheme(WindowHandle, FALSE);
         }
         break;
     case WM_DESTROY:
@@ -293,12 +293,12 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PvAddPropPageLayoutItemEx(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL, TRUE, SETTING_NAME_DEVICE_PROPERTIES_POSITION, SETTING_NAME_DEVICE_PROPERTIES_SIZE);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEVICE_GROUPBOX), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEVICE_NAME), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEVICE_MANUFACTURER), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PvAddPropPageLayoutItem(hwndDlg, context->GeneralListViewHandle, dialogItem, PH_ANCHOR_ALL);
-                PvDoPropPageLayout(hwndDlg);
+                dialogItem = PvAddPropPageLayoutItemEx(WindowHandle, WindowHandle, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL, TRUE, SETTING_NAME_DEVICE_PROPERTIES_POSITION, SETTING_NAME_DEVICE_PROPERTIES_SIZE);
+                PvAddPropPageLayoutItem(WindowHandle, GetDlgItem(WindowHandle, IDC_DEVICE_GROUPBOX), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PvAddPropPageLayoutItem(WindowHandle, GetDlgItem(WindowHandle, IDC_DEVICE_NAME), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PvAddPropPageLayoutItem(WindowHandle, GetDlgItem(WindowHandle, IDC_DEVICE_MANUFACTURER), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PvAddPropPageLayoutItem(WindowHandle, context->GeneralListViewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvDoPropPageLayout(WindowHandle);
 
                 ExtendedListView_SetColumnWidth(context->GeneralListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
@@ -337,7 +337,7 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
 
                     item = PhShowEMenu(
                         menu,
-                        hwndDlg,
+                        WindowHandle,
                         PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,
@@ -376,7 +376,7 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
             RECT rect;
             PPH_EMENU_ITEM selectedItem;
 
-            if (!PhGetWindowRect(GetDlgItem(GetParent(hwndDlg), IDABORT), &rect))
+            if (!PhGetWindowRect(GetDlgItem(GetParent(WindowHandle), IDABORT), &rect))
                 break;
 
             menu = PhCreateEMenu();
@@ -395,7 +395,7 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
 
             selectedItem = PhShowEMenu(
                 menu,
-                hwndDlg,
+                WindowHandle,
                 PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_BOTTOM,
                 rect.left,
@@ -408,13 +408,13 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
                 {
                 case 0:
                 case 1:
-                    HardwareDeviceEnableDisable(hwndDlg, context->DeviceItem->InstanceId, selectedItem->Id == 0);
+                    HardwareDeviceEnableDisable(WindowHandle, context->DeviceItem->InstanceId, selectedItem->Id == 0);
                     break;
                 case 2:
-                    HardwareDeviceRestart(hwndDlg, context->DeviceItem->InstanceId);
+                    HardwareDeviceRestart(WindowHandle, context->DeviceItem->InstanceId);
                     break;
                 case 3:
-                    HardwareDeviceUninstall(hwndDlg, context->DeviceItem->InstanceId);
+                    HardwareDeviceUninstall(WindowHandle, context->DeviceItem->InstanceId);
                     break;
                 }
             }
@@ -582,7 +582,7 @@ PPH_STRING DevicePropertyToString(
 }
 
 VOID DeviceInitializePropsPage(
-    _In_ HWND hwndDlg,
+    _In_ HWND WindowHandle,
     _In_ PDEVICE_PROPERTIES_CONTEXT Context
     )
 {
@@ -653,8 +653,8 @@ VOID DeviceInitializePropsPage(
 }
 
 INT_PTR CALLBACK DevicePropPropertiesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -663,7 +663,7 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
 
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (!PvPropPageDlgProcHeader(WindowHandle, WindowMessage, lParam, &propSheetPage, &propPageContext))
         return FALSE;
 
     context = (PDEVICE_PROPERTIES_CONTEXT)propPageContext->Context;
@@ -671,11 +671,11 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->PropsListViewHandle = GetDlgItem(hwndDlg, IDC_DEVICE_PROPERTIES_LIST);
+            context->PropsListViewHandle = GetDlgItem(WindowHandle, IDC_DEVICE_PROPERTIES_LIST);
 
             PhSetListViewStyle(context->PropsListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->PropsListViewHandle, L"explorer");
@@ -685,9 +685,9 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_PROPERTIES_COLUMNS, context->PropsListViewHandle);
             DeviceSetImageList(context->PropsListViewHandle, context);
 
-            DeviceInitializePropsPage(hwndDlg, context);
+            DeviceInitializePropsPage(WindowHandle, context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -701,9 +701,9 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->PropsListViewHandle, dialogItem, PH_ANCHOR_ALL);
-                PvDoPropPageLayout(hwndDlg);
+                dialogItem = PvAddPropPageLayoutItem(WindowHandle, WindowHandle, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(WindowHandle, context->PropsListViewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvDoPropPageLayout(WindowHandle);
 
                 ExtendedListView_SetColumnWidth(context->PropsListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
@@ -742,7 +742,7 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
 
                     item = PhShowEMenu(
                         menu,
-                        hwndDlg,
+                        WindowHandle,
                         PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,
@@ -777,7 +777,7 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
 }
 
 VOID DeviceInitializeInterfacesPage(
-    _In_ HWND hwndDlg,
+    _In_ HWND WindowHandle,
     _In_ PDEVICE_PROPERTIES_CONTEXT Context
     )
 {
@@ -829,8 +829,8 @@ VOID DeviceInitializeInterfacesPage(
 }
 
 INT_PTR CALLBACK DevicePropInterfacesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -839,7 +839,7 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
 
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (!PvPropPageDlgProcHeader(WindowHandle, WindowMessage, lParam, &propSheetPage, &propPageContext))
         return FALSE;
 
     context = (PDEVICE_PROPERTIES_CONTEXT)propPageContext->Context;
@@ -847,11 +847,11 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->InterfacesListViewHandle = GetDlgItem(hwndDlg, IDC_DEVICE_INTERFACES_INFO);
+            context->InterfacesListViewHandle = GetDlgItem(WindowHandle, IDC_DEVICE_INTERFACES_INFO);
 
             PhSetListViewStyle(context->InterfacesListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->InterfacesListViewHandle, L"explorer");
@@ -862,9 +862,9 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_INTERFACES_COLUMNS, context->InterfacesListViewHandle);
             DeviceSetImageList(context->InterfacesListViewHandle, context);
 
-            DeviceInitializeInterfacesPage(hwndDlg, context);
+            DeviceInitializeInterfacesPage(WindowHandle, context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -878,9 +878,9 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->InterfacesListViewHandle, dialogItem, PH_ANCHOR_ALL);
-                PvDoPropPageLayout(hwndDlg);
+                dialogItem = PvAddPropPageLayoutItem(WindowHandle, WindowHandle, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(WindowHandle, context->InterfacesListViewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvDoPropPageLayout(WindowHandle);
 
                 ExtendedListView_SetColumnWidth(context->InterfacesListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
@@ -919,7 +919,7 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
 
                     item = PhShowEMenu(
                         menu,
-                        hwndDlg,
+                        WindowHandle,
                         PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,
@@ -954,8 +954,8 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
 }
 
 INT_PTR CALLBACK DevicePropResourcesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -964,7 +964,7 @@ INT_PTR CALLBACK DevicePropResourcesDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
 
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+    if (!PvPropPageDlgProcHeader(WindowHandle, WindowMessage, lParam, &propSheetPage, &propPageContext))
         return FALSE;
 
     context = (PDEVICE_PROPERTIES_CONTEXT)propPageContext->Context;
@@ -972,11 +972,11 @@ INT_PTR CALLBACK DevicePropResourcesDlgProc(
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->ResourcesListViewHandle = GetDlgItem(hwndDlg, IDC_DEVICE_RESOURCES_INFO);
+            context->ResourcesListViewHandle = GetDlgItem(WindowHandle, IDC_DEVICE_RESOURCES_INFO);
 
             PhSetListViewStyle(context->ResourcesListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ResourcesListViewHandle, L"explorer");
@@ -994,7 +994,7 @@ INT_PTR CALLBACK DevicePropResourcesDlgProc(
                 PhSetListViewSubItem(context->ResourcesListViewHandle, lvItemIndex, 1, PhGetString(resource->Setting));
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -1008,9 +1008,9 @@ INT_PTR CALLBACK DevicePropResourcesDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, context->ResourcesListViewHandle, dialogItem, PH_ANCHOR_ALL);
-                PvDoPropPageLayout(hwndDlg);
+                dialogItem = PvAddPropPageLayoutItem(WindowHandle, WindowHandle, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(WindowHandle, context->ResourcesListViewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvDoPropPageLayout(WindowHandle);
 
                 ExtendedListView_SetColumnWidth(context->ResourcesListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
@@ -1049,7 +1049,7 @@ INT_PTR CALLBACK DevicePropResourcesDlgProc(
 
                     item = PhShowEMenu(
                         menu,
-                        hwndDlg,
+                        WindowHandle,
                         PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,

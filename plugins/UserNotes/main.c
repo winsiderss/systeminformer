@@ -19,7 +19,7 @@
 
 #include <trace.h>
 
-static PPH_PLUGIN PluginInstance;
+PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -403,8 +403,8 @@ typedef struct _USERNOTES_TASK_IFEO_CONTEXT
 } USERNOTES_TASK_IFEO_CONTEXT, *PUSERNOTES_TASK_IFEO_CONTEXT;
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -412,13 +412,13 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 {
     PUSERNOTES_TASK_IFEO_CONTEXT context = (PUSERNOTES_TASK_IFEO_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_DIALOG_CONSTRUCTED:
         {
-            context->WindowHandle = hwndDlg;
+            context->WindowHandle = WindowHandle;
 
-            PhSetApplicationWindowIconEx(hwndDlg, PhGetWindowDpi(hwndDlg));
+            PhSetApplicationWindowIconEx(WindowHandle, PhGetWindowDpi(WindowHandle));
         }
         break;
     case TDN_BUTTON_CLICKED:
@@ -464,7 +464,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                                 config.pszContent = PhGetString(context->StatusMessage);
                             }
 
-                            PhTaskDialogNavigatePage(hwndDlg, &config);
+                            PhTaskDialogNavigatePage(WindowHandle, &config);
                             return S_FALSE;
                         }
                     }
@@ -507,7 +507,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                                 config.pszContent = PhGetString(context->StatusMessage);
                             }
 
-                            PhTaskDialogNavigatePage(hwndDlg, &config);
+                            PhTaskDialogNavigatePage(WindowHandle, &config);
                             return S_FALSE;
                         }
                     }
@@ -550,7 +550,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                                 config.pszContent = PhGetString(context->StatusMessage);
                             }
 
-                            PhTaskDialogNavigatePage(hwndDlg, &config);
+                            PhTaskDialogNavigatePage(WindowHandle, &config);
                             return S_FALSE;
                         }
                     }

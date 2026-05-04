@@ -1003,6 +1003,7 @@ HICON PhNfpGetBlackIcon(
     {
         ULONG width;
         ULONG height;
+        SIZE_T bitsSize;
         PVOID bits;
         HDC hdc;
         HBITMAP mask;
@@ -1010,7 +1011,15 @@ HICON PhNfpGetBlackIcon(
         ICONINFO iconInfo;
 
         PhNfpBeginBitmap2(&PhNfpBlackBitmapContext, &width, &height, &PhNfpBlackBitmap, &bits, &hdc, &oldBitmap);
-        memset(bits, PhNfTransparencyEnabled ? 1 : 0, width * height * sizeof(RGBQUAD));
+
+        if (!NT_SUCCESS(RtlSizeTMult(width, height, &bitsSize)) ||
+            !NT_SUCCESS(RtlSizeTMult(bitsSize, sizeof(RGBQUAD), &bitsSize)))
+        {
+            SelectBitmap(hdc, oldBitmap);
+            return NULL;
+        }
+
+        memset(bits, PhNfTransparencyEnabled ? 1 : 0, bitsSize);
 
         // Create a monochrome mask bitmap for the icon.
         if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
