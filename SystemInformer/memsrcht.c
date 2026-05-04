@@ -125,8 +125,9 @@ typedef struct _PH_MEMSTRINGS_NODE
     PPH_STRING AddressText;
     PPH_STRING LengthText;
     PPH_STRING ProtectionText;
-
-    PH_STRINGREF TextCache[PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM];
+    // No TextCache array: PPH_STRING fields serve as the per-node cache.
+    // GetCellText does not set TN_CACHE so TreeNew calls us per visible cell,
+    // but each call is a pointer lookup once the string is allocated.
 } PH_MEMSTRINGS_NODE, *PPH_MEMSTRINGS_NODE;
 
 #define MEMSTRINGS_SLAB_CAPACITY 256
@@ -890,6 +891,7 @@ VOID PhpDeleteMemoryStringsTree(
     PhpDeleteMemoryStringsNodeList(Context->NodeList);
     PhpFreeMemoryStringsSlabs(Context);
     PhpFreeMemoryStringsArenas(Context);
+    PhClearReference(&Context->StringArenaList);
 
     PhDeleteTreeNewFilterSupport(&Context->FilterSupport);
 
@@ -1152,7 +1154,7 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
                 return FALSE;
             }
 
-            getCellText->Flags = TN_CACHE;
+            getCellText->Flags = 0;
         }
         return TRUE;
     case TreeNewGetNodeColor:
@@ -1160,7 +1162,7 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
             node = (PPH_MEMSTRINGS_NODE)getNodeColor->Node;
 
-            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+            getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewSortChanged:
