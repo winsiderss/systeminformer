@@ -133,7 +133,20 @@ typedef struct _PH_MEMSTRINGS_SEARCH_CONTEXT
     SIZE_T ReadRemaning;
     PBYTE Buffer;
     SIZE_T BufferSize;
+    PMEMORY_BASIC_INFORMATION RegionArray;
+    ULONG RegionStart;
+    ULONG RegionEnd;
+    ULONG CurrentRegionIndex;
 } PH_MEMSTRINGS_SEARCH_CONTEXT, *PPH_MEMSTRINGS_SEARCH_CONTEXT;
+
+typedef struct _PH_MEMSTRINGS_WORKER_CONTEXT
+{
+    PPH_MEMSTRINGS_CONTEXT TreeContext;
+    ULONG TypeMask;
+    PMEMORY_BASIC_INFORMATION RegionArray;
+    ULONG RegionStart;
+    ULONG RegionEnd;
+} PH_MEMSTRINGS_WORKER_CONTEXT, *PPH_MEMSTRINGS_WORKER_CONTEXT;
 
 BOOLEAN PhpShowMemoryStringTreeDialog(
     _In_ HWND ParentWindowHandle,
@@ -254,7 +267,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchTreeCallback(
 
     node = PhAllocateZero(sizeof(PH_MEMSTRINGS_NODE));
 
-    node->Index = ++treeContext->StringsCount;
+    node->Index = (ULONG)InterlockedIncrement((volatile LONG*)&treeContext->StringsCount);
     PhPrintUInt64(node->IndexString, node->Index);
 
     node->BaseAddress = context->BasicInfo.BaseAddress;
@@ -286,39 +299,210 @@ BOOLEAN NTAPI PhpMemoryStringSearchTreeCallback(
     return !!treeContext->StopSearch;
 }
 
+_Function_class_(PH_STRING_SEARCH_NEXT_BUFFER)
+_Must_inspect_result_
+NTSTATUS NTAPI PhpMemoryStringSearchTreeNextBufferParallel(
+    _Inout_bytecount_(*Length) PVOID* Buffer,
+    _Out_ PSIZE_T Length,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    HANDLE handle;
+    PPH_MEMSTRINGS_SEARCH_CONTEXT context;
+
+    assert(Context);
+
+    context = Context;
+
+    if (context->TreeContext->UseClone)
+        handle = context->TreeContext->CloneHandle;
+    else
+        handle = context->TreeContext->ProcessHandle;
+
+    *Buffer = NULL;
+    *Length = 0;
+
+    for (;;)
+    {
+        if (context->ReadRemaning == 0)
+        {
+            if (context->CurrentRegionIndex >= context->RegionEnd)
+                return STATUS_NO_MORE_ENTRIES;
+
+            if (context->TreeContext->StopSearch)
+                return STATUS_CANCELLED;
+
+            context->BasicInfo = context->RegionArray[context->CurrentRegionIndex++];
+            context->NextReadAddress = context->BasicInfo.BaseAddress;
+            context->ReadRemaning = context->BasicInfo.RegionSize;
+
+            if (context->ReadRemaning == 0)
+                continue;
+
+            {
+                SIZE_T bufLength = min(context->ReadRemaning, 32 * 1024 * 1024);
+                if (bufLength > context->BufferSize)
+                {
+                    context->Buffer = PhReAllocate(context->Buffer, bufLength);
+                    context->BufferSize = bufLength;
+                }
+            }
+        }
+
+        context->CurrentReadAddress = context->NextReadAddress;
+        {
+            SIZE_T length = min(context->ReadRemaning, context->BufferSize);
+
+            if (NT_SUCCESS(status = PhReadVirtualMemory(
+                handle,
+                context->CurrentReadAddress,
+                context->Buffer,
+                length,
+                &length
+                )))
+            {
+                *Buffer = context->Buffer;
+                *Length = length;
+                context->ReadRemaning -= length;
+                context->NextReadAddress = PTR_ADD_OFFSET(context->NextReadAddress, length);
+                return STATUS_SUCCESS;
+            }
+        }
+
+        context->ReadRemaning = 0;
+    }
+}
+
+_Function_class_(USER_THREAD_START_ROUTINE)
+static NTSTATUS PhpMemoryStringsWorkerThread(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_MEMSTRINGS_WORKER_CONTEXT worker = Parameter;
+    PH_MEMSTRINGS_SEARCH_CONTEXT context;
+
+    memset(&context, 0, sizeof(context));
+    context.TreeContext = worker->TreeContext;
+    context.TypeMask = worker->TypeMask;
+    context.RegionArray = worker->RegionArray;
+    context.RegionStart = worker->RegionStart;
+    context.RegionEnd = worker->RegionEnd;
+    context.CurrentRegionIndex = worker->RegionStart;
+
+    PhSearchStrings(
+        worker->TreeContext->Settings.MinimumLength,
+        !!worker->TreeContext->Settings.ExtendedCharSet,
+        PhpMemoryStringSearchTreeNextBufferParallel,
+        PhpMemoryStringSearchTreeCallback,
+        &context
+        );
+
+    if (context.Buffer)
+        PhFree(context.Buffer);
+
+    PhFree(worker);
+    return STATUS_SUCCESS;
+}
+
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpMemorySearchStringsThread(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
 {
-    PH_MEMSTRINGS_SEARCH_CONTEXT context;
+    HANDLE handle;
+    ULONG typeMask;
+    PMEMORY_BASIC_INFORMATION regionArray;
+    ULONG regionCount;
+    ULONG regionCapacity;
 
-    memset(&context, 0, sizeof(context));
 
-    context.TreeContext = Context;
+    handle = Context->UseClone ? Context->CloneHandle : Context->ProcessHandle;
 
-    context.TypeMask = 0;
+    typeMask = 0;
     if (Context->Settings.Private)
-        SetFlag(context.TypeMask, MEM_PRIVATE);
+        SetFlag(typeMask, MEM_PRIVATE);
     if (Context->Settings.Image)
-        SetFlag(context.TypeMask, MEM_IMAGE);
+        SetFlag(typeMask, MEM_IMAGE);
     if (Context->Settings.Mapped)
-        SetFlag(context.TypeMask, MEM_MAPPED);
+        SetFlag(typeMask, MEM_MAPPED);
 
-    if (context.TypeMask)
+    if (!typeMask)
+        goto Finished;
+
+    regionCapacity = 256;
+    regionCount = 0;
+    regionArray = PhAllocate(regionCapacity * sizeof(MEMORY_BASIC_INFORMATION));
+
     {
-        PhSearchStrings(
-            Context->Settings.MinimumLength,
-            !!Context->Settings.ExtendedCharSet,
-            PhpMemoryStringSearchTreeNextBuffer,
-            PhpMemoryStringSearchTreeCallback,
-            &context
-            );
+        PVOID address = NULL;
+        MEMORY_BASIC_INFORMATION basicInfo;
+
+        while (NT_SUCCESS(NtQueryVirtualMemory(
+            handle,
+            address,
+            MemoryBasicInformation,
+            &basicInfo,
+            sizeof(MEMORY_BASIC_INFORMATION),
+            NULL
+            )))
+        {
+            if (Context->StopSearch)
+                break;
+
+            if (basicInfo.State == MEM_COMMIT &&
+                !FlagOn(basicInfo.Protect, PAGE_NOACCESS | PAGE_GUARD) &&
+                FlagOn(basicInfo.Type, typeMask))
+            {
+                if (regionCount >= regionCapacity)
+                {
+                    regionCapacity *= 2;
+                    regionArray = PhReAllocate(regionArray, regionCapacity * sizeof(MEMORY_BASIC_INFORMATION));
+                }
+                regionArray[regionCount++] = basicInfo;
+            }
+
+            address = PTR_ADD_OFFSET(basicInfo.BaseAddress, basicInfo.RegionSize);
+        }
     }
 
-    if (context.Buffer)
-        PhFree(context.Buffer);
+    if (regionCount > 0 && !Context->StopSearch)
+    {
+        ULONG threadCount;
+        PHANDLE threadHandles;
 
+        threadCount = PhSystemBasicInformation.NumberOfProcessors;
+        if (threadCount < 1) threadCount = 1;
+        if (threadCount > 64) threadCount = 64;
+        if (threadCount > regionCount) threadCount = regionCount;
+
+        threadHandles = PhAllocate(threadCount * sizeof(HANDLE));
+
+        for (ULONG t = 0; t < threadCount; t++)
+        {
+            PPH_MEMSTRINGS_WORKER_CONTEXT worker;
+
+            worker = PhAllocateZero(sizeof(PH_MEMSTRINGS_WORKER_CONTEXT));
+            worker->TreeContext = Context;
+            worker->TypeMask = typeMask;
+            worker->RegionArray = regionArray;
+            worker->RegionStart = t * regionCount / threadCount;
+            worker->RegionEnd = (t + 1) * regionCount / threadCount;
+
+            threadHandles[t] = PhCreateThread(0, PhpMemoryStringsWorkerThread, worker);
+        }
+
+        NtWaitForMultipleObjects(threadCount, threadHandles, WaitAll, FALSE, NULL);
+
+        for (ULONG t = 0; t < threadCount; t++)
+            NtClose(threadHandles[t]);
+
+        PhFree(threadHandles);
+    }
+
+    PhFree(regionArray);
+
+Finished:
     if (!Context->StopSearch)
         PostMessage(Context->WindowHandle, WM_PH_MEMSEARCH_FINISHED, 0, 0);
 
