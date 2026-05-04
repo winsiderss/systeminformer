@@ -895,32 +895,32 @@ VOID LoadNetworkAdapterImages(
 }
 
 INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PDV_NETADAPTER_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(DV_NETADAPTER_CONTEXT));
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (context == NULL)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_NETADAPTERS_LISTVIEW);
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_NETADAPTERS_LISTVIEW);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
@@ -933,13 +933,13 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
             PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_PHYSICAL_ADAPTERS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_SHOW_PHYSICAL_ADAPTERS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             context->ShowHardwareAdapters = TRUE;
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHOW_PHYSICAL_ADAPTERS), BST_CHECKED);
+            Button_SetCheck(GetDlgItem(WindowHandle, IDC_SHOW_PHYSICAL_ADAPTERS), BST_CHECKED);
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
             FindNetworkAdapters(context);
@@ -963,7 +963,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -1078,7 +1078,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                 {
                     if (deviceInstance = FindNetworkDeviceInstance(param->AdapterId.InterfaceGuidString))
                     {
-                        ShowDeviceMenu(hwndDlg, deviceInstance);
+                        ShowDeviceMenu(WindowHandle, deviceInstance);
                         PhDereferenceObject(deviceInstance);
 
                         ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
@@ -1098,7 +1098,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                 {
                     if (deviceInstance = FindNetworkDeviceInstance(param->AdapterId.InterfaceGuidString))
                     {
-                        HardwareDeviceShowProperties(hwndDlg, deviceInstance);
+                        HardwareDeviceShowProperties(WindowHandle, deviceInstance);
                         PhDereferenceObject(deviceInstance);
                     }
                 }
@@ -1106,11 +1106,11 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

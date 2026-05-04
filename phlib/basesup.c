@@ -2473,27 +2473,29 @@ BOOLEAN PhRemoveEntryHashtable(
 }
 
 /**
- * Generates a hash code for a sequence of bytes.
+ * Generates a 32-bit FNV-1a hash code for a sequence of bytes.
  *
  * \param Bytes A pointer to a byte array.
  * \param Length The number of bytes to hash.
+ * \return 32-bit hash code type.
+ * \remarks This routine conforms to RFC 9923,
  */
 ULONG PhHashBytes(
     _In_reads_(Length) PUCHAR Bytes,
     _In_ SIZE_T Length
     )
 {
-    ULONG hash = 0;
+    ULONG hash = FNV1_32_INIT;
 
     if (Length == 0)
         return hash;
 
-    // FNV-1a algorithm: http://www.isthe.com/chongo/src/fnv/hash_32a.c
+    // FNV-1a algorithm: https://github.com/lcn2/fnv/blob/master/hash_32a.c
 
     while (Length-- != 0)
     {
         hash ^= *Bytes++;
-        hash *= 0x01000193;
+        hash *= FNV_32_PRIME;
     }
 
     return hash;

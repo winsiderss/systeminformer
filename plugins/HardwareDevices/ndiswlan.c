@@ -100,7 +100,7 @@ BOOLEAN NetworkAdapterQueryWlanConfig(
                 config->Timestamp = entry.Timestamp;
                 config->HostTimestamp = entry.HostTimestamp;
                 config->ChannelUtilization = channelUtilization;
-                config->ChannelUtilizationPercent = channelUtilization * 100 / 255;
+                config->ChannelUtilizationPercent = PhMultiplyDivide(channelUtilization, 100, 255);
 
                 //ULONGLONG value;
                 //ULONGLONG days = entry.Timestamp / WLAN_TIMESTAMP_DAY;

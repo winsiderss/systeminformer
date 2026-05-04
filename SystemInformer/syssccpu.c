@@ -600,7 +600,7 @@ VOID PhSipLayoutCpuGraphs(
     HDWP deferHandle;
 
     rect = CpuGraphMargin;
-    PhGetSizeDpiValue(&rect, CpuSection->Parameters->WindowDpi, TRUE);
+    PhGetMarginDpiValue(&rect, CpuSection->Parameters->WindowDpi, TRUE);
 
     if (!PhGetClientRect(CpuDialog, &clientRect))
         return;

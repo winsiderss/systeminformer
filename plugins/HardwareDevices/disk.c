@@ -177,6 +177,12 @@ VOID DiskDevicesUpdate(
             // The first sample must be zero.
             entry->BytesReadDelta.Delta = 0;
             entry->BytesWrittenDelta.Delta = 0;
+            entry->ReadTimeDelta.Delta = 0;
+            entry->WriteTimeDelta.Delta = 0;
+            entry->IdleTimeDelta.Delta = 0;
+            entry->ReadCountDelta.Delta = 0;
+            entry->WriteCountDelta.Delta = 0;
+            entry->QueryTimeDelta.Delta = 0;
             entry->HaveFirstSample = TRUE;
         }
 

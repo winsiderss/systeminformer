@@ -441,6 +441,8 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
                     break;
                 if (!(propSheetPage = PhGetWindowContext(pageWindow, PH_WINDOW_CONTEXT_DEFAULT)))
                     break;
+                if ((ULONG_PTR)propSheetPage < 0x1000 || !propSheetPage->lParam)
+                    break;
                 if (!(propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam))
                     break;
                 if (!(propContext = propPageContext->PropContext))
@@ -767,6 +769,8 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
                 if (!(pageWindow = PropSheet_GetCurrentPageHwnd(WindowHandle)))
                     break;
                 if (!(propSheetPage = PhGetWindowContext(pageWindow, PH_WINDOW_CONTEXT_DEFAULT)))
+                    break;
+                if ((ULONG_PTR)propSheetPage < 0x1000 || !propSheetPage->lParam)
                     break;
                 if (!(propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam))
                     break;

@@ -294,17 +294,17 @@ VOID EtpQueryAdapterPerfInfo(
         else
             PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_FANRPM, 1, PhaFormatUInt64(adapterPerfData.FanRPM, FALSE)->Buffer);
 
-        PhInitFormatI64U(&format[0], adapterPerfData.Power * 100 / 1000);
+        PhInitFormatI64U(&format[0], PhMultiplyDivide((ULONG)adapterPerfData.Power, 100, 1000));
         PhInitFormatS(&format[1], L"%");
 
         if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
             PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, formatBuffer);
         else
-            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", adapterPerfData.Power * 100 / 1000)->Buffer);
+            PhSetListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", PhMultiplyDivide((ULONG)adapterPerfData.Power, 100, 1000))->Buffer);
 
         //if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
         //{
-        //    ULONG gpuCurrentTemp = adapterPerfData.Temperature * 100 / 1000;
+        //    ULONG gpuCurrentTemp = PhMultiplyDivide((ULONG)adapterPerfData.Temperature, 100, 1000);
         //    FLOAT gpuFahrenheitTemp = (FLOAT)(gpuCurrentTemp * 1.8 + 32);
 
         //    PhInitFormatF(&format[0], gpuFahrenheitTemp, 1);
@@ -325,7 +325,7 @@ VOID EtpQueryAdapterPerfInfo(
         //}
         //else
         {
-            ULONG gpuCurrentTemp = adapterPerfData.Temperature * 100 / 1000;
+            ULONG gpuCurrentTemp = PhMultiplyDivide((ULONG)adapterPerfData.Temperature, 100, 1000);
 
             PhInitFormatI64U(&format[0], gpuCurrentTemp);
             PhInitFormatS(&format[1], L"\u00b0C");
@@ -379,37 +379,37 @@ static VOID ProcessesUpdatedCallback(
 }
 
 INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PGPU_DETAILS_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(GPU_DETAILS_CONTEXT));
         context->DetailsContext = (PGPU_DEVICE_DETAILS_DIALOG_CONTEXT)lParam;
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (context == NULL)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->DialogHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_GPULIST);
+            context->DialogHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_GPULIST);
 
-            PhSetApplicationWindowIconEx(hwndDlg, PhGetWindowDpi(hwndDlg));
+            PhSetApplicationWindowIconEx(WindowHandle, PhGetWindowDpi(WindowHandle));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -417,15 +417,15 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION, SETTING_NAME_GRAPHICS_DETAILS_WINDOW_SIZE, hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION, SETTING_NAME_GRAPHICS_DETAILS_WINDOW_SIZE, WindowHandle);
             else
-                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+                PhCenterWindow(WindowHandle, GetParent(WindowHandle));
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             GraphicsDeviceQueryAdapterDetails(context);
 
@@ -441,7 +441,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
         {
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedCallbackRegistration);
 
-            PhSaveWindowPlacementToSetting(SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION, SETTING_NAME_GRAPHICS_DETAILS_WINDOW_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION, SETTING_NAME_GRAPHICS_DETAILS_WINDOW_SIZE, WindowHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -450,7 +450,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -460,7 +460,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             {
             case IDCANCEL:
             case IDOK:
-                DestroyWindow(hwndDlg);
+                DestroyWindow(WindowHandle);
                 break;
             }
         }
@@ -477,7 +477,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             PhLayoutManagerUpdate(&context->LayoutManager, windowDpi);
             PhLayoutManagerLayout(&context->LayoutManager);
 
-            PhSetApplicationWindowIconEx(hwndDlg, windowDpi);
+            PhSetApplicationWindowIconEx(WindowHandle, windowDpi);
         }
         break;
     case WM_PH_UPDATE_DIALOG:
@@ -487,12 +487,12 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
         break;
     case WM_PH_SHOW_DIALOG:
         {
-            if (IsMinimized(hwndDlg))
-                ShowWindow(hwndDlg, SW_RESTORE);
+            if (IsMinimized(WindowHandle))
+                ShowWindow(WindowHandle, SW_RESTORE);
             else
-                ShowWindow(hwndDlg, SW_SHOW);
+                ShowWindow(WindowHandle, SW_SHOW);
 
-            SetForegroundWindow(hwndDlg);
+            SetForegroundWindow(WindowHandle);
         }
         break;
     case WM_CONTEXTMENU:
@@ -521,7 +521,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
 
                     item = PhShowEMenu(
                         menu,
-                        hwndDlg,
+                        WindowHandle,
                         PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,

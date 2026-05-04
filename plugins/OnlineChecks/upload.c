@@ -711,7 +711,7 @@ NTSTATUS UploadFileThreadStart(
         timeBitsPerSecond = totalUploadedLength / __max(timeTicks, 1);
 
 #ifdef FORCE_NO_STATUS_TIMER
-        ULONG percent = totalUploadedLength * 100 / context->TotalFileLength;
+        ULONG percent = PhMultiplyDivide(totalUploadedLength, 100, context->TotalFileLength);
         PH_FORMAT format[9];
         WCHAR string[MAX_PATH];
 
@@ -1701,7 +1701,7 @@ LRESULT CALLBACK OnlineChecksTaskDialogSubclass(
             {
                 if (context->ProgressUploaded && context->ProgressTotal)
                 {
-                    LONG64 percent = context->ProgressUploaded * 100 / context->ProgressTotal;
+                    LONG64 percent = PhMultiplyDivide((ULONG)context->ProgressUploaded, 100, (ULONG)context->ProgressTotal);
                     PH_FORMAT format[9];
                     WCHAR string[MAX_PATH];
 

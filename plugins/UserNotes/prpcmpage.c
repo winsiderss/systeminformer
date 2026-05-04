@@ -13,8 +13,8 @@
 #include "usernotes.h"
 
 INT_PTR CALLBACK ProcessCommentPageDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -24,7 +24,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
     PPH_PROCESS_ITEM processItem;
     PPROCESS_COMMENT_PAGE_CONTEXT context;
 
-    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(WindowHandle, WindowMessage, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         context = propPageContext->Context;
     }
@@ -33,7 +33,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
         return FALSE;
     }
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
@@ -41,9 +41,9 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             PPH_STRING comment;
 
             context = propPageContext->Context = PhAllocateZero(sizeof(PROCESS_COMMENT_PAGE_CONTEXT));
-            context->CommentHandle = GetDlgItem(hwndDlg, IDC_COMMENT);
-            context->RevertHandle = GetDlgItem(hwndDlg, IDC_REVERT);
-            context->MatchCommandlineHandle = GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE);
+            context->CommentHandle = GetDlgItem(WindowHandle, IDC_COMMENT);
+            context->RevertHandle = GetDlgItem(WindowHandle, IDC_REVERT);
+            context->MatchCommandlineHandle = GetDlgItem(WindowHandle, IDC_MATCHCOMMANDLINE);
 
             // Load the comment.
             Edit_LimitText(context->CommentHandle, UNICODE_STRING_MAX_CHARS);
@@ -72,7 +72,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             if (!processItem->CommandLine)
                 EnableWindow(context->MatchCommandlineHandle, FALSE);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -121,7 +121,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
                     // Prevent deadlocks.
                     UnlockDb();
 
-                    if (MessageBox(hwndDlg, message->Buffer, L"Comment", MB_ICONQUESTION | MB_YESNO) == IDNO)
+                    if (MessageBox(WindowHandle, message->Buffer, L"Comment", MB_ICONQUESTION | MB_YESNO) == IDNO)
                     {
                         done = TRUE;
                     }
@@ -165,12 +165,12 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
         {
             PPH_LAYOUT_ITEM dialogItem;
 
-            if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
+            if (dialogItem = PhBeginPropPageLayout(WindowHandle, propPageContext))
             {
-                PhAddPropPageLayoutItem(hwndDlg, context->CommentHandle, dialogItem, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, context->RevertHandle, dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-                PhAddPropPageLayoutItem(hwndDlg, context->MatchCommandlineHandle, dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-                PhEndPropPageLayout(hwndDlg, propPageContext);
+                PhAddPropPageLayoutItem(WindowHandle, context->CommentHandle, dialogItem, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(WindowHandle, context->RevertHandle, dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+                PhAddPropPageLayoutItem(WindowHandle, context->MatchCommandlineHandle, dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhEndPropPageLayout(WindowHandle, propPageContext);
             }
         }
         break;
@@ -188,7 +188,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
                 {
                     Edit_SetText(context->CommentHandle, context->OriginalComment->Buffer);
                     SendMessage(context->CommentHandle, EM_SETSEL, 0, -1);
-                    PhSetDialogFocus(hwndDlg, context->CommentHandle);
+                    PhSetDialogFocus(WindowHandle, context->CommentHandle);
                     EnableWindow(context->RevertHandle, FALSE);
                 }
                 break;
@@ -202,7 +202,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             switch (header->code)
             {
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->MatchCommandlineHandle);
+                SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, (LONG_PTR)context->MatchCommandlineHandle);
                 return TRUE;
             }
         }
@@ -213,33 +213,33 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
 }
 
 INT_PTR CALLBACK ServiceCommentPageDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PSERVICE_COMMENT_PAGE_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocate(sizeof(SERVICE_COMMENT_PAGE_CONTEXT));
         memset(context, 0, sizeof(SERVICE_COMMENT_PAGE_CONTEXT));
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
-        if (uMsg == WM_DESTROY)
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        if (WindowMessage == WM_DESTROY)
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
@@ -250,12 +250,12 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
 
             context->ServiceItem = serviceItem;
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COMMENT), NULL, PH_ANCHOR_ALL);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_COMMENT), NULL, PH_ANCHOR_ALL);
 
             // Load the comment.
 
-            SendMessage(GetDlgItem(hwndDlg, IDC_COMMENT), EM_SETLIMITTEXT, UNICODE_STRING_MAX_CHARS, 0);
+            SendMessage(GetDlgItem(WindowHandle, IDC_COMMENT), EM_SETLIMITTEXT, UNICODE_STRING_MAX_CHARS, 0);
 
             LockDb();
 
@@ -266,9 +266,9 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
 
             UnlockDb();
 
-            PhSetDialogItemText(hwndDlg, IDC_COMMENT, comment->Buffer);
+            PhSetDialogItemText(WindowHandle, IDC_COMMENT, comment->Buffer);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -278,24 +278,24 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
         }
         break;
     case WM_SIZE:
-        {
-            PhLayoutManagerLayout(&context->LayoutManager);
-        }
-        break;
-    case WM_DPICHANGED_AFTERPARENT:
-        {
-            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
-            PhLayoutManagerLayout(&context->LayoutManager);
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_ID(wParam, lParam))
+         {
+             PhLayoutManagerLayout(&context->LayoutManager);
+         }
+         break;
+     case WM_DPICHANGED_AFTERPARENT:
+         {
+             PhLayoutManagerUpdate(&context->LayoutManager, PhGetWindowDpi(WindowHandle));
+             PhLayoutManagerLayout(&context->LayoutManager);
+         }
+         break;
+     case WM_COMMAND:
+         {
+             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_COMMENT:
                 {
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == EN_CHANGE)
-                        EnableWindow(GetDlgItem(hwndDlg, IDC_REVERT), TRUE);
+                        EnableWindow(GetDlgItem(WindowHandle, IDC_REVERT), TRUE);
                 }
                 break;
             }
@@ -309,7 +309,7 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
             {
             case PSN_KILLACTIVE:
                 {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, FALSE);
+                    SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, FALSE);
                 }
                 return TRUE;
             case PSN_APPLY:
@@ -317,7 +317,7 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
                     PDB_OBJECT object;
                     PPH_STRING comment;
 
-                    comment = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_COMMENT)));
+                    comment = PH_AUTO(PhGetWindowText(GetDlgItem(WindowHandle, IDC_COMMENT)));
 
                     LockDb();
 
@@ -336,45 +336,45 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
                     SaveDb();
                     InvalidateServiceComments();
 
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                    SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, PSNRET_NOERROR);
                 }
                 return TRUE;
             }
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
 }
 
 UINT_PTR CALLBACK ColorDlgHookProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            PhCenterWindow(WindowHandle, GetParent(WindowHandle));
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

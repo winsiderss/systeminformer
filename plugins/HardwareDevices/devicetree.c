@@ -381,10 +381,10 @@ VOID NTAPI DeviceTreePublish(
 
     TreeNew_SetRedraw(DeviceTreeHandle, TRUE);
 
-    TreeNew_NodesStructured(DeviceTreeHandle);
-
     if (DeviceTreeFilterSupport.FilterList)
         PhApplyTreeNewFilters(&DeviceTreeFilterSupport);
+    else
+        TreeNew_NodesStructured(DeviceTreeHandle);
 
     PhClearReference(&oldTree);
 }
@@ -806,10 +806,10 @@ BOOLEAN NTAPI DeviceTreeCallback(
             DeviceTreeSortColumn = sorting->SortColumn;
             DeviceTreeSortOrder = sorting->SortOrder;
 
-            TreeNew_NodesStructured(hwnd);
-
             if (DeviceTreeFilterSupport.FilterList)
                 PhApplyTreeNewFilters(&DeviceTreeFilterSupport);
+            else
+                TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewContextMenu:

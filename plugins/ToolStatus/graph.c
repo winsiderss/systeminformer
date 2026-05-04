@@ -160,11 +160,27 @@ VOID ToolbarGraphsInitializeDpi(
     VOID
     )
 {
+    ULONG newDpi = SystemInformer_GetWindowDpi();
+    ULONG newWidth = PhScaleToDisplay(145, newDpi);
+
     for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
+        ULONG bandIndex;
 
-        graph->GraphDpi = SystemInformer_GetWindowDpi();
+        graph->GraphDpi = newDpi;
+
+        // Update the rebar band's minimum width to match the new DPI scale.
+        if (graph->GraphHandle && (bandIndex = RebarBandToIndex(graph->GraphId)) != ULONG_MAX)
+        {
+            BAND_CHILD_SIZE bandSize;
+
+            if (RebarGetBandIndexChildSize(bandIndex, &bandSize))
+            {
+                bandSize.MinChildWidth = newWidth;
+                RebarSetBandIndexChildSize(bandIndex, &bandSize);
+            }
+        }
     }
 }
 
@@ -215,7 +231,7 @@ BOOLEAN ToolbarAddGraph(
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
             0, 0, 0, 0,
-            MainWindowHandle,
+            RebarHandle,
             NULL,
             NULL,
             &graphCreateParams
@@ -283,6 +299,23 @@ VOID ToolbarCreateGraphs(
 
             ToolbarAddGraph(graph, width, height);
         }
+    }
+}
+
+VOID ToolbarDestroyGraphs(
+    VOID
+    )
+{
+    if (!PhpToolbarGraphList)
+        return;
+
+    ToolbarGraphSaveSettings();
+
+    for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
+    {
+        PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
+
+        ToolbarRemoveGraph(graph);
     }
 }
 

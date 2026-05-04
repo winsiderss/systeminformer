@@ -541,7 +541,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
         }
     }
 
-    sdLength = RtlLengthSecurityDescriptor(securityDescriptor);
+    sdLength = PhLengthSecurityDescriptor(securityDescriptor);
     newSd = LocalAlloc(LPTR, sdLength);
     memcpy(newSd, securityDescriptor, sdLength);
     PhFree(securityDescriptor);
@@ -1523,7 +1523,7 @@ NTSTATUS PhGetSeObjectSecurity(
         return PhDosErrorToNtStatus(win32Result);
     }
 
-    *SecurityDescriptor = PhAllocateCopy(securityDescriptor, RtlLengthSecurityDescriptor(securityDescriptor));
+    *SecurityDescriptor = PhAllocateCopy(securityDescriptor, PhLengthSecurityDescriptor(securityDescriptor));
     LocalFree(securityDescriptor);
 
     return STATUS_SUCCESS;
@@ -1629,7 +1629,7 @@ NTSTATUS PhLsaQuerySecurityObject(
     {
         *SecurityDescriptor = PhAllocateCopy(
             securityDescriptor,
-            RtlLengthSecurityDescriptor(securityDescriptor)
+            PhLengthSecurityDescriptor(securityDescriptor)
             );
         LsaFreeMemory(securityDescriptor);
     }
@@ -1656,7 +1656,7 @@ NTSTATUS PhSamQuerySecurityObject(
     //{
     //    *SecurityDescriptor = PhAllocateCopy(
     //        securityDescriptor,
-    //        RtlLengthSecurityDescriptor(securityDescriptor)
+    //        PhLengthSecurityDescriptor(securityDescriptor)
     //        );
     //    SamFreeMemory(securityDescriptor);
     //}
@@ -1716,10 +1716,10 @@ NTSTATUS PhGetSeObjectSecurityTokenDefault(
             goto CleanupExit;
 
         assert(RtlValidSecurityDescriptor(securityDescriptor));
-        assert(allocationLength == RtlLengthSecurityDescriptor(securityDescriptor));
+        assert(allocationLength == PhLengthSecurityDescriptor(securityDescriptor));
 
         assert(RtlValidSecurityDescriptor(securityRelative));
-        assert(allocationLengthRelative == RtlLengthSecurityDescriptor(securityRelative));
+        assert(allocationLengthRelative == PhLengthSecurityDescriptor(securityRelative));
 
 CleanupExit:
         *SecurityDescriptor = securityRelative;
@@ -1794,7 +1794,7 @@ NTSTATUS PhGetSeObjectSecurityPowerGuid(
 
             *SecurityDescriptor = PhAllocateCopy(
                 securityDescriptor,
-                RtlLengthSecurityDescriptor(securityDescriptor)
+                PhLengthSecurityDescriptor(securityDescriptor)
                 );
             PhFree(securityDescriptor);
         }

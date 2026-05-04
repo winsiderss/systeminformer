@@ -429,37 +429,33 @@ NTSTATUS KphSetServiceSecurity(
     _In_ SC_HANDLE ServiceHandle
     )
 {
+#define SERVICE_INTERACTIVE_ACCESS \
+    (SERVICE_QUERY_CONFIG | SERVICE_QUERY_STATUS | SERVICE_START | SERVICE_STOP | SERVICE_INTERROGATE | DELETE)
     NTSTATUS status;
     PSID administratorsSid = PhSeAdministratorsSid();
     UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x80];
     PSECURITY_DESCRIPTOR securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
     PACL dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
-    ULONG sdAllocationLength;
+    ULONG daclLength;
 
-    if (!NT_SUCCESS(status = RtlULongAdd(SECURITY_DESCRIPTOR_MIN_LENGTH, sizeof(ACL), &sdAllocationLength)))
+    if (!NT_SUCCESS(status = RtlULongAdd(SECURITY_DESCRIPTOR_MIN_LENGTH, sizeof(ACL), &daclLength)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = RtlULongAdd(sdAllocationLength, sizeof(ACCESS_ALLOWED_ACE), &sdAllocationLength)))
+    if (!NT_SUCCESS(status = RtlULongAdd(daclLength, UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(&PhSeServiceSid), &daclLength)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = RtlULongAdd(sdAllocationLength, PhLengthSid(&PhSeServiceSid), &sdAllocationLength)))
+    if (!NT_SUCCESS(status = RtlULongAdd(daclLength, UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(administratorsSid), &daclLength)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = RtlULongAdd(sdAllocationLength, sizeof(ACCESS_ALLOWED_ACE), &sdAllocationLength)))
-        goto CleanupExit;
-    if (!NT_SUCCESS(status = RtlULongAdd(sdAllocationLength, PhLengthSid(administratorsSid), &sdAllocationLength)))
-        goto CleanupExit;
-    if (!NT_SUCCESS(status = RtlULongAdd(sdAllocationLength, sizeof(ACCESS_ALLOWED_ACE), &sdAllocationLength)))
-        goto CleanupExit;
-    if (!NT_SUCCESS(status = RtlULongAdd(sdAllocationLength, PhLengthSid(&PhSeInteractiveSid), &sdAllocationLength)))
+    if (!NT_SUCCESS(status = RtlULongAdd(daclLength, UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(&PhSeInteractiveSid), &daclLength)))
         goto CleanupExit;
 
     if (!NT_SUCCESS(status = PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION)))
+    if (!NT_SUCCESS(status = PhCreateAcl(dacl, daclLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, &PhSeServiceSid)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, administratorsSid)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_QUERY_CONFIG | SERVICE_QUERY_STATUS | SERVICE_START | SERVICE_STOP | SERVICE_INTERROGATE | DELETE, &PhSeInteractiveSid)))
+    if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_INTERACTIVE_ACCESS, &PhSeInteractiveSid)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE)))
         goto CleanupExit;
@@ -471,8 +467,8 @@ NTSTATUS KphSetServiceSecurity(
         );
 
     NT_ASSERT(RtlValidSecurityDescriptor(securityDescriptor));
-    NT_ASSERT(sdAllocationLength < sizeof(securityDescriptorBuffer));
-    NT_ASSERT(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+    NT_ASSERT(daclLength < sizeof(securityDescriptorBuffer));
+    NT_ASSERT(PhLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 
 CleanupExit:
     return status;

@@ -4096,6 +4096,16 @@ PhNextEnumHashtable(
     return NULL;
 }
 
+/*
+ * 32 bit FNV-1 and FNV-1a non-zero initial basis
+ */
+#define FNV1_32_INIT (ULONG_C(0x811c9dc5))
+
+/*
+ * 32 bit magic FNV-1a prime
+ */
+#define FNV_32_PRIME (ULONG_C(0x01000193))
+
 PHLIBAPI
 ULONG
 NTAPI

@@ -17,26 +17,15 @@
 #include <actions.h>
 #include <phsvccl.h>
 
-INT_PTR CALLBACK PhpCreateServiceDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-VOID PhShowCreateServiceDialog(
-    _In_ HWND ParentWindowHandle
-    )
-{
-    PhDialogBox(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_CREATESERVICE),
-        PhCsForceNoParent ? NULL : ParentWindowHandle,
-        PhpCreateServiceDlgProc,
-        NULL
-        );
-}
-
+/**
+ * Dialog procedure for the create service dialog.
+ *
+ * \param hwndDlg The handle to the dialog.
+ * \param uMsg The message being processed.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return TRUE if the message was handled, otherwise FALSE.
+ */
 INT_PTR CALLBACK PhpCreateServiceDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -215,4 +204,22 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
     }
 
     return FALSE;
+}
+
+/**
+ * Shows the create service dialog.
+ *
+ * \param ParentWindowHandle The parent window handle.
+ */
+VOID PhShowCreateServiceDialog(
+    _In_ HWND ParentWindowHandle
+    )
+{
+    PhDialogBox(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_CREATESERVICE),
+        PhCsForceNoParent ? NULL : ParentWindowHandle,
+        PhpCreateServiceDlgProc,
+        NULL
+        );
 }

@@ -298,7 +298,7 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
             if (windowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle)))
                 PhReplaceWindowFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
 
-            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&context->LayoutManager, PhGetWindowDpi(WindowHandle));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;

@@ -37,7 +37,7 @@
 #define SETTING_NAME_TRACERT_MAX_HOPS (PLUGIN_NAME L".TracertMaxHops")
 #define SETTING_NAME_WHOIS_WINDOW_POSITION (PLUGIN_NAME L".WhoisWindowPosition")
 #define SETTING_NAME_WHOIS_WINDOW_SIZE (PLUGIN_NAME L".WhoisWindowSize")
-#define SETTING_NAME_WHOIS_IPV6_SUPPORT (PLUGIN_NAME L".WhoisProtocalSupport")
+#define SETTING_NAME_WHOIS_IPV6_SUPPORT (PLUGIN_NAME L".WhoisProtocolSupport")
 #define SETTING_NAME_EXTENDED_TCP_STATS (PLUGIN_NAME L".EnableExtendedTcpStats")
 #define SETTING_NAME_GEOLITE_API_KEY (PLUGIN_NAME L".MaxMindApiKey")
 #define SETTING_NAME_GEOLITE_API_ID (PLUGIN_NAME L".MaxMindApiId")
@@ -316,6 +316,7 @@ typedef struct _NETWORK_GEODB_UPDATE_CONTEXT
     HWND DialogHandle;
     HWND ParentWindowHandle;
     WNDPROC DefaultWindowProc;
+    LONG WindowDpi;
     ULONG ErrorCode;
     BOOLEAN PortableMode;
 } NETWORK_GEODB_UPDATE_CONTEXT, *PNETWORK_GEODB_UPDATE_CONTEXT;
@@ -324,6 +325,7 @@ BOOLEAN GeoLiteCheckUpdatePlatformSupported(
     VOID
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS GeoLiteUpdateThread(
     _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     );

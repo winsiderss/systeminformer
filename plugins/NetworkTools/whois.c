@@ -833,20 +833,11 @@ VOID WhoisSetTextFont(
     _In_ PNETWORK_WHOIS_CONTEXT Context
     )
 {
-    PPH_STRING fontHexString;
-    LOGFONT font;
+    HFONT fontHandle;
 
-    fontHexString = PhaGetStringSetting(SETTING_FONT);
-
-    if (
-        fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
-        PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
-        )
+    if (fontHandle = PhCreateTreeWindowFont(PhGetWindowDpi(Context->RichEditHandle)))
     {
-        if (Context->FontHandle = CreateFontIndirect(&font))
-        {
-            SetWindowFont(Context->RichEditHandle, Context->FontHandle, TRUE);
-        }
+        PhReplaceWindowFont(&Context->FontHandle, Context->RichEditHandle, fontHandle, TRUE);
     }
 }
 
@@ -886,40 +877,40 @@ VOID WhoisParseAddressString(
 }
 
 INT_PTR CALLBACK WhoisDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PNETWORK_WHOIS_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = (PNETWORK_WHOIS_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
-            context->RichEditHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
+            context->WindowHandle = WindowHandle;
+            context->RichEditHandle = GetDlgItem(WindowHandle, IDC_NETOUTPUTEDIT);
             context->Ipv6Support = !!PhGetIntegerSetting(SETTING_NAME_WHOIS_IPV6_SUPPORT);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(WindowHandle);
             WhoisSetTextFont(context);
             WhoisParseAddressString(context);
 
-            PhSetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->RemoteAddressString)->Buffer);
+            PhSetWindowText(WindowHandle, PhaFormatString(L"Whois %s...", context->RemoteAddressString)->Buffer);
 
             //SendMessage(context->RichEditHandle, EM_SETBKGNDCOLOR, RGB(0, 0, 0), 0);
             SendMessage(context->RichEditHandle, EM_SETEVENTMASK, 0, SendMessage(context->RichEditHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);
@@ -929,15 +920,15 @@ INT_PTR CALLBACK WhoisDlgProc(
             SendMessage(context->RichEditHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(4, 0));
             SendMessage(context->RichEditHandle, EM_SETREADONLY, TRUE, 0);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->RichEditHandle, NULL, PH_ANCHOR_ALL);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_WHOIS_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, WindowHandle);
             else
-                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
+                PhCenterWindow(WindowHandle, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             PhReferenceObject(context);
             PhCreateThread2(NetworkWhoisThreadStart, (PVOID)context);
@@ -945,8 +936,8 @@ INT_PTR CALLBACK WhoisDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-            PhSaveWindowPlacementToSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, WindowHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
 
             if (context->FontHandle)
@@ -962,7 +953,7 @@ INT_PTR CALLBACK WhoisDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                DestroyWindow(hwndDlg);
+                DestroyWindow(WindowHandle);
                 break;
             }
         }
@@ -974,6 +965,8 @@ INT_PTR CALLBACK WhoisDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            WhoisSetTextFont(context);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
@@ -1067,7 +1060,7 @@ INT_PTR CALLBACK WhoisDlgProc(
 
             item = PhShowEMenu(
                 menu,
-                hwndDlg,
+                WindowHandle,
                 PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP,
                 point.x,
@@ -1091,11 +1084,11 @@ INT_PTR CALLBACK WhoisDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
