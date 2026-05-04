@@ -809,7 +809,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
             if (DeviceTreeFilterSupport.FilterList)
                 PhApplyTreeNewFilters(&DeviceTreeFilterSupport);
             else
-                TreeNew_NodesStructured(WindowHandle);
+                TreeNew_NodesStructured(hwnd);
         }
         return TRUE;
     case TreeNewContextMenu:
@@ -1759,6 +1759,8 @@ VOID NTAPI DeviceTreeProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
+    BOOLEAN fullyInvalidated = FALSE;
+
     if (PtrToUlong(Parameter) < 2)
         return;
 
@@ -1774,8 +1776,8 @@ VOID NTAPI DeviceTreeProcessesUpdatedCallback(
         DeviceHighlightingDuration,
         DeviceTreeHandle,
         TRUE,
-        NULL,
-        NULL
+        &fullyInvalidated,
+        Context
         );
 }
 

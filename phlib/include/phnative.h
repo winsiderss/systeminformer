@@ -2545,14 +2545,11 @@ PhGetDaclSecurityDescriptor(
         {
             dacl = securityDescriptor->Dacl;
         }
+    }
 
-        *Dacl = dacl;
-        *DaclDefaulted = defaulted;
-    }
-    else
-    {
-        *DaclPresent = FALSE;
-    }
+    *Dacl = dacl;
+    *DaclDefaulted = defaulted;
+    *DaclPresent = present;
 
     return STATUS_SUCCESS;
 #endif
@@ -2693,7 +2690,6 @@ PhGetSaclSecurityDescriptor(
 
     if (present = BooleanFlagOn(securityDescriptor->Control, SE_SACL_PRESENT))
     {
-        *SaclPresent = TRUE;
         defaulted = BooleanFlagOn(securityDescriptor->Control, SE_SACL_DEFAULTED);
 
         if (BooleanFlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
@@ -2709,14 +2705,11 @@ PhGetSaclSecurityDescriptor(
         {
             sacl = securityDescriptor->Sacl;
         }
+    }
 
-        *Sacl = sacl;
-        *SaclDefaulted = defaulted;
-    }
-    else
-    {
-        *SaclPresent = FALSE;
-    }
+    *Sacl = sacl;
+    *SaclDefaulted = defaulted;
+    *SaclPresent = present;
 
     return STATUS_SUCCESS;
 #endif
