@@ -78,14 +78,14 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
 #define PH_PROP_PAGE_TAB_CONTROL_PARENT ((PPH_LAYOUT_ITEM)0x1)
 
 PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor
     );
 
 PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor,
@@ -95,15 +95,15 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
     );
 
 VOID PvDoPropPageLayout(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 _Success_(return)
 FORCEINLINE
 BOOLEAN
 PvPropPageDlgProcHeader(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ LPARAM lParam,
     _Out_ LPPROPSHEETPAGE *PropSheetPage,
     _Out_ PPV_PROPPAGECONTEXT *PropPageContext
@@ -112,26 +112,26 @@ PvPropPageDlgProcHeader(
     LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         // Save the context.
         propSheetPage = (LPPROPSHEETPAGE)lParam;
         propPageContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
 
-        PhSetWindowContext(hwndDlg, 0xfff, propSheetPage);
+        PhSetWindowContext(WindowHandle, 0xfff, propSheetPage);
     }
     else
     {
-        propSheetPage = (LPPROPSHEETPAGE)PhGetWindowContext(hwndDlg, 0xfff);
+        propSheetPage = (LPPROPSHEETPAGE)PhGetWindowContext(WindowHandle, 0xfff);
 
         if (!propSheetPage)
             return FALSE;
 
         propPageContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
 
-        if (uMsg == WM_NCDESTROY)
+        if (WindowMessage == WM_NCDESTROY)
         {
-            PhRemoveWindowContext(hwndDlg, 0xfff);
+            PhRemoveWindowContext(WindowHandle, 0xfff);
         }
     }
 

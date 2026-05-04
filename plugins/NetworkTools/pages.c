@@ -82,8 +82,8 @@ HRESULT CALLBACK CheckForUpdatesDbCallbackProc(
 }
 
 HRESULT CALLBACK CheckingForUpdatesDbCallbackProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -91,12 +91,12 @@ HRESULT CALLBACK CheckingForUpdatesDbCallbackProc(
 {
     PNETWORK_GEODB_UPDATE_CONTEXT context = (PNETWORK_GEODB_UPDATE_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_NAVIGATED:
         {
-            SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
-            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            SendMessage(WindowHandle, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+            SendMessage(WindowHandle, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             PhReferenceObject(context);
             PhCreateThread2(GeoLiteUpdateThread, context);
@@ -108,8 +108,8 @@ HRESULT CALLBACK CheckingForUpdatesDbCallbackProc(
 }
 
 HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -117,7 +117,7 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
 {
     PNETWORK_GEODB_UPDATE_CONTEXT context = (PNETWORK_GEODB_UPDATE_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_BUTTON_CLICKED:
         {
@@ -150,8 +150,8 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
 }
 
 HRESULT CALLBACK FinalDbTaskDialogCallbackProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -159,13 +159,12 @@ HRESULT CALLBACK FinalDbTaskDialogCallbackProc(
 {
     PNETWORK_GEODB_UPDATE_CONTEXT context = (PNETWORK_GEODB_UPDATE_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_NAVIGATED:
         {
             if (!PhGetOwnTokenAttributes().Elevated)
             {
-                SendMessage(hwndDlg, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
             }
         }
         break;

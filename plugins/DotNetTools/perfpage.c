@@ -117,6 +117,31 @@ typedef enum _DOTNET_INDEX
     DOTNET_INDEX_SECURITY_TIMEINRTCHECKS,
     DOTNET_INDEX_SECURITY_STACKWALKDEPTH,
 
+    DOTNET_INDEX_MEMORY_GC0PROMOTEDBYTESPERSEC,
+    DOTNET_INDEX_MEMORY_GC1PROMOTEDBYTESPERSEC,
+    DOTNET_INDEX_MEMORY_FINALPROMOTEDBYTESPERSEC,
+    DOTNET_INDEX_MEMORY_ALLOCATEDBYTESPERSEC,
+
+    DOTNET_INDEX_EXCEPTIONS_THROWNPERSEC,
+    DOTNET_INDEX_EXCEPTIONS_FILTERSPERSEC,
+    DOTNET_INDEX_EXCEPTIONS_FINALLYPERSEC,
+    DOTNET_INDEX_EXCEPTIONS_THROWTOCATCHDEPTHPERSEC,
+
+    DOTNET_INDEX_JIT_ILBYTESJITTEDPERSEC,
+
+    DOTNET_INDEX_LOADING_CLASSESLOADEDRATE,
+    DOTNET_INDEX_LOADING_APPDOMAINSRATE,
+    DOTNET_INDEX_LOADING_ASSEMBLIESRATE,
+    DOTNET_INDEX_LOADING_LOADFAILURESRATE,
+    DOTNET_INDEX_LOADING_APPDOMAINSUNLOADEDRATE,
+
+    DOTNET_INDEX_LOCKSANDTHREADS_CONTENTIONRATE,
+    DOTNET_INDEX_LOCKSANDTHREADS_QUEUELENGTHRATE,
+    DOTNET_INDEX_LOCKSANDTHREADS_RECOGNIZEDTHREADSRATE,
+
+    DOTNET_INDEX_REMOTING_REMOTECALLSRATE,
+    DOTNET_INDEX_REMOTING_OBJALLOCATIONRATE,
+
     DOTNET_INDEX_MAXIMUM
 } DOTNET_INDEX;
 
@@ -142,6 +167,7 @@ typedef struct _PERFPAGE_CONTEXT
     HANDLE ProcessHandle;
     PVOID BlockTableAddress;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+    ULONG SampleCount;
     Perf_GC DotNetPerfGC;
     Perf_Contexts DotNetPerfContext;
     Perf_Interop DotNetPerfInterop;
@@ -150,6 +176,12 @@ typedef struct _PERFPAGE_CONTEXT
     Perf_LocksAndThreads DotNetPerfLocksAndThreads;
     Perf_Jit DotNetPerfJit;
     Perf_Security DotNetPerfSecurity;
+    Perf_GC DotNetPerfGC_Previous;
+    Perf_Contexts DotNetPerfContext_Previous;
+    Perf_Excep DotNetPerfExceptions_Previous;
+    Perf_Jit DotNetPerfJit_Previous;
+    Perf_Loading DotNetPerfLoading_Previous;
+    Perf_LocksAndThreads DotNetPerfLocksAndThreads_Previous;
 } PERFPAGE_CONTEXT, *PPERFPAGE_CONTEXT;
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -289,32 +321,28 @@ VOID DotNetPerfAddListViewGroups(
     // Reserved for future use.
     PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_TOTALLOHBYTESSINCESTART, L"Total Bytes Allocated for Large Objects (since start)", UlongToPtr(DOTNET_INDEX_MEMORY_TOTALLOHBYTESSINCESTART));
 
-    // Gen 0 Promoted Bytes / Sec
-    // This counter displays the bytes per second that are promoted from generation 0 (youngest)to generation 1;
+    // This counter displays the bytes per second that are promoted from generation 0 (youngest) to generation 1;
     // objects that are promoted just because they are waiting to be finalized are not included in this counter.
-    // Memory is promoted when it survives a garbage collection.This counter was designed as an indicator of relatively long-lived objects being created per sec.
+    // Memory is promoted when it survives a garbage collection. This counter was designed as an indicator of relatively long-lived objects being created per sec.
     // This counter displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GC0PROMOTEDBYTESPERSEC, L"Gen 0 Promoted Bytes / sec", UlongToPtr(DOTNET_INDEX_MEMORY_GC0PROMOTEDBYTESPERSEC));
 
-    // Gen 1 Promoted Bytes / Sec
     // This counter displays the bytes per second that are promoted from generation 1 to generation 2 (oldest);
     // objects that are promoted just because they are waiting to be finalized are not included in this counter.
     // Memory is promoted when it survives a garbage collection.
     // Nothing is promoted from generation 2 since it is the oldest.
     // This counter was designed as an indicator of very long-lived objects being created per sec.
     // This counter displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_GC1PROMOTEDBYTESPERSEC, L"Gen 1 Promoted Bytes / sec", UlongToPtr(DOTNET_INDEX_MEMORY_GC1PROMOTEDBYTESPERSEC));
 
-    // Promoted Finalization - Memory from Gen 1
     // This counter displays the bytes of memory that are promoted from generation 1 to generation 2 just because they are waiting to be finalized.
-    // This counter displays the value observed at the end of the last GC; its not a cumulative counter.This counter is reset to 0 if the last GC was a Gen 0 GC only.
-    // TODO: We need to count the delta.
+    // This counter displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_FINALPROMOTEDBYTESPERSEC, L"Promoted Finalization-Memory / sec", UlongToPtr(DOTNET_INDEX_MEMORY_FINALPROMOTEDBYTESPERSEC));
 
-    // Allocated Bytes / sec
     // This counter displays the rate of bytes per second allocated on the GC Heap.
     // This counter is updated at the end of every GC; not at each allocation.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_MEMORY, DOTNET_INDEX_MEMORY_ALLOCATEDBYTESPERSEC, L"Allocated Bytes / sec", UlongToPtr(DOTNET_INDEX_MEMORY_ALLOCATEDBYTESPERSEC));
 
     // This counter displays the total number of exceptions thrown since the start of the application.
     // These include both .NET exceptions and unmanaged exceptions that get converted into .NET exceptions e.g. null pointer reference exception in unmanaged code
@@ -324,36 +352,22 @@ VOID DotNetPerfAddListViewGroups(
     PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_EXCEPTIONS, DOTNET_INDEX_EXCEPTIONS_FILTERSCOUNT, L"# of Filters Executed", UlongToPtr(DOTNET_INDEX_EXCEPTIONS_FILTERSCOUNT));
     PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_EXCEPTIONS, DOTNET_INDEX_EXCEPTIONS_FINALLYCOUNT, L"# of Finallys Executed", UlongToPtr(DOTNET_INDEX_EXCEPTIONS_FINALLYCOUNT));
 
-    // Reserved for future use.
-    //PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_EXCEPTIONS, , L"Delta from throw to catch site on stack", NULL);
-
-    // # of Exceps Thrown / sec
     // This counter displays the number of exceptions thrown per second.
-    // These include both .NET exceptions and unmanaged exceptions that get converted into .NET exceptions e.g.null pointer reference exception in unmanaged code would get
-    // re-thrown in managed code as a .NET System.NullReferenceException; this counter includes both handled and unhandled exceptions.
-    // Exceptions should only occur in rare situations and not in the normal control flow of the program;
-    // this counter was designed as an indicator of potential performance problems due to large (> 100s) rate of exceptions thrown.
+    // These include both .NET exceptions and unmanaged exceptions that get converted into .NET exceptions.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_EXCEPTIONS, DOTNET_INDEX_EXCEPTIONS_THROWNPERSEC, L"# of Exceps Thrown / sec", UlongToPtr(DOTNET_INDEX_EXCEPTIONS_THROWNPERSEC));
 
-    // # of Filters / sec
-    // This counter displays the number of.NET exception filters executed per second.An exception filter evaluates whether an exception should be handled or not.
-    // This counter tracks the rate of exception filters evaluated; irrespective of whether the exception was handled or not.
+    // This counter displays the number of .NET exception filters executed per second.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_EXCEPTIONS, DOTNET_INDEX_EXCEPTIONS_FILTERSPERSEC, L"# of Filters Executed / sec", UlongToPtr(DOTNET_INDEX_EXCEPTIONS_FILTERSPERSEC));
 
-    // # of Finallys / sec
     // This counter displays the number of finally blocks executed per second.
-    // A finally block is guaranteed to be executed regardless of how the try block was exited.
-    // Only the finally blocks that are executed for an exception are counted; finally blocks on normal code paths are not counted by this counter.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_EXCEPTIONS, DOTNET_INDEX_EXCEPTIONS_FINALLYPERSEC, L"# of Finallys Executed / sec", UlongToPtr(DOTNET_INDEX_EXCEPTIONS_FINALLYPERSEC));
 
-    // Throw To Catch Depth / sec
     // This counter displays the number of stack frames traversed from the frame that threw the .NET exception to the frame that handled the exception per second.
-    // This counter resets to 0 when an exception handler is entered; so nested exceptions would show the handler to handler stack depth.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_EXCEPTIONS, DOTNET_INDEX_EXCEPTIONS_THROWTOCATCHDEPTHPERSEC, L"Throw To Catch Depth / sec", UlongToPtr(DOTNET_INDEX_EXCEPTIONS_THROWTOCATCHDEPTHPERSEC));
 
     // This counter displays the current number of Com-Callable-Wrappers (CCWs).
     // A CCW is a proxy for the .NET managed object being referenced from unmanaged COM client(s).
@@ -395,10 +409,9 @@ VOID DotNetPerfAddListViewGroups(
     // This counter is updated at the end of every JIT compilation phase. A JIT compilation phase is the phase when a method and its dependencies are being compiled.
     PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_JIT, DOTNET_INDEX_JIT_TIME, L"% Time in Jit", UlongToPtr(DOTNET_INDEX_JIT_TIME));
 
-    // IL Bytes Jitted / sec
     // This counter displays the rate at which IL bytes are jitted per second.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_JIT, DOTNET_INDEX_JIT_ILBYTESJITTEDPERSEC, L"IL Bytes Jitted / sec", UlongToPtr(DOTNET_INDEX_JIT_ILBYTESJITTEDPERSEC));
 
     // This counter displays the current number of classes loaded in all Assemblies.
     PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOADING, DOTNET_INDEX_LOADING_CURRENTLOADED, L"Current Classes Loaded", UlongToPtr(DOTNET_INDEX_LOADING_CURRENTLOADED));
@@ -439,38 +452,25 @@ VOID DotNetPerfAddListViewGroups(
     //If an AppDomain is loaded and unloaded multiple times this counter would count each of those unloads as separate.
     PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOADING, DOTNET_INDEX_LOADING_TOTALAPPDOMAINSUNLOADED, L"Total Appdomains Unloaded", UlongToPtr(DOTNET_INDEX_LOADING_TOTALAPPDOMAINSUNLOADED));
 
-    // Reserved for future use.
-    //PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOADING, , L"% Time Loading", UlongToPtr());
-
-    // Rate of Load Failures
-    // This counter displays the number of classes that failed to load per second.
-    // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // These load failures could be due to many reasons like inadequate security or illegal format. Full details can be found in the profiling services help.
-    // TODO: We need to count the delta.
-
-    // Rate of appdomains unloaded
-    // This counter displays the number of AppDomains unloaded per second.
-    // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
-
-    // Rate of Classes Loaded
     // This counter displays the number of classes loaded per second in all Assemblies.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOADING, DOTNET_INDEX_LOADING_CLASSESLOADEDRATE, L"Rate of Classes Loaded", UlongToPtr(DOTNET_INDEX_LOADING_CLASSESLOADEDRATE));
 
-    // Rate of appdomains
     // This counter displays the number of AppDomains loaded per second.
-    // AppDomains(application domains) provide a secure and versatile unit of processing that the CLR can use to provide isolation between applications
-    // running in the same process. This counter is not an average over time; it displays the difference between the values observed in the last two samples
-    // divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
-
-    // Rate of Assemblies
-    // This counter displays the number of Assemblies loaded across all AppDomains per second.
-    // If the Assembly is loaded as domain - neutral from multiple AppDomains then this counter is incremented once only.Assemblies can be loaded as
-    // domain - neutral when their code can be shared by all AppDomains or they can be loaded as domain - specific when their code is private to the AppDomain.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOADING, DOTNET_INDEX_LOADING_APPDOMAINSRATE, L"Rate of Appdomains", UlongToPtr(DOTNET_INDEX_LOADING_APPDOMAINSRATE));
+
+    // This counter displays the number of Assemblies loaded across all AppDomains per second.
+    // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOADING, DOTNET_INDEX_LOADING_ASSEMBLIESRATE, L"Rate of Assemblies", UlongToPtr(DOTNET_INDEX_LOADING_ASSEMBLIESRATE));
+
+    // This counter displays the number of classes that failed to load per second.
+    // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOADING, DOTNET_INDEX_LOADING_LOADFAILURESRATE, L"Rate of Load Failures", UlongToPtr(DOTNET_INDEX_LOADING_LOADFAILURESRATE));
+
+    // This counter displays the number of AppDomains unloaded per second.
+    // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOADING, DOTNET_INDEX_LOADING_APPDOMAINSUNLOADEDRATE, L"Rate of Appdomains Unloaded", UlongToPtr(DOTNET_INDEX_LOADING_APPDOMAINSUNLOADEDRATE));
 
     // This counter displays the total number of times threads in the CLR have attempted to acquire a managed lock unsuccessfully.
     // Managed locks can be acquired in many ways; by the "lock" statement in C# or by calling System.Monitor.Enter or by using MethodImplOptions.Synchronized custom attribute.
@@ -503,22 +503,17 @@ VOID DotNetPerfAddListViewGroups(
     // Only unique threads are tracked; threads with same thread ID re-entering the CLR or recreated after thread exit are not counted twice.
     PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOCKSANDTHREADS, DOTNET_INDEX_LOCKSANDTHREADS_TOTALRECOGNIZED, L"# of Total Recognized Threads", UlongToPtr(DOTNET_INDEX_LOCKSANDTHREADS_TOTALRECOGNIZED));
 
-    // Contention Rate / sec
     // Rate at which threads in the runtime attempt to acquire a managed lock unsuccessfully.
-    // Managed locks can be acquired in many ways; by the "lock" statement in C# or by calling System.Monitor.Enter or by using MethodImplOptions.Synchronized custom attribute.
-    // TODO: We need to count the delta.
+    // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOCKSANDTHREADS, DOTNET_INDEX_LOCKSANDTHREADS_CONTENTIONRATE, L"Contention Rate / sec", UlongToPtr(DOTNET_INDEX_LOCKSANDTHREADS_CONTENTIONRATE));
 
-    // Queue Length / sec
     // This counter displays the number of threads per second waiting to acquire some lock in the application.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOCKSANDTHREADS, DOTNET_INDEX_LOCKSANDTHREADS_QUEUELENGTHRATE, L"Queue Length / sec", UlongToPtr(DOTNET_INDEX_LOCKSANDTHREADS_QUEUELENGTHRATE));
 
-    // rate of recognized threads / sec
-    // This counter displays the number of threads per second that have been recognized by the CLR; these threads have a corresponding .NET thread object associated with them.
-    // These threads are not created by the CLR; they are created outside the CLR but have since run inside the CLR at least once.
-    // Only unique threads are tracked; threads with same thread ID re-entering the CLR or recreated after thread exit are not counted twice.
+    // This counter displays the number of threads per second recognized by the CLR.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_LOCKSANDTHREADS, DOTNET_INDEX_LOCKSANDTHREADS_RECOGNIZEDTHREADSRATE, L"Rate of Recognized Threads / sec", UlongToPtr(DOTNET_INDEX_LOCKSANDTHREADS_RECOGNIZEDTHREADSRATE));
 
     // This counter displays the total number of remote procedure calls invoked since the start of this application.
     // A remote procedure call is a call on any object outside the callers AppDomain.
@@ -544,18 +539,14 @@ VOID DotNetPerfAddListViewGroups(
     // Reserved for future use.
     PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_REMOTING, DOTNET_INDEX_REMOTING_CONTEXTSALLOCATED, L"# of context bound objects allocated", UlongToPtr(DOTNET_INDEX_REMOTING_CONTEXTSALLOCATED));
 
-    // Remote Calls / sec
     // This counter displays the number of remote procedure calls invoked per second.
     // A remote procedure call is a call on any object outside the callers AppDomain.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_REMOTING, DOTNET_INDEX_REMOTING_REMOTECALLSRATE, L"Remote Calls / sec", UlongToPtr(DOTNET_INDEX_REMOTING_REMOTECALLSRATE));
 
-    // Context - Bound Objects Alloc / sec
-    // This counter displays the number of context - bound objects allocated per second.
-    // Instances of classes that can be bound to a context are called context - bound objects; context - bound classes are marked with Context Attributes
-    // which provide usage rules for synchronization; thread affinity; transactions etc.
+    // This counter displays the number of context-bound objects allocated per second.
     // This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-    // TODO: We need to count the delta.
+    PhAddListViewGroupItem(ListViewHandle, DOTNET_CATEGORY_REMOTING, DOTNET_INDEX_REMOTING_OBJALLOCATIONRATE, L"Context-Bound Objects Alloc / sec", UlongToPtr(DOTNET_INDEX_REMOTING_OBJALLOCATIONRATE));
 
     // This counter displays the total number of runtime Code Access Security(CAS) checks performed since the start of the application.
     // Runtime CAS checks are performed when a caller makes a call to a callee demanding a particular permission;
@@ -656,6 +647,18 @@ VOID DotNetPerfUpdateCounterData(
 
     if (!perfStatBlock)
         return;
+
+    if (Context->SampleCount > 0)
+    {
+        Context->DotNetPerfGC_Previous = Context->DotNetPerfGC;
+        Context->DotNetPerfContext_Previous = Context->DotNetPerfContext;
+        Context->DotNetPerfExceptions_Previous = Context->DotNetPerfExceptions;
+        Context->DotNetPerfJit_Previous = Context->DotNetPerfJit;
+        Context->DotNetPerfLoading_Previous = Context->DotNetPerfLoading;
+        Context->DotNetPerfLocksAndThreads_Previous = Context->DotNetPerfLocksAndThreads;
+    }
+
+    Context->SampleCount++;
 
     if (Context->IsWow64Process)
     {
@@ -1751,6 +1754,392 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
                                     {
                                         wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                }
+                                break;
+
+                            case DOTNET_INDEX_MEMORY_GC0PROMOTEDBYTESPERSEC:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[0x100];
+                                        size_t cur = context->DotNetPerfGC.cbPromotedMem[0];
+                                        size_t prev = context->DotNetPerfGC_Previous.cbPromotedMem[0];
+
+                                        PhInitFormatSize(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_MEMORY_GC1PROMOTEDBYTESPERSEC:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[0x100];
+                                        size_t cur = context->DotNetPerfGC.cbPromotedMem[1];
+                                        size_t prev = context->DotNetPerfGC_Previous.cbPromotedMem[1];
+
+                                        PhInitFormatSize(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_MEMORY_FINALPROMOTEDBYTESPERSEC:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[0x100];
+                                        size_t cur = context->DotNetPerfGC.cbPromotedFinalizationMem;
+                                        size_t prev = context->DotNetPerfGC_Previous.cbPromotedFinalizationMem;
+
+                                        PhInitFormatSize(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_MEMORY_ALLOCATEDBYTESPERSEC:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[0x100];
+                                        size_t cur = context->DotNetPerfGC.cbAlloc;
+                                        size_t prev = context->DotNetPerfGC_Previous.cbAlloc;
+
+                                        PhInitFormatSize(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+
+                            case DOTNET_INDEX_EXCEPTIONS_THROWNPERSEC:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfExceptions.cThrown.Total;
+                                        ULONG prev = context->DotNetPerfExceptions_Previous.cThrown.Total;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_EXCEPTIONS_FILTERSPERSEC:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfExceptions.cFiltersExecuted;
+                                        ULONG prev = context->DotNetPerfExceptions_Previous.cFiltersExecuted;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_EXCEPTIONS_FINALLYPERSEC:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfExceptions.cFinallysExecuted;
+                                        ULONG prev = context->DotNetPerfExceptions_Previous.cFinallysExecuted;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_EXCEPTIONS_THROWTOCATCHDEPTHPERSEC:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfExceptions.cThrowToCatchStackDepth;
+                                        ULONG prev = context->DotNetPerfExceptions_Previous.cThrowToCatchStackDepth;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+
+                            case DOTNET_INDEX_JIT_ILBYTESJITTEDPERSEC:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[0x100];
+                                        ULONG cur = context->DotNetPerfJit.cbILJitted.Current;
+                                        ULONG prev = context->DotNetPerfJit_Previous.cbILJitted.Current;
+
+                                        PhInitFormatSize(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+
+                            case DOTNET_INDEX_LOADING_CLASSESLOADEDRATE:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfLoading.cClassesLoaded.Total;
+                                        ULONG prev = context->DotNetPerfLoading_Previous.cClassesLoaded.Total;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_LOADING_APPDOMAINSRATE:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfLoading.cAppDomains.Total;
+                                        ULONG prev = context->DotNetPerfLoading_Previous.cAppDomains.Total;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_LOADING_ASSEMBLIESRATE:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfLoading.cAssemblies.Total;
+                                        ULONG prev = context->DotNetPerfLoading_Previous.cAssemblies.Total;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_LOADING_LOADFAILURESRATE:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfLoading.cLoadFailures.Total;
+                                        ULONG prev = context->DotNetPerfLoading_Previous.cLoadFailures.Total;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_LOADING_APPDOMAINSUNLOADEDRATE:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfLoading.cAppDomainsUnloaded.Total;
+                                        ULONG prev = context->DotNetPerfLoading_Previous.cAppDomainsUnloaded.Total;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+
+                            case DOTNET_INDEX_LOCKSANDTHREADS_CONTENTIONRATE:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfLocksAndThreads.cContention.Total;
+                                        ULONG prev = context->DotNetPerfLocksAndThreads_Previous.cContention.Total;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_LOCKSANDTHREADS_QUEUELENGTHRATE:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfLocksAndThreads.cQueueLength.Total;
+                                        ULONG prev = context->DotNetPerfLocksAndThreads_Previous.cQueueLength.Total;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_LOCKSANDTHREADS_RECOGNIZEDTHREADSRATE:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfLocksAndThreads.cRecognizedThreads.Total;
+                                        ULONG prev = context->DotNetPerfLocksAndThreads_Previous.cRecognizedThreads.Total;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+
+                            case DOTNET_INDEX_REMOTING_REMOTECALLSRATE:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfContext.cRemoteCalls.Total;
+                                        ULONG prev = context->DotNetPerfContext_Previous.cRemoteCalls.Total;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case DOTNET_INDEX_REMOTING_OBJALLOCATIONRATE:
+                                {
+                                    if (context->SampleCount >= 2)
+                                    {
+                                        PH_FORMAT format[1];
+                                        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
+                                        ULONG cur = context->DotNetPerfContext.cObjAlloc;
+                                        ULONG prev = context->DotNetPerfContext_Previous.cObjAlloc;
+
+                                        PhInitFormatI64UGroupDigits(&format[0], cur > prev ? cur - prev : 0);
+
+                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, formatBuffer, _TRUNCATE);
+                                    }
+                                    else
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0", _TRUNCATE);
                                     }
                                 }
                                 break;

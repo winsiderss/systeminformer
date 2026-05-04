@@ -38,29 +38,29 @@ VOID NTAPI NotifyEventCallback(
     );
 
 INT_PTR CALLBACK ProcessesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK ServicesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK DevicesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK LoggingDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -474,7 +474,7 @@ PPH_LIST EditingDeviceFilterList;
 
 LRESULT CALLBACK TextBoxSubclassProc(
     _In_ HWND hWnd,
-    _In_ UINT uMsg,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -484,7 +484,7 @@ LRESULT CALLBACK TextBoxSubclassProc(
     if (!oldWndProc)
         return 0;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_NCDESTROY:
         {
@@ -509,11 +509,11 @@ LRESULT CALLBACK TextBoxSubclassProc(
         break;
     }
 
-    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hWnd, WindowMessage, wParam, lParam);
 }
 
 VOID FixControlStates(
-    _In_ HWND hwndDlg,
+    _In_ HWND WindowHandle,
     _In_ HWND ListBox
     )
 {
@@ -523,35 +523,35 @@ VOID FixControlStates(
     i = ListBox_GetCurSel(ListBox);
     count = ListBox_GetCount(ListBox);
 
-    EnableWindow(GetDlgItem(hwndDlg, IDC_REMOVE), i != LB_ERR);
-    EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), i != LB_ERR && i != 0);
-    EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), i != LB_ERR && i != count - 1);
+    EnableWindow(GetDlgItem(WindowHandle, IDC_REMOVE), i != LB_ERR);
+    EnableWindow(GetDlgItem(WindowHandle, IDC_MOVEUP), i != LB_ERR && i != 0);
+    EnableWindow(GetDlgItem(WindowHandle, IDC_MOVEDOWN), i != LB_ERR && i != count - 1);
 }
 
 INT_PTR HandleCommonMessages(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ HWND ListBox,
     _In_ PPH_LIST FilterList
     )
 {
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
             HWND textBoxHandle;
             WNDPROC oldWndProc;
 
-            textBoxHandle = GetDlgItem(hwndDlg, IDC_TEXT);
+            textBoxHandle = GetDlgItem(WindowHandle, IDC_TEXT);
             oldWndProc = PhGetWindowProcedure(textBoxHandle);
             PhSetWindowContext(textBoxHandle, UCHAR_MAX, oldWndProc);
             PhSetWindowProcedure(textBoxHandle, TextBoxSubclassProc);
 
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_INCLUDE), BST_CHECKED);
+            Button_SetCheck(GetDlgItem(WindowHandle, IDC_INCLUDE), BST_CHECKED);
 
-            FixControlStates(hwndDlg, ListBox);
+            FixControlStates(WindowHandle, ListBox);
         }
         break;
     case WM_COMMAND:
@@ -571,14 +571,14 @@ INT_PTR HandleCommonMessages(
                             PFILTER_ENTRY entry;
 
                             entry = FilterList->Items[i];
-                            PhSetDialogItemText(hwndDlg, IDC_TEXT, entry->Filter->Buffer);
-                            Button_SetCheck(GetDlgItem(hwndDlg, IDC_INCLUDE),
+                            PhSetDialogItemText(WindowHandle, IDC_TEXT, entry->Filter->Buffer);
+                            Button_SetCheck(GetDlgItem(WindowHandle, IDC_INCLUDE),
                                 entry->Type == FilterInclude ? BST_CHECKED : BST_UNCHECKED);
-                            Button_SetCheck(GetDlgItem(hwndDlg, IDC_EXCLUDE),
+                            Button_SetCheck(GetDlgItem(WindowHandle, IDC_EXCLUDE),
                                 entry->Type == FilterExclude ? BST_CHECKED : BST_UNCHECKED);
                         }
 
-                        FixControlStates(hwndDlg, ListBox);
+                        FixControlStates(WindowHandle, ListBox);
                     }
                 }
                 break;
@@ -590,7 +590,7 @@ INT_PTR HandleCommonMessages(
                     FILTER_TYPE type;
                     PPH_STRING entryString;
 
-                    string = PhGetWindowText(GetDlgItem(hwndDlg, IDC_TEXT));
+                    string = PhGetWindowText(GetDlgItem(WindowHandle, IDC_TEXT));
 
                     if (string->Length == 0)
                     {
@@ -606,7 +606,7 @@ INT_PTR HandleCommonMessages(
                             break;
                     }
 
-                    type = Button_GetCheck(GetDlgItem(hwndDlg, IDC_INCLUDE)) == BST_CHECKED ? FilterInclude : FilterExclude;
+                    type = Button_GetCheck(GetDlgItem(WindowHandle, IDC_INCLUDE)) == BST_CHECKED ? FilterInclude : FilterExclude;
 
                     if (i == FilterList->Count)
                     {
@@ -637,10 +637,10 @@ INT_PTR HandleCommonMessages(
                         ListBox_SetCurSel(ListBox, i);
                     }
 
-                    PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_TEXT));
-                    Edit_SetSel(GetDlgItem(hwndDlg, IDC_TEXT), 0, -1);
+                    PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDC_TEXT));
+                    Edit_SetSel(GetDlgItem(WindowHandle, IDC_TEXT), 0, -1);
 
-                    FixControlStates(hwndDlg, ListBox);
+                    FixControlStates(WindowHandle, ListBox);
                 }
                 break;
             case IDC_REMOVE:
@@ -662,7 +662,7 @@ INT_PTR HandleCommonMessages(
 
                         ListBox_SetCurSel(ListBox, i);
 
-                        FixControlStates(hwndDlg, ListBox);
+                        FixControlStates(WindowHandle, ListBox);
                     }
                 }
                 break;
@@ -689,7 +689,7 @@ INT_PTR HandleCommonMessages(
                         i--;
                         ListBox_SetCurSel(ListBox, i);
 
-                        FixControlStates(hwndDlg, ListBox);
+                        FixControlStates(WindowHandle, ListBox);
                     }
                 }
                 break;
@@ -716,7 +716,7 @@ INT_PTR HandleCommonMessages(
                         i++;
                         ListBox_SetCurSel(ListBox, i);
 
-                        FixControlStates(hwndDlg, ListBox);
+                        FixControlStates(WindowHandle, ListBox);
                     }
                 }
                 break;
@@ -729,8 +729,8 @@ INT_PTR HandleCommonMessages(
 }
 
 INT_PTR CALLBACK ProcessesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -738,29 +738,29 @@ INT_PTR CALLBACK ProcessesDlgProc(
     static PH_LAYOUT_MANAGER LayoutManager;
     INT_PTR result;
 
-    if (result = HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
-        GetDlgItem(hwndDlg, IDC_LIST), EditingProcessFilterList))
+    if (result = HandleCommonMessages(WindowHandle, WindowMessage, wParam, lParam,
+        GetDlgItem(WindowHandle, IDC_LIST), EditingProcessFilterList))
         return result;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
             EditingProcessFilterList = PhCreateList(ProcessFilterList->Count + 10);
             CopyFilterList(EditingProcessFilterList, ProcessFilterList);
 
-            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_EXCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhInitializeLayoutManager(&LayoutManager, WindowHandle);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_LIST), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_TEXT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_INCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_EXCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
-            AddEntriesToListBox(GetDlgItem(hwndDlg, IDC_LIST), EditingProcessFilterList);
+            AddEntriesToListBox(GetDlgItem(WindowHandle, IDC_LIST), EditingProcessFilterList);
         }
         break;
     case WM_DESTROY:
@@ -774,38 +774,38 @@ INT_PTR CALLBACK ProcessesDlgProc(
             PhSetStringSetting2(SETTING_NAME_PROCESS_LIST, &string->sr);
             PhDereferenceObject(string);
 
-            ClearFilterList(EditingProcessFilterList);
-            PhDereferenceObject(EditingProcessFilterList);
-            EditingProcessFilterList = NULL;
+             ClearFilterList(EditingProcessFilterList);
+             PhDereferenceObject(EditingProcessFilterList);
+             EditingProcessFilterList = NULL;
 
-            PhDeleteLayoutManager(&LayoutManager);
-        }
-        break;
-    case WM_DPICHANGED_AFTERPARENT:
-        {
-            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
-            PhLayoutManagerLayout(&LayoutManager);
-        }
-        break;
-    case WM_SIZE:
-        {
-            PhLayoutManagerLayout(&LayoutManager);
-        }
-        break;
-    case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+             PhDeleteLayoutManager(&LayoutManager);
+         }
+         break;
+     case WM_DPICHANGED_AFTERPARENT:
+         {
+             PhLayoutManagerUpdate(&LayoutManager, PhGetWindowDpi(WindowHandle));
+             PhLayoutManagerLayout(&LayoutManager);
+         }
+         break;
+     case WM_SIZE:
+         {
+             PhLayoutManagerLayout(&LayoutManager);
+         }
+         break;
+     case WM_CTLCOLORBTN:
+         return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+     case WM_CTLCOLORDLG:
+         return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+     case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
 }
 
 INT_PTR CALLBACK ServicesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -813,29 +813,29 @@ INT_PTR CALLBACK ServicesDlgProc(
     static PH_LAYOUT_MANAGER LayoutManager;
     INT_PTR result;
 
-    if (result = HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
-        GetDlgItem(hwndDlg, IDC_LIST), EditingServiceFilterList))
+    if (result = HandleCommonMessages(WindowHandle, WindowMessage, wParam, lParam,
+        GetDlgItem(WindowHandle, IDC_LIST), EditingServiceFilterList))
         return result;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
             EditingServiceFilterList = PhCreateList(ServiceFilterList->Count + 10);
             CopyFilterList(EditingServiceFilterList, ServiceFilterList);
 
-            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_EXCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhInitializeLayoutManager(&LayoutManager, WindowHandle);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_LIST), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_TEXT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_INCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_EXCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
-            AddEntriesToListBox(GetDlgItem(hwndDlg, IDC_LIST), EditingServiceFilterList);
+            AddEntriesToListBox(GetDlgItem(WindowHandle, IDC_LIST), EditingServiceFilterList);
         }
         break;
     case WM_DESTROY:
@@ -849,38 +849,38 @@ INT_PTR CALLBACK ServicesDlgProc(
             PhSetStringSetting2(SETTING_NAME_SERVICE_LIST, &string->sr);
             PhDereferenceObject(string);
 
-            ClearFilterList(EditingServiceFilterList);
-            PhDereferenceObject(EditingServiceFilterList);
-            EditingServiceFilterList = NULL;
+             ClearFilterList(EditingServiceFilterList);
+             PhDereferenceObject(EditingServiceFilterList);
+             EditingServiceFilterList = NULL;
 
-            PhDeleteLayoutManager(&LayoutManager);
-        }
-        break;
-    case WM_DPICHANGED_AFTERPARENT:
-        {
-            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
-            PhLayoutManagerLayout(&LayoutManager);
-        }
-        break;
-    case WM_SIZE:
-        {
-            PhLayoutManagerLayout(&LayoutManager);
-        }
-        break;
-    case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    }
+             PhDeleteLayoutManager(&LayoutManager);
+         }
+         break;
+     case WM_DPICHANGED_AFTERPARENT:
+         {
+             PhLayoutManagerUpdate(&LayoutManager, PhGetWindowDpi(WindowHandle));
+             PhLayoutManagerLayout(&LayoutManager);
+         }
+         break;
+     case WM_SIZE:
+         {
+             PhLayoutManagerLayout(&LayoutManager);
+         }
+         break;
+     case WM_CTLCOLORBTN:
+         return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+     case WM_CTLCOLORDLG:
+         return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+     case WM_CTLCOLORSTATIC:
+         return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+     }
 
-    return FALSE;
-}
+     return FALSE;
+ }
 
 INT_PTR CALLBACK DevicesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -888,29 +888,29 @@ INT_PTR CALLBACK DevicesDlgProc(
     static PH_LAYOUT_MANAGER LayoutManager;
     INT_PTR result;
 
-    if (result = HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
-        GetDlgItem(hwndDlg, IDC_LIST), EditingDeviceFilterList))
+    if (result = HandleCommonMessages(WindowHandle, WindowMessage, wParam, lParam,
+        GetDlgItem(WindowHandle, IDC_LIST), EditingDeviceFilterList))
         return result;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
             EditingDeviceFilterList = PhCreateList(DeviceFilterList->Count + 10);
             CopyFilterList(EditingDeviceFilterList, DeviceFilterList);
 
-            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_EXCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhInitializeLayoutManager(&LayoutManager, WindowHandle);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_LIST), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_TEXT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_INCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_EXCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
-            AddEntriesToListBox(GetDlgItem(hwndDlg, IDC_LIST), EditingDeviceFilterList);
+            AddEntriesToListBox(GetDlgItem(WindowHandle, IDC_LIST), EditingDeviceFilterList);
         }
         break;
     case WM_DESTROY:
@@ -924,77 +924,77 @@ INT_PTR CALLBACK DevicesDlgProc(
             PhSetStringSetting2(SETTING_NAME_DEVICE_LIST, &string->sr);
             PhDereferenceObject(string);
 
-            ClearFilterList(EditingDeviceFilterList);
-            PhDereferenceObject(EditingDeviceFilterList);
-            EditingDeviceFilterList = NULL;
+             ClearFilterList(EditingDeviceFilterList);
+             PhDereferenceObject(EditingDeviceFilterList);
+             EditingDeviceFilterList = NULL;
 
-            PhDeleteLayoutManager(&LayoutManager);
-        }
-        break;
-    case WM_DPICHANGED_AFTERPARENT:
-        {
-            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
-            PhLayoutManagerLayout(&LayoutManager);
-        }
-        break;
-    case WM_SIZE:
-        {
-            PhLayoutManagerLayout(&LayoutManager);
-        }
-        break;
-    case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    }
+             PhDeleteLayoutManager(&LayoutManager);
+         }
+         break;
+     case WM_DPICHANGED_AFTERPARENT:
+         {
+             PhLayoutManagerUpdate(&LayoutManager, PhGetWindowDpi(WindowHandle));
+             PhLayoutManagerLayout(&LayoutManager);
+         }
+         break;
+     case WM_SIZE:
+         {
+             PhLayoutManagerLayout(&LayoutManager);
+         }
+         break;
+     case WM_CTLCOLORBTN:
+         return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+     case WM_CTLCOLORDLG:
+         return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+     case WM_CTLCOLORSTATIC:
+         return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+     }
 
-    return FALSE;
-}
+     return FALSE;
+ }
 
-INT_PTR CALLBACK LoggingDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+     INT_PTR CALLBACK LoggingDlgProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     static PH_LAYOUT_MANAGER LayoutManager;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            PhSetDialogItemText(hwndDlg, IDC_LOGFILENAME, PhaGetStringSetting(SETTING_NAME_LOG_FILENAME)->Buffer);
+            PhSetDialogItemText(WindowHandle, IDC_LOGFILENAME, PhaGetStringSetting(SETTING_NAME_LOG_FILENAME)->Buffer);
 
-            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LOGFILENAME), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhInitializeLayoutManager(&LayoutManager, WindowHandle);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_INFO), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_LOGFILENAME), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
         }
         break;
     case WM_DESTROY:
         {
-            PhSetStringSetting2(SETTING_NAME_LOG_FILENAME, &PhaGetDlgItemText(hwndDlg, IDC_LOGFILENAME)->sr);
+             PhSetStringSetting2(SETTING_NAME_LOG_FILENAME, &PhaGetDlgItemText(WindowHandle, IDC_LOGFILENAME)->sr);
 
-            PhDeleteLayoutManager(&LayoutManager);
-        }
-        break;
-    case WM_DPICHANGED_AFTERPARENT:
-        {
-            PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
-            PhLayoutManagerLayout(&LayoutManager);
-        }
-        break;
-    case WM_SIZE:
-        {
-            PhLayoutManagerLayout(&LayoutManager);
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_ID(wParam, lParam))
+             PhDeleteLayoutManager(&LayoutManager);
+         }
+         break;
+     case WM_DPICHANGED_AFTERPARENT:
+         {
+             PhLayoutManagerUpdate(&LayoutManager, PhGetWindowDpi(WindowHandle));
+             PhLayoutManagerLayout(&LayoutManager);
+         }
+         break;
+     case WM_SIZE:
+         {
+             PhLayoutManagerLayout(&LayoutManager);
+         }
+         break;
+     case WM_COMMAND:
+         {
+             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_BROWSE:
                 {
@@ -1009,13 +1009,13 @@ INT_PTR CALLBACK LoggingDlgProc(
                     fileDialog = PhCreateSaveFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PH_AUTO(PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_LOGFILENAME)));
+                    fileName = PH_AUTO(PhGetFileName(PhaGetDlgItemText(WindowHandle, IDC_LOGFILENAME)));
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
 
-                    if (PhShowFileDialog(hwndDlg, fileDialog))
+                    if (PhShowFileDialog(WindowHandle, fileDialog))
                     {
                         fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-                        PhSetDialogItemText(hwndDlg, IDC_LOGFILENAME, fileName->Buffer);
+                        PhSetDialogItemText(WindowHandle, IDC_LOGFILENAME, fileName->Buffer);
                     }
 
                     PhFreeFileDialog(fileDialog);
@@ -1025,11 +1025,11 @@ INT_PTR CALLBACK LoggingDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

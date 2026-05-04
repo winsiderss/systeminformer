@@ -731,9 +731,9 @@ BOOLEAN QueryUpdateData(
 
     if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE))
     {
-        PPH_STRING jsonStringUtf16 = PhConvertBytesToUtf16(jsonString);
-        PhSetStringSetting2(SETTING_NAME_UPDATE_DATA, &jsonStringUtf16->sr);
-        PhDereferenceObject(jsonStringUtf16);
+        PPH_STRING jsonStringHex = PhBufferToHexString((PUCHAR)jsonString->Buffer, jsonString->Length);
+        PhSetStringSetting2(SETTING_NAME_UPDATE_DATA, &jsonStringHex->sr);
+        PhDereferenceObject(jsonStringHex);
     }
 
 CleanupExit:

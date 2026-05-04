@@ -730,7 +730,7 @@ Done:
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
-            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerUpdate(&context->LayoutManager, PhGetWindowDpi(WindowHandle));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;

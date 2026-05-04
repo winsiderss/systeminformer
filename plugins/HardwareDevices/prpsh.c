@@ -28,21 +28,21 @@ VOID NTAPI PvpPropPageContextDeleteProcedure(
     );
 
 INT CALLBACK PvpPropSheetProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ LPARAM lParam
     );
 
 LRESULT CALLBACK PvpPropSheetWndProc(
     _In_ HWND hWnd,
-    _In_ UINT uMsg,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
 UINT CALLBACK PvpStandardPropPageProc(
-    _In_ HWND hwnd,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ LPPROPSHEETPAGE ppsp
     );
 
@@ -95,14 +95,14 @@ VOID NTAPI PvpPropContextDeleteProcedure(
 }
 
 INT CALLBACK PvpPropSheetProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ LPARAM lParam
     )
 {
 #define PROPSHEET_ADD_STYLE (WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME);
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case PSCB_PRECREATE:
         {
@@ -126,11 +126,11 @@ INT CALLBACK PvpPropSheetProc(
             context = PhAllocate(sizeof(PV_PROPSHEETCONTEXT));
             memset(context, 0, sizeof(PV_PROPSHEETCONTEXT));
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
 
-            context->DefaultWindowProc = PhGetWindowProcedure(hwndDlg);
-            PhSetWindowContext(hwndDlg, ULONG_MAX, context);
-            PhSetWindowProcedure(hwndDlg, PvpPropSheetWndProc);
+            context->DefaultWindowProc = PhGetWindowProcedure(WindowHandle);
+            PhSetWindowContext(WindowHandle, ULONG_MAX, context);
+            PhSetWindowProcedure(WindowHandle, PvpPropSheetWndProc);
 
             if (MinimumSize.left == -1)
             {
@@ -140,7 +140,7 @@ INT CALLBACK PvpPropSheetProc(
                 rect.top = 0;
                 rect.right = 309;
                 rect.bottom = 265;
-                MapDialogRect(hwndDlg, &rect);
+                MapDialogRect(WindowHandle, &rect);
                 MinimumSize = rect;
                 MinimumSize.left = 0;
             }
@@ -152,15 +152,15 @@ INT CALLBACK PvpPropSheetProc(
 }
 
 PPV_PROPSHEETCONTEXT PvpGetPropSheetContext(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
-    return PhGetWindowContext(hwnd, ULONG_MAX);
+    return PhGetWindowContext(WindowHandle, ULONG_MAX);
 }
 
 LRESULT CALLBACK PvpPropSheetWndProc(
     _In_ HWND hWnd,
-    _In_ UINT uMsg,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -173,7 +173,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
 
     oldWndProc = context->DefaultWindowProc;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_DESTROY:
         {
@@ -225,7 +225,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         break;
     }
 
-    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hWnd, WindowMessage, wParam, lParam);
 }
 
 _Function_class_(PH_WINDOW_ENUM_CALLBACK)
@@ -261,7 +261,7 @@ VOID PvUpdateChildWindows(
 
 LRESULT CALLBACK PvControlButtonWndProc(
     _In_ HWND WindowHandle,
-    _In_ UINT uMsg,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -270,11 +270,11 @@ LRESULT CALLBACK PvControlButtonWndProc(
     WNDPROC oldWndProc;
 
     if (!(propSheetContext = PhGetWindowContext(WindowHandle, SCHAR_MAX)))
-        return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
+        return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
 
     oldWndProc = propSheetContext->OldOptionsButtonWndProc;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_COMMAND:
         {
@@ -292,7 +292,7 @@ LRESULT CALLBACK PvControlButtonWndProc(
         break;
     }
 
-    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
 }
 
 HWND PvpCreateControlButton(
@@ -329,7 +329,7 @@ HWND PvpCreateControlButton(
             rect.right - rect.left,
             rect.bottom - rect.top,
             PropSheetWindow,
-            (HMENU)IDABORT,
+            UlongToHandle(IDABORT),
             PluginInstance->DllBase,
             NULL
             );
@@ -341,7 +341,7 @@ HWND PvpCreateControlButton(
 
 BOOLEAN PhpInitializePropSheetLayoutStage1(
     _In_ PPV_PROPSHEETCONTEXT PropSheetContext,
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ BOOLEAN EnableOptionsButton,
     _In_opt_ PWSTR PositionSettingName,
     _In_opt_ PWSTR SizeSettingName
@@ -353,25 +353,25 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         PPH_LAYOUT_ITEM tabControlItem;
         PPH_LAYOUT_ITEM tabPageItem;
 
-        tabControlHandle = PropSheet_GetTabControl(hwnd);
+        tabControlHandle = PropSheet_GetTabControl(WindowHandle);
         tabControlItem = PhAddLayoutItem(&PropSheetContext->LayoutManager, tabControlHandle, NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
         tabPageItem = PhAddLayoutItem(&PropSheetContext->LayoutManager, tabControlHandle, NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
-        PhAddLayoutItem(&PropSheetContext->LayoutManager, GetDlgItem(hwnd, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+        PhAddLayoutItem(&PropSheetContext->LayoutManager, GetDlgItem(WindowHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
         PropSheetContext->TabPageItem = tabPageItem;
 
         if (EnableOptionsButton)
         {
             PhAddLayoutItem(
                 &PropSheetContext->LayoutManager,
-                PvpCreateControlButton(PropSheetContext, hwnd),
+                PvpCreateControlButton(PropSheetContext, WindowHandle),
                 NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM
                 );
         }
 
         // Hide the OK button.
-        ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
+        ShowWindow(GetDlgItem(WindowHandle, IDOK), SW_HIDE);
         // Set the Cancel button's text to "Close".
-        PhSetDialogItemText(hwnd, IDCANCEL, L"Close");
+        PhSetDialogItemText(WindowHandle, IDCANCEL, L"Close");
 
         if (PositionSettingName)
         {
@@ -380,14 +380,14 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
 
             if (PhValidWindowPlacementFromSetting(PositionSettingName))
             {
-                PhLoadWindowPlacementFromSetting(PositionSettingName, SizeSettingName, hwnd);
+                PhLoadWindowPlacementFromSetting(PositionSettingName, SizeSettingName, WindowHandle);
             }
             else
             {
-                PhCenterWindow(hwnd, GetParent(hwnd));
+                PhCenterWindow(WindowHandle, GetParent(WindowHandle));
             }
 
-            PhSetApplicationWindowIcon(hwnd);
+            PhSetApplicationWindowIcon(WindowHandle);
         }
 
         PropSheetContext->LayoutInitialized = TRUE;
@@ -489,8 +489,8 @@ VOID NTAPI PvpPropPageContextDeleteProcedure(
 }
 
 UINT CALLBACK PvpStandardPropPageProc(
-    _In_ HWND hwnd,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ LPPROPSHEETPAGE ppsp
     )
 {
@@ -498,9 +498,9 @@ UINT CALLBACK PvpStandardPropPageProc(
 
     propPageContext = (PPV_PROPPAGECONTEXT)ppsp->lParam;
 
-    if (uMsg == PSPCB_ADDREF)
+    if (WindowMessage == PSPCB_ADDREF)
         PhReferenceObject(propPageContext);
-    else if (uMsg == PSPCB_RELEASE)
+    else if (WindowMessage == PSPCB_RELEASE)
         PhDereferenceObject(propPageContext);
 
     return 1;
@@ -523,7 +523,7 @@ static VOID ASSERT_DIALOGRECT(
 #endif
 
 PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor,
@@ -538,7 +538,7 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
     PPH_LAYOUT_ITEM realParentItem;
     PPH_LAYOUT_ITEM item;
 
-    parent = GetParent(hwnd);
+    parent = GetParent(WindowHandle);
     propSheetContext = PvpGetPropSheetContext(parent);
     layoutManager = &propSheetContext->LayoutManager;
 
@@ -566,10 +566,10 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
         // MAKE SURE THESE NUMBERS ARE CORRECT.
         dialogSize.right = 309;
         dialogSize.bottom = 265;
-        MapDialogRect(hwnd, &dialogSize);
+        MapDialogRect(WindowHandle, &dialogSize);
 
         // Get the original dialog rectangle.
-        PhGetWindowRect(hwnd, &dialogRect);
+        PhGetWindowRect(WindowHandle, &dialogRect);
         dialogRect.right = dialogRect.left + dialogSize.right;
         dialogRect.bottom = dialogRect.top + dialogSize.bottom;
 
@@ -589,17 +589,17 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
 }
 
 PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor
     )
 {
-    return PvAddPropPageLayoutItemEx(hwnd, Handle, ParentItem, Anchor, FALSE, NULL, NULL);
+    return PvAddPropPageLayoutItemEx(WindowHandle, Handle, ParentItem, Anchor, FALSE, NULL, NULL);
 }
 
 PPH_LAYOUT_ITEM PvAddPropPageLayoutConfig(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor,
@@ -607,17 +607,17 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutConfig(
     _In_opt_ PWSTR SizeSettingName
     )
 {
-    return PvAddPropPageLayoutItemEx(hwnd, Handle, ParentItem, Anchor, FALSE, PositionSettingName, SizeSettingName);
+    return PvAddPropPageLayoutItemEx(WindowHandle, Handle, ParentItem, Anchor, FALSE, PositionSettingName, SizeSettingName);
 }
 
 VOID PvDoPropPageLayout(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
     HWND parent;
     PPV_PROPSHEETCONTEXT propSheetContext;
 
-    parent = GetParent(hwnd);
+    parent = GetParent(WindowHandle);
     propSheetContext = PvpGetPropSheetContext(parent);
     PhLayoutManagerLayout(&propSheetContext->LayoutManager);
 }

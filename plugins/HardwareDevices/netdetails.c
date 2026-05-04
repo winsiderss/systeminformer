@@ -605,50 +605,50 @@ VOID NetAdapterUpdateDetails(
 }
 
 INT_PTR CALLBACK NetAdapterDetailsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PDV_NETADAPTER_DETAILS_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = (PDV_NETADAPTER_DETAILS_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DETAILS_LIST);
+            context->WindowHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_DETAILS_LIST);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(WindowHandle);
 
-            PhSetWindowText(hwndDlg, PhGetStringOrDefault(context->AdapterName, L"Unknown network adapter"));
+            PhSetWindowText(WindowHandle, PhGetStringOrDefault(context->AdapterName, L"Unknown network adapter"));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 200, L"Property");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 240, L"Value");
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_NETWORK_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_NETWORK_POSITION, SETTING_NAME_NETWORK_SIZE, hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_NETWORK_POSITION, SETTING_NAME_NETWORK_SIZE, WindowHandle);
             else
-                PhCenterWindow(hwndDlg, context->ParentHandle);
+                PhCenterWindow(WindowHandle, context->ParentHandle);
 
             NetAdapterAddListViewItemGroups(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_NETWORK_COLUMNS, context->ListViewHandle);
@@ -672,7 +672,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
                 &context->NotifyHandle
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)); // HACK
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)); // HACK
         }
         break;
     case WM_DESTROY:
@@ -682,7 +682,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             if (context->NotifyHandle)
                 CancelMibChangeNotify2(context->NotifyHandle);
 
-            PhSaveWindowPlacementToSetting(SETTING_NAME_NETWORK_POSITION, SETTING_NAME_NETWORK_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_NETWORK_POSITION, SETTING_NAME_NETWORK_SIZE, WindowHandle);
             PhSaveListViewSortColumnsToSetting(SETTING_NAME_NETWORK_SORTCOLUMN, context->ListViewHandle);
             PhSaveListViewColumnsToSetting(SETTING_NAME_NETWORK_COLUMNS, context->ListViewHandle);
 
@@ -693,7 +693,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -701,7 +701,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                DestroyWindow(hwndDlg);
+                DestroyWindow(WindowHandle);
                 break;
             }
         }
@@ -711,12 +711,12 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
         break;
     case WM_PH_SHOW_DIALOG:
         {
-            if (IsMinimized(hwndDlg))
-                ShowWindow(hwndDlg, SW_RESTORE);
+            if (IsMinimized(WindowHandle))
+                ShowWindow(WindowHandle, SW_RESTORE);
             else
-                ShowWindow(hwndDlg, SW_SHOW);
+                ShowWindow(WindowHandle, SW_SHOW);
 
-            SetForegroundWindow(hwndDlg);
+            SetForegroundWindow(WindowHandle);
         }
         break;
     case WM_PH_UPDATE_DIALOG:
@@ -754,7 +754,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
 
                     item = PhShowEMenu(
                         menu,
-                        hwndDlg,
+                        WindowHandle,
                         PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,

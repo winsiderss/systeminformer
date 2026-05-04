@@ -868,7 +868,13 @@ NTSTATUS PhGetProcessUnloadedDlls(
     if (capturedElementCount > 0x4000)
         capturedElementCount = 0x4000;
 
-    eventTraceSize = capturedElementSize * capturedElementCount;
+    if (!NT_SUCCESS(status = RtlSizeTMult(
+        (SIZE_T)capturedElementSize,
+        (SIZE_T)capturedElementCount,
+        &eventTraceSize
+        )))
+        goto CleanupExit;
+
     capturedEventTrace = PhAllocateSafe(eventTraceSize);
 
     if (!capturedEventTrace)

@@ -848,32 +848,32 @@ VOID LoadGraphicsDeviceImages(
 }
 
 INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PDV_GPU_OPTIONS_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(DV_GPU_OPTIONS_CONTEXT));
-        PhSetDialogContext(hwndDlg, context);
+        PhSetDialogContext(WindowHandle, context);
     }
     else
     {
-        context = PhGetDialogContext(hwndDlg);
+        context = PhGetDialogContext(WindowHandle);
     }
 
     if (context == NULL)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_GPUDEVICE_LISTVIEW);
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_GPUDEVICE_LISTVIEW);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
@@ -886,9 +886,9 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
             PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
             FindGraphicsDevices(context);
@@ -912,7 +912,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveDialogContext(hwndDlg);
+            PhRemoveDialogContext(WindowHandle);
             PhFree(context);
         }
         break;
@@ -999,7 +999,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
                 {
                     if (deviceInstance = FindGraphicsDeviceInstance(param->DevicePath))
                     {
-                        ShowDeviceMenu(hwndDlg, deviceInstance);
+                        ShowDeviceMenu(WindowHandle, deviceInstance);
                         PhDereferenceObject(deviceInstance);
 
                         ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
@@ -1019,7 +1019,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
                 {
                     if (deviceInstance = FindGraphicsDeviceInstance(param->DevicePath))
                     {
-                        HardwareDeviceShowProperties(hwndDlg, deviceInstance);
+                        HardwareDeviceShowProperties(WindowHandle, deviceInstance);
                         PhDereferenceObject(deviceInstance);
                     }
                 }
@@ -1027,11 +1027,11 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

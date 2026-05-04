@@ -16,8 +16,8 @@ static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
 INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -157,31 +157,31 @@ static VOID ProcessesUpdatedCallback(
 }
 
 INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PDV_GPU_NODES_WINDOW_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(DV_GPU_NODES_WINDOW_CONTEXT));
         context->NumberOfNodes = ((PDV_GPU_SYSINFO_CONTEXT)lParam)->DeviceEntry->NumberOfNodes;
         context->DeviceEntry = PhReferenceObject(((PDV_GPU_SYSINFO_CONTEXT)lParam)->DeviceEntry);
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (context == NULL)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
@@ -189,12 +189,12 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             ULONG numberOfRows;
             ULONG numberOfColumns;
 
-            context->WindowHandle = hwndDlg;
+            context->WindowHandle = WindowHandle;
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(WindowHandle);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            context->LayoutMargin = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_ALL)->Margin;
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
+            context->LayoutMargin = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_LAYOUT), NULL, PH_ANCHOR_ALL)->Margin;
 
             context->GraphHandle = PhAllocateZero(sizeof(HWND) * context->NumberOfNodes);
             context->GraphState = PhAllocateZero(sizeof(PH_GRAPH_STATE) * context->NumberOfNodes);
@@ -207,10 +207,10 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             context->MinimumSize.top = 0;
             context->MinimumSize.right = 55;
             context->MinimumSize.bottom = 60;
-            MapDialogRect(hwndDlg, &context->MinimumSize);
+            MapDialogRect(WindowHandle, &context->MinimumSize);
             context->MinimumSize.right += (context->MinimumSize.right + GRAPH_PADDING) * numberOfColumns;
             context->MinimumSize.bottom += (context->MinimumSize.bottom + GRAPH_PADDING) * numberOfRows;
-            SetWindowPos(hwndDlg, NULL, 0, 0, context->MinimumSize.right, context->MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
+            SetWindowPos(WindowHandle, NULL, 0, 0, context->MinimumSize.right, context->MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
 
             {
                 D3DKMT_HANDLE adapterHandle;
@@ -240,7 +240,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                     0,
                     0,
                     0,
-                    hwndDlg,
+                    WindowHandle,
                     UlongToPtr(i),
                     NULL,
                     &graphCreateParams
@@ -251,9 +251,9 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
 
             // Note: This dialog must be centered after all other graphs and controls have been added.
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION, SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE, hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION, SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE, WindowHandle);
             else
-                PhCenterWindow(hwndDlg, NULL);
+                PhCenterWindow(WindowHandle, NULL);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -262,14 +262,14 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                 &context->ProcessesUpdatedCallbackRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
         {
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedCallbackRegistration);
 
-            PhSaveWindowPlacementToSetting(SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION, SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION, SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE, WindowHandle);
 
             for (ULONG i = 0; i < context->NumberOfNodes; i++)
             {
@@ -302,7 +302,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -333,7 +333,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
 
             deferHandle = BeginDeferWindowPos(context->NumberOfNodes);
 
-            PhGetClientRect(hwndDlg, &clientRect);
+            PhGetClientRect(WindowHandle, &clientRect);
             cellHeight = (clientRect.bottom - context->LayoutMargin.top - context->LayoutMargin.bottom - GRAPH_PADDING * numberOfYPaddings) / numberOfRows;
             y = context->LayoutMargin.top;
             i = 0;
@@ -388,7 +388,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                DestroyWindow(hwndDlg);
+                DestroyWindow(WindowHandle);
                 break;
             }
         }
@@ -409,12 +409,12 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                 }
             }
 
-            if (IsMinimized(hwndDlg))
-                ShowWindow(hwndDlg, SW_RESTORE);
+            if (IsMinimized(WindowHandle))
+                ShowWindow(WindowHandle, SW_RESTORE);
             else
-                ShowWindow(hwndDlg, SW_SHOW);
+                ShowWindow(WindowHandle, SW_SHOW);
 
-            SetForegroundWindow(hwndDlg);
+            SetForegroundWindow(WindowHandle);
         }
         break;
     case WM_PH_UPDATE_DIALOG:
@@ -438,11 +438,11 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
