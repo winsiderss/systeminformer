@@ -87,6 +87,12 @@ typedef struct _PH_MEMSTRINGS_CONTEXT
     PPH_LIST PrevNodeList;
 
     PH_MEMSTRINGS_SETTINGS Settings;
+
+    ULONG ThreadCount;              // 0 = auto (CPU count), 1..N = fixed
+    struct _PH_MEMSTRINGS_NODE_SLAB* SlabHead;
+    PH_QUEUED_LOCK SlabLock;
+    PPH_LIST StringArenaList;
+    PH_QUEUED_LOCK StringArenaLock;
 } PH_MEMSTRINGS_CONTEXT, *PPH_MEMSTRINGS_CONTEXT;
 
 typedef enum _PH_MEMSTRINGS_TREE_COLUMN_ITEM
@@ -110,18 +116,27 @@ typedef struct _PH_MEMSTRINGS_NODE
     BOOLEAN Unicode;
     PVOID BaseAddress;
     PVOID Address;
-    PPH_STRING String;
+    PH_STRINGREF StringRef;
     ULONG Protection;
     ULONG MemoryType;
 
-    WCHAR IndexString[PH_INT64_STR_LEN_1];
-    WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
-    WCHAR AddressString[PH_PTR_STR_LEN_1];
-    WCHAR LengthString[PH_INT64_STR_LEN_1];
-    WCHAR ProtectionText[17];
+    PPH_STRING IndexText;
+    PPH_STRING BaseAddressText;
+    PPH_STRING AddressText;
+    PPH_STRING LengthText;
+    PPH_STRING ProtectionText;
 
     PH_STRINGREF TextCache[PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM];
 } PH_MEMSTRINGS_NODE, *PPH_MEMSTRINGS_NODE;
+
+#define MEMSTRINGS_SLAB_CAPACITY 256
+
+typedef struct _PH_MEMSTRINGS_NODE_SLAB
+{
+    struct _PH_MEMSTRINGS_NODE_SLAB* Next;
+    ULONG Used;
+    PH_MEMSTRINGS_NODE Nodes[MEMSTRINGS_SLAB_CAPACITY];
+} PH_MEMSTRINGS_NODE_SLAB, *PPH_MEMSTRINGS_NODE_SLAB;
 
 typedef struct _PH_MEMSTRINGS_SEARCH_CONTEXT
 {
@@ -137,6 +152,12 @@ typedef struct _PH_MEMSTRINGS_SEARCH_CONTEXT
     ULONG RegionStart;
     ULONG RegionEnd;
     ULONG CurrentRegionIndex;
+    PPH_MEMSTRINGS_NODE LocalBatch[1024];
+    ULONG LocalBatchCount;
+    PPH_MEMSTRINGS_NODE_SLAB CurrentSlab;
+    PWCHAR StringBuffer;
+    SIZE_T StringBufferUsed;
+    SIZE_T StringBufferCapacity;
 } PH_MEMSTRINGS_SEARCH_CONTEXT, *PPH_MEMSTRINGS_SEARCH_CONTEXT;
 
 typedef struct _PH_MEMSTRINGS_WORKER_CONTEXT
@@ -250,6 +271,12 @@ ReadMemory:
     return status;
 }
 
+// Forward declarations for helpers defined below
+static PWCHAR PhpAllocateStringData(_In_ PPH_MEMSTRINGS_SEARCH_CONTEXT Context, _In_ PWCHAR Source, _In_ SIZE_T CharCount);
+static PPH_MEMSTRINGS_NODE PhpAllocateStringNode(_In_ PPH_MEMSTRINGS_SEARCH_CONTEXT Context);
+static VOID PhpFlushLocalStringsBatch(_In_ PPH_MEMSTRINGS_SEARCH_CONTEXT Context);
+
+
 _Function_class_(PH_STRING_SEARCH_CALLBACK)
 BOOLEAN NTAPI PhpMemoryStringSearchTreeCallback(
     _In_ PPH_STRING_SEARCH_RESULT Result,
@@ -265,38 +292,122 @@ BOOLEAN NTAPI PhpMemoryStringSearchTreeCallback(
     context = Context;
     treeContext = context->TreeContext;
 
-    node = PhAllocateZero(sizeof(PH_MEMSTRINGS_NODE));
+    InterlockedIncrement((volatile LONG*)&treeContext->StringsCount);
 
-    node->Index = (ULONG)InterlockedIncrement((volatile LONG*)&treeContext->StringsCount);
-    PhPrintUInt64(node->IndexString, node->Index);
+    node = PhpAllocateStringNode(context);
 
+    node->Index = treeContext->StringsCount;
+    node->Unicode = Result->Unicode;
     node->BaseAddress = context->BasicInfo.BaseAddress;
     node->Address = PTR_ADD_OFFSET(context->CurrentReadAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer));
-
-    if (context->TreeContext->Settings.ZeroPadAddresses)
-    {
-        PhPrintPointerPadZeros(node->BaseAddressString, node->BaseAddress);
-        PhPrintPointerPadZeros(node->AddressString, node->Address);
-    }
-    else
-    {
-        PhPrintPointer(node->BaseAddressString, node->BaseAddress);
-        PhPrintPointer(node->AddressString, node->Address);
-    }
-
-    node->Unicode = Result->Unicode;
-    node->String = PhCreateString2(&Result->String);
-    PhPrintUInt64(node->LengthString, node->String->Length / sizeof(WCHAR));
-
     node->Protection = context->BasicInfo.Protect;
-    PhGetMemoryProtectionString(node->Protection, node->ProtectionText);
     node->MemoryType = context->BasicInfo.Type;
 
-    PhAcquireQueuedLockExclusive(&treeContext->SearchResultsLock);
-    PhAddItemList(treeContext->SearchResults, node);
-    PhReleaseQueuedLockExclusive(&treeContext->SearchResultsLock);
+    {
+        SIZE_T charCount = Result->String.Length / sizeof(WCHAR);
+        PWCHAR dest = PhpAllocateStringData(context, Result->String.Buffer, charCount);
+        PhInitializeStringRefLongHint(&node->StringRef, dest);
+    }
+
+    context->LocalBatch[context->LocalBatchCount++] = node;
+    if (context->LocalBatchCount >= RTL_NUMBER_OF(context->LocalBatch))
+        PhpFlushLocalStringsBatch(context);
 
     return !!treeContext->StopSearch;
+}
+
+#define MEMSTRINGS_STRING_BUFFER_CHARS (8 * 1024 * 1024)
+
+static PWCHAR PhpAllocateStringData(
+    _In_ PPH_MEMSTRINGS_SEARCH_CONTEXT Context,
+    _In_ PWCHAR Source,
+    _In_ SIZE_T CharCount
+    )
+{
+    PPH_MEMSTRINGS_CONTEXT treeContext = Context->TreeContext;
+    PWCHAR dest;
+
+    if (!Context->StringBuffer || Context->StringBufferUsed + CharCount + 1 > Context->StringBufferCapacity)
+    {
+        PWCHAR newBuffer = PhAllocate(MEMSTRINGS_STRING_BUFFER_CHARS * sizeof(WCHAR));
+
+        PhAcquireQueuedLockExclusive(&treeContext->StringArenaLock);
+        PhAddItemList(treeContext->StringArenaList, newBuffer);
+        PhReleaseQueuedLockExclusive(&treeContext->StringArenaLock);
+
+        Context->StringBuffer = newBuffer;
+        Context->StringBufferUsed = 0;
+        Context->StringBufferCapacity = MEMSTRINGS_STRING_BUFFER_CHARS;
+    }
+
+    dest = Context->StringBuffer + Context->StringBufferUsed;
+    memcpy(dest, Source, CharCount * sizeof(WCHAR));
+    dest[CharCount] = 0;
+    Context->StringBufferUsed += CharCount + 1;
+
+    return dest;
+}
+
+static PPH_MEMSTRINGS_NODE PhpAllocateStringNode(
+    _In_ PPH_MEMSTRINGS_SEARCH_CONTEXT Context
+    )
+{
+    PPH_MEMSTRINGS_NODE_SLAB slab = Context->CurrentSlab;
+
+    if (!slab || slab->Used >= MEMSTRINGS_SLAB_CAPACITY)
+    {
+        slab = PhAllocateZero(sizeof(PH_MEMSTRINGS_NODE_SLAB));
+
+        PhAcquireQueuedLockExclusive(&Context->TreeContext->SlabLock);
+        slab->Next = Context->TreeContext->SlabHead;
+        Context->TreeContext->SlabHead = slab;
+        PhReleaseQueuedLockExclusive(&Context->TreeContext->SlabLock);
+
+        Context->CurrentSlab = slab;
+    }
+
+    return &slab->Nodes[slab->Used++];
+}
+
+static VOID PhpFlushLocalStringsBatch(
+    _In_ PPH_MEMSTRINGS_SEARCH_CONTEXT Context
+    )
+{
+    PPH_MEMSTRINGS_CONTEXT treeContext = Context->TreeContext;
+
+    PhAcquireQueuedLockExclusive(&treeContext->SearchResultsLock);
+    for (ULONG i = 0; i < Context->LocalBatchCount; i++)
+        PhAddItemList(treeContext->SearchResults, Context->LocalBatch[i]);
+    PhReleaseQueuedLockExclusive(&treeContext->SearchResultsLock);
+
+    Context->LocalBatchCount = 0;
+}
+
+static VOID PhpFreeMemoryStringsSlabs(
+    _In_ PPH_MEMSTRINGS_CONTEXT Context
+    )
+{
+    PPH_MEMSTRINGS_NODE_SLAB slab = Context->SlabHead;
+    while (slab)
+    {
+        PPH_MEMSTRINGS_NODE_SLAB next = slab->Next;
+        PhFree(slab);
+        slab = next;
+    }
+    Context->SlabHead = NULL;
+}
+
+static VOID PhpFreeMemoryStringsArenas(
+    _In_ PPH_MEMSTRINGS_CONTEXT Context
+    )
+{
+    if (!Context->StringArenaList)
+        return;
+
+    for (ULONG i = 0; i < Context->StringArenaList->Count; i++)
+        PhFree(Context->StringArenaList->Items[i]);
+
+    PhClearList(Context->StringArenaList);
 }
 
 _Function_class_(PH_STRING_SEARCH_NEXT_BUFFER)
@@ -398,6 +509,9 @@ static NTSTATUS PhpMemoryStringsWorkerThread(
         &context
         );
 
+    if (context.LocalBatchCount > 0)
+        PhpFlushLocalStringsBatch(&context);
+
     if (context.Buffer)
         PhFree(context.Buffer);
 
@@ -471,7 +585,10 @@ NTSTATUS PhpMemorySearchStringsThread(
         ULONG threadCount;
         PHANDLE threadHandles;
 
-        threadCount = PhSystemBasicInformation.NumberOfProcessors;
+        if (Context->ThreadCount > 0)
+            threadCount = Context->ThreadCount;
+        else
+            threadCount = PhSystemBasicInformation.NumberOfProcessors;
         if (threadCount < 1) threadCount = 1;
         if (threadCount > 64) threadCount = 64;
         if (threadCount > regionCount) threadCount = regionCount;
@@ -542,6 +659,9 @@ VOID PhpMemoryStringsAddTreeNode(
     memset(Entry->TextCache, 0, sizeof(PH_STRINGREF) * PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM);
     Entry->Node.TextCache = Entry->TextCache;
     Entry->Node.TextCacheSize = PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM;
+
+    Entry->Node.Visible = TRUE;
+    Entry->Node.Expanded = TRUE;
 
     PhAddItemList(Context->NodeList, Entry);
 
@@ -622,18 +742,8 @@ VOID PhpInvalidateMemoryStringsAddresses(
     {
         PPH_MEMSTRINGS_NODE node = (PPH_MEMSTRINGS_NODE)Context->NodeList->Items[i];
 
-        if (Context->Settings.ZeroPadAddresses)
-        {
-            PhPrintPointerPadZeros(node->BaseAddressString, node->BaseAddress);
-            PhPrintPointerPadZeros(node->AddressString, node->Address);
-        }
-        else
-        {
-            PhPrintPointer(node->BaseAddressString, node->BaseAddress);
-            PhPrintPointer(node->AddressString, node->Address);
-        }
-
-        memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM);
+        PhClearReference(&node->BaseAddressText);
+        PhClearReference(&node->AddressText);
     }
 
     TreeNew_NodesStructured(Context->TreeNewHandle);
@@ -687,7 +797,7 @@ VOID PhpCopyFilteredMemoryStringsNodes(
             PPH_MEMSTRINGS_NODE cloned;
 
             cloned = PhAllocateCopy(node, sizeof(PH_MEMSTRINGS_NODE));
-            PhReferenceObject(cloned->String);
+            // StringRef points into arena - no reference counting needed
             PhAddItemList(list, cloned);
         }
     }
@@ -714,7 +824,7 @@ BOOLEAN PhpMemoryStringsTreeFilterCallback(
     if (!context->SearchMatchHandle)
         return TRUE;
 
-    return PhSearchControlMatch(context->SearchMatchHandle, &node->String->sr);
+    return PhSearchControlMatch(context->SearchMatchHandle, &node->StringRef);
 }
 
 _Function_class_(PH_SEARCHCONTROL_CALLBACK)
@@ -739,12 +849,16 @@ VOID PhpDeleteMemoryStringsNodeList(
     _In_ PPH_LIST NodeList
     )
 {
+    // Free lazily-allocated display strings (non-NULL only for visible nodes).
+    // Node memory itself is freed by PhpFreeMemoryStringsSlabs.
     for (ULONG i = 0; i < NodeList->Count; i++)
     {
         PPH_MEMSTRINGS_NODE node = (PPH_MEMSTRINGS_NODE)NodeList->Items[i];
-
-        PhClearReference(&node->String);
-        PhFree(node);
+        if (node->IndexText)       PhDereferenceObject(node->IndexText);
+        if (node->BaseAddressText) PhDereferenceObject(node->BaseAddressText);
+        if (node->AddressText)     PhDereferenceObject(node->AddressText);
+        if (node->LengthText)      PhDereferenceObject(node->LengthText);
+        if (node->ProtectionText)  PhDereferenceObject(node->ProtectionText);
     }
 }
 
@@ -771,6 +885,8 @@ VOID PhpDeleteMemoryStringsTree(
     PhpAddPendingMemoryStringsNodes(Context);
 
     PhpDeleteMemoryStringsNodeList(Context->NodeList);
+    PhpFreeMemoryStringsSlabs(Context);
+    PhpFreeMemoryStringsArenas(Context);
 
     PhDeleteTreeNewFilterSupport(&Context->FilterSupport);
 
@@ -876,13 +992,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Length)
 {
-    sortResult = uintptrcmp(node1->String->Length, node2->String->Length);
+    sortResult = uintptrcmp(node1->StringRef.Length, node2->StringRef.Length);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(String)
 {
-    sortResult = PhCompareString(node1->String, node2->String, FALSE);
+    sortResult = PhCompareStringRef(&node1->StringRef, &node2->StringRef, FALSE);
 }
 END_SORT_FUNCTION
 
@@ -964,16 +1080,46 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
             switch (getCellText->Id)
             {
             case PH_MEMSTRINGS_TREE_COLUMN_ITEM_INDEX:
-                PhInitializeStringRefLongHint(&getCellText->Text, node->IndexString);
+                if (!node->IndexText)
+                {
+                    PH_FORMAT format[1];
+                    PhInitFormatU(&format[0], node->Index);
+                    node->IndexText = PhFormat(format, 1, 16);
+                }
+                getCellText->Text = node->IndexText->sr;
                 break;
             case PH_MEMSTRINGS_TREE_COLUMN_ITEM_BASE_ADDRESS:
-                PhInitializeStringRefLongHint(&getCellText->Text, node->BaseAddressString);
+                if (!node->BaseAddressText)
+                {
+                    WCHAR buf[PH_PTR_STR_LEN_1];
+                    if (context->Settings.ZeroPadAddresses)
+                        PhPrintPointerPadZeros(buf, node->BaseAddress);
+                    else
+                        PhPrintPointer(buf, node->BaseAddress);
+                    node->BaseAddressText = PhCreateString(buf);
+                }
+                getCellText->Text = node->BaseAddressText->sr;
                 break;
             case PH_MEMSTRINGS_TREE_COLUMN_ITEM_ADDRESS:
-                PhInitializeStringRefLongHint(&getCellText->Text, node->AddressString);
+                if (!node->AddressText)
+                {
+                    WCHAR buf[PH_PTR_STR_LEN_1];
+                    if (context->Settings.ZeroPadAddresses)
+                        PhPrintPointerPadZeros(buf, node->Address);
+                    else
+                        PhPrintPointer(buf, node->Address);
+                    node->AddressText = PhCreateString(buf);
+                }
+                getCellText->Text = node->AddressText->sr;
                 break;
             case PH_MEMSTRINGS_TREE_COLUMN_ITEM_PROTECTION:
-                PhInitializeStringRefLongHint(&getCellText->Text, node->ProtectionText);
+                if (!node->ProtectionText)
+                {
+                    WCHAR buf[17];
+                    PhGetMemoryProtectionString(node->Protection, buf);
+                    node->ProtectionText = PhCreateString(buf);
+                }
+                getCellText->Text = node->ProtectionText->sr;
                 break;
             case PH_MEMSTRINGS_TREE_COLUMN_ITEM_MEMORY_TYPE:
                 getCellText->Text = *PhGetMemoryTypeString(node->MemoryType);
@@ -982,10 +1128,16 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
                 PhInitializeStringRef(&getCellText->Text, node->Unicode ? L"Unicode" : L"ANSI");
                 break;
             case PH_MEMSTRINGS_TREE_COLUMN_ITEM_LENGTH:
-                PhInitializeStringRefLongHint(&getCellText->Text, node->LengthString);
+                if (!node->LengthText)
+                {
+                    PH_FORMAT format[1];
+                    PhInitFormatU(&format[0], (ULONG)(node->StringRef.Length / sizeof(WCHAR)));
+                    node->LengthText = PhFormat(format, 1, 16);
+                }
+                getCellText->Text = node->LengthText->sr;
                 break;
             case PH_MEMSTRINGS_TREE_COLUMN_ITEM_STRING:
-                getCellText->Text = node->String->sr;
+                getCellText->Text = node->StringRef;
                 break;
             default:
                 return FALSE;
@@ -1108,6 +1260,8 @@ VOID PhpInitializeMemoryStringsTree(
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM, PhpMemoryStringsTreeNewPostSortFunction);
 
+    Context->StringArenaList = PhCreateList(16);
+
     PhpLoadSettingsMemoryStrings(Context);
 }
 
@@ -1191,6 +1345,90 @@ INT_PTR CALLBACK PhpMemoryStringsMinimumLengthDlgProc(
     return FALSE;
 }
 
+INT_PTR CALLBACK PhpMemoryStringsThreadCountDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PULONG threadCount;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        threadCount = (PULONG)lParam;
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, threadCount);
+    }
+    else
+    {
+        threadCount = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!threadCount)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            WCHAR countString[PH_INT32_STR_LEN_1];
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            SetWindowText(hwndDlg, L"Value (0 = auto / unlimited)");
+            PhPrintUInt32(countString, *threadCount);
+            PhSetDialogItemText(hwndDlg, IDC_MINIMUMLENGTH, countString);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+        }
+        break;
+    case WM_DESTROY:
+        PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        break;
+    case WM_COMMAND:
+        switch (GET_WM_COMMAND_ID(wParam, lParam))
+        {
+        case IDCANCEL:
+            EndDialog(hwndDlg, IDCANCEL);
+            break;
+        case IDOK:
+            {
+                ULONG64 count;
+                PhStringToInteger64(&PhaGetDlgItemText(hwndDlg, IDC_MINIMUMLENGTH)->sr, 0, &count);
+                if (count > 64)
+                {
+                    PhShowError2(hwndDlg, L"Invalid value.", L"%s", L"Enter a value between 0 and 64.");
+                    break;
+                }
+                *threadCount = (ULONG)count;
+                EndDialog(hwndDlg, IDOK);
+            }
+            break;
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    }
+    return FALSE;
+}
+
+ULONG PhpMemoryStringsValueDialog(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Current
+    )
+{
+    ULONG value = Current;
+    PhDialogBox(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_MEMSTRINGSMINLEN),
+        WindowHandle,
+        PhpMemoryStringsThreadCountDlgProc,
+        &value
+        );
+    return value;
+}
+
 ULONG PhpMemoryStringsMinimumLengthDialog(
     _In_ HWND WindowHandle,
     _In_ ULONG CurrentMinimumLength
@@ -1245,9 +1483,9 @@ VOID PhpShowMemoryEditor(
 
     address = node->Address;
     if (node->Unicode)
-        length = node->String->Length;
+        length = node->StringRef.Length;
     else
-        length = node->String->Length / 2;
+        length = node->StringRef.Length / 2;
 
     if (NT_SUCCESS(status = NtQueryVirtualMemory(
         context->ProcessHandle,
@@ -1409,7 +1647,6 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             context->State = PH_MEMSEARCH_STATE_FINISHED;
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyStringsText, 0);
-
             TreeNew_NodesStructured(context->TreeNewHandle);
         }
         break;
@@ -1429,17 +1666,15 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                 PhInitFormatU(&format[count++], context->StringsCount);
                 PhInitFormatS(&format[count++], L" strings");
 
-                message = PhFormat(format, count, 80);
-
-                SetWindowText(context->MessageHandle, message->Buffer);
-
-                PhDereferenceObject(message);
-
                 if (context->State == PH_MEMSEARCH_STATE_FINISHED)
                 {
                     context->State = PH_MEMSEARCH_STATE_STOPPED;
                     EnableWindow(context->FilterHandle, TRUE);
                 }
+
+                message = PhFormat(format, count, 80);
+                SetWindowText(context->MessageHandle, message->Buffer);
+                PhDereferenceObject(message);
             }
 
             if (context->BackOffActive && context->BackOffSearchMatchRequests)
@@ -1541,8 +1776,10 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     PPH_EMENU_ITEM image;
                     PPH_EMENU_ITEM mapped;
                     PPH_EMENU_ITEM minimumLength;
+                    PPH_EMENU_ITEM threadCount;
                     PPH_EMENU_ITEM zeroPad;
                     PPH_EMENU_ITEM refresh;
+                    WCHAR threadCountLabel[64];
 
                     if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect))
                         break;
@@ -1556,6 +1793,11 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     minimumLength = PhCreateEMenuItem(0, 7, L"Minimum length...", NULL, NULL);
                     zeroPad = PhCreateEMenuItem(0, 8, L"Zero pad addresses", NULL, NULL);
                     refresh = PhCreateEMenuItem(0, 9, L"Refresh\bF5", NULL, NULL);
+                    if (context->ThreadCount == 0)
+                        swprintf_s(threadCountLabel, RTL_NUMBER_OF(threadCountLabel), L"Thread count... (auto)");
+                    else
+                        swprintf_s(threadCountLabel, RTL_NUMBER_OF(threadCountLabel), L"Thread count... (%lu)", context->ThreadCount);
+                    threadCount = PhCreateEMenuItem(0, 10, threadCountLabel, NULL, NULL);
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, ansi, ULONG_MAX);
@@ -1567,6 +1809,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     PhInsertEMenuItem(menu, mapped, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, minimumLength, ULONG_MAX);
+                    PhInsertEMenuItem(menu, threadCount, ULONG_MAX);
                     PhInsertEMenuItem(menu, zeroPad, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, refresh, ULONG_MAX);
@@ -1642,6 +1885,10 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                                 PhpSaveSettingsMemoryStrings(context);
                                 PhpSearchMemoryStrings(context);
                             }
+                        }
+                        else if (selectedItem == threadCount)
+                        {
+                            context->ThreadCount = PhpMemoryStringsValueDialog(hwndDlg, context->ThreadCount);
                         }
                         else if (selectedItem == zeroPad)
                         {
