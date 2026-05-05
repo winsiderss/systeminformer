@@ -22,6 +22,10 @@ VOID EtGpuMiniInformationInitializing(
     memset(&section, 0, sizeof(PH_MINIINFO_LIST_SECTION));
     section.Callback = EtpGpuListSectionCallback;
     Pointers->CreateListSection(L"GPU", 0, &section);
+
+    memset(&section, 0, sizeof(PH_MINIINFO_LIST_SECTION));
+    section.Callback = EtpGpuMemoryListSectionCallback;
+    Pointers->CreateListSection(L"GPU Memory", 0, &section);
 }
 
 BOOLEAN EtpGpuListSectionCallback(
@@ -134,4 +138,109 @@ int __cdecl EtpGpuListSectionNodeCompareFunction(
     PPH_MINIINFO_LIST_SECTION_SORT_DATA data2 = *(PPH_MINIINFO_LIST_SECTION_SORT_DATA *)elem2;
 
     return singlecmp(*(PFLOAT)data2->UserData, *(PFLOAT)data1->UserData);
+}
+
+BOOLEAN EtpGpuMemoryListSectionCallback(
+    _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
+    _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
+    _In_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    )
+{
+    switch (Message)
+    {
+    case MiListSectionTick:
+        {
+            PH_FORMAT format[7];
+            FLOAT memUsagePercent = EtGpuDedicatedLimit ? ((FLOAT)EtGpuDedicatedUsage / (FLOAT)EtGpuDedicatedLimit * 100.0f) : 0.0f;
+
+            // GPU Memory    XX.X%  X.XX GB / Y.YY GB
+            PhInitFormatS(&format[0], L"GPU Memory    ");
+            PhInitFormatF(&format[1], memUsagePercent, 1);
+            PhInitFormatC(&format[2], L'%');
+            PhInitFormatS(&format[3], L"  ");
+            PhInitFormatSize(&format[4], EtGpuDedicatedUsage);
+            PhInitFormatS(&format[5], L" / ");
+            PhInitFormatSize(&format[6], EtGpuDedicatedLimit);
+
+            ListSection->Section->Parameters->SetSectionText(ListSection->Section,
+                PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0)));
+        }
+        break;
+    case MiListSectionSortProcessList:
+        {
+            PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
+
+            qsort(sortList->List->Items, sortList->List->Count,
+                sizeof(PPH_PROCESS_NODE), EtpGpuMemoryListSectionProcessCompareFunction);
+        }
+        return TRUE;
+    case MiListSectionAssignSortData:
+        {
+            PPH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA assignSortData = Parameter1;
+            PPH_LIST processes;
+            ULONG64 gpuMemoryUsage;
+            ULONG i;
+
+            processes = assignSortData->ProcessGroup->Processes;
+            gpuMemoryUsage = 0;
+
+            for (i = 0; i < processes->Count; i++)
+            {
+                PPH_PROCESS_ITEM processItem = processes->Items[i];
+                PET_PROCESS_BLOCK block = EtGetProcessBlock(processItem);
+                gpuMemoryUsage += block->GpuDedicatedUsage;
+            }
+
+            *(PULONG64)assignSortData->SortData->UserData = gpuMemoryUsage;
+        }
+        return TRUE;
+    case MiListSectionSortGroupList:
+        {
+            PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
+
+            qsort(sortList->List->Items, sortList->List->Count,
+                sizeof(PPH_MINIINFO_LIST_SECTION_SORT_DATA), EtpGpuMemoryListSectionNodeCompareFunction);
+        }
+        return TRUE;
+    case MiListSectionGetUsageText:
+        {
+            PPH_MINIINFO_LIST_SECTION_GET_USAGE_TEXT getUsageText = Parameter1;
+            ULONG64 gpuMemoryUsage;
+            PH_FORMAT format[1];
+
+            gpuMemoryUsage = *(PULONG64)getUsageText->SortData->UserData;
+
+            PhInitFormatSize(&format[0], gpuMemoryUsage);
+
+            PhMoveReference(&getUsageText->Line1, PhFormat(format, RTL_NUMBER_OF(format), 0));
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+int __cdecl EtpGpuMemoryListSectionProcessCompareFunction(
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    )
+{
+    PPH_PROCESS_NODE node1 = *(PPH_PROCESS_NODE *)elem1;
+    PPH_PROCESS_NODE node2 = *(PPH_PROCESS_NODE *)elem2;
+    PET_PROCESS_BLOCK block1 = EtGetProcessBlock(node1->ProcessItem);
+    PET_PROCESS_BLOCK block2 = EtGetProcessBlock(node2->ProcessItem);
+
+    return uint64cmp(block2->GpuDedicatedUsage, block1->GpuDedicatedUsage);
+}
+
+int __cdecl EtpGpuMemoryListSectionNodeCompareFunction(
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    )
+{
+    PPH_MINIINFO_LIST_SECTION_SORT_DATA data1 = *(PPH_MINIINFO_LIST_SECTION_SORT_DATA *)elem1;
+    PPH_MINIINFO_LIST_SECTION_SORT_DATA data2 = *(PPH_MINIINFO_LIST_SECTION_SORT_DATA *)elem2;
+
+    return uint64cmp(*(PULONG64)data2->UserData, *(PULONG64)data1->UserData);
 }
