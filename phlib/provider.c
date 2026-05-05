@@ -259,8 +259,7 @@ NTSTATUS PhStartProviderThread(
         status = PhCreateWaitableTimer(
             &ProviderThread->TimerHandle,
             TIMER_ALL_ACCESS,
-            SynchronizationTimer,
-            TRUE
+            SynchronizationTimer
             );
     }
     else
@@ -411,8 +410,7 @@ NTSTATUS PhSetIntervalProviderThread(
             &period,
             NULL,
             NULL,
-            FALSE,
-            TRUE
+            FALSE
             );
     }
 

@@ -183,6 +183,8 @@ _May_raise_ PVOID PhReferenceObjectEx(
     // Increase the reference count.
     oldRefCount = _InterlockedExchangeAdd(&objectHeader->RefCount, RefCount);
 
+    assert(oldRefCount >= 0);
+
     return Object;
 }
 

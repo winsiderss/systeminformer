@@ -21,6 +21,7 @@
 #include <procprpp.h>
 #include <procprv.h>
 
+#include <mi.h>
 #include <wbemidl.h>
 
 typedef struct _PH_PROCESS_WMI_CONTEXT
@@ -149,6 +150,179 @@ PVOID PhGetWmiUtilsDllBase(
     return imageBaseAddress;
 }
 
+#if !defined(PHLIB_WBEM_DEPRECATED)
+typedef MI_Result (MI_MAIN_CALL* _MI_Application_Initialize_I)(
+    MI_Uint32 Flags,
+    _In_opt_z_ const MI_Char* ApplicationId,
+    _Outptr_opt_result_maybenull_ MI_Instance** ExtendedError,
+    _Out_ MI_Application* Application
+    );
+
+static _MI_Application_Initialize_I MI_Application_Initialize_I = NULL;
+
+static
+HRESULT
+PhpMiResultToHresult(
+    _In_ MI_Result Result
+    )
+{
+    NTSTATUS status;
+
+    status = PhMiResultToNtStatus(Result);
+
+    if (NT_SUCCESS(status))
+        return S_OK;
+
+    return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
+}
+
+static
+PVOID
+PhpInitializeManagementInfrastructureApi(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID imageBaseAddress = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        imageBaseAddress = PhLoadLibrary(L"mi.dll");
+        PhEndInitOnce(&initOnce);
+    }
+
+    return imageBaseAddress;
+}
+
+static
+HRESULT
+PhpInitializeMiApplication(
+    _Out_ MI_Application* Application
+    )
+{
+    PVOID imageBaseAddress;
+    MI_Result miResult;
+
+    if (!MI_Application_Initialize_I)
+    {
+        if (imageBaseAddress = PhpInitializeManagementInfrastructureApi())
+            MI_Application_Initialize_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "MI_Application_InitializeV1", 0);
+    }
+
+    if (!MI_Application_Initialize_I)
+        return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
+
+    miResult = MI_Application_Initialize_I(
+        0,
+        NULL,
+        NULL,
+        Application
+        );
+
+    return PhpMiResultToHresult(miResult);
+}
+
+static
+HRESULT
+PhpCreateMiSession(
+    _Out_ MI_Application* Application,
+    _Out_ MI_Session* Session
+    )
+{
+    HRESULT status = S_OK;
+    MI_Result miResult;
+
+    memset(Application, 0, sizeof(MI_Application));
+    memset(Session, 0, sizeof(MI_Session));
+
+    //*Application = MI_APPLICATION_NULL;
+    //*Session = MI_SESSION_NULL;
+
+    status = PhpInitializeMiApplication(Application);
+
+    if (FAILED(status))
+        return status;
+
+    miResult = MI_Application_NewSession(
+        Application,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        Session
+        );
+
+    if (miResult != MI_RESULT_OK)
+    {
+        MI_Application_Close(Application);
+        //*Application = MI_APPLICATION_NULL;
+        memset(Application, 0, sizeof(MI_Application));
+        return PhpMiResultToHresult(miResult);
+    }
+
+    return S_OK;
+}
+
+static
+HRESULT
+PhpCreateMiOperationOptions(
+    _In_ MI_Application* Application,
+    _In_ LONG Timeout,
+    _Out_ MI_OperationOptions* Options,
+    _Out_ PBOOLEAN Created
+    )
+{
+    MI_Result miResult;
+
+    *Created = FALSE;
+    //*Options = MI_OPERATIONOPTIONS_NULL;
+    memset(Options, 0, sizeof(MI_OperationOptions));
+
+    if (Timeout < 0)
+        return S_OK;
+
+    miResult = MI_Application_NewOperationOptions(
+        Application,
+        FALSE,
+        Options
+        );
+
+    if (miResult != MI_RESULT_OK)
+        return PhpMiResultToHresult(miResult);
+
+    {
+        MI_Interval interval = { 0 };
+        ULONGLONG microseconds = (ULONGLONG)(ULONG)Timeout * 1000ULL;
+
+        interval.days = (MI_Uint32)(microseconds / (24ULL * 60 * 60 * 1000 * 1000));
+        microseconds %= (24ULL * 60 * 60 * 1000 * 1000);
+        interval.hours = (MI_Uint32)(microseconds / (60ULL * 60 * 1000 * 1000));
+        microseconds %= (60ULL * 60 * 1000 * 1000);
+        interval.minutes = (MI_Uint32)(microseconds / (60ULL * 1000 * 1000));
+        microseconds %= (60ULL * 1000 * 1000);
+        interval.seconds = (MI_Uint32)(microseconds / (1000ULL * 1000));
+        interval.microseconds = (MI_Uint32)(microseconds % (1000ULL * 1000));
+
+        miResult = MI_OperationOptions_SetTimeout(
+            Options,
+            &interval
+            );
+
+        if (miResult != MI_RESULT_OK)
+        {
+            MI_OperationOptions_Delete(Options);
+            //*Options = MI_OPERATIONOPTIONS_NULL;
+            return PhpMiResultToHresult(miResult);
+        }
+    }
+
+    *Created = TRUE;
+    return S_OK;
+}
+#endif
+
+#if defined(PHLIB_WBEM_DEPRECATED)
 HRESULT PhpWmiProviderExecMethod(
     _In_ PPH_STRINGREF Method,
     _In_ PWSTR ProcessIdString,
@@ -298,7 +472,186 @@ CleanupExit:
 
     return status;
 }
+#else
+HRESULT PhpWmiProviderExecMethod(
+    _In_ PPH_STRINGREF Method,
+    _In_ PWSTR ProcessIdString,
+    _In_ PPH_WMI_ENTRY Entry
+    )
+{
+    HRESULT status = S_OK;
+    MI_Application application = MI_APPLICATION_NULL;
+    MI_Session session = MI_SESSION_NULL;
+    MI_Operation operation = MI_OPERATION_NULL;
+    PPH_STRING queryString = NULL;
+    const MI_Instance* instance = NULL;
+    const MI_Instance* completionDetails = NULL;
+    const MI_Char* errorMessage = NULL;
+    MI_Boolean moreResults = FALSE;
+    MI_Result miResult;
+    MI_Result operationResult = MI_RESULT_OK;
+    ULONG matchCount = 0;
 
+    status = PhpCreateMiSession(
+        &application,
+        &session
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    queryString = PhFormatString(
+        L"%s %s %s %s %s %s = %s %s %s = '%s' %s %s = '%s' %s %s = '%s'",
+        L"SELECT",
+        L"Namespace,Provider,User,__RELPATH",
+        L"FROM",
+        L"Msft_Providers",
+        L"WHERE",
+        L"HostProcessIdentifier",
+        ProcessIdString,
+        L"AND Namespace",
+        PhGetStringOrEmpty(Entry->ProviderNamespace),
+        L"AND Provider",
+        PhGetStringOrEmpty(Entry->ProviderName),
+        L"AND User",
+        PhGetStringOrEmpty(Entry->UserName)
+        );
+
+    MI_Session_QueryInstances(
+        &session,
+        0,
+        NULL,
+        L"root\\CIMV2",
+        L"WQL",
+        PhGetString(queryString),
+        NULL,
+        &operation
+        );
+
+    for (;;)
+    {
+        miResult = MI_Operation_GetInstance(
+            &operation,
+            &instance,
+            &moreResults,
+            &operationResult,
+            &errorMessage,
+            &completionDetails
+            );
+
+        if (miResult != MI_RESULT_OK)
+        {
+            status = PhpMiResultToHresult(miResult);
+            break;
+        }
+
+        if (!instance)
+            break;
+
+        matchCount++;
+
+        if (matchCount > 1)
+        {
+            status = HRESULT_FROM_WIN32(ERROR_DUP_NAME);
+            break;
+        }
+
+        {
+            MI_Operation methodOperation = MI_OPERATION_NULL;
+            const MI_Instance* methodInstance = NULL;
+            const MI_Instance* methodCompletionDetails = NULL;
+            const MI_Char* methodErrorMessage = NULL;
+            MI_Boolean methodMoreResults = FALSE;
+            MI_Result methodOperationResult = MI_RESULT_OK;
+
+            MI_Session_Invoke(
+                &session,
+                0,
+                NULL,
+                L"root\\CIMV2",
+                L"Msft_Providers",
+                Method->Buffer,
+                instance,
+                NULL,
+                NULL,
+                &methodOperation
+                );
+
+            for (;;)
+            {
+                MI_Value value;
+
+                miResult = MI_Operation_GetInstance(
+                    &methodOperation,
+                    &methodInstance,
+                    &methodMoreResults,
+                    &methodOperationResult,
+                    &methodErrorMessage,
+                    &methodCompletionDetails
+                    );
+
+                if (miResult != MI_RESULT_OK)
+                {
+                    status = PhpMiResultToHresult(miResult);
+                    break;
+                }
+
+                if (!methodInstance)
+                    break;
+
+                if (MI_Instance_GetElement(
+                    methodInstance,
+                    L"ReturnValue",
+                    &value,
+                    NULL,
+                    NULL,
+                    NULL
+                    ) == MI_RESULT_OK &&
+                    value.uint32 != ERROR_SUCCESS)
+                {
+                    status = HRESULT_FROM_WIN32(value.uint32);
+                }
+
+                if (FAILED(status) || !methodMoreResults)
+                    break;
+            }
+
+            if (SUCCEEDED(status) && methodOperationResult != MI_RESULT_OK)
+            {
+                status = PhpMiResultToHresult(methodOperationResult);
+            }
+
+            MI_Operation_Close(&methodOperation);
+        }
+
+        if (FAILED(status) || !moreResults)
+            break;
+    }
+
+    if (SUCCEEDED(status))
+    {
+        if (matchCount == 0)
+            status = HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
+        else if (operationResult != MI_RESULT_OK)
+            status = PhpMiResultToHresult(operationResult);
+    }
+
+CleanupExit:
+    if (queryString)
+        PhDereferenceObject(queryString);
+
+    MI_Operation_Close(&operation);
+
+    if (session.ft)
+        MI_Session_Close(&session, NULL, NULL);
+    if (application.ft)
+        MI_Application_Close(&application);
+
+    return status;
+}
+#endif
+
+#if defined(PHLIB_WBEM_DEPRECATED)
 HRESULT PhpQueryWmiProviderFileName(
     _In_ PPH_STRING ProviderNameSpace,
     _In_ PPH_STRING ProviderName,
@@ -451,7 +804,143 @@ CleanupExit:
 
     return status;
 }
+#else
+HRESULT PhpQueryWmiProviderFileName(
+    _In_ PPH_STRING ProviderNameSpace,
+    _In_ PPH_STRING ProviderName,
+    _Out_ PPH_STRING *FileName
+    )
+{
+    HRESULT status = S_OK;
+    PPH_STRING fileName = NULL;
+    PPH_STRING clsidString = NULL;
+    PPH_STRING queryString = NULL;
+    MI_Application application = MI_APPLICATION_NULL;
+    MI_Session session = MI_SESSION_NULL;
+    MI_Operation operation = MI_OPERATION_NULL;
+    const MI_Instance* instance = NULL;
+    const MI_Instance* completionDetails = NULL;
+    const MI_Char* errorMessage = NULL;
+    MI_Boolean moreResults = FALSE;
+    MI_Result miResult;
+    MI_Result operationResult = MI_RESULT_OK;
 
+    status = PhpCreateMiSession(
+        &application,
+        &session
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    queryString = PhFormatString(
+        L"%s %s %s %s %s %s = '%s'",
+        L"SELECT",
+        L"clsid",
+        L"FROM",
+        L"__Win32Provider",
+        L"WHERE",
+        L"Name",
+        PhGetString(ProviderName)
+        );
+
+    MI_Session_QueryInstances(
+        &session,
+        0,
+        NULL,
+        PhGetString(ProviderNameSpace),
+        L"WQL",
+        PhGetString(queryString),
+        NULL,
+        &operation
+        );
+
+    miResult = MI_Operation_GetInstance(
+        &operation,
+        &instance,
+        &moreResults,
+        &operationResult,
+        &errorMessage,
+        &completionDetails
+        );
+
+    if (miResult != MI_RESULT_OK)
+    {
+        status = PhpMiResultToHresult(miResult);
+        goto CleanupExit;
+    }
+
+    if (instance)
+    {
+        clsidString = PhGetMiClassObjectString(instance, L"CLSID");
+    }
+
+    if (SUCCEEDED(status) && operationResult != MI_RESULT_OK)
+    {
+        status = PhpMiResultToHresult(operationResult);
+        goto CleanupExit;
+    }
+
+    if (clsidString)
+    {
+        HANDLE keyHandle;
+        PPH_STRING keyPath;
+
+        keyPath = PhConcatStrings(
+            4,
+            L"CLSID\\",
+            PhGetString(clsidString),
+            L"\\",
+            L"InprocServer32"
+            );
+
+        if (SUCCEEDED(status = HRESULT_FROM_NT(PhOpenKey(
+            &keyHandle,
+            KEY_QUERY_VALUE,
+            PH_KEY_CLASSES_ROOT,
+            &keyPath->sr,
+            0
+            ))))
+        {
+            if (fileName = PhQueryRegistryString(keyHandle, NULL))
+            {
+                PPH_STRING expandedString;
+
+                if (expandedString = PhExpandEnvironmentStrings(&fileName->sr))
+                {
+                    PhMoveReference(&fileName, expandedString);
+                }
+            }
+
+            NtClose(keyHandle);
+        }
+
+        PhDereferenceObject(keyPath);
+    }
+
+CleanupExit:
+    if (queryString)
+        PhDereferenceObject(queryString);
+    if (clsidString)
+        PhDereferenceObject(clsidString);
+
+    MI_Operation_Close(&operation);
+
+    if (session.ft)
+        MI_Session_Close(&session, NULL, NULL);
+    if (application.ft)
+        MI_Application_Close(&application);
+
+    if (SUCCEEDED(status))
+    {
+        *FileName = fileName;
+    }
+
+    return status;
+}
+#endif
+
+#if defined(PHLIB_WBEM_DEPRECATED)
 HRESULT PhpQueryWmiProviderHostProcess(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ LONG Timeout,
@@ -583,9 +1072,143 @@ CleanupExit:
 
     return status;
 }
+#else
+HRESULT PhpQueryWmiProviderHostProcess(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ LONG Timeout,
+    _Out_ PPH_LIST* ProviderList
+    )
+{
+    HRESULT status = S_OK;
+    PPH_LIST providerList = NULL;
+    PPH_STRING queryString = NULL;
+    MI_Application application = MI_APPLICATION_NULL;
+    MI_Session session = MI_SESSION_NULL;
+    MI_Operation operation = MI_OPERATION_NULL;
+    MI_OperationOptions options = MI_OPERATIONOPTIONS_NULL;
+    BOOLEAN optionsCreated = FALSE;
+    const MI_Instance* instance = NULL;
+    const MI_Instance* completionDetails = NULL;
+    const MI_Char* errorMessage = NULL;
+    MI_Boolean moreResults = FALSE;
+    MI_Result miResult;
+    MI_Result operationResult = MI_RESULT_OK;
 
+    status = PhpCreateMiSession(
+        &application,
+        &session
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    status = PhpCreateMiOperationOptions(
+        &application,
+        Timeout,
+        &options,
+        &optionsCreated
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    queryString = PhFormatString(
+        L"%s %s %s %s %s %s = %s",
+        L"SELECT",
+        L"Namespace,Provider,User,__RELPATH",
+        L"FROM",
+        L"Msft_Providers",
+        L"WHERE",
+        L"HostProcessIdentifier",
+        ProcessItem->ProcessIdString
+        );
+
+    MI_Session_QueryInstances(
+        &session,
+        0,
+        optionsCreated ? &options : NULL,
+        L"root\\CIMV2",
+        L"WQL",
+        PhGetString(queryString),
+        NULL,
+        &operation
+        );
+
+    providerList = PhCreateList(1);
+
+    for (;;)
+    {
+        PPH_WMI_ENTRY entry;
+
+        miResult = MI_Operation_GetInstance(
+            &operation,
+            &instance,
+            &moreResults,
+            &operationResult,
+            &errorMessage,
+            &completionDetails
+            );
+
+        if (miResult != MI_RESULT_OK)
+        {
+            status = PhpMiResultToHresult(miResult);
+            break;
+        }
+
+        if (!instance)
+            break;
+
+        entry = PhAllocateZero(sizeof(PH_WMI_ENTRY));
+        entry->ProviderNamespace = PhGetMiClassObjectString(instance, L"Namespace");
+        entry->ProviderName = PhGetMiClassObjectString(instance, L"Provider");
+        entry->UserName = PhGetMiClassObjectString(instance, L"User");
+        entry->RelativePath = PhGetMiClassObjectString(instance, L"__RELPATH");
+
+        if (entry->ProviderNamespace && entry->ProviderName)
+        {
+            PPH_STRING fileName = NULL;
+
+            if (SUCCEEDED(PhpQueryWmiProviderFileName(entry->ProviderNamespace, entry->ProviderName, &fileName)))
+            {
+                entry->FileName = fileName;
+            }
+        }
+
+        PhAddItemList(providerList, entry);
+
+        if (!moreResults)
+            break;
+    }
+
+    if (SUCCEEDED(status) && operationResult != MI_RESULT_OK)
+        status = PhpMiResultToHresult(operationResult);
+
+CleanupExit:
+    if (queryString)
+        PhDereferenceObject(queryString);
+
+    MI_Operation_Close(&operation);
+
+    if (optionsCreated)
+        MI_OperationOptions_Delete(&options);
+    if (session.ft)
+        MI_Session_Close(&session, NULL, NULL);
+    if (application.ft)
+        MI_Application_Close(&application);
+
+    if (SUCCEEDED(status))
+    {
+        *ProviderList = providerList;
+    }
+
+    return status;
+}
+#endif
+
+#if defined(PHLIB_WBEM_DEPRECATED)
 PPH_STRING PhpQueryWmiProviderStatistics(
-    _In_ PPH_WMI_ENTRY Entry
+    _In_ PPH_WMI_ENTRY Entry,
+    _In_ PWSTR ProcessIdString
     )
 {
     static CONST PH_STRINGREF wbemResource = PH_STRINGREF_INIT(L"Root\\CIMV2");
@@ -854,6 +1477,165 @@ CleanupExit:
 
     return wbemProviderString;
 }
+#else
+PPH_STRING PhpQueryWmiProviderStatistics(
+    _In_ PPH_WMI_ENTRY Entry,
+    _In_ PWSTR ProcessIdString
+    )
+{
+    static const struct
+    {
+        PCWSTR Name;
+        PCWSTR Padding;
+    } providerStatisticNames[] =
+    {
+        { L"ProviderOperation_AccessCheck", L" \t\t" },
+        { L"ProviderOperation_CancelQuery", L" \t\t" },
+        { L"ProviderOperation_CreateClassEnumAsync", L" \t" },
+        { L"ProviderOperation_CreateInstanceEnumAsync", L" \t" },
+        { L"ProviderOperation_CreateRefreshableEnum", L" \t" },
+        { L"ProviderOperation_CreateRefreshableObject", L" \t" },
+        { L"ProviderOperation_CreateRefresher", L" \t\t" },
+        { L"ProviderOperation_DeleteClassAsync", L" \t\t" },
+        { L"ProviderOperation_DeleteInstanceAsync", L" \t" },
+        { L"ProviderOperation_ExecMethodAsync", L" \t\t" },
+        { L"ProviderOperation_ExecQueryAsync", L" \t\t" },
+        { L"ProviderOperation_FindConsumer", L" \t\t" },
+        { L"ProviderOperation_GetObjectAsync", L" \t\t" },
+        { L"ProviderOperation_GetObjects", L" \t\t" },
+        { L"ProviderOperation_GetProperty", L" \t\t" },
+        { L"ProviderOperation_NewQuery", L" \t\t" },
+        { L"ProviderOperation_ProvideEvents", L" \t\t" },
+        { L"ProviderOperation_PutClassAsync", L" \t\t" },
+        { L"ProviderOperation_PutInstanceAsync", L" \t\t" },
+        { L"ProviderOperation_PutProperty", L" \t\t" },
+        { L"ProviderOperation_QueryInstances", L" \t\t" },
+        { L"ProviderOperation_SetRegistrationObject", L" \t" },
+        { L"ProviderOperation_StopRefreshing", L" \t\t" },
+        { L"ProviderOperation_ValidateSubscription", L" \t" }
+    };
+
+    PPH_STRING providerString = NULL;
+    PPH_STRING queryString = NULL;
+    MI_Application application = MI_APPLICATION_NULL;
+    MI_Session session = MI_SESSION_NULL;
+    MI_Operation operation = MI_OPERATION_NULL;
+    const MI_Instance* instance = NULL;
+    const MI_Instance* completionDetails = NULL;
+    const MI_Char* errorMessage = NULL;
+    MI_Boolean moreResults = FALSE;
+    MI_Result miResult;
+    MI_Result operationResult = MI_RESULT_OK;
+    ULONG matchCount = 0;
+
+    if (FAILED(PhpCreateMiSession(&application, &session)))
+        goto CleanupExit;
+
+    queryString = PhFormatString(
+        L"%s %s %s %s %s %s = %s %s %s = '%s' %s %s = '%s' %s %s = '%s'",
+        L"SELECT",
+        L"*",
+        L"FROM",
+        L"Msft_Providers",
+        L"WHERE",
+        L"HostProcessIdentifier",
+        ProcessIdString,
+        L"AND Namespace",
+        PhGetStringOrEmpty(Entry->ProviderNamespace),
+        L"AND Provider",
+        PhGetStringOrEmpty(Entry->ProviderName),
+        L"AND User",
+        PhGetStringOrEmpty(Entry->UserName)
+    );
+
+    MI_Session_QueryInstances(
+        &session,
+        0,
+        NULL,
+        L"root\\CIMV2",
+        L"WQL",
+        PhGetString(queryString),
+        NULL,
+        &operation
+        );
+
+    for (;;)
+    {
+        miResult = MI_Operation_GetInstance(
+            &operation,
+            &instance,
+            &moreResults,
+            &operationResult,
+            &errorMessage,
+            &completionDetails
+            );
+
+        if (miResult != MI_RESULT_OK)
+            break;
+
+        if (!instance)
+            break;
+
+        matchCount++;
+
+        if (matchCount > 1)
+        {
+            if (providerString)
+            {
+                PhDereferenceObject(providerString);
+                providerString = NULL;
+            }
+
+            break;
+        }
+
+        {
+            PH_STRING_BUILDER stringBuilder;
+
+            PhInitializeStringBuilder(&stringBuilder, 0x100);
+            PhAppendFormatStringBuilder(&stringBuilder, L"Statistics for %s: \r\n\r\n", PhGetString(Entry->ProviderName));
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(providerStatisticNames); i++)
+            {
+                PPH_STRING string;
+
+                if (string = PhGetMiClassObjectString(instance, providerStatisticNames[i].Name))
+                {
+                    PhAppendFormatStringBuilder(&stringBuilder, L"%s:%s", providerStatisticNames[i].Name, providerStatisticNames[i].Padding);
+                    PhAppendStringBuilder(&stringBuilder, &string->sr);
+                    PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+                    PhDereferenceObject(string);
+                }
+            }
+
+            providerString = PhFinalStringBuilderString(&stringBuilder);
+        }
+
+        if (!moreResults)
+            break;
+    }
+
+    if (matchCount != 1 || miResult != MI_RESULT_OK || operationResult != MI_RESULT_OK)
+    {
+        PhClearReference(&providerString);
+    }
+
+CleanupExit:
+    //if (instance)
+    //    MI_Instance_Delete((MI_Instance*)instance);
+    if (queryString)
+        PhDereferenceObject(queryString);
+
+    MI_Operation_Close(&operation);
+
+    if (session.ft)
+        MI_Session_Close(&session, NULL, NULL);
+    if (application.ft)
+        MI_Application_Close(&application);
+
+    return providerString;
+}
+#endif
 
 PPH_STRING PhpQueryWmiDefaultNamespace(
     VOID
@@ -928,7 +1710,7 @@ VOID PhpSetWmiProviderListStatusMessage(
 {
     PPH_STRING statusMessage;
 
-    statusMessage = PhGetStatusMessage(0, HRESULT_CODE(Status)); // HACK
+    statusMessage = PhGetStatusMessage(0, HRESULT_CODE(Status));
     PhMoveReference(&Context->StatusMessage, PhConcatStrings2(
         L"Unable to query provider information:\n",
         PhGetStringOrDefault(statusMessage, L"Unknown error.")
@@ -1011,7 +1793,7 @@ VOID PhpShowWmiProviderStatus(
     {
         if (Message)
         {
-            PhShowError2(hWnd, L"Unable to perform the operation.", L"%s", Message);
+            PhShowError2(hWnd, Message, L"%s", L"Unknown error.");
         }
         else
         {
@@ -1123,7 +1905,7 @@ VOID PhpShowWmiProviderNodeContextMenu(
                 {
                     PPH_STRING string;
 
-                    if (string = PhpQueryWmiProviderStatistics(nodes[0]->Provider))
+                    if (string = PhpQueryWmiProviderStatistics(nodes[0]->Provider, Context->ProcessItem->ProcessIdString))
                     {
                         PhShowInformationDialog(Context->WindowHandle, PhGetString(string), 0);
                         PhDereferenceObject(string);
@@ -1166,10 +1948,12 @@ VOID PhLoadSettingsWmiProviderList(
 {
     PPH_STRING settings;
     PPH_STRING sortSettings;
+    ULONG flags;
 
     settings = PhGetStringSetting(SETTING_WMI_PROVIDER_TREE_LIST_COLUMNS);
     sortSettings = PhGetStringSetting(SETTING_WMI_PROVIDER_TREE_LIST_SORT);
-    Context->Flags = PhGetIntegerSetting(SETTING_WMI_PROVIDER_TREE_LIST_FLAGS);
+    flags = PhGetIntegerSetting(SETTING_WMI_PROVIDER_TREE_LIST_FLAGS);
+    Context->Flags = flags;
 
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
@@ -1219,7 +2003,22 @@ BOOLEAN PhpWmiProviderNodeHashtableEqualFunction(
     PPHP_PROCESS_WMI_TREENODE node1 = *(PPHP_PROCESS_WMI_TREENODE*)Entry1;
     PPHP_PROCESS_WMI_TREENODE node2 = *(PPHP_PROCESS_WMI_TREENODE*)Entry2;
 
-    return PhEqualStringRef(&node1->Provider->RelativePath->sr, &node2->Provider->RelativePath->sr, TRUE);
+    if (!node1 || !node2)
+        return FALSE;
+
+    if (node1->Provider && node2->Provider)
+    {
+        if (node1->Provider->RelativePath && node2->Provider->RelativePath)
+            return PhEqualStringRef(&node1->Provider->RelativePath->sr, &node2->Provider->RelativePath->sr, TRUE);
+
+        return
+            PhCompareStringWithNull(node1->Provider->ProviderNamespace, node2->Provider->ProviderNamespace, TRUE) == 0 &&
+            PhCompareStringWithNull(node1->Provider->ProviderName, node2->Provider->ProviderName, TRUE) == 0 &&
+            PhCompareStringWithNull(node1->Provider->UserName, node2->Provider->UserName, TRUE) == 0 &&
+            PhCompareStringWithNull(node1->Provider->FileName, node2->Provider->FileName, TRUE) == 0;
+    }
+
+    return FALSE;
 }
 
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
@@ -1227,7 +2026,28 @@ ULONG PhpWmiProviderNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return PhHashStringRefEx(&(*(PPHP_PROCESS_WMI_TREENODE*)Entry)->Provider->RelativePath->sr, TRUE, PH_STRING_HASH_X65599);
+    ULONG hash = 0;
+    PPHP_PROCESS_WMI_TREENODE node = *(PPHP_PROCESS_WMI_TREENODE*)Entry;
+
+    if (!node || !node->Provider)
+        return 0;
+
+    if (node->Provider->RelativePath)
+        return PhHashStringRefEx(&node->Provider->RelativePath->sr, TRUE, PH_STRING_HASH_X65599);
+
+    if (node->Provider->ProviderNamespace)
+        hash = PhHashStringRefEx(&node->Provider->ProviderNamespace->sr, TRUE, PH_STRING_HASH_X65599);
+
+    hash = (hash * 16777619UL) ^ (node->Provider->ProviderName ?
+        PhHashStringRefEx(&node->Provider->ProviderName->sr, TRUE, PH_STRING_HASH_X65599) : 0);
+
+    hash = (hash * 16777619UL) ^ (node->Provider->UserName ?
+        PhHashStringRefEx(&node->Provider->UserName->sr, TRUE, PH_STRING_HASH_X65599) : 0);
+
+    hash = (hash * 16777619UL) ^ (node->Provider->FileName ?
+        PhHashStringRefEx(&node->Provider->FileName->sr, TRUE, PH_STRING_HASH_X65599) : 0);
+
+    return hash;
 }
 
 VOID PhpDestroyWmiProviderNode(
@@ -1343,7 +2163,7 @@ VOID PhpExpandAllWmiProviderNodes(
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
-        PPH_MODULE_NODE node = Context->NodeList->Items[i];
+        PPHP_PROCESS_WMI_TREENODE node = Context->NodeList->Items[i];
 
         if (node->Node.Expanded != Expand)
         {
@@ -1851,7 +2671,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                     PhReplaceWindowFont(&context->TreeNewFont, context->TreeNewHandle, treeNewFont, TRUE);
             }
 
-            TreeNew_SetRowHeight(context->TreeNewHandle, PhScaleToDisplay(22, LOWORD(wParam)));
+            TreeNew_SetRowHeight(context->TreeNewHandle, PhScaleToDisplay(22, PhGetWindowDpi(hwndDlg)));
         }
         break;
     case WM_SHOWWINDOW:

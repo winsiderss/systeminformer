@@ -880,28 +880,6 @@ FORCEINLINE RTL_ATOM PhGetClassInfoEx(
     return (RTL_ATOM)GetClassInfoEx(Instance, ClassName, WindowClass);
 }
 
-#define PH_WINDOW_TIMER_DEFAULT 0xF
-
-FORCEINLINE ULONG_PTR PhSetTimer(
-    _In_ HWND WindowHandle,
-    _In_ ULONG_PTR TimerID,
-    _In_ ULONG Elapse,
-    _In_opt_ TIMERPROC TimerProcedure
-    )
-{
-    assert(WindowHandle);
-    return SetTimer(WindowHandle, TimerID, Elapse, TimerProcedure);
-}
-
-FORCEINLINE BOOL PhKillTimer(
-    _In_ HWND WindowHandle,
-    _In_ ULONG_PTR TimerID
-    )
-{
-    assert(WindowHandle);
-    return KillTimer(WindowHandle, TimerID);
-}
-
 FORCEINLINE VOID PhBringWindowToTop(
     _In_ HWND WindowHandle
     )

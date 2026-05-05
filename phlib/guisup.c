@@ -1698,7 +1698,7 @@ LONG PhSelectComboBoxString(
 
         ComboBox_SetCurSel(WindowHandle, index);
 
-        InvalidateRect(WindowHandle, NULL, TRUE);
+        InvalidateRect(WindowHandle, NULL, FALSE);
 
         return index;
     }
@@ -3486,7 +3486,7 @@ NTSTATUS PhEnumWindowStations(
         EnumWindowStations(PhEnumWindowStationsWin32Callback, (LPARAM)&context);
     }
 
-    if (!context.StopSearch)
+    if (context.StopSearch)
         goto CleanupExit;
 
     //
@@ -3513,7 +3513,7 @@ NTSTATUS PhEnumWindowStations(
         }
     }
 
-    if (!context.StopSearch)
+    if (context.StopSearch)
         goto CleanupExit;
 
     //
@@ -3554,7 +3554,7 @@ NTSTATUS PhEnumWindowStations(
         }
     }
 
-    if (!context.StopSearch)
+    if (context.StopSearch)
         goto CleanupExit;
 
     //

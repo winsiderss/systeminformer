@@ -6897,9 +6897,9 @@ NTSTATUS PhGetSystemFileCacheSize(
 /**
  * Limits the size of the working set of the virtual memory manager system cache.
  *
- * \param CacheInfo The minimum size of the file cache, in bytes. The virtual memory manager
+ * \param MinimumFileCacheSize The minimum size of the file cache, in bytes. The virtual memory manager
  * attempts to keep at least this much memory resident in the system file cache.
- * \param CacheInfo The maximum size of the file cache, in bytes. The virtual memory manager
+ * \param MaximumFileCacheSize The maximum size of the file cache, in bytes. The virtual memory manager
  * enforces this limit only if this call or a previous call to SetSystemFileCacheSize
  * specifies FILE_CACHE_MAX_HARD_ENABLE.
  * \return NTSTATUS Successful or errant status.
@@ -8348,14 +8348,13 @@ NTSTATUS PhQueryEvent(
 NTSTATUS PhCreateWaitableTimer(
     _Out_ PHANDLE TimerHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ TIMER_TYPE TimerType,
-    _In_ BOOLEAN HighResolution
+    _In_ TIMER_TYPE TimerType
     )
 {
     NTSTATUS status;
     HANDLE timerHandle = NULL;
 
-    if (HighResolution && NtCreateTimer2_Import())
+    if (PhEnableHighResolution && NtCreateTimer2_Import())
     {
         status = NtCreateTimer2_Import()(
             &timerHandle,
@@ -8422,27 +8421,26 @@ NTSTATUS PhSetWaitableTimer(
     _In_opt_ PLARGE_INTEGER Period,
     _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine,
     _In_opt_ PVOID TimerContext,
-    _In_ BOOLEAN ResumeTimer,
-    _In_ BOOLEAN HighResolution
+    _In_ BOOLEAN ResumeTimer
     )
 {
-    if (HighResolution)
+    if (PhEnableHighResolution)
     {
         TIMER_SET_COALESCABLE_TIMER_INFO timerParameters;
 
         if (NtSetTimer2_Import())
         {
-            T2_SET_PARAMETERS timerParameters;
+            T2_SET_PARAMETERS timer2Parameters;
 
-            memset(&timerParameters, 0, sizeof(T2_SET_PARAMETERS));
-            timerParameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
-            timerParameters.NoWakeTolerance = 0;
+            memset(&timer2Parameters, 0, sizeof(T2_SET_PARAMETERS));
+            timer2Parameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
+            timer2Parameters.NoWakeTolerance = 0;
 
             return NtSetTimer2_Import()(
                 TimerHandle,
                 DueTime,
                 Period,
-                &timerParameters
+                &timer2Parameters
                 );
         }
 
@@ -8470,4 +8468,46 @@ NTSTATUS PhSetWaitableTimer(
         Period ? (LONG)(Period->QuadPart / PH_TIMEOUT_MS) : 0,
         NULL
         );
+}
+
+/**
+ * Creates a timer with the specified time-out value.
+ *
+ * \param WindowHandle A handle to the window to be associated with the timer.
+ * \param TimerID The timer identifier.
+ * \param Elapse The time-out value, in milliseconds.
+ * \param TimerProcedure A pointer to the function to be notified when the time-out value elapses.
+ * \return The timer identifier if successful; otherwise, zero.
+ */
+ULONG_PTR PhSetTimer(
+    _In_ HWND WindowHandle,
+    _In_ ULONG_PTR TimerID,
+    _In_ ULONG Elapse,
+    _In_opt_ TIMERPROC TimerProcedure
+    )
+{
+    assert(WindowHandle);
+
+    if (PhEnableHighResolution)
+    {
+        return SetCoalescableTimer(WindowHandle, TimerID, Elapse, TimerProcedure, TIMERV_NO_COALESCING);
+    }
+
+    return SetTimer(WindowHandle, TimerID, Elapse, TimerProcedure);
+}
+
+/**
+ * Destroys a timer.
+ *
+ * \param WindowHandle A handle to the window associated with the timer.
+ * \param TimerID The identifier of the timer to be destroyed.
+ * \return TRUE if the function succeeds, FALSE otherwise.
+ */
+BOOL PhKillTimer(
+    _In_ HWND WindowHandle,
+    _In_ ULONG_PTR TimerID
+    )
+{
+    assert(WindowHandle);
+    return KillTimer(WindowHandle, TimerID);
 }

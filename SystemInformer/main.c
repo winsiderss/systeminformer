@@ -1713,6 +1713,7 @@ VOID PhInitializeAppSettings(
     for (ULONG i = 0; i < PhMaxPrecisionUnit; i++)
         PhMaxPrecisionLimit /= 10;
     PhEnableWindowText = !!PhGetIntegerSetting(SETTING_ENABLE_WINDOW_TEXT);
+    PhEnableHighResolution = WindowsVersion >= WINDOWS_11 && PhGetIntegerSetting(SETTING_ENABLE_HIGH_RESOLUTION);
 
     PhEnableThemeSupport = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
     PhThemeWindowForegroundColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_FOREGROUND_COLOR);

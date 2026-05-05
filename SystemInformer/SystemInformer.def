@@ -700,6 +700,7 @@ EXPORTS
     PhSetThreadIoPriority
     PhSetThreadName
     PhSetThreadPagePriority
+    PhSetTimer
     PhSetTokenIsVirtualizationEnabled
     PhSetTokenPrivilege
     PhSetTokenPrivilege2

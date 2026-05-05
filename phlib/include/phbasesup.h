@@ -4730,6 +4730,7 @@ PhTlsSetValue(
 // Errors
 //
 
+_Post_equals_last_error_
 PHLIBAPI
 ULONG
 NTAPI

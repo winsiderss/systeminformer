@@ -38,6 +38,16 @@ typedef struct _PH_HANDLE_ITEM
     ULONG PointerCount;
     ULONG PagedPoolCharge;
     ULONG NonPagedPoolCharge;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG NameResolved : 1;
+            ULONG Spare : 31;
+        };
+    };
+    volatile LONG JustProcessed;
 
     PPH_STRING TypeName;
     PPH_STRING ObjectName;
@@ -63,6 +73,7 @@ typedef struct _PH_HANDLE_PROVIDER
     HANDLE ProcessId;
     HANDLE ProcessHandle;
 
+    SLIST_HEADER QueryListHead;
     PPH_HASHTABLE TempListHashtable;
     NTSTATUS RunStatus;
 } PH_HANDLE_PROVIDER, *PPH_HANDLE_PROVIDER;

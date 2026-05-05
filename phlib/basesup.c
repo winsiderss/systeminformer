@@ -4569,6 +4569,7 @@ NTSTATUS PhTlsSetValue(
  *
  * \return The last error code as an unsigned long value.
  */
+_Use_decl_annotations_
 ULONG PhGetLastError(
     VOID
     )

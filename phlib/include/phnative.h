@@ -2529,7 +2529,6 @@ PhGetDaclSecurityDescriptor(
 
     if (present = BooleanFlagOn(securityDescriptor->Control, SE_DACL_PRESENT))
     {
-        *DaclPresent = TRUE;
         defaulted = BooleanFlagOn(securityDescriptor->Control, SE_DACL_DEFAULTED);
 
         if (BooleanFlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
@@ -7027,8 +7026,7 @@ NTAPI
 PhCreateWaitableTimer(
     _Out_ PHANDLE TimerHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ TIMER_TYPE TimerType,
-    _In_ BOOLEAN HighResolution
+    _In_ TIMER_TYPE TimerType
     );
 
 PHLIBAPI
@@ -7040,8 +7038,27 @@ PhSetWaitableTimer(
     _In_opt_ PLARGE_INTEGER Period,
     _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine,
     _In_opt_ PVOID TimerContext,
-    _In_ BOOLEAN ResumeTimer,
-    _In_ BOOLEAN HighResolution
+    _In_ BOOLEAN ResumeTimer
+    );
+
+#define PH_WINDOW_TIMER_DEFAULT 0xF
+
+PHLIBAPI
+ULONG_PTR
+NTAPI
+PhSetTimer(
+    _In_ HWND WindowHandle,
+    _In_ ULONG_PTR TimerID,
+    _In_ ULONG Elapse,
+    _In_opt_ TIMERPROC TimerProcedure
+    );
+
+PHLIBAPI
+BOOL
+NTAPI
+PhKillTimer(
+    _In_ HWND WindowHandle,
+    _In_ ULONG_PTR TimerID
     );
 
 PHLIBAPI
@@ -7157,6 +7174,69 @@ PhFilterConnectCommunicationPort(
     _In_ USHORT SizeOfContext,
     _In_opt_ PSECURITY_ATTRIBUTES SecurityAttributes,
     _Outptr_ PHANDLE Port
+    );
+
+
+//
+// winsta
+//
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWinStationShadow(
+    _In_ PCWSTR TargetServerName,
+    _In_ ULONG TargetSessionId,
+    _In_ UCHAR HotKeyVk,
+    _In_ USHORT HotkeyModifiers
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWinStationSendMessage(
+    _In_ ULONG SessionId,
+    _In_ PCWSTR Title,
+    _In_ ULONG TitleLength,
+    _In_ PCWSTR Message,
+    _In_ ULONG MessageLength,
+    _In_ ULONG Style,
+    _In_ ULONG Timeout,
+    _Out_ PULONG Response,
+    _In_ BOOLEAN DoNotWait
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWinStationConnect(
+    _In_ ULONG SessionId,
+    _In_ ULONG TargetSessionId,
+    _In_opt_ PCWSTR Password,
+    _In_ BOOLEAN Wait
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWinStationDisconnect(
+    _In_ ULONG SessionId,
+    _In_ BOOLEAN Wait
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWinStationReset(
+    _In_ ULONG SessionId,
+    _In_ BOOLEAN Wait
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhWinStationFreeMemory(
+    _In_ PVOID Buffer
     );
 
 EXTERN_C_END
