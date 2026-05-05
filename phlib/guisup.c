@@ -1698,7 +1698,7 @@ LONG PhSelectComboBoxString(
 
         ComboBox_SetCurSel(WindowHandle, index);
 
-        InvalidateRect(WindowHandle, NULL, TRUE);
+        InvalidateRect(WindowHandle, NULL, FALSE);
 
         return index;
     }
