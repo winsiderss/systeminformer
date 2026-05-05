@@ -64,6 +64,13 @@ BOOLEAN EtpGpuIconMessageCallback(
     _In_opt_ PVOID Context
     );
 
+BOOLEAN EtpGpuMemoryIconMessageCallback(
+    _In_ PPH_NF_ICON Icon,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam,
+    _In_opt_ PVOID Context
+    );
+
 VOID EtpNpuIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
@@ -329,7 +336,7 @@ VOID EtRegisterNotifyIcons(
         );
 
     data.UpdateCallback = EtpGpuMemoryIconUpdateCallback;
-    data.MessageCallback = EtpGpuIconMessageCallback;
+    data.MessageCallback = EtpGpuMemoryIconMessageCallback;
     Pointers->RegisterTrayIcon(
         PluginInstance,
         ETP_TRAY_ICON_ID_GPUMEM,
@@ -341,7 +348,7 @@ VOID EtRegisterNotifyIcons(
         );
 
     data.UpdateCallback = EtpGpuMemoryTextIconUpdateCallback;
-    data.MessageCallback = EtpGpuIconMessageCallback;
+    data.MessageCallback = EtpGpuMemoryIconMessageCallback;
     Pointers->RegisterTrayIcon(
         PluginInstance,
         ETP_TRAY_ICON_ID_GPUMEMTEXT,
@@ -493,6 +500,27 @@ BOOLEAN EtpGpuIconMessageCallback(
             PPH_NF_MSG_SHOWMINIINFOSECTION_DATA data = (PVOID)WParam;
 
             data->SectionName = L"GPU";
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOLEAN EtpGpuMemoryIconMessageCallback(
+    _In_ PPH_NF_ICON Icon,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam,
+    _In_opt_ PVOID Context
+    )
+{
+    switch (LOWORD(LParam))
+    {
+    case PH_NF_MSG_SHOWMINIINFOSECTION:
+        {
+            PPH_NF_MSG_SHOWMINIINFOSECTION_DATA data = (PVOID)WParam;
+
+            data->SectionName = L"GPU Memory";
         }
         return TRUE;
     }

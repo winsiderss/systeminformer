@@ -2173,23 +2173,6 @@ typedef struct _FILE_FS_GUID_INFORMATION
 /**
  * The NtCreateFile routine creates a new file or directory, or opens an existing file, device, directory, or volume.
  *
- * \param[out] FileHandle Pointer to a variable that receives a handle to the pipe.
- * \param[in] DesiredAccess The requested access to the object.
- * \param[in] ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that contains the object attributes, including pipe name.
- * \param[out] IoStatusBlock Pointer to an IO_STATUS_BLOCK structure that receives the final completion status and information about the operation.
- * \param[in] AllocationSize The initial allocation size in bytes for the file. Specify a non-zero value to eliminate disk fragmentation, since the file system pre-allocates the file using a contiguous block.
- * \param[in] FileAttributes The file attributes. Explicitly specified attributes are applied only when the file is created, superseded, or, in some cases, overwritten.
- * \param[in] ShareAccess The type of share access that the caller would like to use in the file.
- * \param[in] CreateDisposition Specifies how the file should be handled when the file already exists.
- * \param[in] CreateOptions Specifies the options to be applied when creating or opening the file.
- * \param[in] EaBuffer Pointer to an EA buffer used to pass extended attributes.
- * \param[in] EaLength Length of the EA buffer.
- * \return NTSTATUS Successful or errant status.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/Winternl/nf-winternl-ntcreatefile
- */
-/**
- * The NtCreateFile routine creates a new file or directory, or opens an existing file, device, directory, or volume.
- *
  * \param[out] FileHandle Pointer to a variable that receives a handle to the file.
  * \param[in] DesiredAccess The requested access to the object.
  * \param[in] ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that contains the file's attributes, including file name.
@@ -3497,6 +3480,14 @@ NtRemoveIoCompletionEx(
 //
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
+
+#ifndef IO_WAIT_COMPLETION_PACKET_QUERY_STATE
+#define IO_WAIT_COMPLETION_PACKET_QUERY_STATE 0x0001
+#endif
+
+#ifndef IO_WAIT_COMPLETION_PACKET_ALL_ACCESS
+#define IO_WAIT_COMPLETION_PACKET_ALL_ACCESS (IO_WAIT_COMPLETION_PACKET_QUERY_STATE | STANDARD_RIGHTS_REQUIRED)
+#endif
 
 /**
  * The NtCreateWaitCompletionPacket routine creates a wait completion packet object.
