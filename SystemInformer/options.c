@@ -125,6 +125,7 @@ static PPH_LIST SectionList = NULL;
 static PPH_OPTIONS_SECTION CurrentSection = NULL;
 static HWND OptionsTreeControl = NULL;
 static HWND ContainerControl = NULL;
+static RECT MinimumSize;
 
 // All
 static BOOLEAN RestartRequired = FALSE;
@@ -312,6 +313,12 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             TreeView_SetExtendedStyle(OptionsTreeControl, TVS_EX_DOUBLEBUFFER, TVS_EX_DOUBLEBUFFER);
             TreeView_SetBkColor(OptionsTreeControl, GetSysColor(COLOR_3DFACE));
 
+            MinimumSize.left = 0;
+            MinimumSize.top = 0;
+            MinimumSize.right = 423;
+            MinimumSize.bottom = 247;
+            MapDialogRect(hwndDlg, &MinimumSize);
+
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
             PhAddLayoutItem(&WindowLayoutManager, OptionsTreeControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
             //PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SEPARATOR), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
@@ -402,6 +409,11 @@ INT_PTR CALLBACK PhOptionsDialogProc(
     case WM_SIZE:
         {
             PhOptionsOnSize();
+        }
+        break;
+    case WM_SIZING:
+        {
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
     case WM_COMMAND:
