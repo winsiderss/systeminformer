@@ -69,6 +69,13 @@ PhGetObjectTypeName(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetObjectTypeNameEx(
+    _In_ ULONG ObjectTypeNumber
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhQueryObjectName(
@@ -200,6 +207,41 @@ PhGetObjectTypeNumberZ(
 
     return PhGetObjectTypeNumber(&typeName);
 }
+
+typedef enum _PH_HANDLE_OBJECT_TYPE
+{
+    PhHandleObjectTypeUnknown = 0,
+    PhHandleObjectTypeAlpcPort,
+    PhHandleObjectTypeDevice,
+    PhHandleObjectTypeEtwRegistration,
+    PhHandleObjectTypeFile,
+    PhHandleObjectTypeJob,
+    PhHandleObjectTypeKey,
+    PhHandleObjectTypeProcess,
+    PhHandleObjectTypeSection,
+    PhHandleObjectTypeThread,
+    PhHandleObjectTypeToken,
+    PhHandleObjectTypeTmEn,
+    PhHandleObjectTypeTmRm,
+    PhHandleObjectTypeTmTm,
+    PhHandleObjectTypeTmTx,
+    PhHandleObjectTypeMaximum
+} PH_HANDLE_OBJECT_TYPE;
+
+PHLIBAPI
+PH_HANDLE_OBJECT_TYPE
+NTAPI
+PhGetHandleObjectType(
+    _In_ ULONG TypeIndex
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsObjectTypeIndex(
+    _In_ ULONG TypeIndex,
+    _In_ PH_HANDLE_OBJECT_TYPE Type
+    );
 
 PHLIBAPI
 PPH_STRING

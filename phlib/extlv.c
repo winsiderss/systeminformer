@@ -286,6 +286,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
 
                                 if (headerCount != INT_ERROR)
                                 {
+                                    SendMessage(WindowHandle, WM_SETREDRAW, FALSE, 0);
+
                                     for (LONG i = 0; i < headerCount; i++)
                                     {
                                         HDITEM item;
@@ -297,6 +299,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                             CallWindowProc(oldWndProc, WindowHandle, LVM_SETCOLUMNWIDTH, item.iOrder, LVSCW_AUTOSIZE);
                                         }
                                     }
+
+                                    SendMessage(WindowHandle, WM_SETREDRAW, TRUE, 0);
+                                    InvalidateRect(WindowHandle, NULL, FALSE);
                                 }
                             }
                             break;
