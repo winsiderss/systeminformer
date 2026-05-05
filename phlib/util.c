@@ -8712,10 +8712,6 @@ HANDLE PhGetNamespaceHandle(
             goto CleanupExit;
         if (!NT_SUCCESS(status = PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE)))
             goto CleanupExit;
-        if (!NT_SUCCESS(status = PhSetGroupSecurityDescriptor(securityDescriptor, administratorsSid, FALSE)))
-            goto CleanupExit;
-        if (!NT_SUCCESS(status = PhSetOwnerSecurityDescriptor(securityDescriptor, administratorsSid, FALSE)))
-            goto CleanupExit;
 
         RtlInitUnicodeString(&objectName, L"\\BaseNamedObjects\\SystemInformer");
         InitializeObjectAttributes(

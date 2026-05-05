@@ -4492,47 +4492,13 @@ typedef struct _RTL_DRIVE_LETTER_CURDIR
 #define RTL_USER_PROC_CREATE_NEW_CONSOLE ((HANDLE)(LONG_PTR)-2)
 #define RTL_USER_PROC_CREATE_NO_WINDOW ((HANDLE)(LONG_PTR)-3)
 
-typedef enum RTL_USER_PROC_FLAGS
-{
-    RTL_USER_PROC_PARAMS_NORMALIZED = 0x1,
-    RTL_USER_PROC_FLAG_INHERITED    = 0x100,
-    RTL_USER_PROC_SECURE_PROCESS    = 0x2000000,
-    RTL_USER_PROC_APPX_CONTEXT      = 0x8000000,
-    RTL_USER_PROC_PROTECTED_PROCESS = 0x80000000,
-} RTL_USER_PROC_FLAGS;
-
-typedef enum RTL_USER_DEBUG_FLAGS
-{
-    RTL_USER_PROC_DEBUG_PROCESS = 0x1,
-    RTL_USER_PROC_DEBUG_ONLY_THIS_PROCESS = 0x2,
-} RTL_USER_DEBUG_FLAGS;
-
-typedef enum _RTL_USER_PROC_CONSOLE_FLAGS
-{
-    RTL_USER_PROC_CONSOLE_FLAG_IGNORE_CTRL_C  = 0x1, // Ignore Ctrl+C events — skip handler dispatch
-    RTL_USER_PROC_CONSOLE_FLAG_SANITIZE_STDIO = 0x2, // Sanitize/validate inherited standard I/O handles at startup
-    RTL_USER_PROC_CONSOLE_FLAG_CLOSE_STDIO    = 0x4, // Close inherited stdin/stdout/stderr before connecting
-} RTL_USER_PROC_CONSOLE_FLAGS;
-
-typedef enum _RTL_USER_PROC_WINDOW_FLAGS
-{
-    RTL_USER_PROC_WINDOW_FLAG_USESHOWWINDOW       = 0x001, // STARTF_USESHOWWINDOW 
-    RTL_USER_PROC_WINDOW_FLAG_USESIZE             = 0x002, // STARTF_USESIZE
-    RTL_USER_PROC_WINDOW_FLAG_USEPOSITION         = 0x004, // STARTF_USEPOSITION
-    RTL_USER_PROC_WINDOW_FLAG_USECOUNTCHARS       = 0x008, // STARTF_USECOUNTCHARS
-    RTL_USER_PROC_WINDOW_FLAG_USEFILLATTRIBUTE    = 0x010, // STARTF_USEFILLATTRIBUTE
-    RTL_USER_PROC_WINDOW_FLAG_USESTDHANDLES       = 0x100, // STARTF_USESTDHANDLES
-    RTL_USER_PROC_WINDOW_FLAG_HASSHELLDATA_STDIN  = 0x200, // STARTF_HASSHELLDATA_STDIN
-    RTL_USER_PROC_WINDOW_FLAG_HASSHELLDATA_STDOUT = 0x400, // STARTF_HASSHELLDATA_STDOUT
-} _RTL_USER_PROC_WINDOW_FLAGS;
-
 typedef struct _RTL_USER_PROCESS_PARAMETERS
 {
     ULONG MaximumLength;
     ULONG Length;
 
     ULONG Flags; // RTL_USER_PROC_FLAGS
-    ULONG DebugFlags;
+    ULONG DebugFlags; // RTL_USER_DEBUG_FLAGS
 
     HANDLE ConsoleHandle;
     ULONG ConsoleFlags; // RTL_USER_PROC_CONSOLE_FLAGS
@@ -11568,6 +11534,22 @@ typedef WAIT_CALLBACK_ROUTINE* PWAIT_CALLBACK_ROUTINE;
 #define WT_EXECUTEINPERSISTENTTHREAD    0x00000080
 #define WT_TRANSFER_IMPERSONATION       0x00000100
 
+/**
+ * Directs a wait thread in the thread pool to wait on the object.
+ * 
+ * \param WaitHandle A pointer to a variable that receives a wait handle on return.
+ * Note that a wait handle cannot be used in functions that require an object handle.
+ * \param Handle A handle to the object. If this handle is closed while the wait is
+ * still pending, the function's behavior is undefined. The handle must have SYNCHRONIZE access.
+ * \param Function Optional completion event for wait callback completion.
+ * \param Context Optional value that is passed to the callback function.
+ * \param Milliseconds The time-out interval, in milliseconds. 
+ * \param Flags Flags that control the behavior of the wait handle.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks The wait thread queues the specified callback function to the thread pool
+ * when the specified object is in the signaled state or the time-out interval elapses.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-registerwaitforsingleobject
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -11580,6 +11562,13 @@ RtlRegisterWait(
     _In_ ULONG Flags
     );
 
+/**
+ * Cancels a registered wait operation issued by the RtlRegisterWait function.
+ *
+ * \param WaitHandle The wait handle
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-unregisterwait
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -11587,17 +11576,22 @@ RtlDeregisterWait(
     _In_ HANDLE WaitHandle
     );
 
+//
+// RtlDeregisterWaitEx waits for all callback functions to complete before returning
+// when the RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION flag is passed to CompletionEvent.
+//
 #define RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION ((HANDLE)(LONG_PTR)-1)
 
 /**
  * Releases all resources used by a wait object.
  *
- * \param WaitHandle The access mask that specifies the granted access rights.
- * \param CompletionEvent Optional completion event for wait callback completion.
- * \remarks RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION: blocking wait for wait callback completion.
- * NULL: non-blocking wait for wait callback completion.
- * EventHandle: caller wait for wait callback completion.
+ * \param WaitHandle The wait handle.
+ * \param CompletionEvent A handle to the event object to be signaled when the wait operation
+ * has been unregistered. This parameter can be NULL.
+ * \remarks If this parameter is RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION, the function waits
+ * for all callback functions to complete before returning.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/sync/unregisterwaitex
  */
 NTSYSAPI
 NTSTATUS
@@ -12675,7 +12669,7 @@ NTAPI
 RtlAddActionToRXact(
     _Inout_ PRTL_RXACT_CONTEXT RxactContext,
     _In_ ULONG ActionType,
-    _In_ const UNICODE_STRING *Name,
+    _In_ PCUNICODE_STRING Name,
     _In_ ULONG Operation,
     _In_reads_bytes_opt_(DataSize) const VOID *Data,
     _In_ SIZE_T DataSize
@@ -12688,9 +12682,9 @@ NTAPI
 RtlAddAttributeActionToRXact(
     _Inout_ PRTL_RXACT_CONTEXT RxactContext,
     _In_ ULONG ActionType,
-    _In_ const UNICODE_STRING *KeyName,
+    _In_ PCUNICODE_STRING KeyName,
     _In_ LONGLONG AttributeIndex,
-    _In_ const UNICODE_STRING *ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _In_ ULONG ValueType,
     _In_reads_bytes_opt_(DataSize) const VOID *Data,
     _In_ SIZE_T DataSize
@@ -13764,7 +13758,7 @@ RtlGetPerSubsystemServerData(
 
             if (SubsystemData->SubsystemId == SubsystemId)
             {
-                return (PVOID)((PBYTE)SubsystemData + sizeof(CSR_SUBSYSTEM_DATA_HEADER));
+                return RTL_PTR_ADD(SubsystemData, sizeof(CSR_SUBSYSTEM_DATA_HEADER));
             }
 
             StaticServerData++;
@@ -14077,24 +14071,24 @@ RtlQueryPerformanceFrequency(
 // rev
 typedef enum _IMAGE_MITIGATION_POLICY
 {
-    ImageDepPolicy, // RTL_IMAGE_MITIGATION_DEP_POLICY
-    ImageAslrPolicy, // RTL_IMAGE_MITIGATION_ASLR_POLICY
-    ImageDynamicCodePolicy, // RTL_IMAGE_MITIGATION_DYNAMIC_CODE_POLICY
-    ImageStrictHandleCheckPolicy, // RTL_IMAGE_MITIGATION_STRICT_HANDLE_CHECK_POLICY
-    ImageSystemCallDisablePolicy, // RTL_IMAGE_MITIGATION_SYSTEM_CALL_DISABLE_POLICY
+    ImageDepPolicy,                     // RTL_IMAGE_MITIGATION_DEP_POLICY
+    ImageAslrPolicy,                    // RTL_IMAGE_MITIGATION_ASLR_POLICY
+    ImageDynamicCodePolicy,             // RTL_IMAGE_MITIGATION_DYNAMIC_CODE_POLICY
+    ImageStrictHandleCheckPolicy,       // RTL_IMAGE_MITIGATION_STRICT_HANDLE_CHECK_POLICY
+    ImageSystemCallDisablePolicy,       // RTL_IMAGE_MITIGATION_SYSTEM_CALL_DISABLE_POLICY
     ImageMitigationOptionsMask,
-    ImageExtensionPointDisablePolicy, // RTL_IMAGE_MITIGATION_EXTENSION_POINT_DISABLE_POLICY
-    ImageControlFlowGuardPolicy, // RTL_IMAGE_MITIGATION_CONTROL_FLOW_GUARD_POLICY
-    ImageSignaturePolicy, // RTL_IMAGE_MITIGATION_BINARY_SIGNATURE_POLICY
-    ImageFontDisablePolicy, // RTL_IMAGE_MITIGATION_FONT_DISABLE_POLICY
-    ImageImageLoadPolicy, // RTL_IMAGE_MITIGATION_IMAGE_LOAD_POLICY
-    ImagePayloadRestrictionPolicy, // RTL_IMAGE_MITIGATION_PAYLOAD_RESTRICTION_POLICY
-    ImageChildProcessPolicy, // RTL_IMAGE_MITIGATION_CHILD_PROCESS_POLICY
-    ImageSehopPolicy, // RTL_IMAGE_MITIGATION_SEHOP_POLICY
-    ImageHeapPolicy, // RTL_IMAGE_MITIGATION_HEAP_POLICY
-    ImageUserShadowStackPolicy, // RTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY
-    ImageRedirectionTrustPolicy, // RTL_IMAGE_MITIGATION_REDIRECTION_TRUST_POLICY
-    ImageUserPointerAuthPolicy, // RTL_IMAGE_MITIGATION_USER_POINTER_AUTH_POLICY
+    ImageExtensionPointDisablePolicy,   // RTL_IMAGE_MITIGATION_EXTENSION_POINT_DISABLE_POLICY
+    ImageControlFlowGuardPolicy,        // RTL_IMAGE_MITIGATION_CONTROL_FLOW_GUARD_POLICY
+    ImageSignaturePolicy,               // RTL_IMAGE_MITIGATION_BINARY_SIGNATURE_POLICY
+    ImageFontDisablePolicy,             // RTL_IMAGE_MITIGATION_FONT_DISABLE_POLICY
+    ImageImageLoadPolicy,               // RTL_IMAGE_MITIGATION_IMAGE_LOAD_POLICY
+    ImagePayloadRestrictionPolicy,      // RTL_IMAGE_MITIGATION_PAYLOAD_RESTRICTION_POLICY
+    ImageChildProcessPolicy,            // RTL_IMAGE_MITIGATION_CHILD_PROCESS_POLICY
+    ImageSehopPolicy,                   // RTL_IMAGE_MITIGATION_SEHOP_POLICY
+    ImageHeapPolicy,                    // RTL_IMAGE_MITIGATION_HEAP_POLICY
+    ImageUserShadowStackPolicy,         // RTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY
+    ImageRedirectionTrustPolicy,        // RTL_IMAGE_MITIGATION_REDIRECTION_TRUST_POLICY
+    ImageUserPointerAuthPolicy,         // RTL_IMAGE_MITIGATION_USER_POINTER_AUTH_POLICY
     MaxImageMitigationPolicy
 } IMAGE_MITIGATION_POLICY;
 
@@ -14107,14 +14101,14 @@ typedef union _RTL_IMAGE_MITIGATION_POLICY
         ULONG64 AuditFlag : 1;
         ULONG64 EnableAdditionalAuditingOption : 1;
         ULONG64 Reserved : 60;
-    };
+    } DUMMYSTRUCTNAME;
     struct
     {
         ULONG64 PolicyState : 2;
         ULONG64 AlwaysInherit : 1;
         ULONG64 EnableAdditionalPolicyOption : 1;
         ULONG64 AuditReserved : 60;
-    };
+    } DUMMYSTRUCTNAME2;
 } RTL_IMAGE_MITIGATION_POLICY, *PRTL_IMAGE_MITIGATION_POLICY;
 
 // rev
@@ -15419,7 +15413,7 @@ typedef struct _SYSTEM_FEATURE_CONFIGURATION_UPDATE
             SIZE_T BufferSize;
             PVOID Buffer;
         } Overwrite;
-    };
+    } UNION;
 } SYSTEM_FEATURE_CONFIGURATION_UPDATE, *PSYSTEM_FEATURE_CONFIGURATION_UPDATE;
 
 // private

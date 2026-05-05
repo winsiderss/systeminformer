@@ -283,7 +283,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                     PhRectangleToRect(&rect, &windowRectangle);
                     dpiValue = PhGetMonitorDpi(NULL, &rect);
 
-                    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_MEM_EDIT_SIZE, TRUE, dpiValue)->Pair;
+                    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_MEM_EDIT_SIZE, TRUE, dpiValue).Pair;
                     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                     MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
