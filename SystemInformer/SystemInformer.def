@@ -654,6 +654,7 @@ EXPORTS
     PhImpersonateToken
     PhIsDebuggerPresent
     PhIsFirmwareSupported
+    PhKillTimer
     PhListenNamedPipe
     PhLoadAppKey
     PhMapViewOfSection
